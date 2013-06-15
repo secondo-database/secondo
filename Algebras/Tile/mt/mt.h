@@ -92,6 +92,19 @@ class mt : public Attribute
   Type maximum() const;
   void getgrid(mtgrid& rmtgrid) const;
 
+  /*
+  methods
+
+  */
+
+  bool SetGrid(const double& rX,
+               const double& rY,
+               const double& rLength,
+               const datetime::DateTime& rDuration);
+  bool SetValue(const Index<3>& rIndex,
+                const Type& rValue,
+                bool bSetExtrema);
+
   protected:
 
   /*
@@ -109,13 +122,6 @@ class mt : public Attribute
   bool IsValidLocation(const double& rX,
                        const double& rY,
                        const double& rInstant) const;
-  bool SetGrid(const double& rX,
-               const double& rY,
-               const double& rLength,
-               const datetime::DateTime& rDuration);
-  bool SetValue(const Index<3>& rIndex,
-                const Type& rValue,
-                bool bSetExtrema);
 
   public:
 
@@ -204,14 +210,16 @@ mt<Type, Properties>::mt(bool bDefined)
                                 GetUndefinedValue()),
                       m_Flob(Properties::GetFlobSize())
 {
-  int dimensionSize = Properties::GetDimensionSize();
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
+  int tDimensionSize = Properties::GetTDimensionSize();
   Type undefinedValue = Properties::TypeProperties::GetUndefinedValue();
   
-  for(int time = 0; time < dimensionSize; time++)
+  for(int time = 0; time < tDimensionSize; time++)
   {
-    for(int row = 0; row < dimensionSize; row++)
+    for(int row = 0; row < yDimensionSize; row++)
     {
-      for(int column = 0; column < dimensionSize; column++)
+      for(int column = 0; column < xDimensionSize; column++)
       {
         Index<3> indexes = (int[]){column, row, time};
         SetValue(indexes, undefinedValue, false);
@@ -328,16 +336,18 @@ void mt<Type, Properties>::atinstant(const Instant& rInstant,
   typename Properties::tType t(true);
   t.SetGrid(m_Grid.GetX(), m_Grid.GetY(), m_Grid.GetLength());
 
-  int dimensionSize = Properties::GetDimensionSize();
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
+  int tDimensionSize = Properties::GetTDimensionSize();
   double gridDuration = m_Grid.GetDuration().ToDouble();
   int time = static_cast<int>(rInstant.ToDouble() / gridDuration);
   bool btDefined = false;
   
-  if(time < dimensionSize)
+  if(time < tDimensionSize)
   {
-    for(int row = 0; row < dimensionSize; row++)
+    for(int row = 0; row < yDimensionSize; row++)
     {
-      for(int column = 0; column < dimensionSize; column++)
+      for(int column = 0; column < xDimensionSize; column++)
       {
         Index<3> index3 = (int[]){column, row, time};
         Type value = GetValue(index3);
@@ -364,19 +374,21 @@ void mt<Type, Properties>::atinstant(const Instant& rInstant,
 template <typename Type, typename Properties>
 void mt<Type, Properties>::deftime(Periods& rPeriods) const
 {
-  int dimensionSize = Properties::GetDimensionSize();
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
+  int tDimensionSize = Properties::GetTDimensionSize();
   double duration = m_Grid.GetDuration().ToDouble();
   Periods periods(true);
 
   periods.StartBulkLoad();
 
-  for(int time = 0; time < dimensionSize; time++)
+  for(int time = 0; time < tDimensionSize; time++)
   {
     bool bDefined = false;
 
-    for(int row = 0; row < dimensionSize; row++)
+    for(int row = 0; row < yDimensionSize; row++)
     {
-      for(int column = 0; column < dimensionSize; column++)
+      for(int column = 0; column < xDimensionSize; column++)
       {
         Index<3> indexes = (int[]){column, row, time};
         Type value = GetValue(indexes);
@@ -413,16 +425,18 @@ void mt<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
   double minima[3] = { 0.0, 0.0, 0.0 };
   double maxima[3] = { 0.0, 0.0, 0.0 };
 
-  int dimensionSize = Properties::GetDimensionSize();
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
+  int tDimensionSize = Properties::GetTDimensionSize();
   Type value = Properties::TypeProperties::GetUndefinedValue();
 
-  for(int column = 0; column < dimensionSize; column++)
+  for(int column = 0; column < xDimensionSize; column++)
   {
     bool bbreak = false;
 
-    for(int row = 0; row < dimensionSize; row++)
+    for(int row = 0; row < yDimensionSize; row++)
     {
-      for(int time = 0; time < dimensionSize; time++)
+      for(int time = 0; time < tDimensionSize; time++)
       {
         Index<3> indexes = (int[]){column, row, time};
         value = GetValue(indexes);
@@ -447,13 +461,13 @@ void mt<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
     }
   }
 
-  for(int column = dimensionSize - 1; column >= 0; column--)
+  for(int column = xDimensionSize - 1; column >= 0; column--)
   {
     bool bbreak = false;
 
-    for(int row = 0; row < dimensionSize; row++)
+    for(int row = 0; row < yDimensionSize; row++)
     {
-      for(int time = 0; time < dimensionSize; time++)
+      for(int time = 0; time < tDimensionSize; time++)
       {
         Index<3> indexes = (int[]){column, row, time};
         value = GetValue(indexes);
@@ -478,13 +492,13 @@ void mt<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
     }
   }
 
-  for(int row = 0; row < dimensionSize; row++)
+  for(int row = 0; row < yDimensionSize; row++)
   {
     bool bbreak = false;
 
-    for(int column = 0; column < dimensionSize; column++)
+    for(int column = 0; column < xDimensionSize; column++)
     {
-      for(int time = 0; time < dimensionSize; time++)
+      for(int time = 0; time < tDimensionSize; time++)
       {
         Index<3> indexes = (int[]){column, row, time};
         value = GetValue(indexes);
@@ -509,13 +523,13 @@ void mt<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
     }
   }
 
-  for(int row = dimensionSize - 1; row >= 0; row--)
+  for(int row = yDimensionSize - 1; row >= 0; row--)
   {
     bool bbreak = false;
 
-    for(int column = 0; column < dimensionSize; column++)
+    for(int column = 0; column < xDimensionSize; column++)
     {
-      for(int time = 0; time < dimensionSize; time++)
+      for(int time = 0; time < tDimensionSize; time++)
       {
         Index<3> indexes = (int[]){column, row, time};
         value = GetValue(indexes);
@@ -540,13 +554,13 @@ void mt<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
     }
   }
 
-  for(int time = 0; time < dimensionSize; time++)
+  for(int time = 0; time < tDimensionSize; time++)
   {
     bool bbreak = false;
 
-    for(int column = 0; column < dimensionSize; column++)
+    for(int column = 0; column < xDimensionSize; column++)
     {
-      for(int row = 0; row < dimensionSize; row++)
+      for(int row = 0; row < yDimensionSize; row++)
       {
         Index<3> indexes = (int[]){column, row, time};
         value = GetValue(indexes);
@@ -571,13 +585,13 @@ void mt<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
     }
   }
 
-  for(int time = dimensionSize - 1; time >= 0; time--)
+  for(int time = tDimensionSize - 1; time >= 0; time--)
   {
     bool bbreak = false;
 
-    for(int column = 0; column < dimensionSize; column++)
+    for(int column = 0; column < xDimensionSize; column++)
     {
-      for(int row = 0; row < dimensionSize; row++)
+      for(int row = 0; row < yDimensionSize; row++)
       {
         Index<3> indexes = (int[]){column, row, time};
         value = GetValue(indexes);
@@ -624,123 +638,6 @@ void mt<Type, Properties>::getgrid(mtgrid& rmtgrid) const
 }
 
 template <typename Type, typename Properties>
-Index<2> mt<Type, Properties>::GetLocationIndex(const double& rX,
-                                                const double& rY) const
-{
-  int dimensionSize = Properties::GetDimensionSize();
-  double gridX = m_Grid.GetX();
-  double gridY = m_Grid.GetY();
-  double gridLength = m_Grid.GetLength();
-  int indexX = static_cast<int>((rX - gridX) / gridLength);
-  int indexY = static_cast<int>((rY - gridY) / gridLength);
-  assert(indexX < dimensionSize);
-  assert(indexY < dimensionSize);
-
-  Index<2> locationIndex = (int[]){indexX, indexY};
-  return locationIndex;
-}
-
-template <typename Type, typename Properties>
-Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
-                                                const double& rY,
-                                                const double& rInstant) const
-{
-  int dimensionSize = Properties::GetDimensionSize();
-  double gridDuration = m_Grid.GetDuration().ToDouble();
-  Index<2> index2 = GetLocationIndex(rX, rY);
-  int indexT = static_cast<int>(rInstant / gridDuration);
-  assert(indexT < dimensionSize);
-
-  Index<3> locationIndex = (int[]){index2.Get(0), index2.Get(1), indexT};
-  return locationIndex;
-}
-
-template <typename Type, typename Properties>
-Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
-{
-  Type value = Properties::TypeProperties::GetUndefinedValue();
-
-  if(IsDefined() &&
-     IsValidIndex(rIndex))
-  {
-    int dimensionSize = Properties::GetDimensionSize();
-    int flobIndex = rIndex[2] * dimensionSize * dimensionSize +
-                    rIndex[1] * dimensionSize + rIndex[0];
-
-    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
-                           sizeof(Type),
-                           flobIndex * sizeof(Type));
-    assert(bOK);
-  }
-
-  return value;
-}
-
-template <typename Type, typename Properties>
-bool mt<Type, Properties>::IsValidIndex(const Index<3>& rIndex) const
-{
-  bool bIsValidIndex = false;
-
-  int dimensionSize = Properties::GetDimensionSize();
-
-  if(rIndex[0] >= 0 &&
-     rIndex[0] < dimensionSize &&
-     rIndex[1] >= 0 &&
-     rIndex[1] < dimensionSize &&
-     rIndex[2] >= 0 &&
-     rIndex[2] < dimensionSize)
-  {
-    bIsValidIndex = true;
-  }
-
-  return bIsValidIndex;
-}
-
-template <typename Type, typename Properties>
-bool mt<Type, Properties>::IsValidLocation(const double& rX,
-                                           const double& rY) const
-{
-  bool bIsValidLocation = false;
-
-  int dimensionSize = Properties::GetDimensionSize();
-  double gridX = m_Grid.GetX();
-  double gridY = m_Grid.GetY();
-  double gridLength = m_Grid.GetLength();
-
-  if(rX >= gridX &&
-     rX < (gridX + dimensionSize * gridLength) &&
-     rY >= gridY &&
-     rY < (gridY + dimensionSize * gridLength))
-  {
-    bIsValidLocation = true;
-  }
-
-  return bIsValidLocation;
-}
-
-template <typename Type, typename Properties>
-bool mt<Type, Properties>::IsValidLocation(const double& rX,
-                                           const double& rY,
-                                           const double& rInstant) const
-{
-  bool bIsValidLocation = IsValidLocation(rX, rY);
-
-  if(bIsValidLocation == true)
-  {
-    int dimensionSize = Properties::GetDimensionSize();
-    double gridDuration = m_Grid.GetDuration().ToDouble();
-
-    if(rInstant > 0.0 &&
-       rInstant < (dimensionSize * gridDuration))
-   {
-      bIsValidLocation = true;
-   }
-  }
-
-  return bIsValidLocation;
-}
-
-template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetGrid(const double& rX,
                                    const double& rY,
                                    const double& rLength,
@@ -767,10 +664,11 @@ bool mt<Type, Properties>::SetValue(const Index<3>& rIndex,
   if(IsDefined() &&
      IsValidIndex(rIndex))
   {
-    int dimensionSize = Properties::GetDimensionSize();
-    int flobIndex = rIndex[2] * dimensionSize * dimensionSize +
-                    rIndex[1] * dimensionSize + rIndex[0];
-    
+    int xDimensionSize = Properties::GetXDimensionSize();
+    int yDimensionSize = Properties::GetYDimensionSize();
+    int flobIndex = rIndex[2] * xDimensionSize * yDimensionSize +
+                    rIndex[1] * yDimensionSize + rIndex[0];
+
     bRetVal = m_Flob.write(reinterpret_cast<const char*>(&rValue),
                            sizeof(Type),
                            flobIndex * sizeof(Type));
@@ -792,6 +690,128 @@ bool mt<Type, Properties>::SetValue(const Index<3>& rIndex,
   }
 
   return bRetVal;
+}
+
+template <typename Type, typename Properties>
+Index<2> mt<Type, Properties>::GetLocationIndex(const double& rX,
+                                                const double& rY) const
+{
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
+  double gridX = m_Grid.GetX();
+  double gridY = m_Grid.GetY();
+  double gridLength = m_Grid.GetLength();
+  int indexX = static_cast<int>((rX - gridX) / gridLength);
+  int indexY = static_cast<int>((rY - gridY) / gridLength);
+  assert(indexX < xDimensionSize);
+  assert(indexY < yDimensionSize);
+
+  Index<2> locationIndex = (int[]){indexX, indexY};
+  return locationIndex;
+}
+
+template <typename Type, typename Properties>
+Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
+                                                const double& rY,
+                                                const double& rInstant) const
+{
+  int tDimensionSize = Properties::GetTDimensionSize();
+  double gridDuration = m_Grid.GetDuration().ToDouble();
+  Index<2> index2 = GetLocationIndex(rX, rY);
+  int indexT = static_cast<int>(rInstant / gridDuration);
+  assert(indexT < tDimensionSize);
+
+  Index<3> locationIndex = (int[]){index2.Get(0), index2.Get(1), indexT};
+  return locationIndex;
+}
+
+template <typename Type, typename Properties>
+Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
+{
+  Type value = Properties::TypeProperties::GetUndefinedValue();
+
+  if(IsDefined() &&
+     IsValidIndex(rIndex))
+  {
+    int xDimensionSize = Properties::GetXDimensionSize();
+    int yDimensionSize = Properties::GetYDimensionSize();
+    int flobIndex = rIndex[2] * xDimensionSize * yDimensionSize +
+                    rIndex[1] * yDimensionSize + rIndex[0];
+
+    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
+                           sizeof(Type),
+                           flobIndex * sizeof(Type));
+    assert(bOK);
+  }
+
+  return value;
+}
+
+template <typename Type, typename Properties>
+bool mt<Type, Properties>::IsValidIndex(const Index<3>& rIndex) const
+{
+  bool bIsValidIndex = false;
+
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
+  int tDimensionSize = Properties::GetTDimensionSize();
+
+  if(rIndex[0] >= 0 &&
+     rIndex[0] < xDimensionSize &&
+     rIndex[1] >= 0 &&
+     rIndex[1] < yDimensionSize &&
+     rIndex[2] >= 0 &&
+     rIndex[2] < tDimensionSize)
+  {
+    bIsValidIndex = true;
+  }
+
+  return bIsValidIndex;
+}
+
+template <typename Type, typename Properties>
+bool mt<Type, Properties>::IsValidLocation(const double& rX,
+                                           const double& rY) const
+{
+  bool bIsValidLocation = false;
+
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
+  double gridX = m_Grid.GetX();
+  double gridY = m_Grid.GetY();
+  double gridLength = m_Grid.GetLength();
+
+  if(rX >= gridX &&
+     rX < (gridX + xDimensionSize * gridLength) &&
+     rY >= gridY &&
+     rY < (gridY + yDimensionSize * gridLength))
+  {
+    bIsValidLocation = true;
+  }
+
+  return bIsValidLocation;
+}
+
+template <typename Type, typename Properties>
+bool mt<Type, Properties>::IsValidLocation(const double& rX,
+                                           const double& rY,
+                                           const double& rInstant) const
+{
+  bool bIsValidLocation = IsValidLocation(rX, rY);
+
+  if(bIsValidLocation == true)
+  {
+    int tDimensionSize = Properties::GetTDimensionSize();
+    double gridDuration = m_Grid.GetDuration().ToDouble();
+
+    if(rInstant > 0.0 &&
+       rInstant < (tDimensionSize * gridDuration))
+   {
+      bIsValidLocation = true;
+   }
+  }
+
+  return bIsValidLocation;
 }
 
 template <typename Type, typename Properties>
@@ -1096,14 +1116,16 @@ Word mt<Type, Properties>::In(const ListExpr typeInfo,
                         int indexX = pageList.elem(1).intval();
                         int indexY = pageList.elem(2).intval();
                         int indexT = pageList.elem(3).intval();
-                        int dimensionSize = Properties::GetDimensionSize();
+                        int xDimensionSize = Properties::GetXDimensionSize();
+                        int yDimensionSize = Properties::GetYDimensionSize();
+                        int tDimensionSize = Properties::GetTDimensionSize();
 
                         if(indexX >= 0 &&
-                           indexX <= dimensionSize - sizeX &&
+                           indexX <= xDimensionSize - sizeX &&
                            indexY >= 0 &&
-                           indexY <= dimensionSize - sizeY &&
+                           indexY <= yDimensionSize - sizeY &&
                            indexT >= 0 &&
-                           indexT <= dimensionSize - sizeT)
+                           indexT <= tDimensionSize - sizeT)
                         {
                           pageList.rest();
                           pageList.rest();
@@ -1302,9 +1324,9 @@ ListExpr mt<Type, Properties>::Out(ListExpr typeInfo,
         instanceList.append(gridList);
 
         NList sizeList;
-        sizeList.append(Properties::GetDimensionSize());
-        sizeList.append(Properties::GetDimensionSize());
-        sizeList.append(Properties::GetDimensionSize());
+        sizeList.append(Properties::GetXDimensionSize());
+        sizeList.append(Properties::GetYDimensionSize());
+        sizeList.append(Properties::GetTDimensionSize());
         instanceList.append(sizeList);
 
         NList tintList;
