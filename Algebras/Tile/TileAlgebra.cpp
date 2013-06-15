@@ -61,6 +61,7 @@ includes for TileAlgebra operators
 #include "operators/bbox.h"
 #include "operators/minimum.h"
 #include "operators/maximum.h"
+#include "t2mt.h"
 #include "operators/getgrid.h"
 
 /*
@@ -139,6 +140,8 @@ TileAlgebra::TileAlgebra()
               minimumTypeMapping);
   AddOperator(maximumInfo(), maximumFunctions, maximumSelectFunction,
               maximumTypeMapping);
+  AddOperator(t2mtInfo(), t2mtFunctions, t2mtSelectFunction,
+              t2mtTypeMapping);
   AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
               getgridTypeMapping);
 }
