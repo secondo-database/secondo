@@ -53,7 +53,7 @@ class it : public Properties::tType
   public:
 
   it(bool bDefined);
-  it(const datetime::DateTime& rInstant,
+  it(const Instant& rInstant,
      const typename Properties::tType& rt);
   it(const it& rit);
 
@@ -76,8 +76,16 @@ class it : public Properties::tType
 
   */
 
-  datetime::DateTime inst();
-  typename Properties::tType val();
+  void inst(Instant& rInstant);
+  void val(typename Properties::tType& rt);
+
+  /*
+  methods
+  
+  */
+
+  void SetInstant(const Instant& rInstant);
+  void SetValues(const typename Properties::tType& rt);
 
   /*
   override functions from base class Attribute
@@ -136,7 +144,7 @@ class it : public Properties::tType
 
   */
 
-  datetime::DateTime m_Instant;
+  Instant m_Instant;
 };
 
 /*
@@ -161,7 +169,7 @@ it<Type, Properties>::it(bool bDefined)
 }
 
 template <typename Type, typename Properties>
-it<Type, Properties>::it(const datetime::DateTime& rInstant,
+it<Type, Properties>::it(const Instant& rInstant,
                          const typename Properties::tType& rt)
                      :Properties::tType(rt)
 {
@@ -196,15 +204,27 @@ it<Type, Properties>& it<Type, Properties>::operator=
 }
 
 template <typename Type, typename Properties>
-datetime::DateTime it<Type, Properties>::inst()
+void it<Type, Properties>::inst(Instant& rInstant)
 {
-  return m_Instant;
+  rInstant = m_Instant;
 }
 
 template <typename Type, typename Properties>
-typename Properties::tType it<Type, Properties>::val()
+void it<Type, Properties>::val(typename Properties::tType& rt)
 {
-  return *this;
+  rt = *this;
+}
+
+template <typename Type, typename Properties>
+void it<Type, Properties>::SetInstant(const Instant& rInstant)
+{
+  m_Instant = rInstant;
+}
+
+template <typename Type, typename Properties>
+void it<Type, Properties>::SetValues(const typename Properties::tType& rt)
+{
+  Properties::tType::operator=(rt);
 }
 
 template <typename Type, typename Properties>
@@ -429,7 +449,7 @@ Word it<Type, Properties>::In(const ListExpr typeInfo,
 
     if(instanceList.length() == 2)
     {
-      datetime::DateTime instant(datetime::instanttype);
+      Instant instant(datetime::instanttype);
       bool bOK = instant.ReadFrom(instanceList.elem(1).listExpr(), true);
 
       if(bOK == true)
