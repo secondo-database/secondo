@@ -48,9 +48,9 @@ class itProperties<double>
 {
   public:
 
+  typedef itreal PropertiesType;
   typedef Properties<double> TypeProperties;
   typedef treal tType;
-  typedef itreal itType;
   static std::string GetTypeName();
 };
 
