@@ -197,23 +197,23 @@ query mtint1 atlocation [[const point value (1.5 1.5)]]
 query mtreal1 atlocation [[const point value undefined]]
 
 #testcase mtreal atlocation at center of cell
-#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 0.0 3.0 FALSE)) (("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 0.0 7.0 FALSE))))
 query mtreal1 atlocation [[const point value (1.5 1.5)]]
 
 #testcase mtreal atlocation at left edge of cell
-#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 0.0 3.0 FALSE)) (("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 0.0 7.0 FALSE))))
 query mtreal1 atlocation [[const point value (1 1.5)]]
 
 #testcase mtreal atlocation at bottom edge of cell
-#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 0.0 3.0 FALSE)) (("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 0.0 7.0 FALSE))))
 query mtreal1 atlocation [[const point value (1.5 1)]]
 
 #testcase mtreal atlocation at top edge of cell
-#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 0.0 3.0 FALSE)) (("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 0.0 7.0 FALSE))))
 query mtreal1 atlocation [[const point value (1.5 1)]]
 
 #testcase mtreal atlocation at right edge of cell
-#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 0.0 3.0 FALSE)) (("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 0.0 7.0 FALSE))))
 query mtreal1 atlocation [[const point value (1 1.5)]]
 
 #testcase mtreal atlocation outside bbox
@@ -221,7 +221,7 @@ query mtreal1 atlocation [[const point value (1 1.5)]]
 query mtreal1 atlocation [[const point value (3.01 1.5)]]
 
 #testcase mtreal atlocation with defined point
-#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 0.0 3.0 FALSE)) (("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 0.0 7.0 FALSE))))
 query mtreal1 atlocation [[const point value (1.5 1.5)]]
 
 #######################################
@@ -299,4 +299,3 @@ query mtstring1 atlocation [[const point value (1.5 1.5)]]
 ################################################################################
 # Clean up #####################################################################
 ################################################################################
-
