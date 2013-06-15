@@ -38,6 +38,7 @@ class Properties
 {
   public:
 
+  typedef Type PropertiesType;
   typedef Type WrapperType;
   static Type GetUndefinedValue();
   static Type GetValue(const NList& rNList);
