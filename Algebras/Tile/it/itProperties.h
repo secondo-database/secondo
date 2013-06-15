@@ -36,9 +36,9 @@ class itProperties
 {
   public:
 
+  typedef Type PropertiesType;
   typedef Type TypeProperties;
   typedef Type tType;
-  typedef Type itType;
   static std::string GetTypeName();
 };
 
