@@ -48,9 +48,9 @@ class itProperties<int>
 {
   public:
 
+  typedef itint PropertiesType;
   typedef Properties<int> TypeProperties;
   typedef tint tType;
-  typedef itint itType;
   static std::string GetTypeName();
 };
 
