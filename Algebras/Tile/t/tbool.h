@@ -48,11 +48,11 @@ class tProperties<char>
 {
   public:
 
+  typedef tbool PropertiesType;
   typedef Properties<char> TypeProperties;
   typedef CcBool atlocationType;
   typedef Rectangle<2> bboxType;
   typedef tgrid gridType;
-  typedef tbool tType;
   static int GetDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
