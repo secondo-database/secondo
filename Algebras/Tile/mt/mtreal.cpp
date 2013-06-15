@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "mtreal.h"
+#include "../Constants.h"
 
 namespace TileAlgebra
 {
@@ -30,25 +31,44 @@ implementation of template class mtProperties<double>
 
 */
 
-int mtProperties<double>::GetDimensionSize()
+int mtProperties<double>::GetXDimensionSize()
 {
-  int dimensionSize = static_cast<unsigned int>
-                      (std::pow((WinUnix::getPageSize() -
-                                 sizeof(mtgrid) -
-                                 2 * sizeof(double)) /
-                                 sizeof(double),
-                                 1.0 / 3.0)
-                      );
+  int xDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(mtgrid) -
+                                  2 * sizeof(double)) /
+                                  sizeof(double),
+                                  0.5)
+                       );
 
-  return dimensionSize;
+  return xDimensionSize;
+}
+
+int mtProperties<double>::GetYDimensionSize()
+{
+  int yDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(mtgrid) -
+                                  2 * sizeof(double)) /
+                                  sizeof(double),
+                                  0.5)
+                       );
+
+  return yDimensionSize;
+}
+
+int mtProperties<double>::GetTDimensionSize()
+{
+  return TIME_DIMENSION_SIZE;
 }
 
 int mtProperties<double>::GetFlobElements()
 {
-  int nFlobElements = static_cast<unsigned int>
-                      (std::pow(GetDimensionSize(), 3));
+  int flobElements = GetXDimensionSize() *
+                     GetYDimensionSize() *
+                     GetTDimensionSize();
 
-  return nFlobElements;
+  return flobElements;
 }
 
 SmiSize mtProperties<double>::GetFlobSize()

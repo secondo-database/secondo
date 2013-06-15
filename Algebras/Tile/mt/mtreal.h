@@ -58,7 +58,9 @@ class mtProperties<double>
   typedef itreal itType;
   typedef treal tType;
   typedef UReal unitType;
-  static int GetDimensionSize();
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
+  static int GetTDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
   static std::string GetTypeName(); 
