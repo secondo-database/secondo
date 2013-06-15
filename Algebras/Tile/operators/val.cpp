@@ -55,22 +55,26 @@ int valSelectFunction(ListExpr arguments)
   if(arguments != 0)
   {
     NList argumentsList(arguments);
-    NList argument1 = argumentsList.first();
-    const int TYPE_NAMES = 4;
-    const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
-    {
-      itint::BasicType(),
-      itreal::BasicType(),
-      itbool::BasicType(),
-      itstring::BasicType(),
-    };
 
-    for(int i = 0; i < TYPE_NAMES; i++)
+    if(argumentsList.hasLength(1))
     {
-      if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+      NList argument1 = argumentsList.first();
+      const int TYPE_NAMES = 4;
+      const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
       {
-        nSelection = i;
-        break;
+        itint::BasicType(),
+        itreal::BasicType(),
+        itbool::BasicType(),
+        itstring::BasicType(),
+      };
+
+      for(int i = 0; i < TYPE_NAMES; i++)
+      {
+        if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+        {
+          nSelection = i;
+          break;
+        }
       }
     }
   }
@@ -88,26 +92,30 @@ ListExpr valTypeMapping(ListExpr arguments)
   ListExpr type = NList::typeError("Expecting an it type.");
 
   NList argumentsList(arguments);
-  NList argument1 = argumentsList.first();
 
-  if(argument1 == NList(itint::BasicType()))
+  if(argumentsList.hasLength(1))
   {
-    type = NList(tint::BasicType()).listExpr();
-  }
+    NList argument1 = argumentsList.first();
 
-  else if(argument1 == NList(itreal::BasicType()))
-  {
-    type = NList(treal::BasicType()).listExpr();
-  }
+    if(argument1 == NList(itint::BasicType()))
+    {
+      type = NList(tint::BasicType()).listExpr();
+    }
 
-  else if(argument1 == NList(itbool::BasicType()))
-  {
-    type = NList(tbool::BasicType()).listExpr();
-  }
+    else if(argument1 == NList(itreal::BasicType()))
+    {
+      type = NList(treal::BasicType()).listExpr();
+    }
 
-  else if(argument1 == NList(itstring::BasicType()))
-  {
-    type = NList(tstring::BasicType()).listExpr();
+    else if(argument1 == NList(itbool::BasicType()))
+    {
+      type = NList(tbool::BasicType()).listExpr();
+    }
+
+    else if(argument1 == NList(itstring::BasicType()))
+    {
+      type = NList(tstring::BasicType()).listExpr();
+    }
   }
 
   return type;
