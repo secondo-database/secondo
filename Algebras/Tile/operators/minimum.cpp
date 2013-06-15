@@ -64,26 +64,30 @@ int minimumSelectFunction(ListExpr arguments)
   if(arguments != 0)
   {
     NList argumentsList(arguments);
-    NList argument1 = argumentsList.first();
-    const int TYPE_NAMES = 8;
-    const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
-    {
-      tint::BasicType(),
-      treal::BasicType(),
-      tbool::BasicType(),
-      tstring::BasicType(),
-      mtint::BasicType(),
-      mtreal::BasicType(),
-      mtbool::BasicType(),
-      mtstring::BasicType()
-    };
 
-    for(int i = 0; i < TYPE_NAMES; i++)
+    if(argumentsList.hasLength(1))
     {
-      if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+      NList argument1 = argumentsList.first();
+      const int TYPE_NAMES = 8;
+      const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
       {
-        nSelection = i;
-        break;
+        tint::BasicType(),
+        treal::BasicType(),
+        tbool::BasicType(),
+        tstring::BasicType(),
+        mtint::BasicType(),
+        mtreal::BasicType(),
+        mtbool::BasicType(),
+        mtstring::BasicType()
+      };
+
+      for(int i = 0; i < TYPE_NAMES; i++)
+      {
+        if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+        {
+          nSelection = i;
+          break;
+        }
       }
     }
   }
@@ -101,30 +105,34 @@ ListExpr minimumTypeMapping(ListExpr arguments)
   ListExpr type = NList::typeError("Expecting a t type or a mt type.");
 
   NList argumentsList(arguments);
-  NList argument1 = argumentsList.first();
 
-  if(argument1 == NList(tint::BasicType()) ||
-     argument1 == NList(mtint::BasicType()))
+  if(argumentsList.hasLength(1))
   {
-    type = NList(CcInt::BasicType()).listExpr();
-  }
+    NList argument1 = argumentsList.first();
 
-  else if(argument1 == NList(treal::BasicType()) ||
-          argument1 == NList(mtreal::BasicType()))
-  {
-    type = NList(CcReal::BasicType()).listExpr();
-  }
+    if(argument1 == NList(tint::BasicType()) ||
+       argument1 == NList(mtint::BasicType()))
+    {
+      type = NList(CcInt::BasicType()).listExpr();
+    }
 
-  else if(argument1 == NList(tbool::BasicType()) ||
-          argument1 == NList(mtbool::BasicType()))
-  {
-    type = NList(CcBool::BasicType()).listExpr();
-  }
+    else if(argument1 == NList(treal::BasicType()) ||
+            argument1 == NList(mtreal::BasicType()))
+    {
+      type = NList(CcReal::BasicType()).listExpr();
+    }
 
-  else if(argument1 == NList(tstring::BasicType()) ||
-          argument1 == NList(mtstring::BasicType()))
-  {
-    type = NList(CcString::BasicType()).listExpr();
+    else if(argument1 == NList(tbool::BasicType()) ||
+            argument1 == NList(mtbool::BasicType()))
+    {
+      type = NList(CcBool::BasicType()).listExpr();
+    }
+
+    else if(argument1 == NList(tstring::BasicType()) ||
+            argument1 == NList(mtstring::BasicType()))
+    {
+      type = NList(CcString::BasicType()).listExpr();
+    }
   }
 
   return type;
