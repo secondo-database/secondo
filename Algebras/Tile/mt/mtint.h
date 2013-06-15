@@ -58,7 +58,9 @@ class mtProperties<int>
   typedef itint itType;
   typedef tint tType;
   typedef UInt unitType;
-  static int GetDimensionSize();
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
+  static int GetTDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
   static std::string GetTypeName(); 
