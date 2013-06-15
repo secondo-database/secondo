@@ -65,25 +65,30 @@ int atlocationSelectFunction(ListExpr arguments)
   {
     NList argumentsList(arguments);
     NList argument1 = argumentsList.first();
-    const int TYPE_NAMES = 8;
-    const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
-    {
-      tint::BasicType(),
-      treal::BasicType(),
-      tbool::BasicType(),
-      tstring::BasicType(),
-      mtint::BasicType(),
-      mtreal::BasicType(),
-      mtbool::BasicType(),
-      mtstring::BasicType()
-    };
+    NList argument2 = argumentsList.second();
 
-    for(int i = 0; i < TYPE_NAMES; i++)
+    if(argument2.isSymbol(Point::BasicType()))
     {
-      if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+      const int TYPE_NAMES = 8;
+      const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
       {
-        nSelection = i;
-        break;
+        tint::BasicType(),
+        treal::BasicType(),
+        tbool::BasicType(),
+        tstring::BasicType(),
+        mtint::BasicType(),
+        mtreal::BasicType(),
+        mtbool::BasicType(),
+        mtstring::BasicType()
+      };
+
+      for(int i = 0; i < TYPE_NAMES; i++)
+      {
+        if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+        {
+          nSelection = i;
+          break;
+        }
       }
     }
   }
@@ -108,52 +113,47 @@ ListExpr atlocationTypeMapping(ListExpr arguments)
     NList argument1 = argumentsList.first();
     NList argument2 = argumentsList.second();
 
-    if(argument1 == NList(tint::BasicType()) &&
-       argument2 == NList(Point::BasicType()))
+    if(argument2 == NList(Point::BasicType()))
     {
-      type = NList(CcInt::BasicType()).listExpr();
-    }
+      if(argument1 == NList(tint::BasicType()))
+      {
+        type = NList(CcInt::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(treal::BasicType()) &&
-            argument2 == NList(Point::BasicType()))
-    {
-      type = NList(CcReal::BasicType()).listExpr();
-    }
+      else if(argument1 == NList(treal::BasicType()))
+      {
+        type = NList(CcReal::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(tbool::BasicType()) &&
-            argument2 == NList(Point::BasicType()))
-    {
-      type = NList(CcBool::BasicType()).listExpr();
-    }
+      else if(argument1 == NList(tbool::BasicType()))
+      {
+        type = NList(CcBool::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(tstring::BasicType()) &&
-            argument2 == NList(Point::BasicType()))
-    {
-      type = NList(CcString::BasicType()).listExpr();
-    }
+      else if(argument1 == NList(tstring::BasicType()))
+      {
+        type = NList(CcString::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(mtint::BasicType()) &&
-            argument2 == NList(Point::BasicType()))
-    {
-      type = NList(MInt::BasicType()).listExpr();
-    }
+      else if(argument1 == NList(mtint::BasicType()))
+      {
+        type = NList(MInt::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(mtreal::BasicType()) &&
-            argument2 == NList(Point::BasicType()))
-    {
-      type = NList(MReal::BasicType()).listExpr();
-    }
+      else if(argument1 == NList(mtreal::BasicType()))
+      {
+        type = NList(MReal::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(mtbool::BasicType()) &&
-            argument2 == NList(Point::BasicType()))
-    {
-      type = NList(MBool::BasicType()).listExpr();
-    }
+      else if(argument1 == NList(mtbool::BasicType()))
+      {
+        type = NList(MBool::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(mtstring::BasicType()) &&
-            argument2 == NList(Point::BasicType()))
-    {
-      type = NList(MString::BasicType()).listExpr();
+      else if(argument1 == NList(mtstring::BasicType()))
+      {
+        type = NList(MString::BasicType()).listExpr();
+      }
     }
   }
 
@@ -163,32 +163,28 @@ ListExpr atlocationTypeMapping(ListExpr arguments)
     NList argument2 = argumentsList.second();
     NList argument3 = argumentsList.third();
 
-    if(argument1 == NList(mtint::BasicType()) &&
-       argument2 == NList(Point::BasicType()) &&
-       argument2 == NList(Point::BasicType()))
+    if(argument2 == NList(Point::BasicType()) &&
+       argument3 == NList(Instant::BasicType()))
     {
-      type = NList(CcInt::BasicType()).listExpr();
-    }
+      if(argument1 == NList(mtint::BasicType()))
+      {
+        type = NList(CcInt::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(mtreal::BasicType()) &&
-            argument2 == NList(Point::BasicType()) &&
-            argument3 == NList(datetime::DateTime::BasicType()))
-    {
-      type = NList(CcReal::BasicType()).listExpr();
-    }
+      else if(argument1 == NList(mtreal::BasicType()))
+      {
+        type = NList(CcReal::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(mtbool::BasicType()) &&
-            argument2 == NList(Point::BasicType()) &&
-            argument3 == NList(datetime::DateTime::BasicType()))
-    {
-      type = NList(CcBool::BasicType()).listExpr();
-    }
+      else if(argument1 == NList(mtbool::BasicType()))
+      {
+        type = NList(CcBool::BasicType()).listExpr();
+      }
 
-    else if(argument1 == NList(mtstring::BasicType()) &&
-            argument2 == NList(Point::BasicType()) &&
-            argument3 == NList(datetime::DateTime::BasicType()))
-    {
-      type = NList(CcString::BasicType()).listExpr();
+      else if(argument1 == NList(mtstring::BasicType()))
+      {
+        type = NList(CcString::BasicType()).listExpr();
+      }
     }
   }
 

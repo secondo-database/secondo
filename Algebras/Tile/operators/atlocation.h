@@ -66,7 +66,7 @@ struct atlocationInfo : OperatorInfo
     signature = "tT x " + Point::BasicType() + " -> T";
     appendSignature("mtT x " + Point::BasicType() + " -> mT");
     appendSignature("mtT x " + Point::BasicType() +
-                    datetime::DateTime::BasicType() + " -> T");
+                    Instant::BasicType() + " -> T");
     syntax    = "_ atlocation [_, _]";
     meaning   = "Returns the value(s) of a t type or a mt type "
                 "at location point.";
@@ -110,7 +110,7 @@ int atlocationFunction(Word* pArguments,
             if(pType->IsDefined() &&
                pPoint->IsDefined())
             {
-              *pResult = pType->atlocation(pPoint->GetX(), pPoint->GetY());
+              pType->atlocation(pPoint->GetX(), pPoint->GetY(), *pResult);
             }
 
             else
@@ -123,7 +123,7 @@ int atlocationFunction(Word* pArguments,
 
       else
       {
-        datetime::DateTime* pInstant = static_cast<datetime::DateTime*>
+        Instant* pInstant = static_cast<Instant*>
                                        (pArguments[2].addr);
 
         if(pInstant != 0)
@@ -142,8 +142,8 @@ int atlocationFunction(Word* pArguments,
                  pPoint->IsDefined() &&
                  pInstant->IsDefined())
               {
-                *pResult = pType->atlocation(pPoint->GetX(), pPoint->GetY(),
-                                             pInstant->ToDouble());
+                pType->atlocation(pPoint->GetX(), pPoint->GetY(),
+                                  pInstant->ToDouble(), *pResult);
               }
 
               else
