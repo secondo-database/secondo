@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "mt.h"
 #include "mtProperties.h"
 #include "../Properties/Propertiesint.h"
+#include "../it/itint.h"
 #include "RectangleAlgebra.h"
 #include "TemporalAlgebra.h"
 
@@ -49,11 +50,13 @@ class mtProperties<int>
 {
   public:
 
+  typedef mtint PropertiesType;
   typedef Properties<int> TypeProperties;
   typedef MInt atlocationType;
   typedef Rectangle<3> bboxType;
   typedef mtgrid gridType;
-  typedef mtint mtType;
+  typedef itint itType;
+  typedef tint tType;
   typedef UInt unitType;
   static int GetDimensionSize();
   static int GetFlobElements();
