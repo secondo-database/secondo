@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_INDEX_H
 #define TILEALGEBRA_INDEX_H
 
-#include "Properties/Propertiesint.h"
+#include "Constants.h"
 
 namespace TileAlgebra
 {
@@ -246,7 +246,7 @@ Index<Dimension>& Index<Dimension>::operator-=(const Index<Dimension>& rIndex)
 template <int Dimension>
 int Index<Dimension>::Get(const int& rIndex)
 {
-  int indexValue = Properties<int>::GetUndefinedValue();
+  int indexValue = UNDEFINED_INT;
 
   if(rIndex < Dimension)
   {
