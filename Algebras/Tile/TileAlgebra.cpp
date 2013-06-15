@@ -54,8 +54,10 @@ includes for TileAlgebra operators
 
 #include "operators/load.h"
 #include "operators/atlocation.h"
+#include "operators/atinstant.h"
 #include "operators/inst.h"
 #include "operators/val.h"
+#include "operators/deftime.h"
 #include "operators/bbox.h"
 #include "operators/minimum.h"
 #include "operators/maximum.h"
@@ -123,10 +125,14 @@ TileAlgebra::TileAlgebra()
               loadTypeMapping);
   AddOperator(atlocationInfo(), atlocationFunctions, atlocationSelectFunction,
               atlocationTypeMapping);
+  AddOperator(atinstantInfo(), atinstantFunctions, atinstantSelectFunction,
+              atinstantTypeMapping);
   AddOperator(instInfo(), instFunctions, instSelectFunction,
               instTypeMapping);
   AddOperator(valInfo(), valFunctions, valSelectFunction,
               valTypeMapping);
+  AddOperator(deftimeInfo(), deftimeFunctions, deftimeSelectFunction,
+              deftimeTypeMapping);
   AddOperator(bboxInfo(), bboxFunctions, bboxSelectFunction,
               bboxTypeMapping);
   AddOperator(minimumInfo(), minimumFunctions, minimumSelectFunction,
