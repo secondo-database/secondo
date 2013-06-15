@@ -36,10 +36,10 @@ definition of inst functions
 
 ValueMapping instFunctions[] =
 {
-  instFunction<itint, itProperties<int> >,
-  instFunction<itreal, itProperties<double> >,
-  instFunction<itbool, itProperties<char> >,
-  instFunction<itstring, itProperties<std::string> >,
+  instFunction<itint>,
+  instFunction<itreal>,
+  instFunction<itbool>,
+  instFunction<itstring>,
   0
 };
 
@@ -55,22 +55,26 @@ int instSelectFunction(ListExpr arguments)
   if(arguments != 0)
   {
     NList argumentsList(arguments);
-    NList argument1 = argumentsList.first();
-    const int TYPE_NAMES = 4;
-    const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
-    {
-      itint::BasicType(),
-      itreal::BasicType(),
-      itbool::BasicType(),
-      itstring::BasicType(),
-    };
 
-    for(int i = 0; i < TYPE_NAMES; i++)
+    if(argumentsList.hasLength(1))
     {
-      if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+      NList argument1 = argumentsList.first();
+      const int TYPE_NAMES = 4;
+      const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
       {
-        nSelection = i;
-        break;
+        itint::BasicType(),
+        itreal::BasicType(),
+        itbool::BasicType(),
+        itstring::BasicType(),
+      };
+
+      for(int i = 0; i < TYPE_NAMES; i++)
+      {
+        if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+        {
+          nSelection = i;
+          break;
+        }
       }
     }
   }
@@ -88,14 +92,18 @@ ListExpr instTypeMapping(ListExpr arguments)
   ListExpr type = NList::typeError("Expecting an it type.");
 
   NList argumentsList(arguments);
-  NList argument1 = argumentsList.first();
 
-  if(argument1 == NList(itint::BasicType()) ||
-     argument1 == NList(itreal::BasicType()) ||
-     argument1 == NList(itbool::BasicType()) ||
-     argument1 == NList(itstring::BasicType()))
+  if(argumentsList.hasLength(1))
   {
-    type = NList(datetime::DateTime::BasicType()).listExpr();
+    NList argument1 = argumentsList.first();
+
+    if(argument1 == NList(itint::BasicType()) ||
+       argument1 == NList(itreal::BasicType()) ||
+       argument1 == NList(itbool::BasicType()) ||
+       argument1 == NList(itstring::BasicType()))
+    {
+      type = NList(Instant::BasicType()).listExpr();
+    }
   }
 
   return type;

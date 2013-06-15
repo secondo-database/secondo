@@ -62,7 +62,7 @@ struct instInfo : OperatorInfo
   instInfo()
   {
     name      = "inst";
-    signature = "itT -> " + datetime::DateTime::BasicType();
+    signature = "itT -> " + Instant::BasicType();
     syntax    = "inst(_)";
     meaning   = "Returns the instant value of an it type.";
   }
@@ -73,7 +73,7 @@ definition of template inst function
 
 */
 
-template <typename Type, typename Properties>
+template <typename Type>
 int instFunction(Word* pArguments,
                  Word& rResult,
                  int message,
@@ -93,12 +93,11 @@ int instFunction(Word* pArguments,
 
       if(rResult.addr != 0)
       {
-        datetime::DateTime* pResult = static_cast<datetime::DateTime*>
-                                      (rResult.addr);
+        Instant* pResult = static_cast<Instant*>(rResult.addr);
         
         if(pResult != 0)
         {
-          *pResult = pType->inst();
+          pType->inst(*pResult);
         }
       }
     }
