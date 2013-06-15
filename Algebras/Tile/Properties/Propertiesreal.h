@@ -40,6 +40,7 @@ class Properties<double>
 {
   public:
 
+  typedef double PropertiesType;
   typedef CcReal WrapperType;
   static double GetUndefinedValue();
   static double GetValue(const NList& rNList);
