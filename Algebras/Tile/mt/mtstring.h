@@ -89,6 +89,16 @@ class mtstring : public mtint
   std::string minimum() const;
   std::string maximum() const;
 
+  /*
+  methods
+
+  */
+
+  std::string GetValue(const Index<3>& rIndex) const;
+  bool SetValue(const Index<3>& rIndex,
+                const std::string& rValue,
+                bool bSetExtrema);
+
   protected:
 
   /*
@@ -96,8 +106,7 @@ class mtstring : public mtint
 
   */
 
-  std::string GetValue(const Index<3>& rIndex) const;
-  bool SetValue(const Index<3>& rIndex, const std::string& rValue);
+
 
   public:
 
@@ -179,7 +188,9 @@ class mtProperties<std::string>
   typedef itstring itType;
   typedef tstring tType;
   typedef UString unitType;
-  static int GetDimensionSize();
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
+  static int GetTDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
   static std::string GetTypeName();

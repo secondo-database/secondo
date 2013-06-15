@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "mtstring.h"
+#include "../Constants.h"
 
 namespace TileAlgebra
 {
@@ -145,14 +146,15 @@ void mtstring::atinstant(const Instant& rInstant,
   tstring tstring(true);
   tstring.SetGrid(m_Grid.GetX(), m_Grid.GetY(), m_Grid.GetLength());
 
-  int dimensionSize = mtProperties<std::string>::GetDimensionSize();
+  int xDimensionSize = mtProperties<std::string>::GetXDimensionSize();
+  int yDimensionSize = mtProperties<std::string>::GetYDimensionSize();
   double gridDuration = m_Grid.GetDuration().ToDouble();
   int time = static_cast<int>(rInstant.ToDouble() / gridDuration);
   bool bmtstringDefined = false;
 
-  for(int row = 0; row < dimensionSize; row++)
+  for(int row = 0; row < yDimensionSize; row++)
   {
-    for(int column = 0; column < dimensionSize; column++)
+    for(int column = 0; column < xDimensionSize; column++)
     {
       Index<3> index3 = (int[]){column, row, time};
       std::string value = GetValue(index3);
@@ -219,19 +221,22 @@ std::string mtstring::GetValue(const Index<3>& rIndex) const
 }
 
 bool mtstring::SetValue(const Index<3>& rIndex,
-                        const std::string& rValue)
+                        const std::string& rValue,
+                        bool bSetExtrema)
 {
   bool bRetVal = false;
 
-  int dimensionSize = mtProperties<std::string>::GetDimensionSize();
+  int xDimensionSize = mtProperties<std::string>::GetXDimensionSize();
+  int yDimensionSize = mtProperties<std::string>::GetYDimensionSize();
+  int tDimensionSize = mtProperties<std::string>::GetTDimensionSize();
 
   if(IsDefined() &&
      rIndex[0] >= 0 &&
-     rIndex[0] < dimensionSize &&
+     rIndex[0] < xDimensionSize &&
      rIndex[1] >= 0 &&
-     rIndex[1] < dimensionSize &&
+     rIndex[1] < yDimensionSize &&
      rIndex[2] >= 0 &&
-     rIndex[2] < dimensionSize)
+     rIndex[2] < tDimensionSize)
   {
     int stringIndex = m_UniqueStringArray.AddString(rValue);
 
@@ -240,16 +245,19 @@ bool mtstring::SetValue(const Index<3>& rIndex,
       bRetVal = mtint::SetValue(rIndex, stringIndex, false);
     }
 
-    if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) ||
-       rValue < minimum())
+    if(bSetExtrema == true)
     {
-      m_Minimum = stringIndex;
-    }
-   
-    if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) ||
-       rValue > maximum())
-    {
-      m_Maximum = stringIndex;
+      if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) ||
+         rValue < minimum())
+      {
+        m_Minimum = stringIndex;
+      }
+
+      if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) ||
+         rValue > maximum())
+      {
+        m_Maximum = stringIndex;
+      }
     }
   }
 
@@ -539,15 +547,19 @@ Word mtstring::In(const ListExpr typeInfo,
                         int indexX = pageList.elem(1).intval();
                         int indexY = pageList.elem(2).intval();
                         int indexT = pageList.elem(3).intval();
-                        int dimensionSize = mtProperties<std::string>::
-                                            GetDimensionSize();
+                        int xDimensionSize = mtProperties<std::string>::
+                                             GetXDimensionSize();
+                        int yDimensionSize = mtProperties<std::string>::
+                                             GetYDimensionSize();
+                        int tDimensionSize = mtProperties<std::string>::
+                                             GetTDimensionSize();
 
                         if(indexX >= 0 &&
-                           indexX <= dimensionSize - sizeX &&
+                           indexX <= xDimensionSize - sizeX &&
                            indexY >= 0 &&
-                           indexY <= dimensionSize - sizeY &&
+                           indexY <= yDimensionSize - sizeY &&
                            indexT >= 0 &&
-                           indexT <= dimensionSize - sizeT)
+                           indexT <= tDimensionSize - sizeT)
                         {
                           pageList.rest();
                           pageList.rest();
@@ -601,7 +613,8 @@ Word mtstring::In(const ListExpr typeInfo,
                                      IsUndefinedValue(stringValue) == false)
                                   {
                                     bOK = pmtstring->SetValue(index,
-                                                              stringValue);
+                                                              stringValue,
+                                                              true);
                                   }
                                 }
                               }
@@ -750,9 +763,9 @@ ListExpr mtstring::Out(ListExpr typeInfo,
         instanceList.append(gridList);
 
         NList sizeList;
-        sizeList.append(mtProperties<std::string>::GetDimensionSize());
-        sizeList.append(mtProperties<std::string>::GetDimensionSize());
-        sizeList.append(mtProperties<std::string>::GetDimensionSize());
+        sizeList.append(mtProperties<std::string>::GetXDimensionSize());
+        sizeList.append(mtProperties<std::string>::GetYDimensionSize());
+        sizeList.append(mtProperties<std::string>::GetTDimensionSize());
         instanceList.append(sizeList);
 
         NList tintList;
@@ -851,25 +864,44 @@ implementation of template class mtProperties<std::string>
 
 */
 
-int mtProperties<std::string>::GetDimensionSize()
+int mtProperties<std::string>::GetXDimensionSize()
 {
-  int dimensionSize = static_cast<unsigned int>
-                      (std::pow((WinUnix::getPageSize() -
-                                 sizeof(mtgrid) -
-                                 2 * sizeof(int)) /
-                                 sizeof(int),
-                                 1.0 / 3.0)
-                      );
+  int xDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(mtgrid) -
+                                  2 * sizeof(int)) /
+                                  sizeof(int),
+                                  0.5)
+                       );
 
-  return dimensionSize;
+  return xDimensionSize;
+}
+
+int mtProperties<std::string>::GetYDimensionSize()
+{
+  int yDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(mtgrid) -
+                                  2 * sizeof(int)) /
+                                  sizeof(int),
+                                  0.5)
+                       );
+
+  return yDimensionSize;
+}
+
+int mtProperties<std::string>::GetTDimensionSize()
+{
+  return TIME_DIMENSION_SIZE;
 }
 
 int mtProperties<std::string>::GetFlobElements()
 {
-  int nFlobElements = static_cast<unsigned int>
-                      (std::pow(GetDimensionSize(), 3));
+  int flobElements = GetXDimensionSize() *
+                     GetYDimensionSize() *
+                     GetTDimensionSize();
 
-  return nFlobElements;
+  return flobElements;
 }
 
 SmiSize mtProperties<std::string>::GetFlobSize()
