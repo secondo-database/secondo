@@ -85,12 +85,6 @@ class tstring : public tint
                   CcString& rValue) const;
   std::string minimum() const;
   std::string maximum() const;
-  /*
-  void t2mt(const Duration& rDuration,
-            const Instant& rInstant1,
-            const Instant& rInstant2,
-            mtstring& rmtstring) const;
-  */
 
   /*
   internal methods
@@ -175,7 +169,8 @@ class tProperties<std::string>
   typedef CcString atlocationType;
   typedef Rectangle<2> bboxType;
   typedef tgrid gridType;
-  static int GetDimensionSize();
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
   static std::string GetTypeName();

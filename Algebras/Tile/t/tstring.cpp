@@ -460,13 +460,15 @@ Word tstring::In(const ListExpr typeInfo,
                       {
                         int indexX = pageList.elem(1).intval();
                         int indexY = pageList.elem(2).intval();
-                        int dimensionSize = tProperties<std::string>::
-                                            GetDimensionSize();
+                        int xDimensionSize = tProperties<std::string>::
+                                             GetXDimensionSize();
+                        int yDimensionSize = tProperties<std::string>::
+                                             GetYDimensionSize();
 
                         if(indexX >= 0 &&
-                           indexX <= dimensionSize - sizeX &&
+                           indexX <= xDimensionSize - sizeX &&
                            indexY >= 0 &&
-                           indexY <= dimensionSize - sizeY)
+                           indexY <= yDimensionSize - sizeY)
                         {
                           pageList.rest();
                           pageList.rest();
@@ -659,8 +661,8 @@ ListExpr tstring::Out(ListExpr typeInfo,
         instanceList.append(gridList);
 
         NList sizeList;
-        sizeList.append(tProperties<std::string>::GetDimensionSize());
-        sizeList.append(tProperties<std::string>::GetDimensionSize());
+        sizeList.append(tProperties<std::string>::GetXDimensionSize());
+        sizeList.append(tProperties<std::string>::GetYDimensionSize());
         instanceList.append(sizeList);
 
         NList tintList;
@@ -759,25 +761,37 @@ implementation of template class tProperties<std::string>
 
 */
 
-int tProperties<std::string>::GetDimensionSize()
+int tProperties<std::string>::GetXDimensionSize()
 {
-  int dimensionSize = static_cast<unsigned int>
-                      (std::pow((WinUnix::getPageSize() -
-                                 sizeof(tgrid) -
-                                 2 * sizeof(int)) /
-                                 sizeof(int),
-                                 0.5)
-                      );
+  int xDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(tgrid) -
+                                  2 * sizeof(int)) /
+                                  sizeof(int),
+                                  0.5)
+                       );
 
-  return dimensionSize;
+  return xDimensionSize;
+}
+
+int tProperties<std::string>::GetYDimensionSize()
+{
+  int yDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(tgrid) -
+                                  2 * sizeof(int)) /
+                                  sizeof(int),
+                                  0.5)
+                       );
+
+  return yDimensionSize;
 }
 
 int tProperties<std::string>::GetFlobElements()
 {
-  int nFlobElements = static_cast<unsigned int>
-                      (std::pow(GetDimensionSize(), 2));
+  int flobElements = GetXDimensionSize() * GetYDimensionSize();
 
-  return nFlobElements;
+  return flobElements;
 }
 
 SmiSize tProperties<std::string>::GetFlobSize()
