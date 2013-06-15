@@ -47,11 +47,11 @@ class tProperties<double>
 {
   public:
 
+  typedef treal PropertiesType;
   typedef Properties<double> TypeProperties;
   typedef CcReal atlocationType;
   typedef Rectangle<2> bboxType;
   typedef tgrid gridType;
-  typedef treal tType;
   static int GetDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
