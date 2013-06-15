@@ -99,7 +99,7 @@ int bboxFunction(Word* pArguments,
         
         if(pResult != 0)
         {
-          *pResult = pType->bbox();
+          pType->bbox(*pResult);
         }
       }
     }

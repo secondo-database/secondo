@@ -63,26 +63,30 @@ int bboxSelectFunction(ListExpr arguments)
   if(arguments != 0)
   {
     NList argumentsList(arguments);
-    NList argument1 = argumentsList.first();
-    const int TYPE_NAMES = 8;
-    const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
-    {
-      tint::BasicType(),
-      treal::BasicType(),
-      tbool::BasicType(),
-      tstring::BasicType(),
-      mtint::BasicType(),
-      mtreal::BasicType(),
-      mtbool::BasicType(),
-      mtstring::BasicType()
-    };
 
-    for(int i = 0; i < TYPE_NAMES; i++)
+    if(argumentsList.hasLength(1))
     {
-      if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+      NList argument1 = argumentsList.first();
+      const int TYPE_NAMES = 8;
+      const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
       {
-        nSelection = i;
-        break;
+        tint::BasicType(),
+        treal::BasicType(),
+        tbool::BasicType(),
+        tstring::BasicType(),
+        mtint::BasicType(),
+        mtreal::BasicType(),
+        mtbool::BasicType(),
+        mtstring::BasicType()
+      };
+
+      for(int i = 0; i < TYPE_NAMES; i++)
+      {
+        if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
+        {
+          nSelection = i;
+          break;
+        }
       }
     }
   }
@@ -100,22 +104,26 @@ ListExpr bboxTypeMapping(ListExpr arguments)
   ListExpr type = NList::typeError("Expecting a t type or a mt type.");
 
   NList argumentsList(arguments);
-  NList argument1 = argumentsList.first();
 
-  if(argument1 == NList(tint::BasicType()) ||
-     argument1 == NList(treal::BasicType()) ||
-     argument1 == NList(tbool::BasicType()) ||
-     argument1 == NList(tstring::BasicType()))
+  if(argumentsList.hasLength(1))
   {
-    type = NList(Rectangle<2>::BasicType()).listExpr();
-  }
-  
-  if(argument1 == NList(mtint::BasicType()) ||
-     argument1 == NList(mtreal::BasicType()) ||
-     argument1 == NList(mtbool::BasicType()) ||
-     argument1 == NList(mtstring::BasicType()))
-  {
-    type = NList(Rectangle<3>::BasicType()).listExpr();
+    NList argument1 = argumentsList.first();
+
+    if(argument1 == NList(tint::BasicType()) ||
+       argument1 == NList(treal::BasicType()) ||
+       argument1 == NList(tbool::BasicType()) ||
+       argument1 == NList(tstring::BasicType()))
+    {
+      type = NList(Rectangle<2>::BasicType()).listExpr();
+    }
+    
+    if(argument1 == NList(mtint::BasicType()) ||
+       argument1 == NList(mtreal::BasicType()) ||
+       argument1 == NList(mtbool::BasicType()) ||
+       argument1 == NList(mtstring::BasicType()))
+    {
+      type = NList(Rectangle<3>::BasicType()).listExpr();
+    }
   }
 
   return type;
