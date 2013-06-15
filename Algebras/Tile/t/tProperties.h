@@ -36,11 +36,11 @@ class tProperties
 {
   public:
 
+  typedef Type PropertiesType;
   typedef Type TypeProperties;
   typedef Type atlocationType;
   typedef Type bboxType;
   typedef Type gridType;
-  typedef Type tType;
   static int GetDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
