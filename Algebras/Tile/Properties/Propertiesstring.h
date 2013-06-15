@@ -40,6 +40,7 @@ class Properties<std::string>
 {
   public:
 
+  typedef std::string PropertiesType;
   typedef CcString WrapperType;
   static std::string GetUndefinedValue();
   static std::string GetValue(const NList& rNList);
