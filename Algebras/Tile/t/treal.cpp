@@ -30,25 +30,37 @@ implementation of template class tProperties<double>
 
 */
 
-int tProperties<double>::GetDimensionSize()
+int tProperties<double>::GetXDimensionSize()
 {
-  int dimensionSize = static_cast<unsigned int>
-                      (std::pow((WinUnix::getPageSize() -
-                                 sizeof(tgrid) -
-                                 2 * sizeof(double)) /
-                                 sizeof(double),
-                                 0.5)
-                      );
+  int xDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(tgrid) -
+                                  2 * sizeof(double)) /
+                                  sizeof(double),
+                                  0.5)
+                       );
 
-  return dimensionSize;
+  return xDimensionSize;
+}
+
+int tProperties<double>::GetYDimensionSize()
+{
+  int yDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(tgrid) -
+                                  2 * sizeof(double)) /
+                                  sizeof(double),
+                                  0.5)
+                       );
+
+  return yDimensionSize;
 }
 
 int tProperties<double>::GetFlobElements()
 {
-  int nFlobElements = static_cast<unsigned int>
-                      (std::pow(GetDimensionSize(), 2));
+  int flobElements = GetXDimensionSize() * GetYDimensionSize();
 
-  return nFlobElements;
+  return flobElements;
 }
 
 SmiSize tProperties<double>::GetFlobSize()

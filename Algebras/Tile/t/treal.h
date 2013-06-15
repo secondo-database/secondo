@@ -52,7 +52,8 @@ class tProperties<double>
   typedef CcReal atlocationType;
   typedef Rectangle<2> bboxType;
   typedef tgrid gridType;
-  static int GetDimensionSize();
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
   static std::string GetTypeName(); 
