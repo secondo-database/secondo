@@ -49,7 +49,7 @@
 #include "AttrType.h"
 #include "Precise2DAlgebra.h"
 
-namespace p2d{
+namespace p2d {
 
 class Point2;
 
@@ -61,248 +61,249 @@ class Point2;
  PointData-object.
 
 */
-class PointData{
+class PointData {
 private:
-	// Gridvalue of the x- and y-coodinates
-	int x, y;
+ // Gridvalue of the x- and y-coodinates
+ int x, y;
 
-	// Startposition and length of the precise x- and y- coordinates
-	// in the Flob.
-	size_t xStartPos, yStartPos;
-	size_t xNumOfChars, yNumOfChars;
-
-
+ // Startposition and length of the precise x- and y- coordinates
+ // in the Flob.
+ size_t xStartPos, yStartPos;
+ size_t xNumOfChars, yNumOfChars;
 
 public:
 
-/*
- 2.1 Constructor and Deconstructor
+ /*
+  2.1 Constructor and Deconstructor
 
-*/
+ */
 
-/*
-	 2.1.1 PointData will be initialized with the grid-values. The indexes and
-	 	 the length for the precise coordinates will be set to 0.
+ /*
+  2.1.1 PointData will be initialized with the grid-values. The indexes and
+  the length for the precise coordinates will be set to 0.
 
-*/
-	PointData(const int xGrid, const int yGrid);
+ */
+ PointData(const int xGrid, const int yGrid);
 
-/*
-	 2.1.2 Copy-constructor
+ /*
+  2.1.2 Copy-constructor
 
-*/
-	PointData( const PointData& pd);
+ */
+ PointData(const PointData& pd);
 
+ /*
+  2.1.3 Default-constructor should not be used
 
+ */
+ inline PointData() {
+ }
+ ;
 
-/*
-	 2.1.3 Default-constructor should not be used
+ /*
+  2.1.4 Deconstructor
 
-*/
-	inline PointData(){};
+ */
+ ~PointData() {
+ }
+ ;
 
-/*
-	 2.1.4 Deconstructor
+ /*
+  2.2 Member functions
 
-*/
-	~PointData(){};
+ */
 
-/*
- 2.2 Member functions
+ /*
+  2.2.1 ~getGridX~ and ~getGridY~
+  Returns the grid-value of the coordinate.
 
-*/
+ */
+ int getGridX() const {
+  return x;
+ }
+ int getGridY() const {
+  return y;
+ }
 
-/*
-	 2.2.1 ~getGridX~ and ~getGridY~
-	 	 Returns the grid-value of the coordinate.
+ /*
+  2.2.2 ~getPreciseX~ and ~getPreciseY~
+  These methods fetch the chars representing the given coordinate from
+  the Flob using the indices given in this instance's private attributes,
+  and convert them to the correct instance of type mpq\_class, representing
+  the value of the given coordinate.
 
-*/
-	int getGridX()const{ return x; }
-	int getGridY()const{ return y; }
+ */
+ void getPreciseX(const Flob* preciseCoordinates, mpq_class& result) const;
+ void getPreciseY(const Flob* preciseCoordinates, mpq_class& result) const;
 
-/*
-	 2.2.2 ~getPreciseX~ and ~getPreciseY~
-	 These methods fetch the chars representing the given coordinate from
-	 the Flob using the indices given in this instance's private attributes,
-	 and convert them to the correct instance of type mpq\_class, representing
-	 the value of the given coordinate.
+ /*
+  2.2.3 ~getPreciseXAsString~ and ~getPreciseYAsString~
+  These methods returns the chars representing the given coordinate from
+  the Flob using the indices given in this instance's private attributes.
 
-*/
-	void getPreciseX(const Flob* preciseCoordinates,
-			mpq_class& result)const;
-	void getPreciseY(const Flob* preciseCoordinates,
-			mpq_class& result)const;
+ */
+ char* getPreciseXAsString(const Flob* preciseCoordinates) const;
+ char* getPreciseYAsString(const Flob* preciseCoordinates) const;
 
-/*
-	 2.2.3 ~getPreciseXAsString~ and ~getPreciseYAsString~
-	 These methods returns the chars representing the given coordinate from
-	 the Flob using the indices given in this instance's private attributes.
+ /*
+  2.2.4 ~setGridX~ and ~setGridY~
+  These methods stores the grid-value of the coordinates.
 
-*/
-	char* getPreciseXAsString(const Flob* preciseCoordinates)const;
-	char* getPreciseYAsString(const Flob* preciseCoordinates)const;
+ */
+ void SetGridX(int xp);
+ void SetGridY(int yp);
 
+ /*
+  2.2.5 ~setPreciseX~ and ~setPreciseY~
+  These methods writes the precise coordinate as a set of chars in the flob.
 
-/*
-	 2.2.4 ~setGridX~ and ~setGridY~
-	 These methods stores the grid-value of the coordinates.
+ */
+ void SetPreciseX(Flob* preciseCoordinates, mpq_class x);
+ void SetPreciseY(Flob* preciseCoordinates, mpq_class y);
 
-*/
-	void SetGridX(int xp);
-	void SetGridY(int yp);
+ /*
+  2.2.6 ~CopyPreciseCoordinates~
+  Copies the precise coordinates from the given point2-object in the flob.
 
-/*
-	 2.2.5 ~setPreciseX~ and ~setPreciseY~
-	 These methods writes the precise coordinate as a set of chars in the flob.
+ */
+ void CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates);
 
-*/
-	void SetPreciseX(Flob* preciseCoordinates, mpq_class x);
-	void SetPreciseY(Flob* preciseCoordinates, mpq_class y);
-
-/*
-	 2.2.6 ~CopyPreciseCoordinates~
-	 Copies the precise coordinates from the given point2-object in the flob.
-
-*/
-	void CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates);
-
+ bool Intersects(const Rectangle<2>& rect,
+   const Geoid* geoid/*=0*/, const Flob* preciseCoordinates) const;
 };
 
 /*
  3 Class ~Point2~
 
 */
-class Point2 : public StandardSpatialAttribute<2>{
+class Point2: public StandardSpatialAttribute<2> {
 
-	private:
-		Flob preciseCoordinates;
-		PointData pointData;
+private:
+ Flob preciseCoordinates;
+ PointData pointData;
 
-	public:
+public:
 
-/*
- 3.1 Constructors and Deconstructor
+ /*
+  3.1 Constructors and Deconstructor
 
-*/
-		inline Point2(){};
+ */
+ inline Point2() {
+ }
+ ;
 
-		Point2( const bool def, const int xCoord, int yCoord,
-				mpq_class preciseX, mpq_class preciseY);
-				
-		Point2(const Point2& cp);
+ Point2(const bool def, const int xCoord, int yCoord, mpq_class preciseX,
+   mpq_class preciseY);
 
-		Point2(bool def);
+ Point2(const Point2& cp);
 
-		~Point2(){};
+ Point2(bool def);
 
-/*
- 3.2 getter
+ ~Point2() {
+ }
+ ;
 
-*/
-		int getGridX() const;
+ /*
+  3.2 getter
 
-		int getGridY() const;
+ */
+ int getGridX() const;
 
-		mpq_class& getPreciseX() const;
+ int getGridY() const;
 
-		mpq_class& getPreciseY() const;
+ mpq_class& getPreciseX() const;
 
-		char* getPreciseXAsString() const;
+ mpq_class& getPreciseY() const;
 
-		char* getPreciseYAsString() const;
+ char* getPreciseXAsString() const;
 
-/*
- 3.3 comparison-operators
+ char* getPreciseYAsString() const;
 
-*/
-	    bool operator==( const Point2& p ) const;
-	    bool operator<=( const Point2& p ) const;
-	    bool operator<( const Point2& p ) const;
-	    bool operator>=( const Point2& p ) const;
-	    bool operator>( const Point2& p ) const;
+ /*
+  3.3 comparison-operators
 
-/*
-3.4 The following functions are required by Secondo
+ */
+ bool operator==(const Point2& p) const;
+ bool operator<=(const Point2& p) const;
+ bool operator<(const Point2& p) const;
+ bool operator>=(const Point2& p) const;
+ bool operator>(const Point2& p) const;
 
-*/
-	static const string BasicType(){
-		return "point2";
-	}
+ /*
+  3.4 The following functions are required by Secondo
 
-	static const bool checkType(const ListExpr type){
-      return listutils::isSymbol(type, BasicType());
-    }
+ */
+ static const string BasicType() {
+  return "point2";
+ }
 
-	inline size_t Sizeof() const;
+ static const bool checkType(const ListExpr type) {
+  return listutils::isSymbol(type, BasicType());
+ }
 
+ inline size_t Sizeof() const;
 
-	inline size_t HashValue() const
-	{
-		if( !IsEmpty() )
-		  return 0;
-		return (size_t)(5*pointData.getGridX() + pointData.getGridY());
-	}
+ inline size_t HashValue() const {
+  if (!IsEmpty())
+   return 0;
+  return (size_t)(5 * pointData.getGridX() + pointData.getGridY());
+ }
 
-	inline void CopyFrom( const Attribute* right );
+ inline void CopyFrom(const Attribute* right);
 
-	inline int Compare( const Attribute *arg ) const;
+ inline int Compare(const Attribute *arg) const;
 
-	inline bool Adjacent( const Attribute *arg ) const
-	{
-		return false;
-	}
+ inline bool Adjacent(const Attribute *arg) const {
+  return false;
+ }
 
-	inline Point2* Clone() const
-      	{ 
-		return new Point2( *this ); 
-	}
-		
-	ostream& Print( ostream &os ) const{
-		os << *this;
-		return os;
-	}
+ inline Point2* Clone() const {
+  return new Point2(*this);
+ }
 
-	int NumOfFLOBs(void) const{
-		return 1;
-	}
+ ostream& Print(ostream &os) const {
+  os << *this;
+  return os;
+ }
 
-	Flob *GetFLOB(const int i){
-		return &preciseCoordinates;
-	}
+ int NumOfFLOBs(void) const {
+  return 1;
+ }
 
-	static Word ClonePoint2( const ListExpr typeInfo,
-	            const Word& w );
+ Flob *GetFLOB(const int i) {
+  return &preciseCoordinates;
+ }
 
-	static void* CastPoint2(void* addr);
+ static Word ClonePoint2(const ListExpr typeInfo, const Word& w);
 
-	static int SizeOfPoint2();
+ static void* CastPoint2(void* addr);
 
-	static ListExpr OutPoint2( ListExpr typeInfo, Word value );
+ static int SizeOfPoint2();
 
-	static Word InPoint2( const ListExpr typeInfo, const ListExpr instance,
-	       const int errorPos, ListExpr& errorInfo, bool& correct );
+ static ListExpr OutPoint2(ListExpr typeInfo, Word value);
 
-	static Word CreatePoint2( const ListExpr typeInfo );
+ static Word InPoint2(const ListExpr typeInfo, const ListExpr instance,
+   const int errorPos, ListExpr& errorInfo, bool& correct);
 
-	static void DeletePoint2( const ListExpr typeInfo, Word& w );
+ static Word CreatePoint2(const ListExpr typeInfo);
 
-	static void ClosePoint2( const ListExpr typeInfo, Word& w );
+ static void DeletePoint2(const ListExpr typeInfo, Word& w);
 
-	static ListExpr Point2Property();
+ static void ClosePoint2(const ListExpr typeInfo, Word& w);
 
-	static bool CheckPoint2( ListExpr type, ListExpr& errorInfo );
+ static ListExpr Point2Property();
 
-	virtual const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
-    
-	virtual double Distance(const Rectangle<2>& rect,
-                            const Geoid* geoid=0) const;
-   	virtual bool IsEmpty() const;
+ static bool CheckPoint2(ListExpr type, ListExpr& errorInfo);
+
+ virtual const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
+
+ virtual double Distance(const Rectangle<2>& rect,
+   const Geoid* geoid = 0) const;
+ virtual bool IsEmpty() const;
+
+ virtual bool Intersects(const Rectangle<2>& rect,
+   const Geoid* geoid = 0) const;
 };
-
-
-
 
 } // end of namespace p2d
 
-
-#endif /* _POINT2_H */
+#endif /* _POINT2_H*/

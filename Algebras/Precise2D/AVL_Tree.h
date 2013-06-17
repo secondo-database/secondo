@@ -39,8 +39,7 @@
 #include "Line2.h"
 #include "Point2.h"
 #include "Points2.h"
-#include "SimpleLine2.h"
-#include "Spatial2Algebra.h"
+#include "Region2Algebra.h"
 #include <queue>
 #include <vector>
 
@@ -50,7 +49,6 @@ class SegmentData;
 class Line2;
 class Point2;
 class Points2;
-class SimpleLine2;
 
 class AVLNode;
 class AVLSegment;
@@ -347,7 +345,7 @@ enum SetOperation {
 };
 
 enum RelationshipOperation {
- intersects_op, inside_op
+ intersects_op, inside_op, overlaps_op
 };
 
 /*
@@ -390,11 +388,11 @@ protected:
 
  const Flob* flob;
 
- const DbArray<int>* dbarray;
+ const DbArray<unsigned int>* dbarray;
 
  SegmentData* originalData1;
 
- PrecHalfSegment* originalData2;
+ Reg2PrecHalfSegment* originalData2;
 
  mpq_class pxl;
 
@@ -493,8 +491,8 @@ public:
 
  AVLSegment(const Flob* preciseData, SegmentData* sd, Owner o);
 
- AVLSegment(const DbArray<int>* preciseData, GridHalfSegment& sd,
-   PrecHalfSegment* ps, Owner o);
+ AVLSegment(const DbArray<unsigned int>* preciseData, Reg2GridHalfSegment& sd,
+   Reg2PrecHalfSegment* ps, Owner o);
 
  AVLSegment(const AVLSegment& s);
 
@@ -744,11 +742,11 @@ public:
  int compareIntersectionintervalWithSweepline(AVLSegment& s, int gridXPos);
 
  /*
-  ~compareInPos~
+  ~compareInPosOrRight~
   Compares the y-values in a given x-value ~pos~ in both segments. The result is
-  - -1	if the value of this is less than the one in ~seg~
-  -  0	if both values are equal
-  - +1	if the value of this is greater than the one in ~seg~
+  - -1  if the value of this is less than the one in ~seg~
+  -  0  if both values are equal
+  - +1  if the value of this is greater than the one in ~seg~
 
   If both segments intersect in the given x-position, we take the given order
   more right.
@@ -758,14 +756,14 @@ public:
   If the precondition is not satisfied, an assertion ends with false.
 
  */
- int compareInPos(AVLSegment& s, int gridXPos, mpq_class& preciseXPos);
+ int compareInPosOrRight(AVLSegment& s, int gridXPos, mpq_class& preciseXPos);
 
  /*
-  ~compareInPosBackward~
+  ~compareInPosOrLeft~
   Compares the y-values in a given x-value ~pos~ in both segments. The result is
-  - -1	if the value of this is less than the one in ~seg~
-  -  0	if both values are equal
-  - +1	if the value of this is greater than the one in ~seg~
+  - -1  if the value of this is less than the one in ~seg~
+  -  0  if both values are equal
+  - +1  if the value of this is greater than the one in ~seg~
 
   If both segments intersect in the given x-position, we take the given order
   more left.
@@ -775,7 +773,7 @@ public:
   If the precondition is not satisfied, an assertion ends with false.
 
  */
- int compareInPosBackward(AVLSegment& s, int gridXPos, mpq_class& preciseXPos);
+ int compareInPosOrLeft(AVLSegment& s, int gridXPos, mpq_class& preciseXPos);
 
  /*
   ~compareInPosForMember~
@@ -1072,15 +1070,14 @@ Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
 Owner selectNext(const Line2& l, int& pos1, const Line2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
 
-Owner selectNext(const Region2& r1, int& pos1, const Region2& r2, int& pos2,
+Owner selectNext(/*const*/ Region2& r1, int& pos1,
+  /*const*/ Region2& r2, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
 
 template<class C>
 Owner selectNext(const C& l, int& pos,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
 
-Owner selectNext(const SimpleLine2& l, int& pos,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
 
 /*
  ~splitNeighbours~
@@ -1240,12 +1237,6 @@ void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op);
 */
 void Realminize(const Line2& src, Line2& result, const bool forceThrow);
 
-/*
- ~Realminize~
-
-*/
-void Realminize(const SimpleLine2& src, SimpleLine2& result,
-  const bool forceThrow);
 
 /*
  ~SetOp~
@@ -1262,8 +1253,8 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
  for ~region2~
 
 */
-void SetOp(const Region2& region1, const Region2& region2, Region2& result,
-  SetOperation op, const Geoid* geoid = 0);
+void SetOp(/*const*/ Region2& region1, /*const*/ Region2& region2,
+  Region2& result, SetOperation op, const Geoid* geoid = 0);
 
 /*
  ~intersects~
@@ -1286,7 +1277,19 @@ bool intersects(const Line2& line1, const Line2& line2, const Geoid* geoid = 0);
  false otherwise.
 
 */
-bool intersects(const Region2& region1, const Region2& region2,
+bool intersects(/*const*/ Region2& region1, /*const*/ Region2& region2,
+  const Geoid* geoid = 0);
+
+/*
+ ~overlaps~
+
+ ~region2~ x ~region2~ $->$ ~bool~
+
+ returns true, if both region2-objects overlap,
+ false otherwise.
+
+*/
+bool overlaps(/*const*/ Region2& region1, /*const*/ Region2& region2,
   const Geoid* geoid = 0);
 
 /*
@@ -1309,8 +1312,8 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
  inside the second argument, false otherwise.
 
 */
-bool inside(const Region2& region1, const Region2& region2, const Geoid* geoid =
-  0);
+bool inside(/*const*/ Region2& region1, /*const*/ Region2& region2,
+  const Geoid* geoid = 0);
 
 } //end of p2d
 
