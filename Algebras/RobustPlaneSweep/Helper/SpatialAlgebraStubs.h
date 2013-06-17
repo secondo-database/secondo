@@ -641,3 +641,6 @@ public:
     return isDefined;
   }
 };
+
+int HalfSegmentCompare(const void *a, const void *b);
+

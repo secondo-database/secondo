@@ -31,13 +31,13 @@ extern QueryProcessor* qp;
 
 namespace RobustPlaneSweep
 {
-  class RobustPlaneSweepAlgebra : public Algebra
-  {
-  public:
-    RobustPlaneSweepAlgebra();
+class RobustPlaneSweepAlgebra : public Algebra
+{
+public:
+  RobustPlaneSweepAlgebra();
 
-    ~RobustPlaneSweepAlgebra()
-    {
-    }
-  };
+  ~RobustPlaneSweepAlgebra()
+  {
+  }
+};
 }

@@ -28,21 +28,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  class SimpleSweepIntersectionAlgorithm : public SimpleIntersectionAlgorithm
+class SimpleSweepIntersectionAlgorithm : public SimpleIntersectionAlgorithm
+{
+protected:
+  int GetInitialScaleFactor() const
   {
-  protected:
-    int GetInitialScaleFactor()
-    {
-      return 1;
-    }
+    return 1;
+  }
 
-    void DetermineIntersectionsInternal();
+  void DetermineIntersectionsInternal();
 
-  public:
-    explicit SimpleSweepIntersectionAlgorithm(
-      IntersectionAlgorithmData* data) :
-    SimpleIntersectionAlgorithm(data)
-    {
-    }
-  };
+public:
+  explicit SimpleSweepIntersectionAlgorithm(IntersectionAlgorithmData* data) :
+      SimpleIntersectionAlgorithm(data)
+  {
+  }
+};
 }

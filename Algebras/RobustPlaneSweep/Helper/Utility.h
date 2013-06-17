@@ -28,17 +28,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  class Utility
+class Utility
+{
+private:
+  static const double Power10[12];
+
+public:
+  static double Round(const double value, const int digits)
   {
-  private:
-    static const double Power10[12];
+    double factor = Power10[digits];
+    double result = floor((value * factor) + 0.5) / factor;
 
-  public:
-    static double Round(const double value, const int digits) {
-      double factor = Power10[digits];
-      double result = floor((value*factor)+0.5)/factor;
-
-      return result;
-    }
-  };
+    return result;
+  }
+};
 }

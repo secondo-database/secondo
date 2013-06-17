@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  const double Utility::Power10[12] = {
+const double Utility::Power10[12] = {
     1.0,
     10.0,
     100.0,
@@ -38,5 +38,5 @@ namespace RobustPlaneSweep
     100000000.0,
     1000000000.0,
     10000000000.0
-  };
+};
 }

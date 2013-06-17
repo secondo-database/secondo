@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #ifdef WIN32
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <tchar.h>
 #include <crtdbg.h>
 #endif
@@ -79,9 +81,14 @@ public:
     }
   }
 
-  IntersectionAlgorithmCalculationType GetCalculationType()
+  bool FirstGeometryIsRegion() const
   {
-    return IntersectionAlgorithmCalculationType::CalulationTypeLine;
+    return false;
+  }
+
+  bool SecondGeometryIsRegion() const
+  {
+    return false;
   }
 
   void InitializeFetch()
@@ -89,22 +96,27 @@ public:
     _inputIterator = _input->begin();
   }
 
-  bool FetchInputHalfSegment(
-    HalfSegment &segment,
-    bool &belongsToSecondGeometry)
+  bool FetchInput(HalfSegment &segment,
+                  Point& point,
+                  bool &belongsToSecondGeometry)
   {
     if (_inputIterator == _input->end()) {
       return false;
     } else {
       belongsToSecondGeometry = false;
       segment = *_inputIterator++;
+      point.SetDefined(false);
       return true;
     }
   }
 
-  void OutputHalfSegment(
-    const HalfSegment& segment,
-    const InternalAttribute& /*attribute*/)
+  bool OutputData() const
+  {
+    return true;
+  }
+
+  void OutputHalfSegment(const HalfSegment& segment,
+                         const InternalAttribute& /*attribute*/)
   {
     HalfSegment s1 = segment;
     HalfSegment s2 = segment;
@@ -127,22 +139,24 @@ public:
     bool foundSegments = false;
 
     for (vector<HalfSegment>::iterator
-      i = _input->begin(); i != _input->end(); ++i) {
-        foundSegments = true;
-        const HalfSegment& segment = *i;
-        if (segment.GetDomPoint().GetX() < minX) {
-          minX = segment.GetDomPoint().GetX();
-        }
-        if (segment.GetDomPoint().GetY() < minY) {
-          minY = segment.GetDomPoint().GetY();
-        }
+    i = _input->begin(); i != _input->end(); ++i) {
+      foundSegments = true;
+      const HalfSegment& segment = *i;
+      if (segment.GetDomPoint().GetX() < minX) {
+        minX = segment.GetDomPoint().GetX();
+      }
 
-        if (segment.GetDomPoint().GetX() > maxX) {
-          maxX = segment.GetDomPoint().GetX();
-        }
-        if (segment.GetDomPoint().GetY() > maxY) {
-          maxY = segment.GetDomPoint().GetY();
-        }
+      if (segment.GetDomPoint().GetY() < minY) {
+        minY = segment.GetDomPoint().GetY();
+      }
+
+      if (segment.GetDomPoint().GetX() > maxX) {
+        maxX = segment.GetDomPoint().GetX();
+      }
+
+      if (segment.GetDomPoint().GetY() > maxY) {
+        maxY = segment.GetDomPoint().GetY();
+      }
     }
 
     if (foundSegments) {
@@ -152,12 +166,7 @@ public:
     }
   }
 
-  bool IsInputOrderedByX()
-  {
-    return false;
-  }
-
-  void GetRoundToDecimals(int& decimals, int& stepSize)
+  void GetRoundToDecimals(int& decimals, int& stepSize) const
   {
     decimals = _roundToDecimals;
     stepSize = _stepSize;
@@ -176,9 +185,13 @@ public:
   }
 };
 
-extern void RegionTest();
+extern void RegionRegionTest();
 
-int main()
+extern bool TriangleSetOpTest(unsigned int seed,
+                              unsigned int triangleCount,
+                              int decimals);
+
+int main(int argc, char* argv[])
 {
 #ifdef WIN32
 #ifdef _DEBUG
@@ -186,91 +199,131 @@ int main()
 #endif
 #endif
 
+  unsigned int processCount = 1;
+  unsigned int processNumber = 0;
+
+  if (argc == 3) {
+    sscanf(argv[1], "%d", &processNumber);
+    sscanf(argv[2], "%d", &processCount);
+  }
+
+//#ifndef _DEBUG
   {
-    cout << "region tests...";
-    RegionTest();
+    cout << "region x region tests...";
+    RegionRegionTest();
     cout << " done\n";
   }
+//#endif
 
 #ifdef WIN32
 #ifdef _DEBUG
   _CrtDumpMemoryLeaks();
+  //_CrtSetBreakAlloc(2150);
 #endif
 #endif
 
 #ifdef _DEBUG
   unsigned int count = 100;
+  unsigned int triangleCount = 20;
 #else
   unsigned int count = 10000;
+  unsigned int triangleCount = 2048;
 #endif
   int errorCount = 0;
 
-  for (unsigned int i = 1; errorCount == 0; ++i)
-  {
-    for (unsigned int subTest = 0; subTest < 7; ++subTest) {
+  for (unsigned int i = 1, j = 0; errorCount == 0; ++i) {
+    if ((i % processCount) != processNumber) {
+      continue;
+    }
+
+    if (j % 5 == 0) {
+      printf(" Seed.Sub | Naive SimSw BenOt HobSi Hobby |"
+             "  InCnt OutCnt HobCnt |     | BoCnt HoCnt\n");
+    }
+
+    for (unsigned int subTest = 0; subTest < 5 && errorCount == 0; ++subTest) {
+      {
+        int decimals = (subTest == 4 ? 6 : (int)subTest);
+        bool result = TriangleSetOpTest(i, triangleCount, decimals);
+
+        printf("%5d.%03d | triangle region test\n", i, subTest);
+        if (!result) {
+          printf("Fehler!\n");
+          errorCount++;
+          break;
+        }
+      }
+
+#ifdef WIN32
+#ifdef _DEBUG
+      _CrtDumpMemoryLeaks();
+#endif
+#endif
+    }
+
+    for (unsigned int subTest = 0; subTest < 7 && errorCount == 0; ++subTest) {
       vector<HalfSegment>* input;
       int roundToDecimals;
 
       switch (subTest) {
-      case 0:
-        input= TestDataGenerator::
-          GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 8);
-        roundToDecimals = 7;
-        break;
+        case 0:
+          input = TestDataGenerator::
+              GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 8);
+          roundToDecimals = 7;
+          break;
 
-      case 1:
-        input= TestDataGenerator::
-          GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 8);
-        roundToDecimals = 1;
-        break;
+        case 1:
+          input = TestDataGenerator::
+              GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 8);
+          roundToDecimals = 1;
+          break;
 
-      case 2:
-        input= TestDataGenerator::
-          GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 1);
-        roundToDecimals = 4;
-        break;
+        case 2:
+          input = TestDataGenerator::
+              GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 1);
+          roundToDecimals = 4;
+          break;
 
-      case 3:
-        input= TestDataGenerator::
-          GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 1);
-        roundToDecimals = 1;
-        break;
+        case 3:
+          input = TestDataGenerator::
+              GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 1);
+          roundToDecimals = 1;
+          break;
 
-      case 4:
-        input= TestDataGenerator::
-          GenerateRandomWalk(i, 33500000, 5800000, 20, 20, count, 4);
-        roundToDecimals = 2;
-        break;
+        case 4:
+          input = TestDataGenerator::
+              GenerateRandomWalk(i, 33500000, 5800000, 20, 20, count, 4);
+          roundToDecimals = 2;
+          break;
 
-      case 5:
-        input= TestDataGenerator::
-          GenerateRandomWalk(i, 10, 50, 0.01, 0.01, count, 8);
-        roundToDecimals = 7;
-        break;
+        case 5:
+          input = TestDataGenerator::
+              GenerateRandomWalk(i, 10, 50, 0.01, 0.01, count, 8);
+          roundToDecimals = 7;
+          break;
 
-      case 6:
-        input= TestDataGenerator::
-          GenerateRandomWalk(i, 0, 0, 0.05, 0.05, count, 8);
-        roundToDecimals = 7;
-        break;
+        case 6:
+          input = TestDataGenerator::
+              GenerateRandomWalk(i, 0, 0, 0.05, 0.05, count, 8);
+          roundToDecimals = 7;
+          break;
 
-      default:
-        throw new std::logic_error("invalid subtest number!");
+        default:
+          throw new std::logic_error("invalid subtest number!");
       }
 
-      int roundStepSize = (roundToDecimals == 7?2:1);
+      int roundStepSize = (roundToDecimals == 7 ? 2 : 1);
 
       clock_t time_ni = 0;
       vector<HalfSegment>* niResult = NULL;
-      if (count <= 100)
-      {
+      if (count <= 100) {
         clock_t start = std::clock();
 
         VectorData v(input, roundToDecimals, roundStepSize);
         NaiveIntersectionAlgorithm ni(&v);
         ni.DetermineIntersections();
         niResult = v.GetResult();
-        time_ni = std::clock()-start;
+        time_ni = std::clock() - start;
       }
 
       clock_t time_ssi = 0;
@@ -282,11 +335,11 @@ int main()
         SimpleSweepIntersectionAlgorithm ssi(&v);
         ssi.DetermineIntersections();
         ssiResult = v.GetResult();
-        time_ssi = std::clock()-start;
+        time_ssi = std::clock() - start;
       }
 
       clock_t time_bo = 0;
-      vector<HalfSegment>*  boResult;
+      vector<HalfSegment>* boResult;
       {
         clock_t start = std::clock();
 
@@ -294,7 +347,7 @@ int main()
         BentleyOttmann bo(&v);
         bo.DetermineIntersections();
         boResult = v.GetResult();
-        time_bo = std::clock()-start;
+        time_bo = std::clock() - start;
       }
 
       clock_t time_hos = 0;
@@ -306,7 +359,7 @@ int main()
         HobbyNaiveIntersectionAlgorithm hos(&v);
         hos.DetermineIntersections();
         hosResult = v.GetResult();
-        time_hos = std::clock()-start;
+        time_hos = std::clock() - start;
       }
 
       clock_t time_ho = 0;
@@ -318,7 +371,7 @@ int main()
         Hobby ho(&v);
         ho.DetermineIntersections();
         hoResult = v.GetResult();
-        time_ho = std::clock()-start;
+        time_ho = std::clock() - start;
       }
 
       bool isEqualNaiveSimple;
@@ -328,31 +381,28 @@ int main()
       size_t hobbyIntersections;
 
       if (niResult != NULL) {
-        LineSegmentComparer comparer(
-          niResult->begin(),
-          niResult->end(),
-          ssiResult->begin(),
-          ssiResult->end());
+        LineSegmentComparer comparer(niResult->begin(),
+                                     niResult->end(),
+                                     ssiResult->begin(),
+                                     ssiResult->end());
         isEqualNaiveSimple = comparer.IsEqual();
       } else {
         isEqualNaiveSimple = true;
       }
 
       {
-        LineSegmentComparer comparer(
-          ssiResult->begin(),
-          ssiResult->end(),
-          boResult->begin(),
-          boResult->end());
+        LineSegmentComparer comparer(ssiResult->begin(),
+                                     ssiResult->end(),
+                                     boResult->begin(),
+                                     boResult->end());
         isEqualSimpleBentleyOttmann = comparer.IsEqual();
       }
 
       {
-        LineSegmentComparer comparer(
-          hosResult->begin(),
-          hosResult->end(),
-          hoResult->begin(),
-          hoResult->end());
+        LineSegmentComparer comparer(hosResult->begin(),
+                                     hosResult->end(),
+                                     hoResult->begin(),
+                                     hoResult->end());
         isEqualHobby = comparer.IsEqual();
       }
 
@@ -370,36 +420,31 @@ int main()
         hobbyIntersections = bo.GetIntersectionCount();
       }
 
-      if (i%25 == 1 && subTest == 0) {
-        printf(" Seed.Sub | Naive SimSw BenOt HobSi Hobby |"
-          "  InCnt OutCnt HobCnt |     | BoCnt HoCnt\n");
-      }
-
       printf("%5d.%03d | %5d %5d %5d %5d %5d |"
-        " %6d %6d %6d | %d%d%d | %5d %5d\n",
-        i,
-        subTest,
-        (int)(time_ni/(CLOCKS_PER_SEC/1000)),
-        (int)(time_ssi/(CLOCKS_PER_SEC/1000)),
-        (int)(time_bo/(CLOCKS_PER_SEC/1000)),
-        (int)(time_hos/(CLOCKS_PER_SEC/1000)),
-        (int)(time_ho/(CLOCKS_PER_SEC/1000)),
-        (int)(input->size()),
-        (int)(ssiResult->size()),
-        (int)(hosResult->size()),
-        isEqualNaiveSimple,
-        isEqualSimpleBentleyOttmann,
-        isEqualHobby,
-        (int)nonHobbyIntersections,
-        (int)hobbyIntersections);
+             " %6d %6d %6d | %d%d%d | %5d %5d\n",
+             i,
+             subTest,
+             (int)(time_ni / (CLOCKS_PER_SEC / 1000)),
+             (int)(time_ssi / (CLOCKS_PER_SEC / 1000)),
+             (int)(time_bo / (CLOCKS_PER_SEC / 1000)),
+             (int)(time_hos / (CLOCKS_PER_SEC / 1000)),
+             (int)(time_ho / (CLOCKS_PER_SEC / 1000)),
+             (int)(input->size()),
+             (int)(ssiResult->size()),
+             (int)(hosResult->size()),
+             isEqualNaiveSimple,
+             isEqualSimpleBentleyOttmann,
+             isEqualHobby,
+             (int)nonHobbyIntersections,
+             (int)hobbyIntersections);
 
-      if (!isEqualNaiveSimple ||
-        !isEqualSimpleBentleyOttmann ||
-        !isEqualHobby ||
-        hobbyIntersections > 0) {
-          printf("Fehler!\n");
-          errorCount++;
-          break;
+      if (!isEqualNaiveSimple
+          || !isEqualSimpleBentleyOttmann
+          || !isEqualHobby
+          || hobbyIntersections > 0) {
+        printf("Fehler!\n");
+        errorCount++;
+        break;
       }
 
       delete input;

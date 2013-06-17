@@ -32,59 +32,85 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  typedef int HalfSegmentIntersectionId;
+typedef int HalfSegmentIntersectionId;
 
-  class InternalAttribute;
+class InternalAttribute;
 
-  enum IntersectionAlgorithmCalculationType
+class IntersectionAlgorithmData
+{
+public:
+  virtual bool FirstGeometryIsRegion() const = 0;
+
+  virtual bool SecondGeometryIsRegion() const = 0;
+
+  virtual void InitializeFetch() = 0;
+
+  virtual bool FetchInput(HalfSegment &segment,
+                          Point& point,
+                          bool &belongsToSecondGeometry) = 0;
+
+  virtual HalfSegmentIntersectionId
+  GetHalfSegmentId(const HalfSegment& /*segment*/) const
   {
-    CalulationTypeNone = 0,
-    CalulationTypeLine = 1,
-    CalulationTypeRegion = 2,
-  };
+    return 0;
+  }
 
-  class IntersectionAlgorithmData
+  virtual bool OutputData() const
   {
-  public:
-    virtual IntersectionAlgorithmCalculationType GetCalculationType() = 0;
+    return false;
+  }
 
-    virtual void InitializeFetch() = 0;
+  virtual void OutputHalfSegment(const HalfSegment& /*segment*/,
+                                 const InternalAttribute& /*attribute*/)
+  {
+    throw new std::logic_error("there shouldn't be "
+                               "any halfsegments to output!");
+  }
 
-    virtual bool FetchInputHalfSegment(
-      HalfSegment &segment,
-      bool &belongsToSecondGeometry) = 0;
+  virtual void OutputPoint(const Point& /*point*/,
+                           const InternalAttribute& /*attribute*/)
+  {
+    throw new std::logic_error("there shouldn't be "
+                               "any points to output!");
+  }
 
-    virtual HalfSegmentIntersectionId GetHalfSegmentId(
-      const HalfSegment& /*segment*/)
-    {
-      return 0;
-    };
+  virtual const Rectangle<2> GetBoundingBox() = 0;
 
-    virtual void OutputHalfSegment(
-      const HalfSegment& segment,
-      const InternalAttribute& attribute) = 0;
+  virtual bool IsInputOrderedByX() const
+  {
+    return true;
+  }
 
-    virtual const Rectangle<2> GetBoundingBox() = 0;
+  virtual void GetRoundToDecimals(int& decimals, int& stepSize) const
+  {
+    // because of AlmostEqual
+    decimals = 7;
+    stepSize = 2;
+  }
 
-    virtual bool IsInputOrderedByX() = 0;
+  virtual bool OnGeometryIntersectionFound()
+  {
+    return false;
+  }
 
-    virtual void GetRoundToDecimals(int& decimals, int& stepSize) = 0;
+  virtual void OutputFinished()
+  {
+  }
 
-    virtual void OutputFinished() = 0;
+  virtual bool ReportIntersections() const
+  {
+    return false;
+  }
 
-    virtual bool ReportIntersections()
-    {
-      return false;
-    }
+  virtual void ReportIntersection(const Point& /*intersectionPoint*/,
+                                  const bool /*overlappingIntersection*/)
+  {
+    throw new std::logic_error("there shouldn't be "
+                               "any intersections to report!");
+  }
 
-    virtual void ReportIntersection(
-      const Point& /*intersectionPoint*/,
-      const bool /*overlappingIntersection*/)
-    {
-    }
-
-    virtual ~IntersectionAlgorithmData()
-    {
-    }
-  };
+  virtual ~IntersectionAlgorithmData()
+  {
+  }
+};
 }

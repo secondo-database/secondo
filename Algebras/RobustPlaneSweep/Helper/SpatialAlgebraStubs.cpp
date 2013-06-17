@@ -28,20 +28,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 bool AlmostEqual(double d1, double d2)
 {
-  double diff = fabs(d1-d2);
+  double diff = fabs(d1 - d2);
   return (diff < 0.00000001);
 }
 
-int CompareDouble(const double a, const double b) {
-  if (AlmostEqual(a, b))
-  {
+int CompareDouble(const double a, const double b)
+{
+  if (AlmostEqual(a, b)) {
     return 0;
   }
 
-  if (a < b)
-  {
+  if (a < b) {
     return -1;
   }
 
   return 1;
 }
+
+int HalfSegmentCompare(const void *a, const void *b)
+{
+  const HalfSegment *hsa = (const HalfSegment *)a;
+  const HalfSegment *hsb = (const HalfSegment *)b;
+
+  return hsa->Compare(*hsb);
+}
+

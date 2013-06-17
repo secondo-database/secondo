@@ -31,161 +31,162 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
-  void HobbyNaiveIntersectionAlgorithm::DetermineIntersectionsInternal()
-  {
-    _spacing = GetTransformation()->GetMinimalRoundedStep() / 2;
+void HobbyNaiveIntersectionAlgorithm::DetermineIntersectionsInternal()
+{
+  _spacing = GetTransformation()->GetMinimalRoundedStep() / 2;
 
-    SimpleSweepIntersectionAlgorithm::DetermineIntersectionsInternal();
+  SimpleSweepIntersectionAlgorithm::DetermineIntersectionsInternal();
 
-    Hobby();
-  }
+  Hobby();
+}
 
-  void HobbyNaiveIntersectionAlgorithm::FindRoundedPoints()
-  {
-    const InternalPointTransformation* transformation = GetTransformation();
+void HobbyNaiveIntersectionAlgorithm::FindRoundedPoints()
+{
+  const InternalPointTransformation* transformation = GetTransformation();
 
-    std::vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
-    std::vector<InternalLineSegment*>::const_iterator end = GetInputEnd();
+  std::vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
+  std::vector<InternalLineSegment*>::const_iterator end = GetInputEnd();
 
-    for (std::vector<InternalLineSegment*>::const_iterator
-      i = begin; i != end; ++i) {
-        InternalLineSegment* segment = *i;
+  for (std::vector<InternalLineSegment*>::const_iterator
+  i = begin; i != end; ++i) {
+    InternalLineSegment* segment = *i;
 
-        InternalPoint roundedLeft =
-          transformation->RoundPoint(segment->GetLeft());
+    InternalPoint roundedLeft =
+        transformation->RoundPoint(segment->GetLeft());
 
-        InternalPoint roundedRight =
-          transformation->RoundPoint(segment->GetRight());
+    InternalPoint roundedRight =
+        transformation->RoundPoint(segment->GetRight());
 
-        _roundedPoints.insert(roundedLeft);
-        _roundedPoints.insert(roundedRight);
+    _roundedPoints.insert(roundedLeft);
+    _roundedPoints.insert(roundedRight);
 
-        std::map<
+    std::map<
+        InternalIntersectionPoint,
+        InternalAttribute,
+        InternalIntersectionPointLess>*
+    intersections = segment->GetIntersections();
+
+    if (intersections != NULL) {
+      for (std::map<
           InternalIntersectionPoint,
           InternalAttribute,
-          InternalIntersectionPointLess>*
-          intersections = segment->GetIntersections();
+          InternalIntersectionPointLess>::const_iterator intersection =
+          intersections->begin(); intersection != intersections->end();
+          ++intersection) {
 
-        if (intersections != NULL) {
-          for (std::map<
-            InternalIntersectionPoint,
-            InternalAttribute,
-            InternalIntersectionPointLess>::const_iterator
-            intersection = intersections->begin();
-          intersection != intersections->end(); ++intersection) {
-            InternalPoint roundedIntersection =
-              transformation->RoundPoint(intersection->first);
+        InternalPoint roundedIntersection =
+            transformation->RoundPoint(intersection->first);
 
-            _roundedPoints.insert(roundedIntersection);
-          }
-        }
+        _roundedPoints.insert(roundedIntersection);
+      }
     }
   }
+}
 
-  void HobbyNaiveIntersectionAlgorithm::CreateEvents()
-  {
-    _events.reserve(_roundedPoints.size()+GetInputSize()*2);
+void HobbyNaiveIntersectionAlgorithm::CreateEvents()
+{
+  _events.reserve(_roundedPoints.size() + GetInputSize() * 2);
 
-    for (unordered_set<
+  for (unordered_set<
       InternalPoint,
       InternalPointComparer,
-      InternalPointComparer>::const_iterator
-      i = _roundedPoints.begin();
-    i != _roundedPoints.end(); ++i)  {
-      _events.push_back(SweepEvent(i->GetX(), i->GetY()));
-    }
-
-    int segmentSpacing = _spacing + 1;
-
-    std::vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
-    std::vector<InternalLineSegment*>::const_iterator end = GetInputEnd();
-
-    for (std::vector<InternalLineSegment*>::const_iterator
-      i = begin; i != end; ++i) {
-        InternalLineSegment* segment = *i;
-        _events.push_back(SweepEvent(segment, segmentSpacing, true));
-        _events.push_back(SweepEvent(segment, segmentSpacing, false));
-    }
-
-    sort(_events.begin(), _events.end());
+      InternalPointComparer>::const_iterator i = _roundedPoints.begin();
+      i != _roundedPoints.end(); ++i) {
+    _events.push_back(SweepEvent(i->GetX(), i->GetY()));
   }
 
-  void HobbyNaiveIntersectionAlgorithm::Hobby()
-  {
-    FindRoundedPoints();
-    CreateEvents();
+  int segmentSpacing = _spacing + 1;
 
-    unordered_set<InternalLineSegment*> possibleSegments;
-    for (vector<SweepEvent>::const_iterator
-      e = _events.begin();
+  std::vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
+  std::vector<InternalLineSegment*>::const_iterator end = GetInputEnd();
+
+  for (std::vector<InternalLineSegment*>::const_iterator i = begin;
+      i != end; ++i) {
+    InternalLineSegment* segment = *i;
+    _events.push_back(SweepEvent(segment, segmentSpacing, true));
+    _events.push_back(SweepEvent(segment, segmentSpacing, false));
+  }
+
+  sort(_events.begin(), _events.end());
+}
+
+void HobbyNaiveIntersectionAlgorithm::Hobby()
+{
+  FindRoundedPoints();
+  CreateEvents();
+
+  unordered_set<InternalLineSegment*> possibleSegments;
+  for (vector<SweepEvent>::const_iterator e = _events.begin();
       e != _events.end(); ++e) {
-        if (e->GetEventType() == TolaranceSquare) {
-          int ppx0 = e->GetSquareX() - _spacing;
-          int ppx1 = e->GetSquareX() + _spacing;
-          int ppy0 = e->GetSquareY() - _spacing;
-          int ppy1 = e->GetSquareY() + _spacing;
+    if (e->GetEventType() == EventType::TolaranceSquare) {
+      int ppx0 = e->GetSquareX() - _spacing;
+      int ppx1 = e->GetSquareX() + _spacing;
+      int ppy0 = e->GetSquareY() - _spacing;
+      int ppy1 = e->GetSquareY() + _spacing;
 
-          InternalPoint tolPoints[4] =
-          {
-            InternalPoint(ppx0, ppy0),
-            InternalPoint(ppx0, ppy1),
-            InternalPoint(ppx1, ppy0),
-            InternalPoint(ppx1, ppy1)
-          };
+      InternalPoint tolPoints[4] = {
+          InternalPoint(ppx0, ppy0),
+          InternalPoint(ppx0, ppy1),
+          InternalPoint(ppx1, ppy0),
+          InternalPoint(ppx1, ppy1)
+      };
 
-          for (unordered_set<InternalLineSegment*>::const_iterator
-            segment = possibleSegments.begin();
-            segment != possibleSegments.end(); ++segment) {
-              int count = 0;
-              bool first = true;
-              Rational minX(0);
-              Rational minY(0);
+      for (unordered_set<InternalLineSegment*>::const_iterator segment =
+          possibleSegments.begin();
+          segment != possibleSegments.end();
+          ++segment) {
+        int count = 0;
+        bool first = true;
+        Rational minX(0);
+        Rational minY(0);
 
-              for (int i = 0; i < 4; ++i) {
-                InternalIntersectionPoint i0, i1;
-                int c = LineIntersection::GetIntersections(
-                  (*segment)->GetLeft(),
-                  (*segment)->GetRight(),
-                  tolPoints[i > 0 ? i-1 : 0],
-                  tolPoints[i < 3 ? i+1 : 3],
-                  true,
-                  i0,
-                  i1);
-                if (c >= 1) {
-                  minX = (first ? i0.GetX() : Rational::Min(minX, i0.GetX()));
-                  minY = (first ? i0.GetY() : Rational::Min(minY, i0.GetY()));
-                  first = false;
-                  if (c == 2) {
-                    minX = Rational::Min(minX, i1.GetX());
-                    minY = Rational::Min(minY, i1.GetY());
-                  }
-                }
-                count += c;
-              }
-
-              if (count >= 1) {
-                if (minX == ppx1 || minY == ppy1) {
-                  continue;
-                }
-
-                if (!InternalPoint::IsEqual(
-                  GetTransformation()->RoundPoint((*segment)->GetLeft()),
-                  InternalPoint(e->GetSquareX(), e->GetSquareY())) &&
-                  !InternalPoint::IsEqual(
-                  GetTransformation()->RoundPoint((*segment)->GetRight()),
-                  InternalPoint(e->GetSquareX(), e->GetSquareY()))) {
-                    (*segment)->AddHobbyIntersection(
-                      e->GetSquareX(), e->GetSquareY(), _spacing);
-                }
-              }
+        for (int i = 0; i < 4; ++i) {
+          InternalIntersectionPoint i0, i1;
+          int c =
+              LineIntersection::GetIntersections((*segment)->GetLeft(),
+                                                 (*segment)->GetRight(),
+                                                 tolPoints[i > 0 ? i - 1 : 0],
+                                                 tolPoints[i < 3 ? i + 1 : 3],
+                                                 true,
+                                                 i0,
+                                                 i1);
+          if (c >= 1) {
+            minX = (first ? i0.GetX() : Rational::Min(minX, i0.GetX()));
+            minY = (first ? i0.GetY() : Rational::Min(minY, i0.GetY()));
+            first = false;
+            if (c == 2) {
+              minX = Rational::Min(minX, i1.GetX());
+              minY = Rational::Min(minY, i1.GetY());
+            }
           }
-        } else if (e->GetEventType() == BeginSegment) {
-          possibleSegments.insert(e->GetSegment());
-        } else if (e->GetEventType() == EndSegment) {
-          possibleSegments.erase(e->GetSegment());
-        } else {
-          throw new std::logic_error("not supported event type!");
+          count += c;
         }
+
+        if (count >= 1) {
+          if (minX == ppx1 || minY == ppy1) {
+            continue;
+          }
+
+          if (!InternalPoint::
+              IsEqual(GetTransformation()->RoundPoint((*segment)->GetLeft()),
+                      InternalPoint(e->GetSquareX(),
+                                    e->GetSquareY()))
+              && !InternalPoint::
+              IsEqual(GetTransformation()->RoundPoint((*segment)->GetRight()),
+                      InternalPoint(e->GetSquareX(), e->GetSquareY()))) {
+            (*segment)->AddHobbyIntersection(e->GetSquareX(),
+                                             e->GetSquareY(),
+                                             _spacing);
+          }
+        }
+      }
+    } else if (e->GetEventType() == EventType::BeginSegment) {
+      possibleSegments.insert(e->GetSegment());
+    } else if (e->GetEventType() == EventType::EndSegment) {
+      possibleSegments.erase(e->GetSegment());
+    } else {
+      throw new std::logic_error("not supported event type!");
     }
   }
+}
 }

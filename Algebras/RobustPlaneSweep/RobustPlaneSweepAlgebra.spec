@@ -23,3 +23,4 @@ operator intersection2 alias INTERSECTION2 pattern op(_,_)
 operator minus2 alias MINUS2 pattern _ infixop _
 operator union2 alias UNION2 pattern _ infixop _
 operator toline alias TOLINE pattern op ( _ )
+operator intersects2 alias INTERSECTS2 pattern _ infixop _

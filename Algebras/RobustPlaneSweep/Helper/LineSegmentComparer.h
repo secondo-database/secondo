@@ -36,47 +36,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  class LineSegmentComparer
-  {
-  private:
-    std::vector<HalfSegment> _segments0;
-    std::vector<HalfSegment> _segments1;
+class LineSegmentComparer
+{
+private:
+  std::vector<HalfSegment> _segments0;
+  std::vector<HalfSegment> _segments1;
 
-    std::unordered_map<
+  std::unordered_map<
       double,
       std::pair<std::vector<size_t>*, std::vector<size_t>*>>
-      _possiblePairs;
+  _possiblePairs;
 
-    void FindPossiblePairs();
+  void FindPossiblePairs();
 
-  public:
-    template <class ForwardIterator0, class ForwardIterator1>
-    LineSegmentComparer(
-      ForwardIterator0 start0,
-      ForwardIterator0 end0,
-      ForwardIterator1 start1,
-      ForwardIterator1 end1)
-    {
-      for (ForwardIterator0 i = start0; i != end0; ++i) {
-        _segments0.push_back(*i);
-      }
-      for (ForwardIterator1 i = start1; i != end1; ++i) {
-        _segments1.push_back(*i);
-      }
+public:
+  template<class ForwardIterator0, class ForwardIterator1>
+  LineSegmentComparer(ForwardIterator0 start0,
+                      ForwardIterator0 end0,
+                      ForwardIterator1 start1,
+                      ForwardIterator1 end1)
+  {
+    for (ForwardIterator0 i = start0; i != end0; ++i) {
+      _segments0.push_back(*i);
     }
 
-    ~LineSegmentComparer()
-    {
-      for (std::unordered_map<
-        double,
+    for (ForwardIterator1 i = start1; i != end1; ++i) {
+      _segments1.push_back(*i);
+    }
+  }
+
+  ~LineSegmentComparer()
+  {
+    for (std::unordered_map<double,
         std::pair<std::vector<size_t>*, std::vector<size_t>*>>::const_iterator
-        i = _possiblePairs.begin();
-      i != _possiblePairs.end(); ++i) {
-        delete i->second.first;
-        delete i->second.second;
-      }
+    i = _possiblePairs.begin();
+        i != _possiblePairs.end(); ++i) {
+      delete i->second.first;
+      delete i->second.second;
     }
+  }
 
-    bool IsEqual();
-  };
+  bool IsEqual();
+};
 }

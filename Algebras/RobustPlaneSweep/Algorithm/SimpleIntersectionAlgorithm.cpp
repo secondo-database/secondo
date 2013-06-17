@@ -28,29 +28,27 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
-  void SimpleIntersectionAlgorithm::CreateResult()
-  {
-    vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
-    vector<InternalLineSegment*>::const_iterator end = GetInputEnd();
+void SimpleIntersectionAlgorithm::CreateResult()
+{
+  vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
+  vector<InternalLineSegment*>::const_iterator end = GetInputEnd();
 
-    vector<InternalResultLineSegment> tempResult;
-    for (vector<InternalLineSegment*>::const_iterator i = begin; i != end; ++i)
-    {
-      InternalLineSegment *segment = *i;
-      segment->BreakupLines(*GetTransformation(), tempResult);
-    }
+  vector<InternalResultLineSegment> tempResult;
+  for (vector<InternalLineSegment*>::const_iterator i = begin; i != end; ++i) {
+    InternalLineSegment *segment = *i;
+    segment->BreakupLines(*GetTransformation(), tempResult);
+  }
 
-    vector<InternalResultLineSegment>* nonOverlappingLineSegments =
+  vector<InternalResultLineSegment>* nonOverlappingLineSegments =
       RemoveOverlappingSegments(tempResult);
 
-    for (vector<InternalResultLineSegment>::const_iterator
-      i = nonOverlappingLineSegments->begin();
+  for (vector<InternalResultLineSegment>::const_iterator i =
+      nonOverlappingLineSegments->begin();
       i != nonOverlappingLineSegments->end(); ++i) {
-        GetData()->OutputHalfSegment(
-          i->GetRealLineSegment(
-          GetTransformation()),
-          i->GetInternalAttribute());
-    }
-    delete nonOverlappingLineSegments;
+    GetData()->OutputHalfSegment(i->GetRealLineSegment(GetTransformation()),
+                                 i->GetInternalAttribute());
   }
+
+  delete nonOverlappingLineSegments;
+}
 }

@@ -28,91 +28,95 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  class SimpleIntersectionAlgorithm : public IntersectionAlgorithm
+class SimpleIntersectionAlgorithm : public IntersectionAlgorithm
+{
+private:
+  std::vector<InternalLineSegment*>* _internalSegments;
+
+  void CreateInternalLineSegments()
   {
-  private:
-    std::vector<InternalLineSegment*>* _internalSegments;
+    _internalSegments = new std::vector<InternalLineSegment*>();
 
-    void CreateInternalLineSegments()
-    {
-      _internalSegments = new std::vector<InternalLineSegment*>();
+    GetData()->InitializeFetch();
 
-      GetData()->InitializeFetch();
+    HalfSegment segment;
+    Point point;
+    bool belongsToSecondGeometry;
+    while (GetData()->FetchInput(segment, point, belongsToSecondGeometry)) {
+      if (segment.IsLeftDomPoint()) {
+        bool isRegion;
+        if (belongsToSecondGeometry) {
+          isRegion = SecondGeometryIsRegion();
+        } else {
+          isRegion = FirstGeometryIsRegion();
+        }
 
-      HalfSegment segment;
-      bool belongsToSecondGeometry;
-      while (GetData()->FetchInputHalfSegment(segment, belongsToSecondGeometry))
-      {
-        if (segment.IsLeftDomPoint()) {
-          InternalLineSegment* internalSegment =
-            new InternalLineSegment(
-            *GetTransformation(),
-            segment,
-            belongsToSecondGeometry,
-            GetCalulcationType() == CalulationTypeRegion);
+        InternalLineSegment* internalSegment =
+            new InternalLineSegment(*GetTransformation(),
+                                    segment,
+                                    belongsToSecondGeometry,
+                                    isRegion);
 
-          if (!InternalPoint::IsEqual(
-            internalSegment->GetLeft(),
-            internalSegment->GetRight())) {
-              _internalSegments->push_back(internalSegment);
-          } else {
-            delete internalSegment;
-          }
+        if (!InternalPoint::IsEqual(internalSegment->GetLeft(),
+                                    internalSegment->GetRight())) {
+          _internalSegments->push_back(internalSegment);
+        } else {
+          delete internalSegment;
         }
       }
     }
+  }
 
-    void CreateResult();
+  void CreateResult();
 
-  protected:
-    const std::vector<InternalLineSegment*>::const_iterator
-      GetInputBegin() const
-    {
-      return _internalSegments->begin();
+protected:
+  const std::vector<InternalLineSegment*>::const_iterator GetInputBegin() const
+  {
+    return _internalSegments->begin();
+  }
+
+  const std::vector<InternalLineSegment*>::const_iterator GetInputEnd() const
+  {
+    return _internalSegments->end();
+  }
+
+  size_t GetInputSize() const
+  {
+    return _internalSegments->size();
+  }
+
+  virtual void DetermineIntersectionsInternal() = 0;
+
+public:
+  void DetermineIntersections()
+  {
+    if (GetTransformation() == NULL) {
+      CreateTransformation();
     }
 
-    const std::vector<InternalLineSegment*>::const_iterator
-      GetInputEnd() const
-    {
-      return _internalSegments->end();
-    }
+    CreateInternalLineSegments();
+    DetermineIntersectionsInternal();
+    CreateResult();
+    GetData()->OutputFinished();
+  }
 
-    size_t GetInputSize() const
-    {
-      return _internalSegments->size();
-    }
+  explicit SimpleIntersectionAlgorithm(IntersectionAlgorithmData* data) :
+      IntersectionAlgorithm(data)
+  {
+    _internalSegments = NULL;
+  }
 
-    virtual void DetermineIntersectionsInternal() = 0;
-
-  public:
-    void DetermineIntersections()
-    {
-      if (GetTransformation() == NULL) {
-        CreateTransformation();
+  ~SimpleIntersectionAlgorithm()
+  {
+    if (_internalSegments != NULL) {
+      for (std::vector<InternalLineSegment*>::const_iterator i =
+          _internalSegments->begin(); i != _internalSegments->end(); ++i) {
+        delete (*i);
       }
-      CreateInternalLineSegments();
-      DetermineIntersectionsInternal();
-      CreateResult();
-      GetData()->OutputFinished();
-    }
 
-    explicit SimpleIntersectionAlgorithm(IntersectionAlgorithmData* data) :
-    IntersectionAlgorithm(data)
-    {
+      delete _internalSegments;
       _internalSegments = NULL;
     }
-
-    ~SimpleIntersectionAlgorithm() {
-      if (_internalSegments != NULL) {
-        for (std::vector<InternalLineSegment*>::const_iterator
-          i = _internalSegments->begin();
-          i != _internalSegments->end(); ++i) {
-            delete (*i);
-        }
-
-        delete _internalSegments;
-        _internalSegments = NULL;
-      }
-    }
-  };
+  }
+};
 }

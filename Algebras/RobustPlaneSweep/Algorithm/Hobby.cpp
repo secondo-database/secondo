@@ -30,197 +30,213 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
-  void Hobby::DetermineIntersectionsInternal()
-  {
-    _spacing = GetTransformation()->GetMinimalRoundedStep() / 2;
+void Hobby::DetermineIntersectionsInternal()
+{
+  _spacing = GetTransformation()->GetMinimalRoundedStep() / 2;
 
-    BentleyOttmann::DetermineIntersectionsInternal();
-  }
+  BentleyOttmann::DetermineIntersectionsInternal();
+}
 
+AvlTreeNode<InternalLineSegment*, SweepStateData*>*
+Hobby::GetStartNode(const Rational& searchY) const
+{
   AvlTreeNode<InternalLineSegment*, SweepStateData*>*
-    Hobby::GetStartNode(Rational searchY)
-  {
-    AvlTreeNode<InternalLineSegment*, SweepStateData*>* currentNode =
-      GetState()->GetTreeRoot();
+  currentNode = GetState()->GetTreeRoot();
 
-    AvlTreeNode<InternalLineSegment*, SweepStateData*>* lastNode = NULL;
+  AvlTreeNode<InternalLineSegment*, SweepStateData*>* lastNode = NULL;
 
-    while (currentNode != NULL) {
-      lastNode = currentNode;
-      if (searchY <
-        currentNode->Value->GetYValueAt(GetState()->GetCurrentPoint())) {
-          currentNode = currentNode->Left;
-      } else {
-        currentNode = currentNode->Right;
-      }
+  while (currentNode != NULL) {
+    lastNode = currentNode;
+    if (searchY
+        < currentNode->Value->GetYValueAt(GetState()->GetCurrentPoint())) {
+      currentNode = currentNode->Left;
+    } else {
+      currentNode = currentNode->Right;
     }
-
-    return lastNode;
   }
 
-  void Hobby::AddEvents()
-  {
-    for (unordered_set<InternalLineSegment*>::const_iterator
-      segment =_openSegments.begin();
-      segment != _openSegments.end(); ++segment) {
-        _events.push_back(
-          HobbyEvent(
-          SegmentExit,
-          (*segment)->GetYValueAt(
-          InternalIntersectionPoint(_currentHammockEnd, 0)),
-          *segment));
-    }
+  return lastNode;
+}
 
-    InternalIntersectionPoint hammockStart(_currentHammockStart, 0);
-    InternalIntersectionPoint hammockEnd(_currentHammockEnd, 0);
+bool Hobby::AddSegmentEvent(int topSquareEdge,
+                            int bottomSquareEdge,
+                            int direction,
+                            InternalLineSegment* segment)
+{
+  if (_addedSegments.insert(segment).second) {
+    Rational yEnter = (segment)->GetYValueAt(_currentHammockStart);
+    Rational yExit = (segment)->GetYValueAt(_currentHammockEnd);
+    _events.push_back(HobbyEvent(HobbyEventType::SegmentEnter,
+                                 yEnter,
+                                 segment));
 
-    vector<int> squares;
-    for (unordered_set<int>::const_iterator
-      i =_addedSquares.begin();
-      i != _addedSquares.end(); ++i) {
-        squares.push_back(*i);
-    }
-    sort(squares.begin(), squares.end());
+    _events.push_back(HobbyEvent(HobbyEventType::SegmentExit, yExit, segment));
 
-    SweepState* state = GetState();
-    state->SetCurrentPoint(hammockEnd);
-    state->SetAssumeYEqual(false);
-
-    int spacing4 = _spacing * 4;
-
-    for (unsigned int i = 0; i < squares.size(); ) {
-      int topSquare = squares[i];
-      int bottomSquare = topSquare;
-
-      while (++i < squares.size() && squares[i] <= (bottomSquare + spacing4)) {
-        bottomSquare = squares[i];
+    if (direction == 0) {
+      if (yEnter < topSquareEdge && yExit < topSquareEdge) {
+        return true;
       }
+    } else {
+      if (yEnter > bottomSquareEdge && yExit > bottomSquareEdge) {
+        return true;
+      }
+    }
+  }
 
-      int topSquareEdge = topSquare - _spacing;
-      int bottomSquareEdge = bottomSquare + _spacing;
+  return false;
+}
 
-      AvlTreeNode<InternalLineSegment*, SweepStateData*>* startNode =
+void Hobby::AddEvents()
+{
+  for (unordered_set<InternalLineSegment*>::const_iterator segment =
+      _openSegments.begin(); segment != _openSegments.end(); ++segment) {
+
+    _events.push_back(HobbyEvent(HobbyEventType::SegmentExit,
+                                 (*segment)->GetYValueAt(_currentHammockEnd),
+                                 *segment));
+  }
+
+  InternalIntersectionPoint hammockStart(_currentHammockStart, 0);
+  InternalIntersectionPoint hammockEnd(_currentHammockEnd, 0);
+
+  vector<int> squares;
+  for (unordered_set<int>::const_iterator i = _addedSquares.begin();
+      i != _addedSquares.end(); ++i) {
+    squares.push_back(*i);
+  }
+
+  sort(squares.begin(), squares.end());
+
+  SweepState* state = GetState();
+  state->SetCurrentPoint(hammockEnd);
+  state->SetAssumeYEqual(false);
+
+  int spacing4 = _spacing * 4;
+
+  for (unsigned int i = 0; i < squares.size();) {
+    int topSquare = squares[i];
+    int bottomSquare = topSquare;
+
+    while (++i < squares.size() && squares[i] <= (bottomSquare + spacing4)) {
+      bottomSquare = squares[i];
+    }
+
+    int topSquareEdge = topSquare - _spacing;
+    int bottomSquareEdge = bottomSquare + _spacing;
+
+    AvlTreeNode<InternalLineSegment*, SweepStateData*>* startNode =
         GetStartNode(Rational(topSquareEdge));
 
-      for (int direction = 0; direction < 2; ++direction) {
-        AvlTreeNode<InternalLineSegment*, SweepStateData*>* node = startNode;
-        bool loop = true;
-        while (node != NULL && loop) {
+    for (int direction = 0; direction < 2; ++direction) {
+      AvlTreeNode<InternalLineSegment*, SweepStateData*>* node = startNode;
+      bool loop = true;
+      while (node != NULL && loop) {
+        if (node->Value->IsSingleSegment()) {
+          loop = !AddSegmentEvent(topSquareEdge,
+                                  bottomSquareEdge,
+                                  direction,
+                                  node->Value->GetFirstSegment());
+        } else {
           vector<InternalLineSegment*>* segments =
-            node->Value->GetAllSegments();
+              node->Value->GetAllSegments();
 
           for (vector<InternalLineSegment*>::const_iterator segment =
-            segments->begin();
-            segment != segments->end(); ++segment) {
-              if (_addedSegments.insert(*segment).second) {
-                Rational yEnter = (*segment)->GetYValueAt(hammockStart);
-                Rational yExit = (*segment)->GetYValueAt(hammockEnd);
-                _events.push_back(HobbyEvent(SegmentEnter, yEnter, *segment));
-                _events.push_back(HobbyEvent(SegmentExit, yExit, *segment));
-
-                if (direction == 0) {
-                  if (yEnter < topSquareEdge && yExit < topSquareEdge) {
-                    loop =false;
-                  }
-                } else {
-                  if (yEnter > bottomSquareEdge && yExit > bottomSquareEdge) {
-                    loop = false;
-                  }
-                }
-              }
+              segments->begin();
+              segment != segments->end(); ++segment) {
+            loop = !AddSegmentEvent(topSquareEdge,
+                                    bottomSquareEdge,
+                                    direction,
+                                    *segment);
           }
 
           delete segments;
-
-          node = (direction == 0 ? node->GetPrevious() : node->GetNext());
         }
+
+        node = (direction == 0 ? node->GetPrevious() : node->GetNext());
       }
     }
   }
+}
 
-  void Hobby::ProcessEvents()
-  {
-    if (_events.empty()) {
-      return;
-    }
-
-    AddEvents();
-
-    sort(_events.begin(), _events.end());
-
-    unordered_set<InternalLineSegment*>  activeLineSegments;
-
-    bool inToleranceSquare = false;
-    int currentSquareY = 0;
-    for (vector<HobbyEvent>::const_iterator
-      e = _events.begin();
-      e != _events.end(); ++e) {
-        if (e->GetEventType() == BeginTolaranceSquare) {
-          if (inToleranceSquare) {
-            throw new logic_error(
-              "wrong event order! (still in tolerance square)");
-          }
-          inToleranceSquare = true;
-
-          currentSquareY = GetTransformation()->
-            RoundRational(e->GetY() + _spacing);
-
-          for (unordered_set<InternalLineSegment*>::const_iterator
-            s = activeLineSegments.begin();
-            s != activeLineSegments.end(); ++s) {
-              if (_ignoredIntersections.find(
-                std::make_pair(currentSquareY, *s)) ==
-                _ignoredIntersections.end()) {
-                  (*s)->AddHobbyIntersection(
-                    _currentHammock,  currentSquareY, _spacing);
-              }
-          }
-        } else if (e->GetEventType() == EndTolaranceSquare) {
-          if (!inToleranceSquare) {
-            throw new logic_error(
-              "wrong event oder! (not in tolerance square)");
-          }
-
-          for (unordered_set<InternalLineSegment*>::const_iterator
-            s = activeLineSegments.begin();
-            s != activeLineSegments.end(); ++s) {
-              if (_ignoredIntersections.find(
-                std::make_pair(currentSquareY, *s)) ==
-                _ignoredIntersections.end()) {
-                  (*s)->AddHobbyIntersection(
-                    _currentHammock, currentSquareY, _spacing);
-              }
-          }
-
-          inToleranceSquare = false;
-        } else if (e->GetEventType() == SegmentBegin ||
-          e->GetEventType() == SegmentEnd ||
-          e->GetEventType() == SegmentEnter ||
-          e->GetEventType() == SegmentExit) {
-            if (activeLineSegments.find(e->GetSegment()) !=
-              activeLineSegments.end()) {
-                activeLineSegments.erase(e->GetSegment());
-            } else {
-              activeLineSegments.insert(e->GetSegment());
-            }
-
-            if (inToleranceSquare) {
-              if (_ignoredIntersections.find(
-                std::make_pair(currentSquareY, e->GetSegment())) ==
-                _ignoredIntersections.end()) {
-                  e->GetSegment()->AddHobbyIntersection(
-                    _currentHammock, currentSquareY, _spacing);
-              }
-            }
-        } else {
-          throw new logic_error("not supported event type!");
-        }
-    }
-
-    _events.clear();
-    _addedSegments.clear();
-    _openSegments.clear();
-    _addedSquares.clear();
-    _ignoredIntersections.clear();
+void Hobby::ProcessEvents()
+{
+  if (_events.empty()) {
+    return;
   }
+
+  AddEvents();
+
+  sort(_events.begin(), _events.end());
+
+  unordered_set<InternalLineSegment*> activeLineSegments;
+
+  bool inToleranceSquare = false;
+  int currentSquareY = 0;
+  for (vector<HobbyEvent>::const_iterator
+  e = _events.begin();
+      e != _events.end(); ++e) {
+    if (e->GetEventType() == HobbyEventType::BeginTolaranceSquare) {
+      if (inToleranceSquare) {
+        throw new logic_error("wrong event order! (still in tolerance square)");
+      }
+      inToleranceSquare = true;
+
+      currentSquareY = GetTransformation()->RoundRational(e->GetY() + _spacing);
+
+      for (unordered_set<InternalLineSegment*>::const_iterator s =
+          activeLineSegments.begin(); s != activeLineSegments.end(); ++s) {
+        if (_ignoredIntersections.find(std::make_pair(currentSquareY, *s))
+            == _ignoredIntersections.end()) {
+          (*s)->AddHobbyIntersection(_currentHammock,
+                                     currentSquareY,
+                                     _spacing);
+        }
+      }
+    } else if (e->GetEventType() == HobbyEventType::EndTolaranceSquare) {
+      if (!inToleranceSquare) {
+        throw new logic_error("wrong event oder! (not in tolerance square)");
+      }
+
+      for (unordered_set<InternalLineSegment*>::const_iterator s =
+          activeLineSegments.begin(); s != activeLineSegments.end(); ++s) {
+        if (_ignoredIntersections.find(std::make_pair(currentSquareY, *s))
+            == _ignoredIntersections.end()) {
+          (*s)->AddHobbyIntersection(_currentHammock,
+                                     currentSquareY,
+                                     _spacing);
+        }
+      }
+
+      inToleranceSquare = false;
+    } else if (e->GetEventType() == HobbyEventType::SegmentBegin
+               || e->GetEventType() == HobbyEventType::SegmentEnd
+               || e->GetEventType() == HobbyEventType::SegmentEnter
+               || e->GetEventType() == HobbyEventType::SegmentExit) {
+      if (activeLineSegments.find(e->GetSegment()) !=
+          activeLineSegments.end()) {
+        activeLineSegments.erase(e->GetSegment());
+      } else {
+        activeLineSegments.insert(e->GetSegment());
+      }
+
+      if (inToleranceSquare) {
+        if (_ignoredIntersections.find(std::make_pair(currentSquareY,
+                                                      e->GetSegment()))
+            == _ignoredIntersections.end()) {
+          e->GetSegment()->AddHobbyIntersection(_currentHammock,
+                                                currentSquareY,
+                                                _spacing);
+        }
+      }
+    } else {
+      throw new logic_error("not supported event type!");
+    }
+  }
+
+  _events.clear();
+  _addedSegments.clear();
+  _openSegments.clear();
+  _addedSquares.clear();
+  _ignoredIntersections.clear();
+}
 }

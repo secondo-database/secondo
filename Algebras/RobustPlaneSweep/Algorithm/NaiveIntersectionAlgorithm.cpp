@@ -29,39 +29,37 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
-  void NaiveIntersectionAlgorithm::DetermineIntersectionsInternal()
-  {
-    vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
-    vector<InternalLineSegment*>::const_iterator end = GetInputEnd();
+void NaiveIntersectionAlgorithm::DetermineIntersectionsInternal()
+{
+  vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
+  vector<InternalLineSegment*>::const_iterator end = GetInputEnd();
 
-    for (vector<InternalLineSegment*>::const_iterator
-      i = begin; i != end; ++i) {
-        InternalLineSegment* si = *i;
-        for (vector<InternalLineSegment*>::const_iterator
-          j = i + 1; j != end; ++j) {
-            InternalLineSegment* sj = *j;
+  for (vector<InternalLineSegment*>::const_iterator i = begin; i != end; ++i) {
+    InternalLineSegment* si = *i;
+    for (vector<InternalLineSegment*>::const_iterator j =
+        i + 1; j != end; ++j) {
+      InternalLineSegment* sj = *j;
 
-            InternalIntersectionPoint i0, i1;
-            int c = LineIntersection::GetIntersections(
-              si->GetLeft(),
-              si->GetRight(),
-              sj->GetLeft(),
-              sj->GetRight(),
-              false,
-              i0,
-              i1);
+      InternalIntersectionPoint i0, i1;
+      int c = LineIntersection::GetIntersections(si->GetLeft(),
+                                                 si->GetRight(),
+                                                 sj->GetLeft(),
+                                                 sj->GetRight(),
+                                                 false,
+                                                 i0,
+                                                 i1);
 
-            if (c == 0) {
-            } else if (c == 1) {
-              si->AddIntersection(i0);
-              sj->AddIntersection(i0);
-            } else if (c == 2) {
-              si->AddIntersection(i0);
-              sj->AddIntersection(i0);
-              si->AddIntersection(i1);
-              sj->AddIntersection(i1);
-            }
-        }
+      if (c == 0) {
+      } else if (c == 1) {
+        si->AddIntersection(i0);
+        sj->AddIntersection(i0);
+      } else if (c == 2) {
+        si->AddIntersection(i0);
+        sj->AddIntersection(i0);
+        si->AddIntersection(i1);
+        sj->AddIntersection(i1);
+      }
     }
   }
+}
 }

@@ -35,16 +35,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  class TestDataGenerator
-  {
-  public:
-    static std::vector<HalfSegment>* GenerateRandomWalk(
-      unsigned int seed,
-      double offsetX,
-      double offsetY,
-      double extentX,
-      double extentY,
-      unsigned count,
-      int roundToDecimals);
-  };
+class TestDataGenerator
+{
+public:
+  static std::vector<HalfSegment>*
+  GenerateRandomWalk(unsigned int seed,
+                     double offsetX,
+                     double offsetY,
+                     double extentX,
+                     double extentY,
+                     unsigned count,
+                     int roundToDecimals);
+
+  static std::vector<std::vector<HalfSegment>*>*
+  GenerateTriangles(unsigned int seed,
+                    double offsetX,
+                    double offsetY,
+                    double extentX,
+                    double extentY,
+                    unsigned count,
+                    int roundToDecimals);
+};
 }

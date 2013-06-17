@@ -38,63 +38,75 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  class IntersectionAlgorithm
+class IntersectionAlgorithm
+{
+private:
+  InternalPointTransformation* _transformation;
+  IntersectionAlgorithmData* _data;
+  bool _firstGeometryIsRegion;
+  bool _secondGeometryIsRegion;
+
+  static int
+  OverlappingSegmentsSortComparer(const InternalResultLineSegment& x,
+                                  const InternalResultLineSegment& y);
+
+  static bool OverlappingSegmentsSortLess(const InternalResultLineSegment& x,
+                                          const InternalResultLineSegment& y)
   {
-  private:
-    InternalPointTransformation* _transformation;
-    IntersectionAlgorithmCalculationType _calculationType;
-    IntersectionAlgorithmData* _data;
+    return OverlappingSegmentsSortComparer(x, y) < 0;
+  }
 
-    static bool OverlappingSegmentsSortComparer(
-      InternalResultLineSegment x,
-      InternalResultLineSegment y);
+protected:
+  std::vector<InternalResultLineSegment>*
+  RemoveOverlappingSegments(std::vector<InternalResultLineSegment>& segments);
 
-  protected:
-    std::vector<InternalResultLineSegment>*
-      RemoveOverlappingSegments(
-      std::vector<InternalResultLineSegment>& segments);
+  void CreateTransformation();
 
-    void CreateTransformation();
+  explicit IntersectionAlgorithm(IntersectionAlgorithmData* data)
+  {
+    _data = data;
+    _firstGeometryIsRegion = _data->FirstGeometryIsRegion();
+    _secondGeometryIsRegion = _data->SecondGeometryIsRegion();
+    _transformation = NULL;
+  }
 
-    explicit IntersectionAlgorithm(IntersectionAlgorithmData* data)
-    {
-      _data = data;
-      _calculationType = _data->GetCalculationType();
+  virtual ~IntersectionAlgorithm()
+  {
+    if (_transformation != NULL) {
+      delete _transformation;
       _transformation = NULL;
     }
+  }
 
-    virtual ~IntersectionAlgorithm()
-    {
-      if (_transformation != NULL) {
-        delete _transformation;
-        _transformation = NULL;
-      }
-    }
+  virtual int GetInitialScaleFactor() const = 0;
 
-    virtual int GetInitialScaleFactor() = 0;
+  inline InternalPointTransformation* GetTransformation() const
+  {
+    return _transformation;
+  }
 
-    inline InternalPointTransformation* GetTransformation() const
-    {
-      return _transformation;
-    }
+  inline IntersectionAlgorithmData* GetData() const
+  {
+    return _data;
+  }
 
-    inline IntersectionAlgorithmData* GetData() const
-    {
-      return _data;
-    }
+  inline bool FirstGeometryIsRegion() const
+  {
+    return _firstGeometryIsRegion;
+  }
 
-    inline IntersectionAlgorithmCalculationType GetCalulcationType() const
-    {
-      return _calculationType;
-    }
+  inline bool SecondGeometryIsRegion() const
+  {
+    return _secondGeometryIsRegion;
+  }
 
-  public:
-    virtual void DetermineIntersections() = 0;
+public:
+  virtual void DetermineIntersections() = 0;
 
-    // This method is only useful for test cases. Do not use otherwise!
-    inline void SetTransformation(InternalPointTransformation *transformation)
-    {
-      _transformation = new InternalPointTransformation(*transformation);
-    }
-  };
+  // This method is only useful for test cases. Do not use otherwise!
+  inline void SetTransformation(InternalPointTransformation *transformation)
+  {
+    _transformation = new InternalPointTransformation(*transformation);
+  }
+};
 }
