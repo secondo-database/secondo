@@ -33,43 +33,25 @@
 
 */
 
-#ifndef PRECISE2DALGEBRA_H_
-#define PRECISE2DALGEBRA_H_
+#ifndef TOOLBOX_H_
+#define TOOLBOX_H_
 
-//includes for the Gnu Multiple Precision (GMP) library
 #include <stdio.h>
 #include <gmp.h>
 #include <gmpxx.h>
-
-#include "Algebra.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "../../Tools/Flob/Flob.h"
-#include "NestedList.h"
-#include "ListUtils.h"
-#include "QueryProcessor.h"
-#include "StandardTypes.h"
-#include "AttrType.h"
 #include "Point2.h"
-#include "Line2.h"
-#include "Points2.h"
-#include "FTextAlgebra.h"
-#include "SpatialAlgebra.h"
-#include "Coarsening.h"
-#include "Toolbox.h"
 
-namespace p2d{
+namespace p2d {
 
-class Precise2DAlgbra;
+bool createCoordinate(ListExpr& value, int& grid, mpq_class& precise);
 
+void createValue(double value, int& gx, mpq_class& py);
 
- 
+void createPoint2(const double x, const double y, Point2** result);
 
+bool AlmostEqual(double a, double b);
 
+mpq_class computeMpqFromDouble(double value);
 
-
-
-
-
-
-}
-#endif /* PRECISE2DALGEBRA_H_ */
+} /* namespace p2d */
+#endif /* TOOLBOX_H_ */

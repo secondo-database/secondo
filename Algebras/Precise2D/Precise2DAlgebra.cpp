@@ -46,24 +46,38 @@ namespace p2d {
 
  Reads from inList and stores its representation as mpq\_class in outValue.
 
- This function was implemented by Stefanie Renner in the MovingObjects2Algebra.
+ This function was first implemented by Stefanie Renner in the
+ MovingObjects2Algebra and is now adapted for negative values.
+ Additionally there are now some more limitations for valid numbers.
 
 */
-void textTypeToGmpType(const ListExpr& inList, mpq_class& preciseValue) {
+bool textTypeToGmpType(const ListExpr& inList, mpq_class& preciseValue,
+  bool negValueAllowed) {
 
  TextScan theScan = nl->CreateTextScan(inList);
  stringstream theStream;
+ int noSlash = 0;
 
  char lastChar = '*'; //just a random initialization...
  for (unsigned int i = 0; i < nl->TextLength(inList); i++) {
   string str = "";
   nl->GetText(theScan, 1, str);
 
+  if ((int) str[0] == 47){
+   noSlash++;
+  }
+
   //Checking for valid character
   if (!(i == 0 && (int) str[0] == 240)) {
-   if ((int) str[0] < 47 || (int) str[0] > 57
+   if ((int) str[0] < 45 || (int) str[0] == 46 || (int) str[0] > 57
      || (i == 0 && (int) str[0] == 48 && nl->TextLength(inList) > 1)
-     || (lastChar == '/' && (int) str[0] == 48)) {
+     || (i == 0 && (int) str[0] == 47)
+     || (lastChar == '/' && (int) str[0] == 48)
+     || (noSlash>1)
+     || (((int) str[0] == 45) && (!negValueAllowed))
+     || ((int) str[0] == 45 && negValueAllowed && (!((lastChar == '/')
+     ||(i==0))))
+     || ((lastChar == '-') && ((int) str[0] == 47))) {
     stringstream message;
     message << "Precise coordinate not valid: " << nl->ToString(inList) << endl
       << "Only characters 1, 2, 3, 4, 5, "
@@ -72,8 +86,9 @@ void textTypeToGmpType(const ListExpr& inList, mpq_class& preciseValue) {
         "more than one character "
         "in total are given" << endl << ", and 0 is "
         "not allowed directly after /";
-    throw invalid_argument(message.str());
-
+    //throw invalid_argument(message.str());
+    cerr << message.str()<<endl;
+    return false;
    }
   }
 
@@ -85,15 +100,17 @@ void textTypeToGmpType(const ListExpr& inList, mpq_class& preciseValue) {
 
  preciseValue.canonicalize();
  //Checking the value - must be between 0 and 1
- if (preciseValue >= 1 || preciseValue < 0) {
+ if (preciseValue >= 1 || (preciseValue < 0 && (!negValueAllowed))) {
   stringstream message;
   message << "Precise coordinate not valid: " << nl->ToString(inList) << endl
     << "Resulting value "
       "is not between 0 and 1, "
       "where 0 is allowed, but 1 is not.";
-  throw invalid_argument(message.str());
+  //throw invalid_argument(message.str());
+  cerr << message.str() << endl;
+  return false;
  }
-
+ return true;
 }
 
 /*
@@ -106,6 +123,56 @@ void gmpTypeToTextType(const mpq_class& value, ListExpr& resultList) {
  string str = value.get_str();
  resultList = nl->TextAtom(str);
 }
+
+/*
+ ~prepareValue~
+
+ A negative value is internally stored with a grid value and a precise value
+ like the positive values. But the internal representation has to be changed
+ from the real value for correct computations with positive and negative values:
+ P.e. if we have a real value -4.3, the internal representation will be
+ -5 for the grid value and 7/10 for the precise value. Before the real value
+ is printed, he has to be computed from the internal value.
+
+*/
+void internalValueToOutputValue(int& gValue, mpq_class& pValue){
+
+ if ((gValue < 0) && ((cmp(pValue, 0 ) != 0))){
+  pValue = 1 - pValue ;
+  gValue++;
+
+  if (gValue==0){
+   pValue = pValue * (-1);
+  }
+ }
+}
+
+/*
+ ~outputValueToInternalValue~
+
+ The real value ~gValue~ + ~pValue~ is already split into two parts.
+ If the real value is smaller 0, the internal value must be adjusted.
+ If the real value is p. e. -1 1/3, the internal value is gValue=-2 and
+ pValue=2/3.
+
+*/
+void outputValueToInternalValue(int& gValue, mpq_class& pValue){
+
+ if ((gValue < 0) && (cmp(pValue, 0) != 0)){
+  pValue = 1 - pValue ;
+  gValue--;
+
+  if (gValue==0){
+   pValue = pValue * (-1);
+  }
+ }
+ if ((gValue == 0) && (cmp(pValue, 0) < 0)){
+  gValue--;
+  pValue = pValue + 1;
+ }
+}
+
+
 
 /*
  2.1 List Representation of point2
@@ -129,13 +196,17 @@ ListExpr Point2::OutPoint2(ListExpr typeInfo, Word value) {
  Point2* point = (Point2*) (value.addr);
 
  if (point->IsDefined()) {
+  int gX = point->getGridX();
+  int gY = point->getGridY();
+  mpq_class pX = point->getPreciseX();
+  mpq_class pY = point->getPreciseY();
+  internalValueToOutputValue(gX, pX);
+  internalValueToOutputValue(gY, pY);
   ListExpr preciseX, preciseY;
-  preciseX = nl->TextAtom();
-  nl->AppendText(preciseX, point->getPreciseXAsString());
-  preciseY = nl->TextAtom();
-  nl->AppendText(preciseY, point->getPreciseYAsString());
-  return nl->ThreeElemList(nl->IntAtom(point->getGridX()),
-    nl->IntAtom(point->getGridY()), nl->TwoElemList(preciseX, preciseY));
+  gmpTypeToTextType(pX, preciseX);
+  gmpTypeToTextType(pY, preciseY);
+  return nl->ThreeElemList(nl->IntAtom(gX),
+    nl->IntAtom(gY), nl->TwoElemList(preciseX, preciseY));
  } else {
   return nl->SymbolAtom(Symbol::UNDEFINED());
  }
@@ -149,6 +220,22 @@ Word Point2::InPoint2(const ListExpr typeInfo, const ListExpr instance,
   const int errorPos, ListExpr& errorInfo, bool& correct) {
  correct = true;
  string message = "";
+ if (nl->ListLength(instance)==2){
+  ListExpr first = nl->First(instance);
+  ListExpr second = nl->Second(instance);
+  if (nl->IsAtom(first) && nl->IsAtom(second)){
+   mpq_class preciseX, preciseY;
+   int x, y;
+   bool firstIsCorrect = true;
+   bool secondIsCorrect = true;
+   firstIsCorrect = createCoordinate(first, x, preciseX);
+   secondIsCorrect = createCoordinate(second, y, preciseY);
+   if (firstIsCorrect && secondIsCorrect){
+   Point2* p = new Point2(true, x, y, preciseX, preciseY);
+   return SetWord(p);
+   }
+  }
+ }
  if (nl->ListLength(instance) == 3) {
   ListExpr first = nl->First(instance);
   ListExpr second = nl->Second(instance);
@@ -161,13 +248,24 @@ Word Point2::InPoint2(const ListExpr typeInfo, const ListExpr instance,
     ListExpr fifth = nl->Second(third);
     if (nl->IsAtom(fourth) && nl->AtomType(fourth) == TextType
       && nl->IsAtom(fifth) && nl->AtomType(fifth) == TextType) {
-     mpq_class preciseX, preciseY;
-     textTypeToGmpType(fourth, preciseX);
-     textTypeToGmpType(fifth, preciseY);
-
-     Point2* p = new Point2(true, nl->IntValue(first), nl->IntValue(second),
-       preciseX, preciseY);
+     int gX, gY;
+     mpq_class pX, pY;
+     gX = nl->IntValue(first);
+     gY = nl->IntValue(second);
+     if (
+     textTypeToGmpType(fourth, pX, gX==0) &&
+     textTypeToGmpType(fifth, pY, gY==0)){
+     outputValueToInternalValue(gX, pX);
+     outputValueToInternalValue(gY, pY);
+     Point2* p = new Point2(true, gX, gY, pX, pY);
      return SetWord(p);
+     } else {
+      cerr << "The false value: "<<endl;
+      cerr << nl->ToString(instance)<<endl;
+      cerr << "is not suitable for the gmp-Type."<< endl;
+      correct = false;
+      return SetWord(Address(0));
+     }
     } else {
      message = "The third and fourth argument "
        "have to be of type TextType";
@@ -182,10 +280,18 @@ Word Point2::InPoint2(const ListExpr typeInfo, const ListExpr instance,
      "argument have to be of type int.";
   }
  } else {
+  if (nl->ListLength(instance)<2){
+   message = nl->ListLength(instance) + "are not enough "
+     "arguments.";
+  } else {
+   message = "There are too many arguments.";
+  }
   if (listutils::isSymbolUndefined(instance)) {
    return SetWord(new Point2(false));
   }
  }
+ cerr << "The false value: "<<endl;
+ cerr << nl->ToString(instance)<<endl;
  cerr << message << endl;
  correct = false;
  return SetWord(Address(0));
@@ -218,35 +324,43 @@ ListExpr Line2::OutLine2(ListExpr typeInfo, Word value) {
  if (!line->IsDefined()) {
   return nl->SymbolAtom(Symbol::UNDEFINED());
  }
-
  ListExpr segment, result, last;
 
  result = nl->TheEmptyList();
 
- int gridLeftX, gridLeftY, gridRightX, gridRightY;
- ListExpr pLeftX, pLeftY, pRightX, pRightY;
+ int gLeftX, gLeftY, gRightX, gRightY;
+ mpq_class pLeftX, pLeftY, pRightX, pRightY;
+ ListExpr preciseLeftX, preciseLeftY, preciseRightX, preciseRightY;
 
  bool firstSegment = true;
  const int sz = line->Size();
 
  for (int i = 0; i < sz; i++) {
   if (line->IsLeftDomPoint(i)) {
-   // Daten von Segment i lesen
-   gridLeftX = line->getLeftGridX(i);
-   gridLeftY = line->getLeftGridY(i);
-   gridRightX = line->getRightGridX(i);
-   gridRightY = line->getRightGridY(i);
-   gmpTypeToTextType(line->getPreciseLeftX(i), pLeftX);
-   gmpTypeToTextType(line->getPreciseLeftY(i), pLeftY);
-   gmpTypeToTextType(line->getPreciseRightX(i), pRightX);
-   gmpTypeToTextType(line->getPreciseRightY(i), pRightY);
-   // ListExpr segment erstellen
+   // read data of segment no ~i~
+   gLeftX = line->getLeftGridX(i);
+   gLeftY = line->getLeftGridY(i);
+   gRightX = line->getRightGridX(i);
+   gRightY = line->getRightGridY(i);
+   pLeftX = line->getPreciseLeftX(i);
+   pLeftY = line->getPreciseLeftY(i);
+   pRightX = line->getPreciseRightX(i);
+   pRightY = line->getPreciseRightY(i);
+   internalValueToOutputValue(gLeftX, pLeftX);
+   internalValueToOutputValue(gLeftY, pLeftY);
+   internalValueToOutputValue(gRightX, pRightX);
+   internalValueToOutputValue(gRightY, pRightY);
+   gmpTypeToTextType(pLeftX, preciseLeftX);
+   gmpTypeToTextType(pLeftY, preciseLeftY);
+   gmpTypeToTextType(pRightX, preciseRightX);
+   gmpTypeToTextType(pRightY, preciseRightY);
+   // create ListExpr
    segment = nl->TwoElemList(
-     nl->ThreeElemList(nl->IntAtom(gridLeftX), nl->IntAtom(gridLeftY),
-       nl->TwoElemList(pLeftX, pLeftY)),
-     nl->ThreeElemList(nl->IntAtom(gridRightX), nl->IntAtom(gridRightY),
-       nl->TwoElemList(pRightX, pRightY)));
-   // segment an result anhaengen
+     nl->ThreeElemList(nl->IntAtom(gLeftX), nl->IntAtom(gLeftY),
+       nl->TwoElemList(preciseLeftX, preciseLeftY)),
+     nl->ThreeElemList(nl->IntAtom(gRightX), nl->IntAtom(gRightY),
+       nl->TwoElemList(preciseRightX, preciseRightY)));
+   // add ~segment~ to ~result~
    if (firstSegment) {
     last = nl->OneElemList(segment);
     result = last;
@@ -281,6 +395,49 @@ Word Line2::InLine2(const ListExpr typeInfo, const ListExpr instance,
   correct = true;
   segment = nl->First(rest);
   rest = nl->Rest(rest);
+  if (nl->ListLength(segment) == 4) {
+   ListExpr first = nl->First(segment);
+   ListExpr second = nl->Second(segment);
+   ListExpr third = nl->Third(segment);
+   ListExpr fourth = nl->Fourth(segment);
+   if (nl->IsAtom(first) && nl->IsAtom(second)
+     && nl->IsAtom(third) && nl->IsAtom(fourth)){
+    mpq_class preciseLX, preciseLY, preciseRX, preciseRY;
+    int lx, ly, rx, ry;
+    bool firstIsCorrect = true;
+    bool secondIsCorrect = true;
+    bool thirdIsCorrect = true;
+    bool fourthIsCorrect = true;
+    firstIsCorrect = createCoordinate(first, lx, preciseLX);
+    secondIsCorrect = createCoordinate(second, ly, preciseLY);
+    thirdIsCorrect = createCoordinate(third, rx, preciseRX);
+    fourthIsCorrect = createCoordinate(fourth, ry, preciseRY);
+    if (firstIsCorrect && secondIsCorrect && thirdIsCorrect && fourthIsCorrect){
+    Point2* lp = new Point2(true, lx, ly, preciseLX, preciseLY);
+    Point2* rp = new Point2(true, rx, ry, preciseRX, preciseRY);
+
+    if (*lp == *rp) {
+     correct = false;
+     cerr << nl->ToString(segment) << " contains an error." << endl
+       << "One segment consists of "
+         "2 different points. " << endl;
+     line->DeleteIfAllowed();
+     delete lp;
+     delete rp;
+     return SetWord(Address(0));
+    } else {
+     if (*lp < *rp) {
+      line->addSegment(true, lp, rp, edgeno);
+      line->addSegment(false, lp, rp, edgeno);
+     } else {
+      line->addSegment(true, rp, lp, edgeno);
+      line->addSegment(false, rp, lp, edgeno);
+     }
+     edgeno++;
+    }
+    }
+   }
+  }
   if (nl->ListLength(segment) == 2) {
    leftPoint = nl->First(segment);
    Word lpWord = Point2::InPoint2(typeInfo, leftPoint, errorPos, errorInfo,
@@ -293,9 +450,7 @@ Word Line2::InLine2(const ListExpr typeInfo, const ListExpr instance,
     rp = (Point2*) (rpWord.addr);
    }
    if (correct) {
-    Point2 p1(*lp);
-    Point2 p2(*rp);
-    if (p1 == p2) {
+    if (*lp == *rp) {
 
      correct = false;
      cerr << nl->ToString(segment) << " contains an error." << endl
@@ -322,6 +477,12 @@ Word Line2::InLine2(const ListExpr typeInfo, const ListExpr instance,
     delete rp;
     return SetWord(Address(0));
    }
+  }
+  if (!((nl->ListLength(segment) == 2) || (nl->ListLength(segment) == 4))){
+   cerr << nl->ToString(segment) << " has a false list length. "
+     << "One segment consists of 2 points or 4 numbers." << endl;
+   line->DeleteIfAllowed();
+   return SetWord(Address(0));
   }
 
  }
@@ -361,21 +522,28 @@ ListExpr Points2::OutPoints2(ListExpr typeInfo, Word value) {
 
  ListExpr point, result, last;
  result = nl->TheEmptyList();
- int gridX, gridY;
+ int gX, gY;
+ mpq_class pX, pY;
  ListExpr preciseX, preciseY;
  bool firstPoint = true;
  const int sz = points->Size();
  for (int i = 0; i < sz; i++) {
   // Daten von point i lesen
-  gridX = points->getGridX(i);
-  gridY = points->getGridY(i);
+  gX = points->getGridX(i);
+  gY = points->getGridY(i);
+  pX = points->getPreciseX(i);
+  pY = points->getPreciseY(i);
 
-  preciseX = nl->TextAtom();
-  nl->AppendText(preciseX, points->getPreciseXAsString(i));
-  preciseY = nl->TextAtom();
-  nl->AppendText(preciseY, points->getPreciseYAsString(i));
+  internalValueToOutputValue(gX, pX);
+  internalValueToOutputValue(gY, pY);
+  //preciseX = nl->TextAtom();
+  //nl->AppendText(preciseX, points->getPreciseXAsString(i));
+  //preciseY = nl->TextAtom();
+  //nl->AppendText(preciseY, points->getPreciseYAsString(i));
+  gmpTypeToTextType(pX, preciseX);
+  gmpTypeToTextType(pY, preciseY);
   // ListExpr point erstellen
-  point = nl->ThreeElemList(nl->IntAtom(gridX), nl->IntAtom(gridY),
+  point = nl->ThreeElemList(nl->IntAtom(gX), nl->IntAtom(gY),
     nl->TwoElemList(preciseX, preciseY));
   // point an result anhaengen
   if (firstPoint) {
@@ -397,7 +565,6 @@ ListExpr Points2::OutPoints2(ListExpr typeInfo, Word value) {
 Word Points2::InPoints2(const ListExpr typeInfo, const ListExpr instance,
   const int errorPos, ListExpr& errorInfo, bool& correct) {
  correct = true;
- string message = "";
 
  if (listutils::isSymbolUndefined(instance)) {
   return SetWord(new Points2(false));
@@ -418,8 +585,6 @@ Word Points2::InPoints2(const ListExpr typeInfo, const ListExpr instance,
   if (correct) {
    points->addPoint(p);
   } else {
-   cerr << nl->ToString(point) << " contains an error" << endl << message
-     << endl;
    points->DeleteIfAllowed();
    delete p;
    return SetWord(Address(0));
@@ -428,173 +593,6 @@ Word Points2::InPoints2(const ListExpr typeInfo, const ListExpr instance,
  points->EndBulkLoad(true, true, true);
  delete p;
  return SetWord(points);
-}
-
-/*
- 4.2 List Representation of sline2
-
- The list representation of a sline2 is
-
- ----   (($segm_1$ $segm_2$ ... $segm_n$) TRUE), where
-
- $segm_i$ = ((xl yl (preciseXl preciseYl))(xr yr (preciseXr preciseYr)))
- for all i $\in$ $\{1,...,n\}$.
- x and y are the values of the grid-point and
- preciseX is the difference between x and the x-coordinate
- of the real point (preciseY analog). x and y are integers,
- preciseX and preciseY are of type text
-
- TRUE indicates whether a sline starts with the smaller endpoint or not.
-
- or
- undefined
- ----
-
- 4.2.1 ~OutSimpleLine2~-function
-
-*/
-ListExpr SimpleLine2::OutSimpleLine2(ListExpr typeInfo, Word value) {
- ListExpr result, last;
- SegmentData sd;
- ListExpr segment;
- SimpleLine2* line = static_cast<SimpleLine2*>(value.addr);
-
- if (!line->IsDefined()) {
-  return nl->SymbolAtom(Symbol::UNDEFINED());
- }
-
- if (line->IsEmpty()) {
-  return nl->TwoElemList(nl->TheEmptyList(),
-    nl->BoolAtom(line->startsSmaller()));
- }
-
- result = nl->TheEmptyList();
- last = result;
-
- int gridLeftX, gridLeftY, gridRightX, gridRightY;
- ListExpr pLeftX, pLeftY, pRightX, pRightY;
-
- bool first = true;
-
- for (int i = 0; i < line->Size(); i++) {
-  line->get(i, sd);
-  if (sd.IsLeftDomPoint()) {
-   // Daten von Segment i lesen
-   gridLeftX = line->getLeftGridX(i);
-   gridLeftY = line->getLeftGridY(i);
-   gridRightX = line->getRightGridX(i);
-   gridRightY = line->getRightGridY(i);
-   gmpTypeToTextType(line->getPreciseLeftX(i), pLeftX);
-   gmpTypeToTextType(line->getPreciseLeftY(i), pLeftY);
-   gmpTypeToTextType(line->getPreciseRightX(i), pRightX);
-   gmpTypeToTextType(line->getPreciseRightY(i), pRightY);
-   // ListExpr segment erstellen
-   segment = nl->TwoElemList(
-     nl->ThreeElemList(nl->IntAtom(gridLeftX), nl->IntAtom(gridLeftY),
-       nl->TwoElemList(pLeftX, pLeftY)),
-     nl->ThreeElemList(nl->IntAtom(gridRightX), nl->IntAtom(gridRightY),
-       nl->TwoElemList(pRightX, pRightY)));
-
-   if (first == true) {
-    result = nl->OneElemList(segment);
-    last = result;
-    first = false;
-   } else {
-    last = nl->Append(last, segment);
-   }
-  }
- }
- return nl->TwoElemList(result, nl->BoolAtom(line->startsSmaller()));
-}
-
-Word SimpleLine2::InSimpleLine2(const ListExpr typeInfo,
-  const ListExpr instance1, const int errorPos, ListExpr& errorInfo,
-  bool& correct) {
-
- ListExpr instance = instance1;
- correct = true;
- if (listutils::isSymbolUndefined(instance)) {
-  SimpleLine2* line = new SimpleLine2(false);
-  return SetWord(Address(line));
- }
-
- if (nl->AtomType(instance) != NoAtom) {
-  correct = false;
-  return SetWord(Address(0));
- }
-
- bool startSmaller = true;
- if (nl->HasLength(instance, 2)) {
-  if (nl->AtomType(nl->Second(instance)) == BoolType) {
-   startSmaller = nl->BoolValue(nl->Second(instance));
-   instance = nl->First(instance);
-  }
- }
- SimpleLine2* line = new SimpleLine2(true);
- int edgeno = 0;
- ListExpr rest = instance;
- ListExpr segment, leftPoint, rightPoint;
- line->StartBulkLoad();
- Point2* lp = new Point2(true);
- Point2* rp = new Point2(true);
- while (!nl->IsEmpty(rest)) {
-  correct = true;
-  segment = nl->First(rest);
-  rest = nl->Rest(rest);
-  if (nl->ListLength(segment) == 2) {
-   leftPoint = nl->First(segment);
-   Word lpWord = Point2::InPoint2(typeInfo, leftPoint, errorPos, errorInfo,
-     correct);
-   lp = (Point2*) (lpWord.addr);
-   if (correct) {
-    rightPoint = nl->Second(segment);
-    Word rpWord = Point2::InPoint2(typeInfo, rightPoint, errorPos, errorInfo,
-      correct);
-    rp = (Point2*) (rpWord.addr);
-   }
-   if (correct) {
-    Point2 p1(*lp);
-    Point2 p2(*rp);
-    if (p1 == p2) {
-
-     correct = false;
-     cerr << nl->ToString(segment) << " contains an error." << endl
-       << "One segment consists of 2 different points. " << endl;
-     line->DeleteIfAllowed();
-     delete lp;
-     delete rp;
-     return SetWord(Address(0));
-    } else {
-     if (*lp < *rp) {
-      line->addSegment(true, lp, rp, edgeno);
-      line->addSegment(false, lp, rp, edgeno);
-     } else {
-      line->addSegment(true, rp, lp, edgeno);
-      line->addSegment(false, rp, lp, edgeno);
-     }
-     edgeno++;
-    }
-   } else {
-    cerr << nl->ToString(segment) << " contains an error." << endl;
-    line->DeleteIfAllowed();
-    delete lp;
-    delete rp;
-    return SetWord(Address(0));
-   }
-  }
-
- }
- if (!line->EndBulkLoad()) {
-  line->SetDefined(false);
-  line->Clear();
-  correct = false;
-  cerr << nl->ToString(segment) << " contains an error." << endl;
-  line->DeleteIfAllowed();
-  return SetWord(Address(0));
- } else {
-  line->setStartSmaller(startSmaller);
-  return SetWord(line);
- }
 }
 
 /*
@@ -648,29 +646,7 @@ ostream& operator<<(ostream& o, const Line2& l) {
  return o;
 }
 
-/*
- ~operator<<~ for SimpleLine2
 
-*/
-ostream& operator<<(ostream& o, const SimpleLine2& l) {
-
- o << "sline2 defined =" << l.IsDefined() << " size = " << l.Size()
-   << " startSmaller: " << l.startsSmaller() << endl;
- if (l.IsDefined()) {
-  o << "(";
-  int index = 0;
-  while (index < l.Size()) {
-   o << "((" << l.getLeftGridX(index) << ", " << l.getLeftGridY(index) << " ("
-     << l.getPreciseLeftX(index) << ", " << l.getPreciseLeftY(index) << ")) ("
-     << l.getRightGridX(index) << ", " << l.getRightGridY(index) << " ("
-     << l.getPreciseRightX(index) << ", " << l.getPreciseRightY(index) << ")))";
-  }
-  o << ")";
- } else
-  o << Symbol::UNDEFINED();
- return o;
-
-}
 
 /*
  3 Value-mapping-functions
@@ -695,7 +671,6 @@ int union_LLL(Word* args, Word& result, int message, Word& local, Supplier s) {
  Line2* l2 = static_cast<Line2*>(args[1].addr);
  Line2* res = static_cast<Line2*>(result.addr);
  l1->unionOP(*l2, *res);
-
  return 0;
 
 }
@@ -808,9 +783,8 @@ int union_RRR(Word* args, Word& result, int message, Word& local, Supplier s) {
  Region2* r1 = static_cast<Region2*>(args[0].addr);
  Region2* r2 = static_cast<Region2*>(args[1].addr);
  Region2* res = static_cast<Region2*>(result.addr);
+ //r1->Union(*r2, *res);
  p2d::SetOp(*r1, *r2, *res, union_op);
- //r1->unionOP(*r2, *res);
-
  return 0;
 
 }
@@ -832,9 +806,8 @@ int intersection_RRR(Word* args, Word& result, int message, Word& local,
  Region2* r1 = static_cast<Region2*>(args[0].addr);
  Region2* r2 = static_cast<Region2*>(args[1].addr);
  Region2* res = static_cast<Region2*>(result.addr);
- p2d::SetOp(*r1,*r2,*res,intersection_op);
- //r1->intersection(*r2, *res);
-
+ //r1->Intersection(*r2, *res);
+ p2d::SetOp(*r1, *r2, *res, intersection_op);
  return 0;
 
 }
@@ -856,9 +829,8 @@ int minus_RRR(Word* args, Word& result, int message, Word& local, Supplier s) {
  Region2* r1 = static_cast<Region2*>(args[0].addr);
  Region2* r2 = static_cast<Region2*>(args[1].addr);
  Region2* res = static_cast<Region2*>(result.addr);
+ //r1->Minus(*r2, *res);
  p2d::SetOp(*r1, *r2, *res, difference_op);
- //r1->minus(*r2, *res);
-
  return 0;
 
 }
@@ -889,6 +861,31 @@ int intersects_RRB(Word* args, Word& result, int message, Word& local,
 }
 
 /*
+ ~overlaps\_RRB~
+
+ ~region2~ x ~region2~ [->] ~bool~
+
+ ~result~ is true, if the 2 given region2-objects overlap, false otherwise.
+
+*/
+int overlaps2_RRB(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ bool defined = (r1->IsDefined() && r2->IsDefined());
+ bool res = overlaps(*r1, *r2, 0);
+
+ b->Set(defined, res);
+
+ return 0;
+}
+
+/*
  ~inside\_RRB~
 
  ~region2~ x ~region2~ [->] ~bool~
@@ -899,7 +896,7 @@ int intersects_RRB(Word* args, Word& result, int message, Word& local,
 */
 int inside_RRB(Word* args, Word& result, int message, Word& local,
   Supplier s) {
-
+ cout <<"value map of inside"<<endl;
  Region2* r1 = static_cast<Region2*>(args[0].addr);
  Region2* r2 = static_cast<Region2*>(args[1].addr);
 
@@ -907,8 +904,9 @@ int inside_RRB(Word* args, Word& result, int message, Word& local,
  CcBool* b = static_cast<CcBool*>(result.addr);
 
  bool defined = (r1->IsDefined() && r2->IsDefined());
+ cout <<"defined: "<<defined<<endl;
  bool res = inside(*r1, *r2, 0);
-
+ cout <<"result: "<<res <<endl;
  b->Set(defined, res);
 
  return 0;
@@ -928,7 +926,28 @@ int lineToLine2(Word* args, Word& result, int message, Word& local,
  result = qp->ResultStorage(s);
  Line* l1 = static_cast<Line*>(args[0].addr);
  Line2* res = static_cast<Line2*>(result.addr);
- convertLineIntoLine2(*l1, *res);
+ convertLineToLine2(*l1, *res);
+ assert(res->IsDefined()&&res->BoundingBox().IsDefined());
+
+ return 0;
+
+}
+
+/*
+ ~coarseRegion2~
+
+ ~region2~ [->] ~region~
+
+ This function coarses a ~region2~-object to a ~region~object.
+
+*/
+int coarse(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Region2* r = static_cast<Region2*>(args[0].addr);
+ Region* res = static_cast<Region*>(result.addr);
+ p2d::coarseRegion2(*r, *res);
 
  return 0;
 
@@ -1087,6 +1106,7 @@ ListExpr RRR_TypeMap(ListExpr args) {
 
 */
 ListExpr RRB_TypeMap(ListExpr args) {
+ cerr << "inside_TM "<<endl;
  string err = "region2 x region2 expected.";
  if (nl->ListLength(args) != 2) {
   return listutils::typeError(err + ": wrong number of arguments");
@@ -1105,6 +1125,31 @@ ListExpr RRB_TypeMap(ListExpr args) {
  if (a1 == Region2::BasicType() && a2 == Region2::BasicType()) {
   return NList(CcBool::BasicType()).listExpr();
  }
+ return listutils::typeError(err);
+}
+
+/*
+ 4.7 ~R2R\_TypeMap~
+
+ Signature is ~region2~ [->] region
+
+*/
+ListExpr R2R_TypeMap(ListExpr args) {
+ string err = "line expected.";
+ if (nl->ListLength(args) != 1) {
+  return listutils::typeError(err + ": wrong number of arguments");
+ }
+ ListExpr arg1 = nl->First(args);
+ if (!listutils::isSymbol(arg1)) {
+  return listutils::typeError(err + ": first arg not a spatial type");
+ }
+
+ string a1 = nl->SymbolValue(arg1);
+
+ if (a1 == Region2::BasicType()) {
+  return nl->SymbolAtom(Region::BasicType());
+ }
+
  return listutils::typeError(err);
 }
 
@@ -1288,13 +1333,13 @@ struct lineToLine2Info: OperatorInfo {
  The operator information for the test if 2 region2-objects intersect
 
 */
-struct intersects_RRBInfo: OperatorInfo {
+struct intersects2_RRBInfo: OperatorInfo {
 
- intersects_RRBInfo() :
+ intersects2_RRBInfo() :
    OperatorInfo() {
-  name = "intersects";
+  name = "intersects2";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
-  syntax = "query arg1 intersects arg2";
+  syntax = "query arg1 intersects2 arg2";
   meaning = "returns true, if both region2 "
     "objects intersect, false otherwise.";
  }
@@ -1302,22 +1347,59 @@ struct intersects_RRBInfo: OperatorInfo {
 };
 
 /*
- 5.11 ~inside\_RRBInfo~
+ 5.11 ~overlaps\_RRBInfo~
+
+ The operator information for the test if 2 region2-objects intersect
+
+*/
+struct overlaps2_RRBInfo: OperatorInfo {
+
+ overlaps2_RRBInfo() :
+   OperatorInfo() {
+  name = "overlaps2";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
+  syntax = "query arg1 overlaps2 arg2";
+  meaning = "returns true, if both region2 "
+    "objects overlap, false otherwise.";
+ }
+
+};
+
+/*
+ 5.12 ~inside\_RRBInfo~
 
  The operator information for the test whether a region2-object is completely
  contained in a second region2-object.
 
 */
-struct inside_RRBInfo: OperatorInfo {
+struct inside2_RRBInfo: OperatorInfo {
 
- inside_RRBInfo() :
+ inside2_RRBInfo() :
    OperatorInfo() {
-  name = "inside";
+  name = "inside2";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
-  syntax = "query arg1 inside arg2";
+  syntax = "query arg1 inside2 arg2";
   meaning = "returns true, if the first region2- "
     "object is completely contained in the second region2-object, false "
     "otherwise.";
+ }
+
+};
+
+/*
+ 5.13 ~coarseRegion2Info~
+
+ The operator a ~region2~-object to a ~region~-object
+
+*/
+struct coarseInfo: OperatorInfo {
+
+ coarseInfo() :
+   OperatorInfo() {
+  name = "coarse";
+  signature = Region2::BasicType() + " -> " + Region::BasicType();
+  syntax = "query coarse (arg)";
+  meaning = "coarses a region2-object to a region-object";
  }
 
 };
@@ -1343,13 +1425,6 @@ TypeConstructor points(Points2::BasicType(), Points2::Points2Property,
   Points2::ClosePoints2, Points2::ClonePoints2, Points2::CastPoints2,
   Points2::SizeOfPoints2, Points2::CheckPoints2);
 
-TypeConstructor simpleline(SimpleLine2::BasicType(),
-  SimpleLine2::SimpleLine2Property, SimpleLine2::OutSimpleLine2,
-  SimpleLine2::InSimpleLine2, 0, 0, SimpleLine2::CreateSimpleLine2,
-  SimpleLine2::DeleteSimpleLine2, OpenAttribute<SimpleLine2>,
-  SaveAttribute<SimpleLine2>, SimpleLine2::CloseSimpleLine2,
-  SimpleLine2::CloneSimpleLine2, SimpleLine2::CastSimpleLine2,
-  SimpleLine2::SizeOfSimpleLine2, SimpleLine2::CheckSimpleLine2);
 
 } // end of namespace p2d
 
@@ -1360,7 +1435,6 @@ public:
   AddTypeConstructor(&p2d::point);
   AddTypeConstructor(&p2d::line);
   AddTypeConstructor(&p2d::points);
-  AddTypeConstructor(&p2d::simpleline);
 
   p2d::point.AssociateKind(Kind::DATA());
   p2d::point.AssociateKind(Kind::SPATIAL2D());
@@ -1371,8 +1445,6 @@ public:
   p2d::points.AssociateKind(Kind::DATA());
   p2d::points.AssociateKind(Kind::SPATIAL2D());
 
-  p2d::simpleline.AssociateKind(Kind::DATA());
-  p2d::simpleline.AssociateKind(Kind::SPATIAL2D());
 
   AddOperator(p2d::union_LLLInfo(), p2d::union_LLL, p2d::LLL_TypeMap);
 
@@ -1394,9 +1466,14 @@ public:
 
   AddOperator(p2d::minus_RRRInfo(), p2d::minus_RRR, p2d::RRR_TypeMap);
 
-  AddOperator(p2d::intersects_RRBInfo(), p2d::intersects_RRB, p2d::RRB_TypeMap);
+  AddOperator(p2d::intersects2_RRBInfo(), p2d::intersects_RRB,
+    p2d::RRB_TypeMap);
 
-  AddOperator(p2d::inside_RRBInfo(), p2d::inside_RRB, p2d::RRB_TypeMap);
+  AddOperator(p2d::overlaps2_RRBInfo(), p2d::overlaps2_RRB, p2d::RRB_TypeMap);
+
+  AddOperator(p2d::inside2_RRBInfo(), p2d::inside_RRB, p2d::RRB_TypeMap);
+
+  AddOperator(p2d::coarseInfo(), p2d::coarse, p2d::R2R_TypeMap);
  }
 
  ~Precise2DAlgebra() {
