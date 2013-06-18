@@ -14,11 +14,15 @@
 # running times and result sizes refer to arnsberg-regbez.osm, using 
 # GlobalMemory = 1 GB and selected subarea for Hombruch
 #
+# second set of running times and sizes refers to data for california and
+# subarea Greater San Francisco (Bay area down to San Jose, see CityArea below)
+# using 2 GB global memory.
+#
 ###########################################################################
 
 # Database hombruch
 
-query fullosmimport('arnsberg-regbez.osm', "All")
+query fullosmimport('california-latest.osm', "All")
 
 # 234 secs
 
@@ -30,12 +34,20 @@ query fullosmimport('arnsberg-regbez.osm', "All")
 # relation AllRelations with 355347 tuples stored
 # relation AllRelationTags with 52448 tuples stored
 
+# file california-latest.osm opened successfully
+# relation AllNodes with 44131572 tuples stored
+# relation AllNodeTags with 8469252 tuples stored
+# relation AllWays with 49706123 tuples stored
+# relation AllWayTags with 20363092 tuples stored
+# relation AllRelations with 164141 tuples stored
+# relation AllRelationTags with 81925 tuples stored
+# Total runtime ...   Times (elapsed / cpu): 35:19min (2118.79sec) /1630.55sec = 1.29943
 
+# 35:19min (2118.79sec)
 
+# define area of interest (corresponds to Greater San Francisco)
 
-# define area of interest (corresponds to Hombruch)
-
-let CityArea = [const rect value (7.419 7.457 51.462 51.484)]
+let CityArea = [const rect value (-122.57724906420854 -121.73656307839723 37.30134709102425 38.01641067353821)]
 
 
 # get the WayIds of ways having nodes inside the city area
@@ -47,6 +59,10 @@ let WayIds = AllNodes feed filter[bbox(makepoint(.Lon, .Lat)) inside CityArea] p
 # 1:07 mins
 # result size 6165
 
+# SF
+# 7:48min (468.026sec)
+# 203591
+
 
 let CityWays = WayIds feed {w}
   AllWays feed itHashJoin[WayId_w, WayId]
@@ -57,6 +73,10 @@ let CityWays = WayIds feed {w}
 # 12.69 secs
 # result size 40065
 
+# SF
+# 2:12min (132.248sec)
+# 2318612
+
 let CityWayTags = WayIds feed {w}
   AllWayTags
   feed itHashJoin[WayId_w, WayIdInTag]
@@ -65,6 +85,9 @@ let CityWayTags = WayIds feed {w}
   consume
 
 # 7.48 secs
+
+# 1:32min (91.6926sec)
+# 1165198
 
 
 # get the nodes inside the city area as well as those belonging to ways having nodes inside the 
@@ -82,6 +105,10 @@ let CityNodes =  AllNodes feed filter[bbox(makepoint(.Lon, .Lat)) inside CityAre
 # 43.15 secs
 # result size 29721
 
+# SF
+# 7:46min (466.44sec)
+# 1962728
+
 let CityNodeTags = CityNodes feed {c}
   AllNodeTags feed 
   itHashJoin[NodeId_c, NodeIdInTag]
@@ -91,16 +118,8 @@ let CityNodeTags = CityNodes feed {c}
   
 # 1.82 secs
 
-let NodesTagged = CityNodesNew feed
-  CityNodeTags feed
-  itHashJoin[NodeId, NodeIdInTag]
-  sortby[NodeIdNew]
-  nest[NodeIdNew; NodeTags]
-  consume
-
-# 0.56 secs
-
-
+# 40.0677sec
+# 191472
 
 let CityNodesNew = CityNodes feed 
   extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
@@ -111,6 +130,18 @@ let CityNodesNew = CityNodes feed
   consume
 
 # 1.29 secs
+
+# 1:23min (83.3309sec)
+# 1962728
+
+let NodesTagged = CityNodesNew feed
+  CityNodeTags feed
+  itHashJoin[NodeId, NodeIdInTag]
+  sortby[NodeIdNew]
+  nest[NodeIdNew; NodeTags]
+  consume
+
+# 0.56 secs
 
 # query nodes(CityNodesNew feed addid bulkloadrtree[Pos]) consume
 
@@ -127,10 +158,15 @@ let Ways =
 
 # 6.74 secs
 
+# 4:37min (277.212sec)
+# 201840
+
 
 derive Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 0.3 secs
+
+# 2.92359sec
 
 
 
@@ -144,9 +180,13 @@ let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count
 
 # 0.91 secs
 
+# 42.3311sec
+
 derive Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 3.56 secs
+
+# 1.72803sec
 
 # compute Nodes as the union of start points, end points and intersections of roads
 
@@ -177,6 +217,9 @@ Roads feed
   consume
 
 # 1.45 secs
+
+# 1:28min (87.9793sec)
+# 394532
 
 
 
@@ -216,6 +259,9 @@ let EdgesUp =
 
 # 1.77 secs
 
+# 3:11min (191.229sec)
+# 277793
+
 
 
 let EdgesDown =
@@ -254,6 +300,8 @@ let EdgesDown =
 
 # 2.00 secs
 
+# 3:29min (209.484sec)
+# 233879
 
 
 let Edges = EdgesUp feed EdgesDown feed concat 
@@ -262,6 +310,10 @@ let Edges = EdgesUp feed EdgesDown feed concat
   oconsume[Source, Target]
 
 # 0.47 secs
+
+# 28.9857sec
+# 511672
+
 
 
 
@@ -274,6 +326,9 @@ let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: 
 
 # 0.46 secs
 
+# 33.4277sec
+# 510869
+
 
 # query nodes(EdgeIndex feed addid bulkloadrtree[Box]) consume
 
@@ -283,6 +338,8 @@ let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: 
 derive EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
 # 0.24 secs
+
+# 4.19004sec
 
 
 # Queries
@@ -304,6 +361,9 @@ derive EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 # Runtime for Scripts/OrderedRelationGraphFromFullOSMImport.SEC: Times (elapsed / cpu): 
 # 5:08min (308.31sec)
 
+# Run time for Greater San Francisco:
+# Runtime for Scripts/OrderedRelationGraphFromFullOSMImportWithAreaSelection.SEC: Times (elapsed / 
+# cpu): 71:41min (4300.77sec) /3622.82sec = 1.18713
 
 
 
