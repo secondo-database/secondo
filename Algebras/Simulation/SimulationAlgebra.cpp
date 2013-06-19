@@ -989,7 +989,8 @@ Fills the undefined intervals within an mpoint with the known positions.
 immedeately before/after the ``dark periods''.
 
 ----
-    sim_fillup_mpoint: (mpoint x instant x instant x bool x bool x bool) --> mpoint
+    sim_fillup_mpoint: 
+    (mpoint x instant x instant x bool x bool x bool) --> mpoint
 
 ----
 
@@ -1223,7 +1224,8 @@ Units are defined as stationary, if
 (iii) their velocity is below ~minVelocity~
 
 Parameter ~minVelocity~ can be passed as an optional third argument. The unit is
-m/h. It has a default value of 1.0 m/d (=0.04167 m/h = 0.6944 mm/min = 0.01157 mm/s)
+m/h. It has a default value of 
+1.0 m/d (=0.04167 m/h = 0.6944 mm/min = 0.01157 mm/s)
 
 ----
     sim_trips: (mpoint x duration       ) --> (stream mpoint)
@@ -1240,19 +1242,31 @@ ListExpr sim_trips_TM ( ListExpr args )
   if((noargs < 2) || (noargs >4)){
     return listutils::typeError(errmsg);
   }
-  if(!listutils::isSymbol(nl->First( args ),MPoint::BasicType())
-     || !listutils::isSymbol(nl->Second( args ),Duration::BasicType())){
+  if(   !MPoint::checkType(nl->First(args))
+     || !Duration::checkType(nl->Second(args))){
     return listutils::typeError(errmsg);
   }
-  if((noargs>2) && (!listutils::isSymbol(nl->Third(args),CcReal::BasicType()))){
+
+  if((noargs>2) && (!CcReal::checkType(nl->Third(args)))){
     return listutils::typeError(errmsg);
   }
-  if((noargs==4)&&(!listutils::isSymbol(nl->Fourth(args),Geoid::BasicType()))){
+  if((noargs==4) && (!Geoid::checkType(nl->Fourth(args)))){
     return listutils::typeError(errmsg);
   }
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->SymbolAtom(MPoint::BasicType()));
 }
+
+/*
+~IsAlmostStationaryPoint~
+
+This function checks whether the UPoint u is static
+ (equal start and end point or a single instant unit) or moves mith a speed
+of less than ~minVelocity~. If the geoid is given (not null), the speed 
+is measured in  meters per day otherwise the speed is units per day where 
+units depends on the coordinates.
+
+*/
 
 bool IsAlmostStationaryUPoint(const UPoint u, const double minVelocity,
                               const Geoid* geoid, bool &ok)
@@ -1262,11 +1276,12 @@ bool IsAlmostStationaryUPoint(const UPoint u, const double minVelocity,
     assert (false);
     return false;
   }
-  if (AlmostEqual(u.p0,u.p1) || (u.timeInterval.start == u.timeInterval.end) )
+  if (AlmostEqual(u.p0,u.p1) || (u.timeInterval.start == u.timeInterval.end) ){
     return true;
+  }
+
   double ds = 0.0;
   if(geoid){ // geographic coordinates
-//     cout << __PRETTY_FUNCTION__ << "Used Geoid!" << endl;
     ds = u.p0.DistanceOrthodrome(u.p1,*geoid,ok);
     if(!ok) {
       return false;
@@ -1295,7 +1310,221 @@ struct SplitMpointLocalInfo
   Geoid* geoid;
 };
 
+
+
+struct Sequence{
+   bool isStatic;
+   int pos1;
+   int pos2;
+   DateTime start;
+   DateTime end;
+   bool endsWithGap;
+};
+
+ostream& operator<<(ostream& os, const Sequence& s){
+    os << "(" << (s.isStatic?"static":"moving") << ", " << s.pos1 
+       << " - " << s.pos2 << ", " << s.start << " , " 
+       <<  (s.end-s.start) << ", "
+       << (s.endsWithGap?"gap":"con");
+    return os;
+}
+
+class SimTripsInfo{
+ public:
+    SimTripsInfo(const MPoint* mp, const DateTime* dur, 
+                 const double _minVel, const Geoid* geo):
+             source(mp), duration(dur), minVel(_minVel), geoid(geo),
+             pos(0),sequences() {
+      assert(mp->IsDefined());
+      assert(dur->IsDefined());
+      if(geo){
+         assert(geo->IsDefined());
+      }
+      try{
+         computeSequences();
+      } catch(...){
+         sequences.clear();
+      }
+    }  
+
+    MPoint* nextMPoint(){
+       return pos<sequences.size()?createMPoint(sequences[pos++]):0;
+    } 
+
+
+ private:
+   const MPoint* source;
+   const DateTime* duration;
+   const double  minVel;
+   const Geoid* geoid;
+   size_t pos;
+   vector<Sequence> sequences;
+
+
+   void computeSequences(){
+     int pos1 = 0;
+     vector<Sequence> sequences_raw;
+     while(pos1<source->GetNoComponents()){
+         Sequence s = getSequence(pos1);
+         sequences_raw.push_back(s);
+     }
+     connectSequences(sequences_raw);
+   }
+
+  Sequence getSequence(int& pos){
+     UPoint upoint(false);
+     source->Get(pos,upoint);
+     Sequence s;
+     bool ok;
+     s.isStatic = IsAlmostStationaryUPoint(upoint,minVel, geoid, ok);
+     if(!ok){ // problem in distance computing
+        throw 1;
+     } 
+     s.pos1  = pos;
+     s.pos2  = pos;
+     s.start = upoint.timeInterval.start;
+     s.end   = upoint.timeInterval.end;
+     s.endsWithGap = false;
+     pos++;
+     while(pos < source->GetNoComponents()){
+       // try to extend the sequence
+       UPoint p2;
+       source->Get(pos,p2);
+       bool p2static = IsAlmostStationaryUPoint(p2,minVel, geoid, ok);
+       if(!ok){
+           throw 1;
+       } 
+       if(p2static != s.isStatic){
+           return s;
+       }
+       if( (upoint.timeInterval.end != p2.timeInterval.start) ||
+           (!upoint.timeInterval.rc && ! p2.timeInterval.lc)){
+          s.endsWithGap = true;
+          return s;
+       }
+       s.pos2 = pos;
+       s.end = p2.timeInterval.end;
+       pos++;
+       upoint = p2;
+     }
+     return s;
+  } 
+
+  MPoint* createMPoint(Sequence s){
+     MPoint* res = new MPoint((s.pos2-s.pos1)+1);
+     UPoint upoint;
+     for(int i=s.pos1;i<=s.pos2;i++){
+        source->Get(i,upoint);
+        res->Add(upoint);
+     }
+     return res;
+  }
+
+  void connectSequences(vector<Sequence>& raw){
+     sequences.clear();
+     if(raw.empty()){
+       return;
+     }
+     size_t pos = 0;
+     while(pos < raw.size()){
+        Sequence s = getSequence(raw,pos);
+        sequences.push_back(s);
+     }   
+  }
+
+  Sequence getSequence(vector<Sequence>& raw, size_t& pos)const{ 
+    Sequence s1 = raw[pos];
+     while(pos < raw.size()){
+         pos++;
+         Sequence s2 = raw[pos];
+         if(!connect(s1,s2)){
+            return s1;
+         }
+     }
+     return s1;
+  }
+
+  bool connect(Sequence& s1, Sequence& s2) const{
+
+     if(s1.endsWithGap){ // a gap in definition time
+       return false;
+     }
+     
+     assert((s1.isStatic != s2.isStatic) || !s1.isStatic);
+
+     // real breaks 
+     if(s1.isStatic && ((s1.end-s1.start) >= *duration )){
+         return false;
+     }
+     if(s2.isStatic && ((s2.end-s2.start) >= *duration )){
+         return false;
+     }
+     s1.end = s2.end;
+     s1.isStatic = false;
+     s1.pos2 = s2.pos2;
+     return true;
+  }
+ 
+
+
+
+};
+
+
 int sim_trips_VM ( Word* args, Word& result,
+                   int message, Word& local, Supplier s )
+{
+  SimTripsInfo* li = (SimTripsInfo*) local.addr;
+  switch(message){
+     case OPEN : {
+                     if(li){
+                        delete li;
+                        li=0;
+                        local.addr = 0;
+                     }
+                     MPoint* mp = (MPoint*) args[0].addr;
+                     DateTime* dur = (DateTime*) args[1].addr;
+                     if(!mp->IsDefined() || !dur->IsDefined()){
+                         return 0;
+                     }
+                     CcReal minVel(true,1.0/24.0);
+                     Geoid* geoid = 0;
+                     int sons = qp->GetNoSons(s);
+                     if(sons>2){ // minVel is present
+                        CcReal* minVelArg = (CcReal*) args[2].addr;
+                        if(!minVelArg->IsDefined()){
+                          return 0;
+                        }
+                        minVel = (*minVelArg);
+                     }
+                     if(sons>3){ // Geoid is present
+                        Geoid* geoidarg = (Geoid*) args[3].addr;
+                        if(!geoidarg->IsDefined()){
+                           return 0;
+                        }
+                        geoid = geoidarg;
+                     }
+                     local.addr = new SimTripsInfo(mp,dur,
+                                          minVel.GetValue()*24,geoid);
+                     return 0;
+                 }
+      case REQUEST: {   result.addr = li?li->nextMPoint():0;
+                        return result.addr?YIELD:CANCEL;
+                    }
+      case CLOSE: {
+                      if(li){
+                        delete li;
+                        local.addr = 0;
+                      }
+                      return 0;
+                  }
+  }
+  return -1; // should never be reached
+
+}
+
+
+int sim_trips_VM_old ( Word* args, Word& result,
                            int message, Word& local, Supplier s )
 {
   SplitMpointLocalInfo *sli;
@@ -1722,7 +1951,8 @@ The last steps in adding an algebra to the Secondo system are
   * ``Bunching'' all
 type constructors and operators in one instance of class ~Algebra~.
 
-Therefore, a new subclass ~SimulationAlgebra~ of class ~Algebra~ is declared. The only
+Therefore, a new subclass ~SimulationAlgebra~ of class ~Algebra~ is 
+declared. The only
 specialization with respect to class ~Algebra~ takes place within the
 constructor: all type constructors and operators are registered at the actual
 algebra.
