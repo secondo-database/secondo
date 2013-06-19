@@ -708,5 +708,29 @@ Signature : d x (d x r)* x r -> r, d in DATA, r in STREAM
 Example   : query "ten" switch [ "ten", ten feed; "thousand", thousand feed; intstream(0,0) namedtransformstream[No]  ] count
 Result    : 10
 
+Operator  : rat
+Number    : 1
+Signature : int -> rational
+Example   : query rat(-3)
+Result    : (rational (- 3 1))
+
+Operator  : rat
+Number    : 2
+Signature : longint -> rational
+Example   : query rat([const longint value -3])
+Result    : (rational (- 3 1))
+
+Operator  : rat
+Number    : 3
+Signature : string -> rational
+Example   : query rat("-1/3")
+Result    : (rational (- 1 3))
+
+
+Operator  : rat
+Number    : 4
+Signature : int x int -> rational
+Example   : query rat(-3, 5)
+Result    : (rational (- 3 5))
 
 

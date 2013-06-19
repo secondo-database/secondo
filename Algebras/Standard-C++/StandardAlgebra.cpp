@@ -253,7 +253,8 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include <errno.h>
 #include <cerrno>
 #include <time.h>       //needed for random number generator
-#include <LongInt.h>
+#include "LongInt.h"
+#include "Rational.h"
 
 
 extern NestedList* nl;
@@ -929,6 +930,7 @@ TypeConstructor ccString( CcString::BasicType(),       CcStringProperty,
 
 
 GenTC<LongInt> longint;
+GenTC<Rational> rational;
 
 
 /*
@@ -953,33 +955,52 @@ type - a generic function called ~SimpleMap~ or ~SimpleMaps~ can be used.
 
 */
 
-const string maps_arith[4][3] =
+const string maps_arith[12][3] =
 {
   {CcInt::BasicType(),    CcInt::BasicType(),    CcInt::BasicType()},
   {CcInt::BasicType(),    CcReal::BasicType(),   CcReal::BasicType()},
   {CcReal::BasicType(),   CcInt::BasicType(),    CcReal::BasicType()},
   {CcReal::BasicType(),   CcReal::BasicType(),   CcReal::BasicType()},
+
+  {LongInt::BasicType(),  CcInt::BasicType(),      LongInt::BasicType()},
+  {LongInt::BasicType(),  LongInt::BasicType(),  LongInt::BasicType()},
+  {CcInt::BasicType(),    LongInt::BasicType(),  LongInt::BasicType()},
+  {Rational::BasicType(), CcInt::BasicType(),    Rational::BasicType()},
+  {Rational::BasicType(), LongInt::BasicType(),  Rational::BasicType()},
+  {Rational::BasicType(), Rational::BasicType(), Rational::BasicType()},
+  {CcInt::BasicType(),    Rational::BasicType(), Rational::BasicType()},
+  {LongInt::BasicType(),  Rational::BasicType(), Rational::BasicType()},
 };
 
 ListExpr
 CcMathTypeMap( ListExpr args )
 {
-  return SimpleMaps<4,3>(maps_arith, args);
+  return SimpleMaps<12,3>(maps_arith, args);
 }
 
-const string maps_plus[5][3] =
+const string maps_plus[13][3] =
 {
   {CcInt::BasicType(),    CcInt::BasicType(),    CcInt::BasicType()},
   {CcInt::BasicType(),    CcReal::BasicType(),   CcReal::BasicType()},
   {CcReal::BasicType(),   CcInt::BasicType(),    CcReal::BasicType()},
   {CcReal::BasicType(),   CcReal::BasicType(),   CcReal::BasicType()},
   {CcString::BasicType(), CcString::BasicType(), CcString::BasicType()},
+  
+  {LongInt::BasicType(),   CcInt::BasicType(),    LongInt::BasicType()},
+  {LongInt::BasicType(),  LongInt::BasicType(),  LongInt::BasicType()},
+  {CcInt::BasicType(),    LongInt::BasicType(),  LongInt::BasicType()},
+
+  {Rational::BasicType(), CcInt::BasicType(),    Rational::BasicType()},
+  {Rational::BasicType(), LongInt::BasicType(),  Rational::BasicType()},
+  {Rational::BasicType(), Rational::BasicType(), Rational::BasicType()},
+  {CcInt::BasicType(),    Rational::BasicType(), Rational::BasicType()},
+  {LongInt::BasicType(),  Rational::BasicType(), Rational::BasicType()},
 };
 
 ListExpr
 CcPlusTypeMap( ListExpr args )
 {
-  return SimpleMaps<5,3>(maps_plus, args);
+  return SimpleMaps<13,3>(maps_plus, args);
 }
 
 /*
@@ -1002,14 +1023,14 @@ is applied to correct arguments.
 int
 CcMathSelectCompute( ListExpr args )
 {
-  return SimpleSelect<4,3>(maps_arith, args);
+  return SimpleSelect<12,3>(maps_arith, args);
 }
 
 
 int
 CcPlusSelectCompute( ListExpr args )
 {
-  return SimpleSelect<5,3>(maps_plus, args);
+  return SimpleSelect<13,3>(maps_plus, args);
 }
 
 int ifthenelseSelect(ListExpr args){
@@ -1068,18 +1089,26 @@ of int is called div in this program).
 */
 
 
-const string maps_div[4][3] =
+const string maps_div[12][3] =
 {
   {CcInt::BasicType(),  CcInt::BasicType(),  CcReal::BasicType()},
   {CcInt::BasicType(),  CcReal::BasicType(), CcReal::BasicType()},
   {CcReal::BasicType(), CcInt::BasicType(),  CcReal::BasicType()},
-  {CcReal::BasicType(), CcReal::BasicType(), CcReal::BasicType()}
+  {CcReal::BasicType(), CcReal::BasicType(), CcReal::BasicType()},
+  {LongInt::BasicType(),  CcInt::BasicType(),      LongInt::BasicType()},
+  {LongInt::BasicType(),  LongInt::BasicType(),  LongInt::BasicType()},
+  {CcInt::BasicType(),    LongInt::BasicType(),  LongInt::BasicType()},
+  {Rational::BasicType(), CcInt::BasicType(),    Rational::BasicType()},
+  {Rational::BasicType(), LongInt::BasicType(),  Rational::BasicType()},
+  {Rational::BasicType(), Rational::BasicType(), Rational::BasicType()},
+  {CcInt::BasicType(),    Rational::BasicType(), Rational::BasicType()},
+  {LongInt::BasicType(),  Rational::BasicType(), Rational::BasicType()},
 };
 
 ListExpr
 CcMathTypeMapdiv( ListExpr args )
 {
-  return SimpleMaps<4,3>(maps_div, args);
+  return SimpleMaps<12,3>(maps_div, args);
 }
 
 /*
@@ -1723,7 +1752,8 @@ ListExpr CcTypeMapNumNumReal( ListExpr args ){
 }
 
 /*
-4.2.19 Type mapping function for: {int|real} x {int|real} [ x {int|real} ] [ x bool ]->real
+4.2.19 Type mapping function for: 
+{int|real} x {int|real} [ x {int|real} ] [ x bool ]->real
 
 Appends a bool == FALSE, if the optional bool parameter is not present.
 
@@ -1906,6 +1936,54 @@ CcPlus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
+template<class T>
+int CcPlus_long( Word* args, Word& result, 
+                 int message, Word& local, Supplier s )
+{
+   LongInt* arg1 = (LongInt*) args[0].addr;
+   T* arg2 = (T*) args[1].addr;
+   result = qp->ResultStorage(s);
+   LongInt* res = (LongInt*) result.addr;
+   (*res) = (*arg1) + (*arg2);
+   return 0;
+}
+
+template<class T>
+int CcPlus_long2( Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+   T* arg1 = (T*) args[0].addr;
+   LongInt* arg2 = (LongInt*) args[1].addr;
+   result = qp->ResultStorage(s);
+   LongInt* res = (LongInt*) result.addr;
+   (*res) = (*arg2) + (*arg1);
+   return 0;
+}
+
+template<class T>
+int CcPlus_rat( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+   Rational* arg1 = (Rational*) args[0].addr;
+   T* arg2 = (T*) args[1].addr;
+   Rational r2 (*arg2);
+   result = qp->ResultStorage(s);
+   Rational* res = (Rational*) result.addr;
+   (*res) = (*arg1) + r2;
+   return 0;
+}
+
+template<class T>
+int CcPlus_rat2( Word* args, Word& result, 
+                 int message, Word& local, Supplier s )
+{
+   T* arg1 = (T*) args[0].addr;
+   Rational* arg2 = (Rational*) args[1].addr;
+   Rational r1 (*arg1);
+   result = qp->ResultStorage(s);
+   Rational* res = (Rational*) result.addr;
+   (*res) = (*arg2) + r1;
+   return 0;
+}
 
 /*
 4.5 Value mapping functions of operator ~-~
@@ -1992,6 +2070,60 @@ CcMinus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
+
+template<class T>
+int CcMinus_long( Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+   LongInt* arg1 = (LongInt*) args[0].addr;
+   T* arg2 = (T*) args[1].addr;
+   result = qp->ResultStorage(s);
+   LongInt* res = (LongInt*) result.addr;
+   LongInt t(*arg2);
+   (*res) = (*arg1) - t;
+   return 0;
+}
+
+template<class T>
+int CcMinus_long2(Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+  T* arg1 = (T*) args[0].addr;
+  LongInt* arg2 = (LongInt*) args[1].addr;
+  LongInt t(*arg1);
+  result = qp->ResultStorage(s);
+  LongInt* res = (LongInt*) result.addr;
+  (*res) = t - (*arg2);
+  return 0;
+}
+
+template<class T>
+int CcMinus_rat( Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+   Rational* arg1 = (Rational*) args[0].addr;
+   T* arg2 = (T*) args[1].addr;
+   result = qp->ResultStorage(s);
+   Rational* res = (Rational*) result.addr;
+   Rational t(*arg2);
+   (*res) = (*arg1) - t;
+   return 0;
+}
+
+template<class T>
+int CcMinus_rat2(Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+  T* arg1 = (T*) args[0].addr;
+  Rational* arg2 = (Rational*) args[1].addr;
+  Rational t(*arg1);
+  result = qp->ResultStorage(s);
+  Rational* res = (Rational*) result.addr;
+  (*res) = t - (*arg2);
+  return 0;
+}
+
+
 
 /*
 4.6 Value mapping functions of operator ~[*]~
@@ -2081,6 +2213,55 @@ CcProduct_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
+template<class T>
+int CcProduct_long( Word* args, Word& result, int message, 
+                    Word& local, Supplier s ){
+  LongInt* arg1 = (LongInt*) args[0].addr;
+  T* arg2 = (T*) args[1].addr;
+  result = qp->ResultStorage(s);
+  LongInt* res = (LongInt*) result.addr;
+  LongInt t(*arg2);
+  (*res) = (*arg1) * t;
+  return 0;
+}
+
+template<class T>
+int CcProduct_long2( Word* args, Word& result, int message, 
+                    Word& local, Supplier s ){
+  T* arg1 = (T*) args[0].addr;
+  LongInt* arg2 = (LongInt*) args[1].addr;
+  result = qp->ResultStorage(s);
+  LongInt* res = (LongInt*) result.addr;
+  LongInt t(*arg1);
+  (*res) = t * (*arg2);
+  return 0;
+}
+
+template<class T>
+int CcProduct_rat( Word* args, Word& result, int message, 
+                    Word& local, Supplier s ){
+  Rational* arg1 = (Rational*) args[0].addr;
+  T* arg2 = (T*) args[1].addr;
+  result = qp->ResultStorage(s);
+  Rational* res = (Rational*) result.addr;
+  Rational t(*arg2);
+  (*res) = (*arg1) * t;
+  return 0;
+}
+
+template<class T>
+int CcProduct_rat2( Word* args, Word& result, int message, 
+                    Word& local, Supplier s ){
+  T* arg1 = (T*) args[0].addr;
+  Rational* arg2 = (Rational*) args[1].addr;
+  result = qp->ResultStorage(s);
+  Rational* res = (Rational*) result.addr;
+  Rational t(*arg1);
+  (*res) = t * (*arg2);
+  return 0;
+}
+
+
 /*
 4.7 Value mapping functions of operator ~/~
 
@@ -2160,6 +2341,61 @@ CcDivision_rr( Word* args, Word& result, int message, Word& local, Supplier s )
     ((CcReal *)result.addr)->Set( false, 0 );
   }
   return (0);
+}
+
+template<class T>
+int CcDivision_long( Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+  LongInt* arg1 = (LongInt*) args[0].addr;
+  T* arg2 = (T*) args[1].addr;
+  result = qp->ResultStorage(s);
+  LongInt* res = (LongInt*) result.addr;
+  LongInt t(*arg2);
+  (*res) = (*arg1) / t;
+  return 0; 
+}
+
+
+template<class T>
+int CcDivision_long2( Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+  T* arg1 = (T*) args[0].addr;
+  LongInt* arg2 = (LongInt*) args[1].addr;
+  result = qp->ResultStorage(s);
+  LongInt* res = (LongInt*) result.addr;
+  LongInt t(*arg1);
+  (*res) = t / (*arg2);
+  return 0; 
+}
+
+
+template<class T>
+int CcDivision_rat( Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+  Rational* arg1 = (Rational*) args[0].addr;
+  T* arg2 = (T*) args[1].addr;
+  result = qp->ResultStorage(s);
+  Rational* res = (Rational*) result.addr;
+  Rational t(*arg2);
+  (*res) = (*arg1) / t;
+  return 0; 
+}
+
+
+template<class T>
+int CcDivision_rat2( Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+  T* arg1 = (T*) args[0].addr;
+  Rational* arg2 = (Rational*) args[1].addr;
+  result = qp->ResultStorage(s);
+  Rational* res = (Rational*) result.addr;
+  Rational t(*arg1);
+  (*res) = t / (*arg2);
+  return 0; 
 }
 
 /*
@@ -2689,11 +2925,13 @@ NotFun( Word* args, Word& result, int message, Word& local, Supplier s )
 /*
 4.16 Value mapping functions of operators ~and~ and ~andS~
 
-For ~and~ the arguments are evaluated lazy. The result is TRUE, iff both arguments are
-DEFINED and TRUE, otherwise the result is FALSE. The result is always DEFINED.
+For ~and~ the arguments are evaluated lazy. The result is TRUE, iff both 
+arguments are DEFINED and TRUE, otherwise the result is FALSE. The result 
+is always DEFINED.
 
-~andS~ has strict evaluation. If both arguments are DEFINED and TRUE, it returns TRUE.
-Otherwise if both arguments are DEFINED and at least one is FALSE, it returns FALSE.
+~andS~ has strict evaluation. If both arguments are DEFINED and TRUE, 
+it returns TRUE.  Otherwise if both arguments are DEFINED and at least 
+one is FALSE, it returns FALSE.
 In all other cases, it returns UNDEFINED.
 
 */
@@ -4248,20 +4486,43 @@ int CCBinAndSVM (Word* args, Word& result, int message, Word& local,
 Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
 
-Because almost all operators are overloaded, we have first do define an array of value
-mapping functions for each operator. For nonoverloaded operators there is also
+Because almost all operators are overloaded, we have first do 
+define an array of value mapping functions for each operator. For 
+nonoverloaded operators there is also
 such and array defined, so it easier to make them overloaded.
 
 */
 
 ValueMapping ccplusmap[] =
-        { CcPlus_ii, CcPlus_ir, CcPlus_ri, CcPlus_rr, CcPlus_ss };
+        { CcPlus_ii, CcPlus_ir, CcPlus_ri, CcPlus_rr, CcPlus_ss,
+          CcPlus_long<CcInt>, CcPlus_long<LongInt>,
+          CcPlus_long2<CcInt>,
+          CcPlus_rat<CcInt>, CcPlus_rat<LongInt>,
+          CcPlus_rat<Rational>, CcPlus_rat2<CcInt>,
+          CcPlus_rat2<LongInt> };
+
+
 ValueMapping ccminusmap[] =
-        { CcMinus_ii, CcMinus_ir, CcMinus_ri, CcMinus_rr };
+        { CcMinus_ii, CcMinus_ir, CcMinus_ri, CcMinus_rr,
+          CcMinus_long<CcInt>, CcMinus_long<LongInt>, CcMinus_long2<CcInt>,
+          CcMinus_rat<CcInt>, CcMinus_rat<LongInt>, CcMinus_rat<Rational>,
+          CcMinus_rat2<CcInt>, CcMinus_rat2<LongInt> };
 ValueMapping ccproductmap[] =
-        { CcProduct_ii, CcProduct_ir, CcProduct_ri, CcProduct_rr };
+        { CcProduct_ii, CcProduct_ir, CcProduct_ri, CcProduct_rr,
+          CcProduct_long<CcInt>, CcProduct_long<LongInt>, 
+          CcProduct_long2<CcInt>,
+          CcProduct_rat<CcInt>, CcProduct_rat<LongInt>, 
+          CcProduct_rat<Rational>,
+          CcProduct_rat2<CcInt>, CcProduct_rat2<LongInt>
+         };
 ValueMapping ccdivisionmap[] =
-        { CcDivision_ii, CcDivision_ir, CcDivision_ri, CcDivision_rr };
+        { CcDivision_ii, CcDivision_ir, CcDivision_ri, CcDivision_rr,
+          CcDivision_long<CcInt>, CcDivision_long<LongInt>, 
+          CcDivision_long2<CcInt>,
+          CcDivision_rat<CcInt>, CcDivision_rat<LongInt>, 
+          CcDivision_rat<Rational>,
+          CcDivision_rat2<CcInt>, CcDivision_rat2<LongInt>
+         };
 
 ValueMapping ccmodmap[] = { CcMod };
 ValueMapping ccdivmap[] = { CcDiv };
@@ -5131,17 +5392,19 @@ Operator instance definitions
 
 */
 
-Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,
+Operator ccplus( "+", CCSpecAdd, 13, ccplusmap,
                  CcPlusSelectCompute, CcPlusTypeMap );
 
-Operator ccminus( "-", CCSpecSub, 4, ccminusmap,
+Operator ccminus( "-", CCSpecSub, 12, ccminusmap,
                   CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccproduct( "*", CCSpecMul, 4, ccproductmap,
+Operator ccproduct( "*", CCSpecMul, 12, ccproductmap,
                     CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap,
+Operator ccdivision( "/", CCSpecDiv, 12, ccdivisionmap,
                      CcMathSelectCompute, CcMathTypeMapdiv );
+
+
 
 Operator ccmod( "mod", CCSpecMod, 1, ccmodmap,
                 Operator::SimpleSelect, CcMathTypeMap1 );
@@ -5638,6 +5901,110 @@ Operator longint2int(
    longint2intTM);
 
 /*
+Operator ~rat~
+
+This operator converts several numeric types into a rational
+
+*/
+ListExpr ratTM(ListExpr args){
+   string err = "{int,long,string} or (i1 x i2) with ii int type expected";
+   if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+      return listutils::typeError(err);
+   } 
+   if(nl->HasLength(args,1)){
+     ListExpr arg1 = nl->First(args);
+     if(CcInt::checkType(arg1) || LongInt::checkType(arg1) ||
+        CcString::checkType(arg1)){
+         return listutils::basicSymbol<Rational>();
+     }
+     return listutils::typeError(err);
+   } 
+   // two arguments
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   if(!CcInt::checkType(arg1) && !LongInt::checkType(arg1)){
+      return listutils::typeError(err);
+   } 
+   if(!CcInt::checkType(arg2) && !LongInt::checkType(arg2)){
+      return listutils::typeError(err);
+   } 
+   return listutils::basicSymbol<Rational>();
+}
+
+template<class S>
+int ratVM1 (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+
+  S* arg = (S*) args[0].addr;
+  result = qp->ResultStorage(s);
+  Rational* res = (Rational*) result.addr;
+  Rational r(*arg);
+  (*res) = r;
+  return 0;
+}
+
+template<class S1, class S2>
+int ratVM2 (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+
+  S1* arg1 = (S1*) args[0].addr;
+  S2* arg2 = (S2*) args[1].addr;
+  result = qp->ResultStorage(s);
+  Rational* res = (Rational*) result.addr;
+  Rational r(*arg1, *arg2);
+  (*res) = r;
+  return 0;
+}
+
+ValueMapping ratVM[] ={
+     ratVM1<CcInt>, ratVM1<LongInt>, ratVM1<CcString>,
+     ratVM2<CcInt,CcInt>, ratVM2<CcInt,LongInt>,
+     ratVM2<LongInt,CcInt>, ratVM2<LongInt,LongInt>
+};
+
+int ratSelect(ListExpr args){
+  if(nl->HasLength(args,1)){
+     ListExpr arg = nl->First(args);
+     if(CcInt::checkType(arg)){
+        return 0;
+     }
+     if(LongInt::checkType(arg)){
+        return 1;
+     }
+     if(CcString::checkType(arg)){
+        return 2;
+     }
+     return -1;
+   }
+   // 2 arguments
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   int s1 = CcInt::checkType(arg1)?3:5;
+   int s2 = CcInt::checkType(arg2)?0:1;
+   return s1+s2;
+}
+
+
+OperatorSpec ratSpec(
+  "{int, longint, string}  -> rational "
+  "or i1 x i2 -> rational , i1,i2 in {int,longint}",
+  "rat(_) ",
+  "Converts the argument(s) to a rational ",
+  " query rat(-32,8)"
+);
+
+
+Operator rat(
+   "rat",
+   ratSpec.getStr(),
+   7, 
+   ratVM,
+   ratSelect,
+   ratTM);
+
+
+
+/*
 6 Class ~CcAlgebra~
 
 The last steps in adding an algebra to the Secondo system are
@@ -5649,7 +6016,8 @@ type constructors and operators in one instance of class ~Algebra~.
 
 Therefore, a new subclass ~CcAlgebra~ of class ~Algebra~ is declared. The only
 specialization with respect to class ~Algebra~ takes place within the
-constructor: all type constructors and operators are registered at the actual algebra.
+constructor: all type constructors and operators are registered at the actual
+ algebra.
 
 After declaring the new class, its only instance ~ccalgebra1~ is defined.
 
@@ -5665,30 +6033,35 @@ class CcAlgebra1 : public Algebra
     AddTypeConstructor( &ccBool );
     AddTypeConstructor( &ccString );
     AddTypeConstructor( &longint);
+    AddTypeConstructor( &rational);
 
     ccInt.AssociateKind( Kind::DATA() );
     ccReal.AssociateKind( Kind::DATA() );
     ccBool.AssociateKind( Kind::DATA() );
     ccString.AssociateKind( Kind::DATA() );
     longint.AssociateKind(Kind::DATA());
+    rational.AssociateKind(Kind::DATA());
 
     ccInt.AssociateKind( Kind::BASE() );
     ccReal.AssociateKind( Kind::BASE() );
     ccBool.AssociateKind( Kind::BASE() );
     ccString.AssociateKind( Kind::BASE() );
     longint.AssociateKind( Kind::BASE() );
+    rational.AssociateKind( Kind::BASE() );
 
     ccInt.AssociateKind( Kind::CSVEXPORTABLE() );
     ccReal.AssociateKind( Kind::CSVEXPORTABLE() );
     ccBool.AssociateKind( Kind::CSVEXPORTABLE() );
     ccString.AssociateKind( Kind::CSVEXPORTABLE() );
     longint.AssociateKind( Kind::CSVEXPORTABLE() );
+    rational.AssociateKind( Kind::CSVEXPORTABLE() );
 
     ccInt.AssociateKind( Kind::CSVIMPORTABLE() );
     ccReal.AssociateKind( Kind::CSVIMPORTABLE() );
     ccBool.AssociateKind( Kind::CSVIMPORTABLE() );
     ccString.AssociateKind( Kind::CSVIMPORTABLE() );
     longint.AssociateKind( Kind::CSVIMPORTABLE() );
+    rational.AssociateKind( Kind::CSVIMPORTABLE() );
     
     ccInt.AssociateKind( Kind::SQLEXPORTABLE() );
     ccReal.AssociateKind( Kind::SQLEXPORTABLE() );
@@ -5784,6 +6157,7 @@ class CcAlgebra1 : public Algebra
     AddOperator (&switchOp);
     AddOperator (&int2longint);
     AddOperator (&longint2int);
+    AddOperator (&rat);
 
 #ifdef USE_PROGRESS
     ccopifthenelse.EnableProgress();
