@@ -243,7 +243,7 @@ class Rational : public Attribute {
 
    
     Rational operator*(const Rational& r){
-       Rational res(this);
+       Rational res(*this);
        res *=(r);
        return res;
     }
@@ -267,7 +267,7 @@ class Rational : public Attribute {
     }
 
     Rational operator/(const Rational& r){
-       Rational res(this);
+       Rational res(*this);
        res *=(r.reverse2());
        return res;
     }

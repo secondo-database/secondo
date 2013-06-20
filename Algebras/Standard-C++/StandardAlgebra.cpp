@@ -2244,8 +2244,8 @@ int CcProduct_rat( Word* args, Word& result, int message,
   T* arg2 = (T*) args[1].addr;
   result = qp->ResultStorage(s);
   Rational* res = (Rational*) result.addr;
-  Rational t(*arg2);
-  (*res) = (*arg1) * t;
+  Rational f2(*arg2);
+  (*res) = (*arg1)*f2; 
   return 0;
 }
 
