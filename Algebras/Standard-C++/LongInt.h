@@ -44,6 +44,8 @@ class LongInt: public IndexableAttribute{
 
 public:
 
+  typedef int64_t inttype;
+
 /*
 1.1 Constructors
 
