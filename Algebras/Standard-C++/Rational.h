@@ -75,7 +75,7 @@ class Rational : public Attribute {
             denominator = 1;
             negative = 0;
         } else {
-           uint64_t k = v.GetValue();
+           int64_t k = v.GetValue();
            negative = k<0?1:0;
            nominator = abs(k);
            denominator = 1;
@@ -87,7 +87,7 @@ class Rational : public Attribute {
             denominator = 1;
             negative = 0;
         } else {
-           uint64_t k = v.GetValue();
+           int64_t k = v.GetValue();
            negative = k<0?1:0;
            nominator = abs(k);
            denominator = 1;
