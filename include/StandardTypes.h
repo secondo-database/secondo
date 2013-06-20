@@ -107,6 +107,9 @@ class CcInt : public Attribute
 {
  public:
 
+  typedef int32_t inttype;
+
+
   inline CcInt():Attribute()
   {
     intsCreated++;
