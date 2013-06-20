@@ -803,6 +803,55 @@ struct DisplayLongInt : DisplayFunction {
   }
 
 };
+
+
+struct DisplayRational : DisplayFunction {
+
+  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  {
+    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
+    {
+      cout << Symbol::UNDEFINED();
+      return;
+    }
+    if(nl->HasLength(value,3)){ // sign included
+       cout << nl->ToString(nl->First(value));
+       value = nl->Rest(value);
+    }
+    cout << getUint64(nl->First(value));
+    uint64_t d = getUint64(nl->Second(value));
+    if(d!=1){
+       cout << " / " << d;
+    }
+  }
+
+  static uint64_t getUint64(ListExpr args){
+     if(nl->AtomType(args)==IntType){
+        uint32_t i = nl->IntValue(args);
+        return i;
+     } else if(nl->HasLength(args,2)){
+         ListExpr i1 = nl->First(args);
+         ListExpr i2 = nl->Second(args);
+         if(nl->AtomType(i1)!=IntType || nl->AtomType(i2)!=IntType){
+           cerr << "Invalid representation found " 
+                << __PRETTY_FUNCTION__ << endl;
+           return 0;
+         }
+         uint32_t v1 = nl->IntValue(i1);
+         uint32_t t2 = nl->IntValue(i2);
+         uint64_t res = v1;
+         res = (res << 32) | t2;
+         return res;
+     }
+     cerr << "Invalid representation found " << __PRETTY_FUNCTION__ << endl;
+     return 0;
+  }
+
+
+};
+
+
 struct DisplayDRM : DisplayFunction {
 
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
@@ -3485,6 +3534,7 @@ DisplayTTY::Initialize()
 
   d.Insert( "int",     new DisplayInt() );
   d.Insert( "longint", new DisplayLongInt() );
+  d.Insert( "rational", new DisplayRational() );
   d.Insert( "real",    new DisplayReal() );
   d.Insert( "bool",    new DisplayBoolean() );
   d.Insert( "string",  new DisplayString() );
