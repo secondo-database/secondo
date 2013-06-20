@@ -45,6 +45,7 @@ For more detailed information see MapMatchingAlgebra.h.
 
 */
 
+#include "ONetworkAdapter.h"
 #include <string>
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -68,7 +69,6 @@ For more detailed information see MapMatchingAlgebra.h.
 #include "GPXImporter.h"
 #include "NetworkAdapter.h"
 #include "JNetworkAdapter.h"
-#include "ONetworkAdapter.h"
 #include "MapMatchingMHTMGPointCreator.h"
 #include "MapMatchingMHTPointsCreator.h"
 #include "MapMatchingMHTOEdgeTupleStreamCreator.h"
@@ -1095,22 +1095,23 @@ static ListExpr AppendLists(ListExpr List1, ListExpr List2)
 4.3 Value-Mapping
 
 */
-
-static ONetwork::OEdgeAttrIndexes GetOEdgeAttrIndexes(Word* args, int nOffset)
+template<class T>
+static typename ONetwork<T>::OEdgeAttrIndexes 
+       GetOEdgeAttrIndexes(Word* args, int nOffset)
 {
     // s. GetORelNetworkAttrIndexes
 
-    ONetwork::OEdgeAttrIndexes Indexes;
+    typename ONetwork<T>::OEdgeAttrIndexes Indexes;
 
-    const CcInt* pIdxSource    = static_cast<CcInt*>(args[nOffset + 0].addr);
-    const CcInt* pIdxTarget    = static_cast<CcInt*>(args[nOffset + 1].addr);
-    const CcInt* pIdxSourcePos = static_cast<CcInt*>(args[nOffset + 2].addr);
-    const CcInt* pIdxTargetPos = static_cast<CcInt*>(args[nOffset + 3].addr);
-    const CcInt* pIdxCurve     = static_cast<CcInt*>(args[nOffset + 4].addr);
+    const T* pIdxSource    = static_cast<T*>(args[nOffset + 0].addr);
+    const T* pIdxTarget    = static_cast<T*>(args[nOffset + 1].addr);
+    const T* pIdxSourcePos = static_cast<T*>(args[nOffset + 2].addr);
+    const T* pIdxTargetPos = static_cast<T*>(args[nOffset + 3].addr);
+    const T* pIdxCurve     = static_cast<T*>(args[nOffset + 4].addr);
     const CcInt* pIdxRoadName  = static_cast<CcInt*>(args[nOffset + 5].addr);
     const CcInt* pIdxRoadType  = static_cast<CcInt*>(args[nOffset + 6].addr);
     const CcInt* pIdxMaxSpeed  = static_cast<CcInt*>(args[nOffset + 7].addr);
-    const CcInt* pIdxWayId     = static_cast<CcInt*>(args[nOffset + 8].addr);
+    const T* pIdxWayId     = static_cast<T*>(args[nOffset + 8].addr);
 
 
     Indexes.m_IdxSource    = pIdxSource->GetValue();
@@ -1133,18 +1134,20 @@ static ONetwork::OEdgeAttrIndexes GetOEdgeAttrIndexes(Word* args, int nOffset)
     return Indexes;
 }
 
+
+template<class T>
 int OpOMapMatchingMHTMPoint2OStreamValueMapping(
-                                           Word* args,
-                                           Word& result,
-                                           int message,
-                                           Word& local,
-                                           Supplier in_xSupplier,
-                                           OEdgeTupleStreamCreator::EMode eMode)
+                    Word* args,
+                    Word& result,
+                    int message,
+                    Word& local,
+                    Supplier in_xSupplier,
+                    typename OEdgeTupleStreamCreator<T>::EMode eMode)
 {
     // cout << "OpOMapMatchingMHTMPoint2OStreamValueMapping called" << endl;
 
-    OEdgeTupleStreamCreator* pCreator =
-                              static_cast<OEdgeTupleStreamCreator*>(local.addr);
+    OEdgeTupleStreamCreator<T>* pCreator =
+                        static_cast<OEdgeTupleStreamCreator<T>*>(local.addr);
     switch (message)
     {
       case OPEN:
@@ -1160,21 +1163,22 @@ int OpOMapMatchingMHTMPoint2OStreamValueMapping(
           RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
           Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-          ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+          typename ONetwork<T>::OEdgeAttrIndexes Indexes = 
+                                              GetOEdgeAttrIndexes<T>(args, 4);
 
-          ONetwork Network(pORel, pRTree, pRelation, Indexes);
+          ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
 
           MPoint* pMPoint = static_cast<MPoint*>(args[3].addr);
 
           // Do Map Matching
 
-          ONetworkAdapter NetworkAdapter(&Network);
+          ONetworkAdapter<T> NetworkAdapter(&Network);
           MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
 
-          OEdgeTupleStreamCreator* pCreator =
-                                     new OEdgeTupleStreamCreator(in_xSupplier,
-                                                                 NetworkAdapter,
-                                                                 eMode);
+          OEdgeTupleStreamCreator<T>* pCreator =
+                        new OEdgeTupleStreamCreator<T>(in_xSupplier,
+                                                       NetworkAdapter,
+                                                       eMode);
 
           if (!MapMatching.DoMatch(pCreator))
           {
@@ -1214,18 +1218,19 @@ int OpOMapMatchingMHTMPoint2OStreamValueMapping(
     }
 }
 
+template<class T>
 int OpOMapMatchingMHTGPX2OStreamValueMapping(
-                                           Word* args,
-                                           Word& result,
-                                           int message,
-                                           Word& local,
-                                           Supplier in_xSupplier,
-                                           OEdgeTupleStreamCreator::EMode eMode)
+                          Word* args,
+                          Word& result,
+                          int message,
+                          Word& local,
+                          Supplier in_xSupplier,
+                          typename OEdgeTupleStreamCreator<T>::EMode eMode)
 {
     // cout << "OpOMapMatchingMHTGPX2OStreamValueMapping called" << endl;
 
-    OEdgeTupleStreamCreator* pCreator =
-                              static_cast<OEdgeTupleStreamCreator*>(local.addr);
+    OEdgeTupleStreamCreator<T>* pCreator =
+               static_cast<OEdgeTupleStreamCreator<T>*>(local.addr);
     switch (message)
     {
       case OPEN:
@@ -1241,20 +1246,21 @@ int OpOMapMatchingMHTGPX2OStreamValueMapping(
           RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
           Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-          ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+          typename ONetwork<T>::OEdgeAttrIndexes Indexes = 
+                                               GetOEdgeAttrIndexes<T>(args, 4);
 
-          ONetwork Network(pORel, pRTree, pRelation, Indexes);
+          ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
 
           FText* pFileName = static_cast<FText*>(args[3].addr);
           std::string strFileName = pFileName->GetValue();
 
           // Do Map Matching
 
-          ONetworkAdapter NetworkAdapter(&Network);
+          ONetworkAdapter<T> NetworkAdapter(&Network);
           MapMatchingMHT MapMatching(&NetworkAdapter, strFileName);
 
-          OEdgeTupleStreamCreator* pCreator =
-                                     new OEdgeTupleStreamCreator(in_xSupplier,
+          OEdgeTupleStreamCreator<T>* pCreator =
+                    new OEdgeTupleStreamCreator<T>(in_xSupplier,
                                                                  NetworkAdapter,
                                                                  eMode);
 
@@ -1296,18 +1302,19 @@ int OpOMapMatchingMHTGPX2OStreamValueMapping(
     }
 }
 
+template<class T>
 int OpOMapMatchingMHTStream2OStreamValueMapping(
-                                           Word* args,
-                                           Word& result,
-                                           int message,
-                                           Word& local,
-                                           Supplier in_xSupplier,
-                                           OEdgeTupleStreamCreator::EMode eMode)
+                             Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier in_xSupplier,
+                             typename OEdgeTupleStreamCreator<T>::EMode eMode)
 {
     // cout << "OpOMapMatchingMHTStream2OStreamValueMapping called" << endl;
 
-    OEdgeTupleStreamCreator* pCreator =
-                              static_cast<OEdgeTupleStreamCreator*>(local.addr);
+    OEdgeTupleStreamCreator<T>* pCreator =
+                 static_cast<OEdgeTupleStreamCreator<T>*>(local.addr);
     switch (message)
     {
       case OPEN:
@@ -1323,22 +1330,23 @@ int OpOMapMatchingMHTStream2OStreamValueMapping(
           RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
           Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-          ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+          typename ONetwork<T>::OEdgeAttrIndexes Indexes = 
+                                            GetOEdgeAttrIndexes<T>(args, 4);
 
-          ONetwork Network(pORel, pRTree, pRelation, Indexes);
+          ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
 
           shared_ptr<MapMatchDataContainer> pContData = // 9 OEdge-Attr-Indexes
                             GetMMDataFromTupleStream(args[3].addr, args, 4 + 9);
 
           // Do Map Matching
 
-          ONetworkAdapter NetworkAdapter(&Network);
+          ONetworkAdapter<T> NetworkAdapter(&Network);
           MapMatchingMHT MapMatching(&NetworkAdapter, pContData);
 
-          OEdgeTupleStreamCreator* pCreator =
-                                     new OEdgeTupleStreamCreator(in_xSupplier,
-                                                                 NetworkAdapter,
-                                                                 eMode);
+          OEdgeTupleStreamCreator<T>* pCreator =
+                             new OEdgeTupleStreamCreator<T>(in_xSupplier,
+                                                          NetworkAdapter,
+                                                          eMode);
 
           if (!MapMatching.DoMatch(pCreator))
           {
@@ -1379,49 +1387,52 @@ int OpOMapMatchingMHTStream2OStreamValueMapping(
 }
 
 
+template<class T>
 int OpOMapMatchingMHTMPoint2EdgesValueMapping(Word* args,
                                               Word& result,
                                               int message,
                                               Word& local,
                                               Supplier in_xSupplier)
 {
-    return OpOMapMatchingMHTMPoint2OStreamValueMapping(
-                                           args,
-                                           result,
-                                           message,
-                                           local,
-                                           in_xSupplier,
-                                           OEdgeTupleStreamCreator::MODE_EDGES);
+    return OpOMapMatchingMHTMPoint2OStreamValueMapping<T>(
+                           args,
+                           result,
+                           message,
+                           local,
+                           in_xSupplier,
+                           OEdgeTupleStreamCreator<T>::MODE_EDGES );
 }
 
+template<class T>
 int OpOMapMatchingMHTGPX2EdgesValueMapping(Word* args,
                                            Word& result,
                                            int message,
                                            Word& local,
                                            Supplier in_xSupplier)
 {
-    return OpOMapMatchingMHTGPX2OStreamValueMapping(
-                                           args,
-                                           result,
-                                           message,
-                                           local,
-                                           in_xSupplier,
-                                           OEdgeTupleStreamCreator::MODE_EDGES);
+    return OpOMapMatchingMHTGPX2OStreamValueMapping<T>(
+                             args,
+                             result,
+                             message,
+                             local,
+                             in_xSupplier,
+                             OEdgeTupleStreamCreator<T>::MODE_EDGES);
 }
 
+template<class T>
 int OpOMapMatchingMHTStream2EdgesValueMapping(Word* args,
                                               Word& result,
                                               int message,
                                               Word& local,
                                               Supplier in_xSupplier)
 {
-    return OpOMapMatchingMHTStream2OStreamValueMapping(
-                                           args,
-                                           result,
-                                           message,
-                                           local,
-                                           in_xSupplier,
-                                           OEdgeTupleStreamCreator::MODE_EDGES);
+    return OpOMapMatchingMHTStream2OStreamValueMapping<T>(
+                              args,
+                              result,
+                              message,
+                              local,
+                              in_xSupplier,
+                              OEdgeTupleStreamCreator<T>::MODE_EDGES);
 }
 
 
@@ -1743,6 +1754,7 @@ ListExpr OpOMapMatchingMHT_PTypeMap(ListExpr in_xArgs)
 
 */
 
+template<class T>
 int OpOMapMatchingMHTMPoint2PositionsValueMapping(Word* args,
                                                   Word& result,
                                                   int message,
@@ -1751,15 +1763,16 @@ int OpOMapMatchingMHTMPoint2PositionsValueMapping(Word* args,
 {
     // cout << "OpOMapMatchingMHTMPoint2PositionsValueMapping called" << endl;
 
-    return OpOMapMatchingMHTMPoint2OStreamValueMapping(
-                             args,
-                             result,
-                             message,
-                             local,
-                             in_xSupplier,
-                             OEdgeTupleStreamCreator::MODE_EDGES_AND_POSITIONS);
+    return OpOMapMatchingMHTMPoint2OStreamValueMapping<T>(
+                   args,
+                   result,
+                   message,
+                   local,
+                   in_xSupplier,
+                   OEdgeTupleStreamCreator<T>::MODE_EDGES_AND_POSITIONS);
 }
 
+template<class T>
 int OpOMapMatchingMHTGPX2PositionsValueMapping(Word* args,
                                                Word& result,
                                                int message,
@@ -1768,15 +1781,16 @@ int OpOMapMatchingMHTGPX2PositionsValueMapping(Word* args,
 {
     // cout << "OpOMapMatchingMHTGPX2PositionsValueMapping called" << endl;
 
-    return OpOMapMatchingMHTGPX2OStreamValueMapping(
-                             args,
-                             result,
-                             message,
-                             local,
-                             in_xSupplier,
-                             OEdgeTupleStreamCreator::MODE_EDGES_AND_POSITIONS);
+    return OpOMapMatchingMHTGPX2OStreamValueMapping<T>(
+                    args,
+                    result,
+                    message,
+                    local,
+                    in_xSupplier,
+                    OEdgeTupleStreamCreator<T>::MODE_EDGES_AND_POSITIONS);
 }
 
+template<class T>
 int OpOMapMatchingMHTStream2PositionsValueMapping(Word* args,
                                                   Word& result,
                                                   int message,
@@ -1785,13 +1799,13 @@ int OpOMapMatchingMHTStream2PositionsValueMapping(Word* args,
 {
     // cout << "OpOMapMatchingMHTStream2PositionsValueMapping called" << endl;
 
-    return OpOMapMatchingMHTStream2OStreamValueMapping(
-                             args,
-                             result,
-                             message,
-                             local,
-                             in_xSupplier,
-                             OEdgeTupleStreamCreator::MODE_EDGES_AND_POSITIONS);
+    return OpOMapMatchingMHTStream2OStreamValueMapping<T>(
+                  args,
+                  result,
+                  message,
+                  local,
+                  in_xSupplier,
+                  OEdgeTupleStreamCreator<T>::MODE_EDGES_AND_POSITIONS);
 }
 
 
@@ -1872,6 +1886,7 @@ ListExpr OpOMapMatchingMHT_MPointTypeMap(ListExpr in_xArgs)
 
 */
 
+template<class T>
 int OpOMapMatchingMHTMPoint2MPointValueMapping(Word* args,
                                                Word& result,
                                                int message,
@@ -1889,15 +1904,16 @@ int OpOMapMatchingMHTMPoint2MPointValueMapping(Word* args,
     RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
     Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-    ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+    typename ONetwork<T>::OEdgeAttrIndexes Indexes = 
+                                        GetOEdgeAttrIndexes<T>(args, 4);
 
-    ONetwork Network(pORel, pRTree, pRelation, Indexes);
+    ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
 
     MPoint *pMPoint = static_cast<MPoint*>(args[3].addr);
 
     // Matching
 
-    ONetworkAdapter NetworkAdapter(&Network);
+    ONetworkAdapter<T> NetworkAdapter(&Network);
     MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
 
     MPointCreator Creator(pRes, NetworkAdapter.GetNetworkScale());
@@ -1910,6 +1926,7 @@ int OpOMapMatchingMHTMPoint2MPointValueMapping(Word* args,
     return 0;
 }
 
+template<class T>
 int OpOMapMatchingMHTGPX2MPointValueMapping(Word* args,
                                             Word& result,
                                             int message,
@@ -1927,16 +1944,17 @@ int OpOMapMatchingMHTGPX2MPointValueMapping(Word* args,
     RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
     Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-    ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+    typename ONetwork<T>::OEdgeAttrIndexes Indexes = 
+                                         GetOEdgeAttrIndexes<T>(args, 4);
 
-    ONetwork Network(pORel, pRTree, pRelation, Indexes);
+    ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
 
     FText* pFileName = static_cast<FText*>(args[3].addr);
     std::string strFileName = pFileName->GetValue();
 
     // Matching
 
-    ONetworkAdapter NetworkAdapter(&Network);
+    ONetworkAdapter<T> NetworkAdapter(&Network);
     MapMatchingMHT MapMatching(&NetworkAdapter, strFileName);
 
     MPointCreator Creator(pRes, NetworkAdapter.GetNetworkScale());
@@ -1949,6 +1967,7 @@ int OpOMapMatchingMHTGPX2MPointValueMapping(Word* args,
     return 0;
 }
 
+template<class T>
 int OpOMapMatchingMHTStream2MPointValueMapping(Word* args,
                                                Word& result,
                                                int message,
@@ -1966,16 +1985,17 @@ int OpOMapMatchingMHTStream2MPointValueMapping(Word* args,
     RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
     Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-    ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+    typename ONetwork<T>::OEdgeAttrIndexes Indexes = 
+                                          GetOEdgeAttrIndexes<T>(args, 4);
 
-    ONetwork Network(pORel, pRTree, pRelation, Indexes);
+    ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
 
     shared_ptr<MapMatchDataContainer> pContData = // 9 OEdge-Attr-Indexes
                             GetMMDataFromTupleStream(args[3].addr, args, 4 + 9);
 
     // Matching
 
-    ONetworkAdapter NetworkAdapter(&Network);
+    ONetworkAdapter<T> NetworkAdapter(&Network);
     MapMatchingMHT MapMatching(&NetworkAdapter, pContData);
 
     MPointCreator Creator(pRes, NetworkAdapter.GetNetworkScale());
@@ -2211,10 +2231,10 @@ MapMatchingAlgebra::MapMatchingAlgebra()
 
     // OMapMatchMHT
     ValueMapping OMapMatchMHTFuns[] =
-                                    { OpOMapMatchingMHTMPoint2EdgesValueMapping,
-                                      OpOMapMatchingMHTGPX2EdgesValueMapping,
-                                      OpOMapMatchingMHTStream2EdgesValueMapping,
-                                      0 };
+                     { OpOMapMatchingMHTMPoint2EdgesValueMapping<CcInt>,
+                       OpOMapMatchingMHTGPX2EdgesValueMapping<CcInt>,
+                       OpOMapMatchingMHTStream2EdgesValueMapping<CcInt>,
+                     0 };
 
     AddOperator(OMapMatchMHTInfo(),
                 OMapMatchMHTFuns,
@@ -2223,10 +2243,10 @@ MapMatchingAlgebra::MapMatchingAlgebra()
 
     // OMapMatchMHT_P
     ValueMapping OMapMatchMHT_PFuns[] =
-                                { OpOMapMatchingMHTMPoint2PositionsValueMapping,
-                                  OpOMapMatchingMHTGPX2PositionsValueMapping,
-                                  OpOMapMatchingMHTStream2PositionsValueMapping,
-                                  0 };
+              { OpOMapMatchingMHTMPoint2PositionsValueMapping<CcInt>,
+                OpOMapMatchingMHTGPX2PositionsValueMapping<CcInt>,
+                OpOMapMatchingMHTStream2PositionsValueMapping<CcInt>,
+              0 };
 
     AddOperator(OMapMatchMHT_PInfo(),
                 OMapMatchMHT_PFuns,
@@ -2235,10 +2255,10 @@ MapMatchingAlgebra::MapMatchingAlgebra()
 
     // OMapMatchMHT_MPoint
     ValueMapping OMapMatchMHT_MPointFuns[] =
-                                   { OpOMapMatchingMHTMPoint2MPointValueMapping,
-                                     OpOMapMatchingMHTGPX2MPointValueMapping,
-                                     OpOMapMatchingMHTStream2MPointValueMapping,
-                                     0 };
+               { OpOMapMatchingMHTMPoint2MPointValueMapping<CcInt>,
+                 OpOMapMatchingMHTGPX2MPointValueMapping<CcInt>,
+                 OpOMapMatchingMHTStream2MPointValueMapping<CcInt>,
+               0 };
 
     AddOperator(OMapMatchMHT_MPointInfo(),
                 OMapMatchMHT_MPointFuns,
