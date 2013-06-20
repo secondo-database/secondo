@@ -55,7 +55,7 @@ if [ ! -d $PSDKLOC ]; then
   fi
 fi
 
-LIP=$(trim $(get_localIP))
+LIP=$(get_localIP)
 MIP=$(cat $PARALLEL_SECONDO_MASTER | cut -d ':' -f1)
 if [ "$LIP" != "$MIP" ]; then
     echo "${ERRORINFO}The current node is not the master."

@@ -5,9 +5,21 @@ declare -i PS_PIPE_Width=10
 function get_localIP
 {
   if [ "$SECONDO_PLATFORM" = "linux" -o "$SECONDO_PLATFORM" = "linux64" ]; then 
-#    localAddr=$(ifconfig eth0 | grep "inet addr" | awk -F" " '{print $2}')
-    localAddr=$(ifconfig | grep 'inet' | grep -v 'inet6' | grep -v '127.0.0.1' | awk -F" " '{print $2}')
-    localAddr=${localAddr#*:}
+    ## This function can only be used after installing Parallel SECONDO
+    localAddr=$(ifconfig | grep 'inet' | grep -v 'inet6' | grep -v '127.0.0.1' | awk -F" " '{print $2}' | cut -d':' -f2 | tr '\n' ' ')
+    lipArr=($localAddr)
+    if [ ${#lipArr[@]} -gt 1 ]; then
+      # It is possible that a computer is set with multiple IP addresses
+      cipArr=$(get_clusterIPs -m | tr ':' '\n' | sort | uniq | tr '\n' ' ')
+      for lip in ${lipArr[*]}; do
+        for cip in ${cipArr[*]}; do
+          if [ "$lip" == "$cip" ]; then 
+            localAddr=$cip
+            break
+          fi
+        done 
+      done
+    fi
   elif [ "$SECONDO_PLATFORM" = "mac_osx" ]; then
     localAddr=$(ifconfig en0 | grep inet | grep broadcast | cut -d' ' -f 2)
   else
@@ -15,6 +27,36 @@ function get_localIP
     exit -1
   fi
   echo ${localAddr}
+}
+
+function get_localIPs
+{
+  # It is possible that a computer is set with multiple IP addresses
+  if [ "$SECONDO_PLATFORM" = "linux" -o "$SECONDO_PLATFORM" = "linux64" ]; then 
+    ## This function can only be used after installing Parallel SECONDO
+    localAddr=$(ifconfig | grep 'inet' | grep -v 'inet6' | grep -v '127.0.0.1' | awk -F" " '{print $2}' | cut -d':' -f2 | tr '\n' ' ')
+  elif [ "$SECONDO_PLATFORM" = "mac_osx" ]; then
+    localAddr=$(ifconfig en0 | grep inet | grep broadcast | cut -d' ' -f 2)
+  else
+    echo "Unavailable SECONDO_PLATFORM value $SECONDO_PLATFORM" >&2
+    exit -1
+  fi
+  echo ${localAddr}
+}
+
+
+function oneOf
+{
+  DATA=$1
+  shift
+  SET=($*)
+  for d in ${SET[*]}; do
+    if [ "$d" == "$DATA" ]; then
+      echo true;
+      exit 0
+    fi
+  done
+  echo false;
 }
 
 function get_clusterIPs
@@ -26,7 +68,7 @@ function get_clusterIPs
   SLAVES_IPLIST="$PARALLEL_SECONDO_SLAVES"
   NODES=""
   for node in $(cat ${MASTER_IPLIST} ${SLAVES_IPLIST}); do
-    node=$(echo $node | cut -d':' -f 1)
+    node=$(echo $node | cut -d':' -f1)
     NODES="$NODES:$node"
   done
   echo ${NODES#:}
@@ -79,11 +121,10 @@ function get_mainDServs
 function get_slaveIPs
 {
   MASTERIP=$(get_masterIP)
-  RPSLVIPS=$(get_clusterIPs -m)  # The IPs may redundant
+  RPSLVIPS=($(get_clusterIPs -m | tr ':' ' ')) # The IPs may redundant
 
   CLEANIPS=""
-  IFS=':'
-  for IP in $RPSLVIPS; do
+  for IP in ${RPSLVIPS[*]}; do
     CLEANIPS=${CLEANIPS/${IP}/} # remove the exist one
     CLEANIPS="$CLEANIPS $IP"
   done
@@ -94,17 +135,17 @@ function get_slaveIPs
   echo ${CLEANIPS}
 }
 
-function get_NodeIP
-{
-  if [ $# -eq 0 ]; then
-    NODEID=0
-    echo -e "$NODEID: $(get_masterIP)\n"
-    for IPADDR in $(get_slaveIPs); do
-      let NODEID++
-      echo -e "$NODEID: $IPADDR\n"
-    done
-  fi
-}
+#function get_NodeIP
+#{
+#  if [ $# -eq 0 ]; then
+#    NODEID=0
+#    echo -e "$NODEID: $(get_masterIP)\n"
+#    for IPADDR in $(get_slaveIPs); do
+#      let NODEID++
+#      echo -e "$NODEID: $IPADDR\n"
+#    done
+#  fi
+#}
 
 function get_scrID
 {
@@ -259,4 +300,5 @@ function trim
 {
   echo $(echo $1 | sed 's/^ *//' | sed 's/ *$//')
 }
+
 

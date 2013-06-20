@@ -582,13 +582,22 @@ function formatNode
   scp -o LogLevel=quiet $nodeRCFile $nodeIP:$RCFILENAME
 
   # Delete exist commands if necessary
-  ssh -o LogLevel=quiet $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_.\\\/]*$RCFILENAME//\" \$HOME/.bashrc "
+  CLNUM=$(ssh -o LogLevel=quiet $nodeIP "grep -n \"source \\\$HOME/${RCFILENAME}\" \$HOME/.bashrc" | cut -d':' -f1)
+  if [ "$CLNUM" != "" ]; then
+    ssh -o LogLevel=quiet $nodeIP "sed -i \"${CLNUM}d\" \$HOME/.bashrc"
+  fi
   #source .parasecrc file in the .bashrc, to set all required environment
   case ${curPlat} in
   # Process linux and linux64 with same statements
     linux )
       # Execute the .parasecrc directly after processing .secondorc
-      ssh -o LogLevel=quiet $nodeIP "sed -i \"s/source [\\\$A-Z_.\\\/]*secondorc [\\\$a-zA-Z_.\\\/]*/&\nsource \\\$HOME\/$RCFILENAME/\" \$HOME/.bashrc"
+      SCNUM=$(ssh -o LogLevel=quiet $nodeIP "grep -n \"source [\\\$A-Z_.\\\/]*secondorc [\\\$a-zA-Z_.\\\/]*\" \$HOME/.bashrc" | cut -d':' -f1)
+      if [ "$SCNUM" == "" ]; then
+        SCNUM=1
+      else
+        let SCNUM++
+      fi
+      ssh -o LogLevel=quiet $nodeIP "sed -i \"${SCNUM}isource \\\$HOME/${RCFILENAME}\" \$HOME/.bashrc"
     ;;
     mac_osx )
       ssh -o LogLevel=quiet $nodeIP "echo \"source \\\$HOME/$RCFILENAME\" >> \$HOME/.bashrc"
@@ -611,7 +620,7 @@ function formatNode
     fi
     ARVNAME=${ARVPATH##*/}
     scp -o LogLevel=quiet ${ARVPATH}.tar.gz $nodeIP:$dserv
-    ssh -o LogLevel=quiet $nodeIP "tar -xf $dserv/${ARVNAME}.tar.gz -C $dserv/ --strip=$SLEVEL"
+    ssh -o LogLevel=quiet $nodeIP "tar -xmf $dserv/${ARVNAME}.tar.gz -C $dserv/ --strip=$SLEVEL "
     
     #Copy SecondoConfig.ini files
     if [ $sidx -eq 0 ]; then
@@ -661,15 +670,11 @@ for ((token=1;token<$PS_PIPE_Width;)); do
 done
 
 # 7. Set up Master Mini Secondo Configuration if NS4Master is set
-OLDIFS=$IFS
-IFS=$'\n'
 NS4Master=($(readPSConf "Options" "NS4Master" "="))
 NS4Master=$(trim ${NS4Master[0]})
-IFS=$OLDIFS
 if [ "$NS4Master" = "true" ]; then
-  # Ensure the current node is the master node
-  LIP=$(trim $(get_localIP))
-  if [ "$LIP" != "$MIP" ]; then
+  # Make sure the current node is the master node
+  if ! $(oneOf "$MIP" $(get_localIPs)) ; then
     echo "${ERRORINFO}The current node is not the master node,
       cannot set its Secondo as the master mini Secondo."
     echo "Installation for Parallel Secondo Fails. "
@@ -711,7 +716,7 @@ if [ "$NS4Master" = "true" ]; then
   setSecConf $MDBCONF $PT_SECPORT $MSPtNum
 
   # b. Add Parallel Secondo Configurations
-  setSecConf $MDBCONF $PT_LIPADDR $LIP $PSCST
+  setSecConf $MDBCONF $PT_LIPADDR $MIP $PSCST
   
   MPSFSLOC=$(head -1 $PSMFILE | cut -d':' -f2)
   setSecConf $MDBCONF $PT_PSFSNME $MPSFSLOC $PSCST

@@ -81,8 +81,6 @@ while read file; do
 done < "${bin}/miniSec_list" | tr ' ' '\n' | xargs tar czf "${MSARV}" -C "$SECPATH" 2>/dev/null
 declare -i SLEVEL=$(echo $SECPATH | tr '/' '\n' | sed '/^$/d' | wc -l)
 
-
-
 echo "The mini secondo archive is built in ${MSARV}"
 
 echo -e "============= End Building Mini Secondo ===========\n"
@@ -165,7 +163,7 @@ PARALLEL_SECONDO is: $RSEC , PARALLEL_SECONDO_DBCONFIG is: $RSECON " >> $Status
       rsLoc="${fLoc}/${RSECMNNAME}"
       LPOS=$(ssh "$NODE" "readlink ${rsLoc}" 2>/dev/null)
       if [ "$LPOS" != "" ]; then
-        echo -e "${NODE}:$(($CNT + 1))\t${rsLoc}\t\tOmit as it is a link to ${LPos}" >> $Status
+        echo -e "${NODE}:$(($CNT + 1))\t${rsLoc}\t\tOmit as it is a link to ${LPOS}" >> $Status
       else
         scp "$MSARV" "$NODE:${fLoc}/${RARVNAME}" 2>/dev/null
         ssh "$NODE"  "rm -rf ${rsLoc}" 2>/dev/null
