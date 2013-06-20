@@ -294,8 +294,8 @@ ALGEBRAS     += RecordAlgebra
 ALGEBRA_DIRS += SpatialJoin
 ALGEBRAS     += SpatialJoinAlgebra
 
-#ALGEBRA_DIRS += Trie
-#ALGEBRAS     += TrieAlgebra
+ALGEBRA_DIRS += Trie
+ALGEBRAS     += TrieAlgebra
 
 #ALGEBRA_DIRS += MapMatching
 #ALGEBRAS     += MapMatchingAlgebra
