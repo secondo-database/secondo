@@ -254,7 +254,7 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include <cerrno>
 #include <time.h>       //needed for random number generator
 #include "LongInt.h"
-#include "Rational.h"
+#include "RationalAttr.h"
 
 
 extern NestedList* nl;
