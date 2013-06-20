@@ -34,8 +34,7 @@
 */
 
 #include "Coarsening.h"
-#include <utility>
-#include <exception>
+
 
 namespace p2d {
 
@@ -88,25 +87,31 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
   return;
  }
 
+
  int x = left.getX();
  int y = left.getY();
+ if ((x!=right.getX()) && ((y != right.getY()))){
  Vertex* v1 = insert(left.getX(), left.getY());
- double slope = (left.getY() - right.getY())
-   / (((double) left.getX()) - right.getX());
+ //double slope = (left.getY() - right.getY())
+ //  / (((double) left.getX()) - right.getX());
+ mpq_class num = left.getY() - right.getY();
+ mpq_class den = left.getX() - right.getX();
+ mpq_class slope = num / den;
 
  while ((x != right.getX()) && (y != right.getY())) {
   //the segment runs through some grids in both directions
 
   // the segment intersects the vertical line in (x+1) in ~yValue~.
-  double yValue = ((slope * (x + 1)) + right.getY() - (slope * right.getX()));
 
+  mpq_class yValue = ((slope * (x + 1)) + right.getY()
+    - (slope * right.getX()));
   int newY; // gets the y-value of the next vertex
-  if (y < yValue) {
-   if (slope > 0) {
+  if (cmp(y, yValue)<0){
+   if (cmp(slope, 0)>0){
     //ascending segment
     //yValue is above y and the right point has not been reached. For the next
     //vertex, yValue is rounded up to the next integer.
-    newY = ceil(yValue);
+    newY = (int) (ceil_mpq(yValue)).get_d();
    } else {
     //horizontal or descending segment
     newY = y;
@@ -129,8 +134,8 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
    v1 = v2;
   } else {
    //for more info see if-branch
-   if (slope <= 0) {
-    newY = floor(yValue);
+   if (cmp (slope, 0)<=0) {
+    newY = (int)(floor_mpq(yValue)).get_d();
    } else {
     newY = y;
    }
@@ -148,7 +153,7 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
   }
   x++;
  }
-
+ }
  if (x != right.getX()) {
   //the segment runs through some grid which have all the same y-value,
   //the coarse segment will be horizontal line

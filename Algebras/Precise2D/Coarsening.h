@@ -37,7 +37,11 @@
 #define COARSENING_H_
 
 #include <stdio.h>
+#include <gmp.h>
+#include <gmpxx.h>
 #include <set>
+#include <utility>
+#include <exception>
 #include "Algebra.h"
 #include "RectangleAlgebra.h"
 #include "../../Tools/Flob/DbArray.h"
@@ -51,6 +55,7 @@
 #include "SpatialAlgebra.h"
 #include "Region2Algebra.h"
 #include "Attribute.h"
+#include "Toolbox.h"
 
 namespace p2d {
 

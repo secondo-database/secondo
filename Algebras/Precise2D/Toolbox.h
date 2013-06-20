@@ -53,5 +53,9 @@ bool AlmostEqual(double a, double b);
 
 mpq_class computeMpqFromDouble(double value);
 
+mpz_class ceil_mpq(mpq_class& value);
+
+mpz_class floor_mpq(mpq_class& value);
+
 } /* namespace p2d */
 #endif /* TOOLBOX_H_ */

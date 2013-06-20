@@ -118,4 +118,28 @@ mpq_class computeMpqFromDouble(double value) {
  return result;
 }
 
+mpz_class ceil_mpq(mpq_class& value){
+ mpz_class numerator =  value.get_num();
+ mpz_class denominator = value.get_den();
+ mpz_class intValue = numerator / denominator;
+ if (cmp(intValue,0)>0 ){
+  if (cmp(intValue, value)<0){
+   intValue = intValue + 1;
+  }
+ }
+ return intValue;
+}
+
+mpz_class floor_mpq(mpq_class& value){
+ mpz_class numerator =  value.get_num();
+ mpz_class denominator = value.get_den();
+ mpz_class intValue = numerator / denominator;
+ if (cmp(intValue,0)>0 ){
+  if (cmp(intValue, value)>0){
+   intValue = intValue - 1;
+  }
+ }
+ return intValue;
+}
+
 } /* namespace p2d */
