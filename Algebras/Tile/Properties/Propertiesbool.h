@@ -44,6 +44,7 @@ class Properties<char>
   typedef CcBool WrapperType;
   static char GetUndefinedValue();
   static char GetValue(const NList& rNList);
+  static char GetUnwrappedValue(const CcBool& rCcBool);
   static CcBool GetWrappedValue(const char& rchar);
   static bool IsUndefinedValue(const char& rchar);
   static bool IsValidValueType(const NList& rNList);

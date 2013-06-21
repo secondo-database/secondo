@@ -40,6 +40,18 @@ char Properties<char>::GetValue(const NList& rNList)
   return rNList.boolval();
 }
 
+char Properties<char>::GetUnwrappedValue(const CcBool& rCcBool)
+{
+  char unwrappedValue = GetUndefinedValue();
+
+  if(rCcBool.IsDefined())
+  {
+    unwrappedValue = rCcBool.GetValue();
+  }
+
+  return unwrappedValue;
+}
+
 CcBool Properties<char>::GetWrappedValue(const char& rchar)
 {
   return CcBool(!IsUndefinedValue(rchar), int(rchar));
