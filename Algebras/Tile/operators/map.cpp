@@ -248,7 +248,7 @@ ListExpr mapTypeMappingFunction(ListExpr arguments)
       else
       {
         type = NList::typeError("First argument must be a t type or "
-	                        "a mt type.");
+                                "a mt type.");
       }
     }
   }
