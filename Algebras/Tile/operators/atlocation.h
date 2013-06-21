@@ -51,7 +51,7 @@ declaration of atlocation type mapping function
 
 */
 
-ListExpr atlocationTypeMapping(ListExpr arguments);
+ListExpr atlocationTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of atlocation Operator Info structure
@@ -74,7 +74,7 @@ struct atlocationInfo : OperatorInfo
 };
 
 /*
-definition of template atlocation function
+definition of template atlocationFunction
 
 */
 

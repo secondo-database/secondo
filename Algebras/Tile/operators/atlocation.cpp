@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "atlocation.h"
+#include "../Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -101,7 +102,7 @@ definition of atlocation type mapping function
 
 */
 
-ListExpr atlocationTypeMapping(ListExpr arguments)
+ListExpr atlocationTypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Expecting a t type or a mt type "
                                    "and a point or a point and an instant.");
@@ -110,81 +111,34 @@ ListExpr atlocationTypeMapping(ListExpr arguments)
 
   if(argumentsList.hasLength(2))
   {
-    NList argument1 = argumentsList.first();
-    NList argument2 = argumentsList.second();
+    std::string argument1 = argumentsList.first().str();
+    std::string argument2 = argumentsList.second().str();
 
-    if(argument2 == NList(Point::BasicType()))
+    if(argument2 == Point::BasicType())
     {
-      if(argument1 == NList(tint::BasicType()))
+      if(IstType(argument1))
       {
-        type = NList(CcInt::BasicType()).listExpr();
+        type = NList(GetValueWrapperType(argument1)).listExpr();
       }
 
-      else if(argument1 == NList(treal::BasicType()))
+      else if(IsmtType(argument1))
       {
-        type = NList(CcReal::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(tbool::BasicType()))
-      {
-        type = NList(CcBool::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(tstring::BasicType()))
-      {
-        type = NList(CcString::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtint::BasicType()))
-      {
-        type = NList(MInt::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtreal::BasicType()))
-      {
-        type = NList(MReal::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtbool::BasicType()))
-      {
-        type = NList(MBool::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtstring::BasicType()))
-      {
-        type = NList(MString::BasicType()).listExpr();
+        type = NList(GetMType(argument1)).listExpr();
       }
     }
   }
 
   else if(argumentsList.hasLength(3))
   {
-    NList argument1 = argumentsList.first();
-    NList argument2 = argumentsList.second();
-    NList argument3 = argumentsList.third();
+    std::string argument1 = argumentsList.first().str();
+    std::string argument2 = argumentsList.second().str();
+    std::string argument3 = argumentsList.third().str();
 
-    if(argument2 == NList(Point::BasicType()) &&
-       argument3 == NList(Instant::BasicType()))
+    if(IsmtType(argument1) &&
+       argument2 == Point::BasicType() &&
+       argument3 == Instant::BasicType())
     {
-      if(argument1 == NList(mtint::BasicType()))
-      {
-        type = NList(CcInt::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtreal::BasicType()))
-      {
-        type = NList(CcReal::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtbool::BasicType()))
-      {
-        type = NList(CcBool::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtstring::BasicType()))
-      {
-        type = NList(CcString::BasicType()).listExpr();
-      }
+      type = NList(GetValueWrapperType(argument1)).listExpr();
     }
   }
 
