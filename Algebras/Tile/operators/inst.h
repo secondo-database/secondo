@@ -50,7 +50,7 @@ declaration of inst type mapping function
 
 */
 
-ListExpr instTypeMapping(ListExpr arguments);
+ListExpr instTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of inst Operator Info structure
@@ -69,7 +69,7 @@ struct instInfo : OperatorInfo
 };
 
 /*
-definition of template inst function
+definition of template instFunction
 
 */
 

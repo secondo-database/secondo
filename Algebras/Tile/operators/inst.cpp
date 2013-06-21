@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "inst.h"
+#include "../Types.h"
 #include "../it/itint.h"
 #include "../it/itreal.h"
 #include "../it/itbool.h"
@@ -87,7 +88,7 @@ definition of inst type mapping function
 
 */
 
-ListExpr instTypeMapping(ListExpr arguments)
+ListExpr instTypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Expecting an it type.");
 
@@ -95,12 +96,9 @@ ListExpr instTypeMapping(ListExpr arguments)
 
   if(argumentsList.hasLength(1))
   {
-    NList argument1 = argumentsList.first();
+    std::string argument1 = argumentsList.first().str();
 
-    if(argument1 == NList(itint::BasicType()) ||
-       argument1 == NList(itreal::BasicType()) ||
-       argument1 == NList(itbool::BasicType()) ||
-       argument1 == NList(itstring::BasicType()))
+    if(IsitType(argument1))
     {
       type = NList(Instant::BasicType()).listExpr();
     }
