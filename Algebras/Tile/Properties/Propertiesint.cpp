@@ -40,6 +40,18 @@ int Properties<int>::GetValue(const NList& rNList)
   return rNList.intval();
 }
 
+int Properties<int>::GetUnwrappedValue(const CcInt& rCcInt)
+{
+  int unwrappedValue = GetUndefinedValue();
+
+  if(rCcInt.IsDefined())
+  {
+    unwrappedValue = rCcInt.GetValue();
+  }
+
+  return unwrappedValue;
+}
+
 CcInt Properties<int>::GetWrappedValue(const int& rint)
 {
   return CcInt(!IsUndefinedValue(rint), rint);

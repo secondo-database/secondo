@@ -44,6 +44,7 @@ class Properties<int>
   typedef CcInt WrapperType;
   static int GetUndefinedValue();
   static int GetValue(const NList& rNList);
+  static int GetUnwrappedValue(const CcInt& rCcInt);
   static CcInt GetWrappedValue(const int& rint);
   static bool IsUndefinedValue(const int& rint);
   static bool IsValidValueType(const NList& rNList);
