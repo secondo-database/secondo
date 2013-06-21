@@ -52,7 +52,7 @@ declaration of load type mapping function
 
 */
 
-ListExpr loadTypeMapping(ListExpr arguments);
+ListExpr loadTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of load Operator Info structure
@@ -72,7 +72,7 @@ struct loadInfo : OperatorInfo
 };
 
 /*
-definition of template load function
+definition of template loadFunction
 
 */
 

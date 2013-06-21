@@ -68,7 +68,7 @@ definition of load type mapping function
 
 */
 
-ListExpr loadTypeMapping(ListExpr args)
+ListExpr loadTypeMappingFunction(ListExpr args)
 {
   NList types(args);
 
