@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "bbox.h"
+#include "../Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -99,7 +100,7 @@ definition of bbox type mapping function
 
 */
 
-ListExpr bboxTypeMapping(ListExpr arguments)
+ListExpr bboxTypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Expecting a t type or a mt type.");
 
@@ -107,20 +108,14 @@ ListExpr bboxTypeMapping(ListExpr arguments)
 
   if(argumentsList.hasLength(1))
   {
-    NList argument1 = argumentsList.first();
+    std::string argument1 = argumentsList.first().str();
 
-    if(argument1 == NList(tint::BasicType()) ||
-       argument1 == NList(treal::BasicType()) ||
-       argument1 == NList(tbool::BasicType()) ||
-       argument1 == NList(tstring::BasicType()))
+    if(IstType(argument1))
     {
       type = NList(Rectangle<2>::BasicType()).listExpr();
     }
     
-    if(argument1 == NList(mtint::BasicType()) ||
-       argument1 == NList(mtreal::BasicType()) ||
-       argument1 == NList(mtbool::BasicType()) ||
-       argument1 == NList(mtstring::BasicType()))
+    else if(IsmtType(argument1))
     {
       type = NList(Rectangle<3>::BasicType()).listExpr();
     }

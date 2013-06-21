@@ -50,7 +50,7 @@ declaration of bbox type mapping function
 
 */
 
-ListExpr bboxTypeMapping(ListExpr arguments);
+ListExpr bboxTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of bbox Operator Info structure
@@ -70,7 +70,7 @@ struct bboxInfo : OperatorInfo
 };
 
 /*
-definition of template bbox function
+definition of template bboxFunction
 
 */
 
