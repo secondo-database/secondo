@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "val.h"
+#include "../Types.h"
 #include "../it/itint.h"
 #include "../it/itreal.h"
 #include "../it/itbool.h"
@@ -87,7 +88,7 @@ definition of val type mapping function
 
 */
 
-ListExpr valTypeMapping(ListExpr arguments)
+ListExpr valTypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Expecting an it type.");
 
@@ -95,26 +96,11 @@ ListExpr valTypeMapping(ListExpr arguments)
 
   if(argumentsList.hasLength(1))
   {
-    NList argument1 = argumentsList.first();
+    std::string argument1 = argumentsList.first().str();
 
-    if(argument1 == NList(itint::BasicType()))
+    if(IsitType(argument1))
     {
-      type = NList(tint::BasicType()).listExpr();
-    }
-
-    else if(argument1 == NList(itreal::BasicType()))
-    {
-      type = NList(treal::BasicType()).listExpr();
-    }
-
-    else if(argument1 == NList(itbool::BasicType()))
-    {
-      type = NList(tbool::BasicType()).listExpr();
-    }
-
-    else if(argument1 == NList(itstring::BasicType()))
-    {
-      type = NList(tstring::BasicType()).listExpr();
+      type = NList(GettType(argument1)).listExpr();
     }
   }
 

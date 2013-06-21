@@ -49,7 +49,7 @@ declaration of val type mapping function
 
 */
 
-ListExpr valTypeMapping(ListExpr arguments);
+ListExpr valTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of val Operator Info structure
@@ -68,7 +68,7 @@ struct valInfo : OperatorInfo
 };
 
 /*
-definition of template val function
+definition of template valFunction
 
 */
 
