@@ -52,6 +52,18 @@ double Properties<double>::GetValue(const NList& rNList)
   return value;
 }
 
+double Properties<double>::GetUnwrappedValue(const CcReal& rCcReal)
+{
+  double unwrappedValue = GetUndefinedValue();
+
+  if(rCcReal.IsDefined())
+  {
+    unwrappedValue = rCcReal.GetValue();
+  }
+
+  return unwrappedValue;
+}
+
 CcReal Properties<double>::GetWrappedValue(const double& rdouble)
 {
   return CcReal(!IsUndefinedValue(rdouble), rdouble);

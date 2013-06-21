@@ -44,6 +44,7 @@ class Properties<double>
   typedef CcReal WrapperType;
   static double GetUndefinedValue();
   static double GetValue(const NList& rNList);
+  static double GetUnwrappedValue(const CcReal& rCcReal);
   static CcReal GetWrappedValue(const double& rdouble);
   static bool IsUndefinedValue(const double& rdouble);
   static bool IsValidValueType(const NList& rNList);
