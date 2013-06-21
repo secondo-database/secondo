@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "atinstant.h"
+#include "../Types.h"
 #include "../mt/mtint.h"
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
@@ -96,7 +97,7 @@ definition of atinstant type mapping function
 
 */
 
-ListExpr atinstantTypeMapping(ListExpr arguments)
+ListExpr atinstantTypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Expecting a mt type and an instant.");
 
@@ -104,30 +105,13 @@ ListExpr atinstantTypeMapping(ListExpr arguments)
 
   if(argumentsList.hasLength(2))
   {
-    NList argument1 = argumentsList.first();
-    NList argument2 = argumentsList.second();
+    std::string argument1 = argumentsList.first().str();
+    std::string argument2 = argumentsList.second().str();
 
-    if(argument2 == NList(Instant::BasicType()))
+    if(IsmtType(argument1) &&
+       argument2 == Instant::BasicType())
     {
-      if(argument1 == NList(mtint::BasicType()))
-      {
-        type = NList(itint::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtreal::BasicType()))
-      {
-        type = NList(itreal::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtbool::BasicType()))
-      {
-        type = NList(itbool::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(mtstring::BasicType()))
-      {
-        type = NList(itstring::BasicType()).listExpr();
-      }
+      type = NList(GetitType(argument1)).listExpr();
     }
   }
 

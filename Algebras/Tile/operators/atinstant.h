@@ -50,7 +50,7 @@ declaration of atinstant type mapping function
 
 */
 
-ListExpr atinstantTypeMapping(ListExpr arguments);
+ListExpr atinstantTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of atinstant Operator Info structure
@@ -69,7 +69,7 @@ struct atinstantInfo : OperatorInfo
 };
 
 /*
-definition of template atinstant function
+definition of template atinstantFunction
 
 */
 
