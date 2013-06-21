@@ -22,9 +22,13 @@ operator atlocation alias ATLOCATION pattern _ op [_,_]
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator inst alias INST pattern op(_)
 operator val alias VAL pattern op(_)
+operator atperiods alias ATPERIODS pattern _ infixop _
+operator atrange alias ATRANGE pattern _ op [_,_,_]
 operator deftime alias DEFTIME pattern op(_)
 operator bbox alias BBOX pattern op(_,_)
 operator minimum alias MINIMUM pattern op(_)
 operator maximum alias MAXIMUM pattern op(_)
+operator map alias MAP pattern _ op [fun]
+         implicit parameter element type CELL1
 operator t2mt alias TTOMT pattern  op(_,_,_,_)
 operator getgrid alias GETGRID pattern op(_)
