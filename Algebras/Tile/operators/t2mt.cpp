@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "t2mt.h"
+#include "../Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -100,7 +101,7 @@ definition of t2mt type mapping function
 
 */
 
-ListExpr t2mtTypeMapping(ListExpr arguments)
+ListExpr t2mtTypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Expecting a t type, a duration, "
                                    "an instant and an instant.");
@@ -109,34 +110,17 @@ ListExpr t2mtTypeMapping(ListExpr arguments)
 
   if(argumentsList.hasLength(4))
   {
-    NList argument1 = argumentsList.first();
-    NList argument2 = argumentsList.second();
-    NList argument3 = argumentsList.third();
-    NList argument4 = argumentsList.fourth();
+    std::string argument1 = argumentsList.first().str();
+    std::string argument2 = argumentsList.second().str();
+    std::string argument3 = argumentsList.third().str();
+    std::string argument4 = argumentsList.fourth().str();
 
-    if(argument2.isSymbol(Duration::BasicType()) &&
-       argument3.isSymbol(Instant::BasicType()) &&
-       argument4.isSymbol(Instant::BasicType()))
+    if(IstType(argument1) &&
+       argument2 == Duration::BasicType() &&
+       argument3 == Instant::BasicType() &&
+       argument4 == Instant::BasicType())
     {
-      if(argument1 == NList(tint::BasicType()))
-      {
-        type = NList(mtint::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(treal::BasicType()))
-      {
-        type = NList(mtreal::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(tbool::BasicType()))
-      {
-        type = NList(mtbool::BasicType()).listExpr();
-      }
-
-      else if(argument1 == NList(tstring::BasicType()))
-      {
-        type = NList(mtstring::BasicType()).listExpr();
-      }
+      type = NList(GetmtType(argument1)).listExpr();
     }
   }
 

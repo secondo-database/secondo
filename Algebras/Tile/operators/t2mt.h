@@ -53,7 +53,7 @@ declaration of t2mt type mapping function
 
 */
 
-ListExpr t2mtTypeMapping(ListExpr arguments);
+ListExpr t2mtTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of t2mt Operator Info structure
@@ -72,7 +72,7 @@ struct t2mtInfo : OperatorInfo
 };
 
 /*
-definition of template t2mt function
+definition of template t2mtFunction
 
 */
 
