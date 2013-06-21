@@ -85,6 +85,12 @@ class t : public Attribute
                   const double& rInstant,
                   typename Properties::TypeProperties::WrapperType& rValue)
                   const;
+  void atrange(const Rectangle<2>& rRectangle,
+               typename Properties::PropertiesType& rt) const;
+  void atrange(const Rectangle<2>& rRectangle,
+               const double& rInstant1,
+               const double& rInstant2,
+               typename Properties::PropertiesType& rt) const;
   void bbox(typename Properties::bboxType& rBoundingBox) const;
   Type minimum() const;
   Type maximum() const;
@@ -288,6 +294,68 @@ void t<Type, Properties>::atlocation(const double& rX,
   */
 
   atlocation(rX, rY, rValue);
+}
+
+template <typename Type, typename Properties>
+void t<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
+                                  typename Properties::PropertiesType& rt)
+                                  const
+{
+  rt.SetDefined(false);
+
+  if(rRectangle.IsDefined())
+  {
+    if(IsValidLocation(rRectangle.MinD(0), rRectangle.MinD(1)) &&
+       IsValidLocation(rRectangle.MaxD(0), rRectangle.MaxD(1)))
+    {
+      rt.SetDefined(true);
+
+      double x = m_Grid.GetX();
+      double y = m_Grid.GetY();
+      double length = m_Grid.GetLength();
+      rt.SetGrid(x, y, length);
+
+      Index<2> startIndex = GetLocationIndex(rRectangle.MinD(0),
+                                             rRectangle.MinD(1));
+      Index<2> endIndex = GetLocationIndex(rRectangle.MaxD(0),
+                                           rRectangle.MaxD(1));
+
+      for(int row = startIndex[1]; row <= endIndex[1]; row++)
+      {
+        for(int column = startIndex[0]; column <= endIndex[0]; column++)
+        {
+          if(rRectangle.MinD(0) <= (x + column * length) &&
+             rRectangle.MaxD(0) >= (x + column * length) &&
+             rRectangle.MinD(1) <= (y + row * length) &&
+             rRectangle.MaxD(1) >= (y + row * length))
+          {
+            Index<2> index = (int[]){column, row};
+            Type value = GetValue(index);
+
+            if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+            {
+              rt.SetValue(index, value, true);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+template <typename Type, typename Properties>
+void t<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
+                                  const double& rInstant1,
+                                  const double& rInstant2,
+                                  typename Properties::PropertiesType& rt)
+                                  const
+{
+  /*
+  instant values are not relevant for t types.
+
+  */
+
+  atrange(rRectangle, rt);
 }
 
 template <typename Type, typename Properties>
