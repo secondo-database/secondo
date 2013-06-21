@@ -42,6 +42,7 @@ class Properties
   typedef Type WrapperType;
   static Type GetUndefinedValue();
   static Type GetValue(const NList& rNList);
+  static Type GetUnwrappedValue(const WrapperType& rWrapperType);
   static WrapperType GetWrappedValue(const Type& rType);
   static bool IsUndefinedValue(const Type& rType);
   static bool IsValidValueType(const NList& rNList);
