@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "minimum.h"
+#include "../Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -100,7 +101,7 @@ definition of minimum type mapping function
 
 */
 
-ListExpr minimumTypeMapping(ListExpr arguments)
+ListExpr minimumTypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Expecting a t type or a mt type.");
 
@@ -108,30 +109,12 @@ ListExpr minimumTypeMapping(ListExpr arguments)
 
   if(argumentsList.hasLength(1))
   {
-    NList argument1 = argumentsList.first();
+    std::string argument1 = argumentsList.first().str();
 
-    if(argument1 == NList(tint::BasicType()) ||
-       argument1 == NList(mtint::BasicType()))
+    if(IstType(argument1) ||
+       IsmtType(argument1))
     {
-      type = NList(CcInt::BasicType()).listExpr();
-    }
-
-    else if(argument1 == NList(treal::BasicType()) ||
-            argument1 == NList(mtreal::BasicType()))
-    {
-      type = NList(CcReal::BasicType()).listExpr();
-    }
-
-    else if(argument1 == NList(tbool::BasicType()) ||
-            argument1 == NList(mtbool::BasicType()))
-    {
-      type = NList(CcBool::BasicType()).listExpr();
-    }
-
-    else if(argument1 == NList(tstring::BasicType()) ||
-            argument1 == NList(mtstring::BasicType()))
-    {
-      type = NList(CcString::BasicType()).listExpr();
+      type = NList(GetValueWrapperType(argument1)).listExpr();
     }
   }
 

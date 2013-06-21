@@ -49,7 +49,7 @@ declaration of minimum type mapping function
 
 */
 
-ListExpr minimumTypeMapping(ListExpr arguments);
+ListExpr minimumTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of minimum Operator Info structure
@@ -69,7 +69,7 @@ struct minimumInfo : OperatorInfo
 };
 
 /*
-definition of template minimum function
+definition of template minimumFunction
 
 */
 
