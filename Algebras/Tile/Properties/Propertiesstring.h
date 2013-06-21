@@ -44,6 +44,7 @@ class Properties<std::string>
   typedef CcString WrapperType;
   static std::string GetUndefinedValue();
   static std::string GetValue(const NList& rNList);
+  static std::string GetUnwrappedValue(const CcString& rCcString);
   static CcString GetWrappedValue(const std::string& rstring);
   static bool IsUndefinedValue(const std::string& rstring);
   static bool IsValidValueType(const NList& rNList);

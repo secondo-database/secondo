@@ -40,6 +40,19 @@ std::string Properties<std::string>::GetValue(const NList& rNList)
   return rNList.str();
 }
 
+std::string Properties<std::string>::GetUnwrappedValue(const CcString&
+                                                       rCcString)
+{
+  std::string unwrappedValue = GetUndefinedValue();
+
+  if(rCcString.IsDefined())
+  {
+    unwrappedValue = rCcString.GetValue();
+  }
+
+  return unwrappedValue;
+}
+
 CcString Properties<std::string>::GetWrappedValue(const std::string& rstring)
 {
   return CcString(!IsUndefinedValue(rstring), rstring);
