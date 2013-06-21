@@ -49,7 +49,7 @@ declaration of getgrid type mapping function
 
 */
 
-ListExpr getgridTypeMapping(ListExpr arguments);
+ListExpr getgridTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of getgrid Operator Info structure
@@ -69,7 +69,7 @@ struct getgridInfo : OperatorInfo
 };
 
 /*
-definition of template getgrid function
+definition of template getgridFunction
 
 */
 
