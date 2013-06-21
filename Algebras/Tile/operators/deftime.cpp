@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "deftime.h"
+#include "../Types.h"
 #include "../mt/mtint.h"
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
@@ -87,7 +88,7 @@ definition of deftime type mapping function
 
 */
 
-ListExpr deftimeTypeMapping(ListExpr arguments)
+ListExpr deftimeTypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Expecting a mt type.");
 
@@ -95,12 +96,9 @@ ListExpr deftimeTypeMapping(ListExpr arguments)
 
   if(argumentsList.hasLength(1))
   {
-    NList argument1 = argumentsList.first();
+    std::string argument1 = argumentsList.first().str();
 
-    if(argument1 == NList(mtint::BasicType()) ||
-       argument1 == NList(mtreal::BasicType()) ||
-       argument1 == NList(mtbool::BasicType()) ||
-       argument1 == NList(mtstring::BasicType()))
+    if(IsmtType(argument1))
     {
       type = NList(Periods::BasicType()).listExpr();
     }

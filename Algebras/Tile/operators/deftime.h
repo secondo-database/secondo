@@ -50,7 +50,7 @@ declaration of deftime type mapping function
 
 */
 
-ListExpr deftimeTypeMapping(ListExpr arguments);
+ListExpr deftimeTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of deftime Operator Info structure
@@ -69,7 +69,7 @@ struct deftimeInfo : OperatorInfo
 };
 
 /*
-definition of template deftime function
+definition of template deftimeFunction
 
 */
 
