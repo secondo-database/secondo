@@ -83,6 +83,12 @@ class tstring : public tint
                   const double& rY,
                   const double& rInstant,
                   CcString& rValue) const;
+  void atrange(const Rectangle<2>& rRectangle,
+               tstring& rtstring) const;
+  void atrange(const Rectangle<2>& rRectangle,
+               const double& rInstant1,
+               const double& rInstant2,
+               tstring& rtstring) const;
   std::string minimum() const;
   std::string maximum() const;
 
@@ -92,7 +98,9 @@ class tstring : public tint
   */
 
   std::string GetValue(const Index<2>& rIndex) const;
-  bool SetValue(const Index<2>& rIndex, const std::string& rValue);
+  bool SetValue(const Index<2>& rIndex,
+               const std::string& rValue,
+               bool bSetExtrema);
 
   /*
   override functions from base class tint

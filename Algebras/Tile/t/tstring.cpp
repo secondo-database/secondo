@@ -106,8 +106,67 @@ void tstring::atlocation(const double& rX,
   instant value is not relevant for tstring type.
 
   */
-  
+
   atlocation(rX, rY, rValue);
+}
+
+void tstring::atrange(const Rectangle<2>& rRectangle,
+                      tstring& rtstring) const
+{
+  rtstring.SetDefined(false);
+
+  if(rRectangle.IsDefined())
+  {
+    if(IsValidLocation(rRectangle.MinD(0), rRectangle.MinD(1)) &&
+       IsValidLocation(rRectangle.MaxD(0), rRectangle.MaxD(1)))
+    {
+      rtstring.SetDefined(true);
+
+      double x = m_Grid.GetX();
+      double y = m_Grid.GetY();
+      double length = m_Grid.GetLength();
+      rtstring.SetGrid(x, y, length);
+
+      Index<2> startIndex = GetLocationIndex(rRectangle.MinD(0),
+                                             rRectangle.MinD(1));
+      Index<2> endIndex = GetLocationIndex(rRectangle.MaxD(0),
+                                           rRectangle.MaxD(1));
+
+      for(int row = startIndex[1]; row <= endIndex[1]; row++)
+      {
+        for(int column = startIndex[0]; column <= endIndex[0]; column++)
+        {
+          if(rRectangle.MinD(0) <= (x + column * length) &&
+             rRectangle.MaxD(0) >= (x + column * length) &&
+             rRectangle.MinD(1) <= (y + row * length) &&
+             rRectangle.MaxD(1) >= (y + row * length))
+          {
+            Index<2> index = (int[]){column, row};
+            std::string value = GetValue(index);
+
+            if(tProperties<std::string>::TypeProperties::
+               IsUndefinedValue(value) == false)
+            {
+              rtstring.SetValue(index, value, true);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void tstring::atrange(const Rectangle<2>& rRectangle,
+                      const double& rInstant1,
+                      const double& rInstant2,
+                      tstring& rtstring) const
+{
+  /*
+  instant values are not relevant for tstring type.
+
+  */
+
+  atrange(rRectangle, rtstring);
 }
 
 std::string tstring::minimum() const
@@ -157,7 +216,8 @@ std::string tstring::GetValue(const Index<2>& rIndex) const
 }
 
 bool tstring::SetValue(const Index<2>& rIndex,
-                       const std::string& rValue)
+                       const std::string& rValue,
+                       bool bSetExtrema)
 {
   bool bRetVal = false;
 
@@ -171,16 +231,19 @@ bool tstring::SetValue(const Index<2>& rIndex,
       bRetVal = tint::SetValue(rIndex, stringIndex, false);
     }
 
-    if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) ||
-       rValue < minimum())
+    if(bSetExtrema == true)
     {
-      m_Minimum = stringIndex;
-    }
-   
-    if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) ||
-       rValue > maximum())
-    {
-      m_Maximum = stringIndex;
+      if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) ||
+         rValue < minimum())
+      {
+        m_Minimum = stringIndex;
+      }
+
+      if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) ||
+         rValue > maximum())
+      {
+        m_Maximum = stringIndex;
+      }
     }
   }
 
@@ -514,7 +577,9 @@ Word tstring::In(const ListExpr typeInfo,
                                 if(tProperties<std::string>::TypeProperties::
                                    IsUndefinedValue(stringValue) == false)
                                 {
-                                  bOK = ptstring->SetValue(index, stringValue);
+                                  bOK = ptstring->SetValue(index,
+                                                           stringValue,
+                                                           true);
                                 }
                               }
                             }
