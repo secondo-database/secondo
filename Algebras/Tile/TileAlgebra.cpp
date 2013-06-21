@@ -57,12 +57,18 @@ includes for TileAlgebra operators
 #include "operators/atinstant.h"
 #include "operators/inst.h"
 #include "operators/val.h"
+#include "operators/atperiods.h"
+#include "operators/atrange.h"
 #include "operators/deftime.h"
 #include "operators/bbox.h"
 #include "operators/minimum.h"
 #include "operators/maximum.h"
+#include "operators/map.h"
 #include "t2mt.h"
 #include "operators/getgrid.h"
+#include "operators/CELL1.h"
+#include "operators/CELL2.h"
+#include "operators/CELLS.h"
 
 /*
 extern declarations
@@ -123,27 +129,36 @@ TileAlgebra::TileAlgebra()
   */
 
   AddOperator(loadInfo(), loadFunctions, loadSelectFunction,
-              loadTypeMapping);
+              loadTypeMappingFunction);
   AddOperator(atlocationInfo(), atlocationFunctions, atlocationSelectFunction,
-              atlocationTypeMapping);
+              atlocationTypeMappingFunction);
   AddOperator(atinstantInfo(), atinstantFunctions, atinstantSelectFunction,
-              atinstantTypeMapping);
+              atinstantTypeMappingFunction);
   AddOperator(instInfo(), instFunctions, instSelectFunction,
-              instTypeMapping);
+              instTypeMappingFunction);
   AddOperator(valInfo(), valFunctions, valSelectFunction,
-              valTypeMapping);
+              valTypeMappingFunction);
+  AddOperator(atperiodsInfo(), atperiodsFunctions, atperiodsSelectFunction,
+              atperiodsTypeMappingFunction);
+  AddOperator(atrangeInfo(), atrangeFunctions, atrangeSelectFunction,
+              atrangeTypeMappingFunction);
   AddOperator(deftimeInfo(), deftimeFunctions, deftimeSelectFunction,
-              deftimeTypeMapping);
+              deftimeTypeMappingFunction);
   AddOperator(bboxInfo(), bboxFunctions, bboxSelectFunction,
-              bboxTypeMapping);
+              bboxTypeMappingFunction);
   AddOperator(minimumInfo(), minimumFunctions, minimumSelectFunction,
-              minimumTypeMapping);
+              minimumTypeMappingFunction);
   AddOperator(maximumInfo(), maximumFunctions, maximumSelectFunction,
-              maximumTypeMapping);
+              maximumTypeMappingFunction);
+  AddOperator(mapInfo(), mapFunctions, mapSelectFunction,
+              mapTypeMappingFunction);
   AddOperator(t2mtInfo(), t2mtFunctions, t2mtSelectFunction,
-              t2mtTypeMapping);
+              t2mtTypeMappingFunction);
   AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
-              getgridTypeMapping);
+              getgridTypeMappingFunction);
+  AddOperator(CELL1Info(), 0, CELL1TypeMappingFunction);
+  AddOperator(CELL2Info(), 0, CELL2TypeMappingFunction);
+  AddOperator(CELLSInfo(), 0, CELLSTypeMappingFunction);
 }
 
 TileAlgebra::~TileAlgebra()
