@@ -86,6 +86,14 @@ class mt : public Attribute
                   const;
   void atinstant(const Instant& rInstant,
                  typename Properties::itType& rit) const;
+  void atperiods(const Periods& rPeriods,
+                 typename Properties::PropertiesType& rmt) const;
+  void atrange(const Rectangle<2>& rRectangle,
+               typename Properties::PropertiesType& rmt) const;
+  void atrange(const Rectangle<2>& rRectangle,
+               const double& rInstant1,
+               const double& rInstant2,
+               typename Properties::PropertiesType& rmt) const;
   void deftime(Periods& rPeriods) const;
   void bbox(typename Properties::bboxType& rBoundingBox) const;
   Type minimum() const;
@@ -97,6 +105,7 @@ class mt : public Attribute
 
   */
 
+  Type GetValue(const Index<3>& rIndex) const;
   bool SetGrid(const double& rX,
                const double& rY,
                const double& rLength,
@@ -115,7 +124,6 @@ class mt : public Attribute
   Index<2> GetLocationIndex(const double& rX, const double& rY) const;
   Index<3> GetLocationIndex(const double& rX, const double& rY,
                             const double& rInstant) const;
-  Type GetValue(const Index<3>& rIndex) const;
   bool IsValidIndex(const Index<3>& rIndex) const;
   bool IsValidLocation(const double& rX,
                        const double& rY) const;
@@ -245,6 +253,11 @@ mt<Type, Properties>::~mt()
 
 }
 
+/*
+operators
+
+*/
+
 template <typename Type, typename Properties>
 mt<Type, Properties>& mt<Type, Properties>::operator=
                                             (const mt<Type, Properties>& rmt)
@@ -265,6 +278,11 @@ mt<Type, Properties>& mt<Type, Properties>::operator=
 
   return *this;
 }
+
+/*
+TileAlgebra operator methods
+
+*/
 
 template <typename Type, typename Properties>
 void mt<Type, Properties>::atlocation(const double& rX,
@@ -369,6 +387,153 @@ void mt<Type, Properties>::atinstant(const Instant& rInstant,
 
   rit.SetInstant(rInstant);
   rit.SetValues(t);
+}
+
+template <typename Type, typename Properties>
+void mt<Type, Properties>::atperiods(const Periods& rPeriods,
+                                     typename Properties::PropertiesType& rmt)
+                                     const
+{
+  rmt.SetDefined(false);
+
+  if(rPeriods.IsDefined())
+  {
+    rmt.SetDefined(true);
+    bool bOK = rmt.SetGrid(m_Grid.GetX(),
+                           m_Grid.GetY(),
+                           m_Grid.GetLength(),
+                           m_Grid.GetDuration());
+
+    if(bOK == true)
+    {
+      int xDimensionSize = Properties::GetXDimensionSize();
+      int yDimensionSize = Properties::GetYDimensionSize();
+      int tDimensionSize = Properties::GetTDimensionSize();
+      datetime::DateTime gridDuration = m_Grid.GetDuration();
+      double duration = gridDuration.ToDouble();
+
+      for(int time = 0; time < tDimensionSize; time++)
+      {
+        for(int row = 0; row < yDimensionSize; row++)
+        {
+          for(int column = 0; column < xDimensionSize; column++)
+          {
+            Index<3> index = (int[]){column, row, time};
+            Type value = GetValue(index);
+
+            if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+            {
+              datetime::DateTime startTime = time * duration;
+              datetime::DateTime endTime = (time + 1) * duration;
+
+              Interval<DateTime> timeInterval(startTime, endTime, true, false);
+
+              if(rPeriods.Contains(timeInterval))
+              {
+                bOK = rmt.SetValue(index, value, true);
+              }
+
+              else
+              {
+                if(rPeriods.Intersects(timeInterval) ||
+                   rPeriods.Inside(timeInterval))
+                {
+                  Range<datetime::DateTime> range(2);
+                  rPeriods.Intersection(timeInterval, range);
+
+                  Interval<DateTime> rangeValue(startTime, endTime,
+                                                true, false);
+                  range.Get(0, rangeValue);
+                  datetime::DateTime rangeLength = rangeValue.end -
+                                                   rangeValue.start;
+
+                  if(rangeLength >= (gridDuration * 0.5))
+                  {
+                    bOK = rmt.SetValue(index, value, true);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+template <typename Type, typename Properties>
+void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
+                                   typename Properties::PropertiesType& rmt)
+                                   const
+{
+  rmt.SetDefined(false);
+
+  if(rRectangle.IsDefined())
+  {
+    double instant1 = 0;
+    double instant2 = (Properties::GetTDimensionSize() - 1) *
+                       m_Grid.GetDuration().ToDouble();
+
+    atrange(rRectangle, instant1, instant2, rmt);
+  }
+}
+
+template <typename Type, typename Properties>
+void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
+                                   const double& rInstant1,
+                                   const double& rInstant2,
+                                   typename Properties::PropertiesType& rmt)
+                                   const
+{
+  rmt.SetDefined(false);
+
+  if(rRectangle.IsDefined())
+  {
+    if(IsValidLocation(rRectangle.MinD(0), rRectangle.MinD(1), rInstant1) &&
+       IsValidLocation(rRectangle.MaxD(0), rRectangle.MaxD(1), rInstant2))
+    {
+      rmt.SetDefined(true);
+
+      double x = m_Grid.GetX();
+      double y = m_Grid.GetY();
+      double length = m_Grid.GetLength();
+      datetime::DateTime gridDuration = m_Grid.GetDuration();
+      double duration = gridDuration.ToDouble();
+      rmt.SetGrid(x, y, length, duration);
+
+      Index<3> startIndex = GetLocationIndex(rRectangle.MinD(0),
+                                             rRectangle.MinD(1),
+                                             rInstant1);
+      Index<3> endIndex = GetLocationIndex(rRectangle.MaxD(0),
+                                           rRectangle.MaxD(1),
+                                           rInstant2);
+
+      for(int time = startIndex[2]; time <= endIndex[2]; time++)
+      {
+        for(int row = startIndex[1]; row <= endIndex[1]; row++)
+        {
+          for(int column = startIndex[0]; column <= endIndex[0]; column++)
+          {
+            if(rRectangle.MinD(0) <= (x + column * length) &&
+               rRectangle.MaxD(0) >= (x + column * length) &&
+               rRectangle.MinD(1) <= (y + row * length) &&
+               rRectangle.MaxD(1) >= (y + row * length)&&
+               rInstant1 <= (time * duration) &&
+               rInstant2 >= (time * duration))
+            {
+              Index<3> index = (int[]){column, row, time};
+              Type value = GetValue(index);
+
+              if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+              {
+                rmt.SetValue(index, value, true);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 template <typename Type, typename Properties>
@@ -637,6 +802,33 @@ void mt<Type, Properties>::getgrid(mtgrid& rmtgrid) const
   rmtgrid = m_Grid;
 }
 
+/*
+methods
+
+*/
+
+template <typename Type, typename Properties>
+Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
+{
+  Type value = Properties::TypeProperties::GetUndefinedValue();
+
+  if(IsDefined() &&
+     IsValidIndex(rIndex))
+  {
+    int xDimensionSize = Properties::GetXDimensionSize();
+    int yDimensionSize = Properties::GetYDimensionSize();
+    int flobIndex = rIndex[2] * xDimensionSize * yDimensionSize +
+                    rIndex[1] * yDimensionSize + rIndex[0];
+
+    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
+                           sizeof(Type),
+                           flobIndex * sizeof(Type));
+    assert(bOK);
+  }
+
+  return value;
+}
+
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetGrid(const double& rX,
                                    const double& rY,
@@ -692,6 +884,11 @@ bool mt<Type, Properties>::SetValue(const Index<3>& rIndex,
   return bRetVal;
 }
 
+/*
+internal methods
+
+*/
+
 template <typename Type, typename Properties>
 Index<2> mt<Type, Properties>::GetLocationIndex(const double& rX,
                                                 const double& rY) const
@@ -723,28 +920,6 @@ Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
 
   Index<3> locationIndex = (int[]){index2.Get(0), index2.Get(1), indexT};
   return locationIndex;
-}
-
-template <typename Type, typename Properties>
-Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
-{
-  Type value = Properties::TypeProperties::GetUndefinedValue();
-
-  if(IsDefined() &&
-     IsValidIndex(rIndex))
-  {
-    int xDimensionSize = Properties::GetXDimensionSize();
-    int yDimensionSize = Properties::GetYDimensionSize();
-    int flobIndex = rIndex[2] * xDimensionSize * yDimensionSize +
-                    rIndex[1] * yDimensionSize + rIndex[0];
-
-    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
-                           sizeof(Type),
-                           flobIndex * sizeof(Type));
-    assert(bOK);
-  }
-
-  return value;
 }
 
 template <typename Type, typename Properties>
@@ -813,6 +988,11 @@ bool mt<Type, Properties>::IsValidLocation(const double& rX,
 
   return bIsValidLocation;
 }
+
+/*
+override functions from base class Attribute
+
+*/
 
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::Adjacent(const Attribute* pAttribute) const
@@ -948,6 +1128,12 @@ size_t mt<Type, Properties>::Sizeof() const
 {
   return sizeof(mt<Type, Properties>);
 }
+
+/*
+The following functions are used to integrate the ~t~
+datatype into secondo.
+
+*/
 
 template <typename Type, typename Properties>
 const std::string mt<Type, Properties>::BasicType()
