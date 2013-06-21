@@ -49,7 +49,7 @@ declaration of maximum type mapping function
 
 */
 
-ListExpr maximumTypeMapping(ListExpr arguments);
+ListExpr maximumTypeMappingFunction(ListExpr arguments);
 
 /*
 definition of maximum Operator Info structure
@@ -69,7 +69,7 @@ struct maximumInfo : OperatorInfo
 };
 
 /*
-definition of template maximum function
+definition of template maximumFunction
 
 */
 
