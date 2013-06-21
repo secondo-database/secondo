@@ -164,7 +164,7 @@ void mtstring::atinstant(const Instant& rInstant,
       {
         bmtstringDefined = true;
         Index<2> index2 = (int[]){column, row};
-        tstring.SetValue(index2, value);
+        tstring.SetValue(index2, value, true);
       }
     }
   }
@@ -176,6 +176,150 @@ void mtstring::atinstant(const Instant& rInstant,
 
   ritstring.SetInstant(rInstant);
   ritstring.SetValues(tstring);
+}
+
+void mtstring::atperiods(const Periods& rPeriods,
+                         mtstring& rmtstring)
+                         const
+{
+  rmtstring.SetDefined(false);
+
+  if(rPeriods.IsDefined())
+  {
+    rmtstring.SetDefined(true);
+    bool bOK = rmtstring.SetGrid(m_Grid.GetX(),
+                                 m_Grid.GetY(),
+                                 m_Grid.GetLength(),
+                                 m_Grid.GetDuration());
+
+    if(bOK == true)
+    {
+      int xDimensionSize = mtProperties<std::string>::GetXDimensionSize();
+      int yDimensionSize = mtProperties<std::string>::GetYDimensionSize();
+      int tDimensionSize = mtProperties<std::string>::GetTDimensionSize();
+      datetime::DateTime gridDuration = m_Grid.GetDuration();
+      double duration = gridDuration.ToDouble();
+
+      for(int time = 0; time < tDimensionSize; time++)
+      {
+        for(int row = 0; row < yDimensionSize; row++)
+        {
+          for(int column = 0; column < xDimensionSize; column++)
+          {
+            Index<3> index = (int[]){column, row, time};
+            std::string value = GetValue(index);
+
+            if(mtProperties<std::string>::TypeProperties::
+               IsUndefinedValue(value) == false)
+            {
+              datetime::DateTime startTime = time * duration;
+              datetime::DateTime endTime = (time + 1) * duration;
+
+              Interval<DateTime> timeInterval(startTime, endTime, true, false);
+
+              if(rPeriods.Contains(timeInterval))
+              {
+                bOK = rmtstring.SetValue(index, value, true);
+              }
+
+              else
+              {
+                if(rPeriods.Intersects(timeInterval) ||
+                   rPeriods.Inside(timeInterval))
+                {
+                  Range<datetime::DateTime> range(2);
+                  rPeriods.Intersection(timeInterval, range);
+
+                  Interval<DateTime> rangeValue(startTime, endTime,
+                                                true, false);
+                  range.Get(0, rangeValue);
+                  datetime::DateTime rangeLength = rangeValue.end -
+                                                   rangeValue.start;
+
+                  if(rangeLength >= (gridDuration * 0.5))
+                  {
+                    bOK = rmtstring.SetValue(index, value, true);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void mtstring::atrange(const Rectangle<2>& rRectangle,
+                       mtstring& rmtstring) const
+{
+  rmtstring.SetDefined(false);
+
+  if(rRectangle.IsDefined())
+  {
+    double instant1 = 0;
+    double instant2 = (mtProperties<std::string>::GetTDimensionSize() - 1) *
+                       m_Grid.GetDuration().ToDouble();
+
+    atrange(rRectangle, instant1, instant2, rmtstring);
+  }
+}
+
+void mtstring::atrange(const Rectangle<2>& rRectangle,
+                       const double& rInstant1,
+                       const double& rInstant2,
+                       mtstring& rmtstring) const
+{
+  rmtstring.SetDefined(false);
+
+  if(rRectangle.IsDefined())
+  {
+    if(IsValidLocation(rRectangle.MinD(0), rRectangle.MinD(1), rInstant1) &&
+       IsValidLocation(rRectangle.MaxD(0), rRectangle.MaxD(1), rInstant2))
+    {
+      rmtstring.SetDefined(true);
+
+      double x = m_Grid.GetX();
+      double y = m_Grid.GetY();
+      double length = m_Grid.GetLength();
+      datetime::DateTime gridDuration = m_Grid.GetDuration();
+      double duration = gridDuration.ToDouble();
+      rmtstring.SetGrid(x, y, length, duration);
+
+      Index<3> startIndex = GetLocationIndex(rRectangle.MinD(0),
+                                             rRectangle.MinD(1),
+                                             rInstant1);
+      Index<3> endIndex = GetLocationIndex(rRectangle.MaxD(0),
+                                           rRectangle.MaxD(1),
+                                           rInstant2);
+
+      for(int time = startIndex[2]; time <= endIndex[2]; time++)
+      {
+        for(int row = startIndex[1]; row <= endIndex[1]; row++)
+        {
+          for(int column = startIndex[0]; column <= endIndex[0]; column++)
+          {
+            if(rRectangle.MinD(0) <= (x + column * length) &&
+               rRectangle.MaxD(0) >= (x + column * length) &&
+               rRectangle.MinD(1) <= (y + row * length) &&
+               rRectangle.MaxD(1) >= (y + row * length)&&
+               rInstant1 <= (time * duration) &&
+               rInstant2 >= (time * duration))
+            {
+              Index<3> index = (int[]){column, row, time};
+              std::string value = GetValue(index);
+
+              if(mtProperties<std::string>::TypeProperties::
+                 IsUndefinedValue(value) == false)
+              {
+                rmtstring.SetValue(index, value, true);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 std::string mtstring::minimum() const

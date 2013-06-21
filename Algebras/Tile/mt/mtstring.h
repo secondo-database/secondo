@@ -86,6 +86,14 @@ class mtstring : public mtint
                   CcString& rValue) const;
   void atinstant(const Instant& rInstant,
                  itstring& ritstring) const;
+  void atperiods(const Periods& rPeriods,
+                 mtstring& rmtstring) const;
+  void atrange(const Rectangle<2>& rRectangle,
+               mtstring& rmtstring) const;
+  void atrange(const Rectangle<2>& rRectangle,
+               const double& rInstant1,
+               const double& rInstant2,
+               mtstring& rmtstring) const;
   std::string minimum() const;
   std::string maximum() const;
 
