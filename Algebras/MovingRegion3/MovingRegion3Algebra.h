@@ -997,6 +997,7 @@ description below for details.
         unsigned int Plumbline(const DbArray<MSegmentData2>* segments, 
                         const DbArray<PreciseMSegmentData>* preciseSegments, 
                         const DbArray<unsigned int>* preciseCoordinates, 
+                        const DbArray<unsigned int>* preciseInstants, 
                         const int scaleFactor, const UPoint& up, 
                         const precTimeInterval& iv) const;
         void RestrictedIntersectionFind(
@@ -1038,10 +1039,11 @@ description below for details.
 
 */
 
-        void Transform(double deltaX, double deltaY,
+        void Translate(double deltaX, double deltaY,
                 DbArray<MSegmentData2>* segments, 
                 DbArray<PreciseMSegmentData>* preciseSegments,
-                DbArray<unsigned int>* preciseCoordinates);
+                DbArray<unsigned int>* preciseCoordinates,
+                int scaleFactor);
         void Scale(double deltaX, double deltaY,
                 DbArray<MSegmentData2>* segments, 
                 DbArray<PreciseMSegmentData>* preciseSegments,
@@ -1250,9 +1252,21 @@ in ~result~.
 
 */
 
+  void Translate(double deltaX, double deltaY);
+  void Scale(double deltaX, double deltaY);
+
   virtual void TemporalFunction(const Instant& t,
                 Region2& result,
                 bool ignoreLimits = false) const;
+                
+  void Initial(Instant& t,
+                Region2& result,
+                bool ignoreLimits = false) const;
+                
+  void Final(Instant& t,
+                Region2& result,
+                bool ignoreLimits = false) const;
+                
 /*
 
 Adds the MovingSegment ~newSeg~ to the Union and cares for the BoundingBox
@@ -1458,7 +1472,8 @@ These methods are necessary for the operator traversed
 
 */
  
-    void CollectHS(vector<Reg2PreciseHalfSegment>& pHSvector);
+    void SplitHS(vector<Reg2PreciseHalfSegment>& pHSvector);
+    void CollectHS(vector<Reg2PreciseHalfSegment>& pAllHSvector);
     void PlaneSweepProjection(vector<Reg2PreciseHalfSegment>& pHSvector);
     void MergeHS(vector<Reg2PreciseHalfSegment>& pHSvector);
     void TraverseRegion(Region2& res);
@@ -1553,7 +1568,7 @@ Allow read-only access to DbArrays.
 
 */
 
-    void Transform(double deltaX, double deltaY);
+    void Translate(double deltaX, double deltaY);
     void Scale(double deltaX, double deltaY);
 
     void Final(Intime<Region2>& result);
