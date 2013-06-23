@@ -3303,9 +3303,10 @@ ListExpr Region2Property()
 {
   ListExpr listreplist = nl->TextAtom();
   nl->AppendText(listreplist,
+   "Version 1: is the standard representation with\n"
    "(<int> (<face>*)), where <int> represents the "
-   "scaleFactor, <face> is (<outercycle>"
-   "<holecycle>*), <outercycle> and <holecycle> are"
+   "scaleFactor,\n<face> is (<outercycle>"
+   "<holecycle>*), <outercycle> and\n<holecycle> are"
    " (<precisePoint>*). Each <precisePoint>  "
    "consists of (<int> <int> <precisePart>), with "
    "<precisePart> as (<text> <text>) or empty list, "
@@ -3313,77 +3314,32 @@ ListExpr Region2Property()
    "separated in an integer part and a text with a "
    "rational number representing the precise "
    "remainder (value between 0 and 1). Each precise "
-   "coordinate is calculated by "
+   "coordinate is calculated by\n"
    "( integer-value + precisePart ) * "
-   "10 ^(-scaleFactor)");
-  ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(examplelist,
-   "(2 ((((3 0 ())(10 1 ())(3 1 ()))((3 0 ('1/10' "
-   "'1/10'))(3 0 ('1/10' '9/10'))(6 0 ('0' '8/10'))))))");
-  ListExpr remarkslist = nl->TextAtom();
-  nl->AppendText(remarkslist,
-    "all <holecycle> must be completely "
-    "within <outercycle>.");
-
-  return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"),
-                       nl->StringAtom("Example Type List"),
-           nl->StringAtom("List Rep"),
-           nl->StringAtom("Example List"),
-           nl->StringAtom("Remarks")),
-           nl->FiveElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom(Region2::BasicType()),
-           listreplist,
-           examplelist,
-           remarkslist)));
-}
-
-ListExpr Region2PropertyV1()
-{
-  ListExpr listreplist = nl->TextAtom();
-  nl->AppendText(listreplist,
-   "(<face>*), where <face> is (<outercycle>"
+   "10 ^(-scaleFactor)\n"
+   "Version 2: (<face>*), where <face> is\n(<outercycle>"
    "<holecycle>*), <outercycle> and <holecycle> are"
-   " (<precisePoint>*). Each <precisePoint> consists"
+   " (<precisePoint>*).\nEach <precisePoint> consists"
    " of (<text> <text>) representing X and Y as real"
-   " values with arbitrary precision. "
-   "The predefined scaleFactor is 0.");
+   " values with arbitrary precision.\n"
+   "The predefined scaleFactor is 0.\n"
+   "If the values of X and Y are too big resulting in an "
+   "integer overflow, an error is reported.\n"
+   "Version 3: (<face>*), where <face> is\n(<outercycle>"
+   "<holecycle>*), <outercycle> and <holecycle> are "
+   "<points>*.\nThis is the same definition like the "
+   "region data type, with a predefined scaleFactor of 0.\n"   
+   "If the point-values are too big resulting in an "
+   "integer overflow, an error is reported.");
   ListExpr examplelist = nl->TextAtom();
   nl->AppendText(examplelist,
-   "(((('1.298262036' '1.888212877')('1.11177987207'"
+   "Version 1: (2 ((((3 0 ())(10 1 ())(3 1 ()))((3 0 ('1/10' "
+   "'1/10'))(3 0 ('1/10' '9/10'))(6 0 ('0' '8/10'))))))\n"
+   "Version 2: (((('1.298262036' '1.888212877')('1.11177987207'"
    " '10.112877')('5.29826225622263094' "
-   "'10.22666432466989809822'))))");
-  ListExpr remarkslist = nl->TextAtom();
-  nl->AppendText(remarkslist,
-   "all <holecycle> must be completely "
-   "within <outercycle>.");
-
-  return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"),
-                       nl->StringAtom("Example Type List"),
-           nl->StringAtom("List Rep"),
-           nl->StringAtom("Example List"),
-           nl->StringAtom("Remarks")),
-           nl->FiveElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom(Region2::BasicType()),
-           listreplist,
-           examplelist,
-           remarkslist)));
-}
-
-ListExpr Region2PropertyV2()
-{
-  ListExpr listreplist = nl->TextAtom();
-  nl->AppendText(listreplist,
-    "(<face>*), where <face> is (<outercycle>"
-    "<holecycle>*), <outercycle> and <holecycle> are "
-    "<points>*. This is the same definition like the "
-    "region data type, with a predefined scaleFactor "
-    "of 0.");
-  ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(examplelist,
-    "(((3 0)(10 1)(3 1))((3.1 0.1)(3.1 0.9)"
-    "(6 0.8)))");
+   "'10.22666432466989809822'))))\n"
+   "Version 3: (((3 0)(10 1)(3 1))((3.1 0.1)(3.1 0.9)"
+   "(6 0.8)))");
   ListExpr remarkslist = nl->TextAtom();
   nl->AppendText(remarkslist,
     "all <holecycle> must be completely "
@@ -4190,32 +4146,6 @@ TypeConstructor region2(
         CheckRegion2 );
 
 
-TypeConstructor region2V1(
-        Region2::BasicType(),
-        Region2PropertyV1,
-        OutRegion2,     InRegion2,
-        0,              0,
-        CreateRegion2,  DeleteRegion2,
-        OpenRegion2,    SaveRegion2,
-        CloseRegion2,   CloneRegion2,
-        Region2::Cast,
-        SizeOfRegion2,
-        CheckRegion2 );
-
-
-TypeConstructor region2V2(
-        Region2::BasicType(),
-        Region2PropertyV2,
-        OutRegion2,     InRegion2,
-        0,              0,
-        CreateRegion2,  DeleteRegion2,
-        OpenRegion2,    SaveRegion2,
-        CloseRegion2,   CloneRegion2,
-        Region2::Cast,
-        SizeOfRegion2,
-        CheckRegion2 );
-
-
 /*
 1.1 ~simpleSelect~
 
@@ -4278,10 +4208,14 @@ static int SetScaleValueMap(Word* args, Word& result, int message,
 static const string setscalespec =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
         " ( <text>region2 x int -> region2</text--->"
-        "   <text>setscalefactor( _, _)</text--->"
-        "   <text>Changes the scale factor for a given region2,"
-        " the integer value is the new scale factor.</text--->"
-        "   <text>query setscalefactor(reg2, 1248)</text--->) )";
+        "<text>setscalefactor( _, _)</text--->"
+        "<text>Changes the scale factor for a given region2.\n"
+        "The new scale factor is 10^(scale), this means that "
+        "the integer value is the exponent to the base 10 of "
+        "the new factor.\n"
+        "If the scalefactor is too big resulting in an integer "
+        "overflow, an error is reported.</text--->"
+        "<text>query setscalefactor(reg2, 12)</text--->) )";
 
 static Operator setscale("setscalefactor",
                 setscalespec,
@@ -4545,7 +4479,7 @@ int nocomponentsValueMap( Word* args, Word& result, int message,
 const string nocomponentsspec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>region2 -> int</text--->"
-  "<text> no_components( _ )</text--->"
+  "<text>no_components( _ )</text--->"
   "<text>return the number of components, "
   "here: the number of faces of a region2 object.</text--->"
   "<text>query no_components(region)</text--->"
@@ -4577,7 +4511,7 @@ int nosegmentsValueMap( Word* args, Word& result, int message,
 const string nosegmentsspec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>region2 -> int</text--->"
-  "<text> no_segments( _ )</text--->"
+  "<text>no_segments( _ )</text--->"
   "<text>return the number of half segments of a region2 object."
   "</text---><text>query no_segments(region)</text--->"
   ") )";
@@ -4593,7 +4527,7 @@ static Operator nosegments ( "no_segments",
 1.1 bbox
 
 */
-ListExpr bboxTypeMap( ListExpr args )
+ListExpr reg2bboxTypeMap( ListExpr args )
 {
   if ( nl->IsEqual(nl->First(args),Region2::BasicType()))
       return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
@@ -4601,8 +4535,8 @@ ListExpr bboxTypeMap( ListExpr args )
   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
-int bboxValueMap(Word* args, Word& result, int message, 
-                 Word& local, Supplier s )
+int reg2bboxValueMap(Word* args, Word& result, int message, 
+                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
@@ -4617,19 +4551,19 @@ int bboxValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
-const string bboxspec  =
+const string reg2bboxspec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>region2 -> rect</text--->"
-  "<text> bbox( _ )</text--->"
+  "<text>bbox( _ )</text--->"
   "<text>Returns the bounding box of a region2 object.</text--->"
   "<text>query bbox(reg22)</text--->"
   ") )";
 
-static Operator bbox ( "bbox",
-                bboxspec,
-                bboxValueMap,
+static Operator reg2bbox ( "bbox",
+                reg2bboxspec,
+                reg2bboxValueMap,
                 simpleSelect,
-                bboxTypeMap );
+                reg2bboxTypeMap );
 
   
 /*
@@ -4686,9 +4620,11 @@ int translateValueMap( Word* args, Word& result, int message,
 const string translatespec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>region2 x real x real -> region2</text--->"
-  "<text> _ translate [ _, _ ]</text--->"
-  "<text> move the object parallely for some distance.</text--->"
-  "<text> query region21 translate[3.5, 15.1]</text--->"
+  "<text>_ translate [ _, _ ]</text--->"
+  "<text>move the object parallely for some distance.\n"
+  "If the distances are too big resulting in an integer "
+  "overflow, an error is reported.</text--->"
+  "<text>query region21 translate[3.5, 15.1]</text--->"
   ") )";
 
 static Operator reg2translate ( "translate",
@@ -4766,9 +4702,11 @@ int scaleValueMap( Word* args, Word& result, int message,
 const string scalespec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>region2 x real -> region2</text--->"
-  "<text> _ scale [ _ ] </text--->"
-  "<text> scales a region2 object by the given factor.</text--->"
-  "<text> query region21 scale[10.0]</text--->"
+  "<text>_ scale [ _ ] </text--->"
+  "<text>scales a region2 object by the given factor.\n"
+  "If the factor is too big resulting in an integer "
+  "overflow, an error is reported.</text--->"
+  "<text>query region21 scale[10.0]</text--->"
   ") )";
 
 static Operator scale ( "scale",
@@ -4858,9 +4796,11 @@ int scale2ValueMap( Word* args, Word& result, int message,
 const string scale2spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>region2 x real x real -> region2</text--->"
-  "<text> _ scale2 [ _, _ ] </text--->"
+  "<text>_ scale2 [ _, _ ] </text--->"
   "<text>scales a region2 object by the given factors in x-"
-  " and y-direction differently.</text--->"
+  " and y-direction differently.\n"
+  "If the factors are too big resulting in an integer "
+  "overflow, an error is reported.</text--->"
   "<text>query region21 scale[10.0, 1.0]</text--->"
   ") )";
 
@@ -4979,9 +4919,9 @@ int getholesValueMap(Word* args, Word& result, int message,
 const string getholesspec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>region2 -> region2</text--->"
-  "<text> getHoles(_) </text--->"
-  "<text> Returns the holes of a region.</text--->"
-  "<text> query getHoles(reg22) </text--->"
+  "<text>getHoles(_) </text--->"
+  "<text>Returns the holes of a region.</text--->"
+  "<text>query getHoles(reg22) </text--->"
   ") )";
 
 static Operator getholes( "getHoles",
@@ -5018,8 +4958,14 @@ const string region2region2spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>region -> region2</text--->"
     "<text>_ region2region2</text--->"
-    "<text>Converts a region object to a region2 object.</text--->"
-    "<text> query [const region value ( (1 1 2 2)(3 3 4 4) )] "
+    "<text>Converts a region object to a region2 object.\n"
+    "The predefined scale factor is 0, this means a factor "
+    "of 10^0 = 1, because the scale value is the exponent "
+    "to the base 10 of the overall factor.\n"
+    "If the point values are too big resulting in an integer "
+    "overflow, an error is reported.\n"
+    "In this case better use regiontoregion2.</text--->"
+    "<text>query [const region value ( (1 1 2 2)(3 3 4 4) )] "
     "region2region2 </text--->) )";
 
 static Operator region2region2 ( "region2region2",
@@ -5070,7 +5016,12 @@ const string regiontoregion2spec  =
     "( <text>region x int -> region2</text--->"
     "<text>regiontoregion2 (_, _)</text--->"
     "<text>Converts a region object to a region2 object with "
-    "the given scalefactor.</text--->"
+    "a scale of the given int value.\n"
+    "The scalefactor is 10^(scale), this means that "
+    "the integer value is the exponent to the base 10 of "
+    "the new factor.\n"
+    "If the scalefactor is too big resulting in an integer "
+    "overflow, an error is reported.</text--->"
     "<text>query regiontoregion2([const region value ( (1 1 2 2)(3 3"
     " 4 4) )], 2)</text--->) )";
 
@@ -5108,7 +5059,13 @@ const string rect2region2spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>rect -> region2</text--->"
     "<text>_ rect2region2</text--->"
-    "<text>Converts a rect object to a region2 object.</text--->"
+    "<text>Converts a rect object to a region2 object.\n"
+    "The predefined scale factor is 0, this means a factor "
+    "of 10^0 = 1, because the scale value is the exponent "
+    "to the base 10 of the overall factor.\n"
+    "If the values are too big resulting in an integer "
+    "overflow, an error is reported.\n"
+    "In this case better use recttoregion2.</text--->"
     "<text>query [const rect value (-100.0 200.0 -50.0 500.0)] "
     "rect2region2 </text--->) )";
 
@@ -5161,7 +5118,12 @@ const string recttoregion2spec  =
     "( <text>rect x int -> region2</text--->"
     "<text>recttoregion2 (_, _)</text--->"
     "<text>Converts a rect object to a region2 object with "
-    "the given scalefactor.</text--->"
+    "a scale of the given int value.\n"
+    "The scalefactor is 10^(scale), this means that "
+    "the integer value is the exponent to the base 10 of "
+    "the new factor.\n"
+    "If the scalefactor is too big resulting in an integer "
+    "overflow, an error is reported.</text--->"
     "<text>query recttoregion2([const rect value (-100.0 200.0 "
     "-50.0 500.0)], 2)</text--->) )";
 
@@ -5237,8 +5199,6 @@ class Region2Algebra : public Algebra
   Region2Algebra() : Algebra()
   {
     AddTypeConstructor( &region2 );
-    AddTypeConstructor( &region2V1 );
-    AddTypeConstructor( &region2V2 );
 
     region2.AssociateKind(Kind::DATA());
 
@@ -5252,7 +5212,7 @@ class Region2Algebra : public Algebra
     AddOperator( &overlaps );
     AddOperator( &nocomponents );
     AddOperator( &nosegments );
-    AddOperator( &bbox);
+    AddOperator( &reg2bbox);
     AddOperator( &reg2translate );
     AddOperator( &scale );
     AddOperator( &scale2 );
