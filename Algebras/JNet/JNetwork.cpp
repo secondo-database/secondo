@@ -2805,9 +2805,9 @@ Tuple* JNetwork::GetNetdistanceTupleFor(const int fid, const int tid) const
   CcInt* maxNodeId = new CcInt(true,numeric_limits<int>::max());
   vector<void*> attributes(2);
   vector<SmiKey::KeyDataType> kElems(2);
-  SmiKey test((long int) 0);
-  kElems[0] = test.GetType();
-  kElems[1] = test.GetType();
+  SmiKey::KeyDataType k = CcInt::getSMIKeyType();
+  kElems[0] = k;
+  kElems[1] = k;
   CcInt* from = new CcInt(true,fid);
   attributes[0] = from;
   attributes[1] = minNodeId;

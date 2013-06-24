@@ -35,6 +35,7 @@ This class implements a longint type in Secondo.
 #include <limits>
 #include "GenericTC.h"
 #include <errno.h>
+#include "SecondoSMI.h"
 
 /*
 1 Class Definition for ~LongInt~
@@ -45,6 +46,10 @@ class LongInt: public IndexableAttribute{
 public:
 
   typedef int64_t inttype;
+
+  static SmiKey::KeyDataType getSMIKeyType(){
+       return SmiKey::Longint;
+  }
 
 /*
 1.1 Constructors

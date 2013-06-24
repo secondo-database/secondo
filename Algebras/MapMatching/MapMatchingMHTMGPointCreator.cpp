@@ -402,7 +402,8 @@ bool MGPointCreator::ConnectPoints(const GPoint& rGPStart,
 
         if (GPoint1.GetRouteId() == GPoint2.GetRouteId())
         {
-            NetworkRoute Route(m_pNetwork->GetRoute(GPoint1.GetRouteId()));
+           Tuple* rt = m_pNetwork->GetRoute(GPoint1.GetRouteId());
+            NetworkRoute Route(rt);
 
             if (GPoint1.GetPosition() < GPoint2.GetPosition())
             {
@@ -417,7 +418,7 @@ bool MGPointCreator::ConnectPoints(const GPoint& rGPStart,
 
             UGPoint ActUGPoint(rTimeInterval, GPoint1, GPoint2);
             this->AddUGPoint(ActUGPoint);
-
+            rt->DeleteIfAllowed();
             return true;
         }
         else

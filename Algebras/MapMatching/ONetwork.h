@@ -211,8 +211,8 @@ bool ONetwork<T>::GetEdges(const Tuple* pTuple,
     vecAttributes[1] = pTuple->GetAttribute(m_EdgeAttrIndexes.m_IdxTarget);
 
     vector<SmiKey::KeyDataType> vecAttrTypes(2);
-    vecAttrTypes[0] = SmiKey::Integer;
-    vecAttrTypes[1] = SmiKey::Integer;
+    vecAttrTypes[0] = T::getSMIKeyType();
+    vecAttrTypes[1] = T::getSMIKeyType();
 
     CompositeKey KeyFrom(vecAttributes, vecAttrTypes, false);
     CompositeKey KeyTo(vecAttributes, vecAttrTypes, true);
@@ -250,8 +250,8 @@ bool ONetwork<T>::GetAdjacentEdges(const ONetworkEdge<T>& rEdge,
     vecAttributes[0] = bUpDown ? rEdge.GetTarget() : rEdge.GetSource();
 
     vector<SmiKey::KeyDataType> vecAttrTypes(2);
-    vecAttrTypes[0] = SmiKey::Integer;
-    vecAttrTypes[1] = SmiKey::Integer;
+    vecAttrTypes[0] = T::getSMIKeyType();
+    vecAttrTypes[1] = T::getSMIKeyType();
 
     vecAttributes[1] = pMin.get();
     CompositeKey KeyFrom(vecAttributes, vecAttrTypes, false);

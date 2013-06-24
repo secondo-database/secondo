@@ -49,6 +49,7 @@ OrderedRelation.h header file.
 #include <limits>
 #include "BTreeAlgebra.h"
 #include "Symbols.h"
+#include "LongInt.h"
 
 //#define DEBUG_OREL
 
@@ -1438,6 +1439,8 @@ cout << nl->ToString(current) << endl;
 
         if (keyTypeString == CcInt::BasicType()) {
           keyElemType[count] = SmiKey::Integer;
+        } else if(keyTypeString == LongInt::BasicType()){
+          keyElemType[count] = SmiKey::Longint;
         } else if(keyTypeString == CcString::BasicType()) {
           keyElemType[count] = SmiKey::String;
         } else if(keyTypeString == CcReal::BasicType()) {
@@ -2063,7 +2066,7 @@ cout << "OShortestPathDValuMap" << endl;
       OrderedRelationIterator* orelIt = 0;
       vector<void*> attributes(2);
       vector<SmiKey::KeyDataType> kElems(2);
-      SmiKey test((long int) 0);
+      SmiKey test((int32_t) 0);
       kElems[0] = test.GetType();
       kElems[1] = test.GetType();
       int toNode = startNode;
@@ -2789,7 +2792,7 @@ cout << "OShortestPathAValuMap" << endl;
       OrderedRelationIterator* orelIt = 0;
       vector<void*> attributes(2);
       vector<SmiKey::KeyDataType> kElems(2);
-      SmiKey test((long int) 0);
+      SmiKey test((int32_t) 0);
       kElems[0] = test.GetType();
       kElems[1] = test.GetType();
       int toNode = startNode;

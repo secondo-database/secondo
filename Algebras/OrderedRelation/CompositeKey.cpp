@@ -41,6 +41,7 @@ For more information see the OrderedRelation.h header file.
 */
 #include "CompositeKey.h"
 #include "RelationAlgebra.h"
+#include "LongInt.h"
 
 CompositeKey::CompositeKey(const Tuple* t, const vector<int>& keyElements,
                            const vector<SmiKey::KeyDataType>& keyElemTypes,
@@ -77,18 +78,18 @@ CompositeKey::CompositeKey(SmiKey& key):
   if(kdt == SmiKey::Unknown)
     return;
 
-  long lVal;
+  int32_t iVal;
+  int32_t lVal;
   double dVal;
   string sVal;
-  SmiRecordId rVal;
   switch(kdt) {
-    case SmiKey::RecNo:
-      key.GetKey(rVal);
-      charsize = sizeof(rVal);
-      data = malloc(charsize);
-      memcpy(data, &rVal, charsize);
-      break;
     case SmiKey::Integer:
+      key.GetKey(iVal);
+      charsize = sizeof(iVal);
+      data = malloc(charsize);
+      memcpy(data, &iVal, charsize);
+      break;
+    case SmiKey::Longint:
       key.GetKey(lVal);
       charsize = sizeof(lVal);
       data = malloc(charsize);
@@ -287,17 +288,17 @@ SmiKey CompositeKey::GetSmiKey() const {
   if(!IsDefined())
     return SmiKey();
 
-  long lVal;
+  int32_t iVal;
+  int64_t lVal;
   double dVal;
   string sVal;
-  SmiRecordId rVal;
   switch(kdt) {
-    case SmiKey::RecNo:
-      if(charsize != sizeof(rVal))
-        break;
-      memcpy(&rVal, data, charsize);
-      return SmiKey(rVal);
     case SmiKey::Integer:
+      if(charsize != sizeof(iVal))
+        break;
+      memcpy(&iVal, data, charsize);
+      return SmiKey(iVal);
+    case SmiKey::Longint:
       if(charsize != sizeof(lVal))
         break;
       memcpy(&lVal, data, charsize);
@@ -318,9 +319,9 @@ SmiKey CompositeKey::GetSmiKey() const {
 }
 
 TupleId CompositeKey::GetAppendix() const {
-  long lVal;
+  TupleId lVal;
   SmiKey::Unmap((void*)((char*)(data)+charsize-sizeof(lVal)), lVal);
-  return (TupleId)lVal;
+  return lVal;
 }
 
 CompositeKey::~CompositeKey() {
@@ -433,11 +434,12 @@ void CompositeKey::init(const vector<void*>& attributes,
      data = realloc(data,maxSize);
   }
   if(mode == appendNumber) {
-    maxSize -= sizeof(long);
+    maxSize -= sizeof(TupleId);
   }
 
   charsize = 0;
-  long lVal;
+  int32_t iVal;
+  int64_t lVal;
   double dVal;
   string sVal;
   IndexableAttribute* attr;
@@ -446,7 +448,13 @@ void CompositeKey::init(const vector<void*>& attributes,
   for(SmiSize i=0; (i < attributes.size()) && (charsize < maxSize); i++) {
     switch (attrTypes[i]) {
       case SmiKey::Integer:
-        lVal = (long int)(static_cast<CcInt*>(attributes[i])->GetValue());
+        iVal = (int32_t)(static_cast<CcInt*>(attributes[i])->GetValue());
+        tmpSize = sizeof(iVal);
+        tmpData = malloc(tmpSize);
+        SmiKey::Map(iVal, tmpData);
+        break;
+      case SmiKey::Longint:
+        lVal = (int64_t)(static_cast<LongInt*>(attributes[i])->GetValue());
         tmpSize = sizeof(lVal);
         tmpData = malloc(tmpSize);
         SmiKey::Map(lVal, tmpData);
@@ -479,9 +487,9 @@ void CompositeKey::init(const vector<void*>& attributes,
     charsize += tmpSize;
   }
   if(mode == appendNumber) {
-    SmiKey::Map((long)appendix, (void*)(((char*)data)+charsize));
-    charsize += sizeof(long);
-    maxSize += sizeof(long);
+    SmiKey::Map((TupleId)appendix, (void*)(((char*)data)+charsize));
+    charsize += sizeof(TupleId);
+    maxSize += sizeof(TupleId);
   } else if(mode == upperRange) {
     while(charsize<maxSize) {
       ((char*)data)[charsize++] = 255;
@@ -499,11 +507,11 @@ void CompositeKey::init(SmiRecord& record, SmiSize& offset) {
     return;
   offset += sizeof(kdt);
   switch(kdt) {
-    case SmiKey::RecNo:
-      charsize = sizeof(SmiRecordId);
-      break;
     case SmiKey::Integer:
-      charsize = sizeof(long);
+      charsize = sizeof(int32_t);
+      break;
+    case SmiKey::Longint:
+      charsize = sizeof(int64_t);
       break;
     case SmiKey::Float:
       charsize = sizeof(double);
@@ -538,11 +546,11 @@ void CompositeKey::init(PrefetchingIterator* iter, SmiSize& offset) {
   offset += sizeof(kdt);
 
   switch(kdt) {
-    case SmiKey::RecNo:
-      charsize = sizeof(SmiRecordId);
-      break;
     case SmiKey::Integer:
-      charsize = sizeof(long);
+      charsize = sizeof(int32_t);
+      break;
+    case SmiKey::Longint:
+      charsize = sizeof(int64_t);
       break;
     case SmiKey::Float:
       charsize = sizeof(double);

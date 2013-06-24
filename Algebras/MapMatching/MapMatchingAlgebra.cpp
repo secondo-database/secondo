@@ -75,6 +75,8 @@ For more detailed information see MapMatchingAlgebra.h.
 #include "MapMatchingMHTMPointCreator.h"
 #include "MapMatchingMHTMJPointCreator.h"
 
+#include "LongInt.h"
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
@@ -905,10 +907,12 @@ static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList)
     }
     else
     {
-        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        if (!CcInt::checkType(attrType) &&
+            !LongInt::checkType(attrType) )
         {
             return listutils::typeError(
-                                      "'Source' must be " + CcInt::BasicType());
+                                      "'Source' must be " + CcInt::BasicType()
+                                      + " or " + LongInt::BasicType());
         }
     }
 
@@ -920,10 +924,12 @@ static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList)
     }
     else
     {
-        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        if (!CcInt::checkType(attrType) &&
+            !LongInt::checkType(attrType))
         {
             return listutils::typeError(
-                                      "'Target' must be " + CcInt::BasicType());
+                                      "'Target' must be " + CcInt::BasicType()
+                                      + " or " + LongInt::BasicType()) ;
         }
     }
 
@@ -1013,10 +1019,12 @@ static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList)
     }
     else
     {
-        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        if (!CcInt::checkType(attrType) &&
+            !LongInt::checkType(attrType))
         {
-            return listutils::typeError(
-                                       "'WayId' must be " + CcInt::BasicType());
+            return listutils::typeError( 
+                                       "'WayId' must be " + CcInt::BasicType()
+                                       + " or " + LongInt::BasicType());
         }
     }
 
@@ -1103,15 +1111,15 @@ static typename ONetwork<T>::OEdgeAttrIndexes
 
     typename ONetwork<T>::OEdgeAttrIndexes Indexes;
 
-    const T* pIdxSource    = static_cast<T*>(args[nOffset + 0].addr);
-    const T* pIdxTarget    = static_cast<T*>(args[nOffset + 1].addr);
-    const T* pIdxSourcePos = static_cast<T*>(args[nOffset + 2].addr);
-    const T* pIdxTargetPos = static_cast<T*>(args[nOffset + 3].addr);
-    const T* pIdxCurve     = static_cast<T*>(args[nOffset + 4].addr);
+    const CcInt* pIdxSource    = static_cast<CcInt*>(args[nOffset + 0].addr);
+    const CcInt* pIdxTarget    = static_cast<CcInt*>(args[nOffset + 1].addr);
+    const CcInt* pIdxSourcePos = static_cast<CcInt*>(args[nOffset + 2].addr);
+    const CcInt* pIdxTargetPos = static_cast<CcInt*>(args[nOffset + 3].addr);
+    const CcInt* pIdxCurve     = static_cast<CcInt*>(args[nOffset + 4].addr);
     const CcInt* pIdxRoadName  = static_cast<CcInt*>(args[nOffset + 5].addr);
     const CcInt* pIdxRoadType  = static_cast<CcInt*>(args[nOffset + 6].addr);
     const CcInt* pIdxMaxSpeed  = static_cast<CcInt*>(args[nOffset + 7].addr);
-    const T* pIdxWayId     = static_cast<T*>(args[nOffset + 8].addr);
+    const CcInt* pIdxWayId     = static_cast<CcInt*>(args[nOffset + 8].addr);
 
 
     Indexes.m_IdxSource    = pIdxSource->GetValue();
@@ -1448,17 +1456,22 @@ int OMapMatchMHTSelect(ListExpr args)
         listutils::isRTreeDescription(type.second().listExpr()) &&
         listutils::isRelDescription(type.third().listExpr()))
     {
+        ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+        ListExpr attrType;
+        listutils::findAttribute(attrList,"Source",attrType);
+        int offset = CcInt::checkType(attrType)?0:3;
+
         if (type.fourth().isSymbol(MPoint::BasicType()))
         {
-            return 0;
+            return 0 + offset;
         }
         else if (type.fourth().isSymbol(FText::BasicType()))
         {
-            return 1;
+            return 1 + offset;
         }
         else if (listutils::isTupleStream(type.fourth().listExpr()))
         {
-            return 2;
+            return 2 + offset;
         }
         else
         {
@@ -2234,6 +2247,9 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                      { OpOMapMatchingMHTMPoint2EdgesValueMapping<CcInt>,
                        OpOMapMatchingMHTGPX2EdgesValueMapping<CcInt>,
                        OpOMapMatchingMHTStream2EdgesValueMapping<CcInt>,
+                       OpOMapMatchingMHTMPoint2EdgesValueMapping<LongInt>,
+                       OpOMapMatchingMHTGPX2EdgesValueMapping<LongInt>,
+                       OpOMapMatchingMHTStream2EdgesValueMapping<LongInt>,
                      0 };
 
     AddOperator(OMapMatchMHTInfo(),
@@ -2246,6 +2262,9 @@ MapMatchingAlgebra::MapMatchingAlgebra()
               { OpOMapMatchingMHTMPoint2PositionsValueMapping<CcInt>,
                 OpOMapMatchingMHTGPX2PositionsValueMapping<CcInt>,
                 OpOMapMatchingMHTStream2PositionsValueMapping<CcInt>,
+                OpOMapMatchingMHTMPoint2PositionsValueMapping<LongInt>,
+                OpOMapMatchingMHTGPX2PositionsValueMapping<LongInt>,
+                OpOMapMatchingMHTStream2PositionsValueMapping<LongInt>,
               0 };
 
     AddOperator(OMapMatchMHT_PInfo(),
@@ -2254,10 +2273,13 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                 OpOMapMatchingMHT_PTypeMap);
 
     // OMapMatchMHT_MPoint
-    ValueMapping OMapMatchMHT_MPointFuns[] =
-               { OpOMapMatchingMHTMPoint2MPointValueMapping<CcInt>,
+    ValueMapping OMapMatchMHT_MPointFuns[] = { 
+                 OpOMapMatchingMHTMPoint2MPointValueMapping<CcInt>,
                  OpOMapMatchingMHTGPX2MPointValueMapping<CcInt>,
                  OpOMapMatchingMHTStream2MPointValueMapping<CcInt>,
+                 OpOMapMatchingMHTMPoint2MPointValueMapping<LongInt>,
+                 OpOMapMatchingMHTGPX2MPointValueMapping<LongInt>,
+                 OpOMapMatchingMHTStream2MPointValueMapping<LongInt>,
                0 };
 
     AddOperator(OMapMatchMHT_MPointInfo(),

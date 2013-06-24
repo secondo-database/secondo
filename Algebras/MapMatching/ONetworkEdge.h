@@ -208,7 +208,7 @@ T* ONetworkEdge<T>::GetSource(void) const
     {
         const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxSource;
         if (nIdx >= 0)
-            return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(nIdx));
+            return static_cast<T*>(m_pTupleEdge->GetAttribute(nIdx));
         else
             return NULL;
     }
@@ -225,7 +225,7 @@ T* ONetworkEdge<T>::GetTarget(void) const
     {
         const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxTarget;
         if (nIdx >= 0)
-            return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(nIdx));
+            return static_cast<T*>(m_pTupleEdge->GetAttribute(nIdx));
         else
             return NULL;
     }
@@ -406,7 +406,7 @@ T* ONetworkEdge<T>::GetWayId(void) const
     {
         const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxWayId;
         if (nIdx >= 0)
-            return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(nIdx));
+            return static_cast<T*>(m_pTupleEdge->GetAttribute(nIdx));
         else
             return NULL;
     }

@@ -109,6 +109,10 @@ class CcInt : public Attribute
 
   typedef int32_t inttype;
 
+  static SmiKey::KeyDataType getSMIKeyType(){
+       return SmiKey::Integer;
+  }
+
 
   inline CcInt():Attribute()
   {
@@ -151,18 +155,18 @@ class CcInt : public Attribute
     return (intval);
   }
 
-  inline int GetValue() const
+  inline inttype GetValue() const
   {
     return (intval);
   }
 
-  inline void Set( int v )
+  inline void Set( inttype v )
   {
     SetDefined(true);
     intval = v;
   }
 
-  inline void Set( bool d, int v )
+  inline void Set( bool d, inttype v )
   {
     SetDefined(d); intval = v;
   }
@@ -615,7 +619,7 @@ CcInt operator--(int){
   static long intsDeleted;
 
  private:
-  int32_t intval;
+  inttype intval;
 };
 
 
