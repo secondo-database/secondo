@@ -9018,8 +9018,13 @@ void Region::EndBulkLoad( bool sort, bool setCoverageNo,
     SetPartnerNo();
 
 
-  if( computeRegion )
-    ComputeRegion();
+  if( computeRegion ) {
+   try{
+      ComputeRegion();
+   } catch(...){
+      RegionCreator::createRegion(&region,this);   
+   }
+  }
 
   region.TrimToSize();
   ordered = true;
@@ -11297,12 +11302,16 @@ bool Region::GetAdjacentHS( const HalfSegment &hs,
   do
   {
     position+=step;
-    if ( position<0 || position>=this->Size())
+    if ( position<0 || position>=this->Size()){
+      // no halfsegments found in this direction
       break;
+    }
 
     Get(position,adjacentCHS);
-    if (partnernoP == position)
+    if (partnernoP == position){
+      // back direction of the original
       continue;
+    }
 
     if ( adjacentPoint==adjacentCHS.GetLeftPoint() ){
         if (!cycle[position]){
@@ -11315,8 +11324,8 @@ bool Region::GetAdjacentHS( const HalfSegment &hs,
               newAdjacentPoint = adjacentCHS.GetLeftPoint();
               adjacencyFound = true;
             }
-      }
-      else
+    }
+    else
         break;
   }
   while (!adjacencyFound);
@@ -11339,8 +11348,8 @@ void Region::ComputeCycle( HalfSegment &hs,
 {
 
   Point nextPoint = hs.GetLeftPoint(),
-            lastPoint = hs.GetRightPoint(),
-            previousPoint, *currentCriticalPoint=NULL;
+        lastPoint = hs.GetRightPoint(),
+        previousPoint, *currentCriticalPoint=NULL;
   AttrType attr, attrP;
   HalfSegment hsP;
   vector<SCycle> sCycleVector;
@@ -11394,7 +11403,7 @@ void Region::ComputeCycle( HalfSegment &hs,
                                       cycle,
                                       1);
        adjacentPointFound=s->goToCHS1Right;
-//       cout<<"flag 1 "<<adjacentPointFound<<" p1 "<<previousPoint<<endl;
+     //  cout<<"flag 1 "<<adjacentPointFound<<" p1 "<<previousPoint<<endl;
      }
      if ( !adjacentPointFound && s->goToCHS1Left )
      {
@@ -11409,7 +11418,7 @@ void Region::ComputeCycle( HalfSegment &hs,
                                      cycle,
                                      -1);
        adjacentPointFound=s->goToCHS1Left;
-//       cout<<"flag 2 "<<adjacentPointFound<<" p2 "<<previousPoint<<endl;
+       //cout<<"flag 2 "<<adjacentPointFound<<" p2 "<<previousPoint<<endl;
      }
      if (!adjacentPointFound && s->goToCHS2Right)
      {
@@ -11424,7 +11433,7 @@ void Region::ComputeCycle( HalfSegment &hs,
                                       cycle,
                                       1);
        adjacentPointFound=s->goToCHS2Right;
-//       cout<<"flag 3 "<<adjacentPointFound<<" p3 "<<previousPoint<<endl;
+       //cout<<"flag 3 "<<adjacentPointFound<<" p3 "<<previousPoint<<endl;
      }
      if (!adjacentPointFound && s->goToCHS2Left)
      {
@@ -11440,10 +11449,10 @@ void Region::ComputeCycle( HalfSegment &hs,
                                      -1);
        adjacentPointFound = s->goToCHS2Left;
 
-//      cout<<"flag 4 "<<adjacentPointFound<<" p4 "<<previousPoint<<endl;
+      // cout<<"flag 4 "<<adjacentPointFound<<" p4 "<<previousPoint<<endl;
 
      }
-
+    
      if(!adjacentPointFound){
          cerr<<"previousPoint "<<previousPoint<<endl;
          cerr << "Problem in rebuilding cycle in a region " << endl;
@@ -11454,7 +11463,7 @@ void Region::ComputeCycle( HalfSegment &hs,
             Get(i,hs);
             cerr << i << " : " << (hs) << endl;
          }
-         assert(adjacentPointFound); // assert(false)
+         throw(0);
      }
      sCycleVector.push_back(*s);
 
