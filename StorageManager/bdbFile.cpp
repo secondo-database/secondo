@@ -68,6 +68,7 @@ using namespace std;
 #include "WinUnix.h"
 
 static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
+static int  BdbCompareLongint( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static int  BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 );
 //static void BdbInitCatalogEntry( SmiCatalogEntry& entry );
 
@@ -292,6 +293,10 @@ SmiFile::Create( const string& name,
           if ( keyDataType == SmiKey::Integer )
           {
             rc = impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            SmiEnvironment::SetBDBError(rc);
+          }else  if ( keyDataType == SmiKey::Longint )
+          {
+            rc = impl->bdbFile->set_bt_compare( BdbCompareLongint );
             SmiEnvironment::SetBDBError(rc);
           }
           else if ( keyDataType == SmiKey::Float )
@@ -533,6 +538,10 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
           {
             rc = impl->bdbFile->set_bt_compare( BdbCompareInteger );
             SmiEnvironment::SetBDBError( rc );
+          }else if ( keyDataType == SmiKey::Longint )
+          {
+            rc = impl->bdbFile->set_bt_compare( BdbCompareLongint );
+            SmiEnvironment::SetBDBError( rc );
           }
           else if ( keyDataType == SmiKey::Float )
           {
@@ -719,6 +728,10 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
           if ( keyDataType == SmiKey::Integer )
           {
             rc = impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            SmiEnvironment::SetBDBError( rc );
+          } else  if ( keyDataType == SmiKey::Longint )
+          {
+            rc = impl->bdbFile->set_bt_compare( BdbCompareLongint );
             SmiEnvironment::SetBDBError( rc );
           }
           else if ( keyDataType == SmiKey::Float )
@@ -1234,9 +1247,9 @@ SmiFile::Print(ostream& os) const
 static int BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 )
 {
   int ret;
-  long d1, d2;
-  memcpy( &d1, key1->get_data(), sizeof(long) );
-  memcpy( &d2, key2->get_data(), sizeof(long) );
+  int32_t d1, d2;
+  memcpy( &d1, key1->get_data(), sizeof(int32_t) );
+  memcpy( &d2, key2->get_data(), sizeof(int32_t) );
 
   if ( d1 < d2 )
   {
@@ -1252,6 +1265,29 @@ static int BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 )
   }
   return (ret);
 }
+
+static int BdbCompareLongint( Db* dbp, const Dbt* key1, const Dbt* key2 )
+{
+  int ret;
+  int64_t d1, d2;
+  memcpy( &d1, key1->get_data(), sizeof(int64_t) );
+  memcpy( &d2, key2->get_data(), sizeof(int64_t) );
+
+  if ( d1 < d2 )
+  {
+    ret = -1;
+  }
+  else if ( d1 > d2 )
+  {
+    ret = 1;
+  }
+  else
+  {
+    ret = 0;
+  }
+  return (ret);
+}
+
 
 // --- Key comparison function for floating point keys
 
@@ -1580,8 +1616,12 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
   void* key = 0;
   size_t keyLength = 0;
 
-  long keyLong = 0;
-  long boundaryLong = 0;
+  int32_t keyint = 0;
+  int32_t boundaryint = 0;
+
+  int64_t keylong = 0;
+  int64_t boundarylong = 0;
+
 
   double keyDouble = 0;
   double boundaryDouble = 0;
@@ -1616,11 +1656,25 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
   switch(keyType)
   {
     case SmiKey::Integer:
-      assert(keyLength == sizeof(long));
-      assert(rightBoundaryLength == sizeof(long));
-      memcpy(&keyLong, key, keyLength);
-      memcpy(&boundaryLong, rightBoundary, keyLength);
-      if(keyLong > boundaryLong)
+      assert(keyLength == sizeof(int32_t));
+      assert(rightBoundaryLength == sizeof(int32_t));
+      memcpy(&keyint, key, keyLength);
+      memcpy(&boundaryint, rightBoundary, keyLength);
+      if(keyint > boundaryint)
+      {
+        return true;
+      }
+      else
+      {
+        return false;
+      };
+    
+    case SmiKey::Longint:
+      assert(keyLength == sizeof(int64_t));
+      assert(rightBoundaryLength == sizeof(int64_t));
+      memcpy(&keylong, key, keyLength);
+      memcpy(&boundarylong, rightBoundary, keyLength);
+      if(keylong > boundarylong)
       {
         return true;
       }

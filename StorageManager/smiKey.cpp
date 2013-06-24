@@ -44,13 +44,27 @@ SmiKey::SmiKey()
   integerKey = 0;
 }
 
-SmiKey::SmiKey( const SmiRecordId key )
+
+SmiKey::SmiKey( const int32_t key )
 {
   keyType = SmiKey::Unknown;
   SetKey( key );
 }
 
-SmiKey::SmiKey( const long key )
+SmiKey::SmiKey( const int64_t key )
+{
+  keyType = SmiKey::Unknown;
+  SetKey( key );
+}
+
+
+SmiKey::SmiKey( const uint32_t key )
+{
+  keyType = SmiKey::Unknown;
+  SetKey( key );
+}
+
+SmiKey::SmiKey( const uint64_t key )
 {
   keyType = SmiKey::Unknown;
   SetKey( key );
@@ -101,11 +115,11 @@ SmiKey::operator==( const SmiKey& other ) const
   bool ok = false;
   switch (keyType)
   {
-    case SmiKey::RecNo:
-      ok = (recnoKey == other.recnoKey);
-      break;
     case SmiKey::Integer:
       ok = (integerKey == other.integerKey);
+      break;
+    case SmiKey::Longint:
+      ok = (longintKey == other.longintKey);
       break;
     case SmiKey::Float:
       ok = (floatKey == other.floatKey);
@@ -136,11 +150,11 @@ SmiKey::operator>( const SmiKey& other ) const
   bool ok;
   switch (keyType)
   {
-    case SmiKey::RecNo:
-      ok = (recnoKey > other.recnoKey);
-      break;
     case SmiKey::Integer:
       ok = (integerKey > other.integerKey);
+      break;
+    case SmiKey::Longint:
+      ok = (longintKey > other.longintKey);
       break;
     case SmiKey::Float:
       ok = (floatKey > other.floatKey);
@@ -194,8 +208,8 @@ SmiKey::GetAddr() const
 
   switch ( keyType )
   {
-    case SmiKey::RecNo:     addr = &recnoKey;   break;
     case SmiKey::Integer:   addr = &integerKey; break;
+    case SmiKey::Longint:   addr = &longintKey; break;
     case SmiKey::Float:     addr = &floatKey;   break;
     case SmiKey::String:
     case SmiKey::Composite: addr = (keyLength > SMI_MAX_KEYLEN_LOCAL) ?
@@ -207,23 +221,43 @@ SmiKey::GetAddr() const
   return addr;
 }
 
-void
-SmiKey::SetKey( const SmiRecordId key )
-{
-  FreeData();
-  keyType   = SmiKey::RecNo;
-  keyLength = sizeof( key );
-  recnoKey = key;
-}
 
 void
-SmiKey::SetKey( const long key )
+SmiKey::SetKey( const int32_t key )
 {
   FreeData();
   keyType    = SmiKey::Integer;
   keyLength  = sizeof( key );
   integerKey = key;
 }
+
+void
+SmiKey::SetKey( const int64_t key )
+{
+  FreeData();
+  keyType    = SmiKey::Longint;
+  keyLength  = sizeof( key );
+  integerKey = key;
+}
+
+void
+SmiKey::SetKey( const uint32_t key )
+{
+  FreeData();
+  keyType    = SmiKey::Integer;
+  keyLength  = sizeof( key );
+  integerKey = key;
+}
+
+void
+SmiKey::SetKey( const uint64_t key )
+{
+  FreeData();
+  keyType    = SmiKey::Longint;
+  keyLength  = sizeof( key );
+  integerKey = key;
+}
+
 
 void
 SmiKey::SetKey( const double key )
@@ -285,11 +319,11 @@ SmiKey::SetKey( const KeyDataType kdt,
 {
   switch (kdt)
   {
-    case SmiKey::RecNo:
-      SetKey( *((SmiRecordId*) key) );
-      break;
     case SmiKey::Integer:
-      SetKey( *((long*) key) );
+      SetKey( *((int32_t*) key) );
+      break;
+    case SmiKey::Longint:
+      SetKey( *((int64_t*) key) );
       break;
     case SmiKey::Float:
       SetKey( *((double*) key) );
@@ -319,22 +353,9 @@ SmiKey::SetKey( const KeyDataType kdt,
   }
 }
 
-bool
-SmiKey::GetKey( SmiRecordId& key )
-{
-  bool ok = false;
-
-  if ( keyType == SmiKey::RecNo )
-  {
-    ok = true;
-    key = recnoKey;
-  }
-
-  return ok;
-}
 
 bool
-SmiKey::GetKey( long& key )
+SmiKey::GetKey( int32_t& key ) const
 {
   bool ok = false;
 
@@ -348,7 +369,49 @@ SmiKey::GetKey( long& key )
 }
 
 bool
-SmiKey::GetKey( double& key )
+SmiKey::GetKey( int64_t& key ) const
+{
+  bool ok = false;
+
+  if ( keyType == SmiKey::Longint )
+  {
+    ok = true;
+    key = longintKey;
+  }
+
+  return ok;
+}
+
+bool
+SmiKey::GetKey( uint32_t& key ) const
+{
+  bool ok = false;
+
+  if ( keyType == SmiKey::Integer )
+  {
+    ok = true;
+    key = integerKey;
+  }
+
+  return ok;
+}
+
+bool
+SmiKey::GetKey( uint64_t& key ) const
+{
+  bool ok = false;
+
+  if ( keyType == SmiKey::Longint )
+  {
+    ok = true;
+    key = longintKey;
+  }
+
+  return ok;
+}
+
+bool
+SmiKey::GetKey( double& key ) const
 {
   bool ok = false;
 
@@ -362,7 +425,7 @@ SmiKey::GetKey( double& key )
 }
 
 bool
-SmiKey::GetKey( string& key )
+SmiKey::GetKey( string& key ) const
 {
   bool ok = false;
 
@@ -383,16 +446,16 @@ SmiKey::GetKey( string& key )
 }
 
 bool
-SmiKey::GetKey( IndexableAttribute* key )
+SmiKey::GetKey( IndexableAttribute* key ) const
 {
   bool ok = false;
-  char* data;
+  const char* data;
 
   if ( keyType == SmiKey::Composite )
   {
     if ( keyLength > SMI_MAX_KEYLEN_LOCAL )
     {
-      data = (char*) longKeyData;
+      data = (const char*) longKeyData;
     }
     else
     {
@@ -413,7 +476,7 @@ SmiSize SmiKey::GetLength() const {
 }
 
 void
-SmiKey::Map( const long inData, void* outData )
+SmiKey::Map( const int32_t inData, void* outData )
 {
   const unsigned char* s = (unsigned char*) &inData;
         unsigned char* t = (unsigned char*) outData;
@@ -430,6 +493,64 @@ SmiKey::Map( const long inData, void* outData )
 #endif
   t[0] ^= 0x80;
 }
+
+void
+SmiKey::Map( const int64_t inData, void* outData )
+{
+  const unsigned char* s = (unsigned char*) &inData;
+        unsigned char* t = (unsigned char*) outData;
+#ifdef SECONDO_LITTLE_ENDIAN
+  for ( unsigned int j = 0; j < sizeof( inData ); j++ )
+  {
+    t[j] = s[sizeof( inData )-j-1];
+  }
+#else
+  for ( unsigned int j = 0; j < sizeof( inData ); j++ )
+  {
+    t[j] = s[j];
+  }
+#endif
+  t[0] ^= 0x80;
+}
+
+void
+SmiKey::Map( const uint32_t inData, void* outData )
+{
+  const unsigned char* s = (unsigned char*) &inData;
+        unsigned char* t = (unsigned char*) outData;
+#ifdef SECONDO_LITTLE_ENDIAN
+  for ( unsigned int j = 0; j < sizeof( inData ); j++ )
+  {
+    t[j] = s[sizeof( inData )-j-1];
+  }
+#else
+  for ( unsigned int j = 0; j < sizeof( inData ); j++ )
+  {
+    t[j] = s[j];
+  }
+#endif
+  t[0] ^= 0x80;
+}
+
+void
+SmiKey::Map( const uint64_t inData, void* outData )
+{
+  const unsigned char* s = (unsigned char*) &inData;
+        unsigned char* t = (unsigned char*) outData;
+#ifdef SECONDO_LITTLE_ENDIAN
+  for ( unsigned int j = 0; j < sizeof( inData ); j++ )
+  {
+    t[j] = s[sizeof( inData )-j-1];
+  }
+#else
+  for ( unsigned int j = 0; j < sizeof( inData ); j++ )
+  {
+    t[j] = s[j];
+  }
+#endif
+  t[0] ^= 0x80;
+}
+
 
 void
 SmiKey::Map( const double inData, void* outData )
@@ -458,7 +579,67 @@ SmiKey::Map( const double inData, void* outData )
 }
 
 void
-SmiKey::Unmap( const void* inData, long& outData )
+SmiKey::Unmap( const void* inData, int32_t& outData )
+{
+  const unsigned char* s = (unsigned char*) inData;
+        unsigned char* t = (unsigned char*) &outData;
+#ifdef SECONDO_LITTLE_ENDIAN
+  for ( unsigned int j = 0; j < sizeof( outData ); j++ )
+  {
+    t[j] = s[sizeof( outData )-j-1];
+  }
+  t[sizeof( outData )-1] ^= 0x80;
+#else
+  for ( unsigned int j = 0; j < sizeof( inData ); j++ )
+  {
+    t[j] = s[j];
+  }
+  t[0] ^= 0x80;
+#endif
+}
+
+void
+SmiKey::Unmap( const void* inData, int64_t& outData )
+{
+  const unsigned char* s = (unsigned char*) inData;
+        unsigned char* t = (unsigned char*) &outData;
+#ifdef SECONDO_LITTLE_ENDIAN
+  for ( unsigned int j = 0; j < sizeof( outData ); j++ )
+  {
+    t[j] = s[sizeof( outData )-j-1];
+  }
+  t[sizeof( outData )-1] ^= 0x80;
+#else
+  for ( unsigned int j = 0; j < sizeof( inData ); j++ )
+  {
+    t[j] = s[j];
+  }
+  t[0] ^= 0x80;
+#endif
+}
+
+void
+SmiKey::Unmap( const void* inData, uint32_t& outData )
+{
+  const unsigned char* s = (unsigned char*) inData;
+        unsigned char* t = (unsigned char*) &outData;
+#ifdef SECONDO_LITTLE_ENDIAN
+  for ( unsigned int j = 0; j < sizeof( outData ); j++ )
+  {
+    t[j] = s[sizeof( outData )-j-1];
+  }
+  t[sizeof( outData )-1] ^= 0x80;
+#else
+  for ( unsigned int j = 0; j < sizeof( inData ); j++ )
+  {
+    t[j] = s[j];
+  }
+  t[0] ^= 0x80;
+#endif
+}
+
+void
+SmiKey::Unmap( const void* inData, uint64_t& outData )
 {
   const unsigned char* s = (unsigned char*) inData;
         unsigned char* t = (unsigned char*) &outData;

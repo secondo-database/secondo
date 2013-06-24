@@ -62,6 +62,7 @@ level remains. Models are also removed from type constructors.
 #include "FTextAlgebra.h"
 #include "ListUtils.h"
 #include "NList.h"
+#include "LongInt.h"
 
 using namespace std;
 
@@ -101,28 +102,27 @@ void AttrToKey(
   SmiKey& key,
   SmiKey::KeyDataType keyType)
 {
-  float floatval;
-  int intval;
-  string strval;
 
   assert(attr->IsDefined());
   switch(keyType)
   {
     case SmiKey::Integer:
-      intval = ((CcInt*)attr)->GetIntval();
-      key = SmiKey((long)intval);
+      key = SmiKey( ((CcInt*)attr)->GetValue());
+      break;
+    
+    case SmiKey::Longint:
+      key = SmiKey( ((LongInt*)attr)->GetValue());
       break;
 
     case SmiKey::Float:
-      floatval = ((CcReal*)attr)->GetRealval();
-      key = SmiKey((double)floatval);
+      key = SmiKey( ((CcReal*)attr)->GetValue());
       break;
 
-    case SmiKey::String:
-      strval = (char*)((CcString*)attr)->GetStringval();
+    case SmiKey::String: {
+      char* strval = (char*)((CcString*)attr)->GetStringval();
       key = SmiKey(strval);
       break;
-
+    }
     case SmiKey::Composite:
       key = SmiKey((IndexableAttribute*)attr);
       break;
@@ -146,7 +146,8 @@ void KeyToAttr(
   SmiKey::KeyDataType keyType)
 {
   double floatval;
-  long intval;
+  int32_t intval;
+  int64_t longval;
   string strval;
 
   assert(key.GetType() == keyType);
@@ -157,9 +158,14 @@ void KeyToAttr(
       ((CcInt*)attr)->Set(true, (int)intval);
       break;
 
+    case SmiKey::Longint:
+      key.GetKey(longval);
+      ((LongInt*)attr)->SetValue(longval);
+      break;
+
     case SmiKey::Float:
       key.GetKey(floatval);
-      ((CcReal*)attr)->Set(true, (float)floatval);
+      ((CcReal*)attr)->Set(true, floatval);
       break;
 
     case SmiKey::String:
@@ -194,8 +200,9 @@ ExtractKeyTypeFromTypeInfo( ListExpr typeInfo )
     || (keyTypeString == TupleIdentifier::BasicType()) )
   {
     return SmiKey::Integer;
-  }
-  else if( keyTypeString == CcString::BasicType() )
+  } else if(keyTypeString == LongInt::BasicType()){
+    return SmiKey::Longint;
+  } else if( keyTypeString == CcString::BasicType() )
   {
     return SmiKey::String;
   }

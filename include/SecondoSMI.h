@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ss] [{\ss}]
 //[<=] [\leq]
 //[#]  [\neq]
+//[_] [\_]
 //[tilde] [\verb|~|]
 
 1 Header File: Storage Management Interface
@@ -255,6 +256,7 @@ using namespace std;
 
 
 
+
 class IndexableAttribute;
 
 const string::size_type SMI_MAX_NAMELEN      =   31;
@@ -340,7 +342,7 @@ class SMI_EXPORT SmiKey
 {
  public:
   enum KeyDataType
-    { Unknown, RecNo, Integer, Float, String, Composite };
+    { Unknown, Integer, Longint, Float, String, Composite };
 /*
 Lists the types of key values supported by the ~SmiFiles~ for keyed access:
 
@@ -348,7 +350,9 @@ Lists the types of key values supported by the ~SmiFiles~ for keyed access:
 
   * *RecNo* -- a record number of a ~SmiRecordFile~
 
-  * *Integer* -- signed integer number (base type ~long~)
+  * *Integer* -- signed integer number (base type ~int32[_]t~)
+
+  * *Longint* -- signed integer number (base type ~int64[_]t~)
 
   * *Float* -- floating point number (base type ~double~)
 
@@ -360,9 +364,33 @@ be sorted like a usual string in lexical order. On key retrieval the function
 is called to unmap the byte string to the user-defined key structure.
 
 */
+ static KeyDataType getKeyType(const int32_t){ 
+    return Integer;
+ }
+ static KeyDataType getKeyType(const uint32_t){ 
+    return Integer;
+ }
+ static KeyDataType getKeyType(const int64_t){ 
+    return Longint;
+ }
+ static KeyDataType getKeyType(const uint64_t){ 
+    return Longint;
+ }
+ static KeyDataType getKeyType(const double){ 
+    return Float;
+ }
+ static KeyDataType getKeyType(const string&){ 
+    return String;
+ }
+ static KeyDataType getKeyType(const IndexableAttribute*){
+      return Composite;
+ }
+
   SmiKey();
-  SmiKey( const SmiRecordId key );
-  SmiKey( const long key );
+  SmiKey( const int32_t key );
+  SmiKey( const int64_t key );
+  SmiKey( const uint32_t key );
+  SmiKey( const uint64_t key );
   SmiKey( const double key );
   SmiKey( const string& key );
   SmiKey( const IndexableAttribute* key );
@@ -384,11 +412,13 @@ Destroys a key.
 Returns the type of the key.
 
 */
-  bool GetKey( SmiRecordId& key );
-  bool GetKey( long& key );
-  bool GetKey( double& key );
-  bool GetKey( string& key );
-  bool GetKey( IndexableAttribute* key );
+  bool GetKey( int32_t& key )const;
+  bool GetKey( int64_t& key )const;
+  bool GetKey( uint32_t& key )const;
+  bool GetKey( uint64_t& key )const;
+  bool GetKey( double& key )const;
+  bool GetKey( string& key )const;
+  bool GetKey( IndexableAttribute* key )const;
 /*
 Returns the value of the key. The argument type must match the type of the key!
 
@@ -399,9 +429,15 @@ Returns the length of the key if the key is a composite key, otherwise -1 is
 returned.
 
 */
-  static void Map( const long   inData, void* outData );
+  static void Map( const int32_t   inData, void* outData );
+  static void Map( const int64_t   inData, void* outData );
+  static void Map( const uint32_t   inData, void* outData );
+  static void Map( const uint64_t   inData, void* outData );
   static void Map( const double inData, void* outData );
-  static void Unmap( const void* inData, long&   outData );
+  static void Unmap( const void* inData, int32_t&   outData );
+  static void Unmap( const void* inData, int64_t&   outData );
+  static void Unmap( const void* inData, uint32_t&   outData );
+  static void Unmap( const void* inData, uint64_t&   outData );
   static void Unmap( const void* inData, double& outData );
 /*
 These functions are provided for convenience. They may be used in user-defined
@@ -422,8 +458,10 @@ The function is called internally when a new key value is assigned.
 Returns the memory address of the key value.
 
 */
-  void  SetKey( const SmiRecordId key );
-  void  SetKey( const long key );
+  void  SetKey( const int32_t key );
+  void  SetKey( const int64_t key );
+  void  SetKey( const uint32_t key );
+  void  SetKey( const uint64_t key );
   void  SetKey( const double key );
   void  SetKey( const string& key );
   void  SetKey( const IndexableAttribute* key );
@@ -438,8 +476,8 @@ Sets the internal key value to the passed key value, setting also the key type.
   SmiSize     keyLength; // Size of the key value in bytes
   union                  // Structure for storing the key
   {
-    SmiRecordId recnoKey;
-    long        integerKey;
+    int32_t     integerKey;
+    int64_t     longintKey;
     double      floatKey;
     char        shortKeyData[SMI_MAX_KEYLEN_LOCAL+1];
     char*       longKeyData;
@@ -1308,7 +1346,9 @@ length.
 */
 
   SmiRecordId GetId() const{
-    return recordKey.recnoKey;
+    SmiRecordId res;
+    recordKey.GetKey(res);
+    return res;
   }
 
 /*
@@ -1481,7 +1521,7 @@ struct SmiKeyRange {
   SmiKeyRange() : less(0), equal(0), greater(0) {}
 
   double less, equal, greater;
-};	
+};
 
 /*
 A structure for storing proportional values of key ranges used in

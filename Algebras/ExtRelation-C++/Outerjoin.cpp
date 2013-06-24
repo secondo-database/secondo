@@ -1482,7 +1482,7 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             
             while ( rightOuterTuple != 0 && 
               file->SelectRecord( 
-                SmiKey((long)rightOuterTuple->GetTupleId()), record ))
+                SmiKey(rightOuterTuple->GetTupleId()), record ))
             {
               // if we find the tupleid in the hash file, 
               //the tuple is already matched,
@@ -1525,7 +1525,7 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             
             while ( leftOuterTuple != 0 && 
               file->SelectRecord( 
-                SmiKey((long)leftOuterTuple->GetTupleId()), record ))
+                SmiKey(leftOuterTuple->GetTupleId()), record ))
             {
               // if we find the tupleid in the hash file, 
               // the tuple is already matched,
@@ -1626,10 +1626,10 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               Tuple *resultTuple = new Tuple( pli->resultTupleType );
               Concat( pli->currTuple, leftTuple, resultTuple );
-              pli->leftHash->Append( SmiKey((long)leftTuple->GetTupleId()), 
+              pli->leftHash->Append( SmiKey(leftTuple->GetTupleId()), 
                 (SmiRecordId)leftTuple->GetTupleId());
               pli->rightHash->Append( 
-                SmiKey((long)pli->currTuple->GetTupleId()), 
+                SmiKey(pli->currTuple->GetTupleId()), 
                 (SmiRecordId)pli->currTuple->GetTupleId() );              
               leftTuple->DeleteIfAllowed();
               leftTuple = 0;
@@ -1713,10 +1713,10 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               Tuple *resultTuple = new Tuple( pli->resultTupleType );
               Concat( rightTuple, pli->currTuple, resultTuple );
-              pli->rightHash->Append( SmiKey((long)rightTuple->GetTupleId()), 
+              pli->rightHash->Append( SmiKey(rightTuple->GetTupleId()), 
                 (SmiRecordId)rightTuple->GetTupleId() );
               pli->leftHash->Append( 
-                SmiKey((long)pli->currTuple->GetTupleId()), 
+                SmiKey(pli->currTuple->GetTupleId()), 
                 (SmiRecordId)pli->currTuple->GetTupleId() );              
               rightTuple->DeleteIfAllowed();
               rightTuple = 0;
@@ -1955,8 +1955,11 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->currTuple = 0;
       pli->rightFinished = false;
       pli->leftFinished = false;
-      pli->rightHash = new Hash( SmiKey::Integer, true );
-      pli->leftHash = new Hash( SmiKey::Integer, true );
+      SmiKey::KeyDataType keyType = sizeof(int32_t) == sizeof(TupleId)
+                                    ?SmiKey::Integer
+                                    :SmiKey::Longint;
+      pli->rightHash = new Hash( keyType, true );
+      pli->leftHash = new Hash( keyType, true );
       pli->nullTuples = false;
       pli->rightRel2 = new TupleBuffer( MAX_MEMORY / 2 );
       pli->leftRel2 = new TupleBuffer( MAX_MEMORY / 2 );
@@ -1997,7 +2000,7 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             
             while ( rightOuterTuple != 0 && 
               file->SelectRecord( 
-                SmiKey((long)rightOuterTuple->GetTupleId()), record ))
+                SmiKey(rightOuterTuple->GetTupleId()), record ))
             {
               // if we find the tupleid in the hash file, 
               //the tuple is already matched,
@@ -2036,7 +2039,7 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             
             while ( leftOuterTuple != 0 && 
               file->SelectRecord( 
-                SmiKey((long)leftOuterTuple->GetTupleId()), record ))
+                SmiKey(leftOuterTuple->GetTupleId()), record ))
             {
               // if we find the tupleid in the hash file, 
               // the tuple is already matched,
@@ -2134,10 +2137,11 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               Tuple *resultTuple = new Tuple( pli->resultTupleType );
               Concat( pli->currTuple, leftTuple, resultTuple );
-              pli->leftHash->Append( SmiKey((long)leftTuple->GetTupleId()), 
+              SmiKey key(leftTuple->GetTupleId());
+              pli->leftHash->Append( key, 
                 (SmiRecordId)leftTuple->GetTupleId());
               pli->rightHash->Append( 
-                SmiKey((long)pli->currTuple->GetTupleId()), 
+                SmiKey(pli->currTuple->GetTupleId()), 
                 (SmiRecordId)pli->currTuple->GetTupleId() );
               leftTuple->DeleteIfAllowed();
               leftTuple = 0;
@@ -2223,10 +2227,10 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               Tuple *resultTuple = new Tuple( pli->resultTupleType );
               Concat( rightTuple, pli->currTuple, resultTuple );
-              pli->rightHash->Append( SmiKey((long)rightTuple->GetTupleId()), 
+              pli->rightHash->Append( SmiKey(rightTuple->GetTupleId()), 
                 (SmiRecordId)rightTuple->GetTupleId() );
               pli->leftHash->Append( 
-                SmiKey((long)pli->currTuple->GetTupleId()), 
+                SmiKey(pli->currTuple->GetTupleId()), 
                 (SmiRecordId)pli->currTuple->GetTupleId() );
               rightTuple->DeleteIfAllowed();
               rightTuple = 0;

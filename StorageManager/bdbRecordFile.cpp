@@ -69,7 +69,8 @@ SmiRecordFile::SmiRecordFile( bool hasFixedLengthRecords,
     fixedRecordLength = 0;
     uniqueKeys        = true;
   }
-  keyDataType = SmiKey::RecNo;
+  SmiRecordId dummy(0);
+  keyDataType = SmiKey::getKeyType(dummy);
 }
 
 SmiRecordFile::~SmiRecordFile()
@@ -316,8 +317,9 @@ SmiRecordFile::SelectAllPrefetched()
 
   if(rc == 0)
   {
+    SmiRecordId dummy=0;
     return
-      new PrefetchingIteratorImpl(dbc, SmiKey::RecNo,
+      new PrefetchingIteratorImpl(dbc, SmiKey::getKeyType(dummy),
                          PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH, false);
   }
   return 0;

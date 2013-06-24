@@ -613,7 +613,7 @@ CreateHashValueMapping_Rel(Word* args, Word& result, int message,
 
   Relation* relation = (Relation*)args[0].addr;
   Hash* hash = (Hash*)result.addr;
-  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
+  CcInt::inttype attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
 
   assert(hash != 0);
   assert(relation != 0);
@@ -647,7 +647,7 @@ CreateHashValueMapping_Stream(Word* args, Word& result, int message,
 {
   result = qp->ResultStorage(s);
   Hash* hash = (Hash*)result.addr;
-  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
+  CcInt::inttype attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
       tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
   Word wTuple;
 
@@ -1382,7 +1382,7 @@ int insertHashValueMap(Word* args, Word& result, int message,
   Tuple* tup;
   Hash* hash;
   CcInt* indexp;
-  int index;
+  CcInt::inttype index;
   Attribute* keyAttr;
   Attribute* tidAttr;
   TupleId oldTid;
@@ -1485,7 +1485,7 @@ int deleteHashValueMap(Word* args, Word& result, int message,
   Tuple* tup;
   Hash* hash;
   CcInt* indexp;
-  int index;
+  CcInt::inttype index;
   Attribute* keyAttr;
   Attribute* tidAttr;
   TupleId oldTid;
@@ -1587,7 +1587,7 @@ int updateHashValueMap(Word* args, Word& result, int message,
   Tuple* tup;
   Hash* hash;
   CcInt* indexp;
-  int index;
+  CcInt::inttype index;
   Attribute* keyAttr;
   Attribute* oldKeyAttr;
   Attribute* tidAttr;
