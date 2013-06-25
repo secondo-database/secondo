@@ -7,14 +7,14 @@
 #
 # -> adapt the filename of the osm-file to be imported.
 #
-# running times and result sizes refer to california-latest.osm, using 
+# running times and result sizes refer to arnsberg-regbez.osm, using 
 # GlobalMemory = 2 GB
 #
 ###########################################################################
 
 # Database hombruch
 
-# query fullosmimport('california-latest.osm', "City")
+# query fullosmimport('arnsberg-regbez.osm', "City")
 
 # 155 secs
 
@@ -100,7 +100,7 @@ Roads feed
   rdup
   consume
 
-# 93:40 mins
+# 269 secs
 
 
 
