@@ -87,6 +87,29 @@ enum DegenMode {
     DGM_INSIDEABOVE,
     DGM_NOTINSIDEABOVE };
 
+
+
+static bool specialTrapeziumIntersects(
+    double dt,
+    double t1p1x,
+    double t1p1y,
+    double t1p2x,
+    double t1p2y,
+    double t1p3x,
+    double t1p3y,
+    double t1p4x,
+    double t1p4y,
+    double t2p1x,
+    double t2p1y,
+    double t2p2x,
+    double t2p2y,
+    double t2p3x,
+    double t2p3y,
+    double t2p4x,
+    double t2p4y,
+    unsigned int& detailedResult);
+
+
 class MSegmentData {
 /*
 1.1.1 Private attributes
