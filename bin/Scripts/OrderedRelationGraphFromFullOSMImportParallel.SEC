@@ -118,20 +118,22 @@ query Ways_WayId_dlo hadoopMap[DLF; . feed project[WayId, Curve] head[500] ]
 
 
 
-
-
-
-
-
-
-
-
-
 # Q4
 
 derive Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 10 secs
+
+
+# Q4 parallel
+
+let Ways_WayId_Curve_rtree_dlo = Ways_WayId_dlo 
+  hadoopMap[DLO; . feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box] ]
+
+# 41.93 secs
+
+
+
 
 
 
@@ -141,13 +143,52 @@ derive Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] 
 
 
 
+
+# Q5
+
 let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume
 
 # 113 secs
 
+
+# Q5 parallel
+
+let Roads_WayId_dlo = Ways_WayId_dlo hadoopMap[DLO; . feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume ]
+
+# 54.72 secs
+
+# check the result:
+
+query Roads_WayId_dlo hadoopMap[DLF; . feed count feed transformstream] collect[] consume
+
+# ok
+
+query Roads_WayId_dlo hadoopMap[DLF; . feed count feed transformstream] collect[] sum[Elem]
+
+# 242556 correct
+
+
+
+
+
+
+
+
+# Q6
+
 derive Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 3.56 secs
+
+# Q6 parallel
+
+let Roads_WayId_Curve_rtree_dlo = Roads_WayId_dlo 
+  hadoopMap[DLO; . feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box] ]
+
+# 33.52 secs
+
+
+# Q7
 
 # compute Nodes as the union of start points, end points and intersections of roads
 
@@ -178,6 +219,62 @@ Roads feed
   consume
 
 # 269 secs
+
+
+# Q7 parallel
+
+let RoadsWayId_WayId_flist = Roads_WayId_dlo hadoopMap[DLF; . feed project[WayId] ]
+
+# 34.78 secs
+
+let Nodes_WayId_flist =
+  CityWays_NodeRef_flist
+  CityWays_NodeRef_flist
+  hadoopReduce2[NodeRef, NodeRef, DLF, PS_SCALE; . .. {h2} 
+    itHashJoin[NodeRef, NodeRef_h2] filter[.WayId # .WayId_h2] ]
+  CityNodesNew_NodeId_flist
+  hadoopReduce2[NodeRef, NodeId, DLF, PS_SCALE; . .. itHashJoin[NodeRef, NodeId] ]
+  RoadsWayId_WayId_flist
+  hadoopReduce2[WayId, WayId, DLF, PS_SCALE; . .. {r1} itHashJoin[WayId, WayId_r1] ]
+  RoadsWayId_WayId_flist
+  hadoopReduce2[WayId_h2, WayId, DLF, PS_SCALE; .  ..  {r2} 
+    itHashJoin[WayId_h2, WayId_r2] 
+    project[WayId, NodeCounter, NodeIdNew, Pos] ]
+Roads_WayId_dlo
+  hadoopMap[DLF, FALSE; . feed
+    projectextend[WayId; Node: .NodeList afeed filter[.NodeCounter = 0] aconsume]
+    unnest[Node]
+    project[WayId, NodeCounter, NodeIdNew, Pos] ]
+  hadoopReduce2[WayId, WayId, DLF, PS_SCALE; . .. concat ]
+Roads_WayId_dlo
+  hadoopMap[DLF, FALSE; . feed extend[HighNodeNo: (.NodeList afeed count) - 1]
+    projectextend[WayId; Node:  fun(t: TUPLE) 
+      attr(t, NodeList) afeed filter[.NodeCounter = attr(t, HighNodeNo)] aconsume]
+    unnest[Node]
+    project[WayId, NodeCounter, NodeIdNew, Pos] ]
+  hadoopReduce2[WayId, WayId, DLF, PS_SCALE; . .. concat 
+    sortby[WayId, NodeCounter]
+    rdup ]
+
+# 4:42min (281.824sec)
+
+
+query Nodes_WayId_flist hadoopMap[DLF; . count feed transformstream] collect[] sum[Elem]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
