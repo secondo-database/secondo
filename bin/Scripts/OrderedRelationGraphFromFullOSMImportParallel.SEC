@@ -256,27 +256,17 @@ Roads_WayId_dlo
     sortby[WayId, NodeCounter]
     rdup ]
 
-# 4:42min (281.824sec)
+# 5:45 mins (344 secs)
+# 722693 correct
 
 
-query Nodes_WayId_flist hadoopMap[DLF; . count feed transformstream] collect[] sum[Elem]
-
-
-
-
+# query Nodes_WayId_flist hadoopMap[DLF; . count feed transformstream] collect[] sum[Elem]
 
 
 
 
 
-
-
-
-
-
-
-
-
+# Q8
 
 let EdgesUp =
   Nodes feed nest[WayId; SectionNodes]
@@ -313,6 +303,50 @@ let EdgesUp =
   consume
 
 # 337 secs
+
+# Q8 parallel
+
+let EdgesUp_WayId_flist =
+  Nodes_WayId_flist
+  hadoopMap[DLF; . nest[WayId; SectionNodes]
+    projectextend[WayId; Sections: .SectionNodes afeed
+      extend_last[Source: ..NodeIdNew::0, Target: .NodeIdNew::0, 
+        SourcePos: ..Pos::[const point value undef], 
+        TargetPos: .Pos::[const point value undef],
+        SourceNodeCounter: ..NodeCounter::0,
+        TargetNodeCounter: .NodeCounter::0]
+      filter[.Source # 0] 
+      project[Source, Target, SourcePos, TargetPos, 
+        SourceNodeCounter, TargetNodeCounter]
+      aconsume]
+    para(Roads_WayId_dlo) feed {r}
+    itHashJoin[WayId, WayId_r]
+    projectextend[WayId; Sections: fun(t:TUPLE)
+      attr(t, Sections) afeed 
+    extend[
+      Curve: fun(u: TUPLE)
+      attr(t, NodeList_r) afeed 
+        filter[.NodeCounter_r between[attr(u, SourceNodeCounter),
+          attr(u, TargetNodeCounter)] ]
+        projecttransformstream[Pos_r]
+        collect_sline[TRUE],
+      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "name"] extract 
+       [WayTagValue_r],
+      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "highway"] extract 
+       [WayTagValue_r],
+      MaxSpeed: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "maxspeed"] extract 
+       [WayTagValue_r]  
+    ]
+    aconsume ]
+  unnest[Sections] ]
+  
+# 1:08min (68.4874sec)
+
+query EdgesUp_WayId_flist hadoopMap[DLF; . count feed transformstream] collect[] sum[Elem]
+
+
+
+
 
 
 
