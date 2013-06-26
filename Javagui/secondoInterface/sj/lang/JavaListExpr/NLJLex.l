@@ -162,6 +162,10 @@ filename    =   "<file>".*"</file--->"
 commentstart =  "_!"
 commentend   =  "!_"
 double_bs    = \\\\
+num1        =  [-+]?{digit}+\.?([eE][-+]?{digit}+)?
+num2        =  [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
+number      =    {num1}|{num2}
+
 
 
 %%
@@ -191,7 +195,7 @@ double_bs    = \\\\
                          yyline+1));
                 }
 
-<YYINITIAL> -?{digit}*\.?({digit}+)?((E|e)[+-]?{digit}+)? {
+<YYINITIAL> {number} {
                   // The token is a ~realAtom~.
                   // Gets its value.
                   ListExpr value = null;
@@ -211,6 +215,7 @@ double_bs    = \\\\
                     // If an error when parsing occur, an unknown token was
                     // read.
                     if (NLTokenizer.DEBUG_MODE){
+                       Reporter.writeError("try to create a double value from " + yytext());
                       Reporter.writeError("DEBUG MODE: Error when parsing a real number from the input in the NLTokenizer class.");
                     }
                     return (new NLToken(NLToken.error, null, yychar+1,
