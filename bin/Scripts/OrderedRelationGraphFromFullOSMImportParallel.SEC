@@ -344,11 +344,45 @@ let EdgesUp_WayId_flist =
 
 query EdgesUp_WayId_flist hadoopMap[DLF; . count feed transformstream] collect[] sum[Elem]
 
+# Split the above query
 
+let Nodes_WayId_dlo = Nodes_WayId_flist
+  hadoopReduce[WayId, DLO, CLUSTER_SIZE; . nest[WayId; SectionNodes]
+    projectextend[WayId; Sections: .SectionNodes afeed
+      extend_last[Source: ..NodeIdNew::0, Target: .NodeIdNew::0, 
+        SourcePos: ..Pos::[const point value undef], 
+        TargetPos: .Pos::[const point value undef],
+        SourceNodeCounter: ..NodeCounter::0,
+        TargetNodeCounter: .NodeCounter::0]
+      filter[.Source # 0] 
+      project[Source, Target, SourcePos, TargetPos, 
+        SourceNodeCounter, TargetNodeCounter]
+      aconsume] consume]
 
+let EdgesUp_WayId_flist = Nodes_WayId_dlo 
+  hadoopMap[DLF, TRUE; . feed 
+    para(Roads_WayId_dlo) feed {r}
+    itHashJoin[WayId, WayId_r]
+    projectextend[WayId; Sections: fun(t:TUPLE)
+      attr(t, Sections) afeed 
+        extend[Curve: fun(u: TUPLE)
+          attr(t, NodeList_r) afeed 
+        filter[.NodeCounter_r between[attr(u, SourceNodeCounter),
+          attr(u, TargetNodeCounter)] ]
+        projecttransformstream[Pos_r]
+        collect_sline[TRUE],
+      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "name"] extract 
+       [WayTagValue_r],
+      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "highway"] extract 
+       [WayTagValue_r],
+      MaxSpeed: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "maxspeed"] extract 
+       [WayTagValue_r]  
+    ]
+    aconsume ]
+    unnest[Sections] ]
 
-
-
+query EdgesUp_WayId_flist hadoopMap[DLF; . count feed transformstream ] collect[] sum[Elem]
+# correct 
 
 let EdgesDown =
   Nodes feed nest[WayId; SectionNodes]
@@ -387,6 +421,43 @@ let EdgesDown =
 # 372 secs
 
 
+let NodesDesc_WayId_dlo = Nodes_WayId_flist
+  hadoopReduce[WayId, DLO, CLUSTER_SIZE; . nest[WayId; SectionNodes]
+    projectextend[WayId; Sections: .SectionNodes afeed sortby[NodeCounter desc]
+      extend_last[Source: ..NodeIdNew::0, Target: .NodeIdNew::0, 
+        SourcePos: ..Pos::[const point value undef], 
+        TargetPos: .Pos::[const point value undef],
+        SourceNodeCounter: ..NodeCounter::0,
+        TargetNodeCounter: .NodeCounter::0]
+      filter[.Source # 0] 
+      project[Source, Target, SourcePos, TargetPos, 
+        SourceNodeCounter, TargetNodeCounter]
+      aconsume] consume]
+
+let EdgesDown_WayId_flist = NodesDesc_WayId_dlo 
+  hadoopMap[DLF; . feed para(Roads_WayId_dlo) feed 
+    filter[.WayInfo afeed filter[.WayTagKey = "oneway"] 
+      filter[(.WayTagValue = "yes")] count = 0] {r}
+    itHashJoin[WayId, WayId_r]
+    projectextend[WayId; Sections: fun(t:TUPLE)
+      attr(t, Sections) afeed extend[Curve: fun(u: TUPLE)
+        attr(t, NodeList_r) afeed sortby[NodeCounter_r desc]
+          filter[.NodeCounter_r between[attr(u, TargetNodeCounter),
+            attr(u, SourceNodeCounter)] ]
+          projecttransformstream[Pos_r]
+          collect_sline[TRUE],
+        RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "name"] extract 
+         [WayTagValue_r],
+        RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "highway"] extract 
+         [WayTagValue_r],
+        MaxSpeed: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "maxspeed"] extract 
+         [WayTagValue_r]  
+      ]
+      aconsume ]
+    unnest[Sections] ]
+
+query EdgesDown_WayId_flist hadoopMap[DLF; . count feed transformstream ] collect[] sum[Elem]
+# correct
 
 let Edges = EdgesUp feed EdgesDown feed concat 
   projectextend[Source, Target, SourcePos, TargetPos, SourceNodeCounter, TargetNodeCounter, Curve, RoadName, 
@@ -395,7 +466,19 @@ let Edges = EdgesUp feed EdgesDown feed concat
 
 # 169 secs
 
+# correct way
+let Edges_WayId_dlo = EdgesUp_WayId_flist EdgesDown_WayId_flist 
+  hadoopReduce2[WayId, WayId, DLO; . .. concat
+  projectextend[Source, Target, SourcePos, TargetPos, SourceNodeCounter, TargetNodeCounter, Curve, RoadName, 
+    RoadType, MaxSpeed; WayId: .WayId] 
+  oconsume[Source, Target] ]
 
+# wrong way
+let Edges_WayId_dlo2 = EdgesUp_WayId_flist 
+  hadoopMap[DLO; . para(EdgesDown_WayId_flist ) concat
+  projectextend[Source, Target, SourcePos, TargetPos, SourceNodeCounter, TargetNodeCounter, Curve, RoadName, 
+    RoadType, MaxSpeed; WayId: .WayId] 
+  oconsume[Source, Target] ]
 
 let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: bbox(.Curve)] 
   filter[isdefined(.Box)] 
