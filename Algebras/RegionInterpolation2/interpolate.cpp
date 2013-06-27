@@ -253,10 +253,10 @@ static vector<MSegmentData> createURegion(Reg r1, Reg r2) {
 void translate(vector<MSegmentData> &v, double offx, double offy, bool source) {
     for (unsigned int i = 0; i < v.size(); i++) {
         if (source) {
-            v[i].SetInitialStartX(v[i].GetInitialStartX() + offx);
-            v[i].SetInitialStartY(v[i].GetInitialStartY() + offy);
-            v[i].SetInitialEndX(v[i].GetInitialEndX() + offx);
-            v[i].SetInitialEndY(v[i].GetInitialEndY() + offy);
+//            v[i].SetInitialStartX(v[i].GetInitialStartX() + offx);
+//            v[i].SetInitialStartY(v[i].GetInitialStartY() + offy);
+//            v[i].SetInitialEndX(v[i].GetInitialEndX() + offx);
+//            v[i].SetInitialEndY(v[i].GetInitialEndY() + offy);
         } else {
             v[i].SetFinalStartX(v[i].GetFinalStartX() + offx);
             v[i].SetFinalStartY(v[i].GetFinalStartY() + offy);
