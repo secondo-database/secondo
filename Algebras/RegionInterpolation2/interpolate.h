@@ -48,9 +48,10 @@ public:
     MSeg(int sx1, int sy1, int sx2, int sy2,
          int fx1, int fy1, int fx2, int fy2);
     MSegmentData ToMSegmentData(int face, int cycle, int segno);
-    string ToString();
+    string ToString() const;
     bool operator<(const MSeg& a) const;
     bool operator==(const MSeg& a) const;
+    bool intersects(const MSeg& a) const;
 };
 
 class MSegs {
@@ -62,9 +63,10 @@ public:
                  int fx1, int fy1, int fx2, int fy2);
     void AddMSegs(vector<MSeg> v);
     vector<MSegmentData> ToMSegmentData(int face, int cycle);
-    string ToString();
+    string ToString() const;
     vector<MSeg> GetMatchingMSegs (MSegs m);
     void MergeConcavity (MSegs c);
+    bool intersects(const MSegs& a) const;
 };
 
 class MFace {
@@ -108,7 +110,6 @@ public:
     Region MakeRegion(int offx, int offy);
     Pt GetMinXY();
 };
-
 
 #endif	/* INTERPOLATE_HXX */
 

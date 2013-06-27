@@ -29,6 +29,24 @@ bool MSeg::operator== (const MSeg& a) const {
             );
 }
 
+bool MSeg::intersects (const MSeg& a) const {
+    unsigned int detailedResult;
+    
+    return specialTrapeziumIntersects(
+            1,
+            sx1, sy1,
+            sx2, sy2,
+            fx2, fy2,
+            fx1, fy1,
+            
+            a.sx1, a.sy1,
+            a.sx2, a.sy2,
+            a.fy1, a.fy2,
+            a.fx1, a.fx2,
+            detailedResult
+            );
+}
+
 bool MSeg::operator< (const MSeg& a) const {
     if (sx1 < a.sx1) {
         return true;
@@ -78,7 +96,7 @@ bool MSeg::operator< (const MSeg& a) const {
 MSegs::MSegs() {
 }
 
-string MSeg::ToString() {
+string MSeg::ToString() const {
     std::ostringstream ss;
 
     ss << "((" << sx1 << " " << sy1 << " " << sx2 << " " << sy2 << ")("
@@ -140,7 +158,7 @@ void MSegs::MergeConcavity (MSegs c) {
     segs.insert(segs.end(),c.segs.begin(),c.segs.end());
 }
 
-string MSegs::ToString() {
+string MSegs::ToString() const {
     std::ostringstream ss;
 
     ss << "MSegs (\n";
@@ -170,6 +188,19 @@ vector<MSegmentData> MSegs::ToMSegmentData(int face, int cycle) {
     }
     
     return ret;
+}
+
+// Inefficient!
+bool MSegs::intersects (const MSegs& a) const {
+    for (unsigned int i = 0; i < a.segs.size(); i++) {
+        for (unsigned int j = 0; j < segs.size(); j++) {
+            if (segs[j].intersects(a.segs[i])) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
 }
 
 MFace::MFace(MSegs face) : face(face) {

@@ -526,10 +526,18 @@ static vector<pair<Reg *, Reg *> > matchFaces(vector<Reg> *src,
 URegion interpolate3(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti2) {
     MSegs _v  = rotatingPlane(reg1, reg2, true);
     MSegs _v2 = rotatingPlane(&reg1->cvs[0], &reg2->cvs[0], true);
+    MSegs _v3 = rotatingPlane(&reg1->cvs[1], &reg2->cvs[1], true);
     cerr << "Msegs _v" << _v.ToString();
     cerr << "Msegs _v2" << _v2.ToString();
     MFace face(_v);
     face.AddHole(_v2);
+    if (_v3.intersects(_v2)) {
+        cerr << "Concavity intersects, ignoring!" << "\n";
+        face.AddHole(_v3);
+    } else {
+        cerr << "Concavity not intersects, not ignoring!\n";
+        face.AddHole(_v3);
+    }
 
     Interval<Instant> iv = Interval<Instant > (*ti1, *ti2, true, true);
     URegion ret = face.ToURegion(iv);
