@@ -110,6 +110,26 @@ bool mtgrid::SetDuration(const datetime::DateTime& rDuration)
   return bRetVal;
 }
 
+bool mtgrid::IsMatchingGrid(const tgrid& rtgrid) const
+{
+  bool bIsMatchingGrid = tgrid::IsMatchingGrid(rtgrid);
+
+  return bIsMatchingGrid;
+}
+
+bool mtgrid::IsMatchingGrid(const mtgrid& rmtgrid) const
+{
+  bool bIsMatchingGrid = tgrid::IsMatchingGrid(rmtgrid);
+
+  if(bIsMatchingGrid == true &&
+     m_Duration == rmtgrid.m_Duration)
+  {
+    bIsMatchingGrid = true;
+  }
+
+  return bIsMatchingGrid;
+}
+
 void mtgrid::Reset()
 {
   tgrid::Reset();

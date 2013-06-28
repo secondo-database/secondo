@@ -73,10 +73,18 @@ class mtgrid : public tgrid
 
   bool SetDuration(const datetime::DateTime& rDuration);
 
+  /*
+  methods
+
+  */
+
+  bool IsMatchingGrid(const tgrid& rtgrid) const;
+  bool IsMatchingGrid(const mtgrid& rmtgrid) const;
+
   protected:
 
   /*
-  methods
+  internal methods
   
   */
 
