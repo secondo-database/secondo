@@ -34,6 +34,23 @@ namespace TileAlgebra
 {
 
 /*
+definition of load Operator Info structure
+
+*/
+
+struct loadInfo : OperatorInfo
+{
+  loadInfo()
+  {
+    name      = "load";
+    syntax    = "load(_)";
+    meaning   = "Loads the values of a tintArray or a tintFlob.";
+    signature = tintArray::BasicType() + " -> " + CcBool::BasicType();
+    appendSignature(tintFlob::BasicType() + " -> " + CcBool::BasicType());
+  }
+};
+
+/*
 declaration of load functions
 
 */
@@ -53,52 +70,6 @@ declaration of load type mapping function
 */
 
 ListExpr loadTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of load Operator Info structure
-
-*/
-
-struct loadInfo : OperatorInfo
-{
-  loadInfo()
-  {
-    name      = "load";
-    signature = tintArray::BasicType() + " -> " + CcBool::BasicType();
-    appendSignature(tintFlob::BasicType() + " -> " + CcBool::BasicType());
-    syntax    = "load(_)";
-    meaning   = "Loads the values of a tintArray or a tintFlob.";
-  }
-};
-
-/*
-definition of template loadFunction
-
-*/
-
-template <typename Type>
-int loadFunction(Word* pArguments,
-                 Word& rResult,
-                 int message,
-                 Word& rLocal,
-                 Supplier supplier)
-{
-  Type* pImplementationType = static_cast<Type*>(pArguments[0].addr);
-
-  if(pImplementationType != 0)
-  {
-    rResult = qp->ResultStorage(supplier);
-
-    CcBool* pResult = static_cast<CcBool*>(rResult.addr);
-
-    if(pResult != 0)
-    {
-      pResult->Set(true, pImplementationType->load());
-    }
-  }
-
-  return 0;
-}
 
 }
 

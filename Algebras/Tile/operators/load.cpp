@@ -28,6 +28,35 @@ namespace TileAlgebra
 {
 
 /*
+definition of template loadFunction
+
+*/
+
+template <typename Type>
+int loadFunction(Word* pArguments,
+                 Word& rResult,
+                 int message,
+                 Word& rLocal,
+                 Supplier supplier)
+{
+  Type* pImplementationType = static_cast<Type*>(pArguments[0].addr);
+
+  if(pImplementationType != 0)
+  {
+    rResult = qp->ResultStorage(supplier);
+
+    CcBool* pResult = static_cast<CcBool*>(rResult.addr);
+
+    if(pResult != 0)
+    {
+      pResult->Set(true, pImplementationType->load());
+    }
+  }
+
+  return 0;
+}
+
+/*
 definition of load functions
 
 */
@@ -44,11 +73,11 @@ definition of load select function
 
 */
 
-int loadSelectFunction(ListExpr args)
+int loadSelectFunction(ListExpr arguments)
 {
   int nSelection = -1;
 
-  NList type(args);
+  NList type(arguments);
 
   if(type.first().isSymbol(tintArray::BasicType()))
   {
@@ -68,17 +97,25 @@ definition of load type mapping function
 
 */
 
-ListExpr loadTypeMappingFunction(ListExpr args)
+ListExpr loadTypeMappingFunction(ListExpr arguments)
 {
-  NList types(args);
+  ListExpr type = NList::typeError("Operator load expects "
+                                   "a tintArray or a tintFlob.");
 
-  if(types.first() == NList(tintArray::BasicType()) ||
-     types.first() == NList(tintFlob::BasicType()))
+  NList argumentsList(arguments);
+
+  if(argumentsList.hasLength(1))
   {
-    return NList(CcBool::BasicType()).listExpr();
+    std::string argument1 = argumentsList.first().str();
+
+    if(argument1 == tintArray::BasicType() ||
+       argument1 == tintFlob::BasicType())
+    {
+      type = NList(CcBool::BasicType()).listExpr();
+    }
   }
 
-  return NList::typeError("Expecting a tintArray or a tintFlob.");
+  return type;
 }
 
 }
