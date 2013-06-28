@@ -75,10 +75,17 @@ class tgrid : public Attribute
   bool SetY(const double& rY);
   bool SetLength(const double& rLength);
 
+  /*
+  methods
+
+  */
+
+  bool IsMatchingGrid(const tgrid& rtgrid) const;
+
   protected:
 
   /*
-  methods
+  internal methods
   
   */
 

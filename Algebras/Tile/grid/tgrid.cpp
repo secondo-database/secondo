@@ -139,6 +139,25 @@ bool tgrid::SetLength(const double& rLength)
   return bRetVal;
 }
 
+bool tgrid::IsMatchingGrid(const tgrid& rtgrid) const
+{
+  bool bIsMatchingGrid = false;
+
+  if(m_dLength == rtgrid.m_dLength)
+  {
+    double fx = (rtgrid.m_dX - m_dX) / m_dLength;
+    double fy = (rtgrid.m_dY - m_dY) / m_dLength;
+
+    if(AlmostEqual(fx, round(fx)) && 
+       AlmostEqual(fy, round(fy)))
+    {
+      bIsMatchingGrid = true;
+    }
+  }
+
+  return bIsMatchingGrid;
+}
+
 void tgrid::Reset()
 {
   m_dX = 0.0;
