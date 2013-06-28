@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "inst.h"
-#include "../Types.h"
 #include "../it/itint.h"
 #include "../it/itreal.h"
 #include "../it/itbool.h"
@@ -29,6 +28,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace TileAlgebra
 {
+
+/*
+definition of template instFunction
+
+*/
+
+template <typename Type>
+int instFunction(Word* pArguments,
+                 Word& rResult,
+                 int message,
+                 Word& rLocal,
+                 Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+
+    if(pType != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        Instant* pResult = static_cast<Instant*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          pType->inst(*pResult);
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of inst functions
@@ -90,7 +127,7 @@ definition of inst type mapping function
 
 ListExpr instTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting an it type.");
+  ListExpr type = NList::typeError("Operator inst expects an it type.");
 
   NList argumentsList(arguments);
 
