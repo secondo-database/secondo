@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "minimum.h"
-#include "../Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -31,9 +30,49 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
-
 namespace TileAlgebra
 {
+
+/*
+definition of template minimumFunction
+
+*/
+
+template <typename Type, typename Properties>
+int minimumFunction(Word* pArguments,
+                    Word& rResult,
+                    int message,
+                    Word& rLocal,
+                    Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+
+    if(pType != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        typename Properties::TypeProperties::WrapperType* pResult =
+        static_cast<typename Properties::TypeProperties::WrapperType*>
+        (rResult.addr);
+
+        if(pResult != 0)
+        {
+          *pResult = Properties::TypeProperties::GetWrappedValue
+                     (pType->minimum());
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of minimum functions
@@ -103,7 +142,8 @@ definition of minimum type mapping function
 
 ListExpr minimumTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a t type or a mt type.");
+  ListExpr type = NList::typeError("Operator minimum expects "
+                                   "a t type or a mt type.");
 
   NList argumentsList(arguments);
 
