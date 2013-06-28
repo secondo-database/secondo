@@ -64,11 +64,15 @@ includes for TileAlgebra operators
 #include "operators/minimum.h"
 #include "operators/maximum.h"
 #include "operators/map.h"
-#include "t2mt.h"
+#include "operators/map2.h"
+#include "operators/fromline.h"
+#include "operators/fromregion.h"
+#include "operators/toregion.h"
+#include "operators/t2mt.h"
 #include "operators/getgrid.h"
 #include "operators/CELL1.h"
 #include "operators/CELL2.h"
-#include "operators/CELLS.h"
+// #include "operators/CELLS.h"
 
 /*
 extern declarations
@@ -152,13 +156,21 @@ TileAlgebra::TileAlgebra()
               maximumTypeMappingFunction);
   AddOperator(mapInfo(), mapFunctions, mapSelectFunction,
               mapTypeMappingFunction);
+  AddOperator(map2Info(), map2Functions, map2SelectFunction,
+              map2TypeMappingFunction);
+  AddOperator(fromlineInfo(), fromlineFunction,
+              fromlineTypeMappingFunction);
+  AddOperator(fromregionInfo(), fromregionFunction,
+              fromregionTypeMappingFunction);
+  AddOperator(toregionInfo(), toregionFunction,
+              toregionTypeMappingFunction);
   AddOperator(t2mtInfo(), t2mtFunctions, t2mtSelectFunction,
               t2mtTypeMappingFunction);
   AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
               getgridTypeMappingFunction);
   AddOperator(CELL1Info(), 0, CELL1TypeMappingFunction);
   AddOperator(CELL2Info(), 0, CELL2TypeMappingFunction);
-  AddOperator(CELLSInfo(), 0, CELLSTypeMappingFunction);
+  // AddOperator(CELLSInfo(), 0, CELLSTypeMappingFunction);
 }
 
 TileAlgebra::~TileAlgebra()
