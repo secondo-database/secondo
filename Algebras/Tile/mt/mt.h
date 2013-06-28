@@ -105,7 +105,11 @@ class mt : public Attribute
 
   */
 
+  Index<2> GetLocationIndex(const double& rX, const double& rY) const;
+  Index<3> GetLocationIndex(const double& rX, const double& rY,
+                            const double& rInstant) const;
   Type GetValue(const Index<3>& rIndex) const;
+  bool SetGrid(const mtgrid& rmtgrid);
   bool SetGrid(const double& rX,
                const double& rY,
                const double& rLength,
@@ -121,9 +125,7 @@ class mt : public Attribute
 
   */
 
-  Index<2> GetLocationIndex(const double& rX, const double& rY) const;
-  Index<3> GetLocationIndex(const double& rX, const double& rY,
-                            const double& rInstant) const;
+  
   bool IsValidIndex(const Index<3>& rIndex) const;
   bool IsValidLocation(const double& rX,
                        const double& rY) const;
@@ -352,7 +354,7 @@ void mt<Type, Properties>::atinstant(const Instant& rInstant,
   rit.SetDefined(true);
 
   typename Properties::tType t(true);
-  t.SetGrid(m_Grid.GetX(), m_Grid.GetY(), m_Grid.GetLength());
+  t.SetGrid(m_Grid);
 
   int xDimensionSize = Properties::GetXDimensionSize();
   int yDimensionSize = Properties::GetYDimensionSize();
@@ -399,10 +401,7 @@ void mt<Type, Properties>::atperiods(const Periods& rPeriods,
   if(rPeriods.IsDefined())
   {
     rmt.SetDefined(true);
-    bool bOK = rmt.SetGrid(m_Grid.GetX(),
-                           m_Grid.GetY(),
-                           m_Grid.GetLength(),
-                           m_Grid.GetDuration());
+    bool bOK = rmt.SetGrid(m_Grid);
 
     if(bOK == true)
     {
@@ -499,7 +498,7 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
       double length = m_Grid.GetLength();
       datetime::DateTime gridDuration = m_Grid.GetDuration();
       double duration = gridDuration.ToDouble();
-      rmt.SetGrid(x, y, length, duration);
+      rmt.SetGrid(m_Grid);
 
       Index<3> startIndex = GetLocationIndex(rRectangle.MinD(0),
                                              rRectangle.MinD(1),
@@ -808,6 +807,68 @@ methods
 */
 
 template <typename Type, typename Properties>
+Index<2> mt<Type, Properties>::GetLocationIndex(const double& rX,
+                                                const double& rY) const
+{
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
+  double gridX = m_Grid.GetX();
+  double gridY = m_Grid.GetY();
+  double gridLength = m_Grid.GetLength();
+
+  int indexX = static_cast<int>((rX - gridX) / gridLength);
+  int indexY = static_cast<int>((rY - gridY) / gridLength);
+
+  /*
+  special cases for bounding boxes
+
+  */
+
+  if(AlmostEqual((rX - gridX) / gridLength, xDimensionSize * gridLength))
+  {
+    indexX--;
+  }
+
+  if(AlmostEqual((rY - gridY) / gridLength, yDimensionSize * gridLength))
+  {
+    indexY--;
+  }
+
+  assert(indexX < xDimensionSize);
+  assert(indexY < yDimensionSize);
+
+  Index<2> locationIndex = (int[]){indexX, indexY};
+  return locationIndex;
+}
+
+template <typename Type, typename Properties>
+Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
+                                                const double& rY,
+                                                const double& rInstant) const
+{
+  int tDimensionSize = Properties::GetTDimensionSize();
+  double gridDuration = m_Grid.GetDuration().ToDouble();
+  Index<2> index2 = GetLocationIndex(rX, rY);
+
+  int indexT = static_cast<int>(rInstant / gridDuration);
+
+  /*
+  special case for bounding boxes
+
+  */
+
+  if(AlmostEqual(rInstant / gridDuration, tDimensionSize * gridDuration))
+  {
+    indexT--;
+  }
+
+  assert(indexT < tDimensionSize);
+
+  Index<3> locationIndex = (int[]){index2[0], index2[1], indexT};
+  return locationIndex;
+}
+
+template <typename Type, typename Properties>
 Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
 {
   Type value = Properties::TypeProperties::GetUndefinedValue();
@@ -827,6 +888,20 @@ Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
   }
 
   return value;
+}
+
+template <typename Type, typename Properties>
+bool mt<Type, Properties>::SetGrid(const mtgrid& rmtgrid)
+{
+  bool bRetVal = false;
+
+  if(rmtgrid.IsDefined())
+  {
+    m_Grid = rmtgrid;
+    bRetVal = true;
+  }
+
+  return bRetVal;
 }
 
 template <typename Type, typename Properties>
@@ -888,39 +963,6 @@ bool mt<Type, Properties>::SetValue(const Index<3>& rIndex,
 internal methods
 
 */
-
-template <typename Type, typename Properties>
-Index<2> mt<Type, Properties>::GetLocationIndex(const double& rX,
-                                                const double& rY) const
-{
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
-  double gridX = m_Grid.GetX();
-  double gridY = m_Grid.GetY();
-  double gridLength = m_Grid.GetLength();
-  int indexX = static_cast<int>((rX - gridX) / gridLength);
-  int indexY = static_cast<int>((rY - gridY) / gridLength);
-  assert(indexX < xDimensionSize);
-  assert(indexY < yDimensionSize);
-
-  Index<2> locationIndex = (int[]){indexX, indexY};
-  return locationIndex;
-}
-
-template <typename Type, typename Properties>
-Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
-                                                const double& rY,
-                                                const double& rInstant) const
-{
-  int tDimensionSize = Properties::GetTDimensionSize();
-  double gridDuration = m_Grid.GetDuration().ToDouble();
-  Index<2> index2 = GetLocationIndex(rX, rY);
-  int indexT = static_cast<int>(rInstant / gridDuration);
-  assert(indexT < tDimensionSize);
-
-  Index<3> locationIndex = (int[]){index2.Get(0), index2.Get(1), indexT};
-  return locationIndex;
-}
 
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::IsValidIndex(const Index<3>& rIndex) const
