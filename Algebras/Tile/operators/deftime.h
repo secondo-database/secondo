@@ -27,9 +27,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "TemporalAlgebra.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of deftime Operator Info structure
+
+*/
+
+struct deftimeInfo : OperatorInfo
+{
+  deftimeInfo()
+  {
+    name      = "deftime";
+    syntax    = "deftime(_)";
+    meaning   = "Returns the defined periods.";
+
+    std::vector<std::string> mtTypes;
+    GetmtTypes(mtTypes);
+
+    for(size_t i = 0; i < mtTypes.size(); i++)
+    {
+      if(signature.empty())
+      {
+        signature = mtTypes[i] + " -> " + Periods::BasicType();
+      }
+
+      else
+      {
+        appendSignature(mtTypes[i] + " -> " + Periods::BasicType());
+      }
+    }
+  }
+};
 
 /*
 declaration of deftime functions
@@ -51,68 +83,6 @@ declaration of deftime type mapping function
 */
 
 ListExpr deftimeTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of deftime Operator Info structure
-
-*/
-
-struct deftimeInfo : OperatorInfo
-{
-  deftimeInfo()
-  {
-    name      = "deftime";
-    signature = "mtT -> " + Periods::BasicType();
-    syntax    = "deftime(_)";
-    meaning   = "Returns the defined periods of a mt type.";
-  }
-};
-
-/*
-definition of template deftimeFunction
-
-*/
-
-template <typename Type>
-int deftimeFunction(Word* pArguments,
-                    Word& rResult,
-                    int message,
-                    Word& rLocal,
-                    Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-
-    if(pType != 0)
-    {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
-      {
-        Periods* pResult = static_cast<Periods*>(rResult.addr);
-
-        if(pResult != 0)
-        {
-          if(pType->IsDefined())
-          {
-            pType->deftime(*pResult);
-          }
-
-          else
-          {
-            pResult->SetDefined(false);
-          }
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 

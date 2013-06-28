@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "deftime.h"
-#include "../Types.h"
 #include "../mt/mtint.h"
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
@@ -29,6 +28,52 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace TileAlgebra
 {
+
+/*
+definition of template deftimeFunction
+
+*/
+
+template <typename Type>
+int deftimeFunction(Word* pArguments,
+                    Word& rResult,
+                    int message,
+                    Word& rLocal,
+                    Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+
+    if(pType != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        Periods* pResult = static_cast<Periods*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          if(pType->IsDefined())
+          {
+            pType->deftime(*pResult);
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of deftime functions
@@ -90,7 +135,7 @@ definition of deftime type mapping function
 
 ListExpr deftimeTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a mt type.");
+  ListExpr type = NList::typeError("Operator deftime expects a mt type.");
 
   NList argumentsList(arguments);
 
