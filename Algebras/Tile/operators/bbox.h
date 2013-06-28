@@ -27,9 +27,56 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "RectangleAlgebra.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of bbox Operator Info structure
+
+*/
+
+struct bboxInfo : OperatorInfo
+{
+  bboxInfo()
+  {
+    name      = "bbox";
+    syntax    = "bbox(_)";
+    meaning   = "Returns the bounding box rectangle.";
+
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+
+    if(tTypes.size() == mtTypes.size())
+    {
+      for(size_t i = 0; i < tTypes.size(); i++)
+      {
+        if(signature.empty())
+        {
+          signature = tTypes[i] + " -> " + Rectangle<2>::BasicType();
+        }
+
+        else
+        {
+          appendSignature(tTypes[i] + " -> " + Rectangle<2>::BasicType());
+        }
+      }
+
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        appendSignature(mtTypes[i] + " -> " + Rectangle<3>::BasicType());
+      }
+    }
+
+    else
+    {
+      assert(false);
+    }
+  }
+};
 
 /*
 declaration of bbox functions
@@ -51,62 +98,6 @@ declaration of bbox type mapping function
 */
 
 ListExpr bboxTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of bbox Operator Info structure
-
-*/
-
-struct bboxInfo : OperatorInfo
-{
-  bboxInfo()
-  {
-    name      = "bbox";
-    signature = "tT -> " + Rect::BasicType();
-    appendSignature("mtT -> " + Rect::BasicType());
-    syntax    = "bbox(_)";
-    meaning   = "Returns the bounding box Rectangle of a t type or a mt type.";
-  }
-};
-
-/*
-definition of template bboxFunction
-
-*/
-
-template <typename Type, typename Properties>
-int bboxFunction(Word* pArguments,
-                 Word& rResult,
-                 int message,
-                 Word& rLocal,
-                 Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-
-    if(pType != 0)
-    {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
-      {
-        typename Properties::bboxType* pResult =
-        static_cast<typename Properties::bboxType*>(rResult.addr);
-        
-        if(pResult != 0)
-        {
-          pType->bbox(*pResult);
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 
