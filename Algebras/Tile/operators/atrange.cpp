@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "atrange.h"
-#include "../Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -33,6 +32,94 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace TileAlgebra
 {
+
+/*
+definition of template atrangeFunction
+
+*/
+
+template <typename Type>
+int atrangeFunction(Word* pArguments,
+                    Word& rResult,
+                    int message,
+                    Word& rLocal,
+                    Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+    Rectangle<2>* pRectangle = static_cast<Rectangle<2>*>(pArguments[1].addr);
+
+    if(pType != 0 &&
+       pRectangle != 0)
+    {
+      if(qp->GetNoSons(supplier) == 2)
+      {
+        rResult = qp->ResultStorage(supplier);
+
+        if(rResult.addr != 0)
+        {
+          Type* pResult = static_cast<Type*>(rResult.addr);
+
+          if(pResult != 0)
+          {
+            if(pType->IsDefined() &&
+               pRectangle->IsDefined())
+            {
+              pType->atrange(*pRectangle, *pResult);
+            }
+
+            else
+            {
+              pResult->SetDefined(false);
+            }
+          }
+        }
+      }
+
+      else
+      {
+        Instant* pInstant1 = static_cast<Instant*>(pArguments[2].addr);
+        Instant* pInstant2 = static_cast<Instant*>(pArguments[3].addr);
+
+        if(pInstant1 != 0 &&
+           pInstant2 != 0)
+        {
+          rResult = qp->ResultStorage(supplier);
+
+          if(rResult.addr != 0)
+          {
+            Type* pResult = static_cast<Type*>(rResult.addr);
+
+            if(pResult != 0)
+            {
+              if(pType->IsDefined() &&
+                 pRectangle->IsDefined() &&
+                 pInstant1->IsDefined() &&
+                 pInstant2->IsDefined())
+              {
+                pType->atrange(*pRectangle,
+                               pInstant1->ToDouble(),
+                               pInstant2->ToDouble(),
+                               *pResult);
+              }
+
+              else
+              {
+                pResult->SetDefined(false);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of atrange functions
@@ -103,7 +190,8 @@ definition of atrange type mapping function
 
 ListExpr atrangeTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a t type or a mt type "
+  ListExpr type = NList::typeError("Operator atrange expects "
+                                   "a t type or a mt type "
                                    "and a rectangle or "
                                    "a rectangle, an instant and an instant.");
 

@@ -26,11 +26,70 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "RectangleAlgebra.h"
 #include "DateTime.h"
+#include "RectangleAlgebra.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of atrange Operator Info structure
+
+*/
+
+struct atrangeInfo : OperatorInfo
+{
+  atrangeInfo()
+  {
+    name      = "atrange";
+    syntax    = "_ atrange [_,_,_]";
+    meaning   = "Returns the values at range of the rectangle.";
+
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+
+    if(tTypes.size() == mtTypes.size())
+    {
+      for(size_t i = 0; i < tTypes.size(); i++)
+      {
+        if(signature.empty())
+        {
+          signature = tTypes[i] + " x " + Rectangle<2>::BasicType() +
+                      " -> " + tTypes[i];
+        }
+
+        else
+        {
+          appendSignature(tTypes[i] + " x " + Rectangle<2>::BasicType() +
+                          " -> " + tTypes[i]);
+        }
+      }
+
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        appendSignature(mtTypes[i] + " x " + Rectangle<2>::BasicType() +
+                        " -> " + mtTypes[i]);
+      }
+
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        appendSignature(mtTypes[i] + " x " +
+                        Rectangle<2>::BasicType() + " x " +
+                        Instant::BasicType() + " x " +
+                        Instant::BasicType() +
+                        " -> " + mtTypes[i]);
+      }
+    }
+
+    else
+    {
+      assert(false);
+    }
+  }
+};
 
 /*
 declaration of atrange functions
@@ -52,112 +111,6 @@ declaration of atrange type mapping function
 */
 
 ListExpr atrangeTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of atrange Operator Info structure
-
-*/
-
-struct atrangeInfo : OperatorInfo
-{
-  atrangeInfo()
-  {
-    name      = "atrange";
-    signature = "xT x " + Rectangle<2>::BasicType() + " -> xT";
-    appendSignature("mtT x " + Rectangle<2>::BasicType() +
-                    " x Instant x Instant -> mtT ");
-    syntax    = "_ atrange [_,_,_]";
-    meaning   = "Returns the values at range of the rectangle.";
-  }
-};
-
-/*
-definition of template atrangeFunction
-
-*/
-
-template <typename Type>
-int atrangeFunction(Word* pArguments,
-                    Word& rResult,
-                    int message,
-                    Word& rLocal,
-                    Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-    Rectangle<2>* pRectangle = static_cast<Rectangle<2>*>(pArguments[1].addr);
-
-    if(pType != 0 &&
-       pRectangle != 0)
-    {
-      if(qp->GetNoSons(supplier) == 2)
-      {
-        rResult = qp->ResultStorage(supplier);
-
-        if(rResult.addr != 0)
-        {
-          Type* pResult = static_cast<Type*>(rResult.addr);
-
-          if(pResult != 0)
-          {
-            if(pType->IsDefined() &&
-               pRectangle->IsDefined())
-            {
-              pType->atrange(*pRectangle, *pResult);
-            }
-
-            else
-            {
-              pResult->SetDefined(false);
-            }
-          }
-        }
-      }
-
-      else
-      {
-        Instant* pInstant1 = static_cast<Instant*>(pArguments[2].addr);
-        Instant* pInstant2 = static_cast<Instant*>(pArguments[3].addr);
-
-        if(pInstant1 != 0 &&
-           pInstant2 != 0)
-        {
-          rResult = qp->ResultStorage(supplier);
-
-          if(rResult.addr != 0)
-          {
-            Type* pResult = static_cast<Type*>(rResult.addr);
-
-            if(pResult != 0)
-            {
-              if(pType->IsDefined() &&
-                 pRectangle->IsDefined() &&
-                 pInstant1->IsDefined() &&
-                 pInstant2->IsDefined())
-              {
-                pType->atrange(*pRectangle,
-                               pInstant1->ToDouble(),
-                               pInstant2->ToDouble(),
-                               *pResult);
-              }
-
-              else
-              {
-                pResult->SetDefined(false);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 
