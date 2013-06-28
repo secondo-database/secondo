@@ -23,16 +23,63 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_T2MT_H
 #define TILEALGEBRA_T2MT_H
 
-#include <cmath>
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "DateTime.h"
-#include "../grid/tgrid.h"
-#include "../Index.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of t2mt Operator Info structure
+
+*/
+
+struct t2mtInfo : OperatorInfo
+{
+  t2mtInfo()
+  {
+    name      = "t2mt";
+    syntax    = "t2mt(_, _, _, _)";
+    meaning   = "Adds a time component to a t type.";
+
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+
+    if(tTypes.size() == mtTypes.size())
+    {
+      for(size_t i = 0; i < tTypes.size(); i++)
+      {
+        if(signature.empty())
+        {
+          signature = tTypes[i] + " x " +
+                      Duration::BasicType() + " x " +
+                      Instant::BasicType() + " x " +
+                      Instant::BasicType() +
+                      " -> " + mtTypes[i];
+        }
+
+        else
+        {
+          appendSignature(tTypes[i] + " x " +
+                          Duration::BasicType() + " x " +
+                          Instant::BasicType() + " x " +
+                          Instant::BasicType() +
+                          " -> " + mtTypes[i]);
+        }
+      }
+    }
+
+    else
+    {
+      assert(false);
+    }
+  }
+};
 
 /*
 declaration of t2mt functions
@@ -54,126 +101,6 @@ declaration of t2mt type mapping function
 */
 
 ListExpr t2mtTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of t2mt Operator Info structure
-
-*/
-
-struct t2mtInfo : OperatorInfo
-{
-  t2mtInfo()
-  {
-    name      = "t2mt";
-    signature = "tT x duration x instant x instant2-> mtT";
-    syntax    = "t2mt(_, _, _, _)";
-    meaning   = "Adds a time component to a t type.";
-  }
-};
-
-/*
-definition of template t2mtFunction
-
-*/
-
-template <typename Type, typename Properties>
-int t2mtFunction(Word* pArguments,
-                 Word& rResult,
-                 int message,
-                 Word& rLocal,
-                 Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-    datetime::DateTime* pDuration = static_cast<datetime::DateTime*>
-                                    (pArguments[1].addr);
-    Instant* pInstant1 = static_cast<Instant*>(pArguments[2].addr);
-    Instant* pInstant2 = static_cast<Instant*>(pArguments[3].addr);
-
-    if(pType != 0 &&
-       pDuration != 0 &&
-       pInstant1 != 0 &&
-       pInstant2 != 0)
-    {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
-      {
-        typename Properties::PropertiesType* pResult =
-        static_cast<typename Properties::PropertiesType*>(rResult.addr);
-
-        if(pResult != 0)
-        {
-          pResult->SetDefined(false);
-
-          if(pType->IsDefined() &&
-             pDuration->IsDefined() &&
-             pInstant1->IsDefined() &&
-             pInstant2->IsDefined())
-          {
-            int tDimensionSize = Properties::GetTDimensionSize();
-            int startTime = static_cast<int>
-                            (round(pInstant1->ToDouble() /
-                                   pDuration->ToDouble()));
-            int endTime = static_cast<int>
-                          (round(pInstant2->ToDouble() /
-                                 pDuration->ToDouble()));
-
-            if(startTime >= 0 &&
-               startTime < tDimensionSize &&
-               endTime >= 0 &&
-               endTime < tDimensionSize)
-            {
-              pResult->SetDefined(true);
-
-              tgrid grid;
-              pType->getgrid(grid);
-
-              bool bOK = pResult->SetGrid(grid.GetX(),
-                                          grid.GetY(),
-                                          grid.GetLength(),
-                                          *pDuration);
-
-              if(bOK == true)
-              {
-                int xDimensionSize = Properties::GetXDimensionSize();
-                int yDimensionSize = Properties::GetYDimensionSize();
-
-                for(int time = startTime; time <= endTime; time++)
-                {
-                  for(int row = 0; row < yDimensionSize; row++)
-                  {
-                    for(int column = 0; column < xDimensionSize; column++)
-                    {
-                      typename Properties::TypeProperties::PropertiesType value
-                      = Properties::TypeProperties::GetUndefinedValue();
-
-                      Index<2> index2 = (int[]){column, row};
-                      value = pType->GetValue(index2);
-
-                      if(Properties::TypeProperties::IsUndefinedValue(value)
-                         == false)
-                      {
-                        Index<3> index3 = (int[]){column, row, time};
-                        bOK = pResult->SetValue(index3, value, true);
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 
