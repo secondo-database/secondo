@@ -21,7 +21,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "map.h"
+#include "../Index.h"
 #include "../Types.h"
+#include "../grid/tgrid.h"
+#include "../grid/mtgrid.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -30,9 +33,222 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
+#include "RectangleAlgebra.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of template mapFunctiont
+
+*/
+
+template <typename SourceType, typename SourceTypeProperties,
+          typename DestinationType, typename DestinationTypeProperties>
+int mapFunctiont(Word* pArguments,
+                 Word& rResult,
+                 int message,
+                 Word& rLocal,
+                 Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    SourceType* pSourceType = static_cast<SourceType*>(pArguments[0].addr);
+    Address pFunction = pArguments[1].addr;
+
+    if(pSourceType != 0 &&
+       pFunction != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        DestinationType* pResult = static_cast<DestinationType*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          pResult->SetDefined(false);
+
+          if(pSourceType->IsDefined())
+          {
+            typename SourceTypeProperties::bboxType boundingBox;
+            pSourceType->bbox(boundingBox);
+
+            if(boundingBox.IsDefined())
+            {
+              pResult->SetDefined(true);
+
+              tgrid grid;
+              pSourceType->getgrid(grid);
+              pResult->SetGrid(grid);
+
+              int xDimensionSize = SourceTypeProperties::GetXDimensionSize();
+              int yDimensionSize = SourceTypeProperties::GetYDimensionSize();
+              ArgVector& argumentsVector = *qp->Argument(pFunction);
+              Word word;
+
+              for(int row = 0; row < yDimensionSize; row++)
+              {
+                for(int column = 0; column < xDimensionSize; column++)
+                {
+                  Index<2> index = (int[]){column, row};
+                  typename SourceTypeProperties::TypeProperties::PropertiesType
+                  value = pSourceType->GetValue(index);
+
+                  if(SourceTypeProperties::TypeProperties::
+                     IsUndefinedValue(value) == false)
+                  {
+                    typename SourceTypeProperties::TypeProperties::WrapperType
+                    wrappedValue = SourceTypeProperties::TypeProperties::
+                                   GetWrappedValue(value);
+
+                    argumentsVector[0].setAddr(&wrappedValue);
+                    qp->Request(pFunction, word);
+
+                    if(word.addr != 0)
+                    {
+                      typename DestinationTypeProperties::TypeProperties::
+                      WrapperType* pMappedValue = static_cast<typename
+                      DestinationTypeProperties::TypeProperties::WrapperType*>
+                      (word.addr);
+
+                      if(pMappedValue != 0)
+                      {
+                        typename DestinationTypeProperties::TypeProperties::
+                        PropertiesType unwrappedValue =
+                        DestinationTypeProperties::TypeProperties::
+                        GetUnwrappedValue(*pMappedValue);
+
+                        if(DestinationTypeProperties::TypeProperties::
+                           IsUndefinedValue(unwrappedValue) == false)
+                        {
+                          pResult->SetValue(index, unwrappedValue, true);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
+
+/*
+definition of template mapFunctionmt
+
+*/
+
+template <typename SourceType, typename SourceTypeProperties,
+          typename DestinationType, typename DestinationTypeProperties>
+int mapFunctionmt(Word* pArguments,
+                  Word& rResult,
+                  int message,
+                  Word& rLocal,
+                  Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    SourceType* pSourceType = static_cast<SourceType*>(pArguments[0].addr);
+    Address pFunction = pArguments[1].addr;
+
+    if(pSourceType != 0 &&
+       pFunction != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        DestinationType* pResult = static_cast<DestinationType*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          pResult->SetDefined(false);
+
+          if(pSourceType->IsDefined())
+          {
+            typename SourceTypeProperties::bboxType boundingBox;
+            pSourceType->bbox(boundingBox);
+
+            if(boundingBox.IsDefined())
+            {
+              pResult->SetDefined(true);
+
+              mtgrid grid;
+              pSourceType->getgrid(grid);
+              pResult->SetGrid(grid);
+
+              int xDimensionSize = SourceTypeProperties::GetXDimensionSize();
+              int yDimensionSize = SourceTypeProperties::GetYDimensionSize();
+              int tDimensionSize = SourceTypeProperties::GetTDimensionSize();
+              ArgVector& argumentsVector = *qp->Argument(pFunction);
+              Word word;
+
+              for(int time = 0; time < tDimensionSize; time++)
+              {
+                for(int row = 0; row < yDimensionSize; row++)
+                {
+                  for(int column = 0; column < xDimensionSize; column++)
+                  {
+                    Index<3> index = (int[]){column, row, time};
+                    typename SourceTypeProperties::TypeProperties::
+                    PropertiesType value = pSourceType->GetValue(index);
+
+                    if(SourceTypeProperties::TypeProperties::
+                       IsUndefinedValue(value) == false)
+                    {
+                      typename SourceTypeProperties::TypeProperties::WrapperType
+                      wrappedValue = SourceTypeProperties::TypeProperties::
+                                     GetWrappedValue(value);
+
+                      argumentsVector[0].setAddr(&wrappedValue);
+                      qp->Request(pFunction, word);
+
+                      if(word.addr != 0)
+                      {
+                        typename DestinationTypeProperties::TypeProperties::
+                        WrapperType* pMappedValue =
+                        static_cast<typename DestinationTypeProperties::
+                        TypeProperties::WrapperType*>(word.addr);
+
+                        if(pMappedValue != 0)
+                        {
+                          typename DestinationTypeProperties::TypeProperties::
+                          PropertiesType unwrappedValue =
+                          DestinationTypeProperties::TypeProperties::
+                          GetUnwrappedValue(*pMappedValue);
+
+                          if(DestinationTypeProperties::TypeProperties::
+                             IsUndefinedValue(unwrappedValue) == false)
+                          {
+                            pResult->SetValue(index, unwrappedValue, true);
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of map functions
@@ -185,7 +401,7 @@ definition of map type mapping function
 
 ListExpr mapTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting two arguments.");
+  ListExpr type = NList::typeError("Operator map expects two arguments.");
 
   if(arguments != 0)
   {
