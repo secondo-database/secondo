@@ -21,18 +21,63 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "atinstant.h"
-#include "../Types.h"
 #include "../mt/mtint.h"
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
-#include "../it/itint.h"
-#include "../it/itreal.h"
-#include "../it/itbool.h"
-#include "../it/itstring.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of template atinstantFunction
+
+*/
+
+template <typename Type, typename Properties>
+int atinstantFunction(Word* pArguments,
+                      Word& rResult,
+                      int message,
+                      Word& rLocal,
+                      Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+    Instant* pInstant = static_cast<Instant*>(pArguments[1].addr);
+
+    if(pType != 0 &&
+       pInstant != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        typename Properties::itType* pResult =
+        static_cast<typename Properties::itType*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          if(pType->IsDefined() &&
+             pInstant->IsDefined())
+          {
+            pType->atinstant(*pInstant, *pResult);
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of atinstant functions
@@ -99,7 +144,8 @@ definition of atinstant type mapping function
 
 ListExpr atinstantTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a mt type and an instant.");
+  ListExpr type = NList::typeError("Operator atinstant expects "
+                                   "a mt type and an instant.");
 
   NList argumentsList(arguments);
 

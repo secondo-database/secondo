@@ -27,9 +27,53 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "DateTime.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of atinstant Operator Info structure
+
+*/
+
+struct atinstantInfo : OperatorInfo
+{
+  atinstantInfo()
+  {
+    name      = "atinstant";
+    syntax    = "_ atinstant _";
+    meaning   = "Returns the values for an instant time point.";
+
+    std::vector<std::string> mtTypes;
+    std::vector<std::string> itTypes;
+    GetmtTypes(mtTypes);
+    GetitTypes(itTypes);
+
+    if(mtTypes.size() == itTypes.size())
+    {
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        if(signature.empty())
+        {
+          signature = mtTypes[i] + " x " + Instant::BasicType() +
+                      " -> " + itTypes[i];
+        }
+
+        else
+        {
+          appendSignature(mtTypes[i] + " x " + Instant::BasicType() +
+                          " -> " + itTypes[i]);
+        }
+      }
+    }
+
+    else
+    {
+      assert(false);
+    }
+  }
+};
 
 /*
 declaration of atinstant functions
@@ -51,72 +95,6 @@ declaration of atinstant type mapping function
 */
 
 ListExpr atinstantTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of atinstant Operator Info structure
-
-*/
-
-struct atinstantInfo : OperatorInfo
-{
-  atinstantInfo()
-  {
-    name      = "atinstant";
-    signature = "mtT " + Instant::BasicType() + " -> itT";
-    syntax    = "_ atinstant _";
-    meaning   = "Returns the values for an instant time point.";
-  }
-};
-
-/*
-definition of template atinstantFunction
-
-*/
-
-template <typename Type, typename Properties>
-int atinstantFunction(Word* pArguments,
-                      Word& rResult,
-                      int message,
-                      Word& rLocal,
-                      Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-    Instant* pInstant = static_cast<Instant*>(pArguments[1].addr);
-
-    if(pType != 0 &&
-       pInstant != 0)
-    {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
-      {
-        typename Properties::itType* pResult =
-        static_cast<typename Properties::itType*>(rResult.addr);
-
-        if(pResult != 0)
-        {
-          if(pType->IsDefined() &&
-             pInstant->IsDefined())
-          {
-            pType->atinstant(*pInstant, *pResult);
-          }
-
-          else
-          {
-            pResult->SetDefined(false);
-          }
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 
