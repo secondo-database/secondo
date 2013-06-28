@@ -40,72 +40,73 @@ namespace TileAlgebra
 {
 
 /*
-definition of IstType function
+definition of GetValueWrapperTypes function
 
 */
 
-bool IstType(const std::string& rType)
+void GetValueWrapperTypes(std::vector<std::string>& rValueWrapperTypes)
 {
-  bool bIstType = false;
-
-  if(rType.empty() == false)
-  {
-    if(rType == tint::BasicType() ||
-       rType == treal::BasicType() ||
-       rType == tbool::BasicType() ||
-       rType == tstring::BasicType())
-    {
-      bIstType = true;
-    }
-  }
-
-  return bIstType;
+  rValueWrapperTypes.clear();
+  rValueWrapperTypes.push_back(CcInt::BasicType());
+  rValueWrapperTypes.push_back(CcReal::BasicType());
+  rValueWrapperTypes.push_back(CcBool::BasicType());
+  rValueWrapperTypes.push_back(CcString::BasicType());
 }
 
 /*
-definition of IsmtType function
+definition of GetMTypes function
 
 */
 
-bool IsmtType(const std::string& rType)
+void GetMTypes(std::vector<std::string>& rMTypes)
 {
-  bool bIsmtType = false;
-
-  if(rType.empty() == false)
-  {
-    if(rType == mtint::BasicType() ||
-       rType == mtreal::BasicType() ||
-       rType == mtbool::BasicType() ||
-       rType == mtstring::BasicType())
-    {
-      bIsmtType = true;
-    }
-  }
-
-  return bIsmtType;
+  rMTypes.clear();
+  rMTypes.push_back(MInt::BasicType());
+  rMTypes.push_back(MReal::BasicType());
+  rMTypes.push_back(MBool::BasicType());
+  rMTypes.push_back(MString::BasicType());
 }
 
 /*
-definition of IsitType function
+definition of GettTypes function
 
 */
 
-bool IsitType(const std::string& rType)
+void GettTypes(std::vector<std::string>& rtTypes)
 {
-  bool bIsitType = false;
+  rtTypes.clear();
+  rtTypes.push_back(tint::BasicType());
+  rtTypes.push_back(treal::BasicType());
+  rtTypes.push_back(tbool::BasicType());
+  rtTypes.push_back(tstring::BasicType());
+}
 
-  if(rType.empty() == false)
-  {
-    if(rType == itint::BasicType() ||
-       rType == itreal::BasicType() ||
-       rType == itbool::BasicType() ||
-       rType == itstring::BasicType())
-    {
-      bIsitType = true;
-    }
-  }
+/*
+definition of GetmtTypes function
 
-  return bIsitType;
+*/
+
+void GetmtTypes(std::vector<std::string>& rmtTypes)
+{
+  rmtTypes.clear();
+  rmtTypes.push_back(mtint::BasicType());
+  rmtTypes.push_back(mtreal::BasicType());
+  rmtTypes.push_back(mtbool::BasicType());
+  rmtTypes.push_back(mtstring::BasicType());
+}
+
+/*
+definition of GetitTypes function
+
+*/
+
+void GetitTypes(std::vector<std::string>& ritTypes)
+{
+  ritTypes.clear();
+  ritTypes.push_back(itint::BasicType());
+  ritTypes.push_back(itreal::BasicType());
+  ritTypes.push_back(itbool::BasicType());
+  ritTypes.push_back(itstring::BasicType());
 }
 
 /*
@@ -119,32 +120,39 @@ std::string GetValueWrapperType(const std::string& rType)
 
   if(rType.empty() == false)
   {
-    if(rType == tint::BasicType() ||
-       rType == mtint::BasicType() ||
-       rType == itint::BasicType())
+    std::vector<std::string> valueWrapperTypes;
+    std::vector<std::string> MTypes;
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    std::vector<std::string> itTypes;
+
+    GetValueWrapperTypes(valueWrapperTypes);
+    GetMTypes(MTypes);
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+    GetitTypes(itTypes);
+
+    if(valueWrapperTypes.size() == MTypes.size() &&
+       valueWrapperTypes.size() == tTypes.size() &&
+       valueWrapperTypes.size() == mtTypes.size() &&
+       valueWrapperTypes.size() == itTypes.size())
     {
-      valueWrapperType = CcInt::BasicType();
+      for(size_t i = 0; i < valueWrapperTypes.size(); i++)
+      {
+        if(rType == MTypes[i] ||
+           rType == tTypes[i] ||
+           rType == mtTypes[i] ||
+           rType == itTypes[i])
+        {
+          valueWrapperType = valueWrapperTypes[i];
+          break;
+        }
+      }
     }
 
-    if(rType == treal::BasicType() ||
-       rType == mtreal::BasicType() ||
-       rType == itreal::BasicType())
+    else
     {
-      valueWrapperType = CcReal::BasicType();
-    }
-
-    if(rType == tbool::BasicType() ||
-       rType == mtbool::BasicType() ||
-       rType == itbool::BasicType())
-    {
-      valueWrapperType = CcBool::BasicType();
-    }
-
-    if(rType == tstring::BasicType() ||
-       rType == mtstring::BasicType() ||
-       rType == itstring::BasicType())
-    {
-      valueWrapperType = CcString::BasicType();
+      assert(false);
     }
   }
 
@@ -162,36 +170,39 @@ std::string GetMType(const std::string& rType)
 
   if(rType.empty() == false)
   {
-    if(rType == CcInt::BasicType() ||
-       rType == tint::BasicType() ||
-       rType == mtint::BasicType() ||
-       rType == itint::BasicType())
+    std::vector<std::string> valueWrapperTypes;
+    std::vector<std::string> MTypes;
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    std::vector<std::string> itTypes;
+
+    GetValueWrapperTypes(valueWrapperTypes);
+    GetMTypes(MTypes);
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+    GetitTypes(itTypes);
+
+    if(MTypes.size() == valueWrapperTypes.size() &&
+       MTypes.size() == tTypes.size() &&
+       MTypes.size() == mtTypes.size() &&
+       MTypes.size() == itTypes.size())
     {
-      MType = MInt::BasicType();
+      for(size_t i = 0; i < MTypes.size(); i++)
+      {
+        if(rType == valueWrapperTypes[i] ||
+           rType == tTypes[i] ||
+           rType == mtTypes[i] ||
+           rType == itTypes[i])
+        {
+          MType = MTypes[i];
+          break;
+        }
+      }
     }
 
-    if(rType == CcReal::BasicType() ||
-       rType == treal::BasicType() ||
-       rType == mtreal::BasicType() ||
-       rType == itreal::BasicType())
+    else
     {
-      MType = MReal::BasicType();
-    }
-
-    if(rType == CcBool::BasicType() ||
-       rType == tbool::BasicType() ||
-       rType == mtbool::BasicType() ||
-       rType == itbool::BasicType())
-    {
-      MType = MBool::BasicType();
-    }
-
-    if(rType == CcString::BasicType() ||
-       rType == tstring::BasicType() ||
-       rType == mtstring::BasicType() ||
-       rType == itstring::BasicType())
-    {
-      MType = MString::BasicType();
+      assert(false);
     }
   }
 
@@ -209,32 +220,39 @@ std::string GettType(const std::string& rType)
 
   if(rType.empty() == false)
   {
-    if(rType == CcInt::BasicType() ||
-       rType == mtint::BasicType() ||
-       rType == itint::BasicType())
+    std::vector<std::string> valueWrapperTypes;
+    std::vector<std::string> MTypes;
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    std::vector<std::string> itTypes;
+
+    GetValueWrapperTypes(valueWrapperTypes);
+    GetMTypes(MTypes);
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+    GetitTypes(itTypes);
+
+    if(tTypes.size() == valueWrapperTypes.size() &&
+       tTypes.size() == MTypes.size() &&
+       tTypes.size() == mtTypes.size() &&
+       tTypes.size() == itTypes.size())
     {
-      tType = tint::BasicType();
+      for(size_t i = 0; i < tTypes.size(); i++)
+      {
+        if(rType == valueWrapperTypes[i] ||
+           rType == MTypes[i] ||
+           rType == mtTypes[i] ||
+           rType == itTypes[i])
+        {
+          tType = tTypes[i];
+          break;
+        }
+      }
     }
 
-    if(rType == CcReal::BasicType() ||
-       rType == mtreal::BasicType() ||
-       rType == itreal::BasicType())
+    else
     {
-      tType = treal::BasicType();
-    }
-
-    if(rType == CcBool::BasicType() ||
-       rType == mtbool::BasicType() ||
-       rType == itbool::BasicType())
-    {
-      tType = tbool::BasicType();
-    }
-
-    if(rType == CcString::BasicType() ||
-       rType == mtstring::BasicType() ||
-       rType == itstring::BasicType())
-    {
-      tType = tstring::BasicType();
+      assert(false);
     }
   }
 
@@ -252,32 +270,39 @@ std::string GetmtType(const std::string& rType)
 
   if(rType.empty() == false)
   {
-    if(rType == CcInt::BasicType() ||
-       rType == tint::BasicType() ||
-       rType == itint::BasicType())
+    std::vector<std::string> valueWrapperTypes;
+    std::vector<std::string> MTypes;
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    std::vector<std::string> itTypes;
+
+    GetValueWrapperTypes(valueWrapperTypes);
+    GetMTypes(MTypes);
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+    GetitTypes(itTypes);
+
+    if(mtTypes.size() == valueWrapperTypes.size() &&
+       mtTypes.size() == MTypes.size() &&
+       mtTypes.size() == tTypes.size() &&
+       mtTypes.size() == itTypes.size())
     {
-      mtType = mtint::BasicType();
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        if(rType == valueWrapperTypes[i] ||
+           rType == MTypes[i] ||
+           rType == tTypes[i] ||
+           rType == itTypes[i])
+        {
+          mtType = mtTypes[i];
+          break;
+        }
+      }
     }
 
-    if(rType == CcReal::BasicType() ||
-       rType == treal::BasicType() ||
-       rType == itreal::BasicType())
+    else
     {
-      mtType = mtreal::BasicType();
-    }
-
-    if(rType == CcBool::BasicType() ||
-       rType == tbool::BasicType() ||
-       rType == itbool::BasicType())
-    {
-      mtType = mtbool::BasicType();
-    }
-
-    if(rType == CcString::BasicType() ||
-       rType == tstring::BasicType() ||
-       rType == itstring::BasicType())
-    {
-      mtType = mtstring::BasicType();
+      assert(false);
     }
   }
 
@@ -295,36 +320,178 @@ std::string GetitType(const std::string& rType)
 
   if(rType.empty() == false)
   {
-    if(rType == CcInt::BasicType() ||
-       rType == tint::BasicType() ||
-       rType == mtint::BasicType())
+    std::vector<std::string> valueWrapperTypes;
+    std::vector<std::string> MTypes;
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    std::vector<std::string> itTypes;
+
+    GetValueWrapperTypes(valueWrapperTypes);
+    GetMTypes(MTypes);
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+    GetitTypes(itTypes);
+
+    if(itTypes.size() == valueWrapperTypes.size() &&
+       itTypes.size() == MTypes.size() &&
+       itTypes.size() == tTypes.size() &&
+       itTypes.size() == mtTypes.size())
     {
-      itType = itint::BasicType();
+      for(size_t i = 0; i < itTypes.size(); i++)
+      {
+        if(rType == valueWrapperTypes[i] ||
+           rType == MTypes[i] ||
+           rType == tTypes[i] ||
+           rType == mtTypes[i])
+        {
+          itType = itTypes[i];
+          break;
+        }
+      }
     }
 
-    if(rType == CcReal::BasicType() ||
-       rType == treal::BasicType() ||
-       rType == mtreal::BasicType())
+    else
     {
-      itType = itreal::BasicType();
-    }
-
-    if(rType == CcBool::BasicType() ||
-       rType == tbool::BasicType() ||
-       rType == mtbool::BasicType())
-    {
-      itType = itbool::BasicType();
-    }
-
-    if(rType == CcString::BasicType() ||
-       rType == tstring::BasicType() ||
-       rType == mtstring::BasicType())
-    {
-      itType = itstring::BasicType();
+      assert(false);
     }
   }
 
   return itType;
+}
+
+/*
+definition of IsValueWrapperType function
+
+*/
+
+bool IsValueWrapperType(const std::string& rType)
+{
+  bool bIsValueWrapperType = false;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
+
+    for(size_t i = 0; i < valueWrapperTypes.size(); i++)
+    {
+      if(rType == valueWrapperTypes[i])
+      {
+        bIsValueWrapperType = true;
+        break;
+      }
+    }
+  }
+
+  return bIsValueWrapperType;
+}
+
+/*
+definition of IsMType function
+
+*/
+
+bool IsMType(const std::string& rType)
+{
+  bool bIsMType = false;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> MTypes;
+    GetMTypes(MTypes);
+
+    for(size_t i = 0; i < MTypes.size(); i++)
+    {
+      if(rType == MTypes[i])
+      {
+        bIsMType = true;
+        break;
+      }
+    }
+  }
+
+  return bIsMType;
+}
+
+/*
+definition of IstType function
+
+*/
+
+bool IstType(const std::string& rType)
+{
+  bool bIstType = false;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> tTypes;
+    GettTypes(tTypes);
+
+    for(size_t i = 0; i < tTypes.size(); i++)
+    {
+      if(rType == tTypes[i])
+      {
+        bIstType = true;
+        break;
+      }
+    }
+  }
+
+  return bIstType;
+}
+
+/*
+definition of IsmtType function
+
+*/
+
+bool IsmtType(const std::string& rType)
+{
+  bool bIsmtType = false;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> mtTypes;
+    GetmtTypes(mtTypes);
+
+    for(size_t i = 0; i < mtTypes.size(); i++)
+    {
+      if(rType == mtTypes[i])
+      {
+        bIsmtType = true;
+        break;
+      }
+    }
+  }
+
+  return bIsmtType;
+}
+
+/*
+definition of IsitType function
+
+*/
+
+bool IsitType(const std::string& rType)
+{
+  bool bIsitType = false;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> itTypes;
+    GetitTypes(itTypes);
+
+    for(size_t i = 0; i < itTypes.size(); i++)
+    {
+      if(rType == itTypes[i])
+      {
+        bIsitType = true;
+        break;
+      }
+    }
+  }
+
+  return bIsitType;
 }
 
 }

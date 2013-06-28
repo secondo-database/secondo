@@ -23,31 +23,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TYPES_H
 #define TILEALGEBRA_TYPES_H
 
+#include <vector>
 #include <string>
 
 namespace TileAlgebra
 {
 
 /*
-declaration of IstType function
+declaration of GetValueWrapperTypes function
 
 */
 
-bool IstType(const std::string& rType);
+void GetValueWrapperTypes(std::vector<std::string>& rValueWrapperTypes);
 
 /*
-declaration of IsmtType function
+declaration of GetMTypes function
 
 */
 
-bool IsmtType(const std::string& rType);
+void GetMTypes(std::vector<std::string>& rMTypes);
 
 /*
-declaration of IsitType function
+declaration of GettTypes function
 
 */
 
-bool IsitType(const std::string& rType);
+void GettTypes(std::vector<std::string>& rtTypes);
+
+/*
+declaration of GetmtTypes function
+
+*/
+
+void GetmtTypes(std::vector<std::string>& rmtTypes);
+
+/*
+declaration of GetitTypes function
+
+*/
+
+void GetitTypes(std::vector<std::string>& ritTypes);
 
 /*
 declaration of GetValueWrapperType function
@@ -83,6 +98,41 @@ declaration of GetitType function
 */
 
 std::string GetitType(const std::string& rType);
+
+/*
+declaration of IsValueWrapperType function
+
+*/
+
+bool IsValueWrapperType(const std::string& rType);
+
+/*
+declaration of IsMType function
+
+*/
+
+bool IsMType(const std::string& rType);
+
+/*
+declaration of IstType function
+
+*/
+
+bool IstType(const std::string& rType);
+
+/*
+declaration of IsmtType function
+
+*/
+
+bool IsmtType(const std::string& rType);
+
+/*
+declaration of IsitType function
+
+*/
+
+bool IsitType(const std::string& rType);
 
 }
 
