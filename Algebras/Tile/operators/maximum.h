@@ -26,9 +26,59 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of maximum Operator Info structure
+
+*/
+
+struct maximumInfo : OperatorInfo
+{
+  maximumInfo()
+  {
+    name      = "maximum";
+    syntax    = "maximum(_)";
+    meaning   = "Returns the maximum value.";
+
+    std::vector<std::string> valueWrapperTypes;
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+
+    if(valueWrapperTypes.size() == tTypes.size() &&
+       valueWrapperTypes.size() == mtTypes.size())
+    {
+      for(size_t i = 0; i < tTypes.size(); i++)
+      {
+        if(signature.empty())
+        {
+          signature = tTypes[i] + " -> " + valueWrapperTypes[i];
+        }
+
+        else
+        {
+          appendSignature(tTypes[i] + " -> " + valueWrapperTypes[i]);
+        }
+      }
+
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        appendSignature(mtTypes[i] + " -> " + valueWrapperTypes[i]);
+      }
+    }
+
+    else
+    {
+      assert(false);
+    }
+  }
+};
 
 /*
 declaration of maximum functions
@@ -50,64 +100,6 @@ declaration of maximum type mapping function
 */
 
 ListExpr maximumTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of maximum Operator Info structure
-
-*/
-
-struct maximumInfo : OperatorInfo
-{
-  maximumInfo()
-  {
-    name      = "maximum";
-    signature = "tT -> T";
-    appendSignature("mtT -> T");
-    syntax    = "maximum(_)";
-    meaning   = "Returns the maximum value of a t type or a mt type.";
-  }
-};
-
-/*
-definition of template maximumFunction
-
-*/
-
-template <typename Type, typename Properties>
-int maximumFunction(Word* pArguments,
-                    Word& rResult,
-                    int message,
-                    Word& rLocal,
-                    Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-
-    if(pType != 0)
-    {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
-      {
-        typename Properties::TypeProperties::WrapperType* pResult =
-        static_cast<typename Properties::TypeProperties::WrapperType*>
-        (rResult.addr);
-        
-        if(pResult != 0)
-        {
-          *pResult = Properties::TypeProperties::GetWrappedValue
-                     (pType->maximum());
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 

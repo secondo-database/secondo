@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "maximum.h"
-#include "../Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -33,6 +32,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace TileAlgebra
 {
+
+/*
+definition of template maximumFunction
+
+*/
+
+template <typename Type, typename Properties>
+int maximumFunction(Word* pArguments,
+                    Word& rResult,
+                    int message,
+                    Word& rLocal,
+                    Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+
+    if(pType != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        typename Properties::TypeProperties::WrapperType* pResult =
+        static_cast<typename Properties::TypeProperties::WrapperType*>
+        (rResult.addr);
+
+        if(pResult != 0)
+        {
+          *pResult = Properties::TypeProperties::GetWrappedValue
+                     (pType->maximum());
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of maximum functions
@@ -102,7 +142,8 @@ definition of maximum type mapping function
 
 ListExpr maximumTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a t type or a mt type.");
+  ListExpr type = NList::typeError("Operator maximum expects "
+                                   "a t type or a mt type.");
 
   NList argumentsList(arguments);
 
