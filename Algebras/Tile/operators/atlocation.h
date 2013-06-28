@@ -26,11 +26,73 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "Point.h"
 #include "DateTime.h"
+#include "Point.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of atlocation Operator Info structure
+
+*/
+
+struct atlocationInfo : OperatorInfo
+{
+  atlocationInfo()
+  {
+    name      = "atlocation";
+    syntax    = "_ atlocation [_, _]";
+    meaning   = "Returns the value(s) at location point.";
+
+    std::vector<std::string> valueWrapperTypes;
+    std::vector<std::string> MTypes;
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
+    GetMTypes(MTypes);
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+
+    if(valueWrapperTypes.size() == MTypes.size() &&
+       valueWrapperTypes.size() == tTypes.size() &&
+       valueWrapperTypes.size() == mtTypes.size())
+    {
+      for(size_t i = 0; i < tTypes.size(); i++)
+      {
+        if(signature.empty())
+        {
+          signature = tTypes[i] + " x " + Point::BasicType() +
+                      " -> " + valueWrapperTypes[i];
+        }
+
+        else
+        {
+          appendSignature(tTypes[i] + " x " + Point::BasicType() +
+                          " -> " + valueWrapperTypes[i]);
+        }
+      }
+
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        appendSignature(mtTypes[i] + " x " + Point::BasicType() +
+                        " -> " + MTypes[i]);
+      }
+
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        appendSignature(mtTypes[i] + " x " + Point::BasicType() + " x " +
+                        Instant::BasicType() + " -> " + valueWrapperTypes[i]);
+      }
+    }
+
+    else
+    {
+      assert(false);
+    }
+  }
+};
 
 /*
 declaration of atlocation functions
@@ -52,113 +114,6 @@ declaration of atlocation type mapping function
 */
 
 ListExpr atlocationTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of atlocation Operator Info structure
-
-*/
-
-struct atlocationInfo : OperatorInfo
-{
-  atlocationInfo()
-  {
-    name      = "atlocation";
-    signature = "tT x " + Point::BasicType() + " -> T";
-    appendSignature("mtT x " + Point::BasicType() + " -> mT");
-    appendSignature("mtT x " + Point::BasicType() +
-                    Instant::BasicType() + " -> T");
-    syntax    = "_ atlocation [_, _]";
-    meaning   = "Returns the value(s) of a t type or a mt type "
-                "at location point.";
-  }
-};
-
-/*
-definition of template atlocationFunction
-
-*/
-
-template <typename Type, typename Properties>
-int atlocationFunction(Word* pArguments,
-                       Word& rResult,
-                       int message,
-                       Word& rLocal,
-                       Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-    Point* pPoint = static_cast<Point*>(pArguments[1].addr);
-
-    if(pType != 0 &&
-       pPoint != 0)
-    {
-      if(qp->GetNoSons(supplier) == 2)
-      {
-        rResult = qp->ResultStorage(supplier);
-
-        if(rResult.addr != 0)
-        {
-          typename Properties::atlocationType* pResult =
-          static_cast<typename Properties::atlocationType*>(rResult.addr);
-
-          if(pResult != 0)
-          {
-            if(pType->IsDefined() &&
-               pPoint->IsDefined())
-            {
-              pType->atlocation(pPoint->GetX(), pPoint->GetY(), *pResult);
-            }
-
-            else
-            {
-              pResult->SetDefined(false);
-            }
-          }
-        }
-      }
-
-      else
-      {
-        Instant* pInstant = static_cast<Instant*>
-                                       (pArguments[2].addr);
-
-        if(pInstant != 0)
-        {
-          rResult = qp->ResultStorage(supplier);
-
-          if(rResult.addr != 0)
-          {
-            typename Properties::TypeProperties::WrapperType* pResult =
-            static_cast<typename Properties::TypeProperties::WrapperType*>
-            (rResult.addr);
-
-            if(pResult != 0)
-            {
-              if(pType->IsDefined() &&
-                 pPoint->IsDefined() &&
-                 pInstant->IsDefined())
-              {
-                pType->atlocation(pPoint->GetX(), pPoint->GetY(),
-                                  pInstant->ToDouble(), *pResult);
-              }
-
-              else
-              {
-                pResult->SetDefined(false);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 

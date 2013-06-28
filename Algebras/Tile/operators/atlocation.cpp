@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "atlocation.h"
-#include "../Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -30,10 +29,96 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
-#include "TemporalAlgebra.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of template atlocationFunction
+
+*/
+
+template <typename Type, typename Properties>
+int atlocationFunction(Word* pArguments,
+                       Word& rResult,
+                       int message,
+                       Word& rLocal,
+                       Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+    Point* pPoint = static_cast<Point*>(pArguments[1].addr);
+
+    if(pType != 0 &&
+       pPoint != 0)
+    {
+      if(qp->GetNoSons(supplier) == 2)
+      {
+        rResult = qp->ResultStorage(supplier);
+
+        if(rResult.addr != 0)
+        {
+          typename Properties::atlocationType* pResult =
+          static_cast<typename Properties::atlocationType*>(rResult.addr);
+
+          if(pResult != 0)
+          {
+            if(pType->IsDefined() &&
+               pPoint->IsDefined())
+            {
+              pType->atlocation(pPoint->GetX(), pPoint->GetY(), *pResult);
+            }
+
+            else
+            {
+              pResult->SetDefined(false);
+            }
+          }
+        }
+      }
+
+      else
+      {
+        Instant* pInstant = static_cast<Instant*>
+                                       (pArguments[2].addr);
+
+        if(pInstant != 0)
+        {
+          rResult = qp->ResultStorage(supplier);
+
+          if(rResult.addr != 0)
+          {
+            typename Properties::TypeProperties::WrapperType* pResult =
+            static_cast<typename Properties::TypeProperties::WrapperType*>
+            (rResult.addr);
+
+            if(pResult != 0)
+            {
+              if(pType->IsDefined() &&
+                 pPoint->IsDefined() &&
+                 pInstant->IsDefined())
+              {
+                pType->atlocation(pPoint->GetX(), pPoint->GetY(),
+                                  pInstant->ToDouble(), *pResult);
+              }
+
+              else
+              {
+                pResult->SetDefined(false);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of atlocation functions
@@ -104,7 +189,8 @@ definition of atlocation type mapping function
 
 ListExpr atlocationTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a t type or a mt type "
+  ListExpr type = NList::typeError("Operator atlocation expects "
+                                   "a t type or a mt type "
                                    "and a point or a point and an instant.");
 
   NList argumentsList(arguments);
