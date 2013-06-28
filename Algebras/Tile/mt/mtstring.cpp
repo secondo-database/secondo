@@ -144,7 +144,7 @@ void mtstring::atinstant(const Instant& rInstant,
   ritstring.SetDefined(false);
 
   tstring tstring(true);
-  tstring.SetGrid(m_Grid.GetX(), m_Grid.GetY(), m_Grid.GetLength());
+  tstring.SetGrid(m_Grid);
 
   int xDimensionSize = mtProperties<std::string>::GetXDimensionSize();
   int yDimensionSize = mtProperties<std::string>::GetYDimensionSize();
@@ -187,10 +187,7 @@ void mtstring::atperiods(const Periods& rPeriods,
   if(rPeriods.IsDefined())
   {
     rmtstring.SetDefined(true);
-    bool bOK = rmtstring.SetGrid(m_Grid.GetX(),
-                                 m_Grid.GetY(),
-                                 m_Grid.GetLength(),
-                                 m_Grid.GetDuration());
+    bool bOK = rmtstring.SetGrid(m_Grid);
 
     if(bOK == true)
     {
@@ -284,7 +281,7 @@ void mtstring::atrange(const Rectangle<2>& rRectangle,
       double length = m_Grid.GetLength();
       datetime::DateTime gridDuration = m_Grid.GetDuration();
       double duration = gridDuration.ToDouble();
-      rmtstring.SetGrid(x, y, length, duration);
+      rmtstring.SetGrid(m_Grid);
 
       Index<3> startIndex = GetLocationIndex(rRectangle.MinD(0),
                                              rRectangle.MinD(1),
