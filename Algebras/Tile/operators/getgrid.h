@@ -26,9 +26,58 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+#include "../Types.h"
+#include "../grid/tgrid.h"
+#include "../grid/mtgrid.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of getgrid Operator Info structure
+
+*/
+
+struct getgridInfo : OperatorInfo
+{
+  getgridInfo()
+  {
+    name      = "getgrid";
+    syntax    = "getgrid(_)";
+    meaning   = "Returns the grid.";
+
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+
+    if(tTypes.size() == mtTypes.size())
+    {
+      for(size_t i = 0; i < tTypes.size(); i++)
+      {
+        if(signature.empty())
+        {
+          signature = tTypes[i] + " -> " + tgrid::BasicType();
+        }
+
+        else
+        {
+          appendSignature(tTypes[i] + " -> " + tgrid::BasicType());
+        }
+      }
+
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        appendSignature(mtTypes[i] + " -> " + mtgrid::BasicType());
+      }
+    }
+
+    else
+    {
+      assert(false);
+    }    
+  }
+};
 
 /*
 declaration of getgrid functions
@@ -50,62 +99,6 @@ declaration of getgrid type mapping function
 */
 
 ListExpr getgridTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of getgrid Operator Info structure
-
-*/
-
-struct getgridInfo : OperatorInfo
-{
-  getgridInfo()
-  {
-    name      = "getgrid";
-    signature = "tT -> tgrid";
-    appendSignature("mtT -> mtgrid");
-    syntax    = "getgrid(_)";
-    meaning   = "Returns the grid of a t type or a mt type.";
-  }
-};
-
-/*
-definition of template getgridFunction
-
-*/
-
-template <typename Type, typename Properties>
-int getgridFunction(Word* pArguments,
-                    Word& rResult,
-                    int message,
-                    Word& rLocal,
-                    Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-
-    if(pType != 0)
-    {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
-      {
-        typename Properties::gridType* pResult =
-        static_cast<typename Properties::gridType*>(rResult.addr);
-        
-        if(pResult != 0)
-        {
-          pType->getgrid(*pResult);
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 

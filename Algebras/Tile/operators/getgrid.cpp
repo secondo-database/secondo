@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "getgrid.h"
-#include "../Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -33,6 +32,45 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace TileAlgebra
 {
+
+/*
+definition of template getgridFunction
+
+*/
+
+template <typename Type, typename Properties>
+int getgridFunction(Word* pArguments,
+                    Word& rResult,
+                    int message,
+                    Word& rLocal,
+                    Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+
+    if(pType != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        typename Properties::gridType* pResult =
+        static_cast<typename Properties::gridType*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          pType->getgrid(*pResult);
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of getgrid functions
@@ -102,7 +140,8 @@ definition of getgrid type mapping function
 
 ListExpr getgridTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a t type or a mt type.");
+  ListExpr type = NList::typeError("Operator getgrid expects "
+                                   "a t type or a mt type.");
 
   NList argumentsList(arguments);
 
