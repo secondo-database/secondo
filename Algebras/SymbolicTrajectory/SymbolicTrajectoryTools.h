@@ -47,7 +47,6 @@ struct NFAtransition {
   int newState;
 };
 
-intt geta(int k);
 string int2String(int i);
 int str2Int(string const &text);
 set<string> stringToSet(string input);

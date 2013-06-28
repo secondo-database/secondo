@@ -63,7 +63,7 @@ Condition cond;
 UPat uPat;
 Assign assign;
 ExprList exprList;
-bool doublePars(false), firstAssign(true), assignNow(false);
+bool doublePars(false), firstAssign(true), assignNow(false), easyCond(true);
 string expr;
 set<string> curIvs, resultVars;
 unsigned int pos = 0;
@@ -203,35 +203,7 @@ resultsequence : result
                | /* empty */
                ;
 
-result : /*ZZVARIABLE unitpattern_result {
-           assignNow = true;
-           string var($1);
-           if (resultVars.count(var)) {
-             errMsg = convert("result variables must be unique");
-             yyerror(errMsg);
-             free($1);
-             free($2);
-             YYERROR;
-           }
-           else {
-             uPat.createUnit($1, $2);
-             assign.init(var, wholepat->getPatternPos(var));
-             string newText;
-             if (!uPat.getI().empty()) {
-               newText = *(uPat.getI().begin());
-               assign.setText(1, newText);
-             }
-             if (!uPat.getL().empty()) {
-               newText = "\"" + *(uPat.getL().begin()) + "\"";
-               assign.setText(0, newText);
-             }
-             wholepat->addAssign(assign);
-             cout << "result for result variable " << assign.getV() << " added" << endl;
-             free($1);
-             free($2);
-           }
-         }
-       |*/ ZZVARIABLE {
+result : ZZVARIABLE {
            assignNow = true;
            string var($1);
            if (resultVars.count(var)) {
@@ -248,18 +220,19 @@ result : /*ZZVARIABLE unitpattern_result {
          }
        ;
 
-/*unitpattern_result : '(' ZZCONTENTS_RESULT ')' {
-                       $$ = $2;
-                     }
-                   ;*/
-
 conditionsequence : condition
                   | conditionsequence ',' condition
                   ;
 
 condition : expressionlist {
               cond.setText(exprList.toString());
-              wholepat->addCond(cond);
+              if (easyCond) {
+                wholepat->addEasyCond(cond);
+              }
+              else {
+                wholepat->addCond(cond);
+              }
+              easyCond = true;
               exprList.exprs.clear();
               cond.clearVectors();
             }
@@ -473,6 +446,7 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
   resultVars.clear();
   firstAssign = true;
   assignNow = false;
+  easyCond = true;
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
     parseSuccess = false;
@@ -649,8 +623,17 @@ int Condition::convertVarKey(const char *varKey) {
       var.assign(varInput);
       key = ::getKey(kInput);
       if (!key && wholepat->getPat(i).getW()) {
-        cout << "\"label\" condition not allowed for sequences" << endl;
+        cout << "label condition not allowed for sequences" << endl;
         return -1;
+      }
+      if ((key > 5) && !wholepat->getPat(i).getW()) {
+        cout << "card / labels condition not allowed for non-sequences" << endl;
+        return -1;
+      }
+      if (easyCond) {
+        if (wholepat->getPat(i).getW() || (vars.size() && (var !=vars.back()))){
+          easyCond = false;
+        }
       }
       vars.push_back(var);
       keys.push_back(key);
@@ -690,8 +673,8 @@ void Pattern::collectAssVars() {
 }
 
 int Pattern::getPatternPos(const string var) {
-  for (int i = 0; i < (int)patterns.size(); i++) {
-    if (patterns[i].getV() == var) {
+  for (int i = 0; i < (int)elems.size(); i++) {
+    if (elems[i].getV() == var) {
       return i;
     }
   }

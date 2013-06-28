@@ -53,13 +53,13 @@ Operator : indexclassify
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier-> stream(tuple(string, mlabel))
 Example  : query (Dotraj indexclassify[Trajectory, Dotrajindex, classifier1]) count
-Result   : 305
+Result   : 262
 
 Operator : rewrite
 Number   : 2
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
 Example  : query (rewrite1 feed projecttransformstream[Pattern] SymbolicTripsTiny feed projecttransformstream[SymTrip] rewrite) count
-Result   : 17
+Result   : 18
 
 Operator : compress
 Number   : 1

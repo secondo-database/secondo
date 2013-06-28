@@ -1475,12 +1475,12 @@ string Pattern::toString() const {
   if (description != "") {
     str << "=====description=====" << endl << description << endl;
   }
-  str << "====unit patterns====" << endl;
-  for (int i = 0; i < (int)patterns.size(); i++) {
-    str << "[" << i << "] " << patterns[i].getV() << " | "
-        << setToString(patterns[i].getI()) << " | "
-        << setToString(patterns[i].getL()) << " | "
-        << (patterns[i].getW() ? (patterns[i].getW() == STAR ? "*" : "+") :"")
+  str << "==pattern elements==" << endl;
+  for (int i = 0; i < (int)elems.size(); i++) {
+    str << "[" << i << "] " << elems[i].getV() << " | "
+        << setToString(elems[i].getI()) << " | "
+        << setToString(elems[i].getL()) << " | "
+        << (elems[i].getW() ? (elems[i].getW() == STAR ? "*" : "+") :"")
         << endl;
   }
   str << "=====conditions======" << endl;
@@ -1622,11 +1622,11 @@ bool Pattern::Open(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(int);
   cout << "patterns.size " << size << " read" << endl;
   UPat upat;
-  vector<UPat> patterns;
+  vector<UPat> elems;
   for (int i = 0; i < size; i++) {
-    valueRecord.Read(&upat, sizeof(UPat), offset); // read unit patterns
+    valueRecord.Read(&upat, sizeof(UPat), offset); // read pattern elements
     cout << "unit pattern " << i << " read" << endl;
-    patterns.push_back(upat);
+    elems.push_back(upat);
     cout << " and pushed back" << endl;
     offset += sizeof(UPat);
   }
@@ -1685,7 +1685,7 @@ bool Pattern::Open(SmiRecord& valueRecord, size_t& offset,
   bool verified;
   valueRecord.Read(&verified, sizeof(bool), offset); // read verified
   offset += sizeof(bool);
-  Pattern* p = new Pattern(patterns, assigns, conds, text, delta, verified);
+  Pattern* p = new Pattern(elems, assigns, conds, text, delta, verified);
   value.setAddr(p);
   return true;
 }
@@ -1697,11 +1697,11 @@ bool Pattern::Open(SmiRecord& valueRecord, size_t& offset,
 bool Pattern::Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
   Pattern* p = (Pattern*)value.addr;
-  int size = p->patterns.size();
+  int size = p->elems.size();
   valueRecord.Write(&size, sizeof(int), offset);
   offset += sizeof(int);
   for (int i = 0; i < size; i++) {
-    valueRecord.Write(&p->patterns[i], sizeof(UPat), offset);
+    valueRecord.Write(&p->elems[i], sizeof(UPat), offset);
     offset += sizeof(UPat);
   }
   size = p->assigns.size();
@@ -1725,7 +1725,7 @@ bool Pattern::Save(SmiRecord& valueRecord, size_t& offset,
     valueRecord.Write(&p->text[i], sizeof(char), offset); // text
     offset += sizeof(char);
   }
-  size = p->patterns.size();
+  size = p->elems.size();
   valueRecord.Write(&size, sizeof(int), offset); // delta.size
   offset += sizeof(int);
   int mapsize, setsize;
@@ -1802,7 +1802,7 @@ TypeConstructor patternTC(
 /*
 \subsection{Function ~verifyPattern~}
 
-Loops through the unit patterns and checks whether every specified interval
+Loops through the pattern elements and checks whether every specified interval
 is valid and whether the variables are unique.
 
 */
@@ -1814,21 +1814,21 @@ bool Pattern::verifyPattern() const {
     cout << "Error: Pattern not initialized." << endl;
     return false;
   }
-  for (int i = 0; i < (int)patterns.size(); i++) {
-    ivs = patterns[i].getI();
+  for (int i = 0; i < (int)elems.size(); i++) {
+    ivs = elems[i].getI();
     for (it = ivs.begin(); it != ivs.end(); it++){
       if ((*it).at(0) >= 65 && (*it).at(0) <= 122
         && !checkSemanticDate(*it, iv, false)) {
         return false;
       }
     }
-    if (!patterns[i].getV().empty()) {
-      if (vars.count(patterns[i].getV())) {
-        cout << "Error: double variable " << patterns[i].getV() << endl;
+    if (!elems[i].getV().empty()) {
+      if (vars.count(elems[i].getV())) {
+        cout << "Error: double variable " << elems[i].getV() << endl;
         return false;
       }
       else {
-        vars.insert(patterns[i].getV());
+        vars.insert(elems[i].getV());
       }
     }
   }
@@ -1856,7 +1856,7 @@ Checks the pattern and the condition and (if no problem occurs) invokes the NFA
 construction and the matching procedure.
 
 */
-ExtBool Pattern::matches(MLabel &ml) const {
+ExtBool Pattern::matches(MLabel &ml) {
   if (!isVerified()) {
     if (!verifyPattern()) {
       cout << "Error: Invalid pattern." << endl;
@@ -1864,10 +1864,14 @@ ExtBool Pattern::matches(MLabel &ml) const {
     }
   }
 /*  cout << nfa2String() << endl;*/
-  Match *match = new Match(patterns.size() + 1);
-  match->copyFromPattern(*this);
-  ExtBool result = match->matches(ml);
+  Match *match = new Match(elems.size() + 1);
+  match->copyFromPattern(this);
+  ExtBool result = UNDEF;
+  if (match->initEasyCondOpTrees()) {
+    result = match->matches(ml);
+  }
   ml.index.removeTrie();
+  match->deleteEasyCondOpTrees();
   delete match;
   return result;
 }
@@ -1882,15 +1886,18 @@ Performs a match and returns the set of matching sequences for the operator
 set<pair<vector<unsigned int>, vector<unsigned int> > > Pattern::
                                             getRewriteSeqs(MLabel &ml) {
   set<pair<vector<unsigned int>, vector<unsigned int> > > result;
-  Match *match = new Match(patterns.size() + 1);
-  match->copyFromPattern(*this);
+  Match *match = new Match(elems.size() + 1);
+  match->copyFromPattern(this);
   match->setAssVars(this->getAssVars());
   match->setVarPos(this->getVarPos());
 //   cout << nfa2String() << endl;
+  match->initEasyCondOpTrees();
   if (!match->matches(ml, true)) {
+    match->deleteEasyCondOpTrees();
     delete match;
     return result;
   }
+  match->deleteEasyCondOpTrees();
   match->computeResultVars(this->assigns);
   match->buildSequences();
 //   match->printSequences(300);
@@ -1920,9 +1927,8 @@ map<string, int> Pattern::getVarPosInSeq() {
 }
 
 Match::Match(IndexLI* li, TupleId tId) {
-  patterns = li->p->getPats();
-  f = patterns.size();
-  conds = li->p->getConds();
+  p = li->p;
+  f = p->getSize();
   match = new set<unsigned int>[f];
   cardsets = new set<unsigned int>[f];
   seqOrder = new int[f];
@@ -1935,7 +1941,7 @@ Match::Match(IndexLI* li, TupleId tId) {
 /*
 \subsection{Function ~computeResultVars~}
 
-Computes a mapping containing the positions of the unit patterns the result
+Computes a mapping containing the positions of the pattern elements the result
 variables belong to.
 
 */
@@ -1956,15 +1962,15 @@ parts for rewriting.
 void Match::filterSequences(MLabel const &ml) {
   set<multiset<unsigned int> >::iterator it;
   for (it = sequences.begin(); it != sequences.end(); it++) {
-    for (unsigned int i = 0; i < conds.size(); i++) {
-      if (!evaluateCond(ml, i, *it)) {
-        i = conds.size(); // continue with next sequence
+    for (unsigned int i = 0; i < p->conds.size(); i++) {
+      if (!evaluateCond(ml, p->conds[i], *it)) {
+        i = p->conds.size(); // continue with next sequence
       }
-      else if (i == conds.size() - 1) { // all conditions are fulfilled
+      else if (i == p->conds.size() - 1) { // all conditions are fulfilled
         buildRewriteSeq(*it);
       }
     }
-    if (conds.empty()) {
+    if (p->conds.empty()) {
       buildRewriteSeq(*it);
     }
   }
@@ -2007,12 +2013,12 @@ Reads the pattern and generates the delta function
 
 */
 void Pattern::buildNFA() {
-  int f = patterns.size();
+  int f = elems.size();
   int prev[3] = {-1, -1, -1}; // prevStar, prevNotStar, secondPrevNotStar
   for (int i = 0; i < f; i++) {
     delta[i][i].insert(i + 1); // state i, read pattern i => new state i+1
-    if (!patterns[i].getW() || !patterns[i].getI().empty() // last pattern or
-     || !patterns[i].getL().empty() || (i == f - 1)) { // any pattern except +,*
+    if (!elems[i].getW() || !elems[i].getI().empty() // last pattern or
+     || !elems[i].getL().empty() || (i == f - 1)) { // any pattern except +,*
       if ((prev[0] == i - 1) || (i == f - 1)) { // '...* #(1 a)...'
         for (int j = prev[1] + 1; j < i; j++) {
           delta[j][i].insert(i + 1); // '* * * #(1 a ) ...'
@@ -2021,7 +2027,7 @@ void Pattern::buildNFA() {
             for (int m = j; m <= i; m++) {
               delta[j][k].insert(m); // step 1
             }
-            if ((patterns[i].getW() == STAR) && (i == f - 1)) { // end
+            if ((elems[i].getW() == STAR) && (i == f - 1)) { // end
               delta[j][k].insert(f);
             }
           }
@@ -2030,7 +2036,7 @@ void Pattern::buildNFA() {
           for (int j = prev[1] + 1; j <= i; j++) {
             delta[prev[1]][prev[1]].insert(j); // step 2
           }
-          if ((patterns[i].getW() == STAR) && (i == f - 1)) { // end
+          if ((elems[i].getW() == STAR) && (i == f - 1)) { // end
             delta[prev[1]][prev[1]].insert(f);
           }
         }
@@ -2039,28 +2045,28 @@ void Pattern::buildNFA() {
             for (int k = prev[1] + 1; k <= i; k++) {
               delta[j][prev[1]].insert(k); // step 3
             }
-            if ((patterns[i].getW() == STAR) && (i == f - 1)) { // end
+            if ((elems[i].getW() == STAR) && (i == f - 1)) { // end
               delta[j][prev[1]].insert(f);
             }
           }
         }
       }
-      if (patterns[i].getW() == PLUS) {
+      if (elems[i].getW() == PLUS) {
         delta[i][i].insert(i);
       }
       prev[2] = prev[1];
       prev[1] = i;
     }
-    else if (patterns[i].getW() == STAR) { // reading '*'
+    else if (elems[i].getW() == STAR) { // reading '*'
       prev[0] = i;
     }
-    else if (patterns[i].getW() == PLUS) { // reading '+'
+    else if (elems[i].getW() == PLUS) { // reading '+'
       delta[i][i].insert(i);
       prev[2] = prev[1];
       prev[1] = i;
     }
   }
-  if (patterns[f - 1].getW()) { // '... #*' or '... #+'
+  if (elems[f - 1].getW()) { // '... #*' or '... #+'
     delta[f - 1][f - 1].insert(f - 1);
   }
   setVerified(true);
@@ -2096,14 +2102,14 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
     for (size_t i = 0; i < numOfLabels; i++) {
       ml.Get(i, ul);
       ulId = i;
-      updateStates();
+      updateStates(ml);
       if (currentStates.empty()) {
         return FALSE;
       }
     }
     if (!numOfLabels) { // empty MLabel
       int pos = 0;
-      while (patterns[pos].getW() == STAR) {
+      while (p->elems[pos].getW() == STAR) {
         currentStates.insert(pos + 1);
         pos++;
       }
@@ -2123,7 +2129,7 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
     }
     return TRUE;
   }
-  if (conds.size()) {
+  if (p->conds.size()) {
     computeCardsets();
     if (!initCondOpTrees()) {
       return UNDEF;
@@ -2146,8 +2152,8 @@ Returns a string displaying the information stored in the NFA.
 string Pattern::nfa2String() const {
   stringstream nfa;
   set<int>::iterator k;
-  for (int i = 0; i < (int)patterns.size(); i++) {
-    for (int j = i; j < (int)patterns.size(); j++) {
+  for (int i = 0; i < (int)elems.size(); i++) {
+    for (int j = i; j < (int)elems.size(); j++) {
       map<int, set<int> > tempmap = delta[i];
       set<int> tempset = tempmap[j];
       if (tempset.size() > 0) {
@@ -2269,16 +2275,17 @@ Further functions are invoked to decide which transition can be applied to
 which current state. The set of current states is updated.
 
 */
-void Match::updateStates() {
+void Match::updateStates(MLabel const &ml) {
   set<int> newStates;
   set<int>::iterator i, k;
   map<int, set<int> >::iterator j;
   for (i = currentStates.begin(); (i != currentStates.end() && *i < f); i++) {
-    for (j = delta[*i].begin(); j != delta[*i].end(); j++) {
-      if (labelsMatch(ul.constValue.GetValue(), patterns[j->first].getL())
-       && timesMatch(&ul.timeInterval, patterns[j->first].getI())) {
-        if (!patterns[j->first].getW() || !patterns[j->first].getI().empty()
-         || !patterns[j->first].getL().empty()) {//(_ a), ((1 _)), () or similar
+    for (j = p->delta[*i].begin(); j != p->delta[*i].end(); j++) {
+      if (labelsMatch(ul.constValue.GetValue(), p->elems[j->first].getL())
+       && timesMatch(&ul.timeInterval, p->elems[j->first].getI())
+       && easyCondsMatch(ml, p->elems[j->first])) {
+        if (!p->elems[j->first].getW() || !p->elems[j->first].getI().empty()
+         || !p->elems[j->first].getL().empty()) {//(_ a), ((1 _)), () or similar
           match[j->first].insert(ulId);
         }
         newStates.insert(j->second.begin(), j->second.end());
@@ -2295,9 +2302,9 @@ void Match::updateStates() {
 set<size_t> Match::updatePositionsIndex(MLabel &ml, int pPos,set<size_t> mlpos){
   set<size_t> result, foundpos;
   set<size_t>::iterator j;
-  set<string> labels = patterns[pPos].getL();;
+  set<string> labels = p->elems[pPos].getL();;
   set<string>::iterator i = labels.begin();
-  Wildcard w = patterns[pPos].getW();
+  Wildcard w = p->elems[pPos].getW();
   if (*(mlpos.rbegin()) == (size_t)ml.GetNoComponents()) { // erase final state
     mlpos.erase(*(mlpos.rbegin()));
   }
@@ -2307,7 +2314,8 @@ set<size_t> Match::updatePositionsIndex(MLabel &ml, int pPos,set<size_t> mlpos){
       for (j = foundpos.begin(); j != foundpos.end(); j++) {
         ml.Get(*j, ul);
         if (mlpos.count(*j)
-         && timesMatch(&ul.timeInterval, patterns[pPos].getI())) {
+         && timesMatch(&ul.timeInterval, p->elems[pPos].getI())
+         && easyCondsMatch(ml, p->elems[pPos])) {
           result.insert(*j + 1);
           match[pPos].insert(*j);
         }
@@ -2316,15 +2324,16 @@ set<size_t> Match::updatePositionsIndex(MLabel &ml, int pPos,set<size_t> mlpos){
     }
     if (labels.empty()) {
       for (j = mlpos.begin(); j != mlpos.end(); j++) {
-        ml.Get(*j + 1, ul);
-        if (timesMatch(&ul.timeInterval, patterns[pPos].getI())) {
+        ml.Get(*j, ul);
+        if (timesMatch(&ul.timeInterval, p->elems[pPos].getI())
+          && easyCondsMatch(ml, p->elems[pPos])) {
           result.insert(*j + 1);
           match[pPos].insert(*j);
         }
       }
     }
   }
-  else if (labels.empty() && patterns[pPos].getI().empty()) { // +, * or (())
+  else if (labels.empty() && p->elems[pPos].getI().empty()) { // +, * or (())
     j = result.begin();
     for (size_t k = (w == STAR ? *(mlpos.begin()) : *(mlpos.begin()) + 1);
            (int)k <= ml.GetNoComponents(); k++) {
@@ -2339,7 +2348,7 @@ set<size_t> Match::updatePositionsIndex(MLabel &ml, int pPos,set<size_t> mlpos){
       foundpos = ml.index.find(*i);
       for (j = foundpos.begin(); j != foundpos.end(); j++) {
         ml.Get(*j, ul);
-        if (timesMatch(&ul.timeInterval, patterns[pPos].getI())
+        if (timesMatch(&ul.timeInterval, p->elems[pPos].getI())
          && (mlpos.count(*j) || result.count(*j))) {
           result.insert(*j + 1);
         }
@@ -2353,7 +2362,7 @@ set<size_t> Match::updatePositionsIndex(MLabel &ml, int pPos,set<size_t> mlpos){
         k = *j;
         while (ok && (k < (size_t)ml.GetNoComponents())) {
           ml.Get(k, ul);
-          if (timesMatch(&ul.timeInterval, patterns[pPos].getI())) {
+          if (timesMatch(&ul.timeInterval, p->elems[pPos].getI())) {
             result.insert(k + 1);
             k++;
           }
@@ -2391,7 +2400,7 @@ void Match::processDoublePars(int pos) {
     }
     last = *j;
   }
-  if (!patterns[pos].getI().empty() || !patterns[pos].getL().empty()) {
+  if (!p->elems[pos].getI().empty() || !p->elems[pos].getL().empty()) {
     doublePars.insert(pos);
   }
 }
@@ -2410,7 +2419,7 @@ void Match::computeCardsets() {
   for (int i = 0; i < f; i++) {
     if (match[i].size()) {
       cardsets[i].insert(1);
-      if (patterns[i].getW() == PLUS) { // '... #((1 a)) ...'
+      if (p->elems[i].getW() == PLUS) { // '... #((1 a)) ...'
         processDoublePars(i);
       }
       if (prev == i - 2) {
@@ -2461,10 +2470,10 @@ void Match::computeCardsets() {
         }
       }
     }
-    if (patterns[i].getW() != STAR) {
+    if (p->elems[i].getW() != STAR) {
       numOfNonStars++;
     }
-    if (patterns[i].getW() != NO) {
+    if (p->elems[i].getW() != NO) {
       numOfW++;
     }
   }
@@ -2484,14 +2493,14 @@ void Match::correctCardsets(int nonStars, int wildcards) {
   set<unsigned int>::iterator j;
   for (int i = 0; i < f; i++) {
     if (wildcards > 1) { // correct zeros for more than one star
-      if (patterns[i].getW() == STAR) {
+      if (p->elems[i].getW() == STAR) {
         cardsets[i].insert(0);
       }
       else {
         cardsets[i].erase(0);
       }
     }
-    int k = (patterns[i].getW() == STAR ? 1 : 2);
+    int k = (p->elems[i].getW() == STAR ? 1 : 2);
     if ((j = cardsets[i].lower_bound(numOfLabels - nonStars + k))
         != cardsets[i].end()) { // delete too high candidates
       cardsets[i].erase(j, cardsets[i].end());
@@ -2587,6 +2596,29 @@ bool Match::checkDoublePars(multiset<unsigned int> sequence) {
 }
 
 /*
+\subsection{Function ~easyCondsMatch~}
+
+*/
+bool Match::easyCondsMatch(MLabel const &ml, UPat const &up) {
+  if (up.getW()) {
+    return true;
+  }
+  set<int> condPos = p->easyCondPos[up.getV()];
+  if (condPos.empty()) {
+    return true;
+  }
+  multiset<unsigned int> seq;
+  seq.insert(ulId);
+  seq.insert(ulId + 1);
+  for (set<int>::iterator it = condPos.begin(); it != condPos.end(); it++) {
+    if (!evaluateCond(ml, p->easyConds[*it], seq)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
 \subsection{Function ~conditionsMatch~}
 
 Checks whether the specified conditions are fulfilled. The result is true if
@@ -2597,7 +2629,7 @@ condition.
 bool Match::conditionsMatch(MLabel const &ml) {
   bool proceed(false);
   multiset<unsigned int>::iterator it;
-  if (conds.empty()) {
+  if (p->conds.empty()) {
     return true;
   }
   if (!ml.GetNoComponents()) { // empty MLabel
@@ -2618,10 +2650,10 @@ bool Match::conditionsMatch(MLabel const &ml) {
   seqCounter = 0;
   computeSeqOrder();
   multiset<unsigned int> seq = getNextSeq();
-  for (int i = 0; i < (int)conds.size(); i++) {
+  for (int i = 0; i < (int)p->conds.size(); i++) {
     do {
       proceed = false;
-      if (!evaluateCond(ml, i, seq)) {
+      if (!evaluateCond(ml, p->conds[i], seq)) {
         seq = getNextSeq();
         i = 0; // in case of a mismatch, return to the first condition
       }
@@ -2646,12 +2678,12 @@ sequences will first differ in the positions having variables.
 void Match::computeSeqOrder() {
   set<int> used;
   int k = 0;
-  for (int i = 0; i < (int)conds.size(); i++) {
-    for (int j = 0; conds[i].getPId(j) != -1; j++) {
-      if (!used.count(conds[i].getPId(j))) {
-        seqOrder[k] = conds[i].getPId(j);
+  for (int i = 0; i < (int)p->conds.size(); i++) {
+    for (int j = 0; p->conds[i].getPId(j) != -1; j++) {
+      if (!used.count(p->conds[i].getPId(j))) {
+        seqOrder[k] = p->conds[i].getPId(j);
         k++;
-        used.insert(conds[i].getPId(j));
+        used.insert(p->conds[i].getPId(j));
       }
     }
   }
@@ -2729,15 +2761,15 @@ X.card = 0, X.card = Y.card [*] 7. Time or label constraints are invalid.
 */
 bool Match::evaluateEmptyML() {
   Word res;
-  for (int i = 0; i < (int)conds.size(); i++) {
-    for (int j = 0; j < conds[i].getKeysSize(); j++) {
-      if (conds[i].getKey(j) != 4) { // only card conditions possible
+  for (int i = 0; i < (int)p->conds.size(); i++) {
+    for (int j = 0; j < p->conds[i].getKeysSize(); j++) {
+      if (p->conds[i].getKey(j) != 4) { // only card conditions possible
         cout << "Error: Only cardinality conditions allowed" << endl;
         return false;
       }
-      conds[i].setCardPtr(j, 0);
+      p->conds[i].setCardPtr(j, 0);
     }
-    conds[i].getQP()->EvalS(conds[i].getOpTree(), res, OPEN);
+    p->conds[i].getQP()->EvalS(p->conds[i].getOpTree(), res, OPEN);
     if (!((CcBool*)res.addr)->IsDefined() || !((CcBool*)res.addr)->GetValue()) {
       return false;
     }
@@ -2752,67 +2784,75 @@ This function is invoked by ~conditionsMatch~ and checks whether a sequence of
 possible cardinalities matches a certain condition.
 
 */
-bool Match::evaluateCond(MLabel const &ml, int cId, multiset<unsigned int> sq){
+bool Match::evaluateCond(MLabel const &ml, Condition &cond,
+                         multiset<unsigned int> sq){
   vector<size_t> seq(sq.begin(), sq.end());
   Word qResult;
   ULabel ul;
-  for (int i = 0; i < conds[cId].getKeysSize(); i++) {
-    int pId = conds[cId].getPId(i);
-    size_t max = (pId == f - 1 ? numOfLabels - 1 : seq[pId + 1] - 1);
+  for (int i = 0; i < cond.getKeysSize(); i++) {
+    int pId = cond.getPId(i);
+    size_t max;
+    if ((sq.size() < 3) && (pId > 0)) {
+      pId = 0;
+      max = seq[0] + 1;
+    }
+    else {
+      max = (pId == f - 1 ? numOfLabels - 1 : seq[pId + 1] - 1);
+    }
     if ((max > (size_t)ml.GetNoComponents()) || max < seq[pId]) {
-      // cout << conds[cId].getVar(i) << " bound to empty sequence" << endl;
+      // cout << cond.getVar(i) << " bound to empty sequence" << endl;
       return false;
     }
-    switch (conds[cId].getKey(i)) {
+    switch (cond.getKey(i)) {
       case 0: { // label
         ml.Get(seq[pId], ul);
-        conds[cId].setLabelPtr(i, ul.constValue.GetValue());
+        cond.setLabelPtr(i, ul.constValue.GetValue());
         break;
       }
       case 1: { // time
-        conds[cId].clearTimePtr(i);
+        cond.clearTimePtr(i);
         for (size_t j = seq[pId]; j <= max; j++) {
           ml.Get(j, ul);
-          conds[cId].mergeAddTimePtr(i, ul.timeInterval);
+          cond.mergeAddTimePtr(i, ul.timeInterval);
         }
         break;
       }
       case 2: { // start
         ml.Get(seq[pId], ul);
-        conds[cId].setStartEndPtr(i, ul.timeInterval.start);
+        cond.setStartEndPtr(i, ul.timeInterval.start);
         break;
       }
       case 3: { // end
         ml.Get(max, ul);
-        conds[cId].setStartEndPtr(i, ul.timeInterval.end);
+        cond.setStartEndPtr(i, ul.timeInterval.end);
         break;
       }
       case 4: { // leftclosed
         ml.Get(seq[pId], ul);
-        conds[cId].setLeftRightclosedPtr(i, ul.timeInterval.lc);
+        cond.setLeftRightclosedPtr(i, ul.timeInterval.lc);
         break;
       }
       case 5: { // rightclosed
         ml.Get(max, ul);
-        conds[cId].setLeftRightclosedPtr(i, ul.timeInterval.rc);
+        cond.setLeftRightclosedPtr(i, ul.timeInterval.rc);
         break;
       }
       case 6: { // card
-        conds[cId].setCardPtr(i, max + 1 - seq[pId]);
+        cond.setCardPtr(i, max + 1 - seq[pId]);
         break;
       }
       default: { // labels
-        conds[cId].cleanLabelsPtr(i);
+        cond.cleanLabelsPtr(i);
         for (size_t j = seq[pId]; j <= max; j++) {
           ml.Get(j, ul);
           Label *label = new Label(ul.constValue.GetValue());
-          conds[cId].appendToLabelsPtr(i, *label);
+          cond.appendToLabelsPtr(i, *label);
         }
-        conds[cId].completeLabelsPtr(i);
+        cond.completeLabelsPtr(i);
       }
     }
   }
-  conds[cId].getQP()->EvalS(conds[cId].getOpTree(), qResult, OPEN);
+  cond.getQP()->EvalS(cond.getOpTree(), qResult, OPEN);
   return ((CcBool*)qResult.addr)->GetValue();
 }
 
@@ -2914,8 +2954,9 @@ string Assign::getDataType(int key) {
 \subsection{Function ~buildMultiNFA~}
 
 */
-void Match::buildMultiNFA(vector<Pattern*> pats) {
+vector<map<int, set<int> > > Match::buildMultiNFA(vector<Pattern*> pats) {
   int start = 0;
+  vector<map<int, set<int> > > delta;
   map<int, set<int> > emptyMapping;
   for (unsigned int p = 0; p < pats.size(); p++) {
     int f = start + pats[p]->getSize();
@@ -2978,6 +3019,7 @@ void Match::buildMultiNFA(vector<Pattern*> pats) {
     }
     start += pats[p]->getSize() + 1;
   }
+  return delta;
 }
 
 /*
@@ -2988,16 +3030,16 @@ Prints a multiNFA.
 */
 void Match::printMultiNFA() {
   set<int>::iterator k;
-  for (unsigned int i = 0; i < delta.size(); i++) {
-    for (unsigned int j = 0; j < delta.size(); j++) {
-      if (delta[i][j].size() > 0) {
+  for (unsigned int i = 0; i < p->delta.size(); i++) {
+    for (unsigned int j = 0; j < p->delta.size(); j++) {
+      if (p->delta[i][j].size() > 0) {
         cout << "state " << i << " | upat #" << j << " | new states {";
-        if (delta[i][j].size() == 1) {
-          cout << *(delta[i][j].begin());
+        if (p->delta[i][j].size() == 1) {
+          cout << *(p->delta[i][j].begin());
         }
         else {
-          for (k = delta[i][j].begin();
-               k != delta[i][j].end(); k++) {
+          for (k = p->delta[i][j].begin();
+               k != p->delta[i][j].end(); k++) {
             cout << *k << " ";
           }
         }
@@ -3041,17 +3083,24 @@ vector<int> Match::applyMultiNFA(ClassifyLI* c, bool rewrite /*=false*/) {
           found = true;
         }
       }
-      for (j = delta[*i].begin(); j != delta[*i].end(); j++) {
-        if (j->second.size()) {
-          if (labelsMatch(ul.constValue.GetValue(),
-                          c->pats[activePat]->getPat(j->first).getL())
-           && timesMatch(&ul.timeInterval,
-                         c->pats[activePat]->getPat(j->first).getI())) {
-            newStates.insert(j->second.begin(), j->second.end());
-            if (!c->pats[activePat]->getConds().empty() || rewrite) {
-              UPat u = c->pats[activePat]->getPat(j->first); //store matches now
-              if (!u.getW() || !u.getI().empty() || !u.getL().empty()) {//(_ a)
-                c->matches[activePat][j->first].insert(ulId);//((1 _)),() or sim
+      p = c->pats[activePat];
+      if (!initEasyCondOpTrees()) { // TODO: delete the trees.
+        cout << "easyCondOpTrees could not be initialized" << endl;
+      }
+      else {
+        for (j = c->delta[*i].begin(); j != c->delta[*i].end(); j++) {
+          if (j->second.size()) {
+            if (labelsMatch(ul.constValue.GetValue(),
+                            c->pats[activePat]->getPat(j->first).getL()) &&
+             timesMatch(&ul.timeInterval,
+                        c->pats[activePat]->getPat(j->first).getI()) &&
+             easyCondsMatch(c->currentML,c->pats[activePat]->getPat(j->first))){
+              newStates.insert(j->second.begin(), j->second.end());
+              if (!c->pats[activePat]->getConds().empty() || rewrite) {
+                UPat u = c->pats[activePat]->getPat(j->first); //store matches
+                if (!u.getW() || !u.getI().empty() || !u.getL().empty()){//(_ a)
+                  c->matches[activePat][j->first].insert(ulId);//((1 _)),(), sim
+                }
               }
             }
           }
@@ -3176,23 +3225,27 @@ pair<QueryProcessor*, OpTree> Match::processQueryStr(string query, int type) {
 }
 
 /*
-\subsection{Function ~initOpTrees~}
+\subsection{Function ~initCondOpTrees~}
 
-For a pattern with conditions and/or assignments, an operator tree structure
-is prepared.
+For a pattern with conditions, an operator tree structure is prepared. If
+~overwrite~ is true, the tree and the pointers are built in any case.
 
 */
-bool Match::initCondOpTrees() {
+bool Match::initCondOpTrees(bool overwrite) {
   string q(""), part, toReplace("");
   pair<string, Attribute*> strAttr;
   vector<Attribute*> ptrs;
-  for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
-    if (!conds[i].isTreeOk()) {
-      q = "query " + conds[i].getText();
-      for (int j = 0; j < conds[i].getKeysSize(); j++) { // init pointers
-        strAttr = Pattern::getPointer(conds[i].getKey(j));
+  for (unsigned int i = 0; i < p->conds.size(); i++) { // opTrees for conditions
+    if (overwrite) {
+      p->conds[i].setTreeOk(false);
+    }
+    if (!p->conds[i].isTreeOk()) {
+      q = "query " + p->conds[i].getText();
+      for (int j = 0; j < p->conds[i].getKeysSize(); j++) { // init pointers
+        strAttr = Pattern::getPointer(p->conds[i].getKey(j));
         ptrs.push_back(strAttr.second);
-        toReplace = conds[i].getVar(j) + Condition::getType(conds[i].getKey(j));
+        toReplace = p->conds[i].getVar(j)
+                    + Condition::getType(p->conds[i].getKey(j));
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
       }
       pair<QueryProcessor*, OpTree> qp_optree = processQueryStr(q, -1);
@@ -3200,24 +3253,70 @@ bool Match::initCondOpTrees() {
         cout << "Operator tree for condition " << i << " uninitialized" << endl;
         return false;
       }
-      conds[i].setOpTree(qp_optree);
-      conds[i].setPointers(ptrs);
+      p->conds[i].setOpTree(qp_optree);
+      p->conds[i].setPointers(ptrs);
       ptrs.clear();
-      conds[i].setTreeOk(true);
+      p->conds[i].setTreeOk(true);
     }
   }
   return true;
 }
 
 /*
-\subsection{Function ~deleteOpTrees~}
+\subsection{Function ~initEasyCondOpTrees~}
+
+For a pattern with conditions, an operator tree structure is prepared.
+
+*/
+bool Match::initEasyCondOpTrees() {
+  string q(""), part, toReplace("");
+  pair<string, Attribute*> strAttr;
+  vector<Attribute*> ptrs;
+  for (unsigned int i = 0; i < p->easyConds.size(); i++) { //opTrees for conds
+    if (!p->easyConds[i].isTreeOk()) {
+      q = "query " + p->easyConds[i].getText();
+      for (int j = 0; j < p->easyConds[i].getKeysSize(); j++) { // init pointers
+        strAttr = Pattern::getPointer(p->easyConds[i].getKey(j));
+        ptrs.push_back(strAttr.second);
+        toReplace = p->easyConds[i].getVar(j)
+                    + Condition::getType(p->easyConds[i].getKey(j));
+        q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+      }
+      pair<QueryProcessor*, OpTree> qp_optree = processQueryStr(q, -1);
+      if (!qp_optree.first) {
+        cout << "Op tree for easy condition " << i << " uninitialized" << endl;
+        return false;
+      }
+      p->easyConds[i].setOpTree(qp_optree);
+      p->easyConds[i].setPointers(ptrs);
+      ptrs.clear();
+      p->easyConds[i].setTreeOk(true);
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~deleteCondOpTrees~}
 
 Removes the corresponding structures.
 
 */
 void Match::deleteCondOpTrees() {
-  for (unsigned int i = 0; i < conds.size(); i++) {
-    conds[i].deleteOpTree();
+  for (unsigned int i = 0; i < p->conds.size(); i++) {
+    p->conds[i].deleteOpTree();
+  }
+}
+
+/*
+\subsection{Function ~deleteEasyCondOpTrees~}
+
+Removes the corresponding structures.
+
+*/
+void Match::deleteEasyCondOpTrees() {
+  for (unsigned int i = 0; i < p->easyConds.size(); i++) {
+    p->easyConds[i].deleteOpTree();
   }
 }
 
@@ -3235,11 +3334,10 @@ vector<int> Match::applyConditions(ClassifyLI* c) {
       result.push_back(c->matched[i]);
     }
     else {
-      patterns = c->pats[c->matched[i]]->getPats();
-      conds = c->pats[c->matched[i]]->getConds();
+      p = c->pats[c->matched[i]];
       numOfStates = f;
-      f = patterns.size();
-      if (!initCondOpTrees()) {
+      f = p->elems.size();
+      if (!initCondOpTrees(true)) {
         cout << "Operator trees could not be initialized" << endl;
         result.clear();
         return result;
@@ -3260,8 +3358,6 @@ vector<int> Match::applyConditions(ClassifyLI* c) {
   return result;
 }
 
-
-
 /*
 \subsection{Function ~multiRewrite~}
 
@@ -3273,9 +3369,8 @@ void Match::multiRewrite(ClassifyLI* c) {
   set<pair<vector<unsigned int>, vector<unsigned int> > >::iterator it;
   for (unsigned int i = 0; i < c->matched.size(); i++) {
     rewriteSeqs.clear();
-    patterns = c->pats[c->matched[i]]->getPats();
-    conds = c->pats[c->matched[i]]->getConds();
-    f = patterns.size();
+    p = c->pats[c->matched[i]];
+    f = p->elems.size();
     for (int j = 0; j < f; j++) {
       if ((int)c->matches.size() > 0) {
         match[j] = c->matches[c->matched[i]][j];
@@ -3291,8 +3386,8 @@ void Match::multiRewrite(ClassifyLI* c) {
     computeResultVars(c->pats[c->matched[i]]->getAssigns());
     computeCardsets();
     buildSequences();
-    if (conds.size()) {
-      if (!initCondOpTrees()) {
+    if (p->conds.size()) {
+      if (!initCondOpTrees(true)) {
         return;
       }
     }
@@ -3351,9 +3446,10 @@ int topatternVM(Word* args, Word& result, int message, Word& local,
   if (pattern) {
     (*p) = (*pattern);
     if (!p->verifyPattern()) {
+      delete pattern;
+      cout << "pattern not verified" << endl;
       return 0;
     }
-    cout << (p->isVerified() ? "verified" : "not verified") << endl;
     delete pattern;
   }
   else {
@@ -3481,12 +3577,11 @@ Word Classifier::In(const ListExpr typeInfo, const ListExpr instance,
     list.rest();
   }
   Match *match = new Match(1);
-  match->buildMultiNFA(patterns);
+  vector<map<int, set<int> > > multiNFA = match->buildMultiNFA(patterns);
+  c->setPersistentNFA(&multiNFA);
   for (unsigned int i = 0; i < patterns.size(); i++) {
     delete patterns[i];
   }
-  vector<map<int, set<int> > > *delta = match->getNFA();
-  c->setPersistentNFA(delta);
   delete match;
   result.addr = c;
   return result;
@@ -3768,12 +3863,11 @@ int toclassifierVM(Word* args, Word& result, int message, Word& local,
     c->appendCharPos(c->getCharSize());
   }
   Match *match = new Match(1);
-  match->buildMultiNFA(patterns);
+  vector<map<int, set<int> > > delta = match->buildMultiNFA(patterns);
   for (unsigned int i = 0; i < patterns.size(); i++) {
     delete patterns[i];
   }
-  vector<map<int, set<int> > > *delta = match->getNFA();
-  c->setPersistentNFA(delta);
+  c->setPersistentNFA(&delta);
   delete match;
   return 0;
 }
@@ -3830,7 +3924,7 @@ int matchesSelect(ListExpr args) {
 int matchesVM_PatML(Word* args, Word& result, int message,
                      Word& local, Supplier s) {
   MLabel* ml = static_cast<MLabel*>(args[0].addr);
-  const Pattern* p = static_cast<Pattern*>(args[1].addr);
+  Pattern* p = static_cast<Pattern*>(args[1].addr);
   if (!p) {
     cout << "Invalid Pattern." << endl;
     delete ml;
@@ -3838,9 +3932,6 @@ int matchesVM_PatML(Word* args, Word& result, int message,
   }
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
-//   if (ml->index.getNodeRefSize()) {
-//     cout << "The mlabel has an index." << endl;
-//   }
   ExtBool match = p->matches(*ml);
   switch (match) {
     case FALSE: {
@@ -3862,7 +3953,7 @@ int matchesVM_PatMS(Word* args, Word& result, int message,
                      Word& local, Supplier s) {
   MString* ms = static_cast<MString*>(args[0].addr);
   MLabel* ml = 0;
-  const Pattern* p = static_cast<Pattern*>(args[1].addr);
+  Pattern* p = static_cast<Pattern*>(args[1].addr);
   if (!p) {
     cout << "Invalid Pattern." << endl;
     delete ms;
@@ -4126,17 +4217,15 @@ class FiltermatchesLI {
  public:
   FiltermatchesLI(Word _stream, int _attrIndex, FText* text):
       stream(_stream), attrIndex(_attrIndex) {
-    Pattern *p = Pattern::getPattern(text->GetValue());
-    if (p) {
-      p->setVerified(false);
-      if (p->verifyPattern()) {
-        match = new Match(p->getPats().size() + 1);
-//         p->buildNFA();
-        p->setVerified(true);
-        match->copyFromPattern(*p);
+    Pattern *pattern = Pattern::getPattern(text->GetValue());
+    if (pattern) {
+      pattern->setVerified(false);
+      if (pattern->verifyPattern()) {
+        match = new Match(pattern->getPats().size() + 1);
+        pattern->setVerified(true);
+        p = *pattern;
         stream.open();
         streamOpened = true;
-        delete p;
       }
     }
     else {
@@ -4145,12 +4234,13 @@ class FiltermatchesLI {
     }
   }
 
-  FiltermatchesLI(Word _stream, int _attrIndex, Pattern* p):
+  FiltermatchesLI(Word _stream, int _attrIndex, Pattern* pattern):
       stream(_stream), attrIndex(_attrIndex) {
-    if (p) {
-      match = new Match(p->getPats().size() + 1);
+    if (pattern) {
+      match = new Match(pattern->getPats().size() + 1);
 //       p->buildNFA();
-      match->copyFromPattern(*p);
+      match->copyFromPattern(&p);
+      p = *pattern;
       stream.open();
       streamOpened = true;
     }
@@ -4180,6 +4270,7 @@ class FiltermatchesLI {
       if (cand->GetTupleType()->GetAttributeType(attrIndex).typeId == 3) {
         while (cand) {
           ml = (MLabel*)cand->GetAttribute(attrIndex);
+          match->setPattern(&p);
           bool matching = match->matches(*ml);
           match->resetStates();
           if (matching) {
@@ -4192,6 +4283,7 @@ class FiltermatchesLI {
       else {
         while (cand) {
           ml = new MLabel((MString*)cand->GetAttribute(attrIndex));
+          match->setPattern(&p);
           bool matching = match->matches(*ml);
           match->resetStates();
           if (ml) {
@@ -4213,6 +4305,7 @@ class FiltermatchesLI {
   int attrIndex;
   Match* match;
   bool streamOpened;
+  Pattern p;
 };
 
 /*
@@ -4741,7 +4834,7 @@ ClassifyLI::ClassifyLI(Word _mlstream, Word _classifier) :
   else {
     numOfStates = startPos;
     mainMatch = new Match(numOfStates);
-    mainMatch->setNFAfromDbArray(c->getDelta());
+    delta = createNFAfromPersistent(*(c->getDelta()));
 //     mainMatch->printMultiNFA();
   }
 }
@@ -4797,7 +4890,7 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, bool rewrite) :
   else {
     numOfStates = startPos;
     mainMatch = new Match(numOfStates);
-    mainMatch->buildMultiNFA(pats);
+    delta = mainMatch->buildMultiNFA(pats);
     //mainMatch->printMultiNFA();
   }
 }
@@ -5204,7 +5297,7 @@ vector<TupleId> IndexLI::applyPattern() {
   Wildcard wild = NO;
   vector<int> prev(mlRel->GetNoTuples(), -1);
   vector<bool> active(mlRel->GetNoTuples(), true);
-  for (int i = 0; i < p->getSize(); i++) { // iterate over unit patterns
+  for (int i = 0; i < p->getSize(); i++) { // iterate over pattern elements
     applyUnitPattern(i, prev, wild, active);
   }
   for (int j = 0; j < mlRel->GetNoTuples(); j++) {
@@ -5239,7 +5332,7 @@ void IndexLI::applyConditions(vector<TupleId> tupleIds, bool classify) {
       for (unsigned int i = 0; i < tupleIds.size(); i++){
         Match* m = new Match(this, tupleIds[i]);
         m->computeCardsets();
-        m->initCondOpTrees();
+        m->initCondOpTrees(true);
         Tuple* tuple = mlRel->GetTuple(tupleIds[i], false);
         if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
           classification.push(make_pair(p->getDescr(), tupleIds[i]));
@@ -5253,7 +5346,7 @@ void IndexLI::applyConditions(vector<TupleId> tupleIds, bool classify) {
       for (unsigned int i = 0; i < tupleIds.size(); i++){
         Match* m = new Match(this, tupleIds[i]);
         m->computeCardsets();
-        m->initCondOpTrees();
+        m->initCondOpTrees(true);
         Tuple* tuple = mlRel->GetTuple(tupleIds[i], false);
         if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
           resultIds.push(tupleIds[i]);

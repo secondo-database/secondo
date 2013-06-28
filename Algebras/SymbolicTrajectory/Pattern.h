@@ -256,12 +256,16 @@ class Assign {
 };
 
 class Pattern {
+  friend class Match;
+  
  private:
-  vector<UPat> patterns;
+  vector<UPat> elems;
   vector<Assign> assigns;
-  vector<Condition> conds;
+  vector<Condition> easyConds; // evaluated during matching
+  vector<Condition> conds; // evaluated after matching
   string text, description;
   map<string, int> varPos;
+  map<string, set<int> > easyCondPos;
   set<string> assignedVars; // variables on the right side of an assignment
   vector<map<int, set<int> > > delta; // vector pos: old state;
                         // map.first: unit pattern id; map.second: new state.
@@ -269,22 +273,24 @@ class Pattern {
  public:
   Pattern() {}
 
+  Pattern(int i) {}
+
   Pattern(vector<UPat> ps, vector<Assign> as, vector<Condition> cs, string t,
           vector<map<int, set<int> > > d, bool v) {
-    patterns = ps;
+    elems = ps;
     assigns = as;
     conds = cs;
     text = t;
     delta = d;
     verified = v;
     collectAssVars();
-    for (int i = 0; i < (int)patterns.size(); i++) {
-      addVarPos(patterns[i].getV(), i);
+    for (int i = 0; i < (int)elems.size(); i++) {
+      addVarPos(elems[i].getV(), i);
     }
   }
 
   Pattern(const Pattern& rhs) {
-    patterns = rhs.patterns;
+    elems = rhs.elems;
     assigns = rhs.assigns;
     conds = rhs.conds;
     text = rhs.text;
@@ -296,7 +302,7 @@ class Pattern {
   }
 
   Pattern& operator=(const Pattern& rhs){
-    patterns = rhs.patterns;
+    elems = rhs.elems;
     assigns = rhs.assigns;
     conds = rhs.conds;
     text = rhs.text;
@@ -331,7 +337,7 @@ class Pattern {
   static const string BasicType();
   static const bool checkType(const ListExpr type);
   static Pattern* getPattern(string input, bool classify = false);
-  ExtBool matches(MLabel &ml) const;
+  ExtBool matches(MLabel &ml);
   bool verifyPattern() const;
   set<pair<vector<unsigned int>, vector<unsigned int> > > getRewriteSeqs
                                                                    (MLabel &ml);
@@ -346,21 +352,27 @@ class Pattern {
   bool initAssignOpTrees();
   void deleteAssignOpTrees(bool conds);
 
-  vector<UPat>      getPats()               {return patterns;}
+  vector<UPat>      getPats()               {return elems;}
   vector<Condition> getConds()              {return conds;}
+  vector<Condition> getEasyConds()          {return easyConds;}
   vector<Assign>&   getAssigns()            {return assigns;}
-  UPat              getPat(int pos) const   {return patterns[pos];}
+  UPat              getPat(int pos) const   {return elems[pos];}
   Condition         getCond(int pos) const  {return conds[pos];}
   Assign           getAssign(int pos) const {return assigns[pos];}
   bool              hasAssigns()            {return !assigns.empty();}
-  void              addUPat(UPat upat)      {patterns.push_back(upat);}
+  void              addUPat(UPat upat)      {elems.push_back(upat);}
   void              addCond(Condition cond) {conds.push_back(cond);}
+  void              addEasyCond(Condition cond) {
+    easyCondPos[cond.getVar(0)].insert(easyConds.size());
+    easyConds.push_back(cond);
+  }
   void              addAssign(Assign ass)  {assigns.push_back(ass);}
   void              setText(string newText) {text = newText;}
   void       addVarPos(string var, int pos) {varPos[var] = pos;}
   int               getVarPos(string var)   {return varPos[var];}
-  int               getSize() const         {return patterns.size();}
+  int               getSize() const         {return elems.size();}
   map<string, int>  getVarPos()             {return varPos;}
+  map<string, set<int> >* getEasyCondPos()  {return &easyCondPos;}
   void              insertAssVar(string v)  {assignedVars.insert(v);}
   set<string>       getAssVars()            {return assignedVars;}
   void setAssign(int posR, int posP, int key, string arg) {
@@ -369,12 +381,13 @@ class Pattern {
                                            {assigns[pos].addRight(key, varKey);}
   bool              isVerified() const      {return verified;}
   void              setVerified(bool v)     {verified = v;}
-  vector<map<int, set<int> > > getDelta() const     {return delta;}
+  vector<map<int, set<int> > >* getDelta()  {return &delta;}
   void              initDelta()             {map<int, set<int> > emptyMapping;
-                         for (unsigned int i = 0; i <= patterns.size(); i++) {
+                         for (unsigned int i = 0; i <= elems.size(); i++) {
                                                delta.push_back(emptyMapping);
                                              }
                                             }
+  void              setDelta(vector<map<int, set<int> > > d) {delta = d;}
   void              setDescr(string desc)   {description = desc;}
   string            getDescr()              {return description;}
   void deleteAssignOpTrees()   {for (unsigned int i = 0;i < assigns.size();i++){
@@ -453,10 +466,8 @@ struct DoubleParsInfo {
 
 class Match {
  private:
-  vector<map<int, set<int> > > delta;
+  Pattern *p;
   set<int> currentStates;
-  vector<UPat> patterns;
-  vector<Condition> conds;
   int maxCardPos, numOfW, f; // number of the final state
   ULabel ul;
   size_t ulId, numOfLabels, seqCounter, seqMax, numOfNegEvals;
@@ -466,18 +477,16 @@ class Match {
   map<int, int> resultVars; // (0,3) means: 0th result var occurs in 3rd unit p.
   set<string> assignedVars;
   map<string, int> varPos, varPosInSeq;
-  set<int> doublePars; // positions of nonempty patterns in double parentheses
+  set<int> doublePars; // positions of nonempty pat elems in double parentheses
   int *seqOrder;
 
  public:
   Match(const int size) {
+    p = 0;
     f = size - 1;
     numOfLabels = 0;
+    ulId = 0;
     currentStates.insert(0);
-//     map<int, set<int> > emptyMapping;
-//     for (int i = 0; i < f; i++) {
-//       delta.push_back(emptyMapping);
-//     }
     match = new set<unsigned int>[f];
     cardsets = new set<unsigned int>[f];
     seqOrder = new int[f];
@@ -496,7 +505,7 @@ class Match {
   void printCards();
   void printSequences(unsigned int max);
   void printRewriteSeqs(unsigned int max);
-  void updateStates();
+  void updateStates(MLabel const &ml);
   set<size_t> updatePositionsIndex(MLabel &ml, int pos, set<size_t> positions);
   void computeCardsets();
   void correctCardsets(int nonStars, int wildcards);
@@ -509,40 +518,45 @@ class Match {
   void computeResultVars(vector<Assign> assigns);
   set<pair<vector<unsigned int>, vector<unsigned int> > > getRewriteSeqs()
                                               {return rewriteSeqs;}
+  bool easyCondsMatch(MLabel const &ml, UPat const &up);
   bool conditionsMatch(MLabel const &ml);
   void computeSeqOrder();
   bool evaluateEmptyML();
-  bool evaluateCond(MLabel const &ml, int cId, multiset<unsigned int> sequence);
+  bool evaluateCond(MLabel const &ml, Condition &cond,
+                    multiset<unsigned int> sequence);
   set<multiset<unsigned int> > getSequences() {return sequences;}
   set<string> getAssVars() {return assignedVars;}
   void setAssVars(set<string> aV) {assignedVars = aV;}
   void setVarPos(map<string, int> vP) {varPos = vP;}
-  void setFinalState(int final) {f = final;}
+  void setFinalState(int finalState) {f = finalState;}
   map<string, int>& getVarPosInSeq() {return varPosInSeq;}
-  void copyFromPattern(Pattern p) {
-    delta = p.getDelta();
-    patterns = p.getPats();
-    conds = p.getConds();
-    assignedVars = p.getAssVars(); // TODO why is it empty?
-    varPos = p.getVarPos(); // TODO why is it empty?
+  void copyFromPattern(Pattern *pattern) {
+    p = pattern;
+  }
+  void initP() {
+    p = new Pattern(0);
   }
   void resetStates() {
     currentStates.clear();
     currentStates.insert(0);
   }
-  void buildMultiNFA(vector<Pattern*> pats);
-  vector<map<int, set<int> > >* getNFA() {return &delta;}
+  vector<map<int, set<int> > > buildMultiNFA(vector<Pattern*> pats);
+  void setMultiNFA(vector<map<int, set<int> > > nfa) {p->setDelta(nfa);}
+  vector<map<int, set<int> > >* getNFA() {return p->getDelta();}
   void setNFAfromDbArray(DbArray<NFAtransition> *d) {
-    delta = createNFAfromPersistent(*d);
+    p->setDelta(createNFAfromPersistent(*d));
   }
+  void setPattern(Pattern *pattern) {p = pattern;}
   void printMultiNFA();
   vector<int> applyMultiNFA(ClassifyLI* c, bool rewrite = false);
   vector<int> applyConditions(ClassifyLI* c);
   void multiRewrite(ClassifyLI* c);
   pair<string, Attribute*> getPointer(int key);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
-  bool initCondOpTrees();
+  bool initCondOpTrees(bool overwrite = false);
   void deleteCondOpTrees();
+  bool initEasyCondOpTrees();
+  void deleteEasyCondOpTrees();
 };
 
 class RewriteResult {
@@ -598,6 +612,7 @@ public:
 
 private:
   vector<Pattern*> pats;
+  vector<map<int, set<int> > > delta;
   Stream<MLabel> mlStream;
   TupleType* classifyTT;
   map<int, int> start2pat, end2pat, pat2start;
@@ -624,7 +639,7 @@ public:
   Tuple* nextResultTuple(bool classify);
   void applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wc,
                         vector<bool>& active);
-  vector<TupleId> applyPattern(); // apply unit patterns of p to mlRel
+  vector<TupleId> applyPattern(); // apply pattern elements of p to mlRel
   void applyConditions(vector<TupleId> matchingMLs, bool classify);//filter vec
   int getMLsize(TupleId tId);
   ULabel getUL(TupleId tId, unsigned int ulId);
