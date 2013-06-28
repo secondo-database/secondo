@@ -30,5 +30,10 @@ operator minimum alias MINIMUM pattern op(_)
 operator maximum alias MAXIMUM pattern op(_)
 operator map alias MAP pattern _ op [fun]
          implicit parameter element type CELL1
+operator map2 alias MAP2 pattern _ _ op [fun]
+         implicit parameters elem1, elem2 types CELL1, CELL2
+operator fromline alias FROMLINE pattern op(_)
+operator fromregion alias FROMREGION pattern op(_,_)
+operator toregion alias TOREGION pattern _ op
 operator t2mt alias TTOMT pattern  op(_,_,_,_)
 operator getgrid alias GETGRID pattern op(_)
