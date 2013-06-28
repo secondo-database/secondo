@@ -10,6 +10,8 @@
 # running times and result sizes refer to arnsberg-regbez.osm, using 
 # GlobalMemory = 2 GB
 #
+# second set of running times for California (complete)
+#
 ###########################################################################
 
 # Database hombruch
@@ -27,6 +29,15 @@ query fullosmimport('arnsberg-regbez.osm', "City")
 # relation CityRelations with 355347 tuples stored
 # relation CityRelationTags with 52448 tuples stored
 
+# file california-latest.osm opened successfully
+# relation CityNodes with 44131572 tuples stored
+# relation CityNodeTags with 8469252 tuples stored
+# relation CityWays with 49706123 tuples stored
+# relation CityWayTags with 20363092 tuples stored
+# relation CityRelations with 164141 tuples stored
+# relation CityRelationTags with 81925 tuples stored
+
+# CA 40:52min (2451.81sec)
 
 # Q2
 
@@ -39,6 +50,8 @@ let CityNodesNew = CityNodes feed
   consume
 
 # 213 secs
+
+# CA 64:28min (3867.55sec)
 
 # query nodes(CityNodesNew feed addid bulkloadrtree[Pos]) consume
 
@@ -72,13 +85,19 @@ let CityNodesNew_NodeId_flist = CityNodesNew feed spread[; NodeId, CLUSTER_SIZE,
 
 # 28 secs
 
+# CA 3:50min (229.644sec)
+
 let CityWays_NodeRef_flist = CityWays feed spread[; NodeRef, CLUSTER_SIZE, TRUE;]
 
 # 32 secs
 
+# CA 4:04min (244.451sec)
+
 let CityWayTags_WayIdInTag_flist = CityWayTags feed spread[; WayIdInTag, CLUSTER_SIZE, TRUE;]
 
 # 28 secs
+
+# CA 4:10min (250.382sec)
 
 let Ways_WayId_dlo = CityNodesNew_NodeId_flist
   CityWays_NodeRef_flist
@@ -95,6 +114,8 @@ let Ways_WayId_dlo = CityNodesNew_NodeId_flist
     consume ]
 
 # 3:20min (200.108sec)
+
+# CA 18:59min (1139.39sec)
 
 
 # check the result:
@@ -157,6 +178,10 @@ let Roads_WayId_dlo = Ways_WayId_dlo hadoopMap[DLO; . feed filter[.WayInfo afeed
 
 # 54.72 secs
 
+# CA 1:51min (110.819sec)
+
+
+
 # check the result:
 
 query Roads_WayId_dlo hadoopMap[DLF; . feed count feed transformstream] collect[] consume
@@ -186,6 +211,8 @@ let Roads_WayId_Curve_rtree_dlo = Roads_WayId_dlo
   hadoopMap[DLO; . feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box] ]
 
 # 33.52 secs
+
+# CA 32.5971sec
 
 
 # Q7
@@ -227,6 +254,8 @@ let RoadsWayId_WayId_flist = Roads_WayId_dlo hadoopMap[DLF; . feed project[WayId
 
 # 34.78 secs
 
+# CA 32.4967sec
+
 let Nodes_WayId_flist =
   CityWays_NodeRef_flist
   CityWays_NodeRef_flist
@@ -258,6 +287,8 @@ Roads_WayId_dlo
 
 # 5:45 mins (344 secs)
 # 722693 correct
+
+# CA 12:47min (767.436sec)
 
 
 # query Nodes_WayId_flist hadoopMap[DLF; . count feed transformstream] collect[] sum[Elem]
@@ -324,6 +355,8 @@ let Nodes_WayId_dlo = Nodes_WayId_flist
 
 # 1:27min (86.9874sec)
 
+# CA 1:25min (84.723sec)
+
 let EdgesUp_WayId_flist = Nodes_WayId_dlo 
   hadoopMap[DLF, TRUE; . feed 
     para(Roads_WayId_dlo) feed {r}
@@ -348,6 +381,8 @@ let EdgesUp_WayId_flist = Nodes_WayId_dlo
 
 # 49.78 secs
 # 480137 correct
+
+# CA 2:60min (179.586sec)
 
 
 # query EdgesUp_WayId_flist hadoopMap[DLF; . count feed transformstream] collect[] sum[Elem]
@@ -407,6 +442,8 @@ let NodesDesc_WayId_dlo = Nodes_WayId_flist
 
 # 46.9466sec
 
+# CA 1:22min (81.5328sec)
+
 let EdgesDown_WayId_flist = NodesDesc_WayId_dlo 
   hadoopMap[DLF; . feed para(Roads_WayId_dlo) feed 
     filter[.WayInfo afeed filter[.WayTagKey = "oneway"] 
@@ -431,6 +468,10 @@ let EdgesDown_WayId_flist = NodesDesc_WayId_dlo
 
 # 53.3496sec
 # 453944 correct
+
+# CA 3:48min (228.05sec)
+
+
 
 # query EdgesDown_WayId_flist hadoopMap[DLF; . count feed transformstream ] collect[] sum[Elem]
 # correct
@@ -461,6 +502,8 @@ let Edges_WayId_dlo = EdgesUp_WayId_flist EdgesDown_WayId_flist
 
 # 50.6366sec
 # 934081 correct
+
+# CA 1:46min (105.711sec)
 
 # query Edges_WayId_dlo hadoopMap[DLF; . feed count feed transformstream ] collect[] sum[Elem]
 
@@ -519,7 +562,8 @@ derive EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 # Runtime for Scripts/OrderedRelationGraphFromFullOSMImport.SEC: Times (elapsed / cpu): 
 # 84:56min (5095.72sec) /2510.84sec = 2.02949
 
-
+# CA Runtime for Scripts/OrderedRelationGraphFromFullOSMImportParallelOnly.SEC: Times (elapsed / 
+# cpu): 164:19min (9859sec) /0.06sec = 164317
 
 
 
