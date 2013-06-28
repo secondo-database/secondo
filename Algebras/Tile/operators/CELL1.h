@@ -26,16 +26,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
-
-/*
-declaration of CELL1 type mapping function
-
-*/
-
-ListExpr CELL1TypeMappingFunction(ListExpr arguments);
 
 /*
 definition of CELL1 Operator Info structure
@@ -47,11 +41,51 @@ struct CELL1Info : OperatorInfo
   CELL1Info()
   {
     name      = "CELL1";
-    signature = "xT x ... -> T";
     syntax    = "Not available";
     meaning   = "Type mapping operator.";
+
+    std::vector<std::string> valueWrapperTypes;
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+
+    if(valueWrapperTypes.size() == tTypes.size() &&
+       valueWrapperTypes.size() == mtTypes.size())
+    {
+      for(size_t i = 0; i < tTypes.size(); i++)
+      {
+        if(signature.empty())
+        {
+          signature = tTypes[i] + " x ... -> " + valueWrapperTypes[i];
+        }
+
+        else
+        {
+          appendSignature(tTypes[i] + " x ... -> " + valueWrapperTypes[i]);
+        }
+      }
+
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        appendSignature(mtTypes[i] + " x ... -> " + valueWrapperTypes[i]);
+      }
+    }
+
+    else
+    {
+      assert(false);
+    }
   }
 };
+
+/*
+declaration of CELL1 type mapping function
+
+*/
+
+ListExpr CELL1TypeMappingFunction(ListExpr arguments);
 
 }
 

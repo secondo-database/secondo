@@ -21,15 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "CELL1.h"
-#include "../Types.h"
-#include "../t/tint.h"
-#include "../t/treal.h"
-#include "../t/tbool.h"
-#include "../t/tstring.h"
-#include "../mt/mtint.h"
-#include "../mt/mtreal.h"
-#include "../mt/mtbool.h"
-#include "../mt/mtstring.h"
 
 namespace TileAlgebra
 {
@@ -41,7 +32,8 @@ definition of CELL1 type mapping function
 
 ListExpr CELL1TypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a t type or a mt type.");
+  ListExpr type = NList::typeError("Operator CELL1 expects "
+                                   "a t type or a mt type.");
 
   NList argumentsList(arguments);
 
