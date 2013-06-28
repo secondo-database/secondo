@@ -42,6 +42,7 @@ class Index
 
   Index();
   Index(const int (&)[Dimension]);
+  Index(const Index<Dimension>& rIndex);
 
   /*
   destructor
@@ -72,7 +73,8 @@ class Index
 
   */
 
-  int Get(const int& rIndex);
+  bool Decrement(const int& rIndex);
+  bool Increment(const int& rIndex);
 
   private:
 
@@ -95,6 +97,15 @@ Index<Dimension>::Index()
 
 template <int Dimension>
 Index<Dimension>::Index(const int (&rIndex)[Dimension])
+{
+  for(int i = 0; i < Dimension; i++)
+  {
+    m_Index[i] = rIndex[i];
+  }
+}
+
+template <int Dimension>
+Index<Dimension>::Index(const Index<Dimension>& rIndex)
 {
   for(int i = 0; i < Dimension; i++)
   {
@@ -244,16 +255,31 @@ Index<Dimension>& Index<Dimension>::operator-=(const Index<Dimension>& rIndex)
 }
 
 template <int Dimension>
-int Index<Dimension>::Get(const int& rIndex)
+bool Index<Dimension>::Decrement(const int& rIndex)
 {
-  int indexValue = UNDEFINED_INT;
+  bool bRetVal = false;
 
   if(rIndex < Dimension)
   {
-    indexValue = m_Index[rIndex];
+    m_Index[rIndex]--;
+    bRetVal = true;
   }
 
-  return indexValue;
+  return bRetVal;
+}
+
+template <int Dimension>
+bool Index<Dimension>::Increment(const int& rIndex)
+{
+  bool bRetVal = false;
+
+  if(rIndex < Dimension)
+  {
+    m_Index[rIndex]++;
+    bRetVal = true;
+  }
+
+  return bRetVal;
 }
 
 }
