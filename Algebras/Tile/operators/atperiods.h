@@ -27,9 +27,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "TemporalAlgebra.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of atperiods Operator Info structure
+
+*/
+
+struct atperiodsInfo : OperatorInfo 
+{
+  atperiodsInfo()
+  { 
+    name      = "atperiods";
+    syntax    = "atperiods(_)";
+    meaning   = "Restricts values to periods.";
+
+    std::vector<std::string> mtTypes;
+    GetmtTypes(mtTypes);
+
+    for(size_t i = 0; i < mtTypes.size(); i++)
+    {
+      if(signature.empty())
+      {
+        signature = mtTypes[i] + " x " + Periods::BasicType() +
+                    " -> " + mtTypes[i];
+      }
+
+      else
+      {
+        appendSignature(mtTypes[i] + " x " + Periods::BasicType() +
+                        " -> " + mtTypes[i]);
+      }
+    }
+  }          
+};
 
 /*
 declaration of atperiods functions
@@ -51,71 +85,6 @@ declaration of atperiods type mapping function
 */
 
 ListExpr atperiodsTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of atperiods Operator Info structure
-
-*/
-
-struct atperiodsInfo : OperatorInfo 
-{
-  atperiodsInfo()
-  { 
-    name      = "atperiods";
-    signature = "mtT atperiods " + Periods::BasicType() + " -> mtT";
-    syntax    = "atperiods(_)";
-    meaning   = "Restricts values to periods.";
-  }          
-};
-
-/*
-definition of template atperiodsFunction
-
-*/
-
-template <typename Type>
-int atperiodsFunction(Word* pArguments,
-                      Word& rResult,
-                      int message,
-                      Word& rLocal,
-                      Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-    Periods* pPeriods = static_cast<Periods*>(pArguments[1].addr);
-
-    if(pType != 0 &&
-       pPeriods != 0)
-    {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
-      {
-        Type* pResult = static_cast<Type*>(rResult.addr);
-
-        if(pResult != 0)
-        {
-          if(pType->IsDefined() &&
-             pPeriods->IsDefined())
-          {
-            pType->atperiods(*pPeriods, *pResult);
-          }
-
-          else
-          {
-            pResult->SetDefined(false);
-          }
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 

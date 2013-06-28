@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "atperiods.h"
-#include "../Types.h"
 #include "../mt/mtint.h"
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
@@ -29,6 +28,55 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace TileAlgebra
 {
+
+/*
+definition of template atperiodsFunction
+
+*/
+
+template <typename Type>
+int atperiodsFunction(Word* pArguments,
+                      Word& rResult,
+                      int message,
+                      Word& rLocal,
+                      Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+    Periods* pPeriods = static_cast<Periods*>(pArguments[1].addr);
+
+    if(pType != 0 &&
+       pPeriods != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        Type* pResult = static_cast<Type*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          if(pType->IsDefined() &&
+             pPeriods->IsDefined())
+          {
+            pType->atperiods(*pPeriods, *pResult);
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of atperiods functions
@@ -95,7 +143,8 @@ definition of atperiods type mapping function
 
 ListExpr atperiodsTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a mt type and a periods.");
+  ListExpr type = NList::typeError("Operator atperiods expects "
+                                   "a mt type and a periods.");
 
   NList argumentsList(arguments);
 
