@@ -26,9 +26,51 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+#include "../Types.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of val Operator Info structure
+
+*/
+
+struct valInfo : OperatorInfo
+{
+  valInfo()
+  {
+    name      = "val";
+    syntax    = "val(_)";
+    meaning   = "Returns the t type value of a it type.";
+
+    std::vector<std::string> tTypes;
+    std::vector<std::string> itTypes;
+    GettTypes(tTypes);
+    GetitTypes(itTypes);
+
+    if(tTypes.size() == itTypes.size())
+    {
+      for(size_t i = 0; i < itTypes.size(); i++)
+      {
+        if(signature.empty())
+        {
+          signature = itTypes[i] + " -> " + tTypes[i];
+        }
+
+        else
+        {
+          appendSignature(itTypes[i] + " -> " + tTypes[i]);
+        }
+      }
+    }
+
+    else
+    {
+      assert(false);
+    }
+  }
+};
 
 /*
 declaration of val functions
@@ -50,62 +92,6 @@ declaration of val type mapping function
 */
 
 ListExpr valTypeMappingFunction(ListExpr arguments);
-
-/*
-definition of val Operator Info structure
-
-*/
-
-struct valInfo : OperatorInfo
-{
-  valInfo()
-  {
-    name      = "val";
-    signature = "itT -> tT";
-    syntax    = "val(_)";
-    meaning   = "Returns the t type value of a it type.";
-  }
-};
-
-/*
-definition of template valFunction
-
-*/
-
-template <typename Type, typename Properties>
-int valFunction(Word* pArguments,
-                Word& rResult,
-                int message,
-                Word& rLocal,
-                Supplier supplier)
-{
-  int nRetVal = 0;
-
-  if(qp != 0 &&
-     pArguments != 0)
-  {
-    Type* pType = static_cast<Type*>(pArguments[0].addr);
-
-    if(pType != 0)
-    {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
-      {
-        typename Properties::tType* pResult = static_cast
-                                              <typename Properties::tType*>
-                                              (rResult.addr);
-        
-        if(pResult != 0)
-        {
-          pType->val(*pResult);
-        }
-      }
-    }
-  }
-
-  return nRetVal;
-}
 
 }
 

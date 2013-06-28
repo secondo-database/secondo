@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "val.h"
-#include "../Types.h"
 #include "../it/itint.h"
 #include "../it/itreal.h"
 #include "../it/itbool.h"
@@ -29,6 +28,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace TileAlgebra
 {
+
+/*
+definition of template valFunction
+
+*/
+
+template <typename Type, typename Properties>
+int valFunction(Word* pArguments,
+                Word& rResult,
+                int message,
+                Word& rLocal,
+                Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+
+    if(pType != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        typename Properties::tType* pResult = static_cast
+                                              <typename Properties::tType*>
+                                              (rResult.addr);
+
+        if(pResult != 0)
+        {
+          pType->val(*pResult);
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of val functions
@@ -90,7 +129,7 @@ definition of val type mapping function
 
 ListExpr valTypeMappingFunction(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting an it type.");
+  ListExpr type = NList::typeError("Operator val expects an it type.");
 
   NList argumentsList(arguments);
 
