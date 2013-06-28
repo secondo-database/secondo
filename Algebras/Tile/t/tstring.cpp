@@ -125,7 +125,7 @@ void tstring::atrange(const Rectangle<2>& rRectangle,
       double x = m_Grid.GetX();
       double y = m_Grid.GetY();
       double length = m_Grid.GetLength();
-      rtstring.SetGrid(x, y, length);
+      rtstring.SetGrid(m_Grid);
 
       Index<2> startIndex = GetLocationIndex(rRectangle.MinD(0),
                                              rRectangle.MinD(1));
