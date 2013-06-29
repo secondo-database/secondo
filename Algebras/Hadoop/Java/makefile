@@ -130,7 +130,7 @@ checkbin:
 	if [ ! -d ${BIN_P} ];then mkdir -p ${BIN_P}/lib; fi
 
 editor:
-	(cd PSEditor; JAVAC *.java)
+	(cd PSEditor; javac *.java)
 	jar -cfm PSEditor.jar PSEditor/META-INF/MANIFEST.MF PSEditor *.xml
 
 help:
