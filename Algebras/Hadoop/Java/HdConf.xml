@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HdConf>
+<File name="hadoop-env.sh">
+	<item>
+		<key>JAVA_HOME</key>
+		<type>SINGLE</type>
+		<value>/usr/lib/jvm/java-6-openjdk</value>
+		<default>/usr/lib/jvm/java-6-openjdk</default>
+		<editable>true</editable>		
+	</item>
+
+	<item>
+		<key>HADOOP_OPTS::-Dhostname=$HOSTNAME</key>
+		<type>MULTI</type>
+		<value>true</value>
+		<default>true</default>
+		<editable>false</editable>
+	</item>
+
+	<item>
+		<key>HADOOP_OPTS::-Dhome=$HOME</key>
+		<type>MULTI</type>
+		<value>true</value>
+		<default>true</default>
+		<editable>false</editable>
+	</item>
+
+	<item>
+		<key>HADOOP_OPTS::-Duser=$USER</key>
+		<type>MULTI</type>
+		<value>true</value>
+		<default>true</default>
+		<editable>false</editable>
+	</item>
+
+	<item>
+		<key>HADOOP_OPTS::-Dmpath=$PARALLEL_SECONDO_MAINDS</key>
+		<type>MULTI</type>
+		<value>true</value>
+		<default>true</default>
+		<editable>false</editable>
+	</item>
+
+	<item>
+		<key>HADOOP_OPTS::-Djava.net.preferIPv4Stack=true</key>
+		<type>MULTI</type>
+		<value>true</value>
+		<default>true</default>
+		<editable>false</editable>
+	</item>
+
+	<item>
+		<key>HADOOP_OPTS::-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl</key>
+		<type>MULTI</type>
+		<value>true</value>
+		<default>true</default>
+		<editable>false</editable>
+	</item>
+	
+</File>
+
+<File name="core-site.xml">
+	<item>
+		<key>hadoop.tmp.dir</key>
+		<type>SINGLE</type>
+		<value>/tmp/hadoop-${hostname}-${user}</value>
+		<default>/tmp/hadoop-${hostname}-${user}</default>
+		<editable>false</editable>
+	</item>
+
+	<item>
+		<key>fs.default.name</key>
+		<type>SINGLE-HDFSPORT</type>
+		<value>49000</value>
+		<default>49000</default>
+		<editable>true</editable>
+	</item>
+</File>
+
+<File name="hdfs-site.xml">
+	<item>
+		<key>dfs.name.dir</key>
+		<type>SINGLE</type>
+		<value>${mpath}/HDFS/NAME</value>
+		<default>${mpath}/HDFS/NAME</default>
+		<editable>false</editable>
+	</item>
+
+	<item>
+		<key>dfs.data.dir</key>
+		<type>SINGLE</type>
+		<value>${mpath}/HDFS/DATA</value>
+		<default>${mpath}/HDFS/DATA</default>
+		<editable>false</editable>
+	</item>
+
+	<item>
+		<key>dfs.http.address</key>
+		<type>SINGLE-HOSTPORT</type>
+		<value>50070</value>
+		<default>50070</default>
+		<editable>true</editable>
+	</item>
+
+	<item>
+		<key>dfs.secondary.http.address</key>
+		<type>SINGLE-HOSTPORT</type>
+		<value>50090</value>
+		<default>50090</default>
+		<editable>true</editable>
+	</item>
+	
+	<item>
+		<key>dfs.datanode.address</key>
+		<type>SINGLE-PORT</type>
+		<value>50010</value>
+		<default>50010</default>
+		<editable>true</editable>
+	</item>
+	
+	<item>
+		<key>dfs.datanode.http.address</key>
+		<type>SINGLE-PORT</type>
+		<value>50075</value>
+		<default>50075</default>
+		<editable>true</editable>
+	</item>
+	
+	<item>
+		<key>dfs.datanode.ipc.address</key>
+		<type>SINGLE-PORT</type>
+		<value>50020</value>
+		<default>50020</default>
+		<editable>true</editable>
+	</item>
+	
+	<item>
+		<key>dfs.datanode.https.address</key>
+		<type>SINGLE-PORT</type>
+		<value>50475</value>
+		<default>50475</default>
+		<editable>true</editable>
+	</item>
+	
+	<item>
+		<key>dfs.https.address</key>
+		<type>SINGLE-PORT</type>
+		<value>50470</value>
+		<default>50470</default>
+		<editable>true</editable>
+	</item>
+</File>
+
+<File name="mapred-site.xml">
+	<item>
+		<key>mapred.job.tracker</key>
+		<type>SINGLE-HOSTPORT</type>
+		<value>49001</value>
+		<default>49001</default>
+		<editable>true</editable>
+	</item>
+
+	<item>
+		<key>mapred.job.tracker.http.address</key>
+		<type>SINGLE-HOSTPORT</type>
+		<value>50030</value>
+		<default>50030</default>
+		<editable>true</editable>
+	</item>
+
+	<item>
+		<key>mapred.tasktracker.map.tasks.maximum</key>
+		<type>SINGLE</type>
+		<value>12</value>
+		<default>12</default>
+		<editable>true</editable>
+	</item>
+
+	<item>
+		<key>mapred.tasktracker.reduce.tasks.maximum</key>
+		<type>SINGLE</type>
+		<value>12</value>
+		<default>12</default>
+		<editable>true</editable>
+	</item>
+
+	<item>
+		<key>mapred.reduce.parallel.copies</key>
+		<type>SINGLE</type>
+		<value>12</value>
+		<default>12</default>
+		<editable>true</editable>
+	</item>
+
+	<item>
+		<key>mapred.task.timeout</key>
+		<type>SINGLE</type>
+		<value>6000000</value>
+		<default>6000000</default>
+		<editable>true</editable>
+	</item>
+	
+	<item>
+		<key>mapred.task.tracker.http.address</key>
+		<type>SINGLE-PORT</type>
+		<value>51060</value>
+		<default>51060</default>
+		<editable>true</editable>
+	</item>
+</File>
+
+</HdConf>

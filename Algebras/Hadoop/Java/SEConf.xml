@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SEConf>
+	<section name="Environment">
+		<item>
+			<key>SecondoHome</key>
+			<type>SINGLE</type>
+			<value>/home/databases1</value>
+			<default>/home/databases1</default>
+		</item>
+		
+		<item>
+			<key>AlgebraLevel</key>
+			<type>SINGLE</type>
+			<value>Executable</value>
+			<default>Executable</default>
+		</item>
+		
+		<item>
+			<key>RegistrarSocketNamePrefix</key>
+			<type>SINGLE</type>
+			<value>SECREGIS</value>
+			<default>SECREGIS</default>
+		</item>
+		
+		<item>
+			<key>RegistrarProgram</key>
+			<type>SINGLE</type>
+			<value>SecondoRegistrar</value>
+			<default>SecondoRegistrar</default>
+		</item>
+		
+		<item>
+			<key>ListenerProgram</key>
+			<type>SINGLE</type>
+			<value>SecondoListener</value>
+			<default>SecondoListener</default>
+		</item>
+		
+		<item>
+			<key>SecondoHost</key>
+			<type>SINGLE</type>
+			<value>127.0.0.1</value>
+			<default>127.0.0.1</default>
+		</item>
+		
+		<item>
+			<key>SecondoPort</key>
+			<type>SINGLE</type>
+			<value>1234</value>
+			<default>1234</default>
+		</item>
+		
+		<item>
+			<key>RTFlags::SI:PrintCounters</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+		
+		<item>
+			<key>RTFlags::SI:PrintCmdTimes</key>
+			<type>MULTI</type>
+			<value>true</value>
+			<default>true</default>
+		</item>
+
+		<item>
+			<key>RTFlags::SI:NoQueryTimers</key>
+			<type>MULTI</type>
+			<value>true</value>
+			<default>true</default>
+		</item>
+
+		<item>
+			<key>RTFlags::SI:NoCommandEcho</key>
+			<type>MULTI</type>
+			<value>true</value>
+			<default>true</default>
+		</item>
+
+		<item>
+			<key>RTFlags::SI:RelStatistics</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::SI:ResultList</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::SI:AUTO_BUFFER</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::Server:BinaryTransfer</key>
+			<type>MULTI</type>
+			<value>true</value>
+			<default>true</default>
+		</item>
+
+		<item>
+			<key>RTFlags::Server:ResultFile</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::Server:SendTimeMsg</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::SMI:NoTransactions</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::SMI:AutoRemoveLogs</key>
+			<type>MULTI</type>
+			<value>true</value>
+			<default>true</default>
+		</item>
+
+		<item>
+			<key>RTFlags::SMI:DbHandles</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::Socket:SendStat</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::FText:Trace</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::ERA:TraceMergeJoin</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::ERA:ShowMemInfo</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::ERA:Sort:PartitionInfo</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::RA:TupleBufferInfo</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::RA:ShowMemInfo</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::Array::ShowTimePerFunctionCall</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::SecondoScanner:Debug</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::NLScanner:Debug</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::NLParser:Debug</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::NL:BinaryListDebug</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+
+		<item>
+			<key>RTFlags::DEBUG:DemangleStackTrace</key>
+			<type>MULTI</type>
+			<value>true</value>
+			<default>true</default>
+		</item>
+
+	</section>
+	
+	<section name="FlobCache">
+		<item>
+			<key>Native_MaxSize</key>
+			<type>SINGLE</type>
+			<value>67108864</value>
+			<default>67108864</default>
+		</item>
+		
+		<item>
+			<key>Native_SlotSize</key>
+			<type>SINGLE</type>
+			<value>16777216</value>
+			<default>16777216</default>
+		</item>
+		
+		<item>
+			<key>Native_AvgSize</key>
+			<type>SINGLE</type>
+			<value>512</value>
+			<default>512</default>
+		</item>
+		
+		<item>
+			<key>Persistent_MaxSize</key>
+			<type>SINGLE</type>
+			<value>67108864</value>
+			<default>67108864</default>
+		</item>
+		
+		<item>
+			<key>Persistent_SlotSize</key>
+			<type>SINGLE</type>
+			<value>16777216</value>
+			<default>16777216</default>
+		</item>
+		
+		<item>
+			<key>Persistent_AvgSize</key>
+			<type>SINGLE</type>
+			<value>512</value>
+			<default>512</default>
+		</item>
+	</section>
+	
+	<section name="QueryProcessor">
+		<item>
+			<key>MaxMemPerOperator</key>
+			<type>SINGLE</type>
+			<value>16348</value>
+			<default>16348</default>
+		</item>
+
+		<item>
+			<key>GlobalMemory</key>
+			<type>SINGLE</type>
+			<value>512</value>
+			<default>512</default>
+		</item>
+	</section>
+	
+	<section name="ProgressEstimation">
+		<item>
+			<key>RTFlags::QP:ProgDisable</key>
+			<type>MULTI</type>
+			<value>false</value>
+			<default>false</default>
+		</item>
+		
+		<item>
+			<key>PROGRESS_CONSTANTS_FILE</key>
+			<type>SINGLE</type>
+			<value>ProgressConstants.csv</value>
+			<default>ProgressConstants.csv</default>
+		</item>
+		
+		<item>
+			<key>ProgNorm</key>
+			<type>SINGLE</type>
+			<value>50</value>
+			<default>50</default>
+		</item>
+		
+		<item>
+			<key>ProgProt</key>
+			<type>SINGLE</type>
+			<value>0</value>
+			<default>0</default>
+		</item>
+		
+		<item>
+			<key>ProgLog</key>
+			<type>SINGLE</type>
+			<value>1</value>
+			<default>1</default>
+		</item>
+		
+		<item>
+			<key>ProgTypeCard</key>
+			<type>SINGLE</type>
+			<value>0</value>
+			<default>0</default>
+		</item>
+		
+		<item>
+			<key>ProgTypeProg</key>
+			<type>SINGLE</type>
+			<value>1</value>
+			<default>1</default>
+		</item>
+	</section>
+	
+	<section name="BerkeleyDB">
+		<item>
+			<key>ServerProgram</key>
+			<type>SINGLE</type>
+			<value>SecondoBDB</value>
+			<default>SecondoBDB</default>
+		</item>
+		
+		<item>
+			<key>CheckpointProgram</key>
+			<type>SINGLE</type>
+			<value>SecondoCheckpoint</value>
+			<default>SecondoCheckpoint</default>
+		</item>
+		
+		<item>
+			<key>CheckpointTime</key>
+			<type>SINGLE</type>
+			<value>5</value>
+			<default>5</default>
+		</item>
+		
+		<item>
+			<key>CacheSize</key>
+			<type>SINGLE</type>
+			<value>65536</value>
+			<default>65536</default>
+		</item>
+		
+		<item>
+			<key>MaxLockers</key>
+			<type>SINGLE</type>
+			<value>100</value>
+			<default>100</default>
+		</item>
+		
+		<item>
+			<key>MaxLocks</key>
+			<type>SINGLE</type>
+			<value>300000</value>
+			<default>300000</default>
+		</item>
+		
+		<item>
+			<key>MaxLockObjects</key>
+			<type>SINGLE</type>
+			<value>300000</value>
+			<default>300000</default>
+		</item>
+		
+		
+	</section>
+	
+</SEConf>

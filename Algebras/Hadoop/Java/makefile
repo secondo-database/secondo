@@ -6,10 +6,11 @@ BIN_P = bin
 CLS_P = ${BIN_P}/${PKGNM}
 SRC_P = ./${PKGNM}
 
-all: checkenv checkbin ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class 
-	cp ${SEC_P} ${BIN_P}/lib/
+all: checkenv checkbin editor ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class 
 	jar -cf ${JarFile} -C ${BIN_P} .
 	cp ${JarFile} ../../../bin/
+
+${SEC_P}: cp ${SEC_P} ${BIN_P}/lib/
 
 ${CLS_P}/PS_HadoopMap.class: ${CLS_P}/PS_HadoopMap_Map.class ${CLS_P}/PS_HadoopMap_Reduce.class \
 ${SRC_P}/PS_HadoopMap.java
@@ -101,9 +102,6 @@ ${CLS_P}/RMDataOutputStream.class: ${SRC_P}/RMDataOutputStream.java
 ${CLS_P}/Constant.class: ${SRC_P}/Constant.java
 	javac $? -d ${BIN_P}
 
-${CLS_P}/PSNode.class: ${SRC_P}/PSNode.java
-	javac $? -d ${BIN_P}
-
 ${CLS_P}/ExtListExpr.class: ${SRC_P}/ExtListExpr.java 
 	javac -classpath ${SEC_P} $? -d ${BIN_P}
 	
@@ -116,6 +114,7 @@ run:
 clean:
 	if [ -f ${JarFile} ];then rm ${JarFile}; fi
 	rm -rf ${BIN_P}
+	rm -f PSEditor.jar
 output:
 
 doc:
@@ -130,12 +129,17 @@ endif
 checkbin:
 	if [ ! -d ${BIN_P} ];then mkdir -p ${BIN_P}/lib; fi
 
+editor:
+	(cd PSEditor; JAVAC *.java)
+	jar -cfm PSEditor.jar PSEditor/META-INF/MANIFEST.MF PSEditor *.xml
+
 help:
 	@echo "Usage:"
 	@echo " make jar     - Build Jar File."
 	@echo " make clean   - Clean up Output directory on HDFS."
 	@echo " make run     - Run your MapReduce code on Hadoop."
 	@echo " make output  - Download and show output file"
+	@echo " make editor  - Compile the graphical configure editor."
 	@echo " make help    - Show Makefile options."
 	@echo " "
 	@echo "Example:"
