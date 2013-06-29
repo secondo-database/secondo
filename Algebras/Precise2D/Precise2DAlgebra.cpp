@@ -36,6 +36,7 @@
 
 #include "Precise2DAlgebra.h"
 
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
@@ -145,6 +146,7 @@ void internalValueToOutputValue(int& gValue, mpq_class& pValue){
    pValue = pValue * (-1);
   }
  }
+
 }
 
 /*
@@ -675,6 +677,7 @@ int union_LLL(Word* args, Word& result, int message, Word& local, Supplier s) {
 
 }
 
+
 /*
  ~intersection\_LLL~
 
@@ -896,7 +899,6 @@ int overlaps2_RRB(Word* args, Word& result, int message, Word& local,
 */
 int inside_RRB(Word* args, Word& result, int message, Word& local,
   Supplier s) {
- cout <<"value map of inside"<<endl;
  Region2* r1 = static_cast<Region2*>(args[0].addr);
  Region2* r2 = static_cast<Region2*>(args[1].addr);
 
@@ -904,9 +906,7 @@ int inside_RRB(Word* args, Word& result, int message, Word& local,
  CcBool* b = static_cast<CcBool*>(result.addr);
 
  bool defined = (r1->IsDefined() && r2->IsDefined());
- cout <<"defined: "<<defined<<endl;
  bool res = inside(*r1, *r2, 0);
- cout <<"result: "<<res <<endl;
  b->Set(defined, res);
 
  return 0;
@@ -952,6 +952,252 @@ int coarse(Word* args, Word& result, int message, Word& local,
  return 0;
 
 }
+
+int coarse2(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Region2* r = static_cast<Region2*>(args[0].addr);
+ Region* res = static_cast<Region*>(result.addr);
+ p2d::coarseRegion2b(*r, *res);
+
+ return 0;
+
+}
+
+/*
+ The next operator are test-operators. They do the same as the analogous
+ operators above. But the operator, who should return a lin2-, points2- or
+ region2-object, return if the object is defined. The other operator, who
+ returns only a value of type bool, don't change. Additionally all following
+ operators give some information, like how often decisions could be made
+ without using the precise values.
+
+*/
+
+/*
+ ~testUnion\_LLB~
+
+*/
+int testUnion_LLB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+
+ result = qp->ResultStorage(s);
+ const Line2* l1 = static_cast<Line2*>(args[0].addr);
+ const Line2* l2 = static_cast<Line2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Line2* res = new Line2(0);
+
+ p2d_test::TestStruct t;
+ p2d_test::SetOp(*l1, *l2, *res, p2d_test::union_op, t, 0);
+
+ t.noSegmentsIn = (l1->Size()/2) + (l2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+ bool defined = (l1->IsDefined() && l2->IsDefined());
+ b->Set(defined, res->IsDefined());
+
+ delete res;
+ return 0;
+}
+
+/*
+ ~testIntersection\_LLB~
+
+*/
+int testIntersection_LLB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+
+ result = qp->ResultStorage(s);
+ const Line2* l1 = static_cast<Line2*>(args[0].addr);
+ const Line2* l2 = static_cast<Line2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Line2* res = new Line2(0);
+
+ p2d_test::TestStruct t;
+ p2d_test::SetOp(*l1, *l2, *res, p2d_test::intersection_op, t, 0);
+
+ t.noSegmentsIn = (l1->Size()/2) + (l2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+ bool defined = (l1->IsDefined() && l2->IsDefined());
+ b->Set(defined, res->IsDefined());
+
+ delete res;
+ return 0;
+
+}
+
+/*
+ ~testMinus\_LLB~
+
+*/
+int testMinus_LLB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Line2* l1 = static_cast<Line2*>(args[0].addr);
+ Line2* l2 = static_cast<Line2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Line2* res = new Line2(0);
+
+ p2d_test::TestStruct t;
+ p2d_test::SetOp(*l1, *l2, *res, p2d_test::difference_op, t, 0);
+
+ t.noSegmentsIn = (l1->Size()/2) + (l2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+ bool defined = (l1->IsDefined() && l2->IsDefined());
+ b->Set(defined, res->IsDefined());
+
+ delete res;
+ return 0;
+
+}
+
+/*
+ ~testIntersects\_LLB~
+
+*/
+int testIntersects_LLB(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Line2* l1 = static_cast<Line2*>(args[0].addr);
+ Line2* l2 = static_cast<Line2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ bool defined = (l1->IsDefined() && l2->IsDefined());
+
+ p2d_test::TestStruct t;
+ bool res = p2d_test::intersects(*l1, *l2, t);
+
+ t.noSegmentsIn = (l1->Size()/2) + (l2->Size()/2);
+ t.print();
+ b->Set(defined, res);
+
+ return 0;
+}
+
+/*
+ ~testUnion\_RRB~
+
+*/
+int testUnion_RRB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Region2* res = new Region2(0);
+ p2d_test::TestStruct t;
+ p2d_test::SetOp(*r1, *r2, *res, p2d_test::union_op, t);
+
+ t.noSegmentsIn = (r1->Size()/2) + (r2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+  bool defined = (r1->IsDefined() && r2->IsDefined());
+  b->Set(defined, res->IsDefined());
+
+  delete res;
+ return 0;
+
+}
+
+/*
+ ~testIntersection\_RRB~
+
+*/
+int testIntersection_RRB(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+ result = qp->ResultStorage(s);
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Region2* res = new Region2(0);
+ p2d_test::TestStruct t;
+ //r1->Union(*r2, *res);
+ p2d_test::SetOp(*r1, *r2, *res, p2d_test::intersection_op, t);
+
+ t.noSegmentsIn = (r1->Size()/2) + (r2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+  bool defined = (r1->IsDefined() && r2->IsDefined());
+  b->Set(defined, res->IsDefined());
+
+  delete res;
+ return 0;
+}
+
+/*
+ ~testMinus\_RRB~
+
+*/
+int testMinus_RRB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+ result = qp->ResultStorage(s);
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Region2* res = new Region2(0);
+ p2d_test::TestStruct t;
+ //r1->Union(*r2, *res);
+ p2d_test::SetOp(*r1, *r2, *res, p2d_test::difference_op, t);
+
+ t.noSegmentsIn = (r1->Size()/2) + (r2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+  bool defined = (r1->IsDefined() && r2->IsDefined());
+  b->Set(defined, res->IsDefined());
+
+  delete res;
+ return 0;
+}
+
+/*
+ ~intersects\_RRB~
+
+ ~region2~ x ~region2~ [->] ~bool~
+
+ ~result~ is true, if the 2 given region2-objects intersect, false otherwise.
+
+*/
+int testIntersects_RRB(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ p2d_test::TestStruct t;
+
+ bool defined = (r1->IsDefined() && r2->IsDefined());
+ bool res = p2d_test::intersects(*r1, *r2, t);
+
+ t.noSegmentsIn = (r1->Size()/2) + (r2->Size()/2);
+ t.print();
+ b->Set(defined, res);
+
+ return 0;
+}
+
 
 /*
  4 Type-mapping-function
@@ -1106,7 +1352,6 @@ ListExpr RRR_TypeMap(ListExpr args) {
 
 */
 ListExpr RRB_TypeMap(ListExpr args) {
- cerr << "inside_TM "<<endl;
  string err = "region2 x region2 expected.";
  if (nl->ListLength(args) != 2) {
   return listutils::typeError(err + ": wrong number of arguments");
@@ -1405,6 +1650,130 @@ struct coarseInfo: OperatorInfo {
 };
 
 /*
+ 5.14 ~coarseRegion2Info~
+
+ The operator a ~region2~-object to a ~region~-object
+
+*/
+struct coarse2Info: OperatorInfo {
+
+ coarse2Info() :
+   OperatorInfo() {
+  name = "coarse2";
+  signature = Region2::BasicType() + " -> " + Region::BasicType();
+  syntax = "query coarse2 (arg)";
+  meaning = "coarses a region2-object to a region-object. The difference"
+     "between coarse and coarse2 is that the intermediate results"
+     "of coarse2 are of type region2. coarse2 might last a little bit longer"
+     "but it uses only the set operation of region2.";
+ }
+
+};
+
+
+/*
+ The operator information for the test-operators
+
+*/
+struct testUnion_LLBInfo: OperatorInfo {
+
+ testUnion_LLBInfo() :
+   OperatorInfo() {
+  name = "testUnion";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
+  syntax = "query arg1 testUnion arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+struct testIntersection_LLBInfo: OperatorInfo {
+
+ testIntersection_LLBInfo() :
+   OperatorInfo() {
+  name = "testIntersection";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
+  syntax = "query testIntersection (arg1, arg2)";
+  meaning = "only for tests";
+ }
+
+};
+
+struct testMinus_LLBInfo: OperatorInfo {
+
+ testMinus_LLBInfo() :
+   OperatorInfo() {
+  name = "testMinus";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
+  syntax = "query arg1 testMinus arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+struct testIntersects_LLBInfo: OperatorInfo {
+
+ testIntersects_LLBInfo() :
+   OperatorInfo() {
+  name = "testIntersects";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
+  syntax = "query arg1 testIntersects arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+struct testUnion_RRBInfo: OperatorInfo {
+
+ testUnion_RRBInfo() :
+   OperatorInfo() {
+  name = "testUnion";
+  signature = Region2::BasicType() + " x " + Region2::BasicType()
+  + " -> bool";
+  syntax = "query arg1 testUnion arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+struct testIntersection_RRBInfo: OperatorInfo {
+
+ testIntersection_RRBInfo() :
+   OperatorInfo() {
+  name = "testIntersection";
+  signature = Region2::BasicType() + " x " + Region2::BasicType()
+  + " -> bool";
+  syntax = "query testIntersection (arg1, arg2)";
+  meaning = "only for tests";
+ }
+
+};
+
+struct testMinus_RRBInfo: OperatorInfo {
+
+ testMinus_RRBInfo() :
+   OperatorInfo() {
+  name = "testMinus";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
+  syntax = "query arg1 testMinus arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+struct testIntersects2_RRBInfo: OperatorInfo {
+
+ testIntersects2_RRBInfo() :
+   OperatorInfo() {
+  name = "testIntersects2";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
+  syntax = "query arg1 testIntersects2 arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+/*
  4.12 Creation of the type constructor instance
 
 */
@@ -1474,6 +1843,29 @@ public:
   AddOperator(p2d::inside2_RRBInfo(), p2d::inside_RRB, p2d::RRB_TypeMap);
 
   AddOperator(p2d::coarseInfo(), p2d::coarse, p2d::R2R_TypeMap);
+
+  AddOperator(p2d::coarse2Info(), p2d::coarse2, p2d::R2R_TypeMap);
+
+  AddOperator(p2d::testUnion_LLBInfo(), p2d::testUnion_LLB, p2d::LLB_TypeMap);
+
+  AddOperator(p2d::testIntersection_LLBInfo(), p2d::testIntersection_LLB,
+    p2d::LLB_TypeMap);
+
+  AddOperator(p2d::testMinus_LLBInfo(), p2d::testMinus_LLB, p2d::LLB_TypeMap);
+
+  AddOperator(p2d::testIntersects_LLBInfo(), p2d::testIntersects_LLB,
+    p2d::LLB_TypeMap);
+
+  AddOperator(p2d::testUnion_RRBInfo(), p2d::testUnion_RRB, p2d::RRB_TypeMap);
+
+  AddOperator(p2d::testIntersection_RRBInfo(), p2d::testIntersection_RRB,
+    p2d::RRB_TypeMap);
+
+  AddOperator(p2d::testMinus_RRBInfo(), p2d::testMinus_RRB, p2d::RRB_TypeMap);
+
+  AddOperator(p2d::testIntersects2_RRBInfo(), p2d::testIntersects_RRB,
+    p2d::RRB_TypeMap);
+
  }
 
  ~Precise2DAlgebra() {

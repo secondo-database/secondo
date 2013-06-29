@@ -32,15 +32,17 @@
  1 Includes and defines
 
 */
-#ifndef _AVL_Tree_CPP
-#define _AVL_Tree_CPP
+#ifndef TESTAVLTREE_CPP
+#define TESTAVLTREE_CPP
 
-#include "AVL_Tree.h"
+#include "TestAVLTree.h"
 #include <cmath>
 #include <vector>
-#include <limits>
 
-namespace p2d {
+namespace p2d_test {
+
+mpq_class vNoCmpGrid = 0;
+mpq_class vNoCmpPrecise = 0;
 
 bool p2d_debug = false;
 
@@ -60,13 +62,14 @@ AVLTree::~AVLTree() {
  ~insert~
 
 */
-void AVLTree::insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc) {
+void AVLTree::insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc,
+  TestStruct& t) {
  pred = NULL;
  suc = NULL;
  if (root == NULL) {
   root = new AVLNode(x);
  } else {
-  root = root->insert(x, pred, suc);
+  root = root->insert(x, pred, suc, t);
  }
 }
 
@@ -75,11 +78,11 @@ void AVLTree::insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc) {
 
 */
 void AVLTree::removeGetNeighbor(AVLSegment* x, AVLSegment*& pred,
-  AVLSegment*& suc) {
+  AVLSegment*& suc, TestStruct& t) {
  pred = NULL;
  suc = NULL;
  if (root != NULL) {
-  root = root->removeGetNeighbor(x, pred, suc);
+  root = root->removeGetNeighbor(x, pred, suc, t);
  }
 }
 
@@ -88,11 +91,11 @@ void AVLTree::removeGetNeighbor(AVLSegment* x, AVLSegment*& pred,
 
 */
 void AVLTree::removeGetNeighbor2(AVLSegment* x, int gridXPos,
-  mpq_class& preciseXPos, AVLSegment*& pred, AVLSegment*& suc) {
+  mpq_class& preciseXPos, AVLSegment*& pred, AVLSegment*& suc, TestStruct& t) {
  pred = NULL;
  suc = NULL;
  if (root != NULL) {
-  root = root->removeGetNeighbor2(x, gridXPos, preciseXPos, pred, suc);
+  root = root->removeGetNeighbor2(x, gridXPos, preciseXPos, pred, suc, t);
  }
 }
 
@@ -101,10 +104,10 @@ void AVLTree::removeGetNeighbor2(AVLSegment* x, int gridXPos,
 
 */
 void AVLTree::removeInvalidSegment(AVLSegment* x, int gridXPos,
-  mpq_class& preciseXPos) {
+  mpq_class& preciseXPos, TestStruct& t) {
  bool found = false;
  if (root != NULL) {
-  root = root->removeInvalidSegment(x, gridXPos, preciseXPos, found);
+  root = root->removeInvalidSegment(x, gridXPos, preciseXPos, found, t);
   assert(found);
  }
 
@@ -116,10 +119,10 @@ void AVLTree::removeInvalidSegment(AVLSegment* x, int gridXPos,
 */
 void AVLTree::invertSegments(vector<AVLSegment*>& v, int gridX, mpq_class& pX,
   int gridY, mpq_class& pY, AVLSegment*& pred, size_t predIndex,
-  AVLSegment*& suc, size_t sucIndex) {
+  AVLSegment*& suc, size_t sucIndex, TestStruct& t) {
  pred = NULL;
  suc = NULL;
- vector<AVLNode*> nodeVector;
+ vector<AVLNode*> nodeVector; // = new vector<AVLNode*>();
  bool found = false;
  AVLNode* node = NULL;
  AVLNode* lastNode = NULL;
@@ -128,13 +131,13 @@ void AVLTree::invertSegments(vector<AVLSegment*>& v, int gridX, mpq_class& pX,
  for (size_t j = 0; j < v.size(); j++) {
   if (j == predIndex) {
    node = root->memberPlusNeighbor(v[j], found, gridX, pX, gridY, pY, pred,
-     true);
+     true, t);
   } else {
    if (j == sucIndex) {
     node = root->memberPlusNeighbor(v[j], found, gridX, pX, gridY, pY, suc,
-      false);
+      false, t);
    } else {
-    node = root->member(v[j], found, gridX, pX, gridY, pY);
+    node = root->member(v[j], found, gridX, pX, gridY, pY, t);
    }
   }
 
@@ -197,7 +200,7 @@ void AVLTree::inorder() {
 }
 
 /*
- Constructor and Deconstructor
+ ConTestStructor and DeconTestStructor
 
 */
 AVLNode::AVLNode(AVLSegment* elem) :
@@ -249,12 +252,12 @@ AVLNode& AVLNode::operator=(const AVLNode& node) {
 */
 AVLNode* AVLNode::memberPlusNeighbor(AVLSegment* key, bool& result,
   int gridXPos, mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos,
-  AVLSegment*& neighbor, bool pred) {
+  AVLSegment*& neighbor, bool pred, TestStruct& t) {
  int cmpSegments = elem->compareIntersectionintervalWithSweepline(*key,
-   gridXPos);
+   gridXPos, t);
  if (cmpSegments == 0) {
   cmpSegments = elem->compareInPosForMember(*key, gridXPos, preciseXPos,
-    gridYPos, preciseYPos);
+    gridYPos, preciseYPos, t);
  }
  if (cmpSegments == 0) {
   result = true;
@@ -285,7 +288,7 @@ AVLNode* AVLNode::memberPlusNeighbor(AVLSegment* key, bool& result,
      neighbor = &*elem;
     }
     return left->memberPlusNeighbor(key, result, gridXPos, preciseXPos,
-      gridYPos, preciseYPos, neighbor, pred);
+      gridYPos, preciseYPos, neighbor, pred, t);
    }
   } else {
    if (right == 0) {
@@ -296,7 +299,7 @@ AVLNode* AVLNode::memberPlusNeighbor(AVLSegment* key, bool& result,
      neighbor = &*elem;
     }
     return right->memberPlusNeighbor(key, result, gridXPos, preciseXPos,
-      gridYPos, preciseYPos, neighbor, pred);
+      gridYPos, preciseYPos, neighbor, pred, t);
    }
   }
  }
@@ -307,14 +310,13 @@ AVLNode* AVLNode::memberPlusNeighbor(AVLSegment* key, bool& result,
 
 */
 AVLNode* AVLNode::member(AVLSegment* key, bool& result, int gridXPos,
-  mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos) {
+  mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos, TestStruct& t) {
 
  int cmpSegments = elem->compareIntersectionintervalWithSweepline(*key,
-   gridXPos);
+   gridXPos, t);
  if (cmpSegments == 0) {
   cmpSegments = elem->compareInPosForMember(*key, gridXPos, preciseXPos,
-    gridYPos, preciseYPos);
-
+    gridYPos, preciseYPos, t);
  }
  if (cmpSegments == 0) {
   result = true;
@@ -326,7 +328,7 @@ AVLNode* AVLNode::member(AVLSegment* key, bool& result, int gridXPos,
     return 0;
    } else {
     return left->member(key, result, gridXPos, preciseXPos, gridYPos,
-      preciseYPos);
+      preciseYPos, t);
    }
   } else {
    if (right == 0) {
@@ -334,7 +336,7 @@ AVLNode* AVLNode::member(AVLSegment* key, bool& result, int gridXPos,
     return 0;
    } else {
     return right->member(key, result, gridXPos, preciseXPos, gridYPos,
-      preciseYPos);
+      preciseYPos, t);
    }
   }
  }
@@ -349,13 +351,14 @@ void AVLNode::setElement(AVLSegment** seg) {
  ~insert~
 
 */
-AVLNode* AVLNode::insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc) {
+AVLNode* AVLNode::insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc,
+  TestStruct& t) {
 
  int cmpSegments = elem->compareIntersectionintervalWithSweepline(*x,
-   x->getGridXL());
+   x->getGridXL(), t);
  if (cmpSegments == 0) {
   mpq_class preciseX = x->getPreciseXL();
-  cmpSegments = elem->compareInPosOrLeft(*x, x->getGridXL(), preciseX);
+  cmpSegments = elem->compareInPosOrLeft(*x, x->getGridXL(), preciseX, t);
  }
 
  if (cmpSegments == 0) {
@@ -397,7 +400,7 @@ AVLNode* AVLNode::insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc) {
     left->setHeight();
     return this;
    } else {
-    left = left->insert(x, pred, suc);
+    left = left->insert(x, pred, suc, t);
     left->setHeight();
    }
 
@@ -408,7 +411,7 @@ AVLNode* AVLNode::insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc) {
     right->setHeight();
     return this;
    } else {
-    right = right->insert(x, pred, suc);
+    right = right->insert(x, pred, suc, t);
     right->setHeight();
    }
   }
@@ -549,12 +552,12 @@ int AVLNode::balance() {
 
 */
 AVLNode* AVLNode::removeGetNeighbor(AVLSegment* x, AVLSegment*& pred,
-  AVLSegment*& suc) {
+  AVLSegment*& suc, TestStruct& t) {
  int cmpSegments = elem->compareIntersectionintervalWithSweepline(*x,
-   x->getGridXR());
+   x->getGridXR(), t);
  if (cmpSegments == 0) {
   mpq_class preciseX = x->getPreciseXR();
-  cmpSegments = elem->compareInPosOrRight(*x, x->getGridXR(), preciseX);
+  cmpSegments = elem->compareInPosOrRight(*x, x->getGridXR(), preciseX, t);
  }
  if (cmpSegments > 0) {
   if (left == NULL) {
@@ -565,12 +568,11 @@ AVLNode* AVLNode::removeGetNeighbor(AVLSegment* x, AVLSegment*& pred,
      << "There might be an error in the compareInPos-function" << endl;
    cerr << "The path ends at element:" << endl;
    elem->print();
-   cerr << "and the searched element would lie in the left subtree." << endl;
    assert(false);
    return this;
   } else {
    suc = &*elem;
-   left = left->removeGetNeighbor(x, pred, suc);
+   left = left->removeGetNeighbor(x, pred, suc, t);
   }
   setHeight();
   if (right == NULL) {
@@ -594,12 +596,11 @@ AVLNode* AVLNode::removeGetNeighbor(AVLSegment* x, AVLSegment*& pred,
      << "There might be an error in the compareInPos-function" << endl;
    cerr << "The path ends at element:" << endl;
    elem->print();
-   cerr << "and the searched element would lie in the right subtree." << endl;
    assert(false);
    return this;
   } else {
    pred = &*elem;
-   right = right->removeGetNeighbor(x, pred, suc);
+   right = right->removeGetNeighbor(x, pred, suc, t);
   }
   setHeight();
   if (left == NULL) {
@@ -675,10 +676,11 @@ AVLNode* AVLNode::removeGetNeighbor(AVLSegment* x, AVLSegment*& pred,
 
 */
 AVLNode* AVLNode::removeGetNeighbor2(AVLSegment* x, int gridXPos,
-  mpq_class preciseXPos, AVLSegment*& pred, AVLSegment*& suc) {
- int cmpSegments = elem->compareIntersectionintervalWithSweepline(*x, gridXPos);
+  mpq_class preciseXPos, AVLSegment*& pred, AVLSegment*& suc, TestStruct& t) {
+ int cmpSegments = elem->compareIntersectionintervalWithSweepline(*x, gridXPos,
+   t);
  if (cmpSegments == 0) {
-  cmpSegments = elem->compareInPosOrLeft(*x, gridXPos, preciseXPos);
+  cmpSegments = elem->compareInPosOrLeft(*x, gridXPos, preciseXPos, t);
  }
  if (cmpSegments > 0) {
   if (left == NULL) {
@@ -689,12 +691,11 @@ AVLNode* AVLNode::removeGetNeighbor2(AVLSegment* x, int gridXPos,
      << "There might be an error in the compareInPosBackward-function" << endl;
    cerr << "The path ends at element:" << endl;
    elem->print();
-   cerr << "and the searched element would lie in the left subtree." << endl;
    assert(false);
    return this;
   } else {
    suc = &*elem;
-   left = left->removeGetNeighbor2(x, gridXPos, preciseXPos, pred, suc);
+   left = left->removeGetNeighbor2(x, gridXPos, preciseXPos, pred, suc, t);
   }
   setHeight();
   if (right == NULL) {
@@ -718,12 +719,11 @@ AVLNode* AVLNode::removeGetNeighbor2(AVLSegment* x, int gridXPos,
      << "There might be an error in the compareInPosBackward-function" << endl;
    cerr << "The path ends at element:" << endl;
    elem->print();
-   cerr << "and the searched element would lie in the right subtree." << endl;
    assert(false);
    return this;
   } else {
    pred = &*elem;
-   right = right->removeGetNeighbor2(x, gridXPos, preciseXPos, pred, suc);
+   right = right->removeGetNeighbor2(x, gridXPos, preciseXPos, pred, suc, t);
   }
   setHeight();
   if (left == NULL) {
@@ -796,10 +796,11 @@ AVLNode* AVLNode::removeGetNeighbor2(AVLSegment* x, int gridXPos,
 
 */
 AVLNode* AVLNode::removeInvalidSegment(AVLSegment* x, int gridXPos,
-  mpq_class preciseXPos, bool& found) {
- int cmpSegments = elem->compareIntersectionintervalWithSweepline(*x, gridXPos);
+  mpq_class preciseXPos, bool& found, TestStruct& t) {
+ int cmpSegments = elem->compareIntersectionintervalWithSweepline(*x, gridXPos,
+   t);
  if (cmpSegments == 0) {
-  cmpSegments = elem->compareInPosOrLeft(*x, gridXPos, preciseXPos);
+  cmpSegments = elem->compareInPosOrLeft(*x, gridXPos, preciseXPos, t);
  }
  if (cmpSegments > 0) {
   if (left == NULL) {
@@ -810,11 +811,10 @@ AVLNode* AVLNode::removeInvalidSegment(AVLSegment* x, int gridXPos,
      << "There might be an error in the compareInPosBackward-function" << endl;
    cerr << "The path ends at element:" << endl;
    elem->print();
-   cerr << "and the searched element would lie in the left subtree." << endl;
    assert(false);
    return this;
   } else {
-   left = left->removeInvalidSegment(x, gridXPos, preciseXPos, found);
+   left = left->removeInvalidSegment(x, gridXPos, preciseXPos, found, t);
   }
   setHeight();
   if (right == NULL) {
@@ -838,11 +838,10 @@ AVLNode* AVLNode::removeInvalidSegment(AVLSegment* x, int gridXPos,
      << "There might be an error in the compareInPosBackward-function" << endl;
    cerr << "The path ends at element:" << endl;
    elem->print();
-   cerr << "and the searched element would lie in the right subtree." << endl;
    assert(false);
    return this;
   } else {
-   right = right->removeInvalidSegment(x, gridXPos, preciseXPos, found);
+   right = right->removeInvalidSegment(x, gridXPos, preciseXPos, found, t);
   }
   setHeight();
   if (left == NULL) {
@@ -899,7 +898,7 @@ AVLNode* AVLNode::removeInvalidSegment(AVLSegment* x, int gridXPos,
   } else {
    // ~this~ was inserted earlier then the invalid
    // segment ~x~ ~x~ lay below ~this~
-   left = left->removeInvalidSegment(x, gridXPos, preciseXPos, found);
+   left = left->removeInvalidSegment(x, gridXPos, preciseXPos, found, t);
 
    setHeight();
    if (left == NULL) {
@@ -915,7 +914,7 @@ AVLNode* AVLNode::removeInvalidSegment(AVLSegment* x, int gridXPos,
    }
    return this;
    if (!found) {
-    right = right->removeInvalidSegment(x, gridXPos, preciseXPos, found);
+    right = right->removeInvalidSegment(x, gridXPos, preciseXPos, found, t);
     setHeight();
     if (right == NULL) {
      return this;
@@ -1004,7 +1003,7 @@ void AVLNode::inorder() {
 }
 
 /*
- Constructors and deconstructor
+ ConTestStructors and deconTestStructor
 
 */
 AVLSegment::AVLSegment() :
@@ -1014,15 +1013,16 @@ AVLSegment::AVLSegment() :
   conAbove(0), conBelow(0) {
 }
 
-AVLSegment::AVLSegment(const Flob* preciseData, SegmentData* sd, Owner o) :
+AVLSegment::AVLSegment(const Flob* preciseData, p2d::SegmentData* sd, Owner o) :
   gridXL(sd->GetDomGridXCoord()), gridYL(sd->GetDomGridYCoord()), gridXR(
     sd->GetSecGridXCoord()), gridYR(sd->GetSecGridYCoord()),
-    flob(preciseData), dbarray(0),
-    originalData1(sd), originalData2(0), pxl(0), pyl(0), pxr(0), pyr(0), owner(
-    o), valid(true), isNew(false), noOfChanges(0), firstInsideAbove(
-    o == first ? sd->GetInsideAbove() : 0), secondInsideAbove(
-    o == second ? sd->GetInsideAbove() : 0), conAbove(
-    sd->GetInsideAbove() ? 1 : 0), conBelow(sd->GetInsideAbove() ? 0 : 1) {
+    flob(preciseData), dbarray(0), originalData1(sd), originalData2(0),
+    pxl(0), pyl(0), pxr(0), pyr(0), owner(o),
+    valid(true), isNew(false), noOfChanges(0),
+    firstInsideAbove(o == first ? sd->GetInsideAbove() : 0),
+    secondInsideAbove(o == second ? sd->GetInsideAbove() : 0),
+    conAbove(sd->GetInsideAbove() ? 1 : 0),
+    conBelow(sd->GetInsideAbove() ? 0 : 1) {
 }
 
 AVLSegment::AVLSegment(const DbArray<unsigned int>* preciseData,
@@ -1043,24 +1043,26 @@ AVLSegment::AVLSegment(const AVLSegment& s) :
     s.originalData1), originalData2(s.originalData2),
     pxl(s.pxl), pyl(s.pyl), pxr(s.pxr), pyr(s.pyr), owner(s.owner),
     valid(s.isValid()), isNew(s.isNew), noOfChanges(s.noOfChanges),
-    firstInsideAbove(s.getFirstInsideAbove()), secondInsideAbove(
-    s.getSecondInsideAbove()), conAbove(s.conAbove), conBelow(s.conBelow) {
+    firstInsideAbove(s.getFirstInsideAbove()),
+    secondInsideAbove(s.getSecondInsideAbove()),
+    conAbove(s.conAbove), conBelow(s.conBelow) {
 }
 
 AVLSegment::AVLSegment(int gridX, mpq_class px, int gridY, mpq_class py) :
-  gridXL(gridX), gridYL(gridY), gridXR(gridX), gridYR(gridY), flob(0), dbarray(
-    0), originalData1(0), originalData2(0), pxl(px), pyl(py), pxr(px), pyr(py),
-    owner(none), valid(true), isNew(true), noOfChanges(0), firstInsideAbove(0),
-    secondInsideAbove(0), conAbove(0), conBelow(0) {
+  gridXL(gridX), gridYL(gridY), gridXR(gridX), gridYR(gridY), flob(0),
+  dbarray(0), originalData1(0), originalData2(0),
+  pxl(px), pyl(py), pxr(px), pyr(py), owner(none),
+  valid(true), isNew(true), noOfChanges(0), firstInsideAbove(0),
+  secondInsideAbove(0), conAbove(0), conBelow(0) {
 }
 
 AVLSegment::AVLSegment(int gxl, int gyl, int gxr, int gyr, mpq_class xLeft,
   mpq_class yLeft, mpq_class xRight, mpq_class yRight, Owner o) :
-  gridXL(gxl), gridYL(gyl), gridXR(gxr), gridYR(gyr), flob(0), dbarray(0),
-  originalData1(0), originalData2(0),
-  pxl(xLeft), pyl(yLeft), pxr(xRight), pyr(yRight),
-  owner(o), valid(true), isNew(true), noOfChanges(0),
-  firstInsideAbove(0), secondInsideAbove(0), conAbove(0), conBelow(0) {
+  gridXL(gxl), gridYL(gyl), gridXR(gxr), gridYR(gyr),
+  flob(0), dbarray(0), originalData1(0), originalData2(0),
+  pxl(xLeft), pyl(yLeft), pxr(xRight), pyr(yRight), owner(o),
+  valid(true), isNew(true), noOfChanges(0), firstInsideAbove(0),
+  secondInsideAbove(0), conAbove(0), conBelow(0) {
 }
 
 AVLSegment::~AVLSegment() {
@@ -1075,7 +1077,7 @@ AVLSegment::~AVLSegment() {
 
 */
 void AVLSegment::set(mpq_class xl, mpq_class yl, mpq_class xr, mpq_class yr,
-  Owner o) {
+  Owner o, TestStruct& t) {
  prepareData(gridXL, pxl, xl);
  prepareData(gridYL, pyl, yl);
  prepareData(gridXR, pxr, xr);
@@ -1091,7 +1093,7 @@ void AVLSegment::set(mpq_class xl, mpq_class yl, mpq_class xr, mpq_class yr,
 }
 
 void AVLSegment::set(int gxl, int gyl, int gxr, int gyr, mpq_class xl,
-  mpq_class yl, mpq_class xr, mpq_class yr, Owner o) {
+  mpq_class yl, mpq_class xr, mpq_class yr, Owner o, TestStruct& t) {
  gridXL = gxl;
  gridYL = gyl;
  gridXR = gxr;
@@ -1130,6 +1132,7 @@ void AVLSegment::prepareData(int& resultGridX, mpq_class& resultPX,
  }
  resultGridX = (int) gridX.get_d();
  int cmpValue = cmp(value, resultGridX);
+
  if (cmpValue != 0) {
   //value is not an integer
   if (cmpValue < 0) {
@@ -1305,17 +1308,46 @@ void AVLSegment::print() {
  ~equal~
 
 */
-bool AVLSegment::equal(AVLSegment& s) const {
+bool AVLSegment::equal(AVLSegment& s, TestStruct& t) const {
+ t.noCmpGrid++;
  if (getGridXL() != s.getGridXL() || getGridYL() != s.getGridYL()
    || getGridXR() != s.getGridXR() || getGridYR() != s.getGridYR()) {
+  //t aktualisieren
+  if (getGridXL() == s.getGridXL()) {
+   t.noCmpGrid++;
+   if (getGridYL() == s.getGridYL()) {
+    t.noCmpGrid++;
+    if (getGridXR() != s.getGridXR()) {
+     t.noCmpGrid++;
+    }
+   }
+  }
+
   return false;
  }
+ //t aktualisieren
+ t.noCmpGrid = t.noCmpGrid + 3;
+
+ t.noCmpPrecise++;
  if ((cmp(getPreciseXL(), s.getPreciseXL()) != 0)
    || (cmp(getPreciseYL(), s.getPreciseYL()) != 0)
    || (cmp(getPreciseXR(), s.getPreciseXR()) != 0)
    || (cmp(getPreciseYR(), s.getPreciseYR()) != 0)) {
+  //t akualisieren
+  if (cmp(getPreciseXL(), s.getPreciseXL()) == 0) {
+   t.noCmpPrecise++;
+   if (cmp(getPreciseYL(), s.getPreciseYL()) != 0) {
+    t.noCmpPrecise++;
+    if (cmp(getPreciseXR(), s.getPreciseXR()) != 0) {
+     t.noCmpPrecise++;
+    }
+   }
+  }
+
   return false;
  }
+ //t aktualisieren
+ t.noCmpPrecise = t.noCmpPrecise + 3;
  return true;
 }
 
@@ -1323,74 +1355,156 @@ bool AVLSegment::equal(AVLSegment& s) const {
  ~isPoint~
 
 */
-bool AVLSegment::isPoint() const {
+bool AVLSegment::isPoint(TestStruct& t) const {
+ t.noCmpGrid++;
  if (getGridXL() != getGridXR() || getGridYL() != getGridYR()) {
+  if (getGridXL() == getGridXR()) {
+   t.noCmpGrid++;
+  }
   return false;
  }
+ t.noCmpGrid++;
+
+ t.noCmpPrecise++;
  if ((cmp(getPreciseXL(), getPreciseXR()) != 0)
    || (cmp(getPreciseYL(), getPreciseYR()) != 0)) {
+  if (cmp(getPreciseXL(), getPreciseXR()) == 0) {
+   t.noCmpPrecise++;
+  }
   return false;
  }
+ t.noCmpPrecise++;
  return true;
 }
 
-bool AVLSegment::isEndpoint(int gx, int gy, mpq_class px, mpq_class py) {
+bool AVLSegment::isEndpoint(int gx, int gy, mpq_class px, mpq_class py,
+  TestStruct& t) {
+ t.noCmpGrid++;
+ if ((getGridXL() == gx) && (getGridYL() == gy)) {
+  //t aktualisieren
+  t.noCmpGrid++;
+
+  t.noCmpPrecise++;
+  if ((cmp(getPreciseXL(), px) == 0) && (cmp(getPreciseYL(), py) == 0)) {
+   //t aktualisieren
+   t.noCmpPrecise++;
+   return true;
+  }
+  //t aktualisieren
+  if (cmp(getPreciseXL(), px) == 0) {
+   t.noCmpPrecise++;
+  }
+ }
+ //t aktualisieren
+ if (getGridXL() == gx) {
+  t.noCmpGrid++;
+ }
+ t.noCmpGrid++;
+ if ((getGridXR() == gx) && (getGridYR() == gy)) {
+  t.noCmpGrid++;
+  t.noCmpPrecise++;
+  if ((cmp(getPreciseXR(), px) == 0) && (cmp(getPreciseYR(), py) == 0)) {
+   t.noCmpPrecise++;
+   return true;
+  }
+  if (cmp(getPreciseXR(), px) == 0) {
+   t.noCmpPrecise++;
+  }
+ }
+ if (getGridXR() == gx) {
+  t.noCmpGrid++;
+ }
+ return false;
+}
+
+bool AVLSegment::startsAtPoint(int gx, int gy, mpq_class px, mpq_class py,
+  TestStruct& t) {
+ t.noCmpGrid++;
  if (getGridXL() == gx && getGridYL() == gy) {
+  t.noCmpGrid++;
+  t.noCmpPrecise++;
   if (cmp(getPreciseXL(), px) == 0 && cmp(getPreciseYL(), py) == 0) {
+   t.noCmpPrecise++;
    return true;
   }
+  if (cmp(getPreciseXL(), px) == 0) {
+   t.noCmpPrecise++;
+  }
  }
+ if (getGridXL() == gx) {
+  t.noCmpGrid++;
+ }
+ return false;
+}
+
+bool AVLSegment::endsInPoint(int gx, int gy, mpq_class px, mpq_class py,
+  TestStruct& t) {
+ t.noCmpGrid++;
  if (getGridXR() == gx && getGridYR() == gy) {
+  t.noCmpGrid++;
+  t.noCmpPrecise++;
   if (cmp(getPreciseXR(), px) == 0 && cmp(getPreciseYR(), py) == 0) {
+   t.noCmpPrecise++;
    return true;
   }
+  if (cmp(getPreciseXR(), px) == 0) {
+   t.noCmpPrecise++;
+  }
+ }
+ if (getGridXR() == gx) {
+  t.noCmpGrid++;
  }
  return false;
 }
 
-bool AVLSegment::startsAtPoint(int gx, int gy, mpq_class px, mpq_class py) {
- if (getGridXL() == gx && getGridYL() == gy) {
-  if (cmp(getPreciseXL(), px) == 0 && cmp(getPreciseYL(), py) == 0) {
-   return true;
-  }
- }
- return false;
-}
-
-bool AVLSegment::endsInPoint(int gx, int gy, mpq_class px, mpq_class py) {
- if (getGridXR() == gx && getGridYR() == gy) {
-  if (cmp(getPreciseXR(), px) == 0 && cmp(getPreciseYR(), py) == 0) {
-   return true;
-  }
- }
- return false;
-}
-
-bool AVLSegment::isLeftOf(Event& event) {
+bool AVLSegment::isLeftOf(Event& event, TestStruct& t) {
+ t.noCmpGrid++;
  if (getGridXR() < event.getGridX()) {
   return true;
  }
+
  int cmpXR = cmp(getPreciseXR(), event.getPreciseX());
+ t.noCmpGrid++;
  if ((getGridXR() == event.getGridX()) && (cmpXR < 0)) {
+  t.noCmpPrecise++;
   return true;
  }
+ if (getGridXR() == event.getGridX()) {
+  t.noCmpPrecise++;
+ }
+ t.noCmpGrid++;
  if ((getGridXR() > event.getGridX())
    || ((getGridXR() == event.getGridX()) && cmpXR > 0)) {
+  if (getGridXR() == event.getGridX()) {
+   t.noCmpGrid++;
+   t.noCmpPrecise++;
+  }
   return false;
  }
-
+ if (getGridXR() == event.getGridX()) {
+  t.noCmpGrid++;
+  t.noCmpPrecise++;
+ } else {
+  if (getGridXR() < event.getGridX()) {
+   t.noCmpGrid++;
+  }
+ }
  //equal x
 
+ t.noCmpGrid++;
  if (getGridYR() < event.getGridY()) {
   return true;
  }
+ t.noCmpGrid++;
  if (getGridYR() > event.getGridY()) {
   return false;
  }
  int cmpYR = cmp(getPreciseYR(), event.getPreciseY());
+ t.noCmpPrecise++;
  if (cmpYR < 0) {
   return true;
  }
+ t.noCmpPrecise++;
  if (cmpYR > 0) {
   return false;
  }
@@ -1405,29 +1519,52 @@ bool AVLSegment::isLeftOf(Event& event) {
  }
 }
 
-bool AVLSegment::leftPointIsLeftOf(Event& event) {
+bool AVLSegment::leftPointIsLeftOf(Event& event, TestStruct& t) {
+ t.noCmpGrid++;
  if (getGridXL() < event.getGridX()) {
   return true;
  }
  int cmpXL = cmp(getPreciseXL(), event.getPreciseX());
+ t.noCmpGrid++;
  if ((getGridXL() == event.getGridX()) && (cmpXL < 0)) {
+  t.noCmpPrecise++;
   return true;
  }
+ if (getGridXL() == event.getGridX()) {
+  t.noCmpPrecise++;
+ }
+ t.noCmpGrid++;
  if ((getGridXL() > event.getGridX())
    || ((getGridXL() == event.getGridX()) && cmpXL > 0)) {
+  if (getGridXL() == event.getGridX()) {
+   t.noCmpGrid++;
+   t.noCmpPrecise++;
+  }
   return false;
  }
+ if (getGridXL() == event.getGridX()) {
+  t.noCmpGrid++;
+  t.noCmpPrecise++;
+ } else {
+  if (getGridXL() < event.getGridX()) {
+   t.noCmpGrid++;
+  }
+ }
  //equal x
+ t.noCmpGrid++;
  if (getGridYL() < event.getGridY()) {
   return true;
  }
+ t.noCmpGrid++;
  if (getGridYL() > event.getGridY()) {
   return false;
  }
  int cmpYL = cmp(getPreciseYL(), event.getPreciseY());
+ t.noCmpPrecise++;
  if (cmpYL < 0) {
   return true;
  }
+ t.noCmpPrecise++;
  if (cmpYL > 0) {
   return false;
  }
@@ -1441,48 +1578,60 @@ bool AVLSegment::leftPointIsLeftOf(Event& event) {
  }
 }
 
-bool AVLSegment::isRightPointOf(AVLSegment& s) {
+bool AVLSegment::isRightPointOf(AVLSegment& s, TestStruct& t) {
+ t.noCmpGrid++;
  if (s.getGridXR() != getGridXL()) {
   return false;
  }
+ t.noCmpGrid++;
  if (s.getGridYR() != getGridXL()) {
   return false;
  }
+ t.noCmpPrecise++;
  if (cmp(s.getPreciseXR(), getPreciseXL()) != 0) {
   return false;
  }
+ t.noCmpPrecise++;
  if (cmp(s.getPreciseYR(), getPreciseYL()) != 0) {
   return false;
  }
  return true;
 }
 
-bool AVLSegment::isLeftPointOf(AVLSegment& s) {
+bool AVLSegment::isLeftPointOf(AVLSegment& s, TestStruct& t) {
+ t.noCmpGrid++;
  if (s.getGridXL() != getGridXL()) {
   return false;
  }
+ t.noCmpGrid++;
  if (s.getGridYL() != getGridYL()) {
   return false;
  }
+ t.noCmpPrecise++;
  if (cmp(s.getPreciseXL(), getPreciseXL()) != 0) {
   return false;
  }
+ t.noCmpPrecise++;
  if (cmp(s.getPreciseYL(), getPreciseYL()) != 0) {
   return false;
  }
  return true;
 }
 
-bool AVLSegment::hasEqualLeftEndpointAs(AVLSegment& s) {
+bool AVLSegment::hasEqualLeftEndpointAs(AVLSegment& s, TestStruct& t) {
+ t.noCmpGrid++;
  if (s.getGridXL() != getGridXL()) {
   return false;
  }
+ t.noCmpGrid++;
  if (s.getGridYL() != getGridYL()) {
   return false;
  }
+ t.noCmpPrecise++;
  if (cmp(s.getPreciseXL(), getPreciseXL()) != 0) {
   return false;
  }
+ t.noCmpPrecise++;
  if (cmp(s.getPreciseYL(), getPreciseYL()) != 0) {
   return false;
  }
@@ -1591,8 +1740,10 @@ int AVLSegment::computeEndOfIntersectionInterval(int pos) {
  }
 }
 
+
 int AVLSegment::compareIntersectionintervalWithSweepline(AVLSegment& s,
-  int gridXPos) {
+  int gridXPos, TestStruct& t) {
+ t.noCallCmpIntersectionIntervall++;
  assert(
    (gridXL <= gridXPos && gridXPos <= gridXR && s.getGridXL() <= gridXPos
      && gridXPos <= s.getGridXR()));
@@ -1623,7 +1774,8 @@ int AVLSegment::compareIntersectionintervalWithSweepline(AVLSegment& s,
 
 */
 int AVLSegment::compareInPosOrRight(AVLSegment& s, int gridXPos,
-  mpq_class& preciseXPos) {
+  mpq_class& preciseXPos, TestStruct& t) {
+ t.noCallCmpWithPreciseData++;
  mpq_class thisY, sY;
  mpq_class preciseXPosition = preciseXPos + gridXPos;
 
@@ -1643,15 +1795,21 @@ int AVLSegment::compareInPosOrRight(AVLSegment& s, int gridXPos,
  mpq_class sXR = s.getPreciseXR() + s.getGridXR();
  mpq_class sYR = s.getPreciseYR() + s.getGridYR();
 
+ t.noCmpGrid++;
  if ((getGridXR() != getGridXL()) || (cmp(thisXR, thisXL) != 0)) {
-
+  if (getGridXR() == getGridXL()) {
+   t.noCmpPrecise++;
+  }
   thisSlope = (thisYR - thisYL) / (thisXR - thisXL);
 
   thisIsNotVertical = true;
  }
 
+ t.noCmpGrid++;
  if ((s.getGridXR() != s.getGridXL()) || (cmp(sXR, sXL) != 0)) {
-
+  if (s.getGridXR() == s.getGridXL()) {
+   t.noCmpPrecise++;
+  }
   sSlope = (sYR - sYL) / (sXR - sXL);
 
   sIsNotVertical = true;
@@ -1672,28 +1830,57 @@ int AVLSegment::compareInPosOrRight(AVLSegment& s, int gridXPos,
      && (cmp(s.getPreciseYL(), s.getPreciseYR()) == 0)) {
     //both segments are horizontal, compare left points
     //the left one is the smaller one
+
+    //t aktualisieren
+    t.noCmpGrid = t.noCmpGrid + 2;
+    t.noCmpPrecise = t.noCmpPrecise + 2;
+
+    t.noCmpGrid++;
     if (gridXL != s.getGridXL()) {
+     t.noCmpGrid++;
      if (gridXL < s.getGridXL()) {
       return -1;
      } else {
       return 1;
      }
     }
+
+    t.noCmpPrecise++;
     int cmpXL = cmp(getPreciseXL(), s.getPreciseXL());
     if (cmpXL != 0) {
      return cmpXL;
     }
     //both left points are equal, compare right points,
     //the left one is the smaller one
+    t.noCmpGrid++;
     if (gridXR != s.getGridXR()) {
+     t.noCmpGrid++;
      if (gridXR < s.getGridXR()) {
       return -1;
      } else {
       return 1;
      }
     }
+    t.noCmpPrecise++;
     return cmp(getPreciseXR(), s.getPreciseXR());
    } else {
+    //t aktualisieren
+    if (gridYL != gridYR) {
+     t.noCmpGrid++;
+    } else {
+     if (s.getGridYL() != s.getGridYR()) {
+      t.noCmpGrid = t.noCmpGrid + 2;
+     } else {
+      if (cmp(getPreciseYL(), getPreciseYR()) != 0) {
+       t.noCmpGrid = t.noCmpGrid + 2;
+       t.noCmpPrecise++;
+      } else {
+       t.noCmpGrid = t.noCmpGrid + 2;
+       t.noCmpPrecise = t.noCmpPrecise + 2;
+      }
+     }
+    }
+
     int cmpSlope = cmp(sSlope, thisSlope);
     if (cmpSlope != 0) {
      if (cmpSlope < 0) {
@@ -1705,25 +1892,31 @@ int AVLSegment::compareInPosOrRight(AVLSegment& s, int gridXPos,
     } else {
      //both segments run on the same line
      //the left one is smaller
+     t.noCmpGrid++;
      if (getGridXL() != s.getGridXL()) {
+      t.noCmpGrid++;
       if (getGridXL() < s.getGridXL()) {
        return -1;
       } else {
        return 1;
       }
      }
+     t.noCmpPrecise++;
      int cmpXL = cmp(thisXL, sXL);
      if (cmpXL != 0) {
       return cmpXL;
      } else {
       //both segments start in the same XL
+      t.noCmpGrid++;
       if (getGridXR() != s.getGridXR()) {
+       t.noCmpGrid++;
        if (getGridXR() < s.getGridXR()) {
         return -1;
        } else {
         return 1;
        }
       }
+      t.noCmpPrecise++;
       return cmp(thisXR, sXR);
      }
 
@@ -1760,39 +1953,65 @@ int AVLSegment::compareInPosOrRight(AVLSegment& s, int gridXPos,
    }
   }
 
+  // both are vertical
+  t.noCmpGrid++;
   if ((s.getGridYR() < this->getGridYL())
     || ((s.getGridYR() == this->getGridYL()) && (cmp(sYR, thisYL) < 0))) {
+   if (s.getGridYR() == this->getGridYL()) {
+    t.noCmpGrid++;
+    t.noCmpPrecise++;
+   }
    // this is above s
    return 1;
   } else {
+   //t aktualisieren
+   t.noCmpGrid++;
+   if (s.getGridYR() == this->getGridYL()) {
+    t.noCmpPrecise++;
+   }
+
+   t.noCmpGrid++;
    if (getGridYR() < s.getGridYL()) {
     return -1;
    }
    mpq_class thisYR = getPreciseYR() + getGridYR();
    mpq_class sYL = s.getPreciseYL() + s.getGridYL();
 
+   t.noCmpGrid++;
    if ((getGridYR() == s.getGridYL()) && (cmp(thisYR, sYL) < 0)) {
     // s above this
+    t.noCmpPrecise++;
     return -1;
    }
+   //t aktualisieren
+   if (getGridYR() == s.getGridYL()) {
+    t.noCmpPrecise++;
+   }
+
+   t.noCmpGrid++;
    if (getGridYL() != s.getGridYL()) {
+    t.noCmpGrid++;
     if (getGridYL() < s.getGridYL()) {
      return -1;
     } else {
      return 1;
     }
    }
+   t.noCmpPrecise++;
    int cmpYL = cmp(thisYL, sYL);
    if (cmpYL != 0) {
     return cmpYL;
    } else {
+    t.noCmpGrid++;
     if (getGridYR() != s.getGridYR()) {
+     t.noCmpGrid++;
      if (getGridYR() < s.getGridYR()) {
       return -1;
      } else {
       return 1;
      }
     }
+    t.noCmpPrecise++;
     int cmpYR = cmp(thisYR, sYR);
     return cmpYR;
    }
@@ -1806,8 +2025,8 @@ int AVLSegment::compareInPosOrRight(AVLSegment& s, int gridXPos,
 
 */
 int AVLSegment::compareInPosOrLeft(AVLSegment& s, int gridXPos,
-  mpq_class& preciseXPos) {
-
+  mpq_class& preciseXPos, TestStruct& t) {
+ t.noCallCmpWithPreciseData++;
  mpq_class thisY, sY;
  mpq_class preciseXPosition = preciseXPos + gridXPos;
 
@@ -1827,15 +2046,21 @@ int AVLSegment::compareInPosOrLeft(AVLSegment& s, int gridXPos,
  mpq_class sXR = s.getPreciseXR() + s.getGridXR();
  mpq_class sYR = s.getPreciseYR() + s.getGridYR();
 
+ t.noCmpGrid++;
  if ((getGridXR() != getGridXL()) || (cmp(thisXR, thisXL) != 0)) {
-
+  if (getGridXR() == getGridXL()) {
+   t.noCmpPrecise++;
+  }
   thisSlope = (thisYR - thisYL) / (thisXR - thisXL);
 
   thisIsNotVertical = true;
  }
 
+ t.noCmpGrid++;
  if ((s.getGridXR() != s.getGridXL()) || (cmp(sXR, sXL) != 0)) {
-
+  if (s.getGridXR() != s.getGridXL()) {
+   t.noCmpPrecise++;
+  }
   sSlope = (sYR - sYL) / (sXR - sXL);
 
   sIsNotVertical = true;
@@ -1856,28 +2081,50 @@ int AVLSegment::compareInPosOrLeft(AVLSegment& s, int gridXPos,
      && (cmp(s.getPreciseYL(), s.getPreciseYR()) == 0)) {
     //both segments are horizontal, compare left points
     //the left one is the smaller one
+    //t aktualisieren
+    t.noCmpGrid = t.noCmpGrid + 2;
+    t.noCmpPrecise = t.noCmpPrecise + 2;
+
+    t.noCmpGrid++;
     if (gridXL != s.getGridXL()) {
+     t.noCmpGrid++;
      if (gridXL < s.getGridXL()) {
       return -1;
      } else {
       return 1;
      }
     }
+    t.noCmpPrecise++;
     int cmpXL = cmp(getPreciseXL(), s.getPreciseXL());
     if (cmpXL != 0) {
      return cmpXL;
     }
     //both left points are equal, compare right points,
     //the left one is the smaller one
+    t.noCmpGrid++;
     if (gridXR != s.getGridXR()) {
+     t.noCmpGrid++;
      if (gridXR < s.getGridXR()) {
       return -1;
      } else {
       return 1;
      }
     }
+    t.noCmpPrecise++;
     return cmp(getPreciseXR(), s.getPreciseXR());
    } else {
+    //t aktualisieren
+    t.noCmpGrid++;
+    if (gridYL == gridYR) {
+     t.noCmpGrid++;
+     if (s.getGridYL() == s.getGridYR()) {
+      t.noCmpPrecise++;
+      if (cmp(getPreciseYL(), getPreciseYR()) == 0) {
+       t.noCmpPrecise++;
+      }
+     }
+    }
+
     int cmpSlope = cmp(sSlope, thisSlope);
     if (cmpSlope != 0) {
      return cmpSlope;
@@ -1885,25 +2132,31 @@ int AVLSegment::compareInPosOrLeft(AVLSegment& s, int gridXPos,
     } else {
      //both segments run on the same line
      //the left one is smaller
+     t.noCmpGrid++;
      if (getGridXL() != s.getGridXL()) {
+      t.noCmpGrid++;
       if (getGridXL() < s.getGridXL()) {
        return -1;
       } else {
        return 1;
       }
      }
+     t.noCmpPrecise++;
      int cmpXL = cmp(thisXL, sXL);
      if (cmpXL != 0) {
       return cmpXL;
      } else {
       //both segments start in the same XL
+      t.noCmpGrid++;
       if (getGridXR() != s.getGridXR()) {
+       t.noCmpGrid++;
        if (getGridXR() < s.getGridXR()) {
         return -1;
        } else {
         return 1;
        }
       }
+      t.noCmpPrecise++;
       return cmp(thisXR, sXR);
      }
 
@@ -1940,39 +2193,68 @@ int AVLSegment::compareInPosOrLeft(AVLSegment& s, int gridXPos,
   }
 
   // both are vertical
+  t.noCmpGrid++;
   if ((s.getGridYR() < getGridYL())
     || ((s.getGridYR() == getGridYL()) && cmp(sYR, thisYL) < 0)) {
    // this is above s
+   //t aktualisieren
+   if (s.getGridYR() == getGridYL()) {
+    t.noCmpGrid++;
+    t.noCmpPrecise++;
+   }
    return 1;
   } else {
+   //t aktualisieren
+   if (s.getGridYR() > getGridYL()) {
+    t.noCmpGrid++;
+   } else {
+    t.noCmpGrid++;
+    t.noCmpPrecise++;
+   }
+
+   t.noCmpGrid++;
    if (getGridYR() < s.getGridYL()) {
     return -1;
    }
    mpq_class thisYR = getPreciseYR() + getGridYR();
    mpq_class sYL = s.getPreciseYL() + s.getGridYL();
 
+   t.noCmpGrid++;
    if ((getGridYR() == s.getGridYL()) && (cmp(thisYR, sYL) < 0)) {
     // s above this
+    //t aktualisieren
+    t.noCmpPrecise++;
     return -1;
    }
+   //t aktualisieren
+   if (getGridYR() == s.getGridYL()) {
+    t.noCmpPrecise++;
+   }
+
+   t.noCmpGrid++;
    if (getGridYL() != s.getGridYL()) {
+    t.noCmpGrid++;
     if (getGridYL() < s.getGridYL()) {
      return -1;
     } else {
      return 1;
     }
    }
+   t.noCmpPrecise++;
    int cmpYL = cmp(thisYL, sYL);
    if (cmpYL != 0) {
     return cmpYL;
    } else {
+    t.noCmpGrid++;
     if (getGridYR() != s.getGridYR()) {
+     t.noCmpGrid++;
      if (getGridYR() < s.getGridYR()) {
       return -1;
      } else {
       return 1;
      }
     }
+    t.noCmpPrecise++;
     return cmp(thisYR, sYR);
    }
   }
@@ -1985,8 +2267,8 @@ int AVLSegment::compareInPosOrLeft(AVLSegment& s, int gridXPos,
 
 */
 int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
-  mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos) {
-
+  mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos, TestStruct& t){
+ t.noCallCmpWithPreciseData++;
  mpq_class thisY, sY;
  mpq_class preciseXPosition = preciseXPos + gridXPos;
 
@@ -2006,15 +2288,20 @@ int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
  mpq_class sXR = s.getPreciseXR() + s.getGridXR();
  mpq_class sYR = s.getPreciseYR() + s.getGridYR();
 
+ t.noCmpGrid++;
  if ((getGridXR() != getGridXL()) || (cmp(thisXR, thisXL) != 0)) {
-
+  if (getGridXR() == getGridXL()) {
+   t.noCmpPrecise++;
+  }
   thisSlope = (thisYR - thisYL) / (thisXR - thisXL);
 
   thisIsNotVertical = true;
  }
-
+ t.noCmpGrid++;
  if ((s.getGridXR() != s.getGridXL()) || (cmp(sXR, sXL) != 0)) {
-
+  if (s.getGridXR() == s.getGridXL()) {
+   t.noCmpPrecise++;
+  }
   sSlope = (sYR - sYL) / (sXR - sXL);
 
   sIsNotVertical = true;
@@ -2034,28 +2321,50 @@ int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
      && (cmp(s.getPreciseYL(), s.getPreciseYR()) == 0)) {
     //both segments are horizontal, compare left points
     //the left one is the smaller one
+    //t aktualisieren
+    t.noCmpGrid = t.noCmpGrid + 2;
+    t.noCmpPrecise = t.noCmpPrecise + 2;
+
+    t.noCmpGrid++;
     if (gridXL != s.getGridXL()) {
+     t.noCmpGrid++;
      if (gridXL < s.getGridXL()) {
       return -1;
      } else {
       return 1;
      }
     }
+    t.noCmpPrecise++;
     int cmpXL = cmp(getPreciseXL(), s.getPreciseXL());
     if (cmpXL != 0) {
      return cmpXL;
     }
     //both left points are equal, compare right points,
     //the left one is the smaller one
+    t.noCmpGrid++;
     if (gridXR != s.getGridXR()) {
+     t.noCmpGrid++;
      if (gridXR < s.getGridXR()) {
       return -1;
      } else {
       return 1;
      }
     }
+    t.noCmpPrecise++;
     return cmp(getPreciseXR(), s.getPreciseXR());
    } else {
+    //t aktualisieren
+    t.noCmpGrid++;
+    if (gridYL == gridYR) {
+     t.noCmpGrid++;
+     if (s.getGridYL() == s.getGridYR()) {
+      t.noCmpPrecise++;
+      if (cmp(getPreciseYL(), getPreciseYR()) == 0) {
+       t.noCmpPrecise++;
+      }
+     }
+    }
+
     int cmpSlope = cmp(sSlope, thisSlope);
     if (cmpSlope != 0) {
      return cmpSlope;
@@ -2063,25 +2372,31 @@ int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
     } else {
      //both segments run on the same line
      //the left one is smaller
+     t.noCmpGrid++;
      if (getGridXL() != s.getGridXL()) {
+      t.noCmpGrid++;
       if (getGridXL() < s.getGridXL()) {
        return -1;
       } else {
        return 1;
       }
      }
+     t.noCmpPrecise++;
      int cmpXL = cmp(thisXL, sXL);
      if (cmpXL != 0) {
       return cmpXL;
      } else {
       //both segments start in the same XL
+      t.noCmpGrid++;
       if (getGridXR() != s.getGridXR()) {
+       t.noCmpGrid++;
        if (getGridXR() < s.getGridXR()) {
         return -1;
        } else {
         return 1;
        }
       }
+      t.noCmpPrecise++;
       return cmp(thisXR, sXR);
      }
 
@@ -2102,7 +2417,14 @@ int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
        || ((this->getGridYL() == gridYPos)
          && (cmp(this->getPreciseYL(), preciseYPos) < 0)))) {
     //~this~ and ~s~ have been inverted before.
-
+    //t aktualisieren
+    if (this->getGridYL() < gridYPos) {
+     t.noCmpGrid = t.noCmpGrid + 3;
+     t.noCmpPrecise = t.noCmpPrecise + 2;
+    } else {
+     t.noCmpGrid = t.noCmpGrid + 4;
+     t.noCmpPrecise = t.noCmpPrecise + 3;
+    }
     mpq_class thisY = ((thisSlope * sXL) + thisYL - (thisXL * thisSlope));
     int cmpYinSXL1 = cmp(thisY, sYL);
     if (cmpYinSXL1 < 0) {
@@ -2110,6 +2432,28 @@ int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
      return 1;
     } else {
      return -1;
+    }
+   }
+   //t aktualisieren
+   t.noCmpGrid++;
+   if (this->getGridXL() == s.getGridXL()) {
+    t.noCmpGrid++;
+    if (this->getGridYL() == s.getGridYL()) {
+     t.noCmpPrecise++;
+     if (cmp(this->getPreciseXL(), s.getPreciseXL()) == 0) {
+      t.noCmpPrecise++;
+      if (cmp(this->getPreciseYL(), s.getPreciseYL()) == 0) {
+       t.noCmpGrid++;
+       if (this->getGridYL() == gridYPos) {
+        t.noCmpGrid++;
+        t.noCmpPrecise++;
+       } else {
+        if ((this->getGridYL() > gridYPos)) {
+         t.noCmpGrid++;
+        }
+       }
+      }
+     }
     }
    }
 
@@ -2133,7 +2477,14 @@ int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
        || ((this->getGridYL() == gridYPos)
          && (cmp(this->getPreciseYL(), preciseYPos) < 0)))) {
     //~this~ and ~s~ have been inverted before.
-
+    //t aktualisieren
+    if (this->getGridYL() < gridYPos) {
+     t.noCmpGrid = t.noCmpGrid + 3;
+     t.noCmpPrecise = t.noCmpPrecise + 2;
+    } else {
+     t.noCmpGrid = t.noCmpGrid + 4;
+     t.noCmpPrecise = t.noCmpPrecise + 3;
+    }
     mpq_class sY = ((sSlope * thisXL) + sYL - (sXL * sSlope));
 
     int cmpYinSXL2 = cmp(sY, thisYL);
@@ -2142,6 +2493,28 @@ int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
      return -1;
     } else {
      return 1;
+    }
+   }
+   //t aktualisieren
+   t.noCmpGrid++;
+   if (this->getGridXL() == s.getGridXL()) {
+    t.noCmpGrid++;
+    if (this->getGridYL() == s.getGridYL()) {
+     t.noCmpGrid++;
+     if (cmp(this->getPreciseXL(), s.getPreciseXL()) == 0) {
+      t.noCmpPrecise++;
+      if (cmp(this->getPreciseYL(), s.getPreciseYL()) == 0) {
+       t.noCmpGrid++;
+       if (this->getGridYL() == gridYPos) {
+        t.noCmpGrid++;
+        t.noCmpPrecise++;
+       } else {
+        if (this->getGridYL() > gridYPos) {
+         t.noCmpGrid++;
+        }
+       }
+      }
+     }
     }
    }
 
@@ -2157,40 +2530,70 @@ int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
   }
 
   // both are vertical
+  t.noCmpGrid++;
   if ((s.getGridYR() < getGridYL())
     || ((s.getGridYR() == getGridYL()) && (cmp(sYR, thisYL) < 0))) {
+   //t aktualisieren
+   if (s.getGridYR() == getGridYL()) {
+    t.noCmpGrid++;
+    t.noCmpPrecise++;
+   }
    // this is above s
    return 1;
   } else {
+   //t aktualisieren
+   if (s.getGridYR() == getGridYL()) {
+    t.noCmpGrid++;
+    t.noCmpPrecise++;
+   } else {
+    if (s.getGridYR() > getGridYL()) {
+     t.noCmpGrid++;
+    }
+   }
+
+   t.noCmpGrid++;
    if (getGridYR() < s.getGridYL()) {
     return -1;
    }
    mpq_class thisYR = getPreciseYR() + getGridYR();
    mpq_class sYL = s.getPreciseYL() + s.getGridYL();
-
+   t.noCmpGrid++;
    if ((getGridYR() == s.getGridYL()) && (cmp(thisYR, sYL) < 0)) {
     // s above this
+    //t aktualisieren
+    t.noCmpPrecise++;
     return -1;
    }
+   //t aktualisieren
+   if (getGridYR() == s.getGridYL()) {
+    t.noCmpPrecise++;
+   }
+
+   t.noCmpGrid++;
    if (getGridYL() != s.getGridYL()) {
+    t.noCmpGrid++;
     if (getGridYL() < s.getGridYL()) {
      return -1;
     } else {
      return 1;
     }
    }
+   t.noCmpPrecise++;
    int cmpYL = cmp(thisYL, sYL);
 
    if (cmpYL != 0) {
     return cmpYL;
    } else {
+    t.noCmpGrid++;
     if (getGridYR() != s.getGridYR()) {
+     t.noCmpGrid++;
      if (getGridYR() < s.getGridYR()) {
       return -1;
      } else {
       return 1;
      }
     }
+    t.noCmpPrecise++;
     return cmp(thisYR, sYR);
    }
   }
@@ -2202,10 +2605,12 @@ int AVLSegment::compareInPosForMember(AVLSegment& s, int gridXPos,
  ~isVertical~
 
 */
-bool AVLSegment::isVertical() const {
+bool AVLSegment::isVertical(TestStruct& t) const {
+ t.noCmpGrid++;
  if (getGridXL() != getGridXR()) {
   return false;
  } else {
+  t.noCmpPrecise++;
   return (cmp(getPreciseXL(), getPreciseXR()) == 0);
  }
 }
@@ -2221,10 +2626,9 @@ bool AVLSegment::isParallelTo(const AVLSegment& s) const {
 
  mpq_class sXL = s.getPreciseXL() + s.getGridXL();
  mpq_class sXR = s.getPreciseXR() + s.getGridXR();
-
- if ((getGridXL() == getGridXR()) && (cmp(thisXL, thisXR) == 0)) {
+ if (cmp(thisXL, thisXR) == 0) {
   //this is vertical
-  if ((s.getGridXL() == s.getGridXR()) && (cmp(sXL, sXR) == 0)) {
+  if (cmp(sXL, sXR) == 0) {
    //s is vertical
    return true;
   } else {
@@ -2232,7 +2636,7 @@ bool AVLSegment::isParallelTo(const AVLSegment& s) const {
   }
  }
 
- if ((s.getGridXL() == s.getGridXR()) && (cmp(sXL, sXR) == 0)) {
+ if (cmp(sXL, sXR) == 0) {
   //s is vertical
   return false;
  }
@@ -2252,12 +2656,14 @@ bool AVLSegment::isParallelTo(const AVLSegment& s) const {
  return false;
 }
 
+
 /*
 
  ~mightIntersect~
 
 */
-bool AVLSegment::mightIntersect(AVLSegment& seg) {
+bool AVLSegment::mightIntersect(AVLSegment& seg, TestStruct& t) {
+ t.noCallMightIntersect++;
  BoundingSegments* thisBS = new BoundingSegments(gridXL, gridYL, gridXR,
    gridYR);
  BoundingSegments* segBS = new BoundingSegments(seg.getGridXL(),
@@ -2273,7 +2679,8 @@ bool AVLSegment::mightIntersect(AVLSegment& seg) {
  ~intersect~
 
 */
-bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
+bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result, TestStruct& t) {
+ t.noCallIntersect++;
 
  mpq_class thisXL = getPreciseXL() + getGridXL();
  mpq_class thisYL = getPreciseYL() + getGridYL();
@@ -2285,73 +2692,192 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
  mpq_class segXR = seg.getPreciseXR() + seg.getGridXR();
  mpq_class segYR = seg.getPreciseYR() + seg.getGridYR();
 
+ t.noCmpGrid++;
  if ((getGridXL() == getGridXR()) && (seg.getGridXL() == seg.getGridXR())
    && (cmp(thisXL, thisXR) == 0) && (cmp(segXL, segXR) == 0)) {
   //both are vertical
+  t.noCmpGrid++;
+  t.noCmpPrecise = t.noCmpPrecise + 2;
+
+  t.noCmpGrid++;
   if ((getGridXL() == seg.getGridXL()) && (cmp(thisXL, segXL) == 0)) {
    //both segments run on one line
+   t.noCmpPrecise++;
+
+   t.noCmpGrid++;
    if ((seg.getGridYR() < getGridYL())
      || ((seg.getGridYR() == getGridYL()) && (cmp(segYR, thisYL) < 0))
      || (getGridYR() < seg.getGridYL())
      || ((getGridYR() == seg.getGridYL()) && (cmp(thisYR, segYL) < 0))) {
     //this passes below or above ~seg~
+    //t aktualisieren
+    if (seg.getGridYR() >= getGridYL()) {
+     t.noCmpGrid++;
+     if (seg.getGridYR() == getGridYL()) {
+      t.noCmpPrecise++;
+      if (cmp(segYR, thisYL) >= 0) {
+       t.noCmpGrid++;
+       if (getGridYR() >= seg.getGridYL()) {
+        t.noCmpGrid++;
+        if (getGridYR() == seg.getGridYL()) {
+         t.noCmpPrecise++;
+        }
+       }
+      }
+     } else {
+      t.noCmpGrid++;
+      if (getGridYR() >= seg.getGridYL()) {
+       t.noCmpGrid++;
+       if (getGridYR() == seg.getGridYL()) {
+        t.noCmpPrecise++;
+       }
+      }
+     }
+    }
+
     return false;
    } else {
+    //t aktualisieren
+    t.noCmpGrid = t.noCmpGrid + 3;
+    if (seg.getGridYR() == getGridYL()) {
+     t.noCmpPrecise++;
+    }
+    if (getGridYR() == seg.getGridYL()) {
+     t.noCmpPrecise++;
+    }
+
     //determine the endpoints
+    t.noCmpGrid++;
     if ((getGridYL() < seg.getGridYL())
       || ((getGridYL() == seg.getGridYL()) && (cmp(thisYL, segYL) <= 0))) {
      //overlapping segment starts in (segXL, segYL)
+     //t aktualisieren
+     if (getGridYL() == seg.getGridYL()) {
+      t.noCmpGrid++;
+      t.noCmpPrecise++;
+     }
+
+     t.noCmpGrid++;
      if ((seg.getGridYR() < getGridYR())
        || ((seg.getGridYR() == getGridYR()) && (cmp(segYR, thisYR) <= 0))) {
+      if (seg.getGridYR() == getGridYR()) {
+       t.noCmpGrid++;
+       t.noCmpPrecise++;
+      }
       //overlapping segment ends in (segXL, segYR)
-      result.set(segXL, segYL, segXL, segYR, both);
+      result.set(segXL, segYL, segXL, segYR, both, t);
       return true;
      } else {
       //overlapping segment ends in (segXL, thisYR)
-      result.set(seg.getGridXL(), seg.getGridYL(),
-        seg.getGridXL(), getGridYR(),
+      //t aktualisieren
+      t.noCmpGrid++;
+      if (seg.getGridYR() == getGridYR()) {
+       t.noCmpPrecise++;
+      }
+
+      result.set(seg.getGridXL(), seg.getGridYL(), seg.getGridXL(), getGridYR(),
         seg.getPreciseXL(), seg.getPreciseYL(), seg.getPreciseXL(),
-        getPreciseYR(), both);
+        getPreciseYR(), both, t);
       return true;
      }
     } else {
+     //t aktualisieren
+     t.noCmpGrid++;
+     if (getGridYL() == seg.getGridYL()) {
+      t.noCmpPrecise++;
+     }
      //overlapping segment starts in (thisXL, thisYL)
+     t.noCmpGrid++;
      if ((seg.getGridYR() < getGridYR())
        || ((seg.getGridYR() == getGridYR()) && (cmp(segYR, thisYR) <= 0))) {
       //overlapping segment ends in (segXL, segYR)
+      //t aktualisieren
+      if (seg.getGridYR() == getGridYR()) {
+       t.noCmpGrid++;
+       t.noCmpPrecise++;
+      }
+
       result.set(getGridXL(), getGridYL(), getGridXL(), seg.getGridYR(),
         getPreciseXL(), getPreciseYL(), getPreciseXL(), seg.getPreciseYR(),
-        both);
+        both, t);
       return true;
      } else {
       //overlapping segment ends in (segXL, thisYR)
+      //t aktualisieren
+      t.noCmpGrid++;
+      if (seg.getGridYR() == getGridYR()) {
+       t.noCmpPrecise++;
+      }
+
       result.set(getGridXL(), getGridYL(), getGridXL(), getGridYR(),
-        getPreciseXL(), getPreciseYL(), getPreciseXL(), getPreciseYR(), both);
+        getPreciseXL(), getPreciseYL(), getPreciseXL(), getPreciseYR(), both,
+        t);
       return true;
      }
     }
 
    }
   } else {
+   //t aktualisieren
+   if (getGridXL() == seg.getGridXL()) {
+    t.noCmpPrecise++;
+   }
    return false;
   }
 
  }
+//t aktualisieren
+ if (getGridXL() == getGridXR()) {
+  t.noCmpGrid++;
+  if (seg.getGridXL() == seg.getGridXR()) {
+   t.noCmpPrecise++;
+   if (cmp(thisXL, thisXR) == 0) {
+    t.noCmpPrecise++;
+   }
+  }
+ }
 
+ t.noCmpGrid++;
  if ((getGridXL() == getGridXR()) && (cmp(thisXL, thisXR) == 0)) {
   //this segments is vertical
+  t.noCmpPrecise++;
+
+  t.noCmpGrid++;
   if (((seg.getGridXL() < getGridXL())
     || ((seg.getGridXL() == getGridXL()) && (cmp(segXL, thisXL) <= 0)))
     && ((getGridXL() < seg.getGridXR())
       || ((getGridXL() == seg.getGridXR()) && (cmp(thisXL, segXR) <= 0)))) {
    //this runs through segXL and segXR
+   if (seg.getGridXL() >= getGridXL()) {
+    t.noCmpGrid++;
+    if ((seg.getGridXL() == getGridXL())) {
+     t.noCmpPrecise++;
+     if (cmp(segXL, thisXL) > 0) {
+      t.noCmpGrid++;
+      if (getGridXL() >= seg.getGridXR()) {
+       t.noCmpGrid++;
+       if (getGridXL() == seg.getGridXR()) {
+        t.noCmpPrecise++;
+       }
+      }
+     }
+    } else {
+     t.noCmpGrid++;
+     if (getGridXL() >= seg.getGridXR()) {
+      t.noCmpGrid++;
+      if (getGridXL() == seg.getGridXR()) {
+       t.noCmpPrecise++;
+      }
+     }
+    }
+   }
    mpq_class segSlope = (segYR - segYL) / (segXR - segXL);
    mpq_class segB = segYL - segSlope * segXL;
    mpq_class yValue = segSlope * thisXL + segB;
 
    if ((cmp(thisYL, yValue) <= 0 && cmp(yValue, thisYR) <= 0)
      || (cmp(thisYR, yValue) <= 0 && cmp(yValue, thisYL) <= 0)) {
-    result.set(thisXL, yValue, thisXL, yValue, both);
+    result.set(thisXL, yValue, thisXL, yValue, both, t);
     return true;
    } else {
     return false;
@@ -2361,29 +2887,93 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
    return false;
   }
  }
+//t aktualisieren
+ if (getGridXL() == getGridXR()) {
+  t.noCmpPrecise++;
+ }
 
+ t.noCmpGrid++;
  if ((seg.getGridXL() == seg.getGridXR()) && (cmp(segXL, segXR) == 0)) {
   //seg is vertical
+  t.noCmpPrecise++;
+
+  t.noCmpGrid++;
   if (((getGridXL() < seg.getGridXL())
     || ((getGridXL() == seg.getGridXL()) && (cmp(thisXL, segXL) <= 0)))
     && ((seg.getGridXL() < getGridXR())
       || ((seg.getGridXL() == getGridXR()) && (cmp(segXL, thisXR) <= 0)))) {
    //seg runs through thisXL and thisXR
+   //t aktualisieren
+   if (getGridXL() >= seg.getGridXL()) {
+    t.noCmpGrid++;
+    if (getGridXL() == seg.getGridXL()) {
+     t.noCmpPrecise++;
+     if (cmp(thisXL, segXL) <= 0) {
+      t.noCmpGrid++;
+      if (seg.getGridXL() >= getGridXR()) {
+       t.noCmpGrid++;
+       if (seg.getGridXL() == getGridXR()) {
+        t.noCmpPrecise++;
+       }
+      }
+     }
+    }
+   } else {
+    t.noCmpGrid++;
+    if (seg.getGridXL() >= getGridXR()) {
+     t.noCmpGrid++;
+     if (seg.getGridXL() == getGridXR()) {
+      t.noCmpPrecise++;
+     }
+    }
+   }
+
    mpq_class thisSlope = (thisYR - thisYL) / (thisXR - thisXL);
    mpq_class thisB = thisYL - thisSlope * thisXL;
    mpq_class yValue = thisSlope * segXL + thisB;
 
    if ((cmp(segYL, yValue) <= 0 && cmp(yValue, segYR) <= 0)
      || (cmp(segYR, yValue) <= 0 && cmp(yValue, segYL) <= 0)) {
-    result.set(segXL, yValue, segXL, yValue, both);
+    result.set(segXL, yValue, segXL, yValue, both, t);
     return true;
    } else {
     return false;
    }
   } else {
    //this runs more left/right than seg
+
+   //t aktualisieren
+   if (getGridXL() >= seg.getGridXL()) {
+    t.noCmpGrid++;
+    if (getGridXL() == seg.getGridXL()) {
+     t.noCmpPrecise++;
+     if (cmp(thisXL, segXL) <= 0) {
+      t.noCmpGrid++;
+      if (seg.getGridXL() >= getGridXR()) {
+       t.noCmpGrid++;
+       if (seg.getGridXL() == getGridXR()) {
+        t.noCmpPrecise++;
+       }
+      }
+     }
+    }
+   } else {
+    t.noCmpGrid++;
+    if (seg.getGridXL() >= getGridXR()) {
+     t.noCmpGrid++;
+     if (seg.getGridXL() == getGridXR()) {
+      t.noCmpPrecise++;
+     }
+
+    }
+   }
+
    return false;
   }
+ }
+//t aktualisieren
+ if (seg.getGridXL() == seg.getGridXR()) {
+  t.noCmpPrecise++;
  }
 
  mpq_class thisSlope = (thisYR - thisYL) / (thisXR - thisXL);
@@ -2397,7 +2987,7 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
     && cmp(thisXL, xValue) <= 0 && cmp(xValue, thisXR) <= 0) {
    mpq_class yValue = segSlope * xValue + segB;
    yValue.canonicalize();
-   result.set(xValue, yValue, xValue, yValue, both);
+   result.set(xValue, yValue, xValue, yValue, both, t);
    return true;
   } else {
    return false;
@@ -2406,29 +2996,97 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
   // the segments are parallel
   if (cmp(thisB, segB) == 0) {
    //both segments runs on a line
+   t.noCmpGrid++;
    if ((seg.getGridXR() < getGridXL()) || (getGridXR() < seg.getGridXL())
      || ((seg.getGridXR() == getGridXL()) && (cmp(segXR, thisXL) < 0))
      || ((getGridXR() == seg.getGridXL()) && (cmp(thisXR, segXL) < 0))) {
     // seg runs more left/right than this
+    //t aktualisieren
+    if (seg.getGridXR() >= getGridXL()) {
+     t.noCmpGrid++;
+     if (getGridXR() >= seg.getGridXL()) {
+      t.noCmpGrid++;
+      if (seg.getGridXR() == getGridXL()) {
+       t.noCmpPrecise++;
+       if (cmp(segXR, thisXL) >= 0) {
+        t.noCmpGrid++;
+        if (getGridXR() == seg.getGridXL()) {
+         t.noCmpPrecise++;
+        }
+       }
+      } else {
+       t.noCmpGrid++;
+       if (getGridXR() == seg.getGridXL()) {
+        t.noCmpPrecise++;
+       }
+      }
+     }
+    }
+
     return false;
    } else {
+    //t aktualisieren
+    t.noCmpGrid = t.noCmpGrid + 3;
+    if (seg.getGridXR() == getGridXL()) {
+     t.noCmpPrecise++;
+    }
+    if (getGridXR() == seg.getGridXL()) {
+     t.noCmpPrecise++;
+    }
+
+    t.noCmpGrid++;
     if ((getGridXL() < seg.getGridXL())
       || ((getGridXL() == seg.getGridXL()) && (cmp(thisXL, segXL) < 0))) {
+     //t aktualisieren
+     if (getGridXL() == seg.getGridXL()) {
+      t.noCmpGrid++;
+      t.noCmpPrecise++;
+     }
+
+     t.noCmpGrid++;
      if ((getGridXR() < seg.getGridXR())
        || ((getGridXR() == seg.getGridXR()) && (cmp(thisXR, segXR) < 0))) {
-      result.set(segXL, segYL, thisXR, thisYR, both);
+      //t aktualisieren
+      if (getGridXR() == seg.getGridXR()) {
+       t.noCmpGrid++;
+       t.noCmpPrecise++;
+      }
+      result.set(segXL, segYL, thisXR, thisYR, both, t);
       return true;
      } else {
-      result.set(segXL, segYL, segXR, segYR, both);
+      //t aktualisieren
+      t.noCmpGrid++;
+      if (getGridXR() == seg.getGridXR()) {
+       t.noCmpPrecise++;
+      }
+
+      result.set(segXL, segYL, segXR, segYR, both, t);
       return true;
      }
     } else {
+     //t aktualisieren
+     t.noCmpGrid++;
+     if (getGridXL() == seg.getGridXL()) {
+      t.noCmpPrecise++;
+     }
+
+     t.noCmpGrid++;
      if ((getGridXR() < seg.getGridXR())
        || ((getGridXR() == seg.getGridXR()) && (cmp(thisXR, segXR) < 0))) {
-      result.set(thisXL, thisYL, thisXR, thisYR, both);
+      //t aktualisieren
+      if (getGridXR() == seg.getGridXR()) {
+       t.noCmpGrid++;
+       t.noCmpPrecise++;
+      }
+      result.set(thisXL, thisYL, thisXR, thisYR, both, t);
       return true;
      } else {
-      result.set(thisXL, thisYL, segXR, segYR, both);
+      //t aktualisieren
+      t.noCmpGrid++;
+      if (getGridXR() == seg.getGridXR()) {
+       t.noCmpPrecise++;
+      }
+      result.set(thisXL, thisYL, segXR, segYR, both, t);
       return true;
      }
     }
@@ -2450,7 +3108,7 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
 */
 
 /*
- Constructors and Deconstructor
+ ConTestStructors and DeconTestStructor
 
 */
 SimpleSegment::SimpleSegment(int gxl, int gyl, int gxr, int gyr, Position gp) :
@@ -2651,9 +3309,6 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
          && vertical.getXL() == second.getXL())
          || (second.getPosition() == bottom && vertical.getPosition() == pLeft
            && vertical.getXL() == second.getXR()))) {
-        //int yValue = (numerator * vertical.getXL()
-          //+ second.getYL() * denominator - numerator * second.getXL())
-          /// denominator;
         mpz_class pValue = (numerator * vertical.getXL()
           + second.getYL() * denominator - numerator * second.getXL())
           / denominator;
@@ -2681,10 +3336,6 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
           || (second.getPosition() == bottom
             && vertical.getPosition() == pRight
             && vertical.getXL() == second.getXL()))) {
-
-         //int yValue = (numerator * vertical.getXL()
-         //  + second.getYL() * denominator - numerator * second.getXL())
-         //  / denominator;
          mpz_class pYValue = (numerator * vertical.getXL()
              + second.getYL() * denominator - numerator * second.getXL())
              / denominator;
@@ -2743,13 +3394,6 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
        }
       }
      } else { //Segemente are not parallel or vertical
-      /*
-      int xNumerator = (thisDenom * bsDenom
-        * (bs.segments[j].getYL() - segments[i].getYL()))
-        + (segments[i].getXL() * bsDenom * thisNum)
-        - (bs.segments[j].getXL() * thisDenom * bsNum);
-      int xDenominator = (thisNum * bsDenom - thisDenom * bsNum);
-      int gridX = xNumerator / xDenominator;*/
       mpz_class pXNumerator = (thisDenom * bsDenom
         * (bs.segments[j].getYL() - segments[i].getYL()))
         + (segments[i].getXL() * bsDenom * thisNum)
@@ -2827,8 +3471,6 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
          }
         } else {
          //both segments are not horizonatal
-         //int gridY = ((thisNum * gridX) + (segments[i].getYL() * thisDenom)
-         //  - (segments[i].getXL() * thisNum)) / thisDenom;
          mpz_class pGridY = ((thisNum * gridX)
            + (segments[i].getYL() * thisDenom)
            - (segments[i].getXL() * thisNum)) / thisDenom;
@@ -3049,14 +3691,16 @@ AVLSegment* Event::getRightSegment() const {
 
 */
 bool Event::operator>(const Event& e) const {
+ vNoCmpGrid++;
  if (getGridX() != e.getGridX()) {
+  vNoCmpGrid++;
   if (getGridX() > e.getGridX()) {
    return true;
   } else {
    return false;
   }
  }
-
+ vNoCmpPrecise++;
  int cmpX = cmp(getPreciseX(), e.getPreciseX());
  if (cmpX != 0) {
   if (cmpX > 0) {
@@ -3066,14 +3710,16 @@ bool Event::operator>(const Event& e) const {
   }
  }
  //equal x
+ vNoCmpGrid++;
  if (getGridY() != e.getGridY()) {
+  vNoCmpGrid++;
   if (getGridY() > e.getGridY()) {
    return true;
   } else {
    return false;
   }
  }
-
+ vNoCmpPrecise++;
  int cmpY = cmp(getPreciseY(), e.getPreciseY());
  if (cmpY != 0) {
   if (cmpY > 0) {
@@ -3084,10 +3730,15 @@ bool Event::operator>(const Event& e) const {
  }
 
  //equal y
+
+ TestStruct t;
  if (isRightEndpointEvent()) {
   if (e.isRightEndpointEvent()) {
    mpq_class p = getPreciseX();
-   return (seg->compareInPosOrLeft(*e.seg, getGridX(), p)) == 1;
+   bool c = (seg->compareInPosOrLeft(*e.seg, getGridX(), p, t)) == 1;
+   vNoCmpGrid = vNoCmpGrid + t.noCmpGrid;
+   vNoCmpPrecise = vNoCmpPrecise + t.noCmpPrecise;
+   return c;
   } else {
    return true;
   }
@@ -3097,8 +3748,10 @@ bool Event::operator>(const Event& e) const {
  }
  if (isIntersectionEvent() && e.isIntersectionEvent()) {
   mpq_class p = getPreciseX();
-  int cmpLSeg = lSeg->compareInPosOrLeft(*e.lSeg, getGridX(), p);
+  int cmpLSeg = lSeg->compareInPosOrLeft(*e.lSeg, getGridX(), p, t);
   if (cmpLSeg != 0) {
+   vNoCmpGrid = vNoCmpGrid + t.noCmpGrid;
+   vNoCmpPrecise = vNoCmpPrecise + t.noCmpPrecise;
    if (cmpLSeg > 0) {
     return true;
    } else {
@@ -3106,7 +3759,9 @@ bool Event::operator>(const Event& e) const {
    }
   } else {
 
-   int cmpGSeg = gSeg->compareInPosOrLeft(*e.gSeg, getGridX(), p);
+   int cmpGSeg = gSeg->compareInPosOrLeft(*e.gSeg, getGridX(), p, t);
+   vNoCmpGrid = vNoCmpGrid + t.noCmpGrid;
+   vNoCmpPrecise = vNoCmpPrecise + t.noCmpPrecise;
    if (cmpGSeg > 0) {
     return true;
    } else {
@@ -3117,7 +3772,10 @@ bool Event::operator>(const Event& e) const {
  }
  if (isLeftEndpointEvent() && e.isLeftEndpointEvent()) {
   mpq_class p = getPreciseX();
-  return (seg->compareInPosOrLeft(*e.seg, getGridX(), p)) == 1;
+  bool c = (seg->compareInPosOrLeft(*e.seg, getGridX(), p, t)) == 1;
+  vNoCmpGrid = vNoCmpGrid + t.noCmpGrid;
+  vNoCmpPrecise = vNoCmpPrecise + t.noCmpPrecise;
+  return c;
  } else {
   return false;
  }
@@ -3163,10 +3821,11 @@ void Event::print() const {
 */
 template<class C1, class C2>
 Owner selectNext(const C1& l1, int& pos1, const C2& l2, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event) {
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  TestStruct& t) {
  Coordinate* values[3];
- SegmentData* sd1 = new SegmentData();
- SegmentData* sd2 = new SegmentData();
+ p2d::SegmentData* sd1 = new p2d::SegmentData();
+ p2d::SegmentData* sd2 = new p2d::SegmentData();
  Event e1, e2;
  Coordinate c0, c1, c2;
  bool found = false;
@@ -3231,7 +3890,8 @@ Owner selectNext(const C1& l1, int& pos1, const C2& l2, int& pos2,
  int index = -1;
  for (int i = 0; i < 3; i++) {
   if (values[i]) {
-   if (index < 0 || (*values[index] > *values[i])) {
+   if (index < 0 || ((values[index])->greaterThan(*values[i], t))) {
+    //> *values[i])) {
     index = i;
    }
   }
@@ -3279,14 +3939,16 @@ Owner selectNext(const C1& l1, int& pos1, const C2& l2, int& pos2,
  return none;
 }
 
-Owner selectNext(const Line2& l, int& pos1, const Line2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event) {
- return selectNext<Line2, Line2>(l, pos1, r, pos2, q, event);
+Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  TestStruct& t) {
+ return selectNext<p2d::Line2, p2d::Line2>(l, pos1, r, pos2, q, event, t);
 }
 
 Owner selectNext(/*const*/Region2& r1, int& pos1,
 /*const*/Region2& r2, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event) {
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  TestStruct& t) {
 
  Coordinate* values[3];
 
@@ -3360,7 +4022,8 @@ Owner selectNext(/*const*/Region2& r1, int& pos1,
  int index = -1;
  for (int i = 0; i < 3; i++) {
   if (values[i]) {
-   if (index < 0 || (*values[index] > *values[i])) {
+   if (index < 0 || (values[index]->greaterThan(*values[i], t))) {
+    //> *values[i])) {
     index = i;
    }
   }
@@ -3410,134 +4073,18 @@ Owner selectNext(/*const*/Region2& r1, int& pos1,
  return none;
 }
 
-Owner selectNext(const Line2& l, int& pos,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event) {
- return selectNext<Line2>(l, pos, q, event);
-}
-
-/*
- ~selectNext~
-
-*/
-template<class C>
-Owner selectNext(const C& l, int& pos,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event) {
- Coordinate* values[2];
- Event e1;
- Coordinate c0, c1;
- SegmentData* sd1 = new SegmentData();
- int number = 0; // number of available values
-
- bool found = false;
- values[0] = 0;
- while (pos < l.Size() && !found) {
-  l.get(pos, *sd1);
-
-  if (sd1->IsLeftDomPoint()) {
-   c0.gx = l.getLeftGridX(pos);
-   c0.px = l.getPreciseLeftX(pos);
-   c0.gy = l.getLeftGridY(pos);
-   c0.py = l.getPreciseLeftY(pos);
-   values[0] = &c0;
-   number++;
-   found = true;
-  }
-  pos++;
- }
-
- if (q.empty()) {
-  values[1] = 0;
- } else {
-  e1 = q.top();
-  c1.gx = e1.getGridX();
-  c1.px = e1.getPreciseX();
-  c1.gy = e1.getGridY();
-  c1.py = e1.getPreciseY();
-  values[1] = &c1;
-  number++;
- }
-
- if (number == 0) {
-  // no halfsegments found
-  return none;
- }
-
-// search for the minimum.
- int index = -1;
- for (int i = 0; i < 2; i++) {
-  if (values[i]) {
-   if (index < 0 || (*values[index] > *values[i])) {
-    index = i;
-   }
-  }
- }
-
- switch (index) {
- case 0: {
-  AVLSegment* result = new AVLSegment(l.getPreciseCoordinates(), sd1, first);
-  Event* res = new Event(leftEndpoint, result);
-  event = *res;
-  return first;
- }
- case 1: {
-  pos--;
-  q.pop();
-  event = e1;
-  return first;
- }
- default: {
-  assert(false);
- }
- }
- return none;
-}
-
-/*
- ~mergeNeighbors~
-
-*/
-bool mergeNeighbors(AVLSegment* current, AVLSegment* neighbor) {
-
- current->changeValidity(false);
- if (neighbor->getGridXR() > current->getGridXR()
-   || (neighbor->getGridXR() == current->getGridXR()
-     && cmp(neighbor->getPreciseXR(), current->getPreciseXR()) > 0)
-   || ((neighbor->getGridXR() == current->getGridXR())
-     && (cmp(neighbor->getPreciseXR(), current->getPreciseXR()) == 0)
-     && (neighbor->getGridYR() > current->getGridYR()))
-   || ((neighbor->getGridXR() == current->getGridXR()
-     && cmp(neighbor->getPreciseXR(), current->getPreciseXR()) == 0)
-     && ((neighbor->getGridYR() == current->getGridYR())
-       && cmp(neighbor->getPreciseYR(), current->getPreciseYR()) > 0))) {
-  //neighbor is longer -> nothing to do
-  return false;
-
- } else {
-  AVLSegment* newNeighbor = new AVLSegment(neighbor->getGridXL(),
-    neighbor->getGridYL(), current->getGridXR(), current->getGridYR(),
-    neighbor->getPreciseXL(), neighbor->getPreciseYL(),
-    current->getPreciseXR(),
-    current->getPreciseYR(), neighbor->getOwner());
-
-  newNeighbor->setNumberOfChanges(neighbor->getNumberOfChanges() + 1);
-  *neighbor = *newNeighbor;
-  delete newNeighbor;
-
-  return true;
- }
-
-}
 
 /*
  ~splitNeighbors~
 
 */
 void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
-  AVLSegment* overlappingSegment, AVLSegment* right) {
+  AVLSegment* overlappingSegment, AVLSegment* right, TestStruct& t) {
 
  //r starts at he end of overlappingSegment. If neighbor is longer
  //than current, r ends in the right endpoint of neighbor
  AVLSegment* r;
+ t.noCmpGrid++;
  if (neighbor->getGridXR() > current->getGridXR()
    || (neighbor->getGridXR() == current->getGridXR()
      && cmp(neighbor->getPreciseXR(), current->getPreciseXR()) > 0)
@@ -3549,6 +4096,29 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
      && ((neighbor->getGridYR() == current->getGridYR())
        && cmp(neighbor->getPreciseYR(), current->getPreciseYR()) > 0))) {
   //neighbor is longer
+
+  //t aktualisieren
+  if (neighbor->getGridXR() > current->getGridXR()) {
+
+  } else {
+   if (neighbor->getGridXR() == current->getGridXR()
+     && cmp(neighbor->getPreciseXR(), current->getPreciseXR()) > 0) {
+    t.noCmpGrid++;
+    t.noCmpPrecise++;
+   } else {
+    if ((neighbor->getGridXR() == current->getGridXR())
+      && (cmp(neighbor->getPreciseXR(), current->getPreciseXR()) == 0)
+      && (neighbor->getGridYR() > current->getGridYR())) {
+     t.noCmpGrid = t.noCmpGrid + 3;
+     t.noCmpPrecise = t.noCmpPrecise + 2;
+    } else {
+     t.noCmpGrid = t.noCmpGrid + 5;
+     t.noCmpPrecise = t.noCmpPrecise + 4;
+    }
+   }
+  }
+
+
   r = new AVLSegment(overlappingSegment->getGridXR(),
     overlappingSegment->getGridYR(), neighbor->getGridXR(),
     neighbor->getGridYR(), overlappingSegment->getPreciseXR(),
@@ -3561,6 +4131,18 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
   r->setSecondInsideAbove(neighbor->getSecondInsideAbove());
 
  } else {
+  //t aktualisieren
+  t.noCmpGrid = t.noCmpGrid + 3;
+  if (neighbor->getGridXR() == current->getGridXR()) {
+   t.noCmpPrecise = t.noCmpPrecise + 3;
+   if (cmp(neighbor->getPreciseXR(), current->getPreciseXR()) == 0) {
+    t.noCmpGrid = t.noCmpGrid + 2;
+    if (neighbor->getGridYR() == current->getGridYR()) {
+     t.noCmpPrecise++;
+    }
+   }
+  }
+
   r = new AVLSegment(overlappingSegment->getGridXR(),
     overlappingSegment->getGridYR(), current->getGridXR(), current->getGridYR(),
     overlappingSegment->getPreciseXR(), overlappingSegment->getPreciseYR(),
@@ -3574,7 +4156,7 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
  }
  *right = *r;
  delete r;
- if (overlappingSegment->hasEqualLeftEndpointAs(*neighbor)) {
+ if (overlappingSegment->hasEqualLeftEndpointAs(*neighbor, t)) {
   // the overlapping part starts at the left endpoint
   // of ~neighbor~. ~neighbor~ is truncated to the
   // length of the overlapping part and ~current~ is
@@ -3653,60 +4235,18 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
 
 }
 
-/*
- ~intersectionTestForRealminize~
-
-*/
-void intersectionTestForRealminize(AVLSegment* left, AVLSegment* right,
-  Event* event, priority_queue<Event, vector<Event>, greater<Event> >& q,
-  bool leftIsSmaller) {
-
- if (left->mightIntersect(*right)) {
-  AVLSegment* overlappingSegment = new AVLSegment();
-  if (left->intersect(*right, *overlappingSegment)) {
-   if (p2d_debug) {
-    cout << "s1: ";
-    left->print();
-    cout << "s2: ";
-    right->print();
-    cout << "Schnittpunkt :";
-    overlappingSegment->print();
-   }
-   if (overlappingSegment->isPoint()) {
-    if (!overlappingSegment->isLeftOf(*event)
-      && (!(overlappingSegment->isLeftPointOf(*left)
-        && overlappingSegment->isRightPointOf(*right)))) {
-     if (leftIsSmaller) {
-      Event ie(intersectionPoint, left, right, overlappingSegment);
-      q.push(ie);
-     } else {
-      Event ie(intersectionPoint, right, left, overlappingSegment);
-      q.push(ie);
-     }
-    }
-   } else {
-    bool newNeighbor = mergeNeighbors(left, right);
-    if (newNeighbor) {
-     Event e(rightEndpoint, right);
-     q.push(e);
-    }
-   }
-  }
-  delete overlappingSegment;
- }
-}
 
 /*
- ~intersectionTestForSetOp~
+ ~intersectionForSetOp~
 
 */
 bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
-  priority_queue<Event, vector<Event>, greater<Event> >& q,
-  bool leftIsSmaller) {
+  priority_queue<Event, vector<Event>, greater<Event> >& q, bool leftIsSmaller,
+  TestStruct& t) {
 
- if (s1->mightIntersect(*s2)) {
+ if (s1->mightIntersect(*s2, t)) {
   AVLSegment* overlappingSegment = new AVLSegment();
-  if (s1->intersect(*s2, *overlappingSegment)) {
+  if (s1->intersect(*s2, *overlappingSegment, t)) {
    if (p2d_debug) {
     cout << endl << endl << "s1: ";
     s1->print();
@@ -3716,39 +4256,67 @@ bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
     overlappingSegment->print();
     cout << endl << endl;
    }
-   if (overlappingSegment->isPoint()) {
-    if (!overlappingSegment->isLeftOf(*event)) {
+   if (overlappingSegment->isPoint(t)) {
+    if (!overlappingSegment->isLeftOf(*event, t)) {
      if (leftIsSmaller) {
       Event ie(intersectionPoint, s1, s2, overlappingSegment);
+      vNoCmpGrid = 0;
+      vNoCmpGrid = 0;
       q.push(ie);
+      t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+      t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
      } else {
       Event ie(intersectionPoint, s2, s1, overlappingSegment);
+      vNoCmpGrid = 0;
+      vNoCmpGrid = 0;
       q.push(ie);
+      t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+      t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
      }
     }
    } else {
     AVLSegment* right = new AVLSegment();
-    splitNeighbors(s1, s2, overlappingSegment, right);
+    splitNeighbors(s1, s2, overlappingSegment, right, t);
 
     if (s1->getOwner() == both) {
 
      Event e1(rightEndpoint, s1);
+     vNoCmpGrid = 0;
+     vNoCmpGrid = 0;
      q.push(e1);
+     t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+     t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
     }
     if (leftIsSmaller) {
      Event ie2(intersectionPoint, s1, s2, overlappingSegment);
+     vNoCmpGrid = 0;
+     vNoCmpGrid = 0;
      q.push(ie2);
+     t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+     t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
     } else {
      Event ie2(intersectionPoint, s2, s1, overlappingSegment);
+     vNoCmpGrid = 0;
+     vNoCmpGrid = 0;
      q.push(ie2);
+     t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+     t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
     }
 
     Event e2(rightEndpoint, s2);
+    vNoCmpGrid = 0;
+    vNoCmpGrid = 0;
     q.push(e2);
+    t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+    t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
 
-    if (!right->isPoint()) {
+    if (!right->isPoint(t)) {
      Event e3(leftEndpoint, right);
+     vNoCmpGrid = 0;
+     vNoCmpGrid = 0;
      q.push(e3);
+     t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+     t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
     } else {
 
      delete right;
@@ -3768,7 +4336,8 @@ bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
 */
 void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
   Event& event, priority_queue<Event, vector<Event>, greater<Event> >& q,
-  size_t& predIndex, size_t& sucIndex, bool& inversionNecessary) {
+  size_t& predIndex, size_t& sucIndex, bool& inversionNecessary,
+  TestStruct& t) {
  mpq_class v = event.getPreciseX();
 
  AVLSegment* seg = event.getLeftSegment();
@@ -3780,10 +4349,13 @@ void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
    && e.getGridY() == event.getGridY()
    && cmp(e.getPreciseX(), event.getPreciseX()) == 0
    && cmp(e.getPreciseY(), event.getPreciseY()) == 0) {
+  t.noCmpGrid = t.noCmpGrid + 2;
+  t.noCmpPrecise = t.noCmpPrecise + 2;
   if (e.isValid()) {
 
-   if (seg->compareInPosOrLeft(*(e.getLeftSegment()), event.getGridX(), v)
+   if (seg->compareInPosOrLeft(*(e.getLeftSegment()), event.getGridX(), v, t)
      < 0) {
+    t.noCallCmpWithPreciseData--;
     if (segmentVector.back()->isParallelTo(*e.getLeftSegment())) {
 
      if (segmentVector.size() == 1) {
@@ -3792,7 +4364,7 @@ void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
      segmentVector.pop_back();
      if ((segmentVector.size() == 0)
        || (segmentVector.size() > 0
-         && !(segmentVector.back()->equal(*e.getLeftSegment())))) {
+         && !(segmentVector.back()->equal(*e.getLeftSegment(), t)))) {
 
       segmentVector.push_back(e.getLeftSegment());
      }
@@ -3806,12 +4378,29 @@ void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
      segmentVector.push_back(seg);
     }
 
+   } else {
+    t.noCallCmpWithPreciseData--;
    }
   }
   q.pop();
   e = q.top();
  }
- if (segmentVector.back()->compareInPosOrLeft(*r, event.getGridX(), v) < 0) {
+ //t aktualisieren
+ if (e.isIntersectionEvent()) {
+  t.noCmpGrid++;
+  if (e.getGridX() == event.getGridX()) {
+   t.noCmpGrid++;
+   if (e.getGridY() == event.getGridY()) {
+    t.noCmpPrecise++;
+    if (cmp(e.getPreciseX(), event.getPreciseX()) == 0) {
+     t.noCmpPrecise++;
+    }
+   }
+  }
+ }
+
+ if (segmentVector.back()->compareInPosOrLeft(*r, event.getGridX(), v, t) < 0) {
+  t.noCallCmpWithPreciseData--;
   if (segmentVector.back()->isParallelTo(*r)) {
    segmentVector.pop_back();
    segmentVector.push_back(r);
@@ -3822,6 +4411,8 @@ void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
    segmentVector.push_back(r);
    sucIndex = segmentVector.size() - 1;
   }
+ } else {
+  t.noCallCmpWithPreciseData--;
  }
 }
 
@@ -3829,7 +4420,7 @@ void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
  ~createNewSegments~
 
 */
-void createNewSegments(AVLSegment& s, Line2& result, int& edgeno,
+void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeno,
   SetOperation op) {
  switch (op) {
  case union_op: {
@@ -3893,12 +4484,12 @@ void createNewSegments(AVLSegment& s, Line2& result, int& edgeno,
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  Line2& result, int& edgeno, SetOperation op) {
+  p2d::Line2& result, int& edgeno, SetOperation op, TestStruct& t) {
  for (size_t i = 0; i < segmentVector.size(); i++) {
   mpq_class px = event.getPreciseX();
   mpq_class py = event.getPreciseY();
   bool isEndpoint = segmentVector.at(i)->isEndpoint(event.getGridX(),
-    event.getGridY(), px, py);
+    event.getGridY(), px, py, t);
   if (!isEndpoint
     && (op == union_op
       || (op == intersection_op && segmentVector.at(i)->getOwner() == both)
@@ -3936,7 +4527,8 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op) {
+  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
+  TestStruct& t) {
  size_t size = segmentVector.size();
 
  AVLSegment* next = successor;
@@ -3945,9 +4537,9 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   mpq_class px = event.getPreciseX();
   mpq_class py = event.getPreciseY();
   bool startsAtEventpoint = s->startsAtPoint(event.getGridX(), event.getGridY(),
-    px, py);
+    px, py, t);
   bool endsInEventpoint = s->endsInPoint(event.getGridX(), event.getGridY(), px,
-    py);
+    py, t);
   if ((!startsAtEventpoint) && (!endsInEventpoint)) {
    switch (op) {
    case union_op: {
@@ -4107,7 +4699,8 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 
 */
 void checkSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, bool& result, RelationshipOperation op) {
+  AVLSegment* successor, bool& result, RelationshipOperation op,
+  TestStruct& t) {
  size_t size = segmentVector.size();
 
  AVLSegment* next = successor;
@@ -4116,9 +4709,9 @@ void checkSegments(vector<AVLSegment*>& segmentVector, Event& event,
   mpq_class px = event.getPreciseX();
   mpq_class py = event.getPreciseY();
   bool startsAtEventpoint = s->startsAtPoint(event.getGridX(), event.getGridY(),
-    px, py);
+    px, py, t);
   bool endsInEventpoint = s->endsInPoint(event.getGridX(), event.getGridY(), px,
-    py);
+    py, t);
   if ((!startsAtEventpoint) && (!endsInEventpoint)) {
    checkSegment(*s, result, op);
    AVLSegment newS(event.getGridX(), event.getGridY(), s->getGridXR(),
@@ -4245,9 +4838,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
     s.print();
    }
    Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-     s.getGridYL(), 0);
+     s.getGridYL());
    Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-     s.getGridYR(), 0);
+     s.getGridYR());
    Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
    hs.attr.edgeno = edgeno;
    hs.attr.insideAbove = (s.getConBelow() == 0);
@@ -4265,9 +4858,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
     s.print();
    }
    Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-     s.getGridYL(), 0);
+     s.getGridYL());
    Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-     s.getGridYR(), 0);
+     s.getGridYR());
    Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
    hs.attr.edgeno = edgeno;
    hs.attr.insideAbove = (s.getConAbove() == 2);
@@ -4287,9 +4880,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
      s.print();
     }
     Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-      s.getGridYL(), 0);
+      s.getGridYL());
     Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-      s.getGridYR(), 0);
+      s.getGridYR());
     Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
     hs.attr.edgeno = edgeno;
     hs.attr.insideAbove = s.getFirstInsideAbove();
@@ -4308,9 +4901,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
      s.print();
     }
     Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-      s.getGridYL(), 0);
+      s.getGridYL());
     Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-      s.getGridYR(), 0);
+      s.getGridYR());
     Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
     hs.attr.edgeno = edgeno;
     hs.attr.insideAbove = !(s.getSecondInsideAbove());
@@ -4328,9 +4921,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
      s.print();
     }
     Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-      s.getGridYL(), 0);
+      s.getGridYL());
     Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-      s.getGridYR(), 0);
+      s.getGridYR());
     Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
     hs.attr.edgeno = edgeno;
     hs.attr.insideAbove = s.getFirstInsideAbove();
@@ -4353,252 +4946,13 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
 }
 
 /*
- ~Realminize~
-
-*/
-void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
-
- result.Clear();
- if (!src.IsDefined()) {
-  result.SetDefined(false);
-  return;
- }
- result.SetDefined(true);
- if (src.Size() <= 1) {
-  // empty line, nothing to realminize
-  return;
- }
-
- priority_queue<Event, vector<Event>, greater<Event> > q;
- AVLTree sss;
-
- int pos = 0;
-
- AVLSegment* current = NULL;
- AVLSegment* left = NULL;
- AVLSegment* right = NULL;
- AVLSegment* pred = NULL;
- AVLSegment* suc = NULL;
-
- result.StartBulkLoad();
- int edgeno = 0;
-
- Event* event = new Event();
-
- while (selectNext(src, pos, q, *event) != none) {
-  if (event->isLeftEndpointEvent()) {
-   if (p2d_debug) {
-    event->print();
-   }
-   current = event->getSegment();
-   sss.insert(current, pred, suc);
-   mpq_class v = current->getPreciseXL();
-   if (pred) {
-    intersectionTestForRealminize(current, pred, event, q, false);
-   }
-
-   if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
-   } else {
-    if (suc) {
-     intersectionTestForRealminize(current, suc, event, q, true);
-     if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
-     }
-    }
-   }
-   if (current->isValid() && !(current->getOwner() == both)) {
-    Event re(rightEndpoint, current);
-    q.push(re);
-   }
-
-  } else {
-   if (event->isRightEndpointEvent()) {
-    if (p2d_debug) {
-     event->print();
-    }
-    current = event->getSegment();
-    if (event->isValid()) {
-     if (current->isValid()) {
-      if (p2d_debug) {
-       cout << "neues Segment in Line einfuegen" << endl;
-
-       current->print();
-      }
-      result.addSegment(true, current->getGridXL(), current->getGridYL(),
-        current->getGridXR(), current->getGridYR(), current->getPreciseXL(),
-        current->getPreciseYL(), current->getPreciseXR(),
-        current->getPreciseYR(), edgeno);
-      result.addSegment(false, current->getGridXL(), current->getGridYL(),
-        current->getGridXR(), current->getGridYR(), current->getPreciseXL(),
-        current->getPreciseYL(), current->getPreciseXR(),
-        current->getPreciseYR(), edgeno);
-      edgeno++;
-     }
-
-     mpq_class v1 = current->getPreciseXR();
-     sss.removeGetNeighbor(current, pred, suc);
-     current->changeValidity(false);
-     if (pred && suc) {
-      intersectionTestForRealminize(pred, suc, event, q, true);
-     }
-
-    }
-   }
-
-   else {
-    //intersection Event
-    if (p2d_debug) {
-     event->print();
-    }
-    mpq_class v1 = event->getPreciseX();
-    mpq_class v2 = event->getPreciseY();
-    //segmentVector stores all segments which intersect in the
-    //same event-point
-    vector<AVLSegment*> segmentVector;
-
-    AVLSegment* seg = event->getLeftSegment();
-    AVLSegment* r = event->getRightSegment();
-
-    segmentVector.push_back(seg);
-    Event e = q.top();
-    size_t predIndex = 0;
-    size_t sucIndex = 0;
-
-    //if there are only 2 intersecting segments,
-    //which are parallel (and the right endpoint of the first
-    //segment is the left endpoint of the second segment),
-    //the segments don't have to be inverted.
-    bool inversionNecessary = false;
-
-    while (e.isIntersectionEvent() && e.getGridX() == event->getGridX()
-      && e.getGridY() == event->getGridY()
-      && cmp(e.getPreciseX(), event->getPreciseX()) == 0
-      && cmp(e.getPreciseY(), event->getPreciseY()) == 0) {
-     if (seg->compareInPosOrLeft(*(e.getLeftSegment()), event->getGridX(), v1)
-       < 0) {
-      if (seg->isParallelTo(*e.getLeftSegment())) {
-       if (segmentVector.size() == 1) {
-        predIndex = 1;
-       }
-       segmentVector.pop_back();
-       segmentVector.push_back(e.getLeftSegment());
-       segmentVector.push_back(seg);
-
-      } else {
-       inversionNecessary = true;
-       seg = e.getLeftSegment();
-       r = e.getRightSegment();
-       segmentVector.push_back(seg);
-      }
-
-     }
-     q.pop();
-     e = q.top();
-    }
-
-    if (segmentVector.back()->compareInPosOrLeft(*r, event->getGridX(), v1)
-      < 0) {
-     if (segmentVector.back()->isParallelTo(*r)) {
-      segmentVector.pop_back();
-      segmentVector.push_back(r);
-      segmentVector.push_back(seg);
-      sucIndex = segmentVector.size() - 2;
-     } else {
-      inversionNecessary = true;
-      segmentVector.push_back(r);
-      sucIndex = segmentVector.size() - 1;
-     }
-
-    }
-
-    if (inversionNecessary) {
-
-     left = segmentVector.at(0);
-     right = segmentVector.back();
-     sss.invertSegments(segmentVector, event->getGridX(), v1, event->getGridY(),
-       v2, pred, predIndex, suc, sucIndex);
-
-     if (p2d_debug && pred) {
-      cout << "intersection-test for";
-      right->print();
-      cout << " and " << endl;
-      pred->print();
-     }
-     if (pred) {
-      intersectionTestForRealminize(pred, right, event, q, true);
-     }
-     if (p2d_debug && suc) {
-      cout << "intersection-test for" << endl;
-      left->print();
-      cout << " and " << endl;
-      suc->print();
-     }
-     if (suc) {
-      intersectionTestForRealminize(left, suc, event, q, true);
-     }
-     mpq_class px = event->getPreciseX();
-     mpq_class py = event->getPreciseY();
-     for (size_t i = 0; i < segmentVector.size(); i++) {
-      bool isEndpoint = segmentVector.at(i)->isEndpoint(event->getGridX(),
-        event->getGridY(), px, py);
-      if (!isEndpoint) {
-       if (p2d_debug) {
-        cout << "neues Segment in Line einfuegen" << endl;
-
-        cout << segmentVector.at(i)->getGridXL() << " "
-          << segmentVector.at(i)->getGridYL() << " "
-          << event->getGridX() << " "
-          << event->getGridY() << " "
-          << segmentVector.at(i)->getPreciseXL().get_d() << " "
-          << segmentVector.at(i)->getPreciseYL().get_d() << " "
-          << event->getPreciseX().get_d() << " "
-          << event->getPreciseY().get_d()
-          << endl;
-       }
-       result.addSegment(true, segmentVector.at(i)->getGridXL(),
-         segmentVector.at(i)->getGridYL(), event->getGridX(), event->getGridY(),
-         segmentVector.at(i)->getPreciseXL(),
-         segmentVector.at(i)->getPreciseYL(), event->getPreciseX(),
-         event->getPreciseY(), edgeno);
-       result.addSegment(false, segmentVector.at(i)->getGridXL(),
-         segmentVector.at(i)->getGridYL(), event->getGridX(), event->getGridY(),
-         segmentVector.at(i)->getPreciseXL(),
-         segmentVector.at(i)->getPreciseYL(), event->getPreciseX(),
-         event->getPreciseY(), edgeno);
-       edgeno++;
-
-       AVLSegment* newLeft = new AVLSegment(event->getGridX(),
-         event->getGridY(), segmentVector.at(i)->getGridXR(),
-         segmentVector.at(i)->getGridYR(), event->getPreciseX(),
-         event->getPreciseY(), segmentVector.at(i)->getPreciseXR(),
-         segmentVector.at(i)->getPreciseYR(), segmentVector.at(i)->getOwner());
-
-       *(segmentVector.at(i)) = *newLeft;
-
-      }
-     }
-
-    }
-   }
-  }
-  if (p2d_debug) {
-   cout << "the tree:" << endl;
-   sss.inorder();
-  }
- }
-
- delete event;
- result.EndBulkLoad(false, false, false);
-} // end Realminize
-
-/*
  ~SetOp~
 
 */
-void SetOp(const Line2& line1, const Line2& line2, Line2& result,
-  SetOperation op, const Geoid* geoid/*=0*/) {
+void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
+  SetOperation op, TestStruct& t, const Geoid* geoid/*=0*/) {
 
+ t.clear();
  result.Clear();
 
  if (geoid) {
@@ -4646,7 +5000,7 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
    result.StartBulkLoad();
    int edgeno = 0;
    int s = line1.Size();
-   SegmentData sd;
+   p2d::SegmentData sd;
    const Flob* flob = line1.getPreciseCoordinates();
    for (int i = 0; i < s; i++) {
     line1.get(i, sd);
@@ -4707,32 +5061,36 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
  Event* event = new Event();
 
  result.StartBulkLoad();
- while ((selectNext(line1, pos1, line2, pos2, q, *event)) != none) {
+ while ((selectNext(line1, pos1, line2, pos2, q, *event, t)) != none) {
   if (event->isLeftEndpointEvent()) {
    if (p2d_debug) {
     event->print();
    }
    current = event->getSegment();
-   sss.insert(current, pred, suc);
+   sss.insert(current, pred, suc, t);
 
    mpq_class v = current->getPreciseXL();
    if (pred) {
-    intersectionTestForSetOp(current, pred, event, q, false);
+    intersectionTestForSetOp(current, pred, event, q, false, t);
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event->getGridX(), v, t);
    } else {
     if (suc) {
-     intersectionTestForSetOp(current, suc, event, q, true);
+     intersectionTestForSetOp(current, suc, event, q, true, t);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event->getGridX(), v, t);
      }
     }
    }
    if (current->isValid() && !(current->getOwner() == both)) {
     Event re(rightEndpoint, current);
+    vNoCmpGrid = 0;
+    vNoCmpPrecise = 0;
     q.push(re);
+    t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+    t.noCmpPrecise = t.noCmpPrecise * vNoCmpPrecise;
    }
   } else {
    if (event->isRightEndpointEvent()) {
@@ -4744,18 +5102,18 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
      if (current->isValid()) {
       createNewSegments(*current, result, edgeno, op);
 
-      sss.removeGetNeighbor(current, pred, suc);
+      sss.removeGetNeighbor(current, pred, suc, t);
       current->changeValidity(false);
       if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
+       intersectionTestForSetOp(pred, suc, event, q, true, t);
 
       }
 
      } else {
       mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc, t);
       if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
+       intersectionTestForSetOp(pred, suc, event, q, true, t);
       }
      }
     }
@@ -4778,36 +5136,36 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
      bool inversionNecessary = false;
 
      collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
-       inversionNecessary);
+       inversionNecessary, t);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
       sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+        event->getGridY(), v2, pred, predIndex, suc, sucIndex, t);
 
       if (p2d_debug && pred) {
-       cout << "intersection-test with" << endl;
+       cout << "intersection- with" << endl;
        right->print();
        cout << " and " << endl;
        pred->print();
       }
       if (pred) {
-       intersectionTestForSetOp(pred, right, event, q, true);
+       intersectionTestForSetOp(pred, right, event, q, true, t);
       }
       if (p2d_debug && suc) {
-       cout << "intersection-test with" << endl;
+       cout << "intersection- with" << endl;
        left->print();
        cout << " and " << endl;
        suc->print();
       }
       if (suc) {
-       intersectionTestForSetOp(left, suc, event, q, true);
+       intersectionTestForSetOp(left, suc, event, q, true, t);
       }
       mpq_class px = event->getPreciseX();
       mpq_class py = event->getPreciseY();
 
-      createNewSegments(segmentVector, *event, result, edgeno, op);
+      createNewSegments(segmentVector, *event, result, edgeno, op, t);
      }
     }
    }
@@ -4825,9 +5183,10 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
  ~intersects~
 
 */
-bool intersects(const Line2& line1, const Line2& line2,
+bool intersects(const p2d::Line2& line1, const p2d::Line2& line2, TestStruct& t,
   const Geoid* geoid/*=0*/) {
 
+ t.clear();
  if (geoid) {
   cerr << ": Spherical geometry not implemented." << endl;
   assert(false);
@@ -4865,21 +5224,21 @@ bool intersects(const Line2& line1, const Line2& line2,
  bool intersect = false;
 
  while ((!intersect
-   && (selectNext(line1, pos1, line2, pos2, q, *event)) != none)) {
+   && (selectNext(line1, pos1, line2, pos2, q, *event, t)) != none)) {
   if (event->isLeftEndpointEvent()) {
    if (p2d_debug) {
     event->print();
    }
    current = event->getSegment();
 
-   sss.insert(current, pred, suc);
+   sss.insert(current, pred, suc, t);
 
    if (current->getOwner() == both) {
     intersect = true;
    }
    mpq_class v = current->getPreciseXL();
    if (pred) {
-    if (intersectionTestForSetOp(current, pred, event, q, false)) {
+    if (intersectionTestForSetOp(current, pred, event, q, false, t)) {
      if ((pred->getOwner() != current->getOwner())
        || (current->getOwner() == both)) {
       intersect = true;
@@ -4888,23 +5247,27 @@ bool intersects(const Line2& line1, const Line2& line2,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event->getGridX(), v, t);
    } else {
     if (suc) {
-     if (intersectionTestForSetOp(current, suc, event, q, true)) {
+     if (intersectionTestForSetOp(current, suc, event, q, true, t)) {
       if ((suc->getOwner() != current->getOwner())
         || (current->getOwner() == both)) {
        intersect = true;
       }
      }
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event->getGridX(), v, t);
      }
     }
    }
    if (current->isValid() && !(current->getOwner() == both)) {
     Event re(rightEndpoint, current);
+    vNoCmpGrid = 0;
+    vNoCmpPrecise = 0;
     q.push(re);
+    t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+    t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
    }
   } else {
    if (event->isRightEndpointEvent()) {
@@ -4914,10 +5277,10 @@ bool intersects(const Line2& line1, const Line2& line2,
     current = event->getSegment();
     if (event->isValid()) {
      if (current->isValid()) {
-      sss.removeGetNeighbor(current, pred, suc);
+      sss.removeGetNeighbor(current, pred, suc, t);
       current->changeValidity(false);
       if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
+       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
         if ((pred->getOwner() != suc->getOwner())) {
          intersect = true;
         }
@@ -4927,9 +5290,9 @@ bool intersects(const Line2& line1, const Line2& line2,
 
      } else {
       mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc, t);
       if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
+       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
         if (pred->getOwner() != suc->getOwner()) {
          intersect = true;
         }
@@ -4956,35 +5319,35 @@ bool intersects(const Line2& line1, const Line2& line2,
      bool inversionNecessary = false;
 
      collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
-       inversionNecessary);
+       inversionNecessary, t);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
       sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+        event->getGridY(), v2, pred, predIndex, suc, sucIndex, t);
 
       if (p2d_debug && pred) {
-       cout << "intersection-test for" << endl;
+       cout << "intersection- for" << endl;
        right->print();
        cout << " and " << endl;
        pred->print();
       }
       if (pred) {
-       if (intersectionTestForSetOp(pred, right, event, q, true)) {
+       if (intersectionTestForSetOp(pred, right, event, q, true, t)) {
         if (pred->getOwner() != right->getOwner()) {
          intersect = true;
         }
        }
       }
       if (p2d_debug && suc) {
-       cout << "intersection-test for" << endl;
+       cout << "intersection- for" << endl;
        left->print();
        cout << " and " << endl;
        suc->print();
       }
       if (suc) {
-       if (intersectionTestForSetOp(left, suc, event, q, true)) {
+       if (intersectionTestForSetOp(left, suc, event, q, true, t)) {
         if (suc->getOwner() != left->getOwner()) {
          intersect = true;
         }
@@ -5004,180 +5367,14 @@ bool intersects(const Line2& line1, const Line2& line2,
 } // intersects line2 x line2 -> bool
 
 /*
-
- ~crossings~
-
-*/
-void crossings(const Line2& line1, const Line2& line2, Points2& result,
-  const Geoid* geoid/*=0*/) {
- result.Clear();
-
- if (geoid) {
-  cerr << ": Spherical geometry not implemented." << endl;
-  assert(false);
- }
-
- if (!line1.IsDefined() || !line2.IsDefined()
-   || (geoid && !geoid->IsDefined())) {
-  result.SetDefined(false);
-  return;
- }
-
- if (line1.Size() == 0) {
-  return;
- }
- if (line2.Size() == 0) {
-  return;
- }
-
- priority_queue<Event, vector<Event>, greater<Event> > q;
- AVLTree sss;
- int pos1 = 0;
- int pos2 = 0;
-
- AVLSegment* current;
- AVLSegment* pred = NULL;
- AVLSegment* suc = NULL;
- AVLSegment* left = NULL;
- AVLSegment* right = NULL;
-
- Event* event = new Event();
-
- while (selectNext(line1, pos1, line2, pos2, q, *event) != none) {
-  if (event->isLeftEndpointEvent()) {
-   if (p2d_debug) {
-    event->print();
-   }
-   current = event->getSegment();
-   sss.insert(current, pred, suc);
-   mpq_class v = current->getPreciseXL();
-
-   if (pred) {
-    intersectionTestForSetOp(current, pred, event, q, false);
-   }
-   if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
-   } else {
-    if (suc) {
-     intersectionTestForSetOp(current, suc, event, q, true);
-     if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
-     } else {
-
-     }
-    }
-   }
-
-   if (current->isValid() && !(current->getOwner() == both)) {
-    Event re(rightEndpoint, current);
-    q.push(re);
-   }
-
-  } else {
-   if (event->isRightEndpointEvent()) {
-    if (p2d_debug) {
-     event->print();
-    }
-    current = event->getSegment();
-    if (event->isValid()) {
-
-     mpq_class v1 = current->getPreciseXR();
-     sss.removeGetNeighbor(current, pred, suc);
-     current->changeValidity(false);
-     if (pred && suc) {
-      intersectionTestForSetOp(pred, suc, event, q, true);
-     }
-
-    }
-
-    if (event->getNoOfChanges() == 0) {
-     //this is the last event with ~current~
-     delete current;
-    }
-   } else {
-    //intersection Event
-    if (p2d_debug) {
-     event->print();
-    }
-
-    mpq_class v1 = event->getPreciseX();
-    mpq_class v2 = event->getPreciseY();
-    vector<AVLSegment*> segmentVector;
-
-    size_t predIndex = 0;
-    size_t sucIndex = 0;
-    bool inversionNecessary = false;
-
-    collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
-      inversionNecessary);
-
-    bool hasSegOfArg1 = false;
-    bool hasSegOfArg2 = false;
-    size_t i = 0;
-    size_t size = segmentVector.size();
-
-    while (!(hasSegOfArg1 && hasSegOfArg2) && i < size) {
-     if (segmentVector.at(i)->getOwner() == first) {
-      hasSegOfArg1 = true;
-     }
-     if (segmentVector.at(i)->getOwner() == second) {
-      hasSegOfArg2 = true;
-     }
-     i++;
-    }
-
-    if (hasSegOfArg1 && hasSegOfArg2) {
-     result.addPoint(
-       new Point2(true, event->getGridX(), event->getGridY(),
-         event->getPreciseX(), event->getPreciseY()));
-    }
-
-    if (inversionNecessary) {
-     left = segmentVector.at(0);
-     right = segmentVector.back();
-     sss.invertSegments(segmentVector, event->getGridX(), v1, event->getGridY(),
-       v2, pred, predIndex, suc, sucIndex);
-
-     if (p2d_debug && pred) {
-      cout << "intersection-test for";
-      right->print();
-      cout << " and " << endl;
-      pred->print();
-
-     }
-     if (pred) {
-      intersectionTestForSetOp(pred, right, event, q, true);
-     }
-     if (p2d_debug && suc) {
-      cout << "intersection-test for";
-      left->print();
-      cout << " and " << endl;
-      suc->print();
-     }
-     if (suc) {
-      intersectionTestForSetOp(left, suc, event, q, true);
-     }
-     mpq_class px = event->getPreciseX();
-     mpq_class py = event->getPreciseY();
-
-    }
-   }
-  }
-  if (p2d_debug) {
-   cout << "the tree:" << endl;
-   sss.inorder();
-  }
- }
-
- delete event;
-} // crossings line2 x line2 -> points2
-
-/*
  ~SetOp~
 
 */
 void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
-  SetOperation op, const Geoid* geoid/*=0*/) {
+  SetOperation op, TestStruct& t, const Geoid* geoid/*=0*/) {
+
+ t.clear();
+
  if (geoid) {
   cerr << ": Spherical geometry not implemented." << endl;
   assert(false);
@@ -5189,7 +5386,6 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
  }
  result.SetDefined(true);
  if (reg1.Size() == 0) {
-  cout << "no1 size0" << endl;
   switch (op) {
   case avlseg::union_op:
    result = reg2;
@@ -5203,7 +5399,6 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
   }
  }
  if (reg2.Size() == 0) {
-  cout << "no2 size0" << endl;
   switch (op) {
   case avlseg::union_op:
    result = reg1;
@@ -5234,7 +5429,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
        gs.GetLeftPointX(), ps.GetlPointy(reg1.getpreciseCoordinates()),
        gs.GetLeftPointY(), 0);
      Reg2PrecisePoint p2(ps.GetrPointx(reg1.getpreciseCoordinates()),
-       gs.GetRightPointX(), ps.GetlPointy(reg1.getpreciseCoordinates()),
+       gs.GetRightPointX(), ps.GetrPointy(reg1.getpreciseCoordinates()),
        gs.GetRightPointY(), 0);
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
@@ -5254,7 +5449,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
        gs.GetLeftPointX(), ps.GetlPointy(reg2.getpreciseCoordinates()),
        gs.GetLeftPointY(), 0);
      Reg2PrecisePoint p2(ps.GetrPointx(reg2.getpreciseCoordinates()),
-       gs.GetRightPointX(), ps.GetlPointy(reg2.getpreciseCoordinates()),
+       gs.GetRightPointX(), ps.GetrPointy(reg2.getpreciseCoordinates()),
        gs.GetRightPointY(), 0);
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
@@ -5279,6 +5474,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
    assert(false);
   }
  }
+
  priority_queue<Event, vector<Event>, greater<Event> > q;
  AVLTree sss;
 
@@ -5297,33 +5493,37 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
  Event* event = new Event();
 
  result.StartBulkLoad();
- cout << "vor plane sweep" << endl;
- while ((selectNext(reg1, pos1, reg2, pos2, q, *event)) != none) {
+
+ while ((selectNext(reg1, pos1, reg2, pos2, q, *event, t)) != none) {
   if (event->isLeftEndpointEvent()) {
    if (p2d_debug) {
     event->print();
    }
    current = event->getSegment();
-   sss.insert(current, pred, suc);
+   sss.insert(current, pred, suc, t);
 
    mpq_class v = current->getPreciseXL();
    if (pred) {
-    intersectionTestForSetOp(current, pred, event, q, false);
+    intersectionTestForSetOp(current, pred, event, q, false, t);
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event->getGridX(), v, t);
    } else {
     if (suc) {
-     intersectionTestForSetOp(current, suc, event, q, true);
+     intersectionTestForSetOp(current, suc, event, q, true, t);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event->getGridX(), v, t);
      }
     }
    }
    if (current->isValid() && !(current->getOwner() == both)) {
     Event re(rightEndpoint, current);
+    vNoCmpGrid = 0;
+    vNoCmpPrecise = 0;
     q.push(re);
+    t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+    t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
    }
 
   } else {
@@ -5336,18 +5536,18 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
      if (current->isValid()) {
       createNewSegments(*current, result, edgeno, op);
 
-      sss.removeGetNeighbor(current, pred, suc);
+      sss.removeGetNeighbor(current, pred, suc, t);
       current->changeValidity(false);
       if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
+       intersectionTestForSetOp(pred, suc, event, q, true, t);
 
       }
 
      } else {
       mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc, t);
       if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
+       intersectionTestForSetOp(pred, suc, event, q, true, t);
       }
      }
     }
@@ -5371,13 +5571,13 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
      bool inversionNecessary = false;
 
      collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
-       inversionNecessary);
+       inversionNecessary, t);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
       sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+        event->getGridY(), v2, pred, predIndex, suc, sucIndex, t);
 
       if (p2d_debug && pred) {
        cout << "intersection-test for" << endl;
@@ -5386,7 +5586,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
        pred->print();
       }
       if (pred) {
-       intersectionTestForSetOp(pred, right, event, q, true);
+       intersectionTestForSetOp(pred, right, event, q, true, t);
       }
       if (p2d_debug && suc) {
        cout << "intersection-test for" << endl;
@@ -5395,12 +5595,12 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
        suc->print();
       }
       if (suc) {
-       intersectionTestForSetOp(left, suc, event, q, true);
+       intersectionTestForSetOp(left, suc, event, q, true, t);
       }
       mpq_class px = event->getPreciseX();
       mpq_class py = event->getPreciseY();
 
-      createNewSegments(segmentVector, *event, suc, result, edgeno, op);
+      createNewSegments(segmentVector, *event, suc, result, edgeno, op, t);
      }
     }
    }
@@ -5420,9 +5620,10 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
  ~intersects~
 
 */
-bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
+bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2, TestStruct& t,
   const Geoid* geoid/*=0*/) {
 
+ t.clear();
  if (geoid) {
   cerr << ": Spherical geometry not implemented." << endl;
   assert(false);
@@ -5461,17 +5662,18 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
 
  bool intersect = false;
 
- while (!intersect && (selectNext(reg1, pos1, reg2, pos2, q, *event)) != none) {
+ while (!intersect
+   && (selectNext(reg1, pos1, reg2, pos2, q, *event, t)) != none) {
   if (event->isLeftEndpointEvent()) {
    if (p2d_debug) {
     event->print();
    }
    current = event->getSegment();
-   sss.insert(current, pred, suc);
+   sss.insert(current, pred, suc, t);
 
    mpq_class v = current->getPreciseXL();
    if (pred) {
-    if (intersectionTestForSetOp(current, pred, event, q, false)) {
+    if (intersectionTestForSetOp(current, pred, event, q, false, t)) {
      if ((pred->getOwner() != current->getOwner())) {
       cout << "the regions intersect." << endl;
       pred->print();
@@ -5481,22 +5683,26 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event->getGridX(), v, t);
    } else {
     if (suc) {
-     if (intersectionTestForSetOp(current, suc, event, q, true)) {
+     if (intersectionTestForSetOp(current, suc, event, q, true, t)) {
       if ((suc->getOwner() != current->getOwner())) {
        intersect = true;
       }
      }
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event->getGridX(), v, t);
      }
     }
    }
    if (current->isValid() && !(current->getOwner() == both)) {
     Event re(rightEndpoint, current);
+    vNoCmpGrid = 0;
+    vNoCmpPrecise = 0;
     q.push(re);
+    t.noCmpGrid = t.noCmpGrid + vNoCmpGrid;
+    t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
    }
   } else {
    if (event->isRightEndpointEvent()) {
@@ -5508,10 +5714,10 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
      if (current->isValid()) {
       checkSegment(*current, intersect, intersects_op);
 
-      sss.removeGetNeighbor(current, pred, suc);
+      sss.removeGetNeighbor(current, pred, suc, t);
       current->changeValidity(false);
       if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
+       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
         if ((pred->getOwner() != suc->getOwner())) {
          intersect = true;
         }
@@ -5520,9 +5726,9 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
 
      } else {
       mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc, t);
       if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
+       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
         if ((pred->getOwner() != suc->getOwner())) {
          intersect = true;
         }
@@ -5549,35 +5755,35 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
      bool inversionNecessary = false;
 
      collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
-       inversionNecessary);
+       inversionNecessary, t);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
       sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+        event->getGridY(), v2, pred, predIndex, suc, sucIndex, t);
 
       if (p2d_debug && pred) {
-       cout << "intersection-test for" << endl;
+       cout << "intersection- for" << endl;
        right->print();
        cout << " and " << endl;
        pred->print();
       }
       if (pred) {
-       if (intersectionTestForSetOp(pred, right, event, q, true)) {
+       if (intersectionTestForSetOp(pred, right, event, q, true, t)) {
         if ((pred->getOwner() != right->getOwner())) {
          intersect = true;
         }
        }
       }
       if (p2d_debug && suc) {
-       cout << "intersection-test for" << endl;
+       cout << "intersection- for" << endl;
        left->print();
        cout << " and " << endl;
        suc->print();
       }
       if (suc) {
-       if (intersectionTestForSetOp(left, suc, event, q, true)) {
+       if (intersectionTestForSetOp(left, suc, event, q, true, t)) {
         if ((suc->getOwner() != left->getOwner())) {
          intersect = true;
         }
@@ -5586,7 +5792,7 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
       mpq_class px = event->getPreciseX();
       mpq_class py = event->getPreciseY();
 
-      checkSegments(segmentVector, *event, suc, intersect, intersects_op);
+      checkSegments(segmentVector, *event, suc, intersect, intersects_op, t);
      }
     }
    }
@@ -5601,324 +5807,6 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
  return intersect;
 } // intersects region2 x region2 -> bool
 
-/*
- ~overlaps~
+} //end of p2d_
 
-*/
-bool overlaps(/*const*/Region2& reg1, /*const*/Region2& reg2,
-  const Geoid* geoid/*=0*/) {
-
- if (geoid) {
-  cerr << ": Spherical geometry not implemented." << endl;
-  assert(false);
- }
-
- if (!reg1.IsDefined() || !reg2.IsDefined() || (geoid && !geoid->IsDefined())) {
-  return false;
- }
-
- if (reg1.Size() == 0) {
-  return false;
- }
- if (reg2.Size() == 0) {
-  return false;
- }
-
- if (!reg1.BoundingBox().Intersects(reg2.BoundingBox(), geoid)) {
-  return false;
- }
-
- assert(reg1.IsOrdered());
- assert(reg2.IsOrdered());
-
- priority_queue<Event, vector<Event>, greater<Event> > q;
- AVLTree sss;
- int pos1 = 0;
- int pos2 = 0;
-
- AVLSegment* current;
- AVLSegment* pred = NULL;
- AVLSegment* suc = NULL;
- AVLSegment* right = NULL;
- AVLSegment* left = NULL;
-
- Event* event = new Event();
-
- bool overlaps = false;
-
- while (!overlaps && (selectNext(reg1, pos1, reg2, pos2, q, *event)) != none) {
-  if (event->isLeftEndpointEvent()) {
-   if (p2d_debug) {
-    event->print();
-   }
-   current = event->getSegment();
-   sss.insert(current, pred, suc);
-
-   mpq_class v = current->getPreciseXL();
-   if (pred) {
-    intersectionTestForSetOp(current, pred, event, q, false);
-   }
-
-   if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
-   } else {
-    if (suc) {
-     intersectionTestForSetOp(current, suc, event, q, true);
-     if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
-     }
-    }
-   }
-   if (current->isValid() && !(current->getOwner() == both)) {
-    Event re(rightEndpoint, current);
-    q.push(re);
-   }
-  } else {
-   if (event->isRightEndpointEvent()) {
-    if (p2d_debug) {
-     event->print();
-    }
-    current = event->getSegment();
-    cout << "checkSegment:" << endl;
-    current->print();
-    if (event->isValid()) {
-     if (current->isValid()) {
-      checkSegment(*current, overlaps, overlaps_op);
-
-      sss.removeGetNeighbor(current, pred, suc);
-      current->changeValidity(false);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
-
-     } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
-     }
-    }
-    if (event->getNoOfChanges() == 0) {
-     //this is the last event with ~current~
-     delete current;
-    }
-   } else {
-    //intersection Event
-    if (event->isValid()) {
-     if (p2d_debug) {
-      event->print();
-     }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
-     vector<AVLSegment*> segmentVector;
-
-     size_t predIndex = 0;
-     size_t sucIndex = 0;
-     bool inversionNecessary = false;
-
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
-       inversionNecessary);
-
-     if (inversionNecessary) {
-      left = segmentVector.at(0);
-      right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
-
-      if (p2d_debug && pred) {
-       cout << "intersection-test for" << endl;
-       right->print();
-       cout << " and " << endl;
-       pred->print();
-      }
-      if (pred) {
-       intersectionTestForSetOp(pred, right, event, q, true);
-      }
-      if (p2d_debug && suc) {
-       cout << "intersection-test for" << endl;
-       left->print();
-       cout << " and " << endl;
-       suc->print();
-      }
-      if (suc) {
-       intersectionTestForSetOp(left, suc, event, q, true);
-      }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
-
-      checkSegments(segmentVector, *event, suc, overlaps, overlaps_op);
-     }
-    }
-   }
-  }
-  if (p2d_debug) {
-   cout << "the tree:" << endl;
-   sss.inorder();
-  }
- }
- delete event;
-
- return overlaps;
-} // overlaps region2 x region2 -> bool
-
-/*
- ~inside~
-
-*/
-bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
-  const Geoid* geoid/*=0*/) {
- if (geoid) {
-  cerr << ": Spherical geometry not implemented." << endl;
-  assert(false);
- }
-
- if (!reg1.IsDefined() || !reg2.IsDefined() || (geoid && !geoid->IsDefined())) {
-  return false;
- }
-
- if (reg1.Size() == 0) {
-  return true;
- }
- if (reg2.Size() == 0) {
-  return false;
- }
-
- if (!reg2.BoundingBox().Contains(reg1.BoundingBox(), geoid)) {
-  return false;
- }
-
- assert(reg1.IsOrdered());
- assert(reg2.IsOrdered());
-
- priority_queue<Event, vector<Event>, greater<Event> > q;
- AVLTree sss;
- int pos1 = 0;
- int pos2 = 0;
-
- AVLSegment* current;
- AVLSegment* pred = NULL;
- AVLSegment* suc = NULL;
- AVLSegment* right = NULL;
- AVLSegment* left = NULL;
-
- Event* event = new Event();
-
- bool inside = true;
- while (inside && (selectNext(reg1, pos1, reg2, pos2, q, *event)) != none) {
-
-  if (event->isLeftEndpointEvent()) {
-   if (p2d_debug) {
-    event->print();
-   }
-   current = event->getSegment();
-   sss.insert(current, pred, suc);
-   mpq_class v = current->getPreciseXL();
-   if (pred) {
-    intersectionTestForSetOp(current, pred, event, q, false);
-   }
-
-   if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
-   } else {
-    if (suc) {
-     intersectionTestForSetOp(current, suc, event, q, true);
-     if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
-     }
-    }
-   }
-   if (current->isValid() && !(current->getOwner() == both)) {
-    Event re(rightEndpoint, current);
-    q.push(re);
-   }
-  } else {
-   if (event->isRightEndpointEvent()) {
-    if (p2d_debug) {
-     event->print();
-    }
-    current = event->getSegment();
-    if (event->isValid()) {
-     if (current->isValid()) {
-      checkSegment(*current, inside, inside_op);
-
-      sss.removeGetNeighbor(current, pred, suc);
-      current->changeValidity(false);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
-
-     } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
-     }
-    }
-    if (event->getNoOfChanges() == 0) {
-     //this is the last event with ~current~
-     delete current;
-    }
-   } else {
-    //intersection Event
-    if (event->isValid()) {
-     if (p2d_debug) {
-      event->print();
-     }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
-     vector<AVLSegment*> segmentVector;
-
-     size_t predIndex = 0;
-     size_t sucIndex = 0;
-     bool inversionNecessary = false;
-
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
-       inversionNecessary);
-
-     if (inversionNecessary) {
-      left = segmentVector.at(0);
-      right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
-
-      if (p2d_debug && pred) {
-       cout << "intersection-test for" << endl;
-       right->print();
-       cout << " and " << endl;
-       pred->print();
-      }
-      if (pred) {
-       intersectionTestForSetOp(pred, right, event, q, true);
-      }
-      if (p2d_debug && suc) {
-       cout << "intersection-test for" << endl;
-       left->print();
-       cout << " and " << endl;
-       suc->print();
-      }
-      if (suc) {
-       intersectionTestForSetOp(left, suc, event, q, true);
-      }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
-
-      checkSegments(segmentVector, *event, suc, inside, inside_op);
-     }
-    }
-   }
-  }
-  if (p2d_debug) {
-   cout << "the tree:" << endl;
-   sss.inorder();
-  }
- }
- delete event;
-
- return inside;
-} // inside region2 x region2 -> bool
-
-} //end of p2d
-
-#endif /* AVL_TREE_CPP_*/
+#endif /* TESTAVLTREE_CPP_*/

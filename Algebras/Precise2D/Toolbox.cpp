@@ -34,6 +34,7 @@
 */
 
 #include "Toolbox.h"
+#include "Point2.h"
 
 namespace p2d {
 

@@ -321,6 +321,150 @@ void CoarseningGraph::calculateBoundary(Region& result) {
  clear();
 }
 
+void CoarseningGraph::calculateBoundary2(Region2& result) {
+
+ result.Clear();
+ if (vertices.size() < 4) {
+  //a region needs at least 4 nodes a coarse region has only 90 degree angles
+  result.SetDefined(true);
+  return;
+ }
+
+ //cut loose ends
+ cutLooseEnds();
+
+ //compute boundary
+ result.SetDefined(true);
+
+ Region2 tmpRegion(0);
+
+ int visited = 1;
+
+ while (vertices.size() >= 4) {
+  //there are enough vertices to create another cycle
+
+  try {
+   tmpRegion.Clear();
+   tmpRegion.StartBulkLoad();
+
+   //create next cycle, which becomes an outercycle or a hole
+   bool lastInsideAbove = false;
+   bool insideAbove = false;
+   Vertex* firstVertex = *(vertices.begin());
+   Vertex* last = firstVertex;
+   Direction lastDirection = noDirection;
+   Direction dir = noDirection;
+   Vertex* next;
+
+   int firstX = last->getX(); //the x-value of the first vertex
+   int firstY = last->getY(); //the y-value of the first vertex
+
+   //HalfSegment* hs;
+   int edgeNo = 0;
+   mpq_class zero(0);
+   Reg2PrecisePoint* lp = new Reg2PrecisePoint(zero, last->getX(),
+     zero, last->getY(), 0);
+   Reg2PrecisePoint* rp = NULL;
+
+   do {
+    last->getNextVertex(&next, dir, insideAbove, firstX, firstY, visited);
+
+    if (next == NULL) {
+     //throw exception();
+    }
+    if (lastDirection == noDirection) {
+     //last contains the first vertex of the cycle
+     lastDirection = dir;
+    }
+    if (lastDirection != dir) {
+     //~next~ goes in another direction than ~lastDirection~
+     //a new endpoint ~rp~ for the next halfsegment has to be created and the
+     //next segment extends in the direction ~dir~
+     rp = new Reg2PrecisePoint(zero, last->getX(), zero, last->getY(), 0);
+     lastDirection = dir;
+    }
+
+    if (rp != NULL) {
+     // a new halfsegment has to be created.
+     if (*lp < *rp) {
+      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, *lp, *rp);
+      hs.attr.edgeno = edgeNo;
+      hs.attr.insideAbove = lastInsideAbove;
+      tmpRegion += hs;
+      hs.SetLeftDomPoint(false);
+      tmpRegion += hs;
+      edgeNo++;
+     } else {
+      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, *rp, *lp);
+      hs.attr.edgeno = edgeNo;
+      hs.attr.insideAbove = lastInsideAbove;
+      tmpRegion += hs;
+      hs.SetLeftDomPoint(false);
+      tmpRegion += hs;
+      edgeNo++;
+     }
+     lastInsideAbove = insideAbove;
+     lp = rp;
+     rp = NULL;
+    }
+
+    next->removeEdge(last);
+    last->removeEdge(next);
+
+    if ((*last != *firstVertex) && (last->getNoOfEdges() < 2)) {
+     cutLooseEnd(last);
+    }
+    last = next;
+   } while (*last != *firstVertex);
+
+   rp =    new Reg2PrecisePoint(zero, firstX, zero, firstY, 0);
+   Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, *rp, *lp);
+   hs.attr.edgeno = edgeNo;
+   hs.attr.insideAbove = true;
+   tmpRegion += hs;
+   hs.SetLeftDomPoint(false);
+   tmpRegion += hs;
+   edgeNo++;
+
+   if (last->getNoOfEdges() < 2) {
+    cutLooseEnd(last);
+   }
+
+
+   //build region
+   tmpRegion.EndBulkLoad();
+
+   if (tmpRegion.IsDefined()) {
+
+    if (result.Size() == 0) {
+     //~tmpRegion~ was the first cycle
+     result = tmpRegion;
+    } else {
+     //there are already some cycles in ~tmpResult~
+     if (inside(tmpRegion, result)){//tmpRegion.Inside(result)) {
+      //~tmpRegion~ is within ~tmpResult~ and becomes a hole in ~tmpResult~
+      Region2 res(0);
+      SetOp(result, tmpRegion, res, difference_op);
+      //tmpResult.Minus(tmpRegion, res);
+      result = res;
+     } else {
+      //~tmpRegion~ and ~tmpResult~ are merged
+      Region2 res(0);
+      SetOp(result, tmpRegion, res, union_op);
+      //result.Union(tmpRegion, res);
+      result = res;
+     }
+    }
+   }
+  } catch (exception& e) {
+   cutLooseEnds();
+  }
+ }
+
+ //remove the remaining vertices and edges
+ clear();
+}
+
 Vertex* CoarseningGraph::insert(int x, int y) {
  Vertex* v = new Vertex(x, y);
  pair<set<Vertex*, CmpVertex>::iterator, bool> pair1 = vertices.insert(v);
@@ -407,6 +551,7 @@ void CoarseningGraph::cutLooseEnd(Vertex* v) {
   }
  }
 }
+
 
 Vertex::Vertex(int a, int b) :
   x(a), y(b), visited(0) {
@@ -807,5 +952,58 @@ void coarseRegion2(/*const*/Region2& r, Region& result) {
  result.Clear();
  faces.Minus(holes, result);
 }
+
+void coarseRegion2b(/*const*/Region2& r, Region& result) {
+ //faces
+ CoarseningGraph g1;
+ Region2 faces(0);
+ r.getFaces(faces);
+ g1.computeGraph(faces);
+
+ //Region2 tmpFaces(0);
+ g1.calculateBoundary2(faces);
+
+ //holes
+ CoarseningGraph g2;
+ Region2 holes(0);
+ r.getHoles(holes);
+ g2.computeGraph(holes);
+
+ //Region2 tmpHoles(0);
+ g2.calculateBoundary2(holes);
+
+ Region2 tmpResult(0);
+ SetOp(faces, holes, tmpResult, difference_op);
+
+ createRegion(tmpResult, result);
+}
+
+void createRegion(Region2& s, Region& r){
+ r.Clear();
+ if (s.IsDefined()){
+  r.SetDefined(true);
+ } else {
+  return;
+ }
+ r.StartBulkLoad();
+ Reg2GridHalfSegment gs;
+ int edgeNo = 0;
+ for (int i = 0; i< s.Size(); i++){
+  s.getgridCoordinates()->Get(i, gs);
+  if (gs.IsLeftDomPoint()){
+   Point lp(true, gs.GetLeftPointX(), gs.GetLeftPointY());
+   Point rp(true, gs.GetRightPointX(), gs.GetRightPointY());
+   HalfSegment hs(true, lp, rp);
+   hs.attr.edgeno = edgeNo;
+   hs.attr.insideAbove = gs.attr.insideAbove;
+   r += hs;
+   hs.SetLeftDomPoint(false);
+   r += hs;
+   edgeNo++;
+  }
+ }
+ r.EndBulkLoad();
+}
+
 
 }  //end of namespace p2d

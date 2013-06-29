@@ -37,6 +37,7 @@
 #define _Line2_CPP
 
 #include "Line2.h"
+#include "AVL_Tree.h"
 
 namespace p2d {
 
@@ -525,6 +526,7 @@ void SegmentData::SetEdgeNo(int no) {
  edgeno = no;
 }
 
+Line2::Line2() {};
 
 Line2::Line2(const bool def, bool ldp, int xl, int yl, int xr, int yr,
   mpq_class pxl, mpq_class pyl, mpq_class pxr, mpq_class pyr) :
@@ -1623,16 +1625,20 @@ void convertLineToLine2(Line& l, Line2& result) {
  for (int i = 0; i < l.Size(); i++) {
   l.Get(i, hs);
   if (hs.IsLeftDomPoint()) {
-   int glx = static_cast<int>(hs.GetDomPoint().GetX());
-   int gly = static_cast<int>(hs.GetDomPoint().GetY());
 
-   mpq_class plx = computeMpqFromDouble(hs.GetDomPoint().GetX() - glx);
-   mpq_class ply = computeMpqFromDouble(hs.GetDomPoint().GetY() - gly);
+   int glx;
+   int gly;
+   mpq_class plx(0);
+   mpq_class ply(0);
+   createValue(hs.GetDomPoint().GetX(), glx, plx);
+   createValue(hs.GetDomPoint().GetY(), gly, ply);
 
-   int grx = static_cast<int>(hs.GetSecPoint().GetX());
-   int gry = static_cast<int>(hs.GetSecPoint().GetY());
-   mpq_class prx = computeMpqFromDouble(hs.GetSecPoint().GetX() - grx);
-   mpq_class pry = computeMpqFromDouble(hs.GetSecPoint().GetY() - gry);
+   int grx;
+   int gry;
+   mpq_class prx(0);
+   mpq_class pry(0);
+   createValue(hs.GetSecPoint().GetX(), grx, prx);
+   createValue(hs.GetSecPoint().GetY(), gry, pry);
 
    result.addSegment(true, glx, gly, grx, gry, plx, ply, prx, pry, edgeNo);
    result.addSegment(false, grx, gry, glx, gly, prx, pry, plx, ply, edgeNo);
@@ -1724,6 +1730,14 @@ inline int Line2::Compare(const Attribute *arg) const {
  }
  return 0;
 }
+
+bool Line2::Adjacent(const Attribute *arg) const {
+ return false;
+}
+
+Line2* Line2::Clone() const {
+  return new Line2(*this);
+ }
 
 /*
  4.4 ~CloneLine2~-function
