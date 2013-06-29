@@ -23,8 +23,28 @@ operator intersection alias INTERSECTION pattern op ( _, _ )
 
 operator intersects alias INTERSECTS pattern _ infixop _
 
+operator intersects2 alias INTERSECTS pattern _ infixop _
+
+operator overlaps2 alias INTERSECTS pattern _ infixop _
+
 operator lineToLine2 alias LINETOLINE2 pattern op( _ )
 
 operator minus alias MINUS pattern _ infixop _
 
 operator union alias UNION pattern _ infixop _
+
+operator inside2 alias INSIDE2 pattern _ infixop _
+
+operator coarse alias COARSE pattern op( _ )
+
+operator coarse2 alias COARSE2 pattern op( _ )
+
+operator testIntersection alias TESTINTERSECTION pattern op ( _, _ )
+
+operator testIntersects alias TESTINTERSECTS pattern _ infixop _
+
+operator testIntersects2 alias TESTINTERSECTS pattern _ infixop _
+
+operator testMinus alias TESTMINUS pattern _ infixop _
+
+operator testUnion alias TESTUNION pattern _ infixop _
