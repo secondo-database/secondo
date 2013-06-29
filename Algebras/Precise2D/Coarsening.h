@@ -122,6 +122,8 @@ private:
  void cutLooseEnd(Vertex* v);
 
 
+
+
 public:
  CoarseningGraph();
 
@@ -133,7 +135,23 @@ public:
 
  void computeGraphBetween(int lx, int ly, int rx, int ry);
 
+ /*
+  ~calculateBoundary~
+
+  creates a region-object from the coarseningGraph. The intermediate
+  results are of type region too.
+
+ */
  void calculateBoundary(Region& result);
+
+ /*
+  ~calculateBoundary2~
+
+  creates a region-object from the coarseningGraph. The intermediate
+  results are of type region2.
+
+ */
+ void calculateBoundary2(Region2& result);
 
  void Print() const;
 
@@ -251,6 +269,24 @@ public:
 
 */
 void coarseRegion2(/*const*/Region2& r, Region& result);
+
+/*
+ ~coarseRegion2~
+
+ This method generates a CoarseningGraph from ~r~ and computes the
+ region-object, saved in ~result~. The intermediate results are all of
+ type region2.
+
+*/
+void coarseRegion2b(/*const*/Region2& r, Region& result);
+
+/*
+ ~createRegion~
+
+ precondition: there are no decimals
+
+*/
+void createRegion(Region2& s, Region& r);
 
 } //end namespace p2d
 #endif /* COARSENING_H_ */

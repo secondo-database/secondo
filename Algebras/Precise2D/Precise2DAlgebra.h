@@ -56,6 +56,8 @@
 #include "SpatialAlgebra.h"
 #include "Coarsening.h"
 #include "Toolbox.h"
+#include "AVL_Tree.h"
+#include "TestAVLTree.h"
 
 namespace p2d{
 

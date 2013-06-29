@@ -39,9 +39,12 @@
 #include <stdio.h>
 #include <gmp.h>
 #include <gmpxx.h>
-#include "Point2.h"
+#include "NestedList.h"
+//#include "Point2.h"
 
 namespace p2d {
+
+class Point2;
 
 bool createCoordinate(ListExpr& value, int& grid, mpq_class& precise);
 

@@ -33,26 +33,69 @@
 
 */
 
-#ifndef AVL_TREE_H_
-#define AVL_TREE_H_
+#ifndef TESTAVLTREE_H_
+#define TESTAVLTREE_H_
 
-//#include "Line2.h"
-#include "Point2.h"
-#include "Points2.h"
+#include "Line2.h"
 #include "Region2Algebra.h"
 #include <queue>
 #include <vector>
 
-namespace p2d {
 
-class SegmentData;
-class Line2;
-class Point2;
-class Points2;
+namespace p2d_test{
+
 
 class AVLNode;
 class AVLSegment;
 class Event;
+
+
+struct TestStruct{
+mpq_class noCallMightIntersect;
+mpq_class noCallIntersect;
+mpq_class noCallCmpIntersectionIntervall;
+mpq_class noCallCmpWithPreciseData;
+mpq_class noCmpGrid;
+mpq_class noCmpPrecise;
+mpq_class noSegmentsIn;
+mpq_class noSegmentsOut;
+
+ void clear(){
+  noCallMightIntersect = 0;
+  noCallIntersect = 0;
+  noCallCmpIntersectionIntervall = 0;
+  noCallCmpWithPreciseData = 0;
+  noCmpGrid = 0;
+  noCmpPrecise = 0;
+  noSegmentsIn = 0;
+  noSegmentsOut = 0;
+ }
+
+ void print(){
+  cout << "Input: "<<noSegmentsIn <<" Segmente"<<endl;
+  if (noSegmentsOut >0){
+    cout << "Output: "<<noSegmentsOut <<" Segmente"<<endl;
+  }
+  cout << "Anzahl der Aufrufe:"<<endl;
+  cout << "mightIntersect: "<<noCallMightIntersect<<endl;
+  cout << "intersects:     "<<noCallIntersect<<endl<<endl;
+  cout << "Vergleich der Schnittpunkte mit der Sweep-Line"<<endl;
+  cout << "ausschliesslich mit den Gitterdaten: "
+    <<noCallCmpIntersectionIntervall<<endl;
+  cout << "unter Verwendung der präzisen Daten: "
+    <<noCallCmpWithPreciseData<<endl<<endl;
+  cout << "Vergleich zweier Zahlen insgesamt:"<<endl;
+  cout << "ausschliesslich mit den Gitterdaten: "<<noCmpGrid<<endl;
+  cout << "unter Verwendung der präzisen Daten: "<<noCmpPrecise<<endl;
+  cout << "Anmerkung: Hier wurden nur die Vergleiche gezaehlt, bei denen ein "
+       << "Vergleich der Gitterdaten sinnvoll moeglich war. Vergleiche von "
+       << "Zahlen, wie z.B. die Steigung zweier Segmente, wurden nicht "
+       << "mitgezaehlt, da nur ein Ueberblick gewonnen darueber gewonnen werden"
+       << " sollte, wie oft auf den Zugriff der praezisen Daten verzichtet "
+       << "werden konnte, wenn eine Zahl als Tupel (int, mpq_class) vorliegt.)"
+       <<endl;
+ }
+};
 
 class AVLTree {
 
@@ -63,13 +106,13 @@ private:
 public:
 
  /*
-  Default-constructor
+  Default-conTestStructor
 
  */
  AVLTree();
 
  /*
-  Destructor
+  DeTestStructor
 
  */
  ~AVLTree();
@@ -78,7 +121,8 @@ public:
   ~insert~
 
  */
- void insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc);
+ void insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc,
+   TestStruct& t);
 
  /*
   ~removeGetNeighbor~
@@ -91,7 +135,8 @@ public:
   ~suc~ will be NULL.
 
  */
- void removeGetNeighbor(AVLSegment* elem, AVLSegment*& pred, AVLSegment*& suc);
+ void removeGetNeighbor(AVLSegment* elem, AVLSegment*& pred, AVLSegment*& suc,
+   TestStruct& t);
 
  /*
   ~removeGetNeighbor2~
@@ -105,7 +150,7 @@ public:
 
  */
  void removeGetNeighbor2(AVLSegment* x, int gridXPos, mpq_class& preciseXPos,
-   AVLSegment*& pred, AVLSegment*& suc);
+   AVLSegment*& pred, AVLSegment*& suc,  TestStruct& t);
 
  /*
   ~removeInvalidSegment~
@@ -115,7 +160,8 @@ public:
   is in the position ~gridXPos~ + ~preciseXPos~.
 
  */
- void removeInvalidSegment(AVLSegment* x, int gridXPos, mpq_class& preciseXPos);
+ void removeInvalidSegment(AVLSegment* x, int gridXPos,
+   mpq_class& preciseXPos,  TestStruct& t);
 
  /*
   ~invertSegments~
@@ -131,7 +177,7 @@ public:
  */
  void invertSegments(vector<AVLSegment*>& v, int gridX, mpq_class& pX,
    int gridY, mpq_class& pY, AVLSegment*& pred, size_t predIndex,
-   AVLSegment*& suc, size_t sucIndex);
+   AVLSegment*& suc, size_t sucIndex,  TestStruct& t);
 
  /*
   ~inorder~
@@ -215,7 +261,8 @@ public:
   successor.
 
  */
- AVLNode* insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc);
+ AVLNode* insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc,
+   TestStruct& t);
 
  /*
   ~removeGetNeighbor~
@@ -230,7 +277,8 @@ public:
   and ~suc~ with NULL before calling this method.
 
  */
- AVLNode* removeGetNeighbor(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc);
+ AVLNode* removeGetNeighbor(AVLSegment* x, AVLSegment*& pred,
+   AVLSegment*& suc,  TestStruct& t);
 
  /*
   ~removeGetNeighbor2~
@@ -246,7 +294,7 @@ public:
 
  */
  AVLNode* removeGetNeighbor2(AVLSegment* x, int gridXPos, mpq_class preciseXPos,
-   AVLSegment*& pred, AVLSegment*& suc);
+   AVLSegment*& pred, AVLSegment*& suc,  TestStruct& t);
 
  /*
   ~removeInvalidSegment~
@@ -262,7 +310,7 @@ public:
 
  */
  AVLNode* removeInvalidSegment(AVLSegment* x, int gridXPos,
-   mpq_class preciseXPos, bool& found);
+   mpq_class preciseXPos, bool& found,  TestStruct& t);
 
  int getHeight() {
   return height;
@@ -287,7 +335,7 @@ public:
  */
  AVLNode* memberPlusNeighbor(AVLSegment* key, bool& result, int gridXPos,
    mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos,
-   AVLSegment*& neighbor, bool pred);
+   AVLSegment*& neighbor, bool pred,  TestStruct& t);
 
  /*
   ~member~
@@ -299,7 +347,8 @@ public:
 
  */
  AVLNode* member(AVLSegment* key, bool& result, int gridXPos,
-   mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos);
+   mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos,
+   TestStruct& t);
 
  /*
   ~inorder~
@@ -358,25 +407,32 @@ struct Coordinate {
  mpq_class px;
  mpq_class py;
 
- bool operator>(const Coordinate& c) const {
+ //bool operator>(const Coordinate& c) const {
+ bool greaterThan(const Coordinate& c, TestStruct& t)const{
+  t.noCmpGrid++;
   if (gx != c.gx) {
+   t.noCmpGrid++;
    if (gx > c.gx) {
     return true;
    } else {
     return false;
    }
   }
+  t.noCmpPrecise++;
   int cmpX = cmp(px, c.px);
   if (cmpX != 0) {
    return cmpX > 0;
   }
+  t.noCmpGrid++;
   if (gy != c.gy) {
+   t.noCmpGrid++;
    if (gy > c.gy) {
     return true;
    } else {
     return false;
    }
   }
+  t.noCmpPrecise++;
   return cmp(py, c.py) > 0;
  }
 };
@@ -390,7 +446,7 @@ protected:
 
  const DbArray<unsigned int>* dbarray;
 
- SegmentData* originalData1;
+ p2d::SegmentData* originalData1;
 
  Reg2PrecHalfSegment* originalData2;
 
@@ -460,22 +516,23 @@ protected:
   ~isVertical~
 
  */
- bool isVertical() const;
+ bool isVertical(TestStruct& t) const;
 
  /*
   ~set~
   Change ~this~ to an avlsegment with the given values.
 
  */
- void set(mpq_class xl, mpq_class yl, mpq_class xr, mpq_class yr, Owner o);
+ void set(mpq_class xl, mpq_class yl, mpq_class xr, mpq_class yr, Owner o,
+   TestStruct& t);
 
  void set(int gxl, int gyl, int gxr, int gyr, mpq_class xl, mpq_class yl,
-   mpq_class xr, mpq_class yr, Owner o);
+   mpq_class xr, mpq_class yr, Owner o, TestStruct& t);
 
 public:
  AVLSegment();
 
- AVLSegment(const Flob* preciseData, SegmentData* sd, Owner o);
+ AVLSegment(const Flob* preciseData, p2d::SegmentData* sd, Owner o);
 
  AVLSegment(const DbArray<unsigned int>* preciseData, Reg2GridHalfSegment& sd,
    Reg2PrecHalfSegment* ps, Owner o);
@@ -635,29 +692,29 @@ public:
   ~equal~
 
  */
- bool equal(AVLSegment& s) const;
+ bool equal(AVLSegment& s, TestStruct& t) const;
 
  /*
   ~isPoint~
 
  */
- bool isPoint() const;
+ bool isPoint(TestStruct& t) const;
 
- bool isEndpoint(int gx, int gy, mpq_class px, mpq_class py);
+ bool isEndpoint(int gx, int gy, mpq_class px, mpq_class py, TestStruct& t);
 
- bool startsAtPoint(int gx, int gy, mpq_class px, mpq_class py);
+ bool startsAtPoint(int gx, int gy, mpq_class px, mpq_class py, TestStruct& t);
 
- bool endsInPoint(int gx, int gy, mpq_class px, mpq_class py);
+ bool endsInPoint(int gx, int gy, mpq_class px, mpq_class py, TestStruct& t);
 
- bool isLeftOf(Event& event);
+ bool isLeftOf(Event& event, TestStruct& t);
 
- bool leftPointIsLeftOf(Event& event);
+ bool leftPointIsLeftOf(Event& event, TestStruct& t);
 
- bool isLeftPointOf(AVLSegment& s);
+ bool isLeftPointOf(AVLSegment& s, TestStruct& t);
 
- bool isRightPointOf(AVLSegment& s);
+ bool isRightPointOf(AVLSegment& s, TestStruct& t);
 
- bool hasEqualLeftEndpointAs(AVLSegment& s);
+ bool hasEqualLeftEndpointAs(AVLSegment& s, TestStruct& t);
 
  /*
   ~isValid~
@@ -717,7 +774,8 @@ public:
   1 if ~this~ runs above ~s~
 
  */
- int compareIntersectionintervalWithSweepline(AVLSegment& s, int gridXPos);
+ int compareIntersectionintervalWithSweepline(AVLSegment& s, int gridXPos,
+   TestStruct& t);
 
  /*
   ~compareInPosOrRight~
@@ -734,7 +792,8 @@ public:
   If the precondition is not satisfied, an assertion ends with false.
 
  */
- int compareInPosOrRight(AVLSegment& s, int gridXPos, mpq_class& preciseXPos);
+ int compareInPosOrRight(AVLSegment& s, int gridXPos, mpq_class& preciseXPos,
+   TestStruct& t);
 
  /*
   ~compareInPosOrLeft~
@@ -751,7 +810,8 @@ public:
   If the precondition is not satisfied, an assertion ends with false.
 
  */
- int compareInPosOrLeft(AVLSegment& s, int gridXPos, mpq_class& preciseXPos);
+ int compareInPosOrLeft(AVLSegment& s, int gridXPos, mpq_class& preciseXPos,
+   TestStruct& t);
 
  /*
   ~compareInPosForMember~
@@ -772,7 +832,7 @@ public:
 
  */
  int compareInPosForMember(AVLSegment& s, int gridXPos, mpq_class& preciseXPos,
-   int gridYPos, mpq_class& preciseYPos);
+   int gridYPos, mpq_class& preciseYPos, TestStruct& t);
  /*
 
   ~mightIntersect~
@@ -791,7 +851,7 @@ public:
   - (xl,yl,xl+1,yl)
 
  */
- bool mightIntersect(AVLSegment& s);
+ bool mightIntersect(AVLSegment& s, TestStruct& t);
 
  /*
 
@@ -800,7 +860,7 @@ public:
   intersection-point or intersection-interval is saved in ~result~.
 
  */
- bool intersect(AVLSegment& seg, AVLSegment& result);
+ bool intersect(AVLSegment& seg, AVLSegment& result, TestStruct& t);
 
 };
 
@@ -810,6 +870,7 @@ public:
  form the envelope of a real segment.
 
 */
+
 class SimpleSegment {
 
 private:
@@ -847,6 +908,7 @@ public:
  }
 
 };
+
 
 class BoundingSegments {
 private:
@@ -1031,6 +1093,8 @@ public:
 
 };
 
+
+
 /*
  ~selectNext~
 
@@ -1043,18 +1107,17 @@ public:
 */
 template<class C1, class C2>
 Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  TestStruct& t);
 
-Owner selectNext(const Line2& l, int& pos1, const Line2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
+Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  TestStruct& t);
 
 Owner selectNext(/*const*/ Region2& r1, int& pos1,
   /*const*/ Region2& r2, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
-
-template<class C>
-Owner selectNext(const C& l, int& pos,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  TestStruct& t);
 
 
 /*
@@ -1067,14 +1130,15 @@ Owner selectNext(const C& l, int& pos,
 
 */
 void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
-  AVLSegment* overlappingSegment, AVLSegment* rightC, AVLSegment* rightN);
+  AVLSegment* overlappingSegment, AVLSegment* rightC, AVLSegment* rightN,
+  TestStruct& t);
 
 /*
  ~mergeNeighbors~
  This function merges overlapping segments to one segment, stored in ~neighbor~.
 
 */
-bool mergeNeighbors(AVLSegment* current, AVLSegment* neighbor);
+bool mergeNeighbors(AVLSegment* current, AVLSegment* neighbor, TestStruct& t);
 
 /*
  ~splitNeighbors~
@@ -1091,23 +1155,23 @@ bool mergeNeighbors(AVLSegment* current, AVLSegment* neighbor);
 
 */
 void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
-  AVLSegment* overlappingSegment, AVLSegment* right);
+  AVLSegment* overlappingSegment, AVLSegment* right, TestStruct& t);
 
 /*
- ~intersectionTestForRealminize~
+ ~intersectionForRealminize~
 
  This function checks whether the given AVLSegments ~left~ and ~right~
  intersect or not. If they intersect in exact one point, an intersection-event
  will be created. If there is an overlapping part, both segments will be
  merged to one segment, stored in ~right~ and ~left~ will be set to invalid.
 
-*/
-void intersectionTestForRealminize(AVLSegment* left, AVLSegment* right,
+*-/
+void intersectionForRealminize(AVLSegment* left, AVLSegment* right,
   Event* event, priority_queue<Event, vector<Event>, greater<Event> >& q,
-  bool leftIsSmaller);
-
+  bool leftIsSmaller, TestStruct& t);
+*/
 /*
- ~intersectionTestForSetOp~
+ ~intersectionForSetOp~
 
  This function checks whether the given AVLSegments ~s1~ and ~s2~
  intersect or not. If they intersect in exact one point, an intersection-event
@@ -1120,7 +1184,8 @@ void intersectionTestForRealminize(AVLSegment* left, AVLSegment* right,
 
 */
 bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, bool leftIsSmaller);
+  priority_queue<Event, vector<Event>, greater<Event> >& q, bool leftIsSmaller,
+  TestStruct& t);
 
 /*
  ~collectSegmentsForInverting~
@@ -1140,7 +1205,7 @@ bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
 */
 void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
   Event& event, priority_queue<Event, vector<Event>, greater<Event> >& q,
-  size_t& predIndex, size_t& sucIndex, bool& inversionnecessary);
+  size_t& predIndex, size_t& sucIndex, bool& inversionnecessary, TestStruct& t);
 
 /*
  ~createNewSegments~
@@ -1149,7 +1214,7 @@ void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
  for the given SetOperation ~op~.
 
 */
-void createNewSegments(AVLSegment& s, Line2& result, int& edgeNo,
+void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeNo,
   SetOperation op);
 
 /*
@@ -1163,7 +1228,7 @@ void createNewSegments(AVLSegment& s, Line2& result, int& edgeNo,
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  Line2& result, int& edgeNo, SetOperation op);
+  p2d::Line2& result, int& edgeNo, SetOperation op, TestStruct& t);
 
 /*
  ~createNewSegments~
@@ -1187,7 +1252,8 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op);
+  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
+  TestStruct& t);
 
 /*
  ~checkSegments~
@@ -1198,7 +1264,7 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 
 */
 void checkSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, bool& result, RelationshipOperation op);
+  AVLSegment* successor, bool& result, RelationshipOperation op, TestStruct& t);
 
 /*
  ~checkSegment~
@@ -1209,12 +1275,6 @@ void checkSegments(vector<AVLSegment*>& segmentVector, Event& event,
 */
 void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op);
 
-/*
- ~Realminize~
-
-*/
-void Realminize(const Line2& src, Line2& result, const bool forceThrow);
-
 
 /*
  ~SetOp~
@@ -1222,8 +1282,8 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow);
  for ~line2~
 
 */
-void SetOp(const Line2& line1, const Line2& line2, Line2& result,
-  SetOperation op, const Geoid* geoid = 0);
+void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
+  SetOperation op, TestStruct& t, const Geoid* geoid = 0);
 
 /*
  ~SetOp~
@@ -1232,7 +1292,7 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
 
 */
 void SetOp(/*const*/ Region2& region1, /*const*/ Region2& region2,
-  Region2& result, SetOperation op, const Geoid* geoid = 0);
+  Region2& result, SetOperation op, TestStruct& t, const Geoid* geoid = 0);
 
 /*
  ~intersects~
@@ -1244,7 +1304,8 @@ void SetOp(/*const*/ Region2& region1, /*const*/ Region2& region2,
  false otherwise.
 
 */
-bool intersects(const Line2& line1, const Line2& line2, const Geoid* geoid = 0);
+bool intersects(const p2d::Line2& line1, const p2d::Line2& line2,
+  TestStruct& t, const Geoid* geoid = 0);
 
 /*
  ~intersects~
@@ -1256,44 +1317,8 @@ bool intersects(const Line2& line1, const Line2& line2, const Geoid* geoid = 0);
 
 */
 bool intersects(/*const*/ Region2& region1, /*const*/ Region2& region2,
-  const Geoid* geoid = 0);
+  TestStruct& t, const Geoid* geoid = 0);
 
-/*
- ~overlaps~
-
- ~region2~ x ~region2~ $->$ ~bool~
-
- returns true, if both region2-objects overlap,
- false otherwise.
-
-*/
-bool overlaps(/*const*/ Region2& region1, /*const*/ Region2& region2,
-  const Geoid* geoid = 0);
-
-/*
- ~crossings~
-
- ~region2~ x ~region2~ $->$ ~points~
-
- returns the points, where the first argument crosses the second argument.
-
-*/
-void crossings(const Line2& line1, const Line2& line2, Points2& result,
-  const Geoid* geoid = 0);
-
-/*
- ~inside~
-
- ~region2~ x ~region2~ $->$ ~bool~
-
- returns true, if there the region of the first argument is completely
- inside the second argument, false otherwise.
-
-*/
-bool inside(/*const*/ Region2& region1, /*const*/ Region2& region2,
-  const Geoid* geoid = 0);
 
 } //end of p2d
-
-#endif /* AVL_TREE_H_*/
-
+#endif /* AVLTREE_H_ */
