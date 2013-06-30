@@ -36,4 +36,5 @@ operator fromline alias FROMLINE pattern op(_)
 operator fromregion alias FROMREGION pattern op(_,_)
 operator toregion alias TOREGION pattern _ op
 operator t2mt alias TTOMT pattern  op(_,_,_,_)
+operator compose alias COMPOSE pattern _ infixop _
 operator getgrid alias GETGRID pattern op(_)
