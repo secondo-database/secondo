@@ -57,7 +57,6 @@ class mtProperties<double>
   typedef mtgrid gridType;
   typedef itreal itType;
   typedef treal tType;
-  typedef UReal unitType;
   static int GetXDimensionSize();
   static int GetYDimensionSize();
   static int GetTDimensionSize();
