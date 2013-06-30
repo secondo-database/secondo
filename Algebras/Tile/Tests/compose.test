@@ -1,0 +1,143 @@
+#
+# Tests for the compose operator of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+let tint1 = [const tint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (2 2 (4 5 6 7)))];
+let tint2 = [const tint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)))];
+let treal1 = [const treal value ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (2 2 (4.0 5.0 6.0 7.0)))];
+let tbool1 = [const tbool value ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (2 2 (FALSE TRUE TRUE FALSE)))];
+let tstring1 = [const tstring value ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (2 2 ("four" "five" "six" "seven")))];
+
+let mpointSimple = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-01-05-00:00:00.000" TRUE FALSE) (0.0 0.0 2.0 2.0)))];
+let mpointInside = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-01-05-00:00:00.000" TRUE FALSE) (3.5 3.5 3.0 3.0)) (("2000-01-05-00:00:00.000" "2000-01-07-00:00:00.000" TRUE FALSE) (3.0 3.0 3.8 3.2)) (("2000-01-07-00:00:00.000" "2000-01-09-00:00:00.000" TRUE FALSE) (1.8 1.2 1.0 1.0)))];
+let mpointOutside = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-01-05-00:00:00.000" TRUE FALSE) (4.5 4.5 5.5 6.5)) (("2000-01-05-00:00:00.000" "2000-01-07-00:00:00.000" TRUE FALSE) (5.5 4.5 7.0 8.0)) (("2000-01-07-00:00:00.000" "2000-01-09-00:00:00.000" TRUE FALSE) (9.0 10.0 11.5 4.5)))];
+let mpointBoth = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-01-05-00:00:00.000" TRUE FALSE) (0.5 0.5 1.5 1.5)) (("2000-01-05-00:00:00.000" "2000-01-07-00:00:00.000" TRUE FALSE) (10.5 10.5 10.0 10.0)) (("2000-01-07-00:00:00.000" "2000-01-09-00:00:00.000" TRUE FALSE) (1.0 1.0 0.5 0.5)))];
+let mpointBigRange = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-03-15-00:00:00.000" TRUE FALSE) (0.5 0.5 1.5 1.5)))];
+let mpointVertical = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-03-15-00:00:00.000" TRUE FALSE) (0.5 0.5 0.5 12.5)))];
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+
+#######################################
+# MPoint
+#######################################
+
+#testcase can query mpointInside
+#yields success
+query mpointInside
+
+#testcase can query mpOutside
+#yields success
+query mpointOutside
+
+#testcase can query mpointBoth
+#yields success
+query mpointBoth
+
+#testcase can query mpointBigRange
+#yiels success
+query mpointBigRange
+
+#######################################
+# tint                                #
+#######################################
+
+#testcase query the tint1
+#yields success
+query tint1
+
+#testcase tint1 compose with invalid types
+#yields error
+query mpointOutSide compose tint1
+
+# testcase tint1 compose with undefined mpoint
+# yields (mint undefined)
+query [const mpoint value undefined] compose tint1 
+
+#testcase tint1 compose with mpoint only points defined in tint1
+# yields (mint ((("2000-01-03" "2000-01-07" TRUE FALSE) 7) (("2000-01-07" "2000-01-09" TRUE FALSE) 3)))
+query mpointInside compose tint1
+
+#testcase tint1 compose with mpoint only points not defined in tint1
+# yields (mint ())
+query mpointOutside compose tint1
+
+#testcase tint1 compose with mpoint points in and out of tint1
+#yields (mint ((("2000-01-03" "2000-01-04" TRUE FALSE) 0) (("2000-01-04" "2000-01-05" TRUE FALSE) 3) (("2000-01-07" "2000-01-09" TRUE FALSE) 0)))
+query mpointBoth compose tint1
+
+#testcase tint1 compose with mpoint big range
+#yields (mint ((("2000-01-03" "2000-02-08" TRUE FALSE) 0) (("2000-02-08" "2000-03-15" TRUE FALSE) 3)))
+query mpointBigRange compose tint1
+
+#testcase tint1 compose with mpoint of vertical line
+#yields (mint ((("2000-01-03" "2000-01-06" TRUE FALSE) 0) (("2000-01-06" "2000-01-12" TRUE FALSE) 2)))
+query mpointVertical compose tint1
+
+#testcase tint2 compose with mpSimple
+#yields (mint ((("2000-01-03" "2000-01-04" TRUE FALSE) 0) (("2000-01-04" "2000-01-05" TRUE FALSE) 3)))
+query mpointSimple compose tint2
+
+
+#######################################
+# treal                               #
+#######################################
+
+#testcase treal1 compose with mpoint only points defined in treal1
+# yields (mreal ((("2000-01-03" "2000-01-07" TRUE FALSE) (0.0 0.0 7.0 FALSE)) (("2000-01-07" "2000-01-09" TRUE FALSE) (0.0 0.0 3.0 FALSE))))
+query mpointInside compose treal1
+
+#testcase treal1 compose with mpoint only points not defined in treal1
+# yields (mreal ())
+query mpointOutside compose treal1
+
+#testcase treal1 compose with mpoint points in and out of treal1
+#yields (mreal ((("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 0.0 0.0 FALSE)) (("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 0.0 3.0 FALSE)) (("2000-01-07" "2000-01-09" TRUE FALSE) (0.0 0.0 0.0 FALSE))))
+query mpointBoth compose treal1
+
+#######################################
+# tbool                               #
+#######################################
+
+#testcase tbool1 compose with mpoint only points defined in tbool1
+# yields (mbool ((("2000-01-03" "2000-01-09" TRUE FALSE) FALSE)))
+query mpointInside compose tbool1
+
+#testcase tbool1 compose with mpoint only points not defined in tbool1
+# yields (mbool ())
+query mpointOutside compose tbool1
+
+#testcase tbool1 compose with mpoint points in and out of tbool1
+#yields (mbool ((("2000-01-03" "2000-01-05" TRUE FALSE) FALSE) (("2000-01-07" "2000-01-09" TRUE FALSE) FALSE)))
+query mpointBoth compose tbool1
+
+#######################################
+# tstring                             #
+#######################################
+
+#testcase tstring1 compose with mpoint only points defined in tstring1
+#yields (mstring ((("2000-01-03" "2000-01-07" TRUE FALSE) "seven") (("2000-01-07" "2000-01-09" TRUE FALSE) "three")))
+query mpointInside compose tstring1
+
+#testcase tstring1 compose with mpoint only points not defined in tstring1
+# yields (mstring ())
+query mpointOutside compose tstring1
+
+#testcase tstring1 compose with mpoint points in and out of tstring1
+# yields (mstring ((("2000-01-03" "2000-01-04" TRUE FALSE) "zero") (("2000-01-04" "2000-01-05" TRUE FALSE) "three") (("2000-01-07" "2000-01-09" TRUE FALSE) "zero")))
+query mpointBoth compose tstring1
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
