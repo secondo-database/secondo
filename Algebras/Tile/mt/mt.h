@@ -109,6 +109,11 @@ class mt : public Attribute
   Index<3> GetLocationIndex(const double& rX, const double& rY,
                             const double& rInstant) const;
   Type GetValue(const Index<3>& rIndex) const;
+  bool IsValidLocation(const double& rX,
+                         const double& rY) const;
+  bool IsValidLocation(const double& rX,
+                       const double& rY,
+                       const double& rInstant) const;
   bool SetGrid(const mtgrid& rmtgrid);
   bool SetGrid(const double& rX,
                const double& rY,
@@ -125,13 +130,8 @@ class mt : public Attribute
 
   */
 
-  
   bool IsValidIndex(const Index<3>& rIndex) const;
-  bool IsValidLocation(const double& rX,
-                       const double& rY) const;
-  bool IsValidLocation(const double& rX,
-                       const double& rY,
-                       const double& rInstant) const;
+  
 
   public:
 
@@ -317,7 +317,9 @@ void mt<Type, Properties>::atlocation(const double& rX,
       {
         Interval<Instant> interval(currentTime, currentTime + duration,
                                    true, false);
-        rValues.Add(typename Properties::unitType(interval, value, value));
+        rValues.Add(typename Properties::TypeProperties::UnitType(interval,
+                                                                  value,
+                                                                  value));
       }
     }
 
@@ -891,6 +893,51 @@ Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
 }
 
 template <typename Type, typename Properties>
+bool mt<Type, Properties>::IsValidLocation(const double& rX,
+                                           const double& rY) const
+{
+  bool bIsValidLocation = false;
+
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
+  double gridX = m_Grid.GetX();
+  double gridY = m_Grid.GetY();
+  double gridLength = m_Grid.GetLength();
+
+  if(rX >= gridX &&
+     rX < (gridX + xDimensionSize * gridLength) &&
+     rY >= gridY &&
+     rY < (gridY + yDimensionSize * gridLength))
+  {
+    bIsValidLocation = true;
+  }
+
+  return bIsValidLocation;
+}
+
+template <typename Type, typename Properties>
+bool mt<Type, Properties>::IsValidLocation(const double& rX,
+                                           const double& rY,
+                                           const double& rInstant) const
+{
+  bool bIsValidLocation = IsValidLocation(rX, rY);
+
+  if(bIsValidLocation == true)
+  {
+    int tDimensionSize = Properties::GetTDimensionSize();
+    double gridDuration = m_Grid.GetDuration().ToDouble();
+
+    if(rInstant > 0.0 &&
+       rInstant < (tDimensionSize * gridDuration))
+   {
+      bIsValidLocation = true;
+   }
+  }
+
+  return bIsValidLocation;
+}
+
+template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetGrid(const mtgrid& rmtgrid)
 {
   bool bRetVal = false;
@@ -984,51 +1031,6 @@ bool mt<Type, Properties>::IsValidIndex(const Index<3>& rIndex) const
   }
 
   return bIsValidIndex;
-}
-
-template <typename Type, typename Properties>
-bool mt<Type, Properties>::IsValidLocation(const double& rX,
-                                           const double& rY) const
-{
-  bool bIsValidLocation = false;
-
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
-  double gridX = m_Grid.GetX();
-  double gridY = m_Grid.GetY();
-  double gridLength = m_Grid.GetLength();
-
-  if(rX >= gridX &&
-     rX < (gridX + xDimensionSize * gridLength) &&
-     rY >= gridY &&
-     rY < (gridY + yDimensionSize * gridLength))
-  {
-    bIsValidLocation = true;
-  }
-
-  return bIsValidLocation;
-}
-
-template <typename Type, typename Properties>
-bool mt<Type, Properties>::IsValidLocation(const double& rX,
-                                           const double& rY,
-                                           const double& rInstant) const
-{
-  bool bIsValidLocation = IsValidLocation(rX, rY);
-
-  if(bIsValidLocation == true)
-  {
-    int tDimensionSize = Properties::GetTDimensionSize();
-    double gridDuration = m_Grid.GetDuration().ToDouble();
-
-    if(rInstant > 0.0 &&
-       rInstant < (tDimensionSize * gridDuration))
-   {
-      bIsValidLocation = true;
-   }
-  }
-
-  return bIsValidLocation;
 }
 
 /*
