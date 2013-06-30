@@ -1232,7 +1232,7 @@ preciseCoordinates(0)
 */
 bool Region2::Get(const unsigned int i, Reg2PreciseHalfSegment& hs) const
     {
-      if (i < 0 || i >= Size())
+      if (i < 0 || i >= (unsigned int)Size())
         return false;
       else if (precHSvector.size() == 0)
       {
