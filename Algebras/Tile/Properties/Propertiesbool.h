@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_PROPERTIESBOOL_H
 
 #include "StandardTypes.h"
+#include "TemporalAlgebra.h"
 #include "Properties.h"
 #include "../Constants.h"
 
@@ -42,6 +43,8 @@ class Properties<char>
 
   typedef char PropertiesType;
   typedef CcBool WrapperType;
+  typedef MBool MType;
+  typedef UBool UnitType;
   static char GetUndefinedValue();
   static char GetValue(const NList& rNList);
   static char GetUnwrappedValue(const CcBool& rCcBool);
