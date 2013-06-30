@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_PROPERTIESSTRING_H
 
 #include "StandardTypes.h"
+#include "TemporalAlgebra.h"
 #include "Properties.h"
 #include "../Constants.h"
 
@@ -42,6 +43,8 @@ class Properties<std::string>
 
   typedef std::string PropertiesType;
   typedef CcString WrapperType;
+  typedef MString MType;
+  typedef UString UnitType;
   static std::string GetUndefinedValue();
   static std::string GetValue(const NList& rNList);
   static std::string GetUnwrappedValue(const CcString& rCcString);
