@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_PROPERTIESINT_H
 
 #include "StandardTypes.h"
+#include "TemporalAlgebra.h"
 #include "Properties.h"
 #include "../Constants.h"
 
@@ -42,6 +43,8 @@ class Properties<int>
 
   typedef int PropertiesType;
   typedef CcInt WrapperType;
+  typedef MInt MType;
+  typedef UInt UnitType;
   static int GetUndefinedValue();
   static int GetValue(const NList& rNList);
   static int GetUnwrappedValue(const CcInt& rCcInt);
