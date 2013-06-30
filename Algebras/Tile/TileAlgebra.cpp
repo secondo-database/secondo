@@ -69,6 +69,7 @@ includes for TileAlgebra operators
 #include "operators/fromregion.h"
 #include "operators/toregion.h"
 #include "operators/t2mt.h"
+#include "operators/compose.h"
 #include "operators/getgrid.h"
 #include "operators/CELL1.h"
 #include "operators/CELL2.h"
@@ -166,6 +167,8 @@ TileAlgebra::TileAlgebra()
               toregionTypeMappingFunction);
   AddOperator(t2mtInfo(), t2mtFunctions, t2mtSelectFunction,
               t2mtTypeMappingFunction);
+  AddOperator(composeInfo(), composeFunctions, composeSelectFunction,
+              composeTypeMappingFunction);
   AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
               getgridTypeMappingFunction);
   AddOperator(CELL1Info(), 0, CELL1TypeMappingFunction);
