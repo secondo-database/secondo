@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_PROPERTIESREAL_H
 
 #include "StandardTypes.h"
+#include "TemporalAlgebra.h"
 #include "Properties.h"
 #include "../Constants.h"
 
@@ -42,6 +43,8 @@ class Properties<double>
 
   typedef double PropertiesType;
   typedef CcReal WrapperType;
+  typedef MReal MType;
+  typedef UReal UnitType;
   static double GetUndefinedValue();
   static double GetValue(const NList& rNList);
   static double GetUnwrappedValue(const CcReal& rCcReal);
