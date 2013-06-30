@@ -40,6 +40,8 @@ class Properties
 
   typedef Type PropertiesType;
   typedef Type WrapperType;
+  typedef Type MType;
+  typedef Type UnitType;
   static Type GetUndefinedValue();
   static Type GetValue(const NList& rNList);
   static Type GetUnwrappedValue(const WrapperType& rWrapperType);
