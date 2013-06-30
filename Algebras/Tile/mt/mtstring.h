@@ -195,7 +195,6 @@ class mtProperties<std::string>
   typedef mtgrid gridType;
   typedef itstring itType;
   typedef tstring tType;
-  typedef UString unitType;
   static int GetXDimensionSize();
   static int GetYDimensionSize();
   static int GetTDimensionSize();
