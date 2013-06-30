@@ -2598,10 +2598,10 @@ it is on the line through the segment, we just have to check its bounding
 box parallel to the $(x, y)$-plane.
 
 */
-        if (cmp(x, l1MinX) < 0
-                || cmp(l1MaxX, x) < 0
-                || cmp(y, l1MinY) < 0
-                || cmp(l1MaxY, y) < 0) {
+        if (cmp(x, l1MinX) <= 0
+                || cmp(l1MaxX, x) <= 0
+                || cmp(y, l1MinY) <= 0
+                || cmp(l1MaxY, y) <= 0) {
                 if (MR2_DEBUG)
                     cerr << "preciseSegmentAndLineIntersect() "
                          << "no intersection" << endl;
@@ -2611,7 +2611,7 @@ box parallel to the $(x, y)$-plane.
 
         if (MR2_DEBUG)
                 cerr << "preciseSegmentAndLineIntersect() "
-                         << "intersects" << endl;
+                         << "intersects (final)" << endl;
 
         return true;
 }
@@ -3773,7 +3773,7 @@ calls. Therefor we can ignore this kind of insecurity.
                     {
                         if (MR2_DEBUG) {
                                 cerr << "preciseTrapeziumsIntersect()" 
-                                << " intersect"
+                                << " intersect (1)"
                                 << endl;
                         }
 
@@ -4024,7 +4024,7 @@ If they overlap, the sections may intersect.
                 {
                     if (MR2_DEBUG)
                         cerr << "preciseTrapeziumsIntersect() "
-                         << "trapeziums intersect"
+                         << "trapeziums intersect (2)"
                          << endl;
 
                     return true;
@@ -4150,7 +4150,7 @@ separately.
                 {
                     if (MR2_DEBUG)
                         cerr << "preciseTrapeziumsIntersect() " 
-                             << "intersect"
+                             << "intersect (3)"
                              << endl;
 
                     return true;
@@ -4725,7 +4725,7 @@ Both segments are not vertical.
 
             if (!collinear) {
                     throw invalid_argument(
-                "initial and final segment not collinear");
+                "initial and final segment not collinear (1)");
             }
 
 
@@ -4818,7 +4818,6 @@ Calculate whether segment is point in initial or final instant.
                         GetFinalEndY(preciseCoordinates);
             pfey.canonicalize();
             
-
             pointInitial = cmp(pisx, piex) == 0 && cmp(pisy, piey) == 0;
             pointFinal = cmp(pfsx, pfex) == 0 && cmp(pfsy, pfey) == 0;
             
@@ -4880,8 +4879,8 @@ orientation.
                          << "both vertical"
                          << endl;
                 
-                collinear = (cmp(pisy, piey) <= 0) && (cmp(pfsy, pfey) <= 0)
-                         || (cmp(pisy, piey) >= 0) && (cmp(pfsy, pfey) >= 0);
+                collinear = ((cmp(pisy, piey) <= 0) && (cmp(pfsy, pfey) <= 0))
+                         || ((cmp(pisy, piey) >= 0) && (cmp(pfsy, pfey) >= 0));
                 
                                  
 /*
@@ -4918,31 +4917,34 @@ Here we must be extremely careful not to divide by zero! If the denominator is z
                 collinear = (cmp(IYIX, FYFX) == 0) || (cmp(IYFX, FYIX) == 0);
 
         if (MR2_DEBUG) {
-            cerr << "MSegmentData2::MSegmentData2() isx=" << isx
-                 << " isy=" << isy
-                 << " iex=" << iex
-                 << " iey=" << iey
-                 << " fsx=" << fsx
-                 << " fsy=" << fsy
-                 << " fex=" << fex
-                 << " fey=" << fey
+            cerr << "MSegmentData2::MSegmentData2() pisx=" << pisx
+                 << " pisy=" << pisy << endl
+                 << " piex=" << piex
+                 << " piey=" << piey << endl
+                 << " pfsx=" << pfsx
+                 << " pfsy=" << pfsy << endl
+                 << " pfex=" << pfex
+                 << " pfey=" << pfey << endl;
+            cerr << "parameters for "
+                 << "segment orientation comparison:"
                  << endl;
             cerr << "MSegmentData2::MSegmentData2() (iey-isy)/(iex-isx)="
-                 << (piey-pisy)/(piex-pisx) << endl;
+                 << IYIX << endl;
             cerr << "MSegmentData2::MSegmentData2() (fey-fsy)/(fex-fsx)="
-                 << (pfey-pfsy)/(pfex-pfsx) << endl;
+                 << FYFX << endl;
             cerr << "MSegmentData2::MSegmentData2() (iey-isy)*(fex-fsx)="
-                 << (piey-pisy)*(pfex-pfsx) << endl;
+                 << IYFX << endl;
             cerr << "MSegmentData2::MSegmentData2() (fey-fsy)*(iex-isx)="
-                 << (pfey-pfsy)*(piex-pisx) << endl;
+                 << FYIX << endl;
             cerr << "MSegmentData2::MSegmentData2() collinear="
                  << collinear << endl;
+            cerr <<  "1. and 2. or 3. and 4. should be equal." << endl;
         }
             } //Check if collinear
 
             if (!collinear) {
                     throw invalid_argument(
-                        "initial and final segment not collinear");
+                        "initial and final segment not collinear (2)");
             }
 
 } //End of constructor for a non-basic segment
@@ -5721,6 +5723,8 @@ URegionEmb2::URegionEmb2(const Interval<Instant>& tiv,
     segmentsStartPos(pos),
     segmentsNum(0),
     bbox(false),
+    timeInterval(tiv),
+    pInterval(piv),
     minIntx(0),
     minInty(0),
     maxIntx(0),
@@ -5728,9 +5732,8 @@ URegionEmb2::URegionEmb2(const Interval<Instant>& tiv,
     minPrecx(0),
     minPrecy(0),
     maxPrecx(0),
-    maxPrecy(0),
-    timeInterval(tiv),
-    pInterval(piv){
+    maxPrecy(0)
+{
     if (MR2_DEBUG)
         cerr << "URegionEmb2::URegionEmb2(tiv, piv, pos) called"
              << endl;
@@ -7294,8 +7297,9 @@ bool URegionEmb2::IsValid(void) const {
 
 */
 bool URegionEmb2::operator==(const URegionEmb2& ur) const {
-    return (timeInterval == ur.timeInterval);
-
+    if (timeInterval.IsValid() && ur.timeInterval.IsValid())
+      return (timeInterval == ur.timeInterval);
+    return false;
 }
 
 /*
@@ -7303,7 +7307,9 @@ bool URegionEmb2::operator==(const URegionEmb2& ur) const {
 
 */
 bool URegionEmb2::Before(const URegionEmb2& ur) const {
-    return timeInterval.Before(ur.timeInterval);
+    if (timeInterval.IsValid() && ur.timeInterval.IsValid())
+      return timeInterval.Before(ur.timeInterval);
+    return false;
 }
 
 /*
@@ -7522,15 +7528,15 @@ See there for more details.
 
 */
 
-                if (nl->ListLength(instance) <= 1) {
+        if (nl->ListLength(instance) <= 1) {
                         cerr << "uregion not in format "
                         << "(<interval> <faces>)" 
                         << endl;
                 return 0;
-            }
+        }
 
-                if (MR2_DEBUG)
-                cerr << "InURegionEmbedded() (<interval> <faces>) found" 
+        if (MR2_DEBUG)
+           cerr << "InURegionEmbedded() (<interval> <faces>) found" 
                         << endl;
 
             //Get Inner List representing the time interval
@@ -7545,7 +7551,7 @@ and a basic interval will be created instead.
 
 */
 
-            if (nl->ListLength(interval) != 5
+        if (nl->ListLength(interval) != 5
                     || !nl->IsAtom(nl->First(interval))
                     || (nl->AtomType(nl->First(interval)) != StringType
                         && nl->AtomType(nl->First(interval)) != RealType
@@ -7573,135 +7579,96 @@ need to be split into an integer component and maybe some fraction that will lat
 be added to the precise time interval given in nl->fifth(interval).
 
 */
-                        int int_start = 0;
-                        int int_end = 0;
-                        double rest_start = 0.0;
-                        double rest_end = 0.0;
-                        bool correct;
-                        Instant *start;
-                        Instant *end;
+        int int_start = 0;
+        int int_end = 0;
+        double rest_start = 0.0;
+        double rest_end = 0.0;
+        bool correct;
+        Instant *start;
+        Instant *end;
+        mpq_class pstart(0);
+        mpq_class pend(0);
 
-                        if (nl->AtomType(nl->First(interval)) == RealType)
-                        {
-                                int_start = (int)nl->RealValue(
-                                        nl->First(interval));
-                                rest_start = nl->RealValue(nl->First(interval)) 
-                                - int_start;
-                                ListExpr newStart =
-                                        nl->RealAtom((double)int_start);
-                                start = (Instant *) InInstant(
-                                        nl->TheEmptyList(),
-                                    newStart,
-                                     errorPos,
-                                     errorInfo,
-                                     correct).addr;
-                                if (!correct) {
-                                    if (!correct) {
-                                        cerr << "uregion interval invalid start"
-                                        << " time" << endl;
-                                                return 0;
-                                    }
-                                    return 0;
-                                }
-                        }
-                        else if (nl->AtomType(nl->First(interval)) == IntType){
-                                int_start = nl->IntValue(nl->First(interval));
-                                ListExpr newStart =
-                                        nl->RealAtom((double)int_start);
-                                start = (Instant *) InInstant(
-                                        nl->TheEmptyList(),
+        if (nl->AtomType(nl->First(interval)) == IntType)
+        {
+          int_start = nl->IntValue(nl->First(interval));
+          ListExpr newStart = nl->RealAtom((double)int_start);
+          start = (Instant *) InInstant(nl->TheEmptyList(),
                                         newStart,
                                         errorPos,
                                         errorInfo,
                                         correct).addr;
-                                if (!correct) {
-                                    if (!correct) {
-                                        cerr << "uregion interval invalid start"
-                                        <<" time" << endl;
-                                        return 0;
-                                    }
-                                        return 0;
-                                }
-                        }
-                        else {
-                                Instant *help = 
-                                (Instant *) InInstant(nl->TheEmptyList(),
-                                                nl->First(interval),
-                                                errorPos,
-                                                errorInfo,
-                                                correct).addr;
-                                int_start = broughtDown(help->ToDouble());
-                                rest_start = help->ToDouble() - int_start;
-                                ListExpr newStart =
-                                        nl->RealAtom((double)int_start);
-                                start = (Instant *) InInstant(
-                                        nl->TheEmptyList(),
-                                                newStart,
-                                                errorPos,
-                                                errorInfo,
-                                                correct).addr;
-                                delete help;
-                        }
-
-                        if (nl->AtomType(nl->Second(interval)) == RealType)
-                        {
-                                int_end = (int)nl->RealValue(
-                                        nl->Second(interval));
-                                rest_end = nl->RealValue(nl->Second(interval)) 
-                                - int_end;
-                                ListExpr newEnd = nl->IntAtom((double)int_end);
-                                end = (Instant *) InInstant(nl->TheEmptyList(),
-                                        newEnd,
-                                        errorPos,
-                                        errorInfo,
-                                        correct ).addr;
-                                if (!correct) {
-                                    correct = false;
-                                    delete start;
-                                    cerr << "uregion interval invalid end time" 
-                                << endl;
-                                    return 0;
-                                }
-                        }
-                        else if (nl->AtomType(nl->Second(interval)) == IntType){
-                                int_end = nl->IntValue(nl->Second(interval));
-                                ListExpr newEnd = nl->IntAtom((double)int_end);
-                                end = (Instant *) InInstant(nl->TheEmptyList(),
-                                        newEnd,
-                                        errorPos,
-                                        errorInfo,
-                                        correct ).addr;
-                                if (!correct) {
-                                    correct = false;
-                                    delete start;
-                                    cerr << "uregion interval invalid end time" 
-                                << endl;
-                                    return 0;
-                                }
-                        }
-                        else {
-                                Instant *help = 
-                                (Instant *) InInstant(nl->TheEmptyList(),
-                                                    nl->Second(interval),
-                                                    errorPos,
-                                                    errorInfo,
-                                                    correct).addr;
-                                int_end = broughtDown(help->ToDouble());
-                                rest_end = help->ToDouble() - int_end;
-                                ListExpr new_end =
-                                        nl->RealAtom((double)int_end);
-                                end = (Instant *) InInstant(
-                                        nl->TheEmptyList(),
-                                        new_end,
+          if (!correct) 
+          {
+            cerr << "uregion interval invalid start"
+                 <<" time" << endl;
+            return 0;
+          }
+          pstart = mpq_class(nl->IntValue(nl->First(interval)));
+        }
+        else {
+          start = (Instant *) InInstant(nl->TheEmptyList(),
+                                        nl->First(interval),
                                         errorPos,
                                         errorInfo,
                                         correct).addr;
-                                delete help;
+          if (!correct) 
+          {
+            cerr << "uregion interval invalid start"
+                 <<" time" << endl;
+            return 0;
+          }
+          if (nl->AtomType(nl->First(interval)) == RealType)
+          {
+            rest_start = nl->RealValue(nl->First(interval)) 
+                         - start->ToDouble();
+            pstart = mpq_class(nl->RealValue(nl->First(interval)));
+          }
+          else
+          pstart = mpq_class(start->ToDouble());
+        }
+
+        if (nl->AtomType(nl->Second(interval)) == IntType)
+        {
+          int_end = nl->IntValue(nl->Second(interval));
+          ListExpr newEnd = nl->IntAtom((double)int_end);
+          end = (Instant *) InInstant(nl->TheEmptyList(),
+                                      newEnd,
+                                      errorPos,
+                                      errorInfo,
+                                      correct ).addr;
+          if (!correct) 
+          {
+            cerr << "uregion interval invalid end time" 
+                 << endl;
+            return 0;
+          }
+          pend = mpq_class(nl->IntValue(nl->Second(interval)));
+        }
+        else {
+          end = (Instant *) InInstant(nl->TheEmptyList(),
+                                      nl->Second(interval),
+                                      errorPos,
+                                      errorInfo,
+                                      correct).addr;
+          if (!correct) 
+          {
+            cerr << "uregion interval invalid end time" 
+                 << endl;
+            return 0;
+          }
+          if (nl->AtomType(nl->Second(interval)) == RealType)
+          {
+            rest_end = nl->RealValue(nl->Second(interval)) 
+                       - end->ToDouble();
+            pend = mpq_class(nl->RealValue(nl->Second(interval)));
+          }
+          else
+            pend = mpq_class(end->ToDouble());
                         }
 
-
-                    bool lc = nl->BoolValue(nl->Third(interval));
-                    bool rc = nl->BoolValue(nl->Fourth(interval));
+          bool lc = nl->BoolValue(nl->Third(interval));
+          bool rc = nl->BoolValue(nl->Fourth(interval));
 
 /*
 Now create the precise interval. Don't forget to add precise information
@@ -7711,88 +7678,80 @@ interval can be checked.
 
 */
 
-                    ListExpr preciseInterval = nl->Fifth(interval);
-                    PreciseInterval preciseTimeInterval(-1);
-                    preciseTimeInterval.SetPreciseInitialInstant(
+          ListExpr preciseInterval = nl->Fifth(interval);
+          PreciseInterval preciseTimeInterval(-1);
+          preciseTimeInterval.SetPreciseInitialInstant(
                         mpq_class(0), preciseInstants);
-                    preciseTimeInterval.SetPreciseFinalInstant(
+          preciseTimeInterval.SetPreciseFinalInstant(
                         mpq_class(0), preciseInstants);
-                    bool hasPreciseRepresentation = true;
+          bool hasPreciseRepresentation = false;
 /*
 Check if we have precise time interval information from the splitting before.
 
 */
+          mpq_class prstart(0);
+          mpq_class prend(0);
 
-                    if (rest_start > 0)
-                        {
-                                int num = 1;
-                                int denom = 1;
+          if (rest_start > 0)
+          {
+            int num = 1;
+            int denom = 1;
 
-                                while (!nearlyEqual(((rest_start*denom) -
-                                        num), 0) && denom < 1000000000)
-                                {
-                                  denom *= 10;
-                                  num = broughtDown(rest_start * denom);
-                                }
+            while (!nearlyEqual(((rest_start*denom) - num), 0) 
+                    && denom < 1000000000)
+            {
+              denom *= 10;
+              num = broughtDown(rest_start * denom);
+            }
 
-                                mpq_class prestS(num, denom);
-                                mpq_class testrest(rest_start);
+            mpq_class prestS(num, denom);
+            mpq_class testrest(rest_start);
 
-                                prestS.canonicalize();
+            prestS.canonicalize();
 
-                                if (denom == 1000000000 || prestS == 0)
-                                  preciseTimeInterval.
-                                        SetPreciseInitialInstant(
-                                        testrest, preciseInstants);
-                                else
-                                  preciseTimeInterval.
-                                        SetPreciseInitialInstant(
-                                        prestS, preciseInstants);
-                        }
+            if (denom == 1000000000 || prestS == 0)
+               prstart = testrest;
+            else
+               prstart = prestS;
+          }
 
-                    if (rest_end > 0)
-                    {
-                            int num = 1;
-                        int denom = 1;
-                        while (!nearlyEqual(((rest_end*denom) - num), 0) 
-                                && denom < 1000000000)
-                        {
-                                denom *= 10;
-                                num = broughtDown(rest_end * denom);
-                        }
-                        mpq_class prestE(num, denom);
-                        mpq_class testrest(rest_end);
+          if (rest_end > 0)
+          {
+            int num = 1;
+            int denom = 1;
+            while (!nearlyEqual(((rest_end*denom) - num), 0) 
+                    && denom < 1000000000)
+            {
+              denom *= 10;
+              num = broughtDown(rest_end * denom);
+            }
+            mpq_class prestE(num, denom);
+            mpq_class testrest(rest_end);
 
-                        prestE.canonicalize();
+            prestE.canonicalize();
 
-                        if (denom == 1000000000 || prestE == 0)
-                                preciseTimeInterval.SetPreciseFinalInstant
-                                        (testrest, preciseInstants);
-                        else
-                        preciseTimeInterval.
-                        SetPreciseFinalInstant
-                                (prestE, preciseInstants);
-                    }
+            if (denom == 1000000000 || prestE == 0)
+               prend =testrest;
+            else
+               prend = prestE;
+          }
 
 /*
 Check the syntax for the precise representation of the time interval,
 and simply ignore it if it is not okay.
 
 */
-                            if (nl->ListLength(preciseInterval) != 2
-                                    || !nl->IsAtom(nl->First(preciseInterval))
-                                    || nl->AtomType(nl->First
-                                        (preciseInterval)) != TextType
-                                    || !nl->IsAtom(nl->Second(preciseInterval))
-                                    || nl->AtomType(nl->Second
-                                        (preciseInterval)) != TextType){
-                                            
-                                    hasPreciseRepresentation = false;
-                            }
-
-                            if (hasPreciseRepresentation){
+                            if ( nl->ListLength(preciseInterval) == 2
+                                    && nl->IsAtom(nl->First(preciseInterval))
+                                    && nl->AtomType(nl->First
+                                        (preciseInterval)) == TextType
+                                    && nl->IsAtom(nl->Second(preciseInterval))
+                                    && nl->AtomType(nl->Second
+                                        (preciseInterval)) == TextType)
+                            {
                               mpq_class pstart2;
                               mpq_class pend2;
+                              
                               try
                               {
                                     textTypeToGmpType1(nl->First
@@ -7812,14 +7771,38 @@ and simply ignore it if it is not okay.
                                     return 0;
                               }
 
+                              prstart += pstart2;
+                              prstart.canonicalize();
+                              prend += pend2;
+                              prend.canonicalize();
+                              
+                              hasPreciseRepresentation = true;
+                            }
+                              
+                            if (hasPreciseRepresentation 
+                                    || rest_start > 0 
+                                    || rest_end > 0)
+                            {
+                              if (hasPreciseRepresentation)
+                              {
+                                 pstart += prstart;
+                                 pstart.canonicalize();
+                                 pend += prend;
+                                 pend.canonicalize();
+                                 
+                                 delete start;
+                                 start = new Instant(pstart.get_d());
+                                 prstart = pstart - start->ToDouble();
+                                 
+                                 delete end;
+                                 end = new Instant(pend.get_d());
+                                 prend = pend - end->ToDouble();
+                              }
+                              
                               preciseTimeInterval.SetPreciseInitialInstant(
-                                    preciseTimeInterval.GetPreciseInitialInstant
-                                (preciseInstants) +
-                                    pstart2, preciseInstants);
+                                    prstart, preciseInstants);
                               preciseTimeInterval.SetPreciseFinalInstant(
-                                    preciseTimeInterval.GetPreciseFinalInstant
-                                (preciseInstants) +
-                                    pend2, preciseInstants);
+                                    prend, preciseInstants);
                             }
 
 /*
@@ -8553,11 +8536,11 @@ segments must be created, otherwise only basic segment.
 
 */
 
-        MSegmentData2* pointDms;
+        MSegmentData2* pointDms=0;
         PreciseMSegmentData pdms(-1);
 
         if (nl->ListLength(nl->Fifth(start)) >= 1
-                        || nl->ListLength(nl->Fifth(end)) >= 1)
+           || nl->ListLength(nl->Fifth(end)) >= 1)
         {
                 if (MR2_DEBUG)
                 cerr << "URegionEmb2::AddSegment(): "
@@ -9123,7 +9106,7 @@ $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
                                 }
                                 else {
 /*
-We create the precise trapeziums and recheck if they really intersect. Therefor we need to add coordinates of precise and integer representation to get the absolute values.
+We create the precise trapeziums and recheck if they really intersect. Therefore we need to add coordinates of precise and integer representation to get the absolute values.
 
 */
                                     Reg2PrecisePoint ppoint1
@@ -9197,7 +9180,7 @@ We create the precise trapeziums and recheck if they really intersect. Therefor 
                                         pInterval.GetPreciseInitialInstant
                                         (preciseInstants) +
                                         intervalLen.ToDouble());
-
+                                    
                                     trapeziumsIntersect = 
                                         preciseTrapeziumsIntersect(pdt, 
                                         ptrapezium1, ptrapezium2);
@@ -9261,8 +9244,7 @@ This can only be a provisional solution, but not the final one!
 
 */
 
-                double t = intervalLen.IsZero() ? 0 : 0.5;
-                t = 0.5;
+                double t = 0.5;
 
                 mpq_class pisx = dms.GetInitialStartX() + 
                                 pdms.GetInitialStartX(preciseCoordinates);
@@ -9370,15 +9352,6 @@ This can only be a provisional solution, but not the final one!
                 pxe = pxe * sFac;
                 pye = pye * sFac;
 
-cerr << "URegionEmb2::AddSegment() precise coordinates: " << endl
-     << "IS: " << pisx << " " << pisy << endl 
-     << "IE: " << piex << " " << piey << endl 
-     << "FS: " << pfsx << " " << pfsy << endl
-     << "FE: " << pfex << " " << pfey << endl
-     << "S:  " << pxs << " " << pys << endl
-     << "E:  " << pxe << " " << pye << endl << endl; 
-                
-                
                 Reg2PrecisePoint s(pxs, pys);
                 Reg2PrecisePoint e(pxe, pye);
 
@@ -9628,6 +9601,7 @@ static int pointPositionToSegment(mpq_class x, mpq_class y, mpq_class p1x,
         else 
           return 2;
     }
+    return -1;
 }
 
 static int pointPositionToSegment(double x, double y, mpq_class p1x, 
@@ -10903,7 +10877,10 @@ URegion2::URegion2(URegion& coarseRegion, const int scaleFactor) :
                 (coarseRegion.timeInterval.end.ToDouble());
         Instant initInst(initial);
         Instant finInst(final);
-        Interval<Instant> interval(initInst, finInst, 
+//        Interval<Instant> interval(initInst, finInst, 
+        
+        Interval<Instant> interval(coarseRegion.timeInterval.start, 
+                                   coarseRegion.timeInterval.end, 
                 coarseRegion.timeInterval.lc, coarseRegion.timeInterval.rc);
 
         //initialize precise time interval
@@ -11866,9 +11843,12 @@ MRegion2::MRegion2(MRegion& coarseRegion, const int scaleFactor) :
                         (origUremb.timeInterval.end.ToDouble());
                 Instant initInst(initial);
                 Instant finInst(final);
-                Interval<Instant> interval(initInst, finInst, 
-                        origUremb.timeInterval.lc, 
-                        origUremb.timeInterval.rc);
+//                Interval<Instant> interval(initInst, finInst, 
+                
+                Interval<Instant> interval(origUremb.timeInterval.start, 
+                                           origUremb.timeInterval.end, 
+                                           origUremb.timeInterval.lc, 
+                                           origUremb.timeInterval.rc);
 
                 //initialize precise time interval
                 PreciseInterval pInt(-1);
@@ -12713,7 +12693,7 @@ bool aboveorder(const Reg2PreciseHalfSegment& s1,
 void MRegion2::PlaneSweepProjection(vector<Reg2PreciseHalfSegment>& pHSvector)
 {
 //    cout << "MRegion2::PlaneSweepProjection()" << endl;
-    int vsize = pHSvector.size();
+    unsigned int vsize = pHSvector.size();
     int* TMP = new int[vsize/2];
     memset(TMP,0,vsize*sizeof(int) / 2);
 
@@ -13751,6 +13731,7 @@ static ListExpr ScaleTypeMap(ListExpr args){
           if(MR2_DEBUG) cout << "Typemap returns uregion2" << endl;
           return nl->SymbolAtom(URegion2::BasicType());
         }
+        return nl->TheEmptyList();
 }
 
 /*
@@ -13789,6 +13770,7 @@ static ListExpr Scale2TypeMap(ListExpr args){
           if(MR2_DEBUG) cout << "Typemap returns uregion2" << endl;
           return nl->SymbolAtom(URegion2::BasicType());
         }
+        return nl->TheEmptyList();
 }
 
 /*
@@ -13827,6 +13809,7 @@ static ListExpr TranslateTypeMap(ListExpr args){
           if(MR2_DEBUG) cout << "Typemap returns uregion2" << endl;
           return nl->SymbolAtom(URegion2::BasicType());
         }
+        return nl->TheEmptyList();
 }
 
 
