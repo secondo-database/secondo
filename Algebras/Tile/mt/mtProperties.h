@@ -45,7 +45,6 @@ class mtProperties
   typedef Type gridType;
   typedef Type itType;
   typedef Type tType;
-  typedef Type unitType;
   static int GetXDimensionSize();
   static int GetYDimensionSize();
   static int GetTDimensionSize();
