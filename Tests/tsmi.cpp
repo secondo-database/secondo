@@ -137,7 +137,6 @@ void TestFileScan( )
   SmiSize reclen = REC_SIZE;
   SmiRecordFile rf( false, reclen );
   char dummyRecIn[REC_SIZE+1];
-  char dummyRecOut[REC_SIZE+1];
   
   // initialize dummyRec
   char c = 'a';
@@ -218,14 +217,14 @@ void TestFileScan( )
   cout << "BtreeFile name   =" << kf.GetName() << endl;
   cout << "BtreeFile context=" << kf.GetContext() << endl;
 
-  //cout << "Insert: " << kf.InsertRecord( SmiKey( 4711l ), r ) << endl;
+  //cout << "Insert: " << kf.InsertRecord( SmiKey( (int32_t)4711 ), r ) << endl;
   //cout << "Insert (4711,Emilio1): " << r.Write( "Emilio1", 8 ) << endl;
 
   cout << "Creating a Record file with " << MAX_RECORDS 
        << " records of size " << REC_SIZE << " bytes." << endl;
 
   StopWatch insertTime;
-  for (long int i=0; i < MAX_RECORDS; i++) { 
+  for (int32_t i=0; i < MAX_RECORDS; i++) { 
     kf.InsertRecord( SmiKey(i), r );
     r.Write( dummyRecIn, REC_SIZE ); 
   }
@@ -410,9 +409,9 @@ void TestIntegerBtreeFiles( bool makeUnique )
     SmiKeyedFileIterator it;
     SmiRecord r;
     SmiKey key;
-    cout << "Insert: " << kf.InsertRecord( SmiKey( 4711l ), r ) << endl;
+    cout << "Insert: " << kf.InsertRecord( SmiKey( (int32_t)4711 ), r ) << endl;
     cout << "Insert (4711,Emilio1): " << r.Write( "Emilio1", 8 ) << endl;
-    if ( kf.InsertRecord( SmiKey( 4711l ), r ) )
+    if ( kf.InsertRecord( SmiKey( (int32_t) 4711 ), r ) )
     {
       cout << "Insert (4711,Emilio2): " << r.Write( "Emilio2", 8 ) << endl;
     }
@@ -420,21 +419,23 @@ void TestIntegerBtreeFiles( bool makeUnique )
     {
       cout << "Second insert for 'Dora' failed" << endl;
     }
-    cout << "Insert: " << kf.InsertRecord( SmiKey( 1248l ), r ) << endl;
+    cout << "Insert: " << kf.InsertRecord( SmiKey( (int32_t)1248 ), r ) << endl;
     cout << "Insert (1248,Juan): " << r.Write( "Juan", 5 ) << endl;
-    cout << "Insert: " << kf.InsertRecord( SmiKey( 3505l ), r ) << endl;
+    cout << "Insert: " << kf.InsertRecord( SmiKey( (int32_t)3505 ), r ) << endl;
     cout << "Insert (3505,Xavieria): " << r.Write( "Xavieria", 9 ) << endl;
-    cout << "Insert: " << kf.InsertRecord( SmiKey( 7447l ), r ) << endl;
+    cout << "Insert: " << kf.InsertRecord( SmiKey( (int32_t)7447 ), r ) << endl;
     cout << "Insert (7447,Gesine): " << r.Write( "Gesine", 7 ) << endl;
 
     cout << "Select first '4711': " 
-         << kf.SelectRecord( SmiKey( 4711l ), r, SmiFile::ReadOnly ) << endl;
+         << kf.SelectRecord( SmiKey( (int32_t)4711 ), r, SmiFile::ReadOnly ) 
+         << endl;
     cout << "Read " << r.Read( buffer, 20 ) << endl;
     cout << "buffer = " << buffer << endl;
 
     cout << "Select all '4711': " 
-         << kf.SelectRecord( SmiKey( 4711l ), it, SmiFile::ReadOnly ) << endl;
-    long keyval;
+         << kf.SelectRecord( SmiKey( (int32_t)4711 ), it, SmiFile::ReadOnly ) 
+         << endl;
+    int32_t keyval;
     while ( it.Next( key, r ) )
     {
       cout << "GetKey " << key.GetKey( keyval ) << endl;
@@ -456,8 +457,8 @@ void TestIntegerBtreeFiles( bool makeUnique )
     cout << "Finish cursor it: " << it.Finish() << endl;
 
     cout << "SelectRange Keyed: " 
-         << kf.SelectRange( SmiKey( 3505l ), 
-                             SmiKey( 4711l ), it, SmiFile::ReadOnly )
+         << kf.SelectRange( SmiKey( (int32_t)3505 ), 
+                             SmiKey( (int32_t)4711 ), it, SmiFile::ReadOnly )
          << endl;
     while ( it.Next( key, r ) )
     {
@@ -469,7 +470,8 @@ void TestIntegerBtreeFiles( bool makeUnique )
     cout << "Finish cursor it: " << it.Finish() << endl;
 
     cout << "SelectLeftRange Keyed: " << 
-            kf.SelectLeftRange( SmiKey( 3505l ), it, SmiFile::ReadOnly ) 
+            kf.SelectLeftRange( SmiKey( (int32_t)3505 ), it, 
+                                SmiFile::ReadOnly ) 
          << endl;
     while ( it.Next( key, r ) )
     {
@@ -481,7 +483,8 @@ void TestIntegerBtreeFiles( bool makeUnique )
     cout << "Finish cursor it: " << it.Finish() << endl;
 
     cout << "SelectRightRange Keyed: " << 
-            kf.SelectRightRange( SmiKey( 4711l ), it, SmiFile::ReadOnly ) 
+            kf.SelectRightRange( SmiKey( (int32_t)4711 ), it, 
+                                 SmiFile::ReadOnly ) 
          << endl;
     while ( it.Next( key, r ) )
     {
@@ -492,7 +495,8 @@ void TestIntegerBtreeFiles( bool makeUnique )
     cout << "EndOfScan=" << it.EndOfScan() << endl;
     cout << "Finish cursor it: " << it.Finish() << endl;
 
-    cout << "Delete 'Dora' " << kf.DeleteRecord( SmiKey( 4711l ) ) << endl;
+    cout << "Delete 'Dora' " << kf.DeleteRecord( SmiKey( (int32_t)4711 ) ) 
+         << endl;
     cout << "SelectAll Keyed: " << kf.SelectAll( it, SmiFile::ReadOnly, true )
          << endl;
     bool first = true;
@@ -941,7 +945,7 @@ int main( int argc, char* argv[] )
         cout << "CloseDatabase test ok." << endl;
       else
         cout << "CloseDatabase test failed." << endl;
-      if ( ok = SmiEnvironment::OpenDatabase( "test" ) )
+      if ( (ok = SmiEnvironment::OpenDatabase( "test" )) )
         cout << "OpenDatabase test ok." << endl;
       else
         cout << "OpenDatabase test failed." << endl;
