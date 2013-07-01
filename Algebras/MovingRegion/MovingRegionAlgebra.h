@@ -89,7 +89,7 @@ enum DegenMode {
 
 
 
-static bool specialTrapeziumIntersects(
+bool specialTrapeziumIntersects(
     double dt,
     double t1p1x,
     double t1p1y,

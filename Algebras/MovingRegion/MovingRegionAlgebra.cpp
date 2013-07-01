@@ -958,7 +958,7 @@ responsible for the return value of the function. (Full description of
 ~detailedResult~ should be added here.)
 
 */
-static bool specialTrapeziumIntersects(
+bool specialTrapeziumIntersects(
     double dt,
     double t1p1x,
     double t1p1y,
