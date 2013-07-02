@@ -98,7 +98,7 @@ public class AdSetting extends JFrame {
 		allAvailable = false;
 		setResizable(false);
 		setTitle("Advanced Setting");
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
 		setBounds(100, 100, 665, 711);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -157,7 +157,7 @@ public class AdSetting extends JFrame {
 			}
 		});
 		
-		JButton checkButton = new JButton("Check the Setting");
+		JButton checkButton = new JButton("Check All");
 		checkButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				CheckMsgDlg cmd = new CheckMsgDlg();

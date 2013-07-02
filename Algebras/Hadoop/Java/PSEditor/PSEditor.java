@@ -178,7 +178,7 @@ public class PSEditor {
 		});
 		
 		btnSimpleCluster.setToolTipText("Install Parallel SECONDO on a simple computer cluster. ");
-		btnAdvancedSetting = new JButton("Advanced Setting");
+		btnAdvancedSetting = new JButton("Advanced");
 		btnAdvancedSetting.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				AdSetting asFrame = new AdSetting();

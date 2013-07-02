@@ -178,7 +178,7 @@ public class SCReader {
 				return sec.getTitles();
 			}
 		}
-		return null;
+		return new ArrayList<String>();
 	}
 	
 	public ArrayList<String> getSectionNames()
