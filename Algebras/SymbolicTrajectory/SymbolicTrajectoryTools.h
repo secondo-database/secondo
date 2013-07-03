@@ -109,9 +109,7 @@ class MLabelIndex {
 public:
   MLabelIndex() {}
   
-  MLabelIndex(int n) : nodes(0), nodeLinks(0), labelIndex(0) {
-    root = 0;
-  }
+  MLabelIndex(int n) : nodes(0), nodeLinks(0), labelIndex(0), root(0) {}
   
   MLabelIndex(DbArray<NodeRef> n, DbArray<NodeLink> nL, DbArray<size_t> lI);
 
@@ -120,6 +118,7 @@ public:
   }
 
   void initRoot() {root = 0;}
+  TrieNode* getRoot() {return root;}
   void cleanDbArrays() {nodes.clean(); nodeLinks.clean(); labelIndex.clean();}
   void insert(string label, set<size_t> pos);
   set<size_t> find(string label); // returns the position(s) of label

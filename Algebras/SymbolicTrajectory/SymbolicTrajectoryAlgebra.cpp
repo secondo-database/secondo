@@ -415,9 +415,9 @@ void MLabel::Close(const ListExpr typeInfo, Word& w) {
 MLabel* MLabel::Clone() const {
   MLabel* result = new MLabel(1);
   *result = *this;
-  cout << "result has " << result->GetNoComponents() << " units" << endl;
+//   cout << "result has " << result->GetNoComponents() << " units" << endl;
   result->index.copyFrom(this->index);
-  cout << result->index.getNodeRefSize() << " nodes copied" << endl;
+//   cout << result->index.getNodeRefSize() << " nodes copied" << endl;
   return result;
 }
 
@@ -2599,7 +2599,7 @@ bool Match::checkDoublePars(multiset<unsigned int> sequence) {
 \subsection{Function ~easyCondsMatch~}
 
 */
-bool Match::easyCondsMatch(MLabel const &ml, UPat const &up) {
+bool Match::easyCondsMatch(const MLabel &ml, UPat const &up) {
   if (up.getW()) {
     return true;
   }
@@ -2784,7 +2784,7 @@ This function is invoked by ~conditionsMatch~ and checks whether a sequence of
 possible cardinalities matches a certain condition.
 
 */
-bool Match::evaluateCond(MLabel const &ml, Condition &cond,
+bool Match::evaluateCond(const MLabel &ml, Condition &cond,
                          multiset<unsigned int> sq){
   vector<size_t> seq(sq.begin(), sq.end());
   Word qResult;
@@ -3084,7 +3084,7 @@ vector<int> Match::applyMultiNFA(ClassifyLI* c, bool rewrite /*=false*/) {
         }
       }
       p = c->pats[activePat];
-      if (!initEasyCondOpTrees()) { // TODO: delete the trees.
+      if (!initEasyCondOpTrees()) {
         cout << "easyCondOpTrees could not be initialized" << endl;
       }
       else {
@@ -3094,7 +3094,8 @@ vector<int> Match::applyMultiNFA(ClassifyLI* c, bool rewrite /*=false*/) {
                             c->pats[activePat]->getPat(j->first).getL()) &&
              timesMatch(&ul.timeInterval,
                         c->pats[activePat]->getPat(j->first).getI()) &&
-             easyCondsMatch(c->currentML,c->pats[activePat]->getPat(j->first))){
+             easyCondsMatch(*(c->currentML),
+                            c->pats[activePat]->getPat(j->first))) {
               newStates.insert(j->second.begin(), j->second.end());
               if (!c->pats[activePat]->getConds().empty() || rewrite) {
                 UPat u = c->pats[activePat]->getPat(j->first); //store matches
@@ -3105,6 +3106,7 @@ vector<int> Match::applyMultiNFA(ClassifyLI* c, bool rewrite /*=false*/) {
             }
           }
         }
+//         deleteEasyCondOpTrees(); TODO: delete them!
       }
     }
     currentStates = newStates;
@@ -3316,7 +3318,9 @@ Removes the corresponding structures.
 */
 void Match::deleteEasyCondOpTrees() {
   for (unsigned int i = 0; i < p->easyConds.size(); i++) {
-    p->easyConds[i].deleteOpTree();
+    if (p->easyConds[i].isTreeOk()) {
+      p->easyConds[i].deleteOpTree();
+    }
   }
 }
 
@@ -4774,68 +4778,121 @@ struct rewriteInfo : OperatorInfo {
 
 */
 ListExpr classifyTM(ListExpr args) {
-  const string errMsg = "Expecting a stream(z) with z in {mlabel, mstring} "
-                        "and a classifier. ";
+  const string errMsg = "Expecting an mlabel or mstring and a classifier.";
   if (nl->HasLength(args, 2)) {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-    if (Stream<MLabel>::checkType(arg1) || Stream<MString>::checkType(arg1)) {
-      if (Classifier::checkType(arg2)) {
-        ListExpr outputAttrs = nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("Description"),
-                            nl->SymbolAtom(FText::BasicType())),
-            nl->TwoElemList(nl->SymbolAtom("Trajectory"), nl->Second(arg1)));
-        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                           nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-                                           outputAttrs));
-      }
+    if ((MLabel::checkType(nl->First(args))
+      || MString::checkType(nl->First(args)))
+      && Classifier::checkType(nl->Second(args))) {
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->SymbolAtom(FText::BasicType()));
     }
   }
   return listutils::typeError(errMsg);
 }
 
 /*
-\subsection{Constructor for class ~ClassifyLI~}
-
-This constructor is used for the operator ~classify~.
+\subsection{Selection Function}
 
 */
-ClassifyLI::ClassifyLI(Word _mlstream, Word _classifier) :
-                       mlStream(_mlstream), currentML(0), mainMatch(0) {
-  classifyTT = getTupleType();
-  mlStream.open();
-  Classifier *c = static_cast<Classifier*>(_classifier.addr);
-  int startPos = 0;
-  set<unsigned int> emptyset;
-  Pattern *p = 0;
-  for (int i = 0; i < (c->getCharPosSize() / 2); i++) {
-    p = Pattern::getPattern(c->getPatText(i), true);
-    if (p) {
-      p->setDescr(c->getDesc(i));
-      start2pat[startPos] = pats.size();
-      pat2start[pats.size()] = startPos;
-      initialStates.insert(startPos);
-      startPos += p->getSize() + 1;
-      end2pat[startPos - 1] = pats.size();
-      if (!p->getConds().empty()) {
-        for (int j = 0; j < p->getSize(); j++) {
-          matches[pats.size()].push_back(emptyset);
+int classifySelect(ListExpr args) {
+  return MLabel::checkType(nl->First(args)) ? 0 : 1;
+}
+
+/*
+\subsection{Constructor for class ~ClassifyLI~}
+
+This constructor is used for the operator ~classify~ (trajectory type mlabel).
+
+*/
+ClassifyLI::ClassifyLI(MLabel *ml, Word _classifier) :
+     mlStream(0), classifyTT(0), mainMatch(0), streamOpen(false), newML(false) {
+  currentML = ml;
+  if (currentML) {
+    if (currentML->IsDefined()) {
+      Classifier *c = static_cast<Classifier*>(_classifier.addr);
+      int startPos = 0;
+      set<unsigned int> emptyset;
+      Pattern *p = 0;
+      for (int i = 0; i < (c->getCharPosSize() / 2); i++) {
+        p = Pattern::getPattern(c->getPatText(i), true);
+        if (p) {
+          p->setDescr(c->getDesc(i));
+          start2pat[startPos] = pats.size();
+          pat2start[pats.size()] = startPos;
+          initialStates.insert(startPos);
+          startPos += p->getSize() + 1;
+          end2pat[startPos - 1] = pats.size();
+          if (!p->getConds().empty()) {
+            for (int j = 0; j < p->getSize(); j++) {
+              matches[pats.size()].push_back(emptyset);
+            }
+          }
+          pats.push_back(p);
+        }
+        else {
+          cout << "pattern could not be parsed" << endl;
         }
       }
-      pats.push_back(p);
+      if (!pats.size()) {
+        cout << "no classification data specified" << endl;
+      }
+      else {
+        numOfStates = startPos;
+        mainMatch = new Match(numOfStates);
+        delta = createNFAfromPersistent(*(c->getDelta()));
+        matched = mainMatch->applyMultiNFA(this);
+        matched = mainMatch->applyConditions(this);
+      }
     }
-    else {
-      cout << "pattern could not be parsed" << endl;
-    }
-  } 
-  if (!pats.size()) {
-    cout << "no classification data specified" << endl;
   }
-  else {
-    numOfStates = startPos;
-    mainMatch = new Match(numOfStates);
-    delta = createNFAfromPersistent(*(c->getDelta()));
-//     mainMatch->printMultiNFA();
+}
+
+/*
+\subsection{Constructor for class ~ClassifyLI~}
+
+This constructor is used for the operator ~classify~ (trajectory type mstring).
+
+*/
+ClassifyLI::ClassifyLI(MString *ms, Word _classifier) :
+      mlStream(0), classifyTT(0), mainMatch(0), streamOpen(false), newML(true) {
+  currentML = new MLabel(ms);
+  if (currentML) {
+    if (currentML->IsDefined()) {
+      Classifier *c = static_cast<Classifier*>(_classifier.addr);
+      int startPos = 0;
+      set<unsigned int> emptyset;
+      Pattern *p = 0;
+      for (int i = 0; i < (c->getCharPosSize() / 2); i++) {
+        p = Pattern::getPattern(c->getPatText(i), true);
+        if (p) {
+          p->setDescr(c->getDesc(i));
+          start2pat[startPos] = pats.size();
+          pat2start[pats.size()] = startPos;
+          initialStates.insert(startPos);
+          startPos += p->getSize() + 1;
+          end2pat[startPos - 1] = pats.size();
+          if (!p->getConds().empty()) {
+            for (int j = 0; j < p->getSize(); j++) {
+              matches[pats.size()].push_back(emptyset);
+            }
+          }
+          pats.push_back(p);
+        }
+        else {
+          cout << "pattern could not be parsed" << endl;
+        }
+      }
+      if (!pats.size()) {
+        cout << "no classification data specified" << endl;
+      }
+      else {
+        numOfStates = startPos;
+        mainMatch = new Match(numOfStates);
+        delta = createNFAfromPersistent(*(c->getDelta()));
+        matched = mainMatch->applyMultiNFA(this);
+        matched = mainMatch->applyConditions(this);
+      }
+    }
   }
 }
 
@@ -4846,11 +4903,12 @@ This constructor is used for the operator ~rewrite~.
 
 */
 ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, bool rewrite) :
-                       mlStream(_mlstream), currentML(0), mainMatch(0) {
+                 mlStream(_mlstream), currentML(0), mainMatch(0), newML(false) {
   classifyTT = 0;
   Stream<FText> pStream(_pstream);
   pStream.open();
   mlStream.open();
+  streamOpen = true;
   FText* inputText = pStream.request();
   int startPos = 0;
   set<unsigned int> emptyset;
@@ -4900,13 +4958,16 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, bool rewrite) :
 
 */
 ClassifyLI::~ClassifyLI() {
-  mlStream.close();
+  if (streamOpen) {
+    mlStream.close();
+  }
   if (classifyTT) {
     delete classifyTT;
   }
-  if (currentML) {
+  if (newML) {
     currentML->DeleteIfAllowed();
   }
+  currentML = 0;
   if (mainMatch) {
     delete mainMatch;
   }
@@ -4953,34 +5014,21 @@ void ClassifyLI::printMatches() {
 }
 
 /*
-\subsection{Function ~nextResultTuple~}
+\subsection{Function ~nextResultText~}
 
 This function is used for the operator ~classify~.
 
 */
-Tuple* ClassifyLI::nextResultTuple() {
+FText* ClassifyLI::nextResultText() {
   if (!pats.size()) {
     return 0;
   }
-  while (matched.empty()) {
-    if (currentML) {
-      currentML->DeleteIfAllowed();
-    }
-    currentML = (MLabel*)mlStream.request();
-    if (!currentML) { // stream finished
-      return 0;
-    }
-    if (currentML->IsDefined()) {
-      matched = mainMatch->applyMultiNFA(this);
-      matched = mainMatch->applyConditions(this);
-    }
+  if (!matched.empty()) {
+    FText* result = new FText(true, pats[matched.back()]->getDescr());
+    matched.pop_back();
+    return result;
   }
-  Tuple *result = new Tuple(classifyTT);
-  result->PutAttribute(0, new FText(true, pats[matched.back()]->getDescr()));
-  MLabel *ml = (MLabel*)currentML->Copy();
-  result->PutAttribute(1, ml);
-  matched.pop_back();
-  return result;
+  return 0;
 }
 
 /*
@@ -5047,7 +5095,8 @@ void Pattern::deleteAssignOpTrees(bool deleteConds) {
 \subsection{Value Mapping without index}
 
 */
-int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s){
+template<class T>
+int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   ClassifyLI *li = (ClassifyLI*)local.addr;
   switch (message) {
     case OPEN: {
@@ -5055,11 +5104,12 @@ int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s){
         delete li;
         local.addr = 0;
       }
-      local.addr = new ClassifyLI(args[0], args[1]);
+      T* trajectory = static_cast<T*>(args[0].addr);
+      local.addr = new ClassifyLI(trajectory, args[1]);
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->nextResultTuple() : 0;
+      result.addr = li ? li->nextResultText() : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -5080,11 +5130,10 @@ int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s){
 struct classifyInfo : OperatorInfo {
   classifyInfo() {
     name      = "classify";
-    signature = "stream(mlabel) x classifier -> stream(tuple(text, mlabel))";
-    appendSignature("stream(mstring) x classifier -> "
-                                               "stream(tuple(text, mstring))");
+    signature = "mlabel x classifier -> stream(text)";
+    appendSignature("mstring x classifier -> stream(text)");
     syntax    = "_ _ classify";
-    meaning   = "Classifies a stream of trajectories according to a classifier";
+    meaning   = "Classifies a trajectory according to a classifier";
   }
 };
 
@@ -5175,8 +5224,8 @@ set<unsigned int>::iterator IndexLI::initIterator(int tId, int pPos) {
 \subsection{Function ~applyUnitPattern~}
 
 */
-void IndexLI::applyUnitPattern(int pPos, vector<int>& prev,
-                               Wildcard& wild, vector<bool>& active) {
+void IndexLI::applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wild,
+                               vector<bool>& active, int &lastId) {
   InvertedFile::exactIterator* eit = 0;
   TupleId id;
   wordPosType wc;
@@ -5201,12 +5250,14 @@ void IndexLI::applyUnitPattern(int pPos, vector<int>& prev,
               prev[id - 1] = 0;
             }
           }
-          else if (((wild == NO) && matches[id - 1][prev[id - 1]].count(wc-1))
+          else if (((wild == NO) && matches[id - 1][prev[id - 1]].count(wc-1)
+                                 && (lastId != (int)id))
            || ((wild == PLUS) && ((prev[id - 1] == -1)
                         || *(matches[id - 1][prev[id - 1]].begin()) < wc))
            || ((wild == STAR) && ((prev[id - 1] == -1)
                         || *(matches[id - 1][prev[id - 1]].begin()) <= wc))) {
             matches[id - 1][pPos].insert(wc);
+            lastId = id;
             prev[id - 1] = pPos;
           }
         }
@@ -5251,9 +5302,8 @@ void IndexLI::applyUnitPattern(int pPos, vector<int>& prev,
           if (active[i - 1]) {
             if (prev[i - 1] > -1) {
               i2 = initIterator(i, pPos);
-              for (unsigned int k = *(matches[i - 1][prev[i - 1]].begin());
-                   ((k <= *(matches[i - 1][prev[i - 1]].end()))
-                     && (k + add <= (unsigned int)getMLsize(i))); k++) {
+              for (int k = *(matches[i - 1][prev[i - 1]].begin());
+                   (k + add <= getMLsize(i)); k++) {
                 if (timesMatch(i, k, up.getI())) {
                   matches[i - 1][pPos].insert(i2, k + add);
                   i2++;
@@ -5297,8 +5347,9 @@ vector<TupleId> IndexLI::applyPattern() {
   Wildcard wild = NO;
   vector<int> prev(mlRel->GetNoTuples(), -1);
   vector<bool> active(mlRel->GetNoTuples(), true);
+  int lastId = -1;
   for (int i = 0; i < p->getSize(); i++) { // iterate over pattern elements
-    applyUnitPattern(i, prev, wild, active);
+    applyUnitPattern(i, prev, wild, active, lastId);
   }
   for (int j = 0; j < mlRel->GetNoTuples(); j++) {
     if (active[j]) {
@@ -6066,7 +6117,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                    rewriteVM_Stream, 0};
       AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTM);
 
-      AddOperator(classifyInfo(), classifyVM, classifyTM);
+      ValueMapping classifyVMs[] = {classifyVM<MLabel>, classifyVM<MString>, 0};
+
+      AddOperator(classifyInfo(), classifyVMs, classifySelect, classifyTM);
 
       AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTM);
 

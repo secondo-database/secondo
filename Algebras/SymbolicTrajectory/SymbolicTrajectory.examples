@@ -16,8 +16,8 @@ Result   : TRUE
 Operator : toclassifier
 Number   : 1
 Signature: stream(tuple(s: text, t: text)) -> classifier
-Example  : query SymbolicTripsTiny feed projecttransformstream[SymTrip] class2 feed toclassifier classify count
-Result   : 12
+Example  : query SymbolicTripsTiny feed extract[SymTrip] class2 feed toclassifier classify count
+Result   : 1
 
 Operator : matches
 Number   : 1
@@ -28,8 +28,8 @@ Result   : FALSE
 Operator : indexmatches
 Number   : 1
 Signature: rel(tuple(X)) x IDENT x invfile x text -> stream(tuple(X))
-Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") X * (_ "Innenstadt-Ost") // X.labels contains "Brackel"'] count
-Result   : 5
+Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") X * () // X.labels contains "Brackel"'] count
+Result   : 34
 
 Operator : filtermatches
 Number   : 1
@@ -45,15 +45,15 @@ Result   : 62
  
 Operator : classify
 Number   : 1
-Signature: stream(mlabel) x classifier -> stream(tuple(string, mlabel))
-Example  : query SymbolicTripsTiny feed projecttransformstream[SymTrip] classifier2 classify count
-Result   : 12
+Signature: mlabel x classifier -> stream(text)
+Example  : query michael classifier1 classify count
+Result   : 0
 
 Operator : indexclassify
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier-> stream(tuple(string, mlabel))
 Example  : query (Dotraj indexclassify[Trajectory, Dotrajindex, classifier1]) count
-Result   : 262
+Result   : 216
 
 Operator : rewrite
 Number   : 2

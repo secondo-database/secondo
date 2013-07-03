@@ -43,6 +43,7 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include "RelationAlgebra.h"
 #include "Stream.h"
 #include "InvertedFile.h"
+#include "FTextAlgebra.h"
 #include <string>
 #include <set>
 
@@ -71,10 +72,14 @@ void patternFlushBuffer();
 class MLabel : public MString {
  public:
   MLabel() {}
-  MLabel(int i): MString(i), index(0) {}
+  explicit MLabel(int i): MString(i), index(0) {}
   MLabel(MString* ms);
   
-  ~MLabel() {void destroyDbArrays(); index.removeTrie(); index.initRoot();}
+  ~MLabel() {if (index.getNodeRefSize() || index.getNodeLinkSize()
+              || index.getLabelIndexSize()) {
+               index.destroyDbArrays();
+               index.removeTrie();
+               index.initRoot();}}
 
   static const string BasicType() {return "mlabel";}
   static bool checkType(ListExpr t) {
@@ -599,13 +604,14 @@ class ClassifyLI {
 friend class Match;
 
 public:
-  ClassifyLI(Word _mlstream, Word _classifier);
+  ClassifyLI(MLabel *ml, Word _classifier);
+  ClassifyLI(MString *ms, Word _classifier);
   ClassifyLI(Word _mlstream, Word _classifier, bool rewrite);
 
   ~ClassifyLI();
 
   static TupleType* getTupleType();
-  Tuple* nextResultTuple();
+  FText* nextResultText();
   MLabel* nextResultML();
   void computeCardsets();
   void printMatches();
@@ -623,6 +629,7 @@ private:
   Match* mainMatch;
   map<int, vector<set<unsigned int> > > matches;//patternid->(upat->set(ulabel))
   vector<MLabel*> rewritten;
+  bool streamOpen, newML;
 };
 
 class IndexLI {
@@ -638,7 +645,7 @@ public:
 
   Tuple* nextResultTuple(bool classify);
   void applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wc,
-                        vector<bool>& active);
+                        vector<bool>& active, int &lastId);
   vector<TupleId> applyPattern(); // apply pattern elements of p to mlRel
   void applyConditions(vector<TupleId> matchingMLs, bool classify);//filter vec
   int getMLsize(TupleId tId);
