@@ -16,6 +16,14 @@
 
 # Database hombruch
 
+# we have 12 data servers and 36 cores
+
+let CLUSTER_SIZE = 12 
+
+let PS_SCALE = 36 
+
+
+
 # Q1
 
 query fullosmimport('arnsberg-regbez.osm', "City")
@@ -53,6 +61,138 @@ let CityNodesNew = CityNodes feed
 
 # CA 64:28min (3867.55sec)
 
+
+# Q2 parallel
+
+# let ZOrderSections = CityNodes sample[3600; 0.00000001] 
+  extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  sortby[Box]
+  addcounter[No, 0]
+  extend[N: .No div 100]
+  groupby[N; Box: group feed extract[Box]]
+  extend_last[Low: ..Box :: [const rect value undef], High: .Box :: [const rect value undef]]
+  consume
+
+# 4.01 secs (warm)
+
+# let ... = 
+# query CityNodes feed 
+  extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  ZOrderSections feed {z}
+  symmjoin[(compare(.Box, ..Low_z) >= 0) and (compare(.Box, ..High_z) < 0)]
+  remove[Box_z, Low_z, High_z]
+  count
+
+abandoned for the moment.
+
+# Use the approach with a regular spatial grid
+
+let CityNodesSample = CityNodes sample[1000; 0.00000001] consume
+
+# 21.64 secs (cold), 3.96 secs (warm)
+
+# check the rectangle created by the sample
+
+query CityNodesSample feed
+  extend[Box: rectangle2(.Lon, .Lon, .Lat, .Lat)]
+  aggregateB[Box; fun(r1: rect, r2:rect) r1 union r2; [const rect value undef] ]
+
+let CityAreaScaled = CityNodesSample feed
+  extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  aggregateB[Box; fun(r1: rect, r2:rect) r1 union r2; [const rect value undef] ]
+
+
+# we will define a 30 by 30 grid over this area. The resulting 900 cells will 
+# be mapped to 36 tasks, so each task gets 25 cells, to obtain an even distribution.
+
+let NO_COLUMNS = 30
+
+let CELL_SIZE_X = (maxD(CityAreaScaled, 1) - minD(CityAreaScaled, 1)) / NO_COLUMNS
+
+let CELL_SIZE_Y = (maxD(CityAreaScaled, 2) - minD(CityAreaScaled, 2)) / NO_COLUMNS
+
+let GRID_CityArea = createCellGrid2D(minD(CityAreaScaled, 1), minD(CityAreaScaled, 2), 
+  CELL_SIZE_X, CELL_SIZE_Y, NO_COLUMNS)
+
+
+query CityNodes feed extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  extendstream[Cell: cellnumber(.Box, GRID_CityArea)]
+  sortby[Cell]
+  groupby[Cell; Cnt: group count]
+  sum[Cnt]
+
+# correct number is 5027561
+# 5027561
+# result is 5027561, correct
+
+# check for even distribution to tasks:
+
+query CityNodes feed extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  extendstream[Cell: cellnumber(.Box, GRID_CityArea)]
+  extend[Task: .Cell mod PS_SCALE]
+  sortby[Task]
+  groupby[Task; Cnt: group count]
+  consume
+
+
+# sequential query
+
+let CityNodesNew = CityNodes feed 
+  extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  sortby[Box]
+  projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)] 
+  addcounter[NodeIdNew, 1] 
+  consume
+
+
+
+
+
+
+
+let CityNodes_NodeId_flist = CityNodes feed spread[; NodeId, CLUSTER_SIZE, TRUE;]
+
+# CA
+# 3:08min (188.108sec)
+
+query CityNodes_NodeId_flist hadoopMap[DLF; . count feed transformstream] collect[] consume
+
+query CityNodes_NodeId_flist hadoopMap[DLF; . count feed transformstream] collect[] sum[Elem]
+
+# arnsberg
+# 5027561, correct
+
+# CA
+# 44131572
+
+
+
+let CityNodesNew_NodeId_dlo = CityNodes_NodeId_flist
+  hadoopMap[DLF, FALSE; . extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  extendstream[Cell: cellnumber(.Box, GRID_CityArea)]
+  extend[Task: .Cell mod PS_SCALE] ]
+  hadoopReduce[Task, DLF, PS_SCALE; . sortby[Box] addcounter[No, 1]
+  projectextend[NodeId; Pos: makepoint(.Lon, .Lat), 
+    NodeIdNew: (.Task * 10000000) + .No] ]
+  hadoopReduce[NodeId, DLO, CLUSTER_SIZE; . consume]
+
+# CA
+# 6:56min (416.263sec)
+
+query CityNodesNew_NodeId_flist2 hadoopMap[DLF; . count feed transformstream] collect[] consume
+
+# CA
+# 44131572 correct
+
+
+
 # query nodes(CityNodesNew feed addid bulkloadrtree[Pos]) consume
 
 
@@ -75,13 +215,8 @@ let Ways =
 
 # Q3 parallel
 
-# we have 12 data servers and 36 cores
-
-let CLUSTER_SIZE = 12 
-
-let PS_SCALE = 36 
-
-let CityNodesNew_NodeId_flist = CityNodesNew feed spread[; NodeId, CLUSTER_SIZE, TRUE;]
+# old version, now obsolete
+# let CityNodesNew_NodeId_flist = CityNodesNew feed spread[; NodeId, CLUSTER_SIZE, TRUE;]
 
 # 28 secs
 
@@ -99,9 +234,9 @@ let CityWayTags_WayIdInTag_flist = CityWayTags feed spread[; WayIdInTag, CLUSTER
 
 # CA 4:10min (250.382sec)
 
-let Ways_WayId_dlo = CityNodesNew_NodeId_flist
+let Ways_WayId_dlo = CityNodesNew_NodeId_dlo
   CityWays_NodeRef_flist
-  hadoopReduce2[NodeId, NodeRef, DLF, PS_SCALE; . .. itHashJoin[NodeId, NodeRef] ]
+  hadoopReduce2[NodeId, NodeRef, DLF, PS_SCALE; . feed .. itHashJoin[NodeId, NodeRef] ]
   CityWayTags_WayIdInTag_flist
   hadoopReduce2[WayId, WayIdInTag, DLO, CLUSTER_SIZE; . sortby[WayId, NodeCounter] 
     nest[WayId; NodeList] 
@@ -261,8 +396,8 @@ let Nodes_WayId_flist =
   CityWays_NodeRef_flist
   hadoopReduce2[NodeRef, NodeRef, DLF, PS_SCALE; . .. {h2} 
     itHashJoin[NodeRef, NodeRef_h2] filter[.WayId # .WayId_h2] ]
-  CityNodesNew_NodeId_flist
-  hadoopReduce2[NodeRef, NodeId, DLF, PS_SCALE; . .. itHashJoin[NodeRef, NodeId] ]
+  CityNodesNew_NodeId_dlo
+  hadoopReduce2[NodeRef, NodeId, DLF, PS_SCALE; . .. feed itHashJoin[NodeRef, NodeId] ]
   RoadsWayId_WayId_flist
   hadoopReduce2[WayId, WayId, DLF, PS_SCALE; . .. {r1} itHashJoin[WayId, WayId_r1] ]
   RoadsWayId_WayId_flist
