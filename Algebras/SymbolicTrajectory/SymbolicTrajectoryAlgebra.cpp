@@ -3883,7 +3883,7 @@ int toclassifierVM(Word* args, Word& result, int message, Word& local,
 struct toclassifierInfo : OperatorInfo {
   toclassifierInfo() {
     name      = "toclassifier";
-    signature = "stream(tuple(s: text, t: text)) -> "+Classifier::BasicType();
+    signature = "stream(tuple(description: text, pattern: text)) -> classifier";
     syntax    = "_ toclassifier";
     meaning   = "creates a classifier from a stream(tuple(s: text, t: text))";
   }
@@ -5132,7 +5132,7 @@ struct classifyInfo : OperatorInfo {
     name      = "classify";
     signature = "mlabel x classifier -> stream(text)";
     appendSignature("mstring x classifier -> stream(text)");
-    syntax    = "_ _ classify";
+    syntax    = "classify(_ , _)";
     meaning   = "Classifies a trajectory according to a classifier";
   }
 };

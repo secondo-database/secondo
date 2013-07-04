@@ -15,8 +15,8 @@ Result   : TRUE
 
 Operator : toclassifier
 Number   : 1
-Signature: stream(tuple(s: text, t: text)) -> classifier
-Example  : query SymbolicTripsTiny feed extract[SymTrip] class2 feed toclassifier classify count
+Signature: stream(tuple(description: text, pattern: text)) -> classifier
+Example  : query classify(SymbolicTripsTiny feed extract[SymTrip], class2 feed toclassifier) count
 Result   : 1
 
 Operator : matches
@@ -46,7 +46,7 @@ Result   : 62
 Operator : classify
 Number   : 1
 Signature: mlabel x classifier -> stream(text)
-Example  : query michael classifier1 classify count
+Example  : query classify(michael, classifier1) count
 Result   : 0
 
 Operator : indexclassify
