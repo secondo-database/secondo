@@ -75,6 +75,7 @@ using namespace std;
 #include <libxml/xmlreader.h>
 #include <iostream>
 #include <string>
+#include <fstream>
 
 
 // --- Enabling global pointer variables
@@ -703,7 +704,7 @@ const string fullosmimportSpec =
 /*
 1.2 Type mapping function for operator fullosmimport
 
-*/    
+*/
 ListExpr fullosmimportTypeMap(ListExpr args) {
   if (!nl->HasLength(args, 2))
     return listutils::typeError("two arguments expected");
@@ -1165,6 +1166,166 @@ Operator fullosmimport( "fullosmimport",
                 Operator::SimpleSelect,
                 fullosmimportTypeMap);
 
+/*
+\section{Operator ~divide_osm~}
+
+Randomly divides an OSM file into a number of sub-files.
+
+\subsection{Type Mapping}
+
+*/
+ListExpr divide_osmTM(ListExpr args) {
+  const string errMsg = "Expecting text x string x int x string";
+  if (nl->HasLength(args, 4)) {
+    if (FText::checkType(nl->First(args))
+     && CcString::checkType(nl->Second(args))
+     && CcInt::checkType(nl->Third(args))
+     && CcString::checkType(nl->Fourth(args))) {
+      return nl->SymbolAtom(CcBool::BasicType());
+    }
+  }
+  return listutils::typeError(errMsg);
+}
+
+/*
+subsection{Specification}
+
+*/
+const string divide_osmSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> text x string x int x string -> bool</text--->"
+    "<text>divide_osm(_ _ _ _)</text--->"
+    "<text>Randomly divides an OSM file into a number of sub-files.</text--->"
+    "<text>query divide_osm('dortmund.osm', \"do\", 1909, \"DO\")</text--->))";
+
+FullOsmImport::FullOsmImport(const string& fileName, const string& _subFileName,
+                             const int _size, const string& prefix) :
+         isTemp(false), reader(0), subFileName(_subFileName), node(0), tag(0),
+         way(0), rel(0), size(_size), tagged(false) {
+  for (int i = 0; i < 6; i++) {
+    tupleCount[i] = 0;
+  }
+  sc = SecondoSystem::GetCatalog();
+  relationsInitialized = initRelations(prefix);
+  if(!relationsInitialized) {
+    cout << "relations could not be initialized" << endl;
+    return;
+  }
+  defineRelations();
+  storeRelations();
+  divideOSMfile(fileName);
+}
+
+const char* FullOsmImport::getFileName(LongInt dest) {
+  stringstream result;
+  result << subFileName << "_" << dest;
+  return result.str().c_str();
+}
+
+bool FullOsmImport::isWhitespace(const char c) {
+  return c == ' ' || c == '\n' || c == '\t' || c == '\r' || c == 11;
+}
+
+string FullOsmImport::trim(const string &s) {
+  size_t first = s.find_first_not_of(" \n\t\r");
+  if (first == string::npos) {
+    return string();
+  }
+  return s.substr(first);
+}
+
+bool FullOsmImport::isFileSwitchAllowed(const string& line) {
+  if ((line.substr(0,5) == "<node") && (line.substr(line.length() -2) == "/>")){
+    return true;
+  }
+  if ((line.substr(0, 7) == "</node>") || (line.substr(0, 6) == "</way>")
+   || (line.substr(0, 11) == "</relation>")) {
+    return true;
+  }
+  return false;
+}
+
+void FullOsmImport::divideOSMfile(const string& fileName) {
+  ifstream source;
+  ofstream dest;
+  source.open(fileName.c_str(), ios::in);
+  string line;
+  LongInt numOfChars(0), charCounter(0), destId(-1), nextLimit(0);
+  source.seekg(0, ios::end);
+  numOfChars = (LongInt)source.tellg();
+  source.close();
+  source.open(fileName.c_str(), ios::in);
+  getline(source, line);
+  for (LongInt i = 0; i < size; i++) { // clear destination files if existing
+    dest.open(getFileName(i), ios::trunc);
+    dest.close();
+  }
+  while (!source.eof() && (trim(line).substr(0, 5) != "<node")) { // copy head
+    line = trim(line);
+    for (LongInt destId = 0; destId < size; destId++) {
+      dest.open(getFileName(destId), ios::app);
+      dest << line << endl;
+      dest.close();
+    }
+    getline(source, line);
+  }
+  LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
+  while (!source.eof()) { // copy rest
+    if (charCounter >= nextLimit && isFileSwitchAllowed(line)) {
+      if (dest.is_open()) {
+        dest.close();
+      }
+      nextLimit += partSize;
+      destId++;
+      dest.open(getFileName(destId), ios::app);
+    }
+    getline(source, line);
+    charCounter += line.length();
+    line = trim(line);
+    dest << line << endl;
+  }
+  source.close();
+  dest.close();
+  fileOk = true;
+  nodeType->DeleteIfAllowed();
+  nodeTagType->DeleteIfAllowed();
+  wayType->DeleteIfAllowed();
+  wayTagType->DeleteIfAllowed();
+  relType->DeleteIfAllowed();
+  relTagType->DeleteIfAllowed();
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int divide_osmVM(Word* args, Word& result, int message, Word& local,Supplier s){
+  string fileName = ((FText*)args[0].addr)->GetValue();
+  string subFileName = ((CcString*)args[1].addr)->GetValue();
+  int size = ((CcInt*)args[2].addr)->GetValue();
+  string prefix = ((CcString*)args[3].addr)->GetValue();
+  FullOsmImport osm(fileName, subFileName, size, prefix);  
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*)result.addr;
+  if (!(osm.relationsInitialized && osm.fileOk)) {
+    res->Set(true, false);
+  }
+  else { // success
+    res->Set(true, true);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator instance}
+
+*/
+Operator divide_osm( "divide_osm",
+                divide_osmSpec,
+                divide_osmVM,
+                Operator::SimpleSelect,
+                divide_osmTM);
+
 // --- Constructors
 // Constructor
 osm::OsmAlgebra::OsmAlgebra () : Algebra ()
@@ -1186,6 +1347,7 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     AddOperator(&osmimport);
     osmimport.SetUsesArgsInTypeMapping();;
     AddOperator(&fullosmimport);
+    AddOperator(&divide_osm);
 }
 
 // Destructor

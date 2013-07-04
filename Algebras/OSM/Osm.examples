@@ -4,8 +4,8 @@ Restore : Yes
 Operator : shpimport3
 Number   : 1
 Signature: text  -> stream(T)
-Example  : query  shpimport3('kinos.shp') count
-Result   : 83
+Example  : query  shpimport3('buildings.shp') count
+Result   : 323
 
 Operator : getconnectivitycode
 Number   : 1
@@ -53,4 +53,10 @@ Operator : fullosmimport
 Number   : 1
 Signature: text x string -> bool
 Example  : query fullosmimport('kirchditmold.osm', "kirch")
+Result   : TRUE
+
+Operator : divide_osm
+Number   : 1
+Signature: text x string x int x string -> bool
+Example  : query divide_osm('liechtenstein.osm', "liesub", 20, "Lie")
 Result   : TRUE

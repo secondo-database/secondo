@@ -55,6 +55,8 @@ enum entityKind {NODE, WAY, RELATION};
 class FullOsmImport {
   public:
      FullOsmImport(const string& fileName, const string& prefix);
+     FullOsmImport(const string& fileName, const string& _subFileName,
+                   const int _size, const string& prefix);
     ~FullOsmImport();
     
     bool initRelations(const string& prefix);
@@ -69,11 +71,14 @@ class FullOsmImport {
     void processTag(xmlTextReaderPtr reader, entityKind kind);
     void storeRelations();
     void storeRel(string name, ListExpr type, Relation *rel);
+    void divideOSMfile(const string& fileName);
+    const char* getFileName(LongInt dest);
+    string trim(const string &s);
+    bool isWhitespace(const char c);
+    bool isFileSwitchAllowed(const string& line);
     
     SecondoCatalog* sc;
-    bool isTemp;
-    bool relationsInitialized;
-    bool fileOk;
+    bool isTemp, relationsInitialized, fileOk;
     xmlTextReaderPtr reader;
     Relation *nodeRel, *nodeTagRel, *wayRel, *wayTagRel, *relRel,
         *relTagRel;
@@ -83,12 +88,10 @@ class FullOsmImport {
         relTypeInfo, relTagTypeInfo, numNodeTypeInfo, numNodeTagTypeInfo,
         numWayTypeInfo, numWayTagTypeInfo, numRelTypeInfo, numRelTagTypeInfo;
     string relNames[6];
+    string subFileName;
     unsigned int tupleCount[6];
-    Tuple *node;
-    Tuple *tag;
-    Tuple *way;
-    Tuple *rel;
-    int read, next, refCount;
+    Tuple *node, *tag, *way, *rel;
+    int read, next, refCount, size;
     LongInt currentId;
     bool tagged;
 };
