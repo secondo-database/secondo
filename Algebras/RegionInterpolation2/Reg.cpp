@@ -3,7 +3,6 @@
 
 #include "interpolate.h"
 
-
 Region Reg::MakeRegion(int offx, int offy) {
     Region ret(0);
 
@@ -33,6 +32,31 @@ Region Reg::MakeRegion() {
 
 void Reg::Sort() {
     v = sortSegs(v);
+}
+
+
+Reg::Reg(ListExpr le) {
+    le = nl->First(le);
+
+    while (nl->ListLength(le) > 1) {
+        ListExpr pa = nl->First(le);
+        ListExpr pb = nl->First(nl->Rest(le));
+        //        cerr << nl->ToString(pa) << " " << nl->ToString(pb) << "\n";
+        int p1 = nl->RealValue(nl->First(pa));
+        pa = nl->Rest(pa);
+        int p2 = nl->RealValue(nl->First(pa));
+        pa = nl->Rest(pa);
+        int p3 = nl->RealValue(nl->First(pb));
+        pb = nl->Rest(pb);
+        int p4 = nl->RealValue(nl->First(pb));
+        pb = nl->Rest(pb);
+        le = nl->Rest(le);
+
+        Seg s = Seg(p1, p2, p3, p4);
+        AddSeg(s);
+    }
+
+    Close();
 }
 
 Reg::Reg() {
@@ -80,7 +104,6 @@ void Reg::Close() {
     Print();
     cerr << "Dumping Reg End\n";
     ConvexHull();
-    Concavities();
 }
 
 vector<Pt> Reg::getPoints() {
@@ -148,11 +171,9 @@ int depth = 1;
 vector<Reg> Reg::Concavities() {
     vector<Reg> ret = vector<Reg > ();
     vector<Seg> ch = convexhull;
-
-    cerr << "Calculating Concavities Start " << depth++ << "\n";
-
     unsigned int j = 0;
 
+    cerr << "Calculating Concavities Start " << depth++ << "\n";
     cerr << "Hull\n";
     for (unsigned int a = 0; a < ch.size(); a++) {
         cerr << ch[a].ToString() << "\n";
@@ -172,6 +193,13 @@ vector<Reg> Reg::Concavities() {
         if (!(ch[i] == v[j])) {
             cerr << "Found new Concavity: " << depth << "\n";
             Reg r = Reg(this, i);
+            unsigned int hpidx;
+            if (j == 0) {
+                hpidx = v.size() - 1;
+            } else {
+                hpidx = j - 1;
+            }
+            r.hullPoint = Pt(v[hpidx].x1, v[hpidx].x2);
             cerr << "End: " << ch[i].x2 << "/" << ch[i].y2 << "\n";
             do {
                 Seg s = Seg(v[j].x2, v[j].y2, v[j].x1, v[j].y1);
@@ -232,3 +260,23 @@ Seg Reg::Cur() {
     return v[cur % v.size()];
 }
 
+MSegs Reg::collapse () 
+{
+   MSegs ret;
+   
+   return ret;
+}
+
+vector<Reg> Reg::getRegs(ListExpr le) {
+    vector<Reg> ret;
+
+    while (!nl->IsEmpty(le)) {
+        ListExpr l = nl->First(le);
+        Reg r(l);
+        ret.push_back(r);
+        le = nl->Rest(le);
+
+    }
+
+    return ret;
+}

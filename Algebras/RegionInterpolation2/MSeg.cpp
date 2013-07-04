@@ -203,6 +203,10 @@ bool MSegs::intersects (const MSegs& a) const {
     return false;
 }
 
+
+MFace::MFace() {
+}
+
 MFace::MFace(MSegs face) : face(face) {
 }
 
@@ -228,6 +232,32 @@ URegion MFace::ToURegion(Interval<Instant> iv) {
         ms.insert(ms.end(), h.begin(), h.end());
     }
     URegion ret(ms, iv);
+    
+    return ret;
+}
+
+MFaces::MFaces() {
+}
+
+MFaces::MFaces(MFace face) {
+    AddFace(face);
+}
+
+void MFaces::AddFace(MFace face) {
+    faces.push_back(face);
+}
+
+MRegion MFaces::ToMRegion(Interval<Instant> iv) {
+    MRegion ret;
+    
+    if (faces.size() > 0) {
+        URegion u = faces[0].ToURegion(iv);
+        for (unsigned int i = 0; i < faces.size(); i++) {
+            URegion u2 = faces[i].ToURegion(iv);
+            u.AddURegion(&u2);
+        }
+        ret.AddURegion(u);
+    }
     
     return ret;
 }

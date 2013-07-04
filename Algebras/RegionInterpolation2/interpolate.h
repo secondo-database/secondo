@@ -76,14 +76,27 @@ private:
     vector<MSegs> cvs;
     
 public:
+    MFace();
     MFace(MSegs face);
     void AddHole (MSegs msegs);
     URegion ToURegion(Interval<Instant> iv);
 };
 
+class MFaces {
+private:
+    vector<MFace> faces;
+    
+public:
+    MFaces();
+    MFaces(MFace face);
+    void AddFace (MFace face);
+    MRegion ToMRegion(Interval<Instant> iv);
+};
+
 class Reg {
 private:
     int cur;
+    Pt hullPoint;
 
 public:
     vector<Seg> convexhull;
@@ -92,6 +105,7 @@ public:
     Reg *parent;
     int parentseg;
     Reg();
+    Reg(ListExpr le);
     Reg(vector<Seg> v);
     Reg(Reg *parent, int parentseg);
     void AddSeg(Seg& a);
@@ -109,6 +123,9 @@ public:
     Region MakeRegion();
     Region MakeRegion(int offx, int offy);
     Pt GetMinXY();
+    MSegs collapse();
+    
+    static vector<Reg> getRegs(ListExpr le);
 };
 
 #endif	/* INTERPOLATE_HXX */

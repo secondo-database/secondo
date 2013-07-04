@@ -1,3 +1,4 @@
+
 /*
 */
 
@@ -12,50 +13,6 @@
 #include <string>
 
 static int curface;
-
-static Reg getReg(ListExpr r1) {
-    Reg r = Reg();
-
-    r1 = nl->First(r1);
-
-    while (nl->ListLength(r1) > 1) {
-        ListExpr pa = nl->First(r1);
-        ListExpr pb = nl->First(nl->Rest(r1));
-        //        cerr << nl->ToString(pa) << " " << nl->ToString(pb) << "\n";
-        int p1 = nl->RealValue(nl->First(pa));
-        pa = nl->Rest(pa);
-        int p2 = nl->RealValue(nl->First(pa));
-        pa = nl->Rest(pa);
-        int p3 = nl->RealValue(nl->First(pb));
-        pb = nl->Rest(pb);
-        int p4 = nl->RealValue(nl->First(pb));
-        pb = nl->Rest(pb);
-        r1 = nl->Rest(r1);
-
-        Seg s = Seg(p1, p2, p3, p4);
-        r.AddSeg(s);
-    }
-
-    r.Close();
-
-    return r;
-}
-
-static vector<Reg> getRegs(ListExpr r1) {
-    vector<Reg> ret;
-
-    cerr << "XXXYYY:\n" << nl->ToString(r1) << "\n";
-
-    while (!nl->IsEmpty(r1)) {
-        ListExpr l = nl->First(r1);
-        Reg r = getReg(l);
-        ret.push_back(r);
-        r1 = nl->Rest(r1);
-
-    }
-
-    return ret;
-}
 
 
 //MSegmentData tS (MSegmentData ms, double off) {
@@ -523,6 +480,28 @@ static vector<pair<Reg *, Reg *> > matchFaces(vector<Reg> *src,
     return ret;
 }
 
+static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
+        vector<Reg> *dst) {
+    vector<pair<Reg *, Reg *> > ret;
+    
+    unsigned int i;
+    
+    for (i = 0; (i < src->size() || (i < dst->size())); i++) {
+        if ((i < src->size()) && (i < dst->size())) {
+            pair<Reg *, Reg *> p(&((*src)[i]), &((*dst)[i]));
+            ret.push_back(p);
+        } else if (i < src->size()) {
+            pair<Reg *, Reg *> p(&((*src)[i]), NULL);
+            ret.push_back(p);
+        } else {
+            pair<Reg *, Reg *> p(&((*dst)[i]), NULL);
+            ret.push_back(p);
+        }
+    }    
+    
+    return ret;
+}
+
 URegion interpolate3(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti2) {
     MSegs _v  = rotatingPlane(reg1, reg2, true);
     MSegs _v2 = rotatingPlane(&reg1->cvs[0], &reg2->cvs[0], true);
@@ -545,6 +524,34 @@ URegion interpolate3(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti2) {
     return ret;
 }
 
+vector<MSegs> interpolate4 (vector<Reg> *sregs, Instant *ti1,
+			    vector<Reg> *dregs, Instant *ti2) {
+    vector<pair<Reg *, Reg *> > ps = matchFacesSimple(sregs, dregs);
+    vector<MSegs> ret;
+    
+    for (unsigned int i = 0; i < ps.size(); i++) {
+        pair<Reg *, Reg *> p = ps[i];
+        
+        Reg *src = p.first;
+        Reg *dst = p.second;
+        
+        if (src && dst) {
+            vector<Reg> scvs = src->Concavities();
+            vector<Reg> dcvs = dst->Concavities();
+	    Reg scvx(src->convexhull);
+	    Reg dcvx(dst->convexhull);
+            MSegs m = rotatingPlane(&scvx, &dcvx, true);
+            ret = interpolate4(&scvs, ti1, &dcvs, ti2);
+            
+        } else {
+            if (dst) {
+                src = dst;
+            }
+            MSegs coll = src->collapse();
+        }
+    }
+}
+
 int interpolatevalmap(Word* args,
         Word& result,
         int message,
@@ -557,26 +564,17 @@ int interpolatevalmap(Word* args,
     CcInt* mode = static_cast<CcInt*> (args[4].addr);
     MRegion* m = static_cast<MRegion*> (result.addr);
 
+    Interval<Instant> iv(*ti1, *ti2, true, true);
+    
     ListExpr _r1 = OutRegion(nl->Empty(), args[0]);
     ListExpr _r2 = OutRegion(nl->Empty(), args[2]);
 
-    vector<Reg> reg1 = getRegs(_r1);
-    vector<Reg> reg2 = getRegs(_r2);
+    vector<Reg> reg1 = Reg::getRegs(_r1);
+    vector<Reg> reg2 = Reg::getRegs(_r2);
 
-    //    vector<pair<Reg *, Reg *> > pairs = matchFaces(&reg1, &reg2);
-    //        
-    vector<URegion> uregs;
-    curface = 0;
-    //    for (unsigned int i = 0; i < pairs.size(); i++) {
-    //        pair<Reg *, Reg *> p = pairs[i];
-    //        vector<URegion> turegs = do_interpolate(p.first, ti1, p.second,
-    //                                                ti2, mode->GetIntval());
-    //        uregs.insert(uregs.end(), turegs.begin(), turegs.end());
-    //    }
-
-    URegion u = interpolate3(&reg1[0], ti1, &reg2[0], ti2);
-    *m = MRegion(1);
-    m->AddURegion(u);
+    interpolate4(&reg1, ti1, &reg2, ti2);
+    MFaces mf;
+    *m = mf.ToMRegion(iv);
 
     // Merge URegions per time-interval
 //    std::map<Interval<Instant>, URegion*> map;
