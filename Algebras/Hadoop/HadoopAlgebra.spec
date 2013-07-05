@@ -18,6 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator spread alias SPREAD pattern _op [list; list; list]
+operator spreadFiles alias SPREADFILES pattern op (_,_,_)
 operator collect alias COLLECT pattern _op[list]
 operator para alias PARA pattern op (_)
 operator hadoopMap alias HADOOPMAP pattern _ op [list; fun] implicit parameter lobject1 type TPARA

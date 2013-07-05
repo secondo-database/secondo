@@ -1857,6 +1857,24 @@ string clusterInfo::getRemotePath(
   return remotePath;
 }
 
+string clusterInfo::getMSECPath(size_t loc,
+    bool includeMaster, /*= true*/
+    bool round,         /*= false*/
+    bool appendIP)      /*= true*/
+{
+  loc = getInterIndex(loc, includeMaster, round);
+  string psfsPath = (*dataServers)[loc].second.first;
+  string msecPath = FileSystem::GetParentFolder(psfsPath);
+  FileSystem::AppendItem(msecPath, "msec");
+
+  if (appendIP)
+  {
+    string ip = (*dataServers)[loc].first;
+    msecPath = ip + ":" + msecPath;
+  }
+  return msecPath;
+}
+
 string clusterInfo::getIP(size_t loc, bool round /* = false*/)
 {
   if ( 0 == loc)

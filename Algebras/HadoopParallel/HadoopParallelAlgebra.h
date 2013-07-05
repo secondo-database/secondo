@@ -363,6 +363,11 @@ public:
       string fileName = "",
       bool attachProducerIP = false,
       string producerIP = "");
+
+  string getMSECPath(size_t loc,
+      bool includeMaster = true, bool round = false,
+      bool appendIP = true);
+
   string getIP(size_t loc, bool round = false);
 
   inline int getLocalNode(){

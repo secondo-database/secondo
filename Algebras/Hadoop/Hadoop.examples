@@ -8,6 +8,13 @@ Example  : let dis_file_list = plz feed spread["plz",'',1;PLZ,5,TRUE;Ort,10,TRUE
 Result   : crashes
 Remark   : Lack of  Parallel Secondo installation. 
 
+Operator : spreadFiles
+Number   : 1
+Signature:  
+Example  : query plz feed fdistribute["plz",'./',PLZ;3,TRUE;;] count; query spreadFiles("plz",'',3);
+Result   : crashes
+Remark   : Lack of  Parallel Secondo installation. 
+
 Operator : collect
 Number   : 1
 Signature:  
