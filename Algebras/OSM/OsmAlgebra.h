@@ -59,7 +59,7 @@ class FullOsmImport {
                    const int _size, const string& prefix);
     ~FullOsmImport();
     
-    bool initRelations(const string& prefix);
+    bool initRelations(const string& prefix, const string& suffix);
     bool openFile(const string&fileName);
     void defineRelations();
     void fillRelations();

@@ -723,7 +723,7 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
   sc = SecondoSystem::GetCatalog();
   isTemp = false;
   reader = 0;
-  relationsInitialized = initRelations(prefix);
+  relationsInitialized = initRelations(prefix, "");
   if(!relationsInitialized) {
     cout << "relations could not be initialized" << endl;
     return;
@@ -746,13 +746,13 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
 FullOsmImport::~FullOsmImport() {
 }
 
-bool FullOsmImport::initRelations(const string& prefix) {
-  relNames[0] = prefix + "Nodes";
-  relNames[1] = prefix + "NodeTags";
-  relNames[2] = prefix + "Ways";
-  relNames[3] = prefix + "WayTags";
-  relNames[4] = prefix + "Relations";
-  relNames[5] = prefix + "RelationTags";
+bool FullOsmImport::initRelations(const string& prefix, const string& suffix) {
+  relNames[0] = prefix + "Nodes" + suffix;
+  relNames[1] = prefix + "NodeTags" + suffix;
+  relNames[2] = prefix + "Ways" + suffix;
+  relNames[3] = prefix + "WayTags" + suffix;
+  relNames[4] = prefix + "Relations" + suffix;
+  relNames[5] = prefix + "RelationTags" + suffix;
   // check the new relations' names
   for (int i = 0; i < 6; i++) {
     if (sc->IsObjectName(relNames[i])) {
@@ -1206,7 +1206,7 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& _subFileName,
     tupleCount[i] = 0;
   }
   sc = SecondoSystem::GetCatalog();
-  relationsInitialized = initRelations(prefix);
+  relationsInitialized = initRelations(prefix, "_type");
   if(!relationsInitialized) {
     cout << "relations could not be initialized" << endl;
     return;
@@ -1262,13 +1262,15 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
   }
   while (!source.eof() && (trim(line).substr(0, 5) != "<node")) { // copy head
     line = trim(line);
-    for (LongInt destId = 0; destId < size; destId++) {
-      dest.open(getFileName(destId), ios::app);
+    for (LongInt file = 0; file < size; file++) {
+      dest.open(getFileName(file), ios::app);
       dest << line << endl;
       dest.close();
     }
     getline(source, line);
+    charCounter += line.length();
   }
+  nextLimit = charCounter;
   LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
   while (!source.eof()) { // copy rest
     if (charCounter >= nextLimit && isFileSwitchAllowed(line)) {
