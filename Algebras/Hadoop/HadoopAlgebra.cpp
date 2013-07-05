@@ -1452,6 +1452,174 @@ size_t SpreadLocalInfo::hashValue(
 Operator spreadOp(SpreadInfo(), SpreadValueMap, SpreadTypeMap);
 
 /*
+5 Operator ~spreadFiles~
+
+This operator reads a set of sub-files, and spread them to slave Data Servers.
+It is prepared to cooperate with the operators like ~divide\_osm~,
+spreading a set of divided files to slave Data Servers.
+Its signature is:
+
+----
+FileName: string x Path: text
+x [Size: int]
+  -> bool
+----
+
+It detects the files through the FileName and the Path argument.
+All files must be named like: FileName\_No.
+The ~No~ is an integer, starting from 0,
+By default an empty path indicates the \$SECONDO\_BUILD\_DIR\/bin,
+so that the implementers of the operators like ~divide\_osm~ don't need to
+consider about the special path setting in Parallel SECONDO.
+The Size is an optional argument, by default it is the cluster size,
+i.e. the number of slave Data Servers.
+
+*/
+struct SpreadFilesInfo : OperatorInfo {
+
+  SpreadFilesInfo() : OperatorInfo()
+  {
+    name = "spreadFiles";
+    signature = "string x text x [int] -> bool";
+    syntax = "FileName x Path x [Size] -> Success";
+    meaning = "This operator reads a set of sub-files, "
+        "and spread them to slave Data Servers.";
+  }
+};
+
+/*
+5.1 Type Mapping
+
+This operator returns a boolean result,
+which is true if all sub-files are copied to their respective target.
+
+*/
+ListExpr SpreadFilesTypeMap(ListExpr args){
+
+  NList l(args);
+  string err[] = {
+      //0
+      "ERROR!! Operator expects two or three arguments.",
+      "ERROR!! Operator expects string x text x [int] as the input",
+      ""
+  };
+
+  if (l.length() < 2 || l.length() > 3){
+    return l.typeError(err[0]);
+  }
+
+  NList pType, pValue;
+
+  //FileName
+  if (!l.first().first().isSymbol(CcString::BasicType()))
+    return l.typeError(err[1]);
+
+  //Path
+  if (!l.second().first().isSymbol(FText::BasicType()))
+    return l.typeError(err[1]);
+
+  //[Size]
+  if (l.length() == 3){
+    if (!l.third().first().isSymbol(CcInt::BasicType()))
+      return l.typeError(err[1]);
+  }
+
+  return NList(NList(CcBool::BasicType())).listExpr();
+}
+
+/*
+5.2 Value Mapping
+
+Some checking are done in the value mappting stage,
+also only give the warning message.
+If the given Size is different from the current cluster size,
+then a warning message will be prompted.
+If the file postfix doesn't coherence, several files are missing,
+the user will also be warned.
+If the Size is larger than the cluster size,
+then the operator stops at the last file within the cluster range.
+
+
+Each sub-file is renamed after being copied to the destination Data Server,
+by removing its numerical postfix.
+Therefore, all sub-files in the Data Servers share the same file.
+Files are all copied to Mini-Secondo\/bin directory,
+for the same reason that uses \$SECONDO\_BUILD\_DIR\/bin as the default path.
+
+
+*/
+int SpreadFilesValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  string fileName, filePath;
+  size_t  size;
+
+  fileName = ((CcString*)args[0].addr)->GetValue();
+  filePath = ((FText*)args[1].addr)->GetValue();
+  clusterInfo* ci = new clusterInfo();
+  if (qp->GetNoSons(s) == 3){
+    size = (size_t)((CcInt*)args[2].addr)->GetValue();
+  } else {
+    size = (size_t)ci->getSlaveSize();
+  }
+
+  if (size > ci->getSlaveSize()){
+    cerr << "Warning!! The Size parameter is larger than "
+        "the current cluster size. " << endl;
+    size = ci->getSlaveSize();
+    cerr << "Only " << size << " files will be spread. " << endl;
+  }
+  else if (size < ci->getSlaveSize()){
+    cerr << "Warning!! The Size parameter is less than "
+        "the current cluster size. " << endl;
+  }
+
+  if (fileName.length() == 0){
+    cerr << "Error!! The file name cannot be set empty. " << endl;
+    ((CcBool*)(result.addr))->Set(true, false);
+  }
+
+  if (filePath.length() == 0)
+    filePath = FileSystem::GetCurrentFolder();
+  else if (filePath.find_first_of("/") != 0){
+    cerr << "Error!! An absolute path is required for the Path argument."
+        << endl;
+    ((CcBool*)(result.addr))->Set(true, false);
+    return 0;
+  }
+
+  for (int fi = 0; fi < size; fi++)
+  {
+    string file = filePath + "/" + fileName + "_" + int2string(fi);
+    if (!FileSystem::FileOrFolderExists(file)){
+      cerr << "Warning!! Cannot locate the file " << file << endl;
+      continue;
+    } else if (FileSystem::IsDirectory(file)){
+      cerr << "Warning!! File " << file
+          << " should not be a directory." << endl;
+      continue;
+    }
+
+    //Files should be distributed on slaves only
+    string rmsec = ci->getMSECPath(fi + 1, true, false);
+    FileSystem::AppendItem(rmsec, "bin/"+fileName);
+
+    //TODO import the pipeline
+    if ( 0 != copyFile(file, rmsec, true)){
+      cerr << "Error!! Copy " << file << " to " << rmsec <<" fails. " << endl;
+      ((CcBool*)(result.addr))->Set(true, false);
+    }
+  }
+
+  ((CcBool*)(result.addr))->Set(true, true);
+  return 0;
+}
+
+Operator spreadFilesOp(
+    SpreadFilesInfo(), SpreadFilesValueMap, SpreadFilesTypeMap);
+
+/*
 5 Operator ~collect~
 
 This operator is used to collect the data from the partition files denoted
@@ -4999,10 +5167,12 @@ public:
     AddOperator(&spreadOp);
     spreadOp.SetUsesArgsInTypeMapping();
 
+    AddOperator(&spreadFilesOp);
+    spreadFilesOp.SetUsesArgsInTypeMapping();
+
     AddOperator(&collectOp);
     collectOp.SetUsesArgsInTypeMapping();
 
-    //AddOperator(ParaInfo(), ParaValueMapping, ParaTypeMapping);
     AddOperator(&paraOp);
 
     AddOperator(TParaInfo(), 0, TParaTypeMapping);
