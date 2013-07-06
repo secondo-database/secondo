@@ -38,9 +38,8 @@ class tProperties
 
   typedef Type PropertiesType;
   typedef Type TypeProperties;
-  typedef Type atlocationType;
-  typedef Type bboxType;
-  typedef Type gridType;
+  typedef Type GridType;
+  typedef Type RectangleType;
   static int GetXDimensionSize();
   static int GetYDimensionSize();
   static int GetFlobElements();
