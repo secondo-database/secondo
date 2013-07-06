@@ -77,9 +77,9 @@ int map2Functiontt(Word* pArguments,
           if(pSourceType1->IsDefined() &&
              pSourceType2->IsDefined())
           {
-            typename SourceType1Properties::gridType grid1;
+            typename SourceType1Properties::GridType grid1;
             pSourceType1->getgrid(grid1);
-            typename SourceType2Properties::gridType grid2;
+            typename SourceType2Properties::GridType grid2;
             pSourceType2->getgrid(grid2);
 
             if(grid1.IsMatchingGrid(grid2))
@@ -92,13 +92,13 @@ int map2Functiontt(Word* pArguments,
               assert(AlmostEqual(dx, dc) &&
                      AlmostEqual(dy, dr));
 
-              typename SourceType1Properties::bboxType boundingBox1;
+              typename SourceType1Properties::RectangleType boundingBox1;
               pSourceType1->bbox(boundingBox1);
 
-              typename SourceType2Properties::bboxType boundingBox2;
+              typename SourceType2Properties::RectangleType boundingBox2;
               pSourceType2->bbox(boundingBox2);
 
-              typename SourceType1Properties::bboxType boundingBox =
+              typename SourceType1Properties::RectangleType boundingBox =
               boundingBox1.Union(boundingBox2);
 
               if(boundingBox.IsDefined())
@@ -221,9 +221,9 @@ int map2Functiontmt(Word* pArguments,
           if(pSourceType1->IsDefined() &&
              pSourceType2->IsDefined())
           {
-            typename SourceType1Properties::gridType grid1;
+            typename SourceType1Properties::GridType grid1;
             pSourceType1->getgrid(grid1);
-            typename SourceType2Properties::gridType grid2;
+            typename SourceType2Properties::GridType grid2;
             pSourceType2->getgrid(grid2);
 
             if(grid2.IsMatchingGrid(grid1))
@@ -236,17 +236,17 @@ int map2Functiontmt(Word* pArguments,
               assert(AlmostEqual(dx, dc) &&
                      AlmostEqual(dy, dr));
 
-              typename SourceType1Properties::bboxType boundingBox1;
+              typename SourceType1Properties::RectangleType boundingBox1;
               pSourceType1->bbox(boundingBox1);
 
-              typename SourceType2Properties::bboxType boundingBox2;
+              typename SourceType2Properties::RectangleType boundingBox2;
               pSourceType2->bbox(boundingBox2);
 
-              typename SourceType1Properties::bboxType boundingBox22
+              typename SourceType1Properties::RectangleType boundingBox22
               (true, boundingBox2.MinD(0), boundingBox2.MaxD(0),
                boundingBox2.MinD(1), boundingBox2.MaxD(1));
 
-              typename SourceType1Properties::bboxType boundingBox =
+              typename SourceType1Properties::RectangleType boundingBox =
               boundingBox1.Union(boundingBox22);
 
               if(boundingBox.IsDefined())
@@ -374,9 +374,9 @@ int map2Functionmtt(Word* pArguments,
           if(pSourceType1->IsDefined() &&
              pSourceType2->IsDefined())
           {
-            typename SourceType1Properties::gridType grid1;
+            typename SourceType1Properties::GridType grid1;
             pSourceType1->getgrid(grid1);
-            typename SourceType2Properties::gridType grid2;
+            typename SourceType2Properties::GridType grid2;
             pSourceType2->getgrid(grid2);
 
             if(grid1.IsMatchingGrid(grid2))
@@ -389,17 +389,17 @@ int map2Functionmtt(Word* pArguments,
               assert(AlmostEqual(dx, dc) &&
                      AlmostEqual(dy, dr));
 
-              typename SourceType1Properties::bboxType boundingBox1;
+              typename SourceType1Properties::RectangleType boundingBox1;
               pSourceType1->bbox(boundingBox1);
 
-              typename SourceType2Properties::bboxType boundingBox2;
+              typename SourceType2Properties::RectangleType boundingBox2;
               pSourceType2->bbox(boundingBox2);
 
-              typename SourceType2Properties::bboxType boundingBox12
+              typename SourceType2Properties::RectangleType boundingBox12
               (true, boundingBox1.MinD(0), boundingBox1.MaxD(0),
                boundingBox1.MinD(1), boundingBox1.MaxD(1));
 
-              typename SourceType2Properties::bboxType boundingBox =
+              typename SourceType2Properties::RectangleType boundingBox =
               boundingBox2.Union(boundingBox12);
 
               if(boundingBox.IsDefined())
@@ -527,9 +527,9 @@ int map2Functionmtmt(Word* pArguments,
           if(pSourceType1->IsDefined() &&
              pSourceType2->IsDefined())
           {
-            typename SourceType1Properties::gridType grid1;
+            typename SourceType1Properties::GridType grid1;
             pSourceType1->getgrid(grid1);
-            typename SourceType2Properties::gridType grid2;
+            typename SourceType2Properties::GridType grid2;
             pSourceType2->getgrid(grid2);
 
             if(grid1.IsMatchingGrid(grid2))
@@ -542,13 +542,13 @@ int map2Functionmtmt(Word* pArguments,
               assert(AlmostEqual(dx, dc) &&
                      AlmostEqual(dy, dr));
 
-              typename SourceType1Properties::bboxType boundingBox1;
+              typename SourceType1Properties::RectangleType boundingBox1;
               pSourceType1->bbox(boundingBox1);
 
-              typename SourceType2Properties::bboxType boundingBox2;
+              typename SourceType2Properties::RectangleType boundingBox2;
               pSourceType2->bbox(boundingBox2);
 
-              typename SourceType1Properties::bboxType boundingBox =
+              typename SourceType1Properties::RectangleType boundingBox =
               boundingBox1.Union(boundingBox2);
 
               if(boundingBox.IsDefined())
