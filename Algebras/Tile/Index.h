@@ -75,6 +75,7 @@ class Index
 
   bool Decrement(const int& rIndex);
   bool Increment(const int& rIndex);
+  bool Set(const int& rIndex, const int& rValue);
 
   private:
 
@@ -276,6 +277,21 @@ bool Index<Dimension>::Increment(const int& rIndex)
   if(rIndex < Dimension)
   {
     m_Index[rIndex]++;
+    bRetVal = true;
+  }
+
+  return bRetVal;
+}
+
+template <int Dimension>
+bool Index<Dimension>::Set(const int& rIndex,
+                           const int& rValue)
+{
+  bool bRetVal = false;
+
+  if(rIndex < Dimension)
+  {
+    m_Index[rIndex] = rValue;
     bRetVal = true;
   }
 
