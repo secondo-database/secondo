@@ -190,9 +190,8 @@ class mtProperties<std::string>
 
   typedef mtstring PropertiesType;
   typedef Properties<std::string> TypeProperties;
-  typedef MString atlocationType;
-  typedef Rectangle<3> bboxType;
-  typedef mtgrid gridType;
+  typedef mtgrid GridType;
+  typedef Rectangle<3> RectangleType;
   typedef itstring itType;
   typedef tstring tType;
   static int GetXDimensionSize();
