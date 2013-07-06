@@ -58,8 +58,8 @@ int getgridFunction(Word* pArguments,
 
       if(rResult.addr != 0)
       {
-        typename Properties::gridType* pResult =
-        static_cast<typename Properties::gridType*>(rResult.addr);
+        typename Properties::GridType* pResult =
+        static_cast<typename Properties::GridType*>(rResult.addr);
 
         if(pResult != 0)
         {
