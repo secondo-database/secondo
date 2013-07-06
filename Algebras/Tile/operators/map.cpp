@@ -74,7 +74,7 @@ int mapFunctiont(Word* pArguments,
 
           if(pSourceType->IsDefined())
           {
-            typename SourceTypeProperties::bboxType boundingBox;
+            typename SourceTypeProperties::RectangleType boundingBox;
             pSourceType->bbox(boundingBox);
 
             if(boundingBox.IsDefined())
@@ -178,7 +178,7 @@ int mapFunctionmt(Word* pArguments,
 
           if(pSourceType->IsDefined())
           {
-            typename SourceTypeProperties::bboxType boundingBox;
+            typename SourceTypeProperties::RectangleType boundingBox;
             pSourceType->bbox(boundingBox);
 
             if(boundingBox.IsDefined())
@@ -347,7 +347,7 @@ int mapSelectFunction(ListExpr arguments)
     if(argumentsList.hasLength(2))
     {
       NList argument1 = argumentsList.first();
-      std::string argument2= argumentsList.second().third().str();
+      std::string argument2 = argumentsList.second().third().str();
       
       int argument1Index = -1;
       int argument2Index = -1;
