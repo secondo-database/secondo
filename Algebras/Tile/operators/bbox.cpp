@@ -58,8 +58,8 @@ int bboxFunction(Word* pArguments,
 
       if(rResult.addr != 0)
       {
-        typename Properties::bboxType* pResult =
-        static_cast<typename Properties::bboxType*>(rResult.addr);
+        typename Properties::RectangleType* pResult =
+        static_cast<typename Properties::RectangleType*>(rResult.addr);
 
         if(pResult != 0)
         {
