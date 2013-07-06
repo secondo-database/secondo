@@ -50,9 +50,8 @@ class tProperties<char>
 
   typedef tbool PropertiesType;
   typedef Properties<char> TypeProperties;
-  typedef CcBool atlocationType;
-  typedef Rectangle<2> bboxType;
-  typedef tgrid gridType;
+  typedef tgrid GridType;
+  typedef Rectangle<2> RectangleType;
   static int GetXDimensionSize();
   static int GetYDimensionSize();
   static int GetFlobElements();
