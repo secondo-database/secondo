@@ -78,7 +78,7 @@ class mt : public Attribute
 
   void atlocation(const double& rX,
                   const double& rY,
-                  typename Properties::atlocationType& rValues) const;
+                  typename Properties::TypeProperties::MType& rValues) const;
   void atlocation(const double& rX,
                   const double& rY,
                   const double& rInstant,
@@ -95,7 +95,7 @@ class mt : public Attribute
                const double& rInstant2,
                typename Properties::PropertiesType& rmt) const;
   void deftime(Periods& rPeriods) const;
-  void bbox(typename Properties::bboxType& rBoundingBox) const;
+  void bbox(typename Properties::RectangleType& rBoundingBox) const;
   Type minimum() const;
   Type maximum() const;
   void getgrid(mtgrid& rmtgrid) const;
@@ -289,8 +289,8 @@ TileAlgebra operator methods
 template <typename Type, typename Properties>
 void mt<Type, Properties>::atlocation(const double& rX,
                                       const double& rY,
-                                      typename Properties::atlocationType&
-                                      rValues) const
+                                      typename Properties::TypeProperties::
+                                      MType& rValues) const
 {
   rValues.SetDefined(false);
 
@@ -585,8 +585,8 @@ void mt<Type, Properties>::deftime(Periods& rPeriods) const
 }
 
 template <typename Type, typename Properties>
-void mt<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
-                           const
+void mt<Type, Properties>::bbox(typename Properties::RectangleType&
+                                rBoundingBox) const
 {
   double minima[3] = { 0.0, 0.0, 0.0 };
   double maxima[3] = { 0.0, 0.0, 0.0 };
