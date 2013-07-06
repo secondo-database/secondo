@@ -52,9 +52,8 @@ class mtProperties<double>
 
   typedef mtreal PropertiesType;
   typedef Properties<double> TypeProperties;
-  typedef MReal atlocationType;
-  typedef Rectangle<3> bboxType;
-  typedef mtgrid gridType;
+  typedef mtgrid GridType;
+  typedef Rectangle<3> RectangleType;
   typedef itreal itType;
   typedef treal tType;
   static int GetXDimensionSize();
