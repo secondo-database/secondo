@@ -40,9 +40,8 @@ class mtProperties
 
   typedef Type PropertiesType;
   typedef Type TypeProperties;
-  typedef Type atlocationType;
-  typedef Type bboxType;
-  typedef Type gridType;
+  typedef Type GridType;
+  typedef Type RectangleType;
   typedef Type itType;
   typedef Type tType;
   static int GetXDimensionSize();
