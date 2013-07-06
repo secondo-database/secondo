@@ -37,4 +37,6 @@ operator fromregion alias FROMREGION pattern op(_,_)
 operator toregion alias TOREGION pattern _ op
 operator t2mt alias TTOMT pattern  op(_,_,_,_)
 operator compose alias COMPOSE pattern _ infixop _
+operator matchgrid alias MATCHGRID pattern _ op [_,fun,_]
+         implicit parameter element type CELLS
 operator getgrid alias GETGRID pattern op(_)
