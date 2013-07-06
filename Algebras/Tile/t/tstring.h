@@ -174,9 +174,8 @@ class tProperties<std::string>
 
   typedef tstring PropertiesType;
   typedef Properties<std::string> TypeProperties;
-  typedef CcString atlocationType;
-  typedef Rectangle<2> bboxType;
-  typedef tgrid gridType;
+  typedef tgrid GridType;
+  typedef Rectangle<2> RectangleType;
   static int GetXDimensionSize();
   static int GetYDimensionSize();
   static int GetFlobElements();
