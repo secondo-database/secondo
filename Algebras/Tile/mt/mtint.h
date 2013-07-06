@@ -52,9 +52,8 @@ class mtProperties<int>
 
   typedef mtint PropertiesType;
   typedef Properties<int> TypeProperties;
-  typedef MInt atlocationType;
-  typedef Rectangle<3> bboxType;
-  typedef mtgrid gridType;
+  typedef mtgrid GridType;
+  typedef Rectangle<3> RectangleType;
   typedef itint itType;
   typedef tint tType;
   static int GetXDimensionSize();
