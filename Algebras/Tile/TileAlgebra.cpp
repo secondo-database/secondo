@@ -70,10 +70,12 @@ includes for TileAlgebra operators
 #include "operators/toregion.h"
 #include "operators/t2mt.h"
 #include "operators/compose.h"
+#include "operators/matchgrid.h"
 #include "operators/getgrid.h"
 #include "operators/CELL1.h"
 #include "operators/CELL2.h"
-// #include "operators/CELLS.h"
+#include "operators/CELLS.h"
+// #include "operators/tiles.h"
 
 /*
 extern declarations
@@ -169,11 +171,23 @@ TileAlgebra::TileAlgebra()
               t2mtTypeMappingFunction);
   AddOperator(composeInfo(), composeFunctions, composeSelectFunction,
               composeTypeMappingFunction);
+
+  Operator* pOperator = AddOperator(matchgridInfo(), matchgridFunctions,
+                                    matchgridSelectFunction,
+                                    matchgridTypeMappingFunction);
+
+  if(pOperator != 0)
+  {
+    pOperator-> SetUsesMemory();
+  }
+
   AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
               getgridTypeMappingFunction);
   AddOperator(CELL1Info(), 0, CELL1TypeMappingFunction);
   AddOperator(CELL2Info(), 0, CELL2TypeMappingFunction);
-  // AddOperator(CELLSInfo(), 0, CELLSTypeMappingFunction);
+  AddOperator(CELLSInfo(), 0, CELLSTypeMappingFunction);
+  // AddOperator(tilesInfo(), tilesFunctions, tilesSelectFunction,
+  //             tilesTypeMappingFunction);
 }
 
 TileAlgebra::~TileAlgebra()
