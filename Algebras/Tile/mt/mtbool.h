@@ -52,9 +52,8 @@ class mtProperties<char>
 
   typedef mtbool PropertiesType;
   typedef Properties<char> TypeProperties;
-  typedef MBool atlocationType;
-  typedef Rectangle<3> bboxType;
-  typedef mtgrid gridType;
+  typedef mtgrid GridType;
+  typedef Rectangle<3> RectangleType;
   typedef itbool itType;
   typedef tbool tType;
   static int GetXDimensionSize();
