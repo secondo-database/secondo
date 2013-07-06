@@ -49,9 +49,8 @@ class tProperties<double>
 
   typedef treal PropertiesType;
   typedef Properties<double> TypeProperties;
-  typedef CcReal atlocationType;
-  typedef Rectangle<2> bboxType;
-  typedef tgrid gridType;
+  typedef tgrid GridType;
+  typedef Rectangle<2> RectangleType;
   static int GetXDimensionSize();
   static int GetYDimensionSize();
   static int GetFlobElements();
