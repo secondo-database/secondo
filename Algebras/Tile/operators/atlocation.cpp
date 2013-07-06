@@ -34,16 +34,67 @@ namespace TileAlgebra
 {
 
 /*
-definition of template atlocationFunction
+definition of template atlocationFunctiont
 
 */
 
 template <typename Type, typename Properties>
-int atlocationFunction(Word* pArguments,
-                       Word& rResult,
-                       int message,
-                       Word& rLocal,
-                       Supplier supplier)
+int atlocationFunctiont(Word* pArguments,
+                        Word& rResult,
+                        int message,
+                        Word& rLocal,
+                        Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+    Point* pPoint = static_cast<Point*>(pArguments[1].addr);
+
+    if(pType != 0 &&
+       pPoint != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        typename Properties::TypeProperties::WrapperType* pResult =
+        static_cast<typename Properties::TypeProperties::WrapperType*>
+        (rResult.addr);
+
+        if(pResult != 0)
+        {
+          if(pType->IsDefined() &&
+             pPoint->IsDefined())
+          {
+            pType->atlocation(pPoint->GetX(), pPoint->GetY(), *pResult);
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
+
+/*
+definition of template atlocationFunctionmt
+
+*/
+
+template <typename Type, typename Properties>
+int atlocationFunctionmt(Word* pArguments,
+                         Word& rResult,
+                         int message,
+                         Word& rLocal,
+                         Supplier supplier)
 {
   int nRetVal = 0;
 
@@ -62,8 +113,9 @@ int atlocationFunction(Word* pArguments,
 
         if(rResult.addr != 0)
         {
-          typename Properties::atlocationType* pResult =
-          static_cast<typename Properties::atlocationType*>(rResult.addr);
+          typename Properties::TypeProperties::MType* pResult =
+          static_cast<typename Properties::TypeProperties::MType*>
+          (rResult.addr);
 
           if(pResult != 0)
           {
@@ -127,14 +179,14 @@ definition of atlocation functions
 
 ValueMapping atlocationFunctions[] =
 {
-  atlocationFunction<tint, tProperties<int> >,
-  atlocationFunction<treal, tProperties<double> >,
-  atlocationFunction<tbool, tProperties<char> >,
-  atlocationFunction<tstring, tProperties<std::string> >,
-  atlocationFunction<mtint, mtProperties<int> >,
-  atlocationFunction<mtreal, mtProperties<double> >,
-  atlocationFunction<mtbool, mtProperties<char> >,
-  atlocationFunction<mtstring, mtProperties<std::string> >,
+  atlocationFunctiont<tint, tProperties<int> >,
+  atlocationFunctiont<treal, tProperties<double> >,
+  atlocationFunctiont<tbool, tProperties<char> >,
+  atlocationFunctiont<tstring, tProperties<std::string> >,
+  atlocationFunctionmt<mtint, mtProperties<int> >,
+  atlocationFunctionmt<mtreal, mtProperties<double> >,
+  atlocationFunctionmt<mtbool, mtProperties<char> >,
+  atlocationFunctionmt<mtstring, mtProperties<std::string> >,
   0
 };
 
