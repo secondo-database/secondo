@@ -35,6 +35,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "it/itreal.h"
 #include "it/itbool.h"
 #include "it/itstring.h"
+#include "../Raster2/sint.h"
+#include "../Raster2/sreal.h"
+#include "../Raster2/sbool.h"
+#include "../Raster2/sstring.h"
+#include "../Raster2/msint.h"
+#include "../Raster2/msreal.h"
+#include "../Raster2/msbool.h"
+#include "../Raster2/msstring.h"
 
 namespace TileAlgebra
 {
@@ -107,6 +115,34 @@ void GetitTypes(std::vector<std::string>& ritTypes)
   ritTypes.push_back(itreal::BasicType());
   ritTypes.push_back(itbool::BasicType());
   ritTypes.push_back(itstring::BasicType());
+}
+
+/*
+definition of GetsTypes function
+
+*/
+
+void GetsTypes(std::vector<std::string>& rsTypes)
+{
+  rsTypes.clear();
+  rsTypes.push_back(raster2::sint::BasicType());
+  rsTypes.push_back(raster2::sreal::BasicType());
+  rsTypes.push_back(raster2::sbool::BasicType());
+  rsTypes.push_back(raster2::sstring::BasicType());
+}
+
+/*
+definition of GetmsTypes function
+
+*/
+
+void GetmsTypes(std::vector<std::string>& rmsTypes)
+{
+  rmsTypes.clear();
+  rmsTypes.push_back(raster2::msint::BasicType());
+  rmsTypes.push_back(raster2::msreal::BasicType());
+  rmsTypes.push_back(raster2::msbool::BasicType());
+  rmsTypes.push_back(raster2::msstring::BasicType());
 }
 
 /*
@@ -492,6 +528,60 @@ bool IsitType(const std::string& rType)
   }
 
   return bIsitType;
+}
+
+/*
+definition of IssType function
+
+*/
+
+bool IssType(const std::string& rType)
+{
+  bool bIssType = false;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> sTypes;
+    GetsTypes(sTypes);
+
+    for(size_t i = 0; i < sTypes.size(); i++)
+    {
+      if(rType == sTypes[i])
+      {
+        bIssType = true;
+        break;
+      }
+    }
+  }
+
+  return bIssType;
+}
+
+/*
+definition of IsmsType function
+
+*/
+
+bool IsmsType(const std::string& rType)
+{
+  bool bIsmsType = false;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> msTypes;
+    GetmsTypes(msTypes);
+
+    for(size_t i = 0; i < msTypes.size(); i++)
+    {
+      if(rType == msTypes[i])
+      {
+        bIsmsType = true;
+        break;
+      }
+    }
+  }
+
+  return bIsmsType;
 }
 
 }
