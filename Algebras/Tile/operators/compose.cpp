@@ -96,7 +96,7 @@ int composeFunctiont(Word* pArguments,
 
                 if(startIndex == endIndex)
                 {
-                  typename Properties::atlocationType value;
+                  typename Properties::TypeProperties::WrapperType value;
                   pType->atlocation(xStart, yStart, value);
 
                   if(value.IsDefined())
@@ -136,7 +136,7 @@ int composeFunctiont(Word* pArguments,
                       double x = xStart + delta * dx;
                       double y = yStart + delta * dy;
 
-                      typename Properties::atlocationType value;
+                      typename Properties::TypeProperties::WrapperType value;
                       pType->atlocation(x, y, value);
 
                       if(value.IsDefined())
