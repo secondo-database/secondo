@@ -79,10 +79,6 @@ class t : public Attribute
 
   void atlocation(const double& rX,
                   const double& rY,
-                  typename Properties::atlocationType& rValue) const;
-  void atlocation(const double& rX,
-                  const double& rY,
-                  const double& rInstant,
                   typename Properties::TypeProperties::WrapperType& rValue)
                   const;
   void atrange(const Rectangle<2>& rRectangle,
@@ -91,7 +87,7 @@ class t : public Attribute
                const double& rInstant1,
                const double& rInstant2,
                typename Properties::PropertiesType& rt) const;
-  void bbox(typename Properties::bboxType& rBoundingBox) const;
+  void bbox(typename Properties::RectangleType& rBoundingBox) const;
   Type minimum() const;
   Type maximum() const;
   void getgrid(tgrid& rtgrid) const;
@@ -268,8 +264,8 @@ t<Type, Properties>& t<Type, Properties>::operator=
 template <typename Type, typename Properties>
 void t<Type, Properties>::atlocation(const double& rX,
                                      const double& rY,
-                                     typename Properties::atlocationType&
-                                     rValue) const
+                                     typename Properties::TypeProperties::
+                                     WrapperType& rValue) const
 {
   rValue.SetDefined(false);
 
@@ -283,21 +279,6 @@ void t<Type, Properties>::atlocation(const double& rX,
       rValue = Properties::TypeProperties::GetWrappedValue(value);
     }
   }
-}
-
-template <typename Type, typename Properties>
-void t<Type, Properties>::atlocation(const double& rX,
-                                     const double& rY,
-                                     const double& rInstant,
-                                     typename Properties::TypeProperties::
-                                     WrapperType& rValue) const
-{
-  /*
-  instant value is not relevant for t types.
-
-  */
-
-  atlocation(rX, rY, rValue);
 }
 
 template <typename Type, typename Properties>
@@ -363,8 +344,8 @@ void t<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
 }
 
 template <typename Type, typename Properties>
-void t<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
-                          const
+void t<Type, Properties>::bbox(typename Properties::RectangleType&
+                               rBoundingBox) const
 {
   double minima[2] = { 0.0, 0.0 };
   double maxima[2] = { 0.0, 0.0 };
