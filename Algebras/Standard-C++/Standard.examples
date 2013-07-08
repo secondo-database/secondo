@@ -467,7 +467,7 @@ Operator : char
 Number   : 1
 Signature: int -> string
 Example  : query isempty(char(-1))
-Result   : TRUE
+Result   : FALSE
 
 Operator : char
 Number   : 2
