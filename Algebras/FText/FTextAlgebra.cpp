@@ -10052,8 +10052,99 @@ Operator getObjectOP(
 
 
 
+/*
+4.38 Operator ~flobInfo~
+
+This operator create a stream of text from an attribute describing the contained FLOB-Ids.
+
+4.38.1 Type Mapping
+
+*/
+
+ListExpr flobInfoTM(ListExpr args){
+  string err = "DATA expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  ListExpr arg = nl->First(args);
+  if(!Attribute::checkType(arg)){
+    return listutils::typeError(err);
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Stream<FText> >(),
+                          listutils::basicSymbol<FText>());
+}
+
+/*
+4.38.1  Value Mapping
+
+*/
+class flobInfoInfo{
+   public:
+    flobInfoInfo(Attribute* a): attr(a), pos(0), max(a->NumOfFLOBs()) {}
+    FText* getNext(){
+       if(pos<max){
+          Flob* f = attr->GetFLOB(pos);
+          pos++;
+          stringstream ss;
+          ss << *f;
+          return new FText(true, ss.str());
+       }
+       return 0;
+    }
+
+  private:
+     Attribute* attr;
+     int pos;
+     int max;
+};
 
 
+int flobInfoVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+
+   flobInfoInfo* li = (flobInfoInfo*) local.addr;
+   switch(message){
+      case OPEN:  if(li){
+                    delete li;
+                  }
+                  local.addr = new flobInfoInfo((Attribute*) args[0].addr);
+                   return 0;
+      case REQUEST:
+                  result.addr = li?li->getNext():0;
+                  return result.addr?YIELD:CANCEL;
+      case CLOSE:
+                 if(li){
+                    delete li;
+                    local.addr = 0;
+                 }
+                 return 0;
+   }
+   return  -1;
+}
+
+/*
+4.38.3 Specification
+
+*/
+OperatorSpec flobInfoSpec(
+  "DATA -> stream(text)",
+  "flobInfo(_)",
+  "Returns the flob ID's of an attribute data type.",
+  "query flobInfo(msnow) count"
+);
+
+/*
+4.38.4 Operator instance
+
+*/
+
+Operator flobInfoOP(
+  "flobInfo",
+  flobInfoSpec.getStr(),
+  flobInfoVM,
+  Operator::SimpleSelect,
+  flobInfoTM
+);
 
 
 
@@ -10175,6 +10266,9 @@ Operator getObjectOP(
       
       AddOperator(&getObjectOP);
       getObjectOP.SetUsesArgsInTypeMapping();     
+
+      AddOperator(&flobInfoOP);
+
 
 
 #ifdef RECODE

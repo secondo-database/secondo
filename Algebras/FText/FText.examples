@@ -1121,6 +1121,12 @@ Signature : {string, text} -> X
 Example   : query getObject("ten") feed count
 Result    : 10
 
+Operator: flobInfo
+Number : 1
+Signature: DATA -> stream(text)
+Example  : query flobInfo(msnow) count
+Result   : 2
+
 
 
 
