@@ -95,6 +95,9 @@ class MLabel : public MString {
   void CopyFrom(const Attribute* right);
   int NumOfFLOBs() const;
   Flob* GetFLOB(const int i);
+  size_t Sizeof() const{
+    return sizeof(*this);
+  }
 
   void Initialize() {index.initRoot();}
   void Finalize() {index.initRoot();}
