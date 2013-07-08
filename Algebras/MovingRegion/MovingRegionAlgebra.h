@@ -378,6 +378,11 @@ Clone this ~IRegion~ instance and return a pointer to the new instance.
 */
     IRegion* Clone(void) const;
 
+    size_t Sizeof() const{
+        return sizeof(IRegion);
+    }
+
+
 /*
 ~DBArray~ access methods. These do use the ~value~ attributes ~DBArray~.
 
@@ -852,6 +857,11 @@ returns TRUE, if $dms1$ and $dms2$ matches left or right.
     DbArray<MSegmentData> segments;
     URegionEmb uremb;
 
+    size_t Sizeof() const{
+       return sizeof(URegion);
+    }
+
+
 public:
 /*
 1.1 Constructors
@@ -962,11 +972,6 @@ storage only, and will run into failed assertions for other instances.
     int NumOfFLOBs(void) const;
     Flob *GetFLOB(const int i);
 
-/*
-Returns the ~sizeof~ of a ~URegion~ instance.
-
-*/
-    virtual size_t Sizeof() const;
 
     virtual void SetDefined( bool Defined )
     {
@@ -1150,6 +1155,9 @@ used.
 */
     MRegion(const MPoint& mp, const Region& r, const int dummy);
 
+    size_t Sizeof() const{
+       return sizeof(MRegion);
+    }
 
     inline void Clear() {
       msegmentdata.clean();

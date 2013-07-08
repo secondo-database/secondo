@@ -3028,15 +3028,6 @@ bool URegionEmb::IsValid(void) const {
     return true;
 }
 
-/*
-
-1.1 Method ~Sizeof()~
-
-*/
-size_t URegion::Sizeof() const {
-    if (MRA_DEBUG) cerr << "URegion::Sizeof() called" << endl;
-    return sizeof(*this);
-}
 
 /*
 1.1.1 Method ~Disjoint()~
@@ -7956,7 +7947,8 @@ static void* CastMRegion(void* addr) {
 }
 static int SizeOfMRegion() {
   if (MRA_DEBUG) cerr << "SizeOfMRegion() called" << endl;
-  return sizeof(MRegion);
+  int s = sizeof(MRegion);
+  return s;
 }
 
 static TypeConstructor movingregion(
