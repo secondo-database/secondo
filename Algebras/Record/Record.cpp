@@ -532,10 +532,8 @@ Record::SetElement(int pos, Attribute* elem,
 
     // get current flob size
     size_t size = flob->getSize();
-
     // resize elem external data flob to the required size
     this->elemExtData.resize(offset + size);
-
 #ifdef RECORD_DEBUG
     cerr << "Record::SetElement: pos=" << pos
          << ", FLOB #" << i << ", offset=" << offset
@@ -709,6 +707,7 @@ Record::Clone() const
   clone->noElements = this->noElements;
   clone->elemInfoArray.copyFrom(elemInfoArray);
   clone->elemData.copyFrom(elemData);
+  clone->elemExtData.copyFrom(elemExtData);
 
   return clone;
 }
