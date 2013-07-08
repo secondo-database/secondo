@@ -733,4 +733,8 @@ Signature : int x int -> rational
 Example   : query rat(-3, 5)
 Result    : (rational (- 3 5))
 
-
+Operator : chars
+Number : 1
+Signature : string -> stream(int)
+Example   : query chars("test") count
+Result    : 4 

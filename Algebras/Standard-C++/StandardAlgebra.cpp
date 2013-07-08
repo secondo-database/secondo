@@ -4099,40 +4099,41 @@ int CcCharFun( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   CcString* res = (CcString*) result.addr;
 
-  int code = 0;
   if ( !Cccode->IsDefined() )
     res->SetDefined( false );
   else{
-    code = Cccode->GetIntval();
-    if ( code == 34 )
-    { // Accepted, but mapped Code: 34: map <"> to "''"
-      ostringstream os;
-      os << "''";
-      string s = os.str().substr(0,MAX_STRINGSIZE);
-      STRING_T S;
-      strcpy(S,s.c_str());
-      res->Set( true, &S);
-    }
-    else if ( (code == 0)                 ||
-              (code >=32 && code <= 126)  ||
-              (code >= 128 && code <= 255)
-            )
-    { // Accepted characters:
-      //         0: <NUL> results in an empty string
-      //  32 - 126: --> <space> - <~>.
-      // 127 - 255: --> <&#x80;> - <&yuml;>
-      char ch = (char) code;
-      ostringstream os;
-      os << ch;
-      string s = os.str().substr(0,MAX_STRINGSIZE);
-      STRING_T S;
-      strcpy(S,s.c_str());
-      res->Set( true, &S);
-    }
-    else
-    { // illegal code --> return undef
-      res->SetDefined( false );
-    }
+     STRING_T v;
+     CcInt::inttype value = Cccode->GetValue();
+     if(value == 0){
+       v[0] = 0;
+       v[1] = 0;
+     } else {
+        int written = 0;
+        uint32_t s = sizeof(CcInt::inttype);
+        if(WinUnix::isLittleEndian()){
+           for(uint32_t i=0;i<s;i++){
+              unsigned char c = ((char*)&value)[(s-i)-1];
+              if(c>0 || written>0){
+                 v[written] =  c;
+                 written++;
+              } 
+           }
+        } else {
+           for(uint32_t i=0;i<s;i++){
+              unsigned char c = value &0xFF;
+              value = value >> 8; 
+              if(c>0 || written>0){
+                 v[written] = c;
+                 written++;
+              } 
+           }
+           
+        }
+        v[written] = 0;
+        cout << "v[" << written <<"] =0" << endl;
+
+     }
+     res->Set(true,v); 
   }
   return 0;
 }
@@ -6005,6 +6006,91 @@ Operator rat(
 
 
 /*
+Operator chars
+
+*/
+ListExpr charsTM(ListExpr args){
+   string err = "string expected";
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+   }
+   if(!CcString::checkType(nl->First(args))){
+     return listutils::typeError(err);
+   }
+   return nl->TwoElemList(
+              listutils::basicSymbol<Stream<CcInt> >(),
+              listutils::basicSymbol<CcInt>());
+}
+
+class charsInfo{
+  public:
+  charsInfo(CcString& s): str(""), pos(0), finished(false){
+     if(!s.IsDefined()){
+        finished=true;  
+     }
+     str = s.GetValue();
+     finished = str.length()==pos;
+  }
+  CcInt* getNext(){
+     if(finished ){
+       return 0;
+     } 
+     unsigned char s = str[pos];
+     pos++;
+     finished = pos == str.length();
+     return new CcInt(true,s);
+  }
+ private:
+    string str;
+    size_t pos;
+    bool finished;
+};
+
+
+
+int charsVM (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+
+  charsInfo* li = (charsInfo*) local.addr;
+  switch(message){
+     case OPEN : if(li){
+                    delete li;
+                 }
+                 local.addr = new charsInfo(*((CcString*)args[0].addr));
+                 return 0;
+     case REQUEST:
+                  result.addr = li?li->getNext():0;
+                  return result.addr?YIELD:CANCEL;
+     case CLOSE:
+               if(li){
+                  delete li;
+                  local.addr = 0;
+               }
+               return 0;
+
+  }
+  return -1;
+
+}
+
+OperatorSpec charsSpec(
+  "string -> stream(int)",
+  "chars(_) ",
+  "Returns the characters from the inputs codes as integers ",
+  " query chars(\"test\") count"
+);
+
+
+Operator chars(
+   "chars",
+   charsSpec.getStr(),
+   charsVM,
+   Operator::SimpleSelect,
+   charsTM);
+
+
+
+/*
 6 Class ~CcAlgebra~
 
 The last steps in adding an algebra to the Secondo system are
@@ -6158,6 +6244,7 @@ class CcAlgebra1 : public Algebra
     AddOperator (&int2longint);
     AddOperator (&longint2int);
     AddOperator (&rat);
+    AddOperator (&chars);
 
 #ifdef USE_PROGRESS
     ccopifthenelse.EnableProgress();
