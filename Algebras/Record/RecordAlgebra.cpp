@@ -212,6 +212,7 @@ createRecordVM(Word* args, Word& result,int message, Word& local, Supplier s)
 
   result = qp->ResultStorage(s);
   record = static_cast<Record*>(result.addr);
+  record->Clear();
 
   sons = qp->GetNoSons(args[0].addr);
   for (int i = 0; i< sons; i++)

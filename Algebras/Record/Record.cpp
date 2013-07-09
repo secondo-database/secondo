@@ -232,6 +232,17 @@ Record::Record(int initSize)
   this->SetDefined(true);
 }
 
+void Record::Clear() {
+     hashValue=HASH_INIT;
+     noElements=0;
+     elemInfoArray.clean();
+     elemData.clean();
+     elemExtData.clean();
+   } 
+
+
+
+
 /*
 Deconstructor ~[~]Record()~
 

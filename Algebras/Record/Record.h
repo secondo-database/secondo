@@ -202,6 +202,13 @@ be implemented for this data type because a record owns FLOB.
       return KindCheck(type, errorInfo);
     }
 /*
+ ~Clear~
+
+Removes all content from this Record.
+
+*/   
+  void Clear();
+/*
 4.2 Private area of class Record
 
 */
@@ -246,6 +253,7 @@ Private data type ~ElemInfo~ to hold element infos
 
 */
     ListExpr GetElementValueList(int pos) const;
+
 
 /*
 4.1.3 Attributes of Record Type.
