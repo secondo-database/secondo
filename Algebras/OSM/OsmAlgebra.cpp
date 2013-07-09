@@ -1270,11 +1270,13 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
     getline(source, line);
     charCounter += line.length();
   }
+  charCounter -= line.length();
   nextLimit = charCounter;
   LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
   while (!source.eof()) { // copy rest
     if (charCounter >= nextLimit && isFileSwitchAllowed(line)) {
       if (dest.is_open()) {
+        dest << "</osm>" << endl;
         dest.close();
       }
       nextLimit += partSize;
