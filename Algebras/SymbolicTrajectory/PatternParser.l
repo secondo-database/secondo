@@ -75,6 +75,9 @@ const_op ([^A-Z\(\)\[\]\,\t\n ][^\(\)\[\]\,\t\n ]*)|TRUE|FALSE|\"[a-zA-Z0-9\. \Ã
 vardotlabel {variable}\.label
 vardottime {variable}\.time
 assign \:=
+emptypat <>
+openregex \[
+closeregex \]|\]\*|\]\+
 
 %option yylineno
 %option noyywrap
@@ -85,6 +88,10 @@ assign \:=
 <INITIAL>{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
 <INITIAL>{wildcard} {patternlval.text = strdup(patterntext); return ZZWILDCARD;}
 <INITIAL>{contents} {patternlval.text = strdup(patterntext); return ZZCONTENTS;}
+<INITIAL>{emptypat} {patternlval.text = strdup(patterntext); return ZZEMPTYPAT;}
+<INITIAL>{openregex} {patternlval.text = strdup(patterntext); return ZZOPENREGEX;}
+<INITIAL>{closeregex} {patternlval.text = strdup(patterntext); return ZZCLOSEREGEX;}
+<INITIAL>\| {return '|';}
 <INITIAL>{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
 <INITIAL>\n {return ZZEND;}
 <INITIAL>{doubleslash} {BEGIN(condition); return ZZDOUBLESLASH;}

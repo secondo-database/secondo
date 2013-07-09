@@ -1,10 +1,11 @@
+operator mstringtomlabel alias MSTRINGTOMLABEL pattern op ( _ )
 operator contains alias CONTAINS pattern _ infixop _
 operator topattern alias TOPATTERN pattern _ op
 operator toclassifier alias TOCLASSIFIER pattern _ op
 operator matches alias MATCHES pattern _ infixop _
 operator indexmatches alias INDEXMATCHES pattern _ op [ _ , _ , _ ]
 operator filtermatches alias FILTERMATCHES pattern _ op [ _ , _ ]
-operator rewrite alias REWRITE pattern _ _ op
+operator rewrite alias REWRITE pattern op ( _ , _ )
 operator classify alias CLASSIFY pattern op ( _ , _ )
 operator indexclassify alias INDEXCLASSIFY pattern _ op [ _ , _ , _ ]
 operator compress alias COMPRESS pattern op ( _ )

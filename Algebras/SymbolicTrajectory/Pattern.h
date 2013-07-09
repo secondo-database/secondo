@@ -64,7 +64,7 @@ class Label;
 class IndexLI;
 
 enum ExtBool {FALSE, TRUE, UNDEF};
-enum Wildcard {NO, STAR, PLUS};
+enum Wildcard {NO, STAR, PLUS, EMPTY};
 
 Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
@@ -74,6 +74,7 @@ class MLabel : public MString {
   MLabel() {}
   explicit MLabel(int i): MString(i), index(0) {}
   MLabel(MString* ms);
+  MLabel(MLabel* ml);
   
   ~MLabel() {if (index.getNodeRefSize() || index.getNodeLinkSize()
               || index.getLabelIndexSize()) {
@@ -104,9 +105,10 @@ class MLabel : public MString {
   
   MLabel* compress();
   void createML(int size, bool text, double rate);
+  void convertFromMString(MString* source);
   void rewrite(MLabel const &ml,
-               const pair<vector<unsigned int>, vector<unsigned int> > &seq,
-               vector<Assign> assigns, map<string, int> varPos);
+                   const pair<vector<unsigned int>, vector<unsigned int> > &seq,
+                     vector<Assign> assigns, map<string, int> varPosInSeq);
 
   MLabelIndex index;
 };
@@ -369,6 +371,7 @@ class Pattern {
   Assign           getAssign(int pos) const {return assigns[pos];}
   bool              hasAssigns()            {return !assigns.empty();}
   void              addUPat(UPat upat)      {elems.push_back(upat);}
+  void              addText(const char* t)  {text += t;}
   void              addCond(Condition cond) {conds.push_back(cond);}
   void              addEasyCond(Condition cond) {
     easyCondPos[cond.getVar(0)].insert(easyConds.size());
@@ -594,7 +597,6 @@ class RewriteResult {
   bool initAssignOpTrees();
 
   bool             finished()       {return (it == sequences.end());}
-  void             killMLabel()     {delete inputML; inputML = 0;}
   MLabel           getML()          {return *inputML;}
   vector<Assign>   getAssignments() {return assigns;}
   void             next()           {it++;}
@@ -608,8 +610,7 @@ friend class Match;
 
 public:
   ClassifyLI(MLabel *ml, Word _classifier);
-  ClassifyLI(MString *ms, Word _classifier);
-  ClassifyLI(Word _mlstream, Word _classifier, bool rewrite);
+  ClassifyLI(Word _mlstream, Word _pstream, bool rewrite);
 
   ~ClassifyLI();
 

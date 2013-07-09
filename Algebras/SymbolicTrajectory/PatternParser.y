@@ -80,11 +80,12 @@ char* errMsg;
 %name-prefix="pattern"
 
 %token ZZEND
-%token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE
-             ZZRIGHTARROW ZZCONST_OP ZZCONTENTS_RESULT ZZVAR_DOT_LABEL
-             ZZVAR_DOT_TIME ZZINTERVAL ZZASSIGN ZZLABEL ZZERROR
+%token<text> ZZVARIABLE ZZCONTENTS ZZEMPTYPAT ZZOPENREGEX ZZCLOSEREGEX
+             ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE ZZRIGHTARROW ZZCONST_OP
+             ZZCONTENTS_RESULT ZZVAR_DOT_LABEL ZZVAR_DOT_TIME ZZINTERVAL
+             ZZASSIGN ZZLABEL ZZERROR
 %type<text> variable unitpattern conditionsequence condition expression
-            resultsequence result assignment /*unitpattern_result*/
+            resultsequence result assignment
             results_assignments assignmentsequence
 %type<p> patternsequence
 %type<el> expressionlist expressionlistcomma expressionlistparentheses
@@ -162,6 +163,7 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                    YYERROR;
                  }
                  wholepat->setAssign(posR, posP, key, arg);
+/*                  cout << "setAssign(" << posR << ", " << posP << ", " << key << ", " << arg << ")" << endl; */
                  while (assign.getRightSize(6)) { // distribute assignments
                    varKey = assign.getVarKey(6);
                    wholepat->addAssignRight(posR, key, varKey);
@@ -396,6 +398,17 @@ patternsequence : variable unitpattern {
                     free($2);
                     //cout << "pattern #" << wholepat->getPats().size() << endl;
                   }
+                | ZZOPENREGEX variable unitpattern ZZCLOSEREGEX {
+                    $$ = wholepat;
+                    uPat.createUnit($2, $3);
+                    wholepat->addText($1);
+                    wholepat->addUPat(uPat);
+                    wholepat->addText($4);
+                    string var($2);
+                    wholepat->addVarPos(var, wholepat->getSize() - 1);
+                    free($2);
+                    free($3);
+                  }
                 | patternsequence variable unitpattern {
                     $$ = wholepat;
                     uPat.createUnit($2, $3);
@@ -404,6 +417,17 @@ patternsequence : variable unitpattern {
                     wholepat->addVarPos(var, wholepat->getSize() - 1);
                     free($2);
                     free($3);
+                    //cout << "pattern #" << wholepat->getPats().size() << endl;
+                  }
+                | patternsequence '|' variable unitpattern {
+                    $$ = wholepat;
+                    uPat.createUnit($3, $4);
+                    wholepat->addText("|");
+                    wholepat->addUPat(uPat);
+                    string var($3);
+                    wholepat->addVarPos(var, wholepat->getSize() - 1);
+                    free($3);
+                    free($4);
                     //cout << "pattern #" << wholepat->getPats().size() << endl;
                   }
                 ;
@@ -417,18 +441,11 @@ variable : ZZVARIABLE
 unitpattern : '(' ZZCONTENTS ')' {
                 $$ = $2;
               }
-            | '(' '(' ZZCONTENTS ')' ')' {
-                $$ = $3;
-                doublePars = true;
-              }
             | '(' ')' {
                 $$ = convert("");
               }
-            | '(' '(' ')' ')' {
-                $$ = convert("");
-                doublePars = true;
-              }
             | ZZWILDCARD
+            | ZZEMPTYPAT
             ;
 
 %%
@@ -553,57 +570,51 @@ function ~createUnit~
 Modifies the unit pattern according to the parameters.
 */
 void UPat::createUnit(const char *varP, const char *pat) {
-  string patstr(pat), varstr(varP), token;
-  int pos = 0;
-  while ((pos = varstr.find(' ', pos)) != string::npos) {
-    varstr.erase(pos, 1);
-  }
-  if (varstr.compare("") && varstr.compare("*") && varstr.compare("+")
-     && (varstr.at(0) > 64) && (varstr.at(0) < 91)) {
-    var.assign(varstr);
-  }
-  else {
+  string patstr(pat), token, varstr(varP);
+/*   int pos = 0; */
+//   while ((pos = varstr.find(' ', pos)) != string::npos) { // TODO: delete?
+//     varstr.erase(pos, 1);
+//   }
+//   if (varstr.compare("") && varstr.compare("*") && varstr.compare("+")
+//      && (varstr.at(0) > 64) && (varstr.at(0) < 91)) {
+//     var.assign(varstr);
+//   }
+//   else {
+//     var.clear();
+//   }
+  if (varstr == "empty") {
     var.clear();
   }
-  vector<string> pattern = splitPattern(patstr);
-  if (doublePars) {
-    wc = PLUS;
+  else {
+    var = varstr;
   }
+  vector<string> pattern = splitPattern(patstr);
   if (pattern.size() == 2) {
-    if (!pattern[0].compare("_")) { // (_ a)
-      ivs.clear();
+    ivs = stringToSet(pattern[0]);
+    lbs = stringToSet(pattern[1]);
+    wc = NO;
+  }
+  else if (pattern.size() == 1) {
+    ivs.clear();
+    lbs.clear();
+    if (pattern[0] == "*") {
+      wc = STAR;
     }
-    else {
-      ivs = stringToSet(pattern[0]);
+    else if (pattern[0] == "+") {
+      wc = PLUS;
     }
-    if (!pattern[1].compare("_")) {
-      lbs.clear();
+    else if (pattern[0] == "<>") {
+      wc = EMPTY;
     }
-    else {
-      lbs = stringToSet(pattern[1]);
-    }
-    if (!doublePars) {
+    else if (pattern[0].empty()) {
       wc = NO;
     }
   }
-  else if ((pattern.size() == 1) && (!pattern[0].compare("*")
-                                  || !pattern[0].compare("+"))) {
-    wc = (pattern[0].compare("*") ? PLUS : STAR);
+  else if (pattern.size() == 0) { // ()
     ivs.clear();
     lbs.clear();
-  }
-  else if ((pattern.size() == 1) && pattern[0].empty() && !doublePars) {
     wc = NO;
   }
-  else if ((pattern.size() == 0) || ((pattern.size() == 1)
-       && (!pattern[0].compare("*") || !pattern[0].compare("+")))) {
-    ivs.clear();
-    lbs.clear();
-  }
-  if ((pattern.size() == 0) && !doublePars) {
-    wc = NO;
-  }
-  doublePars = false;
 }
 
 /*

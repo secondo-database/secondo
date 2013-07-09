@@ -1,6 +1,12 @@
 Database : symtraj
 Restore  : No
 
+Operator : mstringtomlabel
+Number   : 1
+Signature: mstring -> mlabel
+Example  : query mstringtomlabel(SymbolicTripsTiny feed extract[SymTrip]) matches '(_ at_home) *'
+Result   : FALSE
+
 Operator : contains
 Number   : 1
 Signature: labels x string -> bool
@@ -16,8 +22,8 @@ Result   : TRUE
 Operator : toclassifier
 Number   : 1
 Signature: stream(tuple(description: text, pattern: text)) -> classifier
-Example  : query classify(SymbolicTripsTiny feed extract[SymTrip], class2 feed toclassifier) count
-Result   : 1
+Example  : query classify(michael, class2 feed toclassifier) count
+Result   : 0
 
 Operator : matches
 Number   : 1
@@ -29,7 +35,7 @@ Operator : indexmatches
 Number   : 1
 Signature: rel(tuple(X)) x IDENT x invfile x text -> stream(tuple(X))
 Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") X * () // X.labels contains "Brackel"'] count
-Result   : 34
+Result   : 25
 
 Operator : filtermatches
 Number   : 1
@@ -38,28 +44,28 @@ Example  : query SymbolicTripsTiny feed filtermatches[SymTrip, '(_ "Alte Teichst
 Result   : 14
 
 Operator : rewrite
-Number   : 1
+Number   : 0
 Signature: mlabel x text -> stream(mlabel)
-Example  : query michael '* () Z * => Z' rewrite count
+Example  : query rewrite(michael, '* () Z * => Z') count
 Result   : 62
  
 Operator : classify
 Number   : 1
 Signature: mlabel x classifier -> stream(text)
-Example  : query classify(michael, classifier1) count
+Example  : query classify(michael, classifier2) count
 Result   : 0
 
 Operator : indexclassify
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier-> stream(tuple(string, mlabel))
 Example  : query (Dotraj indexclassify[Trajectory, Dotrajindex, classifier1]) count
-Result   : 216
+Result   : 234
 
 Operator : rewrite
-Number   : 2
+Number   : 1
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
-Example  : query (rewrite1 feed projecttransformstream[Pattern] SymbolicTripsTiny feed projecttransformstream[SymTrip] rewrite) count
-Result   : 18
+Example  : query rewrite(Dotraj feed projecttransformstream[Trajectory], rewrite1 feed projecttransformstream[Pattern]) count
+Result   : 71
 
 Operator : compress
 Number   : 1
@@ -78,12 +84,6 @@ Number   : 1
 Signature: mlabel -> mlabel
 Example  : query fillgaps([const mlabel value ((("2012-10-01" "2012-10-02-05:00:00" TRUE FALSE) "at_home") (("2012-10-02-05:00:58" "2012-10-02-07:00:00" TRUE FALSE) "at_home"))], 60000)
 Result   : (mlabel ((("2012-10-01" "2012-10-02-07:00" TRUE FALSE) "at_home")))
-
-Operator : fillgaps
-Number   : 2
-Signature: stream(mstring) -> stream(mstring)
-Example  : query fillgaps(SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip], 10000) = (SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip])
-Result   : FALSE
 
 Operator : createml
 Number   : 1
