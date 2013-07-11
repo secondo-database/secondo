@@ -77,7 +77,7 @@ vardottime {variable}\.time
 assign \:=
 emptypat <>
 openregex \[
-closeregex \]|\]\*|\]\+
+closeregex (\]\+)|(\]\*)|\]
 
 %option yylineno
 %option noyywrap
@@ -85,12 +85,12 @@ closeregex \]|\]\*|\]\+
 <INITIAL>[ \a\b\f\t\v\r]+ {}
 <INITIAL>\( {return '(';}
 <INITIAL>\) {return ')';}
+<INITIAL>{openregex} {patternlval.text = strdup(patterntext); return ZZOPENREGEX;}
+<INITIAL>{closeregex} {patternlval.text = strdup(patterntext); return ZZCLOSEREGEX;}
 <INITIAL>{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
 <INITIAL>{wildcard} {patternlval.text = strdup(patterntext); return ZZWILDCARD;}
 <INITIAL>{contents} {patternlval.text = strdup(patterntext); return ZZCONTENTS;}
 <INITIAL>{emptypat} {patternlval.text = strdup(patterntext); return ZZEMPTYPAT;}
-<INITIAL>{openregex} {patternlval.text = strdup(patterntext); return ZZOPENREGEX;}
-<INITIAL>{closeregex} {patternlval.text = strdup(patterntext); return ZZCLOSEREGEX;}
 <INITIAL>\| {return '|';}
 <INITIAL>{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
 <INITIAL>\n {return ZZEND;}
@@ -107,7 +107,6 @@ closeregex \]|\]\*|\]\+
 <result>{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
 <result>\( {return '(';}
 <result>\) {return ')';}
-<result>{contents_result} {patternlval.text = strdup(patterntext); return ZZCONTENTS_RESULT;}
 <result>{doubleslash} {BEGIN(assignment); return ZZDOUBLESLASH;}
 <result>\n {BEGIN(INITIAL); return ZZEND;}
 <assignment>[ \a\b\f\t\v\r]+ {}

@@ -2101,15 +2101,6 @@ bool Pattern::verifyPattern() const {
         return false;
       }
     }
-    if (!elems[i].getV().empty()) {
-      if (vars.count(elems[i].getV())) {
-        cout << "Error: double variable " << elems[i].getV() << endl;
-        return false;
-      }
-      else {
-        vars.insert(elems[i].getV());
-      }
-    }
   }
   return true;
 }
@@ -4286,7 +4277,7 @@ struct matchesInfo : OperatorInfo {
 
 */
 ListExpr indexmatchesTM(ListExpr args) {
-  const string errMsg = "Expecting a relation, the name of a mlabel, mstring}"
+  const string errMsg = "Expecting a relation, the name of a {mlabel, mstring}"
              " attribute of that relation, an invfile, and a text";
   if (nl->HasLength(args, 4)) {
     if (FText::checkType(nl->Fourth(args))) {

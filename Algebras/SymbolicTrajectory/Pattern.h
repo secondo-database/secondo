@@ -190,12 +190,12 @@ class UPat {
 
  public:
   UPat() {}
-  UPat(const string v, const string i, const string l, const Wildcard w);
+  UPat(const char* contents);
   ~UPat() {}
 
   void setUnit(const char *v, const char *i, const char *l, const char *w);
   void getUnit(const char *v, bool assignment);
-  void createUnit(const char *v, const char *pat);
+  void setVar(string v) {var = v;}
 
   string      getV() const                {return var;}
   set<string> getL() const                {return lbs;}
@@ -273,7 +273,7 @@ class Pattern {
   vector<Assign> assigns;
   vector<Condition> easyConds; // evaluated during matching
   vector<Condition> conds; // evaluated after matching
-  string text, description;
+  string text, description, regEx;
   map<string, int> varPos;
   map<string, set<int> > easyCondPos;
   set<string> assignedVars; // variables on the right side of an assignment
@@ -284,20 +284,6 @@ class Pattern {
   Pattern() {}
 
   Pattern(int i) {}
-
-  Pattern(vector<UPat> ps, vector<Assign> as, vector<Condition> cs, string t,
-          vector<map<int, set<int> > > d, bool v) {
-    elems = ps;
-    assigns = as;
-    conds = cs;
-    text = t;
-    delta = d;
-    verified = v;
-    collectAssVars();
-    for (int i = 0; i < (int)elems.size(); i++) {
-      addVarPos(elems[i].getV(), i);
-    }
-  }
 
   Pattern(const Pattern& rhs) {
     elems = rhs.elems;
@@ -371,7 +357,10 @@ class Pattern {
   Assign           getAssign(int pos) const {return assigns[pos];}
   bool              hasAssigns()            {return !assigns.empty();}
   void              addUPat(UPat upat)      {elems.push_back(upat);}
-  void              addText(const char* t)  {text += t;}
+  void              addRegExSymbol(const char* s) {
+    regEx += s;
+    cout << "RegEx now reads \'" << regEx << "\'" << endl;
+  }
   void              addCond(Condition cond) {conds.push_back(cond);}
   void              addEasyCond(Condition cond) {
     easyCondPos[cond.getVar(0)].insert(easyConds.size());
