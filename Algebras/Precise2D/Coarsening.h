@@ -103,26 +103,20 @@ private:
  void clear();
 
  /*
-  ~cutLooseEnds~
-  If only the grid coordinates are used sometimes an area degenerates to a
-  blind ending  line. This method removes all vertices and edges, which
-  belong to a such a loose end.
+  ~removeIsleNodes~
+  There might be some vertices without an edge. These vertices have to be
+  removed.
 
  */
- void cutLooseEnds();
+ void removeIsleNodes();
 
  /*
-  ~cutLooseEnd~
+  ~removeIsleNode~
 
-  If an edge from ~v~ to another vertex has been processed, it is removed
-  from the graph. If ~v~ has only one edge left, ~v~ becomes a startpoint
-  of a loose end, which has to be removed too.
+  The vertex ~v~ has no edge and have to be removed.
 
  */
- void cutLooseEnd(Vertex* v);
-
-
-
+ void removeIsleNode(Vertex* v);
 
 public:
  CoarseningGraph();
@@ -167,7 +161,6 @@ class Vertex {
 private:
  int x;
  int y;
- int visited;
 
  set<Vertex*, CmpVertex> edgeSet;
 
@@ -196,7 +189,9 @@ private:
 public:
  Vertex(int a, int b);
 
- Vertex(){};
+ Vertex() {
+ }
+ ;
 
  Vertex(const Vertex& v);
 
@@ -212,27 +207,17 @@ public:
   return y;
  }
 
- void setNoVisited(int v){
-  visited = v;
- }
-
- int getNoVisited() const{
-  return visited;
- }
-
  bool operator!=(const Vertex& v) const;
 
  bool operator<(const Vertex& v) const;
 
- void addEdge(Vertex* v);
+ bool addEdge(Vertex* v);
 
  int getNoOfEdges() const {
   return edgeSet.size();
  }
 
  set<Vertex*, CmpVertex> getEdges() const;
-
- Vertex* getLastNeighbor();
 
  void removeEdge(Vertex* v);
 
@@ -244,17 +229,7 @@ public:
   edge. ~d~ and ~insideAbove~ are updated.
 
  */
- void getNextVertex(Vertex** next, Direction& d, bool& insideAbove, int xStart,
-   int yStart, int& visited);
-
-/*
- ~hasAConnectionTo~
-
- looks for a path to the startpoint with the coordiate (~xStart~, ~yStart~).
- ~visited~ has to be incremented after each time the method was called.
-
-*/
- bool hasAConnectionTo(int xStart, int yStart, int& visited);
+ void getNextVertex(Vertex** next, Direction& d, bool& insideAbove);
 
  void print() const;
  void Print() const;
@@ -289,4 +264,4 @@ void coarseRegion2b(/*const*/Region2& r, Region& result);
 void createRegion(Region2& s, Region& r);
 
 } //end namespace p2d
-#endif /* COARSENING_H_ */
+#endif /* COARSENING_H_*/

@@ -58,8 +58,9 @@ void CoarseningGraph::computeGraph(/*const*/Region2& r) {
     //the segment starts and ends in adjacent grid points.
     Vertex* v1 = insert(gs.GetLeftPointX(), gs.GetLeftPointY());
     Vertex* v2 = insert(gs.GetRightPointX(), gs.GetRightPointY());
-    v1->addEdge(v2);
-    v2->addEdge(v1);
+    if (v1->addEdge(v2)){
+     v2->addEdge(v1);
+    }
    } else {
     //the start- and end-point of the segment are not adjacent, the segment
     //runs through a number of grid-points. For each interesting points
@@ -92,8 +93,6 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
  int y = left.getY();
  if ((x!=right.getX()) && ((y != right.getY()))){
  Vertex* v1 = insert(left.getX(), left.getY());
- //double slope = (left.getY() - right.getY())
- //  / (((double) left.getX()) - right.getX());
  mpq_class num = left.getY() - right.getY();
  mpq_class den = left.getX() - right.getX();
  mpq_class slope = num / den;
@@ -121,16 +120,18 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
     //(newY-y) new vertices above y and the corresponding edges
     //have to be created.
     Vertex*v2 = insert(x, y + 1);
-    v1->addEdge(v2);
+    if (v1->addEdge(v2)){
     v2->addEdge(v1);
+    }
     v1 = v2;
     y++;
    }
    //create a new Vertex right of the vertex (x, newY) incl. the corresponding
    //edges
    Vertex* v2 = insert(x + 1, y);
-   v1->addEdge(v2);
+   if (v1->addEdge(v2)){
    v2->addEdge(v1);
+   }
    v1 = v2;
   } else {
    //for more info see if-branch
@@ -141,14 +142,14 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
    }
    while (y > newY) {
     Vertex* v2 = insert(x, y - 1);
-    v1->addEdge(v2);
-    v2->addEdge(v1);
+    if(v1->addEdge(v2)){
+    v2->addEdge(v1);    }
     v1 = v2;
     y--;
    }
    Vertex* v2 = insert(x + 1, y);
-   v1->addEdge(v2);
-   v2->addEdge(v1);
+   if (v1->addEdge(v2)){
+   v2->addEdge(v1);    }
    v1 = v2;
   }
   x++;
@@ -161,9 +162,8 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
   x++;
   while (x <= right.getX()) {
    Vertex* second = insert(x, y);
-
-   first->addEdge(second);
-   second->addEdge(first);
+   if(first->addEdge(second)){
+   second->addEdge(first);    }
    first = second;
    x++;
   }
@@ -176,13 +176,14 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
   y++;
   while (y <= right.getY()) {
    Vertex* second = insert(x, y);
-   first->addEdge(second);
-   second->addEdge(first);
+   if (first->addEdge(second)){
+   second->addEdge(first);   }
    first = second;
    y++;
   }
  }
 }
+
 
 void CoarseningGraph::calculateBoundary(Region& result) {
 
@@ -192,23 +193,18 @@ void CoarseningGraph::calculateBoundary(Region& result) {
   result.SetDefined(true);
   return;
  }
-
- //cut loose ends
- cutLooseEnds();
-
+ //removes nodes without an edge
+ removeIsleNodes();
  //compute boundary
  result.SetDefined(true);
  Region tmpRegion(0);
-
  int visited = 1;
 
  while (vertices.size() >= 4) {
   //there are enough vertices to create another cycle
-
   try {
    tmpRegion.Clear();
    tmpRegion.StartBulkLoad();
-
    //create next cycle, which becomes an outercycle or a hole
    bool lastInsideAbove = false;
    bool insideAbove = false;
@@ -227,7 +223,7 @@ void CoarseningGraph::calculateBoundary(Region& result) {
    Point* rp = NULL;
 
    do {
-    last->getNextVertex(&next, dir, insideAbove, firstX, firstY, visited);
+    last->getNextVertex(&next, dir, insideAbove);
 
     if (next == NULL) {
      //throw exception();
@@ -267,12 +263,10 @@ void CoarseningGraph::calculateBoundary(Region& result) {
      lp = rp;
      rp = NULL;
     }
-
     next->removeEdge(last);
     last->removeEdge(next);
-
-    if ((*last != *firstVertex) && (last->getNoOfEdges() < 2)) {
-     cutLooseEnd(last);
+    if ((*last != *firstVertex) && (last->getNoOfEdges() ==0)){
+     removeIsleNode(last);
     }
     last = next;
    } while (*last != *firstVertex);
@@ -282,15 +276,17 @@ void CoarseningGraph::calculateBoundary(Region& result) {
    hs->attr.edgeno = edgeNo;
    hs->attr.insideAbove = true;
    tmpRegion += *hs;
+
    hs->SetLeftDomPoint(false);
    tmpRegion += *hs;
+
    edgeNo++;
 
-   if (last->getNoOfEdges() < 2) {
-    cutLooseEnd(last);
+   if (last->getNoOfEdges() ==0){
+    removeIsleNode(last);
    }
-
    //build region
+
    tmpRegion.EndBulkLoad();
    if (tmpRegion.IsDefined()) {
 
@@ -313,7 +309,7 @@ void CoarseningGraph::calculateBoundary(Region& result) {
     }
    }
   } catch (exception& e) {
-   cutLooseEnds();
+   removeIsleNodes();
   }
  }
 
@@ -330,8 +326,8 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
   return;
  }
 
- //cut loose ends
- cutLooseEnds();
+ //removes nodes without an edge
+ removeIsleNodes();
 
  //compute boundary
  result.SetDefined(true);
@@ -359,7 +355,6 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
    int firstX = last->getX(); //the x-value of the first vertex
    int firstY = last->getY(); //the y-value of the first vertex
 
-   //HalfSegment* hs;
    int edgeNo = 0;
    mpq_class zero(0);
    Reg2PrecisePoint* lp = new Reg2PrecisePoint(zero, last->getX(),
@@ -367,7 +362,7 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
    Reg2PrecisePoint* rp = NULL;
 
    do {
-    last->getNextVertex(&next, dir, insideAbove, firstX, firstY, visited);
+    last->getNextVertex(&next, dir, insideAbove);
 
     if (next == NULL) {
      //throw exception();
@@ -411,8 +406,8 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
     next->removeEdge(last);
     last->removeEdge(next);
 
-    if ((*last != *firstVertex) && (last->getNoOfEdges() < 2)) {
-     cutLooseEnd(last);
+    if ((*last != *firstVertex) && (last->getNoOfEdges() ==0)){
+     removeIsleNode(last);
     }
     last = next;
    } while (*last != *firstVertex);
@@ -426,8 +421,8 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
    tmpRegion += hs;
    edgeNo++;
 
-   if (last->getNoOfEdges() < 2) {
-    cutLooseEnd(last);
+   if (last->getNoOfEdges() ==0){
+    removeIsleNode(last);
    }
 
 
@@ -457,7 +452,7 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
     }
    }
   } catch (exception& e) {
-   cutLooseEnds();
+   removeIsleNodes();
   }
  }
 
@@ -489,76 +484,31 @@ void CoarseningGraph::clear() {
  }
 }
 
-void CoarseningGraph::cutLooseEnds() {
+void CoarseningGraph::removeIsleNodes() {
  set<Vertex*, CmpVertex>::iterator current = vertices.begin();
  while (current != vertices.end()) {
   Vertex* curVertex = *current;
-  if (curVertex->getNoOfEdges() == 1) {
-   // loose end found
-   Vertex* endVertex = curVertex;
-   Vertex* v = endVertex->getLastNeighbor();
-
-   v = (*(vertices.find(v)));
-   v->removeEdge(endVertex);
-   vertices.erase(current);
-   delete endVertex;
-   while (v->getNoOfEdges() == 1) {
-    endVertex = v;
-    v = endVertex->getLastNeighbor();
-    v = (*(vertices.find(v)));
-    v->removeEdge(endVertex);
-    vertices.erase(vertices.find(endVertex));
-    delete endVertex;
+   if (curVertex->getNoOfEdges()==0){
+    vertices.erase(vertices.find(curVertex));
    }
-   if (v->getNoOfEdges() == 0) {
-    vertices.erase(vertices.find(v));
-    delete v;
-   }
-   current = vertices.begin();
-  } else {
    current++;
-  }
  }
 }
 
-void CoarseningGraph::cutLooseEnd(Vertex* v) {
- if (v->getNoOfEdges() == 1) {
-  // loose end found
-  Vertex* looseEnd = v;
-  Vertex* next = looseEnd->getLastNeighbor();
-  next = (*(vertices.find(next)));
-  next->removeEdge(looseEnd);
-  vertices.erase(vertices.find(looseEnd));
-  delete looseEnd;
-
-  while (next->getNoOfEdges() == 1) {
-   looseEnd = next;
-   next = looseEnd->getLastNeighbor();
-   next = (*(vertices.find(next)));
-   next->removeEdge(looseEnd);
-   vertices.erase(vertices.find(looseEnd));
-   delete looseEnd;
-  }
-
-  if (next->getNoOfEdges() == 0) {
-   vertices.erase(vertices.find(next));
-   delete next;
-  }
- } else {
+void CoarseningGraph::removeIsleNode(Vertex* v) {
   if (v->getNoOfEdges() == 0) {
    vertices.erase(vertices.find(v));
    delete v;
   }
- }
 }
 
 
 Vertex::Vertex(int a, int b) :
-  x(a), y(b), visited(0) {
+  x(a), y(b){
 }
 
 Vertex::Vertex(const Vertex& v) :
-  x(v.x), y(v.y), visited(v.visited), edgeSet(v.edgeSet) {
+  x(v.x), y(v.y), edgeSet(v.edgeSet) {
 }
 
 Vertex::~Vertex() {
@@ -568,7 +518,6 @@ Vertex::~Vertex() {
 Vertex& Vertex::operator=(const Vertex& v) {
  x = v.getX();
  y = v.getY();
- visited = v.getNoVisited();
  edgeSet = v.getEdges();
  return *this;
 }
@@ -593,8 +542,18 @@ bool Vertex::operator<(const Vertex& v) const {
  return false;
 }
 
-void Vertex::addEdge(Vertex* v) {
+bool Vertex::addEdge(Vertex* v) {
+
+ set<Vertex*, CmpVertex>::iterator it = (edgeSet.find(v));
+ if (it == edgeSet.end()){
+ //
  edgeSet.insert(v);
+ return true;
+ } else {
+  edgeSet.erase(it);
+  v->removeEdge(this);
+  return false;
+ }
 }
 
 set<Vertex*, CmpVertex> Vertex::getEdges() const {
@@ -606,13 +565,6 @@ set<Vertex*, CmpVertex> Vertex::getEdges() const {
  return edges;
 }
 
-Vertex* Vertex::getLastNeighbor() {
- if (edgeSet.size() != 1) {
-  assert(false);
- }
- Vertex* v = *(edgeSet.begin());
- return v;
-}
 
 void Vertex::removeEdge(Vertex* v) {
  set<Vertex*, CmpVertex>::iterator it1 = edgeSet.begin();
@@ -639,10 +591,7 @@ void Vertex::removeEdges() {
  }
 }
 
-void Vertex::getNextVertex(Vertex** next, Direction& d, bool& insideAbove,
-  int xStart, int yStart, int& visited) {
-
- bool wrongEdgeFound = false;
+void Vertex::getNextVertex(Vertex** next, Direction& d, bool& insideAbove) {
 
  switch (d) {
  case noDirection: {
@@ -665,31 +614,10 @@ void Vertex::getNextVertex(Vertex** next, Direction& d, bool& insideAbove,
   if (hasEdgePointingToTheLeft(next)) {
    d = left;
    insideAbove = !insideAbove;
-   if (getNoOfEdges() != 2) {
-    return;
-   } else {
-    //there might be a connection either to a loose end or to
-    //another circle which has no path to the startpoint.
-    setNoVisited(visited);
-    if ((*next)->hasAConnectionTo(xStart, yStart, visited)) {
-     visited++;
-     return;
-    }
-    wrongEdgeFound = true;
-    visited++;
-   }
+   return;
   }
   if (hasEdgePointingUpwards(next)) {
-   if (wrongEdgeFound || (getNoOfEdges() != 2)) {
-    return;
-   } else {
-    setNoVisited(visited);
-    if ((*next)->hasAConnectionTo(xStart, yStart, visited)) {
-     visited++;
-     return;
-    }
-    visited++;
-   }
+   return;
   }
   if (hasEdgePointingToTheRight(next)) {
    d = right;
@@ -700,29 +628,10 @@ void Vertex::getNextVertex(Vertex** next, Direction& d, bool& insideAbove,
   if (hasEdgePointingToTheRight(next)) {
    d = right;
    insideAbove = !insideAbove;
-   if (getNoOfEdges() != 2) {
-    return;
-   } else {
-    setNoVisited(visited);
-    if ((*next)->hasAConnectionTo(xStart, yStart, visited)) {
-     visited++;
-     return;
-    }
-    wrongEdgeFound = true;
-    visited++;
-   }
+   return;
   }
   if (hasEdgePointingDownwards(next)) {
-   if (wrongEdgeFound || (getNoOfEdges() != 2)) {
-    return;
-   } else {
-    setNoVisited(visited);
-    if ((*next)->hasAConnectionTo(xStart, yStart, visited)) {
-     visited++;
-     return;
-    }
-    visited++;
-   }
+   return;
   }
   if (hasEdgePointingToTheLeft(next)) {
    d = left;
@@ -732,29 +641,10 @@ void Vertex::getNextVertex(Vertex** next, Direction& d, bool& insideAbove,
  case left: {
   if (hasEdgePointingDownwards(next)) {
    d = down;
-   if (getNoOfEdges() != 2) {
-    return;
-   } else {
-    setNoVisited(visited);
-    if ((*next)->hasAConnectionTo(xStart, yStart, visited)) {
-     visited++;
-     return;
-    }
-    wrongEdgeFound = true;
-    visited++;
-   }
+   return;
   }
   if (hasEdgePointingToTheLeft(next)) {
-   if (wrongEdgeFound || (getNoOfEdges() != 2)) {
-    return;
-   } else {
-    setNoVisited(visited);
-    if ((*next)->hasAConnectionTo(xStart, yStart, visited)) {
-     visited++;
-     return;
-    }
-    visited++;
-   }
+   return;
   }
   if (hasEdgePointingUpwards(next)) {
    d = up;
@@ -766,29 +656,10 @@ void Vertex::getNextVertex(Vertex** next, Direction& d, bool& insideAbove,
  case right: {
   if (hasEdgePointingUpwards(next)) {
    d = up;
-   if (getNoOfEdges() != 2) {
-    return;
-   } else {
-    setNoVisited(visited);
-    if ((*next)->hasAConnectionTo(xStart, yStart, visited)) {
-     visited++;
-     return;
-    }
-    wrongEdgeFound = true;
-    visited++;
-   }
+   return;
   }
   if (hasEdgePointingToTheRight(next)) {
-   if (wrongEdgeFound || (getNoOfEdges() != 2)) {
-    return;
-   } else {
-    setNoVisited(visited);
-    if ((*next)->hasAConnectionTo(xStart, yStart, visited)) {
-     visited++;
-     return;
-    }
-    visited++;
-   }
+   return;
   }
   if (hasEdgePointingDownwards(next)) {
    d = down;
@@ -890,27 +761,6 @@ bool Vertex::isLeftOf(const Vertex& v) {
  return false;
 }
 
-bool Vertex::hasAConnectionTo(int xStart, int yStart, int& visited) {
- if (getNoVisited() < visited) {
-  //~this~ was not visited
-  //
-  if ((getX() == xStart && (getY() == yStart))) {
-   //connection found to the startpoint
-   return true;
-  }
-  setNoVisited(visited);
-  set<Vertex*, CmpVertex>::iterator it = edgeSet.begin();
-  while (it != edgeSet.end()) {
-   Vertex* neighbor = *it;
-   //look for a connection to the startpoint via the neighbors of ~this~
-   if (neighbor->hasAConnectionTo(xStart, yStart, visited)) {
-    return true;
-   }
-   it++;
-  }
- }
- return false;
-}
 
 void Vertex::print() const {
  cout << " ( " << x << ", " << y << " ) ";
