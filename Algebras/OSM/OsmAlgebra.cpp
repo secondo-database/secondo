@@ -1273,6 +1273,9 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
   charCounter -= line.length();
   nextLimit = charCounter;
   LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
+  dest.open(getFileName(0), ios::app);
+  dest << line << endl;
+  dest.close();
   while (!source.eof()) { // copy rest
     if (charCounter >= nextLimit && isFileSwitchAllowed(line)) {
       if (dest.is_open()) {
