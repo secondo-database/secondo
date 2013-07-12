@@ -55,18 +55,11 @@ UniqueStringArray::UniqueStringArray
 
 UniqueStringArray::~UniqueStringArray()
 {
-  m_StringData.clean();
-  m_StringFlob.clean();
-  SetDefined(true);  
-}
-
-void UniqueStringArray::clear(){
 
 }
 
-
-UniqueStringArray& UniqueStringArray::operator =
-                  (const UniqueStringArray& rUniqueStringArray)
+UniqueStringArray& UniqueStringArray::operator=
+                   (const UniqueStringArray& rUniqueStringArray)
 {
   if(this != &rUniqueStringArray)
   {
@@ -85,7 +78,7 @@ UniqueStringArray& UniqueStringArray::operator =
   return *this;
 }
 
-bool UniqueStringArray::GetUniqueString(int nIndex, string& rString) const
+bool UniqueStringArray::GetUniqueString(int nIndex, std::string& rString) const
 {
   bool bRetVal = false;
   
@@ -141,7 +134,7 @@ list<string> UniqueStringArray::GetUniqueStringArray() const
   return uniqueStringArray;
 }
 
-int UniqueStringArray::GetUniqueStringIndex(const string& rString) const
+int UniqueStringArray::GetUniqueStringIndex(const std::string& rString) const
 {
   int nUniqueStringIndex = UNDEFINED_STRING_INDEX;
   
@@ -177,7 +170,7 @@ int UniqueStringArray::GetUniqueStringIndex(const string& rString) const
   return nUniqueStringIndex;
 }
 
-int UniqueStringArray::AddString(const string& rString)
+int UniqueStringArray::AddString(const std::string& rString)
 { 
   int nIndex = UNDEFINED_STRING_INDEX;
   
@@ -211,7 +204,13 @@ int UniqueStringArray::AddString(const string& rString)
   return nIndex;
 }
 
-bool UniqueStringArray::Adjacent(const Attribute* attrib) const
+void UniqueStringArray::Destroy()
+{
+  m_StringData.Destroy();
+  m_StringFlob.destroy();
+}
+
+bool UniqueStringArray::Adjacent(const Attribute* pAttribute) const
 {
   return false;
 }
@@ -219,17 +218,19 @@ bool UniqueStringArray::Adjacent(const Attribute* attrib) const
 Attribute* UniqueStringArray::Clone() const
 {
   Attribute* pAttribute = new UniqueStringArray(*this);
+  assert(pAttribute != 0);
+
   return pAttribute;
 }
 
-int UniqueStringArray::Compare(const Attribute* rhs) const
+int UniqueStringArray::Compare(const Attribute* pAttribute) const
 {
   int nRetVal = -1;
   
-  if(rhs != 0)
+  if(pAttribute != 0)
   {
     const UniqueStringArray* pUniqueStringArray =
-                             dynamic_cast<const UniqueStringArray*>(rhs);
+                             dynamic_cast<const UniqueStringArray*>(pAttribute);
     
     if(pUniqueStringArray != 0)
     {
@@ -271,12 +272,12 @@ int UniqueStringArray::Compare(const Attribute* rhs) const
   return nRetVal;
 }
 
-void UniqueStringArray::CopyFrom(const Attribute* right)
+void UniqueStringArray::CopyFrom(const Attribute* pAttribute)
 {
-  if(right != 0)
+  if(pAttribute != 0)
   {
     const UniqueStringArray* pUniqueStringArray =
-                             dynamic_cast<const UniqueStringArray*>(right);
+                             dynamic_cast<const UniqueStringArray*>(pAttribute);
     
     if(pUniqueStringArray != 0)
     {
@@ -308,18 +309,13 @@ Flob* UniqueStringArray::GetFLOB(const int i)
   return pFlob;
 }
 
-Attribute::StorageType UniqueStringArray::GetStorageType() const
-{
-  return Default;
-}
-
 size_t UniqueStringArray::HashValue() const
 {
   size_t hashValue = 0;
   
   if(IsDefined())
   {
-    hashValue = (size_t)&m_StringData + (size_t)&m_StringFlob;
+    hashValue = reinterpret_cast<size_t>(this);
   }
   
   return hashValue;
@@ -328,24 +324,6 @@ size_t UniqueStringArray::HashValue() const
 int UniqueStringArray::NumOfFLOBs() const
 { 
   return 2;
-}
-
-ostream& UniqueStringArray::Print(ostream& os) const
-{
-  os << "UniqueStringArray: ";
-  
-  if(IsDefined())
-  {
-    os << "DEFINED, size of m_StringData = " << m_StringData.getSize()
-       << ", size of m_StringFlob = " << m_StringFlob.getSize() << endl;
-  }
-  
-  else
-  {
-    os << "UNDEFINED." << endl;
-  }
-  
-  return os;
 }
 
 size_t UniqueStringArray::Sizeof() const
@@ -358,67 +336,68 @@ const string UniqueStringArray::BasicType()
   return "uniquestringarray";
 }
 
-const bool UniqueStringArray::checkType(const ListExpr type)
-{
-  return listutils::isSymbol(type, BasicType());
-}
-
 void* UniqueStringArray::Cast(void* pVoid)
 {
-  return new (pVoid) UniqueStringArray;
+  return new(pVoid)UniqueStringArray;
 }
 
 Word UniqueStringArray::Clone(const ListExpr typeInfo,
-                              const Word& w)
+                              const Word& rWord)
 {
-  Word word = SetWord(Address(0));
+  Word word;
   
   UniqueStringArray* pUniqueStringArray =
-                     static_cast<UniqueStringArray*>(w.addr);
+                     static_cast<UniqueStringArray*>(rWord.addr);
                      
   if(pUniqueStringArray != 0)
   {
-    word = SetWord(new UniqueStringArray(*pUniqueStringArray));
+    word.addr = new UniqueStringArray(*pUniqueStringArray);
+    assert(word.addr != 0);
   }
   
   return word;
 }
 
 void UniqueStringArray::Close(const ListExpr typeInfo,
-                              Word& w)
+                              Word& rWord)
 {
   UniqueStringArray* pUniqueStringArray =
-                     static_cast<UniqueStringArray*>(w.addr);
+                     static_cast<UniqueStringArray*>(rWord.addr);
   
   if(pUniqueStringArray != 0)
   {
     delete pUniqueStringArray;
-    w = SetWord(Address(0));
+    rWord.addr = 0;
   }
 }
 
 Word UniqueStringArray::Create(const ListExpr typeInfo)
 {
-  Word w = SetWord(new UniqueStringArray(true));
-  return w;
+  Word word;
+
+  word.addr = new UniqueStringArray(true);
+  assert(word.addr != 0);
+
+  return word;
 }
 
 void UniqueStringArray::Delete(const ListExpr typeInfo,
-                               Word& w)
+                               Word& rWord)
 {
   UniqueStringArray* pUniqueStringArray =
-                     static_cast<UniqueStringArray*>(w.addr);
+                     static_cast<UniqueStringArray*>(rWord.addr);
   
   if(pUniqueStringArray != 0)
   {
     delete pUniqueStringArray;
-    w = SetWord(Address(0));
+    rWord.addr = 0;
   }
 }
 
 TypeConstructor UniqueStringArray::getTypeConstructor()
 {
-  TypeConstructor typeConstructorUniqueStringArray(
+  TypeConstructor typeConstructor
+  (
     UniqueStringArray::BasicType(), // type name function    
     UniqueStringArray::Property,    // property function describing signature
     UniqueStringArray::Out,         // out function
@@ -433,20 +412,22 @@ TypeConstructor UniqueStringArray::getTypeConstructor()
     UniqueStringArray::Clone,       // clone function
     UniqueStringArray::Cast,        // cast function
     UniqueStringArray::SizeOfObj,   // sizeofobj function
-    UniqueStringArray::KindCheck);  // kindcheck function
+    UniqueStringArray::KindCheck    // kindcheck function
+  );
 
-  typeConstructorUniqueStringArray.AssociateKind(Kind::DATA());
+  typeConstructor.AssociateKind(Kind::DATA());
   
-  return typeConstructorUniqueStringArray;
+  return typeConstructor;
 }
 
 Word UniqueStringArray::In(const ListExpr typeInfo,
                            const ListExpr instance,
                            const int errorPos,
-                           ListExpr& errorInfo,
-                           bool& correct)
+                           ListExpr& rErrorInfo,
+                           bool& rCorrect)
 { 
-  Word w = SetWord(Address(0));
+  Word word;
+  rCorrect = false;
   
   if(nl != 0)
   {
@@ -459,8 +440,8 @@ Word UniqueStringArray::In(const ListExpr typeInfo,
          nl->AtomType(nl->First(instance)) == SymbolType &&
          listutils::isSymbolUndefined(nl->First(instance)))
       {
-        correct = true;
-        w = SetWord(new UniqueStringArray(false));
+        rCorrect = true;
+        word.addr = new UniqueStringArray(false);
       }
       
       else
@@ -485,24 +466,24 @@ Word UniqueStringArray::In(const ListExpr typeInfo,
             }
           }
           
-          correct = true;
-          w = SetWord(pUniqueStringArray);
+          rCorrect = true;
+          word.addr = pUniqueStringArray;
         }
       }
     }
     
     else
     {
-      correct = true;
-      w = SetWord(new UniqueStringArray(true));
+      rCorrect = true;
+      word.addr = new UniqueStringArray(true);
     }
   }
   
-  return w;
+  return word;
 }
 
 bool UniqueStringArray::KindCheck(ListExpr type,
-                                  ListExpr& errorInfo)
+                                  ListExpr& rErrorInfo)
 {
   bool bRetVal = false;
   
@@ -514,37 +495,16 @@ bool UniqueStringArray::KindCheck(ListExpr type,
   return bRetVal;
 }
 
-bool UniqueStringArray::Open(SmiRecord& valueRecord,
-                             size_t& offset,
+bool UniqueStringArray::Open(SmiRecord& rValueRecord,
+                             size_t& rOffset,
                              const ListExpr typeInfo,
-                             Word& value)
+                             Word& rValue)
 { 
-  bool bRetVal = false;
-  
-  UniqueStringArray* pUniqueStringArray =
-                     static_cast<UniqueStringArray*>
-                     (Attribute::Open(valueRecord, offset, typeInfo));
-  
-  if(pUniqueStringArray != 0)
-  { 
-    /*
-    list<string> uniqueStringArray = pUniqueStringArray->GetUniqueStringArray();
-        
-    if(uniqueStringArray.size() > 0)
-    {
-      for(list<string>::iterator it = uniqueStringArray.begin();
-          it != uniqueStringArray.end(); it++)
-      {
-        cout << "uniqueStringArray: " << *it << endl;
-      }
-    }
-    
-    */
-    
-    value = SetWord(pUniqueStringArray);
-    bRetVal = true;
-  }
-  
+  bool bRetVal = OpenAttribute<UniqueStringArray>(rValueRecord,
+                                                  rOffset,
+                                                  typeInfo,
+                                                  rValue);
+
   return bRetVal;
 }
 
@@ -605,45 +565,41 @@ ListExpr UniqueStringArray::Out(ListExpr typeInfo,
 
 ListExpr UniqueStringArray::Property()
 {
-  ListExpr pListExpr = 0;
-  
-  if(nl != 0)
-  {
-    pListExpr = nl->TwoElemList(
-                  nl->FiveElemList(
-                    nl->StringAtom("Signature"),
-                    nl->StringAtom("Example Type List"),
-                    nl->StringAtom("List Rep"),
-                    nl->StringAtom("Example List"),
-                    nl->StringAtom("Remarks")),
-                  nl->FiveElemList(
-                    nl->StringAtom("-> DATA"),
-                    nl->StringAtom(UniqueStringArray::BasicType()),
-                    nl->StringAtom("(\"String1\" \"String2\" \"...\")"),
-                    nl->StringAtom("(\"Raster\" \"Daten\")"),
-                    nl->StringAtom(""))
-                );
-  }
-  
-  return pListExpr;
+  NList propertyList;
+
+  NList names;
+  names.append(NList(std::string("Signature"), true));
+  names.append(NList(std::string("Example Type List"), true));
+  names.append(NList(std::string("ListRep"), true));
+  names.append(NList(std::string("Example List"), true));
+  names.append(NList(std::string("Remarks"), true));
+
+  NList values;
+  values.append(NList(std::string("-> DATA"), true));
+  values.append(NList(UniqueStringArray::BasicType(), true));
+  values.append(NList
+               (std::string("(\"String1\" \"String2\" \"...\")"),
+                true));
+  values.append(NList
+               (std::string("(\"Raster\" \"Daten\")"),
+                true));
+  values.append(NList(std::string(""), true));
+
+  propertyList = NList(names, values);
+
+  return propertyList.listExpr();
 }
 
-bool UniqueStringArray::Save(SmiRecord& valueRecord,
-                             size_t& offset,
+bool UniqueStringArray::Save(SmiRecord& rValueRecord,
+                             size_t& rOffset,
                              const ListExpr typeInfo,
-                             Word& value)
+                             Word& rValue)
 { 
-  bool bRetVal = false;
-  
-  UniqueStringArray* pUniqueStringArray =
-                     static_cast<UniqueStringArray*>(value.addr);
-  
-  if(pUniqueStringArray != 0)
-  {
-    Attribute::Save(valueRecord, offset, typeInfo, pUniqueStringArray);
-    bRetVal = true;
-  }
-  
+  bool bRetVal = SaveAttribute<UniqueStringArray>(rValueRecord,
+                                                  rOffset,
+                                                  typeInfo,
+                                                  rValue);
+
   return bRetVal;
 }
 
@@ -652,13 +608,7 @@ int UniqueStringArray::SizeOfObj()
   return sizeof(UniqueStringArray);
 }
 
-void UniqueStringArray::Destroy()
-{
-  m_StringData.Destroy();
-  m_StringFlob.destroy();
-}
-
-bool UniqueStringArray::IsUniqueString(const string& rString) const
+bool UniqueStringArray::IsUniqueString(const std::string& rString) const
 {
   bool bIsUniqueString = false;
   

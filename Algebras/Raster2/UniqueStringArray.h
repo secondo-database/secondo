@@ -35,11 +35,12 @@ namespace raster2
 
 class UniqueStringArray : public Attribute
 {  
-  public:
   /*
   constructors
   
   */
+
+  public:
   
   UniqueStringArray();
   UniqueStringArray(bool bDefined);
@@ -57,35 +58,31 @@ class UniqueStringArray : public Attribute
   
   */
   
-  UniqueStringArray& operator = (const UniqueStringArray& rUniqueStringArray);
+  UniqueStringArray& operator=(const UniqueStringArray& rUniqueStringArray);
   
   /*
-  functions
+  methods
   
   */
-
-  void clear(); 
   
-  bool GetUniqueString(int nIndex, string& rString) const;
-  list<string> GetUniqueStringArray() const;
-  int GetUniqueStringIndex(const string& rString) const;
-  int AddString(const string& rString);
+  bool GetUniqueString(int nIndex, std::string& rString) const;
+  list<std::string> GetUniqueStringArray() const;
+  int GetUniqueStringIndex(const std::string& rString) const;
+  int AddString(const std::string& rString);
   void Destroy();
 
   /*
   override functions from base class Attribute
-  
+
   */
   
-  virtual bool Adjacent(const Attribute* attrib) const;
+  virtual bool Adjacent(const Attribute* pAttribute) const;
   virtual Attribute* Clone() const;
-  virtual int Compare(const Attribute* rhs) const;
-  virtual void CopyFrom(const Attribute* right);
+  virtual int Compare(const Attribute* pAttribute) const;
+  virtual void CopyFrom(const Attribute* pAttribute);
   virtual Flob* GetFLOB(const int i);
-  virtual StorageType GetStorageType() const;
   virtual size_t HashValue() const;
   virtual int NumOfFLOBs() const;
-  virtual ostream& Print( ostream& os ) const;
   virtual size_t Sizeof() const;
   
   /*
@@ -94,45 +91,54 @@ class UniqueStringArray : public Attribute
 
   */
   
-  static const string BasicType();
-  static const bool checkType(const ListExpr type);
+  static const std::string BasicType();
   static void* Cast(void* pVoid);
   static Word Clone(const ListExpr typeInfo,
-                    const Word& w);
+                    const Word& rWord);
   static void Close(const ListExpr typeInfo,
-                    Word& w);
+                    Word& rWord);
   static Word Create(const ListExpr typeInfo);
   static void Delete(const ListExpr typeInfo,
-                     Word& w);
+                     Word& rWord);
   static TypeConstructor getTypeConstructor();
   static Word In(const ListExpr typeInfo,
                  const ListExpr instance,
                  const int errorPos,
-                 ListExpr& errorInfo,
-                 bool& correct);
+                 ListExpr& rErrorInfo,
+                 bool& rCorrect);
   static bool KindCheck(ListExpr type,
-                        ListExpr& errorInfo);
-  static bool Open(SmiRecord& valueRecord,
-                   size_t& offset,
+                        ListExpr& rErrorInfo);
+  static bool Open(SmiRecord& rValueRecord,
+                   size_t& rOffset,
                    const ListExpr typeInfo,
-                   Word& value);
+                   Word& rValue);
   static ListExpr Out(ListExpr typeInfo,
                       Word value);
   static ListExpr Property();
-  static bool Save(SmiRecord& valueRecord,
-                   size_t& offset,
+  static bool Save(SmiRecord& rValueRecord,
+                   size_t& rOffset,
                    const ListExpr typeInfo,
-                   Word& value);
+                   Word& rValue);
   static int SizeOfObj();
+
+  /*
+  methods
+
+  */
+  static ListExpr GetNumericType();
     
   private:
+
   /*
-  functions
+  methods
   
   */
   
-  bool IsUniqueString(const string& rString) const;
+  bool IsUniqueString(const std::string& rString) const;
   
+
+  private:
+
   /*
   members
    
