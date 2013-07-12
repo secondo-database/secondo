@@ -322,6 +322,69 @@ private:
   bool openFile(fileInfo *fp);
 };
 
+/*
+
+Local Info for operator ~spreadFiles~
+
+For the parallel transfer function.
+
+*/
+class SPF_LocalInfo
+{
+public:
+  SPF_LocalInfo()
+  {
+    memset(tokenPass, false, PipeWidth);
+  }
+
+  bool getTokenPass(int ti)
+  {
+    return tokenPass[ti];
+  }
+
+  void setTokenPass(int ti, bool token)
+  {
+    tokenPass[ti] = token;
+  }
+
+private:
+  static const int PipeWidth = 10;
+  bool tokenPass[PipeWidth];
+};
+
+class SPF_Thread
+{
+public:
+  SPF_Thread(SPF_LocalInfo* _sli, int _ti, int _fid, string _s, string _d):
+    sli(_sli), fileID(_fid), source(_s), dest(_d)
+  {
+    succ = false;
+  }
+
+  SPF_LocalInfo* sli;
+  int threadID, fileID;
+  string source, dest;
+  bool succ;
+
+  static void* tCopyFile(void* ptr);
+
+  void setResult(bool _r)
+  {
+    succ = _r;
+  }
+
+  bool getResult()
+  {
+    return succ;
+  }
+
+  void releaseToken()
+  {
+    sli->setTokenPass(threadID, false);
+  }
+
+};
+
 
 /*
 1.7 CollectLocalInfo class

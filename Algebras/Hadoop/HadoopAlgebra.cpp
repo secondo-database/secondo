@@ -1589,31 +1589,84 @@ int SpreadFilesValueMap(Word* args, Word& result,
     return 0;
   }
 
-  for (int fi = 0; fi < size; fi++)
+  const int PipeWidth = 10;
+  pthread_t threadID[PipeWidth];
+  SPF_LocalInfo *sli = new SPF_LocalInfo();
+  pthread_mutex_init(&CLI_mutex, NULL);
+
+  //Each thread transfer one file, and mark the result
+  SPF_Thread* sts[size];
+  for (int fi = 0; (size_t)fi < size;)
   {
     string file = filePath + "/" + fileName + "_" + int2string(fi);
-    if (!FileSystem::FileOrFolderExists(file)){
-      cerr << "Warning!! Cannot locate the file " << file << endl;
-      continue;
-    } else if (FileSystem::IsDirectory(file)){
-      cerr << "Warning!! File " << file
-          << " should not be a directory." << endl;
-      continue;
-    }
+
+    if ((size_t)fi >= size)
+      break;
 
     //Files should be distributed on slaves only
-    string rmsec = ci->getMSECPath(fi + 1, true, false);
-    FileSystem::AppendItem(rmsec, "bin/"+fileName);
+    string rmsBin = ci->getMSECPath(fi + 1, true, false);
+    FileSystem::AppendItem(rmsBin, "bin/"+fileName);
 
-    //TODO import the pipeline
-    if ( 0 != copyFile(file, rmsec, true)){
-      cerr << "Error!! Copy " << file << " to " << rmsec <<" fails. " << endl;
-      ((CcBool*)(result.addr))->Set(true, false);
+    for (int ti = 0; ti < PipeWidth; ti++)
+    {
+      if (!sli->getTokenPass(ti) || pthread_kill(threadID[ti], 0))
+      {
+        sli->setTokenPass(ti, true);
+        sts[fi] = new SPF_Thread(sli, ti, fi, file, rmsBin);
+        pthread_create(&threadID[ti], NULL, SPF_Thread::tCopyFile, sts[fi]);
+        fi++;
+        break;
+      }
+    }
+  }
+
+  for (int ti = 0; ti < PipeWidth; ti++)
+  {
+    if (!sli->getTokenPass(ti)){
+      pthread_join(threadID[ti], NULL);
     }
   }
 
   ((CcBool*)(result.addr))->Set(true, true);
   return 0;
+}
+
+void* SPF_Thread::tCopyFile(void* ptr)
+{
+  SPF_Thread* st = (SPF_Thread*)ptr;
+  string local = st->source;
+
+  if (!FileSystem::FileOrFolderExists(local)){
+    pthread_mutex_lock(&CLI_mutex);
+    cerr << "Warning!! Cannot locate the file " << local << endl;
+    pthread_mutex_unlock(&CLI_mutex);
+  } else if (FileSystem::IsDirectory(local)){
+    pthread_mutex_lock(&CLI_mutex);
+    cerr << "Warning!! File " << local
+        << " should not be a directory." << endl;
+    pthread_mutex_unlock(&CLI_mutex);
+  }
+
+  int copyTimes = MAX_COPYTIMES;
+  bool ok = false;
+  pthread_mutex_lock(&CLI_mutex);
+  pthread_mutex_unlock(&CLI_mutex);
+  while (copyTimes-- > 0){
+    if (0 == system((scpCommand + local + " " + st->dest).c_str())){
+      ok = true;
+      break;
+    }
+  }
+
+  st->setResult(ok);
+  if (!ok)
+  {
+    pthread_mutex_lock(&CLI_mutex);
+    cerr << "Error!! Cannot transfer the file " << local << endl;
+    pthread_mutex_unlock(&CLI_mutex);
+  }
+  st->releaseToken();
+  return NULL;
 }
 
 Operator spreadFilesOp(
@@ -3551,6 +3604,44 @@ int hadoopMapValueMap(Word* args, Word& result,
 
 Operator hadoopMapOP(
     hadoopMapInfo(), hadoopMapValueMap, hadoopMapTypeMap);
+
+
+/*
+6 Operator ~hadoopMapAll~
+
+Create at 10th Jul. 2013
+Jiamin
+
+This operator works very similar as the ~hadoopMap~,
+except it doesn't ask for an input flist object.
+Instead it starts a map task on every slave Data Server,
+and process the argument function in it.
+
+It would be quite difficult to re-use the codes in ~hadoopMap~ here,
+therefore, it is better to completely create this operator,
+although most codes can be copied.
+
+Its signature is:
+
+----
+[string] x [text] x [(DLO):DLF] x [int] x [bool]
+  x ( map (  -> T1) ) -> flist(T1)
+----
+
+*/
+
+
+struct hadoopMapAllInfo : OperatorInfo
+{
+  hadoopMapAllInfo()
+  {
+    name = "hadoopMapAll";
+    signature =
+        "[string] x [text] x [(DLO):DLF] x [bool] "
+        "x ( map T1 ) -> flist(T1)";
+    meaning = "Create DLO or DLF kind flist after the map step";
+  }
+};
 
 
 /*
