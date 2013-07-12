@@ -122,6 +122,13 @@ class mt : public Attribute
   bool SetValue(const Index<3>& rIndex,
                 const Type& rValue,
                 bool bSetExtrema);
+  bool SetValue(const double& rX,
+                const double& rY,
+                const double& rInstant,
+                const Type& rValue,
+                bool bSetExtrema);
+  bool SetValues(const Type& rValue,
+                 bool bSetExtrema);
 
   protected:
 
@@ -231,8 +238,8 @@ mt<Type, Properties>::mt(bool bDefined)
     {
       for(int column = 0; column < xDimensionSize; column++)
       {
-        Index<3> indexes = (int[]){column, row, time};
-        SetValue(indexes, undefinedValue, false);
+        Index<3> index = (int[]){column, row, time};
+        SetValue(index, undefinedValue, false);
       }
     }
   }
@@ -556,8 +563,8 @@ void mt<Type, Properties>::deftime(Periods& rPeriods) const
     {
       for(int column = 0; column < xDimensionSize; column++)
       {
-        Index<3> indexes = (int[]){column, row, time};
-        Type value = GetValue(indexes);
+        Index<3> index = (int[]){column, row, time};
+        Type value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
         {
@@ -604,8 +611,8 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
     {
       for(int time = 0; time < tDimensionSize; time++)
       {
-        Index<3> indexes = (int[]){column, row, time};
-        value = GetValue(indexes);
+        Index<3> index = (int[]){column, row, time};
+        value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
         {
@@ -635,8 +642,8 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
     {
       for(int time = 0; time < tDimensionSize; time++)
       {
-        Index<3> indexes = (int[]){column, row, time};
-        value = GetValue(indexes);
+        Index<3> index = (int[]){column, row, time};
+        value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
         {
@@ -666,8 +673,8 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
     {
       for(int time = 0; time < tDimensionSize; time++)
       {
-        Index<3> indexes = (int[]){column, row, time};
-        value = GetValue(indexes);
+        Index<3> index = (int[]){column, row, time};
+        value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
         {
@@ -697,8 +704,8 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
     {
       for(int time = 0; time < tDimensionSize; time++)
       {
-        Index<3> indexes = (int[]){column, row, time};
-        value = GetValue(indexes);
+        Index<3> index = (int[]){column, row, time};
+        value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
         {
@@ -728,8 +735,8 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
     {
       for(int row = 0; row < yDimensionSize; row++)
       {
-        Index<3> indexes = (int[]){column, row, time};
-        value = GetValue(indexes);
+        Index<3> index = (int[]){column, row, time};
+        value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
         {
@@ -759,8 +766,8 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
     {
       for(int row = 0; row < yDimensionSize; row++)
       {
-        Index<3> indexes = (int[]){column, row, time};
-        value = GetValue(indexes);
+        Index<3> index = (int[]){column, row, time};
+        value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
         {
@@ -1000,6 +1007,54 @@ bool mt<Type, Properties>::SetValue(const Index<3>& rIndex,
       {
         m_Maximum = rValue;
       }
+    }
+  }
+
+  return bRetVal;
+}
+
+template <typename Type, typename Properties>
+bool mt<Type, Properties>::SetValue(const double& rX,
+                                    const double& rY,
+                                    const double& rInstant,
+                                    const Type& rValue,
+                                    bool bSetExtrema)
+{
+  bool bRetVal = false;
+
+  if(IsDefined() &&
+     IsValidLocation(rX, rY, rInstant))
+  {
+    Index<3> index = GetLocationIndex(rX, rY, rInstant);
+    bRetVal = SetValue(index, rValue, bSetExtrema);
+  }
+
+  return bRetVal;
+}
+
+template <typename Type, typename Properties>
+bool mt<Type, Properties>::SetValues(const Type& rValue,
+                                     bool bSetExtrema)
+{
+  bool bRetVal = false;
+  
+  if(IsDefined())
+  {
+    bRetVal = true;
+    
+    int flobElements = Properties::GetFlobElements();
+
+    for(int i = 0; i < flobElements; i++)
+    {
+      bRetVal &= m_Flob.write(reinterpret_cast<const char*>(&rValue),
+                              sizeof(Type),
+                              i * sizeof(Type));
+    }
+
+    if(bSetExtrema == true)
+    {
+      m_Minimum = rValue;
+      m_Maximum = rValue;
     }
   }
 
