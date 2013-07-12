@@ -250,6 +250,23 @@ bool tstring::SetValue(const Index<2>& rIndex,
   return bRetVal;
 }
 
+bool tstring::SetValue(const double& rX,
+                       const double& rY,
+                       const std::string& rValue,
+                       bool bSetExtrema)
+{
+  bool bRetVal = false;
+
+  if(IsDefined() &&
+     IsValidLocation(rX, rY))
+  {
+    Index<2> index = GetLocationIndex(rX, rY);
+    bRetVal = SetValue(index, rValue, bSetExtrema);
+  }
+
+  return bRetVal;
+}
+
 bool tstring::Adjacent(const Attribute* pAttribute) const
 {
   return false;

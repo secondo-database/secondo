@@ -93,14 +93,29 @@ class tstring : public tint
   std::string maximum() const;
 
   /*
-  internal methods
+  methods
 
   */
 
   std::string GetValue(const Index<2>& rIndex) const;
   bool SetValue(const Index<2>& rIndex,
-               const std::string& rValue,
-               bool bSetExtrema);
+                const std::string& rValue,
+                bool bSetExtrema);
+  bool SetValue(const double& rX,
+                const double& rY,
+                const std::string& rValue,
+                bool bSetExtrema);
+
+  protected:
+
+  /*
+  internal methods
+
+  */
+
+
+
+  public:
 
   /*
   override functions from base class tint
