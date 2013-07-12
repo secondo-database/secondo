@@ -113,7 +113,7 @@ file.
 
 #include "RefinementStream.h"
 #include "TemporalUnitAlgebra.h"
-#include "DivisionStream.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -5209,6 +5209,7 @@ void MPoint::MergeAdd(const UPoint& unit){
   }
   UPoint last;
   Get(size-1,last);
+
   assert(last.timeInterval.end <= unit.timeInterval.start);
 
   if(last.timeInterval.end!=unit.timeInterval.start ||
@@ -18827,183 +18828,8 @@ Operator createPeriodsOp(
    createPeriodsTM 
 );
 
-OperatorInfo ByOperatorInfo(
-"by",
-"{mT1} x {mT2} -> stream(tuple((Raw mt1)(Symbolic mt2))); T1, T2 in "
-"{point, real, int, bool, string}",
-"by( M1, M2 )",
-"let r,s be trajectories.The expression by(r,s) returns set of tuples such "
-"that each tuple contains a subtrajectory of r and a subtrajectory of s having "
-"the same time interval  and the subtrajectory of s contains only one unit.For "
-"two distinct tuples their time intervals are disjoint.In other words,s is "
-"split into units and each unit is put into a tuple together with the part of "
-"r at the same periods ot time.If for an interval , r is not defined "
-"the Raw coloumn will be set to undedefined ",
-"query by(train5,train8) count"
-""
-);
-
-template<class M1, class U1, class M2, class U2>
-int ByValueMappingVM( Word* args, Word& result, int message,
-                              Word& local, Supplier s )
-{
-
-  DivisionStream<M1,U1,M2,U2>* li;
-  switch( message )
-  {
-    case OPEN:{
-      if(local.addr){
-        delete static_cast<DivisionStream<M1,U1,M2,U2>*>(local.addr);
-        local.setAddr(0);
-      }
-      M1* mo1;
-      mo1 = static_cast<M1*>(args[0].addr);
-      M2* mo2;
-      mo2 = static_cast<M2*>(args[1].addr);
-      li = new DivisionStream<M1,U1,M2,U2>(mo1,mo2,GetTupleResultType(s));
-      local.setAddr(li);
-      return 0;
-    }
-    case REQUEST:{
-      if(!local.addr){
-        return CANCEL;
-      }
-      li = static_cast<DivisionStream<M1,U1,M2,U2>*>(local.addr);
-      Tuple* t = NULL;
-      if(li->hasMore()){
-        li->getNext(&t);
-        if(t){
-          result.setAddr(t);
-          return YIELD;
-        }
-      }
-      return CANCEL;
-    }
-    case CLOSE:{
-      if(local.addr){
-        delete static_cast<DivisionStream<M1,U1,M2,U2>*>(local.addr);
-        local.setAddr(0);
-      }
-      return 0;
-    }
-    default:{
-      cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
-           << endl;
-      return -1;
-    }
-  } // end switch
-  cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
-       << endl;
-  return -1;
-}
 
 
-
-
-ValueMapping ByValueMapping[] = {
-
- ByValueMappingVM<MString,UString,MString,UString>,
- ByValueMappingVM<MString,UString,MPoint,UPoint>,
- ByValueMappingVM<MString,UString,MReal,UReal>,
- ByValueMappingVM<MString,UString,MBool,UBool>,
- ByValueMappingVM<MString,UString,MInt,UInt>,
-
- ByValueMappingVM<MPoint,UPoint,MString,UString>,
- ByValueMappingVM<MPoint,UPoint,MPoint,UPoint>,
- ByValueMappingVM<MPoint,UPoint,MReal,UReal>,
- ByValueMappingVM<MPoint,UPoint,MBool,UBool>,
- ByValueMappingVM<MPoint,UPoint,MInt,UInt>,
-
- ByValueMappingVM<MReal,UReal,MString,UString>,
- ByValueMappingVM<MReal,UReal,MPoint,UPoint>,
- ByValueMappingVM<MReal,UReal,MReal,UReal>,
- ByValueMappingVM<MReal,UReal,MBool,UBool>,
- ByValueMappingVM<MReal,UReal,MInt,UInt>,
-
- ByValueMappingVM<MBool,UBool,MString,UString>,
- ByValueMappingVM<MBool,UBool,MPoint,UPoint>,
- ByValueMappingVM<MBool,UBool,MReal,UReal>,
- ByValueMappingVM<MBool,UBool,MBool,UBool>,
- ByValueMappingVM<MBool,UBool,MInt,UInt>,
-
- ByValueMappingVM<MInt,UInt,MString,UString>,
- ByValueMappingVM<MInt,UInt,MPoint,UPoint>,
- ByValueMappingVM<MInt,UInt,MReal,UReal>,
- ByValueMappingVM<MInt,UInt,MBool,UBool>,
- ByValueMappingVM<MInt,UInt,MInt,UInt>
-};
-
-int BySelect( ListExpr args ) {
-  int res = 0;
-  // first arg type
-  if(listutils::isSymbol(nl->First(args),
-   MString::BasicType())) { res+=0; }
-  else if(listutils::isSymbol(nl->First(args),
-   MPoint::BasicType())) { res+=5; }
-  else if(listutils::isSymbol(nl->First(args),
-   MReal::BasicType()))  { res+=10; }
-  else if(listutils::isSymbol(nl->First(args),
-    MBool::BasicType())) { res+=15; }
-  else if(listutils::isSymbol(nl->First(args),
-   MInt::BasicType())) { res+=20; }
-  else {res+= -9999999; }
-  // second arg type
-  if(listutils::isSymbol(nl->Second(args),MString::BasicType())) { res+=0; }
-  else if(listutils::isSymbol(nl->Second(args),
-    MPoint::BasicType())) { res+=1; }
-  else if(listutils::isSymbol(nl->Second(args),
-    MReal::BasicType())) { res+=2; }
-  else if(listutils::isSymbol(nl->Second(args),
-    MBool::BasicType())) { res+=3; }
-  else if(listutils::isSymbol(nl->Second(args),
-    MInt::BasicType())) { res+=4; }
-  else {res+= -9999999; }
-
-  return (((res>=0)&&(res<=24))?res:-1);
-}
-
-
-  ListExpr ByTypeMapping(ListExpr args){
-  int noargs = nl->ListLength(args);
-  string errmsg = "Expected {mT1} x {mT2}, where T in "
-                  "{point, int, real, bool, string}";
-  if(noargs!=2){
-    return listutils::typeError(errmsg);
-  }
-  set<string> supportedArgTypes;
-  supportedArgTypes.insert(MPoint::BasicType());
-  supportedArgTypes.insert(MReal::BasicType());
-  supportedArgTypes.insert(MInt::BasicType());
-  supportedArgTypes.insert(MBool::BasicType());
-  supportedArgTypes.insert(MString::BasicType());
-
-
-  ListExpr first = nl->First(args);
-  ListExpr second= nl->Second(args);
-
-  if( !listutils::isASymbolIn(first,supportedArgTypes) ||
-      !listutils::isASymbolIn(second,supportedArgTypes)) {
-    return listutils::typeError(errmsg);
-  }
-
-  string t1; nl->WriteToString(t1, first);
-  string t2; nl->WriteToString(t2, second);
-
-  NList resTupleType =NList(NList("Raw"),NList(t1)).enclose();
-  resTupleType.append(NList(NList("Symbolic"),NList(t2)));
-  NList resType =
-  NList(NList(Symbol::STREAM()),NList(NList(Tuple::BasicType()),resTupleType));
-  return resType.listExpr();
-
-  }
-
-Operator by(
-  ByOperatorInfo,
-  ByValueMapping,
-  BySelect,
-  ByTypeMapping
-);
-  
 /*
 6 Creating the Algebra
 
@@ -19074,9 +18900,6 @@ class TemporalAlgebra : public Algebra
     cellgrid3d.AssociateKind( Kind::DATA() );
     cellgrid3d.AssociateKind( Kind::DELIVERABLE() );
 
-
-    AddOperator(&by);
-    
     AddOperator( &temporalisempty );
     AddOperator( &temporalequal );
     AddOperator( &temporalnotequal );
