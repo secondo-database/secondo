@@ -147,14 +147,14 @@ const undefined value for type real
 
 */
 
-const int UNDEFINED_REAL = std::numeric_limits<double>::quiet_NaN();
+const double UNDEFINED_REAL = std::numeric_limits<double>::quiet_NaN();
 
 /*
 const undefined value for type bool
 
 */
 
-const int UNDEFINED_BOOL = -1;
+const char UNDEFINED_BOOL = -1;
 
 /*
 const undefined value for type string

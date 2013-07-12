@@ -145,14 +145,14 @@ const undefined value for type real
 
 */
 
-extern const int UNDEFINED_REAL;
+extern const double UNDEFINED_REAL;
 
 /*
 const undefined value for type bool
 
 */
 
-extern const int UNDEFINED_BOOL;
+extern const char UNDEFINED_BOOL;
 
 /*
 const undefined value for type string
