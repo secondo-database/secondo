@@ -280,6 +280,10 @@ int ArelAtInstant( Word* args, Word& result, int message,
 
     tupleIndex ++;
   }
+
+
+ 	atuple->DeleteIfAllowed();
+  atupleType->DeleteIfAllowed();
   result.setAddr(outarel);
 
 
@@ -414,18 +418,30 @@ int ArelAtPeriod( Word* args, Word& result, int message,
 	ListExpr resultTupleType =
 			SecondoSystem::GetCatalog()->NumericType(resultType);
 	TupleType* atupleType =new TupleType(nl->Second(resultTupleType));
+
+
+
+
+
+
 	Relation* outrel=new Relation(atupleType);
-	AttributeRelation* outarel = new AttributeRelation(
-			outrel->GetFileId(),
-			nl->Second(resultType));
 
 
 
+ AttributeRelation* outarel = (AttributeRelation*)
+                             (qp->ResultStorage(s).addr);
+
+
+ outarel->getTupleIds()->clean();
+ outarel->setRel(outrel);
+ outarel->setRelId(outrel->GetFileId());
+
+ Tuple* atuple = new Tuple (atupleType);
 	int tupleIndex=0;
 
 	while (tupleIndex < arel->getTupleIds()->Size())
 	{
-		Tuple* atuple = new Tuple (atupleType);
+
 		TupleId tid;
 		arel->getTupleIds()->Get(tupleIndex, tid);
 		Tuple* t = r->GetTuple(tid, false);
@@ -476,7 +492,13 @@ MString* mstring=(MString*)t->GetAttribute(scanIndex);
 		t->DeleteIfAllowed();
 		tupleIndex ++;
 
+
 	}
+
+
+
+	atuple->DeleteIfAllowed();
+ atupleType->DeleteIfAllowed();
 
 	result.setAddr(outarel);
 
