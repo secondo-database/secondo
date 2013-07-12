@@ -1896,75 +1896,7 @@ Word Pattern::Clone(const ListExpr typeInfo, const Word& w) {
 */
 bool Pattern::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
-  int size;
-  valueRecord.Read(&size, sizeof(int), offset); // read patterns.size
-  offset += sizeof(int);
-  cout << "patterns.size " << size << " read" << endl;
-  UPat upat;
-  vector<UPat> elems;
-  for (int i = 0; i < size; i++) {
-    valueRecord.Read(&upat, sizeof(UPat), offset); // read pattern elements
-    cout << "unit pattern " << i << " read" << endl;
-    elems.push_back(upat);
-    cout << " and pushed back" << endl;
-    offset += sizeof(UPat);
-  }
-  valueRecord.Read(&size, sizeof(int), offset); // read assigns.size
-  offset += sizeof(int);
-  Assign assign;
-  vector<Assign> assigns;
-  for (int i = 0; i < size; i++) {
-    valueRecord.Read(&assign, sizeof(Assign), offset); // read assignments
-    assigns.push_back(assign);
-    offset += sizeof(Assign);
-  }
-  valueRecord.Read(&size, sizeof(int), offset); // read conditions.size
-  offset += sizeof(int);
-  Condition cond;
-  vector<Condition> conds;
-  for (int i = 0; i < size; i++) {
-    valueRecord.Read(&cond, sizeof(Condition), offset); // read conditions
-    conds.push_back(cond);
-    offset += sizeof(Condition);
-  }
-  string text;
-  char onechar;
-  valueRecord.Read(&size, sizeof(int), offset); // read text.size
-  offset += sizeof(int);
-  for (int i = 0; i < size; i++) {
-    valueRecord.Read(&onechar, sizeof(char), offset); // read text
-    text.append(1, onechar);
-    offset += sizeof(char);
-  }
-  valueRecord.Read(&size, sizeof(int), offset); // read delta.size
-  offset += sizeof(int);
-  map<int, set<int> > onemap;
-  set<int> oneset;
-  int oneint, key, mapsize, setsize;
-  vector<map<int, set<int> > > delta;
-  for (int i = 0; i < size; i++) {
-    valueRecord.Read(&mapsize, sizeof(int), offset);
-    offset += sizeof(int);
-    for (int j = 0; j < mapsize; j++) {
-      valueRecord.Read(&key, sizeof(int), offset);
-      offset += sizeof(int);
-      valueRecord.Read(&setsize, sizeof(int), offset);
-      offset += sizeof(int);
-      for (int k = 0; k < setsize; k++) {
-        valueRecord.Read(&oneint, sizeof(int), offset);
-        oneset.insert(oneint);
-        offset += sizeof(int);
-      }
-      onemap.insert(pair<int, set<int> >(key, oneset));
-      oneset.clear();
-    }
-    delta.push_back(onemap);
-    onemap.clear();
-  }
-  bool verified;
-  valueRecord.Read(&verified, sizeof(bool), offset); // read verified
-  offset += sizeof(bool);
-  Pattern* p = new Pattern(elems, assigns, conds, text, delta, verified);
+  Pattern *p = (Pattern*)Attribute::Open(valueRecord, offset, typeInfo);
   value.setAddr(p);
   return true;
 }
