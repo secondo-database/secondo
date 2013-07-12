@@ -240,18 +240,11 @@ int UniqueStringArray::Compare(const Attribute* pAttribute) const
       {
         if(bUniqueStringArrayIsDefined == true) // defined x defined
         {
-          /*
-          TODO: add implementation
-
-          */
-
-          /*
           if(m_StringData == pUniqueStringArray->m_StringData &&
              m_StringFlob == pUniqueStringArray->m_StringFlob)
           {
             nRetVal = 0;
           }
-          */
         }
         
         else // defined x undefined
