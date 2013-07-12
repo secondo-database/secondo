@@ -79,6 +79,21 @@ declaration of GetmsTypes function
 void GetmsTypes(std::vector<std::string>& rmsTypes);
 
 /*
+declaration of GetisTypes function
+
+*/
+
+void GetisTypes(std::vector<std::string>& risTypes);
+
+/*
+declaration of GetType function
+
+*/
+
+std::string GetType(const std::string& rType,
+                    const std::vector<std::string>& rTypes);
+
+/*
 declaration of GetValueWrapperType function
 
 */
@@ -112,6 +127,35 @@ declaration of GetitType function
 */
 
 std::string GetitType(const std::string& rType);
+
+/*
+declaration of GetsType function
+
+*/
+
+std::string GetsType(const std::string& rType);
+
+/*
+declaration of GetmsType function
+
+*/
+
+std::string GetmsType(const std::string& rType);
+
+/*
+declaration of GetisType function
+
+*/
+
+std::string GetisType(const std::string& rType);
+
+/*
+declaration of IsType function
+
+*/
+
+bool IsType(const std::string& rType,
+            const std::vector<std::string>& rTypes);
 
 /*
 declaration of IsValueWrapperType function
@@ -161,6 +205,13 @@ declaration of IsmsType function
 */
 
 bool IsmsType(const std::string& rType);
+
+/*
+declaration of IsisType function
+
+*/
+
+bool IsisType(const std::string& rType);
 
 }
 

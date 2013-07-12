@@ -43,6 +43,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Raster2/msreal.h"
 #include "../Raster2/msbool.h"
 #include "../Raster2/msstring.h"
+#include "../Raster2/isint.h"
+#include "../Raster2/isreal.h"
+#include "../Raster2/isbool.h"
+#include "../Raster2/isstring.h"
 
 namespace TileAlgebra
 {
@@ -146,6 +150,81 @@ void GetmsTypes(std::vector<std::string>& rmsTypes)
 }
 
 /*
+definition of GetisTypes function
+
+*/
+
+void GetisTypes(std::vector<std::string>& risTypes)
+{
+  risTypes.clear();
+  risTypes.push_back(raster2::isint::BasicType());
+  risTypes.push_back(raster2::isreal::BasicType());
+  risTypes.push_back(raster2::isbool::BasicType());
+  risTypes.push_back(raster2::isstring::BasicType());
+}
+
+/*
+definition of GetType function
+
+*/
+
+std::string GetType(const std::string& rType,
+                    const std::vector<std::string>& rTypes)
+{
+  std::string type;
+
+  if(rType.empty() == false &&
+     rTypes.size() > 0)
+  {
+    std::vector<std::string> valueWrapperTypes;
+    std::vector<std::string> MTypes;
+    std::vector<std::string> tTypes;
+    std::vector<std::string> mtTypes;
+    std::vector<std::string> itTypes;
+    std::vector<std::string> sTypes;
+    std::vector<std::string> msTypes;
+    std::vector<std::string> isTypes;
+
+    GetValueWrapperTypes(valueWrapperTypes);
+    GetMTypes(MTypes);
+    GettTypes(tTypes);
+    GetmtTypes(mtTypes);
+    GetitTypes(itTypes);
+    GetsTypes(sTypes);
+    GetmsTypes(msTypes);
+    GetisTypes(isTypes);
+
+    if(rTypes.size() == valueWrapperTypes.size() &&
+       rTypes.size() == MTypes.size() &&
+       rTypes.size() == tTypes.size() &&
+       rTypes.size() == mtTypes.size() &&
+       rTypes.size() == itTypes.size() &&
+       rTypes.size() == sTypes.size() &&
+       rTypes.size() == msTypes.size() &&
+       rTypes.size() == isTypes.size())
+    {
+      for(size_t i = 0; i < rTypes.size(); i++)
+      {
+        if(rType == valueWrapperTypes[i] ||
+           rType == MTypes[i] ||
+           rType == tTypes[i] ||
+           rType == mtTypes[i] ||
+           rType == itTypes[i] ||
+           rType == sTypes[i] ||
+           rType == msTypes[i] ||
+           rType == isTypes[i])
+        {
+          type = rTypes[i];
+          break;
+        }
+      }
+    }
+  }
+
+  return type;
+}
+
+/*
 definition of GetValueWrapperType function
 
 */
@@ -157,39 +236,8 @@ std::string GetValueWrapperType(const std::string& rType)
   if(rType.empty() == false)
   {
     std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> MTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-    std::vector<std::string> itTypes;
-
     GetValueWrapperTypes(valueWrapperTypes);
-    GetMTypes(MTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
-    GetitTypes(itTypes);
-
-    if(valueWrapperTypes.size() == MTypes.size() &&
-       valueWrapperTypes.size() == tTypes.size() &&
-       valueWrapperTypes.size() == mtTypes.size() &&
-       valueWrapperTypes.size() == itTypes.size())
-    {
-      for(size_t i = 0; i < valueWrapperTypes.size(); i++)
-      {
-        if(rType == MTypes[i] ||
-           rType == tTypes[i] ||
-           rType == mtTypes[i] ||
-           rType == itTypes[i])
-        {
-          valueWrapperType = valueWrapperTypes[i];
-          break;
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    valueWrapperType = GetType(rType, valueWrapperTypes);
   }
 
   return valueWrapperType;
@@ -206,40 +254,9 @@ std::string GetMType(const std::string& rType)
 
   if(rType.empty() == false)
   {
-    std::vector<std::string> valueWrapperTypes;
     std::vector<std::string> MTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-    std::vector<std::string> itTypes;
-
-    GetValueWrapperTypes(valueWrapperTypes);
     GetMTypes(MTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
-    GetitTypes(itTypes);
-
-    if(MTypes.size() == valueWrapperTypes.size() &&
-       MTypes.size() == tTypes.size() &&
-       MTypes.size() == mtTypes.size() &&
-       MTypes.size() == itTypes.size())
-    {
-      for(size_t i = 0; i < MTypes.size(); i++)
-      {
-        if(rType == valueWrapperTypes[i] ||
-           rType == tTypes[i] ||
-           rType == mtTypes[i] ||
-           rType == itTypes[i])
-        {
-          MType = MTypes[i];
-          break;
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    MType = GetType(rType, MTypes);
   }
 
   return MType;
@@ -256,40 +273,9 @@ std::string GettType(const std::string& rType)
 
   if(rType.empty() == false)
   {
-    std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> MTypes;
     std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-    std::vector<std::string> itTypes;
-
-    GetValueWrapperTypes(valueWrapperTypes);
-    GetMTypes(MTypes);
     GettTypes(tTypes);
-    GetmtTypes(mtTypes);
-    GetitTypes(itTypes);
-
-    if(tTypes.size() == valueWrapperTypes.size() &&
-       tTypes.size() == MTypes.size() &&
-       tTypes.size() == mtTypes.size() &&
-       tTypes.size() == itTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        if(rType == valueWrapperTypes[i] ||
-           rType == MTypes[i] ||
-           rType == mtTypes[i] ||
-           rType == itTypes[i])
-        {
-          tType = tTypes[i];
-          break;
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    tType = GetType(rType, tTypes);
   }
 
   return tType;
@@ -306,40 +292,9 @@ std::string GetmtType(const std::string& rType)
 
   if(rType.empty() == false)
   {
-    std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> MTypes;
-    std::vector<std::string> tTypes;
     std::vector<std::string> mtTypes;
-    std::vector<std::string> itTypes;
-
-    GetValueWrapperTypes(valueWrapperTypes);
-    GetMTypes(MTypes);
-    GettTypes(tTypes);
     GetmtTypes(mtTypes);
-    GetitTypes(itTypes);
-
-    if(mtTypes.size() == valueWrapperTypes.size() &&
-       mtTypes.size() == MTypes.size() &&
-       mtTypes.size() == tTypes.size() &&
-       mtTypes.size() == itTypes.size())
-    {
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        if(rType == valueWrapperTypes[i] ||
-           rType == MTypes[i] ||
-           rType == tTypes[i] ||
-           rType == itTypes[i])
-        {
-          mtType = mtTypes[i];
-          break;
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    mtType = GetType(rType, mtTypes);
   }
 
   return mtType;
@@ -356,43 +311,95 @@ std::string GetitType(const std::string& rType)
 
   if(rType.empty() == false)
   {
-    std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> MTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
     std::vector<std::string> itTypes;
-
-    GetValueWrapperTypes(valueWrapperTypes);
-    GetMTypes(MTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
     GetitTypes(itTypes);
-
-    if(itTypes.size() == valueWrapperTypes.size() &&
-       itTypes.size() == MTypes.size() &&
-       itTypes.size() == tTypes.size() &&
-       itTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < itTypes.size(); i++)
-      {
-        if(rType == valueWrapperTypes[i] ||
-           rType == MTypes[i] ||
-           rType == tTypes[i] ||
-           rType == mtTypes[i])
-        {
-          itType = itTypes[i];
-          break;
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    itType = GetType(rType, itTypes);
   }
 
   return itType;
+}
+
+/*
+definition of GetsType function
+
+*/
+
+std::string GetsType(const std::string& rType)
+{
+  std::string sType;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> sTypes;
+    GetsTypes(sTypes);
+    sType = GetType(rType, sTypes);
+  }
+
+  return sType;
+}
+
+/*
+definition of GetmsType function
+
+*/
+
+std::string GetmsType(const std::string& rType)
+{
+  std::string msType;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> msTypes;
+    GetmsTypes(msTypes);
+    msType = GetType(rType, msTypes);
+  }
+
+  return msType;
+}
+
+/*
+definition of GetisType function
+
+*/
+
+std::string GetisType(const std::string& rType)
+{
+  std::string isType;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> isTypes;
+    GetisTypes(isTypes);
+    isType = GetType(rType, isTypes);
+  }
+
+  return isType;
+}
+
+/*
+definition of IsType function
+
+*/
+
+bool IsType(const std::string& rType,
+            const std::vector<std::string>& rTypes)
+{
+  bool bIsType = false;
+
+  if(rType.empty() == false &&
+     rTypes.size() > 0)
+  {
+    for(size_t i = 0; i < rTypes.size(); i++)
+    {
+      if(rType == rTypes[i])
+      {
+        bIsType = true;
+        break;
+      }
+    }
+  }
+
+  return bIsType;
 }
 
 /*
@@ -408,15 +415,7 @@ bool IsValueWrapperType(const std::string& rType)
   {
     std::vector<std::string> valueWrapperTypes;
     GetValueWrapperTypes(valueWrapperTypes);
-
-    for(size_t i = 0; i < valueWrapperTypes.size(); i++)
-    {
-      if(rType == valueWrapperTypes[i])
-      {
-        bIsValueWrapperType = true;
-        break;
-      }
-    }
+    bIsValueWrapperType = IsType(rType, valueWrapperTypes);
   }
 
   return bIsValueWrapperType;
@@ -435,15 +434,7 @@ bool IsMType(const std::string& rType)
   {
     std::vector<std::string> MTypes;
     GetMTypes(MTypes);
-
-    for(size_t i = 0; i < MTypes.size(); i++)
-    {
-      if(rType == MTypes[i])
-      {
-        bIsMType = true;
-        break;
-      }
-    }
+    bIsMType = IsType(rType, MTypes);
   }
 
   return bIsMType;
@@ -462,15 +453,7 @@ bool IstType(const std::string& rType)
   {
     std::vector<std::string> tTypes;
     GettTypes(tTypes);
-
-    for(size_t i = 0; i < tTypes.size(); i++)
-    {
-      if(rType == tTypes[i])
-      {
-        bIstType = true;
-        break;
-      }
-    }
+    bIstType = IsType(rType, tTypes);
   }
 
   return bIstType;
@@ -489,15 +472,7 @@ bool IsmtType(const std::string& rType)
   {
     std::vector<std::string> mtTypes;
     GetmtTypes(mtTypes);
-
-    for(size_t i = 0; i < mtTypes.size(); i++)
-    {
-      if(rType == mtTypes[i])
-      {
-        bIsmtType = true;
-        break;
-      }
-    }
+    bIsmtType = IsType(rType, mtTypes);
   }
 
   return bIsmtType;
@@ -516,15 +491,7 @@ bool IsitType(const std::string& rType)
   {
     std::vector<std::string> itTypes;
     GetitTypes(itTypes);
-
-    for(size_t i = 0; i < itTypes.size(); i++)
-    {
-      if(rType == itTypes[i])
-      {
-        bIsitType = true;
-        break;
-      }
-    }
+    bIsitType = IsType(rType, itTypes);
   }
 
   return bIsitType;
@@ -543,15 +510,7 @@ bool IssType(const std::string& rType)
   {
     std::vector<std::string> sTypes;
     GetsTypes(sTypes);
-
-    for(size_t i = 0; i < sTypes.size(); i++)
-    {
-      if(rType == sTypes[i])
-      {
-        bIssType = true;
-        break;
-      }
-    }
+    bIssType = IsType(rType, sTypes);
   }
 
   return bIssType;
@@ -570,18 +529,29 @@ bool IsmsType(const std::string& rType)
   {
     std::vector<std::string> msTypes;
     GetmsTypes(msTypes);
-
-    for(size_t i = 0; i < msTypes.size(); i++)
-    {
-      if(rType == msTypes[i])
-      {
-        bIsmsType = true;
-        break;
-      }
-    }
+    bIsmsType = IsType(rType, msTypes);
   }
 
   return bIsmsType;
+}
+
+/*
+definition of IsisType function
+
+*/
+
+bool IsisType(const std::string& rType)
+{
+  bool bIsisType = false;
+
+  if(rType.empty() == false)
+  {
+    std::vector<std::string> isTypes;
+    GetisTypes(isTypes);
+    bIsisType = IsType(rType, isTypes);
+  }
+
+  return bIsisType;
 }
 
 }
