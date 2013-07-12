@@ -1620,9 +1620,9 @@ int SpreadFilesValueMap(Word* args, Word& result,
     }
   }
 
-  for (int ti = 0; ti < PipeWidth; ti++)
+  for (int ti = 0; ti < PipeWidth;ti++)
   {
-    if (!sli->getTokenPass(ti)){
+    if (sli->getTokenPass(ti)){
       pthread_join(threadID[ti], NULL);
     }
   }
