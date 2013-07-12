@@ -207,8 +207,6 @@ string msstring::atlocation(double x, double y, double t) const
 
 MString* msstring::atlocation(double x, double y) const
 {
-
-
   MString* res = new MString(0);
   
   if(m_pmsint != 0 &&
@@ -244,6 +242,21 @@ MString* msstring::atlocation(double x, double y) const
      res->SetDefined(false);
   }
   return res;
+}
+
+void msstring::setatlocation(double x, double y, double t, const string& value)
+{
+  if(m_pmsint != 0 &&
+     m_pUniqueStringArray != 0 &&
+     value.empty() == false)
+  {
+    int nStringIndex = m_pUniqueStringArray->AddString(value);
+
+    if(nStringIndex != UNDEFINED_STRING_INDEX)
+    {
+      m_pmsint->setatlocation(x, y, t, nStringIndex);
+    }
+  }
 }
 
 Rectangle<3> msstring::bbox() const
@@ -382,7 +395,6 @@ void msstring::flushCache() {
 
 void msstring::clear(){
    m_pmsint->clear();
-   m_pUniqueStringArray->clear();
    m_minimum = m_maximum = UNDEFINED_STRING_INDEX;
 }
 
@@ -394,7 +406,6 @@ void msstring::setDefined(const bool _defined){
   if(_defined != isDefined()){
     m_pmsint->setDefined(_defined);
     if(!_defined){
-      m_pUniqueStringArray->clear();
       m_minimum = m_maximum = UNDEFINED_STRING_INDEX;
     }
   }
