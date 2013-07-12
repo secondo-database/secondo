@@ -71,12 +71,7 @@ CcReal Properties<double>::GetWrappedValue(const double& rdouble)
 
 bool Properties<double>::IsUndefinedValue(const double& rdouble)
 {
-  bool bUndefinedValue = false;
-  
-  if(rdouble == GetUndefinedValue())
-  {
-    bUndefinedValue = true;
-  }
+  bool bUndefinedValue = (rdouble != rdouble);
 
   return bUndefinedValue;
 }
