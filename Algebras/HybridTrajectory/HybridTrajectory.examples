@@ -4,7 +4,7 @@ Restore : No
 Operator : atinstant
 Number   : 1
 Signature: (arel(X) x instant) -> arel(Y)
-Example  : query person  feed projectextend[Person_id_o;H :.Hybrid atinstant [const instant value "2008-11-01-04:24:08"]] count
+Example  : query person  feed projectextend[Person_id_o;H :.Hybrid atinstant [const instant value "2008-09-27-23:24:08"]] count
 Result   : 1
 
 
