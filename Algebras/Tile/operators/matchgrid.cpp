@@ -55,9 +55,10 @@ int matchgridFunctiont(Word* pArguments,
   if(qp != 0 &&
      pArguments != 0)
   {
-    SourceType* pSourceType =
-    static_cast<SourceType*>(pArguments[0].addr);
-    tgrid* pGrid = static_cast<tgrid*>(pArguments[1].addr);
+    SourceType* pSourceType = static_cast<SourceType*>
+                              (pArguments[0].addr);
+    tgrid* pGrid = static_cast<tgrid*>
+                   (pArguments[1].addr);
 
     if(pSourceType != 0 &&
        pGrid != 0)
@@ -66,8 +67,8 @@ int matchgridFunctiont(Word* pArguments,
 
       if(rResult.addr != 0)
       {
-        DestinationType* pResult =
-        static_cast<DestinationType*>(rResult.addr);
+        DestinationType* pResult = static_cast<DestinationType*>
+                                   (rResult.addr);
 
         if(pResult != 0)
         {
@@ -80,12 +81,12 @@ int matchgridFunctiont(Word* pArguments,
             pResult->SetGrid(*pGrid);
 
             Address pFunction = pArguments[2].addr;
-            CcBool* pUseWeight =
-            static_cast<CcBool*>(pArguments[3].addr);
+            CcBool* pUseWeight = static_cast<CcBool*>
+                                 (pArguments[3].addr);
             CcInt* pAttributeAlgebraID =
             static_cast<CcInt*>(pArguments[5].addr);
-            CcInt* pAttributeTypeID =
-            static_cast<CcInt*>(pArguments[6].addr);
+            CcInt* pAttributeTypeID = static_cast<CcInt*>
+                                      (pArguments[6].addr);
 
             if(pFunction!= 0 &&
                pUseWeight != 0 &&
@@ -96,10 +97,11 @@ int matchgridFunctiont(Word* pArguments,
               ListExpr tupleType = NList(
                                    NList(NList("tuple"),
                                          NList(NList("Elem"),
-                                         NList(
-                                         NList(pAttributeAlgebraID->
+                                         NList(NList(
+                                               pAttributeAlgebraID->
                                                GetIntval()),
-                                         NList(pAttributeTypeID->
+                                               NList(
+                                               pAttributeTypeID->
                                                GetIntval()))).
                                                enclose()
                                         )
@@ -109,14 +111,6 @@ int matchgridFunctiont(Word* pArguments,
 
               if(pTupleType != 0)
               {
-                bool bUseWeight = false;
-
-                if(pUseWeight->IsDefined() &&
-                   pUseWeight->GetValue())
-                {
-                  bUseWeight = true;
-                }
-
                 tgrid sourceGrid;
                 pSourceType->getgrid(sourceGrid);
 
@@ -127,11 +121,9 @@ int matchgridFunctiont(Word* pArguments,
                 pResult->GetLocationIndex(sourceBoundingBox.MinD(0),
                                           sourceBoundingBox.MinD(1));
 
-                Index<2> resultEndIndex =
-                pResult->GetLocationIndex(sourceBoundingBox.MaxD(0),
+                Index<2> resultEndIndex = pResult->GetLocationIndex(
+                                          sourceBoundingBox.MaxD(0),
                                           sourceBoundingBox.MaxD(1));
-
-                Index<2> resultCurrentIndex = resultStartIndex;
 
                 // create temporarly relation
                 TupleBuffer rel;
@@ -140,6 +132,7 @@ int matchgridFunctiont(Word* pArguments,
                 *qp->Argument(pFunction);
                 argumentsVector[0].setAddr(&rel);
                 
+                // compute area of a single cell in source for weight
                 double sourceArea = pow(sourceGrid.GetLength(), 2);
 
                 double gridX = pGrid->GetX();
@@ -149,122 +142,128 @@ int matchgridFunctiont(Word* pArguments,
                 double sourceGridY = sourceGrid.GetY();
                 double sourceGridLength = sourceGrid.GetLength();
 
-                while(resultCurrentIndex <= resultEndIndex)
-                { 
-                  Rectangle<2> currentBoundingBox
-                  (true,
-                   gridX + resultCurrentIndex[0] * gridLength,
-                   gridX + (resultCurrentIndex[0] + 1) * gridLength,
-                   gridY + resultCurrentIndex[1] * gridLength,
-                   gridY + (resultCurrentIndex[1] + 1) * gridLength);
+                for(int resultRow = resultStartIndex[1];
+                    resultRow <= resultEndIndex[1];
+                    resultRow++)
+                {
+                  for(int resultColumn = resultStartIndex[0];
+                      resultColumn <= resultEndIndex[0];
+                      resultColumn++)
+                  { 
+                    Index<2> resultCurrentIndex =
+                    (int[]){resultColumn, resultRow};
+                    
+                    Rectangle<2> currentBoundingBox
+                    (true,
+                     gridX +
+                     resultCurrentIndex[0] * gridLength,
+                     gridX +
+                     (resultCurrentIndex[0] + 1) * gridLength,
+                     gridY +
+                     resultCurrentIndex[1] * gridLength,
+                     gridY +
+                     (resultCurrentIndex[1] + 1) * gridLength);
 
-                  Index<2> sourceMinimumIndex =
-                  (int[]){std::floor((currentBoundingBox.MinD(0) -
-                                      sourceGridX) /
-                                      sourceGridLength),
-                          std::floor((currentBoundingBox.MinD(1) -
-                                      sourceGridY) /
-                                      sourceGridLength)};
-                  Index<2> sourceMaximumIndex =
-                  (int[]){std::floor((currentBoundingBox.MaxD(0) -
-                                      sourceGridX) /
-                                      sourceGridLength),
-                          std::floor((currentBoundingBox.MaxD(1) -
-                                      sourceGridY) /
-                                      sourceGridLength)};
-                  Index<2> sourceCurrentIndex = sourceMinimumIndex;
-                  rel.Clear();
+                    Index<2> sourceStartIndex =
+                    (int[]){std::floor((currentBoundingBox.MinD(0) -
+                                        sourceGridX) /
+                                        sourceGridLength),
+                            std::floor((currentBoundingBox.MinD(1) -
+                                        sourceGridY) /
+                                        sourceGridLength)};
+                    Index<2> sourceEndIndex =
+                    (int[]){std::floor((currentBoundingBox.MaxD(0) -
+                                        sourceGridX) /
+                                        sourceGridLength),
+                            std::floor((currentBoundingBox.MaxD(1) -
+                                        sourceGridY) /
+                                        sourceGridLength)};
+                    rel.Clear();
 
-                  while(sourceCurrentIndex <= sourceMaximumIndex)
-                  {
-                    typename SourceTypeProperties::TypeProperties::
-                    PropertiesType value =
-                    pSourceType->GetValue(sourceCurrentIndex);
-
-                    if(SourceTypeProperties::TypeProperties::
-                       IsUndefinedValue(value) == false)
+                    for(int sourceRow = sourceStartIndex[1];
+                        sourceRow <= sourceEndIndex[1];
+                        sourceRow++)
                     {
-                      // weight if required
-                      if(Traits::CanWeight == true &&
-                         bUseWeight == true)
+                      for(int sourceColumn = sourceStartIndex[0];
+                          sourceColumn <= sourceEndIndex[0];
+                          sourceColumn++)
                       {
-                        Rectangle<2> sourceBoundingBox
-                        (sourceGridX +
-                         sourceCurrentIndex[0] *
-                         sourceGridLength,
-                         sourceGridX +
-                         (sourceCurrentIndex[0] + 1) *
-                         sourceGridLength,
-                         sourceGridY +
-                         sourceCurrentIndex[1] *
-                         sourceGridLength,
-                         sourceGridY +
-                         (sourceCurrentIndex[1] + 1) *
-                         sourceGridLength);
-                          
-                        Rectangle<2> overlapRectangle =
-                        currentBoundingBox.Intersection
-                        (sourceBoundingBox);
+                        Index<2> sourceCurrentIndex =
+                        (int[]){sourceColumn, sourceRow};
+                        
+                        typename SourceTypeProperties::
+                        TypeProperties::PropertiesType value =
+                        pSourceType->GetValue(sourceCurrentIndex);
 
-                        Traits::Weight(value,
-                                       overlapRectangle.Area() /
-                                       sourceArea);
-                      }
-
-                      typename SourceTypeProperties::TypeProperties::
-                      WrapperType* pWrappedType =
-                      new typename SourceTypeProperties::
-                      TypeProperties::WrapperType(
-                      SourceTypeProperties::TypeProperties::
-                      GetWrappedValue(value));
-
-                      if(pWrappedType != 0)
-                      {
-                        Tuple* pTuple = new Tuple(pTupleType);
-
-                        if(pTuple != 0)
+                        if(SourceTypeProperties::TypeProperties::
+                           IsUndefinedValue(value) == false)
                         {
-                          pTuple->PutAttribute(0, pWrappedType);
-                          rel.AppendTuple(pTuple);
-                          pTuple->DeleteIfAllowed();
+                          // weight if required
+                          if(Traits::CanWeight == true &&
+                             pUseWeight->IsDefined() &&
+                             pUseWeight->GetValue())
+                          {
+                            Rectangle<2> sourceBoundingBox
+                            (sourceGridX +
+                             sourceCurrentIndex[0] *
+                             sourceGridLength,
+                             sourceGridX +
+                             (sourceCurrentIndex[0] + 1) *
+                             sourceGridLength,
+                             sourceGridY +
+                             sourceCurrentIndex[1] *
+                             sourceGridLength,
+                             sourceGridY +
+                             (sourceCurrentIndex[1] + 1) *
+                             sourceGridLength);
+                              
+                            Rectangle<2> overlapRectangle =
+                            currentBoundingBox.Intersection
+                            (sourceBoundingBox);
+
+                            Traits::Weight(value,
+                                           overlapRectangle.Area() /
+                                           sourceArea);
+                          }
+
+                          Tuple* pTuple = new Tuple(pTupleType);
+
+                          if(pTuple != 0)
+                          {
+                            typename SourceTypeProperties::
+                            TypeProperties::WrapperType*
+                            pWrappedValue =
+                            new typename SourceTypeProperties::
+                            TypeProperties::WrapperType
+                            (SourceTypeProperties::TypeProperties::
+                            GetWrappedValue(value));
+
+                            if(pWrappedValue != 0)
+                            {
+                              pTuple->PutAttribute(0, pWrappedValue);
+                              rel.AppendTuple(pTuple);
+                            }
+
+                            pTuple->DeleteIfAllowed();
+                          }
                         }
                       }
                     }
 
-                    if(sourceCurrentIndex[0] <
-                       sourceMaximumIndex[0])
+                    // evaluate function
+                    Word word;
+                    qp->Request(pFunction, word);
+
+                    if(word.addr != 0)
                     {
-                      sourceCurrentIndex.Increment(0);
-                    }
-                    
-                    else
-                    {
-                      sourceCurrentIndex.Increment(1);
+                      typename DestinationTypeProperties::
+                      TypeProperties::WrapperType* pWrappedValue =
+                      static_cast<typename
+                      DestinationTypeProperties::TypeProperties::
+                      WrapperType*>(word.addr);
 
-                      if(sourceCurrentIndex[1] <=
-                         sourceMaximumIndex[1])
-                      {
-                        sourceCurrentIndex.Set
-                        (0, sourceMinimumIndex[0]);
-                      }
-                    }
-                  }
-
-                  // evaluate function
-                  Word word;
-                  qp->Request(pFunction, word);
-
-                  if(word.addr != 0)
-                  {
-                    typename DestinationTypeProperties::
-                    TypeProperties::WrapperType*
-                    pWrappedValue =
-                    static_cast<typename DestinationTypeProperties::
-                    TypeProperties::WrapperType*>(word.addr);
-
-                    if(pWrappedValue != 0)
-                    {
-                      if(pWrappedValue->IsDefined())
+                      if(pWrappedValue != 0 &&
+                         pWrappedValue->IsDefined())
                       {
                         typename DestinationTypeProperties::
                         TypeProperties::PropertiesType value =
@@ -272,29 +271,11 @@ int matchgridFunctiont(Word* pArguments,
                         GetUnwrappedValue(*pWrappedValue);
 
                         if(DestinationTypeProperties::
-                           TypeProperties::
-                           IsUndefinedValue(value) == false)
+                           TypeProperties::IsUndefinedValue(value) ==
+                           false)
                         {
                           pResult->SetValue(resultCurrentIndex,
                                             value, true);
-                        }
-                      }
-
-                      if(resultCurrentIndex[0] <
-                         resultEndIndex[0])
-                      {
-                        resultCurrentIndex.Increment(0);
-                      }
-
-                      else
-                      {
-                        resultCurrentIndex.Increment(1);
-
-                        if(resultCurrentIndex[1] <=
-                           resultEndIndex[1])
-                        {
-                          resultCurrentIndex.Set
-                          (0, resultStartIndex[0]);
                         }
                       }
                     }
@@ -334,10 +315,10 @@ int matchgridFunctionmt(Word* pArguments,
   if(qp != 0 &&
      pArguments != 0)
   {
-    SourceType* pSourceType =
-    static_cast<SourceType*>(pArguments[0].addr);
-    mtgrid* pGrid =
-    static_cast<mtgrid*>(pArguments[1].addr);
+    SourceType* pSourceType = static_cast<SourceType*>
+                              (pArguments[0].addr);
+    mtgrid* pGrid = static_cast<mtgrid*>
+                    (pArguments[1].addr);
 
     if(pSourceType != 0 &&
        pGrid != 0)
@@ -346,8 +327,8 @@ int matchgridFunctionmt(Word* pArguments,
 
       if(rResult.addr != 0)
       {
-        DestinationType* pResult =
-        static_cast<DestinationType*>(rResult.addr);
+        DestinationType* pResult = static_cast<DestinationType*>
+                                   (rResult.addr);
 
         if(pResult != 0)
         {
@@ -360,14 +341,14 @@ int matchgridFunctionmt(Word* pArguments,
             pResult->SetGrid(*pGrid);
 
             Address pFunction = pArguments[2].addr;
-            CcBool* pUseWeight =
-            static_cast<CcBool*>(pArguments[3].addr);
+            CcBool* pUseWeight = static_cast<CcBool*>
+                                 (pArguments[3].addr);
             CcString* pAttributeName =
             static_cast<CcString*>(pArguments[4].addr);
             CcInt* pAttributeAlgebraID =
             static_cast<CcInt*>(pArguments[5].addr);
-            CcInt* pAttributeTypeID =
-            static_cast<CcInt*>(pArguments[6].addr);
+            CcInt* pAttributeTypeID = static_cast<CcInt*>
+                                      (pArguments[6].addr);
 
             if(pFunction!= 0 &&
                pUseWeight != 0 &&
@@ -381,11 +362,11 @@ int matchgridFunctionmt(Word* pArguments,
               
               ListExpr relationDescription = NList(
                                              NList("rel"),
+                                             NList(NList("tuple"),
                                              NList(
-                                             NList("tuple"),
                                              NList(
-                                             NList(pAttributeName->
-                                                   toText()),
+                                             pAttributeName->
+                                             toText()),
                                              NList(
                                              NList(
                                              pAttributeAlgebraID->
@@ -393,12 +374,11 @@ int matchgridFunctionmt(Word* pArguments,
                                              NList(
                                              pAttributeTypeID->
                                              GetIntval()))
-                                                  ).enclose()
-                                                  )).listExpr();
+                                             ).enclose()
+                                             )).listExpr();
 
-              ListExpr tupleType = NList(
-                                   relationDescription).second().
-                                   listExpr();
+              ListExpr tupleType = NList(relationDescription).
+                                   second().listExpr();
 
               mtgrid sourceGrid;
               pSourceType->getgrid(sourceGrid);
@@ -414,7 +394,6 @@ int matchgridFunctionmt(Word* pArguments,
               pResult->GetLocationIndex(sourceBoundingBox.MaxD(0),
                                         sourceBoundingBox.MaxD(1),
                                         sourceBoundingBox.MaxD(2));
-              Index<3> resultCurrentIndex = resultStartIndex;
 
               Relation rel(relationDescription, true);
 
@@ -433,207 +412,167 @@ int matchgridFunctionmt(Word* pArguments,
               double sourceGridLength = sourceGrid.GetLength();
               double sourceGridDuration = sourceGrid.GetDuration().
                                           ToDouble();
-              
-              while(resultCurrentIndex < resultEndIndex)
+
+              for(int resultTime = resultStartIndex[2];
+                  resultTime <= resultEndIndex[2];
+                  resultTime++)
               {
-                Rectangle<3> currentBoundingBox
-                (true,
-                 gridX + resultCurrentIndex[0] * gridLength,
-                 gridX + (resultCurrentIndex[0] + 1) * gridLength,
-                 gridY + resultCurrentIndex[1] * gridLength,
-                 gridY + (resultCurrentIndex[1] + 1) * gridLength,
-                 resultCurrentIndex[2] * gridDuration,
-                 (resultCurrentIndex[2] + 1) * gridDuration);
-
-                Index<3> sourceMinimumIndex =
-                (int[]){std::floor((currentBoundingBox.MinD(0) -
-                                    sourceGridX) /
-                                    sourceGridLength),
-                        std::floor((currentBoundingBox.MinD(1) -
-                                    sourceGridY) /
-                                    sourceGridLength),
-                        std::floor((currentBoundingBox.MinD(2) /
-                                    sourceGridDuration))};
-                Index<3> sourceMaximumIndex =
-                (int[]){std::floor((currentBoundingBox.MaxD(0) -
-                                    sourceGridX) /
-                                    sourceGridLength),
-                        std::floor((currentBoundingBox.MaxD(1) -
-                                    sourceGridY) /
-                                    sourceGridLength),
-                        std::floor((currentBoundingBox.MaxD(2) /
-                                    sourceGridDuration))};
-                Index<3> sourceCurrentIndex = sourceMinimumIndex;
-
-                while(sourceCurrentIndex <= sourceMaximumIndex)
+                for(int resultRow = resultStartIndex[1];
+                      resultRow <= resultEndIndex[1];
+                      resultRow++)
                 {
-                  typename SourceTypeProperties::TypeProperties::
-                  PropertiesType value =
-                  pSourceType->GetValue(sourceCurrentIndex);
-
-                  if(SourceTypeProperties::TypeProperties::
-                     IsUndefinedValue(value) == false)
+                  for(int resultColumn = resultStartIndex[0];
+                      resultColumn <= resultEndIndex[0];
+                      resultColumn++)
                   {
-                    // weight if required
-                    if(Traits::CanWeight == true &&
-                       pUseWeight->GetValue())
+                    Index<3> resultCurrentIndex =
+                    (int[]){resultColumn, resultRow, resultTime};
+
+                    Rectangle<3> currentBoundingBox
+                    (true,
+                     gridX +
+                     resultCurrentIndex[0] * gridLength,
+                     gridX +
+                     (resultCurrentIndex[0] + 1) * gridLength,
+                     gridY +
+                     resultCurrentIndex[1] * gridLength,
+                     gridY +
+                     (resultCurrentIndex[1] + 1) * gridLength,
+                     resultCurrentIndex[2] * gridDuration,
+                     (resultCurrentIndex[2] + 1) * gridDuration);
+
+                    Index<3> sourceStartIndex =
+                    (int[]){std::floor((currentBoundingBox.MinD(0) -
+                                        sourceGridX) /
+                                        sourceGridLength),
+                            std::floor((currentBoundingBox.MinD(1) -
+                                        sourceGridY) /
+                                        sourceGridLength),
+                            std::floor((currentBoundingBox.MinD(2) /
+                                        sourceGridDuration))};
+                    Index<3> sourceEndIndex =
+                    (int[]){std::floor((currentBoundingBox.MaxD(0) -
+                                        sourceGridX) /
+                                        sourceGridLength),
+                            std::floor((currentBoundingBox.MaxD(1) -
+                                        sourceGridY) /
+                                        sourceGridLength),
+                            std::floor((currentBoundingBox.MaxD(2) /
+                                        sourceGridDuration))};
+                    rel.Clear();
+
+                    for(int sourceTime = sourceStartIndex[2];
+                        sourceTime <= sourceEndIndex[2];
+                        sourceTime++)
                     {
-                      Rectangle<3> sourceBoundingBox
-                      (sourceGridX +
-                       sourceCurrentIndex[0] *
-                       sourceGridLength,
-                       sourceGridX +
-                       (sourceCurrentIndex[0] + 1) *
-                       sourceGridLength,
-                       sourceGridY +
-                       sourceCurrentIndex[1] *
-                       sourceGridLength,
-                       sourceGridY +
-                       (sourceCurrentIndex[1] + 1) *
-                       sourceGridLength,
-                       sourceCurrentIndex[2] *
-                       sourceGridDuration,
-                       (sourceCurrentIndex[2] + 1) *
-                       sourceGridDuration);
-                        
-                      Rectangle<3> overlapRectangle =
-                      currentBoundingBox.Intersection
-                      (sourceBoundingBox);
-
-                      Traits::Weight(value, overlapRectangle.Area() /
-                                     sourceArea);
-                    }
-
-                    typename SourceTypeProperties::TypeProperties::
-                    WrapperType* pWrappedType = new typename
-                    SourceTypeProperties::TypeProperties::
-                    WrapperType(SourceTypeProperties::
-                    TypeProperties::GetWrappedValue(value));
-
-                    if(pWrappedType != 0)
-                    {
-                      Tuple* pTuple = new Tuple(tupleType);
-
-                      if(pTuple != 0)
+                      for(int sourceRow = sourceStartIndex[1];
+                          sourceRow <= sourceEndIndex[1];
+                          sourceRow++)
                       {
-                        pTuple->PutAttribute(0, pWrappedType);
-                        rel.AppendTuple(pTuple);
-                        pTuple->DeleteIfAllowed();
+                        for(int sourceColumn = sourceStartIndex[0];
+                            sourceColumn <= sourceEndIndex[0];
+                            sourceColumn++)
+                        {
+                          Index<3> sourceCurrentIndex =
+                          (int[]){sourceColumn, sourceRow,
+                                  sourceTime};
+
+                          typename SourceTypeProperties::
+                          TypeProperties::PropertiesType value =
+                          pSourceType->GetValue(sourceCurrentIndex);
+
+                          if(SourceTypeProperties::TypeProperties::
+                             IsUndefinedValue(value) == false)
+                          {
+                            // weight if required
+                            if(Traits::CanWeight == true &&
+                               pUseWeight->IsDefined() &&
+                               pUseWeight->GetValue())
+                            {
+                              Rectangle<3> sourceBoundingBox
+                              (sourceGridX +
+                               sourceCurrentIndex[0] *
+                               sourceGridLength,
+                               sourceGridX +
+                               (sourceCurrentIndex[0] + 1) *
+                               sourceGridLength,
+                               sourceGridY +
+                               sourceCurrentIndex[1] *
+                               sourceGridLength,
+                               sourceGridY +
+                               (sourceCurrentIndex[1] + 1) *
+                               sourceGridLength,
+                               sourceCurrentIndex[2] *
+                               sourceGridDuration,
+                               (sourceCurrentIndex[2] + 1) *
+                               sourceGridDuration);
+
+                              Rectangle<3> overlapRectangle =
+                              currentBoundingBox.Intersection
+                              (sourceBoundingBox);
+
+                              Traits::Weight(value,
+                                             overlapRectangle.
+                                             Area() / sourceArea);
+                            }
+
+                            Tuple* pTuple = new Tuple(tupleType);
+
+                            if(pTuple != 0)
+                            {
+                              typename SourceTypeProperties::
+                              TypeProperties::WrapperType*
+                              pWrappedValue =
+                              new typename SourceTypeProperties::
+                              TypeProperties::WrapperType
+                              (SourceTypeProperties::TypeProperties::
+                              GetWrappedValue(value));
+
+                              if(pWrappedValue != 0)
+                              {
+                                pTuple->PutAttribute(0,
+                                                     pWrappedValue);
+                                rel.AppendTuple(pTuple);
+                              }
+
+                              pTuple->DeleteIfAllowed();
+                            }
+                          }
+                        }
                       }
                     }
-                  }
 
-                  if(sourceCurrentIndex[0] <
-                     sourceMaximumIndex[0])
-                  {
-                    sourceCurrentIndex.Increment(0);
-                  }
-                  
-                  else
-                  {
-                    if(sourceCurrentIndex[1] <
-                       sourceMaximumIndex[1])
+                    argumentsVector[0].setAddr(&rel);
+                    Word word;
+                    qp->Request(pFunction, word);
+
+                    if(word.addr != 0)
                     {
-                      sourceCurrentIndex.Increment(1);
+                      typename DestinationTypeProperties::
+                      TypeProperties::WrapperType* pWrappedValue =
+                      static_cast<typename
+                      DestinationTypeProperties::TypeProperties::
+                      WrapperType*>(word.addr);
 
-                      if(sourceCurrentIndex[1] <=
-                         sourceMaximumIndex[1])
+                      if(pWrappedValue != 0 &&
+                         pWrappedValue->IsDefined())
                       {
-                        sourceCurrentIndex.Set
-                        (0, sourceMinimumIndex[0]);
-                      }
-                    }
+                        typename DestinationTypeProperties::
+                        TypeProperties::PropertiesType value =
+                        DestinationTypeProperties::TypeProperties::
+                        GetUnwrappedValue(*pWrappedValue);
 
-                    else
-                    {
-                      sourceCurrentIndex.Increment(2); 
-
-                      if(sourceCurrentIndex[2] <=
-                         sourceMaximumIndex[2])
-                      {
-                        sourceCurrentIndex.Set
-                        (0, sourceMinimumIndex[0]);
-                        sourceCurrentIndex.Set
-                        (1, sourceMinimumIndex[1]);
+                        if(DestinationTypeProperties::
+                           TypeProperties::IsUndefinedValue(value) ==
+                           false)
+                        {
+                          pResult->SetValue(resultCurrentIndex,
+                                            value, true);
+                        }
                       }
                     }
                   }
                 }
-
-                argumentsVector[0].setAddr(&rel);
-                Word word;
-                qp->Request(pFunction, word);
-
-                if(word.addr != 0)
-                {
-                  typename DestinationTypeProperties::
-                  TypeProperties::WrapperType* pWrappedValue =
-                  static_cast<typename DestinationTypeProperties::
-                  TypeProperties::WrapperType*>(word.addr);
-
-                  if(pWrappedValue != 0)
-                  {
-                    if(pWrappedValue->IsDefined())
-                    {
-                      typename DestinationTypeProperties::
-                      TypeProperties::PropertiesType value =
-                      DestinationTypeProperties::TypeProperties::
-                      GetUnwrappedValue(*pWrappedValue);
-
-                      if(DestinationTypeProperties::TypeProperties::
-                         IsUndefinedValue(value) == false)
-                      {
-                        pResult->SetValue(resultCurrentIndex,
-                                          value, true);
-                      }
-                    }
-
-                    if(resultCurrentIndex[0] <
-                      (resultEndIndex[0] - 1))
-                    {
-                      resultCurrentIndex.Increment(0);
-                    }
-
-                    else
-                    {
-                      if(resultCurrentIndex[1] <
-                        (resultEndIndex[1] - 1))
-                      {
-                        resultCurrentIndex.Increment(1);
-
-                        if(resultCurrentIndex[1] <
-                           resultEndIndex[1])
-                        {
-                          resultCurrentIndex.Set
-                          (0, resultStartIndex[0]);
-                        }
-                      }
-
-                      else
-                      {
-                        if(resultCurrentIndex[2] <
-                          (resultEndIndex[2] - 1))
-                        {
-                          resultCurrentIndex.Increment(2); 
-  
-                          if(resultCurrentIndex[2] <
-                             resultEndIndex[2])
-                          {
-                            resultCurrentIndex.Set
-                            (0, resultStartIndex[0]);
-                            resultCurrentIndex.Set
-                            (1, resultStartIndex[1]);
-                          }
-                        }
-                        
-                        else
-                        {
-                          resultCurrentIndex = resultEndIndex;
-                        }
-                      }
-                    }
-                  }
-                }  
               }
             }
           }
@@ -646,7 +585,7 @@ int matchgridFunctionmt(Word* pArguments,
 }
 
 /*
-definition of template
+definition of template matchgrid traits
 
 */
 
@@ -873,8 +812,7 @@ ListExpr matchgridTypeMappingFunction(ListExpr arguments)
                                    "a mt type object, "
                                    "a tgrid object or "
                                    "a mtgrid object, "
-                                   "a relation and "
-                                   "a bool object");
+                                   "a relation and a bool object");
 
   NList argumentsList(arguments);
 
@@ -930,21 +868,21 @@ ListExpr matchgridTypeMappingFunction(ListExpr arguments)
           if(listutils::isRelDescription(argument3.second().
                                          listExpr()))
           {
-            NList attributeList = argument3.second().
-                                  second().second();
+            NList attributeList = argument3.second().second().
+                                  second();
 
             if(attributeList.length() == 1)
             {
-              NList attributeTypeList = attributeList.
-                                        first().second();
+              NList attributeTypeList = attributeList.first().
+                                        second();
               std::string attributeType = attributeTypeList.str();
-              std::string valueWrapperType =
-              GetValueWrapperType(argument1);
+              std::string valueWrapperType = GetValueWrapperType
+                                             (argument1);
 
               if(attributeType == valueWrapperType)
               {
-                SecondoCatalog* pSecondoCatalog =
-                SecondoSystem::GetCatalog();
+                SecondoCatalog* pSecondoCatalog = SecondoSystem::
+                                                  GetCatalog();
 
                 if(pSecondoCatalog != 0)
                 {
