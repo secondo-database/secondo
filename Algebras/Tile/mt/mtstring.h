@@ -106,6 +106,11 @@ class mtstring : public mtint
   bool SetValue(const Index<3>& rIndex,
                 const std::string& rValue,
                 bool bSetExtrema);
+  bool SetValue(const double& rX,
+                const double& rY,
+                const double& rInstant,
+                const std::string& rValue,
+                bool bSetExtrema);
 
   protected:
 

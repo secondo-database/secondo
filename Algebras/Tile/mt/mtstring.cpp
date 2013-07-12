@@ -405,6 +405,24 @@ bool mtstring::SetValue(const Index<3>& rIndex,
   return bRetVal;
 }
 
+bool mtstring::SetValue(const double& rX,
+                        const double& rY,
+                        const double& rInstant,
+                        const std::string& rValue,
+                        bool bSetExtrema)
+{
+  bool bRetVal = false;
+
+  if(IsDefined() &&
+     IsValidLocation(rX, rY, rInstant))
+  {
+    Index<3> index = GetLocationIndex(rX, rY, rInstant);
+    bRetVal = SetValue(index, rValue, bSetExtrema);
+  }
+
+  return bRetVal;
+}
+
 bool mtstring::Adjacent(const Attribute* pAttribute) const
 {
   return false;
