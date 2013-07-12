@@ -192,25 +192,36 @@ int ArelAtInstant( Word* args, Word& result, int message,
 
 
 
-  Relation* outrel=new Relation(atupleType);
+ 	Relation* outrel=new Relation(atupleType);
 
-  AttributeRelation* outarel = new AttributeRelation(
-		  outrel->GetFileId(),
-		  nl->Second(resultType));
+
+
+  AttributeRelation* outarel = (AttributeRelation*)
+                              (qp->ResultStorage(s).addr);
+
+
+  outarel->getTupleIds()->clean();
+  outarel->setRel(outrel);
+  outarel->setRelId(outrel->GetFileId());
 
 
   int tupleIndex=0;
 
 
+
+  Tuple* atuple = new Tuple (atupleType);
 /*here we can simple copy or transform then copy*/
 
   while (tupleIndex < arel->getTupleIds()->Size())
   {
 
-	Tuple* atuple = new Tuple (atupleType);
 
 
-	TupleId tid;
+
+
+
+
+	   TupleId tid;
     arel->getTupleIds()->Get(tupleIndex, tid);
 
     Tuple* t = r->GetTuple(tid, false);
@@ -219,6 +230,7 @@ int ArelAtInstant( Word* args, Word& result, int message,
     atuple->PutAttribute(0,instant);
     int scanIndex=0;
     while(scanIndex<t->GetNoAttributes()){
+
 
 
 
@@ -282,8 +294,8 @@ int ArelAtInstant( Word* args, Word& result, int message,
   }
 
 
- 	atuple->DeleteIfAllowed();
-  atupleType->DeleteIfAllowed();
+ 	//atuple->DeleteIfAllowed();
+  //atupleType->DeleteIfAllowed();
   result.setAddr(outarel);
 
 

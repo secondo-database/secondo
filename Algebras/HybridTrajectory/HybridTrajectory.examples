@@ -1,22 +1,21 @@
-Database: berlintest
+Database: hybridTest
 Restore : No
 
 Operator : atinstant
 Number   : 1
 Signature: (arel(X) x instant) -> arel(Y)
-Example  : query [const instant value "2007-12-24"] # [const instant value "2007-12-25"]
-Result   : TRUE
+Example  : query person  feed projectextend[Person_id_o;H :.Hybrid atinstant [const instant value "2008-11-01-04:24:08"]] count
+Result   : 1
 
 
 Operator : atperiods
 Number   : 1
-Signature: (mT periods) -> mT
-Example  : query train7 atperiods [const periods value (("2003-11-20-07:01:40" "20003-11-20-07:45" TRUE TRUE))]
-Result   : (mpoint((("2003-11-20-07:01:40" "2003-11-20-07:01:44.586" TRUE FALSE)(-3519.76750330251 14374.09577278732 -3544.0 14312.0))(("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)(-3544.0 14312.0 -3560.0 14235.0))(("2003-11-20-07:01:50" "2003-11-20-07:02" TRUE FALSE)(-3560.0 14235.0 -3560.0 14235.0))))
-
+Signature: (arel(X) x instant) -> arel(X)
+Example  : query person  feed projectextend[Person_id_o;H :.Hybrid atperiods [const periods value (("2008-09-27-23:22:35" "2008-09-28-01:19:49" TRUE FALSE))]] count
+Result   : 1
 
 Operator : by
 Number   : 1
-Signature: (mT periods) -> mT
-Example  : query train7 atperiods [const periods value (("2003-11-20-07:01:40" "20003-11-20-07:45" TRUE TRUE))]
-Result   : (mpoint((("2003-11-20-07:01:40" "2003-11-20-07:01:44.586" TRUE FALSE)(-3519.76750330251 14374.09577278732 -3544.0 14312.0))(("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)(-3544.0 14312.0 -3560.0 14235.0))(("2003-11-20-07:01:50" "2003-11-20-07:02" TRUE FALSE)(-3560.0 14235.0 -3560.0 14235.0))))
+Signature: (mT X mT') -> rel(tuple([Raw :mT,Symbolic:mT']))
+Example  : query by (person feed unnest [Hybrid] extract[Mov_o] ,person feed unnest [Hybrid] extract[Label_value_p]) count
+Result   : 5
