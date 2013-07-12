@@ -443,7 +443,7 @@ protected:
   this interval.
 
  */
- int computeBeginOfIntersectionInterval(int pos);
+int computeBeginOfIntersectionInterval(int pos);
 
  /*
   ~computeEndOfIntersectionInterval~
@@ -453,7 +453,7 @@ protected:
   interval.
 
  */
- int computeEndOfIntersectionInterval(int pos);
+int computeEndOfIntersectionInterval(int pos);
 
 
  /*
@@ -1119,7 +1119,7 @@ void intersectionTestForRealminize(AVLSegment* left, AVLSegment* right,
  segment is created.
 
 */
-bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
+bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event& event,
   priority_queue<Event, vector<Event>, greater<Event> >& q, bool leftIsSmaller);
 
 /*

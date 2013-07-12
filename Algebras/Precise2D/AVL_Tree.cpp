@@ -1297,7 +1297,9 @@ void AVLSegment::print() {
    << " " << getPreciseYL() << ", " << getGridXR() << " " << getPreciseXR()
    << ", " << getGridYR() << " " << getPreciseYR() << " )" << endl << "owner: "
    << owner << endl << "conAbove: " << conAbove << endl << "conBelow: "
-   << conBelow << endl << "valid: " << valid << endl;
+   << conBelow << endl << "valid: " << valid << endl
+   << "firstInsideAbove: " << firstInsideAbove<<
+   endl<<"secondInsideAbove: " <<secondInsideAbove<<endl;
 
 }
 
@@ -1515,6 +1517,7 @@ AVLSegment& AVLSegment::operator=(const AVLSegment& s) {
  gridXR = s.getGridXR();
  gridYR = s.getGridYR();
  flob = s.flob;
+ dbarray = s.dbarray;
  originalData1 = s.originalData1;
  originalData2 = s.originalData2;
  owner = s.getOwner();
@@ -1555,6 +1558,8 @@ int AVLSegment::computeBeginOfIntersectionInterval(int pos) {
    return gridYR;
   }
  } else {
+  mpq_class pgridXL = gridXL;
+  mpq_class ppos = pos;
   if (((gridYR - gridYL) > 0 && (gridXR - gridXL) > 0)
     || ((gridYR - gridYL) < 0 && (gridXR - gridXL) < 0)) {
    //positive slope
@@ -1579,6 +1584,8 @@ int AVLSegment::computeEndOfIntersectionInterval(int pos) {
    return gridYR + 1;
   }
  } else {
+  mpq_class pgridXL = gridXL;
+  mpq_class ppos = pos;
   if (((gridYR - gridYL) > 0 && (gridXR - gridXL) > 0)
     || ((gridYR - gridYL) < 0 && (gridXR - gridXL) < 0)) {
    //positive slope
@@ -1590,6 +1597,7 @@ int AVLSegment::computeEndOfIntersectionInterval(int pos) {
   }
  }
 }
+
 
 int AVLSegment::compareIntersectionintervalWithSweepline(AVLSegment& s,
   int gridXPos) {
@@ -1604,6 +1612,7 @@ int AVLSegment::compareIntersectionintervalWithSweepline(AVLSegment& s,
   // the interval of this segment in ~pos~ is below
   // the interval of ~s~ in ~pos~. So the y-value of this in ~pos~
   // is less than the y-value of ~s~ in ~pos~.
+  cout <<"cmpIntervall: -1"<<endl;
   return -1;
  }
  int beginInterval, endIntervalOfS;
@@ -1613,8 +1622,10 @@ int AVLSegment::compareIntersectionintervalWithSweepline(AVLSegment& s,
   // the interval of this segment in ~pos~ is above
   // the interval of ~s~ in ~pos~. So the y-value of this in ~pos~
   // is greater than the y-value of ~s~ in ~pos~.
+  cout <<"cmpIntervall: 1"<<endl;
   return 1;
  }
+ cout <<"cmpIntervall: 0"<<endl;
  return 0;
 }
 
@@ -3302,7 +3313,7 @@ Owner selectNext(/*const*/Region2& r1, int& pos1,
  while (pos1 < r1.Size() && !found) {
   r1.getgridCoordinates()->Get(pos1, gs1);
   r1.getprecCoordinates()->Get(pos1, ps1);
-
+  cout <<"DBArray: "<<r1.getpreciseCoordinates()->getData()<<endl;
   if (gs1.IsLeftDomPoint()) {
    c0.gx = gs1.GetLeftPointX();
    c0.px = ps1.GetlPointx(r1.getpreciseCoordinates());
@@ -3372,6 +3383,8 @@ Owner selectNext(/*const*/Region2& r1, int& pos1,
   }
   AVLSegment* seg1 = new AVLSegment(r1.getpreciseCoordinates(), gs1,
     new Reg2PrecHalfSegment(ps1), first);
+  cout <<"next: "<<endl;
+  seg1->print();
   Event* result1 = new Event(leftEndpoint, seg1);
   event = *result1;
   return first;
@@ -3382,6 +3395,8 @@ Owner selectNext(/*const*/Region2& r1, int& pos1,
   }
   AVLSegment* seg2 = new AVLSegment(r2.getpreciseCoordinates(), gs2,
     new Reg2PrecHalfSegment(ps2), second);
+  cout <<"next: "<<endl;
+  seg2->print();
   Event* result2 = new Event(leftEndpoint, seg2);
   event = *result2;
   return second;
@@ -3658,7 +3673,7 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
 
 */
 void intersectionTestForRealminize(AVLSegment* left, AVLSegment* right,
-  Event* event, priority_queue<Event, vector<Event>, greater<Event> >& q,
+  Event event, priority_queue<Event, vector<Event>, greater<Event> >& q,
   bool leftIsSmaller) {
 
  if (left->mightIntersect(*right)) {
@@ -3673,7 +3688,7 @@ void intersectionTestForRealminize(AVLSegment* left, AVLSegment* right,
     overlappingSegment->print();
    }
    if (overlappingSegment->isPoint()) {
-    if (!overlappingSegment->isLeftOf(*event)
+    if (!overlappingSegment->isLeftOf(event)
       && (!(overlappingSegment->isLeftPointOf(*left)
         && overlappingSegment->isRightPointOf(*right)))) {
      if (leftIsSmaller) {
@@ -3700,6 +3715,68 @@ void intersectionTestForRealminize(AVLSegment* left, AVLSegment* right,
  ~intersectionTestForSetOp~
 
 */
+bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event& event,
+  priority_queue<Event, vector<Event>, greater<Event> >& q,
+  bool leftIsSmaller) {
+
+ if (s1->mightIntersect(*s2)) {
+  AVLSegment* overlappingSegment = new AVLSegment();
+  if (s1->intersect(*s2, *overlappingSegment)) {
+   if (p2d_debug) {
+    cout << endl << endl << "s1: ";
+    s1->print();
+    cout << "s2: ";
+    s2->print();
+    cout << "Schnittpunkt :";
+    overlappingSegment->print();
+    cout << endl << endl;
+   }
+   if (overlappingSegment->isPoint()) {
+    if (!overlappingSegment->isLeftOf(event)) {
+     if (leftIsSmaller) {
+      Event ie(intersectionPoint, s1, s2, overlappingSegment);
+      q.push(ie);
+     } else {
+      Event ie(intersectionPoint, s2, s1, overlappingSegment);
+      q.push(ie);
+     }
+    }
+   } else {
+    AVLSegment* right = new AVLSegment();
+    splitNeighbors(s1, s2, overlappingSegment, right);
+
+    if (s1->getOwner() == both) {
+
+     Event e1(rightEndpoint, s1);
+     q.push(e1);
+    }
+    if (leftIsSmaller) {
+     Event ie2(intersectionPoint, s1, s2, overlappingSegment);
+     q.push(ie2);
+    } else {
+     Event ie2(intersectionPoint, s2, s1, overlappingSegment);
+     q.push(ie2);
+    }
+
+    Event e2(rightEndpoint, s2);
+    q.push(e2);
+
+    if (!right->isPoint()) {
+     Event e3(leftEndpoint, right);
+     q.push(e3);
+    } else {
+
+     delete right;
+    }
+   }
+   delete overlappingSegment;
+   return true;
+  }
+  delete overlappingSegment;
+ }
+ return false;
+}
+
 bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
   priority_queue<Event, vector<Event>, greater<Event> >& q,
   bool leftIsSmaller) {
@@ -4071,6 +4148,8 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
    newS.setSecondInsideAbove(s->getSecondInsideAbove());
    *s = newS;
   } // (!startsAtEventpoint) && (!endsInEventpoint)
+
+
   if (!endsInEventpoint) {
 
    if (s->getOwner() != both) {
@@ -4095,6 +4174,8 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
     }
 
    }
+   cout <<"nach Anpassung"<<endl;
+   s->print();
    next = s;
    assert((0 <= s->getConAbove()) && (s->getConAbove() <= 2));
    assert((0 <= s->getConBelow()) && (s->getConBelow() <= 2));
@@ -4383,14 +4464,14 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
  result.StartBulkLoad();
  int edgeno = 0;
 
- Event* event = new Event();
+ Event event;
 
- while (selectNext(src, pos, q, *event) != none) {
-  if (event->isLeftEndpointEvent()) {
+ while (selectNext(src, pos, q, event) != none) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc);
    mpq_class v = current->getPreciseXL();
    if (pred) {
@@ -4398,12 +4479,12 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event.getGridX(), v);
    } else {
     if (suc) {
      intersectionTestForRealminize(current, suc, event, q, true);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event.getGridX(), v);
      }
     }
    }
@@ -4413,12 +4494,12 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
    }
 
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
-    if (event->isValid()) {
+    current = event.getSegment();
+    if (event.isValid()) {
      if (current->isValid()) {
       if (p2d_debug) {
        cout << "neues Segment in Line einfuegen" << endl;
@@ -4449,16 +4530,16 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
    else {
     //intersection Event
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    mpq_class v1 = event->getPreciseX();
-    mpq_class v2 = event->getPreciseY();
+    mpq_class v1 = event.getPreciseX();
+    mpq_class v2 = event.getPreciseY();
     //segmentVector stores all segments which intersect in the
     //same event-point
     vector<AVLSegment*> segmentVector;
 
-    AVLSegment* seg = event->getLeftSegment();
-    AVLSegment* r = event->getRightSegment();
+    AVLSegment* seg = event.getLeftSegment();
+    AVLSegment* r = event.getRightSegment();
 
     segmentVector.push_back(seg);
     Event e = q.top();
@@ -4471,11 +4552,11 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
     //the segments don't have to be inverted.
     bool inversionNecessary = false;
 
-    while (e.isIntersectionEvent() && e.getGridX() == event->getGridX()
-      && e.getGridY() == event->getGridY()
-      && cmp(e.getPreciseX(), event->getPreciseX()) == 0
-      && cmp(e.getPreciseY(), event->getPreciseY()) == 0) {
-     if (seg->compareInPosOrLeft(*(e.getLeftSegment()), event->getGridX(), v1)
+    while (e.isIntersectionEvent() && e.getGridX() == event.getGridX()
+      && e.getGridY() == event.getGridY()
+      && cmp(e.getPreciseX(), event.getPreciseX()) == 0
+      && cmp(e.getPreciseY(), event.getPreciseY()) == 0) {
+     if (seg->compareInPosOrLeft(*(e.getLeftSegment()), event.getGridX(), v1)
        < 0) {
       if (seg->isParallelTo(*e.getLeftSegment())) {
        if (segmentVector.size() == 1) {
@@ -4497,7 +4578,7 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
      e = q.top();
     }
 
-    if (segmentVector.back()->compareInPosOrLeft(*r, event->getGridX(), v1)
+    if (segmentVector.back()->compareInPosOrLeft(*r, event.getGridX(), v1)
       < 0) {
      if (segmentVector.back()->isParallelTo(*r)) {
       segmentVector.pop_back();
@@ -4516,7 +4597,7 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
 
      left = segmentVector.at(0);
      right = segmentVector.back();
-     sss.invertSegments(segmentVector, event->getGridX(), v1, event->getGridY(),
+     sss.invertSegments(segmentVector, event.getGridX(), v1, event.getGridY(),
        v2, pred, predIndex, suc, sucIndex);
 
      if (p2d_debug && pred) {
@@ -4537,41 +4618,41 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
      if (suc) {
       intersectionTestForRealminize(left, suc, event, q, true);
      }
-     mpq_class px = event->getPreciseX();
-     mpq_class py = event->getPreciseY();
+     mpq_class px = event.getPreciseX();
+     mpq_class py = event.getPreciseY();
      for (size_t i = 0; i < segmentVector.size(); i++) {
-      bool isEndpoint = segmentVector.at(i)->isEndpoint(event->getGridX(),
-        event->getGridY(), px, py);
+      bool isEndpoint = segmentVector.at(i)->isEndpoint(event.getGridX(),
+        event.getGridY(), px, py);
       if (!isEndpoint) {
        if (p2d_debug) {
         cout << "neues Segment in Line einfuegen" << endl;
 
         cout << segmentVector.at(i)->getGridXL() << " "
           << segmentVector.at(i)->getGridYL() << " "
-          << event->getGridX() << " "
-          << event->getGridY() << " "
+          << event.getGridX() << " "
+          << event.getGridY() << " "
           << segmentVector.at(i)->getPreciseXL().get_d() << " "
           << segmentVector.at(i)->getPreciseYL().get_d() << " "
-          << event->getPreciseX().get_d() << " "
-          << event->getPreciseY().get_d()
+          << event.getPreciseX().get_d() << " "
+          << event.getPreciseY().get_d()
           << endl;
        }
        result.addSegment(true, segmentVector.at(i)->getGridXL(),
-         segmentVector.at(i)->getGridYL(), event->getGridX(), event->getGridY(),
+         segmentVector.at(i)->getGridYL(), event.getGridX(), event.getGridY(),
          segmentVector.at(i)->getPreciseXL(),
-         segmentVector.at(i)->getPreciseYL(), event->getPreciseX(),
-         event->getPreciseY(), edgeno);
+         segmentVector.at(i)->getPreciseYL(), event.getPreciseX(),
+         event.getPreciseY(), edgeno);
        result.addSegment(false, segmentVector.at(i)->getGridXL(),
-         segmentVector.at(i)->getGridYL(), event->getGridX(), event->getGridY(),
+         segmentVector.at(i)->getGridYL(), event.getGridX(), event.getGridY(),
          segmentVector.at(i)->getPreciseXL(),
-         segmentVector.at(i)->getPreciseYL(), event->getPreciseX(),
-         event->getPreciseY(), edgeno);
+         segmentVector.at(i)->getPreciseYL(), event.getPreciseX(),
+         event.getPreciseY(), edgeno);
        edgeno++;
 
-       AVLSegment* newLeft = new AVLSegment(event->getGridX(),
-         event->getGridY(), segmentVector.at(i)->getGridXR(),
-         segmentVector.at(i)->getGridYR(), event->getPreciseX(),
-         event->getPreciseY(), segmentVector.at(i)->getPreciseXR(),
+       AVLSegment* newLeft = new AVLSegment(event.getGridX(),
+         event.getGridY(), segmentVector.at(i)->getGridXR(),
+         segmentVector.at(i)->getGridYR(), event.getPreciseX(),
+         event.getPreciseY(), segmentVector.at(i)->getPreciseXR(),
          segmentVector.at(i)->getPreciseYR(), segmentVector.at(i)->getOwner());
 
        *(segmentVector.at(i)) = *newLeft;
@@ -4588,7 +4669,6 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow) {
   }
  }
 
- delete event;
  result.EndBulkLoad(false, false, false);
 } // end Realminize
 
@@ -4704,15 +4784,15 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
 
  int edgeno = 0;
 
- Event* event = new Event();
+ Event event;
 
  result.StartBulkLoad();
- while ((selectNext(line1, pos1, line2, pos2, q, *event)) != none) {
-  if (event->isLeftEndpointEvent()) {
+ while ((selectNext(line1, pos1, line2, pos2, q, event)) != none) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc);
 
    mpq_class v = current->getPreciseXL();
@@ -4721,12 +4801,12 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event.getGridX(), v);
    } else {
     if (suc) {
      intersectionTestForSetOp(current, suc, event, q, true);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event.getGridX(), v);
      }
     }
    }
@@ -4735,12 +4815,11 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
     q.push(re);
    }
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
-    if (event->isValid()) {
+    current = event.getSegment();
      if (current->isValid()) {
       createNewSegments(*current, result, edgeno, op);
 
@@ -4752,39 +4831,40 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
       }
 
      } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      cout<<"invalid segment found"<<endl;
+      assert(false);
+      mpq_class v1 = event.getPreciseX();
+      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
       if (pred && suc) {
        intersectionTestForSetOp(pred, suc, event, q, true);
       }
      }
-    }
-    if (event->getNoOfChanges() == 0) {
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex);
 
       if (p2d_debug && pred) {
        cout << "intersection-test with" << endl;
@@ -4804,10 +4884,10 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
       if (suc) {
        intersectionTestForSetOp(left, suc, event, q, true);
       }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
+      mpq_class px = event.getPreciseX();
+      mpq_class py = event.getPreciseY();
 
-      createNewSegments(segmentVector, *event, result, edgeno, op);
+      createNewSegments(segmentVector, event, result, edgeno, op);
      }
     }
    }
@@ -4817,7 +4897,6 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
    sss.inorder();
   }
  }
- delete event;
  result.EndBulkLoad(true, false);
 } // setop line2 x line2 -> line2
 
@@ -4860,17 +4939,17 @@ bool intersects(const Line2& line1, const Line2& line2,
  AVLSegment* left = NULL;
  AVLSegment* right = NULL;
 
- Event* event = new Event();
+ Event event;
 
  bool intersect = false;
 
  while ((!intersect
-   && (selectNext(line1, pos1, line2, pos2, q, *event)) != none)) {
-  if (event->isLeftEndpointEvent()) {
+   && (selectNext(line1, pos1, line2, pos2, q, event)) != none)) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
 
    sss.insert(current, pred, suc);
 
@@ -4888,7 +4967,7 @@ bool intersects(const Line2& line1, const Line2& line2,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event.getGridX(), v);
    } else {
     if (suc) {
      if (intersectionTestForSetOp(current, suc, event, q, true)) {
@@ -4898,7 +4977,7 @@ bool intersects(const Line2& line1, const Line2& line2,
       }
      }
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event.getGridX(), v);
      }
     }
    }
@@ -4907,12 +4986,12 @@ bool intersects(const Line2& line1, const Line2& line2,
     q.push(re);
    }
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
-    if (event->isValid()) {
+    current = event.getSegment();
+
      if (current->isValid()) {
       sss.removeGetNeighbor(current, pred, suc);
       current->changeValidity(false);
@@ -4926,8 +5005,10 @@ bool intersects(const Line2& line1, const Line2& line2,
       }
 
      } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      cout<<"invalid segment found"<<endl;
+      assert(false);
+      mpq_class v1 = event.getPreciseX();
+      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
       if (pred && suc) {
        if (intersectionTestForSetOp(pred, suc, event, q, true)) {
         if (pred->getOwner() != suc->getOwner()) {
@@ -4936,33 +5017,33 @@ bool intersects(const Line2& line1, const Line2& line2,
        }
       }
      }
-    }
-    if (event->getNoOfChanges() == 0) {
+
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex);
 
       if (p2d_debug && pred) {
        cout << "intersection-test for" << endl;
@@ -4999,7 +5080,6 @@ bool intersects(const Line2& line1, const Line2& line2,
    sss.inorder();
   }
  }
- delete event;
  return intersect;
 } // intersects line2 x line2 -> bool
 
@@ -5030,6 +5110,10 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
   return;
  }
 
+ if (!line1.BoundingBox().Intersects(line2.BoundingBox(), geoid)) {
+  return;
+ }
+
  priority_queue<Event, vector<Event>, greater<Event> > q;
  AVLTree sss;
  int pos1 = 0;
@@ -5041,14 +5125,14 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
  AVLSegment* left = NULL;
  AVLSegment* right = NULL;
 
- Event* event = new Event();
+ Event event;
 
- while (selectNext(line1, pos1, line2, pos2, q, *event) != none) {
-  if (event->isLeftEndpointEvent()) {
+ while (selectNext(line1, pos1, line2, pos2, q, event) != none) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc);
    mpq_class v = current->getPreciseXL();
 
@@ -5056,12 +5140,12 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
     intersectionTestForSetOp(current, pred, event, q, false);
    }
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event.getGridX(), v);
    } else {
     if (suc) {
      intersectionTestForSetOp(current, suc, event, q, true);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event.getGridX(), v);
      } else {
 
      }
@@ -5074,12 +5158,11 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
    }
 
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
-    if (event->isValid()) {
+    current = event.getSegment();
 
      mpq_class v1 = current->getPreciseXR();
      sss.removeGetNeighbor(current, pred, suc);
@@ -5088,27 +5171,25 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
       intersectionTestForSetOp(pred, suc, event, q, true);
      }
 
-    }
-
-    if (event->getNoOfChanges() == 0) {
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
    } else {
     //intersection Event
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
 
-    mpq_class v1 = event->getPreciseX();
-    mpq_class v2 = event->getPreciseY();
+    mpq_class v1 = event.getPreciseX();
+    mpq_class v2 = event.getPreciseY();
     vector<AVLSegment*> segmentVector;
 
     size_t predIndex = 0;
     size_t sucIndex = 0;
     bool inversionNecessary = false;
 
-    collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+    collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
       inversionNecessary);
 
     bool hasSegOfArg1 = false;
@@ -5128,14 +5209,14 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
 
     if (hasSegOfArg1 && hasSegOfArg2) {
      result.addPoint(
-       new Point2(true, event->getGridX(), event->getGridY(),
-         event->getPreciseX(), event->getPreciseY()));
+       new Point2(true, event.getGridX(), event.getGridY(),
+         event.getPreciseX(), event.getPreciseY()));
     }
 
     if (inversionNecessary) {
      left = segmentVector.at(0);
      right = segmentVector.back();
-     sss.invertSegments(segmentVector, event->getGridX(), v1, event->getGridY(),
+     sss.invertSegments(segmentVector, event.getGridX(), v1, event.getGridY(),
        v2, pred, predIndex, suc, sucIndex);
 
      if (p2d_debug && pred) {
@@ -5157,8 +5238,8 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
      if (suc) {
       intersectionTestForSetOp(left, suc, event, q, true);
      }
-     mpq_class px = event->getPreciseX();
-     mpq_class py = event->getPreciseY();
+     mpq_class px = event.getPreciseX();
+     mpq_class py = event.getPreciseY();
 
     }
    }
@@ -5169,7 +5250,6 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
   }
  }
 
- delete event;
 } // crossings line2 x line2 -> points2
 
 /*
@@ -5294,16 +5374,15 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
 
  int edgeno = 0;
 
- Event* event = new Event();
+ Event event;
 
  result.StartBulkLoad();
- cout << "vor plane sweep" << endl;
- while ((selectNext(reg1, pos1, reg2, pos2, q, *event)) != none) {
-  if (event->isLeftEndpointEvent()) {
+ while ((selectNext(reg1, pos1, reg2, pos2, q, event)) != none) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc);
 
    mpq_class v = current->getPreciseXL();
@@ -5312,12 +5391,12 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event.getGridX(), v);
    } else {
     if (suc) {
      intersectionTestForSetOp(current, suc, event, q, true);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event.getGridX(), v);
      }
     }
    }
@@ -5327,12 +5406,12 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
    }
 
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
-    if (event->isValid()) {
+    current = event.getSegment();
+
      if (current->isValid()) {
       createNewSegments(*current, result, edgeno, op);
 
@@ -5344,40 +5423,42 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
       }
 
      } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      cout<<"invalid segment found"<<endl;
+      assert(false);
+      mpq_class v1 = event.getPreciseX();
+      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
       if (pred && suc) {
        intersectionTestForSetOp(pred, suc, event, q, true);
       }
      }
-    }
-    if (event->getNoOfChanges() == 0) {
+
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
 
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex);
 
       if (p2d_debug && pred) {
        cout << "intersection-test for" << endl;
@@ -5397,10 +5478,10 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
       if (suc) {
        intersectionTestForSetOp(left, suc, event, q, true);
       }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
+      mpq_class px = event.getPreciseX();
+      mpq_class py = event.getPreciseY();
 
-      createNewSegments(segmentVector, *event, suc, result, edgeno, op);
+      createNewSegments(segmentVector, event, suc, result, edgeno, op);
      }
     }
    }
@@ -5410,8 +5491,6 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
    sss.inorder();
   }
  }
-
- delete event;
  result.EndBulkLoad();
 
 } // setOP region2 x region2 -> region2
@@ -5457,16 +5536,16 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
  AVLSegment* right = NULL;
  AVLSegment* left = NULL;
 
- Event* event = new Event();
+ Event event;
 
  bool intersect = false;
 
- while (!intersect && (selectNext(reg1, pos1, reg2, pos2, q, *event)) != none) {
-  if (event->isLeftEndpointEvent()) {
+ while (!intersect && (selectNext(reg1, pos1, reg2, pos2, q, event)) != none) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc);
 
    mpq_class v = current->getPreciseXL();
@@ -5481,7 +5560,7 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event.getGridX(), v);
    } else {
     if (suc) {
      if (intersectionTestForSetOp(current, suc, event, q, true)) {
@@ -5490,7 +5569,7 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
       }
      }
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event.getGridX(), v);
      }
     }
    }
@@ -5499,12 +5578,11 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
     q.push(re);
    }
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
-    if (event->isValid()) {
+    current = event.getSegment();
      if (current->isValid()) {
       checkSegment(*current, intersect, intersects_op);
 
@@ -5519,8 +5597,10 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
       }
 
      } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      cout<<"invalid segment found"<<endl;
+      assert(false);
+      mpq_class v1 = event.getPreciseX();
+      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
       if (pred && suc) {
        if (intersectionTestForSetOp(pred, suc, event, q, true)) {
         if ((pred->getOwner() != suc->getOwner())) {
@@ -5529,33 +5609,33 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
        }
       }
      }
-    }
-    if (event->getNoOfChanges() == 0) {
+
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex);
 
       if (p2d_debug && pred) {
        cout << "intersection-test for" << endl;
@@ -5583,10 +5663,10 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
         }
        }
       }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
+      mpq_class px = event.getPreciseX();
+      mpq_class py = event.getPreciseY();
 
-      checkSegments(segmentVector, *event, suc, intersect, intersects_op);
+      checkSegments(segmentVector, event, suc, intersect, intersects_op);
      }
     }
    }
@@ -5596,7 +5676,6 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
    sss.inorder();
   }
  }
- delete event;
 
  return intersect;
 } // intersects region2 x region2 -> bool
@@ -5642,16 +5721,16 @@ bool overlaps(/*const*/Region2& reg1, /*const*/Region2& reg2,
  AVLSegment* right = NULL;
  AVLSegment* left = NULL;
 
- Event* event = new Event();
+ Event event;
 
  bool overlaps = false;
 
- while (!overlaps && (selectNext(reg1, pos1, reg2, pos2, q, *event)) != none) {
-  if (event->isLeftEndpointEvent()) {
+ while (!overlaps && (selectNext(reg1, pos1, reg2, pos2, q, event)) != none) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc);
 
    mpq_class v = current->getPreciseXL();
@@ -5660,12 +5739,12 @@ bool overlaps(/*const*/Region2& reg1, /*const*/Region2& reg2,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event.getGridX(), v);
    } else {
     if (suc) {
      intersectionTestForSetOp(current, suc, event, q, true);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event.getGridX(), v);
      }
     }
    }
@@ -5674,14 +5753,13 @@ bool overlaps(/*const*/Region2& reg1, /*const*/Region2& reg2,
     q.push(re);
    }
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
+    current = event.getSegment();
     cout << "checkSegment:" << endl;
     current->print();
-    if (event->isValid()) {
      if (current->isValid()) {
       checkSegment(*current, overlaps, overlaps_op);
 
@@ -5692,39 +5770,41 @@ bool overlaps(/*const*/Region2& reg1, /*const*/Region2& reg2,
       }
 
      } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      cout<<"invalid segment found"<<endl;
+      assert(false);
+      mpq_class v1 = event.getPreciseX();
+      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
       if (pred && suc) {
        intersectionTestForSetOp(pred, suc, event, q, true);
       }
      }
-    }
-    if (event->getNoOfChanges() == 0) {
+
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex);
 
       if (p2d_debug && pred) {
        cout << "intersection-test for" << endl;
@@ -5744,10 +5824,10 @@ bool overlaps(/*const*/Region2& reg1, /*const*/Region2& reg2,
       if (suc) {
        intersectionTestForSetOp(left, suc, event, q, true);
       }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
+      mpq_class px = event.getPreciseX();
+      mpq_class py = event.getPreciseY();
 
-      checkSegments(segmentVector, *event, suc, overlaps, overlaps_op);
+      checkSegments(segmentVector, event, suc, overlaps, overlaps_op);
      }
     }
    }
@@ -5757,7 +5837,6 @@ bool overlaps(/*const*/Region2& reg1, /*const*/Region2& reg2,
    sss.inorder();
   }
  }
- delete event;
 
  return overlaps;
 } // overlaps region2 x region2 -> bool
@@ -5802,16 +5881,16 @@ bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
  AVLSegment* right = NULL;
  AVLSegment* left = NULL;
 
- Event* event = new Event();
+ Event event;
 
  bool inside = true;
- while (inside && (selectNext(reg1, pos1, reg2, pos2, q, *event)) != none) {
+ while (inside && (selectNext(reg1, pos1, reg2, pos2, q, event)) != none) {
 
-  if (event->isLeftEndpointEvent()) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc);
    mpq_class v = current->getPreciseXL();
    if (pred) {
@@ -5819,12 +5898,12 @@ bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v);
+    sss.removeInvalidSegment(current, event.getGridX(), v);
    } else {
     if (suc) {
      intersectionTestForSetOp(current, suc, event, q, true);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v);
+      sss.removeInvalidSegment(current, event.getGridX(), v);
      }
     }
    }
@@ -5833,12 +5912,12 @@ bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
     q.push(re);
    }
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
-    if (event->isValid()) {
+    current = event.getSegment();
+
      if (current->isValid()) {
       checkSegment(*current, inside, inside_op);
 
@@ -5849,39 +5928,41 @@ bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
       }
 
      } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc);
+      cout<<"invalid segment found"<<endl;
+      assert(false);
+      mpq_class v1 = event.getPreciseX();
+      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
       if (pred && suc) {
        intersectionTestForSetOp(pred, suc, event, q, true);
       }
      }
-    }
-    if (event->getNoOfChanges() == 0) {
+
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex);
 
       if (p2d_debug && pred) {
        cout << "intersection-test for" << endl;
@@ -5901,10 +5982,10 @@ bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
       if (suc) {
        intersectionTestForSetOp(left, suc, event, q, true);
       }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
+      mpq_class px = event.getPreciseX();
+      mpq_class py = event.getPreciseY();
 
-      checkSegments(segmentVector, *event, suc, inside, inside_op);
+      checkSegments(segmentVector, event, suc, inside, inside_op);
      }
     }
    }
@@ -5914,8 +5995,6 @@ bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
    sss.inorder();
   }
  }
- delete event;
-
  return inside;
 } // inside region2 x region2 -> bool
 
