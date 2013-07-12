@@ -4,18 +4,18 @@ Restore : No
 Operator : atinstant
 Number   : 1
 Signature: (arel(X) x instant) -> arel(Y)
-Example  : query person  feed projectextend[Person_id_o;H :.Hybrid atinstant [const instant value "2008-09-27-23:24:08"]] count
+Example  : query Person  feed projectextend[PersonId; H: .Hybrid atinstant [const instant value "2008-09-27-23:24:08"]] count
 Result   : 1
 
 
 Operator : atperiods
 Number   : 1
 Signature: (arel(X) x instant) -> arel(X)
-Example  : query person  feed projectextend[Person_id_o;H :.Hybrid atperiods [const periods value (("2008-09-27-23:22:35" "2008-09-28-01:19:49" TRUE FALSE))]] count
+Example  : query Person feed projectextend[PersonId; H: .Hybrid atperiods [const periods value (("2008-09-27-23:22:35" "2008-09-28-01:19:49" TRUE FALSE))]] count
 Result   : 1
 
 Operator : by
 Number   : 1
 Signature: (mT X mT') -> rel(tuple([Raw :mT,Symbolic:mT']))
-Example  : query by (person feed unnest [Hybrid] extract[Mov_o] ,person feed unnest [Hybrid] extract[Label_value_p]) count
-Result   : 5
+Example  : query by (Person feed unnest[Hybrid] extract[Mov], Person feed unnest[Hybrid] extract[Label]) count
+Result   : 2
