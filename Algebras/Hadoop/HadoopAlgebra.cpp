@@ -1627,6 +1627,14 @@ int SpreadFilesValueMap(Word* args, Word& result,
     }
   }
 
+  for (int fi = 0; (size_t)fi < size; fi++)
+  {
+    if (!sts[fi]->getResult()){
+      cerr << "Error!! File " << fi << " fails. " << endl;
+      ((CcBool*)(result.addr))->Set(true, false);
+    }
+  }
+
   ((CcBool*)(result.addr))->Set(true, true);
   return 0;
 }
@@ -1659,12 +1667,13 @@ void* SPF_Thread::tCopyFile(void* ptr)
   }
 
   st->setResult(ok);
-  if (!ok)
-  {
-    pthread_mutex_lock(&CLI_mutex);
+  pthread_mutex_lock(&CLI_mutex);
+  if (!ok){
     cerr << "Error!! Cannot transfer the file " << local << endl;
-    pthread_mutex_unlock(&CLI_mutex);
+  } else {
+    cerr << "Success!! Send file " << local << " to " << st->dest << endl;
   }
+  pthread_mutex_unlock(&CLI_mutex);
   st->releaseToken();
   return NULL;
 }
