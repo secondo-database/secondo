@@ -1,0 +1,79 @@
+HybridTrajectoryAlgebra.o: HybridTrajectoryAlgebra.cpp \
+ /home/hamza/secondo/include/Algebra.h \
+ /home/hamza/secondo/include/NestedList.h \
+ /home/hamza/secondo/Tools/ListsAndTables/CTable.h \
+ /home/hamza/secondo/include/PagedArray.h \
+ /home/hamza/secondo/include/SecondoSMI.h \
+ /home/hamza/BDB/include/db_cxx.h /home/hamza/BDB/include/db.h \
+ /home/hamza/secondo/include/ErrorCodes.h \
+ /home/hamza/secondo/include/SecondoConfig.h \
+ /home/hamza/secondo/include/CacheInfo.h \
+ /home/hamza/secondo/include/LogMsg.h \
+ /home/hamza/secondo/Tools/ListsAndTables/PCTable.cpp \
+ /home/hamza/secondo/include/WinUnix.h \
+ /home/hamza/secondo/include/AlgebraTypes.h \
+ /home/hamza/secondo/include/Operator.h \
+ /home/hamza/secondo/include/NList.h \
+ /home/hamza/secondo/include/CostEstimation.h \
+ /home/hamza/secondo/include/TypeConstructor.h \
+ /home/hamza/secondo/include/ConstructorTemplates.h \
+ /home/hamza/secondo/include/Attribute.h \
+ /home/hamza/secondo/include/SecondoSystem.h \
+ /home/hamza/secondo/include/Messages.h \
+ /home/hamza/secondo/include/SecondoCatalog.h \
+ /home/hamza/secondo/include/AlgebraManager.h \
+ /home/hamza/secondo/include/AlgebraInit.h \
+ /home/hamza/secondo/include/AlgebraClassDef.h \
+ /home/hamza/secondo/include/SystemInfoRel.h \
+ /home/hamza/secondo/include/NameIndex.h \
+ /home/hamza/secondo/include/SystemTables.h \
+ /home/hamza/secondo/include/ListUtils.h \
+ /home/hamza/secondo/include/QueryProcessor.h \
+ /home/hamza/secondo/include/StopWatch.h \
+ /home/hamza/secondo/include/DotSpec.h \
+ /home/hamza/secondo/include/Counter.h \
+ /home/hamza/secondo/include/CharTransform.h \
+ /home/hamza/secondo/include/WinUnix.h \
+ /home/hamza/secondo/include/../Tools/Flob/Flob.h \
+ /home/hamza/secondo/include/../Tools/Flob/FlobId.h \
+ /home/hamza/secondo/include/SecondoSMI.h \
+ /home/hamza/secondo/include/../Tools/Flob/FlobManager.h \
+ /home/hamza/secondo/include/Serialize.h \
+ /home/hamza/secondo/include/AlmostEqual.h \
+ /home/hamza/secondo/include/NestedList.h \
+ /home/hamza/secondo/include/ListUtils.h \
+ /home/hamza/secondo/include/QueryProcessor.h \
+ /home/hamza/secondo/include/StandardTypes.h \
+ /home/hamza/secondo/include/Trace.h \
+ /home/hamza/secondo/include/TraceMacros.h \
+ /home/hamza/secondo/include/Symbols.h \
+ /home/hamza/secondo/include/Serialize.h \
+ /home/hamza/secondo/include/StringUtils.h ../Temporal/TemporalAlgebra.h \
+ /home/hamza/secondo/include/Attribute.h ../Spatial/SpatialAlgebra.h \
+ ../Spatial/../../Tools/Flob/DbArray.h ../Spatial/../../Tools/Flob/Flob.h \
+ ../Spatial/../Rectangle/RectangleAlgebra.h \
+ /home/hamza/secondo/include/Messages.h ../Spatial/Geoid.h \
+ /home/hamza/secondo/include/GenericTC.h \
+ /home/hamza/secondo/include/Algebra.h \
+ /home/hamza/secondo/include/AvlTree.h \
+ /home/hamza/secondo/include/AlmostEqual.h ../Spatial/AVLSegment.h \
+ ../Spatial/HalfSegment.h ../Spatial/Coord.h ../Spatial/Point.h \
+ ../Spatial/Geoid.h ../Rectangle/RectangleAlgebra.h ../Spatial/AttrType.h \
+ ../Temporal/../../Tools/Flob/DbArray.h \
+ /home/hamza/secondo/include/Progress.h ../Temporal/CellGrid.h \
+ /home/hamza/secondo/include/DateTime.h \
+ /home/hamza/secondo/include/IndexableAttribute.h \
+ /home/hamza/secondo/include/StandardTypes.h \
+ /home/hamza/secondo/include/BigInt.h \
+ ../Temporal/../../include/CharTransform.h \
+ ../TemporalExt/TemporalExtAlgebra.h \
+ ../TemporalExt/../../Tools/Flob/DbArray.h ../Stream/Stream.h \
+ ../TemporalUnit/TemporalUnitAlgebra.h \
+ ../NestedRelation/NestedRelationAlgebra.h \
+ /home/hamza/secondo/include/NList.h \
+ /home/hamza/secondo/include/SecondoSystem.h \
+ /home/hamza/secondo/include/ConstructorTemplates.h \
+ ../NestedRelation/../../Tools/Flob/DbArray.h \
+ ../Relation-C++/RelationAlgebra.h /home/hamza/secondo/include/Trace.h \
+ /home/hamza/secondo/include/Counter.h \
+ ../Relation-C++/../TupleIdentifier/TupleIdentifier.h DivisionStream.h
