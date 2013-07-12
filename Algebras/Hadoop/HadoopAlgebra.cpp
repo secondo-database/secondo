@@ -1630,7 +1630,7 @@ int SpreadFilesValueMap(Word* args, Word& result,
   for (int fi = 0; (size_t)fi < size; fi++)
   {
     if (!sts[fi]->getResult()){
-      cerr << "Error!! File " << fi << " fails. " << endl;
+//      cerr << "Error!! File " << fi << " fails. " << endl;
       ((CcBool*)(result.addr))->Set(true, false);
     }
   }
@@ -1648,11 +1648,15 @@ void* SPF_Thread::tCopyFile(void* ptr)
     pthread_mutex_lock(&CLI_mutex);
     cerr << "Warning!! Cannot locate the file " << local << endl;
     pthread_mutex_unlock(&CLI_mutex);
+    st->setResult(true);
+    return NULL;
   } else if (FileSystem::IsDirectory(local)){
     pthread_mutex_lock(&CLI_mutex);
-    cerr << "Warning!! File " << local
+    cerr << "Error!! File " << local
         << " should not be a directory." << endl;
     pthread_mutex_unlock(&CLI_mutex);
+    st->setResult(false);
+    return NULL;
   }
 
   int copyTimes = MAX_COPYTIMES;
@@ -1670,8 +1674,6 @@ void* SPF_Thread::tCopyFile(void* ptr)
   pthread_mutex_lock(&CLI_mutex);
   if (!ok){
     cerr << "Error!! Cannot transfer the file " << local << endl;
-  } else {
-    cerr << "Success!! Send file " << local << " to " << st->dest << endl;
   }
   pthread_mutex_unlock(&CLI_mutex);
   st->releaseToken();
