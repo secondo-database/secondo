@@ -40,6 +40,7 @@ CCFLAGS += $(ALG_INC_DIRS)
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 	make -C Operators
+	make -C tests
 	make -C util
 
 # include pre-computed dependencies
@@ -55,5 +56,6 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	make -C Operators clean
+	make -C tests clean
 	make -C util clean
 	$(clean-algebra)
