@@ -75,7 +75,8 @@ includes for TileAlgebra operators
 #include "operators/CELL1.h"
 #include "operators/CELL2.h"
 #include "operators/CELLS.h"
-// #include "operators/tiles.h"
+#include "operators/tiles.h"
+#include "operators/toraster2.h"
 
 /*
 extern declarations
@@ -186,8 +187,10 @@ TileAlgebra::TileAlgebra()
   AddOperator(CELL1Info(), 0, CELL1TypeMappingFunction);
   AddOperator(CELL2Info(), 0, CELL2TypeMappingFunction);
   AddOperator(CELLSInfo(), 0, CELLSTypeMappingFunction);
-  // AddOperator(tilesInfo(), tilesFunctions, tilesSelectFunction,
-  //             tilesTypeMappingFunction);
+  AddOperator(tilesInfo(), tilesFunctions, tilesSelectFunction,
+              tilesTypeMappingFunction);
+  AddOperator(toraster2Info(), toraster2Functions, toraster2SelectFunction,
+              toraster2TypeMappingFunction);
 }
 
 TileAlgebra::~TileAlgebra()
