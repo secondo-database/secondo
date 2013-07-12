@@ -59,7 +59,6 @@ sstring::~sstring()
 
 void sstring::clear(){
    m_psint->clear();
-   m_pUniqueStringArray->clear();
    m_minimum=UNDEFINED_STRING_INDEX;
    m_maximum=UNDEFINED_STRING_INDEX;
 }
@@ -72,7 +71,6 @@ void sstring::setDefined( const bool _defined){
   if(_defined != isDefined()){
      m_psint->setDefined(_defined);
      if(!_defined){
-        m_pUniqueStringArray->clear();
         m_minimum=UNDEFINED_STRING_INDEX;
         m_maximum=UNDEFINED_STRING_INDEX;
      }
@@ -107,6 +105,21 @@ string sstring::atlocation(double x, double y) const
   }
   
   return value;
+}
+
+void sstring::setatlocation(double x, double y, const string& value)
+{
+  if(m_psint != 0 &&
+     m_pUniqueStringArray != 0 &&
+     value.empty() == false)
+  {
+    int nStringIndex = m_pUniqueStringArray->AddString(value);
+
+    if(nStringIndex != UNDEFINED_STRING_INDEX)
+    {
+      m_psint->setatlocation(x, y, nStringIndex);
+    }
+  }
 }
 
 bool sstring::isUndefined(const std::string& t) {

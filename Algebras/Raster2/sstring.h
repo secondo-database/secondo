@@ -78,6 +78,7 @@ namespace raster2
     void destroy();
     sint::storage_type& getStorage();
     string atlocation(double x, double y) const;
+    void setatlocation(double x, double y, const string& value);
     MString compose(const MPoint& m) const;
     sstring* atrange(const Rect& rRect) const;
     Rect bbox() const;
