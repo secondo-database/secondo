@@ -230,7 +230,8 @@ int fromregionFunction(Word* pArguments,
 
                   if(robust::contains(*pRegion, centerPoint) == true)
                   {
-                    pResult->SetValue(gridX, gridY, true);
+                    pResult->SetValue(gridX, gridY,
+                                      true, true);
                     setFields = true;
                   }
 
@@ -241,7 +242,8 @@ int fromregionFunction(Word* pArguments,
 
                     if(robust::contains(*pRegion, centerPoint) == true)
                     {
-                      pResult->SetValue(gridX + gridLength, gridY, true);
+                      pResult->SetValue(gridX + gridLength, gridY,
+                                        true, true);
                       setFields = true;
                     }
 
@@ -252,7 +254,8 @@ int fromregionFunction(Word* pArguments,
 
                       if(robust::contains(*pRegion, centerPoint) == true)
                       {
-                        pResult->SetValue(gridX - gridLength, gridY, true);
+                        pResult->SetValue(gridX - gridLength, gridY,
+                                          true, true);
                         setFields = true;
                       }
 
@@ -263,7 +266,8 @@ int fromregionFunction(Word* pArguments,
 
                         if(robust::contains(*pRegion, centerPoint) == true)
                         {
-                          pResult->SetValue(gridX, gridY + gridLength, true);
+                          pResult->SetValue(gridX, gridY + gridLength,
+                                            true, true);
                           setFields = true;
                         }
 
@@ -274,7 +278,8 @@ int fromregionFunction(Word* pArguments,
 
                           if(robust::contains(*pRegion, centerPoint) == true)
                           {
-                            pResult->SetValue(gridX, gridY - gridLength, true);
+                            pResult->SetValue(gridX, gridY - gridLength,
+                                              true, true);
                             setFields = true;
                           }
                         }
@@ -296,7 +301,8 @@ int fromregionFunction(Word* pArguments,
 
                   if(robust::contains(*pRegion, centerPoint) == true)
                   {
-                    pResult->SetValue(gridX, gridY, true);
+                    pResult->SetValue(gridX, gridY,
+                                      true, true);
                     setFields = true;
                   }
 
@@ -307,7 +313,8 @@ int fromregionFunction(Word* pArguments,
 
                     if(robust::contains(*pRegion, centerPoint) == true)
                     {
-                      pResult->SetValue(gridX + gridLength, gridY, true);
+                      pResult->SetValue(gridX + gridLength, gridY,
+                                        true, true);
                       setFields = true;
                     }
 
@@ -318,7 +325,8 @@ int fromregionFunction(Word* pArguments,
 
                       if(robust::contains(*pRegion, centerPoint) == true)
                       {
-                        pResult->SetValue(gridX - gridLength, gridY, true);
+                        pResult->SetValue(gridX - gridLength, gridY,
+                                          true, true);
                         setFields = true;
                       }
 
@@ -329,7 +337,8 @@ int fromregionFunction(Word* pArguments,
 
                         if(robust::contains(*pRegion, centerPoint) == true)
                         {
-                          pResult->SetValue(gridX, gridY + gridLength, true);
+                          pResult->SetValue(gridX, gridY + gridLength,
+                                            true, true);
                           setFields = true;
                         }
 
@@ -340,7 +349,8 @@ int fromregionFunction(Word* pArguments,
 
                           if(robust::contains(*pRegion, centerPoint) == true)
                           {
-                            pResult->SetValue(gridX, gridY - gridLength, true);
+                            pResult->SetValue(gridX, gridY - gridLength,
+                                              true, true);
                             setFields = true;
                           }
                         }
@@ -372,7 +382,8 @@ int fromregionFunction(Word* pArguments,
 
                     if(robust::contains(*pRegion, centerPoint) == true)
                     {
-                      pResult->SetValue(gridX, gridY, true);
+                      pResult->SetValue(gridX, gridY,
+                                        true, true);
                       setFields = true;
                     }
 
@@ -383,7 +394,8 @@ int fromregionFunction(Word* pArguments,
 
                       if ( robust::contains(*pRegion, centerPoint) == true )
                       {
-                        pResult->SetValue(gridX + gridLength, gridY, true);
+                        pResult->SetValue(gridX + gridLength, gridY,
+                                          true, true);
                         setFields = true;
                       }
 
@@ -394,7 +406,8 @@ int fromregionFunction(Word* pArguments,
 
                         if(robust::contains(*pRegion, centerPoint) == true)
                         {
-                          pResult->SetValue(gridX - gridLength, gridY, true);
+                          pResult->SetValue(gridX - gridLength, gridY,
+                                            true, true);
                           setFields = true;
                         }
 
@@ -405,7 +418,8 @@ int fromregionFunction(Word* pArguments,
 
                           if(robust::contains(*pRegion, centerPoint) == true)
                           {
-                            pResult->SetValue(gridX, gridY + gridLength, true);
+                            pResult->SetValue(gridX, gridY + gridLength,
+                                              true, true);
                             setFields = true;
                           }
 
@@ -418,7 +432,7 @@ int fromregionFunction(Word* pArguments,
                             if(robust::contains(*pRegion, centerPoint) == true)
                             {
                               pResult->SetValue(gridX, gridY - gridLength,
-                                                true);
+                                                true, true);
                               setFields = true;
                             }
                           }
@@ -440,7 +454,8 @@ int fromregionFunction(Word* pArguments,
 
                     if(robust::contains(*pRegion, centerPoint) == true)
                     {
-                      pResult->SetValue(gridX, gridY, true);
+                      pResult->SetValue(gridX, gridY,
+                                        true, true);
                       setFields = true;
                     }
 
@@ -451,7 +466,8 @@ int fromregionFunction(Word* pArguments,
 
                       if(robust::contains(*pRegion, centerPoint) == true)
                       {
-                        pResult->SetValue(gridX + gridLength, gridY, true);
+                        pResult->SetValue(gridX + gridLength, gridY,
+                                          true, true);
                         setFields = true;
                       }
 
@@ -462,7 +478,8 @@ int fromregionFunction(Word* pArguments,
 
                         if(robust::contains(*pRegion, centerPoint) == true)
                         {
-                          pResult->SetValue(gridX - gridLength, gridY, true);
+                          pResult->SetValue(gridX - gridLength, gridY,
+                                            true, true);
                           setFields = true;
                         }
 
@@ -473,7 +490,8 @@ int fromregionFunction(Word* pArguments,
 
                           if(robust::contains(*pRegion, centerPoint) == true)
                           {
-                            pResult->SetValue(gridX, gridY + gridLength, true);
+                            pResult->SetValue(gridX, gridY + gridLength,
+                                              true, true);
                             setFields = true;
                           }
 
@@ -486,7 +504,7 @@ int fromregionFunction(Word* pArguments,
                             if(robust::contains(*pRegion, centerPoint) == true)
                             {
                               pResult->SetValue(gridX, gridY - gridLength,
-                                                true);
+                                                true, true);
                               setFields = true;
                             }
                           }
@@ -508,7 +526,8 @@ int fromregionFunction(Word* pArguments,
 
                     if(robust::contains(*pRegion, centerPoint) == true)
                     {
-                      pResult->SetValue(gridX, gridY, true);
+                      pResult->SetValue(gridX, gridY,
+                                        true, true);
                       setFields = true;
                     }
 
@@ -519,7 +538,8 @@ int fromregionFunction(Word* pArguments,
 
                       if(robust::contains(*pRegion, centerPoint) == true)
                       {
-                        pResult->SetValue(gridX + gridLength, gridY, true);
+                        pResult->SetValue(gridX + gridLength, gridY,
+                                          true, true);
                         setFields = true;
                       }
 
@@ -530,7 +550,8 @@ int fromregionFunction(Word* pArguments,
 
                         if(robust::contains(*pRegion, centerPoint) == true)
                         {
-                          pResult->SetValue(gridX - gridLength, gridY, true);
+                          pResult->SetValue(gridX - gridLength, gridY,
+                                            true, true);
                           setFields = true;
                         }
 
@@ -541,7 +562,8 @@ int fromregionFunction(Word* pArguments,
 
                           if(robust::contains(*pRegion, centerPoint) == true)
                           {
-                            pResult->SetValue(gridX, gridY + gridLength, true);
+                            pResult->SetValue(gridX, gridY + gridLength,
+                                              true, true);
                             setFields = true;
                           }
 
@@ -554,7 +576,7 @@ int fromregionFunction(Word* pArguments,
                             if(robust::contains(*pRegion, centerPoint) == true)
                             {
                               pResult->SetValue(gridX, gridY - gridLength,
-                                                true);
+                                                true, true);
                               setFields = true;
                             }
                           }
@@ -587,7 +609,8 @@ int fromregionFunction(Word* pArguments,
 
                     if(robust::contains(*pRegion, centerPoint) == true)
                     {
-                        pResult->SetValue(gridX, gridY, true);
+                        pResult->SetValue(gridX, gridY,
+                                          true, true);
                         setFields = true;
                     }
 
@@ -598,7 +621,8 @@ int fromregionFunction(Word* pArguments,
 
                       if(robust::contains(*pRegion, centerPoint) == true)
                       {
-                        pResult->SetValue(gridX + gridLength, gridY, true);
+                        pResult->SetValue(gridX + gridLength, gridY,
+                                          true, true);
                         setFields = true;
                       }
 
@@ -609,7 +633,8 @@ int fromregionFunction(Word* pArguments,
 
                         if(robust::contains(*pRegion, centerPoint) == true)
                         {
-                          pResult->SetValue(gridX - gridLength, gridY, true);
+                          pResult->SetValue(gridX - gridLength, gridY,
+                                            true, true);
                           setFields = true;
                         }
 
@@ -621,7 +646,7 @@ int fromregionFunction(Word* pArguments,
                           if(robust::contains(*pRegion, centerPoint) == true)
                           {
                             pResult->SetValue(gridX, gridY + gridLength,
-                                              true);
+                                              true, true);
                             setFields = true;
                           }
 
@@ -635,7 +660,7 @@ int fromregionFunction(Word* pArguments,
                                true)
                             {
                               pResult->SetValue(gridX, gridY - gridLength,
-                                                true);
+                                                true, true);
                               setFields = true;
                             }
                           }
@@ -657,7 +682,8 @@ int fromregionFunction(Word* pArguments,
 
                     if(robust::contains(*pRegion, centerPoint) == true)
                     {
-                      pResult->SetValue(gridX, gridY, true);
+                      pResult->SetValue(gridX, gridY,
+                                        true, true);
                       setFields = true;
                     }
 
@@ -668,7 +694,8 @@ int fromregionFunction(Word* pArguments,
 
                       if(robust::contains(*pRegion, centerPoint) == true)
                       {
-                        pResult->SetValue(gridX + gridLength, gridY, true);
+                        pResult->SetValue(gridX + gridLength, gridY,
+                                          true, true);
                         setFields = true;
                       }
 
@@ -679,7 +706,8 @@ int fromregionFunction(Word* pArguments,
 
                         if(robust::contains(*pRegion, centerPoint) == true)
                         {
-                          pResult->SetValue(gridX - gridLength, gridY, true);
+                          pResult->SetValue(gridX - gridLength, gridY,
+                                            true, true);
                           setFields = true;
                         }
 
@@ -691,7 +719,7 @@ int fromregionFunction(Word* pArguments,
                           if(robust::contains(*pRegion, centerPoint) == true)
                           {
                             pResult->SetValue(gridX, gridY + gridLength,
-                                              true);
+                                              true, true);
                             setFields = true;
                           }
 
@@ -705,7 +733,7 @@ int fromregionFunction(Word* pArguments,
                                true)
                             {
                               pResult->SetValue(gridX, gridY - gridLength,
-                                                true);
+                                                true, true);
                               setFields = true;
                             }
                           }
@@ -728,7 +756,8 @@ int fromregionFunction(Word* pArguments,
 
                     if(robust::contains(*pRegion, centerPoint) == true)
                     {
-                      pResult->SetValue(gridX, gridY, true);
+                      pResult->SetValue(gridX, gridY,
+                                        true, true);
                       setFields = true;
                     }
 
@@ -739,7 +768,8 @@ int fromregionFunction(Word* pArguments,
 
                       if(robust::contains(*pRegion, centerPoint) == true)
                       {
-                        pResult->SetValue(gridX + gridLength, gridY, true);
+                        pResult->SetValue(gridX + gridLength, gridY,
+                                          true, true);
                         setFields = true;
                       }
 
@@ -750,7 +780,8 @@ int fromregionFunction(Word* pArguments,
 
                         if(robust::contains(*pRegion, centerPoint) == true)
                         {
-                          pResult->SetValue(gridX - gridLength, gridY, true);
+                          pResult->SetValue(gridX - gridLength, gridY,
+                                            true, true);
                           setFields = true;
                         }
 
@@ -763,7 +794,7 @@ int fromregionFunction(Word* pArguments,
                           if(robust::contains(*pRegion, centerPoint) == true)
                           {
                             pResult->SetValue(gridX, gridY + gridLength,
-                                              true);
+                                              true, true);
                             setFields = true;
                           }
 
@@ -777,7 +808,7 @@ int fromregionFunction(Word* pArguments,
                                true)
                             {
                               pResult->SetValue(gridX, gridY - gridLength,
-                                                true);
+                                                true, true);
                               setFields = true;
                             }
                           }
@@ -891,7 +922,7 @@ int fromregionFunction(Word* pArguments,
                         {
                           pResult->SetValue(j + halfGridLength,
                                             k + halfGridLength,
-                                            true);
+                                            true, true);
                         }
                       }
                     }
@@ -947,7 +978,7 @@ int fromregionFunction(Word* pArguments,
                         {
                           pResult->SetValue(j + halfGridLength,
                                             k + halfGridLength,
-                                            false);
+                                            false, true);
                         }
                       }
                     }
