@@ -111,7 +111,10 @@ class t : public Attribute
                 bool bSetExtrema);
   bool SetValue(const double& rX,
                 const double& rY,
-                const Type& rValue);
+                const Type& rValue,
+                bool bSetExtrema);
+  bool SetValues(const Type& rValue,
+                 bool bSetExtrema);
 
   protected:
 
@@ -209,18 +212,9 @@ t<Type, Properties>::t(bool bDefined)
                                GetUndefinedValue()),
                      m_Flob(Properties::GetFlobSize())
 {
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
   Type undefinedValue = Properties::TypeProperties::GetUndefinedValue();
-  
-  for(int row = 0; row < yDimensionSize; row++)
-  {
-    for(int column = 0; column < xDimensionSize; column++)
-    {
-      Index<2> index = (int[]){column, row};
-      SetValue(index, undefinedValue, false);
-    }
-  }
+  bool bOK = SetValues(undefinedValue, true);
+  assert(bOK);
 }
 
 template <typename Type, typename Properties>
@@ -613,7 +607,8 @@ bool t<Type, Properties>::SetValue(const Index<2>& rIndex,
 template <typename Type, typename Properties>
 bool t<Type, Properties>::SetValue(const double& rX,
                                    const double& rY,
-                                   const Type& rValue)
+                                   const Type& rValue,
+                                   bool bSetExtrema)
 {
   bool bRetVal = false;
 
@@ -621,7 +616,36 @@ bool t<Type, Properties>::SetValue(const double& rX,
      IsValidLocation(rX, rY))
   {
     Index<2> index = GetLocationIndex(rX, rY);
-    bRetVal = SetValue(index, rValue, true);
+    bRetVal = SetValue(index, rValue, bSetExtrema);
+  }
+
+  return bRetVal;
+}
+
+template <typename Type, typename Properties>
+bool t<Type, Properties>::SetValues(const Type& rValue,
+                                    bool bSetExtrema)
+{
+  bool bRetVal = false;
+  
+  if(IsDefined())
+  {
+    bRetVal = true;
+    
+    int flobElements = Properties::GetFlobElements();
+
+    for(int i = 0; i < flobElements; i++)
+    {
+      bRetVal &= m_Flob.write(reinterpret_cast<const char*>(&rValue),
+                              sizeof(Type),
+                              i * sizeof(Type));
+    }
+
+    if(bSetExtrema == true)
+    {
+      m_Minimum = rValue;
+      m_Maximum = rValue;
+    }
   }
 
   return bRetVal;
