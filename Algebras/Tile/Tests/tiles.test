@@ -1,0 +1,173 @@
+#
+# Tests for the tiles operator of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+let sint1 = ([const sint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))]);
+let sint2 = ([const sint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (60 60 (957 958 959 960)))]);
+let sint4 = ([const sint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (31 0 (0 1 2 3)) (0 31 (0 1 2 3)) (60 60 (957 958 959 960)))]);
+let sreal1 = ([const sreal value ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (20 20 (480.0 481.0 482.0 483.0)))]);
+let sreal2 = ([const sreal value ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (42 42 (480.0 481.0 482.0 483.0)))]);
+let sreal4 = ([const sreal value ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (22 0 (0.0 1.0 2.0 3.0)) (0 22 (0.0 1.0 2.0 3.0)) (42 42 (480.0 481.0 482.0 483.0)))]);
+let sbool1 = ([const sbool value ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (61 61 (FALSE TRUE TRUE FALSE)))]);
+let sbool2 = ([const sbool value ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (124 124 (FALSE TRUE TRUE FALSE)))]);
+let sbool4 = ([const sbool value ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (63 0 (FALSE TRUE TRUE FALSE)) (0 63 (FALSE TRUE TRUE FALSE)) (124 124 (FALSE TRUE TRUE FALSE)))]);
+let sstring1 = ([const sstring value ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (29 29 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+let sstring2 = ([const sstring value ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (60 60 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+let sstring4 = ([const sstring value ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (31 0 ("zero" "one" "two" "three")) (0 31 ("zero" "one" "two" "three")) (60 60 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+let msint1 = ([const msint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (29 29 9 (957 958 959 960)))]);
+let msint2 = ([const msint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (60 60 9 (957 958 959 960)))]);
+let msint4 = ([const msint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (31 0 0 (0 1 2 3)) (0 31 0 (0 1 2 3)) (60 60 9 (957 958 959 960)))]);
+let msreal1 = ([const msreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (20 20 9 (480.0 481.0 482.0 483.0)))]);
+let msreal2 = ([const msreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (42 42 9 (480.0 481.0 482.0 483.0)))]);
+let msreal4 = ([const msreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (22 0 0 (0.0 1.0 2.0 3.0)) (0 22 0 (0.0 1.0 2.0 3.0)) (42 42 9 (480.0 481.0 482.0 483.0)))]);
+let msbool1 = ([const msbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (61 61 9 (FALSE TRUE TRUE FALSE)))]);
+let msbool2 = ([const msbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (124 124 9 (FALSE TRUE TRUE FALSE)))]);
+let msbool4 = ([const msbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (63 0 0 (FALSE TRUE TRUE FALSE)) (0 63 0 (FALSE TRUE TRUE FALSE)) (124 124 9 (FALSE TRUE TRUE FALSE)))]);
+let msstring1 = ([const msstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (29 29 9 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+let msstring2 = ([const msstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (60 60 9 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+let msstring4 = ([const msstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (31 0 0 ("zero" "one" "two" "three")) (0 31 0 ("zero" "one" "two" "three")) (60 60 9 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#######################################
+# tint                                #
+#######################################
+
+#testcase tiles operator count on a sint object with one tile
+#yields (int 1)
+query tiles(sint1) count;
+
+#testcase tiles operator count on a sint object with two tiles
+#yields (int 2)
+query tiles(sint2) count;
+
+#testcase tiles operator count on a sint object with four tiles
+#yields (int 4)
+query tiles(sint4) count;
+
+#######################################
+# treal                               #
+#######################################
+
+#testcase tiles operator count on a sreal object with one tile
+#yields (int 1)
+query tiles(sreal1) count;
+
+#testcase tiles operator count on a sreal object with two tiles
+#yields (int 2)
+query tiles(sreal2) count;
+
+#testcase tiles operator count on a sreal object with four tiles
+#yields (int 4)
+query tiles(sreal4) count;
+
+#######################################
+# tbool                               #
+#######################################
+
+#testcase tiles operator count on a sbool object with one tile
+#yields (int 1)
+query tiles(sbool1) count;
+
+#testcase tiles operator count on a sbool object with two tiles
+#yields (int 2)
+query tiles(sbool2) count;
+
+#testcase tiles operator count on a sbool object with four tiles
+#yields (int 4)
+query tiles(sbool4) count;
+
+#######################################
+# tstring                             #
+#######################################
+
+#testcase tiles operator count on a sstring object with one tile
+#yields (int 1)
+query tiles(sstring1) count;
+
+#testcase tiles operator count on a sstring object with two tiles
+#yields (int 2)
+query tiles(sstring2) count;
+
+#testcase tiles operator count on a sstring object with four tiles
+#yields (int 4)
+query tiles(sstring4) count;
+
+#######################################
+# mtint                               #
+#######################################
+
+#testcase tiles operator count on a msint object with one tile
+#yields (int 1)
+query tiles(msint1) count;
+
+#testcase tiles operator count on a msint object with two tiles
+#yields (int 2)
+query tiles(msint2) count;
+
+#testcase tiles operator count on a msint object with four tiles
+#yields (int 4)
+query tiles(msint4) count;
+
+#######################################
+# mtreal                              #
+#######################################
+
+#testcase tiles operator count on a msreal object with one tile
+#yields (int 1)
+query tiles(msreal1) count;
+
+#testcase tiles operator count on a msreal object with two tiles
+#yields (int 2)
+query tiles(msreal2) count;
+
+#testcase tiles operator count on a msreal object with four tiles
+#yields (int 4)
+query tiles(msreal4) count;
+
+#######################################
+# mtbool                              #
+#######################################
+
+#testcase tiles operator count on a msbool object with one tile
+#yields (int 1)
+query tiles(msbool1) count;
+
+#testcase tiles operator count on a msbool object with two tiles
+#yields (int 2)
+query tiles(msbool2) count;
+
+#testcase tiles operator count on a msbool object with four tiles
+#yields (int 4)
+query tiles(msbool4) count;
+
+#######################################
+# mtstring                            #
+#######################################
+
+#testcase tiles operator count on a msstring object with one tile
+#yields (int 1)
+query tiles(msstring1) count;
+
+#testcase tiles operator count on a msstring object with two tiles
+#yields (int 2)
+query tiles(msstring2) count;
+
+#testcase tiles operator count on a msstring object with four tiles
+#yields (int 4)
+query tiles(msstring4) count;
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
