@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "SpatialAlgebra.h"
+#include "Stream.h"
 #include "../grid/tgrid.h"
 #include "../t/tbool.h"
 
@@ -44,9 +45,10 @@ struct fromlineInfo : OperatorInfo
   {
     name      = "fromline";
     syntax    = "fromline(_,_)";
-    meaning   = "Creates a tbool object from a line and a grid";
+    meaning   = "Creates a stream of tbool objects from a line and a grid";
     signature = Line::BasicType() + " x " + tgrid::BasicType() +
-                " -> " + tbool::BasicType();
+                " -> " + Stream<tbool>::BasicType() +
+                "(" + tbool::BasicType() + ")";
    }
 };
 

@@ -21,167 +21,264 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "fromline.h"
-#include "../Index.h"
+#include "RectangleAlgebra.h"
 
 namespace TileAlgebra
 {
 
 /*
-definition of drawLine function
+definition of IsHorizontalLine function
 
 */
 
-void drawLine(tbool& rtbool,
-              Index<2> startIndex,
-              Index<2> endIndex)
+bool IsHorizontalLine(const Point& rLineStartPoint,
+                      const Point& rLineEndPoint)
 {
-  if(startIndex[0] > endIndex[0])
+  bool bIsHorizontalLine = false;
+
+  if(rLineStartPoint.GetY() == rLineEndPoint.GetY())
   {
-    std::swap(startIndex, endIndex);
+    bIsHorizontalLine = true;
   }
 
-  if(startIndex[0] == endIndex[0])
+  return bIsHorizontalLine;
+}
+
+/*
+definition of IsVerticalLine function
+
+*/
+
+bool IsVerticalLine(const Point& rLineStartPoint,
+                    const Point& rLineEndPoint)
+{
+  bool bIsVerticalLine = false;
+
+  if(rLineStartPoint.GetX() == rLineEndPoint.GetX())
   {
-    /*
-    case: vertical line
-
-    */
-
-    if(startIndex[1] > endIndex[1])
-    {
-      std::swap(startIndex, endIndex);
-    }
-
-    for(int row = startIndex[1]; row <= endIndex[1]; row++)
-    {
-      Index<2> index = (int[]){startIndex[0], row};
-      rtbool.SetValue(index, true, true);
-    }
+    bIsVerticalLine = true;
   }
-  
-  else if(startIndex[1] == endIndex[1])
+
+  return bIsVerticalLine;
+}
+
+/*
+definition of LineIntersectsRectangle function
+
+*/
+
+bool LineIntersectsRectangle(const Point& rLineStartPoint,
+                             const Point& rLineEndPoint,
+                             const Rectangle<2>& rRectangle)
+{
+  bool bLineIntersectsRectangle = false;
+
+  if(rLineStartPoint.IsDefined() &&
+     rLineEndPoint.IsDefined() &&
+     rRectangle.IsDefined())
   {
-    /*
-    case: horizontal line
-
-    */
-
-    for(int column = startIndex[0]; column <= endIndex[0]; column++)
+    if(rLineStartPoint.GetX() >= rRectangle.MinD(0) &&
+       rLineStartPoint.GetX() < rRectangle.MaxD(0) &&
+       rLineStartPoint.GetY() >= rRectangle.MinD(1) &&
+       rLineStartPoint.GetY() < rRectangle.MaxD(1))
     {
-      Index<2> index = (int[]){column, startIndex[1]};
-      rtbool.SetValue(index, true, true);
+      /*
+      case: LineStartPoint in Rectangle
+
+      */
+
+      bLineIntersectsRectangle = true;
     }
-  }
-  
-  else
-  {
-    int dx = endIndex[0] - startIndex[0];
-    int dy = endIndex[1] - startIndex[1];
-    int dx2 = 2 * dx;
-    int dy2 = 2 * dy;
-    int dy2_minus_dx2 = dy2 - dx2;
-    int dy2_plus_dx2 = dy2 + dx2;
 
-    if(dy >= 0)
+    if(rLineEndPoint.GetX() >= rRectangle.MinD(0) &&
+       rLineEndPoint.GetX() < rRectangle.MaxD(0) &&
+       rLineEndPoint.GetY() >= rRectangle.MinD(1) &&
+       rLineEndPoint.GetY() < rRectangle.MaxD(1))
     {
-      // m >= 0
-      if(dy <= dx)
-      {
-        // 0 <= m <= 1
-        int F = dy2 - dx;
+      /*
+      case: LineEndPoint in Rectangle
 
-        for(Index<2> current = startIndex; current[0] <= endIndex[0];
-            current.Increment(0))
-        {
-          rtbool.SetValue(current, true, true);
+      */
 
-          if(F <= 0)
-          {
-            F += dy2;
-          }
-          
-          else
-          {
-            current.Increment(1);
-            F += dy2_minus_dx2;
-          }
-        }
-      }
-
-      else
-      {
-        // 1 < m
-        int F = dx2 - dy;
-
-        for(Index<2> current = startIndex; current[1] <= endIndex[1];
-            current.Increment(1))
-        {
-          rtbool.SetValue(current, true, true);
-
-          if(F <= 0)
-          {
-            F += dx2;
-          }
-          
-          else
-          {
-            current.Increment(0);
-            F -= dy2_minus_dx2;
-          }
-        }
-      }
+      bLineIntersectsRectangle = true;
     }
-    
-    else
+
+    if(bLineIntersectsRectangle == false)
     {
-      // m < 0
-      if (dx >= -dy)
+      if(IsHorizontalLine(rLineStartPoint, rLineEndPoint) &&
+         rLineStartPoint.GetX() < rRectangle.MinD(0) &&
+         rLineEndPoint.GetX() >= rRectangle.MaxD(0) &&
+         rLineStartPoint.GetY() >= rRectangle.MinD(1) &&
+         rLineStartPoint.GetY() < rRectangle.MaxD(1))
       {
-        // -1 <= m < 0
-        int F = -dy2 - dx;
+        /*
+        case: horizontal line
 
-        for(Index<2> current = startIndex; current[0] <= endIndex[0];
-            current.Increment(0))
-        {
-          rtbool.SetValue(current, true, true);
+        */
 
-          if (F <= 0)
-          {
-            F -= dy2;
-          }
-          
-          else
-          {
-            current.Decrement(1);
-            F -= dy2_plus_dx2;
-          }
-        }
+        bLineIntersectsRectangle = true;
       }
-      
-      else
+
+      if(IsVerticalLine(rLineStartPoint, rLineEndPoint) &&
+         rLineStartPoint.GetX() >= rRectangle.MinD(0) &&
+         rLineStartPoint.GetX() < rRectangle.MaxD(0) &&
+         rLineStartPoint.GetY() < rRectangle.MinD(1) &&
+         rLineEndPoint.GetY() >= rRectangle.MaxD(1))
       {
-        // m < -1
-        int F = dx2 + dy;
+        /*
+        case: vertical line
 
-        for(Index<2> current = startIndex; current[1] >= endIndex[1];
-            current.Decrement(1))
+        */
+
+        bLineIntersectsRectangle = true;
+      }
+
+      if(bLineIntersectsRectangle == false)
+      {
+        double deltaX = rLineEndPoint.GetX() - rLineStartPoint.GetX();
+        double deltaY = rLineEndPoint.GetY() - rLineStartPoint.GetY();
+        double m = deltaY / deltaX;
+        double n = rLineStartPoint.GetY() - m * rLineStartPoint.GetX();
+
+        double yRectangleStartPoint = m * rRectangle.MinD(0) + n;
+        double yRectangleEndPoint = m * rRectangle.MaxD(0) + n;
+
+        if((yRectangleStartPoint >= rRectangle.MinD(1) &&
+            yRectangleStartPoint < rRectangle.MaxD(1)) ||
+           (yRectangleEndPoint >= rRectangle.MinD(1) &&
+            yRectangleEndPoint < rRectangle.MaxD(1)))
         {
-          rtbool.SetValue(current, true, true);
-
-          if(F <= 0)
-          {
-            F += dx2;
-          }
-          
-          else
-          {
-            current.Increment(0);
-            F += dy2_plus_dx2;
-          }
+          bLineIntersectsRectangle = true;
         }
       }
     }
   }
+
+  return bLineIntersectsRectangle;
+}
+
+/*
+definition of SetLineValues function
+
+*/
+
+bool SetLineValues(const HalfSegment& rHalfSegment,
+                   tbool& rtbool)
+{
+  bool bHasTrueValue = false;
+
+  if(rtbool.IsDefined())
+  {
+    Point lineStartPoint = rHalfSegment.GetLeftPoint();
+    Point lineEndPoint = rHalfSegment.GetRightPoint();
+
+    if(lineStartPoint.IsDefined() &&
+       lineEndPoint.IsDefined())
+    {
+      if((lineStartPoint.GetX() > lineEndPoint.GetX()) ||
+         (lineStartPoint.GetX() == lineEndPoint.GetX() &&
+          lineStartPoint.GetY() > lineEndPoint.GetY()))
+      {
+        lineStartPoint = rHalfSegment.GetRightPoint();
+        lineEndPoint = rHalfSegment.GetLeftPoint();
+      }
+
+      int xDimensionSize = tProperties<char>::GetXDimensionSize();
+      int yDimensionSize = tProperties<char>::GetYDimensionSize();
+
+      tgrid grid;
+      rtbool.getgrid(grid);
+      double gridX = grid.GetX();
+      double gridY = grid.GetY();
+      double gridLength = grid.GetLength();
+
+      double Minima[2] = { gridX, gridY };
+      double Maxima[2] = { gridX + xDimensionSize * gridLength,
+                           gridY + yDimensionSize * gridLength };
+      Rectangle<2> rectangle(true, Minima, Maxima);
+
+      if(LineIntersectsRectangle(lineStartPoint, lineEndPoint, rectangle))
+      {
+        if(IsHorizontalLine(lineStartPoint, lineEndPoint))
+        {
+          double xStart = lineStartPoint.GetX();
+          double xEnd = lineEndPoint.GetX();
+          double y = lineStartPoint.GetY();
+
+          if(xStart < Minima[0])
+          {
+            xStart = Minima[0];
+          }
+
+          if(xEnd > Maxima[0])
+          {
+            xEnd = Maxima[0];
+          }
+
+          for(double x = xStart; x <= xEnd; x += gridLength)
+          {
+            bHasTrueValue |= rtbool.SetValue(x, y, true, true);
+          }
+        }
+
+        else if(IsVerticalLine(lineStartPoint, lineEndPoint))
+        {
+          double x = lineStartPoint.GetX();
+          double yStart = lineStartPoint.GetY();
+          double yEnd = lineEndPoint.GetY();
+
+          if(yStart < Minima[1])
+          {
+            yStart = Minima[1];
+          }
+
+          if(yEnd > Maxima[1])
+          {
+            yEnd = Maxima[1];
+          }
+
+          for(double y = yStart; y <= yEnd; y += gridLength)
+          {
+            bHasTrueValue |= rtbool.SetValue(x, y, true, true);
+          }
+        }
+
+        else
+        {
+          double xStart = lineStartPoint.GetX();
+          double xEnd = lineEndPoint.GetX();
+
+          if(xStart < Minima[0])
+          {
+            xStart = Minima[0];
+          }
+
+          if(xEnd > Maxima[0])
+          {
+            xEnd = Maxima[0];
+          }
+
+          double deltaX = lineEndPoint.GetX() - lineStartPoint.GetX();
+          double deltaY = lineEndPoint.GetY() - lineStartPoint.GetY();
+          double m = deltaY / deltaX;
+          double n = lineStartPoint.GetY() - m * lineStartPoint.GetX();
+
+          for(double x = xStart; x <= xEnd; x += gridLength)
+          {
+            double y = m * x + n;
+
+            if(y >= Minima[1] &&
+               y < Maxima[1])
+            {
+              bHasTrueValue |= rtbool.SetValue(x, y, true, true);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return bHasTrueValue;
 }
 
 /*
@@ -204,23 +301,40 @@ int fromlineFunction(Word* pArguments,
     tgrid* pGrid = static_cast<tgrid*>(pArguments[1].addr);
 
     if(pLine != 0 &&
-       pGrid != 0)
+       pGrid != 0 &&
+       pLine->IsDefined() &&
+       pGrid->IsDefined())
     {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
+      struct ResultInfo
       {
-        tbool* pResult = static_cast<tbool*>(rResult.addr);
+        double m_dMinimumX;
+        double m_dMinimumY;
+        double m_dMaximumX;
+        double m_dMaximumY;
+        double m_dX;
+        double m_dY;
+      };
 
-        if(pResult != 0)
+      int xDimensionSize = tProperties<char>::GetXDimensionSize();
+      int yDimensionSize = tProperties<char>::GetYDimensionSize();
+      double gridX = pGrid->GetX();
+      double gridY = pGrid->GetY();
+      double gridLength = pGrid->GetLength();
+
+      switch(message)
+      {
+        case OPEN:
         {
-          pResult->SetDefined(false);
+          // initialize the local storage
+          ResultInfo* pResultInfo = new ResultInfo;
 
-          if(pLine->IsDefined() &&
-             pGrid->IsDefined())
+          if(pResultInfo != 0)
           {
-            pResult->SetDefined(true);
-            pResult->SetGrid(*pGrid);
+            double doubleMaximum = std::numeric_limits<double>::max();
+            pResultInfo->m_dMinimumX = doubleMaximum;
+            pResultInfo->m_dMinimumY = doubleMaximum;
+            pResultInfo->m_dMaximumX = -doubleMaximum;
+            pResultInfo->m_dMaximumY = -doubleMaximum;
 
             for(int i = 0; i < pLine->Size(); i++)
             {
@@ -229,41 +343,152 @@ int fromlineFunction(Word* pArguments,
               Point startPoint = halfSegment.GetLeftPoint();
               Point endPoint = halfSegment.GetRightPoint();
 
-              if(pResult->IsValidLocation(startPoint.GetX(),
-                                          startPoint.GetY()) &&
-                 pResult->IsValidLocation(endPoint.GetX(),
-                                          endPoint.GetY()))
+              if(startPoint.GetX() < pResultInfo->m_dMinimumX)
               {
-                 Index<2> startIndex = pResult->GetLocationIndex
-                                       (startPoint.GetX(),
-                                        startPoint.GetY());
-                 Index<2> endIndex = pResult->GetLocationIndex
-                                     (endPoint.GetX(),
-                                      endPoint.GetY());
+                pResultInfo->m_dMinimumX = startPoint.GetX();
+              }
 
-                 drawLine(*pResult, startIndex, endIndex);
+              if(startPoint.GetX() > pResultInfo->m_dMaximumX)
+              {
+                pResultInfo->m_dMaximumX = startPoint.GetX();
+              }
+
+              if(startPoint.GetY() < pResultInfo->m_dMinimumY)
+              {
+                pResultInfo->m_dMinimumY = startPoint.GetY();
+              }
+
+              if(startPoint.GetY() > pResultInfo->m_dMaximumY)
+              {
+                pResultInfo->m_dMaximumY = startPoint.GetY();
+              }
+
+              if(endPoint.GetX() < pResultInfo->m_dMinimumX)
+              {
+                pResultInfo->m_dMinimumX = endPoint.GetX();
+              }
+
+              if(endPoint.GetX() > pResultInfo->m_dMaximumX)
+              {
+                pResultInfo->m_dMaximumX = endPoint.GetX();
+              }
+
+              if(endPoint.GetY() < pResultInfo->m_dMinimumY)
+              {
+                pResultInfo->m_dMinimumY = endPoint.GetY();
+              }
+
+              if(endPoint.GetY() > pResultInfo->m_dMaximumY)
+              {
+                pResultInfo->m_dMaximumY = endPoint.GetY();
               }
             }
 
-            int xDimensionSize = tProperties<char>::GetXDimensionSize();
-            int yDimensionSize = tProperties<char>::GetYDimensionSize();
+            pResultInfo->m_dX = gridX +
+                                std::floor((pResultInfo->m_dMinimumX - gridX) /
+                                          (xDimensionSize * gridLength)) *
+                                          (xDimensionSize * gridLength);
+            pResultInfo->m_dY = gridY +
+                                std::floor((pResultInfo->m_dMinimumY -gridY) /
+                                          (yDimensionSize * gridLength)) *
+                                          (yDimensionSize * gridLength);
+            rLocal.addr = pResultInfo;
+          }
+        }
+        break;
 
-            for(int row = 0; row < yDimensionSize; row++)
+        case REQUEST:
+        {
+          if(rLocal.addr != 0)
+          {
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
+
+            if(pResultInfo != 0)
             {
-              for(int column = 0; column < xDimensionSize; column++)
+              if(pResultInfo->m_dX <= pResultInfo->m_dMaximumX ||
+                 pResultInfo->m_dY <= pResultInfo->m_dMaximumY)
               {
-                Index<2> index = (int[]){column, row};
-                char value = pResult->GetValue(index);
+                tbool* ptbool = new tbool(true);
 
-                if(tProperties<char>::TypeProperties::IsUndefinedValue(value)
-                   == true)
+                if(ptbool != 0)
                 {
-                  pResult->SetValue(index, false, true);
+                  ptbool->SetValues(false, true);
+                  bool bHasTrueValue = false;
+
+                  do
+                  {
+                    ptbool->SetGrid(pResultInfo->m_dX,
+                                    pResultInfo->m_dY,
+                                    gridLength);
+
+                    for(int i = 0; i < pLine->Size(); i++)
+                    {
+                      HalfSegment halfSegment;
+                      pLine->Get(i, halfSegment);
+                      bHasTrueValue |= SetLineValues(halfSegment, *ptbool);
+                    }
+
+                    pResultInfo->m_dX += xDimensionSize * gridLength;
+
+                    if(pResultInfo->m_dX > pResultInfo->m_dMaximumX)
+                    {
+                      pResultInfo->m_dY += yDimensionSize * gridLength;
+
+                      if(pResultInfo->m_dY <=
+                         pResultInfo->m_dMaximumY)
+                      {
+                        pResultInfo->m_dX = gridX +
+                                            std::floor
+                                            ((pResultInfo->m_dMinimumX -
+                                              gridX) /
+                                            (xDimensionSize * gridLength)) *
+                                            (xDimensionSize * gridLength);
+                      }
+                    }
+                  }
+
+                  while(bHasTrueValue == false &&
+                        pResultInfo->m_dX <= pResultInfo->m_dMaximumX &&
+                        pResultInfo->m_dY <= pResultInfo->m_dMaximumY);
+
+                  // return the next stream element
+                  rResult.addr = ptbool;
+                  nRetVal = YIELD;
                 }
+              }
+
+              else
+              {
+                // always set the result to null before return CANCEL
+                rResult.addr = 0;
+                nRetVal = CANCEL;
               }
             }
           }
         }
+        break;
+
+        case CLOSE:
+        {
+          if(rLocal.addr != 0)
+          {
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
+
+            if(pResultInfo != 0)
+            {
+              delete pResultInfo;
+              rLocal.addr = 0;
+            }
+          }
+        }
+        break;
+
+        default:
+        {
+          assert(false);
+          nRetVal = -1;
+        }
+        break;
       }
     }
   }
@@ -281,17 +506,21 @@ ListExpr fromlineTypeMappingFunction(ListExpr arguments)
   ListExpr type = NList::typeError("Operator fromline expects "
                                    "a line and a tgrid.");
 
-  NList argumentsList(arguments);
-
-  if(argumentsList.hasLength(2))
+  if(nl != 0)
   {
-    std::string argument1 = argumentsList.first().str();
-    std::string argument2 = argumentsList.second().str();
+    NList argumentsList(arguments);
 
-    if(argument1 == Line::BasicType() &&
-       argument2 == tgrid::BasicType())
+    if(argumentsList.hasLength(2))
     {
-      type = NList(tbool::BasicType()).listExpr();
+      std::string argument1 = argumentsList.first().str();
+      std::string argument2 = argumentsList.second().str();
+
+      if(argument1 == Line::BasicType() &&
+         argument2 == tgrid::BasicType())
+      {
+        type = nl->TwoElemList(nl->SymbolAtom(Stream<tbool>::BasicType()),
+                               nl->SymbolAtom(tbool::BasicType()));
+      }
     }
   }
 
