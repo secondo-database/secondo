@@ -41,4 +41,4 @@ operator matchgrid alias MATCHGRID pattern _ op [_,fun,_]
          implicit parameter element type CELLS
 operator getgrid alias GETGRID pattern op(_)
 operator tiles alias TILES pattern op(_)
-operator toraster2 alias TORASTER2 pattern op()
+operator toraster2 alias TORASTER2 pattern op(_)
