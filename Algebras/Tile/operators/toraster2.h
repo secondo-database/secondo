@@ -24,8 +24,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_TORASTER2_H
 
 #include "AlgebraTypes.h"
+#include "Attribute.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+#include "Stream.h"
 #include "../Types.h"
 
 namespace TileAlgebra
@@ -64,18 +66,21 @@ struct toraster2Info : OperatorInfo
       {
         if(signature.empty())
         {
-          signature = "stream(" + tTypes[i] + ") -> " + sTypes[i];
+          signature = Stream<Attribute>::BasicType() +
+                      "(" + tTypes[i] + ") -> " + sTypes[i];
         }
 
         else
         {
-          appendSignature("stream(" + tTypes[i] + ") -> " + sTypes[i]);
+          appendSignature(Stream<Attribute>::BasicType() +
+                          "(" + tTypes[i] + ") -> " + sTypes[i]);
         } 
       }
 
       for(size_t i = 0; i < mtTypes.size(); i++)
       {
-        appendSignature("stream(" + mtTypes[i] + ") -> " + msTypes[i]);
+        appendSignature(Stream<Attribute>::BasicType() +
+                        "(" + mtTypes[i] + ") -> " + msTypes[i]);
       }
     }
 

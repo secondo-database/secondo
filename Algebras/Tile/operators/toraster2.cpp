@@ -40,7 +40,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Raster2/msbool.h"
 #include "../../Raster2/msstring.h"
 #include "DateTime.h"
-#include "Stream.h"
 
 namespace TileAlgebra
 {
@@ -106,10 +105,10 @@ int toraster2Functiont(Word* pArguments,
                 double sourceGridY = sourceGrid.GetY();
                 double sourceGridLength = sourceGrid.GetLength();
 
-                if(std::abs(sourceGridX) < std::abs(grid.getOriginX()) &&
-                   std::abs(sourceGridY) < std::abs(grid.getOriginY()))
+                if(sourceGridX < grid.getOriginX() &&
+                   sourceGridY < grid.getOriginY())
                 {
-                  // set nearest x and y coordinates to point of origin
+                  // set smallest x and y coordinates
                   grid.set(sourceGridX, sourceGridY, sourceGridLength);
                   pDestinationType->setGrid(grid);
                 }
@@ -228,10 +227,10 @@ int toraster2Functionmt(Word* pArguments,
                 datetime::DateTime sourceGridDuration = sourceGrid.
                                                         GetDuration();
 
-                if(std::abs(sourceGridX) < std::abs(grid.getOriginX()) &&
-                   std::abs(sourceGridY) < std::abs(grid.getOriginY()))
+                if(sourceGridX < grid.getOriginX() &&
+                   sourceGridY < grid.getOriginY())
                 {
-                  // set nearest x and y coordinates to point of origin
+                  // set smallest x and y coordinates
                   grid.set(sourceGridX, sourceGridY,
                            sourceGridLength, sourceGridDuration);
                   pDestinationType->setGrid(grid);
