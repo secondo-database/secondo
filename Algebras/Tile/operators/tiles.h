@@ -24,8 +24,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_TILES_H
 
 #include "AlgebraTypes.h"
+#include "Attribute.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+#include "Stream.h"
 #include "../Types.h"
 
 namespace TileAlgebra
@@ -62,18 +64,21 @@ struct tilesInfo : OperatorInfo
       {
         if(signature.empty())
         {
-          signature = sTypes[i] + " -> stream(" + tTypes[i] + ")";
+          signature = sTypes[i] + " -> " + Stream<Attribute>::BasicType() +
+                      "(" + tTypes[i] + ")";
         }
 
         else
         {
-          appendSignature(sTypes[i] + " -> stream(" + tTypes[i] + ")");
+          appendSignature(sTypes[i] + " -> " + Stream<Attribute>::BasicType() +
+                          "(" + tTypes[i] + ")");
         } 
       }
 
       for(size_t i = 0; i < mtTypes.size(); i++)
       {
-        appendSignature(msTypes[i] + " -> stream(" + mtTypes[i] + ")");
+        appendSignature(msTypes[i] + " -> " + Stream<Attribute>::BasicType() +
+                        "(" + mtTypes[i] + ")");
       }
     }
 

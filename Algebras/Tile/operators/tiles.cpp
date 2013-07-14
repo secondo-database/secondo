@@ -39,7 +39,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Raster2/msreal.h"
 #include "../../Raster2/msbool.h"
 #include "../../Raster2/msstring.h"
-#include "Stream.h"
 
 namespace TileAlgebra
 {
@@ -64,9 +63,10 @@ int tilesFunctiont(Word* pArguments,
   {
     SourceType* pSourceType = static_cast<SourceType*>(pArguments[0].addr);
 
-    if(pSourceType != 0)
+    if(pSourceType != 0 &&
+       pSourceType->isDefined())
     {
-      struct ConvertInfo
+      struct ResultInfo
       {
         Rectangle<2> m_BoundingBox;
         double m_dX;
@@ -78,14 +78,14 @@ int tilesFunctiont(Word* pArguments,
         case OPEN:
         {
           // initialize the local storage
-          ConvertInfo* pConvertInfo = new ConvertInfo;
+          ResultInfo* pResultInfo = new ResultInfo;
 
-          if(pConvertInfo != 0)
+          if(pResultInfo != 0)
           {
-            pConvertInfo->m_BoundingBox = pSourceType->bbox();
-            pConvertInfo->m_dX = pConvertInfo->m_BoundingBox.MinD(0);
-            pConvertInfo->m_dY = pConvertInfo->m_BoundingBox.MinD(1);
-            rLocal.addr = pConvertInfo;
+            pResultInfo->m_BoundingBox = pSourceType->bbox();
+            pResultInfo->m_dX = pResultInfo->m_BoundingBox.MinD(0);
+            pResultInfo->m_dY = pResultInfo->m_BoundingBox.MinD(1);
+            rLocal.addr = pResultInfo;
           }
         }
         break;
@@ -94,14 +94,12 @@ int tilesFunctiont(Word* pArguments,
         {
           if(rLocal.addr != 0)
           {
-            ConvertInfo* pConvertInfo = static_cast<ConvertInfo*>(rLocal.addr);
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
 
-            if(pConvertInfo != 0)
+            if(pResultInfo != 0)
             {
-              // return the next stream element
-
-              if(pConvertInfo->m_dX < pConvertInfo->m_BoundingBox.MaxD(0) &&
-                 pConvertInfo->m_dY < pConvertInfo->m_BoundingBox.MaxD(1))
+              if(pResultInfo->m_dX < pResultInfo->m_BoundingBox.MaxD(0) &&
+                 pResultInfo->m_dY < pResultInfo->m_BoundingBox.MaxD(1))
               {
                 DestinationType* pDestinationType = new DestinationType(true);
 
@@ -117,16 +115,16 @@ int tilesFunctiont(Word* pArguments,
 
                   do
                   {
-                    pDestinationType->SetGrid(pConvertInfo->m_dX,
-                                              pConvertInfo->m_dY,
+                    pDestinationType->SetGrid(pResultInfo->m_dX,
+                                              pResultInfo->m_dY,
                                               gridLength);
                     
                     for(int row = 0; row < yDimensionSize; row++)
                     {
                       for(int column = 0; column < xDimensionSize; column++)
                       {
-                        double x = pConvertInfo->m_dX + column * gridLength;
-                        double y = pConvertInfo->m_dY + row * gridLength;
+                        double x = pResultInfo->m_dX + column * gridLength;
+                        double y = pResultInfo->m_dY + row * gridLength;
                         
                         typename DestinationTypeProperties::TypeProperties::
                         PropertiesType value = pSourceType->atlocation(x, y);
@@ -140,24 +138,25 @@ int tilesFunctiont(Word* pArguments,
                       }
                     }
 
-                    pConvertInfo->m_dX += xDimensionSize * gridLength;
+                    pResultInfo->m_dX += xDimensionSize * gridLength;
 
-                    if(pConvertInfo->m_dX >=
-                       pConvertInfo->m_BoundingBox.MaxD(0))
+                    if(pResultInfo->m_dX >=
+                       pResultInfo->m_BoundingBox.MaxD(0))
                     {
-                      pConvertInfo->m_dY += yDimensionSize * gridLength;
+                      pResultInfo->m_dY += yDimensionSize * gridLength;
 
-                      if(pConvertInfo->m_dY <
-                         pConvertInfo->m_BoundingBox.MaxD(1))
+                      if(pResultInfo->m_dY <
+                         pResultInfo->m_BoundingBox.MaxD(1))
                       {
-                        pConvertInfo->m_dX =
-                        pConvertInfo->m_BoundingBox.MinD(0);
+                        pResultInfo->m_dX =
+                        pResultInfo->m_BoundingBox.MinD(0);
                       }
                     }
                   }
 
                   while(bHasDefinedValue == false);
 
+                  // return the next stream element
                   rResult.addr = pDestinationType;
                   nRetVal = YIELD;
                 }
@@ -178,11 +177,11 @@ int tilesFunctiont(Word* pArguments,
         {
           if(rLocal.addr != 0)
           {
-            ConvertInfo* pConvertInfo = static_cast<ConvertInfo*>(rLocal.addr);
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
 
-            if(pConvertInfo != 0)
+            if(pResultInfo != 0)
             {
-              delete pConvertInfo;
+              delete pResultInfo;
               rLocal.addr = 0;
             }
           }
@@ -224,7 +223,7 @@ int tilesFunctionmt(Word* pArguments,
 
     if(pSourceType != 0)
     {
-      struct ConvertInfo
+      struct ResultInfo
       {
         Rectangle<3> m_BoundingBox;
         double m_dX;
@@ -237,15 +236,15 @@ int tilesFunctionmt(Word* pArguments,
         case OPEN:
         {
           // initialize the local storage
-          ConvertInfo* pConvertInfo = new ConvertInfo;
+          ResultInfo* pResultInfo = new ResultInfo;
 
-          if(pConvertInfo != 0)
+          if(pResultInfo != 0)
           {
-            pConvertInfo->m_BoundingBox = pSourceType->bbox();
-            pConvertInfo->m_dX = pConvertInfo->m_BoundingBox.MinD(0);
-            pConvertInfo->m_dY = pConvertInfo->m_BoundingBox.MinD(1);
-            pConvertInfo->m_dT = pConvertInfo->m_BoundingBox.MinD(2);
-            rLocal.addr = pConvertInfo;
+            pResultInfo->m_BoundingBox = pSourceType->bbox();
+            pResultInfo->m_dX = pResultInfo->m_BoundingBox.MinD(0);
+            pResultInfo->m_dY = pResultInfo->m_BoundingBox.MinD(1);
+            pResultInfo->m_dT = pResultInfo->m_BoundingBox.MinD(2);
+            rLocal.addr = pResultInfo;
           }
         }
         break;
@@ -254,15 +253,15 @@ int tilesFunctionmt(Word* pArguments,
         {
           if(rLocal.addr != 0)
           {
-            ConvertInfo* pConvertInfo = static_cast<ConvertInfo*>(rLocal.addr);
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
 
-            if(pConvertInfo != 0)
+            if(pResultInfo != 0)
             {
               // return the next stream element
 
-              if(pConvertInfo->m_dX < pConvertInfo->m_BoundingBox.MaxD(0) &&
-                 pConvertInfo->m_dY < pConvertInfo->m_BoundingBox.MaxD(1) &&
-                 pConvertInfo->m_dT < pConvertInfo->m_BoundingBox.MaxD(2))
+              if(pResultInfo->m_dX < pResultInfo->m_BoundingBox.MaxD(0) &&
+                 pResultInfo->m_dY < pResultInfo->m_BoundingBox.MaxD(1) &&
+                 pResultInfo->m_dT < pResultInfo->m_BoundingBox.MaxD(2))
               {
                 DestinationType* pDestinationType = new DestinationType(true);
 
@@ -281,8 +280,8 @@ int tilesFunctionmt(Word* pArguments,
 
                   do
                   {
-                    pDestinationType->SetGrid(pConvertInfo->m_dX,
-                                              pConvertInfo->m_dY,
+                    pDestinationType->SetGrid(pResultInfo->m_dX,
+                                              pResultInfo->m_dY,
                                               gridLength,
                                               gridDuration);
 
@@ -292,8 +291,8 @@ int tilesFunctionmt(Word* pArguments,
                       {
                         for(int column = 0; column < xDimensionSize; column++)
                         {
-                          double x = pConvertInfo->m_dX + column * gridLength;
-                          double y = pConvertInfo->m_dY + row * gridLength;
+                          double x = pResultInfo->m_dX + column * gridLength;
+                          double y = pResultInfo->m_dY + row * gridLength;
                           double t = time * gridDuration;
                           
                           typename DestinationTypeProperties::TypeProperties::
@@ -310,32 +309,32 @@ int tilesFunctionmt(Word* pArguments,
                       }
                     }
 
-                    pConvertInfo->m_dX += xDimensionSize * gridLength;
+                    pResultInfo->m_dX += xDimensionSize * gridLength;
 
-                    if(pConvertInfo->m_dX >=
-                       pConvertInfo->m_BoundingBox.MaxD(0))
+                    if(pResultInfo->m_dX >=
+                       pResultInfo->m_BoundingBox.MaxD(0))
                     {
-                      pConvertInfo->m_dY += yDimensionSize * gridLength;
+                      pResultInfo->m_dY += yDimensionSize * gridLength;
 
-                      if(pConvertInfo->m_dY >=
-                         pConvertInfo->m_BoundingBox.MaxD(1))
+                      if(pResultInfo->m_dY >=
+                         pResultInfo->m_BoundingBox.MaxD(1))
                       {
-                        pConvertInfo->m_dT += tDimensionSize * gridDuration;
+                        pResultInfo->m_dT += tDimensionSize * gridDuration;
 
-                        if(pConvertInfo->m_dT <
-                           pConvertInfo->m_BoundingBox.MaxD(2))
+                        if(pResultInfo->m_dT <
+                           pResultInfo->m_BoundingBox.MaxD(2))
                         {
-                          pConvertInfo->m_dX =
-                          pConvertInfo->m_BoundingBox.MinD(0);
-                          pConvertInfo->m_dY =
-                          pConvertInfo->m_BoundingBox.MinD(1);
+                          pResultInfo->m_dX =
+                          pResultInfo->m_BoundingBox.MinD(0);
+                          pResultInfo->m_dY =
+                          pResultInfo->m_BoundingBox.MinD(1);
                         }
                       }
 
                       else
                       {
-                        pConvertInfo->m_dX =
-                        pConvertInfo->m_BoundingBox.MinD(0);
+                        pResultInfo->m_dX =
+                        pResultInfo->m_BoundingBox.MinD(0);
                       }
                     }
                   }
@@ -362,11 +361,11 @@ int tilesFunctionmt(Word* pArguments,
         {
           if(rLocal.addr != 0)
           {
-            ConvertInfo* pConvertInfo = static_cast<ConvertInfo*>(rLocal.addr);
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
 
-            if(pConvertInfo != 0)
+            if(pResultInfo != 0)
             {
-              delete pConvertInfo;
+              delete pResultInfo;
               rLocal.addr = 0;
             }
           }
