@@ -1313,6 +1313,28 @@ struct SplitMpointLocalInfo
 
 
 struct Sequence{
+   Sequence(): isStatic(false), pos1(0), pos2(0),
+               start(datetime::instanttype),
+               end(datetime::instanttype),
+               endsWithGap(false){}
+   Sequence(const Sequence& s): 
+       isStatic(s.isStatic),
+       pos1(s.pos1), pos2(s.pos2), 
+       start(s.start), end(s.end), 
+       endsWithGap(s.endsWithGap) {}
+
+   ~Sequence() {}
+
+   Sequence& operator=(const Sequence& s){
+     isStatic = s.isStatic; 
+     pos1 = s.pos1;
+     pos2 = s.pos2;
+     start = s.start;
+     end = s.end;
+     endsWithGap = s.endsWithGap;
+     return *this;
+   }
+
    bool isStatic;
    int pos1;
    int pos2;
@@ -1323,7 +1345,7 @@ struct Sequence{
 
 ostream& operator<<(ostream& os, const Sequence& s){
     os << "(" << (s.isStatic?"static":"moving") << ", " << s.pos1 
-       << " - " << s.pos2 << ", " << s.start << " , " 
+       << " - " << s.pos2 << ", " << s.start << " , " << s.end << " , " 
        <<  (s.end-s.start) << ", "
        << (s.endsWithGap?"gap":"con");
     return os;
@@ -1433,8 +1455,9 @@ class SimTripsInfo{
   }
 
   Sequence getSequence(vector<Sequence>& raw, size_t& pos)const{ 
+    assert(pos<raw.size());
     Sequence s1 = raw[pos];
-     while(pos < raw.size()){
+     while(pos < raw.size()-1){
          pos++;
          Sequence s2 = raw[pos];
          if(!connect(s1,s2)){
@@ -1449,7 +1472,7 @@ class SimTripsInfo{
      if(s1.endsWithGap){ // a gap in definition time
        return false;
      }
-     
+    
      assert((s1.isStatic != s2.isStatic) || !s1.isStatic);
 
      // real breaks 
