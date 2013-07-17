@@ -1351,147 +1351,122 @@ ostream& operator<<(ostream& os, const Sequence& s){
     return os;
 }
 
+
 class SimTripsInfo{
- public:
+  public:
     SimTripsInfo(const MPoint* mp, const DateTime* dur, 
                  const double _minVel, const Geoid* geo):
              source(mp), duration(dur), minVel(_minVel), geoid(geo),
-             pos(0),sequences() {
+             pos(0),move(0), pause(0),pausedur(datetime::durationtype),
+             end(datetime::instanttype), rc(false) {
       assert(mp->IsDefined());
       assert(dur->IsDefined());
       if(geo){
          assert(geo->IsDefined());
       }
-      try{
-         computeSequences();
-      } catch(...){
-         sequences.clear();
-      }
-    }  
+    }
 
     MPoint* nextMPoint(){
-       return pos<sequences.size()?createMPoint(sequences[pos++]):0;
+       appendUnits();
+       if(move){
+         MPoint* res = move;
+         move = 0;
+         res->EndBulkLoad(false,false);
+         return res;
+       }
+       MPoint* res = pause;
+       pause = 0;
+       if(res){
+          res->EndBulkLoad(false,false);
+       }
+       return res;
     } 
 
 
- private:
-   const MPoint* source;
-   const DateTime* duration;
-   const double  minVel;
-   const Geoid* geoid;
-   size_t pos;
-   vector<Sequence> sequences;
+  private:
+    const MPoint* source;       // the mpoint to split
+    const DateTime* duration;  // the minimum duration
+    double minVel;        // minimum velocity for "static" unit
+    const Geoid* geoid;          // geoid for computing "static" for a unit
+    int pos;              // current position in source
+    MPoint* move;         // last moving units
+    MPoint* pause;        // last static units
+    DateTime pausedur;    // duration of pauseA
+    DateTime end;         // end of the last appended unit
+    bool rc;              // rightclosed of the last appened unit
 
 
-   void computeSequences(){
-     int pos1 = 0;
-     vector<Sequence> sequences_raw;
-     while(pos1<source->GetNoComponents()){
-         Sequence s = getSequence(pos1);
-         sequences_raw.push_back(s);
-     }
-     connectSequences(sequences_raw);
+   void appendPauseToMove(){
+      pausedur.SetToZero();
+      if(pause){
+        if(!move){
+          move = new MPoint(source->GetNoComponents() - pos);
+          move->StartBulkLoad();
+        }
+        UPoint up;
+        for(int i=0;i<pause->GetNoComponents();i++){
+           pause->Get(i,up);
+           move->MergeAdd(up);
+        }
+        delete pause;
+        pause = 0;
+      }
    }
 
-  Sequence getSequence(int& pos){
-     UPoint upoint(false);
-     source->Get(pos,upoint);
-     Sequence s;
-     bool ok;
-     s.isStatic = IsAlmostStationaryUPoint(upoint,minVel, geoid, ok);
-     if(!ok){ // problem in distance computing
-        throw 1;
-     } 
-     s.pos1  = pos;
-     s.pos2  = pos;
-     s.start = upoint.timeInterval.start;
-     s.end   = upoint.timeInterval.end;
-     s.endsWithGap = false;
-     pos++;
-     while(pos < source->GetNoComponents()){
-       // try to extend the sequence
-       UPoint p2;
-       source->Get(pos,p2);
-       bool p2static = IsAlmostStationaryUPoint(p2,minVel, geoid, ok);
-       if(!ok){
-           throw 1;
-       } 
-       if(p2static != s.isStatic){
-           return s;
-       }
-       if( (upoint.timeInterval.end != p2.timeInterval.start) ||
-           (!upoint.timeInterval.rc && ! p2.timeInterval.lc)){
-          s.endsWithGap = true;
-          return s;
-       }
-       s.pos2 = pos;
-       s.end = p2.timeInterval.end;
-       pos++;
-       upoint = p2;
-     }
-     return s;
-  } 
+   void appendUnits(){
+      while(pos < source->GetNoComponents()){
+         UPoint up;
+         source->Get(pos,up);
+         bool ok;
+         bool isStatic = IsAlmostStationaryUPoint(up,minVel, geoid, ok);
+         if(pause!=0 || move!=0){
+            if( (up.timeInterval.start > end) || 
+                ((up.timeInterval.start == end) && !rc && !up.timeInterval.lc)){
+               // found definition gap
+               if(move != 0 && (pausedur< *duration)){
+                   appendPauseToMove();
+               }
+               return;
+            }
+         }         
 
-  MPoint* createMPoint(Sequence s){
-     MPoint* res = new MPoint((s.pos2-s.pos1)+1);
-     UPoint upoint;
-     for(int i=s.pos1;i<=s.pos2;i++){
-        source->Get(i,upoint);
-        res->Add(upoint);
-     }
-     return res;
-  }
-
-  void connectSequences(vector<Sequence>& raw){
-     sequences.clear();
-     if(raw.empty()){
-       return;
-     }
-     size_t pos = 0;
-     while(pos < raw.size()){
-        Sequence s = getSequence(raw,pos);
-        sequences.push_back(s);
-     }   
-  }
-
-  Sequence getSequence(vector<Sequence>& raw, size_t& pos)const{ 
-    assert(pos<raw.size());
-    Sequence s1 = raw[pos];
-     while(pos < raw.size()-1){
-         pos++;
-         Sequence s2 = raw[pos];
-         if(!connect(s1,s2)){
-            return s1;
+         if(isStatic){
+            appendToPause(up);
+            pos++;
+         } else {
+            if(pause && (pausedur >= *duration)){  // ensure to return pause
+               return;
+            }
+            if(pause){
+               appendPauseToMove();
+            }
+            appendToMove(up);
+            pos++;
          }
-     }
-     return s1;
-  }
+      }
+   }
 
-  bool connect(Sequence& s1, Sequence& s2) const{
-
-     if(s1.endsWithGap){ // a gap in definition time
-       return false;
-     }
-    
-     assert((s1.isStatic != s2.isStatic) || !s1.isStatic);
-
-     // real breaks 
-     if(s1.isStatic && ((s1.end-s1.start) >= *duration )){
-         return false;
-     }
-     if(s2.isStatic && ((s2.end-s2.start) >= *duration )){
-         return false;
-     }
-     s1.end = s2.end;
-     s1.isStatic = false;
-     s1.pos2 = s2.pos2;
-     return true;
-  }
- 
-
-
-
+   void appendToPause(UPoint& up){
+       if(!pause){
+         pause = new MPoint(source->GetNoComponents()-pos);
+         pause->StartBulkLoad();
+       }
+       pause->MergeAdd(up);
+       pausedur += (up.timeInterval.end - up.timeInterval.start);
+       end = up.timeInterval.end;
+       rc = up.timeInterval.rc;
+   }
+   void appendToMove(UPoint& up){
+       if(!move){
+         move = new MPoint(source->GetNoComponents()-pos);
+         move->StartBulkLoad();
+       }
+       move->MergeAdd(up);
+       end = up.timeInterval.end;
+       rc = up.timeInterval.rc;
+   }
 };
+
 
 
 int sim_trips_VM ( Word* args, Word& result,
