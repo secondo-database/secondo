@@ -27,9 +27,9 @@
 
  [TOC]
 
- 0 Overview
+0 Overview
 
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -40,7 +40,15 @@
 #include "AVL_Tree.h"
 
 namespace p2d {
+/*
+2 Class SegmentData
 
+*/
+
+/*
+2.1 Constructors
+
+*/
 SegmentData::SegmentData(int xl, int yl, int xr, int yr, bool l,
   int edgeNo/*=-999999*/) :
   xLeft(xl), yLeft(yl), xRight(xr), yRight(yr),
@@ -74,28 +82,15 @@ SegmentData::SegmentData(SegmentData& d) :
   partnerno(d.partnerno) {
 }
 
-SegmentData& SegmentData::operator=(const SegmentData& s) {
- xLeft = s.xLeft;
- yLeft = s.yLeft;
- xRight = s.xRight;
- yRight = s.yRight;
- xLeftPos = s.xLeftPos;
- yLeftPos = s.yLeftPos;
- xRightPos = s.xRightPos;
- yRightPos = s.yRightPos;
- xLeftNumOfChars = s.xLeftNumOfChars;
- yLeftNumOfChars = s.yLeftNumOfChars;
- xRightNumOfChars = s.xRightNumOfChars;
- yRightNumOfChars = s.yRightNumOfChars;
- ldp = s.ldp;
- cycleno = s.cycleno;
- edgeno = s.edgeno;
- coverageno = s.coverageno;
- insideAbove = s.insideAbove;
- partnerno = s.partnerno;
- return *this;
-}
+/*
+2.2 Read access methods
 
+*/
+
+/*
+2.2.1 ~getPreciseLeftX~
+
+*/
 mpq_class SegmentData::getPreciseLeftX(const Flob& preciseCoordinates) const {
  if (xLeftNumOfChars == 0) {
   mpq_class theValue(0);
@@ -119,6 +114,10 @@ mpq_class SegmentData::getPreciseLeftX(const Flob& preciseCoordinates) const {
  return theValue;
 }
 
+/*
+2.2.1 ~getPreciseLeftY~
+
+*/
 mpq_class SegmentData::getPreciseLeftY(const Flob& preciseCoordinates) const {
  if (yLeftNumOfChars == 0) {
   mpq_class theValue(0);
@@ -142,6 +141,10 @@ mpq_class SegmentData::getPreciseLeftY(const Flob& preciseCoordinates) const {
  return theValue;
 }
 
+/*
+2.2.1 ~getPreciseRightX~
+
+*/
 mpq_class SegmentData::getPreciseRightX(const Flob& preciseCoordinates) const {
  if (xRightNumOfChars == 0) {
   mpq_class theValue(0);
@@ -165,6 +168,10 @@ mpq_class SegmentData::getPreciseRightX(const Flob& preciseCoordinates) const {
  return theValue;
 }
 
+/*
+2.2.1 ~getPreciseRightY~
+
+*/
 mpq_class SegmentData::getPreciseRightY(const Flob& preciseCoordinates) const {
  if (yRightNumOfChars == 0) {
   mpq_class theValue(0);
@@ -189,6 +196,8 @@ mpq_class SegmentData::getPreciseRightY(const Flob& preciseCoordinates) const {
 }
 
 /*
+2.2.1 ~GetDomGridXCoord~
+
  Returns the named value of the dominating point of the
  half segment.
 
@@ -201,6 +210,10 @@ const int SegmentData::GetDomGridXCoord() const {
  }
 }
 
+/*
+2.2.1 ~GetDomGridYCoord~
+
+*/
 const int SegmentData::GetDomGridYCoord() const {
  if (ldp) {
   return yLeft;
@@ -209,6 +222,10 @@ const int SegmentData::GetDomGridYCoord() const {
  }
 }
 
+/*
+2.2.1 ~GetDomPreciseXCoord~
+
+*/
 const mpq_class SegmentData::GetDomPreciseXCoord(
   const Flob& preciseCoordinates) const {
  if (ldp) {
@@ -218,6 +235,10 @@ const mpq_class SegmentData::GetDomPreciseXCoord(
  }
 }
 
+/*
+2.2.1 ~GetDomPreciseYCoord~
+
+*/
 const mpq_class SegmentData::GetDomPreciseYCoord(
   const Flob& preciseCoordinates) const {
  if (ldp) {
@@ -227,6 +248,10 @@ const mpq_class SegmentData::GetDomPreciseYCoord(
  }
 }
 
+/*
+2.2.1 ~GetSecGridXCoord~
+
+*/
 const int SegmentData::GetSecGridXCoord() const {
  if (!ldp) {
   return xLeft;
@@ -235,6 +260,10 @@ const int SegmentData::GetSecGridXCoord() const {
  }
 }
 
+/*
+2.2.1 ~GetSecGridYCoord~
+
+*/
 const int SegmentData::GetSecGridYCoord() const {
  if (!ldp) {
   return yLeft;
@@ -243,6 +272,10 @@ const int SegmentData::GetSecGridYCoord() const {
  }
 }
 
+/*
+2.2.1 ~GetSecPreciseXCoord~
+
+*/
 const mpq_class SegmentData::GetSecPreciseXCoord(
   const Flob& preciseCoordinates) const {
  if (!ldp) {
@@ -252,6 +285,10 @@ const mpq_class SegmentData::GetSecPreciseXCoord(
  }
 }
 
+/*
+2.2.1 ~GetSecPreciseYCoord~
+
+*/
 const mpq_class SegmentData::GetSecPreciseYCoord(
   const Flob& preciseCoordinates) const {
  if (!ldp) {
@@ -261,10 +298,24 @@ const mpq_class SegmentData::GetSecPreciseYCoord(
  }
 }
 
+/*
+2.2.1 ~IsLeftDomPoint~
+
+*/
 bool SegmentData::IsLeftDomPoint() const {
  return ldp;
 }
 
+/*
+2.2 Write access methods
+
+*/
+
+
+/*
+2.2.1 ~SetPreciseLeftX~
+
+*/
 void SegmentData::SetPreciseLeftX(Flob& preciseCoordinates, mpq_class lx) {
  if (cmp(lx, 0) == 0) {
   xLeftPos = 0;
@@ -291,6 +342,10 @@ void SegmentData::SetPreciseLeftX(Flob& preciseCoordinates, mpq_class lx) {
  assert(preciseCoordinates.write(s, xLeftNumOfChars + 1, xLeftPos));
 }
 
+/*
+2.2.1 ~SetPreciseLeftY~
+
+*/
 void SegmentData::SetPreciseLeftY(Flob& preciseCoordinates, mpq_class ly) {
  if (cmp(ly, 0) == 0) {
   yLeftPos = 0;
@@ -317,6 +372,10 @@ void SegmentData::SetPreciseLeftY(Flob& preciseCoordinates, mpq_class ly) {
  assert(preciseCoordinates.write(s, yLeftNumOfChars + 1, yLeftPos));
 }
 
+/*
+2.2.1 ~SetPreciseRightX~
+
+*/
 void SegmentData::SetPreciseRightX(Flob& preciseCoordinates, mpq_class rx) {
  if (cmp(rx, 0) == 0) {
   xRightPos = 0;
@@ -344,6 +403,10 @@ void SegmentData::SetPreciseRightX(Flob& preciseCoordinates, mpq_class rx) {
 
 }
 
+/*
+2.2.1 ~SetPreciseRightY~
+
+*/
 void SegmentData::SetPreciseRightY(Flob& preciseCoordinates, mpq_class ry) {
  if (cmp(ry, 0) == 0) {
   yRightPos = 0;
@@ -371,6 +434,10 @@ void SegmentData::SetPreciseRightY(Flob& preciseCoordinates, mpq_class ry) {
 
 }
 
+/*
+2.2.1 ~SetPreciseLeftCoordinates~
+
+*/
 void SegmentData::SetPreciseLeftCoordinates(Point2* lp,
   Flob& preciseCoordinates) {
  SmiSize sz = preciseCoordinates.getSize();
@@ -420,6 +487,10 @@ void SegmentData::SetPreciseLeftCoordinates(Point2* lp,
  }
 }
 
+/*
+2.2.1 ~SetPreciseRightCoordinates~
+
+*/
 void SegmentData::SetPreciseRightCoordinates(Point2* rp,
   Flob& preciseCoordinates) {
  SmiSize sz = preciseCoordinates.getSize();
@@ -471,6 +542,58 @@ void SegmentData::SetPreciseRightCoordinates(Point2* rp,
  }
 }
 
+/*
+2.2.1 ~SetPartnerNo~
+
+*/
+void SegmentData::SetPartnerno(int no) {
+ partnerno = no;
+}
+
+/*
+2.2.1 ~SetInsideAbove~
+
+*/
+void SegmentData::SetInsideAbove(bool b) {
+ insideAbove = b;
+}
+
+/*
+2.2.1 ~SetCoverageno~
+
+*/
+void SegmentData::SetCoverageno(int no) {
+ coverageno = no;
+}
+
+/*
+2.2.1 ~SetCycleno~
+
+*/
+void SegmentData::SetCycleno(int no) {
+ cycleno = no;
+}
+
+/*
+2.2.1 ~setFaceno~
+
+*/
+void SegmentData::SetFaceno(int no) {
+ faceno = no;
+}
+
+/*
+2.2.1 ~SetEdgeNo~
+
+*/
+void SegmentData::SetEdgeNo(int no) {
+ edgeno = no;
+}
+
+/*
+2.2.1 ~addPreciseValues~
+
+*/
 void SegmentData::addPreciseValues(Flob& preciseCoordinates, mpq_class pLeftX,
   mpq_class pLeftY, mpq_class pRightX, mpq_class pRightY) {
  SetPreciseLeftX(preciseCoordinates, pLeftX);
@@ -479,6 +602,41 @@ void SegmentData::addPreciseValues(Flob& preciseCoordinates, mpq_class pLeftX,
  SetPreciseRightY(preciseCoordinates, pRightY);
 }
 
+/*
+2.3 Member functions
+
+*/
+
+/*
+2.2.1 ~=~
+
+*/
+SegmentData& SegmentData::operator=(const SegmentData& s) {
+ xLeft = s.xLeft;
+ yLeft = s.yLeft;
+ xRight = s.xRight;
+ yRight = s.yRight;
+ xLeftPos = s.xLeftPos;
+ yLeftPos = s.yLeftPos;
+ xRightPos = s.xRightPos;
+ yRightPos = s.yRightPos;
+ xLeftNumOfChars = s.xLeftNumOfChars;
+ yLeftNumOfChars = s.yLeftNumOfChars;
+ xRightNumOfChars = s.xRightNumOfChars;
+ yRightNumOfChars = s.yRightNumOfChars;
+ ldp = s.ldp;
+ cycleno = s.cycleno;
+ edgeno = s.edgeno;
+ coverageno = s.coverageno;
+ insideAbove = s.insideAbove;
+ partnerno = s.partnerno;
+ return *this;
+}
+
+/*
+2.2.1 ~BoundingBox~
+
+*/
 const Rectangle<2> SegmentData::BoundingBox(const Geoid* geoid /*= 0*/) const {
  assert(!geoid);
 
@@ -489,6 +647,10 @@ const Rectangle<2> SegmentData::BoundingBox(const Geoid* geoid /*= 0*/) const {
  return Rectangle<2>(true, minx, maxx, miny, maxy);
 }
 
+/*
+2.2.1 ~isVertical~
+
+*/
 bool SegmentData::IsVertical(const Flob& preciseCoordinates) const {
  if (xLeft != xRight) {
   return false;
@@ -502,30 +664,15 @@ bool SegmentData::IsVertical(const Flob& preciseCoordinates) const {
  }
 }
 
-void SegmentData::SetPartnerno(int no) {
- partnerno = no;
-}
+/*
+3 Class Line2
 
-void SegmentData::SetInsideAbove(bool b) {
- insideAbove = b;
-}
+*/
 
-void SegmentData::SetCoverageno(int no) {
- coverageno = no;
-}
+/*
+3.1 Constructors
 
-void SegmentData::SetCycleno(int no) {
- cycleno = no;
-}
-
-void SegmentData::SetFaceno(int no) {
- faceno = no;
-}
-
-void SegmentData::SetEdgeNo(int no) {
- edgeno = no;
-}
-
+*/
 Line2::Line2() {};
 
 Line2::Line2(const bool def, bool ldp, int xl, int yl, int xr, int yr,
@@ -556,17 +703,15 @@ Line2::Line2(bool def) :
   bbox(false) {
 }
 
-Line2& Line2::operator=(const Line2& l) {
- assert(l.ordered);
- SetDefined(l.IsDefined());
- preciseCoordinates.copyFrom(l.preciseCoordinates);
- segmentData.copyFrom(l.segmentData);
- noComponents = l.noComponents;
- ordered = true;
- bbox = l.bbox;
- return *this;
-}
+/*
+3.2 Read access methods
 
+*/
+
+/*
+3.2.1 Read grid values
+
+*/
 int Line2::getLeftGridX(int i) const {
  assert(0 <= i && i < segmentData.Size());
  SegmentData sd;
@@ -595,6 +740,10 @@ int Line2::getRightGridY(int i) const {
  return sd.getRightY();
 }
 
+/*
+3.2.1 Read precise values
+
+*/
 mpq_class Line2::getPreciseLeftX(int i) const {
  assert(0 <= i && i < segmentData.Size());
  SegmentData sd;
@@ -624,11 +773,36 @@ mpq_class Line2::getPreciseRightY(int i) const {
  return sd.getPreciseRightY(preciseCoordinates);
 }
 
+/*
+3.2.1 ~get~
+
+*/
 void Line2::get(int i, SegmentData& sd) const {
  assert(0 <= i && i <= segmentData.Size());
  segmentData.Get(i, sd);
 }
 
+/*
+3.2.1 ~IsLeftDomPoint~
+
+*/
+bool Line2::IsLeftDomPoint(int i) const {
+ assert(0 <= i && i < segmentData.Size());
+ SegmentData sd;
+ assert(segmentData.Get(i, &sd));
+
+ return sd.IsLeftDomPoint();
+}
+
+/*
+3.3 Write access methods
+
+*/
+
+/*
+3.3.1 ~addSegment~
+
+*/
 void Line2::addSegment(bool ldp, int leftX, int leftY, int rightX, int rightY,
   mpq_class pLeftX, mpq_class pLeftY, mpq_class pRightX, mpq_class pRightY,
   int edgeNo) {
@@ -643,32 +817,48 @@ void Line2::addSegment(bool ldp, Point2* lp, Point2* rp, int edgeno) {
 }
 
 
-bool Line2::IsLeftDomPoint(int i) const {
- assert(0 <= i && i < segmentData.Size());
- SegmentData sd;
- assert(segmentData.Get(i, &sd));
+/*
+3.4 Member functions
 
- return sd.IsLeftDomPoint();
+*/
+
+/*
+3.4.1 ~=~
+
+*/
+Line2& Line2::operator=(const Line2& l) {
+ assert(l.ordered);
+ SetDefined(l.IsDefined());
+ preciseCoordinates.copyFrom(l.preciseCoordinates);
+ segmentData.copyFrom(l.segmentData);
+ noComponents = l.noComponents;
+ ordered = true;
+ bbox = l.bbox;
+ return *this;
 }
 
+/*
+3.4.1 ~Size~
+
+*/
 int Line2::Size() const {
  return segmentData.Size();
 }
 
-const Rectangle<2> Line2::BoundingBox(const Geoid* geoid /*=0*/) const {
- if (geoid) {
-  cerr << ": Spherical geometry not implemented." << endl;
-  assert(false);
- }
- return bbox;
-}
 
+/*
+3.4.1 ~Destroy=~
 
+*/
 inline void Line2::Destroy() {
  preciseCoordinates.destroy();
  segmentData.destroy();
 }
 
+/*
+3.4.1 ~collectFace~
+
+*/
 void Line2::collectFace(int faceno, int startPos, DbArray<bool>& used) {
  set<int> extensionPos;
 
@@ -750,6 +940,10 @@ void Line2::collectFace(int faceno, int startPos, DbArray<bool>& used) {
  }
 }
 
+/*
+3.4.1 ~getUnusedExtension~
+
+*/
 int Line2::getUnusedExtension(int startPos, const DbArray<bool>& used) const {
  SegmentData hs, hs2;
  segmentData.Get(startPos, hs);
@@ -801,11 +995,11 @@ int Line2::getUnusedExtension(int startPos, const DbArray<bool>& used) const {
 }
 
 /*
- ~ComputeComponents~
+3.4.1 ~computeComponents~
 
  Computes the length of this lines as well as its bounding box and the number
- of components of this line. Each Halfsegment is assigned to a face number
- (the component) and an egde number within this face.
+ of components of this line. Each halfsegment is assigned to a face number
+ (the component) and an edge number within this face.
 
 */
 void Line2::computeComponents() {
@@ -841,9 +1035,9 @@ void Line2::StartBulkLoad() {
 }
 
 /*
- ~EndBulkLoad~
+3.4.1 ~EndBulkLoad~
 
- Finishs the bulkload for a line. If this function is called,
+ Finishes the bulkload for a line. If this function is called,
  both halfSegments assigned to a segment of the line must be part
  of this line.
 
@@ -857,8 +1051,8 @@ void Line2::StartBulkLoad() {
  in Range [0..Size()-1]. HalfSegments belonging to different segments
  must have different edge numbers.
 
- Only change one of the parameters if you exacly know what you do.
- Changing such parameters without fulifilling the conditions stated
+ Only change one of the parameters if you exactly know what you do.
+ Changing such parameters without fulfilling the conditions stated
  above may construct invalid line representations which again may
  produce a system crash within some operators.
 
@@ -889,6 +1083,10 @@ void Line2::EndBulkLoad(const bool sort /* = true*/,
  segmentData.TrimToSize();
 }
 
+/*
+3.4.1 ~Clear~
+
+*/
 void Line2::Clear() {
  segmentData.clean();
  preciseCoordinates.clean();
@@ -897,6 +1095,10 @@ void Line2::Clear() {
  SetDefined(true);
 }
 
+/*
+3.4.1 ~SegmentIsVertical~
+
+*/
 bool Line2::SegmentIsVertical(int lx, mpq_class plx, int rx, mpq_class prx) {
  if (lx != rx) {
   return false;
@@ -908,12 +1110,12 @@ bool Line2::SegmentIsVertical(int lx, mpq_class plx, int rx, mpq_class prx) {
 }
 
 /*
- ~CompareSegment~
+3.4.1 ~CompareSegment~
 
  Compares the given halfsegments. Returns
- 1	if ~seg1~ > ~seg2~,
- 0 	if ~seg1~ = ~seg2~ and
- -1	if ~seg1~ < ~seg2~
+ 1	if ~seg1~ $>$ ~seg2~,
+ 0 	if ~seg1~ $=$ ~seg2~ and
+ -1	if ~seg1~ $<$ ~seg2~
 
  First the dominating points of both halfsegments will be
  compared. If both halfsegments have the same left
@@ -1087,7 +1289,7 @@ int Line2::CompareSegment(const SegmentData& seg1,
        || ((seg2SecGridY == seg2DomGridY)
          && cmp(seg2SecPreciseY, seg2DomPreciseY) > 0))
        //the y-value of the second
-       //point of ~s~ isgreater
+       //point of ~s~ is greater
        //than the dominating point
        //of ~s~
        {
@@ -1133,7 +1335,7 @@ int Line2::CompareSegment(const SegmentData& seg1,
          && (seg1SecGridY == seg2SecGridY)
          && (cmp(seg1SecPreciseX, seg2SecPreciseX) < 0))) {
       //The second point of ~this~ is less
-      //than thesecond point of ~s~
+      //than the second point of ~s~
       return -1;
      }
      if ((seg1SecGridX > seg2SecGridX)
@@ -1161,12 +1363,12 @@ int Line2::CompareSegment(const SegmentData& seg1,
 }
 
 /*
- ~CompareSegment2~
+3.4.1 ~CompareSegment2~
 
  Compares the given halfsegments. Returns
- 1	if ~seg1~ > ~seg2~,
- 0 	if ~seg1~ = ~seg2~ and
- -1	if ~seg1~ < ~seg2~
+ 1	if ~seg1~ $>$ ~seg2~,
+ 0 	if ~seg1~ $=$ ~seg2~ and
+ -1	if ~seg1~ $<$ ~seg2~
 
  First the dominating points of both halfsegments will be
  compared. If both halfsegments have the same left
@@ -1218,7 +1420,6 @@ int Line2::CompareSegment2(const SegmentData& seg1, const SegmentData& seg2,
    //The dominating point of ~this~ is greater than the
    //dominating point of ~s~.
    return 1;
-
   }
  }
 
@@ -1264,7 +1465,7 @@ int Line2::CompareSegment2(const SegmentData& seg1, const SegmentData& seg2,
     //halfsegments are greater than their
     //dominating points or the y-value of the
     //second points of the halfsegments are
-    //lessthan their dominating points.
+    //less than their dominating points.
     int cmpSecPreciseX = cmp(seg1SecPreciseX, seg2SecPreciseX);
     if ((seg1SecGridX < seg2SecGridX)
       || ((seg1SecGridX == seg2SecGridX) && (cmpSecPreciseX < 0))
@@ -1325,7 +1526,6 @@ int Line2::CompareSegment2(const SegmentData& seg1, const SegmentData& seg2,
      if ((seg1SecGridY < seg1DomGridY)
        || ((seg1SecGridY == seg1DomGridY)
          && cmp(seg1SecPreciseY, seg1DomPreciseY) < 0))
-
        {
       if (seg1.IsLeftDomPoint())
        return -1;
@@ -1335,7 +1535,6 @@ int Line2::CompareSegment2(const SegmentData& seg1, const SegmentData& seg2,
    } else {
     if (v2) {
      //~s~ is vertical
-
      if ((seg2SecGridY > seg2DomGridY)
        || ((seg2SecGridY == seg2DomGridY)
          && cmp(seg2SecPreciseY, seg2DomPreciseY) > 0))
@@ -1376,7 +1575,6 @@ int Line2::CompareSegment2(const SegmentData& seg1, const SegmentData& seg2,
      if (cmpSlope > 0) {
       return 1;
      }
-
      int cmpSecPreciseX = cmp(seg1SecPreciseX, seg2SecPreciseX);
 
      if ((seg1SecGridX < seg2SecGridX)
@@ -1416,7 +1614,7 @@ int Line2::CompareSegment2(const SegmentData& seg1, const SegmentData& seg2,
 }
 
 /*
- ~Sort~
+3.4.1 ~Sort~
 
  Sorts the segments with Mergesort using the function CompareSegment
 
@@ -1431,7 +1629,7 @@ void Line2::Sort() {
 }
 
 /*
- ~MergeSort~
+3.4.1 ~MergeSort~
 
 */
 void Line2::MergeSort(int startindex, int endindex) {
@@ -1444,7 +1642,7 @@ void Line2::MergeSort(int startindex, int endindex) {
 }
 
 /*
- ~Merge~
+3.4.1 ~Merge~
 
  This function merges 2 sorted sequences stored in the DbArray ~segentData~.
  The first sequence starts with ~startindex~ and ends with ~divide~ and the
@@ -1513,28 +1711,28 @@ void Line2::Merge(int startindex, int divide, int endindex) {
   index++;
   startR++;
  }
-
  // Storing the merged sequences in the DbArray.
  for (int i = 0; i < elemNo; i++) {
   segmentData.Put(startindex + i, result[i]);
  }
 }
 
+/*
+3.4.1 ~SetPartnerNo~
+
+*/
 void Line2::SetPartnerNo() {
  if (!IsDefined() || segmentData.Size() == 0) {
   return;
  }
-
  // reserve a slot for each edgeno
  int tmpsize = (segmentData.Size() + 1) / 2;
-
  DbArray<int> TMP(tmpsize);
- // intialize the array (it's only needed for
+ // initialize the array (it's only needed for
  // wrong sorted halfsegments)
  for (int i = 0; i < tmpsize + 1; i++) {
   TMP.Put(i, -1);
  }
-
  SegmentData seg1;
  SegmentData seg2;
  int lpp;
@@ -1589,69 +1787,59 @@ void Line2::SetPartnerNo() {
  TMP.Destroy();
 }
 
+/*
+3.5 Set operations
+
+*/
+
+/*
+3.5.1 ~unionOp~
+
+*/
 void Line2::unionOP(Line2& l2, Line2& result, const Geoid* geoid/*=0*/) {
  p2d::SetOp(*this, l2, result, union_op, geoid);
 }
 
+/*
+3.5.1 ~intersection~
+
+*/
 void Line2::intersection(Line2& l2, Line2& result, const Geoid* geoid/*=0*/) {
  p2d::SetOp(*this, l2, result, intersection_op, geoid);
 }
 
+/*
+3.5.1 ~minus~
+
+*/
 void Line2::minus(Line2& l2, Line2& result, const Geoid* geoid/*=0*/) {
  p2d::SetOp(*this, l2, result, difference_op, geoid);
 }
 
-bool Line2::intersect(Line2& l2, const Geoid* geoid/*=0*/) {
+/*
+3.6 ~intersects~
+
+*/
+bool Line2::intersects(Line2& l2, const Geoid* geoid/*=0*/) {
  return p2d::intersects(*this, l2, geoid);
 }
 
+/*
+3.6 ~crossings~
+
+*/
 void Line2::crossings(Line2& l2, Points2& result, const Geoid* geoid/*=0*/) {
  p2d::crossings(*this, l2, result, geoid);
 }
 
-void convertLineToLine2(Line& l, Line2& result) {
- result.Clear();
+/*
+3.7 Functions requires by Secondo and virtual functions
+of the StandardSpatialAttribute
 
- if (!l.IsDefined()) {
-  result.SetDefined(false);
-  return;
- }
-
- HalfSegment hs;
- int edgeNo = 0;
-
- result.StartBulkLoad();
-
- for (int i = 0; i < l.Size(); i++) {
-  l.Get(i, hs);
-  if (hs.IsLeftDomPoint()) {
-
-   int glx;
-   int gly;
-   mpq_class plx(0);
-   mpq_class ply(0);
-   createValue(hs.GetDomPoint().GetX(), glx, plx);
-   createValue(hs.GetDomPoint().GetY(), gly, ply);
-
-   int grx;
-   int gry;
-   mpq_class prx(0);
-   mpq_class pry(0);
-   createValue(hs.GetSecPoint().GetX(), grx, prx);
-   createValue(hs.GetSecPoint().GetY(), gry, pry);
-
-   result.addSegment(true, glx, gly, grx, gry, plx, ply, prx, pry, edgeNo);
-   result.addSegment(false, grx, gry, glx, gly, prx, pry, plx, ply, edgeNo);
-   edgeNo++;
-  }
- }
-
- result.EndBulkLoad(true, false);
- assert(result.IsDefined() && result.BoundingBox().IsDefined());
-}
+*/
 
 /*
- 4.4 ~Sizeof~-function
+3.7.1 ~Sizeof~
 
 */
 inline size_t Line2::Sizeof() const {
@@ -1660,7 +1848,7 @@ inline size_t Line2::Sizeof() const {
 }
 
 /*
- 4.4 ~HashValue~-function
+3.7.1 ~HashValue~
 
 */
 inline size_t Line2::HashValue() const {
@@ -1668,24 +1856,21 @@ inline size_t Line2::HashValue() const {
   return 0;
  }
  size_t h = 0;
-
  SegmentData seg;
  int x1, y1, x2, y2;
-
  for (int i = 0; i < Size() && i < 5; i++) {
   segmentData.Get(i, seg);
   x1 = seg.GetDomGridXCoord();
   y1 = seg.GetDomGridYCoord();
   x2 = seg.GetSecGridXCoord();
   y2 = seg.GetSecGridYCoord();
-
   h += (size_t)((5 * x1 + y1) + (5 * x2 + y2));
  }
  return h;
 }
 
 /*
- 4.4 ~CopyFrom~-function
+3.7.1 ~CopyFrom~
 
 */
 inline void Line2::CopyFrom(const Attribute* right) {
@@ -1693,12 +1878,11 @@ inline void Line2::CopyFrom(const Attribute* right) {
 }
 
 /*
- 4.4 ~Compare~-function
+3.7.1 ~Compare~
 
 */
 inline int Line2::Compare(const Attribute *arg) const {
  const Line2 &l = *((const Line2*) arg);
-
  if (!IsDefined() && !l.IsDefined()) {
   return 0;
  }
@@ -1708,12 +1892,10 @@ inline int Line2::Compare(const Attribute *arg) const {
  if (!l.IsDefined()) {
   return 1;
  }
-
  if (Size() > l.Size())
   return 1;
  if (Size() < l.Size())
   return -1;
-
  int index = 0;
  int result = 0;
 
@@ -1731,16 +1913,24 @@ inline int Line2::Compare(const Attribute *arg) const {
  return 0;
 }
 
+/*
+3.7.1 ~Adjacent~
+
+*/
 bool Line2::Adjacent(const Attribute *arg) const {
  return false;
 }
 
+/*
+3.7.1 ~Clone~
+
+*/
 Line2* Line2::Clone() const {
   return new Line2(*this);
  }
 
 /*
- 4.4 ~CloneLine2~-function
+3.7.1 ~CloneLine2~
 
 */
 Word Line2::CloneLine2(const ListExpr typeInfo, const Word& w) {
@@ -1748,7 +1938,7 @@ Word Line2::CloneLine2(const ListExpr typeInfo, const Word& w) {
 }
 
 /*
- 4.4 ~CastLine2~-function
+3.7.1 ~CastLine2~
 
 */
 void* Line2::CastLine2(void* addr) {
@@ -1756,7 +1946,7 @@ void* Line2::CastLine2(void* addr) {
 }
 
 /*
- 4.4 ~SizeOfLine2~-function
+3.7.1 ~SizeOfLine2~
 
 */
 int Line2::SizeOfLine2() {
@@ -1764,7 +1954,7 @@ int Line2::SizeOfLine2() {
 }
 
 /*
- 4.4 ~CreateLine2~-function
+3.7.1 ~CreateLine2~
 
 */
 Word Line2::CreateLine2(const ListExpr typeInfo) {
@@ -1772,7 +1962,7 @@ Word Line2::CreateLine2(const ListExpr typeInfo) {
 }
 
 /*
- 4.4 ~DeleteLine2~-function
+3.7.1 ~DeleteLine2~
 
 */
 void Line2::DeleteLine2(const ListExpr typeInfo, Word& w) {
@@ -1785,7 +1975,7 @@ void Line2::DeleteLine2(const ListExpr typeInfo, Word& w) {
 }
 
 /*
- 4.4 ~CloseLine2~-function
+3.7.1 ~CloseLine2~
 
 */
 void Line2::CloseLine2(const ListExpr typeInfo, Word& w) {
@@ -1794,7 +1984,7 @@ void Line2::CloseLine2(const ListExpr typeInfo, Word& w) {
 }
 
 /*
- 4.4 ~Line2Property~-function
+3.7.1 ~Line2Property~
 
 */
 ListExpr Line2::Line2Property() {
@@ -1815,7 +2005,7 @@ ListExpr Line2::Line2Property() {
 }
 
 /*
- 4.4 ~CheckLine2~-function
+3.7.1 ~CheckLine2~
 
 */
 bool Line2::CheckLine2(ListExpr type, ListExpr& errorInfo) {
@@ -1823,23 +2013,39 @@ bool Line2::CheckLine2(ListExpr type, ListExpr& errorInfo) {
 }
 
 /*
- 4.4 ~Distance~-function
+3.4.1 ~BoundingBox~
+
+*/
+const Rectangle<2> Line2::BoundingBox(const Geoid* geoid /*=0*/) const {
+ if (geoid) {
+  cerr << ": Spherical geometry not implemented." << endl;
+  assert(false);
+ }
+ return bbox;
+}
+
+/*
+3.7.1 ~Distance~
 
 */
 double Line2::Distance(const Rectangle<2>& rect,
   const Geoid* geoid/*=0*/) const {
 //TODO Distance
- return 1.0;
+ return numeric_limits<double>::max();
 }
 
 /*
- 4.4 ~Empty~-function
+3.7.1 ~Empty~
 
 */
 bool Line2::IsEmpty() const {
  return ((!IsDefined()) || segmentData.Size() == 0);
 }
 
+/*
+3.7.1 ~Intersects~
+
+*/
 bool Line2::Intersects(const Rectangle<2>& rect,
   const Geoid* geoid/*=0*/) const {
  assert( !IsEmpty() ); // includes !undef
@@ -1884,7 +2090,50 @@ delete rectangle;
 return intersects;
 }
 
+/*
+3 ~convertLineToLine2~
 
+*/
+void convertLineToLine2(Line& l, Line2& result) {
+ result.Clear();
+
+ if (!l.IsDefined()) {
+  result.SetDefined(false);
+  return;
+ }
+
+ HalfSegment hs;
+ int edgeNo = 0;
+
+ result.StartBulkLoad();
+
+ for (int i = 0; i < l.Size(); i++) {
+  l.Get(i, hs);
+  if (hs.IsLeftDomPoint()) {
+
+   int glx;
+   int gly;
+   mpq_class plx(0);
+   mpq_class ply(0);
+   createValue(hs.GetDomPoint().GetX(), glx, plx);
+   createValue(hs.GetDomPoint().GetY(), gly, ply);
+
+   int grx;
+   int gry;
+   mpq_class prx(0);
+   mpq_class pry(0);
+   createValue(hs.GetSecPoint().GetX(), grx, prx);
+   createValue(hs.GetSecPoint().GetY(), gry, pry);
+
+   result.addSegment(true, glx, gly, grx, gry, plx, ply, prx, pry, edgeNo);
+   result.addSegment(false, grx, gry, glx, gly, prx, pry, plx, ply, edgeNo);
+   edgeNo++;
+  }
+ }
+
+ result.EndBulkLoad(true, false);
+ assert(result.IsDefined() && result.BoundingBox().IsDefined());
+}
 } // end of namespace p2d
 
 #endif /* _Line2_CPP*/

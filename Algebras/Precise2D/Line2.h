@@ -27,9 +27,9 @@
 
  [TOC]
 
- 0 Overview
+0 Overview
 
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -59,7 +59,7 @@ class Point2;
 class Points2;
 
 /*
- 2 Class ~SegmentData~
+2 Class ~SegmentData~
 
  The class ~SegmentData~ describes the precise representation of a
  segment.
@@ -67,13 +67,13 @@ class Points2;
  type int. The difference between the absolute coordinates and their respective
  representation will be stored in a flob. ~xLeftPos~ is the index where the
  x-coordinate of the left point in this flob starts and ~xLeftNumOfChars~ is
- his length (analogue the y-coordinate and the right point)
+ his length (analog the y-coordinate and the right point)
 
 */
 class SegmentData {
 
 /*
-  2.1 Private attributes
+2.1 Private attributes
 
   * ~xLeft~, ~yLeft~, ~xRight~ and ~yRight~ is the absolute value of the
   given coordinate
@@ -149,15 +149,11 @@ class SegmentData {
 public:
 
 /*
-  2.2 Constructors and deconstructor
-*/
-
-/*
-  The default constructor does nothing
+2.2 Constructors and deconstructor
 
 */
- SegmentData() {
- }
+
+ SegmentData() {}
 
 /*
   Constructor that initializes all the grid values.
@@ -166,21 +162,23 @@ public:
  SegmentData(int xLeft, int yLeft, int xRight, int yRight, bool ldp,
    int edgeNo = -999999);
 
+/*
+   Constructs a new ~SegmentData~-Object with the given endpoints.
+
+*/
  SegmentData(Point2* lp, Point2* rp, bool ldp, int edgeno,
    Flob& preciseCoordinates);
 
-/*
-  Copy-constructor
-
-*/
  SegmentData(SegmentData& d);
 
- SegmentData& operator=(const SegmentData& l);
+/*
+2.3 Member functions
+
+*/
+
 
 /*
-  2.3 Attribute read access methods
-
-  For the grid values:
+2.3.1 Read access methods
 
 */
  int getLeftX(void) const {
@@ -251,9 +249,7 @@ public:
  }
 
 /*
-  2.4 Attribute write access methods
-
-  For the grid values:
+2.3.1 Write access methods
 
 */
  void SetLeftX(int lx) {
@@ -282,7 +278,8 @@ public:
    mpq_class pRightX, mpq_class pRightY);
 
 /*
-  Returns the boolean flag which indicates whether the dominating point is on the left side.
+  Returns the boolean flag which indicates whether the dominating point is on
+  the left side.
 
 */
  bool IsLeftDomPoint() const;
@@ -294,6 +291,16 @@ public:
  void SetFaceno(int no);
  void SetEdgeNo(int no);
 
+
+/*
+2.3.1 ~=~
+
+*/
+  SegmentData& operator=(const SegmentData& l);
+/*
+2.3.1 ~BoundingBox~
+
+*/
  const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 
  bool IsVertical(const Flob& preciseCoordinates) const;
@@ -301,7 +308,7 @@ public:
 };
 
 /*
- 3 Class Line2
+3 Class Line2
 
 */
 class Line2: public StandardSpatialAttribute<2> {
@@ -309,7 +316,7 @@ class Line2: public StandardSpatialAttribute<2> {
 private:
 
 /*
-  One coordinate consosts of an integer as a grid coordinate and a
+  One coordinate consists of an integer as a grid coordinate and a
   rational number as the difference between the real coordinate and
   the grid value. These rational numbers will be stored in the
   Flob ~preciseCoodinates~
@@ -318,7 +325,7 @@ private:
  Flob preciseCoordinates;
 
 /*
-  segmentData stores the gridvalues, the attributes of the segments and the
+  segmentData stores the grid values, the attributes of the segments and the
   indices for the precise Coordinates.
 
 */
@@ -339,9 +346,14 @@ private:
  Rectangle<2> bbox;
 
 /*
+3.1 Private functions used in EndBulkLoad
+
+*/
+
+/*
   ~Sort~
 
-  Sorts the segmens using mergesort.
+  Sorts the segments using mergesort.
 
 */
  void Sort();
@@ -350,36 +362,47 @@ private:
 
  void Merge(int startIndex, int divide, int endIndex);
 
+  void SetPartnerNo();
+
 /*
-  ~SegmentIsVertical~
-  Returns true if a segment with the given x-coordinates is vertical, false otherwise.
+3.2  ~SegmentIsVertical~
+
+  Returns true if a segment with the given x-coordinates is vertical,
+  false otherwise.
 
 */
  bool SegmentIsVertical(int lx, mpq_class plx, int rx, mpq_class prx);
 
 /*
-  ~CompareSegment~
-  Compares the two given segments. Returns
-  1	if ~seg1~ > ~seg2~
-  0	if ~seg1~ = ~seg2~
-  -1	if ~seg1~ < ~seg2~
+3.3  ~CompareSegment~
+
+  Compares the two given segments of one ~Line2~-Object. Returns
+  1	if ~seg1~ $>$ ~seg2~,
+  0	if ~seg1~ $=$ ~seg2~ and
+  -1	if ~seg1~ $<$ ~seg2~
 
 */
  int CompareSegment(const SegmentData& seg1, const SegmentData& seg2) const;
 
+
+/*
+3.3   ~CompareSegment2~
+
+   Compares the two given segments of two different ~Line2~-Objects. Returns
+   1 if ~seg1~ $>$ ~seg2~,
+   0 if ~seg1~ $=$ ~seg2~ and
+   -1  if ~seg1~ $<$ ~seg2~
+
+*/
  int CompareSegment2(const SegmentData& seg1, const SegmentData& seg2,
    const Flob& preciseCoordOfSeg2) const;
 
-/*
-  ~SetPartnerNo~
 
-*/
- void SetPartnerNo();
 
 public:
 
 /*
-  3.1 Constructors and deconstructor
+3.1 Constructors and deconstructor
 
 */
 Line2();
@@ -389,28 +412,18 @@ Line2();
 
  Line2(const Line2& cp);
 
- //Line2(const Region2& src);
-
  Line2(bool def);
 
- ~Line2() {
- }
- ;
+ ~Line2() {};
 
 /*
-  3.2 Member-functions
+3.2 Member-functions
 
 */
- void Clear();
-
- bool IsOrdered() {
-  return ordered;
- }
-
- Line2& operator=(const Line2& l);
 
 /*
-  3.2.1 ~getter~
+3.2.1 Read access methods
+
   The following functions returns the asked coordinate of the
   ~i~-th segment of the line2-object.
 
@@ -432,14 +445,16 @@ Line2();
  mpq_class getPreciseRightY(int i) const;
 
 /*
-  3.2.2 ~get~
+3.2.2 ~get~
+
   Returns the ~i~-th SegmentData-object of the line2-object.
 
 */
  void get(int i, SegmentData&) const;
 
 /*
-  3.2.3 ~getPreciseCoordinates~
+3.2.3 ~getPreciseCoordinates~
+
   Returns a pointer to he flob, which stores the precise coordinates.
 
 */
@@ -448,7 +463,8 @@ Line2();
  }
 
 /*
-  3.2.4 ~addSegment~
+3.2.4 ~addSegment~
+
   Adds a segment to the line2-object.
 
 */
@@ -459,26 +475,39 @@ Line2();
  void addSegment(bool ldp, Point2* lp, Point2* rp, int edgeno);
 
 /*
-  3.2.5 ~IsLeftDomPoint~
-  Returns true if the left point of segment no ~i~ is the dominating point, false otherwise.
+3.2.4 ~More functions~
 
 */
+ void Clear();
+
+ bool IsOrdered() {
+  return ordered;
+ }
+
+ Line2& operator=(const Line2& l);
+
  bool IsLeftDomPoint(int i) const;
 
 /*
-  3.2.6 ~Size~
+  ~Size~
+
   Returns the number of segments in this line2-object.
 
 */
  int Size() const;
 
 /*
-  3.2.7 ~Destroy~
+  ~Destroy~
+
   Deletes the segments
 
 */
  void Destroy();
 
+/*
+ Helper-functions for EndBulkLoad
+
+*/
  void collectFace(int faceno, int startPos, DbArray<bool>& used);
 
  int getUnusedExtension(int startPos, const DbArray<bool>& used) const;
@@ -486,133 +515,94 @@ Line2();
  void computeComponents();
 
 /*
-  3.2.8 ~StartBulkLoad~
-  Marks this line2-object as unsorted.
+  ~StartBulkLoad~
 
 */
  void StartBulkLoad();
 
 /*
-  3.2.9 ~EndBulkLoad~
+  ~EndBulkLoad~
+
   Sorts the segments, realminize them and updates the attributes.
 
 */
  void EndBulkLoad(bool sort = true, bool realminize = true, bool trim = true);
 
 /*
-  3.2.10 ~unionOp~
-  Computes the union of two line2-objects
+3.2 Set Operators
+
+*/
+
+/*
+  Union computes the union of two line2-objects
 
 */
  void unionOP(Line2& l2, Line2& res, const Geoid* geoid = 0);
 
 /*
-  3.2.11 ~intersection~
-  Computes the intersection of two line2-objects
+  Intersection computes the intersection of two line2-objects
 
 */
  void intersection(Line2& l2, Line2& res, const Geoid* geoid = 0);
 
 /*
-  3.2.12 ~minus~
-  Returns all segments and parts of segments of ~this~ which are not
+  Minus returns all segments and parts of segments of ~this~ which are not
   in the ~l2~. The result will be stored in ~res~
 
 */
  void minus(Line2& l2, Line2& res, const Geoid* geoid = 0);
 
 /*
-  3.2.13 ~intersect~
+3.2 ~intersect~
+
   Returns true, if ~this~ intersect ~l2~, false otherwise.
 
 */
- bool intersect(Line2& l2, const Geoid* geoid = 0);
+ bool intersects(Line2& l2, const Geoid* geoid = 0);
 
 /*
-  3.2.14 ~crossings~
+3.2 ~crossings~
+
   ~result~ will contain all crossing-points of ~this~ and ~l2~.
 
 */
  void crossings(Line2& l2, Points2& result, const Geoid* geoid = 0);
 
 /*
-  3.3 The following functions are required by Secondo
+3.2 Functions required by Secondo and virtual functions
+of the StandardSpatialAttribute
 
 */
 
-/*
-  3.3.1 ~BasicType~
-
-*/
  static const string BasicType() {
   return "line2";
  }
 
-/*
-  3.3.2 ~checkType~
-
-*/
  static const bool checkType(const ListExpr type) {
   return listutils::isSymbol(type, BasicType());
  }
 
-/*
-  3.3.3 ~Sizeof~
-
-*/
  size_t Sizeof() const;
 
-/*
-  3.3.4 ~HashValue~
-
-*/
  size_t HashValue() const;
 
-/*
-  3.3.5 ~CopyFrom~
-
-*/
  void CopyFrom(const Attribute* right);
 
-/*
-  3.3.6 ~Compare~
-
-*/
  int Compare(const Attribute *arg) const;
 
-/*
-  3.3.7 ~Adjacent~
-
-*/
  bool Adjacent(const Attribute *arg) const;
 
-/*
-  3.3.8 ~Clone~
-
-*/
  Line2* Clone() const;
 
-/*
-  3.3.9 ~Print~
-
-*/
  ostream& Print(ostream &os) const {
   os << *this;
   return os;
  }
 
-/*
-  3.3.10 ~NumOfFLOBs~
-
-*/
  int NumOfFLOBs(void) const {
   return 2;
  }
 
-/*
-  3.3.11 ~GetFLOB~
-
-*/
  Flob *GetFLOB(const int i) {
   assert(0 <= i && i <= 1);
   if (i == 0) {
@@ -622,96 +612,40 @@ Line2();
   }
  }
 
-/*
-  3.3.12 ~CloneLine2~
-
-*/
  static Word CloneLine2(const ListExpr typeInfo, const Word& w);
 
-/*
-  3.3.13 ~CastLine2~
-
-*/
  static void* CastLine2(void* addr);
 
-/*
-  3.3.14 ~SizeOfLine2~
-
-*/
  static int SizeOfLine2();
 
-/*
-  3.3.15 ~OutLine2~
-
-*/
  static ListExpr OutLine2(ListExpr typeInfo, Word value);
 
-/*
-  3.3.16 ~InLine2~
-
-*/
  static Word InLine2(const ListExpr typeInfo, const ListExpr instance,
    const int errorPos, ListExpr& errorInfo, bool& correct);
 
-/*
-  3.3.17 ~CreateLine2~
-
-*/
  static Word CreateLine2(const ListExpr typeInfo);
 
-/*
-  3.3.18 ~DeleteLine2~
-
-*/
  static void DeleteLine2(const ListExpr typeInfo, Word& w);
 
-/*
-  3.3.19 ~CloseLine2~
-
-*/
  static void CloseLine2(const ListExpr typeInfo, Word& w);
 
-/*
-  3.3.20 ~Line2Property~
-
-*/
  static ListExpr Line2Property();
 
-/*
-  3.3.21 ~CheckLine2~
-
-*/
  static bool CheckLine2(ListExpr type, ListExpr& errorInfo);
 
-/*
-  3.3.22 ~BoundingBox~
-
-*/
  virtual const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 
-/*
-  3.3.23 ~Distance~
-
-*/
  virtual double Distance(const Rectangle<2>& rect,
    const Geoid* geoid = 0) const;
 
-/*
-  3.3.24 ~IsEmpty~
-
-*/
  virtual bool IsEmpty() const;
 
-/*
-  3.3.25 ~Intersects~
-
-*/
  virtual bool Intersects(const Rectangle<2>& rect,
    const Geoid* geoid = 0) const;
 };
 
 /*
- 4 ~convertLineIntoLine2~
+4 ~convertLineIntoLine2~
 
  This function converts a line-object in a line2-object.
 

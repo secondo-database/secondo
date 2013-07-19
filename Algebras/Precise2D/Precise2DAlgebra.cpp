@@ -28,9 +28,9 @@
 
  [TOC]
 
- 0 Overview
+0 Overview
 
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -43,7 +43,7 @@ extern QueryProcessor* qp;
 namespace p2d {
 
 /*
- 1.1.1 Function ~textTypeToGmpType()~
+1 ~textTypeToGmpType()~
 
  Reads from inList and stores its representation as mpq\_class in outValue.
 
@@ -115,7 +115,7 @@ bool textTypeToGmpType(const ListExpr& inList, mpq_class& preciseValue,
 }
 
 /*
- ~gmpTypeToTextType()~
+1 ~gmpTypeToTextType()~
 
  Reads from ~value~ and stores its representation as TextType in ~resultList~.
 
@@ -126,7 +126,7 @@ void gmpTypeToTextType(const mpq_class& value, ListExpr& resultList) {
 }
 
 /*
- ~prepareValue~
+1 ~prepareValue~
 
  A negative value is internally stored with a grid value and a precise value
  like the positive values. But the internal representation has to be changed
@@ -150,7 +150,7 @@ void internalValueToOutputValue(int& gValue, mpq_class& pValue){
 }
 
 /*
- ~outputValueToInternalValue~
+1 ~outputValueToInternalValue~
 
  The real value ~gValue~ + ~pValue~ is already split into two parts.
  If the real value is smaller 0, the internal value must be adjusted.
@@ -177,7 +177,7 @@ void outputValueToInternalValue(int& gValue, mpq_class& pValue){
 
 
 /*
- 2.1 List Representation of point2
+1 List Representation of point2
 
  The list representation of a point2 is
 
@@ -191,7 +191,7 @@ void outputValueToInternalValue(int& gValue, mpq_class& pValue){
  undefined
  ----
 
- 2.1.1 ~OutPoint2~-function
+2.1 ~OutPoint2~-function
 
 */
 ListExpr Point2::OutPoint2(ListExpr typeInfo, Word value) {
@@ -215,7 +215,7 @@ ListExpr Point2::OutPoint2(ListExpr typeInfo, Word value) {
 }
 
 /*
- 2.1.2 ~InPoint2~-function
+2.1 ~InPoint2~-function
 
 */
 Word Point2::InPoint2(const ListExpr typeInfo, const ListExpr instance,
@@ -300,7 +300,7 @@ Word Point2::InPoint2(const ListExpr typeInfo, const ListExpr instance,
 }
 
 /*
- 2.2 List Representation of line2
+2 List Representation of line2
 
  The list representation of a line2 is
 
@@ -317,7 +317,7 @@ Word Point2::InPoint2(const ListExpr typeInfo, const ListExpr instance,
  undefined
  ----
 
- 2.2.1 ~OutLine2~-function
+2.2 ~OutLine2~-function
 
 */
 ListExpr Line2::OutLine2(ListExpr typeInfo, Word value) {
@@ -376,7 +376,7 @@ ListExpr Line2::OutLine2(ListExpr typeInfo, Word value) {
 }
 
 /*
- 2.2.2 ~InLine2~-function
+2.2 ~InLine2~-function
 
 */
 Word Line2::InLine2(const ListExpr typeInfo, const ListExpr instance,
@@ -495,7 +495,7 @@ Word Line2::InLine2(const ListExpr typeInfo, const ListExpr instance,
 }
 
 /*
- 2.3 List Representation of points2
+2 List Representation of points2
 
  The list representation of a points2-object is
 
@@ -512,7 +512,7 @@ Word Line2::InLine2(const ListExpr typeInfo, const ListExpr instance,
  undefined
  ----
 
- 2.3.1 ~OutPoints2~-function
+2.3 ~OutPoints2~-function
 
 */
 ListExpr Points2::OutPoints2(ListExpr typeInfo, Word value) {
@@ -561,7 +561,7 @@ ListExpr Points2::OutPoints2(ListExpr typeInfo, Word value) {
 }
 
 /*
- 2.3.2 ~InPoints2~-function
+2.3 ~InPoints2~-function
 
 */
 Word Points2::InPoints2(const ListExpr typeInfo, const ListExpr instance,
@@ -598,7 +598,12 @@ Word Points2::InPoints2(const ListExpr typeInfo, const ListExpr instance,
 }
 
 /*
- ~operator<<~ for Point2
+1 ~$<<$~
+
+*/
+
+/*
+1.1 for Point2
 
 */
 ostream& operator<<(ostream& o, const Point2& p) {
@@ -611,7 +616,7 @@ ostream& operator<<(ostream& o, const Point2& p) {
 }
 
 /*
- ~operator<<~ for Points2
+1.1 for Points2
 
 */
 ostream& operator<<(ostream& o, const Points2& p) {
@@ -629,7 +634,7 @@ ostream& operator<<(ostream& o, const Points2& p) {
 }
 
 /*
- ~operator<<~ for Line2
+1.1 for Line2
 
 */
 ostream& operator<<(ostream& o, const Line2& l) {
@@ -651,12 +656,12 @@ ostream& operator<<(ostream& o, const Line2& l) {
 
 
 /*
- 3 Value-mapping-functions
+1 Value-mapping-functions
 
 */
 
 /*
- ~union\_LLL~
+1.1 ~union\_LLL~
 
  ~line2~ x ~line2~ [->] ~line2~
 
@@ -679,7 +684,7 @@ int union_LLL(Word* args, Word& result, int message, Word& local, Supplier s) {
 
 
 /*
- ~intersection\_LLL~
+1.1 ~intersection\_LLL~
 
  ~line2~ x ~line2~ [->] ~line2~
 
@@ -701,7 +706,7 @@ int intersection_LLL(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~minus\_LLL~
+1.1 ~minus\_LLL~
 
  ~line2~ x ~line2~ [->] ~line2~
 
@@ -723,7 +728,7 @@ int minus_LLL(Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 /*
- ~intersects\_LLB~
+1.1 ~intersects\_LLB~
 
  ~line2~ x ~line2~ [->] ~bool~
 
@@ -740,7 +745,7 @@ int intersects_LLB(Word* args, Word& result, int message, Word& local,
  CcBool* b = static_cast<CcBool*>(result.addr);
 
  bool defined = (l1->IsDefined() && l2->IsDefined());
- bool res = l1->intersect(*l2);
+ bool res = l1->intersects(*l2);
 
  b->Set(defined, res);
 
@@ -748,7 +753,7 @@ int intersects_LLB(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~crossings\_LLP~
+1.1 ~crossings\_LLP~
 
  ~line2~ x ~line2~ [->] ~points2~
 
@@ -770,7 +775,7 @@ int crossings_LLP(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~union\_RRR~
+1.1 ~union\_RRR~
 
  ~region2~ x ~region2~ [->] ~region2~
 
@@ -793,7 +798,7 @@ int union_RRR(Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 /*
- ~intersection\_RRR~
+1.1 ~intersection\_RRR~
 
  ~region2~ x ~region2~ [->] ~region2~
 
@@ -816,7 +821,7 @@ int intersection_RRR(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~minus\_RRR~
+1.1 ~minus\_RRR~
 
  ~region2~ x ~region2~ [->] ~region2~
 
@@ -839,7 +844,7 @@ int minus_RRR(Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 /*
- ~intersects\_RRB~
+1.1 ~intersects\_RRB~
 
  ~region2~ x ~region2~ [->] ~bool~
 
@@ -864,7 +869,7 @@ int intersects_RRB(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~overlaps\_RRB~
+1.1  ~overlaps\_RRB~
 
  ~region2~ x ~region2~ [->] ~bool~
 
@@ -889,7 +894,7 @@ int overlaps2_RRB(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~inside\_RRB~
+1.1  ~inside\_RRB~
 
  ~region2~ x ~region2~ [->] ~bool~
 
@@ -913,7 +918,7 @@ int inside_RRB(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~lineTOLine2~
+1.1  ~lineToLine2~
 
  ~line~ [->] ~line2~
 
@@ -934,7 +939,7 @@ int lineToLine2(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~coarseRegion2~
+1.1  ~coarseRegion2~
 
  ~region2~ [->] ~region~
 
@@ -966,6 +971,8 @@ int coarse2(Word* args, Word& result, int message, Word& local,
 }
 
 /*
+1.1  Test-operators
+
  The next operator are test-operators. They do the same as the analogous
  operators above. But the operator, who should return a lin2-, points2- or
  region2-object, return if the object is defined. The other operator, who
@@ -976,7 +983,7 @@ int coarse2(Word* args, Word& result, int message, Word& local,
 */
 
 /*
- ~testUnion\_LLB~
+1.1.1 ~testUnion\_LLB~
 
 */
 int testUnion_LLB(Word* args, Word& result, int message,
@@ -1004,7 +1011,7 @@ int testUnion_LLB(Word* args, Word& result, int message,
 }
 
 /*
- ~testIntersection\_LLB~
+1.1.1 ~testIntersection\_LLB~
 
 */
 int testIntersection_LLB(Word* args, Word& result, int message,
@@ -1033,7 +1040,7 @@ int testIntersection_LLB(Word* args, Word& result, int message,
 }
 
 /*
- ~testMinus\_LLB~
+1.1.1 ~testMinus\_LLB~
 
 */
 int testMinus_LLB(Word* args, Word& result, int message,
@@ -1062,7 +1069,7 @@ int testMinus_LLB(Word* args, Word& result, int message,
 }
 
 /*
- ~testIntersects\_LLB~
+1.1.1 ~testIntersects\_LLB~
 
 */
 int testIntersects_LLB(Word* args, Word& result, int message, Word& local,
@@ -1086,7 +1093,7 @@ int testIntersects_LLB(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~testUnion\_RRB~
+1.1.1 ~testUnion\_RRB~
 
 */
 int testUnion_RRB(Word* args, Word& result, int message,
@@ -1114,7 +1121,7 @@ int testUnion_RRB(Word* args, Word& result, int message,
 }
 
 /*
- ~testIntersection\_RRB~
+1.1.1 ~testIntersection\_RRB~
 
 */
 int testIntersection_RRB(Word* args, Word& result, int message, Word& local,
@@ -1142,7 +1149,7 @@ int testIntersection_RRB(Word* args, Word& result, int message, Word& local,
 }
 
 /*
- ~testMinus\_RRB~
+1.1.1 ~testMinus\_RRB~
 
 */
 int testMinus_RRB(Word* args, Word& result, int message,
@@ -1170,7 +1177,7 @@ int testMinus_RRB(Word* args, Word& result, int message,
 }
 
 /*
- ~intersects\_RRB~
+1.1.1  ~testIntersects\_RRB~
 
  ~region2~ x ~region2~ [->] ~bool~
 
@@ -1200,12 +1207,12 @@ int testIntersects_RRB(Word* args, Word& result, int message, Word& local,
 
 
 /*
- 4 Type-mapping-function
+4 Type-mapping-function
 
 */
 
 /*
- 4.1 ~LLL\_TypeMap~
+4.1 ~LLL\_TypeMap~
 
  Signature is
  ~line2~ x ~line2~ [->] ~line2~
@@ -1236,7 +1243,7 @@ ListExpr LLL_TypeMap(ListExpr args) {
 
 
 /*
- 4.2 ~LLB\_TypeMap~
+4.2 ~LLB\_TypeMap~
 
  Signature is ~line2~ x ~line2~ [->] bool
 
@@ -1264,7 +1271,7 @@ ListExpr LLB_TypeMap(ListExpr args) {
 }
 
 /*
- 4.3 ~LLP\_TypeMap~
+4.3 ~LLP\_TypeMap~
 
  Signature is line2 x line2 [->] points2
 
@@ -1292,7 +1299,7 @@ ListExpr LLP_TypeMap(ListExpr args) {
 }
 
 /*
- 4.4 ~LL2\_TypeMap~
+4.4 ~LL2\_TypeMap~
 
  Signature is line2 x line2 [->] line2
 
@@ -1317,7 +1324,7 @@ ListExpr LL2_TypeMap(ListExpr args) {
 }
 
 /*
- 4.5 ~RRR\_TypeMap~
+4.5 ~RRR\_TypeMap~
 
  Signature is
  ~region2~ x ~region2~ [->] ~region2~
@@ -1346,7 +1353,7 @@ ListExpr RRR_TypeMap(ListExpr args) {
 }
 
 /*
- 4.6 ~RRB\_TypeMap~
+4.6 ~RRB\_TypeMap~
 
  Signature is ~region2~ x ~region2~ [->] bool
 
@@ -1374,7 +1381,7 @@ ListExpr RRB_TypeMap(ListExpr args) {
 }
 
 /*
- 4.7 ~R2R\_TypeMap~
+4.7 ~R2R\_TypeMap~
 
  Signature is ~region2~ [->] region
 
@@ -1399,12 +1406,12 @@ ListExpr R2R_TypeMap(ListExpr args) {
 }
 
 /*
- 5 operator information
+5 operator information
 
 */
 
 /*
- 5.1 ~union\_LLLInfo~
+5.1 ~union\_LLLInfo~
 
  The operator information for union of 2 line2-objects
 
@@ -1423,7 +1430,7 @@ struct union_LLLInfo: OperatorInfo {
 };
 
 /*
- 5.2 ~intersection\_LLLInfo~
+5.2 ~intersection\_LLLInfo~
 
  The operator information for intersection of 2 line2-objects
 
@@ -1442,7 +1449,7 @@ struct intersection_LLLInfo: OperatorInfo {
 };
 
 /*
- 5.3 ~minus\_LLLInfo~
+5.3 ~minus\_LLLInfo~
 
  The operator information for the difference of 2 line2-objects
 
@@ -1461,7 +1468,7 @@ struct minus_LLLInfo: OperatorInfo {
 };
 
 /*
- 5.4 ~intersects\_LLBInfo~
+5.4 ~intersects\_LLBInfo~
 
  The operator information for the test if 2 line2-objects intersect
 
@@ -1480,7 +1487,7 @@ struct intersects_LLBInfo: OperatorInfo {
 };
 
 /*
- 5.5 ~crossings\_LLPInfo~
+5.5 ~crossings\_LLPInfo~
 
 */
 struct crossings_LLPInfo: OperatorInfo {
@@ -1498,7 +1505,7 @@ struct crossings_LLPInfo: OperatorInfo {
 
 
 /*
- 5.6 ~union\_RRRInfo~
+5.6 ~union\_RRRInfo~
 
  The operator information for union of 2 region2-objects
 
@@ -1517,7 +1524,7 @@ struct union_RRRInfo: OperatorInfo {
 };
 
 /*
- 5.7 ~intersection\_RRRInfo~
+5.7 ~intersection\_RRRInfo~
 
  The operator information for intersection of 2 region2-objects
 
@@ -1536,7 +1543,7 @@ struct intersection_RRRInfo: OperatorInfo {
 };
 
 /*
- 5.8 ~minus\_RRRInfo~
+5.8 ~minus\_RRRInfo~
 
  The operator information for the difference of 2 region2-objects
 
@@ -1555,7 +1562,7 @@ struct minus_RRRInfo: OperatorInfo {
 };
 
 /*
- 5.9 ~lineToLine2Info~
+5.9 ~lineToLine2Info~
 
  The operator information for union of 2 line2-objects
 
@@ -1573,7 +1580,7 @@ struct lineToLine2Info: OperatorInfo {
 };
 
 /*
- 5.10 ~intersects\_RRBInfo~
+5.10  ~intersects\_RRBInfo~
 
  The operator information for the test if 2 region2-objects intersect
 
@@ -1592,7 +1599,7 @@ struct intersects2_RRBInfo: OperatorInfo {
 };
 
 /*
- 5.11 ~overlaps\_RRBInfo~
+5.11  ~overlaps\_RRBInfo~
 
  The operator information for the test if 2 region2-objects intersect
 
@@ -1611,7 +1618,7 @@ struct overlaps2_RRBInfo: OperatorInfo {
 };
 
 /*
- 5.12 ~inside\_RRBInfo~
+5.12  ~inside\_RRBInfo~
 
  The operator information for the test whether a region2-object is completely
  contained in a second region2-object.
@@ -1632,7 +1639,7 @@ struct inside2_RRBInfo: OperatorInfo {
 };
 
 /*
- 5.13 ~coarseRegion2Info~
+5.13  ~coarseRegion2Info~
 
  The operator a ~region2~-object to a ~region~-object
 
@@ -1650,7 +1657,7 @@ struct coarseInfo: OperatorInfo {
 };
 
 /*
- 5.14 ~coarseRegion2Info~
+5.14  ~coarseRegion2Info~
 
  The operator a ~region2~-object to a ~region~-object
 
@@ -1672,7 +1679,12 @@ struct coarse2Info: OperatorInfo {
 
 
 /*
- The operator information for the test-operators
+6 operator information for the test-operators
+
+*/
+
+/*
+6.1 ~testUnionInfo~ for Line2
 
 */
 struct testUnion_LLBInfo: OperatorInfo {
@@ -1687,6 +1699,10 @@ struct testUnion_LLBInfo: OperatorInfo {
 
 };
 
+/*
+6.1 ~testIntersectionInfo~ for Line2
+
+*/
 struct testIntersection_LLBInfo: OperatorInfo {
 
  testIntersection_LLBInfo() :
@@ -1699,6 +1715,10 @@ struct testIntersection_LLBInfo: OperatorInfo {
 
 };
 
+/*
+6.1 ~testMinusInfo~ for Line2
+
+*/
 struct testMinus_LLBInfo: OperatorInfo {
 
  testMinus_LLBInfo() :
@@ -1711,6 +1731,10 @@ struct testMinus_LLBInfo: OperatorInfo {
 
 };
 
+/*
+6.1 ~testIntersectsInfo~ for Line2
+
+*/
 struct testIntersects_LLBInfo: OperatorInfo {
 
  testIntersects_LLBInfo() :
@@ -1723,6 +1747,10 @@ struct testIntersects_LLBInfo: OperatorInfo {
 
 };
 
+/*
+6.1 ~testUnionInfo~ for Region2
+
+*/
 struct testUnion_RRBInfo: OperatorInfo {
 
  testUnion_RRBInfo() :
@@ -1736,6 +1764,10 @@ struct testUnion_RRBInfo: OperatorInfo {
 
 };
 
+/*
+6.1 ~testIntersectionInfo~ for Region2
+
+*/
 struct testIntersection_RRBInfo: OperatorInfo {
 
  testIntersection_RRBInfo() :
@@ -1749,6 +1781,10 @@ struct testIntersection_RRBInfo: OperatorInfo {
 
 };
 
+/*
+6.1 ~testMinusInfo~ for Region2
+
+*/
 struct testMinus_RRBInfo: OperatorInfo {
 
  testMinus_RRBInfo() :
@@ -1761,6 +1797,10 @@ struct testMinus_RRBInfo: OperatorInfo {
 
 };
 
+/*
+6.1 ~testIntersects2Info~ for Region2
+
+*/
 struct testIntersects2_RRBInfo: OperatorInfo {
 
  testIntersects2_RRBInfo() :
@@ -1774,7 +1814,7 @@ struct testIntersects2_RRBInfo: OperatorInfo {
 };
 
 /*
- 4.12 Creation of the type constructor instance
+7 Creation of the type constructor instance
 
 */
 TypeConstructor point(Point2::BasicType(), Point2::Point2Property,
@@ -1797,10 +1837,19 @@ TypeConstructor points(Points2::BasicType(), Points2::Points2Property,
 
 } // end of namespace p2d
 
+/*
+1 Class Precise2DAlgebra
+
+*/
 class Precise2DAlgebra: public Algebra {
 public:
  Precise2DAlgebra() :
    Algebra() {
+
+/*
+1.1 Add types
+
+*/
   AddTypeConstructor(&p2d::point);
   AddTypeConstructor(&p2d::line);
   AddTypeConstructor(&p2d::points);
@@ -1814,7 +1863,10 @@ public:
   p2d::points.AssociateKind(Kind::DATA());
   p2d::points.AssociateKind(Kind::SPATIAL2D());
 
+/*
+1.1 Add operators
 
+*/
   AddOperator(p2d::union_LLLInfo(), p2d::union_LLL, p2d::LLL_TypeMap);
 
   AddOperator(p2d::intersection_LLLInfo(), p2d::intersection_LLL,

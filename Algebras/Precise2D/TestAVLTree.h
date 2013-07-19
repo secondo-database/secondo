@@ -29,6 +29,15 @@
 
  0 Overview
 
+ This file contains same classes and operators as
+ the file AVL\_Tree.h. Only the struct ~TestStruct~ is new.
+ It is added to some methods to check
+ how often decisions could be made without using the precise data of type
+ mpq\_class.
+
+ To save some space the comments are reduced to a minimum. For more information
+ see file AVL\_Tree.h
+
  1 Includes and defines
 
 */
@@ -49,16 +58,19 @@ class AVLNode;
 class AVLSegment;
 class Event;
 
+/*
+1 Struct TestStruct
 
+*/
 struct TestStruct{
-mpq_class noCallMightIntersect;
-mpq_class noCallIntersect;
-mpq_class noCallCmpIntersectionIntervall;
-mpq_class noCallCmpWithPreciseData;
-mpq_class noCmpGrid;
-mpq_class noCmpPrecise;
-mpq_class noSegmentsIn;
-mpq_class noSegmentsOut;
+mpz_class noCallMightIntersect;
+mpz_class noCallIntersect;
+mpz_class noCallCmpIntersectionIntervall;
+mpz_class noCallCmpWithPreciseData;
+mpz_class noCmpGrid;
+mpz_class noCmpPrecise;
+mpz_class noSegmentsIn;
+mpz_class noSegmentsOut;
 
  void clear(){
   noCallMightIntersect = 0;
@@ -82,11 +94,11 @@ mpq_class noSegmentsOut;
   cout << "Vergleich der Schnittpunkte mit der Sweep-Line"<<endl;
   cout << "ausschliesslich mit den Gitterdaten: "
     <<noCallCmpIntersectionIntervall<<endl;
-  cout << "unter Verwendung der präzisen Daten: "
+  cout << "unter Verwendung der praezisen Daten: "
     <<noCallCmpWithPreciseData<<endl<<endl;
   cout << "Vergleich zweier Zahlen insgesamt:"<<endl;
   cout << "ausschliesslich mit den Gitterdaten: "<<noCmpGrid<<endl;
-  cout << "unter Verwendung der präzisen Daten: "<<noCmpPrecise<<endl;
+  cout << "unter Verwendung der praezisen Daten: "<<noCmpPrecise<<endl;
   cout << "Anmerkung: Hier wurden nur die Vergleiche gezaehlt, bei denen ein "
        << "Vergleich der Gitterdaten sinnvoll moeglich war. Vergleiche von "
        << "Zahlen, wie z.B. die Steigung zweier Segmente, wurden nicht "
@@ -97,6 +109,10 @@ mpq_class noSegmentsOut;
  }
 };
 
+/*
+2 Class TestAVLTree
+
+*/
 class AVLTree {
 
 private:
@@ -105,87 +121,53 @@ private:
 
 public:
 
- /*
-  Default-conTestStructor
+/*
+1.1 Constructor and destructor
 
- */
+*/
  AVLTree();
 
- /*
-  DeTestStructor
-
- */
  ~AVLTree();
 
- /*
-  ~insert~
+/*
+1.1 ~insert~
 
- */
+*/
  void insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc,
    TestStruct& t);
 
- /*
-  ~removeGetNeighbor~
+/*
+1.1 ~remove~
 
-  This function removes ~x~ from the tree. To find ~x~ in the tree,
-  we use the order of the segments at the time in which the sweepline
-  is above the right endpoint of ~x~. Additionally ~pred~ will point
-  to the predecessor of ~x~, if it exists, and ~suc~ will point to
-  the successor. If there are no predecessor or successor ~pred~ resp.
-  ~suc~ will be NULL.
-
- */
+*/
  void removeGetNeighbor(AVLSegment* elem, AVLSegment*& pred, AVLSegment*& suc,
    TestStruct& t);
 
- /*
-  ~removeGetNeighbor2~
-
-  This function removes ~x~ from the tree. For finding ~x~ in the tree
-  we use the order of the segments at the time in which the sweepline
-  is in the position ~gridXPos~ + ~preciseXPos~. Additionally ~pred~
-  will point to the predecessor of ~x~, if it exists, and ~suc~ will
-  point to the successor. If there are no predecessor
-  or successor ~pred~ resp. ~suc~ will be NULL.
-
- */
  void removeGetNeighbor2(AVLSegment* x, int gridXPos, mpq_class& preciseXPos,
    AVLSegment*& pred, AVLSegment*& suc,  TestStruct& t);
 
- /*
-  ~removeInvalidSegment~
-
-  This function removes ~x~ from the tree. For finding ~x~ in the tree
-  we use the order of the segments at the time in which the sweepline
-  is in the position ~gridXPos~ + ~preciseXPos~.
-
- */
  void removeInvalidSegment(AVLSegment* x, int gridXPos,
    mpq_class& preciseXPos,  TestStruct& t);
 
- /*
-  ~invertSegments~
-  This method searches the nodes which contains the AVLSegments
-  stored in ~v~ and inverts the segments. Additionally ~pred~ will
-  point to the predecessor of the AVLSegment stored leftmost in the
-  tree, if it exists, and ~suc~ will point to the successor of the
-  AVLSegment stored rightmost in the tree. If there are no
-  predecessor or successor ~pred~ resp. ~suc~ will point to the same
-  objects as before calling ~removeGetNeighbor~. It might be useful
-  to initialize ~pred~ and ~suc~ with NULL before calling this method.
+/*
+1.1 ~invertSegments~
 
- */
+*/
  void invertSegments(vector<AVLSegment*>& v, int gridX, mpq_class& pX,
    int gridY, mpq_class& pY, AVLSegment*& pred, size_t predIndex,
    AVLSegment*& suc, size_t sucIndex,  TestStruct& t);
 
- /*
-  ~inorder~
+/*
+1.1 ~inorder~
 
- */
+*/
  void inorder();
 };
 
+/*
+3 Class AVLNode
+
+*/
 class AVLNode {
 private:
  AVLSegment* elem;
@@ -193,53 +175,54 @@ private:
  AVLNode* right;
  int height;
 
- /*
-  ~setHeight~
+/*
+1.1 ~setHeight~
 
- */
+*/
  void setHeight();
 
- /*
-  ~balance~
+/*
+1.1 ~balance~
 
- */
+*/
  int balance();
 
- /*
-  ~counterClockwiseRotation~ and ~clockwiseRotation~
+/*
+1.1 ~counterClockwiseRotation~ and ~clockwiseRotation~
 
-  Both functions rebalance the avl-tree.
-
- */
+*/
  AVLNode* counterClockwiseRotation();
 
  AVLNode* clockwiseRotation();
 
- /*
-  ~isLeaf~
+/*
+1.1 ~isLeaf~
 
- */
+*/
  bool isLeaf();
 
- /*
-  ~deletemin~
+/*
+1.1 ~deletemin~
 
- */
+*/
  AVLSegment* deletemin(AVLNode* node);
 
 public:
 
+/*
+1.1 Constructor and destructor
+
+*/
  AVLNode(AVLSegment* elem);
 
  AVLNode(const AVLNode&);
 
  ~AVLNode();
 
- /*
+/*
+1.1 ~=~
 
-  ~=~
-
- */
+*/
  AVLNode& operator=(const AVLNode& node);
 
  AVLSegment* getElement() {
@@ -248,117 +231,55 @@ public:
 
  void setElement(AVLSegment** seg);
 
- /*
-  ~insert~
+/*
+1.1 ~insert~
 
-  Inserts ~x~ in the tree with ~this~ as root if it is not yet inside.
-  For descending in the tree we need ~pos~ to estimate if ~x~
-  belongs in the left or right subtree. The function returns the node
-  containing ~x~. Additionally ~pred~ points to the predecessor, if a
-  predecessor exists. If not, ~pred~ points to the same object as
-  before. It might be useful to initialize ~pred~ with NULL
-  before calling ~insert~. The same goes for ~suc~ wih the
-  successor.
-
- */
+*/
  AVLNode* insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc,
    TestStruct& t);
 
- /*
-  ~removeGetNeighbor~
+/*
+1.1 ~remove~
 
-  This function removes ~x~ from the tree. For finding ~x~ in the tree
-  we use the order of the segments at the time in which the sweepline
-  is above the right endpoint of ~x~. Additionally ~pred~ will point
-  to the predecessor of ~x~, if it exists, and ~suc~ will point to
-  the successor. If there are no predecessor or successor ~pred~
-  resp. ~suc~ will point to the same objects as before calling
-  ~removeGetNeighbor~. It might be useful to initialize ~pred~
-  and ~suc~ with NULL before calling this method.
-
- */
+*/
  AVLNode* removeGetNeighbor(AVLSegment* x, AVLSegment*& pred,
    AVLSegment*& suc,  TestStruct& t);
 
- /*
-  ~removeGetNeighbor2~
-
-  This function removes ~x~ from the tree. For finding ~x~ in the
-  tree we use the order of the segments at the time in which the
-  sweepline is in the position ~gridXPos~ + ~preciseXPos~.
-  Additionally ~pred~ will point to the predecessor of ~x~, if it
-  exists, and ~suc~ will point to the successor. If there are no
-  predecessor or successor ~pred~ resp. ~suc~ will point to the same
-  objects as before calling ~removeGetNeighbor~. It might be useful
-  to initialize ~pred~ and ~suc~ with NULL before calling this method.
-
- */
  AVLNode* removeGetNeighbor2(AVLSegment* x, int gridXPos, mpq_class preciseXPos,
    AVLSegment*& pred, AVLSegment*& suc,  TestStruct& t);
 
- /*
-  ~removeInvalidSegment~
-
-  This function removes the invalid ~x~ from the tree. For finding
-  ~x~ in the tree we use the order of the segments at the time in
-  which the sweepline is in the position ~gridXPos~ + ~preciseXPos~.
-  A segment is invalid, if we insert a segment, which overlaps an
-  already contained segment. In this case there are two equal segments
-  in the tree, one valid and the second invalid. The invalid segment
-  lay either above the valid one or left resp. right below the valid
-  segment.
-
- */
  AVLNode* removeInvalidSegment(AVLSegment* x, int gridXPos,
    mpq_class preciseXPos, bool& found,  TestStruct& t);
 
+/*
+1.1 ~getHeight~
+
+*/
  int getHeight() {
   return height;
  }
 
- /*
-  ~memberPlusNeighbor~
+/*
+1.1 ~member~
 
-  ~result~ will be true if ~key~ is member of the tree with ~this~
-  as root. For descending in the tree we need ~pos~ to estimate if
-  ~key~ is in the left or right subtree. If ~key~ is found,
-  ~memberPlusNeighbor~returns the node containing ~key~. If ~pred~
-  is true, neighbor will hold the predecessor of ~key~ if a
-  predecessor exists. If ~pred~ is false, neighbor will hold
-  the successor of ~key~.
-  If ~key~ is not found, ~memberPlusNeighbor~ returns NULL.
-  Take a look, that if ~key~ is not found or there is no predecessor
-  resp. successor, then ~neighbor~ don't change. It might be useful,
-  to initilize ~neighbor~ with NULL, before ~memberPlusNeighbor~
-  is called.
-
- */
+*/
  AVLNode* memberPlusNeighbor(AVLSegment* key, bool& result, int gridXPos,
    mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos,
    AVLSegment*& neighbor, bool pred,  TestStruct& t);
 
- /*
-  ~member~
-
-  ~result~ will be true if ~key~ is member of the tree with ~this~
-  as root. For descending in the tree we need ~pos~ to estimate if
-  ~key~ is in the left or right subtree. If ~key~ is found ~member~
-  returns the node containing ~key~ and NULL if not.
-
- */
  AVLNode* member(AVLSegment* key, bool& result, int gridXPos,
    mpq_class& preciseXPos, int gridYPos, mpq_class& preciseYPos,
    TestStruct& t);
 
- /*
-  ~inorder~
+/*
+1.1 ~inorder~
 
- */
+*/
  void inorder();
 };
 
 /*
- The both following enumeration-types are used in ~mightIntersect~
+1 Slope and Position
 
 */
 enum Slope {
@@ -369,7 +290,7 @@ enum Position {
 };
 
 /*
- ~KindOfEvent~ is used in ~Event~.
+1 ~KindOfEvent~
 
 */
 enum KindOfEvent {
@@ -377,8 +298,7 @@ enum KindOfEvent {
 };
 
 /*
- ~Owner~ is used in AVLSegment to mark the owner of the segments i for
- the set-operations
+1 ~Owner~
 
 */
 enum Owner {
@@ -386,7 +306,7 @@ enum Owner {
 };
 
 /*
- ~SetOperation~ is used to distinguish between the set operations.
+1 SetOperation and RelationshipOperation
 
 */
 enum SetOperation {
@@ -398,7 +318,7 @@ enum RelationshipOperation {
 };
 
 /*
- ~Coordinate~ is used in the ~selectNext~-functions.
+1 Struct ~Coordinate~
 
 */
 struct Coordinate {
@@ -437,6 +357,10 @@ struct Coordinate {
  }
 };
 
+/*
+1 Class AVLSegment
+
+*/
 class AVLSegment {
 
 protected:
@@ -476,53 +400,41 @@ protected:
 
  AVLSegment(int gridX, mpq_class pX, int gridY, mpq_class pY);
 
- /*
-  ~prepareData~
+/*
+1.1 ~prepareData~
 
-  Extract the integer from ~value~.
-
- */
+*/
  void prepareData(int & resultGridX, mpq_class& resultPX, mpq_class& value);
 
- /*
+/*
+1.1 ~intervalIsVertical~
 
-  ~intervalIsVertical~
-
- */
+*/
  bool intervalIsVertical();
 
- /*
-  ~computeBeginOfIntersectionInterval~
+/*
+1.1 ~computeBeginOfIntersectionInterval~
 
-  If we compute only with the grid-values there is an interval where this
-  segment will intersect the sweepline. This function computes the begin of
-  this interval.
+*/
+int computeBeginOfIntersectionInterval(int pos);
 
- */
- int computeBeginOfIntersectionInterval(int pos);
+/*
+1.1 ~computeEndOfIntersectionInterval~
 
- /*
-  ~computeEndOfIntersectionInterval~
-
-  If we compute only with the grid-values there is an interval where this
-  segment will intersect the sweepline. This function computes the end of this
-  interval.
-
- */
- int computeEndOfIntersectionInterval(int pos);
+*/
+int computeEndOfIntersectionInterval(int pos);
 
 
- /*
-  ~isVertical~
+/*
+1.1 ~isVertical~
 
- */
+*/
  bool isVertical(TestStruct& t) const;
 
- /*
-  ~set~
-  Change ~this~ to an avlsegment with the given values.
+/*
+1.1 ~set~
 
- */
+*/
  void set(mpq_class xl, mpq_class yl, mpq_class xr, mpq_class yr, Owner o,
    TestStruct& t);
 
@@ -544,12 +456,10 @@ public:
 
  ~AVLSegment();
 
- /*
-  ~getGrid\_~
+/*
+1.1 ~getter~
 
-  returns the grid values.
-
- */
+*/
  int getGridXL() const {
   return gridXL;
  }
@@ -563,12 +473,6 @@ public:
   return gridYR;
  }
 
- /*
-  ~getPrecise\_~
-
-  returns the precise values.
-
- */
  mpq_class getPreciseXL() const;
 
  mpq_class getPreciseYL() const;
@@ -577,127 +481,70 @@ public:
 
  mpq_class getPreciseYR() const;
 
-
- /*
-  ~getNumberOfChanges~
-
-  If a segment has been changed, ~noOfChanges~ has been modified (incremented).
-  It will be used in the plane-sweep-algorithms for detecting invalid events
-  saved in the priority\_queue.
-
- */
  int getNumberOfChanges() const;
 
- /*
-  ~setNumberOfChanges~
-
-  Sets ~noOfChanges~ to the given argument.
-
- */
- void setNumberOfChanges(int i);
-
- /*
-  ~incrementNumberOfChanges~
-
- */
  void incrementNumberOfChanges();
 
- /*
-  ~getFirstInsideAbove~
-
- */
  bool getFirstInsideAbove() const;
 
- /*
-  ~getSecondInsideAbove~
-
- */
  bool getSecondInsideAbove() const;
 
- /*
-  ~setFirstInsideAbove~
-
- */
- void setFirstInsideAbove(bool insideAbove);
-
- /*
-  ~setSecondInsideAbove~
-
- */
- void setSecondInsideAbove(bool insideAbove);
-
- /*
-  ~getConBelow~
-
- */
  short int getConBelow();
 
- /*
-  ~getConAbove~
-
- */
  short int getConAbove();
 
- /*
-  ~setConBelow~
-
- */
  void setConBelow(short int i);
 
- /*
-  ~setConAbove~
+ Owner getOwner() const {
+  return owner;
+ }
 
- */
+/*
+1.1 ~setter~
+
+*/
  void setConAbove(short int i);
 
- /*
-  ~inkrConAbove~
-
- */
  void inkrConAbove() {
   conAbove++;
  }
 
- /*
-  ~inkrConBelow~
-
- */
  void inkrConBelow() {
   conBelow++;
  }
 
- /*
-  ~dekrConAbove~
-
- */
  void dekrConAbove() {
   conAbove--;
  }
 
- /*
-  ~dekrConBelow~
-
- */
  void dekrConBelow() {
   conBelow--;
  }
 
- /*
-  ~print~
+ void setFirstInsideAbove(bool insideAbove);
 
- */
+ void setSecondInsideAbove(bool insideAbove);
+
+ void setNumberOfChanges(int i);
+
+ void changeValidity(bool v);
+
+ void setOwner(Owner o) {
+  owner = o;
+ }
+
+/*
+1.1 ~print~
+
+*/
  void print();
 
- /*
-  ~equal~
+/*
+1.1 test-functions
 
- */
+*/
  bool equal(AVLSegment& s, TestStruct& t) const;
 
- /*
-  ~isPoint~
-
- */
  bool isPoint(TestStruct& t) const;
 
  bool isEndpoint(int gx, int gy, mpq_class px, mpq_class py, TestStruct& t);
@@ -716,158 +563,61 @@ public:
 
  bool hasEqualLeftEndpointAs(AVLSegment& s, TestStruct& t);
 
- /*
-  ~isValid~
-
-  Returns true, if the segment is valid, false otherwise. A segment will be
-  invalid, if there is another segment in the avl-tree, which overlaps ~this~
-  completely. This function is used for the plain-sweep-algorithms, to create
-  a new event, which will delete this from the avl-tree as soon as possible if
-  a segment is marked as invalid.
-
- */
  bool isValid() const;
 
- /*
-  ~changeValidity~
-  Sets ~valid~ to the given value.
-
- */
- void changeValidity(bool v);
-
- /*
-  ~getOwner~
-
- */
- Owner getOwner() const {
-  return owner;
- }
-
- /*
-  ~setOwner~
-
- */
- void setOwner(Owner o) {
-  owner = o;
- }
-
- /*
-  ~=~
-
- */
- AVLSegment& operator=(const AVLSegment& s);
-
- /*
-  ~isParallelTo~
-
- */
  bool isParallelTo(const AVLSegment& s) const;
 
- /*
-  ~compareIntersectionintervalWithSweepline~
 
-  computes the interval, where ~this~ and ~s~ run through ~gridXPos~ and
-  ~gridXPos~+1. Returns
-  -1 if ~this~ runs below ~s~
-  0 if both intervals intersect and we can't decide, whether ~this~ run
-  below ~s~ or vice versa
-  1 if ~this~ runs above ~s~
 
- */
+/*
+1.1 ~=~
+
+*/
+ AVLSegment& operator=(const AVLSegment& s);
+
+/*
+1.1 ~compareIntersectionintervalWithSweepline~
+
+*/
  int compareIntersectionintervalWithSweepline(AVLSegment& s, int gridXPos,
    TestStruct& t);
 
- /*
-  ~compareInPosOrRight~
-  Compares the y-values in a given x-value ~pos~ in both segments. The result is
-  - -1  if the value of this is less than the one in ~seg~
-  -  0  if both values are equal
-  - +1  if the value of this is greater than the one in ~seg~
+/*
+1.1 ~compareInPosOrRight~
 
-  If both segments intersect in the given x-position, we take the given order
-  more right.
-
-  Precondition for this function:
-  this.xl <= gridPos this.xr and seg.xl <= gridPos <= seg.xr
-  If the precondition is not satisfied, an assertion ends with false.
-
- */
+*/
  int compareInPosOrRight(AVLSegment& s, int gridXPos, mpq_class& preciseXPos,
    TestStruct& t);
 
- /*
-  ~compareInPosOrLeft~
-  Compares the y-values in a given x-value ~pos~ in both segments. The result is
-  - -1  if the value of this is less than the one in ~seg~
-  -  0  if both values are equal
-  - +1  if the value of this is greater than the one in ~seg~
+/*
+1.1 ~compareInPosOrLeft~
 
-  If both segments intersect in the given x-position, we take the given order
-  more left.
-
-  Precondition for this function:
-  this.xl <= gridPos this.xr and seg.xl <= gridPos <= seg.xr
-  If the precondition is not satisfied, an assertion ends with false.
-
- */
+*/
  int compareInPosOrLeft(AVLSegment& s, int gridXPos, mpq_class& preciseXPos,
    TestStruct& t);
 
- /*
-  ~compareInPosForMember~
-  Compares the y-values in a given x-value ~pos~ in both segments.
-  The result is
-  - -1 if the value of this is less than the one in ~seg~
-  (then ~this~ is below ~seg~)
-  -  0 if both values are equal
-  - +1 if the value of this is greater than the one in ~seg~
-  (then ~this~ is above ~seg~)
+/*
+1.1 ~compareInPosForMember~
 
-  If both segments intersect in the given x-position, we take the
-  given order more left.
-
-  Precondition for this function:
-  this.xl <= gridPos this.xr and seg.xl <= gridPos <= seg.xr
-  If the precondition is not satisfied, an assertion ends with false.
-
- */
+*/
  int compareInPosForMember(AVLSegment& s, int gridXPos, mpq_class& preciseXPos,
    int gridYPos, mpq_class& preciseYPos, TestStruct& t);
- /*
+/*
+1.1 ~mightIntersect~
 
-  ~mightIntersect~
-  Checks if two AVLSegments might intersect or not.
-
-  We take only the grid-values of each AVLSegment to estimate, if the segments
-  might intersect or not. So one real segment is bordered by a bounding box,
-  prepared by 6 segments.
-  P.e. for a segment with the endpoints (xl,yl) and (xr,yr) with a positiv
-  slope it are the segments:
-  - (xl,yl,xl,yl+1)
-  - (xl,yl+1, xr, yr*1)
-  - (xr, yr*1, xr+1,yr+1)
-  - (xr+1,yr, xr+1,yr+1)
-  - (xl+1,yl,xr+1,yr)
-  - (xl,yl,xl+1,yl)
-
- */
+*/
  bool mightIntersect(AVLSegment& s, TestStruct& t);
 
- /*
+/*
+1.1 ~intersect~
 
-  ~intersect~
-  returns true if both segments intersect or overlap. If it is so, the
-  intersection-point or intersection-interval is saved in ~result~.
-
- */
+*/
  bool intersect(AVLSegment& seg, AVLSegment& result, TestStruct& t);
 
 };
 
 /*
- SimpleSegment and BoundingSegments are used in mightIntersect.
- An object of type BoundingSegments contains the segments which
- form the envelope of a real segment.
+1 Classes SimpleSegment and BoundingSegments
 
 */
 
@@ -959,6 +709,10 @@ public:
  }
 };
 
+/*
+1 Class Event
+
+*/
 class Event {
 
 private:
@@ -974,6 +728,10 @@ private:
 
 public:
 
+/*
+1.1 Constructors and destructor
+
+*/
  Event(KindOfEvent k, AVLSegment* s);
 
  Event(KindOfEvent k, AVLSegment* s1, AVLSegment* s2);
@@ -982,113 +740,74 @@ public:
 
  Event(const Event& e);
 
- Event() {
- }
- ;
+ Event() {};
 
  ~Event();
 
- /*
-  An Event need to be processed, when the sweep-line reaches the
-  eventpoint (x,y). The eventpoint (x,y) is divided in 4 parts:
-  gridX is the grid-value of the real x-value and preciseX is the precise
-  part. The real x value is getGridX()+getPreciseX(). The same applies to y.
+/*
+1.1 ~getter~
 
- */
- /*
-  ~getGridX~
-
- */
+*/
  int getGridX() const;
 
- /*
-  ~getPreciseX~
-
- */
  mpq_class getPreciseX() const;
 
- /*
-  ~getGridY~
-
- */
  int getGridY() const;
 
- /*
-  ~getPreciseY~
-
- */
  mpq_class getPreciseY() const;
 
  KindOfEvent getEvent() {
   return kind;
  }
 
- /*
-  ~getSegment~
-  Returns the associated segment, if ~this~ is an right- or leftendpoint-event,
-  NULL otherwise;
-
- */
  AVLSegment* getSegment() const;
 
- /*
-  ~getLeftSegment~
-  Returns the associated lower segment, if ~this~ is an intersection-event,
-  NULL otherwise;
-
- */
  AVLSegment* getLeftSegment() const;
 
- /*
-  ~getRightSegment~
-  Returns the associated greater segment, if ~this~ is an intersection-event,
-  NULL otherwise;
-
- */
  AVLSegment* getRightSegment() const;
 
- /*
-  ~getNoOfChanges~
-
-  Between the time an event has beed created and the time, the event need to be
-  processed the associated segment(s) might be changed and the event is invalid.
-  To detect this, an event holds the number of changes of the associated
-  segment(s).
-
- */
  int getNoOfChanges() const;
 
+/*
+1.1 ~=~
+
+*/
  Event& operator=(const Event& e);
 
- /*
-  ~isValid~
-  An Event becomes invalid, if the associated segment(s) have been changed
-  between the time where the eventis put in the priority\_queue and the time
-  where it has to be precessed.
+/*
+1.1 ~isValid~
 
- */
+*/
  bool isValid() const;
 
- /*
-  ~isLeftEndpointEvent~
+/*
+1.1 ~isLeftEndpointEvent~
 
- */
+*/
  bool isLeftEndpointEvent() const;
 
- /*
-  ~isRightEndpointEvent~
+/*
+1.1 ~isRightEndpointEvent~
 
- */
+*/
  bool isRightEndpointEvent() const;
 
- /*
-  ~isIntersectionEvent~
+/*
+1.1 ~isIntersectionEvent~
 
- */
+*/
  bool isIntersectionEvent() const;
 
+/*
+1.1 ~$>$~
+
+*/
  bool operator>(const Event& r) const;
 
+/*
+1.1 ~isIntersectionEvent~
+
+*/
  void print() const;
 
 };
@@ -1096,13 +815,7 @@ public:
 
 
 /*
- ~selectNext~
-
- This function selects the next event in dependence of the given x-coordinates.
- If the next event comes from one of the given ~l~-arguments, an leftendpoint-event
- is created from the given segment.
- If there are no segments in the ~l~-arguments and the queue is empty, the function returns
- ~none~ to show, that there is no event to process.
+1 ~selectNext~
 
 */
 template<class C1, class C2>
@@ -1115,18 +828,13 @@ Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
   TestStruct& t);
 
 Owner selectNext(/*const*/ Region2& r1, int& pos1,
-  /*const*/ Region2& r2, int& pos2,
+ /*const*/ Region2& r2, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
   TestStruct& t);
 
 
 /*
- ~splitNeighbours~
-
- ~Current~ and ~neighbor~ intersect in  ~overlappingSegment~, which has to be a point.
- This function splits ~current~ and ~neighbor~ in 4 parts:
- ~current~ stores the left part of the original ~current~, ~rightC~ the right part,
- neighbor analog.
+1 ~splitNeighbours~
 
 */
 void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
@@ -1134,53 +842,21 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
   TestStruct& t);
 
 /*
- ~mergeNeighbors~
- This function merges overlapping segments to one segment, stored in ~neighbor~.
+1 ~mergeNeighbors~
 
 */
 bool mergeNeighbors(AVLSegment* current, AVLSegment* neighbor, TestStruct& t);
 
 /*
- ~splitNeighbors~
-
- The segments overlap, starting in the left endpoint of
- overlappingSegments. This function splits overlapping segments in
- max. 3 segments:
- If ~neighbor~ and ~current~ have the same leftendpoints, ~neighbor~
- contains the overlapping part and ~current~ is set to invalid.
- If ~neighbor~ lay more left than ~current~, ~neighbor~ gets the
- left part and ~current~ the overlapping part.
- ~right~ contains the part right of the overlapping part. It might
- be only the right endpoint.
+1 ~splitNeighbors~
 
 */
 void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
   AVLSegment* overlappingSegment, AVLSegment* right, TestStruct& t);
 
+
 /*
- ~intersectionForRealminize~
-
- This function checks whether the given AVLSegments ~left~ and ~right~
- intersect or not. If they intersect in exact one point, an intersection-event
- will be created. If there is an overlapping part, both segments will be
- merged to one segment, stored in ~right~ and ~left~ will be set to invalid.
-
-*-/
-void intersectionForRealminize(AVLSegment* left, AVLSegment* right,
-  Event* event, priority_queue<Event, vector<Event>, greater<Event> >& q,
-  bool leftIsSmaller, TestStruct& t);
-*/
-/*
- ~intersectionForSetOp~
-
- This function checks whether the given AVLSegments ~s1~ and ~s2~
- intersect or not. If they intersect in exact one point, an intersection-event
- will be created. If there is an overlapping part, both segments will be
- split in 3 parts: If the overlapping part starts at the same point as ~s2~,
- ~s2~ gets the overlapping part and ~s1~ is set to invalid. Otherwise
- ~s2~ contains the left part and ~s1~ the overlapping part. If there exists a
- segment right of the overlapping part, an leftentpoint-event with this
- segment is created.
+1 ~intersectionForSetOp~
 
 */
 bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
@@ -1188,19 +864,7 @@ bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
   TestStruct& t);
 
 /*
- ~collectSegmentsForInverting~
-
- collect all intersection-events with the event-point of ~event~ and stores
- the respective segments in ascending order in ~segmentVector~. If there are
- parallel segments in the vector, the left one has to be the left one
- after the inversion too. So they are stored in the (actual) false order in
- the ~segmentVector~. After the inversion we have the right order again.
- Because of this, the second segment of the ~segmentVector~ might be the most
- right one after the inversion and the segment before the last one in the
- ~segmentVector~might be the most left one after the inversion. The index of
- the real most left/right segment after the inversion will be stored in
- ~sucIndex~ and ~predIndex~. If there are only two segments wich are parallel,
- an inversion is not necessary and ~inversionNecessary~ will be set to false;
+1 ~collectSegmentsForInverting~
 
 */
 void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
@@ -1208,47 +872,28 @@ void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
   size_t& predIndex, size_t& sucIndex, bool& inversionnecessary, TestStruct& t);
 
 /*
- ~createNewSegments~
-
- Creates a new Halfsegment and stores it in ~result~ if it satify the conditions
- for the given SetOperation ~op~.
+1 ~createNewSegments~
 
 */
 void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeNo,
   SetOperation op);
 
 /*
- ~createNewSegments~
-
- For each AVLSegment in the ~segmentVector~ which satisfy the conditions for the
- given Setoperation ~op~ and don't end in the event-point of ~event~, a new
- Halfsegment will be created and stored in ~result~.
- The AVLSegments of the ~segmentVector~ which don't end in the event-point of
- ~event~ get the event-point as the leftendpoint.
+1 ~createNewSegments~
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   p2d::Line2& result, int& edgeNo, SetOperation op, TestStruct& t);
 
 /*
- ~createNewSegments~
-
- Creates a new Halfsegment and stores it in ~result~ if it satify the conditions
- for the given SetOperation ~op~.
+1 ~createNewSegments~
 
 */
 void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
   SetOperation op);
 
 /*
- ~createNewSegments~
-
- For each AVLSegment in the ~segmentVector~ which satisfy the conditions for the
- given Setoperation ~op~ and don't end in the event-point of ~event~, a new
- Halfsegment will be created and stored in ~result~.
- The AVLSegments of the ~segmentVector~ which don't end in the event-point of
- ~event~ get the event-point as the leftendpoint and for some AVLSegments the
- predicates are changed.
+1 ~createNewSegments~
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
@@ -1256,69 +901,47 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   TestStruct& t);
 
 /*
- ~checkSegments~
-
- Checks if the given AVLSegments of the ~segmentVector~ satisfy the conditions
- of the given ~op~ and adjust the values of the predicates of the segments
- if need to be.
+1 ~checkSegments~
 
 */
 void checkSegments(vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, bool& result, RelationshipOperation op, TestStruct& t);
 
 /*
- ~checkSegment~
-
- Checks if the given AVLSegments of the ~segmentVector~ satisfy the conditions
- of the given ~op~.
+1 ~checkSegment~
 
 */
 void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op);
 
 
 /*
- ~SetOp~
-
- for ~line2~
+1 ~SetOp~
 
 */
 void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
   SetOperation op, TestStruct& t, const Geoid* geoid = 0);
 
 /*
- ~SetOp~
-
- for ~region2~
+1 ~SetOp~
 
 */
-void SetOp(/*const*/ Region2& region1, /*const*/ Region2& region2,
+void SetOp(/*const*/ Region2& region1,/*const*/ Region2& region2,
   Region2& result, SetOperation op, TestStruct& t, const Geoid* geoid = 0);
 
 /*
- ~intersects~
-
- ~line2~ x ~line2~ $->$ bool
-
-
- returns true, if there both line2-objects intersect,
- false otherwise.
+1 ~intersects~
 
 */
 bool intersects(const p2d::Line2& line1, const p2d::Line2& line2,
   TestStruct& t, const Geoid* geoid = 0);
 
 /*
- ~intersects~
-
- ~region2~ x ~region2~ $->$ ~bool~
-
- returns true, if both region2-objects intersect,
- false otherwise.
+1 ~intersects~
 
 */
-bool intersects(/*const*/ Region2& region1, /*const*/ Region2& region2,
+bool intersects(/*const*/ Region2& region1,/*const*/ Region2& region2,
   TestStruct& t, const Geoid* geoid = 0);
 
 
 } //end of p2d
-#endif /* AVLTREE_H_ */
+#endif/* AVLTREE_H_*/

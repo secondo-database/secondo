@@ -38,220 +38,18 @@
 
 namespace p2d {
 
-Points2::Points2(const bool def, Point2* p) :
-  StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointsData(0),
-  ordered(true), bbox(false) {
- PointData pd(p->getGridX(), p->getGridY());
- pd.CopyPreciseCoordinates(p, &preciseCoordinates);
- pointsData.Append(pd);
-}
-
-Points2::Points2(const Points2& l) :
-  StandardSpatialAttribute<2>(l.IsDefined()), preciseCoordinates(
-    l.preciseCoordinates.getSize()), pointsData(l.pointsData.Size()),
-    ordered(l.ordered), bbox(l.bbox) {
- preciseCoordinates.copyFrom(l.preciseCoordinates);
- pointsData.copyFrom(l.pointsData);
-}
-
-Points2::Points2(bool def) :
-  StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointsData(0),
-  ordered(false), bbox(false) {
-}
-
-int Points2::getGridX(int i) const {
- assert(0 <= i && i < pointsData.Size());
- PointData pd;
- pointsData.Get(i, &pd);
- return pd.getGridX();
-}
-
-int Points2::getGridY(int i) const {
- assert(0 <= i && i < pointsData.Size());
- PointData pd;
- pointsData.Get(i, &pd);
- return pd.getGridY();
-}
-
-mpq_class& Points2::getPreciseX(int i) const {
- assert(0 <= i && i < pointsData.Size());
- PointData pd;
- pointsData.Get(i, &pd);
- mpq_class* value = new mpq_class(0);
- pd.getPreciseX(&preciseCoordinates, *value);
- return *value;
-}
-
-mpq_class& Points2::getPreciseY(int i) const {
- assert(0 <= i && i < pointsData.Size());
- PointData pd;
- pointsData.Get(i, &pd);
- mpq_class* value = new mpq_class(0);
- pd.getPreciseY(&preciseCoordinates, *value);
- return *value;
-}
-
-char* Points2::getPreciseXAsString(int i) const {
- assert(0 <= i && i < pointsData.Size());
- PointData pd;
- pointsData.Get(i, &pd);
- return pd.getPreciseXAsString(&preciseCoordinates);
-}
-
-char* Points2::getPreciseYAsString(int i) const {
- assert(0 <= i && i < pointsData.Size());
- PointData pd;
- pointsData.Get(i, &pd);
- return pd.getPreciseYAsString(&preciseCoordinates);
-}
-
-PointData Points2::getPoint(int i) const {
- assert(0 <= i && i < pointsData.Size());
- PointData pd;
- pointsData.Get(i, &pd);
- return pd;
-}
-
-void Points2::addPoint(Point2* p) {
- PointData pd(p->getGridX(), p->getGridY());
- pd.CopyPreciseCoordinates(p, &preciseCoordinates);
- pointsData.Append(pd);
-}
-
-int Points2::Size() const {
- return pointsData.Size();
-}
-
-void Points2::StartBulkLoad() {
- ordered = false;
-}
-
 /*
- ~EndBulkLoad~
-
- Finishs the bulkload for a points-object.
-
- The parameter ~sort~ can be set to __false__ if the Points are
- already ordered using the Point order.
-
- The parameter ~remDup~ can be set to __false__ if there are no duplicates.
+2 Class Points2
 
 */
-void Points2::EndBulkLoad(const bool sort /* = true*/,
-  const bool remDup /* = true*/, const bool trim /* = false*/
-  ) {
- if (!IsDefined()) {
-  Clear();
-  SetDefined(false);
- }
-
- if (sort) {
-  Sort();
- } else {
-  ordered = true;
- }
- if (remDup) {
-  RemoveDuplicates();
- }
- if (trim) {
-  pointsData.TrimToSize();
- }
-}
-
-void Points2::Clear() {
- pointsData.clean();
- preciseCoordinates.clean();
- ordered = true;
- bbox.SetDefined(false);
- SetDefined(true);
-}
 
 /*
- ~ComparePoints~
-
- Compares both points
+2.1 Functions for EndBulkLoad
 
 */
-int Points2::ComparePoints(const PointData* p1, const PointData* p2) const {
- //compare the  x-coordinates
- int gridX1 = p1->getGridX();
- int gridX2 = p2->getGridX();
- if (gridX1 > gridX2) {
-  return 1;
- }
- if (gridX1 < gridX2) {
-  return -1;
- }
- mpq_class pX1(0);
- p1->getPreciseX(&preciseCoordinates, pX1);
- mpq_class pX2(0);
- p2->getPreciseX(&preciseCoordinates, pX2);
- int c = cmp(pX1, pX2);
- if (c != 0) {
-  return c;
- }
-
- //compare the y-coordinates
- int gridY1 = p1->getGridY();
- int gridY2 = p2->getGridY();
- if (gridY1 > gridY2) {
-  return 1;
- }
- if (gridY1 < gridY2) {
-  return -1;
- }
- mpq_class pY1(0);
- p1->getPreciseY(&preciseCoordinates, pY1);
- mpq_class pY2(0);
- p2->getPreciseY(&preciseCoordinates, pY2);
- return cmp(pY1, pY2);
-}
 
 /*
- ~ComparePoints2~
-
- Compares both points. The second argument is a point of another points object
- than ~this~. For this, the third argument is needed.
-
-*/
-int Points2::ComparePoints2(const PointData& p1, const PointData& p2,
-  const Flob* preciseCoordOfP2) const {
- //compare the  x-coordinates
- int gridX1 = p1.getGridX();
- int gridX2 = p2.getGridX();
- if (gridX1 > gridX2) {
-  return 1;
- }
- if (gridX1 < gridX2) {
-  return -1;
- }
- mpq_class pX1(0);
- p1.getPreciseX(&preciseCoordinates, pX1);
- mpq_class pX2(0);
- p2.getPreciseX(preciseCoordOfP2, pX2);
- int c = cmp(pX1, pX2);
- if (c != 0) {
-  return c;
- }
-
- //compare the y-coordinates
- int gridY1 = p1.getGridY();
- int gridY2 = p2.getGridY();
- if (gridY1 > gridY2) {
-  return 1;
- }
- if (gridY1 < gridY2) {
-  return -1;
- }
- mpq_class pY1(0);
- p1.getPreciseY(&preciseCoordinates, pY1);
- mpq_class pY2(0);
- p2.getPreciseY(preciseCoordOfP2, pY2);
- return cmp(pY1, pY2);
-}
-
-/*
- ~Sort~
+2.1.1 ~Sort~
 
  Sorts the points with Mergesort
 
@@ -266,7 +64,7 @@ void Points2::Sort() {
 }
 
 /*
- ~MergeSort~
+2.2.2 ~MergeSort~
 
 */
 void Points2::MergeSort(int startindex, int endindex) {
@@ -279,7 +77,7 @@ void Points2::MergeSort(int startindex, int endindex) {
 }
 
 /*
- ~Merge~
+2.2.3 ~Merge~
 
  This function merges 2 sorted sequences stored in the DbArray ~segentData~.
  The first sequence starts with ~startindex~ and ends with ~divide~ and the
@@ -351,6 +149,10 @@ void Points2::Merge(int startindex, int divide, int endindex) {
  }
 }
 
+/*
+2.2.4 ~RemoveDuplicates~
+
+*/
 void Points2::RemoveDuplicates() {
  assert(IsOrdered());
  DbArray<PointData> allPoints(pointsData.Size());
@@ -379,7 +181,272 @@ void Points2::RemoveDuplicates() {
 }
 
 /*
- 4.4 ~Sizeof~-function
+2.1 Constructors
+
+*/
+Points2::Points2(const bool def, Point2* p) :
+  StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointsData(0),
+  ordered(true), bbox(false) {
+ PointData pd(p->getGridX(), p->getGridY());
+ pd.CopyPreciseCoordinates(p, &preciseCoordinates);
+ pointsData.Append(pd);
+}
+
+Points2::Points2(const Points2& l) :
+  StandardSpatialAttribute<2>(l.IsDefined()), preciseCoordinates(
+    l.preciseCoordinates.getSize()), pointsData(l.pointsData.Size()),
+    ordered(l.ordered), bbox(l.bbox) {
+ preciseCoordinates.copyFrom(l.preciseCoordinates);
+ pointsData.copyFrom(l.pointsData);
+}
+
+Points2::Points2(bool def) :
+  StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointsData(0),
+  ordered(false), bbox(false) {
+}
+
+
+/*
+2.1 ~Member function~
+
+*/
+
+/*
+2.1.1 ~getGrid...~
+
+*/
+int Points2::getGridX(int i) const {
+ assert(0 <= i && i < pointsData.Size());
+ PointData pd;
+ pointsData.Get(i, &pd);
+ return pd.getGridX();
+}
+
+int Points2::getGridY(int i) const {
+ assert(0 <= i && i < pointsData.Size());
+ PointData pd;
+ pointsData.Get(i, &pd);
+ return pd.getGridY();
+}
+
+/*
+2.1.1 ~getPreciseX~
+
+*/
+mpq_class& Points2::getPreciseX(int i) const {
+ assert(0 <= i && i < pointsData.Size());
+ PointData pd;
+ pointsData.Get(i, &pd);
+ mpq_class* value = new mpq_class(0);
+ pd.getPreciseX(&preciseCoordinates, *value);
+ return *value;
+}
+
+/*
+2.1.1 ~getPreciseY~
+
+*/
+mpq_class& Points2::getPreciseY(int i) const {
+ assert(0 <= i && i < pointsData.Size());
+ PointData pd;
+ pointsData.Get(i, &pd);
+ mpq_class* value = new mpq_class(0);
+ pd.getPreciseY(&preciseCoordinates, *value);
+ return *value;
+}
+
+/*
+2.1.1 ~getPreciseXAsSring~
+
+*/
+char* Points2::getPreciseXAsString(int i) const {
+ assert(0 <= i && i < pointsData.Size());
+ PointData pd;
+ pointsData.Get(i, &pd);
+ return pd.getPreciseXAsString(&preciseCoordinates);
+}
+
+/*
+2.1.1 ~getPreciseYAsString~
+
+*/
+char* Points2::getPreciseYAsString(int i) const {
+ assert(0 <= i && i < pointsData.Size());
+ PointData pd;
+ pointsData.Get(i, &pd);
+ return pd.getPreciseYAsString(&preciseCoordinates);
+}
+
+/*
+2.1.1 ~getPoint~
+
+*/
+PointData Points2::getPoint(int i) const {
+ assert(0 <= i && i < pointsData.Size());
+ PointData pd;
+ pointsData.Get(i, &pd);
+ return pd;
+}
+
+/*
+2.1.1 ~addPoint~
+
+*/
+void Points2::addPoint(Point2* p) {
+ PointData pd(p->getGridX(), p->getGridY());
+ pd.CopyPreciseCoordinates(p, &preciseCoordinates);
+ pointsData.Append(pd);
+}
+
+/*
+2.1.1 ~Clear~
+
+*/
+void Points2::Clear() {
+ pointsData.clean();
+ preciseCoordinates.clean();
+ ordered = true;
+ bbox.SetDefined(false);
+ SetDefined(true);
+}
+
+/*
+2.1.1 ~Size~
+
+*/
+int Points2::Size() const {
+ return pointsData.Size();
+}
+
+/*
+2.1.1 ~StartBulkLoad~
+
+*/
+void Points2::StartBulkLoad() {
+ ordered = false;
+}
+
+/*
+2.1.1 ~EndBulkLoad~
+
+ Finishs the bulkload for a points-object.
+
+ The parameter ~sort~ can be set to __false__ if the Points are
+ already ordered using the Point order.
+
+ The parameter ~remDup~ can be set to __false__ if there are no duplicates.
+
+*/
+void Points2::EndBulkLoad(const bool sort /* = true*/,
+  const bool remDup /* = true*/, const bool trim /* = false*/
+  ) {
+ if (!IsDefined()) {
+  Clear();
+  SetDefined(false);
+ }
+
+ if (sort) {
+  Sort();
+ } else {
+  ordered = true;
+ }
+ if (remDup) {
+  RemoveDuplicates();
+ }
+ if (trim) {
+  pointsData.TrimToSize();
+ }
+}
+
+/*
+2.3.1 ~ComparePoints~
+
+*/
+int Points2::ComparePoints(const PointData* p1, const PointData* p2) const {
+ //compare the  x-coordinates
+ int gridX1 = p1->getGridX();
+ int gridX2 = p2->getGridX();
+ if (gridX1 > gridX2) {
+  return 1;
+ }
+ if (gridX1 < gridX2) {
+  return -1;
+ }
+ mpq_class pX1(0);
+ p1->getPreciseX(&preciseCoordinates, pX1);
+ mpq_class pX2(0);
+ p2->getPreciseX(&preciseCoordinates, pX2);
+ int c = cmp(pX1, pX2);
+ if (c != 0) {
+  return c;
+ }
+
+ //compare the y-coordinates
+ int gridY1 = p1->getGridY();
+ int gridY2 = p2->getGridY();
+ if (gridY1 > gridY2) {
+  return 1;
+ }
+ if (gridY1 < gridY2) {
+  return -1;
+ }
+ mpq_class pY1(0);
+ p1->getPreciseY(&preciseCoordinates, pY1);
+ mpq_class pY2(0);
+ p2->getPreciseY(&preciseCoordinates, pY2);
+ return cmp(pY1, pY2);
+}
+
+/*
+2.4.1 ~ComparePoints2~
+
+ Compares both points. The second argument is a point of another points object
+ than ~this~. For this, the third argument is needed.
+
+*/
+int Points2::ComparePoints2(const PointData& p1, const PointData& p2,
+  const Flob* preciseCoordOfP2) const {
+ //compare the  x-coordinates
+ int gridX1 = p1.getGridX();
+ int gridX2 = p2.getGridX();
+ if (gridX1 > gridX2) {
+  return 1;
+ }
+ if (gridX1 < gridX2) {
+  return -1;
+ }
+ mpq_class pX1(0);
+ p1.getPreciseX(&preciseCoordinates, pX1);
+ mpq_class pX2(0);
+ p2.getPreciseX(preciseCoordOfP2, pX2);
+ int c = cmp(pX1, pX2);
+ if (c != 0) {
+  return c;
+ }
+
+ //compare the y-coordinates
+ int gridY1 = p1.getGridY();
+ int gridY2 = p2.getGridY();
+ if (gridY1 > gridY2) {
+  return 1;
+ }
+ if (gridY1 < gridY2) {
+  return -1;
+ }
+ mpq_class pY1(0);
+ p1.getPreciseY(&preciseCoordinates, pY1);
+ mpq_class pY2(0);
+ p2.getPreciseY(preciseCoordOfP2, pY2);
+ return cmp(pY1, pY2);
+}
+
+/*
+2.6 Functions required by Secondo
+
+*/
+
+/*
+2.1.1 ~Sizeof~
 
 */
 inline size_t Points2::Sizeof() const {
@@ -388,7 +455,7 @@ inline size_t Points2::Sizeof() const {
 }
 
 /*
- 4.4 ~HashValue~-function
+2.1.1 ~HashValue~
 
 */
 inline size_t Points2::HashValue() const {
@@ -411,7 +478,7 @@ inline size_t Points2::HashValue() const {
 }
 
 /*
- 4.4 ~CopyFrom~-function
+2.1.1 ~CopyFrom~
 
 */
 inline void Points2::CopyFrom(const Attribute* right) {
@@ -424,7 +491,7 @@ inline void Points2::CopyFrom(const Attribute* right) {
 }
 
 /*
- 4.4 ~Compare~-function
+2.1.1 ~Compare~
 
 */
 inline int Points2::Compare(const Attribute *arg) const {
@@ -467,7 +534,7 @@ inline int Points2::Compare(const Attribute *arg) const {
 }
 
 /*
- 4.4 ~ClonePoints2~-function
+2.1.1 ~ClonePoints2~
 
 */
 Word Points2::ClonePoints2(const ListExpr typeInfo, const Word& w) {
@@ -475,7 +542,7 @@ Word Points2::ClonePoints2(const ListExpr typeInfo, const Word& w) {
 }
 
 /*
- 4.4 ~CastPoints2~-function
+2.1.1 ~CastPoints2~
 
 */
 void* Points2::CastPoints2(void* addr) {
@@ -483,7 +550,7 @@ void* Points2::CastPoints2(void* addr) {
 }
 
 /*
- 4.4 ~SizeOfPoints2~-function
+2.1.1 ~SizeOfPoints2~
 
 */
 int Points2::SizeOfPoints2() {
@@ -491,7 +558,7 @@ int Points2::SizeOfPoints2() {
 }
 
 /*
- 4.4 ~CreatePoints2~-function
+2.1.1 ~CreatePoints2~
 
 */
 Word Points2::CreatePoints2(const ListExpr typeInfo) {
@@ -499,7 +566,7 @@ Word Points2::CreatePoints2(const ListExpr typeInfo) {
 }
 
 /*
- 4.4 ~DeletePoints2~-function
+2.1.1 ~DeletePoints2~
 
 */
 void Points2::DeletePoints2(const ListExpr typeInfo, Word& w) {
@@ -512,7 +579,7 @@ void Points2::DeletePoints2(const ListExpr typeInfo, Word& w) {
 }
 
 /*
- 4.4 ~ClosePoints2~-function
+2.1.1 ~ClosePoints2~
 
 */
 void Points2::ClosePoints2(const ListExpr typeInfo, Word& w) {
@@ -521,7 +588,7 @@ void Points2::ClosePoints2(const ListExpr typeInfo, Word& w) {
 }
 
 /*
- 4.4 ~Points2Property~-function
+2.1.1 ~Points2Property~
 
 */
 ListExpr Points2::Points2Property() {
@@ -539,7 +606,7 @@ ListExpr Points2::Points2Property() {
 }
 
 /*
- 4.4 ~CheckPoints2~-function
+2.1.1 ~CheckPoints2~
 
 */
 bool Points2::CheckPoints2(ListExpr type, ListExpr& errorInfo) {
@@ -547,7 +614,7 @@ bool Points2::CheckPoints2(ListExpr type, ListExpr& errorInfo) {
 }
 
 /*
- 4.4 ~BoundingBox~-function
+2.1.1 ~BoundingBox~
 
 */
 const Rectangle<2> Points2::BoundingBox(const Geoid* geoid /*= 0*/) const {
@@ -555,22 +622,26 @@ const Rectangle<2> Points2::BoundingBox(const Geoid* geoid /*= 0*/) const {
 }
 
 /*
- 4.4 ~Distance~-function
+2.1.1 ~Distance~
 
 */
 double Points2::Distance(const Rectangle<2>& rect,
   const Geoid* geoid/*=0*/) const {
- return 0.0;
+ return numeric_limits<double>::max();
 }
 
 /*
- 4.4 ~Empty~-function
+2.1.1 ~Empty~
 
 */
 bool Points2::IsEmpty() const {
  return !IsDefined();
 }
 
+/*
+2.1.1 ~Intersects~
+
+*/
 bool Points2::Intersects(const Rectangle<2>& rect,
   const Geoid* geoid/*=0*/) const {
  assert( IsDefined() );

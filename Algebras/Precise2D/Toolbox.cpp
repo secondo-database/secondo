@@ -27,9 +27,9 @@
 
  [TOC]
 
- 0 Overview
+0 Overview
 
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -39,7 +39,7 @@
 namespace p2d {
 
 /*
- ~createCoordinate~
+1 ~createCoordinate~
 
  If the first argument is of type int or real, then the grid-value and the
  precise- value is calculated and the function returns true. If not, then
@@ -55,23 +55,20 @@ bool createCoordinate(ListExpr& value, int& grid, mpq_class& precise){
   if (nl->AtomType(value)==RealType){
    double d = nl->RealValue(value);
    createValue(d, grid, precise);
-   /*
-    grid= (int) d;
 
-    if ((d<0) && (d != grid)){
-     //d has a decimal
-     grid--;
-    }
-    assert ((0<=(d-grid))&&((d-grid)<1));
-    precise = p2d::computeMpqFromDouble((d-grid));
-    return true;
-    */
    return true;
   }
  }
  return false;
 }
 
+/*
+1 ~createValue~
+
+  Computes the grid value ~grid~ and the precise value ~precise~
+  from the given ~value~.
+
+*/
 void createValue(double value, int& grid, mpq_class& precise){
  grid= (int) value;
 
@@ -84,6 +81,12 @@ void createValue(double value, int& grid, mpq_class& precise){
  precise = p2d::computeMpqFromDouble((value-grid));
 }
 
+/*
+1 ~createPoint2~
+
+  Computes a ~Point2~-object from the coordinate (~x~, ~y~).
+
+*/
 void createPoint2(const double x, const double y, Point2** result){
  mpq_class preciseX, preciseY;
  int gX, gY;
@@ -95,11 +98,21 @@ void createPoint2(const double x, const double y, Point2** result){
 
 const double Factor = 0.00000001;
 
+/*
+1 ~AlmostEqual~
+
+ This function was first implemented in the SpatialALgebra.
+
+*/
 bool AlmostEqual(double a, double b) {
  double diff = abs(a - b);
  return (diff < Factor);
 }
 
+/*
+1 ~computeMpqFromDouble~
+
+*/
 mpq_class computeMpqFromDouble(double value) {
  int denom = 1;
  int num = 0;
@@ -119,6 +132,12 @@ mpq_class computeMpqFromDouble(double value) {
  return result;
 }
 
+/*
+1 ~ceil\_mpq~
+
+  rounds ~value~ up to the next integer.
+
+*/
 mpz_class ceil_mpq(mpq_class& value){
  mpz_class numerator =  value.get_num();
  mpz_class denominator = value.get_den();
@@ -131,6 +150,12 @@ mpz_class ceil_mpq(mpq_class& value){
  return intValue;
 }
 
+/*
+1 ~floor\_mpq~
+
+  rounds ~value~ down to the next integer.
+
+*/
 mpz_class floor_mpq(mpq_class& value){
  mpz_class numerator =  value.get_num();
  mpz_class denominator = value.get_den();

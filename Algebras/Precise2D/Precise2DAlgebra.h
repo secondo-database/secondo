@@ -25,11 +25,8 @@
  //paragraph [10] Footnote: [{\footnote{] [}}]
  //[TOC] [\tableofcontents]
 
- [TOC]
 
- 0 Overview
-
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -60,18 +57,5 @@
 #include "TestAVLTree.h"
 
 namespace p2d{
-
-class Precise2DAlgbra;
-
-
- 
-
-
-
-
-
-
-
-
 }
 #endif /* PRECISE2DALGEBRA_H_ */

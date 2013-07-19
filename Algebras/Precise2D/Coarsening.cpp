@@ -27,9 +27,9 @@
 
  [TOC]
 
- 0 Overview
+0 Overview
 
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -38,12 +38,25 @@
 
 namespace p2d {
 
+/*
+1 Class CoarseningGraph
+
+*/
+
+/*
+1.1 Constructor and destructor
+
+*/
 CoarseningGraph::CoarseningGraph() {
 }
 
 CoarseningGraph::~CoarseningGraph() {
 }
 
+/*
+1.1 ~computeGraph~
+
+*/
 void CoarseningGraph::computeGraph(/*const*/Region2& r) {
  Reg2GridHalfSegment gs;
  for (int i = 0; i < r.Size(); i++) {
@@ -72,6 +85,10 @@ void CoarseningGraph::computeGraph(/*const*/Region2& r) {
  }
 }
 
+/*
+1.1 ~computeGraphBetween~
+
+*/
 void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
  Vertex left(lx, ly);
  Vertex right(rx, ry);
@@ -184,7 +201,10 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
  }
 }
 
+/*
+1.1 ~calculateBoundary~
 
+*/
 void CoarseningGraph::calculateBoundary(Region& result) {
 
  result.Clear();
@@ -198,7 +218,6 @@ void CoarseningGraph::calculateBoundary(Region& result) {
  //compute boundary
  result.SetDefined(true);
  Region tmpRegion(0);
- int visited = 1;
 
  while (vertices.size() >= 4) {
   //there are enough vertices to create another cycle
@@ -317,6 +336,10 @@ void CoarseningGraph::calculateBoundary(Region& result) {
  clear();
 }
 
+/*
+1.1 ~calculateBoundary2~
+
+*/
 void CoarseningGraph::calculateBoundary2(Region2& result) {
 
  result.Clear();
@@ -333,8 +356,6 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
  result.SetDefined(true);
 
  Region2 tmpRegion(0);
-
- int visited = 1;
 
  while (vertices.size() >= 4) {
   //there are enough vertices to create another cycle
@@ -460,12 +481,20 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
  clear();
 }
 
+/*
+1.1 ~insert~
+
+*/
 Vertex* CoarseningGraph::insert(int x, int y) {
  Vertex* v = new Vertex(x, y);
  pair<set<Vertex*, CmpVertex>::iterator, bool> pair1 = vertices.insert(v);
  return *(pair1.first);
 }
 
+/*
+1.1 ~Print~
+
+*/
 void CoarseningGraph::Print() const {
  for (set<Vertex*, CmpVertex>::iterator i = vertices.begin();
    i != vertices.end(); i++) {
@@ -473,6 +502,10 @@ void CoarseningGraph::Print() const {
  }
 }
 
+/*
+1.1 ~clear~
+
+*/
 void CoarseningGraph::clear() {
  set<Vertex*, CmpVertex>::iterator it = vertices.begin();
  while (it != vertices.end()) {
@@ -484,6 +517,10 @@ void CoarseningGraph::clear() {
  }
 }
 
+/*
+1.1 ~removeIsleNodes~
+
+*/
 void CoarseningGraph::removeIsleNodes() {
  set<Vertex*, CmpVertex>::iterator current = vertices.begin();
  while (current != vertices.end()) {
@@ -495,6 +532,10 @@ void CoarseningGraph::removeIsleNodes() {
  }
 }
 
+/*
+1.1 ~removeIsleNode~
+
+*/
 void CoarseningGraph::removeIsleNode(Vertex* v) {
   if (v->getNoOfEdges() == 0) {
    vertices.erase(vertices.find(v));
@@ -502,7 +543,15 @@ void CoarseningGraph::removeIsleNode(Vertex* v) {
   }
 }
 
+/*
+1 Class Vertex
 
+*/
+
+/*
+1.1 Constructor and destructor
+
+*/
 Vertex::Vertex(int a, int b) :
   x(a), y(b){
 }
@@ -511,10 +560,12 @@ Vertex::Vertex(const Vertex& v) :
   x(v.x), y(v.y), edgeSet(v.edgeSet) {
 }
 
-Vertex::~Vertex() {
-}
-;
+Vertex::~Vertex() {};
 
+/*
+1.1 ~=~
+
+*/
 Vertex& Vertex::operator=(const Vertex& v) {
  x = v.getX();
  y = v.getY();
@@ -522,6 +573,10 @@ Vertex& Vertex::operator=(const Vertex& v) {
  return *this;
 }
 
+/*
+1.1 ~!=~
+
+*/
 bool Vertex::operator!=(const Vertex& v) const {
  if (x != v.getX()) {
   return true;
@@ -532,6 +587,10 @@ bool Vertex::operator!=(const Vertex& v) const {
  return false;
 }
 
+/*
+1.1 ~$<$~
+
+*/
 bool Vertex::operator<(const Vertex& v) const {
  if (x < v.getX()) {
   return true;
@@ -542,6 +601,10 @@ bool Vertex::operator<(const Vertex& v) const {
  return false;
 }
 
+/*
+1.1 ~addEdge~
+
+*/
 bool Vertex::addEdge(Vertex* v) {
 
  set<Vertex*, CmpVertex>::iterator it = (edgeSet.find(v));
@@ -556,6 +619,10 @@ bool Vertex::addEdge(Vertex* v) {
  }
 }
 
+/*
+1.1 ~getEdges~
+
+*/
 set<Vertex*, CmpVertex> Vertex::getEdges() const {
  set<Vertex*, CmpVertex> edges;
  for (set<Vertex*, CmpVertex>::iterator i = edgeSet.begin(); i != edgeSet.end();
@@ -565,7 +632,10 @@ set<Vertex*, CmpVertex> Vertex::getEdges() const {
  return edges;
 }
 
+/*
+1.1 ~removeEdge~
 
+*/
 void Vertex::removeEdge(Vertex* v) {
  set<Vertex*, CmpVertex>::iterator it1 = edgeSet.begin();
  while ((it1 != edgeSet.end()) && (*v != *(*(it1)))) {
@@ -582,6 +652,10 @@ void Vertex::removeEdge(Vertex* v) {
  }
 }
 
+/*
+1.1 ~removeEdges~
+
+*/
 void Vertex::removeEdges() {
  for (set<Vertex*, CmpVertex>::iterator it = edgeSet.begin();
    it != edgeSet.end(); it++) {
@@ -591,6 +665,10 @@ void Vertex::removeEdges() {
  }
 }
 
+/*
+1.1 ~getNextVertex~
+
+*/
 void Vertex::getNextVertex(Vertex** next, Direction& d, bool& insideAbove) {
 
  switch (d) {
@@ -673,6 +751,10 @@ void Vertex::getNextVertex(Vertex** next, Direction& d, bool& insideAbove) {
  }
 }
 
+/*
+1.1 ~hasEdgePointingUpwards~
+
+*/
 bool Vertex::hasEdgePointingUpwards(Vertex** next) {
  bool found = false;
  *next = NULL;
@@ -688,6 +770,10 @@ bool Vertex::hasEdgePointingUpwards(Vertex** next) {
  return found;
 }
 
+/*
+1.1 ~hasEdgePointingDownwards~
+
+*/
 bool Vertex::hasEdgePointingDownwards(Vertex** next) {
  bool found = false;
  *next = NULL;
@@ -703,6 +789,10 @@ bool Vertex::hasEdgePointingDownwards(Vertex** next) {
  return found;
 }
 
+/*
+1.1 ~hasEdgePointingToTheLeft~
+
+*/
 bool Vertex::hasEdgePointingToTheLeft(Vertex** next) {
  bool found = false;
  *next = NULL;
@@ -718,6 +808,10 @@ bool Vertex::hasEdgePointingToTheLeft(Vertex** next) {
  return found;
 }
 
+/*
+1.1 ~hasEdgePointingToTheRight~
+
+*/
 bool Vertex::hasEdgePointingToTheRight(Vertex** next) {
  bool found = false;
  *next = NULL;
@@ -733,6 +827,10 @@ bool Vertex::hasEdgePointingToTheRight(Vertex** next) {
  return found;
 }
 
+/*
+1.1 ~isBelow~
+
+*/
 bool Vertex::isBelow(const Vertex& v) {
  if ((x == v.getX()) && (y < v.getY())) {
   return true;
@@ -740,6 +838,10 @@ bool Vertex::isBelow(const Vertex& v) {
  return false;
 }
 
+/*
+1.1 ~isAbove~
+
+*/
 bool Vertex::isAbove(const Vertex& v) {
  if ((x == v.getX()) && (y > v.getY())) {
   return true;
@@ -747,6 +849,10 @@ bool Vertex::isAbove(const Vertex& v) {
  return false;
 }
 
+/*
+1.1 ~isRightOf~
+
+*/
 bool Vertex::isRightOf(const Vertex& v) {
  if ((y == v.getY()) && (x > v.getX())) {
   return true;
@@ -754,6 +860,10 @@ bool Vertex::isRightOf(const Vertex& v) {
  return false;
 }
 
+/*
+1.1 ~isLeftOf~
+
+*/
 bool Vertex::isLeftOf(const Vertex& v) {
  if ((y == v.getY()) && (x < v.getX())) {
   return true;
@@ -761,7 +871,10 @@ bool Vertex::isLeftOf(const Vertex& v) {
  return false;
 }
 
+/*
+1.1 ~Print~
 
+*/
 void Vertex::print() const {
  cout << " ( " << x << ", " << y << " ) ";
 }
@@ -776,10 +889,23 @@ void Vertex::Print() const {
  cout << endl << "-----------------------------" << endl;
 }
 
+/*
+1 Struct CMPVertex
+
+*/
+
+/*
+1.1 ~operator()~
+
+*/
 bool CmpVertex::operator()(Vertex* v1, Vertex* v2) const {
  return ((*v1) < (*v2));
 }
 
+/*
+1 ~coarseRegion2~
+
+*/
 void coarseRegion2(/*const*/Region2& r, Region& result) {
  //faces
  CoarseningGraph g1;
@@ -803,6 +929,10 @@ void coarseRegion2(/*const*/Region2& r, Region& result) {
  faces.Minus(holes, result);
 }
 
+/*
+1 ~coarseRegion2b~
+
+*/
 void coarseRegion2b(/*const*/Region2& r, Region& result) {
  //faces
  CoarseningGraph g1;
@@ -828,6 +958,10 @@ void coarseRegion2b(/*const*/Region2& r, Region& result) {
  createRegion(tmpResult, result);
 }
 
+/*
+1 ~createRegion~
+
+*/
 void createRegion(Region2& s, Region& r){
  r.Clear();
  if (s.IsDefined()){

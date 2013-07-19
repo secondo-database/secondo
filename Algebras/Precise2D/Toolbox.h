@@ -23,13 +23,11 @@
 
  //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
  //paragraph [10] Footnote: [{\footnote{] [}}]
- //[TOC] [\tableofcontents]
 
- [TOC]
 
- 0 Overview
+0 Overview
 
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -40,24 +38,51 @@
 #include <gmp.h>
 #include <gmpxx.h>
 #include "NestedList.h"
-//#include "Point2.h"
 
 namespace p2d {
 
 class Point2;
 
+/*
+1 ~createCoordinate~
+
+*/
 bool createCoordinate(ListExpr& value, int& grid, mpq_class& precise);
 
+/*
+1 ~createValue~
+
+*/
 void createValue(double value, int& gx, mpq_class& py);
 
+/*
+1 ~createPoint2~
+
+*/
 void createPoint2(const double x, const double y, Point2** result);
 
+/*
+1 ~createAlmostEqual~
+
+*/
 bool AlmostEqual(double a, double b);
 
+/*
+1 ~computeMpqFromDouble~
+
+*/
 mpq_class computeMpqFromDouble(double value);
 
+/*
+1 ~ceil\_mpq~
+
+*/
 mpz_class ceil_mpq(mpq_class& value);
 
+/*
+1 ~floor\_mpq~
+
+*/
 mpz_class floor_mpq(mpq_class& value);
 
 } /* namespace p2d */

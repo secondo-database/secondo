@@ -27,9 +27,9 @@
 
  [TOC]
 
- 0 Overview
+0 Overview
 
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -54,13 +54,14 @@ namespace p2d {
 class Point2;
 
 /*
- 2 Class ~PointData~
+2 Class ~PointData~
 
  The coordinates of a Point2-object will be stored in a Flob. Every Point-object
  stores the index and the length of the x- resp. y-coordinate in a
  PointData-object.
 
 */
+
 class PointData {
 private:
  // Gridvalue of the x- and y-coodinates
@@ -73,50 +74,39 @@ private:
 
 public:
 
- /*
-  2.1 Constructor and Deconstructor
+/*
+2.1 Constructor and Deconstructor
 
- */
+*/
 
- /*
-  2.1.1 PointData will be initialized with the grid-values. The indexes and
+/*
+  PointData will be initialized with the grid-values. The indexes and
   the length for the precise coordinates will be set to 0.
 
- */
+*/
  PointData(const int xGrid, const int yGrid);
 
- /*
-  2.1.2 Copy-constructor
-
- */
  PointData(const PointData& pd);
 
- /*
-  2.1.3 Default-constructor should not be used
-
- */
  inline PointData() {
  }
  ;
 
- /*
-  2.1.4 Deconstructor
-
- */
  ~PointData() {
  }
  ;
 
- /*
-  2.2 Member functions
+/*
+2.2 Member functions
 
- */
+*/
 
- /*
-  2.2.1 ~getGridX~ and ~getGridY~
+/*
+2.2.1 ~getGridX~ and ~getGridY~
+
   Returns the grid-value of the coordinate.
 
- */
+*/
  int getGridX() const {
   return x;
  }
@@ -124,55 +114,66 @@ public:
   return y;
  }
 
- /*
-  2.2.2 ~getPreciseX~ and ~getPreciseY~
+/*
+2.2.2 ~getPreciseX~ and ~getPreciseY~
+
   These methods fetch the chars representing the given coordinate from
   the Flob using the indices given in this instance's private attributes,
   and convert them to the correct instance of type mpq\_class, representing
   the value of the given coordinate.
 
- */
+*/
  void getPreciseX(const Flob* preciseCoordinates, mpq_class& result) const;
  void getPreciseY(const Flob* preciseCoordinates, mpq_class& result) const;
 
- /*
-  2.2.3 ~getPreciseXAsString~ and ~getPreciseYAsString~
+/*
+2.2.3 ~getPreciseXAsString~ and ~getPreciseYAsString~
+
   These methods returns the chars representing the given coordinate from
   the Flob using the indices given in this instance's private attributes.
 
- */
+*/
  char* getPreciseXAsString(const Flob* preciseCoordinates) const;
  char* getPreciseYAsString(const Flob* preciseCoordinates) const;
 
- /*
-  2.2.4 ~setGridX~ and ~setGridY~
+/*
+2.2.4 ~setGridX~ and ~setGridY~
+
   These methods stores the grid-value of the coordinates.
 
- */
+*/
  void SetGridX(int xp);
  void SetGridY(int yp);
 
- /*
-  2.2.5 ~setPreciseX~ and ~setPreciseY~
+/*
+2.2.5 ~setPreciseX~ and ~setPreciseY~
+
   These methods writes the precise coordinate as a set of chars in the flob.
 
- */
+*/
  void SetPreciseX(Flob* preciseCoordinates, mpq_class x);
  void SetPreciseY(Flob* preciseCoordinates, mpq_class y);
 
- /*
-  2.2.6 ~CopyPreciseCoordinates~
+/*
+2.2.6 ~CopyPreciseCoordinates~
+
   Copies the precise coordinates from the given point2-object in the flob.
 
- */
+*/
  void CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates);
 
+ /*
+ 2.2.6 ~Intersects~
+
+   Copies the precise coordinates from the given point2-object in the flob.
+
+ */
  bool Intersects(const Rectangle<2>& rect,
    const Geoid* geoid/*=0*/, const Flob* preciseCoordinates) const;
 };
 
 /*
- 3 Class ~Point2~
+3 Class ~Point2~
 
 */
 class Point2: public StandardSpatialAttribute<2> {
@@ -183,10 +184,10 @@ private:
 
 public:
 
- /*
-  3.1 Constructors and Deconstructor
+/*
+3.1 Constructors and Deconstructor
 
- */
+*/
  inline Point2() {
  }
  ;
@@ -202,10 +203,10 @@ public:
  }
  ;
 
- /*
-  3.2 getter
+/*
+3.2 read access methods
 
- */
+*/
  int getGridX() const;
 
  int getGridY() const;
@@ -218,20 +219,20 @@ public:
 
  char* getPreciseYAsString() const;
 
- /*
-  3.3 comparison-operators
+/*
+3.3 comparison-operators
 
- */
+*/
  bool operator==(const Point2& p) const;
  bool operator<=(const Point2& p) const;
  bool operator<(const Point2& p) const;
  bool operator>=(const Point2& p) const;
  bool operator>(const Point2& p) const;
 
- /*
-  3.4 The following functions are required by Secondo
+/*
+3.4 functions required by Secondo
 
- */
+*/
  static const string BasicType() {
   return "point2";
  }
@@ -306,4 +307,4 @@ public:
 
 } // end of namespace p2d
 
-#endif /* _POINT2_H*/
+#endif/* _POINT2_H*/

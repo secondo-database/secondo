@@ -27,9 +27,9 @@
 
  [TOC]
 
- 0 Overview
+0 Overview
 
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -42,6 +42,15 @@
 
 namespace p2d {
 
+/*
+3 PointData Constructor
+
+*/
+
+/*
+3.1 Constructors
+
+*/
 PointData::PointData(const int xGrid, const int yGrid) :
   x(xGrid), y(yGrid), xStartPos(0), yStartPos(0),
   xNumOfChars(0), yNumOfChars(0) {
@@ -53,12 +62,17 @@ PointData::PointData(const PointData& pd) :
 }
 
 /*
- 1.1.1 Read access methods
+3.2 Member functions
 
  These methods fetch the chars representing the given coordinate from the
  Flob using the indices given in this instance's private attributes, and
  convert them to the correct instance of type mpq\_class, representing the value
  of the given coordinate.
+
+*/
+
+/*
+3.2.1 ~getPreciseX~
 
 */
 void PointData::getPreciseX(const Flob* preciseCoordinates,
@@ -87,6 +101,10 @@ void PointData::getPreciseX(const Flob* preciseCoordinates,
  result = theValue;
 }
 
+/*
+3.2.1 ~getPreciseY~
+
+*/
 void PointData::getPreciseY(const Flob* preciseCoordinates,
   mpq_class& result) const {
  if (yNumOfChars == 0) {
@@ -112,6 +130,10 @@ void PointData::getPreciseY(const Flob* preciseCoordinates,
  result = theValue;
 }
 
+/*
+3.2.1 ~getPreciseXAsString~
+
+*/
 char* PointData::getPreciseXAsString(const Flob* preciseCoordinates) const {
  if (xNumOfChars == 0) {
   char* s = new char[2];
@@ -129,6 +151,10 @@ char* PointData::getPreciseXAsString(const Flob* preciseCoordinates) const {
  return s;
 }
 
+/*
+3.2.1 ~getPreciseYAsString~
+
+*/
 char* PointData::getPreciseYAsString(const Flob* preciseCoordinates) const {
  if (yNumOfChars == 0) {
   char* s = new char[2];
@@ -147,10 +173,9 @@ char* PointData::getPreciseYAsString(const Flob* preciseCoordinates) const {
 }
 
 /*
- 1.1.2 Write access methods.
+3.2.1 ~setGrid...~
 
 */
-
 void PointData::SetGridX(int xp) {
  x = xp;
 }
@@ -160,6 +185,8 @@ void PointData::SetGridY(int yp) {
 }
 
 /*
+3.2.1 ~setPrecise...~
+
  These methods take the argument of type mpq\_class, convert it to a
  number of chars and stores these chars in the given Flob. The
  private attributes representing the array indices to restore the coordinates
@@ -214,11 +241,14 @@ void PointData::SetPreciseY(Flob* preciseCoordinates, mpq_class y) {
   yStartPos = sz - 1;
   preciseCoordinates->resize(sz + yNumOfChars);
  }
-
  bool ok = preciseCoordinates->write(s, yNumOfChars + 1, yStartPos);
  assert(ok);
 }
 
+/*
+3.2.1 ~CopyPreciseCoordinates~
+
+*/
 void PointData::CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates) {
  SmiSize sz = preciseCoordinates->getSize();
 
@@ -256,16 +286,28 @@ void PointData::CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates) {
  }
 }
 
+/*
+3.2.1 ~Intersects~
+
+*/
 bool PointData::Intersects(const Rectangle<2>& rect,
   const Geoid* geoid/*=0*/, const Flob* preciseCoordinates) const {
  mpq_class x, y;
  getPreciseX(preciseCoordinates, x);
  getPreciseY(preciseCoordinates, y);
-
  return     ((cmp(x, rect.MinD(0))>=0 ) && (cmp(x,rect.MaxD(0))<=0)
          && (cmp(y, rect.MinD(1))>=0 ) && (cmp(y, rect.MaxD(1))<=0));
 }
 
+/*
+4 Point2
+
+*/
+
+/*
+4.1 Constructors
+
+*/
 Point2::Point2(const bool def, const int xCoord, int yCoord, mpq_class preciseX,
   mpq_class preciseY) :
   StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointData(xCoord,
@@ -284,6 +326,11 @@ Point2::Point2(bool def) :
   StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointData(0, 0) {
 }
 
+
+/*
+4.2 Read access methods
+
+*/
 int Point2::getGridX() const {
  return pointData.getGridX();
 }
@@ -312,6 +359,10 @@ char* Point2::getPreciseYAsString() const {
  return pointData.getPreciseYAsString(&preciseCoordinates);
 }
 
+/*
+4.3 Comparison methods
+
+*/
 bool Point2::operator==(const Point2& p) const {
  if (!IsDefined() && !p.IsDefined()) {
   return true;
@@ -424,12 +475,12 @@ bool Point2::operator>(const Point2& p) const {
 }
 
 /*
- 3. Attribute functions
+4.4 functions required by Secondo
 
 */
 
 /*
- 3.1 SizeOf-functions
+4.4.1 SizeOf-functions
 
 */
 int Point2::SizeOfPoint2() {
@@ -441,7 +492,7 @@ inline size_t Point2::Sizeof() const {
 }
 
 /*
- 3.2 Copy-function
+4.4.2 Copy-function
 
 */
 inline void Point2::CopyFrom(const Attribute* right) {
@@ -456,7 +507,7 @@ inline void Point2::CopyFrom(const Attribute* right) {
 }
 
 /*
- 3.2 Compare-function
+4.4.3 Compare-function
 
 */
 inline int Point2::Compare(const Attribute *arg) const {
@@ -475,7 +526,7 @@ inline int Point2::Compare(const Attribute *arg) const {
 }
 
 /*
- 4.8 ~Clone~-functions
+4.4.4 ~Clone~-functions
 
 */
 Word Point2::ClonePoint2(const ListExpr typeInfo, const Word& w) {
@@ -483,7 +534,7 @@ Word Point2::ClonePoint2(const ListExpr typeInfo, const Word& w) {
 }
 
 /*
- 4.11 ~Cast~-function
+4.4.5 ~Cast~-function
 
 */
 void* Point2::CastPoint2(void* addr) {
@@ -491,7 +542,7 @@ void* Point2::CastPoint2(void* addr) {
 }
 
 /*
- 4.5 ~Create~-function
+4.4.6 ~Create~-function
 
 */
 Word Point2::CreatePoint2(const ListExpr typeInfo) {
@@ -499,7 +550,7 @@ Word Point2::CreatePoint2(const ListExpr typeInfo) {
 }
 
 /*
- 4.6 ~Delete~-function
+4.4.7 ~Delete~-function
 
 */
 void Point2::DeletePoint2(const ListExpr typeInfo, Word& w) {
@@ -511,7 +562,7 @@ void Point2::DeletePoint2(const ListExpr typeInfo, Word& w) {
 }
 
 /*
- 4.7 ~Close~-function
+4.4.8 ~Close~-function
 
 */
 void Point2::ClosePoint2(const ListExpr typeInfo, Word& w) {
@@ -520,7 +571,9 @@ void Point2::ClosePoint2(const ListExpr typeInfo, Word& w) {
 }
 
 /*
- 4.9 Function describing the signature of the type constructor
+4.4.9 ~Point2Property~
+
+ Function describing the signature of the type constructor
 
 */
 ListExpr Point2::Point2Property() {
@@ -535,7 +588,7 @@ ListExpr Point2::Point2Property() {
 }
 
 /*
- ~CheckPoint2~
+4.4.10 ~CheckPoint2~
 
 */
 bool Point2::CheckPoint2(ListExpr type, ListExpr& errorInfo) {
@@ -543,20 +596,20 @@ bool Point2::CheckPoint2(ListExpr type, ListExpr& errorInfo) {
 }
 
 /*
- ~Distance~
+4.4.11 ~Distance~
 
 */
 double Point2::Distance(const Rectangle<2>& rect,
   const Geoid* geoid/*=0*/) const {
  //TODO Impl. Point2::Distance
- return 0.0;
+ return numeric_limits<double>::max();
 }
 
 /*
- ~BoundingBox~
+4.4.12 ~BoundingBox~
 
 */
-const Rectangle<2> Point2::BoundingBox(const Geoid* geoid /*= 0*/) const {
+const Rectangle<2> Point2::BoundingBox(const Geoid* geoid/*= 0*/) const {
 
  if (IsDefined()) {
   if (!geoid) {
@@ -568,13 +621,17 @@ const Rectangle<2> Point2::BoundingBox(const Geoid* geoid /*= 0*/) const {
 }
 
 /*
- ~IsEmpty~
+4.4.13 ~IsEmpty~
 
 */
 bool Point2::IsEmpty() const {
  return !IsDefined();
 }
 
+/*
+4.4.14 ~Intersects~
+
+*/
 bool Point2::Intersects(const Rectangle<2>& rect,
   const Geoid* geoid/*=0*/) const {
  assert(IsDefined());
@@ -585,4 +642,4 @@ bool Point2::Intersects(const Rectangle<2>& rect,
 
 } // end of namespace p2d
 
-#endif /* _POINT2_CPP*/
+#endif/* _POINT2_CPP*/
