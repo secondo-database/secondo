@@ -21,74 +21,227 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "fromregion.h"
+#include "../HalfSegment/HalfSegment.h"
 #include "RobustSetOps.h"
 
 namespace TileAlgebra
 {
 
 /*
-definition of intersection function
+definition of SetRegionValues function
 
 */
 
-bool intersectionFunction(const double& rX1,
-                          const double& rY1,
-                          const double& rX2,
-                          const double& rY2,
-                          const double& rbX1,
-                          const double& rbY1,
-                          const double& rbX2,
-                          const double& rbY2)
+bool SetRegionValues(const Region& rRegion,
+                     const Point& rLeftPoint,
+                     const Point& rRightPoint,
+                     tbool& rtbool)
 {
-  bool bRetVal = false;
+  bool bHasTrueValue = false;
 
-  double d = (rY2 - rY1) * (rbX1 - rbX2) - (rbY2 - rbY1) * (rX1 - rX2);
-
-  if(d != 0.0)
+  if(rRegion.IsDefined() &&
+     rLeftPoint.IsDefined() &&
+     rRightPoint.IsDefined() &&
+     rtbool.IsDefined())
   {
-    double z1 = ((rX1 - rX2) * (rbX2 * rbY1 - rbX1 * rbY2) -
-                 (rbX1 - rbX2) * (rX2 * rY1 - rX1 * rY2)) / d;
-    double z2 = ((rbY2 - rbY1) * (rX2 * rY1 - rX1 * rY2) -
-                 (rY2 - rY1) * (rbX2 * rbY1 - rbX1 * rbY2)) / d;
+    tgrid grid;
+    rtbool.getgrid(grid);
+    double gridX = grid.GetX();
+    double gridY = grid.GetY();
+    double gridLength = grid.GetLength();
+    double halfGridLength = gridLength / 2.0;
 
-    /*
-    wenn rY1 > rY2 muss die Ueberpruefung des Schnittpunkts
-    fuer z2 gedreht sein
-
-    */
-
-    if(rY1 < rY2)
+    if(rLeftPoint.GetY() <= rRightPoint.GetY())
     {
-      if((z1 > rX1 || AlmostEqual(z1, rX1)) &&
-         (z1 < rX2 || AlmostEqual(z1, rX2)) &&
-         (z1 > rbX1 || AlmostEqual(z1, rbX1)) &&
-         (z1 < rbX2 || AlmostEqual(z1, rbX2)) &&
-         (z2 > rY1 || AlmostEqual(z1, rY1)) &&
-         (z2 < rY2 || AlmostEqual(z1, rY2)) &&
-         (z2 > rbY1 || AlmostEqual(z1, rbY1)) &&
-         (z2 < rbY2 || AlmostEqual(z1, rbY2)))
+      for(double y = rLeftPoint.GetY(); y <= rRightPoint.GetY();
+          y += gridLength)
       {
-        bRetVal = true;
+        for(double x = rLeftPoint.GetX(); x <= rRightPoint.GetX();
+            x += gridLength)
+        {
+          Index<2> index = rtbool.GetLocationIndex(x, y);
+          Point centerPoint(true,
+                            gridX + index[0] * gridLength + halfGridLength,
+                            gridY + index[1] * gridLength + halfGridLength);
+
+          if(robust::contains(rRegion, centerPoint) > 0)
+          {
+            bHasTrueValue |= rtbool.SetValue(x, y, true, true);
+          }
+        }
       }
     }
 
     else
     {
-      if((z1 > rX1 || AlmostEqual(z1, rX1)) &&
-         (z1 < rX2 || AlmostEqual(z1, rX2)) &&
-         (z1 > rbX1 || AlmostEqual(z1, rbX1)) &&
-         (z1 < rbX2 || AlmostEqual(z1, rbX2)) &&
-         (z2 > rY2 || AlmostEqual(z2, rY2)) &&
-         (z2 < rY1 || AlmostEqual(z2, rY1)) &&
-         (z2 > rbY1 || AlmostEqual(z2, rbY1)) &&
-         (z2 < rbY2 || AlmostEqual(z2, rbY2)))
+      for(double y = rLeftPoint.GetY(); y >= rRightPoint.GetY();
+          y -= gridLength)
       {
-        bRetVal = true;
+        for(double x = rLeftPoint.GetX(); x <= rRightPoint.GetX();
+            x += gridLength)
+        {
+          Index<2> index = rtbool.GetLocationIndex(x, y);
+          Point centerPoint(true,
+                            gridX + index[0] * gridLength + halfGridLength,
+                            gridY + index[1] * gridLength + halfGridLength);
+
+          if(robust::contains(rRegion, centerPoint) > 0)
+          {
+            bHasTrueValue |= rtbool.SetValue(x, y, true, true);
+          }
+        }
       }
     }
   }
 
-  return bRetVal;
+  return bHasTrueValue;
+}
+
+/*
+definition of SetRegionValues function
+
+*/
+
+bool SetRegionValues(const Region& rRegion,
+                     const HalfSegment& rHalfSegment,
+                     tbool& rtbool)
+{
+  bool bHasTrueValue = false;
+
+  if(rRegion.IsDefined() &&
+     rtbool.IsDefined())
+  {
+    HalfSegment halfSegment = rHalfSegment;
+    CheckHalfSegment(halfSegment);
+
+    Point halfSegmentLeftPoint = halfSegment.GetLeftPoint();
+    Point halfSegmentRightPoint = halfSegment.GetRightPoint();
+
+    if(halfSegmentLeftPoint.IsDefined() &&
+       halfSegmentRightPoint.IsDefined())
+    {
+      int xDimensionSize = tProperties<char>::GetXDimensionSize();
+      int yDimensionSize = tProperties<char>::GetYDimensionSize();
+
+      tgrid grid;
+      rtbool.getgrid(grid);
+      double gridX = grid.GetX();
+      double gridY = grid.GetY();
+      double gridLength = grid.GetLength();
+
+      bool bOK = false;
+      double Minima[2] = { gridX, gridY };
+      double Maxima[2] = { gridX + xDimensionSize * gridLength,
+                           gridY + yDimensionSize * gridLength };
+      Rectangle<2> rectangle(true, Minima, Maxima);
+
+      Point leftPoint(true);
+      Point rightPoint(true);
+      Point offsetPoint(true, 0, gridLength);
+      bOK = GetPointsInRectangle(halfSegment, rectangle,
+                                 leftPoint, rightPoint);
+
+      if(bOK == true)
+      {
+        if(IsHorizontalHalfSegment(halfSegment))
+        {
+          /*
+          performance optimization: region is calculated only
+                                    by vertical offsets
+
+          */
+
+          Point nextLeftPoint = leftPoint;
+          Point nextRightPoint = rightPoint;
+          bool bNextRow = true;
+
+          while(bNextRow == true &&
+                nextLeftPoint.GetY() >= Minima[1])
+          {
+            bNextRow = SetRegionValues(rRegion, nextLeftPoint,
+                                       nextRightPoint, rtbool);
+            nextLeftPoint = nextLeftPoint - offsetPoint;
+            nextRightPoint = nextRightPoint - offsetPoint;
+          }
+
+          nextLeftPoint = leftPoint + offsetPoint;
+          nextRightPoint = rightPoint + offsetPoint;
+          bNextRow = true;
+
+          while(bNextRow == true &&
+                nextRightPoint.GetY() < Maxima[1])
+          {
+            bNextRow = SetRegionValues(rRegion, nextLeftPoint,
+                                       nextRightPoint, rtbool);
+            nextLeftPoint = nextLeftPoint + offsetPoint;
+            nextRightPoint = nextRightPoint + offsetPoint;
+          }
+        }
+
+        else if(IsVerticalHalfSegment(halfSegment))
+        {
+          /*
+          performance optimization: region is calculated only
+                                    by vertical offsets
+
+          */
+          
+          SetRegionValues(rRegion, leftPoint, rightPoint, rtbool);
+        }
+
+        else
+        {
+          /*
+          performance optimization: region is calculated only
+                                    by vertical offsets
+
+          */
+
+          bool bNextRow = SetRegionValues(rRegion, leftPoint, rightPoint,
+                                          rtbool);
+
+          if(bNextRow == true)
+          {
+            Point nextLeftPoint(true);
+            Point nextRightPoint(true);
+            nextLeftPoint.Set(leftPoint.GetX(),
+                              std::min(leftPoint.GetY(), rightPoint.GetY()));
+            nextRightPoint.Set(rightPoint.GetX(),
+                               std::min(leftPoint.GetY(), rightPoint.GetY()));
+            bool bNextRow = true;
+
+            while(bNextRow == true &&
+                  nextLeftPoint.GetY() >= Minima[1] &&
+                  nextRightPoint.GetY() >= Minima[1])
+            {
+              bNextRow = SetRegionValues(rRegion, nextLeftPoint,
+                                         nextRightPoint, rtbool);
+              nextLeftPoint = nextLeftPoint - offsetPoint;
+              nextRightPoint = nextRightPoint - offsetPoint;
+            }
+
+            nextLeftPoint.Set(leftPoint.GetX(),
+                              std::max(leftPoint.GetY(), rightPoint.GetY()));
+            nextRightPoint.Set(rightPoint.GetX(),
+                               std::max(leftPoint.GetY(), rightPoint.GetY()));
+            bNextRow = true;
+
+            while(bNextRow == true &&
+                  nextLeftPoint.GetY() < Maxima[1] &&
+                  nextRightPoint.GetY() < Maxima[1])
+            {
+              bNextRow = SetRegionValues(rRegion, nextLeftPoint,
+                                         nextRightPoint, rtbool);
+              nextLeftPoint = nextLeftPoint + offsetPoint;
+              nextRightPoint = nextRightPoint + offsetPoint;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return bHasTrueValue;
 }
 
 /*
@@ -111,883 +264,199 @@ int fromregionFunction(Word* pArguments,
     tgrid* pGrid = static_cast<tgrid*>(pArguments[1].addr);
 
     if(pRegion != 0 &&
-       pGrid != 0)
+       pGrid != 0 &&
+       pRegion->IsDefined() &&
+       pGrid->IsDefined())
     {
-      rResult = qp->ResultStorage(supplier);
-
-      if(rResult.addr != 0)
+      struct ResultInfo
       {
-        tbool* pResult = static_cast<tbool*>(rResult.addr);
+        double m_dMinimumX;
+        double m_dMinimumY;
+        double m_dMaximumX;
+        double m_dMaximumY;
+        double m_dX;
+        double m_dY;
+      };
 
-        if(pResult != 0)
+      int xDimensionSize = tProperties<char>::GetXDimensionSize();
+      int yDimensionSize = tProperties<char>::GetYDimensionSize();
+      double gridX = pGrid->GetX();
+      double gridY = pGrid->GetY();
+      double gridLength = pGrid->GetLength();
+
+      switch(message)
+      {
+        case OPEN:
         {
-          pResult->SetDefined(false);
+          // initialize the local storage
+          ResultInfo* pResultInfo = new ResultInfo;
 
-          if(pRegion->IsDefined() &&
-             pGrid->IsDefined())
+          if(pResultInfo != 0)
           {
-            pResult->SetDefined(true);
-            pResult->SetGrid(*pGrid);
+            double doubleMaximum = std::numeric_limits<double>::max();
+            pResultInfo->m_dMinimumX = doubleMaximum;
+            pResultInfo->m_dMinimumY = doubleMaximum;
+            pResultInfo->m_dMaximumX = -doubleMaximum;
+            pResultInfo->m_dMaximumY = -doubleMaximum;
 
-            double gridOriginX = pGrid->GetX();
-            double gridOriginY = pGrid->GetY();
-            double gridLength = pGrid->GetLength();
-            double halfGridLength = gridLength / 2;
+            int regionSize = pRegion->Size();
 
-            bool setFields = false;
-            Point centerPoint(true, 0.0, 0.0);
-
-            pRegion->SelectFirst();
-            int regionLength = pRegion->Size();
-
-            for(int i = 0; i < regionLength; i++)
+            for(int i = 0; i < regionSize; i++)
             {
               HalfSegment halfSegment;
-              pRegion->GetHs(halfSegment);
-              pRegion->SelectNext();
+              pRegion->Get(i, halfSegment);
+              Point leftPoint = halfSegment.GetLeftPoint();
+              Point rightPoint = halfSegment.GetRightPoint();
 
-              /*
-              Startpunkt und Endpunkt des Segment bestimmen
-
-              */
-
-              Point point1 = halfSegment.GetLeftPoint();
-              Point point2 = halfSegment.GetRightPoint();
-
-              double x1 = point1.GetX();
-              double y1 = point1.GetY();
-              double x2 = point2.GetX();
-              double y2 = point2.GetY();
-
-              /*
-              Raster bestimmen, damit die korrekten Felder gesetzt werden
-
-              */
-
-              double gridX = gridOriginX;
-              double gridY = gridOriginY;
-
-              if(gridX < x1)
+              if(leftPoint.GetX() < pResultInfo->m_dMinimumX)
               {
-                while(gridX < x1)
-                {
-                  gridX = gridX + gridLength;
-                }
-
-                if(gridX > x1)
-                {
-                  gridX = gridX - gridLength;
-                }
+                pResultInfo->m_dMinimumX = leftPoint.GetX();
               }
 
-              else if(gridX > x1)
+              if(leftPoint.GetX() > pResultInfo->m_dMaximumX)
               {
-                while(gridX > x1)
-                {
-                  gridX = gridX - gridLength;
-                }
+                pResultInfo->m_dMaximumX = leftPoint.GetX();
               }
 
-              if(gridY < y1)
+              if(leftPoint.GetY() < pResultInfo->m_dMinimumY)
               {
-                while(gridY < y1)
-                {
-                  gridY = gridY + gridLength;
-                }
-
-                if(gridY > y1)
-                {
-                  gridY = gridY - gridLength;
-                }
+                pResultInfo->m_dMinimumY = leftPoint.GetY();
               }
 
-              else if(gridY > y1)
+              if(leftPoint.GetY() > pResultInfo->m_dMaximumY)
               {
-                while(gridY > y1)
-                {
-                  gridY = gridY - gridLength;
-                }
+                pResultInfo->m_dMaximumY = leftPoint.GetY();
               }
 
-              /*
-              Alle Felder die von der Begrenzungslinie geschnitten werden
-              und deren Mittelpunkt in der Region liegt, auf true setzen
-
-              */
-
-              /*
-              Sonderfall: senkrechte Linie
-
-              */
-
-              if(x1 == x2 &&
-                 gridY < y2)
+              if(rightPoint.GetX() < pResultInfo->m_dMinimumX)
               {
-                while(gridY < y2)
-                {
-                  centerPoint.Set(gridX + halfGridLength,
-                                  gridY + halfGridLength);
-
-                  if(robust::contains(*pRegion, centerPoint) == true)
-                  {
-                    pResult->SetValue(gridX, gridY,
-                                      true, true);
-                    setFields = true;
-                  }
-
-                  else
-                  {
-                    centerPoint.Set(gridX + gridLength + halfGridLength,
-                                    gridY + halfGridLength);
-
-                    if(robust::contains(*pRegion, centerPoint) == true)
-                    {
-                      pResult->SetValue(gridX + gridLength, gridY,
-                                        true, true);
-                      setFields = true;
-                    }
-
-                    else
-                    {
-                      centerPoint.Set(gridX - gridLength + halfGridLength,
-                                      gridY + halfGridLength);
-
-                      if(robust::contains(*pRegion, centerPoint) == true)
-                      {
-                        pResult->SetValue(gridX - gridLength, gridY,
-                                          true, true);
-                        setFields = true;
-                      }
-
-                      else
-                      {
-                        centerPoint.Set(gridX + halfGridLength,
-                                        gridY + gridLength + halfGridLength);
-
-                        if(robust::contains(*pRegion, centerPoint) == true)
-                        {
-                          pResult->SetValue(gridX, gridY + gridLength,
-                                            true, true);
-                          setFields = true;
-                        }
-
-                        else
-                        {
-                          centerPoint.Set(gridX + halfGridLength,
-                                          gridY - gridLength + halfGridLength);
-
-                          if(robust::contains(*pRegion, centerPoint) == true)
-                          {
-                            pResult->SetValue(gridX, gridY - gridLength,
-                                              true, true);
-                            setFields = true;
-                          }
-                        }
-                      }
-                    }
-                  }
-
-                  gridY = gridY + gridLength;
-                }
+                pResultInfo->m_dMinimumX = rightPoint.GetX();
               }
 
-              else if(x1 == x2 &&
-                      gridY > y2)
+              if(rightPoint.GetX() > pResultInfo->m_dMaximumX)
               {
-                while(gridY > y2)
-                {
-                  centerPoint.Set(gridX + halfGridLength,
-                                  gridY + halfGridLength);
-
-                  if(robust::contains(*pRegion, centerPoint) == true)
-                  {
-                    pResult->SetValue(gridX, gridY,
-                                      true, true);
-                    setFields = true;
-                  }
-
-                  else
-                  {
-                    centerPoint.Set(gridX + gridLength + halfGridLength,
-                                    gridY + halfGridLength);
-
-                    if(robust::contains(*pRegion, centerPoint) == true)
-                    {
-                      pResult->SetValue(gridX + gridLength, gridY,
-                                        true, true);
-                      setFields = true;
-                    }
-
-                    else
-                    {
-                      centerPoint.Set(gridX - gridLength + halfGridLength,
-                                      gridY + halfGridLength);
-
-                      if(robust::contains(*pRegion, centerPoint) == true)
-                      {
-                        pResult->SetValue(gridX - gridLength, gridY,
-                                          true, true);
-                        setFields = true;
-                      }
-
-                      else
-                      {
-                        centerPoint.Set(gridX + halfGridLength,
-                                        gridY + gridLength + halfGridLength);
-
-                        if(robust::contains(*pRegion, centerPoint) == true)
-                        {
-                          pResult->SetValue(gridX, gridY + gridLength,
-                                            true, true);
-                          setFields = true;
-                        }
-
-                        else
-                        {
-                          centerPoint.Set(gridX + halfGridLength,
-                                          gridY - gridLength + halfGridLength);
-
-                          if(robust::contains(*pRegion, centerPoint) == true)
-                          {
-                            pResult->SetValue(gridX, gridY - gridLength,
-                                              true, true);
-                            setFields = true;
-                          }
-                        }
-                      }
-                    }
-                  }
-
-                  gridY = gridY - gridLength;
-                }
+                pResultInfo->m_dMaximumX = rightPoint.GetX();
               }
 
-              /*
-              Linie von links oben nach rechts unten
-
-              */
-
-              if(y1 > y2)
+              if(rightPoint.GetY() < pResultInfo->m_dMinimumY)
               {
-                while(gridX < x2)
-                {
-                  if(intersectionFunction(x1, y1, x2, y2,
-                                          gridX + gridLength,
-                                          gridY,
-                                          gridX + gridLength,
-                                          gridY + gridLength))
-                  {
-                    centerPoint.Set(gridX + halfGridLength,
-                                    gridY + halfGridLength);
-
-                    if(robust::contains(*pRegion, centerPoint) == true)
-                    {
-                      pResult->SetValue(gridX, gridY,
-                                        true, true);
-                      setFields = true;
-                    }
-
-                    else
-                    {
-                      centerPoint.Set(gridX + gridLength + halfGridLength,
-                                      gridY + halfGridLength);
-
-                      if ( robust::contains(*pRegion, centerPoint) == true )
-                      {
-                        pResult->SetValue(gridX + gridLength, gridY,
-                                          true, true);
-                        setFields = true;
-                      }
-
-                      else
-                      {
-                        centerPoint.Set(gridX - gridLength + halfGridLength,
-                                        gridY + halfGridLength);
-
-                        if(robust::contains(*pRegion, centerPoint) == true)
-                        {
-                          pResult->SetValue(gridX - gridLength, gridY,
-                                            true, true);
-                          setFields = true;
-                        }
-
-                        else
-                        {
-                          centerPoint.Set(gridX + halfGridLength,
-                                          gridY + gridLength + halfGridLength);
-
-                          if(robust::contains(*pRegion, centerPoint) == true)
-                          {
-                            pResult->SetValue(gridX, gridY + gridLength,
-                                              true, true);
-                            setFields = true;
-                          }
-
-                          else
-                          {
-                            centerPoint.Set(gridX + halfGridLength,
-                                            gridY - gridLength +
-                                            halfGridLength);
-
-                            if(robust::contains(*pRegion, centerPoint) == true)
-                            {
-                              pResult->SetValue(gridX, gridY - gridLength,
-                                                true, true);
-                              setFields = true;
-                            }
-                          }
-                        }
-                      }
-                    }
-
-                    gridX = gridX + gridLength;
-                  }
-
-                  else if(intersectionFunction(x1, y1, x2, y2,
-                                               gridX,
-                                               gridY,
-                                               gridX + gridLength,
-                                               gridY))
-                  {
-                    centerPoint.Set(gridX + halfGridLength,
-                                    gridY + halfGridLength);
-
-                    if(robust::contains(*pRegion, centerPoint) == true)
-                    {
-                      pResult->SetValue(gridX, gridY,
-                                        true, true);
-                      setFields = true;
-                    }
-
-                    else
-                    {
-                      centerPoint.Set(gridX + gridLength + halfGridLength,
-                                      gridY + halfGridLength);
-
-                      if(robust::contains(*pRegion, centerPoint) == true)
-                      {
-                        pResult->SetValue(gridX + gridLength, gridY,
-                                          true, true);
-                        setFields = true;
-                      }
-
-                      else
-                      {
-                        centerPoint.Set(gridX - gridLength + halfGridLength,
-                                        gridY + halfGridLength);
-
-                        if(robust::contains(*pRegion, centerPoint) == true)
-                        {
-                          pResult->SetValue(gridX - gridLength, gridY,
-                                            true, true);
-                          setFields = true;
-                        }
-
-                        else
-                        {
-                          centerPoint.Set(gridX + halfGridLength,
-                                          gridY + gridLength + halfGridLength);
-
-                          if(robust::contains(*pRegion, centerPoint) == true)
-                          {
-                            pResult->SetValue(gridX, gridY + gridLength,
-                                              true, true);
-                            setFields = true;
-                          }
-
-                          else
-                          {
-                            centerPoint.Set(gridX + halfGridLength, 
-                                            gridY - gridLength +
-                                            halfGridLength);
-
-                            if(robust::contains(*pRegion, centerPoint) == true)
-                            {
-                              pResult->SetValue(gridX, gridY - gridLength,
-                                                true, true);
-                              setFields = true;
-                            }
-                          }
-                        }
-                      }
-                    }
-
-                    gridY = gridY - gridLength;
-                  }
-
-                  else
-                  {
-                    /*
-                    Endfeld erreicht
-
-                    */
-                    centerPoint.Set(gridX + halfGridLength,
-                                    gridY + halfGridLength);
-
-                    if(robust::contains(*pRegion, centerPoint) == true)
-                    {
-                      pResult->SetValue(gridX, gridY,
-                                        true, true);
-                      setFields = true;
-                    }
-
-                    else
-                    {
-                      centerPoint.Set(gridX + gridLength + halfGridLength,
-                                      gridY + halfGridLength);
-
-                      if(robust::contains(*pRegion, centerPoint) == true)
-                      {
-                        pResult->SetValue(gridX + gridLength, gridY,
-                                          true, true);
-                        setFields = true;
-                      }
-
-                      else
-                      {
-                        centerPoint.Set(gridX - gridLength + halfGridLength,
-                                        gridY + halfGridLength);
-
-                        if(robust::contains(*pRegion, centerPoint) == true)
-                        {
-                          pResult->SetValue(gridX - gridLength, gridY,
-                                            true, true);
-                          setFields = true;
-                        }
-
-                        else
-                        {
-                          centerPoint.Set(gridX + halfGridLength,
-                                          gridY + gridLength + halfGridLength);
-
-                          if(robust::contains(*pRegion, centerPoint) == true)
-                          {
-                            pResult->SetValue(gridX, gridY + gridLength,
-                                              true, true);
-                            setFields = true;
-                          }
-
-                          else
-                          {
-                            centerPoint.Set(gridX + halfGridLength,
-                                            gridY - gridLength +
-                                            halfGridLength);
-
-                            if(robust::contains(*pRegion, centerPoint) == true)
-                            {
-                              pResult->SetValue(gridX, gridY - gridLength,
-                                                true, true);
-                              setFields = true;
-                            }
-                          }
-                        }
-                      }
-                    }
-
-                    gridX = x2;
-                  }
-                }
+                pResultInfo->m_dMinimumY = rightPoint.GetY();
               }
 
-              /*
-              Linie von links unten nach rechts oben
-
-              */
-
-              else
+              if(rightPoint.GetY() > pResultInfo->m_dMaximumY)
               {
-                while(gridX < x2)
-                {
-                  if(intersectionFunction(x1, y1, x2, y2,
-                                          gridX,
-                                          gridY + gridLength,
-                                          gridX + gridLength,
-                                          gridY + gridLength))
-                  {
-                    centerPoint.Set(gridX + halfGridLength,
-                                    gridY + halfGridLength);
-
-                    if(robust::contains(*pRegion, centerPoint) == true)
-                    {
-                        pResult->SetValue(gridX, gridY,
-                                          true, true);
-                        setFields = true;
-                    }
-
-                    else
-                    {
-                      centerPoint.Set(gridX + gridLength + halfGridLength,
-                                      gridY + halfGridLength);
-
-                      if(robust::contains(*pRegion, centerPoint) == true)
-                      {
-                        pResult->SetValue(gridX + gridLength, gridY,
-                                          true, true);
-                        setFields = true;
-                      }
-
-                      else
-                      {
-                        centerPoint.Set(gridX - gridLength + halfGridLength,
-                                        gridY + halfGridLength);
-
-                        if(robust::contains(*pRegion, centerPoint) == true)
-                        {
-                          pResult->SetValue(gridX - gridLength, gridY,
-                                            true, true);
-                          setFields = true;
-                        }
-
-                        else
-                        {
-                          centerPoint.Set(gridX + halfGridLength,
-                                          gridY + gridLength + halfGridLength);
-
-                          if(robust::contains(*pRegion, centerPoint) == true)
-                          {
-                            pResult->SetValue(gridX, gridY + gridLength,
-                                              true, true);
-                            setFields = true;
-                          }
-
-                          else
-                          {
-                            centerPoint.Set(gridX + halfGridLength,
-                                            gridY - gridLength +
-                                            halfGridLength);
-
-                            if(robust::contains(*pRegion, centerPoint) ==
-                               true)
-                            {
-                              pResult->SetValue(gridX, gridY - gridLength,
-                                                true, true);
-                              setFields = true;
-                            }
-                          }
-                        }
-                      }
-                    }
-
-                    gridY = gridY + gridLength;
-                  }
-
-                  else if(intersectionFunction(x1, y1, x2, y2,
-                                               gridX + gridLength,
-                                               gridY,
-                                               gridX + gridLength,
-                                               gridY + gridLength))
-                  {
-                    centerPoint.Set(gridX + halfGridLength,
-                                    gridY + halfGridLength);
-
-                    if(robust::contains(*pRegion, centerPoint) == true)
-                    {
-                      pResult->SetValue(gridX, gridY,
-                                        true, true);
-                      setFields = true;
-                    }
-
-                    else
-                    {
-                      centerPoint.Set(gridX + gridLength + halfGridLength,
-                                      gridY + halfGridLength);
-
-                      if(robust::contains(*pRegion, centerPoint) == true)
-                      {
-                        pResult->SetValue(gridX + gridLength, gridY,
-                                          true, true);
-                        setFields = true;
-                      }
-
-                      else
-                      {
-                        centerPoint.Set(gridX - gridLength + halfGridLength,
-                                        gridY + halfGridLength);
-
-                        if(robust::contains(*pRegion, centerPoint) == true)
-                        {
-                          pResult->SetValue(gridX - gridLength, gridY,
-                                            true, true);
-                          setFields = true;
-                        }
-
-                        else
-                        {
-                          centerPoint.Set(gridX + halfGridLength,
-                                          gridY + gridLength + halfGridLength);
-
-                          if(robust::contains(*pRegion, centerPoint) == true)
-                          {
-                            pResult->SetValue(gridX, gridY + gridLength,
-                                              true, true);
-                            setFields = true;
-                          }
-
-                          else
-                          {
-                            centerPoint.Set(gridX + halfGridLength,
-                                            gridY - gridLength +
-                                            halfGridLength);
-
-                            if(robust::contains(*pRegion, centerPoint) ==
-                               true)
-                            {
-                              pResult->SetValue(gridX, gridY - gridLength,
-                                                true, true);
-                              setFields = true;
-                            }
-                          }
-                        }
-                      }
-                    }
-
-                    gridX = gridX + gridLength;
-                  }
-
-                  else
-                  {
-                    /*
-                    Endfeld erreicht
-
-                    */
-
-                    centerPoint.Set(gridX + halfGridLength,
-                                    gridY + halfGridLength);
-
-                    if(robust::contains(*pRegion, centerPoint) == true)
-                    {
-                      pResult->SetValue(gridX, gridY,
-                                        true, true);
-                      setFields = true;
-                    }
-
-                    else
-                    {
-                      centerPoint.Set(gridX + gridLength + halfGridLength,
-                                      gridY + halfGridLength);
-
-                      if(robust::contains(*pRegion, centerPoint) == true)
-                      {
-                        pResult->SetValue(gridX + gridLength, gridY,
-                                          true, true);
-                        setFields = true;
-                      }
-
-                      else
-                      {
-                        centerPoint.Set(gridX - gridLength + halfGridLength,
-                                        gridY + halfGridLength);
-
-                        if(robust::contains(*pRegion, centerPoint) == true)
-                        {
-                          pResult->SetValue(gridX - gridLength, gridY,
-                                            true, true);
-                          setFields = true;
-                        }
-
-                        else
-                        {
-                          centerPoint.Set(gridX + halfGridLength,
-                                          gridY + gridLength +
-                                          halfGridLength);
-
-                          if(robust::contains(*pRegion, centerPoint) == true)
-                          {
-                            pResult->SetValue(gridX, gridY + gridLength,
-                                              true, true);
-                            setFields = true;
-                          }
-
-                          else
-                          {
-                            centerPoint.Set(gridX + halfGridLength,
-                                            gridY - gridLength +
-                                            halfGridLength);
-
-                            if(robust::contains(*pRegion, centerPoint) ==
-                               true)
-                            {
-                              pResult->SetValue(gridX, gridY - gridLength,
-                                                true, true);
-                              setFields = true;
-                            }
-                          }
-                        }
-                      }
-                    }
-
-                    gridX = x2;
-                  }
-                }
+                pResultInfo->m_dMaximumY = rightPoint.GetY();
               }
             }
 
-            if(setFields == true)
+            pResultInfo->m_dX = gridX +
+                                std::floor((pResultInfo->m_dMinimumX - gridX) /
+                                          (xDimensionSize * gridLength)) *
+                                          (xDimensionSize * gridLength);
+            pResultInfo->m_dY = gridY +
+                                std::floor((pResultInfo->m_dMinimumY -gridY) /
+                                          (yDimensionSize * gridLength)) *
+                                          (yDimensionSize * gridLength);
+            rLocal.addr = pResultInfo;
+          }
+        }
+        break;
+
+        case REQUEST:
+        {
+          if(rLocal.addr != 0)
+          {
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
+
+            if(pResultInfo != 0)
             {
-              /*
-              BoundingBox und Teilgitter ermitteln
-
-              */
-
-              Rectangle<2> setFieldsBoundingBox;
-              pResult->bbox(setFieldsBoundingBox);
-
-              double setFieldsX1 = setFieldsBoundingBox.MinD(0);
-              double setFieldsY1 = setFieldsBoundingBox.MinD(1);
-              double setFieldsX2 = setFieldsBoundingBox.MaxD(0);
-              double setFieldsY2 = setFieldsBoundingBox.MaxD(1);
-
-              int size = tProperties<char>::GetXDimensionSize() * gridLength;
-
-              int minX = gridOriginX;
-              int minY = gridOriginY;
-
-              if(setFieldsX1 > minX)
+              if(pResultInfo->m_dX <= pResultInfo->m_dMaximumX ||
+                 pResultInfo->m_dY <= pResultInfo->m_dMaximumY)
               {
-                while(setFieldsX1 > minX + size)
+                tbool* ptbool = new tbool(true);
+
+                if(ptbool != 0)
                 {
-                  minX += size;
+                  ptbool->SetValues(false, true);
+                  int regionSize = pRegion->Size();
+                  bool bHasTrueValue = false;
+
+                  do
+                  {
+                    ptbool->SetGrid(pResultInfo->m_dX,
+                                    pResultInfo->m_dY,
+                                    gridLength);
+
+                    for(int i = 0; i < regionSize; i++)
+                    {
+                      HalfSegment halfSegment;
+                      pRegion->Get(i, halfSegment);
+                      bHasTrueValue |= SetRegionValues(*pRegion,
+                                                       halfSegment,
+                                                       *ptbool);
+                    }
+
+                    pResultInfo->m_dX += xDimensionSize * gridLength;
+
+                    if(pResultInfo->m_dX > pResultInfo->m_dMaximumX)
+                    {
+                      pResultInfo->m_dY += yDimensionSize * gridLength;
+
+                      if(pResultInfo->m_dY <=
+                         pResultInfo->m_dMaximumY)
+                      {
+                        pResultInfo->m_dX = gridX +
+                                            std::floor
+                                            ((pResultInfo->m_dMinimumX -
+                                              gridX) /
+                                            (xDimensionSize * gridLength)) *
+                                            (xDimensionSize * gridLength);
+                      }
+                    }
+                  }
+
+                  while(bHasTrueValue == false &&
+                        pResultInfo->m_dX <= pResultInfo->m_dMaximumX &&
+                        pResultInfo->m_dY <= pResultInfo->m_dMaximumY);
+
+                  // return the next stream element
+                  rResult.addr = ptbool;
+                  nRetVal = YIELD;
                 }
               }
 
               else
               {
-                while(setFieldsX1 < minX)
-                {
-                  minX -= size;
-                }
-              }
-
-              if(setFieldsY1 > minY)
-              {
-                while(setFieldsY1 > minY + size)
-                {
-                  minY += size;
-                }
-              }
-
-              else
-              {
-                while(setFieldsY1 < minY)
-                {
-                    minY -= size;
-                }
-              }
-
-              int maxX = minX + size;
-              int maxY = minY + size;
-
-              while(setFieldsX2 > maxX)
-              {
-                maxX += size;
-              }
-
-              while(setFieldsY2 > maxY)
-              {
-                maxY += size;
-              }
-
-              for(int i = (minX - gridOriginX) / size;
-                  i < (maxX - gridOriginX) / size; i++)
-              {
-                for(int l = (minY - gridOriginY) / size;
-                    l < (maxY - gridOriginY) / size; l++)
-                {
-                  bool set = false;
-
-                  /*
-                  Zellen ohne Schnittkanten innerhalb der Region auf true setzen
-
-                  */
-
-                  for(double j = (gridOriginX + i * size);
-                      j < (gridOriginX + size + i * size);
-                      j += gridLength)
-                  {
-                    for(double k = (gridOriginY + l * size);
-                        k < (gridOriginY + size + l * size);
-                        k += gridLength)
-                    {
-                      CcBool value;
-                      pResult->atlocation(j + halfGridLength,
-                                          k + halfGridLength,
-                                          value);
-
-                      if(value.IsDefined() == false)
-                      {
-                        centerPoint.Set(j + halfGridLength,
-                                        k + halfGridLength);
-
-                        if(robust::contains(*pRegion, centerPoint) == true)
-                        {
-                          pResult->SetValue(j + halfGridLength,
-                                            k + halfGridLength,
-                                            true, true);
-                        }
-                      }
-                    }
-                  }
-
-                  /*
-                  Feststellen welche Teilgitter belegt sind
-
-                  */
-
-                  for(double j = (gridOriginX + i * size);
-                      j < (gridOriginX + size + i * size);
-                      j += gridLength)
-                  {
-                    for(double k = (gridOriginY + l * size);
-                        k < (gridOriginY + size + l * size);
-                        k += gridLength)
-                    {
-                      CcBool value;
-                      pResult->atlocation(j, k, value);
-
-                      if(value.IsDefined() &&
-                         value.GetBoolval() == true)
-                      {
-                        set = true;
-                        j = gridOriginX + size + i * size;
-                        k = gridOriginY + size + l * size;
-                      }
-                    }
-                  }
-
-                  /*
-                  alle anderen Felder auf false setzen
-
-                  */
-
-                  if(set == true)
-                  {
-                    for(double j = (gridOriginX + i * size);
-                        j < (gridOriginX + size + i * size);
-                        j += gridLength)
-                    {
-                      for(double k = (gridOriginY + l * size);
-                          k < (gridOriginY + size + l * size);
-                          k += gridLength)
-                      {
-                        CcBool value;
-                        pResult->atlocation(j + halfGridLength,
-                                            k + halfGridLength,
-                                            value);
-
-                        if(value.IsDefined() == false)
-                        {
-                          pResult->SetValue(j + halfGridLength,
-                                            k + halfGridLength,
-                                            false, true);
-                        }
-                      }
-                    }
-                  }
-                }
+                // always set the result to null before return CANCEL
+                rResult.addr = 0;
+                nRetVal = CANCEL;
               }
             }
           }
         }
+        break;
+
+        case CLOSE:
+        {
+          if(rLocal.addr != 0)
+          {
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
+
+            if(pResultInfo != 0)
+            {
+              delete pResultInfo;
+              rLocal.addr = 0;
+            }
+          }
+        }
+        break;
+
+        default:
+        {
+          assert(false);
+          nRetVal = -1;
+        }
+        break;
       }
     }
   }
@@ -1005,17 +474,21 @@ ListExpr fromregionTypeMappingFunction(ListExpr arguments)
   ListExpr type = NList::typeError("Operator fromregion expects "
                                    "a region and a tgrid.");
 
-  NList argumentsList(arguments);
-
-  if(argumentsList.hasLength(2))
+  if(nl != 0)
   {
-    std::string argument1 = argumentsList.first().str();
-    std::string argument2 = argumentsList.second().str();
+    NList argumentsList(arguments);
 
-    if(argument1 == Region::BasicType() &&
-       argument2 == tgrid::BasicType())
+    if(argumentsList.hasLength(2))
     {
-      type = NList(tbool::BasicType()).listExpr();
+      std::string argument1 = argumentsList.first().str();
+      std::string argument2 = argumentsList.second().str();
+
+      if(argument1 == Region::BasicType() &&
+         argument2 == tgrid::BasicType())
+      {
+        type = nl->TwoElemList(nl->SymbolAtom(Stream<tbool>::BasicType()),
+                               nl->SymbolAtom(tbool::BasicType()));
+      }
     }
   }
 

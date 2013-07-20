@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "SpatialAlgebra.h"
+#include "Stream.h"
 #include "../grid/tgrid.h"
 #include "../t/tbool.h"
 
@@ -44,9 +45,10 @@ struct fromregionInfo : OperatorInfo
   {
     name      = "fromregion";
     syntax    = "fromregion(_,_)";
-    meaning   = "Creates a tbool object from a region and a grid.";
+    meaning   = "Creates a stream of tbool objects from a region and a grid.";
     signature = Region::BasicType() + " x " + tgrid::BasicType() +
-                " -> " + tbool::BasicType();
+                " -> " + Stream<tbool>::BasicType() +
+                "(" + tbool::BasicType() + ")";
   }
 };
 
