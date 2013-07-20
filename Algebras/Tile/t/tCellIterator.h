@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TCELLITERATOR_H
 #define TILEALGEBRA_TCELLITERATOR_H
 
-#include "../Index.h"
+#include "../Index/Index.h"
 #include "../grid/tgrid.h"
 
 namespace TileAlgebra
