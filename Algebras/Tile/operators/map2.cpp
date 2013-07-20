@@ -21,8 +21,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "map2.h"
-#include "../Index.h"
-#include "../Types.h"
+#include "../Index/Index.h"
+#include "../Types/Types.h"
 #include "../grid/tgrid.h"
 #include "../grid/mtgrid.h"
 #include "../t/tint.h"
