@@ -29,8 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
-#include "../../Raster2/grid2.h"
-#include "../../Raster2/grid3.h"
+#include "../it/itint.h"
+#include "../it/itreal.h"
+#include "../it/itbool.h"
+#include "../it/itstring.h"
 #include "../../Raster2/sint.h"
 #include "../../Raster2/sreal.h"
 #include "../../Raster2/sbool.h"
@@ -39,10 +41,89 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Raster2/msreal.h"
 #include "../../Raster2/msbool.h"
 #include "../../Raster2/msstring.h"
+#include "../../Raster2/isint.h"
+#include "../../Raster2/isreal.h"
+#include "../../Raster2/isbool.h"
+#include "../../Raster2/isstring.h"
 #include "DateTime.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of toraster2Functiontgrid
+
+*/
+
+int toraster2Functiontgrid(Word* pArguments,
+                           Word& rResult,
+                           int message,
+                           Word& rLocal,
+                           Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    tgrid* pGrid = static_cast<tgrid*>(pArguments[0].addr);
+
+    if(pGrid != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        raster2::grid2* pResult = static_cast<raster2::grid2*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          pResult->set(pGrid->GetX(), pGrid->GetY(), pGrid->GetLength());
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
+
+/*
+definition of toraster2Functionmtgrid
+
+*/
+
+int toraster2Functionmtgrid(Word* pArguments,
+                            Word& rResult,
+                            int message,
+                            Word& rLocal,
+                            Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    mtgrid* pGrid = static_cast<mtgrid*>(pArguments[0].addr);
+
+    if(pGrid != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        raster2::grid3* pResult = static_cast<raster2::grid3*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          pResult->set(pGrid->GetX(), pGrid->GetY(),
+                       pGrid->GetLength(), pGrid->GetDuration());
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of template toraster2Functiont
@@ -291,20 +372,171 @@ int toraster2Functionmt(Word* pArguments,
 }
 
 /*
+definition of template toraster2Functionit
+
+*/
+
+template <typename SourceType, typename SourceTypeProperties,
+          typename DestinationType, typename DestinationTypeProperties>
+int toraster2Functionit(Word* pArguments,
+                        Word& rResult,
+                        int message,
+                        Word& rLocal,
+                        Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    rResult = qp->ResultStorage(supplier);
+
+    if(rResult.addr != 0)
+    {
+      DestinationType* pDestinationType = static_cast<DestinationType*>
+                                         (rResult.addr);
+
+      if(pDestinationType != 0)
+      {
+        pDestinationType->setDefined(false);
+
+        switch(message)
+        {
+          case OPEN:
+          case REQUEST:
+          case CLOSE:
+          {
+            Instant* pInstant = new Instant(0.0);
+            typename DestinationTypeProperties::spatial_type* pstype =
+            new typename DestinationTypeProperties::spatial_type();
+
+            if(pInstant != 0 &&
+               pstype != 0)
+            {
+              qp->Open(pArguments[0].addr);
+              
+              raster2::grid2 grid(std::numeric_limits<double>::max(),
+                                  std::numeric_limits<double>::max(),
+                                  std::numeric_limits<double>::max());
+              int xDimensionSize = SourceTypeProperties::GetXDimensionSize();
+              int yDimensionSize = SourceTypeProperties::GetYDimensionSize();
+
+              Word word;
+              qp->Request(pArguments[0].addr, word);
+
+              while(qp->Received(pArguments[0].addr))
+              {
+                SourceType* pSourceType = static_cast<SourceType*>(word.addr);
+
+                if(pSourceType != 0)
+                {
+                  pDestinationType->setDefined(true);
+                  pstype->setDefined(true);
+
+                  pSourceType->inst(*pInstant);
+                  pDestinationType->setInstant(pInstant);
+                  pDestinationType->setValues(pstype);
+
+                  tgrid sourceGrid;
+                  pSourceType->getgrid(sourceGrid);
+
+                  double sourceGridX = sourceGrid.GetX();
+                  double sourceGridY = sourceGrid.GetY();
+                  double sourceGridLength = sourceGrid.GetLength();
+
+                  if(sourceGridX < grid.getOriginX() &&
+                     sourceGridY < grid.getOriginY())
+                  {
+                    // set smallest x and y coordinates
+                    grid.set(sourceGridX, sourceGridY, sourceGridLength);
+                    pstype->setGrid(grid);
+                  }
+
+                  for(int row = 0; row < yDimensionSize; row++)
+                  {
+                    for(int column = 0; column < xDimensionSize; column++)
+                    {
+                      double x = sourceGridX + column * sourceGridLength;
+                      double y = sourceGridY + row * sourceGridLength;
+                      typename SourceTypeProperties::TypeProperties::
+                      WrapperType wrappedValue;
+
+                      pSourceType->atlocation(x, y, wrappedValue);
+
+                      if(wrappedValue.IsDefined())
+                      {
+                        typename SourceTypeProperties::TypeProperties::
+                        PropertiesType value = SourceTypeProperties::
+                        TypeProperties::GetUnwrappedValue(wrappedValue);
+
+                        if(SourceTypeProperties::TypeProperties::
+                           IsUndefinedValue(value) == false)
+                        {
+                          pstype->setatlocation(x, y, value);
+                        }
+                      }
+                    }
+                  }
+
+                  pSourceType->DeleteIfAllowed();
+                }
+
+                qp->Request(pArguments[0].addr, word);
+              }
+
+              qp->Close(pArguments[0].addr);
+
+              if(pDestinationType->isDefined() == false)
+              {
+                delete pInstant;
+                pInstant = 0;
+
+                delete pstype;
+                pstype = 0;
+              }
+            }
+          }
+          break;
+
+          default:
+          {
+            assert(false);
+            nRetVal = -1;
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
+
+/*
 definition of toraster2 functions
 
 */
 
 ValueMapping toraster2Functions[] =
 {
+  toraster2Functiontgrid,
+  toraster2Functionmtgrid,
   toraster2Functiont<tint, tProperties<int>, raster2::sint>,
-  toraster2Functiont<treal, tProperties<double>,raster2::sreal>,
-  toraster2Functiont<tbool, tProperties<char>,raster2::sbool>,
-  toraster2Functiont<tstring, tProperties<std::string>,raster2::sstring>,
-  toraster2Functionmt<mtint, mtProperties<int>,raster2::msint>,
-  toraster2Functionmt<mtreal, mtProperties<double>,raster2::msreal>,
-  toraster2Functionmt<mtbool, mtProperties<char>,raster2::msbool>,
-  toraster2Functionmt<mtstring, mtProperties<std::string>,raster2::msstring>,
+  toraster2Functiont<treal, tProperties<double>, raster2::sreal>,
+  toraster2Functiont<tbool, tProperties<char>, raster2::sbool>,
+  toraster2Functiont<tstring, tProperties<std::string>, raster2::sstring>,
+  toraster2Functionmt<mtint, mtProperties<int>, raster2::msint>,
+  toraster2Functionmt<mtreal, mtProperties<double>, raster2::msreal>,
+  toraster2Functionmt<mtbool, mtProperties<char>, raster2::msbool>,
+  toraster2Functionmt<mtstring, mtProperties<std::string>, raster2::msstring>,
+  toraster2Functionit<itint, itProperties<int>,
+                      raster2::isint, raster2::istype_helper<int> >,
+  toraster2Functionit<itreal, itProperties<double>,
+                      raster2::isreal, raster2::istype_helper<double> >,
+  toraster2Functionit<itbool, itProperties<char>,
+                      raster2::isbool, raster2::istype_helper<char> >,
+  toraster2Functionit<itstring, itProperties<std::string>,
+                      raster2::isstring, raster2::istype_helper<std::string> >,
   0
 };
 
@@ -323,10 +555,18 @@ int toraster2SelectFunction(ListExpr arguments)
 
     if(argumentsList.hasLength(1))
     {
-      NList argument2 = argumentsList.first().second();
-      const int TYPE_NAMES = 8;
+      NList argument1 = argumentsList.first();
+
+      if(argument1.hasLength(2))
+      {
+        argument1 = argument1.second();
+      }
+
+      const int TYPE_NAMES = 14;
       const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
       {
+        tgrid::BasicType(),
+        mtgrid::BasicType(),
         tint::BasicType(),
         treal::BasicType(),
         tbool::BasicType(),
@@ -334,12 +574,16 @@ int toraster2SelectFunction(ListExpr arguments)
         mtint::BasicType(),
         mtreal::BasicType(),
         mtbool::BasicType(),
-        mtstring::BasicType()
+        mtstring::BasicType(),
+        itint::BasicType(),
+        itreal::BasicType(),
+        itbool::BasicType(),
+        itstring::BasicType()
       };
 
       for(int i = 0; i < TYPE_NAMES; i++)
       {
-        if(argument2.isSymbol(TYPE_NAMES_ARRAY[i]))
+        if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
           nSelection = i;
           break;
@@ -359,8 +603,10 @@ definition of toraster2 type mapping function
 ListExpr toraster2TypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Operator toraster2 expects "
-                                   "a stream of t type objects or "
-                                   "a stream of mt type objects.");
+                                   "a tgrid object, a mtgrid object, "
+                                   "a stream of t type objects, "
+                                   "a stream of mt type objects or "
+                                   "a stream of it type objects.");
 
   if(nl != 0)
   {
@@ -368,11 +614,26 @@ ListExpr toraster2TypeMappingFunction(ListExpr arguments)
 
     if(argumentsList.hasLength(1))
     {
-      NList argument1 = argumentsList.first();
+      NList argument1List = argumentsList.first();
 
-      if(Stream<Attribute>::checkType(argument1.listExpr()))
+      if(argument1List.hasStringValue())
       {
-        std::string typeName = argument1.second().str();
+        std::string argument1 = argument1List.str();
+
+        if(argument1 == tgrid::BasicType())
+        {
+          type = NList(raster2::grid2::BasicType()).listExpr();
+        }
+
+        else if(argument1 == mtgrid::BasicType())
+        {
+          type = NList(raster2::grid3::BasicType()).listExpr();
+        }
+      }
+
+      else if(Stream<Attribute>::checkType(argument1List.listExpr()))
+      {
+        std::string typeName = argument1List.second().str();
 
         if(typeName.empty() == false)
         {
@@ -384,6 +645,11 @@ ListExpr toraster2TypeMappingFunction(ListExpr arguments)
           else if(IsmtType(typeName))
           {
             type = NList(GetmsType(typeName)).listExpr();
+          }
+
+          else if(IsitType(typeName))
+          {
+            type = NList(GetisType(typeName)).listExpr();
           }
         }
       }

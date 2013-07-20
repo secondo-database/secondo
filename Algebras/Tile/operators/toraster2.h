@@ -28,7 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "Stream.h"
-#include "../Types.h"
+#include "../Types/Types.h"
+#include "../grid/tgrid.h"
+#include "../grid/mtgrid.h"
+#include "../../Raster2/grid2.h"
+#include "../../Raster2/grid3.h"
 
 namespace TileAlgebra
 {
@@ -44,43 +48,58 @@ struct toraster2Info : OperatorInfo
   {
     name      = "toraster2";
     syntax    = "toraster2(_)";
-    meaning   = "Converts a stream of Tile Algebra t type objects or "
-                "mt type objects to a Raster2 Algebra s type object or "
-                "ms type object.";
-
+    meaning   = "Converts a Tile Algebra tgrid object to "
+                "a Raster2 Algebra grid2 object, "
+                "a Tile Algebra mtgrid object to "
+                "a Raster2 Algebra grid3 object, "
+                "a stream of Tile Algebra t type objects to "
+                "a Raster2 Algebra s type object, "
+                "a stream of Tile Algebra mt type objects to "
+                "a Raster2 Algebra ms type object or "
+                "a stream of Tile Algebra it type objects to "
+                "a Raster2 Algebra is type object.";
     
     std::vector<std::string> tTypes;
     std::vector<std::string> mtTypes;
+    std::vector<std::string> itTypes;
     std::vector<std::string> sTypes;
     std::vector<std::string> msTypes;
+    std::vector<std::string> isTypes;
     GettTypes(tTypes);
     GetmtTypes(mtTypes);
+    GetitTypes(itTypes);
     GetsTypes(sTypes);
     GetmsTypes(msTypes);
+    GetisTypes(isTypes);
 
     if(tTypes.size() == mtTypes.size() &&
+       tTypes.size() == itTypes.size() &&
        tTypes.size() == sTypes.size() &&
-       tTypes.size() == msTypes.size())
-    { 
+       tTypes.size() == msTypes.size() &&
+       tTypes.size() == isTypes.size())
+    {
+      signature = tgrid::BasicType() +
+                  " -> " + raster2::grid2::BasicType();
+
+      appendSignature(mtgrid::BasicType() +
+                      " -> " + raster2::grid3::BasicType());
+
       for(size_t i = 0; i < tTypes.size(); i++)
       {
-        if(signature.empty())
-        {
-          signature = Stream<Attribute>::BasicType() +
-                      "(" + tTypes[i] + ") -> " + sTypes[i];
-        }
-
-        else
-        {
-          appendSignature(Stream<Attribute>::BasicType() +
-                          "(" + tTypes[i] + ") -> " + sTypes[i]);
-        } 
+        appendSignature(Stream<Attribute>::BasicType() +
+                        "(" + tTypes[i] + ") -> " + sTypes[i]);
       }
 
       for(size_t i = 0; i < mtTypes.size(); i++)
       {
         appendSignature(Stream<Attribute>::BasicType() +
                         "(" + mtTypes[i] + ") -> " + msTypes[i]);
+      }
+
+      for(size_t i = 0; i < itTypes.size(); i++)
+      {
+        appendSignature(Stream<Attribute>::BasicType() +
+                        "(" + itTypes[i] + ") -> " + isTypes[i]);
       }
     }
 
