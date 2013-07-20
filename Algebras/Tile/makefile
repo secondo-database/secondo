@@ -35,12 +35,15 @@ CCFLAGS += $(ALG_INC_DIRS)
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 	make -C grid
+	make -C HalfSegment
+	make -C Index
 	make -C it
 	make -C mt
 	make -C operators
 	make -C Properties
 	make -C t
 	make -C Tests
+	make -C Types
 	make -C UniqueStringArray
 
 # include pre-computed dependencies
@@ -56,11 +59,14 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	make -C grid clean
+	make -C HalfSegment clean
+	make -C Index clean
 	make -C it clean
 	make -C mt clean
 	make -C operators clean
 	make -C Properties clean
 	make -C t clean
 	make -C Tests clean
+	make -C Types clean
 	make -C UniqueStringArray clean
 	$(clean-algebra)
