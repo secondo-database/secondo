@@ -51,6 +51,8 @@ class itProperties<int>
   typedef itint PropertiesType;
   typedef Properties<int> TypeProperties;
   typedef tint tType;
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
   static std::string GetTypeName();
 };
 
