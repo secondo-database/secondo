@@ -5157,25 +5157,15 @@ void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
      event->print();
     }
     current = event->getSegment();
-    if (event->isValid()) {
-     if (current->isValid()) {
-      createNewSegments(*current, result, edgeno, op);
 
-      sss.removeGetNeighbor(current, pred, suc, t);
-      current->changeValidity(false);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true, t);
+    createNewSegments(*current, result, edgeno, op);
 
-      }
+    sss.removeGetNeighbor(current, pred, suc, t);
 
-     } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc, t);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true, t);
-      }
-     }
+    if (pred && suc) {
+     intersectionTestForSetOp(pred, suc, event, q, true, t);
     }
+
     if (event->getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
@@ -5334,31 +5324,18 @@ bool intersects(const p2d::Line2& line1, const p2d::Line2& line2, TestStruct& t,
      event->print();
     }
     current = event->getSegment();
-    if (event->isValid()) {
-     if (current->isValid()) {
-      sss.removeGetNeighbor(current, pred, suc, t);
-      current->changeValidity(false);
-      if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
-        if ((pred->getOwner() != suc->getOwner())) {
-         intersect = true;
-        }
-       }
 
-      }
+    sss.removeGetNeighbor(current, pred, suc, t);
 
-     } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc, t);
-      if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
-        if (pred->getOwner() != suc->getOwner()) {
-         intersect = true;
-        }
-       }
+    if (pred && suc) {
+     if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
+      if ((pred->getOwner() != suc->getOwner())) {
+       intersect = true;
       }
      }
+
     }
+
     if (event->getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
@@ -5591,25 +5568,15 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
      event->print();
     }
     current = event->getSegment();
-    if (event->isValid()) {
-     if (current->isValid()) {
-      createNewSegments(*current, result, edgeno, op);
 
-      sss.removeGetNeighbor(current, pred, suc, t);
-      current->changeValidity(false);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true, t);
+    createNewSegments(*current, result, edgeno, op);
 
-      }
+    sss.removeGetNeighbor(current, pred, suc, t);
 
-     } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc, t);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true, t);
-      }
-     }
+    if (pred && suc) {
+     intersectionTestForSetOp(pred, suc, event, q, true, t);
     }
+
     if (event->getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
@@ -5769,32 +5736,19 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2, TestStruct& t,
      event->print();
     }
     current = event->getSegment();
-    if (event->isValid()) {
-     if (current->isValid()) {
-      checkSegment(*current, intersect, intersects_op);
 
-      sss.removeGetNeighbor(current, pred, suc, t);
-      current->changeValidity(false);
-      if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
-        if ((pred->getOwner() != suc->getOwner())) {
-         intersect = true;
-        }
-       }
-      }
+    checkSegment(*current, intersect, intersects_op);
 
-     } else {
-      mpq_class v1 = event->getPreciseX();
-      sss.removeGetNeighbor2(current, event->getGridX(), v1, pred, suc, t);
-      if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
-        if ((pred->getOwner() != suc->getOwner())) {
-         intersect = true;
-        }
-       }
+    sss.removeGetNeighbor(current, pred, suc, t);
+
+    if (pred && suc) {
+    if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
+      if ((pred->getOwner() != suc->getOwner())) {
+       intersect = true;
       }
      }
     }
+
     if (event->getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;

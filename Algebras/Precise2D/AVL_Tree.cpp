@@ -4893,25 +4893,14 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
      event.print();
     }
     current = event.getSegment();
-     if (current->isValid()) {
-      createNewSegments(*current, result, edgeno, op);
 
-      sss.removeGetNeighbor(current, pred, suc);
-      current->changeValidity(false);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
+    createNewSegments(*current, result, edgeno, op);
 
-      }
+    sss.removeGetNeighbor(current, pred, suc);
 
-     } else {
-      cout<<"invalid segment found"<<endl;
-      assert(false);
-      mpq_class v1 = event.getPreciseX();
-      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
-     }
+    if (pred && suc) {
+     intersectionTestForSetOp(pred, suc, event, q, true);
+    }
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
@@ -5065,31 +5054,15 @@ bool intersects(const Line2& line1, const Line2& line2,
     }
     current = event.getSegment();
 
-     if (current->isValid()) {
-      sss.removeGetNeighbor(current, pred, suc);
-      current->changeValidity(false);
-      if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
-        if ((pred->getOwner() != suc->getOwner())) {
-         intersect = true;
-        }
-       }
+    sss.removeGetNeighbor(current, pred, suc);
 
-      }
-
-     } else {
-      cout<<"invalid segment found"<<endl;
-      assert(false);
-      mpq_class v1 = event.getPreciseX();
-      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
-      if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
-        if (pred->getOwner() != suc->getOwner()) {
-         intersect = true;
-        }
-       }
+    if (pred && suc) {
+     if (intersectionTestForSetOp(pred, suc, event, q, true)) {
+      if ((pred->getOwner() != suc->getOwner())) {
+       intersect = true;
       }
      }
+    }
 
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
@@ -5238,7 +5211,7 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
 
      mpq_class v1 = current->getPreciseXR();
      sss.removeGetNeighbor(current, pred, suc);
-     current->changeValidity(false);
+
      if (pred && suc) {
       intersectionTestForSetOp(pred, suc, event, q, true);
      }
@@ -5484,25 +5457,13 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
     }
     current = event.getSegment();
 
-     if (current->isValid()) {
-      createNewSegments(*current, result, edgeno, op);
+    createNewSegments(*current, result, edgeno, op);
 
-      sss.removeGetNeighbor(current, pred, suc);
-      current->changeValidity(false);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
+    sss.removeGetNeighbor(current, pred, suc);
 
-      }
-
-     } else {
-      cout<<"invalid segment found"<<endl;
-      assert(false);
-      mpq_class v1 = event.getPreciseX();
-      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
-     }
+    if (pred && suc) {
+     intersectionTestForSetOp(pred, suc, event, q, true);
+    }
 
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
@@ -5655,32 +5616,18 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
      event.print();
     }
     current = event.getSegment();
-     if (current->isValid()) {
-      checkSegment(*current, intersect, intersects_op);
 
-      sss.removeGetNeighbor(current, pred, suc);
-      current->changeValidity(false);
-      if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
-        if ((pred->getOwner() != suc->getOwner())) {
-         intersect = true;
-        }
-       }
-      }
+    checkSegment(*current, intersect, intersects_op);
 
-     } else {
-      cout<<"invalid segment found"<<endl;
-      assert(false);
-      mpq_class v1 = event.getPreciseX();
-      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
-      if (pred && suc) {
-       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
-        if ((pred->getOwner() != suc->getOwner())) {
-         intersect = true;
-        }
-       }
+    sss.removeGetNeighbor(current, pred, suc);
+
+    if (pred && suc) {
+     if (intersectionTestForSetOp(pred, suc, event, q, true)) {
+      if ((pred->getOwner() != suc->getOwner())) {
+       intersect = true;
       }
      }
+    }
 
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
@@ -5830,26 +5777,14 @@ bool overlaps(/*const*/Region2& reg1, /*const*/Region2& reg2,
      event.print();
     }
     current = event.getSegment();
-    cout << "checkSegment:" << endl;
-    current->print();
-     if (current->isValid()) {
-      checkSegment(*current, overlaps, overlaps_op);
 
-      sss.removeGetNeighbor(current, pred, suc);
-      current->changeValidity(false);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
+    checkSegment(*current, overlaps, overlaps_op);
 
-     } else {
-      cout<<"invalid segment found"<<endl;
-      assert(false);
-      mpq_class v1 = event.getPreciseX();
-      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
-     }
+    sss.removeGetNeighbor(current, pred, suc);
+
+    if (pred && suc) {
+     intersectionTestForSetOp(pred, suc, event, q, true);
+    }
 
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
@@ -5990,24 +5925,13 @@ bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
     }
     current = event.getSegment();
 
-     if (current->isValid()) {
-      checkSegment(*current, inside, inside_op);
+    checkSegment(*current, inside, inside_op);
 
-      sss.removeGetNeighbor(current, pred, suc);
-      current->changeValidity(false);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
+    sss.removeGetNeighbor(current, pred, suc);
 
-     } else {
-      cout<<"invalid segment found"<<endl;
-      assert(false);
-      mpq_class v1 = event.getPreciseX();
-      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
-      if (pred && suc) {
-       intersectionTestForSetOp(pred, suc, event, q, true);
-      }
-     }
+    if (pred && suc) {
+     intersectionTestForSetOp(pred, suc, event, q, true);
+    }
 
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
