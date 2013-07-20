@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include "../grid/mtgrid.h"
 #include "../../Tools/Flob/Flob.h"
-#include "../Index.h"
+#include "../Index/Index.h"
 #include "RectangleAlgebra.h"
 #include "TemporalAlgebra.h"
 
