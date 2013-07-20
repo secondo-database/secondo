@@ -30,6 +30,32 @@ implementation of template class itProperties<double>
 
 */
 
+int itProperties<double>::GetXDimensionSize()
+{
+  int xDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(tgrid) -
+                                  2 * sizeof(double)) /
+                                  sizeof(double),
+                                  0.5)
+                       );
+
+  return xDimensionSize;
+}
+
+int itProperties<double>::GetYDimensionSize()
+{
+  int yDimensionSize = static_cast<unsigned int>
+                       (std::pow((WinUnix::getPageSize() -
+                                  sizeof(tgrid) -
+                                  2 * sizeof(double)) /
+                                  sizeof(double),
+                                  0.5)
+                       );
+
+  return yDimensionSize;
+}
+
 std::string itProperties<double>::GetTypeName()
 {
   return TYPE_NAME_ITREAL;

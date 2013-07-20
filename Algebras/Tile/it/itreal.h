@@ -51,6 +51,8 @@ class itProperties<double>
   typedef itreal PropertiesType;
   typedef Properties<double> TypeProperties;
   typedef treal tType;
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
   static std::string GetTypeName();
 };
 
