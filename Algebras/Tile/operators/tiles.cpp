@@ -29,8 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
-#include "../../Raster2/grid2.h"
-#include "../../Raster2/grid3.h"
+#include "../it/itint.h"
+#include "../it/itreal.h"
+#include "../it/itbool.h"
+#include "../it/itstring.h"
 #include "../../Raster2/sint.h"
 #include "../../Raster2/sreal.h"
 #include "../../Raster2/sbool.h"
@@ -39,9 +41,92 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Raster2/msreal.h"
 #include "../../Raster2/msbool.h"
 #include "../../Raster2/msstring.h"
+#include "../../Raster2/isint.h"
+#include "../../Raster2/isreal.h"
+#include "../../Raster2/isbool.h"
+#include "../../Raster2/isstring.h"
 
 namespace TileAlgebra
 {
+
+/*
+definition of tilesFunctiontgrid
+
+*/
+
+int tilesFunctiontgrid(Word* pArguments,
+                       Word& rResult,
+                       int message,
+                       Word& rLocal,
+                       Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    raster2::grid2* pGrid = static_cast<raster2::grid2*>(pArguments[0].addr);
+
+    if(pGrid != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        tgrid* pResult = static_cast<tgrid*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          pResult->SetX(pGrid->getOriginX());
+          pResult->SetY(pGrid->getOriginY());
+          pResult->SetLength(pGrid->getLength());
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
+
+/*
+definition of tilesFunctionmtgrid
+
+*/
+
+int tilesFunctionmtgrid(Word* pArguments,
+                        Word& rResult,
+                        int message,
+                        Word& rLocal,
+                        Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    raster2::grid3* pGrid = static_cast<raster2::grid3*>(pArguments[0].addr);
+
+    if(pGrid != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        mtgrid* pResult = static_cast<mtgrid*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          pResult->SetX(pGrid->getOriginX());
+          pResult->SetY(pGrid->getOriginY());
+          pResult->SetLength(pGrid->getLength());
+          pResult->SetDuration(pGrid->getDuration());
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
 
 /*
 definition of template tilesFunctiont
@@ -386,12 +471,182 @@ int tilesFunctionmt(Word* pArguments,
 }
 
 /*
+definition of template tilesFunctionit
+
+*/
+
+template <typename SourceType, typename SourceTypeProperties,
+          typename DestinationType, typename DestinationTypeProperties>
+int tilesFunctionit(Word* pArguments,
+                    Word& rResult,
+                    int message,
+                    Word& rLocal,
+                    Supplier supplier)
+{
+  int nRetVal = 0;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    SourceType* pSourceType = static_cast<SourceType*>(pArguments[0].addr);
+
+    if(pSourceType != 0 &&
+       pSourceType->isDefined())
+    {
+      struct ResultInfo
+      {
+        Rectangle<2> m_BoundingBox;
+        double m_dX;
+        double m_dY;
+      };
+
+      switch(message)
+      {
+        case OPEN:
+        {
+          // initialize the local storage
+          ResultInfo* pResultInfo = new ResultInfo;
+
+          if(pResultInfo != 0)
+          {
+            pResultInfo->m_BoundingBox = pSourceType->bbox();
+            pResultInfo->m_dX = pResultInfo->m_BoundingBox.MinD(0);
+            pResultInfo->m_dY = pResultInfo->m_BoundingBox.MinD(1);
+            rLocal.addr = pResultInfo;
+          }
+        }
+        break;
+
+        case REQUEST:
+        {
+          if(rLocal.addr != 0)
+          {
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
+
+            if(pResultInfo != 0)
+            {
+              if(pResultInfo->m_dX < pResultInfo->m_BoundingBox.MaxD(0) &&
+                 pResultInfo->m_dY < pResultInfo->m_BoundingBox.MaxD(1))
+              {
+                datetime::DateTime instant = pSourceType->getInstant();
+                typename SourceTypeProperties::spatial_type* pstype =
+                pSourceType->val();
+
+                if(pstype != 0)
+                {
+                  DestinationType* pDestinationType = new DestinationType(true);
+
+                  if(pDestinationType != 0)
+                  {
+                    raster2::grid2 grid = pstype->getGrid();
+                    double gridLength = grid.getLength();
+                    int xDimensionSize = DestinationTypeProperties::
+                                         GetXDimensionSize();
+                    int yDimensionSize = DestinationTypeProperties::
+                                         GetYDimensionSize();
+                    bool bHasDefinedValue = false;
+
+                    do
+                    {
+                      pDestinationType->SetInstant(instant);
+                      pDestinationType->SetGrid(pResultInfo->m_dX,
+                                                pResultInfo->m_dY,
+                                                gridLength);
+
+                      for(int row = 0; row < yDimensionSize; row++)
+                      {
+                        for(int column = 0; column < xDimensionSize; column++)
+                        {
+                          double x = pResultInfo->m_dX + column * gridLength;
+                          double y = pResultInfo->m_dY + row * gridLength;
+
+                          typename DestinationTypeProperties::TypeProperties::
+                          PropertiesType value = pstype->atlocation(x, y);
+
+                          if(DestinationTypeProperties::TypeProperties::
+                             IsUndefinedValue(value) == false)
+                          {
+                            bHasDefinedValue = true;
+                            pDestinationType->SetValue(x, y, value, true);
+                          }
+                        }
+                      }
+
+                      pResultInfo->m_dX += xDimensionSize * gridLength;
+
+                      if(pResultInfo->m_dX >=
+                         pResultInfo->m_BoundingBox.MaxD(0))
+                      {
+                        pResultInfo->m_dY += yDimensionSize * gridLength;
+
+                        if(pResultInfo->m_dY <
+                           pResultInfo->m_BoundingBox.MaxD(1))
+                        {
+                          pResultInfo->m_dX =
+                          pResultInfo->m_BoundingBox.MinD(0);
+                        }
+                      }
+                    }
+
+                    while(bHasDefinedValue == false);
+
+                    // return the next stream element
+                    rResult.addr = pDestinationType;
+                    nRetVal = YIELD;
+                  }
+
+                  delete pstype;
+                }
+              }
+
+              else
+              {
+                // always set the result to null before return CANCEL
+                rResult.addr = 0;
+                nRetVal = CANCEL;
+              }
+            }
+          }
+        }
+        break;
+
+        case CLOSE:
+        {
+          if(rLocal.addr != 0)
+          {
+            ResultInfo* pResultInfo = static_cast<ResultInfo*>(rLocal.addr);
+
+            if(pResultInfo != 0)
+            {
+              delete pResultInfo;
+              rLocal.addr = 0;
+            }
+          }
+        }
+        break;
+
+        default:
+        {
+          assert(false);
+          nRetVal = -1;
+        }
+        break;
+      }
+    }
+  }
+
+  return nRetVal;
+}
+
+/*
 definition of tiles functions
 
 */
 
 ValueMapping tilesFunctions[] =
 {
+  tilesFunctiontgrid,
+  tilesFunctionmtgrid,
   tilesFunctiont<raster2::sint, tint, tProperties<int> >,
   tilesFunctiont<raster2::sreal, treal, tProperties<double> >,
   tilesFunctiont<raster2::sbool, tbool, tProperties<char> >,
@@ -400,6 +655,14 @@ ValueMapping tilesFunctions[] =
   tilesFunctionmt<raster2::msreal, mtreal, mtProperties<double> >,
   tilesFunctionmt<raster2::msbool, mtbool, mtProperties<char> >,
   tilesFunctionmt<raster2::msstring, mtstring, mtProperties<std::string> >,
+  tilesFunctionit<raster2::isint, raster2::istype_helper<int>,
+                  itint, itProperties<int> >,
+  tilesFunctionit<raster2::isreal, raster2::istype_helper<double>,
+                  itreal, itProperties<double> >,
+  tilesFunctionit<raster2::isbool, raster2::istype_helper<char>,
+                  itbool, itProperties<char> >,
+  tilesFunctionit<raster2::isstring, raster2::istype_helper<std::string>,
+                  itstring, itProperties<std::string> >,
   0
 };
 
@@ -419,9 +682,11 @@ int tilesSelectFunction(ListExpr arguments)
     if(argumentsList.hasLength(1))
     {
       NList argument1 = argumentsList.first();
-      const int TYPE_NAMES = 8;
+      const int TYPE_NAMES = 14;
       const std::string TYPE_NAMES_ARRAY[TYPE_NAMES] =
       {
+        raster2::grid2::BasicType(),
+        raster2::grid3::BasicType(),
         raster2::sint::BasicType(),
         raster2::sreal::BasicType(),
         raster2::sbool::BasicType(),
@@ -429,7 +694,11 @@ int tilesSelectFunction(ListExpr arguments)
         raster2::msint::BasicType(),
         raster2::msreal::BasicType(),
         raster2::msbool::BasicType(),
-        raster2::msstring::BasicType()
+        raster2::msstring::BasicType(),
+        raster2::isint::BasicType(),
+        raster2::isreal::BasicType(),
+        raster2::isbool::BasicType(),
+        raster2::isstring::BasicType()
       };
 
       for(int i = 0; i < TYPE_NAMES; i++)
@@ -454,7 +723,9 @@ definition of tiles type mapping function
 ListExpr tilesTypeMappingFunction(ListExpr arguments)
 {
   ListExpr type = NList::typeError("Operator tiles expects "
-                                   "a s type or a ms type.");
+                                   "a grid2 object, a grid3 object, "
+                                   "a s type object, a ms type object or "
+                                   "an is type object.");
 
   if(nl != 0)
   {
@@ -464,7 +735,17 @@ ListExpr tilesTypeMappingFunction(ListExpr arguments)
     {
       std::string argument1 = argumentsList.first().str();
 
-      if(IssType(argument1))
+      if(argument1 == raster2::grid2::BasicType())
+      {
+        type = NList(tgrid::BasicType()).listExpr();
+      }
+
+      else if(argument1 == raster2::grid3::BasicType())
+      {
+        type = NList(mtgrid::BasicType()).listExpr();
+      }
+
+      else if(IssType(argument1))
       {
         type = nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
                                nl->SymbolAtom(GettType(argument1)));
@@ -474,6 +755,12 @@ ListExpr tilesTypeMappingFunction(ListExpr arguments)
       {
         type = nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
                                nl->SymbolAtom(GetmtType(argument1)));
+      }
+
+      else if(IsisType(argument1))
+      {
+        type = nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                               nl->SymbolAtom(GetitType(argument1)));
       }
     }
   }
