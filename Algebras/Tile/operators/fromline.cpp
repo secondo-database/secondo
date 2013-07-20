@@ -21,141 +21,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "fromline.h"
+#include "../HalfSegment/HalfSegment.h"
 #include "RectangleAlgebra.h"
 
 namespace TileAlgebra
 {
-
-/*
-definition of IsHorizontalLine function
-
-*/
-
-bool IsHorizontalLine(const Point& rLineStartPoint,
-                      const Point& rLineEndPoint)
-{
-  bool bIsHorizontalLine = false;
-
-  if(rLineStartPoint.GetY() == rLineEndPoint.GetY())
-  {
-    bIsHorizontalLine = true;
-  }
-
-  return bIsHorizontalLine;
-}
-
-/*
-definition of IsVerticalLine function
-
-*/
-
-bool IsVerticalLine(const Point& rLineStartPoint,
-                    const Point& rLineEndPoint)
-{
-  bool bIsVerticalLine = false;
-
-  if(rLineStartPoint.GetX() == rLineEndPoint.GetX())
-  {
-    bIsVerticalLine = true;
-  }
-
-  return bIsVerticalLine;
-}
-
-/*
-definition of LineIntersectsRectangle function
-
-*/
-
-bool LineIntersectsRectangle(const Point& rLineStartPoint,
-                             const Point& rLineEndPoint,
-                             const Rectangle<2>& rRectangle)
-{
-  bool bLineIntersectsRectangle = false;
-
-  if(rLineStartPoint.IsDefined() &&
-     rLineEndPoint.IsDefined() &&
-     rRectangle.IsDefined())
-  {
-    if(rLineStartPoint.GetX() >= rRectangle.MinD(0) &&
-       rLineStartPoint.GetX() < rRectangle.MaxD(0) &&
-       rLineStartPoint.GetY() >= rRectangle.MinD(1) &&
-       rLineStartPoint.GetY() < rRectangle.MaxD(1))
-    {
-      /*
-      case: LineStartPoint in Rectangle
-
-      */
-
-      bLineIntersectsRectangle = true;
-    }
-
-    if(rLineEndPoint.GetX() >= rRectangle.MinD(0) &&
-       rLineEndPoint.GetX() < rRectangle.MaxD(0) &&
-       rLineEndPoint.GetY() >= rRectangle.MinD(1) &&
-       rLineEndPoint.GetY() < rRectangle.MaxD(1))
-    {
-      /*
-      case: LineEndPoint in Rectangle
-
-      */
-
-      bLineIntersectsRectangle = true;
-    }
-
-    if(bLineIntersectsRectangle == false)
-    {
-      if(IsHorizontalLine(rLineStartPoint, rLineEndPoint) &&
-         rLineStartPoint.GetX() < rRectangle.MinD(0) &&
-         rLineEndPoint.GetX() >= rRectangle.MaxD(0) &&
-         rLineStartPoint.GetY() >= rRectangle.MinD(1) &&
-         rLineStartPoint.GetY() < rRectangle.MaxD(1))
-      {
-        /*
-        case: horizontal line
-
-        */
-
-        bLineIntersectsRectangle = true;
-      }
-
-      if(IsVerticalLine(rLineStartPoint, rLineEndPoint) &&
-         rLineStartPoint.GetX() >= rRectangle.MinD(0) &&
-         rLineStartPoint.GetX() < rRectangle.MaxD(0) &&
-         rLineStartPoint.GetY() < rRectangle.MinD(1) &&
-         rLineEndPoint.GetY() >= rRectangle.MaxD(1))
-      {
-        /*
-        case: vertical line
-
-        */
-
-        bLineIntersectsRectangle = true;
-      }
-
-      if(bLineIntersectsRectangle == false)
-      {
-        double deltaX = rLineEndPoint.GetX() - rLineStartPoint.GetX();
-        double deltaY = rLineEndPoint.GetY() - rLineStartPoint.GetY();
-        double m = deltaY / deltaX;
-        double n = rLineStartPoint.GetY() - m * rLineStartPoint.GetX();
-
-        double yRectangleStartPoint = m * rRectangle.MinD(0) + n;
-        double yRectangleEndPoint = m * rRectangle.MaxD(0) + n;
-
-        if((yRectangleStartPoint >= rRectangle.MinD(1) &&
-            yRectangleStartPoint < rRectangle.MaxD(1)) ||
-           (yRectangleEndPoint >= rRectangle.MinD(1) &&
-            yRectangleEndPoint < rRectangle.MaxD(1)))
-        {
-          bLineIntersectsRectangle = true;
-        }
-      }
-    }
-  }
-
-  return bLineIntersectsRectangle;
-}
 
 /*
 definition of SetLineValues function
@@ -169,20 +39,15 @@ bool SetLineValues(const HalfSegment& rHalfSegment,
 
   if(rtbool.IsDefined())
   {
-    Point lineStartPoint = rHalfSegment.GetLeftPoint();
-    Point lineEndPoint = rHalfSegment.GetRightPoint();
+    HalfSegment halfSegment = rHalfSegment;
+    CheckHalfSegment(halfSegment);
+
+    Point lineStartPoint = halfSegment.GetLeftPoint();
+    Point lineEndPoint = halfSegment.GetRightPoint();
 
     if(lineStartPoint.IsDefined() &&
        lineEndPoint.IsDefined())
     {
-      if((lineStartPoint.GetX() > lineEndPoint.GetX()) ||
-         (lineStartPoint.GetX() == lineEndPoint.GetX() &&
-          lineStartPoint.GetY() > lineEndPoint.GetY()))
-      {
-        lineStartPoint = rHalfSegment.GetRightPoint();
-        lineEndPoint = rHalfSegment.GetLeftPoint();
-      }
-
       int xDimensionSize = tProperties<char>::GetXDimensionSize();
       int yDimensionSize = tProperties<char>::GetYDimensionSize();
 
@@ -197,9 +62,9 @@ bool SetLineValues(const HalfSegment& rHalfSegment,
                            gridY + yDimensionSize * gridLength };
       Rectangle<2> rectangle(true, Minima, Maxima);
 
-      if(LineIntersectsRectangle(lineStartPoint, lineEndPoint, rectangle))
+      if(HalfSegmentIntersectsRectangle(halfSegment, rectangle))
       {
-        if(IsHorizontalLine(lineStartPoint, lineEndPoint))
+        if(IsHorizontalHalfSegment(halfSegment))
         {
           double xStart = lineStartPoint.GetX();
           double xEnd = lineEndPoint.GetX();
@@ -221,7 +86,7 @@ bool SetLineValues(const HalfSegment& rHalfSegment,
           }
         }
 
-        else if(IsVerticalLine(lineStartPoint, lineEndPoint))
+        else if(IsVerticalHalfSegment(halfSegment))
         {
           double x = lineStartPoint.GetX();
           double yStart = lineStartPoint.GetY();
