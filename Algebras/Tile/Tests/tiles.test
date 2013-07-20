@@ -11,6 +11,8 @@
 create database TileAlgebraTest;
 open database TileAlgebraTest;
 
+let grid21 = ([const grid2 value (1.2 3.4 5.6)]);
+let grid31 = ([const grid3 value (1.2 3.4 5.6 (duration (1 0)))]);
 let sint1 = ([const sint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))]);
 let sint2 = ([const sint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (60 60 (957 958 959 960)))]);
 let sint4 = ([const sint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (31 0 (0 1 2 3)) (0 31 (0 1 2 3)) (60 60 (957 958 959 960)))]);
@@ -35,10 +37,38 @@ let msbool4 = ([const msbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE
 let msstring1 = ([const msstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (29 29 9 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
 let msstring2 = ([const msstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (60 60 9 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
 let msstring4 = ([const msstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (31 0 0 ("zero" "one" "two" "three")) (0 31 0 ("zero" "one" "two" "three")) (60 60 9 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+let isint1 = ([const isint value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960))))]);
+let isint2 = ([const isint value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (60 60 (957 958 959 960))))]);
+let isint4 = ([const isint value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (31 0 (0 1 2 3)) (0 31 (0 1 2 3)) (60 60 (957 958 959 960))))]);
+let isreal1 = ([const isreal value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (20 20 (480.0 481.0 482.0 483.0))))]);
+let isreal2 = ([const isreal value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (42 42 (480.0 481.0 482.0 483.0))))]);
+let isreal4 = ([const isreal value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (22 0 (0.0 1.0 2.0 3.0)) (0 22 (0.0 1.0 2.0 3.0)) (42 42 (480.0 481.0 482.0 483.0))))]);
+let isbool1 = ([const isbool value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (61 61 (FALSE TRUE TRUE FALSE))))]);
+let isbool2 = ([const isbool value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (124 124 (FALSE TRUE TRUE FALSE))))]);
+let isbool4 = ([const isbool value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (63 0 (FALSE TRUE TRUE FALSE)) (0 63 (FALSE TRUE TRUE FALSE)) (124 124 (FALSE TRUE TRUE FALSE))))]);
+let isstring1 = ([const isstring value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (29 29 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty"))))]);
+let isstring2 = ([const isstring value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (60 60 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty"))))]);
+let isstring4 = ([const isstring value ((instant "2013-05-13") ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (31 0 ("zero" "one" "two" "three")) (0 31 ("zero" "one" "two" "three")) (60 60 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty"))))]);
 
 ################################################################################
 # Run Tests ####################################################################
 ################################################################################
+
+#######################################
+# tgrid                               #
+#######################################
+
+#testcase tiles operator on a grid2 object
+#yields (tgrid (1.2 3.4 5.6))
+query tiles(grid21)
+
+#######################################
+# mtgrid                              #
+#######################################
+
+#testcase tiles operator on a grid3 object
+#yields (mtgrid (1.2 3.4 5.6 (duration (1 0))))
+query tiles(grid31)
 
 #######################################
 # tint                                #
@@ -167,6 +197,70 @@ query tiles(msstring2) count;
 #testcase tiles operator count on a msstring object with four tiles
 #yields (int 4)
 query tiles(msstring4) count;
+
+#######################################
+# itint                               #
+#######################################
+
+#testcase tiles operator count on a isint object with one tile
+#yields (int 1)
+query tiles(isint1) count;
+
+#testcase tiles operator count on a isint object with two tiles
+#yields (int 2)
+query tiles(isint2) count;
+
+#testcase tiles operator count on a isint object with four tiles
+#yields (int 4)
+query tiles(isint4) count;
+
+#######################################
+# itreal                              #
+#######################################
+
+#testcase tiles operator count on a isreal object with one tile
+#yields (int 1)
+query tiles(isreal1) count;
+
+#testcase tiles operator count on a isreal object with two tiles
+#yields (int 2)
+query tiles(isreal2) count;
+
+#testcase tiles operator count on a isreal object with four tiles
+#yields (int 4)
+query tiles(isreal4) count;
+
+#######################################
+# itbool                              #
+#######################################
+
+#testcase tiles operator count on a isbool object with one tile
+#yields (int 1)
+query tiles(isbool1) count;
+
+#testcase tiles operator count on a isbool object with two tiles
+#yields (int 2)
+query tiles(isbool2) count;
+
+#testcase tiles operator count on a isbool object with four tiles
+#yields (int 4)
+query tiles(isbool4) count;
+
+#######################################
+# itstring                            #
+#######################################
+
+#testcase tiles operator count on a isstring object with one tile
+#yields (int 1)
+query tiles(isstring1) count;
+
+#testcase tiles operator count on a isstring object with two tiles
+#yields (int 2)
+query tiles(isstring2) count;
+
+#testcase tiles operator count on a isstring object with four tiles
+#yields (int 4)
+query tiles(isstring4) count;
 
 ################################################################################
 # Clean up #####################################################################
