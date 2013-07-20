@@ -51,6 +51,8 @@ class itProperties<char>
   typedef itbool PropertiesType;
   typedef Properties<char> TypeProperties;
   typedef tbool tType;
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
   static std::string GetTypeName();
 };
 
