@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "compose.h"
-#include "../Index.h"
+#include "../Index/Index.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
