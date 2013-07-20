@@ -69,6 +69,7 @@ int toregionFunction(Word* pArguments,
               double gridOriginX = grid.GetX();
               double gridOriginY = grid.GetY();
               double gridLength = grid.GetLength();
+              double halfGridLength = gridLength / 2.0;
 
               double startX = 0.0;
               double startY = 0.0;
@@ -97,11 +98,11 @@ int toregionFunction(Word* pArguments,
                   {
                     if(value == 1)
                     {
-                      startX = index[0] * gridLength + gridOriginX;
-                      startY = index[1] * gridLength + gridOriginY;
+                      startX = gridOriginX + index[0] * gridLength;
+                      startY = gridOriginY + index[1] * gridLength;
                       
-                      Point help(true, startX + gridLength / 2,
-                                 startY + gridLength / 2);
+                      Point help(true, startX + halfGridLength,
+                                 startY + halfGridLength);
                       
                       if(robust::contains(*pBuildRegion, help) == false)
                       {
@@ -128,16 +129,16 @@ int toregionFunction(Word* pArguments,
                              currentY > lastY)
                           {
                             CcBool value1;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY + halfGridLength,
                                                value1);
                             CcBool value2;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY + halfGridLength,
                                                value2);
                             CcBool value3;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY - halfGridLength,
                                                value3);
 
                             if(value1.IsDefined() &&
@@ -149,7 +150,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX - gridLength;
+                              currentX -= gridLength;
                             }
 
                             else if(value2.IsDefined() &&
@@ -161,7 +162,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY + gridLength;
+                              currentY += gridLength;
                             }
 
                             else if(value3.IsDefined() &&
@@ -173,7 +174,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX + gridLength;
+                              currentX += gridLength;
                             }
                           }
 
@@ -182,16 +183,16 @@ int toregionFunction(Word* pArguments,
                                   currentY < lastY )
                           {
                             CcBool value1;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY - halfGridLength,
                                                value1);
                             CcBool value2;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY - halfGridLength,
                                                value2);
                             CcBool value3;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY + halfGridLength,
                                                value3);
 
                             if(value1.IsDefined() &&
@@ -203,7 +204,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX + gridLength;
+                              currentX += gridLength;
                             }
 
                             else if(value2.IsDefined() &&
@@ -215,7 +216,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY - gridLength;
+                              currentY -= gridLength;
                             }
 
                             else if(value3.IsDefined() &&
@@ -227,7 +228,7 @@ int toregionFunction(Word* pArguments,
              
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX - gridLength;
+                              currentX -= gridLength;
                             }
                           }
 
@@ -236,16 +237,16 @@ int toregionFunction(Word* pArguments,
                                   AlmostEqual(currentY, lastY) )
                           {
                             CcBool value1;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY + halfGridLength,
                                                value1);
                             CcBool value2;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY - halfGridLength,
                                                value2);
                             CcBool value3;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY - halfGridLength,
                                                value3);
 
                             if(value1.IsDefined() &&
@@ -257,7 +258,7 @@ int toregionFunction(Word* pArguments,
                  
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY + gridLength;
+                              currentY += gridLength;
                             }
 
                             else if(value2.IsDefined() &&
@@ -269,7 +270,7 @@ int toregionFunction(Word* pArguments,
                  
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX + gridLength;
+                              currentX += gridLength;
                             }
 
                             else if(value3.IsDefined() &&
@@ -281,7 +282,7 @@ int toregionFunction(Word* pArguments,
              
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY - gridLength;
+                              currentY -= gridLength;
                             }
                           }
 
@@ -290,16 +291,16 @@ int toregionFunction(Word* pArguments,
                                   AlmostEqual(currentY, lastY))
                           {
                             CcBool value1;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY - halfGridLength,
                                                value1);
                             CcBool value2;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY + halfGridLength,
                                                value2);
                             CcBool value3;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY + halfGridLength,
                                                value3);
 
                             if(value1.IsDefined() &&
@@ -311,7 +312,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY - gridLength;
+                              currentY -= gridLength;
                             }
 
                             else if(value2.IsDefined() &&
@@ -323,7 +324,7 @@ int toregionFunction(Word* pArguments,
                  
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX - gridLength;
+                              currentX -= gridLength;
                             }
 
                             else if(value3.IsDefined() &&
@@ -335,7 +336,7 @@ int toregionFunction(Word* pArguments,
                       
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY + gridLength;
+                              currentY += gridLength;
                             }
                           }
                           
@@ -348,7 +349,7 @@ int toregionFunction(Word* pArguments,
                         
                         if(!getDir(cycle))
                         {
-                            reverseCycle(cycle);
+                          reverseCycle(cycle);
                         }
                         
                         cycles.push_back(cycle);
@@ -365,11 +366,11 @@ int toregionFunction(Word* pArguments,
 
                     else if(value == 0)
                     {
-                      startX = index[0] * gridLength + gridOriginX;
-                      startY = index[1] * gridLength + gridOriginY;
+                      startX = gridOriginX + index[0] * gridLength;
+                      startY = gridOriginY + index[1] * gridLength;
                    
-                      Point help(true, startX + gridLength / 2,
-                                 startY + gridLength / 2);
+                      Point help(true, startX + halfGridLength,
+                                 startY + halfGridLength);
 
                       if((robust::contains(*pBuildRegion, help) == true) &&
                          (robust::contains(*pBuildHoles, help) == false))
@@ -393,33 +394,33 @@ int toregionFunction(Word* pArguments,
                         while(bEnd == false)
                         {
                           Point p1(true,
-                                   currentX - gridLength / 2,
-                                   currentY + gridLength / 2);
+                                   currentX - halfGridLength,
+                                   currentY + halfGridLength);
                           Point p2(true,
-                                   currentX + gridLength / 2,
-                                   currentY + gridLength / 2);
+                                   currentX + halfGridLength,
+                                   currentY + halfGridLength);
                           Point p3(true,
-                                   currentX + gridLength / 2,
-                                   currentY - gridLength / 2);
+                                   currentX + halfGridLength,
+                                   currentY - halfGridLength);
                           Point p4(true,
-                                   currentX - gridLength / 2,
-                                   currentY - gridLength / 2);
+                                   currentX - halfGridLength,
+                                   currentY - halfGridLength);
 
                           if(AlmostEqual(currentX, lastX) &&
                              !(AlmostEqual(currentY, lastY)) &&
                              currentY > lastY)
                           {    
                             CcBool value1;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY + halfGridLength,
                                                value1);
                             CcBool value2;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY + halfGridLength,
                                                value2);
                             CcBool value3;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY - halfGridLength,
                                                value3);
 
                             if((value1.IsDefined() &&
@@ -432,7 +433,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX - gridLength;
+                              currentX -= gridLength;
                             }
 
                             else if((value2.IsDefined() &&
@@ -446,7 +447,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY + gridLength;
+                              currentY += gridLength;
                             }
 
                             else if((value3.IsDefined() &&
@@ -460,7 +461,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX + gridLength;
+                              currentX += gridLength;
                             }
                           }
 
@@ -469,16 +470,16 @@ int toregionFunction(Word* pArguments,
                                   currentY < lastY)
                           {
                             CcBool value1;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY - halfGridLength,
                                                value1);
                             CcBool value2;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY - halfGridLength,
                                                value2);
                             CcBool value3;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY + halfGridLength,
                                                value3);
 
                             if((value1.IsDefined() &&
@@ -491,7 +492,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX + gridLength;
+                              currentX += gridLength;
                             }
 
                             else if((value2.IsDefined() &&
@@ -505,7 +506,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY - gridLength;
+                              currentY -= gridLength;
                             }
 
                             else if((value3.IsDefined() &&
@@ -519,7 +520,7 @@ int toregionFunction(Word* pArguments,
              
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX - gridLength;
+                              currentX -= gridLength;
                             }
                           }
 
@@ -528,16 +529,16 @@ int toregionFunction(Word* pArguments,
                                   AlmostEqual(currentY, lastY) )
                           {
                             CcBool value1;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY + halfGridLength,
                                                value1);
                             CcBool value2;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY - halfGridLength,
                                                value2);
                             CcBool value3;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY - halfGridLength,
                                                value3);
 
                             if((value1.IsDefined() &&
@@ -550,7 +551,7 @@ int toregionFunction(Word* pArguments,
                  
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY + gridLength;
+                              currentY += gridLength;
                             }
 
                             else if((value2.IsDefined() &&
@@ -564,7 +565,7 @@ int toregionFunction(Word* pArguments,
                  
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX + gridLength;
+                              currentX += gridLength;
                             }
 
                             else if((value3.IsDefined() &&
@@ -578,7 +579,7 @@ int toregionFunction(Word* pArguments,
              
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY - gridLength;
+                              currentY -= gridLength;
                             }
                           }
 
@@ -587,16 +588,16 @@ int toregionFunction(Word* pArguments,
                                   AlmostEqual(currentY, lastY) )
                           {
                             CcBool value1;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY - gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY - halfGridLength,
                                                value1);
                             CcBool value2;
-                            ptbool->atlocation(currentX - gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX - halfGridLength,
+                                               currentY + halfGridLength,
                                                value2);
                             CcBool value3;
-                            ptbool->atlocation(currentX + gridLength / 2,
-                                               currentY + gridLength / 2,
+                            ptbool->atlocation(currentX + halfGridLength,
+                                               currentY + halfGridLength,
                                                value3);
 
                             if((value1.IsDefined() &&
@@ -609,7 +610,7 @@ int toregionFunction(Word* pArguments,
 
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY - gridLength;
+                              currentY -= gridLength;
                             }
 
                             else if((value2.IsDefined() &&
@@ -623,7 +624,7 @@ int toregionFunction(Word* pArguments,
                  
                               lastX = currentX;
                               lastY = currentY;
-                              currentX = currentX - gridLength;
+                              currentX -= gridLength;
                             }
 
                             else if((value3.IsDefined() &&
@@ -637,7 +638,7 @@ int toregionFunction(Word* pArguments,
                       
                               lastX = currentX;
                               lastY = currentY;
-                              currentY = currentY + gridLength;
+                              currentY += gridLength;
                             }
                           }
 
@@ -679,8 +680,12 @@ int toregionFunction(Word* pArguments,
               }
               
               std::swap(*pResult, *pBuildRegion);
+
               delete pBuildRegion;
+              pBuildRegion = 0;
+
               delete pBuildHoles;
+              pBuildHoles = 0;
             }
           }
         }
