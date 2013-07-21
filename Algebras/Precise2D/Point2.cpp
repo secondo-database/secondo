@@ -43,7 +43,7 @@
 namespace p2d {
 
 /*
-3 PointData Constructor
+3 Class PointData
 
 */
 
@@ -300,7 +300,7 @@ bool PointData::Intersects(const Rectangle<2>& rect,
 }
 
 /*
-4 Point2
+4 Class Point2
 
 */
 

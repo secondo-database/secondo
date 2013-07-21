@@ -75,7 +75,7 @@ private:
 public:
 
 /*
-2.1 Constructor and Deconstructor
+2.1 Constructor and destructor
 
 */
 
@@ -185,7 +185,7 @@ private:
 public:
 
 /*
-3.1 Constructors and Deconstructor
+3.1 Constructors and destructor
 
 */
  inline Point2() {

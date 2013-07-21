@@ -27,7 +27,7 @@
 
  [TOC]
 
- 0 Overview
+0 Overview
 
  This file contains same classes and operators as
  the file AVL\_Tree.h. Only the struct ~TestStruct~ is new.
@@ -38,7 +38,7 @@
  To save some space the comments are reduced to a minimum. For more information
  see file AVL\_Tree.h
 
- 1 Includes and defines
+1 Includes and defines
 
 */
 
@@ -834,20 +834,6 @@ Owner selectNext(/*const*/ Region2& r1, int& pos1,
 
 
 /*
-1 ~splitNeighbours~
-
-*/
-void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
-  AVLSegment* overlappingSegment, AVLSegment* rightC, AVLSegment* rightN,
-  TestStruct& t);
-
-/*
-1 ~mergeNeighbors~
-
-*/
-bool mergeNeighbors(AVLSegment* current, AVLSegment* neighbor, TestStruct& t);
-
-/*
 1 ~splitNeighbors~
 
 */
@@ -859,7 +845,7 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
 1 ~intersectionForSetOp~
 
 */
-bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
+bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event& event,
   priority_queue<Event, vector<Event>, greater<Event> >& q, bool leftIsSmaller,
   TestStruct& t);
 
@@ -921,10 +907,6 @@ void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op);
 void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
   SetOperation op, TestStruct& t, const Geoid* geoid = 0);
 
-/*
-1 ~SetOp~
-
-*/
 void SetOp(/*const*/ Region2& region1,/*const*/ Region2& region2,
   Region2& result, SetOperation op, TestStruct& t, const Geoid* geoid = 0);
 

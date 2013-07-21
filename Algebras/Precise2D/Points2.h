@@ -127,7 +127,7 @@ private:
 public:
 
 /*
-2.1 Constructors and deconstructor
+2.1 Constructors and destructor
 
 */
 

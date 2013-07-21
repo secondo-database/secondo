@@ -46,12 +46,12 @@ namespace p2d {
 bool p2d_debug = false;
 
 /*
-1 class AVLTree
+1 Class AVLTree
 
 */
 
 /*
-1.1 Constructor and Deconstructor
+1.1 Constructor and destructor
 
 */
 AVLTree::AVLTree() {
@@ -203,12 +203,12 @@ void AVLTree::inorder() {
 }
 
 /*
-2 class AVLNode
+2 Class AVLNode
 
 */
 
 /*
-1.1 Constructor and Deconstructor
+1.1 Constructor and destructor
 
 */
 AVLNode::AVLNode(AVLSegment* elem) :
@@ -1014,12 +1014,12 @@ void AVLNode::inorder() {
 }
 
 /*
-3 class AVLSegment
+3 Class AVLSegment
 
 */
 
 /*
-1.1 Constructors and deconstructor
+1.1 Constructors and destructor
 
 */
 AVLSegment::AVLSegment() :
@@ -2531,7 +2531,7 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
 }
 
 /*
-1 class SimpleSegment and BoundingSegments
+1 Class SimpleSegment and BoundingSegments
 
  SimpleSegment and BoundingSegments are used in mightIntersect.
  An object of type BoundingSegments contains the segments which
@@ -2540,7 +2540,7 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
 */
 
 /*
-1.1 Constructors and Deconstructor
+1.1 Constructors and destructor
 
 */
 SimpleSegment::SimpleSegment(int gxl, int gyl, int gxr, int gyr, Position gp) :
@@ -2955,12 +2955,12 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
 }
 
 /*
-1 class Event
+1 Class Event
 
 */
 
 /*
-1.1 Constructors and Deconstructor
+1.1 Constructors and destructor
 
 */
 Event::Event(KindOfEvent k, AVLSegment* s) :

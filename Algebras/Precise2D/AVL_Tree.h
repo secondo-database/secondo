@@ -67,7 +67,7 @@ private:
 public:
 
 /*
-1.1 Constructors and deconstructor
+1.1 Constructors and destructor
 
 */
  AVLTree();
@@ -142,7 +142,7 @@ public:
 };
 
 /*
-2 class AVLNode
+2 Class AVLNode
 
 */
 class AVLNode {
@@ -189,7 +189,7 @@ private:
 public:
 
 /*
-2.1 Constructors and deconstructor
+2.1 Constructors and destructor
 
 */
  AVLNode(AVLSegment* elem);
@@ -205,7 +205,7 @@ public:
  AVLNode& operator=(const AVLNode& node);
 
 /*
-2.1 Reads and writes the element of the node
+2.1 Reads and writes the AvLSegment of the node
 
 */
  AVLSegment* getElement() {
@@ -213,6 +213,14 @@ public:
  }
 
  void setElement(AVLSegment** seg);
+
+ /*
+ 2.1 ~getHeight~
+
+ */
+  int getHeight() {
+   return height;
+  }
 
 /*
 2.1 ~insert~
@@ -275,15 +283,6 @@ public:
 */
  AVLNode* removeInvalidSegment(AVLSegment* x, int gridXPos,
    mpq_class preciseXPos, bool& found);
-
-
-/*
-2.1 ~getHeight~
-
-*/
- int getHeight() {
-  return height;
- }
 
 /*
 2.1 ~memberPlusNeighbor~
@@ -376,7 +375,7 @@ enum RelationshipOperation {
 };
 
 /*
-7 Coordinate
+7 Struct Coordinate
 
  ~Coordinate~ is used in the ~selectNext~-functions.
 
@@ -411,7 +410,7 @@ struct Coordinate {
 };
 
 /*
-8 class AVLSegment
+8 Class AVLSegment
 
 */
 class AVLSegment {
@@ -507,7 +506,7 @@ int computeEndOfIntersectionInterval(int pos);
 public:
 
 /*
-8.1 Constructors and deconstructor
+8.1 Constructors and destructor
 
 */
  AVLSegment();
@@ -758,7 +757,7 @@ public:
 };
 
 /*
-9 class SimpleSegment and BoundingSegments
+9 Class SimpleSegment and BoundingSegments
 
  SimpleSegment and BoundingSegments are used in mightIntersect.
  An object of type BoundingSegments contains the segments which
@@ -851,7 +850,7 @@ public:
 };
 
 /*
-10 class Event
+10 Class Event
 
 */
 class Event {
@@ -870,7 +869,7 @@ private:
 public:
 
 /*
-10.1 Constructors and deconstructor
+10.1 Constructors and destructor
 
 */
  Event(KindOfEvent k, AVLSegment* s);
@@ -881,9 +880,7 @@ public:
 
  Event(const Event& e);
 
- Event() {
- }
- ;
+ Event() {};
 
  ~Event();
 
@@ -1020,21 +1017,9 @@ template<class C>
 Owner selectNext(const C& l, int& pos,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
 
-
-/*
-11 ~splitNeighbours~
-
- ~Current~ and ~neighbor~ intersect in ~overlappingSegment~, which has to be a
- point. This function splits ~current~ and ~neighbor~ in 4 parts:
- ~current~ stores the left part of the original ~current~, ~rightC~ the right
- part, neighbor analog.
-
-*/
-void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
-  AVLSegment* overlappingSegment, AVLSegment* rightC, AVLSegment* rightN);
-
 /*
 11 ~mergeNeighbors~
+
  This function merges overlapping segments to one segment, stored in ~neighbor~.
 
 */
@@ -1117,7 +1102,7 @@ void createNewSegments(AVLSegment& s, Line2& result, int& edgeNo,
   SetOperation op);
 
 /*
-11 ~createNewSegments~
+ ~createNewSegments~
 
  For each AVLSegment in the ~segmentVector~ which satisfy the conditions for the
  given Setoperation ~op~ and don't end in the event-point of ~event~, a new
@@ -1130,7 +1115,7 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   Line2& result, int& edgeNo, SetOperation op);
 
 /*
-11 ~createNewSegments~
+ ~createNewSegments~
 
  Creates a new Halfsegment and stores it in ~result~ if it satify the conditions
  for the given SetOperation ~op~.
@@ -1140,7 +1125,7 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
   SetOperation op);
 
 /*
-11 ~createNewSegments~
+ ~createNewSegments~
 
  For each AVLSegment in the ~segmentVector~ which satisfy the conditions for the
  given Setoperation ~op~ and don't end in the event-point of ~event~, a new
@@ -1165,7 +1150,7 @@ void checkSegments(vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, bool& result, RelationshipOperation op);
 
 /*
-11 ~checkSegment~
+ ~checkSegment~
 
  Checks if the given AVLSegments of the ~segmentVector~ satisfy the conditions
  of the given ~op~.
@@ -1181,25 +1166,21 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow);
 
 
 /*
-11 ~SetOp~
-
- for ~line2~
+11 ~SetOp~ for ~line2~
 
 */
 void SetOp(const Line2& line1, const Line2& line2, Line2& result,
   SetOperation op, const Geoid* geoid = 0);
 
 /*
-11 ~SetOp~
-
- for ~region2~
+11 ~SetOp~ for ~region2~
 
 */
 void SetOp(/*const*/ Region2& region1,/*const*/ Region2& region2,
   Region2& result, SetOperation op, const Geoid* geoid = 0);
 
 /*
-11 ~intersects~
+11 ~intersects~ for ~Line2~
 
  ~line2~ x ~line2~ [->] bool
 
@@ -1211,7 +1192,7 @@ void SetOp(/*const*/ Region2& region1,/*const*/ Region2& region2,
 bool intersects(const Line2& line1, const Line2& line2, const Geoid* geoid = 0);
 
 /*
-11 ~intersects~
+11 ~intersects~ for ~Region2~
 
  ~region2~ x ~region2~ [->] ~bool~
 

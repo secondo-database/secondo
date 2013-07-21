@@ -126,7 +126,7 @@ void gmpTypeToTextType(const mpq_class& value, ListExpr& resultList) {
 }
 
 /*
-1 ~prepareValue~
+1 ~internalValueToOutputValue~
 
  A negative value is internally stored with a grid value and a precise value
  like the positive values. But the internal representation has to be changed

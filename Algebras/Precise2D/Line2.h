@@ -149,7 +149,7 @@ class SegmentData {
 public:
 
 /*
-2.2 Constructors and deconstructor
+2.2 Constructors and destructor
 
 */
 
@@ -402,7 +402,7 @@ private:
 public:
 
 /*
-3.1 Constructors and deconstructor
+3.1 Constructors and destructor
 
 */
 Line2();

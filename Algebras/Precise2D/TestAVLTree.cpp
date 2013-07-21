@@ -5005,7 +5005,7 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
 }
 
 /*
-1 ~SetOp~
+1 ~SetOp~ for ~Line2~
 
 */
 void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
@@ -5418,7 +5418,7 @@ bool intersects(const p2d::Line2& line1, const p2d::Line2& line2, TestStruct& t,
 } // intersects line2 x line2 -> bool
 
 /*
-1 ~SetOp~
+1 ~SetOp~ for ~Region2~
 
 */
 void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,

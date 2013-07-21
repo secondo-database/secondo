@@ -882,7 +882,7 @@ void Line2::collectFace(int faceno, int startPos, DbArray<bool>& used) {
  int partner = Sd1.GetPartnerno();
  segmentData.Get(partner, sd2);
  SegmentData Sd2 = sd2;
- Sd2.SetFaceno(false);
+ Sd2.SetInsideAbove(false);
  Sd2.SetCoverageno(0);
  Sd2.SetCycleno(0);
  Sd2.SetFaceno(faceno);
