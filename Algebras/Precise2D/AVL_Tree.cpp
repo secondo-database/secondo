@@ -4893,13 +4893,20 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
      event.print();
     }
     current = event.getSegment();
+    if (current->isValid()) {
+      createNewSegments(*current, result, edgeno, op);
 
-    createNewSegments(*current, result, edgeno, op);
-
-    sss.removeGetNeighbor(current, pred, suc);
-
-    if (pred && suc) {
-     intersectionTestForSetOp(pred, suc, event, q, true);
+      sss.removeGetNeighbor(current, pred, suc);
+      current->changeValidity(false);
+      if (pred && suc) {
+       intersectionTestForSetOp(pred, suc, event, q, true);
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
+     if (pred && suc) {
+      intersectionTestForSetOp(pred, suc, event, q, true);
+     }
     }
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
@@ -5053,17 +5060,27 @@ bool intersects(const Line2& line1, const Line2& line2,
      event.print();
     }
     current = event.getSegment();
-
-    sss.removeGetNeighbor(current, pred, suc);
-
-    if (pred && suc) {
-     if (intersectionTestForSetOp(pred, suc, event, q, true)) {
-      if ((pred->getOwner() != suc->getOwner())) {
-       intersect = true;
+    if (current->isValid()){
+      sss.removeGetNeighbor(current, pred, suc);
+      current->changeValidity(false);
+      if (pred && suc) {
+       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
+        if ((pred->getOwner() != suc->getOwner())) {
+         intersect = true;
+        }
+       }
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
+     if (pred && suc) {
+      if (intersectionTestForSetOp(pred, suc, event, q, true)) {
+       if (pred->getOwner() != suc->getOwner()) {
+        intersect = true;
+       }
       }
      }
     }
-
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
@@ -5191,8 +5208,6 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
      intersectionTestForSetOp(current, suc, event, q, true);
      if (!current->isValid()) {
       sss.removeInvalidSegment(current, event.getGridX(), v);
-     } else {
-
      }
     }
    }
@@ -5208,14 +5223,20 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
      event.print();
     }
     current = event.getSegment();
-
+    if (current->isValid()){
      mpq_class v1 = current->getPreciseXR();
      sss.removeGetNeighbor(current, pred, suc);
-
+     current->changeValidity(false);
      if (pred && suc) {
       intersectionTestForSetOp(pred, suc, event, q, true);
      }
-
+    } else {
+      mpq_class v1 = event.getPreciseX();
+      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
+      if (pred && suc) {
+       intersectionTestForSetOp(pred, suc, event, q, true);
+      }
+     }
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
@@ -5456,15 +5477,21 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
      event.print();
     }
     current = event.getSegment();
+    if (current->isValid()){
+      createNewSegments(*current, result, edgeno, op);
 
-    createNewSegments(*current, result, edgeno, op);
-
-    sss.removeGetNeighbor(current, pred, suc);
-
-    if (pred && suc) {
-     intersectionTestForSetOp(pred, suc, event, q, true);
+      sss.removeGetNeighbor(current, pred, suc);
+      current->changeValidity(false);
+      if (pred && suc) {
+       intersectionTestForSetOp(pred, suc, event, q, true);
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
+     if (pred && suc) {
+      intersectionTestForSetOp(pred, suc, event, q, true);
+     }
     }
-
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
@@ -5616,19 +5643,29 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2,
      event.print();
     }
     current = event.getSegment();
+    if (current->isValid()){
+      checkSegment(*current, intersect, intersects_op);
 
-    checkSegment(*current, intersect, intersects_op);
-
-    sss.removeGetNeighbor(current, pred, suc);
-
-    if (pred && suc) {
-     if (intersectionTestForSetOp(pred, suc, event, q, true)) {
-      if ((pred->getOwner() != suc->getOwner())) {
-       intersect = true;
+      sss.removeGetNeighbor(current, pred, suc);
+      current->changeValidity(false);
+      if (pred && suc) {
+       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
+        if ((pred->getOwner() != suc->getOwner())) {
+         intersect = true;
+        }
+       }
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
+     if (pred && suc) {
+      if(intersectionTestForSetOp(pred, suc, event, q, true)){
+        if ((pred->getOwner() != suc->getOwner())) {
+         intersect = true;
+        }
       }
      }
     }
-
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
@@ -5777,15 +5814,21 @@ bool overlaps(/*const*/Region2& reg1, /*const*/Region2& reg2,
      event.print();
     }
     current = event.getSegment();
+    if (current->isValid()){
+      checkSegment(*current, overlaps, overlaps_op);
 
-    checkSegment(*current, overlaps, overlaps_op);
-
-    sss.removeGetNeighbor(current, pred, suc);
-
-    if (pred && suc) {
-     intersectionTestForSetOp(pred, suc, event, q, true);
+      sss.removeGetNeighbor(current, pred, suc);
+      current->changeValidity(false);
+      if (pred && suc) {
+       intersectionTestForSetOp(pred, suc, event, q, true);
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
+     if (pred && suc) {
+      intersectionTestForSetOp(pred, suc, event, q, true);
+     }
     }
-
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
@@ -5924,15 +5967,21 @@ bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
      event.print();
     }
     current = event.getSegment();
+    if (current->isValid()){
+      checkSegment(*current, inside, inside_op);
 
-    checkSegment(*current, inside, inside_op);
-
-    sss.removeGetNeighbor(current, pred, suc);
-
-    if (pred && suc) {
-     intersectionTestForSetOp(pred, suc, event, q, true);
+      sss.removeGetNeighbor(current, pred, suc);
+      current->changeValidity(false);
+      if (pred && suc) {
+       intersectionTestForSetOp(pred, suc, event, q, true);
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
+     if (pred && suc) {
+      intersectionTestForSetOp(pred, suc, event, q, true);
+     }
     }
-
     if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;

@@ -4299,7 +4299,7 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
 1 ~intersectionForSetOp~
 
 */
-bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
+bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event& event,
   priority_queue<Event, vector<Event>, greater<Event> >& q, bool leftIsSmaller,
   TestStruct& t) {
 
@@ -4316,7 +4316,7 @@ bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
     cout << endl << endl;
    }
    if (overlappingSegment->isPoint(t)) {
-    if (!overlappingSegment->isLeftOf(*event, t)) {
+    if (!overlappingSegment->isLeftOf(event, t)) {
      if (leftIsSmaller) {
       Event ie(intersectionPoint, s1, s2, overlappingSegment);
       vNoCmpGrid = 0;
@@ -5117,15 +5117,15 @@ void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
 
  int edgeno = 0;
 
- Event* event = new Event();
+ Event event;
 
  result.StartBulkLoad();
- while ((selectNext(line1, pos1, line2, pos2, q, *event, t)) != none) {
-  if (event->isLeftEndpointEvent()) {
+ while ((selectNext(line1, pos1, line2, pos2, q, event, t)) != none) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc, t);
 
    mpq_class v = current->getPreciseXL();
@@ -5134,12 +5134,12 @@ void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v, t);
+    sss.removeInvalidSegment(current, event.getGridX(), v, t);
    } else {
     if (suc) {
      intersectionTestForSetOp(current, suc, event, q, true, t);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v, t);
+      sss.removeInvalidSegment(current, event.getGridX(), v, t);
      }
     }
    }
@@ -5152,46 +5152,52 @@ void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
     t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
    }
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
+    current = event.getSegment();
+    if (current->isValid()){
+      createNewSegments(*current, result, edgeno, op);
 
-    createNewSegments(*current, result, edgeno, op);
-
-    sss.removeGetNeighbor(current, pred, suc, t);
-
-    if (pred && suc) {
-     intersectionTestForSetOp(pred, suc, event, q, true, t);
+      sss.removeGetNeighbor(current, pred, suc, t);
+      current->changeValidity(false);
+      if (pred && suc) {
+       intersectionTestForSetOp(pred, suc, event, q, true, t);
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc, t);
+     if (pred && suc) {
+      intersectionTestForSetOp(pred, suc, event, q, true, t);
+     }
     }
-
-    if (event->getNoOfChanges() == 0) {
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary, t);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex, t);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex, t);
 
       if (p2d_debug && pred) {
        cout << "intersection- with" << endl;
@@ -5211,10 +5217,10 @@ void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
       if (suc) {
        intersectionTestForSetOp(left, suc, event, q, true, t);
       }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
+      mpq_class px = event.getPreciseX();
+      mpq_class py = event.getPreciseY();
 
-      createNewSegments(segmentVector, *event, result, edgeno, op, t);
+      createNewSegments(segmentVector, event, result, edgeno, op, t);
      }
     }
    }
@@ -5224,7 +5230,7 @@ void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
    sss.inorder();
   }
  }
- delete event;
+
  result.EndBulkLoad(true, false);
 } // setop line2 x line2 -> line2
 
@@ -5268,17 +5274,17 @@ bool intersects(const p2d::Line2& line1, const p2d::Line2& line2, TestStruct& t,
  AVLSegment* left = NULL;
  AVLSegment* right = NULL;
 
- Event* event = new Event();
+ Event event;
 
  bool intersect = false;
 
  while ((!intersect
-   && (selectNext(line1, pos1, line2, pos2, q, *event, t)) != none)) {
-  if (event->isLeftEndpointEvent()) {
+   && (selectNext(line1, pos1, line2, pos2, q, event, t)) != none)) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
 
    sss.insert(current, pred, suc, t);
 
@@ -5296,7 +5302,7 @@ bool intersects(const p2d::Line2& line1, const p2d::Line2& line2, TestStruct& t,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v, t);
+    sss.removeInvalidSegment(current, event.getGridX(), v, t);
    } else {
     if (suc) {
      if (intersectionTestForSetOp(current, suc, event, q, true, t)) {
@@ -5306,7 +5312,7 @@ bool intersects(const p2d::Line2& line1, const p2d::Line2& line2, TestStruct& t,
       }
      }
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v, t);
+      sss.removeInvalidSegment(current, event.getGridX(), v, t);
      }
     }
    }
@@ -5319,49 +5325,58 @@ bool intersects(const p2d::Line2& line1, const p2d::Line2& line2, TestStruct& t,
     t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
    }
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
-
-    sss.removeGetNeighbor(current, pred, suc, t);
-
-    if (pred && suc) {
-     if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
-      if ((pred->getOwner() != suc->getOwner())) {
-       intersect = true;
+    current = event.getSegment();
+    if (current->isValid()){
+      sss.removeGetNeighbor(current, pred, suc, t);
+      current->changeValidity(false);
+      if (pred && suc) {
+       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
+        if ((pred->getOwner() != suc->getOwner())) {
+         intersect = true;
+        }
+       }
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc, t);
+     if (pred && suc) {
+      if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
+       if (pred->getOwner() != suc->getOwner()) {
+        intersect = true;
+       }
       }
      }
-
     }
-
-    if (event->getNoOfChanges() == 0) {
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary, t);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex, t);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex, t);
 
       if (p2d_debug && pred) {
        cout << "intersection- for" << endl;
@@ -5398,7 +5413,7 @@ bool intersects(const p2d::Line2& line1, const p2d::Line2& line2, TestStruct& t,
    sss.inorder();
   }
  }
- delete event;
+
  return intersect;
 } // intersects line2 x line2 -> bool
 
@@ -5526,16 +5541,16 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
 
  int edgeno = 0;
 
- Event* event = new Event();
+ Event event;
 
  result.StartBulkLoad();
 
- while ((selectNext(reg1, pos1, reg2, pos2, q, *event, t)) != none) {
-  if (event->isLeftEndpointEvent()) {
+ while ((selectNext(reg1, pos1, reg2, pos2, q, event, t)) != none) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc, t);
 
    mpq_class v = current->getPreciseXL();
@@ -5544,12 +5559,12 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v, t);
+    sss.removeInvalidSegment(current, event.getGridX(), v, t);
    } else {
     if (suc) {
      intersectionTestForSetOp(current, suc, event, q, true, t);
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v, t);
+      sss.removeInvalidSegment(current, event.getGridX(), v, t);
      }
     }
    }
@@ -5563,47 +5578,53 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
    }
 
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
+    current = event.getSegment();
+    if (current->isValid()){
+      createNewSegments(*current, result, edgeno, op);
 
-    createNewSegments(*current, result, edgeno, op);
-
-    sss.removeGetNeighbor(current, pred, suc, t);
-
-    if (pred && suc) {
-     intersectionTestForSetOp(pred, suc, event, q, true, t);
+      sss.removeGetNeighbor(current, pred, suc, t);
+      current->changeValidity(false);
+      if (pred && suc) {
+       intersectionTestForSetOp(pred, suc, event, q, true, t);
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc, t);
+     if (pred && suc) {
+      intersectionTestForSetOp(pred, suc, event, q, true, t);
+     }
     }
-
-    if (event->getNoOfChanges() == 0) {
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
 
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary, t);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex, t);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex, t);
 
       if (p2d_debug && pred) {
        cout << "intersection-test for" << endl;
@@ -5623,10 +5644,10 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
       if (suc) {
        intersectionTestForSetOp(left, suc, event, q, true, t);
       }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
+      mpq_class px = event.getPreciseX();
+      mpq_class py = event.getPreciseY();
 
-      createNewSegments(segmentVector, *event, suc, result, edgeno, op, t);
+      createNewSegments(segmentVector, event, suc, result, edgeno, op, t);
      }
     }
    }
@@ -5636,8 +5657,6 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
    sss.inorder();
   }
  }
-
- delete event;
  result.EndBulkLoad();
 
 } // setOP region2 x region2 -> region2
@@ -5684,17 +5703,17 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2, TestStruct& t,
  AVLSegment* right = NULL;
  AVLSegment* left = NULL;
 
- Event* event = new Event();
+ Event event;
 
  bool intersect = false;
 
  while (!intersect
-   && (selectNext(reg1, pos1, reg2, pos2, q, *event, t)) != none) {
-  if (event->isLeftEndpointEvent()) {
+   && (selectNext(reg1, pos1, reg2, pos2, q, event, t)) != none) {
+  if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
-    event->print();
+    event.print();
    }
-   current = event->getSegment();
+   current = event.getSegment();
    sss.insert(current, pred, suc, t);
 
    mpq_class v = current->getPreciseXL();
@@ -5709,7 +5728,7 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2, TestStruct& t,
    }
 
    if (!current->isValid()) {
-    sss.removeInvalidSegment(current, event->getGridX(), v, t);
+    sss.removeInvalidSegment(current, event.getGridX(), v, t);
    } else {
     if (suc) {
      if (intersectionTestForSetOp(current, suc, event, q, true, t)) {
@@ -5718,7 +5737,7 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2, TestStruct& t,
       }
      }
      if (!current->isValid()) {
-      sss.removeInvalidSegment(current, event->getGridX(), v, t);
+      sss.removeInvalidSegment(current, event.getGridX(), v, t);
      }
     }
    }
@@ -5731,50 +5750,60 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2, TestStruct& t,
     t.noCmpPrecise = t.noCmpPrecise + vNoCmpPrecise;
    }
   } else {
-   if (event->isRightEndpointEvent()) {
+   if (event.isRightEndpointEvent()) {
     if (p2d_debug) {
-     event->print();
+     event.print();
     }
-    current = event->getSegment();
+    current = event.getSegment();
+    if (current->isValid()){
+      checkSegment(*current, intersect, intersects_op);
 
-    checkSegment(*current, intersect, intersects_op);
-
-    sss.removeGetNeighbor(current, pred, suc, t);
-
-    if (pred && suc) {
-    if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
-      if ((pred->getOwner() != suc->getOwner())) {
-       intersect = true;
+      sss.removeGetNeighbor(current, pred, suc, t);
+      current->changeValidity(false);
+      if (pred && suc) {
+       if (intersectionTestForSetOp(pred, suc, event, q, true, t)) {
+        if ((pred->getOwner() != suc->getOwner())) {
+         intersect = true;
+        }
+       }
+      }
+    } else {
+     mpq_class v1 = event.getPreciseX();
+     sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc, t);
+     if (pred && suc) {
+      if(intersectionTestForSetOp(pred, suc, event, q, true, t)){
+        if ((pred->getOwner() != suc->getOwner())) {
+         intersect = true;
+        }
       }
      }
     }
-
-    if (event->getNoOfChanges() == 0) {
+    if (event.getNoOfChanges() == 0) {
      //this is the last event with ~current~
      delete current;
     }
    } else {
     //intersection Event
-    if (event->isValid()) {
+    if (event.isValid()) {
      if (p2d_debug) {
-      event->print();
+      event.print();
      }
-     mpq_class v1 = event->getPreciseX();
-     mpq_class v2 = event->getPreciseY();
+     mpq_class v1 = event.getPreciseX();
+     mpq_class v2 = event.getPreciseY();
      vector<AVLSegment*> segmentVector;
 
      size_t predIndex = 0;
      size_t sucIndex = 0;
      bool inversionNecessary = false;
 
-     collectSegmentsForInverting(segmentVector, *event, q, predIndex, sucIndex,
+     collectSegmentsForInverting(segmentVector, event, q, predIndex, sucIndex,
        inversionNecessary, t);
 
      if (inversionNecessary) {
       left = segmentVector.at(0);
       right = segmentVector.back();
-      sss.invertSegments(segmentVector, event->getGridX(), v1,
-        event->getGridY(), v2, pred, predIndex, suc, sucIndex, t);
+      sss.invertSegments(segmentVector, event.getGridX(), v1,
+        event.getGridY(), v2, pred, predIndex, suc, sucIndex, t);
 
       if (p2d_debug && pred) {
        cout << "intersection- for" << endl;
@@ -5802,10 +5831,10 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2, TestStruct& t,
         }
        }
       }
-      mpq_class px = event->getPreciseX();
-      mpq_class py = event->getPreciseY();
+      mpq_class px = event.getPreciseX();
+      mpq_class py = event.getPreciseY();
 
-      checkSegments(segmentVector, *event, suc, intersect, intersects_op, t);
+      checkSegments(segmentVector, event, suc, intersect, intersects_op, t);
      }
     }
    }
@@ -5815,7 +5844,6 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2, TestStruct& t,
    sss.inorder();
   }
  }
- delete event;
 
  return intersect;
 } // intersects region2 x region2 -> bool
