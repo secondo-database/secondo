@@ -19,3 +19,10 @@ Number   : 1
 Signature: (mT X mT') -> rel(tuple([Raw :mT,Symbolic:mT']))
 Example  : query by (Person feed unnest[Hybrid] extract[Mov], Person feed unnest[Hybrid] extract[Label]) count
 Result   : 2
+
+
+Operator : getHybridPartition
+Number   : 1
+Signature: (rel(T)) -> stream(uT')
+Example  : query Person feed extract[Hybrid] getHybridPartition count
+Result   : 451
