@@ -169,7 +169,7 @@ void Reg::ConvexHull() {
 int depth = 1;
 
 vector<Reg> Reg::Concavities() {
-    vector<Reg> ret = vector<Reg > ();
+    vector<Reg> ret = vector<Reg>();
     vector<Seg> ch = convexhull;
     unsigned int j = 0;
 

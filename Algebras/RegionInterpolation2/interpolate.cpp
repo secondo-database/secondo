@@ -272,7 +272,7 @@ vector<URegion> interpolate1(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti4) {
 //}
 
 
-MSegs rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
+MFace rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
     MSegs msegs;
 
     Reg r1 = Reg(reg1->convexhull);
@@ -336,31 +336,13 @@ MSegs rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
             }
         }
 
-//        MSegmentData ms = v.back();
-//        int found = 0;
-//        for (unsigned int j = 0; j < v.size() - 1; j++) {
-//            if (
-//                    (v[j].GetInitialStartX() == ms.GetInitialStartX()) &&
-//                    (v[j].GetFinalStartX() == ms.GetFinalStartX()) &&
-//                    (v[j].GetInitialStartY() == ms.GetInitialStartY()) &&
-//                    (v[j].GetFinalStartY() == ms.GetFinalStartY()) &&
-//                    (v[j].GetInitialEndX() == ms.GetInitialEndX()) &&
-//                    (v[j].GetFinalEndX() == ms.GetFinalEndX()) &&
-//                    (v[j].GetInitialEndY() == ms.GetInitialEndY()) &&
-//                    (v[j].GetFinalEndY() == ms.GetFinalEndY())) {
-//                found = 1;
-//                break;
-//            }
-//        }
-//        if (found)
-//            break;
-
         if (r1.End() && r2.End())
             break;
 
     } while (1);
-
-    return msegs;
+    
+    MFace ret = MFace(msegs);
+    return ret;
 }
 
 vector<URegion> interpolate2(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti2) {
@@ -527,7 +509,7 @@ URegion interpolate3(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti2) {
 vector<MSegs> interpolate4 (vector<Reg> *sregs, Instant *ti1,
 			    vector<Reg> *dregs, Instant *ti2) {
     vector<pair<Reg *, Reg *> > ps = matchFacesSimple(sregs, dregs);
-    vector<MSegs> ret;
+    vector<MSegs> ret, msegs;
     
     for (unsigned int i = 0; i < ps.size(); i++) {
         pair<Reg *, Reg *> p = ps[i];
@@ -540,8 +522,11 @@ vector<MSegs> interpolate4 (vector<Reg> *sregs, Instant *ti1,
             vector<Reg> dcvs = dst->Concavities();
 	    Reg scvx(src->convexhull);
 	    Reg dcvx(dst->convexhull);
-            MSegs m = rotatingPlane(&scvx, &dcvx, true);
-            ret = interpolate4(&scvs, ti1, &dcvs, ti2);
+            MFace f = rotatingPlane(&scvx, &dcvx, true);
+            msegs = interpolate4(&scvs, ti1, &dcvs, ti2);
+            for (unsigned int i = 0; i < msegs.size(); i++) {
+                f.AddHole(msegs[i]);
+            }
             
         } else {
             if (dst) {
@@ -550,6 +535,8 @@ vector<MSegs> interpolate4 (vector<Reg> *sregs, Instant *ti1,
             MSegs coll = src->collapse();
         }
     }
+    
+    return ret;
 }
 
 int interpolatevalmap(Word* args,
