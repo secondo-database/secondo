@@ -31,13 +31,15 @@ February 2003 Ulrich Telle, adjusted for Berkeley DB version 4.1.25
 April 2003 Ulrich Telle, implemented temporary SmiFiles
 
 August 2004 M. Spiekermann. New private function ~CheckDbHandles~ introduced.
-Since files are closed only when an enclosing transaction is finished, reallocation
-of DbHandles is only done when necessary, e.g. when an instance op SmiFile should be
-reused after ~close~ and ~create~ and ~open~ is called again.
+Since files are closed only when an enclosing transaction is finished, 
+reallocation of DbHandles is only done when necessary, e.g. when an instance 
+op SmiFile should be reused after ~close~ and ~create~ and ~open~ is called 
+again.
 
-January 2005 M.Spiekermann. Changes in the Implementation of the PrefetchingIterator.
-Since Berkeley DB 4.2.52 does not support any longer the bulk retrieval macros with
-parameters of class ~Dbt~, a reference to the C-API struct ~DBT~ will be passed now.
+January 2005 M.Spiekermann. Changes in the Implementation of the 
+PrefetchingIterator.  Since Berkeley DB 4.2.52 does not support any longer 
+the bulk retrieval macros with parameters of class ~Dbt~, a reference to
+ the C-API struct ~DBT~ will be passed now.
 This code also compiles with version 4.1.25 of Berkeley-DB.
 
 */
@@ -292,16 +294,19 @@ SmiFile::Create( const string& name,
           }
           if ( keyDataType == SmiKey::Integer )
           {
-            rc = impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            rc = impl->bdbFile->set_bt_compare((bt_compare_fcn_type) 
+                                                BdbCompareInteger );
             SmiEnvironment::SetBDBError(rc);
           }else  if ( keyDataType == SmiKey::Longint )
           {
-            rc = impl->bdbFile->set_bt_compare( BdbCompareLongint );
+            rc = impl->bdbFile->set_bt_compare( (bt_compare_fcn_type)
+                                                 BdbCompareLongint );
             SmiEnvironment::SetBDBError(rc);
           }
           else if ( keyDataType == SmiKey::Float )
           {
-            rc = impl->bdbFile->set_bt_compare( BdbCompareFloat );
+            rc = impl->bdbFile->set_bt_compare( (bt_compare_fcn_type)
+                                                 BdbCompareFloat );
             SmiEnvironment::SetBDBError(rc);
           }
           break;
@@ -536,16 +541,19 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
           }
           if ( keyDataType == SmiKey::Integer )
           {
-            rc = impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            rc = impl->bdbFile->set_bt_compare((bt_compare_fcn_type) 
+                                                BdbCompareInteger );
             SmiEnvironment::SetBDBError( rc );
           }else if ( keyDataType == SmiKey::Longint )
           {
-            rc = impl->bdbFile->set_bt_compare( BdbCompareLongint );
+            rc = impl->bdbFile->set_bt_compare((bt_compare_fcn_type) 
+                                                BdbCompareLongint );
             SmiEnvironment::SetBDBError( rc );
           }
           else if ( keyDataType == SmiKey::Float )
           {
-            rc = impl->bdbFile->set_bt_compare( BdbCompareFloat );
+            rc = impl->bdbFile->set_bt_compare( (bt_compare_fcn_type) 
+                                                 BdbCompareFloat );
             SmiEnvironment::SetBDBError( rc );
           }
           break;
@@ -727,16 +735,19 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
           }
           if ( keyDataType == SmiKey::Integer )
           {
-            rc = impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            rc = impl->bdbFile->set_bt_compare( (bt_compare_fcn_type) 
+                                                 BdbCompareInteger );
             SmiEnvironment::SetBDBError( rc );
           } else  if ( keyDataType == SmiKey::Longint )
           {
-            rc = impl->bdbFile->set_bt_compare( BdbCompareLongint );
+            rc = impl->bdbFile->set_bt_compare( (bt_compare_fcn_type) 
+                                                 BdbCompareLongint );
             SmiEnvironment::SetBDBError( rc );
           }
           else if ( keyDataType == SmiKey::Float )
           {
-            rc = impl->bdbFile->set_bt_compare( BdbCompareFloat );
+            rc = impl->bdbFile->set_bt_compare( (bt_compare_fcn_type) 
+                                                 BdbCompareFloat );
             SmiEnvironment::SetBDBError( rc );
           }
           break;
