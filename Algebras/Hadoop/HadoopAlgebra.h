@@ -58,9 +58,9 @@ ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
     vector<string>& DLO_NameList, vector<string>& DLO_locList,
     bool ua, bool& ok, int argIndex = 0);  //Replace DLO and DLF
 ListExpr replaceParaOp(
-    ListExpr createQuery, vector<string>& flistParaList,
-    vector<fList*>& flistObjList, bool& ok);
-ListExpr replaceSecObj(ListExpr createQuery);
+    ListExpr queryList, vector<string>& flistNames,
+    vector<fList*>& flistObjects, bool& ok);
+ListExpr replaceSecObj(ListExpr queryList, bool& ok);
 
 pthread_mutex_t CLI_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -183,14 +183,28 @@ public:
   inline NList getLocList() { return fileLocList; }
   inline bool isInDB() { return (isAvailable() && (objKind == DLO));}
   inline fListKind getKind() { return objKind; }
-  //NEW
+
   inline NList getUEMapQuery() { return UEMapQuery; }
   inline static string tempName(const bool isDB){
+/*
+Cut off the generated name if it is too long after adding the prefix.
+
+*/
     stringstream ss;
+    string name;
+
     if (isDB){
-// A short prefix allows user to set longer database name on the master.
+/*
+A short prefix allows user to set longer database name on the master.
+
+*/
       ss << "PS" <<
           SecondoSystem::GetInstance()->GetDatabaseName();
+
+      name = ss.str();
+      if (name.length() > SMI_MAX_DBNAMELEN){
+        name = name.substr(0, SMI_MAX_DBNAMELEN);
+      }
     }
     else{
 /*
@@ -201,9 +215,13 @@ set names. Hence I picked up the rand function to substitute it.
 */
       ss << "SubXXXFL_" << WinUnix::rand()
           << "_" << WinUnix::getpid();
+      name = ss.str();
+      if (name.length() > SMI_MAX_NAMELEN){
+        name = name.substr(0, SMI_MAX_NAMELEN);
+      }
     }
 
-    return ss.str();
+    return name;
   }
 
 private:
@@ -356,7 +374,7 @@ class SPF_Thread
 {
 public:
   SPF_Thread(SPF_LocalInfo* _sli, int _ti, int _fid, string _s, string _d):
-    sli(_sli), fileID(_fid), source(_s), dest(_d)
+    sli(_sli), threadID(_ti), fileID(_fid), source(_s), dest(_d)
   {
     succ = false;
   }
@@ -538,4 +556,48 @@ public:
   int row, column, dest, token;
 };
 
+/*
+1.8 HadoopMapAllLocalInfo class
+
+*/
+class HMA_taskResult{
+public:
+  HMA_taskResult(int _r, int _s, bool _c, ListExpr _t)
+    : row (_r), slave(_s), succ(_c), result(_t){}
+//private:
+  int row, slave;
+  bool succ;
+  ListExpr result;
+};
+
+class HadoopMapAllLocalInfo{
+
+public:
+  HadoopMapAllLocalInfo(){
+    locations = new vector<HMA_taskResult>();
+  }
+
+  void addLoc(int row, int ds, bool succ, ListExpr result){
+    locations->push_back(HMA_taskResult(row, ds, succ, result));
+  }
+
+  void makeScan(){
+    locIter = locations->begin();
+  }
+
+  bool isEnd(){
+    return (locIter == locations->end());
+  }
+
+  HMA_taskResult getItem(){
+    HMA_taskResult r = *locIter;
+    locIter++;
+    return r;
+  }
+
+private:
+  vector<HMA_taskResult> *locations;
+  vector<HMA_taskResult>::iterator locIter;
+
+};
 #endif /* HADOOPALGEBRA_H_ */

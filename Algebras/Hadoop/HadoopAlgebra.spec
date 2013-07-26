@@ -26,3 +26,4 @@ operator hadoopReduce alias HADOOPREDUCE pattern _ op [list; fun] implicit param
 operator hadoopReduce2 alias HADOOPREDUCE2 pattern _ _ op [list; fun] implicit parameters lobject1, lobject2 types TPARA, TPARA2 
 operator createFList alias CREATEFLIST pattern _ op[_, _, _, _]
 operator pffeed alias PFFEED pattern _ op [list;list]
+operator hadoopMapAll alias HADOOPMAPALL pattern op (_)

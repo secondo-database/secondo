@@ -3441,19 +3441,22 @@ int hadoopMapValueMap(Word* args, Word& result,
       cerr << "Replace para operation fails" << endl;
     }
     else{
-      CreateQueryList = replaceSecObj(CreateQueryList);
-      //Replace parameter value according to their flist value
-      for (size_t i = 0; i < flistParaList.size(); i++)
+      CreateQueryList = replaceSecObj(CreateQueryList, ok);
+      if (ok)
       {
-        int argIndex = (i == 0 ? 1 : 0);
-        CreateQueryList =
-            replaceDLOF(CreateQueryList,
-                flistParaList[i], flistObjList[i],
-                DLF_NameList, DLF_fileLocList,
-                DLO_NameList, DLO_locList, false, ok, argIndex);
-        if (!ok){
-          cerr << "Replace DLF flist fails" << endl;
-          break;
+        //Replace parameter value according to their flist value
+        for (size_t i = 0; i < flistParaList.size(); i++)
+        {
+          int argIndex = (i == 0 ? 1 : 0);
+          CreateQueryList =
+              replaceDLOF(CreateQueryList,
+                  flistParaList[i], flistObjList[i],
+                  DLF_NameList, DLF_fileLocList,
+                  DLO_NameList, DLO_locList, false, ok, argIndex);
+          if (!ok){
+            cerr << "Replace DLF flist fails" << endl;
+            break;
+          }
         }
       }
     }
@@ -3630,14 +3633,26 @@ and process the argument function in it.
 
 It would be quite difficult to re-use the codes in ~hadoopMap~ here,
 therefore, it is better to completely create this operator,
-although most codes can be copied.
+although some codes can be copied.
 
-Its signature is:
+The operator returns a stream of tuples,
+telling in which DS the map function successes.
+This relation can be used later in the ~createFList~ operator
+to create the corresponding flist objects.
 
-----
-[string] x [text] x [(DLO):DLF] x [int] x [bool]
-  x ( map (  -> T1) ) -> flist(T1)
-----
+In the specification file, the function is not indicated as an argument function,
+since there is no parameter given for it.
+We can call it as sub-query.
+All required parameters for the sub-query are set either by DELIVERABLE data,
+or by other flist objects with the ~para~ operator.
+
+
+This operator only processes the given function and returns the location relation.
+Therefore, it doesn't accept any parameters for flist construction.
+Besides, it works on all slave Data Servers, also it must be executed.
+Therefore it only accepts the sub-query.
+
+
 
 */
 
@@ -3648,11 +3663,262 @@ struct hadoopMapAllInfo : OperatorInfo
   {
     name = "hadoopMapAll";
     signature =
-        "[string] x [text] x [(DLO):DLF] x [bool] "
-        "x ( map T1 ) -> flist(T1)";
-    meaning = "Create DLO or DLF kind flist after the map step";
+        "T -> stream(tuple(Row:int, DS:int, Column:int, Path:text))";
+    meaning = "Process the sub-query as map tasks on all slave DSs, "
+        "and return in which sDSs the task finishes.";
   }
 };
+
+/*
+5.1 Type Mapping
+
+Its signature is:
+
+----
+  T -> stream(tuple(Row:int, DS:int, Column:int, Path:text))
+----
+
+T should not be a stream, array, relation.
+
+
+*/
+
+ListExpr hadoopMapAllTypeMap(ListExpr args)
+{
+  if (!nl->HasLength(args, 1)){
+    return listutils::typeError("Expected one argument only.");
+  }
+
+  ListExpr arg1 = nl->First(args);
+  ListExpr type = nl->First(arg1);
+  ListExpr subQuery = nl->Second(arg1);
+
+  if (!listutils::isDATA(type)){
+    return listutils::typeError("The sub-query must be in kind DATA");
+  }
+
+  NList rtnAttrList = NList(
+      NList(NList("Row", false, false), NList(CcInt::BasicType())),
+      NList(NList("DS", false, false), NList(CcInt::BasicType())),
+      NList(NList("Column", false, false), NList(CcInt::BasicType())),
+      NList(NList("Path", false, false), NList(FText::BasicType())),
+      NList(NList("Success", false, false), NList(CcBool::BasicType())),
+      NList(NList("Result", false, false), NList(FText::BasicType())));
+//      NList(NList("Result", false, false), NList(type)));
+  NList locStreamType = NList().tupleStreamOf(rtnAttrList);
+
+  string dbName = fList::tempName(true);
+
+  cerr << "subQuery is: " << nl->ToString(subQuery) << endl;
+
+  return NList(NList(Symbol::APPEND()),
+      NList(NList(nl->ToString(subQuery), true, true),
+            NList(dbName, true, false)),
+      locStreamType).listExpr();
+}
+
+/*
+5.2 Value Mapping
+
+*/
+
+int hadoopMapAllValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s){
+
+  HadoopMapAllLocalInfo* hmaLI;
+
+
+  switch(message)
+  {
+    case OPEN: {
+
+      //set the result locations
+      hmaLI = (HadoopMapAllLocalInfo*)local.addr;
+      if (hmaLI) delete hmaLI;
+      hmaLI = new HadoopMapAllLocalInfo();
+
+      Word res;
+      qp->Request(args[1].addr, res);
+      string subQuery = ((FText*)res.addr)->GetValue();
+      cerr << "The task query is: " << subQuery << endl;
+
+      qp->Request(args[2].addr, res);
+      string dbName = ((CcString*)res.addr)->GetValue();
+
+      //execute the hadoop job
+      ListExpr subQueryList;
+      nl->ReadFromString(subQuery,subQueryList);
+
+      //Scan the subQuery to find out all possible flist objects.
+      vector<string> flistParaList;
+      vector<fList*> flistObjList;
+      vector<string> DLF_NameList, DLF_fileLocList;
+      vector<string> DLO_NameList, DLO_locList;
+      bool ok = true;
+      subQueryList = replaceParaOp(
+          subQueryList, flistParaList, flistObjList, ok);
+      if (!ok){
+        cerr << "Replacing flist objects fail. " << endl;
+        return 0;
+      }
+      else {
+        subQueryList = replaceSecObj(subQueryList, ok);
+        if (ok)
+        {
+          for (size_t i = 0; i < flistParaList.size(); i++)
+          {
+            //This operator doesn't accept input flist.
+            subQueryList = replaceDLOF(subQueryList,
+                flistParaList[i], flistObjList[i],
+                DLF_NameList, DLF_fileLocList,
+                DLO_NameList, DLO_locList, false, ok);
+            if (!ok){
+              cerr << "Replacing DLF flist objects fail. " << endl;
+              return 0;
+            }
+          }
+        }
+      }
+
+      //Prepare the parameters for the Hadoop job
+      NList dlfNameList, dlfLocList;
+      NList dloNameList, dloLocList;
+      ListExpr sidList;
+      if (!ok){
+        cerr << "Preparing Hadoop job parameters fails" << endl;
+        return CANCEL;
+      }
+      else
+      {
+        for (size_t i = 0; i < DLF_NameList.size(); i++)
+        {
+          dlfNameList.append(NList(DLF_NameList[i], true, false));
+          ListExpr locList;
+          nl->ReadFromString(DLF_fileLocList[i], locList);
+          dlfLocList.append(NList(locList));
+        }
+
+        for (size_t i = 0; i < DLO_NameList.size(); i++)
+        {
+          dloNameList.append(NList(DLO_NameList[i], true, false));
+          ListExpr locList;
+          nl->ReadFromString(DLO_locList[i], locList);
+          dloLocList.append(NList(locList));
+        }
+
+        stringstream queryStr;
+
+        queryStr << "hadoop jar ParallelSecondo.jar "
+                    "ParallelSecondo.PS_HadoopMapAll \\\n"
+            << dbName << " "
+            << " \"" << tranStr(nl->ToString(subQueryList),
+              "\"", "\\\"") << "\" \\\n"
+            << " \"" << tranStr(dlfNameList.convertToString(),
+              "\"", "\\\"") << "\" \\\n"
+            << " \"" << tranStr(dlfLocList.convertToString(),
+              "\"", "\\\"") << "\" \\\n"
+            << " \"" << tranStr(dloNameList.convertToString(),
+              "\"", "\\\"") << "\" \\\n"
+            << " \"" << tranStr(dloLocList.convertToString(),
+              "\"", "\\\"") << "\" " << endl;
+
+        int rtn = -1;
+        cout << queryStr.str() << endl;
+        rtn = system(queryStr.str().c_str());
+        ok = (rtn == 0);
+
+        if (ok)
+        {
+          FILE *fs;
+          char buf[MAX_STRINGSIZE];
+          fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
+          if ( NULL != fs )
+          {
+            stringstream ss;
+            while(!feof(fs) && fgets(buf, sizeof(buf), fs))
+            {
+              ss << buf ;
+            }
+            string locListStr = ss.str();
+            locListStr = locListStr.substr(locListStr.find_first_of(' '));
+            nl->ReadFromString(locListStr, sidList);
+          }
+          else
+          {
+            cerr << "Read Hadoop job results fails" << endl;
+            ok = false;
+          }
+        }
+        else
+        {
+          cerr << "The Hadoop job fails" << endl;
+        }
+
+        if (ok)
+        {
+          ListExpr rest = sidList;
+          while(!nl->IsEmpty(rest))
+          {
+            ListExpr row = nl->First(rest);
+            int rowNum = nl->IntValue(nl->First(row));
+            int slaveIdx = nl->IntValue(nl->Second(row));
+            bool succ = nl->BoolValue(nl->Third(row));
+            hmaLI->addLoc(rowNum, slaveIdx, succ, nl->Fourth(row));
+            rest = nl->Rest(rest);
+          }
+        }
+      }
+
+      hmaLI->makeScan();
+      local.setAddr(hmaLI);
+
+      return 0;
+    }
+    case REQUEST: {
+
+      if (!local.addr)
+        return CANCEL;
+      else
+        hmaLI = (HadoopMapAllLocalInfo*)local.addr;
+
+      if (!hmaLI->isEnd())
+      {
+        HMA_taskResult loc = hmaLI->getItem();
+        ListExpr resultTupleList = GetTupleResultType(s);
+        TupleType *resultType = new TupleType(nl->Second(resultTupleList));
+        Tuple* resultTuple = new Tuple(resultType);
+        resultTuple->PutAttribute(0, new CcInt(loc.row));
+        resultTuple->PutAttribute(1, new CcInt(loc.slave));
+        resultTuple->PutAttribute(2, new CcInt(1));
+        resultTuple->PutAttribute(3, new FText(true, ""));
+        resultTuple->PutAttribute(4, new CcBool(true, loc.succ));
+        resultTuple->PutAttribute(5, new FText(true, nl->ToString(loc.result)));
+
+        result.setAddr(resultTuple);
+        return YIELD;
+      }
+      return CANCEL;
+    }
+    case CLOSE: {
+      hmaLI = static_cast<HadoopMapAllLocalInfo*>(local.addr);
+      if (hmaLI)
+        delete hmaLI;
+      local.addr = 0;
+      return 0;
+    }
+//    case REQUESTPROGRESS:{}
+//    case CLOSEPROGRESS:{}
+  }
+
+  //TODO add the progress estimation in the future
+  //  else if ( message == REQUESTPROGRESS )
+  //  else if ( message == CLOSEPROGRESS )
+
+  return 0;
+}
+
+Operator hadoopMapAllOP(
+    hadoopMapAllInfo(), hadoopMapAllValueMap, hadoopMapAllTypeMap);
 
 
 /*
@@ -4002,17 +4268,20 @@ int hadoopReduceValueMap(Word* args, Word& result,
     }
     else{
       //Replace parameter value according to their flist value
-      CreateQueryList = replaceSecObj(CreateQueryList);
-      for (size_t i = 0; i < flistParaList.size(); i++)
+      CreateQueryList = replaceSecObj(CreateQueryList, ok);
+      if (ok)
       {
-        int argIndex = (i == 0 ? 1 : 0);
-        CreateQueryList =
-            replaceDLOF(CreateQueryList,
-                flistParaList[i], flistObjList[i],
-                DLF_NameList, DLF_fileLocList,
-                DLO_NameList, DLO_locList, true, ok, argIndex);
-        if (!ok)
-          break;
+        for (size_t i = 0; i < flistParaList.size(); i++)
+        {
+          int argIndex = (i == 0 ? 1 : 0);
+          CreateQueryList =
+              replaceDLOF(CreateQueryList,
+                  flistParaList[i], flistObjList[i],
+                  DLF_NameList, DLF_fileLocList,
+                  DLO_NameList, DLO_locList, true, ok, argIndex);
+          if (!ok)
+            break;
+        }
       }
     }
 
@@ -4551,20 +4820,23 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
       cerr << "Replace para operation fails" << endl;
     }
     else{
-      CreateQueryList = replaceSecObj(CreateQueryList);
-      //Replace parameter value according to their flist value
-      for (size_t i = 0; i < flistParaList.size(); i++)
+      CreateQueryList = replaceSecObj(CreateQueryList, ok);
+      if (ok)
       {
-        //The top two flists are input arguments for the inter-query
-        //they are re-partitioned in the map step.
-        int argIndex = ((i == 0 || i == 1)? (i+1) : 0);
-        CreateQueryList =
-            replaceDLOF(CreateQueryList,
-                flistParaList[i], flistObjList[i],
-                DLF_NameList, DLF_fileLocList,
-                DLO_NameList, DLO_locList, true, ok, argIndex);
-        if (!ok)
-          break;
+        //Replace parameter value according to their flist value
+        for (size_t i = 0; i < flistParaList.size(); i++)
+        {
+          //The top two flists are input arguments for the inter-query
+          //they are re-partitioned in the map step.
+          int argIndex = ((i == 0 || i == 1)? (i+1) : 0);
+          CreateQueryList =
+              replaceDLOF(CreateQueryList,
+                  flistParaList[i], flistObjList[i],
+                  DLF_NameList, DLF_fileLocList,
+                  DLO_NameList, DLO_locList, true, ok, argIndex);
+          if (!ok)
+            break;
+        }
       }
     }
 
@@ -5132,53 +5404,59 @@ ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
 
 
 /*
-Find all nested lists of ~para~ operations,
+Find and replace all parameters quoted by the ~para~ operator.
+It should be either an flist object, or a DELIVERABLE data.
 
-If the operator contains a T type data, T [INSET] DATA,
-then replace it with the data's value directly.
-It it contains a flist(T) data,
-then add its name and value to these two vectors.
+In the first case, the name and the value of the list are added to the two
+vectors, respectively.
+Besides, in the query list, the para(O) is replaced by O, i.e.,
+the name of the flist object.
+
+In the later case, it will be replaced by the object value in the query list.
 
 */
 ListExpr replaceParaOp(
-    ListExpr createQuery, vector<string>& flistParaList,
-    vector<fList*>& flistObjList, bool& ok)
+    ListExpr queryList, vector<string>& flistNames,
+    vector<fList*>& flistObjects, bool& ok)
 {
   if (!ok){
     return nl->OneElemList(nl->SymbolAtom("error"));
   }
 
-  if (nl->IsEmpty(createQuery))
-    return createQuery;
+  if (nl->IsEmpty(queryList))
+    return queryList;
 
-  if (nl->ListLength(createQuery) == 2)
+  if (nl->ListLength(queryList) == 2)
   {
-    ListExpr first = nl->First(createQuery);
+    ListExpr first = nl->First(queryList);
     if (nl->IsAtom(first))
     {
       if (nl->IsEqual(first, "para"))
       {
-        ListExpr second = nl->Second(createQuery);
+        ListExpr second = nl->Second(queryList);
         string paraName = nl->ToString(second);
         ListExpr paraType =
             SecondoSystem::GetCatalog()->GetObjectTypeExpr(paraName);
 
         if (nl->ListLength(paraType) > 1){
           if(nl->IsEqual(nl->First(paraType), fList::BasicType())){
-            flistParaList.push_back(paraName);
+            flistNames.push_back(paraName);
             Word listValue;
             bool defined;
             ok = SecondoSystem::GetCatalog()->
                 GetObject(paraName, listValue, defined);
             if (ok){
-              flistObjList.push_back((fList*)listValue.addr);
+              flistObjects.push_back((fList*)listValue.addr);
               return nl->SymbolAtom(paraName);
             }
-            else
+            else{
+              ok = false;
               return nl->OneElemList(nl->SymbolAtom("error"));
+            }
           }
         }
         else{
+          //Still allow the ~para~ operator to quote DELIVERABLE objects
           ListExpr DGOValue =
               SecondoSystem::GetCatalog()->GetObjectValue(paraName);
 
@@ -5190,15 +5468,15 @@ ListExpr replaceParaOp(
     }
   }
 
-  if (nl->ListLength(createQuery) > 0){
+  if (nl->ListLength(queryList) > 0){
     return (nl->Cons(
-      replaceParaOp(nl->First(createQuery),
-           flistParaList, flistObjList, ok),
-      replaceParaOp(nl->Rest(createQuery),
-           flistParaList, flistObjList, ok) ));
+      replaceParaOp(nl->First(queryList),
+           flistNames, flistObjects, ok),
+      replaceParaOp(nl->Rest(queryList),
+           flistNames, flistObjects, ok) ));
   }
   else{
-    return createQuery;
+    return queryList;
   }
 }
 
@@ -5209,19 +5487,24 @@ With this function, there is no need to add ~para~ operator for these symbol
 objects, which was designed as DGO flist.
 
 */
-ListExpr replaceSecObj(ListExpr createQuery)
+ListExpr replaceSecObj(ListExpr queryList, bool& ok)
 {
-  if (nl->IsEmpty(createQuery))
-    return createQuery;
+  if (!ok){
+    return nl->OneElemList(nl->SymbolAtom("error"));
+  }
 
-  if (nl->IsAtom(createQuery))
+  if (nl->IsEmpty(queryList))
+    return queryList;
+
+  if (nl->IsAtom(queryList))
   {
-    string atomName = nl->ToString(createQuery);
+    string atomName = nl->ToString(queryList);
     bool isObject = SecondoSystem::GetCatalog()->IsObjectName(atomName);
     if (isObject)
     {
       ListExpr paraType =
                 SecondoSystem::GetCatalog()->GetObjectTypeExpr(atomName);
+
       if (listutils::isKind(paraType, Kind::DELIVERABLE())){
         ListExpr DGOValue =
             SecondoSystem::GetCatalog()->GetObjectValue(atomName);
@@ -5230,17 +5513,30 @@ ListExpr replaceSecObj(ListExpr createQuery)
             SecondoSystem::GetCatalog()->GetObjectTypeExpr(atomName);
         return nl->TwoElemList(DGOType, DGOValue);
       }
+      else if (!nl->IsAtom(paraType))
+      {
+        if (!nl->IsEqual(nl->First(paraType), fList::BasicType()))
+        {
+          ok = false;
+
+          cerr << "All objects quoted in the argument function "
+              "should either be  DELIVERABLE data, "
+              "or flist objects quoted by the para operator" << endl;
+          return nl->OneElemList(nl->SymbolAtom("error"));
+        }
+      }
+
     }
   }
 
-  if (nl->ListLength(createQuery) > 0)
+  if (nl->ListLength(queryList) > 0)
   {
     return nl->Cons(
-        replaceSecObj(nl->First(createQuery)),
-        replaceSecObj(nl->Rest(createQuery)));
+        replaceSecObj(nl->First(queryList), ok),
+        replaceSecObj(nl->Rest(queryList), ok));
   }
   else
-    return createQuery;
+    return queryList;
 }
 
 
@@ -5295,6 +5591,10 @@ public:
     AddOperator(&pffeedOp);
     pffeedOp.SetUsesArgsInTypeMapping();
 
+    AddOperator(&hadoopMapAllOP);
+    hadoopMapAllOP.SetUsesArgsInTypeMapping();
+    //Not evaluate the taskQuery on the master
+    hadoopMapAllOP.SetRequestsArguments();
   }
   ~HadoopAlgebra()
   {

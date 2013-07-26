@@ -77,3 +77,10 @@ Signature: stream(tuple(aR:int, aC:int, aD:int, ...)) x aR x aC x aD x fileName 
 Example  : query [const rel(tuple([Row:int, Column:int, Dest:int])) value ((1 1 1)(2 1 2)(3 1 1)(4 1 2)(5 1 1))] feed pffeed[Row, Column, Dest, "plz",1;] count = dis_file_list collect[0,1] count 
 Result   : crashes
 Remark   : Collect the first column of the flist created in the example of spread operator. Doesn't work since there is a lack of parallel processing configurations normally.
+
+Operator : hadoopMapAll
+Number   : 1
+Signature: T -> stream(tuple(Row:int, DS:int, Column:int, Path:text)) 
+Example  : query divide_osm('example.osm',"subExampleFile",12,"City"); query spreadFiles("subExampleFile",'',12); query hadoopMapAll(fullosmimport(totext("subExampleFile","City")))
+Result   : crashes
+Remark   : Collect the first column of the flist created in the example of spread operator. Doesn't work since there is a lack of parallel processing configurations normally.

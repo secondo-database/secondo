@@ -5,12 +5,24 @@ PKGNM = ParallelSecondo
 BIN_P = bin
 CLS_P = ${BIN_P}/${PKGNM}
 SRC_P = ./${PKGNM}
+SECLIB = ${BIN_P}/lib/SecondoInterface.jar
 
-all: checkenv checkbin editor ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class 
+all: checkenv checkbin checklib editor ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class ${CLS_P}/PS_HadoopMapAll.class
 	jar -cf ${JarFile} -C ${BIN_P} .
 	cp ${JarFile} ../../../bin/
 
-${SEC_P}: cp ${SEC_P} ${BIN_P}/lib/
+${CLS_P}/PS_HadoopMapAll.class: ${SRC_P}/PS_HadoopMapAll.java ${CLS_P}/QuerySecondo.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PS_HadoopMapAll_Map.class \
+${CLS_P}/PS_HadoopMapAll_Reduce.class
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMapAll.java -d ${BIN_P}
+
+${CLS_P}/PS_HadoopMapAll_Map.class: ${SRC_P}/PS_HadoopMapAll_Map.java ${CLS_P}/QuerySecondo.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/HPA_AuxFunctions.class 
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMapAll_Map.java -d ${BIN_P}
+
+${CLS_P}/PS_HadoopMapAll_Reduce.class: ${SRC_P}/PS_HadoopMapAll_Reduce.java ${CLS_P}/QuerySecondo.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/HPA_AuxFunctions.class 
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMapAll_Reduce.java -d ${BIN_P}
 
 ${CLS_P}/PS_HadoopMap.class: ${CLS_P}/PS_HadoopMap_Map.class ${CLS_P}/PS_HadoopMap_Reduce.class \
 ${SRC_P}/PS_HadoopMap.java
@@ -124,10 +136,13 @@ checkenv:
 ifndef HADOOP_HOME
 	@ echo Environment variable HADOOP_HOME is not set
 	exit 1
-endif	
+endif
 
 checkbin:
 	if [ ! -d ${BIN_P} ];then mkdir -p ${BIN_P}/lib; fi
+
+checklib:
+	if [ ! -f ${SECLIB} ]; then cp ${SEC_P} ${SECLIB}; fi
 
 editor:
 	(cd PSEditor; javac *.java)
