@@ -20,6 +20,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+SECONDO includes
+
+*/
+
+#include "RelationAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "matchgrid.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
@@ -29,13 +41,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
-#include "RelationAlgebra.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of template matchgridFunctiont
+Template method matchgridFunctiont implements the matchgrid operator
+functionality for t datatypes.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of matchgrid operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of matchgridFunctiont
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if matchgridFunctiont successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -50,7 +76,7 @@ int matchgridFunctiont(Word* pArguments,
                        Word& rLocal,
                        Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -125,7 +151,7 @@ int matchgridFunctiont(Word* pArguments,
                                           sourceBoundingBox.MaxD(0),
                                           sourceBoundingBox.MaxD(1));
 
-                // create temporarly relation
+                // create temporary relation
                 TupleBuffer rel;
 
                 ArgVector& argumentsVector =
@@ -199,7 +225,7 @@ int matchgridFunctiont(Word* pArguments,
                            IsUndefinedValue(value) == false)
                         {
                           // weight if required
-                          if(Traits::CanWeight == true &&
+                          if(Traits::m_bCanWeight == true &&
                              pUseWeight->IsDefined() &&
                              pUseWeight->GetValue())
                           {
@@ -286,6 +312,8 @@ int matchgridFunctiont(Word* pArguments,
               }
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -295,7 +323,21 @@ int matchgridFunctiont(Word* pArguments,
 }
 
 /*
-definition of template matchgridFunctionmt
+Template method matchgridFunctionmt implements
+the matchgrid operator functionality
+for mt datatypes.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of matchgrid operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes
+                      of matchgridFunctionmt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information
+                       of operator tree
+return value: 0 if matchgridFunctionmt successfully executed,
+              otherwise FAILURE
+exceptions: -
 
 */
 
@@ -310,7 +352,7 @@ int matchgridFunctionmt(Word* pArguments,
                         Word& rLocal,
                         Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -485,7 +527,7 @@ int matchgridFunctionmt(Word* pArguments,
                              IsUndefinedValue(value) == false)
                           {
                             // weight if required
-                            if(Traits::CanWeight == true &&
+                            if(Traits::m_bCanWeight == true &&
                                pUseWeight->IsDefined() &&
                                pUseWeight->GetValue())
                             {
@@ -576,6 +618,8 @@ int matchgridFunctionmt(Word* pArguments,
               }
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -585,47 +629,138 @@ int matchgridFunctionmt(Word* pArguments,
 }
 
 /*
-definition of template matchgrid traits
+Template struct matchgridTraits represents traits
+of a matchgrid operator datatype.
+
+author: Dirk Zacher
 
 */
 
-template <typename Type> struct matchgrid_traits
+template <typename Type>
+struct matchgridTraits
 {
-  static const bool CanWeight;
+  /*
+  Member m_bCanWeight indicates if matchgrid operator datatype values
+  can be weighted.
 
-  static inline void Weight(Type& rType, const double& rdouble)
+  */
+
+  static const bool m_bCanWeight;
+
+  /*
+  Method Weight implements weight mechanism
+  for matchgrid operator datatypes.
+
+  author: Dirk Zacher
+  parameters: rType - reference to a matchgrid operator datatype
+              rWeightFactor - reference to weight factor
+  return value: -
+  exceptions: -
+
+  */
+
+  static inline void Weight(Type& rType,
+                            const double& rWeightFactor)
   {
 
   };
 };
 
-template <typename Type>
-const bool matchgrid_traits<Type>::CanWeight = false;
+/*
+Member of matchgridTraits<Type> is initialized false.
 
-template <> struct matchgrid_traits<int>
+*/
+
+template <typename Type>
+const bool matchgridTraits<Type>::m_bCanWeight = false;
+
+/*
+Template struct matchgridTraits<int> represents traits of datatype int.
+
+author: Dirk Zacher
+
+*/
+
+template <>
+struct matchgridTraits<int>
 {
-  static const bool CanWeight;
-  static inline void Weight(int& rint, const double& rdouble)
+  /*
+  Member m_bCanWeight indicates if datatype int values
+  can be weighted.
+
+  */
+
+  static const bool m_bCanWeight;
+
+  /*
+  Method Weight implements weight mechanism for datatype int.
+
+  author: Dirk Zacher
+  parameters: rint - reference to an int value
+              rWeightFactor - reference to weight factor
+  return value: -
+  exceptions: -
+
+  */
+
+  static inline void Weight(int& rint,
+                            const double& rWeightFactor)
   {
-    rint *= rdouble;
+    rint *= rWeightFactor;
   }
 };
 
-const bool matchgrid_traits<int>::CanWeight = true;
+/*
+Member of matchgridTraits<int> is initialized true.
 
-template <> struct matchgrid_traits<double>
+*/
+
+const bool matchgridTraits<int>::m_bCanWeight = true;
+
+/*
+Template struct matchgridTraits<double> represents traits of datatype double.
+
+author: Dirk Zacher
+
+*/
+
+template <>
+struct matchgridTraits<double>
 {
-  static const bool CanWeight;
-  static void Weight(double& rdouble, const double& crdouble)
+  /*
+  Member m_bCanWeight indicates if datatype double values can be weighted.
+
+  */
+
+  static const bool m_bCanWeight;
+
+  /*
+  Method Weight implements weight mechanism for datatype double.
+
+  author: Dirk Zacher
+  parameters: rdouble - reference to a double value
+              rWeightFactor - reference to weight factor
+  return value: -
+  exceptions: -
+
+  */
+
+  static void Weight(double& rdouble,
+                     const double& rWeightFactor)
   {
-    rdouble *= crdouble;
+    rdouble *= rWeightFactor;
   };
 };
 
-const bool matchgrid_traits<double>::CanWeight = true;
+/*
+Member of matchgridTraits<double> is initialized true.
+
+*/
+
+const bool matchgridTraits<double>::m_bCanWeight = true;
 
 /*
-definition of matchgrid functions
+definition of matchgridFunctions array.
 
 */
 
@@ -633,118 +768,124 @@ ValueMapping matchgridFunctions[] =
 {
   matchgridFunctiont<tint, tProperties<int>,
                      tint, tProperties<int>,
-                     matchgrid_traits<int> >,
+                     matchgridTraits<int> >,
   matchgridFunctiont<tint, tProperties<int>,
                      treal, tProperties<double>,
-                     matchgrid_traits<int> >,
+                     matchgridTraits<int> >,
   matchgridFunctiont<tint, tProperties<int>,
                      tbool, tProperties<char>,
-                     matchgrid_traits<int> >,
+                     matchgridTraits<int> >,
   matchgridFunctiont<tint, tProperties<int>,
                      tstring, tProperties<std::string>,
-                     matchgrid_traits<int> >,
+                     matchgridTraits<int> >,
 
   matchgridFunctiont<treal, tProperties<double>,
                      tint, tProperties<int>,
-                     matchgrid_traits<double> >,
+                     matchgridTraits<double> >,
   matchgridFunctiont<treal, tProperties<double>,
                      treal, tProperties<double>,
-                     matchgrid_traits<double> >,
+                     matchgridTraits<double> >,
   matchgridFunctiont<treal, tProperties<double>,
                      tbool, tProperties<char>,
-                     matchgrid_traits<double> >,
+                     matchgridTraits<double> >,
   matchgridFunctiont<treal, tProperties<double>,
                      tstring, tProperties<std::string>,
-                     matchgrid_traits<double> >,
+                     matchgridTraits<double> >,
 
   matchgridFunctiont<tbool, tProperties<char>,
                      tint, tProperties<int>,
-                     matchgrid_traits<char> >,
+                     matchgridTraits<char> >,
   matchgridFunctiont<tbool, tProperties<char>,
                      treal, tProperties<double>,
-                     matchgrid_traits<char> >,
+                     matchgridTraits<char> >,
   matchgridFunctiont<tbool, tProperties<char>,
                      tbool, tProperties<char>,
-                     matchgrid_traits<char> >,
+                     matchgridTraits<char> >,
   matchgridFunctiont<tbool, tProperties<char>,
                      tstring, tProperties<std::string>,
-                     matchgrid_traits<char> >,
+                     matchgridTraits<char> >,
 
   matchgridFunctiont<tstring, tProperties<std::string>,
                      tint, tProperties<int>,
-                     matchgrid_traits<std::string> >,
+                     matchgridTraits<std::string> >,
   matchgridFunctiont<tstring, tProperties<std::string>,
                      treal, tProperties<double>,
-                     matchgrid_traits<std::string> >,
+                     matchgridTraits<std::string> >,
   matchgridFunctiont<tstring, tProperties<std::string>,
                      tbool, tProperties<char>,
-                     matchgrid_traits<std::string> >,
+                     matchgridTraits<std::string> >,
   matchgridFunctiont<tstring, tProperties<std::string>,
                      tstring, tProperties<std::string>,
-                     matchgrid_traits<std::string> >,
+                     matchgridTraits<std::string> >,
 
   matchgridFunctionmt<mtint, mtProperties<int>,
                       mtint, mtProperties<int>,
-                      matchgrid_traits<int> >,
+                      matchgridTraits<int> >,
   matchgridFunctionmt<mtint, mtProperties<int>,
                       mtreal, mtProperties<double>,
-                      matchgrid_traits<int> >,
+                      matchgridTraits<int> >,
   matchgridFunctionmt<mtint, mtProperties<int>,
                       mtbool, mtProperties<char>,
-                      matchgrid_traits<int> >,
+                      matchgridTraits<int> >,
   matchgridFunctionmt<mtint, mtProperties<int>,
                       mtstring, mtProperties<std::string>,
-                      matchgrid_traits<int> >,
+                      matchgridTraits<int> >,
 
   matchgridFunctionmt<mtreal, mtProperties<double>,
                       mtint, mtProperties<int>,
-                      matchgrid_traits<double> >,
+                      matchgridTraits<double> >,
   matchgridFunctionmt<mtreal, mtProperties<double>,
                       mtreal, mtProperties<double>,
-                      matchgrid_traits<double> >,
+                      matchgridTraits<double> >,
   matchgridFunctionmt<mtreal, mtProperties<double>,
                       mtbool, mtProperties<char>,
-                      matchgrid_traits<double> >,
+                      matchgridTraits<double> >,
   matchgridFunctionmt<mtreal, mtProperties<double>,
                       mtstring, mtProperties<std::string>,
-                      matchgrid_traits<double> >,
+                      matchgridTraits<double> >,
 
   matchgridFunctionmt<mtbool, mtProperties<char>,
                       mtint, mtProperties<int>,
-                      matchgrid_traits<char> >,
+                      matchgridTraits<char> >,
   matchgridFunctionmt<mtbool, mtProperties<char>,
                       mtreal, mtProperties<double>,
-                      matchgrid_traits<char> >,
+                      matchgridTraits<char> >,
   matchgridFunctionmt<mtbool, mtProperties<char>,
                       mtbool, mtProperties<char>,
-                      matchgrid_traits<char> >,
+                      matchgridTraits<char> >,
   matchgridFunctionmt<mtbool, mtProperties<char>,
                       mtstring, mtProperties<std::string>,
-                      matchgrid_traits<char> >,
+                      matchgridTraits<char> >,
 
   matchgridFunctionmt<mtstring, mtProperties<std::string>,
                       mtint, mtProperties<int>,
-                      matchgrid_traits<std::string> >,
+                      matchgridTraits<std::string> >,
   matchgridFunctionmt<mtstring, mtProperties<std::string>,
                       mtreal, mtProperties<double>,
-                      matchgrid_traits<std::string> >,
+                      matchgridTraits<std::string> >,
   matchgridFunctionmt<mtstring, mtProperties<std::string>,
                       mtbool, mtProperties<char>,
-                      matchgrid_traits<std::string> >,
+                      matchgridTraits<std::string> >,
   matchgridFunctionmt<mtstring, mtProperties<std::string>,
                       mtstring, mtProperties<std::string>,
-                      matchgrid_traits<std::string> >,
+                      matchgridTraits<std::string> >,
   0
 };
 
 /*
-definition of matchgrid select function
+Method matchgridSelectFunction returns the index of specific matchgrid function
+in matchgridFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of matchgrid operator
+return value: index of specific matchgrid function in matchgridFunctions
+exceptions: -
 
 */
 
 int matchgridSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -791,17 +932,23 @@ int matchgridSelectFunction(ListExpr arguments)
       if(argument1Index >= 0 &&
          argument3Index >= 0)
       {
-        nSelection = (argument1Index * 4) +
-                     (argument3Index % 4);
+        functionIndex = (argument1Index * 4) +
+                        (argument3Index % 4);
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of matchgrid type mapping function
+Method matchgridTypeMappingFunction returns the return value type
+of matchgrid operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of matchgrid operator
+return value: return value type of matchgrid operator
+exceptions: -
 
 */
 
