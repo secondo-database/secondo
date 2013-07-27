@@ -20,13 +20,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "tint.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class tProperties<int>
+Method GetXDimensionSize returns the size of x dimension of datatype tint.
+
+author: Dirk Zacher
+parameters: -
+return value: size of x dimension of datatype tint
+exceptions: -
 
 */
 
@@ -43,6 +58,16 @@ int tProperties<int>::GetXDimensionSize()
   return xDimensionSize;
 }
 
+/*
+Method GetYDimensionSize returns the size of y dimension of datatype tint.
+
+author: Dirk Zacher
+parameters: -
+return value: size of y dimension of datatype tint
+exceptions: -
+
+*/
+
 int tProperties<int>::GetYDimensionSize()
 {
   int yDimensionSize = static_cast<unsigned int>
@@ -56,6 +81,16 @@ int tProperties<int>::GetYDimensionSize()
   return yDimensionSize;
 }
 
+/*
+Method GetFlobElements returns the number of flob elements of datatype tint.
+
+author: Dirk Zacher
+parameters: -
+return value: number of flob elements of datatype tint
+exceptions: -
+
+*/
+
 int tProperties<int>::GetFlobElements()
 {
   int flobElements = GetXDimensionSize() * GetYDimensionSize();
@@ -63,12 +98,32 @@ int tProperties<int>::GetFlobElements()
   return flobElements;
 }
 
+/*
+Method GetFlobSize returns the size of the flob of datatype tint.
+
+author: Dirk Zacher
+parameters: -
+return value: size of the flob of datatype tint
+exceptions: -
+
+*/
+
 SmiSize tProperties<int>::GetFlobSize()
 {
   SmiSize flobSize = GetFlobElements() * sizeof(int);
 
   return flobSize;
 }
+
+/*
+Method GetTypeName returns the typename of datatype tint.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of datatype tint
+exceptions: -
+
+*/
 
 std::string tProperties<int>::GetTypeName()
 {

@@ -23,17 +23,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_DEFTIME_H
 #define TILEALGEBRA_DEFTIME_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "TemporalAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of deftime Operator Info structure
+Struct deftimeInfo describes name, syntax, meaning and signature
+of TileAlgebra operator deftime.
+
+author: Dirk Zacher
 
 */
 
@@ -64,21 +83,33 @@ struct deftimeInfo : OperatorInfo
 };
 
 /*
-declaration of deftime functions
+declaration of deftimeFunctions array.
 
 */
 
 extern ValueMapping deftimeFunctions[];
 
 /*
-declaration of deftime select function
+Method deftimeSelectFunction returns the index of specific deftime function
+in deftimeFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of deftime operator
+return value: index of specific deftime function in deftimeFunctions
+exceptions: -
 
 */
 
 int deftimeSelectFunction(ListExpr arguments);
 
 /*
-declaration of deftime type mapping function
+Method deftimeTypeMappingFunction returns the return value type
+of deftime operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of deftime operator
+return value: return value type of deftime operator
+exceptions: -
 
 */
 

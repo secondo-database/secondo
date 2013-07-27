@@ -20,13 +20,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "Propertiesreal.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class Properties<double>
+Method GetUndefinedValue returns the undefined value of base datatype real.
+
+author: Dirk Zacher
+parameters: -
+return value: undefined value of base datatype real
+exceptions: -
 
 */
 
@@ -34,6 +49,16 @@ double Properties<double>::GetUndefinedValue()
 {
   return UNDEFINED_REAL;
 }
+
+/*
+Method GetValue returns the value of given NList representation.
+
+author: Dirk Zacher
+parameters: rNList - reference to a NList object
+return value: value of given NList representation
+exceptions: -
+
+*/
 
 double Properties<double>::GetValue(const NList& rNList)
 {
@@ -52,29 +77,70 @@ double Properties<double>::GetValue(const NList& rNList)
   return value;
 }
 
-double Properties<double>::GetUnwrappedValue(const CcReal& rCcReal)
+/*
+Method GetUnwrappedValue returns the unwrapped value of given wrapped value.
+
+author: Dirk Zacher
+parameters: rWrappedValue - reference to a wrapped value
+return value: unwrapped value
+exceptions: -
+
+*/
+
+double Properties<double>::GetUnwrappedValue(const CcReal& rWrappedValue)
 {
   double unwrappedValue = GetUndefinedValue();
 
-  if(rCcReal.IsDefined())
+  if(rWrappedValue.IsDefined())
   {
-    unwrappedValue = rCcReal.GetValue();
+    unwrappedValue = rWrappedValue.GetValue();
   }
 
   return unwrappedValue;
 }
 
-CcReal Properties<double>::GetWrappedValue(const double& rdouble)
+/*
+Method GetWrappedValue returns the wrapped value of given value.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+return value: wrapped value
+exceptions: -
+
+*/
+
+CcReal Properties<double>::GetWrappedValue(const double& rValue)
 {
-  return CcReal(!IsUndefinedValue(rdouble), rdouble);
+  return CcReal(!IsUndefinedValue(rValue), rValue);
 }
 
-bool Properties<double>::IsUndefinedValue(const double& rdouble)
+/*
+Method IsUndefinedValue checks if given value is an undefined value.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+return value: true, if rValue is an undefined value, otherwise false
+exceptions: -
+
+*/
+
+bool Properties<double>::IsUndefinedValue(const double& rValue)
 {
-  bool bUndefinedValue = (rdouble != rdouble);
+  bool bUndefinedValue = (rValue != rValue);
 
   return bUndefinedValue;
 }
+
+/*
+Method IsValidValueType checks if given NList is NList of type real or int.
+
+author: Dirk Zacher
+parameters: rNList - reference to a NList object
+return value: true, if given NList is NList of type real or int,
+              otherwise false
+exceptions: -
+
+*/
 
 bool Properties<double>::IsValidValueType(const NList& rNList)
 {
@@ -83,13 +149,23 @@ bool Properties<double>::IsValidValueType(const NList& rNList)
   return bValidValueType;
 }
 
-NList Properties<double>::ToNList(const double& rdouble)
+/*
+Method ToNList returns NList representation of given value.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+return value: NList representation of given value
+exceptions: -
+
+*/
+
+NList Properties<double>::ToNList(const double& rValue)
 {
   NList nList = NList(Symbol::UNDEFINED());
 
-  if(IsUndefinedValue(rdouble) == false)
+  if(IsUndefinedValue(rValue) == false)
   {
-    nList = NList(rdouble);
+    nList = NList(rValue);
   }
 
   return nList;

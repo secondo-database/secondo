@@ -23,17 +23,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_ATPERIODS_H
 #define TILEALGEBRA_ATPERIODS_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "TemporalAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of atperiods Operator Info structure
+Struct atperiodsInfo describes name, syntax, meaning and signature
+of TileAlgebra operator atperiods.
+
+author: Dirk Zacher
 
 */
 
@@ -66,21 +85,33 @@ struct atperiodsInfo : OperatorInfo
 };
 
 /*
-declaration of atperiods functions
+declaration of atperiodsFunctions array.
 
 */
 
 extern ValueMapping atperiodsFunctions[];
 
 /*
-declaration of atperiods select function
+Method atperiodsSelectFunction returns the index of specific atperiods function
+in atperiodsFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atperiods operator
+return value: index of specific atperiods function in atperiodsFunctions
+exceptions: -
 
 */
 
 int atperiodsSelectFunction(ListExpr arguments);
 
 /*
-declaration of atperiods type mapping function
+Method atperiodsTypeMappingFunction returns the return value type
+of atperiods operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atperiods operator
+return value: return value type of atperiods operator
+exceptions: -
 
 */
 

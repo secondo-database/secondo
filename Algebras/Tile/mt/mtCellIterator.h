@@ -24,14 +24,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_MTCELLITERATOR_H
 #define TILEALGEBRA_MTCELLITERATOR_H
 
-#include "../Index/Index.h"
+/*
+TileAlgebra includes
+
+*/
+
 #include "../grid/mtgrid.h"
+#include "../Index/Index.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-declaration of template class mtCellIterator
+Template class mtCellIterator represents an iteration class
+for mt datatype cells.
+
+author: Dirk Zacher
 
 */
 
@@ -41,11 +54,24 @@ class mtCellIterator
   public:
 
   /*
-  constructors
+  Constructor mtCellIterator initializes some members of the class
+  with corresponding parameter values and all the other members
+  of the class with default values.
+
+  author: Dirk Zacher
+  parameters: rmt - reference to a mt datatype object
+              rX1 - reference to X1 coordinate
+              rY1 - reference to Y1 coordinate
+              rX2 - reference to X2 coordinate
+              rY2 - reference to Y2 coordinate
+              rT1 - reference to T1 coordinate
+              rT2 - reference to T2 coordinate
+  return value: -
+  exceptions: -
 
   */
 
-  mtCellIterator(const Type& rType,
+  mtCellIterator(const Type& rmt,
                  const double& rX1,
                  const double& rY1,
                  const double& rX2,
@@ -54,71 +80,320 @@ class mtCellIterator
                  const double& rT2);
 
   /*
-  destructor
+  Destructor ~mtCellIterator deinitializes a mtCellIterator object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
 
   virtual ~mtCellIterator();
 
   /*
-  methods
+  Method HasNext checks if mtCellIterator object has a next cell to iterate.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: true, if mtCellIterator object has a next cell to iterate,
+                otherwise false
+  exceptions: -
 
   */
 
   bool HasNext();
-  pair<double,double> Next();
+
+  /*
+  Method Next returns a pair of last delta value and current delta value
+  and calculates next delta values.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: a pair of last delta value and current delta value
+  exceptions: -
+
+  */
+
+  pair<double, double> Next();
 
   private:
 
   /*
-  internal methods
+  Method Init initializes mtCellIterator.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
 
   void Init();
+
+  /*
+  Method ComputeNextX calculates next x value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ComputeNextX();
+
+  /*
+  Method ComputeNextY calculates next y value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ComputeNextY();
+
+  /*
+  Method ComputeNextT calculates next time value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ComputeNextT();
-  double GetDV(int index);
+
+  /*
+  Method GetNextValue returns next value of given index.
+
+  author: Dirk Zacher
+  parameters: index - index of next value to return.
+  return value: next value of given index
+  exceptions: -
+
+  */
+
+  double GetNextValue(int index);
+
+  /*
+  Method ComputeNextDelta calculates next delta values.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ComputeNextDelta();
+
+  /*
+  Method ShiftX decrements or increments x dimension of current cell index
+  dependent on current delta x value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ShiftX();
+
+  /*
+  Method ShiftY decrements or increments y dimension of current cell index
+  dependent on current delta y value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ShiftY();
+
+  /*
+  Method ShiftT decrements or increments time dimension of current cell index
+  dependent on current delta time value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ShiftT();
 
   /*
-  members
+  Member m_Grid contains the mtgrid object.
 
   */
 
   mtgrid m_Grid;
+
+  /*
+  Member m_dX1 contains the X1 coordinate.
+
+  */
+
   double m_dX1;
+
+  /*
+  Member m_dY1 contains the Y1 coordinate.
+
+  */
+
   double m_dY1;
+
+  /*
+  Member m_dX2 contains the X2 coordinate.
+
+  */
+
   double m_dX2;
+
+  /*
+  Member m_dY2 contains the Y2 coordinate.
+
+  */
+
   double m_dY2;
+
+  /*
+  Member m_dT1 contains the T1 coordinate.
+
+  */
+
   double m_dT1;
+
+  /*
+  Member m_dT2 contains the T2 coordinate.
+
+  */
+
   double m_dT2;
+
+  /*
+  Member m_bHasNextX is true if mtCellIterator has a next cell in x dimension,
+  otherwise m_bHasNextX is false.
+
+  */
+
   bool m_bHasNextX;
+
+  /*
+  Member m_bHasNextY is true if mtCellIterator has a next cell in y dimension,
+  otherwise m_bHasNextY is false.
+
+  */
+
   bool m_bHasNextY;
+
+  /*
+  Member m_bHasNextT is true if mtCellIterator has a next cell
+  in time dimension, otherwise m_bHasNextT is false.
+
+  */
+
   bool m_bHasNextT;
+
+  /*
+  Member m_dNextX contains the next value in x dimension.
+
+  */
+
   double m_dNextX;
+
+  /*
+  Member m_dNextY contains the next value in y dimension.
+
+  */
+
   double m_dNextY;
+
+  /*
+  Member m_dNextT contains the next value in time dimension.
+
+  */
+
   double m_dNextT;
+
+  /*
+  Member m_dLastDelta contains the last delta value.
+
+  */
+
   double m_dLastDelta;
+
+  /*
+  Member m_dCurrentDelta contains the current delta value.
+
+  */
+
   double m_dCurrentDelta;
-  Index<3> m_CurrentCellIndex;
+
+  /*
+  Member m_LastCellIndex contains the last 3-dimensional cell index.
+
+  */
+
   Index<3> m_LastCellIndex;
+
+  /*
+  Member m_CurrentCellIndex contains the current 3-dimensional cell index.
+
+  */
+
+  Index<3> m_CurrentCellIndex;
+
+  /*
+  Member m_dDeltaX contains the delta x value.
+
+  */
+  
   double m_dDeltaX;
+
+  /*
+  Member m_dDeltaY contains the delta y value.
+
+  */
+
   double m_dDeltaY;
+
+  /*
+  Member m_dDeltaT contains the delta time value.
+
+  */
+
   double m_dDeltaT;
 };
 
 /*
-implementation of template class mtCellIterator
+Constructor mtCellIterator inintializes some members of the class
+with corresponding parameter values and all the other members
+of the class with default values.
+
+author: Dirk Zacher
+parameters: rmt - reference to a mt object
+            rX1 - reference to X1 coordinate
+            rY1 - reference to Y1 coordinate
+            rX2 - reference to X2 coordinate
+            rY2 - reference to Y2 coordinate
+            rT1 - reference to T1 coordinate
+            rT2 - reference to T2 coordinate
+return value: -
+exceptions: -
 
 */
 
 template <typename Type>
-mtCellIterator<Type>::mtCellIterator(const Type& rType,
+mtCellIterator<Type>::mtCellIterator(const Type& rmt,
                                      const double& rX1,
                                      const double& rY1,
                                      const double& rX2,
@@ -140,12 +415,22 @@ mtCellIterator<Type>::mtCellIterator(const Type& rType,
                       m_dLastDelta(0.0),
                       m_dCurrentDelta(0.0)
 {
-  rType.getgrid(m_Grid);
-  m_CurrentCellIndex = rType.GetLocationIndex(m_dX1, m_dY1, m_dT1);
-  m_LastCellIndex = rType.GetLocationIndex(m_dX2, m_dY2, m_dT2);
+  rmt.getgrid(m_Grid);
+  m_LastCellIndex = rmt.GetLocationIndex(m_dX2, m_dY2, m_dT2);
+  m_CurrentCellIndex = rmt.GetLocationIndex(m_dX1, m_dY1, m_dT1);
 
   Init();
 }
+
+/*
+Destructor deinitializes a mtCellIterator object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 mtCellIterator<Type>::~mtCellIterator()
@@ -153,21 +438,53 @@ mtCellIterator<Type>::~mtCellIterator()
 
 }
 
+/*
+Method HasNext checks if mtCellIterator object has a next cell to iterate.
+
+author: Dirk Zacher
+parameters: -
+return value: true, if mtCellIterator object has a next cell to iterate,
+              otherwise false
+exceptions: -
+
+*/
+
 template <typename Type>
 bool mtCellIterator<Type>::HasNext()
 {
   return m_dLastDelta < 1.0;
 }
 
+/*
+Method Next returns a pair of last delta value and current delta value
+and calculates next delta values.
+
+author: Dirk Zacher
+parameters: -
+return value: a pair of last delta value and current delta value
+exceptions: -
+
+*/
+
 template <typename Type>
-pair<double,double> mtCellIterator<Type>::Next()
+pair<double, double> mtCellIterator<Type>::Next()
 {
-  pair<double,double> retVal(m_dLastDelta, m_dCurrentDelta);
+  pair<double, double> retVal(m_dLastDelta, m_dCurrentDelta);
 
   ComputeNextDelta();
 
   return retVal;
 }
+
+/*
+Method Init initializes mtCellIterator.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 void mtCellIterator<Type>::Init()
@@ -188,6 +505,16 @@ void mtCellIterator<Type>::Init()
     ComputeNextT();
   }
 }
+
+/*
+Method ComputeNextX calculates next x value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 void mtCellIterator<Type>::ComputeNextX()
@@ -216,6 +543,16 @@ void mtCellIterator<Type>::ComputeNextX()
   }
 }
 
+/*
+Method ComputeNextY calculates next y value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type>
 void mtCellIterator<Type>::ComputeNextY()
 {
@@ -242,6 +579,16 @@ void mtCellIterator<Type>::ComputeNextY()
     m_dNextY = (horizontalY - m_dY1) / m_dDeltaY;
   }
 }
+
+/*
+Method ComputeNextT calculates next time value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 void mtCellIterator<Type>::ComputeNextT()
@@ -270,25 +617,45 @@ void mtCellIterator<Type>::ComputeNextT()
   }
 }
 
+/*
+Method GetNextValue returns next value of given index.
+
+author: Dirk Zacher
+parameters: index - index of next value to return.
+return value: next value of given index
+exceptions: -
+
+*/
+
 template <typename Type>
-double mtCellIterator<Type>::GetDV(int index)
+double mtCellIterator<Type>::GetNextValue(int index)
 {
-  double dRetVal = -1.0;
+  double dNextValue = -1.0;
 
   switch(index)
   {
-    case 0:  dRetVal = m_dNextX;
+    case 0:  dNextValue = m_dNextX;
              break;
-    case 1:  dRetVal = m_dNextY;
+    case 1:  dNextValue = m_dNextY;
              break;
-    case 2:  dRetVal = m_dNextT;
+    case 2:  dNextValue = m_dNextT;
              break;
     default: assert(false);
              break;
   }
 
-  return dRetVal;
+  return dNextValue;
 }
+
+/*
+Method ComputeNextDelta calculates next delta values.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 void mtCellIterator<Type>::ComputeNextDelta()
@@ -319,12 +686,12 @@ void mtCellIterator<Type>::ComputeNextDelta()
         if(first)
         {
            first = false;
-           minimum = GetDV(i);
+           minimum = GetNextValue(i);
         }
 
         else
         {
-          double dv = GetDV(i);
+          double dv = GetNextValue(i);
 
           if(dv < minimum)
           {
@@ -362,19 +729,41 @@ void mtCellIterator<Type>::ComputeNextDelta()
   }
 }
 
+/*
+Method ShiftX decrements or increments x dimension of current cell index
+dependent on current delta x value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type>
 void mtCellIterator<Type>::ShiftX()
 {
   if(m_dDeltaX > 0.0)
   {
-   m_CurrentCellIndex.Increment(0);
+    m_CurrentCellIndex.Increment(0);
   }
 
   else if(m_dDeltaX < 0.0)
   {
-   m_CurrentCellIndex.Decrement(0);
+    m_CurrentCellIndex.Decrement(0);
   }
 }
+
+/*
+Method ShiftY decrements or increments y dimension of current cell index
+dependent on current delta y value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 void mtCellIterator<Type>::ShiftY()
@@ -390,12 +779,23 @@ void mtCellIterator<Type>::ShiftY()
   }
 }
 
+/*
+Method ShiftT decrements or increments time dimension of current cell index
+dependent on current delta time value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type>
 void mtCellIterator<Type>::ShiftT()
 {
   if(m_dDeltaT > 0.0)
   {
-   m_CurrentCellIndex.Increment(2);
+    m_CurrentCellIndex.Increment(2);
   }
 
   else if(m_dDeltaT < 0.0)

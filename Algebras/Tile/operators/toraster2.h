@@ -23,22 +23,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TORASTER2_H
 #define TILEALGEBRA_TORASTER2_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Attribute.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "Stream.h"
-#include "../Types/Types.h"
-#include "../grid/tgrid.h"
-#include "../grid/mtgrid.h"
+
+/*
+Raster2Algebra includes
+
+*/
+
 #include "../../Raster2/grid2.h"
 #include "../../Raster2/grid3.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "../grid/tgrid.h"
+#include "../grid/mtgrid.h"
+#include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of toraster2 Operator Info structure
+Struct toraster2Info describes name, syntax, meaning and signature
+of TileAlgebra operator toraster2.
+
+author: Dirk Zacher
 
 */
 
@@ -111,21 +136,33 @@ struct toraster2Info : OperatorInfo
 };
 
 /*
-declaration of toraster2 functions
+declaration of toraster2Functions array.
 
 */
 
 extern ValueMapping toraster2Functions[];
 
 /*
-declaration of toraster2 select function
+Method toraster2SelectFunction returns the index of specific toraster2 function
+in toraster2Functions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of toraster2 operator
+return value: index of specific toraster2 function in toraster2Functions
+exceptions: -
 
 */
 
 int toraster2SelectFunction(ListExpr arguments);
 
 /*
-declaration of toraster2 type mapping function
+Method toraster2TypeMappingFunction returns the return value type
+of toraster2 operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of toraster2 operator
+return value: return value type of toraster2 operator
+exceptions: -
 
 */
 

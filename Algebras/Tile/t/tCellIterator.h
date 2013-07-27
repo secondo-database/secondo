@@ -24,14 +24,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TCELLITERATOR_H
 #define TILEALGEBRA_TCELLITERATOR_H
 
-#include "../Index/Index.h"
+/*
+TileAlgebra includes
+
+*/
+
 #include "../grid/tgrid.h"
+#include "../Index/Index.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-declaration of template class tCellIterator
+Template class tCellIterator represents an iteration class
+for t datatype cells.
+
+author: Dirk Zacher
 
 */
 
@@ -41,74 +54,267 @@ class tCellIterator
   public:
 
   /*
-    constructors
+  Constructor tCellIterator initializes some members of the class
+  with corresponding parameter values and all the other members
+  of the class with default values.
+
+  author: Dirk Zacher
+  parameters: rt - reference to a t datatype object
+              rX1 - reference to X1 coordinate
+              rY1 - reference to Y1 coordinate
+              rX2 - reference to X2 coordinate
+              rY2 - reference to Y2 coordinate
+  return value: -
+  exceptions: -
 
   */
 
-  tCellIterator(const Type& rType,
+  tCellIterator(const Type& rt,
                 const double& rX1,
                 const double& rY1,
                 const double& rX2,
                 const double& rY2);
 
   /*
-  destructor
+  Destructor ~tCellIterator deinitializes a tCellIterator object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
 
   virtual ~tCellIterator();
 
   /*
-  methods
+  Method HasNext checks if tCellIterator object has a next cell to iterate.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: true, if tCellIterator object has a next cell to iterate,
+                otherwise false
+  exceptions: -
 
   */
 
   bool HasNext();
+
+  /*
+  Method Next returns a pair of last delta value and current delta value
+  and calculates next delta values.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: a pair of last delta value and current delta value
+  exceptions: -
+
+  */
+
   pair<double,double> Next();
 
   private:
 
   /*
-  internal methods
+  Method Init initializes tCellIterator.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
 
   void Init();
+
+  /*
+  Method ComputeNextX calculates next x value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ComputeNextX();
+
+  /*
+  Method ComputeNextY calculates next y value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ComputeNextY();
+
+  /*
+  Method ComputeNextDelta calculates next delta values.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ComputeNextDelta();
+
+  /*
+  Method ShiftX decrements or increments x dimension of current cell index
+  dependent on current delta x value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ShiftX();
+
+  /*
+  Method ShiftY decrements or increments y dimension of current cell index
+  dependent on current delta y value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
   void ShiftY();
 
   /*
-  members
+  Member m_Grid contains the tgrid object.
 
   */
 
   tgrid m_Grid;
+
+  /*
+  Member m_dX1 contains the X1 coordinate.
+
+  */
+
   double m_dX1;
+
+  /*
+  Member m_dY1 contains the Y1 coordinate.
+
+  */
+
   double m_dY1;
+
+  /*
+  Member m_dX2 contains the X2 coordinate.
+
+  */
+
   double m_dX2;
+
+  /*
+  Member m_dY2 contains the Y2 coordinate.
+
+  */
+
   double m_dY2;
+
+  /*
+  Member m_bHasNextX is true if tCellIterator has a next cell in x dimension,
+  otherwise m_bHasNextX is false.
+
+  */
+
   bool m_bHasNextX;
+
+  /*
+  Member m_bHasNextY is true if tCellIterator has a next cell in y dimension,
+  otherwise m_bHasNextY is false.
+
+  */
+
   bool m_bHasNextY;
+
+  /*
+  Member m_dNextX contains the next value in x dimension.
+
+  */
+
   double m_dNextX;
+
+  /*
+  Member m_dNextY contains the next value in y dimension.
+
+  */
+
   double m_dNextY;
+
+  /*
+  Member m_dLastDelta contains the last delta value.
+
+  */
+
   double m_dLastDelta;
+
+  /*
+  Member m_dCurrentDelta contains the current delta value.
+
+  */
+
   double m_dCurrentDelta;
-  Index<2> m_CurrentCellIndex;
+
+  /*
+  Member m_LastCellIndex contains the last 2-dimensional cell index.
+
+  */
+
   Index<2> m_LastCellIndex;
+
+  /*
+  Member m_CurrentCellIndex contains the current 2-dimensional cell index.
+
+  */
+
+  Index<2> m_CurrentCellIndex;
+
+  /*
+  Member m_dDeltaX contains the delta x value.
+
+  */
+
   double m_dDeltaX;
+
+  /*
+  Member m_dDeltaY contains the delta y value.
+
+  */
+
   double m_dDeltaY;
 };
 
 /*
-implementation of template class tCellIterator
+Constructor tCellIterator initializes some members of the class
+with corresponding parameter values and all the other members
+of the class with default values.
+
+author: Dirk Zacher
+parameters: rt - reference to a t datatype object
+            rX1 - reference to X1 coordinate
+            rY1 - reference to Y1 coordinate
+            rX2 - reference to X2 coordinate
+            rY2 - reference to Y2 coordinate
+return value: -
+exceptions: -
 
 */
 
 template <typename Type>
-tCellIterator<Type>::tCellIterator(const Type& rType,
+tCellIterator<Type>::tCellIterator(const Type& rt,
                                    const double& rX1,
                                    const double& rY1,
                                    const double& rX2,
@@ -124,12 +330,22 @@ tCellIterator<Type>::tCellIterator(const Type& rType,
                      m_dLastDelta(0.0),
                      m_dCurrentDelta(0.0)
 {
-  rType.getgrid(m_Grid);
-  m_CurrentCellIndex = rType.GetLocationIndex(m_dX1, m_dY1);
-  m_LastCellIndex = rType.GetLocationIndex(m_dX2, m_dY2);
+  rt.getgrid(m_Grid);
+  m_CurrentCellIndex = rt.GetLocationIndex(m_dX1, m_dY1);
+  m_LastCellIndex = rt.GetLocationIndex(m_dX2, m_dY2);
 
   Init();
 }
+
+/*
+Destructor deinitializes a tCellIterator object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 tCellIterator<Type>::~tCellIterator()
@@ -137,11 +353,33 @@ tCellIterator<Type>::~tCellIterator()
 
 }
 
+/*
+Method HasNext checks if tCellIterator object has a next cell to iterate.
+
+author: Dirk Zacher
+parameters: -
+return value: true, if tCellIterator object has a next cell to iterate,
+              otherwise false
+exceptions: -
+
+*/
+
 template <typename Type>
 bool tCellIterator<Type>::HasNext()
 {
   return m_dLastDelta < 1.0;
 }
+
+/*
+Method Next returns a pair of last delta value and current delta value
+and calculates next delta values.
+
+author: Dirk Zacher
+parameters: -
+return value: a pair of last delta value and current delta value
+exceptions: -
+
+*/
 
 template <typename Type>
 pair<double,double> tCellIterator<Type>::Next()
@@ -152,6 +390,16 @@ pair<double,double> tCellIterator<Type>::Next()
 
   return retVal;
 }
+
+/*
+Method Init initializes tCellIterator.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 void tCellIterator<Type>::Init()
@@ -170,6 +418,16 @@ void tCellIterator<Type>::Init()
     ComputeNextY();
   }
 }
+
+/*
+Method ComputeNextX calculates next x value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 void tCellIterator<Type>::ComputeNextX()
@@ -198,6 +456,16 @@ void tCellIterator<Type>::ComputeNextX()
   }
 }
 
+/*
+Method ComputeNextY calculates next y value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type>
 void tCellIterator<Type>::ComputeNextY()
 {
@@ -224,6 +492,16 @@ void tCellIterator<Type>::ComputeNextY()
     m_dNextY = (horizontalY - m_dY1) / m_dDeltaY;
   }
 }
+
+/*
+Method ComputeNextDelta calculates next delta values.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 void tCellIterator<Type>::ComputeNextDelta()
@@ -286,6 +564,17 @@ void tCellIterator<Type>::ComputeNextDelta()
   }
 }
 
+/*
+Method ShiftX decrements or increments x dimension of current cell index
+dependent on current delta x value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type>
 void tCellIterator<Type>::ShiftX()
 {
@@ -299,6 +588,17 @@ void tCellIterator<Type>::ShiftX()
    m_CurrentCellIndex.Decrement(0);
   }
 }
+
+/*
+Method ShiftY decrements or increments y dimension of current cell index
+dependent on current delta y value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type>
 void tCellIterator<Type>::ShiftY()

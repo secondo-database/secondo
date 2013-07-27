@@ -20,13 +20,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "itint.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class itProperties<int>
+Method GetXDimensionSize returns the size of x dimension of datatype itint.
+
+author: Dirk Zacher
+parameters: -
+return value: size of x dimension of datatype itint
+exceptions: -
 
 */
 
@@ -43,6 +58,16 @@ int itProperties<int>::GetXDimensionSize()
   return xDimensionSize;
 }
 
+/*
+Method GetYDimensionSize returns the size of y dimension of datatype itint.
+
+author: Dirk Zacher
+parameters: -
+return value: size of y dimension of datatype itint
+exceptions: -
+
+*/
+
 int itProperties<int>::GetYDimensionSize()
 {
   int yDimensionSize = static_cast<unsigned int>
@@ -55,6 +80,16 @@ int itProperties<int>::GetYDimensionSize()
 
   return yDimensionSize;
 }
+
+/*
+Method GetTypeName returns the typename of datatype itint.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of datatype itint
+exceptions: -
+
+*/
 
 std::string itProperties<int>::GetTypeName()
 {

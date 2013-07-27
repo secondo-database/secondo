@@ -20,6 +20,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "maximum.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
@@ -30,11 +35,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template maximumFunction
+Template method maximumFunction calls maximum method of specific datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of maximum operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of maximumFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if maximumFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -45,7 +65,7 @@ int maximumFunction(Word* pArguments,
                     Word& rLocal,
                     Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -64,8 +84,18 @@ int maximumFunction(Word* pArguments,
 
         if(pResult != 0)
         {
-          *pResult = Properties::TypeProperties::GetWrappedValue
-                     (pType->maximum());
+          if(pType->IsDefined())
+          {
+            *pResult = Properties::TypeProperties::GetWrappedValue
+                       (pType->maximum());
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+
+          nRetVal = 0;
         }
       }
     }
@@ -75,7 +105,7 @@ int maximumFunction(Word* pArguments,
 }
 
 /*
-definition of maximum functions
+definition of maximumFunctions array.
 
 */
 
@@ -93,13 +123,19 @@ ValueMapping maximumFunctions[] =
 };
 
 /*
-definition of maximum select function
+Method maximumSelectFunction returns the index of specific maximum function
+in maximumFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of maximum operator
+return value: index of specific maximum function in maximumFunctions
+exceptions: -
 
 */
 
 int maximumSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -125,18 +161,24 @@ int maximumSelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of maximum type mapping function
+Method maximumTypeMappingFunction returns the return value type
+of maximum operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of maximum operator
+return value: return value type of maximum operator
+exceptions: -
 
 */
 

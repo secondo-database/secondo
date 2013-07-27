@@ -23,16 +23,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_VAL_H
 #define TILEALGEBRA_VAL_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of val Operator Info structure
+Struct valInfo describes name, syntax, meaning and signature
+of TileAlgebra operator val.
+
+author: Dirk Zacher
 
 */
 
@@ -73,21 +92,33 @@ struct valInfo : OperatorInfo
 };
 
 /*
-declaration of val functions
+declaration of valFunctions array.
 
 */
 
 extern ValueMapping valFunctions[];
 
 /*
-declaration of val select function
+Method valSelectFunction returns the index of specific val function
+in valFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of val operator
+return value: index of specific val function in valFunctions
+exceptions: -
 
 */
 
 int valSelectFunction(ListExpr arguments);
 
 /*
-declaration of val type mapping function
+Method valTypeMappingFunction returns the return value type
+of val operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of val operator
+return value: return value type of val operator
+exceptions: -
 
 */
 

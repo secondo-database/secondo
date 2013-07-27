@@ -23,23 +23,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TBOOL_H
 #define TILEALGEBRA_TBOOL_H
 
+/*
+SECONDO includes
+
+*/
+
+#include "RectangleAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "t.h"
 #include "tProperties.h"
 #include "../Properties/Propertiesbool.h"
-#include "RectangleAlgebra.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-typedef of tbool type
+typedef of datatype tbool
 
 */
 
 typedef t<char> tbool;
 
 /*
-declaration of template class tProperties<char>
+Class tProperties<char> represents the properties of datatype tbool.
+
+author: Dirk Zacher
 
 */
 
@@ -48,14 +66,92 @@ class tProperties<char>
 {
   public:
 
+  /*
+  typedef of PropertiesType
+
+  */
+
   typedef tbool PropertiesType;
+
+  /*
+  typedef of TypeProperties
+
+  */
+
   typedef Properties<char> TypeProperties;
+
+  /*
+  typedef of GridType
+
+  */
+
   typedef tgrid GridType;
+
+  /*
+  typedef of RectangleType
+
+  */
+
   typedef Rectangle<2> RectangleType;
+
+  /*
+  Method GetXDimensionSize returns the size of x dimension of datatype tbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of x dimension of datatype tbool
+  exceptions: -
+
+  */
+
   static int GetXDimensionSize();
+
+  /*
+  Method GetYDimensionSize returns the size of y dimension of datatype tbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of y dimension of datatype tbool
+  exceptions: -
+
+  */
+
   static int GetYDimensionSize();
+
+  /*
+  Method GetFlobElements returns the number of flob elements of datatype tbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: number of flob elements of datatype tbool
+  exceptions: -
+
+  */
+
   static int GetFlobElements();
+
+  /*
+  Method GetFlobSize returns the size of the flob of datatype tbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of the flob of datatype tbool
+  exceptions: -
+
+  */
+
   static SmiSize GetFlobSize();
+
+  /*
+  Method GetTypeName returns the typename of datatype tbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of datatype tbool
+  exceptions: -
+
+  */
+
   static std::string GetTypeName();
 };
 

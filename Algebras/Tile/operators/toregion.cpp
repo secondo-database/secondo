@@ -20,15 +20,40 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "toregion.h"
+/*
+SECONDO includes
+
+*/
+
 #include "RobustSetOps.h"
 #include "RegionTools.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "toregion.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of toregion function
+Method toregionFunction implements the toregion operator functionality.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of toregion operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of toregionFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if toregionFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -38,7 +63,7 @@ int toregionFunction(Word* pArguments,
                      Word& rLocal,
                      Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -104,7 +129,7 @@ int toregionFunction(Word* pArguments,
                       Point help(true, startX + halfGridLength,
                                  startY + halfGridLength);
                       
-                      if(robust::contains(*pBuildRegion, help) == false)
+                      if(robust::contains(*pBuildRegion, help) == 0)
                       {
                         vector<Point> cycle;
 
@@ -372,8 +397,8 @@ int toregionFunction(Word* pArguments,
                       Point help(true, startX + halfGridLength,
                                  startY + halfGridLength);
 
-                      if((robust::contains(*pBuildRegion, help) == true) &&
-                         (robust::contains(*pBuildHoles, help) == false))
+                      if((robust::contains(*pBuildRegion, help) > 0) &&
+                         (robust::contains(*pBuildHoles, help) == 0))
                       {
                         vector<Point> cycle;
 
@@ -425,7 +450,7 @@ int toregionFunction(Word* pArguments,
 
                             if((value1.IsDefined() &&
                                 value1.GetBoolval() == false) &&
-                               (robust::contains(*pBuildRegion, p1) == true))
+                               (robust::contains(*pBuildRegion, p1) > 0))
                             {
                               Point point(true, currentX - gridLength,
                                           currentY);
@@ -438,8 +463,8 @@ int toregionFunction(Word* pArguments,
 
                             else if((value2.IsDefined() &&
                                      value2.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p2) ==
-                                     true))
+                                    (robust::contains(*pBuildRegion, p2) > 0))
+
                             {
                               Point point(true, currentX,
                                           currentY + gridLength);
@@ -452,8 +477,7 @@ int toregionFunction(Word* pArguments,
 
                             else if((value3.IsDefined() &&
                                      value3.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p3) ==
-                                     true))
+                                    (robust::contains(*pBuildRegion, p3) > 0))
                             {
                               Point point(true, currentX + gridLength,
                                           currentY);
@@ -484,7 +508,7 @@ int toregionFunction(Word* pArguments,
 
                             if((value1.IsDefined() &&
                                 value1.GetBoolval() == false) &&
-                               (robust::contains(*pBuildRegion, p3) == true))
+                               (robust::contains(*pBuildRegion, p3) > 0))
                             {
                               Point point(true, currentX + gridLength,
                                           currentY);
@@ -497,8 +521,7 @@ int toregionFunction(Word* pArguments,
 
                             else if((value2.IsDefined() &&
                                      value2.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p4) ==
-                                     true))
+                                    (robust::contains(*pBuildRegion, p4) > 0))
                             {
                               Point point(true, currentX,
                                           currentY - gridLength);
@@ -511,8 +534,7 @@ int toregionFunction(Word* pArguments,
 
                             else if((value3.IsDefined() &&
                                      value3.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p1) ==
-                                     true))
+                                    (robust::contains(*pBuildRegion, p1) > 0))
                             {
                               Point point(true, currentX - gridLength,
                                           currentY);
@@ -543,7 +565,7 @@ int toregionFunction(Word* pArguments,
 
                             if((value1.IsDefined() &&
                                 value1.GetBoolval() == false) &&
-                               (robust::contains(*pBuildRegion, p2) == true))
+                               (robust::contains(*pBuildRegion, p2) > 0))
                             {
                               Point point(true, currentX,
                                           currentY + gridLength);
@@ -556,8 +578,7 @@ int toregionFunction(Word* pArguments,
 
                             else if((value2.IsDefined() &&
                                      value2.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p3) ==
-                                     true))
+                                    (robust::contains(*pBuildRegion, p3) > 0))
                             {
                               Point point(true, currentX + gridLength,
                                           currentY);
@@ -570,8 +591,7 @@ int toregionFunction(Word* pArguments,
 
                             else if((value3.IsDefined() &&
                                      value3.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p4) ==
-                                     true))
+                                    (robust::contains(*pBuildRegion, p4) > 0))
                             {
                               Point point(true, currentX,
                                           currentY - gridLength);
@@ -602,7 +622,7 @@ int toregionFunction(Word* pArguments,
 
                             if((value1.IsDefined() &&
                                 value1.GetBoolval() == false) &&
-                               (robust::contains(*pBuildRegion, p4) == true))
+                               (robust::contains(*pBuildRegion, p4) > 0))
                             {
                               Point point(true, currentX,
                                           currentY - gridLength);
@@ -615,8 +635,7 @@ int toregionFunction(Word* pArguments,
 
                             else if((value2.IsDefined() &&
                                      value2.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p1) ==
-                                     true))
+                                    (robust::contains(*pBuildRegion, p1) > 0))
                             {
                               Point point(true, currentX - gridLength,
                                           currentY);
@@ -629,8 +648,7 @@ int toregionFunction(Word* pArguments,
 
                             else if((value3.IsDefined() &&
                                      value3.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p2) ==
-                                     true))
+                                    (robust::contains(*pBuildRegion, p2) > 0))
                             {
                               Point point(true, currentX,
                                           currentY + gridLength);
@@ -688,6 +706,8 @@ int toregionFunction(Word* pArguments,
               pBuildHoles = 0;
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -697,7 +717,13 @@ int toregionFunction(Word* pArguments,
 }
 
 /*
-definition of toregion type mapping function
+Method toregionTypeMappingFunction returns the return value type
+of toregion operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of toregion operator
+return value: return value type of toregion operator
+exceptions: -
 
 */
 

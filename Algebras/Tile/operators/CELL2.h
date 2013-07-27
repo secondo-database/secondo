@@ -23,16 +23,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_CELL2_H
 #define TILEALGEBRA_CELL2_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of CELL2 Operator Info structure
+Struct CELL2Info describes name, syntax, meaning and signature
+of TileAlgebra operator CELL2.
+
+author: Dirk Zacher
 
 */
 
@@ -102,7 +121,13 @@ struct CELL2Info : OperatorInfo
 };
 
 /*
-declaration of CELL2 type mapping function
+Method CELL2TypeMappingFunction returns the return value type
+of CELL2 operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of CELL2 operator
+return value: return value type of CELL2 operator
+exceptions: -
 
 */
 

@@ -20,14 +20,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "mtbool.h"
 #include "../Constants.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class mtProperties<char>
+Method GetXDimensionSize returns the size of x dimension of datatype mtbool.
+
+author: Dirk Zacher
+parameters: -
+return value: size of x dimension of datatype mtbool
+exceptions: -
 
 */
 
@@ -44,6 +59,16 @@ int mtProperties<char>::GetXDimensionSize()
   return xDimensionSize;
 }
 
+/*
+Method GetYDimensionSize returns the size of y dimension of datatype mtbool.
+
+author: Dirk Zacher
+parameters: -
+return value: size of y dimension of datatype mtbool
+exceptions: -
+
+*/
+
 int mtProperties<char>::GetYDimensionSize()
 {
   int yDimensionSize = static_cast<unsigned int>
@@ -57,10 +82,30 @@ int mtProperties<char>::GetYDimensionSize()
   return yDimensionSize;
 }
 
+/*
+Method GetTDimensionSize returns the size of time dimension of datatype mtbool.
+
+author: Dirk Zacher
+parameters: -
+return value: size of time dimension of datatype mtbool
+exceptions: -
+
+*/
+
 int mtProperties<char>::GetTDimensionSize()
 {
   return TIME_DIMENSION_SIZE;
 }
+
+/*
+Method GetFlobElements returns the number of flob elements of datatype mtbool.
+
+author: Dirk Zacher
+parameters: -
+return value: number of flob elements of datatype mtbool
+exceptions: -
+
+*/
 
 int mtProperties<char>::GetFlobElements()
 {
@@ -71,12 +116,32 @@ int mtProperties<char>::GetFlobElements()
   return flobElements;
 }
 
+/*
+Method GetFlobSize returns the size of the flob of datatype mtbool.
+
+author: Dirk Zacher
+parameters: -
+return value: size of the flob of datatype mtbool
+exceptions: -
+
+*/
+
 SmiSize mtProperties<char>::GetFlobSize()
 {
   SmiSize flobSize = GetFlobElements() * sizeof(char);
 
   return flobSize;
 }
+
+/*
+Method GetTypeName returns the typename of datatype mtbool.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of datatype mtbool
+exceptions: -
+
+*/
 
 std::string mtProperties<char>::GetTypeName()
 {

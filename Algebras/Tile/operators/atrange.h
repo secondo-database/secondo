@@ -23,18 +23,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_ATRANGE_H
 #define TILEALGEBRA_ATRANGE_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
+#include "DateTime.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "DateTime.h"
 #include "RectangleAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of atrange Operator Info structure
+Struct atrangeInfo describes name, syntax, meaning and signature
+of TileAlgebra operator atrange.
+
+author: Dirk Zacher
 
 */
 
@@ -92,21 +111,33 @@ struct atrangeInfo : OperatorInfo
 };
 
 /*
-declaration of atrange functions
+declaration of atrangeFunctions array.
 
 */
 
 extern ValueMapping atrangeFunctions[];
 
 /*
-declaration of atrange select function
+Method atrangeSelectFunction returns the index of specific atrange function
+in atrangeFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atrange operator
+return value: index of specific atrange function in atrangeFunctions
+exceptions: -
 
 */
 
 int atrangeSelectFunction(ListExpr arguments);
 
 /*
-declaration of atrange type mapping function
+Method atrangeTypeMappingFunction returns the return value type
+of atrange operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atrange operator
+return value: return value type of atrange operator
+exceptions: -
 
 */
 

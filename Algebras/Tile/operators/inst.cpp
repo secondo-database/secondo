@@ -20,17 +20,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "inst.h"
 #include "../it/itint.h"
 #include "../it/itreal.h"
 #include "../it/itbool.h"
 #include "../it/itstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template instFunction
+Template method instFunction calls inst method of specific datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of inst operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of instFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if instFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -41,7 +61,7 @@ int instFunction(Word* pArguments,
                  Word& rLocal,
                  Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -58,7 +78,17 @@ int instFunction(Word* pArguments,
 
         if(pResult != 0)
         {
-          pType->inst(*pResult);
+          if(pType->IsDefined())
+          {
+            pType->inst(*pResult);
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+
+          nRetVal = 0;
         }
       }
     }
@@ -68,7 +98,7 @@ int instFunction(Word* pArguments,
 }
 
 /*
-definition of inst functions
+definition of instFunctions array.
 
 */
 
@@ -82,13 +112,19 @@ ValueMapping instFunctions[] =
 };
 
 /*
-definition of inst select function
+Method instSelectFunction returns the index of specific inst function
+in instFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of inst operator
+return value: index of specific inst function in instFunctions
+exceptions: -
 
 */
 
 int instSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -110,18 +146,24 @@ int instSelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of inst type mapping function
+Method instTypeMappingFunction returns the return value type
+of inst operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of inst operator
+return value: return value type of inst operator
+exceptions: -
 
 */
 

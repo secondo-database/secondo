@@ -23,22 +23,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TILES_H
 #define TILEALGEBRA_TILES_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Attribute.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "Stream.h"
-#include "../Types/Types.h"
-#include "../grid/tgrid.h"
-#include "../grid/mtgrid.h"
+
+/*
+Raster2Algebra includes
+
+*/
+
 #include "../../Raster2/grid2.h"
 #include "../../Raster2/grid3.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "../grid/tgrid.h"
+#include "../grid/mtgrid.h"
+#include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of tiles Operator Info structure
+Struct tilesInfo describes name, syntax, meaning and signature
+of TileAlgebra operator tiles.
+
+author: Dirk Zacher
 
 */
 
@@ -111,21 +136,33 @@ struct tilesInfo : OperatorInfo
 };
 
 /*
-declaration of tiles functions
+declaration of tilesFunctions array.
 
 */
 
 extern ValueMapping tilesFunctions[];
 
 /*
-declaration of tiles select function
+Method tilesSelectFunction returns the index of specific tiles function
+in tilesFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of tiles operator
+return value: index of specific tiles function in tilesFunctions
+exceptions: -
 
 */
 
 int tilesSelectFunction(ListExpr arguments);
 
 /*
-declaration of tiles type mapping function
+Method tilesTypeMappingFunction returns the return value type
+of tiles operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of tiles operator
+return value: return value type of tiles operator
+exceptions: -
 
 */
 

@@ -20,15 +20,42 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "fromregion.h"
+/*
+SECONDO includes
+
+*/
+
 #include "../HalfSegment/HalfSegment.h"
 #include "RobustSetOps.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "fromregion.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of SetRegionValues function
+Method SetRegionValues sets all cells of given tbool object whose center point
+is inside or on the border of the given Region to true.
+
+author: Dirk Zacher
+parameters: rRegion - reference to a Region
+            rLeftPoint - reference to the left point of a HalfSegment
+            rRightPoint - reference to the right point of a HalfSegment
+            rtbool - reference to a tbool object containing all cells inside
+                     or on the border of rRegion marked with a true value
+return value: true, if the value of a cell of given tbool object set to true,
+              otherwise false
+exceptions: -
 
 */
 
@@ -98,7 +125,17 @@ bool SetRegionValues(const Region& rRegion,
 }
 
 /*
-definition of SetRegionValues function
+Method SetRegionValues sets all cells of given tbool object whose center point
+is inside or on the border of the given Region to true.
+
+author: Dirk Zacher
+parameters: rRegion - reference to a Region
+            rHalfSegment - reference to a HalfSegment
+            rtbool - reference to a tbool object containing all cells inside
+                     or on the border of rRegion marked with a true value
+return value: true, if the value of a cell of given tbool object set to true,
+              otherwise false
+exceptions: -
 
 */
 
@@ -245,7 +282,19 @@ bool SetRegionValues(const Region& rRegion,
 }
 
 /*
-definition of fromregion function
+Method fromregionFunction implements the fromregion operator functionality.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of fromregion operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of fromregionFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if fromregionFunction successfully executed,
+              YIELD if rResult contains a stream element (execution continued),
+              CANCEL if all stream elements of the result already returned,
+              FAILURE if an error occured
+exceptions: -
 
 */
 
@@ -255,7 +304,7 @@ int fromregionFunction(Word* pArguments,
                        Word& rLocal,
                        Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -358,6 +407,7 @@ int fromregionFunction(Word* pArguments,
                                           (yDimensionSize * gridLength)) *
                                           (yDimensionSize * gridLength);
             rLocal.addr = pResultInfo;
+            nRetVal = 0;
           }
         }
         break;
@@ -448,13 +498,14 @@ int fromregionFunction(Word* pArguments,
               rLocal.addr = 0;
             }
           }
+
+          nRetVal = 0;
         }
         break;
 
         default:
         {
           assert(false);
-          nRetVal = -1;
         }
         break;
       }
@@ -465,7 +516,13 @@ int fromregionFunction(Word* pArguments,
 }
 
 /*
-definition of fromregion type mapping function
+Method fromregionTypeMappingFunction returns the return value type
+of fromregion operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of fromregion operator
+return value: return value type of fromregion operator
+exceptions: -
 
 */
 

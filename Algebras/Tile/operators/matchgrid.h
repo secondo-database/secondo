@@ -23,19 +23,38 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_MATCHGRID_H
 #define TILEALGEBRA_MATCHGRID_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "../Types/Types.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../grid/tgrid.h"
 #include "../grid/mtgrid.h"
+#include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of matchgrid Operator Info structure
+Struct matchgridInfo describes name, syntax, meaning and signature
+of TileAlgebra operator matchgrid.
+
+author: Dirk Zacher
 
 */
 
@@ -100,21 +119,33 @@ struct matchgridInfo : OperatorInfo
 };
 
 /*
-declaration of matchgrid functions
+declaration of matchgridFunctions array.
 
 */
 
 extern ValueMapping matchgridFunctions[];
 
 /*
-declaration of matchgrid select function
+Method matchgridSelectFunction returns the index of specific matchgrid function
+in matchgridFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of matchgrid operator
+return value: index of specific matchgrid function in matchgridFunctions
+exceptions: -
 
 */
 
 int matchgridSelectFunction(ListExpr arguments);
 
 /*
-declaration of matchgrid type mapping function
+Method matchgridTypeMappingFunction returns the return value type
+of matchgrid operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of matchgrid operator
+return value: return value type of matchgrid operator
+exceptions: -
 
 */
 

@@ -23,16 +23,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_MAP2_H
 #define TILEALGEBRA_MAP2_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of map2 Operator Info structure
+Struct map2Info describes name, syntax, meaning and signature
+of TileAlgebra operator map2.
+
+author: Dirk Zacher
 
 */
 
@@ -131,21 +150,33 @@ struct map2Info : OperatorInfo
 };
 
 /*
-declaration of map2 functions
+declaration of map2Functions array.
 
 */
 
 extern ValueMapping map2Functions[];
 
 /*
-declaration of map2 select function
+Method map2SelectFunction returns the index of specific map2 function
+in map2Functions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of map2 operator
+return value: index of specific map2 function in map2Functions
+exceptions: -
 
 */
 
 int map2SelectFunction(ListExpr arguments);
 
 /*
-declaration of map2 type mapping function
+Method map2TypeMappingFunction returns the return value type
+of map2 operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of map2 operator
+return value: return value type of map2 operator
+exceptions: -
 
 */
 

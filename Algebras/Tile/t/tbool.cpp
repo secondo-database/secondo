@@ -20,13 +20,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "tbool.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class tProperties<char>
+Method GetXDimensionSize returns the size of x dimension of datatype tbool.
+
+author: Dirk Zacher
+parameters: -
+return value: size of x dimension of datatype tbool
+exceptions: -
 
 */
 
@@ -43,6 +58,16 @@ int tProperties<char>::GetXDimensionSize()
   return xDimensionSize;
 }
 
+/*
+Method GetYDimensionSize returns the size of y dimension of datatype tbool.
+
+author: Dirk Zacher
+parameters: -
+return value: size of y dimension of datatype tbool
+exceptions: -
+
+*/
+
 int tProperties<char>::GetYDimensionSize()
 {
   int yDimensionSize = static_cast<unsigned int>
@@ -56,6 +81,16 @@ int tProperties<char>::GetYDimensionSize()
   return yDimensionSize;
 }
 
+/*
+Method GetFlobElements returns the number of flob elements of datatype tbool.
+
+author: Dirk Zacher
+parameters: -
+return value: number of flob elements of datatype tbool
+exceptions: -
+
+*/
+
 int tProperties<char>::GetFlobElements()
 {
   int flobElements = GetXDimensionSize() * GetYDimensionSize();
@@ -63,12 +98,32 @@ int tProperties<char>::GetFlobElements()
   return flobElements;
 }
 
+/*
+Method GetFlobSize returns the size of the flob of datatype tbool.
+
+author: Dirk Zacher
+parameters: -
+return value: size of the flob of datatype tbool
+exceptions: -
+
+*/
+
 SmiSize tProperties<char>::GetFlobSize()
 {
   SmiSize flobSize = GetFlobElements() * sizeof(char);
 
   return flobSize;
 }
+
+/*
+Method GetTypeName returns the typename of datatype tbool.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of datatype tbool
+exceptions: -
+
+*/
 
 std::string tProperties<char>::GetTypeName()
 {

@@ -23,17 +23,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_ATINSTANT_H
 #define TILEALGEBRA_ATINSTANT_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
+#include "DateTime.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "DateTime.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of atinstant Operator Info structure
+Struct atinstantInfo describes name, syntax, meaning and signature
+of TileAlgebra operator atinstant.
+
+author: Dirk Zacher
 
 */
 
@@ -76,21 +95,33 @@ struct atinstantInfo : OperatorInfo
 };
 
 /*
-declaration of atinstant functions
+declaration of atinstantFunctions array.
 
 */
 
 extern ValueMapping atinstantFunctions[];
 
 /*
-declaration of atinstant select function
+Method atinstantSelectFunction returns the index of specific atinstant function
+in atinstantFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atinstant operator
+return value: index of specific atinstant function in atinstantFunctions
+exceptions: -
 
 */
 
 int atinstantSelectFunction(ListExpr arguments);
 
 /*
-declaration of atinstant type mapping function
+Method atinstantTypeMappingFunction returns the return value type
+of atinstant operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atinstant operator
+return value: return value type of atinstant operator
+exceptions: -
 
 */
 

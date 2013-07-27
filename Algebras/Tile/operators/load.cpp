@@ -20,15 +20,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "load.h"
 #include "../t/tintArray.h"
 #include "../t/tintFlob.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of template loadFunction
+Template method loadFunction calls load method of specific datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of load operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of loadFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if loadFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -39,25 +59,35 @@ int loadFunction(Word* pArguments,
                  Word& rLocal,
                  Supplier supplier)
 {
-  Type* pImplementationType = static_cast<Type*>(pArguments[0].addr);
+  int nRetVal = FAILURE;
 
-  if(pImplementationType != 0)
+  if(qp != 0 &&
+     pArguments != 0)
   {
-    rResult = qp->ResultStorage(supplier);
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
 
-    CcBool* pResult = static_cast<CcBool*>(rResult.addr);
-
-    if(pResult != 0)
+    if(pType != 0)
     {
-      pResult->Set(true, pImplementationType->load());
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        CcBool* pResult = static_cast<CcBool*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          pResult->Set(true, pType->load());
+          nRetVal = 0;
+        }
+      }
     }
   }
 
-  return 0;
+  return nRetVal;
 }
 
 /*
-definition of load functions
+definition of loadFunctions array.
 
 */
 
@@ -69,31 +99,51 @@ ValueMapping loadFunctions[] =
 };
 
 /*
-definition of load select function
+Method loadSelectFunction returns the index of specific load function
+in loadFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of load operator
+return value: index of specific load function in loadFunctions
+exceptions: -
 
 */
 
 int loadSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
-  NList type(arguments);
-
-  if(type.first().isSymbol(tintArray::BasicType()))
+  if(arguments != 0)
   {
-    nSelection = 0;
+    NList argumentsList(arguments);
+
+    if(argumentsList.hasLength(1))
+    {
+      NList argument1 = argumentsList.first();
+
+      if(argument1.isSymbol(tintArray::BasicType()))
+      {
+        functionIndex = 0;
+      }
+
+      else if(argument1.isSymbol(tintFlob::BasicType()))
+      {
+        functionIndex = 1;
+      }
+    }
   }
 
-  else if (type.first().isSymbol(tintFlob::BasicType()))
-  {
-    nSelection = 1;
-  }
-
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of load type mapping function
+Method loadTypeMappingFunction returns the return value type
+of load operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of load operator
+return value: return value type of load operator
+exceptions: -
 
 */
 

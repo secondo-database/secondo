@@ -23,22 +23,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TREAL_H
 #define TILEALGEBRA_TREAL_H
 
+/*
+SECONDO includes
+
+*/
+
+#include "RectangleAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "t.h"
 #include "tProperties.h"
 #include "../Properties/Propertiesreal.h"
-#include "RectangleAlgebra.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
+
 /*
-typedef of treal type
+typedef of datatype treal
 
 */
 
 typedef t<double> treal;
 
 /*
-declaration of template class tProperties<double>
+Class tProperties<double> represents the properties of datatype treal.
+
+author: Dirk Zacher
 
 */
 
@@ -47,14 +66,92 @@ class tProperties<double>
 {
   public:
 
+  /*
+  typedef of PropertiesType
+
+  */
+
   typedef treal PropertiesType;
+
+  /*
+  typedef of TypeProperties
+
+  */
+
   typedef Properties<double> TypeProperties;
+
+  /*
+  typedef of GridType
+
+  */
+
   typedef tgrid GridType;
+
+  /*
+  typedef of RectangleType
+
+  */
+
   typedef Rectangle<2> RectangleType;
+
+  /*
+  Method GetXDimensionSize returns the size of x dimension of datatype treal.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of x dimension of datatype treal
+  exceptions: -
+
+  */
+
   static int GetXDimensionSize();
+
+  /*
+  Method GetYDimensionSize returns the size of y dimension of datatype treal.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of y dimension of datatype treal
+  exceptions: -
+
+  */ 
+
   static int GetYDimensionSize();
+
+  /*
+  Method GetFlobElements returns the number of flob elements of datatype treal.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: number of flob elements of datatype treal
+  exceptions: -
+
+  */
+
   static int GetFlobElements();
+
+  /*
+  Method GetFlobSize returns the size of the flob of datatype treal.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of the flob of datatype treal
+  exceptions: -
+
+  */
+
   static SmiSize GetFlobSize();
+
+  /*
+  Method GetTypeName returns the typename of datatype treal.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of datatype treal
+  exceptions: -
+
+  */
+
   static std::string GetTypeName(); 
 };
 

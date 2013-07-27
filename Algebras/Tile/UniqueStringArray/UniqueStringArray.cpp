@@ -1,4 +1,3 @@
- 
 /*
 This file is part of SECONDO.
 
@@ -19,21 +18,60 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-*/ 
+*/
+
+/*
+SECONDO includes
+
+*/
+
+#include "TypeConstructor.h"
+#include "Symbols.h"
+
+/*
+TileAlgebra includes
+
+*/
 
 #include "UniqueStringArray.h"
-#include "TypeConstructor.h"
 #include "../Constants.h"
-#include "Symbols.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
+
+/*
+Constructor UniqueStringArray does not initialize any members and
+should only be used in conjunction with Cast method.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 UniqueStringArray::UniqueStringArray()
                   :Attribute()
 {
   
 }
+
+/*
+Constructor UniqueStringArray sets defined flag
+of base class Attribute and initializes all members
+of the class with default values.
+
+author: Dirk Zacher
+parameters: bDefined - defined flag of base class Attribute
+return value: -
+exceptions: -
+
+*/
   
 UniqueStringArray::UniqueStringArray(bool bDefined)
                   :Attribute(bDefined),
@@ -42,6 +80,19 @@ UniqueStringArray::UniqueStringArray(bool bDefined)
 {
   
 }
+
+/*
+Constructor UniqueStringArray sets defined flag
+of base class Attribute to defined flag of rUniqueStringArray object
+and initializes all members of the class with corresponding values
+of rUniqueStringArray object.
+
+author: Dirk Zacher
+parameters: rUniqueStringArray - reference to a UniqueStringArray object
+return value: -
+exceptions: -
+
+*/
 
 UniqueStringArray::UniqueStringArray
                   (const UniqueStringArray& rUniqueStringArray)
@@ -52,10 +103,31 @@ UniqueStringArray::UniqueStringArray
   
 }
 
+/*
+Destructor deinitializes a UniqueStringArray object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 UniqueStringArray::~UniqueStringArray()
 {
   
 }
+
+/*
+Operator= assigns all member values of a given UniqueStringArray object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: rUniqueStringArray - reference to a UniqueStringArray object
+return value: reference to this object
+exceptions: -
+
+*/
 
 UniqueStringArray& UniqueStringArray::operator=
                    (const UniqueStringArray& rUniqueStringArray)
@@ -77,7 +149,21 @@ UniqueStringArray& UniqueStringArray::operator=
   return *this;
 }
 
-bool UniqueStringArray::GetUniqueString(int nIndex, std::string& rString) const
+/*
+Method GetUniqueString returns the string with given index.
+
+author: Dirk Zacher
+parameters: nIndex - index of string
+            rString - reference to a string containing
+                      the string with given index
+return value: true, if nIndex is a valid string index and rString contains
+              the string with given index, otherwise false
+exceptions: -
+
+*/
+
+bool UniqueStringArray::GetUniqueString(int nIndex,
+                                        std::string& rString) const
 {
   bool bRetVal = false;
   
@@ -112,26 +198,48 @@ bool UniqueStringArray::GetUniqueString(int nIndex, std::string& rString) const
   return bRetVal;
 }
 
-list<string> UniqueStringArray::GetUniqueStringArray() const
+/*
+Method GetUniqueStringArray returns all unique strings.
+
+author: Dirk Zacher
+parameters: rUniqueStringArray - reference to a vector of strings
+                                 containing all unique strings
+return value: -
+exceptions: -
+
+*/
+
+void UniqueStringArray::GetUniqueStringArray
+                        (std::vector<std::string>& rUniqueStringArray) const
 {
-  list<string> uniqueStringArray;
+  rUniqueStringArray.clear();
   
   int nStrings = m_StringData.Size();
   bool bOK = false;
-  string uniqueString;
+  std::string uniqueString;
   
   for(int i = 0; i < nStrings; i++)
   {
     bOK = GetUniqueString(i, uniqueString);
     
-    if(bOK == true)
+    if(bOK == true &&
+       uniqueString.empty() == false)
     {
-      uniqueStringArray.push_back(uniqueString);
+      rUniqueStringArray.push_back(uniqueString);
     }
   }
-  
-  return uniqueStringArray;
 }
+
+/*
+Method GetUniqueStringIndex returns the index of a unique string.
+
+author: Dirk Zacher
+parameters: rString - reference to a string
+return value: index of unique string if rString exists in UniqueStringArray,
+              otherwise -1
+exceptions: -
+
+*/
 
 int UniqueStringArray::GetUniqueStringIndex(const std::string& rString) const
 {
@@ -169,6 +277,17 @@ int UniqueStringArray::GetUniqueStringIndex(const std::string& rString) const
   return nUniqueStringIndex;
 }
 
+/*
+Method AddString adds given string to UniqueStringArray if given string
+does not exist in UniqueStringArray and returns the index of given string.
+
+author: Dirk Zacher
+parameters: rString - reference to a string
+return value: index of given string in UniqueStringArray
+exceptions: -
+
+*/
+
 int UniqueStringArray::AddString(const std::string& rString)
 { 
   int nIndex = UNDEFINED_STRING_INDEX;
@@ -203,16 +322,93 @@ int UniqueStringArray::AddString(const std::string& rString)
   return nIndex;
 }
 
+/*
+Method Destroy destroys UniqueStringArray object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 void UniqueStringArray::Destroy()
 {
   m_StringData.Destroy();
   m_StringFlob.destroy();
 }
 
+/*
+Method IsUniqueString checks if given string is an unique string.
+
+author: Dirk Zacher
+parameters: rString - reference to a string
+return value: true, if given string is an unique string, otherwise false
+exceptions: -
+
+*/
+
+bool UniqueStringArray::IsUniqueString(const std::string& rString) const
+{
+  bool bIsUniqueString = false;
+  
+  if(rString.empty() == false)
+  {
+    bIsUniqueString = true;
+    SmiSize stringLength = rString.length();
+    int nStrings = m_StringData.Size();
+    bool bOK = false;
+    StringData stringData;
+    string uniqueString;
+    
+    for(int i = 0; i < nStrings; i++)
+    {
+      bOK = m_StringData.Get(i, stringData);
+      
+      if(bOK == true)
+      {
+        if(stringLength == stringData.m_Length)
+        {
+          bOK = GetUniqueString(i, uniqueString);
+          
+          if(bOK == true &&
+             rString == uniqueString)
+          {
+            bIsUniqueString = false;
+            break;
+          }
+        }
+      }
+    }
+  }
+  
+  return bIsUniqueString;
+}
+
+/*
+Method Adjacent checks if this object is adjacent to given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: true, if this object is adjacent to pAttribute, otherwise false
+exceptions: -
+
+*/
+
 bool UniqueStringArray::Adjacent(const Attribute* pAttribute) const
 {
   return false;
 }
+
+/*
+Method Clone returns a copy of this object.
+
+author: Dirk Zacher
+parameters: -
+return value: a pointer to a copy of this object
+exceptions: -
+
+*/
 
 Attribute* UniqueStringArray::Clone() const
 {
@@ -221,6 +417,21 @@ Attribute* UniqueStringArray::Clone() const
 
   return pAttribute;
 }
+
+/*
+Method Compare compares this object with given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -1 if this object < pAttribute object or
+                 this object is undefined and pAttribute object is defined,
+               0 if this object equals pAttribute object or
+                 this object and pAttribute object are undefined,
+               1 if this object > pAttribute object or
+                 this object is defined and pAttribute object is undefined
+exceptions: -
+
+*/
 
 int UniqueStringArray::Compare(const Attribute* pAttribute) const
 {
@@ -271,6 +482,17 @@ int UniqueStringArray::Compare(const Attribute* pAttribute) const
   return nRetVal;
 }
 
+/*
+Method CopyFrom assigns all member values of pAttribute object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -
+exceptions: -
+
+*/
+
 void UniqueStringArray::CopyFrom(const Attribute* pAttribute)
 {
   if(pAttribute != 0)
@@ -284,6 +506,16 @@ void UniqueStringArray::CopyFrom(const Attribute* pAttribute)
     }
   }
 }
+
+/*
+Method GetFLOB returns a pointer to the Flob with given index.
+
+author: Dirk Zacher
+parameters: i - index of Flob
+return value: a pointer to the Flob with given index
+exceptions: -
+
+*/
 
 Flob* UniqueStringArray::GetFLOB(const int i)
 { 
@@ -308,6 +540,16 @@ Flob* UniqueStringArray::GetFLOB(const int i)
   return pFlob;
 }
 
+/*
+Method HashValue returns the hash value of the UniqueStringArray object.
+
+author: Dirk Zacher
+parameters: -
+return value: hash value of the UniqueStringArray object
+exceptions: -
+
+*/
+
 size_t UniqueStringArray::HashValue() const
 {
   size_t hashValue = 0;
@@ -320,25 +562,78 @@ size_t UniqueStringArray::HashValue() const
   return hashValue;
 }
 
+/*
+Method NumOfFLOBs returns the number of Flobs of a UniqueStringArray object.
+
+author: Dirk Zacher
+parameters: -
+return value: number of Flobs of a UniqueStringArray object
+exceptions: -
+
+*/
+
 int UniqueStringArray::NumOfFLOBs() const
 { 
   return 2;
 }
+
+/*
+Method Sizeof returns the size of UniqueStringArray datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: size of UniqueStringArray datatype
+exceptions: -
+
+*/
 
 size_t UniqueStringArray::Sizeof() const
 {
   return sizeof(UniqueStringArray);
 }
 
+/*
+Method BasicType returns the typename of UniqueStringArray datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of UniqueStringArray datatype
+exceptions: -
+
+*/
+
 const string UniqueStringArray::BasicType()
 {
   return TYPE_NAME_UNIQUESTRINGARRAY;
 }
 
+/*
+Method Cast casts a void pointer to a new UniqueStringArray object.
+
+author: Dirk Zacher
+parameters: pVoid - a pointer to a memory address
+return value: a pointer to a new UniqueStringArray object
+exceptions: -
+
+*/
+
 void* UniqueStringArray::Cast(void* pVoid)
 {
   return new(pVoid)UniqueStringArray;
 }
+
+/*
+Method Clone clones an existing UniqueStringArray object
+given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing
+                    UniqueStringArray object
+return value: a Word that references a new UniqueStringArray object
+exceptions: -
+
+*/
 
 Word UniqueStringArray::Clone(const ListExpr typeInfo,
                               const Word& rWord)
@@ -357,6 +652,19 @@ Word UniqueStringArray::Clone(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method Close closes an existing UniqueStringArray object
+given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing
+                    UniqueStringArray object
+return value: -
+exceptions: -
+
+*/
+
 void UniqueStringArray::Close(const ListExpr typeInfo,
                               Word& rWord)
 {
@@ -370,6 +678,16 @@ void UniqueStringArray::Close(const ListExpr typeInfo,
   }
 }
 
+/*
+Method Create creates a new UniqueStringArray object.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of the new UniqueStringArray object to create
+return value: a Word that references a new UniqueStringArray object
+exceptions: -
+
+*/
+
 Word UniqueStringArray::Create(const ListExpr typeInfo)
 {
   Word word;
@@ -379,6 +697,19 @@ Word UniqueStringArray::Create(const ListExpr typeInfo)
 
   return word;
 }
+
+/*
+Method Delete deletes an existing UniqueStringArray object
+given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing
+                    UniqueStringArray object
+return value: -
+exceptions: -
+
+*/
 
 void UniqueStringArray::Delete(const ListExpr typeInfo,
                                Word& rWord)
@@ -392,6 +723,17 @@ void UniqueStringArray::Delete(const ListExpr typeInfo,
     rWord.addr = 0;
   }
 }
+
+/*
+Method GetTypeConstructor returns the TypeConstructor
+of class UniqueStringArray.
+
+author: Dirk Zacher
+parameters: -
+return value: TypeConstructor of class UniqueStringArray
+exceptions: -
+
+*/
 
 TypeConstructor UniqueStringArray::GetTypeConstructor()
 {
@@ -418,6 +760,22 @@ TypeConstructor UniqueStringArray::GetTypeConstructor()
   
   return typeConstructor;
 }
+
+/*
+Method In creates a new UniqueStringArray object
+on the basis of a given ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object to create on the basis of instance
+            instance - ListExpr of the UniqueStringArray object to create
+            errorPos - error position
+            rErrorInfo - reference to error information
+            rCorrect - flag that indicates if UniqueStringArray object
+                       correctly created
+return value: a Word that references a new UniqueStringArray object
+exceptions: -
+
+*/
 
 Word UniqueStringArray::In(const ListExpr typeInfo,
                            const ListExpr instance,
@@ -481,6 +839,17 @@ Word UniqueStringArray::In(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method KindCheck checks if given type is UniqueStringArray type.
+
+author: Dirk Zacher
+parameters: type - ListExpr of type to check
+            rErrorInfo - reference to error information
+return value: true, if type is UniqueStringArray type, otherwise false
+exceptions: -
+
+*/
+
 bool UniqueStringArray::KindCheck(ListExpr type,
                                   ListExpr& rErrorInfo)
 {
@@ -494,6 +863,22 @@ bool UniqueStringArray::KindCheck(ListExpr type,
   return bRetVal;
 }
 
+/*
+Method Open opens a UniqueStringArray object from a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord containing UniqueStringArray object
+                           to open
+            rOffset - Offset to the UniqueStringArray object in SmiRecord
+            typeInfo - TypeInfo of UniqueStringArray object to open
+            rValue - reference to a Word referencing the opened
+                     UniqueStringArray object
+return value: true, if UniqueStringArray object was successfully opened,
+              otherwise false
+exceptions: -
+
+*/
+
 bool UniqueStringArray::Open(SmiRecord& rValueRecord,
                              size_t& rOffset,
                              const ListExpr typeInfo,
@@ -506,6 +891,19 @@ bool UniqueStringArray::Open(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method Out writes out an existing UniqueStringArray object
+in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of UniqueStringArray object to write out
+            value - reference to a Word referencing
+                    the UniqueStringArray object
+return value: ListExpr of UniqueStringArray object referenced by value
+exceptions: -
+
+*/
 
 ListExpr UniqueStringArray::Out(ListExpr typeInfo,
                                 Word value)
@@ -521,22 +919,21 @@ ListExpr UniqueStringArray::Out(ListExpr typeInfo,
     {
       if(pUniqueStringArray->IsDefined() == true)
       {
-        list<string> uniqueStringArray =
-                     pUniqueStringArray->GetUniqueStringArray();
+        std::vector<std::string> uniqueStringArray;
+        pUniqueStringArray->GetUniqueStringArray(uniqueStringArray);
         
         if(uniqueStringArray.size() > 0)
         {
-          list<string>::iterator it = uniqueStringArray.begin();
-          ListExpr pCurrentListExpr = nl->StringAtom(*it);
+          ListExpr pCurrentListExpr = nl->StringAtom(uniqueStringArray[0]);
           
           if(pCurrentListExpr != 0)
           {
             pListExpr = nl->OneElemList(pCurrentListExpr);
             ListExpr pLastListExpr = pListExpr;
             
-            for(it++; it != uniqueStringArray.end(); it++)
+            for(size_t i = 1; i < uniqueStringArray.size(); i++)
             {
-              pCurrentListExpr = nl->StringAtom(*it);
+              pCurrentListExpr = nl->StringAtom(uniqueStringArray[i]);
               
               if(pCurrentListExpr != 0)
               {
@@ -561,6 +958,17 @@ ListExpr UniqueStringArray::Out(ListExpr typeInfo,
   
   return pListExpr;
 }
+
+/*
+Method Property returns all properties of UniqueStringArray datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: properties of UniqueStringArray datatype
+              in the form of a ListExpr
+exceptions: -
+
+*/
 
 ListExpr UniqueStringArray::Property()
 {
@@ -589,6 +997,22 @@ ListExpr UniqueStringArray::Property()
   return propertyList.listExpr();
 }
 
+/*
+Method Save saves an existing UniqueStringArray object in a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord to save existing UniqueStringArray object
+            rOffset - Offset to save position of UniqueStringArray object
+                      in SmiRecord
+            typeInfo - TypeInfo of UniqueStringArray object to save
+            rValue - reference to a Word referencing
+                     the UniqueStringArray object to save
+return value: true, if UniqueStringArray object was successfully saved,
+              otherwise false
+exceptions: -
+
+*/
+
 bool UniqueStringArray::Save(SmiRecord& rValueRecord,
                              size_t& rOffset,
                              const ListExpr typeInfo,
@@ -602,46 +1026,19 @@ bool UniqueStringArray::Save(SmiRecord& rValueRecord,
   return bRetVal;
 }
 
+/*
+Method SizeOfObj returns the size of a UniqueStringArray object.
+
+author: Dirk Zacher
+parameters: -
+return value: size of a UniqueStringArray object
+exceptions: -
+
+*/
+
 int UniqueStringArray::SizeOfObj()
 {
   return sizeof(UniqueStringArray);
-}
-
-bool UniqueStringArray::IsUniqueString(const std::string& rString) const
-{
-  bool bIsUniqueString = false;
-  
-  if(rString.empty() == false)
-  {
-    bIsUniqueString = true;
-    SmiSize stringLength = rString.length();
-    int nStrings = m_StringData.Size();
-    bool bOK = false;
-    StringData stringData;
-    string uniqueString;
-    
-    for(int i = 0; i < nStrings; i++)
-    {
-      bOK = m_StringData.Get(i, stringData);
-      
-      if(bOK == true)
-      {
-        if(stringLength == stringData.m_Length)
-        {
-          bOK = GetUniqueString(i, uniqueString);
-          
-          if(bOK == true &&
-             rString == uniqueString)
-          {
-            bIsUniqueString = false;
-            break;
-          }
-        }
-      }
-    }
-  }
-  
-  return bIsUniqueString;
 }
 
 }

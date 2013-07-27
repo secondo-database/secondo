@@ -20,13 +20,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "treal.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class tProperties<double>
+Method GetXDimensionSize returns the size of x dimension of datatype treal.
+
+author: Dirk Zacher
+parameters: -
+return value: size of x dimension of datatype treal
+exceptions: -
 
 */
 
@@ -43,6 +58,16 @@ int tProperties<double>::GetXDimensionSize()
   return xDimensionSize;
 }
 
+/*
+Method GetYDimensionSize returns the size of y dimension of datatype treal.
+
+author: Dirk Zacher
+parameters: -
+return value: size of y dimension of datatype treal
+exceptions: -
+
+*/
+
 int tProperties<double>::GetYDimensionSize()
 {
   int yDimensionSize = static_cast<unsigned int>
@@ -56,6 +81,16 @@ int tProperties<double>::GetYDimensionSize()
   return yDimensionSize;
 }
 
+/*
+Method GetFlobElements returns the number of flob elements of datatype treal.
+
+author: Dirk Zacher
+parameters: -
+return value: number of flob elements of datatype treal
+exceptions: -
+
+*/
+
 int tProperties<double>::GetFlobElements()
 {
   int flobElements = GetXDimensionSize() * GetYDimensionSize();
@@ -63,12 +98,32 @@ int tProperties<double>::GetFlobElements()
   return flobElements;
 }
 
+/*
+Method GetFlobSize returns the size of the flob of datatype treal.
+
+author: Dirk Zacher
+parameters: -
+return value: size of the flob of datatype treal
+exceptions: -
+
+*/
+
 SmiSize tProperties<double>::GetFlobSize()
 {
   SmiSize flobSize = GetFlobElements() * sizeof(double);
 
   return flobSize;
 }
+
+/*
+Method GetTypeName returns the typename of datatype treal.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of datatype treal
+exceptions: -
+
+*/
 
 std::string tProperties<double>::GetTypeName()
 {

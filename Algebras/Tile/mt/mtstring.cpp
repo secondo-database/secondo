@@ -20,14 +20,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "mtstring.h"
 #include "../Constants.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class mtstring
+Constructor mtstring does not initialize any members and
+should only be used in conjunction with Cast method.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
 
 */
 
@@ -37,12 +53,36 @@ mtstring::mtstring()
 
 }
 
+/*
+Constructor mtstring sets defined flag of base class Attribute and
+initializes all members of the class with default values.
+
+author: Dirk Zacher
+parameters: bDefined - defined flag of base class Attribute
+return value: -
+exceptions: -
+
+*/
+
 mtstring::mtstring(bool bDefined)
          :mtint(bDefined),
           m_UniqueStringArray(bDefined)
 {
   
 }
+
+/*
+Constructor mtstring sets defined flag of base class Attribute to defined flag
+of rmtint object and initializes all members of the class with corresponding
+values of rmtint object and rUniqueStringArray object.
+
+author: Dirk Zacher
+parameters: rmtint - reference to a mtint object
+            rUniqueStringArray - reference to an UniqueStringArray object
+return value: -
+exceptions: -
+
+*/
 
 mtstring::mtstring(const mtint& rmtint,
                    const UniqueStringArray& rUniqueStringArray)
@@ -52,16 +92,50 @@ mtstring::mtstring(const mtint& rmtint,
   
 }
 
+/*
+Constructor mtstring sets defined flag of base class Attribute to defined flag
+of rmtstring object and initializes all members of the class with corresponding
+values of rmtstring object.
+
+author: Dirk Zacher
+parameters: rmtstring - reference to a mtstring object
+return value: -
+exceptions: -
+
+*/
+
 mtstring::mtstring(const mtstring& rmtstring)
-         :mtint(rmtstring)
+         :mtint(rmtstring),
+          m_UniqueStringArray(rmtstring.m_UniqueStringArray)
 {
   
 }
+
+/*
+Destructor deinitializes a mtstring object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 mtstring::~mtstring()
 {
 
 }
+
+/*
+Operator= assigns all member values of a given mtstring object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: rmtstring - reference to a mtstring object
+return value: reference to this object
+exceptions: -
+
+*/
 
 mtstring& mtstring::operator=(const mtstring& rmtstring)
 {
@@ -75,9 +149,23 @@ mtstring& mtstring::operator=(const mtstring& rmtstring)
   return *this;
 }
 
- void mtstring::atlocation(const double& rX,
-                           const double& rY,
-                           MString& rValues) const
+/*
+TileAlgebra operator atlocation returns the time dependent values
+of a mtstring object at given location rX and rY.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+            rValues - reference to a MString object containing
+            the time dependent values at given location rX and rY
+return value: -
+exceptions: -
+
+*/
+
+void mtstring::atlocation(const double& rX,
+                          const double& rY,
+                          MString& rValues) const
 {
   rValues.SetDefined(false);
 
@@ -117,6 +205,21 @@ mtstring& mtstring::operator=(const mtstring& rmtstring)
   }
 }
 
+/*
+TileAlgebra operator atlocation returns the value of a mtstring object
+at given location rX and rY at given Instant value.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+            rInstant - reference to an Instant value of time dimension
+            rValue - reference to the value at given location rX and rY
+                     at given rInstant value
+return value: -
+exceptions: -
+
+*/
+
 void mtstring::atlocation(const double& rX,
                           const double& rY,
                           const double& rInstant,
@@ -137,6 +240,19 @@ void mtstring::atlocation(const double& rX,
     }
   }
 }
+
+/*
+TileAlgebra operator atinstant returns all values of a mtstring object
+at given Instant value.
+
+author: Dirk Zacher
+parameters: rInstant - reference to an Instant value of time dimension
+            ritstring - reference to an itstring object containing all values
+                        of the mtstring object at given Instant value
+return value: -
+exceptions: -
+
+*/
 
 void mtstring::atinstant(const Instant& rInstant,
                          itstring& ritstring) const
@@ -177,6 +293,19 @@ void mtstring::atinstant(const Instant& rInstant,
   ritstring.SetInstant(rInstant);
   ritstring.SetValues(tstring);
 }
+
+/*
+TileAlgebra operator atperiods returns all values of a mtstring object
+at given periods.
+
+author: Dirk Zacher
+parameters: rPeriods - reference to a Periods object
+            rmtstring - reference to a mtstring object containing all values
+                        of the mtstring object at given periods
+return value: -
+exceptions: -
+
+*/
 
 void mtstring::atperiods(const Periods& rPeriods,
                          mtstring& rmtstring)
@@ -247,6 +376,19 @@ void mtstring::atperiods(const Periods& rPeriods,
   }
 }
 
+/*
+TileAlgebra operator atrange returns all values of a mtstring object
+inside the given rectangle.
+
+author: Dirk Zacher
+parameters: rRectangle - reference to a Rectangle<2> object
+            rmtstring - reference to a mtstring object containing all values
+                        of the mtstring object inside the given rectangle
+return value: -
+exceptions: -
+
+*/
+
 void mtstring::atrange(const Rectangle<2>& rRectangle,
                        mtstring& rmtstring) const
 {
@@ -261,6 +403,23 @@ void mtstring::atrange(const Rectangle<2>& rRectangle,
     atrange(rRectangle, instant1, instant2, rmtstring);
   }
 }
+
+/*
+TileAlgebra operator atrange returns all values of a mtstring object
+inside the given rectangle between first given Instant value
+and second given Instant value.
+
+author: Dirk Zacher
+parameters: rRectangle - reference to a Rectangle<2> object
+            rInstant1 - reference to the first Instant value
+            rInstant2 - reference to the second Instant value
+            rmtstring - reference to a mtstring object containing all values
+                        of the mtstring object inside the given rectangle
+                        between rInstant1 and rInstant2
+return value: -
+exceptions: -
+
+*/
 
 void mtstring::atrange(const Rectangle<2>& rRectangle,
                        const double& rInstant1,
@@ -319,6 +478,16 @@ void mtstring::atrange(const Rectangle<2>& rRectangle,
   }
 }
 
+/*
+TileAlgebra operator minimum returns the minimum value of mtstring object.
+
+author: Dirk Zacher
+parameters: -
+return value: minimum value of mtstring object
+exceptions: -
+
+*/
+
 std::string mtstring::minimum() const
 {
   std::string minimum;
@@ -332,6 +501,16 @@ std::string mtstring::minimum() const
   return minimum;
 }
 
+/*
+TileAlgebra operator maximum returns the maximum value of mtstring object.
+
+author: Dirk Zacher
+parameters: -
+return value: maximum value of mtstring object
+exceptions: -
+
+*/
+
 std::string mtstring::maximum() const
 {
   std::string maximum;
@@ -344,6 +523,17 @@ std::string mtstring::maximum() const
 
   return maximum;
 }
+
+/*
+Method GetValue returns the string value of mtstring object
+at given 3-dimensional index.
+
+author: Dirk Zacher
+parameters: rIndex - reference to a 3-dimensional index
+return value: string value of mtstring object at given 3-dimensional index
+exceptions: -
+
+*/
 
 std::string mtstring::GetValue(const Index<3>& rIndex) const
 {
@@ -360,6 +550,20 @@ std::string mtstring::GetValue(const Index<3>& rIndex) const
 
   return value;
 }
+
+/*
+Method SetValue sets a string value of mtstring object at given index and
+recalculates minimum and maximum of mtstring object if bSetExtrema is true.
+
+author: Dirk Zacher
+parameters: rIndex - reference to a 3-dimensional index
+            rValue - reference to a string value
+            bSetExtrema - flag that indicates if minimum and maximum
+                          of mtstring object should be recalculated
+return value: true, if rValue was successfully set at rIndex, otherwise false
+exceptions: -
+
+*/
 
 bool mtstring::SetValue(const Index<3>& rIndex,
                         const std::string& rValue,
@@ -405,6 +609,24 @@ bool mtstring::SetValue(const Index<3>& rIndex,
   return bRetVal;
 }
 
+/*
+Method SetValue sets a string value of mtstring object at given location
+rX and rY at given Instant value and recalculates minimum and maximum
+of mtstring object if bSetExtrema is true.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+            rInstant - reference to an Instant value of time dimension
+            rValue - reference to a string value
+            bSetExtrema - flag that indicates if minimum and maximum
+                          of mtstring object should be recalculated
+return value: true, if rValue was successfully set at given location
+              rX and rY at given Instant value, otherwise false
+exceptions: -
+
+*/
+
 bool mtstring::SetValue(const double& rX,
                         const double& rY,
                         const double& rInstant,
@@ -423,10 +645,30 @@ bool mtstring::SetValue(const double& rX,
   return bRetVal;
 }
 
+/*
+Method Adjacent checks if this object is adjacent to given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: true, if this object is adjacent to pAttribute, otherwise false
+exceptions: -
+
+*/
+
 bool mtstring::Adjacent(const Attribute* pAttribute) const
 {
   return false;
 }
+
+/*
+Method Clone returns a copy of this object.
+
+author: Dirk Zacher
+parameters: -
+return value: a pointer to a copy of this object
+exceptions: -
+
+*/
 
 Attribute* mtstring::Clone() const
 {
@@ -435,6 +677,21 @@ Attribute* mtstring::Clone() const
 
   return pAttribute;
 }
+
+/*
+Method Compare compares this object with given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -1 if this object < pAttribute object or
+                 this object is undefined and pAttribute object is defined,
+               0 if this object equals pAttribute object or
+                 this object and pAttribute object are undefined,
+               1 if this object > pAttribute object or
+                 this object is defined and pAttribute object is undefined
+exceptions: -
+
+*/
 
 int mtstring::Compare(const Attribute* pAttribute) const
 {
@@ -486,6 +743,17 @@ int mtstring::Compare(const Attribute* pAttribute) const
   return nRetVal;
 }
 
+/*
+Method CopyFrom assigns all member values of pAttribute object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -
+exceptions: -
+
+*/
+
 void mtstring::CopyFrom(const Attribute* pAttribute)
 {
   if(pAttribute != 0)
@@ -498,6 +766,16 @@ void mtstring::CopyFrom(const Attribute* pAttribute)
     }
   }
 }
+
+/*
+Method GetFLOB returns a pointer to the Flob with given index.
+
+author: Dirk Zacher
+parameters: i - index of Flob
+return value: a pointer to the Flob with given index
+exceptions: -
+
+*/
 
 Flob* mtstring::GetFLOB(const int i)
 { 
@@ -522,6 +800,16 @@ Flob* mtstring::GetFLOB(const int i)
   return pFlob;
 }
 
+/*
+Method HashValue returns the hash value of the mtstring object.
+
+author: Dirk Zacher
+parameters: -
+return value: hash value of the mtstring object
+exceptions: -
+
+*/
+
 size_t mtstring::HashValue() const
 {
   size_t hashValue = 0;
@@ -534,6 +822,16 @@ size_t mtstring::HashValue() const
   return hashValue;
 }
 
+/*
+Method NumOfFLOBs returns the number of Flobs of a mtstring object.
+
+author: Dirk Zacher
+parameters: -
+return value: number of Flobs of a mtstring object
+exceptions: -
+
+*/
+
 int mtstring::NumOfFLOBs() const
 { 
   int nNumberOfFLOBs = mtint::NumOfFLOBs() +
@@ -542,20 +840,61 @@ int mtstring::NumOfFLOBs() const
   return nNumberOfFLOBs;
 }
 
+/*
+Method Sizeof returns the size of mtstring datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: size of mtstring datatype
+exceptions: -
+
+*/
+
 size_t mtstring::Sizeof() const
 {
   return sizeof(mtstring);
 }
+
+/*
+Method BasicType returns the typename of mtstring datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of mtstring datatype
+exceptions: -
+
+*/
 
 const std::string mtstring::BasicType()
 {
   return mtProperties<std::string>::GetTypeName();
 }
 
+/*
+Method Cast casts a void pointer to a new mtstring object.
+
+author: Dirk Zacher
+parameters: pVoid - a pointer to a memory address
+return value: a pointer to a new mtstring object
+exceptions: -
+
+*/
+
 void* mtstring::Cast(void* pVoid)
 {
   return new(pVoid)mtstring;
 }
+
+/*
+Method Clone clones an existing mtstring object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing mtstring object
+return value: a Word that references a new mtstring object
+exceptions: -
+
+*/
 
 Word mtstring::Clone(const ListExpr typeInfo,
                      const Word& rWord)
@@ -573,6 +912,17 @@ Word mtstring::Clone(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method Close closes an existing mtstring object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing mtstring object
+return value: -
+exceptions: -
+
+*/
+
 void mtstring::Close(const ListExpr typeInfo,
                      Word& rWord)
 {
@@ -585,6 +935,16 @@ void mtstring::Close(const ListExpr typeInfo,
   }
 }
 
+/*
+Method Create creates a new mtstring object.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of the new mtstring object to create
+return value: a Word that references a new mtstring object
+exceptions: -
+
+*/
+
 Word mtstring::Create(const ListExpr typeInfo)
 {
   Word word;
@@ -594,6 +954,17 @@ Word mtstring::Create(const ListExpr typeInfo)
 
   return word;
 }
+
+/*
+Method Delete deletes an existing mtstring object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing mtstring object
+return value: -
+exceptions: -
+
+*/
 
 void mtstring::Delete(const ListExpr typeInfo,
                      Word& rWord)
@@ -606,6 +977,16 @@ void mtstring::Delete(const ListExpr typeInfo,
     rWord.addr = 0;
   }
 }
+
+/*
+Method GetTypeConstructor returns the TypeConstructor of class mtstring.
+
+author: Dirk Zacher
+parameters: -
+return value: TypeConstructor of class mtstring
+exceptions: -
+
+*/
 
 TypeConstructor mtstring::GetTypeConstructor()
 {
@@ -632,6 +1013,20 @@ TypeConstructor mtstring::GetTypeConstructor()
 
   return typeConstructor;
 }
+
+/*
+Method In creates a new mtstring object on the basis of a given ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object to create on the basis of instance
+            instance - ListExpr of the mtstring object to create
+            errorPos - error position
+            rErrorInfo - reference to error information
+            rCorrect - flag that indicates if mtstring object correctly created
+return value: a Word that references a new mtstring object
+exceptions: -
+
+*/
 
 Word mtstring::In(const ListExpr typeInfo,
                   const ListExpr instance,
@@ -873,6 +1268,17 @@ Word mtstring::In(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method KindCheck checks if given type is mtstring type.
+
+author: Dirk Zacher
+parameters: type - ListExpr of type to check
+            rErrorInfo - reference to error information
+return value: true, if type is mtstring type, otherwise false
+exceptions: -
+
+*/
+
 bool mtstring::KindCheck(ListExpr type,
                          ListExpr& rErrorInfo)
 {
@@ -886,6 +1292,19 @@ bool mtstring::KindCheck(ListExpr type,
   return bRetVal;
 }
 
+/*
+Method Open opens an mtstring object from a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord containing mtstring object to open
+            rOffset - Offset to the mtstring object in SmiRecord
+            typeInfo - TypeInfo of mtstring object to open
+            rValue - reference to a Word referencing the opened mtstring object
+return value: true, if mtstring object was successfully opened, otherwise false
+exceptions: -
+
+*/
+
 bool mtstring::Open(SmiRecord& rValueRecord,
                     size_t& rOffset,
                     const ListExpr typeInfo,
@@ -898,6 +1317,17 @@ bool mtstring::Open(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method Out writes out an existing mtstring object in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of mtstring object to write out
+            value - reference to a Word referencing the mtstring object
+return value: ListExpr of mtstring object referenced by value
+exceptions: -
+
+*/
 
 ListExpr mtstring::Out(ListExpr typeInfo,
                        Word value)
@@ -973,6 +1403,16 @@ ListExpr mtstring::Out(ListExpr typeInfo,
   return pListExpr;
 }
 
+/*
+Method Property returns all properties of mtstring datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: properties of mtstring datatype in the form of a ListExpr
+exceptions: -
+
+*/
+
 ListExpr mtstring::Property()
 {
   NList propertyList;
@@ -1000,6 +1440,19 @@ ListExpr mtstring::Property()
   return propertyList.listExpr();
 }
 
+/*
+Method Save saves an existing mtstring object in a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord to save existing mtstring object
+            rOffset - Offset to save position of mtstring object in SmiRecord
+            typeInfo - TypeInfo of mtstring object to save
+            rValue - reference to a Word referencing the mtstring object to save
+return value: true, if mtstring object was successfully saved, otherwise false
+exceptions: -
+
+*/
+
 bool mtstring::Save(SmiRecord& rValueRecord,
                     size_t& rOffset,
                     const ListExpr typeInfo,
@@ -1013,13 +1466,28 @@ bool mtstring::Save(SmiRecord& rValueRecord,
   return bRetVal;
 }
 
+/*
+Method SizeOfObj returns the size of a mtstring object.
+
+author: Dirk Zacher
+parameters: -
+return value: size of a mtstring object
+exceptions: -
+
+*/
+
 int mtstring::SizeOfObj()
 {
   return sizeof(mtstring);
 }
 
 /*
-implementation of template class mtProperties<std::string>
+Method GetXDimensionSize returns the size of x dimension of datatype mtstring.
+
+author: Dirk Zacher
+parameters: -
+return value: size of x dimension of datatype mtstring
+exceptions: -
 
 */
 
@@ -1036,6 +1504,16 @@ int mtProperties<std::string>::GetXDimensionSize()
   return xDimensionSize;
 }
 
+/*
+Method GetYDimensionSize returns the size of y dimension of datatype mtstring.
+
+author: Dirk Zacher
+parameters: -
+return value: size of y dimension of datatype mtstring
+exceptions: -
+
+*/
+
 int mtProperties<std::string>::GetYDimensionSize()
 {
   int yDimensionSize = static_cast<unsigned int>
@@ -1049,10 +1527,30 @@ int mtProperties<std::string>::GetYDimensionSize()
   return yDimensionSize;
 }
 
+/*
+Method GetTDimensionSize returns the size of time dimension of datatype mtstring.
+
+author: Dirk Zacher
+parameters: -
+return value: size of time dimension of datatype mtstring
+exceptions: -
+
+*/
+
 int mtProperties<std::string>::GetTDimensionSize()
 {
   return TIME_DIMENSION_SIZE;
 }
+
+/*
+Method GetFlobElements returns the number of flob elements of datatype mtstring.
+
+author: Dirk Zacher
+parameters: -
+return value: number of flob elements of datatype mtstring
+exceptions: -
+
+*/
 
 int mtProperties<std::string>::GetFlobElements()
 {
@@ -1063,12 +1561,32 @@ int mtProperties<std::string>::GetFlobElements()
   return flobElements;
 }
 
+/*
+Method GetFlobSize returns the size of the flob of datatype mtstring.
+
+author: Dirk Zacher
+parameters: -
+return value: size of the flob of datatype mtstring
+exceptions: -
+
+*/
+
 SmiSize mtProperties<std::string>::GetFlobSize()
 {
   SmiSize flobSize = GetFlobElements() * sizeof(int);
 
   return flobSize;
 }
+
+/*
+Method GetTypeName returns the typename of datatype mtstring.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of datatype mtstring
+exceptions: -
+
+*/
 
 std::string mtProperties<std::string>::GetTypeName()
 {

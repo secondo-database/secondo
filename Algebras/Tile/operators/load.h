@@ -23,18 +23,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_LOAD_H
 #define TILEALGEBRA_LOAD_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+#include "StandardTypes.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../t/tintArray.h"
 #include "../t/tintFlob.h"
-#include "StandardTypes.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of load Operator Info structure
+Struct loadInfo describes name, syntax, meaning and signature
+of TileAlgebra operator load.
+
+author: Dirk Zacher
 
 */
 
@@ -51,21 +70,33 @@ struct loadInfo : OperatorInfo
 };
 
 /*
-declaration of load functions
+declaration of loadFunctions array.
 
 */
 
 extern ValueMapping loadFunctions[];
 
 /*
-declaration of load select function
+Method loadSelectFunction returns the index of specific load function
+in loadFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of load operator
+return value: index of specific load function in loadFunctions
+exceptions: -
 
 */
 
 int loadSelectFunction(ListExpr arguments);
 
 /*
-declaration of load type mapping function
+Method loadTypeMappingFunction returns the return value type
+of load operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of load operator
+return value: return value type of load operator
+exceptions: -
 
 */
 

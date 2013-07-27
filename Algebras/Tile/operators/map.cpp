@@ -20,11 +20,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+SECONDO includes
+
+*/
+
+#include "RectangleAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "map.h"
-#include "../Index/Index.h"
-#include "../Types/Types.h"
 #include "../grid/tgrid.h"
 #include "../grid/mtgrid.h"
+#include "../Index/Index.h"
+#include "../Types/Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -33,13 +45,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
-#include "RectangleAlgebra.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of template mapFunctiont
+Template method mapFunctiont implements the map operator functionality
+for t datatypes.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of map operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of mapFunctiont
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if mapFunctiont successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -51,7 +77,7 @@ int mapFunctiont(Word* pArguments,
                  Word& rLocal,
                  Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -134,6 +160,8 @@ int mapFunctiont(Word* pArguments,
               }
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -143,7 +171,17 @@ int mapFunctiont(Word* pArguments,
 }
 
 /*
-definition of template mapFunctionmt
+Template method mapFunctionmt implements the map operator functionality
+for mt datatypes.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of map operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of mapFunctionmt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if mapFunctionmt successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -155,7 +193,7 @@ int mapFunctionmt(Word* pArguments,
                   Word& rLocal,
                   Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -242,6 +280,8 @@ int mapFunctionmt(Word* pArguments,
               }
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -251,7 +291,7 @@ int mapFunctionmt(Word* pArguments,
 }
 
 /*
-definition of map functions
+definition of mapFunctions array.
 
 */
 
@@ -332,13 +372,19 @@ ValueMapping mapFunctions[] =
 };
 
 /*
-definition of map select function
+Method mapSelectFunction returns the index of specific map function
+in mapFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of map operator
+return value: index of specific map function in mapFunctions
+exceptions: -
 
 */
 
 int mapSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -385,17 +431,23 @@ int mapSelectFunction(ListExpr arguments)
       if(argument1Index >= 0 &&
          argument2Index >= 0)
       {
-        nSelection = (argument1Index * 4) +
-                     (argument2Index % 4);
+        functionIndex = (argument1Index * 4) +
+                        (argument2Index % 4);
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of map type mapping function
+Method mapTypeMappingFunction returns the return value type
+of map operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of map operator
+return value: return value type of map operator
+exceptions: -
 
 */
 

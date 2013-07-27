@@ -23,117 +23,464 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_MT_H
 #define TILEALGEBRA_MT_H
 
-#include "TypeConstructor.h"
-#include "mtProperties.h"
+/*
+SECONDO includes
+
+*/
+
 #include "Attribute.h"
-#include "../grid/mtgrid.h"
-#include "../../Tools/Flob/Flob.h"
-#include "../Index/Index.h"
 #include "RectangleAlgebra.h"
 #include "TemporalAlgebra.h"
+#include "TypeConstructor.h"
+#include "../../Tools/Flob/Flob.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "mtProperties.h"
+#include "../grid/mtgrid.h"
+#include "../Index/Index.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-declaration of template class t
+Template class mt represents the base implementation
+for datatypes mtint, mtreal, mtbool and mtstring.
+
+author: Dirk Zacher
 
 */
 
 template <typename Type, typename Properties = mtProperties<Type> >
 class mt : public Attribute
 {
+  protected:
+
   /*
-  constructors
+  Constructor mt does not initialize any members and
+  should only be used in conjunction with Cast method.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
-
-  protected:
 
   mt();
 
   public:
 
+  /*
+  Constructor mt sets defined flag of base class Attribute and
+  initializes all members of the class with default values.
+
+  author: Dirk Zacher
+  parameters: bDefined - defined flag of base class Attribute
+  return value: -
+  exceptions: -
+
+  */
+
   mt(bool bDefined);
+
+  /*
+  Constructor mt sets defined flag of base class Attribute to defined flag
+  of rmt object and initializes all members of the class with corresponding
+  values of rmt object.
+
+  author: Dirk Zacher
+  parameters: rmt - reference to a mt object
+  return value: -
+  exceptions: -
+
+  */
+
   mt(const mt& rmt);
 
   /*
-  destructor
+  Destructor ~mt deinitializes a mt object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
 
   virtual ~mt();
 
   /*
-  operators
+  Operator= assigns all member values of a given mt object
+  to the corresponding member values of this object.
+
+  author: Dirk Zacher
+  parameters: rmt - reference to a mt object
+  return value: reference to this object
+  exceptions: -
 
   */
 
   mt& operator=(const mt& rmt);
 
   /*
-  TileAlgebra operator methods
+  TileAlgebra operator atlocation returns the time dependent values
+  of a mt object at given location rX and rY.
+
+  author: Dirk Zacher
+  parameters: rX - reference to location of dimension x
+              rY - reference to location of dimension y
+              rValues - reference to a moving type object containing
+                        the time dependent values at given location rX and rY
+  return value: -
+  exceptions: -
 
   */
 
   void atlocation(const double& rX,
                   const double& rY,
                   typename Properties::TypeProperties::MType& rValues) const;
+
+  /*
+  TileAlgebra operator atlocation returns the value of a mt object
+  at given location rX and rY at given Instant value.
+
+  author: Dirk Zacher
+  parameters: rX - reference to location of dimension x
+              rY - reference to location of dimension y
+              rInstant - reference to an Instant value of time dimension
+              rValue - reference to the value at given location rX and rY
+                       at given rInstant value
+  return value: -
+  exceptions: -
+
+  */
+
   void atlocation(const double& rX,
                   const double& rY,
                   const double& rInstant,
                   typename Properties::TypeProperties::WrapperType& rValue)
                   const;
+
+  /*
+  TileAlgebra operator atinstant returns all values of a mt object
+  at given Instant value.
+
+  author: Dirk Zacher
+  parameters: rInstant - reference to an Instant value of time dimension
+              rit - reference to an it object containing all values
+                    of the mt object at given Instant value
+  return value: -
+  exceptions: -
+
+  */
+
   void atinstant(const Instant& rInstant,
                  typename Properties::itType& rit) const;
+
+  /*
+  TileAlgebra operator atperiods returns all values of a mt object
+  at given periods.
+
+  author: Dirk Zacher
+  parameters: rPeriods - reference to a Periods object
+              rmt - reference to a mt object containing all values
+                    of the mt object at given periods
+  return value: -
+  exceptions: -
+
+  */
+
   void atperiods(const Periods& rPeriods,
                  typename Properties::PropertiesType& rmt) const;
+
+  /*
+  TileAlgebra operator atrange returns all values of a mt object
+  inside the given rectangle.
+
+  author: Dirk Zacher
+  parameters: rRectangle - reference to a Rectangle<2> object
+              rmt - reference to a mt object containing all values
+                    of the mt object inside the given rectangle
+  return value: -
+  exceptions: -
+
+  */
+
   void atrange(const Rectangle<2>& rRectangle,
                typename Properties::PropertiesType& rmt) const;
+
+  /*
+  TileAlgebra operator atrange returns all values of a mt object
+  inside the given rectangle between first given Instant value
+  and second given Instant value.
+
+  author: Dirk Zacher
+  parameters: rRectangle - reference to a Rectangle<2> object
+              rInstant1 - reference to the first Instant value
+              rInstant2 - reference to the second Instant value
+              rmt - reference to a mt object containing all values
+                    of the mt object inside the given rectangle
+                    between rInstant1 and rInstant2
+  return value: -
+  exceptions: -
+
+  */
+
   void atrange(const Rectangle<2>& rRectangle,
                const double& rInstant1,
                const double& rInstant2,
                typename Properties::PropertiesType& rmt) const;
-  void deftime(Periods& rPeriods) const;
-  void bbox(typename Properties::RectangleType& rBoundingBox) const;
-  Type minimum() const;
-  Type maximum() const;
-  void getgrid(mtgrid& rmtgrid) const;
 
   /*
-  methods
+  TileAlgebra operator deftime returns the defined periods of a mt object.
+
+  author: Dirk Zacher
+  parameters: rPeriods - reference to a Periods object containing
+                         all defined Periods of mt object.
+  return value: -
+  exceptions: -
 
   */
 
-  Index<2> GetLocationIndex(const double& rX, const double& rY) const;
+  void deftime(Periods& rPeriods) const;
+
+  /*
+  TileAlgebra operator bbox returns the bounding box of a mt object.
+
+  author: Dirk Zacher
+  parameters: rBoundingBox - reference to a Properties::RectangleType object
+                             containing the bounding box of the mt object.
+  return value: -
+  exceptions: -
+
+  */
+
+  void bbox(typename Properties::RectangleType& rBoundingBox) const;
+
+  /*
+  TileAlgebra operator minimum returns the minimum value of mt object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: minimum value of mt object
+  exceptions: -
+
+  */
+
+  Type minimum() const;
+
+  /*
+  TileAlgebra operator maximum returns the maximum value of mt object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: maximum value of mt object
+  exceptions: -
+
+  */
+
+  Type maximum() const;
+
+  /*
+  TileAlgebra operator getgrid returns the mtgrid object of mt object.
+
+  author: Dirk Zacher
+  parameters: rmtgrid - reference to a mtgrid object containing
+                        mtgrid object of mt object.
+  return value: -
+  exceptions: -
+
+  */
+
+  void getgrid(mtgrid& rmtgrid) const;
+
+  /*
+  Method GetLocationIndex returns a 2-dimensional index
+  of given location rX and rY.
+
+  author: Dirk Zacher
+  parameters: rX - reference to location of dimension x
+              rY - reference to location of dimension y
+  return value: 2-dimensional index of given location rX and rY
+  exceptions: -
+
+  */
+
+  Index<2> GetLocationIndex(const double& rX,
+                            const double& rY) const;
+
+  /*
+  Method GetLocationIndex returns a 3-dimensional index
+  of given location rX and rY at given Instant value.
+
+  author: Dirk Zacher
+  parameters: rX - reference to location of dimension x
+              rY - reference to location of dimension y
+              rInstant - reference to an Instant value of time dimension
+  return value: 3-dimensional index of given location rX and rY at rInstant
+  exceptions: -
+
+  */
+
   Index<3> GetLocationIndex(const double& rX, const double& rY,
                             const double& rInstant) const;
+
+  /*
+  Method GetValue returns the value of mt object at given 3-dimensional index.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to a 3-dimensional index
+  return value: value of mt object at given 3-dimensional index
+  exceptions: -
+
+  */
+
   Type GetValue(const Index<3>& rIndex) const;
+
+  /*
+  Method IsValidLocation checks if given location rX and rY
+  is a valid location inside the mt object.
+
+  author: Dirk Zacher
+  parameters: rX - reference to location of dimension x
+              rY - reference to location of dimension y
+  return value: true, if given location rX and rY is a valid location
+                inside the mt object, otherwise false
+  exceptions: -
+
+  */
+
   bool IsValidLocation(const double& rX,
-                         const double& rY) const;
+                       const double& rY) const;
+
+  /*
+  Method IsValidLocation checks if given location rX and rY
+  at given Instant value is a valid location inside the mt object.
+
+  author: Dirk Zacher
+  parameters: rX - reference to location of dimension x
+              rY - reference to location of dimension y
+              rInstant - reference to an Instant value of time dimension
+  return value: true, if given location rX and rY at given Instant value
+                is a valid location inside the mt object, otherwise false
+  exceptions: -
+
+  */
+
   bool IsValidLocation(const double& rX,
                        const double& rY,
                        const double& rInstant) const;
+
+  /*
+  Method SetGrid sets the mtgrid of mt object.
+
+  author: Dirk Zacher
+  parameters: rmtgrid - reference to a mtgrid object
+  return value: true, if the mtgrid of mt object was successfully set,
+                otherwise false
+  exceptions: -
+
+  */
+
   bool SetGrid(const mtgrid& rmtgrid);
+
+  /*
+  Method SetGrid sets the mtgrid properties of mt object.
+
+  author: Dirk Zacher
+  parameters: rX - reference to the x origin of the grid
+              rY - reference to the y origin of the grid
+              rLength - reference to the length of a grid cell
+              rDuration - reference to duration of the grid
+  return value: true, if mtgrid properties of mt object were successfully set,
+                otherwise false
+  exceptions: -
+
+  */
+
   bool SetGrid(const double& rX,
                const double& rY,
                const double& rLength,
                const datetime::DateTime& rDuration);
+
+  /*
+  Method SetValue sets a value of mt object at given index and
+  recalculates minimum and maximum of mt object if bSetExtrema is true.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to a 3-dimensional index
+              rValue - reference to a value
+              bSetExtrema - flag that indicates if minimum and maximum
+                            of mt object should be recalculated
+  return value: true, if rValue was successfully set at rIndex, otherwise false
+  exceptions: -
+
+  */
+
   bool SetValue(const Index<3>& rIndex,
                 const Type& rValue,
                 bool bSetExtrema);
+
+  /*
+  Method SetValue sets a value of mt object at given location rX and rY
+  at given Instant value and recalculates minimum and maximum of mt object
+  if bSetExtrema is true.
+
+  author: Dirk Zacher
+  parameters: rX - reference to location of dimension x
+              rY - reference to location of dimension y
+              rInstant - reference to an Instant value of time dimension
+              rValue - reference to a value
+              bSetExtrema - flag that indicates if minimum and maximum
+                            of mt object should be recalculated
+  return value: true, if rValue was successfully set at given location
+                rX and rY at given Instant value, otherwise false
+  exceptions: -
+
+  */
+
   bool SetValue(const double& rX,
                 const double& rY,
                 const double& rInstant,
                 const Type& rValue,
                 bool bSetExtrema);
+
+  /*
+  Method SetValues sets all values of mt object and recalculates
+  minimum and maximum of mt object if bSetExtrema is true.
+
+  author: Dirk Zacher
+  parameters: rValue - reference to a value
+              bSetExtrema - flag that indicates if minimum and maximum
+                            of mt object should be recalculated
+  return value: true, if all values were successfully set, otherwise false
+  exceptions: -
+
+  */
+
   bool SetValues(const Type& rValue,
                  bool bSetExtrema);
 
   protected:
 
   /*
-  internal methods
+  Method IsValidIndex checks if given index is a valid index
+  inside the mt object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to a 3-dimensional index
+  return value: true, if given index is a valid index inside the mt object,
+                otherwise false
+  exceptions: -
 
   */
 
@@ -143,70 +490,344 @@ class mt : public Attribute
   public:
 
   /*
-  override functions from base class Attribute
+  Method Adjacent checks if this object is adjacent to given Attribute object.
+
+  author: Dirk Zacher
+  parameters: pAttribute - a pointer to an Attribute object
+  return value: true, if this object is adjacent to pAttribute, otherwise false
+  exceptions: -
 
   */
 
   virtual bool Adjacent(const Attribute* pAttribute) const;
+
+  /*
+  Method Clone returns a copy of this object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: a pointer to a copy of this object
+  exceptions: -
+
+  */
+
   virtual Attribute* Clone() const;
+
+  /*
+  Method Compare compares this object with given Attribute object.
+
+  author: Dirk Zacher
+  parameters: pAttribute - a pointer to an Attribute object
+  return value: -1 if this object < pAttribute object or
+                   this object is undefined and pAttribute object is defined,
+                 0 if this object equals pAttribute object or
+                   this object and pAttribute object are undefined,
+                 1 if this object > pAttribute object or
+                   this object is defined and pAttribute object is undefined
+  exceptions: -
+
+  */
+
   virtual int Compare(const Attribute* pAttribute) const;
+
+  /*
+  Method CopyFrom assigns all member values of pAttribute object
+  to the corresponding member values of this object.
+
+  author: Dirk Zacher
+  parameters: pAttribute - a pointer to an Attribute object
+  return value: -
+  exceptions: -
+
+  */
+
   virtual void CopyFrom(const Attribute* pAttribute);
+
+  /*
+  Method GetFLOB returns a pointer to the Flob with given index.
+
+  author: Dirk Zacher
+  parameters: i - index of Flob
+  return value: a pointer to the Flob with given index
+  exceptions: -
+
+  */
+
   virtual Flob* GetFLOB(const int i);
+
+  /*
+  Method HashValue returns the hash value of the mt object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: hash value of the mt object
+  exceptions: -
+
+  */
+
   virtual size_t HashValue() const;
+
+  /*
+  Method NumOfFLOBs returns the number of Flobs of a mt object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: number of Flobs of a mt object
+  exceptions: -
+
+  */
+
   virtual int NumOfFLOBs() const;
+
+  /*
+  Method Sizeof returns the size of mt datatype.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of mt datatype
+  exceptions: -
+
+  */
+
   virtual size_t Sizeof() const;
 
   /*
-  The following functions are used to integrate the ~t~
-  datatype into secondo.
+  Method BasicType returns the typename of mt datatype.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of mt datatype
+  exceptions: -
 
   */
 
   static const std::string BasicType();
+
+  /*
+  Method Cast casts a void pointer to a new mt object.
+
+  author: Dirk Zacher
+  parameters: pVoid - a pointer to a memory address
+  return value: a pointer to a new mt object
+  exceptions: -
+
+  */
+
   static void* Cast(void* pVoid);
+
+  /*
+  Method Clone clones an existing mt object given by a reference to a Word.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of object referenced by rWord
+              rWord - reference to the address of an existing mt object
+  return value: a Word that references a new mt object
+  exceptions: -
+
+  */
+
   static Word Clone(const ListExpr typeInfo,
                     const Word& rWord);
+
+  /*
+  Method Close closes an existing mt object given by a reference to a Word.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of object referenced by rWord
+              rWord - reference to the address of an existing mt object
+  return value: -
+  exceptions: -
+
+  */
+
   static void Close(const ListExpr typeInfo,
                     Word& rWord);
+
+  /*
+  Method Create creates a new mt object.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of the new mt object to create
+  return value: a Word that references a new mt object
+  exceptions: -
+
+  */
+
   static Word Create(const ListExpr typeInfo);
+
+  /*
+  Method Delete deletes an existing mt object given by a reference to a Word.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of object referenced by rWord
+              rWord - reference to the address of an existing mt object
+  return value: -
+  exceptions: -
+
+  */
+
   static void Delete(const ListExpr typeInfo,
                      Word& rWord);
+
+  /*
+  Method GetTypeConstructor returns the TypeConstructor of class mt.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: TypeConstructor of class mt
+  exceptions: -
+
+  */
+
   static TypeConstructor GetTypeConstructor();
+
+  /*
+  Method In creates a new mt object on the basis of a given ListExpr.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of object to create on the basis of instance
+              instance - ListExpr of the mt object to create
+              errorPos - error position
+              rErrorInfo - reference to error information
+              rCorrect - flag that indicates if mt object correctly created
+  return value: a Word that references a new mt object
+  exceptions: -
+
+  */
+
   static Word In(const ListExpr typeInfo,
                  const ListExpr instance,
                  const int errorPos,
                  ListExpr& rErrorInfo,
                  bool& rCorrect);
+
+  /*
+  Method KindCheck checks if given type is mt type.
+
+  author: Dirk Zacher
+  parameters: type - ListExpr of type to check
+              rErrorInfo - reference to error information
+  return value: true, if type is mt type, otherwise false
+  exceptions: -
+
+  */
+
   static bool KindCheck(ListExpr type,
                         ListExpr& rErrorInfo);
+
+  /*
+  Method Open opens an mt object from a SmiRecord.
+
+  author: Dirk Zacher
+  parameters: rValueRecord - SmiRecord containing mt object to open
+              rOffset - Offset to the mt object in SmiRecord
+              typeInfo - TypeInfo of mt object to open
+              rValue - reference to a Word referencing the opened mt object
+  return value: true, if mt object was successfully opened, otherwise false
+  exceptions: -
+
+  */
+
   static bool Open(SmiRecord& rValueRecord,
                    size_t& rOffset,
                    const ListExpr typeInfo,
                    Word& rValue);
+
+  /*
+  Method Out writes out an existing mt object in the form of a ListExpr.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of mt object to write out
+              value - reference to a Word referencing the mt object
+  return value: ListExpr of mt object referenced by value
+  exceptions: -
+
+  */
+
   static ListExpr Out(ListExpr typeInfo,
                       Word value);
+
+  /*
+  Method Property returns all properties of mt datatype.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: properties of mt datatype in the form of a ListExpr
+  exceptions: -
+
+  */
+
   static ListExpr Property();
+
+  /*
+  Method Save saves an existing mt object in a SmiRecord.
+
+  author: Dirk Zacher
+  parameters: rValueRecord - SmiRecord to save existing mt object
+              rOffset - Offset to save position of mt object in SmiRecord
+              typeInfo - TypeInfo of mt object to save
+              rValue - reference to a Word referencing the mt object to save
+  return value: true, if mt object was successfully saved, otherwise false
+  exceptions: -
+
+  */
+
   static bool Save(SmiRecord& rValueRecord,
                    size_t& rOffset,
                    const ListExpr typeInfo,
                    Word& rValue);
+
+  /*
+  Method SizeOfObj returns the size of a mt object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of a mt object
+  exceptions: -
+
+  */
+
   static int SizeOfObj();
 
   protected:
 
   /*
-  members
+  Member m_Grid contains the mtgrid object of mt object.
 
   */
 
   mtgrid m_Grid;
+
+  /*
+  Member m_Minimum contains the minimum value of all values of mt object.
+
+  */
+
   Type m_Minimum;
+
+  /*
+  Member m_Maximum contains the maximum value of all values of mt object.
+
+  */
+
   Type m_Maximum;
+
+  /*
+  Member m_Flob contains the Flob to store all values of mt object.
+
+  */
+
   Flob m_Flob;
 };
 
 /*
-implementation of template class t
+Constructor mt does not initialize any members and
+should only be used in conjunction with Cast method.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
 
 */
 
@@ -216,6 +837,17 @@ mt<Type, Properties>::mt()
 {
 
 }
+
+/*
+Constructor mt sets defined flag of base class Attribute and
+initializes all members of the class with default values.
+
+author: Dirk Zacher
+parameters: bDefined - defined flag of base class Attribute
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 mt<Type, Properties>::mt(bool bDefined)
@@ -227,23 +859,22 @@ mt<Type, Properties>::mt(bool bDefined)
                                 GetUndefinedValue()),
                       m_Flob(Properties::GetFlobSize())
 {
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
-  int tDimensionSize = Properties::GetTDimensionSize();
   Type undefinedValue = Properties::TypeProperties::GetUndefinedValue();
-  
-  for(int time = 0; time < tDimensionSize; time++)
-  {
-    for(int row = 0; row < yDimensionSize; row++)
-    {
-      for(int column = 0; column < xDimensionSize; column++)
-      {
-        Index<3> index = (int[]){column, row, time};
-        SetValue(index, undefinedValue, false);
-      }
-    }
-  }
+  bool bOK = SetValues(undefinedValue, true);
+  assert(bOK);
 }
+
+/*
+Constructor mt sets defined flag of base class Attribute to defined flag
+of rmt object and initializes all members of the class with corresponding
+values of rmt object.
+
+author: Dirk Zacher
+parameters: rmt - reference to a mt object
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 mt<Type, Properties>::mt(const mt<Type, Properties>& rmt)
@@ -256,6 +887,16 @@ mt<Type, Properties>::mt(const mt<Type, Properties>& rmt)
   
 }
 
+/*
+Destructor deinitializes an mt object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 mt<Type, Properties>::~mt()
 {
@@ -263,7 +904,13 @@ mt<Type, Properties>::~mt()
 }
 
 /*
-operators
+Operator= assigns all member values of a given mt object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: rmt - reference to a mt object
+return value: reference to this object
+exceptions: -
 
 */
 
@@ -289,7 +936,16 @@ mt<Type, Properties>& mt<Type, Properties>::operator=
 }
 
 /*
-TileAlgebra operator methods
+TileAlgebra operator atlocation returns the time dependent values
+of a mt object at given location rX and rY.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+            rValues - reference to a moving type object containing
+                      the time dependent values at given location rX and rY
+return value: -
+exceptions: -
 
 */
 
@@ -339,6 +995,21 @@ void mt<Type, Properties>::atlocation(const double& rX,
   }
 }
 
+/*
+TileAlgebra operator atlocation returns the value of a mt object
+at given location rX and rY at given Instant value.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+            rInstant - reference to an Instant value of time dimension
+            rValue - reference to the value at given location rX and rY
+                     at given rInstant value
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void mt<Type, Properties>::atlocation(const double& rX,
                                       const double& rY,
@@ -355,6 +1026,19 @@ void mt<Type, Properties>::atlocation(const double& rX,
     rValue = Properties::TypeProperties::GetWrappedValue(value);
   }
 }
+
+/*
+TileAlgebra operator atinstant returns all values of a mt object
+at given Instant value.
+
+author: Dirk Zacher
+parameters: rInstant - reference to an Instant value of time dimension
+            rit - reference to an it object containing all values
+                  of the mt object at given Instant value
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 void mt<Type, Properties>::atinstant(const Instant& rInstant,
@@ -399,6 +1083,19 @@ void mt<Type, Properties>::atinstant(const Instant& rInstant,
   rit.SetInstant(rInstant);
   rit.SetValues(t);
 }
+
+/*
+TileAlgebra operator atperiods returns all values of a mt object
+at given periods.
+
+author: Dirk Zacher
+parameters: rPeriods - reference to a Periods object
+            rmt - reference to a mt object containing all values
+                  of the mt object at given periods
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 void mt<Type, Properties>::atperiods(const Periods& rPeriods,
@@ -469,6 +1166,19 @@ void mt<Type, Properties>::atperiods(const Periods& rPeriods,
   }
 }
 
+/*
+TileAlgebra operator atrange returns all values of a mt object
+inside the given rectangle.
+
+author: Dirk Zacher
+parameters: rRectangle - reference to a Rectangle<2> object
+            rmt - reference to a mt object containing all values
+                  of the mt object inside the given rectangle
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
                                    typename Properties::PropertiesType& rmt)
@@ -485,6 +1195,23 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
     atrange(rRectangle, instant1, instant2, rmt);
   }
 }
+
+/*
+TileAlgebra operator atrange returns all values of a mt object
+inside the given rectangle between first given Instant value
+and second given Instant value.
+
+author: Dirk Zacher
+parameters: rRectangle - reference to a Rectangle<2> object
+            rInstant1 - reference to the first Instant value
+            rInstant2 - reference to the second Instant value
+            rmt - reference to a mt object containing all values
+                  of the mt object inside the given rectangle
+                  between rInstant1 and rInstant2
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
@@ -544,6 +1271,17 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
   }
 }
 
+/*
+TileAlgebra operator deftime returns the defined periods of a mt object.
+
+author: Dirk Zacher
+parameters: rPeriods - reference to a Periods object containing
+                       all defined Periods of mt object.
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void mt<Type, Properties>::deftime(Periods& rPeriods) const
 {
@@ -590,6 +1328,17 @@ void mt<Type, Properties>::deftime(Periods& rPeriods) const
   periods.EndBulkLoad();
   periods.Merge(rPeriods);
 }
+
+/*
+TileAlgebra operator bbox returns the bounding box of a mt object.
+
+author: Dirk Zacher
+parameters: rBoundingBox - reference to a Properties::RectangleType object
+                           containing the bounding box of the mt object.
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 void mt<Type, Properties>::bbox(typename Properties::RectangleType&
@@ -792,17 +1541,48 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
   rBoundingBox.Set(true, minima, maxima);
 }
 
+/*
+TileAlgebra operator minimum returns the minimum value of mt object.
+
+author: Dirk Zacher
+parameters: -
+return value: minimum value of mt object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 Type mt<Type, Properties>::minimum() const
 {
   return m_Minimum;
 }
 
+/*
+TileAlgebra operator maximum returns the maximum value of mt object.
+
+author: Dirk Zacher
+parameters: -
+return value: maximum value of mt object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 Type mt<Type, Properties>::maximum() const
 {
   return m_Maximum;
 }
+
+/*
+TileAlgebra operator getgrid returns the mtgrid object of mt object.
+
+author: Dirk Zacher
+parameters: rmtgrid - reference to a mtgrid object containing
+                      mtgrid object of mt object.
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 void mt<Type, Properties>::getgrid(mtgrid& rmtgrid) const
@@ -811,7 +1591,14 @@ void mt<Type, Properties>::getgrid(mtgrid& rmtgrid) const
 }
 
 /*
-methods
+Method GetLocationIndex returns a 2-dimensional index
+of given location rX and rY.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+return value: 2-dimensional index of given location rX and rY
+exceptions: -
 
 */
 
@@ -850,6 +1637,19 @@ Index<2> mt<Type, Properties>::GetLocationIndex(const double& rX,
   return locationIndex;
 }
 
+/*
+Method GetLocationIndex returns a 3-dimensional index
+of given location rX and rY at given Instant value.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+            rInstant - reference to an Instant value of time dimension
+return value: 3-dimensional index of given location rX and rY at rInstant
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
                                                 const double& rY,
@@ -877,6 +1677,16 @@ Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
   return locationIndex;
 }
 
+/*
+Method GetValue returns the value of mt object at given 3-dimensional index.
+
+author: Dirk Zacher
+parameters: rIndex - reference to a 3-dimensional index
+return value: value of mt object at given 3-dimensional index
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
 {
@@ -898,6 +1708,19 @@ Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
 
   return value;
 }
+
+/*
+Method IsValidLocation checks if given location rX and rY
+is a valid location inside the mt object.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+return value: true, if given location rX and rY is a valid location
+              inside the mt object, otherwise false
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::IsValidLocation(const double& rX,
@@ -922,6 +1745,20 @@ bool mt<Type, Properties>::IsValidLocation(const double& rX,
   return bIsValidLocation;
 }
 
+/*
+Method IsValidLocation checks if given location rX and rY
+at given Instant value is a valid location inside the mt object.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+            rInstant - reference to an Instant value of time dimension
+return value: true, if given location rX and rY at given Instant value
+              is a valid location inside the mt object, otherwise false
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::IsValidLocation(const double& rX,
                                            const double& rY,
@@ -944,6 +1781,17 @@ bool mt<Type, Properties>::IsValidLocation(const double& rX,
   return bIsValidLocation;
 }
 
+/*
+Method SetGrid sets the mtgrid of mt object.
+
+author: Dirk Zacher
+parameters: rmtgrid - reference to a mtgrid object
+return value: true, if the mtgrid of mt object was successfully set,
+              otherwise false
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetGrid(const mtgrid& rmtgrid)
 {
@@ -957,6 +1805,20 @@ bool mt<Type, Properties>::SetGrid(const mtgrid& rmtgrid)
 
   return bRetVal;
 }
+
+/*
+Method SetGrid sets the mtgrid properties of mt object.
+
+author: Dirk Zacher
+parameters: rX - reference to the x origin of the grid
+            rY - reference to the y origin of the grid
+            rLength - reference to the length of a grid cell
+            rDuration - reference to duration of the grid
+return value: true, if mtgrid properties of mt object were successfully set,
+              otherwise false
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetGrid(const double& rX,
@@ -974,6 +1836,20 @@ bool mt<Type, Properties>::SetGrid(const double& rX,
 
   return bRetVal;
 }
+
+/*
+Method SetValue sets a value of mt object at given index and
+recalculates minimum and maximum of mt object if bSetExtrema is true.
+
+author: Dirk Zacher
+parameters: rIndex - reference to a 3-dimensional index
+            rValue - reference to a value
+            bSetExtrema - flag that indicates if minimum and maximum
+                          of mt object should be recalculated
+return value: true, if rValue was successfully set at rIndex, otherwise false
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetValue(const Index<3>& rIndex,
@@ -1013,6 +1889,24 @@ bool mt<Type, Properties>::SetValue(const Index<3>& rIndex,
   return bRetVal;
 }
 
+/*
+Method SetValue sets a value of mt object at given location rX and rY
+at given Instant value and recalculates minimum and maximum of mt object
+if bSetExtrema is true.
+
+author: Dirk Zacher
+parameters: rX - reference to location of dimension x
+            rY - reference to location of dimension y
+            rInstant - reference to an Instant value of time dimension
+            rValue - reference to a value
+            bSetExtrema - flag that indicates if minimum and maximum
+                          of mt object should be recalculated
+return value: true, if rValue was successfully set at given location
+              rX and rY at given Instant value, otherwise false
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetValue(const double& rX,
                                     const double& rY,
@@ -1031,6 +1925,19 @@ bool mt<Type, Properties>::SetValue(const double& rX,
 
   return bRetVal;
 }
+
+/*
+Method SetValues sets all values of mt object and recalculates
+minimum and maximum of mt object if bSetExtrema is true.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+            bSetExtrema - flag that indicates if minimum and maximum
+                          of mt object should be recalculated
+return value: true, if all values were successfully set, otherwise false
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetValues(const Type& rValue,
@@ -1062,7 +1969,14 @@ bool mt<Type, Properties>::SetValues(const Type& rValue,
 }
 
 /*
-internal methods
+Method IsValidIndex checks if given index is a valid index
+inside the mt object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to a 3-dimensional index
+return value: true, if given index is a valid index inside the mt object,
+              otherwise false
+exceptions: -
 
 */
 
@@ -1089,7 +2003,12 @@ bool mt<Type, Properties>::IsValidIndex(const Index<3>& rIndex) const
 }
 
 /*
-override functions from base class Attribute
+Method Adjacent checks if this object is adjacent to given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: true, if this object is adjacent to pAttribute, otherwise false
+exceptions: -
 
 */
 
@@ -1099,6 +2018,16 @@ bool mt<Type, Properties>::Adjacent(const Attribute* pAttribute) const
   return false;
 }
 
+/*
+Method Clone returns a copy of this object.
+
+author: Dirk Zacher
+parameters: -
+return value: a pointer to a copy of this object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 Attribute* mt<Type, Properties>::Clone() const
 {
@@ -1107,6 +2036,21 @@ Attribute* mt<Type, Properties>::Clone() const
 
   return pAttribute;
 }
+
+/*
+Method Compare compares this object with given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -1 if this object < pAttribute object or
+                 this object is undefined and pAttribute object is defined,
+               0 if this object equals pAttribute object or
+                 this object and pAttribute object are undefined,
+               1 if this object > pAttribute object or
+                 this object is defined and pAttribute object is undefined
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 int mt<Type, Properties>::Compare(const Attribute* pAttribute) const
@@ -1167,6 +2111,17 @@ int mt<Type, Properties>::Compare(const Attribute* pAttribute) const
   return nRetVal;
 }
 
+/*
+Method CopyFrom assigns all member values of pAttribute object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void mt<Type, Properties>::CopyFrom(const Attribute* pAttribute)
 {
@@ -1181,6 +2136,16 @@ void mt<Type, Properties>::CopyFrom(const Attribute* pAttribute)
     }
   }
 }
+
+/*
+Method GetFLOB returns a pointer to the Flob with given index.
+
+author: Dirk Zacher
+parameters: i - index of Flob
+return value: a pointer to the Flob with given index
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 Flob* mt<Type, Properties>::GetFLOB(const int i)
@@ -1203,6 +2168,16 @@ Flob* mt<Type, Properties>::GetFLOB(const int i)
   return pFlob;
 }
 
+/*
+Method HashValue returns the hash value of the mt object.
+
+author: Dirk Zacher
+parameters: -
+return value: hash value of the mt object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 size_t mt<Type, Properties>::HashValue() const
 {
@@ -1216,11 +2191,31 @@ size_t mt<Type, Properties>::HashValue() const
   return hashValue;
 }
 
+/*
+Method NumOfFLOBs returns the number of Flobs of a mt object.
+
+author: Dirk Zacher
+parameters: -
+return value: number of Flobs of a mt object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 int mt<Type, Properties>::NumOfFLOBs() const
 { 
   return 1;
 }
+
+/*
+Method Sizeof returns the size of mt datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: size of mt datatype
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 size_t mt<Type, Properties>::Sizeof() const
@@ -1229,8 +2224,12 @@ size_t mt<Type, Properties>::Sizeof() const
 }
 
 /*
-The following functions are used to integrate the ~t~
-datatype into secondo.
+Method BasicType returns the typename of mt datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of mt datatype
+exceptions: -
 
 */
 
@@ -1240,11 +2239,32 @@ const std::string mt<Type, Properties>::BasicType()
   return Properties::GetTypeName();
 }
 
+/*
+Method Cast casts a void pointer to a new mt object.
+
+author: Dirk Zacher
+parameters: pVoid - a pointer to a memory address
+return value: a pointer to a new mt object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void* mt<Type, Properties>::Cast(void* pVoid)
 {
   return new(pVoid)mt<Type, Properties>;
 }
+
+/*
+Method Clone clones an existing mt object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing mt object
+return value: a Word that references a new mt object
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 Word mt<Type, Properties>::Clone(const ListExpr typeInfo,
@@ -1263,6 +2283,17 @@ Word mt<Type, Properties>::Clone(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method Close closes an existing mt object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing mt object
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void mt<Type, Properties>::Close(const ListExpr typeInfo,
                                 Word& rWord)
@@ -1276,6 +2307,16 @@ void mt<Type, Properties>::Close(const ListExpr typeInfo,
   }
 }
 
+/*
+Method Create creates a new mt object.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of the new mt object to create
+return value: a Word that references a new mt object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 Word mt<Type, Properties>::Create(const ListExpr typeInfo)
 {
@@ -1286,6 +2327,17 @@ Word mt<Type, Properties>::Create(const ListExpr typeInfo)
 
   return word;
 }
+
+/*
+Method Delete deletes an existing mt object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing mt object
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 void mt<Type, Properties>::Delete(const ListExpr typeInfo,
@@ -1299,6 +2351,16 @@ void mt<Type, Properties>::Delete(const ListExpr typeInfo,
     rWord.addr = 0;
   }
 }
+
+/*
+Method GetTypeConstructor returns the TypeConstructor of class mt.
+
+author: Dirk Zacher
+parameters: -
+return value: TypeConstructor of class mt
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 TypeConstructor mt<Type, Properties>::GetTypeConstructor()
@@ -1326,6 +2388,20 @@ TypeConstructor mt<Type, Properties>::GetTypeConstructor()
 
   return typeConstructor;
 }
+
+/*
+Method In creates a new mt object on the basis of a given ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object to create on the basis of instance
+            instance - ListExpr of the mt object to create
+            errorPos - error position
+            rErrorInfo - reference to error information
+            rCorrect - flag that indicates if mt object correctly created
+return value: a Word that references a new mt object
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 Word mt<Type, Properties>::In(const ListExpr typeInfo,
@@ -1557,6 +2633,17 @@ Word mt<Type, Properties>::In(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method KindCheck checks if given type is mt type.
+
+author: Dirk Zacher
+parameters: type - ListExpr of type to check
+            rErrorInfo - reference to error information
+return value: true, if type is mt type, otherwise false
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::KindCheck(ListExpr type,
                                      ListExpr& rErrorInfo)
@@ -1571,6 +2658,19 @@ bool mt<Type, Properties>::KindCheck(ListExpr type,
   return bRetVal;
 }
 
+/*
+Method Open opens an mt object from a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord containing mt object to open
+            rOffset - Offset to the mt object in SmiRecord
+            typeInfo - TypeInfo of mt object to open
+            rValue - reference to a Word referencing the opened mt object
+return value: true, if mt object was successfully opened, otherwise false
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::Open(SmiRecord& rValueRecord,
                                 size_t& rOffset,
@@ -1584,6 +2684,17 @@ bool mt<Type, Properties>::Open(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method Out writes out an existing mt object in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of mt object to write out
+            value - reference to a Word referencing the mt object
+return value: ListExpr of mt object referenced by value
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 ListExpr mt<Type, Properties>::Out(ListExpr typeInfo,
@@ -1650,6 +2761,16 @@ ListExpr mt<Type, Properties>::Out(ListExpr typeInfo,
   return pListExpr;
 }
 
+/*
+Method Property returns all properties of mt datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: properties of mt datatype in the form of a ListExpr
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 ListExpr mt<Type, Properties>::Property()
 {
@@ -1678,6 +2799,19 @@ ListExpr mt<Type, Properties>::Property()
   return propertyList.listExpr();
 }
 
+/*
+Method Save saves an existing mt object in a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord to save existing mt object
+            rOffset - Offset to save position of mt object in SmiRecord
+            typeInfo - TypeInfo of mt object to save
+            rValue - reference to a Word referencing the mt object to save
+return value: true, if mt object was successfully saved, otherwise false
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::Save(SmiRecord& rValueRecord,
                                 size_t& rOffset,
@@ -1691,6 +2825,16 @@ bool mt<Type, Properties>::Save(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method SizeOfObj returns the size of a mt object.
+
+author: Dirk Zacher
+parameters: -
+return value: size of a mt object
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 int mt<Type, Properties>::SizeOfObj()

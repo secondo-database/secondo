@@ -20,17 +20,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "atperiods.h"
 #include "../mt/mtint.h"
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template atperiodsFunction
+Template method atperiodsFunction calls atperiods method of specific datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of atperiods operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of atperiodsFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if atperiodsFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -41,7 +61,7 @@ int atperiodsFunction(Word* pArguments,
                       Word& rLocal,
                       Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -70,6 +90,8 @@ int atperiodsFunction(Word* pArguments,
           {
             pResult->SetDefined(false);
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -79,7 +101,7 @@ int atperiodsFunction(Word* pArguments,
 }
 
 /*
-definition of atperiods functions
+definition of atperiodsFunctions array.
 
 */
 
@@ -93,13 +115,19 @@ ValueMapping atperiodsFunctions[] =
 };
 
 /*
-definition of atperiods select function
+Method atperiodsSelectFunction returns the index of specific atperiods function
+in atperiodsFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atperiods operator
+return value: index of specific atperiods function in atperiodsFunctions
+exceptions: -
 
 */
 
 int atperiodsSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -125,7 +153,7 @@ int atperiodsSelectFunction(ListExpr arguments)
         {
           if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
           {
-            nSelection = i;
+            functionIndex = i;
             break;
           }
         }
@@ -133,11 +161,17 @@ int atperiodsSelectFunction(ListExpr arguments)
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of atperiods type mapping function
+Method atperiodsTypeMappingFunction returns the return value type
+of atperiods operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atperiods operator
+return value: return value type of atperiods operator
+exceptions: -
 
 */
 

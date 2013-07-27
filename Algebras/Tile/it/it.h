@@ -25,122 +25,477 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_IT_H
 #define TILEALGEBRA_IT_H
 
-#include "../t/t.h"
-#include "itProperties.h"
+/*
+SECONDO includes
+
+*/
+
 #include "DateTime.h"
 #include "TypeConstructor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "itProperties.h"
+#include "../t/t.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-declaration of template class it
+Template class it represents the base implementation
+for datatypes itint, itreal, itbool and itstring.
+
+author: Dirk Zacher
 
 */
 
 template <typename Type, typename Properties = itProperties<Type> >
 class it : public Properties::tType
 {
+  private:
+
   /*
-  constructors
+  Constructor it does not initialize any members and
+  should only be used in conjunction with Cast method.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
-
-  private:
 
   it();
 
   public:
 
+  /*
+  Constructor it sets defined flag of base class Attribute and
+  initializes all members of the class with default values.
+
+  author: Dirk Zacher
+  parameters: bDefined - defined flag of base class Attribute
+  return value: -
+  exceptions: -
+
+  */
+
   it(bool bDefined);
+
+  /*
+  Constructor it sets defined flag of base class Attribute to true and
+  initializes all members of the class with corresponding parameter values.
+
+  author: Dirk Zacher
+  parameters: rInstant - reference to an Instant object
+              rt - reference to a Properties::tType object
+  return value: -
+  exceptions: -
+
+  */
+
   it(const Instant& rInstant,
      const typename Properties::tType& rt);
+
+  /*
+  Constructor it sets defined flag of base class Attribute to defined flag
+  of rit object and initializes all members of the class with corresponding
+  values of rit object.
+
+  author: Dirk Zacher
+  parameters: rit - reference to an it object
+  return value: -
+  exceptions: -
+
+  */
+
   it(const it& rit);
 
   /*
-  destructor
+  Destructor ~it deinitializes an it object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
 
   virtual ~it();
 
   /*
-  operators
+  Operator= assigns all member values of a given it object
+  to the corresponding member values of this object.
+
+  author: Dirk Zacher
+  parameters: rit - reference to an it object
+  return value: reference to this object
+  exceptions: -
 
   */
 
   it& operator=(const it& rit);
 
   /*
-  TileAlgebra operator methods
+  TileAlgebra operator inst returns the Instant value of an it object.
+
+  author: Dirk Zacher
+  parameters: rInstant - reference to an Instant object
+  return value: -
+  exceptions: -
 
   */
 
   void inst(Instant& rInstant);
+
+  /*
+  TileAlgebra operator val returns all values of an it object.
+
+  author: Dirk Zacher
+  parameters: rt - reference to a Properties::tType object
+  return value: -
+  exceptions: -
+
+  */
+
   void val(typename Properties::tType& rt);
 
   /*
-  methods
-  
+  Method SetInstant sets the Instant value of an it object.
+
+  author: Dirk Zacher
+  parameters: rInstant - reference to an Instant object
+  return value: -
+  exceptions: -
+
   */
 
   void SetInstant(const Instant& rInstant);
+
+  /*
+  Method SetValues sets all values of an it object.
+
+  author: Dirk Zacher
+  parameters: rt - reference to a Properties::tType object
+  return value: -
+  exceptions: -
+
+  */
+
   void SetValues(const typename Properties::tType& rt);
 
   /*
-  override functions from base class Attribute
+  Method Adjacent checks if this object is adjacent to given Attribute object.
+
+  author: Dirk Zacher
+  parameters: pAttribute - a pointer to an Attribute object
+  return value: true, if this object is adjacent to pAttribute, otherwise false
+  exceptions: -
 
   */
 
   virtual bool Adjacent(const Attribute* pAttribute) const;
+
+  /*
+  Method Clone returns a copy of this object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: a pointer to a copy of this object
+  exceptions: -
+
+  */
+
   virtual Attribute* Clone() const;
+
+  /*
+  Method Compare compares this object with given Attribute object.
+
+  author: Dirk Zacher
+  parameters: pAttribute - a pointer to an Attribute object
+  return value: -1 if this object < pAttribute object or
+                   this object is undefined and pAttribute object is defined,
+                 0 if this object equals pAttribute object or
+                   this object and pAttribute object are undefined,
+                 1 if this object > pAttribute object or
+                   this object is defined and pAttribute object is undefined
+  exceptions: -
+
+  */
+
   virtual int Compare(const Attribute* pAttribute) const;
+
+  /*
+  Method CopyFrom assigns all member values of pAttribute object
+  to the corresponding member values of this object.
+
+  author: Dirk Zacher
+  parameters: pAttribute - a pointer to an Attribute object
+  return value: -
+  exceptions: -
+
+  */
+
   virtual void CopyFrom(const Attribute* pAttribute);
+
+  /*
+  Method GetFLOB returns a pointer to the Flob with given index.
+
+  author: Dirk Zacher
+  parameters: i - index of Flob
+  return value: a pointer to the Flob with given index
+  exceptions: -
+
+  */
+
   virtual Flob* GetFLOB(const int i);
+
+  /*
+  Method HashValue returns the hash value of the it object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: hash value of the it object
+  exceptions: -
+
+  */
+
   virtual size_t HashValue() const;
+
+  /*
+  Method NumOfFLOBs returns the number of Flobs of an it object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: number of Flobs of an it object
+  exceptions: -
+
+  */
+
   virtual int NumOfFLOBs() const;
+
+  /*
+  Method Sizeof returns the size of it datatype.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of it datatype
+  exceptions: -
+
+  */
+
   virtual size_t Sizeof() const;
 
   /*
-  The following functions are used to integrate the ~it~
-  datatype into secondo.
+  Method BasicType returns the typename of it datatype.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of it datatype
+  exceptions: -
 
   */
 
   static const std::string BasicType();
+
+  /*
+  Method Cast casts a void pointer to a new it object.
+
+  author: Dirk Zacher
+  parameters: pVoid - a pointer to a memory address
+  return value: a pointer to a new it object
+  exceptions: -
+
+  */
+
   static void* Cast(void* pVoid);
+
+  /*
+  Method Clone clones an existing it object given by a reference to a Word.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of object referenced by rWord
+              rWord - reference to the address of an existing it object
+  return value: a Word that references a new it object
+  exceptions: -
+
+  */
+
   static Word Clone(const ListExpr typeInfo,
                     const Word& rWord);
+
+  /*
+  Method Close closes an existing it object given by a reference to a Word.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of object referenced by rWord
+              rWord - reference to the address of an existing it object
+  return value: -
+  exceptions: -
+
+  */
+
   static void Close(const ListExpr typeInfo,
                     Word& rWord);
+
+  /*
+  Method Create creates a new it object.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of the new it object to create
+  return value: a Word that references a new it object
+  exceptions: -
+
+  */
+
   static Word Create(const ListExpr typeInfo);
+
+  /*
+  Method Delete deletes an existing it object given by a reference to a Word.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of object referenced by rWord
+              rWord - reference to the address of an existing it object
+  return value: -
+  exceptions: -
+
+  */
+
   static void Delete(const ListExpr typeInfo,
                      Word& rWord);
+
+  /*
+  Method GetTypeConstructor returns the TypeConstructor of class it.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: TypeConstructor of class it
+  exceptions: -
+
+  */
+
   static TypeConstructor GetTypeConstructor();
+
+  /*
+  Method In creates a new it object on the basis of a given ListExpr.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of object to create on the basis of instance
+              instance - ListExpr of the it object to create
+              errorPos - error position
+              rErrorInfo - reference to error information
+              rCorrect - flag that indicates if it object correctly created
+  return value: a Word that references a new it object
+  exceptions: -
+
+  */
+
   static Word In(const ListExpr typeInfo,
                  const ListExpr instance,
                  const int errorPos,
                  ListExpr& rErrorInfo,
                  bool& rCorrect);
+
+  /*
+  Method KindCheck checks if given type is it type.
+
+  author: Dirk Zacher
+  parameters: type - ListExpr of type to check
+              rErrorInfo - reference to error information
+  return value: true, if type is it type, otherwise false
+  exceptions: -
+
+  */
+
   static bool KindCheck(ListExpr type,
                         ListExpr& rErrorInfo);
+
+  /*
+  Method Open opens an it object from a SmiRecord.
+
+  author: Dirk Zacher
+  parameters: rValueRecord - SmiRecord containing it object to open
+              rOffset - Offset to the it object in SmiRecord
+              typeInfo - TypeInfo of it object to open
+              rValue - reference to a Word referencing the opened it object
+  return value: true, if it object was successfully opened, otherwise false
+  exceptions: -
+
+  */
+
   static bool Open(SmiRecord& rValueRecord,
                    size_t& rOffset,
                    const ListExpr typeInfo,
                    Word& rValue);
+
+  /*
+  Method Out writes out an existing it object in the form of a ListExpr.
+
+  author: Dirk Zacher
+  parameters: typeInfo - TypeInfo of it object to write out
+              value - reference to a Word referencing the it object
+  return value: ListExpr of it object referenced by value
+  exceptions: -
+
+  */
+
   static ListExpr Out(ListExpr typeInfo,
                       Word value);
+
+  /*
+  Method Property returns all properties of it datatype.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: properties of it datatype in the form of a ListExpr
+  exceptions: -
+
+  */
+
   static ListExpr Property();
+
+  /*
+  Method Save saves an existing it object in a SmiRecord.
+
+  author: Dirk Zacher
+  parameters: rValueRecord - SmiRecord to save existing it object
+              rOffset - Offset to save position of it object in SmiRecord
+              typeInfo - TypeInfo of it object to save
+              rValue - reference to a Word referencing the it object to save
+  return value: true, if it object was successfully saved, otherwise false
+  exceptions: -
+
+  */
+
   static bool Save(SmiRecord& rValueRecord,
                    size_t& rOffset,
                    const ListExpr typeInfo,
                    Word& rValue);
+
+  /*
+  Method SizeOfObj returns the size of an it object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of an it object
+  exceptions: -
+
+  */
+
   static int SizeOfObj();
 
   private:
 
   /*
-  members
+  Member m_Instant contains the Instant value of an it object.
 
   */
 
@@ -148,7 +503,13 @@ class it : public Properties::tType
 };
 
 /*
-implementation of template class it
+Constructor it does not initialize any members and
+should only be used in conjunction with Cast method.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
 
 */
 
@@ -160,6 +521,17 @@ it<Type, Properties>::it()
 
 }
 
+/*
+Constructor it sets defined flag of base class Attribute and
+initializes all members of the class with default values.
+
+author: Dirk Zacher
+parameters: bDefined - defined flag of base class Attribute
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 it<Type, Properties>::it(bool bDefined)
                      :Properties::tType(bDefined),
@@ -167,6 +539,18 @@ it<Type, Properties>::it(bool bDefined)
 {
   
 }
+
+/*
+Constructor it sets defined flag of base class Attribute to true and
+initializes all members of the class with corresponding parameter values.
+
+author: Dirk Zacher
+parameters: rInstant - reference to an Instant object
+            rt - reference to a Properties::tType object
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 it<Type, Properties>::it(const Instant& rInstant,
@@ -176,6 +560,18 @@ it<Type, Properties>::it(const Instant& rInstant,
   m_Instant = rInstant;
 }
 
+/*
+Constructor it sets defined flag of base class Attribute to defined flag
+of rit object and initializes all members of the class with corresponding
+values of rit object.
+
+author: Dirk Zacher
+parameters: rit - reference to an it object
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 it<Type, Properties>::it(const it<Type, Properties>& rit)
                      :Properties::tType(rit),
@@ -184,11 +580,32 @@ it<Type, Properties>::it(const it<Type, Properties>& rit)
   
 }
 
+/*
+Destructor deinitializes an it object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 it<Type, Properties>::~it()
 {
 
 }
+
+/*
+Operator= assigns all member values of a given it object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: rit - reference to an it object
+return value: reference to this object
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 it<Type, Properties>& it<Type, Properties>::operator=
@@ -203,11 +620,31 @@ it<Type, Properties>& it<Type, Properties>::operator=
   return *this;
 }
 
+/*
+TileAlgebra operator inst returns the Instant value of an it object.
+
+author: Dirk Zacher
+parameters: rInstant - reference to an Instant object
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void it<Type, Properties>::inst(Instant& rInstant)
 {
   rInstant = m_Instant;
 }
+
+/*
+TileAlgebra operator val returns all values of an it object.
+
+author: Dirk Zacher
+parameters: rt - reference to a Properties::tType object
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 void it<Type, Properties>::val(typename Properties::tType& rt)
@@ -215,11 +652,31 @@ void it<Type, Properties>::val(typename Properties::tType& rt)
   rt = *this;
 }
 
+/*
+Method SetInstant sets the Instant value of an it object.
+
+author: Dirk Zacher
+parameters: rInstant - reference to an Instant object
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void it<Type, Properties>::SetInstant(const Instant& rInstant)
 {
   m_Instant = rInstant;
 }
+
+/*
+Method SetValues sets all values of an it object.
+
+author: Dirk Zacher
+parameters: rt - reference to a Properties::tType object
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 void it<Type, Properties>::SetValues(const typename Properties::tType& rt)
@@ -227,11 +684,31 @@ void it<Type, Properties>::SetValues(const typename Properties::tType& rt)
   Properties::tType::operator=(rt);
 }
 
+/*
+Method Adjacent checks if this object is adjacent to given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: true, if this object is adjacent to pAttribute, otherwise false
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 bool it<Type, Properties>::Adjacent(const Attribute* pAttribute) const
 {
   return false;
 }
+
+/*
+Method Clone returns a copy of this object.
+
+author: Dirk Zacher
+parameters: -
+return value: a pointer to a copy of this object
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 Attribute* it<Type, Properties>::Clone() const
@@ -241,6 +718,21 @@ Attribute* it<Type, Properties>::Clone() const
 
   return pAttribute;
 }
+
+/*
+Method Compare compares this object with given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -1 if this object < pAttribute object or
+                 this object is undefined and pAttribute object is defined,
+               0 if this object equals pAttribute object or
+                 this object and pAttribute object are undefined,
+               1 if this object > pAttribute object or
+                 this object is defined and pAttribute object is undefined
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 int it<Type, Properties>::Compare(const Attribute* pAttribute) const
@@ -293,6 +785,17 @@ int it<Type, Properties>::Compare(const Attribute* pAttribute) const
   return nRetVal;
 }
 
+/*
+Method CopyFrom assigns all member values of pAttribute object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void it<Type, Properties>::CopyFrom(const Attribute* pAttribute)
 {
@@ -308,11 +811,31 @@ void it<Type, Properties>::CopyFrom(const Attribute* pAttribute)
   }
 }
 
+/*
+Method GetFLOB returns a pointer to the Flob with given index.
+
+author: Dirk Zacher
+parameters: i - index of Flob
+return value: a pointer to the Flob with given index
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 Flob* it<Type, Properties>::GetFLOB(const int i)
 { 
   return Properties::tType::GetFLOB(i);
 }
+
+/*
+Method HashValue returns the hash value of the it object.
+
+author: Dirk Zacher
+parameters: -
+return value: hash value of the it object
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 size_t it<Type, Properties>::HashValue() const
@@ -327,11 +850,31 @@ size_t it<Type, Properties>::HashValue() const
   return hashValue;
 }
 
+/*
+Method NumOfFLOBs returns the number of Flobs of an it object.
+
+author: Dirk Zacher
+parameters: -
+return value: number of Flobs of an it object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 int it<Type, Properties>::NumOfFLOBs() const
 { 
   return Properties::tType::NumOfFLOBs();
 }
+
+/*
+Method Sizeof returns the size of it datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: size of it datatype
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 size_t it<Type, Properties>::Sizeof() const
@@ -339,17 +882,48 @@ size_t it<Type, Properties>::Sizeof() const
   return sizeof(it<Type, Properties>);
 }
 
+/*
+Method BasicType returns the typename of it datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of it datatype
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 const std::string it<Type, Properties>::BasicType()
 {
   return Properties::GetTypeName();
 }
 
+/*
+Method Cast casts a void pointer to a new it object.
+
+author: Dirk Zacher
+parameters: pVoid - a pointer to a memory address
+return value: a pointer to a new it object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void* it<Type, Properties>::Cast(void* pVoid)
 {
   return new(pVoid)it<Type, Properties>;
 }
+
+/*
+Method Clone clones an existing it object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing it object
+return value: a Word that references a new it object
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 Word it<Type, Properties>::Clone(const ListExpr typeInfo,
@@ -368,6 +942,17 @@ Word it<Type, Properties>::Clone(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method Close closes an existing it object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing it object
+return value: -
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 void it<Type, Properties>::Close(const ListExpr typeInfo,
                                  Word& rWord)
@@ -381,6 +966,16 @@ void it<Type, Properties>::Close(const ListExpr typeInfo,
   }
 }
 
+/*
+Method Create creates a new it object.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of the new it object to create
+return value: a Word that references a new it object
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 Word it<Type, Properties>::Create(const ListExpr typeInfo)
 {
@@ -391,6 +986,17 @@ Word it<Type, Properties>::Create(const ListExpr typeInfo)
 
   return word;
 }
+
+/*
+Method Delete deletes an existing it object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing it object
+return value: -
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 void it<Type, Properties>::Delete(const ListExpr typeInfo,
@@ -405,6 +1011,16 @@ void it<Type, Properties>::Delete(const ListExpr typeInfo,
   }
 }
 
+/*
+Method GetTypeConstructor returns the TypeConstructor of class it.
+
+author: Dirk Zacher
+parameters: -
+return value: TypeConstructor of class it
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 TypeConstructor it<Type, Properties>::GetTypeConstructor()
 {
@@ -414,8 +1030,8 @@ TypeConstructor it<Type, Properties>::GetTypeConstructor()
     it<Type, Properties>::Property,    // property function describing signature
     it<Type, Properties>::Out,         // out function
     it<Type, Properties>::In,          // in function
-    0,                                // save to list function
-    0,                                // restore from list function
+    0,                                 // save to list function
+    0,                                 // restore from list function
     it<Type, Properties>::Create,      // create function
     it<Type, Properties>::Delete,      // delete function
     it<Type, Properties>::Open,        // open function
@@ -431,6 +1047,20 @@ TypeConstructor it<Type, Properties>::GetTypeConstructor()
 
   return typeConstructor;
 }
+
+/*
+Method In creates a new it object on the basis of a given ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object to create on the basis of instance
+            instance - ListExpr of the it object to create
+            errorPos - error position
+            rErrorInfo - reference to error information
+            rCorrect - flag that indicates if it object correctly created
+return value: a Word that references a new it object
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 Word it<Type, Properties>::In(const ListExpr typeInfo,
@@ -523,9 +1153,20 @@ Word it<Type, Properties>::In(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method KindCheck checks if given type is it type.
+
+author: Dirk Zacher
+parameters: type - ListExpr of type to check
+            rErrorInfo - reference to error information
+return value: true, if type is it type, otherwise false
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 bool it<Type, Properties>::KindCheck(ListExpr type,
-                                    ListExpr& rErrorInfo)
+                                     ListExpr& rErrorInfo)
 {
   bool bRetVal = false;
 
@@ -536,6 +1177,19 @@ bool it<Type, Properties>::KindCheck(ListExpr type,
 
   return bRetVal;
 }
+
+/*
+Method Open opens an it object from a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord containing it object to open
+            rOffset - Offset to the it object in SmiRecord
+            typeInfo - TypeInfo of it object to open
+            rValue - reference to a Word referencing the opened it object
+return value: true, if it object was successfully opened, otherwise false
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 bool it<Type, Properties>::Open(SmiRecord& rValueRecord,
@@ -550,6 +1204,17 @@ bool it<Type, Properties>::Open(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method Out writes out an existing it object in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of it object to write out
+            value - reference to a Word referencing the it object
+return value: ListExpr of it object referenced by value
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 ListExpr it<Type, Properties>::Out(ListExpr typeInfo,
@@ -593,6 +1258,16 @@ ListExpr it<Type, Properties>::Out(ListExpr typeInfo,
   return pListExpr;
 }
 
+/*
+Method Property returns all properties of it datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: properties of it datatype in the form of a ListExpr
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 ListExpr it<Type, Properties>::Property()
 {
@@ -617,6 +1292,19 @@ ListExpr it<Type, Properties>::Property()
   return propertyList.listExpr();
 }
 
+/*
+Method Save saves an existing it object in a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord to save existing it object
+            rOffset - Offset to save position of it object in SmiRecord
+            typeInfo - TypeInfo of it object to save
+            rValue - reference to a Word referencing the it object to save
+return value: true, if it object was successfully saved, otherwise false
+exceptions: -
+
+*/
+
 template <typename Type, typename Properties>
 bool it<Type, Properties>::Save(SmiRecord& rValueRecord,
                                 size_t& rOffset,
@@ -630,6 +1318,16 @@ bool it<Type, Properties>::Save(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method SizeOfObj returns the size of an it object.
+
+author: Dirk Zacher
+parameters: -
+return value: size of an it object
+exceptions: -
+
+*/
 
 template <typename Type, typename Properties>
 int it<Type, Properties>::SizeOfObj()

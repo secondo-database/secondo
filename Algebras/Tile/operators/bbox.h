@@ -23,17 +23,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_BBOX_H
 #define TILEALGEBRA_BBOX_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "RectangleAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of bbox Operator Info structure
+Struct bboxInfo describes name, syntax, meaning and signature
+of TileAlgebra operator bbox.
+
+author: Dirk Zacher
 
 */
 
@@ -79,21 +98,33 @@ struct bboxInfo : OperatorInfo
 };
 
 /*
-declaration of bbox functions
+declaration of bboxFunctions array.
 
 */
 
 extern ValueMapping bboxFunctions[];
 
 /*
-declaration of bbox select function
+Method bboxSelectFunction returns the index of specific bbox function
+in bboxFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of bbox operator
+return value: index of specific bbox function in bboxFunctions
+exceptions: -
 
 */
 
 int bboxSelectFunction(ListExpr arguments);
 
 /*
-declaration of bbox type mapping function
+Method bboxTypeMappingFunction returns the return value type
+of bbox operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of bbox operator
+return value: return value type of bbox operator
+exceptions: -
 
 */
 

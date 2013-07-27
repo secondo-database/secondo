@@ -20,13 +20,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "HalfSegment.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of CheckPoints function
+Method CheckPoints checks the consistency of given left point and right point.
+
+author: Dirk Zacher
+parameters: rLeftPoint - reference to left point
+            rRightPoint - reference to right point
+return value: true, if left point and right point were exchanged,
+              otherwise false
+exceptions: -
 
 */
 
@@ -53,7 +70,12 @@ bool CheckPoints(Point& rLeftPoint,
 }
 
 /*
-definition of CheckHalfSegment function
+Method CheckHalfSegment checks the consistency of the given HalfSegment.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+return value: -
+exceptions: -
 
 */
 
@@ -75,7 +97,12 @@ void CheckHalfSegment(HalfSegment& rHalfSegment)
 }
 
 /*
-definition of IsHorizontalHalfSegment function
+Method IsHorizontalHalfSegment checks if given HalfSegment is a horizontal line.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+return value: true, if rHalfSegment is a horizontal line, otherwise false
+exceptions: -
 
 */
 
@@ -99,7 +126,12 @@ bool IsHorizontalHalfSegment(const HalfSegment& rHalfSegment)
 }
 
 /*
-definition of IsVerticalHalfSegment function
+Method IsVerticalHalfSegment checks if given HalfSegment is a vertical line.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+return value: true, if rHalfSegment is a vertical line, otherwise false
+exceptions: -
 
 */
 
@@ -123,7 +155,14 @@ bool IsVerticalHalfSegment(const HalfSegment& rHalfSegment)
 }
 
 /*
-definition of HalfSegmentIntersectsRectangle function
+Method HalfSegmentIntersectsRectangle checks if given HalfSegment
+intersects given Rectangle<2>.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+            rRectangle - reference to a Rectangle<2>
+return value: true, if rHalfSegment intersects rRectangle, otherwise false
+exceptions: -
 
 */
 
@@ -224,7 +263,17 @@ bool HalfSegmentIntersectsRectangle(const HalfSegment& rHalfSegment,
 }
 
 /*
-definition of GetPointsInRectangle function
+Method GetPointsInRectangle returns a left point and a right point
+of given HalfSegment inside the given Rectangle<2>.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+            rRectangle - reference to a Rectangle<2>
+            rLeftPoint - reference to the left point inside rRectangle
+            rRightPoint - reference to the right point inside rRectangle
+return value: true, if left point and right point were successfully calculated,
+              otherwise false
+exceptions: -
 
 */
 

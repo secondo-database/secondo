@@ -20,6 +20,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "minimum.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
@@ -30,11 +35,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template minimumFunction
+Template method minimumFunction calls minimum method of specific datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of minimum operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of minimumFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if minimumFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -45,7 +65,7 @@ int minimumFunction(Word* pArguments,
                     Word& rLocal,
                     Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -64,8 +84,18 @@ int minimumFunction(Word* pArguments,
 
         if(pResult != 0)
         {
-          *pResult = Properties::TypeProperties::GetWrappedValue
-                     (pType->minimum());
+          if(pType->IsDefined())
+          {
+            *pResult = Properties::TypeProperties::GetWrappedValue
+                       (pType->minimum());
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+
+          nRetVal = 0;
         }
       }
     }
@@ -75,7 +105,7 @@ int minimumFunction(Word* pArguments,
 }
 
 /*
-definition of minimum functions
+definition of minimumFunctions array.
 
 */
 
@@ -93,13 +123,19 @@ ValueMapping minimumFunctions[] =
 };
 
 /*
-definition of minimum select function
+Method minimumSelectFunction returns the index of specific minimum function
+in minimumFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of minimum operator
+return value: index of specific minimum function in minimumFunctions
+exceptions: -
 
 */
 
 int minimumSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -125,18 +161,24 @@ int minimumSelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of minimum type mapping function
+Method minimumTypeMappingFunction returns the return value type
+of minimum operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of minimum operator
+return value: return value type of minimum operator
+exceptions: -
 
 */
 

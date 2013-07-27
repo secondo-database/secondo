@@ -20,13 +20,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "Propertiesbool.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class Properties<char>
+Method GetUndefinedValue returns the undefined value of base datatype bool.
+
+author: Dirk Zacher
+parameters: -
+return value: undefined value of base datatype bool
+exceptions: -
 
 */
 
@@ -35,39 +50,89 @@ char Properties<char>::GetUndefinedValue()
   return UNDEFINED_BOOL;
 }
 
+/*
+Method GetValue returns the value of given NList representation.
+
+author: Dirk Zacher
+parameters: rNList - reference to a NList object
+return value: value of given NList representation
+exceptions: -
+
+*/
+
 char Properties<char>::GetValue(const NList& rNList)
 {
   return rNList.boolval();
 }
 
-char Properties<char>::GetUnwrappedValue(const CcBool& rCcBool)
+/*
+Method GetUnwrappedValue returns the unwrapped value of given wrapped value.
+
+author: Dirk Zacher
+parameters: rWrappedValue - reference to a wrapped value
+return value: unwrapped value
+exceptions: -
+
+*/
+
+char Properties<char>::GetUnwrappedValue(const CcBool& rWrappedValue)
 {
   char unwrappedValue = GetUndefinedValue();
 
-  if(rCcBool.IsDefined())
+  if(rWrappedValue.IsDefined())
   {
-    unwrappedValue = rCcBool.GetValue();
+    unwrappedValue = rWrappedValue.GetValue();
   }
 
   return unwrappedValue;
 }
 
-CcBool Properties<char>::GetWrappedValue(const char& rchar)
+/*
+Method GetWrappedValue returns the wrapped value of given value.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+return value: wrapped value
+exceptions: -
+
+*/
+
+CcBool Properties<char>::GetWrappedValue(const char& rValue)
 {
-  return CcBool(!IsUndefinedValue(rchar), int(rchar));
+  return CcBool(!IsUndefinedValue(rValue), int(rValue));
 }
 
-bool Properties<char>::IsUndefinedValue(const char& rchar)
+/*
+Method IsUndefinedValue checks if given value is an undefined value.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+return value: true, if rValue is an undefined value, otherwise false
+exceptions: -
+
+*/
+
+bool Properties<char>::IsUndefinedValue(const char& rValue)
 {
   bool bUndefinedValue = false;
   
-  if(rchar == GetUndefinedValue())
+  if(rValue == GetUndefinedValue())
   {
     bUndefinedValue = true;
   }
 
   return bUndefinedValue;
 }
+
+/*
+Method IsValidValueType checks if given NList is NList of type bool.
+
+author: Dirk Zacher
+parameters: rNList - reference to a NList object
+return value: true, if given NList is NList of type bool, otherwise false
+exceptions: -
+
+*/
 
 bool Properties<char>::IsValidValueType(const NList& rNList)
 {
@@ -76,13 +141,23 @@ bool Properties<char>::IsValidValueType(const NList& rNList)
   return bValidValueType;
 }
 
-NList Properties<char>::ToNList(const char& rchar)
+/*
+Method ToNList returns NList representation of given value.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+return value: NList representation of given value
+exceptions: -
+
+*/
+
+NList Properties<char>::ToNList(const char& rValue)
 {
   NList nList = NList(Symbol::UNDEFINED());
 
-  if(IsUndefinedValue(rchar) == false)
+  if(IsUndefinedValue(rValue) == false)
   {
-    nList = NList(bool(rchar), true);
+    nList = NList(bool(rValue), true);
   }
 
   return nList;

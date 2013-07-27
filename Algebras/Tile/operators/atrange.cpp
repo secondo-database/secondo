@@ -20,6 +20,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "atrange.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
@@ -30,11 +35,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template atrangeFunction
+Template method atrangeFunction calls atrange method of specific datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of atrange operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of atrangeFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if atrangeFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -45,7 +65,7 @@ int atrangeFunction(Word* pArguments,
                     Word& rLocal,
                     Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -76,6 +96,8 @@ int atrangeFunction(Word* pArguments,
             {
               pResult->SetDefined(false);
             }
+
+            nRetVal = 0;
           }
         }
       }
@@ -111,6 +133,8 @@ int atrangeFunction(Word* pArguments,
               {
                 pResult->SetDefined(false);
               }
+
+              nRetVal = 0;
             }
           }
         }
@@ -122,7 +146,7 @@ int atrangeFunction(Word* pArguments,
 }
 
 /*
-definition of atrange functions
+definition of atrangeFunctions array.
 
 */
 
@@ -140,13 +164,19 @@ ValueMapping atrangeFunctions[] =
 };
 
 /*
-definition of atrange select function
+Method atrangeSelectFunction returns the index of specific atrange function
+in atrangeFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atrange operator
+return value: index of specific atrange function in atrangeFunctions
+exceptions: -
 
 */
 
 int atrangeSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -173,18 +203,24 @@ int atrangeSelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of atrange type mapping function
+Method atrangeTypeMappingFunction returns the return value type
+of atrange operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atrange operator
+return value: return value type of atrange operator
+exceptions: -
 
 */
 

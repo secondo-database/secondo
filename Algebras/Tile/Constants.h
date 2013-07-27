@@ -23,188 +23,198 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_CONSTANTS_H
 #define TILEALGEBRA_CONSTANTS_H
 
+/*
+system includes
+
+*/
+
 #include <string>
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-const type name for type tgrid
+Constant contains the typename tgrid.
 
 */
 
 extern const char* TYPE_NAME_TGRID;
 
 /*
-const type name for type mtgrid
+Constant contains the typename mtgrid.
 
 */
 
 extern const char* TYPE_NAME_MTGRID;
 
 /*
-const type name for type uniquestringarray
+Constant contains the typename uniquestringarray.
 
 */
 
 extern const char* TYPE_NAME_UNIQUESTRINGARRAY;
 
 /*
-const type name for type tint
+Constant contains the typename tint.
 
 */
 
 extern const char* TYPE_NAME_TINT;
 
 /*
-const type name for type treal
+Constant contains the typename treal.
 
 */
 
 extern const char* TYPE_NAME_TREAL;
 
 /*
-const type name for type tbool
+Constant contains the typename tbool.
 
 */
 
 extern const char* TYPE_NAME_TBOOL;
 
 /*
-const type name for type tstring
+Constant contains the typename tstring.
 
 */
 
 extern const char* TYPE_NAME_TSTRING;
 
 /*
-const type name for type mtint
+Constant contains the typename mtint.
 
 */
 
 extern const char* TYPE_NAME_MTINT;
 
 /*
-const type name for type mtreal
+Constant contains the typename mtreal.
 
 */
 
 extern const char* TYPE_NAME_MTREAL;
 
 /*
-const type name for type mtbool
+Constant contains the typename mtbool.
 
 */
 
 extern const char* TYPE_NAME_MTBOOL;
 
 /*
-const type name for type mtstring
+Constant contains the typename mtstring.
 
 */
 
 extern const char* TYPE_NAME_MTSTRING;
 
 /*
-const type name for type itint
+Constant contains the typename itint.
 
 */
 
 extern const char* TYPE_NAME_ITINT;
 
 /*
-const type name for type itreal
+Constant contains the typename itreal.
 
 */
 
 extern const char* TYPE_NAME_ITREAL;
 
 /*
-const type name for type itbool
+Constant contains the typename itbool.
 
 */
 
 extern const char* TYPE_NAME_ITBOOL;
 
 /*
-const type name for type itstring
+Constant contains the typename itstring.
 
 */
 
 extern const char* TYPE_NAME_ITSTRING;
 
 /*
-const undefined value for type int
+Constant contains the undefined value for datatype int.
 
 */
 
 extern const int UNDEFINED_INT;
 
 /*
-const undefined value for type real
+Constant contains the undefined value for datatype real.
 
 */
 
 extern const double UNDEFINED_REAL;
 
 /*
-const undefined value for type bool
+Constant contains the undefined value for datatype bool.
 
 */
 
 extern const char UNDEFINED_BOOL;
 
 /*
-const undefined value for type string
+Constant contains the undefined value for datatype string.
 
 */
 
 extern const std::string UNDEFINED_STRING;
 
 /*
-const undefined string index value
+Constant contains the undefined value for a string index.
 
 */
 
 extern const int UNDEFINED_STRING_INDEX;
 
 /*
-const time dimension size
+Constant contains the dimension size of time dimension.
 
 */
 
 extern const int TIME_DIMENSION_SIZE;
 
 /*
-const tintArray size
+Constant contains the size of a tintArray.
 
 */
 
 extern const int TINTARRAY_SIZE;
 
 /*
-const tintArray dimension size
+Constant contains the dimension size of a tintArray.
 
 */
 
 extern const int TINTARRAY_DIMENSION_SIZE;
 
 /*
-const tintFlob elements
+Constant contains the number of elements of a tintFlob.
 
 */
 
 extern const int TINTFLOB_ELEMENTS;
 
 /*
-const tintFlob size
+Constant  contains the size of a tintFlob.
 
 */
 
 extern const int TINTFLOB_SIZE;
 
 /*
-const tintFlob dimension size
+Constant contains the dimension size of a tintFlob.
 
 */
 

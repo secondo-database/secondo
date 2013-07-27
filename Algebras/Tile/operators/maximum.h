@@ -23,16 +23,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_MAXIMUM_H
 #define TILEALGEBRA_MAXIMUM_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of maximum Operator Info structure
+Struct maximumInfo describes name, syntax, meaning and signature
+of TileAlgebra operator maximum.
+
+author: Dirk Zacher
 
 */
 
@@ -81,21 +100,33 @@ struct maximumInfo : OperatorInfo
 };
 
 /*
-declaration of maximum functions
+declaration of maximumFunctions array.
 
 */
 
 extern ValueMapping maximumFunctions[];
 
 /*
-declaration of maximum select function
+Method maximumSelectFunction returns the index of specific maximum function
+in maximumFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of maximum operator
+return value: index of specific maximum function in maximumFunctions
+exceptions: -
 
 */
 
 int maximumSelectFunction(ListExpr arguments);
 
 /*
-declaration of maximum type mapping function
+Method maximumTypeMappingFunction returns the return value type
+of maximum operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of maximum operator
+return value: return value type of maximum operator
+exceptions: -
 
 */
 

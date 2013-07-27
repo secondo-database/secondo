@@ -23,16 +23,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_MINIMUM_H
 #define TILEALGEBRA_MINIMUM_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of minimum Operator Info structure
+Struct minimumInfo describes name, syntax, meaning and signature
+of TileAlgebra operator minimum.
+
+author: Dirk Zacher
 
 */
 
@@ -81,21 +100,33 @@ struct minimumInfo : OperatorInfo
 };
 
 /*
-declaration of minimum functions
+declaration of minimumFunctions array.
 
 */
 
 extern ValueMapping minimumFunctions[];
 
 /*
-declaration of minimum select function
+Method minimumSelectFunction returns the index of specific minimum function
+in minimumFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of minimum operator
+return value: index of specific minimum function in minimumFunctions
+exceptions: -
 
 */
 
 int minimumSelectFunction(ListExpr arguments);
 
 /*
-declaration of minimum type mapping function
+Method minimumTypeMappingFunction returns the return value type
+of minimum operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of minimum operator
+return value: return value type of minimum operator
+exceptions: -
 
 */
 

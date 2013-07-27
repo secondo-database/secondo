@@ -23,17 +23,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TOREGION_H
 #define TILEALGEBRA_TOREGION_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
 #include "SpatialAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../t/tbool.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of toregion Operator Info structure
+Struct toregionInfo describes name, syntax, meaning and signature
+of TileAlgebra operator toregion.
+
+author: Dirk Zacher
 
 */
   
@@ -49,7 +68,16 @@ struct toregionInfo : OperatorInfo
 };
 
 /*
-declaration of toregion function
+Method toregionFunction implements the toregion operator functionality.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of toregion operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of toregionFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if toregionFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -60,7 +88,13 @@ int toregionFunction(Word* pArguments,
                      Supplier supplier);
 
 /*
-declaration of toregion type mapping function
+Method toregionTypeMappingFunction returns the return value type
+of toregion operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of toregion operator
+return value: return value type of toregion operator
+exceptions: -
 
 */
 

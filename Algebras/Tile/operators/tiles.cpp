@@ -20,19 +20,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "tiles.h"
-#include "../t/tint.h"
-#include "../t/treal.h"
-#include "../t/tbool.h"
-#include "../t/tstring.h"
-#include "../mt/mtint.h"
-#include "../mt/mtreal.h"
-#include "../mt/mtbool.h"
-#include "../mt/mtstring.h"
-#include "../it/itint.h"
-#include "../it/itreal.h"
-#include "../it/itbool.h"
-#include "../it/itstring.h"
+/*
+Raster2Algebra includes
+
+*/
+
 #include "../../Raster2/sint.h"
 #include "../../Raster2/sreal.h"
 #include "../../Raster2/sbool.h"
@@ -46,11 +38,45 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Raster2/isbool.h"
 #include "../../Raster2/isstring.h"
 
+/*
+TileAlgebra includes
+
+*/
+
+#include "tiles.h"
+#include "../t/tint.h"
+#include "../t/treal.h"
+#include "../t/tbool.h"
+#include "../t/tstring.h"
+#include "../mt/mtint.h"
+#include "../mt/mtreal.h"
+#include "../mt/mtbool.h"
+#include "../mt/mtstring.h"
+#include "../it/itint.h"
+#include "../it/itreal.h"
+#include "../it/itbool.h"
+#include "../it/itstring.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of tilesFunctiontgrid
+Method tilesFunctiontgrid converts a Raster2 Algebra grid2 object
+to a Tile Algebra tgrid object.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of tiles operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of tilesFunctiontgrid
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if tilesFunctiontgrid successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -60,7 +86,7 @@ int tilesFunctiontgrid(Word* pArguments,
                        Word& rLocal,
                        Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -80,6 +106,8 @@ int tilesFunctiontgrid(Word* pArguments,
           pResult->SetX(pGrid->getOriginX());
           pResult->SetY(pGrid->getOriginY());
           pResult->SetLength(pGrid->getLength());
+
+          nRetVal = 0;
         }
       }
     }
@@ -89,7 +117,17 @@ int tilesFunctiontgrid(Word* pArguments,
 }
 
 /*
-definition of tilesFunctionmtgrid
+Method tilesFunctionmtgrid converts a Raster2 Algebra grid3 object
+to a Tile Algebra mtgrid object.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of tiles operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of tilesFunctionmtgrid
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if tilesFunctionmtgrid successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -99,7 +137,7 @@ int tilesFunctionmtgrid(Word* pArguments,
                         Word& rLocal,
                         Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -120,6 +158,8 @@ int tilesFunctionmtgrid(Word* pArguments,
           pResult->SetY(pGrid->getOriginY());
           pResult->SetLength(pGrid->getLength());
           pResult->SetDuration(pGrid->getDuration());
+
+          nRetVal = 0;
         }
       }
     }
@@ -129,7 +169,20 @@ int tilesFunctionmtgrid(Word* pArguments,
 }
 
 /*
-definition of template tilesFunctiont
+Template method tilesFunctiont converts a Raster2 Algebra s type object
+to a stream of Tile Algebra t type objects.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of tiles operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of tilesFunctiont
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if tilesFunctiont successfully executed,
+              YIELD if rResult contains a stream element (execution continued),
+              CANCEL if all stream elements of the result already returned,
+              FAILURE if an error occured
+exceptions: -
 
 */
 
@@ -141,7 +194,7 @@ int tilesFunctiont(Word* pArguments,
                    Word& rLocal,
                    Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -171,6 +224,7 @@ int tilesFunctiont(Word* pArguments,
             pResultInfo->m_dX = pResultInfo->m_BoundingBox.MinD(0);
             pResultInfo->m_dY = pResultInfo->m_BoundingBox.MinD(1);
             rLocal.addr = pResultInfo;
+            nRetVal = 0;
           }
         }
         break;
@@ -270,13 +324,14 @@ int tilesFunctiont(Word* pArguments,
               rLocal.addr = 0;
             }
           }
+
+          nRetVal = 0;
         }
         break;
 
         default:
         {
           assert(false);
-          nRetVal = -1;
         }
         break;
       }
@@ -287,7 +342,20 @@ int tilesFunctiont(Word* pArguments,
 }
 
 /*
-definition of template tilesFunctionmt
+Template method tilesFunctionmt converts a Raster2 Algebra ms type object
+to a stream of Tile Algebra mt type objects.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of tiles operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of tilesFunctionmt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if tilesFunctionmt successfully executed,
+              YIELD if rResult contains a stream element (execution continued),
+              CANCEL if all stream elements of the result already returned,
+              FAILURE if an error occured
+exceptions: -
 
 */
 
@@ -299,7 +367,7 @@ int tilesFunctionmt(Word* pArguments,
                     Word& rLocal,
                     Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -330,6 +398,7 @@ int tilesFunctionmt(Word* pArguments,
             pResultInfo->m_dY = pResultInfo->m_BoundingBox.MinD(1);
             pResultInfo->m_dT = pResultInfo->m_BoundingBox.MinD(2);
             rLocal.addr = pResultInfo;
+            nRetVal = 0;
           }
         }
         break;
@@ -454,13 +523,14 @@ int tilesFunctionmt(Word* pArguments,
               rLocal.addr = 0;
             }
           }
+
+          nRetVal = 0;
         }
         break;
 
         default:
         {
           assert(false);
-          nRetVal = -1;
         }
         break;
       }
@@ -471,7 +541,20 @@ int tilesFunctionmt(Word* pArguments,
 }
 
 /*
-definition of template tilesFunctionit
+Template method tilesFunctionit converts a Raster2 Algebra is type object
+to a stream of Tile Algebra it type objects.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of tiles operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of tilesFunctionit
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if tilesFunctionit successfully executed,
+              YIELD if rResult contains a stream element (execution continued),
+              CANCEL if all stream elements of the result already returned,
+              FAILURE if an error occured
+exceptions: -
 
 */
 
@@ -483,7 +566,7 @@ int tilesFunctionit(Word* pArguments,
                     Word& rLocal,
                     Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -513,6 +596,7 @@ int tilesFunctionit(Word* pArguments,
             pResultInfo->m_dX = pResultInfo->m_BoundingBox.MinD(0);
             pResultInfo->m_dY = pResultInfo->m_BoundingBox.MinD(1);
             rLocal.addr = pResultInfo;
+            nRetVal = 0;
           }
         }
         break;
@@ -622,13 +706,14 @@ int tilesFunctionit(Word* pArguments,
               rLocal.addr = 0;
             }
           }
+
+          nRetVal = 0;
         }
         break;
 
         default:
         {
           assert(false);
-          nRetVal = -1;
         }
         break;
       }
@@ -639,7 +724,7 @@ int tilesFunctionit(Word* pArguments,
 }
 
 /*
-definition of tiles functions
+definition of tilesFunctions array.
 
 */
 
@@ -667,13 +752,19 @@ ValueMapping tilesFunctions[] =
 };
 
 /*
-definition of tiles select function
+Method tilesSelectFunction returns the index of specific tiles function
+in tilesFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of tiles operator
+return value: index of specific tiles function in tilesFunctions
+exceptions: -
 
 */
 
 int tilesSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -705,18 +796,24 @@ int tilesSelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of tiles type mapping function
+Method tilesTypeMappingFunction returns the return value type
+of tiles operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of tiles operator
+return value: return value type of tiles operator
+exceptions: -
 
 */
 

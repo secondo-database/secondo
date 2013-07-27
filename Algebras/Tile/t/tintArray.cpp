@@ -21,19 +21,57 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */ 
 
-#include "../Constants.h"
-#include "tintArray.h"
-#include "TypeConstructor.h"
+/*
+SECONDO includes
+
+*/
+
 #include "Symbols.h"
+#include "TypeConstructor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "tintArray.h"
+#include "../Constants.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
+
+/*
+Constructor tintArray does not initialize any members and
+should only be used in conjunction with Cast method.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 tintArray::tintArray()
           :Attribute()
 {
   
 }
+
+/*
+Constructor tintArray sets defined flag of base class Attribute and
+initializes all members of the class with default values.
+
+author: Dirk Zacher
+parameters: bDefined - defined flag of base class Attribute
+return value: -
+exceptions: -
+
+*/
   
 tintArray::tintArray(bool bDefined)
           :Attribute(bDefined),
@@ -45,6 +83,18 @@ tintArray::tintArray(bool bDefined)
   }
 }
 
+/*
+Constructor tintArray sets defined flag of base class Attribute to defined flag
+of rtintArray object and initializes all members of the class with corresponding
+values of rtintArray object.
+
+author: Dirk Zacher
+parameters: rtintArray - reference to a tintArray object
+return value: -
+exceptions: -
+
+*/
+
 tintArray::tintArray(const tintArray& rtintArray)
           :Attribute(rtintArray.IsDefined())
 {
@@ -52,10 +102,31 @@ tintArray::tintArray(const tintArray& rtintArray)
   memcpy(m_Array, rtintArray.m_Array, TINTARRAY_SIZE * sizeof(int));
 }
 
+/*
+Destructor deinitializes a tintArray object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 tintArray::~tintArray()
 {
   
 }
+
+/*
+Operator= assigns all member values of a given tintArray object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: rtintArray - reference to a tintArray object
+return value: reference to this object
+exceptions: -
+
+*/
 
 tintArray& tintArray::operator=(const tintArray& rtintArray)
 {
@@ -68,6 +139,16 @@ tintArray& tintArray::operator=(const tintArray& rtintArray)
   
   return *this;
 }
+
+/*
+Operator== checks if this object equals rtintArray object.
+
+author: Dirk Zacher
+parameters: rtintArray - reference to a tintArray object
+return value: true, if this object equals rtintArray object, otherwise false
+exceptions: -
+
+*/
 
 bool tintArray::operator==(const tintArray& rtintArray) const
 {
@@ -85,12 +166,36 @@ bool tintArray::operator==(const tintArray& rtintArray) const
   return bIsEqual;
 }
 
+/*
+TileAlgebra operator load loads all values of the tintArray object.
+
+author: Dirk Zacher
+parameters: -
+return value: true, if all values of the tintArray object successfully loaded,
+              otherwise false
+exceptions: -
+
+*/
+
 bool tintArray::load()
 {
   bool bRetVal = true;
 
   return bRetVal;
 }
+
+/*
+Method SetGrid sets the tgrid properties of tintArray object.
+
+author: Dirk Zacher
+parameters: rX - reference to the x origin of the grid
+            rY - reference to the y origin of the grid
+            rLength - reference to the length of a grid cell
+return value: true, if tgrid properties of tintArray object successfully set,
+              otherwise false
+exceptions: -
+
+*/
 
 bool tintArray::SetGrid(const double& rX,
                         const double& rY,
@@ -105,6 +210,17 @@ bool tintArray::SetGrid(const double& rX,
 
   return bRetVal;
 }
+
+/*
+Method SetValue sets a value of tintArray object at given index.
+
+author: Dirk Zacher
+parameters: nIndex - index of tintArray value
+            nValue - value
+return value: true, if nValue was successfully set at nIndex, otherwise false
+exceptions: -
+
+*/
 
 bool tintArray::SetValue(int nIndex, int nValue)
 {
@@ -121,10 +237,30 @@ bool tintArray::SetValue(int nIndex, int nValue)
   return bRetVal;
 }
 
+/*
+Method Adjacent checks if this object is adjacent to given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: true, if this object is adjacent to pAttribute, otherwise false
+exceptions: -
+
+*/
+
 bool tintArray::Adjacent(const Attribute* pAttribute) const
 {
   return false;
 }
+
+/*
+Method Clone returns a copy of this object.
+
+author: Dirk Zacher
+parameters: -
+return value: a pointer to a copy of this object
+exceptions: -
+
+*/
 
 Attribute* tintArray::Clone() const
 {
@@ -133,6 +269,21 @@ Attribute* tintArray::Clone() const
 
   return pAttribute;
 }
+
+/*
+Method Compare compares this object with given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -1 if this object < pAttribute object or
+                 this object is undefined and pAttribute object is defined,
+               0 if this object equals pAttribute object or
+                 this object and pAttribute object are undefined,
+               1 if this object > pAttribute object or
+                 this object is defined and pAttribute object is undefined
+exceptions: -
+
+*/
 
 int tintArray::Compare(const Attribute* pAttribute) const
 {
@@ -179,6 +330,17 @@ int tintArray::Compare(const Attribute* pAttribute) const
   return nRetVal;
 }
 
+/*
+Method CopyFrom assigns all member values of pAttribute object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -
+exceptions: -
+
+*/
+
 void tintArray::CopyFrom(const Attribute* pAttribute)
 {
   if(pAttribute != 0)
@@ -192,6 +354,16 @@ void tintArray::CopyFrom(const Attribute* pAttribute)
   }
 }
 
+/*
+Method HashValue returns the hash value of the tintArray object.
+
+author: Dirk Zacher
+parameters: -
+return value: hash value of the tintArray object
+exceptions: -
+
+*/
+
 size_t tintArray::HashValue() const
 {
   size_t hashValue = 0;
@@ -204,20 +376,62 @@ size_t tintArray::HashValue() const
   return hashValue;
 }
 
+/*
+Method Sizeof returns the size of tintArray datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: size of tintArray datatype
+exceptions: -
+
+*/
+
 size_t tintArray::Sizeof() const
 {
   return sizeof(tintArray);
 }
+
+/*
+Method BasicType returns the typename of tintArray datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of tintArray datatype
+exceptions: -
+
+*/
 
 const std::string tintArray::BasicType()
 {
   return "tintArray";
 }
 
+/*
+Method Cast casts a void pointer to a new tintArray object.
+
+author: Dirk Zacher
+parameters: pVoid - a pointer to a memory address
+return value: a pointer to a new tintArray object
+exceptions: -
+
+*/
+
 void* tintArray::Cast(void* pVoid)
 {
   return new(pVoid)tintArray;
 }
+
+/*
+Method Clone clones an existing tintArray object
+given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing tintArray object
+return value: a Word that references a new tintArray object
+exceptions: -
+
+*/
 
 Word tintArray::Clone(const ListExpr typeInfo,
                       const Word& rWord)
@@ -235,6 +449,18 @@ Word tintArray::Clone(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method Close closes an existing tintArray object
+given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing tintArray object
+return value: -
+exceptions: -
+
+*/
+
 void tintArray::Close(const ListExpr typeInfo,
                             Word& rWord)
 {
@@ -247,6 +473,16 @@ void tintArray::Close(const ListExpr typeInfo,
   }
 }
 
+/*
+Method Create creates a new tintArray object.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of the new tintArray object to create
+return value: a Word that references a new tintArray object
+exceptions: -
+
+*/
+
 Word tintArray::Create(const ListExpr typeInfo)
 {
   Word word;
@@ -256,6 +492,18 @@ Word tintArray::Create(const ListExpr typeInfo)
 
   return word;
 }
+
+/*
+Method Delete deletes an existing tintArray object
+given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing tintArray object
+return value: -
+exceptions: -
+
+*/
 
 void tintArray::Delete(const ListExpr typeInfo,
                        Word& rWord)
@@ -268,6 +516,16 @@ void tintArray::Delete(const ListExpr typeInfo,
     rWord.addr = 0;
   }
 }
+
+/*
+Method GetTypeConstructor returns the TypeConstructor of class tintArray.
+
+author: Dirk Zacher
+parameters: -
+return value: TypeConstructor of class tintArray
+exceptions: -
+
+*/
 
 TypeConstructor tintArray::GetTypeConstructor()
 {
@@ -294,6 +552,21 @@ TypeConstructor tintArray::GetTypeConstructor()
   
   return typeConstructor;
 }
+
+/*
+Method In creates a new tintArray object on the basis of a given ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object to create on the basis of instance
+            instance - ListExpr of the tintArray object to create
+            errorPos - error position
+            rErrorInfo - reference to error information
+            rCorrect - flag that indicates if tintArray object
+                       correctly created
+return value: a Word that references a new tintArray object
+exceptions: -
+
+*/
 
 Word tintArray::In(const ListExpr typeInfo,
                    const ListExpr instance,
@@ -504,6 +777,17 @@ Word tintArray::In(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method KindCheck checks if given type is tintArray type.
+
+author: Dirk Zacher
+parameters: type - ListExpr of type to check
+            rErrorInfo - reference to error information
+return value: true, if type is tintArray type, otherwise false
+exceptions: -
+
+*/
+
 bool tintArray::KindCheck(ListExpr type,
                           ListExpr& rErrorInfo)
 {
@@ -517,6 +801,21 @@ bool tintArray::KindCheck(ListExpr type,
   return bRetVal;
 }
 
+/*
+Method Open opens a tintArray object from a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord containing tintArray object to open
+            rOffset - Offset to the tintArray object in SmiRecord
+            typeInfo - TypeInfo of tintArray object to open
+            rValue - reference to a Word referencing the opened
+                     tintArray object
+return value: true, if tintArray object was successfully opened,
+              otherwise false
+exceptions: -
+
+*/
+
 bool tintArray::Open(SmiRecord& rValueRecord,
                      size_t& rOffset,
                      const ListExpr typeInfo,
@@ -529,6 +828,17 @@ bool tintArray::Open(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method Out writes out an existing tintArray object in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of tintArray object to write out
+            value - reference to a Word referencing the tintArray object
+return value: ListExpr of tintArray object referenced by value
+exceptions: -
+
+*/
 
 ListExpr tintArray::Out(ListExpr typeInfo,
                         Word value)
@@ -591,6 +901,16 @@ ListExpr tintArray::Out(ListExpr typeInfo,
   return pListExpr;
 }
 
+/*
+Method Property returns all properties of tintArray datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: properties of tintArray datatype in the form of a ListExpr
+exceptions: -
+
+*/
+
 ListExpr tintArray::Property()
 {
   NList propertyList;
@@ -618,6 +938,21 @@ ListExpr tintArray::Property()
   return propertyList.listExpr();
 }
 
+/*
+Method Save saves an existing tintArray object in a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord to save existing tintArray object
+            rOffset - Offset to save position of tintArray object in SmiRecord
+            typeInfo - TypeInfo of tintArray object to save
+            rValue - reference to a Word referencing
+                     the tintArray object to save
+return value: true, if tintArray object was successfully saved,
+              otherwise false
+exceptions: -
+
+*/
+
 bool tintArray::Save(SmiRecord& rValueRecord,
                      size_t& rOffset,
                      const ListExpr typeInfo,
@@ -630,6 +965,16 @@ bool tintArray::Save(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method SizeOfObj returns the size of a tintArray object.
+
+author: Dirk Zacher
+parameters: -
+return value: size of a tintArray object
+exceptions: -
+
+*/
 
 int tintArray::SizeOfObj()
 {

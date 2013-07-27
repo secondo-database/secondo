@@ -23,18 +23,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_ATLOCATION_H
 #define TILEALGEBRA_ATLOCATION_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
+#include "DateTime.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "DateTime.h"
 #include "Point.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of atlocation Operator Info structure
+Struct atlocationInfo describes name, syntax, meaning and signature
+of TileAlgebra operator atlocation.
+
+author: Dirk Zacher
 
 */
 
@@ -95,21 +114,33 @@ struct atlocationInfo : OperatorInfo
 };
 
 /*
-declaration of atlocation functions
+declaration of atlocationFunctions array.
 
 */
 
 extern ValueMapping atlocationFunctions[];
 
 /*
-declaration of atlocation select function
+Method atlocationSelectFunction returns the index of specific atlocation
+function in atlocationFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atlocation operator
+return value: index of specific atlocation function in atlocationFunctions
+exceptions: -
 
 */
 
 int atlocationSelectFunction(ListExpr arguments);
 
 /*
-declaration of atlocation type mapping function
+Method atlocationTypeMappingFunction returns the return value type
+of atlocation function in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atlocation operator
+return value: return value type of atlocation operator
+exceptions: -
 
 */
 

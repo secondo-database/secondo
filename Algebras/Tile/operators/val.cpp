@@ -20,17 +20,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "val.h"
 #include "../it/itint.h"
 #include "../it/itreal.h"
 #include "../it/itbool.h"
 #include "../it/itstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template valFunction
+Template method valFunction calls val method of specific datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of val operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of valFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if valFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -41,7 +61,7 @@ int valFunction(Word* pArguments,
                 Word& rLocal,
                 Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -60,7 +80,17 @@ int valFunction(Word* pArguments,
 
         if(pResult != 0)
         {
-          pType->val(*pResult);
+          if(pType->IsDefined())
+          {
+            pType->val(*pResult);
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+
+          nRetVal = 0;
         }
       }
     }
@@ -70,7 +100,7 @@ int valFunction(Word* pArguments,
 }
 
 /*
-definition of val functions
+definition of valFunctions array.
 
 */
 
@@ -84,13 +114,19 @@ ValueMapping valFunctions[] =
 };
 
 /*
-definition of val select function
+Method valSelectFunction returns the index of specific val function
+in valFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of val operator
+return value: index of specific val function in valFunctions
+exceptions: -
 
 */
 
 int valSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -112,18 +148,24 @@ int valSelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of val type mapping function
+Method valTypeMappingFunction returns the return value type
+of val operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of val operator
+return value: return value type of val operator
+exceptions: -
 
 */
 

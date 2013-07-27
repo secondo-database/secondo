@@ -20,6 +20,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+SECONDO includes
+
+*/
+
+#include "DateTime.h"
+
+/*
+Raster2Algebra includes
+
+*/
+
+#include "../../Raster2/sint.h"
+#include "../../Raster2/sreal.h"
+#include "../../Raster2/sbool.h"
+#include "../../Raster2/sstring.h"
+#include "../../Raster2/msint.h"
+#include "../../Raster2/msreal.h"
+#include "../../Raster2/msbool.h"
+#include "../../Raster2/msstring.h"
+#include "../../Raster2/isint.h"
+#include "../../Raster2/isreal.h"
+#include "../../Raster2/isbool.h"
+#include "../../Raster2/isstring.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "toraster2.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
@@ -33,25 +63,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../it/itreal.h"
 #include "../it/itbool.h"
 #include "../it/itstring.h"
-#include "../../Raster2/sint.h"
-#include "../../Raster2/sreal.h"
-#include "../../Raster2/sbool.h"
-#include "../../Raster2/sstring.h"
-#include "../../Raster2/msint.h"
-#include "../../Raster2/msreal.h"
-#include "../../Raster2/msbool.h"
-#include "../../Raster2/msstring.h"
-#include "../../Raster2/isint.h"
-#include "../../Raster2/isreal.h"
-#include "../../Raster2/isbool.h"
-#include "../../Raster2/isstring.h"
-#include "DateTime.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of toraster2Functiontgrid
+Method toraster2Functiontgrid converts a Tile Algebra tgrid object
+to a Raster2 Algebra grid2 object.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of toraster2 operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of toraster2Functiontgrid
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if toraster2Functiontgrid successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -61,7 +93,7 @@ int toraster2Functiontgrid(Word* pArguments,
                            Word& rLocal,
                            Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -78,7 +110,11 @@ int toraster2Functiontgrid(Word* pArguments,
 
         if(pResult != 0)
         {
-          pResult->set(pGrid->GetX(), pGrid->GetY(), pGrid->GetLength());
+          if(pGrid->IsDefined())
+          {
+            pResult->set(pGrid->GetX(), pGrid->GetY(), pGrid->GetLength());
+            nRetVal = 0;
+          }
         }
       }
     }
@@ -88,7 +124,17 @@ int toraster2Functiontgrid(Word* pArguments,
 }
 
 /*
-definition of toraster2Functionmtgrid
+Method toraster2Functionmtgrid converts a Tile Algebra mtgrid object
+to a Raster2 Algebra grid3 object.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of toraster2 operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of toraster2Functionmtgrid
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if toraster2Functionmtgrid successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -98,7 +144,7 @@ int toraster2Functionmtgrid(Word* pArguments,
                             Word& rLocal,
                             Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -115,8 +161,12 @@ int toraster2Functionmtgrid(Word* pArguments,
 
         if(pResult != 0)
         {
-          pResult->set(pGrid->GetX(), pGrid->GetY(),
-                       pGrid->GetLength(), pGrid->GetDuration());
+          if(pGrid->IsDefined())
+          {
+            pResult->set(pGrid->GetX(), pGrid->GetY(),
+                         pGrid->GetLength(), pGrid->GetDuration());
+            nRetVal = 0;
+          }
         }
       }
     }
@@ -126,7 +176,17 @@ int toraster2Functionmtgrid(Word* pArguments,
 }
 
 /*
-definition of template toraster2Functiont
+Template method toraster2Functiont converts a stream of Tile Algebra t type
+objects to a Raster2 Algebra s type object.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of toraster2 operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of toraster2Functiont
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if toraster2Functiont successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -138,7 +198,7 @@ int toraster2Functiont(Word* pArguments,
                        Word& rLocal,
                        Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -237,6 +297,8 @@ int toraster2Functiont(Word* pArguments,
           }
           break;
         }
+
+        nRetVal = 0;
       }
     }
   }
@@ -245,7 +307,17 @@ int toraster2Functiont(Word* pArguments,
 }
 
 /*
-definition of template toraster2Functionmt
+Template method toraster2Functionmt converts a stream of Tile Algebra mt type
+objects to a Raster2 Algebra ms type object.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of toraster2 operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of toraster2Functionmt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if toraster2Functionmt successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -257,7 +329,7 @@ int toraster2Functionmt(Word* pArguments,
                         Word& rLocal,
                         Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -364,6 +436,8 @@ int toraster2Functionmt(Word* pArguments,
           }
           break;
         }
+
+        nRetVal = 0;
       }
     }
   }
@@ -372,7 +446,17 @@ int toraster2Functionmt(Word* pArguments,
 }
 
 /*
-definition of template toraster2Functionit
+Template method toraster2Functionit converts a stream of Tile Algebra it type
+objects to a Raster2 Algebra is type object.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of toraster2 operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of toraster2Functionit
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if toraster2Functionit successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -384,7 +468,7 @@ int toraster2Functionit(Word* pArguments,
                         Word& rLocal,
                         Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -505,6 +589,8 @@ int toraster2Functionit(Word* pArguments,
           }
           break;
         }
+
+        nRetVal = 0;
       }
     }
   }
@@ -513,7 +599,7 @@ int toraster2Functionit(Word* pArguments,
 }
 
 /*
-definition of toraster2 functions
+definition of toraster2Functions array.
 
 */
 
@@ -541,13 +627,19 @@ ValueMapping toraster2Functions[] =
 };
 
 /*
-definition of toraster2 select function
+Method toraster2SelectFunction returns the index of specific toraster2 function
+in toraster2Functions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of toraster2 operator
+return value: index of specific toraster2 function in toraster2Functions
+exceptions: -
 
 */
 
 int toraster2SelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -585,18 +677,24 @@ int toraster2SelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of toraster2 type mapping function
+Method toraster2TypeMappingFunction returns the return value type
+of toraster2 operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of toraster2 operator
+return value: return value type of toraster2 operator
+exceptions: -
 
 */
 

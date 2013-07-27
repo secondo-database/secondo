@@ -21,164 +21,180 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+system includes
+
+*/
+
 #include <cmath>
 #include <limits>
 #include "WinUnix.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "Constants.h"
 #include "grid/tgrid.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-const type name for type tgrid
+Constant contains the typename tgrid.
 
 */
 
 const char* TYPE_NAME_TGRID = "tgrid";
 
 /*
-const type name for type mtgrid
+Constant contains the typename mtgrid.
 
 */
 
 const char* TYPE_NAME_MTGRID = "mtgrid";
 
 /*
-const type name for type uniquestringarray
+Constant contains the typename uniquestringarray.
 
 */
 
 const char* TYPE_NAME_UNIQUESTRINGARRAY = "uniquestringarray";
 
 /*
-const type name for type tint
+Constant contains the typename tint.
 
 */
 
 const char* TYPE_NAME_TINT = "tint";
 
 /*
-const type name for type treal
+Constant contains the typename treal.
 
 */
 
 const char* TYPE_NAME_TREAL = "treal";
 
 /*
-const type name for type tbool
+Constant contains the typename tbool.
 
 */
 
 const char* TYPE_NAME_TBOOL = "tbool";
 
 /*
-const type name for type tstring
+Constant contains the typename tstring.
 
 */
 
 const char* TYPE_NAME_TSTRING = "tstring";
 
 /*
-const type name for type mtint
+Constant contains the typename mtint.
 
 */
 
 const char* TYPE_NAME_MTINT = "mtint";
 
 /*
-const type name for type mtreal
+Constant contains the typename mtreal.
 
 */
 
 const char* TYPE_NAME_MTREAL = "mtreal";
 
 /*
-const type name for type mtbool
+Constant contains the typename mtbool.
 
 */
 
 const char* TYPE_NAME_MTBOOL = "mtbool";
 
 /*
-const type name for type mtstring
+Constant contains the typename mtstring.
 
 */
 
 const char* TYPE_NAME_MTSTRING = "mtstring";
 
 /*
-const type name for type itint
+Constant contains the typename itint.
 
 */
 
 const char* TYPE_NAME_ITINT = "itint";
 
 /*
-const type name for type itreal
+Constant contains the typename itreal.
 
 */
 
 const char* TYPE_NAME_ITREAL = "itreal";
 
 /*
-const type name for type itbool
+Constant contains the typename itbool.
 
 */
 
 const char* TYPE_NAME_ITBOOL = "itbool";
 
 /*
-const type name for type itstring
+Constant contains the typename itstring.
 
 */
 
 const char* TYPE_NAME_ITSTRING = "itstring";
 
 /*
-const undefined value for type int
+Constant contains the undefined value for datatype int.
 
 */
 
 const int UNDEFINED_INT = std::numeric_limits<int>::min();
 
 /*
-const undefined value for type real
+Constant contains the undefined value for datatype real.
 
 */
 
 const double UNDEFINED_REAL = std::numeric_limits<double>::quiet_NaN();
 
 /*
-const undefined value for type bool
+Constant contains the undefined value for datatype bool.
 
 */
 
 const char UNDEFINED_BOOL = -1;
 
 /*
-const undefined value for type string
+Constant contains the undefined value for datatype string.
 
 */
 
 const std::string UNDEFINED_STRING = "";
 
 /*
-const undefined string index value
+Constant contains the undefined value for a string index.
 
 */
 
 const int UNDEFINED_STRING_INDEX = -1;
 
 /*
-const time dimension size
+Constant contains the dimension size of time dimension.
 
 */
 
 const int TIME_DIMENSION_SIZE = 10;
 
 /*
-const tintArray size
+Constant contains the size of a tintArray.
 
 */
 
@@ -193,7 +209,7 @@ const int TINTARRAY_SIZE = static_cast<unsigned int>
                            );
 
 /*
-const tintArray dimension size
+Constant contains the dimension size of a tintArray.
 
 */
 
@@ -201,7 +217,7 @@ const int TINTARRAY_DIMENSION_SIZE = static_cast<unsigned int>
                                      (std::pow(TINTARRAY_SIZE, 0.5));
 
 /*
-const tintFlob elements
+Constant contains the number of elements of a tintFlob.
 
 */
 
@@ -216,14 +232,14 @@ const int TINTFLOB_ELEMENTS = static_cast<unsigned int>
                               );
 
 /*
-const tintFlob size
+Constant contains the size of a tintFlob.
 
 */
 
 const int TINTFLOB_SIZE = TINTFLOB_ELEMENTS * sizeof(int);
 
 /*
-const tintFlob dimension size
+Constant contains the dimension size of a tintFlob.
 
 */
 

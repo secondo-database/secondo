@@ -23,23 +23,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_ITBOOL_H
 #define TILEALGEBRA_ITBOOL_H
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "it.h"
 #include "itProperties.h"
 #include "../Properties/Propertiesbool.h"
 #include "../t/tbool.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-typedef of itbool type
+typedef of datatype itbool
 
 */
 
 typedef it<char> itbool;
 
 /*
-declaration of template class itProperties<char>
+Class itProperties<char> represents the properties of datatype itbool.
+
+author: Dirk Zacher
 
 */
 
@@ -48,11 +60,61 @@ class itProperties<char>
 {
   public:
 
+  /*
+  typedef of PropertiesType
+
+  */
+
   typedef itbool PropertiesType;
+
+  /*
+  typedef of TypeProperties
+
+  */
+
   typedef Properties<char> TypeProperties;
+
+  /*
+  typedef of tType
+
+  */
+
   typedef tbool tType;
+
+  /*
+  Method GetXDimensionSize returns the size of x dimension of datatype itbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of x dimension of datatype itbool
+  exceptions: -
+
+  */
+
   static int GetXDimensionSize();
+
+  /*
+  Method GetYDimensionSize returns the size of y dimension of datatype itbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of y dimension of datatype itbool
+  exceptions: -
+
+  */
+
   static int GetYDimensionSize();
+
+  /*
+  Method GetTypeName returns the typename of datatype itbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of datatype itbool
+  exceptions: -
+
+  */
+
   static std::string GetTypeName();
 };
 

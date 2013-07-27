@@ -23,23 +23,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_ITREAL_H
 #define TILEALGEBRA_ITREAL_H
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "it.h"
 #include "itProperties.h"
 #include "../Properties/Propertiesreal.h"
 #include "../t/treal.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-typedef of itreal type
+typedef of datatype itreal
 
 */
 
 typedef it<double> itreal;
 
 /*
-declaration of template class itProperties<double>
+Class itProperties<double> represents the properties of datatype itreal.
+
+author: Dirk Zacher
 
 */
 
@@ -48,11 +60,61 @@ class itProperties<double>
 {
   public:
 
+  /*
+  typedef of PropertiesType
+
+  */
+
   typedef itreal PropertiesType;
+
+  /*
+  typedef of TypeProperties
+
+  */
+
   typedef Properties<double> TypeProperties;
+
+  /*
+  typedef of tType
+
+  */
+
   typedef treal tType;
+
+  /*
+  Method GetXDimensionSize returns the size of x dimension of datatype itreal.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of x dimension of datatype itreal
+  exceptions: -
+
+  */
+
   static int GetXDimensionSize();
+
+  /*
+  Method GetYDimensionSize returns the size of y dimension of datatype itreal.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of y dimension of datatype itreal
+  exceptions: -
+
+  */
+
   static int GetYDimensionSize();
+
+  /*
+  Method GetTypeName returns the typename of datatype itreal.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of datatype itreal
+  exceptions: -
+
+  */
+
   static std::string GetTypeName();
 };
 

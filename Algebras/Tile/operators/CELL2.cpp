@@ -20,13 +20,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "CELL2.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of CELL2 type mapping function
+Method CELL2TypeMappingFunction returns the return value type
+of CELL2 operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of CELL2 operator
+return value: return value type of CELL2 operator
+exceptions: -
 
 */
 

@@ -1,4 +1,3 @@
- 
 /*
 This file is part of SECONDO.
 
@@ -19,21 +18,59 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-*/ 
+*/
 
-#include "../Constants.h"
-#include "tintFlob.h"
-#include "TypeConstructor.h"
+/*
+SECONDO includes
+
+*/
+
 #include "Symbols.h"
+#include "TypeConstructor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "tintFlob.h"
+#include "../Constants.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
+
+/*
+Constructor tintFlob does not initialize any members and
+should only be used in conjunction with Cast method.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 tintFlob::tintFlob()
          :Attribute()
 {
   
 }
+
+/*
+Constructor tintFlob sets defined flag of base class Attribute and
+initializes all members of the class with default values.
+
+author: Dirk Zacher
+parameters: bDefined - defined flag of base class Attribute
+return value: -
+exceptions: -
+
+*/
   
 tintFlob::tintFlob(bool bDefined)
          :Attribute(bDefined),
@@ -46,6 +83,18 @@ tintFlob::tintFlob(bool bDefined)
   }
 }
 
+/*
+Constructor tintFlob sets defined flag of base class Attribute to defined flag
+of rtintFlob object and initializes all members of the class with corresponding
+values of rtintFlob object.
+
+author: Dirk Zacher
+parameters: rtintFlob - reference to a tintFlob object
+return value: -
+exceptions: -
+
+*/
+
 tintFlob::tintFlob(const tintFlob& rtintFlob)
                   :Attribute(rtintFlob.IsDefined()),
                    m_Grid(rtintFlob.m_Grid),
@@ -54,10 +103,31 @@ tintFlob::tintFlob(const tintFlob& rtintFlob)
   
 }
 
+/*
+Destructor deinitializes a tintFlob object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 tintFlob::~tintFlob()
 {
   
 }
+
+/*
+Operator= assigns all member values of a given tintFlob object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: rtintFlob - reference to a tintFlob object
+return value: reference to this object
+exceptions: -
+
+*/
 
 tintFlob& tintFlob::operator=(const tintFlob& rtintFlob)
 {
@@ -77,6 +147,16 @@ tintFlob& tintFlob::operator=(const tintFlob& rtintFlob)
   return *this;
 }
 
+/*
+Operator== checks if this object equals rtintFlob object.
+
+author: Dirk Zacher
+parameters: rtintFlob - reference to a tintFlob object
+return value: true, if this object equals rtintFlob object, otherwise false
+exceptions: -
+
+*/
+
 bool tintFlob::operator==(const tintFlob& rtintFlob) const
 {
   bool bIsEqual = false;
@@ -92,6 +172,17 @@ bool tintFlob::operator==(const tintFlob& rtintFlob) const
 
   return bIsEqual;
 }
+
+/*
+TileAlgebra operator load loads all values of the tintFlob object.
+
+author: Dirk Zacher
+parameters: -
+return value: true, if all values of the tintFlob object successfully loaded,
+              otherwise false
+exceptions: -
+
+*/
 
 bool tintFlob::load()
 {
@@ -110,10 +201,33 @@ bool tintFlob::load()
   return bRetVal;
 }
 
+/*
+Method Destroy destroys tintFlob object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 void tintFlob::Destroy()
 {
   m_Flob.destroy();
 }
+
+/*
+Method SetGrid sets the tgrid properties of tintFlob object.
+
+author: Dirk Zacher
+parameters: rX - reference to the x origin of the grid
+            rY - reference to the y origin of the grid
+            rLength - reference to the length of a grid cell
+return value: true, if tgrid properties of tintFlob object successfully set,
+              otherwise false
+exceptions: -
+
+*/
 
 bool tintFlob::SetGrid(const double& rX,
                        const double& rY,
@@ -129,7 +243,19 @@ bool tintFlob::SetGrid(const double& rX,
   return bRetVal;
 }
 
-bool tintFlob::SetValue(int nIndex, int nValue)
+/*
+Method SetValue sets a value of tintFlob object at given index.
+
+author: Dirk Zacher
+parameters: nIndex - index of tintFlob value
+            nValue - value
+return value: true, if nValue was successfully set at nIndex, otherwise false
+exceptions: -
+
+*/
+
+bool tintFlob::SetValue(int nIndex,
+                        int nValue)
 {
   bool bRetVal = false;
 
@@ -145,10 +271,30 @@ bool tintFlob::SetValue(int nIndex, int nValue)
   return bRetVal;
 }
 
+/*
+Method Adjacent checks if this object is adjacent to given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: true, if this object is adjacent to pAttribute, otherwise false
+exceptions: -
+
+*/
+
 bool tintFlob::Adjacent(const Attribute* pAttribute) const
 {
   return false;
 }
+
+/*
+Method Clone returns a copy of this object.
+
+author: Dirk Zacher
+parameters: -
+return value: a pointer to a copy of this object
+exceptions: -
+
+*/
 
 Attribute* tintFlob::Clone() const
 {
@@ -157,6 +303,21 @@ Attribute* tintFlob::Clone() const
 
   return pAttribute;
 }
+
+/*
+Method Compare compares this object with given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -1 if this object < pAttribute object or
+                 this object is undefined and pAttribute object is defined,
+               0 if this object equals pAttribute object or
+                 this object and pAttribute object are undefined,
+               1 if this object > pAttribute object or
+                 this object is defined and pAttribute object is undefined
+exceptions: -
+
+*/
 
 int tintFlob::Compare(const Attribute* pAttribute) const
 {
@@ -208,6 +369,17 @@ int tintFlob::Compare(const Attribute* pAttribute) const
   return nRetVal;
 }
 
+/*
+Method CopyFrom assigns all member values of pAttribute object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -
+exceptions: -
+
+*/
+
 void tintFlob::CopyFrom(const Attribute* pAttribute)
 {
   if(pAttribute != 0)
@@ -220,6 +392,16 @@ void tintFlob::CopyFrom(const Attribute* pAttribute)
     }
   }
 }
+
+/*
+Method GetFLOB returns a pointer to the Flob with given index.
+
+author: Dirk Zacher
+parameters: i - index of Flob
+return value: a pointer to the Flob with given index
+exceptions: -
+
+*/
 
 Flob* tintFlob::GetFLOB(const int i)
 { 
@@ -241,6 +423,16 @@ Flob* tintFlob::GetFLOB(const int i)
   return pFlob;
 }
 
+/*
+Method HashValue returns the hash value of the tintFlob object.
+
+author: Dirk Zacher
+parameters: -
+return value: hash value of the tintFlob object
+exceptions: -
+
+*/
+
 size_t tintFlob::HashValue() const
 {
   size_t hashValue = 0;
@@ -253,25 +445,77 @@ size_t tintFlob::HashValue() const
   return hashValue;
 }
 
+/*
+Method NumOfFLOBs returns the number of Flobs of a tintFlob object.
+
+author: Dirk Zacher
+parameters: -
+return value: number of Flobs of a tintFlob object
+exceptions: -
+
+*/
+
 int tintFlob::NumOfFLOBs() const
 { 
   return 1;
 }
+
+/*
+Method Sizeof returns the size of tintFlob datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: size of tintFlob datatype
+exceptions: -
+
+*/
 
 size_t tintFlob::Sizeof() const
 {
   return sizeof(tintFlob);
 }
 
+/*
+Method BasicType returns the typename of tintFlob datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of tintFlob datatype
+exceptions: -
+
+*/
+
 const std::string tintFlob::BasicType()
 {
   return "tintFlob";
 }
 
+/*
+Method Cast casts a void pointer to a new tintFlob object.
+
+author: Dirk Zacher
+parameters: pVoid - a pointer to a memory address
+return value: a pointer to a new tintFlob object
+exceptions: -
+
+*/
+
 void* tintFlob::Cast(void* pVoid)
 {
   return new(pVoid)tintFlob;
 }
+
+/*
+Method Clone clones an existing tintFlob object
+given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing tintFlob object
+return value: a Word that references a new tintFlob object
+exceptions: -
+
+*/
 
 Word tintFlob::Clone(const ListExpr typeInfo,
                      const Word& rWord)
@@ -289,6 +533,18 @@ Word tintFlob::Clone(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method Close closes an existing tintFlob object
+given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing tintFlob object
+return value: -
+exceptions: -
+
+*/
+
 void tintFlob::Close(const ListExpr typeInfo,
                            Word& rWord)
 {
@@ -301,6 +557,16 @@ void tintFlob::Close(const ListExpr typeInfo,
   }
 }
 
+/*
+Method Create creates a new tintFlob object.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of the new tintFlob object to create
+return value: a Word that references a new tintFlob object
+exceptions: -
+
+*/
+
 Word tintFlob::Create(const ListExpr typeInfo)
 {
   Word word;
@@ -310,6 +576,18 @@ Word tintFlob::Create(const ListExpr typeInfo)
 
   return word;
 }
+
+/*
+Method Delete deletes an existing tintFlob object
+given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing tintFlob object
+return value: -
+exceptions: -
+
+*/
 
 void tintFlob::Delete(const ListExpr typeInfo,
                       Word& rWord)
@@ -322,6 +600,16 @@ void tintFlob::Delete(const ListExpr typeInfo,
     rWord.addr = 0;
   }
 }
+
+/*
+Method GetTypeConstructor returns the TypeConstructor of class tintFlob.
+
+author: Dirk Zacher
+parameters: -
+return value: TypeConstructor of class tintFlob
+exceptions: -
+
+*/
 
 TypeConstructor tintFlob::GetTypeConstructor()
 {
@@ -348,6 +636,21 @@ TypeConstructor tintFlob::GetTypeConstructor()
   
   return typeConstructor;
 }
+
+/*
+Method In creates a new tintFlob object on the basis of a given ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object to create on the basis of instance
+            instance - ListExpr of the tintFlob object to create
+            errorPos - error position
+            rErrorInfo - reference to error information
+            rCorrect - flag that indicates if tintFlob object
+                       correctly created
+return value: a Word that references a new tintFlob object
+exceptions: -
+
+*/
 
 Word tintFlob::In(const ListExpr typeInfo,
                   const ListExpr instance,
@@ -558,6 +861,17 @@ Word tintFlob::In(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method KindCheck checks if given type is tintFlob type.
+
+author: Dirk Zacher
+parameters: type - ListExpr of type to check
+            rErrorInfo - reference to error information
+return value: true, if type is tintFlob type, otherwise false
+exceptions: -
+
+*/
+
 bool tintFlob::KindCheck(ListExpr type,
                          ListExpr& rErrorInfo)
 {
@@ -571,6 +885,21 @@ bool tintFlob::KindCheck(ListExpr type,
   return bRetVal;
 }
 
+/*
+Method Open opens a tintFlob object from a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord containing tintFlob object to open
+            rOffset - Offset to the tintFlob object in SmiRecord
+            typeInfo - TypeInfo of tintFlob object to open
+            rValue - reference to a Word referencing the opened
+                     tintFlob object
+return value: true, if tintFlob object was successfully opened,
+              otherwise false
+exceptions: -
+
+*/
+
 bool tintFlob::Open(SmiRecord& rValueRecord,
                     size_t& rOffset,
                     const ListExpr typeInfo,
@@ -583,6 +912,17 @@ bool tintFlob::Open(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method Out writes out an existing tintFlob object in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of tintFlob object to write out
+            value - reference to a Word referencing the tintFlob object
+return value: ListExpr of tintFlob object referenced by value
+exceptions: -
+
+*/
 
 ListExpr tintFlob::Out(ListExpr typeInfo,
                        Word value)
@@ -652,6 +992,16 @@ ListExpr tintFlob::Out(ListExpr typeInfo,
   return pListExpr;
 }
 
+/*
+Method Property returns all properties of tintFlob datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: properties of tintFlob datatype in the form of a ListExpr
+exceptions: -
+
+*/
+
 ListExpr tintFlob::Property()
 {
   NList propertyList;
@@ -679,6 +1029,21 @@ ListExpr tintFlob::Property()
   return propertyList.listExpr();
 }
 
+/*
+Method Save saves an existing tintFlob object in a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord to save existing tintFlob object
+            rOffset - Offset to save position of tintFlob object in SmiRecord
+            typeInfo - TypeInfo of tintFlob object to save
+            rValue - reference to a Word referencing
+                     the tintFlob object to save
+return value: true, if tintFlob object was successfully saved,
+              otherwise false
+exceptions: -
+
+*/
+
 bool tintFlob::Save(SmiRecord& rValueRecord,
                     size_t& rOffset,
                     const ListExpr typeInfo,
@@ -691,6 +1056,16 @@ bool tintFlob::Save(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method SizeOfObj returns the size of a tintFlob object.
+
+author: Dirk Zacher
+parameters: -
+return value: size of a tintFlob object
+exceptions: -
+
+*/
 
 int tintFlob::SizeOfObj()
 {

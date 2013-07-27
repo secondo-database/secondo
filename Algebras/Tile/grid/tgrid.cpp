@@ -18,27 +18,78 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-*/ 
+*/
 
-#include "../Constants.h"
-#include "tgrid.h"
-#include "TypeConstructor.h"
+/*
+SECONDO includes
+
+*/
+
 #include "Symbols.h"
+#include "TypeConstructor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "tgrid.h"
+#include "../Constants.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
+/*
+Constructor tgrid does not initialize any members and
+should only be used in conjunction with Cast method.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 tgrid::tgrid()
       :Attribute()
 {
-  
+
 }
+
+/*
+Constructor tgrid sets defined flag of base class Attribute and
+initializes all members of the class with default values.
+
+author: Dirk Zacher
+parameters: bDefined - defined flag of base class Attribute
+return value: -
+exceptions: -
+
+*/
 
 tgrid::tgrid(bool bDefined)
       :Attribute(bDefined)
 {
   Reset(); 
 }
+
+/*
+Constructor tgrid sets defined flag of base class Attribute to true and
+initializes all members of the class with corresponding parameter values.
+
+author: Dirk Zacher
+parameters: rX - reference to the x origin of the grid
+            rY - reference to the y origin of the grid
+            rLength - reference to the length of a grid cell
+return value: -
+exceptions: -
+
+*/
 
 tgrid::tgrid(const double& rX,
              const double& rY,
@@ -51,16 +102,49 @@ tgrid::tgrid(const double& rX,
 
 }
 
+/*
+Constructor tgrid sets defined flag of base class Attribute to defined flag
+of rtgrid object and initializes all members of the class with corresponding
+values of rtgrid object.
+
+author: Dirk Zacher
+parameters: rtgrid - reference to a tgrid object
+return value: -
+exceptions: -
+
+*/
+
 tgrid::tgrid(const tgrid& rtgrid)
       :Attribute(rtgrid.IsDefined())
 {
   *this = rtgrid;
 }
 
+/*
+Destructor deinitializes a tgrid object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 tgrid::~tgrid()
 {
   
 }
+
+/*
+Operator= assigns all member values of a given tgrid object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: rtgrid - reference to a tgrid object
+return value: reference to this object
+exceptions: -
+
+*/
 
 const tgrid& tgrid::operator=(const tgrid& rtgrid)
 {
@@ -74,6 +158,16 @@ const tgrid& tgrid::operator=(const tgrid& rtgrid)
 
   return *this;
 }
+
+/*
+Operator== compares this object with given tgrid object.
+
+author: Dirk Zacher
+parameters: rtgrid - reference to a tgrid object
+return value: true, if this object equals rtgrid, otherwise false
+exceptions: -
+
+*/
 
 bool tgrid::operator==(const tgrid& rtgrid) const
 {
@@ -92,20 +186,60 @@ bool tgrid::operator==(const tgrid& rtgrid) const
   return bIsEqual;
 }
 
+/*
+Method GetX returns the x origin of the tgrid.
+
+author: Dirk Zacher
+parameters: -
+return value: x origin of the tgrid
+exceptions: -
+
+*/
+
 const double& tgrid::GetX() const
 {
   return m_dX;
 }
+
+/*
+Method GetY returns the y origin of the tgrid.
+
+author: Dirk Zacher
+parameters: -
+return value: y origin of the tgrid
+exceptions: -
+
+*/
 
 const double& tgrid::GetY() const
 {
   return m_dY;
 }
 
+/*
+Method GetLength returns the length of the a tgrid cell.
+
+author: Dirk Zacher
+parameters: -
+return value: length of the a tgrid cell
+exceptions: -
+
+*/
+
 const double& tgrid::GetLength() const
 {
   return m_dLength;
 }
+
+/*
+Method SetX sets the x origin of the tgrid.
+
+author: Dirk Zacher
+parameters: rX - reference to x origin
+return value: true, if x origin successfully set, otherwise false
+exceptions: -
+
+*/
 
 bool tgrid::SetX(const double& rX)
 {
@@ -116,6 +250,16 @@ bool tgrid::SetX(const double& rX)
   return bRetVal;
 }
 
+/*
+Method SetY sets the y origin of the tgrid.
+
+author: Dirk Zacher
+parameters: rY - reference to y origin
+return value: true, if y origin successfully set, otherwise false
+exceptions: -
+
+*/
+
 bool tgrid::SetY(const double& rY)
 {
   bool bRetVal = true;
@@ -124,6 +268,16 @@ bool tgrid::SetY(const double& rY)
 
   return bRetVal;
 }
+
+/*
+Method SetLength sets the length of a grid cell.
+
+author: Dirk Zacher
+parameters: rLength - reference to length of grid cell
+return value: true, if length of grid cell successfully set, otherwise false
+exceptions: -
+
+*/
 
 bool tgrid::SetLength(const double& rLength)
 {
@@ -138,6 +292,16 @@ bool tgrid::SetLength(const double& rLength)
 
   return bRetVal;
 }
+
+/*
+Method IsMatchingGrid checks if this object matches given tgrid object.
+
+author: Dirk Zacher
+parameters: rtgrid - reference to a tgrid object
+return value: true, if this object matches rtgrid object, otherwise false
+exceptions: -
+
+*/
 
 bool tgrid::IsMatchingGrid(const tgrid& rtgrid) const
 {
@@ -158,6 +322,16 @@ bool tgrid::IsMatchingGrid(const tgrid& rtgrid) const
   return bIsMatchingGrid;
 }
 
+/*
+Method Reset resets all members of the class to the default values.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 void tgrid::Reset()
 {
   m_dX = 0.0;
@@ -165,10 +339,30 @@ void tgrid::Reset()
   m_dLength = 1.0;
 }
 
+/*
+Method Adjacent checks if this object is adjacent to given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: true, if this object is adjacent to pAttribute, otherwise false
+exceptions: -
+
+*/
+
 bool tgrid::Adjacent(const Attribute* pAttribute) const
 {
   return false;
 }
+
+/*
+Method Clone returns a copy of this object.
+
+author: Dirk Zacher
+parameters: -
+return value: a pointer to a copy of this object
+exceptions: -
+
+*/
 
 Attribute* tgrid::Clone() const
 {
@@ -177,6 +371,21 @@ Attribute* tgrid::Clone() const
 
   return pAttribute;
 }
+
+/*
+Method Compare compares this object with given Attribute object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -1 if this object < pAttribute object or
+                 this object is undefined and pAttribute object is defined,
+               0 if this object equals pAttribute object or
+                 this object and pAttribute object are undefined,
+               1 if this object > pAttribute object or
+                 this object is defined and pAttribute object is undefined
+exceptions: -
+
+*/
 
 int tgrid::Compare(const Attribute* pAttribute) const
 {
@@ -270,6 +479,17 @@ int tgrid::Compare(const Attribute* pAttribute) const
   return nRetVal;
 }
 
+/*
+Method CopyFrom assigns all member values of pAttribute object
+to the corresponding member values of this object.
+
+author: Dirk Zacher
+parameters: pAttribute - a pointer to an Attribute object
+return value: -
+exceptions: -
+
+*/
+
 void tgrid::CopyFrom(const Attribute* pAttribute)
 {
   if(pAttribute != 0)
@@ -283,6 +503,16 @@ void tgrid::CopyFrom(const Attribute* pAttribute)
   }
 }
 
+/*
+Method HashValue returns the hash value of the tgrid object.
+
+author: Dirk Zacher
+parameters: -
+return value: hash value of the tgrid object
+exceptions: -
+
+*/
+
 size_t tgrid::HashValue() const
 {
   size_t hashValue = 0;
@@ -295,20 +525,61 @@ size_t tgrid::HashValue() const
   return hashValue;
 }
 
+/*
+Method Sizeof returns the size of tgrid datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: size of tgrid object
+exceptions: -
+
+*/
+
 size_t tgrid::Sizeof() const
 {
   return sizeof(tgrid);
 }
+
+/*
+Method BasicType returns the typename of tgrid datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of tgrid datatype
+exceptions: -
+
+*/
 
 const std::string tgrid::BasicType()
 {
   return TYPE_NAME_TGRID;
 }
 
+/*
+Method Cast casts a void pointer to a new tgrid object.
+
+author: Dirk Zacher
+parameters: pVoid - a pointer to a memory address
+return value: a pointer to a new tgrid object
+exceptions: -
+
+*/
+
 void* tgrid::Cast(void* pVoid)
 {
   return new(pVoid)tgrid;
 }
+
+/*
+Method Clone clones an existing tgrid object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing tgrid object
+return value: a word that references a new tgrid object
+exceptions: -
+
+*/
 
 Word tgrid::Clone(const ListExpr typeInfo,
                   const Word& rWord)
@@ -326,6 +597,17 @@ Word tgrid::Clone(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method Close closes an existing tgrid object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing tgrid object
+return value: -
+exceptions: -
+
+*/
+
 void tgrid::Close(const ListExpr typeInfo,
                   Word& rWord)
 {
@@ -338,6 +620,16 @@ void tgrid::Close(const ListExpr typeInfo,
   }
 }
 
+/*
+Method Create creates a new tgrid object.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of the new tgrid object to create
+return value: a word that references a new tgrid object
+exceptions: -
+
+*/
+
 Word tgrid::Create(const ListExpr typeInfo)
 {
   Word word;
@@ -347,6 +639,17 @@ Word tgrid::Create(const ListExpr typeInfo)
 
   return word;
 }
+
+/*
+Method Delete deletes an existing tgrid object given by a reference to a Word.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object referenced by rWord
+            rWord - reference to the address of an existing tgrid object
+return value: -
+exceptions: -
+
+*/
 
 void tgrid::Delete(const ListExpr typeInfo,
                    Word& rWord)
@@ -359,6 +662,16 @@ void tgrid::Delete(const ListExpr typeInfo,
     rWord.addr = 0;
   }
 }
+
+/*
+Method GetTypeConstructor returns the TypeConstructor of class tgrid.
+
+author: Dirk Zacher
+parameters: -
+return value: TypeConstructor of class tgrid
+exceptions: -
+
+*/
 
 TypeConstructor tgrid::GetTypeConstructor()
 {
@@ -385,6 +698,20 @@ TypeConstructor tgrid::GetTypeConstructor()
 
   return typeConstructor;
 }
+
+/*
+Method In creates a new tgrid object on the basis of a given ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of object to create on the basis of instance
+            instance - ListExpr of the tgrid object to create
+            errorPos - error position
+            rErrorInfo - reference to error information
+            rCorrect - flag that indicates if tgrid object correctly created
+return value: TypeConstructor of tgrid class
+exceptions: -
+
+*/
 
 Word tgrid::In(const ListExpr typeInfo,
                const ListExpr instance,
@@ -441,11 +768,35 @@ Word tgrid::In(const ListExpr typeInfo,
   return word;
 }
 
+/*
+Method KindCheck checks if given type is tgrid type.
+
+author: Dirk Zacher
+parameters: type - ListExpr of type to check
+            rErrorInfo - reference to error information
+return value: true, if type is tgrid type, otherwise false
+exceptions: -
+
+*/
+
 bool tgrid::KindCheck(ListExpr type,
                       ListExpr& rErrorInfo)
 {
   return NList(type).isSymbol(tgrid::BasicType());
 }
+
+/*
+Method Open opens a tgrid object from a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord containing tgrid object to open
+            rOffset - Offset to the tgrid object in SmiRecord
+            typeInfo - TypeInfo of tgrid object to open
+            rValue - reference to a Word referencing the opened tgrid object
+return value: true, if tgrid object was successfully opened, otherwise false
+exceptions: -
+
+*/
 
 bool tgrid::Open(SmiRecord& rValueRecord,
                  size_t& rOffset,
@@ -460,6 +811,16 @@ bool tgrid::Open(SmiRecord& rValueRecord,
   return bRetVal;
 }
 
+/*
+Method Out writes out an existing tgrid object in form of a ListExpr.
+
+author: Dirk Zacher
+parameters: typeInfo - TypeInfo of tgrid object to write out
+            value - reference to a Word referencing the tgrid object to write
+return value: ListExpr of tgrid object referenced by value
+exceptions: -
+
+*/
 
 ListExpr tgrid::Out(ListExpr typeInfo,
                     Word value)
@@ -477,6 +838,16 @@ ListExpr tgrid::Out(ListExpr typeInfo,
 
   return nlist.listExpr();
 }
+
+/*
+Method Property returns all properties of tgrid datatype.
+
+author: Dirk Zacher
+parameters: -
+return value: properties of tgrid datatype in form of a ListExpr
+exceptions: -
+
+*/
 
 ListExpr tgrid::Property()
 {
@@ -501,6 +872,19 @@ ListExpr tgrid::Property()
   return nlist.listExpr();
 }
 
+/*
+Method Save saves an existing tgrid object in a SmiRecord.
+
+author: Dirk Zacher
+parameters: rValueRecord - SmiRecord to save existing tgrid object
+            rOffset - Offset to save position of tgrid object in SmiRecord
+            typeInfo - TypeInfo of tgrid object to save
+            rValue - reference to a Word referencing the tgrid object to save
+return value: true, if tgrid object was successfully saved, otherwise false
+exceptions: -
+
+*/
+
 bool tgrid::Save(SmiRecord& rValueRecord,
                  size_t& rOffset,
                  const ListExpr typeInfo,
@@ -513,6 +897,16 @@ bool tgrid::Save(SmiRecord& rValueRecord,
 
   return bRetVal;
 }
+
+/*
+Method SizeOfObj returns the size of tgrid object.
+
+author: Dirk Zacher
+parameters: -
+return value: size of tgrid object
+exceptions: -
+
+*/
 
 int tgrid::SizeOfObj()
 {

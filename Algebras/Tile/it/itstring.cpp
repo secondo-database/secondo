@@ -20,13 +20,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "itstring.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class itProperties<std:string>
+Method GetXDimensionSize returns the size of x dimension of datatype itstring.
+
+author: Dirk Zacher
+parameters: -
+return value: size of x dimension of datatype itstring
+exceptions: -
 
 */
 
@@ -43,6 +58,16 @@ int itProperties<std::string>::GetXDimensionSize()
   return xDimensionSize;
 }
 
+/*
+Method GetYDimensionSize returns the size of y dimension of datatype itstring.
+
+author: Dirk Zacher
+parameters: -
+return value: size of y dimension of datatype itstring
+exceptions: -
+
+*/
+
 int itProperties<std::string>::GetYDimensionSize()
 {
   int yDimensionSize = static_cast<unsigned int>
@@ -55,6 +80,16 @@ int itProperties<std::string>::GetYDimensionSize()
 
   return yDimensionSize;
 }
+
+/*
+Method GetTypeName returns the typename of datatype itstring.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of datatype itstring
+exceptions: -
+
+*/
 
 std::string itProperties<std::string>::GetTypeName()
 {

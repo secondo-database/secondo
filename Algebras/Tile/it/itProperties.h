@@ -23,11 +23,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_ITPROPERTIES_H
 #define TILEALGEBRA_ITPROPERTIES_H
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-declaration of template class itProperties
+Template class itProperties represents the properties of it datatypes.
+
+author: Dirk Zacher
 
 */
 
@@ -36,11 +43,61 @@ class itProperties
 {
   public:
 
+  /*
+  typedef of PropertiesType
+
+  */
+
   typedef Type PropertiesType;
+
+  /*
+  typedef of TypeProperties
+
+  */
+
   typedef Type TypeProperties;
+
+  /*
+  typedef of tType
+
+  */
+
   typedef Type tType;
+
+  /*
+  Method GetXDimensionSize returns the size of x dimension of an it datatype.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of x dimension of an it datatype
+  exceptions: -
+
+  */
+
   static int GetXDimensionSize();
+
+  /*
+  Method GetYDimensionSize returns the size of y dimension of an it datatype.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of y dimension of an it datatype
+  exceptions: -
+
+  */
+
   static int GetYDimensionSize();
+
+  /*
+  Method GetTypeName returns the typename of an it datatype.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of an it datatype
+  exceptions: -
+
+  */
+
   static std::string GetTypeName();
 };
 

@@ -23,11 +23,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_DEFINES_H
 #define TILEALGEBRA_DEFINES_H
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
   
 /*
-definition of TILEALGEBRA\_TRACE Macro
+Define traces name of method, implementation file of method and
+line number in the implementation file of method of a TileAlgebra object.
 
 */
 
@@ -38,7 +44,8 @@ definition of TILEALGEBRA\_TRACE Macro
                                << endl;
                            
 /*
-definition of TILEALGEBRA\_STATIC\_TRACE Macro
+Define traces name of a static method, implementation file of a static method and
+line number in the implementation file of a static method.
 
 */
 

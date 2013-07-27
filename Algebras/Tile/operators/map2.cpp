@@ -20,11 +20,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "map2.h"
-#include "../Index/Index.h"
-#include "../Types/Types.h"
 #include "../grid/tgrid.h"
 #include "../grid/mtgrid.h"
+#include "../Index/Index.h"
+#include "../Types/Types.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -34,11 +39,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template map2Functiontt
+Template method map2Functiontt implements the map2 operator functionality
+between a t datatype and a t datatype.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of map2 operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of map2Functiontt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if map2Functiontt successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -51,7 +71,7 @@ int map2Functiontt(Word* pArguments,
                    Word& rLocal,
                    Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -173,6 +193,8 @@ int map2Functiontt(Word* pArguments,
               }
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -182,7 +204,17 @@ int map2Functiontt(Word* pArguments,
 }
 
 /*
-definition of template map2Functiontmt
+Template method map2Functiontmt implements the map2 operator functionality
+between a t datatype and a mt datatype.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of map2 operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of map2Functiontmt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if map2Functiontmt successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -195,7 +227,7 @@ int map2Functiontmt(Word* pArguments,
                     Word& rLocal,
                     Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -326,6 +358,8 @@ int map2Functiontmt(Word* pArguments,
               }
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -335,7 +369,17 @@ int map2Functiontmt(Word* pArguments,
 }
 
 /*
-definition of template map2Functionmtt
+Template method map2Functionmtt implements the map2 operator functionality
+between a mt datatype and a t datatype.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of map2 operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of map2Functionmtt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if map2Functionmtt successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -348,7 +392,7 @@ int map2Functionmtt(Word* pArguments,
                     Word& rLocal,
                     Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -479,6 +523,8 @@ int map2Functionmtt(Word* pArguments,
               }
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -488,7 +534,17 @@ int map2Functionmtt(Word* pArguments,
 }
 
 /*
-definition of template map2Functionmtmt
+Template method map2Functionmtmt implements the map2 operator functionality
+between a mt datatype and a mt datatype.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of map2 operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of map2Functionmtmt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if map2Functionmtmt successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -501,7 +557,7 @@ int map2Functionmtmt(Word* pArguments,
                      Word& rLocal,
                      Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -628,6 +684,8 @@ int map2Functionmtmt(Word* pArguments,
               }
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -637,7 +695,7 @@ int map2Functionmtmt(Word* pArguments,
 }
 
 /*
-definition of map2 functions
+definition of map2Functions array.
 
 */
 
@@ -1422,13 +1480,19 @@ ValueMapping map2Functions[] =
 };
 
 /*
-definition of map2 select function
+Method map2SelectFunction returns the index of specific map2 function
+in map2Functions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of map2 operator
+return value: index of specific map2 function in map2Functions
+exceptions: -
 
 */
 
 int map2SelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -1483,18 +1547,24 @@ int map2SelectFunction(ListExpr arguments)
          argument2Index >= 0 &&
          argument3Index >= 0)
       {
-        nSelection = (argument1Index * 32) +
-                     (argument2Index * 4) +
-                     (argument3Index % 4);
+        functionIndex = (argument1Index * 32) +
+                        (argument2Index * 4) +
+                        (argument3Index % 4);
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of map2 type mapping function
+Method map2TypeMappingFunction returns the return value type
+of map2 operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of map2 operator
+return value: return value type of map2 operator
+exceptions: -
 
 */
 

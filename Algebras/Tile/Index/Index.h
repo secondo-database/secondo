@@ -25,10 +25,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_INDEX_H
 #define TILEALGEBRA_INDEX_H
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Constants.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
+
+/*
+Template class Index represents an index with Dimension dimensions.
+
+author: Dirk Zacher
+
+*/
 
 template <int Dimension>
 class Index
@@ -36,56 +53,228 @@ class Index
   public:
 
   /*
-  constructors
+  Constructor Index initializes all members of the class with default values.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
 
   Index();
-  Index(const int (&)[Dimension]);
+
+  /*
+  Constructor Index initializes all members of the class
+  with corresponding initial values from given int array.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an int array
+  return value: -
+  exceptions: -
+
+  */
+
+  Index(const int (&rIndex)[Dimension]);
+
+  /*
+  Constructor Index initializes all members of the class
+  with corresponding values of rIndex object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an Index<Dimension> object
+  return value: -
+  exceptions: -
+
+  */
+
   Index(const Index<Dimension>& rIndex);
 
   /*
-  destructor
+  Destructor ~Index deinitializes an Index object.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
 
   virtual ~Index();
 
   /*
-  operators
+  Operator[] returns the value of the int array at given index.
+
+  author: Dirk Zacher
+  parameters: index - index of the int array 
+  return value: reference to the value of the array at given index
+  exceptions: -
 
   */
 
   const int& operator[] (int) const;
+
+  /*
+  Operator< checks if this object is less than rIndex object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an Index object
+  return value: true, if this object is less than rIndex object,
+                otherwise false
+  exceptions: -
+
+  */
+
   bool operator< (const Index<Dimension>& rIndex) const;
+
+  /*
+  Operator> checks if this object is greater than rIndex object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an Index object
+  return value: true, if this object is greater than rIndex object,
+                otherwise false
+  exceptions: -
+
+  */
+
   bool operator> (const Index<Dimension>& rIndex) const;
+
+  /*
+  Operator== checks if this object equals rIndex object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an Index object
+  return value: true, if this object equals rIndex object, otherwise false
+  exceptions: -
+
+  */
+
   bool operator==(const Index<Dimension>& rIndex) const;
+
+  /*
+  Operator!= checks if this object unequals rIndex object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an Index object
+  return value: true, if this object unequals rIndex object, otherwise false
+  exceptions: -
+
+  */
+
   bool operator!=(const Index<Dimension>& rIndex) const;
+
+  /*
+  Operator<= checks if this object is less equal than rIndex object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an Index object
+  return value: true, if this object is less equal than rIndex object,
+                otherwise false
+  exceptions: -
+
+  */
+
   bool operator<=(const Index<Dimension>& rIndex) const;
+
+  /*
+  Operator>= checks if this object is greater equal than rIndex object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an Index object
+  return value: true, if this object is greater equal than rIndex object,
+                otherwise false
+  exceptions: -
+
+  */
+
   bool operator>=(const Index<Dimension>& rIndex) const;
+
+  /*
+  Operator+= adds given rIndex object to this object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an Index object
+  return value: reference to this object
+  exceptions: -
+
+  */
+
   Index<Dimension>& operator+=(const Index<Dimension>& rIndex);
+
+  /*
+  Operator-= subtracts given rIndex object from this object.
+
+  author: Dirk Zacher
+  parameters: rIndex - reference to an Index object
+  return value: reference to this object
+  exceptions: -
+
+  */
+
   Index<Dimension>& operator-=(const Index<Dimension>& rIndex);
 
   public:
 
   /*
-  methods
+  Method Decrement decrements the value of the int array at given index.
+
+  author: Dirk Zacher
+  parameters: rIndex - index of the int array to decrement
+  return value: true, if the value of the int array at rIndex was decremented,
+                otherwise false
+  exceptions: -
 
   */
 
   bool Decrement(const int& rIndex);
+
+  /*
+  Method Increment increments the value of the int array at given index.
+
+  author: Dirk Zacher
+  parameters: rIndex - index of the int array to increment
+  return value: true, if the value of the int array at rIndex was incremented,
+                otherwise false
+  exceptions: -
+
+  */
+
   bool Increment(const int& rIndex);
+
+  /*
+  Method Set sets the int array at given index to given value.
+
+  author: Dirk Zacher
+  parameters: rIndex - index of the int array
+              rValue - value of the int array at rIndex.
+  return value: true, if rValue was set in int array at rIndex,
+                otherwise false
+  exceptions: -
+
+  */
+
   bool Set(const int& rIndex, const int& rValue);
 
   private:
 
   /*
-  members
+  Member m_Index contains all values of all dimensions of an Index.
 
   */
 
   int m_Index[Dimension];
 };
+
+/*
+Constructor Index initializes all members of the class with default values.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 template <int Dimension>
 Index<Dimension>::Index()
@@ -96,6 +285,17 @@ Index<Dimension>::Index()
   }
 }
 
+/*
+Constructor Index initializes all members of the class
+with corresponding initial values from given int array.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an int array
+return value: -
+exceptions: -
+
+*/
+
 template <int Dimension>
 Index<Dimension>::Index(const int (&rIndex)[Dimension])
 {
@@ -104,6 +304,17 @@ Index<Dimension>::Index(const int (&rIndex)[Dimension])
     m_Index[i] = rIndex[i];
   }
 }
+
+/*
+Constructor Index initializes all members of the class
+with corresponding values of rIndex object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an Index<Dimension> object
+return value: -
+exceptions: -
+
+*/
 
 template <int Dimension>
 Index<Dimension>::Index(const Index<Dimension>& rIndex)
@@ -114,11 +325,31 @@ Index<Dimension>::Index(const Index<Dimension>& rIndex)
   }
 }
 
+/*
+Destructor deinitializes an Index object.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 template <int Dimension>
 Index<Dimension>::~Index()
 {
 
 }
+
+/*
+Operator[] returns the value of the int array at given index.
+
+author: Dirk Zacher
+parameters: index - index of the int array 
+return value: reference to the value of the array at given index
+exceptions: -
+
+*/
 
 template <int Dimension>
 const int& Index<Dimension>::operator[] (int i) const
@@ -127,6 +358,17 @@ const int& Index<Dimension>::operator[] (int i) const
 
   return m_Index[i];
 }
+
+/*
+Operator< checks if this object is less than rIndex object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an Index object
+return value: true, if this object is less than rIndex object,
+              otherwise false
+exceptions: -
+
+*/
 
 template <int Dimension>
 bool Index<Dimension>::operator<(const Index<Dimension>& rIndex) const
@@ -153,6 +395,17 @@ bool Index<Dimension>::operator<(const Index<Dimension>& rIndex) const
   return bRetVal;
 }
 
+/*
+Operator> checks if this object is greater than rIndex object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an Index object
+return value: true, if this object is greater than rIndex object,
+              otherwise false
+exceptions: -
+
+*/
+
 template <int Dimension>
 bool Index<Dimension>::operator>(const Index<Dimension>& rIndex) const
 {
@@ -178,6 +431,16 @@ bool Index<Dimension>::operator>(const Index<Dimension>& rIndex) const
   return bRetVal;
 }
 
+/*
+Operator== checks if this object equals rIndex object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an Index object
+return value: true, if this object equals rIndex object, otherwise false
+exceptions: -
+
+*/
+
 template <int Dimension>
 bool Index<Dimension>::operator==(const Index<Dimension>& rIndex) const
 {
@@ -198,6 +461,16 @@ bool Index<Dimension>::operator==(const Index<Dimension>& rIndex) const
   return bRetVal;
 }
 
+/*
+Operator!= checks if this object unequals rIndex object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an Index object
+return value: true, if this object unequals rIndex object, otherwise false
+exceptions: -
+
+*/
+
 template <int Dimension>
 bool Index<Dimension>::operator!=(const Index<Dimension>& rIndex) const
 {
@@ -211,6 +484,17 @@ bool Index<Dimension>::operator!=(const Index<Dimension>& rIndex) const
   return bRetVal;
 }
 
+/*
+Operator<= checks if this object is less equal than rIndex object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an Index object
+return value: true, if this object is less equal than rIndex object,
+              otherwise false
+exceptions: -
+
+*/
+
 template <int Dimension>
 bool Index<Dimension>::operator<=(const Index<Dimension>& rIndex) const
 {
@@ -221,6 +505,17 @@ bool Index<Dimension>::operator<=(const Index<Dimension>& rIndex) const
 
   return bRetVal;
 }
+
+/*
+Operator>= checks if this object is greater equal than rIndex object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an Index object
+return value: true, if this object is greater equal than rIndex object,
+              otherwise false
+exceptions: -
+
+*/
 
 template <int Dimension>
 bool Index<Dimension>::operator>=(const Index<Dimension>& rIndex) const
@@ -233,6 +528,16 @@ bool Index<Dimension>::operator>=(const Index<Dimension>& rIndex) const
   return bRetVal;
 }
 
+/*
+Operator+= adds given rIndex object to this object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an Index object
+return value: reference to this object
+exceptions: -
+
+*/
+
 template <int Dimension>
 Index<Dimension>& Index<Dimension>::operator+=(const Index<Dimension>& rIndex)
 {
@@ -244,6 +549,16 @@ Index<Dimension>& Index<Dimension>::operator+=(const Index<Dimension>& rIndex)
   return *this;
 }
 
+/*
+Operator-= subtracts given rIndex object from this object.
+
+author: Dirk Zacher
+parameters: rIndex - reference to an Index object
+return value: reference to this object
+exceptions: -
+
+*/
+
 template <int Dimension>
 Index<Dimension>& Index<Dimension>::operator-=(const Index<Dimension>& rIndex)
 {
@@ -254,6 +569,17 @@ Index<Dimension>& Index<Dimension>::operator-=(const Index<Dimension>& rIndex)
 
   return *this;
 }
+
+/*
+Method Decrement decrements the value of the int array at given index.
+
+author: Dirk Zacher
+parameters: rIndex - index of the int array to decrement
+return value: true, if the value of the int array at rIndex was decremented,
+              otherwise false
+exceptions: -
+
+*/
 
 template <int Dimension>
 bool Index<Dimension>::Decrement(const int& rIndex)
@@ -269,6 +595,17 @@ bool Index<Dimension>::Decrement(const int& rIndex)
   return bRetVal;
 }
 
+/*
+Method Increment increments the value of the int array at given index.
+
+author: Dirk Zacher
+parameters: rIndex - index of the int array to increment
+return value: true, if the value of the int array at rIndex was incremented,
+              otherwise false
+exceptions: -
+
+*/
+
 template <int Dimension>
 bool Index<Dimension>::Increment(const int& rIndex)
 {
@@ -282,6 +619,18 @@ bool Index<Dimension>::Increment(const int& rIndex)
 
   return bRetVal;
 }
+
+/*
+Method Set sets the int array at given index to given value.
+
+author: Dirk Zacher
+parameters: rIndex - index of the int array
+            rValue - value of the int array at rIndex.
+return value: true, if rValue was set in int array at rIndex,
+              otherwise false
+exceptions: -
+
+*/
 
 template <int Dimension>
 bool Index<Dimension>::Set(const int& rIndex,

@@ -17,18 +17,13 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-########################################################################
-#
-# generic makefile for an algebra module, adjusted to fit the
-# requirements and illustrate the features of the TileAlgebra.
-#
-########################################################################
+# author: Dirk Zacher
 
 # include global definitions
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += -Werror $(ALG_INC_DIRS) 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

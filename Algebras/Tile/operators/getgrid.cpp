@@ -20,6 +20,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "getgrid.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
@@ -30,11 +35,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template getgridFunction
+Template method getgridFunction calls getgrid method of specific datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of getgrid operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of getgridFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if getgridFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -45,7 +65,7 @@ int getgridFunction(Word* pArguments,
                     Word& rLocal,
                     Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -63,7 +83,17 @@ int getgridFunction(Word* pArguments,
 
         if(pResult != 0)
         {
-          pType->getgrid(*pResult);
+          if(pType->IsDefined())
+          {
+            pType->getgrid(*pResult);
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+
+          nRetVal = 0;
         }
       }
     }
@@ -73,7 +103,7 @@ int getgridFunction(Word* pArguments,
 }
 
 /*
-definition of getgrid functions
+definition of getgridFunctions array.
 
 */
 
@@ -91,13 +121,19 @@ ValueMapping getgridFunctions[] =
 };
 
 /*
-definition of getgrid select function
+Method getgridSelectFunction returns the index of specific getgrid function
+in getgridFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of getgrid operator
+return value: index of specific getgrid function in getgridFunctions
+exceptions: -
 
 */
 
 int getgridSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -123,18 +159,24 @@ int getgridSelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of getgrid type mapping function
+Method getgridTypeMappingFunction returns the return value type
+of getgrid operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of getgrid operator
+return value: return value type of getgrid operator
+exceptions: -
 
 */
 

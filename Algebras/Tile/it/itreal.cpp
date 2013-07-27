@@ -20,13 +20,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "itreal.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class itProperties<double>
+Method GetXDimensionSize returns the size of x dimension of datatype itreal.
+
+author: Dirk Zacher
+parameters: -
+return value: size of x dimension of datatype itreal
+exceptions: -
 
 */
 
@@ -43,6 +58,16 @@ int itProperties<double>::GetXDimensionSize()
   return xDimensionSize;
 }
 
+/*
+Method GetYDimensionSize returns the size of y dimension of datatype itreal.
+
+author: Dirk Zacher
+parameters: -
+return value: size of y dimension of datatype itreal
+exceptions: -
+
+*/
+
 int itProperties<double>::GetYDimensionSize()
 {
   int yDimensionSize = static_cast<unsigned int>
@@ -55,6 +80,16 @@ int itProperties<double>::GetYDimensionSize()
 
   return yDimensionSize;
 }
+
+/*
+Method GetTypeName returns the typename of datatype itreal.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of datatype itreal
+exceptions: -
+
+*/
 
 std::string itProperties<double>::GetTypeName()
 {

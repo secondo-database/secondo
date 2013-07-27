@@ -25,21 +25,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TILEALGEBRA_H
 #define TILEALGEBRA_TILEALGEBRA_H
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
   
+/*
+Class TileAlgebra integrates Tile Algebra datatypes and operators into SECONDO.
+
+author: Dirk Zacher
+
+*/
+
 class TileAlgebra : public Algebra
 {
   public:
+
   /*
-  constructors
+  Constructor TileAlgebra initializes Tile Algebra by adding type constructors
+  of Tile Algebra datatypes and by adding operators to Tile Algebra.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
 
   */
+
   TileAlgebra();
   
   /*
-  destructor
-    
+  Destructor ~TileAlgebra deinitializes Tile Algebra.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
   */
     
   virtual ~TileAlgebra();

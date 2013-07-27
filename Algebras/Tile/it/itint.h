@@ -23,23 +23,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_ITINT_H
 #define TILEALGEBRA_ITINT_H
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "it.h"
 #include "itProperties.h"
 #include "../Properties/Propertiesint.h"
 #include "../t/tint.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-typedef of itint type
+typedef of datatype itint
 
 */
 
 typedef it<int> itint;
 
 /*
-declaration of template class itProperties<int>
+Class itProperties<int> represents the properties of datatype itint.
+
+author: Dirk Zacher
 
 */
 
@@ -48,11 +60,61 @@ class itProperties<int>
 {
   public:
 
+  /*
+  typedef of PropertiesType
+
+  */
+
   typedef itint PropertiesType;
+
+  /*
+  typedef of TypeProperties
+
+  */
+
   typedef Properties<int> TypeProperties;
+
+  /*
+  typedef of tType
+
+  */
+
   typedef tint tType;
+
+  /*
+  Method GetXDimensionSize returns the size of x dimension of datatype itint.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of x dimension of datatype itint
+  exceptions: -
+
+  */
+
   static int GetXDimensionSize();
+
+  /*
+  Method GetYDimensionSize returns the size of y dimension of datatype itint.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of y dimension of datatype itint
+  exceptions: -
+
+  */
+
   static int GetYDimensionSize();
+
+  /*
+  Method GetTypeName returns the typename of datatype itint.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of datatype itint
+  exceptions: -
+
+  */
+
   static std::string GetTypeName();
 };
 

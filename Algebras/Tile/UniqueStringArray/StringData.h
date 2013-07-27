@@ -23,12 +23,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_STRINGDATA_H
 #define TILEALGEBRA_STRINGDATA_H
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
+/*
+Struct StringData describes the offset and the length of a string in a Flob.
+
+author: Dirk Zacher
+
+*/
+
 struct StringData
 {
+  /*
+  Member m_Offset contains the offset of a string in a Flob.
+
+  */
+
   SmiSize m_Offset;
+
+  /*
+  Member m_Length contains the length of a string in a Flob.
+
+  */
+
   SmiSize m_Length;
 };
 

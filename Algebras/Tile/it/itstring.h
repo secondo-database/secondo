@@ -23,24 +23,42 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_ITSTRING_H
 #define TILEALGEBRA_ITSTRING_H
 
+/*
+system includes
+
+*/
+
 #include <string>
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "it.h"
 #include "itProperties.h"
 #include "../Properties/Propertiesstring.h"
 #include "../t/tstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-typedef of itstring type
+typedef of datatype itstring
 
 */
 
 typedef it<std::string> itstring;
 
 /*
-declaration of template class itProperties<std::string>
+Class itProperties<std::string> represents the properties of datatype itstring.
+
+author: Dirk Zacher
 
 */
 
@@ -49,11 +67,61 @@ class itProperties<std::string>
 {
   public:
 
+  /*
+  typedef of PropertiesType
+
+  */
+
   typedef itstring PropertiesType;
+
+  /*
+  typedef of TypeProperties
+
+  */
+
   typedef Properties<std::string> TypeProperties;
+
+  /*
+  typedef of tType
+
+  */
+
   typedef tstring tType;
+
+  /*
+  Method GetXDimensionSize returns the size of x dimension of datatype itstring.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of x dimension of datatype itstring
+  exceptions: -
+
+  */
+
   static int GetXDimensionSize();
+
+  /*
+  Method GetYDimensionSize returns the size of y dimension of datatype itstring.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of y dimension of datatype itstring
+  exceptions: -
+
+  */
+
   static int GetYDimensionSize();
+
+  /*
+  Method GetTypeName returns the typename of datatype itstring.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of datatype itstring
+  exceptions: -
+
+  */
+
   static std::string GetTypeName();
 };
 

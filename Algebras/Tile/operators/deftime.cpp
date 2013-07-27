@@ -20,17 +20,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "deftime.h"
 #include "../mt/mtint.h"
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template deftimeFunction
+Template method deftimeFunction calls deftime method of specific datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of deftime operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of deftimeFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if deftimeFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -41,7 +61,7 @@ int deftimeFunction(Word* pArguments,
                     Word& rLocal,
                     Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -67,6 +87,8 @@ int deftimeFunction(Word* pArguments,
           {
             pResult->SetDefined(false);
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -76,7 +98,7 @@ int deftimeFunction(Word* pArguments,
 }
 
 /*
-definition of deftime functions
+definition of deftimeFunctions array.
 
 */
 
@@ -90,13 +112,19 @@ ValueMapping deftimeFunctions[] =
 };
 
 /*
-definition of deftime select function
+Method deftimeSelectFunction returns the index of specific deftime function
+in deftimeFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of deftime operator
+return value: index of specific deftime function in deftimeFunctions
+exceptions: -
 
 */
 
 int deftimeSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -118,18 +146,24 @@ int deftimeSelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of deftime type mapping function
+Method deftimeTypeMappingFunction returns the return value type
+of deftime operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of deftime operator
+return value: return value type of deftime operator
+exceptions: -
 
 */
 

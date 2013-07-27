@@ -20,14 +20,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "mtreal.h"
 #include "../Constants.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class mtProperties<double>
+Method GetXDimensionSize returns the size of x dimension of datatype mtreal.
+
+author: Dirk Zacher
+parameters: -
+return value: size of x dimension of datatype mtreal
+exceptions: -
 
 */
 
@@ -44,6 +59,16 @@ int mtProperties<double>::GetXDimensionSize()
   return xDimensionSize;
 }
 
+/*
+Method GetYDimensionSize returns the size of y dimension of datatype mtreal.
+
+author: Dirk Zacher
+parameters: -
+return value: size of y dimension of datatype mtreal
+exceptions: -
+
+*/
+
 int mtProperties<double>::GetYDimensionSize()
 {
   int yDimensionSize = static_cast<unsigned int>
@@ -57,10 +82,30 @@ int mtProperties<double>::GetYDimensionSize()
   return yDimensionSize;
 }
 
+/*
+Method GetTDimensionSize returns the size of time dimension of datatype mtreal.
+
+author: Dirk Zacher
+parameters: -
+return value: size of time dimension of datatype mtreal
+exceptions: -
+
+*/
+
 int mtProperties<double>::GetTDimensionSize()
 {
   return TIME_DIMENSION_SIZE;
 }
+
+/*
+Method GetFlobElements returns the number of flob elements of datatype mtreal.
+
+author: Dirk Zacher
+parameters: -
+return value: number of flob elements of datatype mtreal
+exceptions: -
+
+*/
 
 int mtProperties<double>::GetFlobElements()
 {
@@ -71,12 +116,32 @@ int mtProperties<double>::GetFlobElements()
   return flobElements;
 }
 
+/*
+Method GetFlobSize returns the size of the flob of datatype mtreal.
+
+author: Dirk Zacher
+parameters: -
+return value: size of the flob of datatype mtreal
+exceptions: -
+
+*/
+
 SmiSize mtProperties<double>::GetFlobSize()
 {
   SmiSize flobSize = GetFlobElements() * sizeof(double);
 
   return flobSize;
 }
+
+/*
+Method GetTypeName returns the typename of datatype mtreal.
+
+author: Dirk Zacher
+parameters: -
+return value: typename of datatype mtreal
+exceptions: -
+
+*/
 
 std::string mtProperties<double>::GetTypeName()
 {

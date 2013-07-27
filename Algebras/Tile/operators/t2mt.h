@@ -23,17 +23,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_T2MT_H
 #define TILEALGEBRA_T2MT_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
+#include "DateTime.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "DateTime.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of t2mt Operator Info structure
+Struct t2mtInfo describes name, syntax, meaning and signature
+of TileAlgebra operator t2mt.
+
+author: Dirk Zacher
 
 */
 
@@ -82,21 +101,33 @@ struct t2mtInfo : OperatorInfo
 };
 
 /*
-declaration of t2mt functions
+declaration of t2mtFunctions array.
 
 */
 
 extern ValueMapping t2mtFunctions[];
 
 /*
-declaration of t2mt select function
+Method t2mtSelectFunction returns the index of specific t2mt function
+in t2mtFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of t2mt operator
+return value: index of specific t2mt function in t2mtFunctions
+exceptions: -
 
 */
 
 int t2mtSelectFunction(ListExpr arguments);
 
 /*
-declaration of t2mt type mapping function
+Method t2mtTypeMappingFunction returns the return value type
+of t2mt operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of t2mt operator
+return value: return value type of t2mt operator
+exceptions: -
 
 */
 

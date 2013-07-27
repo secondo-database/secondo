@@ -20,13 +20,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "Propertiesstring.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-implementation of template class Properties<std::string>
+Method GetUndefinedValue returns the undefined value of base datatype string.
+
+author: Dirk Zacher
+parameters: -
+return value: undefined value of base datatype string
+exceptions: -
 
 */
 
@@ -35,40 +50,90 @@ std::string Properties<std::string>::GetUndefinedValue()
   return UNDEFINED_STRING;
 }
 
+/*
+Method GetValue returns the value of given NList representation.
+
+author: Dirk Zacher
+parameters: rNList - reference to a NList object
+return value: value of given NList representation
+exceptions: -
+
+*/
+
 std::string Properties<std::string>::GetValue(const NList& rNList)
 {
   return rNList.str();
 }
 
+/*
+Method GetUnwrappedValue returns the unwrapped value of given wrapped value.
+
+author: Dirk Zacher
+parameters: rWrappedValue - reference to a wrapped value
+return value: unwrapped value
+exceptions: -
+
+*/
+
 std::string Properties<std::string>::GetUnwrappedValue(const CcString&
-                                                       rCcString)
+                                                       rWrappedValue)
 {
   std::string unwrappedValue = GetUndefinedValue();
 
-  if(rCcString.IsDefined())
+  if(rWrappedValue.IsDefined())
   {
-    unwrappedValue = rCcString.GetValue();
+    unwrappedValue = rWrappedValue.GetValue();
   }
 
   return unwrappedValue;
 }
 
-CcString Properties<std::string>::GetWrappedValue(const std::string& rstring)
+/*
+Method GetWrappedValue returns the wrapped value of given value.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+return value: wrapped value
+exceptions: -
+
+*/
+
+CcString Properties<std::string>::GetWrappedValue(const std::string& rValue)
 {
-  return CcString(!IsUndefinedValue(rstring), rstring);
+  return CcString(!IsUndefinedValue(rValue), rValue);
 }
 
-bool Properties<std::string>::IsUndefinedValue(const std::string& rstring)
+/*
+Method IsUndefinedValue checks if given value is an undefined value.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+return value: true, if rValue is an undefined value, otherwise false
+exceptions: -
+
+*/
+
+bool Properties<std::string>::IsUndefinedValue(const std::string& rValue)
 {
   bool bUndefinedValue = false;
   
-  if(rstring == GetUndefinedValue())
+  if(rValue == GetUndefinedValue())
   {
     bUndefinedValue = true;
   }
 
   return bUndefinedValue;
 }
+
+/*
+Method IsValidValueType checks if given NList is NList of type string.
+
+author: Dirk Zacher
+parameters: rNList - reference to a NList object
+return value: true, if given NList is NList of type string, otherwise false
+exceptions: -
+
+*/
 
 bool Properties<std::string>::IsValidValueType(const NList& rNList)
 {
@@ -77,13 +142,23 @@ bool Properties<std::string>::IsValidValueType(const NList& rNList)
   return bValidValueType;
 }
 
-NList Properties<string>::ToNList(const std::string& rstring)
+/*
+Method ToNList returns NList representation of given value.
+
+author: Dirk Zacher
+parameters: rValue - reference to a value
+return value: NList representation of given value
+exceptions: -
+
+*/
+
+NList Properties<string>::ToNList(const std::string& rValue)
 {
   NList nList = NList(Symbol::UNDEFINED());
 
-  if(IsUndefinedValue(rstring) == false)
+  if(IsUndefinedValue(rValue) == false)
   {
-    nList = NList(rstring, true);
+    nList = NList(rValue, true);
   }
 
   return nList;

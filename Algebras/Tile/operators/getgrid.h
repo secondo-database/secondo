@@ -23,18 +23,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_GETGRID_H
 #define TILEALGEBRA_GETGRID_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../grid/tgrid.h"
 #include "../grid/mtgrid.h"
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of getgrid Operator Info structure
+Struct getgridInfo describes name, syntax, meaning and signature
+of TileAlgebra operator getgrid.
+
+author: Dirk Zacher
 
 */
 
@@ -80,21 +99,33 @@ struct getgridInfo : OperatorInfo
 };
 
 /*
-declaration of getgrid functions
+declaration of getgridFunctions array.
 
 */
 
 extern ValueMapping getgridFunctions[];
 
 /*
-declaration of getgrid select function
+Method getgridSelectFunction returns the index of specific getgrid function
+in getgridFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of getgrid operator
+return value: index of specific getgrid function in getgridFunctions
+exceptions: -
 
 */
 
 int getgridSelectFunction(ListExpr arguments);
 
 /*
-declaration of getgrid type mapping function
+Method getgridTypeMappingFunction returns the return value type
+of getgrid operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of getgrid operator
+return value: return value type of getgrid operator
+exceptions: -
 
 */
 

@@ -20,24 +20,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "compose.h"
 #include "../Index/Index.h"
+#include "../t/tCellIterator.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
 #include "../t/tstring.h"
-#include "../t/tCellIterator.h"
+#include "../mt/mtCellIterator.h"
 #include "../mt/mtint.h"
 #include "../mt/mtreal.h"
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
-#include "../mt/mtCellIterator.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of template composeFunctiont
+Template method composeFunctiont implements the compose operator functionality
+for t datatypes.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of compose operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of composeFunctiont
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if composeFunctiont successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -48,7 +68,7 @@ int composeFunctiont(Word* pArguments,
                      Word& rLocal,
                      Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -157,6 +177,8 @@ int composeFunctiont(Word* pArguments,
 
             pResult->EndBulkLoad();
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -166,7 +188,17 @@ int composeFunctiont(Word* pArguments,
 }
 
 /*
-definition of template composeFunctionmt
+Template method composeFunctionmt implements the compose operator functionality
+for mt datatypes.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of compose operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of composeFunctionmt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if composeFunctionmt successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -177,7 +209,7 @@ int composeFunctionmt(Word* pArguments,
                       Word& rLocal,
                       Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -293,6 +325,8 @@ int composeFunctionmt(Word* pArguments,
 
             pResult->EndBulkLoad();
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -302,7 +336,7 @@ int composeFunctionmt(Word* pArguments,
 }
 
 /*
-definition of compose functions
+definition of composeFunctions array.
 
 */
 
@@ -320,13 +354,19 @@ ValueMapping composeFunctions[] =
 };
 
 /*
-definition of compose select function
+Method composeSelectFunction returns the index of specific compose function
+in composeFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of compose operator
+return value: index of specific compose function in composeFunctions
+exceptions: -
 
 */
 
 int composeSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -353,18 +393,24 @@ int composeSelectFunction(ListExpr arguments)
       {
         if(argument2.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of compose type mapping function
+Method composeTypeMappingFunction returns the return value type
+of compose operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of compose operator
+return value: return value type of compose operator
+exceptions: -
 
 */
 

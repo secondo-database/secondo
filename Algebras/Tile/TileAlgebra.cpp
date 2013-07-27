@@ -20,13 +20,78 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+//[_] [\_]
+//[TOC] [\tableofcontents]
+//[Title] [ \title{Tile Algebra} \author{Dirk Zacher} \maketitle]
+//[times] [\ensuremath{\times}]
+//[->] [\ensuremath{\rightarrow}]
+
+*/
+
+/*
+Tile Algebra implements datatypes and operators for spatial and
+moving spatial data. The datatypes implemented in Tile Algebra are
+attribute datatypes, so they can be used in relations.
+
+Tile Algebra provides the following datatypes:
+
+tgrid
+mtgrid
+tint
+treal
+tbool
+tstring
+mtint
+mtreal
+mtbool
+mtstring
+itint
+itreal
+itbool
+itstring
+
+On these datatypes the following operators are available:
+
+atlocation
+atinstant
+inst
+val
+atperiods
+atrange
+deftime
+bbox
+minimum
+maximum
+map
+map2
+fromline
+fromregion
+toregion
+t2mt
+compose
+matchgrid
+getgrid
+CELL1
+CELL2
+CELLS
+tiles
+toraster2
+
+*/
+
+/*
+SECONDO includes
+
+*/
+
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "TileAlgebra.h"
 
 /*
-includes for TileAlgebra types
+TileAlgebra datatype includes
 
 */
 
@@ -48,7 +113,7 @@ includes for TileAlgebra types
 #include "it/itstring.h"
 
 /*
-includes for TileAlgebra operators
+TileAlgebra operators includes
 
 */
 
@@ -86,6 +151,18 @@ extern declarations
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+/*
+Method InitializeTileAlgebra initializes global variables nl of type NestedList
+an qp of type QueryProcessor.
+
+author: Dirk Zacher
+parameters: pNestedList - a pointer to a NestedList object
+            pQueryProcessor - a pointer to global QueryProcessor object
+return value: a pointer to Tile Algebra
+exceptions: -
+
+*/
+
 extern "C" Algebra* InitializeTileAlgebra(NestedList* pNestedList,
                                           QueryProcessor* pQueryProcessor)
 {
@@ -103,9 +180,25 @@ extern "C" Algebra* InitializeTileAlgebra(NestedList* pNestedList,
   return pAlgebra;
 }
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
-  
+
+/*
+Constructor TileAlgebra initializes Tile Algebra by adding type constructors
+of Tile Algebra datatypes and by adding operators to Tile Algebra.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
 TileAlgebra::TileAlgebra()
             :Algebra()
 {
@@ -192,6 +285,16 @@ TileAlgebra::TileAlgebra()
   AddOperator(toraster2Info(), toraster2Functions, toraster2SelectFunction,
               toraster2TypeMappingFunction);
 }
+
+/*
+Destructor deinitializes Tile Algebra.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
 
 TileAlgebra::~TileAlgebra()
 {

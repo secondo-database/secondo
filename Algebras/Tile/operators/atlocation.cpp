@@ -20,6 +20,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+TileAlgebra includes
+
+*/
+
 #include "atlocation.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
@@ -30,11 +35,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template atlocationFunctiont
+Template method atlocationFunctiont calls atlocation method
+of specific t datatype and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of atlocation call
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of atlocationFunctiont
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if atlocationFunctiont successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -45,7 +65,7 @@ int atlocationFunctiont(Word* pArguments,
                         Word& rLocal,
                         Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -76,6 +96,8 @@ int atlocationFunctiont(Word* pArguments,
           {
             pResult->SetDefined(false);
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -85,7 +107,17 @@ int atlocationFunctiont(Word* pArguments,
 }
 
 /*
-definition of template atlocationFunctionmt
+Template method atlocationFunctionmt calls atlocation method
+of specific mt datatype and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of atlocation call
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of atlocationFunctionmt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if atlocationFunctionmt successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -96,7 +128,7 @@ int atlocationFunctionmt(Word* pArguments,
                          Word& rLocal,
                          Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -129,6 +161,8 @@ int atlocationFunctionmt(Word* pArguments,
             {
               pResult->SetDefined(false);
             }
+
+            nRetVal = 0;
           }
         }
       }
@@ -162,6 +196,8 @@ int atlocationFunctionmt(Word* pArguments,
               {
                 pResult->SetDefined(false);
               }
+
+              nRetVal = 0;
             }
           }
         }
@@ -173,7 +209,7 @@ int atlocationFunctionmt(Word* pArguments,
 }
 
 /*
-definition of atlocation functions
+definition of atlocationFunctions array.
 
 */
 
@@ -191,13 +227,19 @@ ValueMapping atlocationFunctions[] =
 };
 
 /*
-definition of atlocation select function
+Method atlocationSelectFunction returns the index of specific
+atlocation function in atlocationFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atlocation operator
+return value: index of specific atlocation function in atlocationFunctions
+exceptions: -
 
 */
 
 int atlocationSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -224,18 +266,24 @@ int atlocationSelectFunction(ListExpr arguments)
       {
         if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
         {
-          nSelection = i;
+          functionIndex = i;
           break;
         }
       }
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of atlocation type mapping function
+Method atlocationTypeMappingFunction returns the return value type
+of atlocation operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of atlocation operator
+return value: return value type of atlocation operator
+exceptions: -
 
 */
 

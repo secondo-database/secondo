@@ -23,17 +23,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_INST_H
 #define TILEALGEBRA_INST_H
 
+/*
+SECONDO includes
+
+*/
+
 #include "AlgebraTypes.h"
+#include "DateTime.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
-#include "DateTime.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "../Types/Types.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of inst Operator Info structure
+Struct instInfo describes name, syntax, meaning and signature
+of TileAlgebra operator inst.
+
+author: Dirk Zacher
 
 */
 
@@ -64,21 +83,33 @@ struct instInfo : OperatorInfo
 };
 
 /*
-declaration of inst functions
+declaration of instFunctions array.
 
 */
 
 extern ValueMapping instFunctions[];
 
 /*
-declaration of inst select function
+Method instSelectFunction returns the index of specific inst function
+in instFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of inst operator
+return value: index of specific inst function in instFunctions
+exceptions: -
 
 */
 
 int instSelectFunction(ListExpr arguments);
 
 /*
-declaration of inst type mapping function
+Method instTypeMappingFunction returns the return value type
+of inst operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of inst operator
+return value: return value type of inst operator
+exceptions: -
 
 */
 

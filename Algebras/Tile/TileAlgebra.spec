@@ -17,6 +17,8 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+# author: Dirk Zacher
+
 operator load alias LOAD pattern op(_)
 operator atlocation alias ATLOCATION pattern _ op [_,_]
 operator atinstant alias ATINSTANT pattern _ infixop _

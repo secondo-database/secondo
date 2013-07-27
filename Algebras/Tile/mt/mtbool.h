@@ -23,25 +23,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_MTBOOL_H
 #define TILEALGEBRA_MTBOOL_H
 
+/*
+SECONDO includes
+
+*/
+
+#include "RectangleAlgebra.h"
+#include "TemporalAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "mt.h"
 #include "mtProperties.h"
 #include "../Properties/Propertiesbool.h"
 #include "../it/itbool.h"
-#include "RectangleAlgebra.h"
-#include "TemporalAlgebra.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-typedef of mtbool type
+typedef of datatype mtbool
 
 */
 
 typedef mt<char> mtbool;
 
 /*
-declaration of template class mtProperties<char>
+Class mtProperties<char> represents the properties of datatype mtbool.
+
+author: Dirk Zacher
 
 */
 
@@ -50,17 +68,119 @@ class mtProperties<char>
 {
   public:
 
+  /*
+  typedef of PropertiesType
+
+  */
+
   typedef mtbool PropertiesType;
+
+  /*
+  typedef of TypeProperties
+
+  */
+
   typedef Properties<char> TypeProperties;
+
+  /*
+  typedef of GridType
+
+  */
+
   typedef mtgrid GridType;
+
+  /*
+  typedef of RectangleType
+
+  */
+
   typedef Rectangle<3> RectangleType;
+
+  /*
+  typedef of itType
+
+  */
+
   typedef itbool itType;
+
+  /*
+  typedef of tType
+
+  */
+
   typedef tbool tType;
+
+  /*
+  Method GetXDimensionSize returns the size of x dimension of datatype mtbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of x dimension of datatype mtbool
+  exceptions: -
+
+  */
+
   static int GetXDimensionSize();
+
+  /*
+  Method GetYDimensionSize returns the size of y dimension of datatype mtbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of y dimension of datatype mtbool
+  exceptions: -
+
+  */
+
   static int GetYDimensionSize();
+
+  /*
+  Method GetTDimensionSize returns the size of time dimension
+  of datatype mtbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of time dimension of datatype mtbool
+  exceptions: -
+
+  */
+
   static int GetTDimensionSize();
+
+  /*
+  Method GetFlobElements returns the number of flob elements of datatype mtbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: number of flob elements of datatype mtbool
+  exceptions: -
+
+  */
+
   static int GetFlobElements();
+
+  /*
+  Method GetFlobSize returns the size of the flob of datatype mtbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: size of the flob of datatype mtbool
+  exceptions: -
+
+  */
+
   static SmiSize GetFlobSize();
+
+  /*
+  Method GetTypeName returns the typename of datatype mtbool.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: typename of datatype mtbool
+  exceptions: -
+
+  */
+
   static std::string GetTypeName();
 };
 

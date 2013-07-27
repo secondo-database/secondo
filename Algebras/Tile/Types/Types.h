@@ -23,70 +23,136 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_TYPES_H
 #define TILEALGEBRA_TYPES_H
 
-#include <vector>
+/*
+system includes
+
+*/
+
 #include <string>
+#include <vector>
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-declaration of GetValueWrapperTypes function
+Method GetValueWrapperTypes returns all value wrapper types.
+
+author: Dirk Zacher
+parameters: rValueWrapperTypes - reference to a vector of strings containing
+                                 all value wrapper types
+return value: -
+exceptions: -
 
 */
 
 void GetValueWrapperTypes(std::vector<std::string>& rValueWrapperTypes);
 
 /*
-declaration of GetMTypes function
+Method GetMTypes returns all moving types.
+
+author: Dirk Zacher
+parameters: rMTypes - reference to a vector of strings containing
+                      all moving types
+return value: -
+exceptions: -
 
 */
 
 void GetMTypes(std::vector<std::string>& rMTypes);
 
 /*
-declaration of GettTypes function
+Method GettTypes returns all t types of Tile Algebra.
+
+author: Dirk Zacher
+parameters: rtTypes - reference to a vector of strings containing
+                      all t types of Tile Algebra
+return value: -
+exceptions: -
 
 */
 
 void GettTypes(std::vector<std::string>& rtTypes);
 
 /*
-declaration of GetmtTypes function
+Method GetmtTypes returns all mt types of Tile Algebra.
+
+author: Dirk Zacher
+parameters: rmtTypes - reference to a vector of strings containing
+                       all mt types of Tile Algebra
+return value: -
+exceptions: -
 
 */
 
 void GetmtTypes(std::vector<std::string>& rmtTypes);
 
 /*
-declaration of GetitTypes function
+Method GetitTypes returns all it types of Tile Algebra.
+
+author: Dirk Zacher
+parameters: ritTypes - reference to a vector of strings containing
+                       all it types of Tile Algebra
+return value: -
+exceptions: -
 
 */
 
 void GetitTypes(std::vector<std::string>& ritTypes);
 
 /*
-declaration of GetsTypes function
+Method GetsTypes returns all s types of Raster2 Algebra.
+
+author: Dirk Zacher
+parameters: rsTypes - reference to a vector of strings containing
+                      all s types of Raster2 Algebra
+return value: -
+exceptions: -
 
 */
 
 void GetsTypes(std::vector<std::string>& rsTypes);
 
 /*
-declaration of GetmsTypes function
+Method GetmsTypes returns all ms types of Raster2 Algebra.
+
+author: Dirk Zacher
+parameters: rmsTypes - reference to a vector of strings containing
+                       all ms types of Raster2 Algebra
+return value: -
+exceptions: -
 
 */
 
 void GetmsTypes(std::vector<std::string>& rmsTypes);
 
 /*
-declaration of GetisTypes function
+Method GetisTypes returns all is types of Raster2 Algebra.
+
+author: Dirk Zacher
+parameters: risTypes - reference to a vector of strings containing
+                       all is types of Raster2 Algebra
+return value: -
+exceptions: -
 
 */
 
 void GetisTypes(std::vector<std::string>& risTypes);
 
 /*
-declaration of GetType function
+Method GetType returns corresponding type of given type
+included in given types vector.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+            rTypes - reference to a vector of strings of all types
+                     of the type category of the returned type
+return value: corresponding type of given type included in given types vector
+exceptions: -
 
 */
 
@@ -94,63 +160,111 @@ std::string GetType(const std::string& rType,
                     const std::vector<std::string>& rTypes);
 
 /*
-declaration of GetValueWrapperType function
+Method GetValueWrapperType returns corresponding value wrapper type
+of given type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: corresponding value wrapper type of given type
+exceptions: -
 
 */
 
 std::string GetValueWrapperType(const std::string& rType);
 
 /*
-declaration of GetMType function
+Method GetMType returns corresponding moving type of given type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: corresponding moving type of given type
+exceptions: -
 
 */
 
 std::string GetMType(const std::string& rType);
 
 /*
-declaration of GettType function
+Method GettType returns corresponding Tile Algebra t type of given type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: corresponding Tile Algebra t type of given type
+exceptions: -
 
 */
 
 std::string GettType(const std::string& rType);
 
 /*
-declaration of GetmtType function
+Method GetmtType returns corresponding Tile Algebra mt type of given type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: corresponding Tile Algebra mt type of given type
+exceptions: -
 
 */
 
 std::string GetmtType(const std::string& rType);
 
 /*
-declaration of GetitType function
+Method GetitType returns corresponding Tile Algebra it type of given type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: corresponding Tile Algebra it type of given type
+exceptions: -
 
 */
 
 std::string GetitType(const std::string& rType);
 
 /*
-declaration of GetsType function
+Method GetsType returns corresponding Raster2 Algebra s type of given type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: corresponding Raster2 Algebra s type of given type
+exceptions: -
 
 */
 
 std::string GetsType(const std::string& rType);
 
 /*
-declaration of GetmsType function
+Method GetmsType returns corresponding Raster2 Algebra ms type of given type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: corresponding Raster2 Algebra ms type of given type
+exceptions: -
 
 */
 
 std::string GetmsType(const std::string& rType);
 
 /*
-declaration of GetisType function
+Method GetisType returns corresponding Raster2 Algebra is type of given type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: corresponding Raster2 Algebra is type of given type
+exceptions: -
 
 */
 
 std::string GetisType(const std::string& rType);
 
 /*
-declaration of IsType function
+Method IsType checks if given type is included in given types vector.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+            rTypes - reference to a vector of strings of all types to check
+return value: true, if given type is included in given types vector,
+              otherwise false
+exceptions: -
 
 */
 
@@ -158,56 +272,96 @@ bool IsType(const std::string& rType,
             const std::vector<std::string>& rTypes);
 
 /*
-declaration of IsValueWrapperType function
+Method IsValueWrapperType checks if given type is a value wrapper type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: true, if given type is a value wrapper type, otherwise false
+exceptions: -
 
 */
 
 bool IsValueWrapperType(const std::string& rType);
 
 /*
-declaration of IsMType function
+Method IsMType checks if given type is a moving type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: true, if given type is a moving type, otherwise false
+exceptions: -
 
 */
 
 bool IsMType(const std::string& rType);
 
 /*
-declaration of IstType function
+Method IstType checks if given type is a Tile Algebra t type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: true, if given type is a Tile Algebra t type, otherwise false
+exceptions: -
 
 */
 
 bool IstType(const std::string& rType);
 
 /*
-declaration of IsmtType function
+Method IsmtType checks if given type is a Tile Algebra mt type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: true, if given type is a Tile Algebra mt type, otherwise false
+exceptions: -
 
 */
 
 bool IsmtType(const std::string& rType);
 
 /*
-declaration of IsitType function
+Method IsitType checks if given type is a Tile Algebra it type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: true, if given type is a Tile Algebra it type, otherwise false
+exceptions: -
 
 */
 
 bool IsitType(const std::string& rType);
 
 /*
-declaration of IssType function
+Method IssType checks if given type is a Raster2 Algebra s type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: true, if given type is a Raster2 Algebra s type, otherwise false
+exceptions: -
 
 */
 
 bool IssType(const std::string& rType);
 
 /*
-declaration of IsmsType function
+Method IsmsType checks if given type is a Raster2 Algebra ms type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: true, if given type is a Raster2 Algebra ms type, otherwise false
+exceptions: -
 
 */
 
 bool IsmsType(const std::string& rType);
 
 /*
-declaration of IsisType function
+Method IsisType checks if given type is a Raster2 Algebra is type.
+
+author: Dirk Zacher
+parameters: rType - reference to a type
+return value: true, if given type is a Raster2 Algebra is type, otherwise false
+exceptions: -
 
 */
 

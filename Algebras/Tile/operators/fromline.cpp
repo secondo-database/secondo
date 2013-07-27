@@ -20,15 +20,40 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "fromline.h"
+/*
+SECONDO includes
+
+*/
+
 #include "../HalfSegment/HalfSegment.h"
 #include "RectangleAlgebra.h"
+
+/*
+TileAlgebra includes
+
+*/
+
+#include "fromline.h"
+
+/*
+declaration of namespace TileAlgebra
+
+*/
 
 namespace TileAlgebra
 {
 
 /*
-definition of SetLineValues function
+Method SetLineValues sets all cells of given tbool object intersected
+by given HalfSegment to true.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+            rtbool - reference to a tbool object containing all cells
+                     intersected by rHalfSegment marked with a true value
+return value: true, if the value of a cell of given tbool object set to true,
+              otherwise false
+exceptions: -
 
 */
 
@@ -147,7 +172,19 @@ bool SetLineValues(const HalfSegment& rHalfSegment,
 }
 
 /*
-definition of fromline function
+Method fromlineFunction implements the fromline operator functionality.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of fromline operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of fromlineFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if fromlineFunction successfully executed,
+              YIELD if rResult contains a stream element (execution continued),
+              CANCEL if all stream elements of the result already returned,
+              FAILURE if an error occured
+exceptions: -
 
 */
 
@@ -157,7 +194,7 @@ int fromlineFunction(Word* pArguments,
                      Word& rLocal,
                      Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -258,6 +295,7 @@ int fromlineFunction(Word* pArguments,
                                           (yDimensionSize * gridLength)) *
                                           (yDimensionSize * gridLength);
             rLocal.addr = pResultInfo;
+            nRetVal = 0;
           }
         }
         break;
@@ -345,13 +383,14 @@ int fromlineFunction(Word* pArguments,
               rLocal.addr = 0;
             }
           }
+
+          nRetVal = 0;
         }
         break;
 
         default:
         {
           assert(false);
-          nRetVal = -1;
         }
         break;
       }
@@ -362,7 +401,13 @@ int fromlineFunction(Word* pArguments,
 }
 
 /*
-definition of fromline type mapping function
+Method fromlineTypeMappingFunction returns the return value type
+of fromline operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of fromline operator
+return value: return value type of fromline operator
+exceptions: -
 
 */
 

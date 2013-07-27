@@ -20,10 +20,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+system includes
+
+*/
+
 #include <cmath>
+
+/*
+TileAlgebra includes
+
+*/
+
 #include "t2mt.h"
-#include "../Index/Index.h"
 #include "../grid/tgrid.h"
+#include "../Index/Index.h"
 #include "../t/tint.h"
 #include "../t/treal.h"
 #include "../t/tbool.h"
@@ -33,11 +44,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+/*
+declaration of namespace TileAlgebra
+
+*/
+
 namespace TileAlgebra
 {
 
 /*
-definition of template t2mtFunction
+Template method t2mtFunction implements the t2mt operator functionality.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of t2mt operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of t2mtFunction
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if t2mtFunction successfully executed, otherwise FAILURE
+exceptions: -
 
 */
 
@@ -48,7 +73,7 @@ int t2mtFunction(Word* pArguments,
                  Word& rLocal,
                  Supplier supplier)
 {
-  int nRetVal = 0;
+  int nRetVal = FAILURE;
 
   if(qp != 0 &&
      pArguments != 0)
@@ -132,6 +157,8 @@ int t2mtFunction(Word* pArguments,
               }
             }
           }
+
+          nRetVal = 0;
         }
       }
     }
@@ -141,7 +168,7 @@ int t2mtFunction(Word* pArguments,
 }
 
 /*
-definition of t2mt functions
+definition of t2mtFunctions array.
 
 */
 
@@ -155,13 +182,19 @@ ValueMapping t2mtFunctions[] =
 };
 
 /*
-definition of t2mt select function
+Method t2mtSelectFunction returns the index of specific t2mt function
+in t2mtFunctions array depending on the arguments.
+
+author: Dirk Zacher
+parameters: arguments - arguments of t2mt operator
+return value: index of specific t2mt function in t2mtFunctions
+exceptions: -
 
 */
 
 int t2mtSelectFunction(ListExpr arguments)
 {
-  int nSelection = -1;
+  int functionIndex = -1;
 
   if(arguments != 0)
   {
@@ -191,7 +224,7 @@ int t2mtSelectFunction(ListExpr arguments)
         {
           if(argument1.isSymbol(TYPE_NAMES_ARRAY[i]))
           {
-            nSelection = i;
+            functionIndex = i;
             break;
           }
         }
@@ -199,11 +232,17 @@ int t2mtSelectFunction(ListExpr arguments)
     }
   }
 
-  return nSelection;
+  return functionIndex;
 }
 
 /*
-definition of t2mt type mapping function
+Method t2mtTypeMappingFunction returns the return value type
+of t2mt operator in the form of a ListExpr.
+
+author: Dirk Zacher
+parameters: arguments - arguments of t2mt operator
+return value: return value type of t2mt operator
+exceptions: -
 
 */
 
