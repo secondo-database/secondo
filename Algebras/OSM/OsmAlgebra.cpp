@@ -32,6 +32,10 @@ June-November, 2011. Thomas Uchdorf
 
 Jan-Feb 2012, Fabio Valdes
 
+[3] operator divide\_osm added
+
+July 2013, Fabio Valdes
+
 [TOC]
 
 1 Overview
@@ -1260,14 +1264,15 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
     dest.open(getFileName(i), ios::trunc);
     dest.close();
   }
+  line = trim(line);
   while (!source.eof() && (trim(line).substr(0, 5) != "<node")) { // copy head
-    line = trim(line);
     for (LongInt file = 0; file < size; file++) {
       dest.open(getFileName(file), ios::app);
       dest << line << endl;
       dest.close();
     }
     getline(source, line);
+    line = trim(line);
     charCounter += line.length();
   }
   charCounter -= line.length();
