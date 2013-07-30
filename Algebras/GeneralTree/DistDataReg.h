@@ -440,7 +440,7 @@ Removes the disc representation of the data FLOB.
     inline virtual int NumOfFLOBs() const
     { return 1; }
 
-    inline virtual Flob *GetFlob(const int i)
+    inline virtual Flob *GetFLOB(const int i)
     { return &m_data; }
 
     inline virtual int Compare(const Attribute *rhs) const
