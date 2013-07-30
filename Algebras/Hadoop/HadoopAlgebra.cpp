@@ -3703,8 +3703,7 @@ ListExpr hadoopMapAllTypeMap(ListExpr args)
       NList(NList("Column", false, false), NList(CcInt::BasicType())),
       NList(NList("Path", false, false), NList(FText::BasicType())),
       NList(NList("Success", false, false), NList(CcBool::BasicType())),
-      NList(NList("Result", false, false), NList(FText::BasicType())));
-//      NList(NList("Result", false, false), NList(type)));
+      NList(NList("Result", false, false), NList(type)));
   NList locStreamType = NList().tupleStreamOf(rtnAttrList);
 
   string dbName = fList::tempName(true);
@@ -3892,10 +3891,34 @@ int hadoopMapAllValueMap(Word* args, Word& result,
         resultTuple->PutAttribute(2, new CcInt(1));
         resultTuple->PutAttribute(3, new FText(true, ""));
         resultTuple->PutAttribute(4, new CcBool(true, loc.succ));
-        resultTuple->PutAttribute(5, new FText(true, nl->ToString(loc.result)));
 
-        result.setAddr(resultTuple);
-        return YIELD;
+        int algebraId, typeId;
+        ListExpr errorInfo;
+        bool correct;
+        algebraId = resultType->GetAttributeType(5).algId;
+        typeId = resultType->GetAttributeType(5).typeId;
+
+        Word qrAttr = (am->InObj(algebraId, typeId)
+            ( nl->TwoElemList(nl->IntAtom(algebraId), nl->IntAtom(typeId)),
+              loc.result,
+              5, /* attrbute no*/
+              errorInfo,
+              correct));
+
+        if (correct)
+        {
+          resultTuple->PutAttribute(5, (Attribute*)qrAttr.addr);
+          result.setAddr(resultTuple);
+          return YIELD;
+        }
+        else
+        {
+          cerr << "Error!! The subQuery result is wrong: "
+              << nl->ToString(loc.result) << endl;
+          resultTuple->DeleteIfAllowed();
+          result.setAddr(0);
+          return CANCEL;
+        }
       }
       return CANCEL;
     }
