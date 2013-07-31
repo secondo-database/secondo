@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #ifndef CELL_ITERATOR_H
-#define CELL_ITEARTOR_H
+#define CELL_ITERATOR_H
 
 #include <utility>
 #include <assert.h>
@@ -85,6 +85,7 @@ class CellIterator{
         deltaY = y2-y1;
         computeNextX();
         computeNextY();  
+        computeNextDelta();
      }
 
      void computeNextX(){
@@ -240,6 +241,7 @@ class CellIterator3{
         computeNextX();
         computeNextY();
         computeNextT();  
+        computeNextDelta();
      }
 
      void computeNextX(){
