@@ -1127,6 +1127,9 @@ Signature: DATA -> stream(text)
 Example  : query flobInfo(msnow) count
 Result   : 2
 
-
-
+Operator  : correctFileId
+Number    : 1
+Signature : -> bool
+Example   : query correctFileId()
+Result    : TRUE
 

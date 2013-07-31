@@ -10147,6 +10147,64 @@ Operator flobInfoOP(
 );
 
 
+/*
+4.39 Operator correctFileId
+
+This operator may be useful make a corrupt database usuable. 
+It sets the internal counter of the file creation to the
+highest used number in file names.
+
+4.39.1 Type Mapping
+
+Signature is: -> bool
+
+*/
+ListExpr correctFileIdTM(ListExpr args){
+  if(nl->IsEmpty(args)){
+    return listutils::basicSymbol<CcBool>();
+  } else {
+    return listutils::typeError("No argument allowed");
+  }
+}
+
+/*
+4.39.2 Value Mapping
+
+*/
+int correctFileIdVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   res->Set(true, SmiEnvironment::correctFileId());
+   return 0;
+}
+
+
+/*
+4.39.3 Specification
+
+*/
+OperatorSpec correctFileIdSpec(
+  "-> bool",
+  "correctFileId()",
+  "Internal use only. May be useful to repair corrupt databases",
+  "query correctFileId()"
+);
+
+/*
+4.38.4 Operator instance
+
+*/
+
+Operator correctFileIdOP(
+  "correctFileId",
+  correctFileIdSpec.getStr(),
+  correctFileIdVM,
+  Operator::SimpleSelect,
+  correctFileIdTM
+);
+
 
 
 
@@ -10268,6 +10326,7 @@ Operator flobInfoOP(
       getObjectOP.SetUsesArgsInTypeMapping();     
 
       AddOperator(&flobInfoOP);
+      AddOperator(&correctFileIdOP);
 
 
 
