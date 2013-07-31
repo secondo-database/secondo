@@ -206,6 +206,17 @@ Signature : grid2 x real -> grid3
 Example  : query createGrid3([const grid2 value (0.0 0.0 1.0)], 1.0)
 Result    : (grid3 (0.0 0.0 1.0 (duration (1 0))))
 
+Operator  : distance3D
+Number    : 1
+Signature : {sint,sreal} x point x point x bool [x geoid] -> real
+Example   : query distance3D( [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (3)) (1 0 (6)) (2 0 (0)) (0 1 (0)) (1 1 (4)) (2 1 (8))  )] , [const point value (0.8 0.2)], [const point value (2.2 1.8)], TRUE)
+Result    : 9.2740840053 
+
+Operator  : length3D
+Number    : 1
+Signature : {sint,sreal} x mpoint x bool [x geoid] -> real
+Example   : query length3D( [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (3)) (1 0 (6)) (2 0 (0)) (0 1 (0)) (1 1 (4)) (2 1 (8))  )] ,  [const mpoint value ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.8 0.2 2.2 1.8))) ] , TRUE)
+Result    :  9.2740840053
 
 
 

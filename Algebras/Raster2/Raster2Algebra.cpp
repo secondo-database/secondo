@@ -66,6 +66,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/addLayer.h"
 #include "Operators/createRaster.h"
 #include "Operators/createGrid3.h"
+#include "Operators/distance3D.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -149,6 +150,10 @@ Raster2Algebra::Raster2Algebra()
 
   AddOperator(createGrid3Info(), createGrid3Funs, createGrid3SelectFun,
               createGrid3TM);
+
+  AddOperator(&distance3D);
+  AddOperator(&length3D);
+
 }
 
 Raster2Algebra::~Raster2Algebra()
