@@ -1130,6 +1130,9 @@ Forces the deletion of non required log files. Disables catastropic recovery.
 Translate an SMI error code into a message!
 
 */
+
+  static bool correctFileId();
+
  
  private:
 

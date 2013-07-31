@@ -286,6 +286,118 @@ SmiEnvironment::Implementation::CloseDbHandles()
   }
 }
 
+/*
+After a crash of Secondo with Transactions disabled, sometimes, the internal
+counter producing new filenames is not written back to the catalog even if 
+files exists using newer numbers. This leads to unusability of the complete
+database because existing files are used again (but assumed to be empty).
+
+Here, the complete database directory is scanned and the counter is set
+to the highest used number plus 1.
+
+
+
+*/
+bool SmiEnvironment::Implementation::CorrectFileId(){
+  if ( !dbOpened ) {
+    SetError( E_SMI_DB_NOTOPEN );
+    return false;
+  }
+  string folder = instance.impl->bdbHome + PATH_SLASH + database;
+
+  FilenameList files;
+  FileSystem::FileSearch(folder, files);
+  SmiFileId id = 0;
+  string digits = "0123456789";
+  for(size_t i=0;i<files.size();i++){
+     string f = files[i];
+     // extract basename
+     f = f.substr(f.find_last_of(PATH_SLASH)+1);
+     size_t p1 = f.find_first_of(digits);
+     size_t p2 = f.find_last_of(digits);
+     if(p1!=string::npos){
+        SmiFileId  num = atoi(f.substr(p1,(p2+1)-p1).c_str());
+        if(num > id){
+           id = num;
+        } 
+     }
+   }
+   if(id>0){
+      id++;
+      return SetFileId(id);
+   } else {
+      return true;
+   }
+}
+
+bool SmiEnvironment::Implementation::SetFileId(SmiFileId id){
+  if ( !dbOpened ) {
+    SetError( E_SMI_DB_NOTOPEN );
+    return false;
+  }
+  //  SmiFileId newFileId = 0;
+  int       rc = 0;
+  DbEnv*    dbenv = instance.impl->bdbEnv;
+  Db*       dbseq = instance.impl->bdbSeq;
+
+  if(!dbseq){
+    return false;
+  }
+
+  DbTxn* tid = 0;
+  db_recno_t seqno = SMI_SEQUENCE_FILEID;
+  Dbt key( &seqno, sizeof(seqno) );
+  Dbt data;
+
+  data.set_flags( DB_DBT_USERMEM );
+  data.set_data( &id );
+  data.set_ulen( sizeof( SmiFileId ) );
+
+  if ( useTransactions ) {
+     rc = dbenv->txn_begin( 0, &tid, 0 );
+     SetBDBError(rc);
+  }
+
+  if ( rc == 0 ) {
+      SmiFileId sid =0;
+      data.set_data(&sid);
+      if((rc=dbseq->get(tid,&key,&data,0))!=0){
+        SetBDBError(rc);
+        if ( useTransactions ) {
+          rc = tid->abort();
+          SetBDBError(rc);
+        }
+        return false;
+      } else {
+        cout << "stored value is " << sid << endl;
+        cout << "change to       " << id << endl;
+      }
+      sid = id; 
+      rc = dbseq->put( tid, &key, &data, 0 );
+      if ( rc == 0 ) {
+        if ( useTransactions ) {
+            rc = tid->commit( 0 );
+            SetBDBError(rc);
+        }
+      } else {
+        SetBDBError(rc);
+        if ( useTransactions ) {
+          rc = tid->abort();
+          SetBDBError(rc);
+        }
+        return false;
+     }
+  } else if ( tid != 0 ) {
+    rc = tid->abort();
+    SetBDBError(rc);
+    return false;
+  }
+  return true;
+}
+
+
+
+
 SmiFileId
 SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
 {
@@ -312,7 +424,6 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     }
     return newFileId;
   }
-
 
   if ( !dbOpened )
   {
@@ -884,6 +995,15 @@ void SmiEnvironment::SetAutoRemoveLogs(const bool enable){
       instance.impl->SetAutoRemoveLogs(enable);
    }
 }
+
+bool SmiEnvironment::correctFileId(){
+   if(instance.impl){
+     return instance.impl->CorrectFileId();
+   } else {
+     return false;
+   }
+}
+
 
 
 
