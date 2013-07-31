@@ -14,9 +14,16 @@
 
 # Database hombruch
 
+# we have 12 data servers and 36 cores
+
+let CLUSTER_SIZE = 12 
+
+let PS_SCALE = 36 
+
+
 # Q1
 
-query fullosmimport('arnsberg-regbez.osm', "City")
+# query fullosmimport('arnsberg-regbez.osm', "City")
 
 # 155 secs, 194
 
@@ -27,19 +34,48 @@ query fullosmimport('arnsberg-regbez.osm', "City")
 # relation CityRelations with 355347 tuples stored
 # relation CityRelationTags with 52448 tuples stored
 
+# Import the data in parallel 
+
+let SubFileName = "PartArnsberg";
+
+let RelPrefix = "City";
+
+query divide_osm('arnsberg-regbez.osm', SubFileName, CLUSTER_SIZE, RelPrefix);
+# 47 secs
+
+query spreadFiles(SubFileName, '', CLUSTER_SIZE);
+# 10 secs
+
+let MapAllRel = hadoopMapAll(fullosmimport(totext(SubFileName), RelPrefix)) consume; 
+# 82 secs
+
+let ArnsbergLocRel = MapAllRel feed remove[Success, Result] consume;
+
+let CityNodes_Ini_dlo = CityNodes_type createFList["CityNodes", ArnsbergLocRel, DLO, TRUE];
+
+let CityNodeTags_Ini_dlo = CityNodeTags_type createFList["CityNodeTags", ArnsbergLocRel, DLO, TRUE];
+
+let CityWays_Ini_dlo = CityWays_type createFList["CityWays", ArnsbergLocRel, DLO, TRUE];
+
+let CityWayTags_Ini_dlo = CityWayTags_type createFList["CityWayTags", ArnsbergLocRel, DLO, TRUE];
+
+let CityRelations_Ini_dlo = CityRelations_type createFList["CityRelations", ArnsbergLocRel, DLO, TRUE];
+
+let CityRelationTags_Ini_dlo = CityRelationTags_type createFList["CityRelationTags", ArnsbergLocRel, DLO, TRUE];
 
 # Q2 parallel
 
-# we have 12 data servers and 36 cores
-
-let CLUSTER_SIZE = 12 
-
-let PS_SCALE = 36 
-
-
 # Use the approach with a regular spatial grid
 
-let CityNodesSample = CityNodes sample[1000; 0.00000001] consume
+let CityNodes_NodeId_flist = CityNodes_Ini_dlo hadoopReduce[NodeId, DLF, CLUSTER_SIZE; . feed ]
+
+# 63s
+
+# let CityNodes = CityNodes_NodeId_flist collect[] consume;
+
+# let CityNodesSample = CityNodes sample[1000; 0.00000001] consume
+
+let CityNodesSample = CityNodes_Ini_dlo hadoopMap[DLF, TRUE; . sample[100; 0.00000001]] collect[] consume;
 
 let CityAreaScaled = CityNodesSample feed
   extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
@@ -58,8 +94,7 @@ let CELL_SIZE_Y = (maxD(CityAreaScaled, 2) - minD(CityAreaScaled, 2)) / NO_COLUM
 let GRID_CityArea = createCellGrid2D(minD(CityAreaScaled, 1), minD(CityAreaScaled, 2), 
   CELL_SIZE_X, CELL_SIZE_Y, NO_COLUMNS)
 
-
-let CityNodes_NodeId_flist = CityNodes feed spread[; NodeId, CLUSTER_SIZE, TRUE;]
+# let CityNodes_NodeId_flist = CityNodes feed spread[; NodeId, CLUSTER_SIZE, TRUE;]
 
 let CityNodesNew_NodeId_dlo = CityNodes_NodeId_flist
   hadoopMap[DLF, FALSE; . extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
@@ -74,15 +109,21 @@ let CityNodesNew_NodeId_dlo = CityNodes_NodeId_flist
 
 # Q3 parallel
 
-# 28 secs
-
-let CityWays_NodeRef_flist = CityWays feed spread[; NodeRef, CLUSTER_SIZE, TRUE;]
+# let CityWays_NodeRef_flist = CityWays feed spread[; NodeRef, CLUSTER_SIZE, TRUE;]
 
 # 32 secs
 
-let CityWayTags_WayIdInTag_flist = CityWayTags feed spread[; WayIdInTag, CLUSTER_SIZE, TRUE;]
+let CityWays_NodeRef_flist = CityWays_Ini_dlo hadoopReduce[NodeRef, DLF, CLUSTER_SIZE; . feed ]
+
+# 60s
+
+# let CityWayTags_WayIdInTag_flist = CityWayTags feed spread[; WayIdInTag, CLUSTER_SIZE, TRUE;]
 
 # 28 secs
+
+let CityWayTags_WayIdInTag_flist = CityWayTags_Ini_dlo hadoopReduce[WayIdInTag, DLF, CLUSTER_SIZE; . feed ]
+
+# 62s
 
 let Ways_WayId_dlo = CityNodesNew_NodeId_dlo
   CityWays_NodeRef_flist
@@ -317,21 +358,6 @@ let Edges_WayId_dlo = EdgesUp_WayId_flist EdgesDown_WayId_flist
 # query Edges_WayId_dlo hadoopMap[DLF; . feed count feed transformstream ] collect[] sum[Elem]
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: bbox(.Curve)] 
 #   filter[isdefined(.Box)] 
 #   extend[Box2: bbox(.SourcePos scale[1000000.0])]
@@ -371,8 +397,8 @@ let Edges_WayId_dlo = EdgesUp_WayId_flist EdgesDown_WayId_flist
 # Runtime for Scripts/OrderedRelationGraphFromFullOSMImport.SEC: Times (elapsed / cpu): 
 # 84:56min (5095.72sec) /2510.84sec = 2.02949
 
-Runtime for Scripts/OrderedRelationGraphFromFullOSMImportParallelOnly.SEC: Times (elapsed / cpu): 25:23min (1522.81sec) /0.04sec = 38070.3
-File Scripts/OrderedRelationGraphFromFullOSMImportParallelOnly.SEC successful processed.
+#Runtime for Scripts/OrderedRelationGraphFromFullOSMImportParallelOnly.SEC: Times (elapsed / cpu): 25:23min (1522.81sec) /0.04sec = 38070.3
+#File Scripts/OrderedRelationGraphFromFullOSMImportParallelOnly.SEC successful processed.
 
 
 
