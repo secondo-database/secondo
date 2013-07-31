@@ -768,6 +768,82 @@ class CcReal : public Attribute
     return realval < rhs.realval;
   }
 
+  CcReal& operator=(const CcReal& r){
+    Set(r.IsDefined(), r.realval);
+    return *this;
+  }
+
+  CcReal& operator+=(const CcReal& r){
+     if(IsDefined()){
+       if(r.IsDefined()){
+         realval += r.realval;
+       } else {
+         SetDefined(false);
+       }
+     }
+     return *this;
+  }
+
+  CcReal operator+(const CcReal& r) const{
+     CcReal r1(*this);
+     r1 += r;
+     return r1;
+  }
+
+  CcReal& operator-=(const CcReal& r){
+     if(IsDefined()){
+       if(r.IsDefined()){
+         realval -= r.realval;
+       } else {
+         SetDefined(false);
+       }
+     }
+     return *this;
+  }
+
+  CcReal operator-(const CcReal& r) const{
+     CcReal r1(*this);
+     r1 -= r;
+     return r1;
+  }
+
+  CcReal& operator*=(const CcReal& r){
+     if(IsDefined()){
+       if(r.IsDefined()){
+         realval *= r.realval;
+       } else {
+         SetDefined(false);
+       }
+     }
+     return *this;
+  }
+
+  CcReal operator*(const CcReal& r) const{
+     CcReal r1(*this);
+     r1 *= r;
+     return r1;
+  }
+
+
+  CcReal& operator/=(const CcReal& r){
+     if(IsDefined()){
+       if(r.IsDefined() && r.realval!=0){
+         realval /= r.realval;
+       } else {
+         SetDefined(false);
+       }
+     }
+     return *this;
+  }
+
+  CcReal operator/(const CcReal& r) const{
+     CcReal r1(*this);
+     r1 /= r;
+     return r1;
+  }
+
+
+
   virtual string getCsvStr() const{
     if(!IsDefined()){
        return "-";
