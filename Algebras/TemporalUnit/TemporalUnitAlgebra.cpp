@@ -43,7 +43,7 @@ OK    queryrect2d                    instant --> rect
 OK    circle              point x real x int --> region
 OK    uint2ureal:                       uint --> ureal
 
-      the_unit:  For T in {bool, int, string, label, region*}
+      the_unit:  For T in {bool, int, string, region*}
            *: Crashed for T=region
 OK          point  point  instant instant bool bool --> upoint
 OK          ipoint ipoint bool    bool              --> upoint
@@ -259,7 +259,6 @@ helping operators for indexing instant values in R-trees.
 #include "Symbols.h"
 #include "Stream.h"
 #include "GenericTC.h"
-#include "SymbolicTrajectoryAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1086,10 +1085,9 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
      (inputtype != UInt::BasicType()) &&
      (inputtype != UReal::BasicType()) &&
      (inputtype != UPoint::BasicType()) &&
-     (inputtype != UString::BasicType()) &&
-     (inputtype != stj::ULabel::BasicType())) {
+     (inputtype != UString::BasicType()) ) {
     return listutils::typeError("attr type not in {ubool, uint,"
-                                " ustring, ureal, upoint, ulabel");
+                                " ustring, ureal, upoint");
   }
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
@@ -1106,8 +1104,6 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
     attrtype = nl->SymbolAtom( MInt::BasicType() );
   if( inputtype == UString::BasicType() )
     attrtype = nl->SymbolAtom( MString::BasicType() );
-  if( inputtype == stj::ULabel::BasicType() )
-    attrtype = nl->SymbolAtom( stj::MLabel::BasicType() );
 //if( inputtype == URegion::BasicType() )
 //  attrtype = nl->SymbolAtom( MRegion::BasicType());
 
@@ -1396,7 +1392,7 @@ int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
 const string
 TemporalSpecMakemvalue  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>For T in {bool, int, string, label, real, point, region*}:\n"
+"( <text>For T in {bool, int, string, real, point, region*}:\n"
 "((stream (tuple ((x1 t1)...(xn tn))) (uT)))-> mT\n"
 "*: Not yet available</text--->"
 "<text>_ makemvalue[ _ ]</text--->"
@@ -1512,7 +1508,6 @@ MakemvalueSelect( ListExpr args )
   if( inputtype == UReal::BasicType() )   return 3;
   if( inputtype == UPoint::BasicType() )  return 4;
   if( inputtype == URegion::BasicType() ) return 5;
-  if( inputtype == stj::ULabel::BasicType() )  return 6;
 
   return -1; // This point should never be reached
 }
@@ -1523,8 +1518,7 @@ ValueMapping temporalmakemvaluemap[] = {
       MappingMakemvalue<MString, UString>,
       MappingMakemvalue<MReal, UReal>,
       MappingMakemvalue<MPoint, UPoint>,
-      MappingMakemvalue_movingregion,
-      MappingMakemvalue<stj::MLabel, stj::ULabel>} ;
+      MappingMakemvalue_movingregion} ;
 
 ValueMapping temporalthemvaluemap[] = {
       MappingMakemvaluePlain<MBool, UBool>,
@@ -1548,7 +1542,7 @@ ValueMapping the_mvalue2VM[] = {
 */
 Operator temporalunitmakemvalue( "makemvalue",
                         TemporalSpecMakemvalue,
-                        7,
+                        6,
                         temporalmakemvaluemap,
                         MakemvalueSelect,
                         MovingTypeMapMakemvalue );
@@ -8293,21 +8287,13 @@ ListExpr TU_TM_TheUnit( ListExpr args )
     return nl->SymbolAtom( UString::BasicType() );
   }
 
-  if (nl->Equal(args , nl->FiveElemList(nl->SymbolAtom(stj::Label::BasicType()),
-                                         nl->SymbolAtom(Instant::BasicType()),
-                                         nl->SymbolAtom(Instant::BasicType()),
-                                         nl->SymbolAtom(CcBool::BasicType()),
-                                         nl->SymbolAtom(CcBool::BasicType())))){
-    return nl->SymbolAtom( stj::ULabel::BasicType() );
-  }
-
   return listutils::typeError(
      "Operator 'the_unit' expects a list with structure\n"
      "'(point point instant instant bool bool)', or \n"
      "'(ipoint ipoint bool bool)', or \n"
      "'(real real real bool instant instant bool bool)', or\n"
      "'(T instant instant bool bool)', or \n"
-     "'(iT duration bool bool)'\n for T in {bool, int, string, label}.");
+     "'(iT duration bool bool)'\n for T in {bool, int, string}.");
 }
 
 /*
@@ -8517,42 +8503,6 @@ int TU_VM_TheUnit_Tiibb(Word* args, Word& result,
   return 0;
 }
 
-// function for constant unit types:
-// label instant instant bool bool -> ulabel
-int TU_VM_TheUnit_Label_iibb(Word* args, Word& result,
-                             int message, Word& local, Supplier s)
-{
-  result = (qp->ResultStorage( s ));
-  stj::ULabel *res = static_cast<stj::ULabel*>(result.addr);
-  stj::Label *value = static_cast<stj::Label*>(args[0].addr);
-  Instant *i1    = static_cast<DateTime*>(args[1].addr);
-  Instant *i2    = static_cast<DateTime*>(args[2].addr);
-  CcBool  *cl    = static_cast<CcBool*>(args[3].addr);
-  CcBool  *cr    = static_cast<CcBool*>(args[4].addr);
-  bool clb, crb;
-
-  // Test arguments for definedness
-  if ( !value->IsDefined() || !i1->IsDefined() || !i2->IsDefined() ||
-       !cl->IsDefined() || !cr->IsDefined()) {
-    res->SetDefined(false);
-    return 0;
-  }
-  clb = cl->GetBoolval();
-  crb = cr->GetBoolval();
-  if ( ( (*i1 == *i2) && (!clb || !crb) )   ||
-       ( i1->Adjacent(i2) && !(clb || crb) )  ) { // illegal interval setting
-    res->SetDefined( false );
-    return 0;
-  }
-  if (*i1 < *i2) {// sort instants
-    Interval<Instant> interval(*i1, *i2, clb, crb);
-    *res = stj::ULabel(interval, *value);
-  } else {
-    Interval<Instant> interval(*i2, *i1, clb, crb);
-    *res = stj::ULabel(interval, *value);
-  }
-  return 0;
-}
 
 /*
 5.41.3 Specification for operator ~the\_unit~
@@ -8562,7 +8512,7 @@ const string  TU_Spec_TheUnit =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
-  "<text>For T in {bool, int, string, label}:\n"
+  "<text>For T in {bool, int, string}:\n"
   "point x point x instant x instant x bool x bool --> upoint\n"
   "ipoint x ipoint x bool x bool --> upoint\n"
   "real x real x real x bool x instant x instant x bool x bool --> ureal\n"
@@ -8610,9 +8560,6 @@ int TU_Select_TheUnit( ListExpr args )
   if (argstr == "(istring duration bool bool)")
     return 8;
 
-  if (argstr == "(label instant instant bool bool)")
-    return 9;
-
   return -1; // should not be reached!
 }
 
@@ -8626,15 +8573,14 @@ ValueMapping TU_VMMap_TheUnit[] =
     TU_VM_TheUnit_Tiibb<CcInt>,
     TU_VM_TheUnit_iTdbb<CcInt>,     //6
     TU_VM_TheUnit_Tiibb<CcString>,
-    TU_VM_TheUnit_iTdbb<CcString>,  //8
-    TU_VM_TheUnit_Label_iibb  };
+    TU_VM_TheUnit_iTdbb<CcString>}; //8
 /*
 5.41.5 Definition of operator ~the\_unit~
 
 */
 Operator temporalunittheupoint( "the_unit",
                             TU_Spec_TheUnit,
-                            10,
+                            9,
                             TU_VMMap_TheUnit,
                             TU_Select_TheUnit,
                             TU_TM_TheUnit);
