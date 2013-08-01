@@ -422,27 +422,20 @@ Result   : (mstring ((("2000-01-03" "2000-01-04" TRUE TRUE)"Test!")))
 
 Operator : makemvalue
 Number   : 4
-Signature: stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel
-Example  : query the_unit(tolabel("Test!"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, TRUE) feed transformstream makemvalue[Elem]
-Result   : (mlabel ((("2000-01-03" "2000-01-04" TRUE TRUE)"Test!")))
-
-
-Operator : makemvalue
-Number   : 5
 Signature: stream (tuple ((x1 t1)...(xi ureal)...(xn tn))) xi -> mreal
 Example  : query the_unit(-1.0, 2.3, 4.5, TRUE, [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, FALSE) feed transformstream makemvalue[Elem]
 Result   : (mreal ((("2000-01-03" "2000-01-04" FALSE FALSE)(-1.0 2.3 4.5 TRUE))))
 
 
 Operator : makemvalue
-Number   : 6
+Number   : 5
 Signature: stream (tuple ((x1 t1)...(xi upoint)...(xn tn))) xi -> mpoint
 Example  : query the_unit(makepoint(1000.0, -1000.0), makepoint(-2000.0, 2000.0), [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, FALSE) feed transformstream makemvalue[Elem]
 Result   : (mpoint ((("2000-01-03" "2000-01-04" FALSE FALSE)(1000.0 -1000.0 -2000.0 2000.0))))
 
 
 Operator : makemvalue
-Number   : 7
+Number   : 6
 Signature: stream (tuple ((x1 t1)...(xi uregion)...(xn tn))) xi -> movingregion
 Example  : query 1 * 1
 Result   : crashes
