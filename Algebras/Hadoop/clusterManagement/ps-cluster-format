@@ -471,6 +471,10 @@ if [ $PSCST -gt 0 ]; then
     PSCED=$(( $PSCST + $PSCED - 1 ))
   fi
   sed $(PSEDOPT) "$(( $PSCST + 1 )),${PSCED}s/^\([^#]\)*//" $MDBCONF
+  # Delete the backup file in MacOSX
+  if [ "$SECONDO_PLATFORM" = "mac_osx" ]; then
+    rm "${MDBCONF}.bak"
+  fi
 else
   echo "$PT_PARASEC" | sed 's/\\//g' >> $MDBCONF
   PSCST=$(grep -n "$PT_PARASEC" $MDBCONF| cut -d':' -f1)
@@ -515,11 +519,14 @@ while read dataServ; do
 #    PPos=$(grep -n "$PT_PARASEC" $DSDBCONF | tail -1 | cut -d':' -f1)
     setSecConf $DSDBCONF $ParaName $ParaVale $PSCST
     let Cnt++
-  done 
+  done
+  
+  # Delete the backup file in MacOSX
+  if [ "$SECONDO_PLATFORM" = "mac_osx" ]; then
+    rm "${DSDBCONF}.bak"
+  fi
   
 done < $MSECLIST
-
-
 
 ANODES=($(cat $DSRVFILE | tr '\n' ' '))
 for Node in ${ANODES[*]}; do
@@ -601,8 +608,8 @@ function formatNode
     ;;
     mac_osx )
       ssh -o LogLevel=quiet $nodeIP "echo \"source \\\$HOME/$RCFILENAME\" >> \$HOME/.bashrc"
-      echo "${WARNINFO}The $HOME/.bashrc file must be executed in Mac OS X shell prompt" >&2
-      echo "This step has to be done manually by users." >&2
+      echo "Note!!The $HOME/.bashrc file must be executed in Mac OS X shell prompt" >&2
+      echo -e "This step has to be done manually by users.\n\n" >&2
     ;;
   esac
   
@@ -720,6 +727,11 @@ if [ "$NS4Master" = "true" ]; then
   
   MPSFSLOC=$(head -1 $PSMFILE | cut -d':' -f2)
   setSecConf $MDBCONF $PT_PSFSNME $MPSFSLOC $PSCST
+
+  # Delete the backup file in MacOSX
+  if [ "$SECONDO_PLATFORM" = "mac_osx" ]; then
+    rm "${MDBCONF}.bak"
+  fi
 
   #Replace the msec with a link
   MMSECLOC=${MPSFSLOC%/*}/$DSMSECNAME

@@ -287,10 +287,11 @@ function get_primeNum
 }
 
 # Set sed command argument according to platforms
+# In MacOSX, a backup file is created, unfortunately. It should be deleted later. 
 function PSEDOPT
 {
   if [ "$SECONDO_PLATFORM" = "mac_osx" ]; then
-    echo "-i '' -e "
+    echo "-i .bak"
   else
     echo "-i "
   fi

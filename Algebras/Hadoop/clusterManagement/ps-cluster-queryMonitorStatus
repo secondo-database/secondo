@@ -41,7 +41,7 @@ function checkNode
   DSList=($(cat $PARALLEL_SECONDO_MASTER $PARALLEL_SECONDO_SLAVES | grep $IPAddr | awk '!x[$0]++' ))
   for DataServer in ${DSList[*]};do
     Port=$(echo $DataServer | cut -d':' -f3)
-    ssh $IPAddr "lsof -i :${Port}" | grep Secondo | grep $USER 2>&1 1>/dev/null
+    ssh -o LogLevel=quiet $IPAddr "lsof -i :${Port}" | grep Secondo | grep $USER 2>&1 1>/dev/null
     if [ $? -eq 0 ]; then
       let START++
     else

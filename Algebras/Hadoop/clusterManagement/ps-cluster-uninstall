@@ -32,6 +32,12 @@ IPLIST=$PSDKLOC/IPLIST.ui
 RCFILENAME=".parasecrc"
 ### ----------------------------------------------------------------------------------------
 # 1. Check the existence of all required environment variables
+if [ "$PARALLEL_SECONDO_MASTER" = "" ]; then
+  echo "${ERRORINFO}No Parallel Secondo installed before."
+  echo "Uninstallation for Parallel Secondo Fails."
+  exit -1
+fi
+
 if [ ! -f $PARALLEL_SECONDO_MASTER -o ! -f $PARALLEL_SECONDO_SLAVES ]; then
   echo "${ERRORINFO}Master or Slave list doesn't exist."
   echo "Uninstallation for Parallel Secondo Fails."
@@ -118,7 +124,7 @@ function removeDataServer
   IPADDR=$1
   DSPATH=$2
   echo "Remove Data Server: $IPADDR:$DSPATH" >&2
-  ssh $IPADDR "rm -rf $DSPATH" 2>/dev/null &
+  ssh -o LogLevel=quiet $IPADDR "rm -rf $DSPATH" 2>/dev/null &
 }
 
 aJobs=()
@@ -135,9 +141,6 @@ for((DSIDX=0;DSIDX<$DSNUM;))do
     fi
     
     if [ ! "${aJobs[$token]}" ] || ! kill -0 ${aJobs[$token]} 2>/dev/null; then
-#      echo "Remove Data Server: $IPADDR:$DSPATH"
-#      ssh $IPADDR "rm -rf $DSPATH" 2>/dev/null &
-#      sleep 1 &
       removeDataServer $IPADDR $DSPATH &
       aJobs[$token]=$!
       let DSIDX++
@@ -150,8 +153,8 @@ done
 cat $DSLIST | cut -d':' -f 1 | awk '!x[$0]++' > $IPLIST
 ANODES=($(cat $IPLIST | tr '\n' ' '))
 for nodeIP in ${ANODES[*]};do
-  ssh $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_./]*$RCFILENAME//\" \$HOME/.bashrc "
-  ssh $nodeIP "if [ -f $RCFILENAME ]; then rm ${RCFILENAME}; fi"
+  ssh -o LogLevel=quiet $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_./]*$RCFILENAME//\" \$HOME/.bashrc "
+  ssh -o LogLevel=quiet $nodeIP "if [ -f $RCFILENAME ]; then rm ${RCFILENAME}; fi"
   echo "Remove environment setting on node $nodeIP"
 done
 
@@ -170,6 +173,10 @@ if [ $ST -gt 0 ]; then
     ED=$(( $ST + $ED - 1 ))
   fi
   sed $(PSEDOPT) "$(( $ST + 1 )),${ED}s/^\([^#]\)*//" $SECCONF
+  # Delete the backup file in MacOSX
+  if [ "$SECONDO_PLATFORM" = "mac_osx" ]; then
+    rm "${SECCONF}.bak"
+  fi
 fi
 
 
