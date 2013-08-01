@@ -1086,9 +1086,10 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
      (inputtype != UInt::BasicType()) &&
      (inputtype != UReal::BasicType()) &&
      (inputtype != UPoint::BasicType()) &&
-     (inputtype != UString::BasicType()) ){
+     (inputtype != UString::BasicType()) &&
+     (inputtype != stj::ULabel::BasicType())) {
     return listutils::typeError("attr type not in {ubool, uint,"
-                                " ustring, ureal, upoint");
+                                " ustring, ureal, upoint, ulabel");
   }
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
@@ -1105,6 +1106,8 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
     attrtype = nl->SymbolAtom( MInt::BasicType() );
   if( inputtype == UString::BasicType() )
     attrtype = nl->SymbolAtom( MString::BasicType() );
+  if( inputtype == stj::ULabel::BasicType() )
+    attrtype = nl->SymbolAtom( stj::MLabel::BasicType() );
 //if( inputtype == URegion::BasicType() )
 //  attrtype = nl->SymbolAtom( MRegion::BasicType());
 
@@ -1393,7 +1396,7 @@ int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
 const string
 TemporalSpecMakemvalue  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>For T in {bool, int, string, real, point, region*}:\n"
+"( <text>For T in {bool, int, string, label, real, point, region*}:\n"
 "((stream (tuple ((x1 t1)...(xn tn))) (uT)))-> mT\n"
 "*: Not yet available</text--->"
 "<text>_ makemvalue[ _ ]</text--->"
@@ -1509,6 +1512,7 @@ MakemvalueSelect( ListExpr args )
   if( inputtype == UReal::BasicType() )   return 3;
   if( inputtype == UPoint::BasicType() )  return 4;
   if( inputtype == URegion::BasicType() ) return 5;
+  if( inputtype == stj::ULabel::BasicType() )  return 6;
 
   return -1; // This point should never be reached
 }
@@ -1519,7 +1523,8 @@ ValueMapping temporalmakemvaluemap[] = {
       MappingMakemvalue<MString, UString>,
       MappingMakemvalue<MReal, UReal>,
       MappingMakemvalue<MPoint, UPoint>,
-      MappingMakemvalue_movingregion };
+      MappingMakemvalue_movingregion,
+      MappingMakemvalue<stj::MLabel, stj::ULabel>} ;
 
 ValueMapping temporalthemvaluemap[] = {
       MappingMakemvaluePlain<MBool, UBool>,
@@ -1543,7 +1548,7 @@ ValueMapping the_mvalue2VM[] = {
 */
 Operator temporalunitmakemvalue( "makemvalue",
                         TemporalSpecMakemvalue,
-                        6,
+                        7,
                         temporalmakemvaluemap,
                         MakemvalueSelect,
                         MovingTypeMapMakemvalue );
