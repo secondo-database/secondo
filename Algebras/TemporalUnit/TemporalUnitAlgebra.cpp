@@ -43,7 +43,7 @@ OK    queryrect2d                    instant --> rect
 OK    circle              point x real x int --> region
 OK    uint2ureal:                       uint --> ureal
 
-      the_unit:  For T in {bool, int, string, region*}
+      the_unit:  For T in {bool, int, string, label, region*}
            *: Crashed for T=region
 OK          point  point  instant instant bool bool --> upoint
 OK          ipoint ipoint bool    bool              --> upoint
@@ -259,6 +259,7 @@ helping operators for indexing instant values in R-trees.
 #include "Symbols.h"
 #include "Stream.h"
 #include "GenericTC.h"
+#include "SymbolicTrajectoryAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -8287,13 +8288,21 @@ ListExpr TU_TM_TheUnit( ListExpr args )
     return nl->SymbolAtom( UString::BasicType() );
   }
 
+  if (nl->Equal(args , nl->FiveElemList(nl->SymbolAtom(stj::Label::BasicType()),
+                                         nl->SymbolAtom(Instant::BasicType()),
+                                         nl->SymbolAtom(Instant::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType())))){
+    return nl->SymbolAtom( stj::ULabel::BasicType() );
+  }
+
   return listutils::typeError(
      "Operator 'the_unit' expects a list with structure\n"
      "'(point point instant instant bool bool)', or \n"
      "'(ipoint ipoint bool bool)', or \n"
      "'(real real real bool instant instant bool bool)', or\n"
      "'(T instant instant bool bool)', or \n"
-     "'(iT duration bool bool)'\n for T in {bool, int, string }.");
+     "'(iT duration bool bool)'\n for T in {bool, int, string, label}.");
 }
 
 /*
@@ -8501,7 +8510,43 @@ int TU_VM_TheUnit_Tiibb(Word* args, Word& result,
     *res = ConstTemporalUnit<T>( interval, *value );
   }
   return 0;
+}
 
+// function for constant unit types:
+// label instant instant bool bool -> ulabel
+int TU_VM_TheUnit_Label_iibb(Word* args, Word& result,
+                             int message, Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  stj::ULabel *res = static_cast<stj::ULabel*>(result.addr);
+  stj::Label *value = static_cast<stj::Label*>(args[0].addr);
+  Instant *i1    = static_cast<DateTime*>(args[1].addr);
+  Instant *i2    = static_cast<DateTime*>(args[2].addr);
+  CcBool  *cl    = static_cast<CcBool*>(args[3].addr);
+  CcBool  *cr    = static_cast<CcBool*>(args[4].addr);
+  bool clb, crb;
+
+  // Test arguments for definedness
+  if ( !value->IsDefined() || !i1->IsDefined() || !i2->IsDefined() ||
+       !cl->IsDefined() || !cr->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  clb = cl->GetBoolval();
+  crb = cr->GetBoolval();
+  if ( ( (*i1 == *i2) && (!clb || !crb) )   ||
+       ( i1->Adjacent(i2) && !(clb || crb) )  ) { // illegal interval setting
+    res->SetDefined( false );
+    return 0;
+  }
+  if (*i1 < *i2) {// sort instants
+    Interval<Instant> interval(*i1, *i2, clb, crb);
+    *res = stj::ULabel(interval, *value);
+  } else {
+    Interval<Instant> interval(*i2, *i1, clb, crb);
+    *res = stj::ULabel(interval, *value);
+  }
+  return 0;
 }
 
 /*
@@ -8512,7 +8557,7 @@ const string  TU_Spec_TheUnit =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "("
-  "<text>For T in {bool, int, string}:\n"
+  "<text>For T in {bool, int, string, label}:\n"
   "point x point x instant x instant x bool x bool --> upoint\n"
   "ipoint x ipoint x bool x bool --> upoint\n"
   "real x real x real x bool x instant x instant x bool x bool --> ureal\n"
@@ -8560,6 +8605,9 @@ int TU_Select_TheUnit( ListExpr args )
   if (argstr == "(istring duration bool bool)")
     return 8;
 
+  if (argstr == "(label instant instant bool bool)")
+    return 9;
+
   return -1; // should not be reached!
 }
 
@@ -8573,15 +8621,15 @@ ValueMapping TU_VMMap_TheUnit[] =
     TU_VM_TheUnit_Tiibb<CcInt>,
     TU_VM_TheUnit_iTdbb<CcInt>,     //6
     TU_VM_TheUnit_Tiibb<CcString>,
-    TU_VM_TheUnit_iTdbb<CcString>   //8
-  };
+    TU_VM_TheUnit_iTdbb<CcString>,  //8
+    TU_VM_TheUnit_Label_iibb  };
 /*
 5.41.5 Definition of operator ~the\_unit~
 
 */
 Operator temporalunittheupoint( "the_unit",
                             TU_Spec_TheUnit,
-                            9,
+                            10,
                             TU_VMMap_TheUnit,
                             TU_Select_TheUnit,
                             TU_TM_TheUnit);
