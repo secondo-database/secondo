@@ -424,7 +424,7 @@ Precondition: dbState = dbOpen.
       return 2; // Error reading file
     }
 
-    if ( !nl->IsEqual( nl->Second( list ), objectname, false ) )
+    if ( !nl->IsEqual( nl->Second( list ), objectname ) )
     {
       if(nl->AtomType(nl->Second(list))!=SymbolType){
           return 3; // error in list structure
