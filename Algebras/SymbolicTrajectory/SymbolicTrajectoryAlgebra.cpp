@@ -65,20 +65,24 @@ using namespace std;
 
 namespace stj {
 
-Label::Label(const bool def, const string& val) : CcString(def, val) {}
+Label::Label(const string& value) {
+  strncpy(text, value.c_str(), MAX_STRINGSIZE);
+  text[MAX_STRINGSIZE] = '\0';
+}
 
-Label::Label(Label& rhs) : CcString(rhs.IsDefined(), rhs.GetValue()) {}
-
-Label::Label(const bool def) : CcString(def) {}
+Label::Label(const Label& rhs) {
+  strncpy(text, rhs.text, MAX_STRINGSIZE);
+}
 
 Label::~Label() {}
 
 string Label::GetValue() const {
-  return CcString::GetValue();
+  string value = text;
+  return value;
 }
 
-void Label::Set(const bool defined, const string &value) {
-  CcString::Set(defined, value);
+void Label::SetValue(const string &value) {
+  strncpy(text, value.c_str(), MAX_STRINGSIZE);
 }
 
 Word Label::In(const ListExpr typeInfo, const ListExpr instance,
@@ -90,7 +94,7 @@ Word Label::In(const ListExpr typeInfo, const ListExpr instance,
     if (list.isString()) {
       string text = list.str();
       correct = true;
-      result.addr = new Label(true, text);
+      result.addr = new Label(text);
     }
     else {
       correct = false;
@@ -106,35 +110,48 @@ Word Label::In(const ListExpr typeInfo, const ListExpr instance,
 
 ListExpr Label::Out(ListExpr typeInfo, Word value) {
   Label* label = static_cast<Label*>(value.addr);
-  NList element (label->GetValue(), true);
+  NList element(label->GetValue(), true);
   return element.listExpr();
 }
 
 Word Label::Create(const ListExpr typeInfo) {
-  return (SetWord( new Label( true ) ));
+  return (SetWord( new Label(true)));
 }
 
 void Label::Delete(const ListExpr typeInfo, Word& w) {
-  delete static_cast<Label*>( w.addr );
+  delete static_cast<Label*>(w.addr);
   w.addr = 0;
 }
 
 void Label::Close(const ListExpr typeInfo, Word& w) {
-  delete static_cast<Label*>( w.addr );
+  delete static_cast<Label*>(w.addr);
   w.addr = 0;
 }
 
 Word Label::Clone(const ListExpr typeInfo, const Word& w) {
-  Label* label = static_cast<Label*>( w.addr );
-  return SetWord( new Label(*label) );
+  Label* label = static_cast<Label*>(w.addr);
+  return SetWord(new Label(*label));
 }
 
 int Label::SizeOfObj() {
-  return sizeof(Label);
+  return MAX_STRINGSIZE;
+}
+
+bool Label::Adjacent(const Attribute*) const {
+  return false;
+}
+
+Label* Label::Clone() const {
+  Label* result = new Label(this);
+  return result;
+}
+
+size_t Label::HashValue() const {
+  return 0;
 }
 
 bool Label::KindCheck(ListExpr type, ListExpr& errorInfo) {
-  return (nl->IsEqual( type, Label::BasicType() ));
+  return (nl->IsEqual( type, Label::BasicType()));
 }
 
 ListExpr Label::Property() {
@@ -156,12 +173,20 @@ const bool Label::checkType(const ListExpr type) {
 }
 
 void Label::CopyFrom(const Attribute* right) {
-  CcString::CopyFrom(right);
+  string value = ((Label*)right)->GetValue();
+  strncpy(text, value.c_str(), MAX_STRINGSIZE);
+  text[MAX_STRINGSIZE] = '\0';
 }
 
-int Label::Compare(const Label* arg) const {
-  return this->GetValue().compare(arg->GetValue());
+int Label::Compare(const Attribute* arg) const {
+  return this->GetValue().compare(((Label*)arg)->GetValue());
 }
+
+size_t Label::Sizeof() const {
+  return sizeof(*this);
+}
+
+
 
 TypeConstructor labelTC(
   Label::BasicType(),                          // name of the type in SECONDO
@@ -261,7 +286,9 @@ For example:
 ULabel::ULabel(const Interval<Instant>& interval, const Label& label)
                                                                : UString(true) {
   timeInterval = interval;
-  constValue.CopyFrom(&label);
+  CcString *ccstr = new CcString(true, label.GetValue());
+  constValue.CopyFrom(ccstr);
+  ccstr->DeleteIfAllowed();
 }
 
 /*
@@ -1187,8 +1214,9 @@ class Labels : public Attribute {
 2.3.18 Print functions
 
 */
+
 ostream& operator<<(ostream& os, const Label& lb) {
-  os << "(" << lb << ")";
+  os << "(" << lb.GetValue() << ")";
   return os;
 }
 
@@ -1396,7 +1424,7 @@ Label Labels::GetLabel(int i) const {
   assert(state == complete);
   assert(0 <= i && i < GetNoLabels());
   Label lb(true);
-  labels.Get(i, &lb);
+  labels.Get(i, lb);
   return lb;
 }
 
@@ -1467,7 +1495,7 @@ Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
   labels->SetDefined(true);
   while (!list.isEmpty()) {
     if (!list.isAtom() && list.first().isAtom() && list.first().isString()) {
-      Label label(true, list.first().str());
+      Label label(list.first().str());
       labels->Append(label);
       correct = true;
     }
@@ -1640,7 +1668,7 @@ template<class T>
 int tolabelVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   string source = static_cast<T*>(args[0].addr)->GetValue();
   result = qp->ResultStorage(s);
-  Label* res = new Label(true, source);
+  Label* res = new Label(source);
   result.addr = res;
   return 0;
 }
@@ -1728,7 +1756,7 @@ int containsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   CcString* ccstr = static_cast<CcString*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* ccbool = static_cast<CcBool*>(result.addr);
-  Label *label = new Label(true, ccstr->GetValue());
+  Label *label = new Label(ccstr->GetValue());
   int pos;
   bool res = labels->GetDbArray().Find(label, CompareLabels, pos);
   ccbool->Set(true, res);
@@ -3161,7 +3189,7 @@ bool Match::evaluateCond(const MLabel &ml, Condition &cond,
         cond.cleanLabelsPtr(i);
         for (size_t j = seq[pId]; j <= max; j++) {
           ml.Get(j, ul);
-          Label *label = new Label(true, ul.constValue.GetValue());
+          Label *label = new Label(ul.constValue.GetValue());
           cond.appendToLabelsPtr(i, *label);
         }
         cond.completeLabelsPtr(i);
@@ -3778,6 +3806,7 @@ int the_unit_Label_VM(Word* args, Word& result,
   }
   if (*i1 < *i2) { // sorted instants
     Interval<Instant> interval(*i1, *i2, clb, crb);
+    cout << *value << endl;
     *res = ULabel(interval, *value);
   }
   else {

@@ -71,16 +71,16 @@ enum Wildcard {NO, STAR, PLUS, EMPTY};
 Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
 
-class Label : public CcString {
+class Label : public Attribute {
  public:
   Label() {};
-  Label(const bool def, const string& val);
-  Label(Label& rhs);
-  Label(const bool def);
+  Label(const string& val);
+  Label(const Label& rhs);
+  Label(const bool def) {}
   ~Label();
 
   string GetValue() const;
-  void Set(const bool defined, const string &value);
+  void Set(const string &value);
   Label* Clone();
 
   static Word     In(const ListExpr typeInfo, const ListExpr instance,
@@ -97,10 +97,15 @@ class Label : public CcString {
   static const bool checkType(const ListExpr type);
   const bool      IsDefined() {return true;}
   void            CopyFrom(const Attribute* right);
-  int             Compare(const Label* arg) const;
-  void            SetDefined(const bool defined) {}
+  int             Compare(const Attribute* arg) const;
+  size_t          Sizeof() const;
+  bool            Adjacent(const Attribute*) const;
+  Label*          Clone() const;
+  size_t          HashValue() const;
+  void            SetValue(const string &value);
   ostream&        Print(ostream& os) const {return os << GetValue();}
 
+  char text[MAX_STRINGSIZE + 1];
 };
 
 class ILabel : public IString {
