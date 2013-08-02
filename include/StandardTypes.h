@@ -1422,7 +1422,7 @@ class CcString : public Attribute
     cout << Var2HexStr(size);
   }
 
-  inline CcString( bool d, const STRING_T* v ) : Attribute(d)
+  inline CcString( const bool d, const STRING_T* v ) : Attribute(d)
   {
     Set(d, v);
     //cout << "Cc1" << endl;
