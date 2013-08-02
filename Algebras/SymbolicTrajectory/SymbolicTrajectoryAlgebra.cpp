@@ -1193,8 +1193,7 @@ ostream& operator<<(ostream& os, const Label& lb) {
 }
 
 ostream& operator<<(ostream& os, const Labels& lbs) {
-  os << " State: " << lbs.GetState()
-     << "<";
+  os << " State: " << lbs.GetState() << "<";
   for(int i = 0; i < lbs.GetNoLabels(); i++)
     os << lbs.GetLabel(i) << " ";
   os << ">";
@@ -1396,7 +1395,7 @@ Returns a label indexed by ~i~.
 Label Labels::GetLabel(int i) const {
   assert(state == complete);
   assert(0 <= i && i < GetNoLabels());
-  Label lb;
+  Label lb(true);
   labels.Get(i, &lb);
   return lb;
 }
@@ -1468,7 +1467,8 @@ Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
   labels->SetDefined(true);
   while (!list.isEmpty()) {
     if (!list.isAtom() && list.first().isAtom() && list.first().isString()) {
-      labels->Append(Label(true, list.first().str()));
+      Label label(true, list.first().str());
+      labels->Append(label);
       correct = true;
     }
     else {
@@ -2071,7 +2071,7 @@ bool Pattern::parseNFA() {
   intNfa->nfa.bringStartStateToTop();
 //   intNfa->nfa.print(cout);
   map<int, set<int> >::iterator it;
-  for (int i = 0; i < intNfa->nfa.getStatesSize(); i++) {
+  for (unsigned int i = 0; i < intNfa->nfa.numOfStates(); i++) {
     map<int, set<int> > transitions = intNfa->nfa.getState(i).getTransitions();
     map<int, int> newTrans;
     for (it = transitions.begin(); it != transitions.end(); it++) {
@@ -2322,6 +2322,7 @@ the matching procedure ends after the unit pattern test.
 */
 ExtBool Match::matches(MLabel &ml, bool rewrite) {
   numOfLabels = (size_t)ml.GetNoComponents();
+  MatchElem** matching = 0;
   if (ml.hasIndex()) { // use index
     ml.index.initRoot();
     set<size_t> positions;
@@ -2339,15 +2340,32 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
   else { // no index => process whole mlabel
     set<int> states;
     states.insert(0);
-    for (size_t i = 0; i < numOfLabels; i++) {
-      ml.Get(i, ul);
-      ulId = i;
-      updateStates2(ml);
-//       if (!updateStates(ml, i, states)) {
-//  TODO: return FALSE;
-//       }
-      if (currentStates.empty()) {
-        return FALSE;
+    if (p->getConds().empty() && !rewrite) {
+      for (size_t i = 0; i < numOfLabels; i++) {
+        ml.Get(i, ul);
+        ulId = i;
+        updateStates2(ml);
+        if (!updateStates(ml, i, states)) {
+  //  TODO: return FALSE;
+        }
+        if (currentStates.empty()) {
+          return FALSE;
+        }
+      }
+    }
+    else {
+      matching = create2DimArray<MatchElem>(ml.GetNoComponents(), p->getSize());
+      for (size_t i = 0; i < numOfLabels; i++) {
+        ml.Get(i, ul);
+        ulId = i;
+        updateStates2(ml);
+        if (!updateStates(ml, i, states/*, matching*/)) {
+  //  TODO: return FALSE;
+        }
+        if (currentStates.empty()) {
+          delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
+          return FALSE;
+        }
       }
     }
 //     printCards();
@@ -2359,15 +2377,18 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
       }
     }
     if (!currentStates.count(f)) { // is the final state inactive?
+      delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
       return FALSE;
     }
   }
   if (rewrite) {
     if (!numOfLabels) {
       cout << "no rewriting for an empty MLabel." << endl;
+      delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
       return FALSE;
     }
     computeCardsets();
+    delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
     if (!initCondOpTrees()) {
       return UNDEF;
     }
@@ -2375,6 +2396,7 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
   }
   if (p->conds.size()) {
     computeCardsets();
+    delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
     if (!initCondOpTrees(true)) {
       return UNDEF;
     }

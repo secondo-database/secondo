@@ -72,6 +72,26 @@ void fillML(const MString& source, MString& result, DateTime* duration);
 DbArray<NFAtransition> makeNFApersistent(vector<map<int, set<int> > > nfa);
 vector<map<int, set<int> > > createNFAfromPersistent(DbArray<NFAtransition> db);
 
+template <class T>
+T** create2DimArray(const int dim1, const int dim2) {
+  T** result = new T*[dim1];
+  for (int i = 0; i < dim1; i++) {
+    result[i] = new T[dim2];
+  }
+  return result;
+};
+
+template <class T>
+void delete2DimArray(T** &array, int dim1) {
+  if (!array) {
+    return;
+  }
+  for (int i = 0; i < dim1; i++) {
+    delete[] array[i];
+  }
+  delete[] array;
+}
+
 struct TrieNode;
 
 struct NodePointer {
