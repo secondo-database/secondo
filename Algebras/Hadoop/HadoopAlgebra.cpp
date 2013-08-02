@@ -3708,8 +3708,6 @@ ListExpr hadoopMapAllTypeMap(ListExpr args)
 
   string dbName = fList::tempName(true);
 
-  cerr << "subQuery is: " << nl->ToString(subQuery) << endl;
-
   return NList(NList(Symbol::APPEND()),
       NList(NList(nl->ToString(subQuery), true, true),
             NList(dbName, true, false)),
