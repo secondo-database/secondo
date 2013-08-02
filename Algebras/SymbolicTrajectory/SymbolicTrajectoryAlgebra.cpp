@@ -51,7 +51,7 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 #include "CharTransform.h"
 #include "Stream.h"
 #include "SecParser.h"
-#include "Pattern.h"
+#include "SymbolicTrajectoryAlgebra.h"
 #include "TemporalUnitAlgebra.h"
 
 extern NestedList* nl;
@@ -65,65 +65,20 @@ using namespace std;
 
 namespace stj {
 
-class Label {
- public:
-  Label() {};
-  Label(string text);
-  Label(char* Text);
-  Label(const Label& rhs);
-  ~Label();
-  
-  string GetText() const;
-  void SetText(string &text);
-  Label* Clone();
-  
-  // algebra support functions
-  
-  static Word     In(const ListExpr typeInfo, const ListExpr instance,
-                     const int errorPos, ListExpr& errorInfo, bool& correct);
-  static ListExpr Out(ListExpr typeInfo, Word value);
-  static Word     Create(const ListExpr typeInfo);
-  static void     Delete(const ListExpr typeInfo, Word& w);
-  static void     Close(const ListExpr typeInfo, Word& w);
-  static Word     Clone(const ListExpr typeInfo, const Word& w);
-  static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
-  static int      SizeOfObj();
-  static ListExpr Property();  
-  static const string BasicType() {
-    return "label";
-  }
-  static const bool checkType(const ListExpr type) {
-    return listutils::isSymbol(type, BasicType());
-  }
+Label::Label(const bool def, const string& val) : CcString(def, val) {}
 
- private:
-  char text[MAX_STRINGSIZE+1];
-};
+Label::Label(Label& rhs) : CcString(rhs.IsDefined(), rhs.GetValue()) {}
 
-Label::Label(string Text) {
-  strncpy(text, Text.c_str(), MAX_STRINGSIZE);
-  text[MAX_STRINGSIZE] = '\0';
-}
-
-Label::Label(char* Text) {
-  strncpy(text, Text, MAX_STRINGSIZE);
-  text[MAX_STRINGSIZE] = '\0';
-}
-
-Label::Label(const Label& rhs) {
-  strncpy(text, rhs.text, MAX_STRINGSIZE); 
-}
+Label::Label(const bool def) : CcString(def) {}
 
 Label::~Label() {}
 
-string Label::GetText() const {
-  string str = text;
-  return str;
+string Label::GetValue() const {
+  return CcString::GetValue();
 }
 
-void Label::SetText(string &Text) {
-  strncpy(text, Text.c_str(), MAX_STRINGSIZE);
-  text[MAX_STRINGSIZE] = '\0';    
+void Label::Set(const bool defined, const string &value) {
+  CcString::Set(defined, value);
 }
 
 Word Label::In(const ListExpr typeInfo, const ListExpr instance,
@@ -135,7 +90,7 @@ Word Label::In(const ListExpr typeInfo, const ListExpr instance,
     if (list.isString()) {
       string text = list.str();
       correct = true;
-      result.addr = new Label(text);
+      result.addr = new Label(true, text);
     }
     else {
       correct = false;
@@ -151,12 +106,12 @@ Word Label::In(const ListExpr typeInfo, const ListExpr instance,
 
 ListExpr Label::Out(ListExpr typeInfo, Word value) {
   Label* label = static_cast<Label*>(value.addr);
-  NList element (label->GetText(), true);
+  NList element (label->GetValue(), true);
   return element.listExpr();
 }
 
 Word Label::Create(const ListExpr typeInfo) {
-  return (SetWord( new Label( 0 ) ));
+  return (SetWord( new Label( true ) ));
 }
 
 void Label::Delete(const ListExpr typeInfo, Word& w) {
@@ -196,6 +151,17 @@ ListExpr Label::Property() {
          nl->StringAtom("x must be of type string (max. 48 characters)."))));
 }
 
+const bool Label::checkType(const ListExpr type) {
+  return listutils::isSymbol(type, BasicType());
+}
+
+void Label::CopyFrom(const Attribute* right) {
+  CcString::CopyFrom(right);
+}
+
+int Label::Compare(const Label* arg) const {
+  return this->GetValue().compare(arg->GetValue());
+}
 
 TypeConstructor labelTC(
   Label::BasicType(),                          // name of the type in SECONDO
@@ -226,17 +192,6 @@ For example:
 ----    ( (instant 1.0) "My Label" )
 ----
 
-*/
-
-class ILabel : public IString {
-public:  
-  static const string BasicType() { return "ilabel"; }
-  static ListExpr IntimeLabelProperty();  
-  static bool CheckIntimeLabel( ListExpr type, ListExpr& errorInfo );  
-};
-
-
-/*
 4.1 function Describing the Signature of the Type Constructor
 
 */
@@ -302,6 +257,12 @@ For example:
 ----
 
 */
+
+ULabel::ULabel(const Interval<Instant>& interval, const Label& label)
+                                                               : UString(true) {
+  timeInterval = interval;
+  constValue.CopyFrom(&label);
+}
 
 /*
 5.2 function Describing the Signature of the Type Constructor
@@ -1143,15 +1104,13 @@ Operator temporalatinstantext(
     MovingExtSimpleSelect,
     MovingInstantExtTypeMapIntime);
 
-//**********************************************************************
-
 int CompareLabels(const void *a, const void *b) {
   const Label *label1 = (const Label*)a;
   const Label *label2 = (const Label*)b;
-  if (label1->GetText().compare(label2->GetText()) > 0) {
+  if (label1->GetValue().compare(label2->GetValue()) > 0) {
     return 1;
   }
-  if (label1->GetText().compare(label2->GetText()) < 0) {
+  if (label1->GetValue().compare(label2->GetValue()) < 0) {
     return -1;
   }
   return 0;
@@ -1494,7 +1453,7 @@ ListExpr Labels::Out(ListExpr typeInfo, Word value) {
   else {
     NList element("", true);
     for (int i = 0; i < labels->GetNoLabels(); i++) {
-      element.append(NList((labels->GetLabel(i)).GetText(), true));
+      element.append(NList((labels->GetLabel(i)).GetValue(), true));
     }
     return element.listExpr();    
   }
@@ -1509,7 +1468,7 @@ Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
   labels->SetDefined(true);
   while (!list.isEmpty()) {
     if (!list.isAtom() && list.first().isAtom() && list.first().isString()) {
-      labels->Append(Label(list.first().str()));
+      labels->Append(Label(true, list.first().str()));
       correct = true;
     }
     else {
@@ -1650,6 +1609,57 @@ TypeConstructor labelsTC(
         Labels::KindCheck );               //kind checking function
 
 /*
+\section{Operator ~tolabel~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr tolabelTM(ListExpr args) {
+  if (nl->ListLength(args) == 1) {
+    if (FText::checkType(nl->First(args)) ||
+        CcString::checkType(nl->First(args))) {
+      return nl->SymbolAtom(Label::BasicType());
+    }
+  }
+  return NList::typeError("Expecting a text or a string.");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int tolabelSelect(ListExpr args) {
+  return (FText::checkType(nl->First(args)) ? 0 : 1);
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int tolabelVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  string source = static_cast<T*>(args[0].addr)->GetValue();
+  result = qp->ResultStorage(s);
+  Label* res = new Label(true, source);
+  result.addr = res;
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct tolabelInfo : OperatorInfo {
+  tolabelInfo() {
+    name      = "tolabel";
+    signature = "text -> label";
+    appendSignature("string -> label");
+    syntax    = "tolabel( _ );";
+    meaning   = "Creates a label from a text or string.";
+  }
+};
+
+/*
 \section{Operator ~mstringtomlabel~}
 
 \subsection{Type Mapping}
@@ -1718,7 +1728,7 @@ int containsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   CcString* ccstr = static_cast<CcString*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* ccbool = static_cast<CcBool*>(result.addr);
-  Label *label = new Label(ccstr->GetValue());
+  Label *label = new Label(true, ccstr->GetValue());
   int pos;
   bool res = labels->GetDbArray().Find(label, CompareLabels, pos);
   ccbool->Set(true, res);
@@ -1739,7 +1749,6 @@ struct containsInfo : OperatorInfo {
 };
 
 
-//**********************************************************************
 /*
 \section{Pattern}
 */
@@ -2051,6 +2060,34 @@ Pattern* Pattern::getPattern(string input, bool classify) {
   return parseString(patternChar, classify);
 }
 
+bool Pattern::parseNFA() {
+  IntNfa* intNfa = 0;
+  cout << "RegEx = \'" << regEx << "\'" << endl;
+  if (parsePatternRegEx(regEx.c_str(), &intNfa) != 0) {
+    return false;
+  }
+  intNfa->nfa.makeDeterministic();
+  intNfa->nfa.minimize();
+  intNfa->nfa.bringStartStateToTop();
+//   intNfa->nfa.print(cout);
+  map<int, set<int> >::iterator it;
+  for (int i = 0; i < intNfa->nfa.getStatesSize(); i++) {
+    map<int, set<int> > transitions = intNfa->nfa.getState(i).getTransitions();
+    map<int, int> newTrans;
+    for (it = transitions.begin(); it != transitions.end(); it++) {
+      newTrans[it->first] = *(it->second.begin());
+    }
+    nfa.push_back(newTrans);
+    if (intNfa->nfa.isFinalState(i)) {
+      finalStates.insert(i);
+    }
+  }
+  cout << "==========================================" << endl;
+  printNfa();
+  cout << "==========================================" << endl;
+  return true;
+}
+
 /*
 \subsection{Function ~matches~}
 
@@ -2285,8 +2322,7 @@ the matching procedure ends after the unit pattern test.
 */
 ExtBool Match::matches(MLabel &ml, bool rewrite) {
   numOfLabels = (size_t)ml.GetNoComponents();
-  if (ml.index.getNodeRefSize() && ml.index.getNodeLinkSize()
-      && ml.index.getLabelIndexSize()) { // use index
+  if (ml.hasIndex()) { // use index
     ml.index.initRoot();
     set<size_t> positions;
     positions.insert(0);
@@ -2301,14 +2337,20 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
     }
   }
   else { // no index => process whole mlabel
+    set<int> states;
+    states.insert(0);
     for (size_t i = 0; i < numOfLabels; i++) {
       ml.Get(i, ul);
       ulId = i;
-      updateStates(ml);
+      updateStates2(ml);
+//       if (!updateStates(ml, i, states)) {
+//  TODO: return FALSE;
+//       }
       if (currentStates.empty()) {
         return FALSE;
       }
     }
+//     printCards();
     if (!numOfLabels) { // empty MLabel
       int pos = 0;
       while (p->elems[pos].getW() == STAR) {
@@ -2333,7 +2375,7 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
   }
   if (p->conds.size()) {
     computeCardsets();
-    if (!initCondOpTrees()) {
+    if (!initCondOpTrees(true)) {
       return UNDEF;
     }
     if (!conditionsMatch(ml)) {
@@ -2343,6 +2385,21 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
     deleteCondOpTrees();
   }
   return TRUE;
+}
+
+/*
+\subsection{Function ~printNfa~}
+
+*/
+void Pattern::printNfa() {
+  map<int, int>::iterator it;
+  for (unsigned int i = 0; i < nfa.size(); i++) {
+    cout << (finalStates.count(i) ? " * " : "   ") << "state " << i << ":  ";
+    for (it = nfa[i].begin(); it != nfa[i].end(); it++) {
+      cout << "---" << it->first << "---> " << it->second << "    ";
+    }
+    cout << endl << endl;
+  }
 }
 
 /*
@@ -2473,11 +2530,46 @@ void Match::printRewriteSeqs(unsigned int max) {
 /*
 \subsection{Function ~updateStates~}
 
+Applies the NFA.
+
+*/
+bool Match::updateStates(MLabel const &ml, size_t ulId, set<int> &states) {
+//   cout << "old states: ";
+  set<int>::iterator its;
+  set<short int>::iterator iti;
+  map<int, int> transitions;
+  for (its = states.begin(); its != states.end(); its++) {
+//     cout << *its << " ";
+    map<int, int> trans = p->getTransitions(*its);
+    transitions.insert(trans.begin(), trans.end());
+  }
+  if (transitions.empty()) {
+    return false;
+  }
+  states.clear();
+  map<int, int>::iterator itm;
+//   cout << "|||| new states: ";
+  for (itm = transitions.begin(); itm != transitions.end(); itm++) {
+//     cout << itm->second << " ";
+    if (labelsMatch(ul.constValue.GetValue(), p->elems[itm->first].getL())
+     && timesMatch(&ul.timeInterval, p->elems[itm->first].getI())
+     && easyCondsMatch(ml, p->elems[itm->first])) {
+      states.insert(itm->second);
+
+    }
+  }
+//   cout << endl;
+  return !states.empty();
+}
+
+/*
+\subsection{Function ~updateStates~}
+
 Further functions are invoked to decide which transition can be applied to
 which current state. The set of current states is updated.
 
 */
-void Match::updateStates(MLabel const &ml) {
+void Match::updateStates2(MLabel const &ml) {
   set<int> newStates;
   set<int>::iterator i, k;
   map<int, set<int> >::iterator j;
@@ -3047,7 +3139,7 @@ bool Match::evaluateCond(const MLabel &ml, Condition &cond,
         cond.cleanLabelsPtr(i);
         for (size_t j = seq[pId]; j <= max; j++) {
           ml.Get(j, ul);
-          Label *label = new Label(ul.constValue.GetValue());
+          Label *label = new Label(true, ul.constValue.GetValue());
           cond.appendToLabelsPtr(i, *label);
         }
         cond.completeLabelsPtr(i);
@@ -3611,6 +3703,213 @@ void Match::multiRewrite(ClassifyLI* c) {
     c->pats[c->matched[i]]->deleteAssignOpTrees();
   }
 }
+
+/*
+\section{Operator ~the\_unit~}
+
+the\_unit: label instant instant bool bool --> ulabel
+
+\subsection{Type Mapping}
+
+*/
+ListExpr the_unit_Label_TM(ListExpr args) {
+  if (nl->Equal(args, nl->FiveElemList(nl->SymbolAtom(Label::BasicType()),
+                                       nl->SymbolAtom(Instant::BasicType()),
+                                       nl->SymbolAtom(Instant::BasicType()),
+                                       nl->SymbolAtom(CcBool::BasicType()),
+                                       nl->SymbolAtom(CcBool::BasicType())))) {
+    return nl->SymbolAtom(ULabel::BasicType());
+  }
+  return listutils::typeError(
+    "Operator 'the_unit' expects a list with structure\n"
+     "'(point point instant instant bool bool)', or \n"
+     "'(ipoint ipoint bool bool)', or \n"
+     "'(real real real bool instant instant bool bool)', or\n"
+     "'(T instant instant bool bool)', or \n"
+     "'(iT duration bool bool)'\n for T in {bool, int, string, label}.");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int the_unit_Label_VM(Word* args, Word& result,
+                        int message, Word& local, Supplier s) {
+  result = (qp->ResultStorage(s));
+  ULabel  *res = static_cast<ULabel*>(result.addr);
+  Label *value = static_cast<Label*>(args[0].addr);
+  Instant *i1  = static_cast<DateTime*>(args[1].addr);
+  Instant *i2  = static_cast<DateTime*>(args[2].addr);
+  CcBool  *cl  = static_cast<CcBool*>(args[3].addr);
+  CcBool  *cr  = static_cast<CcBool*>(args[4].addr);
+  bool clb, crb;
+  if (!value->IsDefined() || !i1->IsDefined() || !i2->IsDefined() ||
+      !cl->IsDefined() || !cr->IsDefined()) {
+    res->SetDefined( false );
+    return 0;
+  }
+  clb = cl->GetBoolval();
+  crb = cr->GetBoolval();
+  if (((*i1 == *i2) && (!clb || !crb)) || (i1->Adjacent(i2) && !(clb || crb))) {
+    res->SetDefined(false); // illegal interval setting
+    return 0;
+  }
+  if (*i1 < *i2) { // sorted instants
+    Interval<Instant> interval(*i1, *i2, clb, crb);
+    *res = ULabel(interval, *value);
+  }
+  else {
+    Interval<Instant> interval(*i2, *i1, clb, crb);
+    *res = ULabel(interval, *value);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct the_unit_LabelInfo : OperatorInfo {
+  the_unit_LabelInfo() {
+    name      = "the_unit";
+    signature = "label x instant x instant x bool x bool -> ulabel";
+    syntax    = "the_unit( _ _ _ _ _ )";
+    meaning   = "Creates a ulabel from its components.";
+  }
+};
+
+/*
+\section{Operator ~makemvalue~}
+
+makemvalue: tream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel
+
+\subsection{Type Mapping}
+
+*/
+ListExpr makemvalue_ULabelTM(ListExpr args) {
+  ListExpr first, second, rest, listn,
+           lastlistn, first2, second2, firstr, listfull, attrtype;
+  int j;
+  string argstr, argstr2, attrname, inputtype, inputname, fulllist;
+  if (nl->ListLength(args) != 2) {
+    return listutils::typeError("two arguments expected");
+  }
+  first = nl->First(args);
+  nl->WriteToString(argstr, first);
+  if (!listutils::isTupleStream(first)) {
+    ErrorReporter::ReportError("Operator makemvalue expects as first argument "
+      "a tuplestream, but gets '" + argstr + "'.");
+    return nl->TypeError();
+  }
+  second  = nl->Second(args);
+  nl->WriteToString(argstr, second);
+  if(argstr == Symbol::TYPEERROR()){
+    return listutils::typeError("invalid attrname" + argstr);
+  }
+  nl->WriteToString(inputname, second);
+  rest = nl->Second(nl->Second(first));
+  listn = nl->OneElemList(nl->First(rest));
+  lastlistn = listn;
+  firstr = nl->First(rest);
+  rest = nl->Rest(rest);
+  first2 = nl->First(firstr);
+  second2 = nl->Second(firstr);
+  nl->WriteToString(attrname, first2);
+  nl->WriteToString(argstr2, second2);
+  if (attrname == inputname) {
+    inputtype = argstr2;
+  }
+  while (!(nl->IsEmpty(rest))) {
+    lastlistn = nl->Append(lastlistn,nl->First(rest));
+    firstr = nl->First(rest);
+    rest = nl->Rest(rest);
+    first2 = nl->First(firstr);
+    second2 = nl->Second(firstr);
+    nl->WriteToString(attrname, first2);
+    nl->WriteToString(argstr2, second2);
+    if (attrname == inputname) {
+      inputtype = argstr2;
+    }
+  }
+  rest = second;
+  listfull = listn;
+  nl->WriteToString(fulllist, listfull);
+  if (inputtype=="") {
+    return listutils::typeError("attribute not found");
+  }
+  if (inputtype != ULabel::BasicType()) {
+    return listutils::typeError("attr type not in {ubool, uint,"
+                                " ustring, ulabel, ureal, upoint");
+  }
+  attrname = nl->SymbolValue(second);
+  j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+  assert(j !=0);
+  if (inputtype == ULabel::BasicType()) {
+    attrtype = nl->SymbolAtom(MLabel::BasicType());
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+         nl->TwoElemList(nl->IntAtom(j),
+         nl->StringAtom(nl->SymbolValue(attrtype))), attrtype);
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int makemvalue_ULabelVM(Word* args,Word& result,int message,
+                         Word& local,Supplier s) {
+  MLabel* m;
+  ULabel* unit;
+  Word curTupleWord;
+  assert(args[2].addr != 0);
+  assert(args[3].addr != 0);
+  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, curTupleWord);
+  result = qp->ResultStorage(s);
+  m = (MLabel*)result.addr;
+  m->Clear();
+  m->SetDefined(true);
+  m->StartBulkLoad();
+  while (qp->Received(args[0].addr)) { // get all tuples
+    Tuple* curTuple = (Tuple*)curTupleWord.addr;
+    Attribute* curAttr = (Attribute*)curTuple->GetAttribute(attrIndex);
+    if (curAttr == 0) {
+      cout << endl << "ERROR in " << __PRETTY_FUNCTION__
+           << ": received Nullpointer!" << endl;
+      assert( false );
+    }
+    else if (curAttr->IsDefined()) {
+      unit = static_cast<ULabel*>(curAttr);
+      m->Add(*unit);
+    }
+    else {
+      cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. " << endl;
+    }
+    curTuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, curTupleWord);
+  }
+  m->EndBulkLoad(true, true); // force Mapping to sort the units
+  qp->Close(args[0].addr);    // and mark invalid Mapping as undefined
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct makemvalue_ULabelInfo : OperatorInfo {
+  makemvalue_ULabelInfo() {
+    name      = "makemvalue";
+    signature = "stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel";
+    syntax    = "_ makemvalue[ _ ]";
+    meaning   = "Create a moving object from a (not necessarily sorted) "
+                "tuple stream containing a ulabel attribute. No two unit "
+                "timeintervals may overlap. Undefined units are allowed and "
+                "will be ignored. A stream without defined units will result "
+                "in an \'empty\' moving object, not in an \'undef\'.";
+  }
+};
 
 /*
 \section{Operator ~topattern~}
@@ -4372,8 +4671,8 @@ class FiltermatchesLI {
     if (pattern) {
       match = new Match(pattern->getPats().size() + 1);
 //       p->buildNFA();
-      match->copyFromPattern(&p);
       p = *pattern;
+      match->copyFromPattern(&p);
       stream.open();
       streamOpened = true;
     }
@@ -4400,35 +4699,18 @@ class FiltermatchesLI {
     Tuple* cand = stream.request();
     MLabel* ml = 0;
     if (cand) {
-      if (cand->GetTupleType()->GetAttributeType(attrIndex).typeId == 3) {
-        while (cand) {
-          ml = (MLabel*)cand->GetAttribute(attrIndex);
-          match->setPattern(&p);
-          bool matching = match->matches(*ml);
-          match->resetStates();
-          if (matching) {
-            return cand;
-          }
-          cand->DeleteIfAllowed();
-          cand = stream.request();
+      while (cand) {
+        ml = (MLabel*)cand->GetAttribute(attrIndex);
+        match->setPattern(&p);
+        bool matching = match->matches(*ml);
+        match->resetStates();
+        if (matching) {
+          return cand;
         }
+        cand->DeleteIfAllowed();
+        cand = stream.request();
       }
-      else {
-        while (cand) {
-          ml = new MLabel((MString*)cand->GetAttribute(attrIndex));
-          match->setPattern(&p);
-          bool matching = match->matches(*ml);
-          match->resetStates();
-          if (ml) {
-            delete ml;
-          }
-          if (matching) {
-            return cand;
-          }
-          cand->DeleteIfAllowed();
-          cand = stream.request();
-        }
-      }
+      
     }
     return 0;
   }
@@ -4545,7 +4827,7 @@ struct filtermatchesInfo : OperatorInfo {
 ListExpr rewriteTM(ListExpr args) {
   NList type(args);
   const string errMsg = "Expecting a mlabel and a pattern/text"
-                        " or a stream<text> and a stream<mlabel>";
+                        " or a stream<mlabel> and a stream<text>";
   if ((type == NList(MLabel::BasicType(), Pattern::BasicType()))
    || (type == NList(MLabel::BasicType(), FText::BasicType()))) {
     return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
@@ -6113,9 +6395,10 @@ struct createtrieInfo : OperatorInfo {
   }
 };
 
+/*
+\section{Class ~SymbolicTrajectoryAlgebra~}
 
-//***********************************************************************//
-
+*/
   
 class SymbolicTrajectoryAlgebra : public Algebra {
   public:
@@ -6126,6 +6409,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddTypeConstructor(&unitlabel);
       AddTypeConstructor(&movinglabel);
 
+      unitlabel.AssociateKind(Kind::DATA());
       movinglabel.AssociateKind(Kind::TEMPORAL());
       movinglabel.AssociateKind(Kind::DATA());
 
@@ -6134,10 +6418,18 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddTypeConstructor(&classifierTC);
 
 //       AddOperator(&temporalatinstantext);
+      ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
+      
+      AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);
       
       AddOperator(mstringtomlabelInfo(), mstringtomlabelVM, mstringtomlabelTM);
 
       AddOperator(containsInfo(), containsVM, containsTM);
+
+      AddOperator(the_unit_LabelInfo(), the_unit_Label_VM, the_unit_Label_TM);
+
+      AddOperator(makemvalue_ULabelInfo(), makemvalue_ULabelVM,
+                  makemvalue_ULabelTM);
       
       AddOperator(topatternInfo(), topatternVM, topatternTM);
 

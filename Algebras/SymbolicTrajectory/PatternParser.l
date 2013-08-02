@@ -77,7 +77,7 @@ vardottime {variable}\.time
 assign \:=
 emptypat <>
 openregex \[
-closeregex (\]\+)|(\]\*)|\]
+closeregex (\]\+)|(\]\*)|(\]\?)|\]
 
 %option yylineno
 %option noyywrap

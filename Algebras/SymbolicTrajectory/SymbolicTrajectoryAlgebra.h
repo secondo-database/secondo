@@ -44,6 +44,7 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include "Stream.h"
 #include "InvertedFile.h"
 #include "FTextAlgebra.h"
+#include "IntNfa.h"
 #include <string>
 #include <set>
 
@@ -54,13 +55,14 @@ using namespace std;
 
 union Word;
 
+int parsePatternRegEx(const char* argument, IntNfa** T);
+
 namespace stj {
 
 class Pattern;
 class UPat;
 class Assign;
 class ClassifyLI;
-class Label;
 class IndexLI;
 
 enum ExtBool {FALSE, TRUE, UNDEF};
@@ -68,6 +70,45 @@ enum Wildcard {NO, STAR, PLUS, EMPTY};
 
 Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
+
+class Label : public CcString {
+ public:
+  Label() {};
+  Label(const bool def, const string& val);
+  Label(Label& rhs);
+  Label(const bool def);
+  ~Label();
+
+  string GetValue() const;
+  void Set(const bool defined, const string &value);
+  Label* Clone();
+
+  static Word     In(const ListExpr typeInfo, const ListExpr instance,
+                     const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word     Create(const ListExpr typeInfo);
+  static void     Delete(const ListExpr typeInfo, Word& w);
+  static void     Close(const ListExpr typeInfo, Word& w);
+  static Word     Clone(const ListExpr typeInfo, const Word& w);
+  static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
+  static int      SizeOfObj();
+  static ListExpr Property();
+  static const string BasicType() {return "label";}
+  static const bool checkType(const ListExpr type);
+  const bool      IsDefined() {return true;}
+  void            CopyFrom(const Attribute* right);
+  int             Compare(const Label* arg) const;
+  void            SetDefined(const bool defined) {}
+  ostream&        Print(ostream& os) const {return os << GetValue();}
+
+};
+
+class ILabel : public IString {
+public:
+  static const string BasicType() { return "ilabel"; }
+  static ListExpr IntimeLabelProperty();
+  static bool CheckIntimeLabel( ListExpr type, ListExpr& errorInfo );
+};
 
 class MLabel : public MString {
  public:
@@ -78,9 +119,7 @@ class MLabel : public MString {
   
   ~MLabel() {if (index.getNodeRefSize() || index.getNodeLinkSize()
               || index.getLabelIndexSize()) {
-               index.destroyDbArrays();
-               index.removeTrie();
-               index.initRoot();}}
+               index.destroyDbArrays(); index.removeTrie(); index.initRoot();}}
 
   static const string BasicType() {return "mlabel";}
   static bool checkType(ListExpr t) {
@@ -109,6 +148,10 @@ class MLabel : public MString {
   void rewrite(MLabel const &ml,
                    const pair<vector<unsigned int>, vector<unsigned int> > &seq,
                      vector<Assign> assigns, map<string, int> varPosInSeq);
+  const bool hasIndex() {
+    return (index.getNodeRefSize() && index.getNodeLinkSize() &&
+            index.getLabelIndexSize());
+  }
 
   MLabelIndex index;
 };
@@ -117,6 +160,7 @@ class ULabel : public UString {
  public:
   ULabel() {}
   ULabel(int i): UString(i) {}
+  ULabel(const Interval<Instant>& interval, const Label& label);
 
   static const string BasicType() {return "ulabel";}
   static ListExpr ULabelProperty();
@@ -277,8 +321,10 @@ class Pattern {
   map<string, int> varPos;
   map<string, set<int> > easyCondPos;
   set<string> assignedVars; // variables on the right side of an assignment
-  vector<map<int, set<int> > > delta; // vector pos: old state;
+  vector<map<int, set<int> > > delta; // vector pos: old state; TODO: delete
                         // map.first: unit pattern id; map.second: new state.
+  vector<map<int, int> > nfa;
+  set<int> finalStates;
   bool verified;
  public:
   Pattern() {}
@@ -293,6 +339,7 @@ class Pattern {
     varPos = rhs.varPos;
     assignedVars = rhs.assignedVars;
     delta = rhs.delta;
+    nfa = rhs.nfa;
     verified = rhs.verified;
     description = rhs.description;
   }
@@ -305,6 +352,7 @@ class Pattern {
     varPos = rhs.varPos;
     assignedVars = rhs.assignedVars;
     delta = rhs.delta;
+    nfa = rhs.nfa;
     verified = rhs.verified;
     description = rhs.description;
     return (*this);
@@ -347,6 +395,8 @@ class Pattern {
   static pair<string, Attribute*> getPointer(int key);
   bool initAssignOpTrees();
   void deleteAssignOpTrees(bool conds);
+  bool parseNFA();
+  void printNfa();
 
   vector<UPat>      getPats()               {return elems;}
   vector<Condition> getConds()              {return conds;}
@@ -357,10 +407,7 @@ class Pattern {
   Assign           getAssign(int pos) const {return assigns[pos];}
   bool              hasAssigns()            {return !assigns.empty();}
   void              addUPat(UPat upat)      {elems.push_back(upat);}
-  void              addRegExSymbol(const char* s) {
-    regEx += s;
-    cout << "RegEx now reads \'" << regEx << "\'" << endl;
-  }
+  void              addRegExSymbol(const char* s) {regEx += s;}
   void              addCond(Condition cond) {conds.push_back(cond);}
   void              addEasyCond(Condition cond) {
     easyCondPos[cond.getVar(0)].insert(easyConds.size());
@@ -382,6 +429,9 @@ class Pattern {
   bool              isVerified() const      {return verified;}
   void              setVerified(bool v)     {verified = v;}
   vector<map<int, set<int> > >* getDelta()  {return &delta;}
+  vector<map<int, int> >* getNFA()          {return &nfa;}
+  map<int, int>     getTransitions(int pos) {assert(pos >= 0);
+    assert(pos < (int)nfa.size()); return nfa[pos];}
   void              initDelta()             {map<int, set<int> > emptyMapping;
                          for (unsigned int i = 0; i <= elems.size(); i++) {
                                                delta.push_back(emptyMapping);
@@ -458,10 +508,8 @@ class Classifier : public Attribute {
   bool defined;
 };
 
-struct DoubleParsInfo {
-  int pId;
-  size_t start;
-  size_t length;
+struct MatchElem { // needed for attribute matching
+  set<short int> pred, succ;
 };
 
 class Match {
@@ -479,6 +527,7 @@ class Match {
   map<string, int> varPos, varPosInSeq;
   set<int> doublePars; // positions of nonempty pat elems in double parentheses
   int *seqOrder;
+  vector<vector<MatchElem> > matching; // stores the whole matching process
 
  public:
   Match(const int size) {
@@ -505,7 +554,8 @@ class Match {
   void printCards();
   void printSequences(unsigned int max);
   void printRewriteSeqs(unsigned int max);
-  void updateStates(MLabel const &ml);
+  void updateStates2(MLabel const &ml);
+  bool updateStates(MLabel const &ml, size_t i, set<int> &states);
   set<size_t> updatePositionsIndex(MLabel &ml, int pos, set<size_t> positions);
   void computeCardsets();
   void correctCardsets(int nonStars, int wildcards);

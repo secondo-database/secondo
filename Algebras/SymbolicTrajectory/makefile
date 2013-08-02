@@ -35,7 +35,7 @@ include ../../makefile.env
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
 
-OBJECTS += scan.o parse.o
+OBJECTS += scan.o parse.o PatternRegExParser.o PatternRegExScanner.o
 
 BASE:=PatternParser
 
@@ -71,12 +71,24 @@ parse.o: $(BASE).tab.c
 $(BASE).tab.c: $(BASE).y
 	        bison -v -d $(BASE).y
 
+PatternRegExScanner.o: PatternRegExScanner.c
+	$(CC) -fPIC -c $(ALG_INC_DIRS) -I../../include -o PatternRegExScanner.o PatternRegExScanner.c
+
+PatternRegExScanner.c: PatternRegExScanner.l PatternRegExParser.y.c
+	$(LEX) -o PatternRegExScanner.c PatternRegExScanner.l
+
+PatternRegExParser.o:  PatternRegExParser.y.c
+	$(CC) -fPIC -x c++ -c -o PatternRegExParser.o  $(ALG_INC_DIRS) -I../../include PatternRegExParser.y.c
+
+PatternRegExParser.y.c: PatternRegExParser.y
+	$(YACC) -d -o PatternRegExParser.y.c PatternRegExParser.y
+
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm -f $(BASE).tab.c parse.o lex.yy.c scan.o mini $(BASE).tab.h $(BASE).output
+	rm -f $(BASE).tab.c parse.o lex.yy.c scan.o mini $(BASE).tab.h $(BASE).output PatternRegExParser.y.c PatternRegExScanner.c PatternRegExParser.y.h
 
 
 

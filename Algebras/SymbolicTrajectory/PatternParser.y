@@ -43,7 +43,7 @@ Algebra.
 #include <sstream>
 #include <set>
 #include <map>
-#include "Pattern.h"
+#include "SymbolicTrajectoryAlgebra.h"
 
 using namespace std;
 using namespace stj;
@@ -53,6 +53,15 @@ extern FILE* patternin;
 extern void pattern_scan_string(const char* yystr);
 extern void deleteCurrentBuffer();
 void deleteCurrentPatternBuffer();
+int getOpenPos(vector<int> &posBeforeOpen, string &regEx) {
+  if (posBeforeOpen.empty()) {
+    cout << "vector is empty" << endl;
+    return -1;
+  }
+  int patElem = posBeforeOpen.back();
+  posBeforeOpen.pop_back();
+  return regEx.find_first_of(int2Str(patElem));
+}
 bool parseSuccess = true;
 void patternerror(const char* s) {
   cerr << endl << s << endl << endl;
@@ -66,7 +75,8 @@ ExprList exprList;
 bool doublePars(false), firstAssign(true), assignNow(false), easyCond(true);
 string regEx, expr;
 set<string> curIvs, patVars, resultVars;
-unsigned int pos(0);
+unsigned int pos(0), regExLength(1);
+vector<int> posBeforeOpen;
 char* errMsg;
 %}
 
@@ -84,16 +94,14 @@ char* errMsg;
              ZZVAR_DOT_TYPE ZZRIGHTARROW ZZCONST_OP ZZASSIGN ZZOPENREGEX
              ZZCLOSEREGEX ZZERROR
 %type<text> variable patternelement conditionsequence condition expression
-            resultsequence result assignment element regexseq separator
+            resultsequence result assignment element separator regexseq
             results_assignments assignmentsequence
 %type<p> patternsequence
 %type<el> expressionlist expressionlistcomma expressionlistparentheses
           expressionlistbrackets expressionlistenclosed assignment_expressionlist
 %%
-start : patternsequence ZZDOUBLESLASH conditionsequence ZZEND {
-        }
-      | patternsequence ZZEND { cout << "pattern has " << wholepat->getSize() << " elements" << endl;
-        }
+start : patternsequence ZZDOUBLESLASH conditionsequence ZZEND {}
+      | patternsequence ZZEND {}
       | patternsequence ZZRIGHTARROW results_assignments ZZEND {
           wholepat->collectAssVars();
         }
@@ -434,28 +442,33 @@ patternsequence : patternsequence variable element {
                 ;
 
 element : patternelement {
-            regEx += int2String(wholepat->getSize() + uPats.size());
             UPat upat($1);
+            string wildcard = (upat.getW() == STAR ? "*" : (upat.getW() == PLUS ? "+" : ""));
+            regEx += int2String(wholepat->getSize() + uPats.size()) + wildcard + " ";
             uPats.push_back(upat);
             free($1);
           }
         | ZZOPENREGEX regexseq ZZCLOSEREGEX {
-            string open($1), close($3);
-            regEx.insert(0, open);
-            regEx.append(close);
+            string close($3);
+            regEx.insert(getOpenPos(posBeforeOpen, regEx), "(");
+            regEx.append(")");
+            if (close.length() > 1) {
+              regEx.append(close.substr(1));
+            }
             free($1);
             free($3);
           }
         ;
 
 regexseq : regexseq separator element
-         | element
+         | element {posBeforeOpen.push_back(wholepat->getSize() + uPats.size() - 1);}
          ;
 
 separator : '|' {
               regEx += "|";
             }
-          | /* empty */ {}
+          | /* empty */ {
+            }
           ;
 
 variable : ZZVARIABLE
@@ -481,10 +494,11 @@ This function is the only one called by the algebra.
 
 */
 Pattern* stj::parseString(const char* input, bool classify = false) {
-  wholepat = new Pattern();
+  wholepat = new Pattern(0);
   patternFlushBuffer();
   pattern_scan_string(input);
   Pattern* result = 0;
+  posBeforeOpen.clear();
   cond.clear();
   uPats.clear();
   resultVars.clear();
@@ -510,6 +524,7 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
     if (!classify) { // classification => no single NFA needed
       result->initDelta();
       result->buildNFA();
+/*       result->parseNFA(); */
     }
   }
   deleteCurrentPatternBuffer();
