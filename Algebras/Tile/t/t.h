@@ -168,28 +168,6 @@ class t : public Attribute
                typename Properties::PropertiesType& rt) const;
 
   /*
-  TODO: delete method implementation after refactoring of atrange operator
-
-  TileAlgebra operator atrange returns all values of a t object
-  inside the given rectangle.
-
-  author: Dirk Zacher
-  parameters: rRectangle - reference to a Rectangle<2> object
-              rInstant1 - reference to the first Instant value
-              rInstant2 - reference to the second Instant value
-              rt - reference to a t object containing all values
-                   of the t object inside the given rectangle
-  return value: -
-  exceptions: -
-
-  */
-
-  void atrange(const Rectangle<2>& rRectangle,
-               const double& rInstant1,
-               const double& rInstant2,
-               typename Properties::PropertiesType& rt) const;
-
-  /*
   TileAlgebra operator bbox returns the bounding box of a t object.
 
   author: Dirk Zacher
@@ -206,38 +184,58 @@ class t : public Attribute
   TileAlgebra operator minimum returns the minimum value of t object.
 
   author: Dirk Zacher
-  parameters: -
-  return value: minimum value of t object
+  parameters: rMinimum - reference to a Type object containing
+                         the minimum value of t object
+  return value: -
   exceptions: -
 
   */
 
-  Type minimum() const;
+  void minimum(Type& rMinimum) const;
 
   /*
   TileAlgebra operator maximum returns the maximum value of t object.
 
   author: Dirk Zacher
-  parameters: -
-  return value: maximum value of t object
+  parameters: rMaximum - reference to a Type object containing
+                         the maximum value of t object
+  return value: -
   exceptions: -
 
   */
 
-  Type maximum() const;
+  void maximum(Type& rMaximum) const;
 
   /*
   TileAlgebra operator getgrid returns the tgrid object of t object.
 
   author: Dirk Zacher
   parameters: rtgrid - reference to a tgrid object containing
-                       tgrid object of t object.
+                       tgrid object of t object
   return value: -
   exceptions: -
 
   */
 
   void getgrid(tgrid& rtgrid) const;
+
+  /*
+  Method GetBoundingBoxIndexes returns minimum index and maximum index
+  of the bounding box of t object.
+
+  author: Dirk Zacher
+  parameters: rMinimumIndex - reference to an Index<2> object containing
+                              the minimum index of the bounding box of t object
+              rMaximumIndex - reference to an Index<2> object containing
+                              the maximum index of the bounding box of t object
+  return value: true, if minimum index and maximum index of the bounding box
+                of t object successfully calculated, otherwise false
+  exceptions: -
+
+  */
+
+  bool GetBoundingBoxIndexes(Index<2>& rMinimumIndex,
+                             Index<2>& rMaximumIndex) const;
 
   /*
   Method GetLocationIndex returns a 2-dimensional index
@@ -853,7 +851,8 @@ void t<Type, Properties>::atlocation(const double& rX,
 {
   rValue.SetDefined(false);
 
-  if(IsValidLocation(rX, rY))
+  if(IsDefined() &&
+     IsValidLocation(rX, rY))
   {
     Index<2> index = GetLocationIndex(rX, rY);
     Type value = GetValue(index);
@@ -885,7 +884,8 @@ void t<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
 {
   rt.SetDefined(false);
 
-  if(rRectangle.IsDefined())
+  if(IsDefined() &&
+     rRectangle.IsDefined())
   {
     if(IsValidLocation(rRectangle.MinD(0), rRectangle.MinD(1)) &&
        IsValidLocation(rRectangle.MaxD(0), rRectangle.MaxD(1)))
@@ -926,38 +926,6 @@ void t<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
 }
 
 /*
-TODO: delete method implementation after refactoring of atrange operator
-
-TileAlgebra operator atrange returns all values of a t object
-inside the given rectangle.
-
-author: Dirk Zacher
-parameters: rRectangle - reference to a Rectangle<2> object
-            rInstant1 - reference to the first Instant value
-            rInstant2 - reference to the second Instant value
-            rt - reference to a t object containing all values
-                 of the t object inside the given rectangle
-return value: -
-exceptions: -
-
-*/
-
-template <typename Type, typename Properties>
-void t<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
-                                  const double& rInstant1,
-                                  const double& rInstant2,
-                                  typename Properties::PropertiesType& rt)
-                                  const
-{
-  /*
-  instant values are not relevant for t types.
-
-  */
-
-  atrange(rRectangle, rt);
-}
-
-/*
 TileAlgebra operator bbox returns the bounding box of a t object.
 
 author: Dirk Zacher
@@ -972,138 +940,175 @@ template <typename Type, typename Properties>
 void t<Type, Properties>::bbox(typename Properties::RectangleType&
                                rBoundingBox) const
 {
-  double minima[2] = { 0.0, 0.0 };
-  double maxima[2] = { 0.0, 0.0 };
+  rBoundingBox.SetDefined(false);
 
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
-  Type value = Properties::TypeProperties::GetUndefinedValue();
-
-  for(int column = 0; column < xDimensionSize; column++)
+  if(IsDefined())
   {
-    bool bbreak = false;
+    double minima[2] = { 0.0, 0.0 };
+    double maxima[2] = { 0.0, 0.0 };
 
-    for(int row = 0; row < yDimensionSize; row++)
-    {
-      Index<2> index = (int[]){column, row};
-      value = GetValue(index);
+    int xDimensionSize = Properties::GetXDimensionSize();
+    int yDimensionSize = Properties::GetYDimensionSize();
+    Type value = Properties::TypeProperties::GetUndefinedValue();
 
-      if(Properties::TypeProperties::IsUndefinedValue(value) == false)
-      {
-        minima[0] = m_Grid.GetX() + column * m_Grid.GetLength();
-        bbreak = true;
-        break;
-      }
-    }
+    /*
+    calculation of x dimension minimum
 
-    if(bbreak == true)
-    {
-      break;
-    }
-  }
-
-  for(int column = xDimensionSize - 1; column >= 0; column--)
-  {
-    bool bbreak = false;
-
-    for(int row = 0; row < yDimensionSize; row++)
-    {
-      Index<2> index = (int[]){column, row};
-      value = GetValue(index);
-
-      if(Properties::TypeProperties::IsUndefinedValue(value) == false)
-      {
-        maxima[0] = m_Grid.GetX() + (column + 1) * m_Grid.GetLength();
-        bbreak = true;
-        break;
-      }
-    }
-
-    if(bbreak == true)
-    {
-      break;
-    }
-  }
-
-  for(int row = 0; row < yDimensionSize; row++)
-  {
-    bool bbreak = false;
+    */
 
     for(int column = 0; column < xDimensionSize; column++)
     {
-      Index<2> index = (int[]){column, row};
-      value = GetValue(index);
+      bool bbreak = false;
 
-      if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+      for(int row = 0; row < yDimensionSize; row++)
       {
-        minima[1] = m_Grid.GetY() + row * m_Grid.GetLength();
-        bbreak = true;
+        Index<2> index = (int[]){column, row};
+        value = GetValue(index);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          minima[0] = m_Grid.GetX() + column * m_Grid.GetLength();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
         break;
       }
     }
 
-    if(bbreak == true)
+    /*
+    calculation of x dimension maximum
+
+    */
+
+    for(int column = xDimensionSize - 1; column >= 0; column--)
     {
-      break;
-    }
-  }
+      bool bbreak = false;
 
-  for(int row = yDimensionSize - 1; row >= 0; row--)
-  {
-    bool bbreak = false;
-
-    for(int column = 0; column < xDimensionSize; column++)
-    {
-      Index<2> index = (int[]){column, row};
-      value = GetValue(index);
-
-      if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+      for(int row = 0; row < yDimensionSize; row++)
       {
-        maxima[1] = m_Grid.GetY() + (row + 1) * m_Grid.GetLength();
-        bbreak = true;
+        Index<2> index = (int[]){column, row};
+        value = GetValue(index);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          maxima[0] = m_Grid.GetX() + (column + 1) * m_Grid.GetLength();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
         break;
       }
     }
 
-    if(bbreak == true)
-    {
-      break;
-    }
-  }
+    /*
+    calculation of y dimension minimum
 
-  rBoundingBox.Set(true, minima, maxima);
+    */
+
+    for(int row = 0; row < yDimensionSize; row++)
+    {
+      bool bbreak = false;
+
+      for(int column = 0; column < xDimensionSize; column++)
+      {
+        Index<2> index = (int[]){column, row};
+        value = GetValue(index);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          minima[1] = m_Grid.GetY() + row * m_Grid.GetLength();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    /*
+    calculation of y dimension maximum
+
+    */
+
+    for(int row = yDimensionSize - 1; row >= 0; row--)
+    {
+      bool bbreak = false;
+
+      for(int column = 0; column < xDimensionSize; column++)
+      {
+        Index<2> index = (int[]){column, row};
+        value = GetValue(index);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          maxima[1] = m_Grid.GetY() + (row + 1) * m_Grid.GetLength();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    rBoundingBox.Set(true, minima, maxima);
+  }
 }
 
 /*
 TileAlgebra operator minimum returns the minimum value of t object.
 
 author: Dirk Zacher
-parameters: -
-return value: minimum value of t object
+parameters: rMinimum - reference to a Type object containing
+                       the minimum value of t object
+return value: -
 exceptions: -
 
 */
 
 template <typename Type, typename Properties>
-Type t<Type, Properties>::minimum() const
+void t<Type, Properties>::minimum(Type& rMinimum) const
 {
-  return m_Minimum;
+  rMinimum = Properties::TypeProperties::GetUndefinedValue();
+
+  if(IsDefined())
+  {
+    rMinimum = m_Minimum;
+  }
 }
 
 /*
 TileAlgebra operator maximum returns the maximum value of t object.
 
 author: Dirk Zacher
-parameters: -
-return value: maximum value of t object
+parameters: rMaximum - reference to a Type object containing
+                       the maximum value of t object
+return value: -
 exceptions: -
 
 */
 
 template <typename Type, typename Properties>
-Type t<Type, Properties>::maximum() const
+void t<Type, Properties>::maximum(Type& rMaximum) const
 {
-  return m_Maximum;
+  rMaximum = Properties::TypeProperties::GetUndefinedValue();
+
+  if(IsDefined())
+  {
+    rMaximum = m_Maximum;
+  }
 }
 
 /*
@@ -1111,7 +1116,7 @@ TileAlgebra operator getgrid returns the tgrid object of t object.
 
 author: Dirk Zacher
 parameters: rtgrid - reference to a tgrid object containing
-                     tgrid object of t object.
+                     tgrid object of t object
 return value: -
 exceptions: -
 
@@ -1120,7 +1125,51 @@ exceptions: -
 template <typename Type, typename Properties>
 void t<Type, Properties>::getgrid(tgrid& rtgrid) const
 {
-  rtgrid = m_Grid;
+  rtgrid.SetDefined(false);
+
+  if(IsDefined())
+  {
+    rtgrid = m_Grid;
+  }
+}
+
+/*
+Method GetBoundingBoxIndexes returns minimum index and maximum index
+of the bounding box of t object.
+
+author: Dirk Zacher
+parameters: rMinimumIndex - reference to an Index<2> object containing
+                            the minimum index of the bounding box of t object
+            rMaximumIndex - reference to an Index<2> object containing
+                            the maximum index of the bounding box of t object
+return value: true, if minimum index and maximum index of the bounding box
+              of t object successfully calculated, otherwise false
+exceptions: -
+
+*/
+
+template <typename Type, typename Properties>
+bool t<Type, Properties>::GetBoundingBoxIndexes(Index<2>& rMinimumIndex,
+                                                Index<2>& rMaximumIndex) const
+{
+  bool bRetVal = false;
+
+  if(IsDefined())
+  {
+    typename Properties::RectangleType boundingBox;
+    bbox(boundingBox);
+
+    if(boundingBox.IsDefined())
+    {
+      rMinimumIndex = GetLocationIndex(boundingBox.MinD(0),
+                                       boundingBox.MinD(1));
+      rMaximumIndex = GetLocationIndex(boundingBox.MaxD(0),
+                                       boundingBox.MaxD(1));
+      bRetVal = true;
+    }
+  }
+
+  return bRetVal;
 }
 
 /*
@@ -1139,34 +1188,13 @@ template <typename Type, typename Properties>
 Index<2> t<Type, Properties>::GetLocationIndex(const double& rX,
                                                const double& rY) const
 {
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
   double gridX = m_Grid.GetX();
   double gridY = m_Grid.GetY();
   double gridLength = m_Grid.GetLength();
-
   int indexX = static_cast<int>((rX - gridX) / gridLength);
   int indexY = static_cast<int>((rY - gridY) / gridLength);
-
-  /*
-  special cases for bounding boxes
-
-  */
-
-  if(AlmostEqual((rX - gridX) / gridLength, xDimensionSize * gridLength))
-  {
-    indexX--;
-  }
-
-  if(AlmostEqual((rY - gridY) / gridLength, yDimensionSize * gridLength))
-  {
-    indexY--;
-  }
-
-  assert(indexX < xDimensionSize);
-  assert(indexY < yDimensionSize);
-
   Index<2> locationIndex = (int[]){indexX, indexY};
+  
   return locationIndex;
 }
 
@@ -1252,7 +1280,8 @@ bool t<Type, Properties>::SetGrid(const tgrid& rtgrid)
 {
   bool bRetVal = false;
 
-  if(rtgrid.IsDefined())
+  if(IsDefined() &&
+     rtgrid.IsDefined())
   {
     m_Grid = rtgrid;
     bRetVal = true;
@@ -1279,12 +1308,15 @@ bool t<Type, Properties>::SetGrid(const double& rX,
                                   const double& rY,
                                   const double& rLength)
 {
-  bool bRetVal = true;
+  bool bRetVal = false;
 
-  m_Grid.SetDefined(true);
-  bRetVal &= m_Grid.SetX(rX);
-  bRetVal &= m_Grid.SetY(rY);
-  bRetVal &= m_Grid.SetLength(rLength);
+  if(IsDefined())
+  {
+    m_Grid.SetDefined(true);
+    bRetVal  = m_Grid.SetX(rX);
+    bRetVal &= m_Grid.SetY(rY);
+    bRetVal &= m_Grid.SetLength(rLength);
+  }
 
   return bRetVal;
 }
