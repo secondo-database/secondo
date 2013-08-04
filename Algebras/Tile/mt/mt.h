@@ -270,38 +270,58 @@ class mt : public Attribute
   TileAlgebra operator minimum returns the minimum value of mt object.
 
   author: Dirk Zacher
-  parameters: -
-  return value: minimum value of mt object
+  parameters: rMinimum - reference to a Type object containing
+                         the minimum value of mt object
+  return value: -
   exceptions: -
 
   */
 
-  Type minimum() const;
+  void minimum(Type& rMinimum) const;
 
   /*
   TileAlgebra operator maximum returns the maximum value of mt object.
 
   author: Dirk Zacher
-  parameters: -
-  return value: maximum value of mt object
+  parameters: rMaximum - reference to a Type object containing
+                         the maximum value of mt object
+  return value: -
   exceptions: -
 
   */
 
-  Type maximum() const;
+  void maximum(Type& rMaximum) const;
 
   /*
   TileAlgebra operator getgrid returns the mtgrid object of mt object.
 
   author: Dirk Zacher
   parameters: rmtgrid - reference to a mtgrid object containing
-                        mtgrid object of mt object.
+                        mtgrid object of mt object
   return value: -
   exceptions: -
 
   */
 
   void getgrid(mtgrid& rmtgrid) const;
+
+  /*
+  Method GetBoundingBoxIndexes returns minimum index and maximum index
+  of the bounding box of mt object.
+
+  author: Dirk Zacher
+  parameters: rMinimumIndex - reference to an Index<3> object containing
+                              the minimum index of the bounding box of mt object
+              rMaximumIndex - reference to an Index<3> object containing
+                              the maximum index of the bounding box of mt object
+  return value: true, if minimum index and maximum index of the bounding box
+                of mt object successfully calculated, otherwise false
+  exceptions: -
+
+  */
+
+  bool GetBoundingBoxIndexes(Index<3>& rMinimumIndex,
+                             Index<3>& rMaximumIndex) const;
 
   /*
   Method GetLocationIndex returns a 2-dimensional index
@@ -957,7 +977,8 @@ void mt<Type, Properties>::atlocation(const double& rX,
 {
   rValues.SetDefined(false);
 
-  if(IsValidLocation(rX, rY))
+  if(IsDefined() &&
+     IsValidLocation(rX, rY))
   {
     rValues.SetDefined(true);
 
@@ -1019,11 +1040,16 @@ void mt<Type, Properties>::atlocation(const double& rX,
 {
   rValue.SetDefined(false);
 
-  if(IsValidLocation(rX, rY, rInstant))
+  if(IsDefined() &&
+     IsValidLocation(rX, rY, rInstant))
   {
     Index<3> index = GetLocationIndex(rX, rY, rInstant);
     Type value = GetValue(index);
-    rValue = Properties::TypeProperties::GetWrappedValue(value);
+
+    if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+    {
+      rValue = Properties::TypeProperties::GetWrappedValue(value);
+    }
   }
 }
 
@@ -1044,44 +1070,54 @@ template <typename Type, typename Properties>
 void mt<Type, Properties>::atinstant(const Instant& rInstant,
                                      typename Properties::itType& rit) const
 {
-  rit.SetDefined(true);
-
-  typename Properties::tType t(true);
-  t.SetGrid(m_Grid);
-
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
-  int tDimensionSize = Properties::GetTDimensionSize();
-  double gridDuration = m_Grid.GetDuration().ToDouble();
-  int time = static_cast<int>(rInstant.ToDouble() / gridDuration);
-  bool btDefined = false;
+  rit.SetDefined(false);
   
-  if(time < tDimensionSize)
+  if(IsDefined())
   {
-    for(int row = 0; row < yDimensionSize; row++)
-    {
-      for(int column = 0; column < xDimensionSize; column++)
-      {
-        Index<3> index3 = (int[]){column, row, time};
-        Type value = GetValue(index3);
+    rit.SetDefined(true);
 
-        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+    typename Properties::tType t(true);
+    t.SetGrid(m_Grid);
+
+    int time = static_cast<int>(rInstant.ToDouble() /
+                                m_Grid.GetDuration().ToDouble());
+    int tDimensionSize = Properties::GetTDimensionSize();
+    bool btDefined = false;
+
+    if(time < tDimensionSize)
+    {
+      Index<3> minimumIndex;
+      Index<3> maximumIndex;
+      bool bOK = GetBoundingBoxIndexes(minimumIndex, maximumIndex);
+
+      if(bOK == true)
+      {
+        for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
         {
-          btDefined = true;
-          Index<2> index2 = (int[]){column, row};
-          t.SetValue(index2, value, true);
+          for(int column = minimumIndex[0]; column < maximumIndex[0]; column++)
+          {
+            Index<3> index3 = (int[]){column, row, time};
+            Type value = GetValue(index3);
+
+            if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+            {
+              btDefined = true;
+              Index<2> index2 = (int[]){column, row};
+              t.SetValue(index2, value, true);
+            }
+          }
         }
       }
     }
-  }
 
-  if(btDefined == false)
-  {
-    t.SetDefined(false);
-  }
+    if(btDefined == false)
+    {
+      t.SetDefined(false);
+    }
 
-  rit.SetInstant(rInstant);
-  rit.SetValues(t);
+    rit.SetInstant(rInstant);
+    rit.SetValues(t);
+  }
 }
 
 /*
@@ -1104,57 +1140,65 @@ void mt<Type, Properties>::atperiods(const Periods& rPeriods,
 {
   rmt.SetDefined(false);
 
-  if(rPeriods.IsDefined())
+  if(IsDefined() &&
+     rPeriods.IsDefined())
   {
     rmt.SetDefined(true);
     bool bOK = rmt.SetGrid(m_Grid);
 
     if(bOK == true)
     {
-      int xDimensionSize = Properties::GetXDimensionSize();
-      int yDimensionSize = Properties::GetYDimensionSize();
       int tDimensionSize = Properties::GetTDimensionSize();
       datetime::DateTime gridDuration = m_Grid.GetDuration();
       double duration = gridDuration.ToDouble();
 
-      for(int time = 0; time < tDimensionSize; time++)
+      Index<3> minimumIndex;
+      Index<3> maximumIndex;
+      bOK = GetBoundingBoxIndexes(minimumIndex, maximumIndex);
+
+      if(bOK == true)
       {
-        for(int row = 0; row < yDimensionSize; row++)
+        for(int time = 0; time < tDimensionSize; time++)
         {
-          for(int column = 0; column < xDimensionSize; column++)
+          for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
           {
-            Index<3> index = (int[]){column, row, time};
-            Type value = GetValue(index);
-
-            if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+            for(int column = minimumIndex[0]; column < maximumIndex[0];
+                column++)
             {
-              datetime::DateTime startTime = time * duration;
-              datetime::DateTime endTime = (time + 1) * duration;
+              Index<3> index = (int[]){column, row, time};
+              Type value = GetValue(index);
 
-              Interval<DateTime> timeInterval(startTime, endTime, true, false);
-
-              if(rPeriods.Contains(timeInterval))
+              if(Properties::TypeProperties::IsUndefinedValue(value) == false)
               {
-                bOK = rmt.SetValue(index, value, true);
-              }
+                datetime::DateTime startTime = time * duration;
+                datetime::DateTime endTime = (time + 1) * duration;
 
-              else
-              {
-                if(rPeriods.Intersects(timeInterval) ||
-                   rPeriods.Inside(timeInterval))
-                {
-                  Range<datetime::DateTime> range(2);
-                  rPeriods.Intersection(timeInterval, range);
-
-                  Interval<DateTime> rangeValue(startTime, endTime,
+                Interval<DateTime> timeInterval(startTime, endTime,
                                                 true, false);
-                  range.Get(0, rangeValue);
-                  datetime::DateTime rangeLength = rangeValue.end -
-                                                   rangeValue.start;
 
-                  if(rangeLength >= (gridDuration * 0.5))
+                if(rPeriods.Contains(timeInterval))
+                {
+                  bOK = rmt.SetValue(index, value, true);
+                }
+
+                else
+                {
+                  if(rPeriods.Intersects(timeInterval) ||
+                     rPeriods.Inside(timeInterval))
                   {
-                    bOK = rmt.SetValue(index, value, true);
+                    Range<datetime::DateTime> range(2);
+                    rPeriods.Intersection(timeInterval, range);
+
+                    Interval<DateTime> rangeValue(startTime, endTime,
+                                                  true, false);
+                    range.Get(0, rangeValue);
+                    datetime::DateTime rangeLength = rangeValue.end -
+                                                     rangeValue.start;
+
+                    if(rangeLength >= (gridDuration * 0.5))
+                    {
+                      bOK = rmt.SetValue(index, value, true);
+                    }
                   }
                 }
               }
@@ -1186,7 +1230,8 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
 {
   rmt.SetDefined(false);
 
-  if(rRectangle.IsDefined())
+  if(IsDefined() &&
+     rRectangle.IsDefined())
   {
     double instant1 = 0;
     double instant2 = (Properties::GetTDimensionSize() - 1) *
@@ -1222,7 +1267,8 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
 {
   rmt.SetDefined(false);
 
-  if(rRectangle.IsDefined())
+  if(IsDefined() &&
+     rRectangle.IsDefined())
   {
     if(IsValidLocation(rRectangle.MinD(0), rRectangle.MinD(1), rInstant1) &&
        IsValidLocation(rRectangle.MaxD(0), rRectangle.MaxD(1), rInstant2))
@@ -1285,48 +1331,57 @@ exceptions: -
 template <typename Type, typename Properties>
 void mt<Type, Properties>::deftime(Periods& rPeriods) const
 {
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
-  int tDimensionSize = Properties::GetTDimensionSize();
-  double duration = m_Grid.GetDuration().ToDouble();
-  Periods periods(true);
+  rPeriods.SetDefined(false);
 
-  periods.StartBulkLoad();
-
-  for(int time = 0; time < tDimensionSize; time++)
+  if(IsDefined())
   {
-    bool bDefined = false;
+    Index<3> minimumIndex;
+    Index<3> maximumIndex;
+    bool bOK = GetBoundingBoxIndexes(minimumIndex, maximumIndex);
 
-    for(int row = 0; row < yDimensionSize; row++)
+    if(bOK == true)
     {
-      for(int column = 0; column < xDimensionSize; column++)
-      {
-        Index<3> index = (int[]){column, row, time};
-        Type value = GetValue(index);
+      double duration = m_Grid.GetDuration().ToDouble();
+      Periods periods(true);
 
-        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+      periods.StartBulkLoad();
+
+      for(int time = minimumIndex[2]; time < maximumIndex[2]; time++)
+      {
+        bool bDefined = false;
+
+        for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
         {
-          bDefined = true;
-          break;
+          for(int column = minimumIndex[0]; column < maximumIndex[0]; column++)
+          {
+            Index<3> index = (int[]){column, row, time};
+            Type value = GetValue(index);
+
+            if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+            {
+              bDefined = true;
+              break;
+            }
+          }
+          
+          if(bDefined == true)
+          {
+            break;
+          }
+        }
+
+        if(bDefined == true)
+        {
+          Instant startTime(time * duration);
+          Instant endTime((time + 1) * duration);
+          periods.Add(Interval<DateTime>(startTime, endTime, true, false));
         }
       }
-      
-      if(bDefined == true)
-      {
-        break;
-      }
-    }
 
-    if(bDefined == true)
-    {
-      Instant startTime(time * duration);
-      Instant endTime((time + 1) * duration);
-      periods.Add(Interval<DateTime>(startTime, endTime, true, false));
+      periods.EndBulkLoad();
+      periods.Merge(rPeriods);
     }
   }
-
-  periods.EndBulkLoad();
-  periods.Merge(rPeriods);
 }
 
 /*
@@ -1344,29 +1399,116 @@ template <typename Type, typename Properties>
 void mt<Type, Properties>::bbox(typename Properties::RectangleType&
                                 rBoundingBox) const
 {
-  double minima[3] = { 0.0, 0.0, 0.0 };
-  double maxima[3] = { 0.0, 0.0, 0.0 };
+  rBoundingBox.SetDefined(false);
 
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
-  int tDimensionSize = Properties::GetTDimensionSize();
-  Type value = Properties::TypeProperties::GetUndefinedValue();
-
-  for(int column = 0; column < xDimensionSize; column++)
+  if(IsDefined())
   {
-    bool bbreak = false;
+    double minima[3] = { 0.0, 0.0, 0.0 };
+    double maxima[3] = { 0.0, 0.0, 0.0 };
+
+    int xDimensionSize = Properties::GetXDimensionSize();
+    int yDimensionSize = Properties::GetYDimensionSize();
+    int tDimensionSize = Properties::GetTDimensionSize();
+    Type value = Properties::TypeProperties::GetUndefinedValue();
+
+    /*
+    calculation of x dimension minimum
+
+    */
+
+    for(int column = 0; column < xDimensionSize; column++)
+    {
+      bool bbreak = false;
+
+      for(int row = 0; row < yDimensionSize; row++)
+      {
+        for(int time = 0; time < tDimensionSize; time++)
+        {
+          Index<3> index = (int[]){column, row, time};
+          value = GetValue(index);
+
+          if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+          {
+            minima[0] = m_Grid.GetX() + column * m_Grid.GetLength();
+            bbreak = true;
+            break;
+          }
+        }
+
+        if(bbreak == true)
+        {
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    /*
+    calculation of x dimension maximum
+
+    */
+
+    for(int column = xDimensionSize - 1; column >= 0; column--)
+    {
+      bool bbreak = false;
+
+      for(int row = 0; row < yDimensionSize; row++)
+      {
+        for(int time = 0; time < tDimensionSize; time++)
+        {
+          Index<3> index = (int[]){column, row, time};
+          value = GetValue(index);
+
+          if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+          {
+            maxima[0] = m_Grid.GetX() + (column + 1) * m_Grid.GetLength();
+            bbreak = true;
+            break;
+          }
+        }
+
+        if(bbreak == true)
+        {
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    /*
+    calculation of y dimension minimum
+
+    */
 
     for(int row = 0; row < yDimensionSize; row++)
     {
-      for(int time = 0; time < tDimensionSize; time++)
-      {
-        Index<3> index = (int[]){column, row, time};
-        value = GetValue(index);
+      bool bbreak = false;
 
-        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+      for(int column = 0; column < xDimensionSize; column++)
+      {
+        for(int time = 0; time < tDimensionSize; time++)
         {
-          minima[0] = m_Grid.GetX() + column * m_Grid.GetLength();
-          bbreak = true;
+          Index<3> index = (int[]){column, row, time};
+          value = GetValue(index);
+
+          if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+          {
+            minima[1] = m_Grid.GetY() + row * m_Grid.GetLength();
+            bbreak = true;
+            break;
+          }
+        }
+
+        if(bbreak == true)
+        {
           break;
         }
       }
@@ -1377,27 +1519,32 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       }
     }
 
-    if(bbreak == true)
-    {
-      break;
-    }
-  }
+    /*
+    calculation of y dimension maximum
 
-  for(int column = xDimensionSize - 1; column >= 0; column--)
-  {
-    bool bbreak = false;
+    */
 
-    for(int row = 0; row < yDimensionSize; row++)
+    for(int row = yDimensionSize - 1; row >= 0; row--)
     {
-      for(int time = 0; time < tDimensionSize; time++)
+      bool bbreak = false;
+
+      for(int column = 0; column < xDimensionSize; column++)
       {
-        Index<3> index = (int[]){column, row, time};
-        value = GetValue(index);
-
-        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        for(int time = 0; time < tDimensionSize; time++)
         {
-          maxima[0] = m_Grid.GetX() + (column + 1) * m_Grid.GetLength();
-          bbreak = true;
+          Index<3> index = (int[]){column, row, time};
+          value = GetValue(index);
+
+          if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+          {
+            maxima[1] = m_Grid.GetY() + (row + 1) * m_Grid.GetLength();
+            bbreak = true;
+            break;
+          }
+        }
+
+        if(bbreak == true)
+        {
           break;
         }
       }
@@ -1408,27 +1555,32 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       }
     }
 
-    if(bbreak == true)
-    {
-      break;
-    }
-  }
+    /*
+    calculation of time dimension minimum
 
-  for(int row = 0; row < yDimensionSize; row++)
-  {
-    bool bbreak = false;
+    */
 
-    for(int column = 0; column < xDimensionSize; column++)
+    for(int time = 0; time < tDimensionSize; time++)
     {
-      for(int time = 0; time < tDimensionSize; time++)
+      bool bbreak = false;
+
+      for(int column = 0; column < xDimensionSize; column++)
       {
-        Index<3> index = (int[]){column, row, time};
-        value = GetValue(index);
-
-        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        for(int row = 0; row < yDimensionSize; row++)
         {
-          minima[1] = m_Grid.GetY() + row * m_Grid.GetLength();
-          bbreak = true;
+          Index<3> index = (int[]){column, row, time};
+          value = GetValue(index);
+
+          if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+          {
+            minima[2] = time * m_Grid.GetDuration().ToDouble();
+            bbreak = true;
+            break;
+          }
+        }
+
+        if(bbreak == true)
+        {
           break;
         }
       }
@@ -1439,27 +1591,32 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       }
     }
 
-    if(bbreak == true)
-    {
-      break;
-    }
-  }
+    /*
+    calculation of time dimension maximum
 
-  for(int row = yDimensionSize - 1; row >= 0; row--)
-  {
-    bool bbreak = false;
+    */
 
-    for(int column = 0; column < xDimensionSize; column++)
+    for(int time = tDimensionSize - 1; time >= 0; time--)
     {
-      for(int time = 0; time < tDimensionSize; time++)
+      bool bbreak = false;
+
+      for(int column = 0; column < xDimensionSize; column++)
       {
-        Index<3> index = (int[]){column, row, time};
-        value = GetValue(index);
-
-        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        for(int row = 0; row < yDimensionSize; row++)
         {
-          maxima[1] = m_Grid.GetY() + (row + 1) * m_Grid.GetLength();
-          bbreak = true;
+          Index<3> index = (int[]){column, row, time};
+          value = GetValue(index);
+
+          if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+          {
+            maxima[2] = (time + 1) * m_Grid.GetDuration().ToDouble();
+            bbreak = true;
+            break;
+          }
+        }
+
+        if(bbreak == true)
+        {
           break;
         }
       }
@@ -1470,107 +1627,52 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       }
     }
 
-    if(bbreak == true)
-    {
-      break;
-    }
+    rBoundingBox.Set(true, minima, maxima);
   }
-
-  for(int time = 0; time < tDimensionSize; time++)
-  {
-    bool bbreak = false;
-
-    for(int column = 0; column < xDimensionSize; column++)
-    {
-      for(int row = 0; row < yDimensionSize; row++)
-      {
-        Index<3> index = (int[]){column, row, time};
-        value = GetValue(index);
-
-        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
-        {
-          minima[2] = time * m_Grid.GetDuration().ToDouble();
-          bbreak = true;
-          break;
-        }
-      }
-
-      if(bbreak == true)
-      {
-        break;
-      }
-    }
-
-    if(bbreak == true)
-    {
-      break;
-    }
-  }
-
-  for(int time = tDimensionSize - 1; time >= 0; time--)
-  {
-    bool bbreak = false;
-
-    for(int column = 0; column < xDimensionSize; column++)
-    {
-      for(int row = 0; row < yDimensionSize; row++)
-      {
-        Index<3> index = (int[]){column, row, time};
-        value = GetValue(index);
-
-        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
-        {
-          maxima[2] = (time + 1) * m_Grid.GetDuration().ToDouble();
-          bbreak = true;
-          break;
-        }
-      }
-
-      if(bbreak == true)
-      {
-        break;
-      }
-    }
-
-    if(bbreak == true)
-    {
-      break;
-    }
-  }
-
-  rBoundingBox.Set(true, minima, maxima);
 }
 
 /*
 TileAlgebra operator minimum returns the minimum value of mt object.
 
 author: Dirk Zacher
-parameters: -
-return value: minimum value of mt object
+parameters: rMinimum - reference to a Type object containing
+                       the minimum value of mt object
+return value: -
 exceptions: -
 
 */
 
 template <typename Type, typename Properties>
-Type mt<Type, Properties>::minimum() const
+void mt<Type, Properties>::minimum(Type& rMinimum) const
 {
-  return m_Minimum;
+  rMinimum = Properties::TypeProperties::GetUndefinedValue();
+
+  if(IsDefined())
+  {
+    rMinimum = m_Minimum;
+  }
 }
 
 /*
 TileAlgebra operator maximum returns the maximum value of mt object.
 
 author: Dirk Zacher
-parameters: -
-return value: maximum value of mt object
+parameters: rMaximum - reference to a Type object containing
+                       the maximum value of mt object
+return value: -
 exceptions: -
 
 */
 
 template <typename Type, typename Properties>
-Type mt<Type, Properties>::maximum() const
+void mt<Type, Properties>::maximum(Type& rMaximum) const
 {
-  return m_Maximum;
+  rMaximum = Properties::TypeProperties::GetUndefinedValue();
+
+  if(IsDefined())
+  {
+    rMaximum = m_Maximum;
+  }
 }
 
 /*
@@ -1578,7 +1680,7 @@ TileAlgebra operator getgrid returns the mtgrid object of mt object.
 
 author: Dirk Zacher
 parameters: rmtgrid - reference to a mtgrid object containing
-                      mtgrid object of mt object.
+                      mtgrid object of mt object
 return value: -
 exceptions: -
 
@@ -1587,7 +1689,53 @@ exceptions: -
 template <typename Type, typename Properties>
 void mt<Type, Properties>::getgrid(mtgrid& rmtgrid) const
 {
-  rmtgrid = m_Grid;
+  rmtgrid.SetDefined(false);
+
+  if(IsDefined())
+  {
+    rmtgrid = m_Grid;
+  }
+}
+
+/*
+Method GetBoundingBoxIndexes returns minimum index and maximum index
+of the bounding box of mt object.
+
+author: Dirk Zacher
+parameters: rMinimumIndex - reference to an Index<3> object containing
+                            the minimum index of the bounding box of mt object
+            rMaximumIndex - reference to an Index<3> object containing
+                            the maximum index of the bounding box of mt object
+return value: true, if minimum index and maximum index of the bounding box
+              of mt object successfully calculated, otherwise false
+exceptions: -
+
+*/
+
+template <typename Type, typename Properties>
+bool mt<Type, Properties>::GetBoundingBoxIndexes(Index<3>& rMinimumIndex,
+                                                 Index<3>& rMaximumIndex) const
+{
+  bool bRetVal = false;
+
+  if(IsDefined())
+  {
+    typename Properties::RectangleType boundingBox;
+    bbox(boundingBox);
+
+    if(boundingBox.IsDefined())
+    {
+      rMinimumIndex = GetLocationIndex(boundingBox.MinD(0),
+                                       boundingBox.MinD(1),
+                                       boundingBox.MinD(2));
+      rMaximumIndex = GetLocationIndex(boundingBox.MaxD(0),
+                                       boundingBox.MaxD(1),
+                                       boundingBox.MaxD(2));
+      bRetVal = true;
+    }
+  }
+
+  return bRetVal;
 }
 
 /*
@@ -1606,34 +1754,13 @@ template <typename Type, typename Properties>
 Index<2> mt<Type, Properties>::GetLocationIndex(const double& rX,
                                                 const double& rY) const
 {
-  int xDimensionSize = Properties::GetXDimensionSize();
-  int yDimensionSize = Properties::GetYDimensionSize();
   double gridX = m_Grid.GetX();
   double gridY = m_Grid.GetY();
   double gridLength = m_Grid.GetLength();
-
   int indexX = static_cast<int>((rX - gridX) / gridLength);
   int indexY = static_cast<int>((rY - gridY) / gridLength);
-
-  /*
-  special cases for bounding boxes
-
-  */
-
-  if(AlmostEqual((rX - gridX) / gridLength, xDimensionSize * gridLength))
-  {
-    indexX--;
-  }
-
-  if(AlmostEqual((rY - gridY) / gridLength, yDimensionSize * gridLength))
-  {
-    indexY--;
-  }
-
-  assert(indexX < xDimensionSize);
-  assert(indexY < yDimensionSize);
-
   Index<2> locationIndex = (int[]){indexX, indexY};
+
   return locationIndex;
 }
 
@@ -1655,25 +1782,11 @@ Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
                                                 const double& rY,
                                                 const double& rInstant) const
 {
-  int tDimensionSize = Properties::GetTDimensionSize();
-  double gridDuration = m_Grid.GetDuration().ToDouble();
   Index<2> index2 = GetLocationIndex(rX, rY);
-
+  double gridDuration = m_Grid.GetDuration().ToDouble();
   int indexT = static_cast<int>(rInstant / gridDuration);
-
-  /*
-  special case for bounding boxes
-
-  */
-
-  if(AlmostEqual(rInstant / gridDuration, tDimensionSize * gridDuration))
-  {
-    indexT--;
-  }
-
-  assert(indexT < tDimensionSize);
-
   Index<3> locationIndex = (int[]){index2[0], index2[1], indexT};
+
   return locationIndex;
 }
 
@@ -1797,7 +1910,8 @@ bool mt<Type, Properties>::SetGrid(const mtgrid& rmtgrid)
 {
   bool bRetVal = false;
 
-  if(rmtgrid.IsDefined())
+  if(IsDefined() &&
+     rmtgrid.IsDefined())
   {
     m_Grid = rmtgrid;
     bRetVal = true;
@@ -1826,13 +1940,16 @@ bool mt<Type, Properties>::SetGrid(const double& rX,
                                    const double& rLength,
                                    const datetime::DateTime& rDuration)
 {
-  bool bRetVal = true;
+  bool bRetVal = false;
 
-  m_Grid.SetDefined(true);
-  bRetVal &= m_Grid.SetX(rX);
-  bRetVal &= m_Grid.SetY(rY);
-  bRetVal &= m_Grid.SetLength(rLength);
-  bRetVal &= m_Grid.SetDuration(rDuration);
+  if(IsDefined())
+  {
+    m_Grid.SetDefined(true);
+    bRetVal  = m_Grid.SetX(rX);
+    bRetVal &= m_Grid.SetY(rY);
+    bRetVal &= m_Grid.SetLength(rLength);
+    bRetVal &= m_Grid.SetDuration(rDuration);
+  }
 
   return bRetVal;
 }
