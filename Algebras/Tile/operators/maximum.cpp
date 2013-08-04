@@ -84,15 +84,18 @@ int maximumFunction(Word* pArguments,
 
         if(pResult != 0)
         {
+          pResult->SetDefined(false);
+
           if(pType->IsDefined())
           {
-            *pResult = Properties::TypeProperties::GetWrappedValue
-                       (pType->maximum());
-          }
+            typename Properties::TypeProperties::PropertiesType maximum =
+            Properties::TypeProperties::GetUndefinedValue();
+            pType->maximum(maximum);
 
-          else
-          {
-            pResult->SetDefined(false);
+            if(Properties::TypeProperties::IsUndefinedValue(maximum) == false)
+            {
+              *pResult = Properties::TypeProperties::GetWrappedValue(maximum);
+            }
           }
 
           nRetVal = 0;

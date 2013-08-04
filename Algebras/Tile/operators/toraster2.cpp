@@ -112,7 +112,9 @@ int toraster2Functiontgrid(Word* pArguments,
         {
           if(pGrid->IsDefined())
           {
-            pResult->set(pGrid->GetX(), pGrid->GetY(), pGrid->GetLength());
+            pResult->set(pGrid->GetX(),
+                         pGrid->GetY(),
+                         pGrid->GetLength());
             nRetVal = 0;
           }
         }
@@ -163,8 +165,10 @@ int toraster2Functionmtgrid(Word* pArguments,
         {
           if(pGrid->IsDefined())
           {
-            pResult->set(pGrid->GetX(), pGrid->GetY(),
-                         pGrid->GetLength(), pGrid->GetDuration());
+            pResult->set(pGrid->GetX(),
+                         pGrid->GetY(),
+                         pGrid->GetLength(),
+                         pGrid->GetDuration());
             nRetVal = 0;
           }
         }
@@ -225,9 +229,6 @@ int toraster2Functiont(Word* pArguments,
             raster2::grid2 grid(std::numeric_limits<double>::max(),
                                 std::numeric_limits<double>::max(),
                                 std::numeric_limits<double>::max());
-            int xDimensionSize = SourceTypeProperties::GetXDimensionSize();
-            int yDimensionSize = SourceTypeProperties::GetYDimensionSize();
-
             Word word;
             qp->Request(pArguments[0].addr, word);
 
@@ -254,27 +255,36 @@ int toraster2Functiont(Word* pArguments,
                   pDestinationType->setGrid(grid);
                 }
 
-                for(int row = 0; row < yDimensionSize; row++)
+                Index<2> minimumIndex;
+                Index<2> maximumIndex;
+                bool bOK = pSourceType->GetBoundingBoxIndexes(minimumIndex,
+                                                              maximumIndex);
+
+                if(bOK == true)
                 {
-                  for(int column = 0; column < xDimensionSize; column++)
+                  for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
                   {
-                    double x = sourceGridX + column * sourceGridLength;
-                    double y = sourceGridY + row * sourceGridLength;
-                    typename SourceTypeProperties::TypeProperties::
-                    WrapperType wrappedValue;
-
-                    pSourceType->atlocation(x, y, wrappedValue);
-
-                    if(wrappedValue.IsDefined())
+                    for(int column = minimumIndex[0]; column < maximumIndex[0];
+                        column++)
                     {
+                      double x = sourceGridX + column * sourceGridLength;
+                      double y = sourceGridY + row * sourceGridLength;
                       typename SourceTypeProperties::TypeProperties::
-                      PropertiesType value = SourceTypeProperties::
-                      TypeProperties::GetUnwrappedValue(wrappedValue);
+                      WrapperType wrappedValue;
 
-                      if(SourceTypeProperties::TypeProperties::
-                         IsUndefinedValue(value) == false)
+                      pSourceType->atlocation(x, y, wrappedValue);
+
+                      if(wrappedValue.IsDefined())
                       {
-                        pDestinationType->setatlocation(x, y, value);
+                        typename SourceTypeProperties::TypeProperties::
+                        PropertiesType value = SourceTypeProperties::
+                        TypeProperties::GetUnwrappedValue(wrappedValue);
+
+                        if(SourceTypeProperties::TypeProperties::
+                           IsUndefinedValue(value) == false)
+                        {
+                          pDestinationType->setatlocation(x, y, value);
+                        }
                       }
                     }
                   }
@@ -357,9 +367,6 @@ int toraster2Functionmt(Word* pArguments,
                                 std::numeric_limits<double>::max(),
                                 std::numeric_limits<double>::max(),
                                 datetime::DateTime(0.0));
-            int xDimensionSize = SourceTypeProperties::GetXDimensionSize();
-            int yDimensionSize = SourceTypeProperties::GetYDimensionSize();
-            int tDimensionSize = SourceTypeProperties::GetTDimensionSize();
             Word word;
             qp->Request(pArguments[0].addr, word);
 
@@ -389,30 +396,41 @@ int toraster2Functionmt(Word* pArguments,
                   pDestinationType->setGrid(grid);
                 }
 
-                for(int time = 0; time < tDimensionSize; time++)
+                Index<3> minimumIndex;
+                Index<3> maximumIndex;
+                bool bOK = pSourceType->GetBoundingBoxIndexes(minimumIndex,
+                                                              maximumIndex);
+
+                if(bOK == true)
                 {
-                  for(int row = 0; row < yDimensionSize; row++)
+                  for(int time = minimumIndex[2]; time < maximumIndex[2];
+                      time++)
                   {
-                    for(int column = 0; column < xDimensionSize; column++)
+                    for(int row = minimumIndex[1]; row < maximumIndex[1];
+                        row++)
                     {
-                      double x = sourceGridX + column * sourceGridLength;
-                      double y = sourceGridY + row * sourceGridLength;
-                      double t = time * sourceGridDuration.ToDouble();
-                      typename SourceTypeProperties::TypeProperties::
-                      WrapperType wrappedValue;
-
-                      pSourceType->atlocation(x, y, t, wrappedValue);
-
-                      if(wrappedValue.IsDefined())
+                      for(int column = minimumIndex[0];
+                          column < maximumIndex[0]; column++)
                       {
+                        double x = sourceGridX + column * sourceGridLength;
+                        double y = sourceGridY + row * sourceGridLength;
+                        double t = time * sourceGridDuration.ToDouble();
                         typename SourceTypeProperties::TypeProperties::
-                        PropertiesType value = SourceTypeProperties::
-                        TypeProperties::GetUnwrappedValue(wrappedValue);
+                        WrapperType wrappedValue;
 
-                        if(SourceTypeProperties::TypeProperties::
-                           IsUndefinedValue(value) == false)
+                        pSourceType->atlocation(x, y, t, wrappedValue);
+
+                        if(wrappedValue.IsDefined())
                         {
-                          pDestinationType->setatlocation(x, y, t, value);
+                          typename SourceTypeProperties::TypeProperties::
+                          PropertiesType value = SourceTypeProperties::
+                          TypeProperties::GetUnwrappedValue(wrappedValue);
+
+                          if(SourceTypeProperties::TypeProperties::
+                             IsUndefinedValue(value) == false)
+                          {
+                            pDestinationType->setatlocation(x, y, t, value);
+                          }
                         }
                       }
                     }
@@ -502,9 +520,6 @@ int toraster2Functionit(Word* pArguments,
               raster2::grid2 grid(std::numeric_limits<double>::max(),
                                   std::numeric_limits<double>::max(),
                                   std::numeric_limits<double>::max());
-              int xDimensionSize = SourceTypeProperties::GetXDimensionSize();
-              int yDimensionSize = SourceTypeProperties::GetYDimensionSize();
-
               Word word;
               qp->Request(pArguments[0].addr, word);
 
@@ -536,27 +551,37 @@ int toraster2Functionit(Word* pArguments,
                     pstype->setGrid(grid);
                   }
 
-                  for(int row = 0; row < yDimensionSize; row++)
+                  Index<2> minimumIndex;
+                  Index<2> maximumIndex;
+                  bool bOK = pSourceType->GetBoundingBoxIndexes(minimumIndex,
+                                                                maximumIndex);
+
+                  if(bOK == true)
                   {
-                    for(int column = 0; column < xDimensionSize; column++)
+                    for(int row = minimumIndex[1]; row < maximumIndex[1];
+                        row++)
                     {
-                      double x = sourceGridX + column * sourceGridLength;
-                      double y = sourceGridY + row * sourceGridLength;
-                      typename SourceTypeProperties::TypeProperties::
-                      WrapperType wrappedValue;
-
-                      pSourceType->atlocation(x, y, wrappedValue);
-
-                      if(wrappedValue.IsDefined())
+                      for(int column = minimumIndex[0];
+                          column < maximumIndex[0]; column++)
                       {
+                        double x = sourceGridX + column * sourceGridLength;
+                        double y = sourceGridY + row * sourceGridLength;
                         typename SourceTypeProperties::TypeProperties::
-                        PropertiesType value = SourceTypeProperties::
-                        TypeProperties::GetUnwrappedValue(wrappedValue);
+                        WrapperType wrappedValue;
 
-                        if(SourceTypeProperties::TypeProperties::
-                           IsUndefinedValue(value) == false)
+                        pSourceType->atlocation(x, y, wrappedValue);
+
+                        if(wrappedValue.IsDefined())
                         {
-                          pstype->setatlocation(x, y, value);
+                          typename SourceTypeProperties::TypeProperties::
+                          PropertiesType value = SourceTypeProperties::
+                          TypeProperties::GetUnwrappedValue(wrappedValue);
+
+                          if(SourceTypeProperties::TypeProperties::
+                             IsUndefinedValue(value) == false)
+                          {
+                            pstype->setatlocation(x, y, value);
+                          }
                         }
                       }
                     }

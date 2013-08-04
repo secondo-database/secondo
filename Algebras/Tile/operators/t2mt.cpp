@@ -130,26 +130,33 @@ int t2mtFunction(Word* pArguments,
 
               if(bOK == true)
               {
-                int xDimensionSize = Properties::GetXDimensionSize();
-                int yDimensionSize = Properties::GetYDimensionSize();
+                Index<2> minimumIndex;
+                Index<2> maximumIndex;
+                bool bOK = pType->GetBoundingBoxIndexes(minimumIndex,
+                                                        maximumIndex);
 
-                for(int time = startTime; time <= endTime; time++)
+                if(bOK == true)
                 {
-                  for(int row = 0; row < yDimensionSize; row++)
+                  for(int time = startTime; time <= endTime; time++)
                   {
-                    for(int column = 0; column < xDimensionSize; column++)
+                    for(int row = minimumIndex[1]; row < maximumIndex[1];
+                        row++)
                     {
-                      typename Properties::TypeProperties::PropertiesType value
-                      = Properties::TypeProperties::GetUndefinedValue();
-
-                      Index<2> index2 = (int[]){column, row};
-                      value = pType->GetValue(index2);
-
-                      if(Properties::TypeProperties::IsUndefinedValue(value)
-                         == false)
+                      for(int column = minimumIndex[0];
+                          column < maximumIndex[0]; column++)
                       {
-                        Index<3> index3 = (int[]){column, row, time};
-                        bOK = pResult->SetValue(index3, value, true);
+                        typename Properties::TypeProperties::PropertiesType
+                        value = Properties::TypeProperties::GetUndefinedValue();
+
+                        Index<2> index2 = (int[]){column, row};
+                        value = pType->GetValue(index2);
+
+                        if(Properties::TypeProperties::IsUndefinedValue(value)
+                           == false)
+                        {
+                          Index<3> index3 = (int[]){column, row, time};
+                          bOK = pResult->SetValue(index3, value, true);
+                        }
                       }
                     }
                   }

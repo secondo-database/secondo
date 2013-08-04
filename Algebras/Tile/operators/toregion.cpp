@@ -84,10 +84,12 @@ int toregionFunction(Word* pArguments,
 
           if(ptbool->IsDefined())
           {
-            Rectangle<2> boundingBox;
-            ptbool->bbox(boundingBox);
+            Index<2> minimumIndex;
+            Index<2> maximumIndex;
+            bool bOK = ptbool->GetBoundingBoxIndexes(minimumIndex,
+                                                     maximumIndex);
 
-            if(boundingBox.IsDefined())
+            if(bOK == true)
             {
               tgrid grid;
               ptbool->getgrid(grid);
@@ -103,16 +105,9 @@ int toregionFunction(Word* pArguments,
               vector<vector<Point> > cycles;
               vector<vector<Point> > holes;
 
-              Index<2> startIndex = ptbool->GetLocationIndex
-                                    (boundingBox.MinD(0),
-                                     boundingBox.MinD(1));
-              Index<2> endIndex = ptbool->GetLocationIndex
-                                  (boundingBox.MaxD(0),
-                                   boundingBox.MaxD(1));
-
-              for(int row = startIndex[1]; row <= endIndex[1]; row++)
+              for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
               {
-                for(int column = startIndex[0]; column <= endIndex[0];
+                for(int column = minimumIndex[0]; column < maximumIndex[0];
                     column++)
                 {
                   Index<2> index = (int[]){column, row};

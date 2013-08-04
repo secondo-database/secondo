@@ -167,19 +167,22 @@ void tstring::atlocation(const double& rX,
 {
   rValue.SetDefined(false);
 
-  CcInt intValue;
-  tint::atlocation(rX, rY, intValue);
-
-  if(intValue.IsDefined())
+  if(IsDefined())
   {
-    std::string stringValue;
-    bool bOK = m_UniqueStringArray.GetUniqueString(intValue.GetValue(),
-                                                   stringValue);
+    CcInt intValue;
+    tint::atlocation(rX, rY, intValue);
 
-    if(bOK == true)
+    if(intValue.IsDefined())
     {
-      rValue = tProperties<std::string>::TypeProperties::
-               GetWrappedValue(stringValue);
+      std::string stringValue;
+      bool bOK = m_UniqueStringArray.GetUniqueString(intValue.GetValue(),
+                                                     stringValue);
+
+      if(bOK == true)
+      {
+        rValue = tProperties<std::string>::TypeProperties::
+                 GetWrappedValue(stringValue);
+      }
     }
   }
 }
@@ -202,7 +205,8 @@ void tstring::atrange(const Rectangle<2>& rRectangle,
 {
   rtstring.SetDefined(false);
 
-  if(rRectangle.IsDefined())
+  if(IsDefined() &&
+     rRectangle.IsDefined())
   {
     if(IsValidLocation(rRectangle.MinD(0), rRectangle.MinD(1)) &&
        IsValidLocation(rRectangle.MaxD(0), rRectangle.MaxD(1)))
@@ -244,79 +248,49 @@ void tstring::atrange(const Rectangle<2>& rRectangle,
 }
 
 /*
-TODO: delete method implementation after refactoring of atrange operator
-
-TileAlgebra operator atrange returns all values of a tstring object
-inside the given rectangle.
+TileAlgebra operator minimum returns the minimum value of tstring object.
 
 author: Dirk Zacher
-parameters: rRectangle - reference to a Rectangle<2> object
-            rInstant1 - reference to the first Instant value
-            rInstant2 - reference to the second Instant value
-            rtstring - reference to a tstring object containing all values
-                       of the tstring object inside the given rectangle
+parameters: rMinimum - reference to a std::string object containing
+                       the minimum value of tstring object
 return value: -
 exceptions: -
 
 */
 
-void tstring::atrange(const Rectangle<2>& rRectangle,
-                      const double& rInstant1,
-                      const double& rInstant2,
-                      tstring& rtstring) const
+void tstring::minimum(std::string& rMinimum) const
 {
-  /*
-  instant values are not relevant for tstring type.
+  rMinimum.clear();
 
-  */
-
-  atrange(rRectangle, rtstring);
-}
-
-/*
-TileAlgebra operator minimum returns the minimum value of tstring object.
-
-author: Dirk Zacher
-parameters: -
-return value: minimum value of tstring object
-exceptions: -
-
-*/
-
-std::string tstring::minimum() const
-{
-  std::string minimum;
-
-  if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) == false)
+  if(IsDefined() &&
+     tProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) == false)
   {
-    bool bOK = m_UniqueStringArray.GetUniqueString(m_Minimum, minimum);
+    bool bOK = m_UniqueStringArray.GetUniqueString(m_Minimum, rMinimum);
     assert(bOK);
   }
-
-  return minimum;
 }
 
 /*
 TileAlgebra operator maximum returns the maximum value of tstring object.
 
 author: Dirk Zacher
-parameters: -
-return value: maximum value of tstring object
+parameters: rMaximum - reference to a std::string object containing
+                       the maximum value of tstring object
+return value: -
 exceptions: -
 
 */
 
-std::string tstring::maximum() const
+void tstring::maximum(std::string& rMaximum) const
 {
-  std::string maximum;
+  rMaximum.clear();
 
-  if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) == false)
+  if(IsDefined() &&
+     tProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) == false)
   {
-    bool bOK = m_UniqueStringArray.GetUniqueString(m_Maximum, maximum);
+    bool bOK = m_UniqueStringArray.GetUniqueString(m_Maximum, rMaximum);
     assert(bOK);
   }
-
-  return maximum;
 }
 
 /*
@@ -382,14 +356,20 @@ bool tstring::SetValue(const Index<2>& rIndex,
 
     if(bSetExtrema == true)
     {
+      std::string minimumValue;
+      minimum(minimumValue);
+
       if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) ||
-         rValue < minimum())
+         rValue < minimumValue)
       {
         m_Minimum = stringIndex;
       }
 
+      std::string maximumValue;
+      maximum(maximumValue);
+
       if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) ||
-         rValue > maximum())
+         rValue > maximumValue)
       {
         m_Maximum = stringIndex;
       }

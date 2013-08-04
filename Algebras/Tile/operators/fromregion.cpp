@@ -86,14 +86,17 @@ bool SetRegionValues(const Region& rRegion,
         for(double x = rLeftPoint.GetX(); x <= rRightPoint.GetX();
             x += gridLength)
         {
-          Index<2> index = rtbool.GetLocationIndex(x, y);
-          Point centerPoint(true,
-                            gridX + index[0] * gridLength + halfGridLength,
-                            gridY + index[1] * gridLength + halfGridLength);
-
-          if(robust::contains(rRegion, centerPoint) > 0)
+          if(rtbool.IsValidLocation(x, y))
           {
-            bHasTrueValue |= rtbool.SetValue(x, y, true, true);
+            Index<2> index = rtbool.GetLocationIndex(x, y);
+            Point centerPoint(true,
+                              gridX + index[0] * gridLength + halfGridLength,
+                              gridY + index[1] * gridLength + halfGridLength);
+
+            if(robust::contains(rRegion, centerPoint) > 0)
+            {
+              bHasTrueValue |= rtbool.SetValue(x, y, true, true);
+            }
           }
         }
       }
@@ -107,14 +110,17 @@ bool SetRegionValues(const Region& rRegion,
         for(double x = rLeftPoint.GetX(); x <= rRightPoint.GetX();
             x += gridLength)
         {
-          Index<2> index = rtbool.GetLocationIndex(x, y);
-          Point centerPoint(true,
-                            gridX + index[0] * gridLength + halfGridLength,
-                            gridY + index[1] * gridLength + halfGridLength);
-
-          if(robust::contains(rRegion, centerPoint) > 0)
+          if(rtbool.IsValidLocation(x, y))
           {
-            bHasTrueValue |= rtbool.SetValue(x, y, true, true);
+            Index<2> index = rtbool.GetLocationIndex(x, y);
+            Point centerPoint(true,
+                              gridX + index[0] * gridLength + halfGridLength,
+                              gridY + index[1] * gridLength + halfGridLength);
+
+            if(robust::contains(rRegion, centerPoint) > 0)
+            {
+              bHasTrueValue |= rtbool.SetValue(x, y, true, true);
+            }
           }
         }
       }

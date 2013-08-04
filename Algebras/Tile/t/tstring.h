@@ -181,55 +181,35 @@ class tstring : public tint
   exceptions: -
 
   */
-  
-  void atrange(const Rectangle<2>& rRectangle,
-               tstring& rtstring) const;
-
-  /*
-  TODO: delete method implementation after refactoring of atrange operator
-
-  TileAlgebra operator atrange returns all values of a tstring object
-  inside the given rectangle.
-
-  author: Dirk Zacher
-  parameters: rRectangle - reference to a Rectangle<2> object
-              rInstant1 - reference to the first Instant value
-              rInstant2 - reference to the second Instant value
-              rtstring - reference to a tstring object containing all values
-                         of the tstring object inside the given rectangle
-  return value: -
-  exceptions: -
-
-  */
 
   void atrange(const Rectangle<2>& rRectangle,
-               const double& rInstant1,
-               const double& rInstant2,
                tstring& rtstring) const;
 
   /*
   TileAlgebra operator minimum returns the minimum value of tstring object.
 
   author: Dirk Zacher
-  parameters: -
-  return value: minimum value of tstring object
+  parameters: rMinimum - reference to a std::string object containing
+                         the minimum value of tstring object
+  return value: -
   exceptions: -
 
   */
 
-  std::string minimum() const;
+  void minimum(std::string& rMinimum) const;
 
   /*
   TileAlgebra operator maximum returns the maximum value of tstring object.
 
   author: Dirk Zacher
-  parameters: -
-  return value: maximum value of tstring object
+  parameters: rMaximum - reference to a std::string object containing
+                         the maximum value of tstring object
+  return value: -
   exceptions: -
 
   */
 
-  std::string maximum() const;
+  void maximum(std::string& rMaximum) const;
 
   /*
   Method GetValue returns the string value of tstring object

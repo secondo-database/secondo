@@ -169,7 +169,8 @@ void mtstring::atlocation(const double& rX,
 {
   rValues.SetDefined(false);
 
-  if(IsValidLocation(rX, rY))
+  if(IsDefined() &&
+     IsValidLocation(rX, rY))
   {
     rValues.SetDefined(true);
 
@@ -227,7 +228,8 @@ void mtstring::atlocation(const double& rX,
 {
   rValue.SetDefined(false);
 
-  if(IsValidLocation(rX, rY, rInstant))
+  if(IsDefined() &&
+     IsValidLocation(rX, rY, rInstant))
   {
     Index<3> index = GetLocationIndex(rX, rY, rInstant);
     std::string value = GetValue(index);
@@ -259,39 +261,53 @@ void mtstring::atinstant(const Instant& rInstant,
 {
   ritstring.SetDefined(false);
 
-  tstring tstring(true);
-  tstring.SetGrid(m_Grid);
-
-  int xDimensionSize = mtProperties<std::string>::GetXDimensionSize();
-  int yDimensionSize = mtProperties<std::string>::GetYDimensionSize();
-  double gridDuration = m_Grid.GetDuration().ToDouble();
-  int time = static_cast<int>(rInstant.ToDouble() / gridDuration);
-  bool bmtstringDefined = false;
-
-  for(int row = 0; row < yDimensionSize; row++)
+  if(IsDefined())
   {
-    for(int column = 0; column < xDimensionSize; column++)
-    {
-      Index<3> index3 = (int[]){column, row, time};
-      std::string value = GetValue(index3);
+    ritstring.SetDefined(true);
+    
+    tstring tstring(true);
+    tstring.SetGrid(m_Grid);
 
-      if(mtProperties<std::string>::TypeProperties::
-         IsUndefinedValue(value) == false)
+    int time = static_cast<int>(rInstant.ToDouble() /
+                                m_Grid.GetDuration().ToDouble());
+    int tDimensionSize = mtProperties<std::string>::GetTDimensionSize();
+    bool btstringDefined = false;
+
+    if(time < tDimensionSize)
+    {
+      Index<3> minimumIndex;
+      Index<3> maximumIndex;
+      bool bOK = GetBoundingBoxIndexes(minimumIndex, maximumIndex);
+
+      if(bOK == true)
       {
-        bmtstringDefined = true;
-        Index<2> index2 = (int[]){column, row};
-        tstring.SetValue(index2, value, true);
+        for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
+        {
+          for(int column = minimumIndex[0]; column < maximumIndex[0]; column++)
+          {
+            Index<3> index3 = (int[]){column, row, time};
+            std::string value = GetValue(index3);
+
+            if(mtProperties<std::string>::TypeProperties::
+               IsUndefinedValue(value) == false)
+            {
+              btstringDefined = true;
+              Index<2> index2 = (int[]){column, row};
+              tstring.SetValue(index2, value, true);
+            }
+          }
+        }
       }
     }
-  }
-  
-  if(bmtstringDefined == false)
-  {
-    tstring.SetDefined(false);
-  }
+    
+    if(btstringDefined == false)
+    {
+      tstring.SetDefined(false);
+    }
 
-  ritstring.SetInstant(rInstant);
-  ritstring.SetValues(tstring);
+    ritstring.SetInstant(rInstant);
+    ritstring.SetValues(tstring);
+  }
 }
 
 /*
@@ -313,58 +329,66 @@ void mtstring::atperiods(const Periods& rPeriods,
 {
   rmtstring.SetDefined(false);
 
-  if(rPeriods.IsDefined())
+  if(IsDefined() &&
+     rPeriods.IsDefined())
   {
     rmtstring.SetDefined(true);
     bool bOK = rmtstring.SetGrid(m_Grid);
 
     if(bOK == true)
     {
-      int xDimensionSize = mtProperties<std::string>::GetXDimensionSize();
-      int yDimensionSize = mtProperties<std::string>::GetYDimensionSize();
-      int tDimensionSize = mtProperties<std::string>::GetTDimensionSize();
-      datetime::DateTime gridDuration = m_Grid.GetDuration();
-      double duration = gridDuration.ToDouble();
+      Index<3> minimumIndex;
+      Index<3> maximumIndex;
+      bOK = GetBoundingBoxIndexes(minimumIndex, maximumIndex);
 
-      for(int time = 0; time < tDimensionSize; time++)
+      if(bOK == true)
       {
-        for(int row = 0; row < yDimensionSize; row++)
+        int tDimensionSize = mtProperties<std::string>::GetTDimensionSize();
+        datetime::DateTime gridDuration = m_Grid.GetDuration();
+        double duration = gridDuration.ToDouble();
+
+        for(int time = 0; time < tDimensionSize; time++)
         {
-          for(int column = 0; column < xDimensionSize; column++)
+          for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
           {
-            Index<3> index = (int[]){column, row, time};
-            std::string value = GetValue(index);
-
-            if(mtProperties<std::string>::TypeProperties::
-               IsUndefinedValue(value) == false)
+            for(int column = minimumIndex[0]; column < maximumIndex[0];
+                column++)
             {
-              datetime::DateTime startTime = time * duration;
-              datetime::DateTime endTime = (time + 1) * duration;
+              Index<3> index = (int[]){column, row, time};
+              std::string value = GetValue(index);
 
-              Interval<DateTime> timeInterval(startTime, endTime, true, false);
-
-              if(rPeriods.Contains(timeInterval))
+              if(mtProperties<std::string>::TypeProperties::
+                 IsUndefinedValue(value) == false)
               {
-                bOK = rmtstring.SetValue(index, value, true);
-              }
+                datetime::DateTime startTime = time * duration;
+                datetime::DateTime endTime = (time + 1) * duration;
 
-              else
-              {
-                if(rPeriods.Intersects(timeInterval) ||
-                   rPeriods.Inside(timeInterval))
-                {
-                  Range<datetime::DateTime> range(2);
-                  rPeriods.Intersection(timeInterval, range);
-
-                  Interval<DateTime> rangeValue(startTime, endTime,
+                Interval<DateTime> timeInterval(startTime, endTime,
                                                 true, false);
-                  range.Get(0, rangeValue);
-                  datetime::DateTime rangeLength = rangeValue.end -
-                                                   rangeValue.start;
 
-                  if(rangeLength >= (gridDuration * 0.5))
+                if(rPeriods.Contains(timeInterval))
+                {
+                  bOK = rmtstring.SetValue(index, value, true);
+                }
+
+                else
+                {
+                  if(rPeriods.Intersects(timeInterval) ||
+                     rPeriods.Inside(timeInterval))
                   {
-                    bOK = rmtstring.SetValue(index, value, true);
+                    Range<datetime::DateTime> range(2);
+                    rPeriods.Intersection(timeInterval, range);
+
+                    Interval<DateTime> rangeValue(startTime, endTime,
+                                                  true, false);
+                    range.Get(0, rangeValue);
+                    datetime::DateTime rangeLength = rangeValue.end -
+                                                     rangeValue.start;
+
+                    if(rangeLength >= (gridDuration * 0.5))
+                    {
+                      bOK = rmtstring.SetValue(index, value, true);
+                    }
                   }
                 }
               }
@@ -394,7 +418,8 @@ void mtstring::atrange(const Rectangle<2>& rRectangle,
 {
   rmtstring.SetDefined(false);
 
-  if(rRectangle.IsDefined())
+  if(IsDefined() &&
+     rRectangle.IsDefined())
   {
     double instant1 = 0;
     double instant2 = (mtProperties<std::string>::GetTDimensionSize() - 1) *
@@ -428,7 +453,8 @@ void mtstring::atrange(const Rectangle<2>& rRectangle,
 {
   rmtstring.SetDefined(false);
 
-  if(rRectangle.IsDefined())
+  if(IsDefined() &&
+     rRectangle.IsDefined())
   {
     if(IsValidLocation(rRectangle.MinD(0), rRectangle.MinD(1), rInstant1) &&
        IsValidLocation(rRectangle.MaxD(0), rRectangle.MaxD(1), rInstant2))
@@ -482,46 +508,46 @@ void mtstring::atrange(const Rectangle<2>& rRectangle,
 TileAlgebra operator minimum returns the minimum value of mtstring object.
 
 author: Dirk Zacher
-parameters: -
-return value: minimum value of mtstring object
+parameters: rMinimum - reference to a std::string object containing
+                       the minimum value of mtstring object
+return value: -
 exceptions: -
 
 */
 
-std::string mtstring::minimum() const
+void mtstring::minimum(std::string& rMinimum) const
 {
-  std::string minimum;
+  rMinimum.clear();
 
-  if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) == false)
+  if(IsDefined() &&
+     mtProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) == false)
   {
-    bool bOK = m_UniqueStringArray.GetUniqueString(m_Minimum, minimum);
+    bool bOK = m_UniqueStringArray.GetUniqueString(m_Minimum, rMinimum);
     assert(bOK);
   }
-
-  return minimum;
 }
 
 /*
 TileAlgebra operator maximum returns the maximum value of mtstring object.
 
 author: Dirk Zacher
-parameters: -
-return value: maximum value of mtstring object
+parameters: rMaximum - reference to a std::string object containing
+                       the maximum value of mtstring object
+return value: -
 exceptions: -
 
 */
 
-std::string mtstring::maximum() const
+void mtstring::maximum(std::string& rMaximum) const
 {
-  std::string maximum;
+  rMaximum.clear();
 
-  if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) == false)
+  if(IsDefined() &&
+     mtProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) == false)
   {
-    bool bOK = m_UniqueStringArray.GetUniqueString(m_Maximum, maximum);
+    bool bOK = m_UniqueStringArray.GetUniqueString(m_Maximum, rMaximum);
     assert(bOK);
   }
-
-  return maximum;
 }
 
 /*
@@ -540,12 +566,16 @@ std::string mtstring::GetValue(const Index<3>& rIndex) const
   std::string value = mtProperties<std::string>::TypeProperties::
                       GetUndefinedValue();
 
-  int intValue = mtint::GetValue(rIndex);
-
-  if(mtProperties<int>::TypeProperties::IsUndefinedValue(intValue) == false)
+  if(IsDefined() &&
+     IsValidIndex(rIndex))
   {
-    bool bOK = m_UniqueStringArray.GetUniqueString(intValue, value);
-    assert(bOK);
+    int intValue = mtint::GetValue(rIndex);
+
+    if(mtProperties<int>::TypeProperties::IsUndefinedValue(intValue) == false)
+    {
+      bool bOK = m_UniqueStringArray.GetUniqueString(intValue, value);
+      assert(bOK);
+    }
   }
 
   return value;
@@ -571,17 +601,8 @@ bool mtstring::SetValue(const Index<3>& rIndex,
 {
   bool bRetVal = false;
 
-  int xDimensionSize = mtProperties<std::string>::GetXDimensionSize();
-  int yDimensionSize = mtProperties<std::string>::GetYDimensionSize();
-  int tDimensionSize = mtProperties<std::string>::GetTDimensionSize();
-
   if(IsDefined() &&
-     rIndex[0] >= 0 &&
-     rIndex[0] < xDimensionSize &&
-     rIndex[1] >= 0 &&
-     rIndex[1] < yDimensionSize &&
-     rIndex[2] >= 0 &&
-     rIndex[2] < tDimensionSize)
+     IsValidIndex(rIndex))
   {
     int stringIndex = m_UniqueStringArray.AddString(rValue);
 
@@ -592,14 +613,20 @@ bool mtstring::SetValue(const Index<3>& rIndex,
 
     if(bSetExtrema == true)
     {
+      std::string minimumValue;
+      minimum(minimumValue);
+
       if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) ||
-         rValue < minimum())
+         rValue < minimumValue)
       {
         m_Minimum = stringIndex;
       }
 
+      std::string maximumValue;
+      maximum(maximumValue);
+
       if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) ||
-         rValue > maximum())
+         rValue > maximumValue)
       {
         m_Maximum = stringIndex;
       }

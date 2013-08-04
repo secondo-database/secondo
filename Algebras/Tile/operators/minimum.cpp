@@ -84,15 +84,18 @@ int minimumFunction(Word* pArguments,
 
         if(pResult != 0)
         {
+          pResult->SetDefined(false);
+
           if(pType->IsDefined())
           {
-            *pResult = Properties::TypeProperties::GetWrappedValue
-                       (pType->minimum());
-          }
+            typename Properties::TypeProperties::PropertiesType minimum =
+            Properties::TypeProperties::GetUndefinedValue();
+            pType->minimum(minimum);
 
-          else
-          {
-            pResult->SetDefined(false);
+            if(Properties::TypeProperties::IsUndefinedValue(minimum) == false)
+            {
+              *pResult = Properties::TypeProperties::GetWrappedValue(minimum);
+            }
           }
 
           nRetVal = 0;

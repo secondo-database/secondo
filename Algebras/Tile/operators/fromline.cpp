@@ -354,9 +354,22 @@ int fromlineFunction(Word* pArguments,
                         pResultInfo->m_dX <= pResultInfo->m_dMaximumX &&
                         pResultInfo->m_dY <= pResultInfo->m_dMaximumY);
 
-                  // return the next stream element
-                  rResult.addr = ptbool;
-                  nRetVal = YIELD;
+                  if(bHasTrueValue == true)
+                  {
+                    // return the next stream element
+                    rResult.addr = ptbool;
+                    nRetVal = YIELD;
+                  }
+
+                  else
+                  {
+                    delete ptbool;
+                    ptbool = 0;
+
+                    // always set the result to null before return CANCEL
+                    rResult.addr = 0;
+                    nRetVal = CANCEL;
+                  }
                 }
               }
 

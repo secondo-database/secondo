@@ -44,26 +44,87 @@ namespace TileAlgebra
 {
 
 /*
-Template method atrangeFunction calls atrange method of specific datatype
+Template method atrangeFunctiont calls atrange method of specific t datatype
 and returns the result of this call.
 
 author: Dirk Zacher
 parameters: pArguments - a pointer to the arguments of atrange operator
             rResult - reference to a Word containing the result
-            message - message to distinguish call modes of atrangeFunction
+            message - message to distinguish call modes of atrangeFunctiont
             rLocal - reference to a Word to store local method information
             supplier - an Address to a supplier of information of operator tree
-return value: 0 if atrangeFunction successfully executed, otherwise FAILURE
+return value: 0 if atrangeFunctiont successfully executed, otherwise FAILURE
 exceptions: -
 
 */
 
 template <typename Type>
-int atrangeFunction(Word* pArguments,
-                    Word& rResult,
-                    int message,
-                    Word& rLocal,
-                    Supplier supplier)
+int atrangeFunctiont(Word* pArguments,
+                     Word& rResult,
+                     int message,
+                     Word& rLocal,
+                     Supplier supplier)
+{
+  int nRetVal = FAILURE;
+
+  if(qp != 0 &&
+     pArguments != 0)
+  {
+    Type* pType = static_cast<Type*>(pArguments[0].addr);
+    Rectangle<2>* pRectangle = static_cast<Rectangle<2>*>(pArguments[1].addr);
+
+    if(pType != 0 &&
+       pRectangle != 0)
+    {
+      rResult = qp->ResultStorage(supplier);
+
+      if(rResult.addr != 0)
+      {
+        Type* pResult = static_cast<Type*>(rResult.addr);
+
+        if(pResult != 0)
+        {
+          if(pType->IsDefined() &&
+             pRectangle->IsDefined())
+          {
+            pType->atrange(*pRectangle, *pResult);
+          }
+
+          else
+          {
+            pResult->SetDefined(false);
+          }
+
+          nRetVal = 0;
+        }
+      }
+    }
+  }
+
+  return nRetVal;
+}
+
+/*
+Template method atrangeFunctionmt calls atrange method of specific mt datatype
+and returns the result of this call.
+
+author: Dirk Zacher
+parameters: pArguments - a pointer to the arguments of atrange operator
+            rResult - reference to a Word containing the result
+            message - message to distinguish call modes of atrangeFunctionmt
+            rLocal - reference to a Word to store local method information
+            supplier - an Address to a supplier of information of operator tree
+return value: 0 if atrangeFunctionmt successfully executed, otherwise FAILURE
+exceptions: -
+
+*/
+
+template <typename Type>
+int atrangeFunctionmt(Word* pArguments,
+                      Word& rResult,
+                      int message,
+                      Word& rLocal,
+                      Supplier supplier)
 {
   int nRetVal = FAILURE;
 
@@ -152,14 +213,14 @@ definition of atrangeFunctions array.
 
 ValueMapping atrangeFunctions[] =
 {
-  atrangeFunction<tint>,
-  atrangeFunction<treal>,
-  atrangeFunction<tbool>,
-  atrangeFunction<tstring>,
-  atrangeFunction<mtint>,
-  atrangeFunction<mtreal>,
-  atrangeFunction<mtbool>,
-  atrangeFunction<mtstring>,
+  atrangeFunctiont<tint>,
+  atrangeFunctiont<treal>,
+  atrangeFunctiont<tbool>,
+  atrangeFunctiont<tstring>,
+  atrangeFunctionmt<mtint>,
+  atrangeFunctionmt<mtreal>,
+  atrangeFunctionmt<mtbool>,
+  atrangeFunctionmt<mtstring>,
   0
 };
 

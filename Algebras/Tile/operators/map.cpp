@@ -100,10 +100,12 @@ int mapFunctiont(Word* pArguments,
 
           if(pSourceType->IsDefined())
           {
-            typename SourceTypeProperties::RectangleType boundingBox;
-            pSourceType->bbox(boundingBox);
+            Index<2> minimumIndex;
+            Index<2> maximumIndex;
+            bool bOK = pSourceType->GetBoundingBoxIndexes(minimumIndex,
+                                                          maximumIndex);
 
-            if(boundingBox.IsDefined())
+            if(bOK == true)
             {
               pResult->SetDefined(true);
 
@@ -111,14 +113,13 @@ int mapFunctiont(Word* pArguments,
               pSourceType->getgrid(grid);
               pResult->SetGrid(grid);
 
-              int xDimensionSize = SourceTypeProperties::GetXDimensionSize();
-              int yDimensionSize = SourceTypeProperties::GetYDimensionSize();
               ArgVector& argumentsVector = *qp->Argument(pFunction);
               Word word;
 
-              for(int row = 0; row < yDimensionSize; row++)
+              for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
               {
-                for(int column = 0; column < xDimensionSize; column++)
+                for(int column = minimumIndex[0]; column < maximumIndex[0];
+                    column++)
                 {
                   Index<2> index = (int[]){column, row};
                   typename SourceTypeProperties::TypeProperties::PropertiesType
@@ -216,10 +217,12 @@ int mapFunctionmt(Word* pArguments,
 
           if(pSourceType->IsDefined())
           {
-            typename SourceTypeProperties::RectangleType boundingBox;
-            pSourceType->bbox(boundingBox);
+            Index<3> minimumIndex;
+            Index<3> maximumIndex;
+            bool bOK = pSourceType->GetBoundingBoxIndexes(minimumIndex,
+                                                          maximumIndex);
 
-            if(boundingBox.IsDefined())
+            if(bOK == true)
             {
               pResult->SetDefined(true);
 
@@ -227,17 +230,15 @@ int mapFunctionmt(Word* pArguments,
               pSourceType->getgrid(grid);
               pResult->SetGrid(grid);
 
-              int xDimensionSize = SourceTypeProperties::GetXDimensionSize();
-              int yDimensionSize = SourceTypeProperties::GetYDimensionSize();
-              int tDimensionSize = SourceTypeProperties::GetTDimensionSize();
               ArgVector& argumentsVector = *qp->Argument(pFunction);
               Word word;
 
-              for(int time = 0; time < tDimensionSize; time++)
+              for(int time = minimumIndex[2]; time < maximumIndex[2]; time++)
               {
-                for(int row = 0; row < yDimensionSize; row++)
+                for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
                 {
-                  for(int column = 0; column < xDimensionSize; column++)
+                  for(int column = minimumIndex[0]; column < maximumIndex[0];
+                      column++)
                   {
                     Index<3> index = (int[]){column, row, time};
                     typename SourceTypeProperties::TypeProperties::

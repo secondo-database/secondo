@@ -263,25 +263,27 @@ class mtstring : public mtint
   TileAlgebra operator minimum returns the minimum value of mtstring object.
 
   author: Dirk Zacher
-  parameters: -
-  return value: minimum value of mtstring object
+  parameters: rMinimum - reference to a std::string object containing
+                         the minimum value of mtstring object
+  return value: -
   exceptions: -
 
   */
 
-  std::string minimum() const;
+  void minimum(std::string& rMinimum) const;
 
   /*
   TileAlgebra operator maximum returns the maximum value of mtstring object.
 
   author: Dirk Zacher
-  parameters: -
-  return value: maximum value of mtstring object
+  parameters: rMaximum - reference to a std::string object containing
+                         the maximum value of mtstring object
+  return value: -
   exceptions: -
 
   */
 
-  std::string maximum() const;
+  void maximum(std::string& rMaximum) const;
 
   /*
   Method GetValue returns the string value of mtstring object
