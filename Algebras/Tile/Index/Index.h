@@ -125,7 +125,7 @@ class Index
 
   */
 
-  bool operator< (const Index<Dimension>& rIndex) const;
+  bool operator<(const Index<Dimension>& rIndex) const;
 
   /*
   Operator> checks if this object is greater than rIndex object.
@@ -138,7 +138,7 @@ class Index
 
   */
 
-  bool operator> (const Index<Dimension>& rIndex) const;
+  bool operator>(const Index<Dimension>& rIndex) const;
 
   /*
   Operator== checks if this object equals rIndex object.
