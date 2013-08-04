@@ -331,8 +331,16 @@ tCellIterator<Type>::tCellIterator(const Type& rt,
                      m_dCurrentDelta(0.0)
 {
   rt.getgrid(m_Grid);
-  m_CurrentCellIndex = rt.GetLocationIndex(m_dX1, m_dY1);
-  m_LastCellIndex = rt.GetLocationIndex(m_dX2, m_dY2);
+
+  if(rt.IsValidLocation(m_dX1, m_dY1))
+  {
+    m_CurrentCellIndex = rt.GetLocationIndex(m_dX1, m_dY1);
+  }
+
+  if(rt.IsValidLocation(m_dX2, m_dY2))
+  {
+    m_LastCellIndex = rt.GetLocationIndex(m_dX2, m_dY2);
+  }
 
   Init();
 }
