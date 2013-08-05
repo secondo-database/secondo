@@ -3852,67 +3852,6 @@ bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event& event,
  return false;
 }
 
-bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
-  priority_queue<Event, vector<Event>, greater<Event> >& q,
-  bool leftIsSmaller) {
-
- if (s1->mightIntersect(*s2)) {
-  AVLSegment* overlappingSegment = new AVLSegment();
-  if (s1->intersect(*s2, *overlappingSegment)) {
-   if (p2d_debug) {
-    cout << endl << endl << "s1: ";
-    s1->print();
-    cout << "s2: ";
-    s2->print();
-    cout << "Schnittpunkt :";
-    overlappingSegment->print();
-    cout << endl << endl;
-   }
-   if (overlappingSegment->isPoint()) {
-    if (!overlappingSegment->isLeftOf(*event)) {
-     if (leftIsSmaller) {
-      Event ie(intersectionPoint, s1, s2, overlappingSegment);
-      q.push(ie);
-     } else {
-      Event ie(intersectionPoint, s2, s1, overlappingSegment);
-      q.push(ie);
-     }
-    }
-   } else {
-    AVLSegment* right = new AVLSegment();
-    splitNeighbors(s1, s2, overlappingSegment, right);
-
-    if (s1->getOwner() == both) {
-
-     Event e1(rightEndpoint, s1);
-     q.push(e1);
-    }
-    if (leftIsSmaller) {
-     Event ie2(intersectionPoint, s1, s2, overlappingSegment);
-     q.push(ie2);
-    } else {
-     Event ie2(intersectionPoint, s2, s1, overlappingSegment);
-     q.push(ie2);
-    }
-
-    Event e2(rightEndpoint, s2);
-    q.push(e2);
-
-    if (!right->isPoint()) {
-     Event e3(leftEndpoint, right);
-     q.push(e3);
-    } else {
-
-     delete right;
-    }
-   }
-   delete overlappingSegment;
-   return true;
-  }
-  delete overlappingSegment;
- }
- return false;
-}
 
 /*
 1 ~collectSegmentsForInverting~
@@ -4346,7 +4285,7 @@ void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op) {
   case first: {
    if (seg.getConAbove() + seg.getConBelow() != 3) {
     if (p2d_debug) {
-     cout << "r1 is not within r2" << endl;
+     cout << "r1 is not within r2-first" << endl;
      seg.print();
     }
     result = false;
@@ -4356,7 +4295,7 @@ void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op) {
   case second: {
    if ((seg.getConAbove() + seg.getConBelow()) != 1) {
     if (p2d_debug) {
-     cout << "r1 is not within r2" << endl;
+     cout << "r1 is not within r2-second" << endl;
      seg.print();
     }
     result = false;
@@ -4364,10 +4303,10 @@ void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op) {
    break;
   }
   case both: {
-   if ((!((seg.getConAbove() == 2) && (seg.getConBelow() == 0)))
-     || (!((seg.getConAbove() == 0) && (seg.getConBelow() == 2)))) {
+   if (!(((seg.getConAbove() == 2) && (seg.getConBelow() == 0))
+     || ((seg.getConAbove() == 0) && (seg.getConBelow() == 2)))) {
     if (p2d_debug) {
-     cout << "r1 is not within r2" << endl;
+     cout << "r1 is not within r2-both" << endl;
      seg.print();
     }
     result = false;
@@ -5065,7 +5004,7 @@ bool intersects(const Line2& line1, const Line2& line2,
       current->changeValidity(false);
       if (pred && suc) {
        if (intersectionTestForSetOp(pred, suc, event, q, true)) {
-        if ((pred->getOwner() != suc->getOwner())) {
+        if ((pred->getOwner() != suc->getOwner())||(pred->getOwner()==both)) {
          intersect = true;
         }
        }
@@ -5075,7 +5014,7 @@ bool intersects(const Line2& line1, const Line2& line2,
      sss.removeGetNeighbor2(current, event.getGridX(), v1, pred, suc);
      if (pred && suc) {
       if (intersectionTestForSetOp(pred, suc, event, q, true)) {
-       if (pred->getOwner() != suc->getOwner()) {
+       if ((pred->getOwner() != suc->getOwner())||(pred->getOwner()==both)) {
         intersect = true;
        }
       }
@@ -5116,7 +5055,7 @@ bool intersects(const Line2& line1, const Line2& line2,
       }
       if (pred) {
        if (intersectionTestForSetOp(pred, right, event, q, true)) {
-        if (pred->getOwner() != right->getOwner()) {
+        if ((pred->getOwner() != right->getOwner())||(pred->getOwner()==both)) {
          intersect = true;
         }
        }
@@ -5129,7 +5068,7 @@ bool intersects(const Line2& line1, const Line2& line2,
       }
       if (suc) {
        if (intersectionTestForSetOp(left, suc, event, q, true)) {
-        if (suc->getOwner() != left->getOwner()) {
+        if ((suc->getOwner() != left->getOwner())||(suc->getOwner()==both)) {
          intersect = true;
         }
        }
@@ -5916,7 +5855,7 @@ bool inside(/*const*/Region2& reg1, /*const*/Region2& reg2,
  if (!reg2.BoundingBox().Contains(reg1.BoundingBox(), geoid)) {
   return false;
  }
-
+ cout <<"PS noetig"<<endl;
  assert(reg1.IsOrdered());
  assert(reg2.IsOrdered());
 
