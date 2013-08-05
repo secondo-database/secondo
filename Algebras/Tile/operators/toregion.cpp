@@ -44,6 +44,42 @@ namespace TileAlgebra
 {
 
 /*
+Method UpdateCycleAndCoordinates updates current cycle and
+rLastX, rLastY, rCurrentX and rCurrentY coordinates.
+
+author: Dirk Zacher
+parameters: rCycle - reference to a vector of points containing cycle points
+            rLastX - reference to the last x coordinate
+            rLastY - reference to the last y coordinate
+            rCurrentX - reference to the current x coordinate
+            rCurrentY - reference to the current y coordinate
+            rDeltaX - reference to delta x value
+            rDeltaY - reference to delta y value
+return value: -
+exceptions: -
+
+*/
+
+void UpdateCycleAndCoordinates(vector<Point>& rCycle,
+                               double& rLastX,
+                               double& rLastY,
+                               double& rCurrentX,
+                               double& rCurrentY,
+                               const double& rDeltaX,
+                               const double& rDeltaY)
+{
+  Point point(true,
+              rCurrentX + rDeltaX,
+              rCurrentY + rDeltaY);
+  rCycle.push_back(point);
+
+  rLastX = rCurrentX;
+  rLastY = rCurrentY;
+  rCurrentX += rDeltaX;
+  rCurrentY += rDeltaY;
+}
+
+/*
 Method toregionFunction implements the toregion operator functionality.
 
 author: Dirk Zacher
@@ -121,260 +157,176 @@ int toregionFunction(Word* pArguments,
                       startX = gridOriginX + index[0] * gridLength;
                       startY = gridOriginY + index[1] * gridLength;
                       
-                      Point help(true, startX + halfGridLength,
-                                 startY + halfGridLength);
+                      Point centerPoint(true,
+                                        startX + halfGridLength,
+                                        startY + halfGridLength);
                       
-                      if(robust::contains(*pBuildRegion, help) == 0)
+                      if(robust::contains(*pBuildRegion, centerPoint) == 0)
                       {
                         vector<Point> cycle;
 
-                        Point point1(true, startX, startY);
-                        cycle.push_back(point1);
+                        Point currentPoint(true, startX, startY);
+                        cycle.push_back(currentPoint);
 
-                        Point point2(true, startX, startY + gridLength);
-                        cycle.push_back(point2);
+                        Point nextPoint(true, startX, startY + gridLength);
+                        cycle.push_back(nextPoint);
 
-                        double currentX = startX;
-                        double currentY = startY + gridLength;
-
-                        double lastX = startX;
-                        double lastY = startY;
-
+                        double lastX = currentPoint.GetX();
+                        double lastY = currentPoint.GetY();
+                        double currentX = nextPoint.GetX();
+                        double currentY = nextPoint.GetY();
                         bool bEnd = false;
 
                         while(bEnd == false)
                         {
-                          if(AlmostEqual(currentX, lastX) &&
-                             !(AlmostEqual(currentY, lastY)) &&
+                          CcBool currentCenterValue;
+                          ptbool->atlocation(currentX + halfGridLength,
+                                             currentY + halfGridLength,
+                                             currentCenterValue);
+                          CcBool leftCenterValue;
+                          ptbool->atlocation(currentX - halfGridLength,
+                                             currentY + halfGridLength,
+                                             leftCenterValue);
+                          CcBool leftbottomCenterValue;
+                          ptbool->atlocation(currentX - halfGridLength,
+                                             currentY - halfGridLength,
+                                             leftbottomCenterValue);
+                          CcBool bottomCenterValue;
+                          ptbool->atlocation(currentX + halfGridLength,
+                                             currentY - halfGridLength,
+                                             bottomCenterValue);
+
+                          if(AlmostEqual(currentX, lastX) == true &&
+                             AlmostEqual(currentY, lastY) == false &&
                              currentY > lastY)
                           {
-                            CcBool value1;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY + halfGridLength,
-                                               value1);
-                            CcBool value2;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY + halfGridLength,
-                                               value2);
-                            CcBool value3;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY - halfGridLength,
-                                               value3);
-
-                            if(value1.IsDefined() &&
-                               value1.GetBoolval() == true)
+                            if(leftCenterValue.IsDefined() &&
+                               leftCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX - gridLength,
-                                          currentY);
-                              cycle.push_back(point);         
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        -gridLength, 0.0);
                             }
 
-                            else if(value2.IsDefined() &&
-                                    value2.GetBoolval() == true)
+                            else if(currentCenterValue.IsDefined() &&
+                                    currentCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX,
-                                          currentY + gridLength);
-                              cycle.push_back(point);        
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, gridLength);
                             }
 
-                            else if(value3.IsDefined() &&
-                                    value3.GetBoolval() == true)
+                            else if(bottomCenterValue.IsDefined() &&
+                                    bottomCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX + gridLength,
-                                          currentY);
-                              cycle.push_back(point);         
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        gridLength, 0.0);
                             }
                           }
 
-                          else if(AlmostEqual(currentX, lastX)  &&
-                                  !(AlmostEqual(currentY, lastY)) &&
-                                  currentY < lastY )
+                          else if(AlmostEqual(currentX, lastX) == true  &&
+                                  AlmostEqual(currentY, lastY) == false &&
+                                  currentY < lastY)
                           {
-                            CcBool value1;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY - halfGridLength,
-                                               value1);
-                            CcBool value2;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY - halfGridLength,
-                                               value2);
-                            CcBool value3;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY + halfGridLength,
-                                               value3);
-
-                            if(value1.IsDefined() &&
-                               value1.GetBoolval() == true)
+                            if(bottomCenterValue.IsDefined() &&
+                               bottomCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX + gridLength,
-                                          currentY);
-                              cycle.push_back(point);       
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        gridLength, 0.0);
                             }
 
-                            else if(value2.IsDefined() &&
-                                    value2.GetBoolval() == true)
+                            else if(leftbottomCenterValue.IsDefined() &&
+                                    leftbottomCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX,
-                                          currentY - gridLength);
-                              cycle.push_back(point);
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, -gridLength);
                             }
 
-                            else if(value3.IsDefined() &&
-                                    value3.GetBoolval() == true)
+                            else if(leftCenterValue.IsDefined() &&
+                                    leftCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX - gridLength,
-                                          currentY);
-                              cycle.push_back(point);         
-             
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        -gridLength, 0.0);
                             }
                           }
 
-                          else if(!(AlmostEqual(currentX, lastX)) &&
-                                  currentX > lastX &&
-                                  AlmostEqual(currentY, lastY) )
+                          else if(AlmostEqual(currentX, lastX) == false &&
+                                  AlmostEqual(currentY, lastY) == true &&
+                                  currentX > lastX)
                           {
-                            CcBool value1;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY + halfGridLength,
-                                               value1);
-                            CcBool value2;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY - halfGridLength,
-                                               value2);
-                            CcBool value3;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY - halfGridLength,
-                                               value3);
-
-                            if(value1.IsDefined() &&
-                               value1.GetBoolval() == true)
+                            if(currentCenterValue.IsDefined() &&
+                               currentCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX,
-                                          currentY + gridLength);
-                              cycle.push_back(point);
-                 
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, gridLength);
                             }
 
-                            else if(value2.IsDefined() &&
-                                    value2.GetBoolval() == true)
+                            else if(bottomCenterValue.IsDefined() &&
+                                    bottomCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX + gridLength,
-                                          currentY);
-                              cycle.push_back(point);
-                 
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        gridLength, 0.0);
                             }
 
-                            else if(value3.IsDefined() &&
-                                    value3.GetBoolval() == true)
+                            else if(leftbottomCenterValue.IsDefined() &&
+                                    leftbottomCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX,
-                                          currentY - gridLength);
-                              cycle.push_back(point);        
-             
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, -gridLength);
                             }
                           }
 
-                          else if(!(AlmostEqual(currentX, lastX)) &&
-                                  currentX < lastX &&
-                                  AlmostEqual(currentY, lastY))
+                          else if(AlmostEqual(currentX, lastX) == false &&
+                                  AlmostEqual(currentY, lastY) == true &&
+                                  currentX < lastX)
                           {
-                            CcBool value1;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY - halfGridLength,
-                                               value1);
-                            CcBool value2;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY + halfGridLength,
-                                               value2);
-                            CcBool value3;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY + halfGridLength,
-                                               value3);
-
-                            if(value1.IsDefined() &&
-                               value1.GetBoolval() == true)
+                            if(leftbottomCenterValue.IsDefined() &&
+                               leftbottomCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX,
-                                          currentY - gridLength);
-                              cycle.push_back(point);     
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, -gridLength);
                             }
 
-                            else if(value2.IsDefined() &&
-                                    value2.GetBoolval() == true)
+                            else if(leftCenterValue.IsDefined() &&
+                                    leftCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX - gridLength,
-                                          currentY);
-                              cycle.push_back(point);
-                 
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        -gridLength, 0.0);
                             }
 
-                            else if(value3.IsDefined() &&
-                                    value3.GetBoolval() == true)
+                            else if(currentCenterValue.IsDefined() &&
+                                    currentCenterValue.GetBoolval() == true)
                             {
-                              Point point(true, currentX,
-                                          currentY + gridLength);
-                              cycle.push_back(point);
-                      
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, gridLength);
                             }
                           }
                           
-                          if(AlmostEqual(startX, currentX) && 
-                             AlmostEqual(startY, currentY))
+                          if(AlmostEqual(startX, currentX) == true &&
+                             AlmostEqual(startY, currentY) == true)
                           {
                             bEnd = true;
                           }
                         }
                         
-                        if(!getDir(cycle))
+                        if(getDir(cycle) == false)
                         {
                           reverseCycle(cycle);
                         }
                         
                         cycles.push_back(cycle);
 
-                        if(pBuildRegion)
+                        if(pBuildRegion != 0)
                         {
                           delete pBuildRegion;
                           pBuildRegion = 0;
@@ -389,274 +341,204 @@ int toregionFunction(Word* pArguments,
                       startX = gridOriginX + index[0] * gridLength;
                       startY = gridOriginY + index[1] * gridLength;
                    
-                      Point help(true, startX + halfGridLength,
-                                 startY + halfGridLength);
+                      Point centerPoint(true,
+                                        startX + halfGridLength,
+                                        startY + halfGridLength);
 
-                      if((robust::contains(*pBuildRegion, help) > 0) &&
-                         (robust::contains(*pBuildHoles, help) == 0))
+                      if(robust::contains(*pBuildRegion, centerPoint) > 0 &&
+                         robust::contains(*pBuildHoles, centerPoint) == 0)
                       {
                         vector<Point> cycle;
 
-                        Point point1(true, startX, startY);
-                        cycle.push_back(point1);
+                        Point currentPoint(true, startX, startY);
+                        cycle.push_back(currentPoint);
 
-                        Point point2(true, startX, startY + gridLength);
-                        cycle.push_back(point2);
+                        Point nextPoint(true, startX, startY + gridLength);
+                        cycle.push_back(nextPoint);
 
-                        double currentX = startX;
-                        double currentY = startY + gridLength;
-
-                        double lastX = startX;
-                        double lastY = startY;
-
+                        double lastX = currentPoint.GetX();
+                        double lastY = currentPoint.GetY();
+                        double currentX = nextPoint.GetX();
+                        double currentY = nextPoint.GetY();
                         bool bEnd = false;
 
                         while(bEnd == false)
                         {
-                          Point p1(true,
-                                   currentX - halfGridLength,
-                                   currentY + halfGridLength);
-                          Point p2(true,
-                                   currentX + halfGridLength,
-                                   currentY + halfGridLength);
-                          Point p3(true,
-                                   currentX + halfGridLength,
-                                   currentY - halfGridLength);
-                          Point p4(true,
-                                   currentX - halfGridLength,
-                                   currentY - halfGridLength);
+                          CcBool currentCenterValue;
+                          ptbool->atlocation(currentX + halfGridLength,
+                                             currentY + halfGridLength,
+                                             currentCenterValue);
+                          CcBool leftCenterValue;
+                          ptbool->atlocation(currentX - halfGridLength,
+                                             currentY + halfGridLength,
+                                             leftCenterValue);
+                          CcBool leftbottomCenterValue;
+                          ptbool->atlocation(currentX - halfGridLength,
+                                             currentY - halfGridLength,
+                                             leftbottomCenterValue);
+                          CcBool bottomCenterValue;
+                          ptbool->atlocation(currentX + halfGridLength,
+                                             currentY - halfGridLength,
+                                             bottomCenterValue);
+                          Point leftCenterPoint(true,
+                                                currentX - halfGridLength,
+                                                currentY + halfGridLength);
+                          Point currentCenterPoint(true,
+                                                   currentX + halfGridLength,
+                                                   currentY + halfGridLength);
+                          Point bottomCenterPoint(true,
+                                                  currentX + halfGridLength,
+                                                  currentY - halfGridLength);
+                          Point leftbottomCenterPoint(true,
+                                                      currentX - halfGridLength,
+                                                      currentY - halfGridLength
+                                                     );
 
-                          if(AlmostEqual(currentX, lastX) &&
-                             !(AlmostEqual(currentY, lastY)) &&
+                          if(AlmostEqual(currentX, lastX) == true &&
+                             AlmostEqual(currentY, lastY) == false &&
                              currentY > lastY)
-                          {    
-                            CcBool value1;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY + halfGridLength,
-                                               value1);
-                            CcBool value2;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY + halfGridLength,
-                                               value2);
-                            CcBool value3;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY - halfGridLength,
-                                               value3);
-
-                            if((value1.IsDefined() &&
-                                value1.GetBoolval() == false) &&
-                               (robust::contains(*pBuildRegion, p1) > 0))
+                          {
+                            if(leftCenterValue.IsDefined() &&
+                               leftCenterValue.GetBoolval() == false &&
+                               robust::contains(*pBuildRegion,
+                                                leftCenterPoint) > 0)
                             {
-                              Point point(true, currentX - gridLength,
-                                          currentY);
-                              cycle.push_back(point);
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        -gridLength, 0.0);
                             }
 
-                            else if((value2.IsDefined() &&
-                                     value2.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p2) > 0))
+                            else if(currentCenterValue.IsDefined() &&
+                                    currentCenterValue.GetBoolval() == false &&
+                                    robust::contains(*pBuildRegion,
+                                                     currentCenterPoint) > 0)
 
                             {
-                              Point point(true, currentX,
-                                          currentY + gridLength);
-                              cycle.push_back(point);        
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, gridLength);
                             }
 
-                            else if((value3.IsDefined() &&
-                                     value3.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p3) > 0))
+                            else if(bottomCenterValue.IsDefined() &&
+                                    bottomCenterValue.GetBoolval() == false &&
+                                    robust::contains(*pBuildRegion,
+                                                     bottomCenterPoint) > 0)
                             {
-                              Point point(true, currentX + gridLength,
-                                          currentY);
-                              cycle.push_back(point);         
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        gridLength, 0.0);
                             }
                           }
 
-                          else if(AlmostEqual(currentX, lastX) &&
-                                  !(AlmostEqual(currentY, lastY)) &&
+                          else if(AlmostEqual(currentX, lastX) == true &&
+                                  AlmostEqual(currentY, lastY) == false &&
                                   currentY < lastY)
                           {
-                            CcBool value1;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY - halfGridLength,
-                                               value1);
-                            CcBool value2;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY - halfGridLength,
-                                               value2);
-                            CcBool value3;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY + halfGridLength,
-                                               value3);
-
-                            if((value1.IsDefined() &&
-                                value1.GetBoolval() == false) &&
-                               (robust::contains(*pBuildRegion, p3) > 0))
+                            if(bottomCenterValue.IsDefined() &&
+                               bottomCenterValue.GetBoolval() == false &&
+                               robust::contains(*pBuildRegion,
+                                                bottomCenterPoint) > 0)
                             {
-                              Point point(true, currentX + gridLength,
-                                          currentY);
-                              cycle.push_back(point);       
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        gridLength, 0.0);
                             }
 
-                            else if((value2.IsDefined() &&
-                                     value2.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p4) > 0))
+                            else if(leftbottomCenterValue.IsDefined() &&
+                                    leftbottomCenterValue.GetBoolval()
+                                    == false &&
+                                    robust::contains(*pBuildRegion,
+                                                     leftbottomCenterPoint) > 0)
                             {
-                              Point point(true, currentX,
-                                          currentY - gridLength);
-                              cycle.push_back(point);
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, -gridLength);
                             }
 
-                            else if((value3.IsDefined() &&
-                                     value3.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p1) > 0))
+                            else if(leftCenterValue.IsDefined() &&
+                                    leftCenterValue.GetBoolval() == false &&
+                                    robust::contains(*pBuildRegion,
+                                                     leftCenterPoint) > 0)
                             {
-                              Point point(true, currentX - gridLength,
-                                          currentY);
-                              cycle.push_back(point);         
-             
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        -gridLength, 0.0);
                             }
                           }
 
-                          else if(!(AlmostEqual(currentX, lastX)) &&
-                                  currentX > lastX &&
-                                  AlmostEqual(currentY, lastY) )
+                          else if(AlmostEqual(currentX, lastX) == false &&
+                                  AlmostEqual(currentY, lastY) == true &&
+                                  currentX > lastX)
                           {
-                            CcBool value1;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY + halfGridLength,
-                                               value1);
-                            CcBool value2;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY - halfGridLength,
-                                               value2);
-                            CcBool value3;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY - halfGridLength,
-                                               value3);
-
-                            if((value1.IsDefined() &&
-                                value1.GetBoolval() == false) &&
-                               (robust::contains(*pBuildRegion, p2) > 0))
+                            if(currentCenterValue.IsDefined() &&
+                               currentCenterValue.GetBoolval() == false &&
+                               robust::contains(*pBuildRegion,
+                                                currentCenterPoint) > 0)
                             {
-                              Point point(true, currentX,
-                                          currentY + gridLength);
-                              cycle.push_back(point);
-                 
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, gridLength);
                             }
 
-                            else if((value2.IsDefined() &&
-                                     value2.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p3) > 0))
+                            else if(bottomCenterValue.IsDefined() &&
+                                    bottomCenterValue.GetBoolval() == false &&
+                                    robust::contains(*pBuildRegion,
+                                                     bottomCenterPoint) > 0)
                             {
-                              Point point(true, currentX + gridLength,
-                                          currentY);
-                              cycle.push_back(point);
-                 
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        gridLength, 0.0);
                             }
 
-                            else if((value3.IsDefined() &&
-                                     value3.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p4) > 0))
+                            else if(leftbottomCenterValue.IsDefined() &&
+                                    leftbottomCenterValue.GetBoolval()
+                                    == false &&
+                                    robust::contains(*pBuildRegion,
+                                                     leftbottomCenterPoint) > 0)
                             {
-                              Point point(true, currentX,
-                                          currentY - gridLength);
-                              cycle.push_back(point);        
-             
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, -gridLength);
                             }
                           }
 
-                          else if(!(AlmostEqual(currentX, lastX)) &&
-                                  currentX < lastX &&
-                                  AlmostEqual(currentY, lastY) )
+                          else if(AlmostEqual(currentX, lastX) == false &&
+                                  AlmostEqual(currentY, lastY) == true &&
+                                  currentX < lastX)
                           {
-                            CcBool value1;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY - halfGridLength,
-                                               value1);
-                            CcBool value2;
-                            ptbool->atlocation(currentX - halfGridLength,
-                                               currentY + halfGridLength,
-                                               value2);
-                            CcBool value3;
-                            ptbool->atlocation(currentX + halfGridLength,
-                                               currentY + halfGridLength,
-                                               value3);
-
-                            if((value1.IsDefined() &&
-                                value1.GetBoolval() == false) &&
-                               (robust::contains(*pBuildRegion, p4) > 0))
+                            if(leftbottomCenterValue.IsDefined() &&
+                               leftbottomCenterValue.GetBoolval() == false &&
+                               robust::contains(*pBuildRegion,
+                                                leftbottomCenterPoint) > 0)
                             {
-                              Point point(true, currentX,
-                                          currentY - gridLength);
-                              cycle.push_back(point);     
-
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, -gridLength);
                             }
 
-                            else if((value2.IsDefined() &&
-                                     value2.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p1) > 0))
+                            else if(leftCenterValue.IsDefined() &&
+                                    leftCenterValue.GetBoolval() == false &&
+                                    robust::contains(*pBuildRegion,
+                                                     leftCenterPoint) > 0)
                             {
-                              Point point(true, currentX - gridLength,
-                                          currentY);
-                              cycle.push_back(point);
-                 
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentX -= gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        -gridLength, 0.0);
                             }
 
-                            else if((value3.IsDefined() &&
-                                     value3.GetBoolval() == false) &&
-                                    (robust::contains(*pBuildRegion, p2) > 0))
+                            else if(currentCenterValue.IsDefined() &&
+                                    currentCenterValue.GetBoolval() == false &&
+                                    robust::contains(*pBuildRegion,
+                                                     currentCenterPoint) > 0)
                             {
-                              Point point(true, currentX,
-                                          currentY + gridLength);
-                              cycle.push_back(point);
-                      
-                              lastX = currentX;
-                              lastY = currentY;
-                              currentY += gridLength;
+                              UpdateCycleAndCoordinates(cycle, lastX, lastY,
+                                                        currentX, currentY,
+                                                        0.0, gridLength);
                             }
                           }
 
-                          if(AlmostEqual(startX, currentX) &&
-                             AlmostEqual(startY, currentY))
+                          if(AlmostEqual(startX, currentX) == true &&
+                             AlmostEqual(startY, currentY) == true)
                           {
                             bEnd = true; 
                           }
@@ -672,14 +554,14 @@ int toregionFunction(Word* pArguments,
 
                         pBuildHoles = buildRegion(holes);
 
-                        if(getDir(cycle))
+                        if(getDir(cycle) == true)
                         {
                           reverseCycle(cycle);
                         }
                         
                         cycles.push_back(cycle);
 
-                        if(pBuildRegion)
+                        if(pBuildRegion != 0)
                         {
                           delete pBuildRegion;
                           pBuildRegion = 0;
@@ -692,7 +574,7 @@ int toregionFunction(Word* pArguments,
                 }
               }
               
-              std::swap(*pResult, *pBuildRegion);
+              *pResult = *pBuildRegion;
 
               delete pBuildRegion;
               pBuildRegion = 0;
