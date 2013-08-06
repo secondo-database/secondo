@@ -89,6 +89,8 @@ namespace raster2
     */
 
     void assumeData(istype& ristype);
+    Rectangle<2> bbox() const;
+    const DateTime& getInstant() const;
     void setInstant(DateTime* instant);
     void setValues(typename Helper::spatial_type* values);
     const DateTime& inst() const;
@@ -196,6 +198,25 @@ namespace raster2
       ristype.m_pInstant = 0;
       ristype.m_psT = 0;
     }
+  }
+  
+  template <typename T, typename Helper>
+  Rectangle<2> istype<T, Helper>::bbox() const
+  {
+    Rectangle<2> boundingBox(false, 0, 0, 0, 0);
+    
+    if(m_psT != 0)
+    {
+      boundingBox = m_psT->bbox();
+    }
+    
+    return boundingBox;
+  }
+  
+  template <typename T, typename Helper>
+  const DateTime& istype<T, Helper>::getInstant() const
+  {
+    return *m_pInstant;
   }
 
   template <typename T, typename Helper>
