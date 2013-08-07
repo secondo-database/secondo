@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="eu.ehnes.secondoandroid"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="14"
+        android:targetSdkVersion="17" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>	
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme"
+        android:debuggable="true"
+        >
+ 
+         <activity android:name="eu.ehnes.secondoandroid.SplashScreenActivity" android:screenOrientation="portrait">
+             <intent-filter>
+                 <action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" />
+             </intent-filter>
+         </activity><activity
+            android:name="eu.ehnes.secondoandroid.SecondoActivity"
+            android:label="@string/app_name" >
+        </activity>
+         <activity android:name="eu.ehnes.secondoandroid.SettingsActivity" android:label="Settings" ></activity>
+         <activity android:name="eu.ehnes.secondoandroid.GuiActivity" android:label="Gui"></activity>
+         <activity android:label="Choose File ..." android:name="eu.ehnes.secondoandroid.FileDialogActivity"></activity>
+         <activity android:name="eu.ehnes.secondoandroid.DatabaseOpenActivity" android:label="Open Database"></activity>
+         <activity android:label="ListObjects" android:name="eu.ehnes.secondoandroid.ListObjectsActivity"></activity>
+         <activity android:name="eu.ehnes.secondoandroid.DatabaseDeleteActivity" android:label="Delete"></activity>
+         <activity android:name="eu.ehnes.secondoandroid.ListObjectsResultActivity" android:label="ListObjects Result"></activity>
+         <activity android:name="eu.ehnes.secondoandroid.QueryDatabaseActivity" android:label="Query Database"></activity>
+         <activity android:name="eu.ehnes.secondoandroid.PreferencesActivity" android:label="Preferences" ></activity>
+         
+    </application>
+
+</manifest>
