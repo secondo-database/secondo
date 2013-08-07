@@ -145,7 +145,11 @@ bool AlmostEqual2sComplement( const double &A,
     int64_t bInt = *(int64_t*)&B;
     if (bInt < 0)
         bInt = NEGZERO - bInt;
+#ifdef SECONDO_ANDROID
+    int64_t intDiff = abs((long int)(aInt - bInt));
+#else
     int64_t intDiff = abs(aInt - bInt);
+#endif
     if (intDiff <= maxUlps)
         return true;
     return false;

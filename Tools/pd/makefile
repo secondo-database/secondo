@@ -39,7 +39,11 @@ YACC = bison --yacc
 #YACC = yacc
 
 # specify your C-compiler
+ifeq ($(platform),android)
+CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-gcc
+else
 CC := gcc
+endif
 
 DOCU_FILES = PD1 PDNestedText.h PDNestedText.c \
 	     PD3 PDLex.l PDTokens.h PDLexTest.c PDParserDS.c PDParser.y \

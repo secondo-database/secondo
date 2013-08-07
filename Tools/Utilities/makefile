@@ -26,12 +26,16 @@
 include ../../makefile.env
 
 CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
+ifeq ($(platform),android)
+CCFLAGS += -DSECONDO_ANDROID 
+endif
+
 
 .PHONY: all
 all:  Crypt.o $(OBJECTS)
 
 Crypt.o: Crypt.cpp
-	$(CC) -fPIC -c -I ../../include -Wall -o Crypt.o $<
+	$(CC) -c -I ../../include -Wall -o Crypt.o $<
 
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)

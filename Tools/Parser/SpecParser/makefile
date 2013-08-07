@@ -27,12 +27,17 @@ include ../../../makefile.env
 
 DEP_FILES += SpecParser.tab.dep
 
+ifeq ($(platform),android)
+CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-g++
+CCFLAGS += -I$(SECONDO_BUILD_DIR)/../flex/include
+else
 CC := g++
+endif
 
-OBJECTS := NestedText.o lex.yy.o lex2.yy.o Parser$(EXEEXT) Parser2$(EXEEXT)
+OBJECTS := NestedText.o lex.yy.o lex2.yy.o 
 GENFILES := lex.yy.cpp lex2.yy.cpp SpecParser.tab.cpp SpecParser.tab.hpp
 
-all: $(GENFILES) $(OBJECTS)
+all: $(GENFILES) $(OBJECTS) Parser$(EXEEXT)
 
 lex.yy.cpp lex2.yy.cpp: SpecLex.l
 	$(LEX) -o$@ $<
@@ -41,11 +46,8 @@ lex.yy.cpp lex2.yy.cpp: SpecLex.l
 SpecParser.tab.cpp SpecParser.tab.hpp: SpecParser.y
 	$(YACC) -d -o $@ $<
 
-Parser$(EXEEXT): SpecParser.tab.o lex.yy.o NestedText.o
-	$(CC) -o Parser$(EXEEXT) $^ $(DEFAULTCCFLAGS)
-
-Parser2$(EXEEXT): SpecParser.tab.o lex2.yy.o NestedText.o
-	$(CC) -o Parser2$(EXEEXT) $^ $(DEFAULTCCFLAGS)
+Parser$(EXEEXT): 
+	$(MAKE) -C arch_i386
 
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
@@ -53,3 +55,5 @@ endif
 
 clean:
 	$(RM) $(GENFILES) $(DEP_FILES) $(OBJECTS) SpecParser.tab.o
+	$(MAKE) -C arch_i386 clean
+

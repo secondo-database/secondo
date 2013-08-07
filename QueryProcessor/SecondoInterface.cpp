@@ -147,6 +147,10 @@ using namespace std;
 #include "AlmostEqual.h"
 #include "WinUnix.h"
 
+#ifdef SECONDO_ANDROID
+#include "android/log.h"
+#endif
+
 extern bool USE_AUTO_BUFFER;
 
 /*
@@ -235,21 +239,41 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                               )
 {
   bool ok = false;
+#ifdef SECONDO_ANDROID
+        __android_log_print(ANDROID_LOG_INFO,
+	"FU", "Initializing the Secondo on Android Interface ...");
+#else
+
   cout << endl << "Initializing the SECONDO Interface ..." << endl;
+#endif
 
   stringstream version;
   version << "Version: " << SECONDO_VERSION_MAJOR << "."
                          << SECONDO_VERSION_MINOR << "."
 			 << SECONDO_VERSION_REVISION << endl;
 
+#ifndef SECONDO_ANDROID
   cout << version.str() << endl;
+#else
+        __android_log_print(ANDROID_LOG_INFO,
+	"FU", "Secondo Version %s\n",version.str().c_str());
+#endif
+
+
 
   stringstream dbversion;
   dbversion  << "Berkeley DB version: "
              << DB_VERSION_MAJOR
              << "."
              << DB_VERSION_MINOR;
+
+#ifndef SECONDO_ANDROID
   cout << dbversion.str() << endl  << endl;
+#else
+        __android_log_print(ANDROID_LOG_INFO,
+		"FU", "%s\n",dbversion.str().c_str());
+#endif
+
 
   // initialize runtime flags
   InitRTFlags(parmFile);
@@ -258,11 +282,21 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   if ( SmiProfile::GetParameter( "Environment",
                                  "SecondoHome", "", parmFile ) == "" )
   {
+#ifndef SECONDO_ANDROID
     cout << "Error: Secondo home directory not specified." << endl;
+#else
+        __android_log_print(ANDROID_LOG_ERROR,
+	"FU", "Secondo Home directory not specified");
+#endif
+
     errorMsg += "Secondo home directory not specified\n";
   }
   else
   {
+#ifdef SECONDO_ANDROID
+        __android_log_print(ANDROID_LOG_INFO,"FU", "Secondo Home directory ok");
+#endif
+
     ok = true;
   }
 
@@ -314,13 +348,18 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   }
 
   string progressConstantsFileDefault="ProgressConstants.csv";
- 
+#ifndef SECONDO_ANDROID 
   string sbd = getenv("SECONDO_BUILD_DIR");
   if(sbd.length()>0){
      progressConstantsFileDefault = sbd + CFile::pathSep + "bin"
                                     + CFile::pathSep
                                     + progressConstantsFileDefault;
   }
+#else
+        string sbd ="/data/data/eu.ehnes.secondoandroid";
+        progressConstantsFileDefault = sbd 
+		+ CFile::pathSep + progressConstantsFileDefault;
+#endif
 
   string progressConstantsFile = SmiProfile::GetParameter(
                                       "ProgressEstimation",
@@ -344,7 +383,12 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 
 
   // create directory tmp below current dir
-  string tempDir("tmp");
+#ifndef SECONDO_ANDROID 
+ string tempDir("tmp");
+#else
+        string tempDir("/data/data/eu.ehnes.secondoandroid/tmp");
+#endif
+
   if (! FileSystem::FileOrFolderExists(tempDir) )
   {
     if (! FileSystem::CreateFolder(tempDir) )
@@ -353,6 +397,11 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       cmsg.send();
       ok = false;
       errorMsg += "Could not create directory " + tempDir +"\n";
+#ifdef SECONDO_ANDROID
+        __android_log_print(ANDROID_LOG_INFO,"FU", 
+		"Could not Create Directory %s",tempDir.c_str());
+#endif
+
     }
   }
 
@@ -658,6 +707,14 @@ function contains already many lines of code. Hence, some commands have been
 moved to separate functions. This kind of functions should be named Command\_<name>.
 
 */
+
+ #ifdef SECONDO_ANDROID
+        __android_log_print(ANDROID_LOG_INFO,"FU", "Starting Secondo(...)");
+        __android_log_print(ANDROID_LOG_INFO,"FU", 
+		"Command: %s", commandText.c_str());
+
+#endif 
+
 
   //assert( SmiEnvironment::GetNumOfErrors() == 0 );
   SHOW(activeTransaction)

@@ -176,6 +176,7 @@ Destroys a "Secondo"[3] interface.
                    string& profile,
                    string& errorMsg,
                    const bool multiUser = false );
+
 /*
 Starts up the "Secondo"[3] interface. Depending on the implementation
 not all parameters are required for the interface to be operational.
@@ -191,10 +192,12 @@ may be specified via the configuration file ~profile~. The method arguments
 ~host~ and ~port~ take precedence over specifications in the configuration file.
 
 In the single user version only the name of the configuration file
-~profile~ must be specified. Values for ~host~ and ~port~ are ignored.
+~profile~ must be specified. Values for ~host~ and ~port~ are ignored. EPAR
 
 */
+
   void Terminate();
+
 /*
 Shuts down the "Secondo"[3] interface. In the client/server version
 the connection to the "Secondo"[3] server is closed; in the single user version

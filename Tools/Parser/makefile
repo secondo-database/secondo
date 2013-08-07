@@ -65,7 +65,14 @@ DEP_FILES += SecParser.tab.dep
 GENFILES := $(SCANNER_DEF) $(PARSER_DEF) $(TOKEN_DEF) $(SCANNER) $(PARSER) \
 	    lexrules tokens yaccrules1 yaccrules2 
 
+ifeq ($(platform),android)
+CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-g++
+CCFLAGS += -I$(SECONDO_BUILD_DIR)/../flex/include/
+else
+
 CC := g++
+endif
+
 
 SPECPARSER := SpecParser/Parser$(PARSEREXT)
 SPECFILE := ../../Algebras/specs 

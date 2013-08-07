@@ -90,6 +90,16 @@ TTY: kernel buildapps examples
 .PHONY: minTTY 
 minTTY: kernel minApps examples
 
+.PHONY: android
+android: kernel libapp secondoandroid
+
+.PHONY: libapp
+libapp: 
+	$(MAKE) -C android
+
+secondoandroid: 
+	$(HOME)/android-sdk/tools/android update project -p $(BUILDDIR)/android/secondoandroid/
+	ant debug -buildfile $(HOME)/secondo/android/secondoandroid/build.xml
 
 .PHONY: kernel
 kernel: makedirs buildlibs buildAlgebras
@@ -320,7 +330,7 @@ Javagui/GBS.cfg: Javagui/GBS.cfg.sample
 help:
 	@echo "*** Usage of the SECONDO makefile:"
 	@echo "*** "
-	@echo "*** make [TTY||optimizer|java|clean|realclean|TestRunner]"
+	@echo "*** make [TTY|android|optimizer|java|clean|realclean|TestRunner]"
 	@echo "***      [clean|realclean|runtests]"
 	@echo "*** "
 	@echo "*** The optional parameters or targets are explained below:"

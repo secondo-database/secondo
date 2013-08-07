@@ -28,6 +28,9 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
+ifeq ($(platform),android)
+CCFLAGS += -I$(HOME)/jpeg-6b/
+endif
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

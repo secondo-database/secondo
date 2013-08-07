@@ -38,8 +38,10 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 #include <stdlib.h>
 #endif
 
+#ifndef SECONDO_ANDROID
 #if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
 #include <execinfo.h>
+#endif
 #endif
 
 #include <iostream>
@@ -128,7 +130,8 @@ void WinUnix::writeLittleEndian(ostream& o, const uint32_t number){
 }
 
 
-void WinUnix::writeLittleEndian(ostream& o, const uint16_t number){
+void WinUnix::writeLittleEndian(ostream& o, 
+	const uint16_t number){
   uint16_t x = number;
   if(!isLittleEndian()){
     x =  (( x & 0x00FF) << 8) | ( ( x & 0xFF00) >> 8);
@@ -205,6 +208,7 @@ uint64_t WinUnix::convertEndian(const uint64_t n){
 
     
 /* Obtain a backtrace and print it to stdout. */
+#if !defined(SECONDO_ANDROID)
 #if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
 void
 WinUnix::stacktrace(const string& fullAppName)
@@ -284,7 +288,7 @@ WinUnix::stacktrace(const string& fullAppName)
 }
 
 #endif
-
+#endif
 /*
 Implementation of class ~CFile~
 

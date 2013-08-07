@@ -129,8 +129,9 @@ DynamicLibrary::GetFunctionAddress( const string& functionName )
   if ( IsLoaded() )
   {
 #ifdef SECONDO_WIN32
-    functionAddr = (void*) ::GetProcAddress( static_cast<HINSTANCE>(libraryHandle),
-                                             functionName.c_str());
+    functionAddr = (void*) ::GetProcAddress( 
+	static_cast<HINSTANCE>(libraryHandle),
+        functionName.c_str());
 #else
     functionAddr = ::dlsym( libraryHandle, functionName.c_str() );
 #endif
@@ -161,12 +162,12 @@ DynamicLibrary::SetErrorMessage()
 #ifdef SECONDO_WIN32
   ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
                    NULL, GetLastError(),
-                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
                    (LPTSTR) &msgBuffer, 0, NULL );
   errorMessage = msgBuffer;
   LocalFree( msgBuffer );
 #else
-  msgBuffer = ::dlerror();
+  msgBuffer = (char*)::dlerror();
   errorMessage = (msgBuffer != 0) ? msgBuffer : "";
 #endif
 }
