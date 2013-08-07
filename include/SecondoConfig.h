@@ -189,6 +189,22 @@ Creating shared libraries requires no special measures.
 #  define SDB_EXPORT
 #  define SMI_EXPORT
 #endif
+/*
+
+1.1.5 Android 
+
+*/
+#if defined(__ANDROID__)
+#  define SECONDO_ANDROID
+/*
+Creating shared libraries requires no special measures.
+
+*/
+#  define SDB_EXPORT
+#  define SMI_EXPORT
+
+#endif
+
  
 #else
 #  error Could not identify the operating system
