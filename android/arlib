@@ -1,0 +1,47 @@
+
+#!/bin/bash
+
+
+if [ $SECONDO_PLATFORM == "android" ]; then
+AR="$HOME/toolchain-standalone/bin/arm-linux-androideabi-ar"
+else
+AR="ar"
+fi
+
+
+if [ $# -lt 2 ]; then
+  echo "Usage arlib <libfile>  <lib_1> ... <lib_n> "
+  exit 1
+fi
+
+TARGET=$1
+shift
+
+SOURCES=$*
+
+# for S in $SOURCES; do
+#  ar t $S | while read O; do ar x $S "$O"; ar rs $TARGET "$O"; rm "$O";  done
+# done
+
+rm -rf temp
+mkdir temp
+cd temp
+i=1
+for S in $SOURCES; do
+  DIRNAME=lib_$i
+  mkdir  $DIRNAME 
+  cd $DIRNAME 
+  $AR x $S
+  cd ..
+  i=$(expr $i + 1 )
+done
+
+
+OBJ=$(find . -iname "*.o" )
+
+$AR -qs $TARGET $OBJ
+
+cd ..
+
+rm -rf temp
+
