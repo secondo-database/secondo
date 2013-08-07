@@ -84,10 +84,13 @@ void Reg::AddSeg(Seg& a) {
     v.push_back(a);
 }
 
-void Reg::Print() {
-
+string Reg::ToString() {
+    std::ostringstream ss;
+    
     for (unsigned int i = 0; i < v.size(); i++)
         cerr << v[i].ToString() << "\n";
+    
+    return ss.str();
 }
 
 void Reg::Close() {
@@ -100,9 +103,9 @@ void Reg::Close() {
 
     v = sortSegs(v);
 
-    cerr << "Dumping Reg\n";
-    Print();
-    cerr << "Dumping Reg End\n";
+    cerr << "Dumping Reg\n" 
+         << ToString()
+         << "Dumping Reg End\n";
     ConvexHull();
 }
 
@@ -118,7 +121,7 @@ vector<Pt> Reg::getPoints() {
 }
 
 static bool leftOf(Pt pt1, Pt pt2, Pt next) {
-    return((pt2.x - pt1.x)*(next.y - pt1.y)-(next.x - pt1.x)*(pt2.y - pt1.y))>0;
+    return((pt2.x-pt1.x)*(next.y - pt1.y)-(next.x - pt1.x)*(pt2.y - pt1.y))>=0;
 }
 
 static bool sortAngle(const Pt& a, const Pt& b) {
@@ -142,10 +145,16 @@ void Reg::ConvexHull() {
     uh.push_back(lt[1]);
 
     for (int a = 2; a < (int) lt.size();) {
+        cerr << "List len: " << uh.size() << "\n";
         assert(uh.size() >= 2);
         Pt point1 = uh[uh.size() - 1];
         Pt point2 = uh[uh.size() - 2];
         Pt next = lt[a];
+        
+        cerr << "P1: " << point1.ToString()
+             << "P2: " << point2.ToString()
+             << "Nx: " << next.ToString()
+             << "\n";
 
         if (leftOf(point2, point1, next)) {
             uh.push_back(next);
@@ -199,7 +208,7 @@ vector<Reg> Reg::Concavities() {
             } else {
                 hpidx = j - 1;
             }
-            r.hullPoint = Pt(v[hpidx].x1, v[hpidx].x2);
+            r.hullPoint = new Pt(v[hpidx].x1, v[hpidx].x2);
             cerr << "End: " << ch[i].x2 << "/" << ch[i].y2 << "\n";
             do {
                 Seg s = Seg(v[j].x2, v[j].y2, v[j].x1, v[j].y1);
@@ -225,6 +234,83 @@ vector<Reg> Reg::Concavities() {
     return ret;
 }
 
+vector<Reg> Reg::Concavities2(Reg *reg2) {
+    vector<Reg> ret;
+    Reg *reg1 = this;
+    
+    reg1->Begin();
+    reg2->Begin();
+    
+    Reg r1 = Reg(reg1->convexhull);
+    Reg r2 = Reg(reg2->convexhull);
+    cerr << "\n\nConcavities2: START\n";
+
+    do {
+        double a1 = r1.Cur().angle();
+        double a2 = r2.Cur().angle();
+        int sx1 = 0, sy1 = 0, sx2 = 0, sy2 = 0,
+                dx1 = 0, dy1 = 0, dx2 = 0, dy2 = 0;
+
+        if (((a1 <= a2) && !r1.End()) || r2.End()) {
+            cerr << "Concavities2/r1: Comparing " << r1.Cur().ToString()
+                    << " (hull) / " << reg1->Cur().ToString() << " (region)\n";
+            if (r1.Cur() == reg1->Cur()) {
+                r1.Next();
+                reg1->Next();
+            } else {
+                
+                // We found a concavity in the source region
+                
+                cerr << "Concavities2: Found concavity\n";
+                Reg ccv; // The concavity
+                while (r1.Cur().x2 != reg1->Cur().x1 ||
+                        r1.Cur().y2 != reg1->Cur().y1) {
+                    sx1 = reg1->Cur().x1;
+                    sy1 = reg1->Cur().y1;
+                    sx2 = reg1->Cur().x2;
+                    sy2 = reg1->Cur().y2;
+                    dx1 = dx2 = r2.Cur().x1;
+                    dy1 = dy2 = r2.Cur().y1;
+                    reg1->Next();
+//                    msegs.AddMSeg(sx1, sy1, sx2, sy2, dx1, dy1, dx2, dy2);
+                    Seg s(sx1, sy1, sx2, sy2);
+                    ccv.AddSeg(s);
+                    cerr << "Concavities2: Adding segment " << s.ToString() 
+                            << "\n";
+                }
+                ccv.hullPoint = new Pt(reg1->Cur().x1, reg1->Cur().y1);
+                ccv.peerPoint = new Pt(r2.Cur().x1, r2.Cur().y1);
+                cerr << "HP" << ccv.hullPoint->ToString()
+                     << " PP " << ccv.peerPoint->ToString() << "\n\n";
+                cerr << "Concavities2: Found concavity end\n\n";
+                ccv.Close();
+                ret.push_back(ccv);
+                r1.Next();
+            }
+        } else if ((a1 >= a2) || r1.End()) {
+            cerr << "Concavities2/r2: Comparing " << r2.Cur().ToString()
+                    << " (hull) / " << reg2->Cur().ToString() << " (region)\n";
+            if (r2.Cur() == reg2->Cur()) {
+                reg2->Next();
+                r2.Next();
+            } else {
+                while (r2.Cur().x2 != reg2->Cur().x1 || 
+                        r2.Cur().y2 != reg2->Cur().y1) {
+                    reg2->Next();
+                }
+                r2.Next();
+            }
+        }
+
+        if (r1.End() && r2.End())
+            break;
+
+    } while (1);
+    cerr << "\nConcavities2: END\n\n";
+    
+    return ret;
+}
+
 void Reg::Translate(int offx, int offy) {
     for (unsigned int i = 0; i < v.size(); i++) {
         v[i].x1 += offx;
@@ -232,6 +318,10 @@ void Reg::Translate(int offx, int offy) {
         v[i].y1 += offy;
         v[i].y2 += offy;
     }
+}
+
+void Reg::Begin() {
+    cur = 0;
 }
 
 Seg Reg::Next() {
@@ -263,6 +353,20 @@ Seg Reg::Cur() {
 MSegs Reg::collapse () 
 {
    MSegs ret;
+   
+   Pt dst;
+   
+   if (peerPoint)
+       dst = *peerPoint;
+   else
+       dst = Pt(v[0].x1, v[0].y1);
+   
+   if (peerPoint) {
+       for (unsigned int i = 0; i < v.size(); i++) {
+           ret.AddMSeg(v[i].x1, v[i].y1, v[i].x2, v[i].y2,
+                   dst.x, dst.y, dst.x, dst.y);
+       }
+   }
    
    return ret;
 }

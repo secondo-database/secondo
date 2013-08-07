@@ -223,40 +223,41 @@ void translate(vector<MSegmentData> &v, double offx, double offy, bool source) {
     }
 }
 
-vector<URegion> interpolate1(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti4) {
-    vector<URegion> ret;
-    Reg reg1hull = reg1->convexhull;
-    Reg reg2hull = reg2->convexhull;
-
-    int distx = reg2->v[0].x1 - reg1->v[0].x1;
-    int disty = reg2->v[0].y1 - reg1->v[0].y1;
-
-    vector<MSegmentData> v1 = makeConcavities(reg1, true);
-    translate(v1, distx / 3, disty / 3, false);
-    reg1hull.Translate(distx / 3, disty / 3);
-    reg2hull.Translate(-distx / 3, -disty / 3);
-    vector<MSegmentData> v2 = createURegion(reg1hull, reg2hull);
-    vector<MSegmentData> v3 = makeConcavities(reg2, false);
-    translate(v3, -distx / 3, -disty / 3, true);
-
-
-    int64_t x = (ti4->millisecondsToNull() - ti1->millisecondsToNull()) / 3;
-    Instant ti2 = Instant(ti1->millisecondsToNull() + x);
-    Instant ti3 = Instant(ti1->millisecondsToNull() + 2 * x);
-    Interval<Instant> int1 = Interval<Instant > (*ti1, ti2, true, false);
-    Interval<Instant> int2 = Interval<Instant > (ti2, ti3, true, false);
-    Interval<Instant> int3 = Interval<Instant > (ti3, *ti4, true, true);
-
-    URegion oc = URegion(v1, int1);
-    URegion ch = URegion(v2, int2);
-    URegion cc = URegion(v3, int3);
-    ret.push_back(oc);
-    ret.push_back(ch);
-    ret.push_back(cc);
-    curface++;
-
-    return ret;
-}
+//vector<URegion> interpolate1(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti4)
+//{
+//    vector<URegion> ret;
+//    Reg reg1hull = reg1->convexhull;
+//    Reg reg2hull = reg2->convexhull;
+//
+//    int distx = reg2->v[0].x1 - reg1->v[0].x1;
+//    int disty = reg2->v[0].y1 - reg1->v[0].y1;
+//
+//    vector<MSegmentData> v1 = makeConcavities(reg1, true);
+//    translate(v1, distx / 3, disty / 3, false);
+//    reg1hull.Translate(distx / 3, disty / 3);
+//    reg2hull.Translate(-distx / 3, -disty / 3);
+//    vector<MSegmentData> v2 = createURegion(reg1hull, reg2hull);
+//    vector<MSegmentData> v3 = makeConcavities(reg2, false);
+//    translate(v3, -distx / 3, -disty / 3, true);
+//
+//
+//    int64_t x = (ti4->millisecondsToNull() - ti1->millisecondsToNull()) / 3;
+//    Instant ti2 = Instant(ti1->millisecondsToNull() + x);
+//    Instant ti3 = Instant(ti1->millisecondsToNull() + 2 * x);
+//    Interval<Instant> int1 = Interval<Instant > (*ti1, ti2, true, false);
+//    Interval<Instant> int2 = Interval<Instant > (ti2, ti3, true, false);
+//    Interval<Instant> int3 = Interval<Instant > (ti3, *ti4, true, true);
+//
+//    URegion oc = URegion(v1, int1);
+//    URegion ch = URegion(v2, int2);
+//    URegion cc = URegion(v3, int3);
+//    ret.push_back(oc);
+//    ret.push_back(ch);
+//    ret.push_back(cc);
+//    curface++;
+//
+//    return ret;
+//}
 
 //static bool compareSegments (MSegmentData m1, MSegmentData m2) {
 //        return (
@@ -296,7 +297,10 @@ MFace rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
                 r1.Next();
                 reg1->Next();
             } else {
-                while (r1.Cur().x2 != reg1->Cur().x1 &&
+                
+                // We found a concavity in the source region
+
+                while (r1.Cur().x2 != reg1->Cur().x1 ||
                         r1.Cur().y2 != reg1->Cur().y1) {
                     sx1 = reg1->Cur().x1;
                     sy1 = reg1->Cur().y1;
@@ -321,7 +325,10 @@ MFace rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
                 reg2->Next();
                 r2.Next();
             } else {
-                while (r2.Cur().x2 != reg2->Cur().x1 && 
+                
+                // We found a concavity in the destination region
+                
+                while (r2.Cur().x2 != reg2->Cur().x1 || 
                         r2.Cur().y2 != reg2->Cur().y1) {
                     sx1 = sx2 = r1.Cur().x1;
                     sy1 = sy2 = r1.Cur().y1;
@@ -345,48 +352,49 @@ MFace rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
     return ret;
 }
 
-vector<URegion> interpolate2(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti2) {
-    vector<URegion> ret;
+//vector<URegion> interpolate2(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti2)
+//{
+//    vector<URegion> ret;
+//
+//    MFace _v  = rotatingPlane(reg1, reg2, true);
+//    MFace _v2 = rotatingPlane(&reg1->cvs[0], &reg2->cvs[0], true);
+//    cerr << "Msegs _v" << _v.ToString();
+//    cerr << "Msegs _v2" << _v2.ToString();
+//    MFace face(_v);
+//    face.AddHole(_v2);
+//    vector<MSegmentData> v = _v.ToMSegmentData(curface, 0);
+//    vector<MSegmentData> v2 = _v2.ToMSegmentData(curface, 0);
+//    //    v.insert(v.end(), v2.begin(), v2.end());
+//
+//    Interval<Instant> iv = Interval<Instant > (*ti1, *ti2, true, true);
+//    URegion u = URegion(v, iv);
+//    ret.push_back(u);
+//    curface++;
+//
+//    return ret;
+//}
 
-    MSegs _v  = rotatingPlane(reg1, reg2, true);
-    MSegs _v2 = rotatingPlane(&reg1->cvs[0], &reg2->cvs[0], true);
-    cerr << "Msegs _v" << _v.ToString();
-    cerr << "Msegs _v2" << _v2.ToString();
-    MFace face(_v);
-    face.AddHole(_v2);
-    vector<MSegmentData> v = _v.ToMSegmentData(curface, 0);
-    vector<MSegmentData> v2 = _v2.ToMSegmentData(curface, 0);
-    //    v.insert(v.end(), v2.begin(), v2.end());
-
-    Interval<Instant> iv = Interval<Instant > (*ti1, *ti2, true, true);
-    URegion u = URegion(v, iv);
-    ret.push_back(u);
-    curface++;
-
-    return ret;
-}
-
-vector<URegion> do_interpolate(Reg *src, Instant *ti1, Reg *dst, Instant *ti2,
-        int mode) {
-    vector<URegion> ret;
-    if (src == NULL) {
-        URegion r = collapseRegion(dst, ti1, ti2, false);
-        ret.push_back(r);
-    } else if (dst == NULL) {
-        URegion r = collapseRegion(src, ti1, ti2, true);
-        ret.push_back(r);
-    } else {
-        if (mode == 1) {
-            ret = interpolate1(src, ti1, dst, ti2);
-        } else if (mode == 2) {
-            ret = interpolate2(src, ti1, dst, ti2);
-        } else {
-            ret = interpolate2(src, ti1, dst, ti2);
-        }
-    }
-
-    return ret;
-}
+//vector<URegion> do_interpolate(Reg *src, Instant *ti1, Reg *dst, Instant *ti2,
+//        int mode) {
+//    vector<URegion> ret;
+//    if (src == NULL) {
+//        URegion r = collapseRegion(dst, ti1, ti2, false);
+//        ret.push_back(r);
+//    } else if (dst == NULL) {
+//        URegion r = collapseRegion(src, ti1, ti2, true);
+//        ret.push_back(r);
+//    } else {
+//        if (mode == 1) {
+//            ret = interpolate1(src, ti1, dst, ti2);
+//        } else if (mode == 2) {
+//            ret = interpolate2(src, ti1, dst, ti2);
+//        } else {
+//            ret = interpolate2(src, ti1, dst, ti2);
+//        }
+//    }
+//
+//    return ret;
+//}
 
 static vector<pair<Reg *, Reg *> > matchFaces(vector<Reg> *src,
         vector<Reg> *dst) {
@@ -484,32 +492,33 @@ static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
     return ret;
 }
 
-URegion interpolate3(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti2) {
-    MSegs _v  = rotatingPlane(reg1, reg2, true);
-    MSegs _v2 = rotatingPlane(&reg1->cvs[0], &reg2->cvs[0], true);
-    MSegs _v3 = rotatingPlane(&reg1->cvs[1], &reg2->cvs[1], true);
-    cerr << "Msegs _v" << _v.ToString();
-    cerr << "Msegs _v2" << _v2.ToString();
-    MFace face(_v);
-    face.AddHole(_v2);
-    if (_v3.intersects(_v2)) {
-        cerr << "Concavity intersects, ignoring!" << "\n";
-        face.AddHole(_v3);
-    } else {
-        cerr << "Concavity not intersects, not ignoring!\n";
-        face.AddHole(_v3);
-    }
+//URegion interpolate3(Reg *reg1, Instant *ti1, Reg *reg2, Instant *ti2) {
+//    MSegs _v  = rotatingPlane(reg1, reg2, true);
+//    MSegs _v2 = rotatingPlane(&reg1->cvs[0], &reg2->cvs[0], true);
+//    MSegs _v3 = rotatingPlane(&reg1->cvs[1], &reg2->cvs[1], true);
+//    cerr << "Msegs _v" << _v.ToString();
+//    cerr << "Msegs _v2" << _v2.ToString();
+//    MFace face(_v);
+//    face.AddHole(_v2);
+//    if (_v3.intersects(_v2)) {
+//        cerr << "Concavity intersects, ignoring!" << "\n";
+//        face.AddHole(_v3);
+//    } else {
+//        cerr << "Concavity not intersects, not ignoring!\n";
+//        face.AddHole(_v3);
+//    }
+//
+//    Interval<Instant> iv = Interval<Instant > (*ti1, *ti2, true, true);
+//    URegion ret = face.ToURegion(iv);
+//
+//    return ret;
+//}
 
-    Interval<Instant> iv = Interval<Instant > (*ti1, *ti2, true, true);
-    URegion ret = face.ToURegion(iv);
-
-    return ret;
-}
-
-vector<MSegs> interpolate4 (vector<Reg> *sregs, Instant *ti1,
+MFaces interpolate4 (vector<Reg> *sregs, Instant *ti1,
 			    vector<Reg> *dregs, Instant *ti2) {
     vector<pair<Reg *, Reg *> > ps = matchFacesSimple(sregs, dregs);
-    vector<MSegs> ret, msegs;
+    vector<MSegs> msegs;
+    MFaces ret, fcs;
     
     for (unsigned int i = 0; i < ps.size(); i++) {
         pair<Reg *, Reg *> p = ps[i];
@@ -518,21 +527,27 @@ vector<MSegs> interpolate4 (vector<Reg> *sregs, Instant *ti1,
         Reg *dst = p.second;
         
         if (src && dst) {
-            vector<Reg> scvs = src->Concavities();
-            vector<Reg> dcvs = dst->Concavities();
-	    Reg scvx(src->convexhull);
-	    Reg dcvx(dst->convexhull);
-            MFace f = rotatingPlane(&scvx, &dcvx, true);
-            msegs = interpolate4(&scvs, ti1, &dcvs, ti2);
-            for (unsigned int i = 0; i < msegs.size(); i++) {
-                f.AddHole(msegs[i]);
+            vector<Reg> scvs = src->Concavities2(dst);
+            vector<Reg> dcvs = dst->Concavities2(src);
+            MFace f = rotatingPlane(src, dst, true);
+            fcs = interpolate4(&scvs, ti1, &dcvs, ti2);
+            for (unsigned int i = 0; i < fcs.faces.size(); i++) {
+                f.AddMsegs(fcs.faces[i].face);
+                for (unsigned int j = 0; j < fcs.faces[i].holes.size(); j++) {
+                    MFace fc(fcs.faces[i].holes[j]);
+                    ret.AddFace(fc);
+                }
             }
+            ret.AddFace(f);
             
         } else {
             if (dst) {
                 src = dst;
             }
             MSegs coll = src->collapse();
+            cerr << "Collapsing " << coll.ToString();
+            MFace f(coll);
+            ret.AddFace(f);
         }
     }
     
@@ -559,9 +574,16 @@ int interpolatevalmap(Word* args,
     vector<Reg> reg1 = Reg::getRegs(_r1);
     vector<Reg> reg2 = Reg::getRegs(_r2);
 
-    interpolate4(&reg1, ti1, &reg2, ti2);
-    MFaces mf;
-    *m = mf.ToMRegion(iv);
+    MFaces mf = interpolate4(&reg1, ti1, &reg2, ti2);
+    cerr << mf.ToString();
+//    MFaces mf;
+//    for (unsigned int i = 0; i < segs.size(); i++) {
+//        cerr << "Adding face " << i << "\n" << segs[i].ToString() << "\n\n";
+//        MFace f(segs[i]);
+//        mf.AddFace(f);
+//    }
+    MRegion mreg = mf.ToMRegion(iv);
+    *m = mreg;
 
     // Merge URegions per time-interval
 //    std::map<Interval<Instant>, URegion*> map;

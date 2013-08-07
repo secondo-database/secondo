@@ -6,6 +6,8 @@
 
 #include "MovingRegionAlgebra.h"
 
+class MSegs;
+
 class Pt {
 private:
 
@@ -22,7 +24,6 @@ public:
     string ToString();
 };
 
-
 class Seg {
 private:
 
@@ -38,7 +39,43 @@ public:
     void ChangeDir();
 };
 
-vector<Seg> sortSegs(vector<Seg> v);
+class Reg {
+private:
+    int cur;
+
+public:
+    Pt *hullPoint, *peerPoint;
+    vector<Seg> convexhull;
+    vector<Seg> v;
+    vector<Reg> cvs;
+    Reg *parent;
+    int parentseg;
+    Reg();
+    Reg(ListExpr le);
+    Reg(vector<Seg> v);
+    Reg(Reg *parent, int parentseg);
+    void AddSeg(Seg& a);
+    void Print();
+    void Close();
+    void ConvexHull();
+    void Translate(int offx, int offy);
+    void Begin();
+    Seg Next();
+    Seg Prev();
+    Seg Cur();
+    int End();
+    void Sort();
+    vector<Pt> getPoints();
+    vector<Reg> Concavities();
+    vector<Reg> Concavities2(Reg *r2);
+    Region MakeRegion();
+    Region MakeRegion(int offx, int offy);
+    Pt GetMinXY();
+    MSegs collapse();
+    string ToString();
+    
+    static vector<Reg> getRegs(ListExpr le);
+};
 
 class MSeg {
 public:
@@ -71,62 +108,32 @@ public:
 
 class MFace {
 private:
-    MSegs face;
-    vector<MSegs> holes;
-    vector<MSegs> cvs;
+//    vector<MSegs> cvs;
     
 public:
+    MSegs face;
+    vector<MSegs> holes;
     MFace();
     MFace(MSegs face);
-    void AddHole (MSegs msegs);
-    URegion ToURegion(Interval<Instant> iv);
+    void AddMsegs (MSegs msegs);
+    URegion ToURegion(Interval<Instant> iv, int facenr);
+    string ToString();
 };
 
 class MFaces {
 private:
-    vector<MFace> faces;
     
 public:
+    vector<MFace> faces;
     MFaces();
     MFaces(MFace face);
     void AddFace (MFace face);
     MRegion ToMRegion(Interval<Instant> iv);
+    string ToString();
 };
 
-class Reg {
-private:
-    int cur;
-    Pt hullPoint;
 
-public:
-    vector<Seg> convexhull;
-    vector<Seg> v;
-    vector<Reg> cvs;
-    Reg *parent;
-    int parentseg;
-    Reg();
-    Reg(ListExpr le);
-    Reg(vector<Seg> v);
-    Reg(Reg *parent, int parentseg);
-    void AddSeg(Seg& a);
-    void Print();
-    void Close();
-    void ConvexHull();
-    void Translate(int offx, int offy);
-    Seg Next();
-    Seg Prev();
-    Seg Cur();
-    int End();
-    void Sort();
-    vector<Pt> getPoints();
-    vector<Reg> Concavities();
-    Region MakeRegion();
-    Region MakeRegion(int offx, int offy);
-    Pt GetMinXY();
-    MSegs collapse();
-    
-    static vector<Reg> getRegs(ListExpr le);
-};
+vector<Seg> sortSegs(vector<Seg> v);
 
 #endif	/* INTERPOLATE_HXX */
 
