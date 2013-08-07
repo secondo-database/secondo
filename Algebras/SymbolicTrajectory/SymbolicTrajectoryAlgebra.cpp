@@ -1667,7 +1667,11 @@ int tolabelSelect(ListExpr args) {
 */
 template<class T>
 int tolabelVM(Word* args, Word& result, int message, Word& local, Supplier s) {
-  string source = static_cast<T*>(args[0].addr)->GetValue();
+  T* src = static_cast<T*>(args[0].addr);
+  string source("");
+  if (src->IsDefined()) {
+    source = static_cast<T*>(args[0].addr)->GetValue();
+  }
   result = qp->ResultStorage(s);
   Label* res = new Label(source);
   result.addr = res;
@@ -3800,7 +3804,6 @@ int the_unit_Label_VM(Word* args, Word& result,
   }
   if (*i1 < *i2) { // sorted instants
     Interval<Instant> interval(*i1, *i2, clb, crb);
-    cout << *value << endl;
     *res = ULabel(interval, *value);
   }
   else {
