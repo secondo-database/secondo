@@ -1,4 +1,3 @@
-
 /*
 */
 
@@ -34,7 +33,6 @@ static int curface;
 //    
 //    return r;
 //}
-
 
 static vector<MSegmentData> makeConcavities(Reg *r1, bool close) {
     vector<MSegmentData> ret;
@@ -210,10 +208,10 @@ static vector<MSegmentData> createURegion(Reg r1, Reg r2) {
 void translate(vector<MSegmentData> &v, double offx, double offy, bool source) {
     for (unsigned int i = 0; i < v.size(); i++) {
         if (source) {
-//            v[i].SetInitialStartX(v[i].GetInitialStartX() + offx);
-//            v[i].SetInitialStartY(v[i].GetInitialStartY() + offy);
-//            v[i].SetInitialEndX(v[i].GetInitialEndX() + offx);
-//            v[i].SetInitialEndY(v[i].GetInitialEndY() + offy);
+            //            v[i].SetInitialStartX(v[i].GetInitialStartX() + offx);
+            //            v[i].SetInitialStartY(v[i].GetInitialStartY() + offy);
+            //            v[i].SetInitialEndX(v[i].GetInitialEndX() + offx);
+            //            v[i].SetInitialEndY(v[i].GetInitialEndY() + offy);
         } else {
             v[i].SetFinalStartX(v[i].GetFinalStartX() + offx);
             v[i].SetFinalStartY(v[i].GetFinalStartY() + offy);
@@ -272,7 +270,6 @@ void translate(vector<MSegmentData> &v, double offx, double offy, bool source) {
 //                );
 //}
 
-
 MFace rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
     MSegs msegs;
 
@@ -297,7 +294,7 @@ MFace rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
                 r1.Next();
                 reg1->Next();
             } else {
-                
+
                 // We found a concavity in the source region
 
                 while (r1.Cur().x2 != reg1->Cur().x1 ||
@@ -325,10 +322,10 @@ MFace rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
                 reg2->Next();
                 r2.Next();
             } else {
-                
+
                 // We found a concavity in the destination region
-                
-                while (r2.Cur().x2 != reg2->Cur().x1 || 
+
+                while (r2.Cur().x2 != reg2->Cur().x1 ||
                         r2.Cur().y2 != reg2->Cur().y1) {
                     sx1 = sx2 = r1.Cur().x1;
                     sy1 = sy2 = r1.Cur().y1;
@@ -347,7 +344,7 @@ MFace rotatingPlane(Reg *reg1, Reg *reg2, bool hullOnly) {
             break;
 
     } while (1);
-    
+
     MFace ret = MFace(msegs);
     return ret;
 }
@@ -441,7 +438,7 @@ static vector<pair<Reg *, Reg *> > matchFaces(vector<Reg> *src,
             Region ir(0);
             sr.Intersection(dr, ir, NULL);
             ir.ComputeRegion();
-            cerr << "Size Sregion " << sr.SpatialSize() << " Dregion " << 
+            cerr << "Size Sregion " << sr.SpatialSize() << " Dregion " <<
                     dr.SpatialSize() << "\n";
             cerr << "IRegion " << ir << " / " << ir.IsDefined() << "\n";
             cerr << "SRegion " << i << " intersects DRegion " << j << " by " <<
@@ -473,9 +470,9 @@ static vector<pair<Reg *, Reg *> > matchFaces(vector<Reg> *src,
 static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
         vector<Reg> *dst) {
     vector<pair<Reg *, Reg *> > ret;
-    
+
     unsigned int i;
-    
+
     for (i = 0; (i < src->size() || (i < dst->size())); i++) {
         if ((i < src->size()) && (i < dst->size())) {
             pair<Reg *, Reg *> p(&((*src)[i]), &((*dst)[i]));
@@ -484,11 +481,11 @@ static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
             pair<Reg *, Reg *> p(&((*src)[i]), NULL);
             ret.push_back(p);
         } else {
-            pair<Reg *, Reg *> p(&((*dst)[i]), NULL);
+            pair<Reg *, Reg *> p(NULL, &((*dst)[i]));
             ret.push_back(p);
         }
-    }    
-    
+    }
+
     return ret;
 }
 
@@ -514,18 +511,18 @@ static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
 //    return ret;
 //}
 
-MFaces interpolate4 (vector<Reg> *sregs, Instant *ti1,
-			    vector<Reg> *dregs, Instant *ti2) {
+MFaces interpolate4(vector<Reg> *sregs, Instant *ti1,
+        vector<Reg> *dregs, Instant *ti2) {
     vector<pair<Reg *, Reg *> > ps = matchFacesSimple(sregs, dregs);
     vector<MSegs> msegs;
     MFaces ret, fcs;
-    
+
     for (unsigned int i = 0; i < ps.size(); i++) {
         pair<Reg *, Reg *> p = ps[i];
-        
+
         Reg *src = p.first;
         Reg *dst = p.second;
-        
+
         if (src && dst) {
             vector<Reg> scvs = src->Concavities2(dst);
             vector<Reg> dcvs = dst->Concavities2(src);
@@ -539,18 +536,22 @@ MFaces interpolate4 (vector<Reg> *sregs, Instant *ti1,
                 }
             }
             ret.AddFace(f);
-            
+
         } else {
             if (dst) {
-                src = dst;
+                MSegs coll = dst->collapse(false);
+                cerr << "Expanding: " << coll.ToString() << "\n";
+                MFace f(coll);
+                ret.AddFace(f);
+            } else {
+                MSegs coll = src->collapse(true);
+                cerr << "Collapsing: " << coll.ToString() << "\n";
+                MFace f(coll);
+                ret.AddFace(f);
             }
-            MSegs coll = src->collapse();
-            cerr << "Collapsing " << coll.ToString();
-            MFace f(coll);
-            ret.AddFace(f);
         }
     }
-    
+
     return ret;
 }
 
@@ -567,7 +568,7 @@ int interpolatevalmap(Word* args,
     MRegion* m = static_cast<MRegion*> (result.addr);
 
     Interval<Instant> iv(*ti1, *ti2, true, true);
-    
+
     ListExpr _r1 = OutRegion(nl->Empty(), args[0]);
     ListExpr _r2 = OutRegion(nl->Empty(), args[2]);
 
@@ -576,32 +577,32 @@ int interpolatevalmap(Word* args,
 
     MFaces mf = interpolate4(&reg1, ti1, &reg2, ti2);
     cerr << mf.ToString();
-//    MFaces mf;
-//    for (unsigned int i = 0; i < segs.size(); i++) {
-//        cerr << "Adding face " << i << "\n" << segs[i].ToString() << "\n\n";
-//        MFace f(segs[i]);
-//        mf.AddFace(f);
-//    }
+    //    MFaces mf;
+    //    for (unsigned int i = 0; i < segs.size(); i++) {
+    //      cerr << "Adding face " << i << "\n" << segs[i].ToString() << "\n\n";
+    //      MFace f(segs[i]);
+    //      mf.AddFace(f);
+    //    }
     MRegion mreg = mf.ToMRegion(iv);
     *m = mreg;
 
     // Merge URegions per time-interval
-//    std::map<Interval<Instant>, URegion*> map;
-//    for (unsigned int i = 0; i < uregs.size(); i++) {
-//        Interval<Instant> t = uregs[i].timeInterval;
-//        if (map.find(t) == map.end()) {
-//            map[t] = &uregs[i];
-//        } else {
-//            map[t]->AddURegion(&uregs[i]);
-//        }
-//    }
-//
-//    // Assemble MRegion from URegions
-//    *m = MRegion(1);
-//    for (std::map<Interval<Instant>, URegion *>::iterator p = map.begin();
-//         p != map.end(); p++) {
-//        m->AddURegion(*p->second);
-//    }
+    //    std::map<Interval<Instant>, URegion*> map;
+    //    for (unsigned int i = 0; i < uregs.size(); i++) {
+    //        Interval<Instant> t = uregs[i].timeInterval;
+    //        if (map.find(t) == map.end()) {
+    //            map[t] = &uregs[i];
+    //        } else {
+    //            map[t]->AddURegion(&uregs[i]);
+    //        }
+    //    }
+    //
+    //    // Assemble MRegion from URegions
+    //    *m = MRegion(1);
+    //    for (std::map<Interval<Instant>, URegion *>::iterator p = map.begin();
+    //         p != map.end(); p++) {
+    //        m->AddURegion(*p->second);
+    //    }
 
     return 0;
 }

@@ -71,7 +71,7 @@ public:
     Region MakeRegion();
     Region MakeRegion(int offx, int offy);
     Pt GetMinXY();
-    MSegs collapse();
+    MSegs collapse(bool close);
     string ToString();
     
     static vector<Reg> getRegs(ListExpr le);

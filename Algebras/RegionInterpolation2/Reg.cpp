@@ -22,7 +22,7 @@ Region Reg::MakeRegion(int offx, int offy) {
         ret += hs;
     }
     ret.EndBulkLoad(true, true, true, true);
-    
+
     return ret;
 }
 
@@ -33,7 +33,6 @@ Region Reg::MakeRegion() {
 void Reg::Sort() {
     v = sortSegs(v);
 }
-
 
 Reg::Reg(ListExpr le) {
     le = nl->First(le);
@@ -86,10 +85,10 @@ void Reg::AddSeg(Seg& a) {
 
 string Reg::ToString() {
     std::ostringstream ss;
-    
+
     for (unsigned int i = 0; i < v.size(); i++)
         cerr << v[i].ToString() << "\n";
-    
+
     return ss.str();
 }
 
@@ -103,9 +102,9 @@ void Reg::Close() {
 
     v = sortSegs(v);
 
-    cerr << "Dumping Reg\n" 
-         << ToString()
-         << "Dumping Reg End\n";
+    cerr << "Dumping Reg\n"
+            << ToString()
+            << "Dumping Reg End\n";
     ConvexHull();
 }
 
@@ -121,7 +120,8 @@ vector<Pt> Reg::getPoints() {
 }
 
 static bool leftOf(Pt pt1, Pt pt2, Pt next) {
-    return((pt2.x-pt1.x)*(next.y - pt1.y)-(next.x - pt1.x)*(pt2.y - pt1.y))>=0;
+    return ((pt2.x - pt1.x)*(next.y - pt1.y)
+            -(next.x - pt1.x)*(pt2.y - pt1.y)) >= 0;
 }
 
 static bool sortAngle(const Pt& a, const Pt& b) {
@@ -150,11 +150,11 @@ void Reg::ConvexHull() {
         Pt point1 = uh[uh.size() - 1];
         Pt point2 = uh[uh.size() - 2];
         Pt next = lt[a];
-        
+
         cerr << "P1: " << point1.ToString()
-             << "P2: " << point2.ToString()
-             << "Nx: " << next.ToString()
-             << "\n";
+                << "P2: " << point2.ToString()
+                << "Nx: " << next.ToString()
+                << "\n";
 
         if (leftOf(point2, point1, next)) {
             uh.push_back(next);
@@ -237,10 +237,10 @@ vector<Reg> Reg::Concavities() {
 vector<Reg> Reg::Concavities2(Reg *reg2) {
     vector<Reg> ret;
     Reg *reg1 = this;
-    
+
     reg1->Begin();
     reg2->Begin();
-    
+
     Reg r1 = Reg(reg1->convexhull);
     Reg r2 = Reg(reg2->convexhull);
     cerr << "\n\nConcavities2: START\n";
@@ -258,9 +258,9 @@ vector<Reg> Reg::Concavities2(Reg *reg2) {
                 r1.Next();
                 reg1->Next();
             } else {
-                
+
                 // We found a concavity in the source region
-                
+
                 cerr << "Concavities2: Found concavity\n";
                 Reg ccv; // The concavity
                 while (r1.Cur().x2 != reg1->Cur().x1 ||
@@ -272,16 +272,16 @@ vector<Reg> Reg::Concavities2(Reg *reg2) {
                     dx1 = dx2 = r2.Cur().x1;
                     dy1 = dy2 = r2.Cur().y1;
                     reg1->Next();
-//                    msegs.AddMSeg(sx1, sy1, sx2, sy2, dx1, dy1, dx2, dy2);
+                    //    msegs.AddMSeg(sx1, sy1, sx2, sy2, dx1, dy1, dx2, dy2);
                     Seg s(sx1, sy1, sx2, sy2);
                     ccv.AddSeg(s);
-                    cerr << "Concavities2: Adding segment " << s.ToString() 
+                    cerr << "Concavities2: Adding segment " << s.ToString()
                             << "\n";
                 }
                 ccv.hullPoint = new Pt(reg1->Cur().x1, reg1->Cur().y1);
                 ccv.peerPoint = new Pt(r2.Cur().x1, r2.Cur().y1);
                 cerr << "HP" << ccv.hullPoint->ToString()
-                     << " PP " << ccv.peerPoint->ToString() << "\n\n";
+                        << " PP " << ccv.peerPoint->ToString() << "\n\n";
                 cerr << "Concavities2: Found concavity end\n\n";
                 ccv.Close();
                 ret.push_back(ccv);
@@ -294,7 +294,7 @@ vector<Reg> Reg::Concavities2(Reg *reg2) {
                 reg2->Next();
                 r2.Next();
             } else {
-                while (r2.Cur().x2 != reg2->Cur().x1 || 
+                while (r2.Cur().x2 != reg2->Cur().x1 ||
                         r2.Cur().y2 != reg2->Cur().y1) {
                     reg2->Next();
                 }
@@ -307,7 +307,7 @@ vector<Reg> Reg::Concavities2(Reg *reg2) {
 
     } while (1);
     cerr << "\nConcavities2: END\n\n";
-    
+
     return ret;
 }
 
@@ -350,25 +350,29 @@ Seg Reg::Cur() {
     return v[cur % v.size()];
 }
 
-MSegs Reg::collapse () 
-{
-   MSegs ret;
-   
-   Pt dst;
-   
-   if (peerPoint)
-       dst = *peerPoint;
-   else
-       dst = Pt(v[0].x1, v[0].y1);
-   
-   if (peerPoint) {
-       for (unsigned int i = 0; i < v.size(); i++) {
-           ret.AddMSeg(v[i].x1, v[i].y1, v[i].x2, v[i].y2,
-                   dst.x, dst.y, dst.x, dst.y);
-       }
-   }
-   
-   return ret;
+MSegs Reg::collapse(bool close) {
+    MSegs ret;
+
+    Pt dst;
+
+    if (peerPoint)
+        dst = *peerPoint;
+    else
+        dst = Pt(v[0].x1, v[0].y1);
+
+    if (peerPoint) {
+        for (unsigned int i = 0; i < v.size(); i++) {
+            if (close) {
+                ret.AddMSeg(v[i].x1, v[i].y1, v[i].x2, v[i].y2,
+                    dst.x, dst.y, dst.x, dst.y);
+            } else {
+                ret.AddMSeg(dst.x, dst.y, dst.x, dst.y,
+                    v[i].x1, v[i].y1, v[i].x2, v[i].y2);
+            }
+        }
+    }
+
+    return ret;
 }
 
 vector<Reg> Reg::getRegs(ListExpr le) {
