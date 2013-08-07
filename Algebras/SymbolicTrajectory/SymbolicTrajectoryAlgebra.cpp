@@ -68,6 +68,7 @@ namespace stj {
 Label::Label(const string& value) {
   strncpy(text, value.c_str(), MAX_STRINGSIZE);
   text[MAX_STRINGSIZE] = '\0';
+  SetDefined(true);
 }
 
 Label::Label(const Label& rhs) {
@@ -2350,7 +2351,6 @@ the matching procedure ends after the unit pattern test.
 */
 ExtBool Match::matches(MLabel &ml, bool rewrite) {
   numOfLabels = (size_t)ml.GetNoComponents();
-  MatchElem** matching = 0;
   if (ml.hasIndex()) { // use index
     ml.index.initRoot();
     set<size_t> positions;
@@ -2373,25 +2373,23 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
         ml.Get(i, ul);
         ulId = i;
         updateStates2(ml);
-        if (!updateStates(ml, i, states)) {
+//         if (!updateStates(ml, i, states)) {
   //  TODO: return FALSE;
-        }
+//         }
         if (currentStates.empty()) {
           return FALSE;
         }
       }
     }
     else {
-      matching = create2DimArray<MatchElem>(ml.GetNoComponents(), p->getSize());
       for (size_t i = 0; i < numOfLabels; i++) {
         ml.Get(i, ul);
         ulId = i;
         updateStates2(ml);
-        if (!updateStates(ml, i, states/*, matching*/)) {
+//         if (!updateStates(ml, i, states/*, matching*/)) {
   //  TODO: return FALSE;
-        }
+//         }
         if (currentStates.empty()) {
-          delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
           return FALSE;
         }
       }
@@ -2405,18 +2403,15 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
       }
     }
     if (!currentStates.count(f)) { // is the final state inactive?
-      delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
       return FALSE;
     }
   }
   if (rewrite) {
     if (!numOfLabels) {
       cout << "no rewriting for an empty MLabel." << endl;
-      delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
       return FALSE;
     }
     computeCardsets();
-    delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
     if (!initCondOpTrees()) {
       return UNDEF;
     }
@@ -2424,7 +2419,6 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
   }
   if (p->conds.size()) {
     computeCardsets();
-    delete2DimArray<MatchElem>(matching, ml.GetNoComponents());
     if (!initCondOpTrees(true)) {
       return UNDEF;
     }
