@@ -1,0 +1,12 @@
+eclipse.preferences.version=1
+environment/project/0.2033377662/CWD/delimiter=\:
+environment/project/0.2033377662/CWD/operation=replace
+environment/project/0.2033377662/CWD/value=${HOME}/git/secondo2/secondo2/
+environment/project/0.2033377662/NDK_MODULE_PATH/delimiter=\:
+environment/project/0.2033377662/NDK_MODULE_PATH/operation=replace
+environment/project/0.2033377662/NDK_MODULE_PATH/value=${HOME}/secondo/android/lib\:${NDK_MODULE_PATH}
+environment/project/0.2033377662/PWD/delimiter=\:
+environment/project/0.2033377662/PWD/operation=replace
+environment/project/0.2033377662/PWD/value=${HOME}/git/secondo2/secondo2/
+environment/project/0.2033377662/append=true
+environment/project/0.2033377662/appendContributed=true
