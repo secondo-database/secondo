@@ -75,7 +75,7 @@ regSeg.def: regSecondo.o
 
 else
 $(REG_SEC_DLL): regSecondo.o $(LINKFILES)
-	$(LD) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ -lsdbnl $(LINK_FLAGS)
+	$(CC) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ -lsdbnl $(LINK_FLAGS)
 endif
 
 .PHONY:clean
