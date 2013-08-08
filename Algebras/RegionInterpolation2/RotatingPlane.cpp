@@ -13,6 +13,7 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
     Reg r2 = Reg(reg2->convexhull);
 
     do {
+        cerr << "y1\n";
         double a1 = r1.Cur().angle();
         double a2 = r2.Cur().angle();
         int sx1 = 0, sy1 = 0, sx2 = 0, sy2 = 0,

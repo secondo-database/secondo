@@ -121,31 +121,93 @@ static vector<pair<Reg *, Reg *> > matchFacesNull(vector<Reg> *src,
     return ret;
 }
 
+static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
+        vector<Reg> *dst) {
+    vector<pair<Reg *, Reg *> > ret;
+    
+    cerr << "Match faces start \n";
+    if (src->size() >= dst->size()) {
+        for (unsigned int i = 0; i < dst->size(); i++) {
+            int dist = (*dst)[i].distance((*src)[0]);
+            int candidate = 0;
+            for (unsigned int j = 1; j < src->size(); j++) {
+                int d2 = (*dst)[i].distance((*src)[j]);
+                cerr << "a Match face " << i << " with " << j
+                        << " distance " << d2 << "\n";
+                if (d2 < dist) {
+                    dist = d2;
+                    candidate = j;
+                }
+            }
+            pair<Reg *, Reg *> p(&((*src)[candidate]), &((*dst)[i]));
+            ret.push_back(p);
+            src->erase(src->begin()+candidate);
+        }
+        for (unsigned int j = 0; j < src->size(); j++) {
+            pair<Reg *, Reg *> p(&((*src)[j]), NULL);
+            ret.push_back(p);
+        }
+    } else {
+        for (unsigned int i = 0; i < src->size(); i++) {
+            int dist = (*src)[i].distance((*dst)[0]);
+            int candidate = 0;
+            for (unsigned int j = 1; j < dst->size(); j++) {
+                int d2 = (*src)[i].distance((*dst)[j]);
+                cerr << "b Match face " << i << " with " << j
+                        << " distance " << d2 << "\n";
+                if (d2 < dist) {
+                    dist = d2;
+                    candidate = j;
+                }
+            }
+            pair<Reg *, Reg *> p(&((*src)[i]), &((*dst)[candidate]));
+            ret.push_back(p);
+            dst->erase(dst->begin()+candidate);
+        }
+        for (unsigned int j = 0; j < dst->size(); j++) {
+            pair<Reg *, Reg *> p(NULL, &((*dst)[j]));
+            ret.push_back(p);
+        }
+        
+    }
+
+    cerr << "Match faces end\n";
+    return ret;
+}
+
 MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         vector<Reg> *dregs, Instant *ti2) {
-    vector<pair<Reg *, Reg *> > ps = matchFacesSimple(sregs, dregs);
+    vector<pair<Reg *, Reg *> > ps = matchFacesDistance(sregs, dregs);
     vector<MSegs> msegs;
     MFaces ret, fcs;
 
     for (unsigned int i = 0; i < ps.size(); i++) {
+        cerr << "Cycle " << i << "\n";
         pair<Reg *, Reg *> p = ps[i];
 
         Reg *src = p.first;
         Reg *dst = p.second;
 
         if (src && dst) {
+            cerr << "x1\n";
             RotatingPlane rp(src, dst);
+        cerr << "x2\n";
             fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2);
+        cerr << "x3\n";
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
+        cerr << "x4\n";
                 rp.face.AddMsegs(fcs.faces[i].face);
                 for (unsigned int j = 0; j < fcs.faces[i].holes.size(); j++) {
+        cerr << "x5\n";
                     MFace fc(fcs.faces[i].holes[j]);
                     ret.AddFace(fc);
                 }
             }
+        cerr << "x6\n";
             ret.AddFace(rp.face);
-
+        cerr << "x7\n";
         } else {
+        cerr << "x8\n";
             if (dst) {
                 MSegs coll = dst->collapse(false);
                 MFace f(coll);
@@ -157,6 +219,8 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
             }
         }
     }
+    
+    cerr << "Byebyr\n";
 
     return ret;
 }

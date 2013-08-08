@@ -21,7 +21,7 @@ void MFace::AddMsegs(MSegs m) {
 URegion MFace::ToURegion(Interval<Instant> iv, int facenr) {
     vector<MSegmentData> ms = face.ToMSegmentData(facenr, 0);
     for (unsigned int i = 0; i < holes.size(); i++) {
-        vector<MSegmentData> h = holes[i].ToMSegmentData(0, i+1);
+        vector<MSegmentData> h = holes[i].ToMSegmentData(facenr, i+1);
         ms.insert(ms.end(), h.begin(), h.end());
     }
     URegion ret(ms, iv);

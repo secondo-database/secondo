@@ -241,6 +241,10 @@ Pt Reg::GetMiddle() {
     return Pt(x,y);
 }
 
+int Reg::distance (Reg r) {
+    return r.GetMiddle().distance(GetMiddle());
+}
+
 string Reg::ToString() {
     std::ostringstream ss;
 

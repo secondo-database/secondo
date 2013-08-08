@@ -76,6 +76,7 @@ public:
     Pt GetMiddle();
     MSegs collapse(bool close);
     string ToString();
+    int distance (Reg r);
     
     static vector<Reg> getRegs(ListExpr le);
 };
