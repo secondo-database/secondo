@@ -1,0 +1,8 @@
+Database: berlintest
+Restore: NO
+
+Operator  : interpolate
+Number    : 1
+Signature : region x instant x region x instant [ x int ] -> mregion
+Example   : query interpolate(region1, instant1, region2, instant2, mode)
+Result    : file
