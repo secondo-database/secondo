@@ -150,7 +150,7 @@ echo -e "$testSuites"
 
 #echo "ldd: "$(ldd $SECONDO_BUILD_DIR/bin/SecondoBDB)
 
-timeOut=1800
+timeOut=36000
 for testName in $exTest $dbFile $testSuites; do
   runDir=${testName%/*}
   testFile=${testName##*/}
