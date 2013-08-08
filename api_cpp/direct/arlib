@@ -40,22 +40,22 @@ ar -qs $TARGET $OBJ
 
 # create a shared library
 
-L=${#TARGET}
-L=$(expr $L - 2)
-SHLIB=$(expr substr $TARGET 1 $L).so
+#L=${#TARGET}
+#L=$(expr $L - 2)
+#SHLIB=$(expr substr $TARGET 1 $L).so
 
 
-if [ "$SECONDO_PLATFORM" != "win32" ]; then
- if [ "$SECONDO_PLATFORM" != "mac_osx" ]; then
-  echo "create shared library" 
-  gcc -shared -Wl,-soname,libsecondo.so -o $SHLIB $SRCOBJECTS  $OBJ 
-  if [ $? != 0 ]; then
-     echo "Error in creating share lib"
-     exit 1
-  fi
-  echo "shared lib created" 
- fi
-fi
+#if [ "$SECONDO_PLATFORM" != "win32" ]; then
+# if [ "$SECONDO_PLATFORM" != "mac_osx" ]; then
+#  echo "create shared library" 
+#  gcc -shared -Wl,-soname,libsecondo.so -o $SHLIB $SRCOBJECTS  $OBJ 
+#  if [ $? != 0 ]; then
+#     echo "Error in creating share lib"
+#     exit 1
+#  fi
+#  echo "shared lib created" 
+# fi
+#fi
 
 
 
