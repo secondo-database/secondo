@@ -47,7 +47,7 @@ if [ ! -d $failedFileInfoDir ]; then
 fi
 failedTests=""
 
-timeOutMax=3600
+timeOutMax=36000
 if [ "$3" != "" ]; then
   timeOutMax=$3
 fi
