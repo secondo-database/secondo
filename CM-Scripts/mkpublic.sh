@@ -50,9 +50,9 @@ while read <&3 line; do
           algnames=$algnames"|$algebra"
         fi
         if [ "$dirnames" == "" ]; then
-          dirnames=$algebradir 
+          dirnames="$algebradir( |$)"
         else
-          dirnames=$dirnames"|$algebradir"
+          dirnames=$dirnames"|$algebradir( |$)"
         fi
 
       elif [ $section -eq 2 ]; then
