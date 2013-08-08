@@ -17,12 +17,6 @@ bool Pt::operator==(const Pt& a) const {
     return ((x == a.x) && (y == a.y));
 }
 
-string Pt::ToString() {
-    std::ostringstream ss;
-    ss << "(" << x << "/" << y << ")@" << angle;
-    return ss.str();
-}
-
 bool Pt::sortAngle(const Pt& a) const {
     return (angle < a.angle);
 }
@@ -48,3 +42,12 @@ Pt Reg::GetMinXY() {
     return Pt(minx, miny);
 }
 
+string Pt::ToString() {
+    std::ostringstream ss;
+    ss << "(" << x << "/" << y << ")@" << angle;
+    return ss.str();
+}
+
+int Pt::distance(Pt p) {
+    return sqrt((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y));
+}

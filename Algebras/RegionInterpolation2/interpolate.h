@@ -21,6 +21,7 @@ public:
     bool sortAngle(const Pt& a) const;
     void calcAngle(const Pt& pt);
     bool operator==(const Pt& a) const;
+    int distance (Pt p);
     string ToString();
 };
 
@@ -48,6 +49,7 @@ public:
     vector<Seg> convexhull;
     vector<Seg> v;
     vector<Reg> cvs;
+    vector<Reg> holes;
     Reg *parent;
     int parentseg;
     Reg();
@@ -71,6 +73,7 @@ public:
     Region MakeRegion();
     Region MakeRegion(int offx, int offy);
     Pt GetMinXY();
+    Pt GetMiddle();
     MSegs collapse(bool close);
     string ToString();
     

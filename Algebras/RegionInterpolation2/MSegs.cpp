@@ -45,9 +45,7 @@ void MSegs::MergeConcavity (MSegs c) {
     std::vector<MSeg>::iterator i = segs.begin();
     std::vector<MSeg>::iterator j = c.segs.begin();
     while (i != segs.end() && j != c.segs.end()) {
-        cerr << "Comparing " << i->ToString() << " = " << j->ToString() << "\n";
         if (*i == *j) {
-            cerr << "Erasing: " << i->ToString() << "\n";
             i = segs.erase(i);
             j = c.segs.erase(j);
         } else if (*i < *j) {

@@ -17,8 +17,6 @@ void MFaces::AddFace(MFace face) {
 MRegion MFaces::ToMRegion(Interval<Instant> iv) {
     MRegion ret(1);
 
-    cerr << "Creating MRegion from " << faces.size() << " faces!\n";
-
     if (faces.size() > 0) {
         URegion u = faces[0].ToURegion(iv, 0);
         for (unsigned int i = 1; i < faces.size(); i++) {
