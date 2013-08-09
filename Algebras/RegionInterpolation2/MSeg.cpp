@@ -3,8 +3,8 @@
 
 #include "interpolate.h"
 
-MSeg::MSeg() {
-}
+//MSeg::MSeg() {
+//}
 
 MSeg::MSeg(int sx1,int sy1,int sx2,int sy2,int fx1,int fy1,int fx2,int fy2)
      : sx1(sx1),sy1(sy1),sx2(sx2),sy2(sy2),fx1(fx1),fy1(fy1),fx2(fx2),fy2(fy2) {

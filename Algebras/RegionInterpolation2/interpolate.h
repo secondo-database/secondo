@@ -9,35 +9,38 @@
 class MSegs;
 
 class Pt {
-private:
-
 public:
     int x, y;
+    int valid;
     double angle;
 
     Pt();
     Pt(int x, int y);
     bool operator<(const Pt& a) const;
+    bool operator==(const Pt& a) const;
+    Pt   operator-(const Pt& a) const;
+    Pt   operator+(const Pt& a) const;
+    Pt   operator/(int a) const;
     bool sortAngle(const Pt& a) const;
     void calcAngle(const Pt& pt);
-    bool operator==(const Pt& a) const;
     int distance (Pt p);
     string ToString();
 };
 
 class Seg {
-private:
-
 public:
     int x1, y1, x2, y2;
+    int valid;
+    
     Seg();
     Seg(int x1, int y1, int x2, int y2);
-
     double angle() const;
     bool operator<(const Seg& a) const;
     bool operator==(const Seg& a) const;
     string ToString();
     void ChangeDir();
+    
+    static vector<Seg> sortSegs(vector<Seg> v);
 };
 
 class Reg {
@@ -45,17 +48,15 @@ private:
     int cur;
 
 public:
-    Pt *hullPoint, *peerPoint;
+    Pt hullPoint, peerPoint;
     vector<Seg> convexhull;
     vector<Seg> v;
-    vector<Reg> cvs;
     vector<Reg> holes;
-    Reg *parent;
-    int parentseg;
+    int used;
+    
     Reg();
     Reg(ListExpr le);
     Reg(vector<Seg> v);
-    Reg(Reg *parent, int parentseg);
     void AddSeg(Seg& a);
     void Print();
     void Close();
@@ -73,19 +74,22 @@ public:
     Region MakeRegion();
     Region MakeRegion(int offx, int offy);
     Pt GetMinXY();
+    Pt GetMaxXY();
     Pt GetMiddle();
     MSegs collapse(bool close);
     string ToString();
     int distance (Reg r);
     
     static vector<Reg> getRegs(ListExpr le);
+    static Pt GetMinXY(vector<Reg> regs);
+    static Pt GetMaxXY(vector<Reg> regs);
 };
 
 class MSeg {
 public:
     int sx1, sy1, sx2, sy2, fx1, fy1, fx2, fy2;
     
-    MSeg();
+//    MSeg();
     MSeg(int sx1, int sy1, int sx2, int sy2,
          int fx1, int fy1, int fx2, int fy2);
     MSegmentData ToMSegmentData(int face, int cycle, int segno);
@@ -111,12 +115,10 @@ public:
 };
 
 class MFace {
-private:
-//    vector<MSegs> cvs;
-    
 public:
     MSegs face;
     vector<MSegs> holes;
+    
     MFace();
     MFace(MSegs face);
     void AddMsegs (MSegs msegs);
@@ -125,10 +127,9 @@ public:
 };
 
 class MFaces {
-private:
-    
 public:
     vector<MFace> faces;
+    
     MFaces();
     MFaces(MFace face);
     void AddFace (MFace face);
@@ -140,10 +141,10 @@ class RotatingPlane {
 public:
     MFace face;
     vector<Reg> scvs, dcvs;
+    
     RotatingPlane(Reg *src, Reg *dst);
 };
 
-vector<Seg> sortSegs(vector<Seg> v);
 
 #endif	/* INTERPOLATE_HXX */
 

@@ -5,10 +5,11 @@
 #include "interpolate.h"
 #include <string>
 
-Seg::Seg() {
+Seg::Seg() : valid(0) {
 }
 
-Seg::Seg(int x1, int y1, int x2, int y2) : x1(x1), y1(y1), x2(x2), y2(y2) {
+Seg::Seg(int x1, int y1, int x2, int y2) :
+                                   x1(x1), y1(y1), x2(x2), y2(y2), valid(1) {
 }
 
 bool Seg::operator<(const Seg& a) const {
@@ -57,7 +58,7 @@ string Seg::ToString() {
     return ss.str();
 }
 
-vector<Seg> sortSegs(vector<Seg> v) {
+vector<Seg> Seg::sortSegs(vector<Seg> v) {
     vector<Seg> ret;
 
     int start = -1, start2 = -1, miny = 0, minx = 0;

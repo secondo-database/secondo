@@ -3,10 +3,10 @@
 
 #include "interpolate.h"
 
-Pt::Pt() {
+Pt::Pt() : valid(0) {
 }
 
-Pt::Pt(int x, int y) : x(x), y(y) {
+Pt::Pt(int x, int y) : x(x), y(y), valid(1) {
 }
 
 bool Pt::operator<(const Pt& a) const {
@@ -15,6 +15,18 @@ bool Pt::operator<(const Pt& a) const {
 
 bool Pt::operator==(const Pt& a) const {
     return ((x == a.x) && (y == a.y));
+}
+
+Pt Pt::operator-(const Pt& a) const {
+    return Pt(x-a.x,y-a.y);
+}
+
+Pt Pt::operator+(const Pt& a) const {
+    return Pt(x+a.x,y+a.y);
+}
+
+Pt Pt::operator/(const int a) const {
+    return Pt(x/a,y/a);
 }
 
 bool Pt::sortAngle(const Pt& a) const {
@@ -26,20 +38,6 @@ void Pt::calcAngle(const Pt& pt) {
     double tmpy = y - pt.y;
     double hyp = sqrt(tmpx * tmpx + tmpy * tmpy);
     angle = acos(tmpx / hyp);
-}
-
-Pt Reg::GetMinXY() {
-    int minx = INT_MAX;
-    int miny = INT_MAX;
-    
-    for (unsigned int i = 0; i < v.size(); i++) {
-        if (v[i].x1 < minx)
-            minx = v[i].x1;
-        if (v[i].y1 < miny)
-            miny = v[i].y1;
-    }
-    
-    return Pt(minx, miny);
 }
 
 string Pt::ToString() {

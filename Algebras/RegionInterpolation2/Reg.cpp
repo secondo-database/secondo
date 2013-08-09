@@ -3,15 +3,10 @@
 
 #include "interpolate.h"
 
-Reg::Reg() {
-
-    v = vector<Seg > ();
-    cur = 0;
-    parent = NULL;
-    parentseg = 0;
+Reg::Reg() : cur(0) {
 }
 
-Reg::Reg(ListExpr tle) {
+Reg::Reg(ListExpr tle) : cur(0) {
     ListExpr le = nl->First(tle);
     while (nl->ListLength(le) > 1) {
         ListExpr pa = nl->First(le);
@@ -36,18 +31,8 @@ Reg::Reg(ListExpr tle) {
     Close();
 }
 
-Reg::Reg(vector<Seg> v) : v(v) {
-    cur = 0;
-    parent = NULL;
-    parentseg = 0;
+Reg::Reg(vector<Seg> v) : cur(0), v(v) {
 }
-
-Reg::Reg(Reg *parent, int parentseg) : parent(parent), parentseg(parentseg) {
-
-    v = vector<Seg > ();
-    cur = 0;
-}
-
 
 Region Reg::MakeRegion(int offx, int offy) {
     Region ret(0);
@@ -77,12 +62,11 @@ Region Reg::MakeRegion() {
 }
 
 void Reg::Sort() {
-    v = sortSegs(v);
+    v = Seg::sortSegs(v);
 }
 
-
 void Reg::AddSeg(Seg& a) {
-   v.push_back(a);
+    v.push_back(a);
 }
 
 void Reg::Close() {
@@ -93,7 +77,7 @@ void Reg::Close() {
         AddSeg(s);
     }
 
-    v = sortSegs(v);
+    v = Seg::sortSegs(v);
 
     ConvexHull();
 }
@@ -119,6 +103,7 @@ static bool sortAngle(const Pt& a, const Pt& b) {
 }
 
 void Reg::ConvexHull() {
+    convexhull.erase(convexhull.begin(), convexhull.end());
     vector<Pt> lt = getPoints();
     std::sort(lt.begin(), lt.end());
 
@@ -162,7 +147,6 @@ void Reg::Translate(int offx, int offy) {
     }
 }
 
-
 void Reg::Begin() {
     cur = 0;
 }
@@ -196,20 +180,18 @@ MSegs Reg::collapse(bool close) {
 
     Pt dst;
 
-    if (peerPoint)
-        dst = *peerPoint;
+    if (peerPoint.valid)
+        dst = peerPoint;
     else
         dst = Pt(v[0].x1, v[0].y1);
 
-    if (peerPoint) {
-        for (unsigned int i = 0; i < v.size(); i++) {
-            if (close) {
-                ret.AddMSeg(v[i].x1, v[i].y1, v[i].x2, v[i].y2,
-                        dst.x, dst.y, dst.x, dst.y);
-            } else {
-                ret.AddMSeg(dst.x, dst.y, dst.x, dst.y,
-                        v[i].x1, v[i].y1, v[i].x2, v[i].y2);
-            }
+    for (unsigned int i = 0; i < v.size(); i++) {
+        if (close) {
+            ret.AddMSeg(v[i].x1, v[i].y1, v[i].x2, v[i].y2,
+                    dst.x, dst.y, dst.x, dst.y);
+        } else {
+            ret.AddMSeg(dst.x, dst.y, dst.x, dst.y,
+                    v[i].x1, v[i].y1, v[i].x2, v[i].y2);
         }
     }
 
@@ -230,18 +212,12 @@ vector<Reg> Reg::getRegs(ListExpr le) {
 }
 
 Pt Reg::GetMiddle() {
-    int x = 0, y = 0;
-    for (unsigned int i = 0; i < v.size(); i++) {
-        x += v[i].x1;
-        y += v[i].y1;
-    }
-    x /= v.size();
-    y /= v.size();
+    Pt middle = (GetMaxXY() + GetMinXY()) / 2;
     
-    return Pt(x,y);
+    return middle;
 }
 
-int Reg::distance (Reg r) {
+int Reg::distance(Reg r) {
     return r.GetMiddle().distance(GetMiddle());
 }
 
@@ -254,3 +230,74 @@ string Reg::ToString() {
     return ss.str();
 }
 
+Pt Reg::GetMinXY(vector<Reg> regs) {
+    if (regs.empty())
+        return Pt(0, 0);
+    assert(regs.size() > 0);
+    assert(regs[0].v.size() > 0);
+    int minx = regs[0].v[0].x1;
+    int miny = regs[0].v[0].y1;
+    for (unsigned int i = 0; i < regs.size(); i++) {
+        for (unsigned int j = 0; j < regs[i].v.size(); j++) {
+            if (regs[i].v[j].x1 < minx) {
+                minx = regs[i].v[j].x1;
+            }
+            if (regs[i].v[j].y1 < miny) {
+                miny = regs[i].v[j].y1;
+            }
+        }
+    }
+
+    return Pt(minx, miny);
+}
+
+Pt Reg::GetMaxXY(vector<Reg> regs) {
+    if (regs.empty())
+        return Pt(0, 0);
+    assert(regs.size() > 0);
+    assert(regs[0].v.size() > 0);
+    int maxx = regs[0].v[0].x1;
+    int maxy = regs[0].v[0].y1;
+    for (unsigned int i = 0; i < regs.size(); i++) {
+        for (unsigned int j = 0; j < regs[i].v.size(); j++) {
+            if (regs[i].v[j].x1 > maxx) {
+                maxx = regs[i].v[j].x1;
+            }
+            if (regs[i].v[j].y1 > maxy) {
+                maxy = regs[i].v[j].y1;
+            }
+        }
+    }
+
+    return Pt(maxx, maxy);
+}
+
+Pt Reg::GetMinXY() {
+    int minx = v[0].x1;
+    int miny = v[0].y1;
+    for (unsigned int j = 0; j < v.size(); j++) {
+        if (v[j].x1 < minx) {
+            minx = v[j].x1;
+        }
+        if (v[j].y1 < miny) {
+            miny = v[j].y1;
+        }
+    }
+
+    return Pt(minx, miny);
+}
+
+Pt Reg::GetMaxXY() {
+    int maxx = v[0].x1;
+    int maxy = v[0].y1;
+    for (unsigned int j = 0; j < v.size(); j++) {
+        if (v[j].x1 > maxx) {
+            maxx = v[j].x1;
+        }
+        if (v[j].y1 > maxy) {
+            maxy = v[j].y1;
+        }
+    }
+
+    return Pt(maxx, maxy);
+}
