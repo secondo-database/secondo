@@ -96,6 +96,7 @@ android: kernel libapp secondoandroid
 .PHONY: libapp
 libapp: 
 	$(MAKE) -C android
+	$(MAKE) -C android/secondoandroid
 
 secondoandroid: 
 	$(HOME)/android-sdk/tools/android update project -p $(BUILDDIR)/android/secondoandroid/
