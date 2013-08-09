@@ -30,7 +30,7 @@ LIBXML2 :=
 
 ifeq ($(platform),android)
 CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-g++ -D__SECONDO_ANDROID__
-LD := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-ld –L$HOME/gsl/lib –L$HOME/readline/lib –L$(HOME)/jpeg-6b/
+LD := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-ld –L$(HOME)/gsl/lib –L$(HOME)/readline/lib –L$(HOME)/jpeg-6b/
 CCFLAGS += -I$(SECONDO_BUILD_DIR)/../readline/include/
 
 else

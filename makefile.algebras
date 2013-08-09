@@ -1,0 +1,351 @@
+################################
+#
+# Algebra Configuration File
+#
+################################
+
+# Master switch to use all algebras
+# SECONDO_ACTIVATE_ALL_ALGEBRAS := true
+
+ifdef SECONDO_ACTIVATE_ALL_ALGEBRAS
+
+# For several reasons, e.g. missing 3rd party libraries, one
+# needs to exclude some algebras.
+# Therefore one needs to define them a syntax suitible for
+# sed and find commands
+#
+EXCLUDE_ALGEBRAS := /GraphViz/d;
+EXCLUDE_ALGEBRA_DIRS := ! -name "GraphViz"
+
+#
+# Below all 3rd party libraries which are needed by
+# any of the algebra modules must be listed here again.
+# Sorry for the inconvenience but the whole algebra
+# registration in the system needs to be re-designed in
+# order to be more user/programmer friendly.
+#
+
+#ALGEBRA_DEP_DIRS += /usr/lib/graphviz
+#ALGEBRA_DEPS += gvc
+
+ALGEBRA_DEPS += gsl gslcblas
+ALGEBRA_DEPS += jpeg
+
+endif
+
+# Master switch to compile the minimal set
+# of interdependet algebras.
+# SECONDO_MIN_ALGEBRA_SET := true
+
+# never change this
+ALGEBRA_DIRS := Standard-C++
+ALGEBRAS     := StandardAlgebra
+ALGEBRA_DEPS :=
+ALGEBRA_LINK_FLAGS := 
+ALGEBRA_DEP_DIRS := $(SECONDO_SDK)/lib
+
+ALGEBRA_DIRS += FText
+ALGEBRAS     += FTextAlgebra
+
+ALGEBRA_DIRS += Relation-C++
+ALGEBRAS     += RelationAlgebra
+
+ALGEBRA_DIRS += ExtRelation-C++
+ALGEBRAS     += ExtRelationAlgebra
+
+ALGEBRA_DIRS += ExtRelation-2
+ALGEBRAS     += ExtRelation2Algebra
+
+ALGEBRA_DIRS += OrderedRelation
+ALGEBRAS     += OrderedRelationAlgebra
+
+ALGEBRA_DIRS += BTree
+ALGEBRAS     += BTreeAlgebra
+
+ALGEBRA_DIRS += TupleIdentifier
+ALGEBRAS     += TupleIdentifierAlgebra
+
+ALGEBRA_DIRS += Stream
+ALGEBRAS     += StreamAlgebra
+
+ALGEBRA_DIRS += Function-C++
+ALGEBRAS     += FunctionAlgebra
+
+# required by outerjoin operators in the ExtRelationAlgebra:
+ALGEBRA_DIRS += Hash
+ALGEBRAS     += HashAlgebra
+
+# comment out or add new algebras in this file.
+# You have to define an algebra name and a directory
+# name which contains the algebras source code.
+# All uncommented algebras are compiled and linked. To define
+# if an algebra is active or not edit the file AlgebraList.i
+# But be careful, the configuration here and in the .i file have
+# to be one to one otherwise the linker will get in trouble.
+#
+# Many functions in the algebra module are global definitions.
+# It would be better to embrace the Algebra code in
+# using namespace <AlgebraName> { ... Algebra Code ... }. If the
+# linker complains about multiple definitions this can be a solution
+# to correct it.
+#
+# When you call "make alg=auto <target>" the .i file will be
+# created automatically and therefore it will be correct. If
+# you dont like that edit AlgebraList.i manually.
+#
+# ALGEBRAS defines a list of names which are later prefixed by
+# -lname1 -lname2 ... etc. This is used to link the algebra objects
+# into an executable. If the algebra code itself depends on other
+# librares, e.g. the jpeg algebra depends on libjpeg, put these libraries
+# and its directory into the variable ALGEBRA_DEPS and ALGEBRA_DEP_DIRS.
+
+
+
+ifndef SECONDO_MIN_ALGEBRA_SET
+
+##########  Example Algebras
+
+ALGEBRA_DIRS += PointRectangle
+ALGEBRAS     += PointRectangleAlgebra
+
+ALGEBRA_DIRS += StreamExample
+ALGEBRAS     += StreamExampleAlgebra
+
+ALGEBRA_DIRS += Polygon
+ALGEBRAS     += PolygonAlgebra
+
+ALGEBRA_DIRS += BinaryFile
+ALGEBRAS     += BinaryFileAlgebra
+
+###########
+
+ALGEBRA_DIRS += Date
+ALGEBRAS     += DateAlgebra
+
+ALGEBRA_DIRS += RTree
+ALGEBRAS     += RTreeAlgebra
+
+ALGEBRA_DIRS += TBTree
+ALGEBRAS     += TBTreeAlgebra
+
+ALGEBRA_DIRS += Rectangle
+ALGEBRAS     += RectangleAlgebra
+
+ALGEBRA_DIRS += Spatial
+ALGEBRAS     += SpatialAlgebra
+
+ALGEBRA_DIRS += Temporal
+ALGEBRAS     += TemporalAlgebra
+
+ALGEBRA_DIRS += TemporalExt
+ALGEBRAS     += TemporalExtAlgebra
+
+ALGEBRA_DIRS += TemporalLifted
+ALGEBRAS     += TemporalLiftedAlgebra
+
+ALGEBRA_DIRS += TemporalUnit
+ALGEBRAS     += TemporalUnitAlgebra
+
+
+ALGEBRA_DIRS += DateTime
+ALGEBRAS     += DateTimeAlgebra
+
+ALGEBRA_DIRS += Raster2
+ALGEBRAS     += Raster2Algebra
+
+ALGEBRA_DIRS += Network
+ALGEBRAS     += NetworkAlgebra
+
+ALGEBRA_DIRS += TemporalNet
+ALGEBRAS     += TemporalNetAlgebra
+
+ALGEBRA_DIRS += PlugJoin
+ALGEBRAS     += PlugJoinAlgebra
+
+
+ALGEBRA_DIRS += UpdateRel
+ALGEBRAS     += UpdateRelationAlgebra
+
+# to use the import/export algebra, also the
+# topops and the toprel algebras has to be included
+ALGEBRA_DIRS += IMEX
+ALGEBRAS     += ImExAlgebra
+
+ALGEBRA_DIRS += PointSequence
+ALGEBRAS     += PointSequenceAlgebra
+
+ALGEBRA_DIRS += MovingRegion
+ALGEBRAS     += MovingRegionAlgebra
+
+ALGEBRA_DIRS += PlaneSweep
+ALGEBRAS     += PlaneSweepAlgebra
+
+ALGEBRA_DIRS += TopRel
+ALGEBRAS     += TopRelAlgebra
+
+ALGEBRA_DIRS += TopOps
+ALGEBRAS     += TopOpsAlgebra
+
+ALGEBRA_DIRS += PartitionedStream
+ALGEBRAS     += PartitionedStreamAlgebra
+
+ALGEBRA_DIRS += Array
+ALGEBRAS     += ArrayAlgebra
+
+#ALGEBRA_DIRS += MP3
+#ALGEBRAS     += MP3Algebra
+
+ALGEBRA_DIRS += Picture
+ALGEBRAS     += PictureAlgebra
+ALGEBRA_DEPS += jpeg
+
+ALGEBRA_DIRS += Graph
+ALGEBRAS     += GraphAlgebra
+
+# needs the grahpviz library: www.graphviz.org
+#ALGEBRA_DIRS += GraphViz
+#ALGEBRAS     += GraphVizAlgebra
+#ALGEBRA_DEPS += gvc
+#ALGEBRA_DEP_DIRS += /usr/lib/graphviz
+# The path above may be system dependent,
+# also add this direcory to LD_LIBRARY_PATH
+
+ALGEBRA_DIRS += GSL
+ALGEBRAS     += GSLAlgebra
+ALGEBRA_DEPS += gsl gslcblas
+
+# The chess algebras from student projects
+# during practical courses in 07/08 and 08/09
+#
+# You can only activate one of them at the same time!
+#
+#ALGEBRA_DIRS += Chess
+#ALGEBRAS     += ChessAlgebra
+
+#ALGEBRA_DIRS += ChessB
+#ALGEBRAS     += ChessBAlgebra
+#CCFLAGS      += -DChessB
+
+
+#ALGEBRA_DIRS += HierarchicalGeo
+#ALGEBRAS     += HierarchicalGeoAlgebra
+
+ALGEBRA_DIRS += Simulation
+ALGEBRAS     += SimulationAlgebra
+ALGEBRA_DEPS += gsl gslcblas
+
+ALGEBRA_DIRS += Histogram
+ALGEBRAS     += HistogramAlgebra
+
+ALGEBRA_DIRS += Collection
+ALGEBRAS     += CollectionAlgebra
+
+#ALGEBRA_DIRS  += Midi
+#ALGEBRAS      += MidiAlgebra
+
+#ALGEBRA_DIRS  += Web
+#ALGEBRAS      += WebAlgebra
+
+ALGEBRA_DIRS  += Cluster
+ALGEBRAS      += ClusterAlgebra
+
+ALGEBRA_DIRS  += NestedRelation
+ALGEBRAS      += NestedRelationAlgebra
+
+
+
+#ALGEBRA_DIRS += Distributed
+#ALGEBRAS     += DistributedAlgebra
+#ALGEBRA_DEPS += ZThread
+## on max os X the framework CoreServices must be added
+## uncomment the next line if you use mac os
+##ALGEBRA_LINK_FLAGS += -framework CoreServices
+
+
+#ALGEBRA_DIRS  += Constraint
+#ALGEBRAS      += ConstraintAlgebra
+
+#ALGEBRA_DIRS  += MTree
+#ALGEBRAS      += MTreeAlgebra
+
+#ALGEBRA_DIRS += OldRelation-C++
+#ALGEBRAS     += OldRelationAlgebra
+
+#ALGEBRA_DIRS += OptAux
+#ALGEBRAS     += OptAuxAlgebra
+
+#ALGEBRA_DIRS += UGrid
+#ALGEBRAS     += UGridAlgebra
+
+
+ALGEBRA_DIRS += BTree2
+ALGEBRAS     += BTree2Algebra
+
+# Under Construction: Some bug fixing needed
+#ALGEBRA_DIRS += MONTree
+#ALGEBRAS     += MONTreeAlgebra
+
+#ALGEBRA_DIRS += Traffic
+#ALGEBRAS     += TrafficAlgebra
+
+ALGEBRA_DIRS += Record
+ALGEBRAS     += RecordAlgebra
+
+ALGEBRA_DIRS += SpatialJoin
+ALGEBRAS     += SpatialJoinAlgebra
+
+ALGEBRA_DIRS += Trie
+ALGEBRAS     += TrieAlgebra
+
+#ALGEBRA_DIRS += MapMatching
+#ALGEBRAS     += MapMatchingAlgebra
+#ALGEBRA_DEPS += xml2
+
+ALGEBRA_DIRS +=  SuffixTree
+ALGEBRAS     += SuffixTreeAlgebra
+
+
+#ALGEBRA_DIRS += OSM
+#ALGEBRAS     += OsmAlgebra
+#ALGEBRA_DEPS += xml2
+# in some linux distributions, the xml2 library is outside
+# of standard paths, iff so, add the missing parts here
+#ALGEBRA_DEP_DIRS += /usr/lib/libxml2
+#ALGEBRA_INCLUDE_DIRS += /usr/include/libxml2 
+# on max os X the framework CoreServices must be added
+# uncomment the next line if you use mac os
+#ALGEBRA_LINK_FLAGS += -framework CoreServices
+
+#ALGEBRA_DIRS += Groupby
+#ALGEBRAS     += GroupbyAlgebra
+
+#ALGEBRA_DIRS  += RIndex
+#ALGEBRAS     += RIndexAlgebra
+
+ALGEBRA_DIRS  += MMRTree 
+ALGEBRAS     += MMRTreeAlgebra
+
+#ALGEBRA_DIRS += RobustGeometry
+#ALGEBRAS   += RobustGeometryAlgebra
+
+#ALGEBRA_DIRS  += HadoopParallel
+#ALGEBRAS     += HadoopParallelAlgebra
+
+ALGEBRA_DIRS += JNet
+ALGEBRAS     += JNetAlgebra
+
+# JNI Algebras - Java code will be called from C++ code.
+
+#JNI_ALGEBRA_DIRS := Fuzzy
+#JNIALGEBRAS      := FuzzyAlgebra
+
+#JNI_ALGEBRA_DIRS := JBBox
+#JNIALGEBRAS      := JBBoxAlgebra
+
+#JNI_ALGEBRA_DIRS += Rose
+#JNIALGEBRAS      += RoseAlgebra
+
+endif
+
+ALGEBRA_DEPS := $(sort $(ALGEBRA_DEPS))
+

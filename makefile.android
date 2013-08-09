@@ -31,5 +31,5 @@ DLLOBJEXT := lo
 DLLEXT := so
 DLLPREF := lib
 DLLFLAGS := -s -shared
-CC=$(HOME)/toolchain-standalone/bin/arm-linux-androideabi-gcc -I$(HOME)/toolchain-standalone/include/c++/4.8 -I$(HOME)/gsl/include/
+CC=$(HOME)/toolchain-standalone/bin/arm-linux-androideabi-gcc -I$(HOME)/toolchain-standalone/include/c++/4.7 -I$(HOME)/gsl/include/
 

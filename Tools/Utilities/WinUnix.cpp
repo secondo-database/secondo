@@ -208,7 +208,7 @@ uint64_t WinUnix::convertEndian(const uint64_t n){
 
     
 /* Obtain a backtrace and print it to stdout. */
-#if !defined(SECONDO_ANDROID)
+#ifndef SECONDO_ANDROID
 #if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
 void
 WinUnix::stacktrace(const string& fullAppName)
@@ -280,14 +280,22 @@ WinUnix::stacktrace(const string& fullAppName)
   free(STP);
 }
 #else
-
 void
 WinUnix::stacktrace(const string& fullAppName)
 {
   cerr << "Sorry - stack trace not supported." << endl;
 }
 
+
 #endif
+#else
+void
+WinUnix::stacktrace(const string& fullAppName)
+{
+  cerr << "Sorry - stack trace under Android not supported." << endl;
+}
+
+
 #endif
 /*
 Implementation of class ~CFile~

@@ -248,6 +248,7 @@ clean:
 	$(MAKE) -f ./makefile.libs clean
 	rm -f lib/*.a
 	rm -f lib/*.o
+	ant clean -buildfile $(HOME)/secondo/android/secondoandroid/build.xml
 
 .PHONY: realclean
 realclean: clean

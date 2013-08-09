@@ -25,7 +25,14 @@
 
 include ../../makefile.env
 
+platform=$(SECONDO_PLATFORM)
+
+ifeq ($(platform),android)
+CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-g++
+CCFLAGS += -I$(SECONDO_BUILD_DIR)/../flex/include
+else
 CC := g++
+endif
 
 TOKENDEF := NLParser.tab.hpp
 SCANNER := NLLex.cpp 
