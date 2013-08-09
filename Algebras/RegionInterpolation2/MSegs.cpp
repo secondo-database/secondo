@@ -3,7 +3,7 @@
 
 #include "interpolate.h"
 
-MSegs::MSegs() {
+MSegs::MSegs() : ignore(0) {
 }
 
 void MSegs::AddMSeg (int sx1, int sy1, int sx2, int sy2,
@@ -100,4 +100,35 @@ bool MSegs::intersects (const MSegs& a) const {
     }
     
     return false;
+}
+
+pair<MSegs, MSegs> MSegs::kill() {
+    MSegs src = GetSReg().collapse(true);
+    MSegs dst = GetDReg().collapse(false);
+    
+    return pair<MSegs, MSegs>(src, dst);
+}
+
+Reg MSegs::GetSReg() {
+    Reg ret;
+    
+    for (unsigned int i = 0; i < segs.size(); i++) {
+        Seg s(segs[i].sx1, segs[i].sy1, segs[i].sx2, segs[i].sy2);
+        ret.AddSeg(s);
+    }
+    
+    ret.Close();
+    return ret;
+}
+
+Reg MSegs::GetDReg() {
+    Reg ret;
+    
+    for (unsigned int i = 0; i < segs.size(); i++) {
+        Seg s(segs[i].fx1, segs[i].fy1, segs[i].fx2, segs[i].fy2);
+        ret.AddSeg(s);
+    }
+    
+    ret.Close();
+    return ret;
 }

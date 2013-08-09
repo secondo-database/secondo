@@ -101,6 +101,7 @@ public:
 
 class MSegs {
 public:
+    int ignore;
     vector<MSeg> segs;
 
     MSegs();
@@ -112,6 +113,9 @@ public:
     vector<MSeg> GetMatchingMSegs (MSegs m);
     void MergeConcavity (MSegs c);
     bool intersects(const MSegs& a) const;
+    pair<MSegs, MSegs> kill();
+    Reg GetSReg();
+    Reg GetDReg();
 };
 
 class MFace {
