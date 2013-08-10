@@ -15,10 +15,10 @@ let tint1 = [const tint value ((0.0 0.0 1.0) (3 3) (0 0 (1 1 1 1 2 1 1 1 1)))];
 let treal1 = [const treal value ((0.2 0.3 0.7) (3 3) (0 0 (1.0 1.0 1.0 1.0 2.0 1.0 1.0 1.0 1.0)))];
 let tbool1 = [const tbool value ((0.0 0.0 1.0) (3 3) (0 0 (FALSE FALSE FALSE FALSE TRUE FALSE FALSE FALSE FALSE)))];
 let tstring1 = [const tstring value ((0.0 0.0 1.0) (3 3) (0 0 ("Foo" "Foo" "Foo" "Foo" "Bar" "Foo" "Foo" "Foo" "Foo")))];
-let mtint1 = ([const mtint value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (0 1 2 3 4 5 6 7)))]);
-let mtreal1 = ([const mtreal value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0)))]);
-let mtbool1 = ([const mtbool value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (FALSE TRUE TRUE FALSE FALSE TRUE TRUE FALSE)))]);
-let mtstring1 = ([const mtstring value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 ("zero" "one" "two" "three" "four" "five" "six" "seven")))]);
+let mtint1 = [const mtint value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (0 1 2 3 4 5 6 7)))];
+let mtreal1 = [const mtreal value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0)))];
+let mtbool1 = [const mtbool value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (FALSE TRUE TRUE FALSE FALSE TRUE TRUE FALSE)))];
+let mtstring1 = [const mtstring value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 ("zero" "one" "two" "three" "four" "five" "six" "seven")))];
 
 ################################################################################
 # Run Tests ####################################################################
@@ -188,6 +188,10 @@ query mtint1 atlocation [[const point value (3.01 1.5)]]
 #yields (mint((("2000-01-03" "2000-01-04" TRUE FALSE) 3) (("2000-01-04" "2000-01-05" TRUE FALSE) 7)))
 query mtint1 atlocation [[const point value (1.5 1.5)]]
 
+#testcase mtint atlocation with instant value
+#yields (int 3)
+query [const mtint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (29 29 9 (4 5 6 7)))] atlocation [[const point value (1.5 1.5)] , [const instant value "2000-01-03-00:00:00.001"]]
+
 #######################################
 # mtreal                              #
 #######################################
@@ -223,6 +227,10 @@ query mtreal1 atlocation [[const point value (3.01 1.5)]]
 #testcase mtreal atlocation with defined point
 #yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 0.0 3.0 FALSE)) (("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 0.0 7.0 FALSE))))
 query mtreal1 atlocation [[const point value (1.5 1.5)]]
+
+#testcase mtreal atlocation with instant value
+#yields (real 3.0)
+query [const mtreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (20 20 9 (4.0 5.0 6.0 7.0)))] atlocation [[const point value (1.5 1.5)] , [const instant value "2000-01-03-00:00:00.001"]]
 
 #######################################
 # mtbool                              #
@@ -260,6 +268,10 @@ query mtbool1 atlocation [[const point value (3.01 1.5)]]
 #yields (mbool((("2000-01-03" "2000-01-04" TRUE FALSE) FALSE) (("2000-01-04" "2000-01-05" TRUE FALSE) FALSE)))
 query mtbool1 atlocation [[const point value (1.5 1.5)]]
 
+#testcase mtbool atlocation with instant value
+#yields (bool FALSE)
+query [const mtbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (61 61 9 (FALSE TRUE TRUE FALSE)))] atlocation [[const point value (1.5 1.5)] , [const instant value "2000-01-03-00:00:00.001"]]
+
 #######################################
 # mtstring                            #
 #######################################
@@ -295,6 +307,10 @@ query mtstring1 atlocation [[const point value (3.01 1.5)]]
 #testcase mtstring atlocation with defined point
 #yields (mstring((("2000-01-03" "2000-01-04" TRUE FALSE) "three") (("2000-01-04" "2000-01-05" TRUE FALSE) "seven")))
 query mtstring1 atlocation [[const point value (1.5 1.5)]]
+
+#testcase mtstring atlocation with instant value
+#yields (string "three")
+query [const mtstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (29 29 9 ("four" "five" "six" "seven")))] atlocation [[const point value (1.5 1.5)] , [const instant value "2000-01-03-00:00:00.001"]]
 
 ################################################################################
 # Clean up #####################################################################
