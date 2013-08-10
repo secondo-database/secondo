@@ -84,7 +84,8 @@ struct matchgridInfo : OperatorInfo
           if(signature.empty())
           {
             signature = tTypes[i] + " x " + tgrid::BasicType() + " x " +
-                        "(rel(tuple([Elem : T])) -> " +
+                        "(rel(tuple([Elem : " +
+                        valueWrapperTypes[i] + "])) -> " +
                         valueWrapperTypes[j] + ") x " +
                         CcBool::BasicType() + " -> " + tTypes[j];
           }
@@ -92,7 +93,8 @@ struct matchgridInfo : OperatorInfo
           else
           {
             appendSignature(tTypes[i] + " x " + tgrid::BasicType() + " x " +
-                            "(rel(tuple([Elem : T])) -> " +
+                            "(rel(tuple([Elem : " +
+                            valueWrapperTypes[i] + "])) -> " +
                             valueWrapperTypes[j] + ") x " +
                             CcBool::BasicType() + " -> " + tTypes[j]);
           }
@@ -104,7 +106,8 @@ struct matchgridInfo : OperatorInfo
         for(size_t j = 0; j < valueWrapperTypes.size(); j++)
         {
           appendSignature(mtTypes[i] + " x " + mtgrid::BasicType() + " x " +
-                          "(rel(tuple([Elem : T])) -> " +
+                          "(rel(tuple([Elem : " +
+                          valueWrapperTypes[i] + "])) -> " +
                           valueWrapperTypes[j] + ") x " +
                           CcBool::BasicType() + " -> " + mtTypes[j]);
         }
