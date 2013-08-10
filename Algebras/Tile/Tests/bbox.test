@@ -11,14 +11,14 @@
 create database TileAlgebraTest;
 open database TileAlgebraTest;
 
-let tint1 = ([const tint value ((1.1 2.2 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))]);
-let treal1 = ([const treal value ((-12.0 -12.0 1.0) (2 2) (1 1 (1.2 5.3 3.12 4.23)) (4 4 (undefined -1.2 -2.0 1.0)))]);
-let tbool1 = ([const tbool value ((2.0 2.0 1.0) (2 2) (1 1 (TRUE TRUE FALSE FALSE)) (4 4 (undefined TRUE TRUE undefined)))]);
-let tstring1 = ([const tstring value ((0.0 0.0 1.0) (2 2) (13 13 ("zero" "one" "two" "three")))]);
-let mtint1 = ([const mtint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (8 8 9 (996 997 998 999)))]);
-let mtreal1 = ([const mtreal value ((0.0 0.0 1.0 30.12000) (2 1 2) (1 1 1 (1.2 5.3 3.12 4.23)) (4 4 4 (undefined -3.2 -2.0 12.0)))]);
-let mtbool1 = ([const mtbool value ((0.0 0.0 1.0 5.0) (1 2 2) (1 1 1 (TRUE TRUE FALSE FALSE)) (4 4 4 (undefined TRUE TRUE undefined)))]);
-let mtstring1 = ([const msstring value ((0.0 0.0 1.0 2.0) (2 1 2) (1 1 1 ("one" "two" "one" "three")))]);
+let tint1 = [const tint value ((1.1 2.2 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))];
+let treal1 = [const treal value ((-12.0 -12.0 1.0) (2 2) (1 1 (1.2 5.3 3.12 4.23)) (4 4 (undefined -1.2 -2.0 1.0)))];
+let tbool1 = [const tbool value ((2.0 2.0 1.0) (2 2) (1 1 (TRUE TRUE FALSE FALSE)) (4 4 (undefined TRUE TRUE undefined)))];
+let tstring1 = [const tstring value ((0.0 0.0 1.0) (2 2) (13 13 ("zero" "one" "two" "three")))];
+let mtint1 = [const mtint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (8 8 9 (996 997 998 999)))];
+let mtreal1 = [const mtreal value ((0.0 0.0 1.0 30.12000) (2 1 2) (1 1 1 (1.2 5.3 3.12 4.23)) (4 4 4 (undefined -3.2 -2.0 12.0)))];
+let mtbool1 = [const mtbool value ((0.0 0.0 1.0 5.0) (1 2 2) (1 1 1 (TRUE TRUE FALSE FALSE)) (4 4 4 (undefined TRUE TRUE undefined)))];
+let mtstring1 = [const msstring value ((0.0 0.0 1.0 2.0) (2 1 2) (1 1 1 ("one" "two" "one" "three")))];
 
 ################################################################################
 # Run Tests ####################################################################
