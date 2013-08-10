@@ -99,20 +99,6 @@ struct map2Info : OperatorInfo
         }
       }
 
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        for(size_t j = 0; j < tTypes.size(); j++)
-        {
-          for(size_t k = 0; k < valueWrapperTypes.size(); k++)
-          {
-            appendSignature(mtTypes[i] + " x " + tTypes[j] + " x (" +
-                            valueWrapperTypes[i] + " x " +
-                            valueWrapperTypes[j] + " -> " +
-                            valueWrapperTypes[k] + ") -> " + mtTypes[k]);
-          }
-        }
-      }
-
       for(size_t i = 0; i < tTypes.size(); i++)
       {
         for(size_t j = 0; j < mtTypes.size(); j++)
@@ -120,6 +106,20 @@ struct map2Info : OperatorInfo
           for(size_t k = 0; k < valueWrapperTypes.size(); k++)
           {
             appendSignature(tTypes[i] + " x " + mtTypes[j] + " x (" +
+                            valueWrapperTypes[i] + " x " +
+                            valueWrapperTypes[j] + " -> " +
+                            valueWrapperTypes[k] + ") -> " + mtTypes[k]);
+          }
+        }
+      }
+
+      for(size_t i = 0; i < mtTypes.size(); i++)
+      {
+        for(size_t j = 0; j < tTypes.size(); j++)
+        {
+          for(size_t k = 0; k < valueWrapperTypes.size(); k++)
+          {
+            appendSignature(mtTypes[i] + " x " + tTypes[j] + " x (" +
                             valueWrapperTypes[i] + " x " +
                             valueWrapperTypes[j] + " -> " +
                             valueWrapperTypes[k] + ") -> " + mtTypes[k]);
