@@ -19,28 +19,28 @@
 
 # author: Dirk Zacher
 
-operator load alias LOAD pattern op(_)
-operator atlocation alias ATLOCATION pattern _ op [_,_]
 operator atinstant alias ATINSTANT pattern _ infixop _
-operator inst alias INST pattern op(_)
-operator val alias VAL pattern op(_)
+operator atlocation alias ATLOCATION pattern _ op [_,_]
 operator atperiods alias ATPERIODS pattern _ infixop _
 operator atrange alias ATRANGE pattern _ op [_,_,_]
-operator deftime alias DEFTIME pattern op(_)
 operator bbox alias BBOX pattern op(_,_)
-operator minimum alias MINIMUM pattern op(_)
-operator maximum alias MAXIMUM pattern op(_)
+operator compose alias COMPOSE pattern _ infixop _
+operator deftime alias DEFTIME pattern op(_)
+operator fromline alias FROMLINE pattern op(_)
+operator fromregion alias FROMREGION pattern op(_,_)
+operator getgrid alias GETGRID pattern op(_)
+operator inst alias INST pattern op(_)
+operator load alias LOAD pattern op(_)
 operator map alias MAP pattern _ op [fun]
          implicit parameter element type CELL1
 operator map2 alias MAP2 pattern _ _ op [fun]
          implicit parameters elem1, elem2 types CELL1, CELL2
-operator fromline alias FROMLINE pattern op(_)
-operator fromregion alias FROMREGION pattern op(_,_)
-operator toregion alias TOREGION pattern _ op
-operator t2mt alias TTOMT pattern  op(_,_,_,_)
-operator compose alias COMPOSE pattern _ infixop _
 operator matchgrid alias MATCHGRID pattern _ op [_,fun,_]
          implicit parameter element type CELLS
-operator getgrid alias GETGRID pattern op(_)
+operator maximum alias MAXIMUM pattern op(_)
+operator minimum alias MINIMUM pattern op(_)
+operator t2mt alias TTOMT pattern  op(_,_,_,_)
 operator tiles alias TILES pattern op(_)
 operator toraster2 alias TORASTER2 pattern op(_)
+operator toregion alias TOREGION pattern _ op
+operator val alias VAL pattern op(_)
