@@ -53,30 +53,30 @@ itstring
 
 On these datatypes the following operators are available:
 
-atlocation
 atinstant
-inst
-val
+atlocation
 atperiods
 atrange
-deftime
 bbox
-minimum
-maximum
-map
-map2
-fromline
-fromregion
-toregion
-t2mt
-compose
-matchgrid
-getgrid
 CELL1
 CELL2
 CELLS
+compose
+deftime
+fromline
+fromregion
+getgrid
+inst
+map
+map2
+matchgrid
+maximum
+minimum
+t2mt
 tiles
 toraster2
+toregion
+val
 
 */
 
@@ -117,31 +117,31 @@ TileAlgebra operators includes
 
 */
 
-#include "operators/load.h"
-#include "operators/atlocation.h"
 #include "operators/atinstant.h"
-#include "operators/inst.h"
-#include "operators/val.h"
+#include "operators/atlocation.h"
 #include "operators/atperiods.h"
 #include "operators/atrange.h"
-#include "operators/deftime.h"
 #include "operators/bbox.h"
-#include "operators/minimum.h"
-#include "operators/maximum.h"
-#include "operators/map.h"
-#include "operators/map2.h"
-#include "operators/fromline.h"
-#include "operators/fromregion.h"
-#include "operators/toregion.h"
-#include "operators/t2mt.h"
-#include "operators/compose.h"
-#include "operators/matchgrid.h"
-#include "operators/getgrid.h"
 #include "operators/CELL1.h"
 #include "operators/CELL2.h"
 #include "operators/CELLS.h"
+#include "operators/compose.h"
+#include "operators/deftime.h"
+#include "operators/fromline.h"
+#include "operators/fromregion.h"
+#include "operators/getgrid.h"
+#include "operators/inst.h"
+#include "operators/load.h"
+#include "operators/map.h"
+#include "operators/map2.h"
+#include "operators/matchgrid.h"
+#include "operators/maximum.h"
+#include "operators/minimum.h"
+#include "operators/t2mt.h"
 #include "operators/tiles.h"
 #include "operators/toraster2.h"
+#include "operators/toregion.h"
+#include "operators/val.h"
 
 /*
 extern declarations
@@ -229,61 +229,53 @@ TileAlgebra::TileAlgebra()
 
   */
 
-  AddOperator(loadInfo(), loadFunctions, loadSelectFunction,
-              loadTypeMappingFunction);
-  AddOperator(atlocationInfo(), atlocationFunctions, atlocationSelectFunction,
-              atlocationTypeMappingFunction);
   AddOperator(atinstantInfo(), atinstantFunctions, atinstantSelectFunction,
               atinstantTypeMappingFunction);
-  AddOperator(instInfo(), instFunctions, instSelectFunction,
-              instTypeMappingFunction);
-  AddOperator(valInfo(), valFunctions, valSelectFunction,
-              valTypeMappingFunction);
+  AddOperator(atlocationInfo(), atlocationFunctions, atlocationSelectFunction,
+              atlocationTypeMappingFunction);
   AddOperator(atperiodsInfo(), atperiodsFunctions, atperiodsSelectFunction,
               atperiodsTypeMappingFunction);
   AddOperator(atrangeInfo(), atrangeFunctions, atrangeSelectFunction,
               atrangeTypeMappingFunction);
-  AddOperator(deftimeInfo(), deftimeFunctions, deftimeSelectFunction,
-              deftimeTypeMappingFunction);
   AddOperator(bboxInfo(), bboxFunctions, bboxSelectFunction,
               bboxTypeMappingFunction);
-  AddOperator(minimumInfo(), minimumFunctions, minimumSelectFunction,
-              minimumTypeMappingFunction);
-  AddOperator(maximumInfo(), maximumFunctions, maximumSelectFunction,
-              maximumTypeMappingFunction);
-  AddOperator(mapInfo(), mapFunctions, mapSelectFunction,
-              mapTypeMappingFunction);
-  AddOperator(map2Info(), map2Functions, map2SelectFunction,
-              map2TypeMappingFunction);
+  AddOperator(CELL1Info(), 0, CELL1TypeMappingFunction);
+  AddOperator(CELL2Info(), 0, CELL2TypeMappingFunction);
+  AddOperator(CELLSInfo(), 0, CELLSTypeMappingFunction);
+  AddOperator(composeInfo(), composeFunctions, composeSelectFunction,
+              composeTypeMappingFunction);
+  AddOperator(deftimeInfo(), deftimeFunctions, deftimeSelectFunction,
+              deftimeTypeMappingFunction);
   AddOperator(fromlineInfo(), fromlineFunction,
               fromlineTypeMappingFunction);
   AddOperator(fromregionInfo(), fromregionFunction,
               fromregionTypeMappingFunction);
-  AddOperator(toregionInfo(), toregionFunction,
-              toregionTypeMappingFunction);
-  AddOperator(t2mtInfo(), t2mtFunctions, t2mtSelectFunction,
-              t2mtTypeMappingFunction);
-  AddOperator(composeInfo(), composeFunctions, composeSelectFunction,
-              composeTypeMappingFunction);
-
-  Operator* pOperator = AddOperator(matchgridInfo(), matchgridFunctions,
-                                    matchgridSelectFunction,
-                                    matchgridTypeMappingFunction);
-
-  if(pOperator != 0)
-  {
-    pOperator-> SetUsesMemory();
-  }
-
   AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
               getgridTypeMappingFunction);
-  AddOperator(CELL1Info(), 0, CELL1TypeMappingFunction);
-  AddOperator(CELL2Info(), 0, CELL2TypeMappingFunction);
-  AddOperator(CELLSInfo(), 0, CELLSTypeMappingFunction);
+  AddOperator(instInfo(), instFunctions, instSelectFunction,
+              instTypeMappingFunction);
+  AddOperator(loadInfo(), loadFunctions, loadSelectFunction,
+              loadTypeMappingFunction);
+  AddOperator(mapInfo(), mapFunctions, mapSelectFunction,
+              mapTypeMappingFunction);
+  AddOperator(map2Info(), map2Functions, map2SelectFunction,
+              map2TypeMappingFunction);
+  AddOperator(matchgridInfo(), matchgridFunctions, matchgridSelectFunction,
+              matchgridTypeMappingFunction)->SetUsesMemory();
+  AddOperator(maximumInfo(), maximumFunctions, maximumSelectFunction,
+              maximumTypeMappingFunction);
+  AddOperator(minimumInfo(), minimumFunctions, minimumSelectFunction,
+              minimumTypeMappingFunction);
+  AddOperator(t2mtInfo(), t2mtFunctions, t2mtSelectFunction,
+              t2mtTypeMappingFunction);
   AddOperator(tilesInfo(), tilesFunctions, tilesSelectFunction,
               tilesTypeMappingFunction);
   AddOperator(toraster2Info(), toraster2Functions, toraster2SelectFunction,
               toraster2TypeMappingFunction);
+  AddOperator(toregionInfo(), toregionFunction,
+              toregionTypeMappingFunction);
+  AddOperator(valInfo(), valFunctions, valSelectFunction,
+              valTypeMappingFunction);
 }
 
 /*
