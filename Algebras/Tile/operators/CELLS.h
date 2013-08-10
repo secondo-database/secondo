@@ -77,20 +77,20 @@ struct CELLSInfo : OperatorInfo
       {
         if(signature.empty())
         {
-          signature = tTypes[i] + " x ... -> rel(tuple([Elem: " +
+          signature = tTypes[i] + " x ... -> rel(tuple([Elem : " +
                       valueWrapperTypes[i] + "]))";
         }
 
         else
         {
-          appendSignature(tTypes[i] + " x ... -> rel(tuple([Elem: " +
+          appendSignature(tTypes[i] + " x ... -> rel(tuple([Elem : " +
                           valueWrapperTypes[i] + "]))");
         }
       }
 
       for(size_t i = 0; i < mtTypes.size(); i++)
       {
-        appendSignature(mtTypes[i] + " x ... -> rel(tuple([Elem: " +
+        appendSignature(mtTypes[i] + " x ... -> rel(tuple([Elem : " +
                         valueWrapperTypes[i] + "]))");
       }
     }
