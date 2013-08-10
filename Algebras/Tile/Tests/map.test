@@ -11,14 +11,14 @@
 create database TileAlgebraTest;
 open database TileAlgebraTest;
 
-let tint1 = ([const tint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))]);
-let treal1 = ([const treal value ((0.0 0.0 1.0) (1 1) (0 0 (1.0)))]);
-let tbool1 = ([const tbool value ((0.0 0.0 1.0) (1 1) (0 0 (FALSE)))]);
-let tstring1 = ([const tstring value ((0.0 0.0 1.0) (1 1) (0 0 ("zero")))]);
-let mtint1 = ([const mtint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)))]);
-let mtreal1 = ([const mtreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1.0)))]);
-let mtbool1 = ([const mtbool value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (FALSE)))]);
-let mtstring1 = ([const mtstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("zero")))]);
+let tint1 = [const tint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))];
+let treal1 = [const treal value ((0.0 0.0 1.0) (1 1) (0 0 (1.0)))];
+let tbool1 = [const tbool value ((0.0 0.0 1.0) (1 1) (0 0 (FALSE)))];
+let tstring1 = [const tstring value ((0.0 0.0 1.0) (1 1) (0 0 ("zero")))];
+let mtint1 = [const mtint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)))];
+let mtreal1 = [const mtreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1.0)))];
+let mtbool1 = [const mtbool value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (FALSE)))];
+let mtstring1 = [const mtstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("zero")))];
 
 ################################################################################
 # Run Tests ####################################################################
