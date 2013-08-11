@@ -127,6 +127,7 @@ else
   echo 'export BERKELEY_DB_LIB=db_cxx' >>$HOME/.secondorc
   echo '' >>$HOME/.secondorc
   echo 'export J2SDK_ROOT=/usr/lib/jvm/java-1.7.0-openjdk/' >>$HOME/.secondorc
+  echo 'export JAVA_HOME=$J2SDK_ROOT' >>$HOME/.secondorc
   echo "export SWI_HOME_DIR=/usr/lib/swipl-$PLVER/" >>$HOME/.secondorc
   echo 'export PL_LIB_DIR=$SWI_HOME_DIR/lib/i686-linux' >>$HOME/.secondorc
   echo 'export PL_LIB=swipl' >>$HOME/.secondorc
