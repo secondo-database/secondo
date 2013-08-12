@@ -192,7 +192,7 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
 }
 
 MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
-        vector<Reg> *dregs, Instant *ti2) {
+        vector<Reg> *dregs, Instant *ti2, int mode) {
     
     vector<pair<Reg *, Reg *> > ps = matchFacesDistance(sregs, dregs);
     MFaces ret, fcs;
@@ -205,26 +205,28 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
 
         if (src && dst) {
             RotatingPlane rp(src, dst);
-            fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2);
+            fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2, mode);
+            
+//            for (unsigned int i = 0; i < fcs.faces.size(); i++) {
+//                for (unsigned int j = i+1; j < fcs.faces.size(); j++) {
+//                    MSegs *s1 = &fcs.faces[i].face;
+//                    MSegs *s2 = &fcs.faces[j].face;
+//                    if (s1->ignore || s2->ignore || !mode)
+//                        continue;
+//                    if (s1->intersects(*s2) && mode) {
+//                        pair<MSegs, MSegs> ss = s1->kill();
+//                cerr << "Intersection found: " << ss.first.ToString() << "\n"
+//                                << ss.second.ToString() << "\n";
+//                        rp.face.AddMsegs(ss.first);
+//                        rp.face.AddMsegs(ss.second);
+//                        s1->ignore = 1;
+//                    }
+//                }
+//            }
             
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
-                for (unsigned int j = i+1; j < fcs.faces.size(); j++) {
-                    MSegs *s1 = &fcs.faces[i].face;
-                    MSegs *s2 = &fcs.faces[j].face;
-                    if (s1->ignore || s2->ignore)
-                        continue;
-                    if (s1->intersects(*s2)) {
-                        pair<MSegs, MSegs> ss = s1->kill();
-                        rp.face.AddMsegs(ss.first);
-                        rp.face.AddMsegs(ss.second);
-                        s1->ignore = 1;
-                    }
-                }
-            }
-            
-            for (unsigned int i = 0; i < fcs.faces.size(); i++) {
-                if (fcs.faces[i].face.ignore)
-                    continue;
+//                if (fcs.faces[i].face.ignore)
+//                    continue;
                 rp.face.AddMsegs(fcs.faces[i].face);
                 for (unsigned int j = 0; j < fcs.faces[i].holes.size(); j++) {
                     MFace fc(fcs.faces[i].holes[j]);
@@ -268,7 +270,7 @@ int interpolatevalmap(Word* args,
     vector<Reg> reg1 = Reg::getRegs(_r1);
     vector<Reg> reg2 = Reg::getRegs(_r2);
 
-    MFaces mf = interpolate(&reg1, ti1, &reg2, ti2);
+    MFaces mf = interpolate(&reg1, ti1, &reg2, ti2, mode->GetIntval());
     cerr << mf.ToString();
     MRegion mreg = mf.ToMRegion(iv);
     *m = mreg;

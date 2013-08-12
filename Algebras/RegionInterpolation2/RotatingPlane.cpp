@@ -5,6 +5,8 @@
 
 RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
     MSegs msegs;
+    msegs.sreg = *reg1;
+    msegs.dreg = *reg2;
     
     reg1->ConvexHull();
     reg2->ConvexHull();
@@ -84,6 +86,7 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
                 ccv.hullPoint = Pt(reg2->Cur().x1, reg2->Cur().y1);
                 ccv.peerPoint = Pt(r1.Cur().x1, r1.Cur().y1);
                 ccv.Close();
+                
                 dcvs.push_back(ccv);
                 r2.Next();
             } else {

@@ -40,6 +40,7 @@ vector<MSeg> MSegs::GetMatchingMSegs (MSegs m) {
 }
 
 void MSegs::MergeConcavity (MSegs c) {
+    cerr << "Merging " << ToString() << " with " << c.ToString() << "\n";
     std::sort(segs.begin(), segs.end());
     std::sort(c.segs.begin(), c.segs.end());
     std::vector<MSeg>::iterator i = segs.begin();
@@ -54,7 +55,11 @@ void MSegs::MergeConcavity (MSegs c) {
             j++;
         }
     }
+    for (unsigned int x = 0; x < c.segs.size(); x++)
+        c.segs[x].ChangeDirection();
     segs.insert(segs.end(),c.segs.begin(),c.segs.end());
+    std::sort(segs.begin(), segs.end());
+    cerr << "Result: " << ToString() << "\n\n";
 }
 
 string MSegs::ToString() const {
@@ -103,8 +108,11 @@ bool MSegs::intersects (const MSegs& a) const {
 }
 
 pair<MSegs, MSegs> MSegs::kill() {
-    MSegs src = GetSReg().collapse(true);
-    MSegs dst = GetDReg().collapse(false);
+    cerr << "A Kill " << ToString() << "\n";
+    cerr << "B Kill " << GetSReg().ToString() << "\n";
+    cerr << "C Kill " << GetDReg().ToString() << "\n";
+    MSegs src = sreg.collapse(true);
+    MSegs dst = dreg.collapse(false);
     
     return pair<MSegs, MSegs>(src, dst);
 }
@@ -113,6 +121,8 @@ Reg MSegs::GetSReg() {
     Reg ret;
     
     for (unsigned int i = 0; i < segs.size(); i++) {
+        if (segs[i].sx1 == segs[i].sx2 && segs[i].sy1 == segs[i].sy2)
+            continue;
         Seg s(segs[i].sx1, segs[i].sy1, segs[i].sx2, segs[i].sy2);
         ret.AddSeg(s);
     }
@@ -125,6 +135,8 @@ Reg MSegs::GetDReg() {
     Reg ret;
     
     for (unsigned int i = 0; i < segs.size(); i++) {
+        if (segs[i].fx1 == segs[i].fx2 && segs[i].fy1 == segs[i].fy2)
+            continue;
         Seg s(segs[i].fx1, segs[i].fy1, segs[i].fx2, segs[i].fy2);
         ret.AddSeg(s);
     }

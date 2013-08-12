@@ -97,12 +97,14 @@ public:
     bool operator<(const MSeg& a) const;
     bool operator==(const MSeg& a) const;
     bool intersects(const MSeg& a) const;
+    void ChangeDirection();
 };
 
 class MSegs {
 public:
     int ignore;
     vector<MSeg> segs;
+    Reg sreg, dreg;
 
     MSegs();
     void AddMSeg(int sx1, int sy1, int sx2, int sy2,

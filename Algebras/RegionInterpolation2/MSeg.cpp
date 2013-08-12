@@ -92,6 +92,24 @@ bool MSeg::operator< (const MSeg& a) const {
     return false;
 }
 
+void MSeg::ChangeDirection() {
+    int tmp;
+    
+    tmp = sx1;
+    sx1 = sx2;
+    sx2 = tmp;
+    tmp = sy1;
+    sy1 = sy2;
+    sy2 = tmp;
+    
+    tmp = fx1;
+    fx1 = fx2;
+    fx2 = tmp;
+    tmp = fy1;
+    fy1 = fy2;
+    fy2 = tmp;
+}
+
 string MSeg::ToString() const {
     std::ostringstream ss;
 
