@@ -6,9 +6,7 @@
 MSegs::MSegs() : ignore(0) {
 }
 
-void MSegs::AddMSeg (int sx1, int sy1, int sx2, int sy2,
-                     int fx1, int fy1, int fx2, int fy2) {
-    MSeg m(sx1, sy1, sx2, sy2, fx1, fy1, fx2, fy2);
+void MSegs::AddMSeg (MSeg m) {
     segs.push_back(m);
 }
 
@@ -79,14 +77,14 @@ vector<MSegmentData> MSegs::ToMSegmentData(int face, int cycle) {
     
     for (unsigned int i = 0; i < segs.size(); i++) {
         MSegmentData ms(face, cycle, segno++, false,
-                segs[i].sx1,
-                segs[i].sy1,
-                segs[i].sx2,
-                segs[i].sy2,
-                segs[i].fx1,
-                segs[i].fy1,
-                segs[i].fx2,
-                segs[i].fy2
+                segs[i].is.x,
+                segs[i].is.y,
+                segs[i].ie.x,
+                segs[i].ie.y,
+                segs[i].fs.x,
+                segs[i].fs.y,
+                segs[i].fe.x,
+                segs[i].fe.y
                 );
         ret.push_back(ms);
     }
@@ -108,39 +106,50 @@ bool MSegs::intersects (const MSegs& a) const {
 }
 
 pair<MSegs, MSegs> MSegs::kill() {
-    cerr << "A Kill " << ToString() << "\n";
-    cerr << "B Kill " << GetSReg().ToString() << "\n";
-    cerr << "C Kill " << GetDReg().ToString() << "\n";
     MSegs src = sreg.collapse(true);
     MSegs dst = dreg.collapse(false);
     
     return pair<MSegs, MSegs>(src, dst);
 }
 
-Reg MSegs::GetSReg() {
-    Reg ret;
+MSegs MSegs::divide (double start, double end) {
+    MSegs ret;
+    
+    ret.sreg = sreg;
+    ret.dreg = dreg;
     
     for (unsigned int i = 0; i < segs.size(); i++) {
-        if (segs[i].sx1 == segs[i].sx2 && segs[i].sy1 == segs[i].sy2)
-            continue;
-        Seg s(segs[i].sx1, segs[i].sy1, segs[i].sx2, segs[i].sy2);
-        ret.AddSeg(s);
+        ret.AddMSeg(segs[i].divide(start, end));
     }
     
-    ret.Close();
     return ret;
 }
 
-Reg MSegs::GetDReg() {
-    Reg ret;
-    
-    for (unsigned int i = 0; i < segs.size(); i++) {
-        if (segs[i].fx1 == segs[i].fx2 && segs[i].fy1 == segs[i].fy2)
-            continue;
-        Seg s(segs[i].fx1, segs[i].fy1, segs[i].fx2, segs[i].fy2);
-        ret.AddSeg(s);
-    }
-    
-    ret.Close();
-    return ret;
-}
+
+//Reg MSegs::GetSReg() {
+//    Reg ret;
+//    
+//    for (unsigned int i = 0; i < segs.size(); i++) {
+//        if (segs[i].sx1 == segs[i].sx2 && segs[i].sy1 == segs[i].sy2)
+//            continue;
+//        Seg s(segs[i].sx1, segs[i].sy1, segs[i].sx2, segs[i].sy2);
+//        ret.AddSeg(s);
+//    }
+//    
+//    ret.Close();
+//    return ret;
+//}
+//
+//Reg MSegs::GetDReg() {
+//    Reg ret;
+//    
+//    for (unsigned int i = 0; i < segs.size(); i++) {
+//        if (segs[i].fx1 == segs[i].fx2 && segs[i].fy1 == segs[i].fy2)
+//            continue;
+//        Seg s(segs[i].fx1, segs[i].fy1, segs[i].fx2, segs[i].fy2);
+//        ret.AddSeg(s);
+//    }
+//    
+//    ret.Close();
+//    return ret;
+//}

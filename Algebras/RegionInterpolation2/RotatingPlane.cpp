@@ -4,6 +4,7 @@
 #include "interpolate.h"
 
 RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
+    
     MSegs msegs;
     msegs.sreg = *reg1;
     msegs.dreg = *reg2;
@@ -20,36 +21,26 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
     do {
         double a1 = r1.Cur().angle();
         double a2 = r2.Cur().angle();
-        int sx1 = 0, sy1 = 0, sx2 = 0, sy2 = 0,
+        Pt is, ie, fs, fe;
+        double sx1 = 0, sy1 = 0, sx2 = 0, sy2 = 0,
                 dx1 = 0, dy1 = 0, dx2 = 0, dy2 = 0;
 
         if (((a1 <= a2) && !r1.End()) || r2.End()) {
-            sx1 = r1.Cur().x1;
-            sy1 = r1.Cur().y1;
-            sx2 = r1.Cur().x2;
-            sy2 = r1.Cur().y2;
-            dx1 = dx2 = r2.Cur().x1;
-            dy1 = dy2 = r2.Cur().y1;
-            msegs.AddMSeg(sx1, sy1, sx2, sy2, dx1, dy1, dx2, dy2);
+            is = r1.Cur().s;
+            ie = r1.Cur().e;
+            fs = fe = r2.Cur().s;
+            msegs.AddMSeg(MSeg(is, ie, fs, fe));
             if (!(r1.Cur() == reg1->Cur())) {
-
                 // We found a concavity in the source region
                 Reg ccv;
-
-                while (r1.Cur().x2 != reg1->Cur().x1 ||
-                        r1.Cur().y2 != reg1->Cur().y1) {
-                    sx1 = reg1->Cur().x1;
-                    sy1 = reg1->Cur().y1;
-                    sx2 = reg1->Cur().x2;
-                    sy2 = reg1->Cur().y2;
-                    dx1 = dx2 = r2.Cur().x1;
-                    dy1 = dy2 = r2.Cur().y1;
-                    Seg s(sx1, sy1, sx2, sy2);
+                
+                while (!(r1.Cur().e == reg1->Cur().s)) {
+                    Seg s(reg1->Cur().s, reg1->Cur().e);
                     ccv.AddSeg(s);
                     reg1->Next();
                 }
-                ccv.hullPoint = Pt(reg1->Cur().x1, reg1->Cur().y1);
-                ccv.peerPoint = Pt(r2.Cur().x1, r2.Cur().y1);
+                ccv.hullPoint = reg1->Cur().s;
+                ccv.peerPoint = r2.Cur().s;
                 ccv.Close();
                 scvs.push_back(ccv);
                  
@@ -59,32 +50,22 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
                 reg1->Next();
             }
         } else if ((a1 >= a2) || r1.End()) {
-            sx1 = sx2 = r1.Cur().x1;
-            sy1 = sy2 = r1.Cur().y1;
-            dx1 = r2.Cur().x1;
-            dy1 = r2.Cur().y1;
-            dx2 = r2.Cur().x2;
-            dy2 = r2.Cur().y2;
-            msegs.AddMSeg(sx1, sy1, sx2, sy2, dx1, dy1, dx2, dy2);
+            is = ie = r1.Cur().s;
+            fs = r2.Cur().s;
+            fe = r2.Cur().e;
+            msegs.AddMSeg(MSeg(is, ie, fs, fe));
             if (!(r2.Cur() == reg2->Cur())) {
  
                 // We found a concavity in the destination region
                 Reg ccv;
 
-                while (r2.Cur().x2 != reg2->Cur().x1 ||
-                        r2.Cur().y2 != reg2->Cur().y1) {
-                    sx1 = sx2 = r1.Cur().x1;
-                    sy1 = sy2 = r1.Cur().y1;
-                    dx1 = reg2->Cur().x1;
-                    dy1 = reg2->Cur().y1;
-                    dx2 = reg2->Cur().x2;
-                    dy2 = reg2->Cur().y2;
-                    Seg s(dx1, dy1, dx2, dy2);
+                while (!(r2.Cur().e == reg2->Cur().s)) {
+                    Seg s(reg2->Cur().s, reg2->Cur().e);
                     ccv.AddSeg(s);
                     reg2->Next();
                 }
-                ccv.hullPoint = Pt(reg2->Cur().x1, reg2->Cur().y1);
-                ccv.peerPoint = Pt(r1.Cur().x1, r1.Cur().y1);
+                ccv.hullPoint = reg2->Cur().s;
+                ccv.peerPoint = r1.Cur().s;
                 ccv.Close();
                 
                 dcvs.push_back(ccv);
@@ -108,4 +89,5 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
     }
  
     face = MFace(msegs);
+    
 }

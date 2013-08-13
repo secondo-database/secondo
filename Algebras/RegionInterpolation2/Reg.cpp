@@ -11,16 +11,16 @@ Reg::Reg(ListExpr tle) : cur(0) {
     while (nl->ListLength(le) > 1) {
         ListExpr pa = nl->First(le);
         ListExpr pb = nl->First(nl->Rest(le));
-        int p1 = nl->RealValue(nl->First(pa));
+        double p1 = nl->RealValue(nl->First(pa));
         pa = nl->Rest(pa);
-        int p2 = nl->RealValue(nl->First(pa));
+        double p2 = nl->RealValue(nl->First(pa));
         pa = nl->Rest(pa);
-        int p3 = nl->RealValue(nl->First(pb));
+        double p3 = nl->RealValue(nl->First(pb));
         pb = nl->Rest(pb);
-        int p4 = nl->RealValue(nl->First(pb));
+        double p4 = nl->RealValue(nl->First(pb));
         pb = nl->Rest(pb);
         le = nl->Rest(le);
-        Seg s = Seg(p1, p2, p3, p4);
+        Seg s = Seg(Pt(p1, p2), Pt(p3, p4));
         AddSeg(s);
     }
     while (nl->ListLength(tle) > 1) {
@@ -40,8 +40,8 @@ Region Reg::MakeRegion(int offx, int offy) {
     ret.StartBulkLoad();
     int edgeno = 0;
     for (unsigned int i = 0; i < v.size(); i++) {
-        Point s(true, v[i].x1 + offx, v[i].y1 + offy);
-        Point e(true, v[i].x2 + offx, v[i].y2 + offy);
+        Point s(true, v[i].s.x + offx, v[i].s.y + offy);
+        Point e(true, v[i].e.x + offx, v[i].e.y + offy);
         HalfSegment hs(false, s, e);
         hs.attr.faceno = 0;
         hs.attr.cycleno = 0;
@@ -71,9 +71,8 @@ void Reg::AddSeg(Seg& a) {
 
 void Reg::Close() {
     int i = v.size() - 1;
-    if ((v[i].x2 != v[0].x1) || (v[i].y2 != v[0].y1)) {
-
-        Seg s = Seg(v[i].x2, v[i].y2, v[0].x1, v[0].y1);
+    if (!(v[i].e == v[0].s)) {
+        Seg s(v[i].e, v[0].s);
         AddSeg(s);
     }
 
@@ -87,7 +86,7 @@ vector<Pt> Reg::getPoints() {
 
     for (unsigned int i = 0; i < v.size(); i++) {
 
-        pt[i] = Pt(v[i].x1, v[i].y1);
+        pt[i] = v[i].s;
     }
 
     return pt;
@@ -133,17 +132,17 @@ void Reg::ConvexHull() {
     for (unsigned int i = 0; i < uh.size(); i++) {
         Pt p1 = uh[i];
         Pt p2 = uh[(i + 1) % uh.size()];
-        Seg s = Seg(p1.x, p1.y, p2.x, p2.y);
+        Seg s = Seg(p1, p2);
         convexhull.push_back(s);
     }
 }
 
 void Reg::Translate(int offx, int offy) {
     for (unsigned int i = 0; i < v.size(); i++) {
-        v[i].x1 += offx;
-        v[i].x2 += offx;
-        v[i].y1 += offy;
-        v[i].y2 += offy;
+        v[i].s.x += offx;
+        v[i].e.x += offx;
+        v[i].s.y += offy;
+        v[i].e.y += offy;
     }
 }
 
@@ -183,15 +182,13 @@ MSegs Reg::collapse(bool close) {
     if (peerPoint.valid)
         dst = peerPoint;
     else
-        dst = Pt(v[0].x1, v[0].y1);
+        dst = v[0].s;
 
     for (unsigned int i = 0; i < v.size(); i++) {
         if (close) {
-            ret.AddMSeg(v[i].x1, v[i].y1, v[i].x2, v[i].y2,
-                    dst.x, dst.y, dst.x, dst.y);
+            ret.AddMSeg(MSeg(v[i].s, v[i].e, dst, dst));
         } else {
-            ret.AddMSeg(dst.x, dst.y, dst.x, dst.y,
-                    v[i].x1, v[i].y1, v[i].x2, v[i].y2);
+            ret.AddMSeg(MSeg(dst, dst, v[i].s, v[i].e));
         }
     }
 
@@ -217,11 +214,11 @@ Pt Reg::GetMiddle() {
     return middle;
 }
 
-int Reg::distance(Reg r) {
+double Reg::distance(Reg r) {
     return r.GetMiddle().distance(GetMiddle());
 }
 
-string Reg::ToString() {
+string Reg::ToString() const {
     std::ostringstream ss;
 
     for (unsigned int i = 0; i < v.size(); i++)
@@ -235,15 +232,15 @@ Pt Reg::GetMinXY(vector<Reg> regs) {
         return Pt(0, 0);
     assert(regs.size() > 0);
     assert(regs[0].v.size() > 0);
-    int minx = regs[0].v[0].x1;
-    int miny = regs[0].v[0].y1;
+    double minx = regs[0].v[0].s.x;
+    double miny = regs[0].v[0].s.y;
     for (unsigned int i = 0; i < regs.size(); i++) {
         for (unsigned int j = 0; j < regs[i].v.size(); j++) {
-            if (regs[i].v[j].x1 < minx) {
-                minx = regs[i].v[j].x1;
+            if (regs[i].v[j].s.x < minx) {
+                minx = regs[i].v[j].s.x;
             }
-            if (regs[i].v[j].y1 < miny) {
-                miny = regs[i].v[j].y1;
+            if (regs[i].v[j].s.y < miny) {
+                miny = regs[i].v[j].s.y;
             }
         }
     }
@@ -256,15 +253,15 @@ Pt Reg::GetMaxXY(vector<Reg> regs) {
         return Pt(0, 0);
     assert(regs.size() > 0);
     assert(regs[0].v.size() > 0);
-    int maxx = regs[0].v[0].x1;
-    int maxy = regs[0].v[0].y1;
+    double maxx = regs[0].v[0].s.x;
+    double maxy = regs[0].v[0].s.y;
     for (unsigned int i = 0; i < regs.size(); i++) {
         for (unsigned int j = 0; j < regs[i].v.size(); j++) {
-            if (regs[i].v[j].x1 > maxx) {
-                maxx = regs[i].v[j].x1;
+            if (regs[i].v[j].s.x > maxx) {
+                maxx = regs[i].v[j].s.x;
             }
-            if (regs[i].v[j].y1 > maxy) {
-                maxy = regs[i].v[j].y1;
+            if (regs[i].v[j].s.y > maxy) {
+                maxy = regs[i].v[j].s.y;
             }
         }
     }
@@ -273,14 +270,14 @@ Pt Reg::GetMaxXY(vector<Reg> regs) {
 }
 
 Pt Reg::GetMinXY() {
-    int minx = v[0].x1;
-    int miny = v[0].y1;
+    double minx = v[0].s.x;
+    double miny = v[0].s.y;
     for (unsigned int j = 0; j < v.size(); j++) {
-        if (v[j].x1 < minx) {
-            minx = v[j].x1;
+        if (v[j].s.x < minx) {
+            minx = v[j].s.x;
         }
-        if (v[j].y1 < miny) {
-            miny = v[j].y1;
+        if (v[j].s.y < miny) {
+            miny = v[j].s.y;
         }
     }
 
@@ -288,14 +285,14 @@ Pt Reg::GetMinXY() {
 }
 
 Pt Reg::GetMaxXY() {
-    int maxx = v[0].x1;
-    int maxy = v[0].y1;
+    double maxx = v[0].s.x;
+    double maxy = v[0].s.y;
     for (unsigned int j = 0; j < v.size(); j++) {
-        if (v[j].x1 > maxx) {
-            maxx = v[j].x1;
+        if (v[j].s.x > maxx) {
+            maxx = v[j].s.x;
         }
-        if (v[j].y1 > maxy) {
-            maxy = v[j].y1;
+        if (v[j].s.y > maxy) {
+            maxy = v[j].s.y;
         }
     }
 

@@ -29,6 +29,16 @@ MRegion MFaces::ToMRegion(Interval<Instant> iv) {
     return ret;
 }
 
+MFaces MFaces::divide (double start, double end) {
+    MFaces ret;
+    
+    for (unsigned int i = 0; i < faces.size(); i++) {
+        ret.AddFace(faces[i].divide(start, end));
+    }
+    
+    return ret;
+}
+
 string MFaces::ToString() {
     std::ostringstream ss;
 

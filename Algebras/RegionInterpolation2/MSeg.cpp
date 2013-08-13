@@ -3,118 +3,130 @@
 
 #include "interpolate.h"
 
-//MSeg::MSeg() {
-//}
+MSeg::MSeg() {
+}
 
-MSeg::MSeg(int sx1,int sy1,int sx2,int sy2,int fx1,int fy1,int fx2,int fy2)
-     : sx1(sx1),sy1(sy1),sx2(sx2),sy2(sy2),fx1(fx1),fy1(fy1),fx2(fx2),fy2(fy2) {
+MSeg::MSeg(Pt is, Pt ie, Pt fs, Pt fe) : is(is), ie(ie), fs(fs), fe(fe) {
 }
 
 MSegmentData MSeg::ToMSegmentData(int face, int cycle, int segno) {
-    MSegmentData m(face, cycle, segno, false, sx1,sy1,sx2,sy2,fx1,fy1,fx2,fy2);
-    
+    MSegmentData m(face, cycle, segno, false,
+            is.x, is.y, ie.x, ie.y, fs.x, fs.y, fe.x, fe.y);
+
     return m;
 }
 
-bool MSeg::operator== (const MSeg& a) const {
+bool MSeg::operator==(const MSeg& a) const {
     return (
-            sx1 == a.sx1 &&
-            sy1 == a.sy1 &&
-            sx2 == a.sx2 &&
-            sy2 == a.sy2 &&
-            fx1 == a.fx1 &&
-            fy1 == a.fy1 &&
-            fx2 == a.fx2 &&
-            fy2 == a.fy2
+            is == a.is &&
+            ie == a.ie &&
+            fs == a.fs &&
+            fe == a.fe
             );
 }
 
-bool MSeg::intersects (const MSeg& a) const {
+bool MSeg::intersects(const MSeg& a) const {
     unsigned int detailedResult;
+    bool ret;
     
-    return specialTrapeziumIntersects(
+    ret = specialTrapeziumIntersects(
             1,
-            sx1, sy1,
-            sx2, sy2,
-            fx2, fy2,
-            fx1, fy1,
-            
-            a.sx1, a.sy1,
-            a.sx2, a.sy2,
-            a.fy1, a.fy2,
-            a.fx1, a.fx2,
+            is.x, is.y,
+            ie.x, ie.y,
+            fs.x, fs.y,
+            fe.x, fe.y,
+
+            a.is.x, a.is.y,
+            a.ie.x, a.ie.y,
+            a.fs.x, a.fs.y,
+            a.fe.x, a.fe.y,
             detailedResult
             );
+    
+    if (ret) {
+        cerr << "Intersection found, detail: " << detailedResult << "\n";
+        cerr << ToString() << "\n" << a.ToString() << "\n";
+        
+        if (detailedResult != 8)
+            return true;
+    }
+        
+    return false;
 }
 
-bool MSeg::operator< (const MSeg& a) const {
-    if (sx1 < a.sx1) {
+bool MSeg::operator<(const MSeg& a) const {
+    if (is.x < a.is.x) {
         return true;
-    } else if (sx1 > a.sx1) {
+    } else if (is.x > a.is.x) {
         return false;
     }
-    if (sy1 < a.sy1) {
+    if (is.y < a.is.y) {
         return true;
-    } else if (sy1 > a.sy1) {
+    } else if (is.y > a.is.y) {
         return false;
     }
-    if (sx2 < a.sx2) {
+    if (ie.x < a.ie.x) {
         return true;
-    } else if (sx2 > a.sx2) {
+    } else if (ie.x > a.ie.x) {
         return false;
     }
-    if (sy2 < a.sy2) {
+    if (ie.y < a.ie.y) {
         return true;
-    } else if (sy2 > a.sy2) {
+    } else if (ie.y > a.ie.y) {
         return false;
     }
-    if (fx1 < a.fx1) {
+    if (fs.x < a.fs.x) {
         return true;
-    } else if (fx1 > a.fx1) {
+    } else if (fs.x > a.fs.x) {
         return false;
     }
-    if (fy1 < a.fy1) {
+    if (fs.y < a.fs.y) {
         return true;
-    } else if (fy1 > a.fy1) {
+    } else if (fs.y > a.fs.y) {
         return false;
     }
-    if (fx2 < a.fx2) {
+    if (fe.x < a.fe.x) {
         return true;
-    } else if (fx2 > a.fx2) {
+    } else if (fe.x > a.fe.x) {
         return false;
     }
-    if (fy2 < a.fy2) {
+    if (fe.y < a.fe.y) {
         return true;
-    } else if (fy2 > a.fy2) {
+    } else if (fe.y > a.fe.y) {
         return false;
     }
-    
+
     return false;
 }
 
 void MSeg::ChangeDirection() {
-    int tmp;
+    Pt tmp;
+
+    tmp = is;
+    is = ie;
+    ie = tmp;
     
-    tmp = sx1;
-    sx1 = sx2;
-    sx2 = tmp;
-    tmp = sy1;
-    sy1 = sy2;
-    sy2 = tmp;
-    
-    tmp = fx1;
-    fx1 = fx2;
-    fx2 = tmp;
-    tmp = fy1;
-    fy1 = fy2;
-    fy2 = tmp;
+    tmp = fs;
+    fs = fe;
+    fe = tmp;
 }
 
 string MSeg::ToString() const {
     std::ostringstream ss;
 
-    ss << "((" << sx1 << " " << sy1 << " " << sx2 << " " << sy2 << ")("
-               << fx1 << " " << fy1 << " " << fx2 << " " << fy2 << "))";
+    ss << "((" << is.ToString() << " " << ie.ToString() << ")("
+            << fs.ToString() << " " << fe.ToString() << "))";
 
     return ss.str();
+}
+
+MSeg MSeg::divide(double start, double end) {
+    MSeg ret;
+
+    ret.is = Pt(is.x + (fs.x - is.x) * start, is.y + (fs.y - is.y) * start);
+    ret.ie = Pt(ie.x + (fe.x - ie.x) * start, ie.y + (fe.y - ie.y) * start);
+    ret.fs = Pt(is.x + (fs.x - is.x) * end, is.y + (fs.y - is.y) * end);
+    ret.fe = Pt(ie.x + (fe.x - ie.x) * end, ie.y + (fe.y - ie.y) * end);
+
+    return ret;
 }

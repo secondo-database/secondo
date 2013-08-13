@@ -10,34 +10,34 @@ class MSegs;
 
 class Pt {
 public:
-    int x, y;
+    double x, y;
     int valid;
     double angle;
 
     Pt();
-    Pt(int x, int y);
+    Pt(double x, double y);
     bool operator<(const Pt& a) const;
     bool operator==(const Pt& a) const;
     Pt   operator-(const Pt& a) const;
     Pt   operator+(const Pt& a) const;
-    Pt   operator/(int a) const;
+    Pt   operator/(double a) const;
     bool sortAngle(const Pt& a) const;
     void calcAngle(const Pt& pt);
-    int distance (Pt p);
-    string ToString();
+    double distance (Pt p);
+    string ToString() const;
 };
 
 class Seg {
 public:
-    int x1, y1, x2, y2;
+    Pt s, e;
     int valid;
     
     Seg();
-    Seg(int x1, int y1, int x2, int y2);
+    Seg(Pt s, Pt e);
     double angle() const;
     bool operator<(const Seg& a) const;
     bool operator==(const Seg& a) const;
-    string ToString();
+    string ToString() const;
     void ChangeDir();
     
     static vector<Seg> sortSegs(vector<Seg> v);
@@ -77,8 +77,8 @@ public:
     Pt GetMaxXY();
     Pt GetMiddle();
     MSegs collapse(bool close);
-    string ToString();
-    int distance (Reg r);
+    string ToString() const;
+    double distance (Reg r);
     
     static vector<Reg> getRegs(ListExpr le);
     static Pt GetMinXY(vector<Reg> regs);
@@ -87,17 +87,17 @@ public:
 
 class MSeg {
 public:
-    int sx1, sy1, sx2, sy2, fx1, fy1, fx2, fy2;
+    Pt is, ie, fs, fe;
     
-//    MSeg();
-    MSeg(int sx1, int sy1, int sx2, int sy2,
-         int fx1, int fy1, int fx2, int fy2);
+    MSeg();
+    MSeg(Pt is, Pt ie, Pt fs, Pt fe);
     MSegmentData ToMSegmentData(int face, int cycle, int segno);
     string ToString() const;
     bool operator<(const MSeg& a) const;
     bool operator==(const MSeg& a) const;
     bool intersects(const MSeg& a) const;
     void ChangeDirection();
+    MSeg divide (double start, double end);
 };
 
 class MSegs {
@@ -107,8 +107,7 @@ public:
     Reg sreg, dreg;
 
     MSegs();
-    void AddMSeg(int sx1, int sy1, int sx2, int sy2,
-                 int fx1, int fy1, int fx2, int fy2);
+    void AddMSeg(MSeg m);
     void AddMSegs(vector<MSeg> v);
     vector<MSegmentData> ToMSegmentData(int face, int cycle);
     string ToString() const;
@@ -118,6 +117,8 @@ public:
     pair<MSegs, MSegs> kill();
     Reg GetSReg();
     Reg GetDReg();
+    
+    MSegs divide (double start, double end);
 };
 
 class MFace {
@@ -130,6 +131,7 @@ public:
     void AddMsegs (MSegs msegs);
     URegion ToURegion(Interval<Instant> iv, int facenr);
     string ToString();
+    MFace divide (double start, double end);
 };
 
 class MFaces {
@@ -141,6 +143,7 @@ public:
     void AddFace (MFace face);
     MRegion ToMRegion(Interval<Instant> iv);
     string ToString();
+    MFaces divide (double start, double end);
 };
 
 class RotatingPlane {
@@ -151,6 +154,12 @@ public:
     RotatingPlane(Reg *src, Reg *dst);
 };
 
+
+static double eps = 0.00001;
+
+static bool nearlyEqual(double a, double b) {
+    return abs(a-b) <= eps;
+}
 
 #endif	/* INTERPOLATE_HXX */
 

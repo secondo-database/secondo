@@ -6,7 +6,7 @@
 Pt::Pt() : valid(0) {
 }
 
-Pt::Pt(int x, int y) : x(x), y(y), valid(1) {
+Pt::Pt(double x, double y) : x(x), y(y), valid(1) {
 }
 
 bool Pt::operator<(const Pt& a) const {
@@ -14,7 +14,7 @@ bool Pt::operator<(const Pt& a) const {
 }
 
 bool Pt::operator==(const Pt& a) const {
-    return ((x == a.x) && (y == a.y));
+    return (nearlyEqual(x, a.x) && nearlyEqual(y, a.y));
 }
 
 Pt Pt::operator-(const Pt& a) const {
@@ -25,7 +25,7 @@ Pt Pt::operator+(const Pt& a) const {
     return Pt(x+a.x,y+a.y);
 }
 
-Pt Pt::operator/(const int a) const {
+Pt Pt::operator/(const double a) const {
     return Pt(x/a,y/a);
 }
 
@@ -40,12 +40,12 @@ void Pt::calcAngle(const Pt& pt) {
     angle = acos(tmpx / hyp);
 }
 
-string Pt::ToString() {
+string Pt::ToString() const {
     std::ostringstream ss;
-    ss << "(" << x << "/" << y << ")@" << angle;
+    ss << "(" << x << "/" << y << ")";
     return ss.str();
 }
 
-int Pt::distance(Pt p) {
+double Pt::distance(Pt p) {
     return sqrt((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y));
 }

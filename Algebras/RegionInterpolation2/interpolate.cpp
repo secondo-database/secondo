@@ -192,7 +192,14 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
 }
 
 MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
-        vector<Reg> *dregs, Instant *ti2, int mode) {
+        vector<Reg> *dregs, Instant *ti2) {
+    
+//    for (unsigned int i = 0; i < sregs->size(); i++) {
+//        cerr << "Sreg " << (*sregs)[i].ToString() << "\n";
+//    }
+//    for (unsigned int i = 0; i < dregs->size(); i++) {
+//        cerr << "Dreg " << (*dregs)[i].ToString() << "\n";
+//    }
     
     vector<pair<Reg *, Reg *> > ps = matchFacesDistance(sregs, dregs);
     MFaces ret, fcs;
@@ -205,28 +212,28 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
 
         if (src && dst) {
             RotatingPlane rp(src, dst);
-            fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2, mode);
-            
-//            for (unsigned int i = 0; i < fcs.faces.size(); i++) {
-//                for (unsigned int j = i+1; j < fcs.faces.size(); j++) {
-//                    MSegs *s1 = &fcs.faces[i].face;
-//                    MSegs *s2 = &fcs.faces[j].face;
-//                    if (s1->ignore || s2->ignore || !mode)
-//                        continue;
-//                    if (s1->intersects(*s2) && mode) {
-//                        pair<MSegs, MSegs> ss = s1->kill();
-//                cerr << "Intersection found: " << ss.first.ToString() << "\n"
-//                                << ss.second.ToString() << "\n";
-//                        rp.face.AddMsegs(ss.first);
-//                        rp.face.AddMsegs(ss.second);
-//                        s1->ignore = 1;
-//                    }
-//                }
-//            }
+            fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2);
             
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
-//                if (fcs.faces[i].face.ignore)
-//                    continue;
+                for (unsigned int j = i+1; j < fcs.faces.size(); j++) {
+                    MSegs *s1 = &fcs.faces[i].face;
+                    MSegs *s2 = &fcs.faces[j].face;
+                    if (s1->ignore || s2->ignore)
+                        continue;
+                    if (s1->intersects(*s2)) {
+                        pair<MSegs, MSegs> ss = s1->kill();
+                cerr << "Intersection found: " << ss.first.ToString() << "\n"
+                                << ss.second.ToString() << "\n";
+                        rp.face.AddMsegs(ss.first);
+                        rp.face.AddMsegs(ss.second);
+                        s1->ignore = 1;
+                    }
+                }
+            }
+            
+            for (unsigned int i = 0; i < fcs.faces.size(); i++) {
+                if (fcs.faces[i].face.ignore)
+                    continue;
                 rp.face.AddMsegs(fcs.faces[i].face);
                 for (unsigned int j = 0; j < fcs.faces[i].holes.size(); j++) {
                     MFace fc(fcs.faces[i].holes[j]);
@@ -259,7 +266,7 @@ int interpolatevalmap(Word* args,
 
     Instant* ti1 = static_cast<Instant*> (args[1].addr);
     Instant* ti2 = static_cast<Instant*> (args[3].addr);
-    CcInt* mode = static_cast<CcInt*> (args[4].addr);
+    CcReal* mode = static_cast<CcReal*> (args[4].addr);
     MRegion* m = static_cast<MRegion*> (result.addr);
 
     Interval<Instant> iv(*ti1, *ti2, true, true);
@@ -270,7 +277,9 @@ int interpolatevalmap(Word* args,
     vector<Reg> reg1 = Reg::getRegs(_r1);
     vector<Reg> reg2 = Reg::getRegs(_r2);
 
-    MFaces mf = interpolate(&reg1, ti1, &reg2, ti2, mode->GetIntval());
+    cerr << "Interpolate 1\n";
+    MFaces mf = interpolate(&reg1, ti1, &reg2, ti2);
+    mf = mf.divide(0, mode->GetRealval());
     cerr << mf.ToString();
     MRegion mreg = mf.ToMRegion(iv);
     *m = mreg;

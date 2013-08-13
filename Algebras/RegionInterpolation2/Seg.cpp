@@ -8,34 +8,30 @@
 Seg::Seg() : valid(0) {
 }
 
-Seg::Seg(int x1, int y1, int x2, int y2) :
-                                   x1(x1), y1(y1), x2(x2), y2(y2), valid(1) {
+Seg::Seg(Pt s, Pt e) : s(s), e(e), valid(1) {
 }
 
 bool Seg::operator<(const Seg& a) const {
-    return ((y1 < a.y1) || ((y1 == a.y1) && (x1 < a.x1)));
+    return ((s.y < a.s.y) || ((s.y == a.s.y) && (s.x < a.s.x)));
 }
 
 void Seg::ChangeDir() {
-    int tx = x1;
-    int ty = y1;
-    x1 = x2;
-    y1 = y2;
-    x2 = tx;
-    y2 = ty;
+    Pt t = s;
+    s = e;
+    e = t;
 }
 
 bool Seg::operator==(const Seg& a) const {
-    return ((x1 == a.x1) && (y1 == a.y1) && (x2 == a.x2) && (y2 == a.y2));
+    return ((s == a.s) && (e == a.e));
 }
 
 double Seg::angle() const {
     double ret;
-    int dx = x2 - x1;
-    int dy = y2 - y1;
+    double dx = e.x - s.x;
+    double dy = e.y - s.y;
 
-    if (x2 == x1) {
-        ret = (y2 < y1) ? -M_PI / 2 : M_PI / 2;
+    if (e.x == s.x) {
+        ret = (e.y < s.y) ? -M_PI / 2 : M_PI / 2;
     } else {
         ret = atan((double(dy)) / (double(dx)));
     }
@@ -49,11 +45,11 @@ double Seg::angle() const {
     return ret;
 }
 
-string Seg::ToString() {
+string Seg::ToString() const {
     std::ostringstream ss;
 
-    ss << "Seg: " << x1 << " " << y1 << " " << x2 
-            << " " << y2 << " Angle: " << angle();
+    ss << "Seg: " << s.ToString() << " " << e.ToString()
+            << " " << " Angle: " << angle();
 
     return ss.str();
 }
@@ -61,22 +57,23 @@ string Seg::ToString() {
 vector<Seg> Seg::sortSegs(vector<Seg> v) {
     vector<Seg> ret;
 
-    int start = -1, start2 = -1, miny = 0, minx = 0;
+    int start = -1, start2 = -1;
+    double minx = 0, miny = 0;
     Seg minseg1, minseg2;
 
     // Find the lowest point
     for (unsigned int i = 0; i < v.size(); i++) {
-        if ((v[i].y1 < miny) || ((v[i].y1 == miny) &&
-                (v[i].x1 < minx)) || (start < 0)) {
+        if ((v[i].s.y < miny) || ((v[i].s.y == miny) &&
+                (v[i].s.x < minx)) || (start < 0)) {
             start = i;
-            miny = v[i].y1;
-            minx = v[i].x1;
+            miny = v[i].s.y;
+            minx = v[i].s.x;
             minseg1 = v[i];
         }
     }
 
     for (unsigned int i = 0; i < v.size(); i++) {
-        if ((v[i].x2 == minx) && (v[i].y2 == miny)) {
+        if ((v[i].e.x == minx) && (v[i].e.y == miny)) {
             start2 = i;
             minseg2 = v[i];
         }
@@ -94,7 +91,7 @@ vector<Seg> Seg::sortSegs(vector<Seg> v) {
     Seg cur = v[start];
     for (unsigned int j = 0; j < v.size(); j++) {
         for (unsigned int i = 0; i < v.size(); i++) {
-            if ((v[i].x1 == cur.x2) && (v[i].y1 == cur.y2)) {
+            if ((v[i].s.x == cur.e.x) && (v[i].s.y == cur.e.y)) {
                 if (!(v[i] == v[start]))
                     ret.push_back(v[i]);
                 cur = v[i];

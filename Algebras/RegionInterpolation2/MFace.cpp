@@ -30,6 +30,16 @@ URegion MFace::ToURegion(Interval<Instant> iv, int facenr) {
     return ret;
 }
 
+MFace MFace::divide (double start, double end) {
+    MFace ret(face.divide(start, end));
+    
+    for (unsigned int i = 0; i < holes.size(); i++) {
+        ret.holes.push_back(holes[i].divide(start, end));
+    }
+    
+    return ret;
+}
+
 string MFace::ToString() {
     std::ostringstream ss;
 
