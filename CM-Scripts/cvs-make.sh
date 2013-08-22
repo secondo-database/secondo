@@ -45,7 +45,7 @@ opt_cvsServer="zeppelin"
 #opt_logRoot="/home/secondo/testrun-errors"
 opt_logRoot="/var/tmp/cvs-make"
 
-opt_waitMax=900
+opt_waitMax=1800
 opt_tarFile="none"
 opt_tarMail="Thomas.Behr@Fernuni-Hagen.de Fabio.Valdes@fernuni-hagen.de"
 
