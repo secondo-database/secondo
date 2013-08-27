@@ -711,9 +711,14 @@ private:
 
 
   Tuple* getNextMultiLine(){
-    if((file.tellg()>=fileSize) || !file.good()){
+    if( !file.good()){
+       cerr << "error in reading csv file" << endl;
        return 0;
     }
+    if(fileSize == file.tellg() && bufferFill==bufferPos){
+        return 0;
+    }
+
     bool ok = true;
     Tuple* res = new Tuple(tupleType);
     for(unsigned int i=0;i<instances.size();i++){
@@ -746,8 +751,8 @@ private:
   }
 
 
-  string getNextAttrString(bool ok){
-     if(fileSize <= file.tellg()){
+  string getNextAttrString(bool& ok){
+     if(fileSize < file.tellg()){
         ok = false;
         return "";
      }
@@ -758,6 +763,10 @@ private:
         if(bufferFill==bufferPos){
            // buffer empty, fillup
            bufferFill = min((size_t)1024,(size_t) ( fileSize - file.tellg()));
+           if(bufferFill==0){
+              ok = false;
+              return ss.str();
+           }
            file.read(buffer, bufferFill); 
            if(!file.good()){
               ok = false;
