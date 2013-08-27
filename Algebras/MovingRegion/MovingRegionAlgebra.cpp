@@ -279,6 +279,9 @@ can be set with the operator ~mraprec~ too.
 double eps = 0.00001;
 double epsRelaxFactor = 10;
 
+
+
+
 /*
 1 Helper functions
 
@@ -9585,6 +9588,9 @@ static const string unittestspec =
 
 */
 
+namespace movingregionops{
+
+
 static Operator atinstant("atinstant",
                           atinstantspec,
                           2,
@@ -9746,6 +9752,11 @@ static Operator unittest3("unittest3",
                           Unittest3TypeMap);
 #endif // MRA_UNITTEST
 
+
+} // end of namespace movingregionops
+
+
+
 /*
 1 Algebra creation
 
@@ -9767,31 +9778,31 @@ public:
     movingregion.AssociateKind(Kind::TEMPORAL());
     movingregion.AssociateKind(Kind::DATA());
 
-    AddOperator(&atinstant);
-    AddOperator(&initial);
-    AddOperator(&final);
-    AddOperator(&inst);
-    AddOperator(&val);
-    AddOperator(&deftime);
-    AddOperator(&present);
-    AddOperator(&intersection);
-    AddOperator(&inside);
-    AddOperator(&at);
-    AddOperator(&addURegion);
-    AddOperator(&Union);
-    AddOperator(&bbox);
-    AddOperator(&bbox2d);
-    AddOperator(&move);
-    AddOperator(&vertextrajectory);
-    AddOperator(&mraunits);
-    AddOperator(&mregtimeshift);
+    AddOperator(&movingregionops::atinstant);
+    AddOperator(&movingregionops::initial);
+    AddOperator(&movingregionops::final);
+    AddOperator(&movingregionops::inst);
+    AddOperator(&movingregionops::val);
+    AddOperator(&movingregionops::deftime);
+    AddOperator(&movingregionops::present);
+    AddOperator(&movingregionops::intersection);
+    AddOperator(&movingregionops::inside);
+    AddOperator(&movingregionops::at);
+    AddOperator(&movingregionops::addURegion);
+    AddOperator(&movingregionops::Union);
+    AddOperator(&movingregionops::bbox);
+    AddOperator(&movingregionops::bbox2d);
+    AddOperator(&movingregionops::move);
+    AddOperator(&movingregionops::vertextrajectory);
+    AddOperator(&movingregionops::mraunits);
+    AddOperator(&movingregionops::mregtimeshift);
 
 #ifdef MRA_TRAVERSED
-    AddOperator(&traversed);
+    AddOperator(&movingregionops::traversed);
 #endif // MRA_TRAVERSED
 
 #ifdef MRA_PREC
-    AddOperator(&mraprec);
+    AddOperator(&movingregionops::mraprec);
 #endif // MRA_PREC
 
 
@@ -9801,9 +9812,9 @@ public:
 
 */
 #ifdef MRA_UNITTEST
-    AddOperator(&unittest1);
-    AddOperator(&unittest2);
-    AddOperator(&unittest3);
+    AddOperator(&movingregionops::unittest1);
+    AddOperator(&movingregionops::unittest2);
+    AddOperator(&movingregionops::unittest3);
 #endif // MRA_UNITTEST
   }
     ~MovingRegionAlgebra() {}
