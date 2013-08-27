@@ -120,6 +120,9 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
+namespace arrayalgebra{
+
+
 /*
 1.2 Dummy Functions
 
@@ -3623,6 +3626,10 @@ Operator makearrayN(
       makearrayNFun,
       Operator::SimpleSelect,
       makearrayNTypeMap );
+
+} // end of namespace arrayalgebra
+
+
 /*
 5 Creating the Algebra
 
@@ -3632,41 +3639,41 @@ class ArrayAlgebra : public Algebra
  public:
   ArrayAlgebra() : Algebra()
   {
-    AddTypeConstructor( &array );
+    AddTypeConstructor( &arrayalgebra::array );
 
-    array.AssociateKind(Kind::ARRAY());
+    arrayalgebra::array.AssociateKind(Kind::ARRAY());
 
-    AddOperator( &size );
-    AddOperator( &get );
-    AddOperator( &put );
-    AddOperator( &makearray );
-    AddOperator( &makearrayN );
+    AddOperator( &arrayalgebra::size );
+    AddOperator( &arrayalgebra::get );
+    AddOperator( &arrayalgebra::put );
+    AddOperator( &arrayalgebra::makearray );
+    AddOperator( &arrayalgebra::makearrayN );
 
-    AddOperator( &sortarray );
-    AddOperator( &tie );
-    AddOperator( &cumulate );
+    AddOperator( &arrayalgebra::sortarray );
+    AddOperator( &arrayalgebra::tie );
+    AddOperator( &arrayalgebra::cumulate );
 
-    AddOperator( &distribute );
-    AddOperator( &summarize );
+    AddOperator( &arrayalgebra::distribute );
+    AddOperator( &arrayalgebra::summarize );
 
-    AddOperator( &loop );
-    AddOperator( &loopa );
-    AddOperator( &loopb );
+    AddOperator( &arrayalgebra::loop );
+    AddOperator( &arrayalgebra::loopa );
+    AddOperator( &arrayalgebra::loopb );
 
-    AddOperator( &loopswitch );
-    AddOperator( &loopswitcha );
-    AddOperator( &loopswitchb );
+    AddOperator( &arrayalgebra::loopswitch );
+    AddOperator( &arrayalgebra::loopswitcha );
+    AddOperator( &arrayalgebra::loopswitchb );
 
-    AddOperator( &loopselect );
-    AddOperator( &loopselecta );
-    AddOperator( &loopselectb );
+    AddOperator( &arrayalgebra::loopselect );
+    AddOperator( &arrayalgebra::loopselecta );
+    AddOperator( &arrayalgebra::loopselectb );
 
-    AddOperator( &partjoin );
-    AddOperator( &partjoinswitch );
-    AddOperator( &partjoinselect );
+    AddOperator( &arrayalgebra::partjoin );
+    AddOperator( &arrayalgebra::partjoinswitch );
+    AddOperator( &arrayalgebra::partjoinselect );
 
-    AddOperator( &ELEMENT );
-    AddOperator( &ELEMENT2 );
+    AddOperator( &arrayalgebra::ELEMENT );
+    AddOperator( &arrayalgebra::ELEMENT2 );
   }
   ~ArrayAlgebra() {};
 };
