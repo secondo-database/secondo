@@ -64,16 +64,16 @@ double grid2::getOriginY() const { return y; }
 double grid2::getLength() const { return length; }
 
 grid2::index_type grid2::getIndex(double xcoord, double ycoord) const {
-    return index_type((int[]){std::floor((xcoord - x)/length),
-                              std::floor((ycoord - y)/length)});
+    return index_type((int[]){(int)std::floor((xcoord - x)/length),
+                              (int)std::floor((ycoord - y)/length)});
 }
 
 grid2::region_type grid2::getRegion(const Rectangle<2>& bbox) const {
     return region_type(
-        index_type((int[]){std::floor((bbox.MinD(0) - x)/length),
-                           std::floor((bbox.MinD(1) - y)/length)}),
-        index_type((int[]){std::floor((bbox.MaxD(0) - x)/length),
-                           std::floor((bbox.MaxD(1) - y)/length)})
+        index_type((int[]){(int)std::floor((bbox.MinD(0) - x)/length),
+                           (int)std::floor((bbox.MinD(1) - y)/length)}),
+        index_type((int[]){(int)std::floor((bbox.MaxD(0) - x)/length),
+                           (int)std::floor((bbox.MaxD(1) - y)/length)})
     );
 }
 

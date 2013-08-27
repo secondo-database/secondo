@@ -57,19 +57,19 @@ const DateTime& grid3::getDuration() const
 }
 
 RasterIndex<3> grid3::getIndex(double xcoord, double ycoord, double t) const {
-    return RasterIndex<3>((int[]){std::floor((xcoord - x)/length),
-                                  std::floor((ycoord - y)/length),
-                                  std::floor(t/m_Duration.ToDouble())});
+    return RasterIndex<3>((int[]){(int)std::floor((xcoord - x)/length),
+                                  (int)std::floor((ycoord - y)/length),
+                                  (int)std::floor(t/m_Duration.ToDouble())});
 }
 
 grid3::region_type grid3::getRegion(const Rectangle<3>& bbox) const {
     return region_type(
-        index_type((int[]){std::floor((bbox.MinD(0) - x)/length),
-                           std::floor((bbox.MinD(1) - y)/length),
-                           std::floor(bbox.MinD(2)/m_Duration.ToDouble())}),
-        index_type((int[]){std::floor((bbox.MaxD(0) - x)/length),
-                           std::floor((bbox.MaxD(1) - y)/length),
-                           std::floor(bbox.MaxD(2)/m_Duration.ToDouble())})
+        index_type((int[]){ (int)std::floor((bbox.MinD(0) - x)/length),
+           (int)std::floor((bbox.MinD(1) - y)/length),
+           (int)std::floor(bbox.MinD(2)/m_Duration.ToDouble())}),
+            index_type((int[]){ (int)std::floor((bbox.MaxD(0) - x)/length),
+           (int)std::floor((bbox.MaxD(1) - y)/length),
+           (int)std::floor(bbox.MaxD(2)/m_Duration.ToDouble())})
     );
 }
 

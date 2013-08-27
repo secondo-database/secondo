@@ -201,7 +201,7 @@ namespace raster2
 
               // initialize raster index for current cell
               RasterIndex<2> rasterIndex = (int[2]) {
-                rasterIndexX, rasterIndexY
+                (int)rasterIndexX, (int)rasterIndexY
               };
               if (undefValue != minValue) {
                   rasterStorage[rasterIndex] = minValue;
@@ -266,7 +266,7 @@ namespace raster2
 
               // initialize raster index for current cell
               RasterIndex<2> rasterIndex = (int[2]) {
-                rasterIndexX, rasterIndexY
+                (int)rasterIndexX, (int)rasterIndexY
               };
 
               // read pixel data memory block
@@ -373,7 +373,7 @@ namespace raster2
 
               // initialize raster index for current cell
               RasterIndex<2> rasterIndex = (int[2]) {
-                rasterIndexX, rasterIndexY
+                (int)rasterIndexX, (int)rasterIndexY
               };
 
               // write NoData values into storage
@@ -492,7 +492,7 @@ namespace raster2
 
               // initialize raster index for current cell
               RasterIndex<2> rasterIndex = (int[2]) {
-                rasterIndexX, rasterIndexY
+                (int)rasterIndexX, (int)rasterIndexY
               };
 
               // write NoData values into storage
@@ -606,7 +606,7 @@ namespace raster2
 
               // initialize raster index for current cell
               RasterIndex<2> rasterIndex = (int[2]) {
-                rasterIndexX, rasterIndexY
+                (int)rasterIndexX, (int)rasterIndexY
               };
 
               // write NoData values into storage
@@ -699,7 +699,7 @@ namespace raster2
 
               // initialize raster index for current cell
               RasterIndex<2> rasterIndex = (int[2]) {
-                rasterIndexX, rasterIndexY
+                (int)rasterIndexX, (int)rasterIndexY
               };
               int result = esriRasterData->getEsriGridUndef();
               int tempResult = (int)intValue + minValue;
@@ -794,7 +794,7 @@ namespace raster2
 
               // initialize raster index for current cell
               RasterIndex<2> rasterIndex = (int[2]) {
-                rasterIndexX, rasterIndexY
+                (int)rasterIndexX, (int)rasterIndexY
               };
 
               int resultValue = intValue + minValue;
@@ -1356,7 +1356,7 @@ namespace raster2
 
                          // initialize raster index for current cell
                          RasterIndex<2> rasterIndex = (int[2]) {
-                           rasterIdxY, rasterIdxX
+                           (int)rasterIdxY,(int) rasterIdxX
                          };
 
                          // read data memory block

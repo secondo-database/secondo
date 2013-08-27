@@ -201,7 +201,8 @@ namespace raster2
 
       for(int row = EsriRasterData->currentEsriHDR.nrows - 1; row >= 0; row--){
        for(int col = 0; col < EsriRasterData->currentEsriHDR.ncols; col++){
-	    RasterIndex<2> ri = (int[]){(col + offsetX), (row + offsetY)};
+         RasterIndex<2> ri = (int[]){(int)(col + offsetX),
+                                     (int) (row + offsetY)};
          double v = buffer[(((EsriRasterData->currentEsriHDR.nrows - 1) - row) *
 			   EsriRasterData->currentEsriHDR.ncols) + col];
 
