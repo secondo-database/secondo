@@ -592,7 +592,15 @@ public:
           return;
       }
       string name = filename->GetValue();
-      file.open(name.c_str());
+      this->multiLine = false;
+      if(multiline && multiline->IsDefined()){
+         this->multiLine = multiline->GetBoolval();
+      }      
+      if(multiline){
+          file.open(name.c_str(), ios_base::binary | ios_base::in);
+      }else{
+          file.open(name.c_str(),ios_base::in);
+      }
       if(!file.good()){
          defined = false;
          return;
@@ -611,10 +619,6 @@ public:
         return;
       }
  
-      this->multiLine = false;
-      if(multiline && multiline->IsDefined()){
-         this->multiLine = multiline->GetBoolval();
-      }      
       bufferPos = 0;
       bufferFill = 0;
 
@@ -790,7 +794,7 @@ private:
            if(c=='"'){
               mode = 0;
            } else {
-              if(c!=0){
+              if(c!=0 && c!= '\r' ){
                  ss << c; 
               }
            }
