@@ -23,7 +23,9 @@ let PS_SCALE = 36
 
 # Q1
 
-# query fullosmimport('arnsberg-regbez.osm', "City")
+
+query fullosmimport('arnsberg-regbez.osm', "City")
+
 
 # 155 secs, 194
 
@@ -356,6 +358,27 @@ let Edges_WayId_dlo = EdgesUp_WayId_flist EdgesDown_WayId_flist
 # 934081 correct
 
 # query Edges_WayId_dlo hadoopMap[DLF; . feed count feed transformstream ] collect[] sum[Elem]
+
+
+
+let Edges1 = Edges_WayId_dlo hadoopMap[DLF; . feed] collect[] consume
+
+# 3:18min (198.265sec) China
+
+let Edges2 = Edges1 feed sortby[Source, Target] oconsume[Source, Target]
+
+# 3:20min (199.584sec)
+
+let Edges = Edges_WayId_dlo hadoopMap[DLF; . feed] collect[]
+  sortby[Source, Target] sortby[Source, Target] oconsume[Source, Target]
+
+# takes forever (memory exceeded, swapping)
+
+# query Edges_WayId_dlo hadoopMap[DLF; . feed] collect[] count
+
+
+
+
 
 
 # let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: bbox(.Curve)] 
