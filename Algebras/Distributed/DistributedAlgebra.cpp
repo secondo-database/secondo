@@ -4555,7 +4555,7 @@ dtieFun( Word* args, Word& result, int message,
 
       // assign the next intermediate result
       partResult =
-      Array::genericClone(algebraId, typeId, 
+      arrayalgebra::Array::genericClone(algebraId, typeId, 
                           typeOfElement, funresult);
     }
     // delete the current element
