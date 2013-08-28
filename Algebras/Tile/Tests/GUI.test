@@ -1,0 +1,74 @@
+#
+# Tests for visualization of Tile Algebra objects in the Secondo GUI
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+let N51E007 = '../Data/Raster2/N51E007.hgt' feed importHgt;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#######################################
+# grid2                               #
+#######################################
+
+#testcase visualization of a Raster2 Algebra grid2 object
+#yields (grid2 (1.2 3.4 5.6))
+query [const grid2 value (1.2 3.4 5.6)];
+
+#######################################
+# tgrid                               #
+#######################################
+
+#testcase visualization of a Tile Algebra tgrid object
+#yields (tgrid (1.2 3.4 5.6))
+query [const tgrid value (1.2 3.4 5.6)];
+
+#######################################
+# grid3                               #
+#######################################
+
+#testcase visualization of a Raster2 Algebra grid3 object
+#yields (grid3 (1.2 3.4 5.6 (duration (1 0))))
+query [const grid3 value (1.2 3.4 5.6 (duration (1 0)))];
+
+#######################################
+# mtgrid                              #
+#######################################
+
+#testcase visualization of a Tile Algebra mtgrid object
+#yields (mtgrid (1.2 3.4 5.6 (duration (1 0))))
+query [const mtgrid value (1.2 3.4 5.6 (duration (1 0)))];
+
+#######################################
+# sint                                #
+#######################################
+
+#testcase visualization of Raster2 Algebra sint object N51E007
+#yields success
+query N51E007;
+
+#testcase visualization of a Raster 2 Algebra sint object, converted from a Tile Algebra tint object, converted from Raster2 Algebra sint object N51E007 
+#yields success
+query toraster2(tiles(N51E007));
+
+#######################################
+# tint                                #
+#######################################
+
+#testcase visualization of a Tile Algebra tint object, converted from Raster2 Algebra sint object N51E007
+#yields success
+query tiles(N51E007) namedtransformstream[No] consume;
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
