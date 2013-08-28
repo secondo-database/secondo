@@ -219,7 +219,12 @@ Example   : query length3D( [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (3)) (1 
 Result    :  9.2740840053
 
 
-
+Operator : importTiff
+Number   : 1
+Signature : stream(text) -> sint
+Example   : 'test.tiff' feed importTiff
+Result    : crashes
+Remark    : in experimental state
 
 
 

@@ -45,3 +45,7 @@ operator importEsriRaster alias IMPORTESRIRASTER pattern _ op
 operator addLayer alias ADDLAYER pattern _ op[_,_]
 
 
+operator importTiff alias IMPORTTIFF pattern _ op
+
+
+
