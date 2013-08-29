@@ -285,14 +285,14 @@ void mtstring::atinstant(const Instant& rInstant,
         {
           for(int column = minimumIndex[0]; column < maximumIndex[0]; column++)
           {
-            Index<3> index3 = (int[]){column, row, time};
+            Index<3> index3((int[]){column, row, time});
             std::string value = GetValue(index3);
 
             if(mtProperties<std::string>::TypeProperties::
                IsUndefinedValue(value) == false)
             {
               btstringDefined = true;
-              Index<2> index2 = (int[]){column, row};
+              Index<2> index2((int[]){column, row});
               tstring.SetValue(index2, value, true);
             }
           }
@@ -354,7 +354,7 @@ void mtstring::atperiods(const Periods& rPeriods,
             for(int column = minimumIndex[0]; column < maximumIndex[0];
                 column++)
             {
-              Index<3> index = (int[]){column, row, time};
+              Index<3> index((int[]){column, row, time});
               std::string value = GetValue(index);
 
               if(mtProperties<std::string>::TypeProperties::
@@ -488,7 +488,7 @@ void mtstring::atrange(const Rectangle<2>& rRectangle,
                rInstant1 <= (time * duration) &&
                rInstant2 >= (time * duration))
             {
-              Index<3> index = (int[]){column, row, time};
+              Index<3> index((int[]){column, row, time});
               std::string value = GetValue(index);
 
               if(mtProperties<std::string>::TypeProperties::
@@ -1160,9 +1160,9 @@ Word mtstring::In(const ListExpr typeInfo,
                                 {
                                   listIndex++;
 
-                                  Index<3> index = (int[]){(indexX + column),
-                                                           (indexY + row),
-                                                           (indexT + time)};
+                                  Index<3> index((int[]){(indexX + column),
+                                                         (indexY + row),
+                                                         (indexT + time)});
                                   std::string stringValue = mtProperties
                                                             <std::string>::
                                                             TypeProperties::
