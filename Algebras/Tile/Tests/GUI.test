@@ -65,6 +65,10 @@ query toraster2(tiles(N51E007));
 # tint                                #
 #######################################
 
+#testcase visualization of a part of a Tile Algebra tint object, converted from Raster2 Algebra sint object N51E007
+#yields success
+query tiles(N51E007) namedtransformstream[No] head[1] consume;
+
 #testcase visualization of a Tile Algebra tint object, converted from Raster2 Algebra sint object N51E007
 #yields success
 query tiles(N51E007) namedtransformstream[No] consume;
