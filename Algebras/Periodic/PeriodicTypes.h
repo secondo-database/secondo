@@ -1616,6 +1616,7 @@ class PMPoint : public Attribute {
 
      PMInt9M* Toprel(const Points& P)const;
 
+     void Toprel(const Points& P, PMInt9M& res)const;
 
      bool DistanceTo(const double x, const double y, PMReal& result)const;
      bool CheckCorrectness();

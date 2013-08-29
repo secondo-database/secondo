@@ -696,7 +696,7 @@ void PMPoint::AddSubMovesSizeForIntersection(DateTime* startTime,
    if(number==PERIOD){
          SpatialPeriodicMove PM(0);
          periodicMoves.Get(submove.arrayIndex,PM);
-         SubMove PSM = PM.submove;
+         //SubMove PSM = PM.submove;
          cout << __POS__ << "NOT IMPLEMENTED" << endl;
          /* wenn PeriodicMOve-Intervall in geg. Interval enthalten
             erhoehe um alle enthaltenen Submoves
@@ -1260,7 +1260,7 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
              compositeMoves.Get(i,CM);
              int min = CM.minIndex;
              int max = CM.maxIndex;
-             bool found=false;
+             //bool found=false;
              CSubMove csm;
              // perform binary search
              while(min<max){
@@ -1318,7 +1318,7 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
                  }
              }              
              compositeSubMoves.Get(min,csm);
-             found = true;
+             //found = true;
              SubMove sm1;
              sm1.arrayNumber = csm.arrayNumber;
              sm1.arrayIndex = csm.arrayIndex;
@@ -1862,7 +1862,7 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
   }
 
   int differentMoves =0; // number of different linear moves
-  int lastusedindex = -1;
+  //int lastusedindex = -1;
 
   if(twostep){
      cout << "Warning time component ignored !!!" << endl;
@@ -1880,7 +1880,7 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
            // put the index of the move into the hashtable
            MinIndex[hashvalue] = i;
            LMIndex[hashvalue] = differentMoves;
-           lastusedindex=i;
+           //lastusedindex=i;
            differentMoves++;
            done = true;
         }
@@ -2176,7 +2176,7 @@ This operator computed the topological relationship between this and
 the argument. 
 
 */
-PMInt9M* PMPoint::Toprel(const Points& P)const {
+void PMPoint::Toprel(const Points& P, PMInt9M& result)const {
   __TRACE__
   // first, we create an array of the same size as the 
   // size of the linearmoves
@@ -2213,16 +2213,22 @@ PMInt9M* PMPoint::Toprel(const Points& P)const {
      PM = SPM.ToPeriodicMove();
      PMs.Put(i,PM);
   } 
-  PMInt9M* result = new PMInt9M(1);
-  result->CreateFrom(UnitTopRels,ranges,rs,CMs,compositeSubMoves,PMs,
+  result.CreateFrom(UnitTopRels,ranges,rs,CMs,compositeSubMoves,PMs,
                      startTime,submove);
   cout << "Linear Moves before minimizations : " 
-       << result->NumberOfLinearMoves() << endl;
-  result->Minimize();
+       << result.NumberOfLinearMoves() << endl;
+  result.Minimize();
   cout << "Linear Moves after minimization : " 
-       << result->NumberOfLinearMoves() << endl;
-  return result;
+       << result.NumberOfLinearMoves() << endl;
 }
+
+
+PMInt9M* PMPoint::Toprel(const Points& P)const {
+  PMInt9M* res = new PMInt9M(1);
+  Toprel(P,*res);
+  return res;
+}
+
 
 /*
 ~DistanceTo~

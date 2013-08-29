@@ -413,12 +413,12 @@ bool LinearPointsMove::CanBeExtendedBy(const LinearPointsMove* P2,
      bool found = false; // found a matching (extending) upoint
      int pos,cpos;
      pos=cpos=0;
-     int endIndex,startIndex;
+     int endIndex;
      TwoPoints TestPoint;
      bool morethanone;
      for(int i=0;i<size;i++){
         endIndex=endPoints[i].intinfo;
-        startIndex=startPoints[pos].intinfo;
+        //startIndex=startPoints[pos].intinfo;
         MyPoints.Get(endIndex,CurrentPoint);
         // check all Points of P2 with the same startpoint like the current
         // endpoint

@@ -788,7 +788,7 @@ template<class A1, class A2>
 class ToprelF{
   public:
   void operator()(A1* a1, A2* a2, PMInt9M* r){
-     a1->Toprel(a2,*r);
+     a1->Toprel(*a2,*r);
   }
 };
 
@@ -796,7 +796,7 @@ template<class A1, class A2>
 class ToprelF_Symm{
   public:
   void operator()(A2* a1, A1* a2, PMInt9M* r){
-     a2->Toprel(a1,*r);
+     a2->Toprel(*a1,*r);
      r->Transpose();
   }
 };
