@@ -121,7 +121,7 @@ int mapFunctiont(Word* pArguments,
                 for(int column = minimumIndex[0]; column < maximumIndex[0];
                     column++)
                 {
-                  Index<2> index = (int[]){column, row};
+                  Index<2> index((int[]){column, row});
                   typename SourceTypeProperties::TypeProperties::PropertiesType
                   value = pSourceType->GetValue(index);
 
@@ -240,7 +240,7 @@ int mapFunctionmt(Word* pArguments,
                   for(int column = minimumIndex[0]; column < maximumIndex[0];
                       column++)
                   {
-                    Index<3> index = (int[]){column, row, time};
+                    Index<3> index((int[]){column, row, time});
                     typename SourceTypeProperties::TypeProperties::
                     PropertiesType value = pSourceType->GetValue(index);
 
