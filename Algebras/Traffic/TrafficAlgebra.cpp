@@ -152,7 +152,7 @@ The exact parameter values have to been set by experiments.
 
 */
 
-double CompWeight(MGPSecUnit &curMGPSec)
+double CompWeight(temporalnet::MGPSecUnit &curMGPSec)
 {
   if (curMGPSec.GetSpeed() < 1.5) return 0.1;
   else return 1.0;
@@ -175,7 +175,7 @@ void InitializeValues(Instant &actTStart,
                       int &actFlow,
                       double &actSpeed,
                       double &actWeight,
-                      MGPSecUnit &curMGPSec)
+                      temporalnet::MGPSecUnit &curMGPSec)
 {
     actTStart = curMGPSec.GetTimeInterval().start;
     while (!endInstants.empty()) endInstants.pop();
@@ -202,7 +202,7 @@ void InitializeValues(Instant &actTStart,
                       int &actPartNo,
                       int &actDir,
                       int &actFlow,
-                      MGPSecUnit &curMGPSec)
+                      temporalnet::MGPSecUnit &curMGPSec)
 {
   actTStart = curMGPSec.GetTimeInterval().start;
   endInstants.push(curMGPSec.GetTimeInterval().end);
@@ -263,7 +263,8 @@ void ReduceSpeedFlowAndWeight(int& actFlow, double& actSpeed, double& actWeight,
 */
 
 void IncreasSpeedFlowAndWeight(int &actFlow, double &actSpeed,
-                               double &actWeight, MGPSecUnit curMGPSec)
+                               double &actWeight, 
+                               temporalnet::MGPSecUnit curMGPSec)
 {
   actSpeed = (actSpeed * actWeight + curMGPSec.GetSpeed()) /
              (actWeight + CompWeight(curMGPSec));
@@ -334,8 +335,10 @@ void StopComputation(MInt* flow, MReal* avgSpeed, GenericRelation* rel,
                 int& actDir,
                 priority_queue<speedInstant, deque<speedInstant>,
                 greater<speedInstant> > &endInstants,
-                priority_queue<MGPSecUnit, deque<MGPSecUnit>,
-                greater<MGPSecUnit> > &mgpsecUnits)
+                priority_queue<temporalnet::MGPSecUnit, 
+                               deque<temporalnet::MGPSecUnit>,
+                               greater<temporalnet::MGPSecUnit> > 
+                      &mgpsecUnits)
 {
   cerr << "Traffic stopped computation. Stream is not sorted." << endl;
   flow->EndBulkLoad();
@@ -355,8 +358,9 @@ void StopComputation(MInt* flow, MReal* avgSpeed, GenericRelation* rel,
 
 int WriteTrafficRelation(GenericRelation *rel,
                          ListExpr relNumType,
-                         priority_queue<MGPSecUnit, deque<MGPSecUnit>,
-                                     greater<MGPSecUnit> > &mgpsecUnits)
+                         priority_queue<temporalnet::MGPSecUnit, 
+                         deque<temporalnet::MGPSecUnit>,
+                             greater<temporalnet::MGPSecUnit> > &mgpsecUnits)
 {
   int actSectId = -1;
   int actPartNo = 0;
@@ -376,7 +380,7 @@ int WriteTrafficRelation(GenericRelation *rel,
   bool first = true;
   flow->StartBulkLoad();
   avgSpeed->StartBulkLoad();
-  MGPSecUnit curMGPSec;
+  temporalnet::MGPSecUnit curMGPSec;
   while(!mgpsecUnits.empty())
   {
     curMGPSec = mgpsecUnits.top();
@@ -577,8 +581,9 @@ int WriteTrafficRelation(GenericRelation *rel,
 
 int WriteTrafficFlowRelation(GenericRelation *rel,
                              ListExpr relNumType,
-                             priority_queue<MGPSecUnit, deque<MGPSecUnit>,
-                             greater<MGPSecUnit> > &mgpsecUnits)
+                             priority_queue<temporalnet::MGPSecUnit,
+                               deque<temporalnet::MGPSecUnit>,
+                               greater<temporalnet::MGPSecUnit> > &mgpsecUnits)
 {
   bool first = true;
   int actSectId = -1;
@@ -591,7 +596,7 @@ int WriteTrafficFlowRelation(GenericRelation *rel,
   greater<Instant> > endInstants;
   MInt *flow = new MInt(0);
   flow->StartBulkLoad();
-  MGPSecUnit curMGPSec;
+  temporalnet::MGPSecUnit curMGPSec;
   while(!mgpsecUnits.empty())
   {
     curMGPSec = mgpsecUnits.top();
@@ -873,7 +878,8 @@ int OpTrafficFlowValueMap(Word* args, Word& result, int message,
   while (qp->Received(args[0].addr))
   {
     Tuple *curTuple = (Tuple*)actual.addr;
-    MGPSecUnit *actMGPSU = (MGPSecUnit*)curTuple->GetAttribute(0);
+    temporalnet::MGPSecUnit *actMGPSU = 
+                    (temporalnet::MGPSecUnit*)curTuple->GetAttribute(0);
     if (first && actMGPSU->IsDefined() && actMGPSU->GetDirect() != None)
     {
       InitializeValues(actTStart, endInstants, actSectId, actPartNo, actDir,
@@ -1149,15 +1155,15 @@ int OpTrafficFlow2ValueMap(Word* args, Word& result, int message,
   ListExpr relInfo;
   nl->ReadFromString(trafficFlowRelationTypeInfo, relInfo);
   ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType(relInfo);
-  priority_queue<MGPSecUnit, deque<MGPSecUnit>,
-                 greater<MGPSecUnit> > mgpsecUnits;
+  priority_queue<temporalnet::MGPSecUnit, deque<temporalnet::MGPSecUnit>,
+                 greater<temporalnet::MGPSecUnit> > mgpsecUnits;
   if(rel->GetNoTuples() > 0) rel->Clear();
-  MGPSecUnit *actMGPSU = 0;
+  temporalnet::MGPSecUnit *actMGPSU = 0;
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    actMGPSU = (MGPSecUnit*)actual.addr;
+    actMGPSU = (temporalnet::MGPSecUnit*)actual.addr;
     mgpsecUnits.push(*actMGPSU);
     qp->Request(args[0].addr, actual);
     delete actMGPSU;
@@ -1224,15 +1230,15 @@ int OpTrafficValueMap(Word* args, Word& result, int message,
   ListExpr relInfo;
   nl->ReadFromString(trafficRelationTypeInfo, relInfo);
   ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType(relInfo);
-  priority_queue<MGPSecUnit, deque<MGPSecUnit>,
-  greater<MGPSecUnit> > mgpsecUnits;
+  priority_queue<temporalnet::MGPSecUnit, deque<temporalnet::MGPSecUnit>,
+  greater<temporalnet::MGPSecUnit> > mgpsecUnits;
   if(rel->GetNoTuples() > 0) rel->Clear();
-  MGPSecUnit *actMGPSU = 0;
+  temporalnet::MGPSecUnit *actMGPSU = 0;
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    actMGPSU = (MGPSecUnit*)actual.addr;
+    actMGPSU = (temporalnet::MGPSecUnit*)actual.addr;
     mgpsecUnits.push(*actMGPSU);
     qp->Request(args[0].addr, actual);
     delete actMGPSU;
@@ -1297,19 +1303,19 @@ int OpTraffic2ValueMap(Word* args, Word& result, int message,
   ListExpr relInfo;
   nl->ReadFromString(trafficRelationTypeInfo, relInfo);
   ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType(relInfo);
-  priority_queue<MGPSecUnit, deque<MGPSecUnit>,
-  greater<MGPSecUnit> > mgpsecUnits;
-  MGPoint *actMGP = 0;
+  priority_queue<temporalnet::MGPSecUnit, deque<temporalnet::MGPSecUnit>,
+  greater<temporalnet::MGPSecUnit> > mgpsecUnits;
+  temporalnet::MGPoint *actMGP = 0;
   double maxLength = ((CcReal*)args[1].addr)->GetRealval();
   bool first = true;
   Network *pNetwork = 0;
-  vector<MGPSecUnit> vmgpsecunit;
+  vector<temporalnet::MGPSecUnit> vmgpsecunit;
   vmgpsecunit.clear();
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    actMGP = (MGPoint*)actual.addr;
+    actMGP = (temporalnet::MGPoint*)actual.addr;
     if (first && actMGP->IsDefined())
     {
       pNetwork = actMGP->GetNetwork();
@@ -1320,7 +1326,7 @@ int OpTraffic2ValueMap(Word* args, Word& result, int message,
       actMGP->GetMGPSecUnits(vmgpsecunit, maxLength, pNetwork);
       for (size_t i = 0 ; i < vmgpsecunit.size(); i++)
       {
-        mgpsecUnits.push(MGPSecUnit(vmgpsecunit[i]));
+        mgpsecUnits.push(temporalnet::MGPSecUnit(vmgpsecunit[i]));
       }
     }
     vmgpsecunit.clear();

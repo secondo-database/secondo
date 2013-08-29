@@ -3935,7 +3935,8 @@ int GenerateCarListValueMap(Word* args, Word& result, int message,
 /*          tuple->PutAttribute(0, new Point(mo->loc_list1[mo->count]));
           tuple->PutAttribute(1, new Point(mo->loc_list2[mo->count]));*/
           tuple->PutAttribute(0, new MPoint(mo->trip2_list[mo->count]));
-          tuple->PutAttribute(1, new MGPoint(mo->trip3_list[mo->count]));
+          tuple->PutAttribute(1, 
+                    new temporalnet::MGPoint(mo->trip3_list[mo->count]));
 
           result.setAddr(tuple);
           mo->count++;

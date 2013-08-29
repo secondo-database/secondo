@@ -145,6 +145,10 @@ public:
     {
       return reg.BoundingBox().Distance(r);
     }
+    bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0)const
+    {
+      return reg.BoundingBox().Intersects(r);
+    }
     Floor3D* Clone() const {return new Floor3D(*this);}
     size_t HashValue() const
     {
@@ -262,6 +266,10 @@ class Door3D:public StandardSpatialAttribute<2>{
   double Distance(const Rectangle<2>& r, const Geoid* geoid=0)const
   {
       return door_pos1.BoundingBox().Distance(r);
+  }
+  bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0)const
+  {
+      return door_pos1.BoundingBox().Intersects(r);
   }
   
   bool Save(SmiRecord& valueRecord, size_t& offset,
@@ -560,6 +568,10 @@ class GRoom:public StandardSpatialAttribute<2>{
     double Distance(const Rectangle<2>& r, const Geoid* geoid=0)const
     {
       return BoundingBox().Distance(r);
+    }
+    bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0)const
+    {
+      return BoundingBox().Intersects(r);
     }
 
    const Rectangle<3> BoundingBox3D() const;

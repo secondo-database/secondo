@@ -722,6 +722,10 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     {
         return BoundingBox().Distance(r);
     }
+    bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0)const
+    {
+        return BoundingBox().Intersects(r);
+    }
     void StartBulkLoad();
     void EndBulkLoad();
     unsigned int GetId() const { return br_id;}

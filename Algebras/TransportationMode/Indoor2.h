@@ -161,6 +161,12 @@ public :
       double c = fabs(z - p3d.GetZ());
       return sqrt(pow(a, 2) + pow(b, 2) + pow(c, 2));
     }
+
+    bool Intersects(const Rectangle<3>& re, const Geoid* g=0) const{
+      return BoundingBox().Intersects(re);
+    }
+
+
     bool Save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo);
     inline bool IsEmpty() const{return !IsDefined();}
@@ -285,6 +291,11 @@ class Line3D: public StandardSpatialAttribute<3>
       return new Line3D( *this );
     }
     double Distance( const Rectangle<3>& r,const Geoid* geoid=0 ) const;
+    bool Intersects( const Rectangle<3>& r, const Geoid* geoid=0) const{
+      // TODO:: implement in a correct way
+      return BoundingBox().Intersects(r);
+    }
+
     void Print();
     static void* Cast(void* addr){return (new(addr)Line3D());}
     double Length();
@@ -366,6 +377,10 @@ class UPoint3D: public SpatialTemporalUnit<Point3D, 4>
   double Distance(const Rectangle<4>& rect, const Geoid* geoid=0) const
   {
     return BoundingBox().Distance(rect); 
+  }
+  bool Intersects(const Rectangle<4>& rect, const Geoid* geoid=0) const
+  {
+    return BoundingBox().Intersects(rect); 
   }
   inline bool IsEmpty() const
   {
