@@ -911,7 +911,7 @@ void t<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
              rRectangle.MinD(1) <= (y + row * length) &&
              rRectangle.MaxD(1) >= (y + row * length))
           {
-            Index<2> index = (int[]){column, row};
+            Index<2> index((int[]){column, row});
             Type value = GetValue(index);
 
             if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -962,7 +962,7 @@ void t<Type, Properties>::bbox(typename Properties::RectangleType&
 
       for(int row = 0; row < yDimensionSize; row++)
       {
-        Index<2> index = (int[]){column, row};
+        Index<2> index((int[]){column, row});
         value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -990,7 +990,7 @@ void t<Type, Properties>::bbox(typename Properties::RectangleType&
 
       for(int row = 0; row < yDimensionSize; row++)
       {
-        Index<2> index = (int[]){column, row};
+        Index<2> index((int[]){column, row});
         value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1018,7 +1018,7 @@ void t<Type, Properties>::bbox(typename Properties::RectangleType&
 
       for(int column = 0; column < xDimensionSize; column++)
       {
-        Index<2> index = (int[]){column, row};
+        Index<2> index((int[]){column, row});
         value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1046,7 +1046,7 @@ void t<Type, Properties>::bbox(typename Properties::RectangleType&
 
       for(int column = 0; column < xDimensionSize; column++)
       {
-        Index<2> index = (int[]){column, row};
+        Index<2> index((int[]){column, row});
         value = GetValue(index);
 
         if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1193,7 +1193,7 @@ Index<2> t<Type, Properties>::GetLocationIndex(const double& rX,
   double gridLength = m_Grid.GetLength();
   int indexX = static_cast<int>((rX - gridX) / gridLength);
   int indexY = static_cast<int>((rY - gridY) / gridLength);
-  Index<2> locationIndex = (int[]){indexX, indexY};
+  Index<2> locationIndex((int[]){indexX, indexY});
   
   return locationIndex;
 }
@@ -1963,8 +1963,8 @@ Word t<Type, Properties>::In(const ListExpr typeInfo,
                               for(int column = 0; column < sizeX; column++)
                               {
                                 int listIndex = row * sizeX + column + 1;
-                                Index<2> index = (int[]){(indexX + column),
-                                                         (indexY + row)};
+                                Index<2> index((int[]){(indexX + column),
+                                                       (indexY + row)});
                                 Type value = Properties::TypeProperties::
                                              GetUndefinedValue();
 
