@@ -274,7 +274,6 @@ int tilesFunctiont(Word* pArguments,
                           bHasDefinedValue = true;
                           bool bOK = pDestinationType->SetValue(x, y, value,
                                                                 true);
-                          assert(bOK);
                         }
                       }
                     }
