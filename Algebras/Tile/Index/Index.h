@@ -79,6 +79,19 @@ class Index
 
   /*
   Constructor Index initializes all members of the class
+  with corresponding initial values from given int pointer.
+
+  author: Dirk Zacher
+  parameters: pIndex - pointer to an int array
+  return value: -
+  exceptions: -
+
+  */
+
+  Index(const int* pIndex);
+
+  /*
+  Constructor Index initializes all members of the class
   with corresponding values of rIndex object.
 
   author: Dirk Zacher
@@ -302,6 +315,26 @@ Index<Dimension>::Index(const int (&rIndex)[Dimension])
   for(int i = 0; i < Dimension; i++)
   {
     m_Index[i] = rIndex[i];
+  }
+}
+
+/*
+Constructor Index initializes all members of the class
+with corresponding initial values from given int pointer.
+
+author: Dirk Zacher
+parameters: pIndex - pointer to an int array
+return value: -
+exceptions: -
+
+*/
+
+template <int Dimension>
+Index<Dimension>::Index(const int* pIndex)
+{
+  for(int i = 0; i < Dimension; i++)
+  {
+    m_Index[i] = pIndex[i];
   }
 }
 
