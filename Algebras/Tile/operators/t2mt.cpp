@@ -148,13 +148,13 @@ int t2mtFunction(Word* pArguments,
                         typename Properties::TypeProperties::PropertiesType
                         value = Properties::TypeProperties::GetUndefinedValue();
 
-                        Index<2> index2 = (int[]){column, row};
+                        Index<2> index2((int[]){column, row});
                         value = pType->GetValue(index2);
 
                         if(Properties::TypeProperties::IsUndefinedValue(value)
                            == false)
                         {
-                          Index<3> index3 = (int[]){column, row, time};
+                          Index<3> index3((int[]){column, row, time});
                           bOK = pResult->SetValue(index3, value, true);
                         }
                       }
