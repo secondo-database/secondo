@@ -176,8 +176,8 @@ int matchgridFunctiont(Word* pArguments,
                       resultColumn <= resultEndIndex[0];
                       resultColumn++)
                   { 
-                    Index<2> resultCurrentIndex =
-                    (int[]){resultColumn, resultRow};
+                    Index<2> resultCurrentIndex
+                    ((int[]){resultColumn, resultRow});
                     
                     Rectangle<2> currentBoundingBox
                     (true,
@@ -190,20 +190,20 @@ int matchgridFunctiont(Word* pArguments,
                      gridY +
                      (resultCurrentIndex[1] + 1) * gridLength);
 
-                    Index<2> sourceStartIndex =
-                    (int[]){std::floor((currentBoundingBox.MinD(0) -
-                                        sourceGridX) /
-                                        sourceGridLength),
-                            std::floor((currentBoundingBox.MinD(1) -
-                                        sourceGridY) /
-                                        sourceGridLength)};
-                    Index<2> sourceEndIndex =
-                    (int[]){std::floor((currentBoundingBox.MaxD(0) -
-                                        sourceGridX) /
-                                        sourceGridLength),
-                            std::floor((currentBoundingBox.MaxD(1) -
-                                        sourceGridY) /
-                                        sourceGridLength)};
+                    Index<2> sourceStartIndex
+                    ((int[]){std::floor((currentBoundingBox.MinD(0) -
+                                         sourceGridX) /
+                                         sourceGridLength),
+                             std::floor((currentBoundingBox.MinD(1) -
+                                         sourceGridY) /
+                                         sourceGridLength)});
+                    Index<2> sourceEndIndex
+                    ((int[]){std::floor((currentBoundingBox.MaxD(0) -
+                                         sourceGridX) /
+                                         sourceGridLength),
+                             std::floor((currentBoundingBox.MaxD(1) -
+                                         sourceGridY) /
+                                         sourceGridLength)});
                     rel.Clear();
 
                     for(int sourceRow = sourceStartIndex[1];
@@ -214,8 +214,8 @@ int matchgridFunctiont(Word* pArguments,
                           sourceColumn <= sourceEndIndex[0];
                           sourceColumn++)
                       {
-                        Index<2> sourceCurrentIndex =
-                        (int[]){sourceColumn, sourceRow};
+                        Index<2> sourceCurrentIndex
+                        ((int[]){sourceColumn, sourceRow});
                         
                         typename SourceTypeProperties::
                         TypeProperties::PropertiesType value =
@@ -467,8 +467,8 @@ int matchgridFunctionmt(Word* pArguments,
                       resultColumn <= resultEndIndex[0];
                       resultColumn++)
                   {
-                    Index<3> resultCurrentIndex =
-                    (int[]){resultColumn, resultRow, resultTime};
+                    Index<3> resultCurrentIndex
+                    ((int[]){resultColumn, resultRow, resultTime});
 
                     Rectangle<3> currentBoundingBox
                     (true,
@@ -483,24 +483,24 @@ int matchgridFunctionmt(Word* pArguments,
                      resultCurrentIndex[2] * gridDuration,
                      (resultCurrentIndex[2] + 1) * gridDuration);
 
-                    Index<3> sourceStartIndex =
-                    (int[]){std::floor((currentBoundingBox.MinD(0) -
-                                        sourceGridX) /
-                                        sourceGridLength),
-                            std::floor((currentBoundingBox.MinD(1) -
-                                        sourceGridY) /
-                                        sourceGridLength),
-                            std::floor((currentBoundingBox.MinD(2) /
-                                        sourceGridDuration))};
-                    Index<3> sourceEndIndex =
-                    (int[]){std::floor((currentBoundingBox.MaxD(0) -
-                                        sourceGridX) /
-                                        sourceGridLength),
-                            std::floor((currentBoundingBox.MaxD(1) -
-                                        sourceGridY) /
-                                        sourceGridLength),
-                            std::floor((currentBoundingBox.MaxD(2) /
-                                        sourceGridDuration))};
+                    Index<3> sourceStartIndex
+                    ((int[]){std::floor((currentBoundingBox.MinD(0) -
+                                         sourceGridX) /
+                                         sourceGridLength),
+                             std::floor((currentBoundingBox.MinD(1) -
+                                         sourceGridY) /
+                                         sourceGridLength),
+                             std::floor((currentBoundingBox.MinD(2) /
+                                         sourceGridDuration))});
+                    Index<3> sourceEndIndex
+                    ((int[]){std::floor((currentBoundingBox.MaxD(0) -
+                                         sourceGridX) /
+                                         sourceGridLength),
+                             std::floor((currentBoundingBox.MaxD(1) -
+                                         sourceGridY) /
+                                         sourceGridLength),
+                             std::floor((currentBoundingBox.MaxD(2) /
+                                         sourceGridDuration))});
                     rel.Clear();
 
                     for(int sourceTime = sourceStartIndex[2];
@@ -515,9 +515,8 @@ int matchgridFunctionmt(Word* pArguments,
                             sourceColumn <= sourceEndIndex[0];
                             sourceColumn++)
                         {
-                          Index<3> sourceCurrentIndex =
-                          (int[]){sourceColumn, sourceRow,
-                                  sourceTime};
+                          Index<3> sourceCurrentIndex
+                          ((int[]){sourceColumn, sourceRow, sourceTime});
 
                           typename SourceTypeProperties::
                           TypeProperties::PropertiesType value =
