@@ -28,10 +28,9 @@ using namespace std;
 #include "RTreeAlgebra.h"
 #include "HashAlgebra.h"
 #include "TemporalAlgebra.h"
+#include "NetworkAlgebra.h"
+#include "TemporalNetAlgebra.h"
 
-class MGPoint;
-class UGPoint;
-class Network;
 
 /*
 2 Auxiliary structures
@@ -153,7 +152,7 @@ The simple constructor
 
 */
 
-    MON_Tree( Network *network,
+    MON_Tree( network::Network *network,
               SmiFileId indexFile,
               SmiFileId hashFile );
 /*
@@ -181,16 +180,16 @@ Returns statistics from the MON-Tree.
     SmiFileId GetHashFileId()
     { return routeHash->GetFileId(); }
 
-    void SetNetwork( Network *network );
+    void SetNetwork( network::Network *network );
 //    void LoadRoutes( Relation *routes );
 /*
 Loads the routes from the network into the index.
 
 */
 
-    void Insert( const MGPoint& mgpoint,
+    void Insert( const temporalnet::MGPoint& mgpoint,
                  const BottomR_TreeLeafInfo& mgpointId );
-    void Insert( const UGPoint& ugpoint,
+    void Insert( const temporalnet::UGPoint& ugpoint,
                  const BottomR_TreeLeafInfo& ugpointId );
 /*
 Inserts a moving(gpoint) into the MON-Tree.
@@ -223,7 +222,7 @@ Attributes
 */
     SmiRecordFile index;
     Hash *routeHash;
-    Network *network;
+    network::Network *network;
 
     R_Tree<2, TopR_TreeLeafInfo> *top_RTree;
     R_Tree<2, BottomR_TreeLeafInfo> *bottom_RTree;

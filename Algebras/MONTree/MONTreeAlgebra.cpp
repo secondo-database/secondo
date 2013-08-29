@@ -61,13 +61,13 @@ bottom_RTree( NULL )
 }
 
 template<class BottomR_TreeLeafInfo>
-void MON_Tree<BottomR_TreeLeafInfo>::SetNetwork( Network *network )
+void MON_Tree<BottomR_TreeLeafInfo>::SetNetwork( network::Network *network )
 {
   this->network = network;
 }
 
 template<class BottomR_TreeLeafInfo>
-MON_Tree<BottomR_TreeLeafInfo>::MON_Tree( Network *network,
+MON_Tree<BottomR_TreeLeafInfo>::MON_Tree( network::Network *network,
                     SmiFileId indexFileId,
                     SmiFileId hashFileId ):
 index( true ),
@@ -99,21 +99,23 @@ void MON_Tree<BottomR_TreeLeafInfo>::Insert( const int routeId,
 }
 
 template<class BottomR_TreeLeafInfo>
-void MON_Tree<BottomR_TreeLeafInfo>::Insert( const MGPoint& mgpoint,
+void MON_Tree<BottomR_TreeLeafInfo>::Insert( 
+                       const temporalnet::MGPoint& mgpoint,
                        const BottomR_TreeLeafInfo& info )
 {
   assert( network != NULL );
 
   for( int i = 0; i < mgpoint.GetNoComponents(); i++ )
   {
-    UGPoint ugpoint;
+    temporalnet::UGPoint ugpoint;
     mgpoint.Get( i, ugpoint );
     Insert( ugpoint, info );
   }
 }
 
 template<class BottomR_TreeLeafInfo>
-void MON_Tree<BottomR_TreeLeafInfo>::Insert( const UGPoint& ugpoint,
+void MON_Tree<BottomR_TreeLeafInfo>::Insert( 
+                       const temporalnet::UGPoint& ugpoint,
                        const BottomR_TreeLeafInfo& info )
 {
   int routeId = ugpoint.p0.GetRouteId();
@@ -142,7 +144,7 @@ void MON_Tree<BottomR_TreeLeafInfo>::Insert( const UGPoint& ugpoint,
     assert( bottom_RTree == NULL );
     bottom_RTree = new R_Tree<2, BottomR_TreeLeafInfo>( &index );
 
-    routeHash->Append( SmiKey( (long)key.GetIntval() ),
+    routeHash->Append( SmiKey( key.GetIntval() ),
                        bottom_RTree->HeaderRecordId() );
 
     TopR_TreeLeafInfo info( routeId, bottom_RTree->HeaderRecordId() );
@@ -746,9 +748,8 @@ CreateMONTreeSelect (ListExpr args)
            attrList = nl->Second(tupleDescription);
   string attrName = nl->SymbolValue(attrNameLE);
 
-  int attrIndex;
   ListExpr attrType;
-  attrIndex = FindAttribute(attrList, attrName, attrType);
+  FindAttribute(attrList, attrName, attrType);
 
   int doubleUp = 0;
   if(nl->IsEqual(attrType, "ugpoint"))
@@ -787,13 +788,13 @@ int CreateMONTreeRelMGPoint(Word* args, Word& result, int message,
   int attrIndex;
   GenericRelationIterator* iter;
   Tuple* tuple;
-  Network *network;
+  network::Network *network;
 
   MON_Tree<BottomR_TreeLeafInfo> *montree =
     (MON_Tree<BottomR_TreeLeafInfo> *)qp->ResultStorage(s).addr;
   result.setAddr( montree );
 
-  network = (Network*)args[0].addr;
+  network = (network::Network*)args[0].addr;
   relation = (Relation*)args[1].addr;
   attrIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
 
@@ -802,13 +803,14 @@ int CreateMONTreeRelMGPoint(Word* args, Word& result, int message,
   iter = relation->MakeScan();
   while( (tuple = iter->GetNextTuple()) != 0 )
   {
-    MGPoint* mgpoint = (MGPoint*)tuple->GetAttribute(attrIndex);
+    temporalnet::MGPoint* mgpoint = 
+                   (temporalnet::MGPoint*)tuple->GetAttribute(attrIndex);
     if( mgpoint->IsDefined() )
     {
       for( int i = 0; i < mgpoint->GetNoComponents(); i++ )
       {
         BottomR_TreeLeafInfo info(tuple->GetTupleId(), i, i);
-        UGPoint ugpoint;
+        temporalnet::UGPoint ugpoint;
         mgpoint->Get( i, ugpoint );
         montree->Insert( ugpoint, info );
       }
@@ -827,13 +829,13 @@ int CreateMONTreeRelUGPoint(Word* args, Word& result, int message,
   int attrIndex;
   GenericRelationIterator* iter;
   Tuple* tuple;
-  Network *network;
+  network::Network *network;
 
   MON_Tree<SmiRecordId> *montree =
     (MON_Tree<SmiRecordId> *)qp->ResultStorage(s).addr;
   result.setAddr( montree );
 
-  network = (Network*)args[0].addr;
+  network = (network::Network*)args[0].addr;
   relation = (Relation*)args[1].addr;
   attrIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
 
@@ -842,7 +844,8 @@ int CreateMONTreeRelUGPoint(Word* args, Word& result, int message,
   iter = relation->MakeScan();
   while( (tuple = iter->GetNextTuple()) != 0 )
   {
-    UGPoint* ugpoint = (UGPoint*)tuple->GetAttribute(attrIndex);
+    temporalnet::UGPoint* ugpoint = 
+                (temporalnet::UGPoint*)tuple->GetAttribute(attrIndex);
     if( ugpoint->IsDefined() )
       montree->Insert( *ugpoint, tuple->GetTupleId() );
     tuple->DeleteIfAllowed();
@@ -930,12 +933,13 @@ int CreateMONTreeDblStream(Word* args, Word& result, int message,
 4.1.5 Definition of value mapping vectors
 
 */
-ValueMapping createmontreemap [] = { CreateMONTreeRelMGPoint,
-                                     CreateMONTreeStream<MGPoint>,
-                                     CreateMONTreeDblStream<MGPoint>,
-                                     CreateMONTreeRelUGPoint,
-                                     CreateMONTreeStream<UGPoint>,
-                                     CreateMONTreeDblStream<UGPoint> };
+ValueMapping createmontreemap [] = { 
+            CreateMONTreeRelMGPoint,
+            CreateMONTreeStream<temporalnet::MGPoint>,
+            CreateMONTreeDblStream<temporalnet::MGPoint>,
+            CreateMONTreeRelUGPoint,
+            CreateMONTreeStream<temporalnet::UGPoint>,
+            CreateMONTreeDblStream<temporalnet::UGPoint> };
 
 /*
 4.1.6 Specification of operator ~createmontree~
@@ -1082,7 +1086,7 @@ int MON_WindowTimeIntersects( Word* args, Word& result,
     {
       localInfo = new MON_WindowTimeIntersectsLocalInfo;
       localInfo->montree = (MON_Tree<SmiRecordId>*)args[1].addr;
-      localInfo->montree->SetNetwork( (Network*)args[0].addr );
+      localInfo->montree->SetNetwork( (network::Network*)args[0].addr );
       localInfo->relation = (Relation*)args[2].addr;
       localInfo->first = true;
 
@@ -1317,7 +1321,7 @@ int MON_WindowTimeIntersectsS( Word* args, Word& result,
     {
       localInfo = new MON_WindowTimeIntersectsSLocalInfo<SmiRecordId>;
       localInfo->montree = (MON_Tree<SmiRecordId>*)args[1].addr;
-      localInfo->montree->SetNetwork( (Network*)args[0].addr );
+      localInfo->montree->SetNetwork( (network::Network*)args[0].addr );
       localInfo->relation = (Relation*)args[2].addr;
       localInfo->first = true;
 
@@ -1404,7 +1408,7 @@ int MON_WindowTimeIntersectsSDbl( Word* args, Word& result,
     {
       localInfo = new MON_WindowTimeIntersectsSLocalInfo<BottomR_TreeLeafInfo>;
       localInfo->montree = (MON_Tree<BottomR_TreeLeafInfo>*)args[1].addr;
-      localInfo->montree->SetNetwork( (Network*)args[0].addr );
+      localInfo->montree->SetNetwork( (network::Network*)args[0].addr );
       localInfo->relation = (Relation*)args[2].addr;
       localInfo->first = true;
 
