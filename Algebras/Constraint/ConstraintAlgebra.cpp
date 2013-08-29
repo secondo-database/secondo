@@ -933,12 +933,11 @@ void TriangulateRegion(const Region* reg,
     regionOriginal->LogicSort();
     region2convert->LogicSort();
     HalfSegment hs, hsnext;
-    int currFace, currFace2convert, currCycle, currEdge;
+    int currFace, currFace2convert, currCycle;
     Point outputP, leftoverP;
     currFace = -1;
     currFace2convert = -1;
     currCycle = -1;
-    currEdge = -1;
 
     vector<vector<Point> > vFace2convert;
     vector<Point> vPointsOfCycle;
