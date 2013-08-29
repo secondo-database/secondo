@@ -1096,13 +1096,13 @@ void mt<Type, Properties>::atinstant(const Instant& rInstant,
         {
           for(int column = minimumIndex[0]; column < maximumIndex[0]; column++)
           {
-            Index<3> index3 = (int[]){column, row, time};
+            Index<3> index3((int[]){column, row, time});
             Type value = GetValue(index3);
 
             if(Properties::TypeProperties::IsUndefinedValue(value) == false)
             {
               btDefined = true;
-              Index<2> index2 = (int[]){column, row};
+              Index<2> index2((int[]){column, row});
               t.SetValue(index2, value, true);
             }
           }
@@ -1165,7 +1165,7 @@ void mt<Type, Properties>::atperiods(const Periods& rPeriods,
             for(int column = minimumIndex[0]; column < maximumIndex[0];
                 column++)
             {
-              Index<3> index = (int[]){column, row, time};
+              Index<3> index((int[]){column, row, time});
               Type value = GetValue(index);
 
               if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1302,7 +1302,7 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
                rInstant1 <= (time * duration) &&
                rInstant2 >= (time * duration))
             {
-              Index<3> index = (int[]){column, row, time};
+              Index<3> index((int[]){column, row, time});
               Type value = GetValue(index);
 
               if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1354,7 +1354,7 @@ void mt<Type, Properties>::deftime(Periods& rPeriods) const
         {
           for(int column = minimumIndex[0]; column < maximumIndex[0]; column++)
           {
-            Index<3> index = (int[]){column, row, time};
+            Index<3> index((int[]){column, row, time});
             Type value = GetValue(index);
 
             if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1424,7 +1424,7 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       {
         for(int time = 0; time < tDimensionSize; time++)
         {
-          Index<3> index = (int[]){column, row, time};
+          Index<3> index((int[]){column, row, time});
           value = GetValue(index);
 
           if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1460,7 +1460,7 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       {
         for(int time = 0; time < tDimensionSize; time++)
         {
-          Index<3> index = (int[]){column, row, time};
+          Index<3> index((int[]){column, row, time});
           value = GetValue(index);
 
           if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1496,7 +1496,7 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       {
         for(int time = 0; time < tDimensionSize; time++)
         {
-          Index<3> index = (int[]){column, row, time};
+          Index<3> index((int[]){column, row, time});
           value = GetValue(index);
 
           if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1532,7 +1532,7 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       {
         for(int time = 0; time < tDimensionSize; time++)
         {
-          Index<3> index = (int[]){column, row, time};
+          Index<3> index((int[]){column, row, time});
           value = GetValue(index);
 
           if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1568,7 +1568,7 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       {
         for(int row = 0; row < yDimensionSize; row++)
         {
-          Index<3> index = (int[]){column, row, time};
+          Index<3> index((int[]){column, row, time});
           value = GetValue(index);
 
           if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1604,7 +1604,7 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
       {
         for(int row = 0; row < yDimensionSize; row++)
         {
-          Index<3> index = (int[]){column, row, time};
+          Index<3> index((int[]){column, row, time});
           value = GetValue(index);
 
           if(Properties::TypeProperties::IsUndefinedValue(value) == false)
@@ -1759,7 +1759,7 @@ Index<2> mt<Type, Properties>::GetLocationIndex(const double& rX,
   double gridLength = m_Grid.GetLength();
   int indexX = static_cast<int>((rX - gridX) / gridLength);
   int indexY = static_cast<int>((rY - gridY) / gridLength);
-  Index<2> locationIndex = (int[]){indexX, indexY};
+  Index<2> locationIndex((int[]){indexX, indexY});
 
   return locationIndex;
 }
@@ -1785,7 +1785,7 @@ Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
   Index<2> index2 = GetLocationIndex(rX, rY);
   double gridDuration = m_Grid.GetDuration().ToDouble();
   int indexT = static_cast<int>(rInstant / gridDuration);
-  Index<3> locationIndex = (int[]){index2[0], index2[1], indexT};
+  Index<3> locationIndex((int[]){index2[0], index2[1], indexT});
 
   return locationIndex;
 }
@@ -2623,9 +2623,9 @@ Word mt<Type, Properties>::In(const ListExpr typeInfo,
                                 {
                                   listIndex++;
 
-                                  Index<3> index = (int[]){(indexX + column),
-                                                           (indexY + row),
-                                                           (indexT + time)};
+                                  Index<3> index((int[]){(indexX + column),
+                                                         (indexY + row),
+                                                         (indexT + time)});
                                   Type value = Properties::TypeProperties::
                                                GetUndefinedValue();
 
