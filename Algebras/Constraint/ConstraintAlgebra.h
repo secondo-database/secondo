@@ -736,6 +736,12 @@ as an attribute.
 Returns the minimum bounding box of the point set descibed by the symbolic relation.
 
 */
+    bool Intersects(const Rectangle<2>& r, const Geoid* g=0) const{ 
+       // TODO: implement this function
+       return false;
+    }
+
+
     double Distance(const Rectangle<2>& rect, const Geoid* = 0) const;
     bool IsEmpty() const;
 
