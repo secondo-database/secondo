@@ -5118,8 +5118,8 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
 
 
   }
-  else
-    return 0;
+
+  return 0;
 }
 
 /*
@@ -5237,7 +5237,7 @@ ListExpr AntiNumericType(ListExpr type)
             nl->AtomType(nl->Second(type)) == IntType){
 
         int algID, typID;
-        extractIds(type, algID, typID);
+        arrayalgebra::extractIds(type, algID, typID);
         SecondoCatalog* sc = SecondoSystem::GetCatalog();
         if(algID < 0 || typID < 0)
           return nl->SymbolAtom("ERROR");

@@ -70,7 +70,9 @@ const string dbLoc = "<READ DB/>";
 class fList;
 
 //Uses Function from ArrayAlgebra
-void extractIds(const ListExpr,int&,int&);
+namespace arrayalgebra{
+  void extractIds(const ListExpr,int&,int&);
+}
 string tranStr(const string& s, const string& from, const string& to);
 string getLocalFilePath(string path, const string fileName,
             string suffix, bool appendFileName = true);
