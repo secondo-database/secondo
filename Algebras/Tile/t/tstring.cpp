@@ -232,7 +232,7 @@ void tstring::atrange(const Rectangle<2>& rRectangle,
              rRectangle.MinD(1) <= (y + row * length) &&
              rRectangle.MaxD(1) >= (y + row * length))
           {
-            Index<2> index = (int[]){column, row};
+            Index<2> index((int[]){column, row});
             std::string value = GetValue(index);
 
             if(tProperties<std::string>::TypeProperties::
@@ -881,8 +881,8 @@ Word tstring::In(const ListExpr typeInfo,
                               for(int column = 0; column < sizeX; column++)
                               {
                                 int listIndex = row * sizeX + column + 1;
-                                Index<2> index = (int[]){(indexX + column),
-                                                         (indexY + row)};
+                                Index<2> index((int[]){(indexX + column),
+                                                       (indexY + row)});
                                 std::string stringValue = tProperties
                                                           <std::string>::
                                                           TypeProperties::
