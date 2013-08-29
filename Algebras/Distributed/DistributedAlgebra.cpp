@@ -107,7 +107,9 @@ extern QueryProcessor *qp;
 */
 
 //Uses Function from ArrayAlgebra
-void extractIds(const ListExpr,int&,int&);
+namespace arrayalgebra{
+   void extractIds(const ListExpr,int&,int&);
+}
 
 
 //Converts int to string
@@ -142,7 +144,7 @@ ListExpr convertSingleType( ListExpr type)
 
    int algID, typID;
 
-   extractIds(type,algID,typID);
+   arrayalgebra::extractIds(type,algID,typID);
 
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    if(algID < 0 || typID < 0) return nl->SymbolAtom("ERROR");
@@ -287,7 +289,7 @@ DArray::DArray(ListExpr inType,
   //cout << "C-TOR2" << endl;
    m_type = inType;
 
-   extractIds( m_type, alg_id, typ_id);
+   arrayalgebra::extractIds( m_type, alg_id, typ_id);
 
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    if(sc->GetTypeName(alg_id,typ_id) == Relation::BasicType())
@@ -530,7 +532,7 @@ bool DArray::initialize(ListExpr inType,
   SetDefined(true);
    m_type = inType;
 
-   extractIds( m_type , alg_id, typ_id);
+   arrayalgebra::extractIds( m_type , alg_id, typ_id);
 
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
@@ -620,7 +622,7 @@ bool DArray::initialize(ListExpr inType,
    SetDefined(true);
    m_type = inType;
 
-   extractIds( m_type , alg_id, typ_id);
+   arrayalgebra::extractIds( m_type , alg_id, typ_id);
 
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
 
@@ -742,7 +744,7 @@ Word DArray::In( const ListExpr inTypeInfo, const ListExpr instance,
    Word e;
    int algID, typID;
 
-   extractIds(nl->Second(inTypeInfo),algID,typID);
+   arrayalgebra::extractIds(nl->Second(inTypeInfo),algID,typID);
    DArray* a = new DArray(nl->Second(inTypeInfo),
                                           getArrayName(DArray::no),
                                           nl->ListLength(instance)-1,
@@ -1466,7 +1468,7 @@ makeDarrayfun( Word* args, Word& result,
 
 
    int algID, typID;
-   extractIds( typeOfElement, algID, typID);
+   arrayalgebra::extractIds( typeOfElement, algID, typID);
 
    //determine size of the array
    int size = qp->GetNoSons(s)-1;
@@ -1586,7 +1588,7 @@ static int getFun( Word* args,
    ListExpr resultType = array->getType();
 
    int algID,typID;
-   extractIds(resultType,algID,typID);
+   arrayalgebra::extractIds(resultType,algID,typID);
 
    //retrieve element from worker
    array->refresh(i);
@@ -1828,7 +1830,7 @@ static int sendFun( Word* args,
    nl->ReadFromString(line,type);
        
    int algID,typID;
-   extractIds(type,algID,typID);
+   arrayalgebra::extractIds(type,algID,typID);
          
    Attribute* attr =static_cast<Attribute*>
      ((am->Cast(algID,typID))(args[2].addr));
@@ -2084,7 +2086,7 @@ static int receiveFun( Word* args,
    int algID,typID;
    DBAccessGuard::getInstance() -> NL_ReadFromString(line,type);
    
-   extractIds(type,algID,typID);
+   arrayalgebra::extractIds(type,algID,typID);
    
    if (!(recCallBack -> sendTagToCallBack("GOTTYPE")))
      {
@@ -4480,7 +4482,7 @@ dtieFun( Word* args, Word& result, int message,
 
   int algebraId;
   int typeId;
-  extractIds(typeOfElement, algebraId, typeId);
+  arrayalgebra::extractIds(typeOfElement, algebraId, typeId);
 
   const int n = array->getSize();
 

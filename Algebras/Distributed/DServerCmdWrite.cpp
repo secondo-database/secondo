@@ -65,7 +65,9 @@ uncomment the following line
 
 
 //Uses Function from ArrayAlgebra
-extern void extractIds(const ListExpr,int&,int&);
+namespace arrayalgebra{
+   void extractIds(const ListExpr,int&,int&);
+}
 
 // From file DServer.h
 extern ZThread::Mutex Cmd_Mutex;
@@ -99,7 +101,7 @@ DServerCmdWrite::run()
     }
 
   int algID,typID;
-  extractIds(getWorker() -> getTType(),algID,typID);
+  arrayalgebra::extractIds(getWorker() -> getTType(),algID,typID);
   TypeConstructor* tc = am->GetTC(algID,typID);
 
   while (nextIndex())

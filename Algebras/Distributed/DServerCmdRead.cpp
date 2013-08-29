@@ -66,7 +66,9 @@ uncomment the following line
 
 
 //Uses Function from ArrayAlgebra
-extern void extractIds(const ListExpr,int&,int&);
+namespace arrayalgebra{
+  void extractIds(const ListExpr,int&,int&);
+}
 
 // From file DServer.h
 extern ZThread::Mutex Cmd_Mutex;
@@ -90,7 +92,7 @@ DServerCmdReadParam::DServerCmdReadParam(vector<Word>* outElements,
   , m_outIsPresent(outIsPresent)
   , m_ttype(inDaType)
 {
-  extractIds(inDaType, m_algID, m_typeID);
+  arrayalgebra::extractIds(inDaType, m_algID, m_typeID);
 }
 
 void
