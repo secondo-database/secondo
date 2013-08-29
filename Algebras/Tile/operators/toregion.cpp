@@ -146,7 +146,7 @@ int toregionFunction(Word* pArguments,
                 for(int column = minimumIndex[0]; column < maximumIndex[0];
                     column++)
                 {
-                  Index<2> index = (int[]){column, row};
+                  Index<2> index((int[]){column, row});
                   char value = ptbool->GetValue(index);
 
                   if(tProperties<char>::TypeProperties::
