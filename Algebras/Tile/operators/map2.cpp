@@ -142,11 +142,11 @@ int map2Functiontt(Word* pArguments,
                   for(int column = startIndex[0]; column <= endIndex[0];
                       column++)
                   {
-                    Index<2> index1 = (int[]){column, row};
+                    Index<2> index1((int[]){column, row});
                     typename SourceType1Properties::TypeProperties::
                     PropertiesType value1 = pSourceType1->GetValue(index1);
 
-                    Index<2> index2 = (int[]){column + dc, row + dr};
+                    Index<2> index2((int[]){column + dc, row + dr});
                     typename SourceType2Properties::TypeProperties::
                     PropertiesType value2 = pSourceType2->GetValue(index2);
 
@@ -306,11 +306,11 @@ int map2Functiontmt(Word* pArguments,
                     for(int column = startIndex[0]; column <= endIndex[0];
                         column++)
                     {
-                      Index<2> index1 = (int[]){column + dc, row + dr};
+                      Index<2> index1((int[]){column + dc, row + dr});
                       typename SourceType1Properties::TypeProperties::
                       PropertiesType value1 = pSourceType1->GetValue(index1);
 
-                      Index<3> index2 = (int[]){column, row, time};
+                      Index<3> index2((int[]){column, row, time});
                       typename SourceType2Properties::TypeProperties::
                       PropertiesType value2 = pSourceType2->GetValue(index2);
 
@@ -471,11 +471,11 @@ int map2Functionmtt(Word* pArguments,
                     for(int column = startIndex[0]; column <= endIndex[0];
                         column++)
                     {
-                      Index<3> index1 = (int[]){column, row, time};
+                      Index<3> index1((int[]){column, row, time});
                       typename SourceType1Properties::TypeProperties::
                       PropertiesType value1 = pSourceType1->GetValue(index1);
 
-                      Index<2> index2 = (int[]){column + dc, row + dr};
+                      Index<2> index2((int[]){column + dc, row + dr});
                       typename SourceType2Properties::TypeProperties::
                       PropertiesType value2 = pSourceType2->GetValue(index2);
 
@@ -632,11 +632,11 @@ int map2Functionmtmt(Word* pArguments,
                     for(int column = startIndex[0]; column <= endIndex[0];
                         column++)
                     {
-                      Index<3> index1 = (int[]){column, row, time};
+                      Index<3> index1((int[]){column, row, time});
                       typename SourceType1Properties::TypeProperties::
                       PropertiesType value1 = pSourceType1->GetValue(index1);
 
-                      Index<3> index2 = (int[]){column + dc, row + dr, time};
+                      Index<3> index2((int[]){column + dc, row + dr, time});
                       typename SourceType2Properties::TypeProperties::
                       PropertiesType value2 = pSourceType2->GetValue(index2);
 
