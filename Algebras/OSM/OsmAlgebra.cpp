@@ -1253,6 +1253,10 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
   ifstream source;
   ofstream dest;
   source.open(fileName.c_str(), ios::in);
+  if(!source.good()){
+     cerr << "Problem in open file " << fileName << endl;
+     return;
+  }
   string line;
   LongInt numOfChars(0), charCounter(0), destId(-1), nextLimit(0);
   source.seekg(0, ios::end);
@@ -1265,7 +1269,8 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
     dest.close();
   }
   line = trim(line);
-  while (!source.eof() && (trim(line).substr(0, 5) != "<node")) { // copy head
+  while (!source.eof() && source.good() &&
+         (trim(line).substr(0, 5) != "<node")) { // copy head
     for (LongInt file = 0; file < size; file++) {
       dest.open(getFileName(file), ios::app);
       dest << line << endl;
@@ -1275,13 +1280,17 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
     line = trim(line);
     charCounter += line.length();
   }
+  if(!source.good()){
+     cerr << "problem in reading file(2)" << fileName << endl;
+     return;
+  }
   charCounter -= line.length();
   nextLimit = charCounter;
   LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
   dest.open(getFileName(0), ios::app);
   dest << line << endl;
   dest.close();
-  while (!source.eof()) { // copy rest
+  while (!source.eof() && source.good()) { // copy rest
     if (charCounter >= nextLimit && isFileSwitchAllowed(line)) {
       if (dest.is_open()) {
         dest << "</osm>" << endl;
@@ -1312,13 +1321,19 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
 
 */
 int divide_osmVM(Word* args, Word& result, int message, Word& local,Supplier s){
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*)result.addr;
+  for(int i=0;i<4;i++){
+     if(!((Attribute*)args[i].addr)->IsDefined()){
+        res->Set(true,false);
+        return 0;
+     }
+  }
   string fileName = ((FText*)args[0].addr)->GetValue();
   string subFileName = ((CcString*)args[1].addr)->GetValue();
   int size = ((CcInt*)args[2].addr)->GetValue();
   string prefix = ((CcString*)args[3].addr)->GetValue();
   FullOsmImport osm(fileName, subFileName, size, prefix);  
-  result = qp->ResultStorage(s);
-  CcBool* res = (CcBool*)result.addr;
   if (!(osm.relationsInitialized && osm.fileOk)) {
     res->Set(true, false);
   }
