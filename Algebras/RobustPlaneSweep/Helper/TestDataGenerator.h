@@ -20,6 +20,24 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Header File for the class ~TestDataGenerator~
+
+[TOC]
+
+1 Overview
+
+This header file contains the class ~TestDataGenerator~.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+This class generates test data for the test project.
+
+1 Includes
+
 */
 
 #pragma once
@@ -35,9 +53,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~TestDataGenerator~
+
+*/
 class TestDataGenerator
 {
 public:
+/*
+
+1.1 ~GenerateRandomWalk~
+
+*/
   static std::vector<HalfSegment>*
   GenerateRandomWalk(unsigned int seed,
                      double offsetX,
@@ -47,6 +75,11 @@ public:
                      unsigned count,
                      int roundToDecimals);
 
+/*
+
+1.1 ~GenerateTriangles~
+
+*/
   static std::vector<std::vector<HalfSegment>*>*
   GenerateTriangles(unsigned int seed,
                     double offsetX,

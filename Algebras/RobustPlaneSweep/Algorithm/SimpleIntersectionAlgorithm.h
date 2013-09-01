@@ -20,6 +20,25 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Header File for the class ~SimpleIntersectionAlgorithm~
+
+[TOC]
+
+1 Overview
+
+This header file contains the class ~SimpleIntersectionAlgorithm~.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+The ~SimpleIntersectionAlgorithm~ is the base class for all test intersection
+algorithms. The input and the output are handled inside this class.
+
+1 Includes
+
 */
 
 #pragma once
@@ -28,11 +47,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~SimpleIntersectionAlgorithm~
+
+*/
 class SimpleIntersectionAlgorithm : public IntersectionAlgorithm
 {
 private:
   std::vector<InternalLineSegment*>* _internalSegments;
 
+/*
+
+1.1 ~CreateInternalLineSegments~
+
+*/
   void CreateInternalLineSegments()
   {
     _internalSegments = new std::vector<InternalLineSegment*>();
@@ -67,27 +96,57 @@ private:
     }
   }
 
+/*
+
+1.1 ~CreateResult~
+
+*/
   void CreateResult();
 
 protected:
+/*
+
+1.1 ~GetInputBegin~
+
+*/
   const std::vector<InternalLineSegment*>::const_iterator GetInputBegin() const
   {
     return _internalSegments->begin();
   }
 
+/*
+
+1.1 ~GetInputEnd~
+
+*/
   const std::vector<InternalLineSegment*>::const_iterator GetInputEnd() const
   {
     return _internalSegments->end();
   }
 
+/*
+
+1.1 ~GetInputSize~
+
+*/
   size_t GetInputSize() const
   {
     return _internalSegments->size();
   }
 
+/*
+
+1.1 ~DetermineIntersectionsInternal~
+
+*/
   virtual void DetermineIntersectionsInternal() = 0;
 
 public:
+/*
+
+1.1 ~DetermineIntersections~
+
+*/
   void DetermineIntersections()
   {
     if (GetTransformation() == NULL) {
@@ -100,6 +159,11 @@ public:
     GetData()->OutputFinished();
   }
 
+/*
+
+1.1 Constructors
+
+*/
   explicit SimpleIntersectionAlgorithm(IntersectionAlgorithmData* data) :
       IntersectionAlgorithm(data)
   {

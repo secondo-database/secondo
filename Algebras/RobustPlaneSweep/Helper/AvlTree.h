@@ -20,6 +20,21 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Header File containing for the template class ~AvlTree~
+
+[TOC]
+
+1 Overview
+
+This header file contains the classes for the 
+classes ~AvlTree~ and ~AvlTreeNode~.
+
+1 Includes
+
 */
 
 #pragma once
@@ -28,14 +43,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~AvlTreeNode~
+
+*/
 template<class TKey, class TValue>
 class AvlTreeNode
 {
+/* 
+
+1.1 Member variables
+
+*/
 private:
   TKey _key;
   int _height;
   int _balance;
 
+/*
+
+1.1 ~SwapParentChildNode~
+
+*/
   static void SwapParentChildNode(AvlTreeNode<TKey, TValue>* parent,
                                   AvlTreeNode<TKey, TValue>* child)
   {
@@ -89,32 +119,62 @@ private:
   }
 
 public:
+/* 
+
+1.1 Public member variables
+
+*/  
   TValue Value;
 
   AvlTreeNode<TKey, TValue>* Left;
   AvlTreeNode<TKey, TValue>* Right;
   AvlTreeNode<TKey, TValue>* Parent;
 
+/*
+
+1.1 ~GetKey~
+
+*/
   TKey GetKey() const
   {
     return _key;
   }
 
+/*
+
+1.1 ~SetKey~
+
+*/
   void SetKey(const TKey &key)
   {
     _key = key;
   }
 
+/*
+
+1.1 ~GetHeight~
+
+*/
   int GetHeight() const
   {
     return _height;
   }
 
+/*
+
+1.1 ~GetBalance~
+
+*/
   int GetBalance() const
   {
     return _balance;
   }
 
+/*
+
+1.1 Constructor
+
+*/
   explicit AvlTreeNode(const TKey &key) :
       _key(key),
       _height(1),
@@ -126,6 +186,11 @@ public:
   {
   }
 
+/*
+
+1.1 Destructor
+
+*/
   ~AvlTreeNode()
   {
     if (Left != NULL) {
@@ -139,6 +204,15 @@ public:
     }
   }
 
+/*
+
+1.1 ~SwapNodes~
+
+This method swaps two nodes in the AVL tree. 
+
+There are no validity checks. The caller has to know what he/she is doing.
+
+*/
   static void SwapNodes(AvlTreeNode<TKey, TValue>* x,
                         AvlTreeNode<TKey, TValue>* y)
   {
@@ -205,6 +279,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~CalculateHeightAndBalance~
+
+*/
   static void CalculateHeightAndBalance(AvlTreeNode<TKey, TValue> *node)
   {
     while (node != NULL) {
@@ -240,6 +319,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~GetNext~
+
+*/
   AvlTreeNode<TKey, TValue>* GetNext()
   {
     AvlTreeNode<TKey, TValue>* node;
@@ -262,6 +346,11 @@ public:
     return node;
   }
 
+/*
+
+1.1 ~GetPrevious~
+
+*/
   AvlTreeNode<TKey, TValue>* GetPrevious()
   {
     AvlTreeNode<TKey, TValue>* node;
@@ -285,10 +374,20 @@ public:
   }
 };
 
+/*
+
+1 Class ~AvlTree~
+
+*/
 template<class TKey, class TValue, typename Comparision>
 class AvlTree
 {
 private:
+/*
+
+1.1 Private enum ~Direction~
+
+*/
   enum class Direction
   {
     Undefined,
@@ -296,10 +395,20 @@ private:
     Right
   };
 
+/*
+
+1.1 Member variables
+
+*/
   AvlTreeNode<TKey, TValue>* _root;
   int _count;
   Comparision* _comparisonObject;
 
+/*
+
+1.1 ~FindNode~
+
+*/
   bool FindNode(const TKey& key,
                 AvlTreeNode<TKey, TValue>*& node,
                 AvlTreeNode<TKey, TValue>*& parentNode,
@@ -336,6 +445,11 @@ private:
     }
   }
 
+/*
+
+1.1 ~Rebalance~
+
+*/
   void Rebalance(AvlTreeNode<TKey, TValue>* node)
   {
     AvlTreeNode<TKey, TValue>* currentNode = node;
@@ -414,6 +528,11 @@ private:
     }
   }
 
+/*
+
+1.1 ~Rotate~
+
+*/
   void Rotate(AvlTreeNode<TKey, TValue>* parentNode,
               AvlTreeNode<TKey, TValue>* rootNode,
               AvlTreeNode<TKey, TValue>* pivotNode,
@@ -453,6 +572,11 @@ private:
   }
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   explicit AvlTree(Comparision* comparisonObject)
   {
     _root = NULL;
@@ -460,6 +584,11 @@ public:
     _comparisonObject = comparisonObject;
   }
 
+/*
+
+1.1 Destructor
+
+*/
   ~AvlTree()
   {
     if (_root != NULL) {
@@ -468,6 +597,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~TryAddNode~
+
+*/
   bool TryAddNode(const TKey& key, AvlTreeNode<TKey, TValue>*& node)
   {
     AvlTreeNode<TKey, TValue>* parentNode;
@@ -500,6 +634,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~Remove~
+
+*/
   void Remove(AvlTreeNode<TKey, TValue>* node)
   {
     AvlTreeNode<TKey, TValue>* parentNode = node->Parent;
@@ -592,11 +731,21 @@ public:
     --_count;
   }
 
+/*
+
+1.1 ~GetRoot~
+
+*/
   AvlTreeNode<TKey, TValue>* GetRoot() const
   {
     return _root;
   }
 
+/*
+
+1.1 ~SwapNodes~
+
+*/
   void SwapNodes(AvlTreeNode<TKey, TValue>* x, AvlTreeNode<TKey, TValue>* y)
   {
     AvlTreeNode<TKey, TValue>::SwapNodes(x, y);

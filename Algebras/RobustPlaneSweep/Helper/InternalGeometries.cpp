@@ -20,8 +20,21 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
+[1] Implementation for the internal geometry classes
+
+[TOC]
+
+1 Overview
+
+This file file contains methods for the internal geometry classes.
+
+1 Includes
+
+*/
 #include <stdexcept>
 #include "InternalGeometries.h"
 #include "LineIntersection.h"
@@ -29,6 +42,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~InternalLineSegment~
+
+1.1 ~AddHobbyIntersection~
+
+*/
 void InternalLineSegment::AddHobbyIntersection(int x,
                                                int y,
                                                int hobbySpacing)
@@ -40,6 +60,7 @@ void InternalLineSegment::AddHobbyIntersection(int x,
                                                            y - hobbySpacing),
                                              InternalPoint(x + hobbySpacing,
                                                            y + hobbySpacing),
+                                             true,
                                              true,
                                              i0,
                                              i1);
@@ -56,6 +77,7 @@ void InternalLineSegment::AddHobbyIntersection(int x,
                                          InternalPoint(x - hobbySpacing,
                                                        y + hobbySpacing),
                                          true,
+                                         true,
                                          i0,
                                          i1);
 
@@ -68,6 +90,13 @@ void InternalLineSegment::AddHobbyIntersection(int x,
 
 }
 
+/*
+
+1 Class ~InternalPointTransformation~
+
+1.1 Constructor
+
+*/
 InternalPointTransformation::
 InternalPointTransformation(const long long offsetX,
                             const long long offsetY,
@@ -94,8 +123,16 @@ InternalPointTransformation(const long long offsetX,
   _almostEqualSortMargin = 5 * (int)ceil(_scaleFactor * 0.00000001);
 }
 
-// assumes that s0 is above s1
-// (respectively s0 is right of s1 if s0/s1 are vertical)
+/*
+
+1 Class ~InternalResultLineSegment~
+
+1.1 MergeSegments
+
+assumes that s0 is above s1 
+(respectively s0 is right of s1 if s0/s1 are vertical)
+
+*/
 InternalResultLineSegment
 InternalResultLineSegment::MergeSegments(const InternalResultLineSegment& s0,
                                          const InternalResultLineSegment& s1)

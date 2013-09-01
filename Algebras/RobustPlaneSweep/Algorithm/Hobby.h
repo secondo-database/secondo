@@ -20,8 +20,28 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Header File for the class ~Hobby~
+
+[TOC]
+
+1 Overview
+
+This header file contains all structs and classes required for the
+class ~Hobby~.
+
+This class implements the (slightly modified) Hobby algorithm.
+
+To use this class, derive a data class from ~IntersectionAlgorithmData~ and 
+overwrite the necessary methods.
+
+1 Includes
+
+*/
 #pragma once
 
 #include <limits>
@@ -31,28 +51,53 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~Hobby~
+
+*/
 class Hobby : public BentleyOttmann
 {
 private:
+/*
+
+1.1 Private enum class ~HobbyEventType~
+
+*/
   enum class HobbyEventType
   {
     Undefined,
     EndTolaranceSquare,
     BeginTolaranceSquare,
     SegmentEnter,
-    SegmentBegin,
+    SegmentStart,
     SegmentEnd,
     SegmentExit,
   };
 
+/*
+
+1.1 Private class ~HobbyEvent~
+
+*/
   class HobbyEvent
   {
+/*
+
+1.1.1 Member variables
+
+*/
   private:
     Rational _y;
     InternalLineSegment* _segment;
     HobbyEventType _eventType;
 
   public:
+/*
+
+1.1.1 Constructor
+
+*/
     HobbyEvent(HobbyEventType eventType,
                Rational y,
                InternalLineSegment* segment) :
@@ -62,21 +107,41 @@ private:
     {
     }
 
+/*
+
+1.1.1 ~GetEventType~
+
+*/
     HobbyEventType GetEventType() const
     {
       return _eventType;
     }
 
+/*
+
+1.1.1 ~GetY~
+
+*/ 
     Rational GetY() const
     {
       return _y;
     }
 
+/*
+
+1.1.1 ~GetSegment~
+
+*/  
     InternalLineSegment* GetSegment() const
     {
       return _segment;
     }
 
+/*
+
+1.1.1 ~Compare~
+
+*/
     static int Compare(const HobbyEvent &x, const HobbyEvent &y)
     {
       int result = Rational::Compare(x._y, y._y);
@@ -87,26 +152,26 @@ private:
 
         if (x._eventType == HobbyEventType::SegmentExit
             && y._eventType == HobbyEventType::SegmentExit) {
-          if (x._segment->GetA() < y._segment->GetA()) {
+          if (x._segment->GetSlope() < y._segment->GetSlope()) {
             result = 1;
             return result;
-          } else if (x._segment->GetA() > y._segment->GetA()) {
+          } else if (x._segment->GetSlope() > y._segment->GetSlope()) {
             result = -1;
             return result;
           }
         } else if (x._eventType == HobbyEventType::SegmentExit) {
-          if (x._segment->GetA() < 0) {
+          if (x._segment->GetSlope() < 0) {
             result = 1;
             return result;
-          } else if (x._segment->GetA() > 0) {
+          } else if (x._segment->GetSlope() > 0) {
             result = -1;
             return result;
           }
         } else if (y._eventType == HobbyEventType::SegmentExit) {
-          if (y._segment->GetA() < 0) {
+          if (y._segment->GetSlope() < 0) {
             result = -1;
             return result;
-          } else if (y._segment->GetA() > 0) {
+          } else if (y._segment->GetSlope() > 0) {
             result = 1;
             return result;
           }
@@ -136,27 +201,41 @@ private:
       return result;
     }
 
-  public:
+/*
+
+1.1 ~operator\textless~
+
+*/
     bool operator<(const HobbyEvent &y) const
-                   {
+    {
       return Compare(*this, y) < 0;
     }
   };
 
+/*
+
+1.1 Private struct ~IgnoredIntersectionsComparer~
+
+*/
   struct IgnoredIntersectionsComparer
   {
     size_t operator()(const std::pair<int, InternalLineSegment*> &x) const
-                      {
+    {
       return ((size_t)x.first) ^ ((size_t)x.second);
     }
 
     bool operator()(const std::pair<int, InternalLineSegment*> &x,
                     const std::pair<int, InternalLineSegment*> &y) const
-                    {
+    {
       return (x.first == y.first && x.second == y.second);
     }
   };
 
+/*
+
+1.1 Member variables
+
+*/
   int _currentHammock;
   int _currentHammockStart;
   int _currentHammockEnd;
@@ -183,18 +262,40 @@ private:
   GetStartNode(const Rational& searchY) const;
 
 protected:
+/*
+
+1.1 Methods
+
+1.1.1 ~GetInitialScaleFactor~
+
+*/
   int GetInitialScaleFactor() const
   {
     return 2;
   }
 
+/*
+
+1.1.1 ~GetBreakupUntil~
+
+*/
   int GetBreakupUntil() const
   {
     return _currentHammock - _spacing - 1;
   }
 
+/*
+
+1.1.1 ~DetermineIntersectionsInternal~
+
+*/
   void DetermineIntersectionsInternal();
 
+/*
+
+1.1.1 ~OnXChanged~
+
+*/
   bool OnXChanged(const Rational& /* oldx */, const Rational& newX)
   {
     if (newX >= _currentHammockEnd) {
@@ -209,6 +310,11 @@ protected:
     }
   }
 
+/*
+
+1.1.1 ~BeforeProcessEvent~
+
+*/
   void BeforeProcessEvent(SweepEvent* sweepEvent)
   {
     int square = GetTransformation()->
@@ -235,7 +341,7 @@ protected:
       }
       _ignoredIntersections.insert(std::make_pair(square,
                                                   sweepEvent->GetSegment()));
-      _events.push_back(HobbyEvent(HobbyEventType::SegmentBegin,
+      _events.push_back(HobbyEvent(HobbyEventType::SegmentStart,
                                    sweepEvent->GetPoint().GetY(),
                                    sweepEvent->GetSegment()));
     } else if (sweepEvent->GetEventType() == SweepEventType::End) {
@@ -277,12 +383,22 @@ protected:
     }
   }
 
+/*
+
+1.1.1 ~Finished~
+
+*/
   void Finished()
   {
     ProcessEvents();
   }
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   explicit Hobby(IntersectionAlgorithmData* data) :
       BentleyOttmann(data),
       _currentHammock(std::numeric_limits<int>::min()),

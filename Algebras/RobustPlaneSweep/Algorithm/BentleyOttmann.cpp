@@ -20,8 +20,27 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
+[1] Implementation file for the class ~BentleyOttmann~
+
+[TOC]
+
+1 Overview
+
+This file contains all structs and classes required for the 
+class ~BentleyOttmann~.
+
+This class implements the Bentley-Ottmann-Algorithm.
+
+To use this class, derive a data class from ~IntersectionAlgorithmData~ and 
+overwrite the necessary methods.
+
+1 Includes
+
+*/
 #include <algorithm>
 
 #include "../Helper/LineIntersection.h"
@@ -31,6 +50,13 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~BentleyOttmann~
+
+1.1 ~FetchInput~
+
+*/
 void BentleyOttmann::FetchInput()
 {
   for (;;) {
@@ -60,6 +86,11 @@ void BentleyOttmann::FetchInput()
   }
 }
 
+/*
+
+1.1 ~SetNextStartEndEvent~
+
+*/
 void BentleyOttmann::SetNextStartEndEvent()
 {
   if (!_startEndEvents.empty()) {
@@ -129,6 +160,11 @@ void BentleyOttmann::SetNextStartEndEvent()
   }
 }
 
+/*
+
+1.1 ~CreateEvent~
+
+*/
 SweepEvent* BentleyOttmann::CreateEvent(const HalfSegment& halfSegment,
                                         const Point& point,
                                         const bool belongsToSecondGeometry)
@@ -196,6 +232,11 @@ SweepEvent* BentleyOttmann::CreateEvent(const HalfSegment& halfSegment,
 #endif
 }
 
+/*
+
+1.1 ~GetNextEvent~
+
+*/
 SweepEvent* BentleyOttmann::GetNextEvent()
 {
   int comparisionResult;
@@ -221,6 +262,11 @@ SweepEvent* BentleyOttmann::GetNextEvent()
   return result;
 }
 
+/*
+
+1.1 ~DeleteProcessedSegments~
+
+*/
 void BentleyOttmann::DeleteProcessedSegments()
 {
   for (vector<InternalLineSegment*>::const_iterator i =
@@ -233,6 +279,11 @@ void BentleyOttmann::DeleteProcessedSegments()
   _processedInternalSegments.clear();
 }
 
+/*
+
+1.1 ~FlushProcessedSegments~
+
+*/
 void BentleyOttmann::FlushProcessedSegments()
 {
   vector<InternalResultLineSegment> lineSegmentsToFlush;
@@ -275,7 +326,7 @@ void BentleyOttmann::FlushProcessedSegments()
     for (vector<InternalResultLineSegment>::const_iterator i =
         nonOverlappingLineSegments->begin();
         i != nonOverlappingLineSegments->end(); ++i) {
-      GetData()->OutputHalfSegment(i->GetRealLineSegment(GetTransformation()),
+      GetData()->OutputHalfSegment(i->GetHalfSegment(GetTransformation()),
                                    i->GetInternalAttribute());
     }
 
@@ -283,8 +334,13 @@ void BentleyOttmann::FlushProcessedSegments()
   }
 }
 
+/*
+
+1.1 ~PointIntersectsWithAvlTree~
+
+*/
 bool BentleyOttmann::PointIntersectsWithAvlTree(Rational searchY) const
-                                                {
+{
   AvlTreeNode<InternalLineSegment*, SweepStateData*>* currentNode =
       GetState()->GetTreeRoot();
 
@@ -318,6 +374,11 @@ bool BentleyOttmann::PointIntersectsWithAvlTree(Rational searchY) const
   }
 }
 
+/*
+
+1.1 ~DetermineIntersections~
+
+*/
 void BentleyOttmann::DetermineIntersections()
 {
   if (GetTransformation() == NULL) {
@@ -334,6 +395,11 @@ void BentleyOttmann::DetermineIntersections()
   GetData()->OutputFinished();
 }
 
+/*
+
+1.1 ~DetermineIntersectionsInternal~
+
+*/
 void BentleyOttmann::DetermineIntersectionsInternal()
 {
   _state = new SweepState();
@@ -355,10 +421,6 @@ void BentleyOttmann::DetermineIntersectionsInternal()
   bool hasFirstGeometryEvent = false;
   bool hasSecondGeometryEvent = false;
   bool reportedIntersection = false;
-  
-  bool overlappingFirstIsEnd = false;
-  InternalLineSegment* overlappingFirstSegment = NULL;
-  
 
   _state->SetCurrentPoint(InternalIntersectionPoint(numeric_limits<int>::min(),
                                                     0));
@@ -460,30 +522,13 @@ void BentleyOttmann::DetermineIntersectionsInternal()
           currentEvent->GetSegment()->GetInitialAttribute();
 
       if (segmentAttribute.IsBoundaryInSecond()) {
-        if (reportIntersections) {
-          if (!hasFirstGeometryEvent 
-              || overlappingFirstIsEnd != (currentEvent->GetEventType() 
-                                           == SweepEventType::End)
-              || InternalLineSegment::CompareSlope(
-                              overlappingFirstSegment,
-                              currentEvent->GetSegment()) != 0) {
-            hasSecondGeometryEvent = true;
-          }
-        } else {
-          hasSecondGeometryEvent = true;
-        }
-
-
+        hasSecondGeometryEvent = true;
         segmentInsideOtherRegion =
             (segmentAttribute.GetFirst() == BoundaryType::InsideInterior);
       } else {
         hasFirstGeometryEvent = true;
         segmentInsideOtherRegion =
             (segmentAttribute.GetSecond() == BoundaryType::InsideInterior);
-      
-        overlappingFirstSegment = currentEvent->GetSegment();
-        overlappingFirstIsEnd = (currentEvent->GetEventType() 
-                                 == SweepEventType::End);
       }
 
       if (!intersects) {
@@ -570,6 +615,7 @@ void BentleyOttmann::DetermineIntersectionsInternal()
                                                    s1s,
                                                    s1e,
                                                    false,
+                                                   true,
                                                    i0,
                                                    i1);
 
@@ -706,6 +752,11 @@ void BentleyOttmann::DetermineIntersectionsInternal()
   }
 }
 
+/*
+
+1.1 ~AddIntersection~
+
+*/
 void BentleyOttmann::AddIntersection(InternalLineSegment* l,
                                      bool overlappingSegments,
                                      bool calculateRegionCoverage,
@@ -757,12 +808,19 @@ void BentleyOttmann::AddIntersection(InternalLineSegment* l,
       if (prevNode != NULL) {
         l->SetAttribute(prevNode->Value->GetAttributeAt(ip, true), false, ip);
       } else {
-        l->SetAttributeNoAbove(false, ip);
+        l->SetAttributeNoBelow(false, ip);
       }
     }
   }
 }
 
+/*
+
+1 Class ~PossibleIntersectionPair~
+
+1.1 Constructors
+
+*/
 PossibleIntersectionPair::PossibleIntersectionPair(SweepStateData* node1,
                                                    SweepStateData* node2)
 {

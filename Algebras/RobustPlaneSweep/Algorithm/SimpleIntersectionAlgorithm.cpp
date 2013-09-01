@@ -20,14 +20,39 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
+[1] Implementation file for the class ~SimpleIntersectionAlgorithm~
+
+[TOC]
+
+1 Overview
+
+This file contains the class ~SimpleIntersectionAlgorithm~.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+The ~SimpleIntersectionAlgorithm~ is the base class for all test intersection
+algorithms. The input and the output are handled inside this class.
+
+1 Includes
+
+*/
 #include "SimpleIntersectionAlgorithm.h"
 
 using namespace std;
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~SimpleIntersectionAlgorithm~
+
+1.1 ~CreateResult~
+
+*/
 void SimpleIntersectionAlgorithm::CreateResult()
 {
   vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
@@ -45,7 +70,7 @@ void SimpleIntersectionAlgorithm::CreateResult()
   for (vector<InternalResultLineSegment>::const_iterator i =
       nonOverlappingLineSegments->begin();
       i != nonOverlappingLineSegments->end(); ++i) {
-    GetData()->OutputHalfSegment(i->GetRealLineSegment(GetTransformation()),
+    GetData()->OutputHalfSegment(i->GetHalfSegment(GetTransformation()),
                                  i->GetInternalAttribute());
   }
 

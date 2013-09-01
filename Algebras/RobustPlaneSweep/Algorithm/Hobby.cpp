@@ -19,9 +19,26 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Implementation file for the class ~Hobby~
+
+[TOC]
+
+1 Overview
+
+This file contains all methods required for the class ~Hobby~.
+
+This class implements the (slightly modified) Hobby algorithm.
+
+To use this class, derive a data class from ~IntersectionAlgorithmData~ and 
+overwrite the necessary methods.
+
+1 Includes
 
 */
-
 #include <algorithm>
 
 #include "Hobby.h"
@@ -30,6 +47,13 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~Hobby~
+
+1.1 ~DetermineIntersectionsInternal~
+
+*/
 void Hobby::DetermineIntersectionsInternal()
 {
   _spacing = GetTransformation()->GetMinimalRoundedStep() / 2;
@@ -37,6 +61,11 @@ void Hobby::DetermineIntersectionsInternal()
   BentleyOttmann::DetermineIntersectionsInternal();
 }
 
+/*
+
+1.1 ~GetStartNode~
+
+*/
 AvlTreeNode<InternalLineSegment*, SweepStateData*>*
 Hobby::GetStartNode(const Rational& searchY) const
 {
@@ -58,6 +87,11 @@ Hobby::GetStartNode(const Rational& searchY) const
   return lastNode;
 }
 
+/*
+
+1.1 ~AddSegmentEvent~
+
+*/
 bool Hobby::AddSegmentEvent(int topSquareEdge,
                             int bottomSquareEdge,
                             int direction,
@@ -86,6 +120,11 @@ bool Hobby::AddSegmentEvent(int topSquareEdge,
   return false;
 }
 
+/*
+
+1.1 ~AddEvents~
+
+*/
 void Hobby::AddEvents()
 {
   for (unordered_set<InternalLineSegment*>::const_iterator segment =
@@ -158,6 +197,11 @@ void Hobby::AddEvents()
   }
 }
 
+/*
+
+1.1 ~ProcessEvents~
+
+*/
 void Hobby::ProcessEvents()
 {
   if (_events.empty()) {
@@ -196,7 +240,7 @@ void Hobby::ProcessEvents()
       if (!inToleranceSquare) {
         throw new logic_error("wrong event oder! (not in tolerance square)");
       }
-
+      /*
       for (unordered_set<InternalLineSegment*>::const_iterator s =
           activeLineSegments.begin(); s != activeLineSegments.end(); ++s) {
         if (_ignoredIntersections.find(std::make_pair(currentSquareY, *s))
@@ -206,9 +250,9 @@ void Hobby::ProcessEvents()
                                      _spacing);
         }
       }
-
+      */
       inToleranceSquare = false;
-    } else if (e->GetEventType() == HobbyEventType::SegmentBegin
+    } else if (e->GetEventType() == HobbyEventType::SegmentStart
                || e->GetEventType() == HobbyEventType::SegmentEnd
                || e->GetEventType() == HobbyEventType::SegmentEnter
                || e->GetEventType() == HobbyEventType::SegmentExit) {

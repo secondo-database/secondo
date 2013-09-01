@@ -20,8 +20,28 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
+[1] Implementation file for the class ~HobbyNaiveIntersectionAlgorithm~
+
+[TOC]
+
+1 Overview
+
+This file contains all methods required for the 
+class ~HobbyNaiveIntersectionAlgorithm~.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+This class is a naive Hobby implementation. 
+It uses the ~SimpleSweepIntersectionAlgorithm~ to find all intersections.
+Then tolerance square edges are constructed and a second sweep is performed.
+
+1 Includes
+
+*/
 #include <algorithm>
 
 #include "../Helper/LineIntersection.h"
@@ -31,6 +51,13 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~HobbyNaiveIntersectionAlgorithm~
+
+1.1 ~DetermineIntersectionsInternal~
+
+*/
 void HobbyNaiveIntersectionAlgorithm::DetermineIntersectionsInternal()
 {
   _spacing = GetTransformation()->GetMinimalRoundedStep() / 2;
@@ -40,6 +67,11 @@ void HobbyNaiveIntersectionAlgorithm::DetermineIntersectionsInternal()
   Hobby();
 }
 
+/*
+
+1.1 ~FindRoundedPoints~
+
+*/
 void HobbyNaiveIntersectionAlgorithm::FindRoundedPoints()
 {
   const InternalPointTransformation* transformation = GetTransformation();
@@ -83,6 +115,11 @@ void HobbyNaiveIntersectionAlgorithm::FindRoundedPoints()
   }
 }
 
+/*
+
+1.1 ~CreateEvents~
+
+*/
 void HobbyNaiveIntersectionAlgorithm::CreateEvents()
 {
   _events.reserve(_roundedPoints.size() + GetInputSize() * 2);
@@ -110,6 +147,11 @@ void HobbyNaiveIntersectionAlgorithm::CreateEvents()
   sort(_events.begin(), _events.end());
 }
 
+/*
+
+1.1 ~Hobby~
+
+*/
 void HobbyNaiveIntersectionAlgorithm::Hobby()
 {
   FindRoundedPoints();
@@ -147,6 +189,7 @@ void HobbyNaiveIntersectionAlgorithm::Hobby()
                                                  (*segment)->GetRight(),
                                                  tolPoints[i > 0 ? i - 1 : 0],
                                                  tolPoints[i < 3 ? i + 1 : 3],
+                                                 true,
                                                  true,
                                                  i0,
                                                  i1);

@@ -20,7 +20,25 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Main file for the test project.
+
+[TOC]
+
+1 Overview
+
+This file contains the methods for the test project.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+1 Includes
+
 */
+
+//#define PERFORMANCETEST
 
 #ifdef WIN32
 #define _CRT_SECURE_NO_WARNINGS
@@ -53,8 +71,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace RobustPlaneSweep;
 
+/*
+
+1 Class ~VectorData~
+
+*/
 class VectorData : public IntersectionAlgorithmData
 {
+/*
+
+1.1 Member Variables
+
+*/
 private:
   vector<HalfSegment>* _input;
   vector<HalfSegment>* _output;
@@ -64,6 +92,11 @@ private:
   int _stepSize;
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   VectorData(vector<HalfSegment>* input, int roundToDecimals, int stepSize)
   {
     _input = input;
@@ -73,6 +106,11 @@ public:
     _stepSize = stepSize;
   }
 
+/*
+
+1.1 Destructor
+
+*/
   ~VectorData()
   {
     if (_output != NULL) {
@@ -81,21 +119,41 @@ public:
     }
   }
 
+/*
+
+1.1 ~FirstGeometryIsRegion~
+
+*/
   bool FirstGeometryIsRegion() const
   {
     return false;
   }
 
+/*
+
+1.1 ~SecondGeometryIsRegion~
+
+*/
   bool SecondGeometryIsRegion() const
   {
     return false;
   }
 
+/*
+
+1.1 ~InitializeFetch~
+
+*/
   void InitializeFetch()
   {
     _inputIterator = _input->begin();
   }
 
+/*
+
+1.1 ~FetchInput~
+
+*/
   bool FetchInput(HalfSegment &segment,
                   Point& point,
                   bool &belongsToSecondGeometry)
@@ -110,11 +168,21 @@ public:
     }
   }
 
+/*
+
+1.1 ~OutputData~
+
+*/
   bool OutputData() const
   {
     return true;
   }
 
+/*
+
+1.1 ~OutputHalfSegment~
+
+*/
   void OutputHalfSegment(const HalfSegment& segment,
                          const InternalAttribute& /*attribute*/)
   {
@@ -129,6 +197,11 @@ public:
     _outputSegments++;
   }
 
+/*
+
+1.1 ~GetBoundingBox~
+
+*/
   const Rectangle<2> GetBoundingBox()
   {
     double minX = 1e300;
@@ -166,17 +239,32 @@ public:
     }
   }
 
+/*
+
+1.1 ~GetRoundToDecimals~
+
+*/
   void GetRoundToDecimals(int& decimals, int& stepSize) const
   {
     decimals = _roundToDecimals;
     stepSize = _stepSize;
   }
 
+/*
+
+1.1 ~OutputFinished~
+
+*/
   void OutputFinished()
   {
     sort(_output->begin(), _output->end(), HalfSegment::Less);
   }
 
+/*
+
+1.1 ~GetResult~
+
+*/
   vector<HalfSegment>* GetResult()
   {
     std::vector<HalfSegment>* result = _output;
@@ -185,12 +273,29 @@ public:
   }
 };
 
+/*
+
+1 External methods
+
+1.1 ~RegionRegionTest~
+
+*/
 extern void RegionRegionTest();
 
+/*
+
+1.1 ~TriangleSetOpTest~
+
+*/
 extern bool TriangleSetOpTest(unsigned int seed,
                               unsigned int triangleCount,
                               int decimals);
 
+/*
+
+1 Main method
+
+*/
 int main(int argc, char* argv[])
 {
 #ifdef WIN32
@@ -202,18 +307,25 @@ int main(int argc, char* argv[])
   unsigned int processCount = 1;
   unsigned int processNumber = 0;
 
+#ifndef PERFORMANCETEST
   if (argc == 3) {
     sscanf(argv[1], "%d", &processNumber);
     sscanf(argv[2], "%d", &processCount);
   }
 
-//#ifndef _DEBUG
   {
     cout << "region x region tests...";
     RegionRegionTest();
     cout << " done\n";
   }
-//#endif
+
+#ifdef _DEBUG
+  unsigned int triangleCount = 20;
+#else
+  unsigned int triangleCount = 2048;
+#endif
+
+#endif
 
 #ifdef WIN32
 #ifdef _DEBUG
@@ -224,14 +336,34 @@ int main(int argc, char* argv[])
 
 #ifdef _DEBUG
   unsigned int count = 100;
-  unsigned int triangleCount = 20;
 #else
   unsigned int count = 10000;
-  unsigned int triangleCount = 2048;
 #endif
-  int errorCount = 0;
 
-  for (unsigned int i = 1, j = 0; errorCount == 0; ++i) {
+  int errorCount = 0;
+  int loopsBentleyOttmann = 1;
+  int loopsHobby = 1;
+
+  unsigned int maximumIterations = numeric_limits<unsigned int>::max();
+
+#ifdef PERFORMANCETEST
+  if (argc == 5) {
+    sscanf(argv[1], "%d", &count);
+    sscanf(argv[2], "%d", &loopsBentleyOttmann);
+    sscanf(argv[3], "%d", &loopsHobby);
+    sscanf(argv[4], "%d", &maximumIterations);
+    printf("%6d %6d %6d -----------------------------------------\n",
+           count, loopsBentleyOttmann, loopsHobby);
+  }
+#endif
+
+  clock_t totalTimeBentleyOttmann = 0;
+  clock_t totalTimeHobby = 0;
+ 
+
+  for (unsigned int i = 1, j = 0; 
+       (i-1) < maximumIterations && errorCount == 0; ++i) {
+
     if ((i % processCount) != processNumber) {
       continue;
     }
@@ -241,6 +373,7 @@ int main(int argc, char* argv[])
              "  InCnt OutCnt HobCnt |     | BoCnt HoCnt\n");
     }
 
+#ifndef PERFORMANCETEST
     for (unsigned int subTest = 0; subTest < 5 && errorCount == 0; ++subTest) {
       {
         int decimals = (subTest == 4 ? 6 : (int)subTest);
@@ -260,6 +393,7 @@ int main(int argc, char* argv[])
 #endif
 #endif
     }
+#endif
 
     for (unsigned int subTest = 0; subTest < 7 && errorCount == 0; ++subTest) {
       vector<HalfSegment>* input;
@@ -268,8 +402,8 @@ int main(int argc, char* argv[])
       switch (subTest) {
         case 0:
           input = TestDataGenerator::
-              GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 8);
-          roundToDecimals = 7;
+              GenerateRandomWalk(i, 1000000, 50000, 10, 10, count, 9);
+          roundToDecimals = 8;
           break;
 
         case 1:
@@ -298,24 +432,25 @@ int main(int argc, char* argv[])
 
         case 5:
           input = TestDataGenerator::
-              GenerateRandomWalk(i, 10, 50, 0.01, 0.01, count, 8);
-          roundToDecimals = 7;
+              GenerateRandomWalk(i, 10, 50, 0.01, 0.01, count, 9);
+          roundToDecimals = 8;
           break;
 
         case 6:
           input = TestDataGenerator::
-              GenerateRandomWalk(i, 0, 0, 0.05, 0.05, count, 8);
-          roundToDecimals = 7;
+              GenerateRandomWalk(i, 0, 0, 0.05, 0.05, count, 9);
+          roundToDecimals = 8;
           break;
 
         default:
           throw new std::logic_error("invalid subtest number!");
       }
 
-      int roundStepSize = (roundToDecimals == 7 ? 2 : 1);
+      int roundStepSize = (roundToDecimals == 8 ? 2 : 1);
 
       clock_t time_ni = 0;
       vector<HalfSegment>* niResult = NULL;
+#ifndef PERFORMANCETEST
       if (count <= 100) {
         clock_t start = std::clock();
 
@@ -325,9 +460,11 @@ int main(int argc, char* argv[])
         niResult = v.GetResult();
         time_ni = std::clock() - start;
       }
+#endif
 
       clock_t time_ssi = 0;
-      vector<HalfSegment>* ssiResult;
+      vector<HalfSegment>* ssiResult = NULL;
+#ifndef PERFORMANCETEST
       {
         clock_t start = std::clock();
 
@@ -337,21 +474,29 @@ int main(int argc, char* argv[])
         ssiResult = v.GetResult();
         time_ssi = std::clock() - start;
       }
+#endif
 
       clock_t time_bo = 0;
-      vector<HalfSegment>* boResult;
+      vector<HalfSegment>* boResult = NULL;
       {
         clock_t start = std::clock();
+        for(int loop=0 ; loop < loopsBentleyOttmann; loop++) {
+          if(boResult != NULL) {
+            delete boResult;
+          }
 
-        VectorData v(input, roundToDecimals, roundStepSize);
-        BentleyOttmann bo(&v);
-        bo.DetermineIntersections();
-        boResult = v.GetResult();
+          VectorData v(input, roundToDecimals, roundStepSize);
+          BentleyOttmann bo(&v);
+          bo.DetermineIntersections();
+          boResult = v.GetResult();
+        }
         time_bo = std::clock() - start;
+        totalTimeBentleyOttmann += time_bo;
       }
 
       clock_t time_hos = 0;
-      vector<HalfSegment>* hosResult;
+      vector<HalfSegment>* hosResult=NULL;
+#ifndef PERFORMANCETEST
       {
         clock_t start = std::clock();
 
@@ -361,17 +506,25 @@ int main(int argc, char* argv[])
         hosResult = v.GetResult();
         time_hos = std::clock() - start;
       }
+#endif
 
       clock_t time_ho = 0;
-      vector<HalfSegment>* hoResult;
+      vector<HalfSegment>* hoResult = NULL;
       {
         clock_t start = std::clock();
 
-        VectorData v(input, roundToDecimals, roundStepSize);
-        Hobby ho(&v);
-        ho.DetermineIntersections();
-        hoResult = v.GetResult();
+        for(int loop=0; loop < loopsHobby; loop++) {
+          if(hoResult != NULL) {
+            delete hoResult;
+          }
+
+          VectorData v(input, roundToDecimals, roundStepSize);
+          Hobby ho(&v);
+          ho.DetermineIntersections();
+          hoResult = v.GetResult();
+        }
         time_ho = std::clock() - start;
+        totalTimeHobby += time_ho;
       }
 
       bool isEqualNaiveSimple;
@@ -380,6 +533,7 @@ int main(int argc, char* argv[])
       size_t nonHobbyIntersections;
       size_t hobbyIntersections;
 
+#ifndef PERFORMANCETEST
       if (niResult != NULL) {
         LineSegmentComparer comparer(niResult->begin(),
                                      niResult->end(),
@@ -405,7 +559,7 @@ int main(int argc, char* argv[])
                                      hoResult->end());
         isEqualHobby = comparer.IsEqual();
       }
-
+       
       {
         VectorData v(boResult, roundToDecimals, roundStepSize);
         BentleyOttmann bo(&v);
@@ -419,6 +573,13 @@ int main(int argc, char* argv[])
         bo.DetermineIntersections();
         hobbyIntersections = bo.GetIntersectionCount();
       }
+#else
+      isEqualNaiveSimple = true;
+      isEqualSimpleBentleyOttmann = true;
+      isEqualHobby = true;
+      nonHobbyIntersections = 0;
+      hobbyIntersections = 0;
+#endif
 
       printf("%5d.%03d | %5d %5d %5d %5d %5d |"
              " %6d %6d %6d | %d%d%d | %5d %5d\n",
@@ -430,8 +591,8 @@ int main(int argc, char* argv[])
              (int)(time_hos / (CLOCKS_PER_SEC / 1000)),
              (int)(time_ho / (CLOCKS_PER_SEC / 1000)),
              (int)(input->size()),
-             (int)(ssiResult->size()),
-             (int)(hosResult->size()),
+             (int)(boResult == NULL ? 0 : boResult->size()),
+             (int)(hoResult == NULL ? 0 : hoResult->size()),
              isEqualNaiveSimple,
              isEqualSimpleBentleyOttmann,
              isEqualHobby,
@@ -451,10 +612,22 @@ int main(int argc, char* argv[])
       if (niResult != NULL) {
         delete niResult;
       }
-      delete ssiResult;
-      delete boResult;
-      delete hosResult;
-      delete hoResult;
+
+      if (ssiResult != NULL) {
+        delete ssiResult;
+      }
+
+      if (boResult != NULL) {
+        delete boResult;
+      }
+
+      if (hosResult != NULL) {
+        delete hosResult;
+      }
+
+      if (hoResult != NULL) {
+        delete hoResult;
+      }
 
 #ifdef WIN32
 #ifdef _DEBUG
@@ -463,4 +636,15 @@ int main(int argc, char* argv[])
 #endif
     }
   }
+
+#ifdef PERFORMANCETEST
+    printf("%6d %4d | %6d : %6d | %6d : %6d\n",
+           count,
+           maximumIterations,
+           loopsBentleyOttmann, 
+           (int)(totalTimeBentleyOttmann / (CLOCKS_PER_SEC / 1000)),
+           loopsHobby,
+           (int)(totalTimeHobby / (CLOCKS_PER_SEC / 1000)));
+#endif
+
 }

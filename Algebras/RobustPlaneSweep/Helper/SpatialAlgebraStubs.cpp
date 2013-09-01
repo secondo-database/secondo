@@ -20,18 +20,44 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Stub File for the SpatialAlgebra
+
+[TOC]
+
+1 Overview
+
+This file is only useful for the test project. It contains various  classes 
+required to run the test project without Secondo. The classes and methods 
+are extracted from the SpatialAlgebra. 
+
+1 Includes
+
 */
 
 #include <math.h>
 
 #include "SpatialAlgebraStubs.h"
 
+/*
+
+1 ~AlmostEqual~
+
+*/
 bool AlmostEqual(double d1, double d2)
 {
   double diff = fabs(d1 - d2);
   return (diff < 0.00000001);
 }
 
+/*
+
+1 ~CompareDouble~
+
+*/
 int CompareDouble(const double a, const double b)
 {
   if (AlmostEqual(a, b)) {
@@ -45,6 +71,11 @@ int CompareDouble(const double a, const double b)
   return 1;
 }
 
+/*
+
+1 ~HalfSegmentCompare~
+
+*/
 int HalfSegmentCompare(const void *a, const void *b)
 {
   const HalfSegment *hsa = (const HalfSegment *)a;

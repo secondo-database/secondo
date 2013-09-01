@@ -20,6 +20,23 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Header File for the class ~IntersectionAlgorithm~
+
+[TOC]
+
+1 Overview
+
+This header file contains all structs and classes required for the
+class ~IntersectionAlgorithm~.
+
+This class is the base class for all intersection algorithm classes.
+
+1 Includes
+
 */
 
 #pragma once
@@ -38,6 +55,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~IntersectionAlgorithm~
+
+*/
 class IntersectionAlgorithm
 {
 private:
@@ -57,11 +79,26 @@ private:
   }
 
 protected:
+/*
+
+1.1 ~RemoveOverlappingSegments~
+
+*/
   std::vector<InternalResultLineSegment>*
   RemoveOverlappingSegments(std::vector<InternalResultLineSegment>& segments);
 
+/*
+
+1.1 ~CreateTransformation~
+
+*/
   void CreateTransformation();
 
+/*
+
+1.1 Constructor
+
+*/
   explicit IntersectionAlgorithm(IntersectionAlgorithmData* data)
   {
     _data = data;
@@ -70,6 +107,11 @@ protected:
     _transformation = NULL;
   }
 
+/*
+
+1.1 Destructor
+
+*/
   virtual ~IntersectionAlgorithm()
   {
     if (_transformation != NULL) {
@@ -78,32 +120,68 @@ protected:
     }
   }
 
+/*
+
+1.1 ~GetInitialScaleFactor~
+
+*/
   virtual int GetInitialScaleFactor() const = 0;
 
+/*
+
+1.1 ~GetTransformation~
+
+*/
   inline InternalPointTransformation* GetTransformation() const
   {
     return _transformation;
   }
 
+/*
+
+1.1 ~GetData~
+
+*/
   inline IntersectionAlgorithmData* GetData() const
   {
     return _data;
   }
 
+/*
+
+1.1 ~FirstGeometryIsRegion~
+
+*/
   inline bool FirstGeometryIsRegion() const
   {
     return _firstGeometryIsRegion;
   }
 
+/*
+
+1.1 ~SecondGeometryIsRegion~
+
+*/
   inline bool SecondGeometryIsRegion() const
   {
     return _secondGeometryIsRegion;
   }
 
 public:
+/*
+
+1.1 ~DetermineIntersections~
+
+*/
   virtual void DetermineIntersections() = 0;
 
-  // This method is only useful for test cases. Do not use otherwise!
+/*
+
+1.1 ~SetTransformation~
+
+This method is only useful for test cases. Do not use otherwise!
+
+*/
   inline void SetTransformation(InternalPointTransformation *transformation)
   {
     _transformation = new InternalPointTransformation(*transformation);

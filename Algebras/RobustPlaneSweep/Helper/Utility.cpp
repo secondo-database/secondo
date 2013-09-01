@@ -20,6 +20,20 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Implementation file for the class ~Utility~
+
+[TOC]
+
+1 Overview
+
+This file contains the methods required for the class ~Utility~.
+
+1 Includes
+
 */
 
 #include "Utility.h"

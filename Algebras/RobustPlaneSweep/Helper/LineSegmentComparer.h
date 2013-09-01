@@ -20,8 +20,23 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
+[1] Header File for the class ~LineSegmentComparer~
+
+[TOC]
+
+1 Overview
+
+This header file contains the class ~LineSegmentComparer~.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+1 Defines and includes
+
+*/
 #pragma once
 
 #include <vector>
@@ -36,8 +51,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~LineSegmentComparer~
+
+*/
 class LineSegmentComparer
 {
+/*
+
+1.1 Member variables
+
+*/
 private:
   std::vector<HalfSegment> _segments0;
   std::vector<HalfSegment> _segments1;
@@ -47,9 +72,19 @@ private:
       std::pair<std::vector<size_t>*, std::vector<size_t>*>>
   _possiblePairs;
 
+/*
+
+1.1 ~FindPossiblePairs~
+
+*/
   void FindPossiblePairs();
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   template<class ForwardIterator0, class ForwardIterator1>
   LineSegmentComparer(ForwardIterator0 start0,
                       ForwardIterator0 end0,
@@ -65,6 +100,11 @@ public:
     }
   }
 
+/*
+
+1.1 Destructor
+
+*/
   ~LineSegmentComparer()
   {
     for (std::unordered_map<double,
@@ -76,6 +116,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~IsEqual~
+
+*/
   bool IsEqual();
 };
 }

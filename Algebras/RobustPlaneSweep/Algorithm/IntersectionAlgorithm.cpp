@@ -20,8 +20,24 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
+[1] Implementation file for the class ~IntersectionAlgorithm~
+
+[TOC]
+
+1 Overview
+
+This file contains all structs and classes required for the 
+class ~IntersectionAlgorithm~.
+
+This class is the base class for all intersection algorithm classes.
+
+1 Includes
+
+*/
 #include <algorithm>
 
 #include "IntersectionAlgorithm.h"
@@ -30,6 +46,13 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~IntersectionAlgorithm~
+
+1.1 ~OverlappingSegmentsSortComparer~
+
+*/
 int IntersectionAlgorithm::
 OverlappingSegmentsSortComparer(const InternalResultLineSegment& s0,
                                 const InternalResultLineSegment& s1)
@@ -104,6 +127,11 @@ OverlappingSegmentsSortComparer(const InternalResultLineSegment& s0,
   return result;
 }
 
+/*
+
+1.1 ~RemoveOverlappingSegments~
+
+*/
 vector<InternalResultLineSegment>* IntersectionAlgorithm::
 RemoveOverlappingSegments(vector<InternalResultLineSegment>& segments)
 {
@@ -165,6 +193,11 @@ RemoveOverlappingSegments(vector<InternalResultLineSegment>& segments)
   return result;
 }
 
+/*
+
+1.1 ~CreateTransformation~
+
+*/
 void IntersectionAlgorithm::CreateTransformation()
 {
   const Rectangle<2> boundingBox = _data->GetBoundingBox();
@@ -219,7 +252,7 @@ void IntersectionAlgorithm::CreateTransformation()
                                " (only 1, 2 or 5 are allowed)");
   }
 
-  if (roundToDecimals >= 0 && roundToDecimals < roundingDecimalPlaces) {
+  if (roundToDecimals >= 0 && roundToDecimals <= roundingDecimalPlaces) {
     roundingDecimalPlaces = roundToDecimals;
   } else {
     roundingDecimalSteps = 1;

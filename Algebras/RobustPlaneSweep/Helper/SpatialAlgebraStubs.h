@@ -20,6 +20,22 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Stub Header File for the SpatialAlgebra
+
+[TOC]
+
+1 Overview
+
+This file is only useful for the test project. It contains various  classes 
+required to run the test project without Secondo. The classes and methods 
+are extracted from the SpatialAlgebra. 
+
+1 Includes
+
 */
 
 #pragma once
@@ -32,6 +48,11 @@ typedef double Coord;
 bool AlmostEqual(double d1, double d2);
 int CompareDouble(const double a, const double b);
 
+/*
+
+1 Struct ~AttrType~
+
+*/
 struct AttrType
 {
   inline AttrType() { }
@@ -46,10 +67,10 @@ struct AttrType
   {
   }
 
-  /*
-  The simple constructor.
+/*
+The simple constructor.
 
-  */
+*/
   inline AttrType(const AttrType& at):
   faceno(at.faceno),
     cycleno(at.cycleno),
@@ -59,10 +80,10 @@ struct AttrType
     partnerno(at.partnerno)
   {
   }
-  /*
-  The copy constructor.
+/*
+The copy constructor.
 
-  */
+*/
   inline AttrType& operator=(const AttrType& at)
   {
     faceno = at.faceno;
@@ -73,64 +94,69 @@ struct AttrType
     partnerno = at.partnerno;
     return *this;
   }
-  /*
-  Redefinition of the assignement operator.
+/*
+Redefinition of the assignement operator.
 
-  6.1 Attributes
+6.1 Attributes
 
-  */
+*/
   int faceno;
-  /*
-  The face identifier
+/*
+The face identifier
 
-  */
+*/
   int cycleno;
-  /*
-  The cycle identifier
+/*
+The cycle identifier
 
-  */
+*/
   int edgeno;
-  /*
-  The edge (segment) identifier
+/*
+The edge (segment) identifier
 
-  */
+*/
   int coverageno;
-  /*
-  Used for fast spatial scan of the inside[_]pr algorithm
+/*
+Used for fast spatial scan of the inside[_]pr algorithm
 
-  */
+*/
   bool insideAbove;
-  /*
-  Indicates whether the region's area is above or left of its segment
+/*
+Indicates whether the region's area is above or left of its segment
 
-  */
+*/
   int partnerno;
-  /*
-  Stores the position of the partner half segment in half segment ordered array
+/*
+Stores the position of the partner half segment in half segment ordered array
 
-  */
+*/
 };
 
+/*
+
+1 Class ~Point~
+
+*/
 class Point /*: public StandardSpatialAttribute<2>*/
 {
 public:
-  /*
-  4.1 Constructors and Destructor
+/*
+4.1 Constructors and Destructor
 
-  This constructor should not be used:
+This constructor should not be used:
 
-  */
+*/
   inline Point()
   {
   }
 
-  /*
-  There are two ways of constructing a point:
+/*
+There are two ways of constructing a point:
 
-  The first one receives a boolean value ~d~ indicating if the point is defined
-  and two coordinate ~x~ and ~y~ values.
+The first one receives a boolean value ~d~ indicating if the point is defined
+and two coordinate ~x~ and ~y~ values.
 
-  */
+*/
   explicit inline Point(const bool d, const Coord& x, const Coord& y) :
   isDefined(d),
     x(x),
@@ -138,36 +164,37 @@ public:
   {
   }
 
-  /*
-  The second one receives a point ~p~ as argument and creates a point that is a
-  copy of ~p~.
+/*
+The second one receives a point ~p~ as argument and creates a point that is a
+copy of ~p~.
 
-  */
+*/
   inline Point(const Point& p) : isDefined(p.IsDefined()), x(p.x), y(p.y)
   {
   }
 
-  /*
-  The destructor.
+/*
+The destructor.
 
-  */
+*/
   inline ~Point()
   {}
-  /*
-  4.2 Member functions
 
-  Returns the ~x~-coordinate. For geographic coordinates: the LONgitude
+/*
+4.2 Member functions
 
-  */
+Returns the ~x~-coordinate. For geographic coordinates: the LONgitude
+
+*/
   inline const Coord& GetX() const
   {
     return x;
   }
-  /*
+/*
 
-  Returns the ~y~-coordinate. For geographic coordinates: the LATitude
+Returns the ~y~-coordinate. For geographic coordinates: the LATitude
 
-  */
+*/
   inline const Coord& GetY() const
   {
     return y;
@@ -255,46 +282,52 @@ public:
   }
 
 protected:
-  /*
-  4.5 Attributes
+/*
+4.5 Attributes
 
-  */
+*/
   bool isDefined;
 
   Coord x;
-  /*
-  The ~x~ coordinate.
+/*
+The ~x~ coordinate.
 
-  */
+*/
   Coord y;
-  /*
-  The ~y~ coordinate.
+/*
+The ~y~ coordinate.
 
-  */
+*/
 };
 
+/*
+
+1 Class ~HalfSegment~
+
+*/
 class HalfSegment
 {
 public:
-  /*
-  5.1 Constructors and Destructor
+/*
+5.1 Constructors and Destructor
 
-  A half segment is composed by two points which are called
-  ~left point~ (~lp~) and ~right point~ (~rp~),
-  $lp < rp$, and a flag ~ldp~ (~left dominating point~) which
-  tells whether the left point is the dominating
-  point.
+A half segment is composed by two points which are called
+~left point~ (~lp~) and ~right point~ (~rp~),
+$lp < rp$, and a flag ~ldp~ (~left dominating point~) which
+tells whether the left point is the dominating
+point.
 
-  This constructor should not be used:
+This constructor should not be used:
 
-  */
+*/
 
   inline HalfSegment() {}
-  /*
-  Creates a half segment receiving all attributes as arguments.
-  The order between the left and right points is not important.
-  If ~lp~ is bigger than ~rp~ their values are changed.
-  */
+/*
+Creates a half segment receiving all attributes as arguments.
+The order between the left and right points is not important.
+If ~lp~ is bigger than ~rp~ their values are changed.
+
+*/
 
   inline HalfSegment(bool ldp,
     const Point& lp,
@@ -317,10 +350,10 @@ public:
       this->rp = lp;
     }
   }
-  /*
-  Creates a half segment copying the values from ~hs~.
+/*
+Creates a half segment copying the values from ~hs~.
 
-  */
+*/
 
   inline HalfSegment(const HalfSegment& hs):
   ldp(hs.ldp),
@@ -331,33 +364,33 @@ public:
     // assert(lp.IsDefined());
     // assert(rp.IsDefined());
   }
-  /*
-  The destructor.
+/*
+The destructor.
 
-  */
+*/
   inline ~HalfSegment() {}
-  /*
-  5.2 Member Functions
+/*
+5.2 Member Functions
 
-  Returns the left point of the half segment.
+Returns the left point of the half segment.
 
-  */
+*/
   inline const Point& GetLeftPoint() const
   {
     return lp;
   }
-  /*
-  Returns the right point of the half segment.
+/*
+Returns the right point of the half segment.
 
-  */
+*/
   inline const Point& GetRightPoint() const
   {
     return rp;
   }
-  /*
-  Returns the dominating point of the half segment.
+/*
+Returns the dominating point of the half segment.
 
-  */
+*/
   inline const Point& GetDomPoint() const
   {
     if (ldp) {
@@ -381,18 +414,18 @@ public:
     return ldp;
   }
 
-  /*
-  Returns the bounding box of the half segment.
-  If ~geoid~ is not NULL, the geographic MBR is returned.
-  If ~geoid~ is UNDEFINED, the result is UNDEFINED.
+/*
+Returns the bounding box of the half segment.
+If ~geoid~ is not NULL, the geographic MBR is returned.
+If ~geoid~ is UNDEFINED, the result is UNDEFINED.
 
-  */
-  // inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
-  /*
-  Returns the "attr" value associated with a half segment.
-  The "attr" value is useful when we process region values.
+*/
+// inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
+/*
+Returns the "attr" value associated with a half segment.
+The "attr" value is useful when we process region values.
 
-  */
+*/
 
   inline const AttrType& GetAttr() const
   {
@@ -404,19 +437,19 @@ public:
     this->attr = attr;
   }
 
-  /*
-  Sets the value of the dominating point flag of a half segment.
+/*
+Sets the value of the dominating point flag of a half segment.
 
-  */
+*/
   inline void SetLeftDomPoint(bool ldp)
   {
     this->ldp = ldp;
   }
 
-  /*
-  Checks whethet the HalsSegment is vertical
+/*
+Checks whethet the HalsSegment is vertical
 
-  */
+*/
 
   inline bool IsVertical()const
   {
@@ -579,32 +612,37 @@ public:
   }
 
 private:
-  /*
-  5.13 Attributes
+/*
+5.13 Attributes
 
-  Indicates which is the dominating point: the left or the right point.
+Indicates which is the dominating point: the left or the right point.
 
-  */
+*/
   bool ldp;
-  /*
-  These two attributes give the left and right point of the half segment.
+/*
+These two attributes give the left and right point of the half segment.
 
-  */
+*/
   Point lp;
   Point rp;
-  /*
+/*
 
-  */
+*/
 public:
-  /*
-  This ~attribute~ property is useful if we process
-  region values in the way indicated in the ROSE paper.
+/*
+This ~attribute~ property is useful if we process
+region values in the way indicated in the ROSE paper.
 
-  */
+*/
 
   AttrType attr;
 };
 
+/*
+
+1 Class ~Rectangle~
+
+*/
 template <unsigned dim> class Rectangle
 {
 private:

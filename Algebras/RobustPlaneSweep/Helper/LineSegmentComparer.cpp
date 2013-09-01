@@ -20,6 +20,23 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Implementation file for the class ~LineSegmentComparer~
+
+[TOC]
+
+1 Overview
+
+This file contains the methods required for the 
+class ~LineSegmentComparer~.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+1 Includes
+
 */
 
 #include <stdexcept>
@@ -29,6 +46,13 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~LineSegmentComparer~
+
+1.1 ~FindPossiblePairs~
+
+*/
 void LineSegmentComparer::FindPossiblePairs()
 {
   for (int list = 0; list < 2; ++list) {
@@ -68,6 +92,11 @@ void LineSegmentComparer::FindPossiblePairs()
   }
 }
 
+/*
+
+1.1 ~IsEqual~
+
+*/
 bool LineSegmentComparer::IsEqual()
 {
   FindPossiblePairs();
@@ -112,7 +141,7 @@ bool LineSegmentComparer::IsEqual()
                == _segments1[*i1].GetRightPoint()
             && _segments0[*i0].IsLeftDomPoint()
                == _segments1[*i1].IsLeftDomPoint())
-               {
+        {
           if (_segments0[*i0].attr.insideAbove ==
               _segments1[*i1].attr.insideAbove) {
             if (found0[*i0] || found1[*i1]) {

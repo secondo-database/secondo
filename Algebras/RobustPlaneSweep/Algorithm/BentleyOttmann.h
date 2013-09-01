@@ -20,6 +20,26 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Header File for the class ~BentleyOttmann~
+
+[TOC]
+
+1 Overview
+
+This header file contains all structs and classes required for the
+class ~BentleyOttmann~.
+
+This class implements the Bentley-Ottmann-Algorithm. 
+
+To use this class, derive a data class from ~IntersectionAlgorithmData~ and 
+overwrite the necessary methods.
+
+1 Defines and includes
+
 */
 
 #pragma once
@@ -35,6 +55,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Internal helper classes
+
+1.1 Enum class ~SweepEventType~
+
+*/
 enum class SweepEventType
 {
   End = 1,
@@ -43,8 +70,18 @@ enum class SweepEventType
   Point = 4
 };
 
+/*
+
+1.1 Class ~SweepEvent~
+
+*/
 class SweepEvent
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   InternalLineSegment* _segment;
   std::unordered_set<InternalLineSegment*> *_intersectedSegments;
@@ -52,6 +89,11 @@ private:
   SweepEventType _eventType;
   bool _belongsToSecondGeometry;
 
+/*
+
+1.1.1 Private constructors
+
+*/
   SweepEvent(const SweepEventType eventType,
              const InternalIntersectionPoint& point)
   {
@@ -86,6 +128,11 @@ private:
   {
   }
 
+/*
+
+1.1.1 ~GetEventTypeCompareValue~
+
+*/
   static int GetEventTypeCompareValue(SweepEventType type)
   {
     switch (type) {
@@ -103,11 +150,21 @@ private:
   }
 
 public:
+/*
+
+1.1.1 ~CreateIntersection~
+
+*/
   static SweepEvent* CreateIntersection(const InternalIntersectionPoint &point)
   {
     return new SweepEvent(SweepEventType::Intersection, point);
   }
 
+/*
+
+1.1.1 ~CreateStart~
+
+*/
   static SweepEvent* CreateStart(InternalLineSegment* segment)
   {
     return new SweepEvent(segment,
@@ -115,6 +172,11 @@ public:
                           InternalIntersectionPoint(segment->GetLeft()));
   }
 
+/*
+
+1.1.1 ~CreateEnd~
+
+*/
   static SweepEvent* CreateEnd(InternalLineSegment* segment)
   {
     return new SweepEvent(segment,
@@ -122,6 +184,11 @@ public:
                           InternalIntersectionPoint(segment->GetRight()));
   }
 
+/*
+
+1.1.1 ~CreatePoint~
+
+*/
   static SweepEvent* CreatePoint(const InternalIntersectionPoint &point,
                                  bool belongsToSecondGeometry)
   {
@@ -130,26 +197,51 @@ public:
                           belongsToSecondGeometry);
   }
 
+/*
+
+1.1.1 ~GetSegment~
+
+*/
   InternalLineSegment* GetSegment() const
   {
     return _segment;
   }
 
+/*
+
+1.1.1 ~GetIntersectedSegments~
+
+*/
   std::unordered_set<InternalLineSegment*>* GetIntersectedSegments() const
   {
     return _intersectedSegments;
   }
 
+/*
+
+1.1.1 ~GetEventType~
+
+*/
   SweepEventType GetEventType() const
   {
     return _eventType;
   }
 
+/*
+
+1.1.1 ~SortComparer~
+
+*/
   static bool SortComparer(const SweepEvent* x, const SweepEvent* y)
   {
     return Compare(x, y) < 0;
   }
 
+/*
+
+1.1.1 ~Compare~
+
+*/
   static int Compare(const SweepEvent* x, const SweepEvent* y)
   {
     int result;
@@ -192,16 +284,31 @@ public:
     return result;
   }
 
+/*
+
+1.1.1 ~GetPoint~
+
+*/
   const InternalIntersectionPoint GetPoint() const
   {
     return _point;
   }
 
+/*
+
+1.1.1 ~BelongsToSecondGeometry~
+
+*/
   bool BelongsToSecondGeometry() const
   {
     return _belongsToSecondGeometry;
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~SweepEvent()
   {
     if (_intersectedSegments != NULL) {
@@ -211,8 +318,22 @@ public:
   }
 };
 
+/*
+
+1.1 Forward declaration of the class ~PossibleIntersectionPair~
+
+*/
 class PossibleIntersectionPair;
 
+/*
+
+1.1 Enum class ~PossibleIntersectionPairType~
+
+This enum contains the types of intersection tests. 
+For example, ~SegmentNode~ means, the ~PossibleIntersectionPair~ contains 
+a node (of type ~SweepStateData~) and a segment (of type ~InternalLineSegment~).
+
+*/
 enum class PossibleIntersectionPairType
 {
   Undefined,
@@ -222,8 +343,25 @@ enum class PossibleIntersectionPairType
   SegmentSegmentOverlapping
 };
 
+/*
+
+1.1 Class ~SweepStateData~
+
+~SweepStateData~ objects are used inside the sweep status structure. 
+They contain a set of (overlapping) ~InternalLineSegment~ pointers. 
+Because there is usually only one such pointer, there is a member variable
+~\_firstSegment~. The creation of the set is delayed until there are at least
+two segments.
+
+
+*/
 class SweepStateData
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   InternalLineSegment* _firstSegment;
   std::unordered_set<InternalLineSegment*>* _segments;
@@ -231,6 +369,11 @@ private:
   InternalPoint _maxRight;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   explicit SweepStateData(InternalLineSegment* segment) :
       _minLeft(segment->GetLeft()),
       _maxRight(segment->GetRight())
@@ -243,6 +386,11 @@ public:
     _segments = NULL;
   }
 
+/*
+
+1.1.1 ~Add~
+
+*/
   void Add(InternalLineSegment* segment)
   {
     if (segment == _firstSegment) {
@@ -264,6 +412,11 @@ public:
     _segments->insert(segment);
   }
 
+/*
+
+1.1.1 ~Remove~
+
+*/
   bool Remove(InternalLineSegment* segment)
   {
     if (segment == _firstSegment) {
@@ -291,11 +444,21 @@ public:
     return false;
   }
 
+/*
+
+1.1.1 ~GetYValueAt~
+
+*/
   Rational GetYValueAt(const InternalIntersectionPoint& point) const
   {
     return _firstSegment->GetYValueAt(point);
   }
 
+/*
+
+1.1.1 ~GetAttributeAt~
+
+*/
   InternalAttribute GetAttributeAt(const InternalIntersectionPoint& point,
                                    bool includePoint) const
   {
@@ -326,26 +489,51 @@ public:
     }
   }
 
+/*
+
+1.1.1 ~GetFirstSegment~
+
+*/
   InternalLineSegment* GetFirstSegment() const
   {
     return _firstSegment;
   }
 
+/*
+
+1.1.1 ~GetMinLeft~
+
+*/
   InternalPoint GetMinLeft() const
   {
     return _minLeft;
   }
 
+/*
+
+1.1.1 ~GetMaxRight~
+
+*/
   InternalPoint GetMaxRight() const
   {
     return _maxRight;
   }
 
+/*
+
+1.1.1 ~IsSingleSegment~
+
+*/
   bool IsSingleSegment() const
   {
     return _segments == NULL;
   }
 
+/*
+
+1.1.1 ~GetAllSegments~
+
+*/
   std::vector<InternalLineSegment*>* GetAllSegments()
   {
     std::vector<InternalLineSegment*>* result =
@@ -366,8 +554,21 @@ public:
   }
 };
 
+/* 
+
+1.1 Class ~PossibleIntersectionPair~
+
+The ~PossibleIntersectionPair~ class is used inside the sweep status structure
+to collect pairs of segments, which needs checking for intersections.
+
+*/
 class PossibleIntersectionPair
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   PossibleIntersectionPairType _type;
   SweepStateData* _node1;
@@ -376,6 +577,11 @@ private:
   InternalLineSegment* _segment2;
 
 public:
+/*
+
+1.1.1 Constructors
+
+*/
   PossibleIntersectionPair(SweepStateData* node1,
                            SweepStateData* node2);
 
@@ -386,39 +592,84 @@ public:
                            InternalLineSegment* segment2,
                            PossibleIntersectionPairType type);
 
+/*
+
+1.1.1 ~GetType~
+
+*/
   PossibleIntersectionPairType GetType() const
   {
     return _type;
   }
 
+/*
+
+1.1.1 ~GetNode1~
+
+*/
   SweepStateData* GetNode1() const
   {
     return _node1;
   }
 
+/*
+
+1.1.1 ~GetNode2~
+
+*/
   SweepStateData* GetNode2() const
   {
     return _node2;
   }
 
+/*
+
+1.1.1 ~GetSegment1~
+
+*/
   InternalLineSegment* GetSegment1() const
   {
     return _segment1;
   }
 
+/*
+
+1.1.1 ~GetSegment2~
+
+*/
   InternalLineSegment* GetSegment2() const
   {
     return _segment2;
   }
 };
 
+/* 
+
+1.1 Class ~SweepState~
+
+This class contains the sweep status structure of the Bentley-Ottmann algorithm.
+It wraps an AVL-tree and contains an ~InternalIntersectionPoint~ which 
+represents the current position of the sweep line.
+
+*/
 class SweepState
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   InternalIntersectionPoint _currentPoint;
   AvlTree<InternalLineSegment*, SweepStateData*, SweepState>* _tree;
   bool _assumeYEqual;
 
+
+/*
+
+1.1.1 ~DeleteTreeContent~
+
+*/
   void
   DeleteTreeContent(AvlTreeNode<InternalLineSegment*, SweepStateData*> *node)
   {
@@ -433,6 +684,11 @@ private:
   }
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   SweepState()
   {
     _currentPoint =
@@ -447,6 +703,11 @@ public:
         SweepState>(this);
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~SweepState()
   {
     if (_tree != NULL) {
@@ -456,26 +717,51 @@ public:
     }
   }
 
+/*
+
+1.1.1 ~GetCurrentPoint~
+
+*/
   const InternalIntersectionPoint& GetCurrentPoint() const
   {
     return _currentPoint;
   }
 
+/*
+
+1.1.1 ~SetCurrentPoint~
+
+*/
   void SetCurrentPoint(const InternalIntersectionPoint& newCurrentPoint)
   {
     _currentPoint = newCurrentPoint;
   }
 
+/*
+
+1.1.1 ~GetAssumeYEqual~
+
+*/
   bool GetAssumeYEqual() const
   {
     return _assumeYEqual;
   }
 
+/*
+
+1.1.1 ~SetAssumeYEqual~
+
+*/
   void SetAssumeYEqual(bool assumeYEqual)
   {
     _assumeYEqual = assumeYEqual;
   }
 
+/*
+
+1.1.1 ~Add~
+
+*/
   void Add(InternalLineSegment* segment,
            std::vector<PossibleIntersectionPair>& possibleIntersectionPairs,
            bool calculateRegionCoverage)
@@ -540,12 +826,17 @@ public:
                               true,
                               InternalIntersectionPoint());
       } else {
-        segment->SetAttributeNoAbove(true,
+        segment->SetAttributeNoBelow(true,
                                      InternalIntersectionPoint());
       }
     }
   }
 
+/*
+
+1.1.1 ~Remove~
+
+*/
   void Remove(InternalLineSegment* segment,
               std::vector<PossibleIntersectionPair>& possibleIntersectionPairs)
   {
@@ -575,6 +866,11 @@ public:
     }
   }
 
+/*
+
+1.1.1 ~Reorder~
+
+*/
   void Reorder(const SweepEvent* sweepEvent,
                std::vector<PossibleIntersectionPair>& possibleIntersectionPairs,
                bool calculateRegionCoverage)
@@ -655,12 +951,17 @@ public:
                                 false,
                                 sweepEvent->GetPoint());
         } else {
-          segment->SetAttributeNoAbove(false, sweepEvent->GetPoint());
+          segment->SetAttributeNoBelow(false, sweepEvent->GetPoint());
         }
       }
     }
   }
 
+/*
+
+1.1.1 ~GetNodesToSwap~
+
+*/
   static void GetNodesToSwap(const SweepEvent* sweepEvent,
                              std::vector<
                                  AvlTreeNode<InternalLineSegment*,
@@ -739,6 +1040,11 @@ public:
     }
   }
 
+/*
+
+1.1.1 ~Compare~
+
+*/
   int Compare(InternalLineSegment* x, InternalLineSegment* y) const
   {
     if (x == y) {
@@ -768,17 +1074,35 @@ public:
   }
 };
 
+/*
+
+1 Class ~BentleyOttmann~
+
+This class contains the declaration for the 
+implementation of the Bentley-Ottmann algorithm.
+
+*/
 class BentleyOttmann : public IntersectionAlgorithm
 {
 private:
+/*
+
+1.1 Internal struct ~SweepEventCompare~
+
+*/
   struct SweepEventCompare
   {
     bool operator()(SweepEvent*& x, SweepEvent* &y) const
-                    {
+    {
       return SweepEvent::Compare(x, y) > 0;
     }
   };
 
+/*
+
+1.1 Member variables
+
+*/
 #ifdef USE_RIGHTDOM_HALFSEGMENT
   std::unordered_map<
   HalfSegmentIntersectionId,
@@ -814,21 +1138,63 @@ private:
 
   SweepState *_state;
 
+/*
+
+1.1 Methods
+
+1.1.1 ~FetchInput~
+
+*/
   void FetchInput();
 
+/*
+
+1.1.1 ~SetNextStartEndEvent~
+
+*/
   void SetNextStartEndEvent();
 
+/*
+
+1.1.1 ~GetNextEvent~
+
+*/
   SweepEvent* GetNextEvent();
 
+/*
+
+1.1.1 ~CreateEvent~
+
+*/
   SweepEvent* CreateEvent(const HalfSegment& halfSegment,
                           const Point& point,
                           const bool belongsToSecondGeometry);
 
+/*
+
+1.1.1 ~FlushProcessedSegments~
+
+*/
   void FlushProcessedSegments();
+/*
+
+1.1.1 ~DeleteProcessedSegments~
+
+*/
   void DeleteProcessedSegments();
 
+/*
+
+1.1.1 ~PointIntersectsWithAvlTree~
+
+*/
   bool PointIntersectsWithAvlTree(Rational searchY) const;
 
+/*
+
+1.1.1 ~AddIntersection~
+
+*/
   void AddIntersection(InternalLineSegment* l,
                        bool overlappingSegments,
                        bool calculateRegionCoverage,
@@ -838,30 +1204,72 @@ private:
                        SweepEvent*& intersectionEvent);
 
 protected:
-  int GetInitialScaleFactor() const
+/*
+
+1.1.1 ~GetInitialScaleFactor~
+
+overwritten by ~Hobby~ class.
+
+*/
+  virtual int GetInitialScaleFactor() const
   {
     return 1;
   }
 
+/*
+
+1.1.1 ~GetBreakupUntil~
+
+overwritten by ~Hobby~ class.
+
+*/
   virtual int GetBreakupUntil() const
   {
     return GetTransformation()->RoundRational(_state->GetCurrentPoint().GetX());
   }
 
+/*
+
+1.1.1 ~DetermineIntersectionsInternal~
+
+overwritten by ~Hobby~ class.
+
+*/
   virtual void DetermineIntersectionsInternal();
 
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4100)
 #endif
+/*
+
+1.1.1 ~BeforeProcessEvent~
+
+overwritten by ~Hobby~ class.
+
+*/
   virtual void BeforeProcessEvent(SweepEvent* sweepEvent)
   {
   }
 
+/*
+
+1.1.1 ~Finished~
+
+overwritten by ~Hobby~ class.
+
+*/
   virtual void Finished()
   {
   }
 
+/*
+
+1.1.1 ~OnXChanged~
+
+overwritten by ~Hobby~ class.
+
+*/
   virtual bool OnXChanged(const Rational& oldX, const Rational& newX)
   {
     if (GetTransformation()->RoundRational(oldX) <
@@ -875,12 +1283,22 @@ protected:
 #pragma warning(pop)
 #endif
 
+/*
+
+1.1.1 ~GetState~
+
+*/
   SweepState* GetState() const
   {
     return _state;
   }
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   explicit BentleyOttmann(IntersectionAlgorithmData* data) :
       IntersectionAlgorithm(data)
   {
@@ -889,8 +1307,18 @@ public:
     _nextHalfSegmentSweepEvent = NULL;
   }
 
+/*
+
+1.1.1 ~DetermineIntersections~
+
+*/
   void DetermineIntersections();
 
+/*
+
+1.1.1 Destructor
+
+*/
   virtual ~BentleyOttmann()
   {
     if (_state != NULL) {
@@ -934,6 +1362,11 @@ public:
     DeleteProcessedSegments();
   }
 
+/*
+
+1.1.1 ~GetIntersectionCount~
+
+*/
   size_t GetIntersectionCount() const
   {
     return _intersectionCount;

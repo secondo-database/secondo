@@ -20,8 +20,22 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
+[1] Header File for the class ~RobustPlaneSweepAlgebra~
+
+[TOC]
+
+1 Overview
+
+This header file contains the declaration for the 
+class ~RobustPlaneSweepAlgebra~
+
+1 Includes
+
+*/
 #pragma once
 
 #include "Algebra.h"
@@ -31,11 +45,26 @@ extern QueryProcessor* qp;
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~RobustPlaneSweepAlgebra~
+
+*/
 class RobustPlaneSweepAlgebra : public Algebra
 {
 public:
+/*
+
+1.1 Constructor
+
+*/
   RobustPlaneSweepAlgebra();
 
+/*
+
+1.1 Destructor
+
+*/
   ~RobustPlaneSweepAlgebra()
   {
   }

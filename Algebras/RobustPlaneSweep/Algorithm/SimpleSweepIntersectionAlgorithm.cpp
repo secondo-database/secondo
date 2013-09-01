@@ -20,8 +20,29 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
+[1] Implementation file for the class ~SimpleSweepIntersectionAlgorithm~
+
+[TOC]
+
+1 Overview
+
+This file contains all structs and classes required for the 
+class ~SimpleSweepIntersectionAlgorithm~.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+This class uses a simple sweep algorithm. There are start- and end-sweep-events.
+At a start event, the segment is inserted into a hash table and 
+at an end event, the segment is removed. Before a segment is inserted, 
+every segment inside the hash table is tested against the inserting segment.
+
+1 Includes
+
+*/
 #include <vector>
 #include <algorithm>
 
@@ -32,6 +53,11 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~SimpleSweepEvent~
+
+*/
 class SimpleSweepEvent
 {
 private:
@@ -39,24 +65,44 @@ private:
   bool _isStart;
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   SimpleSweepEvent(InternalLineSegment* segment, bool isStart) :
       _segment(segment),
       _isStart(isStart)
   {
   }
 
+/*
+
+1.1 ~GetIsStart~
+
+*/
   bool GetIsStart() const
   {
     return _isStart;
   }
 
+/*
+
+1.1 ~GetSegment~
+
+*/
   InternalLineSegment* GetSegment() const
   {
     return _segment;
   }
 
+/*
+
+1.1 ~operator\textless~
+
+*/
   bool operator<(const SimpleSweepEvent &y) const
-                 {
+  {
     int xx, yy;
 
     if (_isStart) {
@@ -81,6 +127,13 @@ public:
   }
 };
 
+/*
+
+1 Class ~SimpleSweepIntersectionAlgorithm~
+
+1.1 ~DetermineIntersectionsInternal~
+
+*/
 void SimpleSweepIntersectionAlgorithm::DetermineIntersectionsInternal()
 {
   std::vector<SimpleSweepEvent> sweepEvents;
@@ -118,6 +171,7 @@ void SimpleSweepIntersectionAlgorithm::DetermineIntersectionsInternal()
                                                    si->GetRight(),
                                                    sj->GetLeft(),
                                                    sj->GetRight(),
+                                                   false,
                                                    false,
                                                    i0,
                                                    i1);

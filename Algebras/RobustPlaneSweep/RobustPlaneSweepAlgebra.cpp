@@ -20,6 +20,21 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Implementation file for the class ~RobustPlaneSweepAlgebra~
+
+[TOC]
+
+1 Overview
+
+This file contains all structs and classes required for the 
+RobustPlaneSweepAlgebra.
+
+1 Includes and defines
+
 */
 
 // #define OUTPUT_HALFSEGMENTS
@@ -32,22 +47,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-enum class SetOpType
-{
-  Union = 1,
-  Intersection = 2,
-  Minus = 3
-};
-
 /*
 
- 1 data class for operations with two HalfSegment-Collections (Line or Region)
+1 Data classes
+
+1.1 Data class for operations with two HalfSegment-Collections (Line or Region)
 
 */
 template<class TINPUT1, class TINPUT2>
 class HalfSegmentHalfSegmentData :
     public IntersectionAlgorithmData
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   const TINPUT1& _source1;
   int _source1Index;
@@ -60,6 +75,11 @@ private:
   HalfSegment _source2segment;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   HalfSegmentHalfSegmentData(const TINPUT1& source1,
                              const TINPUT2& source2) :
       _source1(source1),
@@ -74,10 +94,20 @@ public:
 #endif
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~HalfSegmentHalfSegmentData()
   {
   }
 
+/*
+
+1.1.1 ~InitializeFetch~
+
+*/
   void InitializeFetch()
   {
 #ifdef OUTPUT_HALFSEGMENTS
@@ -96,6 +126,11 @@ public:
     }
   }
 
+/*
+
+1.1.1 ~FetchInput~
+
+*/
   bool FetchInput(HalfSegment &segment,
                   Point &point,
                   bool &belongsToSecondGeometry)
@@ -148,16 +183,31 @@ public:
     return true;
   }
 
+/*
+
+1.1.1 ~GetBoundingBox~
+
+*/
   const Rectangle<2> GetBoundingBox()
   {
     return _source1.BoundingBox().Union(_source2.BoundingBox());
   }
 
+/*
+
+1.1.1 ~FirstGeometryIsRegion~
+
+*/
   bool FirstGeometryIsRegion() const
   {
     return std::is_same<TINPUT1, Region>::value;
   }
 
+/*
+
+1.1.1 ~SecondGeometryIsRegion~
+
+*/
   bool SecondGeometryIsRegion() const
   {
     return std::is_same<TINPUT2, Region>::value;
@@ -166,7 +216,7 @@ public:
 
 /*
 
- 1 data class for operations with HalfSegment-Collection and Point(s)
+1.1 Data class for operations with HalfSegment-Collection and Point(s)
 
 */
 template<class THALFSEGMENT, class TPOINTS>
@@ -177,14 +227,19 @@ class HalfSegmentPointsData :
 
 /*
 
- 1 template specialization class for operations with 
- HalfSegment-Collection x Points
+1.1 Template specialization class for operations with 
+HalfSegment-Collection x Points
 
 */
 template<class THALFSEGMENT>
 class HalfSegmentPointsData<THALFSEGMENT, Points> :
     public IntersectionAlgorithmData
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   const THALFSEGMENT& _source1;
   int _source1Index;
@@ -197,6 +252,11 @@ private:
   Point _source2Point;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   HalfSegmentPointsData(const THALFSEGMENT& source1,
                         const Points& source2) :
       _source1(source1),
@@ -208,10 +268,20 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~HalfSegmentPointsData()
   {
   }
 
+/*
+
+1.1.1 ~InitializeFetch~
+
+*/
   void InitializeFetch()
   {
     _source1Index = 0;
@@ -227,6 +297,11 @@ public:
     }
   }
 
+/*
+
+1.1.1 ~FetchInput~
+
+*/
   bool FetchInput(HalfSegment &segment,
                   Point &point,
                   bool &belongsToSecondGeometry)
@@ -291,16 +366,31 @@ public:
     return true;
   }
 
+/*
+
+1.1.1 ~GetBoundingBox~
+
+*/
   const Rectangle<2> GetBoundingBox()
   {
     return _source1.BoundingBox().Union(_source2.BoundingBox());
   }
 
+/*
+
+1.1.1 ~FirstGeometryIsRegion~
+
+*/
   bool FirstGeometryIsRegion() const
   {
     return std::is_same<THALFSEGMENT, Region>::value;
   }
 
+/*
+
+1.1.1 ~SecondGeometryIsRegion~
+
+*/
   bool SecondGeometryIsRegion() const
   {
     return false;
@@ -309,7 +399,7 @@ public:
 
 /*
 
- 1 template specialization class for operations with 
+1.1 Template specialization class for operations with 
  HalfSegment-Collection x Point
 
 */
@@ -317,6 +407,11 @@ template<class THALFSEGMENT>
 class HalfSegmentPointsData<THALFSEGMENT, Point> :
     public IntersectionAlgorithmData
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   const THALFSEGMENT& _source1;
   int _source1Index;
@@ -327,6 +422,11 @@ private:
   bool _source2PointRead;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   HalfSegmentPointsData(const THALFSEGMENT& source1,
                         const Point& source2) :
       _source1(source1),
@@ -337,10 +437,20 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~HalfSegmentPointsData()
   {
   }
 
+/*
+
+1.1.1 ~InitializeFetch~
+
+*/
   void InitializeFetch()
   {
     _source1Index = 0;
@@ -352,6 +462,11 @@ public:
     _source2PointRead = false;
   }
 
+/*
+
+1.1.1 ~FetchInput~
+
+*/
   bool FetchInput(HalfSegment &segment,
                   Point &point,
                   bool &belongsToSecondGeometry)
@@ -417,16 +532,31 @@ public:
     return true;
   }
 
+/*
+
+1.1.1 ~GetBoundingBox~
+
+*/
   const Rectangle<2> GetBoundingBox()
   {
     return _source1.BoundingBox().Union(_source2Point.BoundingBox());
   }
 
+/*
+
+1.1.1 ~FirstGeometryIsRegion~
+
+*/
   bool FirstGeometryIsRegion() const
   {
     return std::is_same<THALFSEGMENT, Region>::value;
   }
 
+/*
+
+1.1.1 ~SecondGeometryIsRegion~
+
+*/
   bool SecondGeometryIsRegion() const
   {
     return false;
@@ -435,12 +565,29 @@ public:
 
 /*
 
- 1 data class for line set operations
+1.1 Enum class for set operation types
+
+*/
+enum class SetOpType
+{
+  Union = 1,
+  Intersection = 2,
+  Minus = 3
+};
+
+/*
+
+1.1 Data class for line set operations
 
 */
 class LineLineSetOp :
     public HalfSegmentHalfSegmentData<Line, Line>
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   SetOpType _setOpType;
 
@@ -448,6 +595,11 @@ private:
   int _outputSegments;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   LineLineSetOp(const Line& source1,
                 const Line& source2,
                 SetOpType setOpType,
@@ -459,15 +611,30 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~LineLineSetOp()
   {
   }
 
+/*
+
+1.1.1 ~OutputData~
+
+*/
   bool OutputData() const
   {
     return true;
   }
 
+/*
+
+1.1.1 ~OutputHalfSegment~
+
+*/
   void OutputHalfSegment(const HalfSegment& segment,
                          const InternalAttribute& attribute)
   {
@@ -503,6 +670,11 @@ public:
     _outputSegments++;
   }
 
+/*
+
+1.1.1 ~SetOp~
+
+*/
   static void SetOp(const Line& line1,
                     const Line& line2,
                     SetOpType setOpType,
@@ -518,12 +690,17 @@ public:
 
 /*
 
- 1 data class for region set operations
+1.1 Data class for region set operations
 
 */
 class RegionRegionSetOp :
     public HalfSegmentHalfSegmentData<Region, Region>
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   SetOpType _setOpType;
 
@@ -531,6 +708,11 @@ private:
   int _outputSegments;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   RegionRegionSetOp(const Region& source1,
                     const Region& source2,
                     SetOpType setOpType,
@@ -542,15 +724,30 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~RegionRegionSetOp()
   {
   }
 
+/*
+
+1.1.1 ~OutputData~
+
+*/
   bool OutputData() const
   {
     return true;
   }
 
+/*
+
+1.1.1 ~OutputHalfSegment~
+
+*/
   void OutputHalfSegment(const HalfSegment& segment,
                          const InternalAttribute& attribute)
   {
@@ -608,6 +805,11 @@ public:
     _outputSegments++;
   }
 
+/*
+
+1.1.1 ~SetOp~
+
+*/
   static void SetOp(const Region& region1,
                     const Region& region2,
                     SetOpType setOpType,
@@ -623,12 +825,17 @@ public:
 
 /*
 
- 1 data class for region/line set operations
+1.1 Data class for region/line set operations
 
 */
 class RegionLineSetOp :
     public HalfSegmentHalfSegmentData<Region, Line>
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   SetOpType _setOpType;
 
@@ -636,6 +843,11 @@ private:
   int _outputSegments;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   RegionLineSetOp(const Region& source1,
                   const Line& source2,
                   SetOpType setOpType,
@@ -647,15 +859,30 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~RegionLineSetOp()
   {
   }
 
+/*
+
+1.1.1 ~OutputData~
+
+*/
   bool OutputData() const
   {
     return true;
   }
 
+/*
+
+1.1.1 ~OutputHalfSegment~
+
+*/
   void OutputHalfSegment(const HalfSegment& segment,
                          const InternalAttribute& attribute)
   {
@@ -692,6 +919,11 @@ public:
     _outputSegments++;
   }
 
+/*
+
+1.1.1 ~SetOp~
+
+*/
   static void SetOp(const Region& region,
                     const Line& line,
                     SetOpType setOpType,
@@ -710,17 +942,27 @@ public:
 
 /*
 
- 1 data class for {region, line} x {region, line} intersects operator
+1.1 Data class for {region, line} x {region, line} intersects operator
 
 */
 template<class TINPUT1, class TINPUT2>
 class RegionLineIntersects :
     public HalfSegmentHalfSegmentData<TINPUT1, TINPUT2>
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   bool _intersects;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   RegionLineIntersects(const TINPUT1& source1,
                        const TINPUT2& source2) :
       HalfSegmentHalfSegmentData<TINPUT1, TINPUT2>(source1, source2),
@@ -728,16 +970,31 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~RegionLineIntersects()
   {
   }
 
+/*
+
+1.1.1 ~OnGeometryIntersectionFound~
+
+*/
   bool OnGeometryIntersectionFound()
   {
     _intersects = true;
     return true;
   }
 
+/*
+
+1.1.1 ~Intersects~
+
+*/
   static bool Intersects(const TINPUT1& source1,
                          const TINPUT2& source2)
   {
@@ -751,18 +1008,28 @@ public:
 
 /*
 
- 1 data class for {region, line} x points set operations
+1.1 Data class for {region, line} x points set operations
 
 */
 template<class THALFSEGMENT, class TPOINTS>
 class RegionLinePointsSetOp :
     public HalfSegmentPointsData<THALFSEGMENT, TPOINTS>
 {
+/*
+
+1.1.1 Member Variables
+
+*/
 private:
   SetOpType _setOpType;
   Points& _result;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   RegionLinePointsSetOp(const THALFSEGMENT& source1,
                         const TPOINTS& source2,
                         SetOpType setOpType,
@@ -773,20 +1040,40 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~RegionLinePointsSetOp()
   {
   }
 
+/*
+
+1.1.1 ~OutputData~
+
+*/
   bool OutputData() const
   {
     return true;
   }
 
+/*
+
+1.1.1 ~OutputHalfSegment~
+
+*/
   void OutputHalfSegment(const HalfSegment& segment,
                          const InternalAttribute& attribute)
   {
   }
 
+/*
+
+1.1.1 ~OutputPoint~
+
+*/
   void OutputPoint(const Point& point,
                    const InternalAttribute& attribute)
   {
@@ -812,6 +1099,11 @@ public:
     _result += point;
   }
 
+/*
+
+1.1.1 ~SetOp~
+
+*/
   static void SetOp(const THALFSEGMENT& source,
                     const TPOINTS& points,
                     SetOpType setOpType,
@@ -827,17 +1119,27 @@ public:
 
 /*
 
- 1 data class for {region, line} x {point, points} intersects operator
+1.1 Data class for {region, line} x {point, points} intersects operator
 
 */
 template<class THALFSEGMENT, class TPOINTS>
 class RegionLinePointsIntersects :
     public HalfSegmentPointsData<THALFSEGMENT, TPOINTS>
 {
+/*
+
+1.1.1 Member variables
+
+*/
 private:
   bool _intersects;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   RegionLinePointsIntersects(const THALFSEGMENT& source1,
                              const Points& source2) :
       HalfSegmentPointsData<THALFSEGMENT, TPOINTS>(source1, source2),
@@ -845,16 +1147,31 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~RegionLinePointsIntersects()
   {
   }
 
+/*
+
+1.1.1 ~OnGeometryIntersectionFound~
+
+*/
   bool OnGeometryIntersectionFound()
   {
     _intersects = true;
     return true;
   }
 
+/*
+
+1.1.1 ~Intersects~
+
+*/
   static bool Intersects(const THALFSEGMENT& source,
                          const Points& points)
   {
@@ -868,16 +1185,50 @@ public:
 
 /*
 
- 1 data class for crossing operator
+1.1 Data class for crossing operator
 
 */
 class CrossingsData :
     public HalfSegmentHalfSegmentData<Line, Line>
 {
 private:
+/*
+
+1.1.1 Internal Point comparer struct.
+
+The coordinates were integer values and the transformation should be 
+deterministic, so there is no need for AlmostEqual.
+
+*/
+  struct PointComparer
+  {
+    size_t operator()(const Point &x) const
+    {
+      return ((size_t)((int)x.GetX())) ^ ((size_t)((int)x.GetY()));
+    }
+
+    bool operator()(const Point &x, const Point &y) const
+    {
+      return (x.GetX() == y.GetX()) && (x.GetY() == y.GetY());
+    }
+  };
+
+/*
+
+1.1.1 Member Variables
+
+*/
+  std::unordered_set<Point, PointComparer> _overlappingPoints;
+  std::vector<Point> _possibleCrossings;
+
   Points& _result;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   CrossingsData(const Line& source1,
                 const Line& source2,
                 Points& result) :
@@ -886,33 +1237,80 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~CrossingsData()
   {
   }
 
+/*
+
+1.1.1 ~FirstGeometryIsRegion~
+
+*/
   bool FirstGeometryIsRegion() const
   {
     return false;
   }
 
+/*
+
+1.1.1 ~SecondGeometryIsRegion~
+
+*/
   bool SecondGeometryIsRegion() const
   {
     return false;
   }
 
+/*
+
+1.1.1 ~ReportIntersections~
+
+*/
   bool ReportIntersections() const
   {
     return true;
   }
 
+/*
+
+1.1.1 ~ReportIntersection~
+
+*/
   void ReportIntersection(const Point& intersectionPoint,
                           const bool overlappingIntersection)
   {
-    if (!overlappingIntersection) {
-      _result += intersectionPoint;
+    if (overlappingIntersection) {
+      _overlappingPoints.insert(intersectionPoint);
+    } else {
+      _possibleCrossings.push_back(intersectionPoint);
     }
   }
 
+/*
+
+1.1.1 ~OutputFinished~
+
+*/
+  virtual void OutputFinished()
+  {
+    for (std::vector<Point>::const_iterator i = _possibleCrossings.begin();
+        i != _possibleCrossings.end(); ++i) {
+      if (_overlappingPoints.find (*i) == _overlappingPoints.end()) {
+        _result += *i;
+      }
+    }
+  }
+
+/*
+
+1.1.1 ~Crossings~
+
+*/
   static void Crossings(const Line& line1,
                         const Line& line2,
                         Points& result)
@@ -932,9 +1330,11 @@ public:
     // assert(line2.IsOrdered());
 
     result.StartBulkLoad();
-    CrossingsData data(line1, line2, result);
-    BentleyOttmann bo(&data);
-    bo.DetermineIntersections();
+    if (line1.BoundingBox().IntersectsUD(line2.BoundingBox())) {
+      CrossingsData data(line1, line2, result);
+      BentleyOttmann bo(&data);
+      bo.DetermineIntersections();
+    }
 
     result.EndBulkLoad(true, true);    // sort and remove duplicates
   }
@@ -942,11 +1342,16 @@ public:
 
 /*
 
- 1 data class for line minize
+1.1 Data class for line minize
 
 */
 class LineMinize : public IntersectionAlgorithmData
 {
+/*
+
+1.1.1 Member Variables
+
+*/
 private:
   const Line& _source;
   int _currentSourceIndex;
@@ -954,6 +1359,11 @@ private:
   int _outputSegments;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   LineMinize(const Line& src, Line& result) :
       _source(src),
       _currentSourceIndex(0),
@@ -962,15 +1372,30 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~LineMinize()
   {
   }
 
+/*
+
+1.1.1 ~InitializeFetch~
+
+*/
   void InitializeFetch()
   {
     _currentSourceIndex = 0;
   }
 
+/*
+
+1.1.1 ~FetchInput~
+
+*/
   bool FetchInput(HalfSegment &segment,
                   Point& point,
                   bool &belongsToSecondGeometry)
@@ -985,11 +1410,21 @@ public:
     }
   }
 
+/*
+
+1.1.1 ~OutputData~
+
+*/
   bool OutputData() const
   {
     return true;
   }
 
+/*
+
+1.1.1 ~OutputHalfSegment~
+
+*/
   void OutputHalfSegment(const HalfSegment& segment,
                          const InternalAttribute& attribute)
   {
@@ -1004,26 +1439,51 @@ public:
     _outputSegments++;
   }
 
+/*
+
+1.1.1 ~GetBoundingBox~
+
+*/
   const Rectangle<2> GetBoundingBox()
   {
     return _source.BoundingBox();
   }
 
+/*
+
+1.1.1 ~FirstGeometryIsRegion~
+
+*/
   bool FirstGeometryIsRegion() const
   {
     return false;
   }
 
+/*
+
+1.1.1 ~SecondGeometryIsRegion~
+
+*/
   bool SecondGeometryIsRegion() const
   {
     return false;
   }
 
+/*
+
+1.1.1 ~IsInputOrderedByX~
+
+*/
   bool IsInputOrderedByX() const
   {
     return false;
   }
 
+/*
+
+1.1.1 ~Realminize~
+
+*/
   static void Realminize(const Line& src, Line& result)
   {
     result.Clear();
@@ -1050,11 +1510,16 @@ public:
 
 /*
 
- 1 data class for conversion from DLine to Line
+1.1 Data class for conversion from DLine to Line
 
 */
 class DLineToLine : public IntersectionAlgorithmData
 {
+/*
+
+1.1.1 Member Variables
+
+*/
 private:
   const DLine& _source;
   size_t _currentSourceIndex;
@@ -1062,6 +1527,11 @@ private:
   int _outputSegments;
 
 public:
+/*
+
+1.1.1 Constructor
+
+*/
   DLineToLine(const DLine& src, Line& result) :
       _source(src),
       _currentSourceIndex(0),
@@ -1070,15 +1540,30 @@ public:
   {
   }
 
+/*
+
+1.1.1 Destructor
+
+*/
   ~DLineToLine()
   {
   }
 
+/*
+
+1.1.1 ~InitializeFetch~
+
+*/
   void InitializeFetch()
   {
     _currentSourceIndex = 0;
   }
 
+/*
+
+1.1.1 ~FetchInput~
+
+*/
   bool FetchInput(HalfSegment &segment,
                   Point &point,
                   bool &belongsToSecondGeometry)
@@ -1100,16 +1585,31 @@ public:
     return false;
   }
 
+/*
+
+1.1.1 ~OutputData~
+
+*/
   bool OutputData() const
   {
     return true;
   }
 
+/*
+
+1.1.1 ~IsInputOrderedByX~
+
+*/
   bool IsInputOrderedByX() const
   {
     return false;
   }
 
+/*
+
+1.1.1 ~OutputHalfSegment~
+
+*/
   void OutputHalfSegment(const HalfSegment& segment,
                          const InternalAttribute& attribute)
   {
@@ -1125,12 +1625,22 @@ public:
     _outputSegments++;
   }
 
+/*
+
+1.1.1 ~OutputPoint~
+
+*/
   void OutputPoint(const Point& poiint,
                    const InternalAttribute& attribute)
   {
     throw new std::logic_error("there shouldn't be any points to output!");
   }
 
+/*
+
+1.1.1 ~GetBoundingBox~
+
+*/
   const Rectangle<2> GetBoundingBox()
   {
     if (_source.HashValue() == 0) {
@@ -1176,16 +1686,31 @@ public:
     return Rectangle<2>(true, minX, maxX, minY, maxY);
   }
 
+/*
+
+1.1.1 ~FirstGeometryIsRegion~
+
+*/
   bool FirstGeometryIsRegion() const
   {
     return false;
   }
 
+/*
+
+1.1.1 ~SecondGeometryIsRegion~
+
+*/
   bool SecondGeometryIsRegion() const
   {
     return false;
   }
 
+/*
+
+1.1.1 ~ToLine~
+
+*/
   static void ToLine(const DLine& src, Line& result)
   {
     result.Clear();
@@ -1210,10 +1735,11 @@ public:
 
 /*
 
- 1 operators
+1 Operators with strongly typed parameters
+
+1.1 Trajectory2 operator
 
 */
-
 void MPointTrajectory(MPoint* mpoint, Line& line)
 {
   line.Clear();
@@ -1291,6 +1817,13 @@ void MPointTrajectory(MPoint* mpoint, Line& line)
   line2.Destroy();
 }
 
+/*
+
+1.1 Intersection2 operator
+
+1.1.1 Points $\times$ Line $\rightarrow$ Points
+
+*/
 void IntersectionOp(const Points& points,
                     const Line& line,
                     Points& result)
@@ -1301,6 +1834,11 @@ void IntersectionOp(const Points& points,
                                              result);
 }
 
+/*
+
+1.1.1 Points $\times$ Region $\rightarrow$ Points
+
+*/
 void IntersectionOp(const Points& points,
                     const Region& region,
                     Points& result)
@@ -1311,6 +1849,11 @@ void IntersectionOp(const Points& points,
                                                result);
 }
 
+/*
+
+1.1.1 Line $\times$ Point $\rightarrow$ Points
+
+*/
 void IntersectionOp(const Line& line,
                     const Point& point,
                     Points& result)
@@ -1321,6 +1864,11 @@ void IntersectionOp(const Line& line,
                                             result);
 }
 
+/*
+
+1.1.1 Line $\times$ Points $\rightarrow$ Points
+
+*/
 void IntersectionOp(const Line& line,
                     const Points& points,
                     Points& result)
@@ -1331,6 +1879,11 @@ void IntersectionOp(const Line& line,
                                              result);
 }
 
+/*
+
+1.1.1 Line $\times$ Line $\rightarrow$ Line
+
+*/
 void IntersectionOp(const Line& line1,
                     const Line& line2,
                     Line& result)
@@ -1341,6 +1894,11 @@ void IntersectionOp(const Line& line1,
                        result);
 }
 
+/*
+
+1.1.1 Region $\times$ Point $\rightarrow$ Points
+
+*/
 void IntersectionOp(const Region& region,
                     const Point& point,
                     Points& result)
@@ -1351,6 +1909,11 @@ void IntersectionOp(const Region& region,
                                               result);
 }
 
+/*
+
+1.1.1 Region $\times$ Points $\rightarrow$ Points
+
+*/
 void IntersectionOp(const Region& region,
                     const Points& points,
                     Points& result)
@@ -1361,6 +1924,11 @@ void IntersectionOp(const Region& region,
                                                result);
 }
 
+/*
+
+1.1.1 Region $\times$ Line $\rightarrow$ Line
+
+*/
 void IntersectionOp(const Region& region,
                     const Line& line,
                     Line& result)
@@ -1371,6 +1939,11 @@ void IntersectionOp(const Region& region,
                          result);
 }
 
+/*
+
+1.1.1 Region $\times$ Region $\rightarrow$ Region
+
+*/
 void IntersectionOp(const Region& region1,
                     const Region& region2,
                     Region& result)
@@ -1381,6 +1954,13 @@ void IntersectionOp(const Region& region1,
                            result);
 }
 
+/*
+
+1.1 Union2 operator
+
+1.1.1 Line $\times$ Line $\rightarrow$ Line
+
+*/
 void UnionOp(const Line& line1,
              const Line& line2,
              Line& result)
@@ -1391,6 +1971,11 @@ void UnionOp(const Line& line1,
                        result);
 }
 
+/*
+
+1.1.1 Region $\times$ Region $\rightarrow$ Region
+
+*/
 void UnionOp(const Region& region1,
              const Region& region2,
              Region& result)
@@ -1401,6 +1986,13 @@ void UnionOp(const Region& region1,
                            result);
 }
 
+/*
+
+1.1 Minus2 operator
+
+1.1.1 Point $\times$ Line $\rightarrow$ Points
+
+*/
 void MinusOp(const Point& point,
              const Line& line,
              Points& result)
@@ -1411,6 +2003,11 @@ void MinusOp(const Point& point,
                                             result);
 }
 
+/*
+
+1.1.1 Point $\times$ Region $\rightarrow$ Points
+
+*/
 void MinusOp(const Point& point,
              const Region& region,
              Points& result)
@@ -1421,6 +2018,11 @@ void MinusOp(const Point& point,
                                               result);
 }
 
+/*
+
+1.1.1 Points $\times$ Line $\rightarrow$ Points
+
+*/
 void MinusOp(const Points& points,
              const Line& line,
              Points& result)
@@ -1431,6 +2033,11 @@ void MinusOp(const Points& points,
                                              result);
 }
 
+/*
+
+1.1.1 Points $\times$ Region $\rightarrow$ Points
+
+*/
 void MinusOp(const Points& points,
              const Region& region,
              Points& result)
@@ -1441,6 +2048,11 @@ void MinusOp(const Points& points,
                                                result);
 }
 
+/*
+
+1.1.1 Line $\times$ Line $\rightarrow$ Line
+
+*/
 void MinusOp(const Line& line1,
              const Line& line2,
              Line& result)
@@ -1451,6 +2063,11 @@ void MinusOp(const Line& line1,
                        result);
 }
 
+/*
+
+1.1.1 Line $\times$ Region $\rightarrow$ Line
+
+*/
 void MinusOp(const Line& line,
              const Region& region,
              Line& result)
@@ -1461,6 +2078,11 @@ void MinusOp(const Line& line,
                          result);
 }
 
+/*
+
+1.1.1 Region $\times$ Region $\rightarrow$ Region
+
+*/
 void MinusOp(const Region& region1,
              const Region& region2,
              Region& result)
@@ -1471,6 +2093,13 @@ void MinusOp(const Region& region1,
                            result);
 }
 
+/*
+
+1.1 Intersects2 operator
+
+1.1.1 Points $\times$ Line
+
+*/
 bool IntersectsOp(const Points& points,
                   const Line& line)
 {
@@ -1478,6 +2107,11 @@ bool IntersectsOp(const Points& points,
   RegionLinePointsIntersects<Line, Points>::Intersects(line, points);
 }
 
+/*
+
+1.1.1 Points $\times$ Region
+
+*/
 bool IntersectsOp(const Points& points,
                   const Region& region)
 {
@@ -1485,24 +2119,44 @@ bool IntersectsOp(const Points& points,
   RegionLinePointsIntersects<Region, Points>::Intersects(region, points);
 }
 
+/*
+
+1.1.1 Line $\times$ Line
+
+*/
 bool IntersectsOp(const Line& line1,
                   const Line& line2)
 {
   return RegionLineIntersects<Line, Line>::Intersects(line1, line2);
 }
 
+/*
+
+1.1.1 Line $\times$ Region
+
+*/
 bool IntersectsOp(const Line& line,
                   const Region& region)
 {
   return RegionLineIntersects<Line, Region>::Intersects(line, region);
 }
 
+/*
+
+1.1.1 Region $\times$ Region
+
+*/
 bool IntersectsOp(const Region& region1,
                   const Region& region2)
 {
   return RegionLineIntersects<Region, Region>::Intersects(region1, region2);
 }
 
+/*
+
+1.1 Crossings2 operator
+
+*/
 void CrossingsLine(const Line& line1,
                    const Line& line2,
                    Points& result)
@@ -1512,6 +2166,11 @@ void CrossingsLine(const Line& line1,
                            result);
 }
 
+/*
+
+1.1 ToLine operator
+
+*/
 void ToLine(const DLine& dline,
             Line& result)
 {
@@ -1520,26 +2179,11 @@ void ToLine(const DLine& dline,
 
 /*
 
- 1 operators
+1 Helpers 
+
+1.1 ~SpatialReturnFirstParameter~
 
 */
-
-int MPointTrajectory(Word* args,
-                     Word& result,
-                     int message,
-                     Word& local,
-                     Supplier s)
-{
-  result = qp->ResultStorage(s);
-
-  Line *line = ((Line*)result.addr);
-  MPoint *mpoint = ((MPoint*)args[0].addr);
-
-  MPointTrajectory(mpoint, *line);
-
-  return 0;
-}
-
 template<class T1, class T2, class TResult>
 int SpatialReturnFirstParameter(Word* args,
                                 Word& result,
@@ -1564,6 +2208,11 @@ int SpatialReturnFirstParameter(Word* args,
   return 0;
 }
 
+/*
+
+1.1 ~SpatialReturnSecondParameter~
+
+*/
 template<class T1, class T2, class TResult>
 int SpatialReturnSecondParameter(Word* args,
                                  Word& result,
@@ -1591,7 +2240,7 @@ int SpatialReturnSecondParameter(Word* args,
 
 /*
 
- 1 helper template to determine the size of an object
+1.1 Helper template to determine the size of an object
 
 */
 template<class T>
@@ -1605,7 +2254,7 @@ struct SizeHelper
 
 /*
 
- 1 template specialization to determine the size of an point (always 1)
+1.1 Template specialization to determine the size of an point (always 1)
 
 */
 template<>
@@ -1617,6 +2266,36 @@ struct SizeHelper<Point>
   }
 };
 
+
+/*
+
+1 Operator with Secondo parameters
+
+1.1 Trajectory2
+
+*/
+
+int MPointTrajectory(Word* args,
+                     Word& result,
+                     int message,
+                     Word& local,
+                     Supplier s)
+{
+  result = qp->ResultStorage(s);
+
+  Line *line = ((Line*)result.addr);
+  MPoint *mpoint = ((MPoint*)args[0].addr);
+
+  MPointTrajectory(mpoint, *line);
+
+  return 0;
+}
+
+/*
+
+1.1 Intersection2
+
+*/
 template<class T1, class T2, class TResult, bool reverseT1T2>
 int SpatialIntersectionGeneric(Word* args,
                                Word& result,
@@ -1657,6 +2336,11 @@ int SpatialIntersectionGeneric(Word* args,
   return 0;
 }
 
+/*
+
+1.1 Minus2
+
+*/
 template<class T1, class T2, class TResult>
 int SpatialMinusGeneric(Word* args,
                         Word& result,
@@ -1691,6 +2375,12 @@ int SpatialMinusGeneric(Word* args,
   return 0;
 }
 
+
+/*
+
+1.1 Union2
+
+*/
 template<class T1, class T2, class TResult>
 int SpatialUnionGeneric(
                         Word* args,
@@ -1756,6 +2446,11 @@ int SpatialUnionGeneric(
   return 0;
 }
 
+/*
+
+1.1 Crossings2
+
+*/
 int CrossingsLine(Word* args,
                   Word& result,
                   int message,
@@ -1770,6 +2465,11 @@ int CrossingsLine(Word* args,
   return 0;
 }
 
+/*
+
+1.1 ToLine
+
+*/
 int ToLine(Word* args,
            Word& result,
            int message,
@@ -1784,6 +2484,11 @@ int ToLine(Word* args,
   return 0;
 }
 
+/*
+
+1.1 Intersects2
+
+*/
 template<class A, class B, bool symm>
 int SpatialIntersectsVM(Word* args, Word& result, int message,
                         Word& local,
@@ -1815,10 +2520,13 @@ int SpatialIntersectsVM(Word* args, Word& result, int message,
 
 /*
 
- 1 operator definitions 
+1 Operator definitions 
+
+1.1 Signatures
+
+1.1.1 Trajectory2
 
 */
-
 const string TemporalSpecTrajectory =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
         "( <text>mpoint -> line</text--->"
@@ -1828,6 +2536,11 @@ const string TemporalSpecTrajectory =
         "<text>trajectory2( mp1 )</text--->"
         ") )";
 
+/*
+
+1.1.1 ToLine
+
+*/
 const string ToLineSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
         "( <text>dline -> line</text--->"
@@ -1836,6 +2549,11 @@ const string ToLineSpec =
         "<text>toline( dline )</text--->"
         ") )";
 
+/*
+
+1.1.1 Intersection2
+
+*/
 const string SpatialIntersectionSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
         "( <text>{point, points, line, region } x"
@@ -1847,6 +2565,11 @@ const string SpatialIntersectionSpec =
         "<text>query intersection2(tiergarten, thecenter) </text--->"
         ") )";
 
+/*
+
+1.1.1 Minus2
+
+*/
 const string SpatialMinusSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
         "( <text>{point, points, line, region } x"
@@ -1857,6 +2580,11 @@ const string SpatialMinusSpec =
         "<text>query tiergarten minus2 thecenter </text--->"
         ") )";
 
+/*
+
+1.1.1 Union2
+
+*/
 const string SpatialUnionSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
         "( <text>{point , points, line, region } x"
@@ -1867,6 +2595,11 @@ const string SpatialUnionSpec =
         "<text>query tiergarten union2 thecenter </text--->"
         ") )";
 
+/*
+
+1.1.1 Crossings2
+
+*/
 const string SpatialSpecCrossings =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
         "( <text>(line x line) -> points</text--->"
@@ -1875,6 +2608,11 @@ const string SpatialSpecCrossings =
         "<text>query crossings2(line1, line2)</text--->"
         ") )";
 
+/*
+
+1.1.1 Intersects2
+
+*/
 const string SpatialSpecIntersects =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
         "( <text>(points||line||region x points||line||region) -> bool"
@@ -1884,6 +2622,13 @@ const string SpatialSpecIntersects =
         "<text>query region1 intersects2 region2</text--->"
         ") )";
 
+/*
+
+1.1 Value Mapping
+
+1.1.1 Intersection2
+
+*/
 ValueMapping spatialintersectionVM[] = {
     SpatialIntersectionGeneric<Line, Point, Points, true>,
     SpatialIntersectionGeneric<Region, Point, Points, true>,
@@ -1902,6 +2647,11 @@ ValueMapping spatialintersectionVM[] = {
     SpatialIntersectionGeneric<Region, Region, Region, false>
 };
 
+/*
+
+1.1.1 Minus2
+
+*/
 ValueMapping spatialminusVM[] = {
     SpatialMinusGeneric<Point, Line, Points>,
     SpatialMinusGeneric<Point, Region, Points>,
@@ -1920,6 +2670,11 @@ ValueMapping spatialminusVM[] = {
     SpatialMinusGeneric<Region, Region, Region>
 };
 
+/*
+
+1.1.1 Union2
+
+*/
 ValueMapping spatialunionVM[] = {
     SpatialReturnSecondParameter<Point, Line, Line>,
     SpatialReturnSecondParameter<Point, Region, Region>,
@@ -1938,6 +2693,11 @@ ValueMapping spatialunionVM[] = {
     SpatialUnionGeneric<Region, Region, Region>
 };
 
+/*
+
+1.1.1 Intersects
+
+*/
 ValueMapping spatialintersectsmap[] = {
     SpatialIntersectsVM<Points, Line, false>,
     SpatialIntersectsVM<Points, Region, false>,
@@ -1949,6 +2709,15 @@ ValueMapping spatialintersectsmap[] = {
     SpatialIntersectsVM<Region, Region, false>
 };
 
+/*
+
+1.1 Selection methods
+
+1.1.1 SpatialSetOpSelect
+
+used for set operations
+
+*/
 int SpatialSetOpSelect(ListExpr args)
 {
   string a1 = nl->SymbolValue(nl->First(args));
@@ -2063,6 +2832,13 @@ SpatialType SpatialTypeOfSymbol(ListExpr symbol)
   return (sterror);
 }
 
+/*
+
+1.1.1 SpatialSelectIntersects
+
+used for intersects2 operator
+
+*/
 int SpatialSelectIntersects(ListExpr args)
 {
   ListExpr arg1 = nl->First(args);
@@ -2111,6 +2887,13 @@ int SpatialSelectIntersects(ListExpr args)
   return -1;    // This point should never be reached
 }
 
+/*
+
+1.1 Type mapping
+
+1.1.1 Trajectory2
+
+*/
 ListExpr MovingTypeMapSpatial(ListExpr args)
 {
   if (nl->ListLength(args) == 1) {
@@ -2124,6 +2907,11 @@ ListExpr MovingTypeMapSpatial(ListExpr args)
   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
+/*
+
+1.1.1 ToLine
+
+*/
 ListExpr ToLineTypeMap(ListExpr args)
 {
   if (nl->ListLength(args) == 1) {
@@ -2137,22 +2925,25 @@ ListExpr ToLineTypeMap(ListExpr args)
   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
+/*
+
+1.1.1 Union2
+
+*/
 ListExpr SpatialUnionTypeMap(ListExpr args)
 {
-  string err = "t1 x t2 expected, t_i in {points, points, line, sline, region}";
-
   if (nl->ListLength(args) != 2) {
-    return listutils::typeError(err + ": wrong number of arguments");
+    return listutils::typeError("wrong number of arguments");
   }
 
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (!listutils::isSymbol(arg1)) {
-    return listutils::typeError(err + ": first arg not a spatial type");
+    return listutils::typeError("first arg is not a supported spatial type");
   }
 
   if (!listutils::isSymbol(arg2)) {
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   string a1 = nl->SymbolValue(arg1);
@@ -2167,7 +2958,7 @@ ListExpr SpatialUnionTypeMap(ListExpr args)
       return nl->SymbolAtom(Region::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   if (a1 == Points::BasicType()) {
@@ -2179,7 +2970,7 @@ ListExpr SpatialUnionTypeMap(ListExpr args)
       return nl->SymbolAtom(Region::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   if (a1 == Line::BasicType()) {
@@ -2199,7 +2990,7 @@ ListExpr SpatialUnionTypeMap(ListExpr args)
       return nl->SymbolAtom(Region::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   if (a1 == Region::BasicType()) {
@@ -2219,12 +3010,17 @@ ListExpr SpatialUnionTypeMap(ListExpr args)
       return nl->SymbolAtom(Region::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
-  return listutils::typeError(err + ": first arg not a spatial type");
+  return listutils::typeError("first arg is not a supported spatial type");
 }
 
+/*
+
+1.1.1 Crossings2
+
+*/
 ListExpr SpatialCrossingsTM(ListExpr args)
 {
   ListExpr arg1, arg2;
@@ -2243,22 +3039,25 @@ ListExpr SpatialCrossingsTM(ListExpr args)
   return listutils::typeError("line x line expected");
 }
 
+/*
+
+1.1.1 Minus2
+
+*/
 ListExpr SpatialMinusTypeMap(ListExpr args)
 {
-  string err = "t1 x t2 expected, t_i in {points, points, line, region}";
-
   if (nl->ListLength(args) != 2) {
-    return listutils::typeError(err + ": wrong number of arguments");
+    return listutils::typeError("wrong number of arguments");
   }
 
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (!listutils::isSymbol(arg1)) {
-    return listutils::typeError(err + ": first arg not a spatial type");
+    return listutils::typeError("first arg is not a supported spatial type");
   }
 
   if (!listutils::isSymbol(arg2)) {
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   string a1 = nl->SymbolValue(arg1);
@@ -2273,7 +3072,7 @@ ListExpr SpatialMinusTypeMap(ListExpr args)
       return nl->SymbolAtom(Points::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   if (a1 == Points::BasicType()) {
@@ -2284,7 +3083,7 @@ ListExpr SpatialMinusTypeMap(ListExpr args)
     if (a2 == Region::BasicType()) {
       return nl->SymbolAtom(Points::BasicType());
     }
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   if (a1 == Line::BasicType()) {
@@ -2304,7 +3103,7 @@ ListExpr SpatialMinusTypeMap(ListExpr args)
       return nl->SymbolAtom(Line::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   if (a1 == Region::BasicType()) {
@@ -2324,29 +3123,32 @@ ListExpr SpatialMinusTypeMap(ListExpr args)
       return nl->SymbolAtom(Region::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
-  return listutils::typeError(err + ": first arg not a valid spatial type");
+  return listutils::typeError("first arg is not a supported spatial type");
 }
 
+/*
+
+1.1.1 Intersection2
+
+*/
 ListExpr SpatialIntersectionTypeMap(ListExpr args)
 {
-  string err = "t1 x t2 expected, t_i in {points, points, line, region}";
-
   if (nl->ListLength(args) != 2) {
-    return listutils::typeError(err + ": wrong number of arguments");
+    return listutils::typeError("wrong number of arguments");
   }
 
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
 
   if (!listutils::isSymbol(arg1)) {
-    return listutils::typeError(err + ": first arg not a spatial type");
+    return listutils::typeError("first arg is not a supported spatial type");
   }
 
   if (!listutils::isSymbol(arg2)) {
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   string a1 = nl->SymbolValue(arg1);
@@ -2356,7 +3158,7 @@ ListExpr SpatialIntersectionTypeMap(ListExpr args)
     if (a2 == Line::BasicType() || a2 == Region::BasicType())
       return nl->SymbolAtom(Points::BasicType());
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   if (a1 == Points::BasicType()) {
@@ -2364,7 +3166,7 @@ ListExpr SpatialIntersectionTypeMap(ListExpr args)
       return nl->SymbolAtom(Points::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   if (a1 == Line::BasicType()) {
@@ -2376,7 +3178,7 @@ ListExpr SpatialIntersectionTypeMap(ListExpr args)
       return nl->SymbolAtom(Line::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
   if (a1 == Region::BasicType()) {
@@ -2392,12 +3194,17 @@ ListExpr SpatialIntersectionTypeMap(ListExpr args)
       return nl->SymbolAtom(Region::BasicType());
     }
 
-    return listutils::typeError(err + ": second arg not a spatial type");
+    return listutils::typeError("second arg is not a supported spatial type");
   }
 
-  return listutils::typeError(err + ": first arg not a valid spatial type");
+  return listutils::typeError("first arg not a supported spatial type");
 }
 
+/*
+
+1.1.1 Intersects2
+
+*/
 ListExpr IntersectsTM(ListExpr args)
 {
   ListExpr arg1, arg2;
@@ -2418,6 +3225,12 @@ ListExpr IntersectsTM(ListExpr args)
   return listutils::typeError(" t_1 x t_2 expected,"
                               " with t_1, t_2 in {points,line,region}");
 }
+
+/*
+
+1.1 Definitions
+
+*/
 
 Operator temporaltrajectory2("trajectory2",
                              TemporalSpecTrajectory,
@@ -2464,6 +3277,12 @@ Operator spatialintersects2("intersects2",
                             spatialintersectsmap,
                             SpatialSelectIntersects,
                             IntersectsTM);
+
+/*
+
+1 Algebra definition
+
+*/
 
 RobustPlaneSweepAlgebra::RobustPlaneSweepAlgebra()
 {

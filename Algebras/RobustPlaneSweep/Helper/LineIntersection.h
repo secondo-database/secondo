@@ -20,6 +20,22 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Header File for the class ~LineIntersection~
+
+[TOC]
+
+1 Overview
+
+This header file contains the class ~LineIntersection~.
+
+This class detects intersections between two line segments.
+
+1 Defines and includes
+
 */
 
 #pragma once
@@ -31,9 +47,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~LineIntersection~
+
+*/
 class LineIntersection
 {
 private:
+/*
+
+1.1 ~IsPointOnLineHelper~
+
+*/
   static bool IsPointOnLineHelper(long long p,
                                   long long s0,
                                   long long s1,
@@ -53,11 +79,26 @@ private:
   }
 
 public:
+/*
+
+1.1 ~GetIntersections~
+
+Determines if the segments with the end points a0-a1 and b0-b1 have any 
+intersections. Returns 0 if there is none, 
+1 if there is one (not necessarily proper) intersection and
+2 if there is the segments overlap. 
+if ~includePseudoIntersections~ is false, then only intersection points are
+returned that split at least one segment into two pieces.
+if ~includeCompleteOverlaps~ is false, then overlapping segments where 
+both segments have equal end points are returned as zero intersection points.
+
+*/
   static int GetIntersections(const InternalPoint& a0,
                               const InternalPoint& a1,
                               const InternalPoint& b0,
                               const InternalPoint& b1,
                               const bool includePseudoIntersections,
+                              const bool includeCompleteOverlaps,
                               InternalIntersectionPoint &i0,
                               InternalIntersectionPoint &i1)
   {
@@ -167,7 +208,7 @@ public:
           i0 = InternalIntersectionPoint(b1);
           return 1;
         } else if (t0 == 0 && t1 == 1) {
-          if (!includePseudoIntersections) {
+          if (!includeCompleteOverlaps) {
             if (a0.GetX() == b0.GetX() && a0.GetY() == b0.GetY()
                 && a1.GetX() == b1.GetX()
                 && a1.GetY() == b1.GetY()) {

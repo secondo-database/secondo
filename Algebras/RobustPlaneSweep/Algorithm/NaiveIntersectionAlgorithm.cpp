@@ -20,8 +20,27 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
+[1] Implementation file for the class ~NaiveIntersectionAlgorithm~
+
+[TOC]
+
+1 Overview
+
+This file contains the class ~NaiveIntersectionAlgorithm~.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+
+This class determines the intersections by testing each segment against 
+every other segment. 
+
+1 Includes
+
+*/
 #include "../Helper/LineIntersection.h"
 #include "NaiveIntersectionAlgorithm.h"
 
@@ -29,6 +48,13 @@ using namespace std;
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~NaiveIntersectionAlgorithm~
+
+1.1 ~DetermineIntersectionsInternal~
+
+*/
 void NaiveIntersectionAlgorithm::DetermineIntersectionsInternal()
 {
   vector<InternalLineSegment*>::const_iterator begin = GetInputBegin();
@@ -45,6 +71,7 @@ void NaiveIntersectionAlgorithm::DetermineIntersectionsInternal()
                                                  si->GetRight(),
                                                  sj->GetLeft(),
                                                  sj->GetRight(),
+                                                 false,
                                                  false,
                                                  i0,
                                                  i1);

@@ -20,6 +20,21 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Header File for the internal geometry classes
+
+[TOC]
+
+1 Overview
+
+This header file contains all internal geometry structs and classes.
+
+
+1 Includes
+
 */
 
 #pragma once
@@ -40,11 +55,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Forward declaration ~SweepStateData~
+
+*/
 class SweepStateData;
 
+/*
+
+1 Enum class ~BoundaryType~
+
+*/
 enum class BoundaryType
 {
-  BoundaryTypeUndefined = 0,
+  Undefined = 0,
   Boundary = 1,
   InteriorAbove = 2, /* implies Boundary */
   InteriorBelow = 3, /* implies Boundary */
@@ -52,18 +77,36 @@ enum class BoundaryType
   OutsideInterior = 5, /* implies not Boundary */
 };
 
+/*
+
+1 Class ~InternalAttribute~
+
+This class represents an attribute of a part of an ~InternalLineSegment~. 
+It contains for each geometry a ~BoundaryType~. 
+
+*/
 class InternalAttribute
 {
+/*
+
+1.1 Member variables
+
+*/
 private:
   bool _defined;
   BoundaryType _first;
   BoundaryType _second;
 
 public:
+/*
+
+1.1 Constructors
+
+*/
   InternalAttribute() :
       _defined(false),
-      _first(BoundaryType::BoundaryTypeUndefined),
-      _second(BoundaryType::BoundaryTypeUndefined)
+      _first(BoundaryType::Undefined),
+      _second(BoundaryType::Undefined)
   {
   }
 
@@ -73,25 +116,40 @@ public:
       _first(first),
       _second(second)
   {
-    if (first == BoundaryType::BoundaryTypeUndefined) {
+    if (first == BoundaryType::Undefined) {
       throw new std::invalid_argument("first");
     }
 
-    if (second == BoundaryType::BoundaryTypeUndefined) {
+    if (second == BoundaryType::Undefined) {
       throw new std::invalid_argument("second");
     }
   }
 
+/*
+
+1.1 ~IsDefined~
+
+*/
   bool IsDefined() const
   {
     return _defined;
   }
 
+/*
+
+1.1 ~GetFirst~
+
+*/
   BoundaryType GetFirst() const
   {
     return _first;
   }
 
+/*
+
+1.1 ~IsBoundaryInFirst~
+
+*/
   bool IsBoundaryInFirst() const
   {
     return _first == BoundaryType::Boundary
@@ -99,23 +157,43 @@ public:
            || _first == BoundaryType::InteriorBelow;
   }
 
+/*
+
+1.1 ~IsFirstAbove~
+
+*/
   bool IsFirstAbove() const
   {
     return _first == BoundaryType::InteriorAbove
            || _first == BoundaryType::InsideInterior;
   }
 
+/*
+
+1.1 ~IsFirstBelow~
+
+*/
   bool IsFirstBelow() const
   {
     return _first == BoundaryType::InteriorBelow
            || _first == BoundaryType::InsideInterior;
   }
 
+/*
+
+1.1 ~GetSecond~
+
+*/
   BoundaryType GetSecond() const
   {
     return _second;
   }
 
+/*
+
+1.1 ~IsBoundaryInSecond~
+
+*/
   bool IsBoundaryInSecond() const
   {
     return _second == BoundaryType::Boundary
@@ -123,44 +201,73 @@ public:
            || _second == BoundaryType::InteriorBelow;
   }
 
+/*
+
+1.1 ~IsSecondAbove~
+
+*/
   bool IsSecondAbove() const
   {
     return _second == BoundaryType::InteriorAbove
            || _second == BoundaryType::InsideInterior;
   }
 
+/*
+
+1.1 ~IsSecondBelow~
+
+*/
   bool IsSecondBelow() const
   {
     return _second == BoundaryType::InteriorBelow
            || _second == BoundaryType::InsideInterior;
   }
 
+/*
+
+1.1 ~IsBoundaryInBoth~
+
+*/
   bool IsBoundaryInBoth() const
   {
     return IsBoundaryInFirst() && IsBoundaryInSecond();
   }
 
-  bool IsInUnionRegion(bool& insideAbove) const
-                       {
-    if (IsBoundaryInFirst() || IsBoundaryInSecond()) {
-      if (!IsFirstAbove() && !IsSecondAbove()
-          && (IsFirstBelow() || IsSecondBelow())) {
-        insideAbove = false;
-        return true;
-      } else if ((IsFirstAbove() || IsSecondAbove())
-                 && !IsFirstBelow()
-                 && !IsSecondBelow()) {
-        insideAbove = true;
-        return true;
-      }
-    }
+/*
 
-    insideAbove = false;
-    return false;
+1.1 ~IsInUnionRegion~
+
+*/
+  bool IsInUnionRegion(bool& insideAbove) const
+  {
+    if(_first == BoundaryType::InteriorAbove
+       && (_second == BoundaryType::InteriorAbove
+        || _second == BoundaryType::OutsideInterior)) {
+      insideAbove = true;
+      return true;
+    } else if(_first == BoundaryType::InteriorBelow
+              && (_second == BoundaryType::InteriorBelow
+               || _second == BoundaryType::OutsideInterior)) {
+      insideAbove = false;
+      return true;
+    } else if(_first == BoundaryType::OutsideInterior
+              && (_second == BoundaryType::InteriorAbove
+               || _second == BoundaryType::InteriorBelow)) {
+      insideAbove = (_second == BoundaryType::InteriorAbove);
+      return true;
+    } else {
+      insideAbove = false;
+      return false;
+    }
   }
 
+/*
+
+1.1 ~IsInIntersectionRegion~
+
+*/
   bool IsInIntersectionRegion(bool& insideAbove) const
-                              {
+  {
     if (IsBoundaryInFirst() || IsBoundaryInSecond()) {
       if (IsFirstAbove() && IsSecondAbove()) {
         insideAbove = true;
@@ -177,32 +284,39 @@ public:
     return false;
   }
 
+/*
+
+1.1 ~IsInMinusRegion~
+
+*/
   bool IsInMinusRegion(bool& insideAbove) const
-                       {
-    int coverageAbove = (IsFirstAbove() ? 1 : 0) + (IsSecondAbove() ? 1 : 0);
-    int coverageBelow = (IsFirstBelow() ? 1 : 0) + (IsSecondBelow() ? 1 : 0);
-
-    if (IsBoundaryInFirst() && IsBoundaryInSecond()) {
-      if (coverageAbove == 1 && coverageBelow == 1) {
-        insideAbove = IsFirstAbove();
-        return true;
-      }
-    } else if (IsBoundaryInFirst()) {
-      if ((coverageAbove + coverageBelow) == 1) {
-        insideAbove = IsFirstAbove();
-        return true;
-      }
-    } else if (IsBoundaryInSecond()) {
-      if ((coverageAbove + coverageBelow) == 3) {
-        insideAbove = IsSecondBelow();
-        return true;
-      }
+  {
+    if(_first == BoundaryType::InteriorAbove
+       && (_second == BoundaryType::InteriorBelow
+        || _second == BoundaryType::OutsideInterior)) {
+      insideAbove = true;
+      return true;
+    } else if(_first == BoundaryType::InteriorBelow
+              && (_second == BoundaryType::InteriorAbove
+               || _second == BoundaryType::OutsideInterior)) {
+      insideAbove = false;
+      return true;
+    } else if(_first == BoundaryType::InsideInterior
+              && (_second == BoundaryType::InteriorAbove
+               || _second == BoundaryType::InteriorBelow)) {
+      insideAbove = (_second == BoundaryType::InteriorBelow);
+      return true;
+    } else {
+      insideAbove = false;
+      return false;
     }
-
-    insideAbove = false;
-    return false;
   }
 
+/*
+
+1.1 ~Create~
+
+*/
   static InternalAttribute Create(bool belongsToSecondGeometry,
                                   bool insideAbove,
                                   bool isRegion)
@@ -227,6 +341,15 @@ public:
     }
   }
 
+/*
+
+1.1 ~Merge~
+
+If two segments collaps, then their attributes must be merged. 
+This method assumes that the ~boundary1~ belongs to the segment above the 
+second segment. 
+
+*/
   static BoundaryType Merge(BoundaryType boundary1, BoundaryType boundary2)
   {
     if (boundary1 == BoundaryType::Boundary) {
@@ -295,6 +418,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~FlipInteriorAbove~
+
+*/
   InternalAttribute FlipInteriorAbove() const
   {
     BoundaryType newFirst;
@@ -319,24 +447,51 @@ public:
   }
 };
 
+/*
+
+1 Class ~InternalPoint~
+
+This class represents an end point of an ~InternalLineSegment~.
+
+*/
 class InternalPoint
 {
+/*
+
+1.1 Member variables 
+
+*/
 private:
   int _x;
   int _y;
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   inline InternalPoint(const int x, const int y) :
       _x(x), _y(y)
   {
   }
 
+/*
+
+1.1 ~IsEqual~
+
+*/
   inline static bool IsEqual(const InternalPoint& p0,
                              const InternalPoint& p1)
   {
     return (p0.GetX() == p1.GetX() && p0.GetY() == p1.GetY());
   }
 
+/*
+
+1.1 ~Compare~
+
+*/
   inline static int Compare(const InternalPoint& p0,
                             const InternalPoint& p1)
   {
@@ -356,37 +511,81 @@ public:
     }
   }
 
+/*
+
+1.1 ~GetX~
+
+*/
   inline int GetX() const
   {
     return _x;
   }
 
+/*
+
+1.1 ~GetY~
+
+*/
   inline int GetY() const
   {
     return _y;
   }
 };
 
+/*
+
+1 Struct ~InternalPointComparer~
+
+*/
 struct InternalPointComparer
 {
+/*
+
+1.1 ~operator()~
+
+*/
   size_t operator()(const InternalPoint &x) const
-                    {
+  {
     return ((size_t)(x.GetX())) ^ ((size_t)(x.GetY()));
   }
 
+/*
+
+1.1 ~operator()~
+
+*/
   bool operator()(const InternalPoint &x, const InternalPoint &y) const
-                  {
+  {
     return InternalPoint::IsEqual(x, y);
   }
 };
 
+/*
+
+1 Class ~InternalIntersectionPoint~
+
+This class represents an intersection point. It is similar to the class
+~InternalPoint~, except that it uses ~Rational~ instead of ~int~ for the 
+coordinates.
+
+*/
 class InternalIntersectionPoint
 {
+/*
+
+1.1 Member variables
+
+*/
 private:
   Rational _x;
   Rational _y;
 
 public:
+/*
+
+1.1 Constructors
+
+*/
   InternalIntersectionPoint() :
       _x(0), _y(0)
   {
@@ -407,6 +606,11 @@ public:
   {
   }
 
+/*
+
+1.1 ~IsEqual~
+
+*/
   inline static bool IsEqual(const InternalIntersectionPoint &p0,
                              const InternalIntersectionPoint &p1)
   {
@@ -419,38 +623,73 @@ public:
     return p0.GetX() == p1.GetX() && p0.GetY() == p1.GetY();
   }
 
+/*
+
+1.1 ~GetX~
+
+*/
   inline const Rational& GetX() const
   {
     return _x;
   }
 
+/*
+
+1.1 ~GetY~
+
+*/
   inline const Rational& GetY() const
   {
     return _y;
   }
 };
 
+/*
+
+1 Struct ~InternalIntersectionPointComparer~
+
+*/
 struct InternalIntersectionPointComparer
 {
+/*
+
+1.1 ~operator()~
+
+*/
   size_t operator()(const InternalIntersectionPoint &x) const
-                    {
+  {
     return
     ((size_t)(x.GetX().GetIntegerPart())) ^
     ((size_t)(x.GetY().GetIntegerPart()));
   }
 
+/*
+
+1.1 ~operator()~
+
+*/
   bool operator()(const InternalIntersectionPoint &x,
                   const InternalIntersectionPoint &y) const
-                  {
+  {
     return InternalIntersectionPoint::IsEqual(x, y);
   }
 };
 
+/*
+
+1 Struct ~InternalIntersectionPointLess~
+
+*/
 struct InternalIntersectionPointLess
 {
+/*
+
+1.1 ~operator()~
+
+*/
   bool operator()(const InternalIntersectionPoint &x,
                   const InternalIntersectionPoint &y) const
-                  {
+  {
     int result = Rational::Compare(x.GetX(), y.GetX());
 
     if (result == 0) {
@@ -461,8 +700,21 @@ struct InternalIntersectionPointLess
   }
 };
 
+/*
+
+1 Class ~InternalPointTransformation~
+
+This class is used to transform the SECONDO points into ~InternalPoints~ and
+vice versa. It uses two offsets and a scale factor. 
+
+*/
 class InternalPointTransformation
 {
+/*
+
+1.1 Member variables
+
+*/
 private:
   long long _offsetX;
   long long _offsetY;
@@ -472,19 +724,34 @@ private:
   int _almostEqualSortMargin;
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   InternalPointTransformation(const long long offsetX,
                               const long long offsetY,
                               const int scaleFactor,
                               const int roundResultToDecimals,
                               const int roundingDecimalSteps);
 
+/*
+
+1.1 ~RoundRational~
+
+*/
   int RoundRational(const Rational& rat) const
-                    {
+  {
     return Rational::Round(rat, _roundingStep);
   }
 
+/*
+
+1.1 ~RoundPoint~
+
+*/
   const InternalPoint RoundPoint(const InternalPoint& point) const
-                                 {
+  {
     int newX = Rational::Round(Rational(point.GetX()), _roundingStep);
     int newY = Rational::Round(Rational(point.GetY()), _roundingStep);
 
@@ -492,15 +759,20 @@ public:
   }
 
   const InternalPoint RoundPoint(const InternalIntersectionPoint& point) const
-                                 {
+  {
     int newX = Rational::Round(point.GetX(), _roundingStep);
     int newY = Rational::Round(point.GetY(), _roundingStep);
 
     return InternalPoint(newX, newY);
   }
 
+/*
+
+1.1 ~TransformToPoint~
+
+*/
   const Point TransformToPoint(const InternalPoint& point) const
-                               {
+  {
     const InternalPoint& temp = RoundPoint(point);
     long long x = ((long long)temp.GetX()) + _offsetX;
     long long y = ((long long)temp.GetY()) + _offsetY;
@@ -515,7 +787,7 @@ public:
   }
 
   const Point TransformToPoint(const InternalIntersectionPoint& point) const
-                               {
+  {
     const InternalPoint& temp = RoundPoint(point);
     long long x = ((long long)temp.GetX()) + _offsetX;
     long long y = ((long long)temp.GetY()) + _offsetY;
@@ -530,8 +802,13 @@ public:
     return result;
   }
 
+/*
+
+1.1 ~TransformToInternalX~
+
+*/
   int TransformToInternalX(const Point& point) const
-                           {
+  {
     int intX = (int)(((long long)
                      Utility::Round(point.GetX() * _scaleFactor, 0))
                      - _offsetX);
@@ -539,8 +816,13 @@ public:
     return intX;
   }
 
+/*
+
+1.1 ~TransformToInternalPoint~
+
+*/
   const InternalPoint TransformToInternalPoint(const Point& point) const
-                                               {
+  {
     int intX = (int)(((long long)
                      Utility::Round(point.GetX() * _scaleFactor, 0))
                      - _offsetX);
@@ -552,29 +834,62 @@ public:
     return InternalPoint(intX, intY);
   }
 
+/*
+
+1.1 ~GetScaleFactor~
+
+*/
   int GetScaleFactor() const
   {
     return _scaleFactor;
   }
 
+/*
+
+1.1 ~GetRoundResultToDecimals~
+
+*/
   int GetRoundResultToDecimals() const
   {
     return _roundResultToDecimals;
   }
 
+/*
+
+1.1 ~GetMinimalRoundedStep~
+
+*/
   int GetMinimalRoundedStep() const
   {
     return _roundingStep;
   }
 
+/*
+
+1.1 ~GetAlmostEqualSortMargin~
+
+*/
   int GetAlmostEqualSortMargin() const
   {
     return _almostEqualSortMargin;
   }
 };
 
+/*
+
+1 Class ~InternalResultLineSegment~
+
+The ~InternalResultLineSegment~ class is equivalent to the ~HalfSegment~ class,
+except that the end points are still ~InternalPoint~s. 
+
+*/
 class InternalResultLineSegment
 {
+/*
+
+1.1 Member variables
+
+*/
 private:
   InternalPoint _originalStart;
   InternalPoint _start;
@@ -584,6 +899,11 @@ private:
   InternalAttribute _internalAttribute;
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   inline InternalResultLineSegment(const InternalPoint& originalStart,
                                    const InternalPoint& start,
                                    const InternalPoint& originalEnd,
@@ -611,38 +931,73 @@ public:
     }
   }
 
+/*
+
+1.1 ~GetStart~
+
+*/
   inline const InternalPoint& GetStart() const
   {
     return _start;
   }
 
+/*
+
+1.1 ~GetOriginalStart~
+
+*/
   inline const InternalPoint& GetOriginalStart() const
   {
     return _originalStart;
   }
 
+/*
+
+1.1 ~GetEnd~
+
+*/
   inline const InternalPoint& GetEnd() const
   {
     return _end;
   }
 
+/*
+
+1.1 ~GetOriginalEnd~
+
+*/
   inline const InternalPoint& GetOriginalEnd() const
   {
     return _originalEnd;
   }
 
+/*
+
+1.1 ~GetInternalAttribute~
+
+*/
   inline const InternalAttribute GetInternalAttribute() const
   {
     return _internalAttribute;
   }
 
+/*
+
+1.1 ~MergeSegments~
+
+*/
   static InternalResultLineSegment
   MergeSegments(const InternalResultLineSegment& s0,
                 const InternalResultLineSegment& s1);
 
+/*
+
+1.1 ~GetHalfSegment~
+
+*/
   HalfSegment
-  GetRealLineSegment(const InternalPointTransformation* transformation) const
-                     {
+  GetHalfSegment(const InternalPointTransformation* transformation) const
+  {
     HalfSegment h(true,
                   transformation->TransformToPoint(_start),
                   transformation->TransformToPoint(_end));
@@ -650,12 +1005,26 @@ public:
   }
 };
 
+/*
+
+1 Class ~InternalLineSegment~
+
+This class represents a line segment inside the ~BentleyOttmann~ class. 
+It contains a left and a right end points and all found intersections with the
+necessary attributes.
+
+*/
 class InternalLineSegment
 {
+/*
+
+1.1 Member variables
+
+*/
 private:
   InternalPoint _left;
   InternalPoint _right;
-  Rational _a;
+  Rational _slope;
   bool _isVertical;
 
   InternalIntersectionPoint _breakupStart;
@@ -674,10 +1043,15 @@ private:
 
   AvlTreeNode<InternalLineSegment*, SweepStateData*>* _treeNode;
 
+/*
+
+1.1 Private constructor
+
+*/
   InternalLineSegment(InternalLineSegment&) :
       _left(0, 0),
       _right(0, 0),
-      _a(0),
+      _slope(0),
       _breakupStart(0, 0),
       _intersections(NULL),
       _initialAttribute(),
@@ -688,6 +1062,11 @@ private:
   {
   }
 
+/*
+
+1.1 ~GetInitialInsideAbove~
+
+*/
   static bool GetInitialInsideAbove(const Point& start,
                                     const Point& end,
                                     const InternalPoint& internalStart,
@@ -726,13 +1105,18 @@ private:
   }
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   InternalLineSegment(const InternalPointTransformation &transformation,
                       const HalfSegment &segment,
                       const bool belongsToSecondGeometry,
                       const bool belongsToRegion) :
       _left(0, 0),
       _right(0, 0),
-      _a(0),
+      _slope(0),
       _breakupStart(0, 0),
       _intersections(NULL),
       _initialAttribute(),
@@ -779,15 +1163,20 @@ public:
 
     if (dx > 0) {
       _isVertical = false;
-      _a = Rational(dy, dx);
+      _slope = Rational(dy, dx);
     } else if (dx == 0) {
       _isVertical = true;
-      _a = Rational(0, 1);
+      _slope = Rational(0, 1);
     } else {
       throw new std::invalid_argument("segment");
     }
   }
 
+/*
+
+1.1 Destructor
+
+*/
   ~InternalLineSegment()
   {
     if (_intersections != NULL) {
@@ -796,9 +1185,14 @@ public:
     }
   }
 
+/*
+
+1.1 ~IsStartEndPoint~
+
+*/
   inline bool
   IsStartEndPoint(const InternalIntersectionPoint &intersectionPoint) const
-                  {
+  {
     if (InternalIntersectionPoint::IsEqual(intersectionPoint, _left)
         || InternalIntersectionPoint::IsEqual(intersectionPoint, _right)) {
       return true;
@@ -807,10 +1201,20 @@ public:
     }
   }
 
+/*
+
+1.1 ~AddHobbyIntersection~
+
+*/
   void AddHobbyIntersection(int x,
                             int y,
                             int hobbySpacing);
 
+/*
+
+1.1 ~AddIntersection~
+
+*/
   void AddIntersection(const InternalIntersectionPoint& intersectionPoint)
   {
     if (!IsStartEndPoint(intersectionPoint)) {
@@ -826,17 +1230,33 @@ public:
     }
   }
 
+/*
+
+1.1 ~GetLeft~
+
+*/
   inline const InternalPoint& GetLeft() const
   {
     return _left;
   }
 
+/*
+
+1.1 ~GetRight~
+
+*/
   inline const InternalPoint& GetRight() const
   {
     return _right;
   }
 
-  // wrong results if p is not and integer
+/*
+
+1.1 ~GetYValueAt~
+
+wrong results if x in p is not an integer
+
+*/
   const Rational& GetYValueAt(const InternalIntersectionPoint& p)
   {
     if (_isVertical) {
@@ -846,6 +1266,11 @@ public:
     return GetYValueAt(p.GetX().GetIntegerPart());
   }
 
+/*
+
+1.1 ~GetYValueAt~
+
+*/
   const Rational& GetYValueAt(int x) const
   {
     if (_lastX1 == x) {
@@ -860,11 +1285,16 @@ public:
     _lastY2 = _lastY1;
 
     _lastX1 = x;
-    _lastY1 = _a * (x - _left.GetX()) + _left.GetY();
+    _lastY1 = _slope * (x - _left.GetX()) + _left.GetY();
 
     return _lastY1;
   }
 
+/*
+
+1.1 ~GetIntersections~
+
+*/
   std::map<
       InternalIntersectionPoint,
       InternalAttribute,
@@ -874,6 +1304,11 @@ public:
     return _intersections;
   }
 
+/*
+
+1.1 ~BreakupLines~
+
+*/
   void BreakupLines(const InternalPointTransformation &transformation,
                     std::vector<InternalResultLineSegment>& target)
   {
@@ -982,25 +1417,45 @@ public:
     }
   }
 
-  inline const Rational& GetA() const
+/*
+
+1.1 ~GetSlope~
+
+*/
+  inline const Rational& GetSlope() const
   {
     if (_isVertical) {
       throw new std::logic_error("Vertical");
     }
 
-    return _a;
+    return _slope;
   }
 
+/*
+
+1.1 ~GetIsVertical~
+
+*/
   inline bool GetIsVertical() const
   {
     return _isVertical;
   }
 
+/*
+
+1.1 ~GetTreeNode~
+
+*/
   AvlTreeNode<InternalLineSegment*, SweepStateData*>* GetTreeNode() const
   {
     return _treeNode;
   }
 
+/*
+
+1.1 ~SetTreeNode~
+
+*/
   void SetTreeNode(AvlTreeNode<InternalLineSegment*, SweepStateData*>* treeNode)
   {
     if (_treeNode != NULL && treeNode != NULL && (_treeNode != treeNode)) {
@@ -1010,14 +1465,24 @@ public:
     _treeNode = treeNode;
   }
 
+/*
+
+1.1 ~GetInitialAttribute~
+
+*/
   const InternalAttribute GetInitialAttribute() const
   {
     return _initialAttribute;
   }
 
+/*
+
+1.1 ~GetAttributeAt~
+
+*/
   const InternalAttribute GetAttributeAt(const InternalIntersectionPoint& p,
                                          bool includeP) const
-                                         {
+  {
     InternalAttribute result = _initialAttribute;
 
     if (_intersections != NULL) {
@@ -1050,13 +1515,23 @@ public:
     return result;
   }
 
+/*
+
+1.1 ~AddAttributeEntry~
+
+*/
   void AddAttributeEntry(const InternalIntersectionPoint& p,
                          const InternalAttribute& attribute)
   {
     (*_intersections)[p] = attribute;
   }
 
-  void SetAttributeNoAbove(const bool setInitialAttribute,
+/*
+
+1.1 ~SetAttributeNoBelow~
+
+*/
+  void SetAttributeNoBelow(const bool setInitialAttribute,
                            const InternalIntersectionPoint& point)
   {
     InternalAttribute newAttribute;
@@ -1083,6 +1558,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~SetAttribute~
+
+*/
   void SetAttribute(const InternalAttribute& attribute,
                     const bool setInitialAttribute,
                     const InternalIntersectionPoint& point)
@@ -1129,6 +1609,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~CompareSlope~
+
+*/
   int static CompareSlope(InternalLineSegment* x, InternalLineSegment* y)
   {
     int result;
@@ -1140,7 +1625,7 @@ public:
     } else if (y->GetIsVertical()) {
       result = -1;
     } else {
-      result = Rational::Compare(x->GetA(), y->GetA());
+      result = Rational::Compare(x->GetSlope(), y->GetSlope());
     }
 
     return result;

@@ -20,6 +20,28 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Header File for the classes ~Rational~ and ~SimpleRational~
+
+[TOC]
+
+1 Overview
+
+This header file contains the classes ~Rational~ and ~SimpleRational~.
+
+~Rational~ is a class to represent a rational number. Internally the ~Rational~
+class uses an int (for the integer part) and two long long as numerator and 
+denominator for the proper fraction part. 
+
+~SimpleRational~ is only used inside the ~LineIntersection~ class to avoid the
+performance penalty of the ~Rational~ normalization. If necessary 
+a ~SimpleRational~ can be casted to a ~Rational~.
+
+1 Defines and includes
+
 */
 
 #pragma once
@@ -29,13 +51,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
+/*
+
+1 Class ~Rational~
+
+*/
 class Rational
 {
+/*
+
+1.1 Member variables 
+
+*/
 private:
   int _integerPart;
   long long _numerator;
   long long _denominator;
 
+/*
+
+1.1 Private constructor
+
+*/
   Rational(const int integerPart,
            const long long numerator,
            const long long denominator,
@@ -47,6 +84,11 @@ private:
   }
 
 public:
+/*
+
+1.1 Constructors
+
+*/
   explicit Rational(const int value) :
       _integerPart(value), _numerator(0), _denominator(1)
   {
@@ -64,8 +106,13 @@ public:
     Init(integerPart, numerator, denominator);
   }
 
+/*
+
+1.1 Multiply operator
+
+*/
   Rational operator *(const Rational& v) const
-                      {
+  {
     if (v._numerator == 0) {
       return *this * v._integerPart;
     } else if (_numerator == 0) {
@@ -76,7 +123,7 @@ public:
   }
 
   Rational operator *(const int v) const
-                      {
+  {
     if (v == 0) {
       return Rational(0);
     } else if (v == 1) {
@@ -149,6 +196,11 @@ public:
     }
   }
 
+/*
+
+1.1 Unary negation operator
+
+*/
   Rational operator -() const
   {
     if (_numerator == 0) {
@@ -164,8 +216,13 @@ public:
     }
   }
 
+/*
+
+1.1 Subtraction operator
+
+*/
   Rational operator -(const int v2) const
-                      {
+  {
     Rational result = Rational(_integerPart - v2,
                                _numerator,
                                _denominator,
@@ -173,8 +230,13 @@ public:
     return result;
   }
 
+/*
+
+1.1 Addition operator
+
+*/
   Rational operator +(const int v2) const
-                      {
+  {
     Rational result = Rational(_integerPart + v2,
                                _numerator,
                                _denominator,
@@ -182,33 +244,18 @@ public:
     return result;
   }
 
+/*
+
+1.1 Greater than operator
+
+*/
   bool operator >(const Rational& y) const
-                  {
+  {
     return Compare(*this, y) > 0;
   }
 
-  bool operator >=(const Rational& y) const
-                   {
-    return Compare(*this, y) >= 0;
-  }
-
-  bool operator >=(const int y) const
-                   {
-    return Compare(*this, y) >= 0;
-  }
-
-  bool operator <=(const Rational& y) const
-                   {
-    return Compare(*this, y) <= 0;
-  }
-
-  bool operator <=(const int y) const
-                   {
-    return Compare(*this, y) <= 0;
-  }
-
   bool operator >(const int y) const
-                  {
+  {
     if (y == 1) {
       return (_integerPart == 1 && _numerator > 0) || _integerPart > 1;
     } else {
@@ -216,33 +263,33 @@ public:
     }
   }
 
-  bool operator ==(const Rational& y) const
-                   {
-    return Compare(*this, y) == 0;
+/*
+
+1.1 Greater/Equal than operator
+
+*/
+  bool operator >=(const Rational& y) const
+  {
+    return Compare(*this, y) >= 0;
   }
 
-  bool operator !=(const Rational& y) const
-                   {
-    return !(*this == y);
+  bool operator >=(const int y) const
+  {
+    return Compare(*this, y) >= 0;
   }
 
-  bool operator ==(const int y) const
-                   {
-    return _integerPart == y && _numerator == 0;
-  }
+/*
 
-  bool operator !=(const int y) const
-                   {
-    return _integerPart != y || _numerator != 0;
-  }
+1.1 Less than operator
 
+*/
   bool operator <(const Rational& y) const
-                  {
+  {
     return Compare(*this, y) < 0;
   }
 
   bool operator <(const int y) const
-                  {
+  {
     if (y == 0) {
       return (_integerPart < 0);
     } else {
@@ -250,11 +297,66 @@ public:
     }
   }
 
+/*
+
+1.1 Less/Equal than operator
+
+*/
+  bool operator <=(const Rational& y) const
+  {
+    return Compare(*this, y) <= 0;
+  }
+
+  bool operator <=(const int y) const
+  {
+    return Compare(*this, y) <= 0;
+  }
+
+/*
+
+1.1 Equality operator
+
+*/
+  bool operator ==(const Rational& y) const
+  {
+    return Compare(*this, y) == 0;
+  }
+
+  bool operator ==(const int y) const
+  {
+    return _integerPart == y && _numerator == 0;
+  }
+
+/*
+
+1.1 Not-Equality operator
+
+*/
+  bool operator !=(const Rational& y) const
+  {
+    return !(*this == y);
+  }
+
+  bool operator !=(const int y) const
+  {
+    return _integerPart != y || _numerator != 0;
+  }
+
+/*
+
+1.1 ~GetIntegerPart~
+
+*/
   int GetIntegerPart() const
   {
     return _integerPart;
   }
 
+/*
+
+1.1 ~Compare~
+
+*/
   static int Compare(const Rational& x, const int y)
   {
     if (x._integerPart < y) {
@@ -328,6 +430,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~Max~
+
+*/
   static const Rational Max(const Rational& x, const Rational& y)
   {
     if (x > y) {
@@ -337,6 +444,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~Min~
+
+*/
   static const Rational Min(const Rational& x, const Rational& y)
   {
     if (x < y) {
@@ -346,6 +458,11 @@ public:
     }
   }
 
+/*
+
+1.1 ~Round~
+
+*/
   static int Round(const Rational& number, const int step)
   {
     if (step == 1) {
@@ -369,6 +486,11 @@ public:
   }
 
 private:
+/*
+
+1.1 ~Init~
+
+*/
   void Init(const int integerPart,
             const long long numerator,
             const long long denominator)
@@ -422,13 +544,28 @@ private:
   }
 };
 
+/*
+
+1 Class ~SimpleRational~
+
+*/
 class SimpleRational
 {
+/*
+
+1.1 Member variables
+
+*/
 private:
   long long _numerator;
   long long _denominator;
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   SimpleRational(const long long numerator, const long long denominator)
   {
     if (denominator == 0) {
@@ -444,6 +581,11 @@ public:
     }
   }
 
+/*
+
+1.1 Greater than operator
+
+*/
   bool operator>(const SimpleRational &y)
   {
     if (_denominator == y._denominator) {
@@ -453,19 +595,23 @@ public:
     }
   }
 
-  bool operator<(const SimpleRational &y)
-  {
-    if (_denominator == y._denominator) {
-      return _numerator < y._numerator;
-    } else {
-      throw new std::invalid_argument("y");
-    }
-  }
-
   bool operator>(int y)
   {
     if (y == 1) {
       return _numerator > _denominator;
+    } else {
+      throw new std::invalid_argument("y");
+    }
+  }
+/*
+
+1.1 Less than operator
+
+*/
+  bool operator<(const SimpleRational &y)
+  {
+    if (_denominator == y._denominator) {
+      return _numerator < y._numerator;
     } else {
       throw new std::invalid_argument("y");
     }
@@ -480,6 +626,11 @@ public:
     }
   }
 
+/*
+
+1.1 Equality operator
+
+*/
   bool operator==(int y)
   {
     if (y == 0) {
@@ -508,6 +659,11 @@ public:
     }
   }
 
+/*
+
+1.1 Cast to ~Rational~ operator
+
+*/
   operator Rational()
   {
     return Rational(_numerator, _denominator);

@@ -20,6 +20,22 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] Implementation file for the region tests
+
+[TOC]
+
+1 Overview
+
+This file contains all classes and methods required for the region tests.
+
+This file is not required for SECONDO. It is only used inside the test project.
+
+1 Includes
+
 */
 
 #include <stdexcept>
@@ -38,6 +54,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace RobustPlaneSweep;
 
+/*
+
+1 Enum class ~SetOpType~
+
+*/
 enum class SetOpType
 {
   Union = 1,
@@ -45,8 +66,18 @@ enum class SetOpType
   Minus = 3
 };
 
+/*
+
+1 Class ~RegionVectorData~
+
+*/
 class RegionVectorData : public IntersectionAlgorithmData
 {
+/*
+
+1.1 Member variables
+
+*/
 private:
   vector<HalfSegment>* _input;
   vector<HalfSegment>* _output;
@@ -61,6 +92,11 @@ private:
   bool _intersects;
 
 public:
+/*
+
+1.1 Constructors
+
+*/
   RegionVectorData(vector<HalfSegment>* input,
                    SetOpType setOpType,
                    int roundToDecimals,
@@ -98,6 +134,11 @@ public:
     _intersects = false;
   }
 
+/*
+
+1.1 Destructor
+
+*/
   ~RegionVectorData()
   {
     if (_output != NULL) {
@@ -106,22 +147,42 @@ public:
     }
   }
 
+/*
+
+1.1 ~FirstGeometryIsRegion~
+
+*/
   bool FirstGeometryIsRegion() const
   {
     return true;
   }
 
+/*
+
+1.1 ~SecondGeometryIsRegion~
+
+*/
   bool SecondGeometryIsRegion() const
   {
     return true;
   }
 
+/*
+
+1.1 ~InitializeFetch~
+
+*/
   void InitializeFetch()
   {
     sort(_input->begin(), _input->end(), HalfSegment::Less);
     _inputIterator = _input->begin();
   }
 
+/*
+
+1.1 ~FetchInput~
+
+*/
   bool FetchInput(HalfSegment &segment,
                   Point& point,
                   bool &belongsToSecondGeometry)
@@ -140,22 +201,42 @@ public:
     }
   }
 
+/*
+
+1.1 ~OutputData~
+
+*/
   bool OutputData() const
   {
     return !_testIntersectionOnly;
   }
 
+/*
+
+1.1 ~OnGeometryIntersectionFound~
+
+*/
   bool OnGeometryIntersectionFound()
   {
     _intersects = true;
     return _testIntersectionOnly;
   }
 
+/*
+
+1.1 ~Intersects~
+
+*/
   bool Intersects()
   {
     return _intersects;
   }
 
+/*
+
+1.1 ~OutputHalfSegment~
+
+*/
   void OutputHalfSegment(const HalfSegment& segment,
                          const InternalAttribute& a)
   {
@@ -198,6 +279,11 @@ public:
     _outputSegments++;
   }
 
+/*
+
+1.1 ~GetBoundingBox~
+
+*/
   const Rectangle<2> GetBoundingBox()
   {
     double minX = 1e300;
@@ -233,17 +319,32 @@ public:
     }
   }
 
+/*
+
+1.1 ~GetRoundToDecimals~
+
+*/
   void GetRoundToDecimals(int& decimals, int& stepSize) const
-                          {
+  {
     decimals = _roundToDecimals;
     stepSize = 1;
   }
 
+/*
+
+1.1 ~OutputFinished~
+
+*/
   void OutputFinished()
   {
     sort(_output->begin(), _output->end(), HalfSegment::Less);
   }
 
+/*
+
+1.1 ~GetResult~
+
+*/
   vector<HalfSegment>* GetResult()
   {
     vector<HalfSegment>* result = _output;
@@ -252,28 +353,48 @@ public:
   }
 };
 
+/*
+
+1 Class ~RegionHelper~
+
+*/
 class RegionHelper
 {
 private:
+/*
+
+1.1 Private Point comparer 
+
+*/
   struct PointComparer
   {
     size_t operator()(const Point &x) const
-                      {
+    {
       return ((size_t)(x.GetX())) ^ ((size_t)(x.GetY()));
     }
 
     bool operator()(const Point &x, const Point &y) const
-                    {
+    {
       return x.GetX() == y.GetX() && x.GetY() == y.GetY();
     }
   };
 
+/*
+
+1.1 Member variables
+
+*/
   typedef unordered_map<Point, vector<HalfSegment>*, PointComparer,
       PointComparer>
   graphtype;
 
   graphtype _graph;
 
+/*
+
+1.1 ~BuildGraph~
+
+*/
   void BuildGraph(vector<HalfSegment>* segments)
   {
     for (vector<HalfSegment>::const_iterator segment = segments->begin();
@@ -299,10 +420,20 @@ private:
   }
 
 public:
+/*
+
+1.1 Constructor
+
+*/
   RegionHelper()
   {
   }
 
+/*
+
+1.1 ~CanExtractRegions~
+
+*/
   bool CanExtractRegions(vector<HalfSegment>* segments)
   {
     BuildGraph(segments);
@@ -368,6 +499,13 @@ public:
   }
 };
 
+/*
+
+1 Helper methods
+
+1.1 ~Flip~
+
+*/
 Point Flip(const Point& point, bool x, bool y)
 {
   return Point(true,
@@ -375,6 +513,11 @@ Point Flip(const Point& point, bool x, bool y)
                (y ? -point.GetY() : point.GetY()));
 }
 
+/*
+
+1.1 ~Rotate~
+
+*/
 Point Rotate(const Point& point, int angle)
 {
   switch (angle) {
@@ -395,6 +538,11 @@ Point Rotate(const Point& point, int angle)
   }
 }
 
+/*
+
+1.1 ~Flip~
+
+*/
 HalfSegment Flip(const HalfSegment& segment,
                  bool x,
                  bool y,
@@ -424,6 +572,11 @@ HalfSegment Flip(const HalfSegment& segment,
   return result;
 }
 
+/*
+
+1.1 ~Rotate~
+
+*/
 HalfSegment Rotate(const HalfSegment& segment, int angle)
 {
   bool insideAbove = segment.attr.insideAbove;
@@ -466,6 +619,11 @@ HalfSegment Rotate(const HalfSegment& segment, int angle)
   return result;
 }
 
+/*
+
+1.1 ~FlipRotate~
+
+*/
 vector<HalfSegment> FlipRotate(const vector<HalfSegment>& source,
                                bool x,
                                bool y,
@@ -499,6 +657,11 @@ FlipRotate(const vector<vector<HalfSegment>>& source,
   return result;
 }
 
+/*
+
+1.1 ~TestInternal~
+
+*/
 void TestInternal(vector<HalfSegment> source,
                   SetOpType type,
                   int decimals,
@@ -618,6 +781,11 @@ void TestInternal(vector<HalfSegment> source,
                differenceRevResults);
 }
 
+/*
+
+1.1 ~CreateHalfSegment~
+
+*/
 HalfSegment CreateHalfSegment(int geometryIndex,
                               int edgoNo,
                               double x0,
@@ -637,6 +805,11 @@ HalfSegment CreateHalfSegment(int geometryIndex,
   return result;
 }
 
+/*
+
+1.1 ~TriangleSetOpTest~
+
+*/
 bool TriangleSetOpTest(unsigned int seed, 
                        unsigned int triangleCount, 
                        int decimals)
@@ -762,7 +935,9 @@ bool TriangleSetOpTest(unsigned int seed,
 
 /*
 
- Test 1
+1 Region $\times$ Region test cases
+
+1.1 Test case 1
 
 */
 void RegionRegionTest1()
@@ -828,7 +1003,7 @@ void RegionRegionTest1()
 
 /*
 
- Test 2
+1.1 Test case 2
 
 */
 void RegionRegionTest2()
@@ -886,7 +1061,7 @@ void RegionRegionTest2()
 
 /*
 
- Test 3
+1.1 Test case 3
 
 */
 void RegionRegionTest3()
@@ -942,7 +1117,7 @@ void RegionRegionTest3()
 
 /*
 
- Test 4
+1.1 Test case 4
 
 */
 void RegionRegionTest4()
@@ -992,7 +1167,7 @@ void RegionRegionTest4()
 
 /*
 
- Test 5
+1.1 Test case 5
 
 */
 void RegionRegionTest5()
@@ -1042,143 +1217,7 @@ void RegionRegionTest5()
 
 /*
 
- Test Circle 4
-
-*/
-void RegionRegionTestCircle4()
-{
-  vector<HalfSegment> source;
-  vector<HalfSegment> unionResult;
-  vector<HalfSegment> intersectionResult;
-  vector<HalfSegment> differenceResult;
-  vector<HalfSegment> differenceRevResult;
-
-  vector<HalfSegment>* s = &source;
-  s->push_back(CreateHalfSegment(0, 0, 10, 5, 5, 10, true));
-  s->push_back(CreateHalfSegment(0, 1, 5, 10, 10, 15, false));
-  s->push_back(CreateHalfSegment(0, 2, 10, 15, 15, 10, false));
-  s->push_back(CreateHalfSegment(0, 3, 15, 10, 10, 5, true));
-  s->push_back(CreateHalfSegment(1, 10, 13, 5, 8, 10, true));
-  s->push_back(CreateHalfSegment(1, 11, 8, 10, 13, 15, false));
-  s->push_back(CreateHalfSegment(1, 12, 13, 15, 18, 10, false));
-  s->push_back(CreateHalfSegment(1, 13, 18, 10, 13, 5, true));
-
-  s = &unionResult;
-  s->push_back(CreateHalfSegment(0, 1, 5, 10, 10, 5, true));
-  s->push_back(CreateHalfSegment(0, 2, 5, 10, 10, 15, false));
-  s->push_back(CreateHalfSegment(0, 3, 10, 5, 11.5, 6.5, true));
-  s->push_back(CreateHalfSegment(0, 4, 10, 15, 11.5, 13.5, false));
-  s->push_back(CreateHalfSegment(0, 5, 11.5, 6.5, 13, 5, true));
-  s->push_back(CreateHalfSegment(0, 6, 11.5, 13.5, 13, 15, false));
-  s->push_back(CreateHalfSegment(0, 7, 13, 5, 18, 10, true));
-  s->push_back(CreateHalfSegment(0, 8, 13, 15, 18, 10, false));
-
-  s = &intersectionResult;
-  s->push_back(CreateHalfSegment(0, 1, 8, 10, 11.5, 6.5, true));
-  s->push_back(CreateHalfSegment(0, 2, 8, 10, 11.5, 13.5, false));
-  s->push_back(CreateHalfSegment(0, 3, 11.5, 6.5, 15, 10, true));
-  s->push_back(CreateHalfSegment(0, 4, 11.5, 13.5, 15, 10, false));
-
-  s = &differenceResult;
-  s->push_back(CreateHalfSegment(0, 1, 5, 10, 10, 5, true));
-  s->push_back(CreateHalfSegment(0, 2, 5, 10, 10, 15, false));
-  s->push_back(CreateHalfSegment(0, 3, 8, 10, 11.5, 6.5, false));
-  s->push_back(CreateHalfSegment(0, 4, 8, 10, 11.5, 13.5, true));
-  s->push_back(CreateHalfSegment(0, 5, 10, 5, 11.5, 6.5, true));
-  s->push_back(CreateHalfSegment(0, 6, 10, 15, 11.5, 13.5, false));
-
-  s = &differenceRevResult;
-  s->push_back(CreateHalfSegment(0, 1, 11.5, 6.5, 13, 5, true));
-  s->push_back(CreateHalfSegment(0, 2, 11.5, 6.5, 15, 10, false));
-  s->push_back(CreateHalfSegment(0, 3, 11.5, 13.5, 13, 15, false));
-  s->push_back(CreateHalfSegment(0, 4, 11.5, 13.5, 15, 10, true));
-  s->push_back(CreateHalfSegment(0, 5, 13, 5, 18, 10, true));
-  s->push_back(CreateHalfSegment(0, 6, 13, 15, 18, 10, false));
-
-  TestInternal(source,
-               1,
-               NULL,
-               unionResult,
-               intersectionResult,
-               differenceResult,
-               differenceRevResult);
-}
-
-/*
-
- Test Circle 6
-
-*/
-void RegionRegionTestCircle6()
-{
-  vector<HalfSegment> source;
-  vector<HalfSegment> unionResult;
-  vector<HalfSegment> intersectionResult;
-  vector<HalfSegment> differenceResult;
-  vector<HalfSegment> differenceRevResult;
-
-  vector<HalfSegment>* s = &source;
-  s->push_back(CreateHalfSegment(0, 0, 5, 10, 7.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 1, 5, 10, 7.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 2, 7.5, 14.3, 12.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 3, 12.5, 14.3, 15, 10, false));
-  s->push_back(CreateHalfSegment(0, 4, 12.5, 5.6, 15, 10, true));
-  s->push_back(CreateHalfSegment(0, 5, 7.5, 5.6, 12.5, 5.6, true));
-  s->push_back(CreateHalfSegment(1, 10, 8, 10, 10.5, 5.6, true));
-  s->push_back(CreateHalfSegment(1, 11, 8, 10, 10.5, 14.3, false));
-  s->push_back(CreateHalfSegment(1, 12, 10.5, 14.3, 15.5, 14.3, false));
-  s->push_back(CreateHalfSegment(1, 13, 15.5, 14.3, 18, 10, false));
-  s->push_back(CreateHalfSegment(1, 14, 15.5, 5.6, 18, 10, true));
-  s->push_back(CreateHalfSegment(1, 15, 10.5, 5.6, 15.5, 5.6, true));
-
-  s = &unionResult;
-  s->push_back(CreateHalfSegment(0, 1, 5, 10, 7.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 2, 5, 10, 7.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 3, 7.5, 5.6, 10.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 4, 7.5, 14.3, 10.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 5, 10.5, 5.6, 12.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 6, 10.5, 14.3, 12.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 7, 12.5, 5.6, 15.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 8, 12.5, 14.3, 15.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 9, 15.5, 5.6, 18, 10, true));
-  s->push_back(CreateHalfSegment(0, 10, 15.5, 14.3, 18, 10, false));
-
-  s = &intersectionResult;
-  s->push_back(CreateHalfSegment(0, 1, 8, 10, 10.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 2, 8, 10, 10.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 3, 10.5, 5.6, 12.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 4, 10.5, 14.3, 12.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 5, 12.5, 5.6, 15, 10, true));
-  s->push_back(CreateHalfSegment(0, 6, 12.5, 14.3, 15, 10, false));
-
-  s = &differenceResult;
-  s->push_back(CreateHalfSegment(0, 1, 5, 10, 7.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 2, 5, 10, 7.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 3, 7.5, 5.6, 10.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 4, 7.5, 14.3, 10.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 5, 8, 10, 10.5, 5.6, false));
-  s->push_back(CreateHalfSegment(0, 6, 8, 10, 10.5, 14.3, true));
-
-  s = &differenceRevResult;
-  s->push_back(CreateHalfSegment(0, 1, 12.5, 5.6, 15, 10, false));
-  s->push_back(CreateHalfSegment(0, 2, 12.5, 5.6, 15.5, 5.6, true));
-  s->push_back(CreateHalfSegment(0, 3, 12.5, 14.3, 15, 10, true));
-  s->push_back(CreateHalfSegment(0, 4, 12.5, 14.3, 15.5, 14.3, false));
-  s->push_back(CreateHalfSegment(0, 5, 15.5, 5.6, 18, 10, true));
-  s->push_back(CreateHalfSegment(0, 6, 15.5, 14.3, 18, 10, false));
-
-  TestInternal(source,
-               1,
-               NULL,
-               unionResult,
-               intersectionResult,
-               differenceResult,
-               differenceRevResult);
-}
-
-/*
-
- Test 6
+1.1 Test case 6
 
 */
 void RegionRegionTest6()
@@ -1228,7 +1267,7 @@ void RegionRegionTest6()
 
 /*
 
- Test 7
+1.1 Test case 7
 
 */
 void RegionRegionTest7()
@@ -1278,7 +1317,7 @@ void RegionRegionTest7()
 
 /*
 
- Test 8
+1.1 Test case 8
 
 */
 void RegionRegionTest8()
@@ -1335,7 +1374,7 @@ void RegionRegionTest8()
 
 /*
 
- Test 9
+1.1 Test case 9
 
 */
 void RegionRegionTest9()
@@ -1395,7 +1434,7 @@ void RegionRegionTest9()
 
 /*
 
- Test 10
+1.1 Test case 10
 
 */
 void RegionRegionTest10()
@@ -1489,7 +1528,7 @@ void RegionRegionTest10()
 
 /*
 
- Test 11
+1.1 Test case 11
 
 */
 void RegionRegionTest11()
@@ -1555,7 +1594,7 @@ void RegionRegionTest11()
 
 /*
 
- Test 12
+1.1 Test case 12
 
 */
 void RegionRegionTest12()
@@ -1621,7 +1660,7 @@ void RegionRegionTest12()
 
 /*
 
- Test 13
+1.1 Test case 13
 
 */
 void RegionRegionTest13()
@@ -1672,7 +1711,7 @@ void RegionRegionTest13()
 
 /*
 
- Test 14
+1.1 Test case 14
 
 */
 void RegionRegionTest14()
@@ -1759,7 +1798,7 @@ void RegionRegionTest14()
 
 /*
 
- Test 15
+1.1 Test case 15
 
 */
 void RegionRegionTest15()
@@ -1873,7 +1912,7 @@ void RegionRegionTest15()
 
 /*
 
- Test 16
+1.1 Test case 16
 
 */
 void RegionRegionTest16()
@@ -1969,7 +2008,7 @@ void RegionRegionTest16()
 
 /*
 
- Test 17
+1.1 Test case 17
 
 */
 void RegionRegionTest17()
@@ -2011,7 +2050,7 @@ void RegionRegionTest17()
 
 /*
 
- Test 18
+1.1 Test case 18
 
 */
 void RegionRegionTest18()
@@ -2065,7 +2104,7 @@ void RegionRegionTest18()
 
 /*
 
- Test 19
+1.1 Test case 19
 
 */
 void RegionRegionTest19()
@@ -2105,7 +2144,7 @@ void RegionRegionTest19()
 
 /*
 
- Test 20
+1.1 Test case 20
 
 */
 void RegionRegionTest20()
@@ -2184,7 +2223,7 @@ void RegionRegionTest20()
 
 /*
 
- Test 21
+1.1 Test case 21
 
 */
 void RegionRegionTest21()
@@ -2255,7 +2294,7 @@ void RegionRegionTest21()
 
 /*
 
- Test 22
+1.1 Test case 22
 
 */
 void RegionRegionTest22()
@@ -2311,7 +2350,143 @@ void RegionRegionTest22()
 
 /*
 
- region test method
+1.1 Test case 23
+
+*/
+void RegionRegionTest23()
+{
+  vector<HalfSegment> source;
+  vector<HalfSegment> unionResult;
+  vector<HalfSegment> intersectionResult;
+  vector<HalfSegment> differenceResult;
+  vector<HalfSegment> differenceRevResult;
+
+  vector<HalfSegment>* s = &source;
+  s->push_back(CreateHalfSegment(0, 0, 10, 5, 5, 10, true));
+  s->push_back(CreateHalfSegment(0, 1, 5, 10, 10, 15, false));
+  s->push_back(CreateHalfSegment(0, 2, 10, 15, 15, 10, false));
+  s->push_back(CreateHalfSegment(0, 3, 15, 10, 10, 5, true));
+  s->push_back(CreateHalfSegment(1, 10, 13, 5, 8, 10, true));
+  s->push_back(CreateHalfSegment(1, 11, 8, 10, 13, 15, false));
+  s->push_back(CreateHalfSegment(1, 12, 13, 15, 18, 10, false));
+  s->push_back(CreateHalfSegment(1, 13, 18, 10, 13, 5, true));
+
+  s = &unionResult;
+  s->push_back(CreateHalfSegment(0, 1, 5, 10, 10, 5, true));
+  s->push_back(CreateHalfSegment(0, 2, 5, 10, 10, 15, false));
+  s->push_back(CreateHalfSegment(0, 3, 10, 5, 11.5, 6.5, true));
+  s->push_back(CreateHalfSegment(0, 4, 10, 15, 11.5, 13.5, false));
+  s->push_back(CreateHalfSegment(0, 5, 11.5, 6.5, 13, 5, true));
+  s->push_back(CreateHalfSegment(0, 6, 11.5, 13.5, 13, 15, false));
+  s->push_back(CreateHalfSegment(0, 7, 13, 5, 18, 10, true));
+  s->push_back(CreateHalfSegment(0, 8, 13, 15, 18, 10, false));
+
+  s = &intersectionResult;
+  s->push_back(CreateHalfSegment(0, 1, 8, 10, 11.5, 6.5, true));
+  s->push_back(CreateHalfSegment(0, 2, 8, 10, 11.5, 13.5, false));
+  s->push_back(CreateHalfSegment(0, 3, 11.5, 6.5, 15, 10, true));
+  s->push_back(CreateHalfSegment(0, 4, 11.5, 13.5, 15, 10, false));
+
+  s = &differenceResult;
+  s->push_back(CreateHalfSegment(0, 1, 5, 10, 10, 5, true));
+  s->push_back(CreateHalfSegment(0, 2, 5, 10, 10, 15, false));
+  s->push_back(CreateHalfSegment(0, 3, 8, 10, 11.5, 6.5, false));
+  s->push_back(CreateHalfSegment(0, 4, 8, 10, 11.5, 13.5, true));
+  s->push_back(CreateHalfSegment(0, 5, 10, 5, 11.5, 6.5, true));
+  s->push_back(CreateHalfSegment(0, 6, 10, 15, 11.5, 13.5, false));
+
+  s = &differenceRevResult;
+  s->push_back(CreateHalfSegment(0, 1, 11.5, 6.5, 13, 5, true));
+  s->push_back(CreateHalfSegment(0, 2, 11.5, 6.5, 15, 10, false));
+  s->push_back(CreateHalfSegment(0, 3, 11.5, 13.5, 13, 15, false));
+  s->push_back(CreateHalfSegment(0, 4, 11.5, 13.5, 15, 10, true));
+  s->push_back(CreateHalfSegment(0, 5, 13, 5, 18, 10, true));
+  s->push_back(CreateHalfSegment(0, 6, 13, 15, 18, 10, false));
+
+  TestInternal(source,
+               1,
+               NULL,
+               unionResult,
+               intersectionResult,
+               differenceResult,
+               differenceRevResult);
+}
+
+/*
+
+1.1 Test case 24
+
+*/
+void RegionRegionTest24()
+{
+  vector<HalfSegment> source;
+  vector<HalfSegment> unionResult;
+  vector<HalfSegment> intersectionResult;
+  vector<HalfSegment> differenceResult;
+  vector<HalfSegment> differenceRevResult;
+
+  vector<HalfSegment>* s = &source;
+  s->push_back(CreateHalfSegment(0, 0, 5, 10, 7.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 1, 5, 10, 7.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 2, 7.5, 14.3, 12.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 3, 12.5, 14.3, 15, 10, false));
+  s->push_back(CreateHalfSegment(0, 4, 12.5, 5.6, 15, 10, true));
+  s->push_back(CreateHalfSegment(0, 5, 7.5, 5.6, 12.5, 5.6, true));
+  s->push_back(CreateHalfSegment(1, 10, 8, 10, 10.5, 5.6, true));
+  s->push_back(CreateHalfSegment(1, 11, 8, 10, 10.5, 14.3, false));
+  s->push_back(CreateHalfSegment(1, 12, 10.5, 14.3, 15.5, 14.3, false));
+  s->push_back(CreateHalfSegment(1, 13, 15.5, 14.3, 18, 10, false));
+  s->push_back(CreateHalfSegment(1, 14, 15.5, 5.6, 18, 10, true));
+  s->push_back(CreateHalfSegment(1, 15, 10.5, 5.6, 15.5, 5.6, true));
+
+  s = &unionResult;
+  s->push_back(CreateHalfSegment(0, 1, 5, 10, 7.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 2, 5, 10, 7.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 3, 7.5, 5.6, 10.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 4, 7.5, 14.3, 10.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 5, 10.5, 5.6, 12.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 6, 10.5, 14.3, 12.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 7, 12.5, 5.6, 15.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 8, 12.5, 14.3, 15.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 9, 15.5, 5.6, 18, 10, true));
+  s->push_back(CreateHalfSegment(0, 10, 15.5, 14.3, 18, 10, false));
+
+  s = &intersectionResult;
+  s->push_back(CreateHalfSegment(0, 1, 8, 10, 10.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 2, 8, 10, 10.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 3, 10.5, 5.6, 12.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 4, 10.5, 14.3, 12.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 5, 12.5, 5.6, 15, 10, true));
+  s->push_back(CreateHalfSegment(0, 6, 12.5, 14.3, 15, 10, false));
+
+  s = &differenceResult;
+  s->push_back(CreateHalfSegment(0, 1, 5, 10, 7.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 2, 5, 10, 7.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 3, 7.5, 5.6, 10.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 4, 7.5, 14.3, 10.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 5, 8, 10, 10.5, 5.6, false));
+  s->push_back(CreateHalfSegment(0, 6, 8, 10, 10.5, 14.3, true));
+
+  s = &differenceRevResult;
+  s->push_back(CreateHalfSegment(0, 1, 12.5, 5.6, 15, 10, false));
+  s->push_back(CreateHalfSegment(0, 2, 12.5, 5.6, 15.5, 5.6, true));
+  s->push_back(CreateHalfSegment(0, 3, 12.5, 14.3, 15, 10, true));
+  s->push_back(CreateHalfSegment(0, 4, 12.5, 14.3, 15.5, 14.3, false));
+  s->push_back(CreateHalfSegment(0, 5, 15.5, 5.6, 18, 10, true));
+  s->push_back(CreateHalfSegment(0, 6, 15.5, 14.3, 18, 10, false));
+
+  TestInternal(source,
+               1,
+               NULL,
+               unionResult,
+               intersectionResult,
+               differenceResult,
+               differenceRevResult);
+}
+
+/*
+
+1.1 Main test method
 
 */
 void RegionRegionTest()
@@ -2320,8 +2495,6 @@ void RegionRegionTest()
   RegionRegionTest2();
   RegionRegionTest3();
   RegionRegionTest4();
-  RegionRegionTestCircle4();
-  RegionRegionTestCircle6();
   RegionRegionTest5();
   RegionRegionTest6();
   RegionRegionTest7();
@@ -2340,5 +2513,7 @@ void RegionRegionTest()
   RegionRegionTest20();
   RegionRegionTest21();
   RegionRegionTest22();
+  RegionRegionTest23();
+  RegionRegionTest24();
 }
 
