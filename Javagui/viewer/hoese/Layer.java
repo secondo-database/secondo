@@ -87,6 +87,15 @@ public class Layer extends JComponent {
              boundsWC = (Rectangle2D.Double)boundsWC.createUnion(bds);
         }
       }
+      // enlarge bounding boxes of size 0
+      if(boundsWC.getWidth()<=0){
+          boundsWC.x -= 10;
+          boundsWC.width = 20;
+      }
+      if(boundsWC.getHeight()<=0){
+          boundsWC.x -= 10;
+          boundsWC.height = 20;
+      }
     }
     catch(Exception e){
       Reporter.writeError("Exception in Layer.calcBounds "+e);
@@ -239,7 +248,7 @@ public class Layer extends JComponent {
    */
   public static void draw(DsplGraph dg,Graphics g,double time, AffineTransform af2) {
     if(dg==null){
-       Reporter.writeError("try to draw nmull");
+       Reporter.writeError("try to draw null");
        return;
     }
 
@@ -248,6 +257,8 @@ public class Layer extends JComponent {
     Graphics2D g2 = (Graphics2D)g;
     int num = dg.numberOfShapes();
     Category cat = dg.getCategory();
+
+    Paint fillStyle = cat.getFillStyle(dg.getRenderAttribute(),time);
 
     for(int i=0;i<num;i++){
        Shape shp = dg.getRenderObject(i,af2);
@@ -259,7 +270,6 @@ public class Layer extends JComponent {
             bounds.add(shp.getBounds());
           }
           setCategory(dg,g2,i);
-          Paint fillStyle = cat.getFillStyle(dg.getRenderAttribute(),time);
           
           // paint the interior
           if (fillStyle != null && !dg.isLineType(i) && !cat.getIconFill()){
@@ -311,6 +321,9 @@ public class Layer extends JComponent {
 
     // special treatment for non shape objects
     if(dg instanceof DisplayComplex){
+       if (fillStyle != null ){
+           g2.setPaint(fillStyle);
+       }  
       ((DisplayComplex)dg).draw(g,time,af2);
     }
 
