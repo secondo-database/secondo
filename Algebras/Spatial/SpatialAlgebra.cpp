@@ -53,6 +53,8 @@ For more detailed information see SpatialAlgebra.h.
 
 using namespace std;
 
+
+#include "Label.h"
 #include "../../Tools/Flob/Flob.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "Algebra.h"
@@ -6063,7 +6065,6 @@ void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
         critical[hss->Size()-r] = 1;
      }
   }
-  bool removed = false; // true if halfsegments was removed
   // 1.2 mark segments
   for(int i=0;i<hss->Size();i++) {
      if((usage[i]==0) ){
@@ -6080,8 +6081,6 @@ void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
           if(next < 0){
              // no extension found => mark segments in path as non-cycle
              // go back until the next critical point is reachedA
-
-             removed = true;
              bool done = path.empty();
              while(!done){
                if(path.empty()){
@@ -12486,13 +12485,12 @@ void WGSGK::BLRauenberg (const double x, const double y,
 
   double f=Pi*50/180;
   double p=z/sqrt(x*x+y*y);
-  double f1,f2,ft;
+  double f1,f2;
   do
   {
     f1=newF(f,x,y,p);
     f2=f;
     f=f1;
-    ft=180*f1/Pi;
   }
   while(!(abs(f2-f1)<10E-10));
 
@@ -13470,6 +13468,17 @@ TypeConstructor region(
         Region::Cast,                     //cast function
         SizeOfRegion,                   //sizeof function
         CheckRegion );                  //kind checking function
+
+
+/*
+8.15 type constructor for label data type
+
+*/
+GenTC<Label> label;
+
+
+
+
 
 /*
 10 Operators
@@ -14574,11 +14583,11 @@ outside of it (windowclippingout).
 ListExpr
 SpatialWindowClippingMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
+  ListExpr arg1;
   if ( nl->ListLength( args ) == 2 )
   {
     arg1 = nl->First( args );
-    arg2 = nl->Second( args );
+  //  arg2 = nl->Second( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline)
         return (nl->SymbolAtom( Line::BasicType() ));
@@ -24846,6 +24855,9 @@ class SpatialAlgebra : public Algebra
     AddTypeConstructor( &drm);
     AddTypeConstructor( &oim);
 
+    AddTypeConstructor( & label);
+
+
     point.AssociateKind(Kind::DATA());
     points.AssociateKind(Kind::DATA());
     line.AssociateKind(Kind::DATA());
@@ -24854,6 +24866,7 @@ class SpatialAlgebra : public Algebra
     dline.AssociateKind(Kind::DATA());
     drm.AssociateKind(Kind::DATA());
     oim.AssociateKind(Kind::DATA());
+    label.AssociateKind(Kind::DATA());
 
 
 
