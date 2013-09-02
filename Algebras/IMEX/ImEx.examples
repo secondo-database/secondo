@@ -164,7 +164,7 @@ Result   : FALSE
 Operator : fileSize
 Number   : 1
 Signature: string [ x bool ] -> int
-Example  : query fileSize("Blabberblubb.dir") > -1
+Example  : query fileSize("Blabberblubb.dir") >= [const int value undef]
 Result   : TRUE
 
 Operator : fileSize
