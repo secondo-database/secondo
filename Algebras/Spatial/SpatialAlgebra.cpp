@@ -11689,7 +11689,7 @@ int Region::GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const {
             cerr << i << " : " << (hs) << endl;
         }
 
-        assert(false);
+        throw 0;
     }
 
     //the new cycle is a holecycle of the face ~maxHS.attr.faceno~
