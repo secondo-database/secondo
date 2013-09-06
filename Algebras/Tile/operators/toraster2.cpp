@@ -246,6 +246,7 @@ int toraster2Functiont(Word* pArguments,
                 double sourceGridX = sourceGrid.GetX();
                 double sourceGridY = sourceGrid.GetY();
                 double sourceGridLength = sourceGrid.GetLength();
+                double sourceHalfGridLength = sourceGridLength / 2.0;
 
                 if(sourceGridX < grid.getOriginX() &&
                    sourceGridY < grid.getOriginY())
@@ -267,8 +268,10 @@ int toraster2Functiont(Word* pArguments,
                     for(int column = minimumIndex[0]; column < maximumIndex[0];
                         column++)
                     {
-                      double x = sourceGridX + column * sourceGridLength;
-                      double y = sourceGridY + row * sourceGridLength;
+                      double x = sourceGridX + column * sourceGridLength +
+                                 sourceHalfGridLength;
+                      double y = sourceGridY + row * sourceGridLength +
+                                 sourceHalfGridLength;
                       typename SourceTypeProperties::TypeProperties::
                       WrapperType wrappedValue;
 
@@ -384,6 +387,7 @@ int toraster2Functionmt(Word* pArguments,
                 double sourceGridX = sourceGrid.GetX();
                 double sourceGridY = sourceGrid.GetY();
                 double sourceGridLength = sourceGrid.GetLength();
+                double sourceHalfGridLength = sourceGridLength / 2.0;
                 datetime::DateTime sourceGridDuration = sourceGrid.
                                                         GetDuration();
 
@@ -412,9 +416,12 @@ int toraster2Functionmt(Word* pArguments,
                       for(int column = minimumIndex[0];
                           column < maximumIndex[0]; column++)
                       {
-                        double x = sourceGridX + column * sourceGridLength;
-                        double y = sourceGridY + row * sourceGridLength;
-                        double t = time * sourceGridDuration.ToDouble();
+                        double x = sourceGridX + column * sourceGridLength +
+                                   sourceHalfGridLength;
+                        double y = sourceGridY + row * sourceGridLength +
+                                   sourceHalfGridLength;
+                        double t = time * sourceGridDuration.ToDouble() +
+                                   sourceGridDuration.ToDouble() / 2.0;
                         typename SourceTypeProperties::TypeProperties::
                         WrapperType wrappedValue;
 
@@ -542,6 +549,7 @@ int toraster2Functionit(Word* pArguments,
                   double sourceGridX = sourceGrid.GetX();
                   double sourceGridY = sourceGrid.GetY();
                   double sourceGridLength = sourceGrid.GetLength();
+                  double sourceHalfGridLength = sourceGridLength / 2.0;
 
                   if(sourceGridX < grid.getOriginX() &&
                      sourceGridY < grid.getOriginY())
@@ -564,8 +572,10 @@ int toraster2Functionit(Word* pArguments,
                       for(int column = minimumIndex[0];
                           column < maximumIndex[0]; column++)
                       {
-                        double x = sourceGridX + column * sourceGridLength;
-                        double y = sourceGridY + row * sourceGridLength;
+                        double x = sourceGridX + column * sourceGridLength +
+                                   sourceHalfGridLength;
+                        double y = sourceGridY + row * sourceGridLength +
+                                   sourceHalfGridLength;
                         typename SourceTypeProperties::TypeProperties::
                         WrapperType wrappedValue;
 
