@@ -246,6 +246,7 @@ int tilesFunctiont(Word* pArguments,
                 {
                   raster2::grid2 grid = pSourceType->getGrid();
                   double gridLength = grid.getLength();
+                  double halfGridLength = gridLength / 2.0;
                   int xDimensionSize = DestinationTypeProperties::
                                        GetXDimensionSize();
                   int yDimensionSize = DestinationTypeProperties::
@@ -262,8 +263,10 @@ int tilesFunctiont(Word* pArguments,
                     {
                       for(int column = 0; column < xDimensionSize; column++)
                       {
-                        double x = pResultInfo->m_dX + column * gridLength;
-                        double y = pResultInfo->m_dY + row * gridLength;
+                        double x = pResultInfo->m_dX + column * gridLength +
+                                   halfGridLength;
+                        double y = pResultInfo->m_dY + row * gridLength +
+                                   halfGridLength;
                         
                         typename DestinationTypeProperties::TypeProperties::
                         PropertiesType value = pSourceType->atlocation(x, y);
@@ -423,7 +426,9 @@ int tilesFunctionmt(Word* pArguments,
                 {
                   raster2::grid3 grid = pSourceType->getGrid();
                   double gridLength = grid.getLength();
+                  double halfGridLength = gridLength / 2.0;
                   double gridDuration = grid.getDuration().ToDouble();
+                  double halfGridDuration = gridDuration / 2.0;
                   int xDimensionSize = DestinationTypeProperties::
                                        GetXDimensionSize();
                   int yDimensionSize = DestinationTypeProperties::
@@ -445,9 +450,11 @@ int tilesFunctionmt(Word* pArguments,
                       {
                         for(int column = 0; column < xDimensionSize; column++)
                         {
-                          double x = pResultInfo->m_dX + column * gridLength;
-                          double y = pResultInfo->m_dY + row * gridLength;
-                          double t = time * gridDuration;
+                          double x = pResultInfo->m_dX + column * gridLength +
+                                     halfGridLength;
+                          double y = pResultInfo->m_dY + row * gridLength +
+                                     halfGridLength;
+                          double t = time * gridDuration + halfGridDuration;
                           
                           typename DestinationTypeProperties::TypeProperties::
                           PropertiesType value =
@@ -624,6 +631,7 @@ int tilesFunctionit(Word* pArguments,
                   {
                     raster2::grid2 grid = pstype->getGrid();
                     double gridLength = grid.getLength();
+                    double halfGridLength = gridLength / 2.0;
                     int xDimensionSize = DestinationTypeProperties::
                                          GetXDimensionSize();
                     int yDimensionSize = DestinationTypeProperties::
@@ -641,8 +649,10 @@ int tilesFunctionit(Word* pArguments,
                       {
                         for(int column = 0; column < xDimensionSize; column++)
                         {
-                          double x = pResultInfo->m_dX + column * gridLength;
-                          double y = pResultInfo->m_dY + row * gridLength;
+                          double x = pResultInfo->m_dX + column * gridLength +
+                                     halfGridLength;
+                          double y = pResultInfo->m_dY + row * gridLength +
+                                     halfGridLength;
 
                           typename DestinationTypeProperties::TypeProperties::
                           PropertiesType value = pstype->atlocation(x, y);
