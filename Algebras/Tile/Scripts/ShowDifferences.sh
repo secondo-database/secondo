@@ -2,3 +2,4 @@
 
 clear
 diff -r /home/secondo/secondo/Algebras/Tile "/media/USB STICK/Studium/Sommersemester 2013/Abschlussarbeit/Implementierung/secondo/Algebras/Tile"
+diff -r /home/secondo/secondo/Javagui "/media/USB STICK/Studium/Sommersemester 2013/Abschlussarbeit/Implementierung/secondo/Javagui"
