@@ -455,30 +455,54 @@ public class Layer extends JComponent {
    * @param g The graphic context
    * @see <a href="Layersrc.html#paintComponent">Source</a>
    */
-  public void paintComponent (Graphics g) {
+  public void paintComponent(Graphics g)
+  {
     Graphics2D g2 = (Graphics2D)g;
-    try{
-      if (Selected){
-        for(int i=0;i<GeoObjects.size();i++){
-           DsplGraph dg = (DsplGraph)GeoObjects.get(i);
-           if ((dg.getVisible()) && (!dg.getSelected())){
-              draw(dg,g2,CurrentState.ActualTime);
-           }
-        }
-      } else {
-        for(int i=0;i<GeoObjects.size();i++){
+    
+    try
+    {
+      TileManager tileManager = new TileManager(GeoObjects);
+      
+      if(tileManager != null)
+      {
+        tileManager.updateObjects();
+      }
+      
+      if(Selected)
+      {
+        for(int i = 0; i < GeoObjects.size(); i++)
+        {
           DsplGraph dg = (DsplGraph)GeoObjects.get(i);
-          if (dg.getVisible()){
-              draw(dg,g2,CurrentState.ActualTime);
+         
+          if(dg.getVisible() == true &&
+             dg.getSelected() == false)
+          {
+            draw(dg, g2, CurrentState.ActualTime);
           }
         }
       }
-     } catch(Exception e){
-       Reporter.writeError("Exception "+e);
-       Reporter.debug(e);
-     }
-
+      
+      else
+      {
+        for(int i = 0; i < GeoObjects.size(); i++)
+        {
+          DsplGraph dg = (DsplGraph)GeoObjects.get(i);
+          
+          if(dg.getVisible() == true)
+          {
+            draw(dg, g2, CurrentState.ActualTime);
+          }
+        }
+      }
+    }
+     
+    catch(Exception e)
+    {
+      Reporter.writeError("Exception "+e);
+      Reporter.debug(e);
+    }
   }
+
   /** A special JToggleButton, that draws a selection area
    * @see <a href="Layersrc.html#LayerToggle">Source</a>
    */

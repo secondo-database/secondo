@@ -36,7 +36,8 @@ public class ColorMap
   private Double maxValue = null;
   private boolean isUserDefined = false; 
   
-  private final int treshold = 100;
+  // private final int treshold = 100; // constant for Raster2 Algebra
+  private final int treshold = 10; // constant for Raster2 Algebra and Tile Algebra
   private List<Comparable> values;
   private BufferedImage gradientImage;
   private List<Color> gradientColors;
@@ -46,16 +47,17 @@ public class ColorMap
   * If the category is default, does not specify a gradient or values are not numeric, 
   * the ColorMap is initialized with default values.
   */
-  public ColorMap(TreeSet<Comparable> pValueSet, Category pCategory)
-  {
-    
-    setMinimumValue(pValueSet.first());
-    setMaximumValue(pValueSet.last());
+  public ColorMap(TreeSet<Comparable> pValueSet,
+                  Comparable minimumValue,
+                  Comparable maximumValue,
+                  Category pCategory)
+  { 
+    setMinimumValue(minimumValue);
+    setMaximumValue(maximumValue);
     
     // If other than default Category was picked, get gradient colors from Category.
     if (!pCategory.getName().toLowerCase().equals("default"))
     {   
-
       GradientPaint fillStyle = this.getGradientPaint(pCategory);
       if (fillStyle != null)
       {
@@ -80,11 +82,11 @@ public class ColorMap
     
     this.computeGradientImage();
     
-    for (Comparable value : this.values)
+    for(Comparable value : this.values)
     {
-        this.mapValueColor.put(value, this.computeColorForValue(value));
+      Color color = this.computeColorForValue(value);
+      this.mapValueColor.put(value, color);
     }
-
   }
   
   /**
@@ -99,6 +101,7 @@ public class ColorMap
         this.gradientColors.add(this.minColor);
         this.gradientColors.add(this.maxColor);
       }
+      
       else
       {
         // define default color sequence for gradient
@@ -218,11 +221,13 @@ public class ColorMap
   public Color getColorForValue(Comparable pValue)
   {
     Color result = this.mapValueColor.get(pValue);
+    
     if(result == null)
     {
       result = this.computeColorForValue(pValue);
       this.mapValueColor.put(pValue, result);
     }
+    
     return result;
   }
   
@@ -275,28 +280,34 @@ public class ColorMap
       // pick color with same index from gradient image
       index = this.values.indexOf(pValue);
     }
+    
     else
     {
-        // compute relative position of value within value range 
-        // and pick corresponding color from color range
-        Double colpos;
-        if (valuerange==1)
+      // compute relative position of value within value range 
+      // and pick corresponding color from color range
+      
+      Double colpos;
+      
+      if(valuerange == 1)
+      {
+        colpos = 0.0;
+      }
+      
+      else
+      { 
+        colpos = ((pValue - this.minValue) * (this.gradientImage.getWidth() / (valuerange)));
+        
+        if(colpos.intValue() == this.gradientImage.getWidth())
         {
-          colpos = 0.0;
+          colpos -= 1.0;
         }
-        else
-        { 
-          colpos = ((pValue - this.minValue) * this.gradientImage.getWidth() / (valuerange));
-          if (colpos.intValue() == this.gradientImage.getWidth() ){
-                  colpos = colpos-1; 
-          }
-        }
-        index = colpos.intValue();
+      }
+      
+      index = colpos.intValue();
     }
     
-    int rgb = this.gradientImage.getRGB(index,0);
+    int rgb = this.gradientImage.getRGB(index, 0);
     result = new Color(rgb);
-    
     
     return result;
   }
@@ -448,8 +459,8 @@ public class ColorMap
       Graphics2D g2;      
       
       // if only few values, map values directly to colors
-      if (this.values.size() <= this.gradientColors.size())
-      {
+      if(this.values.size() <= this.gradientColors.size())
+      { 
         this.gradientImage = new BufferedImage(this.values.size(), 1, BufferedImage.TYPE_INT_ARGB);
         g2 = (Graphics2D) gradientImage.getGraphics();
         
@@ -462,7 +473,7 @@ public class ColorMap
       // if gradient image size will not cause heap space problems
       // create gradient image with one pixel for every value
       else if (values.size() <= this.treshold)
-      {
+      { 
         this.gradientImage = new BufferedImage(this.values.size(), 1, BufferedImage.TYPE_INT_ARGB);
         g2 = (Graphics2D) gradientImage.getGraphics();
 
@@ -474,8 +485,8 @@ public class ColorMap
         int intervalSize = this.values.size()/(this.gradientColors.size()-1);
         for (int i=0; i<this.gradientColors.size()-1; i++)
         {   
-          GradientPaint gradient = new GradientPaint(intervalSize*i, 0, this.gradientColors.get(i), 
-                                                      intervalSize*(i+1), 1, this.gradientColors.get(i+1));
+          GradientPaint gradient = new GradientPaint(intervalSize * i, 0, this.gradientColors.get(i), 
+                                                     intervalSize * (i+1), 1, this.gradientColors.get(i+1));
           g2.setPaint(gradient);
           g2.fillRect(intervalSize*i, 0, intervalSize+1, 1);
         }
@@ -501,17 +512,17 @@ public class ColorMap
       // if too many values, gradient image size will cause heapspace problems
       // restrict gradient image Size and use rationally spaced color mapping 
       else 
-      {
+      { 
         int gradientWidth = 0;
         
         // determine how many different colors can be produced with current gradient colors 
-        for (int i=0; i<this.gradientColors.size()-1; i++)
+        for(int i = 0; i < this.gradientColors.size() - 1; i++)
         {
           Color color1 = this.gradientColors.get(i);
-          Color color2 = this.gradientColors.get(i+1);
-          int width = Math.max(Math.max(Math.abs(color1.getRed()-color2.getRed()), 
-                               Math.abs(color1.getGreen()-color2.getGreen())), 
-                               Math.abs(color1.getBlue()-color2.getBlue()));
+          Color color2 = this.gradientColors.get(i + 1);
+          int width = Math.max(Math.max(Math.abs(color1.getRed() - color2.getRed()), 
+                               Math.abs(color1.getGreen() - color2.getGreen())), 
+                               Math.abs(color1.getBlue() - color2.getBlue()));
           gradientWidth = gradientWidth + width;
         }
         
@@ -525,16 +536,16 @@ public class ColorMap
         // fill image with gradient stripes
         int index = 0;
         
-        for (int i=0; i<this.gradientColors.size()-1; i++)
+        for(int i = 0; i < this.gradientColors.size() - 1; i++)
         {
           Color color1 = this.gradientColors.get(i);
-          Color color2 = this.gradientColors.get(i+1);
-          int width = Math.max(Math.max(Math.abs(color1.getRed()-color2.getRed()), 
-                               Math.abs(color1.getGreen()-color2.getGreen())), 
-                               Math.abs(color1.getBlue()-color2.getBlue()));
+          Color color2 = this.gradientColors.get(i + 1);
+          int width = Math.max(Math.max(Math.abs(color1.getRed() - color2.getRed()), 
+                               Math.abs(color1.getGreen() - color2.getGreen())), 
+                               Math.abs(color1.getBlue() - color2.getBlue()));
           
           GradientPaint gradient = new GradientPaint(index, 0, color1, 
-                                                      index+width, 1, color2);
+                                                     index + width, 1, color2);
           g2.setPaint(gradient);
           g2.fillRect(index, 0, width, 1);
           

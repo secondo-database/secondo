@@ -154,8 +154,7 @@ public abstract class DisplayRaster2 extends DisplayGraph
    */
   @Override
   public void init(String name, int nameWidth,  int indent, ListExpr type, ListExpr value, QueryResult qr)
-  {
-        
+  {     
     AttrName = extendString(name, nameWidth, indent);
     this.typeName = this.extractTypeName(name);
     
@@ -182,8 +181,7 @@ public abstract class DisplayRaster2 extends DisplayGraph
     
     qr.addEntry(this);   
     
-    this.computeBounds();
-    
+    this.computeBounds(); 
   }
 
    /**
@@ -191,38 +189,41 @@ public abstract class DisplayRaster2 extends DisplayGraph
    */
   @Override
   public void setLayer(Layer layer)
-  {
+  { 
     this.RefLayer = layer;
 
     if(this.RefLayer != null)
     {
-      this.RefLayer.addMouseListener(new MouseListener()
+      if(this.RefLayer.getMouseListeners().length == 0) // add Mouse Listener only once
       {
-        public void mouseClicked(MouseEvent e)
+        this.RefLayer.addMouseListener(new MouseListener()
         {
-          dispatchMouseEventToParent(e);
-        }
-
-        public void mousePressed(MouseEvent e)
-        {
-          dispatchMouseEventToParent(e);
-        }
-
-        public void mouseReleased(MouseEvent e)
-        {
-          dispatchMouseEventToParent(e);
-        }
-
-        public void mouseEntered(MouseEvent e)
-        {
-          dispatchMouseEventToParent(e);
-        }
-
-        public void mouseExited(MouseEvent e)
-        {
-          dispatchMouseEventToParent(e);
-        }
-      });
+          public void mouseClicked(MouseEvent e)
+          {
+            dispatchMouseEventToParent(e);
+          }
+  
+          public void mousePressed(MouseEvent e)
+          {
+            dispatchMouseEventToParent(e);
+          }
+  
+          public void mouseReleased(MouseEvent e)
+          {
+            dispatchMouseEventToParent(e);
+          }
+  
+          public void mouseEntered(MouseEvent e)
+          {
+            dispatchMouseEventToParent(e);
+          }
+  
+          public void mouseExited(MouseEvent e)
+          {
+            dispatchMouseEventToParent(e);
+          }
+        });
+      }
 
       this.RefLayer.addMouseMotionListener(new MouseMotionListener()
       {
@@ -254,7 +255,10 @@ public abstract class DisplayRaster2 extends DisplayGraph
 
           else
           {
-            RefLayer.setToolTipText("");
+            if(isTileObject() == false)
+            {
+              RefLayer.setToolTipText("");
+            }
           }
  
           dispatchMouseEventToParent(e);
@@ -287,8 +291,7 @@ public abstract class DisplayRaster2 extends DisplayGraph
     if(images != null)
     {
       this.drawRaster(images, g, at);
-    }
-        
+    }   
   }
   
    
@@ -626,7 +629,10 @@ public abstract class DisplayRaster2 extends DisplayGraph
   {
     if (this.colorMap == null)
     {
-      this.colorMap = new ColorMap(this.getValues(), this.getCategory());
+      this.colorMap = new ColorMap(this.getValues(),
+                                   this.minValue,
+                                   this.maxValue,
+                                   this.getCategory());
     }
     return this.colorMap;
   }
@@ -797,5 +803,13 @@ public abstract class DisplayRaster2 extends DisplayGraph
     }
 
     return value;
+  }
+  
+  /**
+  *  Checks if object is a Tile object.
+  */
+  private boolean isTileObject()
+  {
+    return this instanceof Tile;
   }
 }
