@@ -40,14 +40,14 @@ Result   : TRUE
 Operator : toclassifier
 Number   : 1
 Signature: stream(tuple(description: text, pattern: text)) -> classifier
-Example  : query classify(michael, class2 feed toclassifier) count
+Example  : query classify(Dotraj, class2 feed toclassifier) count
 Result   : 0
 
 Operator : matches
 Number   : 1
 Signature: mlabel x text -> bool
-Example  : query michael matches '()'
-Result   : FALSE
+Example  : query michael matches 'A * B (_ sportclub) C * D (_ sportclub) E * // A.card > E.card'
+Result   : TRUE
 
 Operator : indexmatches
 Number   : 1
@@ -59,13 +59,13 @@ Operator : filtermatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
 Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * () // X.labels contains "Brackel"'] count
-Result   : 25
+Result   : 11
 
 Operator : rewrite
 Number   : 0
 Signature: mlabel x text -> stream(mlabel)
-Example  : query rewrite(michael, '* () Z * => Z') count
-Result   : 62
+Example  : query rewrite(michael, 'X * Y [(_ at_home) | (_ sportclub)]+ Z * => Y') count
+Result   : 56
  
 Operator : classify
 Number   : 1

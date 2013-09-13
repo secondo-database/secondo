@@ -56,6 +56,8 @@ vector<string> splitPattern(string input);
 char* convert(string arg);
 string eraseQM(string arg); // QM = quotation marks
 string addQM(string arg);
+set<unsigned int>** createSetMatrix(unsigned int dim1, unsigned int dim2);
+void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
 int getKey(string type);
 string extractVar(string input);
 string extendDate(string input, const bool start);
@@ -64,33 +66,14 @@ bool checkSemanticDate(const string text, const SecInterval uIv,
 bool checkDaytime(const string text, const SecInterval uIv);
 bool labelsMatch(string label, set<string> lbs);
 bool timesMatch(Interval<DateTime>* iv, set<string> ivs);
-bool checkRewriteSeq(pair<vector<unsigned int>, vector<unsigned int> > seq,
-                     unsigned int maxSize, bool print);
 Word evaluate(string input);
 vector<string> createTrajectory(int size);
 void fillML(const MString& source, MString& result, DateTime* duration);
-DbArray<NFAtransition> makeNFApersistent(vector<map<int, set<int> > > nfa);
-vector<map<int, set<int> > > createNFAfromPersistent(DbArray<NFAtransition> db);
-
-template <class T>
-T** create2DimArray(const int dim1, const int dim2) {
-  T** result = new T*[dim1];
-  for (int i = 0; i < dim1; i++) {
-    result[i] = new T[dim2];
-  }
-  return result;
-};
-
-template <class T>
-void delete2DimArray(T** &array, int dim1) {
-  if (!array) {
-    return;
-  }
-  for (int i = 0; i < dim1; i++) {
-    delete[] array[i];
-  }
-  delete[] array;
-}
+void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates);
+void makeNFApersistent(vector<map<int, int> > &nfa, set<int> &finalStates,
+     DbArray<NFAtransition> &trans, DbArray<int> &fs, map<int, int> &final2Pat);
+void createNFAfromPersistent(DbArray<NFAtransition> &trans, DbArray<int> &fs,
+                            vector<map<int, int> > &nfa, set<int> &finalStates);
 
 struct TrieNode;
 

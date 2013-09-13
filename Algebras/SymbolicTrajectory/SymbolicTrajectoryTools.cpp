@@ -146,6 +146,37 @@ string setToString(set<string> input) {
   }
   return result.str();
 }
+
+/*
+function ~createSetMatrix~
+
+Creates and returns a twodimensional array that is used to store the matching
+positions.
+
+*/
+
+set<unsigned int>** createSetMatrix(unsigned int dim1, unsigned int dim2) {
+  set<unsigned int>** result = new set<unsigned int>*[dim1];
+  for (unsigned int i = 0; i < dim1; i++) {
+    result[i] = new set<unsigned int>[dim2];
+  }
+  return result;
+};
+
+/*
+function ~deleteSetMatrix~
+
+Deletes a twodimensional array.
+
+*/
+
+void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1) {
+  for (unsigned int i = 0; i < dim1; i++) {
+    delete[] victim[i];
+  }
+  delete[] victim;
+}
+
 /*
 function ~prefixCount~
 
@@ -463,47 +494,47 @@ intervals specified in ~ivs~. If ~ivs~ is empty, the result is ~true~.
 
 */
 bool timesMatch(Interval<DateTime>* iv, set<string> ivs) {
+  if (ivs.empty()) {
+    return true;
+  }
   bool result(true), elementOk(false);
-  set<string>::iterator j;
   Instant *pStart = new DateTime(instanttype);
   Instant *pEnd = new DateTime(instanttype);
   SecInterval *pIv = new SecInterval(0);
   SecInterval uIv(*iv);
-  if (!ivs.empty()) {
-    for (j = ivs.begin(); j != ivs.end(); j++) {
-      if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
-        elementOk = checkSemanticDate(*j, uIv, true);
+  for (set<string>::iterator j = ivs.begin(); j != ivs.end(); j++) {
+    if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
+      elementOk = checkSemanticDate(*j, uIv, true);
+    }
+    else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
+          && (((*j).find(':') < (*j).find('~')) // on each side of [~],
+              || ((*j)[0] == '~')) // there has to be either xx:yy or nothing
+          && (((*j).find(':', (*j).find('~')) != string::npos)
+              || (*j)[(*j).size() - 1] == '~')) {
+      elementOk = checkDaytime(*j, uIv);
+    }
+    else {
+      if ((*j)[0] == '~') { // 3rd case: ~2012-05-12
+        pStart->ToMinimum();
+        pEnd->ReadFrom(extendDate((*j).substr(1), false));
       }
-      else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
-            && (((*j).find(':') < (*j).find('~')) // on each side of [~],
-                || ((*j)[0] == '~')) // there has to be either xx:yy or nothing
-            && (((*j).find(':', (*j).find('~')) != string::npos)
-                || (*j)[(*j).size() - 1] == '~')) {
-        elementOk = checkDaytime(*j, uIv);
+      else if ((*j)[(*j).size() - 1] == '~') { // 4th case: 2011-04-02-19:09~
+        pStart->ReadFrom(extendDate((*j).substr(0, (*j).size() - 1), true));
+        pEnd->ToMaximum();
       }
-      else {
-        if ((*j)[0] == '~') { // 3rd case: ~2012-05-12
-          pStart->ToMinimum();
-          pEnd->ReadFrom(extendDate((*j).substr(1), false));
-        }
-        else if ((*j)[(*j).size() - 1] == '~') { // 4th case: 2011-04-02-19:09~
-          pStart->ReadFrom(extendDate((*j).substr(0, (*j).size() - 1), true));
-          pEnd->ToMaximum();
-        }
-        else if (((*j).find('~')) == string::npos) { // 5th case: no [~] found
-          pStart->ReadFrom(extendDate(*j, true));
-          pEnd->ReadFrom(extendDate(*j, false));
-        }
-        else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
-          pStart->ReadFrom(extendDate((*j).substr(0, (*j).find('~')), true));
-          pEnd->ReadFrom(extendDate((*j).substr((*j).find('~') + 1), false));
-        }
-        pIv->Set(*pStart, *pEnd, true, true);
-        elementOk = pIv->Contains(uIv);
+      else if (((*j).find('~')) == string::npos) { // 5th case: no [~] found
+        pStart->ReadFrom(extendDate(*j, true));
+        pEnd->ReadFrom(extendDate(*j, false));
       }
-      if (!elementOk) { // all intervals have to match
-        result = false;
+      else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
+        pStart->ReadFrom(extendDate((*j).substr(0, (*j).find('~')), true));
+        pEnd->ReadFrom(extendDate((*j).substr((*j).find('~') + 1), false));
       }
+      pIv->Set(*pStart, *pEnd, true, true);
+      elementOk = pIv->Contains(uIv);
+    }
+    if (!elementOk) { // all intervals have to match
+      result = false;
     }
   }
   pIv->DeleteIfAllowed();
@@ -520,53 +551,15 @@ If ~lbs~ is empty, ~true~ is returned.
 
 */
 bool labelsMatch(string label, set<string> lbs) {
-  bool result = true;
-  set<string>::iterator i;
-  if (!lbs.empty()) {
-    result = false;
-    for (i = lbs.begin(); i != lbs.end(); i++) {
-      if (!label.compare(*i)) { // look for a matching label
-        result = true;
-      }
+  if (lbs.empty()) {
+    return true;
+  }
+  for (set<string>::iterator i = lbs.begin(); i != lbs.end(); i++) {
+    if (!label.compare(*i)) { // look for a matching label
+      return true;
     }
   }
-  return result;
-}
-
-/*
-function ~checkRewriteSeq~
-
-Checks a rewrite sequence and prints it
-
-*/
-bool checkRewriteSeq(pair<vector<unsigned int>, vector<unsigned int> > seq,
-                     unsigned int maxSize, bool print) {
-  for (int i = 0; i < (int)seq.second.size(); i = i + 2) {
-    if ((seq.second[i] < 0) || (seq.second[i] > maxSize)
-     || (seq.second[i] >= seq.second[i + 1])) {
-      cout << "Error: empty assignment sequence" << endl;
-      return false;
-    }
-  }
-  for (int i = 0; i < (int)seq.first.size(); i = i + 2) {
-    if ((seq.first[i] < 0) || (seq.first[i] > maxSize)
-     || (seq.first[i] > seq.first[i + 1])) {
-       cout << "Error: " << seq.first[i] << ", " << seq.first[i + 1] << endl;
-       return false;
-    }
-  }
-  if (print) {
-    cout << "seq=";
-    for (int i = 0; i < (int)seq.first.size(); i++) {
-      cout << seq.first[i] << "|";
-    }
-    cout << endl << "assignedSeq=";
-    for (int i = 0; i < (int)seq.second.size(); i++) {
-      cout << seq.second[i] << "|";
-    }
-    cout << endl;
-  }
-  return true;
+  return false;
 }
 
 /*
@@ -677,36 +670,52 @@ void fillML(const MString& source, MString& result, DateTime* duration) {
   result.MergeAdd(last);
 }
 
-DbArray<NFAtransition> makeNFApersistent(vector<map<int, set<int> > > nfa) {
-  DbArray<NFAtransition> persNFA(0);
-  NFAtransition trans;
-  map<int, set<int> >::iterator im;
-  set<int>::iterator is;
+void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates) {
+  map<int, int>::iterator it;
   for (unsigned int i = 0; i < nfa.size(); i++) {
-    trans.oldState = i;
-    for (im = nfa[i].begin(); im != nfa[i].end(); im++) {
-      trans.trigger = im->first;
-      for (is = im->second.begin(); is != im->second.end(); is++) {
-        trans.newState = *is;
-        persNFA.Append(trans);
-      }
+    cout << (finalStates.count(i) ? " * " : "   ") << "state " << i << ":  ";
+    for (it = nfa[i].begin(); it != nfa[i].end(); it++) {
+      cout << "---" << it->first << "---> " << it->second << "    ";
     }
+    cout << endl << endl;
   }
-  return persNFA;
 }
 
-vector<map<int, set<int> > > createNFAfromPersistent(DbArray<NFAtransition> db){
-  vector<map<int, set<int> > > result;
-  map<int, set<int> > emptymap;
-  NFAtransition trans;
-  for (int i = 0; i < db.Size(); i++) {
-    db.Get(i, trans);
-    while (trans.oldState >= (int)result.size()) {
-      result.push_back(emptymap);
+void makeNFApersistent(vector<map<int, int> > &nfa, set<int> &finalStates,
+   DbArray<NFAtransition> &trans, DbArray<int> &s2p, map<int, int> &state2Pat) {
+  NFAtransition tr;
+  map<int, int>::iterator im;
+  for (unsigned int i = 0; i < nfa.size(); i++) {
+    tr.oldState = i;
+    for (im = nfa[i].begin(); im != nfa[i].end(); im++) {
+      tr.trigger = im->first;
+      tr.newState = im->second;
+      trans.Append(tr);
     }
-    result[trans.oldState][trans.trigger].insert(trans.newState);
+    s2p.Append(state2Pat[i]);
   }
-  return result;
+}
+
+void createNFAfromPersistent(DbArray<NFAtransition> &trans, DbArray<int> &s2p,
+                           vector<map<int, int> > &nfa, set<int> &finalStates) {
+  nfa.clear();
+  finalStates.clear();
+  map<int, int> emptymap;
+  NFAtransition tr;
+  for (int i = 0; i < trans.Size(); i++) {
+    trans.Get(i, tr);
+    while (tr.oldState >= (int)nfa.size()) {
+      nfa.push_back(emptymap);
+    }
+    nfa[tr.oldState][tr.trigger] = tr.newState;
+  }
+  int pat = INT_MAX;
+  for (int i = 1; i < s2p.Size(); i++) {
+    s2p.Get(i, pat);
+    if ((pat != INT_MAX) && (pat >= 0)) {
+      finalStates.insert(i);
+    }
+  }
 }
 
 MLabelIndex::MLabelIndex(DbArray<NodeRef> n, DbArray<NodeLink> nL,

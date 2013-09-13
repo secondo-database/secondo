@@ -69,12 +69,13 @@ void patternerror(const char* s) {
 }
 stj::Pattern* wholepat = 0;
 Condition cond;
-vector<UPat> uPats;
+vector<PatElem> pElems;
 Assign assign;
+set<string> unitVars;
 ExprList exprList;
 bool doublePars(false), firstAssign(true), assignNow(false), easyCond(true);
 string regEx, expr;
-set<string> curIvs, patVars, resultVars;
+set<string> curIvs, patVars, resultVars, condVars;
 unsigned int pos(0), regExLength(1);
 vector<int> posBeforeOpen;
 char* errMsg;
@@ -82,7 +83,7 @@ char* errMsg;
 
 %union{
   char* text;
-  class UPat* up;
+  class PatElem* up;
   class Pattern* p;
   class ExprList* el;
 }
@@ -133,8 +134,10 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                }
                int posP = wholepat->getPatternPos(var);
                if (posP > -1) {
-                 if (wholepat->getPat(posP).getW()) {
+                 if (!unitVars.count(var)) {
                    errMsg = convert("assignment for sequence not allowed");
+                   assign.clear();
+                   exprList.exprs.clear();
                    yyerror(errMsg);
                    free($1);
                    YYERROR;
@@ -163,8 +166,6 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                  }
                  if (redundant) {
                    errMsg = convert("redundant assignment(s)");
-                   assign.clear();
-                   exprList.exprs.clear();
                    yyerror(errMsg);
                    free($1);
                    YYERROR;
@@ -178,7 +179,7 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                  }
                }
                else {
-                 errMsg = convert("type \"" + type + "\" is invalid");
+                 errMsg = convert("type \"" + type + "\" is not a unit attribute");
                  yyerror(errMsg);
                  free($1);
                  YYERROR;
@@ -236,7 +237,7 @@ conditionsequence : condition
 condition : expressionlist {
               cond.setText(exprList.toString());
               if (easyCond) {
-                wholepat->addEasyCond(cond);
+                wholepat->addEasyCond(wholepat->getVarPos(cond.getVar(0)).first, cond);
               }
               else {
                 wholepat->addCond(cond);
@@ -244,6 +245,7 @@ condition : expressionlist {
               easyCond = true;
               exprList.exprs.clear();
               cond.clearVectors();
+              condVars.clear();
             }
           ;
 
@@ -404,16 +406,19 @@ patternsequence : patternsequence variable element {
                       yyerror(errMsg);
                       YYERROR;
                     }
-                    else if (var != "empty") {
+                    else if (var != "") {
                       patVars.insert(var);
+                      if ((pElems.size() == 1) && (pElems[0].getW() == NO) && (regEx[0] != '(')) {
+                        unitVars.insert(var);
+                      }
                     }
                     wholepat->addRegExSymbol(regEx.c_str());
-                    for (unsigned int i = 0; i < uPats.size(); i++) {
+                    for (unsigned int i = 0; i < pElems.size(); i++) {
                       wholepat->addVarPos(var, wholepat->getSize());
-                      uPats[i].setVar(var);
-                      wholepat->addUPat(uPats[i]);
+                      pElems[i].setVar(var);
+                      wholepat->addPatElem(pElems[i]);
                     }
-                    uPats.clear();
+                    pElems.clear();
                     regEx.clear();
                     free($2);
                   }
@@ -426,26 +431,32 @@ patternsequence : patternsequence variable element {
                       yyerror(errMsg);
                       YYERROR;
                     }
-                    else if (var != "empty") {
+                    else if (var != "") {
                       patVars.insert(var);
                     }
                     wholepat->addRegExSymbol(regEx.c_str());
-                    for (unsigned int i = 0; i < uPats.size(); i++) {
-                      uPats[i].setVar(var);
+                    for (unsigned int i = 0; i < pElems.size(); i++) {
+                      pElems[i].setVar(var);
                       wholepat->addVarPos(var, wholepat->getSize());
-                      wholepat->addUPat(uPats[i]);
+                      wholepat->addPatElem(pElems[i]);
                     }
-                    uPats.clear();
+                    pElems.clear();
                     regEx.clear();
                     free($1);
                   }
                 ;
 
 element : patternelement {
-            UPat upat($1);
-            string wildcard = (upat.getW() == STAR ? "*" : (upat.getW() == PLUS ? "+" : ""));
-            regEx += int2String(wholepat->getSize() + uPats.size()) + wildcard + " ";
-            uPats.push_back(upat);
+            PatElem pElem($1);
+            if (!pElem.isOk()) {
+              errMsg = convert("invalid time information in pattern element");
+              free($1);
+              yyerror(errMsg);
+              YYERROR;
+            }
+            string wildcard = (pElem.getW() == STAR ? "*" : (pElem.getW() == PLUS ? "+" : ""));
+            regEx += int2String(wholepat->getSize() + pElems.size()) + wildcard + " ";
+            pElems.push_back(pElem);
             free($1);
           }
         | ZZOPENREGEX regexseq ZZCLOSEREGEX {
@@ -461,7 +472,7 @@ element : patternelement {
         ;
 
 regexseq : regexseq separator element
-         | element {posBeforeOpen.push_back(wholepat->getSize() + uPats.size() - 1);}
+         | element {posBeforeOpen.push_back(wholepat->getSize() + pElems.size() - 1);}
          ;
 
 separator : '|' {
@@ -473,7 +484,7 @@ separator : '|' {
 
 variable : ZZVARIABLE
          | /* empty */ {
-             $$ = convert("empty");
+             $$ = convert("");
            }
          ;
 
@@ -500,10 +511,14 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
   Pattern* result = 0;
   posBeforeOpen.clear();
   cond.clear();
-  uPats.clear();
+  pElems.clear();
   resultVars.clear();
   patVars.clear();
+  condVars.clear();
   regEx.clear();
+  unitVars.clear();
+  assign.clear();
+  exprList.exprs.clear();
   firstAssign = true;
   assignNow = false;
   easyCond = true;
@@ -520,11 +535,8 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
     wholepat = 0;
   }
   if (result) {
-    result->setVerified(false);
     if (!classify) { // classification => no single NFA needed
-      result->initDelta();
-      result->buildNFA();
-/*       result->parseNFA(); */
+      result->parseNFA();
     }
   }
   deleteCurrentPatternBuffer();
@@ -553,19 +565,19 @@ Searches varP in the pattern and verifies the correct order of variables in the
 result pattern. In case of success, the unit pattern gets the suitable values.
 
 */
-void UPat::getUnit(const char *varP, bool order) {
+void PatElem::getUnit(const char *varP, bool order) {
   if (!order || firstAssign) {
     pos = 0; // reset counter for first assignment
     firstAssign = false;
   }
   string varStr(varP);
   bool found = false;
-  while ((pos < wholepat->getPats().size()) && !found) { // look for var
-    if (!(wholepat->getPat(pos)).var.compare(varStr)) {
-      var.assign((wholepat->getPat(pos)).var);
-      ivs = (wholepat->getPat(pos)).ivs;
-      lbs = (wholepat->getPat(pos)).lbs;
-      wc = (wholepat->getPat(pos)).wc;
+  while ((pos < wholepat->getElems().size()) && !found) { // look for var
+    if (!(wholepat->getElem(pos)).var.compare(varStr)) {
+      var.assign((wholepat->getElem(pos)).var);
+      ivs = (wholepat->getElem(pos)).ivs;
+      lbs = (wholepat->getElem(pos)).lbs;
+      wc = (wholepat->getElem(pos)).wc;
       found = true;
       curIvs = ivs;
 /*       cout << "variable " << var << " found in pattern " << pos << endl; */
@@ -578,7 +590,7 @@ void UPat::getUnit(const char *varP, bool order) {
   }
 }
 
-void UPat::setUnit(const char *v, const char *i, const char *l, const char *w) {
+void PatElem::setUnit(const char *v, const char *i, const char *l, const char *w) {
   string lstr(l), istr(i);
   var.assign(v);
   ivs = stringToSet(istr);
@@ -596,15 +608,22 @@ void UPat::setUnit(const char *v, const char *i, const char *l, const char *w) {
 }
 
 /*
-Constructor for class ~UPat~
+Constructor for class ~PatElem~
 
 */
-UPat::UPat(const char *contents) : wc(NO) {
+PatElem::PatElem(const char *contents) : wc(NO) {
+  ok = true;
   string input(contents);
   vector<string> parts = splitPattern(input);
   if (parts.size() == 2) {
     ivs = stringToSet(parts[0]);
     lbs = stringToSet(parts[1]);
+    SecInterval iv;
+    for (set<string>::iterator it = ivs.begin(); it != ivs.end(); it++) {
+      if ((*it)[0] >= 65 && (*it)[0] <= 122 && !checkSemanticDate(*it, iv, false)) {
+        ok = false;
+      }
+    }
   }
   else if (parts.size() == 1) {
     if (parts[0] == "*") {
@@ -613,14 +632,12 @@ UPat::UPat(const char *contents) : wc(NO) {
     else if (parts[0] == "+") {
       wc = PLUS;
     }
-    else if (parts[0] == "<>") {
-      wc = EMPTY;
-    }
   }
 }
 
 /*
 function ~convertVarKey~
+
 Checks whether the variable var occurs in the pattern and whether the key k
 is valid; returns the recognized key.
 
@@ -631,26 +648,27 @@ int Condition::convertVarKey(const char *varKey) {
   int dotpos = input.find('.');
   string varInput(input.substr(0, dotpos));
   string kInput(input.substr(dotpos + 1));
-  for (unsigned int i = 0; i < wholepat->getPats().size(); i++) {
-    if (!varInput.compare((wholepat->getPat(i)).getV())) {
-      var.assign(varInput);
+  for (unsigned int i = 0; i < wholepat->getElems().size(); i++) {
+    if (varInput == wholepat->getElem(i).getV()) {
+      var = varInput;
       key = ::getKey(kInput);
-      if (!key && wholepat->getPat(i).getW()) {
+      if (!key && (wholepat->getElem(i).getW()
+               || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
         cout << "label condition not allowed for sequences" << endl;
         return -1;
       }
-      if ((key > 5) && !wholepat->getPat(i).getW()) {
+      if ((key > 5) && (!wholepat->getElem(i).getW()
+                    && (wholepat->getVarPos(var).first == wholepat->getVarPos(var).second))) {
         cout << "card / labels condition not allowed for non-sequences" << endl;
         return -1;
       }
       if (easyCond) {
-        if (wholepat->getPat(i).getW() || (vars.size() && (var !=vars.back()))){
+        if (wholepat->getElem(i).getW() || condVars.count(var)) {
           easyCond = false;
         }
       }
-      vars.push_back(var);
-      keys.push_back(key);
-      pIds.push_back(i);
+      varKeys.push_back(make_pair(var, key));
+      condVars.insert(var);
       return key;
     }
   }
@@ -664,14 +682,23 @@ bool Assign::convertVarKey(const char *varKey) {
   string varInput(input.substr(0, dotpos));
   string kInput(input.substr(dotpos + 1));
   pair<string, int> right;
-  for (unsigned int i = 0; i < wholepat->getPats().size(); i++) {
-    if (varInput == (wholepat->getPat(i)).getV()) {
+  for (int i = 0; i < wholepat->getSize(); i++) {
+    if (varInput == (wholepat->getElem(i)).getV()) {
       right.first = varInput;
       right.second = getKey(kInput);
       addRight(6, right); // assign to n \in {0, 1, ..., 5} afterwards
     }
   }
   return true;
+}
+
+void Pattern::addVarPos(string var, int pos) {
+  if (varPos.count(var)) {
+    varPos[var].second = pos;
+  }
+  else {
+    varPos[var] = make_pair(pos, pos);
+  }
 }
 
 void Pattern::collectAssVars() {
@@ -696,9 +723,7 @@ int Pattern::getPatternPos(const string var) {
 
 void Condition::clear() {
   text.clear();
-  keys.clear();
-  vars.clear();
-  pIds.clear();
+  varKeys.clear();
 }
 
 string ExprList::toString() {

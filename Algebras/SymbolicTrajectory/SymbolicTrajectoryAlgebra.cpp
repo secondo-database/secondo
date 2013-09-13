@@ -60,6 +60,7 @@ extern AlgebraManager *am;
 
 #include <string>
 #include <vector>
+#include <math.h>
 
 using namespace std;
 
@@ -634,99 +635,104 @@ void Assign::setRightclosedPtr(unsigned int pos, bool value) {
   }
 }
 
-template<class T>
-T* rewrite(MLabel const &ml,
-           const pair<vector<unsigned int>, vector<unsigned int> > &seq,
-           vector<Assign> assigns, map<string, int> varPosInSeq) {
-  T* result = new T(1);
-  if (!checkRewriteSeq(seq, ml.GetNoComponents(), false) ||
-    (seq.first.empty() && seq.second.empty())) {
-    result->SetDefined(false);
-    return 0;
-  }
+/*
+\subsection{Function ~rewrite~}
+
+Rewrites a moving label using another moving label.
+
+*/
+MLabel* MLabel::rewrite(map<string, pair<unsigned int, unsigned int> > binding,
+                        vector<Assign> &assigns) const {
+//   cout << "rewrite called with binding ";
+//   for (map<string, pair<unsigned int, unsigned int> >::iterator i =
+//                                                              binding.begin();
+//     i != binding.end(); i++) {
+//     cout << i->first << "--> [" << i->second.first << ","
+//          << i->second.second << "]  ";
+//   }
+//   cout << endl;
+  MLabel *result = new MLabel(0);
   result->SetDefined(true);
   Word qResult;
-  int vPos(-1), seqPos(0);
-  string label("");
+  string label(""), var("");
   Instant start(instanttype), end(instanttype);
   SecInterval iv(1);
   bool lc(false), rc(false);
   ULabel ul(1), uls(1);
-//   cout << "First: ";
-//   for (unsigned int i = 0; i < seq.first.size(); i++) {
-//     cout << seq.first[i] << " ";
-//   }
-//   cout << endl << "Second: ";
-//   for (unsigned int i = 0; i < seq.second.size(); i++) {
-//     cout << seq.second[i] << " ";
-//   }
-//   cout << endl;
+  pair<unsigned int, unsigned int> segment;
   for (unsigned int i = 0; i < assigns.size(); i++) {
     for (int j = 0; j < 6; j++) {
       if (!assigns[i].getText(j).empty()) {
         for (int k = 0; k < assigns[i].getRightSize(j); k++) {
-          vPos = varPosInSeq[assigns[i].getRightVar(j, k)];
-          switch (assigns[i].getRightKey(j, k)) {
-            case 0: { // label
-              ml.Get(seq.second[vPos], ul);
-              assigns[i].setLabelPtr(k, ul.constValue.GetValue());
-              break;
+          if (binding.count(assigns[i].getRightVar(j, k))) {
+            segment = binding[assigns[i].getRightVar(j, k)];
+            switch (assigns[i].getRightKey(j, k)) {
+              case 0: { // label
+                Get(segment.first, ul);
+                assigns[i].setLabelPtr(k, ul.constValue.GetValue());
+                break;
+              }
+              case 1: { // time
+                Get(segment.first, ul);
+                iv.start = ul.timeInterval.start;
+                iv.lc = ul.timeInterval.lc;
+                Get(segment.second, ul);
+                iv.end = ul.timeInterval.end;
+                iv.rc = ul.timeInterval.rc;
+                assigns[i].setTimePtr(k, iv);
+                break;
+              }
+              case 2: { // start
+                Get(segment.first, ul);
+                if (j == 2) {
+                  assigns[i].setStartPtr(k, ul.timeInterval.start);
+                }
+                else {
+                  assigns[i].setEndPtr(k, ul.timeInterval.start);
+                }
+                break;
+              }
+              case 3: { // end
+                Get(segment.second, ul);
+                if (j == 2) {
+                  assigns[i].setStartPtr(k, ul.timeInterval.end);
+                }
+                else {
+                  assigns[i].setEndPtr(k, ul.timeInterval.end);
+                }
+                break;
+              }
+              case 4: { // leftclosed
+                Get(segment.first, ul);
+                if (j == 4) {
+                  assigns[i].setLeftclosedPtr(k, ul.timeInterval.lc);
+                }
+                else {
+                  assigns[i].setRightclosedPtr(k, ul.timeInterval.lc);
+                }
+                break;
+              }
+              case 5: { // rightclosed
+                Get(segment.second, ul);
+                if (j == 4) {
+                  assigns[i].setLeftclosedPtr(k, ul.timeInterval.rc);
+                }
+                else {
+                  assigns[i].setRightclosedPtr(k, ul.timeInterval.rc);
+                }
+                break;
+              }
+              default: { // cannot occur
+                cout << "Error: assigns[" << i << "].getRightKey(" << j << ", "
+                     << k << ") = " << assigns[i].getRightKey(j, k) << endl;
+                result->SetDefined(false);
+                return result;
+              }
             }
-            case 1: { // time
-              ml.Get(seq.second[vPos], ul);
-              iv.start = ul.timeInterval.start;
-              iv.lc = ul.timeInterval.lc;
-              ml.Get(seq.second[vPos + 1] - 1, ul);
-              iv.end = ul.timeInterval.end;
-              iv.rc = ul.timeInterval.rc;
-              assigns[i].setTimePtr(k, iv);
-              break;
-            }
-            case 2: { // start
-              ml.Get(seq.second[vPos], ul);
-              if (j == 2) {
-                assigns[i].setStartPtr(k, ul.timeInterval.start);
-              }
-              else {
-                assigns[i].setEndPtr(k, ul.timeInterval.start);
-              }
-              break;
-            }
-            case 3: { // end
-              ml.Get(seq.second[vPos + 1] - 1, ul);
-              if (j == 2) {
-                assigns[i].setStartPtr(k, ul.timeInterval.end);
-              }
-              else {
-                assigns[i].setEndPtr(k, ul.timeInterval.end);
-              }
-              break;
-            }
-            case 4: { // leftclosed
-              ml.Get(seq.second[vPos], ul);
-              if (j == 4) {
-                assigns[i].setLeftclosedPtr(k, ul.timeInterval.lc);
-              }
-              else {
-                assigns[i].setRightclosedPtr(k, ul.timeInterval.lc);
-              }
-              break;
-            }
-            case 5: { // rightclosed
-              ml.Get(seq.second[vPos + 1] - 1, ul);
-              if (j == 4) {
-                assigns[i].setLeftclosedPtr(k, ul.timeInterval.rc);
-              }
-              else {
-                assigns[i].setRightclosedPtr(k, ul.timeInterval.rc);
-              }
-              break;
-            }
-            default: { // cannot occur
-              cout << "Error: assigns[" << i << "].getRightKey(" << j << ", "
-                   << k << ") = " << assigns[i].getRightKey(j, k) << endl;
-              return 0;
-            }
+          }
+          else { // variable from right size unbound
+            result->SetDefined(false);
+            return result;
           }
         }
       }
@@ -756,9 +762,10 @@ T* rewrite(MLabel const &ml,
       rc = ((CcBool*)qResult.addr)->GetValue();
     }
      // information from assignment i collected
-    if (assigns[i].getPatternPos() > -1) { // variable occurs in p
-      if (seq.first[seqPos] + 1 == seq.first[seqPos + 1]) { // 1 source ul
-        ml.Get(seq.first[seqPos], uls);
+    if (binding.count(assigns[i].getV())) { // variable occurs in binding
+      segment = binding[assigns[i].getV()];
+      if (segment.second == segment.first) { // 1 source ul
+        Get(segment.first, uls);
         if (!assigns[i].getText(0).empty()) {
           uls.constValue.Set(true, label);
         }
@@ -781,209 +788,54 @@ T* rewrite(MLabel const &ml,
           uls.timeInterval.Print(cout);
           cout << " is an invalid interval" << endl;
           result->SetDefined(false);
-          return 0;
+          return result;
         }
-        result->MergeAdd(uls);
+        result->Add(uls);
       }
       else { // arbitrary many source uls
-        for (size_t m = seq.first[seqPos]; m < seq.first[seqPos + 1]; m++) {
-          ml.Get(m, uls);
+        for (unsigned int m = segment.first; m <= segment.second; m++) {
+          Get(m, uls);
           if (!assigns[i].getText(0).empty()) {
             uls.constValue.Set(true, label);
           }
-          if ((m == seq.first[seqPos]) && // first unit label
+          if ((m == segment.first) && // first unit label
             (!assigns[i].getText(1).empty() || !assigns[i].getText(2).empty())){
             uls.timeInterval.start = start;
             if (!uls.timeInterval.IsValid()) {
               uls.timeInterval.Print(cout);
               cout << " is an invalid interval" << endl;
               result->SetDefined(false);
-              return 0;
+              return result;
             }
           }
-          if ((m == seq.first[seqPos + 1] - 1) && // last unit label
+          if ((m == segment.second) && // last unit label
             (!assigns[i].getText(1).empty() || !assigns[i].getText(3).empty())){
             uls.timeInterval.end = end;
             if (!uls.timeInterval.IsValid()) {
               uls.timeInterval.Print(cout);
               cout << " is an invalid interval" << endl;
               result->SetDefined(false);
-              return 0;
+              return result;
             }
           }
-          if ((m == seq.first[seqPos]) && !assigns[i].getText(4).empty()) {
+          if ((m == segment.first) && !assigns[i].getText(4).empty()) {
             uls.timeInterval.lc = lc;
           }
-          if ((m == seq.first[seqPos+1] - 1) && !assigns[i].getText(5).empty()){
+          if ((m == segment.second) && !assigns[i].getText(5).empty()) {
             uls.timeInterval.rc = rc;
           }
-          result->MergeAdd(uls);
+          result->Add(uls);
         }
       }
-      seqPos = seqPos + 2;
     }
-    else { // variable does not occur in p
-      uls.constValue.Set(true, label);
-      if (!assigns[i].getText(1).empty()) {
-        uls.timeInterval = iv;
-      }
-      else {
-        uls.timeInterval.start = start;
-        uls.timeInterval.end = end;
-      }
-      if (!assigns[i].getText(4).empty()) {
-        uls.timeInterval.lc = lc;
-      }
-      if (!assigns[i].getText(5).empty()) {
-        uls.timeInterval.rc = rc;
-      }
-      result->MergeAdd(uls);
-    }
-  }
-  if (!result->IsValid()) {
-    result->SetDefined(false);
-  }
-  return result;
-}
-
-/*
-\subsection{Function ~rewrite~}
-
-Rewrites a moving label using another moving label and a vector.
-
-*/
-void MLabel::rewrite(MLabel const &ml,
-                   const pair<vector<unsigned int>, vector<unsigned int> > &seq,
-                     vector<Assign> assigns, map<string, int> varPosInSeq) {
-  if (!checkRewriteSeq(seq, ml.GetNoComponents(), false) ||
-    (seq.first.empty() && seq.second.empty())) {
-    SetDefined(false);
-    return;
-  }
-  Word qResult;
-  int vPos(-1), seqPos(0);
-  string label("");
-  Instant start(instanttype), end(instanttype);
-  SecInterval iv(1);
-  bool lc(false), rc(false);
-  ULabel ul(1), uls(1);
-//   cout << "First: ";
-//   for (unsigned int i = 0; i < seq.first.size(); i++) {
-//     cout << seq.first[i] << " ";
-//   }
-//   cout << endl << "Second: ";
-//   for (unsigned int i = 0; i < seq.second.size(); i++) {
-//     cout << seq.second[i] << " ";
-//   }
-//   cout << endl;
-  for (unsigned int i = 0; i < assigns.size(); i++) {
-    for (int j = 0; j < 6; j++) {
-      if (!assigns[i].getText(j).empty()) {
-        for (int k = 0; k < assigns[i].getRightSize(j); k++) {
-          vPos = varPosInSeq[assigns[i].getRightVar(j, k)];
-          switch (assigns[i].getRightKey(j, k)) {
-            case 0: { // label
-              ml.Get(seq.second[vPos], ul);
-              assigns[i].setLabelPtr(k, ul.constValue.GetValue());
-              break;
-            }
-            case 1: { // time
-              ml.Get(seq.second[vPos], ul);
-              iv.start = ul.timeInterval.start;
-              iv.lc = ul.timeInterval.lc;
-              ml.Get(seq.second[vPos + 1] - 1, ul);
-              iv.end = ul.timeInterval.end;
-              iv.rc = ul.timeInterval.rc;
-              assigns[i].setTimePtr(k, iv);
-              break;
-            }
-            case 2: { // start
-              ml.Get(seq.second[vPos], ul);
-              if (j == 2) {
-                assigns[i].setStartPtr(k, ul.timeInterval.start);
-              }
-              else {
-                assigns[i].setEndPtr(k, ul.timeInterval.start);
-              }
-              break;
-            }
-            case 3: { // end
-              ml.Get(seq.second[vPos + 1] - 1, ul);
-              if (j == 2) {
-                assigns[i].setStartPtr(k, ul.timeInterval.end);
-              }
-              else {
-                assigns[i].setEndPtr(k, ul.timeInterval.end);
-              }
-              break;
-            }
-            case 4: { // leftclosed
-              ml.Get(seq.second[vPos], ul);
-              if (j == 4) {
-                assigns[i].setLeftclosedPtr(k, ul.timeInterval.lc);
-              }
-              else {
-                assigns[i].setRightclosedPtr(k, ul.timeInterval.lc);
-              }
-              break;
-            }
-            case 5: { // rightclosed
-              ml.Get(seq.second[vPos + 1] - 1, ul);
-              if (j == 4) {
-                assigns[i].setLeftclosedPtr(k, ul.timeInterval.rc);
-              }
-              else {
-                assigns[i].setRightclosedPtr(k, ul.timeInterval.rc);
-              }
-              break;
-            }
-            default: { // cannot occur
-              cout << "Error: assigns[" << i << "].getRightKey(" << j << ", "
-                   << k << ") = " << assigns[i].getRightKey(j, k) << endl;
-              return;
-            }
-          }
-        }
-      }
-    } // all pointers are set now
-    if (!assigns[i].getText(0).empty()) {
-      assigns[i].getQP(0)->EvalS(assigns[i].getOpTree(0), qResult, OPEN);
-      label = ((CcString*)qResult.addr)->GetValue();
-    }
-    if (!assigns[i].getText(1).empty()) {
-      assigns[i].getQP(1)->EvalS(assigns[i].getOpTree(1), qResult, OPEN);
-      iv = *((SecInterval*)qResult.addr);
-    }
-    if (!assigns[i].getText(2).empty()) {
-      assigns[i].getQP(2)->EvalS(assigns[i].getOpTree(2), qResult, OPEN);
-      start = *((Instant*)qResult.addr);
-    }
-    if (!assigns[i].getText(3).empty()) {
-      assigns[i].getQP(3)->EvalS(assigns[i].getOpTree(3), qResult, OPEN);
-      end = *((Instant*)qResult.addr);
-    }
-    if (!assigns[i].getText(4).empty()) {
-      assigns[i].getQP(4)->EvalS(assigns[i].getOpTree(4), qResult, OPEN);
-      lc = ((CcBool*)qResult.addr)->GetValue();
-    }
-    if (!assigns[i].getText(5).empty()) {
-      assigns[i].getQP(5)->EvalS(assigns[i].getOpTree(5), qResult, OPEN);
-      rc = ((CcBool*)qResult.addr)->GetValue();
-    }
-     // information from assignment i collected
-    if (assigns[i].getPatternPos() > -1) { // variable occurs in p
-      if (seq.first[seqPos] + 1 == seq.first[seqPos + 1]) { // 1 source ul
-        ml.Get(seq.first[seqPos], uls);
-        if (!assigns[i].getText(0).empty()) {
-          uls.constValue.Set(true, label);
-        }
+    else { // variable does not occur in binding
+      if (assigns[i].getPatternPos() == -1) { // and not in pattern
+        uls.constValue.Set(true, label);
         if (!assigns[i].getText(1).empty()) {
           uls.timeInterval = iv;
         }
-        if (!assigns[i].getText(2).empty()) {
+        else {
           uls.timeInterval.start = start;
-        }
-        if (!assigns[i].getText(3).empty()) {
           uls.timeInterval.end = end;
         }
         if (!assigns[i].getText(4).empty()) {
@@ -992,70 +844,12 @@ void MLabel::rewrite(MLabel const &ml,
         if (!assigns[i].getText(5).empty()) {
           uls.timeInterval.rc = rc;
         }
-        if (!uls.timeInterval.IsValid()) {
-          uls.timeInterval.Print(cout);
-          cout << " is an invalid interval" << endl;
-          SetDefined(false);
-          return;
-        }
-        this->MergeAdd(uls);
+        result->Add(uls);
       }
-      else { // arbitrary many source uls
-        for (size_t m = seq.first[seqPos]; m < seq.first[seqPos + 1]; m++) {
-          ml.Get(m, uls);
-          if (!assigns[i].getText(0).empty()) {
-            uls.constValue.Set(true, label);
-          }
-          if ((m == seq.first[seqPos]) && // first unit label
-            (!assigns[i].getText(1).empty() || !assigns[i].getText(2).empty())){
-            uls.timeInterval.start = start;
-            if (!uls.timeInterval.IsValid()) {
-              uls.timeInterval.Print(cout);
-              cout << " is an invalid interval" << endl;
-              SetDefined(false);
-              return;
-            }
-          }
-          if ((m == seq.first[seqPos + 1] - 1) && // last unit label
-            (!assigns[i].getText(1).empty() || !assigns[i].getText(3).empty())){
-            uls.timeInterval.end = end;
-            if (!uls.timeInterval.IsValid()) {
-              uls.timeInterval.Print(cout);
-              cout << " is an invalid interval" << endl;
-              SetDefined(false);
-              return;
-            }
-          }
-          if ((m == seq.first[seqPos]) && !assigns[i].getText(4).empty()) {
-            uls.timeInterval.lc = lc;
-          }
-          if ((m == seq.first[seqPos+1] - 1) && !assigns[i].getText(5).empty()){
-            uls.timeInterval.rc = rc;
-          }
-          MergeAdd(uls);
-        }
-      }
-      seqPos = seqPos + 2;
-    }
-    else { // variable does not occur in p
-      uls.constValue.Set(true, label);
-      if (!assigns[i].getText(1).empty()) {
-        uls.timeInterval = iv;
-      }
-      else {
-        uls.timeInterval.start = start;
-        uls.timeInterval.end = end;
-      }
-      if (!assigns[i].getText(4).empty()) {
-        uls.timeInterval.lc = lc;
-      }
-      if (!assigns[i].getText(5).empty()) {
-        uls.timeInterval.rc = rc;
-      }
-      MergeAdd(uls);
     }
   }
-  SetDefined(IsValid());
+  result->SetDefined(result->IsValid());
+  return result;
 }
 
 /*
@@ -1132,6 +926,10 @@ Operator temporalatinstantext(
     MovingExtSimpleSelect,
     MovingInstantExtTypeMapIntime);
 
+/*
+\subsection{Function ~CompareLabels~}
+
+*/
 int CompareLabels(const void *a, const void *b) {
   const Label *label1 = (const Label*)a;
   const Label *label2 = (const Label*)b;
@@ -1144,83 +942,200 @@ int CompareLabels(const void *a, const void *b) {
   return 0;
 }
 
-enum LabelsState {partial, complete};
-
-class Labels : public Attribute {
-  public:
-    Labels(const int n, const Label *Lb = 0);
-    ~Labels();
-
-    Labels(const Labels& src);
-    Labels& operator=(const Labels& src);
-
-    int NumOfFLOBs() const;
-    Flob *GetFLOB(const int i);
-    int Compare(const Attribute*) const;
-    bool Adjacent(const Attribute*) const;
-    Labels *Clone() const;
-    size_t Sizeof() const;
-    ostream& Print(ostream& os) const;
-
-    void Append( const Label &lb );
-    void Complete();
-    bool Correct();
-    void Destroy();
-    int GetNoLabels() const;
-    Label GetLabel(int i) const;
-    string GetState() const;
-    const bool IsEmpty() const;
-    void CopyFrom(const Attribute* right);
-    size_t HashValue() const;
-
-    friend ostream& operator <<( ostream& os, const Labels& p );
-
-    static Word     In(const ListExpr typeInfo, const ListExpr instance,
-                      const int errorPos, ListExpr& errorInfo, bool& correct);
-    static ListExpr Out(ListExpr typeInfo, Word value);
-    static Word     Create(const ListExpr typeInfo);
-    static void     Delete(const ListExpr typeInfo, Word& w);
-    static void     Close(const ListExpr typeInfo, Word& w);
-    static bool     Save(SmiRecord& valueRecord, size_t& offset,
-                         const ListExpr typeInfo, Word& value);
-    static bool     Open(SmiRecord& valueRecord, size_t& offset,
-                         const ListExpr typeInfo, Word& value);
-    static Word     Clone(const ListExpr typeInfo, const Word& w);
-    static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
-    static int      SizeOfObj();
-    static ListExpr Property();
-    static void*    Cast(void* addr);
-    static const    string BasicType() {
-      return "labels";
-    }
-    static const    bool checkType(const ListExpr type){
-      return listutils::isSymbol(type, BasicType());
-    }
-    DbArray<Label> GetDbArray() {return labels;}
-    void Sort() {labels.Sort(CompareLabels);}
-    void Clean() {
-      if (labels.Size()) {
-        labels.clean();
-      }
-      state = partial;
-    }
-
-  private:
-    Labels() {} // this constructor is reserved for the cast function.
-    DbArray<Label> labels;
-    LabelsState state;
-};
-
 /*
-2.3.18 Print functions
+\subsection{Print function for class ~Label~}
 
 */
-
 ostream& operator<<(ostream& os, const Label& lb) {
   os << "(" << lb.GetValue() << ")";
   return os;
 }
 
+/*
+\section{Implementation of class ~Labels~}
+
+\subsection{Constructors}
+
+*/
+Labels::Labels(const int n, const Label *lb) :
+                                    Attribute(true), labels(n), state(partial) {
+  SetDefined(true);
+  if (n > 0) {
+    for(int i = 0; i < n; i++) {
+      Append(lb[i]);
+    }
+    Complete();
+  }
+}
+
+Labels::Labels(const Labels& src):
+  Attribute(src.IsDefined()),
+  labels(src.labels.Size()), state(src.state) {
+  labels.copyFrom(src.labels);
+}
+
+/*
+\subsection{Destructor}
+
+*/
+Labels::~Labels() {}
+
+/*
+\subsection{Operator ~=~}
+
+*/
+Labels& Labels::operator=(const Labels& src) {
+  this->state = src.state;
+  labels.copyFrom(src.labels);
+  return *this;
+}
+
+/*
+\subsection{Function ~NumOfFLOBs~}
+
+*/
+int Labels::NumOfFLOBs() const {
+  return 1;
+}
+
+/*
+\subsection{Function ~GetFLOB~}
+
+*/
+Flob *Labels::GetFLOB(const int i) {
+  assert(i >= 0 && i < NumOfFLOBs());
+  return &labels;
+}
+
+/*
+\subsection{Function ~Compare~}
+
+*/
+int Labels::Compare(const Attribute* arg) const {
+  return 0;
+}
+
+/*
+\subsection{Function ~HashValue~}
+
+*/
+size_t Labels::HashValue() const {
+  return  1;
+}
+
+/*
+\subsection{Function ~Adjacent~}
+
+*/
+bool Labels::Adjacent(const Attribute*) const {
+  return 0;
+}
+
+/*
+\subsection{Function ~Clone~}
+
+*/
+Labels *Labels::Clone() const {
+  assert(state == complete);
+  Labels *lbs = new Labels(*this);
+  return lbs;
+}
+
+/*
+\subsection{Function ~CopyFrom~}
+
+*/
+void Labels::CopyFrom(const Attribute* right) {
+  *this = *((Labels*)right);
+}
+
+/*
+\subsection{Function ~Sizeof~}
+
+*/
+size_t Labels::Sizeof() const {
+  return sizeof(*this);
+}
+
+/*
+\subsection{Function ~Print~}
+
+*/
+ostream& Labels::Print(ostream& os) const {
+  return (os << *this);
+}
+
+/*
+\subsection{Function ~Append~}
+
+*/
+void Labels::Append(const Label& lb) {
+  assert(state == partial);
+  labels.Append(lb);
+}
+
+/*
+\subsection{Function ~Complete~}
+
+*/
+void Labels::Complete() {
+  assert(state == partial);
+  state = complete;
+}
+
+/*
+\subsection{Function ~Destroy~}
+
+*/
+void Labels::Destroy() {
+  state = complete;
+  labels.destroy();
+}
+
+/*
+\subsection{Function ~GetNoLabels~}
+
+*/
+int Labels::GetNoLabels() const {
+  return labels.Size();
+}
+
+/*
+\subsection{Function ~GetLabel~}
+
+*/
+Label Labels::GetLabel(int i) const {
+  assert((0 <= i) && (i < GetNoLabels()));
+  Label lb(true);
+  labels.Get(i, lb);
+  return lb;
+}
+
+/*
+\subsection{Function ~GetState~}
+
+*/
+string Labels::GetState() const {
+  switch (state) {
+    case partial:
+      return "partial";
+    default:
+      return "complete";
+  }
+}
+
+/*
+\subsection{Function ~IsEmpty~}
+
+*/
+const bool Labels::IsEmpty() const {
+  return GetNoLabels() == 0;
+}
+
+/*
+\subsection{Operator ~<<~}
+
+*/
 ostream& operator<<(ostream& os, const Labels& lbs) {
   os << " State: " << lbs.GetState() << "<";
   for(int i = 0; i < lbs.GetNoLabels(); i++)
@@ -1230,246 +1145,9 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 }
 
 /*
-2.3.1 Constructors.
-
-This first constructor creates a new Labels object.
+\subsection{Function ~Out~}
 
 */
-Labels::Labels(const int n, const Label *lb) :
-  Attribute(true),
-  labels(n),
-  state(partial) {
-  SetDefined(true);
-  if(n > 0) {
-    for(int i = 0; i < n; i++) {
-      Append(lb[i]);
-    }
-    Complete();
-  }
-}
-
-/*
-2.3.2 Copy Constructor
-
-*/
-Labels::Labels(const Labels& src):
-  Attribute(src.IsDefined()),
-  labels(src.labels.Size()),state(src.state) {
-  labels.copyFrom(src.labels);
-}
-
-/*
-2.3.2 Destructor.
-
-*/
-Labels::~Labels() {}
-
-Labels& Labels::operator=(const Labels& src) {
-  this->state = src.state;
-  labels.copyFrom(src.labels);
-  return *this;
-}
-
-/*
-2.3.3 NumOfFLOBs.
-
-*/
-int Labels::NumOfFLOBs() const {
-  return 1;
-}
-
-/*
-2.3.4 GetFLOB
-
-*/
-Flob *Labels::GetFLOB(const int i) {
-  assert( i >= 0 && i < NumOfFLOBs() );
-  return &labels;
-}
-
-/*
-2.3.5 Compare
-
-Not yet implemented. 
-
-*/
-int Labels::Compare(const Attribute* arg) const {
-  return 0;
-}
-
-/*
-2.3.6 HashValue
-
-Because Compare returns alway 0, we can only return a constant hash value.
-
-*/
-size_t Labels::HashValue() const {
-  return  1;
-}
-
-/*
-2.3.5 Adjacent
-
-Not yet implemented. 
-
-*/
-bool Labels::Adjacent(const Attribute*) const {
-  return 0;
-}
-
-/*
-2.3.7 Clone
-
-Returns a new created element labels (clone) which is a
-copy of ~this~.
-
-*/
-Labels *Labels::Clone() const {
-  assert(state == complete);
-  Labels *lbs = new Labels(*this);
-  return lbs;
-}
-
-void Labels::CopyFrom(const Attribute* right) {
-  *this = *((Labels*) right);
-}
-
-/*
-2.3.8 Sizeof
-
-*/
-size_t Labels::Sizeof() const {
-  return sizeof( *this );
-}
-
-/*
-2.3.8 Print
-
-*/
-ostream& Labels::Print( ostream& os ) const {
-  return (os << *this);
-}
-
-/*
-2.3.9 Append
-
-Appends a label ~lb~ at the end of the DBArray labels.
-
-*Precondition* ~state == partial~.
-
-*/
-void Labels::Append(const Label& lb) {
-  assert(state == partial);
-  labels.Append( lb );
-}
-
-/*
-2.3.10 Complete
-
-Turns the element labels into the ~complete~ state.
-
-*Precondition* ~state == partial~.
-
-*/
-void Labels::Complete() {
-  assert(state == partial);
-  state = complete;
-}
-
-/*
-2.3.11 Correct
-
-Not yet implemented.
-
-*/
-bool Labels::Correct() {
-  return true;
-}
-
-/*
-2.3.13 Destroy
-
-Turns the element labels into the ~closed~ state destroying the
-labels DBArray.
-
-*Precondition* ~state == complete~.
-
-*/
-void Labels::Destroy() {
-  state = complete;
-  // assert( state == complete );
-  labels.destroy();
-}
-
-/*
-2.3.14 NoLabels
-
-Returns the number of labels of the DBArray labels.
-
-*Precondition* ~state == complete~.
-
-*/
-int Labels::GetNoLabels() const {
-  return labels.Size();
-}
-
-/*
-2.3.15 GetLabel
-
-Returns a label indexed by ~i~.
-
-*Precondition* ~state == complete \&\& 0 <= i < noLabels~.
-
-*/
-Label Labels::GetLabel(int i) const {
-  assert(state == complete);
-  assert(0 <= i && i < GetNoLabels());
-  Label lb(true);
-  labels.Get(i, lb);
-  return lb;
-}
-
-/*
-2.3.16 GetState
-
-Returns the state of the element labels in string format.
-
-*/
-string Labels::GetState() const {
-  switch(state) {
-    case partial:
-      return "partial";
-    case complete:
-      return "complete";
-  }
-  return "";
-}
-
-/*
-2.3.18 IsEmpty
-
-Returns if the labels is empty or not.
-
-*/
-const bool Labels::IsEmpty() const {
-  assert(state == complete);
-  return GetNoLabels() == 0;
-}
-
-/*
-3 Labels Algebra.
-
-3.1 List Representation
-
-The list representation of a labels is
-
-----    ( (<recordId>) label_1 label_2 ... label_n )
-----
-
-3.2 ~In~ and ~Out~ Functions
-
-*/
-
 ListExpr Labels::Out(ListExpr typeInfo, Word value) {
   Labels* labels = static_cast<Labels*>(value.addr);
   if (!labels->IsDefined()) {
@@ -1487,6 +1165,10 @@ ListExpr Labels::Out(ListExpr typeInfo, Word value) {
   }
 }
 
+/*
+\subsection{Function ~In~}
+
+*/
 Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
   Word result = SetWord(Address(0));
@@ -1515,7 +1197,7 @@ Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
 }
 
 /*
-3.3 Function Describing the Signature of the Type Constructor
+\subsection{Function ~Property~}
 
 */
 ListExpr Labels::Property() {
@@ -1536,10 +1218,7 @@ ListExpr Labels::Property() {
 }
 
 /*
-3.4 Kind Checking Function
-
-This function checks whether the type constructor is applied correctly. Since
-type constructor ~labels~ does not have arguments, this is trivial.
+\subsection{Function ~KindCheck~}
 
 */
 bool Labels::KindCheck(ListExpr type, ListExpr& errorInfo) {
@@ -1547,8 +1226,7 @@ bool Labels::KindCheck(ListExpr type, ListExpr& errorInfo) {
 }
 
 /*
-
-3.5 ~Create~-function
+\subsection{Function ~Create~}
 
 */
 Word Labels::Create(const ListExpr typeInfo) {
@@ -1557,7 +1235,7 @@ Word Labels::Create(const ListExpr typeInfo) {
 }
 
 /*
-3.6 ~Delete~-function
+\subsection{Function ~Delete~}
 
 */
 void Labels::Delete(const ListExpr typeInfo, Word& w) {
@@ -1567,7 +1245,7 @@ void Labels::Delete(const ListExpr typeInfo, Word& w) {
 }
 
 /*
-3.6 ~Open~-function
+\subsection{Function ~Open~}
 
 */
 bool Labels::Open(SmiRecord& valueRecord, size_t& offset,
@@ -1578,7 +1256,7 @@ bool Labels::Open(SmiRecord& valueRecord, size_t& offset,
 }
 
 /*
-3.7 ~Save~-function
+\subsection{Function ~Save~}
 
 */
 bool Labels::Save(SmiRecord& valueRecord, size_t& offset,
@@ -1589,7 +1267,7 @@ bool Labels::Save(SmiRecord& valueRecord, size_t& offset,
 }
 
 /*
-3.8 ~Close~-function
+\subsection{Function ~Close~}
 
 */
 void Labels::Close(const ListExpr typeInfo, Word& w) {
@@ -1598,7 +1276,7 @@ void Labels::Close(const ListExpr typeInfo, Word& w) {
 }
 
 /*
-3.9 ~Clone~-function
+\subsection{Function ~Clone~}
 
 */
 Word Labels::Clone(const ListExpr typeInfo, const Word& w) {
@@ -1606,7 +1284,7 @@ Word Labels::Clone(const ListExpr typeInfo, const Word& w) {
 }
 
 /*
-3.9 ~SizeOf~-function
+\subsection{Function ~SizeOfObj~}
 
 */
 int Labels::SizeOfObj() {
@@ -1614,7 +1292,7 @@ int Labels::SizeOfObj() {
 }
 
 /*
-3.10 ~Cast~-function
+\subsection{Function ~Cast~}
 
 */
 void* Labels::Cast(void* addr) {
@@ -1622,7 +1300,7 @@ void* Labels::Cast(void* addr) {
 }
 
 /*
-3.11 Creation of the Type Constructor Instance
+\subsection{Type Constructor}
 
 */
 TypeConstructor labelsTC(
@@ -1764,6 +1442,7 @@ int containsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   Label *label = new Label(ccstr->GetValue());
   int pos;
   bool res = labels->GetDbArray().Find(label, CompareLabels, pos);
+  delete label;
   ccbool->Set(true, res);
   return 0;
 }
@@ -1783,52 +1462,9 @@ struct containsInfo : OperatorInfo {
 
 
 /*
-\section{Pattern}
-*/
+\section{Implementation of class ~Pattern~}
 
-/*
-\subsection{Function ~toString~}
-Writes all pattern information into a string.
-
-*/
-string Pattern::toString() const {
-  stringstream str;
-  if (description != "") {
-    str << "=====description=====" << endl << description << endl;
-  }
-  str << "==pattern elements==" << endl;
-  for (int i = 0; i < (int)elems.size(); i++) {
-    str << "[" << i << "] " << elems[i].getV() << " | "
-        << setToString(elems[i].getI()) << " | "
-        << setToString(elems[i].getL()) << " | "
-        << (elems[i].getW() ? (elems[i].getW() == STAR ? "*" : "+") :"")
-        << endl;
-  }
-  str << "=====conditions======" << endl;
-  for (int i = 0; i < (int)conds.size(); i++) {
-    str << "[" << i << "] " << conds[i].toString() << endl;
-  }
-  str << "=results/assignments=" << endl;
-  for (int i = 0; i < (int)assigns.size(); i++) {
-    str << "[" << i << "] " << assigns[i].getV() << " | ";
-    for (int j = 0; j < 4; j++) {
-      str << assigns[i].getText(j) << "; ";
-      for (int k = 0; k < assigns[i].getRightSize(j); k++) {
-        str << "(" << assigns[i].getVarKey(j, k).first << ", "
-            << assigns[i].getVarKey(j, k).second << ") ";
-      }
-      str << " # ";
-    }
-    str << endl;
-  }
-  str << endl;
-  return str.str();
-}
-
-
-
-/*
-\subsection{Function ~GetText()~}
+\subsection{Function ~GetText~}
 
 Returns the pattern text as specified by the user.
 
@@ -1949,54 +1585,8 @@ bool Pattern::Open(SmiRecord& valueRecord, size_t& offset,
 */
 bool Pattern::Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
-  Pattern* p = (Pattern*)value.addr;
-  int size = p->elems.size();
-  valueRecord.Write(&size, sizeof(int), offset);
-  offset += sizeof(int);
-  for (int i = 0; i < size; i++) {
-    valueRecord.Write(&p->elems[i], sizeof(UPat), offset);
-    offset += sizeof(UPat);
-  }
-  size = p->assigns.size();
-  valueRecord.Write(&size, sizeof(int), offset);
-  offset += sizeof(int);
-  for (int i = 0; i < size; i++) {
-    valueRecord.Write(&p->assigns[i], sizeof(Assign), offset);
-    offset += sizeof(Assign);
-  }
-  size = p->conds.size();
-  valueRecord.Write(&size, sizeof(int), offset);
-  offset += sizeof(int);
-  for (int i = 0; i < size; i++) {
-    valueRecord.Write(&p->conds[i], sizeof(Condition), offset);
-    offset += sizeof(Condition);
-  }
-  size = p->text.length();
-  valueRecord.Write(&size, sizeof(int), offset);
-  offset += sizeof(int);
-  for (int i = 0; i < size; i++) {
-    valueRecord.Write(&p->text[i], sizeof(char), offset); // text
-    offset += sizeof(char);
-  }
-  size = p->elems.size();
-  valueRecord.Write(&size, sizeof(int), offset); // delta.size
-  offset += sizeof(int);
-  int mapsize, setsize;
-  set<int>::iterator k;
-  for (int i = 0; i < size; i++) {
-    mapsize = p->delta[i].size();
-    valueRecord.Write(&mapsize, sizeof(int), offset); //mapsize
-    offset += sizeof(int);
-    for (int j = 0; j < mapsize; j++) {
-      setsize = p->delta[i][j].size();
-      valueRecord.Write(&setsize, sizeof(int), offset);//setsize
-      offset += sizeof(int);
-      for (k = p->delta[i][j].begin(); k != p->delta[i][j].end(); k++) {
-        valueRecord.Write(&(*k), sizeof(int), offset);
-        offset += sizeof(int);
-      }
-    }
-  }
+  Pattern *p = (Pattern*)value.addr;
+  Attribute::Save(valueRecord, offset, typeInfo, (Attribute*)p);
   return true;
 }
 
@@ -2053,33 +1643,6 @@ TypeConstructor patternTC(
   Pattern::KindCheck );             // kind checking function
 
 /*
-\subsection{Function ~verifyPattern~}
-
-Loops through the pattern elements and checks whether every specified interval
-is valid and whether the variables are unique.
-
-*/
-bool Pattern::verifyPattern() const {
-  set<string>::iterator it;
-  SecInterval iv;
-  set<string> vars, ivs;
-  if (!this) {
-    cout << "Error: Pattern not initialized." << endl;
-    return false;
-  }
-  for (int i = 0; i < (int)elems.size(); i++) {
-    ivs = elems[i].getI();
-    for (it = ivs.begin(); it != ivs.end(); it++){
-      if ((*it).at(0) >= 65 && (*it).at(0) <= 122
-        && !checkSemanticDate(*it, iv, false)) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-/*
 \subsection{Function ~getPattern~}
 
 Calls the parser.
@@ -2093,16 +1656,23 @@ Pattern* Pattern::getPattern(string input, bool classify) {
   return parseString(patternChar, classify);
 }
 
+bool Pattern::containsFinalState(set<int> &states) {
+  for (set<int>::iterator i = states.begin(); i != states.end(); i++) {
+    if (finalStates.count(*i)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool Pattern::parseNFA() {
   IntNfa* intNfa = 0;
-  cout << "RegEx = \'" << regEx << "\'" << endl;
   if (parsePatternRegEx(regEx.c_str(), &intNfa) != 0) {
     return false;
   }
   intNfa->nfa.makeDeterministic();
   intNfa->nfa.minimize();
   intNfa->nfa.bringStartStateToTop();
-//   intNfa->nfa.print(cout);
   map<int, set<int> >::iterator it;
   for (unsigned int i = 0; i < intNfa->nfa.numOfStates(); i++) {
     map<int, set<int> > transitions = intNfa->nfa.getState(i).getTransitions();
@@ -2115,9 +1685,7 @@ bool Pattern::parseNFA() {
       finalStates.insert(i);
     }
   }
-  cout << "==========================================" << endl;
-  printNfa();
-  cout << "==========================================" << endl;
+  delete intNfa;
   return true;
 }
 
@@ -2128,220 +1696,16 @@ Checks the pattern and the condition and (if no problem occurs) invokes the NFA
 construction and the matching procedure.
 
 */
-ExtBool Pattern::matches(MLabel &ml) {
-  if (!isVerified()) {
-    if (!verifyPattern()) {
-      cout << "Error: Invalid pattern." << endl;
-      return FALSE;
-    }
-  }
+ExtBool Pattern::matches(MLabel *ml) {
 /*  cout << nfa2String() << endl;*/
-  Match *match = new Match(elems.size() + 1);
-  match->copyFromPattern(this);
+  Match *match = new Match(this, ml);
   ExtBool result = UNDEF;
-  if (match->initEasyCondOpTrees()) {
-    result = match->matches(ml);
+  if (initEasyCondOpTrees()) {
+    result = match->matches();
   }
-  ml.index.removeTrie();
-  match->deleteEasyCondOpTrees();
+  ml->index.removeTrie();
   delete match;
   return result;
-}
-
-/*
-\subsection{Function ~getRewriteSeqs~}
-
-Performs a match and returns the set of matching sequences for the operator
-~rewrite~.
-
-*/
-set<pair<vector<unsigned int>, vector<unsigned int> > > Pattern::
-                                            getRewriteSeqs(MLabel &ml) {
-  set<pair<vector<unsigned int>, vector<unsigned int> > > result;
-  Match *match = new Match(elems.size() + 1);
-  match->copyFromPattern(this);
-  match->setAssVars(this->getAssVars());
-  match->setVarPos(this->getVarPos());
-//   cout << nfa2String() << endl;
-  match->initEasyCondOpTrees();
-  if (!match->matches(ml, true)) {
-    match->deleteEasyCondOpTrees();
-    delete match;
-    return result;
-  }
-  match->deleteEasyCondOpTrees();
-  match->computeResultVars(this->assigns);
-  match->buildSequences();
-//   match->printSequences(300);
-  match->filterSequences(ml);
-//   match->printRewriteSeqs(50);
-  match->deleteCondOpTrees();
-  result = match->getRewriteSeqs();
-  delete match;
-  return result;
-}
-
-map<string, int> Pattern::getVarPosInSeq() {
-  set<string>::iterator it;
-  int pos = 0;
-  map<string, int> result;
-  for (it = assignedVars.begin(); it != assignedVars.end(); it++) {
-    result[*it] = pos;
-    pos = pos + 2;
-  }
-//   cout << endl << "varPosInSeq=";
-//   map<string, int>::iterator ite;
-//   for (ite = result.begin(); ite != result.end(); ite++) {
-//     cout << (*ite).first << "|" << (*ite).second << "--";
-//   }
-//   cout << endl;
-  return result;
-}
-
-Match::Match(IndexLI* li, TupleId tId) {
-  p = li->p;
-  f = p->getSize();
-  match = new set<unsigned int>[f];
-  cardsets = new set<unsigned int>[f];
-  seqOrder = new int[f];
-  numOfLabels = li->getMLsize(tId);
-  for (int i = 0; i < f; i++) {
-    match[i].insert(li->matches[tId-1][i].begin(), li->matches[tId-1][i].end());
-  }
-}
-
-/*
-\subsection{Function ~computeResultVars~}
-
-Computes a mapping containing the positions of the pattern elements the result
-variables belong to.
-
-*/
-void Match::computeResultVars(vector<Assign> assigns) {
-  resultVars.clear();
-  for (int i = 0; i < (int)assigns.size(); i++) {
-    resultVars[i] = assigns[i].getPatternPos();
-  }
-}
-
-/*
-\subsection{Function ~filterSequences~}
-
-Searches for sequences which fulfill all conditions and stores their relevant
-parts for rewriting.
-
-*/
-void Match::filterSequences(MLabel const &ml) {
-  set<multiset<unsigned int> >::iterator it;
-  for (it = sequences.begin(); it != sequences.end(); it++) {
-    for (unsigned int i = 0; i < p->conds.size(); i++) {
-      if (!evaluateCond(ml, p->conds[i], *it)) {
-        i = p->conds.size(); // continue with next sequence
-      }
-      else if (i == p->conds.size() - 1) { // all conditions are fulfilled
-        buildRewriteSeq(*it);
-      }
-    }
-    if (p->conds.empty()) {
-      buildRewriteSeq(*it);
-    }
-  }
-}
-
-void Match::buildRewriteSeq(multiset<unsigned int> sequence) {
-  vector<unsigned int> seq(sequence.begin(), sequence.end());
-  vector<unsigned int> rewriteSeq, assignedSeq;
-  pair<vector<unsigned int>, vector<unsigned int> > completeSeq;
-  for (unsigned int j = 0; j < resultVars.size(); j++) {
-    if (resultVars[j] > -1) {
-      rewriteSeq.push_back(seq[resultVars[j]]); // begin
-      if (resultVars[j] < (int)(f - 1)) {
-        rewriteSeq.push_back(seq[resultVars[j] + 1]); // end
-      }
-      else { // last state
-        rewriteSeq.push_back(numOfLabels);
-      }
-    }
-  }
-  set<string>::iterator it; // for assigned variables (... := X...)
-  for (it = assignedVars.begin(); it != assignedVars.end(); it++) {
-    assignedSeq.push_back(seq[varPos[*it]]);
-    if (varPos[*it] < f - 1) {
-      assignedSeq.push_back(seq[varPos[*it] + 1]);
-    }
-    else { // last state
-      assignedSeq.push_back(numOfLabels);
-    }
-  }
-  completeSeq.first = rewriteSeq;
-  completeSeq.second = assignedSeq;
-  rewriteSeqs.insert(completeSeq);
-}
-
-/*
-\subsection{Function ~buildNFA~}
-
-Reads the pattern and generates the delta function
-
-*/
-void Pattern::buildNFA() {
-  int f = elems.size();
-  int prev[3] = {-1, -1, -1}; // prevStar, prevNotStar, secondPrevNotStar
-  for (int i = 0; i < f; i++) {
-    delta[i][i].insert(i + 1); // state i, read pattern i => new state i+1
-    if (!elems[i].getW() || !elems[i].getI().empty() // last pattern or
-     || !elems[i].getL().empty() || (i == f - 1)) { // any pattern except +,*
-      if ((prev[0] == i - 1) || (i == f - 1)) { // '...* #(1 a)...'
-        for (int j = prev[1] + 1; j < i; j++) {
-          delta[j][i].insert(i + 1); // '* * * #(1 a ) ...'
-          for (int k = j; k <= i; k++) {
-            delta[j][k].insert(j);
-            for (int m = j; m <= i; m++) {
-              delta[j][k].insert(m); // step 1
-            }
-            if ((elems[i].getW() == STAR) && (i == f - 1)) { // end
-              delta[j][k].insert(f);
-            }
-          }
-        }
-        if (prev[1] >= 0) { // match before current pattern
-          for (int j = prev[1] + 1; j <= i; j++) {
-            delta[prev[1]][prev[1]].insert(j); // step 2
-          }
-          if ((elems[i].getW() == STAR) && (i == f - 1)) { // end
-            delta[prev[1]][prev[1]].insert(f);
-          }
-        }
-        if (prev[2] < prev[1] - 1) { // '* ... * (1 a) * ... * #(2 b) ...'
-          for (int j = prev[2] + 1; j < prev[1]; j++){
-            for (int k = prev[1] + 1; k <= i; k++) {
-              delta[j][prev[1]].insert(k); // step 3
-            }
-            if ((elems[i].getW() == STAR) && (i == f - 1)) { // end
-              delta[j][prev[1]].insert(f);
-            }
-          }
-        }
-      }
-      if (elems[i].getW() == PLUS) {
-        delta[i][i].insert(i);
-      }
-      prev[2] = prev[1];
-      prev[1] = i;
-    }
-    else if (elems[i].getW() == STAR) { // reading '*'
-      prev[0] = i;
-    }
-    else if (elems[i].getW() == PLUS) { // reading '+'
-      delta[i][i].insert(i);
-      prev[2] = prev[1];
-      prev[1] = i;
-    }
-  }
-  if (elems[f - 1].getW()) { // '... #*' or '... #+'
-    delta[f - 1][f - 1].insert(f - 1);
-  }
-  setVerified(true);
 }
 
 /*
@@ -2349,261 +1713,193 @@ void Pattern::buildNFA() {
 
 Loops through the MLabel calling updateStates() for every ULabel. True is
 returned if and only if the final state is an element of currentStates after
-the loop. If ~rewrite~ is true (which happens in case of the operator ~rewrite~)
-the matching procedure ends after the unit pattern test.
+the loop.
 
 */
-ExtBool Match::matches(MLabel &ml, bool rewrite) {
-  numOfLabels = (size_t)ml.GetNoComponents();
-  if (ml.hasIndex()) { // use index
-    ml.index.initRoot();
-    set<size_t> positions;
-    positions.insert(0);
-    for (int i = 0; i < f; i++) {
-      positions = updatePositionsIndex(ml, i, positions);
-      if (positions.empty()) {
+ExtBool Match::matches() {
+  set<int> states;
+  states.insert(0);
+  if (ml->hasIndex()) {
+    ml->index.initRoot();
+    createSetMatrix(ml->GetNoComponents(), p->getSize());
+    ActiveUL activeUL;
+    ExtBool match(UNDEF);
+    while (match == UNDEF) {
+      match = updateActiveUL(states, activeUL);
+    }
+    ::deleteSetMatrix(matching, ml->GetNoComponents());
+    return match;
+  }
+  else { // no index => process whole mlabel
+    if (!p->hasConds() && !p->hasAssigns()) {
+      for (int i = 0; i < ml->GetNoComponents(); i++) {
+        if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
+                          p->easyConds, p->easyCondPos)) {
+//           cout << "mismatch at unit label " << i << endl;
+          return FALSE;
+        }
+      }
+      if (!p->containsFinalState(states)) {
+//         cout << "no final state is active" << endl;
         return FALSE;
       }
     }
-    if (!positions.count(ml.GetNoComponents())) { // final ml position inactive?
-      return FALSE;
-    }
-  }
-  else { // no index => process whole mlabel
-    set<int> states;
-    states.insert(0);
-    if (p->getConds().empty() && !rewrite) {
-      for (size_t i = 0; i < numOfLabels; i++) {
-        ml.Get(i, ul);
-        ulId = i;
-        updateStates2(ml);
-//         if (!updateStates(ml, i, states)) {
-  //  TODO: return FALSE;
-//         }
-        if (currentStates.empty()) {
-          return FALSE;
-        }
-      }
-    }
     else {
-      for (size_t i = 0; i < numOfLabels; i++) {
-        ml.Get(i, ul);
-        ulId = i;
-        updateStates2(ml);
-//         if (!updateStates(ml, i, states/*, matching*/)) {
-  //  TODO: return FALSE;
-//         }
-        if (currentStates.empty()) {
+      createSetMatrix(ml->GetNoComponents(), p->getSize());
+      for (int i = 0; i < ml->GetNoComponents(); i++) {
+        if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
+                          p->easyConds, p->easyCondPos, true)) {
+//           cout << "mismatch at unit label " << i << endl;
+          ::deleteSetMatrix(matching, ml->GetNoComponents());
           return FALSE;
         }
       }
-    }
-//     printCards();
-    if (!numOfLabels) { // empty MLabel
-      int pos = 0;
-      while (p->elems[pos].getW() == STAR) {
-        currentStates.insert(pos + 1);
-        pos++;
+      if (!p->containsFinalState(states)) {
+//         cout << "no final state is active" << endl;
+        ::deleteSetMatrix(matching, ml->GetNoComponents());
+        return FALSE;
       }
+      if (!p->initCondOpTrees()) {
+        ::deleteSetMatrix(matching, ml->GetNoComponents());
+        return UNDEF;
+      }
+      if (!p->hasAssigns()) {
+        bool result = findMatchingBinding(p->nfa, 0, p->elems, p->conds);
+        ::deleteSetMatrix(matching, ml->GetNoComponents());
+        return (result ? TRUE : FALSE);
+      }
+      return TRUE; // happens iff rewrite is called
     }
-    if (!currentStates.count(f)) { // is the final state inactive?
-      return FALSE;
-    }
-  }
-  if (rewrite) {
-    if (!numOfLabels) {
-      cout << "no rewriting for an empty MLabel." << endl;
-      return FALSE;
-    }
-    computeCardsets();
-    if (!initCondOpTrees()) {
-      return UNDEF;
-    }
-    return TRUE;
-  }
-  if (p->conds.size()) {
-    computeCardsets();
-    if (!initCondOpTrees(true)) {
-      return UNDEF;
-    }
-    if (!conditionsMatch(ml)) {
-      deleteCondOpTrees();
-      return FALSE;
-    }
-    deleteCondOpTrees();
   }
   return TRUE;
 }
 
 /*
-\subsection{Function ~printNfa~}
+\subsection{Function ~states2Str~}
+
+Writes the set of currently active states into a string.
 
 */
-void Pattern::printNfa() {
-  map<int, int>::iterator it;
-  for (unsigned int i = 0; i < nfa.size(); i++) {
-    cout << (finalStates.count(i) ? " * " : "   ") << "state " << i << ":  ";
-    for (it = nfa[i].begin(); it != nfa[i].end(); it++) {
-      cout << "---" << it->first << "---> " << it->second << "    ";
-    }
-    cout << endl << endl;
-  }
-}
-
-/*
-\subsection{Function ~nfa2String~}
-
-Returns a string displaying the information stored in the NFA.
-
-*/
-string Pattern::nfa2String() const {
-  stringstream nfa;
-  set<int>::iterator k;
-  for (int i = 0; i < (int)elems.size(); i++) {
-    for (int j = i; j < (int)elems.size(); j++) {
-      map<int, set<int> > tempmap = delta[i];
-      set<int> tempset = tempmap[j];
-      if (tempset.size() > 0) {
-        nfa << "state " << i << " | upat #" << j << " | new states {";
-        if (tempset.size() == 1) {
-          nfa << *(tempset.begin());
-        }
-        else {
-          for (k = tempset.begin();
-               k != tempset.end(); k++) {
-            nfa << *k << " ";
-          }
-        }
-        nfa << "}" << endl;
-      }
-    }
-  }
-  return nfa.str();
-}
-
-/*
-\subsection{Function ~printCurrentStates~}
-
-Prints the set of currently active states.
-
-*/
-void Match::printCurrentStates() {
-  if (!currentStates.empty()) {
-    set<int>::iterator it = currentStates.begin();
-    cout << "after ULabel # " << ulId << ", active states are {" << *it;
+string Match::states2Str(int ulId, set<int> &states) {
+  stringstream result;
+  if (!states.empty()) {
+    set<int>::iterator it = states.begin();
+    result << "after ULabel # " << ulId << ", active states are {" << *it;
     it++;
-    while (it != currentStates.end()) {
-      cout << ", " << *it;
+    while (it != states.end()) {
+      result << ", " << *it;
       it++;
     }
-    cout << "}" << endl;
+    result << "}" << endl;
   }
   else {
-    cout << "after ULabel # " << ulId << ", there is no active state" << endl;
+    result << "after ULabel # " << ulId << ", there is no active state" << endl;
   }
+  return result.str();
 }
 
 /*
-\subsection{Function ~printCards~}
+\subsection{Function ~matchings2Str~}
 
-Prints the ulabels matched by every unit pattern. Subsequently, the possible
-cardinalities for every unit pattern are displayed.
-
-*/
-void Match::printCards() {
-  set<unsigned int>::iterator it;
-  for (int j = 0; j < f; j++) {
-    cout << "upat " << j << " matches ulabels ";
-    for (it = match[j].begin(); it != match[j].end(); it++) {
-      cout << *it << ", ";
-    }
-    cout << endl;
-  }
-  for (int i = 0; i < f; i++) {
-    cout << i << " | ";
-    for (it = cardsets[i].begin(); it != cardsets[i].end(); it++) {
-      cout << *it << ",";
-    }
-    cout << endl;
-  }
-}
-
-/*
-\subsection{Function ~printSequences~}
-
-Displays the possible cardinality sequences. As the number of sequences may
-be very high, only the first ~max~ sequences are printed.
+Writes the matching table into a string.
 
 */
-void Match::printSequences(unsigned int max) {
-  set<multiset<unsigned int> >::iterator it1;
-  set<unsigned int>::iterator it2;
-  unsigned int seqCount = 0;
-  it1 = sequences.begin();
-  while ((seqCount < max) && (it1 != sequences.end())) {
-    cout << "seq_" << (seqCount < 9 ? "0" : "") << seqCount  + 1 << " | ";
-    for (it2 = (*it1).begin(); it2 != (*it1).end(); it2++) {
-      cout << (*it2) << ", ";
+string Match::matchings2Str(unsigned int dim1, unsigned int dim2) {
+  stringstream result;
+  for (unsigned int i = 0; i < dim1; i++) {
+    for (unsigned int j = 0; j < dim2; j++) {
+      if (matching[i][j].empty()) {
+        result << "                    ";
+      }
+      else {
+        string cell;
+        set<unsigned int>::iterator it, it2;
+        for (it = matching[i][j].begin(); it != matching[i][j].end(); it++) {
+          it2 = it;
+          it2++;
+          cell += int2Str(*it) + (it2 != matching[i][j].end() ? "," : "");
+        }
+        result << cell;
+        for (unsigned int k = 20; k > cell.size(); k--) {
+          result << " ";
+        }
+      }
     }
-    cout << endl;
-    it1++;
-    seqCount++;
+    result << endl;
   }
-  cout << "there are " << sequences.size() << " possible sequences" << endl;
-}
-
-/*
-\subsection{Function ~printRewriteSeqs~}
-
-Displays the sequences for rewriting. As the number of sequences may be very
-high, only the first ~max~ sequences are printed.
-
-*/
-void Match::printRewriteSeqs(unsigned int max) {
-  set<pair<vector<unsigned int>, vector<unsigned int> > >::iterator it;
-  unsigned int seqCount = 0;
-  it = rewriteSeqs.begin();
-  while ((seqCount < max) && (it != rewriteSeqs.end())) {
-    cout << "result_" << (seqCount < 9 ? "0" : "") << seqCount  + 1 << " | ";
-    for (unsigned int i = 0; i < (*it).first.size(); i++) {
-      cout << (*it).first[i] << ", ";
-    }
-    cout << endl;
-    it++;
-    seqCount++;
-  }
-  cout << "there are " << rewriteSeqs.size() << " result sequences" << endl;
+  return result.str();
 }
 
 /*
 \subsection{Function ~updateStates~}
 
-Applies the NFA.
+Applies the NFA. Each valid transaction is processed. If ~store~ is true,
+each matching is stored.
 
 */
-bool Match::updateStates(MLabel const &ml, size_t ulId, set<int> &states) {
+
+bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
+             vector<PatElem> &elems, set<int> &finalStates, set<int> &states,
+             vector<Condition> &easyConds, map<int, set<int> > &easyCondPos,
+             bool store /* = false */) {
 //   cout << "old states: ";
   set<int>::iterator its;
-  set<short int>::iterator iti;
+  set<unsigned int>::iterator itu;
   map<int, int> transitions;
-  for (its = states.begin(); its != states.end(); its++) {
+  for (its = states.begin(); its != states.end(); its++) { // collect possible
 //     cout << *its << " ";
-    map<int, int> trans = p->getTransitions(*its);
+    map<int, int> trans = nfa[*its];                       // transitions
     transitions.insert(trans.begin(), trans.end());
   }
   if (transitions.empty()) {
     return false;
   }
   states.clear();
-  map<int, int>::iterator itm;
+  map<int, int>::iterator itm, itn;
+  ULabel ul(0);
+  ml->Get(ulId, ul);
 //   cout << "|||| new states: ";
-  for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-//     cout << itm->second << " ";
-    if (labelsMatch(ul.constValue.GetValue(), p->elems[itm->first].getL())
-     && timesMatch(&ul.timeInterval, p->elems[itm->first].getI())
-     && easyCondsMatch(ml, p->elems[itm->first])) {
-      states.insert(itm->second);
-
+  if (store) {
+    if (ulId < ml->GetNoComponents() - 1) {
+      for (itm = transitions.begin(); itm != transitions.end(); itm++) {
+    //     cout << itm->second << " ";
+        if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
+         && timesMatch(&ul.timeInterval, elems[itm->first].getI())
+         && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
+                           easyCondPos[itm->first])) {
+          states.insert(itm->second);
+          map<int, int> nextTrans = nfa[itm->second];
+          for (itn = nextTrans.begin(); itn != nextTrans.end(); itn++) {
+            itu = matching[ulId][itm->first].end();
+            matching[ulId][itm->first].insert(itu, itn->first);// store matching
+          }
+        }
+      }
+    }
+    else {
+      for (itm = transitions.begin(); itm != transitions.end(); itm++) {
+    //     cout << itm->second << " ";
+        if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
+         && timesMatch(&ul.timeInterval, elems[itm->first].getI())
+         && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
+                           easyCondPos[itm->first])) {
+          states.insert(itm->second);
+          if (finalStates.count(itm->second)) {
+            matching[ulId][itm->first].insert(UINT_MAX); // store last matching
+          }
+        }
+      }
+    }
+  }
+  else {
+    for (itm = transitions.begin(); itm != transitions.end(); itm++) {
+  //     cout << itm->second << " ";
+      if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
+       && timesMatch(&ul.timeInterval, elems[itm->first].getI())
+       && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
+                         easyCondPos[itm->first])){
+        states.insert(itm->second);
+      }
     }
   }
 //   cout << endl;
@@ -2611,349 +1907,193 @@ bool Match::updateStates(MLabel const &ml, size_t ulId, set<int> &states) {
 }
 
 /*
-\subsection{Function ~updateStates~}
+\subsection{Function ~cleanPaths~}
 
-Further functions are invoked to decide which transition can be applied to
-which current state. The set of current states is updated.
+Deletes all paths inside ~matching~ which do not end at a final state.
 
 */
-void Match::updateStates2(MLabel const &ml) {
-  set<int> newStates;
-  set<int>::iterator i, k;
-  map<int, set<int> >::iterator j;
-  for (i = currentStates.begin(); (i != currentStates.end() && *i < f); i++) {
-    for (j = p->delta[*i].begin(); j != p->delta[*i].end(); j++) {
-      if (labelsMatch(ul.constValue.GetValue(), p->elems[j->first].getL())
-       && timesMatch(&ul.timeInterval, p->elems[j->first].getI())
-       && easyCondsMatch(ml, p->elems[j->first])) {
-        if (!p->elems[j->first].getW() || !p->elems[j->first].getI().empty()
-         || !p->elems[j->first].getL().empty()) {//(_ a), ((1 _)), () or similar
-          match[j->first].insert(ulId);
-        }
-        newStates.insert(j->second.begin(), j->second.end());
-      }
-    }
+void Match::cleanPaths() {
+  map<int, int> transitions = p->getTransitions(0);
+  map<int, int>::reverse_iterator itm;
+  for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
+    cleanPath(0, itm->first);
   }
-  currentStates = newStates;  
 }
 
 /*
-\subsection{Function ~updatePositionsIndex~}
+\subsection{Function ~findMatchingBinding~}
+
+Searches for a binding which fulfills every condition.
 
 */
-set<size_t> Match::updatePositionsIndex(MLabel &ml, int pPos,set<size_t> mlpos){
-  set<size_t> result, foundpos;
-  set<size_t>::iterator j;
-  set<string> labels = p->elems[pPos].getL();;
-  set<string>::iterator i = labels.begin();
-  Wildcard w = p->elems[pPos].getW();
-  if (*(mlpos.rbegin()) == (size_t)ml.GetNoComponents()) { // erase final state
-    mlpos.erase(*(mlpos.rbegin()));
+bool Match::findMatchingBinding(vector<map<int, int> > &nfa, int startState,
+                             vector<PatElem> &elems, vector<Condition> &conds) {
+  if ((startState < 0) || (startState > (int)nfa.size() - 1)) {
+    cout << "illegal start state " << startState << endl;
+    return false;
   }
-  if (w == NO) { // () or (...)
-    while (i != labels.end()) {
-      foundpos = ml.index.find(*i);
-      for (j = foundpos.begin(); j != foundpos.end(); j++) {
-        ml.Get(*j, ul);
-        if (mlpos.count(*j)
-         && timesMatch(&ul.timeInterval, p->elems[pPos].getI())
-         && easyCondsMatch(ml, p->elems[pPos])) {
-          result.insert(*j + 1);
-          match[pPos].insert(*j);
-        }
-      }
-      i++;
-    }
-    if (labels.empty()) {
-      for (j = mlpos.begin(); j != mlpos.end(); j++) {
-        ml.Get(*j, ul);
-        if (timesMatch(&ul.timeInterval, p->elems[pPos].getI())
-          && easyCondsMatch(ml, p->elems[pPos])) {
-          result.insert(*j + 1);
-          match[pPos].insert(*j);
-        }
-      }
+  if (conds.empty()) {
+    return true;
+  }
+  map<int, int> transitions = nfa[startState];
+  map<string, pair<unsigned int, unsigned int> > binding;
+  map<int, int>::reverse_iterator itm;
+  for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
+    if (findBinding(0, itm->first, elems, conds, binding)) {
+      return true;
     }
   }
-  else if (labels.empty() && p->elems[pPos].getI().empty()) { // +, * or (())
-    j = result.begin();
-    for (size_t k = (w == STAR ? *(mlpos.begin()) : *(mlpos.begin()) + 1);
-           (int)k <= ml.GetNoComponents(); k++) {
-      result.insert(j, k); // efficient insertion
-      j++;
+  return false;
+}
+
+/*
+\subsection{Function ~findBinding~}
+
+Recursively finds all bindings in the matching set matrix and checks whether
+they fulfill every condition, stopping immediately after the first success.
+
+*/
+bool Match::findBinding(unsigned int ulId, unsigned int pId,
+                      vector<PatElem> &elems, vector<Condition> &conds,
+                      map<string, pair<unsigned int, unsigned int> > &binding) {
+  string var = elems[pId].getV();
+  bool inserted = false;
+  if (!var.empty()) {
+    if (binding.count(var)) { // extend existing binding
+      binding[var].second++;
+    }
+    else { // add new variable
+      binding[var] = make_pair(ulId, ulId);
+      inserted = true;
     }
   }
-  else { // ((...)), non-empty
-    bool ok = true;
-    size_t k;
-    while (i != labels.end()) {
-      foundpos = ml.index.find(*i);
-      for (j = foundpos.begin(); j != foundpos.end(); j++) {
-        ml.Get(*j, ul);
-        if (timesMatch(&ul.timeInterval, p->elems[pPos].getI())
-         && (mlpos.count(*j) || result.count(*j))) {
-          result.insert(*j + 1);
-        }
-      }
-      i++;
+  if (*(matching[ulId][pId].begin()) == UINT_MAX) { // complete match
+    if (conditionsMatch(conds, binding)) {
+      return true;
     }
-    if (labels.empty()) {
-      j = mlpos.begin();
-      ok = true;
-      while (j != mlpos.end()) {
-        k = *j;
-        while (ok && (k < (size_t)ml.GetNoComponents())) {
-          ml.Get(k, ul);
-          if (timesMatch(&ul.timeInterval, p->elems[pPos].getI())) {
-            result.insert(k + 1);
-            k++;
-          }
-          else {
-            ok = false;
-          }
-        }
-        do { // find next relevant position
-          j++;
-        } while ((j != mlpos.end()) && (*j <= k));
+  }
+  else {
+    for (set<unsigned int>::reverse_iterator it = matching[ulId][pId].rbegin();
+         it != matching[ulId][pId].rend(); it++) {
+      if (findBinding(ulId + 1, *it, elems, conds, binding)) {
+        return true;
       }
     }
+  }
+  if (!var.empty()) {
+    if (inserted) {
+      binding.erase(var);
+    }
+    else {
+      binding[var].second--;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~cleanPath~}
+
+Recursively deletes all paths starting from (ulId, pId) that do not end at a
+final state.
+
+*/
+bool Match::cleanPath(unsigned int ulId, unsigned int pId) {
+//   cout << "cleanPaths called, ul " << ulId << ", pE " << pId << endl;
+  if (matching[ulId][pId].empty()) {
+    return false;
+  }
+  if (*(matching[ulId][pId].begin()) == UINT_MAX) {
+    return true;
+  }
+  bool result = false;
+  set<unsigned int>::iterator it;
+  vector<unsigned int> toDelete;
+  for (it = matching[ulId][pId].begin(); it != matching[ulId][pId].end(); it++){
+    if (cleanPath(ulId + 1, *it)) {
+      result = true;
+    }
+    else {
+      toDelete.push_back(*it);
+    }
+  }
+  for (unsigned int i = 0; i < toDelete.size(); i++) {
+    matching[ulId][pId].erase(toDelete[i]);
   }
   return result;
 }
 
-/*
-\subsection{Function ~processDoublePars~}
-
-Computes the set of possible cardinalities for sequence patterns in double
-parentheses and stores their positions into a set.
-
-*/
-void Match::processDoublePars(int pos) {
-  set<unsigned int>::iterator j;
-  size_t last = -2;
-  size_t count = 0;
-  for (j = match[pos].begin(); j != match[pos].end(); j++) {
-    if (*j == last + 1) {
-      count++;
-      cardsets[pos].insert(count);
-    }
-    else {
-      count = 1;
-    }
-    last = *j;
+void Match::printBinding(map<string, pair<unsigned int, unsigned int> > &b) {
+  map<string, pair<unsigned int, unsigned int> >::iterator it;
+  for (it = b.begin(); it != b.end(); it++) {
+    cout << it->first << " --> [" << it->second.first << ","
+         << it->second.second << "]  ";
   }
-  if (!p->elems[pos].getI().empty() || !p->elems[pos].getL().empty()) {
-    doublePars.insert(pos);
-  }
+  cout << endl;
 }
 
 /*
-\subsection{Function ~computeCardsets~}
+\subsection{Function ~updateActiveUL~}
 
-Computes the set of possible cardinalities for every state.
-
-*/
-void Match::computeCardsets() {
-  set<unsigned int>::iterator j, k;
-  int prev = -1; // previous matching position
-  int numOfNonStars(0), numOfW(0);
-  size_t limit;
-  for (int i = 0; i < f; i++) {
-    if (match[i].size()) {
-      cardsets[i].insert(1);
-      if (p->elems[i].getW() == PLUS) { // '... #((1 a)) ...'
-        processDoublePars(i);
-      }
-      if (prev == i - 2) {
-        if (prev > -1) { // '(1 a) +|* #(2 b)'
-          for (j = match[i - 2].begin(); j != match[i - 2].end(); j++) {
-            for (k = match[i].begin(); k != match[i].end(); k++) {
-              if  (*k > *j) {
-                cardsets[i - 1].insert(*k - *j - 1);
-              }
-            }
-          }
-        }
-        else { // '+|* #(1 a)'
-          for (k = match[i].begin(); k != match[i].end(); k++) {
-            cardsets[0].insert(*k);
-          }
-        }
-      }
-      else if (prev < i - 2) {//'(1 a) *|+ .. *|+ #(2 b)' or '*|+ .. *|+ #(1 a)'
-        limit = (prev > -1) ? *(match[i].rbegin()) - *(match[prev].begin())
-                            : *(match[i].rbegin()) + 1;
-        for (int j = prev + 1; j < i; j++) {
-          for (size_t m = 1; m < limit; m++) {
-            cardsets[j].insert(m);
-          }
-        }
-      }
-      prev = i;
-    }
-    else if (i == f - 1) { // no matching at the end
-      if (prev == -1) { // no matching at all
-        for (int m = 0; m <= i; m++) {
-          for (size_t n = 1; n <= numOfLabels; n++) {
-            cardsets[m].insert(n);
-          }
-        }
-      }
-      else if (prev == i - 1) {
-        for (j = match[i - 1].begin(); j != match[i - 1].end(); j++) {
-          cardsets[i].insert(numOfLabels - 1 - *j);
-        }
-      }
-      else { // '... (1 a) * ... #*' or '* ... #*'
-        for (int j = prev + 1; j <= i; j++) {
-          for (size_t m = 1; m < numOfLabels - *(match[prev].begin()); m++){
-            cardsets[j].insert(m);
-          }
-        }
-      }
-    }
-    if (p->elems[i].getW() != STAR) {
-      numOfNonStars++;
-    }
-    if (p->elems[i].getW() != NO) {
-      numOfW++;
-    }
-  }
-  correctCardsets(numOfNonStars, numOfW);
-}
-
-/*
-\subsection{Function ~correctCardsets~}
-
-Inserts and deletes missing and incorrect (respectively) zero values in the
-sets of cardinality candidates. Subsequently, all elements exceeding a certain
-threshold (which depends on the number of non-asterisk units in the pattern)
-are erased.
+Updates the set / range of active unit labels, invoked by ~matches~ in case
+of a MLabel with index.                        TODO: CHANGE A LOT
 
 */
-void Match::correctCardsets(int nonStars, int wildcards) {
-  set<unsigned int>::iterator j;
-  for (int i = 0; i < f; i++) {
-    if (wildcards > 1) { // correct zeros for more than one star
-      if (p->elems[i].getW() == STAR) {
-        cardsets[i].insert(0);
-      }
-      else {
-        cardsets[i].erase(0);
+ExtBool Match::updateActiveUL(set<int> &states, ActiveUL &activeUL) {
+  map<int, int> transitions;
+  map<int, int>::iterator im;
+  set<int>::iterator is;
+  set<string>::iterator st; 
+  for (is = states.begin(); is != states.end(); is++) {
+    map<int, int> trans = p->getTransitions(*is);
+    transitions.insert(trans.begin(), trans.end());
+  }
+  if (transitions.empty()) {
+    return FALSE;
+  }
+  states.clear();
+  ULabel ul(0);
+  for (im = transitions.begin(); im != transitions.end(); im++) {
+    Wildcard w = p->elems[im->first].getW();
+    set<string> labels = p->elems[im->first].getL();
+    cout << "labels from pattern element " << im->first << " retrieved" << endl;
+    for (st = labels.begin(); st != labels.end(); st++) {
+      set<size_t> labelPos = ml->index.find(*st);
+      for (set<size_t>::iterator it = labelPos.begin(); it != labelPos.end();
+           it++) {
+//         if (activeUL.isActive((unsigned int)*it)) {
+//           ml->Get(*it, ul);
+//           if (timesMatch(&ul.timeInterval, p->elems[im->first].getI())) {
+//             
+//           }
+//         }
       }
     }
-    int k = (p->elems[i].getW() == STAR ? 1 : 2);
-    if ((j = cardsets[i].lower_bound(numOfLabels - nonStars + k))
-        != cardsets[i].end()) { // delete too high candidates
-      cardsets[i].erase(j, cardsets[i].end());
+    if (labels.empty()) {
+      
     }
   }
-}
+  
 
-/*
-\subsection{Function ~buildSequences~}
+  
+  
 
-Derives all possible ULabel sequences from the cardinality candidates. Only
-sequences with length ~numOfLabels~ are accepted. This function is necessary
-for ~rewrite~. For ~matches~, see ~getNextSeq~.
-
-*/
-void Match::buildSequences() {
-  sequences.clear();
-  multiset<unsigned int> seq;
-  vector<unsigned int> cards;
-  set<unsigned int>::iterator it;
-  int maxNumber = 0;
-  size_t totalSize = 1;
-  unsigned int j, cardSum, partSum;
-  for (int i = 0; i < f; i++) { // determine id of most cardinality candidates
-    if (cardsets[i].size() > cardsets[maxNumber].size()) {
-      maxNumber = i;
-    }
-  }
-  for (int i = 0; i < f; i++) {
-    if (i != maxNumber) {
-      totalSize *= cardsets[i].size();
-    }
-  }
-//   cout << "totalSize = " << totalSize << endl;
-  for (size_t i = 0; i < totalSize; i++) {
-    j = i;
-    seq.clear();
-    cards.clear();
-    cardSum = 0;
-    partSum = 0;
-    for (int state = 0; state < f; state++) {
-      if (state != maxNumber) {
-        it = cardsets[state].begin();
-        advance(it, j % cardsets[state].size());
-        cards.push_back(*it);
-        cardSum += *it;
-        j /= cardsets[state].size();
-        if (cardSum > numOfLabels) {
-          state = f; // stop if sum exceeds maximum
-        }
-      }
-    }
-    if ((cardSum <= numOfLabels)
-      && cardsets[maxNumber].count(numOfLabels - cardSum)) {
-      cards.insert(cards.begin() + maxNumber, numOfLabels - cardSum);
-      for (int k = 0; k < (int)cards.size(); k++) {
-        seq.insert(partSum);
-        partSum += cards[k];
-      }
-      if (doublePars.empty() || checkDoublePars(seq)) {
-        sequences.insert(seq);
-      }
-    }
-  }
-}
-
-/*
-\subsection{Function ~checkDoublePars~}
-
-Checks the correctness of a sequence concerning double parentheses. Therefore,
-a comparison with the contents of the respective matchings set is performed.
-
-*/
-bool Match::checkDoublePars(multiset<unsigned int> sequence) {
-  vector<unsigned int> seq(sequence.begin(), sequence.end());
-  unsigned int max = -1;
-  for (unsigned int i = 0; i < seq.size(); i++) {
-    if (doublePars.count(i)) {
-      if (i < seq.size() - 1) {
-        max = seq[i + 1] - 1;
-      }
-      else {
-        max = numOfLabels - 1;
-      }  
-      for (unsigned int j = seq[i]; j <= max; j++) {
-        if (!match[i].count(j)) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
+  return TRUE;
 }
 
 /*
 \subsection{Function ~easyCondsMatch~}
 
 */
-bool Match::easyCondsMatch(const MLabel &ml, UPat const &up) {
-  if (up.getW()) {
+bool Match::easyCondsMatch(int ulId, int pId, PatElem const &up,
+                           vector<Condition> &easyConds, set<int> &pos) {
+  if (up.getW() || pos.empty()) {
     return true;
   }
-  set<int> condPos = p->easyCondPos[up.getV()];
-  if (condPos.empty()) {
-    return true;
-  }
-  multiset<unsigned int> seq;
-  seq.insert(ulId);
-  seq.insert(ulId + 1);
-  for (set<int>::iterator it = condPos.begin(); it != condPos.end(); it++) {
-    if (!evaluateCond(ml, p->easyConds[*it], seq)) {
+  map<string, pair<unsigned int, unsigned int> > binding;
+  binding[up.getV()] = make_pair(ulId, ulId);
+  for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
+    if (!evaluateCond(easyConds[*it], binding)) {
       return false;
     }
   }
@@ -2964,133 +2104,21 @@ bool Match::easyCondsMatch(const MLabel &ml, UPat const &up) {
 \subsection{Function ~conditionsMatch~}
 
 Checks whether the specified conditions are fulfilled. The result is true if
-and only if there is (at least) one cardinality sequence that matches every
-condition.
+and only if there is (at least) one binding that matches every condition.
 
 */
-bool Match::conditionsMatch(MLabel const &ml) {
-  bool proceed(false);
-  multiset<unsigned int>::iterator it;
-  if (p->conds.empty()) {
-    return true;
-  }
-  if (!ml.GetNoComponents()) { // empty MLabel
+bool Match::conditionsMatch(vector<Condition> &conds,
+                const map<string, pair<unsigned int, unsigned int> > &binding) {
+  if (!ml->GetNoComponents()) { // empty MLabel
     return evaluateEmptyML();
   }
-  maxCardPos = 0;
-  for (int i = 0; i < f; i++) { // determine id of max. number of cardinalities
-    if (cardsets[i].size() > cardsets[maxCardPos].size()) {
-      maxCardPos = i;
-    }
-  }
-  seqMax = 1;
-  for (int i = 0; i < f; i++) {
-    if (i != maxCardPos) {
-      seqMax *= cardsets[i].size();
-    }
-  }
-  seqCounter = 0;
-  computeSeqOrder();
-  multiset<unsigned int> seq = getNextSeq();
-  for (int i = 0; i < (int)p->conds.size(); i++) {
-    do {
-      proceed = false;
-      if (!evaluateCond(ml, p->conds[i], seq)) {
-        seq = getNextSeq();
-        i = 0; // in case of a mismatch, return to the first condition
-      }
-      else {
-        proceed = true;
-      }
-    } while (!seq.empty() && !proceed);
-    if (!proceed) { // no matching sequence found
+  for (unsigned int i = 0; i < conds.size(); i++) {
+    map<string, pair<unsigned int, unsigned int> > b = binding;
+    if (!evaluateCond(conds[i], binding)) {
       return false;
     }
   }
   return true;
-}
-
-/*
-\subsection{Function ~computeSeqOrder~}
-
-Computes the order in which the sequences will be built. More exactly, the
-sequences will first differ in the positions having variables.
-
-*/
-void Match::computeSeqOrder() {
-  set<int> used;
-  int k = 0;
-  for (int i = 0; i < (int)p->conds.size(); i++) {
-    for (int j = 0; p->conds[i].getPId(j) != -1; j++) {
-      if (!used.count(p->conds[i].getPId(j))) {
-        seqOrder[k] = p->conds[i].getPId(j);
-        k++;
-        used.insert(p->conds[i].getPId(j));
-      }
-    }
-  }
-  for (int i = 0; i < f; i++) {
-    if (!used.count(i)) {
-      seqOrder[k] = i;
-      k++;
-    }
-  }
-}
-
-/*
-\subsection{Function ~getNextSeq~}
-
-Invoked during ~matches~, similar to ~buildSequences~, but with two crucial
-differences: (1) Not all the possible matching sequences are built but only one
-is constructed and returned -- in contrast to the operator ~rewrite~, where all
-the sequences are needed. (2) The order of the sequences depends on whether a
-unit pattern is referred to in the conditions.
-
-*/
-multiset<unsigned int> Match::getNextSeq() {
-  multiset<unsigned int> result;
-  unsigned int cardSum, partSum, j;
-  set<unsigned int>::iterator it;
-  multiset<unsigned>::iterator m;
-  while (seqCounter < seqMax) {
-    j = seqCounter;
-    cardSum = 0;
-    partSum = 0;
-    unsigned int cards[f];
-    result.clear();
-    for (int i = 0; i < f; i++) {
-      if (seqOrder[i] != maxCardPos) {
-        it = cardsets[seqOrder[i]].begin();
-        advance(it, j % cardsets[seqOrder[i]].size());
-        cards[seqOrder[i]] = *it;
-        cardSum += *it;
-        j /= cardsets[seqOrder[i]].size();
-        if (cardSum > numOfLabels) {
-          i = f; // stop if sum exceeds maximum
-        }
-      }
-    }
-    if ((cardSum <= numOfLabels)
-      && cardsets[maxCardPos].count(numOfLabels - cardSum)) {
-      cards[maxCardPos] = numOfLabels - cardSum;
-      for (int k = 0; k < f; k++) {
-        result.insert(partSum);
-        partSum += cards[k];
-      }
-      if (doublePars.empty() || checkDoublePars(result)) {
-        seqCounter++;
-//         cout << "seq_" << seqCounter << " | ";
-//         for (m = result.begin(); m != result.end(); m++) {
-//           cout << *m << ", ";
-//         }
-//         cout << endl;
-        return result;
-      }
-    }
-    seqCounter++;
-  }
-//   cout << "no more sequences" << endl;
-  return result;
 }
 
 /*
@@ -3103,8 +2131,8 @@ X.card = 0, X.card = Y.card [*] 7. Time or label constraints are invalid.
 */
 bool Match::evaluateEmptyML() {
   Word res;
-  for (int i = 0; i < (int)p->conds.size(); i++) {
-    for (int j = 0; j < p->conds[i].getKeysSize(); j++) {
+  for (unsigned int i = 0; i < p->conds.size(); i++) {
+    for (int j = 0; j < p->conds[i].getVarKeysSize(); j++) {
       if (p->conds[i].getKey(j) != 4) { // only card conditions possible
         cout << "Error: Only cardinality conditions allowed" << endl;
         return false;
@@ -3122,75 +2150,83 @@ bool Match::evaluateEmptyML() {
 /*
 \subsection{Function ~evaluateCond~}
 
-This function is invoked by ~conditionsMatch~ and checks whether a sequence of
-possible cardinalities matches a certain condition.
+This function is invoked by ~conditionsMatch~ and checks whether a binding
+matches a certain condition.
 
 */
-bool Match::evaluateCond(const MLabel &ml, Condition &cond,
-                         multiset<unsigned int> sq){
-  vector<size_t> seq(sq.begin(), sq.end());
+bool Match::evaluateCond(Condition &cond,
+                const map<string, pair<unsigned int, unsigned int> > &binding) {
   Word qResult;
   ULabel ul;
-  for (int i = 0; i < cond.getKeysSize(); i++) {
-    int pId = cond.getPId(i);
-    size_t max;
-    if ((sq.size() < 3) && (pId > 0)) {
-      pId = 0;
-      max = seq[0] + 1;
-    }
-    else {
-      max = (pId == f - 1 ? numOfLabels - 1 : seq[pId + 1] - 1);
-    }
-    if ((max > (size_t)ml.GetNoComponents()) || max < seq[pId]) {
-      // cout << cond.getVar(i) << " bound to empty sequence" << endl;
-      return false;
-    }
-    switch (cond.getKey(i)) {
-      case 0: { // label
-        ml.Get(seq[pId], ul);
-        cond.setLabelPtr(i, ul.constValue.GetValue());
-        break;
-      }
-      case 1: { // time
-        cond.clearTimePtr(i);
-        for (size_t j = seq[pId]; j <= max; j++) {
-          ml.Get(j, ul);
-          cond.mergeAddTimePtr(i, ul.timeInterval);
+  unsigned int from, to;
+  for (int i = 0; i < cond.getVarKeysSize(); i++) {
+    string var = cond.getVar(i);
+    if (binding.count(var)) {
+      from = binding.find(var)->second.first;
+      to = binding.find(var)->second.second;
+      switch (cond.getKey(i)) {
+        case 0: { // label
+          ml->Get(from, ul);
+          cond.setLabelPtr(i, ul.constValue.GetValue());
+          break;
         }
-        break;
-      }
-      case 2: { // start
-        ml.Get(seq[pId], ul);
-        cond.setStartEndPtr(i, ul.timeInterval.start);
-        break;
-      }
-      case 3: { // end
-        ml.Get(max, ul);
-        cond.setStartEndPtr(i, ul.timeInterval.end);
-        break;
-      }
-      case 4: { // leftclosed
-        ml.Get(seq[pId], ul);
-        cond.setLeftRightclosedPtr(i, ul.timeInterval.lc);
-        break;
-      }
-      case 5: { // rightclosed
-        ml.Get(max, ul);
-        cond.setLeftRightclosedPtr(i, ul.timeInterval.rc);
-        break;
-      }
-      case 6: { // card
-        cond.setCardPtr(i, max + 1 - seq[pId]);
-        break;
-      }
-      default: { // labels
-        cond.cleanLabelsPtr(i);
-        for (size_t j = seq[pId]; j <= max; j++) {
-          ml.Get(j, ul);
-          Label *label = new Label(ul.constValue.GetValue());
-          cond.appendToLabelsPtr(i, *label);
+        case 1: { // time
+          cond.clearTimePtr(i);
+          for (unsigned int j = from; j <= to; j++) {
+            ml->Get(j, ul);
+            cond.mergeAddTimePtr(i, ul.timeInterval);
+          }
+          break;
         }
-        cond.completeLabelsPtr(i);
+        case 2: { // start
+          ml->Get(from, ul);
+          cond.setStartEndPtr(i, ul.timeInterval.start);
+          break;
+        }
+        case 3: { // end
+          ml->Get(to, ul);
+          cond.setStartEndPtr(i, ul.timeInterval.end);
+          break;
+        }
+        case 4: { // leftclosed
+          ml->Get(from, ul);
+          cond.setLeftRightclosedPtr(i, ul.timeInterval.lc);
+          break;
+        }
+        case 5: { // rightclosed
+          ml->Get(to, ul);
+          cond.setLeftRightclosedPtr(i, ul.timeInterval.rc);
+          break;
+        }
+        case 6: { // card
+          cond.setCardPtr(i, to - from + 1);
+          break;
+        }
+        default: { // labels
+          cond.cleanLabelsPtr(i);
+          for (unsigned int j = from; j <= to; j++) {
+            ml->Get(j, ul);
+            Label *label = new Label(ul.constValue.GetValue());
+            cond.appendToLabelsPtr(i, *label);
+            delete label;
+          }
+          cond.completeLabelsPtr(i);
+        }
+      }
+    }
+    else { // variable bound to empty sequence
+      switch (cond.getKey(i)) {
+        case 6: {
+          cond.setCardPtr(i, 0);
+          break;
+        }
+        case 7: {
+          cond.cleanLabelsPtr(i);
+          break;
+        }
+        default: { // no other attributes allowed
+          return false;
+        }
       }
     }
   }
@@ -3215,9 +2251,8 @@ string Condition::getType(int t) {
 string Condition::toString() const {
   stringstream result;
   result << text << endl;
-  for (int j = 0; j < (int)vars.size(); j++) {
-    result << "  [[" << j << "]] " << vars[j] << "." << keys[j] << " in #"
-           << pIds[j] << endl;
+  for (unsigned int j = 0; j < varKeys.size(); j++) {
+    result << j << ": " << varKeys[j].first << "." << varKeys[j].second << endl;
   }
   return result.str();
 }
@@ -3290,176 +2325,6 @@ string Assign::getDataType(int key) {
     case 5: return CcBool::BasicType();
     default: return "error";
   }
-}
-
-/*
-\subsection{Function ~buildMultiNFA~}
-
-*/
-vector<map<int, set<int> > > Match::buildMultiNFA(vector<Pattern*> pats) {
-  int start = 0;
-  vector<map<int, set<int> > > delta;
-  map<int, set<int> > emptyMapping;
-  for (unsigned int p = 0; p < pats.size(); p++) {
-    int f = start + pats[p]->getSize();
-    int prev[3] = {start - 1, start - 1, start - 1}; // prevStar, prevNotStar,
-    delta.push_back(emptyMapping);                   // secondPrevNotStar
-    for (int i = start; i < f; i++) {
-      delta.push_back(emptyMapping);
-      delta[i][i - start].insert(i + 1);//state i,read pattern i =>new state i+1
-      UPat u = pats[p]->getPat(i - start);//next line: any pattern except +,*
-      if (!u.getW() || !u.getI().empty() || !u.getL().empty() || (i == f - 1)) {
-        if ((prev[0] == i - 1) || (i == f - 1)) { //last pat or'...* #(1 a)...'
-          for (int j = prev[1] + 1; j < i; j++) {
-            delta[j][i - start].insert(i + 1); // '* * * #(1 a ) ...'
-            for (int k = j; k <= i; k++) {
-              delta[j][k - start].insert(j);
-              for (int m = j; m <= i; m++) {
-                delta[j][k - start].insert(m); // step 1
-              }
-              if ((u.getW() == STAR) && (i == f - 1)) { // end
-                delta[j][k - start].insert(f);
-              }
-            }
-          }
-          if (prev[1] >= start) { // match before current pattern
-            for (int j = prev[1] + 1; j <= i; j++) {
-              delta[prev[1]][prev[1] - start].insert(j); // step 2
-            }
-            if ((u.getW() == STAR) && (i == f - 1)) { // end
-              delta[prev[1]][prev[1] - start].insert(f);
-            }
-          }
-          if (prev[2] < prev[1] - 1) { // '* ... * (1 a) * ... * #(2 b) ...'
-            for (int j = prev[2] + 1; j < prev[1]; j++){
-              for (int k = prev[1] + 1; k <= i; k++) {
-                delta[j][prev[1] - start].insert(k); // step 3
-              }
-              if ((u.getW() == STAR) && (i == f - 1)) { // end
-                delta[j][prev[1] - start].insert(f);
-              }
-            }
-          }
-        }
-        prev[2] = prev[1];
-        prev[1] = i;
-      }
-      else if (u.getW() == STAR) { // reading '*'
-        prev[0] = i;
-      }
-      else if (u.getW() == PLUS) { // reading '+'
-        delta[i][i - start].insert(i);
-        prev[2] = prev[1];
-        prev[1] = i;
-      }
-    }
-    if (pats[p]->getPat(f - 1 - start).getW()) { // '... #*' or '... #+'
-      delta[f - 1][f - 1 - start].insert(f - 1);
-    }
-    start += pats[p]->getSize() + 1;
-  }
-  return delta;
-}
-
-/*
-\subsection{Function ~printMultiNFA~}
-
-Prints a multiNFA.
-
-*/
-void Match::printMultiNFA() {
-  set<int>::iterator k;
-  for (unsigned int i = 0; i < p->delta.size(); i++) {
-    for (unsigned int j = 0; j < p->delta.size(); j++) {
-      if (p->delta[i][j].size() > 0) {
-        cout << "state " << i << " | upat #" << j << " | new states {";
-        if (p->delta[i][j].size() == 1) {
-          cout << *(p->delta[i][j].begin());
-        }
-        else {
-          for (k = p->delta[i][j].begin();
-               k != p->delta[i][j].end(); k++) {
-            cout << *k << " ";
-          }
-        }
-        cout << "}" << endl;
-      }
-    }
-  }
-}
-
-/*
-\subsection{Function ~applyMultiNFA~}
-
-Applies a multiNFA and returns the set of numbers referring to the matching
-patterns.
-
-*/
-vector<int> Match::applyMultiNFA(ClassifyLI* c, bool rewrite /*=false*/) {
-  currentStates = c->initialStates;
-  set<int>::iterator i;
-  vector<int> result;
-  map<int, set<int> >::iterator j;
-  int state(0), activePat(0);
-  bool found;
-  for (ulId = 0; (ulId < (size_t)c->currentML->GetNoComponents()
-                     && !currentStates.empty()); ulId++) {
-    c->currentML->Get(ulId, ul);
-    set<int> newStates;
-    for (i = currentStates.begin(); (i != currentStates.end() && *i < f); i++) {
-      state = *i; // find corresponding pattern
-      found = false;
-      if ((*i < c->pat2start[1]) || (*i == 0)) {
-        activePat = 0;
-        found = true;
-      }
-      while (!found && state >= 0) {
-        activePat = c->start2pat[state];
-        if (!activePat) {
-          state--;
-        }
-        else {
-          found = true;
-        }
-      }
-      p = c->pats[activePat];
-      if (!initEasyCondOpTrees()) {
-        cout << "easyCondOpTrees could not be initialized" << endl;
-      }
-      else {
-        for (j = c->delta[*i].begin(); j != c->delta[*i].end(); j++) {
-          if (j->second.size()) {
-            if (labelsMatch(ul.constValue.GetValue(),
-                            c->pats[activePat]->getPat(j->first).getL()) &&
-             timesMatch(&ul.timeInterval,
-                        c->pats[activePat]->getPat(j->first).getI()) &&
-             easyCondsMatch(*(c->currentML),
-                            c->pats[activePat]->getPat(j->first))) {
-              newStates.insert(j->second.begin(), j->second.end());
-              if (!c->pats[activePat]->getConds().empty() || rewrite) {
-                UPat u = c->pats[activePat]->getPat(j->first); //store matches
-                if (!u.getW() || !u.getI().empty() || !u.getL().empty()){//(_ a)
-                  c->matches[activePat][j->first].insert(ulId);//((1 _)),(), sim
-                }
-              }
-            }
-          }
-        }
-//         deleteEasyCondOpTrees(); TODO: delete them!
-      }
-    }
-    currentStates = newStates;
-  } // translate active states to matched patterns
-  if (currentStates.count(c->pat2start[1] - 1) || ((c->pats.size() == 1)
-                          && currentStates.count(c->pats[0]->getSize()))) {
-    result.push_back(0);
-  }
-  for (i = currentStates.begin(); i != currentStates.end(); i++) {
-    if (c->end2pat[*i]) {
-      result.push_back(c->end2pat[*i]);
-    }
-  }
-  return result;
 }
 
 /*
@@ -3568,40 +2433,44 @@ pair<QueryProcessor*, OpTree> Match::processQueryStr(string query, int type) {
 /*
 \subsection{Function ~initCondOpTrees~}
 
-For a pattern with conditions, an operator tree structure is prepared. If
-~overwrite~ is true, the tree and the pointers are built in any case.
+For a pattern with conditions, an operator tree structure is prepared.
 
 */
-bool Match::initCondOpTrees(bool overwrite) {
-  string q(""), part, toReplace("");
-  pair<string, Attribute*> strAttr;
-  vector<Attribute*> ptrs;
-  for (unsigned int i = 0; i < p->conds.size(); i++) { // opTrees for conditions
-    if (overwrite) {
-      p->conds[i].setTreeOk(false);
-    }
-    if (!p->conds[i].isTreeOk()) {
-      q = "query " + p->conds[i].getText();
-      for (int j = 0; j < p->conds[i].getKeysSize(); j++) { // init pointers
-        strAttr = Pattern::getPointer(p->conds[i].getKey(j));
-        ptrs.push_back(strAttr.second);
-        toReplace = p->conds[i].getVar(j)
-                    + Condition::getType(p->conds[i].getKey(j));
-        q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
-      }
-      pair<QueryProcessor*, OpTree> qp_optree = processQueryStr(q, -1);
-      if (!qp_optree.first) {
-        cout << "Operator tree for condition " << i << " uninitialized" << endl;
-        return false;
-      }
-      p->conds[i].setOpTree(qp_optree);
-      p->conds[i].setPointers(ptrs);
-      ptrs.clear();
-      p->conds[i].setTreeOk(true);
+bool Pattern::initCondOpTrees() {
+  for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
+    if (!conds[i].initOpTree()) {
+      cout << "Operator tree for condition " << i << " uninitialized" << endl;
+      return false;
     }
   }
   return true;
 }
+
+bool Condition::initOpTree() {
+  string q(""), part, toReplace("");
+  pair<string, Attribute*> strAttr;
+  vector<Attribute*> ptrs;
+  if (!isTreeOk()) {
+    q = "query " + text;
+    for (unsigned int j = 0; j < varKeys.size(); j++) { // init pointers
+      strAttr = Pattern::getPointer(getKey(j));
+      ptrs.push_back(strAttr.second);
+      toReplace = getVar(j) + getType(getKey(j));
+      q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+    }
+    pair<QueryProcessor*, OpTree> qp_optree = Match::processQueryStr(q, -1);
+    if (!qp_optree.first) {
+      return false;
+    }
+    setOpTree(qp_optree);
+    setPointers(ptrs);
+    ptrs.clear();
+    setTreeOk(true);
+  }
+  return true;
+}
+
+
 
 /*
 \subsection{Function ~initEasyCondOpTrees~}
@@ -3609,29 +2478,29 @@ bool Match::initCondOpTrees(bool overwrite) {
 For a pattern with conditions, an operator tree structure is prepared.
 
 */
-bool Match::initEasyCondOpTrees() {
+bool Pattern::initEasyCondOpTrees() {
   string q(""), part, toReplace("");
   pair<string, Attribute*> strAttr;
   vector<Attribute*> ptrs;
-  for (unsigned int i = 0; i < p->easyConds.size(); i++) { //opTrees for conds
-    if (!p->easyConds[i].isTreeOk()) {
-      q = "query " + p->easyConds[i].getText();
-      for (int j = 0; j < p->easyConds[i].getKeysSize(); j++) { // init pointers
-        strAttr = Pattern::getPointer(p->easyConds[i].getKey(j));
+  for (unsigned int i = 0; i < easyConds.size(); i++) {
+    if (!easyConds[i].isTreeOk()) {
+      q = "query " + easyConds[i].getText();
+      for (int j = 0; j < easyConds[i].getVarKeysSize(); j++) { // init pointers
+        strAttr = getPointer(easyConds[i].getKey(j));
         ptrs.push_back(strAttr.second);
-        toReplace = p->easyConds[i].getVar(j)
-                    + Condition::getType(p->easyConds[i].getKey(j));
+        toReplace = easyConds[i].getVar(j)
+                  + Condition::getType(easyConds[i].getKey(j));
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
       }
-      pair<QueryProcessor*, OpTree> qp_optree = processQueryStr(q, -1);
+      pair<QueryProcessor*, OpTree> qp_optree = Match::processQueryStr(q, -1);
       if (!qp_optree.first) {
         cout << "Op tree for easy condition " << i << " uninitialized" << endl;
         return false;
       }
-      p->easyConds[i].setOpTree(qp_optree);
-      p->easyConds[i].setPointers(ptrs);
+      easyConds[i].setOpTree(qp_optree);
+      easyConds[i].setPointers(ptrs);
       ptrs.clear();
-      p->easyConds[i].setTreeOk(true);
+      easyConds[i].setTreeOk(true);
     }
   }
   return true;
@@ -3643,9 +2512,11 @@ bool Match::initEasyCondOpTrees() {
 Removes the corresponding structures.
 
 */
-void Match::deleteCondOpTrees() {
-  for (unsigned int i = 0; i < p->conds.size(); i++) {
-    p->conds[i].deleteOpTree();
+void Pattern::deleteCondOpTrees() {
+  for (unsigned int i = 0; i < conds.size(); i++) {
+    if (conds[i].isTreeOk()) {
+      conds[i].deleteOpTree();
+    }
   }
 }
 
@@ -3655,100 +2526,11 @@ void Match::deleteCondOpTrees() {
 Removes the corresponding structures.
 
 */
-void Match::deleteEasyCondOpTrees() {
-  for (unsigned int i = 0; i < p->easyConds.size(); i++) {
-    if (p->easyConds[i].isTreeOk()) {
-      p->easyConds[i].deleteOpTree();
+void Pattern::deleteEasyCondOpTrees() {
+  for (unsigned int i = 0; i < easyConds.size(); i++) {
+    if (easyConds[i].isTreeOk()) {
+      easyConds[i].deleteOpTree();
     }
-  }
-}
-
-/*
-\subsection{Function ~applyConditions~}
-
-Applies conditions from a set of patterns (for the operator ~classify~).
-
-*/
-vector<int> Match::applyConditions(ClassifyLI* c) {
-  vector<int> result;
-  int numOfStates = 0;
-  for (unsigned int i = 0; i < c->matched.size(); i++) {
-    if (c->pats[c->matched[i]]->getConds().empty()) {
-      result.push_back(c->matched[i]);
-    }
-    else {
-      p = c->pats[c->matched[i]];
-      numOfStates = f;
-      f = p->elems.size();
-      if (!initCondOpTrees(true)) {
-        cout << "Operator trees could not be initialized" << endl;
-        result.clear();
-        return result;
-      }
-      for (int j = 0; j < f; j++) {
-        match[j] = c->matches[c->matched[i]][j];
-        cardsets[j].clear();
-      }
-      numOfLabels = c->currentML->GetNoComponents();
-      computeCardsets();
-      if (conditionsMatch(*c->currentML)) {
-        result.push_back(c->matched[i]);
-      }
-      deleteCondOpTrees();
-      f = numOfStates;
-    }
-  }
-  return result;
-}
-
-/*
-\subsection{Function ~multiRewrite~}
-
-Computes a multiple rewrite result, i.e., a vector of MLabels.
-
-*/
-void Match::multiRewrite(ClassifyLI* c) {
-  MLabel *ml = 0;
-  set<pair<vector<unsigned int>, vector<unsigned int> > >::iterator it;
-  for (unsigned int i = 0; i < c->matched.size(); i++) {
-    rewriteSeqs.clear();
-    p = c->pats[c->matched[i]];
-    f = p->elems.size();
-    for (int j = 0; j < f; j++) {
-      if ((int)c->matches.size() > 0) {
-        match[j] = c->matches[c->matched[i]][j];
-      }
-      else {
-        match[j].clear();
-      }
-      cardsets[j].clear();
-    }
-    numOfLabels = c->currentML->GetNoComponents();
-    assignedVars = c->pats[c->matched[i]]->getAssVars();
-    varPos = c->pats[c->matched[i]]->getVarPos();
-    computeResultVars(c->pats[c->matched[i]]->getAssigns());
-    computeCardsets();
-    buildSequences();
-    if (p->conds.size()) {
-      if (!initCondOpTrees(true)) {
-        return;
-      }
-    }
-    filterSequences(*(c->currentML));
-    if (!c->pats[c->matched[i]]->initAssignOpTrees()) {
-      return;
-    }
-    while (!rewriteSeqs.empty()) {
-      it = rewriteSeqs.begin();
-      ml = new MLabel(0);
-      ml->rewrite(*(c->currentML), *it, c->pats[c->matched[i]]->getAssigns(),
-                  c->pats[c->matched[i]]->getVarPosInSeq());
-      rewriteSeqs.erase(it);
-      c->rewritten.push_back(ml);
-      ml = 0;
-    }
-    deleteCondOpTrees();
-    c->pats[c->matched[i]]->deleteAssignOpTrees();
   }
 }
 
@@ -3981,7 +2763,7 @@ ListExpr topatternTM(ListExpr args) {
 
 */
 int topatternVM(Word* args, Word& result, int message, Word& local,
-                 Supplier s) {
+                Supplier s) {
   FText* patternText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
   Pattern* p = static_cast<Pattern*>(result.addr);
@@ -3995,11 +2777,6 @@ int topatternVM(Word* args, Word& result, int message, Word& local,
   }
   if (pattern) {
     (*p) = (*pattern);
-    if (!p->verifyPattern()) {
-      delete pattern;
-      cout << "pattern not verified" << endl;
-      return 0;
-    }
     delete pattern;
   }
   else {
@@ -4038,6 +2815,7 @@ Classifier::Classifier(const Classifier& src) {
   charpos = src.charpos;
   chars = src.chars;
   delta = src.delta;
+  s2p = src.s2p;
   defined = src.defined;
 }
 
@@ -4067,6 +2845,18 @@ string Classifier::getPatText(int pos) {
     result += ch;
   }
   return result;
+}
+
+void Classifier::getStartStates(set<int> &startStates) {
+  startStates.clear();
+  int pat = 0;
+  startStates.insert(0);
+  for (int i = 1; i < s2p.Size(); i++) {
+    s2p.Get(i, pat);
+    if (pat < 0) {
+      startStates.insert(startStates.end(), - pat);
+    }
+  }
 }
 
 /*
@@ -4101,6 +2891,7 @@ Word Classifier::In(const ListExpr typeInfo, const ListExpr instance,
   NList list(instance);
   Classifier* c = new Classifier(0);
   Pattern* p = 0;
+  map<int, int> state2Pat; // maps start and final states to their pattern id
   c->SetDefined(true);
   c->appendCharPos(0);
   vector<Pattern*> patterns;
@@ -4126,13 +2917,13 @@ Word Classifier::In(const ListExpr typeInfo, const ListExpr instance,
     list.rest();
     list.rest();
   }
-  Match *match = new Match(1);
-  vector<map<int, set<int> > > multiNFA = match->buildMultiNFA(patterns);
-  c->setPersistentNFA(&multiNFA);
+  vector<map<int, int> > nfa;
+  set<int> finalStates;
+  c->buildMultiNFA(patterns, nfa, finalStates, state2Pat);
   for (unsigned int i = 0; i < patterns.size(); i++) {
     delete patterns[i];
   }
-  delete match;
+  c->setPersistentNFA(nfa, finalStates, state2Pat);
   result.addr = c;
   return result;
 }
@@ -4332,6 +3123,46 @@ TypeConstructor classifierTC(
   Classifier::KindCheck );             // kind checking function
 
 /*
+\subsection{Function ~buildMultiNFA~}
+
+*/
+void Classifier::buildMultiNFA(vector<Pattern*> patterns,
+ vector<map<int, int> > &nfa, set<int> &finalStates, map<int, int> &state2Pat) {
+  map<int, set<int> >::iterator it;
+  unsigned int elemShift = 0;
+  for (unsigned int i = 0; i < patterns.size(); i++) {
+    unsigned int stateShift = nfa.size();
+    IntNfa* intNfa = 0;
+    state2Pat[stateShift] = -i;
+    if (parsePatternRegEx(patterns[i]->getRegEx().c_str(), &intNfa) != 0) {
+      cout << "error while parsing " << patterns[i]->getRegEx() << endl;
+      return;
+    }
+    intNfa->nfa.makeDeterministic();
+    intNfa->nfa.minimize();
+    intNfa->nfa.bringStartStateToTop();
+    map<int, set<int> >::iterator it;
+    for (unsigned int j = 0; j < intNfa->nfa.numOfStates(); j++) {
+      map<int, set<int> > trans = intNfa->nfa.getState(j).getTransitions();
+      map<int, int> newTrans;
+      for (it = trans.begin(); it != trans.end(); it++) {
+        newTrans[it->first + elemShift] = *(it->second.begin()) + stateShift;
+      }
+      nfa.push_back(newTrans);
+      if (intNfa->nfa.isFinalState(j)) {
+        finalStates.insert(j + stateShift);
+        state2Pat[j + stateShift] = i;
+      }
+      else if (j > 0) {
+        state2Pat[j + stateShift] = INT_MAX;
+      }
+    }
+    elemShift += patterns[i]->getSize();
+    delete intNfa;
+  }
+}
+
+/*
 \section{Operator ~toclassifier~}
 
 \subsection{Type Mapping}
@@ -4367,37 +3198,29 @@ int toclassifierVM(Word* args, Word& result, int message, Word& local,
   Classifier* c = static_cast<Classifier*>(result.addr);
   Tuple* tuple = stream.request();
   FText *desc, *ptext;
-  bool ok = true;
+  map<int, int> final2Pat;
   Pattern* p = 0;
   vector<string> texts;
   vector<Pattern*> patterns;
-  while (tuple && ok) {
+  while (tuple) {
     desc = (FText*)tuple->GetAttribute(0);
     if (!desc->IsDefined()) {
       cout << "Undefined description" << endl;
-      ok = false;
     }
     else {
       ptext = (FText*)tuple->GetAttribute(1);
       if (!ptext->IsDefined()) {
         cout << "Undefined pattern text" << endl;
-        ok = false;
       }
       else {
         p = Pattern::getPattern(ptext->GetValue(), true); // do not build NFA
         if (!p) {
           cout << "invalid pattern" << endl;
-          ok = false;
         }
         else {
-          if (!p->verifyPattern()) {
-            ok = false;
-          }
-          else { // store information iff no problem was found
-            texts.push_back(desc->GetValue());
-            texts.push_back(ptext->GetValue());
-            patterns.push_back(p);
-          }
+          texts.push_back(desc->GetValue());
+          texts.push_back(ptext->GetValue());
+          patterns.push_back(p);
         }
       }
     }
@@ -4412,13 +3235,13 @@ int toclassifierVM(Word* args, Word& result, int message, Word& local,
     }
     c->appendCharPos(c->getCharSize());
   }
-  Match *match = new Match(1);
-  vector<map<int, set<int> > > delta = match->buildMultiNFA(patterns);
+  vector<map<int, int> > nfa;
+  set<int> finalStates;
+  c->buildMultiNFA(patterns, nfa, finalStates, final2Pat);
   for (unsigned int i = 0; i < patterns.size(); i++) {
     delete patterns[i];
   }
-  c->setPersistentNFA(&delta);
-  delete match;
+  c->setPersistentNFA(nfa, finalStates, final2Pat);
   return 0;
 }
 
@@ -4471,12 +3294,11 @@ int matchesVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
   Pattern* p = static_cast<Pattern*>(args[1].addr);
   if (!p) {
     cout << "Invalid Pattern." << endl;
-    delete ml;
     return 0;
   }
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
-  ExtBool match = p->matches(*ml);
+  ExtBool match = p->matches(ml);
   switch (match) {
     case FALSE: {
       b->Set(true, false);
@@ -4499,6 +3321,7 @@ int matchesVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
 */
 int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
   MLabel* ml = static_cast<MLabel*>(args[0].addr);
+  ml->index.initRoot();
   FText* patternText = static_cast<FText*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
@@ -4514,8 +3337,12 @@ int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
   if (!pattern) {
     b->SetDefined(false);
   }
+  else if (pattern->hasAssigns()) {
+    cout << "No assignments allowed for matches" << endl;
+    b->SetDefined(false);
+  }
   else {
-    ExtBool res = pattern->matches(*ml);
+    ExtBool res = pattern->matches(ml);
     delete pattern;
     switch (res) {
       case FALSE: {
@@ -4681,7 +3508,7 @@ ListExpr filtermatchesTM(ListExpr args) {
   if (!index) {
     return listutils::typeError("attribute " + name + " not found in tuple");
   }
-  if (!MLabel::checkType(type) && !MString::checkType(type)) {
+  if (!MLabel::checkType(type)) {
     return listutils::typeError("wrong type " + nl->ToString(type)
                                 + " of attritube " + name);
   }
@@ -4690,86 +3517,62 @@ ListExpr filtermatchesTM(ListExpr args) {
 }
 
 /*
-\subsection{Class ~FiltermatchesLI~}
+\subsection{Constructors for class ~FilterMatchesLI~}
 
 */
-class FiltermatchesLI {
- public:
-  FiltermatchesLI(Word _stream, int _attrIndex, FText* text):
-      stream(_stream), attrIndex(_attrIndex) {
-    Pattern *pattern = Pattern::getPattern(text->GetValue());
-    if (pattern) {
-      pattern->setVerified(false);
-      if (pattern->verifyPattern()) {
-        match = new Match(pattern->getPats().size() + 1);
-        pattern->setVerified(true);
-        p = *pattern;
-        stream.open();
-        streamOpened = true;
-      }
-    }
-    else {
-      match = 0;
-      streamOpened = false;
-    }
+FilterMatchesLI::FilterMatchesLI(Word _stream, int _attrIndex, FText* text) :
+      stream(_stream), attrIndex(_attrIndex), match(0), streamOpen(false) {
+  Pattern *p = Pattern::getPattern(text->GetValue());
+  if (p) {
+    match = new Match(p, 0);
+    stream.open();
+    streamOpen = true;
   }
+}
 
-  FiltermatchesLI(Word _stream, int _attrIndex, Pattern* pattern):
-      stream(_stream), attrIndex(_attrIndex), match(0) {
-    if (pattern) {
-      match = new Match(pattern->getPats().size() + 1);
-//       p->buildNFA();
-      p = *pattern;
-      match->copyFromPattern(&p);
-      stream.open();
-      streamOpened = true;
-    }
-    else {
-      match = 0;
-      streamOpened = false;
-    }
+FilterMatchesLI::FilterMatchesLI(Word _stream, int _attrIndex, Pattern* p):
+      stream(_stream), attrIndex(_attrIndex), match(0), streamOpen(false) {
+  if (p) {
+    match = new Match(p, 0);
+    stream.open();
+    streamOpen = true;
   }
+}
 
-  ~FiltermatchesLI() {
-    if (match) {
-      delete match;
-      match = 0;
-    }
-    if (streamOpened) {
-      stream.close();
-    }
+/*
+\subsection{Destructor for class ~FilterMatchesLI~}
+
+*/
+FilterMatchesLI::~FilterMatchesLI() {
+  if (match) {
+    match->deletePattern();
+    delete match;
+    match = 0;
   }
+  if (streamOpen) {
+    stream.close();
+  }
+}
 
-  Tuple* next() {
-    if (!match) {
-      return 0;
-    }
-    Tuple* cand = stream.request();
-    MLabel* ml = 0;
-    if (cand) {
-      while (cand) {
-        ml = (MLabel*)cand->GetAttribute(attrIndex);
-        match->setPattern(&p);
-        bool matching = match->matches(*ml);
-        match->resetStates();
-        if (matching) {
-          return cand;
-        }
-        cand->DeleteIfAllowed();
-        cand = stream.request();
-      }
-      
-    }
+/*
+\subsection{Function ~getNextResult~}
+
+*/
+Tuple* FilterMatchesLI::getNextResult() {
+  if (!match) {
     return 0;
   }
-
- private:
-  Stream<Tuple> stream;
-  int attrIndex;
-  Match* match;
-  bool streamOpened;
-  Pattern p;
-};
+  Tuple* cand = stream.request();
+  while (cand) {
+    match->setML((MLabel*)cand->GetAttribute(attrIndex));
+    if (match->matches() == TRUE) {
+      return cand;
+    }
+    cand->DeleteIfAllowed();
+    cand = stream.request();
+  }
+  return 0;
+}
 
 /*
 \subsection{Selection Function}
@@ -4779,29 +3582,31 @@ int filtermatchesSelect(ListExpr args) {
   return (FText::checkType(nl->Third(args)) ? 0 : 1);
 }
 
-
 /*
 \subsection{Value Mapping for a Text}
 
 */
-int filtermatchesVM_Text(Word* args, Word& result, int message,
-                         Word& local, Supplier s) {
-  FiltermatchesLI* li = (FiltermatchesLI*)local.addr;
+int filtermatchesVM_Text(Word* args, Word& result, int message, Word& local,
+                         Supplier s) {
+  FilterMatchesLI* li = (FilterMatchesLI*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
         delete li;
         local.addr = 0;
       }
-      int index = ((CcInt*)args[3].addr)->GetValue();
-      FText* text = (FText*)args[2].addr;
-      if (text->IsDefined()) {
-        local.addr = new FiltermatchesLI(args[0], index, text);
+      CcInt* ccint = (CcInt*)args[3].addr;
+      FText* ftext = (FText*)args[2].addr;
+      if (ftext->IsDefined() && ccint->IsDefined()) {
+        local.addr = new FilterMatchesLI(args[0], ccint->GetValue(), ftext);
+      }
+      else {
+        cout << "undefined argument(s)" << endl;
       }
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->next() : 0;
+      result.addr = li ? li->getNextResult() : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -4821,22 +3626,25 @@ int filtermatchesVM_Text(Word* args, Word& result, int message,
 */
 int filtermatchesVM_Pat(Word* args, Word& result, int message,
                         Word& local, Supplier s) {
-  FiltermatchesLI* li = (FiltermatchesLI*)local.addr;
+  FilterMatchesLI* li = (FilterMatchesLI*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
         delete li;
         local.addr = 0;
       }
-      int index = ((CcInt*)args[3].addr)->GetValue();
+      CcInt* ccint = (CcInt*)args[3].addr;
       Pattern* p = (Pattern*)args[2].addr;
-      if (p->isVerified()) {
-        local.addr = new FiltermatchesLI(args[0], index, p);
+      if (ccint->IsDefined()) {
+        local.addr = new FilterMatchesLI(args[0], ccint->GetValue(), p);
+      }
+      else {
+        cout << "undefined argument(s)" << endl;
       }
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->next() : 0;
+      result.addr = li ? li->getNextResult() : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -4961,52 +3769,135 @@ void Assign::clear() {
     right[i].clear();
   }
   right[6].clear();
+  deleteOpTrees();
 }
 
 void Assign::deleteOpTrees() {
-  for (int i = 0; i < 6; i++) {
-    if (opTree[i].first) {
-      opTree[i].first->Destroy(opTree[i].second, true);
-      delete opTree[i].first;
-    }
-    for (unsigned int j = 0; j < pointers[i].size(); j++) {
-      if (pointers[i][j]) {
-        deleteIfAllowed(pointers[i][j]);
-        pointers[i][j] = 0;
+  if (treesOk) {
+    for (int i = 0; i < 6; i++) {
+      if (opTree[i].first) {
+        opTree[i].first->Destroy(opTree[i].second, true);
+        delete opTree[i].first;
       }
+      for (unsigned int j = 0; j < pointers[i].size(); j++) {
+        if (pointers[i][j]) {
+          deleteIfAllowed(pointers[i][j]);
+          pointers[i][j] = 0;
+        }
+      }
+      pointers[i].clear();
     }
-    pointers[i].clear();
   }
+  treesOk = false;
 }
 
 void Condition::deleteOpTree() {
-  if (opTree.first) {
-    opTree.first->Destroy(opTree.second, true);
-    delete opTree.first;
-    for (unsigned int i = 0; i < pointers.size(); i++) {
-      deleteIfAllowed(pointers[i]);
+  if (treeOk) {
+    if (opTree.first) {
+      opTree.first->Destroy(opTree.second, true);
+      delete opTree.first;
+      for (unsigned int i = 0; i < pointers.size(); i++) {
+        deleteIfAllowed(pointers[i]);
+      }
     }
+    treeOk = false;
   }
 }
 
-bool RewriteResult::initAssignOpTrees() {
-  for (unsigned int i = 0; i < assigns.size(); i++) {
-    if (!assigns[i].initOpTrees()) {
-      return false;
-    }
+RewriteLI::RewriteLI(MLabel *src, Pattern *pat) {
+  match = new Match(pat, src);
+  if (match->matches()) {
+    match->initCondOpTrees();
   }
-  return true;
+  map<int, int> transitions = pat->getTransitions(0);
+  for (map<int, int>::iterator itm = transitions.begin();
+                               itm != transitions.end(); itm++) {
+    BindingStackElem bE(0, itm->first); // init stack
+//     cout << "push (0, " << itm->first << ") to stack" << endl;
+    bindingStack.push(bE);
+  }
 }
 
+MLabel* RewriteLI::getNextResult() {
+  BindingStackElem bE(0, 0);
+  while (!bindingStack.empty()) {
+    bE = bindingStack.top();
+//     cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
+    bindingStack.pop();
+    resetBinding(bE.ulId);
+    if (findNextBinding(bE.ulId, bE.pId, match->p, 0)) {
+//       match->printBinding(binding);
+      MLabel *source = match->ml;
+      return source->rewrite(binding, match->p->getAssigns());
+    }
+  }
+//   cout << "stack is empty" << endl;
+  match->deletePattern();
+  match->deleteSetMatrix();
+  delete match;
+  return 0;
+}
+
+void RewriteLI::resetBinding(unsigned int limit) {
+  vector<string> toDelete;
+  map<string, pair<unsigned int, unsigned int> >::iterator it;
+  for (it = binding.begin(); it != binding.end(); it++) {
+    if (it->second.first >= limit) {
+      toDelete.push_back(it->first);
+    }
+    else if (it->second.second >= limit) {
+      it->second.second = limit - 1;
+    }
+  }
+  for (unsigned int i = 0; i < toDelete.size(); i++) {
+    binding.erase(toDelete[i]);
+  }
+}
+
+bool RewriteLI::findNextBinding(unsigned int ulId, unsigned int pId,
+                                Pattern *p, int offset) {
+//   cout << "findNextBinding(" << ulId << ", " << pId << ", " << offset
+//        << ") called" << endl;
+  string var = p->getElem(pId - offset).getV();
+  if (!var.empty()) {
+    if (binding.count(var)) { // extend existing binding
+      binding[var].second++;
+    }
+    else { // add new variable
+      binding[var] = make_pair(ulId, ulId);
+    }
+  }
+  if (*(match->matching[ulId][pId].begin()) == UINT_MAX) { // complete match
+    vector<Condition> *conds = p->getConds();
+    return match->conditionsMatch(*conds, binding);
+  }
+  if (match->matching[ulId][pId].empty()) {
+    return false;
+  }
+  else { // push all elements except the first one to stack; process first elem
+    set<unsigned int>::reverse_iterator it, it2;
+    it2 = match->matching[ulId][pId].rbegin();
+    it2++;
+    for (it = match->matching[ulId][pId].rbegin();
+         it2 != match->matching[ulId][pId].rend(); it++) {
+      it2++;
+      BindingStackElem bE(ulId + 1, *it);
+//       cout << "push (" << ulId + 1 << ", " << *it << ") to stack" << endl;
+      bindingStack.push(bE);
+    }
+    return findNextBinding(ulId + 1, *(match->matching[ulId][pId].begin()), p,
+                           offset);
+  }
+}
 /*
 \subsection{Value Mapping (for a text)}
 
 */
 int rewriteVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
-  MLabel *source(0), *dest(0);
+  MLabel *source = 0;
   FText* pText = 0;
   Pattern *p = 0;
-  RewriteResult *rr = 0;
+  RewriteLI *rewriteLI = 0;
   switch (message) {
     case OPEN: {
       source = static_cast<MLabel*>(args[0].addr);
@@ -5024,27 +3915,16 @@ int rewriteVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
         cout << "Error: pattern not initialized." << endl;
       }
       else {
-        if (!p->isVerified()) {
-          if (!p->verifyPattern()) {
-            cout << "Error: Invalid pattern." << endl;
-          }
-          else {
-            p->setVerified(true);
-          }
-        }
         if (!p->hasAssigns()) {
           cout << "No result specified." << endl;
         }
         else {
-          set<pair<vector<unsigned int>, vector<unsigned int> > > rewriteSeqs =
-                                                     p->getRewriteSeqs(*source);
-          map<string, int> varPosInSeq = p->getVarPosInSeq();
-          rr = new RewriteResult(rewriteSeqs, source, p->getAssigns(),
-                                 varPosInSeq);
+          if (p->initAssignOpTrees() && p->initEasyCondOpTrees()) {
+            rewriteLI = new RewriteLI(source, p);
+          }
         }
       }
-      delete p;
-      local.addr = rr;
+      local.addr = rewriteLI;
       return 0;
     }
     case REQUEST: {
@@ -5052,33 +3932,14 @@ int rewriteVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
         result.addr = 0;
         return CANCEL;
       }
-      rr = ((RewriteResult*)local.addr);
-      if (rr->finished()) {
-        result.addr = 0;
-        return CANCEL;
-      }
-      if (!rr->initAssignOpTrees()) {
-        return CANCEL;
-      }
-      dest = new MLabel(1);
-      do {
-        dest->rewrite(rr->getML(), rr->getCurrentSeq(), rr->getAssignments(),
-                      rr->getVarPosInSeq());
-        rr->next();
-      } while (!dest->IsDefined() && !rr->finished());
-      if (dest->IsDefined()) {
-        result.addr = dest;
-        return YIELD;
-      }
-      else {
-        result.addr = 0;
-        return CANCEL;
-      }
+      rewriteLI = ((RewriteLI*)local.addr);
+      result.addr = rewriteLI->getNextResult();
+      return (result.addr ? YIELD : CANCEL);
     }
     case CLOSE: {
       if (local.addr) {
-        rr = ((RewriteResult*)local.addr);
-        delete rr;
+        rewriteLI = ((RewriteLI*)local.addr);
+        delete rewriteLI;
       }
       return 0;
     }
@@ -5092,9 +3953,9 @@ int rewriteVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
 
 */
 int rewriteVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
-  MLabel *source(0), *dest(0);
+  MLabel *source(0);
   Pattern *p = 0;
-  RewriteResult *rr = 0;
+  RewriteLI *rewriteLI = 0;
   switch (message) {
     case OPEN: {
       source = static_cast<MLabel*>(args[0].addr);
@@ -5107,15 +3968,16 @@ int rewriteVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
         cout << "Error: pattern not initialized." << endl;
       }
       else {
-        p->setVerified(true);
-        MLabel* mlNew = new MLabel(source);
-        set<pair<vector<unsigned int>, vector<unsigned int> > > rewriteSeqs =
-                                                    p->getRewriteSeqs(*mlNew);
-        map<string, int> varPosInSeq = p->getVarPosInSeq();
-        rr = new RewriteResult(rewriteSeqs, mlNew, p->getAssigns(),
-                               varPosInSeq);
+        if (!p->hasAssigns()) {
+          cout << "No result specified." << endl;
+        }
+        else {
+          if (p->initAssignOpTrees() && p->initEasyCondOpTrees()) {
+            rewriteLI = new RewriteLI(source, p);
+          }
+        }
       }
-      local.addr = rr;
+      local.addr = rewriteLI;
       return 0;
     }
     case REQUEST: {
@@ -5123,33 +3985,14 @@ int rewriteVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
         result.addr = 0;
         return CANCEL;
       }
-      rr = ((RewriteResult*)local.addr);
-      if (rr->finished()) {
-        result.addr = 0;
-        return CANCEL;
-      }
-      if (!rr->initAssignOpTrees()) {
-        return CANCEL;
-      }
-      dest = new MLabel(1);
-      do {
-        dest->rewrite(rr->getML(), rr->getCurrentSeq(), rr->getAssignments(),
-                       rr->getVarPosInSeq());
-        rr->next();
-      } while (!dest->IsDefined() && !rr->finished());
-      if (dest->IsDefined()) {
-        result.addr = dest;
-        return YIELD;
-      }
-      else {
-        result.addr = 0;
-        return CANCEL;
-      }
+      rewriteLI = ((RewriteLI*)local.addr);
+      result.addr = rewriteLI->getNextResult();
+      return (result.addr ? YIELD : CANCEL);
     }
     case CLOSE: {
       if (local.addr) {
-        rr = ((RewriteResult*)local.addr);
-        delete rr;
+        rewriteLI = ((RewriteLI*)local.addr);
+        delete rewriteLI;
       }
       return 0;
     }
@@ -5164,15 +4007,14 @@ int rewriteVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
 */
 int rewriteVM_Stream(Word* args, Word& result, int message, Word& local,
                      Supplier s) {
-  ClassifyLI *li = (ClassifyLI*)local.addr;
+  MultiRewriteLI *li = (MultiRewriteLI*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
         delete li;
         local.addr = 0;
       }
-      bool dummy = false;
-      local.addr = new ClassifyLI(args[0], args[1], dummy);
+      local.addr = new MultiRewriteLI(args[0], args[1]);
       return 0;
     }
     case REQUEST: {
@@ -5226,90 +4068,153 @@ ListExpr classifyTM(ListExpr args) {
 /*
 \subsection{Constructor for class ~ClassifyLI~}
 
-This constructor is used for the operator ~classify~ (trajectory type mlabel).
+This constructor is used for the operator ~classify~.
 
 */
-ClassifyLI::ClassifyLI(MLabel *ml, Word _classifier) : mlStream(0),
-                  classifyTT(0), mainMatch(0), streamOpen(false), newML(false) {
-  currentML = ml;
-  if (currentML) {
-    if (currentML->IsDefined()) {
-      Classifier *c = static_cast<Classifier*>(_classifier.addr);
-      int startPos = 0;
-      set<unsigned int> emptyset;
-      Pattern *p = 0;
-      for (int i = 0; i < (c->getCharPosSize() / 2); i++) {
-        p = Pattern::getPattern(c->getPatText(i), true);
-        if (p) {
-          p->setDescr(c->getDesc(i));
-          start2pat[startPos] = pats.size();
-          pat2start[pats.size()] = startPos;
-          initialStates.insert(startPos);
-          startPos += p->getSize() + 1;
-          end2pat[startPos - 1] = pats.size();
-          if (!p->getConds().empty()) {
-            for (int j = 0; j < p->getSize(); j++) {
-              matches[pats.size()].push_back(emptyset);
-            }
-          }
-          pats.push_back(p);
+ClassifyLI::ClassifyLI(MLabel *ml, Word _classifier) : classifyTT(0) {
+  Classifier *c = static_cast<Classifier*>(_classifier.addr);
+  int startState(0), pat(0);
+  set<unsigned int> emptyset;
+  set<int> states, finalStates, matchCands;
+  set<int>::iterator it;
+  Pattern *p = 0;
+  vector<PatElem> patElems;
+  vector<Condition> easyConds;
+  vector<int> startStates;
+  map<int, set<int> > easyCondPos;
+  bool condsOccur = false;
+  for (int i = 0; i < c->getCharPosSize() / 2; i++) {
+    states.insert(states.end(), startState);
+    startStates.push_back(startState);
+    p = Pattern::getPattern(c->getPatText(i), true); // single NFA are not built
+    if (p) {
+      p->setDescr(c->getDesc(i));
+      if (p->hasConds()) {
+        condsOccur = true;
+      }
+      pats.push_back(p);
+      map<int, set<int> > easyOld = p->getEasyCondPos();
+      for (map<int, set<int> >::iterator im = easyOld.begin();
+                                         im != easyOld.end(); im++) {
+        for (it = im->second.begin(); it != im->second.end(); it++) {
+          easyCondPos[im->first+patElems.size()].insert(*it + easyConds.size());
         }
-        else {
-          cout << "pattern could not be parsed" << endl;
-        }
       }
-      if (!pats.size()) {
-        cout << "no classification data specified" << endl;
+      for (unsigned int j = 0; j < p->getEasyConds().size(); j++) {
+        easyConds.push_back(p->getEasyCond(j));
+        easyConds.back().initOpTree();
       }
-      else {
-        numOfStates = startPos;
-        mainMatch = new Match(numOfStates);
-        delta = createNFAfromPersistent(*(c->getDelta()));
-        matched = mainMatch->applyMultiNFA(this);
-        matched = mainMatch->applyConditions(this);
+      for (int j = 0; j < p->getSize(); j++) {
+        patElems.push_back(p->getElem(j));
       }
+      do { // get start state
+        startState++;
+        c->s2p.Get(startState, pat);
+      } while ((i < c->getCharPosSize() / 2 - 1) && (pat >= 0));
+    }
+    else {
+      cout << "pattern could not be parsed" << endl;
     }
   }
+  if (!pats.size()) {
+    cout << "no classification data specified" << endl;
+    return;
+  }
+  vector<map<int, int> > nfa;
+  createNFAfromPersistent(c->delta, c->s2p, nfa, finalStates);
+  Match *match = new Match(0, ml);
+  if (condsOccur) {
+    match->createSetMatrix(ml->GetNoComponents(), patElems.size());
+  }
+  for (int i = 0; i < ml->GetNoComponents(); i++) {
+    if (!match->updateStates(i, nfa, patElems, finalStates, states, easyConds,
+                             easyCondPos, condsOccur)) {
+      cout << "no active state after ul " << i << endl;
+      for (unsigned int j = 0; j < easyConds.size(); j++) {
+        easyConds[j].deleteOpTree();
+      }
+      return;
+    }
+  }
+  for (unsigned int j = 0; j < easyConds.size(); j++) {
+    easyConds[j].deleteOpTree();
+  }
+  for (it = states.begin(); it != states.end(); it++) { // active states final?
+    c->s2p.Get(*it, pat);
+    if ((*it > 0) && (pat != INT_MAX) && (pat >= 0)) {
+      matchCands.insert(matchCands.end(), pat);
+      cout << "pattern " << pat << " matches" << endl;
+    }
+  }
+  for (it = matchCands.begin(); it != matchCands.end(); it++) { // check conds
+    pats[*it]->initCondOpTrees();
+    vector<Condition>* conds = pats[*it]->getConds();
+    cout << "call fMB(nfa, " << startStates[*it] << ", " << patElems.size()
+         << ", " << conds->size() << ")" << endl;
+    if (match->findMatchingBinding(nfa, startStates[*it], patElems, *conds)) {
+      matchingPats.insert(*it);
+      cout << "p " << *it << " matches after condition check" << endl;
+    }
+    else {
+      cout << "p " << *it << " has non-matching conditions" << endl;
+    }
+    pats[*it]->deleteCondOpTrees();
+  }
+  match->deleteSetMatrix();
+  delete match;
 }
 
 /*
-\subsection{Constructor for class ~ClassifyLI~}
+\subsection{Constructor for class ~MultiRewriteLI~}
 
 This constructor is used for the operator ~rewrite~.
 
 */
-ClassifyLI::ClassifyLI(Word _mlstream, Word _pstream, bool rewrite) :
-mlStream(_mlstream), currentML(0), mainMatch(0),streamOpen(false),newML(false){
-  classifyTT = 0;
+MultiRewriteLI::MultiRewriteLI(Word _mlstream, Word _pstream) : ClassifyLI(0),
+             RewriteLI(0), mlStream(_mlstream), streamOpen(false), ml(0), c(0) {
   Stream<FText> pStream(_pstream);
   pStream.open();
   FText* inputText = pStream.request();
-  int startPos = 0;
-  set<unsigned int> emptyset;
+  Pattern *p = 0;
+  set<int>::iterator it;
+  map<int, set<int> >::iterator im;
+  int elemCount(0);
   while (inputText) {
     if (!inputText->IsDefined()) {
-      cout << "undefined input" << endl;
+      cout << "undefined input is ignored" << endl;
     }
     else {
-      Pattern *p = Pattern::getPattern(inputText->GetValue(), true);
+      p = Pattern::getPattern(inputText->GetValue(), true); // no single NFA
       if (p) {
         if (!p->hasAssigns()) {
-          cout << "pattern without rewrite part" << endl;
+          cout << "pattern without rewrite part ignored" << endl;
         }
         else {
-          start2pat[startPos] = pats.size();
-          pat2start[pats.size()] = startPos;
-          initialStates.insert(startPos);
-          startPos += p->getSize() + 1;
-          end2pat[startPos - 1] = pats.size();
-          for (int i = 0; i < p->getSize(); i++) {
-            matches[pats.size()].push_back(emptyset);
+          if (p->initCondOpTrees()) {
+            pats.push_back(p);
+            for (int i = 0; i < p->getSize(); i++) {
+              patElems.push_back(p->getElem(i));
+              elemCount++;
+              patOffset[patElems.size() - 1] =
+                        make_pair(pats.size() - 1, patElems.size() - elemCount);
+            }
+            elemCount = 0;
+            map<int, set<int> > easyOld = p->getEasyCondPos();
+            for (im = easyOld.begin();im != easyOld.end(); im++) {
+              for (it = im->second.begin(); it != im->second.end(); it++) {
+                easyCondPos[im->first + patElems.size()].insert
+                                                       (*it + easyConds.size());
+              }
+            }
+            for (unsigned int j = 0; j < p->getEasyConds().size(); j++) {
+              easyConds.push_back(p->getEasyCond(j));
+              easyConds.back().initOpTree();
+            }
           }
-          pats.push_back(p);
         }
       }
       else {
-        cout << "pattern \'" << inputText->GetValue() << "\' not parsed" <<endl;
+        cout << "invalid pattern \'" << inputText->GetValue() << endl;
       }
     }
     inputText->DeleteIfAllowed();
@@ -5322,10 +4227,136 @@ mlStream(_mlstream), currentML(0), mainMatch(0),streamOpen(false),newML(false){
   else {
     mlStream.open();
     streamOpen = true;
-    numOfStates = startPos;
-    mainMatch = new Match(numOfStates);
-    delta = mainMatch->buildMultiNFA(pats);
-    //mainMatch->printMultiNFA();
+    Classifier *c = new Classifier(0);
+    c->buildMultiNFA(pats, nfa, finalStates, state2Pat);
+    c->getStartStates(states);
+    match = new Match(0, ml);
+    c->DeleteIfAllowed();
+  }
+}
+
+
+/*
+\subsection{Function ~nextResultML~}
+
+This function is used for the operator ~rewrite~.
+
+*/
+MLabel* MultiRewriteLI::nextResultML() {
+  if (!pats.size()) {
+    return 0;
+  }
+  set<int> startStates;
+  set<int>::iterator it;
+  while (!bindingStack.empty()) {
+    BindingStackElem bE(0, 0);
+    bE = bindingStack.top();
+//     cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
+    bindingStack.pop();
+    resetBinding(bE.ulId);
+    pair<int, int> patNo = patOffset[bE.pId];
+    if (findNextBinding(bE.ulId, bE.pId, pats[patNo.first], patNo.second)) {
+      return ml->rewrite(binding, pats[patNo.first]->getAssigns());
+    }
+  }
+  while (bindingStack.empty()) { // new ML from stream necessary
+    match->deleteSetMatrix();
+    delete match;
+    match = 0;
+    deleteIfAllowed(ml);
+    ml = (MLabel*)mlStream.request();
+    if (!ml) {
+      return 0;
+    }
+    match = new Match(0, ml);
+    match->createSetMatrix(ml->GetNoComponents(), patElems.size());
+    getStartStates(startStates);
+    states = startStates;
+    matchCands.clear();
+    int i = 0;
+    while (!states.empty() && (i < ml->GetNoComponents())) { // loop through ml
+      match->updateStates(i, nfa, patElems, finalStates, states, easyConds,
+                               easyCondPos, true);
+      i++;
+    }
+    for (it = states.begin(); it != states.end(); it++) { //active states final?
+      if (finalStates.count(*it)) {
+        matchCands.insert(matchCands.end(), state2Pat[*it]);
+      }
+    }
+    initStack(startStates);
+    while (!bindingStack.empty()) {
+      BindingStackElem bE(0, 0);
+      bE = bindingStack.top();
+//      cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
+      bindingStack.pop();
+      resetBinding(bE.ulId);
+      pair<int, int> patNo = patOffset[bE.pId];
+      if (findNextBinding(bE.ulId, bE.pId, pats[patNo.first], patNo.second)) {
+        return ml->rewrite(binding, pats[patNo.first]->getAssigns());
+      }
+    }
+  }
+  cout << "SHOULD NOT OCCUR" << endl;
+  return 0;
+}
+
+/*
+\subsection{Function ~initStack~}
+
+Determines the start states of the match candidate patterns and pushes the
+corresponding initial transitions onto the stack.
+
+*/
+void MultiRewriteLI::initStack(set<int> &startStates) {
+  set<int>::iterator it;
+  map<int, int>::iterator itm;
+  for (it = startStates.begin(); it != startStates.end(); it++) {
+    if (matchCands.count(-state2Pat[*it])) {
+      map<int, int> transitions = nfa[*it];
+      for (itm = transitions.begin(); itm != transitions.end(); itm++) {
+        BindingStackElem bE(0, itm->first);
+        bindingStack.push(bE);
+//         cout << "(0, " << itm->first << ") pushed onto stack" << endl;
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~getStartStates~}
+
+*/
+void MultiRewriteLI::getStartStates(set<int> &states) {
+  states.clear();
+  states.insert(0);
+  map<int, int>::iterator it;
+  for (it = state2Pat.begin(); it != state2Pat.end(); it++) {
+    if (it->second < 0) {
+      states.insert(it->first);
+    }
+  }
+}
+
+/*
+\subsection{Destructor for class ~MultiRewriteLI~}
+
+*/
+MultiRewriteLI::~MultiRewriteLI() {
+  if (match) {
+    match->deleteSetMatrix();
+    delete match;
+  }
+  match = 0;
+  if (ml) {
+    deleteIfAllowed(ml);
+  }
+  ml = 0;
+  if (streamOpen) {
+    mlStream.close();
+  }
+  for (unsigned int i = 0; i < easyConds.size(); i++) {
+    easyConds[i].deleteOpTree();
   }
 }
 
@@ -5334,23 +4365,13 @@ mlStream(_mlstream), currentML(0), mainMatch(0),streamOpen(false),newML(false){
 
 */
 ClassifyLI::~ClassifyLI() {
-  if (streamOpen) {
-    mlStream.close();
-  }
   if (classifyTT) {
     delete classifyTT;
+    classifyTT = 0;
   }
-  if (newML) {
-    currentML->DeleteIfAllowed();
-  }
-  currentML = 0;
-  if (mainMatch) {
-    delete mainMatch;
-  }
-  map<int, set<size_t>* >::iterator i;
-  vector<Pattern*>::iterator ip;
-  for (ip = pats.begin(); ip != pats.end(); ip++) {
-    delete (*ip);
+  vector<Pattern*>::iterator it;
+  for (it = pats.begin(); it != pats.end(); it++) {
+    delete (*it);
   }
   pats.clear();
 }
@@ -5372,24 +4393,6 @@ TupleType* ClassifyLI::getTupleType() {
 }
 
 /*
-\subsection{Function ~printMatches~}
-
-*/
-void ClassifyLI::printMatches() {
-  set<unsigned int>::iterator it;
-  for (unsigned int i = 0; i < pats.size(); i++) {
-    cout << "--===-- Pattern " << i << " --===--" << endl;
-    for (unsigned int j = 0; j < matches[i].size(); j++) {
-      cout << "upat " << j << " matches ulabels ";
-      for (it = matches[i][j].begin(); it != matches[i][j].end(); it++) {
-        cout << *it << ", ";
-      }
-      cout << endl;
-    }
-  }
-}
-
-/*
 \subsection{Function ~nextResultText~}
 
 This function is used for the operator ~classify~.
@@ -5398,46 +4401,14 @@ This function is used for the operator ~classify~.
 FText* ClassifyLI::nextResultText() {
   if (!pats.size()) {
     return 0;
-  }
-  if (!matched.empty()) {
-    FText* result = new FText(true, pats[matched.back()]->getDescr());
-    matched.pop_back();
+  }  
+  if (!matchingPats.empty()) {
+    set<int>::iterator it = matchingPats.begin();
+    FText* result = new FText(true, pats[*it]->getDescr());
+    matchingPats.erase(it);
     return result;
   }
   return 0;
-}
-
-/*
-\subsection{Function ~nextResultML~}
-
-This function is used for the operator ~rewrite~.
-
-*/
-MLabel* ClassifyLI::nextResultML() {
-  if (!pats.size()) {
-    return 0;
-  }
-  MLabel *result = 0;
-  while (rewritten.empty()) {
-    if (currentML) {
-      currentML->DeleteIfAllowed();
-    }
-    currentML = (MLabel*)mlStream.request();
-    if (!currentML) { // stream finished
-      return 0;
-    }
-    if (currentML->IsDefined()) {
-      matched = mainMatch->applyMultiNFA(this, true);
-      if (!matched.empty()) {
-        mainMatch->multiRewrite(this);
-        mainMatch->setFinalState(numOfStates - 1);
-      }
-    }
-  }
-//   result = (MLabel*)rewritten.back()->Copy();
-  result = rewritten.back();
-  rewritten.pop_back();
-  return result;
 }
 
 /*
@@ -5480,7 +4451,11 @@ int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s) {
         local.addr = 0;
       }
       MLabel* source = static_cast<MLabel*>(args[0].addr);
-      local.addr = new ClassifyLI(source, args[1]);
+      if (source) {
+        if (source->IsDefined()) {
+          local.addr = new ClassifyLI(source, args[1]);
+        }
+      }
       return 0;
     }
     case REQUEST: {
@@ -5605,19 +4580,19 @@ void IndexLI::applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wild,
   wordPosType wc;
   charPosType cc;
   ULabel ul(1);
-  UPat up = p->getPat(pPos);
-  set<string> labels = up.getL();
+  PatElem pElem = p->getElem(pPos);
+  set<string> labels = pElem.getL();
   set<string>::iterator j = labels.begin();
   set<unsigned int>::iterator i1, i2;
-  if (up.getW() && up.getL().empty() && up.getI().empty()) { // *, +, or (())
-    wild = up.getW();
+  if (pElem.getW() && pElem.getL().empty() && pElem.getI().empty()) { // * or +
+    wild = pElem.getW();
     return;
   } // (), (...), or ((...))
   while (j != labels.end()) {
     eit = invFile->getExactIterator(*j, 4096);
     while (eit->next(id, wc, cc)) {
       if (active[id - 1]) {
-        if (timesMatch(id, wc, up.getI())) {
+        if (timesMatch(id, wc, pElem.getI())) {
           if (!pPos) {
             if (!wc) { // first unit pattern matches first unit label
               matches[id - 1][0].insert(0);
@@ -5645,7 +4620,7 @@ void IndexLI::applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wild,
   if (labels.empty()) {
     if (!pPos) { // first unit pattern
         for (int i = 1; i <= mlRel->GetNoTuples(); i++) {
-          if (timesMatch(i, 0, up.getI())) {
+          if (timesMatch(i, 0, pElem.getI())) {
             matches[i - 1][0].insert(0);
             prev[i - 1] = 0;
           }
@@ -5659,7 +4634,7 @@ void IndexLI::applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wild,
             for (i1 = matches[i - 1][prev[i - 1]].begin();
                  ((i1 != matches[i - 1][prev[i - 1]].end())
                    && (*i1 + 1 <= (unsigned int)getMLsize(i))); i1++) {
-              if (timesMatch(i, *i1, up.getI())) {
+              if (timesMatch(i, *i1, pElem.getI())) {
                 matches[i - 1][pPos].insert(i2, *i1 + 1);
                 i2++;
               }
@@ -5678,7 +4653,7 @@ void IndexLI::applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wild,
               i2 = initIterator(i, pPos);
               for (int k = *(matches[i - 1][prev[i - 1]].begin());
                    (k + add <= getMLsize(i)); k++) {
-                if (timesMatch(i, k, up.getI())) {
+                if (timesMatch(i, k, pElem.getI())) {
                   matches[i - 1][pPos].insert(i2, k + add);
                   i2++;
                 }
@@ -5688,7 +4663,7 @@ void IndexLI::applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wild,
               i2 = initIterator(i, pPos);
               for (unsigned int k = (wild == STAR ? 0 : 1);
                    k < (unsigned int)getMLsize(i); k++) {
-                if (timesMatch(i, k, up.getI())) {
+                if (timesMatch(i, k, pElem.getI())) {
                   matches[i - 1][pPos].insert(i2, k);
                   i2++;
                 }
@@ -5740,48 +4715,46 @@ vector<TupleId> IndexLI::applyPattern() {
 
 */
 void IndexLI::applyConditions(vector<TupleId> tupleIds, bool classify) {
-  if (p->getConds().empty()) { // no condition
+//   if (p->getConds().empty()) { // no condition
+//     if (classify) {
+//       for (unsigned int i = 0; i < tupleIds.size(); i++){
+//         classification.push(make_pair(p->getDescr(), tupleIds[i]));
+//       }
+//     }
+//     else {
+//       for (unsigned int i = 0; i < tupleIds.size(); i++){
+//         resultIds.push(tupleIds[i]);
+//       }
+//     }
+//   }
+//   else {
     if (classify) {
       for (unsigned int i = 0; i < tupleIds.size(); i++){
-        classification.push(make_pair(p->getDescr(), tupleIds[i]));
-      }
-    }
-    else {
-      for (unsigned int i = 0; i < tupleIds.size(); i++){
-        resultIds.push(tupleIds[i]);
-      }
-    }
-  }
-  else {
-    if (classify) {
-      for (unsigned int i = 0; i < tupleIds.size(); i++){
-        Match* m = new Match(this, tupleIds[i]);
-        m->computeCardsets();
-        m->initCondOpTrees(true);
+        Match* m = 0;//new Match(this, tupleIds[i]);
+//         m->computeCardsets();
+        p->initCondOpTrees();
         Tuple* tuple = mlRel->GetTuple(tupleIds[i], false);
-        if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
-          classification.push(make_pair(p->getDescr(), tupleIds[i]));
-        }
+//         if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
+//           classification.push(make_pair(p->getDescr(), tupleIds[i]));
+//         }
         deleteIfAllowed(tuple);
-        m->deleteCondOpTrees();
         delete m;
       }
     }
     else {
       for (unsigned int i = 0; i < tupleIds.size(); i++){
-        Match* m = new Match(this, tupleIds[i]);
-        m->computeCardsets();
-        m->initCondOpTrees(true);
+        Match* m = 0;//new Match(this, tupleIds[i]);
+//         m->computeCardsets();
+        p->initCondOpTrees();
         Tuple* tuple = mlRel->GetTuple(tupleIds[i], false);
-        if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
-          resultIds.push(tupleIds[i]);
-        }
+//         if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
+//           resultIds.push(tupleIds[i]);
+//         }
         deleteIfAllowed(tuple);
-        m->deleteCondOpTrees();
         delete m;
       }
     }
-  }
+//   }
 } 
 
 /*
