@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2010, University in Hagen, 
+Copyright (C) 2013, University in Hagen, 
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -27,22 +27,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ae] [\"a]
 //[oe] [\"o]
 
-[1] The ~MovingRegion2Algebra~
+[1] Header File of the ~MovingRegion3Algebra~
 
 May 2012, initial version created by Stefanie Renner for master
 thesis with Prof. Dr. G[ue]ting, Fachbereich Informatik,
 Fernuniversit[ae]t Hagen.
 
-May 2013 Oliver Feuer added the following operators: ...
+September 2013, revised and enlarged version of the prior MovingRegion2Algebra 
+by Oliver Feuer for bachelor thesis. The following things have been changed or added:
+
+  * the algebra is based on the Region2Algebra with a precise region2-object
+
+  * the scalefactor is an integer to base 10 and can be set by ~setscalefactor~
+
+  * the integer parts of the objects are save according an integer overflow
+
+  * the precise parts are stored more compactly in a DbArray of unsigned int
+
+  * the grid of the time is now based on the instant-time
+
+  * the instant type iregion2 is now available
+
+  * the operators atinstant, initial and final are updated
+
+  * operators ~inside~ and ~intersection~ for MPoints are added
+
+  * operator ~traversed~ is added
+
+  * additional operators for scaling, transforming and timeshift
+
+  * all data types can be schown by the HoeseViewer
 
 
 [TOC]
 
 1 Introduction
 
-This file contains the class definitions of ~MSegmentData2~, PreciseMSegmentData,
-PreciseInterval, ~URegionEmb2~, ~URegion2~ and ~MRegion2~, which
-are implemented in ~MovingRegion2Algebra.cpp~.
+This file contains the class definitions of ~MSegmentData2~, ~PreciseMSegmentData~,
+~PreciseInterval~, ~TrapeziumSegmentIntersection2~, ~IRegion2~, ~URegionEmb2~, 
+~URegion2~ and ~MRegion2~, which
+are implemented in ~MovingRegion3Algebra.cpp~.
 
 Please see ~MovingRegion3Algebra.cpp~ for more details on the
 ~MovingRegion3Algebra~.
@@ -52,6 +76,7 @@ Please see ~MovingRegion3Algebra.cpp~ for more details on the
 #ifndef MOVINGREGION3ALGBRA_H_
 #define MOVINGREGION3ALGBRA_H_
 
+#include "DateTime.h"
 #include "Region2Algebra.h"
 #include "MovingRegionAlgebra.h"
 
@@ -236,50 +261,6 @@ public:
 };
 
 /*
-1.1 Class ~TrapeziumSegmentIntersection2~
-
-Represents an intersection point as used by the ~intersection~ operator.
-
-*/
-
-class TrapeziumSegmentIntersection2 
-{
-public:
-/*
-1.1.1 Public attributes:
-
-  * ~type~ is the type of the intersection as described by the enumeration
-    TsiType, defined in the Moving Region Algebra
-
-  * ~x~ and ~y~ are the coordinates of the intersection and ~t~ the
-    time of the intersection in precise values..
-
-Due to the simplicity of this class, no private attributes and attribute
-access methods have been implemented.
-
-*/
-    TsiType type;
-
-    mpq_class x;
-    mpq_class y;
-    mpq_class t;
-
-/*
-1.1.1 Operators
-
-Compares intersections by their time.
-
-*/
-    inline bool operator<(const TrapeziumSegmentIntersection2& tsi) const 
-    {
-      if (cmp(t, tsi.t) == 0) {
-        return type < tsi.type;
-      } else
-        return (cmp(t, tsi.t) < 0);
-      }
-    };
-
-/*
 1 Supporting classes and class template
 
 1.1 Class ~MSegmentData2~
@@ -449,7 +430,6 @@ This constructor creates any kind of segment (basic or non-basic) from a pointer
 
 */
 
-
         MSegmentData2(MSegmentData2* segmentPointer);
 
 /*
@@ -544,9 +524,25 @@ class PreciseMSegmentData
 /*
 1.1.1 Private attributes
 
-  * ~isxStartPos~, ~isyStartPos~, ~iexStartPos~, ~ieyStartPos~, ~fsxStartPos~, ~fsyStartPos~,  ~fexStartPos~, ~feyStartPos~ is the index position of the first char representing the given coordinate in the respective DbArray, with isx initialStartX,  isy initialStartY, iex initialEndX, iey initialEndY, fsx finalStartX and so on.
+  * ~isxStartPos~, ~isyStartPos~, ~iexStartPos~, ~ieyStartPos~, ~fsxStartPos~, 
+~fsyStartPos~,  ~fexStartPos~, ~feyStartPos~ is the index position of the first 
+integer part representing the numerator of the precise part of the given coordinate 
+in the respective DbArray, with isx initialStartX,  isy initialStartY, iex initialEndX, 
+iey initialEndY, fsx finalStartX and so on.
+  
+  * ~isxdStartPos~, ~isydStartPos~, ~iexdStartPos~, ~ieydStartPos~, ~fsxdStartPos~, 
+~fsydStartPos~, ~fexdStartPos~, ~feydStartPos~ is the index position of the first 
+integer part representing the denominator of the precise part of the given coordinate 
+in the respective DbArray, with isx initialStartX,  isy initialStartY, iex initialEndX, 
+iey initialEndY, fsx finalStartX and so on.
 
-  * ~isxNumOfChars~, ~isyNumOfChars~, ~iexNumOfChars~, ~ieyNumOfChars~, ~fsxNumOfChars~, ~fsyNumOfChars~, ~fexNumOfChars~, ~feyNumOfChars~ is the number of all chars representing this respective coordinate instance in the DbArray.
+  * ~isxNumOfChars~, ~isyNumOfChars~, ~iexNumOfChars~, ~ieyNumOfChars~, ~fsxNumOfChars~, 
+~fsyNumOfChars~, ~fexNumOfChars~, ~feyNumOfChars~ is the number of integer parts 
+representing the numerator of the precise part of the respective coordinate in the DbArray.
+  
+  * ~isxdNumOfChars~, ~isydNumOfChars~, ~iexdNumOfChars~, ~ieydNumOfChars~, ~fsxdNumOfChars~, 
+~fsydNumOfChars~, ~fexdNumOfChars~, ~feydNumOfChars~ is the number of integer parts 
+representing the denominator of the precise part of the respective coordinate in the DbArray.
 
 */
 
@@ -613,7 +609,9 @@ Constructor that initializes all the indices.
 /*
 1.1.1 Attribute read access methods
 
-All these methods fetch the chars representing the given coordinate from the DbArray using the indices given in this instance's private attributes, and convert them to the correct instance of type mpq\_class, representing the value of the given coordinate.
+All these methods fetch the chars representing the given coordinate from the DbArray using 
+the indices given in this instance's private attributes, and convert them to the correct instance 
+of type mpq\_class, representing the value of the given coordinate.
 
 */
 
@@ -677,7 +675,10 @@ are of course also updated.
 /*
 1.1 Class ~PreciseInterval~
 
-The class ~PreciseInterval~ represents the precise information about the start and end instant of a time interval. Both values are not kept by their absolute value, but just as the difference from the respective integer representation. Both must be added to get the absolute value.
+The class ~PreciseInterval~ represents the precise information about the start and 
+end instant of a time interval. Both values are not kept by their absolute value, 
+but just as the difference from the respective instant representation. 
+Both must be added to get the absolute value.
 
 */
 
@@ -687,10 +688,17 @@ class PreciseInterval
 /*
 1.1.1 Private attributes
 
-  * ~startStartPos~, ~endStartPos~ is the index position of the first char representing the given coordinate in the respective DbArray.
+  * ~startStartPos~, ~endStartPos~ is the index position of the first integer part 
+representing the numerator of the given coordinate in the respective DbArray.
 
-  * ~startNumOfChars~, ~endNumOfChars~ is the number of all chars representing
-this respective coordinate instance in the DbArray.
+  * ~startNumOfChars~, ~endNumOfChars~ is the number of all integer parts representing
+the numerator of this respective coordinate instance in the DbArray.
+
+  * ~startdStartPos~, ~enddStartPos~ is the index position of the first integer part 
+representing the denominator of the given coordinate in the respective DbArray.
+
+  * ~startdNumOfChars~, ~enddNumOfChars~ is the number of all integer parts representing
+the denominator of this respective coordinate instance in the DbArray.
 
 */
 
@@ -728,7 +736,9 @@ This constructors initializes the private attributes.
 1.1.1 Attribute read and write access methods.
 
 The internal functionality of these access methods is just like of those
-from class PreciseMSegmentData. Private attributes are used as indices to the given char arrays to retrieve the objects, and when object values are updated, the indices are updated as well.
+from class PreciseMSegmentData. Private attributes are used as indices to the given 
+arrays to retrieve the objects, and when object values are updated, the indices 
+are updated as well.
 
 */
 
@@ -744,6 +754,52 @@ from class PreciseMSegmentData. Private attributes are used as indices to the gi
 
 };
 
+
+/*
+1.1 Class ~TrapeziumSegmentIntersection2~
+
+Represents an precise intersection point as used by the ~intersection~ operator.
+
+*/
+
+class TrapeziumSegmentIntersection2 
+{
+        
+public:
+        
+/*
+1.1.1 Public attributes:
+
+  * ~type~ is the type of the intersection as described by the enumeration
+    TsiType, defined in the MovingRegion-Algebra
+
+  * ~x~ and ~y~ are the coordinates of the intersection and ~t~ the
+    time of the intersection in precise values of type mpq\_class.
+
+Due to the simplicity of this class, no private attributes and attribute
+access methods have been implemented.
+
+*/
+    TsiType type;
+
+    mpq_class x;
+    mpq_class y;
+    mpq_class t;
+
+/*
+1.1.1 comparison-Operator
+
+Compares intersections only by their time.
+
+*/
+    inline bool operator<(const TrapeziumSegmentIntersection2& tsi) const 
+    {
+      if (cmp(t, tsi.t) == 0) {
+        return type < tsi.type;
+      } else
+        return (cmp(t, tsi.t) < 0);
+      }
+    };
 
 
 /*
@@ -867,7 +923,11 @@ attribute with proper public access methods would be more clean, we
 leave this attribute public to mimic a ~Unit~'s behaviour.
 In the same way, ~pInterval~ contains an instance of the class
 representing a precise time interval (the derivation of the two instances
-representing a time interval from the respective integer grid representations).
+representing a time interval from the respective instant representations).
+
+~minIntx~, ~maxIntx~, ~minInty~ and ~maxInty~ are boundaries of the 
+representation and used to decide an integer overflow. The same with 
+~minPrecx~, ~maxPrecx~, ~minPrecy~ and ~maxPrecy~.
 
 */
         Interval<Instant> timeInterval;
@@ -966,7 +1026,7 @@ the value ~insideAbove~. This is required by function ~InURegionEmb2()~.
 /*
 Adds a segment to this ~URegionEmb2~ instance.
 
-~cr~ is a ~Region~ instance, which is used to check whether the ~URegionEmb2~
+~cr~ is a ~Region2~ instance, which is used to check whether the ~URegionEmb2~
 instance represents a valid region in the middle of its interval, when no
 degeneration can occur. All segments added to the ~URegionEmb2~ instance are
 added as non-moving segments to ~cr~ too.
@@ -1033,7 +1093,8 @@ description below for details.
                         const precTimeInterval& iv, 
                         vector<TrapeziumSegmentIntersection2>& vtsi, 
                         vector<precUPoint>& vpup, 
-                        vector<precUBool>& vpub) const;
+                        vector<precUBool>& vpub,
+                        bool isbool) const;
         void RestrictedIntersectionUP(const DbArray<MSegmentData2>* segments, 
                         const DbArray<PreciseMSegmentData>* preciseSegments,
                         const DbArray<unsigned int>* preciseCoordinates, 
@@ -1041,7 +1102,8 @@ description below for details.
                         const int scaleFactor,
                         const UPoint& up, const precTimeInterval& iv, 
                         vector<precUPoint>& vpup, 
-                        vector<precUBool>& vpub) const;
+                        vector<precUBool>& vpub,
+                        bool isbool) const;
 
 /*
 1.1 Method for database operator setscalefactor
@@ -1054,11 +1116,11 @@ description below for details.
                 DbArray<unsigned int>* preciseCoordinates);
 
 /*
-1.1 Methods for database operators
+1.1 Methods for database operators translate and scale
 
 */
 
-        void Translate(double deltaX, double deltaY,
+        void Translate(DateTime* deltaT, double deltaX, double deltaY,
                 DbArray<MSegmentData2>* segments, 
                 DbArray<PreciseMSegmentData>* preciseSegments,
                 DbArray<unsigned int>* preciseCoordinates,
@@ -1170,10 +1232,13 @@ dummy implementation:
 
 }; //end of class URegionEmb2
 
+
 /*
 1 Class ~URegion2~
 
-Instances of class ~URegion2~ represent SECONDO ~uregion~ objects.
+Instances of class ~URegion2~ represent SECONDO ~uregion2~ objects.
+In the ~MovingRegion3Algebra~ it is now based on ~Region2Algebra~ 
+with ~region2~ objects.
 
 */
 
@@ -1194,6 +1259,13 @@ private:
 of the functionality. Please note that the ~uremb~ is using ~segments~
 through a pointer to ~segments~, which is explicitely passed to ~uremb~'s
 methods.
+
+  * ~scaleFactor~ is the scalefactor of the current representation of the unit.
+
+  * ~minIntx~, ~maxIntx~, ~minInty~ and ~maxInty~ are boundaries of the 
+representation and used to decide an integer overflow. 
+
+  * The same with ~minPrecx~, ~maxPrecx~, ~minPrecy~ and ~maxPrecy~.
 
 */
 
@@ -1270,13 +1342,18 @@ Set and get the ~uremb~ attribute. Required for function ~InURegion2()~.
 /*
 1.1 Methods for database operators
 
+*/
+
+        void Translate(DateTime* deltaT, double deltaX, double deltaY);
+        void Timeshift(DateTime* deltaT);
+        void Scale(double deltaX, double deltaY);
+
+/*
+ * 
 Returns the ~Region~ value of this ~URegion2~ unit at instant ~t~
 in ~result~.
 
 */
-
-        void Translate(double deltaX, double deltaY);
-        void Scale(double deltaX, double deltaY);
 
         virtual void TemporalFunction(const Instant& t,
                                       Region2& result,
@@ -1341,10 +1418,18 @@ Return the internal arrays containing the moving segments for read-only access.
           return &preciseInstants;
         }
 
+/*
+
+Read and write access to the scaleFactor. The ~SetScaleFactor~ method only sets
+the scaleFactor, while the ~NewScaleFactor~ method changes the Uregion2-representation, too.
+
+*/
+
         const int GetScaleFactor(void);
         void SetScaleFactor(int factor);
         bool NewScaleFactor(int factor);
 
+        
         void SetMinMax(URegionEmb2 ur);
   
 /*
@@ -1459,6 +1544,7 @@ Distance function
 
 }; //End of class URegion2
 
+
 /*
 1 Class ~MRegion2~
 
@@ -1467,6 +1553,8 @@ moving segments, which is referenced by its ~URegionEmb2~ units, which in turn
 do not have their own storage for moving segments.
 The same is true for the precise segments of type ~PreciseMSegmentData~ and for
 the precise interval information of type ~PreciseInterval~.
+In the ~MovingRegion3Algebra~ it is now based on ~Region2Algebra~ 
+with ~region2~ objects.
 
 */
 
@@ -1478,6 +1566,13 @@ private:
 1.1 Private attributes
 
   * The arrays with the segments and the precise intervals.
+
+  * ~scaleFactor~ is the scalefactor of the current representation of the moving region.
+
+  * ~minIntx~, ~maxIntx~, ~minInty~ and ~maxInty~ are boundaries of the 
+representation and used to decide an integer overflow. 
+
+  * The same with ~minPrecx~, ~maxPrecx~, ~minPrecy~ and ~maxPrecy~.
 
 */
         DbArray<MSegmentData2> msegmentdata;
@@ -1493,24 +1588,28 @@ private:
 /*
 1.1 Private methods
 
-Calculates the intersection between this ~mp~ instance and ~mp~ based
-on the refinement partition ~rp~. The result goes into ~res~. If ~merge~
-is ~true~, the resulting ~URegion~ instances are merged, if possible.
+Calculates the intersection between this instance and ~mp~ based
+on a precise refinement partition. The result goes into MPoint ~res1~ in
+case of the intersection operator and into MBool ~res2~ in case of the
+inside operator.
 
 */
 
-        void IntersectionMP(const MPoint& mp, MPoint& res1, MBool& res2);
+        void IntersectionMP(const MPoint& mp, MPoint& res1, MBool& res2, 
+                            bool isbool = false);
+        void AddUPoints(vector<precUPoint> vpup, MPoint& res) const;
+        void AddUBools(vector<precUBool> vpub, MBool& res) const;
 
 /*
-These methods are necessary for the operator traversed
+The following methods are necessary for the operator traversed. 
 
 */
  
+        void TraverseRegion(Region2& res);
         void SplitHS(vector<Reg2PreciseHalfSegment>& pHSvector);
         void CollectHS(vector<Reg2PreciseHalfSegment>& pAllHSvector);
         void PlaneSweepProjection(vector<Reg2PreciseHalfSegment>& pHSvector);
         void MergeHS(vector<Reg2PreciseHalfSegment>& pHSvector);
-        void TraverseRegion(Region2& res);
     
 public:
 /*
@@ -1584,10 +1683,24 @@ Allow read-only access to DbArrays.
         const DbArray<unsigned int>* GetPreciseCoordinates(void);
         const DbArray<unsigned int>* GetPreciseInstants(void) const;
 
+/*
+
+Read and write access to the scaleFactor. The ~SetScaleFactor~ method only sets
+the scaleFactor, while the ~NewScaleFactor~ method changes the mregion2-representation, too.
+
+*/
+
         const int GetScaleFactor(void);
         void SetScaleFactor(int factor);
         bool NewScaleFactor(int factor);
     
+/*
+
+Read and write access to the min-max-values. 
+This is necessary for save scale and translate operations.
+
+*/
+
         void SetMinMax(URegionEmb2 ur);
         int GetMinIntx() { return minIntx; }
         int GetMinInty() { return minInty; }
@@ -1603,15 +1716,14 @@ Allow read-only access to DbArrays.
 
 */
 
-        void Translate(double deltaX, double deltaY);
+        void Translate(DateTime* deltaT, double deltaX, double deltaY);
+        void Timeshift(DateTime* deltaT);
         void Scale(double deltaX, double deltaY);
 
         void Final(Intime<Region2>& result);
         void Initial(Intime<Region2>& result);
         void AtInstant(const Instant& t, Intime<Region2>& result);
 
-        void AddUPoints(vector<precUPoint> vpup, MPoint& res) const;
-        void AddUBools(vector<precUBool> vpub, MBool& res) const;
         void Intersection(MPoint& mp, MPoint& res);
         void Inside(const MPoint& mp, MBool& res);
         void Traversed(Region2& res);

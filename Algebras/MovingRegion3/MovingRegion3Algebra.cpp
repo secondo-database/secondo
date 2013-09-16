@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2010, University in Hagen, 
+Copyright (C) 2013, University in Hagen, 
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -29,46 +29,66 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 \setcounter{tocdepth}{4}
 
-[1] The ~MovingRegion2Algebra~
+[1] Implementation of the ~MovingRegion3Algebra~
 
 May 2012, initial version created by Stefanie Renner for master
 thesis with Prof. Dr. G[ue]ting, Fachbereich Informatik,
 Fernuniversit[ae]t Hagen.
 
-May 2013 Oliver Feuer added the following operators: ...
+September 2013, revised and enlarged version of the prior MovingRegion2Algebra 
+by Oliver Feuer for bachelor thesis. The following things have been changed or 
+added:
+
+  * the algebra is based on the Region2Algebra with a precise region2-object
+
+  * the scalefactor is an integer to base 10 and can be set by ~setscalefactor~
+
+  * the integer parts of the objects are save according an integer overflow
+
+  * the precise parts are stored more compactly in a DbArray of unsigned int
+
+  * the grid of the time is now based on the instant-time
+
+  * the instant type iregion2 is now available
+
+  * the operators atinstant, initial and final are updated
+
+  * operators ~inside~ and ~intersection~ for MPoints are added
+
+  * operator ~traversed~ is added
+
+  * additional operators for scaling, transforming and timeshift
+
+  * all data types can be schown by the HoeseViewer
 
 
 [TOC]
 
 1 Introduction
 
-The ~MovingRegion2Algebra~ provides data types and operators relating to
-moving regions. It is the second attempt to implement an algebra for moving regions
-and focuses especially on numerical robustness. Therefor all coordinates are
-split into an integer part and the non-integer rest. Calculations are first done on
-the integer grid using the integer coordinates only. If no decision can be made
-that way, the precise coordinates are taken into account.
+The ~MovingRegion3Algebra~ provides data types and operators relating to
+moving regions. It is the second attempt to implement an algebra for moving 
+regions and focuses especially on numerical robustness. Therefor all 
+coordinates are split into an integer part and the non-integer rest. 
+Calculations are first done on the integer grid using the integer coordinates 
+only. If no decision can be made that way, the precise coordinates are taken 
+into account.
 
-Due to the deadline of the master's thesis and the
-complexity of the ~MovingRegion2Algebra~, the current version should be
-considered as prototype or proof of concept only, and needs to be finalized
-before production usage.
-
-The class definitions of ~MSegmentData2~, PreciseMSegmentData, PreciseInterval,
-~URegionEmb2~, ~URegion2~ and ~MRegion2~, which
-are implemented in ~MovingRegion2Algebra.cpp~, have been moved to
-the header file ~MovingRegion2Algebra.h~ to facilitate development work on
-top of the ~MovingRegion2Algebra~ without modifying the ~MovingRegion2Algebra~
+The class definitions of ~MSegmentData2~, ~PreciseMSegmentData~,
+~PreciseInterval~, ~TrapeziumSegmentIntersection2~, ~IRegion2~, ~URegionEmb2~, 
+~URegion2~ and ~MRegion2~, which
+are implemented in ~MovingRegion3Algebra.cpp~, have been moved to
+the header file ~MovingRegion3Algebra.h~ to facilitate development work on
+top of the ~MovingRegion3Algebra~ without modifying the ~MovingRegion3Algebra~
 itself. This file contains detailed descriptions for the usage of the methods
 of these classes too.
 
 1 Defines and includes
-\label{defines}
 
 */
 
 #include "MovingRegion3Algebra.h"
-#include "Refinement3.h"
+#include "Refinement2.h"
 
 /*
 Set ~MR2\_DEBUG~ to ~true~ for debug output. Please note that debug output is
@@ -179,6 +199,24 @@ static void minmax4(
 }
 
 static void minmax4(
+                double a,
+                double b,
+                double c,
+                double d,
+                double& min,
+                double& max) {
+        min = a;
+        max = a;
+
+        if (b < min) min = b;
+        if (b > max) max = b;
+        if (c < min) min = c;
+        if (c > max) max = c;
+        if (d < min) min = d;
+        if (d > max) max = d;
+}
+
+static void minmax4(
                 mpq_class a,
                 mpq_class b,
                 mpq_class c,
@@ -201,11 +239,11 @@ static void minmax4(
 /*
 1.1.1.1 Function ~maybeEqual()~
 
-Checks if two values may be equal, having in mind there respective maximal errors.
-Function ~maybeEqual()~ is provided for data type double and for the different
-geometric classes, like Reg2GridPoint, GridPointSegment, Reg2ProvisionalPoint, and so on.
-These functions will help to detect such situations where a recalculation with
-precise coordinates is needed.
+Checks if two values may be equal, having in mind there respective maximal 
+errors. Function ~maybeEqual()~ is provided for data type double and for the 
+different geometric classes, like Reg2GridPoint, GridPointSegment, 
+Reg2ProvisionalPoint, and so on. These functions will help to detect such 
+situations where a recalculation with precise coordinates is needed.
 
 */
 static bool maybeEqual(double a, double b, double aErr, double bErr) {
@@ -307,8 +345,8 @@ static bool isLower
 /*
 1.1.1.1 Function ~isGreater()~
 
-Checks if a is greater than b, keeping in mind the respective errors, so that no
-precise recalculation is needed.
+Checks if a is greater than b, keeping in mind the respective errors, so that 
+no precise recalculation is needed.
 
 */
 static bool isGreater
@@ -405,8 +443,8 @@ static bool isBetween
 /*
 1.1.1.1 Function ~betweenOrMaybeEqual()~
 
-Returns true if b is between a and c or maybe of equal value with one of the two
-or with both, so that it might be between the two values.
+Returns true if b is between a and c or maybe of equal value with one of the 
+two or with both, so that it might be between the two values.
 
 */
 static bool betweenOrMaybeEqual(double a, double b, double c,
@@ -438,7 +476,8 @@ static int roundedUp (double doubleValue)
 /*
 1.1.1.1 Function ~broughtDown()~
 
-Brings a double down to the next lower integer (same as cast, just for readability).
+Brings a double down to the next lower integer (same as cast, just for 
+readability).
 
 */
 static int broughtDown (double doubleValue)
@@ -577,7 +616,8 @@ not have to do anything.
             }
 
 /*
-The pivot is in row $currentPivotLine$. If $currentPivotLine\ne i$, the pivot is in another row than row $i$.
+The pivot is in row $currentPivotLine$. If $currentPivotLine\ne i$, the pivot
+is in another row than row $i$.
 Swap rows $i$ and $currentPivotLine$ in this case.
 Apply the same operation on the maximal errors of the respective components.
 
@@ -761,7 +801,7 @@ to $0$ during the substraction.
 
 1.1.1.1 Function ~fromDouble()~
 
-Reads from the doulbe value inValue and returns its representation as mpq\_class.
+Reads from the double value inValue and returns its representation as mpq\_class.
 
 */
 
@@ -832,20 +872,67 @@ Function is moved to Region2Tools.h of the Region2-Algebra
 
 
 /*
+1.1.1.1 ~instant2MPQ~
+
+This method converts instant type i to mpq\_class without lost of precision
+
+*/
+static mpq_class instant2MPQ( const Instant i )
+{
+  mpq_class res = mpq_class(0);
+
+  int days = (int)i.ToDouble();
+  const int rest = i.GetAllMilliSeconds();
+  const int milliseconds = 86400000;
+
+  res = days + mpq_class(rest, milliseconds);
+  res.canonicalize();
+
+  return res;
+}
+
+
+/*
+1.1.1.1 ~precTimeToInstant~
+
+This method converts a precise mpq\_class time value to an instant part
+with full milliseconds and a resting value of type mpq\_class without lost of 
+precision
+
+*/
+static void precTimeToInstant(const mpq_class prectime, 
+                              Instant& timeValue, 
+                              mpq_class& restValue)
+{
+  int days = (int)prectime.get_d();
+  const int milliseconds = 86400000;
+  mpq_class millipart = (prectime - days) * milliseconds;
+
+  int millis = (int)millipart.get_d();
+  timeValue = Instant(days, millis, datetime::instanttype);
+
+  restValue = (millipart - millis) / milliseconds;
+  restValue.canonicalize();
+}
+
+
+
+/*
 1.1 Geometrical helper types
 
 1.1.1 Class ~Reg2GridPoint~
 
 This class is moved to Reg2Points.h of the Region2-Algebra
 
+
 1.1.1 Class ~Reg2ProvisionalPoint~
 
 This class is moved to Reg2Points.h of the Region2-Algebra
 
+
 1.1.1 Class ~Reg2PrecisePoint~
 
 This class is moved to Reg2Points.h of the Region2-Algebra
-
 
 
 1.1.1 Class ~GridPointSegment~
@@ -1365,13 +1452,12 @@ static bool touching (PreciseTrapezium trapezium1,
 1.1.1 Intersections between segments or between a segment and a line
 
 1.1.1.1 Function ~segmentsMayIntersect()~ for integer
-\label{smi}
 
 Returns ~true~ if the two specified segments may intersect on integer grid
 in three-dimensional space $(x, y, t)$.
 It is not considered as intersection if they touch in their end points.
-If the integer coordinates of the segments end points are the exact coordinates,
-this will be used to come to an early conclusion.
+If the integer coordinates of the segments end points are the exact 
+coordinates, this will be used to come to an early conclusion.
 The segments both have start point at time $t=0$ and end point at time $t=dt$.
 
 */
@@ -1412,7 +1498,8 @@ static bool segmentsMayIntersect(int dt,
     }
 
 /*
-Check if both segments are identical or touch in their endpoints on integer grid.
+Check if both segments are identical or touch in their endpoints on integer 
+grid.
 
 */
     if (segment1 == segment2)
@@ -1498,8 +1585,8 @@ seg2.p1.y-seg1.p1.y \\
 
 We put the left handed sides of the equations in matrix $a$ and the right
 handed sides into array $b$ and are applying the Gaussian elimination to these.
-The maximal errors of each component are also passed in $aMaxErr$ and $bMaxErr$,
-respectively:
+The maximal errors of each component are also passed in $aMaxErr$ and 
+$bMaxErr$, respectively:
 
 */
     double A[3][2] =
@@ -1657,7 +1744,6 @@ one of the coordinates is overlapping...
 
 /*
 1.1.1.1 Function ~segmentsMayIntersect()~ for double
-\label{smi2}
 
 Returns ~true~ if the two specified segments may intersect
 in three-dimensional space $(x, y, t)$.
@@ -1666,8 +1752,8 @@ The segments both have start point at time $t=0$ and end point at time $t=dt$.
 
 The values zMin and zMax return the minimum and maximum value for the
 z coordinate of the intersection point in case of an intersection. The value
-of zMin and zMax is always a relative value, since no real instants are passed to
-that function but just the time difference dt.
+of zMin and zMax is always a relative value, since no real instants are passed 
+to that function but just the time difference dt.
 
 */
 static bool segmentsMayIntersect(int dt,
@@ -1794,8 +1880,8 @@ seg2.p1.y-seg1.p1.y \\
 
 We put the left handed sides of the equations in matrix $a$ and the right
 handed sides into array $b$ and are applying the Gaussian elimination to these.
-The maximal errors of each component are also passed in $aMaxErr$ and $bMaxErr$,
-respectively:
+The maximal errors of each component are also passed in $aMaxErr$ and 
+$bMaxErr$, respectively:
 
 */
     double A[3][2] =
@@ -1811,8 +1897,8 @@ respectively:
     double* Ap[] = { A[0], A[1], A[2] };
 
 /*
-We also need to pass the maximum errors for each component: If values are subtracted,
-their respective errors must be added.
+We also need to pass the maximum errors for each component: If values are 
+subtracted, their respective errors must be added.
 
 */
 
@@ -1975,7 +2061,6 @@ static bool segmentsMayIntersect(int dt,
 
 /*
 1.1.1.1 Function ~preciseSegmentsIntersect()~ for precise coordinates
-\label{psi}
 
 Returns ~true~ if the two specified segments intersect
 in three-dimensional space $(x, y, t)$.
@@ -2051,8 +2136,8 @@ seg2.p1.y-seg1.p1.y \\
 
 We put the left handed sides of the equations in matrix $a$ and the right
 handed sides into array $b$ and are applying the Gaussian elimination to these.
-The maximal errors of each component are also passed in $aMaxErr$ and $bMaxErr$,
-respectively:
+The maximal errors of each component are also passed in $aMaxErr$ and 
+$bMaxErr$, respectively:
 
 */
         mpq_class A[3][2] =
@@ -2626,7 +2711,6 @@ box parallel to the $(x, y)$-plane.
 1.1.1 Intersections between two trapeziums
 
 1.1.1.1 Function ~trapeziumsMayIntersect()~
-\label{stinu}
 
 Returns ~true~ if the two specified trapeziums may intersect in three-dimensional
 space $(x, y, t)$.
@@ -4471,13 +4555,22 @@ static void restrictUPointToInterval(const UPoint& up,
 
     double ti = 0;
     double tf = 0;
+    Instant start(datetime::instanttype);
+    mpq_class reststart(0);
+    precTimeToInstant(iv.start, start, reststart);
+    Instant end(datetime::instanttype);
+    mpq_class restend(0);
+    precTimeToInstant(iv.end, end, restend);
+      
+    if (cmp(reststart, 0) > 0)
+       start += Instant(0, 1, datetime::durationtype);
 
     if (up.timeInterval.end != up.timeInterval.start)
     {
-      ti = (iv.start.get_d() - up.timeInterval.start.ToDouble()) / 
-           (up.timeInterval.end.ToDouble() - up.timeInterval.start.ToDouble());
-      tf = (iv.end.get_d() - up.timeInterval.start.ToDouble()) / 
-           (up.timeInterval.end.ToDouble() - up.timeInterval.start.ToDouble());
+      ti = (start - up.timeInterval.start) / 
+           (up.timeInterval.end - up.timeInterval.start);
+      tf = (end - up.timeInterval.start) / 
+           (up.timeInterval.end - up.timeInterval.start);
     }
 
     double p1x = up.p0.GetX() + ( up.p1.GetX() - up.p0.GetX() )*ti;
@@ -4485,8 +4578,7 @@ static void restrictUPointToInterval(const UPoint& up,
     double p2x = up.p0.GetX() + ( up.p1.GetX() - up.p0.GetX() )*tf;
     double p2y = up.p0.GetY() + ( up.p1.GetY() - up.p0.GetY() )*tf;
     
-    rUp = UPoint(Interval<Instant>(iv.start.get_d(), 
-                                   iv.end.get_d(), iv.lc, iv.rc), 
+    rUp = UPoint(Interval<Instant>(start, end, iv.lc, iv.rc), 
                                    p1x, p1y, p2x, p2y);
 }
 
@@ -4495,20 +4587,19 @@ static void restrictUPointToInterval(const UPoint& up,
 1 Supporting classes
 
 Supporting classes are those, which are not registered as SECONDO datatypes
-but are used to implement the SECONDO datatypes ~intimeregion2~, ~uregion2~ and
-~movingregion2~.
+but are used to implement the SECONDO datatypes ~iregion2~, ~uregion2~ and
+~mregion2~.
 
 1.1 Class ~MSegmentData2~
 
 This class is used to represent the segments, which are used to represent
-region units in section \ref{uregion2}.
+region units in section.
 
 1.1.1 Class definition
 
-The class definition has been moved to ~MovingRegion2Algebra.h~.
+The class definition has been moved to ~MovingRegion3Algebra.h~.
 
 1.1.1 Constructor for a basic segment
-\label{collinear}
 
 */
 MSegmentData2::MSegmentData2(
@@ -4734,7 +4825,6 @@ Both segments are not vertical.
 
 /*
 1.1.1 Constructor for a non-basic segment
-\label{collinear2}
 
 */
 MSegmentData2::MSegmentData2(
@@ -5035,7 +5125,7 @@ This class is used to represent the precise segments
 
 1.1.1 Class definition
 
-The class definition has been moved to ~MovingRegion2Algebra.h~.
+The class definition has been moved to ~MovingRegion3Algebra.h~.
 
 1.1.1 Constructors
 
@@ -5124,11 +5214,12 @@ of the array, and indices will be set accordingly.
 /*
 1.1.1 Write access methods.
 
-All these methods take the argument of type mpq-class, convert it to an
-arbitrary number of chars and stores these chars in the given DbArray. The
-private attributes representing the array indices to restore the coordinates
-are of course also updated.
-
+All these methods take the argument of type mpq-class, convert it to 
+two values of type mpz\_class representing the numerator and the denominator 
+of the mpq-value. Each value of type mpz-class is divided into several unsigned 
+integer numbers and stored in the given DbArray. The private attributes 
+representing  the array indices to restore the coordinates are of course also 
+updated.
 
 Function SetValueX is moved to Region2Tools.h of the Region2-Algebra
 
@@ -5213,11 +5304,10 @@ void PreciseMSegmentData::SetFinalEndY (mpq_class x,
 /*
 1.1.1 Read access methods
 
-All these methods fetch the chars representing the given coordinate from the
-DbArray using the indices given in this instance's private attributes, and
-convert them to the correct instance of type mpq-class, representing the value
-of the given coordinate.
-
+All these methods fetch the unsigned integer parts of the numerator and the denominator 
+representing the given coordinate from the DbArray using the indices given in 
+this instance's private attributes, and convert them to the correct instance 
+of type mpq-class, representing the value of the given coordinate.
 
 Function GetValueX is moved to Region2Tools.h of the Region2-Algebra
 
@@ -5325,7 +5415,7 @@ This class is used to represent the precise time intervals for region units.
 
 1.1.1 Class definition
 
-The class definition has been moved to ~MovingRegion2Algebra.h~.
+The class definition has been moved to ~MovingRegion3Algebra.h~.
 
 1.1.1 Constructors
 
@@ -5361,10 +5451,10 @@ PreciseInterval::PreciseInterval(int pos) :
 /*
 1.1.1 Attribute read and write access methods
 
-The internal functionality of these access methods is just like of those
-from class PreciseMSegmentData. Private attributes are used as indices to the
-given char arrays to retrieve the objects, and when object values are updated,
-the indices are updated as well.
+The internal functionality of these access methods is just like of those 
+from class PreciseMSegmentData. Private attributes are used as indices to the 
+given unsigned integer arrays to retrieve the objects, and when object values 
+are updated, the indices are updated as well.
 
 */
 
@@ -5452,7 +5542,9 @@ IRegion2::IRegion2(const Instant& instant, const Region2& region2):
 /*
 1.1.1 Methods for algebra integration
 
-1.1.1.1 Method ~Clone()~Result:  
+1.1.1.1 Method ~Clone()~  
+
+clone method:
 
 */
 IRegion2* IRegion2::Clone(void) const {
@@ -5463,6 +5555,8 @@ IRegion2* IRegion2::Clone(void) const {
 
 /*
 1.1.1.1 ~DBArray~ access
+
+access to the DbArrays
 
 */
 int IRegion2::NumOfFLOBs(void) const {
@@ -5693,7 +5787,7 @@ static TypeConstructor intimeregion2(
 
 1.1 Class definition
 
-The class definition has been moved to ~MovingRegion2Algebra.h~.
+The class definition has been moved to ~MovingRegion3Algebra.h~.
 
 1.1 Constructors
 
@@ -6114,13 +6208,11 @@ In the precise segment, only the difference between the absolute precise value a
                         segments->Put(segmentsStartPos+segmentsNum, dms);
                         preciseSegments->Put(
                                 segmentsStartPos+segmentsNum, preciseSegment);
-//                        cerr << "Segment added!!" << endl;
 
                         segmentsNum++;
                 }
                 catch (...)
                 {
-//                        cerr << "CATCH called!" << endl << endl;
         //We need to make two segments out of one, were not collinear...
         //First segment...
                 try
@@ -6182,7 +6274,6 @@ In the precise segment, only the difference between the absolute precise value a
                         segments->Put(segmentsStartPos+segmentsNum, dms_1);
                         preciseSegments->Put(
                         segmentsStartPos+segmentsNum, preciseSegment_1);
-//                        cerr << "Segment 1/2 added!!" << endl;
 
                         segmentsNum++;
                         }
@@ -6248,14 +6339,11 @@ In the precise segment, only the difference between the absolute precise value a
                         segments->Put(segmentsStartPos+segmentsNum, dms_2);
                         preciseSegments->Put(
                         segmentsStartPos+segmentsNum, preciseSegment_2);
-//                        cerr << "Segment 2/2 added!!" << endl;
 
                         segmentsNum++;
                         }
                         catch (...)
                         { 
-//                        cerr << "CATCH CATCH - should never be reached!!" 
-//                             << endl;  
                         }
                 }
         }
@@ -6287,7 +6375,7 @@ accordingly.
 1.1.1 Method ~Translate()~
 
 */
-void URegionEmb2::Translate(double deltaX, double deltaY, 
+void URegionEmb2::Translate(DateTime* deltaT, double deltaX, double deltaY, 
                 DbArray<MSegmentData2>* segments,
                 DbArray<PreciseMSegmentData>* preciseSegments, 
                 DbArray<unsigned int>* preciseCoordinates,
@@ -6296,6 +6384,9 @@ void URegionEmb2::Translate(double deltaX, double deltaY,
         if (MR2_DEBUG)
                 cerr << "URegionEmb2::Translate() called" << endl;
 
+        timeInterval.start.Add(deltaT);
+        timeInterval.end.Add(deltaT);
+        
 /*
 First transform double paramters into fractions in order to avoid
 rounding errors.
@@ -6525,6 +6616,8 @@ Also reset the isBasicSegment flag and sets it accoring to new values.
 /*
 1.1.1 Method ~NewScale()~
 
+This method sets a new scalefactor for the object.
+
 */
 void URegionEmb2::NewScale(int newscale, int oldscale,
                 DbArray<MSegmentData2>* segments,
@@ -6747,6 +6840,8 @@ Also reset flag isBasicSegment.
 /*
 1.1.1 Method ~Scale()~
 
+This method scales the object by ~deltaX~ and ~deltaY~.
+
 */
 void URegionEmb2::Scale(double deltaX, double deltaY, 
                 DbArray<MSegmentData2>* segments,
@@ -6944,16 +7039,8 @@ Also reset flag isBasicSegment.
 /*
 1.1.1 Method ~TemporalFunction()~
 
-This method calculates the resulting Region instance by evaluating the
+This method calculates the resulting Region2 instance by evaluating the
 URegionEmb2 instance at one single instant t.
-The coordinates are first calculated at full precision. As region uses
-double coordinates, the result is then transformed to double by
-ignoring the precise part of the coordinates and multiplying the integer
-part with scaleFactor.
-
-Note that because of ignoring the precise parts, the result might not be
-a valid region instance in all cases. Therefor ~res~ might be not defined
-at the end in spite of valid parameters.
 
 */
 void URegionEmb2::TemporalFunction(
@@ -7232,12 +7319,12 @@ If this is not the case the result value is set to not defined.
     res.SetScaleFactor(scaleFactor, false);
     res.EndBulkLoad();
 
-    if ( !res.validateRegion2() || !res.IsDefined() )
+    if ( !res.IsDefined() || !res.validateRegion2() )
     {
             if (MR2_DEBUG)
             {
-                    cerr << "URegionEmb2::TemporalFunction() failed. "
-                    << "EndBulkLoad method did not return a valid region unit."
+                cerr << "URegionEmb2::TemporalFunction() failed. "
+                << "EndBulkLoad method did not return a valid region unit."
                 << endl;
             }
             res.Clear();
@@ -7522,12 +7609,6 @@ static URegionEmb2* InURegionEmbedded2(
                 cerr << "InURegionEmbedded2() called, segmentsStartPos = "
                      << segmentsStartPos << endl;
 
-/*
-Please that ~Region~ creation is done as shown in ~SpatialAlgebra~.
-See there for more details.
-
-*/
-
         if (nl->ListLength(instance) <= 1) {
                         cerr << "uregion not in format "
                         << "(<interval> <faces>)" 
@@ -7575,36 +7656,24 @@ and a basic interval will be created instead.
 Create first a basic interval (one in the integer grid). The part of the list
 expression describing the time information may already be given as integer values,
 but we cannot be sure about that. Therefor the components for start and end time
-need to be split into an integer component and maybe some fraction that will later
+need to be split into an instant component and maybe some fraction that will later
 be added to the precise time interval given in nl->fifth(interval).
 
 */
-        int int_start = 0;
-        int int_end = 0;
-        double rest_start = 0.0;
-        double rest_end = 0.0;
         bool correct;
-        Instant *start;
-        Instant *end;
+        Instant* start;
+        Instant* end;
         mpq_class pstart(0);
         mpq_class pend(0);
+        mpq_class reststart(0);
+        mpq_class restend(0);
+        bool hasPreciseRest = false;
+        bool hasPreciseRepresentation = false;
 
         if (nl->AtomType(nl->First(interval)) == IntType)
         {
-          int_start = nl->IntValue(nl->First(interval));
-          ListExpr newStart = nl->RealAtom((double)int_start);
-          start = (Instant *) InInstant(nl->TheEmptyList(),
-                                        newStart,
-                                        errorPos,
-                                        errorInfo,
-                                        correct).addr;
-          if (!correct) 
-          {
-            cerr << "uregion interval invalid start"
-                 <<" time" << endl;
-            return 0;
-          }
-          pstart = mpq_class(nl->IntValue(nl->First(interval)));
+          start = new Instant(nl->IntValue(nl->First(interval)), 0, 
+                              datetime::instanttype);
         }
         else {
           start = (Instant *) InInstant(nl->TheEmptyList(),
@@ -7616,36 +7685,25 @@ be added to the precise time interval given in nl->fifth(interval).
           {
             cerr << "uregion interval invalid start"
                  <<" time" << endl;
+            delete start;
+            delete end;
             return 0;
           }
+          
           if (nl->AtomType(nl->First(interval)) == RealType)
-          {
-            rest_start = nl->RealValue(nl->First(interval)) 
-                         - start->ToDouble();
-            pstart = mpq_class(nl->RealValue(nl->First(interval)));
-          }
-          else
-          pstart = mpq_class(start->ToDouble());
+            pstart = D2MPQ(nl->RealValue(nl->First(interval))) 
+                     - instant2MPQ(*start);
+          if (cmp(reststart, 0) > 0)
+            hasPreciseRest = true;
         }
 
         if (nl->AtomType(nl->Second(interval)) == IntType)
         {
-          int_end = nl->IntValue(nl->Second(interval));
-          ListExpr newEnd = nl->IntAtom((double)int_end);
-          end = (Instant *) InInstant(nl->TheEmptyList(),
-                                      newEnd,
-                                      errorPos,
-                                      errorInfo,
-                                      correct ).addr;
-          if (!correct) 
-          {
-            cerr << "uregion interval invalid end time" 
-                 << endl;
-            return 0;
-          }
-          pend = mpq_class(nl->IntValue(nl->Second(interval)));
+          end = new Instant(nl->IntValue(nl->Second(interval)), 0, 
+                            datetime::instanttype);
         }
-        else {
+        else 
+        {
           end = (Instant *) InInstant(nl->TheEmptyList(),
                                       nl->Second(interval),
                                       errorPos,
@@ -7655,21 +7713,31 @@ be added to the precise time interval given in nl->fifth(interval).
           {
             cerr << "uregion interval invalid end time" 
                  << endl;
+            delete start;
+            delete end;
             return 0;
           }
+
           if (nl->AtomType(nl->Second(interval)) == RealType)
-          {
-            rest_end = nl->RealValue(nl->Second(interval)) 
-                       - end->ToDouble();
-            pend = mpq_class(nl->RealValue(nl->Second(interval)));
-          }
-          else
-            pend = mpq_class(end->ToDouble());
-                        }
+            pend = D2MPQ(nl->RealValue(nl->Second(interval)))
+                   - instant2MPQ(*end);
+          if (cmp(restend, 0) > 0)
+            hasPreciseRest = true;
+        }
 
-          bool lc = nl->BoolValue(nl->Third(interval));
-          bool rc = nl->BoolValue(nl->Fourth(interval));
+        bool lc = nl->BoolValue(nl->Third(interval));
+        bool rc = nl->BoolValue(nl->Fourth(interval));
 
+        if (start->CompareTo((const Instant*)end) > 0)
+        {
+          cerr << "uregion invalid interval, starttime is after endtine!\n"
+               << "start: " << *start << " end: " << *end 
+               << endl;
+          delete start;
+          delete end;
+          return 0;
+        }
+        
 /*
 Now create the precise interval. Don't forget to add precise information
 obtained by splitting the first two components of the interval list.
@@ -7684,201 +7752,113 @@ interval can be checked.
                         mpq_class(0), preciseInstants);
           preciseTimeInterval.SetPreciseFinalInstant(
                         mpq_class(0), preciseInstants);
-          bool hasPreciseRepresentation = false;
-/*
-Check if we have precise time interval information from the splitting before.
-
-*/
-          mpq_class prstart(0);
-          mpq_class prend(0);
-
-          if (rest_start > 0)
-          {
-            int num = 1;
-            int denom = 1;
-
-            while (!nearlyEqual(((rest_start*denom) - num), 0) 
-                    && denom < 1000000000)
-            {
-              denom *= 10;
-              num = broughtDown(rest_start * denom);
-            }
-
-            mpq_class prestS(num, denom);
-            mpq_class testrest(rest_start);
-
-            prestS.canonicalize();
-
-            if (denom == 1000000000 || prestS == 0)
-               prstart = testrest;
-            else
-               prstart = prestS;
-          }
-
-          if (rest_end > 0)
-          {
-            int num = 1;
-            int denom = 1;
-            while (!nearlyEqual(((rest_end*denom) - num), 0) 
-                    && denom < 1000000000)
-            {
-              denom *= 10;
-              num = broughtDown(rest_end * denom);
-            }
-            mpq_class prestE(num, denom);
-            mpq_class testrest(rest_end);
-
-            prestE.canonicalize();
-
-            if (denom == 1000000000 || prestE == 0)
-               prend =testrest;
-            else
-               prend = prestE;
-          }
 
 /*
 Check the syntax for the precise representation of the time interval,
 and simply ignore it if it is not okay.
 
 */
-                            if ( nl->ListLength(preciseInterval) == 2
-                                    && nl->IsAtom(nl->First(preciseInterval))
-                                    && nl->AtomType(nl->First
-                                        (preciseInterval)) == TextType
-                                    && nl->IsAtom(nl->Second(preciseInterval))
-                                    && nl->AtomType(nl->Second
-                                        (preciseInterval)) == TextType)
-                            {
-                              mpq_class pstart2;
-                              mpq_class pend2;
-                              
-                              try
-                              {
-                                    textTypeToGmpType1(nl->First
-                                        (preciseInterval), pstart2);
-                                    textTypeToGmpType1(nl->Second
-                                        (preciseInterval), pend2);
-                              }
-                              catch (invalid_argument& e)
-                              {
-                                    cerr << endl
-                                    << "--------------------------------"
-                                << "-------------------------------" << endl
-                                    << "Checking time interval failed." << endl
-                                    << e.what() << endl
-                                    << "----------------------------------"
-                                << "-----------------------------" << endl;
-                                    return 0;
-                              }
+          if ( nl->ListLength(preciseInterval) == 2
+             && nl->IsAtom(nl->First(preciseInterval))
+             && nl->AtomType(nl->First
+                 (preciseInterval)) == TextType
+             && nl->IsAtom(nl->Second(preciseInterval))
+             && nl->AtomType(nl->Second
+                 (preciseInterval)) == TextType)
+         {
+            try
+            {
+              textTypeToGmpType1(nl->First(preciseInterval), pstart);
+              textTypeToGmpType1(nl->Second(preciseInterval), pend);
+            }
+            catch (invalid_argument& e)
+            {
+              cerr << endl
+                   << "--------------------------------"
+                   << "-------------------------------" << endl
+                   << "Checking time interval failed." << endl
+                   << e.what() << endl
+                   << "----------------------------------"
+                   << "-----------------------------" << endl;
+              delete start;
+              delete end;
+              return 0;
+            }
 
-                              prstart += pstart2;
-                              prstart.canonicalize();
-                              prend += pend2;
-                              prend.canonicalize();
+            hasPreciseRepresentation = true;
+          }
                               
-                              hasPreciseRepresentation = true;
-                            }
-                              
-                            if (hasPreciseRepresentation 
-                                    || rest_start > 0 
-                                    || rest_end > 0)
-                            {
-                              if (hasPreciseRepresentation)
-                              {
-                                 pstart += prstart;
-                                 pstart.canonicalize();
-                                 pend += prend;
-                                 pend.canonicalize();
-                                 
-                                 delete start;
-                                 start = new Instant(pstart.get_d());
-                                 prstart = pstart - start->ToDouble();
-                                 
-                                 delete end;
-                                 end = new Instant(pend.get_d());
-                                 prend = pend - end->ToDouble();
-                              }
-                              
-                              preciseTimeInterval.SetPreciseInitialInstant(
-                                    prstart, preciseInstants);
-                              preciseTimeInterval.SetPreciseFinalInstant(
-                                    prend, preciseInstants);
-                            }
+          if (hasPreciseRepresentation)
+          {
+            mpq_class precstart = instant2MPQ(*start) + reststart + pstart;
+            precTimeToInstant(precstart, *start, reststart);
 
+            mpq_class precend = instant2MPQ(*end) + restend + pend;
+            precTimeToInstant(precend, *end, restend);
+
+            hasPreciseRest = true;
+          }
+
+          if (hasPreciseRest)
+          {
+            preciseTimeInterval.SetPreciseInitialInstant(reststart, 
+                                                         preciseInstants);
+            preciseTimeInterval.SetPreciseFinalInstant(restend, 
+                                                       preciseInstants);
+          }
+          
 /*
-Now we check the syntax of the time interval. If we don't have a correct interval
-on the integer grid, we check if it is correct considering the precise part of it.
+Now we check the syntax of the time interval again. If we have equal instant 
+values for the start and the end time, we check if it is correct considering 
+the precise part of it.
 
 */
-                    if (end->ToDouble() <= start->ToDouble()) {
+          if (start->CompareTo((const Instant*)end) == 0)
+          {
+            if (MR2_DEBUG)
+              cerr << "Time interval with start and end equal"
+                   << endl
+                   << "start is " << *start
+                   << " end is " << *end
+                   << endl
+                   << "Check with precise values..."
+                   << endl;
 
-                            if (MR2_DEBUG)
-                                cerr << "Time interval on integer grid invalid"
-                                << " or start and end equal"
-                                << endl
-                                << "Check with precise values..."
-                                << endl
-                                << "start to double is " << start->ToDouble()
-                                << endl
-                                << "end to double is " << end->ToDouble()
-                                << endl;
+            if (MR2_DEBUG)
+              cerr << "Precise start is " << reststart
+                   << endl
+                   << "Precise end is " << restend
+                   << endl;
 
-                            int compare_value =
-                                cmp(preciseTimeInterval.
-                                    GetPreciseFinalInstant(preciseInstants),
-                                    preciseTimeInterval.
-                                    GetPreciseInitialInstant(preciseInstants));
+            pstart = instant2MPQ(*start) + reststart;
+            pend = instant2MPQ(*end) + restend;
+            
+            if ( (cmp(pstart, pend) > 0) 
+              || (cmp(pstart, pend) == 0 && !(lc && rc)) )
+            {
+              cerr << "uregion invalid interval, start: " << *start
+                   << " end: " << *end << " precise parts: "
+                   << reststart << " and " << restend
+                   << endl;
+              delete start;
+              delete end;
+              return 0;
+            }
+          }
 
-                            if (MR2_DEBUG)
-                                cerr << "Precise start is "
-                                << preciseTimeInterval.
-                                GetPreciseFinalInstant(preciseInstants)
-                                << endl
-                                << "Precise end is "
-                                << preciseTimeInterval.
-                                GetPreciseInitialInstant(preciseInstants)
-                                << "cmp(preciseEnd, preciseStart) is "
-                                << cmp(preciseTimeInterval.
-                                GetPreciseFinalInstant(preciseInstants),
-                                preciseTimeInterval.
-                                GetPreciseInitialInstant(preciseInstants))
-                                << endl;
+          Interval<Instant> tinterval(*start, *end, lc, rc);
+          DateTime intervalLen = *end - *start;
 
-                            if (end->ToDouble() < start->ToDouble()
-                                    || (end->ToDouble() == start->ToDouble()
-                                    && compare_value < 0)
-                                    || (compare_value == 0
-                                    && end->ToDouble() == start->ToDouble()
-                                    && !(lc && rc)))
-                                        {
-                        cerr << "uregion invalid interval"
-                                                << endl;
-                                                delete start;
-                                                delete end;
-                                                return 0;
-                                        }
-                    }
-
-                    Interval<Instant> tinterval(*start, *end, lc, rc);
-
-                    DateTime  intervalLen = *end-*start;
-
-                    delete start;
-                    delete end;
-
-
-
+          delete start;
+          delete end;
 
 /*
 Create ~URegionEmb2~ instance and pass storage of segments, if we received
 any.
 A detailed syntax check is needed in order to be sure that a correct unit
 will result. For that purpose, all the segments are checked and compared to each other:
-So far this is done by inserting the segments into a region and relying on the
+So far this is done by inserting the segments into a region2 and relying on the
 algorithms there for syntax check.
-Note that this way region units that are correct just because of their precise
-coordinate information will be deleted because of this syntax check fails!
-This is only a temporarely solution!
 
 */
 
@@ -7960,12 +7940,7 @@ in order to get the direction information.
 
 /*
 In the following, the segments will be added to the region unit.
-In method ~AddSegment()~ some syntax checks will also be done. So far
-this syntax check relies on the one of datatype Region, that means that
-double values will be used for the check.
-This can only be a temporarely solution because the syntax check might fail
-in cases where the syntax is actually correct because of the precise
-coordinate information.
+In method ~AddSegment()~ some syntax checks will also be done.
 
 */
 
@@ -8057,6 +8032,18 @@ coordinate information.
 
        cr.SetScaleFactor(scaleFactor, false);
        cr.EndBulkLoad();
+       
+       if (!cr.IsDefined() || !cr.validateRegion2())
+       {
+         if (MR2_DEBUG)
+         {
+           cerr << "InURegionEmbedded2() "
+                << "validation witg region2 failed! "
+                << endl;
+           delete uregion;
+           return 0;
+         }
+       }
 
        if (MR2_DEBUG)
                for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
@@ -8071,8 +8058,7 @@ coordinate information.
                }
 
 /*
-This is different from ~Region~ handling in ~SpatialAlgebra~. We have
-to go through the lists of degenerated segments and count how often
+We have to go through the lists of degenerated segments and count how often
 a region is inside above in each list. If there are more inside above
 segments than others, we need one inside above segment for the
 ~TemporalFunction()~ and set all others to ignore. Vice versa if there
@@ -8236,9 +8222,6 @@ and inside below segments, we can ignore the entire list.
 
 
 
-
-
-
 /*
 1.1.1 Function ~OutURegionEmbedded()~
 
@@ -8256,7 +8239,7 @@ static ListExpr OutURegionEmbedded2(
 
 /*
 Conversion to list representation is straightforward. Just loop through
-faces, cylces and segments and make sure that it is realised when one of
+faces, cylces and segments and make sure that it is realized when one of
 these changes.
 
 */
@@ -8451,11 +8434,6 @@ we get this information and also construct a list representation for it.
 
 This method is only called from InURegionEmbedded2. It returns ~true~
 if the new segment can be added successfully to the region unit.
-Therefor currently this method relies on the syntax check made by the
-method EndBulkLoad from data type Region from SpatialAlgebra. this is
-a workaround until MRegion2 and URegion2 have its own method
-implementation for EndBulkLoad, or until a new data type for Region
-with precise coordinates is supported.
 
 */
 bool URegionEmb2::AddSegment(
@@ -9106,7 +9084,9 @@ $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
                                 }
                                 else {
 /*
-We create the precise trapeziums and recheck if they really intersect. Therefore we need to add coordinates of precise and integer representation to get the absolute values.
+We create the precise trapeziums and recheck if they really intersect. 
+Therefore we need to add coordinates of precise and integer representation 
+to get the absolute values.
 
 */
                                     Reg2PrecisePoint ppoint1
@@ -9235,15 +9215,10 @@ We create the precise trapeziums and recheck if they really intersect. Therefore
                 } //for: for each of the already existing segments...
 
 /*
-Add half segments to $cr$ and $rDir$ for region check and direction
+Add half segments to $cr$ and $rDir$ for region2 check and direction
 computation.
-Note that the syntax check done in Region may fail although we have a
-syntactically correct moving region value, because syntactical correctness
-may depend on precise coordinates which are not passed to region!
-This can only be a provisional solution, but not the final one!
 
 */
-
                 double t = 0.5;
 
                 mpq_class pisx = dms.GetInitialStartX() + 
@@ -9357,9 +9332,7 @@ This can only be a provisional solution, but not the final one!
 
 /*
 Here we need an extra check, because HalfSegment creation will lead to a failed
-assertion if start and end point are equal or almost equal.
-This might happen on the integer grid, although the precise coordinates of both
-points are different!
+assertion if start and end point are equal.
 
 */
                 if ( s == e )
@@ -9505,15 +9478,27 @@ corners, just for the maximum values we need to adapt them...
 
 1.1.1 Function ~pointPositionToSegment()~
 
-Returns ~true~ if point $(x, y)$ is located left or above or on segment
-spanned by the points $(p1x, p1y)$ and $(p2x, p2y)$. This matches the
-definition of the ~insideAbove~ attribute in ~Region~ and ~URegion~
-instances.
+Returns an integer value indicating the position of point $(x, y)$ 
+in relation to the segment spanned by the points $(p1x, p1y)$ and 
+$(p2x, p2y)$. The values have the following meaning:
+value 0: the point is on the segment, also if the segment is degenerated to a 
+point (in this case all three points are equal); 
+value 1: the point is on the straight line that carry the segment, the point 
+is not on the segment itself, but left of it;
+value 2: the point is left or above the segment, this matches the definition 
+of the ~insideAbove~ attribute;
+value 3: the point is on the straight line that carry the segment, the point 
+is not on the segment itself, but right of it ;
+value 4: the point is right or under the segment;
+value 5: the segment is degenerated to a point and the single point is 
+elsewhere (they are unequal);
+value -1: an error occured - this should never happen.
 
 */
 
-static int pointPositionToSegment(mpq_class x, mpq_class y, mpq_class p1x, 
-                                  mpq_class p1y, mpq_class p2x, mpq_class p2y)
+static int pointPositionToSegment(mpq_class x, mpq_class y, 
+                                  mpq_class p1x, mpq_class p1y, 
+                                  mpq_class p2x, mpq_class p2y)
 {
     if (MR2_DEBUG) cerr << "pointPositionToSegment() called p=(" << x << " " 
             << y << ") p1=(" << p1x << " " << p1y << ") p2=(" << p2x << " " 
@@ -9604,6 +9589,10 @@ static int pointPositionToSegment(mpq_class x, mpq_class y, mpq_class p1x,
     return -1;
 }
 
+/*
+Additional interfaces for the use of method ~pointPositionToSegment()~
+
+*/
 static int pointPositionToSegment(double x, double y, mpq_class p1x, 
                                   mpq_class p1y, mpq_class p2x, mpq_class p2y) 
 {
@@ -9622,7 +9611,7 @@ static int pointPositionToSegment(Reg2PrecisePoint p, Reg2PrecisePoint p1,
 
 1.1.1 Function ~pointAboveSegment()~
 
-Returns ~true~ if point $(x, y)$ is located left or above or on segment
+Returns ~true~ if point $(x, y)$ is located left or above or on the segment
 spanned by the points $(p1x, p1y)$ and $(p2x, p2y)$. This matches the
 definition of the ~insideAbove~ attribute in ~Region~ and ~URegion~
 instances.
@@ -9673,9 +9662,12 @@ start time of the interval:
             << " " << rUp.p0.GetY() << ") p1=(" << rUp.p1.GetX() << " " 
             << rUp.p1.GetY() << ")" << endl;
 
+    double dx = rUp.p0.GetX();
+    double dy = rUp.p0.GetY();
+
     mpq_class x = mpq_class(rUp.p0.GetX());
     mpq_class y = mpq_class(rUp.p0.GetY());
-
+    
     if (MR2_DEBUG) cerr << "URegionEmb2::Plumbline() x=" << x << " y=" 
             << y << endl;
 
@@ -9725,6 +9717,37 @@ Go through all segments...
 
         MSegmentData2 dms;
         segments->Get(segmentsStartPos+i, &dms);
+        
+        double dp1x = dms.GetInitialStartX()
+                        + (dms.GetFinalStartX() 
+                        -  dms.GetInitialStartX() ) * pti.get_d();
+        double dp1y = dms.GetInitialStartY() 
+                        + (dms.GetFinalStartY() 
+                        -  dms.GetInitialStartY() ) * pti.get_d();
+        double dp2x = dms.GetInitialEndX() 
+                        + (dms.GetFinalEndX() 
+                        -  dms.GetInitialEndX() ) * pti.get_d();
+        double dp2y = dms.GetInitialEndY() 
+                        + (dms.GetFinalEndY() 
+                        -  dms.GetInitialEndY() ) * pti.get_d();
+
+        double dMinX = dp1x < dp2x ? dp1x : dp2x;
+        double dMaxX = dp1x > dp2x ? dp1x : dp2x;
+        double dMaxY = dp1y > dp2y ? dp1y : dp2y;
+        
+        dMaxX += 1.; 
+        dMaxY += 1.; 
+        
+        dMinX *= sFac.get_d();
+        dMaxX *= sFac.get_d();
+        dMaxY *= sFac.get_d();
+
+        if ( (dx < dMinX)
+           ||(dMaxX < dx)
+           ||(dMaxY < dy) )
+        {
+            continue;
+        }
 
         PreciseMSegmentData pdms;
         preciseSegments->Get(segmentsStartPos+i, &pdms);
@@ -9868,133 +9891,6 @@ is above ~(x, y)~.
 }
 
 
-void MRegion2::AddUPoints(vector<precUPoint> vpup, MPoint& res) const
-{
-  if (MR2_DEBUG) cerr << "URegionEmb2::RIAddUPoints() called" << endl;
-  if (vpup.size() == 0) return;
-  
-  precUPoint last;
-  last = vpup[0];
-  
-  if (MR2_DEBUG) cerr << "URegionEmb2::RIAddUPoints() size of vector: " 
-          << vpup.size() << endl;
-  if (MR2_DEBUG) cerr << "0: (" << vpup[0].pti.start << " " << vpup[0].pti.end 
-          << " " << vpup[0].pti.lc << " " << vpup[0].pti.rc << ")(" 
-          << vpup[0].x0 << " " << vpup[0].y0 << " " << vpup[0].x1 << " " 
-          << vpup[0].y1 << ")" << endl;
-  
-  for (unsigned int i = 1; i < vpup.size(); i++) 
-  {
-    if (MR2_DEBUG) cerr << i << ": (" << vpup[i].pti.start << " " 
-            << vpup[i].pti.end << " " << vpup[i].pti.lc << " " 
-            << vpup[i].pti.rc << ")(" << vpup[i].x0 << " " << vpup[i].y0 
-            << " " << vpup[i].x1 << " " << vpup[i].y1 << ")" << endl;
-    
-    if ( (cmp(last.pti.end, vpup[i].pti.start) == 0)
-      && (last.pti.rc || vpup[i].pti.lc)
-      && (last.x1 == vpup[i].x0) 
-      && (last.y1 == vpup[i].y0) )
-    {
-      if (cmp(last.pti.start, last.pti.end) == 0)
-      {
-        last = vpup[i];
-        last.pti.lc = true;
-        continue;
-      }
-      else if (cmp(vpup[i].pti.start, vpup[i].pti.end) == 0)
-      {
-        last.pti.rc = true;
-        continue;
-      }
-      else
-      {
-        mpq_class f = (last.pti.start - vpup[i].pti.start)/
-                        (vpup[i].pti.end - vpup[i].pti.start);
-        f.canonicalize();
-        mpq_class x = vpup[i].x0 + (vpup[i].x1 - vpup[i].x0) * f;
-        x.canonicalize();
-        mpq_class y = vpup[i].y0 + (vpup[i].y1 - vpup[i].y0) * f;
-        y.canonicalize();
-
-        if (cmp(last.x0, x) == 0 && cmp(last.y0, y) == 0)
-        {
-          last.pti.end = vpup[i].pti.end;
-          last.pti.rc = vpup[i].pti.rc;
-          last.x1 = vpup[i].x1;
-          last.y1 = vpup[i].y1;
-          continue;
-        }
-      }
-    }
-
-    Interval<Instant> iv(last.pti.start.get_d(), last.pti.end.get_d(), 
-                         last.pti.lc, last.pti.rc);
-    res.Add(UPoint(iv, last.x0.get_d(), last.y0.get_d(), last.x1.get_d(), 
-                   last.y1.get_d()));
-    last = vpup[i];
-  }
-  
-  Interval<Instant> iv(last.pti.start.get_d(), last.pti.end.get_d(), 
-                       last.pti.lc, last.pti.rc);
-  res.Add(UPoint(iv, last.x0.get_d(), last.y0.get_d(), last.x1.get_d(), 
-                 last.y1.get_d()));
-}
-
-
-void MRegion2::AddUBools(vector<precUBool> vpub, MBool& res) const
-{
-  if (MR2_DEBUG) cerr << "URegionEmb2::RIAddUBools() called" << endl;
-  if (vpub.size() == 0) return;
-  
-  precUBool last;
-  last = vpub[0];
-  
-  if (MR2_DEBUG) cerr << "URegionEmb2::RIAddUBools() size of vector: " 
-          << vpub.size() << endl;
-  if (MR2_DEBUG) cerr << "0: (" << vpub[0].pti.start << " " << vpub[0].pti.end
-          << " " << vpub[0].pti.lc << " " << vpub[0].pti.rc << ") " 
-          << vpub[0].status << endl;
-
-  for (unsigned int i = 1; i < vpub.size(); i++) 
-  {
-    if (MR2_DEBUG) cerr << i << ": (" << vpub[i].pti.start << " " 
-            << vpub[i].pti.end << " " << vpub[i].pti.lc << " " 
-            << vpub[i].pti.rc << ") " << vpub[i].status << endl;
-    
-    if ( (cmp(last.pti.end, vpub[i].pti.start) == 0)
-      && (last.pti.rc || vpub[i].pti.lc)
-      && (last.status == vpub[i].status) )
-    {
-      if (cmp(last.pti.start, last.pti.end) == 0)
-      {
-        last = vpub[i];
-        last.pti.lc = true;
-      }
-      else if (cmp(vpub[i].pti.start, vpub[i].pti.end) == 0)
-      {
-        last.pti.rc = true;
-      }
-      else
-      {
-        last.pti.end = vpub[i].pti.end;
-        last.pti.rc = vpub[i].pti.rc;
-      }
-    }
-    else
-    {
-      Interval<Instant> iv(last.pti.start.get_d(), last.pti.end.get_d(), 
-                           last.pti.lc, last.pti.rc);
-      res.Add(UBool(iv, CcBool(true, last.status)));
-      last = vpub[i];
-    }
-  }
-  
-  Interval<Instant> iv(last.pti.start.get_d(), last.pti.end.get_d(), 
-                       last.pti.lc, last.pti.rc);
-  res.Add(UBool(iv, CcBool(true, last.status)));
-}
-
-
 /*
 1.1.1 Method ~RestrictedIntersectionFind()~
 
@@ -10016,31 +9912,17 @@ void URegionEmb2::RestrictedIntersectionFind(
             << iv.start << " to " << iv.end << endl;
 
     UPoint rUp(true);
-    
-    double ti = 0;
-    double tf = 0;
+    restrictUPointToInterval(up, iv, rUp);
 
-    if (up.timeInterval.end != up.timeInterval.start)
-    {
-      ti = (iv.start.get_d() - up.timeInterval.start.ToDouble()) / 
-           (up.timeInterval.end.ToDouble() - up.timeInterval.start.ToDouble());
-      tf = (iv.end.get_d() - up.timeInterval.start.ToDouble()) / 
-           (up.timeInterval.end.ToDouble() - up.timeInterval.start.ToDouble());
-    }
-
-    double p1x = up.p0.GetX() + ( up.p1.GetX() - up.p0.GetX() )*ti;
-    double p1y = up.p0.GetY() + ( up.p1.GetY() - up.p0.GetY() )*ti;
-    double p2x = up.p0.GetX() + ( up.p1.GetX() - up.p0.GetX() )*tf;
-    double p2y = up.p0.GetY() + ( up.p1.GetY() - up.p0.GetY() )*tf;
-    
+    double p1x = rUp.p0.GetX();
+    double p2x = rUp.p1.GetX(); 
+    double p1y = rUp.p0.GetY();
+    double p2y = rUp.p1.GetY();
     double lMinX = p1x < p2x ? p1x : p2x;
     double lMaxX = p1x > p2x ? p1x : p2x;
     double lMinY = p1y < p2y ? p1y : p2y;
     double lMaxY = p1y > p2y ? p1y : p2y;
 
-    rUp = UPoint(Interval<Instant>(iv.start.get_d(), iv.end.get_d(), 
-                                   iv.lc, iv.rc), p1x, p1y, p2x, p2y);
-    
     precTimeInterval origiv(timeInterval, pInterval, preciseInstants);
     mpq_class pti(0);
     mpq_class ptf(0);
@@ -10077,6 +9959,58 @@ void URegionEmb2::RestrictedIntersectionFind(
     {
         MSegmentData2 dms;
         segments->Get(segmentsStartPos+i, &dms);
+
+        double dl1p1x = dms.GetInitialStartX() 
+                        + (dms.GetFinalStartX() 
+                        -  dms.GetInitialStartX() ) * pti.get_d();
+        double dl1p1y = dms.GetInitialStartY() 
+                        + (dms.GetFinalStartY() 
+                        -  dms.GetInitialStartY() ) * pti.get_d();
+        double dl1p2x = dms.GetInitialEndX() 
+                        + (dms.GetFinalEndX() 
+                        -  dms.GetInitialEndX() ) * pti.get_d();
+        double dl1p2y = dms.GetInitialEndY() 
+                        + (dms.GetFinalEndY() 
+                        -  dms.GetInitialEndY() ) * pti.get_d();
+
+        double dl2p1x = dms.GetInitialStartX() 
+                        + (dms.GetFinalStartX() 
+                        -  dms.GetInitialStartX() ) * ptf.get_d();
+        double dl2p1y = dms.GetInitialStartY() 
+                        + (dms.GetFinalStartY() 
+                        -  dms.GetInitialStartY() ) * ptf.get_d();
+        double dl2p2x = dms.GetInitialEndX() 
+                        + (dms.GetFinalEndX() 
+                        -  dms.GetInitialEndX() ) * ptf.get_d();
+        double dl2p2y = dms.GetInitialEndY() 
+                        + (dms.GetFinalEndY() 
+                        -  dms.GetInitialEndY() )*ptf.get_d();
+
+        if (MR2_DEBUG) 
+           cerr << "URegionEmb2::RestrictedIntersectionFind() gridtrapezium "
+                << i << ": (" 
+                << dl1p1x << " " << dl1p1y << " " << dl1p2x << " " << dl1p2y 
+                << ")-(" << dl2p1x << " " << dl2p1y << " " << dl2p2x 
+                << " " << dl2p2y << ")" << endl;
+
+        double dMinX, dMaxX, dMinY, dMaxY;
+        minmax4(dl1p1x, dl1p2x, dl2p1x, dl2p2x, dMinX, dMaxX);
+        minmax4(dl1p1y, dl1p2y, dl2p1y, dl2p2y, dMinY, dMaxY);
+        dMaxX += 1.; 
+        dMaxY += 1.; 
+        
+        dMinX *= sFac.get_d();
+        dMaxX *= sFac.get_d();
+        dMinY *= sFac.get_d();
+        dMaxY *= sFac.get_d();
+
+        if ( (dMaxX < lMinX)
+           ||(lMaxX < dMinX)
+           ||(dMaxY < lMinY)
+           ||(lMaxY < dMinY) )
+        {
+            continue;
+        }
 
         PreciseMSegmentData pdms;
         preciseSegments->Get(segmentsStartPos+i, &pdms);
@@ -10248,14 +10182,15 @@ void URegionEmb2::RestrictedIntersectionFind(
         bool p1found = false;
         bool p2found = false;
 
-        if (cmp((dc + ab), 0) != 0) // linear case, max. one intersection
+        if (cmp((dc + ab), 0) != 0) 
+        // linear case maximum one intersection
         {
           if (MR2_DEBUG) cerr << 
                "URegionEmb2::RestrictedIntersectionFind() linear case" << endl;
           t1 = -da / (dc + ab);
         }
         else if (cmp(dc, 0) == 0 && cmp(ab, 0) == 0 && cmp(da, 0) == 0) 
-                // point movement is inside trapezium plane
+        // point movement is inside trapezium plane
         {
           if (MR2_DEBUG) 
                   cerr << "URegionEmb2::RestrictedIntersectionFind() point "
@@ -10306,8 +10241,8 @@ void URegionEmb2::RestrictedIntersectionFind(
           }
         }
 
-// set order to s1 < s2 if two intersection points exists
-// set only s1 if just one intersection point exists
+        // set order to s1 < s2 if two intersection points exists
+        // set only s1 if just one intersection point exists
         if (!(cmp(t2, 0) < 0 || cmp(t2, 1) > 0))
         {
           if (MR2_DEBUG) 
@@ -10589,7 +10524,8 @@ bool URegionEmb2::RestrictedIntersectionProcess(const UPoint& up,
                              const precTimeInterval& iv, 
                              vector<TrapeziumSegmentIntersection2>& vtsi, 
                              vector<precUPoint>& vpup, 
-                             vector<precUBool>& vpub) const 
+                             vector<precUBool>& vpub,
+                             bool isbool) const 
 {
     if (MR2_DEBUG) 
             cerr << "URegionEmb2::RIP() called, interval=" << iv.start 
@@ -10609,8 +10545,8 @@ bool URegionEmb2::RestrictedIntersectionProcess(const UPoint& up,
                 << " type=" << vtsi[i].type << " ip=[" << vtsi[i].x 
                 << " " << vtsi[i].y << " " << vtsi[i].t << "]" << endl;
 
-        if (i == 0 && vtsi[i].type == TSI_ENTER 
-                && cmp(iv.start, vtsi[i].t) != 0) 
+        if (isbool && i == 0 && vtsi[i].type == TSI_ENTER 
+                   && cmp(iv.start, vtsi[i].t) != 0) 
         {
             if (MR2_DEBUG) 
                 cerr << "URegionEmb2::RIP() special case ENTER (start)" 
@@ -10629,20 +10565,26 @@ bool URegionEmb2::RestrictedIntersectionProcess(const UPoint& up,
 
             bool rc = (cmp(vtsi[i].t, iv.end) == 0) ? iv.rc : true;
 
-            UPoint rUp(true);
-            restrictUPointToInterval(up, iv, rUp);
-            pup = precUPoint(iv.start, vtsi[i].t, iv.lc, rc, rUp.p0.GetX(), 
-                             rUp.p0.GetY(), vtsi[i].x, vtsi[i].y);
-            vpup.push_back(pup);
-            pub = precUBool(iv.start, vtsi[i].t, iv.lc, rc, true);
-            vpub.push_back(pub);
+            if (!isbool)
+            {
+              UPoint rUp(true);
+              restrictUPointToInterval(up, iv, rUp);
+              pup = precUPoint(iv.start, vtsi[i].t, iv.lc, rc, rUp.p0.GetX(), 
+                               rUp.p0.GetY(), vtsi[i].x, vtsi[i].y, up);
+              vpup.push_back(pup);
+            }
+            else
+            {
+              pub = precUBool(iv.start, vtsi[i].t, iv.lc, rc, true);
+              vpub.push_back(pub);
+            }
 
             prev_i = i;
             prev_c = rc;
         }
 
-        if (i > 0 && vtsi[i].type == TSI_ENTER 
-                && cmp(vtsi[i-1].t, vtsi[i].t) < 0) 
+        if (isbool && i > 0 && vtsi[i].type == TSI_ENTER 
+                   && cmp(vtsi[i-1].t, vtsi[i].t) < 0) 
         {
             if (MR2_DEBUG) 
                     cerr << "URegionEmb2::RIP() normal case ENTER" << endl;
@@ -10664,11 +10606,17 @@ bool URegionEmb2::RestrictedIntersectionProcess(const UPoint& up,
 
             bool rc = (cmp(vtsi[i].t, iv.end) == 0) ? iv.rc : true;
 
-            pup = precUPoint(vtsi[i-1].t, vtsi[i].t, lc, rc, vtsi[i-1].x, 
-                             vtsi[i-1].y, vtsi[i].x, vtsi[i].y);
-            vpup.push_back(pup);
-            pub = precUBool(vtsi[i-1].t, vtsi[i].t, lc, rc, true);
-            vpub.push_back(pub);
+            if (!isbool)
+            {
+              pup = precUPoint(vtsi[i-1].t, vtsi[i].t, lc, rc, vtsi[i-1].x, 
+                               vtsi[i-1].y, vtsi[i].x, vtsi[i].y, up);
+              vpup.push_back(pup);
+            }
+            else
+            {
+              pub = precUBool(vtsi[i-1].t, vtsi[i].t, lc, rc, true);
+              vpub.push_back(pub);
+            }
 
             prev_i = i;
             prev_c = rc;
@@ -10684,19 +10632,24 @@ bool URegionEmb2::RestrictedIntersectionProcess(const UPoint& up,
             if (prev_i >= 0 && cmp(vtsi[prev_i].t, vtsi[i].t) == 0 
                     && prev_c) lc = false;
 
-            UPoint rUp(true);
-            restrictUPointToInterval(up, iv, rUp);
-
-            pup = precUPoint(vtsi[i].t, iv.end, lc, iv.rc, vtsi[i].x, 
-                             vtsi[i].y, rUp.p1.GetX(), rUp.p1.GetY());
-            vpup.push_back(pup);
-            pub = precUBool(vtsi[i].t, iv.end, lc, iv.rc, true);
-            vpub.push_back(pub);
+            if (!isbool)
+            {
+              UPoint rUp(true);
+              restrictUPointToInterval(up, iv, rUp);
+              pup = precUPoint(vtsi[i].t, iv.end, lc, iv.rc, vtsi[i].x, 
+                               vtsi[i].y, rUp.p1.GetX(), rUp.p1.GetY(), up);
+              vpup.push_back(pup);
+            }
+            else
+            {
+              pub = precUBool(vtsi[i].t, iv.end, lc, iv.rc, true);
+              vpub.push_back(pub);
+            }
 
             prev_i = 0;
         }
-        if (i == vtsi.size()-1 && vtsi[i].type == TSI_LEAVE 
-                && cmp(vtsi[i].t, iv.end) != 0) 
+        if (isbool && i == vtsi.size()-1 && vtsi[i].type == TSI_LEAVE 
+                   && cmp(vtsi[i].t, iv.end) != 0) 
         {
             if (MR2_DEBUG) 
                 cerr << "URegionEmb2::RIP() special case LEAVE (end)" << endl;
@@ -10717,7 +10670,7 @@ bool URegionEmb2::RestrictedIntersectionProcess(const UPoint& up,
 /*
 1.1.1 Method ~RestrictedIntersectionUP()~
 
-Checks whether the point unit ~up~ intersects this region unit, while
+Checks whether the point unit ~up~ intersects this region2 unit, while
 both units are restricted to the interval ~iv~, which must be inside
 the interval of the two units (this is not checked and must be assured
 before this method is called!).
@@ -10731,7 +10684,8 @@ void URegionEmb2::RestrictedIntersectionUP(
                        const DbArray<unsigned int>* preciseInstants, 
                        const int scaleFactor, 
                        const UPoint& up, const precTimeInterval& iv, 
-                       vector<precUPoint>& vpup, vector<precUBool>& vpub) const
+                       vector<precUPoint>& vpup, vector<precUBool>& vpub, 
+                       bool isbool) const
 {
     if (MR2_DEBUG) 
            cerr << "URegionEmb2::RestrictedIntersectionUP() called" << endl;
@@ -10768,7 +10722,7 @@ void URegionEmb2::RestrictedIntersectionUP(
           }
         }
       }
-      RestrictedIntersectionProcess(up, iv, vtsi, vpup, vpub);
+      RestrictedIntersectionProcess(up, iv, vtsi, vpup, vpub, isbool);
     }
     else
     {
@@ -10779,22 +10733,29 @@ void URegionEmb2::RestrictedIntersectionUP(
       unsigned int num = Plumbline(segments, preciseSegments, 
                                    preciseCoordinates, preciseInstants, 
                                    scaleFactor, up, iv);
-      precUPoint pup;
-      precUBool pub;
-
-      UPoint rUp(true);
-      restrictUPointToInterval(up, iv, rUp);
 
       if (num > 0 && num % 2 == 1) 
       {
-        pup = precUPoint(iv.start, iv.end, iv.lc, iv.rc, rUp.p0.GetX(), 
-                         rUp.p0.GetY(), rUp.p1.GetX(), rUp.p1.GetY());
-        vpup.push_back(pup);
-        pub = precUBool(iv.start, iv.end, iv.lc, iv.rc, true);
-        vpub.push_back(pub);
+        if (!isbool)
+        {
+          UPoint rUp(true);
+          restrictUPointToInterval(up, iv, rUp);
+
+          precUPoint pup;
+          pup = precUPoint(iv.start, iv.end, iv.lc, iv.rc, rUp.p0.GetX(), 
+                           rUp.p0.GetY(), rUp.p1.GetX(), rUp.p1.GetY(), up);
+          vpup.push_back(pup);
+        }
+        else
+        {
+          precUBool pub;
+          pub = precUBool(iv.start, iv.end, iv.lc, iv.rc, true);
+          vpub.push_back(pub);
+        }
       }
-      else
+      else if (isbool)
       {
+        precUBool pub;
         pub = precUBool(iv.start, iv.end, iv.lc, iv.rc, false);
         vpub.push_back(pub);
       }
@@ -10809,7 +10770,7 @@ void URegionEmb2::RestrictedIntersectionUP(
 
 1.1.1 Class definition
 
-The class definition has been moved to ~MovingRegion2Algebra.h~.
+The class definition has been moved to ~MovingRegion3Algebra.h~.
 
 1.1.1 Constructors
 
@@ -10835,8 +10796,6 @@ URegion2::URegion2(unsigned int n) :
                 cerr << "URegion2::URegion2() #1 called with "
                      << n << endl;
 }
-
-
 
         
 /*
@@ -10877,7 +10836,6 @@ URegion2::URegion2(URegion& coarseRegion, const int scaleFactor) :
                 (coarseRegion.timeInterval.end.ToDouble());
         Instant initInst(initial);
         Instant finInst(final);
-//        Interval<Instant> interval(initInst, finInst, 
         
         Interval<Instant> interval(coarseRegion.timeInterval.start, 
                                    coarseRegion.timeInterval.end, 
@@ -10956,9 +10914,6 @@ void URegion2::AddURegion2(URegion2 *newRegion)
 
 }
 
-
-
-
 /*
 1.1.1 Function ~AddSegment()~
 
@@ -11036,21 +10991,22 @@ void URegion2::AddCoordinate(int newCoord)
 
 
 
+/*
+1.1.1 Method ~HashValue()~
 
-
+*/
 size_t URegionEmb2::HashValue() const{
   return ( timeInterval.start.HashValue() ^ timeInterval.end.HashValue() );
 }
 
 
-
-
-
-
 /*
-1.1.1 Methods for database operators
+1.1.1 Methods for database operators 
+ 
+ 
+1.1.1.1 Method ~BoundingBox()~ 
 
-1.1.1.1 Method ~BoundingBox()~
+for operator boundingbox:
 
 */
 const Rectangle<3> URegion2::BoundingBox(const Geoid* geoid /*=0*/) const {
@@ -11066,13 +11022,15 @@ const Rectangle<3> URegion2::BoundingBox(const Geoid* geoid /*=0*/) const {
 /*
 1.1.1.1 Method ~Translate()~
 
+for operator translate:
+
 */
-void URegion2::Translate(double deltaX, double deltaY) {
+void URegion2::Translate(DateTime* deltaT, double deltaX, double deltaY) {
 
         if (MR2_DEBUG)
                 cerr << "URegion2::Translate() called" << endl;
 
-        uremb.Translate(deltaX, deltaY, &segments, 
+        uremb.Translate(deltaT, deltaX, deltaY, &segments, 
                         &preciseSegments, &preciseCoordinates,
                         scaleFactor);
         if (uremb.GetSegmentsNum() < 1)
@@ -11080,7 +11038,24 @@ void URegion2::Translate(double deltaX, double deltaY) {
 }
 
 /*
+1.1.1.1 Method ~Timeshift()~
+
+for operator timeshift:
+
+*/
+void URegion2::Timeshift(DateTime* deltaT) 
+{
+        if (MR2_DEBUG)
+                cerr << "URegion2::Timeshift() called" << endl;
+
+        uremb.timeInterval.start.Add(deltaT);
+        uremb.timeInterval.end.Add(deltaT);
+}
+
+/*
 1.1.1.1 Method ~Scale()~
+
+for operator scale:
 
 */
 void URegion2::Scale(double deltaX, double deltaY) {
@@ -11126,6 +11101,8 @@ void URegion2::Scale(double deltaX, double deltaY) {
 /*
 1.1.1.1 Method ~TemporalFunction()~
 
+uregion2 at time t
+
 */
 void URegion2::TemporalFunction(const Instant& t,
                                Region2& res,
@@ -11146,6 +11123,8 @@ void URegion2::TemporalFunction(const Instant& t,
 
 /*
 1.1.1.1 Method ~Initial()~
+
+for operator initial:
 
 */
 
@@ -11185,6 +11164,8 @@ void URegion2::Initial(Instant& t,
 
 /*
 1.1.1.1 Method ~Final()~
+
+for operator final:
 
 */
 
@@ -11265,7 +11246,9 @@ bool URegion2::Passes(const Region2& val) const {
 
 
 /*
-1.1.1.1 Method ~Clone()~
+1.1.1.1 Method ~Clone()~ 
+
+clone function
 
 */
 URegion2* URegion2::Clone(void) const {
@@ -11278,7 +11261,9 @@ URegion2* URegion2::Clone(void) const {
 }
 
 /*
-1.1.1.1 Method ~CopyFrom()~
+1.1.1.1 Method ~CopyFrom()~ 
+
+copy method
 
 */
 void URegion2::CopyFrom(const Attribute* right) {
@@ -11295,7 +11280,9 @@ void URegion2::CopyFrom(const Attribute* right) {
 }
 
 /*
-1.1.1.1 Assignment operator
+1.1.1.1 Assignment operator 
+
+uregion2 assignment
 
 */
 URegion2& URegion2::operator= ( const URegion2& U) {
@@ -11311,26 +11298,22 @@ URegion2& URegion2::operator= ( const URegion2& U) {
        SetDefined(false);
        return *this;
      }
-   timeInterval = U.timeInterval; // copy units copy of deftime!
-   // copy bbox, timeInterval, segmentsNum and pInterval
-   uremb = U.uremb;      
-   uremb.SetStartPos(0); // set uremb.segmentsStartPos = 0
+   timeInterval = U.timeInterval;
    scaleFactor = U.scaleFactor;
-//   URegionEmb2 Uuremb = U.uremb;
-//   uremb.pInterval = Uuremb.pInterval;
-   uremb.pInterval = U.uremb.pInterval;
    del.isDefined = U.del.isDefined;
+
+   uremb = U.uremb;      
+   uremb.SetStartPos(0);
+   uremb.pInterval = U.uremb.pInterval;
+
    minIntx = U.minIntx;
    minInty = U.minInty;
    maxIntx = U.maxIntx;
    maxInty = U.maxInty;
 
-   int start = U.uremb.GetStartPos(); //this is always zero!
+   int start = U.uremb.GetStartPos(); 
    int numsegs = U.uremb.GetSegmentsNum();
    segments.clean();
-//   segments.resize( U.uremb.GetSegmentsNum() );
-//   preciseSegments.resize( U.uremb.GetSegmentsNum() );
-//   preciseCoordinates.resize( U.uremb.GetSegmentsNum()*gmpCharNum*8);
 
    for( int i=0 ; i<numsegs ; i++ )
      {// copy single movingsegment
@@ -11394,7 +11377,10 @@ Flob* URegion2::GetFLOB(const int i) {
 }
 
 /*
-1.1.1 Access methods
+1.1.1 Access methods for the scalefactor
+
+Read and write access to the scaleFactor. The ~SetScaleFactor~ method only sets
+the scaleFactor, while the ~NewScaleFactor~ method changes the Uregion2-representation, too.
 
 */
 const int URegion2::GetScaleFactor() {
@@ -11462,6 +11448,8 @@ void URegion2::SetMinMax(URegionEmb2 ur)
 
 1.1.1.1 Function ~OutURegion2()~
 
+Out function
+
 */
 static ListExpr OutURegion2(ListExpr typeInfo, Word value) {
 
@@ -11488,6 +11476,8 @@ static ListExpr OutURegion2(ListExpr typeInfo, Word value) {
 
 /*
 1.1.1.1 Function ~InURegion2()~
+
+In-Function
 
 */
 static Word InURegion2(const ListExpr typeInfo,
@@ -11568,19 +11558,18 @@ static ListExpr URegionProperty2() {
 
     ListExpr listrep = nl->TextAtom();
     nl->AppendText(listrep,
-                       "(<int> (<interval> <face>*)), where <int> "
-                   "represents the scaleFactor, <interval> is "
-                   "(<int> <int> <bool> <bool> <preciseInterval>) "
-                   "and where <preciseInterval> is (<text> <text>) "
-                   "or an empty list, "
-                   "representing the initial and final instant. "
-                   "<face> is (<outercycle> <holecycle>*), "
-                   "where <outercycle> and <holecycle> are "
-                   "(<int> <int> <int> <int> <precisePoint>), "
-                   "and where <precisePoint> is "
-                   "(<text> <text> <text> <text>) "
-                   "or an empty list, representing "
-                   "start X, start Y, end X and end Y values.");
+                   "(<int> (<timeinterval> <face>*)),\n"
+                   "where <int> represents the scaleFactor,\n"
+                   "<timeinterval> is (<instant> <instant> <bool> <bool>\n"
+                   "<preciseInterval>) and where <preciseInterval> is\n"
+                   "(<text> <text>) or an empty list, representing the\n"
+                   "initial and final instant.\n"
+                   "<face> is (<outercycle> <holecycle>*),\n"
+                   "where <outercycle> and <holecycle> are\n"
+                   "(<int> <int> <int> <int> <precisePoint>),\n"
+                   "and where <precisePoint> is\n"
+                   "(<text> <text> <text> <text>) or an empty list,\n"
+                   "representing start X, start Y, end X and end Y values.");
     ListExpr example = nl->TextAtom();
     nl->AppendText(example,
                    "(10 ((0 10 TRUE TRUE ())"
@@ -11764,7 +11753,7 @@ static TypeConstructor uregion2(
 
 1.1.1 Class definition
 
-The class definition has been moved to ~MovingRegion2Algebra.h~.
+The class definition has been moved to ~MovingRegion3Algebra.h~.
 
 1.1.1 Constructors
 
@@ -11843,7 +11832,6 @@ MRegion2::MRegion2(MRegion& coarseRegion, const int scaleFactor) :
                         (origUremb.timeInterval.end.ToDouble());
                 Instant initInst(initial);
                 Instant finInst(final);
-//                Interval<Instant> interval(initInst, finInst, 
                 
                 Interval<Instant> interval(origUremb.timeInterval.start, 
                                            origUremb.timeInterval.end, 
@@ -11872,6 +11860,915 @@ MRegion2::MRegion2(MRegion& coarseRegion, const int scaleFactor) :
 }
 
 
+/*
+1.1.1 Private methods
+
+1.1.1.1 Method ~IntersectionMP()~
+
+Main method for the Inside and Intersection procedure.
+
+*/
+void MRegion2::IntersectionMP(const MPoint& mp, MPoint& res1, 
+                              MBool& res2, bool isbool)
+{
+    if (MR2_DEBUG) cerr << "MRegion2::IntersectionMP() called" << endl;
+
+    res1 = MPoint(0);
+    res2 = MBool(0);
+
+    RefinementPartition2 rp(*this, mp);
+    vector<precUPoint> vpup;
+    vector<precUBool> vpub;
+
+/*
+
+For each interval in the refinement partition, we have to check whether
+it maps to a region and a point unit. If not, there is obviously no intersection
+during this interval and we can skip it. Otherwise, we check if the region
+and point unit, both restricted to this interval, intersect.
+
+*/
+    for (unsigned int i = 0; i < rp.Size(); i++) {
+        precTimeInterval iv;
+        int urPos;
+        int upPos;
+
+        rp.Get(i, iv, urPos, upPos);
+
+        if (MR2_DEBUG) 
+                cerr << "MRegion::IntersectionMP() interval#" << i << ": " 
+                << iv.start << " " << iv.end << " " << iv.lc << " " << iv.rc 
+                << " " << urPos << " " << upPos << endl;
+
+        if (upPos == -1) continue;
+        if (urPos == -1) 
+        {
+          if (isbool) 
+          {
+            precUBool pub = precUBool(iv.start, iv.end, iv.lc, iv.rc, false);
+            vpub.push_back(pub);
+          }
+          
+          continue;
+        }
+                 
+        URegionEmb2 ur;
+        UPoint up;
+
+        Get(urPos, ur);
+        mp.Get(upPos, up);
+          
+        if (MR2_DEBUG) 
+            cerr << "MRegion2::IntersectionMP() both elements present" << endl;
+
+        ur.RestrictedIntersectionUP(&msegmentdata, &preciseSegmentData, 
+                                    &preciseCoordinates, &preciseInstants, 
+                                    scaleFactor, up, iv, vpup, vpub, isbool);
+    }
+
+/*
+
+Finally the vectors of precise UPoints and precise UBools are
+converted back to UPoint resp. UBool and added to a MPoint resp.
+MBool data-type for result.
+
+*/    
+    if (!isbool)
+      AddUPoints(vpup, res1);
+    else
+      AddUBools(vpub, res2);
+}
+
+/*
+1.1.1.1 Method ~AddUPoints()~
+
+Adds all precise UPoint to the MPoint object ~res~
+
+*/
+void MRegion2::AddUPoints(vector<precUPoint> vpup, MPoint& res) const
+{
+  if (MR2_DEBUG) cerr << "MRegion2::AddUPoints() called" << endl;
+  if (vpup.size() == 0) return;
+  
+  precUPoint last;
+  last = vpup[0];
+  
+  if (MR2_DEBUG) cerr << "MRegion2::AddUPoints() size of vector: " 
+          << vpup.size() << endl;
+  if (MR2_DEBUG) cerr << "0: (" << vpup[0].pti.start << " " << vpup[0].pti.end 
+          << " " << vpup[0].pti.lc << " " << vpup[0].pti.rc << ")(" 
+          << vpup[0].x0 << " " << vpup[0].y0 << " " << vpup[0].x1 << " " 
+          << vpup[0].y1 << ")" << endl;
+  
+  for (unsigned int i = 1; i < vpup.size(); i++) 
+  {
+    if (MR2_DEBUG) cerr << i << ": (" << vpup[i].pti.start << " " 
+            << vpup[i].pti.end << " " << vpup[i].pti.lc << " " 
+            << vpup[i].pti.rc << ")(" << vpup[i].x0 << " " << vpup[i].y0 
+            << " " << vpup[i].x1 << " " << vpup[i].y1 << ")" << endl;
+    
+    if ( (cmp(last.pti.end, vpup[i].pti.start) == 0)
+      && (last.pti.rc || vpup[i].pti.lc)
+      && (last.x1 == vpup[i].x0) 
+      && (last.y1 == vpup[i].y0) )
+    {
+      if (cmp(last.pti.start, last.pti.end) == 0)
+      {
+        last = vpup[i];
+        last.pti.lc = true;
+        continue;
+      }
+      else if (cmp(vpup[i].pti.start, vpup[i].pti.end) == 0)
+      {
+        last.pti.rc = true;
+        continue;
+      }
+      else
+      {
+        mpq_class f = (last.pti.start - vpup[i].pti.start)/
+                        (vpup[i].pti.end - vpup[i].pti.start);
+        f.canonicalize();
+        mpq_class x = vpup[i].x0 + (vpup[i].x1 - vpup[i].x0) * f;
+        x.canonicalize();
+        mpq_class y = vpup[i].y0 + (vpup[i].y1 - vpup[i].y0) * f;
+        y.canonicalize();
+
+        if (cmp(last.x0, x) == 0 && cmp(last.y0, y) == 0)
+        {
+          last.pti.end = vpup[i].pti.end;
+          last.pti.rc = vpup[i].pti.rc;
+          last.x1 = vpup[i].x1;
+          last.y1 = vpup[i].y1;
+          continue;
+        }
+      }
+    }
+
+    UPoint rUp(true);
+    restrictUPointToInterval(last.up, last.pti, rUp);
+    
+    res.Add(rUp);
+    last = vpup[i];
+  }
+  
+  UPoint rUp(true);
+  restrictUPointToInterval(last.up, last.pti, rUp);
+    
+  res.Add(rUp);
+}
+
+
+/*
+1.1.1.1 Method ~AddUBools()~
+
+Adds all precise UBool to the MBool object ~res~
+
+*/
+void MRegion2::AddUBools(vector<precUBool> vpub, MBool& res) const
+{
+  if (MR2_DEBUG) cerr << "MRegion2::AddUBools() called" << endl;
+  if (vpub.size() == 0) return;
+  
+  precUBool last;
+  last = vpub[0];
+  
+  if (MR2_DEBUG) cerr << "MRegion2::AddUBools() size of vector: " 
+          << vpub.size() << endl;
+  if (MR2_DEBUG) cerr << "0: (" << vpub[0].pti.start << " " << vpub[0].pti.end
+          << " " << vpub[0].pti.lc << " " << vpub[0].pti.rc << ") " 
+          << vpub[0].status << endl;
+
+  for (unsigned int i = 1; i < vpub.size(); i++) 
+  {
+    if (MR2_DEBUG) cerr << i << ": (" << vpub[i].pti.start << " " 
+            << vpub[i].pti.end << " " << vpub[i].pti.lc << " " 
+            << vpub[i].pti.rc << ") " << vpub[i].status << endl;
+    
+    if ( (cmp(last.pti.end, vpub[i].pti.start) == 0)
+      && (last.pti.rc || vpub[i].pti.lc)
+      && (last.status == vpub[i].status) )
+    {
+      if (cmp(last.pti.start, last.pti.end) == 0)
+      {
+        last = vpub[i];
+        last.pti.lc = true;
+      }
+      else if (cmp(vpub[i].pti.start, vpub[i].pti.end) == 0)
+      {
+        last.pti.rc = true;
+      }
+      else
+      {
+        last.pti.end = vpub[i].pti.end;
+        last.pti.rc = vpub[i].pti.rc;
+      }
+    }
+    else
+    {
+      Instant start(datetime::instanttype);
+      mpq_class reststart(0);
+      precTimeToInstant(last.pti.start, start, reststart);
+      Instant end(datetime::instanttype);
+      mpq_class restend(0);
+      precTimeToInstant(last.pti.end, end, restend);
+      
+      if (last.status && cmp(reststart, 0) > 0)
+         start += Instant(0, 1, datetime::durationtype);
+      if (!last.status && cmp(restend, 0) > 0)
+         end += Instant(0, 1, datetime::durationtype);
+
+      Interval<Instant> iv(start, end, last.pti.lc, last.pti.rc);
+      res.Add(UBool(iv, CcBool(true, last.status)));
+      last = vpub[i];
+    }
+  }
+  
+  Instant start(datetime::instanttype);
+  mpq_class reststart(0);
+  precTimeToInstant(last.pti.start, start, reststart);
+  Instant end(datetime::instanttype);
+  mpq_class restend(0);
+  precTimeToInstant(last.pti.end, end, restend);
+      
+      if (last.status && cmp(reststart, 0) > 0)
+         start += Instant(0, 1, datetime::durationtype);
+      if (!last.status && cmp(restend, 0) > 0)
+         end += Instant(0, 1, datetime::durationtype);
+
+  Interval<Instant> iv(start, end, last.pti.lc, last.pti.rc);
+  res.Add(UBool(iv, CcBool(true, last.status)));
+}
+
+/*
+1.1.1.1 Method ~SplitHS()~
+
+Split the precise Halfsegments in pHSvector because of the plane sweep
+
+*/
+
+void MRegion2::SplitHS(vector<Reg2PreciseHalfSegment>& pHSvector)
+{
+    if (MR2_DEBUG) cerr << "MRegion2::SplitHS() called" << endl;
+
+    int partnerno = 0;
+
+    for(unsigned int i = 0; i < pHSvector.size()-1; i++ )
+      for(unsigned int j = i+1; j < pHSvector.size() 
+            && pHSvector[j].GetLeftPoint() <= pHSvector[i].GetRightPoint();
+              j++ )
+      if ( pHSvector[i] == pHSvector[j] 
+        && pHSvector[i].attr.insideAbove == !pHSvector[j].attr.insideAbove)
+        {
+          pHSvector.erase(pHSvector.begin()+j);
+          pHSvector.erase(pHSvector.begin()+i);
+          i--;
+          break;
+        }
+    
+    //split halfsegments, if they cross
+    for(unsigned int i = 0; i < pHSvector.size()-1; i++ )
+    {
+      for(unsigned int j = i+1; j < pHSvector.size() 
+            && pHSvector[j].GetLeftPoint() <= pHSvector[i].GetRightPoint();
+              j++ )
+      {
+        Reg2PrecisePoint pp;
+        Reg2PreciseHalfSegment phs;
+        bool newsort = false;
+       
+        if (pHSvector[i].Intersection(pHSvector[j], pp))
+        {
+          phs = Reg2PreciseHalfSegment(pHSvector[i]);
+          if (pHSvector[i].GetLeftPoint() < pp 
+                 && pp < pHSvector[i].GetRightPoint())
+          {
+            pHSvector[i].SetRightPoint(pp);
+            phs.SetLeftPoint(pp);
+            phs.attr.edgeno = partnerno;
+            phs.attr.partnerno = partnerno++;
+            pHSvector.push_back(phs);
+            newsort = true;
+          }
+          
+          phs = Reg2PreciseHalfSegment(pHSvector[j]);
+          if (pHSvector[j].GetLeftPoint() < pp 
+                  && pp < pHSvector[j].GetRightPoint())
+          {
+            pHSvector[j].SetRightPoint(pp);
+            phs.SetLeftPoint(pp);
+            phs.attr.edgeno = partnerno;
+            phs.attr.partnerno = partnerno++;
+            pHSvector.push_back(phs);
+            newsort = true;
+          }
+        }
+        else if (pHSvector[i].Contains(pHSvector[j].GetLeftPoint()))
+        {
+          if (pHSvector[i].Contains(pHSvector[j].GetRightPoint()))
+          // pHSvector[j] is inside pHSvector[i]
+          {
+            Reg2PrecisePoint pp1(pHSvector[i].GetLeftPoint());
+            Reg2PrecisePoint pp2(pHSvector[j].GetLeftPoint());
+            Reg2PrecisePoint pp3(pHSvector[j].GetRightPoint());
+            Reg2PrecisePoint pp4(pHSvector[i].GetRightPoint());
+
+            phs = Reg2PreciseHalfSegment(pHSvector[i]);
+            if (pp1 < pp2)
+            {
+              pHSvector[i].SetRightPoint(pp2);
+              newsort = true;
+              if (pp3 < pp4)
+              {
+                phs.SetLeftPoint(pp3);
+                phs.attr.edgeno = partnerno;
+                phs.attr.partnerno = partnerno++;
+                pHSvector.push_back(phs);
+              }
+            }
+            else if (pp3 < pp4)
+            {
+              pHSvector[i].SetLeftPoint(pp3);
+              newsort = true;
+            }
+
+            phs = Reg2PreciseHalfSegment(pHSvector[j]);
+            if (pp1 < pp2 || pp3 < pp4)
+            {
+              phs.attr.insideAbove = pHSvector[i].attr.insideAbove;
+              phs.attr.edgeno = partnerno;
+              phs.attr.partnerno = partnerno++;
+              pHSvector.push_back(phs);
+              newsort = true;
+            }
+          }
+          else if (pHSvector[j].Contains(pHSvector[i].GetRightPoint())) 
+          // pHSvector[j] and pHSvector[i] overlaps
+          {
+            Reg2PrecisePoint pp1(pHSvector[i].GetLeftPoint());
+            Reg2PrecisePoint pp2(pHSvector[j].GetLeftPoint());
+            Reg2PrecisePoint pp3(pHSvector[i].GetRightPoint());
+            Reg2PrecisePoint pp4(pHSvector[j].GetRightPoint());
+
+            phs = Reg2PreciseHalfSegment(pHSvector[i]);
+            if (pp1 < pp2)
+              pHSvector[i].SetRightPoint(pp2);
+                
+            if (pp3 < pp4)
+              pHSvector[j].SetLeftPoint(pp3);
+
+            if (pp2 < pp3)
+            {
+              if (pp1 < pp2)
+              {
+                phs.SetLeftPoint(pp2);
+                phs.attr.edgeno = partnerno;
+                phs.attr.partnerno = partnerno++;
+                pHSvector.push_back(phs);
+              }
+              
+              if (pp3 < pp4)
+              {
+                phs.attr.insideAbove = pHSvector[j].attr.insideAbove;
+                phs.attr.edgeno = partnerno;
+                phs.attr.partnerno = partnerno++;
+                pHSvector.push_back(phs);
+                newsort = true;
+              }
+            }
+          }
+        }
+        
+        //sort halfsegments beginning at position j
+        if (newsort)
+          sort(pHSvector.begin()+j, pHSvector.end());
+      }
+    }
+    
+    sort(pHSvector.begin(), pHSvector.end());
+}
+
+/*
+1.1.1.1 Method ~CollectHS()~
+
+Collects all precise Halfsegements that build a region in the projection to the plane
+
+*/
+
+void MRegion2::CollectHS(vector<Reg2PreciseHalfSegment>& pAllHSvector)
+{
+    if (MR2_DEBUG) cerr << "MRegion2::CollectHS()" << endl;
+    
+    vector<Reg2PreciseHalfSegment> pHSvector;
+    
+    mpz_t sFactor;
+    mpz_init(sFactor);
+    mpq_class sFac(0);
+    uint sfactor;
+    
+    if (scaleFactor < 0)
+    {
+      sfactor = -scaleFactor;
+      mpz_ui_pow_ui(sFactor, 10, sfactor);
+      sFac = mpq_class(mpz_class(sFactor), mpz_class(1));
+    }
+    else
+    {
+      sfactor = scaleFactor;
+      mpz_ui_pow_ui(sFactor, 10, sfactor);
+      sFac = mpq_class(mpz_class(1), mpz_class(sFactor));
+    }
+    sFac.canonicalize();
+    mpz_clear(sFactor);
+            
+    //for each region unit, find the halfsegments of it's traversed region
+    // and finally build the union of all these regions
+    for(int i = 0; i < GetNoComponents(); i++) 
+    {
+      URegionEmb2 ur;
+      Get(i, ur);
+      pHSvector.clear();
+      int partnerno = 0;
+      int pos = -1;
+
+      //first step: collect all halfsegments
+      for (int j = 0; j < ur.GetSegmentsNum(); j++) 
+      {
+        MSegmentData2 dms;
+        ur.GetSegment(&msegmentdata, j, dms);
+
+        PreciseMSegmentData pdms;
+        ur.GetPreciseSegment(&preciseSegmentData, j, pdms);
+
+        mpq_class pxis = dms.GetInitialStartX() 
+                        + pdms.GetInitialStartX(&preciseCoordinates);
+        mpq_class pyis = dms.GetInitialStartY() 
+                        + pdms.GetInitialStartY(&preciseCoordinates);
+        mpq_class pxie = dms.GetInitialEndX() 
+                        + pdms.GetInitialEndX(&preciseCoordinates);
+        mpq_class pyie = dms.GetInitialEndY() 
+                        + pdms.GetInitialEndY(&preciseCoordinates);
+            
+        mpq_class pxfs = dms.GetFinalStartX() 
+                        + pdms.GetFinalStartX(&preciseCoordinates);
+        mpq_class pyfs = dms.GetFinalStartY() 
+                        + pdms.GetFinalStartY(&preciseCoordinates);
+        mpq_class pxfe = dms.GetFinalEndX() 
+                        + pdms.GetFinalEndX(&preciseCoordinates);
+        mpq_class pyfe = dms.GetFinalEndY() 
+                        + pdms.GetFinalEndY(&preciseCoordinates);
+
+        pxis = pxis * sFac;
+        pyis = pyis * sFac;
+        pxie = pxie * sFac;
+        pyie = pyie * sFac;
+        pxfs = pxfs * sFac;
+        pyfs = pyfs * sFac;
+        pxfe = pxfe * sFac;
+        pyfe = pyfe * sFac;
+
+        Reg2PrecisePoint is(pxis, pyis);
+        Reg2PrecisePoint ie(pxie, pyie);
+        Reg2PrecisePoint fs(pxfs, pyfs);
+        Reg2PrecisePoint fe(pxfe, pyfe);
+        
+        Reg2PreciseHalfSegment hs;
+        if (is != ie)
+        {
+          hs = Reg2PreciseHalfSegment(true, is, ie);
+
+          hs.attr.faceno = 0;
+          hs.attr.cycleno = 0;
+          hs.attr.insideAbove = dms.GetInsideAbove();
+          hs.attr.edgeno = partnerno;
+          hs.attr.partnerno = partnerno++;
+          pHSvector.push_back(hs);
+          
+          pos = pointPositionToSegment(fs, is, ie);
+          if (pos == 2 || pos == 4)
+          {
+            hs.attr.insideAbove = (pos == 2 ? true : false);
+            hs.attr.edgeno = partnerno;
+            hs.attr.partnerno = partnerno++;
+            pHSvector.push_back(hs);
+          }
+        }
+        if (fs != fe)
+        {
+          hs = Reg2PreciseHalfSegment(true, fs, fe);
+
+          hs.attr.faceno = 0;
+          hs.attr.cycleno = 0;
+
+          pos = pointPositionToSegment(is, fs, fe);
+          if (pos == 2 || pos == 4)
+          {
+            hs.attr.insideAbove = (pos == 2 ? true : false);
+            hs.attr.edgeno = partnerno;
+            hs.attr.partnerno = partnerno++;
+            pHSvector.push_back(hs);
+          }
+        }
+        if (is != fs)
+        {
+          if (ie != is)
+            pos = pointPositionToSegment(ie, is, fs);
+          else
+            pos = pointPositionToSegment(fe, is, fs);
+
+          if (pos == 2 || pos == 4)
+          {
+            hs = Reg2PreciseHalfSegment(true, is, fs);
+            
+            hs.attr.faceno = 0;
+            hs.attr.cycleno = 0;
+            hs.attr.insideAbove = (pos == 2 ? true : false);
+            hs.attr.edgeno = partnerno;
+            hs.attr.partnerno = partnerno++;
+            pHSvector.push_back(hs);
+          }
+        }
+        if (ie != fe)
+        {
+          if (is != ie)
+            pos = pointPositionToSegment(is, ie, fe);
+          else
+            pos = pointPositionToSegment(fs, ie, fe);
+
+          if (pos == 2 || pos == 4)
+          {
+            hs = Reg2PreciseHalfSegment(true, ie, fe);
+            
+            hs.attr.faceno = 0;
+            hs.attr.cycleno = 0;
+            hs.attr.insideAbove = (pos == 2 ? true : false);
+            hs.attr.edgeno = partnerno;
+            hs.attr.partnerno = partnerno++;
+            pHSvector.push_back(hs);
+          }
+        }
+      }
+      
+      sort(pHSvector.begin(), pHSvector.end());
+      
+/*
+The used plane sweep algorithm below is very simple and can't deal with
+intersecting segments. First of all we have to divide the intersecting 
+segments with crossings or overlappings into their parts.
+Before starting the plane sweep we have to sort the segments, too.
+
+*/
+       SplitHS(pHSvector);
+      
+      // add the corresponding halfsegments for plane sweep
+      unsigned int vs = pHSvector.size();
+      for(unsigned int k = 0; k < vs; k++ )
+      {
+        pHSvector[k].attr.edgeno = k;
+        pHSvector[k].attr.partnerno = k;
+        Reg2PreciseHalfSegment hs = pHSvector[k];
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        pHSvector.push_back(hs);
+      }
+  
+      // 2nd step: sort the set of halfsegments
+      sort(pHSvector.begin(), pHSvector.end());
+
+      // 3rd step: plane sweep incl. sort
+      PlaneSweepProjection(pHSvector);
+    
+      // 4th step: merge halfsegments
+      MergeHS(pHSvector);
+
+      // collect the resulting set of halfsegments in the result set
+      for(unsigned int k = 0; k < pHSvector.size(); k++ )
+        pAllHSvector.push_back(pHSvector[k]);
+    }
+
+    if (GetNoComponents() < 2)
+      return;
+            
+    sort(pAllHSvector.begin(), pAllHSvector.end());
+      
+    SplitHS(pAllHSvector);
+
+    // add the corresponding halfsegments
+    unsigned int vs = pAllHSvector.size();
+    for(unsigned int i = 0; i < vs; i++ )
+    {
+      pAllHSvector[i].attr.edgeno = i;
+      pAllHSvector[i].attr.partnerno = i;
+      Reg2PreciseHalfSegment hs = pAllHSvector[i];
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      pAllHSvector.push_back(hs);
+    }
+}
+
+/* 
+The following class ~slattr~ is a helper class for the plane sweep algorithm
+to handle the status ~nabove~ of the segment with in dex ~HSindex~.
+  
+*/
+
+class slattr {
+public:
+  int HSindex;
+  int nabove; 
+  
+  inline slattr() { HSindex = -1; nabove = -1; };
+  inline slattr(int hsi, int n = -1) : HSindex(hsi), nabove(n) {};
+};
+
+
+/* 
+1.1.1.1 Method ~aboveorder()~
+ 
+The method ~aboveorder~ is true, if segment s2 is above s1,
+otherwise it is false. This order is used in the plane sweep algorithm.
+  
+*/
+
+bool aboveorder(const Reg2PreciseHalfSegment& s1, 
+                const Reg2PreciseHalfSegment& s2) 
+// s2 is above s1, order is s1 < s2
+{
+    mpq_class x = s2.GetLeftPoint().x > s1.GetLeftPoint().x ? 
+                s2.GetLeftPoint().x : s1.GetLeftPoint().x;
+    x.canonicalize();
+    
+    mpq_class s1y;
+    if (cmp(s1.GetRightPoint().x, s1.GetLeftPoint().x) != 0)
+      s1y = (x - s1.GetLeftPoint().x)*(s1.GetRightPoint().y 
+                - s1.GetLeftPoint().y)/(s1.GetRightPoint().x 
+                - s1.GetLeftPoint().x) + s1.GetLeftPoint().y;
+    else
+      s1y = s1.GetLeftPoint().y;
+    s1y.canonicalize();
+    
+    mpq_class s2y;
+    if (cmp(s2.GetRightPoint().x, s2.GetLeftPoint().x) != 0)
+      s2y = (x - s2.GetLeftPoint().x)*(s2.GetRightPoint().y 
+      - s2.GetLeftPoint().y)/(s2.GetRightPoint().x 
+      - s2.GetLeftPoint().x) + s2.GetLeftPoint().y;
+    else
+      s2y = s2.GetLeftPoint().y;
+    s2y.canonicalize();
+    
+    if (cmp(s1y, s2y) == 0)
+    {
+      x = s1.GetRightPoint().x < s2.GetRightPoint().x ? 
+                s1.GetRightPoint().x : s2.GetRightPoint().x;
+      x.canonicalize();
+      
+      if (cmp(s1.GetRightPoint().x, s1.GetLeftPoint().x) != 0)
+        s1y = (x - s1.GetLeftPoint().x)*(s1.GetRightPoint().y 
+        - s1.GetLeftPoint().y)/(s1.GetRightPoint().x 
+        - s1.GetLeftPoint().x) + s1.GetLeftPoint().y;
+      else 
+        s1y = s1.GetRightPoint().y;
+      s1y.canonicalize();
+      
+      if (cmp(s2.GetRightPoint().x, s2.GetLeftPoint().x) != 0)
+        s2y = (x - s2.GetLeftPoint().x)*(s2.GetRightPoint().y 
+        - s2.GetLeftPoint().y)/(s2.GetRightPoint().x 
+        - s2.GetLeftPoint().x) + s2.GetLeftPoint().y;
+      else
+        s2y = s2.GetRightPoint().y;
+      s2y.canonicalize();
+    }
+    return (cmp(s1y, s2y) < 0);
+}
+
+/* 
+1.1.1.1 Method ~PlaneSweepProjection()~
+
+Easy Plane Sweep for unit projections. Precondition: no intersections within all halfsegments
+
+*/
+ 
+void MRegion2::PlaneSweepProjection(vector<Reg2PreciseHalfSegment>& pHSvector)
+{
+    if (MR2_DEBUG) cerr << "MRegion2::PlaneSweepProjection() called" << endl;
+    
+    if (MR2_DEBUG) 
+       cerr << "MRegion2::PlaneSweepProjection() set partner no.s" << endl;
+    unsigned int vsize = pHSvector.size();
+    int* TMP = new int[vsize/2];
+    memset(TMP,0,vsize*sizeof(int) / 2);
+
+    Reg2PreciseHalfSegment hs;
+    for(unsigned int i = 0; i < vsize; i++ )
+    {
+      hs = pHSvector[i];
+      if( hs.IsLeftDomPoint() )
+      {
+        TMP[hs.attr.edgeno] = i;
+      }
+      else
+      {
+        int p = TMP[hs.attr.edgeno];
+        pHSvector[i].attr.partnerno = p;
+        pHSvector[p].attr.partnerno = i;
+      }
+    }
+    delete[] TMP;
+    
+    vector<slattr> sweep;
+    vector<int> regborder;
+    unsigned int j;
+
+    if (MR2_DEBUG) 
+       cerr << "MRegion2::PlaneSweepProjection() execute planesweep" << endl;
+    for(unsigned int i = 0; i < pHSvector.size(); i++ )
+    {
+      if (!pHSvector[i].IsLeftDomPoint())
+      {
+        for (j = 0; j < sweep.size(); j++ )
+          if (sweep[j].HSindex == pHSvector[i].attr.partnerno)
+          {
+            sweep.erase(sweep.begin()+j);
+            break;
+          }
+      }
+      else
+      {
+        slattr inshs(i);
+        
+        for (j = 0; j < sweep.size(); j++ )
+          if (aboveorder(pHSvector[i], pHSvector[sweep[j].HSindex]))
+          {
+            sweep.insert(sweep.begin()+j, inshs);
+            break;
+          }
+          
+        if (j == sweep.size())
+          sweep.push_back(inshs);
+
+        int m, n;
+        if (sweep.size() <= 1 or j <= 0)
+          n = 0;
+        else
+          n = sweep[j-1].nabove;
+        
+        m = n;
+        if (pHSvector[i].attr.insideAbove)
+          n++;
+        else
+          n--;
+        
+        sweep[j].nabove = n;
+        if (m == 0 || n == 0) 
+          regborder.push_back(i);
+      }
+
+    }
+
+    if (MR2_DEBUG) 
+       cerr << "MRegion2::PlaneSweepProjection() delete all non-border "
+            << "elements" << endl;
+    unsigned int borderi = pHSvector.size();
+    if (!regborder.empty())
+    {
+      borderi = regborder.back();
+      regborder.pop_back();
+    }
+    
+    for(unsigned int i = pHSvector.size(); i > 0; i-- )
+    {
+      if ((i-1) == borderi)
+      {
+        if (!regborder.empty())
+        {
+          borderi = regborder.back();
+          regborder.pop_back();
+        }
+        else
+          borderi = pHSvector.size();
+      }
+      else
+        pHSvector.erase(pHSvector.begin()+(i-1));
+    } 
+}
+
+/* 
+1.1.1.1 Method ~MergeHS()~
+ 
+The counterpart to the SplitHS method to reconstruct adjacent segments
+ 
+*/
+
+void MRegion2::MergeHS(vector<Reg2PreciseHalfSegment>& pHSvector)
+{
+    if (MR2_DEBUG) cerr << "MRegion2::MergeHS() called" << endl;
+    
+    // precondition: pHSvector is sorted by halfsegment order
+    for(unsigned int i = 0; i < pHSvector.size()-1; i++ )
+    {
+      // only look for concatenating segments if they overlaps!
+      for(unsigned int j = i+1; j < pHSvector.size() 
+              && pHSvector[j].GetLeftPoint() <= pHSvector[i].GetRightPoint();
+                j++ )
+      {
+        if (pHSvector[i].GetRightPoint() == pHSvector[j].GetLeftPoint())
+        {
+          bool mergeit = false;
+          
+          mpq_class xi1 = pHSvector[i].GetLeftPoint().x; 
+          mpq_class yi1 = pHSvector[i].GetLeftPoint().y; 
+          mpq_class xi2 = pHSvector[i].GetRightPoint().x; 
+          mpq_class yi2 = pHSvector[i].GetRightPoint().y; 
+          
+          mpq_class xj1 = pHSvector[j].GetLeftPoint().x; 
+          mpq_class yj1 = pHSvector[j].GetLeftPoint().y; 
+          mpq_class xj2 = pHSvector[j].GetRightPoint().x; 
+          mpq_class yj2 = pHSvector[j].GetRightPoint().y; 
+          
+          if (cmp(xi1, xi2) !=0 )
+          {
+            mpq_class ki = (yi2 - yi1)/(xi2 - xi1);
+            ki.canonicalize();
+        
+            if (cmp(xj1, xj2) !=0 )
+            {
+              mpq_class kj = (yj2 - yj1)/(xj2 - xj1);
+              kj.canonicalize();
+              
+              if (cmp(ki, kj) == 0)
+                mergeit = true;
+              else
+                continue;
+            }
+            else 
+              continue;
+          }
+          else
+          {
+            if (cmp(xj1, xj2) ==0 )
+              mergeit = true;
+            else
+              continue;
+          }
+        
+          if (mergeit)
+          {
+            if (MR2_DEBUG) 
+               cerr << "MRegion2::MergeHS() merge preciseHalfsegment " << i
+                    << " with " << j << " (the last one is deleted)" << endl;
+            
+            pHSvector[i].SetRightPoint(pHSvector[j].GetRightPoint());
+            pHSvector.erase(pHSvector.begin()+j);
+            j--;
+          }
+        }
+      }
+    }
+}
+
+/* 
+1.1.1.1 Method ~TraverseRegion()~
+
+Main method for traversed. 
+
+*/
+
+void MRegion2::TraverseRegion(Region2& res) 
+{
+    if (MR2_DEBUG) cerr << "MRegion2::TraverseRegion() called" << endl;
+
+    vector<Reg2PreciseHalfSegment> precHSvector;
+
+    // 1st step: build set of halfsegments
+    CollectHS(precHSvector);
+
+    if (GetNoComponents() > 1)
+    // the following steps are already handled for each region unit itself
+    // if there is only one unit embedded, we can skip these steps
+    {
+      // 2nd step: sort the set of halfsegments
+      sort(precHSvector.begin(), precHSvector.end());
+
+      // 3rd step: plane sweep incl. sort
+      PlaneSweepProjection(precHSvector);
+
+      // 4th step: merge halfsegments
+      MergeHS(precHSvector);
+    }
+
+    // 5th step: build the region2 with bulkload mechanism
+    res.StartBulkLoad();
+
+    for(unsigned int i = 0; i < precHSvector.size(); i++ )
+    {
+      precHSvector[i].attr.edgeno = i;
+      precHSvector[i].attr.partnerno = i;
+      res += precHSvector[i];
+      precHSvector[i].SetLeftDomPoint(!precHSvector[i].IsLeftDomPoint());
+      res += precHSvector[i];
+    }
+    
+    res.SetScaleFactor(scaleFactor, false);
+    res.EndBulkLoad();
+}
+
 
 /*
 1.1.1 Attribute access methods
@@ -11884,6 +12781,10 @@ void MRegion2::Get(const int i, URegionEmb2& ur) const {
     Mapping<URegionEmb2, Region2>::Get(i, ur);
 }
 
+/*
+Get read-only access to the DbArrays of this ~MRegion2~ instance
+
+*/
 const DbArray<MSegmentData2>* MRegion2::GetMSegmentData2(void) {
     return &msegmentdata;
 }
@@ -11900,6 +12801,13 @@ const DbArray<unsigned int>* MRegion2::GetPreciseInstants(void) const {
         return &preciseInstants;
 }
 
+/*
+1.1.1 Access methods for the scalefactor
+
+Read and write access to the scaleFactor. The ~SetScaleFactor~ method only sets
+the scaleFactor, while the ~NewScaleFactor~ method changes the Uregion2-representation, too.
+
+*/
 const int MRegion2::GetScaleFactor(void) {
         return scaleFactor;
 }
@@ -11956,9 +12864,11 @@ bool MRegion2::NewScaleFactor(int factor) {
 
 1.1.1.1 Method ~Translate()~
 
-*/
-void MRegion2::Translate(double deltaX, double deltaY) {
+for operator translate:
 
+*/
+void MRegion2::Translate(DateTime* deltaT, double deltaX, double deltaY) 
+{
         if (MR2_DEBUG)
                 cerr << "MRegion2::Translate() called" << endl;
 
@@ -11968,7 +12878,7 @@ void MRegion2::Translate(double deltaX, double deltaY) {
                 URegionEmb2 uremb;
                 this->Get(i, uremb);
 
-                uremb.Translate(deltaX, deltaY, &msegmentdata, 
+                uremb.Translate(deltaT, deltaX, deltaY, &msegmentdata, 
                         &preciseSegmentData, &preciseCoordinates,
                         scaleFactor);
                 if (uremb.GetSegmentsNum() < 1)
@@ -11976,11 +12886,38 @@ void MRegion2::Translate(double deltaX, double deltaY) {
                   SetDefined(false);
                   return;
                 }
+                this->Put(i, uremb);
+        }
+}
+
+/*
+1.1.1.1 Method ~Timeshift()~
+
+for operator timeshift:
+
+*/
+void MRegion2::Timeshift(DateTime* deltaT) 
+{
+        if (MR2_DEBUG)
+                cerr << "MRegion2::Timeshift() called" << endl;
+
+        //for every unit
+        for (int i = 0; i < this->GetNoComponents(); i++)
+        {
+          URegionEmb2 uremb;
+          this->Get(i, uremb);
+
+          uremb.timeInterval.start.Add(deltaT);
+          uremb.timeInterval.end.Add(deltaT);
+
+          this->Put(i, uremb);
         }
 }
 
 /*
 1.1.1.1 Method ~Scale()~
+
+for operator scale:
 
 */
 void MRegion2::Scale(double deltaX, double deltaY) {
@@ -12037,6 +12974,8 @@ void MRegion2::Scale(double deltaX, double deltaY) {
 /*
 1.1.1.1 Method ~AtInstant()~
 
+for operator atinstant:
+ 
 */
 void MRegion2::AtInstant(const Instant& t, Intime<Region2>& result) {
     if (MR2_DEBUG) cerr << "MRegion2::AtInstant() called" << endl;
@@ -12072,6 +13011,8 @@ void MRegion2::AtInstant(const Instant& t, Intime<Region2>& result) {
 /*
 1.1.1.1 Method ~Initial()~
 
+for operator initial:
+
 */
 
 void MRegion2::Initial(Intime<Region2>& result) {
@@ -12104,14 +13045,17 @@ void MRegion2::Initial(Intime<Region2>& result) {
         scaleFactor,
         result.value);
 
-    Instant inst(unit.timeInterval.start.ToDouble()+
-        unit.pInterval.GetPreciseInitialInstant(
-        &preciseInstants).get_d());
+    Instant inst(unit.timeInterval.start);
+    if (cmp(unit.pInterval.GetPreciseInitialInstant(&preciseInstants), 0) > 0)
+        inst += Instant(0, 1, datetime::durationtype);
+
     result.instant.CopyFrom(&inst);
 }
 
 /*
 1.1.1.1 Method ~Final()~
+
+for operator final:
 
 */
 
@@ -12145,772 +13089,17 @@ void MRegion2::Final(Intime<Region2>& result) {
         scaleFactor,
         result.value);
     
-    Instant inst(unit.timeInterval.end.ToDouble()+
-                unit.pInterval.GetPreciseFinalInstant(
-                &preciseInstants).get_d());
-        result.instant.CopyFrom(&inst);
+    Instant inst(unit.timeInterval.end);
+
+    result.instant.CopyFrom(&inst);
 }
 
-
-/*
-1.1.1 Private methods
-
-1.1.1.1 Method ~IntersectionMP()~
-
+/* 
+1.1.1.1 Method ~Intersection()~
+ 
+for operator intersection: 
+ 
 */
-void MRegion2::IntersectionMP(const MPoint& mp, MPoint& res1, MBool& res2) 
-{
-
-    if (MR2_DEBUG) cerr << "MRegion2::IntersectionMP() called" << endl;
-
-    res1 = MPoint(0);
-    res2 = MBool(0);
-
-    RefinementPartition2 rp(*this, mp);
-    vector<precUPoint> vpup;
-    vector<precUBool> vpub;
-
-/*
-
-For each interval in the refinement partition, we have to check whether
-it maps to a region and a point unit. If not, there is obviously no intersection
-during this interval and we can skip it. Otherwise, we check if the region
-and point unit, both restricted to this interval, intersect.
-
-*/
-    for (unsigned int i = 0; i < rp.Size(); i++) {
-        precTimeInterval iv;
-        int urPos;
-        int upPos;
-
-        rp.Get(i, iv, urPos, upPos);
-
-        if (MR2_DEBUG) 
-                cerr << "MRegion::IntersectionMP() interval#" << i << ": " 
-                << iv.start << " " << iv.end << " " << iv.lc << " " << iv.rc 
-                << " " << urPos << " " << upPos << endl;
-
-        if (upPos == -1) continue;
-        if (urPos == -1) 
-        {
-          precUBool pub = precUBool(iv.start, iv.end, iv.lc, iv.rc, false);
-          vpub.push_back(pub);
-          
-          continue;
-        }
-                 
-        URegionEmb2 ur;
-        UPoint up;
-
-        Get(urPos, ur);
-        mp.Get(upPos, up);
-          
-        if (MR2_DEBUG) 
-            cerr << "MRegion2::IntersectionMP() both elements present" << endl;
-
-        ur.RestrictedIntersectionUP(&msegmentdata, &preciseSegmentData, 
-                                    &preciseCoordinates, &preciseInstants, 
-                                    scaleFactor, up, iv, vpup, vpub);
-    }
-
-//    for (unsigned int i = 0; i < vpup.size(); i++)
-//       cout << "Point #" << i << " is from " << vpup[i].pti.start 
-//            << " until " << vpup[i].pti.end << endl;
-    
-    AddUPoints(vpup, res1);
-    AddUBools(vpub, res2);
-}
-
-
-void MRegion2::SplitHS(vector<Reg2PreciseHalfSegment>& pHSvector)
-{
-    int partnerno = 0;
-//    cout << "MR2::SplitHS:" << endl;
-
-//    cout << "vor remove: #" << pHSvector.size() << endl;
-    //first remove identical segments with different insideAbove-flag
-    for(unsigned int i = 0; i < pHSvector.size()-1; i++ )
-      for(unsigned int j = i+1; j < pHSvector.size() 
-            && pHSvector[j].GetLeftPoint() <= pHSvector[i].GetRightPoint();
-              j++ )
-      if ( pHSvector[i] == pHSvector[j] 
-        && pHSvector[i].attr.insideAbove == !pHSvector[j].attr.insideAbove)
-        {
-          pHSvector.erase(pHSvector.begin()+j);
-          pHSvector.erase(pHSvector.begin()+i);
-//          cout << "Loesche " << j << " + " << i << endl;
-          i--;
-          break;
-        }
-//    cout << "nach remove: #" << pHSvector.size() << endl;
-    
-    //split halfsegments, if they cross
-    for(unsigned int i = 0; i < pHSvector.size()-1; i++ )
-    {
-      for(unsigned int j = i+1; j < pHSvector.size() 
-            && pHSvector[j].GetLeftPoint() <= pHSvector[i].GetRightPoint();
-              j++ )
-      {
-        Reg2PrecisePoint pp;
-        Reg2PreciseHalfSegment phs;
-        bool newsort = false;
-       
-        if (pHSvector[i].Intersection(pHSvector[j], pp))
-        {
-                
-    if ((pHSvector[i].GetLeftPoint() < pp 
-       && pp < pHSvector[i].GetRightPoint())
-       || (pHSvector[j].GetLeftPoint() < pp 
-       && pp < pHSvector[j].GetRightPoint()))
-    {     
-//    cout << "MR2::CollectHS: Intersection of i and j: "  << pp
-//        << endl;
-
-//        cout << i << ": " << pHSvector[i] << endl;
-//        cout << j << ": " << pHSvector[j] << endl;
-    }     
-          phs = Reg2PreciseHalfSegment(pHSvector[i]);
-          if (pHSvector[i].GetLeftPoint() < pp 
-                 && pp < pHSvector[i].GetRightPoint())
-          {
-            pHSvector[i].SetRightPoint(pp);
-//            cout << "Aendere i zu " << pHSvector[i] << endl;
-            phs.SetLeftPoint(pp);
-            phs.attr.edgeno = partnerno;
-            phs.attr.partnerno = partnerno++;
-            pHSvector.push_back(phs);
-//             cout << "Erzeuge neu " << phs << endl;
-            newsort = true;
-          }
-          phs = Reg2PreciseHalfSegment(pHSvector[j]);
-          if (pHSvector[j].GetLeftPoint() < pp 
-                  && pp < pHSvector[j].GetRightPoint())
-          {
-            pHSvector[j].SetRightPoint(pp);
-//            cout << "Aendere j zu " << pHSvector[j] << endl;
-            phs.SetLeftPoint(pp);
-            phs.attr.edgeno = partnerno;
-            phs.attr.partnerno = partnerno++;
-            pHSvector.push_back(phs);
-//            cout << "Erzeuge neu " << phs << endl;
-            newsort = true;
-          }
-        }
-        else if (pHSvector[i].Contains(pHSvector[j].GetLeftPoint()))
-        {
-          if (pHSvector[i].Contains(pHSvector[j].GetRightPoint()))
-                  // pHSvector[j] is inside pHSvector[i]
-          {
-            Reg2PrecisePoint pp1(pHSvector[i].GetLeftPoint());
-            Reg2PrecisePoint pp2(pHSvector[j].GetLeftPoint());
-            Reg2PrecisePoint pp3(pHSvector[j].GetRightPoint());
-            Reg2PrecisePoint pp4(pHSvector[i].GetRightPoint());
-
-            if (pp1 < pp2 || pp3 < pp4)
-            {
-//    cout << "MR2::CollectHS: i contains leftPoint and rightPoint of j:" 
-//        << endl;
-
-//        cout << i << ": " << pHSvector[i] << endl;
-//            cout << j << ": " << pHSvector[j] << endl;
-            }
-          
-            phs = Reg2PreciseHalfSegment(pHSvector[i]);
-            if (pp1 < pp2)
-            {
-              pHSvector[i].SetRightPoint(pp2);
-//              cout << "Aendere i zu " << pHSvector[i] << endl;
-              newsort = true;
-              if (pp3 < pp4)
-              {
-                phs.SetLeftPoint(pp3);
-                phs.attr.edgeno = partnerno;
-                phs.attr.partnerno = partnerno++;
-                pHSvector.push_back(phs);
-//                cout << "Erzeuge neu " << phs << endl;
-              }
-            }
-            else if (pp3 < pp4)
-            {
-              pHSvector[i].SetLeftPoint(pp3);
-//              cout << "Aendere i zu " << pHSvector[i] << endl;
-              newsort = true;
-            }
-
-            phs = Reg2PreciseHalfSegment(pHSvector[j]);
-            if (pp1 < pp2 || pp3 < pp4)
-            {
-              phs.attr.insideAbove = pHSvector[i].attr.insideAbove;
-              phs.attr.edgeno = partnerno;
-              phs.attr.partnerno = partnerno++;
-              pHSvector.push_back(phs);
-//              cout << "Erzeuge neu " << phs << endl;
-              newsort = true;
-            }
-          }
-          else if (pHSvector[j].Contains(pHSvector[i].GetRightPoint())) 
-                  // pHSvector[j] and pHSvector[i] overlaps
-          {
-            Reg2PrecisePoint pp1(pHSvector[i].GetLeftPoint());
-            Reg2PrecisePoint pp2(pHSvector[j].GetLeftPoint());
-            Reg2PrecisePoint pp3(pHSvector[i].GetRightPoint());
-            Reg2PrecisePoint pp4(pHSvector[j].GetRightPoint());
-
-            if ((pp1 < pp2) || (pp3 < pp4) || (pp2 < pp3))
-            {
-//  cout << "MR2::CollectHS: i contains leftPoint of j and j contains "
-//  << "rightPoint of i:" << endl;
-
-//            cout << i << ": " << pHSvector[i] << endl;
-//            cout << j << ": " << pHSvector[j] << endl;
-            }
-          
-            phs = Reg2PreciseHalfSegment(pHSvector[i]);
-            if (pp1 < pp2)
-            {
-              pHSvector[i].SetRightPoint(pp2);
-//              cout << "Aendere i zu " << pHSvector[i] << endl;
-            }
-                
-            if (pp3 < pp4)
-            {
-              pHSvector[j].SetLeftPoint(pp3);
-//              cout << "Aendere j zu " << pHSvector[j] << endl;
-            }
-
-            if (pp2 < pp3)
-            {
-              if (pp1 < pp2)
-              {
-                phs.SetLeftPoint(pp2);
-                phs.attr.edgeno = partnerno;
-                phs.attr.partnerno = partnerno++;
-                pHSvector.push_back(phs);
-//                cout << "Erzeuge neu " << phs << endl;
-              }
-              
-              if (pp3 < pp4)
-              {
-                phs.attr.insideAbove = pHSvector[j].attr.insideAbove;
-                phs.attr.edgeno = partnerno;
-                phs.attr.partnerno = partnerno++;
-                pHSvector.push_back(phs);
-//                cout << "Erzeuge neu " << phs << endl;
-                newsort = true;
-              }
-            }
-          }
-        }
-        
-          //sort halfsegments beginning at position j
-        if (newsort)
-        {
-          sort(pHSvector.begin()+j, pHSvector.end());
-        // is j the right startposition??
-//          j = i;
-        }
-      }
-    }
-    
-//    cout << "MR2::SplitHS: vor erase #" << pHSvector.size() << endl;
-      
-      // final sort, necessary???
-    sort(pHSvector.begin(), pHSvector.end());
-}
-
-void MRegion2::CollectHS(vector<Reg2PreciseHalfSegment>& pAllHSvector)
-{
-//    cout << "MRegion2::CollectHS()" << endl;
-    vector<Reg2PreciseHalfSegment> pHSvector;
-    
-    mpz_t sFactor;
-    mpz_init(sFactor);
-    mpq_class sFac(0);
-    uint sfactor;
-    
-    if (scaleFactor < 0)
-    {
-      sfactor = -scaleFactor;
-      mpz_ui_pow_ui(sFactor, 10, sfactor);
-      sFac = mpq_class(mpz_class(sFactor), mpz_class(1));
-    }
-    else
-    {
-      sfactor = scaleFactor;
-      mpz_ui_pow_ui(sFactor, 10, sfactor);
-      sFac = mpq_class(mpz_class(1), mpz_class(sFactor));
-    }
-    sFac.canonicalize();
-    mpz_clear(sFactor);
-            
-    //first step: collect all halfsegments
-    for(int i = 0; i < GetNoComponents(); i++) 
-    {
-      URegionEmb2 ur;
-      Get(i, ur);
-      pHSvector.clear();
-      int partnerno = 0;
-      int pos = -1;
-//cout << "UREmb2 #" << i << endl;      
-      for (int j = 0; j < ur.GetSegmentsNum(); j++) 
-      {
-        MSegmentData2 dms;
-        ur.GetSegment(&msegmentdata, j, dms);
-
-        PreciseMSegmentData pdms;
-        ur.GetPreciseSegment(&preciseSegmentData, j, pdms);
-
-        mpq_class pxis = dms.GetInitialStartX() 
-                        + pdms.GetInitialStartX(&preciseCoordinates);
-        mpq_class pyis = dms.GetInitialStartY() 
-                        + pdms.GetInitialStartY(&preciseCoordinates);
-        mpq_class pxie = dms.GetInitialEndX() 
-                        + pdms.GetInitialEndX(&preciseCoordinates);
-        mpq_class pyie = dms.GetInitialEndY() 
-                        + pdms.GetInitialEndY(&preciseCoordinates);
-            
-        mpq_class pxfs = dms.GetFinalStartX() 
-                        + pdms.GetFinalStartX(&preciseCoordinates);
-        mpq_class pyfs = dms.GetFinalStartY() 
-                        + pdms.GetFinalStartY(&preciseCoordinates);
-        mpq_class pxfe = dms.GetFinalEndX() 
-                        + pdms.GetFinalEndX(&preciseCoordinates);
-        mpq_class pyfe = dms.GetFinalEndY() 
-                        + pdms.GetFinalEndY(&preciseCoordinates);
-
-        pxis = pxis * sFac;
-        pyis = pyis * sFac;
-        pxie = pxie * sFac;
-        pyie = pyie * sFac;
-        pxfs = pxfs * sFac;
-        pyfs = pyfs * sFac;
-        pxfe = pxfe * sFac;
-        pyfe = pyfe * sFac;
-
-        Reg2PrecisePoint is(pxis, pyis);
-        Reg2PrecisePoint ie(pxie, pyie);
-        Reg2PrecisePoint fs(pxfs, pyfs);
-        Reg2PrecisePoint fe(pxfe, pyfe);
-        
-//        cout << endl << "Halbsegment " << j << ": (" << is 
-//        << ", " << ie << ")-(" << fs << ", " << fe << ")" << endl;
-
-        Reg2PreciseHalfSegment hs;
-        if (is != ie)
-        {
-          hs = Reg2PreciseHalfSegment(true, is, ie);
-
-          hs.attr.faceno = 0;
-          hs.attr.cycleno = 0;
-          hs.attr.insideAbove = dms.GetInsideAbove();
-          hs.attr.edgeno = partnerno;
-          hs.attr.partnerno = partnerno++;
-          pHSvector.push_back(hs);
-//          cout << "erzeuge " << hs << endl;
-          
-          pos = pointPositionToSegment(fs, is, ie);
-          if (pos == 2 || pos == 4)
-          {
-            hs.attr.insideAbove = (pos == 2 ? true : false);
-            hs.attr.edgeno = partnerno;
-            hs.attr.partnerno = partnerno++;
-            pHSvector.push_back(hs);
-//            cout << "erzeuge " << hs << endl;
-          }
-        }
-        if (fs != fe)
-        {
-          hs = Reg2PreciseHalfSegment(true, fs, fe);
-
-          hs.attr.faceno = 0;
-          hs.attr.cycleno = 0;
-
-          pos = pointPositionToSegment(is, fs, fe);
-          if (pos == 2 || pos == 4)
-          {
-            hs.attr.insideAbove = (pos == 2 ? true : false);
-            hs.attr.edgeno = partnerno;
-            hs.attr.partnerno = partnerno++;
-            pHSvector.push_back(hs);
-//            cout << "erzeuge " << hs << endl;
-          }
-        }
-        if (is != fs)
-        {
-          if (ie != is)
-            pos = pointPositionToSegment(ie, is, fs);
-          else
-            pos = pointPositionToSegment(fe, is, fs);
-
-          if (pos == 2 || pos == 4)
-          {
-            hs = Reg2PreciseHalfSegment(true, is, fs);
-            
-            hs.attr.faceno = 0;
-            hs.attr.cycleno = 0;
-            hs.attr.insideAbove = (pos == 2 ? true : false);
-            hs.attr.edgeno = partnerno;
-            hs.attr.partnerno = partnerno++;
-            pHSvector.push_back(hs);
-//            cout << "erzeuge " << hs << endl;
-          }
-        }
-        if (ie != fe)
-        {
-          if (is != ie)
-            pos = pointPositionToSegment(is, ie, fe);
-          else
-            pos = pointPositionToSegment(fs, ie, fe);
-
-          if (pos == 2 || pos == 4)
-          {
-            hs = Reg2PreciseHalfSegment(true, ie, fe);
-            
-            hs.attr.faceno = 0;
-            hs.attr.cycleno = 0;
-            hs.attr.insideAbove = (pos == 2 ? true : false);
-            hs.attr.edgeno = partnerno;
-            hs.attr.partnerno = partnerno++;
-            pHSvector.push_back(hs);
-//            cout << "erzeuge " << hs << endl;
-          }
-        }
-      }
-      
-      sort(pHSvector.begin(), pHSvector.end());
-      
-      SplitHS(pHSvector);
-      //add the corresponding halfsegments
-      unsigned int vs = pHSvector.size();
-      for(unsigned int k = 0; k < vs; k++ )
-      {
-        pHSvector[k].attr.edgeno = k;
-        pHSvector[k].attr.partnerno = k;
-        Reg2PreciseHalfSegment hs = pHSvector[k];
-        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-        pHSvector.push_back(hs);
-      }
-  
-      sort(pHSvector.begin(), pHSvector.end());
-
-//      cout << "PlaneSweep..." << endl;
-      PlaneSweepProjection(pHSvector);
-    
-      MergeHS(pHSvector);
-
-//      cout << "Copy..." <<  pHSvector.size() << endl;
-      for(unsigned int k = 0; k < pHSvector.size(); k++ )
-      {
-        pAllHSvector.push_back(pHSvector[k]);
-//        cout << pHSvector[k] << endl;
-      }
-    }
-
-//    cout << "Final(1)..." <<  pAllHSvector.size() << endl;
-    if (GetNoComponents() < 2)
-      return;
-            
-    //sort halfsegments
-    sort(pAllHSvector.begin(), pAllHSvector.end());
-      
-    SplitHS(pAllHSvector);
-
-//    cout << "Final(2)..." <<  pAllHSvector.size() << endl;
-    //add the corresponding halfsegments
-    unsigned int vs = pAllHSvector.size();
-    for(unsigned int i = 0; i < vs; i++ )
-    {
-      pAllHSvector[i].attr.edgeno = i;
-      pAllHSvector[i].attr.partnerno = i;
-      Reg2PreciseHalfSegment hs = pAllHSvector[i];
-      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-      pAllHSvector.push_back(hs);
-    }
-}
-
-class slattr {
-public:
-  int HSindex;
-  int nabove; 
-  
-  inline slattr() { HSindex = -1; nabove = -1; };
-  inline slattr(int hsi, int n = -1) : HSindex(hsi), nabove(n) {};
-};
-
-
-bool aboveorder(const Reg2PreciseHalfSegment& s1, 
-                const Reg2PreciseHalfSegment& s2) 
-// s2 is above s1, order is s1 < s2
-{
-    mpq_class x = s2.GetLeftPoint().x > s1.GetLeftPoint().x ? 
-                s2.GetLeftPoint().x : s1.GetLeftPoint().x;
-    x.canonicalize();
-    
-    mpq_class s1y;
-    if (cmp(s1.GetRightPoint().x, s1.GetLeftPoint().x) != 0)
-      s1y = (x - s1.GetLeftPoint().x)*(s1.GetRightPoint().y 
-                - s1.GetLeftPoint().y)/(s1.GetRightPoint().x 
-                - s1.GetLeftPoint().x) + s1.GetLeftPoint().y;
-    else
-      s1y = s1.GetLeftPoint().y;
-    s1y.canonicalize();
-    
-    mpq_class s2y;
-    if (cmp(s2.GetRightPoint().x, s2.GetLeftPoint().x) != 0)
-      s2y = (x - s2.GetLeftPoint().x)*(s2.GetRightPoint().y 
-      - s2.GetLeftPoint().y)/(s2.GetRightPoint().x 
-      - s2.GetLeftPoint().x) + s2.GetLeftPoint().y;
-    else
-      s2y = s2.GetLeftPoint().y;
-    s2y.canonicalize();
-    
-    if (cmp(s1y, s2y) == 0)
-    {
-      x = s1.GetRightPoint().x < s2.GetRightPoint().x ? 
-                s1.GetRightPoint().x : s2.GetRightPoint().x;
-      x.canonicalize();
-      
-      if (cmp(s1.GetRightPoint().x, s1.GetLeftPoint().x) != 0)
-        s1y = (x - s1.GetLeftPoint().x)*(s1.GetRightPoint().y 
-        - s1.GetLeftPoint().y)/(s1.GetRightPoint().x 
-        - s1.GetLeftPoint().x) + s1.GetLeftPoint().y;
-      else 
-        s1y = s1.GetRightPoint().y;
-      s1y.canonicalize();
-      
-      if (cmp(s2.GetRightPoint().x, s2.GetLeftPoint().x) != 0)
-        s2y = (x - s2.GetLeftPoint().x)*(s2.GetRightPoint().y 
-        - s2.GetLeftPoint().y)/(s2.GetRightPoint().x 
-        - s2.GetLeftPoint().x) + s2.GetLeftPoint().y;
-      else
-        s2y = s2.GetRightPoint().y;
-      s2y.canonicalize();
-    }
-    return (cmp(s1y, s2y) < 0);
-}
-
-
-void MRegion2::PlaneSweepProjection(vector<Reg2PreciseHalfSegment>& pHSvector)
-{
-//    cout << "MRegion2::PlaneSweepProjection()" << endl;
-    unsigned int vsize = pHSvector.size();
-    int* TMP = new int[vsize/2];
-    memset(TMP,0,vsize*sizeof(int) / 2);
-
-    Reg2PreciseHalfSegment hs;
-    for(unsigned int i = 0; i < vsize; i++ )
-    {
-      hs = pHSvector[i];
-      if( hs.IsLeftDomPoint() )
-      {
-        TMP[hs.attr.edgeno] = i;
-      }
-      else
-      {
-        int p = TMP[hs.attr.edgeno];
-        pHSvector[i].attr.partnerno = p;
-        pHSvector[p].attr.partnerno = i;
-      }
-//      cout << "HS " << i << ": " << pHSvector[i] << endl;
-    }
-    delete[] TMP;
-    
-    vector<slattr> sweep;
-    vector<int> regborder;
-    unsigned int j;
-
-//    cout << "PlaneSweep startet..." << endl;
-    for(unsigned int i = 0; i < pHSvector.size(); i++ )
-    {
-//      cout << i << ":" << pHSvector[i] << endl;
-//      cout << i << ": ";
-      if (!pHSvector[i].IsLeftDomPoint())
-      {
-        for (j = 0; j < sweep.size(); j++ )
-          if (sweep[j].HSindex == pHSvector[i].attr.partnerno)
-          {
-//            cout << "Entfernen per erase, j=" << j << endl;
-            sweep.erase(sweep.begin()+j);
-            break;
-          }
-      }
-      else
-      {
-        slattr inshs(i);
-        
-        for (j = 0; j < sweep.size(); j++ )
-          if (aboveorder(pHSvector[i], pHSvector[sweep[j].HSindex]))
-          {
-//            cout << "Einfuegen per insert, Vgl mit #" << sweep[j].HSindex;
-//            cout << ", j=" << j;
-            sweep.insert(sweep.begin()+j, inshs);
-            break;
-          }
-          
-        if (j == sweep.size())
-        {
-          sweep.push_back(inshs);
-//          cout << "Einfuegen per push_back, j=" << j;
-        }
-
-        int m, n;
-        if (sweep.size() <= 1 or j <= 0)
-          n = 0;
-        else
-          n = sweep[j-1].nabove;
-        
-        m = n;
-        if (pHSvector[i].attr.insideAbove)
-          n++;
-        else
-          n--;
-        
-        sweep[j].nabove = n;
-//        cout << " HS hat (" << m << "," << n << ")";
-        if (m == 0 || n == 0) 
-        {
-//          cout << " HS ist ein Aussen-HS...";
-          regborder.push_back(i);
-        }
-//        cout << endl;
-      }
-
-    }
-
-    unsigned int borderi = pHSvector.size();
-    if (!regborder.empty())
-    {
-      borderi = regborder.back();
-      regborder.pop_back();
-    }
-    
-    for(unsigned int i = pHSvector.size(); i > 0; i-- )
-    {
-//      cout << "i = " << i-1;
-      if ((i-1) == borderi)
-      {
-        if (!regborder.empty())
-        {
-          borderi = regborder.back();
-          regborder.pop_back();
-        }
-        else
-          borderi = pHSvector.size();
-      }
-      else
-      {
-//        cout << " Loesche Segment Nr. " <<  i-1 << endl;
-        pHSvector.erase(pHSvector.begin()+(i-1));
-      }
-//      cout << endl;
-    } 
-}
-
-
-void MRegion2::MergeHS(vector<Reg2PreciseHalfSegment>& pHSvector)
-{
-//    cout << "MRegion2::MergeHS()" << endl;
-//    for(unsigned int i = 0; i < pHSvector.size()-1; i++ )
-//      cout << i << ": " << pHSvector[i] << endl;
-
-    for(unsigned int i = 0; i < pHSvector.size()-1; i++ )
-    {
-      for(unsigned int j = i+1; j < pHSvector.size() 
-              && pHSvector[j].GetLeftPoint() <= pHSvector[i].GetRightPoint();
-                j++ )
-      {
-        if (pHSvector[i].GetRightPoint() == pHSvector[j].GetLeftPoint())
-        {
-          bool mergeit = false;
-          
-          mpq_class xi1 = pHSvector[i].GetLeftPoint().x; 
-          mpq_class yi1 = pHSvector[i].GetLeftPoint().y; 
-          mpq_class xi2 = pHSvector[i].GetRightPoint().x; 
-          mpq_class yi2 = pHSvector[i].GetRightPoint().y; 
-          
-          mpq_class xj1 = pHSvector[j].GetLeftPoint().x; 
-          mpq_class yj1 = pHSvector[j].GetLeftPoint().y; 
-          mpq_class xj2 = pHSvector[j].GetRightPoint().x; 
-          mpq_class yj2 = pHSvector[j].GetRightPoint().y; 
-          
-          if (cmp(xi1, xi2) !=0 )
-          {
-            mpq_class ki = (yi2 - yi1)/(xi2 - xi1);
-            ki.canonicalize();
-        
-            if (cmp(xj1, xj2) !=0 )
-            {
-              mpq_class kj = (yj2 - yj1)/(xj2 - xj1);
-              kj.canonicalize();
-              
-              if (cmp(ki, kj) == 0)
-                mergeit = true;
-              else
-                continue;
-            }
-            else 
-              continue;
-          }
-          else
-          {
-            if (cmp(xj1, xj2) ==0 )
-              mergeit = true;
-            else
-              continue;
-          }
-        
-          if (mergeit)
-          {
-//          cout << "MRegion2::MergeHS() merge & delete HS #" << j << endl;
-//          cout << "i: " << i << " " << pHSvector[i] << endl;
-//          cout << "j: " << j << " " << pHSvector[j] << endl;
-            pHSvector[i].SetRightPoint(pHSvector[j].GetRightPoint());
-            pHSvector.erase(pHSvector.begin()+j);
-            j--;
-//          cout << "zu: " << i << " " << pHSvector[i] << endl;
-          }
-        }
-      }
-    }
-}
-
-
-void MRegion2::TraverseRegion(Region2& res) 
-{
-    vector<Reg2PreciseHalfSegment> precHSvector;
-
-    // 1st step: build set of halfsegments
-    CollectHS(precHSvector);
-
-    if (GetNoComponents() > 1)
-    {
-      // 2nd step: sort the set of halfsegments
-      sort(precHSvector.begin(), precHSvector.end());
-
-      // 3rd step: plane sweep incl. sort
-      PlaneSweepProjection(precHSvector);
-
-      // 4th step: merge halfsegments
-      MergeHS(precHSvector);
-    }
-
-    // 5th step: build the region with bulkload mechanism
-    res.StartBulkLoad();
-
-    for(unsigned int i = 0; i < precHSvector.size(); i++ )
-    {
-      precHSvector[i].attr.edgeno = i;
-      precHSvector[i].attr.partnerno = i;
-      res += precHSvector[i];
-      precHSvector[i].SetLeftDomPoint(!precHSvector[i].IsLeftDomPoint());
-      res += precHSvector[i];
-    }
-    
-    res.SetScaleFactor(scaleFactor, false);
-    res.EndBulkLoad();
-}
-
-
 
 void MRegion2::Intersection(MPoint& mp, MPoint& res)
 {
@@ -12927,6 +13116,12 @@ void MRegion2::Intersection(MPoint& mp, MPoint& res)
     IntersectionMP(mp, res, dummy);
 }
 
+/* 
+1.1.1.1 Method ~Inside()~
+
+for operator inside:
+ 
+*/
 
 void MRegion2::Inside(const MPoint& mp, MBool& res)
 {
@@ -12940,9 +13135,15 @@ void MRegion2::Inside(const MPoint& mp, MBool& res)
     res.SetDefined( true );
     MPoint dummy(0);
 
-    IntersectionMP(mp, dummy, res);
+    IntersectionMP(mp, dummy, res, true);
 }
 
+/* 
+1.1.1.1 Method ~Traversed()~
+
+for operator traversed:
+ 
+*/
 
 void MRegion2::Traversed(Region2& res) 
 {
@@ -12978,6 +13179,8 @@ void MRegion2::SetMinMax(URegionEmb2 ur)
 
 1.1.1.1 Method ~Clone()~
 
+The clone function:
+
 */
 
 MRegion2* MRegion2::Clone(void) const {
@@ -12990,6 +13193,8 @@ MRegion2* MRegion2::Clone(void) const {
 
 /*
 1.1.1.1 Method ~CopyFrom()~
+
+The copy method:
 
 */
 void MRegion2::CopyFrom(const Attribute* right) {
@@ -13122,6 +13327,8 @@ And finally don't forget the scale factor!
 /*
 1.1.1.1 ~DBArray~ access
 
+Get access to the DbArrays
+
 */
 int MRegion2::NumOfFLOBs() const {
 
@@ -13154,12 +13361,6 @@ Flob* MRegion2::GetFLOB(const int i) {
     }
 
 }
-
-
-
-
-
-
 
 
 /*
@@ -13303,9 +13504,6 @@ First get the scaleFactor from the list.
 }
 
 
-
-
-
 /*
 1.1 Algebra integration
 
@@ -13316,19 +13514,18 @@ static ListExpr MRegion2Property() {
 
     ListExpr listrep = nl->TextAtom();
     nl->AppendText(listrep,
-           "(<int> (u1 ... un)) with ui uregion2 list representations, "
-           "and n >= 1. The <int> value is the scaleFactor for "
-           "transformation "
-           "of coordinates to double. Each ui is of format "
-           "(<interval> <faces>), where <interval> is "
-           "(<int> <int> <bool> <bool> <preciseInterval>) and where "
-           "<preciseInterval> is (<text> <text>) or an empty list, "
-           "representing precise initial and final instant. "
-           "Each <face> in <faces> is (<outercycle> <holecycle>*), "
-           "where <outercycle> and <holecycle> are "
-           "(<int> <int> <int> <int> <precisePoint>), and where "
-           "<precisePoint> is (<text> <text> <text> <text>) or "
-           "an empty list, and the <int> and <text> values representing "
+           "(<int> (u1 ... un)) with ui uregion2 list representations,\n"
+           "and n >= 1. The <int> value is the scaleFactor for\n"
+           "transformation of coordinates to double. Each ui is of\n"
+           "format (<timeinterval> <faces>), where <timeinterval> is\n"
+           "(<instant> <instant> <bool> <bool> <preciseInterval>) and\n"
+           "where <preciseInterval> is (<text> <text>) or an empty\n"
+           "list, representing precise initial and final instant.\n"
+           "Each <face> in <faces> is (<outercycle> <holecycle>*),\n"
+           "where <outercycle> and <holecycle> are\n"
+           "(<int> <int> <int> <int> <precisePoint>), and where\n"
+           "<precisePoint> is (<text> <text> <text> <text>) or\n"
+           "an empty list, and the <int> and <text> values representing\n"
            "initial start X, initial start Y, final start X "
            "and final start Y values.");
     ListExpr example = nl->TextAtom();
@@ -13373,11 +13570,6 @@ static bool CheckMRegion2(ListExpr type, ListExpr& errorInfo) {
         return nl->IsEqual(type, MRegion2::BasicType())
                 || nl->IsEqual(type, "movingregion2");
 }
-
-
-
-
-
 
 
 /*
@@ -13492,11 +13684,6 @@ static TypeConstructor movingregion2(
     SizeOfMRegion2,
     CheckMRegion2);
 
-
-
-
-
-
 /*
 1.1 Helper function(s)
 
@@ -13529,58 +13716,18 @@ static MPoint CreateMPointFromPoint(MRegion2* mr, Point* p) {
 }
 
 
-
-
-
 /*
 1 Operator definition
 
-1.1 Type mapping functions
+1.1 Operators  ~initial~, ~final~, ~atinstant~, ~inst~, ~val~, 
+~mregiontomregion2~, ~uregiontouregion2~, ~scale~, ~scale2~, ~translate~
 
-1.1.1 Generic
+1.1.1 Type mapping functions
 
-Used by ~intersection~:
-
-*/
-
-static ListExpr MPointMRegion2ToMPointTypeMap(ListExpr args)
-{
-    if (MR2_DEBUG)
-    {
-        cerr << "MPointMRegion2ToMPointTypeMap() called" << endl;
-        cerr << nl->SymbolValue(nl->First(args)) << endl;
-        cerr << nl->SymbolValue(nl->Second(args)) << endl;
-    }
-
-    if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), MPoint::BasicType())
-        && nl->IsEqual(nl->Second(args), MRegion2::BasicType()))
-        return nl->SymbolAtom(MPoint::BasicType());
-    else
-        return nl->SymbolAtom(Symbol::TYPEERROR());
-}
-
-/*
-Used by ~inside~:
-
-*/
-
-static ListExpr MPointMRegion2ToMBoolTypeMap(ListExpr args) {
-    if (MR2_DEBUG)
-        cerr << "MPointMRegion2ToMBoolTypeMap() called" << endl;
-
-    if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), MPoint::BasicType())
-        && nl->IsEqual(nl->Second(args), MRegion2::BasicType()))
-        return nl->SymbolAtom(MBool::BasicType());
-    else
-        return nl->SymbolAtom(Symbol::TYPEERROR());
-}
-
-/*
 Used by ~initial~ and ~final~:
 
 */
+
 static ListExpr InitialFinalTypeMap(ListExpr args) {
     if (MR2_DEBUG)
         cerr << "InitialFinalTypeMap() called" << endl;
@@ -13595,12 +13742,11 @@ static ListExpr InitialFinalTypeMap(ListExpr args) {
         return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
-
-
 /*
 Used by ~atinstant~:
 
 */
+
 static ListExpr AtInstantTypeMap(ListExpr args) {
     if (MR2_DEBUG)
         cerr << "AtInstantTypeMap() called" << endl;
@@ -13616,7 +13762,6 @@ static ListExpr AtInstantTypeMap(ListExpr args) {
     else
         return nl->SymbolAtom(Symbol::TYPEERROR());
 }
-
 
 /*
 Used by ~inst~:
@@ -13634,7 +13779,6 @@ static ListExpr IRegion2ToInstantTypeMap(ListExpr args) {
         return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
-
 /*
 Used by ~val~:
 
@@ -13650,7 +13794,6 @@ static ListExpr IRegion2ToRegion2TypeMap(ListExpr args) {
     else
         return nl->SymbolAtom(Symbol::TYPEERROR());
 }
-
 
 /*
 Used by ~mregiontomregion2~:
@@ -13680,6 +13823,7 @@ static ListExpr MRegionToMRegion2TypeMap(ListExpr args){
 Used by ~uregiontouregion2~:
 
 */
+
 static ListExpr URegionToURegion2TypeMap(ListExpr args) {
         if (MR2_DEBUG) cout << "URegionToURegion2TypeMap called " << endl;
         if (nl->ListLength(args) != 2) {
@@ -13704,6 +13848,7 @@ static ListExpr URegionToURegion2TypeMap(ListExpr args) {
 Used by ~scale~:
 
 */
+
 static ListExpr ScaleTypeMap(ListExpr args){
         if (MR2_DEBUG) cout << "ScaleTypeMap called " << endl;
         if (nl->ListLength(args) != 2){
@@ -13738,6 +13883,7 @@ static ListExpr ScaleTypeMap(ListExpr args){
 Used by ~scale2~:
 
 */
+
 static ListExpr Scale2TypeMap(ListExpr args){
         if (MR2_DEBUG) cout << "Scale2TypeMap called " << endl;
         if (nl->ListLength(args) != 3){
@@ -13777,6 +13923,7 @@ static ListExpr Scale2TypeMap(ListExpr args){
 Used by ~translate~:
 
 */
+
 static ListExpr TranslateTypeMap(ListExpr args){
         if (MR2_DEBUG) cout << "TranslateTypeMap called " << endl;
         if (nl->ListLength(args) != 2){
@@ -13789,15 +13936,37 @@ static ListExpr TranslateTypeMap(ListExpr args){
                         "MRegion2 or URegion2 as first argument required");
                 return nl->SymbolAtom(Symbol::TYPEERROR());
         }
-        if (!nl->IsEqual(nl->First(nl->Second(args)),CcReal::BasicType())){
+        
+        if (nl->ListLength(nl->Second(args)) == 2)
+        {
+          if (!nl->IsEqual(nl->First(nl->Second(args)),CcReal::BasicType())){
                 ErrorReporter::ReportError(
                         "double as second argument required");
                 return nl->SymbolAtom(Symbol::TYPEERROR());
-        }
-        if (!nl->IsEqual(nl->Second(nl->Second(args)),CcReal::BasicType())){
+          }
+          if (!nl->IsEqual(nl->Second(nl->Second(args)),CcReal::BasicType())){
                 ErrorReporter::ReportError(
                         "double as third argument required");
                 return nl->SymbolAtom(Symbol::TYPEERROR());
+          }
+        }
+        else
+        {
+          if (!nl->IsEqual(nl->First(nl->Second(args)),Duration::BasicType())){
+                ErrorReporter::ReportError(
+                        "duration as second argument required");
+                return nl->SymbolAtom(Symbol::TYPEERROR());
+          }
+          if (!nl->IsEqual(nl->Second(nl->Second(args)),CcReal::BasicType())){
+                ErrorReporter::ReportError(
+                        "double as third argument required");
+                return nl->SymbolAtom(Symbol::TYPEERROR());
+          }
+          if (!nl->IsEqual(nl->Third(nl->Second(args)),CcReal::BasicType())){
+                ErrorReporter::ReportError(
+                        "double as fourth argument required");
+                return nl->SymbolAtom(Symbol::TYPEERROR());
+          }
         }
         if (nl->IsEqual(nl->First(args),MRegion2::BasicType()))
         {
@@ -13812,31 +13981,9 @@ static ListExpr TranslateTypeMap(ListExpr args){
         return nl->TheEmptyList();
 }
 
-
-
-
 /*
-1.1 Selection functions
+1.1.1 Selection functions
 
-1.1.1 Generic
-
-Used by ~intersection~ and ~inside~:
-
-*/
-
-static int MPointMRegion2Select(ListExpr args) {
-    if (MR2_DEBUG)
-        cerr << "MPointMRegion2Select() called" << endl;
-
-    if (nl->ListLength(args) == 2
-        && nl->SymbolValue(nl->First(args)) == MPoint::BasicType()
-        && nl->SymbolValue(nl->Second(args)) == MRegion2::BasicType())
-        return 0;
-    else
-        return -1;
-}
-
-/*
 Used by ~deftime~ and ~traversed~:
 
 */
@@ -13851,7 +13998,6 @@ static int MRegion2Select(ListExpr args) {
     else
         return -1;
 }
-
 
 /*
 Used by ~inst~ and ~val~:
@@ -13877,7 +14023,6 @@ static int IRegion2Select(ListExpr args) {
     else
         return -1;
 }
-
 
 /*
 Used by ~atinstant~, ~initial~ and ~final~:
@@ -13968,14 +14113,10 @@ static int TranslateSelect(ListExpr args) {
 }
 
 
-
 /*
-1.1 Value mapping functions
-
-1.1.1 Normal value mapping functions
+1.1.1 Value mapping functions
 
 */
-
 
 static int AtInstantValueMap_URegion2(Word* args,
                                      Word& result,
@@ -14008,8 +14149,6 @@ static int AtInstantValueMap_URegion2(Word* args,
     return 0;
 }
 
-
-
 static int InitialValueMap_URegion2(Word* args,
                                      Word& result,
                                      int message,
@@ -14041,7 +14180,6 @@ static int InitialValueMap_URegion2(Word* args,
     return 0;
 }
 
-
 static int FinalValueMap_URegion2(Word* args,
                                      Word& result,
                                      int message,
@@ -14072,8 +14210,6 @@ static int FinalValueMap_URegion2(Word* args,
     }
     return 0;
 }
-
-
 
 static int MRegionToMRegion2ValueMap(Word* args,
                                  Word& result,
@@ -14183,19 +14319,43 @@ static int TranslateValueMap_MRegion2(Word* args,
         result = qp->ResultStorage(s);
         MRegion2* mr = (MRegion2*) args[0].addr;
 
-        Supplier son = qp->GetSupplier( args[1].addr, 0 );
         Word t;
-        qp->Request( son, t );
-        const CcReal* deltaX = ((CcReal *)t.addr);
+        Supplier son;
+        DateTime* deltaT;
+        const CcReal* deltaX;
+        const CcReal* deltaY;
+        if (qp->GetNoSons(args[1].addr) == 2)
+        {
+          deltaT = new DateTime (0, 0, datetime::durationtype);
 
-        son = qp->GetSupplier( args[1].addr, 1 );
-        qp->Request( son, t );
-        const CcReal* deltaY = ((CcReal *)t.addr);
+          son = qp->GetSupplier( args[1].addr, 0 );
+          qp->Request( son, t );
+          deltaX = ((CcReal *)t.addr);
+
+          son = qp->GetSupplier( args[1].addr, 1 );
+          qp->Request( son, t );
+          deltaY = ((CcReal *)t.addr);
+        }
+        else
+        {
+          son = qp->GetSupplier( args[1].addr, 0 );
+          qp->Request( son, t );
+          deltaT = ((DateTime *)t.addr);
+
+          son = qp->GetSupplier( args[1].addr, 1 );
+          qp->Request( son, t );
+          deltaX = ((CcReal *)t.addr);
+
+          son = qp->GetSupplier( args[1].addr, 2 );
+          qp->Request( son, t );
+          deltaY = ((CcReal *)t.addr);
+        }
 
         MRegion2 res(true);
         res.CopyFrom(*&mr);
 
-        res.Translate((double)deltaX->GetRealval(), 
+        res.Translate(deltaT,
+                      (double)deltaX->GetRealval(), 
                       (double)deltaY->GetRealval());
         ((MRegion2*)result.addr)->CopyFrom(&res);
         return (0);
@@ -14209,25 +14369,47 @@ static int TranslateValueMap_URegion2(Word* args,
         result = qp->ResultStorage(s);
         URegion2* ur = (URegion2*) args[0].addr;
 
-        Supplier son = qp->GetSupplier( args[1].addr, 0 );
         Word t;
-        qp->Request( son, t );
-        const CcReal* deltaX = ((CcReal *)t.addr);
+        Supplier son;
+        DateTime* deltaT;
+        const CcReal* deltaX;
+        const CcReal* deltaY;
+        if (qp->GetNoSons(args[1].addr) == 2)
+        {
+          deltaT = new DateTime (0, 0, datetime::durationtype);
 
-        son = qp->GetSupplier( args[1].addr, 1 );
-        qp->Request( son, t );
-        const CcReal* deltaY = ((CcReal *)t.addr);
+          son = qp->GetSupplier( args[1].addr, 0 );
+          qp->Request( son, t );
+          deltaX = ((CcReal *)t.addr);
+
+          son = qp->GetSupplier( args[1].addr, 1 );
+          qp->Request( son, t );
+          deltaY = ((CcReal *)t.addr);
+        }
+        else
+        {
+          son = qp->GetSupplier( args[1].addr, 0 );
+          qp->Request( son, t );
+          deltaT = ((DateTime *)t.addr);
+
+          son = qp->GetSupplier( args[1].addr, 1 );
+          qp->Request( son, t );
+          deltaX = ((CcReal *)t.addr);
+
+          son = qp->GetSupplier( args[1].addr, 2 );
+          qp->Request( son, t );
+          deltaY = ((CcReal *)t.addr);
+        }
   
         ((URegion2*)result.addr)->CopyFrom(ur);
-        ((URegion2*)result.addr)->Translate(deltaX->GetRealval(), 
+        ((URegion2*)result.addr)->Translate(deltaT,
+                                            deltaX->GetRealval(), 
                                             deltaY->GetRealval());
-        
         return (0);
 }
 
-
 /*
-1.1 Value mapping arrays
+1.1.1 Value mapping arrays
 
 */
 
@@ -14263,7 +14445,7 @@ static ValueMapping translatevaluemap[] =
 
 
 /*
-1.1 Operator specifications
+1.1.1 Operator specifications
 
 */
 static const string atinstantspec  =
@@ -14357,22 +14539,23 @@ static const string scale2spec =
 
 static const string translatespec =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-        " ( <text>mregion2 x real x real -> mregion2\n"
+        " ( <text>mregion2 x duration x real x real -> mregion2\n"
+        "uregion2 x duration x real x real -> uregion2\n"
+        "mregion2 x real x real -> mregion2\n"
         "uregion2 x real x real -> uregion2</text--->"
-        "<text>_ translate [ _, _]</text--->"
+        "<text>_ translate [ _, _, _]\n"
+        "_ translate [ _, _]</text--->"
         "<text>Changes a given moving region2 or moving region2 "
-        "unit through moving using the real values to move each "
-        "point parallely in x and y direction.\n"
+        "unit through moving by a given temporal offset and using "
+        "the real values to move each point parallely in x and y direction.\n"
+        "The duration as temporal offset is an optional parameter.\n"
         "If the distances are too big resulting in an integer "
         "overflow, an error is reported.</text--->"
-        "<text>query mr2 translate [deltax, deltay]</text--->) )";
+        "<text>query mr2 translate [deltat, deltax, deltay]</text--->) )";
 
-
-
-
-
+        
 /*
-1.1 Operator creation
+1.1.1 Operator creation
 
 */
 
@@ -14445,6 +14628,10 @@ static Operator mr3translate("translate",
                 TranslateTypeMap);
 
 
+/*
+1.1 Operator ~setscalefactor~
+
+*/
 
 static ListExpr SetScaleTypeMap(ListExpr args)
 {
@@ -14464,10 +14651,13 @@ static ListExpr SetScaleTypeMap(ListExpr args)
         else if (nl->IsEqual(nl->First(args),URegion2::BasicType())){
                 return nl->SymbolAtom(URegion2::BasicType());
         }
+        else if (nl->IsEqual(nl->First(args),IRegion2::BasicType())){
+                return nl->SymbolAtom(IRegion2::BasicType());
+        }
         else
         {
                 ErrorReporter::ReportError(
-                        "MRegion2 or URegion2 as first argument required");
+                "MRegion2 or URegion2 or IRegion2 as first argument required");
                 return nl->SymbolAtom(Symbol::TYPEERROR());
         }
 }
@@ -14479,6 +14669,9 @@ static int SetScaleSelect(ListExpr args) {
     else if (nl->ListLength(args) == 2
         && nl->SymbolValue(nl->First(args)) == URegion2::BasicType())
         return 1;
+    else if (nl->ListLength(args) == 2
+        && nl->SymbolValue(nl->First(args)) == IRegion2::BasicType())
+        return 2;
     else
         return -1;
 }
@@ -14519,7 +14712,28 @@ static int SetScaleValueMap_URegion2(Word* args, Word& result,
         else
         {
           cerr << "Scalefactor " << newScale << " is too big!!" << endl;
-          ((MRegion2*)result.addr)->SetDefined( false );
+          ((URegion2*)result.addr)->SetDefined( false );
+        }
+        
+        return 0;
+}
+
+static int SetScaleValueMap_IRegion2(Word* args, Word& result, 
+                                     int message, Word& local, Supplier s) 
+{
+        result = qp->ResultStorage(s);
+
+        IRegion2* reg = (IRegion2*) args[0].addr;
+        int newScale = ((CcInt*)args[1].addr)->GetIntval();
+
+        IRegion2 reg2((uint)0);
+        reg2.CopyFrom(reg);
+        if (reg2.value.SetScaleFactor(newScale))
+          ((IRegion2*)result.addr)->CopyFrom(&reg2);
+        else
+        {
+          cerr << "Scalefactor " << newScale << " is too big!!" << endl;
+          ((IRegion2*)result.addr)->SetDefined( false );
         }
         
         return 0;
@@ -14527,15 +14741,17 @@ static int SetScaleValueMap_URegion2(Word* args, Word& result,
 
 static ValueMapping SetScaleValueMap[] =
     { SetScaleValueMap_MRegion2,
-      SetScaleValueMap_URegion2 };
+      SetScaleValueMap_URegion2,
+      SetScaleValueMap_IRegion2 };
       
 static const string setscalespec =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
         "( <text>mregion2 x int -> mregion2\n"
-        "uregion2 x int -> uregion2</text--->"
+        "uregion2 x int -> uregion2\n"
+        "iregion2 x int -> iregion2</text--->"
         "<text>setscalefactor( _, _)</text--->"
         "<text>Changes the scale factor for a given moving region2 "
-        "or moving region2 unit.\n"
+        "or moving region2 unit or instant region2.\n"
         "The new scale factor is 10^(scale), this means that "
         "the integer value is the exponent to the base 10 of "
         "the new factor.\n"
@@ -14545,12 +14761,129 @@ static const string setscalespec =
 
 static Operator setscale("setscalefactor",
                 setscalespec,
-                2,
+                3,
                 SetScaleValueMap,
                 SetScaleSelect,
                 SetScaleTypeMap);
 
+/*
+1.1 Operator ~timeshift~
 
+*/
+
+ListExpr MR3timeshiftTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) != 2)
+  {
+    ErrorReporter::ReportError(
+    "Invalid number of arguments: operator expects 2 arguments");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  if (!nl->IsEqual(nl->Second(args),Duration::BasicType()))
+  {
+    ErrorReporter::ReportError(
+        "Duration Type as second argument required");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  if (nl->IsEqual(nl->First(args),MRegion2::BasicType()))
+  {
+    return nl->SymbolAtom(MRegion2::BasicType());
+  }
+  else if (nl->IsEqual(nl->First(args),URegion2::BasicType()))
+  {
+    return nl->SymbolAtom(URegion2::BasicType());
+  }
+  else
+  {
+    ErrorReporter::ReportError(
+       "MRegion2 or URegion2 as first argument required");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+}
+
+
+static int MR3timeshiftSelect(ListExpr args) {
+    if (nl->ListLength(args) == 2
+        && nl->SymbolValue(nl->First(args)) == MRegion2::BasicType())
+        return 0;
+    else if (nl->ListLength(args) == 2
+        && nl->SymbolValue(nl->First(args)) == URegion2::BasicType())
+        return 1;
+    else
+        return -1;
+}
+
+int timeshiftValueMap_MRegion2( Word* args, Word& result,
+                                int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage(s);
+
+    MRegion2* reg = (MRegion2*) args[0].addr;
+    DateTime* dt = (DateTime *)args[1].addr;
+
+    if( reg->IsDefined() &&
+        dt->IsDefined() )
+    {
+      MRegion2 reg2((uint)0);
+      reg2.CopyFrom(reg);
+      reg2.Timeshift(dt);
+      ((MRegion2*)result.addr)->CopyFrom(&reg2);
+    }
+    else
+      ((MRegion2*)result.addr)->SetDefined( false );
+    
+    return 0;
+}
+
+int timeshiftValueMap_URegion2( Word* args, Word& result,
+                                int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage(s);
+
+    URegion2* reg = (URegion2*) args[0].addr;
+    DateTime* dt = (DateTime *)args[1].addr;
+
+    if( reg->IsDefined() &&
+        dt->IsDefined() )
+    {
+      URegion2 reg2((uint)0);
+      reg2.CopyFrom(reg);
+      reg2.Timeshift(dt);
+      ((URegion2*)result.addr)->CopyFrom(&reg2);
+    }
+    else
+      ((URegion2*)result.addr)->SetDefined( false );
+    
+    return 0;
+}
+
+
+static ValueMapping MR3timeshiftValueMap[] =
+    { timeshiftValueMap_MRegion2,
+      timeshiftValueMap_URegion2 };
+      
+
+const string timeshiftspec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mregion2 x duration -> mregion2\n"
+  "uregion2 x duration -> uregion2</text--->"
+  "<text>_ timeshift[ _ ]</text--->"
+  "<text>Shifts the definition time of the mregion2 or "
+  "uregion2 object.</text--->"
+  "<text>mr2 timeshift[ create_duration(1, 0) ]</text--->"
+  ") )";
+
+Operator mr3timeshift("timeshift",
+         timeshiftspec,
+         2,
+         MR3timeshiftValueMap,
+         MR3timeshiftSelect,
+         MR3timeshiftTypeMap);
+
+/*
+1.1 Operator ~intersection~
+
+*/
 
 static ListExpr intersectionTypeMap(ListExpr args)
 {
@@ -14616,6 +14949,10 @@ static Operator intersection("intersection",
                              simpleSelect,
                              intersectionTypeMap);
 
+/*
+1.1 Operator ~inside~
+
+*/
 
 static ListExpr insideTypeMap(ListExpr args) {
     if (MR2_DEBUG)
@@ -14677,6 +15014,10 @@ static Operator inside("inside",
                        simpleSelect,
                        insideTypeMap);
 
+/*
+1.1 Operator ~traversed~
+
+*/
 
 static ListExpr traversedTypeMap(ListExpr args) {
     if (MR2_DEBUG)
@@ -14722,6 +15063,98 @@ static Operator traversed("traversed",
                           simpleSelect,
                           traversedTypeMap);
 
+/*
+1.1 Operators ~deftime~ and ~present~
+
+*/
+
+static ListExpr deftimeTypeMap(ListExpr args) {
+    if (MR2_DEBUG)
+        cerr << "deftimeTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), MRegion2::BasicType()))
+        return nl->SymbolAtom(Range<Instant>::BasicType());
+    else
+        return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+static ListExpr PresentTypeMap(ListExpr args) {
+    if (MR2_DEBUG)
+        cerr << "PresentTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2
+        && nl->IsEqual(nl->First(args), MRegion2::BasicType())
+        && (nl->IsEqual(nl->Second(args), Instant::BasicType())
+            || nl->IsEqual(nl->Second(args), Range<Instant>::BasicType())))
+        return nl->SymbolAtom(CcBool::BasicType());
+    else
+        return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+static int deftimeSelect(ListExpr args) {
+    if (MR2_DEBUG)
+        cerr << "deftimeSelect() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->SymbolValue(nl->First(args)) == MRegion2::BasicType())
+        return 0;
+    else
+        return -1;
+}
+
+static int PresentSelect(ListExpr args) {
+    if (MR2_DEBUG) cerr << "PresentSelect() called" << endl;
+
+    if (nl->ListLength(args) == 2
+        && nl->SymbolValue(nl->First(args)) == MRegion2::BasicType()
+        && nl->SymbolValue(nl->Second(args)) == Instant::BasicType())
+        return 0;
+    else if (nl->ListLength(args) == 2
+        && nl->SymbolValue(nl->First(args)) == MRegion2::BasicType()
+        && nl->SymbolValue(nl->Second(args)) == Range<Instant>::BasicType())
+        return 1;
+    else
+        return -1;
+}
+
+static ValueMapping deftimevaluemap[] =
+    { MappingDefTime<MRegion2> };
+
+static ValueMapping presentvaluemap[] =
+    { MappingPresent_i<MRegion2>,
+      MappingPresent_p<MRegion2> };
+
+static const string deftimespec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>mregion2 -> periods</text--->"
+    "    <text>deftime( _ )</text--->"
+    "    <text>Get the defined time of the mregion2 object.</text--->"
+    "    <text>deftime( mregion1 )</text---> ) )";
+
+static const string presentspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>mregion2 x instant -> bool,\n"
+    "mregion2 x periods -> bool</text--->"
+    "    <text>_ present _ </text--->"
+    "    <text>Whether the object is present at the given instant or"
+    "    period.</text--->"
+    "    <text>mregion1 present instant1</text---> ) )";
+
+static Operator deftime("deftime",
+                        deftimespec,
+                        1,
+                        deftimevaluemap,
+                        deftimeSelect,
+                        deftimeTypeMap);
+
+static Operator present("present",
+                        presentspec,
+                        2,
+                        presentvaluemap,
+                        PresentSelect,
+                        PresentTypeMap);
+
 
 /*
 1 Algebra creation
@@ -14755,6 +15188,9 @@ public:
     AddOperator(&scale);
     AddOperator(&scale2);
     AddOperator(&mr3translate);
+    AddOperator(&mr3timeshift);
+    AddOperator(&deftime);
+    AddOperator(&present);
 
     AddOperator(&setscale);
 
