@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2010, University in Hagen, 
+Copyright (C) 2013, University in Hagen, 
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -21,18 +21,20 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
 
-1 RegionTools2
-
+[1] File RegionTools2.h
 
 This file contains functions handling with regions of the Region2-Algebra and 
 the MovingRegion3-Algebra.
 
+[TOC]
 
-*/
+1 Conversion functions for GMP-type mpq\_class
 
-/*
-1.1 Function ~gmpTypeToTextType()~
+1.1 Function ~gmpTypeToTextType1()~
 
 Reads from inValue and stores its representation as TextType in resultList.
 
@@ -47,9 +49,8 @@ static void gmpTypeToTextType1
   nl->AppendText(resultList, st);
 }
 
-
 /*
-1.1 Function ~gmpTypeToTextType()~
+1.1 Function ~gmpTypeToTextType2()~
 
 Reads from inValue and stores its representation as TextType in resultList.
 
@@ -63,9 +64,8 @@ static void gmpTypeToTextType2 (const mpq_class& inValue, ListExpr& resultList)
   resultList = nl->TextAtom(theStream.str());
 }
 
-
 /*
-1.1 Function ~textTypeToGmpType()~
+1.1 Function ~textTypeToGmpType1()~
 
 Reads from inList and stores its representation as mpq\_class in outValue.
 
@@ -78,14 +78,10 @@ static void textTypeToGmpType1
 
         char lastChar = '*'; //just a random initialization...
 
-//cout << "Textscan: Länge=" << nl->TextLength(inList) << endl;
-//cout << "verbleibend: " ;
-        
         for (unsigned int i = 0; i < nl->TextLength(inList); i++)
         {
           string str = "";
           nl->GetText(theScan, 1, str);
-//cout << "i="<< i << "/" << nl->TextLength(inList) << " ";
 
           //Checking for valid character
           if ((int)str[0] < 47 || (int)str[0] > 57
@@ -111,13 +107,10 @@ static void textTypeToGmpType1
           lastChar = str[0];
         }
 
-//cout << endl;        
         theStream >> outValue;
 
         outValue.canonicalize();
 
-//cout << outValue << endl;;
-        //Checking the value - must be between 0 and 1
         if (cmp(outValue, 1) >= 0 || cmp(outValue,0) < 0)
         {
           stringstream message;
@@ -129,7 +122,6 @@ static void textTypeToGmpType1
           throw invalid_argument(message.str());
         }
 }
-
 
 /*
 1.1 Function ~textTypeToGmpType2()~
@@ -180,7 +172,6 @@ static void textTypeToGmpType2
         outValue.canonicalize();
 }
 
-
 /*
 1.1 Function ~D2MPQ()~
 
@@ -189,11 +180,8 @@ Converts value of type double to a value of type mpq\_class
 */
 static mpq_class D2MPQ( const double d )
 {
-//exact transformation of internal double representation:
   mpq_class res = mpq_class(d);
-//return res;
 
-//this version should transform it like WYSIWYG:
   stringstream s, numStream, denStream;
   bool denStart = false;
   denStream.put('1');
@@ -219,8 +207,9 @@ static mpq_class D2MPQ( const double d )
   return res;
 }
 
-
 /*
+1 Functions to write the precise values to and read them from the DbArray 
+ 
 1.1 Function ~SetValueX()~
 
 Stores value z of type mpz\_class in DbArray of type unsigned int, gives back the startposition and 
@@ -253,7 +242,6 @@ static void SetValueX(mpz_class z, DbArray<unsigned int>* preciseValuesArray,
         }
 }
 
-
 /*
 1.1 Function ~GetValueX()~
 
@@ -277,9 +265,12 @@ static mpz_class GetValueX(const int startpos, const int numofInt,
     return theValue;
 }  
 
-
 /*
-1.1 ~overflowAsInt~
+1 Functions to detect an overflow of integer values
+
+1.1 Function ~overflowAsInt~
+
+checks int-overflow of x1 or x2 with scalefactor s
 
 */
 static bool overflowAsInt(mpq_class x1, mpq_class x2, int s = 0)
@@ -349,9 +340,10 @@ static bool overflowAsInt(mpq_class x1, mpq_class x2, int s = 0)
   return false;
 }
 
-
 /*
-1.1 ~overflowAsInt~
+1.1 Function ~overflowAsInt~
+
+checks int-overflow of x1 or x2 by scaling with s
 
 */
 static bool overflowAsInt(mpq_class x1, mpq_class x2, double s)
@@ -440,9 +432,10 @@ static bool overflowAsInt(mpq_class x1, mpq_class x2, double s)
   return false;
 }
 
-
 /*
-1.1 ~checkFactorOverflow~
+1.1 Function ~checkFactorOverflow~
+
+checks int-overflow of maxI or minI with scalefactor s
 
 */
 static bool checkFactorOverflow(int maxI, int minI, int s = 0)
@@ -486,9 +479,10 @@ static bool checkFactorOverflow(int maxI, int minI, int s = 0)
   return false;
 }
 
-
 /*
-1.1 ~checkFactorOverflow~
+1.1 Function ~checkFactorOverflow~
+
+checks int-overflow of maxI or minI by scaling with s
 
 */
 static bool checkFactorOverflow(int maxI, int minI, double s = 1.0)
@@ -540,5 +534,3 @@ static bool checkFactorOverflow(int maxI, int minI, double s = 1.0)
   
   return false;
 }
-
-

@@ -1,15 +1,40 @@
 /*
-7 Class ~HalfSegment2~
+----
+This file is part of SECONDO.
 
-This class implements the memory representation of  ~halfsegment~. Although ~halfsegment~
-is not an independent type constructor, it is the basic construction unit of the ~line~ and the ~region~
-type constructors.
+Copyright (C) 2013, University in Hagen, 
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
 
-A ~halfsegment~ value is composed of a pair of points and a flag indicating the dominating
-point. The left point is always smaller than the right one.
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+
+[1] File Region2HalfSegments.h
+
+This file contains classes of halfsegments for use within the Region2-Algebra and 
+the MovingRegion3-Algebra.
+
+[TOC]
+
+1 Class definitions
 
 */
-
 class Reg2GridHalfSegment;
 class Reg2PrecHalfSegment;
 class Reg2PreciseHalfSegment;
@@ -18,110 +43,170 @@ ostream& operator<<(ostream &os, const Reg2GridHalfSegment& hs);
 ostream& operator<<(ostream &os, const Reg2PrecHalfSegment& hs);
 ostream& operator<<(ostream &os, const Reg2PreciseHalfSegment& hs);
 
-class Reg2PreciseHalfSegment
-{
-  private:
-    bool ldp;
-    Reg2PrecisePoint lp;
-    Reg2PrecisePoint rp;
+/*
+1.1 Class ~Reg2GridHalfSegment~
 
-  public:
-    AttrType attr;
+This class implements the memory representation of a halfsegment in integer coordinates. 
+A halfsegment value is composed of a pair of points and a flag indicating the dominating
+point.
 
-    inline Reg2PreciseHalfSegment() {}
-    inline Reg2PreciseHalfSegment( bool ldp, const Reg2PrecisePoint& lp, 
-                                   const Reg2PrecisePoint& rp );
-    inline Reg2PreciseHalfSegment( const Reg2PreciseHalfSegment& hs );
-    inline Reg2PreciseHalfSegment( const HalfSegment& hs );
-
-    inline ~Reg2PreciseHalfSegment() {}
-
-    inline const Reg2PrecisePoint& GetLeftPoint() const;
-    inline const Reg2PrecisePoint& GetRightPoint() const;
-    inline void SetLeftPoint(const Reg2PrecisePoint& nlp);
-    inline void SetRightPoint(const Reg2PrecisePoint& nrp);
-    inline void Set( bool ldp, const Reg2PrecisePoint& lp, 
-                     const Reg2PrecisePoint& rp );
-    inline const Reg2PrecisePoint& GetDomPoint() const;
-    inline const Reg2PrecisePoint& GetSecPoint() const;
-    inline bool IsLeftDomPoint() const;
-    inline void SetLeftDomPoint( bool ldp );
-    inline bool IsVertical() const;
-
-    inline const AttrType& GetAttr() const;
-    inline void SetAttr( AttrType& attr );
-    
-    inline int Compare( const Reg2PreciseHalfSegment& hs ) const;
-    inline Reg2PreciseHalfSegment& operator=( 
-                        const Reg2PreciseHalfSegment& hs );
-    inline bool operator==( const Reg2PreciseHalfSegment& hs ) const;
-    inline bool operator!=( const Reg2PreciseHalfSegment& hs ) const;
-    inline bool operator<(const Reg2PreciseHalfSegment& hs) const;
-    inline bool operator>(const Reg2PreciseHalfSegment& hs) const;
-    inline bool operator<=(const Reg2PreciseHalfSegment& hs) const;
-    inline bool operator>=(const Reg2PreciseHalfSegment& hs) const;
-    inline int LogicCompare( const Reg2PreciseHalfSegment& hs ) const;
-
-    inline void Translate( const double& x, const double& y );
-    inline void Scale( const double& xf, const double& yf );
-
-    inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
-    bool Intersects( const Reg2PreciseHalfSegment& hs ) const;
-    bool InnerIntersects( const Reg2PreciseHalfSegment& hs ) const;
-    bool Crosses( const Reg2PreciseHalfSegment& hs ) const;
-    bool Intersection( const Reg2PreciseHalfSegment& hs, 
-                       Reg2PrecisePoint& p ) const;
-    bool Intersection( const Reg2PreciseHalfSegment& hs, 
-                       Reg2PreciseHalfSegment& reshs ) const;
-    bool Inside( const Reg2PreciseHalfSegment& hs ) const ;
-    inline bool Contains( const Reg2PrecisePoint& p ) const;
-    bool RayAbove( const Reg2PrecisePoint& p, mpq_class &yIntersection ) const;
-    bool RayDown( const Reg2PrecisePoint& p, mpq_class &yIntersection ) const;
-};
-
-
+*/
 class Reg2GridHalfSegment
 {
   private:
+/*
+1.1.1 Attributes
+
+Indicates which is the dominating point: the left or the right point.
+
+*/
     bool ldp;
+/*
+These attributes represent the coordinates of the left and right point of the halfsegment.
+
+*/
     int lx;
     int ly;
     int rx;
     int ry;
 
   public:
+/*
+This ~attribute~ property is useful if we process region values in the way 
+indicated in the ROSE paper.
+
+*/
     AttrType attr;
 
+/*
+1.1.1 Constructors and Destructor
+
+This constructor should not be used:
+
+*/
     inline Reg2GridHalfSegment() {}
+/*
+Creates a halfsegment receiving all attributes as arguments.
+
+*/
     inline Reg2GridHalfSegment( bool ldp, const int lx, const int ly, 
                                 const int rx, const int ry );
+/*
+Creates a halfsegment copying the values from ~hs~.
+
+*/
     inline Reg2GridHalfSegment( const Reg2GridHalfSegment& hs );
 
+/*
+The destructor.
+
+*/
     inline ~Reg2GridHalfSegment() {}
 
+/*
+1.1.1 Member Functions
+
+Returns the coordinates of the left point of the halfsegment.
+
+*/
     inline const int GetLeftPointX() const;
     inline const int GetLeftPointY() const;
+/*
+Returns the coordinates of the right point of the halfsegment.
+
+*/
     inline const int GetRightPointX() const;
     inline const int GetRightPointY() const;
+/*
+Sets the coordinates of the left point of the halfsegment.
+
+*/
     inline void SetLeftPoint( const int lx, const int ly );
+/*
+Sets the coordinates of the right point of the halfsegment.
+
+*/
     inline void SetRightPoint( const int rx, const int ry );
+/*
+Sets all values of a halfsegment.
+
+*/
     inline void Set( bool ldp, const int lx, const int ly, 
                      const int rx, const int ry );
+/*
+Returns the coordinates of the dominating point of the halfsegment.
+
+*/
     inline const int GetDomPointX() const;
     inline const int GetDomPointY() const;
+/*
+Returns the coordinates of the secondary point of the halfsegment.
+
+*/
     inline const int GetSecPointX() const;
     inline const int GetSecPointY() const;
+/*
+Returns the boolean flag which indicates whether the dominating point is on the left side.
+
+*/
     inline bool IsLeftDomPoint() const;
+/*
+Sets the value of the dominating point flag of a halfsegment.
+
+*/
     inline void SetLeftDomPoint( bool ldp );
+/*
+Checks whether the halfsegment is vertical
+
+*/
     inline bool IsVertical() const;
 
+/*
+Returns the "attr" value associated with a halfsegment.
+
+*/
     inline const AttrType& GetAttr() const;
+/*
+Sets the value of the "attr" attribute of a halfsegment.
+
+*/
     inline void SetAttr( AttrType& attr );
     
 };
 
+/*
+1.1 Class ~Reg2PrecHalfSegment~
+
+This class implements the memory representation of the precise parts of a halfsegment.
+It contains the position and the number of unsigend int values of the numerator and the
+denominator for each coordinate of a halfsegment.
+
+*/
 class Reg2PrecHalfSegment
 {
+/*
+1.1.1 Private attributes
+
+  * ~lxNumPosition~, ~lyNumPosition~, ~rxNumPosition~, ~ryNumPosition~ is the index position of the first 
+integer part representing the numerator of the precise part of the given coordinate 
+in the respective DbArray, with lx x coordinate of the left point, 
+ly y coordinate of the left point, rx x coordinate of the right point and 
+ry y coordinate of the right point.
+  
+  * ~lxDenPosition~, ~lyDenPosition~, ~rxDenPosition~, ~ryDenPosition~ is the index position of the first 
+integer part representing the denominator of the precise part of the given coordinate 
+in the respective DbArray, with lx x coordinate of the left point, 
+ly y coordinate of the left point, rx x coordinate of the right point and 
+ry y coordinate of the right point.
+  
+  * ~lxNumInts~, ~lyNumInts~, ~rxNumInts~, ~ryNumInts~ is the number of integer parts 
+representing the numerator of the precise part of the respective coordinate in the DbArray.
+  
+  * ~lxDenInts~, ~lyDenInts~, ~rxDenInts~, ~ryDenInts~ is the number of integer parts 
+representing the denominator of the precise part of the respective coordinate in the DbArray.
+  
+
+*/
         int lxNumPosition;
         int lxDenPosition;
         int lyNumPosition;
@@ -140,10 +225,25 @@ class Reg2PrecHalfSegment
         int ryDenInts;
 
 public:
+/*
+1.1.1 Constructors and Destructor
+
+The default constructors does nothing.
+
+*/
     inline Reg2PrecHalfSegment() {}
 
+/*
+The destructor.
+
+*/
     inline ~Reg2PrecHalfSegment() {}
 
+/*
+These constructors initializes the private attributes. 
+The first version sets each value individually.
+
+*/
     Reg2PrecHalfSegment(int lxNumPos, int lxDenPos, int lyNumPos, int lyDenPos, 
                         int rxNumPos, int rxDenPos, int ryNumPos, int ryDenPos, 
                         int lxNumIs, int lxDenIs, int lyNumIs, int lyDenIs, 
@@ -158,6 +258,10 @@ public:
       ryNumInts(ryNumIs), ryDenInts(ryDenIs)
     { }
 
+/*
+The second version sets all values to an initial value indicationg empty parts.
+
+*/
     Reg2PrecHalfSegment(int startPos) :
       lxNumPosition(startPos), lxDenPosition(startPos),
       lyNumPosition(startPos), lyDenPosition(startPos),
@@ -169,6 +273,10 @@ public:
       ryNumInts(0), ryDenInts(0)
     { }
 
+/*
+1.1.1 Attribute read access methods
+
+*/
     inline int getlxNumPosition() const { return lxNumPosition; }
     inline int getlxDenPosition() const { return lxDenPosition; }
     inline int getlyNumPosition() const { return lyNumPosition; }
@@ -186,6 +294,10 @@ public:
     inline int getryNumInts() const { return ryNumInts; }
     inline int getryDenInts() const { return ryDenInts; }
     
+/*
+Each coordinate is returned by its mpq\_class-value.
+
+*/
     inline mpq_class GetlPointx(
             const DbArray<unsigned int>* preciseCoordinates) const;
     inline mpq_class GetlPointy(
@@ -195,6 +307,12 @@ public:
     inline mpq_class GetrPointy(
             const DbArray<unsigned int>* preciseCoordinates) const;
   
+/*
+1.1.1 Attribute write access methods
+
+Each coordinate is set to the mpq\_class-value.
+
+*/
     inline void SetlPointx (mpq_class x, 
                             DbArray<unsigned int>* preciseCoordinates);
     inline void SetlPointy (mpq_class y, 
@@ -204,6 +322,10 @@ public:
     inline void SetrPointy (mpq_class y, 
                             DbArray<unsigned int>* preciseCoordinates);
 
+/*
+Set all coordinates to the value of ~theValue~.
+
+*/
     void SetAll (mpq_class theValue, 
                  DbArray<unsigned int>* preciseCoordinates) 
     {
@@ -215,8 +337,244 @@ public:
 
 };
 
+/*
+1.1 Class ~Reg2PreciseHalfSegment~
+
+This class implements the memory representation of a precise halfsegment.
+A halfsegment value is composed of a pair of points in precise coordinates 
+of type mpq\_class and a flag indicating the dominating point. 
+The left point is always smaller than the right one.
+
+*/
+class Reg2PreciseHalfSegment
+{
+  private:
+/*
+1.1.1 Attributes
+
+Indicates which is the dominating point: the left or the right point.
+
+*/
+    bool ldp;
+/*
+These two attributes represent the left and right point of the halfsegment.
+
+*/
+    Reg2PrecisePoint lp;
+    Reg2PrecisePoint rp;
+
+  public:
+/*
+This ~attribute~ property is useful if we process region values in the way 
+indicated in the ROSE paper.
+
+*/
+    AttrType attr;
+
+/*
+1.1.1 Constructors and Destructor
+
+A halfsegment is composed by two points which are called ~left point~ (~lp~) and ~right point~ (~rp~),
+$lp < rp$, and a flag ~ldp~ (~left dominating point~) which tells whether the left point is the dominating
+point.
+
+This constructor should not be used:
+
+*/
+    inline Reg2PreciseHalfSegment() {}
+
+/*
+Creates a halfsegment receiving all attributes as arguments. The order between the left
+and right points is not important. If ~lp~ is bigger than ~rp~ their values are changed.
+
+*/
+    inline Reg2PreciseHalfSegment( bool ldp, const Reg2PrecisePoint& lp, 
+                                   const Reg2PrecisePoint& rp );
+
+/*
+Creates a halfsegment copying the values from ~hs~.
+
+*/
+    inline Reg2PreciseHalfSegment( const Reg2PreciseHalfSegment& hs );
+    inline Reg2PreciseHalfSegment( const HalfSegment& hs );
+
+/*
+The destructor.
+
+*/
+    inline ~Reg2PreciseHalfSegment() {}
+
+/*
+1.1.1 Member Functions
+
+Returns the left point of the halfsegment.
+
+*/
+    inline const Reg2PrecisePoint& GetLeftPoint() const;
+/*
+Returns the right point of the halfsegment.
+
+*/
+    inline const Reg2PrecisePoint& GetRightPoint() const;
+/*
+Set the left point of the halfsegment.
+
+*/
+    inline void SetLeftPoint(const Reg2PrecisePoint& nlp);
+/*
+Set the right point of the halfsegment.
+
+*/
+    inline void SetRightPoint(const Reg2PrecisePoint& nrp);
+/*
+Sets all values of a halfsegment. The parameters ~lp~ and ~rp~ can ignore the order, and the
+function will compare the parameter points and put the smaller one to ~lp~ and larger one to ~rp~.
+
+*/
+    inline void Set( bool ldp, const Reg2PrecisePoint& lp, 
+                     const Reg2PrecisePoint& rp );
+/*
+Returns the dominating point of the halfsegment.
+
+*/
+    inline const Reg2PrecisePoint& GetDomPoint() const;
+/*
+Returns the secondary point of the halfsegment.
+
+*/
+    inline const Reg2PrecisePoint& GetSecPoint() const;
+/*
+Returns the boolean flag which indicates whether the dominating point is on the left side.
+
+*/
+    inline bool IsLeftDomPoint() const;
+/*
+Sets the value of the dominating point flag of a halfsegment.
+
+*/
+    inline void SetLeftDomPoint( bool ldp );
+/*
+Checks whether the halfsegment is vertical
+
+*/
+    inline bool IsVertical() const;
+
+/*
+Returns the "attr" value associated with a half segment. 
+The "attr" value is useful when we process region values.
+
+*/
+    inline const AttrType& GetAttr() const;
+/*
+Sets the value of the "attr" attribute of a halfsegment.
+
+*/
+    inline void SetAttr( AttrType& attr );
+    
+/*
+These functions make comparison between two halfsegments. The rule of the
+comparison is specified in the ROSE Algebra paper. That is: the halfsegments
+will be ordered according to the following values:
+dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
+
+*/
+    inline int Compare( const Reg2PreciseHalfSegment& hs ) const;
+    
+    inline bool operator==( const Reg2PreciseHalfSegment& hs ) const;
+    inline bool operator!=( const Reg2PreciseHalfSegment& hs ) const;
+    inline bool operator<(const Reg2PreciseHalfSegment& hs) const;
+    inline bool operator>(const Reg2PreciseHalfSegment& hs) const;
+    inline bool operator<=(const Reg2PreciseHalfSegment& hs) const;
+    inline bool operator>=(const Reg2PreciseHalfSegment& hs) const;
+    inline int LogicCompare( const Reg2PreciseHalfSegment& hs ) const;
+
+/*
+The assignment operator.
+
+*/
+    inline Reg2PreciseHalfSegment& operator=( 
+                        const Reg2PreciseHalfSegment& hs );
+/*
+Translates the halfsegment by adding the values ~x~ and ~y~ (which can be negative) to both
+~lp~ and ~rp~ points.
+
+*/
+    inline void Translate( const double& x, const double& y );
+/*
+Scales the halfsegment given a factor ~xf~ and a factor ~yf~ for each coordinate seperately.
+
+*/
+    inline void Scale( const double& xf, const double& yf );
+
+/*
+Returns the bounding box of the halfsegment.
+
+*/
+    inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
+    
+/*
+Decides whether two halfsegments intersect with each other with any kind of
+intersection.
+
+*/
+    bool Intersects( const Reg2PreciseHalfSegment& hs ) const;
+/*
+Decides whether two halfsegments intersect in the following manner: a point of
+the first segment and an innerpoint of the second segment are the same.
+
+*/
+    bool InnerIntersects( const Reg2PreciseHalfSegment& hs ) const;
+/*
+Computes whether two halfsegments intersect in their mid-points. 
+Endpoints are not considered in computing the results.
+
+*/
+    bool Crosses( const Reg2PreciseHalfSegment& hs ) const;
+/*
+This function computes whether two halfsegments cross each other and returns
+the crossing point ~p~.
+
+*/
+    bool Intersection( const Reg2PreciseHalfSegment& hs, 
+                       Reg2PrecisePoint& p ) const;
+/*
+This function computes whether two halfsegments intersect each other and
+returns the resulting halfsegment as ~reshs~.
+
+*/
+    bool Intersection( const Reg2PreciseHalfSegment& hs, 
+                       Reg2PreciseHalfSegment& reshs ) const;
+/*
+Computes whether the halfsegment is inside the one in ~hs~.
+
+*/
+    bool Inside( const Reg2PreciseHalfSegment& hs ) const ;
+/*
+Computes whether the point ~p~ is contained in the halfsegment.
+
+*/
+    inline bool Contains( const Reg2PrecisePoint& p ) const;
+/*
+Decides whether a halfsegment is above a point. This is useful when we want to decide
+whether a point is inside a region.
+
+*/
+    bool RayAbove( const Reg2PrecisePoint& p, mpq_class &yIntersection ) const;
+/*
+Decides whether a half segment is below a point. This is useful when we want to decide
+whether a point is inside a region.
+
+*/
+    bool RayDown( const Reg2PrecisePoint& p, mpq_class &yIntersection ) const;
+};
 
 
+/*
+1 Class implementations
+
+1.1 Implementation of class ~Reg2GridHalfSegment~
+
+*/
 inline Reg2GridHalfSegment::Reg2GridHalfSegment( bool ldp, 
                                  const int lx, const int ly, 
                                  const int rx, const int ry ):
@@ -226,16 +584,7 @@ ly( ly ),
 rx( rx ),
 ry( ry ),
 attr(-99999)
-{
-/* Reg2GridHalfSegment doesn't decide the Halfsegment order, because of missing precise part!!
-  if ( Reg2GridPoint(lx, ly) > Reg2GridPoint(rx, ry) )
-  {
-    this->lx = rx;
-    this->ly = ry;
-    this->rx = lx;
-    this->ry = ly;
-  } */
-}
+{ }
 
 inline Reg2GridHalfSegment::Reg2GridHalfSegment(const Reg2GridHalfSegment& hs):
 ldp( hs.ldp ),
@@ -269,18 +618,12 @@ inline const int Reg2GridHalfSegment::GetRightPointY() const
 
 inline void Reg2GridHalfSegment::SetLeftPoint( const int lx, const int ly )
 {
-// Reg2GridHalfSegment doesn't decide the Halfsegment order, because of 
-// missing precise part!!
-//  assert(Reg2GridPoint(lx, ly) < Reg2GridPoint(this->rx, this->ry));
   this->lx = lx;
   this->ly = ly;
 }
 
 inline void Reg2GridHalfSegment::SetRightPoint( const int rx, const int ry )
 {
-// Reg2GridHalfSegment doesn't decide the Halfsegment order, because of 
-// missing precise part!!
-//  assert(Reg2GridPoint(this->lx, this->ly) < Reg2GridPoint(rx, ry));
   this->rx = rx;
   this->ry = ry;
 }
@@ -289,22 +632,10 @@ inline void Reg2GridHalfSegment::Set( bool ldp, const int lx, const int ly,
                                       const int rx, const int ry )
 {
   this->ldp = ldp;
-// Reg2GridHalfSegment doesn't decide the Halfsegment order, because of 
-// missing precise part!!
-//  if( Reg2GridPoint(lx, ly) < Reg2GridPoint(rx, ry))
-//  {
-    this->lx = lx;
-    this->ly = ly;
-    this->rx = rx;
-    this->ry = ry;
-/*  }
-  else // rp > lp
-  {
-    this->lx = rx;
-    this->ly = ry;
-    this->rx = lx;
-    this->ry = ly;
-  } */
+  this->lx = lx;
+  this->ly = ly;
+  this->rx = rx;
+  this->ry = ry;
 }
 
 inline const int Reg2GridHalfSegment::GetDomPointX() const
@@ -361,6 +692,10 @@ inline void Reg2GridHalfSegment::SetAttr( AttrType& attr )
 }
 
 
+/*
+1.1 Implementation of class ~Reg2PrecHalfSegment~
+
+*/
 inline mpq_class Reg2PrecHalfSegment::GetlPointx(
         const DbArray<unsigned int>* preciseCoordinates) const
 {
@@ -430,6 +765,10 @@ inline void Reg2PrecHalfSegment::SetrPointy (mpq_class y,
 }
 
 
+/*
+1.1 Implementation of class ~Reg2PreciseHalfSegment~
+
+*/
 inline Reg2PreciseHalfSegment::Reg2PreciseHalfSegment( bool ldp,
                                                 const Reg2PrecisePoint& lp,
                                                 const Reg2PrecisePoint& rp ):
@@ -568,7 +907,6 @@ inline void Reg2PreciseHalfSegment::SetAttr( AttrType& attr )
 {
   this->attr = attr;
 }
-
 
 int Reg2PreciseHalfSegment::Compare( const Reg2PreciseHalfSegment& hs ) const
 {
@@ -808,7 +1146,6 @@ bool Reg2PreciseHalfSegment::Contains( const Reg2PrecisePoint& p ) const
   return false;
 }
 
-
 inline int Reg2PreciseHalfSegmentCompare(const void *a, const void *b)
 {
   const Reg2PreciseHalfSegment *hsa = (const Reg2PreciseHalfSegment *)a,
@@ -823,4 +1160,3 @@ inline int Reg2PreciseHalfSegmentLogicCompare(const void *a, const void *b)
 
   return hsa->LogicCompare( *hsb );
 }
-

@@ -2,7 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, 
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -24,18 +25,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 //[_] [\_]
 
-[1] Implementation of the Spatial Algebra
+[1] Implementation of the Region2Algebra
 
-May 2013, Oliver Feuer
-
+September 2013, first implementation by Oliver Feuer for bachelor thesis
 
 [TOC]
 
 1 Overview
 
 This implementation file contains the implementation of the classes ~Reg2PreciseHalfSegment~
-and ~Region2~. 
-The class ~Region2~ correspond to the memory representation for the type constructor ~region~.
+and ~Region2~. The class ~Region2~ correspond to the memory representation for the type 
+constructor ~region2~.
 
 2 Defines and Includes
 
@@ -43,12 +43,9 @@ The class ~Region2~ correspond to the memory representation for the type constru
 
 #include "Region2Algebra.h"
 
-
 /*
 1 Helper functions
 
-*/
-/*
 1.1 ~reverseCycle2~
 
 Changes the direction of a cycle.
@@ -63,7 +60,6 @@ void reverseCycle2(vector<Reg2PrecisePoint>& cycle){
      cycle[cycle.size()-(i+1)] = tmp;
   }
 }
-
 
 /*
 1.1 ~getDir2~
@@ -134,9 +130,11 @@ bool getDir2(const vector<Reg2PrecisePoint>& vp)
   return cw;
 }
 
-
 /*
 1.1 ~buildRegion2~
+
+Builds a ~region2~ from a vector of cycles which is a vector of precise points
+using the bulk load of class ~Region2~.
 
 */
 Region2* buildRegion2(const int scale, 
@@ -156,7 +154,6 @@ Region2* buildRegion2(const int scale,
   {
     vector<Reg2PrecisePoint> cycle = cycles[i];
     bool cw = getDir2(cycle);
-//cout << "Cycle " << i << " mit Richtung " << cw << endl;    
     for (unsigned int j=0; j < cycle.size()-1; j++)
     {
        Reg2PrecisePoint lp,rp;
@@ -179,8 +176,6 @@ Region2* buildRegion2(const int scale,
        hs.attr.cycleno = 0;
        hs.attr.coverageno = 0;
        multiHSSet.insert(hs);
-//    cout << "Kennung small " << small << endl ;
-//    cout << hs << endl;
     }
   }
 
@@ -198,8 +193,6 @@ Region2* buildRegion2(const int scale,
     *reg += hs;
     *reg += hs2;
     multiHSList.push_back(hs);
-//cout << "     >>>>>Merke: " << hs << endl;
-//    cout << hs << "  " << hs2 << endl;
   }
   
     reg->EndBulkLoad();
@@ -212,7 +205,6 @@ Region2* buildRegion2(const int scale,
   
     return reg;
 }
-
 
 /*
 1.1 output operators
@@ -283,13 +275,10 @@ ostream& operator<<(ostream &os, const Reg2PreciseHalfSegment& hs)
              << hs.GetRightPoint() <<") ";
 }
 
-
 /*
 1 Functions of Reg2PreciseHalfSegment
 
-*/
-/*
-1.1 ~Intersects~ of Reg2PreciseHalfSegment
+1.1 Function ~Intersects~
 
 */
 bool Reg2PreciseHalfSegment::Intersects( 
@@ -400,9 +389,8 @@ bool Reg2PreciseHalfSegment::Intersects(
   return false;
 }
 
-
 /*
-1.1 ~InnerIntersects~ of Reg2PreciseHalfSegment
+1.1 Function ~InnerIntersects~
 
 */
 bool Reg2PreciseHalfSegment::InnerIntersects( 
@@ -536,9 +524,8 @@ bool Reg2PreciseHalfSegment::InnerIntersects(
   return false;
 }
 
-
 /*
-1.1 ~Crosses~ of Reg2PreciseHalfSegment
+1.1 Function ~Crosses~
 
 */
 bool Reg2PreciseHalfSegment::Crosses( 
@@ -635,9 +622,8 @@ bool Reg2PreciseHalfSegment::Crosses(
   return false;
 }
 
-
 /*
-1.1 ~Intersection~ of Reg2PreciseHalfSegment
+1.1 Function ~Intersection~
 
 */
 bool Reg2PreciseHalfSegment::Intersection( 
@@ -799,9 +785,8 @@ bool Reg2PreciseHalfSegment::Intersection(
   return false;
 }
 
-
 /*
-1.1 ~Intersection~ of Reg2PreciseHalfSegment
+1.1 Function ~Intersection~
 
 */
 bool Reg2PreciseHalfSegment::Intersection( 
@@ -913,9 +898,8 @@ bool Reg2PreciseHalfSegment::Intersection(
   return false;
 }
 
-
 /*
-1.1 ~Inside~ of Reg2PreciseHalfSegment
+1.1 Function ~Inside~
 
 */
 bool Reg2PreciseHalfSegment::Inside( 
@@ -925,9 +909,8 @@ bool Reg2PreciseHalfSegment::Inside(
          hs.Contains( GetRightPoint() );
 }
 
-
 /*
-1.1 ~RayAbove~ of Reg2PreciseHalfSegment
+1.1 Function ~RayAbove~
 
 */
 bool Reg2PreciseHalfSegment::RayAbove( 
@@ -965,9 +948,8 @@ bool Reg2PreciseHalfSegment::RayAbove(
     return false;
 }
 
-
 /*
-1.1 ~RayDown~ of Reg2PreciseHalfSegment
+1.1 Function ~RayDown~
 
 */
 bool Reg2PreciseHalfSegment::RayDown( 
@@ -1005,14 +987,10 @@ bool Reg2PreciseHalfSegment::RayDown(
     return true;
 }
 
-
-
 /*
 1 Region2 class
 
-*/
-/*
-1.1 Constructor ~Region2~ 
+1.1 Copy-Constructor ~Region2~ 
 
 */
 Region2::Region2( const Region2& cr, bool onlyLeft ) :
@@ -1033,9 +1011,6 @@ maxPrecy(0),
 minPrecx(0),
 minPrecy(0)
 { 
-//  cout << "Region2(Region2, Bool)... " << endl;
-//cout << "Constructor called..." << endl;
-//cout << "onlyLeft is " << onlyLeft << endl;
   if( IsDefined() && cr.Size() > 0 ) 
   {
     assert( cr.IsOrdered() );
@@ -1054,7 +1029,6 @@ minPrecy(0)
       for( int i = 0; i < cr.Size(); i++ ) 
       {
         cr.Get( i, hs );
-//cout << "i: " << i << " " << hs << endl;
         if ( hs.IsLeftDomPoint() )
           precHSvector.push_back(hs);
       }
@@ -1063,9 +1037,8 @@ minPrecy(0)
   }
 }
 
-
 /*
-1.1 Constructor ~Region2~ 
+1.1 Constructor ~Region2~ from a ~region~ object
 
 */
 Region2::Region2( const Region& r, const int sFactor ) :
@@ -1075,8 +1048,6 @@ gridCoordinates(0),
 precCoordinates(0),
 preciseCoordinates(0)
 {
-//  cout << "Region2(Region)... " << endl;
-//cout << "Constructor with region started" << endl;
     Clear();
     if(  r.IsDefined() )
     {
@@ -1090,7 +1061,6 @@ preciseCoordinates(0)
         r.Get( i, hs );
         if (hs.IsLeftDomPoint())
         {
-//cout << i << ": " << hs << endl;
           phs = Reg2PreciseHalfSegment(hs);
           if ( overflowAsInt(phs.GetLeftPoint().x, 
                              phs.GetLeftPoint().y, sFactor)
@@ -1107,13 +1077,10 @@ preciseCoordinates(0)
             SetDefined( false );
             return;
           }
-//cout << phs << endl;
           phs.attr.edgeno = e++;
           *this += phs;
-//          precHSvector.push_back(phs);
           phs.SetLeftDomPoint(false);
           *this += phs;
-//          precHSvector.push_back(phs);
         }
       }
       EndBulkLoad();
@@ -1121,12 +1088,10 @@ preciseCoordinates(0)
     else {
       SetDefined( false );
     } 
-//cout << "Constructor with region finished" << endl;
 }
 
-
 /*
-1.1 Constructor ~Region2~ 
+1.1 Constructor ~Region2~  from a ~rect2~ object
 
 */
 Region2::Region2( const Rectangle<2>& r, const int sFactor ) :
@@ -1136,7 +1101,6 @@ gridCoordinates(0),
 precCoordinates(0),
 preciseCoordinates(0)
 {
-//  cout << "Region2(Rect<2>)... " << endl;
     Clear();
     if(  r.IsDefined() )
     {
@@ -1225,9 +1189,8 @@ preciseCoordinates(0)
     } 
 }
 
-
 /*
-1.1 ~Get~ of Region2
+1.1 Function ~Get~
 
 */
 bool Region2::Get(const unsigned int i, Reg2PreciseHalfSegment& hs) const
@@ -1292,32 +1255,23 @@ bool Region2::Get(const unsigned int i, Reg2PreciseHalfSegment& hs) const
         return false;
     }
 
-
-
 /*
-1.1 ~StartBulkLoad~ of Region2
+1.1 Function ~StartBulkLoad~
 
 */
 void Region2::StartBulkLoad()
 {
-//  cout << "Region2::StartBulkLoad..." << endl;
   ordered = false;
 }
 
-
 /*
-1.1 ~EndBulkLoad~ of Region2
+1.1 Function ~EndBulkLoad~
 
 */
 void Region2::EndBulkLoad( bool sortit, bool setCoverageNo,
                            bool setPartnerNo, bool computeRegion, 
                            bool buildDb )
 {
-//  cout << "Region2::EndBulkLoad..." << sortit << " " 
-//       << setCoverageNo 
-//       << " " << setPartnerNo << " " << computeRegion 
-//       << " " << buildDb 
-//       << endl;
   if( !IsDefined() ) {
     Clear();
     return;
@@ -1355,9 +1309,8 @@ void Region2::EndBulkLoad( bool sortit, bool setCoverageNo,
   ordered = true; 
 }
 
-
 /*
-1.1 ~Contains~ of Region2
+1.1 Function ~Contains~
 
 */
 bool Region2::Contains( const Reg2PrecisePoint& p) const
@@ -1451,9 +1404,8 @@ bool Region2::Contains( const Reg2PrecisePoint& p) const
   return false;
 }
 
-
 /*
-1.1 ~InnerContains~ of Region2
+1.1 Function ~InnerContains~ 
 
 */
 bool Region2::InnerContains( const Reg2PrecisePoint& p) const
@@ -1547,9 +1499,8 @@ bool Region2::InnerContains( const Reg2PrecisePoint& p) const
   return false;
 }
 
-
 /*
-1.1 ~Contains~ of Region2
+1.1 Function ~Contains~ 
 
 */
 bool Region2::Contains( const Reg2PreciseHalfSegment& hs) const
@@ -1588,9 +1539,8 @@ bool Region2::Contains( const Reg2PreciseHalfSegment& hs) const
   return true;
 }
 
-
 /*
-1.1 ~InnerContains~ of Region2
+1.1 Function ~InnerContains~ 
 
 */
 bool Region2::InnerContains( const Reg2PreciseHalfSegment& hs) const
@@ -1622,9 +1572,8 @@ bool Region2::InnerContains( const Reg2PreciseHalfSegment& hs) const
   return true;
 }
 
-
 /*
-1.1 ~HoleEdgeContain~ of Region2
+1.1 Function ~HoleEdgeContain~ 
 
 */
 bool Region2::HoleEdgeContain( 
@@ -1646,9 +1595,8 @@ bool Region2::HoleEdgeContain(
   return false;
 }
 
-
 /*
-1.1 ~operator=~ of Region2
+1.1 Assignment operator ~operator=~ 
 
 */
 Region2& Region2::operator=( const Region2& r )
@@ -1674,9 +1622,8 @@ Region2& Region2::operator=( const Region2& r )
   return *this;
 }
 
-
 /*
-1.1 ~operator+=~ of Region2
+1.1 Adding operator ~operator+=~
 
 */
 Region2& Region2::operator+=( const Reg2PreciseHalfSegment& hs )
@@ -1723,9 +1670,8 @@ Region2& Region2::operator+=( const Reg2PreciseHalfSegment& hs )
   return *this;
 }
 
-
 /*
-1.1 ~AddPreciseHalfsegment~ of Region2
+1.1 Functions ~AddPreciseHalfsegment~
 
 */
 Region2& Region2::AddPreciseHalfsegment( const bool ldp, 
@@ -1736,11 +1682,6 @@ Region2& Region2::AddPreciseHalfsegment( const bool ldp,
   return *this += hs;
 }
 
-
-/*
-1.1 ~AddPreciseHalfsegment~ of Region2
-
-*/
 Region2& Region2::AddPreciseHalfsegment( const bool ldp, 
                                          const int xl, 
                                          const mpq_class xlp, 
@@ -1757,9 +1698,8 @@ Region2& Region2::AddPreciseHalfsegment( const bool ldp,
   return AddPreciseHalfsegment(ldp, pl, pr);
 }
 
-
 /*
-1.1 ~Intersects~ of Region2
+1.1 Function ~Intersects~
 
 */
 bool Region2::Intersects( const Region2 &r ) const
@@ -1793,9 +1733,8 @@ bool Region2::Intersects( const Region2 &r ) const
   return false;
 }
 
-
 /*
-1.1 ~Inside~ of Region2
+1.1 Function ~Inside~
 
 */
 bool Region2::Inside( const Region2& r ) const
@@ -1804,21 +1743,17 @@ bool Region2::Inside( const Region2& r ) const
   assert( r.IsDefined() );
 
   if(!IsDefined() || !r.IsDefined() ){
-//    cout << "Not defined!" << endl;
     return false;
   }
   if( IsEmpty() ){
-//    cout << "is empty" << endl;
     return true;
   }
   if(r.IsEmpty()){
-//    cout << "r is empty" << endl;
     return false;
   }
   assert( IsOrdered() );
   assert( r.IsOrdered() );
   if( !r.BoundingBox().Contains( bbox ) ){
-//    cout << "Boundingbox don't contains!" << endl;
     return false;
   }
   Reg2PreciseHalfSegment hs1, hs2;
@@ -1826,7 +1761,6 @@ bool Region2::Inside( const Region2& r ) const
     Get( i, hs1 );
     if( hs1.IsLeftDomPoint() ){
       if( !r.Contains( hs1 ) ){
-//        cout << "HS not in r" << endl;
         return false;
       }
     }
@@ -1847,15 +1781,13 @@ bool Region2::Inside( const Region2& r ) const
     }
   } 
   if( existhole && allholeedgeinside ){
-//    cout << "Hole not inside" << endl;
     return false;
   } 
   return true;
 }
 
-
 /*
-1.1 ~Adjacent~ of Region2
+1.1 Function ~Adjacent~ 
 
 */
 bool Region2::Adjacent( const Region2& r ) const
@@ -1892,9 +1824,8 @@ bool Region2::Adjacent( const Region2& r ) const
   return found;
 }
 
-
 /*
-1.1 ~Overlaps~ of Region2
+1.1 Function ~Overlaps~ 
 
 */
 bool Region2::Overlaps( const Region2& r ) const
@@ -1929,9 +1860,8 @@ bool Region2::Overlaps( const Region2& r ) const
   return false;
 }
 
-
 /*
-1.1 ~Area~ of Region2
+1.1 Function ~Area~ 
 
 */
 double Region2::Area() const
@@ -1976,9 +1906,8 @@ double Region2::Area() const
   return area;
 }
 
-
 /*
-1.1 ~Translate~ of Region2
+1.1 Function ~Translate~ 
 
 */
 void Region2::Translate( const double& x, 
@@ -2020,14 +1949,12 @@ void Region2::Translate( const double& x,
   result.EndBulkLoad( false, false, false, false, true );
 }
 
-
 /*
-1.1 ~Compare~ of Region2
+1.1 Function ~Compare~ 
 
 */
 int Region2::Compare( const Attribute* arg ) const
 {
-//  cout << "Region2::Compare..." << endl;
   Region2* cr = (Region2* )(arg);
   if ( !cr )
     return -2;
@@ -2069,9 +1996,8 @@ int Region2::Compare( const Attribute* arg ) const
   return 0;
 }
 
-
 /*
-1.1 ~Print~ of Region2
+1.1 Function ~Print~ 
 
 */
 ostream& Region2::Print( ostream &os ) const
@@ -2091,25 +2017,21 @@ ostream& Region2::Print( ostream &os ) const
   return os;
 }
 
-
 /*
-1.1 ~Clone~ of Region2
+1.1 Function ~Clone~ 
 
 */
 Region2 *Region2::Clone() const
 {
-//  cout << "Region2::Clone..." << endl;
   return new Region2( *this );
 }
 
-
 /*
-1.1 ~HashValue~ of Region2
+1.1 Function ~HashValue~ 
 
 */
 size_t Region2::HashValue() const
 {
-//  cout << "Region2::HashValue..." << endl;
   if(IsEmpty()) // subsumes !IsDefined()
     return 0;
 
@@ -2130,20 +2052,17 @@ size_t Region2::HashValue() const
   return size_t(h);
 }
 
-
 /*
-1.1 ~CopyFrom~ of Region2
+1.1 Function ~CopyFrom~ 
 
 */
 void Region2::CopyFrom( const Attribute* right )
 {
-//  cout << "Region2::CopyFrom..." << endl;
   *this = *(const Region2 *)right;
 }
 
-
 /*
-1.1 ~LogicSort~ of Region2
+1.1 Function ~LogicSort~ 
 
 */
 struct LogicSortReg2PreciseHalfSegment {
@@ -2166,14 +2085,12 @@ void Region2::LogicSort()
   ordered = true;
 }
 
-
 /*
-1.1 ~Clear~ of Region2
+1.1 Function ~Clear~ 
 
 */
 void Region2::Clear()
 {
-//  cout << "Region2::Clear..." << endl;
   gridCoordinates.clean();
   precCoordinates.clean();
   preciseCoordinates.clean();
@@ -2182,23 +2099,20 @@ void Region2::Clear()
   bbox.SetDefined(false);
 }
 
-
 /*
-1.1 ~SetEmpty~ of Region2
+1.1 Function ~SetEmpty~ 
 
 */
 void Region2::SetEmpty()
 {
-//  cout << "Region2::SetEmpty..." << endl;
   Clear();
   SetDefined(true);
 }
 
 /*
-1.1 ~SetPartnerNo~ of Region2
+1.1 Function ~SetPartnerNo~ 
 
 */
-//old version: 
 void Region2::SetPartnerNo()
 {
   if( !IsDefined() )
@@ -2226,9 +2140,8 @@ void Region2::SetPartnerNo()
   delete[] tmp;
 }
 
-
 /*
-1.1 ~GetCycleDirection~ of Region2
+1.1 Function ~GetCycleDirection~ 
 
 */
 bool Region2::GetCycleDirection() const
@@ -2325,10 +2238,9 @@ last segment.
   //half segments represents the order that  their points 
   //were typed: true (left point, right point) /
   //false (right point, left point).
-
   
 /*
-1.1 ~IsCriticalPoint~ of Region2
+1.1 Function ~IsCriticalPoint~ 
 
 */
 bool Region2::IsCriticalPoint( const Reg2PrecisePoint &adjacentPoint,
@@ -2368,9 +2280,8 @@ bool Region2::IsCriticalPoint( const Reg2PrecisePoint &adjacentPoint,
   return (adjacencyNo>1);
 }
 
-
 /*
-1.1 ~GetAdjacentHS~ of Region2
+1.1 Function ~GetAdjacentHS~ 
 
 */
 bool Region2::GetAdjacentHS( const Reg2PreciseHalfSegment &hs,
@@ -2412,14 +2323,11 @@ bool Region2::GetAdjacentHS( const Reg2PreciseHalfSegment &hs,
   }
   while (!adjacencyFound);
 
-//  cout<<"adjacencyFound "<<adjacencyFound<<endl;
-
   return adjacencyFound;
 }
 
-
 /*
-1.1 ~ComputeCycle~ of Region2
+1.1 Function ~ComputeCycle~ 
 
 */
 void Region2::ComputeCycle( Reg2PreciseHalfSegment &hs,
@@ -2437,8 +2345,6 @@ void Region2::ComputeCycle( Reg2PreciseHalfSegment &hs,
   vector<SCycle2> sCycleVector;
   SCycle2 *s=NULL;
   
-//cout << "F(" << faceno << ") Cy(" << cycleno << ") E(" 
-//     << edgeno << ")" << endl << endl;     
   do
   {
      if (s==NULL)
@@ -2486,7 +2392,6 @@ void Region2::ComputeCycle( Reg2PreciseHalfSegment &hs,
                                       cycle,
                                       1);
        adjacentPointFound=s->goToCHS1Right;
-// cout<<"flag 1 "<<adjacentPointFound<<" p1 "<<previousPoint<<endl;
      }
      if ( !adjacentPointFound && s->goToCHS1Left )
      {
@@ -2501,7 +2406,6 @@ void Region2::ComputeCycle( Reg2PreciseHalfSegment &hs,
                                      cycle,
                                      -1);
        adjacentPointFound=s->goToCHS1Left;
-// cout<<"flag 2 "<<adjacentPointFound<<" p2 "<<previousPoint<<endl;
      }
      if (!adjacentPointFound && s->goToCHS2Right)
      {
@@ -2516,7 +2420,6 @@ void Region2::ComputeCycle( Reg2PreciseHalfSegment &hs,
                                       cycle,
                                       1);
        adjacentPointFound=s->goToCHS2Right;
-// cout<<"flag 3 "<<adjacentPointFound<<" p3 "<<previousPoint<<endl;
      }
      if (!adjacentPointFound && s->goToCHS2Left)
      {
@@ -2531,13 +2434,8 @@ void Region2::ComputeCycle( Reg2PreciseHalfSegment &hs,
                                      cycle,
                                      -1);
        adjacentPointFound = s->goToCHS2Left;
-
-// cout<<"flag 4 "<<adjacentPointFound<<" p4 "<<previousPoint<<endl;
-
      }
 
-// cout << "F(" << faceno << ") Cy(" << cycleno 
-// << ") E(" << edgeno << ")" << endl << endl;     
      if(!adjacentPointFound){
          cerr<<"previousPoint "<<previousPoint<<endl;
          cerr << "Problem in rebuilding cycle in a region " << endl;
@@ -2634,9 +2532,8 @@ void Region2::ComputeCycle( Reg2PreciseHalfSegment &hs,
   }
 } 
 
-
 /*
-1.1 ~GetNewFaceNo~ of Region2
+1.1 Function ~GetNewFaceNo~ 
 
 */
 int Region2::GetNewFaceNo(const Reg2PreciseHalfSegment& hsIn, 
@@ -2733,9 +2630,8 @@ int Region2::GetNewFaceNo(const Reg2PreciseHalfSegment& hsIn,
     return maxHS.GetAttr().faceno;  
 }
 
-
 /*
-1.1 ~ComputeRegion~ of Region2
+1.1 Function ~ComputeRegion~ 
 
 */
 void Region2::ComputeRegion()
@@ -2781,7 +2677,6 @@ void Region2::ComputeRegion()
       if(!isFirstCHS)
       {
         int facenoAux = GetNewFaceNo(aux,i);
-//cout << "GetNewFaceNo = " << facenoAux << endl;
         if (facenoAux==-1)
         {
         //The lhs half segment will start a new face
@@ -2812,15 +2707,12 @@ void Region2::ComputeRegion()
   noComponents = lastfaceno + 1;
 }
 
-
 /*
-1.1 ~buildDbArrays~ of Region2
+1.1 Function ~buildDbArrays~ 
 
 */
 void Region2::buildDbArrays()
 {
-//  cout << "Region2::buildDbArrays..." << endl;
-  
   if (precHSvector.size() < 1) return;
   
   gridCoordinates.clean();
@@ -2885,8 +2777,6 @@ void Region2::buildDbArrays()
     if (ryi > maxInty) maxInty = ryi;
     if (ryi < minInty) minInty = ryi;
     Reg2GridPoint rgp(rxi, ryi);
-//cout << lxi << " " << lyi << " " << rxi << " " << ryi << " ";
-//cout <<  lgp << " " << rgp << endl;
     
     mpq_class lxr = lxs - lxi;
     lxr.canonicalize();
@@ -2896,12 +2786,10 @@ void Region2::buildDbArrays()
     rxr.canonicalize();
     mpq_class ryr = rys - ryi;
     ryr.canonicalize();
-//cout << lxr << " " << lyr << " " << rxr << " " << ryr << endl;
     
     gHS = Reg2GridHalfSegment(hs.IsLeftDomPoint(), lxi, lyi, 
                                                    rxi, ryi);
     gHS.SetAttr(hs.attr);
-//cout << gHS << endl;
     gridCoordinates.Append(gHS);
     
     pHS = Reg2PrecHalfSegment(-1);
@@ -2909,17 +2797,10 @@ void Region2::buildDbArrays()
     pHS.SetlPointy(lyr, &preciseCoordinates);
     pHS.SetrPointx(rxr, &preciseCoordinates);
     pHS.SetrPointy(ryr, &preciseCoordinates);
-//cout << pHS << endl;
     precCoordinates.Append(pHS);
 
     gridCoordinates.Get(i, gHS);
-//cout << gHS << endl;
     precCoordinates.Get(i, pHS);
-//cout << pHS << endl;
-//cout << pHS.GetlPointx(&preciseCoordinates) << " " 
-//    << pHS.GetlPointy(&preciseCoordinates) << " " 
-//    << pHS.GetrPointx(&preciseCoordinates) << " " 
-//    << pHS.GetrPointy(&preciseCoordinates) << " " << endl;
 
     gridCoordinates.TrimToSize();
     precCoordinates.TrimToSize();
@@ -2927,14 +2808,12 @@ void Region2::buildDbArrays()
   }
 }
 
-
 /*
-1.1 ~buildHSvector~ of Region2
+1.1 Function ~buildHSvector~ 
 
 */
 void Region2::buildHSvector()
 { 
-//  cout << "Region2::buildHSvector..." << endl;
   Reg2PreciseHalfSegment hs;
   Reg2GridHalfSegment gHS;
   Reg2PrecHalfSegment pHS;
@@ -2945,17 +2824,10 @@ void Region2::buildHSvector()
   minPrecx = mpq_class(0);
   minPrecy = mpq_class(0);
 
-//cout << "Build HS vector: " << endl;  
   for (int i=0; i < gridCoordinates.Size(); i++)
   {
     gridCoordinates.Get(i, gHS);
-//cout << gHS << endl;
     precCoordinates.Get(i, pHS);
-//cout << pHS << endl;
-//cout << pHS.GetlPointx(&preciseCoordinates) << " " 
-//     << pHS.GetlPointy(&preciseCoordinates) << " " 
-//     << pHS.GetrPointx(&preciseCoordinates) << " " 
-//     << pHS.GetrPointy(&preciseCoordinates) << " " << endl;
 
     mpz_t sFactor;
     mpz_init(sFactor);
@@ -3009,9 +2881,8 @@ void Region2::buildHSvector()
   } 
 }
 
-
 /*
-1.1 ~validateRegion2~ of Region2
+1.1 Function ~validateRegion2~ 
 
 */
 bool Region2::validateRegion2()
@@ -3020,7 +2891,6 @@ bool Region2::validateRegion2()
   
   Reg2PreciseHalfSegment hsi, hsj;
   Reg2PrecisePoint pp;
-//cout << "Start validateRegion2: "<< endl;  
   for( unsigned int i = 0; i < precHSvector.size()-1; i++ )
   {
     Get( i, hsi );
@@ -3038,7 +2908,6 @@ bool Region2::validateRegion2()
         {
           if (hsi.Intersects(hsj))
           {
-//cout << "Intersection von " << i << " mit " << j << endl;
             if ((hsi.attr.faceno!=hsj.attr.faceno) ||
                 (hsi.attr.cycleno!=hsj.attr.cycleno))
             {
@@ -3150,18 +3019,15 @@ bool Region2::validateRegion2()
     
   }
 
-//  cout << "Beende validateRegion2 mit OK = TRUE" << endl;
   return true;
 }
 
-
 /*
-1.1 ~Components~ of Region2
+1.1 Function ~Components~ 
 
 */
 void Region2::Components( vector<Region2*>& components )
 {
-//cout << " Start Components..." << endl;
   vector<int> edgeno;
   components.clear();
   if ( IsEmpty() ) // subsumes IsDefined()
@@ -3195,17 +3061,14 @@ void Region2::Components( vector<Region2*>& components )
     components[i]->SetScaleFactor(scaleFactor, false);
     components[i]->EndBulkLoad();
   }
-//cout << " Ende Components..." << endl;
 }
 
-
 /*
-1.1 ~getFaces~ of Region2
+1.1 Function ~getFaces~ 
 
 */
 void Region2::getFaces(Region2& result) const
 {
-//cout << " Start getFaces..." << endl;
    if (!IsDefined())
    {
       result.SetDefined(false);
@@ -3233,17 +3096,14 @@ void Region2::getFaces(Region2& result) const
 
    result.SetScaleFactor(scaleFactor, false);
    result.EndBulkLoad();
-//cout << " Ende getFaces..." << endl;
 }
 
-
 /*
-1.1 ~getHoles~ of Region2
+1.1 Function ~getHoles~ 
 
 */
 void Region2::getHoles(Region2& result) const
 {
-//cout << " Start getHoles..." << endl;
    if (!IsDefined())
    {
       result.SetDefined(false);
@@ -3272,12 +3132,10 @@ void Region2::getHoles(Region2& result) const
 
    result.SetScaleFactor(scaleFactor, false);
    result.EndBulkLoad();
-//cout << " Ende getHoles..." << endl;
 }
 
-
 /*
-1.1 ~SetOutType~ of Region2
+1.1 Function ~SetOutType~ 
 
 */
 int Region2::outType = 0;
@@ -3290,12 +3148,9 @@ bool Region2::SetOutType(int i) {
   return false;
 }
 
-
 /*
-1 Definition of the Region2-Algebra
+1 Definition of the Region2Algebra
 
-*/
-/*
 1.1 ~Region2Property~
 
 */
@@ -3358,7 +3213,6 @@ ListExpr Region2Property()
            remarkslist)));
 }
 
-
 /*
 1.1 ~OutPoint~
 
@@ -3409,7 +3263,6 @@ ListExpr OutPoint( Region2* r, int i, bool left )
   } 
 }
 
-
 /*
 1.1 ~OutPoint2~
 
@@ -3437,16 +3290,12 @@ ListExpr OutPoint2( Region2* r, int i, bool left )
   return nl->TwoElemList( precX, precY );
 }
 
-
 /*
 1.1 ~OutRegion2~
 
 */
 ListExpr OutRegion2( ListExpr typeInfo, Word value )
 {
-//  cout << "OutRegion2... " << endl;
-//  return (nl->TheEmptyList());
-
   Region2* r = (Region2*)(value.addr);
   if ( !r->IsDefined() )
   {
@@ -3735,7 +3584,6 @@ ListExpr OutRegion2( ListExpr typeInfo, Word value )
   } 
 }
 
-
 /*
 1.1 ~InRegion2~
 
@@ -3744,7 +3592,6 @@ Word
 InRegion2(const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-//  cout << "InRegion2... " << endl;
   if(listutils::isSymbol(instance,Symbol::UNDEFINED()))
   {
     Region2* r = new Region2(0);
@@ -3753,7 +3600,6 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
     return SetWord(Address(r));
   }
 
-//cerr << "Schritt 1" << endl;
   int syntaxtyp = 0;
   int scale = 0;
   ListExpr regNL;
@@ -3764,25 +3610,20 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
     syntaxtyp = 1;
     scale = nl->IntValue(nl->First(instance));
     regNL = nl->Second(instance);
-//cout << "Syntaxtyp 1" << endl;
   }
   else if ( nl->AtomType(instance) == NoAtom )
   {
     syntaxtyp = 2;
     regNL = instance;
-//cout << "Syntaxtyp 2" << endl;
   }
   else
   {
     correct = false;
-//cout << "Syntaxtyp fehlgeschlagen" << endl;
     return SetWord(Address(0));
   }
 
-//cerr << "Schritt 2" << endl;
   vector<vector<Reg2PrecisePoint> > cycles;
 
-//cerr << "Schritt 3" << endl;
   while (!nl->IsEmpty(regNL))
   {
     ListExpr faceNL = nl->First(regNL);
@@ -3792,7 +3633,6 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
       correct = false;
       return SetWord(Address(0));
     }
-// cerr << "Schritt 4" << endl;
    bool firstCycle = true;
     Rectangle<2> faceRect;
     while (!nl->IsEmpty(faceNL))
@@ -3800,24 +3640,20 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
       vector<Reg2PrecisePoint> cycle;
       ListExpr cycleNL = nl->First(faceNL);
       faceNL = nl->Rest(faceNL);
-//cerr << "Schritt 5" << endl;
       if (nl->AtomType(cycleNL)!=NoAtom)
       {
          correct=false;
          return SetWord(Address(0));
       }
-//cerr << "Schritt 6" << endl;
 
       Reg2PrecisePoint firstPoint;
       bool fp = true;
       Rectangle<2> currentBB;
       while (!nl->IsEmpty(cycleNL))
       {
-//cerr << "Schritt 7: " << nl->ToString(nl->First(cycleNL)) << endl;
         ListExpr pointNL = nl->First(cycleNL);
          cycleNL = nl->Rest(cycleNL);
 
-//cerr << "Schritt 8" << endl;
          mpq_class preciseX(0);
          mpq_class preciseY(0);
          Reg2PrecisePoint p;
@@ -3834,7 +3670,6 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
              return SetWord(Address(0));
            }
 
-//cerr << "Schritt 8a" << endl;
            if (nl->ListLength(nl->Third(pointNL)) == 2
              && nl->IsAtom(nl->First(nl->Third(pointNL)))
              && nl->AtomType(nl->First(nl->Third(pointNL)))
@@ -3862,7 +3697,6 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
              return SetWord(Address(0));
            }
 
-//cerr << "Schritt 8b" << endl;
            p = Reg2PrecisePoint(
                      preciseX, 
                      nl->IntValue(nl->First(pointNL)),
@@ -3962,9 +3796,7 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
            p = Reg2PrecisePoint(preciseX, preciseY);
          }
          
-//cerr << "Schritt 8c" << endl;
          cycle.push_back(p);
-//cerr << "Schritt 8d" << endl;
          if (fp) 
          {
             fp = false;
@@ -3976,43 +3808,34 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
             currentBB = currentBB.Union(p.BoundingBox());
          }
       }
-//cout << "Cycle closed!" << endl;
       if ( firstPoint != cycle[cycle.size()-1] ) 
       {
         cycle.push_back(firstPoint);
       }
       if (firstCycle || !faceRect.Contains(currentBB))
       {
-//cout << "FirstCycle or New Face" << endl;
         if ( !getDir2(cycle) ) 
         {
            reverseCycle2(cycle);
-//cout << "Richtung umgekehrt" << endl;
         }
         firstCycle = false;
         faceRect = currentBB;
       } 
       else 
       {
-//cout << "Inside Cycle" << endl;
         if (getDir2(cycle) )
         {
            reverseCycle2(cycle);
-//cout << "Richtung umgekehrt" << endl;
         }
       }
-//cout << "Richtung: " << getDir2(cycle) << endl;
       cycles.push_back(cycle); 
     }
   }
-//cerr << "Schritt 9" << endl;
-//cout << "In-Funktion erledigt!" << endl;
 
   Region2* res = buildRegion2(scale, cycles);
   correct = res!=0;
   return SetWord(res);
 }
-
 
 /*
 1.1 ~CreateRegion2~
@@ -4021,10 +3844,8 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
 Word
 CreateRegion2( const ListExpr typeInfo )
 {
-//  cout << "CreateRegion2... " << endl;
   return (SetWord( new Region2( 0 ) ));
 }
-
 
 /*
 1.1 ~DeleteRegion2~
@@ -4033,14 +3854,11 @@ CreateRegion2( const ListExpr typeInfo )
 void
 DeleteRegion2( const ListExpr typeInfo, Word& w )
 {
-//  cout << "DeleteRegion2... " << endl;
   Region2 *r = (Region2 *)w.addr;
   r->Destroy();
   r->DeleteIfAllowed(false);
-//  delete r;
   w.addr = 0;
 }
-
 
 /*
 1.1 ~OpenRegion2~
@@ -4052,15 +3870,12 @@ OpenRegion2( SmiRecord& valueRecord,
              const ListExpr typeInfo,
              Word& value )
 {
-//  cout << "OpenRegion2... " << endl;
   Region2 *r = (Region2*)Attribute::Open( valueRecord, 
                                           offset, 
                                           typeInfo );
-//  r->buildHSvector();
   value = SetWord( r );
   return true;
 }
-
 
 /*
 1.1 ~SaveRegion2~
@@ -4072,13 +3887,10 @@ SaveRegion2( SmiRecord& valueRecord,
              const ListExpr typeInfo,
              Word& value )
 {
-//  cout << "SaveRegion2... " << endl;
   Region2 *r = (Region2 *)value.addr;
-//  r->buildDbArrays();
   Attribute::Save( valueRecord, offset, typeInfo, r );
   return true;
 }
-
 
 /*
 1.1 ~CloseRegion2~
@@ -4087,11 +3899,9 @@ SaveRegion2( SmiRecord& valueRecord,
 void
 CloseRegion2( const ListExpr typeInfo, Word& w )
 {
-//  cout << "CloseRegion2... " << endl;
   ((Region2 *)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
-
 
 /*
 1.1 ~CloneRegion2~
@@ -4100,11 +3910,9 @@ CloseRegion2( const ListExpr typeInfo, Word& w )
 Word
 CloneRegion2( const ListExpr typeInfo, const Word& w )
 {
-//  cout << "CloneRegion2... " << endl;
   Region2 *r = new Region2( *((Region2 *)w.addr) );
   return SetWord( r );
 }
-
 
 /*
 1.1 ~SizeOfRegion2~
@@ -4112,10 +3920,8 @@ CloneRegion2( const ListExpr typeInfo, const Word& w )
 */
 static int SizeOfRegion2()
 {
-//  cout << "SizeOfRegion2... " << endl;
   return sizeof(Region2);
 }
-
 
 /*
 1.1 ~CheckRegion2~
@@ -4124,10 +3930,8 @@ static int SizeOfRegion2()
 bool
 CheckRegion2( ListExpr type, ListExpr& errorInfo )
 {
-//  cout << "CheckRegion2... " << endl;
   return (nl->IsEqual( type, Region2::BasicType() ));
 }
-
 
 /*
 1.1 TypeConstructor ~region2~
@@ -4145,9 +3949,10 @@ TypeConstructor region2(
         SizeOfRegion2,
         CheckRegion2 );
 
-
 /*
-1.1 ~simpleSelect~
+1 Operators of the Region2Algebra
+
+1.1 Helper function ~simpleSelect~
 
 */
 static int simpleSelect(ListExpr args) 
@@ -4155,13 +3960,8 @@ static int simpleSelect(ListExpr args)
   return 0;
 }
 
-
 /*
-1 Operators of Region2-Algebra
-
-*/
-/*
-1.1 setscalefactor
+1.1 Operator setscalefactor
 
 */
 static ListExpr SetScaleTypeMap(ListExpr args)
@@ -4223,9 +4023,8 @@ static Operator setscale("setscalefactor",
                 simpleSelect,
                 SetScaleTypeMap);
 
-
 /*
-1.1 setregion2outstlye
+1.1 Operator setregion2outstlye
 
 */
 static ListExpr SetOutStyleTypeMap(ListExpr args)
@@ -4276,9 +4075,8 @@ static Operator setoutstyle("setregion2outstyle",
                 simpleSelect,
                 SetOutStyleTypeMap);
 
-
 /*
-1.1 isempty
+1.1 Operator isempty
 
 */
 ListExpr isemptyTypeMap(ListExpr args)
@@ -4313,9 +4111,8 @@ static Operator isempty ("isempty",
                 simpleSelect,
                 isemptyTypeMap );
 
-
 /*
-1.1 intersects
+1.1 Operator intersects
 
 */
 ListExpr intersectsTypeMap( ListExpr args )
@@ -4355,9 +4152,8 @@ static Operator intersects ( "intersects",
                 simpleSelect,
                 intersectsTypeMap );
 
-
 /*
-1.1 inside
+1.1 Operator inside
 
 */
 int insideValueMap( Word* args, Word& result, int message, 
@@ -4387,9 +4183,8 @@ static Operator inside ( "inside",
                 simpleSelect,
                 intersectsTypeMap );
 
-
 /*
-1.1 adjacent
+1.1 Operator adjacent
 
 */
 int adjacentValueMap( Word* args, Word& result, int message, 
@@ -4419,9 +4214,8 @@ static Operator adjacent ( "adjacent",
                 simpleSelect,
                 intersectsTypeMap );
 
-
 /*
-1.1 overlaps
+1.1 Operator overlaps
 
 */
 int overlapsValueMap( Word* args, Word& result, int message, 
@@ -4451,9 +4245,8 @@ static Operator overlaps ( "overlaps",
                 simpleSelect,
                 intersectsTypeMap );
 
-
 /*
-1.1 no[_]components
+1.1 Operator no[_]components
 
 */
 ListExpr nocomponentsTypeMap(ListExpr args)
@@ -4491,9 +4284,8 @@ static Operator nocomponents ( "no_components",
                 simpleSelect,
                 nocomponentsTypeMap );
 
-
 /*
-1.1 no[_]segments
+1.1 Operator no[_]segments
 
 */
 int nosegmentsValueMap( Word* args, Word& result, int message, 
@@ -4522,9 +4314,8 @@ static Operator nosegments ( "no_segments",
                 simpleSelect,
                 nocomponentsTypeMap );
 
-
 /*
-1.1 bbox
+1.1 Operator bbox
 
 */
 ListExpr reg2bboxTypeMap( ListExpr args )
@@ -4564,10 +4355,9 @@ static Operator reg2bbox ( "bbox",
                 reg2bboxValueMap,
                 simpleSelect,
                 reg2bboxTypeMap );
-
   
 /*
-1.1 translate
+1.1 Operator translate
 
 */
 ListExpr translateTypeMap( ListExpr args )
@@ -4632,10 +4422,9 @@ static Operator reg2translate ( "translate",
                 translateValueMap,
                 simpleSelect,
                 translateTypeMap );
-
   
 /*
-1.1 scale
+1.1 Operator scale
 
 */
 ListExpr scaleTypeMap(ListExpr args)
@@ -4715,9 +4504,8 @@ static Operator scale ( "scale",
                 simpleSelect,
                 scaleTypeMap );
 
-
 /*
-1.1 scale2
+1.1 Operator scale2
 
 */
 ListExpr scale2TypeMap(ListExpr args)
@@ -4810,9 +4598,8 @@ static Operator scale2 ( "scale2",
                 simpleSelect,
                 scale2TypeMap );
 
-
 /*
-1.1 components
+1.1 Operator components
 
 */
 ListExpr componentsTypeMap( ListExpr args )
@@ -4893,9 +4680,8 @@ static Operator components ( "components",
                 simpleSelect,
                 componentsTypeMap );
 
-
 /*
-1.1 getHoles
+1.1 Operator getHoles
 
 */
 ListExpr getholesTypeMap(ListExpr args)
@@ -4931,9 +4717,8 @@ static Operator getholes( "getHoles",
                 getholesTypeMap
 );
 
-
 /*
-1.1 region2region2
+1.1 Operator region2region2
 
 */
 ListExpr region2region2TypeMap( ListExpr args )
@@ -4974,9 +4759,8 @@ static Operator region2region2 ( "region2region2",
                 simpleSelect,
                 region2region2TypeMap );
 
-
 /*
-1.1 regiontoregion2
+1.1 Operator regiontoregion2
 
 */
 ListExpr regiontoregion2TypeMap( ListExpr args )
@@ -5031,9 +4815,8 @@ static Operator regiontoregion2 ( "regiontoregion2",
                 simpleSelect,
                 regiontoregion2TypeMap );
 
-
 /*
-1.1 rect2region2
+1.1 Operator rect2region2
 
 */
 ListExpr rect2region2TypeMap( ListExpr args )
@@ -5075,9 +4858,8 @@ static Operator rect2region2 ( "rect2region2",
                 simpleSelect,
                 rect2region2TypeMap );
 
-
 /*
-1.1 recttoregion2
+1.1 Operator recttoregion2
 
 */
 ListExpr recttoregion2TypeMap( ListExpr args )
@@ -5133,9 +4915,8 @@ static Operator recttoregion2 ( "recttoregion2",
                 simpleSelect,
                 recttoregion2TypeMap );
 
-
 /*
-1.1 area and size
+1.1 Operators area and size
 
 */
 ListExpr areaTypeMap( ListExpr args )
@@ -5188,9 +4969,8 @@ static Operator size ( "size",
                 simpleSelect,
                 areaTypeMap );
 
-
 /*
-1.1 class definition
+1 Algebra creation
 
 */
 class Region2Algebra : public Algebra
