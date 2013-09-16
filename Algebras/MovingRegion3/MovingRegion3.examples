@@ -75,15 +75,21 @@ Result    : (uregion2 (1 (("2000-01-03" "2000-01-13" TRUE TRUE ()) ((((5 3 7 1 (
 
 Operator  : translate
 Number    : 1
-Signature : mregion2 x real x real -> mregion2
-Example   : query mr2 translate [0.0, 5.0]
-Result    : (mregion2 (3 ((("2000-01-03" "2000-01-13" TRUE TRUE ()) ((((10 40 15 20 ()) (20 60 30 50 ()) (30 70 35 55 ()) (40 70 55 55 ()) (40 60 55 50 ()) (50 50 75 30 ()) (50 30 75 15 ()) (40 20 70 10 ()) (30 20 25 10 ())) ((20 35 30 25 ()) (20 45 30 35 ()) (30 45 40 35 ()) (30 35 40 25 ()))))))))
+Signature : mregion2 x duration x real x real -> mregion2
+Example   : query mr2 translate [[const duration value (2 0)], 0.0, 5.0]
+Result    : (mregion2 (3 ((("2000-01-05" "2000-01-15" TRUE TRUE ()) ((((10 40 15 20 ()) (20 60 30 50 ()) (30 70 35 55 ()) (40 70 55 55 ()) (40 60 55 50 ()) (50 50 75 30 ()) (50 30 75 15 ()) (40 20 70 10 ()) (30 20 25 10 ())) ((20 35 30 25 ()) (20 45 30 35 ()) (30 45 40 35 ()) (30 35 40 25 ()))))))))
 
 Operator  : translate
 Number    : 2
 Signature : uregion2 x real x real -> uregion2
 Example   : query ur2 translate [0.0, 5.0]
 Result    : (uregion2 (1 (("2000-01-03" "2000-01-13" TRUE TRUE ()) ((((10 40 15 20 ()) (20 60 30 50 ()) (30 70 35 55 ()) (40 70 55 55 ()) (40 60 55 50 ()) (50 50 75 30 ()) (50 30 75 15 ()) (40 20 70 10 ()) (30 20 25 10 ())) ((20 35 30 25 ()) (20 45 30 35 ()) (30 45 40 35 ()) (30 35 40 25 ())))))))
+
+Operator  : timeshift
+Number    : 1
+Signature : mregion2 x duration -> mregion2
+Example   : query mr2 timeshift [[const duration value (2 0)]]
+Result    : (mregion2 (3 ((("2000-01-05" "2000-01-15" TRUE TRUE ()) ((((10 40 15 20 ()) (20 60 30 50 ()) (30 70 35 55 ()) (40 70 55 55 ()) (40 60 55 50 ()) (50 50 75 30 ()) (50 30 75 15 ()) (40 20 70 10 ()) (30 20 25 10 ())) ((20 35 30 25 ()) (20 45 30 35 ()) (30 45 40 35 ()) (30 35 40 25 ()))))))))
 
 Operator  : mregiontomregion2
 Number    : 1
@@ -126,4 +132,16 @@ Number    : 1
 Signature : mregion2 -> region2
 Example   : query traversed(mr2)
 Result    : (region2 (3 ((((15 15 ()) (10 35 ()) (20 55 ()) (30 65 ()) (40 65 ()) (55 50 ()) (55 45 ()) (75 25 ()) (75 10 ()) (70 5 ()) (25 5 ()))))))
+
+Operator : deftime
+Number   : 1
+Signature: mregion2 -> periods
+Example  : query deftime(mrain2)
+Result   : (periods(("2003-11-20-06:06" "2003-11-20-08:10" TRUE TRUE)))
+
+Operator : present
+Number   : 1
+Signature: mregion2 x instant -> bool
+Example  : query mrain2 present six30
+Result   : TRUE
 
