@@ -275,7 +275,7 @@ public class ColorMap
     int index = 0;
     double valuerange = this.maxValue - this.minValue;
     
-    if(this.values.size() < this.treshold)
+    if(valuerange < this.treshold)
     {
       // pick color with same index from gradient image
       index = this.values.indexOf(pValue);
@@ -329,27 +329,33 @@ public class ColorMap
       int index = 0;
       double valuerange = this.maxValue - this.minValue;
       
-      if(this.values.size() < this.treshold)
+      if(valuerange < this.treshold)
       {
         // pick color with same index from gradient image
         index = this.values.indexOf(pValue);
       }
+      
       else
       {
         // compute relative position of value within value range 
         // and pick corresponding color from color range
         Double colpos;
-        if (valuerange==1)
+        
+        if(valuerange == 1)
         {
           colpos = 0.0;
         }
+        
         else
         { 
           colpos = ((pValue - this.minValue) * this.gradientImage.getWidth() / (valuerange));
-          if (colpos.intValue() == this.gradientImage.getWidth() ){
-                  colpos = colpos-1; 
+          
+          if(colpos.intValue() == this.gradientImage.getWidth())
+          {
+            colpos -= 1.0; 
           }
         }
+        
         index = colpos.intValue();
       }
       
@@ -387,6 +393,7 @@ public class ColorMap
         blue = (blue / sameColorInterval) * sameColorInterval;
         doubleColor = new Color(red, green, blue);
     }
+    
     return doubleColor;
   }
   
@@ -412,6 +419,7 @@ public class ColorMap
           booleanColor = this.maxColor;
         }
       }
+      
       else // no user-defined gradient colors
       {
         if(pValue)
@@ -456,15 +464,17 @@ public class ColorMap
   */
   private void computeGradientImage()
   {
-      Graphics2D g2;      
+      Graphics2D g2;
+      double valuerange = this.maxValue - this.minValue;      
       
       // if only few values, map values directly to colors
-      if(this.values.size() <= this.gradientColors.size())
+      if(this.values.size() <= this.gradientColors.size() &&
+         valuerange <= this.gradientColors.size())
       { 
         this.gradientImage = new BufferedImage(this.values.size(), 1, BufferedImage.TYPE_INT_ARGB);
         g2 = (Graphics2D) gradientImage.getGraphics();
         
-        for (int index=0; index<this.values.size(); index++)
+        for(int index = 0; index < this.values.size(); index++)
         {
           gradientImage.setRGB(index, 0, this.gradientColors.get(index).getRGB());
         }
@@ -472,7 +482,8 @@ public class ColorMap
       
       // if gradient image size will not cause heap space problems
       // create gradient image with one pixel for every value
-      else if (values.size() <= this.treshold)
+      else if(values.size() <= this.treshold &&
+              valuerange <= this.treshold)
       { 
         this.gradientImage = new BufferedImage(this.values.size(), 1, BufferedImage.TYPE_INT_ARGB);
         g2 = (Graphics2D) gradientImage.getGraphics();
@@ -482,26 +493,29 @@ public class ColorMap
         g2.fillRect(0, 0, this.values.size(), 1);  
         
         // fill image with gradient stripes
-        int intervalSize = this.values.size()/(this.gradientColors.size()-1);
-        for (int i=0; i<this.gradientColors.size()-1; i++)
+        int intervalSize = this.values.size() / (this.gradientColors.size() - 1);
+        
+        for(int i = 0; i < this.gradientColors.size() - 1; i++)
         {   
           GradientPaint gradient = new GradientPaint(intervalSize * i, 0, this.gradientColors.get(i), 
-                                                     intervalSize * (i+1), 1, this.gradientColors.get(i+1));
+                                                     intervalSize * (i + 1), 1, this.gradientColors.get(i + 1));
           g2.setPaint(gradient);
           g2.fillRect(intervalSize*i, 0, intervalSize+1, 1);
         }
         
         // fill probably last pixel(s) of image with last color
         boolean filled = false;
-        int pixelIndex = this.gradientImage.getWidth()-1;
-        Color lastColor = this.gradientColors.get(this.gradientColors.size()-1);
-        while (!filled)
+        int pixelIndex = this.gradientImage.getWidth() - 1;
+        Color lastColor = this.gradientColors.get(this.gradientColors.size() - 1);
+        
+        while(!filled)
         {
           if (Color.WHITE.equals(new Color(gradientImage.getRGB(pixelIndex, 0))))
           {
             gradientImage.setRGB(pixelIndex, 0, lastColor.getRGB());
             pixelIndex--;
           }
+          
           else 
           {
             filled = true;
