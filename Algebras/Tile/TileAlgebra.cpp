@@ -207,22 +207,22 @@ TileAlgebra::TileAlgebra()
 
   */
 
-  AddTypeConstructor(new TypeConstructor(tintArray::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(tintFlob::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(tgrid::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(mtgrid::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(tint::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(treal::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(tbool::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(tstring::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(mtint::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(mtreal::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(mtbool::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(mtstring::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(itint::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(itreal::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(itbool::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(itstring::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(tintArray::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(tintFlob::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(tgrid::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(mtgrid::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(tint::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(treal::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(tbool::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(tstring::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(mtint::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(mtreal::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(mtbool::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(mtstring::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(itint::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(itreal::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(itbool::GetTypeConstructor()),true);
+  AddTypeConstructor(new TypeConstructor(itstring::GetTypeConstructor()),true);
 
   /*
   Operators
