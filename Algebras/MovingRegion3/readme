@@ -1,0 +1,18 @@
+To use the MovingRegion3Algebra, the Region2Algebra has to be activated, too.
+The use of the MovingRegion2Algebra together with the MovingRegion3Algebra/Region2Algebra is not possible!
+
+The MovingRegion3Algebra/Region2Algebra uses the GMP-library, so the following needs to be done:
+In the file makefile.optimizer the option -lgmpxx has to be added at line 67: -lgmpxx
+
+LD_GMP := -lgmpxx -lgmp
+
+or use the switch in the makefile.algebras file:
+
+ALGEBRA_DIRS += Region2
+ALGEBRAS     += Region2Algebra
+ALGEBRA_DEPS += gmpxx gmp
+
+ALGEBRA_DIRS += MovingRegion3
+ALGEBRAS     += MovingRegion3Algebra
+ALGEBRA_DEPS += gmpxx gmp
+
