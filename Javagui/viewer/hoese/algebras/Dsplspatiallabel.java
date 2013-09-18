@@ -16,7 +16,7 @@ import tools.Reporter;
 import java.text.DecimalFormat;
 
 
-public class Dspllabel extends DisplayGraph implements DisplayComplex, LabelAttribute{
+public class Dsplspatiallabel extends DisplayGraph implements DisplayComplex, LabelAttribute{
 
    private String text;
    private double x;

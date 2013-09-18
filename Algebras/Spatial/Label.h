@@ -193,7 +193,7 @@ public:
     size_t Sizeof() const { return sizeof(*this); }
 
     static const string BasicType(){
-           return "label";
+           return "spatiallabel";
     }
 
     static const bool checkType(const ListExpr type){
