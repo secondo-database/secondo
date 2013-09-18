@@ -631,7 +631,7 @@ Word mtgrid::In(const ListExpr typeInfo,
        nlist.isReal(3) &&
        nlist.isList(4))
     {
-      datetime::DateTime duration;
+      datetime::DateTime duration(datetime::durationtype);
 
       mtgrid* pmtgrid = new mtgrid(nlist.elem(1).realval(),
                                    nlist.elem(2).realval(),
