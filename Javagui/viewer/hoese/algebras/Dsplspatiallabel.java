@@ -34,11 +34,14 @@ public class Dsplspatiallabel extends DisplayGraph implements DisplayComplex, La
    public void draw(Graphics g1, double time, AffineTransform at){
      Graphics2D g = ( Graphics2D) g1;
      try{
+        AffineTransform origAT = g.getTransform();
+        
         at.transform(orig,trans);
 
         g.rotate(d,trans.getX(), trans.getY());
         //g.setPaint(Cat.getFillStyle(null,0));
         g.drawString(text, (int)trans.getX(), (int) trans.getY());
+        g.setTransform(origAT);
      } catch(Exception e){
          e.printStackTrace();
      }
