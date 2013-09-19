@@ -124,10 +124,12 @@ public:
 class MFace {
 public:
     MSegs face;
-    vector<MSegs> holes;
+    vector<MSegs> holes, cvs;
     
     MFace();
     MFace(MSegs face);
+    void AddConcavity (MSegs c);
+    void MergeConcavities ();
     void AddMsegs (MSegs msegs);
     URegion ToURegion(Interval<Instant> iv, int facenr);
     string ToString();

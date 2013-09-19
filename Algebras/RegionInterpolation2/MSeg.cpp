@@ -29,8 +29,10 @@ bool MSeg::intersects(const MSeg& a) const {
     unsigned int detailedResult;
     bool ret;
     
+    return false;
+
     ret = specialTrapeziumIntersects(
-            1,
+            100,
             is.x, is.y,
             ie.x, ie.y,
             fs.x, fs.y,
@@ -42,15 +44,24 @@ bool MSeg::intersects(const MSeg& a) const {
             a.fe.x, a.fe.y,
             detailedResult
             );
-    
+
     if (ret) {
+        cerr << "specialTrapeziumIntersects(1,\n"
+                << is.x << " (isx), " << is.y << " (isy),\n"
+                << ie.x << " (iex)," << ie.y << " (iey),\n"
+                << fs.x << " (fsx)," << fs.y << " (fsy),\n"
+                << fe.x << " (fex)," << fe.y << " (fey),\n\n"
+                << a.is.x << " ," << a.is.y << ",\n"
+                << a.ie.x << "," << a.ie.y << ",\n"
+                << a.fs.x << "," << a.fs.y << ",\n"
+                << a.fe.x << "," << a.fe.y << "\n";
         cerr << "Intersection found, detail: " << detailedResult << "\n";
         cerr << ToString() << "\n" << a.ToString() << "\n";
-        
-        if (detailedResult != 8)
-            return true;
+
+        //        if (detailedResult != 8)
+        return true;
     }
-        
+
     return false;
 }
 
@@ -105,7 +116,7 @@ void MSeg::ChangeDirection() {
     tmp = is;
     is = ie;
     ie = tmp;
-    
+
     tmp = fs;
     fs = fe;
     fe = tmp;

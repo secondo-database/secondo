@@ -12,10 +12,21 @@ MFace::MFace(MSegs face) : face(face) {
 void MFace::AddMsegs(MSegs m) {
     vector<MSeg> match = m.GetMatchingMSegs(face);
     if (match.size() > 0) {
-        face.MergeConcavity(m);
+        AddConcavity(m);
     } else {
         holes.push_back(m);
     }
+}
+
+void MFace::AddConcavity (MSegs c) {
+    cvs.push_back(c);
+}
+
+void MFace::MergeConcavities () {
+    for (unsigned int i = 0; i < cvs.size(); i++) {
+        face.MergeConcavity(cvs[i]);
+    }
+    cvs.erase(cvs.begin(), cvs.end());
 }
 
 URegion MFace::ToURegion(Interval<Instant> iv, int facenr) {
