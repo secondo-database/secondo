@@ -24833,6 +24833,113 @@ Operator collectDline(
    collectDlineTM);
 
 
+/*
+40 Operator ~computeLabel~
+
+40.1 Type Mapping
+
+*/
+ListExpr computeLabelTM(ListExpr args){
+  string err = "line x string expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(   !Line::checkType(nl->First(args)) 
+     || !CcString::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<Label>();
+}
+
+
+/*
+40.2 Value Mapping
+
+*/
+
+int computeLabelVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s ){
+  Line* line = (Line*) args[0].addr;
+  CcString* lab = (CcString*) args[1].addr;
+  result = qp->ResultStorage(s);
+  Label* res = (Label*) result.addr;
+  if(!line->IsDefined() || !lab->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  if(line->Size()==0){
+     res->set(lab->GetValue(),0,0,0);
+  } 
+  Rectangle<2> r = line->BoundingBox();
+  double x = (r.MinD(0) + r.MaxD(0))  / 2;
+  double y = (r.MinD(1) + r.MaxD(1)) / 2;
+  Point p(true,x,y);
+
+  HalfSegment hs;
+  HalfSegment minHs;
+  double distance;
+  line->Get(0,hs);
+  minHs = hs;
+  distance = hs.Distance(p);
+  // determine the halfsegment located near of the bbox center
+  for(int i=1;i<line->Size();i++){
+      line->Get(i,hs);
+      if(hs.IsLeftDomPoint()){
+          double dist = hs.Distance(p);
+          if(dist < distance){
+            distance = dist;
+            minHs = hs;
+          }
+      }
+  }
+  p = minHs.GetLeftPoint();
+  Point p2 = minHs.GetRightPoint();
+  double dx = p2.GetX() - p.GetX();
+  double dy = p2.GetY() - p.GetY();
+  double ang;
+  if(AlmostEqual(dy,0)){
+     ang = 0;
+  } else if(AlmostEqual(dx,0)){
+     ang = 90;
+  } else {
+    double len = sqrt(dx*dx+dy*dy);
+    ang = acos(dy/len) * 180 / M_PI;
+    cout << "Name " << lab->GetValue() << endl;
+    cout << "Angle 1 = " << ang << endl;
+    ang = ang -90;
+    if(ang<-90){
+      ang = ang + 180;
+    }
+  }
+  res->set(lab->GetValue(), p.GetX() + dx/3, p.GetY()+dy/3, ang);
+  return 0;
+}
+
+
+/*
+
+40.3 Specification
+
+*/
+OperatorSpec computeLabelSpec (
+    " line  x string -> spatiallabel",
+    " computeLabel(line, name)",
+    " Computes a label for a line",
+    " query computeLabel(BGrenzenLine,\"boundary\") "
+  );
+
+/*
+40.4 Operator instance
+
+*/
+
+Operator computeLabelOP(
+   "computeLabel",
+   computeLabelSpec.getStr(),
+   computeLabelVM,
+   Operator::SimpleSelect,
+   computeLabelTM
+);
 
 /*
 11 Creating the Algebra
@@ -24995,6 +25102,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&computeOIM);
 
     AddOperator(&collectDline);
+    AddOperator(&computeLabelOP);
 
 
   }
