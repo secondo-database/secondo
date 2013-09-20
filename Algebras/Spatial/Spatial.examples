@@ -1209,8 +1209,8 @@ Result    : TRUE
 Operator  : computeLabel
 Number    : 1
 Signature : line x string -> spatiallabel
-Example   : query computeLabel( [const line value ((0 0 3 3)), "aline")
-Result    : (spatiallabel ('aline',1.0,1.0,45.0))
+Example   : query computeLabel( [const line value ((0 0 3 3))], "aline")
+Result    : (spatiallabel ('aline' 1.0 1.0 -45.0))
 Tolerance : 0.5
 
 
