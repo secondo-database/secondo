@@ -8,12 +8,97 @@
 
 #setup TileAlgebraTest
 
-create database TileAlgebraTest;
-open database TileAlgebraTest;
+#######################################
+# create Database RasterDatabase      #
+#######################################
+
+create database RasterDatabase;
+
+#######################################
+# open Database RasterDatabase        #
+#######################################
+
+open database RasterDatabase;
 
 ################################################################################
 # Run Tests ####################################################################
 ################################################################################
+
+#######################################
+# import raster data of hgt format    #
+#######################################
+
+#testcase import raster data of hgt format
+#yields success
+let N51E007 =  '../Data/Raster2/N51E007.hgt' feed importHgt
+
+#######################################
+# display N51E007 object              #
+#######################################
+
+#testcase display N51E007 object
+#yields success
+query N51E007
+
+############################################
+# import raster data of esri raster format #
+############################################
+
+#testcase import raster data of esri raster format
+#yields success
+let N52E006 =  '../Data/Raster2/N52E006.asc' feed importEsriRaster
+
+#######################################
+# display N52E006 object              #
+#######################################
+
+#testcase display N52E006 object
+#yields success
+query N52E006
+
+#######################################
+# convert N51E007 object              #
+#######################################
+
+#testcase convert N51E007 object
+#yields success
+let N51E007Relation = tiles(N51E007) namedtransformstream[No] consume
+
+#######################################
+# display N51E007Relation object      #
+#######################################
+
+#testcase display N51E007Relation object
+#yields success
+query N51E007Relation
+
+#######################################
+# convert N52E006 object              #
+#######################################
+
+#testcase convert N52E006 object
+#yields success
+let N52E006Relation = tiles(N52E006) namedtransformstream[No] consume
+
+#######################################
+# display N52E006Relation object      #
+#######################################
+
+#testcase display N52E006Relation object
+#yields success
+query N52E006Relation
+
+#######################################
+# minimum > 50 and maximum < 400      #
+#######################################
+
+query N51E007Relation feed filter[(minimum(.No) > 50) and (maximum(.No) < 400)] consume
+
+#######################################
+# minimum of N51E007Relation          #
+#######################################
+
+query N51E007Relation feed extend [ M : minimum(.No)] min[M]
 
 #######################################
 # atinstant                           #
