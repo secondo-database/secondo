@@ -4,8 +4,8 @@ Restore  : No
 Operator : tolabel
 Number   : 1
 Signature: (string | text) -> label
-Example  : query tolabel('abc')
-Result   : (label "abc")
+Example  : query tolabel('Aubameyang')
+Result   : (label "Aubameyang")
 
 Operator : mstringtomlabel
 Number   : 1
@@ -40,7 +40,7 @@ Result   : TRUE
 Operator : toclassifier
 Number   : 1
 Signature: stream(tuple(description: text, pattern: text)) -> classifier
-Example  : query classify(Dotraj, class2 feed toclassifier) count
+Example  : query classify(michael, class2 feed toclassifier) count
 Result   : 0
 
 Operator : matches
@@ -48,12 +48,6 @@ Number   : 1
 Signature: mlabel x text -> bool
 Example  : query michael matches 'A * B (_ sportclub) C * D (_ sportclub) E * // A.card > E.card'
 Result   : TRUE
-
-Operator : indexmatches
-Number   : 1
-Signature: rel(tuple(X)) x IDENT x invfile x text -> stream(tuple(X))
-Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") X * () // X.labels contains "Brackel"'] count
-Result   : 25
 
 Operator : filtermatches
 Number   : 1
@@ -73,17 +67,11 @@ Signature: mlabel x classifier -> stream(text)
 Example  : query classify(michael, classifier2) count
 Result   : 0
 
-Operator : indexclassify
-Number   : 1
-Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier-> stream(tuple(string, mlabel))
-Example  : query (Dotraj indexclassify[Trajectory, Dotrajindex, classifier1]) count
-Result   : 234
-
 Operator : rewrite
 Number   : 1
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
 Example  : query rewrite(Dotraj feed projecttransformstream[Trajectory], rewrite1 feed projecttransformstream[Pattern]) count
-Result   : 71
+Result   : 133
 
 Operator : compress
 Number   : 1
@@ -118,8 +106,8 @@ Result   : FALSE
 Operator : createindex
 Number   : 1
 Signature: mlabel -> mlabel
-Example  : query createindex(michael) matches '* (_ at_home)'
-Result   : TRUE
+Example  : query createindex(michael) getTypeNL
+Result   : (text 'mlabel')
 
 Operator : createtrie
 Number   : 1

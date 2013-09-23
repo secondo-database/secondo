@@ -182,9 +182,7 @@ class MLabel : public MString {
   MLabel(MString* ms);
   MLabel(MLabel* ml);
   
-  ~MLabel() {if (index.getNodeRefSize() || index.getNodeLinkSize()
-              || index.getLabelIndexSize()) {
-               index.destroyDbArrays(); index.removeTrie(); index.initRoot();}}
+  ~MLabel() {}
 
   static const string BasicType() {return "mlabel";}
   static bool checkType(ListExpr t) {
@@ -505,9 +503,9 @@ class Pattern {
   map<int, int>     getTransitions(int pos) {assert(pos >= 0);
     assert(pos < (int)nfa.size()); return nfa[pos];}
   void              setNFA(vector<map<int, int> > &_nfa, set<int> &fs) {
-    nfa = _nfa;
-    finalStates = fs;
+    nfa = _nfa; finalStates = fs;
   }
+  void              eraseTransition(int state, int pE) {nfa[state].erase(pE);}
   void              setDescr(string desc)   {description = desc;}
   string            getDescr()              {return description;}
   void deleteAssignOpTrees()   {for (unsigned int i = 0;i < assigns.size();i++){
@@ -597,14 +595,32 @@ struct BindingElem {
   unsigned int from, to;
 };
 
-struct ActiveUL {
-  ActiveUL() : rangeActive(false) {
-    items.insert(0);
-  }
+struct StateWithULs {
+  StateWithULs(unsigned int i, unsigned int range = UINT_MAX)
+                  : rangeStart(range), state(i) {if (i == 0) {items.insert(0);}}
+  StateWithULs() : rangeStart(UINT_MAX), state(UINT_MAX) {}
 
-  pair<unsigned int, unsigned int> range;
+  bool isActive(unsigned int pos) {
+    return (items.count(pos) || rangeStart <= pos);}
+  bool mismatch(unsigned int mlSize) {
+    return (items.empty() && rangeStart > mlSize);}
+  bool match(set<int> finalStates, unsigned int mlSize) {
+    return (finalStates.count(state) &&
+           (rangeStart <= mlSize || items.count(mlSize)));}
+  void activateNextItems(StateWithULs old) {
+    if (old.rangeStart != UINT_MAX) {
+      rangeStart++;
+    }
+    set<unsigned int>::iterator it;
+    for (it = old.items.begin(); it != old.items.end(); it++) {
+      items.insert(*it + 1);
+    }
+  }
+  void clear() {
+    items.clear(); rangeStart = UINT_MAX; state = UINT_MAX;}
+
+  unsigned int rangeStart, state;
   set<unsigned int> items;
-  bool rangeActive;
 };
 
 class Match {
@@ -644,7 +660,7 @@ class Match {
   bool evaluateCond(Condition &cond,
                  const map<string, pair<unsigned int, unsigned int> > &binding);
   void printBinding(map<string, pair<unsigned int, unsigned int> > &b);
-  void deletePattern() {if (p) {delete p;}}
+  void deletePattern() {if (p) {delete p; p = 0;}}
   bool initEasyCondOpTrees() {return p->initEasyCondOpTrees();}
   bool initCondOpTrees() {return p->initCondOpTrees();}
   bool initAssignOpTrees() {return p->initAssignOpTrees();}
@@ -653,8 +669,11 @@ class Match {
   void createSetMatrix(unsigned int dim1, unsigned int dim2) {
     matching = ::createSetMatrix(dim1, dim2);}
   void setML(MLabel *newML) {ml = newML;}
-  ExtBool updateActiveUL(set<int> &states, ActiveUL &activeUL);
-  
+  bool indexMatch(StateWithULs swu);
+  void filterTransitions(vector<map<int, int> > &nfaSimple,
+                         string regExSimple = "");
+  bool nfaIsViable();
+  bool reachesFinalState(vector<map<int, int> > &nfa);
   vector<int> applyConditions(ClassifyLI* c);
   
   

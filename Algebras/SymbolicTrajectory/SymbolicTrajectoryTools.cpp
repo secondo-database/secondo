@@ -89,6 +89,24 @@ string addQM(string arg) {
   return arg;
 }
 
+void simplifyRegEx(string &regEx) {
+  for (unsigned int i = 0; i < regEx.length(); i++) {
+    switch (regEx[i]) {
+      case '*': {
+        regEx[i] = '?';
+        break;
+      }
+      case '+': {
+        regEx.erase(i, 1);
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
+}
+
 /*
 \subsection{Function ~stringToSet~}
 
@@ -962,7 +980,7 @@ void MLabelIndex::printContents(set<string> &labels) {
 NodeRef MLabelIndex::getNodeRef(int pos) const {
   assert((0 <= pos) && (pos < getNodeRefSize()));
   NodeRef nRef;
-//   cout << "try to get nodeRef #" << pos;
+//   cout << "try to get nodeRef #" << pos << ", size is " << nodes.Size();
   nodes.Get(pos, nRef);
 //   cout << "   .............. successful." << endl;
   return nRef;

@@ -56,6 +56,7 @@ vector<string> splitPattern(string input);
 char* convert(string arg);
 string eraseQM(string arg); // QM = quotation marks
 string addQM(string arg);
+void simplifyRegEx(string &regEx);
 set<unsigned int>** createSetMatrix(unsigned int dim1, unsigned int dim2);
 void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
 int getKey(string type);
