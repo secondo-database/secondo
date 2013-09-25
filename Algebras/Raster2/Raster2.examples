@@ -223,7 +223,7 @@ Operator : importTiff
 Number   : 1
 Signature : stream(text) -> sint
 Example   : query bbox('test.tif' feed importTiff)
-Result    : (rect  (-124.625 -113.0 45.125 56.125))
+Result    : (rect   (-124.625 -113.0 44.0 56.125))
 
 
 
