@@ -1997,15 +1997,18 @@ class ImportTiffLocalInfo{
                 rowsForStrip = sinfo.imageHeight - i*sinfo.rowsPerStrip;
              }
              switch(bps){
-               case 8 :  processStrip<uint8_t>( i, data, sinfo.imageWidth, 
+               case 8 :  processStrip<uint8_t>( i, data, sinfo.imageWidth,
+                                sinfo.rowsPerStrip, 
                                 rowsForStrip,bbox.getX1(), 
                                 bbox.getY2(),pixelsize);
                     break;
-               case 16 :  processStrip<uint16_t>( i, data, sinfo.imageWidth, 
+               case 16 :  processStrip<uint16_t>( i, data, sinfo.imageWidth,
+                                sinfo.rowsPerStrip,
                                 rowsForStrip,bbox.getX1(), 
                                 bbox.getY2(),pixelsize);
                     break;
                case 32 :  processStrip<uint32_t>( i, data, sinfo.imageWidth, 
+                                sinfo.rowsPerStrip,
                                 rowsForStrip,bbox.getX1(), 
                                 bbox.getY2(),pixelsize);
                     break;
@@ -2025,13 +2028,14 @@ class ImportTiffLocalInfo{
     void processStrip(const size_t no, //strip number
                       const char* data,  // strip content
                       const size_t width, // image witdh
-                      const size_t rowsPerStrip,  
+                      const size_t rowsPerStrip,
+                      const size_t rowsForThisStrip,  
                                         // number of rows within this strip
                       const double x1,   // leftmost pos within the image
                       const double ytop, // topmost pos within the image
                       const double pixelsize ){ // size of a single pixel
         T* tdata = (T*) (void*) data;
-        for(size_t y=0;y<rowsPerStrip;y++){
+        for(size_t y=0;y<rowsForThisStrip;y++){
            for(size_t x=0;x<width;x++){
                T v = tdata[width*y+x]; // get Value from data
                // compute location of the middle of the cell 
