@@ -222,9 +222,9 @@ Result    :  9.2740840053
 Operator : importTiff
 Number   : 1
 Signature : stream(text) -> sint
-Example   : 'test.tiff' feed importTiff
-Result    : crashes
-Remark    : in experimental state
+Example   : query bbox('test.tif' feed importTiff)
+Result    : (rect  (-124.625 -113.0 45.125 56.125))
+
 
 
 
