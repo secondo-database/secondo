@@ -1990,20 +1990,23 @@ class ImportTiffLocalInfo{
             }
           }
 
-
           for(size_t i=0;i<sinfo.stripOffsets.size();i++){
              char* data = ti.getStripData(sinfo,0,i);
+             int rowsForStrip = sinfo.rowsPerStrip;
+             if((i+1)*sinfo.rowsPerStrip > sinfo.imageHeight){
+                rowsForStrip = sinfo.imageHeight - i*sinfo.rowsPerStrip;
+             }
              switch(bps){
                case 8 :  processStrip<uint8_t>( i, data, sinfo.imageWidth, 
-                                sinfo.rowsPerStrip,bbox.getX1(), 
+                                rowsForStrip,bbox.getX1(), 
                                 bbox.getY2(),pixelsize);
                     break;
                case 16 :  processStrip<uint16_t>( i, data, sinfo.imageWidth, 
-                                sinfo.rowsPerStrip,bbox.getX1(), 
+                                rowsForStrip,bbox.getX1(), 
                                 bbox.getY2(),pixelsize);
                     break;
                case 32 :  processStrip<uint32_t>( i, data, sinfo.imageWidth, 
-                                sinfo.rowsPerStrip,bbox.getX1(), 
+                                rowsForStrip,bbox.getX1(), 
                                 bbox.getY2(),pixelsize);
                     break;
                default: cerr << "invalid bitsPerPixel " << bps << endl;
