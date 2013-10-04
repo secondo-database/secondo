@@ -20,11 +20,12 @@ let CLUSTER_SIZE = 12
 
 let PS_SCALE = 36 
 
+let OSM_FilePath = 'arnsberg-regbez.osm';
 
 # Q1
 
 
-query fullosmimport('arnsberg-regbez.osm', "City")
+# query fullosmimport(OSM_FilePath, "City")
 
 
 # 155 secs, 194
@@ -38,11 +39,11 @@ query fullosmimport('arnsberg-regbez.osm', "City")
 
 # Import the data in parallel 
 
-let SubFileName = "PartArnsberg";
+let SubFileName = "PartCity";
 
 let RelPrefix = "City";
 
-query divide_osm('arnsberg-regbez.osm', SubFileName, CLUSTER_SIZE, RelPrefix);
+query divide_osm(OSM_FilePath, SubFileName, CLUSTER_SIZE, RelPrefix);
 # 47 secs
 
 query spreadFiles(SubFileName, '', CLUSTER_SIZE);
@@ -51,19 +52,20 @@ query spreadFiles(SubFileName, '', CLUSTER_SIZE);
 let MapAllRel = hadoopMapAll(fullosmimport(totext(SubFileName), RelPrefix)) consume; 
 # 82 secs
 
-let ArnsbergLocRel = MapAllRel feed remove[Success, Result] consume;
+# The distribution of above map job result 
+let CityDistribution = MapAllRel feed remove[Success, Result] consume;
 
-let CityNodes_Ini_dlo = CityNodes_type createFList["CityNodes", ArnsbergLocRel, DLO, TRUE];
+let CityNodes_Ini_dlo = CityNodes_type createFList["CityNodes", CityDistribution, DLO, TRUE];
 
-let CityNodeTags_Ini_dlo = CityNodeTags_type createFList["CityNodeTags", ArnsbergLocRel, DLO, TRUE];
+let CityNodeTags_Ini_dlo = CityNodeTags_type createFList["CityNodeTags", CityDistribution, DLO, TRUE];
 
-let CityWays_Ini_dlo = CityWays_type createFList["CityWays", ArnsbergLocRel, DLO, TRUE];
+let CityWays_Ini_dlo = CityWays_type createFList["CityWays", CityDistribution, DLO, TRUE];
 
-let CityWayTags_Ini_dlo = CityWayTags_type createFList["CityWayTags", ArnsbergLocRel, DLO, TRUE];
+let CityWayTags_Ini_dlo = CityWayTags_type createFList["CityWayTags", CityDistribution, DLO, TRUE];
 
-let CityRelations_Ini_dlo = CityRelations_type createFList["CityRelations", ArnsbergLocRel, DLO, TRUE];
+let CityRelations_Ini_dlo = CityRelations_type createFList["CityRelations", CityDistribution, DLO, TRUE];
 
-let CityRelationTags_Ini_dlo = CityRelationTags_type createFList["CityRelationTags", ArnsbergLocRel, DLO, TRUE];
+let CityRelationTags_Ini_dlo = CityRelationTags_type createFList["CityRelationTags", CityDistribution, DLO, TRUE];
 
 # Q2 parallel
 
