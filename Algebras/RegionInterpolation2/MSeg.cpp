@@ -12,7 +12,6 @@ MSeg::MSeg(Pt is, Pt ie, Pt fs, Pt fe) : is(is), ie(ie), fs(fs), fe(fe) {
 MSegmentData MSeg::ToMSegmentData(int face, int cycle, int segno) {
     MSegmentData m(face, cycle, segno, false,
             is.x, is.y, ie.x, ie.y, fs.x, fs.y, fe.x, fe.y);
-
     return m;
 }
 
@@ -25,44 +24,54 @@ bool MSeg::operator==(const MSeg& a) const {
             );
 }
 
+int TriangleIntersection(float V0[3], float V1[3], float V2[3],
+        float U0[3], float U1[3], float U2[3]);
+
 bool MSeg::intersects(const MSeg& a) const {
-    unsigned int detailedResult;
-    bool ret;
+    float V0[3], V1[3], V2[3];
+    float U0[3], U1[3], U2[3];
     
-    return false;
-
-    ret = specialTrapeziumIntersects(
-            100,
-            is.x, is.y,
-            ie.x, ie.y,
-            fs.x, fs.y,
-            fe.x, fe.y,
-
-            a.is.x, a.is.y,
-            a.ie.x, a.ie.y,
-            a.fs.x, a.fs.y,
-            a.fe.x, a.fe.y,
-            detailedResult
-            );
-
-    if (ret) {
-        cerr << "specialTrapeziumIntersects(1,\n"
-                << is.x << " (isx), " << is.y << " (isy),\n"
-                << ie.x << " (iex)," << ie.y << " (iey),\n"
-                << fs.x << " (fsx)," << fs.y << " (fsy),\n"
-                << fe.x << " (fex)," << fe.y << " (fey),\n\n"
-                << a.is.x << " ," << a.is.y << ",\n"
-                << a.ie.x << "," << a.ie.y << ",\n"
-                << a.fs.x << "," << a.fs.y << ",\n"
-                << a.fe.x << "," << a.fe.y << "\n";
-        cerr << "Intersection found, detail: " << detailedResult << "\n";
-        cerr << ToString() << "\n" << a.ToString() << "\n";
-
-        //        if (detailedResult != 8)
-        return true;
+    if (is.x == ie.x && is.y == ie.y) {
+        V0[0] = is.x; V0[1] = is.y; V0[2] = 0;
+        V1[0] = fs.x; V1[1] = fs.y; V1[2] = 1;
+        V2[0] = fe.x; V2[1] = fe.y; V2[2] = 1;
+    } else if (fs.x == fe.x && fs.y == fe.y) {
+        V0[0] = is.x; V0[1] = is.y; V0[2] = 0;
+        V1[0] = ie.x; V1[1] = ie.y; V1[2] = 0;
+        V2[0] = fs.x; V2[1] = fs.y; V2[2] = 1;
+    } else {
+        cerr << "ERROR: src-triangle is a trapezium!\n";
     }
+    
+    if (a.is.x == a.ie.x && a.is.y == a.ie.y) {
+        U0[0] = a.is.x; U0[1] = a.is.y; U0[2] = 0;
+        U1[0] = a.fs.x; U1[1] = a.fs.y; U1[2] = 1;
+        U2[0] = a.fe.x; U2[1] = a.fe.y; U2[2] = 1;
+    } else if (a.fs.x == a.fe.x && a.fs.y == a.fe.y) {
+        U0[0] = a.is.x; U0[1] = a.is.y; U0[2] = 0;
+        U1[0] = a.ie.x; U1[1] = a.ie.y; U1[2] = 0;
+        U2[0] = a.fs.x; U2[1] = a.fs.y; U2[2] = 1;
+    } else {
+        cerr << "ERROR: dst-triangle is a trapezium!\n";
+    }
+    
+    return TriangleIntersection(V0, V1, V2, U0, U1, U2);
 
-    return false;
+
+    //    unsigned int detailedResult;
+    //    return specialTrapeziumIntersects(
+    //            1,
+    //            sx1, sy1,
+    //            sx2, sy2,
+    //            fx2, fy2,
+    //            fx1, fy1,
+    //            
+    //            a.sx1, a.sy1,
+    //            a.sx2, a.sy2,
+    //            a.fy1, a.fy2,
+    //            a.fx1, a.fx2,
+    //            detailedResult
+    //            );
 }
 
 bool MSeg::operator<(const MSeg& a) const {
