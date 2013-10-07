@@ -36,7 +36,7 @@ ListExpr interpolatetypemap(ListExpr args) {
     }
     if (len == 4) {
         return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                nl->OneElemList(nl->IntAtom(0)),
+                nl->OneElemList(nl->RealAtom(1.0)),
                 nl->SymbolAtom(MRegion::BasicType()));
     }
     if (!CcReal::checkType(nl->Fifth(args))) {

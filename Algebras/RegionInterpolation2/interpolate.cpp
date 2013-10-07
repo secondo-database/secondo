@@ -284,7 +284,6 @@ int interpolatevalmap(Word* args,
     vector<Reg> reg1 = Reg::getRegs(_r1);
     vector<Reg> reg2 = Reg::getRegs(_r2);
 
-    cerr << "Interpolate 1\n";
     MFaces mf = interpolate(&reg1, ti1, &reg2, ti2, 0);
     mf = mf.divide(0, mode->GetRealval());
     cerr << mf.ToString();

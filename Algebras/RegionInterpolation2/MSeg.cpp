@@ -28,6 +28,8 @@ int TriangleIntersection(float V0[3], float V1[3], float V2[3],
         float U0[3], float U1[3], float U2[3]);
 
 bool MSeg::intersects(const MSeg& a) const {
+    int ret;
+    
     float V0[3], V1[3], V2[3];
     float U0[3], U1[3], U2[3];
     
@@ -55,8 +57,17 @@ bool MSeg::intersects(const MSeg& a) const {
         cerr << "ERROR: dst-triangle is a trapezium!\n";
     }
     
-    return TriangleIntersection(V0, V1, V2, U0, U1, U2);
+    ret = TriangleIntersection(V0, V1, V2, U0, U1, U2);
 
+    if (ret) {
+        cerr << "Intersection between " << ToString()
+                << " and " << a.ToString() << "\n";
+    } else {
+        cerr << "No Intersection between " << ToString()
+                << " and " << a.ToString() << "\n";
+    }
+    
+    return ret;
 
     //    unsigned int detailedResult;
     //    return specialTrapeziumIntersects(
