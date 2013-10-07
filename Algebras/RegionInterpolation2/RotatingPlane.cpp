@@ -22,8 +22,6 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
         double a1 = r1.Cur().angle();
         double a2 = r2.Cur().angle();
         Pt is, ie, fs, fe;
-        double sx1 = 0, sy1 = 0, sx2 = 0, sy2 = 0,
-                dx1 = 0, dy1 = 0, dx2 = 0, dy2 = 0;
 
         if (((a1 <= a2) && !r1.End()) || r2.End()) {
             is = r1.Cur().s;
@@ -34,6 +32,7 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
                 // We found a concavity in the source region
                 Reg ccv;
                 
+                ccv.hullSeg = r1.Cur();
                 while (!(r1.Cur().e == reg1->Cur().s)) {
                     Seg s(reg1->Cur().s, reg1->Cur().e);
                     ccv.AddSeg(s);
@@ -58,7 +57,8 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
  
                 // We found a concavity in the destination region
                 Reg ccv;
-
+                
+                ccv.hullSeg = r2.Cur();
                 while (!(r2.Cur().e == reg2->Cur().s)) {
                     Seg s(reg2->Cur().s, reg2->Cur().e);
                     ccv.AddSeg(s);

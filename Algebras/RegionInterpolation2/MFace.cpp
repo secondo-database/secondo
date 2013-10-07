@@ -30,6 +30,7 @@ void MFace::MergeConcavities () {
 }
 
 URegion MFace::ToURegion(Interval<Instant> iv, int facenr) {
+    MergeConcavities();
     vector<MSegmentData> ms = face.ToMSegmentData(facenr, 0);
     for (unsigned int i = 0; i < holes.size(); i++) {
         vector<MSegmentData> h = holes[i].ToMSegmentData(facenr, i+1);

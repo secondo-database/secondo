@@ -49,6 +49,7 @@ private:
 
 public:
     Pt hullPoint, peerPoint;
+    Seg hullSeg;
     vector<Seg> convexhull;
     vector<Seg> v;
     vector<Reg> holes;
