@@ -40,7 +40,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.ListIterator;
+import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -48,6 +48,12 @@ import java.util.Vector;
 import javax.swing.AbstractAction;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
+import javax.swing.DefaultListModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.MouseInputAdapter;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
@@ -66,16 +72,14 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.ListModel;
 import javax.swing.SwingConstants;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.MouseInputAdapter;
+import javax.swing.table.TableModel;
+import javax.swing.table.DefaultTableModel;
 
 import project.Projection;
 import sj.lang.ListExpr;
@@ -97,31 +101,75 @@ public class LoadProfilePanel extends JPanel {
 	private JPanel plButtons;
 			
 	private JButton btAddRelation;
+
+	private JButton btEditRelation;
 	
 	private JButton btRemoveRelation;
 	
-	private JList relations;
+	private JTable tbRelations;
 	
-	// Dialog to show error messages
-	private JDialog errorDialog;
+	private RelationProfileTableModel mdlRelations;
 	
-
-	public LoadProfilePanel(UpdateViewerController pController) {
+	private JScrollPane scpRelations;
+	
+	
+	/**
+	 * Constructor.
+	 */
+	public LoadProfilePanel(UpdateViewerController pController) 
+	{
+		this.controller = pController;
 		
-		controller = pController;
+		// buttons
+		this.plButtons = new JPanel();
+		this.plButtons.setLayout(new GridLayout(7, 1));
+		this.btAddRelation = new JButton("Add relation");
+		this.btAddRelation.addActionListener(controller);
+		this.plButtons.add(btAddRelation);
+		this.btEditRelation = new JButton("Edit relation");
+		this.btEditRelation.addActionListener(controller);
+		this.plButtons.add(btEditRelation);		
+		this.btRemoveRelation = new JButton("Remove relation");
+		this.btRemoveRelation.addActionListener(controller);
+		this.plButtons.add(btRemoveRelation);
 		
-		setLayout(new BorderLayout());				
-		plButtons = new JPanel();
+		// relation table
+		this.tbRelations = new JTable();
+		this.scpRelations = new JScrollPane(tbRelations);
+		//this.tbRelations.setFillsViewportHeight(true);
 		
-		plButtons.setLayout(new GridLayout(1, 7));
-		btAddRelation = new JButton("Add relation");
-		btAddRelation.addActionListener(controller);
-		plButtons.add(btAddRelation);
-		btRemoveRelation = new JButton("Remove relation");
-		btRemoveRelation.addActionListener(controller);
-		plButtons.add(btRemoveRelation);
-		
-		add(plButtons, BorderLayout.NORTH);
+		// add all components
+		this.setLayout(new BorderLayout());				
+		this.add(plButtons, BorderLayout.EAST);
+		//this.add(tbRelations.getTableHeader(), BorderLayout.PAGE_START);
+		this.add(scpRelations, BorderLayout.CENTER);
+	}
+	
+	public String getCurrentRelationProfileName()
+	{
+		String result = null;
+		int rowIndex = tbRelations.getSelectedRow();
+		if (this.profile != null && rowIndex > -1)
+		{
+			result = (String)this.tbRelations.getValueAt(rowIndex, 0);
+		}
+		return result;
+	}
+	
+	/**
+	 * Display the LoadProfile
+	 */
+	public void showLoadProfile(LoadProfile pLoadProfile)
+	{
+		if (pLoadProfile != null)
+		{
+			this.profile = pLoadProfile;
+			this.mdlRelations = new RelationProfileTableModel(pLoadProfile);
+			this.tbRelations.setModel(mdlRelations);
+			
+			this.validate();
+			this.repaint();
+		}
 	}
 	
 }

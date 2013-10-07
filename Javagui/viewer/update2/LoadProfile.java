@@ -124,13 +124,20 @@ public class LoadProfile {
 	/**
 	 * Returns names of all the relations in the profile.
 	 */
-	public List<String> getRelations(){
+	public List<String> getRelationNames(){
 		List<String> result = new ArrayList<String>();
 		for (RelationProfile relprof : this.relations){
 			result.add(relprof.getName());
 		}
 		return result;
-	}		
+	}
+	
+	/**
+	 * Returns all the relation profiles.
+	 */
+	public List<RelationProfile> getRelations(){
+		return this.relations;
+	}
 
 	/**
 	 * Removes the RelationProfile of the specified name.

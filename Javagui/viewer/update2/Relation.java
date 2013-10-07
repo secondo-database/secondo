@@ -36,11 +36,11 @@ public class Relation
 {
 	
 	private RelationTypeInfo relTypeInfo;
-	private Vector SecondoObjects;
+	private Vector<SecondoObject> SecondoObjects;
 	private boolean initialized;
 	private ID myID;
 	private String Name;
-	private Vector TupleIDs;
+	private Vector<ID> TupleIDs;
 	private ListExpr TupleType;
 	private SecondoObject WholeRelation;
 	
@@ -50,8 +50,8 @@ public class Relation
 	
 	public Relation()
 	{
-		SecondoObjects = new Vector();
-		TupleIDs = new Vector();
+		SecondoObjects = new Vector<SecondoObject>();
+		TupleIDs = new Vector<ID>();
 		relTypeInfo = new RelationTypeInfo(); 
 		TupleType = ListExpr.theEmptyList();
 		WholeRelation = null;
@@ -76,19 +76,22 @@ public class Relation
 		ListExpr LE = SO.toListExpr();
 		if(LE.listLength()!=2)
 		{
-			Reporter.writeError("relplit.Relation.readFromSecondoObject : wrong list length");
+			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong list length");
 			return false;
 		}
 		if(!relTypeInfo.readFromRelTypeLE(LE.first()))
 		{
-			Reporter.writeError("relplit.Relation.readFromSecondoObject : wrong type list");
+			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong type list");
 			return false;
 		}
+		Reporter.debug("update2.Relation.readFromSecondoObject: relTypeInfo OK");
+
 		if(!readValue(relTypeInfo,LE.second()))
 		{
-			Reporter.writeError("relplit.Relation.readFromSecondoObject : wrong value list");
+			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong value list");
 			return false;
 		}
+		Reporter.debug("update2.Relation.readFromSecondoObject: readValue OK");
 		
 		WholeRelation = SO;
 		TupleType = SO.toListExpr().first().second();
@@ -96,6 +99,9 @@ public class Relation
 		return true;
 	}
 	
+	public String getName(){
+		return this.Name;
+	}
 	
 	public String toString()
 	{
@@ -157,7 +163,6 @@ public class Relation
 				TupleIDs.add(IDManager.getNextID());
 				while(NextTuple.listLength()>0){
 					// TODO
-					/*
 					SO = new SecondoObject(IDManager.getNextID());
 					ListExpr Type = ListExpr.symbolAtom(H.get(No).Type);
 					SO.fromList(ListExpr.twoElemList(Type, NextTuple.first()));
@@ -165,7 +170,7 @@ public class Relation
 					SO.setName(Name+"::"+aName+"::"+T_no);
 					NextTuple = NextTuple.rest();
 					SecondoObjects.add(SO);
-					*/
+				
 					No++;
 				}
 			}

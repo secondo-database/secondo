@@ -54,6 +54,7 @@ import java.util.Vector;
 import javax.swing.AbstractAction;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
+import javax.swing.DefaultListModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
@@ -82,6 +83,7 @@ import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.ListModel;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 
 import project.Projection;
@@ -94,13 +96,15 @@ import viewer.update2.*;
 /**
  * Dialog to pick relations and specify restrictions.	 
  */
-public class LoadDialog extends JDialog
+public class LoadDialog extends JDialog implements ListSelectionListener
 {
 
 	// LoadProfiles by their names
 	private Map<String, LoadProfile> profiles;
 	
-	private JList lsProfiles;
+	private DefaultListModel<String> lmProfiles;
+	private JList<String> lsProfiles;
+	private JScrollPane scpProfiles;
 	
 	// Controller
 	private UpdateViewerController controller;
@@ -113,9 +117,7 @@ public class LoadDialog extends JDialog
 	private JButton btNewProfile;
 	
 	private JButton btRemoveProfile;
-	
-	private JButton btSaveProfile;
-	
+		
 	private JButton btCancel;
 
 		
@@ -127,50 +129,67 @@ public class LoadDialog extends JDialog
 	
 
 	/** Constructor */
-	public LoadDialog(UpdateViewerController pController) 
+	public LoadDialog(UpdateViewerController pController)
 	{
 		this.loaded = false;
 						
-		this.profiles = new HashMap<String, LoadProfile>();		
-
 		this.controller = pController;
 		
+		this.addComponentListener(this.controller);
+
+		this.getContentPane().setLayout(new BorderLayout());
 		this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 		this.setModal(true);
 		this.setSize (600,400);
+		this.setTitle("Load relations");
 		
-		this.getContentPane().setLayout(new BorderLayout());
+		// buttons
 		this.plButtons = new JPanel();
-		
 		this.plButtons.setLayout(new GridLayout(1, 7));
-		this.btLoad = new JButton("Load");
+		this.btLoad = new JButton("Load selected profile");
 		this.btLoad.addActionListener(controller);
 		this.plButtons.add(this.btLoad);
-		this.btNewProfile = new JButton("New load profile");
+		this.btNewProfile = new JButton("Create new profile");
 		this.btNewProfile.addActionListener(controller);
 		this.plButtons.add(this.btNewProfile);
-		this.btRemoveProfile = new JButton("Remove load profile");
+		this.btRemoveProfile = new JButton("Delete profile");
 		this.btRemoveProfile.addActionListener(controller);
 		this.plButtons.add(this.btRemoveProfile);
-		this.btSaveProfile = new JButton("Save load profile");
-		this.btSaveProfile.addActionListener(controller);
-		this.plButtons.add(this.btSaveProfile);
 		this.btCancel = new JButton("Cancel");
 		this.btCancel.addActionListener(controller);
 		this.plButtons.add(this.btCancel);
 		
-		this.lsProfiles = new JList();
+		// profile selection list
+		this.lmProfiles = new DefaultListModel<String>();
+		this.lsProfiles = new JList<String>();
+		this.lsProfiles.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+		//this.lsProfiles.setLayoutOrientation(JList.HORIZONTAL_WRAP);
+		this.lsProfiles.addListSelectionListener(this);
+		this.lsProfiles.setVisibleRowCount(-1);
+		this.scpProfiles = new JScrollPane(lsProfiles);
+		this.scpProfiles.setPreferredSize(new Dimension(250, 80));
 		
+		// profile detail panels
+		this.profiles = new HashMap<String, LoadProfile>();		
 		this.plLoadProfile = new LoadProfilePanel(this.controller);
-		
-		this.getContentPane().add(this.lsProfiles, BorderLayout.NORTH);
+
+		// 
+		this.getContentPane().add(this.scpProfiles, BorderLayout.NORTH);
 		this.getContentPane().add(this.plButtons, BorderLayout.SOUTH);
 		this.getContentPane().add(this.plLoadProfile, BorderLayout.CENTER);
-		
-		
-		this.addComponentListener(this.controller);
 	}
 	
+	public boolean addProfile(String pProfileName)
+	{
+		if (profiles.containsKey(pProfileName))
+		{
+			return false;
+		}
+		
+		this.profiles.put(pProfileName, new LoadProfile(pProfileName));
+		
+		return true;
+	}
 	
 	/**
 	 * Builds LoadProfiles from relation of following type expression:
@@ -178,139 +197,165 @@ public class LoadDialog extends JDialog
 	 */
 	public boolean createLoadProfilesFromLE(ListExpr LE)
 	{
-		boolean result = true;
-		
 		// check validity of type expression
 		if (LE.listLength() != 2)
 		{
-			result = false;
+			return false;
 		}
-		else 
+		//Reporter.debug(LE.toString());
+
+		ListExpr type = LE.first();
+		ListExpr value = LE.second();
+		
+		// check relation type
+		if (type.isAtom())
 		{
-			ListExpr type = LE.first();
-			ListExpr value = LE.second();
-			// check for relation type
-			if (type.isAtom())
-				result = false;
-			ListExpr maintype = type.first();
-			if (type.listLength() != 2
-				|| !maintype.isAtom()
-				|| maintype.atomType() != ListExpr.SYMBOL_ATOM
-				|| !(maintype.symbolValue().equals("rel") | maintype
-					 .symbolValue().equals("mrel")))
-				result = false; // not a relation
-			ListExpr tupletype = type.second();
-			// check for tuple type
-			ListExpr TupleFirst = tupletype.first();
-			if (tupletype.listLength() != 2
-				|| !TupleFirst.isAtom()
-				|| TupleFirst.atomType() != ListExpr.SYMBOL_ATOM
-				|| !(TupleFirst.symbolValue().equals("tuple") | TupleFirst
-					 .symbolValue().equals("mtuple")))
-				result = false; // not a tuple
-			ListExpr attributes = tupletype.second();
-			// check attributes	
-			if (attributes.listLength() != 10){
-				result = false;
-			}
-			else {
-				ListExpr attrName = attributes.first();
-				ListExpr attrType = attributes.second();
-				if (!attrName.isAtom()
-					|| attrName.atomType() != ListExpr.SYMBOL_ATOM
-					|| !attrName.symbolValue().equals("ProfileName") 
-					|| !attrType.isAtom()
-					|| attrType.atomType() != ListExpr.SYMBOL_ATOM
-					|| !attrType.symbolValue().equals("string") ) {
-					result = false;
-				}
-				else{
-					attrName = attributes.third();
-					attrType = attributes.fourth();
-					if (!attrName.isAtom()
-						|| attrName.atomType() != ListExpr.SYMBOL_ATOM
-						|| !attrName.symbolValue().equals("RelName") 
-						|| !attrType.isAtom()
-						|| attrType.atomType() != ListExpr.SYMBOL_ATOM
-						|| !attrType.symbolValue().equals("string") ) {
-						result = false;
-					}
-					else{
-						attrName = attributes.fifth();
-						attrType = attributes.sixth();
-						if (!attrName.isAtom()
-							|| attrName.atomType() != ListExpr.SYMBOL_ATOM
-							|| !attrName.symbolValue().equals("FilterExpr") 
-							|| !attrType.isAtom()
-							|| attrType.atomType() != ListExpr.SYMBOL_ATOM
-							|| !attrType.symbolValue().equals("text") ) {
-							result = false;
-						}
-						else{
-							attrName = attributes.seventh();
-							attrType = attributes.eighth();
-							if (!attrName.isAtom()
-								|| attrName.atomType() != ListExpr.SYMBOL_ATOM
-								|| !attrName.symbolValue().equals("ProjectExpr") 
-								|| !attrType.isAtom()
-								|| attrType.atomType() != ListExpr.SYMBOL_ATOM
-								|| !attrType.symbolValue().equals("text") ) {
-								result = false;
-							}
-							else{
-								attrName = attributes.nineth();
-								attrType = attributes.tenth();
-								if (!attrName.isAtom()
-									|| attrName.atomType() != ListExpr.SYMBOL_ATOM
-									|| !attrName.symbolValue().equals("SortExpr") 
-									|| !attrType.isAtom()
-									|| attrType.atomType() != ListExpr.SYMBOL_ATOM
-									|| !attrType.symbolValue().equals("text") ) {
-									result = false;
-								}
-							}
-						}
-					}
-				}
-			}
+			return false;
+		}
+		ListExpr maintype = type.first();
+		if (type.listLength() != 2
+			|| !maintype.isAtom()
+			|| maintype.atomType() != ListExpr.SYMBOL_ATOM
+			|| !(maintype.symbolValue().equals("rel") | maintype
+				 .symbolValue().equals("mrel")))
+		{
+			return false; // not a relation
+		}
+		ListExpr tupletype = type.second();
 		
-			if (result) 
-			{
-				ListExpr tupleValue;
-				
-				// analyse the tuple values (each tuple is a RelationProfile)
-				while (!value.isEmpty()) 
-				{
-					tupleValue = value.first();
-					
-					String profileName = tupleValue.first().stringValue();
-					String relName = tupleValue.second().stringValue();
-					String filterExpressions = tupleValue.third().textValue();
-					String projectExpressions = tupleValue.fourth().textValue();
-					String sortExpressions = tupleValue.fifth().textValue();
-					
-					RelationProfile relProfile = new RelationProfile(relName);
-					// TODO set restrictions
-					
-					// add RelationProfile to its LoadProfile
-					LoadProfile lp = this.profiles.get(profileName);
-					if (lp == null)
-					{
-						lp = new LoadProfile(profileName);
-					}
-					lp.addRelationProfile(relProfile);
-					
-					this.profiles.put(lp.getName(), lp);
-					
-					value = value.rest();
-				}
-			}
+		// check tuple type
+		ListExpr TupleFirst = tupletype.first();
+		if (tupletype.listLength() != 2
+			|| !TupleFirst.isAtom()
+			|| TupleFirst.atomType() != ListExpr.SYMBOL_ATOM
+			|| !(TupleFirst.symbolValue().equals("tuple") | TupleFirst
+				 .symbolValue().equals("mtuple")))
+			return false; // not a tuple
+		ListExpr attributes = tupletype.second();
+		
+		// check attribute types	
+		if (attributes.listLength() != 5){
+			return false;
 		}
 		
-		this.loaded = result;
-		return result;
+		ListExpr attrType = attributes.first();
+		ListExpr aName;
+		ListExpr aType;
+		if(attrType.listLength() != 2)
+		{
+			return false;
+		}
+			
+		// check attribute ProfileName
+		aName = attrType.first();
+		aType = attrType.second();
+		if (!aName.isAtom()
+			|| aName.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aName.symbolValue().equals("ProfileName") 
+			|| !aType.isAtom()
+			|| aType.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aType.symbolValue().equals("string") ) {
+			return false;
+		}
+		
+		// check attribute RelName
+		attrType = attributes.second();
+		aName = attrType.first();
+		aType = attrType.second();
+		if (!aName.isAtom()
+			|| aName.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aName.symbolValue().equals("RelName") 
+			|| !aType.isAtom()
+			|| aType.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aType.symbolValue().equals("string") ) {
+			return false;
+		}
+		
+		// check attribute FilterExpr
+		attrType = attributes.third();
+		aName = attrType.first();
+		aType = attrType.second();
+		if (!aName.isAtom()
+			|| aName.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aName.symbolValue().equals("FilterExpr") 
+			|| !aType.isAtom()
+			|| aType.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aType.symbolValue().equals("string") ) {
+			return false;
+		}
+			
+		// check attribute ProjectExpr
+		attrType = attributes.fourth();
+		aName = attrType.first();
+		aType = attrType.second();
+		if (!aName.isAtom()
+			|| aName.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aName.symbolValue().equals("ProjectExpr") 
+			|| !aType.isAtom()
+			|| aType.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aType.symbolValue().equals("string") ) {
+			return false;
+		}
+		
+
+		// check attribute SortExpr
+		attrType = attributes.fifth();
+		aName = attrType.first();
+		aType = attrType.second();
+		if (!aName.isAtom()
+			|| aName.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aName.symbolValue().equals("SortExpr") 
+			|| !aType.isAtom()
+			|| aType.atomType() != ListExpr.SYMBOL_ATOM
+			|| !aType.symbolValue().equals("string") ) {
+			return false;
+		}
+		
+		Reporter.debug("Checked type expression for LoadProfile: OK.");
+		
+		// clear previous values
+		this.profiles.clear();
+		
+		// analyse the tuple values (each tuple is a RelationProfile)
+		ListExpr tupleValue;
+		
+		while (!value.isEmpty()) 
+		{
+			tupleValue = value.first();
+			
+			String profileName = tupleValue.first().stringValue();
+			String relName = tupleValue.second().stringValue();
+			String filterExpressions = tupleValue.third().stringValue();
+			String projectExpressions = tupleValue.fourth().stringValue();
+			String sortExpressions = tupleValue.fifth().stringValue();
+			
+			RelationProfile relProfile = new RelationProfile(relName);
+			// TODO set restrictions
+			
+			// If there is not yet a LoadProfile of that name,
+			// create one and add its Name to the selection list.
+			LoadProfile lp = this.profiles.get(profileName);
+			if (lp == null)
+			{
+				lp = new LoadProfile(profileName);
+			}
+			// add RelationProfile to its LoadProfile
+			lp.addRelationProfile(relProfile);
+			//Reporter.debug(profileName + " " + relName);
+			
+			this.profiles.put(lp.getName(), lp);
+			
+			value = value.rest();
+		}
+				
+		this.loaded = true;
+		return true;
 	}
 	
+
+	/**
+	 *
+	 */
 	public LoadProfile getCurrentLoadProfile()
 	{
 		LoadProfile result = null;
@@ -323,28 +368,71 @@ public class LoadDialog extends JDialog
 	}
 	
 	/**
-	 * Gets LoadProfiles from database (relation "uv2loadprofiles"), if any available.
+	 *
 	 */
-	public void initLoadProfiles()
+	public String getCurrentLoadProfileName()
 	{
-		// TODO
-		this.loaded = true;
+		return this.lsProfiles.getSelectedValue();
 	}
 	
 	/**
-	 * Returns true if LoadProfiles have been loaded from DB (or at least tried).
+	 *
+	 */
+	public String getCurrentRelationProfileName()
+	{
+		return this.plLoadProfile.getCurrentRelationProfileName();
+	}
+	
+	
+	
+	/**
+	 * Returns true if LoadProfiles have been loaded from DB.
 	 */
 	public boolean isLoaded()
 	{
 		return this.loaded;
 	}
 	
-	public void showNoProfilesMessage(){
-		JTextArea message = new JTextArea("This database contains no load profiles for loading relations. Click NEW LOAD PROFILE to create one.");
-		this.plLoadProfile.add(message, BorderLayout.CENTER);
+	
+	/**
+	 * Shows profiles if load profiles are found in database
+	 * else shows info message.
+	 */
+	public void showProfiles()
+	{
+		if (this.profiles.isEmpty())
+		{
+			JTextArea message = new JTextArea("This database contains no load profiles for loading relations. Click NEW LOAD PROFILE to create one.");
+			this.plLoadProfile.add(message, BorderLayout.CENTER);
+		}
+		else 
+		{
+			this.lmProfiles = new DefaultListModel<String>();
+			for (String profName : profiles.keySet())
+			{
+				this.lmProfiles.addElement(profName);
+			}
+			this.lsProfiles.setModel(lmProfiles);
+			this.lsProfiles.setSelectedIndex(0);
+			String profileName = (String)lsProfiles.getSelectedValue();
+			this.plLoadProfile.showLoadProfile(this.profiles.get(profileName));
+		}
+		
 		this.repaint();
-		this.validate();
+		this.validate();		
 	}
 	
+	/**
+	 * Method of Interface ListSelectionListener.
+	 * Shows selected LoadProfile in the center panel.
+	 */
+	public void valueChanged(ListSelectionEvent e)
+	{
+		String profileName = (String)lsProfiles.getSelectedValue();
+		this.plLoadProfile.showLoadProfile(this.profiles.get(profileName));
+		
+		this.repaint();
+		this.validate();
+	}	
 }
 

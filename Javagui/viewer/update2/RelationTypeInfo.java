@@ -23,7 +23,6 @@ import java.util.Vector;
 import sj.lang.ListExpr;
 import tools.Reporter;
 
-import viewer.relsplit.Head;
 
 public class RelationTypeInfo extends Head{
 	

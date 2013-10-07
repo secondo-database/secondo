@@ -110,44 +110,40 @@ public class RelationPanel extends JPanel implements TableModelListener{
 	
 	private Relation relation;
 	
-	// the controller decides which action shall be taken next and listens to all buttons
-	// for user-input
+	// controller listens to action and table events
 	private UpdateViewerController controller;
 	
-	// ScrollPanes show the update-relation or a relation with new tuples to be inserted
-	private JScrollPane relScroll;
-		
-	// Shows the relation currently edited
-	private JTable relTable;
-	
+	// components to display the relation in edit mode
 	private RelationTableModel relTableModel;
 
+	private JTable relTable;
+
+	private DefaultTableCellRenderer renderer;
 	
-	// ScrollPanes show the update-relation or a relation with new tuples to be inserted
+	private JScrollPane relScroll;
+	
+	
+	// components to display the relation in insert mode
 	private JScrollPane insertScroll;
 
-	// Shows the relation currently edited
-	private JTable insertTable;
-	
+	// shows the relation currently edited
+	private JTable insertTable;	
 
 	// contains unsaved changes in chronological order
 	private List<Change> changes;
 	
 	
-	private DefaultTableCellRenderer renderer;
 		
 	/**
 	 * Builds a panel to display one relation
 	 */
-	public RelationPanel(String pRelationName, UpdateViewerController pController, ListExpr pRelationLE) {
+	public RelationPanel(String pRelationName, UpdateViewerController pController) {
 		this.name = pRelationName;
 		this.setLayout(new BorderLayout());		
 		this.controller = pController;
 		this.renderer = new DefaultTableCellRenderer();
 		this.renderer.setBackground(Color.YELLOW);
 		this.changes = new ArrayList<Change>();
-		
-		this.createTableFrom(this.name, pRelationLE);
 	}
 
 	
@@ -210,12 +206,15 @@ public class RelationPanel extends JPanel implements TableModelListener{
 	 * are initialized. The IDs of the tuples of the relation are stored in a seperate vector	 
 	 *
 	 */
-	private boolean createTableFrom(String pRelName, ListExpr LE) {
+	public boolean createTableFrom(ListExpr LE) 
+	{
 		boolean result = true;
-		SecondoObject relationSO = new SecondoObject(pRelName, LE);
+		SecondoObject relationSO = new SecondoObject(this.getName(), LE);
 		this.relation = new Relation();
-		relation.readFromSecondoObject(relationSO);
+		this.relation.readFromSecondoObject(relationSO);
+		Reporter.debug("createTableFrom: readFromSecondoObject OK");
 		RelationTableModel relationTM = new RelationTableModel(relation);
+		Reporter.debug("createTableFrom: new RelationTableModel OK");
 		this.relTable = new JTable(relationTM);
 		
 		/*
@@ -403,7 +402,7 @@ public class RelationPanel extends JPanel implements TableModelListener{
 	 * Get relation name.
 	 */
 	public String getName() {
-		return this.relation.toString();
+		return this.name;
 	}
 	
 	
@@ -675,7 +674,7 @@ public class RelationPanel extends JPanel implements TableModelListener{
 	public boolean showNewRelation(ListExpr pRelationLE) {
 		// TODO analize relations from ListExpr
 		
-		boolean created = createTableFrom(this.getName(), pRelationLE);
+		boolean created = createTableFrom(pRelationLE);
 		if (created) 
 		{
 			relTable.setRowSelectionAllowed(false);

@@ -35,6 +35,7 @@ import sj.lang.ListExpr;
 
 public class RelationTableModel extends AbstractTableModel {
 
+	private Relation relation;
 	private String relationName;
 	private String[] columnNames = {"TupleId", "Name", "Value"};
 	private Object[][] data;
@@ -45,7 +46,8 @@ public class RelationTableModel extends AbstractTableModel {
 	}
 	
 	public RelationTableModel(Relation pRelation){
-		// TODO
+		this.relation = pRelation;
+		this.relationName = pRelation.getName();
 	}
 	
 	public String getRelationName(){
