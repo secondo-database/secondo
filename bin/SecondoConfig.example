@@ -213,6 +213,10 @@ Persistent_AvgSize=512
 # disable printing out the number of operators sharing global memory
 #RTFLAGS += QP:DISABLE_PRINT_NO_MEM_OPS
 
+# enable update of the heartbeat file
+# if not enabled, the file is created but not updated during a query
+#RTFLAGS += QP:HEARTBEAT
+
 
 # --- ProgressEstimation Section ---
 

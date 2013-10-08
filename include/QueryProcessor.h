@@ -381,6 +381,11 @@ For a given supplier ~s~ set its Predicate Cost ~predCost~
 Trigger a progress query if the time has come to do so.
 
 */
+  void HeartBeat();
+/*
+Changes the modification time of a special file to the current system time.
+
+*/
 
   Supplier GetSupplierSon( const Supplier s, const int no );
 /*
@@ -417,7 +422,7 @@ calls to ~request~ etc.
   template<class T>
   inline T& ResultStorage( Word& result, const Supplier s )
   {
-    result = ResultStorage(s);	  
+    result = ResultStorage(s);    
     return *static_cast<T*>( result.addr );
   }
 /*
@@ -883,8 +888,25 @@ Stores the current tree during query evaluation. Used for progress evaluation.
 Progress queries are admitted.
 
 */
+  bool useHeartbeat;
+/*
+Flag indicating whether the heartbeat file should be updated or not.
+   
+*/
 
 
+ static size_t instances;
+/*
+Number od queryprocessor instances
+
+*/
+
+
+ static ofstream heartbeat_file;
+/*
+File for heartbeat checking.
+
+*/
 
 };
 

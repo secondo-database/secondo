@@ -231,6 +231,7 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "Operator.h"
 #include "stdio.h"
 #include "DotSpec.h"
+#include "FileSystem.h"
 #include "StandardTypes.h"
 #include "../Algebras/FText/FTextAlgebra.h"
 
@@ -304,6 +305,13 @@ variables is described in the introduction of procedure ~annotate~.
 
 */
 
+size_t QueryProcessor::instances = 0;
+ofstream QueryProcessor::heartbeat_file;
+
+
+
+
+
 
 QueryProcessor::QueryProcessor( NestedList* newNestedList,
   AlgebraManager* newAlgebraManager, 
@@ -325,6 +333,13 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   // just defining a maximum per operator.
   maxMemPerOperator = 4 * 1024 * 1024;
   allowProgress=false;
+  useHeartbeat = false;
+  if(instances==0){
+    string filename = "secondo_heartbeat_"
+                      + stringutils::int2str(WinUnix::getpid());
+    heartbeat_file.open(filename.c_str(), ios::out);
+  }
+  instances++;
 }
 
 QueryProcessor::~QueryProcessor()
@@ -340,8 +355,13 @@ QueryProcessor::~QueryProcessor()
        argVectors[i] = 0;
     }
   }
-
-
+  instances--;
+  if(instances==0){
+     heartbeat_file.close();
+     string filename = "secondo_heartbeat_"
+                        + stringutils::int2str(WinUnix::getpid());
+     FileSystem::DeleteFileOrFolder(filename);     
+  }
 }
 
 void
@@ -3571,6 +3591,7 @@ the function in a database object.
   correct = false;
   evaluable = false;
   isFunction = false;
+  useHeartbeat = RTFlag::isActive("QP:HEARTBEAT");
 
   ListExpr list = nl->TheEmptyList();
   ListExpr type;
@@ -4130,6 +4151,9 @@ Then call the operator's value mapping function.
 #ifdef USE_PROGRESS
           CheckProgress();
 #endif
+          if(useHeartbeat){
+              HeartBeat();
+          }
 
                         if ( traceNodes )
                         {
@@ -4240,6 +4264,32 @@ a multiple of the one defined here.
     progressCtr = progressDelta;
   }
 }
+
+
+void QueryProcessor::HeartBeat(){
+  static clock_t lastClock = clock();
+  // Do a clock check only after some calls of this code branch.
+  static const int heartbeatDelta = 50; //number of calls before doing something
+  static const int heartbeatFreq = 5;  // al 5 seconds
+  static int hbcount = 0;
+
+  static int heartbeatCount = heartbeatDelta;
+
+  heartbeatCount--;
+  if ( heartbeatCount == 0) {
+    if ( clock() < lastClock ) {
+        lastClock = 0;
+    }
+    if ( (clock() - lastClock) >= heartbeatFreq*CLOCKS_PER_SEC) {
+      lastClock = clock();
+      heartbeat_file.seekp(0);
+      heartbeat_file << hbcount++ << endl;
+      heartbeat_file.flush();
+    } 
+    heartbeatCount = heartbeatDelta;
+  }
+}
+
 
 
 
