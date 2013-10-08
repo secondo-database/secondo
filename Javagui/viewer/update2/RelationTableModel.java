@@ -28,60 +28,94 @@ import gui.SecondoObject;
 
 import sj.lang.ListExpr;
 
+import viewer.relsplit.InvalidRelationException;
 
 /**
  * This class provides table data displayed in the RelationPanel.
  */
 
-public class RelationTableModel extends AbstractTableModel {
+public class RelationTableModel extends AbstractTableModel 
+{
 
 	private Relation relation;
 	private String relationName;
 	private String[] columnNames = {"TupleId", "Name", "Value"};
-	private Object[][] data;
+	private int tuplesize;
 	
 	
 	public RelationTableModel(ListExpr le){
 		// TODO
 	}
 	
-	public RelationTableModel(Relation pRelation){
+	public RelationTableModel(Relation pRelation)
+	{
+		if(pRelation==null || !pRelation.isInitialized())
+		{
+			throw(new InvalidRelationException());
+		}
 		this.relation = pRelation;
 		this.relationName = pRelation.getName();
+		this.tuplesize = pRelation.getTupleSize();
+		//data = new Object[pRelation.getSize() * (pRelation.getTupleSize() +1)][3];
 	}
 	
-	public String getRelationName(){
+	public String getRelationName()
+	{
 		return this.relationName;
 	}
 	
-	public int getColumnCount() {
+	
+	/**
+	 * Methods of interface AbstractTableModel.
+	 *
+	 */
+	
+	public int getColumnCount() 
+	{
         return columnNames.length;
     }
 	
-    public int getRowCount() {
+    public int getRowCount() 
+	{
         return data.length;
     }
 	
-    public String getColumnName(int col) {
-        return columnNames[col];
+    public String getColumnName(int pCol) 
+	{
+        return columnNames[pCol];
     }
 	
-    public Object getValueAt(int row, int col) {
-        return data[row][col];
+    public Object getValueAt(int pRow, int pCol) 
+	{
+		String result = "";
+		
+		// if this is not a Separator Row
+		if( ! pRow % (this.tuplesize+1)==0) 
+		{
+			int seps = pRow / (this.tuplesize+1);
+			String S = Rel.get(index-seps-1).getName(); 
+			S=S.substring(Rel.toString().length()+2,S.length());
+			int lastIndex = S.lastIndexOf("::");
+			S = S.substring(0,lastIndex);
+			return S;
+			
+		}
     }
 	
-    public Class getColumnClass(int c) {
-        return getValueAt(0, c).getClass();
+    public Class getColumnClass(int pCol) 
+	{
+        return getValueAt(0, pCol).getClass();
     }
 	
     /*
      * Don't need to implement this method unless your table's
      * editable.
      */
-    public boolean isCellEditable(int row, int col) {
+    public boolean isCellEditable(int pRow, int pCol) 
+	{
         //Note that the data/cell address is constant,
         //no matter where the cell appears onscreen.
-        if (col < 2) {
+        if (pCol < 2) {
             return false;
         } else {
             return true;
@@ -92,8 +126,9 @@ public class RelationTableModel extends AbstractTableModel {
      * Don't need to implement this method unless your table's
      * data can change.
      */
-    public void setValueAt(Object value, int row, int col) {
-        data[row][col] = value;
+    public void setValueAt(Object pValue, int pRow, int pCol) 
+	{
+        data[pRow][pCol] = pValue;
         //fireTableCellUpdated(row, col);
     }
     
