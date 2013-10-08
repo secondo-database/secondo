@@ -28,6 +28,8 @@ import gui.SecondoObject;
 
 import sj.lang.ListExpr;
 
+import tools.Reporter;
+
 import viewer.relsplit.InvalidRelationException;
 
 /**
@@ -40,23 +42,29 @@ public class RelationTableModel extends AbstractTableModel
 	private Relation relation;
 	private String relationName;
 	private String[] columnNames = {"TupleId", "Name", "Value"};
-	private int tuplesize;
+	private String[] attributeNames;
+	private int tupleSize;
+	private int tupleCount;
 	
 	
 	public RelationTableModel(ListExpr le){
 		// TODO
 	}
 	
-	public RelationTableModel(Relation pRelation)
+	public RelationTableModel(Relation pRelation) throws InvalidRelationException
 	{
 		if(pRelation==null || !pRelation.isInitialized())
 		{
 			throw(new InvalidRelationException());
 		}
+		
 		this.relation = pRelation;
 		this.relationName = pRelation.getName();
-		this.tuplesize = pRelation.getTupleSize();
-		//data = new Object[pRelation.getSize() * (pRelation.getTupleSize() +1)][3];
+		this.tupleSize = pRelation.getTupleSize();
+		this.tupleCount = pRelation.getTupleCount();
+		this.attributeNames = pRelation.getAttributeNames();
+		
+		Reporter.debug(this.toString());
 	}
 	
 	public String getRelationName()
@@ -64,6 +72,10 @@ public class RelationTableModel extends AbstractTableModel
 		return this.relationName;
 	}
 	
+	private boolean isSeparator(int pRow)
+	{
+		return (pRow % (this.tupleSize+1)==0);
+	}
 	
 	/**
 	 * Methods of interface AbstractTableModel.
@@ -77,7 +89,8 @@ public class RelationTableModel extends AbstractTableModel
 	
     public int getRowCount() 
 	{
-        return data.length;
+		// add (empty) extra row as separator between tuples
+        return this.tupleCount * (this.tupleSize + 1);
     }
 	
     public String getColumnName(int pCol) 
@@ -87,19 +100,41 @@ public class RelationTableModel extends AbstractTableModel
 	
     public Object getValueAt(int pRow, int pCol) 
 	{
+		Reporter.debug("RelationTableModel.getValueAt: " + pRow + ", " + pCol);
+		
 		String result = "";
 		
 		// if this is not a Separator Row
-		if( ! pRow % (this.tuplesize+1)==0) 
+		if( !this.isSeparator(pRow)) 
 		{
-			int seps = pRow / (this.tuplesize+1);
-			String S = Rel.get(index-seps-1).getName(); 
-			S=S.substring(Rel.toString().length()+2,S.length());
-			int lastIndex = S.lastIndexOf("::");
-			S = S.substring(0,lastIndex);
-			return S;
+			// get Tuple value
+			int seps = pRow / (this.tupleSize+1);
+			int attrIndex = (pRow-seps-1) % this.tupleSize;
+			SecondoObject soTuple = this.relation.getTupleNo((pRow-seps-1)/this.getColumnCount());
 			
+			// get value
+			switch (pCol)
+			{
+				case 0: 
+					result = soTuple.getID().toString();
+					break;
+				case 1:
+					result = this.attributeNames[attrIndex-1];
+					break;
+				case 2: 
+					// TODO
+					String str = soTuple.getName();
+					ListExpr leTuple = soTuple.toListExpr();
+					str = str.substring(this.relation.toString().length()+2, str.length());
+					int lastIndex = str.lastIndexOf("::");
+					result = str.substring(0,lastIndex);	
+					break;
+				default: 
+					result = "fehler";
+			}
 		}
+		
+		return result;
     }
 	
     public Class getColumnClass(int pCol) 
@@ -113,11 +148,11 @@ public class RelationTableModel extends AbstractTableModel
      */
     public boolean isCellEditable(int pRow, int pCol) 
 	{
-        //Note that the data/cell address is constant,
-        //no matter where the cell appears onscreen.
-        if (pCol < 2) {
+        if (pCol < 3 || this.isSeparator(pRow)) 
+		{
             return false;
-        } else {
+        } 
+		else {
             return true;
         }
     }
@@ -128,8 +163,19 @@ public class RelationTableModel extends AbstractTableModel
      */
     public void setValueAt(Object pValue, int pRow, int pCol) 
 	{
-        data[pRow][pCol] = pValue;
-        //fireTableCellUpdated(row, col);
+		// TODO
+		// this.relation.setValueAt(pValue, pRow, pCol);
+		//fireTableCellUpdated(row, col);
     }
     
+	public String toString()
+	{
+		StringBuffer sb = new StringBuffer("[RelationTableModel]: ");
+		sb.append("columnNames: ").append(columnNames);
+		sb.append(", relationName: ").append(relationName);
+		sb.append(", attributeNames: ").append(attributeNames);
+		sb.append(", tupleCount: ").append(tupleCount);
+		sb.append(", tupleSize: ").append(tupleSize);
+		return sb.toString();
+	}
 }

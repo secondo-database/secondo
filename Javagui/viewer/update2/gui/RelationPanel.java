@@ -97,6 +97,7 @@ import components.ChangeValueEvent;
 import components.ChangeValueListener;
 import components.LongScrollBar;
 
+import viewer.relsplit.InvalidRelationException;
 import viewer.update.CommandExecuter;
 import viewer.update2.*;
 
@@ -137,7 +138,8 @@ public class RelationPanel extends JPanel implements TableModelListener{
 	/**
 	 * Builds a panel to display one relation
 	 */
-	public RelationPanel(String pRelationName, UpdateViewerController pController) {
+	public RelationPanel(String pRelationName, UpdateViewerController pController) 
+	{
 		this.name = pRelationName;
 		this.setLayout(new BorderLayout());		
 		this.controller = pController;
@@ -213,9 +215,21 @@ public class RelationPanel extends JPanel implements TableModelListener{
 		this.relation = new Relation();
 		this.relation.readFromSecondoObject(relationSO);
 		Reporter.debug("createTableFrom: readFromSecondoObject OK");
+		
+		try
+		{
 		RelationTableModel relationTM = new RelationTableModel(relation);
 		Reporter.debug("createTableFrom: new RelationTableModel OK");
 		this.relTable = new JTable(relationTM);
+		
+		this.relScroll = new JScrollPane(relTable);
+		this.add(relScroll);
+		}
+		catch(InvalidRelationException e)
+		{
+			Reporter.showError(e.getMessage());
+		}
+
 		
 		/*
 		if (LE.listLength() != 2)

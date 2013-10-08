@@ -84,14 +84,12 @@ public class Relation
 			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong type list");
 			return false;
 		}
-		Reporter.debug("update2.Relation.readFromSecondoObject: relTypeInfo OK");
 
 		if(!readValue(relTypeInfo,LE.second()))
 		{
 			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong value list");
 			return false;
 		}
-		Reporter.debug("update2.Relation.readFromSecondoObject: readValue OK");
 		
 		WholeRelation = SO;
 		TupleType = SO.toListExpr().first().second();
@@ -266,7 +264,7 @@ public class Relation
 	
 	
 	/** return the Tuple on give Position */
-	private SecondoObject[] getTupleAt(int index)
+	public SecondoObject[] getTupleAt(int index)
 	{
 		if(!initialized)
 			return null;

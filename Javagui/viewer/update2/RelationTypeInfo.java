@@ -29,6 +29,24 @@ public class RelationTypeInfo extends Head{
 	String[] attributeNames;
 	String[] attributeTypes;
 	
+	public boolean readFromRelTypeLE(ListExpr LE)
+	{
+		boolean result = super.readFromRelTypeLE(LE);
+		
+		if (result)
+		{
+			this.attributeNames = new String[this.getSize()];
+			this.attributeTypes = new String[this.getSize()];
+			for (int i = 0; i < this.getSize(); i++)
+			{
+				attributeNames[i] = this.get(i).Name;
+				attributeTypes[i] = this.get(i).Type;
+			}
+		}
+		
+		return result;
+	}
+	
 	public String[] getAttributeNames()
 	{
 		return this.attributeNames;
