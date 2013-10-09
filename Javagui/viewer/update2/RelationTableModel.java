@@ -72,6 +72,9 @@ public class RelationTableModel extends AbstractTableModel
 		return this.relationName;
 	}
 	
+	/**
+	 * Returns true if rowIndex specifies a separator row (empty row between tuples).
+	 */
 	private boolean isSeparator(int pRow)
 	{
 		return (pRow % (this.tupleSize+1)==0);
@@ -102,18 +105,19 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		Reporter.debug("RelationTableModel.getValueAt: " + pRow + ", " + pCol);
 		
-		String result = "";
+		String result = " ";
 		
 		// if this is not a Separator Row
 		if( !this.isSeparator(pRow)) 
 		{
 			// get Tuple value
-			int seps = pRow / (this.tupleSize+1);
-			int attrIndex = (pRow-seps-1) % this.tupleSize;
+			int tupleIndex = pRow / (this.tupleSize+1);
+			int attrIndex = pRow % (this.tupleSize+1);
+			Reporter.debug("RelationTableModel.getValueAt: tupleIndex " + tupleIndex);
 			Reporter.debug("RelationTableModel.getValueAt: attrIndex " + attrIndex);
 			
-			SecondoObject soTuple = this.relation.getTupleNo((pRow-seps-1)/this.getColumnCount());
-			
+			SecondoObject soTuple = this.relation.getTupleNo(tupleIndex);
+						
 			// get value
 			switch (pCol)
 			{
@@ -124,12 +128,13 @@ public class RelationTableModel extends AbstractTableModel
 					result = this.attributeNames[attrIndex-1];
 					break;
 				case 2: 
-					// TODO
-					String str = soTuple.getName();
-					ListExpr leTuple = soTuple.toListExpr();
-					str = str.substring(this.relation.toString().length()+2, str.length());
-					int lastIndex = str.lastIndexOf("::");
-					result = str.substring(0,lastIndex);	
+					ListExpr rest = soTuple.toListExpr().second();
+					Reporter.debug("RelationTableModel.getValueAt: listLength " + rest.listLength());
+					for (int i = 0; i<attrIndex-1; i++)
+					{
+						rest = rest.rest();
+					}
+					result = AttributeFormatter.getFormatter().format(rest.first().toString());
 					break;
 				default: 
 					result = "fehler";
@@ -173,9 +178,9 @@ public class RelationTableModel extends AbstractTableModel
 	public String toString()
 	{
 		StringBuffer sb = new StringBuffer("[RelationTableModel]: ");
-		sb.append("columnNames: ").append(columnNames);
+		sb.append("columnNames: ").append(columnNames.toString());
 		sb.append(", relationName: ").append(relationName);
-		sb.append(", attributeNames: ").append(attributeNames);
+		sb.append(", attributeNames: ").append(attributeNames.toString());
 		sb.append(", tupleCount: ").append(tupleCount);
 		sb.append(", tupleSize: ").append(tupleSize);
 		return sb.toString();
