@@ -40,6 +40,7 @@ CSLIBS+=$(BD)/Tools/NestedLists/NLLex.o
 CSLIBS+=$(BD)/Tools/NestedLists/NLParser.tab.o
 CSLIBS+=$(BD)/Tools/Utilities/StringUtils.o
 CSLIBS+=$(BD)/Tools/Utilities/Base64.o
+CSLIBS+=$(BD)/Tools/Flob/ExternalFileCache.o
 CSLIBS+=$(BD)/Tools/Flob/FlobManager.o
 CSLIBS+=$(BD)/Tools/Flob/PersistentFlobCache.o
 
