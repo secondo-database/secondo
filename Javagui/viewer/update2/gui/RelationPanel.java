@@ -214,16 +214,19 @@ public class RelationPanel extends JPanel implements TableModelListener{
 		SecondoObject relationSO = new SecondoObject(this.getName(), LE);
 		this.relation = new Relation();
 		this.relation.readFromSecondoObject(relationSO);
-		Reporter.debug("createTableFrom: readFromSecondoObject OK");
 		
 		try
 		{
-		RelationTableModel relationTM = new RelationTableModel(relation);
-		Reporter.debug("createTableFrom: new RelationTableModel OK");
-		this.relTable = new JTable(relationTM);
-		
-		this.relScroll = new JScrollPane(relTable);
-		this.add(relScroll);
+			RelationTableModel relationTM = new RelationTableModel(relation);
+			this.relTable = new JTable(relationTM);
+			
+			TableColumn column = this.relTable.getColumnModel().getColumn(0);
+			column.setPreferredWidth(50); 
+			column = this.relTable.getColumnModel().getColumn(1);
+			column.setPreferredWidth(100); 
+				
+			this.relScroll = new JScrollPane(relTable);
+			this.add(relScroll);
 		}
 		catch(InvalidRelationException e)
 		{
