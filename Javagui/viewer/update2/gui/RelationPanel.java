@@ -86,6 +86,7 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
 
 import project.Projection;
@@ -220,10 +221,13 @@ public class RelationPanel extends JPanel implements TableModelListener{
 			RelationTableModel relationTM = new RelationTableModel(relation);
 			this.relTable = new JTable(relationTM);
 			
+			// set column dimensions
 			TableColumn column = this.relTable.getColumnModel().getColumn(0);
-			column.setPreferredWidth(50); 
+			int maxlength = relationTM.getMaxContentLength(0);
+			column.setMaxWidth(maxlength*10); 
 			column = this.relTable.getColumnModel().getColumn(1);
-			column.setPreferredWidth(100); 
+			maxlength = relationTM.getMaxContentLength(1);
+			column.setMaxWidth(maxlength*10); 
 				
 			this.relScroll = new JScrollPane(relTable);
 			this.add(relScroll);

@@ -45,6 +45,7 @@ public class RelationTableModel extends AbstractTableModel
 	private String[] attributeNames;
 	private int tupleSize;
 	private int tupleCount;
+	private int[] maxContentLengths;
 	
 	
 	public RelationTableModel(ListExpr le){
@@ -63,44 +64,82 @@ public class RelationTableModel extends AbstractTableModel
 		this.tupleSize = pRelation.getTupleSize();
 		this.tupleCount = pRelation.getTupleCount();
 		this.attributeNames = pRelation.getAttributeNames();
+		this.maxContentLengths = new int[this.columnNames.length];
 		
+		// TODO
+		// compute maximum content lengths
+		/*
+		int max = 0;
+		int limit = this.tupleCount * (this.tupleSize+1);
+		for(int j = 0; j<maxContentLengths.length; j++)
+		{
+			for(int i = j; i<limit; i=i+j)
+			{
+				SecondoObject so = this.relation.get(i);
+				Reporter.debug("maxContentLengths: " + so.toString());
+			}			
+		}
+		*/
+		 
 		Reporter.debug(this.toString());
 	}
-	
-	public String getRelationName()
-	{
-		return this.relationName;
-	}
-	
+		
 	/**
-	 * Returns true if rowIndex specifies a separator row (empty row between tuples).
-	 */
-	private boolean isSeparator(int pRow)
-	{
-		return (pRow % (this.tupleSize+1)==0);
-	}
-	
-	/**
-	 * Methods of interface AbstractTableModel.
+	 * Method of interface AbstractTableModel.
 	 *
 	 */
+    public Class getColumnClass(int pCol) 
+	{
+        return getValueAt(0, pCol).getClass();
+    }
 	
+	/*
+	 * Method of interface AbstractTableModel.
+	 */
 	public int getColumnCount() 
 	{
         return columnNames.length;
     }
 	
+	
+	/*
+	 * Method of interface AbstractTableModel.
+	 */
+    public String getColumnName(int pCol) 
+	{
+        return columnNames[pCol];
+    }
+	
+	/**
+	 * Returns the number of the longest string representation the specified column contains.
+	 */
+	public int getMaxContentLength(int pColumnIndex)
+	{
+		// TODO
+		//return this.maxContentLengths[pColumnIndex];
+		return 100;
+	}
+
+	/**
+	 * Returns the relation name.
+	 */
+	public String getRelationName()
+	{
+		return this.relationName;
+	}
+	
+	/*
+	 * Method of interface AbstractTableModel.
+	 */
     public int getRowCount() 
 	{
 		// add (empty) extra row as separator between tuples
         return this.tupleCount * (this.tupleSize + 1);
     }
 	
-    public String getColumnName(int pCol) 
-	{
-        return columnNames[pCol];
-    }
-	
+	/*
+	 * Method of interface AbstractTableModel.
+	 */
     public Object getValueAt(int pRow, int pCol) 
 	{
 		Reporter.debug("RelationTableModel.getValueAt: " + pRow + ", " + pCol);
@@ -134,7 +173,7 @@ public class RelationTableModel extends AbstractTableModel
 					{
 						rest = rest.rest();
 					}
-					result = AttributeFormatter.getFormatter().format(rest.first().toString());
+					result = rest.first().toString();
 					break;
 				default: 
 					result = "fehler";
@@ -144,12 +183,8 @@ public class RelationTableModel extends AbstractTableModel
 		return result;
     }
 	
-    public Class getColumnClass(int pCol) 
-	{
-        return getValueAt(0, pCol).getClass();
-    }
-	
-    /*
+	/*
+	 * Method of interface AbstractTableModel.
      * Don't need to implement this method unless your table's
      * editable.
      */
@@ -164,7 +199,17 @@ public class RelationTableModel extends AbstractTableModel
         }
     }
 	
+	/**
+	 * Returns true if rowIndex specifies a separator row (empty row between tuples).
+	 */
+	private boolean isSeparator(int pRow)
+	{
+		return (pRow % (this.tupleSize+1)==0);
+	}
+	
+	
     /*
+	 * Method of interface AbstractTableModel.
      * Don't need to implement this method unless your table's
      * data can change.
      */
