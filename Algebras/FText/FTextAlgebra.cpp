@@ -10227,6 +10227,7 @@ Operator correctFileIdOP(
       svg.AssociateKind(Kind::DATA());
       ftext.AssociateKind(Kind::INDEXABLE());
       ftext.AssociateKind(Kind::CSVIMPORTABLE());
+      ftext.AssociateKind(Kind::DELIVERABLE());
 
       AddTypeConstructor(&regexPattern);
       regexPattern.AssociateKind(Kind::DATA());  
