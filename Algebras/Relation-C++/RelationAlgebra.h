@@ -1047,6 +1047,14 @@ Read a tuple from a binary block written by ~WriteToBin~.
   u_int32_t ReadFromBin(char* buf, u_int32_t bSize = 0);
 
 /*
+Read a tuple from a binary block written by ~WriteToBin~,
+but leave the FLOB data untouched
+
+*/
+  u_int32_t ReadFromBin(char* buf, u_int32_t bSize,
+                        string flobFile, size_t flobOffset);
+
+/*
 Return the size that a complete binary tuple block needs.
 
 */
@@ -1288,6 +1296,14 @@ does some evil thing, but it's not clear enough.
 
   void InitializeSomeAttributes( const list<int>& attrList,
                                  char* src);
+
+  void InitializeNoFlobAttributes(
+    char* src, string flobFile, size_t flobOffset);
+/*
+It reads the block data created by ~WriteToBlock~,
+but leaves the FLOB data untouched.
+
+*/
 
   bool ReadFrom(SmiRecord& record);
 

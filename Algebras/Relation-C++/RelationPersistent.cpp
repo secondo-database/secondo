@@ -953,6 +953,71 @@ void Tuple::InitializeSomeAttributes( const list<int>& aIds,
   TRACE_LEAVE
 }
 
+/*
+Here the block contains only the data for the tuple,
+without Flob and the length header that is a int16.
+Therefore, the flobOffset should be reduced accordingly.
+
+*/
+void Tuple::InitializeNoFlobAttributes(char* src,
+  string flobFile, size_t flobOffset)
+{
+  TRACE_ENTER
+
+  size_t offset = 0;
+
+  for (int i = 0; i < noAttributes; i++)
+  {
+    int algId = tupleType->GetAttributeType(i).algId;
+    int typeId = tupleType->GetAttributeType(i).typeId;
+    int sz = tupleType->GetAttributeType(i).size;
+
+    // create an instance of the specified type, which gives
+    // us an instance of a subclass of class Attribute.
+    Attribute* attr =
+              static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
+
+    if ( attr->GetStorageType() == Attribute::Extension )
+    {
+      // extension serialization
+      uint32_t attrExtOffset = 0;
+      ReadVar<uint32_t>( attrExtOffset, src, offset );
+      SHOW(attrExtOffset)
+      attrExtOffset -= sizeof(u_int16_t);
+      attributes[i] = Attribute::Create( attr, &src[attrExtOffset],
+                                                            0, algId, typeId);
+
+    }
+    else
+    {
+      // serialization within root block
+      attributes[i] = Attribute::Create( attr, &src[offset], sz, algId, typeId);
+
+      int serialSize = attributes[i]->SerializedSize();
+      int readData = (serialSize > 0) ? serialSize : sz;
+      offset += readData;
+    }
+
+    //process FLOBS, set their FlobID, instead of reading them out
+    for (int k = 0; k < attributes[i]->NumOfFLOBs(); k++){
+      Flob* flob = attributes[i]->GetFLOB(k);
+      if(flob->getSize() < extensionLimit){
+        Flob::createFromBlock(*flob, 
+                              src + flob->getOffset() - sizeof(u_int16_t),
+                              flob->getSize(), true);
+      }
+      else{
+        Flob::setExFile(*flob, flobFile, flob->getSize(), flobOffset);
+      }
+    }
+    // Call the Initialize function for every attribute
+    // and initialize the reference counter
+    attributes[i]->Initialize();
+    attributes[i]->InitRefs();
+  } // end for
+
+  TRACE_LEAVE
+}
 
 
 bool Tuple::Open( SmiRecordFile *tuplefile,
@@ -1260,6 +1325,19 @@ u_int32_t Tuple::ReadFromBin(char* buf, u_int32_t bSize/* = 0*/)
     InitializeAttributes(buf, containLOBs);
     return blockSize;
   }
+}
+
+/*
+Prepare this function for ~ffeed2~ operator
+
+*/
+u_int32_t Tuple::ReadFromBin(char* buf, u_int32_t bSize,
+    string flobFile, size_t flobOffset)
+{
+  assert(buf);
+
+  InitializeNoFlobAttributes(buf, flobFile, flobOffset);
+  return bSize;
 }
 
 TupleFileIterator::TupleFileIterator(TupleFile& f)
