@@ -56,6 +56,12 @@ Signature: string x string x [int] x [int] x [int x int x int] -> stream(tuple(.
 Example  : query "plzComp" ffeed[,'',1;;] count
 Result   : 41267
 
+Operator : ffeed2
+Number   : 1
+Signature: string x string x [int] x [int] x [int x int x int] -> stream(tuple(...))
+Example  : query "plzComp" ffeed2[,'',1;;] count
+Result   : 41267
+
 Operator : hadoopjoin
 Number   : 1
 Signature: ((stream(tuple(T1))) x (stream(tuple(T2))) x array(string) x int x int x (map stream(tuple(T1)) stream(tuple(T2)) stream(tuple(T1 T2)))) -> stream(tuple((mIndex int)(pIndex int)))
@@ -73,16 +79,4 @@ Number   : 1
 Signature: stream(tuple(...)) x string x text x [int] x [int] x [ [int] x [int] ] x [ int x int ] -> bool
 Example  : query plz feed extend[Ext: 'ExtendedText'] fconsume2["plzComp2", '', 1;;]
 Result   : TRUE
-
-Operator : ffeed2
-Number   : 1
-Signature: string x string x [int] x [int] x [int x int x int] -> stream(tuple(...))
-Example  : query "plzComp2" ffeed2[,'',1;;] fetchFlob[] count
-Result   : 41267
-
-Operator : fetchFlob
-Number   : 1
-Signature: string x string x [int] x [int] x [int x int x int] -> stream(tuple(...))
-Example  : query "plzComp2" ffeed2[,'',1;;] fetchFlob[] count
-Result   : 41267
 

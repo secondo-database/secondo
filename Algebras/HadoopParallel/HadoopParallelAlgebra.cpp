@@ -2830,6 +2830,8 @@ struct FFeedInfo : OperatorInfo {
 /*
 6.3 Type mapping
 
+The ~noFlob~ stands for whether exist Flob in the disk file
+
 */
 
 ListExpr FFeedTypeMap(ListExpr args, bool noFlob)
@@ -3015,9 +3017,17 @@ ListExpr FFeed1TypeMap(ListExpr args)
 /*
 6.4 Value mapping
 
+17th Sept. 2013
+
+There are three modes accepted by this function:
+
+  * 1: Normal mode, reads the complete tuple from data file
+  * 2: Part mode, reads tuple from data file, and leave FLOB untouched
+  * 3: Separate mode, reads tuple and FLOB from two separate files.
+
 */
 int FFeedValueMap(Word* args, Word& result,
-    int message, Word& local, Supplier s, bool noFlob)
+    int message, Word& local, Supplier s, int mode)
 {
   string relName, path, fileSuffix = "";
   FFeedLocalInfo* ffli = 0;
@@ -3071,9 +3081,20 @@ int FFeedValueMap(Word* args, Word& result,
         delete ffli;
         ffli = 0;
       }
-      ffli = new FFeedLocalInfo(s, noFlob, prdIndex);
+
+      if (mode < 3)
+        ffli = new FFeedLocalInfo(s, false, prdIndex, filePath);
+      else if (mode == 3)
+        ffli = new FFeedLocalInfo(s, true, prdIndex, filePath);
+      else
+      {
+        delete ffli;
+        ffli = 0;
+        local.setAddr(0);
+      }
+
       if (ffli->fetchBlockFile(
-          relName , fileSuffix, filePath, s,
+          relName , fileSuffix, s,
           prdIndex, tgtIndex, attTimes))
       {
         ffli->returned = 0;
@@ -3094,7 +3115,13 @@ int FFeedValueMap(Word* args, Word& result,
       if (!ffli)
         return CANCEL;
 
-      Tuple *t = ffli->getNextTuple();
+      Tuple *t;
+      switch(mode)
+      {
+        case 1: {t = ffli->getNextTuple(); break;}
+        case 2: {t = ffli->getNextTuple2(); break;}
+      }
+
       if (0 == t)
         return CANCEL;
       else
@@ -3170,7 +3197,7 @@ therefore it doesn't have any son operator.
 int FFeed1ValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-  return FFeedValueMap(args, result, message, local, s, false);
+  return FFeedValueMap(args, result, message, local, s, 1);
 }
 
 Operator ffeedOp(FFeedInfo(), FFeed1ValueMap, FFeed1TypeMap);
@@ -3192,7 +3219,7 @@ bool FFeedLocalInfo::isLocalFileExist(string fp)
 }
 
 bool FFeedLocalInfo::fetchBlockFile(
-    string fileName, string fileSuffix, string filePath, Supplier s,
+    string fileName, string fileSuffix, Supplier s,
     int pdi, int tgi, int att)
 {
 /*
@@ -3207,8 +3234,7 @@ bool FFeedLocalInfo::fetchBlockFile(
   string pdrIP = "", tgtIP = "";
   clusterInfo *ci = 0;
 
-  string targetFilePath = filePath;
-  FileSystem::AppendItem(targetFilePath, fileName + fileSuffix);
+  FileSystem::AppendItem(filePath, fileName + fileSuffix);
 
 /*
 Detect whether the file is exist or not.
@@ -3220,7 +3246,7 @@ Or else, the fileFound is false.
   if (pdi < 0)
   {
     //Fetch the file in the local machine
-    fileFound = isLocalFileExist(targetFilePath);
+    fileFound = isLocalFileExist(filePath);
   }
   else
   {
@@ -3278,7 +3304,7 @@ if the target machine is not the producer.
         //use scp to copy the file to a temporary file,
         //in case several processes both want to copy a same file.
         int copyTimes = MAX_COPYTIMES;
-        lFilePath = FileSystem::MakeTemp(targetFilePath);
+        lFilePath = FileSystem::MakeTemp(filePath);
         string cStr = scpCommand + rFilePath +
             " " + lFilePath;
         while (!fileFound && copyTimes-- > 0){
@@ -3290,7 +3316,7 @@ if the target machine is not the producer.
 
       fileFound = isLocalFileExist(lFilePath);
       if (fileFound){
-        targetFilePath = lFilePath;
+        filePath = lFilePath;
       }
       if (!fileFound) {
         cerr << "Warning! Cannot fetch file at : "
@@ -3302,14 +3328,14 @@ if the target machine is not the producer.
 
   if (!fileFound)
   {
-    cerr << "\nWarning! File " << targetFilePath
+    cerr << "\nWarning! File " << filePath
          << " is not exist and cannot be remotely fetched.\n\n\n";
     return false;
   }
-  tupleBlockFile = new ifstream(targetFilePath.c_str(), ios::binary);
+  tupleBlockFile = new ifstream(filePath.c_str(), ios::binary);
   if (!tupleBlockFile->good())
   {
-    cerr << "Warning! Read file " << targetFilePath << " fail.\n\n\n";
+    cerr << "Warning! Read file " << filePath << " fail.\n\n\n";
     tupleBlockFile = 0;
     return false;
   }
@@ -3357,7 +3383,15 @@ if the target machine is not the producer.
 
   return true;
 }
+/*
+The structure of the tuple block is:
 
+blockSize | tupleSize | tuple | Flob
+
+blockSize = sizeof(blockSize) + sizeof(tupleSize) + sizeof(tuple) + sizeof(Flob)
+tupleSize = sizeof(tuple)
+
+*/
 Tuple* FFeedLocalInfo::getNextTuple(){
 
   if (!fileFound)
@@ -3398,6 +3432,56 @@ Tuple* FFeedLocalInfo::getNextTuple(){
       t->ReadFromBin(tupleBlock, blockSize);
     }
     delete[] tupleBlock;
+  }
+
+  return t;
+}
+
+/*
+
+The function getNextTuple2 is prepared for the operator ~ffeed2~
+
+The block contains both the tuple and the FLOB,
+but it leaves the FLOB data untouched.
+
+*/
+
+Tuple* FFeedLocalInfo::getNextTuple2(){
+
+  if (!fileFound)
+    return 0;
+  Tuple* t = 0;
+  u_int32_t blockSize;
+
+  assert(tupleBlockFile->good());
+
+  size_t sizeLen = (sizeof(u_int32_t) + sizeof(u_int16_t));
+  char sizes[sizeLen];
+  size_t offset = 0;
+  tupleBlockFile->read(sizes, sizeLen);
+  ReadVar<u_int32_t>(blockSize, sizes, offset);
+
+  if (!tupleBlockFile->eof() && (blockSize > 0))
+  {
+    blockSize -= sizeof(blockSize);
+    //READ only the tuple data out
+
+    u_int16_t tupleSize;
+    ReadVar<u_int16_t>(tupleSize, sizes, offset);
+
+    //read less data
+    char *tupleOnlyBlock = new char[tupleSize];
+    tupleBlockFile->read(tupleOnlyBlock, tupleSize);
+    size_t flobOffset = tupleBlockFile->tellg();
+
+    t = new Tuple(rcdTupleType);
+    t->ReadFromBin(tupleOnlyBlock, tupleSize, filePath, flobOffset);
+
+    u_int32_t flobLength = blockSize - sizeof(tupleSize) - tupleSize;
+    if (flobLength != 0){
+      tupleBlockFile->seekg(flobLength, ios::cur);
+    }
+    delete[] tupleOnlyBlock;
   }
 
   return t;
@@ -4660,7 +4744,7 @@ int FConsume2ValueMap(Word* args, Word& result,
 Operator fconsume2Op(FConsume2Info(), FConsume2ValueMap, FConsume2TypeMap);
 
 /*
-5 Operator ~ffeed2~
+5 Operator ~ffeed3~
 
 3th May 2013
 
@@ -4678,15 +4762,19 @@ x [producerIndex x targetNodeIndex x attemptTimes]  ;
 ->stream(tuple(...))
 ----
 
+17th Sept 2013
+
+rename it from ~ffeed2~ to ~ffeed3~
+
 5.1 Specification
 
 */
 
-struct FFeed2Info : OperatorInfo {
+struct FFeed3Info : OperatorInfo {
 
-  FFeed2Info() : OperatorInfo()
+  FFeed3Info() : OperatorInfo()
   {
-    name =      "ffeed2";
+    name =      "ffeed3";
     signature = "string x text x [int] x [int] x [int] x [int x int x int]"
         " -> stream(tuple(...))";
     syntax  = "fileName ffeed[ filePath, [fileSuffix], ; "
@@ -4704,9 +4792,59 @@ struct FFeed2Info : OperatorInfo {
 5.2 Type Mapping
 
 */
-ListExpr FFeed2TypeMap(ListExpr args)
+ListExpr FFeed3TypeMap(ListExpr args)
 {
   return FFeedTypeMap(args, true);
+}
+
+/*
+5.3 Value Mapping
+
+*/
+int FFeed3ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  return FFeedValueMap(args, result, message, local, s, 3);
+}
+
+Operator ffeed3Op(FFeed3Info(), FFeed3ValueMap, FFeed3TypeMap);
+
+/*
+6 Operator ~ffeed2~
+
+17th Sept. 2013
+
+This operator works similiar as the ~ffeed~.
+
+Although the tuple and flob data are kept together in the data file,
+it leaves the FLOB data untouched and create the flobId to link it.
+
+6.1 Specification
+
+*/
+struct FFeed2Info : OperatorInfo {
+
+  FFeed2Info() : OperatorInfo()
+  {
+    name =      "ffeed2";
+    signature = "string x text x [int] x [int] x [int] x [int x int x int]"
+        " -> stream(tuple(...))";
+    syntax  = "fileName ffeed[ filePath, [fileSuffix], ; "
+        "[remoteTypeNode]; "
+        "[producerIndex x targetIndex x attemptTimes] ]";
+    meaning =
+        "Restore a tuple stream from a pair of type and data files, "
+        "but leave the FLOB data untouched. ";
+  }
+};
+
+/*
+5.2 Type Mapping
+
+*/
+ListExpr FFeed2TypeMap(ListExpr args)
+{
+  return FFeedTypeMap(args, false);
 }
 
 /*
@@ -4716,10 +4854,13 @@ ListExpr FFeed2TypeMap(ListExpr args)
 int FFeed2ValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-  return FFeedValueMap(args, result, message, local, s, true);
+  return FFeedValueMap(args, result, message, local, s, 2);
 }
 
 Operator ffeed2Op(FFeed2Info(), FFeed2ValueMap, FFeed2TypeMap);
+
+
+
 
 
 /*
@@ -5459,13 +5600,15 @@ public:
     fdistributeOp.SetUsesArgsInTypeMapping();
 
 
-//    AddOperator(&fconsume2Op);
-//    fconsume2Op.SetUsesArgsInTypeMapping();
-//    AddOperator(&ffeed2Op);
-//    ffeed2Op.SetUsesArgsInTypeMapping();
+    AddOperator(&fconsume2Op);
+    fconsume2Op.SetUsesArgsInTypeMapping();
+//    AddOperator(&ffeed3Op);
+//    ffeed3Op.SetUsesArgsInTypeMapping();
 //    AddOperator(&fetchFLobOp);
 //    fetchFLobOp.SetUsesArgsInTypeMapping();
 
+    AddOperator(&ffeed2Op);
+    ffeed2Op.SetUsesArgsInTypeMapping();
 
 
 

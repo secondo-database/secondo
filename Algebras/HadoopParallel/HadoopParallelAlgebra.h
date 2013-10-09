@@ -454,8 +454,9 @@ Support progress estimation.
 class FFeedLocalInfo: public ProgressLocalInfo
 {
 public:
-  FFeedLocalInfo( Supplier s, bool _nf, int _prd)
-  : tupleBlockFile(0), fileFound(false), noFlob(_nf), prdIndex(_prd)
+  FFeedLocalInfo( Supplier s, bool _nf, int _prd, string _fp)
+  : tupleBlockFile(0), fileFound(false), noFlob(_nf),
+    prdIndex(_prd), filePath(_fp)
   {
     if (noFlob)
     {
@@ -499,10 +500,12 @@ public:
   }
 
   bool fetchBlockFile(
-      string relName, string fileSuffix, string filePath, Supplier s,
+      string relName, string fileSuffix, Supplier s,
       int pdi = -1, int tgi = -1, int att = -1);
 
   Tuple* getNextTuple();
+
+  Tuple* getNextTuple2();
 
   ifstream *tupleBlockFile;
   TupleType* rcdTupleType;  //The tuple type in the data file
@@ -520,6 +523,7 @@ private:
   bool fileFound;
   bool noFlob;
   int  prdIndex;  //The index of the produce DS
+  string filePath;
 };
 
 /*
