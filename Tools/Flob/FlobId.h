@@ -119,6 +119,7 @@ class FlobId{
             offset == 0;
    }
 
+   inline char getMode(){ return mode;}
 
    // support for very  dirty, non explainable things, don't think about any 
    // meaning of this funtion!

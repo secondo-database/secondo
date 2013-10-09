@@ -151,6 +151,16 @@ Puts data into a Flob without checking or changing sizes.
                          const SmiSize& targetoffset,  // offset within the Flob
                          const SmiSize& length
                          );
+
+/*
+~setExFile~
+
+Link Flob to an external file.
+
+*/
+      bool setExFile(Flob& flob, const string& flobFile,
+          const SmiSize length, const SmiSize flobOffset);
+
 /*
 ~create~
 

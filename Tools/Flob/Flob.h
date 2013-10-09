@@ -303,6 +303,20 @@ specified position.
       }
       return FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
+
+/*
+~setExFile~
+
+Keep the Flob data in an external file, set the FlobId to it.
+
+*/
+
+  inline static bool setExFile(Flob& result, const string& flobFile,
+      const SmiSize length, const SmiSize flobOffset){
+    return FlobManager::getInstance().
+        setExFile(result, flobFile, length, flobOffset);
+  }
+
 /*
 ~copyFrom~
 

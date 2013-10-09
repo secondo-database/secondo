@@ -18,6 +18,8 @@ of that class.
 #include "NativeFlobCache.h"
 #include "PersistentFlobCache.h"
 #include "Stack.h"
+#include <fstream>
+#include "ExternalFileCache.h"
 
 #undef __TRACE_ENTER__
 #undef __TRACE_LEAVE__
@@ -39,6 +41,8 @@ static NativeFlobCache* nativeFlobCache = 0;
 static PersistentFlobCache* persistentFlobCache = 0;
 static Stack<Flob>* DestroyedFlobs=0;
 
+static ExternalFileCache* externalFileCache = 0;
+
  // some value for cache sizes
 static size_t NATIVE_CACHE_MAXSIZE  = 64 * 1024 * 1024;
 static size_t NATIVE_CACHE_SLOTSIZE = 16 * 1024 * 1024;
@@ -49,6 +53,7 @@ static size_t PERSISTENT_CACHE_MAXSIZE  = 64 * 1024 * 1024;
 static size_t PERSISTENT_CACHE_SLOTSIZE = 16 * 1024 * 1024;
 static size_t PERSISTENT_CACHE_AVGSIZE  = 512;
 
+static size_t FILEID_CACHE_MAXSIZE  = 64 * 1024 * 1024;
 
 /*
  
@@ -121,14 +126,19 @@ and the nativFlobFile is deleted.
        delete DestroyedFlobs;
        DestroyedFlobs=0;
 
+       if (externalFileCache){
+         delete externalFileCache;
+         externalFileCache = 0;
+       }
+
      }
 
 
 SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId, const char mode) {
  __TRACE_ENTER__
 
-   assert( (mode==0) || (mode == 1));
-   bool isTemp = mode==1;
+   assert( (mode==0) || (mode == 1) || (mode == 2));
+   bool isTemp = (mode!=0);
    if(fileId==nativeFlobs && isTemp){
      return nativeFlobFile;
    }
@@ -214,7 +224,7 @@ This can be realized by calling the ~dropFile~ function.
  }
 
 
-bool FlobManager::makeControllable(Flob& flob){
+ bool FlobManager::makeControllable(Flob& flob){
 
     if(flob.dataPointer){
 
@@ -264,8 +274,6 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
     if(flob.dataPointer){
       makeControllable(flob);
     }
-
-
 
     if(newSize==flob.size){
        return true;
@@ -350,50 +358,87 @@ bool FlobManager::getData(
 
   FlobId id = flob.id;
   // access data from non bekeley db flobs not implemented yet
-  assert((id.mode==0) || (id.mode==1));
+  assert((id.mode==0) || (id.mode==1) || (id.mode == 2));
 
+  if (id.mode < 2)
+  {
+    SmiFileId   fileId =  id.fileId;
+    bool isTemp = id.mode==1;
 
-
-  SmiFileId   fileId =  id.fileId;
-
-
-  bool isTemp = id.mode==1;
-
-  if(!ignoreCache){
-    if(fileId!=nativeFlobs || !isTemp){
-       return persistentFlobCache->getData(flob,dest,offset,size);
-    } else {
-       return nativeFlobCache->getData(flob, dest, offset, size);
+    if(!ignoreCache){
+      if(fileId!=nativeFlobs || !isTemp){
+         return persistentFlobCache->getData(flob,dest,offset,size);
+      } else {
+        return nativeFlobCache->getData(flob, dest, offset, size);
+      }
     }
+
+    // retrieve data from disk
+    SmiRecordId recordId = id.recordId;
+    SmiSize     floboffset = id.offset;
+    SmiRecord record;
+    SmiRecordFile* file = getFile(fileId,id.mode);
+
+    SmiSize recOffset = floboffset + offset;
+
+    SmiSize actRead;
+    bool ok = file->Read(recordId, dest, size, recOffset, actRead);
+
+    if(!ok){
+      cerr << " error in getting data from flob " << flob << endl;
+      cerr << " actSize = " << actRead << endl;
+      cerr << "try to read = " << size << endl;
+      string err;
+      SmiEnvironment::GetLastErrorCode( err );
+      cerr << " err "<< err << endl;
+
+    }
+    assert(ok);
+
+    if(actRead!= size&& file == nativeFlobFile){
+      return true;
+    }
+    //assert(actRead == size);
   }
+  else if (id.mode == 2)
+  {
+    // retrieve data from external disk file
+    SmiRecordId recordId = id.recordId;
+    SmiSize     floboffset = id.offset;
+    SmiSize recOffset = offset;
+    SmiSize actRead;
+    bool ok;
 
-  // retrieve data from disk
-  SmiRecordId recordId = id.recordId;
-  SmiSize     floboffset = id.offset;
-  SmiRecord record;
-  SmiRecordFile* file = getFile(fileId,id.mode);
+    ifstream* tupleFile = externalFileCache->getFile(recordId);
 
-  SmiSize recOffset = floboffset + offset;
+    //Read the Flob completely only when it is read at the first time
+    assert(recOffset == 0);
+    SmiSize flobLength = flob.size;
 
-  SmiSize actRead;
-  bool ok = file->Read(recordId, dest, size, recOffset, actRead);
+/*
+Change the Flob mode to 1.
+This Flob is taken over by the NativeFlobCache from now on.
 
-  if(!ok){
-    cerr << " error in getting data from flob " << flob << endl;
-    cerr << " actSize = " << actRead << endl;
-    cerr << "try to read = " << size << endl;
-    string err;
-    SmiEnvironment::GetLastErrorCode( err );
-    cerr << " err "<< err << endl;
-    
+*/
+    Flob& Vflob = const_cast<Flob&>(flob); //Make the flob be variable
+    Vflob.id.mode = 1;
+
+    char* flobBuf = new char[flobLength];
+    tupleFile->seekg((floboffset/* + recOffset*/), ios::beg);
+    tupleFile->read(flobBuf, flobLength);
+    ok = nativeFlobCache->putData(flob, flobBuf, recOffset, flobLength, false);
+    memcpy(dest, flobBuf, size);
+    delete[] flobBuf;
+
+    if(!ok){
+      cerr << " error in getting data from flob " << flob << endl;
+      cerr << " mode = 2" << endl;
+      cerr << " flobOffset = " << floboffset << endl;
+      cerr << " actSize = " << actRead << endl;
+      cerr << " try to read = " << size << endl;
+    }
+    assert(ok);
   }
-  assert(ok);
-
-
-  if(actRead!= size&& file == nativeFlobFile){
-    return true;
-  }
-  //assert(actRead == size);
   
   __TRACE_LEAVE__
   return true;
@@ -552,7 +597,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
        const SmiSize& offset,
        Flob& result)  {   // offset within the record  
 
-    __TRACE_ENTER__
+  __TRACE_ENTER__
    //if(src.size==0){
    //  __TRACE_LEAVE__
    //  return false;
@@ -702,14 +747,14 @@ bool FlobManager::putData(const FlobId& id,         // destination flob
                           const SmiSize& length
                          ) { // data size
 
- __TRACE_ENTER__
+  __TRACE_ENTER__
   assert(!id.isDestroyed());
   SmiFileId   fileId =  id.fileId;
   SmiRecordId recordId = id.recordId;
   SmiSize     offset = id.offset;
 
   // avoid putting data into non-berkeley db flobs
-  assert((id.mode==0) || (id.mode) ==1);
+  assert((id.mode==0) || (id.mode==1) || (id.mode==2));
    
   SmiRecordFile* file = getFile(fileId,id.mode);
   SmiSize written;
@@ -718,6 +763,31 @@ bool FlobManager::putData(const FlobId& id,         // destination flob
   assert(ok);
   return true;
 }
+
+bool FlobManager::setExFile(Flob& flob, const string& flobFile,
+    const SmiSize size, const SmiSize flobOffset)
+{
+  __TRACE_ENTER__
+
+  flob.id.destroy();
+  assert(flob.id.isDestroyed());
+
+  if (!create(size, flob)){
+    assert(false);
+    return false;
+  }
+
+  SmiRecordId recordId = flob.id.recordId;
+  assert((flob.id.mode==0) || (flob.id.mode) ==1);
+  externalFileCache->cacheRecord(recordId, flobFile);
+
+  flob.id.mode = 2;
+  flob.id.offset = flobOffset;
+
+  __TRACE_LEAVE__
+  return true;
+}
+
 
 /*
 ~create~
@@ -889,6 +959,7 @@ by the FlobManager class itself.
 
     DestroyedFlobs = new Stack<Flob>();
 
+    externalFileCache = new ExternalFileCache(FILEID_CACHE_MAXSIZE);
 
     __TRACE_LEAVE__
   }

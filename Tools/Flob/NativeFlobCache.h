@@ -362,7 +362,8 @@ bool putData(
       const Flob& flob,
       const char* buffer,
       const SmiSize offset,
-      const SmiSize size) {
+      const SmiSize size,
+      const bool readData = true) {
 
    //assert(check());
    size_t slotNo = offset / slotSize;
@@ -370,7 +371,8 @@ bool putData(
    size_t bufferOffset(0);
 
    while(bufferOffset < size){
-     putDataToFlobSlot(flob, slotNo, slotOffset, bufferOffset, size, buffer);
+     putDataToFlobSlot(flob, slotNo, slotOffset, 
+                       bufferOffset, size, buffer, readData);
      slotNo++;
      slotOffset = 0;
    }
@@ -557,7 +559,7 @@ bool getDataFromSlot(const Flob& flob,
 
 
    if(hashtable[index]==0){
-     NativeCacheEntry* newEntry = createEntry(flob, slotNo,true);
+     NativeCacheEntry* newEntry = createEntry(flob, slotNo, true);
      if(newEntry){
        hashtable[index] = newEntry;
        usedSize += newEntry->size;
@@ -723,7 +725,8 @@ bool putDataToFlobSlot(
         const size_t slotOffset,
         size_t& bufferOffset,
         const size_t size,
-        const char* buffer){
+        const char* buffer,
+        const bool readData = true){
 
   //assert(check());
   size_t index = (flob.hashValue() + slotNo) % tableSize;
@@ -734,7 +737,7 @@ bool putDataToFlobSlot(
   }
 
   if(!entry){ // slot not cached
-    entry = createEntry(flob, slotNo);
+    entry = createEntry(flob, slotNo, readData);
     if(entry){
       putAtFront(entry);
       entry->tableNext = hashtable[index];
