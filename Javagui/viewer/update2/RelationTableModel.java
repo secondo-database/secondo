@@ -110,6 +110,8 @@ public class RelationTableModel extends AbstractTableModel
 			// get Tuple value
 			int seps = pRow / (this.tupleSize+1);
 			int attrIndex = (pRow-seps-1) % this.tupleSize;
+			Reporter.debug("RelationTableModel.getValueAt: attrIndex " + attrIndex);
+			
 			SecondoObject soTuple = this.relation.getTupleNo((pRow-seps-1)/this.getColumnCount());
 			
 			// get value
