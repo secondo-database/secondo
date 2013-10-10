@@ -1,5 +1,5 @@
 
-//Width and height
+//Width and height of the svg
 var w = 520;
 var h = 400;
 var padding = 45;
@@ -101,8 +101,7 @@ function initializePointArray(div){
 
 
 function showPointArray(div){
-	
-	
+		
 	//dataset is an array of arrays
 	//mapping the first value in each array onto the x axis, and the second value onto the y axis
 	/*var dataset = [
@@ -231,7 +230,7 @@ function showLineArray(div){
 	var x1Scale = d3.scale.linear()
                          .domain([d3.min(datasetLines, function(d) { return d[0]; }), d3.max(datasetLines, function(d) { return d[0]; })])
                          .range([padding, w - padding])
-                         .nice(); //w, the SVGÕs width. without padding 0,w
+                         .nice(); //w, the SVGs width. without padding 0,w
 	
 	var y1Scale = d3.scale.linear()
                          .domain([d3.min(datasetLines, function(d) { return d[1]; }), d3.max(datasetLines, function(d) { return d[1]; })])// d[1], the y value of each sub-array. 
@@ -242,7 +241,7 @@ function showLineArray(div){
 	var x2Scale = d3.scale.linear()
                          .domain([d3.min(datasetLines, function(d) { return d[2]; }), d3.max(datasetLines, function(d) { return d[2]; })])
                          .range([padding, w - padding])
-                         .nice(); //w, the SVGÕs width. without padding 0,w
+                         .nice(); //w, the SVGs width. without padding 0,w
 	
 	var y2Scale = d3.scale.linear()
                          .domain([d3.min(datasetLines, function(d) { return d[3]; }), d3.max(datasetLines, function(d) { return d[3]; })])// d[1], the y value of each sub-array. 
@@ -250,8 +249,7 @@ function showLineArray(div){
                          .nice(); //without padding h,0
 	
 	//check which scale is the biggest one and take this one for the axis and range of points
-	//get the max number of values for the axis
-	
+	//get the max and min number of values for the axis	
 	var xScale;
 	var yScale;
 	
@@ -267,35 +265,12 @@ function showLineArray(div){
     var indexMaximum = maximumArray.indexOf(maximum); 
     var indexMinimum = minimumArray.indexOf(minimum); 
     
-    //if(index == 0){ //x1 array has the highest value
         xScale = d3.scale.linear()
                          .domain([d3.min(datasetLines, function(d) { return d[indexMinimum]; }), d3.max(datasetLines, function(d) { return d[indexMaximum]; })])
                          .range([padding, w - padding]);
     	yScale = d3.scale.linear()
                          .domain([d3.min(datasetLines, function(d) { return d[indexMinimum]; }), d3.max(datasetLines, function(d) { return d[indexMaximum]; })])
                          .range([h - padding, padding]);
-    //}
-    
-   /* if(index == 1){ //y1 array has the highest value
-    	xScale = d3.scale.linear()
-                         .domain([0, d3.max(datasetLines, function(d) { return d[1]; })])
-                         .range([padding, w - padding]);
-    	yScale = y1Scale;
-    }
-    
-    if(index == 2){ //x2 array has the highest value
-    	xScale = x2Scale;
-    	yScale = d3.scale.linear()
-                         .domain([0, d3.max(datasetLines, function(d) { return d[2]; })])
-                         .range([h - padding, padding]);
-    }
-    
-    if(index == 3){ //y2 array has the highest value
-    	xScale = d3.scale.linear()
-                         .domain([0, d3.max(datasetLines, function(d) { return d[3]; })])
-                         .range([padding, w - padding]);
-    	yScale = y2Scale;
-    }*/
 		
 	//var formatTick = d3.format(".1");
     //var commasFormatter = d3.format(",.0f");//will display integers with comma-grouping for thousands

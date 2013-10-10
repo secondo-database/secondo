@@ -144,47 +144,10 @@
 }
 
 
-/******************** Googlemaps Elements ********************/
-#map {
+/******************** Maps Elements ********************/
+#osmmap {
 	width: 500px;
 	height: 500px;
-}
-
-.SvgOverlay {
-	position: relative;
-	width: 500px;
-	height: 500px;
-}
-
-.SvgOverlay svg {
-	position: absolute;
-	top: -4000px;
-	left: -4000px;
-	width: 8000px;
-	height: 8000px;
-}
-
-.SvgOverlay path {
-	stroke: Orange;
-	stroke-width: 2px;
-	fill: Orange;
-	fill-opacity: .3;
-}
-
-.stations,.stations svg {
-	position: absolute;
-}
-
-.stations svg {
-	width: 60px;
-	height: 20px;
-	padding-right: 100px;
-	font: 10px sans-serif;
-}
-
-.stations circle {
-	fill: brown;
-	stroke: black;
-	stroke-width: 1.5px;
+	margin: 0;
 }
 
