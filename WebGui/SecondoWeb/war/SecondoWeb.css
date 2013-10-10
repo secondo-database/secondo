@@ -1,0 +1,190 @@
+@charset "utf-8";
+
+/******************** fonts ********************/
+.headline {
+	font-size: 1.0em;
+	font-weight: bold;
+	color: #777777;
+	margin: 10.0px 50.0px 0.0px 0.0px;
+	text-align: left;
+}
+
+.serverResponseLabelError {
+	color: red;
+}
+
+/******************** Application Elements ********************/
+.gwt-DialogBox {
+	width: 400.0px;
+}
+
+.commandpanel {
+	background: black;
+	border: none;
+	font: 18px;
+	font-family: "ms sans serif", arial, sans-serif;
+	color: #00FF00;
+	resize: none;	
+}
+
+.menubar {
+	background: #CCCCCC;
+	border-width: 0px;
+	border-style: solid;
+	border-color: black;
+	font: 15px;
+	font-family: "ms sans serif", arial, sans-serif;
+	color: black;
+}
+
+.statusbar {
+	background: white;
+	border-width: 1px;
+	border-style: solid;
+	border-color: black;
+	font: 15px;
+	font-family: "ms sans serif", arial, sans-serif;
+	color: black;
+	padding-left: 2em;
+	padding-right: 2em;
+}
+
+.secondooutput {
+	background: white;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", arial, sans-serif;
+	color: black;
+	resize: none;
+}
+
+.formattedoutput {
+	background: white;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", arial, sans-serif;
+	color: black;
+	resize: none;
+}
+
+.graphicaltextoutput {
+	background: white;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", arial, sans-serif;
+	color: black;
+	resize: none;
+}
+
+.mapdata {
+	background: white;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", arial, sans-serif;
+	color: black;
+	resize: none;
+}
+
+/***********************************************************
+*   transparent MenuBar for Navigation and a NavigationPanel
+***********************************************************/
+.navigation {
+	border: none;
+	background-color: transparent;
+	border-bottom: transparent;
+	border-top: transparent;
+	text-align: left;
+}
+
+	
+.navigationpanel {
+	background: white;
+	width: 150px;
+	height: 60px;
+	text-align: center;
+	margin-left: 480px;
+	padding: 15px;
+	vertical-align:middle;
+}
+
+/******************** D3 Elements ********************/
+.chart {
+	margin-left: 42px;
+	font: 10px sans-serif;
+	shape-rendering: crispEdges;
+}
+
+.chart div {
+	background-color: steelblue;
+	text-align: right;
+	padding: 3px;
+	margin: 1px;
+	color: white;
+}
+
+.chart rect {
+	stroke: white;
+	fill: steelblue;
+}
+
+.chart text.bar {
+	fill: white;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    font-family: sans-serif;
+    font-size: 11px;
+}
+
+
+/******************** Googlemaps Elements ********************/
+#map {
+	width: 500px;
+	height: 500px;
+}
+
+.SvgOverlay {
+	position: relative;
+	width: 500px;
+	height: 500px;
+}
+
+.SvgOverlay svg {
+	position: absolute;
+	top: -4000px;
+	left: -4000px;
+	width: 8000px;
+	height: 8000px;
+}
+
+.SvgOverlay path {
+	stroke: Orange;
+	stroke-width: 2px;
+	fill: Orange;
+	fill-opacity: .3;
+}
+
+.stations,.stations svg {
+	position: absolute;
+}
+
+.stations svg {
+	width: 60px;
+	height: 20px;
+	padding-right: 100px;
+	font: 10px sans-serif;
+}
+
+.stations circle {
+	fill: brown;
+	stroke: black;
+	stroke-width: 1.5px;
+}
+
