@@ -19,9 +19,8 @@ public class SecondoConnection implements Serializable {
 	private String secondocommand = "";
 	private String secondoresult = "No result";
 	private ArrayList<String> databaselist = new ArrayList<String>();
-	//private ArrayList<String> formattedList = new ArrayList<String>();
 	private ESInterface Secondointerface = new ESInterface();
-	private TextFormatter dataFormatter = new TextFormatter();
+	private TextFormatter textFormatter = new TextFormatter();
 	private GeoTypeConstructor typeConstructor = new GeoTypeConstructor();
 
 	/** connect the commandpanel to SECONDO */
@@ -72,9 +71,9 @@ public class SecondoConnection implements Serializable {
 		 this.secondoresult = resultList.toString();
 		 
 		 //format the data for the formatted view
-		 dataFormatter.formatData(resultList);
+		 textFormatter.formatData(resultList);
 		 
-		 //analyze the datatype and put it into the resulttypelist
+		 //analyze the geodatatype and put it into the resulttypelist for the graphical view
 		 typeConstructor.getResultTypeList().clear();
 		 typeConstructor.getDataType(resultList);
 		 
@@ -101,11 +100,11 @@ public class SecondoConnection implements Serializable {
 	}
 	
 	public ArrayList<String> getFormattedList() {
-		return dataFormatter.getFormattedList();
+		return textFormatter.getFormattedList();
 	}
 
 	public void setFormattedList(ArrayList<String> formattedList) {
-		this.dataFormatter.setFormattedList(formattedList);
+		this.textFormatter.setFormattedList(formattedList);
 	}
 	
 	/**Returns the list of types that are returned in the resultList from Secondo*/
@@ -118,7 +117,7 @@ public class SecondoConnection implements Serializable {
 	/**Returns the list of the first tuples of the values that are returned in the resultList from Secondo*/
 	public ArrayList<String> getFirstTuplesOfValues(){
 		
-		return dataFormatter.getFirstTuplesOfValues();
+		return textFormatter.getFirstTuplesOfValues();
 	}
 
 	/** Gets all available databases from secondo and adds them to a list */

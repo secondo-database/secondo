@@ -150,6 +150,15 @@ public class SecondoWeb implements EntryPoint {
 			    	//setPointOnMap();
 			    	setMapView();
 				}
+			    
+			    //map view
+			    if (event.getSelectedItem() == 4) {
+			    	
+			    	//setFormattedData();
+			    	//tabs.getOsmView().initializeOSMMap(51.3760448, 7.4947253); //initialize the osm map with center in hagen
+
+			    	//setMapView();
+				}
 			  }
 			});
 

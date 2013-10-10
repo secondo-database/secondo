@@ -164,7 +164,7 @@ public static Double readInstant (ListExpr le) {
  * @param value the value of the datatype
  * @param qr Collects the results
  */
-public static void analyse (String name, int nameWidth, int indent,ListExpr type, ListExpr value, QueryResult qr) {
+/*public static void analyse (String name, int nameWidth, int indent,ListExpr type, ListExpr value, QueryResult qr) {
   DsplBase db;
   if (type.isAtom()) {
     db = getClassFromName(type.symbolValue());
@@ -174,7 +174,7 @@ public static void analyse (String name, int nameWidth, int indent,ListExpr type
     db = getClassFromName(type.first().symbolValue());
     db.init(name, nameWidth, indent, type, value, qr);
   }
-}
+}*/
 
 /**
  * Create an instance of a datatype by its name, if there is no class with the name Dspl<name>
@@ -184,7 +184,7 @@ public static void analyse (String name, int nameWidth, int indent,ListExpr type
  * @return The class is a subtype of DsplBase
  * @see <a href="LEUtilssrc.html#getClassFromName">Source</a>
  */
- public static DsplBase getClassFromName (String name) {
+ /*public static DsplBase getClassFromName (String name) {
   DsplBase displayObject;
   // displayObject is initialized to the default display class.
   String className = "viewer.hoese.algebras.Dspl" + name;
@@ -195,11 +195,11 @@ public static void analyse (String name, int nameWidth, int indent,ListExpr type
   // String App = HoeseViewer.configuration.getProperty(name);
     //if (App == null)
       displayObject = new DsplGeneric();
-  /*  else
-      displayObject = new Dsplexternal(App, name);*/
+    else
+      displayObject = new Dsplexternal(App, name);
   }
   return  displayObject;
-}
+}*/
 
 /**
  * Converts a time value from double to String
@@ -244,7 +244,7 @@ public static double convertDateTime2Double (int day, int month, int year,
  * @return A Interval object with the sart- and endtime  or null if an error occured
  * @see generic.Interval
  */
-public static Interval readInterval (ListExpr le) {
+/*public static Interval readInterval (ListExpr le) {
    int length = le.listLength();
    if (length != 4){
     Reporter.debug("wrong listlength for interval (needed is 4) :" + length);
@@ -269,7 +269,7 @@ public static Interval readInterval (ListExpr le) {
   boolean leftcl = le.third().boolValue();
   boolean rightcl = le.fourth().boolValue();
   return  new Interval(start.doubleValue(), end.doubleValue(), leftcl, rightcl);
-}
+}*/
 
 /** checks whether the given character is a letter **/
 public static boolean isLetter(char c){

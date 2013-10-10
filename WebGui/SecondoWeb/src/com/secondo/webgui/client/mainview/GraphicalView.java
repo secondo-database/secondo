@@ -51,7 +51,7 @@ public class GraphicalView extends Composite {
 	private HTML d3Heading = new HTML("<h2>D3 Example</h2>");
 	
 	private static ArrayList<String> formattedList =  new ArrayList<String>();
-    private Element div = DOM.createDiv();;
+    private Element div = DOM.createDiv();
 
 	public GraphicalView() {
 

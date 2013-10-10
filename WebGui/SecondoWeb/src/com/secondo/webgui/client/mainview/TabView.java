@@ -12,7 +12,7 @@ public class TabView extends Composite {
 	private TableView tableView = new TableView();
 	private GraphicalView graphicalView = new GraphicalView();
 	private MapView mapView = new MapView();
-
+	private OSMView osmView = new OSMView();
 
 	public TabView() {
 
@@ -34,6 +34,9 @@ public class TabView extends Composite {
 		
 		// Add the map view tab 
 		tabPanel.add(mapView.gethPanel(), "MapView");
+		
+		// Add the osm view tab 
+		tabPanel.add(osmView.gethPanel(), "OSMView");
 
 		tabPanel.selectTab(0);
 		tabPanel.ensureDebugId("tabPanel");
@@ -103,6 +106,13 @@ public class TabView extends Composite {
 	public void setMapView(MapView mapView) {
 		this.mapView = mapView;
 	}
-	
+
+	public OSMView getOsmView() {
+		return osmView;
+	}
+
+	public void setOsmView(OSMView osmView) {
+		this.osmView = osmView;
+	}
 
 }

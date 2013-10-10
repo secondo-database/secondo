@@ -344,21 +344,18 @@ public class MapView extends Composite{
 	
 
 	
-	
+	/**Getter and setter for the private attributes*/
 	public HorizontalPanel gethPanel() {
 		return hPanel;
 	}
-
 
 	public void sethPanel(HorizontalPanel hPanel) {
 		this.hPanel = hPanel;
 	}
 
-
 	public TextArea getFormattedOutput() {
 		return formattedOutput;
 	}
-
 
 	public void setFormattedOutput(TextArea formattedOutput) {
 		this.formattedOutput = formattedOutput;
@@ -379,15 +376,5 @@ public class MapView extends Composite{
 	public void setScrollPanel(ScrollPanel scrollPanel) {
 		this.scrollPanel = scrollPanel;
 	}
-
-	public ArrayList<Double> getPolylinePath() {
-		return polylinePath;
-	}
-
-	public void setPolylinePath(ArrayList<Double> polylinePath) {
-		this.polylinePath = polylinePath;
-	}
-
-
 	
 }
