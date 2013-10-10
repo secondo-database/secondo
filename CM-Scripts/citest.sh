@@ -92,7 +92,7 @@ for f in $files; do
   echo -e "  $f\n"
 done
 
-checksize.sh 712000 $files
+checksize.sh 9712000 $files
 rc=$?
 if [ $rc -ne 0 ]; then
   exit $rc;
