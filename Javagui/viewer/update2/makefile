@@ -13,7 +13,6 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: $(CLASSFILES)
-	make -C format all
 
 %.class: %.java
 	$(JAVAC) -Xlint:unchecked -classpath $(CLASSPATH) $<
