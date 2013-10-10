@@ -4862,18 +4862,31 @@ Tuple* IndexClassifyLI::nextResultTuple() {
       deleteIfAllowed(tuple);
       return result;
     }
-    if (p) {
-      delete p;
-    }
     if (processedP == c->getNumOfP()) { // all patterns processed
       return 0;
     }
     p = Pattern::getPattern(c->getPatText(processedP), true);
     if (p) {
-      p->setDescr(c->getDesc(processedP));
-      applyPattern(p);
+      if (p->hasConds() || p->containsRegEx()) {
+        for (int i = 1; i <= mlRel->GetNoTuples(); i++) {
+          Tuple *t = mlRel->GetTuple(i, false);
+          MLabel *source = (MLabel*)t->GetAttribute(attrNr)->Copy();
+          Match *match = new Match(p, source);
+          if (match->matches() == TRUE) {
+            classification.push(make_pair(p->getDescr(), i));
+          }
+        }
+      }
+      else {
+        p->setDescr(c->getDesc(processedP));
+        applyPattern(p);
+      }
     }
     processedP++;
+    if (p) {
+      delete p;
+      p = 0;
+    }
   }
   return 0;
 }

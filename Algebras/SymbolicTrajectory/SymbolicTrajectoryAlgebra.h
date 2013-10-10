@@ -470,7 +470,7 @@ class Pattern {
   void deleteEasyCondOpTrees();
 
   vector<PatElem>   getElems()              {return elems;}
-  vector<Condition>* getConds()              {return &conds;}
+  vector<Condition>* getConds()             {return &conds;}
   bool              hasConds()              {return conds.size() > 0;}
   bool              hasEasyConds()          {return easyConds.size() > 0;}
   vector<Condition> getEasyConds()          {return easyConds;}
@@ -512,6 +512,8 @@ class Pattern {
   void deleteAssignOpTrees()   {for (unsigned int i = 0;i < assigns.size();i++){
                                   assigns[i].deleteOpTrees();}}
   string            getRegEx()              {return regEx;}
+  bool              containsRegEx()         {return
+                                    regEx.find_first_of("()|") != string::npos;}
 };
 
 class Classifier : public Attribute {
