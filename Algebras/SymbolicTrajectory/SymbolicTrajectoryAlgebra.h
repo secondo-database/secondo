@@ -320,7 +320,7 @@ class PatElem {
 class Assign {
  private:
   int resultPos;
-  int patternPos; // -1 if ~var~ does not occur in the pattern
+  bool occurrence; // ~true~ if and only if ~var~ occurs in the pattern
   string text[6]; // one for label, time, start, end, leftclosed, rightclosed
   string var; // the assigned variable
   vector<pair<string, int> > right[7]; // a list of vars and keys for every type
@@ -346,11 +346,12 @@ class Assign {
   void setLeftclosedPtr(unsigned int pos, bool value);
   void setRightclosedPtr(unsigned int pos, bool value);
   
-  void    init(string v, int pp)             {clear(); var=v; patternPos=pp;}
+  void    init(string v, int pp)             {clear(); var = v;
+                                              occurrence = (pp > -1);}
   int     getResultPos() const               {return resultPos;}
   void    setResultPos(int p)                {resultPos = p;}
-  int     getPatternPos() const              {return patternPos;}
-  void    setPatternPos(int p)               {patternPos = p;}
+  bool    occurs() const                     {return occurrence;}
+  void    setOccurrence(int p)               {occurrence = (p > -1);}
   string  getText(int key) const             {return text[key];}
   void    setText(int key, string newText)   {if (!text[key].empty()) {
                                                right[key].clear();}
@@ -496,7 +497,7 @@ class Pattern {
   void              insertAssVar(string v)  {assignedVars.insert(v);}
   set<string>       getAssVars()            {return assignedVars;}
   void setAssign(int posR, int posP, int key, string arg) {
-            assigns[posR].setText(key, arg); assigns[posR].setPatternPos(posP);}
+            assigns[posR].setText(key, arg); assigns[posR].setOccurrence(posP);}
   void addAssignRight(int pos, int key, pair<string, int> varKey)
                                            {assigns[pos].addRight(key, varKey);}
   vector<map<int, int> >* getNFA()          {return &nfa;}
@@ -530,6 +531,7 @@ class Classifier : public Attribute {
 
   static const string BasicType() {return "classifier";}
   int getCharPosSize() const {return charpos.Size();}
+  int getNumOfP() const {return charpos.Size() / 2;}
   int getCharSize() const {return chars.Size();}
   void appendCharPos(int pos) {charpos.Append(pos);}
   void appendChar(char ch) {chars.Append(ch);}
@@ -777,37 +779,44 @@ class FilterMatchesLI {
   bool streamOpen;
 };
 
-class IndexLI {
+struct IndexMatchInfo {
+  IndexMatchInfo(int s);
+  
+  void print(TupleId tId, int pE);
+  bool isActive(int patElem);
+  void processWildcard(Wildcard w, int patElem);
+  void processSimple(set<int> found);
+  void processSimple();
+  bool matches(int patSize);
+  void insert(int item) {items.insert(items.end(), item);}
+
+  bool range;
+  int start, processed, size;
+  set<int> items;
+};
+
+class IndexClassifyLI {
 
 friend class Match;
 
 public:
-  IndexLI(Word _mlrel, Word _inv, Word _classifier, Word _attrNr); //indexclass.
-  IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p); //indexmatches
-  IndexLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr, bool rew);
+  IndexClassifyLI(Word _mlrel, Word _inv, Word _classifier, Word _attrNr);
 
-  ~IndexLI();
+  ~IndexClassifyLI();
 
-  Tuple* nextResultTuple(bool classify);
-  void applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wc,
-                        vector<bool>& active, int &lastId);
-  vector<TupleId> applyPattern(); // apply pattern elements of p to mlRel
-  void applyConditions(vector<TupleId> matchingMLs, bool classify);//filter vec
+  Tuple* nextResultTuple();
+  void applyPattern(Pattern *p);
   int getMLsize(TupleId tId);
   ULabel getUL(TupleId tId, unsigned int ulId);
   bool timesMatch(TupleId tId, unsigned int ulId, set<string> ivs);
-  set<unsigned int>::iterator initIterator(int tId, int pPos);
 
 private:
   Classifier *c;
   Relation *mlRel;
   queue<pair<string, TupleId> > classification;
-  queue<TupleId> resultIds;
-  vector<set<unsigned int> >* matches; // TupleId, unit pattern, unit label
   TupleType* classifyTT;
-  Pattern* p;
   InvertedFile* invFile;
-  int attrNr, pCounter;
+  int attrNr, processedP;
   size_t maxMLsize;
 };
 

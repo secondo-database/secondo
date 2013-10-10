@@ -67,6 +67,12 @@ Signature: mlabel x classifier -> stream(text)
 Example  : query classify(michael, classifier2) count
 Result   : 0
 
+Operator : indexclassify
+Number   : 1
+Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier -> stream(tuple(string, mlabel))
+Example  : query Dotraj indexclassify [Trajectory, Dotrajindex, classifier3] count
+Result   : 127
+
 Operator : rewrite
 Number   : 1
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)

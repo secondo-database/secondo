@@ -408,7 +408,8 @@ patternsequence : patternsequence variable element {
                     }
                     else if (var != "") {
                       patVars.insert(var);
-                      if ((pElems.size() == 1) && (pElems[0].getW() == NO) && (regEx[0] != '(')) {
+                      if ((pElems.size() == 1) && (pElems[0].getW() == NO) &&
+                          (regEx[0] != '(')) {
                         unitVars.insert(var);
                       }
                     }
@@ -433,6 +434,10 @@ patternsequence : patternsequence variable element {
                     }
                     else if (var != "") {
                       patVars.insert(var);
+                      if ((pElems.size() == 1) && (pElems[0].getW() == NO) &&
+                          (regEx[0] != '(')) {
+                        unitVars.insert(var);
+                      }
                     }
                     wholepat->addRegExSymbol(regEx.c_str());
                     for (unsigned int i = 0; i < pElems.size(); i++) {
@@ -662,13 +667,13 @@ int Condition::convertVarKey(const char *varKey) {
         cout << "card / labels condition not allowed for non-sequences" << endl;
         return -1;
       }
+      condVars.insert(var);
       if (easyCond) {
-        if (wholepat->getElem(i).getW() || condVars.count(var)) {
+        if (wholepat->getElem(i).getW() || (condVars.size() > 1) || !unitVars.count(var)) {
           easyCond = false;
         }
       }
       varKeys.push_back(make_pair(var, key));
-      condVars.insert(var);
       return key;
     }
   }

@@ -830,7 +830,7 @@ MLabel* MLabel::rewrite(map<string, pair<unsigned int, unsigned int> > binding,
       }
     }
     else { // variable does not occur in binding
-      if (assigns[i].getPatternPos() == -1) { // and not in pattern
+      if (!assigns[i].occurs()) { // and not in pattern
         uls.constValue.Set(true, label);
         if (!assigns[i].getText(1).empty()) {
           uls.timeInterval = iv;
@@ -1686,6 +1686,7 @@ bool Pattern::parseNFA() {
       finalStates.insert(i);
     }
   }
+//   printNfa(nfa, finalStates);
   delete intNfa;
   return true;
 }
@@ -2035,12 +2036,10 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
              vector<PatElem> &elems, set<int> &finalStates, set<int> &states,
              vector<Condition> &easyConds, map<int, set<int> > &easyCondPos,
              bool store /* = false */) {
-//   cout << "old states: ";
   set<int>::iterator its;
   set<unsigned int>::iterator itu;
   map<int, int> transitions;
   for (its = states.begin(); its != states.end(); its++) { // collect possible
-//     cout << *its << " ";
     map<int, int> trans = nfa[*its];                       // transitions
     transitions.insert(trans.begin(), trans.end());
   }
@@ -2051,16 +2050,14 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
   map<int, int>::iterator itm, itn;
   ULabel ul(0);
   ml->Get(ulId, ul);
-//   cout << "|||| new states: ";
   if (store) {
     if (ulId < ml->GetNoComponents() - 1) {
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-    //     cout << itm->second << " ";
         if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
          && timesMatch(&ul.timeInterval, elems[itm->first].getI())
          && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
-          states.insert(itm->second);
+          states.insert(states.end(), itm->second);
           map<int, int> nextTrans = nfa[itm->second];
           for (itn = nextTrans.begin(); itn != nextTrans.end(); itn++) {
             itu = matching[ulId][itm->first].end();
@@ -2071,12 +2068,11 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
     }
     else {
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-    //     cout << itm->second << " ";
         if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
          && timesMatch(&ul.timeInterval, elems[itm->first].getI())
          && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
-          states.insert(itm->second);
+          states.insert(states.end(), itm->second);
           if (finalStates.count(itm->second)) {
             matching[ulId][itm->first].insert(UINT_MAX); // store last matching
           }
@@ -2086,16 +2082,14 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
   }
   else {
     for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-  //     cout << itm->second << " ";
       if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
        && timesMatch(&ul.timeInterval, elems[itm->first].getI())
        && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                          easyCondPos[itm->first])){
-        states.insert(itm->second);
+        states.insert(states.end(), itm->second);
       }
     }
   }
-//   cout << endl;
   return !states.empty();
 }
 
@@ -2173,7 +2167,7 @@ bool Match::findBinding(unsigned int ulId, unsigned int pId,
       }
     }
   }
-  if (!var.empty()) {
+  if (!var.empty()) { // unsuccessful: reset binding
     if (inserted) {
       binding.erase(var);
     }
@@ -3559,58 +3553,58 @@ ListExpr indexmatchesTM(ListExpr args) {
   return listutils::typeError(errMsg);
 }
 
-IndexLI::IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p) {
-  mlRel = (Relation*)_mlrel.addr;
-  invFile = static_cast<InvertedFile*>(_inv.addr);
-  attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
-  p = _p;
-  classifyTT = 0;
-  matches = new vector<set<unsigned int> >[mlRel->GetNoTuples()];
-  for (int i = 0; i < mlRel->GetNoTuples(); i++) {
-    matches[i].resize(p->getSize());
-  }
-  vector<TupleId> matchingMLs = applyPattern();
-  applyConditions(matchingMLs, false);
-  delete[] matches;
-}
+// IndexLI::IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p) {
+//   mlRel = (Relation*)_mlrel.addr;
+//   invFile = static_cast<InvertedFile*>(_inv.addr);
+//   attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
+//   p = _p;
+//   classifyTT = 0;
+//   matches = new vector<set<unsigned int> >[mlRel->GetNoTuples()];
+//   for (int i = 0; i < mlRel->GetNoTuples(); i++) {
+//     matches[i].resize(p->getSize());
+//   }
+//   vector<TupleId> matchingMLs = applyPattern();
+//   applyConditions(matchingMLs, false);
+//   delete[] matches;
+// }
 
 /*
 \subsection{Value Mapping}
 
 */
-int indexmatchesVM(Word* args, Word& result, int message, Word& local,
-                   Supplier s){
-  IndexLI *li = (IndexLI*)local.addr;
-  switch (message) {
-    case OPEN: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      FText *pText = static_cast<FText*>(args[3].addr);
-      Pattern* p = 0;
-      if (pText->IsDefined()) {
-        p = Pattern::getPattern(pText->GetValue(), true);
-      }
-      if (p) {
-        local.addr = new IndexLI(args[0], args[2], args[4], p);
-      }
-      return 0;
-    }
-    case REQUEST: {
-      result.addr = li ? li->nextResultTuple(false) : 0;
-      return result.addr ? YIELD : CANCEL;
-    }
-    case CLOSE: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
+// int indexmatchesVM(Word* args, Word& result, int message, Word& local,
+//                    Supplier s){
+//   IndexLI *li = (IndexLI*)local.addr;
+//   switch (message) {
+//     case OPEN: {
+//       if (li) {
+//         delete li;
+//         local.addr = 0;
+//       }
+//       FText *pText = static_cast<FText*>(args[3].addr);
+//       Pattern* p = 0;
+//       if (pText->IsDefined()) {
+//         p = Pattern::getPattern(pText->GetValue(), true);
+//       }
+//       if (p) {
+//         local.addr = new IndexLI(args[0], args[2], args[4], p);
+//       }
+//       return 0;
+//     }
+//     case REQUEST: {
+//       result.addr = li ? li->nextResultTuple(false) : 0;
+//       return result.addr ? YIELD : CANCEL;
+//     }
+//     case CLOSE: {
+//       if (li) {
+//         delete li;
+//         local.addr = 0;
+//       }
+//       return 0;
+//     }
+//   }
+//   return 0;
+// }
 
 /*
 \subsection{Operator Info}
@@ -3869,7 +3863,7 @@ bool Assign::initOpTrees() {
       return true;
     }
   }
-  if ((patternPos == -1) && (text[0].empty() || (text[1].empty() &&
+  if (!occurs() && (text[0].empty() || (text[1].empty() &&
      (text[2].empty() || text[3].empty())))) {
     cout << "not enough data for variable " << var << endl;
     return false;
@@ -4645,7 +4639,7 @@ struct classifyInfo : OperatorInfo {
 
 */
 ListExpr indexclassifyTM(ListExpr args) {
-  const string errMsg = "Expecting a relation, the name of an {mlabel, mstring}"
+  const string errMsg = "Expecting a relation, the name of an mlabel"
              " attribute of that relation, an invfile, and a classifier";
   if (nl->HasLength(args, 4)) {
     if (Classifier::checkType(nl->Fourth(args))) {
@@ -4659,7 +4653,7 @@ ListExpr indexclassifyTM(ListExpr args) {
           if (i == 0) {
             return listutils::typeError("Attribute " + attrName + " not found");
           }
-          if (!MLabel::checkType(attrType) && !MString::checkType(attrType)) {
+          if (!MLabel::checkType(attrType)) {
             return listutils::typeError
                    ("Type " + nl->ToString(attrType) + " is invalid");
           }
@@ -4688,20 +4682,32 @@ ListExpr indexclassifyTM(ListExpr args) {
 This constructor is used for the operator ~indexclassify~.
 
 */
-IndexLI::IndexLI(Word _mlrel, Word _inv, Word _classifier, Word _attrNr) :
-                 p(0), pCounter(0) {
+IndexClassifyLI::IndexClassifyLI(Word _mlrel, Word _inv, Word _classifier,
+                                 Word _attrNr) : processedP(0) {
   mlRel = (Relation*)_mlrel.addr;
-  invFile = static_cast<InvertedFile*>(_inv.addr);
+  invFile = (InvertedFile*)_inv.addr;
   attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
   c = (Classifier*)_classifier.addr;
   classifyTT = ClassifyLI::getTupleType();
 }
 
 /*
+\subsection{Destructor for class ~IndexLI~}
+
+*/
+IndexClassifyLI::~IndexClassifyLI() {
+  if (classifyTT) {
+    delete classifyTT;
+    classifyTT = 0;
+  }
+}
+
+/*
 \subsection{Function ~timesMatch~}
 
 */
-bool IndexLI::timesMatch(TupleId tId, unsigned int ulId, set<string> ivs) {
+bool IndexClassifyLI::timesMatch(TupleId tId, unsigned int ulId,
+                                 set<string> ivs) {
   if (ivs.empty()) {
     return true;
   }
@@ -4710,211 +4716,111 @@ bool IndexLI::timesMatch(TupleId tId, unsigned int ulId, set<string> ivs) {
 }
 
 /*
-\subsection{Function ~initIterator~}
+\subsection{Function ~applyPattern~}
 
 */
-set<unsigned int>::iterator IndexLI::initIterator(int tId, int pPos) {
-  set<unsigned int>::iterator it = matches[tId - 1][pPos].end();
-  if (it != matches[tId - 1][pPos].begin()) {
-    it--;
-  }
-  return it;
-}
-
-/*
-\subsection{Function ~applyUnitPattern~}
-
-*/
-void IndexLI::applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wild,
-                               vector<bool>& active, int &lastId) {
+void IndexClassifyLI::applyPattern(Pattern *p) {
   InvertedFile::exactIterator* eit = 0;
   TupleId id;
   wordPosType wc;
   charPosType cc;
-  ULabel ul(1);
-  PatElem pElem = p->getElem(pPos);
-  set<string> labels = pElem.getL();
-  set<string>::iterator j = labels.begin();
-  set<unsigned int>::iterator i1, i2;
-  if (pElem.getW() && pElem.getL().empty() && pElem.getI().empty()) { // * or +
-    wild = pElem.getW();
-    return;
-  } // (), (...), or ((...))
-  while (j != labels.end()) {
-    eit = invFile->getExactIterator(*j, 4096);
-    while (eit->next(id, wc, cc)) {
-      if (active[id - 1]) {
-        if (timesMatch(id, wc, pElem.getI())) {
-          if (!pPos) {
-            if (!wc) { // first unit pattern matches first unit label
-              matches[id - 1][0].insert(0);
-              prev[id - 1] = 0;
-            }
-          }
-          else if (((wild == NO) && matches[id - 1][prev[id - 1]].count(wc-1)
-                                 && (lastId != (int)id))
-           || ((wild == PLUS) && ((prev[id - 1] == -1)
-                        || *(matches[id - 1][prev[id - 1]].begin()) < wc))
-           || ((wild == STAR) && ((prev[id - 1] == -1)
-                        || *(matches[id - 1][prev[id - 1]].begin()) <= wc))) {
-            matches[id - 1][pPos].insert(wc);
-            lastId = id;
-            prev[id - 1] = pPos;
-          }
-        }
-      }
-    }
-    if (eit) {
-      delete eit;
-    }
-    j++;
+  vector<IndexMatchInfo> matchInfo;
+  for (int i = 0; i < mlRel->GetNoTuples(); i++) {
+    IndexMatchInfo imi(getMLsize(i));
+    matchInfo.push_back(imi);
   }
-  if (labels.empty()) {
-    if (!pPos) { // first unit pattern
-        for (int i = 1; i <= mlRel->GetNoTuples(); i++) {
-          if (timesMatch(i, 0, pElem.getI())) {
-            matches[i - 1][0].insert(0);
-            prev[i - 1] = 0;
-          }
-        }
-    }
-    else { // not the first unit pattern
-      if (wild == NO) {
-        for (int i = 1; i <= mlRel->GetNoTuples(); i++) {
-          if (active[i - 1]) {
-            i2 = initIterator(i, pPos);
-            for (i1 = matches[i - 1][prev[i - 1]].begin();
-                 ((i1 != matches[i - 1][prev[i - 1]].end())
-                   && (*i1 + 1 <= (unsigned int)getMLsize(i))); i1++) {
-              if (timesMatch(i, *i1, pElem.getI())) {
-                matches[i - 1][pPos].insert(i2, *i1 + 1);
-                i2++;
-              }
-            }
-          }
-          if (matches[i - 1][pPos].size()) {
-            prev[i - 1] = pPos;
-          }
-        }
-      }
-      else { // wildcard before current unit pattern
-        int add = (wild == STAR ? 1 : 2);
-        for (int i = 1; i <= mlRel->GetNoTuples(); i++) {
-          if (active[i - 1]) {
-            if (prev[i - 1] > -1) {
-              i2 = initIterator(i, pPos);
-              for (int k = *(matches[i - 1][prev[i - 1]].begin());
-                   (k + add <= getMLsize(i)); k++) {
-                if (timesMatch(i, k, pElem.getI())) {
-                  matches[i - 1][pPos].insert(i2, k + add);
-                  i2++;
-                }
-              }
-            }
-            else { // no match before current unit pattern
-              i2 = initIterator(i, pPos);
-              for (unsigned int k = (wild == STAR ? 0 : 1);
-                   k < (unsigned int)getMLsize(i); k++) {
-                if (timesMatch(i, k, pElem.getI())) {
-                  matches[i - 1][pPos].insert(i2, k);
-                  i2++;
-                }
-              }
-            }
-          }
-          if (matches[i - 1][pPos].size()) {
-            prev[i - 1] = pPos;
-          }
-        }
-      }
-    }
-  }
-  wild = NO;
-  for (int i = 1; i <= mlRel->GetNoTuples(); i++) { // deactivate non-matching
-    if (active[i - 1]) {                            // trajectories
-      if (matches[i - 1][pPos].empty()) {
-        active[i - 1] = false;
-      }
-    }
-  }
-}
-
-/*
-\subsection{Function ~applyPattern~}
-
-*/
-vector<TupleId> IndexLI::applyPattern() {
-  vector<TupleId> result;
-  Wildcard wild = NO;
-  vector<int> prev(mlRel->GetNoTuples(), -1);
   vector<bool> active(mlRel->GetNoTuples(), true);
-  int lastId = -1;
-  for (int i = 0; i < p->getSize(); i++) { // iterate over pattern elements
-    applyUnitPattern(i, prev, wild, active, lastId);
-  }
-  for (int j = 0; j < mlRel->GetNoTuples(); j++) {
-    if (active[j]) {
-      if (wild || matches[j][p->getSize() - 1].count(getMLsize(j + 1) - 1)) {
-        result.push_back(j + 1);
+  int pSize = p->getSize();
+  for (int i = 0; i < pSize; i++) { // iterate over pattern elements
+    if (p->getElem(i).getW() == NO) {
+      set<string> labels = p->getElem(i).getL();
+      set<string>::iterator is;
+      for (is = labels.begin(); is != labels.end(); is++) {
+        eit = invFile->getExactIterator(*is, 4096);
+        set<int> foundULs;
+        TupleId lastId = UINT_MAX;
+        while (eit->next(id, wc, cc)) {
+          if (matchInfo[id - 1].isActive(i)) {
+            if (timesMatch(id, wc, p->getElem(i).getI())) {
+              if ((id == lastId) || (lastId == UINT_MAX)) {
+                foundULs.insert(foundULs.end(), wc); // collect unit label ids
+              }
+              else { // new tuple
+                matchInfo[lastId - 1].processSimple(foundULs);
+                foundULs.clear();
+                foundULs.insert(wc);
+              }
+              lastId = id;
+            }
+          }
+        }
+        if (!foundULs.empty()) {
+          matchInfo[lastId - 1].processSimple(foundULs);
+        }
+        if (eit) {
+          delete eit;
+        }
+      }
+      if (labels.empty()) { // index cannot be exploited
+        if (p->getElem(i).getI().empty()) { // empty simple pattern
+          for (unsigned j = 0; j < matchInfo.size(); j++) {
+            if (matchInfo[j].isActive(i)) {
+              matchInfo[j].processSimple();
+            }
+          }
+        }
+        else { // only time information exists
+          for (unsigned j = 0; j < matchInfo.size(); j++) {
+            if (matchInfo[j].isActive(i)) {
+              if (matchInfo[j].range) {
+                matchInfo[j].range = false;
+                matchInfo[j].items.clear();
+                for (int k = matchInfo[j].start; k < matchInfo[j].size; k++) {
+                  if (timesMatch(j + 1, k, p->getElem(i).getI())) {
+                    matchInfo[j].insert(k + 1);
+                  }
+                }
+              }
+              else {
+                for (set<int>::iterator it = matchInfo[j].items.begin();
+                     it != matchInfo[j].items.end(); it++) {
+                  if (timesMatch(j + 1, *it, p->getElem(i).getI())) {
+                    matchInfo[j].insert(*it + 1);
+                  }
+                }
+              }
+              matchInfo[j].processed++;
+            }
+          }
+        }
       }
     }
+    else { // PLUS or STAR
+      for (unsigned j = 0; j < matchInfo.size(); j++) {
+        matchInfo[j].processWildcard(p->getElem(i).getW(), i);
+      }
+    }
+//     for (unsigned j = 0; j < matchInfo.size(); j++) {
+//       matchInfo[j].print(j, i);
+//     }
+//     if (i == pSize - 1) {
+//       cout << endl;
+//     }
   }
-  return result;
+  for (unsigned j = 1; j <= matchInfo.size(); j++) {
+    if (matchInfo[j - 1].matches(pSize)) {
+      classification.push(make_pair(p->getDescr(), j));
+//       cout << "pushed back (" << p->getDescr() << ", " << j << ")" << endl;
+    }
+  }
 }
-
-/*
-\subsection{Function ~applyConditions~}
-
-*/
-void IndexLI::applyConditions(vector<TupleId> tupleIds, bool classify) {
-//   if (p->getConds().empty()) { // no condition
-//     if (classify) {
-//       for (unsigned int i = 0; i < tupleIds.size(); i++){
-//         classification.push(make_pair(p->getDescr(), tupleIds[i]));
-//       }
-//     }
-//     else {
-//       for (unsigned int i = 0; i < tupleIds.size(); i++){
-//         resultIds.push(tupleIds[i]);
-//       }
-//     }
-//   }
-//   else {
-    if (classify) {
-      for (unsigned int i = 0; i < tupleIds.size(); i++){
-        Match* m = 0;//new Match(this, tupleIds[i]);
-//         m->computeCardsets();
-        p->initCondOpTrees();
-        Tuple* tuple = mlRel->GetTuple(tupleIds[i], false);
-//         if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
-//           classification.push(make_pair(p->getDescr(), tupleIds[i]));
-//         }
-        deleteIfAllowed(tuple);
-        delete m;
-      }
-    }
-    else {
-      for (unsigned int i = 0; i < tupleIds.size(); i++){
-        Match* m = 0;//new Match(this, tupleIds[i]);
-//         m->computeCardsets();
-        p->initCondOpTrees();
-        Tuple* tuple = mlRel->GetTuple(tupleIds[i], false);
-//         if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
-//           resultIds.push(tupleIds[i]);
-//         }
-        deleteIfAllowed(tuple);
-        delete m;
-      }
-    }
-//   }
-} 
 
 /*
 \subsection{Function ~getMLsize~}
 
 */
-int IndexLI::getMLsize(TupleId tId) {
-  Tuple* tuple = mlRel->GetTuple(tId, false);
+int IndexClassifyLI::getMLsize(TupleId tId) {
+  Tuple* tuple = mlRel->GetTuple(tId + 1, false);
   int result = ((MLabel*)tuple->GetAttribute(attrNr))->GetNoComponents();
   deleteIfAllowed(tuple);
   return result;
@@ -4924,7 +4830,7 @@ int IndexLI::getMLsize(TupleId tId) {
 \subsection{Function ~getUL~}
 
 */
-ULabel IndexLI::getUL(TupleId tId, unsigned int ulId) {
+ULabel IndexClassifyLI::getUL(TupleId tId, unsigned int ulId) {
   ULabel result(1);
   Tuple* tuple = mlRel->GetTuple(tId, false);
   ((MLabel*)tuple->GetAttribute(attrNr))->Get(ulId, result);
@@ -4935,68 +4841,41 @@ ULabel IndexLI::getUL(TupleId tId, unsigned int ulId) {
 /*
 \subsection{Function ~nextResultTuple~}
 
-This function is used for the operators ~indexclassify~ and ~indexmatches~.
+This function is used for the operators ~indexclassify~.
 
 */
-Tuple* IndexLI::nextResultTuple(bool classify) {
+Tuple* IndexClassifyLI::nextResultTuple() {
   if (!mlRel->GetNoTuples()) { // no mlabel => no result
     return 0;
   }
-  if (!classify) {
-    if (resultIds.empty()) { // no mlabel => no result
-      return 0;
+  pair<string, TupleId> resultPair;
+  Pattern* p = 0;
+  while (processedP <= c->getNumOfP()) {
+    if (!classification.empty()) { // convert matched mlabel into result
+      pair<string, TupleId> resultPair = classification.front();
+      classification.pop();
+      Tuple* tuple = mlRel->GetTuple(resultPair.second, false);
+      MLabel* ml = (MLabel*)tuple->GetAttribute(attrNr)->Copy();
+      Tuple *result = new Tuple(classifyTT);
+      result->PutAttribute(0, new FText(true, resultPair.first));
+      result->PutAttribute(1, ml);
+      deleteIfAllowed(tuple);
+      return result;
     }
-    Tuple* result = mlRel->GetTuple(resultIds.front(), false);
-    resultIds.pop();
-    return result;
-  }
-  pair<string, TupleId> onePair;
-  while (classification.empty() && pCounter < c->getCharPosSize() / 2) {
     if (p) {
       delete p;
-      p = 0;
     }
-    p = Pattern::getPattern(c->getPatText(pCounter), true);
+    if (processedP == c->getNumOfP()) { // all patterns processed
+      return 0;
+    }
+    p = Pattern::getPattern(c->getPatText(processedP), true);
     if (p) {
-      p->setDescr(c->getDesc(pCounter));
-      matches = new vector<set<unsigned int> >[mlRel->GetNoTuples()];
-      for (int i = 0; i < mlRel->GetNoTuples(); i++) {
-        matches[i].resize(p->getSize());
-      }
-      vector<TupleId> matchingMLs = applyPattern();
-      applyConditions(matchingMLs, true);
-      delete[] matches;
+      p->setDescr(c->getDesc(processedP));
+      applyPattern(p);
     }
-    pCounter++;
+    processedP++;
   }
-  MLabel* ml = 0;
-  if (classification.empty()) {
-    return 0;
-  }
-  onePair = classification.front();
-  Tuple *result = new Tuple(classifyTT);
-  result->PutAttribute(0, new FText(true, onePair.first));
-  Tuple* tuple = mlRel->GetTuple(onePair.second, false);
-  ml = (MLabel*)tuple->GetAttribute(attrNr)->Copy();
-  result->PutAttribute(1, ml);
-  classification.pop();
-  tuple->DeleteIfAllowed();
-  return result;
-}
-
-/*
-\subsection{Destructor for class ~IndexLI~}
-
-*/
-IndexLI::~IndexLI() {
-  if (classifyTT) {
-    delete classifyTT;
-    classifyTT = 0; 
-  }
-  if (p) {
-    delete p;
-    p = 0;
-  }
+  return 0;
 }
 
 /*
@@ -5005,18 +4884,18 @@ IndexLI::~IndexLI() {
 */
 int indexclassifyVM(Word* args, Word& result, int message, Word& local,
                     Supplier s){
-  IndexLI *li = (IndexLI*)local.addr;
+  IndexClassifyLI *li = (IndexClassifyLI*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
         delete li;
         local.addr = 0;
       }
-      local.addr = new IndexLI(args[0], args[2], args[3], args[4]);
+      local.addr = new IndexClassifyLI(args[0], args[2], args[3], args[4]);
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->nextResultTuple(true) : 0;
+      result.addr = li ? li->nextResultTuple() : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -5035,13 +4914,105 @@ struct indexclassifyInfo : OperatorInfo {
     name      = "indexclassify";
     signature = "rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier"
                 " -> stream(tuple(string, mlabel))";
-    appendSignature("rel(tuple(..., mstring, ...)) x attrname x invfile x "
-                    "classifier -> stream(tuple(string, mstring))");
     syntax    = "_ indexclassify [_ , _ , _]";
     meaning   = "Classifies an indexed relation of trajectories according to a "
                 " classifier";
   }
 };
+
+/*
+\subsection{Implementation of struct ~IndexMatchInfo~}
+
+*/
+IndexMatchInfo::IndexMatchInfo(int s) : range(false), start(INT_MAX),
+                                        processed(0), size(s) {
+  items.insert(0);
+}
+
+void IndexMatchInfo::print(TupleId tId, int pE) {
+  if (!isActive(pE)) {
+    cout << "pE " << pE << " tId " << tId << ": inactive" << endl;
+    return;
+  }
+  if (range) {
+    cout << "pE " << pE << " tId " << tId << ": active from " << start << endl;
+  }
+  else {
+    cout << "pE " << pE << " tId " << tId << ": active: {";
+    for (set<int>::iterator i = items.begin(); i != items.end(); i++) {
+      cout << *i << ",";
+    }
+    cout << "}" << endl;
+  }
+}
+
+bool IndexMatchInfo::isActive(int patElem) {
+  if (!range && items.empty()) {
+    return false;
+  }
+  return processed >= patElem;
+}
+
+void IndexMatchInfo::processWildcard(Wildcard w, int patElem) {
+  if (!isActive(patElem)) return;
+  if (range) {
+    start += (w == PLUS ? 1 : 0);
+  }
+  else {
+    range = true;
+    start = *(items.begin()) + (w == PLUS ? 1 : 0);
+    items.clear();
+  }
+  processed++;
+}
+
+void IndexMatchInfo::processSimple(set<int> found) {
+  if (range) {
+    items.clear();
+    for (set<int>::iterator it = found.begin(); it != found.end(); it++) {
+      if (start <= *it) {
+        items.insert(items.end(), *it + 1);
+      }
+    }
+    range = false;
+  }
+  else {
+    set<int> newItems;
+    for (set<int>::iterator it = found.begin(); it != found.end(); it++) {
+      if (items.count(*it)) {
+        newItems.insert(newItems.end(), *it + 1);
+      }
+    }
+    items = newItems;
+  }
+  processed++;
+}
+
+void IndexMatchInfo::processSimple() {
+  if (range) {
+    start++;
+  }
+  else {
+    set<int> newItems;
+    set<int>::iterator it, it2(newItems.begin());
+    for (it = items.begin(); it != items.end(); it++) {
+      it2 = newItems.insert(it2, *it + 1);
+    }
+    items = newItems;
+  }
+}
+
+bool IndexMatchInfo::matches(int patSize) {
+  if (!isActive(patSize)) {
+    return false;
+  }
+  if (range) {
+    return (start <= size);
+  }
+  return items.count(size);
+}
+
+
 
 /*
 \section{Operator ~compress~}
@@ -5611,7 +5582,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddOperator(classifyInfo(), classifyVM, classifyTM);
 
-//       AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTM);
+      AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTM);
 
       ValueMapping compressVMs[] = {compressVM_1<MLabel>,
                                     compressVM_1<MString>,
