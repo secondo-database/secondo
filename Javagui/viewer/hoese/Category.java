@@ -103,7 +103,7 @@ public class Category
  **/
   private String audioFileName="sound.wav";
   private java.applet.AudioClip audioClip=null;
-  private boolean audioloop = false; 
+  private boolean audioloop = true; 
   private boolean audioRunning = false;
   private Object audioSync = new Object();
 
@@ -887,13 +887,12 @@ public class Category
             return;
           }
         }
-        System.out.println("play audioClip");
+        audioRunning = true;
         if(audioloop){
            audioClip.loop();
         } else {
            audioClip.play();
         }
-        audioRunning = true;
      }
 
   }
