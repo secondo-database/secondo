@@ -102,8 +102,8 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 	// LoadProfiles by their names
 	private Map<String, LoadProfile> profiles;
 	
-	private DefaultListModel<String> lmProfiles;
-	private JList<String> lsProfiles;
+	private DefaultListModel lmProfiles;
+	private JList lsProfiles;
 	private JScrollPane scpProfiles;
 	
 	// Controller
@@ -160,8 +160,8 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 		this.plButtons.add(this.btCancel);
 		
 		// profile selection list
-		this.lmProfiles = new DefaultListModel<String>();
-		this.lsProfiles = new JList<String>();
+		this.lmProfiles = new DefaultListModel();
+		this.lsProfiles = new JList();
 		this.lsProfiles.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		//this.lsProfiles.setLayoutOrientation(JList.HORIZONTAL_WRAP);
 		this.lsProfiles.addListSelectionListener(this);
@@ -372,7 +372,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 	 */
 	public String getCurrentLoadProfileName()
 	{
-		return this.lsProfiles.getSelectedValue();
+		return this.lsProfiles.getSelectedValue().toString();
 	}
 	
 	/**
@@ -407,7 +407,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 		}
 		else 
 		{
-			this.lmProfiles = new DefaultListModel<String>();
+			this.lmProfiles = new DefaultListModel();
 			for (String profName : profiles.keySet())
 			{
 				this.lmProfiles.addElement(profName);
