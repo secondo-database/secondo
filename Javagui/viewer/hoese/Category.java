@@ -34,7 +34,7 @@ import tools.Reporter;
  * is associated with the object.
  */
 public class Category
-    implements Cloneable {
+    implements Cloneable, Comparable<Category> {
 /** Some constants for possible dash-patterns */
   private static float[][] dash =  {
     { 2.0f, 2.0f }, 
@@ -96,6 +96,18 @@ public class Category
  private Color minColor = Color.GREEN;
  private Color maxColor = Color.RED;
 
+
+ /**
+  The next attributes control playing audio.
+ **/
+  private String audioFileName="sound.wav";
+  private java.applet.AudioClip audioClip=null;
+  private boolean audioloop = false; 
+  private boolean audioRunning = false;
+  private Object audioSync = new Object();
+
+
+
  /** represents a attribute depending render method **/
  public static final int RENDER_COLOR=0;
  /** represents a attribute depending render method **/
@@ -148,6 +160,10 @@ public class Category
   public static String getTexturePath(){
       return TexturePath;
   }
+
+  public int compareTo(Category cat){
+     return  name.compareTo(cat.name); //assume unique names for categories
+   }
 
   /**
    *
@@ -851,6 +867,46 @@ public class Category
   public static Category getDefaultCat () {
     return  defCat;
   }
+
+  public void startSound(){
+     synchronized(audioSync){
+        if(audioRunning && audioloop){
+          return; 
+        }
+        if(audioClip==null){
+          try{ 
+            audioClip = java.applet.Applet.newAudioClip( new java.net.URL("file://"+audioFileName));
+          } catch(Exception e){
+              System.err.println("mailformed URL");
+              return;
+          }
+          if(audioClip==null){
+            System.err.println("Sound file " + audioFileName + " not found");
+            return;
+          }
+        }
+        System.out.println("play audioClip");
+        if(audioloop){
+           audioClip.loop();
+        } else {
+           audioClip.play();
+        }
+        audioRunning = true;
+     }
+
+  }
+  public void stopSound(){
+      synchronized(audioSync){
+         if(!audioRunning){
+            return;
+         }
+         audioRunning=false;
+         if(audioClip!=null){
+           audioClip.stop();
+         }
+      } 
+  } 
+
 
   /**
    * 

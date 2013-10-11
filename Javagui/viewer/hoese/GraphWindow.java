@@ -35,6 +35,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.ListIterator;
 import java.util.Vector;
+import java.awt.geom.*;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -43,6 +44,13 @@ import javax.swing.JToggleButton;
 
 import tools.Reporter;
 import viewer.HoeseViewer;
+
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+
+import java.util.TreeSet;
+import java.util.Iterator;
+
 
 /**
  * This class implements the layer-stack for the graphical objects. The super class is a
@@ -69,6 +77,63 @@ public class GraphWindow extends JLayeredPane
 /** a additional object for  painting **/
    DsplGraph  additionalGraphObject;
 
+/** a listener playing sound if the mouse goes over an object */
+   SoundMouseListener soundListener;
+/** flag determining whether sound should be played for
+  * all objects under the cursor or only for the first object found.
+  **/   
+   boolean multisound = false;
+
+
+  private class SoundMouseListener implements MouseMotionListener{
+     public SoundMouseListener(){
+       lastCats = new TreeSet<Category>();
+     } 
+
+     public void mouseDragged(MouseEvent evt){
+
+     }
+     public void mouseMoved(MouseEvent e){
+         int x = e.getX();
+         int y = e.getY();
+         // collect the categories of objects under cursor
+         GraphWindow gw = GraphWindow.this;
+         boolean done = false;
+         Point2D.Double p = new Point2D.Double();
+         try {
+           p = (Point2D.Double)CurrentState.transform.inverseTransform(e.getPoint(), p);
+         } catch (Exception ex) {
+            return; 
+         }
+         TreeSet<Category> currentCats = new TreeSet<Category>();
+         double scalex = 1/Math.abs(CurrentState.transform.getScaleX());
+         double scaley = 1/Math.abs(CurrentState.transform.getScaleY());
+
+         for(int i=0;i<gw.getComponentCount()&& !done; i++){
+            Layer layer = (Layer) gw.getComponent(i);
+            TreeSet layerCats = layer.getCats(p,scalex,scaley, !gw.multisound);
+            currentCats.addAll(layerCats);
+            if(!gw.multisound && currentCats.size()>0){
+               done = true;
+            } 
+         }
+         Iterator<Category> it = lastCats.iterator();
+         while(it.hasNext()){
+            Category cat = it.next();
+            if(!currentCats.contains(cat)){
+               cat.stopSound();
+            }
+         }
+         it = currentCats.iterator();
+         while(it.hasNext()){
+            Category cat = it.next();
+            cat.startSound();
+         }
+         lastCats = currentCats;
+     }    
+     private TreeSet<Category> lastCats;
+  }
+
 
   /** Creates a Graphwindow without any layer
    * @see <a href="Categorysrc.html#GraphWindow">Source</a>
@@ -91,8 +156,18 @@ public class GraphWindow extends JLayeredPane
            ((JComponent)com[0]).setVisible(((JToggleButton)evt.getSource()).isSelected());
       }
     };
-
+    soundListener = new SoundMouseListener();
   }
+
+  public void enableSound(boolean on){
+     if(on){
+       addMouseMotionListener(soundListener);
+     } else {
+       removeMouseMotionListener(soundListener);
+     }
+  }
+
+
 
 
   /**

@@ -194,6 +194,27 @@ public class Layer extends JComponent {
     return  button;
   }
 
+  /** Returns the categories of all object including the given point **/
+  TreeSet<Category> getCats(Point2D.Double position, double scalex, double scaley, boolean onlyFirst){
+      TreeSet<Category> res = new TreeSet<Category>();
+      boolean done = false;
+      double x = position.getX();
+      double y = position.getY();
+      for(int i=0;i<GeoObjects.size() && !done ;i++){
+          DsplGraph dg = (DsplGraph)GeoObjects.get(i);
+          if(dg.getVisible()) {
+              if(dg.contains(x,y,scalex,scaley)){
+                 res.add(dg.getCategory());
+                 if(onlyFirst){
+                   done = true;
+                 }
+              }
+          }
+      }
+      return res;
+  }
+
+
   /**
    *
    * @return The list of geograph. objects in this layeer

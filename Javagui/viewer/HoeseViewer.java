@@ -254,6 +254,7 @@ public class HoeseViewer extends SecondoViewer {
   private javax.swing.JSeparator jSeparator5;
   private javax.swing.JMenuItem jMIShowCE;
   private javax.swing.JMenuItem MIQueryRep;
+  private javax.swing.JCheckBoxMenuItem MIEnableSound;
 
   private javax.swing.JMenuItem MILayerMgmt;
 
@@ -1276,7 +1277,18 @@ public class HoeseViewer extends SecondoViewer {
       }
     });
 
+    MIEnableSound = new JCheckBoxMenuItem("Enable sound");
+    MIEnableSound.setSelected(false);
+    
+    MIEnableSound.addChangeListener(new ChangeListener(){
+      public void stateChanged(ChangeEvent evt){
+         GraphDisplay.enableSound(MIEnableSound.isSelected());
+      }
+    }); 
+
+
     jMenuGui.add(MIQueryRep);
+    jMenuGui.add(MIEnableSound);
     jMenuGui.add(jSeparator5);
     AACatEdit = new AbstractAction("Category editor"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
