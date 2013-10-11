@@ -28,6 +28,7 @@ import  sj.lang.ListExpr;
 import viewer.HoeseViewer;
 import java.util.Properties;
 import tools.Reporter;
+import java.io.File;
 
 /**
  * A graph. object can have several display attributes. All possible attributes are collected in one category which
@@ -875,7 +876,8 @@ public class Category
         }
         if(audioClip==null){
           try{ 
-            audioClip = java.applet.Applet.newAudioClip( new java.net.URL("file://"+audioFileName));
+            File audioFile = new File(audioFileName);
+            audioClip = java.applet.Applet.newAudioClip(audioFile.toURI().toURL());
           } catch(Exception e){
               System.err.println("mailformed URL");
               return;
