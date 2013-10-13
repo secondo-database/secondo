@@ -2585,11 +2585,13 @@ void BoundingSegments::createBoundingSegments(Slope s, int gxl, int gyl,
   int gxr, int gyr) {
  switch (s) {
  case vertical: {
+  int y1 = gyl<gyr?gyl:gyr;
+  int y2 = gyl<gyr?gyr:gyl;
   segments = new SimpleSegment[numSeg];
-  segments[0] = SimpleSegment(gxl, gyl, gxr, gyr + 1, pLeft);
-  segments[1] = SimpleSegment(gxr, gyr + 1, gxr + 1, gyr + 1, top);
-  segments[2] = SimpleSegment(gxl + 1, gyl, gxr + 1, gyr + 1, pRight);
-  segments[3] = SimpleSegment(gxl, gyl, gxl + 1, gyl, bottom);
+  segments[0] = SimpleSegment(gxl, y1, gxr, y2 + 1, pLeft);
+  segments[1] = SimpleSegment(gxr, y2 + 1, gxr + 1, y2 + 1, top);
+  segments[2] = SimpleSegment(gxl + 1, y1, gxr + 1, y2 + 1, pRight);
+  segments[3] = SimpleSegment(gxl, y1, gxl + 1, y1, bottom);
   break;
  }
  case horizontal: {
