@@ -1,5 +1,5 @@
-Database : suffixtreetest 
-Restore  : YES
+Database : berlintest 
+Restore  : NO
 
 Operator : crossings
 Number   : 1
