@@ -33,6 +33,8 @@
 1 Includes and defines
 
 */
+#ifndef PRECISE2DALGEBRA_CPP_
+#define PRECISE2DALGEBRA_CPP_
 
 #include "Precise2DAlgebra.h"
 
@@ -775,6 +777,124 @@ int crossings_LLP(Word* args, Word& result, int message, Word& local,
 }
 
 /*
+1.1 ~unionWithScaling\_LLL~
+
+ ~line2~ x ~line2~ [->] ~line2~
+
+ ~result~ contains all segments of both ~line2~-objects. If there are
+ overlapping segments, ~result~ will contain only one of them.
+
+ If one of the ~line2~-objects is not defined, ~result~ will be undefined too.
+
+*/
+int unionWithScaling_LLL(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Line2* l1 = static_cast<Line2*>(args[0].addr);
+ Line2* l2 = static_cast<Line2*>(args[1].addr);
+ Line2* res = static_cast<Line2*>(result.addr);
+ l1->unionWithScaling(*l2, *res);
+ return 0;
+
+}
+
+
+/*
+1.1 ~intersectionWithScaling\_LLL~
+
+ ~line2~ x ~line2~ [->] ~line2~
+
+ ~result~ contains all overlapping segments of both ~line2~-objects.
+ If one of the ~line2~-objects is not defined, ~result~ will be undefined too.
+
+*/
+int intersectionWithScaling_LLL(Word* args, Word& result, int message,
+  Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Line2* l1 = static_cast<Line2*>(args[0].addr);
+ Line2* l2 = static_cast<Line2*>(args[1].addr);
+ Line2* res = static_cast<Line2*>(result.addr);
+ l1->intersectionWithScaling(*l2, *res);
+
+ return 0;
+
+}
+
+/*
+1.1 ~minusWithScaling\_LLL~
+
+ ~line2~ x ~line2~ [->] ~line2~
+
+ ~result~ contains all segments of the first argument, unless
+ they are part of the second argument
+ If one of the ~line2~-objects is not defined, ~result~ will be undefined too.
+
+*/
+int minusWithScaling_LLL(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Line2* l1 = static_cast<Line2*>(args[0].addr);
+ Line2* l2 = static_cast<Line2*>(args[1].addr);
+ Line2* res = static_cast<Line2*>(result.addr);
+ l1->minusWithScaling(*l2, *res);
+
+ return 0;
+
+}
+
+/*
+1.1 ~intersectsWithScaling\_LLB~
+
+ ~line2~ x ~line2~ [->] ~bool~
+
+ ~result~ is true, if 2 segments of both arguments intersect, false otherwise.
+
+*/
+int intersectsWithScaling_LLB(Word* args, Word& result, int message,
+  Word& local,
+  Supplier s) {
+
+ Line2* l1 = static_cast<Line2*>(args[0].addr);
+ Line2* l2 = static_cast<Line2*>(args[1].addr);
+
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ bool defined = (l1->IsDefined() && l2->IsDefined());
+ bool res = l1->intersectsWithScaling(*l2);
+
+ b->Set(defined, res);
+
+ return 0;
+}
+
+/*
+1.1 ~crossingsWithScaling\_LLP~
+
+ ~line2~ x ~line2~ [->] ~points2~
+
+ ~result~ contains all intersection points of the first and the second argument.
+ Overlapping parts are not considered.
+
+*/
+int crossingsWithScaling_LLP(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Line2* l1 = static_cast<Line2*>(args[0].addr);
+ Line2* l2 = static_cast<Line2*>(args[1].addr);
+ Points2* res = static_cast<Points2*>(result.addr);
+ l1->crossingsWithScaling(*l2, *res);
+
+ return 0;
+
+}
+
+/*
 1.1 ~union\_RRR~
 
  ~region2~ x ~region2~ [->] ~region2~
@@ -861,7 +981,7 @@ int intersects_RRB(Word* args, Word& result, int message, Word& local,
  CcBool* b = static_cast<CcBool*>(result.addr);
 
  bool defined = (r1->IsDefined() && r2->IsDefined());
- bool res = intersects(*r1, *r2, 0);
+ bool res = p2d::intersects(*r1, *r2, 0);
 
  b->Set(defined, res);
 
@@ -916,6 +1036,155 @@ int inside_RRB(Word* args, Word& result, int message, Word& local,
 
  return 0;
 }
+
+/*
+1.1 ~unionWithScaling\_RRR~
+
+ ~region2~ x ~region2~ [->] ~region2~
+
+ ~result~ contains the union-set of the first and the second argument.
+
+
+ If one of the ~region2~-objects is not defined, ~result~ will be undefined too.
+
+*/
+int unionWithScaling_RRR(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+ Region2* res = static_cast<Region2*>(result.addr);
+ //r1->Union(*r2, *res);
+ p2d::SetOpWithScaling(*r1, *r2, *res, union_op);
+ return 0;
+
+}
+
+/*
+1.1 ~intersectionWithScaling\_RRR~
+
+ ~region2~ x ~region2~ [->] ~region2~
+
+ ~result~ contains the intersection-set of both ~region2~-objects.
+ If one of the ~region2~-objects is not defined, ~result~
+ will be undefined too.
+
+*/
+int intersectionWithScaling_RRR(Word* args, Word& result, int message,
+  Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+ Region2* res = static_cast<Region2*>(result.addr);
+ //r1->Intersection(*r2, *res);
+ p2d::SetOpWithScaling(*r1, *r2, *res, intersection_op);
+ return 0;
+
+}
+
+/*
+1.1 ~minusWithScaling\_RRR~
+
+ ~region2~ x ~region2~ [->] ~region2~
+
+ ~result~ contains the face of the first argument, reduced to the face
+ of the secondo argument
+ If one of the ~line2~-objects is not defined, ~result~ will be
+ undefined too.
+
+*/
+int minusWithScaling_RRR(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+ Region2* res = static_cast<Region2*>(result.addr);
+ //r1->Minus(*r2, *res);
+ p2d::SetOpWithScaling(*r1, *r2, *res, difference_op);
+ return 0;
+
+}
+
+/*
+1.1 ~intersectsWithScaling\_RRB~
+
+ ~region2~ x ~region2~ [->] ~bool~
+
+ ~result~ is true, if the 2 given region2-objects intersect, false otherwise.
+
+*/
+int intersectsWithScaling_RRB(Word* args, Word& result, int message,
+  Word& local,
+  Supplier s) {
+
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ bool defined = (r1->IsDefined() && r2->IsDefined());
+ bool res = intersectsWithScaling(*r1, *r2, 0);
+
+ b->Set(defined, res);
+
+ return 0;
+}
+
+/*
+1.1  ~overlapsWithScaling\_RRB~
+
+ ~region2~ x ~region2~ [->] ~bool~
+
+ ~result~ is true, if the 2 given region2-objects overlap, false otherwise.
+
+*/
+int overlapsWithScaling_RRB(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ bool defined = (r1->IsDefined() && r2->IsDefined());
+ bool res = overlapsWithScaling(*r1, *r2, 0);
+
+ b->Set(defined, res);
+
+ return 0;
+}
+
+/*
+1.1  ~insideWithScaling\_RRB~
+
+ ~region2~ x ~region2~ [->] ~bool~
+
+ ~result~ is true, if the first one of the given region2-objects is
+ completely inside the second region2-object, false otherwise.
+
+*/
+int insideWithScaling_RRB(Word* args, Word& result, int message, Word& local,
+  Supplier s) {
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ bool defined = (r1->IsDefined() && r2->IsDefined());
+ bool res = insideWithScaling(*r1, *r2, 0);
+ b->Set(defined, res);
+
+ return 0;
+}
+
+
 
 /*
 1.1  ~lineToLine2~
@@ -1068,6 +1337,8 @@ int testMinus_LLB(Word* args, Word& result, int message,
 
 }
 
+
+
 /*
 1.1.1 ~testIntersects\_LLB~
 
@@ -1093,6 +1364,119 @@ int testIntersects_LLB(Word* args, Word& result, int message, Word& local,
 }
 
 /*
+1.1.1 ~testUnionWithScaling\_LLB~
+
+*/
+int testUnionWithScaling_LLB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+
+ result = qp->ResultStorage(s);
+ const Line2* l1 = static_cast<Line2*>(args[0].addr);
+ const Line2* l2 = static_cast<Line2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Line2* res = new Line2(0);
+
+ p2d_test::TestStruct t;
+ p2d_test::SetOpWithScaling(*l1, *l2, *res, p2d_test::union_op, t, 0);
+
+ t.noSegmentsIn = (l1->Size()/2) + (l2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+ bool defined = (l1->IsDefined() && l2->IsDefined());
+ b->Set(defined, res->IsDefined());
+
+ delete res;
+ return 0;
+}
+
+/*
+1.1.1 ~testIntersectionWithScaling\_LLB~
+
+*/
+int testIntersectionWithScaling_LLB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+
+ result = qp->ResultStorage(s);
+ const Line2* l1 = static_cast<Line2*>(args[0].addr);
+ const Line2* l2 = static_cast<Line2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Line2* res = new Line2(0);
+
+ p2d_test::TestStruct t;
+ p2d_test::SetOpWithScaling(*l1, *l2, *res, p2d_test::intersection_op, t, 0);
+
+ t.noSegmentsIn = (l1->Size()/2) + (l2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+ bool defined = (l1->IsDefined() && l2->IsDefined());
+ b->Set(defined, res->IsDefined());
+
+ delete res;
+ return 0;
+
+}
+
+/*
+1.1.1 ~testMinusWithScaling\_LLB~
+
+*/
+int testMinusWithScaling_LLB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Line2* l1 = static_cast<Line2*>(args[0].addr);
+ Line2* l2 = static_cast<Line2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Line2* res = new Line2(0);
+
+ p2d_test::TestStruct t;
+ p2d_test::SetOpWithScaling(*l1, *l2, *res, p2d_test::difference_op, t, 0);
+
+ t.noSegmentsIn = (l1->Size()/2) + (l2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+ bool defined = (l1->IsDefined() && l2->IsDefined());
+ b->Set(defined, res->IsDefined());
+
+ delete res;
+ return 0;
+
+}
+
+
+
+/*
+1.1.1 ~testIntersectsWithScaling\_LLB~
+
+*/
+int testIntersectsWithScaling_LLB(Word* args, Word& result, int message,
+  Word& local,
+  Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Line2* l1 = static_cast<Line2*>(args[0].addr);
+ Line2* l2 = static_cast<Line2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ bool defined = (l1->IsDefined() && l2->IsDefined());
+
+ p2d_test::TestStruct t;
+ bool res = p2d_test::intersectsWithScaling(*l1, *l2, t);
+
+ t.noSegmentsIn = (l1->Size()/2) + (l2->Size()/2);
+ t.print();
+ b->Set(defined, res);
+
+ return 0;
+}
+
+/*
 1.1.1 ~testUnion\_RRB~
 
 */
@@ -1108,7 +1492,6 @@ int testUnion_RRB(Word* args, Word& result, int message,
  p2d_test::TestStruct t;
  p2d_test::SetOp(*r1, *r2, *res, p2d_test::union_op, t);
 
- t.noSegmentsIn = (r1->Size()/2) + (r2->Size()/2);
  t.noSegmentsOut = res->Size()/2;
  t.print();
 
@@ -1173,6 +1556,120 @@ int testMinus_RRB(Word* args, Word& result, int message,
   b->Set(defined, res->IsDefined());
 
   delete res;
+ return 0;
+}
+
+/*
+1.1.1 ~testUnionWithScaling\_RRB~
+
+*/
+int testUnionWithScaling_RRB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+
+ result = qp->ResultStorage(s);
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Region2* res = new Region2(0);
+ p2d_test::TestStruct t;
+ p2d_test::SetOpWithScaling(*r1, *r2, *res, p2d_test::union_op, t);
+
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+  bool defined = (r1->IsDefined() && r2->IsDefined());
+  b->Set(defined, res->IsDefined());
+
+  delete res;
+ return 0;
+
+}
+
+/*
+1.1.1 ~testIntersectionWithScaling\_RRB~
+
+*/
+int testIntersectionWithScaling_RRB(Word* args, Word& result, int message,
+  Word& local,
+  Supplier s) {
+ result = qp->ResultStorage(s);
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Region2* res = new Region2(0);
+ p2d_test::TestStruct t;
+ //r1->Union(*r2, *res);
+ p2d_test::SetOpWithScaling(*r1, *r2, *res, p2d_test::intersection_op, t);
+
+ t.noSegmentsIn = (r1->Size()/2) + (r2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+  bool defined = (r1->IsDefined() && r2->IsDefined());
+  b->Set(defined, res->IsDefined());
+
+  delete res;
+ return 0;
+}
+
+/*
+1.1.1 ~testMinusWithScaling\_RRB~
+
+*/
+int testMinusWithScaling_RRB(Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+ result = qp->ResultStorage(s);
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ Region2* res = new Region2(0);
+ p2d_test::TestStruct t;
+ //r1->Union(*r2, *res);
+ p2d_test::SetOpWithScaling(*r1, *r2, *res, p2d_test::difference_op, t);
+
+ t.noSegmentsIn = (r1->Size()/2) + (r2->Size()/2);
+ t.noSegmentsOut = res->Size()/2;
+ t.print();
+
+  bool defined = (r1->IsDefined() && r2->IsDefined());
+  b->Set(defined, res->IsDefined());
+
+  delete res;
+ return 0;
+}
+
+/*
+1.1.1  ~testIntersectsWithScaling\_RRB~
+
+ ~region2~ x ~region2~ [->] ~bool~
+
+ ~result~ is true, if the 2 given region2-objects intersect, false otherwise.
+
+*/
+int testIntersectsWithScaling_RRB(Word* args, Word& result, int message,
+  Word& local,
+  Supplier s) {
+
+ Region2* r1 = static_cast<Region2*>(args[0].addr);
+ Region2* r2 = static_cast<Region2*>(args[1].addr);
+
+ result = qp->ResultStorage(s);
+ CcBool* b = static_cast<CcBool*>(result.addr);
+
+ p2d_test::TestStruct t;
+
+ bool defined = (r1->IsDefined() && r2->IsDefined());
+ bool res = p2d_test::intersectsWithScaling(*r1, *r2, t);
+
+ t.noSegmentsIn = (r1->Size()/2) + (r2->Size()/2);
+ t.print();
+ b->Set(defined, res);
+
  return 0;
 }
 
@@ -1503,6 +2000,100 @@ struct crossings_LLPInfo: OperatorInfo {
 
 };
 
+/*
+5.1 ~unionWithScaling\_LLLInfo~
+
+ The operator information for union of 2 line2-objects
+
+*/
+struct unionWithScaling_LLLInfo: OperatorInfo {
+
+ unionWithScaling_LLLInfo() :
+   OperatorInfo() {
+  name = "unionWithScaling";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> "
+    + Line2::BasicType();
+  syntax = "query arg1 unionWithScaling arg2";
+  meaning = "union of two line2 objects";
+ }
+
+};
+
+/*
+5.2 ~intersectionWithScaling\_LLLInfo~
+
+ The operator information for intersection of 2 line2-objects
+
+*/
+struct intersectionWithScaling_LLLInfo: OperatorInfo {
+
+ intersectionWithScaling_LLLInfo() :
+   OperatorInfo() {
+  name = "intersectionWithScaling";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> "
+    + Line2::BasicType();
+  syntax = "query intersectionWithScaling (arg1, arg2)";
+  meaning = "intersection of two line2 objects";
+ }
+
+};
+
+/*
+5.3 ~minusWithScaling\_LLLInfo~
+
+ The operator information for the difference of 2 line2-objects
+
+*/
+struct minusWithScaling_LLLInfo: OperatorInfo {
+
+ minusWithScaling_LLLInfo() :
+   OperatorInfo() {
+  name = "minusWithScaling";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> "
+    + Line2::BasicType();
+  syntax = "query arg1 minusWithScaling arg2";
+  meaning = "difference of two line2 objects";
+ }
+
+};
+
+/*
+5.4 ~intersectsWithScaling\_LLBInfo~
+
+ The operator information for the test if 2 line2-objects intersect
+
+*/
+struct intersectsWithScaling_LLBInfo: OperatorInfo {
+
+ intersectsWithScaling_LLBInfo() :
+   OperatorInfo() {
+  name = "intersectsWithScaling";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
+  syntax = "query arg1 intersectsWithScaling arg2";
+  meaning = "returns true, if both line2 "
+    "objects intersect, false otherwise.";
+ }
+
+};
+
+/*
+5.5 ~crossingsWithScaling\_LLPInfo~
+
+*/
+struct crossingsWithScaling_LLPInfo: OperatorInfo {
+
+ crossingsWithScaling_LLPInfo() :
+   OperatorInfo() {
+  name = "crossingsWithScaling";
+  signature = Line2::BasicType() + " x "
+    + Line2::BasicType() + " -> "+ Points2::BasicType();
+  syntax = "query crossingsWithScaling(arg1, arg2)";
+  meaning = "intersection-points of two line2-objects ";
+ }
+
+};
+
+
 
 /*
 5.6 ~union\_RRRInfo~
@@ -1556,6 +2147,63 @@ struct minus_RRRInfo: OperatorInfo {
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
     + Region2::BasicType();
   syntax = "query arg1 minus arg2";
+  meaning = "difference of two region2 objects";
+ }
+
+};
+
+/*
+5.6 ~unionWithScaling\_RRRInfo~
+
+ The operator information for union of 2 region2-objects
+
+*/
+struct unionWithScaling_RRRInfo: OperatorInfo {
+
+ unionWithScaling_RRRInfo() :
+   OperatorInfo() {
+  name = "unionWithScaling";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
+    + Region2::BasicType();
+  syntax = "query arg1 unionWithScaling arg2";
+  meaning = "union of two region2 objects";
+ }
+
+};
+
+/*
+5.7 ~intersectionWithScaling\_RRRInfo~
+
+ The operator information for intersection of 2 region2-objects
+
+*/
+struct intersectionWithScaling_RRRInfo: OperatorInfo {
+
+ intersectionWithScaling_RRRInfo() :
+   OperatorInfo() {
+  name = "intersectionWithScaling";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
+    + Region2::BasicType();
+  syntax = "query intersectionWithScaling (arg1, arg2)";
+  meaning = "intersection of two region2 objects";
+ }
+
+};
+
+/*
+5.8 ~minusWithScaling\_RRRInfo~
+
+ The operator information for the difference of 2 region2-objects
+
+*/
+struct minusWithScaling_RRRInfo: OperatorInfo {
+
+ minusWithScaling_RRRInfo() :
+   OperatorInfo() {
+  name = "minusWithScaling";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> "
+    + Region2::BasicType();
+  syntax = "query arg1 minusWithScaling arg2";
   meaning = "difference of two region2 objects";
  }
 
@@ -1631,6 +2279,65 @@ struct inside2_RRBInfo: OperatorInfo {
   name = "inside2";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
   syntax = "query arg1 inside2 arg2";
+  meaning = "returns true, if the first region2- "
+    "object is completely contained in the second region2-object, false "
+    "otherwise.";
+ }
+
+};
+
+/*
+5.10  ~intersectsWithScaling\_RRBInfo~
+
+ The operator information for the test if 2 region2-objects intersect
+
+*/
+struct intersectsWithScaling_RRBInfo: OperatorInfo {
+
+ intersectsWithScaling_RRBInfo() :
+   OperatorInfo() {
+  name = "intersectsWithScaling";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
+  syntax = "query arg1 intersectsWithScaling arg2";
+  meaning = "returns true, if both region2 "
+    "objects intersect, false otherwise.";
+ }
+
+};
+
+/*
+5.11  ~overlapsWithScaling\_RRBInfo~
+
+ The operator information for the test if 2 region2-objects intersect
+
+*/
+struct overlapsWithScaling_RRBInfo: OperatorInfo {
+
+ overlapsWithScaling_RRBInfo() :
+   OperatorInfo() {
+  name = "overlapsWithScaling";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
+  syntax = "query arg1 overlapsWithScaling arg2";
+  meaning = "returns true, if both region2 "
+    "objects overlap, false otherwise.";
+ }
+
+};
+
+/*
+5.12  ~insideWithScaling\_RRBInfo~
+
+ The operator information for the test whether a region2-object is completely
+ contained in a second region2-object.
+
+*/
+struct insideWithScaling_RRBInfo: OperatorInfo {
+
+ insideWithScaling_RRBInfo() :
+   OperatorInfo() {
+  name = "insideWithScaling";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
+  syntax = "query arg1 insideWithScaling arg2";
   meaning = "returns true, if the first region2- "
     "object is completely contained in the second region2-object, false "
     "otherwise.";
@@ -1748,6 +2455,70 @@ struct testIntersects_LLBInfo: OperatorInfo {
 };
 
 /*
+6.1 ~testUnionWithScalingInfo~ for Line2
+
+*/
+struct testUnionWithScaling_LLBInfo: OperatorInfo {
+
+ testUnionWithScaling_LLBInfo() :
+   OperatorInfo() {
+  name = "testUnionWithScaling";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
+  syntax = "query arg1 testUnionWithScaling arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+/*
+6.1 ~testIntersectionWithScalingInfo~ for Line2
+
+*/
+struct testIntersectionWithScaling_LLBInfo: OperatorInfo {
+
+ testIntersectionWithScaling_LLBInfo() :
+   OperatorInfo() {
+  name = "testIntersectionWithScaling";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
+  syntax = "query testIntersectionWithScaling (arg1, arg2)";
+  meaning = "only for tests";
+ }
+
+};
+
+/*
+6.1 ~testMinusWithScalingInfo~ for Line2
+
+*/
+struct testMinusWithScaling_LLBInfo: OperatorInfo {
+
+ testMinusWithScaling_LLBInfo() :
+   OperatorInfo() {
+  name = "testMinusWithScaling";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
+  syntax = "query arg1 testMinusWithScaling arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+/*
+6.1 ~testIntersectsWithScalingInfo~ for Line2
+
+*/
+struct testIntersectsWithScaling_LLBInfo: OperatorInfo {
+
+ testIntersectsWithScaling_LLBInfo() :
+   OperatorInfo() {
+  name = "testIntersectsWithScaling";
+  signature = Line2::BasicType() + " x " + Line2::BasicType() + " -> bool";
+  syntax = "query arg1 testIntersectsWithScaling arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+/*
 6.1 ~testUnionInfo~ for Region2
 
 */
@@ -1798,16 +2569,82 @@ struct testMinus_RRBInfo: OperatorInfo {
 };
 
 /*
-6.1 ~testIntersects2Info~ for Region2
+6.1 ~testUnionWithScalingInfo~ for Region2
 
 */
-struct testIntersects2_RRBInfo: OperatorInfo {
+struct testUnionWithScaling_RRBInfo: OperatorInfo {
 
- testIntersects2_RRBInfo() :
+ testUnionWithScaling_RRBInfo() :
    OperatorInfo() {
-  name = "testIntersects2";
+  name = "testUnionWithScaling";
+  signature = Region2::BasicType() + " x " + Region2::BasicType()
+  + " -> bool";
+  syntax = "query arg1 testUnionWithScaling arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+/*
+6.1 ~testIntersectionWithScalingInfo~ for Region2
+
+*/
+struct testIntersectionWithScaling_RRBInfo: OperatorInfo {
+
+ testIntersectionWithScaling_RRBInfo() :
+   OperatorInfo() {
+  name = "testIntersectionWithScaling";
+  signature = Region2::BasicType() + " x " + Region2::BasicType()
+  + " -> bool";
+  syntax = "query testIntersectionWithScaling (arg1, arg2)";
+  meaning = "only for tests";
+ }
+
+};
+
+/*
+6.1 ~testMinusWithScalingInfo~ for Region2
+
+*/
+struct testMinusWithScaling_RRBInfo: OperatorInfo {
+
+ testMinusWithScaling_RRBInfo() :
+   OperatorInfo() {
+  name = "testMinusWithScaling";
   signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
-  syntax = "query arg1 testIntersects2 arg2";
+  syntax = "query arg1 testMinusWithScaling arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+/*
+6.1 ~testIntersectsInfo~ for Region2
+
+*/
+struct testIntersects_RRBInfo: OperatorInfo {
+
+ testIntersects_RRBInfo() :
+   OperatorInfo() {
+  name = "testIntersects";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
+  syntax = "query arg1 testIntersects arg2";
+  meaning = "only for tests";
+ }
+
+};
+
+/*
+6.1 ~testIntersectsWithScalingInfo~ for Region2
+
+*/
+struct testIntersectsWithScaling_RRBInfo: OperatorInfo {
+
+ testIntersectsWithScaling_RRBInfo() :
+   OperatorInfo() {
+  name = "testIntersectsWithScaling";
+  signature = Region2::BasicType() + " x " + Region2::BasicType() + " -> bool";
+  syntax = "query arg1 testIntersectsWithScaling arg2";
   meaning = "only for tests";
  }
 
@@ -1876,9 +2713,25 @@ public:
 
   AddOperator(p2d::intersects_LLBInfo(), p2d::intersects_LLB, p2d::LLB_TypeMap);
 
+  AddOperator(p2d::unionWithScaling_LLLInfo(), p2d::unionWithScaling_LLL,
+    p2d::LLL_TypeMap);
+
+  AddOperator(p2d::intersectionWithScaling_LLLInfo(),
+    p2d::intersectionWithScaling_LLL,
+    p2d::LLL_TypeMap);
+
+  AddOperator(p2d::minusWithScaling_LLLInfo(), p2d::minusWithScaling_LLL,
+    p2d::LLL_TypeMap);
+
+  AddOperator(p2d::intersectsWithScaling_LLBInfo(),
+    p2d::intersectsWithScaling_LLB, p2d::LLB_TypeMap);
+
   AddOperator(p2d::lineToLine2Info(), p2d::lineToLine2, p2d::LL2_TypeMap);
 
   AddOperator(p2d::crossings_LLPInfo(), p2d::crossings_LLP, p2d::LLP_TypeMap);
+
+  AddOperator(p2d::crossingsWithScaling_LLPInfo(),
+    p2d::crossingsWithScaling_LLP, p2d::LLP_TypeMap);
 
   AddOperator(p2d::union_RRRInfo(), p2d::union_RRR, p2d::RRR_TypeMap);
 
@@ -1887,12 +2740,31 @@ public:
 
   AddOperator(p2d::minus_RRRInfo(), p2d::minus_RRR, p2d::RRR_TypeMap);
 
+  AddOperator(p2d::unionWithScaling_RRRInfo(), p2d::unionWithScaling_RRR,
+    p2d::RRR_TypeMap);
+
+  AddOperator(p2d::intersectionWithScaling_RRRInfo(),
+    p2d::intersectionWithScaling_RRR, p2d::RRR_TypeMap);
+
+  AddOperator(p2d::minusWithScaling_RRRInfo(), p2d::minusWithScaling_RRR,
+    p2d::RRR_TypeMap);
+
   AddOperator(p2d::intersects2_RRBInfo(), p2d::intersects_RRB,
     p2d::RRB_TypeMap);
 
   AddOperator(p2d::overlaps2_RRBInfo(), p2d::overlaps2_RRB, p2d::RRB_TypeMap);
 
   AddOperator(p2d::inside2_RRBInfo(), p2d::inside_RRB, p2d::RRB_TypeMap);
+
+  AddOperator(p2d::intersectsWithScaling_RRBInfo(),
+    p2d::intersectsWithScaling_RRB,
+    p2d::RRB_TypeMap);
+
+  AddOperator(p2d::overlapsWithScaling_RRBInfo(),
+    p2d::overlapsWithScaling_RRB, p2d::RRB_TypeMap);
+
+  AddOperator(p2d::insideWithScaling_RRBInfo(),
+    p2d::insideWithScaling_RRB, p2d::RRB_TypeMap);
 
   AddOperator(p2d::coarseInfo(), p2d::coarse, p2d::R2R_TypeMap);
 
@@ -1905,8 +2777,20 @@ public:
 
   AddOperator(p2d::testMinus_LLBInfo(), p2d::testMinus_LLB, p2d::LLB_TypeMap);
 
+  AddOperator(p2d::testUnionWithScaling_LLBInfo(),
+    p2d::testUnionWithScaling_LLB, p2d::LLB_TypeMap);
+
+  AddOperator(p2d::testIntersectionWithScaling_LLBInfo(),
+    p2d::testIntersectionWithScaling_LLB, p2d::LLB_TypeMap);
+
+  AddOperator(p2d::testMinusWithScaling_LLBInfo(),
+    p2d::testMinusWithScaling_LLB, p2d::LLB_TypeMap);
+
   AddOperator(p2d::testIntersects_LLBInfo(), p2d::testIntersects_LLB,
     p2d::LLB_TypeMap);
+
+  AddOperator(p2d::testIntersectsWithScaling_LLBInfo(),
+    p2d::testIntersects_LLB, p2d::LLB_TypeMap);
 
   AddOperator(p2d::testUnion_RRBInfo(), p2d::testUnion_RRB, p2d::RRB_TypeMap);
 
@@ -1915,8 +2799,21 @@ public:
 
   AddOperator(p2d::testMinus_RRBInfo(), p2d::testMinus_RRB, p2d::RRB_TypeMap);
 
-  AddOperator(p2d::testIntersects2_RRBInfo(), p2d::testIntersects_RRB,
+  AddOperator(p2d::testUnionWithScaling_RRBInfo(),
+    p2d::testUnionWithScaling_RRB, p2d::RRB_TypeMap);
+
+  AddOperator(p2d::testIntersectionWithScaling_RRBInfo(),
+    p2d::testIntersectionWithScaling_RRB,
     p2d::RRB_TypeMap);
+
+  AddOperator(p2d::testMinusWithScaling_RRBInfo(),
+    p2d::testMinusWithScaling_RRB, p2d::RRB_TypeMap);
+
+  AddOperator(p2d::testIntersects_RRBInfo(), p2d::testIntersects_RRB,
+    p2d::RRB_TypeMap);
+
+  AddOperator(p2d::testIntersectsWithScaling_RRBInfo(),
+    p2d::testIntersectsWithScaling_RRB, p2d::RRB_TypeMap);
 
  }
 
@@ -1932,3 +2829,4 @@ InitializePrecise2DAlgebra(NestedList* nlRef, QueryProcessor* qpRef) {
  return (new Precise2DAlgebra());
 }
 
+#endif/* _PRECISE2DALGEBRA_CPP*/

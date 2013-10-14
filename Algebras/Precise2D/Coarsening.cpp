@@ -32,7 +32,8 @@
 1 Includes and defines
 
 */
-
+#ifndef _COARSENING_CPP
+#define _COARSENING_CPP
 #include "Coarsening.h"
 
 
@@ -355,17 +356,18 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
  //compute boundary
  result.SetDefined(true);
 
- Region2 tmpRegion(0);
+ Line2 tmpLine(0);
+ tmpLine.Clear();
+ tmpLine.StartBulkLoad();
 
  while (vertices.size() >= 4) {
   //there are enough vertices to create another cycle
 
   try {
-   tmpRegion.Clear();
-   tmpRegion.StartBulkLoad();
+
 
    //create next cycle, which becomes an outercycle or a hole
-   bool lastInsideAbove = false;
+   //bool lastInsideAbove = false;
    bool insideAbove = false;
    Vertex* firstVertex = *(vertices.begin());
    Vertex* last = firstVertex;
@@ -378,9 +380,8 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
 
    int edgeNo = 0;
    mpq_class zero(0);
-   Reg2PrecisePoint* lp = new Reg2PrecisePoint(zero, last->getX(),
-     zero, last->getY(), 0);
-   Reg2PrecisePoint* rp = NULL;
+   Point2* lp = new Point2(true, last->getX(), last->getY(), zero, zero);
+   Point2* rp = NULL;
 
    do {
     last->getNextVertex(&next, dir, insideAbove);
@@ -396,30 +397,21 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
      //~next~ goes in another direction than ~lastDirection~
      //a new endpoint ~rp~ for the next halfsegment has to be created and the
      //next segment extends in the direction ~dir~
-     rp = new Reg2PrecisePoint(zero, last->getX(), zero, last->getY(), 0);
+     rp = new Point2(true, last->getX(), last->getY(), zero, zero);
      lastDirection = dir;
     }
 
     if (rp != NULL) {
      // a new halfsegment has to be created.
      if (*lp < *rp) {
-      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, *lp, *rp);
-      hs.attr.edgeno = edgeNo;
-      hs.attr.insideAbove = lastInsideAbove;
-      tmpRegion += hs;
-      hs.SetLeftDomPoint(false);
-      tmpRegion += hs;
+      tmpLine.addSegment(true, lp, rp, edgeNo);
+      tmpLine.addSegment(false, lp, rp, edgeNo);
       edgeNo++;
      } else {
-      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, *rp, *lp);
-      hs.attr.edgeno = edgeNo;
-      hs.attr.insideAbove = lastInsideAbove;
-      tmpRegion += hs;
-      hs.SetLeftDomPoint(false);
-      tmpRegion += hs;
+      tmpLine.addSegment(true, rp, lp, edgeNo);
+      tmpLine.addSegment(false, rp, lp, edgeNo);
       edgeNo++;
      }
-     lastInsideAbove = insideAbove;
      lp = rp;
      rp = NULL;
     }
@@ -433,53 +425,28 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
     last = next;
    } while (*last != *firstVertex);
 
-   rp =    new Reg2PrecisePoint(zero, firstX, zero, firstY, 0);
-   Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, *rp, *lp);
-   hs.attr.edgeno = edgeNo;
-   hs.attr.insideAbove = true;
-   tmpRegion += hs;
-   hs.SetLeftDomPoint(false);
-   tmpRegion += hs;
+   rp = new Point2(true, firstX, firstY, zero, zero);
+   tmpLine.addSegment(true, rp, lp, edgeNo);
+   tmpLine.addSegment(false, rp, lp, edgeNo);
    edgeNo++;
 
    if (last->getNoOfEdges() ==0){
     removeIsleNode(last);
    }
-
-
-   //build region
-   tmpRegion.EndBulkLoad();
-
-   if (tmpRegion.IsDefined()) {
-
-    if (result.Size() == 0) {
-     //~tmpRegion~ was the first cycle
-     result = tmpRegion;
-    } else {
-     //there are already some cycles in ~tmpResult~
-     if (inside(tmpRegion, result)){//tmpRegion.Inside(result)) {
-      //~tmpRegion~ is within ~tmpResult~ and becomes a hole in ~tmpResult~
-      Region2 res(0);
-      SetOp(result, tmpRegion, res, difference_op);
-      //tmpResult.Minus(tmpRegion, res);
-      result = res;
-     } else {
-      //~tmpRegion~ and ~tmpResult~ are merged
-      Region2 res(0);
-      SetOp(result, tmpRegion, res, union_op);
-      //result.Union(tmpRegion, res);
-      result = res;
-     }
-    }
-   }
   } catch (exception& e) {
+   cout <<" Exception"<<endl;
    removeIsleNodes();
   }
  }
 
+ tmpLine.EndBulkLoad();
+
+ p2d::BuildRegion(tmpLine, result);
+
  //remove the remaining vertices and edges
  clear();
 }
+
 
 /*
 1.1 ~insert~
@@ -940,7 +907,7 @@ void coarseRegion2b(/*const*/Region2& r, Region& result) {
  r.getFaces(faces);
  g1.computeGraph(faces);
 
- //Region2 tmpFaces(0);
+ Region2 tmpFaces(0);
  g1.calculateBoundary2(faces);
 
  //holes
@@ -991,3 +958,5 @@ void createRegion(Region2& s, Region& r){
 
 
 }  //end of namespace p2d
+
+#endif/* _COARSENING_CPP*/

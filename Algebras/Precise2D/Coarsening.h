@@ -50,12 +50,13 @@
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "AttrType.h"
-#include "Precise2DAlgebra.h"
+//#include "Precise2DAlgebra.h"
 #include "HalfSegment.h"
 #include "SpatialAlgebra.h"
 #include "Region2Algebra.h"
 #include "Attribute.h"
-#include "Toolbox.h"
+//#include "Toolbox.h"
+#include "AVL_Tree.h"
 
 namespace p2d {
 

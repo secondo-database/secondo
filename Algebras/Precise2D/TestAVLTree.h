@@ -46,7 +46,9 @@
 #define TESTAVLTREE_H_
 
 #include "Line2.h"
-#include "Region2Algebra.h"
+#include "Toolbox.h"
+//#include "Precise2DAlgebra.h"
+//#include "Region2Algebra.h"
 #include <queue>
 #include <vector>
 
@@ -446,8 +448,15 @@ public:
 
  AVLSegment(const Flob* preciseData, p2d::SegmentData* sd, Owner o);
 
+ AVLSegment(const Flob* preciseData, p2d::SegmentData* sd, Owner o,
+   int scalefactor);
+
  AVLSegment(const DbArray<unsigned int>* preciseData, Reg2GridHalfSegment& sd,
    Reg2PrecHalfSegment* ps, Owner o);
+
+ AVLSegment(const DbArray<unsigned int>* preciseData,
+   Reg2GridHalfSegment& gs, Reg2PrecHalfSegment& ps, Owner o,
+   int scalefactor);
 
  AVLSegment(const AVLSegment& s);
 
@@ -823,15 +832,28 @@ Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
   TestStruct& t);
 
+template<class C1, class C2>
+Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  int scalefactor, TestStruct& t);
+
 Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
   TestStruct& t);
+
+Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  int scalefactor, TestStruct& t);
 
 Owner selectNext(/*const*/ Region2& r1, int& pos1,
  /*const*/ Region2& r2, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
   TestStruct& t);
 
+Owner selectNext(/*const*/Region2& r1, int& pos1,
+/*const*/Region2& r2, int& pos2,
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  int scalefactor, TestStruct& t);
 
 /*
 1 ~splitNeighbors~
@@ -864,12 +886,19 @@ void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
 void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeNo,
   SetOperation op);
 
+void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeNo,
+  SetOperation op, int scalefactor);
+
 /*
 1 ~createNewSegments~
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   p2d::Line2& result, int& edgeNo, SetOperation op, TestStruct& t);
+
+void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+  p2d::Line2& result, int& edgeNo, SetOperation op,
+  int scalefactor, TestStruct& t);
 
 /*
 1 ~createNewSegments~
@@ -878,6 +907,8 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
   SetOperation op);
 
+void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
+  SetOperation op, int scalefactor);
 /*
 1 ~createNewSegments~
 
@@ -885,6 +916,10 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
   TestStruct& t);
+
+void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
+  int scalefactor, TestStruct& t);
 
 /*
 1 ~checkSegments~
@@ -907,14 +942,22 @@ void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op);
 void SetOp(const p2d::Line2& line1, const p2d::Line2& line2, p2d::Line2& result,
   SetOperation op, TestStruct& t, const Geoid* geoid = 0);
 
+void SetOpWithScaling(const p2d::Line2& line1, const p2d::Line2& line2,
+  p2d::Line2& result, SetOperation op, TestStruct& t, const Geoid* geoid = 0);
+
 void SetOp(/*const*/ Region2& region1,/*const*/ Region2& region2,
   Region2& result, SetOperation op, TestStruct& t, const Geoid* geoid = 0);
 
+void SetOpWithScaling(/*const*/ Region2& region1,/*const*/ Region2& region2,
+  Region2& result, SetOperation op, TestStruct& t, const Geoid* geoid = 0);
 /*
 1 ~intersects~
 
 */
 bool intersects(const p2d::Line2& line1, const p2d::Line2& line2,
+  TestStruct& t, const Geoid* geoid = 0);
+
+bool intersectsWithScaling(const p2d::Line2& line1, const p2d::Line2& line2,
   TestStruct& t, const Geoid* geoid = 0);
 
 /*
@@ -923,6 +966,9 @@ bool intersects(const p2d::Line2& line1, const p2d::Line2& line2,
 */
 bool intersects(/*const*/ Region2& region1,/*const*/ Region2& region2,
   TestStruct& t, const Geoid* geoid = 0);
+
+bool intersectsWithScaling(/*const*/ Region2& region1,
+  /*const*/ Region2& region2, TestStruct& t, const Geoid* geoid = 0);
 
 
 } //end of p2d

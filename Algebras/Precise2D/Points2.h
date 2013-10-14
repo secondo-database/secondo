@@ -47,13 +47,13 @@
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "AttrType.h"
-#include "Precise2DAlgebra.h"
+//#include "Precise2DAlgebra.h"
 #include "Point2.h"
 
 namespace p2d {
 
-class Point2;
-class PointData;
+//class Point2;
+//class PointData;
 
 /*
 2 Class Points2

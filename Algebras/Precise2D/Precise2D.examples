@@ -73,6 +73,72 @@ Signature: region2 x region2 -> bool
 Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] inside2 [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
 Result   : TRUE
 
+Operator : crossingsWithScaling
+Number   : 1
+Signature: line2 x line2 -> points2
+Example  : query crossingsWithScaling([const line2 value(((1 1 ('0' '0'))(2 1 ('0' '0'))))],[const line2 value (((1 1 ('0' '0'))(1 2 ('0' '0'))))])
+Result   : (points2 ((1 1 ('0' '0'))))
+
+Operator : unionWithScaling
+Number   : 1
+Signature: line2 x line2 -> line2
+Example  : query [const line2 value (((1 1 ('1/4' '1/4'))(2 1 ('1/4' '1/4'))))] unionWithScaling [const line2 value(((1 1 ('1/4' '1/4'))(1 2 ('1/4' '1/4'))))]
+Result   : (line2 (((1 1 ('1/4' '1/4'))(2 1 ('1/4' '1/4')))((1 1 ('1/4' '1/4'))(1 2 ('1/4' '1/4')))))
+
+Operator : unionWithScaling
+Number   : 2
+Signature: region2 x region2 -> region2
+Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] unionWithScaling [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
+Result   : (region2 (0 ((((3 0 ())(0 0 ())(0 3 ())(3 3 ()))))))
+
+Operator : intersectionWithScaling
+Number   : 1
+Signature: line2 x line2 -> line2
+Example  : query intersectionWithScaling ([const line2 value(((1 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4'))))],[const line2 value(((2 1 ('1/4' '1/4'))(4 1 ('1/4' '1/4'))))])
+Result   : (line2 (((2 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4')))))
+
+Operator : intersectionWithScaling
+Number   : 2
+Signature: region2 x region2 -> region2
+Example  : query intersectionWithScaling([const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))], [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))])
+Result   : (region2 (0 ((((2 1 ())(1 1()) (1 2 ()) (2 2 ()))))))
+
+Operator : intersectsWithScaling
+Number   : 1
+Signature: line2 x line2 -> bool
+Example  : query [const line2 value(((1 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4'))))] intersectsWithScaling [const line2 value(((2 1 ('1/4' '1/4'))(4 1 ('1/4' '1/4'))))]
+Result   : TRUE
+
+Operator : intersectsWithScaling
+Number   : 2
+Signature: region2 x region2 -> bool
+Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] intersectsWithScaling [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
+Result   : TRUE
+
+Operator : overlapsWithScaling
+Number   : 2
+Signature: region2 x region2 -> bool
+Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] overlapsWithScaling [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
+Result   : TRUE
+
+Operator : minusWithScaling
+Number   : 1
+Signature: line2 x line2 -> line2
+Example  : query [const line2 value(((1 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4'))))] minusWithScaling [const line2 value(((2 1 ('1/4' '1/4'))(4 1 ('1/4' '1/4'))))]
+Result   : (line2 (((1 1 ('1/4' '1/4'))(2 1 ('1/4' '1/4')))))
+
+Operator : minusWithScaling
+Number   : 2
+Signature: region2 x region2 -> region2
+Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] minusWithScaling [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
+Result   : (region2 ())
+
+Operator : insideWithScaling
+Number   : 1
+Signature: region2 x region2 -> bool
+Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] insideWithScaling [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
+Result   : TRUE
+
 Operator : coarse
 Number   : 1
 Signature: region2 -> region
@@ -84,7 +150,6 @@ Number   : 1
 Signature: region2 -> region
 Example  : query coarse2 ([const region2 value(0((((3 0 ())(10 1 ())(3 1 ())))))])
 Result   : (region ((((9.0 0.0)(3.0 0.0)(3.0 1.0)(9.0 1.0)))))
-
 
 Operator : testUnion
 Number   : 1
@@ -116,10 +181,10 @@ Signature: line2 x line2 -> bool
 Example  : query [const line2 value(((1 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4'))))] testIntersects [const line2 value(((2 1 ('1/4' '1/4'))(4 1 ('1/4' '1/4'))))]
 Result   : TRUE
 
-Operator : testIntersects2
+Operator : testIntersects
 Number   : 2
 Signature: region2 x region2 -> bool
-Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] testIntersects2 [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
+Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] testIntersects [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
 Result   : TRUE
 
 Operator : testMinus
@@ -132,4 +197,52 @@ Operator : testMinus
 Number   : 2
 Signature: region2 x region2 -> region2
 Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] testMinus [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
+Result   : TRUE
+
+Operator : testUnionWithScaling
+Number   : 1
+Signature: line2 x line2 -> bool
+Example  : query [const line2 value (((1 1 ('1/4' '1/4'))(2 1 ('1/4' '1/4'))))] testUnionWithScaling [const line2 value(((1 1 ('1/4' '1/4'))(1 2 ('1/4' '1/4'))))]
+Result   : TRUE
+
+Operator : testUnionWithScaling
+Number   : 2
+Signature: region2 x region2 -> bool
+Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] testUnionWithScaling [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
+Result   : TRUE
+
+Operator : testIntersectionWithScaling
+Number   : 1
+Signature: line2 x line2 -> bool
+Example  : query testIntersectionWithScaling ([const line2 value(((1 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4'))))],[const line2 value(((2 1 ('1/4' '1/4'))(4 1 ('1/4' '1/4'))))])
+Result   : TRUE
+
+Operator : testIntersectionWithScaling
+Number   : 2
+Signature: region2 x region2 -> bool
+Example  : query testIntersectionWithScaling([const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))], [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))])
+Result   : TRUE
+
+Operator : testIntersectsWithScaling
+Number   : 1
+Signature: line2 x line2 -> bool
+Example  : query [const line2 value(((1 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4'))))] testIntersectsWithScaling [const line2 value(((2 1 ('1/4' '1/4'))(4 1 ('1/4' '1/4'))))]
+Result   : TRUE
+
+Operator : testIntersectsWithScaling
+Number   : 2
+Signature: region2 x region2 -> bool
+Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] testIntersectsWithScaling [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
+Result   : TRUE
+
+Operator : testMinusWithScaling
+Number   : 1
+Signature: line2 x line2 -> bool
+Example  : query [const line2 value(((1 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4'))))] testMinusWithScaling [const line2 value(((2 1 ('1/4' '1/4'))(4 1 ('1/4' '1/4'))))]
+Result   : TRUE
+
+Operator : testMinusWithScaling
+Number   : 2
+Signature: region2 x region2 -> region2
+Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] testMinusWithScaling [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
 Result   : TRUE

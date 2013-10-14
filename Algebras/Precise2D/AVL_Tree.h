@@ -37,18 +37,22 @@
 #ifndef AVL_TREE_H_
 #define AVL_TREE_H_
 
-#include "Point2.h"
+//#include "Point2.h"
 #include "Points2.h"
-#include "Region2Algebra.h"
+#include "Line2.h"
+#include "Toolbox.h"
+//#include "Precise2DAlgebra.h"
+//#include "Region2Algebra.h"
+
 #include <queue>
 #include <vector>
 
 namespace p2d {
 
-class SegmentData;
-class Line2;
-class Point2;
-class Points2;
+//class SegmentData;
+//class Line2;
+//class Point2;
+//class Points2;
 
 class AVLNode;
 class AVLSegment;
@@ -513,8 +517,14 @@ public:
 
  AVLSegment(const Flob* preciseData, SegmentData* sd, Owner o);
 
+ AVLSegment(const Flob* preciseData, SegmentData* sd, Owner o, int scalefactor);
+
  AVLSegment(const DbArray<unsigned int>* preciseData, Reg2GridHalfSegment& sd,
    Reg2PrecHalfSegment* ps, Owner o);
+
+ AVLSegment(const DbArray<unsigned int>* preciseData,
+   Reg2GridHalfSegment& gs, Reg2PrecHalfSegment& ps, Owner o,
+   int scalefactor);
 
  AVLSegment(const AVLSegment& s);
 
@@ -1006,12 +1016,26 @@ template<class C1, class C2>
 Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
 
+template<class C1, class C2>
+Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  int scalefactor);
+
 Owner selectNext(const Line2& l, int& pos1, const Line2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
+
+Owner selectNext(const Line2& l, int& pos1, const Line2& r, int& pos2,
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  int scalefactor);
 
 Owner selectNext(/*const*/ Region2& r1, int& pos1,
 /*const*/ Region2& r2, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
+
+Owner selectNext(/*const*/Region2& r1, int& pos1,
+/*const*/Region2& r2, int& pos2,
+  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  int scalefactor);
 
 template<class C>
 Owner selectNext(const C& l, int& pos,
@@ -1101,6 +1125,9 @@ void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
 void createNewSegments(AVLSegment& s, Line2& result, int& edgeNo,
   SetOperation op);
 
+void createNewSegments(AVLSegment& s, Line2& result, int& edgeNo,
+  SetOperation op, int scalefactor);
+
 /*
  ~createNewSegments~
 
@@ -1114,15 +1141,23 @@ void createNewSegments(AVLSegment& s, Line2& result, int& edgeNo,
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   Line2& result, int& edgeNo, SetOperation op);
 
+void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+  Line2& result, int& edgeNo, SetOperation op, int scalefactor);
+
 /*
  ~createNewSegments~
 
- Creates a new Halfsegment and stores it in ~result~ if it satify the conditions
- for the given SetOperation ~op~.
+ Creates a new Halfsegment and stores it in ~result~ if it satisfies the
+ conditions for the given SetOperation ~op~.
 
 */
 void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
   SetOperation op);
+
+void createNewSegments(AVLSegment& s, Region2& result, int& edgeno);
+
+void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
+  SetOperation op, int scalefactor);
 
 /*
  ~createNewSegments~
@@ -1138,8 +1173,23 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, Region2& result, int& edgeno, SetOperation op);
 
+
+void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
+  int scalefactor);
+
+
 /*
-11 ~checkSegments~
+ ~setInsideAbove~
+
+ Sets the value for insideAbove.
+
+*/
+void setInsideAbove(vector<AVLSegment*>& segmentVector, Event& event,
+  AVLSegment* successor);
+
+/*
+ ~checkSegments~
 
  Checks if the given AVLSegments of the ~segmentVector~ satisfy the conditions
  of the given ~op~ and adjust the values of the predicates of the segments
@@ -1164,6 +1214,16 @@ void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op);
 */
 void Realminize(const Line2& src, Line2& result, const bool forceThrow);
 
+/*
+11 ~BuildRegion~
+
+ Builds a new region2-object from the given line2-object ~line~.
+
+ Precondition: The given segments intersect only at their endpoints and
+               all segments form the outline of a region2-object.
+
+*/
+void BuildRegion(/*const*/ Line2& line,  Region2& result);
 
 /*
 11 ~SetOp~ for ~line2~
@@ -1172,13 +1232,28 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow);
 void SetOp(const Line2& line1, const Line2& line2, Line2& result,
   SetOperation op, const Geoid* geoid = 0);
 
+void SetOpWithScaling(const Line2& line1, const Line2& line2, Line2& result,
+  SetOperation op, const Geoid* geoid = 0);
+
 /*
 11 ~SetOp~ for ~region2~
+
+ This operator doesn't scale the coordinates.
 
 */
 void SetOp(/*const*/ Region2& region1,/*const*/ Region2& region2,
   Region2& result, SetOperation op, const Geoid* geoid = 0);
 
+/*
+11 ~SetOpWithScaling~ for ~region2~
+
+ If the area where the bounding boxes overlap is greater than the
+ non-overlapping part of one bounding box, both region2-objects are
+ temporarily scaled with a factor.
+
+*/
+void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
+  Region2& result, SetOperation op, const Geoid* geoid=0);
 /*
 11 ~intersects~ for ~Line2~
 
@@ -1191,6 +1266,9 @@ void SetOp(/*const*/ Region2& region1,/*const*/ Region2& region2,
 */
 bool intersects(const Line2& line1, const Line2& line2, const Geoid* geoid = 0);
 
+bool intersectsWithScaling(const Line2& line1, const Line2& line2,
+  const Geoid* geoid = 0);
+
 /*
 11 ~intersects~ for ~Region2~
 
@@ -1201,6 +1279,10 @@ bool intersects(const Line2& line1, const Line2& line2, const Geoid* geoid = 0);
 
 */
 bool intersects(/*const*/ Region2& region1,/*const*/ Region2& region2,
+  const Geoid* geoid = 0);
+
+bool intersectsWithScaling(/*const*/ Region2& region1,
+  /*const*/ Region2& region2,
   const Geoid* geoid = 0);
 
 /*
@@ -1215,6 +1297,9 @@ bool intersects(/*const*/ Region2& region1,/*const*/ Region2& region2,
 bool overlaps(/*const*/ Region2& region1,/*const*/ Region2& region2,
   const Geoid* geoid = 0);
 
+bool overlapsWithScaling(/*const*/ Region2& region1,/*const*/ Region2& region2,
+  const Geoid* geoid = 0);
+
 /*
 11 ~crossings~
 
@@ -1224,6 +1309,10 @@ bool overlaps(/*const*/ Region2& region1,/*const*/ Region2& region2,
 
 */
 void crossings(const Line2& line1, const Line2& line2, Points2& result,
+  const Geoid* geoid = 0);
+
+void crossingsWithScaling(const Line2& line1, const Line2& line2,
+  Points2& result,
   const Geoid* geoid = 0);
 
 /*
@@ -1238,7 +1327,9 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
 bool inside(/*const*/ Region2& region1,/*const*/ Region2& region2,
   const Geoid* geoid = 0);
 
+bool insideWithScaling(/*const*/ Region2& region1,/*const*/ Region2& region2,
+  const Geoid* geoid = 0);
+
 } //end of p2d
 
 #endif/* AVL_TREE_H_*/
-

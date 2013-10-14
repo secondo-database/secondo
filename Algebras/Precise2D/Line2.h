@@ -47,16 +47,17 @@
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "AttrType.h"
-#include "Precise2DAlgebra.h"
-#include "Point2.h"
+//#include "Precise2DAlgebra.h"
+//#include "Point2.h"
 #include "SpatialAlgebra.h"
 #include "Region2Algebra.h"
-#include "Toolbox.h"
+//#include "Toolbox.h"
 
 namespace p2d {
 
 class Point2;
 class Points2;
+//class Region2;
 
 /*
 2 Class ~SegmentData~
@@ -538,12 +539,14 @@ Line2();
 
 */
  void unionOP(Line2& l2, Line2& res, const Geoid* geoid = 0);
+ void unionWithScaling(Line2& l2, Line2& res, const Geoid* geoid = 0);
 
 /*
   Intersection computes the intersection of two line2-objects
 
 */
  void intersection(Line2& l2, Line2& res, const Geoid* geoid = 0);
+ void intersectionWithScaling(Line2& l2, Line2& res, const Geoid* geoid = 0);
 
 /*
   Minus returns all segments and parts of segments of ~this~ which are not
@@ -551,6 +554,7 @@ Line2();
 
 */
  void minus(Line2& l2, Line2& res, const Geoid* geoid = 0);
+ void minusWithScaling(Line2& l2, Line2& res, const Geoid* geoid = 0);
 
 /*
 3.2 ~intersect~
@@ -559,7 +563,7 @@ Line2();
 
 */
  bool intersects(Line2& l2, const Geoid* geoid = 0);
-
+ bool intersectsWithScaling(Line2& l2, const Geoid* geoid = 0);
 /*
 3.2 ~crossings~
 
@@ -567,7 +571,7 @@ Line2();
 
 */
  void crossings(Line2& l2, Points2& result, const Geoid* geoid = 0);
-
+ void crossingsWithScaling(Line2& l2, Points2& result, const Geoid* geoid = 0);
 /*
 3.2 Functions required by Secondo and virtual functions
 of the StandardSpatialAttribute

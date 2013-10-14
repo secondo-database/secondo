@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <gmp.h>
 #include <gmpxx.h>
+#include <limits>
 #include "Algebra.h"
 #include "RectangleAlgebra.h"
 #include "../../Tools/Flob/DbArray.h"
@@ -47,7 +48,7 @@
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "AttrType.h"
-#include "Precise2DAlgebra.h"
+//#include "Precise2DAlgebra.h"
 
 namespace p2d {
 

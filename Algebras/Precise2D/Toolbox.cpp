@@ -32,6 +32,8 @@
 1 Includes and defines
 
 */
+#ifndef TOOLBOX_CPP_
+#define TOOLBOX_CPP_
 
 #include "Toolbox.h"
 #include "Point2.h"
@@ -168,4 +170,106 @@ mpz_class floor_mpq(mpq_class& value){
  return intValue;
 }
 
+/*
+ ~prepareData~
+
+ Extract the integer from ~value~.
+
+*/
+void prepareData(int& resultGrid, mpq_class& resultP,
+  mpq_class value) {
+ mpz_class grid = floor_mpq(value);
+ if ((cmp(grid, numeric_limits<int>::min())<0)
+   ||(cmp(numeric_limits<int>::max(), grid)<0)){
+  cerr <<"The grid-value "<<grid
+       <<"don't fit in a variable of type int."<<endl;
+  assert(false);
+ }
+ resultGrid = (int) grid.get_d();
+
+ int cmpValue = cmp(value, resultGrid);
+ if (cmpValue != 0) {
+  //value is not an integer
+  if (cmpValue < 0) {
+   //value is a rational number less 0
+   //the grid value is the next integer less than value
+   resultGrid--;
+  }
+  resultP = value - resultGrid;
+ } else {
+  //value is an integer
+  resultP = 0;
+ }
+}
+
+int computeScalefactor(Region2& reg1){
+ double max = reg1.BoundingBox().MaxD(0)>reg1.BoundingBox().MaxD(1)?
+   reg1.BoundingBox().MaxD(0) : reg1.BoundingBox().MaxD(1);
+ int intMax = ceil(max);
+ int digits = log10(intMax)+1;
+ int scalefactor = 1;
+ switch (digits){
+ case 1: scalefactor = 10000;
+         break;
+ case 2: scalefactor = 1000;
+         break;
+ case 3: scalefactor = 100;
+         break;
+ case 4: scalefactor = 10;
+         break;
+ default: break;
+ }
+ return scalefactor;
+}
+
+int computeScalefactor(Region2& reg1, Region2& reg2){
+ double max = reg1.BoundingBox().MaxD(0)>reg1.BoundingBox().MaxD(1)?
+   reg1.BoundingBox().MaxD(0) : reg1.BoundingBox().MaxD(1);
+ max = max>reg2.BoundingBox().MaxD(0)?
+    max : reg2.BoundingBox().MaxD(0);
+ max = max>reg2.BoundingBox().MaxD(1)?
+    max : reg2.BoundingBox().MaxD(1);
+ int intMax = ceil(max);
+ int digits = log10(intMax)+1;
+ int scalefactor = 1;
+ switch (digits){
+ case 1: scalefactor = 10000;
+         break;
+ case 2: scalefactor = 1000;
+         break;
+ case 3: scalefactor = 100;
+         break;
+ case 4: scalefactor = 10;
+         break;
+ default: break;
+ }
+ return scalefactor;
+}
+
+int computeScalefactor(const Line2& line1, const Line2& line2){
+ double max = abs(line1.BoundingBox().MaxD(0))>abs(line1.BoundingBox().MaxD(1))?
+   abs(line1.BoundingBox().MaxD(0)) : abs(line1.BoundingBox().MaxD(1));
+ max = max>abs(line2.BoundingBox().MaxD(0))?
+    max : abs(line2.BoundingBox().MaxD(0));
+ max = max>abs(line2.BoundingBox().MaxD(1))?
+    max : abs(line2.BoundingBox().MaxD(1));
+ int intMax = ceil(max);
+ int digits = log10(intMax)+1;
+ int scalefactor = 1;
+ switch (digits){
+ case 1: scalefactor = 10000;
+         break;
+ case 2: scalefactor = 1000;
+         break;
+ case 3: scalefactor = 100;
+         break;
+ case 4: scalefactor = 10;
+         break;
+ default: break;
+ }
+ return scalefactor;
+}
+
 } /* namespace p2d */
+
+#endif/* _TOOLBOX_CPP*/

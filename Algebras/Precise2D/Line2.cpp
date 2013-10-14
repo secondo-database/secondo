@@ -1800,12 +1800,22 @@ void Line2::unionOP(Line2& l2, Line2& result, const Geoid* geoid/*=0*/) {
  p2d::SetOp(*this, l2, result, union_op, geoid);
 }
 
+void Line2::unionWithScaling(Line2& l2, Line2& result,
+  const Geoid* geoid/*=0*/) {
+ p2d::SetOpWithScaling(*this, l2, result, union_op, geoid);
+}
+
 /*
 3.5.1 ~intersection~
 
 */
 void Line2::intersection(Line2& l2, Line2& result, const Geoid* geoid/*=0*/) {
  p2d::SetOp(*this, l2, result, intersection_op, geoid);
+}
+
+void Line2::intersectionWithScaling(Line2& l2, Line2& result,
+  const Geoid* geoid/*=0*/) {
+ p2d::SetOpWithScaling(*this, l2, result, intersection_op, geoid);
 }
 
 /*
@@ -1816,6 +1826,11 @@ void Line2::minus(Line2& l2, Line2& result, const Geoid* geoid/*=0*/) {
  p2d::SetOp(*this, l2, result, difference_op, geoid);
 }
 
+void Line2::minusWithScaling(Line2& l2, Line2& result,
+  const Geoid* geoid/*=0*/) {
+ p2d::SetOpWithScaling(*this, l2, result, difference_op, geoid);
+}
+
 /*
 3.6 ~intersects~
 
@@ -1824,12 +1839,21 @@ bool Line2::intersects(Line2& l2, const Geoid* geoid/*=0*/) {
  return p2d::intersects(*this, l2, geoid);
 }
 
+bool Line2::intersectsWithScaling(Line2& l2, const Geoid* geoid/*=0*/) {
+ return p2d::intersectsWithScaling(*this, l2, geoid);
+}
+
 /*
 3.6 ~crossings~
 
 */
 void Line2::crossings(Line2& l2, Points2& result, const Geoid* geoid/*=0*/) {
  p2d::crossings(*this, l2, result, geoid);
+}
+
+void Line2::crossingsWithScaling(Line2& l2, Points2& result,
+  const Geoid* geoid/*=0*/) {
+ p2d::crossingsWithScaling(*this, l2, result, geoid);
 }
 
 /*

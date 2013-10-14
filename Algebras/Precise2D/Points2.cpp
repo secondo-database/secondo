@@ -32,6 +32,8 @@
  1 Includes and defines
 
 */
+#ifndef _POINTS2_CPP
+#define _POINTS2_CPP
 
 #include "Points2.h"
 #include "../Rectangle/RectangleAlgebra.h"
@@ -601,7 +603,7 @@ ListExpr Points2::Points2Property() {
      nl->StringAtom("Example Type List"), nl->StringAtom("List Rep"),
      nl->StringAtom("Example List")),
    nl->FourElemList(nl->StringAtom("-> DATA"),
-     nl->StringAtom(Line2::BasicType()), pointsRepr,
+     nl->StringAtom(Points2::BasicType()), pointsRepr,
      nl->StringAtom("((1 1 ('1/4' '3/4'))(3 4 ('1/8' '1/10')))")));
 }
 
@@ -664,3 +666,4 @@ bool Points2::Intersects(const Rectangle<2>& rect,
 
 } // end of namespace p2d
 
+#endif/* _POINTS2_CPP*/

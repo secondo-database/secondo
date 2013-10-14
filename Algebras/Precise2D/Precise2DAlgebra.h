@@ -46,16 +46,19 @@
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "AttrType.h"
-#include "Point2.h"
-#include "Line2.h"
-#include "Points2.h"
+//#include "Point2.h"
+//#include "Line2.h"
+//#include "Points2.h"
 #include "FTextAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "Coarsening.h"
-#include "Toolbox.h"
+//#include "Toolbox.h"
 #include "AVL_Tree.h"
 #include "TestAVLTree.h"
 
+
+
 namespace p2d{
+
 }
 #endif /* PRECISE2DALGEBRA_H_ */

@@ -38,10 +38,19 @@
 #include <gmp.h>
 #include <gmpxx.h>
 #include "NestedList.h"
+#include "Line2.h"
+//#include "Point2.h"
+//#include "Points2.h"
+#include "Region2Algebra.h"
 
 namespace p2d {
 
 class Point2;
+//class Line2;
+
+//class Point2;
+//class Line2;
+//class Region2;
 
 /*
 1 ~createCoordinate~
@@ -85,5 +94,26 @@ mpz_class ceil_mpq(mpq_class& value);
 */
 mpz_class floor_mpq(mpq_class& value);
 
+/*
+1 ~prepareData~
+computes the grid value ~resultGridX~ = floor(~value~) and
+the difference (~value~-~resultGridX~)=~resultPX~.
+
+*/
+void prepareData(int& resultGridX, mpq_class& resultPX,
+  mpq_class value);
+
+/*
+1 ~computeScalefactor~
+
+ Some operators scale the region-objects before the plane-sweep starts.
+ The scalefactor is a power of 10, so that the greatest value has max. 5 digits.
+
+*/
+int computeScalefactor(Region2& reg1, Region2& reg2);
+
+int computeScalefactor(Region2& reg1);
+
+int computeScalefactor(const Line2& line1, const Line2& line2);
 } /* namespace p2d */
 #endif /* TOOLBOX_H_ */
