@@ -22,6 +22,7 @@ package  viewer.hoese;
 import  javax.swing.*;
 import  java.io.*;
 import  java.awt.*;
+import java.awt.event.*;
 import  java.util.*;
 import  java.awt.image.*;
 import  javax.swing.tree.*;
@@ -34,20 +35,6 @@ import tools.Reporter;
  * @version
  */
 public class CategoryEditor extends javax.swing.JDialog {
-  /** A link to the main application window */
-  private HoeseViewer mw;
-  /** The actual index in the category list */
-  private int aktIndex;
-  /** A counter neccassary for creating unique names for new categories */
-  public static int CpCnt = 1;
-  /** If true then in mode: change the category for a graph. object */
-  private boolean LeaveByApply;
-  /** The internal File-object for the icon */
-  private String IconFileName;
-
- /** a FileChooser to load textures */
-  private static  JFileChooser Texture_FileChooser=new JFileChooser();
-
  /** Creates new instance of a CategoryEditor
   * @param parent The main application JFrame
   * @param modal True if modal dialog
@@ -428,6 +415,60 @@ public class CategoryEditor extends javax.swing.JDialog {
     group.add(GradientRB);
     group.add(NoFillRB);
     getContentPane().add(ComP, gridBagConstraints1);
+
+    // audioPanel
+    JPanel audioPanel = new JPanel();
+    audioPanel.setBorder(new javax.swing.border.TitledBorder("Audio"));
+    audioPanel.setLayout(new BoxLayout(audioPanel,BoxLayout.Y_AXIS));
+    enableAudioCB = new JCheckBox("enable audio");
+
+    audioPanel.add(enableAudioCB);
+
+    JPanel freqPanel = new JPanel();
+    freqPanel.add(new JLabel("frequency"));
+    frequencyTF = new JTextField(6);
+    freqPanel.add(frequencyTF);
+    audioPanel.add(freqPanel);
+
+    
+    JPanel durPanel = new JPanel();
+    durPanel.add(new JLabel("duration (ms)"));
+    audioDurationTF = new JTextField(6);
+    durPanel.add(audioDurationTF);
+    audioPanel.add(durPanel);
+    
+    useFileCB = new JCheckBox("use audio file");
+    audioPanel.add(useFileCB);
+
+    JPanel audioFilePanel = new JPanel();
+    audioFilePanel.add(new JLabel("file   "));
+    audioFileLabel = new JLabel("            ");
+    audioFilePanel.add(audioFileLabel);
+    JButton selectAudioBtn = new JButton("select");
+    audioFilePanel.add(selectAudioBtn);
+    audioPanel.add(audioFilePanel);
+
+    loopAudioCB = new JCheckBox("loop audio");
+    audioPanel.add(loopAudioCB);
+
+    gridBagConstraints1.gridx=0;
+    gridBagConstraints1.gridy=7;
+    gridBagConstraints1.gridheight = 3;
+
+    getContentPane().add(audioPanel, gridBagConstraints1);
+
+    selectAudioBtn.addActionListener(new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+           if(audio_FileChooser.showOpenDialog(mw)==JFileChooser.APPROVE_OPTION){
+               audioFile = audio_FileChooser.getSelectedFile();
+               audioFileLabel.setText(audioFile.getName()); 
+           }
+        }
+    }); 
+     
+
+
+
   }             //GEN-END:initComponents
 
   /**
@@ -447,7 +488,9 @@ public class CategoryEditor extends javax.swing.JDialog {
    */
   private void ApplyBActionPerformed (java.awt.event.ActionEvent evt) {         //GEN-FIRST:event_ApplyBActionPerformed
     Category aktCat = (Category)mw.Cats.elementAt(aktIndex);
-    getDialog(aktCat);
+    if(!getDialog(aktCat)){
+      return;
+    }
     CatCB.insertItemAt(aktCat.getName(), aktIndex);
     CatCB.removeItemAt(aktIndex + 1);
     if (LeaveByApply) {
@@ -497,7 +540,9 @@ public class CategoryEditor extends javax.swing.JDialog {
    */
   private void NewBActionPerformed (java.awt.event.ActionEvent evt) {           //GEN-FIRST:event_NewBActionPerformed
     Category NewCat = new Category();
-    getDialog(NewCat);
+    if(! getDialog(NewCat)){
+        return;
+    }
     String NewName = NewCat.getName() + "_" + Integer.toString(CpCnt++);
     NewCat.setName(NewName);
     mw.Cats.add(NewCat);
@@ -640,7 +685,20 @@ public class CategoryEditor extends javax.swing.JDialog {
        TextureIconB.setIcon(new ImageIcon(cat.getTextureImage()));
     }
     ResizeIconCB.setSelected(cat.getIconResizeToBox());
-    
+
+    // audio section
+    enableAudioCB.setSelected(cat.soundEnabled());
+    frequencyTF.setText("" + cat.getFrequency());
+    audioDurationTF.setText(""+cat.getAudioLength());
+    audioFile = cat.getSoundFile();
+    if(audioFile!=null){
+       useFileCB.setSelected(true);
+       audioFileLabel.setText(audioFile.getName());
+    } else {
+       useFileCB.setSelected(false);
+       audioFileLabel.setText("                 ");
+    }
+    loopAudioCB.setSelected(cat.getLoop());
   }
 
   /**
@@ -659,30 +717,48 @@ public class CategoryEditor extends javax.swing.JDialog {
    * @param cat
   * @see <a href="CategoryEditorsrc.html#getDialog">Source</a>
    */
-  public void getDialog (Category cat) {
+  public boolean getDialog (Category cat) {
     //Category cat = new Category();
     cat.setName((String)CatCB.getSelectedItem());
     cat.setPointasRect(RectRB.isSelected());
-    cat.setPointSize(Double.parseDouble(SizeT.getText()));
-    double linewidth = Double.parseDouble(WidthT.getText());
+    try{
+       cat.setPointSize(Double.parseDouble(SizeT.getText().trim()));
+    } catch(NumberFormatException e){
+        Reporter.showError("Invalid value for point size (not a double)");
+        return false;
+    }
+    double linewidth;
+    try{
+       linewidth  = Double.parseDouble(WidthT.getText());
+    } catch(NumberFormatException e){
+        Reporter.showError("Invalid value for line width (not a double)");
+        return false;
+    }
     int cap=BasicStroke.CAP_BUTT;
     switch(capStyle.getSelectedIndex()){
         case 0 : cap = BasicStroke.CAP_BUTT;break;
         case 1 : cap = BasicStroke.CAP_ROUND; break;
         case 2 : cap = BasicStroke.CAP_SQUARE; break;
-        default: Reporter.writeError("invalid value for cap style");
+        default: Reporter.showError("invalid value for cap style"); return false;
     }    
     int join = BasicStroke.JOIN_BEVEL;
     switch(joinStyle.getSelectedIndex()){
         case 0 : join = BasicStroke.JOIN_BEVEL;break;
         case 1 : join = BasicStroke.JOIN_MITER;break;
         case 2 : join = BasicStroke.JOIN_ROUND;break;
-        default: Reporter.writeError("invalid value for join style");
+        default: Reporter.showError("invalid value for join style"); return false;
     }
     int dash = TypeCB.getSelectedIndex();
     cat.setLineStyle(dash,cap,join,linewidth);
     cat.setLineColor(ColorB.getBackground());
-    float f = -Float.parseFloat(TransparencyT.getText())/100 + 1.0f;
+    
+    float f;
+    try {
+       f  = -Float.parseFloat(TransparencyT.getText())/100 + 1.0f;
+    } catch (NumberFormatException e){
+        Reporter.showError("Invalid value for tranparency  (not a double)");
+        return false;
+    }
     if (f > 1.0f)
       f = 1.0f;
     if (f < 0.0f)
@@ -727,10 +803,64 @@ public class CategoryEditor extends javax.swing.JDialog {
       }
 
     }
+
+    // audio section
+    if(!enableAudioCB.isSelected()){
+       cat.enableSound(false);
+    } else {
+       cat.enableSound(true);
+       cat.loopAudio(loopAudioCB.isSelected());
+       if(useFileCB.isSelected()){
+          if(audioFile==null){
+             Reporter.showError("use audio file selected but no file given");
+             return false;
+          }
+          if(!cat.setSound(audioFile)){
+            Reporter.showError("Selected audio file can't be played");
+            return false; 
+          }
+       }  else {
+          try{
+              if(!cat.setFrequency(Integer.parseInt(frequencyTF.getText().trim()))){
+                  Reporter.showError("Frequency value out of range");
+                  return  false;
+              }
+          } catch(NumberFormatException e){
+              Reporter.showError("invalid value for frequeny (not an int)");
+              return false;
+          }
+          try{
+             if(!cat.setAudioLength(Integer.parseInt(audioDurationTF.getText().trim()))){
+                Reporter.showError("audio duration out of length");
+                return false;
+             }
+          } catch(NumberFormatException e){
+              Reporter.showError("invalid value for audio duration (not an int)");
+              return false;
+          }
+       }
+    }
+    return true;
+
     //		return cat;
   }
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
+  /** A link to the main application window */
+  private HoeseViewer mw;
+  /** The actual index in the category list */
+  private int aktIndex;
+  /** A counter neccassary for creating unique names for new categories */
+  public static int CpCnt = 1;
+  /** If true then in mode: change the category for a graph. object */
+  private boolean LeaveByApply;
+  /** The internal File-object for the icon */
+  private String IconFileName;
+
+ /** a FileChooser to load textures */
+  private static  JFileChooser Texture_FileChooser=new JFileChooser();
+  private static  JFileChooser audio_FileChooser=new JFileChooser();
+
   private javax.swing.JPanel PointFormsP;
   private javax.swing.JRadioButton CircleRB;
   private javax.swing.JRadioButton RectRB;
@@ -765,6 +895,19 @@ public class CategoryEditor extends javax.swing.JDialog {
   private JComboBox capStyle;
   private JComboBox joinStyle;
   // End of variables declaration//GEN-END:variables
+ 
+  // variable components for audio
+  private JCheckBox enableAudioCB;
+  private JTextField frequencyTF;
+  private JTextField audioDurationTF;
+  private JCheckBox useFileCB;
+  private File audioFile;
+  private JLabel audioFileLabel;
+  private JCheckBox loopAudioCB;
+ 
+
+
+
 }
 
 

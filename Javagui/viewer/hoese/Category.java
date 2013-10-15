@@ -101,12 +101,9 @@ public class Category
  /**
   The next attributes control playing audio.
  **/
-  private String audioFileName="sound.wav";
-  private java.applet.AudioClip audioClip=null;
-  private boolean audioloop = true; 
-  private boolean audioRunning = false;
-  private Object audioSync = new Object();
-
+ ToneGenerator toneGenerator = new ToneGenerator();
+ boolean enableSound = true;
+ 
 
 
  /** represents a attribute depending render method **/
@@ -869,43 +866,62 @@ public class Category
     return  defCat;
   }
 
-  public void startSound(){
-     synchronized(audioSync){
-        if(audioRunning && audioloop){
-          return; 
-        }
-        if(audioClip==null){
-          try{ 
-            File audioFile = new File(audioFileName);
-            audioClip = java.applet.Applet.newAudioClip(audioFile.toURI().toURL());
-          } catch(Exception e){
-              System.err.println("mailformed URL");
-              return;
-          }
-          if(audioClip==null){
-            System.err.println("Sound file " + audioFileName + " not found");
-            return;
-          }
-        }
-        audioRunning = true;
-        if(audioloop){
-           audioClip.loop();
-        } else {
-           audioClip.play();
-        }
-     }
 
+  public void enableSound(boolean on){
+     if(!enableSound){
+        toneGenerator.stop();
+     }
+     enableSound = on;
+  }
+  
+  public boolean setFrequency(int Hz){
+      return toneGenerator.setFrequency(Hz);
+  }
+
+  public boolean setSound(File file){
+      return toneGenerator.setSoundFile(file);
+  }
+
+  public void loopAudio(boolean on){
+      toneGenerator.setLoop(on);
+  }
+
+  public boolean getLoop(){
+    return toneGenerator.getLoop();
+  }
+
+  public boolean setAudioLength(int length){
+      return toneGenerator.setLength(length);
+  }
+
+  public int getFrequency(){ 
+      return toneGenerator.getFrequency();
+  }
+
+  public File getSoundFile(){
+      return toneGenerator.getSoundFile();
+  }
+ 
+  public boolean getAudioLoop(){
+      return toneGenerator.getLoop();
+  } 
+
+  public int getAudioLength(){
+      return toneGenerator.getLength();
+  }
+
+  public boolean soundEnabled(){
+     return enableSound;
+  }
+
+
+  public void startSound(){
+       if(enableSound){
+          toneGenerator.play();
+       }
   }
   public void stopSound(){
-      synchronized(audioSync){
-         if(!audioRunning){
-            return;
-         }
-         audioRunning=false;
-         if(audioClip!=null){
-           audioClip.stop();
-         }
-      } 
+       toneGenerator.stop();
   } 
 
 
