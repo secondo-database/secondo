@@ -77,6 +77,9 @@ public class Category
 /** the path for all Textures */
   static String TexturePath;
 
+/** The Path to sound files */
+   static String soundPath;
+
 /** Flag for filling as Icon.*/
   private boolean iconFill=false;
 /**  Flag whether the icon should be sized to the bounding box */
@@ -102,7 +105,7 @@ public class Category
   The next attributes control playing audio.
  **/
  ToneGenerator toneGenerator = new ToneGenerator();
- boolean enableSound = true;
+ boolean enableSound = false;
  
 
 
@@ -152,12 +155,27 @@ public class Category
           return TexturePath + IconName;
    }
 
+   public String getSoundFilePath(){
+      File f = toneGenerator.getSoundFile();
+      if(f==null){
+        return "";
+      } else {
+         return soundPath + f.getName();
+      }
+   }
+
+
   /**
     * @return the path to all textures
     */
   public static String getTexturePath(){
       return TexturePath;
   }
+
+  public static String getSoundPath(){
+       return soundPath;
+  }
+
 
   public int compareTo(Category cat){
      return  name.compareTo(cat.name); //assume unique names for categories
@@ -431,6 +449,15 @@ public class Category
   }
 
 
+  public static void setSoundPath( String Path){
+     Properties P = System.getProperties();
+     Path = Path.trim();
+     String FS = P.getProperty("file.separator");
+     if(!Path.endsWith(FS))
+         Path = Path + FS;
+      soundPath = Path;
+  }
+
   /**
    * Sets the outline-color for a cat
    * @param c A color as Color-object
@@ -617,6 +644,101 @@ public class Category
      return true;
   }
 
+  private static ListExpr getAudioList(Category cat){
+      ListExpr res;
+      if(!cat.enableSound){
+        res = ListExpr.boolAtom(false);
+      } else  if(cat.toneGenerator.getSoundFile()==null){
+        res =  ListExpr.fourElemList( ListExpr.symbolAtom("beep"),
+                                       ListExpr.intAtom(cat.toneGenerator.getFrequency()),
+                                       ListExpr.intAtom(cat.toneGenerator.getLength()),
+                                       ListExpr.boolAtom(cat.toneGenerator.getLoop())); 
+      } else {
+         res = ListExpr.threeElemList( ListExpr.symbolAtom("file"),
+                                        ListExpr.textAtom(cat.toneGenerator.getSoundFile().getName()),
+                                        ListExpr.boolAtom(cat.toneGenerator.getLoop()));
+      }
+      return ListExpr.twoElemList(ListExpr.symbolAtom("audio"), res);
+  }
+
+  private static boolean writeAudio(ListExpr list, Category cat){
+      if(list.listLength()!=2) {
+         return false;
+      }
+      ListExpr first  = list.first();
+      if(first.atomType() != ListExpr.SYMBOL_ATOM  || !first.symbolValue().equals("audio")){
+         return false;
+      }
+      ListExpr second = list.second();
+      if(second.atomType() == ListExpr.BOOL_ATOM){
+          if(second.boolValue()==true){
+             return false;
+          } else {
+             cat.toneGenerator.setSoundFile(null);
+             cat.toneGenerator.setFrequency(440);
+             cat.toneGenerator.setLength(1000);
+             cat.toneGenerator.setLoop(true);
+             cat.enableSound(false);
+             return true;
+          }
+      }
+      int len = second.listLength();
+      if(len!=3 && len!=4){
+         return false;
+      }
+      if(len==3){
+         ListExpr f = second.first();
+         ListExpr s = second.second();
+         ListExpr t = second.third();
+         if(f.atomType() != ListExpr.SYMBOL_ATOM  || !f.symbolValue().equals("file")){
+            return false;
+         }
+         if(s.atomType()!=ListExpr.TEXT_ATOM){
+           return false;
+         }  
+         if(t.atomType()!=ListExpr.BOOL_ATOM){
+           return false;
+         }
+         File file =  new File(soundPath + s.textValue());
+         boolean loop = t.boolValue();
+         cat.toneGenerator.setLoop(loop);
+         cat.toneGenerator.setSoundFile(null);
+         cat.toneGenerator.setFrequency(440);
+         cat.toneGenerator.setLength(1000);
+         cat.toneGenerator.setSoundFile(file);
+         cat.enableSound(true);
+         return true;
+      } else { // len == 4
+         ListExpr f = second.first();
+         ListExpr s = second.second();
+         ListExpr t = second.third();
+         ListExpr f1 = second.fourth();
+         if(f.atomType() != ListExpr.SYMBOL_ATOM  || !f.symbolValue().equals("beep")){
+            return false;
+         }
+         if(s.atomType()!=ListExpr.INT_ATOM){
+           return false;
+         }  
+         if(t.atomType()!=ListExpr.INT_ATOM){
+           return false;
+         }
+         if(f1.atomType()!=ListExpr.BOOL_ATOM){
+           return false;
+         }
+         cat.toneGenerator.setLoop(f1.boolValue());
+         cat.toneGenerator.setSoundFile(null);
+         cat.toneGenerator.setFrequency(440);
+         cat.toneGenerator.setLength(1000);
+         cat.toneGenerator.setSoundFile(null);
+         cat.toneGenerator.setFrequency(s.intValue());
+         cat.toneGenerator.setLength(t.intValue());
+         cat.enableSound(true);
+         return true;
+      }
+  }
+
+
+
 
   /**
    * Converts a category to a listexpr. Used in session-saving
@@ -670,6 +792,7 @@ public class Category
     le = ListExpr.append(le, ListExpr.intAtom(cat.capStyle));
     le = ListExpr.append(le, ListExpr.intAtom(cat.joinStyle));
     le = ListExpr.append(le, getRefDependendList(cat));
+    le = ListExpr.append(le, getAudioList(cat));
     return  l;
   }
 
@@ -681,19 +804,19 @@ public class Category
    */
   public static Category ConvertLEtoCat (ListExpr le) {
     int len = le.listLength();
-    if (len!= 11 && len!=14) {
-      Reporter.writeError("Error: No correct category expression: 11 elements needed");
+    if (len!= 11 && len!=14 && len!=15) {  
+      Reporter.writeError("Error: No correct category expression: 11, 14, or 15 elements needed");
       return  null;
     }
     Category cat = new Category();
 
-    // name
+    // 1. name
     if (le.first().atomType() != ListExpr.STRING_ATOM){
       return  null;
     }
     cat.setName(le.first().stringValue());
     
-    // line color
+    // 2. line color
     le = le.rest();
     Color lc = list2Color(le.first());
     if(lc==null){
@@ -702,31 +825,31 @@ public class Category
     cat.setLineColor(lc);
     le = le.rest();
 
-    // line style
+    // 3. line style
     if (le.first().atomType() != ListExpr.INT_ATOM)
       return  null;
     cat.setLineStyle(le.first().intValue());
     le = le.rest();
     
-    // line width 
+    // 4. line width 
     if (le.first().atomType() != ListExpr.REAL_ATOM)
       return  null;
     cat.setLineWidth(le.first().realValue());
     le = le.rest();
 
-    // point as rect
+    // 5. point as rect
     if (le.first().atomType() != ListExpr.BOOL_ATOM)
       return  null;
     cat.setPointasRect(le.first().boolValue());
     le = le.rest();
     
-    // point size
+    // 6. point size
     if (le.first().atomType() != ListExpr.REAL_ATOM)
       return  null;
     cat.setPointSize((double)le.first().realValue());
     le = le.rest();
     
-    // alpha Style
+    // 7. alpha Style
     if (le.first().atomType() != ListExpr.REAL_ATOM)
       return  null;
     double f = -le.first().realValue()/100 + 1.0;
@@ -737,47 +860,56 @@ public class Category
     cat.setAlphaStyle(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, (float) f));
     le = le.rest();
 
-    // FillStyle
+    // 8. FillStyle
     if (le.first().atomType() != ListExpr.SYMBOL_ATOM)
       return  null;
     String style = le.first().symbolValue();
     le = le.rest();
 
-    // color 1
+    // 9. color 1
     Color Color1 = list2Color(le.first());
     if(Color1==null){
        return null;
     }
     le = le.rest();
 
-    // color 2
+    // 10. color 2
     Color Color2=list2Color(le.first());
     if(Color2==null){
        return null;
     }
     le = le.rest();
 
-    // iconname
+    // 11. iconname
     if (le.first().atomType() != ListExpr.STRING_ATOM)
       return  null;
     cat.IconName=le.first().stringValue();
 
-    if(len ==14){ // new version
-        le=le.rest();    
+    if(len >=14){ // new version
+        le=le.rest();   
+        // 12: cap style 
         if(le.first().atomType()!=ListExpr.INT_ATOM){
            return null;
         }
         cat.capStyle = le.first().intValue();
         le = le.rest();
+        // 13. join style
         if(le.first().atomType()!=ListExpr.INT_ATOM){
           return null;
         }
         cat.joinStyle = le.first().intValue();
         le = le.rest();
+        // 14. Reference deps
         if(!writeRefDep(le.first(),cat)){
            return null;
         }
-    }
+        le = le.rest();
+        if(!le.isEmpty()){
+            if(!writeAudio(le.first(),cat)){
+                return null;
+            }
+        }
+    } 
 
     ImageIcon ii = new ImageIcon(TexturePath+cat.IconName);
 

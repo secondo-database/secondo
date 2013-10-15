@@ -76,7 +76,7 @@ public class ToneGenerator {
      }
 
      public boolean setFrequency(int hz){
-         if(currentFreq == hz){
+         if(currentFreq == hz && soundFile==null){
             return true;
          }
          if(hz<20  || hz > 20000){
@@ -85,6 +85,7 @@ public class ToneGenerator {
          if(clip==null){
             return false;
          }
+         soundFile=null;
          currentFreq = hz;
          data = getSinusTone(hz, af);
          if(clip.isRunning()){
@@ -102,6 +103,9 @@ public class ToneGenerator {
      boolean setSoundFile(File file){
          if(clip==null){
             return false;
+         }
+         if(file==null){
+           return false;
          }
          AudioInputStream in;
          try{

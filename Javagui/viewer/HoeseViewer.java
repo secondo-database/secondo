@@ -299,6 +299,7 @@ public class HoeseViewer extends SecondoViewer {
   TimeInputDialog TimeInput = new TimeInputDialog(this.getMainFrame());
 
   private String TexturePath;
+  private String SoundPath;
   private String CatPath;
   private String FileSeparator;
 
@@ -335,6 +336,7 @@ public class HoeseViewer extends SecondoViewer {
         Reporter.writeError("i can't determine the Systems file separator");
      }
      TexturePath = FileSeparator;
+     SoundPath = FileSeparator;
 
     initComponents();
     init();
@@ -2786,6 +2788,7 @@ public boolean canDisplay(SecondoObject o){
        String SessionPath="";
        String ReferencePath ="";
        TexturePath ="";
+       SoundPath = "";
 
        String SecondoHome = configuration.getProperty("SECONDO_HOME");
        if(SecondoHome==null){
@@ -2801,6 +2804,7 @@ public boolean canDisplay(SecondoObject o){
        CatPath = HoeseHome+"categories";
        SessionPath = HoeseHome+"sessions";
        TexturePath = HoeseHome+"textures";
+       SoundPath = HoeseHome+"sound";
        ReferencePath = HoeseHome+"references";
 
        String enablePointSequenceString = configuration.getProperty("USE_POINTSEQUENCE");
@@ -2842,21 +2846,40 @@ public boolean canDisplay(SecondoObject o){
 
 
        String TMPTexturePath = configuration.getProperty("TEXTURE_PATH");
-       if(TMPTexturePath!=null)
+       if(TMPTexturePath!=null){
           TexturePath = TMPTexturePath.trim();
+       }
 
-       if(!TexturePath.endsWith(FileSeparator))
-     TexturePath += FileSeparator;
+       if(!TexturePath.endsWith(FileSeparator)){
+         TexturePath += FileSeparator;
+       }
 
        F = new File(TexturePath);
        if(!F.exists()){
           Reporter.writeWarning("the TEXTURE_PATH in "+CONFIGURATION_FILE+" is setted to a non existing Path");
           Reporter.writeWarning("please set this variable to a existing non relative pathname");
        }else{
-    CategoryEditor.setTextureDirectory(new File(TexturePath));
-    Reporter.writeInfo("set TexturePath to "+TexturePath);
-    Category.setTexturePath(TexturePath);
+          CategoryEditor.setTextureDirectory(new File(TexturePath));
+          Reporter.writeInfo("set TexturePath to "+TexturePath);
+          Category.setTexturePath(TexturePath);
        }
+
+       String tmpSoundPath = configuration.getProperty("SOUND_PATH");
+       if(tmpSoundPath!=null){
+          tmpSoundPath = tmpSoundPath.trim();
+          F = new File(tmpSoundPath);
+          if(!F.exists()){
+             Reporter.writeWarning("the SOUND_PATH in "+CONFIGURATION_FILE+" is setted to a non existing Path");
+             Reporter.writeWarning("please set this variable to a existing non relative pathname");
+          }else{
+             SoundPath = tmpSoundPath;
+          }
+       } 
+       CategoryEditor.setSoundDirectory(new File(SoundPath));
+       Reporter.writeInfo("set SoundPath to "+SoundPath);
+       Category.setSoundPath(SoundPath);
+
+
 
     String MaxPixels = configuration.getProperty("MAXPIXELS");
     if(MaxPixels!=null){

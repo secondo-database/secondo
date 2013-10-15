@@ -60,6 +60,11 @@ public class CategoryEditor extends javax.swing.JDialog {
   public static void setTextureDirectory(File dir){
      Texture_FileChooser.setCurrentDirectory(dir);
   }
+  
+  /** set the directory for sounds */
+  public static void setSoundDirectory(File dir){
+     audio_FileChooser.setCurrentDirectory(dir);
+  }
 
   /**
    * Constructor for editing graph. objects category
