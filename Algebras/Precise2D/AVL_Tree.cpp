@@ -7020,7 +7020,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
   }
  }
 
- if (false){//}!reg1.BoundingBox().Intersects(reg2.BoundingBox(), geoid)) {
+ if (!reg1.BoundingBox().Intersects(reg2.BoundingBox(), geoid)) {
   switch (op) {
   case avlseg::union_op: {
    result.StartBulkLoad();
