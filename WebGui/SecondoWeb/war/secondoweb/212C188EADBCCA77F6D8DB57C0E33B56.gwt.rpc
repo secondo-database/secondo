@@ -1,0 +1,16 @@
+com.google.gwt.user.client.rpc.IncompatibleRemoteServiceException, true, true, true, true, com.google.gwt.user.client.rpc.IncompatibleRemoteServiceException/3936916533, 3936916533
+com.google.gwt.user.client.rpc.RpcTokenException, true, true, false, false, com.google.gwt.user.client.rpc.RpcTokenException/2345075298, 2345075298
+com.google.gwt.user.client.rpc.XsrfToken, false, false, true, true, com.google.gwt.user.client.rpc.XsrfToken/4254043109, 4254043109
+com.secondo.webgui.client.datatypes.Circle, true, true, false, false, com.secondo.webgui.client.datatypes.Circle/2113143211, 2113143211
+com.secondo.webgui.client.datatypes.Ellipse, true, true, false, false, com.secondo.webgui.client.datatypes.Ellipse/4102578870, 4102578870
+com.secondo.webgui.client.datatypes.Line, true, true, false, false, com.secondo.webgui.client.datatypes.Line/2093416357, 2093416357
+com.secondo.webgui.client.datatypes.Point, true, true, false, false, com.secondo.webgui.client.datatypes.Point/2282949482, 2282949482
+com.secondo.webgui.client.datatypes.Polygon, true, true, false, false, com.secondo.webgui.client.datatypes.Polygon/952730230, 952730230
+com.secondo.webgui.client.datatypes.Polyline, true, true, false, false, com.secondo.webgui.client.datatypes.Polyline/207547318, 207547318
+com.secondo.webgui.client.datatypes.Rectangle, true, true, false, false, com.secondo.webgui.client.datatypes.Rectangle/2264736503, 2264736503
+com.secondo.webgui.client.rpc.SecondoService, false, false, false, false, _, 376286280
+java.lang.Exception, true, false, true, false, java.lang.Exception/1920171873, 1920171873
+java.lang.RuntimeException, true, false, true, false, java.lang.RuntimeException/515124647, 515124647
+java.lang.String, true, true, true, true, java.lang.String/2004016611, 2004016611
+java.lang.Throwable, true, false, true, false, java.lang.Throwable/2953622131, 2953622131
+java.util.ArrayList, true, true, true, true, java.util.ArrayList/4159755760, 4159755760
