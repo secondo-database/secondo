@@ -7,6 +7,7 @@ import com.google.gwt.core.client.JsArrayNumber;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Element;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DecoratorPanel;
@@ -19,43 +20,26 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 
 public class MapView extends Composite{
 	
-	private HorizontalPanel hPanel = new HorizontalPanel();
 	private ScrollPanel textPanel = new ScrollPanel();
-	private DecoratorPanel decPanel = new DecoratorPanel();
-	private HTML heading = new HTML("<h2>Data</h2>");
-	private TextArea formattedOutput = new TextArea();
 	private ScrollPanel scrollPanel = new ScrollPanel();
 	private FlowPanel contentPanel = new FlowPanel();
 	private VerticalPanel mapVp = new VerticalPanel();
-	private HTML mapHeading = new HTML("<h2>Google Map Example</h2>");
+	private HTML mapHeading = new HTML("<h2>Google Maps View</h2>");
 	//private String latitude = "51.3760448"; //Fernuni Hagen
 	//private String longitude = "7.4947253";
 	private Button updateButton= new Button("Update Map");
 	private ArrayList<Double> polylinePath = new ArrayList<Double>();
     private JsArrayNumber jsDataLat = JavaScriptObject.createArray().cast();
     private JsArrayNumber jsDataLng = JavaScriptObject.createArray().cast();
+    private int width=Window.getClientWidth()-160;
+    private int height=Window.getClientHeight()-420;
 	
 	public MapView(){
-		
-		hPanel.setSize("890px", "460px");
-		hPanel.add(decPanel);
-		hPanel.add(scrollPanel);
-		
-		textPanel.setSize("260px", "450px");
-		//decPanel.add(heading);
-		decPanel.add(textPanel);
-		
-		formattedOutput.setEnabled(false);
-		formattedOutput.setSize("250px", "440px");
-		formattedOutput.getElement().setClassName("mapdata");
-		
-		textPanel.add(formattedOutput);
 
-
-		scrollPanel.setSize("600px", "460px");
+		//scrollPanel.setSize("600px", "460px");
 		scrollPanel.add(contentPanel);
 			
-		mapVp.setSize("570px", "450px");
+		mapVp.setSize(width + "px", height + "px");
 		mapVp.getElement().setId("mapview");		
 		contentPanel.add(mapHeading);
 	    contentPanel.add(mapVp);
@@ -79,15 +63,15 @@ public class MapView extends Composite{
 			for (int i = 0; i < data.length; i++) {
 				jsData.push(data[i]);
 			}*/
-	    
-	    
-	 /*   int index = 0;
-	    while(!polylinePath.isEmpty()){
-	    	jsDataLat.push(polylinePath.get(index));
-	    	jsDataLng.push(polylinePath.get(index+1));
-	    	
-	    	index = index + 2;	
-	    }*/
+
+	}
+	
+	public void resize(int width, int height){
+		  scrollPanel.setWidth(width-120 + "px");
+		  scrollPanel.setHeight(height-380 + "px");
+		  mapVp.setWidth(width-140 + "px");
+		  mapVp.setHeight(height-400 + "px");
+
 	}
 	
 	/** call a googlemaps function from an external js-file, to initialize a map with the given center location*/
@@ -342,24 +326,6 @@ public class MapView extends Composite{
   
 						}-*/;
 	
-
-	
-	/**Getter and setter for the private attributes*/
-	public HorizontalPanel gethPanel() {
-		return hPanel;
-	}
-
-	public void sethPanel(HorizontalPanel hPanel) {
-		this.hPanel = hPanel;
-	}
-
-	public TextArea getFormattedOutput() {
-		return formattedOutput;
-	}
-
-	public void setFormattedOutput(TextArea formattedOutput) {
-		this.formattedOutput = formattedOutput;
-	}
 
 	public ScrollPanel getTextPanel() {
 		return textPanel;

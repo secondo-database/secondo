@@ -1,5 +1,6 @@
 package com.secondo.webgui.client.loginview;
 
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DecoratorPanel;
@@ -18,6 +19,9 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 
 public class LoginView extends Composite{
 	
+	private LoginHeader loginheader = new LoginHeader();
+	private LoginFooter loginfooter = new LoginFooter();
+	
 	private Image logo = new Image("resources/images/secondo-logo.gif");
 	private HTML secondoHeadline = new HTML("<h1>An Extensible Database System </h1>");
     private String headline = "Log into Secondo Database";	
@@ -31,18 +35,21 @@ public class LoginView extends Composite{
     private TextBox port = new TextBox();
     private Button loginbutton = new Button("Login");
     private HTML forgotPassword = new HTML("Forgot your Password? Click here to reset it.");
-    private FlexTable layout = new FlexTable();
+    private FlexTable loginLayout = new FlexTable();
     private DecoratorPanel decPanel = new DecoratorPanel();
     private VerticalPanel panel = new VerticalPanel();
 	private boolean loggedin = false;
     
     public LoginView (){
     	
-        layout.setCellSpacing(6);
-        FlexCellFormatter cellFormatter = layout.getFlexCellFormatter();
+    	int windowHeight = Window.getClientHeight();
+		int windowWidth = Window.getClientWidth();
+    	
+        loginLayout.setCellSpacing(6);
+        FlexCellFormatter cellFormatter = loginLayout.getFlexCellFormatter();
 
         // Add a title to the form
-        layout.setHTML(0, 0, this.headline);
+        loginLayout.setHTML(0, 0, this.headline);
         cellFormatter.setColSpan(0, 0, 2);
         cellFormatter.setHorizontalAlignment(
             0, 0, HasHorizontalAlignment.ALIGN_CENTER);
@@ -50,13 +57,13 @@ public class LoginView extends Composite{
         // Add username and password fields
         username.setWidth("150px");
         password.setWidth("150px");
-        layout.setHTML(1, 0, this.usernameLabel);
-        layout.setWidget(1, 1, username);
-        layout.setHTML(2, 0, passwordLabel);
-        layout.setWidget(2, 1, password);
+        loginLayout.setHTML(1, 0, this.usernameLabel);
+        loginLayout.setWidget(1, 1, username);
+        loginLayout.setHTML(2, 0, passwordLabel);
+        loginLayout.setWidget(2, 1, password);
         
         //Add the loginbutton to the form
-        layout.setWidget(3, 0, loginbutton);
+        loginLayout.setWidget(3, 0, loginbutton);
         cellFormatter.setColSpan(3, 0, 2);
         cellFormatter.setHorizontalAlignment(
             3, 0, HasHorizontalAlignment.ALIGN_CENTER);
@@ -76,21 +83,22 @@ public class LoginView extends Composite{
         advancedDisclosure.ensureDebugId("DisclosurePanel");
         advancedDisclosure.setContent(advancedOptions);
         
-        layout.setWidget(4, 0, advancedDisclosure);
+        loginLayout.setWidget(4, 0, advancedDisclosure);
         cellFormatter.setColSpan(4, 0, 2);
         
 
         // Wrap the content in a DecoratorPanel
-        decPanel.setWidget(layout);
+        decPanel.setWidget(loginLayout);
         
-        panel.setSize("884px", "490px");
+        panel.setWidth(windowWidth/2 + "px");
+		panel.setHeight(windowHeight*0.6 + "px");
+        
         panel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_CENTER);
         panel.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
         panel.add(logo);
         panel.add(secondoHeadline);
         panel.add(decPanel);
         panel.add(forgotPassword);
-        
 
     }
 
@@ -162,5 +170,23 @@ public class LoginView extends Composite{
 	}
 
 
-	
+	public LoginHeader getLoginheader() {
+		return loginheader;
+	}
+
+
+	public void setLoginheader(LoginHeader loginheader) {
+		this.loginheader = loginheader;
+	}
+
+
+	public LoginFooter getLoginfooter() {
+		return loginfooter;
+	}
+
+
+	public void setLoginfooter(LoginFooter loginfooter) {
+		this.loginfooter = loginfooter;
+	}
+
 }

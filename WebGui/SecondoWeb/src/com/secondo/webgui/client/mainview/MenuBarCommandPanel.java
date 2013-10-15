@@ -27,6 +27,8 @@ public class MenuBarCommandPanel extends Composite{
     private Command basicCommandRegion;
     private MenuItem basicCommandItem3;
     private Command basicCommandLine;
+    private MenuItem basicCommandItem4;
+    private Command basicCommandPoints;
     
     private HorizontalPanel commandBox = new HorizontalPanel();
 	private ListBox querySelection = new ListBox(false);
@@ -39,15 +41,15 @@ public class MenuBarCommandPanel extends Composite{
 	
 	public MenuBarCommandPanel(){
 		
-		hPanel.setSize("900px", "30px");
-	    hPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
+		hPanel.setHeight("30px");
+		
+	    hPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_LEFT);
 	    hPanel.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
 	    hPanel.getElement().setClassName("menubar");
 	    
-        querySelection.setSize("340px", "30px");
+        querySelection.setWidth("300px");
         querySelection.addItem(command);
         commandBox.add(querySelection);
-        commandBox.setWidth("360px");
         commandBox.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_LEFT);
         hPanel.add(commandBox);
         
@@ -55,9 +57,8 @@ public class MenuBarCommandPanel extends Composite{
         optimizerBox.add(rbOn);
         optimizerBox.add(rbOff);
         rbOff.setValue(true);
-        optimizerBox.setWidth("180px");
         optimizerBox.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_CENTER);
-        hPanel.add(optimizerBox);
+        //hPanel.add(optimizerBox);
         
 		
 		 // Create a command that will execute on menu item selection
@@ -72,15 +73,17 @@ public class MenuBarCommandPanel extends Composite{
 	    // Configure the menu bar
 	    menuBar.setAutoOpen(true);
 	    menuBar.setAnimationEnabled(true);
-	    menuBar.setWidth("360px");
 	    menuBar.ensureDebugId("MenuBar");
 	    menuBar.getElement().setClassName("menubar-commandpanel");
 	          
 	    // Add entries for basic commands to the submenu
 	    basicCommandItem1 = new MenuItem("get Point Bremen from Germany Database", basicCommandPoint);
+	    basicCommandItem4 = new MenuItem("get Points from Germany Database", basicCommandPoints);
 	    basicCommandItem2 = new MenuItem("get Region Rosenheim from Germany Database", basicCommandRegion);
 	    basicCommandItem3 = new MenuItem("get Lines Autobahn containing 6 from Germany Database", basicCommandLine);
+
 	    basicCommandsMenu.addItem(basicCommandItem1);
+	    basicCommandsMenu.addItem(basicCommandItem4);
 	    basicCommandsMenu.addItem(basicCommandItem2);
 	    basicCommandsMenu.addItem(basicCommandItem3);
 	    
@@ -100,10 +103,21 @@ public class MenuBarCommandPanel extends Composite{
 	    menuBar.addItem(new MenuItem("Help", helpMenu));
 	    helpMenu.addItem("Help1", menuCommand);
 	    helpMenu.addItem("Help2", menuCommand);
+
 	    	    
 	    //add the menubar to the panel for navigation
 		hPanel.add(menuBar);
 		
+	}
+	
+	//add 20 pixel for the padding
+	public void resize(int width){
+		
+		hPanel.setWidth(width-70 + "px");
+		commandBox.setWidth((width-70)*0.4 + "px");
+		//optimizerBox.setWidth((width-90)*0.2 + "px");
+		menuBar.setWidth((width-70)*0.4 + "px");
+	
 	}
 
 	
@@ -153,6 +167,16 @@ public class MenuBarCommandPanel extends Composite{
 
 	public void setBasicCommandItem3(MenuItem basicCommandItem3) {
 		this.basicCommandItem3 = basicCommandItem3;
+	}
+
+
+	public MenuItem getBasicCommandItem4() {
+		return basicCommandItem4;
+	}
+
+
+	public void setBasicCommandItem4(MenuItem basicCommandItem4) {
+		this.basicCommandItem4 = basicCommandItem4;
 	}
 	
 	

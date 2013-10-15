@@ -11,7 +11,8 @@
 
 .serverResponseLabelError {
 	color: red;
-}
+}	
+
 
 /******************** Application Elements ********************/
 .gwt-DialogBox {
@@ -20,42 +21,66 @@
 
 .commandpanel {
 	background: black;
-	border: none;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #CCCCCC;
 	font: 18px;
 	font-family: "ms sans serif", arial, sans-serif;
 	color: #00FF00;
-	resize: none;	
+	resize: none;
 }
 
 .menubar {
 	background: #CCCCCC;
-	border-width: 0px;
+	border-width: 1px;
 	border-style: solid;
-	border-color: black;
+	border-color: #CCCCCC;
 	font: 15px;
 	font-family: "ms sans serif", arial, sans-serif;
 	color: black;
+	padding: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.sidebar {
+	background: #F1F1F1;
+	border: none;
 }
 
 .statusbar {
-	background: white;
+	background: #CCCCCC;
 	border-width: 1px;
 	border-style: solid;
-	border-color: black;
+	border-color: #CCCCCC;
 	font: 15px;
 	font-family: "ms sans serif", arial, sans-serif;
 	color: black;
-	padding-left: 2em;
-	padding-right: 2em;
+	padding: 0.0px 20.0px 0.0px 20.0px;
 }
 
-.secondooutput {
+.rawdataoutput {
 	background: white;
-	border: none;
+	border-width: 0px;
+	border-style: solid;
+	border-color: #CCCCCC;
 	font: 15px;
 	font-family: "ms sans serif", arial, sans-serif;
 	color: black;
 	resize: none;
+	padding: 20.0px 20.0px 20.0px 20.0px;
+}
+
+.rawdatascrollpanel {
+	background: white;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #CCCCCC;
+}
+
+.textscrollpanel {
+	background: white;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #CCCCCC;
 }
 
 .formattedoutput {
@@ -65,6 +90,15 @@
 	font-family: "ms sans serif", arial, sans-serif;
 	color: black;
 	resize: none;
+	padding: 20.0px 20.0px 20.0px 20.0px;
+}
+
+.graphicalscrollpanel {
+	background: white;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #CCCCCC;
+	padding: 20.0px 20.0px 20.0px 20.0px;
 }
 
 .graphicaltextoutput {
@@ -74,62 +108,42 @@
 	font-family: "ms sans serif", arial, sans-serif;
 	color: black;
 	resize: none;
+	padding: 20.0px 20.0px 20.0px 20.0px;
 }
 
-.mapdata {
+.mapcontentpanel {
 	background: white;
-	border: none;
-	font: 15px;
-	font-family: "ms sans serif", arial, sans-serif;
-	color: black;
-	resize: none;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #CCCCCC;
 }
+
+.mapwidget{
+
+}
+
 
 /***********************************************************
 *   transparent MenuBar for Navigation and a NavigationPanel
 ***********************************************************/
 .navigation {
-	border: none;
 	background-color: transparent;
 	border-bottom: transparent;
 	border-top: transparent;
 	text-align: left;
+	border: none;
 }
 
 	
 .navigationpanel {
 	background: white;
-	width: 150px;
-	height: 60px;
-	text-align: center;
-	margin-left: 480px;
+	text-align: right;
 	padding: 15px;
-	vertical-align:middle;
+	vertical-align: middle;
+	border: none;
 }
 
 /******************** D3 Elements ********************/
-.chart {
-	margin-left: 42px;
-	font: 10px sans-serif;
-	shape-rendering: crispEdges;
-}
-
-.chart div {
-	background-color: steelblue;
-	text-align: right;
-	padding: 3px;
-	margin: 1px;
-	color: white;
-}
-
-.chart rect {
-	stroke: white;
-	fill: steelblue;
-}
-
-.chart text.bar {
-	fill: white;
-}
 
 .axis path,
 .axis line {
@@ -143,11 +157,17 @@
     font-size: 11px;
 }
 
-
 /******************** Maps Elements ********************/
-#osmmap {
-	width: 500px;
-	height: 500px;
-	margin: 0;
+
+#map {
+
 }
 
+.mapdata {
+	background: white;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", arial, sans-serif;
+	color: black;
+	resize: none;
+}

@@ -4,6 +4,7 @@ import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HasVerticalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.MenuBar;
@@ -22,6 +23,14 @@ public class Navigation extends Composite{
     private Command closeDatabaseCommand;
     private MenuItem logout;
     private Command logoutCommand;
+    private MenuItem textView;
+    private Command textViewCommand;
+    private MenuItem mapView;
+    private Command mapViewCommand;
+    private MenuItem graphicalView;
+    private Command graphicalViewCommand;
+    private MenuItem rawDataView;
+    private Command rawDataViewCommand;
 
 	public Navigation() {
 
@@ -30,6 +39,7 @@ public class Navigation extends Composite{
 		//hPanel.setSpacing(15);
 		//hPanel.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
 		hPanel.getElement().setClassName("navigationpanel");
+		hPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
 	    
 	    
 	 // Create a command that will execute on menu item selection
@@ -74,6 +84,19 @@ public class Navigation extends Composite{
                  return settings;
              }
          };
+         
+         //add items to the settings menu
+        textView = new MenuItem("Show Text only", textViewCommand);
+        settingsMenu.addItem(textView);
+ 	    
+ 	    graphicalView = new MenuItem("Show Graphical View", graphicalViewCommand);
+ 	    settingsMenu.addItem(graphicalView);
+ 	    
+ 	    mapView = new MenuItem("Show Map", mapViewCommand);
+ 	    settingsMenu.addItem(mapView);
+ 	    
+ 	    rawDataView = new MenuItem("Show Raw Data", rawDataViewCommand);
+	    settingsMenu.addItem(rawDataView);
 
 	    // Create the settings menu
 	    menu.addItem(new MenuItem(addActivityImagePath2, settingsMenu));
@@ -146,6 +169,38 @@ public class Navigation extends Composite{
 	public void setLogout(MenuItem logout) {
 		this.logout = logout;
 	}
-	
+
+	public MenuItem getTextView() {
+		return textView;
+	}
+
+	public void setTextView(MenuItem textView) {
+		this.textView = textView;
+	}
+
+	public MenuItem getMapView() {
+		return mapView;
+	}
+
+	public void setMapView(MenuItem mapView) {
+		this.mapView = mapView;
+	}
+
+	public MenuItem getGraphicalView() {
+		return graphicalView;
+	}
+
+	public void setGraphicalView(MenuItem graphicalView) {
+		this.graphicalView = graphicalView;
+	}
+
+	public MenuItem getRawDataView() {
+		return rawDataView;
+	}
+
+	public void setRawDataView(MenuItem rawDataView) {
+		this.rawDataView = rawDataView;
+	}
+
 	
 }

@@ -5,7 +5,6 @@ import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HasVerticalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.TextBox;
 
 public class StatusBar extends Composite{
 
@@ -19,8 +18,8 @@ public class StatusBar extends Composite{
 	
 	
 	public StatusBar(){
-		hPanel.setSize("900px", "30px");
-	    hPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_LEFT);
+		
+		hPanel.setHeight("30px");
 	    hPanel.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
 		hPanel.getElement().setClassName("statusbar");
 	    
@@ -30,6 +29,10 @@ public class StatusBar extends Composite{
 	    hPanel.add(userName);
 		hPanel.add(databaseLabel);
 	    hPanel.add(openDatabase);
+	}
+	
+	public void resize(int width){
+		hPanel.setWidth(width-70 + "px");
 	}
 
 	public HorizontalPanel gethPanel() {
@@ -63,6 +66,5 @@ public class StatusBar extends Composite{
 	public void setOpenDatabase(Label openDatabase) {
 		this.openDatabase = openDatabase;
 	}
-
 
 }

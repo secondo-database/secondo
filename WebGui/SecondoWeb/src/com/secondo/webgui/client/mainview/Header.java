@@ -1,6 +1,7 @@
 package com.secondo.webgui.client.mainview;
 
 import com.google.gwt.dom.client.Style.Unit;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
@@ -18,16 +19,26 @@ public class Header extends Composite{
 	
 	public Header(){
 		
-		logo.getElement().getStyle().setMarginLeft(20, Unit.PX);
+		//int windowHeight = Window.getClientHeight();
+		int windowWidth = Window.getClientWidth();
+		
+		logo.getElement().getStyle().setMarginLeft(30, Unit.PX);
 		logo.setWidth("250px");
-		//logo.setHeight("45px");
 		hPanel.add(logo);
 		//homeText.setHeight("45px");
 		//homeText.addStyleName("headline");
 		//hPanel.add(homeText);
-		hPanel.add(navigation.gethPanel());
 		
-		hPanel.setSize("900px", "60px");
+		//hPanel.add(navigation.gethPanel());
+		hPanel.getElement().setClassName("mainheader");
+		
+		hPanel.setWidth(windowWidth + "px");
+		hPanel.setHeight("60px");
+		//hPanel.setSize("100%", "60px");
+	}
+	
+	public void resize(int width){
+		hPanel.setWidth(width + "px");
 	}
 
 	public HorizontalPanel gethPanel() {

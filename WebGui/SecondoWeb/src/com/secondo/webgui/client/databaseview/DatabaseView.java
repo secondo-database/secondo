@@ -2,6 +2,7 @@ package com.secondo.webgui.client.databaseview;
 
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.ListBox;
@@ -11,11 +12,17 @@ public class DatabaseView extends Composite{
 	
 	// Create a panel to align the Widgets
     private HorizontalPanel hPanel = new HorizontalPanel();
+    private DatabaseHeader databaseHeader = new DatabaseHeader();
+    private DatabaseFooter databaseFooter = new DatabaseFooter();
+
 	 // Add a list box with multiple selection enabled
     private ListBox multiBox = new ListBox(true);
-    private VerticalPanel multiBoxPanel = new VerticalPanel();
+    private FlowPanel contentPanel = new FlowPanel();
     private Button openDatabaseButton = new Button("Open Database");
 	private boolean openDatabase = false;
+	
+	private Button logoutButton = new Button("Logout");
+	private HorizontalPanel buttonBox = new HorizontalPanel();
 	
 	public DatabaseView(){
 		
@@ -24,13 +31,19 @@ public class DatabaseView extends Composite{
 	    multiBox.ensureDebugId("ListBox-multiBox");
 	    multiBox.setWidth("20em");
 	    multiBox.setVisibleItemCount(10);
-	    multiBox.addItem("Test Database");
+	    
+	    buttonBox.add(openDatabaseButton);
+	    buttonBox.add(logoutButton);
+	    buttonBox.setSpacing(10);
 
-	    multiBoxPanel.setSpacing(4);
-	    multiBoxPanel.add(new HTML("Select a Database:"));
-	    multiBoxPanel.add(multiBox);
-	    multiBoxPanel.add(openDatabaseButton);
-	    hPanel.add(multiBoxPanel);
+	    //multiBoxPanel.setSpacing(4);
+	    contentPanel.add(new HTML("Select a Database:"));
+	    contentPanel.add(multiBox);
+	    contentPanel.add(buttonBox);
+	    //contentPanel.add(openDatabaseButton);
+    
+	    hPanel.add(contentPanel);
+	    
 
 	}
 	
@@ -62,8 +75,6 @@ public class DatabaseView extends Composite{
 		this.openDatabase = openDatabase;
 	}
 
-
-	
 	public ListBox getMultiBox() {
 		return multiBox;
 	}
@@ -79,4 +90,29 @@ public class DatabaseView extends Composite{
 	public void removeDatabaseEntry(int index){
 		this.multiBox.removeItem(index);
 	}
+
+	public DatabaseFooter getDatabaseFooter() {
+		return databaseFooter;
+	}
+
+	public void setDatabaseFooter(DatabaseFooter databaseFooter) {
+		this.databaseFooter = databaseFooter;
+	}
+
+	public DatabaseHeader getDatabaseHeader() {
+		return databaseHeader;
+	}
+
+	public void setDatabaseHeader(DatabaseHeader databaseHeader) {
+		this.databaseHeader = databaseHeader;
+	}
+
+	public Button getLogoutButton() {
+		return logoutButton;
+	}
+
+	public void setLogoutButton(Button logoutButton) {
+		this.logoutButton = logoutButton;
+	}
+
 }

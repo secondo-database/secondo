@@ -7,8 +7,8 @@ import com.google.gwt.user.client.ui.TextArea;
 public class TabView extends Composite {
 
 	private TabPanel tabPanel = new TabPanel();
-	private StandardView standardView = new StandardView();
-	private FormattedView formattedView = new FormattedView();
+	private RawDataView standardView = new RawDataView();
+	private TextView formattedView = new TextView();
 	private TableView tableView = new TableView();
 	private GraphicalView graphicalView = new GraphicalView();
 	private MapView mapView = new MapView();
@@ -23,20 +23,20 @@ public class TabView extends Composite {
 		tabPanel.add(standardView.getScrollPanel(), "StandardView");
 
 		// Add a tab with the formatted view in a scrollPanel to the tabPanel
-		tabPanel.add(formattedView.getContentPanel(), "FormattedView");
+		tabPanel.add(formattedView.getFormattedScrollPanel(), "FormattedView");
 
 		 
        // Add the tab with the table
 		//tabPanel.add(tableView.getTable(), tabTitles[2]);
 
 		// Add the graphical view tab 
-		tabPanel.add(graphicalView.gethPanel(), "GraphicalView");
+		tabPanel.add(graphicalView.getScrollPanel(), "GraphicalView");
 		
 		// Add the map view tab 
-		tabPanel.add(mapView.gethPanel(), "MapView");
+		tabPanel.add(mapView.getScrollPanel(), "MapView");
 		
 		// Add the osm view tab 
-		tabPanel.add(osmView.gethPanel(), "OSMView");
+		tabPanel.add(osmView.getContentPanel(), "OSMView");
 
 		tabPanel.selectTab(0);
 		tabPanel.ensureDebugId("tabPanel");
@@ -51,14 +51,6 @@ public class TabView extends Composite {
 		this.tabPanel = tabPanel;
 	}
 
-	public TextArea getSecondoOutput() {
-		return standardView.getSecondoOutput();
-	}
-
-	public void setSecondoOutput(TextArea secondoOutput) {
-		standardView.setSecondoOutput(secondoOutput);
-	}
-
 	public GraphicalView getGraphicalView() {
 		return graphicalView;
 	}
@@ -67,27 +59,19 @@ public class TabView extends Composite {
 		this.graphicalView = graphicalView;
 	}
 	
-	public StandardView getStandardView() {
+	public RawDataView getStandardView() {
 		return standardView;
 	}
 
-	public void setStandardView(StandardView standardView) {
+	public void setStandardView(RawDataView standardView) {
 		this.standardView = standardView;
 	}
 
-	public TextArea getFormattedOutput() {
-		return formattedView.getFormattedOutput();
-	}
-
-	public void setFormattedOutput(TextArea formattedOutput) {
-		formattedView.setFormattedOutput(formattedOutput);
-	}
-
-	public FormattedView getFormattedView() {
+	public TextView getFormattedView() {
 		return formattedView;
 	}
 
-	public void setFormattedView(FormattedView formattedView) {
+	public void setFormattedView(TextView formattedView) {
 		this.formattedView = formattedView;
 	}
 

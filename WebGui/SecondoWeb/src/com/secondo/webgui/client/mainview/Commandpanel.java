@@ -1,30 +1,42 @@
 package com.secondo.webgui.client.mainview;
 
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.TextArea;
+import com.google.gwt.user.client.ui.VerticalPanel;
 
 public class Commandpanel extends Composite {
 
-	private HorizontalPanel hPanel = new HorizontalPanel();
+	private VerticalPanel commandPanel = new VerticalPanel();
+	private MenuBarCommandPanel menubarCP = new MenuBarCommandPanel();
 	private TextArea textArea = new TextArea();
 
 	public Commandpanel() {
 
-		textArea.setVisibleLines(3);
-		textArea.setWidth("900px");
+		textArea.setVisibleLines(5);
+		textArea.setHeight("200px");
+		
 		textArea.getElement().setClassName("commandpanel");
-		hPanel.add(textArea);
+		
+		commandPanel.add(menubarCP.gethPanel());
+		commandPanel.add(textArea);
+		commandPanel.getElement().setId("command");
+		commandPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
 
 	}
-
-	public HorizontalPanel gethPanel() {
-		return hPanel;
+	
+	public void resize(int width){
+		textArea.setWidth(width-70 + "px");
 	}
 
-	public void sethPanel(HorizontalPanel hPanel) {
-		this.hPanel = hPanel;
+	public VerticalPanel getCommandPanel() {
+		return commandPanel;
 	}
+
+	public void setCommandPanel(VerticalPanel commandPanel) {
+		this.commandPanel = commandPanel;
+	}
+
 
 	public TextArea getTextArea() {
 		return textArea;
@@ -32,6 +44,14 @@ public class Commandpanel extends Composite {
 
 	public void setTextArea(TextArea textArea) {
 		this.textArea = textArea;
+	}
+
+	public MenuBarCommandPanel getMenubarCP() {
+		return menubarCP;
+	}
+
+	public void setMenubarCP(MenuBarCommandPanel menubarCP) {
+		this.menubarCP = menubarCP;
 	}	
 
 }

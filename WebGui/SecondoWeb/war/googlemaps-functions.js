@@ -143,25 +143,6 @@ function deleteAllLines(){
 	  }
 }
 
-//Adds a location to the location array
-function addLocation(location) {
-	  locationsArray.push(location);
-	  
-	  bounds.extend(location);
-}
-
-
-
-//Deletes all locations in the array by removing references to them
-function deleteAllLocations() {
-  if (locationsArray) {
-	
-     while (locationsArray.length > 0) {
-      locationsArray.pop();
-    }
-  }
-}
-
 
 //Adds a polyline to the polyline array
 function addPolyline() {
@@ -225,13 +206,32 @@ function deleteAllPolylines(){
 }
 
 
+//Adds a location to the location array
+function addLocation(location) {
+	  locationsArray.push(location);
+	  
+	  bounds.extend(location);
+}
+
+
+
+//Deletes all locations in the array by removing references to them
+function deleteAllLocations() {
+if (locationsArray) {
+	
+   while (locationsArray.length > 0) {
+    locationsArray.pop();
+  }
+}
+}
+
+
 //a polyline cannot have multiple paths, just a polygon can have 2, polygon var has to be global!
 //Draws a polygon with the data from all location arrays
 function drawPolygon(){
 	
 	if (locationsArray) {
-		
-				
+						
 		polygon = new google.maps.Polygon({
             paths: locationsArray, //a polygon can have max 2 paths = an inner and outer line!
             strokeColor: "#FF0000",
