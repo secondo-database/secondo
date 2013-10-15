@@ -7020,7 +7020,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
   }
  }
 
- if (!reg1.BoundingBox().Intersects(reg2.BoundingBox(), geoid)) {
+ if (false){//}!reg1.BoundingBox().Intersects(reg2.BoundingBox(), geoid)) {
   switch (op) {
   case avlseg::union_op: {
    result.StartBulkLoad();
@@ -7036,7 +7036,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
        gs.GetLeftPointX(), ps.GetlPointy(reg1.getpreciseCoordinates()),
        gs.GetLeftPointY(), 0);
      Reg2PrecisePoint p2(ps.GetrPointx(reg1.getpreciseCoordinates()),
-       gs.GetRightPointX(), ps.GetlPointy(reg1.getpreciseCoordinates()),
+       gs.GetRightPointX(), ps.GetrPointy(reg1.getpreciseCoordinates()),
        gs.GetRightPointY(), 0);
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
@@ -7056,7 +7056,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
        gs.GetLeftPointX(), ps.GetlPointy(reg2.getpreciseCoordinates()),
        gs.GetLeftPointY(), 0);
      Reg2PrecisePoint p2(ps.GetrPointx(reg2.getpreciseCoordinates()),
-       gs.GetRightPointX(), ps.GetlPointy(reg2.getpreciseCoordinates()),
+       gs.GetRightPointX(), ps.GetrPointy(reg2.getpreciseCoordinates()),
        gs.GetRightPointY(), 0);
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
@@ -7759,7 +7759,7 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
        gs.GetLeftPointX(), ps.GetlPointy(reg1.getpreciseCoordinates()),
        gs.GetLeftPointY(), 0);
      Reg2PrecisePoint p2(ps.GetrPointx(reg1.getpreciseCoordinates()),
-       gs.GetRightPointX(), ps.GetlPointy(reg1.getpreciseCoordinates()),
+       gs.GetRightPointX(), ps.GetrPointy(reg1.getpreciseCoordinates()),
        gs.GetRightPointY(), 0);
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
@@ -7779,7 +7779,7 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
        gs.GetLeftPointX(), ps.GetlPointy(reg2.getpreciseCoordinates()),
        gs.GetLeftPointY(), 0);
      Reg2PrecisePoint p2(ps.GetrPointx(reg2.getpreciseCoordinates()),
-       gs.GetRightPointX(), ps.GetlPointy(reg2.getpreciseCoordinates()),
+       gs.GetRightPointX(), ps.GetrPointy(reg2.getpreciseCoordinates()),
        gs.GetRightPointY(), 0);
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
