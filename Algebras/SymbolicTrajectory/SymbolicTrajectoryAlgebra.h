@@ -387,6 +387,7 @@ class Pattern {
   map<string, pair<int, int> > varPos;
   map<int, set<int> > easyCondPos;
   set<string> assignedVars; // variables on the right side of an assignment
+  set<string> relevantVars; // variables that occur in conds, results, assigns
   vector<map<int, int> > nfa;
   set<int> finalStates;
   
@@ -409,22 +410,6 @@ class Pattern {
     nfa = rhs.nfa;
     finalStates = rhs.finalStates;
   }
-
-  Pattern& operator=(const Pattern& rhs){
-    elems = rhs.elems;
-    assigns = rhs.assigns;
-    easyConds = rhs.easyConds;
-    conds = rhs.conds;
-    text = rhs.text;
-    description = rhs.description;
-    regEx = rhs.regEx;
-    varPos = rhs.varPos;
-    easyCondPos = rhs.easyCondPos;
-    assignedVars = rhs.assignedVars;
-    nfa = rhs.nfa;
-    finalStates = rhs.finalStates;
-    return (*this);
-  }  
 
   ~Pattern() {
     deleteEasyCondOpTrees();
@@ -514,6 +499,8 @@ class Pattern {
   string            getRegEx()              {return regEx;}
   bool              containsRegEx()         {return
                                     regEx.find_first_of("()|") != string::npos;}
+  void              addRelevantVar(string var) {relevantVars.insert(var);}
+  bool              isRelevant(string var)  {return relevantVars.count(var);}
 };
 
 class Classifier : public Attribute {
@@ -718,6 +705,7 @@ class RewriteLI {
   stack<BindingStackElem> bindingStack;
   Match *match;
   map<string, pair<unsigned int, unsigned int> > binding;
+  set<map<string, pair<unsigned int, unsigned int> > > rewBindings;
 };
 
 class ClassifyLI {
@@ -800,9 +788,11 @@ struct IndexMatchInfo {
 class IndexClassifyLI {
 
 friend class Match;
+friend class IndexMatchesLI;
 
-public:
-  IndexClassifyLI(Word _mlrel, Word _inv, Word _classifier, Word _attrNr);
+ public:
+  IndexClassifyLI(Word _mlrel, InvertedFile *inv, Word _classifier,int _attrNr);
+  IndexClassifyLI(Word _mlrel, InvertedFile *inv, int _attrNr);
 
   ~IndexClassifyLI();
 
@@ -812,7 +802,7 @@ public:
   ULabel getUL(TupleId tId, unsigned int ulId);
   bool timesMatch(TupleId tId, unsigned int ulId, set<string> ivs);
 
-private:
+ private:
   Classifier *c;
   Relation *mlRel;
   queue<pair<string, TupleId> > classification;
@@ -820,6 +810,15 @@ private:
   InvertedFile* invFile;
   int attrNr, processedP;
   size_t maxMLsize;
+};
+
+class IndexMatchesLI : public IndexClassifyLI {
+ public:
+  IndexMatchesLI(Word _mlrel, InvertedFile *inv, int _attrNr, Pattern *p);
+
+  ~IndexMatchesLI() {}
+
+  Tuple* nextTuple();
 };
 
 }

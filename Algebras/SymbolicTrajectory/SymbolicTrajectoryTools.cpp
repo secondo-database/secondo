@@ -279,7 +279,7 @@ string extendDate(string input, const bool start) {
   string result, mask;
   int month, daysInMonth, year;
   if (start) {
-    mask.assign("-01-01-00:00:00.000");
+    mask.assign("-01-01-00:00:00");
   }
   else {
     mask.assign("-12-31-23:59:59.999");
@@ -340,15 +340,19 @@ string extendDate(string input, const bool start) {
             return input + mask.substr(3);
         }
       }
-    dayStream << "-" << daysInMonth;
-    result.append(dayStream.str());
-    result.append(mask.substr(6));
-    return result;
+      dayStream << "-" << daysInMonth;
+      result.append(dayStream.str());
+      result.append(mask.substr(6));
+      return result;
     }
+  }
+  pos = input.find('-') + 1;
+  if ((pos = input.find('-', pos)) == string::npos) {
+    result.append(mask.substr(3));
+    return result;
   }
   pos++;
   if ((pos = input.find('-', pos)) == string::npos) {
-    result.append(mask.substr(6));
     return result;
   }
   pos++;
@@ -542,6 +546,7 @@ bool timesMatch(Interval<DateTime>* iv, set<string> ivs) {
       }
       else if (((*j).find('~')) == string::npos) { // 5th case: no [~] found
         pStart->ReadFrom(extendDate(*j, true));
+        
         pEnd->ReadFrom(extendDate(*j, false));
       }
       else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00

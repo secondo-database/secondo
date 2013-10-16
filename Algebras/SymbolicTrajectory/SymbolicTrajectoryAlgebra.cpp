@@ -3521,7 +3521,7 @@ struct matchesInfo : OperatorInfo {
 
 */
 ListExpr indexmatchesTM(ListExpr args) {
-  const string errMsg = "Expecting a relation, the name of a {mlabel, mstring}"
+  const string errMsg = "Expecting a relation, the name of a mlabel"
              " attribute of that relation, an invfile, and a text";
   if (nl->HasLength(args, 4)) {
     if (FText::checkType(nl->Fourth(args))) {
@@ -3536,14 +3536,14 @@ ListExpr indexmatchesTM(ListExpr args) {
           if (i == 0) {
             return listutils::typeError(attrName + " not found");
           }
-          if (!MLabel::checkType(attrType) && !MString::checkType(attrType)) {
+          if (!MLabel::checkType(attrType)) {
             return listutils::typeError
                    ("type " + nl->ToString(attrType) + " is an invalid type");
           }
           if (InvertedFile::checkType(nl->Third(args))) {
             return nl->ThreeElemList(
               nl->SymbolAtom(Symbol::APPEND()),
-              nl->OneElemList(nl->IntAtom(i)),
+              nl->OneElemList(nl->IntAtom(i - 1)),
               nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tupleList));
           }
         }
@@ -3553,58 +3553,80 @@ ListExpr indexmatchesTM(ListExpr args) {
   return listutils::typeError(errMsg);
 }
 
-// IndexLI::IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p) {
-//   mlRel = (Relation*)_mlrel.addr;
-//   invFile = static_cast<InvertedFile*>(_inv.addr);
-//   attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
-//   p = _p;
-//   classifyTT = 0;
-//   matches = new vector<set<unsigned int> >[mlRel->GetNoTuples()];
-//   for (int i = 0; i < mlRel->GetNoTuples(); i++) {
-//     matches[i].resize(p->getSize());
-//   }
-//   vector<TupleId> matchingMLs = applyPattern();
-//   applyConditions(matchingMLs, false);
-//   delete[] matches;
-// }
+/*
+\subsection{Constructor for class ~IndexMatchesLI~}
+
+*/
+IndexMatchesLI::IndexMatchesLI(Word _mlrel, InvertedFile *inv, int _attrNr,
+                           Pattern *p) : IndexClassifyLI(_mlrel, inv, _attrNr) {
+  if (p) {
+    applyPattern(p);
+    delete p;
+  }
+}
+
+/*
+\subsection{Function ~nextResultTuple~}
+
+*/
+Tuple* IndexMatchesLI::nextTuple() {
+  if (!classification.empty()) {
+    pair<string, TupleId> matched = classification.front();
+    classification.pop();
+    return mlRel->GetTuple(matched.second, false);
+  }
+  return 0;
+}
 
 /*
 \subsection{Value Mapping}
 
 */
-// int indexmatchesVM(Word* args, Word& result, int message, Word& local,
-//                    Supplier s){
-//   IndexLI *li = (IndexLI*)local.addr;
-//   switch (message) {
-//     case OPEN: {
-//       if (li) {
-//         delete li;
-//         local.addr = 0;
-//       }
-//       FText *pText = static_cast<FText*>(args[3].addr);
-//       Pattern* p = 0;
-//       if (pText->IsDefined()) {
-//         p = Pattern::getPattern(pText->GetValue(), true);
-//       }
-//       if (p) {
-//         local.addr = new IndexLI(args[0], args[2], args[4], p);
-//       }
-//       return 0;
-//     }
-//     case REQUEST: {
-//       result.addr = li ? li->nextResultTuple(false) : 0;
-//       return result.addr ? YIELD : CANCEL;
-//     }
-//     case CLOSE: {
-//       if (li) {
-//         delete li;
-//         local.addr = 0;
-//       }
-//       return 0;
-//     }
-//   }
-//   return 0;
-// }
+int indexmatchesVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s){
+  IndexMatchesLI *li = (IndexMatchesLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      FText *pText = static_cast<FText*>(args[3].addr);
+      CcInt *attr = static_cast<CcInt*>(args[4].addr);
+      InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
+      Pattern* p = 0;
+      if (pText->IsDefined() && attr->IsDefined()) {
+        p = Pattern::getPattern(pText->GetValue());
+        if (p) {
+          if (p->hasConds() || p->containsRegEx()) {
+            cout << "pattern is not simple" << endl;
+            local.addr = 0;
+          }
+          else {
+            local.addr = new IndexMatchesLI(args[0], inv, attr->GetIntval(), p);
+          }
+        }
+      }
+      else {
+        cout << "undefined parameter(s)" << endl;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
 
 /*
 \subsection{Operator Info}
@@ -3615,9 +3637,9 @@ struct indexmatchesInfo : OperatorInfo {
     name      = "indexmatches";
     signature = "rel(tuple(X)) x IDENT x invfile x text -> stream(tuple(X))";
     syntax    = "_ indexmatches [ _ , _ , _ ]";
-    meaning   = "Filters a relation containing a mlabel attribute, passing "
-                "only those trajectories matching the pattern on "
-                "to the output stream.";
+    meaning   = "Filters a relation containing a mlabel attribute, applying a "
+                "trajectory relation index and passing only those trajectories "
+                "matching the pattern on to the output stream.";
   }
 };
 
@@ -3946,12 +3968,18 @@ RewriteLI::RewriteLI(MLabel *src, Pattern *pat) {
   match = new Match(pat, src);
   if (match->matches()) {
     match->initCondOpTrees();
-    map<int, int> transitions = pat->getTransitions(0);
-    for (map<int, int>::iterator itm = transitions.begin();
-                                 itm != transitions.end(); itm++) {
-      BindingStackElem bE(0, itm->first); // init stack
-//       cout << "push (0, " << itm->first << ") to stack" << endl;
-      bindingStack.push(bE);
+    if (!src->GetNoComponents()) {
+      BindingStackElem dummy(0, 0);
+      bindingStack.push(dummy);
+    }
+    else {
+      map<int, int> transitions = pat->getTransitions(0);
+      for (map<int, int>::iterator itm = transitions.begin();
+                                   itm != transitions.end(); itm++) {
+        BindingStackElem bE(0, itm->first); // init stack
+  //       cout << "push (0, " << itm->first << ") to stack" << endl;
+        bindingStack.push(bE);
+      }
     }
   }
   else {
@@ -3965,23 +3993,40 @@ MLabel* RewriteLI::getNextResult() {
   if (!match) {
     return 0;
   }
-  BindingStackElem bE(0, 0);
-  while (!bindingStack.empty()) {
-    bE = bindingStack.top();
-//     cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
+  if (!match->ml->GetNoComponents()) { // empty mlabel
+    if (bindingStack.empty()) {
+      return 0;
+    }
     bindingStack.pop();
-    resetBinding(bE.ulId);
-    if (findNextBinding(bE.ulId, bE.pId, match->p, 0)) {
-//       match->printBinding(binding);
+    vector<Condition> *conds = match->p->getConds();
+    if (match->conditionsMatch(*conds, binding)) {
       MLabel *source = match->ml;
       return source->rewrite(binding, match->p->getAssigns());
     }
+    return 0;
   }
-//   cout << "stack is empty" << endl;
-  match->deletePattern();
-  match->deleteSetMatrix();
-  delete match;
-  return 0;
+  else { // non-empty mlabel
+    BindingStackElem bE(0, 0);
+    while (!bindingStack.empty()) {
+      bE = bindingStack.top();
+  //    cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
+      bindingStack.pop();
+      resetBinding(bE.ulId);
+      if (findNextBinding(bE.ulId, bE.pId, match->p, 0)) {
+  //       match->printBinding(binding);
+        if (!rewBindings.count(binding)) {
+          rewBindings.insert(binding);
+          MLabel *source = match->ml;
+          return source->rewrite(binding, match->p->getAssigns());
+        }
+      }
+    }
+  //   cout << "stack is empty" << endl;
+    match->deletePattern();
+    match->deleteSetMatrix();
+    delete match;
+    return 0;
+  }
 }
 
 void RewriteLI::resetBinding(unsigned int limit) {
@@ -4005,7 +4050,7 @@ bool RewriteLI::findNextBinding(unsigned int ulId, unsigned int pId,
 //   cout << "findNextBinding(" << ulId << ", " << pId << ", " << offset
 //        << ") called" << endl;
   string var = p->getElem(pId - offset).getV();
-  if (!var.empty()) {
+  if (!var.empty() && p->isRelevant(var)) {
     if (binding.count(var)) { // extend existing binding
       binding[var].second++;
     }
@@ -4664,7 +4709,7 @@ ListExpr indexclassifyTM(ListExpr args) {
                        nl->TwoElemList(nl->SymbolAtom("Trajectory"), attrType));
             return nl->ThreeElemList(
               nl->SymbolAtom(Symbol::APPEND()),
-              nl->OneElemList(nl->IntAtom(i)),
+              nl->OneElemList(nl->IntAtom(i - 1)),
               nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                           nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                           outputAttrs)));
@@ -4677,22 +4722,32 @@ ListExpr indexclassifyTM(ListExpr args) {
 }
 
 /*
-\subsection{Constructor for class ~IndexLI~}
+\subsection{Constructor for class ~IndexClassifyLI~}
 
 This constructor is used for the operator ~indexclassify~.
 
 */
-IndexClassifyLI::IndexClassifyLI(Word _mlrel, Word _inv, Word _classifier,
-                                 Word _attrNr) : processedP(0) {
+IndexClassifyLI::IndexClassifyLI(Word _mlrel, InvertedFile *inv,
+ Word _classifier, int _attrNr) : invFile(inv), attrNr(_attrNr), processedP(0) {
   mlRel = (Relation*)_mlrel.addr;
-  invFile = (InvertedFile*)_inv.addr;
-  attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
   c = (Classifier*)_classifier.addr;
   classifyTT = ClassifyLI::getTupleType();
 }
 
 /*
-\subsection{Destructor for class ~IndexLI~}
+\subsection{Constructor for class ~IndexClassifyLI~}
+
+This constructor is used for the operator ~indexmatches~.
+
+*/
+IndexClassifyLI::IndexClassifyLI(Word _mlrel, InvertedFile *inv, int _attrNr) :
+                            c(0), invFile(inv), attrNr(_attrNr), processedP(0) {
+  mlRel = (Relation*)_mlrel.addr;
+  classifyTT = ClassifyLI::getTupleType();
+}
+
+/*
+\subsection{Destructor for class ~IndexClassifyLI~}
 
 */
 IndexClassifyLI::~IndexClassifyLI() {
@@ -4726,10 +4781,9 @@ void IndexClassifyLI::applyPattern(Pattern *p) {
   charPosType cc;
   vector<IndexMatchInfo> matchInfo;
   for (int i = 0; i < mlRel->GetNoTuples(); i++) {
-    IndexMatchInfo imi(getMLsize(i));
+    IndexMatchInfo imi(getMLsize(i + 1));
     matchInfo.push_back(imi);
   }
-  vector<bool> active(mlRel->GetNoTuples(), true);
   int pSize = p->getSize();
   for (int i = 0; i < pSize; i++) { // iterate over pattern elements
     if (p->getElem(i).getW() == NO) {
@@ -4762,7 +4816,7 @@ void IndexClassifyLI::applyPattern(Pattern *p) {
         }
       }
       if (labels.empty()) { // index cannot be exploited
-        if (p->getElem(i).getI().empty()) { // empty simple pattern
+        if (p->getElem(i).getI().empty()) { // empty unit pattern
           for (unsigned j = 0; j < matchInfo.size(); j++) {
             if (matchInfo[j].isActive(i)) {
               matchInfo[j].processSimple();
@@ -4820,7 +4874,7 @@ void IndexClassifyLI::applyPattern(Pattern *p) {
 
 */
 int IndexClassifyLI::getMLsize(TupleId tId) {
-  Tuple* tuple = mlRel->GetTuple(tId + 1, false);
+  Tuple* tuple = mlRel->GetTuple(tId, false);
   int result = ((MLabel*)tuple->GetAttribute(attrNr))->GetNoComponents();
   deleteIfAllowed(tuple);
   return result;
@@ -4868,6 +4922,7 @@ Tuple* IndexClassifyLI::nextResultTuple() {
     p = Pattern::getPattern(c->getPatText(processedP), true);
     if (p) {
       if (p->hasConds() || p->containsRegEx()) {
+        p->parseNFA();
         for (int i = 1; i <= mlRel->GetNoTuples(); i++) {
           Tuple *t = mlRel->GetTuple(i, false);
           MLabel *source = (MLabel*)t->GetAttribute(attrNr)->Copy();
@@ -4904,7 +4959,14 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
         delete li;
         local.addr = 0;
       }
-      local.addr = new IndexClassifyLI(args[0], args[2], args[3], args[4]);
+      InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
+      CcInt *attr = static_cast<CcInt*>(args[4].addr);
+      if (!attr->IsDefined()) {
+        cout << "undefined parameter(s)" << endl;
+        local.addr = 0;
+        return 0;
+      }
+      local.addr = new IndexClassifyLI(args[0], inv,args[3], attr->GetIntval());
       return 0;
     }
     case REQUEST: {
@@ -5013,6 +5075,7 @@ void IndexMatchInfo::processSimple() {
     }
     items = newItems;
   }
+  processed++;
 }
 
 bool IndexMatchInfo::matches(int patSize) {
@@ -5580,7 +5643,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       
       AddOperator(matchesInfo(), matchesVMs, matchesSelect, matchesTM);
 
-//       AddOperator(indexmatchesInfo(), indexmatchesVM, indexmatchesTM);
+      AddOperator(indexmatchesInfo(), indexmatchesVM, indexmatchesTM);
 
       ValueMapping filtermatchesVMs[] = {filtermatchesVM_Text,
                                          filtermatchesVM_Pat, 0};

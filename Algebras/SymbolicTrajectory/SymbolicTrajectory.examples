@@ -55,6 +55,12 @@ Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
 Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * () // X.labels contains "Brackel"'] count
 Result   : 11
 
+Operator : indexmatches
+Number   : 1
+Signature: rel(tuple(X)) x IDENT x text -> stream(tuple(X))
+Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") * (_ "Innenstadt-West")'] count
+Result   : 4
+
 Operator : rewrite
 Number   : 0
 Signature: mlabel x text -> stream(mlabel)

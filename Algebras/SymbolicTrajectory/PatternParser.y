@@ -225,6 +225,7 @@ result : ZZVARIABLE {
              assign.init(var, wholepat->getPatternPos(var));
              wholepat->addAssign(assign);
              resultVars.insert(var);
+             wholepat->addRelevantVar(var);
              free($1);
            }
          }
@@ -668,6 +669,7 @@ int Condition::convertVarKey(const char *varKey) {
         return -1;
       }
       condVars.insert(var);
+      wholepat->addRelevantVar(var);
       if (easyCond) {
         if (wholepat->getElem(i).getW() || (condVars.size() > 1) || !unitVars.count(var)) {
           easyCond = false;
@@ -692,6 +694,7 @@ bool Assign::convertVarKey(const char *varKey) {
       right.first = varInput;
       right.second = getKey(kInput);
       addRight(6, right); // assign to n \in {0, 1, ..., 5} afterwards
+      wholepat->addRelevantVar(varInput);
     }
   }
   return true;
