@@ -200,7 +200,7 @@ state.
 		if (e.getActionCommand() == "Create new profile")
 		{
 			String profileName = this.showChooseProfileNameDialog();
-			if (profileName != null && !profileName.isEmpty())
+			if (profileName != null && profileName.length()!=0)
 			{
 				if (this.loadDialog.addProfile(profileName))
 				{
@@ -226,7 +226,7 @@ state.
 		if (e.getActionCommand() == "Add relation")
 		{
 			String relName = this.showChooseRelationDialog();
-			if (relName != null && !relName.isEmpty())
+			if (relName != null && relName.length()!=0)
 			{
 				if (this.processCommandAddRelationProfile(this.loadDialog.getCurrentLoadProfileName(), relName))
 				{
@@ -627,7 +627,7 @@ state.
 		this.viewer.showRelations();
 		this.viewer.setSelectionMode(LOADED);
 		
-		if (errorMessage != null && !errorMessage.isEmpty())
+		if (errorMessage != null && errorMessage.length()!=0)
 		{
 			this.showErrorDialog(errorMessage);
 		}
