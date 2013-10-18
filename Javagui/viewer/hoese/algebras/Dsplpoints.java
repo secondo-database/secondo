@@ -35,7 +35,7 @@ import tools.Reporter;
 public class Dsplpoints extends DisplayGraph {
   Point2D.Double[] points=null;
   Rectangle2D.Double bounds=null;
-  private boolean defined;
+  protected boolean defined;
 
   /**
    * Scans the representation of the points datatype and 
@@ -52,34 +52,24 @@ public class Dsplpoints extends DisplayGraph {
        return;
     }
     defined = true;
-    double koord[] = new double[2];
-    Vector pointsV = new Vector(20, 20);
+    double coords[] = new double[2];
+    Vector<Point2D.Double>  pointsV = new Vector<Point2D.Double>(20, 20);
+
     while (!value.isEmpty()) {
       ListExpr v = value.first();
-      if (v.listLength() != 2) {
-        Reporter.writeError("Error: No correct points expression: 2 elements needed");
-        err = true;
-        return;
+      if(!Dsplpoint.fillCoordsS(v,coords,true)){
+         err = true;
+         points = null;
+         bounds = null;
+         return;
       }
-      for (int koordindex = 0; koordindex < 2; koordindex++) {
-        Double d = LEUtils.readNumeric(v.first());
-        if (d == null) {
-          err = true;
-          return;
-        }
-        koord[koordindex] = d.doubleValue();
-        v = v.rest();
-      }
-      if (!err) {
-        if(!ProjectionManager.project(koord[0],koord[1],aPoint))
-           Reporter.writeError("error in projection at coordinate ("+
-                                koord[0]+", "+koord[1]+")");
-        else{
-          pointsV.add(new Point2D.Double(aPoint.x,aPoint.y));
-        }
-      }
+      pointsV.add(new Point2D.Double(coords[0],coords[1]));
       value = value.rest();
     }
+    computeBounds(pointsV);
+  }
+
+  protected void computeBounds(Vector<Point2D.Double> pointsV){
     bounds = null;
     if(!err){ // copy the vector into the array to avoid cast 
               // during painting this object
@@ -96,6 +86,7 @@ public class Dsplpoints extends DisplayGraph {
           }
        }
     }
+
   }
 
   public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
