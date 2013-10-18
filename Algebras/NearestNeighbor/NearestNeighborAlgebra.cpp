@@ -246,6 +246,75 @@ distanceScanTypeMap( ListExpr args )
         nl->Second(relDescription));
 }
 
+
+ListExpr
+distanceScan2STypeMap( ListExpr args ) {
+
+  string err = "rtree x SPATIAL x int expected";
+  if(!nl->HasLength(args,3)){
+      return listutils::typeError(err + " (wrong number of args)");
+  }
+  ListExpr rtree = nl->First(args);
+  ListExpr spatial = nl->Second(args);
+  ListExpr count = nl->Third(args);
+  if(!CcInt::checkType(count)){
+     return listutils::typeError(err + "(third arg is not an int)");
+  }
+  if( ! listutils::isSpatialType(spatial) &&
+      ! listutils::isRectangle(spatial)){
+     return listutils::typeError(err + "(second arg is not SPATIAL)");
+  }
+  if(!listutils::isRTreeDescription(rtree)){
+     return listutils::typeError(err + "(first arg is not an r-tree)");
+  }
+
+  ListExpr rtreeKeyType = listutils::getRTreeType(rtree);
+ 
+  if( !listutils::isSpatialType(rtreeKeyType) &&
+      !listutils::isRectangle(rtreeKeyType)){
+     return listutils::typeError(err + "(invalid keyTpe in r-tree)");
+  }
+  // check for equal dimension in rtreekeyType and spatial 
+
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = listutils::emptyErrorInfo();
+  if( !(
+          ( algMgr->CheckKind(Kind::SPATIAL2D(), rtreeKeyType, errorInfo) &&
+            nl->IsEqual(spatial, Rectangle<2>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL2D(), rtreeKeyType, errorInfo) &&
+            algMgr->CheckKind(Kind::SPATIAL2D(), spatial, errorInfo) ) ||
+          ( nl->IsEqual(rtreeKeyType, Rectangle<2>::BasicType()) &&
+            nl->IsEqual(spatial, Rectangle<2>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL3D(), rtreeKeyType, errorInfo) &&
+             nl->IsEqual(spatial, Rectangle<3>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL3D(), rtreeKeyType, errorInfo) &&
+            algMgr->CheckKind(Kind::SPATIAL3D(), spatial, errorInfo) ) ||
+          ( nl->IsEqual(rtreeKeyType, Rectangle<3>::BasicType()) &&
+            nl->IsEqual(spatial, Rectangle<3>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL4D(), rtreeKeyType, errorInfo) &&
+            nl->IsEqual(spatial, Rectangle<4>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL4D(), rtreeKeyType, errorInfo) &&
+            algMgr->CheckKind(Kind::SPATIAL4D(), spatial, errorInfo) ) ||
+          ( nl->IsEqual(rtreeKeyType, Rectangle<4>::BasicType()) &&
+            nl->IsEqual(spatial, Rectangle<4>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo) &&
+            nl->IsEqual(spatial, Rectangle<8>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo) &&
+            algMgr->CheckKind(Kind::SPATIAL8D(), spatial, errorInfo) ) ||
+          ( nl->IsEqual(rtreeKeyType, Rectangle<8>::BasicType()) &&
+            nl->IsEqual(spatial, Rectangle<8>::BasicType()) ))){
+       return listutils::typeError("different dimensions rtree x spatial");
+   }
+
+   ListExpr res =  
+      nl->TwoElemList(
+        nl->SymbolAtom(Symbol::STREAM()),
+                       listutils::basicSymbol<TupleIdentifier>());
+    return res;
+}
+
+
+
 ListExpr
 distanceScan3TypeMap( ListExpr args ) {
 
@@ -941,8 +1010,13 @@ int
 distanceScanSelect( ListExpr args )
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr searchWindow = nl->Third(args),
-           errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
+  ListExpr searchWindow;
+  if(nl->HasLength(args,3)){
+        searchWindow = nl->Second(args);
+  } else {
+        searchWindow = nl->Third(args);
+  }
+  ListExpr  errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
 
   if (nl->SymbolValue(searchWindow) == Rectangle<2>::BasicType() ||
       algMgr->CheckKind(Kind::SPATIAL2D(), searchWindow, errorInfo))
@@ -1278,7 +1352,7 @@ public:
    DSLocalInfo( R_Tree<dim, TupleId>* rtree, Relation* rel,
                StandardSpatialAttribute<dim>* queryObj, CcInt* k){
      // check if all things are defined
-     if(rel->GetNoTuples()==0 ||
+     if( (rel!=0 && rel->GetNoTuples()==0) ||
          !queryObj->IsDefined() ||
          queryObj->IsEmpty() ||
          !k->IsDefined()){
@@ -1324,7 +1398,7 @@ public:
     }
 
 
-   Tuple* nextTuple(){
+   TupleId* nextTupleID1(){
      if(!tree){
        return 0;
      }
@@ -1379,10 +1453,35 @@ public:
      dsqueue.pop();
      // now we have a tuple
      returned++;
-     Tuple* res = rel->GetTuple(top->getTupleId(), false);
+     TupleId* res = new TupleId(top->getTupleId());
      delete top;
      return res;
    }
+
+   Tuple* nextTuple(){
+       TupleId* id = nextTupleID1();
+       if(id==0){
+          return 0;
+       }  else {
+         Tuple* res = rel->GetTuple(*id, false);
+         delete id;
+         return res;
+       }
+   } 
+
+   TupleIdentifier* nextTupleID(){
+       TupleId* id = nextTupleID1();
+       if(id==0){
+          return 0;
+       }  else {
+         TupleIdentifier* res = new TupleIdentifier(true,*id);
+         delete id;
+         return res;
+       }
+   } 
+
+
+
 private:
    R_Tree<dim, TupleId>* tree;
    Relation* rel;
@@ -1440,6 +1539,48 @@ int distanceScan2Fun (Word* args, Word& result, int message,
     default : assert(false);
   }
 }
+
+
+template <unsigned dim>
+int distanceScan2SFun (Word* args, Word& result, int message,
+             Word& local, Supplier s){
+  switch(message){
+    case OPEN : {
+       if(local.addr){
+         DSLocalInfo<dim>* li = static_cast<DSLocalInfo<dim>*>(local.addr);
+         delete li;
+       }
+       R_Tree<dim, TupleId>* rtree =
+                    static_cast<R_Tree<dim, TupleId> *>(args[0].addr);
+       StandardSpatialAttribute<dim>* queryObj =
+             static_cast<StandardSpatialAttribute<dim>*>(args[1].addr);
+       CcInt* k = static_cast<CcInt*>(args[2].addr);
+       local.addr = new DSLocalInfo<dim>(rtree, 0, queryObj, k);
+       return 0;
+    }
+
+    case REQUEST: {
+      if(!local.addr){
+        return CANCEL;
+      } else {
+        DSLocalInfo<dim>* li = static_cast<DSLocalInfo<dim>*>(local.addr);
+        result.addr = li->nextTupleID();
+        return result.addr ? YIELD : CANCEL;
+      }
+    }
+
+    case CLOSE:{
+      if(local.addr){
+        DSLocalInfo<dim>* li = static_cast<DSLocalInfo<dim>*>(local.addr);
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    default : assert(false);
+  }
+}
+
 
 /*
 ~distanceScan 3~
@@ -6756,6 +6897,11 @@ ValueMapping distanceScan2Map [] = {distanceScan2Fun<2>,
                                     distanceScan2Fun<4>,
                                     distanceScan2Fun<8>};
 
+
+ValueMapping distanceScan2SMap [] = {distanceScan2SFun<2>,
+                                    distanceScan2SFun<3>,
+                                    distanceScan2SFun<4>,
+                                    distanceScan2SFun<8>};
 template<class T1, class T2>
 class DistFun{
 public:
@@ -6877,6 +7023,22 @@ const string distanceScan2Spec  =
       "<text>query kinos_geoData Kinos distancescan2 "
       "[zoogarten, 5] tconsume; </text--->"
       ") )";
+
+const string distanceScan2SSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
+      " ti) x  T x k ->"
+      " (stream (tupleId))"
+      "For T = ti and ti in SPATIAL<d>D, for"
+      " d in {2, 3, 4, 8}</text--->"
+      "<text>_  distancescan2S [ _, _ ]</text--->"
+      "<text> This operator is a variant od the distancescan2 "
+      " operator. The differencs is that the relation is not required as"
+      " an argument and the result is a stream of tupleIds instead of tuples." 
+      "<text>query kinos_geoData distancescan2S "
+      "[zoogarten, 5] transformstream tconsume; </text--->"
+      ") )";
+
 
 const string distanceScan3Spec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -7042,6 +7204,15 @@ Operator distancescan2 (
          distanceScan2Map,       // value mapping
          distanceScanSelect,
          distanceScanTypeMap    // type mapping
+);
+
+Operator distancescan2S (
+         "distancescan2S",        // name
+         distanceScan2SSpec,      // specification
+         4,                     //number of overloaded functions
+         distanceScan2SMap,       // value mapping
+         distanceScanSelect,
+         distanceScan2STypeMap    // type mapping
 );
 
 Operator distancescan3 (
@@ -12572,6 +12743,7 @@ class NearestNeighborAlgebra : public Algebra
 */
     AddOperator( &distancescan );
     AddOperator( &distancescan2 );
+    AddOperator( &distancescan2S );
     AddOperator( &distancescan3 );
     AddOperator( &knearest );
     AddOperator( &knearestvector );

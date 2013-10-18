@@ -19,6 +19,7 @@
 
 operator distancescan alias DISTANCESCAN pattern _ _ op [_, _]
 operator distancescan2 alias DISTANCESCAN2 pattern _ _ op [_, _]
+operator distancescan2S alias DISTANCESCAN2S pattern _ op [_, _]
 operator distancescan3 alias DISTANCESCAN3 pattern _ _ op [_, _]
 operator distancescan4 alias DISTANCESCAN4 pattern _ _ op [_, _, _]
 operator knearest alias KNEAREST pattern _ op [_,_, _]

@@ -20,6 +20,13 @@ Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)
 Example  : query Kinos creatertree[GeoData] Kinos distancescan2 [tiergarten, 5] count;
 Result   : 5
 
+Operator : distancescan2S
+Number   : 1
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)  T int) -> (stream (tupleid)), where T = ti = SPATIAL[2,3,4]D
+Example  : query Kinos creatertree[GeoData] distancescan2S [tiergarten, 5] count;
+Result   : 5
+
+
 Operator : distancescan3
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
