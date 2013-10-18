@@ -166,9 +166,6 @@ public class ToneGenerator {
      }    
 
      public void stop(){
-         if(!clip.isRunning()){
-            return;
-         }
          clip.stop();
      }
 

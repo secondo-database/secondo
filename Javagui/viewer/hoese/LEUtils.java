@@ -25,6 +25,8 @@ import  sj.lang.ListExpr;
 import viewer.HoeseViewer;
 import gui.Environment;
 import tools.Reporter;
+import java.util.StringTokenizer;
+import java.math.BigInteger;
 
 
 /**
@@ -367,6 +369,35 @@ public class LEUtils {
           return  new Double(v*(Math.abs(g) + (double)le.fourth().intValue()/(double)le.sixth().intValue()));
     	}
     }
+  }
+
+
+  public static Double readFrac(ListExpr f){
+       if(f.atomType()!=ListExpr.TEXT_ATOM){
+          return null;
+       }
+       String s = f.textValue();
+       StringTokenizer st = new StringTokenizer(s,"/");
+       if(!st.hasMoreTokens()){
+          return null;
+       }
+       String nomStr = st.nextToken();
+       double nom;
+       try{
+          nom =  (new  BigInteger(nomStr)).doubleValue();       
+       } catch(NumberFormatException e){
+          return null;
+       }
+       if(!st.hasMoreTokens()){
+          return new Double(nom);
+       } 
+       double denom;
+       try{
+          denom = (new BigInteger(st.nextToken())).doubleValue();  
+       } catch(NumberFormatException e){
+          return null;
+       }
+       return new Double(nom/denom);
   }
 
 }
