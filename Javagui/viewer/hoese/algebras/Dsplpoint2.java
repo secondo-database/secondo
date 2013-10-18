@@ -11,53 +11,45 @@ import java.awt.geom.Point2D;
 
 public class Dsplpoint2 extends Dsplpoint{
 
+  public boolean fillCoords(ListExpr v, double[] coord, boolean useProjection){
+     return  Dsplpoint2.fillCoordsS(v,coord,useProjection);
+  }
 
-  protected void ScanValue(ListExpr v){
+  public static boolean fillCoordsS(ListExpr v, double[] coord, boolean useProjection){
      if(v.listLength()!=3){
-        super.ScanValue(v);
-        return;
+       return Dsplpoint.fillCoordsS(v,coord, useProjection);
      }
-    double koord[] = new double[2];
     for (int koordindex = 0; koordindex < 2; koordindex++) {
       Double d = LEUtils.readNumeric(v.first());
       if (d == null) {
-        err = true;
-        label = null;
-        return;
+        return false;
       }
-      koord[koordindex] = d.doubleValue();
+      coord[koordindex] = d.doubleValue();
       v = v.rest();
     }
     // now, read the fractional part of the point
     v = v.first();
-
     if(v.listLength()!=2){
-       err=true;
-       label=null;
-       return;
+       return false;
     }
     ListExpr fracX = v.first();
     ListExpr fracY = v.second();
     Double fx = LEUtils.readFrac(fracX);
     Double fy = LEUtils.readFrac(fracY);
     if(fx==null || fy==null){
-       err=true;
-       label=null;
-       return;
+       return false;
     }
-    koord[0] += fx;
-    koord[1] += fy;
-    if(ProjectionManager.project(koord[0],koord[1],aPoint)){
-          err = false;
-          point = new Point2D.Double(aPoint.x,aPoint.y);
-          label = "("+format.format(point.getX())+", "+format.format(point.getY())+")";
+    coord[0] += fx;
+    coord[1] += fy;
+    if(!useProjection){
+       return true;
     }
-    else{
-       label = null;
-       err = true;
+    if(ProjectionManager.project(coord[0],coord[1],aPoint)){
+       coord[0] = aPoint.x;
+       coord[1] = aPoint.y;
+       return true;    
+    } else {
+       return false;
     }
-
-  } 
-
-
+  }
 }

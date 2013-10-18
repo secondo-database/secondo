@@ -107,6 +107,38 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplpointsrc.html#ScanValue">Source</a>
    */
+
+  public static boolean fillCoordsS(ListExpr v, double[] coord, boolean useProjection){
+    if (v.listLength() != 2) {
+      Reporter.writeError("Error: No correct point expression: 2 elements needed");
+      return false;
+    }
+    for (int koordindex = 0; koordindex < 2; koordindex++) {
+      Double d = LEUtils.readNumeric(v.first());
+      if (d == null) {
+        return false;
+      }
+      coord[koordindex] = d.doubleValue();
+      v = v.rest();
+    }
+    if(!useProjection){
+        return true;
+    }
+
+    if(ProjectionManager.project(coord[0],coord[1],aPoint)){
+          coord[0] = aPoint.x;
+          coord[1] = aPoint.y;
+          return true;
+    }
+    else{
+         return false;
+    }
+  }
+  
+  public boolean fillCoords(ListExpr v, double[] coord, boolean useProjection){
+      return   Dsplpoint.fillCoordsS(v,coord,useProjection);
+  }
+
   protected void ScanValue (ListExpr v) {
     if(isUndefined(v)){
         err=false;
@@ -115,31 +147,16 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
         return;
     }
     double koord[] = new double[2];
-    if (v.listLength() != 2) {
-      Reporter.writeError("Error: No correct point expression: 2 elements needed");
+    if(!fillCoords(v,koord,true)){
       err = true;
-      label =null;
-      return;
-    }
-    for (int koordindex = 0; koordindex < 2; koordindex++) {
-      Double d = LEUtils.readNumeric(v.first());
-      if (d == null) {
-        err = true;
-        label = null;
-        return;
-      }
-      koord[koordindex] = d.doubleValue();
-      v = v.rest();
+      label = null;
+      point = null;
+    } else {
+      err=false;
+      point = new Point2D.Double(koord[0],koord[1]);
+      label = "("+format.format(point.getX())+", "+format.format(point.getY())+")";
     }
 
-    if(ProjectionManager.project(koord[0],koord[1],aPoint)){
-          point = new Point2D.Double(aPoint.x,aPoint.y);
-          label = "("+format.format(point.getX())+", "+format.format(point.getY())+")";
-    }
-    else{
-       label = null;
-       err = true;
-    }
   }
 
 

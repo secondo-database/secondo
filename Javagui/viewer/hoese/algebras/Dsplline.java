@@ -64,7 +64,6 @@ public class Dsplline extends DisplayGraph {
   public String toString(){
      if(err || !defined){
         return entry;
-   
      }
      else{
         return entry + " ("+Cat.getName()+")";
@@ -73,6 +72,40 @@ public class Dsplline extends DisplayGraph {
   }
 
   
+
+
+  protected boolean fillSegment(ListExpr v, double[] koord, boolean useProjection){
+      if (v.listLength() != 4) {
+         return false;
+      }
+      for (int koordindex = 0; koordindex < 4; koordindex++) {
+        Double d = LEUtils.readNumeric(v.first());
+        if (d == null) { // error detected
+          return false;
+        }
+        koord[koordindex] = d.doubleValue();
+        v = v.rest();
+      } 
+			try{
+        if(useProjection){ 
+          if(!ProjectionManager.project(koord[0],koord[1],aPoint)){
+             return false;
+			    }else{ 
+					   koord[0] = aPoint.x;
+             koord[1] = aPoint.y;
+             if(!ProjectionManager.project(koord[2],koord[3],aPoint)){
+               return false;
+             }else{
+               koord[2] = aPoint.x;
+               koord[3] = aPoint.y;
+             }
+          }
+        }
+      } catch(Exception e){
+         return false;
+      }
+      return true;
+  }
 
 
  /**
@@ -95,78 +128,44 @@ public class Dsplline extends DisplayGraph {
     GP = new GeneralPath();
     while (!value.isEmpty()) {
       ListExpr v = value.first();
-      if (v.listLength() != 4) {
-        Reporter.writeError("Error: No correct segment expression: 4 elements needed");
-        GP=null;
-        err = true;
-        return false;
-      }
-      for (int koordindex = 0; koordindex < 4; koordindex++) {
-        Double d = LEUtils.readNumeric(v.first());
-        if (d == null) { // error detected
-          err = true;
+      if(!fillSegment(v,koord, useProjection)){
           GP=null;
+          err=true;
           return false;
-        }
-        koord[koordindex] = d.doubleValue();
-        v = v.rest();
-      } 
-			try{
-        if(useProjection){ 
-          if(!ProjectionManager.project(koord[0],koord[1],aPoint)){
-					   err = true; 
-             Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
-             GP=null;
-             return false;
-			    }else{ 
-					   x1 = aPoint.x;
-             y1 = aPoint.y;
-             if(!ProjectionManager.project(koord[2],koord[3],aPoint)){
-               err = true;
-               GP=null;
-               Reporter.debug("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
-               return false;
-             }else{
-               x2 = aPoint.x;
-               y2 = aPoint.y;
-             }
-          }
-        } else {
-           x1 = koord[0];
-           y1 = koord[1];
-           x2 = koord[2];
-           y2 = koord[3];
-        }
+      }
+
+      x1 = koord[0];
+      y1 = koord[1];
+      x2 = koord[2];
+      y2 = koord[3];
+        
        
 
-        last1.setLocation(x1,y1);
-        last2.setLocation(x2,y2);
+      last1.setLocation(x1,y1);
+      last2.setLocation(x2,y2);
 
-        if(first){
-           GP.moveTo((float)x1,(float)y1);
-           GP.lineTo((float)x2,(float)y2);
-           first=false;
-           lastX=x2;
-           lastY=y2;
-         }else{
-           if((lastX==x1) && (lastY==y1)){
-               GP.lineTo((float)x2,(float)y2);
-               lastX=x2;
-               lastY=y2;
-            } else if((lastX==x2) && (lastY==y2)){
-               GP.lineTo((float)x1,(float)y1);
-               lastX=x1;
-               lastY=y1;
-            } else{ // not connected
-                GP.moveTo((float)x1,(float)y1);
-                GP.lineTo((float)x2,(float)y2);
-                lastX=x2;
-                lastY=y2;
-            }
-         }
-			} catch(Exception e){
-          Reporter.debug(e); 
-			}
+      if(first){
+         GP.moveTo((float)x1,(float)y1);
+         GP.lineTo((float)x2,(float)y2);
+         first=false;
+         lastX=x2;
+         lastY=y2;
+       }else{
+         if((lastX==x1) && (lastY==y1)){
+             GP.lineTo((float)x2,(float)y2);
+             lastX=x2;
+             lastY=y2;
+          } else if((lastX==x2) && (lastY==y2)){
+             GP.lineTo((float)x1,(float)y1);
+             lastX=x1;
+             lastY=y1;
+          } else{ // not connected
+              GP.moveTo((float)x1,(float)y1);
+              GP.lineTo((float)x2,(float)y2);
+              lastX=x2;
+              lastY=y2;
+          }
+      }
       value = value.rest();
     }
     if(first){ // empty line
