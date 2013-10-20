@@ -30,10 +30,14 @@ import java.awt.Composite;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Frame;
+import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.InputEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -72,6 +76,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
@@ -115,15 +120,10 @@ public class RelationPanel extends JPanel implements TableModelListener{
 	// controller listens to action and table events
 	private UpdateViewerController controller;
 	
-	// components to display the relation in edit mode
-	private RelationTableModel relTableModel;
-
 	private JTable relTable;
-
-	private DefaultTableCellRenderer renderer;
 	
 	private JScrollPane relScroll;
-	
+		
 	
 	// components to display the relation in insert mode
 	private JScrollPane insertScroll;
@@ -144,11 +144,9 @@ public class RelationPanel extends JPanel implements TableModelListener{
 		this.name = pRelationName;
 		this.setLayout(new BorderLayout());		
 		this.controller = pController;
-		this.renderer = new DefaultTableCellRenderer();
-		this.renderer.setBackground(Color.YELLOW);
 		this.changes = new ArrayList<Change>();
 	}
-
+	
 	
 	/*
 	 Is called when yet at least one insert-tuple was edited	and another one shall be
@@ -202,7 +200,68 @@ public class RelationPanel extends JPanel implements TableModelListener{
 								   });
 		
 	}
+	
+	
+	/**
+	 * Returns the length of the specified String as rendered with current FontMetrics.
+	 */
+	public int computeLengthByCurrentFont(String pString)
+	{
+		FontMetrics metrics = ((Component)this).getFontMetrics(this.getFont());
+		return metrics.stringWidth(pString);
+	}
+	
+	
+	/**
+	 * Computes maximum content length of each table column 
+	 * and initializes maxContentLengths.
+	 * TODO: nicer to have this done while scanning the relation during init phase.
+	 */
+	private int computeMaxContentLength(int pCol)
+	{		
+		int max = 0;
 		
+		if (pCol == 0 || pCol == 1)
+		{
+			List<String> strings = this.getTableModel().getColumnContent(pCol);
+			strings.add(this.getTableModel().getColumnName(pCol));
+			
+			for (String s : strings)
+			{
+				int length = this.computeLengthByCurrentFont(s);
+				if (length > max)
+					max = length;
+			}
+		}
+		
+		// add some extra space
+		FontMetrics metrics = ((Component)this).getFontMetrics(this.getFont());
+		max = max + metrics.getMaxAdvance();
+		
+		return max;
+	}
+		
+
+	
+	/**
+	 * Computes and sets height of column 2
+	 * which may contain long text values.
+	 */
+	private void correctRowHeight() 
+	{
+		int width = relTable.getColumnModel().getColumn(2).getWidth();
+		for (int row = 0; row < relTable.getRowCount(); row++) {
+			JTextArea area = new JTextArea();
+			area.setLineWrap(true);
+			area.setWrapStyleWord(true);
+			area.setSize(width, Short.MAX_VALUE);
+			area.setText(relTable.getValueAt(row, 2).toString());
+			relTable.setRowHeight(row, area.getPreferredSize().height);
+		}
+	}
+
+	
+	
 	/**
 	 * Creates a JTable from the parameter LE. If LE doesn't represent a relation 'null' will be
 	 * returned. The members that represent the original relation-data and the actual relation-data
@@ -221,14 +280,46 @@ public class RelationPanel extends JPanel implements TableModelListener{
 			RelationTableModel relationTM = new RelationTableModel(relation);
 			this.relTable = new JTable(relationTM);
 			
-			// set column dimensions
+			// set column widths
 			TableColumn column = this.relTable.getColumnModel().getColumn(0);
-			int maxlength = relationTM.getMaxContentLength(0);
-			column.setMaxWidth(maxlength*10); 
+			column.setMinWidth(this.computeMaxContentLength(0)); 
+			column.setMaxWidth(this.computeMaxContentLength(0)); 
 			column = this.relTable.getColumnModel().getColumn(1);
-			maxlength = relationTM.getMaxContentLength(1);
-			column.setMaxWidth(maxlength*10); 
-				
+			column.setMinWidth(this.computeMaxContentLength(1));
+			column.setMaxWidth(this.computeMaxContentLength(1));
+			
+			// set cell renderers
+			LabelTableCellRenderer lcr = new LabelTableCellRenderer();
+			column = this.relTable.getColumnModel().getColumn(0);
+			column.setCellRenderer(lcr);
+			
+			column = this.relTable.getColumnModel().getColumn(1);
+			column.setCellRenderer(lcr);
+			
+			column = this.relTable.getColumnModel().getColumn(2);
+			column.setCellRenderer(new ValueTableCellRenderer());
+			
+			// set cell editor
+			column.setCellEditor(new ValueTableCellEditor());
+			
+			// set listeners
+			/*
+			 this.relTable.getModel().addTableModelListener(this);
+			
+			this.relTable.addComponentListener(new ComponentListener() {
+									   public void componentHidden(ComponentEvent e) {}
+									   public void componentMoved(ComponentEvent e) {}
+									   
+									   public void componentResized(ComponentEvent e) {
+											   correctRowHeight();
+									   }
+									   
+									   public void componentShown(ComponentEvent e) {
+											   correctRowHeight();
+									   }
+									   });
+			 */
+			
 			this.relScroll = new JScrollPane(relTable);
 			this.add(relScroll);
 		}
@@ -424,6 +515,15 @@ public class RelationPanel extends JPanel implements TableModelListener{
 	 */
 	public String getName() {
 		return this.name;
+	}
+	
+	
+	/**
+	 * Returns RelationTabelModel of currently displayed Table. (Convenience shortcut)
+	 */
+	private RelationTableModel getTableModel()
+	{
+		return (RelationTableModel)this.relTable.getModel();
 	}
 	
 	
@@ -648,13 +748,7 @@ public class RelationPanel extends JPanel implements TableModelListener{
 		}
 	}
 	
-	public void setTableModel(RelationTableModel pRelTableModel)
-	{
-		this.relTableModel = pRelTableModel;
-	}
-	
-	
-	
+
 	/*
 	 Shows an empty relation that can be edited to contain tuples that shall be inserted.	 
 	 */
@@ -737,15 +831,21 @@ public class RelationPanel extends JPanel implements TableModelListener{
 	 * If the table was edited this method is called. Registers which cell was edited and
 	 * prepares this cell to be marked differently with the next 'repaint'.	 
 	 */
-	public void tableChanged(TableModelEvent e) {
+	public void tableChanged(TableModelEvent e) 
+	{
+		// set row heights
+			
 		int row = e.getFirstRow();
 		int column = e.getColumn();
 		int[] lastChanged = {row, column};
+		
 		// TODO
 		/*
 		updatesOrdered.add(lastChanged);
 		changedCells[row][column] = true;
 		changedRows.add(new Integer(row));
+		 
+		//this.correctRowHeight();
 		 */
 		this.repaint();
 		this.validate();

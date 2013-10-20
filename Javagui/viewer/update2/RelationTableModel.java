@@ -23,6 +23,9 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import gui.idmanager.*;
 import gui.SecondoObject;
 
@@ -38,7 +41,6 @@ import viewer.relsplit.InvalidRelationException;
 
 public class RelationTableModel extends AbstractTableModel 
 {
-
 	private Relation relation;
 	private String relationName;
 	private String[] columnNames = {"TupleId", "Name", "Value"};
@@ -46,12 +48,11 @@ public class RelationTableModel extends AbstractTableModel
 	private int tupleSize;
 	private int tupleCount;
 	private int[] maxContentLengths;
-	
-	
-	public RelationTableModel(ListExpr le){
-		// TODO
-	}
-	
+	private AttributeFormatter formatter;
+		
+	/**
+	 * Constructor.
+	 */
 	public RelationTableModel(Relation pRelation) throws InvalidRelationException
 	{
 		if(pRelation==null || !pRelation.isInitialized())
@@ -59,31 +60,16 @@ public class RelationTableModel extends AbstractTableModel
 			throw(new InvalidRelationException());
 		}
 		
+		this.formatter = new AttributeFormatter(); 
 		this.relation = pRelation;
 		this.relationName = pRelation.getName();
 		this.tupleSize = pRelation.getTupleSize();
 		this.tupleCount = pRelation.getTupleCount();
 		this.attributeNames = pRelation.getAttributeNames();
-		this.maxContentLengths = new int[this.columnNames.length];
-		
-		// TODO
-		// compute maximum content lengths
-		/*
-		int max = 0;
-		int limit = this.tupleCount * (this.tupleSize+1);
-		for(int j = 0; j<maxContentLengths.length; j++)
-		{
-			for(int i = j; i<limit; i=i+j)
-			{
-				SecondoObject so = this.relation.get(i);
-				Reporter.debug("maxContentLengths: " + so.toString());
-			}			
-		}
-		*/
-		 
+			 
 		Reporter.debug(this.toString());
 	}
-		
+			
 	/**
 	 * Method of interface AbstractTableModel.
 	 *
@@ -92,6 +78,22 @@ public class RelationTableModel extends AbstractTableModel
 	{
         return getValueAt(0, pCol).getClass();
     }
+	
+	/**
+	 * Returns a List of String representations of all the values in the specified column.
+	 */ 
+	public List<String> getColumnContent(int pCol)
+	{
+		List<String> result = new ArrayList<String>();
+		
+		for (int i = 0; i < this.tupleCount * (tupleSize+1); i++)
+		{
+			Object o = this.getValueAt(i, pCol);
+			result.add(o.toString());
+		}
+		
+		return result;
+	}
 	
 	/*
 	 * Method of interface AbstractTableModel.
@@ -110,15 +112,6 @@ public class RelationTableModel extends AbstractTableModel
         return columnNames[pCol];
     }
 	
-	/**
-	 * Returns the number of the longest string representation the specified column contains.
-	 */
-	public int getMaxContentLength(int pColumnIndex)
-	{
-		// TODO
-		//return this.maxContentLengths[pColumnIndex];
-		return 100;
-	}
 
 	/**
 	 * Returns the relation name.
@@ -139,10 +132,13 @@ public class RelationTableModel extends AbstractTableModel
 	
 	/*
 	 * Method of interface AbstractTableModel.
+	 * Returns String representation of Tuple ID for column 1, 
+	 * String representation of attribute name for column 2,
+	 * formatted String representation of attribute value for column 3.
 	 */
     public Object getValueAt(int pRow, int pCol) 
 	{
-		Reporter.debug("RelationTableModel.getValueAt: " + pRow + ", " + pCol);
+		//Reporter.debug("RelationTableModel.getValueAt: " + pRow + ", " + pCol);
 		
 		String result = " ";
 		
@@ -152,8 +148,6 @@ public class RelationTableModel extends AbstractTableModel
 			// get Tuple value
 			int tupleIndex = pRow / (this.tupleSize+1);
 			int attrIndex = pRow % (this.tupleSize+1);
-			Reporter.debug("RelationTableModel.getValueAt: tupleIndex " + tupleIndex);
-			Reporter.debug("RelationTableModel.getValueAt: attrIndex " + attrIndex);
 			
 			SecondoObject soTuple = this.relation.getTupleNo(tupleIndex);
 						
@@ -168,12 +162,12 @@ public class RelationTableModel extends AbstractTableModel
 					break;
 				case 2: 
 					ListExpr rest = soTuple.toListExpr().second();
-					Reporter.debug("RelationTableModel.getValueAt: listLength " + rest.listLength());
+					//Reporter.debug("RelationTableModel.getValueAt: listLength " + rest.listLength());
 					for (int i = 0; i<attrIndex-1; i++)
 					{
 						rest = rest.rest();
 					}
-					result = rest.first().toString();
+					result = this.formatter.fromListExprToString(rest.first());
 					break;
 				default: 
 					result = "fehler";
@@ -190,11 +184,12 @@ public class RelationTableModel extends AbstractTableModel
      */
     public boolean isCellEditable(int pRow, int pCol) 
 	{
-        if (pCol < 3 || this.isSeparator(pRow)) 
+        if (pCol != 2 || this.isSeparator(pRow)) 
 		{
             return false;
         } 
-		else {
+		else
+		{
             return true;
         }
     }

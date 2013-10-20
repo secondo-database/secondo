@@ -21,4 +21,3 @@ all: $(CLASSFILES)
 .PHONY: clean
 clean:
 	rm -f *.class
-	make -C format clean
