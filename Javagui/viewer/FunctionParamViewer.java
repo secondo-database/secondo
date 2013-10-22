@@ -39,6 +39,14 @@ public class FunctionParamViewer extends SecondoViewer{
   private HashMap< String, HashMap<String, String> > paramDescMap;  // mapping function name -> (mapping param  name -> param description
 
 
+  private tools.HTMLDialog helpDialog;
+  private MenuVector mv;
+
+  private final int maxFunDesc = 1000;
+  private final int maxParamDesc = 10000;
+
+
+
   /** Constructs a new FunctionParamViewer. **/
   public FunctionParamViewer(){
       paramPanel = new JPanel();
@@ -130,9 +138,99 @@ public class FunctionParamViewer extends SecondoViewer{
               doQuery();
           }
       };
+      helpDialog = new tools.HTMLDialog("Help");
+      helpDialog.setText(getHelpText());
 
-      
+      JMenu menu = new JMenu("FunctionParamViewer");
+      JMenuItem helpItem = new JMenuItem("Help");
+      helpItem.addActionListener(new ActionListener(){
+          public void actionPerformed(ActionEvent evt){
+             helpDialog.setVisible(true);
+          }
+      });
+      menu.add(helpItem);
+      mv = new MenuVector();
+      mv.addMenu(menu);
+
   }
+
+   private String getHelpText(){
+       String res =     "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n"
+                    +    "\"http://www.w3.org/TR/html4/loose.dtd\">";
+       res += "<html>\n";
+       res += "<head>\n";
+       res += "<style TYPE=\"text/css\">\n";
+       res += "<!--\n";
+       res += " h1{color:red;} \n"
+            + " h2{color:blue;}\n"
+            + "body{ background:#efffef;}";
+       res += "-->\n";
+       res += "</style>";
+       res += "</head>\n";
+       res += "<body>\n";
+       
+       res += "<h1> FunctionParamViewer </h1>\n";
+       res += "<h2> Propose of this Viewer </h2>\n";
+       res +=" <div>\n";
+       res +=   "This viewer is intended to perform predefined functions stored in "
+              + " a database. If the database is well prepared, the user will find some "  
+              + "functions as well as table describing the functionality of these functions "
+              + " and there parameters.<br>\n"
+              + " The viewer does not display any Secondo objects. If a query is send to "
+              + " the Secondo DBMS, an appropriate viewer for this result will be chosen."; 
+       res +="</div>\n";
+
+       res += "<h2> Usage of this Viewer </h2>\n";
+       res += "<div>\n";
+       res += "This viewer can be used in several steps: <br>"
+             + "<ol>"
+             + "  <li> Press the update Button <br>"
+             + "       This retrieves the avaiable databases of Secondo and inserts them into the selection box </li>\n"
+             + "  <li> Select the database <br>"
+             + "       After selecting a database, this database is scanned for function objects and tables"
+             + "       providing desctiptions for functions and parameters. All candidate tables are "
+             + "       inserted into the corresponding selection boxes.</li>"
+             + "  <li> Selection of function and parameter descriptions <br>"
+             + "       Using the selection boxes, one can choose the tables containing the descriptions"
+             + "       for fucntions and their parameters. </li>"
+             + "  <li> Selection of the function <br>"
+             + "       During selection of the fucntion, tool tips are provided giving information about the "
+             + "       the functions where the mouse is over. If there is no tool tip, either the is no "
+             + "       table selected containing function descriptions or the selected table does not "
+             + "       have any information about this function. <br>"
+             + "       After selecting a certain function, the main area is filled with control elements"
+             + "       for entering the parameters of the selected function. </li>"
+             + "  <li> Entering Parameters <br>"
+             + "       After selecting a function, the main area contains for each parameter of this function"
+             + "       a row consisting of four columns. <br>"
+             + "       The first columns contains the name of this parameter, the second column is a text field"
+             + "       for entering constant values, the third column is a selection box for selecting database objects as parameter,"
+             + "       and the last column describes the type of this parameter. <br>"
+             + "       <b> Note: </b> The content of the text field is only used, if the database object selection is &quot;const&quot;."
+             + "       The &quot;send query&quot; called the function stored in the Secondo system using the entered parameter.  </li> " 
+             + "</ol>";
+        
+       res += "</div>\n";
+
+       res += "<h2> For Database Administrators </h2>\n";
+       res += " To use a database with this viewer for querying, at least one function must be provided. "
+           + " Each function should be described in a table. Even auxiliary functions should be described, e.g. "
+           + " with &quot;For internal use only&quot;. <br>"
+           + " For function descriptions a table with two attributes is used. The first attribute has to be of "
+           + " type string and represents the name of the function to describe."
+           + " The second attribute can be of type string or of type text and contains the description of this function. <br>"
+           + " Parameter descriptions are stored in another table with three attributes. "
+           + " The first two attributes have to be of type string and refer to the function name and the parameter name, respectively.<br>"
+           + " The third attribute contains the description of this parameter and has to be of type string or text. <br><br>"
+           + " For reasons of storage management, the size of describing tables is restricted. "
+           + " The maximum size of the table for function descriptions is " + maxFunDesc + " and the size of the table "
+           + " describing the parameters of all functions is restricted to " + maxParamDesc+".<br>"
+           + " The viewer only uses the table scheme for detecting if it contains fucntion or parameter descriptions. "
+           + " It's recommended to have only the describing tables with this type or these table have speaking names. ";
+       res += "</body>\n";
+       res += "</html>\n";
+       return res;
+   }
 
 
    /** retrieves the available databases,
@@ -317,9 +415,11 @@ public class FunctionParamViewer extends SecondoViewer{
   private void selectFunDesc(String tableName){
       funDescTable = null;
       funDescMap = null;
+      functions.setToolTipText(null);
       if(tableName == null || tableName.equals("none")){
          return;
       }
+
       ListExpr tableCount = VC.getCommandResult("query " + tableName + " count");
       if(tableCount==null){
          Reporter.showError("Could not retrieve size of function description table " + tableName);
@@ -328,7 +428,7 @@ public class FunctionParamViewer extends SecondoViewer{
       int tc = tableCount.second().intValue();
       funDescTable = tableName;
       funDescMap = new HashMap<String,String>();
-      if(tc < 5000){ // retrieve the complete table
+      if(tc <= maxFunDesc){ // retrieve the complete table
          ListExpr table = VC.getCommandResult("query " + tableName);
          if(table==null){
             Reporter.writeError("Could not retrieve table " + tableName);
@@ -365,7 +465,14 @@ public class FunctionParamViewer extends SecondoViewer{
              return comp;
          }
 
-      }; 
+      };
+      Object o = functions.getSelectedItem();
+      if(o==null){
+         functions.setToolTipText(null);
+      }  else {
+         String d = funDescMap.get(o.toString().trim()); 
+         functions.setToolTipText(d);
+      }
       functions.setRenderer(functionsTT); 
   }
 
@@ -377,6 +484,7 @@ public class FunctionParamViewer extends SecondoViewer{
       if(tableName == null || tableName.equals("none")){
          paramDescTable = null;
          paramDescMap = null;
+         changeParamToolTips();
          return;
       }
       paramDescTable = tableName;
@@ -385,19 +493,22 @@ public class FunctionParamViewer extends SecondoViewer{
       ListExpr tableCount = VC.getCommandResult("query " + tableName + " count");
       if(tableCount==null){
          Reporter.showError("Could not retrieve size of parameter description table " + tableName);
+         changeParamToolTips();
          return;
       }
       int tc = tableCount.second().intValue();
-      if(tc < 10000){ // retrieve the complete table
+			if(tc <= maxParamDesc){ // retrieve the complete table
          ListExpr table = VC.getCommandResult("query " + tableName);
          if(table==null){
             Reporter.writeError("Could not retrieve table " + tableName);
+            changeParamToolTips();
             return;
          }
          ListExpr type = table.first();
          ListExpr value = table.second();
          if(!isParamDescType(type)){
              Reporter.writeError("Table " + tableName + " has a wrong type \n (press update button and open the db again)");
+             changeParamToolTips();
              return;
          }
             
@@ -416,12 +527,29 @@ public class FunctionParamViewer extends SecondoViewer{
                paramDescMap.put(fn,funMap); 
             }
          }
+         changeParamToolTips();
       }  else {
           Reporter.writeError("The table for parameter descriptions " + tableName + " is too big");
+          changeParamToolTips();
           return;
       }
        
   }
+
+  /** Changes the tooltips for parameters according to the selection. **/
+   private void changeParamToolTips(){
+     int c = currentPanel.getComponentCount();
+     for(int i=0;i<c;i++){
+         Component p = currentPanel.getComponent(i);
+         if(p instanceof ParamPanel){
+            ParamPanel pp = (ParamPanel) p;
+            pp.changeToolTips();
+         }
+     } 
+
+   }
+
+
 
   /** Builds a query from the current values of parameters and sends
    * this query to the Secondo DBMS.
@@ -506,8 +634,6 @@ public class FunctionParamViewer extends SecondoViewer{
      }
      funName = functions.getSelectedItem().toString().trim();
 
-     HashMap<String,String> funMap = paramDescMap.get(funName);
-
      ListExpr map = VC.getCommandResult("query " + funName);
      if(map==null){
         return;
@@ -526,15 +652,20 @@ public class FunctionParamViewer extends SecondoViewer{
      JPanel completePanel = new JPanel();
      completePanel.setLayout(new BoxLayout(completePanel,BoxLayout.Y_AXIS));
      completePanel.setBorder(new javax.swing.border.TitledBorder("Function: "+ funName));
+
+     functions.setToolTipText(null);
+     if(funDescMap!=null ){
+         String d = funDescMap.get(funName);
+         if(d!=null){
+            functions.setToolTipText(d);
+         }
+     }
+
      fun = fun.rest(); // ignore fun keyword
      int len = fun.listLength();
      for(int i=0;i<len-1; i++){ // the last element is the return type of the function
          ListExpr param = fun.first();
-         String desc = null;
-         if(funMap!=null){
-            desc = funMap.get(param.first().symbolValue());
-         }
-         ParamPanel  p = createParamPanel(param, desc);
+         ParamPanel  p = createParamPanel(param, funName);
          if(p!=null){
             completePanel.add(p);
          }    
@@ -568,12 +699,18 @@ public class FunctionParamViewer extends SecondoViewer{
   public boolean selectObject(SecondoObject o){ return false; }
 
 
+  public MenuVector getMenuVector(){
+    return mv;
+  }
+
+
+
   /** returns a panel for a single parameter. **/
-  private ParamPanel createParamPanel(ListExpr param, String description){
+  private ParamPanel createParamPanel(ListExpr param, String funName){
      if(param.listLength()!=2){
        return null;
      } else {
-        return new ParamPanel(param.first(), param.second(), description);
+        return new ParamPanel(param.first(), param.second(), funName);
      }
   }
 
@@ -586,6 +723,7 @@ public class FunctionParamViewer extends SecondoViewer{
 
   /** Class for a single parameter representation. **/
   private class ParamPanel extends JPanel{
+    private String funName;
     private String name;           // name of the parameter
     private Type stype;            // special type treatment
     private ListExpr exactType;    // the exact type 
@@ -596,9 +734,10 @@ public class FunctionParamViewer extends SecondoViewer{
     private JComboBox dbObjects;     // combobox for selecting db objects or "const"
    
     /** Constructs a new parameter panel **/
-    public ParamPanel(ListExpr name, ListExpr type, String description){
+    public ParamPanel(ListExpr name, ListExpr type, String funName){
        super();
        this.name = name.symbolValue();
+       this.funName = funName;
        this.exactType = type;
        if(isSymbol(exactType,"string")){
            this.stype = Type.STRING;
@@ -624,10 +763,6 @@ public class FunctionParamViewer extends SecondoViewer{
        add(constField);
        add(dbObjects);
        add(typeLabel);
-
-       nameLabel.setToolTipText(description);
-       typeLabel.setToolTipText(description);
-
        dbObjects.addItem("const");
        ListExpr olist =  FunctionParamViewer.this.objectList;
        while(!olist.isEmpty()){
@@ -644,7 +779,26 @@ public class FunctionParamViewer extends SecondoViewer{
           }
        });
        dbObjects.setSelectedIndex(0); 
+       changeToolTips();
     }
+
+    public void changeToolTips(){
+       if(paramDescMap==null){
+          nameLabel.setToolTipText(null);
+          typeLabel.setToolTipText(null);
+          return;
+       }
+       HashMap<String, String> funMap = paramDescMap.get(funName);
+       if(funMap == null){
+          return;
+       }
+       String d = funMap.get(name);
+       nameLabel.setToolTipText(d);
+       typeLabel.setToolTipText(d);
+    }
+
+
+
 
     /** Called when the selected db objects has been changed. **/
     private void changeObject(){
@@ -702,6 +856,8 @@ public class FunctionParamViewer extends SecondoViewer{
     public String getName() {
           return name;
     }
+
+
 
   }
 }
