@@ -122,7 +122,11 @@ public class FunctionParamViewer extends SecondoViewer{
       controlPanel.add(functions); 
       functions.addItemListener(new ItemListener(){
           public void itemStateChanged(ItemEvent evt){
-             buildPanel();
+             if(evt.getStateChange()==ItemEvent.SELECTED){
+                 buildPanel();
+             } else {
+                setEmpty();
+            }
           }             
       });
 
@@ -456,7 +460,7 @@ public class FunctionParamViewer extends SecondoViewer{
       DefaultListCellRenderer functionsTT = new DefaultListCellRenderer(){
          public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus){
              JComponent comp = (JComponent) super.getListCellRendererComponent(list,value,index,isSelected, cellHasFocus);
-             if(index > -1 && value!=null && !value.toString().equals("none")) {
+             if(index > -1 && value!=null && !value.toString().equals("none") && funDescMap!=null) {
                  String desc = funDescMap.get(value.toString().trim());
                  list.setToolTipText(desc);
              } else {
@@ -621,32 +625,43 @@ public class FunctionParamViewer extends SecondoViewer{
       c.validate();
   }
 
-  /** creates a panel holding the parameters for the selected function. **/ 
-  private void buildPanel(){
-     Object fno = functions.getSelectedItem();
-     if(fno==null || fno.toString().equals("none")){
+  private void setEmpty(){
        paramPanel.remove(currentPanel);
        paramPanel.add(emptyPanel);
        currentPanel = emptyPanel;
        validate(this);;
        repaint();
+  }
+
+  /** creates a panel holding the parameters for the selected function. **/ 
+  private void buildPanel(){
+     Object fno = functions.getSelectedItem();
+     if(fno==null || fno.toString().trim().equals("none")){
+       setEmpty();
        return;
      }
      funName = functions.getSelectedItem().toString().trim();
-
      ListExpr map = VC.getCommandResult("query " + funName);
      if(map==null){
+        Reporter.showError("Querying " + funName + " failed");
+        setEmpty();
         return;
      } 
      if(map.listLength()!=2){
+        Reporter.showError("Type of " + funName + " seems to be no function, may the the database has been changes, Try an update.");
+        setEmpty();
         return;
      }
      ListExpr type = map.first();
      ListExpr fun = map.second();
      if(type.listLength()<2 || !isSymbol(type.first(),"map")){
+        Reporter.showError("Type of " + funName + " seems to be no function, may the the database has been changes, Try an update.");
+        setEmpty();
         return;
      }
      if(fun.listLength()<2 || !isSymbol(fun.first(),"fun")){
+        Reporter.showError("Type of " + funName + " seems to be no function, may the the database has been changes, Try an update.");
+        setEmpty();
         return;
      }
      JPanel completePanel = new JPanel();
@@ -775,7 +790,9 @@ public class FunctionParamViewer extends SecondoViewer{
        }
        dbObjects.addItemListener(new ItemListener(){
           public void itemStateChanged(ItemEvent evt){
-              changeObject();
+              if(evt.getStateChange()==ItemEvent.SELECTED){
+                 changeObject();
+              }
           }
        });
        dbObjects.setSelectedIndex(0); 
