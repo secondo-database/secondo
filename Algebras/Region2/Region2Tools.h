@@ -186,7 +186,7 @@ static mpq_class D2MPQ( const double d )
   bool denStart = false;
   denStream.put('1');
 
-  s << d;
+  s << setprecision(16) << d;
   if (s.str().find("E") == string::npos 
       && s.str().find("e") == string::npos)
   {
