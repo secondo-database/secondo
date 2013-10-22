@@ -2,7 +2,9 @@ package com.secondo.webgui.client.mainview;
 
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -12,33 +14,48 @@ import com.google.gwt.user.client.ui.TextBox;
 public class Header extends Composite{
 	
 	private HorizontalPanel hPanel = new HorizontalPanel();
-	private String headertext = "<h2>Database Management</h2>";
-	private HTML homeText = new HTML(headertext, true);
+	//private String headertext = "<h2>Database Management</h2>";
+	//private HTML homeText = new HTML(headertext, true);
 	private Image logo = new Image("resources/images/secondo-logo.gif");
-	private Navigation navigation = new Navigation();
+	//private Navigation navigation = new Navigation();
+	
+	private HorizontalPanel buttonPanel = new HorizontalPanel();
+	private Button closedatabaseButton = new Button("<img src='resources/images/close-database.png' height='30px' width='30px'/>");
+	private Button logoutButton = new Button("<img src='resources/images/logout.gif' height='30px' width='30px'/>");
 	
 	public Header(){
-		
-		//int windowHeight = Window.getClientHeight();
+
 		int windowWidth = Window.getClientWidth();
 		
 		logo.getElement().getStyle().setMarginLeft(30, Unit.PX);
 		logo.setWidth("250px");
 		hPanel.add(logo);
-		//homeText.setHeight("45px");
-		//homeText.addStyleName("headline");
-		//hPanel.add(homeText);
 		
-		//hPanel.add(navigation.gethPanel());
-		hPanel.getElement().setClassName("mainheader");
+		closedatabaseButton.getElement().setClassName("closedatabasebutton");
+		closedatabaseButton.getElement().getStyle().setBackgroundColor("white");
+		closedatabaseButton.setWidth("40px");
+		closedatabaseButton.setTitle("Close Database");
+		logoutButton.getElement().setClassName("logoutbutton");
+		logoutButton.setWidth("40px");
+		logoutButton.setTitle("Logout");
 		
-		hPanel.setWidth(windowWidth + "px");
-		hPanel.setHeight("60px");
-		//hPanel.setSize("100%", "60px");
+		buttonPanel.setWidth("100px");
+		buttonPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
+		buttonPanel.getElement().getStyle().setMarginRight(30, Unit.PX);
+		buttonPanel.getElement().getStyle().setMarginLeft(windowWidth-410, Unit.PX);
+		buttonPanel.add(closedatabaseButton);
+		buttonPanel.add(logoutButton);
+
+		hPanel.add(buttonPanel);
+
+		hPanel.getElement().setClassName("mainheader");	
+		hPanel.setWidth(windowWidth-20 + "px");
+		hPanel.setHeight("50px");
 	}
 	
-	public void resize(int width){
+	public void resizeWidth(int width){
 		hPanel.setWidth(width + "px");
+		buttonPanel.getElement().getStyle().setMarginLeft(width-410, Unit.PX);
 	}
 
 	public HorizontalPanel gethPanel() {
@@ -49,14 +66,21 @@ public class Header extends Composite{
 		this.hPanel = hPanel;
 	}
 
-	public Navigation getNavigation() {
-		return navigation;
+	public Button getClosedatabaseButton() {
+		return closedatabaseButton;
 	}
 
-	public void setNavigation(Navigation navigation) {
-		this.navigation = navigation;
+	public void setClosedatabaseButton(Button closedatabaseButton) {
+		this.closedatabaseButton = closedatabaseButton;
 	}
-	
-	
 
+	public Button getLogoutButton() {
+		return logoutButton;
+	}
+
+	public void setLogoutButton(Button logoutButton) {
+		this.logoutButton = logoutButton;
+	}
+
+	
 }

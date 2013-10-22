@@ -25,8 +25,8 @@ public class Commandpanel extends Composite {
 
 	}
 	
-	public void resize(int width){
-		textArea.setWidth(width-70 + "px");
+	public void resizeWidth(int width){
+		textArea.setWidth(width-80 + "px");
 	}
 
 	public VerticalPanel getCommandPanel() {

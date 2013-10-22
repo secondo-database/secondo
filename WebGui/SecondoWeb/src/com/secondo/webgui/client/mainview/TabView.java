@@ -23,14 +23,14 @@ public class TabView extends Composite {
 		tabPanel.add(standardView.getScrollPanel(), "StandardView");
 
 		// Add a tab with the formatted view in a scrollPanel to the tabPanel
-		tabPanel.add(formattedView.getFormattedScrollPanel(), "FormattedView");
+		tabPanel.add(formattedView.getTextOutput(), "FormattedView");
 
 		 
        // Add the tab with the table
 		//tabPanel.add(tableView.getTable(), tabTitles[2]);
 
 		// Add the graphical view tab 
-		tabPanel.add(graphicalView.getScrollPanel(), "GraphicalView");
+		tabPanel.add(graphicalView.getContentPanel(), "GraphicalView");
 		
 		// Add the map view tab 
 		tabPanel.add(mapView.getScrollPanel(), "MapView");

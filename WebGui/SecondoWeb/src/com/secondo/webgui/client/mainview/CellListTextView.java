@@ -20,10 +20,8 @@ import com.google.gwt.view.client.SingleSelectionModel;
 public class CellListTextView extends Composite{
 	
 	/*Elements for text output*/
-	private ScrollPanel textScrollPanel = new ScrollPanel();
+	private ScrollPanel scrollPanel = new ScrollPanel();
 	private VerticalPanel textPanel = new VerticalPanel();
-	private DecoratorPanel decPanel = new DecoratorPanel();
-	//private TextArea formattedOutput = new TextArea();
     private CellList<String> textCellList = new CellList<String>(new TextCell());
     private final SelectionModel<String> selectionModel = new SingleSelectionModel<String>();
     private MyDataProvider dataProvider = new MyDataProvider(); 
@@ -36,7 +34,7 @@ public class CellListTextView extends Composite{
     	
     	textCellList.setKeyboardSelectionPolicy(KeyboardSelectionPolicy.ENABLED);
 		 
-		// Add a selection model to handle user selection.
+		// Add a selection model to handle user selection. what to do when a listentry is selected.
 	     textCellList.setSelectionModel(selectionModel);
 		 selectionModel.addSelectionChangeHandler(new SelectionChangeEvent.Handler() {
 		      public void onSelectionChange(SelectionChangeEvent event) {
@@ -54,31 +52,32 @@ public class CellListTextView extends Composite{
 	     pager.setDisplay(textCellList);
 	     //pager.setPageSize(10);
 		
-		// Push data into the CellList.
+		// Push data into the CellList. Only necessary without mydataprovider
 	    // textCellList.setRowCount(formattedList.size(), true);
 	    // textCellList.setRowData(0, formattedList);
 		
-		decPanel.add(textScrollPanel);
-		
-		/*formattedOutput.setEnabled(false);
-		formattedOutput.setSize("250px", "440px");
-		formattedOutput.getElement().setClassName("graphicaltextoutput");*/		
-		//textPanel.add(formattedOutput);
-		
 		textPanel.add(pager);
 		textPanel.add(textCellList);
+		textPanel.getElement().setClassName("celllisttextpanel");
 		
 		//add a fix width
-		textScrollPanel.setWidth("250px");
-		textScrollPanel.add(textPanel);
+		scrollPanel.setWidth("250px");
+		scrollPanel.add(textPanel);
+		scrollPanel.getElement().setClassName("celllistscrollpanel");
 
-    	
     }
-    
-	  public void resize(int height){
-		  //textScrollPanel.setWidth(width-70 + "px");
-		  textScrollPanel.setHeight(height-330 + "px");
-	  }
+      
+		public void resize(int width, int height) {
+			scrollPanel.setHeight(height-330 + "px");
+			textPanel.setHeight(height-350 + "px");
+			
+		}
+
+		public void resizeToFullScreen(int width, int height) {
+			scrollPanel.setHeight(height-100+"px");
+			textPanel.setHeight(height-120+"px");
+			
+		}
 	  
     
     /**
@@ -150,4 +149,14 @@ public class CellListTextView extends Composite{
 		public void setTextCellList(CellList<String> textCellList) {
 			this.textCellList = textCellList;
 		}
+
+		public ScrollPanel getScrollPanel() {
+			return scrollPanel;
+		}
+
+		public void setScrollPanel(ScrollPanel scrollPanel) {
+			this.scrollPanel = scrollPanel;
+		}
+
+
 }

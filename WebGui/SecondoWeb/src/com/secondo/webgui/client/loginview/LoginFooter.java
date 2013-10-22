@@ -11,6 +11,8 @@ public class LoginFooter  extends Composite{
 	private Label impressum = new Label("Impressum");
 	
 	public LoginFooter (){
+		
+		impressum.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_CENTER);
 
 	}
 	

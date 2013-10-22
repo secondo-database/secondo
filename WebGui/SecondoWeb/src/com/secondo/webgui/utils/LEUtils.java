@@ -20,6 +20,8 @@
 package com.secondo.webgui.utils;
 
 //import generic.Interval;
+import java.io.Serializable;
+
 import  sj.lang.ListExpr;
 import tools.Reporter;
 
@@ -27,7 +29,7 @@ import tools.Reporter;
 /**
 * This class is a collection of general used methods for listexpr and time
 */
-public class LEUtils {
+public class LEUtils implements Serializable{
 /**
  * This function reads an instant value from the argument list.
  * @result the Double containing the instant value or null if

@@ -74,11 +74,7 @@ public class SecondoConnection implements Serializable {
 		 textFormatter.formatData(resultList);
 		 
 		 //analyze the geodatatype and put it into the resulttypelist for the graphical view
-		 typeConstructor.getResultTypeList().clear();
 		 typeConstructor.getDataType(resultList);
-		 
-		// System.out.println("################## Result from typeconstructor: "+ typeConstructor.getDataType(resultList));
-
 
 		// very important
 		/*if (Secondointerface.isConnected()) {
@@ -246,7 +242,7 @@ public class SecondoConnection implements Serializable {
 
 	}
 	
-	public String getDataType(ListExpr le){
+	/*public String getDataType(ListExpr le){
 		
 		String dataType = "unknown type";
 		
@@ -276,7 +272,7 @@ public class SecondoConnection implements Serializable {
 			  }
 		
 		return dataType;
-	}
+	}*/
 
 	public String getHostName() {
 		return Secondointerface.getHostname();
@@ -317,6 +313,5 @@ public class SecondoConnection implements Serializable {
 	public void setDatabaselist(ArrayList<String> databaselist) {
 		this.databaselist = databaselist;
 	}
-
 	
 }

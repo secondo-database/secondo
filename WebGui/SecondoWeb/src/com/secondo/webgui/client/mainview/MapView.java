@@ -18,7 +18,7 @@ import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
-public class MapView extends Composite{
+public class MapView extends Composite implements View{
 	
 	private ScrollPanel textPanel = new ScrollPanel();
 	private ScrollPanel scrollPanel = new ScrollPanel();
@@ -66,12 +66,26 @@ public class MapView extends Composite{
 
 	}
 	
-	public void resize(int width, int height){
+	@Override
+	public void resizeWithCP(int width, int height){
 		  scrollPanel.setWidth(width-120 + "px");
-		  scrollPanel.setHeight(height-380 + "px");
+		  scrollPanel.setHeight(height-320 + "px");
 		  mapVp.setWidth(width-140 + "px");
-		  mapVp.setHeight(height-400 + "px");
+		  mapVp.setHeight(height-330 + "px");
 
+	}
+	
+
+	@Override
+	public void resizeWithTextPanel(int width, int height) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void resizeToFullScreen(int width, int height) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	/** call a googlemaps function from an external js-file, to initialize a map with the given center location*/
@@ -342,5 +356,12 @@ public class MapView extends Composite{
 	public void setScrollPanel(ScrollPanel scrollPanel) {
 		this.scrollPanel = scrollPanel;
 	}
+
+	@Override
+	public void resizeWithTextAndCP(int width, int height) {
+		// TODO Auto-generated method stub
+		
+	}
+
 	
 }

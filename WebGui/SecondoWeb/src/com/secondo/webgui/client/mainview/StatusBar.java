@@ -21,6 +21,7 @@ public class StatusBar extends Composite{
 		
 		hPanel.setHeight("30px");
 	    hPanel.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
+	    hPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_LEFT);
 		hPanel.getElement().setClassName("statusbar");
 	    
 	    hPanel.add(secondoServerLabel);
@@ -31,8 +32,8 @@ public class StatusBar extends Composite{
 	    hPanel.add(openDatabase);
 	}
 	
-	public void resize(int width){
-		hPanel.setWidth(width-70 + "px");
+	public void resizeWidth(int width){
+		hPanel.setWidth(width-80 + "px");
 	}
 
 	public HorizontalPanel gethPanel() {

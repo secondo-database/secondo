@@ -4,6 +4,7 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
@@ -21,7 +22,8 @@ public class DatabaseView extends Composite{
     private Button openDatabaseButton = new Button("Open Database");
 	private boolean openDatabase = false;
 	
-	private Button logoutButton = new Button("Logout");
+	//private Button logoutButton = new Button("Logout");
+	private Button importDatabaseButton = new Button("Import Database");
 	private HorizontalPanel buttonBox = new HorizontalPanel();
 	
 	public DatabaseView(){
@@ -30,10 +32,11 @@ public class DatabaseView extends Composite{
 
 	    multiBox.ensureDebugId("ListBox-multiBox");
 	    multiBox.setWidth("20em");
-	    multiBox.setVisibleItemCount(10);
+	    multiBox.setVisibleItemCount(15);
 	    
 	    buttonBox.add(openDatabaseButton);
-	    buttonBox.add(logoutButton);
+	    buttonBox.add(importDatabaseButton);
+	   // buttonBox.add(logoutButton);
 	    buttonBox.setSpacing(10);
 
 	    //multiBoxPanel.setSpacing(4);
@@ -43,7 +46,7 @@ public class DatabaseView extends Composite{
 	    //contentPanel.add(openDatabaseButton);
     
 	    hPanel.add(contentPanel);
-	    
+
 
 	}
 	
@@ -107,12 +110,13 @@ public class DatabaseView extends Composite{
 		this.databaseHeader = databaseHeader;
 	}
 
-	public Button getLogoutButton() {
-		return logoutButton;
+	public Button getImportDatabaseButton() {
+		return importDatabaseButton;
 	}
 
-	public void setLogoutButton(Button logoutButton) {
-		this.logoutButton = logoutButton;
+	public void setImportDatabaseButton(Button importDatabaseButton) {
+		this.importDatabaseButton = importDatabaseButton;
 	}
+
 
 }

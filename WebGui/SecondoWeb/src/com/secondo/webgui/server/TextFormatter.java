@@ -1,5 +1,6 @@
 package com.secondo.webgui.server;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import com.secondo.webgui.client.datatypes.Point;
@@ -7,7 +8,7 @@ import com.secondo.webgui.utils.LEUtils;
 
 import sj.lang.ListExpr;
 
-public class TextFormatter {
+public class TextFormatter implements Serializable{
 	
 	private ArrayList<String> formattedList = new ArrayList<String>();
 	private ArrayList<String> firstTuplesOfValues = new ArrayList<String>();

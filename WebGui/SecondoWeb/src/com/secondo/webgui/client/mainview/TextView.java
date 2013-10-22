@@ -1,5 +1,7 @@
 package com.secondo.webgui.client.mainview;
 
+import java.util.ArrayList;
+
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.TextArea;
@@ -7,41 +9,60 @@ import com.google.gwt.user.client.ui.TextArea;
 
 public class TextView extends Composite {
 	
-	private ScrollPanel formattedScrollPanel = new ScrollPanel();
-	private TextArea formattedOutput = new TextArea();
+	private TextArea textOutput = new TextArea();
+	private ArrayList<String> currentTextList = new ArrayList<String>();
 	
 	public TextView(){
 		
-		  formattedOutput.setEnabled(false);
-		  formattedOutput.getElement().setClassName("formattedoutput");
-		
-		  formattedScrollPanel.add(formattedOutput);
-		  formattedScrollPanel.getElement().setClassName("textscrollpanel");
-		
+		  textOutput.setEnabled(false);
+		  textOutput.getElement().setClassName("textoutput");
+		  textOutput.setWidth("300px");		
 	}
 	
-	public void resize(int width, int height){
+
+	/**Resize the height of the textview with commandpanel*/
+	public void resizeWithCP(int height){
 		
-		formattedScrollPanel.setWidth(width-70 + "px");
-		formattedScrollPanel.setHeight(height-330 + "px");
-		formattedOutput.setWidth(width-120 + "px");
-		formattedOutput.setHeight(height-380 + "px");
+		textOutput.setHeight(height-362 + "px"); //add 40px padding
+	}
+	
+	/**Resize the height of the textview to fullscreen*/
+    public void resizeToFullScreen(int height){
+
+		textOutput.setHeight(height-132+"px");
+	}
+    
+    /**Update the text view with the current data from the last secondo call*/
+    public void updateCurrentResult(){
+    	//reset text view
+		textOutput.setText("");
+
+		String currentResult = "";
+		
+		//add data from formatted result list to view
+		for (String data : currentTextList){	
+			
+			currentResult = textOutput.getText();
+			textOutput.setText(currentResult + data);
+		}
+    }
+
+	public TextArea getTextOutput() {
+		return textOutput;
 	}
 
-	public TextArea getFormattedOutput() {
-		return formattedOutput;
+	public void setTextOutput(TextArea textOutput) {
+		this.textOutput = textOutput;
 	}
 
-	public void setFormattedOutput(TextArea formattedOutput) {
-		this.formattedOutput = formattedOutput;
+
+	public ArrayList<String> getCurrentTextList() {
+		return currentTextList;
 	}
 
-	public ScrollPanel getFormattedScrollPanel() {
-		return formattedScrollPanel;
-	}
 
-	public void setFormattedScrollPanel(ScrollPanel formattedScrollPanel) {
-		this.formattedScrollPanel = formattedScrollPanel;
+	public void setCurrentTextList(ArrayList<String> currentTextList) {
+		this.currentTextList = currentTextList;
 	}
 
 }

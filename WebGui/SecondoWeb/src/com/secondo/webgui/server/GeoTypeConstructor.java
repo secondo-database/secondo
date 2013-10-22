@@ -1,5 +1,6 @@
 package com.secondo.webgui.server;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import sj.lang.ListExpr;
@@ -11,7 +12,7 @@ import com.secondo.webgui.client.datatypes.Polygon;
 import com.secondo.webgui.client.datatypes.Polyline;
 import com.secondo.webgui.utils.LEUtils;
 
-public class GeoTypeConstructor {
+public class GeoTypeConstructor implements Serializable{
 	
 	private ArrayList<DataType> resultTypeList = new ArrayList<DataType>();
 

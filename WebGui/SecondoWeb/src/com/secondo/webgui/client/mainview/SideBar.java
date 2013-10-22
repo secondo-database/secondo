@@ -10,44 +10,45 @@ public class SideBar extends Composite{
 	private FlowPanel sidebar = new FlowPanel();
 	private Button showTerminalButton = new Button("<img src='resources/images/showterminal.png' height='30px' width='30px'/>");
 	private Button hideTerminalButton = new Button("<img src='resources/images/hideterminal.png' height='30px' width='30px'/>");
+	private Button showTextButton = new Button("<img src='resources/images/text-icon2.png' height='30px' width='30px'/>");
+	private Button hideTextButton = new Button("<img src='resources/images/hide-text-icon.png' height='30px' width='30px'/>");
+	private Button openToolsButton = new Button("<img src='resources/images/tools-icon.png' height='30px' width='30px'/>");
+	private Button closeToolsButton = new Button("<img src='resources/images/close-tools-icon.png' height='30px' width='30px'/>");
 	private Button mapButton = new Button("<img src='resources/images/map-icon4.png' height='30px' width='30px'/>");
 	private Button gmapButton = new Button("<img src='resources/images/googlemapicon.jpg' height='30px' width='30px'/>");
 	private Button geometryButton = new Button("<img src='resources/images/geometry-icon4.jpg' height='30px' width='30px'/>");
-	private Button textButton = new Button("<img src='resources/images/text-icon2.png' height='30px' width='30px'/>");
 	private Button rawdataButton = new Button("<img src='resources/images/binary-icon.png' height='30px' width='30px'/>");
 	private Button closedatabaseButton = new Button("<img src='resources/images/close-database.png' height='30px' width='30px'/>");
 	private Button logoutButton = new Button("<img src='resources/images/logout.gif' height='30px' width='30px'/>");
 	
 	public SideBar(){
 		
-		sidebar.add(showTerminalButton);
-		showTerminalButton.setTitle("Show Commandpanel");
 		sidebar.add(hideTerminalButton);
 		hideTerminalButton.setTitle("Hide Commandpanel");
+		showTerminalButton.setTitle("Show Commandpanel");
+		
+		sidebar.add(showTextButton);
+		showTextButton.setTitle("Show Text Panel");
+		hideTextButton.setTitle("Hide Text Panel");
+		
+		/*sidebar.add(openToolsButton);
+		openToolsButton.setTitle("Show Tools Panel");*/
+		
 		sidebar.add(mapButton);
 		mapButton.setTitle("Map View");
-		/*sidebar.add(gmapButton);
-		mapButton.setTitle("Googlemap View");*/
-		sidebar.add(geometryButton);
+		//sidebar.add(geometryButton);
 		geometryButton.setTitle("Graphical View");
-		sidebar.add(textButton);
-		textButton.setTitle("Text only View");
+
 		sidebar.add(rawdataButton);
-		rawdataButton.setTitle("Raw Data View");
-		sidebar.add(closedatabaseButton);
-		closedatabaseButton.setTitle("Close Database");
-		sidebar.add(logoutButton);
-		logoutButton.setTitle("Logout");
-		
-		showTerminalButton.setEnabled(false);
+		rawdataButton.setTitle("Show Raw Data");
 		
 		sidebar.setWidth("50px");
 		sidebar.getElement().setClassName("sidebar");
 		
 	}
 	
-	public void resize(int height){
-		sidebar.setHeight(height-60 + "px");
+	public void resizeHeight(int height){
+		sidebar.setHeight(height-55 + "px");
 	}
 
 	public FlowPanel getSidebar() {
@@ -72,6 +73,23 @@ public class SideBar extends Composite{
 
 	public void setHideTerminalButton(Button hideTerminalButton) {
 		this.hideTerminalButton = hideTerminalButton;
+	}
+	
+
+	public Button getOpenToolsButton() {
+		return openToolsButton;
+	}
+
+	public void setOpenToolsButton(Button openToolsButton) {
+		this.openToolsButton = openToolsButton;
+	}
+
+	public Button getCloseToolsButton() {
+		return closeToolsButton;
+	}
+
+	public void setCloseToolsButton(Button closeToolsButton) {
+		this.closeToolsButton = closeToolsButton;
 	}
 
 	public Button getMapButton() {
@@ -98,12 +116,20 @@ public class SideBar extends Composite{
 		this.geometryButton = geometryButton;
 	}
 
-	public Button getTextButton() {
-		return textButton;
+	public Button getShowTextButton() {
+		return showTextButton;
 	}
 
-	public void setTextButton(Button textButton) {
-		this.textButton = textButton;
+	public void setShowTextButton(Button showTextButton) {
+		this.showTextButton = showTextButton;
+	}
+
+	public Button getHideTextButton() {
+		return hideTextButton;
+	}
+
+	public void setHideTextButton(Button hideTextButton) {
+		this.hideTextButton = hideTextButton;
 	}
 
 	public Button getRawdataButton() {
@@ -114,22 +140,7 @@ public class SideBar extends Composite{
 		this.rawdataButton = rawdataButton;
 	}
 
-	public Button getClosedatabaseButton() {
-		return closedatabaseButton;
-	}
-
-	public void setClosedatabaseButton(Button closedatabaseButton) {
-		this.closedatabaseButton = closedatabaseButton;
-	}
-
-	public Button getLogoutButton() {
-		return logoutButton;
-	}
-
-	public void setLogoutButton(Button logoutButton) {
-		this.logoutButton = logoutButton;
-	}
-
+	
 }
 
 

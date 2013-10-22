@@ -22,7 +22,7 @@ public class MainView extends Composite{
 	private Commandpanel commandPanel = new Commandpanel();
 	
 	// different views that can be displayed in the mainpanel
-	private FlowPanel view = new FlowPanel();
+	private HorizontalPanel view = new HorizontalPanel();
 	private RawDataView rawDataView = new RawDataView();
 	private TextView textView = new TextView();
 	private CellListTextView cellListTextView = new CellListTextView();
@@ -30,10 +30,12 @@ public class MainView extends Composite{
 	private GraphicalView graphicalView = new GraphicalView();
 	private MapView mapView = new MapView();
 	private OSMView osmView = new OSMView();
+	private ToolBar toolbar = new ToolBar();
 	
-	// Panels for map and graphic views with a text sidebar
-	private HorizontalPanel mapAndTextPanel = new HorizontalPanel();
-	private HorizontalPanel graphicAndTextPanel = new HorizontalPanel();
+	private boolean cpTurnedOn = true;
+	private boolean textTurnedOn = false;
+	private boolean mapTurnedOn = false;
+	private boolean toolsTurnedOn = false;
 
 	public MainView(){
 			
@@ -45,11 +47,16 @@ public class MainView extends Composite{
 		mainPanel.add(contentPanel);	
 
 		 //initialize the main view
-		showRawDataView();
+		//showRawDataView();
+		showGraphicalView();
 		
 		commandPanelWrapper.add(commandPanel.getCommandPanel());
 		
-		this.resizeMainElements();
+		//get the size of the browserwindow and set the elements to the right size
+		int windowWidth = Window.getClientWidth();
+		int windowHeight = Window.getClientHeight();
+		
+		this.resizeWithCP(windowWidth, windowHeight);
 		
 		
 		//resize the application elements if the size of the window changes
@@ -60,77 +67,294 @@ public class MainView extends Composite{
 		    int windowWidth = event.getWidth();
 		    int windowHeight = event.getHeight();
 		    
-		    header.resize(windowWidth);
-		    commandPanel.resize(windowWidth);
-		    commandPanel.getMenubarCP().resize(windowWidth);
-		    statusBar.resize(windowWidth);
-		    rawDataView.resize(windowWidth, windowHeight);
-		    textView.resize(windowWidth, windowHeight);
-		    graphicalView.resize(windowWidth, windowHeight);
-		    mapView.resize(windowWidth, windowHeight);
-		    osmView.resize(windowWidth, windowHeight);
-		    sidebar.resize(windowHeight);
+		    if(cpTurnedOn && textTurnedOn){
+			    resizeWithTextAndCP(windowWidth, windowHeight);
+		    }
+		    if(cpTurnedOn && !textTurnedOn){
+		    	resizeWithCP(windowWidth, windowHeight);
+		    }
 
+		    if(!cpTurnedOn && textTurnedOn){
+		    	resizeWithTextPanel(windowWidth, windowHeight);
+		    }
+		    if(!cpTurnedOn && !textTurnedOn){
+		    	resizeToFullScreen(windowWidth, windowHeight);
+		    }
 		  }
 		});
 
 	}
 	
+	/** Resize all visible elements to the size of the browser window*/
+	public void resizeWithCP(int width, int height){		
+		
+		header.resizeWidth(width);
+
+		rawDataView.resize(width, height);
+		textView.resizeWithCP(height);
+		
+		graphicalView.resizeWithCP(width, height);
+		osmView.resizeWithCP(width, height);
+		
+		toolbar.resizeHeightWithCP(height);
+		sidebar.resizeHeight(height);
+		commandPanel.resizeWidth(width);
+		commandPanel.getMenubarCP().resize(width);
+		statusBar.resizeWidth(width);
+		
+	}
 	
-	public void resizeMainElements(){
+	public void resizeWithTextPanel(int width, int height){
 		
-		//get the size of the browserwindow and set the elements to the right size
-		int windowHeight = Window.getClientHeight();
-		int windowWidth = Window.getClientWidth();
-		header.resize(windowWidth);
-		commandPanel.resize(windowWidth);
-		commandPanel.getMenubarCP().resize(windowWidth);
-		statusBar.resize(windowWidth);
-		rawDataView.resize(windowWidth, windowHeight);
-		textView.resize(windowWidth, windowHeight);
-		graphicalView.resize(windowWidth, windowHeight);
-		mapView.resize(windowWidth, windowHeight);
-		osmView.resize(windowWidth, windowHeight);
-		sidebar.resize(windowHeight);
+		header.resizeWidth(width);
+
+		rawDataView.resize(width, height);
+		textView.resizeToFullScreen(height);
 		
+		graphicalView.resizeWithTextPanel(width, height);
+		osmView.resizeWithTextPanel(width, height);
+		
+		toolbar.resizeHeightToFullScreen(height);
+		sidebar.resizeHeight(height);
+		commandPanel.resizeWidth(width);
+		commandPanel.getMenubarCP().resize(width);
+		statusBar.resizeWidth(width);
+	}
+	
+	public void resizeWithTextAndCP(int width, int height){
+		
+		header.resizeWidth(width);
+
+		rawDataView.resize(width, height);
+		textView.resizeWithCP(height);
+		
+		graphicalView.resizeWithTextAndCP(width, height);
+		osmView.resizeWithTextAndCP(width, height);
+		
+		toolbar.resizeHeightWithCP(height);
+		sidebar.resizeHeight(height);
+		commandPanel.resizeWidth(width);
+		commandPanel.getMenubarCP().resize(width);
+		statusBar.resizeWidth(width);
+		
+	}
+	
+	/**Resize the view elements to full screen*/
+	public void resizeToFullScreen(int width, int height){
+        
+		header.resizeWidth(width);
+		
+		rawDataView.resizeToFullScreen(height);
+		textView.resizeToFullScreen(height);
+		
+		graphicalView.resizeToFullScreen(width, height);
+		osmView.resizeToFullScreen(width, height);
+		
+		toolbar.resizeHeightToFullScreen(height);
+		sidebar.resizeHeight(height);
+		commandPanel.resizeWidth(width);
+		commandPanel.getMenubarCP().resize(width);
+		statusBar.resizeWidth(width);
 	}
 	
 	public void showCommandPanel(){
+		
+		cpTurnedOn = true;
 		commandPanelWrapper.add(commandPanel.getCommandPanel());
-		this.resizeMainElements();
+		
+		sidebar.getSidebar().remove(sidebar.getShowTerminalButton());
+		sidebar.getSidebar().insert(sidebar.getHideTerminalButton(), 0); //Parameter: widget, beforeIndex
+		
+		//get the size of the browserwindow and set the elements to the right size
+		int windowWidth = Window.getClientWidth();
+		int windowHeight = Window.getClientHeight();
+		
+		if(textTurnedOn){			
+		   this.resizeWithTextAndCP(windowWidth, windowHeight);
+		   
+		}
+		else{
+		   this.resizeWithCP(windowWidth, windowHeight);
+		}
 	}
 	
 	public void hideCommandPanel(){
+		
+		cpTurnedOn = false;
 		commandPanelWrapper.clear();
+		
+		sidebar.getSidebar().remove(sidebar.getHideTerminalButton());
+		sidebar.getSidebar().insert(sidebar.getShowTerminalButton(), 0); //Parameter: widget, beforeIndex
+		
+		//get the size of the browserwindow and set the elements to the right size
+		int windowWidth = Window.getClientWidth();
 		int windowHeight = Window.getClientHeight();
-		rawDataView.getScrollPanel().setHeight(windowHeight-120+"px");
-		rawDataView.getRawDataOutput().setHeight(windowHeight-170+"px");
+		
+		if(textTurnedOn){			
+			   this.resizeWithTextPanel(windowWidth, windowHeight);
+			   
+			}
+		else{
+			   this.resizeToFullScreen(windowWidth, windowHeight);
+			}
 		
 	}
 
-	public void showRawDataView(){
-		view.clear();
-		view.add(rawDataView.getScrollPanel());
-	}
 	
 	public void showTextView(){
+		
+		textTurnedOn = true;
 		view.clear();
-		view.add(textView.getFormattedScrollPanel());
+		
+		sidebar.getSidebar().remove(sidebar.getShowTextButton());
+		sidebar.getSidebar().insert(sidebar.getHideTextButton(), 1); //Parameter: widget, beforeIndex
+				
+		view.add(textView.getTextOutput());
+		if(mapTurnedOn){
+			view.add(osmView.getContentPanel());
+			view.add(toolbar.getFpanel());
+		}
+		else{
+			view.add(graphicalView.getContentPanel());
+			view.add(toolbar.getFpanel());
+		}
+
+		//get the size of the browserwindow and set the elements to the right size
+		int windowWidth = Window.getClientWidth();
+		int windowHeight = Window.getClientHeight();
+		
+		if(cpTurnedOn){			
+			   this.resizeWithTextAndCP(windowWidth, windowHeight);
+			   
+			}
+		else{
+			   this.resizeWithTextPanel(windowWidth, windowHeight);
+			}
+
 	}
 	
+	/**Remove the textpanel from the view*/
+	public void hideTextView(){
+		
+		textTurnedOn = false;
+		view.clear();
+		
+		sidebar.getSidebar().remove(sidebar.getHideTextButton());
+		sidebar.getSidebar().insert(sidebar.getShowTextButton(), 1); //Parameter: widget, beforeIndex
+		
+		if(mapTurnedOn){
+			view.add(osmView.getContentPanel());
+			view.add(toolbar.getFpanel());
+		}
+		else{
+			view.add(graphicalView.getContentPanel());
+			view.add(toolbar.getFpanel());
+		}
+		
+		//get the size of the browserwindow and set the elements to the right size
+		int windowWidth = Window.getClientWidth();
+		int windowHeight = Window.getClientHeight();
+				
+		if(cpTurnedOn){			
+			 this.resizeWithCP(windowWidth, windowHeight);
+					   
+			}
+		else{
+			this.resizeToFullScreen(windowWidth, windowHeight);
+			}		
+	}
+	
+	
+	/**Show the graphical view*/
 	public void showGraphicalView(){
+		
+		mapTurnedOn = false;
+		
+		sidebar.getSidebar().remove(sidebar.getGeometryButton());
+		sidebar.getSidebar().insert(sidebar.getMapButton(), 2); //Parameter: widget, beforeIndex
+
 		view.clear();
-		view.add(graphicalView.getScrollPanel());
+		
+		//get the size of the browserwindow and set the elements to the right size
+		int windowWidth = Window.getClientWidth();
+		int windowHeight = Window.getClientHeight();
+		
+		if(cpTurnedOn && textTurnedOn){
+		    resizeWithTextAndCP(windowWidth, windowHeight);
+		    view.add(textView.getTextOutput());
+			view.add(graphicalView.getContentPanel());
+			view.add(toolbar.getFpanel());
+	    }
+	    if(cpTurnedOn && !textTurnedOn){
+	    	resizeWithCP(windowWidth, windowHeight);
+			view.add(graphicalView.getContentPanel());
+			view.add(toolbar.getFpanel());
+	    }
+
+	    if(!cpTurnedOn && textTurnedOn){
+	    	resizeWithTextPanel(windowWidth, windowHeight);
+	    	view.add(textView.getTextOutput());
+			view.add(graphicalView.getContentPanel());
+			view.add(toolbar.getFpanel());
+	    }
+	    if(!cpTurnedOn && !textTurnedOn){
+	    	resizeToFullScreen(windowWidth, windowHeight);
+			view.add(graphicalView.getContentPanel());
+			view.add(toolbar.getFpanel());
+	    }
+
+	}	
+	
+	public void showMapView(){
+		
+		mapTurnedOn = true;
+		
+		sidebar.getSidebar().remove(sidebar.getMapButton());
+		sidebar.getSidebar().insert(sidebar.getGeometryButton(), 2); //Parameter: widget, beforeIndex
+
+		view.clear();
+		
+		//get the size of the browserwindow and set the elements to the right size
+		int windowWidth = Window.getClientWidth();
+		int windowHeight = Window.getClientHeight();
+				
+		if(cpTurnedOn && textTurnedOn){
+			resizeWithTextAndCP(windowWidth, windowHeight);
+			view.add(textView.getTextOutput());
+			view.add(osmView.getContentPanel());
+			view.add(toolbar.getFpanel());
+			 }
+		if(cpTurnedOn && !textTurnedOn){
+			 resizeWithCP(windowWidth, windowHeight);
+			 view.add(osmView.getContentPanel());
+			 view.add(toolbar.getFpanel());
+			  }
+
+		if(!cpTurnedOn && textTurnedOn){
+			 resizeWithTextPanel(windowWidth, windowHeight);
+			 view.add(textView.getTextOutput());
+			 view.add(osmView.getContentPanel());
+			 view.add(toolbar.getFpanel());
+			  }
+		if(!cpTurnedOn && !textTurnedOn){
+			  resizeToFullScreen(windowWidth, windowHeight);
+			  view.add(osmView.getContentPanel());
+			  view.add(toolbar.getFpanel());
+			}		
 	}
 	
-	public void showGoogleMapView(){
-		view.clear();
-		view.add(mapView.getScrollPanel());
+	public void showTools(){
+		
 	}
 	
-	public void showOSMapView(){
+	public void hideTools(){
+		
+	}
+	
+	public void showRawDataView(){
+
 		view.clear();
-		view.add(osmView.getContentPanel());
+		view.add(rawDataView.getScrollPanel());
 	}
 
 	public HorizontalPanel getMainPanel() {
@@ -216,26 +440,6 @@ public class MainView extends Composite{
 		this.osmView = osmView;
 	}
 
-	public HorizontalPanel getMapAndTextPanel() {
-		return mapAndTextPanel;
-	}
-
-
-	public void setMapAndTextPanel(HorizontalPanel mapAndTextPanel) {
-		this.mapAndTextPanel = mapAndTextPanel;
-	}
-
-
-	public HorizontalPanel getGraphicAndTextPanel() {
-		return graphicAndTextPanel;
-	}
-
-
-	public void setGraphicAndTextPanel(HorizontalPanel graphicAndTextPanel) {
-		this.graphicAndTextPanel = graphicAndTextPanel;
-	}
-
-
 	public Header getMainheader() {
 		return header;
 	}
@@ -252,6 +456,22 @@ public class MainView extends Composite{
 		this.statusBar = statusBar;
 	}
 
+	public ToolBar getToolbar() {
+		return toolbar;
+	}
+
+	public void setToolbar(ToolBar toolbar) {
+		this.toolbar = toolbar;
+	}
+
+	public boolean isToolsTurnedOn() {
+		return toolsTurnedOn;
+	}
+
+	public void setToolsTurnedOn(boolean toolsTurnedOn) {
+		this.toolsTurnedOn = toolsTurnedOn;
+	}
+
 	public Footer getFooter() {
 		return footer;
 	}
@@ -259,5 +479,30 @@ public class MainView extends Composite{
 	public void setFooter(Footer footer) {
 		this.footer = footer;
 	}
+
+	public boolean isCpTurnedOn() {
+		return cpTurnedOn;
+	}
+
+	public void setCpTurnedOn(boolean cpTurnedOn) {
+		this.cpTurnedOn = cpTurnedOn;
+	}
+
+	public boolean isTextTurnedOn() {
+		return textTurnedOn;
+	}
+
+	public void setTextTurnedOn(boolean textTurnedOn) {
+		this.textTurnedOn = textTurnedOn;
+	}
+
+	public boolean isMapTurnedOn() {
+		return mapTurnedOn;
+	}
+
+	public void setMapTurnedOn(boolean mapTurnedOn) {
+		this.mapTurnedOn = mapTurnedOn;
+	}
+	
 
 }

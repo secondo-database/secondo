@@ -1,16 +1,16 @@
 package com.secondo.webgui.server;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.secondo.webgui.client.datatypes.DataType;
 import com.secondo.webgui.client.datatypes.Point;
 import com.secondo.webgui.client.rpc.SecondoService;
 
-public class SecondoServiceImpl extends RemoteServiceServlet implements SecondoService {
+public class SecondoServiceImpl extends RemoteServiceServlet implements SecondoService, Serializable {
 	
 	private static final long serialVersionUID = 1L;
-	
 	private SecondoConnection sc;
 	private SessionData sd;
 	private ArrayList<String> secondoConnectionData = new ArrayList<String>();
@@ -35,7 +35,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements SecondoS
 			e.printStackTrace();
 		}
   	
-    	//save command and result in the history lists if it doesn´t exist already
+    	//save command and result in the history lists if it doesnt exist already
 	    	sd.getCommandHistory().add(command);
 	    	sd.getResultHistory().add(sc.getSecondoresult());
 	    	
@@ -83,6 +83,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements SecondoS
 			
 			sd.setOpenDatabase(database);
 			sc.getFormattedList().clear();
+			sc.getFirstTuplesOfValues().clear();
 			sc.getResultTypeList().clear();
 			return database;
 

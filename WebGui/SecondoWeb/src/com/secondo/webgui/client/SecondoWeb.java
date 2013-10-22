@@ -46,12 +46,13 @@ public class SecondoWeb implements EntryPoint {
 	private MainView mainView = new MainView();
 	
 	/* Storage for temporary data*/
-	//those 3 should not be needed, because of sessiondata-class
 	private int status=0;
 	private boolean loggedin = false;
 	private String currentDatabase="";
 	private ArrayList<String> logindata = new ArrayList<String>();
 	private ArrayList<String> databases = new ArrayList<String>();
+	private ArrayList<String> currentFirstTuplesList = new ArrayList<String>();
+	private String currentRawData = "";
 	
 	/*Commands for the Navigation bar*/
 	private Command closeDatabaseCommand;
@@ -62,6 +63,7 @@ public class SecondoWeb implements EntryPoint {
 	private Command basicCommand2;
 	private Command basicCommand3;
 	private Command basicCommand4;
+	private Command basicCommand5;
 	
 	/*Service for RPC-Calls to the server*/
 	private SecondoServiceAsync secondoService = (SecondoServiceAsync) GWT.create(SecondoService.class);
@@ -78,8 +80,8 @@ public class SecondoWeb implements EntryPoint {
 	public void onModuleLoad() {
 					
 		//set default values in login textfields
-		this.loginView.getUsername().setText("Tina");
-		this.loginView.getPassword().setText("s3c0nd0");
+		//this.loginView.getUsername().setText("ksteiger");
+		//this.loginView.getPassword().setText("s3c0nd0");
 		//this.loginView.getIpadresse().setText("192.168.186.138");
 		this.loginView.getIpadresse().setText("agnesi.fernuni-hagen.de");
 		//this.loginView.getPort().setText("1234");
@@ -97,6 +99,11 @@ public class SecondoWeb implements EntryPoint {
 					
 					// delete everything before >
 					String command = mainView.getCommandPanel().getTextArea().getText();
+					/*String[] splits = command.split("Sec >");
+					String split1 = splits[0]; //empty if nothing comes before
+					String split2 = splits[1];//command without Sec >
+					System.out.println("splits.size: " + splits.length + "splits 0: "+ split1 + "splits 1: "+split2 ); //Lenght=2
+					command = split2;*/ //klappt so nicht
 					int splitIndex = command.indexOf(">");
 					command = command.substring(splitIndex+1);
 
@@ -106,52 +113,6 @@ public class SecondoWeb implements EntryPoint {
 
 			}
 		});
-		
-		/*Adding an Eventhandler on the second tab for building the formatted view*/
-	/*	this.tabs.getTabPanel().addSelectionHandler(new SelectionHandler<Integer>() {
-			  @Override
-			  public void onSelection(SelectionEvent<Integer> event) {
-			    if (event.getSelectedItem() == 1) {
-			    				    	
-			    	setFormattedData();
-			    	tabs.getFormattedView().getFormattedScrollPanel().scrollToTop();
-			    }
-
-			  }
-			});*/
-		
-		/*Adding an Eventhandler on the graphical tab for adding formatted data to the graphical view*/
-	/*	this.tabs.getTabPanel().addSelectionHandler(new SelectionHandler<Integer>() {
-			  @Override
-			  public void onSelection(SelectionEvent<Integer> event) {
-			    if (event.getSelectedItem() == 2 ) {
-			    	
-			    	//setFormattedData();
-			    	getFirstTuplesList();
-			    	//setPointOnMap();
-			    	setGraphicalView();
-			    	
-			    }
-			     //map view
-			    if (event.getSelectedItem() == 3) {
-			    	
-			    	setFormattedData();
-			    	tabs.getMapView().initializeMap(51.3760448, 7.4947253); //initialize the google map with center in hagen
-			    	//setPointOnMap();
-			    	setMapView();
-				}
-			    
-			    //map view
-			    if (event.getSelectedItem() == 4) {
-			    	
-			    	//setFormattedData();
-			    	//tabs.getOsmView().setMarker(52.519171, 13.4060912);//set marker to berlin-klappt
-
-			    	//tabs.getOsmView().initOsmMap(51.3760448, 7.4947253);
-			    	setOsmMapView();
-				}
-			  }
-			});*/
 
 		
 		/* Adding an Eventhandler to the Login-Button */
@@ -202,7 +163,7 @@ public class SecondoWeb implements EntryPoint {
 	        	  
 	        	  int selectedCommandIndex = mainView.getCommandPanel().getMenubarCP().getQuerySelection().getSelectedIndex();
 	        	  
-	        	  if(mainView.getCommandPanel().getMenubarCP().getQuerySelection().getItemText(selectedCommandIndex).equals("Select Command...")){			
+	        	  if(mainView.getCommandPanel().getMenubarCP().getQuerySelection().getItemText(selectedCommandIndex).equals("Command History...")){			
 					}
 					else{	  						
 						updateResult(mainView.getCommandPanel().getMenubarCP().getQuerySelection().getItemText(selectedCommandIndex));
@@ -215,22 +176,33 @@ public class SecondoWeb implements EntryPoint {
 	    /*Adds an event handler to the terminal button to show the terminal*/
 	    this.mainView.getSidebar().getShowTerminalButton().addClickHandler(new ClickHandler() {
 	          public void onClick(ClickEvent event) {
+	        	  	        	  
+	        	  if(mainView.isTextTurnedOn()){
+	        		  setFormattedData();
+	        	  }
+	        	  if(mainView.isMapTurnedOn()){
+		        	  //setOsmMapView();
+	        		  mainView.getOsmView().updateCurrentResult();
+	        	  }
+	        	  if(!mainView.isMapTurnedOn()){
+		        	  setGraphicalView();
+	        	  }  
 	        	  mainView.showCommandPanel();
-	        	  
-	        	  mainView.getSidebar().getShowTerminalButton().setEnabled(false);
-	        	  mainView.getSidebar().getHideTerminalButton().setEnabled(true);
-	        	  
 	          }
 		 });	
 	    
 	    /*Adds an event handler to the terminal button to hide the terminal*/
 	    this.mainView.getSidebar().getHideTerminalButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
+	          public void onClick(ClickEvent event) {	        	 
+	        	 
+	        	  if(mainView.isMapTurnedOn()){
+		        	  //setOsmMapView();
+	        		  mainView.getOsmView().updateCurrentResult();
+	        	  }
+	        	  if(!mainView.isMapTurnedOn()){
+		        	  setGraphicalView();
+	        	  } 
 	        	  mainView.hideCommandPanel();
-	        	  
-	        	  mainView.getSidebar().getHideTerminalButton().setEnabled(false);
-	        	  mainView.getSidebar().getShowTerminalButton().setEnabled(true);
-	        	  
 	          }
 		 });
 	    
@@ -243,82 +215,134 @@ public class SecondoWeb implements EntryPoint {
 	          }
 		 });
 	    
-	    /*Adds an event handler to the text button to show the text view*/
-	    this.mainView.getSidebar().getTextButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
+	    /*Adds an event handler to the show text button to show the text in the view*/
+	    this.mainView.getSidebar().getShowTextButton().addClickHandler(new ClickHandler() {
+	          public void onClick(ClickEvent event) {        	 
 
 	        	  setFormattedData();
-	      	  
+
+	        	  if(mainView.isMapTurnedOn()){
+		        	  //setOsmMapView();
+	        		  mainView.getOsmView().updateCurrentResult();
+	        	  }
+	        	  if(!mainView.isMapTurnedOn()){
+		        	  setGraphicalView();
+	        	  } 
+	        	  mainView.showTextView();
+	          }
+		 });
+	    
+	    /*Adds an event handler to the show text button to show the text in the view*/
+	    this.mainView.getSidebar().getHideTextButton().addClickHandler(new ClickHandler() {
+	          public void onClick(ClickEvent event) {
+
+	        	  
+	        	  if(mainView.isMapTurnedOn()){
+		        	  //setOsmMapView();
+	        		  mainView.getOsmView().updateCurrentResult();
+	        	  }
+	        	  if(!mainView.isMapTurnedOn()){
+		        	  setGraphicalView();
+	        	  } 
+	        	  mainView.hideTextView();
 	          }
 		 });
 	    
 	    /*Adds an event handler to the map button to show the map view*/
 	    this.mainView.getSidebar().getMapButton().addClickHandler(new ClickHandler() {
 	          public void onClick(ClickEvent event) {
-
-	        	  setOsmMapView();
-	      	  
+	        	          	  
+	        	  //setOsmMapView();
+	        	  mainView.getOsmView().updateCurrentResult();
+	        	  
+	        	  if(mainView.isTextTurnedOn()){
+	        		  setFormattedData();
+	        	  }  
+	        	  mainView.showMapView();
 	          }
 		 });
-	    
-	    /*Adds an event handler to the googlemap button to show the googlemap view*/
-	    this.mainView.getSidebar().getGmapButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-
-	        	  //mainView.getMapView().initializeMap(51.3760448, 7.4947253);
-	        	  setMapView();
-	      	  
-	          }
-		 });
-	    
-	    
+	        
 	    
 	    /*Adds an event handler to the geometry button to show the graphical view*/
 	    this.mainView.getSidebar().getGeometryButton().addClickHandler(new ClickHandler() {
 	          public void onClick(ClickEvent event) {
 
 	        	  setGraphicalView();
+	        	  if(mainView.isTextTurnedOn()){
+	        		  setFormattedData();
+	        	  } 
+	        	  //getFirstTuplesList();
+	        	  mainView.showGraphicalView();
 	      	  
 	          }
 		 });
 	    
 	    
 	    /*Adds an event handler on the closedatabase button to close the database*/
-		this.mainView.getSidebar().getClosedatabaseButton().addClickHandler(new ClickHandler() {
+		this.mainView.getMainheader().getClosedatabaseButton().addClickHandler(new ClickHandler() {
 	          public void onClick(ClickEvent event) {
 	        	  
                 closeDatabase(currentDatabase);  //database from sessiondata?
-		    	  deleteCommandHistory();
+		    	deleteCommandHistory();
 	          }
 		 });
 	    
 		/*Adds an event handler on the logout button of the mainview to log out of the application*/	    
-	    this.mainView.getSidebar().getLogoutButton().addClickHandler(new ClickHandler() {
+	    this.mainView.getMainheader().getLogoutButton().addClickHandler(new ClickHandler() {
 	          public void onClick(ClickEvent event) {
 	        	  
 	        	  logout();
-	          }
-		 });
-	    
-	    /*Adds an event handler on the logout button of the databaseview to log out of the application*/	    
-	    this.databaseView.getLogoutButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-	        	  
-	        	  logout();
+	        	  deleteCommandHistory();
 	          }
 		 });
 	    
 	    
+	    /*Adds an event handler on the hideTerminalButton of the commandpanel menubar to hide the commandpanel*/	    
+	    this.mainView.getCommandPanel().getMenubarCP().getHideTerminalButton().addClickHandler(new ClickHandler() {
+	          public void onClick(ClickEvent event) {
+	        	  
+	        	  if(mainView.isMapTurnedOn()){
+		        	  //setOsmMapView();
+	        		  mainView.getOsmView().updateCurrentResult();
+	        	  }
+	        	  if(!mainView.isMapTurnedOn()){
+		        	  setGraphicalView();
+	        	  } 
+	        	  mainView.hideCommandPanel();
+	        	  
+	          }
+		 });
+	    
+	    /*Adds an event handler on the clearTerminalButton of the commandpanel menubar to clear the commandpanel*/	    
+	    this.mainView.getCommandPanel().getMenubarCP().getClearTerminalButton().addClickHandler(new ClickHandler() {
+	          public void onClick(ClickEvent event) {
+	        	  
+	        	  mainView.getCommandPanel().getTextArea().setText("Sec >");
+	        	  
+	          }
+		 });
+	    
+	    /*Adds an event handler on the resetButton of the toolbar to clear the view*/
+	    this.mainView.getToolbar().getResetButton().addClickHandler(new ClickHandler() {
+	          public void onClick(ClickEvent event) {
+	        	  
+	        	 mainView.getGraphicalView().resetData();
+	        	 mainView.getOsmView().resetData();
+	        	  
+	          }
+		 });
+	    	    
 	    
 		/*creates a command to execute when the first basic command is selected in the menubar of the commandpanel*/
 		this.basicCommand1 = new Command() {
 
 		      public void execute() {
 		    	  
-		    	sendCommand("query Stadt feed filter[.SName contains \"Bremen\"] consume");
+		    	  mainView.getCommandPanel().getTextArea().setText("Sec >query Stadt feed filter[.SName contains \"Bremen\"] consume");
+		    	  
+		    	//sendCommand("query Stadt feed filter[.SName contains \"Bremen\"] consume");
 		      }
-		    };    
-		 
+		    };    	 
         this.mainView.getCommandPanel().getMenubarCP().getBasicCommandItem1().setScheduledCommand(basicCommand1);
        
        /*creates a command to execute when the second basic command is selected in the menubar of the commandpanel*/
@@ -326,10 +350,11 @@ public class SecondoWeb implements EntryPoint {
 
 		      public void execute() {
 		    	  
-		    	sendCommand("query Kreis feed filter[.KName contains \"Rosenheim\"] consume");
+		    	  mainView.getCommandPanel().getTextArea().setText("Sec >query Kreis feed filter[.KName contains \"LK Rosenheim\"] consume");
+		    	  
+		    	// sendCommand("query Kreis feed filter[.KName contains \"Rosenheim\"] consume");
 		      }
-		    };    
-		 
+		    };    		 
         this.mainView.getCommandPanel().getMenubarCP().getBasicCommandItem2().setScheduledCommand(basicCommand2);
       
       /*creates a command to execute when the third basic command is selected in the menubar of the commandpanel*/
@@ -337,10 +362,11 @@ public class SecondoWeb implements EntryPoint {
 
 		      public void execute() {
 		    	  
-		    	sendCommand("query Autobahn feed filter[.AName contains \"6\"] consume");
+		    	  mainView.getCommandPanel().getTextArea().setText("Sec >query Autobahn feed filter[.AName contains \"6\"] consume");
+		    	  
+		    	  //sendCommand("query Autobahn feed filter[.AName contains \"6\"] consume");
 		      }
-		    };    
-		 
+		    };    		 
         this.mainView.getCommandPanel().getMenubarCP().getBasicCommandItem3().setScheduledCommand(basicCommand3);
         
         /*creates a command to execute when the third basic command is selected in the menubar of the commandpanel*/
@@ -348,11 +374,24 @@ public class SecondoWeb implements EntryPoint {
 
 		      public void execute() {
 		    	  
-		    	sendCommand("query Stadt feed filter[.SName contains \"Bre\"] consume");
+		    	  mainView.getCommandPanel().getTextArea().setText("Sec >query Stadt feed filter[.SName contains \"Bre\"] consume");
+		    	  
+		    	  //sendCommand("query Stadt feed filter[.SName contains \"Bre\"] consume");
 		      }
-		    };    
-		 
+		    };    		 
         this.mainView.getCommandPanel().getMenubarCP().getBasicCommandItem4().setScheduledCommand(basicCommand4);
+        
+        /*creates a command to execute when the third basic command is selected in the menubar of the commandpanel*/
+		this.basicCommand5 = new Command() {
+
+		      public void execute() {
+		    	  
+		    	  mainView.getCommandPanel().getTextArea().setText("Sec >query Flaechen feed filter[.Name contains \"Grunewald\"] consume");
+		    	  
+		    	  //sendCommand("query Stadt feed filter[.SName contains \"Bre\"] consume");
+		      }
+		    };    		 
+        this.mainView.getCommandPanel().getMenubarCP().getBasicCommandItem5().setScheduledCommand(basicCommand5);
 
 		
 		/*sets default content after starting the application, which is the login-page, if the user is not logged in*/
@@ -360,7 +399,6 @@ public class SecondoWeb implements EntryPoint {
 		this.setContent(0);
 		}
 		
-		//mainview.showRawDataView();
 
 	}
 	
@@ -381,27 +419,35 @@ public class SecondoWeb implements EntryPoint {
 			@Override
 			public void onSuccess(String result) { //result here is return from secondoserviceimpl method sendCommand
 
+				currentRawData = result;
+				
 				String command = mainView.getCommandPanel().getTextArea().getText();
 				int splitIndex = command.indexOf(">");
 				command = command.substring(splitIndex+1);
 				
 				mainView.getRawDataView().getRawDataOutput().setText(
-						"Your entered command was :"+ command + 
-						"\n" +"The result for your query to Secondo is : "+ "\n" + result) ;
+						"Raw Data in Nested List Format from Secondo Database System \n\n" 
+				         +"The result for your query to Secondo is : "+ "\n" + result) ;
 				
-				//move all scrollpanels to the top
+				//move all scrollpanels to the top and reset data
 				mainView.getRawDataView().getScrollPanel().scrollToTop();
-				mainView.getTextView().getFormattedScrollPanel().scrollToTop();
-				mainView.getMapView().getScrollPanel().scrollToTop();
-				mainView.getMapView().getTextPanel().scrollToTop();
-				
+
+				//mainView.getCommandPanel().getTextArea().setText(command + "\nSec >");
 				mainView.getCommandPanel().getTextArea().setText("Sec >");
-				
-				mainView.getTextView().getFormattedOutput().setText("");
-				setFormattedData();
-				//setGraphicalData(); //bringt gar kein ergebnis
+				//mainView.getCommandPanel().getTextArea().appendText("\nSec>");
+				mainView.getTextView().getTextOutput().setText("");
 				
 				updateCommandHistory();
+				
+				  if(mainView.isTextTurnedOn()){
+	        		  setFormattedData();
+	        	  }
+
+		         setOsmMapView();
+		         
+	        	  if(!mainView.isMapTurnedOn()){
+		        	  setGraphicalView();
+	        	  }
 			}
 		  };
 		  		 
@@ -423,26 +469,22 @@ public class SecondoWeb implements EntryPoint {
 			@Override
 			public void onSuccess(ArrayList<String> formattedResultList) { //result here is return from secondoserviceimpl method
 				
+				mainView.getTextView().setCurrentTextList(formattedResultList);
+
+				mainView.getTextView().updateCurrentResult();
+				
 				//reset text views
-				mainView.getTextView().getFormattedOutput().setText("");
+				/*mainView.getTextView().getTextOutput().setText("");
 
 				String currentResult = "";
 				
 				//add data from formatted result list to all 3 formatted views
 				for (String data : formattedResultList){	
 					
-					currentResult = mainView.getTextView().getFormattedOutput().getText();
-					mainView.getTextView().getFormattedOutput().setText(currentResult + data);
+					currentResult = mainView.getTextView().getTextOutput().getText();
+					mainView.getTextView().getTextOutput().setText(currentResult + data);
 
-				}
-			
-				mainView.getRawDataView().getScrollPanel().scrollToTop();
-				mainView.getTextView().getFormattedScrollPanel().scrollToTop();
-				mainView.getMapView().getScrollPanel().scrollToTop();
-				mainView.getMapView().getTextPanel().scrollToTop();
-				
-				mainView.showTextView();
-
+				}*/
 			}
 		  };
 		  
@@ -464,6 +506,8 @@ public class SecondoWeb implements EntryPoint {
 			@Override
 			public void onSuccess(ArrayList<String> firstTuplesList) {
 				
+				currentFirstTuplesList = firstTuplesList;
+				
 				//clear the celllist
 				mainView.getCellListTextView().getFormattedList().clear();
 
@@ -473,10 +517,6 @@ public class SecondoWeb implements EntryPoint {
 					mainView.getCellListTextView().getFormattedList().add(data);				
 
 				}
-				
-				/*tabs.getGraphicalView().getTextCellList().setRowCount(tabs.getGraphicalView().getFormattedList().size(), true);
-			    tabs.getGraphicalView().getTextCellList().setRowData(0, tabs.getGraphicalView().getFormattedList());
-				tabs.getGraphicalView().getTextCellList().redraw();*/
 				
 				// Add the new data to the dataProvider. Only needed for paging
 			     mainView.getCellListTextView().getDataProvider().updateRowCount(mainView.getCellListTextView().getFormattedList().size(), true);
@@ -539,17 +579,18 @@ public class SecondoWeb implements EntryPoint {
 
           		Window.alert("Database " + openDatabase + " is opened successfully!");	
 				
-          		//String homeText = tabs.getSecondoOutput().getText();
-          		//select the first tab by default
-          		//tabs.getTabPanel().selectTab(0);
-          		//clear views
+				//reset text views
           		mainView.getRawDataView().getRawDataOutput().setText("");
-          	    //enter some default text to the first tab
-          		mainView.getRawDataView().getRawDataOutput().setText(
+				//mainView.getCellListTextView().getFormattedList().clear();		
+				mainView.getTextView().getTextOutput().setText("");
+				
+          	    //enter some default text to the raw data view
+          		/*mainView.getRawDataView().getRawDataOutput().setText(
           				"\n" + 
           				"Welcome " + logindata.get(0) + "!" + 
-          				"\n \n Database " + openDatabase + " is opened successfully!");
+          				"\n \n Database " + openDatabase + " is opened successfully!");*/
           		
+				//set status info to status bar
           		mainView.getStatusBar().getSecondoServer().setText(logindata.get(2) + " : " + logindata.get(3));
           		mainView.getStatusBar().getUserName().setText(logindata.get(0));
           		mainView.getStatusBar().getOpenDatabase().setText(openDatabase);
@@ -558,14 +599,8 @@ public class SecondoWeb implements EntryPoint {
       			mainView.getCommandPanel().getTextArea().setText("Sec >");	
       			mainView.getCommandPanel().getMenubarCP().getQuerySelection().clear();
       			mainView.getCommandPanel().getMenubarCP().getQuerySelection().addItem("Select Command...");
-      			
+     			
       			deleteCommandHistory();
-				//reset all formatted views 
-				//tabs.getFormattedView().getFormattedList().clear();
-				mainView.getCellListTextView().getFormattedList().clear();
-				
-				mainView.getTextView().getFormattedOutput().setText("");
-				//tabs.getGraphicalView().getFormattedOutput().setText("");
           		
           		setContent(2);			
 			}
@@ -584,12 +619,12 @@ public class SecondoWeb implements EntryPoint {
 
 			@Override
 			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);
+				Window.alert(SERVER_ERROR + caught);
 				
 			}
 
 			@Override
-			public void onSuccess(String userstatus) { //result here is return from secondoserviceimpl method
+			public void onSuccess(String userstatus) { 
           		
           		if(userstatus.equals("true")){
     				loggedin = true;
@@ -609,8 +644,7 @@ public class SecondoWeb implements EntryPoint {
 
 			@Override
 			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);
-				
+				Window.alert(SERVER_ERROR);			
 			}
 
 			@Override
@@ -619,7 +653,6 @@ public class SecondoWeb implements EntryPoint {
           		if(!database.equals("failed")){
           			Window.alert("Database " + database + " is successfully closed!");
     				setContent(1);	
-
           		}			
 			}
 		  };
@@ -649,8 +682,9 @@ public class SecondoWeb implements EntryPoint {
     				deleteCommandHistory();
 
     				//reset text views
-    				mainView.getCellListTextView().getFormattedList().clear();			
-    				mainView.getTextView().getFormattedOutput().setText("");
+    				//mainView.getCellListTextView().getFormattedList().clear();			
+    				mainView.getTextView().getTextOutput().setText("");
+    				mainView.getRawDataView().getRawDataOutput().setText("");
           		}			
 			}
 		  };
@@ -673,7 +707,7 @@ public class SecondoWeb implements EntryPoint {
 			public void onSuccess(ArrayList<String> commandHistory) { //result here is return from secondoserviceimpl method
 				
 				mainView.getCommandPanel().getMenubarCP().getQuerySelection().clear();
-				mainView.getCommandPanel().getMenubarCP().getQuerySelection().addItem("Select Command...");
+				mainView.getCommandPanel().getMenubarCP().getQuerySelection().addItem("Command History...");
 							
 				for (String command : commandHistory){		
 					mainView.getCommandPanel().getMenubarCP().getQuerySelection().addItem(command);
@@ -701,10 +735,9 @@ public class SecondoWeb implements EntryPoint {
 			public void onSuccess(String result) { //result here is return from secondoserviceimpl method
 				
 				mainView.getCommandPanel().getMenubarCP().getQuerySelection().clear();
-				mainView.getCommandPanel().getMenubarCP().getQuerySelection().addItem("Select Command...");
+				mainView.getCommandPanel().getMenubarCP().getQuerySelection().addItem("Command History...");
 				
 				System.out.println("#######CommandHistory has been deleted.");
-
 			}
 		  };
 		  
@@ -726,23 +759,180 @@ public class SecondoWeb implements EntryPoint {
 			@Override
 			public void onSuccess(String result) { //result here is return from secondoserviceimpl method
 
-				mainView.getRawDataView().getRawDataOutput().setText("The result for your query to Secondo is : "+ "\n" + result) ;
+				mainView.getRawDataView().getRawDataOutput().setText(
+						"Raw Data in Nested List Format from Secondo Database System \n\n" 
+				         +"The result for your query to Secondo is : "+ "\n" + result) ;
 				
 				mainView.getCommandPanel().getTextArea().setText("Sec >");	
 				
-				setFormattedData();
-			
+				  if(mainView.isTextTurnedOn()){
+	        		  setFormattedData();
+	        	  }
+	        	  if(mainView.isMapTurnedOn()){
+		        	  setOsmMapView();
+	        	  }
+	        	  if(!mainView.isMapTurnedOn()){
+		        	  setGraphicalView();
+	        	  }
 			}
 		  };
 		  
-		secondoService.updateResult(selectedCommand, callback); 
-		
+		secondoService.updateResult(selectedCommand, callback); 		
 
 		return "";
 	}
 	
 	/** Starts an RPC call to the server to get a list of datatypes from the secondoresult and sets them on the map */
-	public String setMapView() {
+	public String setOsmMapView() {
+						
+		AsyncCallback<ArrayList<DataType>> callback = new AsyncCallback<ArrayList<DataType>>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);				
+			}
+
+			@Override
+			public void onSuccess(ArrayList<DataType> result) { //result here is return from secondoserviceimpl method
+				
+				mainView.getOsmView().setCurrentResultTypeList(result);
+				
+				mainView.getOsmView().updateCurrentResult();
+
+				/*if(!result.isEmpty()){
+					System.out.println("##############if of setmapview, size of resultlist: "+ result.size());
+
+					mainView.getOsmView().resetData();
+									
+					for(DataType data : result){
+
+						if(data.getName().equals("Point")){
+
+							mainView.getOsmView().setMarker(((Point) data).getY(), ((Point) data).getX());
+							mainView.getOsmView().addMarker(((Point) data).getY(), ((Point) data).getX());
+							
+						}
+						if(data.getName().equals("Line")){
+							
+							mainView.getOsmView().addLine(((Line) data).getA().getY(), ((Line) data).getA().getX(), ((Line) data).getB().getY(), ((Line) data).getB().getX());
+						}
+                       if(data.getName().equals("Polyline")){
+                    	   
+                    	   mainView.getOsmView().deleteAllPoints();
+                    	   
+							for (Point point: ((Polyline) data).getPath()){
+								mainView.getOsmView().addPoint(point.getY(), point.getX());	
+							}	
+							mainView.getOsmView().addPolygon();	
+						
+						}
+					}
+					//get the first element of the list and check its type
+					if(result.get(0).getName().equals("Point")){
+					    mainView.getOsmView().showMarkerOverlay();
+					    }
+					if(result.get(0).getName().equals("Line")){
+					    mainView.getOsmView().showLineOverlay();
+					    }
+					if(result.get(0).getName().equals("Polyline")){
+					    mainView.getOsmView().showPolygonOverlays();
+					    }
+				}
+				
+				else{
+				
+				System.out.println("##############else of setmapview");
+				
+				mainView.getOsmView().resetData();				
+				}*/
+			}
+		  };
+		  
+		secondoService.getResultTypeList(callback); 
+		
+		return "";
+	}
+	
+	/** Starts an RPC call to the server to get a list of datatypes from the secondoresult and sets them on the map */
+	public String setGraphicalView() {
+						
+		AsyncCallback<ArrayList<DataType>> callback = new AsyncCallback<ArrayList<DataType>>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);				
+			}
+
+			@Override
+			public void onSuccess(ArrayList<DataType> result) { //result here is return from secondoserviceimpl method
+
+				if(!result.isEmpty()){
+					
+					System.out.println("##########if from getgraphicalview");
+						
+					//initializes the d3view
+					mainView.getGraphicalView().resetData();
+					
+					//mainView.getGraphicalView().createSVG(); //wird nicht angesprochen von drawpolygon, und axen fehlen
+
+					
+					for(DataType data : result){
+						if(data.getName().equals("Point")){
+
+							mainView.getGraphicalView().addPointToDataset(((Point) data).getX(), ((Point) data).getY());
+							
+						}
+						if(data.getName().equals("Line")){
+							
+							mainView.getGraphicalView().addLineToDataset(((Line) data).getA().getX(), ((Line) data).getA().getY(), ((Line) data).getB().getX(), ((Line) data).getB().getY());
+						}
+						
+						if(data.getName().equals("Polyline")){
+	                    	   
+							//mainView.getGraphicalView().deleteAllPoints();
+							//mainView.getGraphicalView().deleteAllPathPoints();
+	                    	   
+								for (Point point: ((Polyline) data).getPath()){
+									mainView.getGraphicalView().addPointToDataset(point.getX(), point.getY());	//for all polygons to calculate the axis and scale
+									mainView.getGraphicalView().addPointToPath(point.getX(), point.getY());	 //just for one polygon
+								}	
+								mainView.getGraphicalView().addPolygon();
+								//mainView.getGraphicalView().drawPolygon(); //draws all polygons in 3 svgs!!
+								
+							}
+					}
+					
+					//get the first element of the list and check its type
+					if(result.get(0).getName().equals("Point")){
+						mainView.getGraphicalView().showPointArray();
+					}
+					if(result.get(0).getName().equals("Line")){
+						mainView.getGraphicalView().showLineArray();
+					}
+					if(result.get(0).getName().equals("Polyline")){
+						mainView.getGraphicalView().showPaths();
+						//mainView.getGraphicalView().drawPolygon(); // Funktioniert, zeichnet alle Polygone als 1 array
+					}
+					
+				}
+				
+				else{
+					
+					System.out.println("##########else from getgraphicalview");
+				
+					mainView.getGraphicalView().resetData();
+				
+				}
+			}
+		  };
+		  
+		secondoService.getResultTypeList(callback); 
+		
+		return "";
+	}
+	
+	/** Starts an RPC call to the server to get a list of datatypes from the secondoresult and sets them on the map */
+	/*public String setMapView() {
 						
 		AsyncCallback<ArrayList<DataType>> callback = new AsyncCallback<ArrayList<DataType>>() {
 
@@ -813,148 +1003,14 @@ public class SecondoWeb implements EntryPoint {
 				System.out.println("##############else of setmapview");
 		
 				}
-				mainView.showGoogleMapView();
+
 			}
 		  };
 		  
 		secondoService.getResultTypeList(callback); 
 		
 		return "";
-	}
-	
-	/** Starts an RPC call to the server to get a list of datatypes from the secondoresult and sets them on the map */
-	public String setOsmMapView() {
-						
-		AsyncCallback<ArrayList<DataType>> callback = new AsyncCallback<ArrayList<DataType>>() {
-
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);				
-			}
-
-			@Override
-			public void onSuccess(ArrayList<DataType> result) { //result here is return from secondoserviceimpl method
-
-				if(!result.isEmpty()){
-					System.out.println("##############if of setmapview, size of resultlist: "+ result.size());
-
-					mainView.getOsmView().deleteAllMarkers();
-					mainView.getOsmView().deleteAllLines();
-					mainView.getOsmView().deleteAllPoints();
-					mainView.getOsmView().deleteAllPolygons();
-					mainView.getOsmView().resetBounds();
-					//tabs.getOsmView().resetMap();
-					//tabs.getOsmView().setMarker(52.519171, 13.4060912);//set marker to berlin-klappt!!!
-									
-					for(DataType data : result){
-
-						if(data.getName().equals("Point")){
-
-							mainView.getOsmView().setMarker(((Point) data).getY(), ((Point) data).getX()); //klappt !!
-							mainView.getOsmView().addMarker(((Point) data).getY(), ((Point) data).getX());
-							
-						}
-						if(data.getName().equals("Line")){
-							
-							mainView.getOsmView().addLine(((Line) data).getA().getY(), ((Line) data).getA().getX(), ((Line) data).getB().getY(), ((Line) data).getB().getX());
-						}
-                       if(data.getName().equals("Polyline")){
-                    	   
-                    	   mainView.getOsmView().deleteAllPoints();
-                    	   
-							for (Point point: ((Polyline) data).getPath()){
-								mainView.getOsmView().addPoint(point.getY(), point.getX()); //add point 	
-								//System.out.println("##############point added to polyline");// klappt!
-							}	
-							mainView.getOsmView().addPolygon();	
-						
-						}
-					}
-					mainView.getOsmView().showMarkerOverlay();
-					mainView.getOsmView().showLineOverlay();
-					mainView.getOsmView().showPolygonOverlays();
-				}
-				
-				else{
-				
-				System.out.println("##############else of setmapview");
-				
-				mainView.getOsmView().deleteAllMarkers();
-				mainView.getOsmView().deleteAllLines();
-				mainView.getOsmView().deleteAllPoints();
-				mainView.getOsmView().deleteAllPolygons();
-				mainView.getOsmView().resetBounds();
-				//tabs.getOsmView().resetMap();
-				
-				}
-				mainView.showOSMapView();
-			}
-		  };
-		  
-		secondoService.getResultTypeList(callback); 
-		
-		return "";
-	}
-	
-	/** Starts an RPC call to the server to get a list of datatypes from the secondoresult and sets them on the map */
-	public String setGraphicalView() {
-						
-		AsyncCallback<ArrayList<DataType>> callback = new AsyncCallback<ArrayList<DataType>>() {
-
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);				
-			}
-
-			@Override
-			public void onSuccess(ArrayList<DataType> result) { //result here is return from secondoserviceimpl method
-
-				if(!result.isEmpty()){
-					
-					System.out.println("##########if from getgraphicalview");
-						
-					//initializes the d3view
-					mainView.getGraphicalView().resetData();
-					
-					for(DataType data : result){
-						if(data.getName().equals("Point")){
-
-							mainView.getGraphicalView().addPointToDataset(((Point) data).getY(), ((Point) data).getX());
-							
-						}
-						if(data.getName().equals("Line")){
-							
-							mainView.getGraphicalView().addLineToDataset(((Line) data).getA().getX(), ((Line) data).getA().getY(), ((Line) data).getB().getX(), ((Line) data).getB().getY());
-						}
-					}
-					
-					//get the first element of the list and check its type
-					if(result.get(0).getName().equals("Point")){
-						mainView.getGraphicalView().showPointArray(mainView.getGraphicalView().getDiv());
-					}
-					if(result.get(0).getName().equals("Line")){
-						mainView.getGraphicalView().showLineArray(mainView.getGraphicalView().getDiv());
-					}
-					
-				}
-				
-				else{
-					
-					System.out.println("##########else from getgraphicalview");
-				
-					mainView.getGraphicalView().resetData();
-				
-				}
-				
-	        	 mainView.showGraphicalView();
-			}
-		  };
-		  
-		secondoService.getResultTypeList(callback); 
-		
-		return "";
-	}
-	
+	}*/
 	
 	
 /**################ Method to set 3 different contents to the website, depending on the userstatus and the chosen database ##############*/
@@ -992,7 +1048,7 @@ public class SecondoWeb implements EntryPoint {
 			content.add(databaseView.gethPanel());
 			
 			footer.clear();
-			footer.add(databaseView.getDatabaseFooter().getText());		
+			footer.add(databaseView.getDatabaseFooter().getHpanel());		
 
 		/* Associate the panels with the HTML host page.*/
 		RootPanel.get("content").add(content);
@@ -1011,7 +1067,7 @@ public class SecondoWeb implements EntryPoint {
 			content.add(mainView.getMainPanel());
 			
 			footer.clear();
-			footer.add(mainView.getFooter().getText());
+			//footer.add(mainView.getFooter().getText());
 
 
 		/* Associate the panels with the HTML host page.*/
@@ -1019,7 +1075,7 @@ public class SecondoWeb implements EntryPoint {
 
 		RootPanel.get("header").add(header);
 
-		RootPanel.get("footer").add(footer);
+		//RootPanel.get("footer").add(footer);
 
             break;
         default:

@@ -1,8 +1,9 @@
 package com.secondo.webgui.server;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class SessionData {
+public class SessionData implements Serializable {
 	
 	private String username ="";
 	private String password = "";
