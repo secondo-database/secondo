@@ -309,7 +309,12 @@ distanceScan2STypeMap( ListExpr args ) {
    ListExpr res =  
       nl->TwoElemList(
         nl->SymbolAtom(Symbol::STREAM()),
-                       listutils::basicSymbol<TupleIdentifier>());
+        nl->TwoElemList(
+            listutils::basicSymbol<Tuple>(),
+            nl->OneElemList(
+               nl->TwoElemList(
+                  nl->SymbolAtom("Id"),           
+                  listutils::basicSymbol<TupleIdentifier>()))));
     return res;
 }
 
@@ -1350,7 +1355,8 @@ template <unsigned dim>
 class DSLocalInfo{
 public:
    DSLocalInfo( R_Tree<dim, TupleId>* rtree, Relation* rel,
-               StandardSpatialAttribute<dim>* queryObj, CcInt* k){
+               StandardSpatialAttribute<dim>* queryObj, CcInt* k,
+               ListExpr resType){
      // check if all things are defined
      if( (rel!=0 && rel->GetNoTuples()==0) ||
          !queryObj->IsDefined() ||
@@ -1362,6 +1368,11 @@ public:
         this->k = 0;
         this->returned = 0;
         return;
+      }
+      if(!nl->IsEmpty(resType)){
+         tt = new TupleType(resType);
+      } else {
+         tt = 0;
       }
 
       this->tree = rtree;
@@ -1394,6 +1405,10 @@ public:
          DSEntry<dim>* t = dsqueue.top();
          delete t;
          dsqueue.pop();
+      }
+      if(tt){
+         tt->DeleteIfAllowed();
+         tt = 0;
       }
     }
 
@@ -1469,13 +1484,26 @@ public:
        }
    } 
 
-   TupleIdentifier* nextTupleID(){
+  /* TupleIdentifier* nextTupleID(){
        TupleId* id = nextTupleID1();
        if(id==0){
           return 0;
        }  else {
          TupleIdentifier* res = new TupleIdentifier(true,*id);
          delete id;
+         return res;
+       }
+   }
+   */
+   Tuple* nextTIDTuple(){
+       TupleId* id = nextTupleID1();
+       if(id==0){
+          return 0;
+       }  else {
+         TupleIdentifier* tid = new TupleIdentifier(true,*id);
+         delete id;
+         Tuple* res = new Tuple(tt);
+         res->PutAttribute(0,tid);
          return res;
        }
    } 
@@ -1496,6 +1524,7 @@ private:
    priority_queue< DSEntry<dim>*,
                    vector<DSEntry<dim>* >,
                    DSEComp<dim>  > dsqueue;
+   TupleType* tt;
 };
 
 
@@ -1514,7 +1543,8 @@ int distanceScan2Fun (Word* args, Word& result, int message,
        StandardSpatialAttribute<dim>* queryObj =
              static_cast<StandardSpatialAttribute<dim>*>(args[2].addr);
        CcInt* k = static_cast<CcInt*>(args[3].addr);
-       local.addr = new DSLocalInfo<dim>(rtree, rel, queryObj, k);
+       local.addr = new DSLocalInfo<dim>(rtree, rel, queryObj, k, 
+                                         nl->TheEmptyList());
        return 0;
     }
 
@@ -1555,7 +1585,8 @@ int distanceScan2SFun (Word* args, Word& result, int message,
        StandardSpatialAttribute<dim>* queryObj =
              static_cast<StandardSpatialAttribute<dim>*>(args[1].addr);
        CcInt* k = static_cast<CcInt*>(args[2].addr);
-       local.addr = new DSLocalInfo<dim>(rtree, 0, queryObj, k);
+       local.addr = new DSLocalInfo<dim>(rtree, 0, queryObj, k,  
+                                       nl->Second(GetTupleResultType(s)));
        return 0;
     }
 
@@ -1564,7 +1595,7 @@ int distanceScan2SFun (Word* args, Word& result, int message,
         return CANCEL;
       } else {
         DSLocalInfo<dim>* li = static_cast<DSLocalInfo<dim>*>(local.addr);
-        result.addr = li->nextTupleID();
+        result.addr = li->nextTIDTuple();
         return result.addr ? YIELD : CANCEL;
       }
     }
