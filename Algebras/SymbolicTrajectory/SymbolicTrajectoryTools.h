@@ -62,7 +62,7 @@ void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
 int getKey(string type);
 string extractVar(string input);
 string extendDate(string input, const bool start);
-bool checkSemanticDate(const string text, const SecInterval uIv,
+bool checkSemanticDate(const string &text, const SecInterval &uIv,
                        const bool resultNeeded);
 bool checkDaytime(const string text, const SecInterval uIv);
 bool labelsMatch(string label, set<string> lbs);

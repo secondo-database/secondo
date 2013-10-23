@@ -381,7 +381,7 @@ parameter ~resultNeeded~ is ~false~, the function will only check the validity
 of ~text~.
 
 */
-bool checkSemanticDate(const string text, const SecInterval uIv,
+bool checkSemanticDate(const string &text, const SecInterval &uIv,
                        const bool eval) {
   string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", "friday",
                         "saturday", "sunday"};
@@ -446,14 +446,11 @@ bool checkSemanticDate(const string text, const SecInterval uIv,
   }
   else {
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
-    if (!Periods::checkType(sc->GetObjectTypeExpr(text))) {
-      cout << text << " is not a periods object." << endl;
-      return false;
-    }
-    else {
-      const int errPos = 0;
-      ListExpr errInfo;
-      bool ok;
+    const int errPos = 0;
+    ListExpr errInfo;
+    bool ok;
+    if (Periods::checkType(sc->GetObjectTypeExpr(text)) ||
+        SecInterval::checkType(sc->GetObjectTypeExpr(text))) {
       Word pWord = sc->InObject(sc->GetObjectTypeExpr(text),
                                 sc->GetObjectValue(text), errPos, errInfo, ok);
       if (!ok) {
@@ -461,10 +458,18 @@ bool checkSemanticDate(const string text, const SecInterval uIv,
         return false;
       }
       else {
-        Periods* period = static_cast<Periods*>(pWord.addr);
-        return (eval ? period->Contains(uIv) : true);
+        if (Periods::checkType(sc->GetObjectTypeExpr(text))) {
+          Periods* period = static_cast<Periods*>(pWord.addr);
+          return (eval ? period->Contains(uIv) : true);
+        }
+        else {
+          SecInterval* interval = static_cast<SecInterval*>(pWord.addr);
+          return (eval ? interval->Contains(uIv) : true);
+        }
       }
     }
+    cout << text << " is not a periods / interval object." << endl;
+    return false;
   }
   return false;
 }

@@ -15,3 +15,4 @@ operator createml alias CREATEML pattern op ( _ , _ )
 operator createmlrelation alias CREATEMLRELATION pattern op ( _ , _ , _ )
 operator createindex alias INDEX pattern op(_)
 operator createtrie alias CREATETRIE pattern _ op [ _ ]
+operator triptompoint alias TRIPTOMPOINT pattern _ op

@@ -127,3 +127,9 @@ Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
 Example  : query Dotraj createtrie[Trajectory]
 Result   : unpredictable
 Remark   : A InvFile has no out function
+
+Operator : triptompoint
+Number   : 1
+Signature: stream(tuple(Moid: int, Tripid: int, Tstart: instant, Tend: instant, Xstart: real, Ystart: real, Xend: real, Yend: real)) -> bool
+Example  : query trips feed head[1] triptompoint
+Result   : TRUE
