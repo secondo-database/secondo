@@ -17550,35 +17550,33 @@ SpatialGetY_p( Word* args, Word& result, int message,
 
 */
 
-class LineSplitter{
-public:
 /*
 ~Constructor~
 
 Creates a LineSplitter from the given line.
 
 */
-   LineSplitter(Line* line, bool ignoreCriticalPoints, bool allowCycles,
-                Points* points = 0){
-        this->theLine = line;
-        size = line->Size();
-        lastPos =0;
-        this->points = points;
-        used = new bool[size];
-        memset(used,false,size);
-        this->ignoreCriticalPoints = ignoreCriticalPoints;
-        this->allowCycles = allowCycles;
-   }
+LineSplitter::LineSplitter(Line* line, bool ignoreCriticalPoints,
+                           bool allowCycles, Points* points /* = 0 */){
+    this->theLine = line;
+    size = line->Size();
+    lastPos =0;
+    this->points = points;
+    used = new bool[size];
+    memset(used,false,size);
+    this->ignoreCriticalPoints = ignoreCriticalPoints;
+    this->allowCycles = allowCycles;
+}
 
 /*
 ~Destroys~ the lineSplitter
 
 */
 
-   ~LineSplitter(){
-      delete [] used;
-      points = 0;
-    }
+LineSplitter::~LineSplitter(){
+  delete [] used;
+  points = 0;
+}
 
 /*
 ~NextLine~
@@ -17590,158 +17588,180 @@ operator. The caller of this function has to ensure the
 deletion of this object.
 
 */
-    Line* NextLine(){
-      // go to the first unused halfsegment
-      while(lastPos<size && used[lastPos]){
-        lastPos++;
+Line* LineSplitter::NextLine(list<Point> *pointlist /* = 0 */) {
+  // go to the first unused halfsegment
+  while(lastPos<size && used[lastPos]){
+    lastPos++;
+  }
+  if(lastPos>=size){
+     return 0;
+  }
+  // unused segment found,  construct a new Line
+  int maxSize = max(1,size - lastPos);
+  Line *result = 0;
+  if (pointlist) {
+    pointlist->clear();
+  }
+  else {
+    result = new Line(maxSize);
+  }
+  set<Point> pointset;
+  int pos = lastPos;
+  bool done = false;
+  if (!pointlist) {
+    result->Clear();
+    result->StartBulkLoad();
+  }
+  HalfSegment hs1;
+  HalfSegment hs2; // partner of hs1
+  int edgeno = 0;
+  bool seconddir = false;
+  theLine->Get(pos,hs1);
+  Point firstPoint = hs1.GetDomPoint();
+  if (pointlist) {
+    pointlist->push_back(firstPoint);
+  }
+  bool isCycle = false;
+
+
+  while(!done){ // extension possible
+    theLine->Get(pos,hs1);
+    int partnerpos = hs1.GetAttr().partnerno;
+    theLine->Get(partnerpos, hs2);
+    Point p1 = hs1.GetDomPoint();
+    pointset.insert(p1);
+    Point p = hs2.GetDomPoint();
+    pointset.insert(p);
+    // add the halfsegments to the result
+    HalfSegment Hs1 = hs1;
+    HalfSegment Hs2 = hs2;
+    AttrType attr1 = Hs1.GetAttr();
+    attr1.edgeno = edgeno;
+    Hs1.SetAttr(attr1);
+    AttrType attr2 = Hs2.GetAttr();
+    attr2.edgeno=edgeno;
+    Hs2.SetAttr(attr2);
+    edgeno++;
+    if (pointlist) {
+      if (seconddir) {
+        pointlist->push_front(p);
       }
-      if(lastPos>=size){
-         return 0;
+      else {
+        pointlist->push_back(p);
       }
-      // unused segment found,  construct a new Line
-      int maxSize = max(1,size - lastPos);
-      Line* result = new Line(maxSize);
-      set<Point> pointset;
-      int pos = lastPos;
-      bool done = false;
-      result->Clear();
-      result->StartBulkLoad();
-      HalfSegment hs1;
-      HalfSegment hs2; // partner of hs1
-      int edgeno = 0;
-      bool seconddir = false;
-      theLine->Get(pos,hs1);
-      Point firstPoint = hs1.GetDomPoint();
-      bool isCycle = false;
-
-
-      while(!done){ // extension possible
-        theLine->Get(pos,hs1);
-        int partnerpos = hs1.GetAttr().partnerno;
-        theLine->Get(partnerpos, hs2);
-        Point p1 = hs1.GetDomPoint();
-        pointset.insert(p1);
-        Point p = hs2.GetDomPoint();
-        pointset.insert(p);
-        // add the halfsegments to the result
-        HalfSegment Hs1 = hs1;
-        HalfSegment Hs2 = hs2;
-        AttrType attr1 = Hs1.GetAttr();
-        attr1.edgeno = edgeno;
-        Hs1.SetAttr(attr1);
-        AttrType attr2 = Hs2.GetAttr();
-        attr2.edgeno=edgeno;
-        Hs2.SetAttr(attr2);
-        edgeno++;
-        (*result) += (Hs1);
-        (*result) += (Hs2);
-        // mark as used
-        used[pos] = true;
-        used[partnerpos] = true;
-
-        if(isCycle){
-           done = true;
-        } else {
-           bool found = false;
-           int sp = partnerpos-1;
-
-           if(points==0 || !points->Contains(p)){//no forced split
-
-             // search for extension of the polyline
-             // search left of partnerpos for an extension
-             HalfSegment hs3;
-             while(sp>0 && !found){
-               if(!used[sp]){
-                 theLine->Get(sp,hs3);
-                 if(AlmostEqual(p,hs3.GetDomPoint())){
-                   Point p3 = hs3.GetSecPoint(); // cycles?
-                   if(pointset.find(p3)==pointset.end() ||
-                     (allowCycles && AlmostEqual(p3,firstPoint))){
-                     if(AlmostEqual(p3,firstPoint)){
-                       isCycle = true;
-                     }
-                     found = true;
-                   } else {
-                     sp--;
-                   }
-                 } else {
-                   sp = -1; // stop searching
-                 }
-               } else {
-                 sp --; // search next
-               }
-             }
-             // search on the right side
-             if(!found){
-                sp = partnerpos + 1;
-                while(sp<size && !found){
-                  if(!used[sp]){
-                    HalfSegment hs3;
-                    theLine->Get(sp,hs3);
-                    if(AlmostEqual(p,hs3.GetDomPoint())){
-                      Point p3 = hs3.GetSecPoint(); // avoid cycles
-                      if(pointset.find(p3)==pointset.end() ||
-                         (allowCycles && AlmostEqual(p3,firstPoint))){
-                        if(AlmostEqual(p3,firstPoint)){
-                          isCycle = true;
-                        }
-                        found = true;
-                      } else {
-                        sp++;
-                      }
-                    } else {
-                        sp = size; // stop searching
-                    }
-                  } else {
-                    sp ++; // search next
-                  }
-                }
-             }
-        }
-
-        if(found){ // sp is a potential extension of the line
-          if(ignoreCriticalPoints || !isCriticalPoint(partnerpos)){
-            pos = sp;
-          } else {
-            done = true;
-          }
-        }  else { // no extension found
-          done = true;
-        }
-
-        if(done && !seconddir && (lastPos < (size-1)) &&
-           (points==0 || !points->Contains(firstPoint)) &&
-           (!isCycle)){
-           // done means at this point, the line can't be extended
-           // in the direction start from the first selected halfsegment.
-           // but is is possible the extend the line by going into the
-           // reverse direction
-           seconddir = true;
-           HalfSegment hs;
-           theLine->Get(lastPos,hs);
-           Point p = hs.GetDomPoint();
-           while(lastPos<size && used[lastPos]){
-             lastPos ++;
-           }
-           if(lastPos <size){
-             theLine->Get(lastPos,hs);
-             Point p2 = hs.GetDomPoint();
-             if(AlmostEqual(p,p2)){
-               if(pointset.find(hs.GetSecPoint())==pointset.end()){
-                 if(ignoreCriticalPoints || !isCriticalPoint(lastPos)){
-                   pos = lastPos;
-                   done = false;
-                 }
-               }
-             }
-           }
-          }
-        } // isCycle
-      } // while
-      result->EndBulkLoad();
-      return result;
     }
-private:
+    else {
+      (*result) += (Hs1);
+      (*result) += (Hs2);
+    }
+    // mark as used
+    used[pos] = true;
+    used[partnerpos] = true;
+
+    if(isCycle){
+       done = true;
+    } else {
+       bool found = false;
+       int sp = partnerpos-1;
+
+       if(points==0 || !points->Contains(p)){//no forced split
+
+         // search for extension of the polyline
+         // search left of partnerpos for an extension
+         HalfSegment hs3;
+         while(sp>0 && !found){
+           if(!used[sp]){
+             theLine->Get(sp,hs3);
+             if(AlmostEqual(p,hs3.GetDomPoint())){
+               Point p3 = hs3.GetSecPoint(); // cycles?
+               if(pointset.find(p3)==pointset.end() ||
+                 (allowCycles && AlmostEqual(p3,firstPoint))){
+                 if(AlmostEqual(p3,firstPoint)){
+                   isCycle = true;
+                 }
+                 found = true;
+               } else {
+                 sp--;
+               }
+             } else {
+               sp = -1; // stop searching
+             }
+           } else {
+             sp --; // search next
+           }
+         }
+         // search on the right side
+         if(!found){
+            sp = partnerpos + 1;
+            while(sp<size && !found){
+              if(!used[sp]){
+                HalfSegment hs3;
+                theLine->Get(sp,hs3);
+                if(AlmostEqual(p,hs3.GetDomPoint())){
+                  Point p3 = hs3.GetSecPoint(); // avoid cycles
+                  if(pointset.find(p3)==pointset.end() ||
+                     (allowCycles && AlmostEqual(p3,firstPoint))){
+                    if(AlmostEqual(p3,firstPoint)){
+                      isCycle = true;
+                    }
+                    found = true;
+                  } else {
+                    sp++;
+                  }
+                } else {
+                    sp = size; // stop searching
+                }
+              } else {
+                sp ++; // search next
+              }
+            }
+         }
+    }
+
+    if(found){ // sp is a potential extension of the line
+      if(ignoreCriticalPoints || !isCriticalPoint(partnerpos)){
+        pos = sp;
+      } else {
+        done = true;
+      }
+    }  else { // no extension found
+      done = true;
+    }
+
+    if(done && !seconddir && (lastPos < (size-1)) &&
+       (points==0 || !points->Contains(firstPoint)) &&
+       (!isCycle)){
+       // done means at this point, the line can't be extended
+       // in the direction start from the first selected halfsegment.
+       // but is is possible the extend the line by going into the
+       // reverse direction
+       seconddir = true;
+       HalfSegment hs;
+       theLine->Get(lastPos,hs);
+       Point p = hs.GetDomPoint();
+       while(lastPos<size && used[lastPos]){
+         lastPos ++;
+       }
+       if(lastPos <size){
+         theLine->Get(lastPos,hs);
+         Point p2 = hs.GetDomPoint();
+         if(AlmostEqual(p,p2)){
+           if(pointset.find(hs.GetSecPoint())==pointset.end()){
+             if(ignoreCriticalPoints || !isCriticalPoint(lastPos)){
+               pos = lastPos;
+               done = false;
+             }
+           }
+         }
+       }
+      }
+    } // isCycle
+  } // while
+  if (!pointlist) {
+    result->EndBulkLoad();
+  }
+  return result;
+}
 /*
 ~isCriticalPoint~
 
@@ -17750,43 +17770,35 @@ position index is a critical one meaning a junction within the
 line.
 
 */
-   bool isCriticalPoint(int index){
-      // check for critical point
-      HalfSegment hs;
-      theLine->Get(index,hs);
-      Point  cpoint = hs.GetDomPoint();
-      int count = 0;
-      for(int i=max(0,index-2); i<= min(theLine->Size(),index+2) ; i++){
-           if(i>=0 && i<size){
-              theLine->Get(i,hs);
-              if(AlmostEqual(cpoint, hs.GetDomPoint())){
-                  count++;
-              }
-           }
+bool LineSplitter::isCriticalPoint(int index){
+  // check for critical point
+  HalfSegment hs;
+  theLine->Get(index,hs);
+  Point  cpoint = hs.GetDomPoint();
+  int count = 0;
+  for(int i=max(0,index-2); i<= min(theLine->Size(),index+2) ; i++){
+       if(i>=0 && i<size){
+          theLine->Get(i,hs);
+          if(AlmostEqual(cpoint, hs.GetDomPoint())){
+              count++;
+          }
        }
-       return count>2;
    }
-  /*
-   bool AlmostEqual2(const Point& p1, const Point& p2 ){
-      double z1 = abs(p1.GetX());
-      double z2 = abs(p1.GetY());
-      double z3 = abs(p2.GetX());
-      double z4 = abs(p2.GetY());
-      double Min = min(min(z1,z2) , min(z3,z4));
-      double eps = max(FACTOR, FACTOR*Min);
-      if(abs(z1-z3)>eps) return false;
-      if(abs(z2-z4)>eps) return false;
-      return true;
-   }
-  */
-   bool* used;
-   Line* theLine;
-   int lastPos;
-   int size;
-   bool ignoreCriticalPoints;
-   Points* points;
-   bool allowCycles;
-};
+   return count>2;
+}
+/*
+bool AlmostEqual2(const Point& p1, const Point& p2 ){
+  double z1 = abs(p1.GetX());
+  double z2 = abs(p1.GetY());
+  double z3 = abs(p2.GetX());
+  double z4 = abs(p2.GetY());
+  double Min = min(min(z1,z2) , min(z3,z4));
+  double eps = max(FACTOR, FACTOR*Min);
+  if(abs(z1-z3)>eps) return false;
+  if(abs(z2-z4)>eps) return false;
+  return true;
+}
+*/
 
 
 template<bool allowCycles>

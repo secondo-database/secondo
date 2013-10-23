@@ -4676,6 +4676,25 @@ between 3 and 100. Otherwise, the result will be undefined.
 */
 void generateCircle(Point* p, double radius, int n , Region* res);
 
+class LineSplitter {
+ public:
+  LineSplitter(Line* line, bool ignoreCriticalPoints, bool allowCycles,
+               Points* points = 0);
 
+  ~LineSplitter();
+
+  Line* NextLine(list<Point> *pointlist = 0);
+  
+ private:
+  bool isCriticalPoint(int index);
+
+  bool* used;
+  Line* theLine;
+  int lastPos;
+  int size;
+  bool ignoreCriticalPoints;
+  Points* points;
+  bool allowCycles;
+};
 
 #endif // __SPATIAL_ALGEBRA_H__
