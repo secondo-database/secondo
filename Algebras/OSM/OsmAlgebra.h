@@ -48,6 +48,8 @@ This header file essentially contains the definition of the classes ~OsmAlgebra~
 #include <libxml/xmlmemory.h>
 #include "RelationAlgebra.h"
 #include "LongInt.h"
+#include "Stream.h"
+#include "../Spatial/SpatialAlgebra.h"
 #include <string>
 
 enum entityKind {NODE, WAY, RELATION};
@@ -57,11 +59,12 @@ class FullOsmImport {
      FullOsmImport(const string& fileName, const string& prefix);
      FullOsmImport(const string& fileName, const string& _subFileName,
                    const int _size, const string& prefix);
+     FullOsmImport(const string& prefix);
     ~FullOsmImport();
     
-    bool initRelations(const string& prefix, const string& suffix);
+    bool initRelations(const string& prefix, const string& suffix, bool all);
     bool openFile(const string&fileName);
-    void defineRelations();
+    void defineRelations(bool all);
     void fillRelations();
     void processNode(xmlTextReaderPtr reader);
     void processWay(xmlTextReaderPtr reader);
@@ -69,13 +72,17 @@ class FullOsmImport {
     void processRel(xmlTextReaderPtr reader);
     void processRelMemberRef(xmlTextReaderPtr reader);
     void processTag(xmlTextReaderPtr reader, entityKind kind);
-    void storeRelations();
+    void storeRelations(bool all);
     void storeRel(string name, ListExpr type, Relation *rel);
     void divideOSMfile(const string& fileName);
     const char* getFileName(LongInt dest);
     string trim(const string &s);
     bool isWhitespace(const char c);
     bool isFileSwitchAllowed(const string& line);
+    void insertNodes(list<Point> &points, LongInt &wayId, Tuple *tuple,
+                     Word *args);
+    void insertWayTags(LongInt &wayId, Tuple *tuple, Word *args);
+    void processStream(Stream<Tuple> &stream, int attrNo, Word *args);
     
     SecondoCatalog* sc;
     bool isTemp, relationsInitialized, fileOk;
@@ -93,9 +100,10 @@ class FullOsmImport {
     Tuple *node, *tag, *way, *rel;
     int read, next, refCount, size;
     LongInt currentId;
-    bool tagged;
+    bool tagged, newWay;
+    set<Point> storedPts;
+    map<Point, LongInt> pt2Id;
 };
-
 
 namespace osm {
 

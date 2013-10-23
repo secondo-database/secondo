@@ -30,11 +30,15 @@ June-November, 2011. Thomas Uchdorf
 
 [2] operator fullosmimport added
 
-Jan-Feb 2012, Fabio Valdes
+Jan-Feb 2012, Fabio Vald\'{e}s
 
 [3] operator divide\_osm added
 
-July 2013, Fabio Valdes
+July 2013, Fabio Vald\'{e}s
+
+[4] operator convertstreets added
+
+October 2013, Fabio Vald\'{e}s
 
 [TOC]
 
@@ -727,7 +731,7 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
   sc = SecondoSystem::GetCatalog();
   isTemp = false;
   reader = 0;
-  relationsInitialized = initRelations(prefix, "");
+  relationsInitialized = initRelations(prefix, "", true);
   if(!relationsInitialized) {
     cout << "relations could not be initialized" << endl;
     return;
@@ -737,40 +741,41 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
     cout << "file could not be initialized" << endl;
     return;
   }
-  defineRelations();
+  defineRelations(true);
   node = 0;
   tag = 0;
   tagged = false;
   way = 0;
   rel = 0;
   fillRelations();
-  storeRelations();
+  storeRelations(true);
 }
 
-FullOsmImport::~FullOsmImport() {
-}
+FullOsmImport::~FullOsmImport() {}
 
-bool FullOsmImport::initRelations(const string& prefix, const string& suffix) {
+bool FullOsmImport::initRelations(const string& prefix, const string& suffix,
+                                  bool all) {
   relNames[0] = prefix + "Nodes" + suffix;
   relNames[1] = prefix + "NodeTags" + suffix;
   relNames[2] = prefix + "Ways" + suffix;
   relNames[3] = prefix + "WayTags" + suffix;
   relNames[4] = prefix + "Relations" + suffix;
   relNames[5] = prefix + "RelationTags" + suffix;
-  // check the new relations' names
-  for (int i = 0; i < 6; i++) {
-    if (sc->IsObjectName(relNames[i])) {
-      cout << relNames[i] << " is already defined" << endl;
-      return false;
-    }
-    string errMsg = "error";
-    if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
-      cout << errMsg << endl;
-      return false;
-    }
-    if (sc->IsSystemObject(relNames[i])) {
-      cout << relNames[i] << " is a reserved name" << endl;
-      return false;
+  for (int i = 0; i < 6; i++) { // check the new relations' names
+    if (all || (i == 0 || i == 2 || i == 3)) {
+      if (sc->IsObjectName(relNames[i])) {
+        cout << relNames[i] << " is already defined" << endl;
+        return false;
+      }
+      string errMsg = "error";
+      if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
+        cout << errMsg << endl;
+        return false;
+      }
+      if (sc->IsSystemObject(relNames[i])) {
+        cout << relNames[i] << " is a reserved name" << endl;
+        return false;
+      }
     }
   }
   
@@ -800,8 +805,7 @@ bool FullOsmImport::openFile(const string& fileName) {
   return true;
 }
 
-void FullOsmImport::defineRelations() {
-  // define node relation
+void FullOsmImport::defineRelations(bool all) {
   nodeTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
                                       nl->SymbolAtom(LongInt::BasicType())),
@@ -813,19 +817,19 @@ void FullOsmImport::defineRelations() {
   nodeType = new TupleType(numNodeTypeInfo);
   nodeRel = new Relation(nodeType, isTemp);
   
-  // define nodeTag relation
-  nodeTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("NodeIdInTag"), 
-                                        nl->SymbolAtom(LongInt::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("NodeTagKey"),
-                                        nl->SymbolAtom(FText::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("NodeTagValue"),
-                                        nl->SymbolAtom(FText::BasicType()))));
-  numNodeTagTypeInfo = sc->NumericType(nodeTagTypeInfo);
-  nodeTagType = new TupleType(numNodeTagTypeInfo);
-  nodeTagRel = new Relation(nodeTagType, isTemp);
+  if (all) {
+    nodeTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+        nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("NodeIdInTag"),
+                                          nl->SymbolAtom(LongInt::BasicType())),
+                          nl->TwoElemList(nl->SymbolAtom("NodeTagKey"),
+                                          nl->SymbolAtom(FText::BasicType())),
+                          nl->TwoElemList(nl->SymbolAtom("NodeTagValue"),
+                                          nl->SymbolAtom(FText::BasicType()))));
+    numNodeTagTypeInfo = sc->NumericType(nodeTagTypeInfo);
+    nodeTagType = new TupleType(numNodeTagTypeInfo);
+    nodeTagRel = new Relation(nodeTagType, isTemp);
+  }
   
-  // define way relation
   wayTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("WayId"), 
                                         nl->SymbolAtom(LongInt::BasicType())),
@@ -837,7 +841,6 @@ void FullOsmImport::defineRelations() {
   wayType = new TupleType(numWayTypeInfo);
   wayRel = new Relation(wayType, isTemp);
   
-  //define wayTag relation
   wayTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("WayIdInTag"), 
                                         nl->SymbolAtom(LongInt::BasicType())),
@@ -849,33 +852,33 @@ void FullOsmImport::defineRelations() {
   wayTagType = new TupleType(numWayTagTypeInfo);
   wayTagRel = new Relation(wayTagType, isTemp);
   
-  // define relation relation
-  relTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->FiveElemList(nl->TwoElemList(nl->SymbolAtom("RelId"), 
-                                       nl->SymbolAtom(LongInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("RefCounter"),
-                                       nl->SymbolAtom(CcInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("MemberType"),
-                                       nl->SymbolAtom(FText::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("MemberRef"),
-                                       nl->SymbolAtom(LongInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("MemberRole"),
-                                       nl->SymbolAtom(FText::BasicType()))));
-  numRelTypeInfo = sc->NumericType(relTypeInfo);
-  relType = new TupleType(numRelTypeInfo);
-  relRel = new Relation(relType, isTemp);
+  if (all) {
+    relTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+        nl->FiveElemList(nl->TwoElemList(nl->SymbolAtom("RelId"),
+                                         nl->SymbolAtom(LongInt::BasicType())),
+                         nl->TwoElemList(nl->SymbolAtom("RefCounter"),
+                                         nl->SymbolAtom(CcInt::BasicType())),
+                         nl->TwoElemList(nl->SymbolAtom("MemberType"),
+                                         nl->SymbolAtom(FText::BasicType())),
+                         nl->TwoElemList(nl->SymbolAtom("MemberRef"),
+                                         nl->SymbolAtom(LongInt::BasicType())),
+                         nl->TwoElemList(nl->SymbolAtom("MemberRole"),
+                                         nl->SymbolAtom(FText::BasicType()))));
+    numRelTypeInfo = sc->NumericType(relTypeInfo);
+    relType = new TupleType(numRelTypeInfo);
+    relRel = new Relation(relType, isTemp);
   
-  // define relationTag relation
-  relTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("RelIdInTag"), 
-                                        nl->SymbolAtom(LongInt::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("RelTagKey"),
-                                        nl->SymbolAtom(FText::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("RelTagValue"),
-                                        nl->SymbolAtom(FText::BasicType()))));
-  numRelTagTypeInfo = sc->NumericType(relTagTypeInfo);
-  relTagType = new TupleType(numRelTagTypeInfo);
-  relTagRel = new Relation(relTagType, isTemp);
+    relTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+        nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("RelIdInTag"),
+                                          nl->SymbolAtom(LongInt::BasicType())),
+                          nl->TwoElemList(nl->SymbolAtom("RelTagKey"),
+                                          nl->SymbolAtom(FText::BasicType())),
+                          nl->TwoElemList(nl->SymbolAtom("RelTagValue"),
+                                          nl->SymbolAtom(FText::BasicType()))));
+    numRelTagTypeInfo = sc->NumericType(relTagTypeInfo);
+    relTagType = new TupleType(numRelTagTypeInfo);
+    relTagRel = new Relation(relTagType, isTemp);
+  }
 }
 
 void FullOsmImport::processNode(xmlTextReaderPtr reader) {
@@ -1118,17 +1121,20 @@ void FullOsmImport::fillRelations() {
   relTagType->DeleteIfAllowed();
 }
 
-void FullOsmImport::storeRelations() {
+void FullOsmImport::storeRelations(bool all) {
   storeRel(relNames[0], nodeTypeInfo, nodeRel);
-  storeRel(relNames[1], nodeTagTypeInfo, nodeTagRel);
   storeRel(relNames[2], wayTypeInfo, wayRel);
   storeRel(relNames[3], wayTagTypeInfo, wayTagRel);
-  storeRel(relNames[4], relTypeInfo, relRel);
-  storeRel(relNames[5], relTagTypeInfo, relTagRel);
-  // user information
+  if (all) {
+    storeRel(relNames[1], nodeTagTypeInfo, nodeTagRel);
+    storeRel(relNames[4], relTypeInfo, relRel);
+    storeRel(relNames[5], relTagTypeInfo, relTagRel);
+  }
   for (int i = 0; i < 6; i++) {
-    cout << "relation " << relNames[i] << " with " << tupleCount[i]
-         << " tuples stored" << endl;
+    if (all || (i == 0 || i == 2 || i == 3)) {
+      cout << "relation " << relNames[i] << " with " << tupleCount[i]
+           << " tuples stored" << endl;
+    }
   }
 }
 
@@ -1171,6 +1177,203 @@ Operator fullosmimport( "fullosmimport",
                 fullosmimportTypeMap);
 
 /*
+\section{Operator ~convertstreets~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr convertstreetsTM(ListExpr args) {
+  string err = "Expected syntax: stream(tuple(..., x: line, ...)) x IDENT x "
+               "string";
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr anlist = nl->Second(args);
+  if (!CcString::checkType(nl->Third(args))) {
+    return listutils::typeError(err);
+  }
+  if (!Stream<Tuple>::checkType(stream) || !listutils::isSymbol(anlist)){
+    return listutils::typeError(err);
+  }
+  string attr = nl->SymbolValue(anlist);
+  ListExpr attrlist = nl->Second(nl->Second(stream));
+  ListExpr type;
+  int index = listutils::findAttribute(attrlist, attr, type);
+  if (!index) {
+    return listutils::typeError("attribute " + attr + " not found in tuple");
+  }
+  if (!Line::checkType(type)) {
+    return listutils::typeError("wrong type " + nl->ToString(type)
+                                + " of attritube " + attr);
+  }
+  ListExpr attrs = nl->OneElemList(nl->StringAtom(nl->SymbolValue
+                                  (nl->First(nl->First(attrlist)))));
+  ListExpr lastAttr = attrs;
+  ListExpr types = nl->OneElemList(nl->TextAtom( nl->SymbolValue
+                                  (nl->Second(nl->First(attrlist)))));
+  ListExpr lastType = types;
+  attrlist = nl->Rest(attrlist);
+  while (!nl->IsEmpty(attrlist)) {
+    ListExpr first = nl->First(attrlist);
+    ListExpr firstfirst = nl->First(first);
+    ListExpr firstsecond = nl->Second(first);
+    lastAttr = nl->Append(lastAttr, nl->StringAtom
+                                    (nl->SymbolValue(firstfirst)));
+    lastType = nl->Append(lastType, nl->TextAtom(nl->ToString(firstsecond)));
+    attrlist = nl->Rest(attrlist);
+  }
+  ListExpr infolist1 = nl->OneElemList(nl->IntAtom(index - 1));
+  ListExpr infolist2 = listutils::concat(infolist1, attrs);
+  ListExpr infolist = listutils::concat(infolist2, types);
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()), infolist,
+                           nl->SymbolAtom(CcBool::BasicType()));
+}
+
+/*
+subsection{Specification}
+
+*/
+const string convertstreetsSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> stream(tuple(..., x:line, ...)) x IDENT x string -> bool</text--->"
+    "<text>_ convertstreets[ _ , _ ]</text--->"
+    "<text>Converts BerlinMOD streets into Node and Way relations.</text--->"
+    "<text>query strassen feed convertstreets[GeoData, \"Berlin\"]</text--->))";
+
+FullOsmImport::FullOsmImport(const string& prefix) :
+         isTemp(false), reader(0), nodeRel(0), wayRel(0), wayTagRel(0), node(0),
+         tag(0), way(0), rel(0), currentId(0), tagged(false), newWay(true) {
+  for (int i = 0; i < 6; i++) {
+    tupleCount[i] = 0;
+  }
+  sc = SecondoSystem::GetCatalog();
+  if(!initRelations(prefix, "", false)) {
+    cout << "relations could not be initialized" << endl;
+    return;
+  }
+  defineRelations(false);
+}
+
+void FullOsmImport::insertNodes(list<Point> &points, LongInt &wayId,
+                                Tuple *tuple, Word *args) {
+  if (points.empty()) {
+    return;
+  }
+  int refCounter = 0;
+  for (list<Point>::iterator it = points.begin(); it != points.end(); it++) {
+    way = new Tuple(wayType);
+    way->PutAttribute(0, new LongInt(wayId));
+    if (storedPts.find(*it) != storedPts.end()) { // point found
+      way->PutAttribute(2, new LongInt(pt2Id[*it]));
+    }
+    else { // insert new point
+      storedPts.insert(*it);
+      pt2Id[*it] = currentId;
+      way->PutAttribute(2, new LongInt(currentId));
+      node = new Tuple(nodeType);
+      node->PutAttribute(0, new LongInt(currentId));
+      currentId++;
+      node->PutAttribute(1, new CcReal(true, it->GetY()));
+      node->PutAttribute(2, new CcReal(true, it->GetX()));
+      nodeRel->AppendTuple(node);
+      tupleCount[0]++;
+    }
+    way->PutAttribute(1, new CcInt(true, refCounter));
+    wayRel->AppendTuple(way);
+    tupleCount[2]++;
+    refCounter++;
+  }
+  insertWayTags(wayId, tuple, args);
+  wayId++;
+}
+
+void FullOsmImport::insertWayTags(LongInt &wayId, Tuple *tuple, Word *args) {
+  TupleType *tt = tuple->GetTupleType();
+  int noAttrs = tt->GetNoAttributes();
+  for (int i = 0; i < noAttrs; i++) {
+    FText *type = static_cast<FText*>(args[i + 4 + noAttrs].addr);
+    if ((type->GetValue() == "string") || (type->GetValue() == "text")) {
+      CcString *attrname = static_cast<CcString*>(args[i + 4].addr);
+      tag = new Tuple(wayTagType);
+      tag->PutAttribute(0, new LongInt(wayId));
+      tag->PutAttribute(1, new FText(true, attrname->GetValue()));
+      if (type->GetValue() == "string") {
+        tag->PutAttribute(2,
+         new FText(true, ((CcString*)(tuple->GetAttribute(i)))->GetValue()));
+      }
+      else {
+        tag->PutAttribute(2,
+               new FText(true, ((FText*)(tuple->GetAttribute(i)))->GetValue()));
+      }
+      
+      wayTagRel->AppendTuple(tag);
+      tupleCount[3]++;
+    }
+  }
+}
+
+void FullOsmImport::processStream(Stream<Tuple> &stream, int attrNo,
+                                  Word *args) {
+  stream.open();
+  Tuple *tuple = stream.request();
+  list<Point> points; // store segments in correct order
+  LongInt wayId = 0;
+  while (tuple) {
+    Line *line = (Line*)(tuple->GetAttribute(attrNo));
+    LineSplitter *ls = new LineSplitter(line, true, false);
+    do {
+      points.clear();
+      ls->NextLine(&points);
+      insertNodes(points, wayId, tuple, args);
+    } while (!points.empty());
+    delete ls;
+    deleteIfAllowed(tuple);
+    tuple = stream.request();
+  }
+  stream.close();
+}
+    
+/*
+\subsection{Value Mapping}
+
+*/
+int convertstreetsVM(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*)result.addr;
+  CcInt* attrNo = static_cast<CcInt*>(args[3].addr);
+  CcString* prefix = static_cast<CcString*>(args[2].addr);
+  if (!attrNo->IsDefined() || !prefix->IsDefined()) {
+    cout << "undefined parameter" << endl;
+    res->SetDefined(false);
+    return 0;
+  }
+  FullOsmImport *osm = new FullOsmImport(prefix->GetValue());
+  if (osm->nodeRel && osm->wayRel && osm->wayTagRel) {
+    Stream<Tuple> str = static_cast<Stream<Tuple>* >(args[0].addr);
+    osm->processStream(str, attrNo->GetValue(), args);
+    osm->storeRelations(false);
+    res->Set(true, true);
+  }
+  if (osm) {
+    delete osm;
+    osm = 0;
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator instance}
+
+*/
+Operator convertstreets( "convertstreets",
+                convertstreetsSpec,
+                convertstreetsVM,
+                Operator::SimpleSelect,
+                convertstreetsTM);
+
+/*
 \section{Operator ~divide_osm~}
 
 Randomly divides an OSM file into a number of sub-files.
@@ -1210,13 +1413,13 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& _subFileName,
     tupleCount[i] = 0;
   }
   sc = SecondoSystem::GetCatalog();
-  relationsInitialized = initRelations(prefix, "_type");
+  relationsInitialized = initRelations(prefix, "_type", true);
   if(!relationsInitialized) {
     cout << "relations could not be initialized" << endl;
     return;
   }
-  defineRelations();
-  storeRelations();
+  defineRelations(true);
+  storeRelations(true);
   divideOSMfile(fileName);
 }
 
@@ -1375,6 +1578,7 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     osmimport.SetUsesArgsInTypeMapping();;
     AddOperator(&fullosmimport);
     AddOperator(&divide_osm);
+    AddOperator(&convertstreets);
 }
 
 // Destructor
