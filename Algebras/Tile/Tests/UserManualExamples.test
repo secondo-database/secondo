@@ -89,16 +89,132 @@ let N52E006Relation = tiles(N52E006) namedtransformstream[No] consume
 query N52E006Relation
 
 #######################################
-# minimum > 50 and maximum < 400      #
+# display first 50 tiles              #
 #######################################
 
+#testcase display first 50 tiles
+#yields success
+query tiles(N51E007) namedtransformstream[No] head[50] consume
+
+#######################################
+# display last 400 tiles              #
+#######################################
+
+#testcase display last 400 tiles
+#yields success
+query tiles(N51E007) namedtransformstream[No] tail[400] consume
+
+############################################################
+# display all tiles of N51E007Relation with a minimum > 50 #
+############################################################
+
+#testcase display all tiles of N51E007Relation with a minimum > 50
+#yields success
+query N51E007Relation feed filter[minimum(.No) > 50] consume
+
+#############################################################
+# display all tiles of N51E007Relation with a maximum < 400 #
+#############################################################
+
+#testcase display all tiles of N51E007Relation with a maximum < 400
+#yields success
+query N51E007Relation feed filter[maximum(.No) < 400] consume
+
+################################################################################
+# display all tiles of N51E007Relation with a minimum > 50 and a maximum < 400 #
+################################################################################
+
+#testcase display all tiles of N51E007Relation with a minimum > 50 and a maximum < 400
+#yields success
 query N51E007Relation feed filter[(minimum(.No) > 50) and (maximum(.No) < 400)] consume
 
+############################################
+# display minimum value of N51E007Relation #
+############################################
+
+#testcase display minimum value of N51E007Relation
+#yields success
+query N51E007Relation feed extend[M : minimum(.No)] min[M]
+
+############################################
+# display maximum value of N51E007Relation #
+############################################
+
+#testcase display maximum value of N51E007Relation
+#yields success
+query N51E007Relation feed extend [M : maximum(.No)] max[M]
+
+##########################################
+# display grid values of N51E007Relation #
+##########################################
+
+#testcase display grid values of N51E007Relation
+#yields success
+query N51E007Relation feed extend[G : getgrid(.No)] consume
+
+##################################################################################################
+# display tile of N51E007Relation that contains a defined value at location x = 7.5 and y = 51.5 #
+##################################################################################################
+
+#testcase display tile of N51E007Relation that contains a defined value at location x = 7.5 and y = 51.5
+#yields success
+query N51E007Relation feed filter[isdefined(.No atlocation [[const point value(7.5 51.5)]])] extend[AL : .No atlocation [[const point value(7.5 51.5)]]] consume
+
+#########################################################################
+# display all tiles of N51E007Relation and corresponding bounding boxes #
+#########################################################################
+
+#testcase display all tiles of N51E007Relation and corresponding bounding boxes
+#yields success
+query N51E007Relation feed extend[BB : bbox(.No)] consume
+
 #######################################
-# minimum of N51E007Relation          #
+# display all SECONDO algebras        #
 #######################################
 
-query N51E007Relation feed extend [ M : minimum(.No)] min[M]
+#testcase display all SECONDO algebras
+#yields success
+list algebras
+
+#######################################
+# display Raster2Algebra              #
+#######################################
+
+#testcase display Raster2Algebra
+#yields success
+list algebra Raster2Algebra
+
+#######################################
+# display TileAlgebra                 #
+#######################################
+
+#testcase display TileAlgebra
+#yields success
+list algebra TileAlgebra
+
+#######################################
+# display all type constructors       #
+#######################################
+
+#testcase display type constructors
+#yields success
+list type constructors
+
+#######################################
+# display operators                   #
+#######################################
+
+#testcase display operators
+#yields success
+list operators
+
+#######################################
+# display operator atlocation         #
+#######################################
+
+#testcase display operator atlocation
+#yields success
+query SEC2OPERATORINFO feed filter[.Name contains "atlocation"] consume
 
 #######################################
 # atinstant                           #
