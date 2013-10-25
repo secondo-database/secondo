@@ -493,6 +493,16 @@ Flob* MLabel::GetFLOB(const int i) {
   }
 }
 
+bool MLabel::Passes(Label *label) {
+  ULabel ul(0);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ul);
+    if (ul.constValue.GetValue() == label->GetValue()) {
+      return true;
+    }
+  }
+  return false;
+}
 
 
 /*
@@ -2751,7 +2761,7 @@ struct the_unit_LabelInfo : OperatorInfo {
 /*
 \section{Operator ~makemvalue~}
 
-makemvalue: tream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel
+makemvalue: stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel
 
 \subsection{Type Mapping}
 
@@ -2851,7 +2861,7 @@ int makemvalue_ULabelVM(Word* args,Word& result,int message,
     }
     else if (curAttr->IsDefined()) {
       unit = static_cast<ULabel*>(curAttr);
-      m->Add(*unit);
+      m->MergeAdd(*unit);
     }
     else {
       cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. " << endl;
@@ -2878,6 +2888,58 @@ struct makemvalue_ULabelInfo : OperatorInfo {
                 "timeintervals may overlap. Undefined units are allowed and "
                 "will be ignored. A stream without defined units will result "
                 "in an \'empty\' moving object, not in an \'undef\'.";
+  }
+};
+
+/*
+\section{Operator ~passes~}
+
+passes: mlabel x label -> bool
+
+\subsection{Type Mapping}
+
+*/
+ListExpr passesMLabelTM(ListExpr args) {
+  if (nl->HasLength(args, 2)) {
+    if (MLabel::checkType(nl->First(args)) &&
+             (Label::checkType(nl->Second(args)) ||
+              CcString::checkType(nl->Second(args)))) {
+      return nl->SymbolAtom(CcBool::BasicType());
+    }
+  }
+  return listutils::typeError("Correct signature:  mlabel x label -> bool");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int passesMLabelVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  MLabel *ml = static_cast<MLabel*>(args[0].addr);
+  Label *label = static_cast<Label*>(args[1].addr);
+  if (ml->IsDefined() && label->IsDefined()) {
+    res->Set(true, ml->Passes(label));
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct passesMLabelInfo : OperatorInfo {
+  passesMLabelInfo() {
+    name      = "passes";
+    signature = "mlabel x label -> bool";
+    syntax    = "_ passes _ ";
+    meaning   = "Returns TRUE if and only if the label occurs at least once "
+                "in the mlabel.";
   }
 };
 
@@ -5748,6 +5810,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddOperator(makemvalue_ULabelInfo(), makemvalue_ULabelVM,
                   makemvalue_ULabelTM);
+
+      AddOperator(passesMLabelInfo(), passesMLabelVM, passesMLabelTM);
       
       AddOperator(topatternInfo(), topatternVM, topatternTM);
 

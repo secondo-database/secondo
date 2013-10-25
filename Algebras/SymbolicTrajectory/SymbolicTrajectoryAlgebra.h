@@ -214,6 +214,7 @@ class MLabel : public MString {
     return (index.getNodeRefSize() && index.getNodeLinkSize() &&
             index.getLabelIndexSize());
   }
+  bool Passes(Label *label);
 
   MLabelIndex index;
 };

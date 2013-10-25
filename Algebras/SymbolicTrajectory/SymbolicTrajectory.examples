@@ -31,6 +31,12 @@ Signature: stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel
 Example  : query the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem]
 Result   : (mlabel ((("2000-01-03" "2000-01-04" TRUE FALSE)"Mkhitaryan")))
 
+Operator : passes
+Number   : 6
+Signature: mlabel x label -> bool
+Example  : query michael passes tolabel("at_mensa")
+Result   : TRUE
+
 Operator : topattern
 Number   : 1
 Signature: text -> pattern
