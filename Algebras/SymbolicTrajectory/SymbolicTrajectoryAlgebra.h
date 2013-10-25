@@ -215,6 +215,8 @@ class MLabel : public MString {
             index.getLabelIndexSize());
   }
   bool Passes(Label *label);
+  MLabel* At(Label *label);
+  void DefTime(Periods *per);
 
   MLabelIndex index;
 };

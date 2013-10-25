@@ -37,6 +37,18 @@ Signature: mlabel x label -> bool
 Example  : query michael passes tolabel("at_mensa")
 Result   : TRUE
 
+Operator : at
+Number   : 4
+Signature: mlabel x label -> mlabel
+Example  : query michael at tolabel("sportclub")
+Result   : (mlabel ((("2011-12-10-18:20" "2011-12-10-20:00" TRUE FALSE)"sportclub") ("2011-12-17-18:20" "2011-12-17-20:00" TRUE FALSE)"sportclub"))
+
+Operator : deftime
+Number   : 4
+Signature: mlabel -> periods
+Example  : query deftime(the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem])
+Result   : (periods (("2000-01-03" "2000-01-04" TRUE FALSE)))
+
 Operator : topattern
 Number   : 1
 Signature: text -> pattern

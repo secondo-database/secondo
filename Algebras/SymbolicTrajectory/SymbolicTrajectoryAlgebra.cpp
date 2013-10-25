@@ -504,6 +504,29 @@ bool MLabel::Passes(Label *label) {
   return false;
 }
 
+MLabel* MLabel::At(Label *label) {
+  MLabel *result = new MLabel(1);
+  ULabel ul(0);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ul);
+    if (ul.constValue.GetValue() == label->GetValue()) {
+      result->Add(ul);
+    }
+  }
+  return result;
+}
+
+void MLabel::DefTime(Periods *per) {
+  per->Clear();
+  ULabel ul(0);
+  cout << "source has " << GetNoComponents() << " components" << endl;
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ul);
+    per->MergeAdd(ul.timeInterval);
+    cout << per->GetNoComponents() << " components" << endl;
+  }
+}
+
 
 /*
 \subsubsection{Function ~compress~}
@@ -2902,8 +2925,7 @@ passes: mlabel x label -> bool
 ListExpr passesMLabelTM(ListExpr args) {
   if (nl->HasLength(args, 2)) {
     if (MLabel::checkType(nl->First(args)) &&
-             (Label::checkType(nl->Second(args)) ||
-              CcString::checkType(nl->Second(args)))) {
+        Label::checkType(nl->Second(args))) {
       return nl->SymbolAtom(CcBool::BasicType());
     }
   }
@@ -2940,6 +2962,103 @@ struct passesMLabelInfo : OperatorInfo {
     syntax    = "_ passes _ ";
     meaning   = "Returns TRUE if and only if the label occurs at least once "
                 "in the mlabel.";
+  }
+};
+
+/*
+\section{Operator ~at~}
+
+at: mlabel x label -> mlabel
+
+\subsection{Type Mapping}
+
+*/
+ListExpr atMLabelTM(ListExpr args) {
+  if (nl->HasLength(args, 2)) {
+    if (MLabel::checkType(nl->First(args)) &&
+        Label::checkType(nl->Second(args))) {
+      return nl->SymbolAtom(MLabel::BasicType());
+    }
+  }
+  return listutils::typeError("Correct signature:  mlabel x label -> mlabel");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int atMLabelVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  MLabel *src = static_cast<MLabel*>(args[0].addr);
+  Label *label = static_cast<Label*>(args[1].addr);
+  if (src->IsDefined() && label->IsDefined()) {
+    result.addr = src->At(label);
+  }
+  else {
+    result.addr = 0;
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct atMLabelInfo : OperatorInfo {
+  atMLabelInfo() {
+    name      = "at";
+    signature = "mlabel x label -> mlabel";
+    syntax    = "_ at _ ";
+    meaning   = "Reduces the mlabel to those units whose label equals the "
+                "label.";
+  }
+};
+
+/*
+\section{Operator ~deftime~}
+
+deftime: mlabel -> periods
+
+\subsection{Type Mapping}
+
+*/
+ListExpr deftimeMLabelTM(ListExpr args) {
+  if (nl->HasLength(args, 1)) {
+    if (MLabel::checkType(nl->First(args))) {
+      return nl->SymbolAtom(Periods::BasicType());
+    }
+  }
+  return listutils::typeError("Correct signature:  mlabel -> periods");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int deftimeMLabelVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  result = qp->ResultStorage(s);
+  Periods* res = static_cast<Periods*>(result.addr);
+  MLabel *src = static_cast<MLabel*>(args[0].addr);
+  if (src->IsDefined()) {
+    src->DefTime(res);
+  }
+  else {
+    res = 0;
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct deftimeMLabelInfo : OperatorInfo {
+  deftimeMLabelInfo() {
+    name      = "deftime";
+    signature = "mlabel -> periods";
+    syntax    = "deftime ( _ )";
+    meaning   = "Returns the periods containing the time intervals during which"
+                "the mlabel is defined.";
   }
 };
 
@@ -5812,6 +5931,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                   makemvalue_ULabelTM);
 
       AddOperator(passesMLabelInfo(), passesMLabelVM, passesMLabelTM);
+
+      AddOperator(atMLabelInfo(), atMLabelVM, atMLabelTM);
+
+      AddOperator(deftimeMLabelInfo(), deftimeMLabelVM, deftimeMLabelTM);
       
       AddOperator(topatternInfo(), topatternVM, topatternTM);
 
