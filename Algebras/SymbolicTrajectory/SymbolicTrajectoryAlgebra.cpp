@@ -5984,7 +5984,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddOperator(createtrieInfo(), createtrieVM, createtrieTM);
 
-      AddOperator(triptompointInfo(), triptompointVM, triptompointTM);
+//       AddOperator(triptompointInfo(), triptompointVM, triptompointTM);
 
     }
     ~SymbolicTrajectoryAlgebra() {}
