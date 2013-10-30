@@ -1025,7 +1025,7 @@ AVLSegment::AVLSegment(const Flob* preciseData, p2d::SegmentData* sd, Owner o) :
 }
 
 AVLSegment::AVLSegment(const Flob* preciseData, p2d::SegmentData* sd, Owner o,
-  int scalefactor) :
+  mpq_class& internalScalefactor) :
   gridXL(0), gridYL(0), gridXR(0), gridYR(0),
     flob(), dbarray(0), originalData1(), originalData2(0),
     pxl(0), pyl(0), pxr(0), pyr(0), owner(o),
@@ -1036,16 +1036,16 @@ AVLSegment::AVLSegment(const Flob* preciseData, p2d::SegmentData* sd, Owner o,
     conBelow(sd->GetInsideAbove() ? 0 : 1) {
  p2d::prepareData(gridXL, pxl,
    ((sd->GetDomGridXCoord()+
-     sd->GetDomPreciseXCoord(*preciseData))*scalefactor));
+     sd->GetDomPreciseXCoord(*preciseData))*internalScalefactor));
  p2d::prepareData(gridYL, pyl,
    ((sd->GetDomGridYCoord()+
-     sd->GetDomPreciseYCoord(*preciseData))*scalefactor));
+     sd->GetDomPreciseYCoord(*preciseData))*internalScalefactor));
  p2d::prepareData(gridXR, pxr,
    ((sd->GetSecGridXCoord()+
-     sd->GetSecPreciseXCoord(*preciseData))*scalefactor));
+     sd->GetSecPreciseXCoord(*preciseData))*internalScalefactor));
  p2d::prepareData(gridYR, pyr,
    ((sd->GetSecGridYCoord()+
-     sd->GetSecPreciseYCoord(*preciseData))*scalefactor));
+     sd->GetSecPreciseYCoord(*preciseData))*internalScalefactor));
 }
 
 AVLSegment::AVLSegment(const DbArray<unsigned int>* preciseData,
@@ -1062,7 +1062,7 @@ AVLSegment::AVLSegment(const DbArray<unsigned int>* preciseData,
 
 AVLSegment::AVLSegment(const DbArray<unsigned int>* preciseData,
   Reg2GridHalfSegment& gs, Reg2PrecHalfSegment& ps, Owner o,
-  int scalefactor) :
+  mpq_class& internalScalefactor) :
   gridXL(0), gridYL(0), gridXR(0), gridYR(0),
     flob(0), dbarray(0), originalData1(0), originalData2(0),
     pxl(0), pyl(0), pxr(0), pyr(0),
@@ -1071,13 +1071,13 @@ AVLSegment::AVLSegment(const DbArray<unsigned int>* preciseData,
     o == second ? gs.GetAttr().insideAbove : 0), conAbove(
     gs.attr.insideAbove ? 1 : 0), conBelow(gs.attr.insideAbove ? 0 : 1) {
  p2d::prepareData(gridXL, pxl,
-   ((gs.GetLeftPointX()+ps.GetlPointx(preciseData))*scalefactor));
+   ((gs.GetLeftPointX()+ps.GetlPointx(preciseData))*internalScalefactor));
  p2d::prepareData(gridYL, pyl,
-   ((gs.GetLeftPointY()+ps.GetlPointy(preciseData))*scalefactor));
+   ((gs.GetLeftPointY()+ps.GetlPointy(preciseData))*internalScalefactor));
  p2d::prepareData(gridXR, pxr,
-   ((gs.GetRightPointX()+ps.GetrPointx(preciseData))*scalefactor));
+   ((gs.GetRightPointX()+ps.GetrPointx(preciseData))*internalScalefactor));
  p2d::prepareData(gridYR, pyr,
-   ((gs.GetRightPointY()+ps.GetrPointy(preciseData))*scalefactor));
+   ((gs.GetRightPointY()+ps.GetrPointy(preciseData))*internalScalefactor));
 }
 
 AVLSegment::AVLSegment(const AVLSegment& s) :
@@ -4149,7 +4149,7 @@ Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
 template<class C1, class C2>
 Owner selectNext(const C1& l1, int& pos1, const C2& l2, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
-  int scalefactor, TestStruct& t) {
+  mpq_class& scalefactor, TestStruct& t) {
  Coordinate* values[3];
  p2d::SegmentData* sd1 = new p2d::SegmentData();
  p2d::SegmentData* sd2 = new p2d::SegmentData();
@@ -4272,7 +4272,7 @@ Owner selectNext(const C1& l1, int& pos1, const C2& l2, int& pos2,
 
 Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
-  int scalefactor, TestStruct& t) {
+  mpq_class& scalefactor, TestStruct& t) {
  return selectNext<p2d::Line2, p2d::Line2>(l, pos1, r, pos2, q, event,
    scalefactor, t);
 }
@@ -4413,7 +4413,7 @@ Owner selectNext(/*const*/Region2& r1, int& pos1,
 Owner selectNext(/*const*/Region2& r1, int& pos1,
 /*const*/Region2& r2, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
-  int scalefactor, TestStruct& t) {
+  mpq_class& scalefactor, TestStruct& t) {
 
  Coordinate* values[3];
 
@@ -4954,7 +4954,7 @@ void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeno,
 }
 
 void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeno,
-  SetOperation op, int scalefactor) {
+  SetOperation op, mpq_class& internalScalefactor) {
  switch (op) {
  case union_op: {
   if (p2d_debug) {
@@ -4964,10 +4964,14 @@ void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeno,
   }
   int gxl, gyl, gxr, gyr;
   mpq_class pxl, pyl, pxr, pyr;
-  p2d::prepareData(gxl, pxl, ((s.getGridXL()+s.getPreciseXL())/scalefactor));
-  p2d::prepareData(gyl, pyl, ((s.getGridYL()+s.getPreciseYL())/scalefactor));
-  p2d::prepareData(gxr, pxr, ((s.getGridXR()+s.getPreciseXR())/scalefactor));
-  p2d::prepareData(gyr, pyr, ((s.getGridYR()+s.getPreciseYR())/scalefactor));
+  p2d::prepareData(gxl, pxl,
+    ((s.getGridXL()+s.getPreciseXL())/internalScalefactor));
+  p2d::prepareData(gyl, pyl,
+    ((s.getGridYL()+s.getPreciseYL())/internalScalefactor));
+  p2d::prepareData(gxr, pxr,
+    ((s.getGridXR()+s.getPreciseXR())/internalScalefactor));
+  p2d::prepareData(gyr, pyr,
+    ((s.getGridYR()+s.getPreciseYR())/internalScalefactor));
 
   result.addSegment(true, gxl, gyl, gxr, gyr, pxl, pyl, pxr, pyr, edgeno);
   result.addSegment(false, gxl, gyl, gxr, gyr, pxl, pyl, pxr, pyr, edgeno);
@@ -4989,10 +4993,14 @@ void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeno,
    }
    int gxl, gyl, gxr, gyr;
    mpq_class pxl, pyl, pxr, pyr;
-   p2d::prepareData(gxl, pxl, ((s.getGridXL()+s.getPreciseXL())/scalefactor));
-   p2d::prepareData(gyl, pyl, ((s.getGridYL()+s.getPreciseYL())/scalefactor));
-   p2d::prepareData(gxr, pxr, ((s.getGridXR()+s.getPreciseXR())/scalefactor));
-   p2d::prepareData(gyr, pyr, ((s.getGridYR()+s.getPreciseYR())/scalefactor));
+   p2d::prepareData(gxl, pxl,
+     ((s.getGridXL()+s.getPreciseXL())/internalScalefactor));
+   p2d::prepareData(gyl, pyl,
+     ((s.getGridYL()+s.getPreciseYL())/internalScalefactor));
+   p2d::prepareData(gxr, pxr,
+     ((s.getGridXR()+s.getPreciseXR())/internalScalefactor));
+   p2d::prepareData(gyr, pyr,
+     ((s.getGridYR()+s.getPreciseYR())/internalScalefactor));
 
    result.addSegment(true, gxl, gyl, gxr, gyr, pxl, pyl, pxr, pyr, edgeno);
    result.addSegment(false, gxl, gyl, gxr, gyr, pxl, pyl, pxr, pyr, edgeno);
@@ -5015,10 +5023,14 @@ void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeno,
    }
    int gxl, gyl, gxr, gyr;
    mpq_class pxl, pyl, pxr, pyr;
-   p2d::prepareData(gxl, pxl, ((s.getGridXL()+s.getPreciseXL())/scalefactor));
-   p2d::prepareData(gyl, pyl, ((s.getGridYL()+s.getPreciseYL())/scalefactor));
-   p2d::prepareData(gxr, pxr, ((s.getGridXR()+s.getPreciseXR())/scalefactor));
-   p2d::prepareData(gyr, pyr, ((s.getGridYR()+s.getPreciseYR())/scalefactor));
+   p2d::prepareData(gxl, pxl,
+     ((s.getGridXL()+s.getPreciseXL())/internalScalefactor));
+   p2d::prepareData(gyl, pyl,
+     ((s.getGridYL()+s.getPreciseYL())/internalScalefactor));
+   p2d::prepareData(gxr, pxr,
+     ((s.getGridXR()+s.getPreciseXR())/internalScalefactor));
+   p2d::prepareData(gyr, pyr,
+     ((s.getGridYR()+s.getPreciseYR())/internalScalefactor));
 
    result.addSegment(true, gxl, gyl, gxr, gyr, pxl, pyl, pxr, pyr, edgeno);
    result.addSegment(false, gxl, gyl, gxr, gyr, pxl, pyl, pxr, pyr, edgeno);
@@ -5083,8 +5095,8 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 
 
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  p2d::Line2& result, int& edgeno, SetOperation op, int scalefactor,
-  TestStruct& t) {
+  p2d::Line2& result, int& edgeno, SetOperation op,
+  mpq_class& internalScalefactor, TestStruct& t) {
  for (size_t i = 0; i < segmentVector.size(); i++) {
   mpq_class px = event.getPreciseX();
   mpq_class py = event.getPreciseY();
@@ -5098,16 +5110,16 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
    mpq_class pxl, pyl, pxr, pyr;
    p2d::prepareData(gxl, pxl,
      ((segmentVector.at(i)->getGridXL()+
-       segmentVector.at(i)->getPreciseXL())/scalefactor));
+       segmentVector.at(i)->getPreciseXL())/internalScalefactor));
    p2d::prepareData(gyl, pyl,
      ((segmentVector.at(i)->getGridYL()+
-       segmentVector.at(i)->getPreciseYL())/scalefactor));
+       segmentVector.at(i)->getPreciseYL())/internalScalefactor));
    p2d::prepareData(gxr, pxr,
      ((event.getGridX()+
-       event.getPreciseX())/scalefactor));
+       event.getPreciseX())/internalScalefactor));
    p2d::prepareData(gyr, pyr,
      ((event.getGridY()+
-       event.getPreciseY())/scalefactor));
+       event.getPreciseY())/internalScalefactor));
    if (p2d_debug) {
     cout << "neues Segment in Line einfuegen" << endl;
 
@@ -5144,8 +5156,8 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
-  TestStruct& t) {
+  AVLSegment* successor, Region2& result, int& edgeno,
+  int scalefactor, SetOperation op, TestStruct& t) {
  size_t size = segmentVector.size();
 
  AVLSegment* next = successor;
@@ -5166,9 +5178,9 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
       s->print();
      }
      Reg2PrecisePoint p1(s->getPreciseXL(), s->getGridXL(), s->getPreciseYL(),
-       s->getGridYL(), 0);
+       s->getGridYL(), scalefactor);
      Reg2PrecisePoint p2(event.getPreciseX(), event.getGridX(),
-       event.getPreciseY(), event.getGridY(), 0);
+       event.getPreciseY(), event.getGridY(), scalefactor);
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
      hs.attr.insideAbove = (s->getConBelow() == 0);
@@ -5187,9 +5199,9 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
       s->print();
      }
      Reg2PrecisePoint p1(s->getPreciseXL(), s->getGridXL(), s->getPreciseYL(),
-       s->getGridYL(), 0);
+       s->getGridYL(), scalefactor);
      Reg2PrecisePoint p2(event.getPreciseX(), event.getGridX(),
-       event.getPreciseY(), event.getGridY(), 0);
+       event.getPreciseY(), event.getGridY(), scalefactor);
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
      hs.attr.insideAbove = (s->getConAbove() == 2);
@@ -5209,9 +5221,9 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
        s->print();
       }
       Reg2PrecisePoint p1(s->getPreciseXL(), s->getGridXL(), s->getPreciseYL(),
-        s->getGridYL(), 0);
+        s->getGridYL(), scalefactor);
       Reg2PrecisePoint p2(event.getPreciseX(), event.getGridX(),
-        event.getPreciseY(), event.getGridY(), 0);
+        event.getPreciseY(), event.getGridY(), scalefactor);
       Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
       hs.attr.edgeno = edgeno;
       hs.attr.insideAbove = s->getFirstInsideAbove();
@@ -5230,9 +5242,9 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
        s->print();
       }
       Reg2PrecisePoint p1(s->getPreciseXL(), s->getGridXL(), s->getPreciseYL(),
-        s->getGridYL(), 0);
+        s->getGridYL(), scalefactor);
       Reg2PrecisePoint p2(event.getPreciseX(), event.getGridX(),
-        event.getPreciseY(), event.getGridY(), 0);
+        event.getPreciseY(), event.getGridY(), scalefactor);
       Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
       hs.attr.edgeno = edgeno;
       hs.attr.insideAbove = !(s->getSecondInsideAbove());
@@ -5250,9 +5262,9 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
        s->print();
       }
       Reg2PrecisePoint p1(s->getPreciseXL(), s->getGridXL(), s->getPreciseYL(),
-        s->getGridYL(), 0);
+        s->getGridYL(), scalefactor);
       Reg2PrecisePoint p2(event.getPreciseX(), event.getGridX(),
-        event.getPreciseY(), event.getGridY(), 0);
+        event.getPreciseY(), event.getGridY(), scalefactor);
       Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
       hs.attr.edgeno = edgeno;
       hs.attr.insideAbove = s->getFirstInsideAbove();
@@ -5317,8 +5329,8 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
-  int scalefactor, TestStruct& t) {
+  AVLSegment* successor, Region2& result, int& edgeno, int scalefactor,
+  SetOperation op, mpq_class& internalScalefactor, TestStruct& t) {
  size_t size = segmentVector.size();
 
  AVLSegment* next = successor;
@@ -5341,18 +5353,18 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
      int x, y;
      mpq_class px, py;
      p2d::prepareData(x, px,
-       ((s->getGridXL()+s->getPreciseXL())/scalefactor));
+       ((s->getGridXL()+s->getPreciseXL())/internalScalefactor));
      p2d::prepareData(y, py,
-       ((s->getGridYL()+s->getPreciseYL())/scalefactor));
+       ((s->getGridYL()+s->getPreciseYL())/internalScalefactor));
      //Reg2PrecisePoint p1(s->getPreciseXL(), s->getGridXL(), s->getPreciseYL(),
      //  s->getGridYL(), 0);
-     Reg2PrecisePoint p1(px, x, py, y, 0);
+     Reg2PrecisePoint p1(px, x, py, y, scalefactor);
 
      p2d::prepareData(x, px,
-       ((event.getGridX()+event.getPreciseX())/scalefactor));
+       ((event.getGridX()+event.getPreciseX())/internalScalefactor));
      p2d::prepareData(y, py,
-       ((event.getGridY()+event.getPreciseY())/scalefactor));
-     Reg2PrecisePoint p2(px, x, py, y, 0);
+       ((event.getGridY()+event.getPreciseY())/internalScalefactor));
+     Reg2PrecisePoint p2(px, x, py, y, scalefactor);
      //Reg2PrecisePoint p2(event.getPreciseX(), event.getGridX(),
      //  event.getPreciseY(), event.getGridY(), 0);
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
@@ -5375,18 +5387,18 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
      int x, y;
      mpq_class px, py;
      p2d::prepareData(x, px,
-       ((s->getGridXL()+s->getPreciseXL())/scalefactor));
+       ((s->getGridXL()+s->getPreciseXL())/internalScalefactor));
      p2d::prepareData(y, py,
-       ((s->getGridYL()+s->getPreciseYL())/scalefactor));
-     Reg2PrecisePoint p1(px, x, py, y, 0);
+       ((s->getGridYL()+s->getPreciseYL())/internalScalefactor));
+     Reg2PrecisePoint p1(px, x, py, y, scalefactor);
      //Reg2PrecisePoint p1(s->getPreciseXL(), s->getGridXL(), s->getPreciseYL(),
      //  s->getGridYL(), 0);
 
      p2d::prepareData(x, px,
-       ((event.getGridX()+event.getPreciseX())/scalefactor));
+       ((event.getGridX()+event.getPreciseX())/internalScalefactor));
      p2d::prepareData(y, py,
-       ((event.getGridY()+event.getPreciseY())/scalefactor));
-     Reg2PrecisePoint p2(px, x, py, y, 0);
+       ((event.getGridY()+event.getPreciseY())/internalScalefactor));
+     Reg2PrecisePoint p2(px, x, py, y, scalefactor);
      //Reg2PrecisePoint p2(event.getPreciseX(), event.getGridX(),
      //  event.getPreciseY(), event.getGridY(), 0);
 
@@ -5411,16 +5423,16 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
       int x, y;
       mpq_class px, py;
       p2d::prepareData(x, px,
-        ((s->getGridXL()+s->getPreciseXL())/scalefactor));
+        ((s->getGridXL()+s->getPreciseXL())/internalScalefactor));
       p2d::prepareData(y, py,
-        ((s->getGridYL()+s->getPreciseYL())/scalefactor));
-      Reg2PrecisePoint p1(px, x, py, y, 0);
+        ((s->getGridYL()+s->getPreciseYL())/internalScalefactor));
+      Reg2PrecisePoint p1(px, x, py, y, scalefactor);
 
       p2d::prepareData(x, px,
-        ((event.getGridX()+event.getPreciseX())/scalefactor));
+        ((event.getGridX()+event.getPreciseX())/internalScalefactor));
       p2d::prepareData(y, py,
-        ((event.getGridY()+event.getPreciseY())/scalefactor));
-      Reg2PrecisePoint p2(px, x, py, y, 0);
+        ((event.getGridY()+event.getPreciseY())/internalScalefactor));
+      Reg2PrecisePoint p2(px, x, py, y, scalefactor);
 
       //Reg2PrecisePoint p1(s->getPreciseXL(),
       //s->getGridXL(), s->getPreciseYL(),
@@ -5447,16 +5459,16 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
       int x, y;
       mpq_class px, py;
       p2d::prepareData(x, px,
-        ((s->getGridXL()+s->getPreciseXL())/scalefactor));
+        ((s->getGridXL()+s->getPreciseXL())/internalScalefactor));
       p2d::prepareData(y, py,
-        ((s->getGridYL()+s->getPreciseYL())/scalefactor));
-      Reg2PrecisePoint p1(px, x, py, y, 0);
+        ((s->getGridYL()+s->getPreciseYL())/internalScalefactor));
+      Reg2PrecisePoint p1(px, x, py, y, scalefactor);
 
       p2d::prepareData(x, px,
-        ((event.getGridX()+event.getPreciseX())/scalefactor));
+        ((event.getGridX()+event.getPreciseX())/internalScalefactor));
       p2d::prepareData(y, py,
-        ((event.getGridY()+event.getPreciseY())/scalefactor));
-      Reg2PrecisePoint p2(px, x, py, y, 0);
+        ((event.getGridY()+event.getPreciseY())/internalScalefactor));
+      Reg2PrecisePoint p2(px, x, py, y, scalefactor);
 
       //Reg2PrecisePoint p1(s->getPreciseXL(),
       //s->getGridXL(), s->getPreciseYL(),
@@ -5482,16 +5494,16 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
       int x, y;
       mpq_class px, py;
       p2d::prepareData(x, px,
-        ((s->getGridXL()+s->getPreciseXL())/scalefactor));
+        ((s->getGridXL()+s->getPreciseXL())/internalScalefactor));
       p2d::prepareData(y, py,
-        ((s->getGridYL()+s->getPreciseYL())/scalefactor));
-      Reg2PrecisePoint p1(px, x, py, y, 0);
+        ((s->getGridYL()+s->getPreciseYL())/internalScalefactor));
+      Reg2PrecisePoint p1(px, x, py, y, scalefactor);
 
       p2d::prepareData(x, px,
-        ((event.getGridX()+event.getPreciseX())/scalefactor));
+        ((event.getGridX()+event.getPreciseX())/internalScalefactor));
       p2d::prepareData(y, py,
-        ((event.getGridY()+event.getPreciseY())/scalefactor));
-      Reg2PrecisePoint p2(px, x, py, y, 0);
+        ((event.getGridY()+event.getPreciseY())/internalScalefactor));
+      Reg2PrecisePoint p2(px, x, py, y, scalefactor);
       //Reg2PrecisePoint p1(s->getPreciseXL(),
       //s->getGridXL(), s->getPreciseYL(),
       //  s->getGridYL(), 0);
@@ -5691,7 +5703,7 @@ void checkSegment(AVLSegment& seg, bool& result, RelationshipOperation op) {
 
 */
 void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
-  SetOperation op) {
+  int scalefactor, SetOperation op) {
  switch (op) {
  case union_op: {
   if ((s.getConAbove() == 0) || (s.getConBelow() == 0)) {
@@ -5700,9 +5712,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
     s.print();
    }
    Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-     s.getGridYL());
+     s.getGridYL(), 0);
    Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-     s.getGridYR());
+     s.getGridYR(), 0);
    Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
    hs.attr.edgeno = edgeno;
    hs.attr.insideAbove = (s.getConBelow() == 0);
@@ -5720,9 +5732,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
     s.print();
    }
    Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-     s.getGridYL());
+     s.getGridYL(), scalefactor);
    Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-     s.getGridYR());
+     s.getGridYR(), scalefactor);
    Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
    hs.attr.edgeno = edgeno;
    hs.attr.insideAbove = (s.getConAbove() == 2);
@@ -5742,9 +5754,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
      s.print();
     }
     Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-      s.getGridYL());
+      s.getGridYL(), scalefactor);
     Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-      s.getGridYR());
+      s.getGridYR(), scalefactor);
     Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
     hs.attr.edgeno = edgeno;
     hs.attr.insideAbove = s.getFirstInsideAbove();
@@ -5763,9 +5775,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
      s.print();
     }
     Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-      s.getGridYL());
+      s.getGridYL(), scalefactor);
     Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-      s.getGridYR());
+      s.getGridYR(), scalefactor);
     Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
     hs.attr.edgeno = edgeno;
     hs.attr.insideAbove = !(s.getSecondInsideAbove());
@@ -5783,9 +5795,9 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
      s.print();
     }
     Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
-      s.getGridYL());
+      s.getGridYL(), scalefactor);
     Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
-      s.getGridYR());
+      s.getGridYR(), scalefactor);
     Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
     hs.attr.edgeno = edgeno;
     hs.attr.insideAbove = s.getFirstInsideAbove();
@@ -5808,7 +5820,7 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
 }
 
 void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
-  SetOperation op, int scalefactor) {
+  int scalefactor, SetOperation op, mpq_class& internalScalefactor) {
  switch (op) {
  case union_op: {
   if ((s.getConAbove() == 0) || (s.getConBelow() == 0)) {
@@ -5819,15 +5831,15 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
    int x, y;
    mpq_class px, py;
    p2d::prepareData(x, px,
-     ((s.getGridXL()+s.getPreciseXL())/scalefactor));
+     ((s.getGridXL()+s.getPreciseXL())/internalScalefactor));
    p2d::prepareData(y, py,
-     ((s.getGridYL()+s.getPreciseYL())/scalefactor));
-   Reg2PrecisePoint p1(px, x, py, y, 0);
+     ((s.getGridYL()+s.getPreciseYL())/internalScalefactor));
+   Reg2PrecisePoint p1(px, x, py, y, scalefactor);
    p2d::prepareData(x, px,
-     ((s.getGridXR()+s.getPreciseXR())/scalefactor));
+     ((s.getGridXR()+s.getPreciseXR())/internalScalefactor));
    p2d::prepareData(y, py,
-     ((s.getGridYR()+s.getPreciseYR())/scalefactor));
-   Reg2PrecisePoint p2(px, x, py, y, 0);
+     ((s.getGridYR()+s.getPreciseYR())/internalScalefactor));
+   Reg2PrecisePoint p2(px, x, py, y, scalefactor);
    //Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
    //  s.getGridYL(), 0);
    //Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
@@ -5851,15 +5863,15 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
    int x, y;
    mpq_class px, py;
    p2d::prepareData(x, px,
-     ((s.getGridXL()+s.getPreciseXL())/scalefactor));
+     ((s.getGridXL()+s.getPreciseXL())/internalScalefactor));
    p2d::prepareData(y, py,
-     ((s.getGridYL()+s.getPreciseYL())/scalefactor));
-   Reg2PrecisePoint p1(px, x, py, y, 0);
+     ((s.getGridYL()+s.getPreciseYL())/internalScalefactor));
+   Reg2PrecisePoint p1(px, x, py, y, scalefactor);
    p2d::prepareData(x, px,
-     ((s.getGridXR()+s.getPreciseXR())/scalefactor));
+     ((s.getGridXR()+s.getPreciseXR())/internalScalefactor));
    p2d::prepareData(y, py,
-     ((s.getGridYR()+s.getPreciseYR())/scalefactor));
-   Reg2PrecisePoint p2(px, x, py, y, 0);
+     ((s.getGridYR()+s.getPreciseYR())/internalScalefactor));
+   Reg2PrecisePoint p2(px, x, py, y, scalefactor);
    //Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
    //  s.getGridYL(), 0);
    //Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
@@ -5885,15 +5897,15 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
     int x, y;
     mpq_class px, py;
     p2d::prepareData(x, px,
-      ((s.getGridXL()+s.getPreciseXL())/scalefactor));
+      ((s.getGridXL()+s.getPreciseXL())/internalScalefactor));
     p2d::prepareData(y, py,
-      ((s.getGridYL()+s.getPreciseYL())/scalefactor));
-    Reg2PrecisePoint p1(px, x, py, y, 0);
+      ((s.getGridYL()+s.getPreciseYL())/internalScalefactor));
+    Reg2PrecisePoint p1(px, x, py, y, scalefactor);
     p2d::prepareData(x, px,
-      ((s.getGridXR()+s.getPreciseXR())/scalefactor));
+      ((s.getGridXR()+s.getPreciseXR())/internalScalefactor));
     p2d::prepareData(y, py,
-      ((s.getGridYR()+s.getPreciseYR())/scalefactor));
-    Reg2PrecisePoint p2(px, x, py, y, 0);
+      ((s.getGridYR()+s.getPreciseYR())/internalScalefactor));
+    Reg2PrecisePoint p2(px, x, py, y, scalefactor);
     //Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
     //  s.getGridYL(), 0);
     //Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
@@ -5918,15 +5930,15 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
     int x, y;
     mpq_class px, py;
     p2d::prepareData(x, px,
-      ((s.getGridXL()+s.getPreciseXL())/scalefactor));
+      ((s.getGridXL()+s.getPreciseXL())/internalScalefactor));
     p2d::prepareData(y, py,
-      ((s.getGridYL()+s.getPreciseYL())/scalefactor));
-    Reg2PrecisePoint p1(px, x, py, y, 0);
+      ((s.getGridYL()+s.getPreciseYL())/internalScalefactor));
+    Reg2PrecisePoint p1(px, x, py, y, scalefactor);
     p2d::prepareData(x, px,
-      ((s.getGridXR()+s.getPreciseXR())/scalefactor));
+      ((s.getGridXR()+s.getPreciseXR())/internalScalefactor));
     p2d::prepareData(y, py,
-      ((s.getGridYR()+s.getPreciseYR())/scalefactor));
-    Reg2PrecisePoint p2(px, x, py, y, 0);
+      ((s.getGridYR()+s.getPreciseYR())/internalScalefactor));
+    Reg2PrecisePoint p2(px, x, py, y, scalefactor);
     //Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
     //  s.getGridYL(), 0);
     //Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
@@ -5950,15 +5962,15 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
     int x, y;
     mpq_class px, py;
     p2d::prepareData(x, px,
-      ((s.getGridXL()+s.getPreciseXL())/scalefactor));
+      ((s.getGridXL()+s.getPreciseXL())/internalScalefactor));
     p2d::prepareData(y, py,
-      ((s.getGridYL()+s.getPreciseYL())/scalefactor));
-    Reg2PrecisePoint p1(px, x, py, y, 0);
+      ((s.getGridYL()+s.getPreciseYL())/internalScalefactor));
+    Reg2PrecisePoint p1(px, x, py, y, scalefactor);
     p2d::prepareData(x, px,
-      ((s.getGridXR()+s.getPreciseXR())/scalefactor));
+      ((s.getGridXR()+s.getPreciseXR())/internalScalefactor));
     p2d::prepareData(y, py,
-      ((s.getGridYR()+s.getPreciseYR())/scalefactor));
-    Reg2PrecisePoint p2(px, x, py, y, 0);
+      ((s.getGridYR()+s.getPreciseYR())/internalScalefactor));
+    Reg2PrecisePoint p2(px, x, py, y, scalefactor);
     //Reg2PrecisePoint p1(s.getPreciseXL(), s.getGridXL(), s.getPreciseYL(),
     //  s.getGridYL(), 0);
     //Reg2PrecisePoint p2(s.getPreciseXR(), s.getGridXR(), s.getPreciseYR(),
@@ -6497,7 +6509,7 @@ void SetOpWithScaling(const p2d::Line2& line1, const p2d::Line2& line2,
   }
  }
 
- int scalefactor = p2d::computeScalefactor(line1, line2);
+ mpq_class internalScalefactor = p2d::computeScalefactor(line1, line2);
 
  priority_queue<Event, vector<Event>, greater<Event> > q;
  AVLTree sss;
@@ -6517,7 +6529,7 @@ void SetOpWithScaling(const p2d::Line2& line1, const p2d::Line2& line2,
 
  result.StartBulkLoad();
  while ((selectNext(line1, pos1, line2, pos2, q, event,
-   scalefactor, t)) != none) {
+   internalScalefactor, t)) != none) {
   if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
     event.print();
@@ -6555,7 +6567,7 @@ void SetOpWithScaling(const p2d::Line2& line1, const p2d::Line2& line2,
     }
     current = event.getSegment();
     if (current->isValid()){
-      createNewSegments(*current, result, edgeno, op, scalefactor);
+      createNewSegments(*current, result, edgeno, op, internalScalefactor);
 
       sss.removeGetNeighbor(current, pred, suc, t);
       current->changeValidity(false);
@@ -6618,7 +6630,7 @@ void SetOpWithScaling(const p2d::Line2& line1, const p2d::Line2& line2,
       mpq_class py = event.getPreciseY();
 
       createNewSegments(segmentVector, event, result, edgeno,
-        op, scalefactor, t);
+        op, internalScalefactor, t);
      }
     }
    }
@@ -6662,7 +6674,7 @@ bool intersectsWithScaling(const p2d::Line2& line1, const p2d::Line2& line2,
   return false;
  }
 
- int scalefactor = p2d::computeScalefactor(line1, line2);
+ mpq_class internalScalefactor = p2d::computeScalefactor(line1, line2);
 
  priority_queue<Event, vector<Event>, greater<Event> > q;
  AVLTree sss;
@@ -6681,7 +6693,7 @@ bool intersectsWithScaling(const p2d::Line2& line1, const p2d::Line2& line2,
 
  while ((!intersect
    && (selectNext(line1, pos1, line2, pos2, q, event,
-     scalefactor, t)) != none)) {
+     internalScalefactor, t)) != none)) {
   if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
     event.print();
@@ -6866,6 +6878,8 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
   }
  }
 
+ result.SetScaleFactor(reg1.GetScaleFactor());
+
  if (!reg1.BoundingBox().Intersects(reg2.BoundingBox(), geoid)) {
   switch (op) {
   case avlseg::union_op: {
@@ -6880,10 +6894,10 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
     if (gs.IsLeftDomPoint()) {
      Reg2PrecisePoint p1(ps.GetlPointx(reg1.getpreciseCoordinates()),
        gs.GetLeftPointX(), ps.GetlPointy(reg1.getpreciseCoordinates()),
-       gs.GetLeftPointY(), 0);
+       gs.GetLeftPointY(), reg1.GetScaleFactor());
      Reg2PrecisePoint p2(ps.GetrPointx(reg1.getpreciseCoordinates()),
        gs.GetRightPointX(), ps.GetrPointy(reg1.getpreciseCoordinates()),
-       gs.GetRightPointY(), 0);
+       gs.GetRightPointY(), reg1.GetScaleFactor());
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
      hs.attr.insideAbove = (gs.attr.insideAbove);
@@ -6900,10 +6914,10 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
     if (gs.IsLeftDomPoint()) {
      Reg2PrecisePoint p1(ps.GetlPointx(reg2.getpreciseCoordinates()),
        gs.GetLeftPointX(), ps.GetlPointy(reg2.getpreciseCoordinates()),
-       gs.GetLeftPointY(), 0);
+       gs.GetLeftPointY(), reg1.GetScaleFactor());
      Reg2PrecisePoint p2(ps.GetrPointx(reg2.getpreciseCoordinates()),
        gs.GetRightPointX(), ps.GetrPointy(reg2.getpreciseCoordinates()),
-       gs.GetRightPointY(), 0);
+       gs.GetRightPointY(), reg1.GetScaleFactor());
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
      hs.attr.insideAbove = (gs.attr.insideAbove);
@@ -6986,7 +7000,7 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
     }
     current = event.getSegment();
     if (current->isValid()){
-      createNewSegments(*current, result, edgeno, op);
+      createNewSegments(*current, result, edgeno, reg1.GetScaleFactor(), op);
 
       sss.removeGetNeighbor(current, pred, suc, t);
       current->changeValidity(false);
@@ -7049,7 +7063,13 @@ void SetOp(/*const*/Region2& reg1, /*const*/Region2& reg2, Region2& result,
       mpq_class px = event.getPreciseX();
       mpq_class py = event.getPreciseY();
 
-      createNewSegments(segmentVector, event, suc, result, edgeno, op, t);
+      createNewSegments(segmentVector, event, suc, result, edgeno,
+        reg1.GetScaleFactor(), op, t);
+     } else {
+      AVLSegment* higherSeg = segmentVector.at(0);
+      AVLSegment* lowerSeg = segmentVector.at(1);
+      higherSeg->setConAbove(lowerSeg->getConAbove());
+      higherSeg->setConBelow(lowerSeg->getConBelow());
      }
     }
    }
@@ -7235,6 +7255,11 @@ bool intersects(/*const*/Region2& reg1, /*const*/Region2& reg2, TestStruct& t,
       mpq_class py = event.getPreciseY();
 
       checkSegments(segmentVector, event, suc, intersect, intersects_op, t);
+     } else {
+      AVLSegment* higherSeg = segmentVector.at(0);
+      AVLSegment* lowerSeg = segmentVector.at(1);
+      higherSeg->setConAbove(lowerSeg->getConAbove());
+      higherSeg->setConBelow(lowerSeg->getConBelow());
      }
     }
    }
@@ -7296,6 +7321,8 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
   }
  }
 
+ result.SetScaleFactor(reg1.GetScaleFactor());
+
  if (!reg1.BoundingBox().Intersects(reg2.BoundingBox(), geoid)) {
   switch (op) {
   case avlseg::union_op: {
@@ -7310,10 +7337,10 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
     if (gs.IsLeftDomPoint()) {
      Reg2PrecisePoint p1(ps.GetlPointx(reg1.getpreciseCoordinates()),
        gs.GetLeftPointX(), ps.GetlPointy(reg1.getpreciseCoordinates()),
-       gs.GetLeftPointY(), 0);
+       gs.GetLeftPointY(), reg1.GetScaleFactor());
      Reg2PrecisePoint p2(ps.GetrPointx(reg1.getpreciseCoordinates()),
        gs.GetRightPointX(), ps.GetrPointy(reg1.getpreciseCoordinates()),
-       gs.GetRightPointY(), 0);
+       gs.GetRightPointY(), reg1.GetScaleFactor());
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
      hs.attr.insideAbove = (gs.attr.insideAbove);
@@ -7330,10 +7357,10 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
     if (gs.IsLeftDomPoint()) {
      Reg2PrecisePoint p1(ps.GetlPointx(reg2.getpreciseCoordinates()),
        gs.GetLeftPointX(), ps.GetlPointy(reg2.getpreciseCoordinates()),
-       gs.GetLeftPointY(), 0);
+       gs.GetLeftPointY(), reg1.GetScaleFactor());
      Reg2PrecisePoint p2(ps.GetrPointx(reg2.getpreciseCoordinates()),
        gs.GetRightPointX(), ps.GetrPointy(reg2.getpreciseCoordinates()),
-       gs.GetRightPointY(), 0);
+       gs.GetRightPointY(), reg1.GetScaleFactor());
      Reg2PreciseHalfSegment hs = Reg2PreciseHalfSegment(true, p1, p2);
      hs.attr.edgeno = edgeno;
      hs.attr.insideAbove = (gs.attr.insideAbove);
@@ -7358,7 +7385,7 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
   }
  }
 
- int scalefactor = p2d::computeScalefactor(reg1, reg2);
+ mpq_class internalScalefactor = p2d::computeScalefactor(reg1, reg2);
 
  priority_queue<Event, vector<Event>, greater<Event> > q;
  AVLTree sss;
@@ -7380,7 +7407,7 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
  result.StartBulkLoad();
 
  while ((selectNext(reg1, pos1, reg2, pos2, q, event,
-   scalefactor, t)) != none) {
+   internalScalefactor, t)) != none) {
   if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
     event.print();
@@ -7419,7 +7446,8 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
     }
     current = event.getSegment();
     if (current->isValid()){
-      createNewSegments(*current, result, edgeno, op, scalefactor);
+      createNewSegments(*current, result, edgeno, reg1.GetScaleFactor(),
+        op, internalScalefactor);
 
       sss.removeGetNeighbor(current, pred, suc, t);
       current->changeValidity(false);
@@ -7482,8 +7510,13 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
       mpq_class px = event.getPreciseX();
       mpq_class py = event.getPreciseY();
 
-      createNewSegments(segmentVector, event, suc, result, edgeno, op,
-        scalefactor, t);
+      createNewSegments(segmentVector, event, suc, result, edgeno,
+        reg1.GetScaleFactor(), op, internalScalefactor, t);
+     } else {
+      AVLSegment* higherSeg = segmentVector.at(0);
+      AVLSegment* lowerSeg = segmentVector.at(1);
+      higherSeg->setConAbove(lowerSeg->getConAbove());
+      higherSeg->setConBelow(lowerSeg->getConBelow());
      }
     }
    }
@@ -7528,7 +7561,7 @@ bool intersectsWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
  assert(reg1.IsOrdered());
  assert(reg2.IsOrdered());
 
- int scalefactor = p2d::computeScalefactor(reg1, reg2);
+ mpq_class internalScalefactor = p2d::computeScalefactor(reg1, reg2);
 
  priority_queue<Event, vector<Event>, greater<Event> > q;
  AVLTree sss;
@@ -7546,7 +7579,8 @@ bool intersectsWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
  bool intersect = false;
 
  while (!intersect
-   && (selectNext(reg1, pos1, reg2, pos2, q, event, scalefactor, t)) != none) {
+   && (selectNext(reg1, pos1, reg2, pos2, q,
+     event, internalScalefactor, t)) != none) {
   if (event.isLeftEndpointEvent()) {
    if (p2d_debug) {
     event.print();
@@ -7671,6 +7705,11 @@ bool intersectsWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
       mpq_class py = event.getPreciseY();
 
       checkSegments(segmentVector, event, suc, intersect, intersects_op, t);
+     } else {
+      AVLSegment* higherSeg = segmentVector.at(0);
+      AVLSegment* lowerSeg = segmentVector.at(1);
+      higherSeg->setConAbove(lowerSeg->getConAbove());
+      higherSeg->setConBelow(lowerSeg->getConBelow());
      }
     }
    }
