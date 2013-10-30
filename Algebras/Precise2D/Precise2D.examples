@@ -246,3 +246,22 @@ Number   : 2
 Signature: region2 x region2 -> region2
 Example  : query [const region2 value(0 ((((1 1 ())(1 2 ())(2 2 ())(2 1 ())))))] testMinusWithScaling [const region2 value(0((((0 0())(0 3())(3 3())(3 0())))))]
 Result   : TRUE
+
+Operator : bbox
+Number   : 1
+Signature: (point2||points2||line2) [x geoid] -> rect
+Example  : query bbox([const point2 value(1 1 ('1/4' '1/4'))])
+Result   : (rect ( (1.25,1.25) - (1.25,1.25) ))
+
+Operator : bbox
+Number   : 2
+Signature: (point2||points2||line2) [x geoid] -> rect
+Example  : query bbox([const points2 value((1 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4')))])
+Result   : (rect ( (1.25,1.25) - (3.25,1.25) ))
+
+
+Operator : bbox
+Number   : 3
+Signature: (point2||points2||line2) [x geoid] -> rect
+Example  : query bbox([const line2 value(((1 1 ('1/4' '1/4'))(3 1 ('1/4' '1/4'))))])
+Result   : (rect ( (1.25,1.25) - (3.25,1.25) ))
