@@ -1407,6 +1407,49 @@ struct tolabelInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~tostring~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr tostringTM(ListExpr args) {
+  if (nl->ListLength(args) == 1) {
+    if (Label::checkType(nl->First(args))) {
+      return nl->SymbolAtom(CcString::BasicType());
+    }
+  }
+  return NList::typeError("Expecting a label.");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int tostringVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  Label* source = static_cast<Label*>(args[0].addr);
+  CcString* res = static_cast<CcString*>(result.addr);
+  if (source->IsDefined()) {
+    res->Set(true, source->GetValue());
+  }
+  result.addr = res;
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct tostringInfo : OperatorInfo {
+  tostringInfo() {
+    name      = "tostring";
+    signature = "label -> string";
+    syntax    = "tostring ( _ )";
+    meaning   = "Converts a label into a string.";
+  }
+};
+
+/*
 \section{Operator ~mstringtomlabel~}
 
 \subsection{Type Mapping}
@@ -3059,6 +3102,289 @@ struct deftimeMLabelInfo : OperatorInfo {
     syntax    = "deftime ( _ )";
     meaning   = "Returns the periods containing the time intervals during which"
                 "the mlabel is defined.";
+  }
+};
+
+/*
+\section{Operator ~units~}
+
+units: mlabel -> (stream ulabel)
+
+\subsection{Type Mapping}
+
+*/
+ListExpr unitsMLabelTM(ListExpr args) {
+  if (nl->HasLength(args, 1)) {
+    if (MLabel::checkType(nl->First(args))) {
+      return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                             nl->SymbolAtom(ULabel::BasicType()));
+    }
+  }
+  return listutils::typeError("Correct signature:  mlabel -> (stream ulabel)");
+}
+
+ULabel* UnitsLI::getNextUnit() {
+  if ((index >= ml->GetNoComponents()) || (index < 0)) {
+    return 0;
+  }
+  ULabel result(true);
+  ml->Get(index, result);
+  index++;
+  return (ULabel*)(result.Clone());
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int unitsMLabelVM(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  MLabel *source = static_cast<MLabel*>(args[0].addr);
+  UnitsLI *li = static_cast<UnitsLI*>(local.addr);
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        li = 0;
+      }
+      li = new UnitsLI(source);
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      if (!local.addr) {
+        result.addr = 0;
+        return CANCEL;
+      }
+      li = (UnitsLI*)local.addr;
+      result.addr = li->getNextUnit();
+      return (result.addr ? YIELD : CANCEL);
+    }
+    case CLOSE: {
+      if (local.addr) {
+        li = (UnitsLI*)local.addr;
+        delete li;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct unitsMLabelInfo : OperatorInfo {
+  unitsMLabelInfo() {
+    name      = "units";
+    signature = "mlabel -> (stream ulabel)";
+    syntax    = "units ( _ )";
+    meaning   = "Splits a mlabel into its units and returns them as a stream.";
+  }
+};
+
+/*
+\section{Operator ~initial~}
+
+initial: ulabel -> ilabel
+
+\subsection{Type Mapping}
+
+*/
+ListExpr initialULabelTM(ListExpr args) {
+  if (nl->HasLength(args, 1)) {
+    if (ULabel::checkType(nl->First(args))) {
+      return nl->SymbolAtom(ILabel::BasicType());
+    }
+  }
+  return listutils::typeError("Correct signature:  ulabel -> ilabel");
+}
+
+void ULabel::Initial(ILabel *result) {
+  result->instant = timeInterval.start;
+  result->value.Set(true, constValue.GetValue());
+  result->SetDefined(true);
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int initialULabelVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  result = qp->ResultStorage(s);
+  ILabel* res = static_cast<ILabel*>(result.addr);
+  ULabel *src = static_cast<ULabel*>(args[0].addr);
+  if (src->IsDefined()) {
+    src->Initial(res);
+  }
+  else {
+    res = 0;
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct initialULabelInfo : OperatorInfo {
+  initialULabelInfo() {
+    name      = "initial";
+    signature = "ulabel -> ilabel";
+    syntax    = "initial ( _ )";
+    meaning   = "Returns the ilabel belonging to the initial instant of the "
+                "ulabel.";
+  }
+};
+
+/*
+\section{Operator ~final~}
+
+initial: ulabel -> ilabel
+
+\subsection{Type Mapping}
+
+*/
+ListExpr finalULabelTM(ListExpr args) {
+  if (nl->HasLength(args, 1)) {
+    if (ULabel::checkType(nl->First(args))) {
+      return nl->SymbolAtom(ILabel::BasicType());
+    }
+  }
+  return listutils::typeError("Correct signature:  ulabel -> ilabel");
+}
+
+void ULabel::Final(ILabel *result) {
+  result->instant = timeInterval.end;
+  result->value.Set(true, constValue.GetValue());
+  result->SetDefined(true);
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int finalULabelVM(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  result = qp->ResultStorage(s);
+  ILabel* res = static_cast<ILabel*>(result.addr);
+  ULabel *src = static_cast<ULabel*>(args[0].addr);
+  if (src->IsDefined()) {
+    src->Final(res);
+  }
+  else {
+    res = 0;
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct finalULabelInfo : OperatorInfo {
+  finalULabelInfo() {
+    name      = "final";
+    signature = "ulabel -> ilabel";
+    syntax    = "final ( _ )";
+    meaning   = "Returns the ilabel belonging to the final instant of the "
+                "ulabel.";
+  }
+};
+
+/*
+\section{Operator ~val~}
+
+val: ilabel -> label
+
+\subsection{Type Mapping}
+
+*/
+ListExpr valILabelTM(ListExpr args) {
+  if (nl->HasLength(args, 1)) {
+    if (ILabel::checkType(nl->First(args))) {
+      return nl->SymbolAtom(Label::BasicType());
+    }
+  }
+  return listutils::typeError("Correct signature:  ilabel -> label");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int valILabelVM(Word* args, Word& result, int message, Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  Label* res = static_cast<Label*>(result.addr);
+  ILabel *src = static_cast<ILabel*>(args[0].addr);
+  if (src->IsDefined()) {
+    res->SetDefined(true);
+    res->SetValue(src->value.GetValue());
+  }
+  else {
+    res = 0;
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct valILabelInfo : OperatorInfo {
+  valILabelInfo() {
+    name      = "val";
+    signature = "ilabel -> label";
+    syntax    = "val ( _ )";
+    meaning   = "Returns the value of the ilabel.";
+  }
+};
+
+/*
+\section{Operator ~inst~}
+
+inst: ilabel -> instant
+
+\subsection{Type Mapping}
+
+*/
+ListExpr instILabelTM(ListExpr args) {
+  if (nl->HasLength(args, 1)) {
+    if (ILabel::checkType(nl->First(args))) {
+      return nl->SymbolAtom(Instant::BasicType());
+    }
+  }
+  return listutils::typeError("Correct signature:  ilabel -> instant");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int instILabelVM(Word* args, Word& result, int message, Word& local,Supplier s){
+  result = qp->ResultStorage(s);
+  Instant* res = static_cast<Instant*>(result.addr);
+  ILabel *src = static_cast<ILabel*>(args[0].addr);
+  if (src->IsDefined()) {
+    res->CopyFrom(&(src->instant));
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct instILabelInfo : OperatorInfo {
+  instILabelInfo() {
+    name      = "inst";
+    signature = "ilabel -> instant";
+    syntax    = "inst ( _ )";
+    meaning   = "Returns the instant of the ilabel.";
   }
 };
 
@@ -5920,6 +6246,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
       
       AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);
+
+      AddOperator(tostringInfo(), tostringVM, tostringTM);
       
       AddOperator(mstringtomlabelInfo(), mstringtomlabelVM, mstringtomlabelTM);
 
@@ -5935,6 +6263,16 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(atMLabelInfo(), atMLabelVM, atMLabelTM);
 
       AddOperator(deftimeMLabelInfo(), deftimeMLabelVM, deftimeMLabelTM);
+
+      AddOperator(unitsMLabelInfo(), unitsMLabelVM, unitsMLabelTM);
+
+      AddOperator(initialULabelInfo(), initialULabelVM, initialULabelTM);
+
+      AddOperator(finalULabelInfo(), finalULabelVM, finalULabelTM);
+
+      AddOperator(valILabelInfo(), valILabelVM, valILabelTM);
+
+      AddOperator(instILabelInfo(), instILabelVM, instILabelTM);
       
       AddOperator(topatternInfo(), topatternVM, topatternTM);
 

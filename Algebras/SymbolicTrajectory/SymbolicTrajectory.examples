@@ -7,6 +7,12 @@ Signature: (string | text) -> label
 Example  : query tolabel('Aubameyang')
 Result   : (label "Aubameyang")
 
+Operator : tostring
+Number   : 1
+Signature: label -> string
+Example  : query tostring(tolabel('Aubameyang'))
+Result   : "Aubameyang"
+
 Operator : mstringtomlabel
 Number   : 1
 Signature: mstring -> mlabel
@@ -48,6 +54,36 @@ Number   : 4
 Signature: mlabel -> periods
 Example  : query deftime(the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem])
 Result   : (periods (("2000-01-03" "2000-01-04" TRUE FALSE)))
+
+Operator : units
+Number   : 5
+Signature: mlabel -> (stream ulabel)
+Example  : query units(michael) count
+Result   : 62
+
+Operator : initial
+Number   : 12
+Signature: ulabel -> ilabel
+Example  : query initial(the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
+Result   : (ilabel ("2000-01-03" "Mkhitaryan"))
+
+Operator : final
+Number   : 12
+Signature: ulabel -> ilabel
+Example  : query final(the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
+Result   : (ilabel ("2000-01-04" "Mkhitaryan"))
+
+Operator : val
+Number   : 4
+Signature: ilabel -> label
+Example  : query val([const ilabel value ("2013-10-29" "Mkhitaryan")])
+Result   : (label "Mkhitaryan")
+
+Operator : inst
+Number   : 4
+Signature: ilabel -> instant
+Example  : query inst([const ilabel value ("2013-10-29" "Mkhitaryan")])
+Result   : (instant "2013-10-29")
 
 Operator : topattern
 Number   : 1

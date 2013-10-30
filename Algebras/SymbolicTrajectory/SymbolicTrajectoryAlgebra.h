@@ -78,7 +78,7 @@ class Label : public Attribute {
   Label() {};
   Label(const string& val);
   Label(const Label& rhs);
-  Label(const bool def) {SetDefined(def);}
+  Label(const bool def) {SetDefined(def); strncpy(text, "", MAX_STRINGSIZE);}
   ~Label();
 
   string GetValue() const;
@@ -172,7 +172,10 @@ class ILabel : public IString {
 public:
   static const string BasicType() { return "ilabel"; }
   static ListExpr IntimeLabelProperty();
-  static bool CheckIntimeLabel( ListExpr type, ListExpr& errorInfo );
+  static bool CheckIntimeLabel(ListExpr type, ListExpr& errorInfo);
+  static bool checkType(ListExpr t) {
+    return listutils::isSymbol(t, BasicType());
+  }
 };
 
 class MLabel : public MString {
@@ -230,6 +233,12 @@ class ULabel : public UString {
   static const string BasicType() {return "ulabel";}
   static ListExpr ULabelProperty();
   static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
+  static bool checkType(ListExpr t) {
+    return listutils::isSymbol(t, BasicType());
+  }
+
+  void Initial(ILabel *result);
+  void Final(ILabel *result);
 };
 
 class ExprList {
@@ -822,6 +831,18 @@ class IndexMatchesLI : public IndexClassifyLI {
   ~IndexMatchesLI() {}
 
   Tuple* nextTuple();
+};
+
+class UnitsLI {
+ public:
+  UnitsLI(MLabel *source) : ml(source), index(0) {}
+  ~UnitsLI() {}
+  
+  ULabel* getNextUnit();
+
+ private:
+  MLabel* ml;
+  int index;
 };
 
 }
