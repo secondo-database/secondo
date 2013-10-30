@@ -76,9 +76,9 @@ void patternFlushBuffer();
 class Label : public Attribute {
  public:
   Label() {};
-  Label(const string& val);
+  explicit Label(const string& val);
   Label(const Label& rhs);
-  Label(const bool def) {SetDefined(def); strncpy(text, "", MAX_STRINGSIZE);}
+  explicit Label(const bool def);
   ~Label();
 
   string GetValue() const;
@@ -182,8 +182,9 @@ class MLabel : public MString {
  public:
   MLabel() {}
   explicit MLabel(int i): MString(i), index(0) {}
-  MLabel(MString* ms);
-  MLabel(MLabel* ml);
+  explicit MLabel(MString* ms);
+  explicit MLabel(MLabel* ml);
+  MLabel(const MLabel &ml);
   
   ~MLabel() {}
 
@@ -227,7 +228,7 @@ class MLabel : public MString {
 class ULabel : public UString {
  public:
   ULabel() {}
-  ULabel(int i): UString(i) {}
+  explicit ULabel(int i): UString(i) {}
   ULabel(const Interval<Instant>& interval, const Label& label);
 
   static const string BasicType() {return "ulabel";}

@@ -13,6 +13,12 @@ Signature: label -> string
 Example  : query tostring(tolabel('Aubameyang'))
 Result   : "Aubameyang"
 
+Operator : totext
+Number   : 1
+Signature: label -> text
+Example  : query totext(tolabel('Aubameyang'))
+Result   : 'Aubameyang'
+
 Operator : mstringtomlabel
 Number   : 1
 Signature: mstring -> mlabel

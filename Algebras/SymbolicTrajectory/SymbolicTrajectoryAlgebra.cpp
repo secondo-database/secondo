@@ -66,15 +66,18 @@ using namespace std;
 
 namespace stj {
 
-Label::Label(const string& value) {
+Label::Label(const string& value) : Attribute(true) {
   strncpy(text, value.c_str(), MAX_STRINGSIZE);
   text[MAX_STRINGSIZE] = '\0';
-  SetDefined(true);
-  
 }
 
-Label::Label(const Label& rhs) {
+Label::Label(const Label& rhs) : Attribute(rhs) {
   strncpy(text, rhs.text, MAX_STRINGSIZE);
+}
+
+Label::Label(const bool def) : Attribute(def) {
+  strncpy(text, "", MAX_STRINGSIZE);
+  text[MAX_STRINGSIZE] = '\0';
 }
 
 Label::~Label() {}
@@ -380,6 +383,8 @@ MLabel::MLabel(MLabel* ml): MString(0), index(ml->index) {
   }
   SetDefined(ml->IsDefined());
 }
+
+MLabel::MLabel(const MLabel &ml) : MString(ml), index(ml.index) {}
 
 ListExpr MLabel::MLabelProperty() {
     return (nl->TwoElemList(
@@ -1446,6 +1451,49 @@ struct tostringInfo : OperatorInfo {
     signature = "label -> string";
     syntax    = "tostring ( _ )";
     meaning   = "Converts a label into a string.";
+  }
+};
+
+/*
+\section{Operator ~totext~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr totextTM(ListExpr args) {
+  if (nl->ListLength(args) == 1) {
+    if (Label::checkType(nl->First(args))) {
+      return nl->SymbolAtom(FText::BasicType());
+    }
+  }
+  return NList::typeError("Expecting a label.");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int totextVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  Label* source = static_cast<Label*>(args[0].addr);
+  FText* res = static_cast<FText*>(result.addr);
+  if (source->IsDefined()) {
+    res->Set(true, source->GetValue());
+  }
+  result.addr = res;
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct totextInfo : OperatorInfo {
+  totextInfo() {
+    name      = "totext";
+    signature = "label -> text";
+    syntax    = "totext ( _ )";
+    meaning   = "Converts a label into a text.";
   }
 };
 
@@ -6248,6 +6296,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);
 
       AddOperator(tostringInfo(), tostringVM, tostringTM);
+
+      AddOperator(totextInfo(), totextVM, totextTM);
       
       AddOperator(mstringtomlabelInfo(), mstringtomlabelVM, mstringtomlabelTM);
 

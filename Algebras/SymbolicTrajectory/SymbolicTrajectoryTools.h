@@ -113,7 +113,7 @@ class MLabelIndex {
 public:
   MLabelIndex() {}
   
-  MLabelIndex(int n) : nodes(0), nodeLinks(0), labelIndex(0), root(0) {}
+  explicit MLabelIndex(int n) : nodes(0), nodeLinks(0), labelIndex(0), root(0){}
   
   MLabelIndex(DbArray<NodeRef> n, DbArray<NodeLink> nL, DbArray<size_t> lI);
 
