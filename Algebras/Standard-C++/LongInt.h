@@ -781,6 +781,9 @@ bool operator>=(const CcInt& i)const{
 
 */
 ListExpr ToListExpr(ListExpr typeinfo){
+   if(!IsDefined()){
+      return listutils::getUndefined(); 
+   }
    if((value<numeric_limits<int32_t>::max()) && 
       (value>numeric_limits<int32_t>::min())){
      return nl->IntAtom( (int)value);
