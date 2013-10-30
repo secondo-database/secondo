@@ -47,7 +47,6 @@
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "AttrType.h"
-//#include "Precise2DAlgebra.h"
 #include "Point2.h"
 
 namespace p2d {
@@ -147,6 +146,12 @@ public:
 */
 
 /*
+2.2.1 ~=~
+
+*/
+Points2& operator=(const Points2& p);
+
+/*
 2.2.1 getter
 
  For more information see class Point2
@@ -156,9 +161,9 @@ public:
 
  int getGridY(int i) const;
 
- mpq_class& getPreciseX(int i) const;
+ mpq_class getPreciseX(int i) const;
 
- mpq_class& getPreciseY(int i) const;
+ mpq_class getPreciseY(int i) const;
 
  char* getPreciseXAsString(int i) const;
 
@@ -183,7 +188,7 @@ public:
 
 */
  void addPoint(Point2* p);
-
+ void addPoint(Point2& p);
 /*
 2.2.2 ~Clear~
 

@@ -176,7 +176,7 @@ public:
   results are of type region2.
 
 */
- void calculateBoundary2(Region2& result);
+ void calculateBoundary2(Region2& result, int scalefactor);
 
 /*
 1.1 ~Print~

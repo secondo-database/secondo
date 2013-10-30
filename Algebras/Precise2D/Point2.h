@@ -103,6 +103,12 @@ public:
 */
 
 /*
+2.2.1 ~=~
+
+*/
+PointData& operator=(const PointData& p);
+
+/*
 2.2.1 ~getGridX~ and ~getGridY~
 
   Returns the grid-value of the coordinate.
@@ -162,7 +168,7 @@ public:
 
 */
  void CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates);
-
+ void CopyPreciseCoordinates(Point2& p, Flob* preciseCoordinates);
  /*
  2.2.6 ~Intersects~
 
@@ -182,6 +188,7 @@ class Point2: public StandardSpatialAttribute<2> {
 private:
  Flob preciseCoordinates;
  PointData pointData;
+ Rectangle<2> bbox;
 
 public:
 
@@ -205,6 +212,12 @@ public:
  ;
 
 /*
+3.1 ~=~
+
+*/
+Point2& operator=(const Point2& p);
+
+/*
 3.2 read access methods
 
 */
@@ -212,9 +225,9 @@ public:
 
  int getGridY() const;
 
- mpq_class& getPreciseX() const;
+ mpq_class getPreciseX() const;
 
- mpq_class& getPreciseY() const;
+ mpq_class getPreciseY() const;
 
  char* getPreciseXAsString() const;
 
@@ -296,7 +309,22 @@ public:
 
  static bool CheckPoint2(ListExpr type, ListExpr& errorInfo);
 
- virtual const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
+inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const{
+
+  if (IsDefined()) {
+   if (!geoid) {/*
+    double x = (double) getGridX();
+    double y = (double) getGridY();
+    return *(new Rectangle<2>( true, x , (x+1) ,y ,(y+1) ));*/
+    double x = getPreciseX().get_d() + getGridX();
+    double y = getPreciseY().get_d() + getGridY();
+    return *(new Rectangle<2>( true, x , x ,y ,y ));
+   }
+
+  }
+  return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+
+}
 
  virtual double Distance(const Rectangle<2>& rect,
    const Geoid* geoid = 0) const;

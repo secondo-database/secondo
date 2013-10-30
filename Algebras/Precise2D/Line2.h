@@ -302,7 +302,8 @@ public:
 2.3.1 ~BoundingBox~
 
 */
- const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
+ const Rectangle<2> BoundingBox(const Flob& preciseCoordinates,
+   const Geoid* geoid = 0) const;
 
  bool IsVertical(const Flob& preciseCoordinates) const;
 

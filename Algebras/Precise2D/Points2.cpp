@@ -188,10 +188,8 @@ void Points2::RemoveDuplicates() {
 */
 Points2::Points2(const bool def, Point2* p) :
   StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointsData(0),
-  ordered(true), bbox(false) {
- PointData pd(p->getGridX(), p->getGridY());
- pd.CopyPreciseCoordinates(p, &preciseCoordinates);
- pointsData.Append(pd);
+  ordered(true), bbox(def) {
+ addPoint(p);
 }
 
 Points2::Points2(const Points2& l) :
@@ -212,6 +210,14 @@ Points2::Points2(bool def) :
 2.1 ~Member function~
 
 */
+
+Points2& Points2::operator=(const Points2& p){
+ preciseCoordinates.copyFrom(p.preciseCoordinates);
+ pointsData.copyFrom(p.pointsData);
+ ordered = p.ordered;
+ bbox = p.bbox;
+ return *this;
+}
 
 /*
 2.1.1 ~getGrid...~
@@ -235,26 +241,26 @@ int Points2::getGridY(int i) const {
 2.1.1 ~getPreciseX~
 
 */
-mpq_class& Points2::getPreciseX(int i) const {
+mpq_class Points2::getPreciseX(int i) const {
  assert(0 <= i && i < pointsData.Size());
  PointData pd;
  pointsData.Get(i, &pd);
- mpq_class* value = new mpq_class(0);
- pd.getPreciseX(&preciseCoordinates, *value);
- return *value;
+ mpq_class value;// = new mpq_class(0);
+ pd.getPreciseX(&preciseCoordinates, value);
+ return value;
 }
 
 /*
 2.1.1 ~getPreciseY~
 
 */
-mpq_class& Points2::getPreciseY(int i) const {
+mpq_class Points2::getPreciseY(int i) const {
  assert(0 <= i && i < pointsData.Size());
  PointData pd;
  pointsData.Get(i, &pd);
- mpq_class* value = new mpq_class(0);
- pd.getPreciseY(&preciseCoordinates, *value);
- return *value;
+ mpq_class value;// = new mpq_class(0);
+ pd.getPreciseY(&preciseCoordinates, value);
+ return value;
 }
 
 /*
@@ -295,7 +301,27 @@ PointData Points2::getPoint(int i) const {
 
 */
 void Points2::addPoint(Point2* p) {
+ if (IsEmpty()){
+  bbox = p->BoundingBox();
+ } else {
+  bbox = bbox.Union(p->BoundingBox());
+ }
  PointData pd(p->getGridX(), p->getGridY());
+ pd.CopyPreciseCoordinates(p, &preciseCoordinates);
+ pointsData.Append(pd);
+}
+
+/*
+2.1.1 ~addPoint~
+
+*/
+void Points2::addPoint(Point2& p) {
+ if (IsEmpty()){
+  bbox = p.BoundingBox();
+ } else {
+  bbox = bbox.Union(p.BoundingBox());
+ }
+ PointData pd(p.getGridX(), p.getGridY());
  pd.CopyPreciseCoordinates(p, &preciseCoordinates);
  pointsData.Append(pd);
 }
@@ -637,7 +663,7 @@ double Points2::Distance(const Rectangle<2>& rect,
 
 */
 bool Points2::IsEmpty() const {
- return !IsDefined();
+ return (!IsDefined()||(Size()==0));
 }
 
 /*

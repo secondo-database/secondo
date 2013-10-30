@@ -128,7 +128,7 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
     //ascending segment
     //yValue is above y and the right point has not been reached. For the next
     //vertex, yValue is rounded up to the next integer.
-    newY = (int) (ceil_mpq(yValue)).get_d();
+    newY = (int) ((ceil_mpq(yValue)).get_d());
    } else {
     //horizontal or descending segment
     newY = y;
@@ -154,7 +154,7 @@ void CoarseningGraph::computeGraphBetween(int lx, int ly, int rx, int ry) {
   } else {
    //for more info see if-branch
    if (cmp (slope, 0)<=0) {
-    newY = (int)(floor_mpq(yValue)).get_d();
+    newY = (int)((floor_mpq(yValue)).get_d());
    } else {
     newY = y;
    }
@@ -222,6 +222,7 @@ void CoarseningGraph::calculateBoundary(Region& result) {
 
  while (vertices.size() >= 4) {
   //there are enough vertices to create another cycle
+
   try {
    tmpRegion.Clear();
    tmpRegion.StartBulkLoad();
@@ -229,7 +230,13 @@ void CoarseningGraph::calculateBoundary(Region& result) {
    bool lastInsideAbove = false;
    bool insideAbove = false;
    Vertex* firstVertex = *(vertices.begin());
+   while (firstVertex->getNoOfEdges()==0){
+    removeIsleNode(firstVertex);
+    firstVertex = *(vertices.begin());
+   }
+   if (vertices.size()>=4){
    Vertex* last = firstVertex;
+
    Direction lastDirection = noDirection;
    Direction dir = noDirection;
    Vertex* next;
@@ -243,11 +250,9 @@ void CoarseningGraph::calculateBoundary(Region& result) {
    Point* rp = NULL;
 
    do {
+
     last->getNextVertex(&next, dir, insideAbove);
 
-    if (next == NULL) {
-     //throw exception();
-    }
     if (lastDirection == noDirection) {
      //last contains the first vertex of the cycle
      lastDirection = dir;
@@ -285,10 +290,13 @@ void CoarseningGraph::calculateBoundary(Region& result) {
     }
     next->removeEdge(last);
     last->removeEdge(next);
+
     if ((*last != *firstVertex) && (last->getNoOfEdges() ==0)){
      removeIsleNode(last);
     }
+
     last = next;
+
    } while (*last != *firstVertex);
 
    rp = new Point(true, firstX, firstY);
@@ -328,6 +336,7 @@ void CoarseningGraph::calculateBoundary(Region& result) {
      }
     }
    }
+   }
   } catch (exception& e) {
    removeIsleNodes();
   }
@@ -341,7 +350,7 @@ void CoarseningGraph::calculateBoundary(Region& result) {
 1.1 ~calculateBoundary2~
 
 */
-void CoarseningGraph::calculateBoundary2(Region2& result) {
+void CoarseningGraph::calculateBoundary2(Region2& result, int scalefactor) {
 
  result.Clear();
  if (vertices.size() < 4) {
@@ -370,6 +379,12 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
    //bool lastInsideAbove = false;
    bool insideAbove = false;
    Vertex* firstVertex = *(vertices.begin());
+   while (firstVertex->getNoOfEdges()==0){
+    removeIsleNode(firstVertex);
+    firstVertex = *(vertices.begin());
+   }
+   if (vertices.size()>=4){
+
    Vertex* last = firstVertex;
    Direction lastDirection = noDirection;
    Direction dir = noDirection;
@@ -415,7 +430,6 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
      lp = rp;
      rp = NULL;
     }
-
     next->removeEdge(last);
     last->removeEdge(next);
 
@@ -433,16 +447,14 @@ void CoarseningGraph::calculateBoundary2(Region2& result) {
    if (last->getNoOfEdges() ==0){
     removeIsleNode(last);
    }
+   }
   } catch (exception& e) {
-   cout <<" Exception"<<endl;
    removeIsleNodes();
   }
  }
 
  tmpLine.EndBulkLoad();
-
- p2d::BuildRegion(tmpLine, result);
-
+ p2d::BuildRegion(tmpLine, result, scalefactor);
  //remove the remaining vertices and edges
  clear();
 }
@@ -604,6 +616,7 @@ set<Vertex*, CmpVertex> Vertex::getEdges() const {
 
 */
 void Vertex::removeEdge(Vertex* v) {
+
  set<Vertex*, CmpVertex>::iterator it1 = edgeSet.begin();
  while ((it1 != edgeSet.end()) && (*v != *(*(it1)))) {
   it1++;
@@ -891,7 +904,6 @@ void coarseRegion2(/*const*/Region2& r, Region& result) {
 
  ::Region holes(0);
  g2.calculateBoundary(holes);
-
  result.Clear();
  faces.Minus(holes, result);
 }
@@ -908,7 +920,7 @@ void coarseRegion2b(/*const*/Region2& r, Region& result) {
  g1.computeGraph(faces);
 
  Region2 tmpFaces(0);
- g1.calculateBoundary2(faces);
+ g1.calculateBoundary2(faces, r.GetScaleFactor());
 
  //holes
  CoarseningGraph g2;
@@ -917,10 +929,9 @@ void coarseRegion2b(/*const*/Region2& r, Region& result) {
  g2.computeGraph(holes);
 
  //Region2 tmpHoles(0);
- g2.calculateBoundary2(holes);
-
+ g2.calculateBoundary2(holes, r.GetScaleFactor());
  Region2 tmpResult(0);
- SetOp(faces, holes, tmpResult, difference_op);
+  SetOp(faces, holes, tmpResult, difference_op);
 
  createRegion(tmpResult, result);
 }
@@ -934,10 +945,12 @@ void createRegion(Region2& s, Region& r){
  if (s.IsDefined()){
   r.SetDefined(true);
  } else {
+  r.SetDefined(false);
   return;
  }
  r.StartBulkLoad();
  Reg2GridHalfSegment gs;
+ Reg2PrecHalfSegment ps;
  int edgeNo = 0;
  for (int i = 0; i< s.Size(); i++){
   s.getgridCoordinates()->Get(i, gs);

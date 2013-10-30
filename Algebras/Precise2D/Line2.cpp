@@ -111,6 +111,7 @@ mpq_class SegmentData::getPreciseLeftX(const Flob& preciseCoordinates) const {
  }
  mpq_class theValue(s);
  theValue.canonicalize();
+ delete s;
  return theValue;
 }
 
@@ -138,6 +139,7 @@ mpq_class SegmentData::getPreciseLeftY(const Flob& preciseCoordinates) const {
  }
  mpq_class theValue(s);
  theValue.canonicalize();
+ delete s;
  return theValue;
 }
 
@@ -165,6 +167,7 @@ mpq_class SegmentData::getPreciseRightX(const Flob& preciseCoordinates) const {
  }
  mpq_class theValue(s);
  theValue.canonicalize();
+ delete s;
  return theValue;
 }
 
@@ -192,6 +195,7 @@ mpq_class SegmentData::getPreciseRightY(const Flob& preciseCoordinates) const {
  }
  mpq_class theValue(s);
  theValue.canonicalize();
+ delete s;
  return theValue;
 }
 
@@ -340,6 +344,8 @@ void SegmentData::SetPreciseLeftX(Flob& preciseCoordinates, mpq_class lx) {
   preciseCoordinates.resize(sz + xLeftNumOfChars);
  }
  assert(preciseCoordinates.write(s, xLeftNumOfChars + 1, xLeftPos));
+
+ delete s;
 }
 
 /*
@@ -370,6 +376,8 @@ void SegmentData::SetPreciseLeftY(Flob& preciseCoordinates, mpq_class ly) {
   preciseCoordinates.resize(sz + yLeftNumOfChars);
  }
  assert(preciseCoordinates.write(s, yLeftNumOfChars + 1, yLeftPos));
+
+ delete s;
 }
 
 /*
@@ -401,6 +409,7 @@ void SegmentData::SetPreciseRightX(Flob& preciseCoordinates, mpq_class rx) {
  }
  assert(preciseCoordinates.write(s, xRightNumOfChars + 1, xRightPos));
 
+ delete s;
 }
 
 /*
@@ -432,6 +441,7 @@ void SegmentData::SetPreciseRightY(Flob& preciseCoordinates, mpq_class ry) {
  }
  assert(preciseCoordinates.write(s, yRightNumOfChars + 1, yRightPos));
 
+ delete s;
 }
 
 /*
@@ -484,6 +494,7 @@ void SegmentData::SetPreciseLeftCoordinates(Point2* lp,
   } else {
    assert(preciseCoordinates.write(s, length, yLeftPos));
   }
+  delete s;
  }
 }
 
@@ -539,6 +550,7 @@ void SegmentData::SetPreciseRightCoordinates(Point2* rp,
      preciseCoordinates.write(s, xRightNumOfChars + yRightNumOfChars + 1,
        yRightPos));
   }
+  delete s;
  }
 }
 
@@ -637,14 +649,28 @@ SegmentData& SegmentData::operator=(const SegmentData& s) {
 2.2.1 ~BoundingBox~
 
 */
-const Rectangle<2> SegmentData::BoundingBox(const Geoid* geoid /*= 0*/) const {
+const Rectangle<2> SegmentData::BoundingBox(const Flob& preciseCoordinates,
+  const Geoid* geoid /*= 0*/) const {
  assert(!geoid);
-
+ /*
  double minx = getLeftX() < getRightX() ? getLeftX() : getRightX();
  double maxx = getLeftX() < getRightX() ? getRightX() + 1 : getLeftX() + 1;
  double miny = getLeftY() < getRightY() ? getLeftY() : getRightY();
  double maxy = getLeftY() < getRightY() ? getRightY() + 1 : getLeftY() + 1;
- return Rectangle<2>(true, minx, maxx, miny, maxy);
+ return Rectangle<2>(true, minx, maxx, miny, maxy);*/
+ double xd = GetDomPreciseXCoord(preciseCoordinates).get_d()
+   + GetDomGridXCoord();
+ double yd = GetDomPreciseYCoord(preciseCoordinates).get_d()
+   + GetDomGridYCoord();
+ double xs = GetSecPreciseXCoord(preciseCoordinates).get_d()
+     + GetSecGridXCoord();
+ double ys = GetSecPreciseYCoord(preciseCoordinates).get_d()
+     + GetSecGridYCoord();
+ double minX = xd < xs ? xd : xs;
+ double maxX = xd < xs ? xs : xd;
+ double minY = yd < ys ? yd : ys;
+ double maxY = yd < ys ? ys : yd;
+ return *(new Rectangle<2>( true, minX , maxX ,minY ,maxY ));
 }
 
 /*
@@ -684,7 +710,7 @@ Line2::Line2(const bool def, bool ldp, int xl, int yl, int xr, int yr,
  sd.SetPreciseRightX(preciseCoordinates, pxr);
  sd.SetPreciseRightY(preciseCoordinates, pyr);
  segmentData.Append(sd);
- bbox = sd.BoundingBox();
+ bbox = sd.BoundingBox(preciseCoordinates);
  assert(IsDefined() && BoundingBox().IsDefined());
 }
 
@@ -891,9 +917,9 @@ void Line2::collectFace(int faceno, int startPos, DbArray<bool>& used) {
  segmentData.Put(partner, Sd2);
 
  if (!bbox.IsDefined()) {
-  bbox = sd1.BoundingBox();
+  bbox = sd1.BoundingBox(preciseCoordinates);
  } else {
-  bbox = bbox.Union(sd1.BoundingBox());
+  bbox = bbox.Union(sd1.BoundingBox(preciseCoordinates));
  }
 
  if (getUnusedExtension(pos, used) >= 0) {
@@ -934,7 +960,7 @@ void Line2::collectFace(int faceno, int startPos, DbArray<bool>& used) {
    if (getUnusedExtension(partner, used) >= 0) {
     extensionPos.insert(partner);
    }
-   bbox = bbox.Union(sd1.BoundingBox());
+   bbox = bbox.Union(sd1.BoundingBox(preciseCoordinates));
    edgeno++;
   }
  }

@@ -143,6 +143,7 @@ public:
 
 */
  void inorder();
+
 };
 
 /*
@@ -517,14 +518,15 @@ public:
 
  AVLSegment(const Flob* preciseData, SegmentData* sd, Owner o);
 
- AVLSegment(const Flob* preciseData, SegmentData* sd, Owner o, int scalefactor);
+ AVLSegment(const Flob* preciseData, SegmentData* sd, Owner o,
+   mpq_class& scalefactor);
 
  AVLSegment(const DbArray<unsigned int>* preciseData, Reg2GridHalfSegment& sd,
    Reg2PrecHalfSegment* ps, Owner o);
 
  AVLSegment(const DbArray<unsigned int>* preciseData,
    Reg2GridHalfSegment& gs, Reg2PrecHalfSegment& ps, Owner o,
-   int scalefactor);
+   mpq_class& scalefactor);
 
  AVLSegment(const AVLSegment& s);
 
@@ -1019,14 +1021,14 @@ Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
 template<class C1, class C2>
 Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
-  int scalefactor);
+  mpq_class& internalScalefactor);
 
 Owner selectNext(const Line2& l, int& pos1, const Line2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
 
 Owner selectNext(const Line2& l, int& pos1, const Line2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
-  int scalefactor);
+  mpq_class& internalScalefactor);
 
 Owner selectNext(/*const*/ Region2& r1, int& pos1,
 /*const*/ Region2& r2, int& pos2,
@@ -1035,7 +1037,7 @@ Owner selectNext(/*const*/ Region2& r1, int& pos1,
 Owner selectNext(/*const*/Region2& r1, int& pos1,
 /*const*/Region2& r2, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
-  int scalefactor);
+  mpq_class& internalScalefactor);
 
 template<class C>
 Owner selectNext(const C& l, int& pos,
@@ -1126,7 +1128,7 @@ void createNewSegments(AVLSegment& s, Line2& result, int& edgeNo,
   SetOperation op);
 
 void createNewSegments(AVLSegment& s, Line2& result, int& edgeNo,
-  SetOperation op, int scalefactor);
+  SetOperation op, mpq_class& internalScalefactor);
 
 /*
  ~createNewSegments~
@@ -1142,7 +1144,7 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   Line2& result, int& edgeNo, SetOperation op);
 
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  Line2& result, int& edgeNo, SetOperation op, int scalefactor);
+  Line2& result, int& edgeNo, SetOperation op, mpq_class& internalScalefactor);
 
 /*
  ~createNewSegments~
@@ -1152,12 +1154,13 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 
 */
 void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
-  SetOperation op);
+  int sclaefactor, SetOperation op);
 
-void createNewSegments(AVLSegment& s, Region2& result, int& edgeno);
+void createNewSegments(Region2& result, AVLSegment& s,
+  int& edgeno, int scalefactor);
 
 void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
-  SetOperation op, int scalefactor);
+  int scalefactor, SetOperation op, mpq_class& internalScalefactor);
 
 /*
  ~createNewSegments~
@@ -1171,12 +1174,13 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op);
+  AVLSegment* successor, Region2& result, int& edgeno, int scalefactor,
+  SetOperation op);
 
 
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
-  int scalefactor);
+  AVLSegment* successor, Region2& result, int& edgeno, int scalefactor,
+  SetOperation op, mpq_class& internalScalefactor);
 
 
 /*
@@ -1223,7 +1227,7 @@ void Realminize(const Line2& src, Line2& result, const bool forceThrow);
                all segments form the outline of a region2-object.
 
 */
-void BuildRegion(/*const*/ Line2& line,  Region2& result);
+void BuildRegion(/*const*/ Line2& line,  Region2& result, int scalefactor);
 
 /*
 11 ~SetOp~ for ~line2~

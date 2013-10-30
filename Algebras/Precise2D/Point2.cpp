@@ -72,6 +72,20 @@ PointData::PointData(const PointData& pd) :
 */
 
 /*
+3.2.1 ~=~
+
+*/
+PointData& PointData::operator=(const PointData& p){
+ x = p.x;
+ y = p.y;
+ xStartPos = p.xStartPos;
+ yStartPos = p.yStartPos;
+ xNumOfChars = p.xNumOfChars;
+ yNumOfChars = p.yNumOfChars;
+ return *this;
+}
+
+/*
 3.2.1 ~getPreciseX~
 
 */
@@ -98,7 +112,9 @@ void PointData::getPreciseX(const Flob* preciseCoordinates,
 
  }
  mpq_class theValue(s);
+ theValue.canonicalize();
  result = theValue;
+ delete s;
 }
 
 /*
@@ -127,7 +143,9 @@ void PointData::getPreciseY(const Flob* preciseCoordinates,
 
  }
  mpq_class theValue(s);
+ theValue.canonicalize();
  result = theValue;
+ delete s;
 }
 
 /*
@@ -218,6 +236,8 @@ void PointData::SetPreciseX(Flob* preciseCoordinates, mpq_class x) {
  }
  bool ok = preciseCoordinates->write(s, xNumOfChars + 1, xStartPos);
  assert(ok);
+
+ delete s;
 }
 
 void PointData::SetPreciseY(Flob* preciseCoordinates, mpq_class y) {
@@ -243,6 +263,8 @@ void PointData::SetPreciseY(Flob* preciseCoordinates, mpq_class y) {
  }
  bool ok = preciseCoordinates->write(s, yNumOfChars + 1, yStartPos);
  assert(ok);
+
+ delete s;
 }
 
 /*
@@ -284,6 +306,47 @@ void PointData::CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates) {
    preciseCoordinates->write(y, yNumOfChars, yStartPos);
   }
  }
+ delete x;
+ delete y;
+}
+
+void PointData::CopyPreciseCoordinates(Point2& p, Flob* preciseCoordinates) {
+ SmiSize sz = preciseCoordinates->getSize();
+
+ char* x = p.getPreciseXAsString();
+ if (x[0] == '0') {
+  xStartPos = 0;
+  xNumOfChars = 0;
+ } else {
+  xStartPos = sz;
+  xNumOfChars = strlen(x);
+ }
+ char* y = p.getPreciseYAsString();
+ if (y[0] == '0') {
+  yStartPos = 0;
+  yNumOfChars = 0;
+ } else {
+  yStartPos = sz + xNumOfChars;
+  yNumOfChars = strlen(y);
+ }
+ if ((xNumOfChars + yNumOfChars) > 0) {
+  SmiSize newSize;
+  if (sz == 0) {
+   newSize = (xNumOfChars + yNumOfChars) + 1;
+  } else {
+   newSize = sz + (xNumOfChars + yNumOfChars);
+  }
+  preciseCoordinates->resize(newSize);
+
+  if (xNumOfChars > 0) {
+   preciseCoordinates->write(x, xNumOfChars, xStartPos);
+  }
+  if (yNumOfChars > 0) {
+   preciseCoordinates->write(y, yNumOfChars, yStartPos);
+  }
+ }
+ delete x;
+ delete y;
 }
 
 /*
@@ -326,6 +389,10 @@ Point2::Point2(bool def) :
   StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointData(0, 0) {
 }
 
+Point2& Point2::operator=(const Point2& p) {
+  return *(new Point2(p));
+ }
+
 
 /*
 4.2 Read access methods
@@ -339,16 +406,16 @@ int Point2::getGridY() const {
  return pointData.getGridY();
 }
 
-mpq_class& Point2::getPreciseX() const {
- mpq_class* value = new mpq_class(0);
- pointData.getPreciseX(&preciseCoordinates, *value);
- return *value;
+mpq_class Point2::getPreciseX() const {
+ mpq_class value;
+ pointData.getPreciseX(&preciseCoordinates, value);
+ return value;
 }
 
-mpq_class& Point2::getPreciseY() const {
- mpq_class* value = new mpq_class(0);
- pointData.getPreciseY(&preciseCoordinates, *value);
- return *value;
+mpq_class Point2::getPreciseY() const {
+ mpq_class value;
+ pointData.getPreciseY(&preciseCoordinates, value);
+ return value;
 }
 
 char* Point2::getPreciseXAsString() const {
@@ -503,6 +570,7 @@ inline void Point2::CopyFrom(const Attribute* right) {
   pointData.SetGridY(p->getGridY());
   pointData.SetPreciseX(&preciseCoordinates, p->getPreciseX());
   pointData.SetPreciseY(&preciseCoordinates, p->getPreciseY());
+  bbox = p->BoundingBox();
  }
 }
 
@@ -603,21 +671,6 @@ double Point2::Distance(const Rectangle<2>& rect,
   const Geoid* geoid/*=0*/) const {
  //TODO Impl. Point2::Distance
  return numeric_limits<double>::max();
-}
-
-/*
-4.4.12 ~BoundingBox~
-
-*/
-const Rectangle<2> Point2::BoundingBox(const Geoid* geoid/*= 0*/) const {
-
- if (IsDefined()) {
-  if (!geoid) {
-   return Rectangle<2>(true, getGridX(), getGridX(), getGridY(), getGridY());
-  }
- }
- return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
-
 }
 
 /*
