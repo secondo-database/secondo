@@ -68,3 +68,5 @@ operator testIntersectsWithScaling alias TESTINTERSECTSWITHSCALING pattern _ inf
 operator testMinusWithScaling alias TESTMINUSWITHSCALING pattern _ infixop _
 
 operator testUnionWithScaling alias TESTUNIONWITHSCALING pattern _ infixop _
+
+operator bbox alias BBOX pattern op(_,_)

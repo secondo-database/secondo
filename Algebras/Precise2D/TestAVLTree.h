@@ -449,14 +449,14 @@ public:
  AVLSegment(const Flob* preciseData, p2d::SegmentData* sd, Owner o);
 
  AVLSegment(const Flob* preciseData, p2d::SegmentData* sd, Owner o,
-   int scalefactor);
+   mpq_class& internalScalefactor);
 
  AVLSegment(const DbArray<unsigned int>* preciseData, Reg2GridHalfSegment& sd,
    Reg2PrecHalfSegment* ps, Owner o);
 
  AVLSegment(const DbArray<unsigned int>* preciseData,
    Reg2GridHalfSegment& gs, Reg2PrecHalfSegment& ps, Owner o,
-   int scalefactor);
+   mpq_class& internalScalefactor);
 
  AVLSegment(const AVLSegment& s);
 
@@ -835,7 +835,7 @@ Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
 template<class C1, class C2>
 Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
-  int scalefactor, TestStruct& t);
+  mpq_class& internalScalefactor, TestStruct& t);
 
 Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
@@ -843,7 +843,7 @@ Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
 
 Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
-  int scalefactor, TestStruct& t);
+  mpq_class& internalScalefactor, TestStruct& t);
 
 Owner selectNext(/*const*/ Region2& r1, int& pos1,
  /*const*/ Region2& r2, int& pos2,
@@ -853,7 +853,7 @@ Owner selectNext(/*const*/ Region2& r1, int& pos1,
 Owner selectNext(/*const*/Region2& r1, int& pos1,
 /*const*/Region2& r2, int& pos2,
   priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
-  int scalefactor, TestStruct& t);
+  mpq_class& internalScalefactor, TestStruct& t);
 
 /*
 1 ~splitNeighbors~
@@ -887,7 +887,7 @@ void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeNo,
   SetOperation op);
 
 void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeNo,
-  SetOperation op, int scalefactor);
+  SetOperation op, mpq_class& internalScalefactor);
 
 /*
 1 ~createNewSegments~
@@ -898,28 +898,28 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
   p2d::Line2& result, int& edgeNo, SetOperation op,
-  int scalefactor, TestStruct& t);
+  mpq_class& internalScalefactor, TestStruct& t);
 
 /*
 1 ~createNewSegments~
 
 */
 void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
-  SetOperation op);
+  int scalefactor, SetOperation op);
 
 void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
-  SetOperation op, int scalefactor);
+  int scalefactor, SetOperation op, mpq_class& internalScalefactor);
 /*
 1 ~createNewSegments~
 
 */
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
-  TestStruct& t);
+  AVLSegment* successor, Region2& result, int& edgeno, int scalefactor,
+  SetOperation op, TestStruct& t);
 
 void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
-  AVLSegment* successor, Region2& result, int& edgeno, SetOperation op,
-  int scalefactor, TestStruct& t);
+  AVLSegment* successor, Region2& result, int& edgeno, int scalefactor,
+  SetOperation op, mpq_class& internalScalefactor, TestStruct& t);
 
 /*
 1 ~checkSegments~

@@ -1702,6 +1702,61 @@ int testIntersects_RRB(Word* args, Word& result, int message, Word& local,
  return 0;
 }
 
+/*
+1.1.1 ~bbox~ for Point2
+
+*/
+int point2BBox(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+  result = qp->ResultStorage( s );
+  Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
+  const Point2* point = static_cast<const Point2*>(args[0].addr);
+
+  if(!point->IsDefined() ){
+    box->SetDefined(false);
+  } else {
+    (*box) = point->BoundingBox(0);
+  }
+  return 0;
+}
+
+/*
+1.1.1 ~bbox~ for Points2
+
+*/
+int points2BBox(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  result = qp->ResultStorage( s );
+  Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
+  const Points2* points = static_cast<const Points2*>(args[0].addr);
+
+  if(!points->IsDefined() ){
+    box->SetDefined(false);
+  } else {
+    (*box) = points->BoundingBox(0);
+  }
+  return 0;
+}
+
+/*
+1.1.1 ~bbox~ for Line2
+
+*/
+int line2BBox(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  result = qp->ResultStorage( s );
+  Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
+  const Line2* line = static_cast<const Line2*>(args[0].addr);
+
+  if(!line->IsDefined() ){
+    box->SetDefined(false);
+  } else {
+    (*box) = line->BoundingBox(0);
+  }
+  return 0;
+}
 
 /*
 4 Type-mapping-function
@@ -1900,6 +1955,33 @@ ListExpr R2R_TypeMap(ListExpr args) {
  }
 
  return listutils::typeError(err);
+}
+
+/*
+4.8 Spatial2Rect\_TypeMap
+
+ For operators with signature
+ Point2 [->] rect,
+ Points2 [->] rect and
+ Line2 [->] rect.
+
+*/
+ListExpr
+Spatial2Rect_TypeMap( ListExpr args )
+{
+
+  if ( nl->ListLength( args )!=1 ){
+    return listutils::typeError("Only one argument expected.");
+  }
+  string type = nl->SymbolValue(nl->First( args ));
+  if ( type != Point2::BasicType() &&
+       type != Points2::BasicType() &&
+       type != Line2::BasicType() ){
+    return listutils::typeError("Only one argument arg expected , "
+      "with arg in {point2, points2 or line}.");
+  }
+
+  return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
 }
 
 /*
@@ -2651,6 +2733,23 @@ struct testIntersectsWithScaling_RRBInfo: OperatorInfo {
 };
 
 /*
+6.1 ~bbox\_Info()~ for Point2, Points2 and Line2.
+
+*/
+struct bbox_Info: OperatorInfo {
+
+ bbox_Info() :
+  OperatorInfo() {
+  name = "bbox";
+  signature = "( " + Point2::BasicType() + "||" + Points2::BasicType() +
+    "||" + Line2::BasicType() + " ) -> rect";
+  syntax = "query bbox(arg)";
+  meaning = "Returns the bounding box of a spatial object";
+ }
+};
+
+
+/*
 7 Creation of the type constructor instance
 
 */
@@ -2815,6 +2914,14 @@ public:
   AddOperator(p2d::testIntersectsWithScaling_RRBInfo(),
     p2d::testIntersectsWithScaling_RRB, p2d::RRB_TypeMap);
 
+  AddOperator(p2d::bbox_Info(),
+    p2d::point2BBox, p2d::Spatial2Rect_TypeMap);
+
+  AddOperator(p2d::bbox_Info(),
+    p2d::points2BBox, p2d::Spatial2Rect_TypeMap);
+
+  AddOperator(p2d::bbox_Info(),
+    p2d::line2BBox, p2d::Spatial2Rect_TypeMap);
  }
 
  ~Precise2DAlgebra() {

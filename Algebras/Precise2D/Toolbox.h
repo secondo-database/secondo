@@ -110,10 +110,10 @@ void prepareData(int& resultGridX, mpq_class& resultPX,
  The scalefactor is a power of 10, so that the greatest value has max. 5 digits.
 
 */
-int computeScalefactor(Region2& reg1, Region2& reg2);
+mpq_class computeScalefactor(Region2& reg1, Region2& reg2);
 
-int computeScalefactor(Region2& reg1);
+mpq_class computeScalefactor(Region2& reg1);
 
-int computeScalefactor(const Line2& line1, const Line2& line2);
+mpq_class computeScalefactor(const Line2& line1, const Line2& line2);
 } /* namespace p2d */
 #endif /* TOOLBOX_H_ */
