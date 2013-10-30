@@ -1133,3 +1133,19 @@ Signature : -> bool
 Example   : query correctFileId()
 Result    : TRUE
 
+Operator : charCodes
+Number   : 1
+Signature : string x string -> stream(longint)
+Example   : query charCodes("abc","ASCII") count
+Result    : 3
+
+Operator : charCodes
+Number   : 2
+Signature : text x string -> stream(longint)
+Example   : query charCodes('abc',"UTF-8") count
+Result    : 3
+
+
+
+
+

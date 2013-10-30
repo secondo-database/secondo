@@ -106,6 +106,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <sys/timeb.h>
 #include <limits>
 #include "Stream.h"
+#include "LongInt.h"
 
 // includes for debugging
 #define LOGMSG_OFF
@@ -10206,8 +10207,210 @@ Operator correctFileIdOP(
 );
 
 
+/*
+4.39 Operator charCodes
+
+4.39.1 Type Mapping
+
+The type mapping is 
+
+{text,string} x string -> stream(longint)
+
+The first argument is the text, the second argument the encoding.
+See LocalInfo for implemented encodings.
+
+*/
+ListExpr charCodesTM(ListExpr args){
+  string err = "{string,text} x string expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  ListExpr arg1 = nl->First(args);
+  if(   !CcString::checkType(arg1)
+     && !FText::checkType(arg1)){
+     return listutils::typeError(err + " (first argument has wrong type)");
+  }
+  if(!CcString::checkType(nl->Second(args))){
+     return listutils::typeError(err + " (second argument has wrong type)");
+  }
+
+  return nl->TwoElemList(
+               listutils::basicSymbol<Stream<LongInt> >(),
+               listutils::basicSymbol<LongInt>());
+}
+
+/*
+4.39.2 LocalInfo
+
+*/
+enum charCodeEncoding { ASCII, UTF8 };
+
+template<class T>
+class charCodesLI{
+   public:
+      charCodesLI(T* text, CcString* encoding){
+         if(!text->IsDefined() || !encoding->IsDefined()){
+            done = true;
+            return;
+         }
+         string enc = encoding->GetValue();
+         if(enc =="ASCII"){
+            this->encoding = ASCII;
+            done = false;
+         } else if(enc=="UTF-8"){
+            this->encoding = UTF8;
+            done = false;
+         } else {
+            done = true;
+         }
+         if(done){
+            return;
+         }
+         this->text = text->GetValue();
+         pos = 0;
+         length = this->text.length();
+         done = pos==length;
+      }
+
+      LongInt* nextInt(){
+          if(done){
+            return 0;
+          }
+          switch(encoding){
+            case ASCII: {
+                   unsigned char res = text[pos];
+                   pos++;
+                   done = pos==length;
+                   return new LongInt(true,res); 
+                 }
+            case UTF8 : {
+                   return nextUTF8();
+                 }
+            default: return 0;
+          }
+      }
 
 
+   private:
+      string text;
+      charCodeEncoding encoding;
+      bool done;
+      size_t pos;
+      size_t length;
+
+      LongInt* nextUTF8(){
+         int numFollows = 0;
+         unsigned char mask = 0x80;
+         unsigned char first = text[pos];
+         while( ((mask & first) > 0)){
+            mask = mask >> 1;
+            numFollows++;
+         }
+
+         if(numFollows == 0){ // single char symbol
+            pos++;
+            done = pos==length;
+            return new LongInt(true,first);
+         }
+         numFollows--; // in the counting abouve also the first byte is counted
+         if(pos + numFollows >=length){ // not enough chars available
+            done = true;
+            return new LongInt(false,0);
+         }
+         // extract the used bits from the first character;
+         unsigned char mask2 = mask;
+         while(mask>0){
+           mask2 = mask2 | mask;
+           mask = mask >> 1;
+         } 
+         int64_t value = first & mask2;
+         // read follow bytes
+         pos++;
+         for(int i=0;i<numFollows;i++){
+            int64_t follow = text[pos];  
+            value = (value << 6) | (follow & 0x3F);
+            pos++;
+            // check the first 2 bits
+            follow = follow & 0xC0;
+            if(follow != 0x80){ // error in UTF8
+                done = true;
+                return new LongInt(false,0);
+            } 
+         } 
+         done = pos==length;
+         return new LongInt(true,value);
+      }
+};
+
+template<class T>
+int charCodesVM1( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+
+ charCodesLI<T>* li = (charCodesLI<T>*) local.addr;
+ switch(message){
+    case OPEN: if(li){
+                  delete li;
+               }
+               local.addr = new charCodesLI<T>((T*) args[0].addr, 
+                                       (CcString*) args[1].addr);
+               return 0;
+    case REQUEST: result.addr=li?li->nextInt():0;
+                  return result.addr?YIELD:CANCEL;
+    case CLOSE: if(li){
+                  delete li;
+                }
+                local.addr = 0;
+                 return 0; 
+ }
+ return -1;
+
+}
+
+/*
+4.37.4 Selection function 
+
+*/
+
+ValueMapping charCodesVM[] = {
+  charCodesVM1<CcString>,
+  charCodesVM1<FText>
+};
+
+int charCodesSelect(ListExpr args){
+
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+/*
+4.37.5 Specification
+
+*/
+OperatorSpec charCodesSpec(
+  "{string,text} x string  -> stream(longint) ",
+  " charCodes( t, encoding)",
+  "Returns the stream of character codes of t using the "
+  " specified encoding. Implemented encodings are ASCII and "
+  " UTF-8. If another encoding is used as an argument, an "
+  " empty stream is returned. If the text does not fit the "
+  " encoding as much as possible character codes are returned "
+  " At the position where the error occurs, the result char code"
+  " will be undefined and the output is stopped." ,
+  "query charCodes('abc',\"ASCII\") count"
+);
+
+
+/*
+4.37.6 Operator instance
+
+*/
+Operator charCodesOP(
+  "charCodes",
+  charCodesSpec.getStr(),
+  2,
+  charCodesVM,
+  charCodesSelect,
+  charCodesTM
+);
 
   /*
   5 Creating the algebra
@@ -10328,6 +10531,7 @@ Operator correctFileIdOP(
 
       AddOperator(&flobInfoOP);
       AddOperator(&correctFileIdOP);
+      AddOperator(&charCodesOP);
 
 
 
