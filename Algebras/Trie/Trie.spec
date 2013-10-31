@@ -17,7 +17,8 @@ operator getFileInfo alias GETFILEINFO pattern op(_)
 operator wordCount alias WORDCOUNT pattern _ op [_] 
 operator prefixCount alias PREFIXCOUNT pattern _ op [_] 
 
-operator getInvFileSeparators alias GETINVFILESEPARATORS pattern op()
+operator defaultInvFileSeparators alias DEFAULTSEPARATORS pattern op()
+operator getSeparators alias GETSEPARATORS pattern op(_)
 
 
 

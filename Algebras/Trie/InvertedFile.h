@@ -108,12 +108,20 @@ full or the function ~bringToDisk~ is called.
                   length(0), slotSize(_slotSize) {
           buffer = new char[slotSize];
     }
+    
+
+    CacheEntry(const CacheEntry& e) :
+         id(e.id), offset(e.offset),length(e.length), slotSize(e.slotSize){
+       buffer = new char[slotSize];
+       memcpy(buffer,e.buffer,slotSize);
+    }
 
 /*
 2.1.2 Destructor
 
 */
     ~CacheEntry(){
+        assert(length==0);
         delete[] buffer;
     }
 
@@ -125,12 +133,17 @@ buffer for further append calls.
 
 */
     void bringToDisk(SmiRecordFile* file){
+       appendToDisk(file,buffer, length);
+       length = 0;
+    }
+
+
+    void appendToDisk(SmiRecordFile* file, const char* buffer, 
+                      const size_t length){
        SmiRecord record;
        file->SelectRecord(id, record, SmiFile::Update);
        record.Write(buffer, length, offset);
        offset += length;
-       length = 0;
-
        record.Finish();
     }
 
@@ -143,30 +156,25 @@ buffer is written to disk and emptied for further append calls.
 
 */
     void append(SmiRecordFile* file, const char* buffer, const size_t length){
-       // the buffer cannot be appended in memory
-       size_t offset = 0; // offset in buffer
-       while(this->length + length - offset > slotSize){
-          size_t toWrite = slotSize-this->length;
-          memcpy(this->buffer + this->length, buffer + offset, toWrite);
-          this->length += toWrite; 
-          offset += toWrite;
-
+       if(this->length + length > slotSize){ 
+           // new buffer does not fit into internal buffer
           bringToDisk(file);
        }
-
-       size_t toWrite = length - offset;
-
-       memcpy(this->buffer+this->length, buffer, toWrite);
-       this->length += toWrite;
-
+       if(length > slotSize){
+          // new buffer larger than slotsize
+          appendToDisk(file,buffer, length);
+       }  else {
+          memcpy(this->buffer + this->length, buffer, length);
+          this->length += length;
+       }
     }
 
   private:
-    SmiRecordId id;
-    size_t offset;
-    size_t length;
-    size_t slotSize;
-    char* buffer;
+    SmiRecordId id;   // id for persistent storage
+    size_t offset;    // offset in persistent part
+    size_t length;    // use bufferlength in memory
+    size_t slotSize;  // buffer size in memory
+    char* buffer;     // data buffer 
 
 };
 
@@ -288,6 +296,7 @@ class InvertedFile: public TrieType {
      InvertedFile(): TrieType(), listFile(false,0,false),ignoreCase(false),
                            minWordLength(1),stopWordsId(0), memStopWords(0) {
         listFile.Create();
+        separators = getDefaultSeparators();
      }
 
 /*
@@ -299,8 +308,8 @@ class InvertedFile: public TrieType {
                                             ignoreCase(src.ignoreCase),
                                             minWordLength(src.minWordLength),
                                             stopWordsId(src.stopWordsId),
-                                            memStopWords(0) 
-                                            {
+                                            memStopWords(0),
+                                            separators(src.separators) {
          readStopWordsFromDisk();
       }
 
@@ -311,16 +320,18 @@ class InvertedFile: public TrieType {
     InvertedFile(SmiFileId& _trieFileId, SmiRecordId& _trieRootId,
                  SmiFileId& _listFileId, const bool _ignoreCase, 
                  uint32_t _minWordLength,
-                 SmiRecordId& _stopWordsId): 
+                 SmiRecordId& _stopWordsId,
+                 const string& _separators): 
         TrieType(_trieFileId, _trieRootId), 
         listFile(false), 
         ignoreCase(_ignoreCase),
         minWordLength(_minWordLength),
         stopWordsId(_stopWordsId),
-        memStopWords(0) {
+        memStopWords(0),
+        separators(_separators) {
 
         listFile.Open(_listFileId);
-        readStopWordsFromDisk();  
+        readStopWordsFromDisk(); 
     }
 
 /*
@@ -368,6 +379,8 @@ Not implemented yet.
       TrieNodeType resnode;
       SmiRecordId resTrieId;
       SmiRecordId resListId;
+
+      res->separators = this->separators;
       
       size_t bufferSize = 512*1024;
       char* buffer = new char[bufferSize];
@@ -459,10 +472,21 @@ Inserts the words contained within ~text~ into this inverted file.
 */
    void insertText(TupleId tid, const string& text, 
                    appendcache::RecordAppendCache* cache=0,
-                   TrieNodeCacheType* triecache = 0 ){
-
-       stringutils::StringTokenizer 
-                 st(text,getSeparatorsString());
+                   TrieNodeCacheType* triecache = 0){
+      if(separators.length()==0){ // store the complete text
+         if(text.length()>=minWordLength){
+            string text2 = text;
+            if(ignoreCase){
+               stringutils::toLower(text2);
+            }
+            if(memStopWords==0 ||  
+               !memStopWords->contains(text2)){
+                insert(text2,tid,0,0,cache,triecache);
+            }
+         }
+         return;
+      }
+       stringutils::StringTokenizer st(text,separators);
        wordPosType wc = 0;
        charPosType pos = 0;
        while(st.hasNextToken()){
@@ -528,6 +552,7 @@ Returns the fileId of the file containing the inverted lists.
 The class can be used for iterating over a single inverted list.
 
 */
+
   class exactIterator {
      friend class InvertedFile;
      public:
@@ -556,11 +581,12 @@ If no more entries are available, the result of this function is __false__.
          }
 
          size_t offset = slotSize*slotPos;
-         memcpy(&id,buffer+offset, sizeof(TupleId));
-         offset += sizeof(TupleId);
+         memcpy(&id,buffer+offset, sizeof(TrieContentType));
+         offset += sizeof(TrieContentType);
          memcpy(&wc,buffer+offset, sizeof(wordPosType));
          offset += sizeof(wordPosType);
          memcpy(&cc,buffer+offset, sizeof(charPosType));
+
          slotPos++;
          count++;
          return true;
@@ -909,7 +935,7 @@ Returns data about the underlying files.
     }
 
 
-   inline  static string getSeparatorsString() {
+   inline  static string getDefaultSeparators() {
       return " \t\n\r.,;:-+*!?()<>\"$§&/[]{}=´`@€~'#|";
    }
 
@@ -917,20 +943,32 @@ Returns data about the underlying files.
      return rootId == 0;
    }
 
+   const string getSeparators() const{
+        return separators;
+   }
+
    void setParams(const bool ignoreCase,
                   const uint32_t minWordLength,
                   const string& stopWords){
+       setParams(ignoreCase, minWordLength,stopWords, getDefaultSeparators());
+   }
 
+   void setParams(const bool ignoreCase,
+                  const uint32_t minWordLength,
+                  const string& stopWords,
+                  const string& separators){
       assert(rootId==0); // allow to change parameter only for an empty index
       this->ignoreCase = ignoreCase;
       this->minWordLength = max(0u, minWordLength);
+      this->separators = separators;
+
       // create the set of stopWords
       if(memStopWords){
           memStopWords->clear();
       } else {
           memStopWords = new mmtrie::Trie();
       }
-      stringutils::StringTokenizer st(stopWords, getSeparatorsString());
+      stringutils::StringTokenizer st(stopWords, getDefaultSeparators());
       while(st.hasNextToken()){
         string token = st.nextToken();
         if(ignoreCase){
@@ -963,9 +1001,8 @@ Returns data about the underlying files.
      bool ignoreCase;
      uint32_t minWordLength;
      SmiRecordId stopWordsId;
-     mmtrie::Trie* memStopWords; 
-
-    
+     mmtrie::Trie* memStopWords;
+     string separators; 
 
 /*
 ~insert~
@@ -979,7 +1016,6 @@ inserts a new element into this inverted file
                const wordPosType wordPos, const charPosType pos, 
                appendcache::RecordAppendCache* cache,
                TrieNodeCacheType* triecache){
-
 
        SmiRecordId listId;
        SmiRecord record;     // record containing the list
@@ -996,6 +1032,7 @@ inserts a new element into this inverted file
             isNew  = TrieType::getInsertNode(word, insertNode,
                                                            insertId);
        }
+
 
        if(insertNode.getContent()==0){
           listFile.AppendRecord(listId, record);
@@ -1018,12 +1055,14 @@ inserts a new element into this inverted file
        size_t buffersize = sizeof(TupleId) + sizeof(wordPosType) + 
                            sizeof(charPosType);
        char buffer[buffersize];
+
        size_t offset=0;
        memcpy(buffer,&tid, sizeof(TupleId));
        offset += sizeof(TupleId);
        memcpy(buffer + offset, &wordPos, sizeof(wordPosType));
        offset += sizeof(wordPosType);
        memcpy(buffer + offset, &pos, sizeof(charPosType));
+
        if(cache==0){
           size_t recordOffset = record.Size();
           record.Write(buffer, buffersize, recordOffset);
@@ -1076,12 +1115,6 @@ inserts a new element into this inverted file
       }
       free(buffer);
   }
-
-
-
-
-
-
 
 };
 

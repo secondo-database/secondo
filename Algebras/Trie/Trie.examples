@@ -47,15 +47,22 @@ Result    : 3
 
 Operator  : prefixCount
 Number    : 1
-Signature : invfile -> int
+Signature : invfile x string -> int
 Example   : query tokenize('hello hello hello', " ") namedtransformstream[T] extend[I : int2tid(1)] createInvFile[T,I] prefixCount["hel"] tconsume
 Result    : ( (trel(tuple((Word text)(Count int)))) ( ('hello' 3))) 
 
 
-Operator  : getInvFileSeparators
+Operator  : defaultInvFileFileSeparators
 Number    : 1
 Signature : -> string
-Example   : query getInvFileSeparators() contains " "
+Example   : query defaultInvFileSeparators() contains " "
 Result    : TRUE
+
+Operator  : getSeparators
+Number    : 1
+Signature : invfile -> string
+Example   :  query getSeparators('test' feed transformstream extend[I : int2tid(1)] createInvFile[Elem,I,FALSE,2,'',"@"]) = "@"
+Result    : TRUE
+
 
 

@@ -117,8 +117,16 @@ bool OpenInvfile( SmiRecord& valueRecord,
   SmiRecordId stopWordsId;
   valueRecord.Read(&stopWordsId, sizeof(SmiRecordId), offset);
   offset += sizeof(SmiRecordId);
+  size_t separatorsLength;
+  valueRecord.Read(&separatorsLength,sizeof(size_t), offset);
+  offset += sizeof(size_t);
+  char sepBuffer[separatorsLength];
+  valueRecord.Read(sepBuffer, separatorsLength, offset);
+  offset += separatorsLength;
+  string separators(sepBuffer,separatorsLength);
   InvertedFile* invFile = new InvertedFile(triefileid, trierid, listfileid, 
-                                      ignoreCase, minWordLength, stopWordsId);
+                                      ignoreCase, minWordLength, stopWordsId, 
+                                      separators);
   value.setAddr(invFile);
   return true;
 }
@@ -152,7 +160,14 @@ bool SaveInvfile( SmiRecord& valueRecord,
    offset += sizeof(uint32_t);
    SmiRecordId stopWordsId = t->getStopWordsId();
    valueRecord.Write(&stopWordsId, sizeof(SmiRecordId), offset);
-   offset += sizeof(SmiRecordId); 
+   offset += sizeof(SmiRecordId);
+   string separators = t->getSeparators();
+   size_t separatorsLength = separators.length();
+   valueRecord.Write(&separatorsLength, sizeof(size_t), offset);
+   offset+= sizeof(size_t);
+   const char* seps = separators.c_str();
+   valueRecord.Write(seps,separatorsLength, offset);
+   offset += separatorsLength;  
    return true;
 }
 
@@ -200,8 +215,10 @@ a2 must be of type tid
 
 */
 ListExpr createInvFileTM(ListExpr args){
-  string err = "stream(tuple) x a_i x a_j [ x bool x int x text ]expected";
-  if(!nl->HasLength(args,3) && !nl->HasLength(args,6)){
+  string err = "stream(tuple) x a_i x a_j [ x bool x int x text"
+               " [x string] ]expected";
+  if(    !nl->HasLength(args,3) && !nl->HasLength(args,6) 
+      && !nl->HasLength(args,7)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   if(!Stream<Tuple>::checkType(nl->First(args))){
@@ -242,10 +259,14 @@ ListExpr createInvFileTM(ListExpr args){
 
   
   if(nl->HasLength(args,3)){
-     ListExpr defaultParamList = nl->ThreeElemList(
+     ListExpr defaultParamList = nl->FourElemList(
                                 nl->BoolAtom(false),
                                 nl->IntAtom(1),
-                                nl->TextAtom(""));
+                                nl->TextAtom(""),
+                                nl->TwoElemList(
+                                    listutils::basicSymbol<CcString>(), 
+                                    listutils::getUndefined())
+                                );
       appendList = listutils::concat(defaultParamList, appendList);
   } else {
        ListExpr ignoreCase = nl->Fourth(args);
@@ -256,8 +277,20 @@ ListExpr createInvFileTM(ListExpr args){
           !FText::checkType(stopWords)){
           return listutils::typeError(err);
        }
+       if(nl->HasLength(args,7)){
+          ListExpr separators = nl->Seventh(args);
+          if(!CcString::checkType(separators)){
+             return listutils::typeError(err + 
+                                  " (7. arg is not of type string)");
+          }
+       } else {
+          ListExpr defaultParamList = nl->OneElemList(
+           nl->TwoElemList( listutils::basicSymbol<CcString>(), 
+                            listutils::getUndefined()));
+          appendList = listutils::concat(defaultParamList, appendList);
+       }
   }
- 
+
   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
                             appendList,
                             nl->SymbolAtom(InvertedFile::BasicType()));
@@ -279,8 +312,8 @@ int createInvFileVM(Word* args, Word& result, int message,
     case CLOSE:
     case REQUEST: {      
        Stream<Tuple> stream(args[0]);
-       int textIndex = ((CcInt*)args[6].addr)->GetValue();
-       int tidIndex  = ((CcInt*)args[7].addr)->GetValue();
+       int textIndex = ((CcInt*)args[7].addr)->GetValue();
+       int tidIndex  = ((CcInt*)args[8].addr)->GetValue();
        result = qp->ResultStorage(s);
        InvertedFile* invFile = (InvertedFile*) result.addr;
 
@@ -299,8 +332,15 @@ int createInvFileVM(Word* args, Word& result, int message,
        if(sw->IsDefined()){
          stopWords = sw->GetValue();
        }
-
-       invFile->setParams(ignoreCase, minWL, stopWords);
+ 
+       CcString* separators = (CcString*) args[6].addr;
+       if(separators->IsDefined()){
+          invFile->setParams(ignoreCase, minWL, stopWords, 
+                             separators->GetValue());
+       } else {
+          invFile->setParams(ignoreCase, minWL, stopWords, 
+                             InvertedFile::getDefaultSeparators());
+       }
 
        stream.open();
        Tuple* tuple;
@@ -973,27 +1013,70 @@ int getInvFileSeparatorsVM(Word* args, Word& result, int message,
                   Word& local, Supplier s){
    result = qp->ResultStorage(s);
    CcString* res = (CcString*) result.addr;
-   res->Set(true, InvertedFile::getSeparatorsString());
+   res->Set(true, InvertedFile::getDefaultSeparators());
    return 0;
 }
 
 OperatorSpec getInvFileSeparatorsSpec(
            "  -> string",
-           " getInvFileSeparators()",
-           " Returns all characters used by Invered Files to "
-          "tokenize texts as a single string",
-           " query getInvFileSeparators()" );
+           " defaultInvFileSeparators()",
+           " Returns all characters used by Inverted Files to "
+          "tokenize texts as a single string by default",
+           " query defaultInvFileSeparators()" );
 
 
 
 
 Operator getInvFileSeparators (
-         "getInvFileSeparators" ,           // name
+         "defaultInvFileFileSeparators" ,           // name
           getInvFileSeparatorsSpec.getStr(),          // specification
           getInvFileSeparatorsVM,           // value mapping
           Operator::SimpleSelect, // trivial selection function
           getInvFileSeparatorsTM);
 
+
+/*
+9.4 getSeparators
+
+*/
+ListExpr getSeparatorsTM(ListExpr args){
+  string err = "excpected " + InvertedFile::BasicType();
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+  }
+  if(!InvertedFile::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcString>();
+}
+
+
+int getSeparatorsVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   CcString* res = (CcString*) result.addr;
+   InvertedFile* arg = (InvertedFile*) args[0].addr;
+   res->Set(true, arg->getSeparators());
+   return 0;
+}
+
+
+OperatorSpec getSeparatorsSpec(
+           "  invfile -> string",
+           " getSeparators(_)",
+           " Returns all characters used by the inverted file to "
+          "tokenize texts as a single string",
+           " query getSeparators(inv)" );
+
+
+
+
+Operator getSeparators (
+         "getSeparators" ,           // name
+          getSeparatorsSpec.getStr(),          // specification
+          getSeparatorsVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          getSeparatorsTM);
 
 
 
@@ -1017,6 +1100,7 @@ class TrieAlgebra : public Algebra {
      AddOperator(&triealg::searchWord);
      AddOperator(&triealg::searchPrefix);
      AddOperator(&triealg::getInvFileSeparators);
+     AddOperator(&triealg::getSeparators);
 
 
 #ifdef USE_PROGRESS
