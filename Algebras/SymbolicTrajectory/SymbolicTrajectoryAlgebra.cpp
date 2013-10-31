@@ -87,6 +87,11 @@ string Label::GetValue() const {
   return value;
 }
 
+void Label::Set(const bool def, const string &value) {
+  SetDefined(def);
+  SetValue(value);
+}
+
 void Label::SetValue(const string &value) {
   strncpy(text, value.c_str(), MAX_STRINGSIZE);
 }
@@ -524,11 +529,20 @@ MLabel* MLabel::At(Label *label) {
 void MLabel::DefTime(Periods *per) {
   per->Clear();
   ULabel ul(0);
-  cout << "source has " << GetNoComponents() << " components" << endl;
   for (int i = 0; i < GetNoComponents(); i++) {
     Get(i, ul);
     per->MergeAdd(ul.timeInterval);
-    cout << per->GetNoComponents() << " components" << endl;
+  }
+}
+
+void MLabel::Inside(MBool *mbool, Label *label) {
+  mbool->Clear();
+  ULabel ul(0);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ul);
+    CcBool ccbool(true, ul.constValue.GetValue() == label->GetValue());
+    UBool ub(ul.timeInterval, ccbool);
+    mbool->MergeAdd(ub);
   }
 }
 
@@ -1386,14 +1400,15 @@ int tolabelSelect(ListExpr args) {
 */
 template<class T>
 int tolabelVM(Word* args, Word& result, int message, Word& local, Supplier s) {
-  T* src = static_cast<T*>(args[0].addr);
-  string source("");
-  if (src->IsDefined()) {
-    source = src->GetValue();
-  }
   result = qp->ResultStorage(s);
-  Label* res = new Label(source);
-  result.addr = res;
+  T* src = static_cast<T*>(args[0].addr);
+  Label* res = static_cast<Label*>(result.addr);
+  if (src->IsDefined()) {
+    res->Set(true, src->GetValue());
+  }
+  else {
+    res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -3433,6 +3448,58 @@ struct instILabelInfo : OperatorInfo {
     signature = "ilabel -> instant";
     syntax    = "inst ( _ )";
     meaning   = "Returns the instant of the ilabel.";
+  }
+};
+
+/*
+\section{Operator ~inside~}
+
+inside: mlabel x label -> mbool
+
+\subsection{Type Mapping}
+
+*/
+ListExpr insideMLabelTM(ListExpr args) {
+  if (nl->HasLength(args, 2)) {
+    if (MLabel::checkType(nl->First(args)) &&
+        Label::checkType(nl->Second(args))) {
+      return nl->SymbolAtom(MBool::BasicType());
+    }
+  }
+  return listutils::typeError("Correct signature: mlabel x label -> mbool");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int insideMLabelVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s){
+  result = qp->ResultStorage(s);
+  MBool* res = static_cast<MBool*>(result.addr);
+  MLabel *src = static_cast<MLabel*>(args[0].addr);
+  Label *label = static_cast<Label*>(args[1].addr);
+  if (src->IsDefined() && label->IsDefined()) {
+    src->Inside(res, label);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct insideMLabelInfo : OperatorInfo {
+  insideMLabelInfo() {
+    name      = "inside";
+    signature = "mlabel x label -> mbool";
+    syntax    = "_ inside _";
+    meaning   = "Returns a mbool with the same time intervals as the mlabel. "
+                "A unit\'s value is TRUE if and only if its value equals the "
+                "specified label.";
   }
 };
 
@@ -6323,6 +6390,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(valILabelInfo(), valILabelVM, valILabelTM);
 
       AddOperator(instILabelInfo(), instILabelVM, instILabelTM);
+
+      AddOperator(insideMLabelInfo(), insideMLabelVM, insideMLabelTM);
       
       AddOperator(topatternInfo(), topatternVM, topatternTM);
 

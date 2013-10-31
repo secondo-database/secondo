@@ -82,7 +82,7 @@ class Label : public Attribute {
   ~Label();
 
   string GetValue() const;
-  void Set(const string &value);
+  void Set(const bool def, const string &value);
   Label* Clone();
 
   static Word     In(const ListExpr typeInfo, const ListExpr instance,
@@ -221,6 +221,7 @@ class MLabel : public MString {
   bool Passes(Label *label);
   MLabel* At(Label *label);
   void DefTime(Periods *per);
+  void Inside(MBool *mbool, Label *label);
 
   MLabelIndex index;
 };
