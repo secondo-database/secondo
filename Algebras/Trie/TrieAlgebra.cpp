@@ -1028,7 +1028,7 @@ OperatorSpec getInvFileSeparatorsSpec(
 
 
 Operator getInvFileSeparators (
-         "defaultInvFileFileSeparators" ,           // name
+         "defaultInvFileSeparators" ,           // name
           getInvFileSeparatorsSpec.getStr(),          // specification
           getInvFileSeparatorsVM,           // value mapping
           Operator::SimpleSelect, // trivial selection function
