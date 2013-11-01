@@ -1755,7 +1755,6 @@ int AVLSegment::computeEndOfIntersectionInterval(int pos) {
 */
 int AVLSegment::compareIntersectionintervalWithSweepline(AVLSegment& s,
   int gridXPos) {
- return 0;
  assert(
    (gridXL <= gridXPos && gridXPos <= gridXR && s.getGridXL() <= gridXPos
      && gridXPos <= s.getGridXR()));
@@ -2421,7 +2420,6 @@ bool AVLSegment::isParallelTo(const AVLSegment& s) const {
 
 */
 bool AVLSegment::mightIntersect(AVLSegment& seg) {
- return true;
  BoundingSegments* thisBS = new BoundingSegments(gridXL, gridYL, gridXR,
    gridYR);
  BoundingSegments* segBS = new BoundingSegments(seg.getGridXL(),
