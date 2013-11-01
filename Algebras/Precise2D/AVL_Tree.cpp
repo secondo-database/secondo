@@ -7750,14 +7750,20 @@ void SetOpWithScaling(/*const*/Region2& reg1, /*const*/Region2& reg2,
   assert(false);
  }
  result.Clear();
- if (!reg1.IsDefined() || !reg2.IsDefined() || (geoid && !geoid->IsDefined())
-   || (reg1.GetScaleFactor()!=reg2.GetScaleFactor())) {
-  if (reg1.GetScaleFactor()!=reg2.GetScaleFactor()){
-   cout <<"The regions have different scalefactors."<<endl;
-  }
+ if (!reg1.IsDefined() || !reg2.IsDefined() || (geoid && !geoid->IsDefined())) {
   result.SetDefined(false);
   return;
  }
+
+ if (reg1.IsDefined() && reg2.IsDefined() &&
+   (reg1.GetScaleFactor()!=reg2.GetScaleFactor())){
+  cout <<"The regions have different scalefactors."<<endl;
+  result.SetDefined(false);
+  return;
+ }
+
+ result.SetScaleFactor(reg1.GetScaleFactor());
+
  result.SetDefined(true);
  if (reg1.Size() == 0) {
   switch (op) {

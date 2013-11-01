@@ -205,11 +205,16 @@ void prepareData(int& resultGrid, mpq_class& resultP,
 mpq_class computeScalefactor(Region2& reg1){
  double max = reg1.BoundingBox().MaxD(0)>reg1.BoundingBox().MaxD(1)?
    reg1.BoundingBox().MaxD(0) : reg1.BoundingBox().MaxD(1);
+
+ max = max * pow(10, reg1.GetScaleFactor());
+
  int intMax = ceil(max);
  int digitsMax = log10(intMax)+1;
 
  double min = reg1.BoundingBox().MinD(0)>reg1.BoundingBox().MinD(1)?
    reg1.BoundingBox().MinD(1) : reg1.BoundingBox().MinD(0);
+
+ min = min * pow(10, reg1.GetScaleFactor());
 
  int intMin = floor(min);
  int digitsMin = log10(intMin)+1;
@@ -228,6 +233,9 @@ mpq_class computeScalefactor(Region2& reg1, Region2& reg2){
     max : reg2.BoundingBox().MaxD(0);
  max = max>reg2.BoundingBox().MaxD(1)?
     max : reg2.BoundingBox().MaxD(1);
+
+ max = max * pow(10, reg1.GetScaleFactor());
+
  int intMax = ceil(max);
  int digitsMax = log10(intMax)+1;
 
@@ -237,12 +245,16 @@ mpq_class computeScalefactor(Region2& reg1, Region2& reg2){
     min : reg2.BoundingBox().MinD(0);
  min = min<reg2.BoundingBox().MinD(1)?
     min : reg2.BoundingBox().MinD(1);
+
+ min = min * pow(10, reg1.GetScaleFactor());
+
  int intMin = floor(min);
  int digitsMin = log10(intMin)+1;
 
  int digits = digitsMax > digitsMin? digitsMax : digitsMin;
 
  double dScale = pow(10, (9-digits));
+
  mpq_class scalefactor(dScale);
  return scalefactor;
 }
@@ -254,6 +266,7 @@ mpq_class computeScalefactor(const Line2& line1, const Line2& line2){
     max : line2.BoundingBox().MaxD(0);
  max = max>line2.BoundingBox().MaxD(1)?
     max : line2.BoundingBox().MaxD(1);
+
  int intMax = ceil(max);
  int digitsMax = log10(intMax)+1;
 
