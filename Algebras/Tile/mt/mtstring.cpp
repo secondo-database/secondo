@@ -1520,6 +1520,12 @@ exceptions: -
 
 int mtProperties<std::string>::GetXDimensionSize()
 {
+  /*
+  According to Prof. Dr. Güting all Tile Algebra data types should have
+  an identical size of x dimension, optimized for data type mtint.
+
+  */
+
   int xDimensionSize = static_cast<unsigned int>
                        (std::pow((WinUnix::getPageSize() -
                                   sizeof(mtgrid) -
@@ -1543,6 +1549,12 @@ exceptions: -
 
 int mtProperties<std::string>::GetYDimensionSize()
 {
+  /*
+  According to Prof. Dr. Güting all Tile Algebra data types should have
+  an identical size of y dimension, optimized for data type mtint.
+
+  */
+
   int yDimensionSize = static_cast<unsigned int>
                        (std::pow((WinUnix::getPageSize() -
                                   sizeof(mtgrid) -
