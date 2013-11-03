@@ -281,7 +281,7 @@ mpq_class computeScalefactor(const Line2& line1, const Line2& line2){
 
  int digits = digitsMax > digitsMin? digitsMax : digitsMin;
 
- double dScale = pow(10, (9-digits));
+ double dScale = pow(10, (8-digits));
  mpq_class scalefactor(dScale);
 
  return scalefactor;
