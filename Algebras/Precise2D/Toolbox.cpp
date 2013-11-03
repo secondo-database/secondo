@@ -221,7 +221,7 @@ mpq_class computeScalefactor(Region2& reg1){
 
  int digits = digitsMax > digitsMin? digitsMax : digitsMin;
 
- double dScale = pow(10, (9-digits));
+ double dScale = pow(10, (8-digits));
  mpq_class scalefactor(dScale);
  return scalefactor;
 }
@@ -253,7 +253,7 @@ mpq_class computeScalefactor(Region2& reg1, Region2& reg2){
 
  int digits = digitsMax > digitsMin? digitsMax : digitsMin;
 
- double dScale = pow(10, (9-digits));
+ double dScale = pow(10, (8-digits));
 
  mpq_class scalefactor(dScale);
  return scalefactor;

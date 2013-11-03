@@ -2420,10 +2420,11 @@ bool AVLSegment::isParallelTo(const AVLSegment& s) const {
 
 */
 bool AVLSegment::mightIntersect(AVLSegment& seg) {
+
  BoundingSegments* thisBS = new BoundingSegments(gridXL, gridYL, gridXR,
    gridYR);
  BoundingSegments* segBS = new BoundingSegments(seg.getGridXL(),
-   seg.getGridYL(), seg.getGridXR(), seg.getGridYR());
+ seg.getGridYL(), seg.getGridXR(), seg.getGridYR());
  bool result = thisBS->intersect(*segBS);
  delete thisBS;
  delete segBS;
@@ -2619,28 +2620,39 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
 */
 SimpleSegment::SimpleSegment(int gxl, int gyl, int gxr, int gyr, Position gp) :
   xl(gxl), yl(gyl), xr(gxr), yr(gyr), p(gp) {
+ //cout <<"("<<xl<<", "<<yl<<")->("<<xr<<", "<<yr<<")"<<endl;
+ assert ((xl<xr)||((xl==xr)&&(yl<yr)));
 }
 
 BoundingSegments::BoundingSegments(int gxl, int gyl, int gxr, int gyr) {
+ //cout <<"gxl: "<<gxl<<endl;
+ //cout <<"gyl: "<<gyl<<endl;
+ //cout <<"gxr: "<<gxr<<endl;
+ //cout <<"gyr: "<<gyr<<endl;
  if (gxl == gxr) {
+  //cout <<"vertikales Segment"<<endl;
   //the segment is vertical
   numSeg = 4;
   createBoundingSegments(vertical, gxl, gyl, gxr, gyr);
  } else {
   if (gyl == gyr) {
+   //cout <<"horizontales Segment"<<endl;
    //the segment is horizontal
    numSeg = 4;
    createBoundingSegments(horizontal, gxl, gyl, gxr, gyr);
   } else {
+   //cout <<"schraeges Segment"<<endl;
    int numerator = gyr - gyl;
    int denumerator = gxr - gxl;
    numSeg = 6;
    if ((numerator > 0 && denumerator > 0)
      || (numerator < 0 && denumerator < 0)) {
     //the segment has a positiv slope
+    //cout <<"positive slope"<<endl;
     createBoundingSegments(positivSlope, gxl, gyl, gxr, gyr);
    } else {
     //the segment has a negativ slope
+    //cout <<"negative slope"<<endl;
     createBoundingSegments(negativSlope, gxl, gyl, gxr, gyr);
    }
   }
@@ -2659,6 +2671,7 @@ void BoundingSegments::createBoundingSegments(Slope s, int gxl, int gyl,
   int gxr, int gyr) {
  switch (s) {
  case vertical: {
+  //cout <<"falsch"<<endl;
   int y1 = gyl<gyr?gyl:gyr;
   int y2 = gyl<gyr?gyr:gyl;
   segments = new SimpleSegment[numSeg];
@@ -2669,6 +2682,7 @@ void BoundingSegments::createBoundingSegments(Slope s, int gxl, int gyl,
   break;
  }
  case horizontal: {
+  //cout <<"falsch"<<endl;
   segments = new SimpleSegment[numSeg];
   segments[0] = SimpleSegment(gxl, gyl, gxl, gyl + 1, pLeft);
   segments[1] = SimpleSegment(gxl, gyl + 1, gxr + 1, gyr + 1, top);
@@ -2677,6 +2691,7 @@ void BoundingSegments::createBoundingSegments(Slope s, int gxl, int gyl,
   break;
  }
  case positivSlope: {
+  //cout <<"richtig"<<endl;
   segments = new SimpleSegment[numSeg];
   segments[0] = SimpleSegment(gxl, gyl, gxl, gyl + 1, pLeft);
   segments[1] = SimpleSegment(gxl, gyl + 1, gxr, gyr + 1, top);
@@ -2687,6 +2702,7 @@ void BoundingSegments::createBoundingSegments(Slope s, int gxl, int gyl,
   break;
  }
  case negativSlope: {
+  //cout <<"falsch"<<endl;
   segments = new SimpleSegment[numSeg];
   segments[0] = SimpleSegment(gxl, gyl, gxl, gyl + 1, pLeft);
   segments[1] = SimpleSegment(gxl, gyl + 1, gxl + 1, gyl + 1, top);
@@ -2759,6 +2775,37 @@ bool BoundingSegments::isBottom(int i) {
 
 /*
 1.1 ~intersect~
+   long long tXL = segments[i].getXL();
+   long long tXR = segments[i].getXR();
+   long long tYL = segments[i].getYL();
+   long long tYR = segments[i].getYR();
+   long long bsXL = bs.segments[j].getXL();
+   long long bsXR = bs.segments[j].getXR();
+   long long bsYL = bs.segments[j].getYL();
+   long long bsYR = bs.segments[j].getYR();
+        if (isVertical(i)) {
+      vertical = segments[i];
+      second = bs.segments[j];
+      vXL = tXL;
+      vXR = tXR;
+      vYL = tYL;
+      vYR = tYR;
+      sXL = bsXL;
+      sXR = bsXR;
+      sYL = bsYL;
+      sYR = bsYR;
+     } else {
+      vertical = bs.segments[j];
+      second = segments[i];
+      vXL = bsXL;
+      vXR = bsXR;
+      vYL = bsYL;
+      vYR = bsYR;
+      sXL = tXL;
+      sXR = tXR;
+      sYL = tYL;
+      sYR = tYR;
+     }
 
 */
 bool BoundingSegments::intersect(BoundingSegments& bs) {
@@ -2767,17 +2814,27 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
  while (i < numSeg && !result) {
   int j = 0;
   while (j < bs.numSeg && !result) {
+   long long tXL = segments[i].getXL();
+   long long tXR = segments[i].getXR();
+   long long tYL = segments[i].getYL();
+   long long tYR = segments[i].getYR();
+   long long bsXL = bs.segments[j].getXL();
+   long long bsXR = bs.segments[j].getXR();
+   long long bsYL = bs.segments[j].getYL();
+   long long bsYR = bs.segments[j].getYR();
+
    long long thisNum = segments[i].getYR() - segments[i].getYL();
    long long thisDenom = segments[i].getXR() - segments[i].getXL();
 
    long long bsNum = bs.segments[j].getYR() - bs.segments[j].getYL();
    long long bsDenom = bs.segments[j].getXR() - bs.segments[j].getXL();
-   if (thisDenom == 0 && bsDenom == 0) {
+
+   if((thisDenom == 0) && (bsDenom == 0)) {
     // both segments are vertical
     if (((isRight(i) && bs.isRight(j)) || (isLeft(i) && isLeft(j)))
-      && ((segments[i].getXL() == bs.segments[j].getXL())
-        && !(segments[i].getYR() <= bs.segments[j].getYL()
-          || segments[i].getYL() >= bs.segments[j].getYR()))) {
+      && ((tXL == bsXL)
+        && (!((tYR < bsYL)
+          ||(tYL > bsYR))))) {
      //If one segment is the left border of the real segment
      //and one segment is the right border of the real segment,
      //intersection of both is not relevant.
@@ -2787,23 +2844,44 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
      return true;
     }
    } else { //max. one segment is vertical
-    if (thisDenom == 0 || bsDenom == 0) {
+    if ((thisDenom == 0) || (bsDenom == 0)) {
      SimpleSegment vertical;
      SimpleSegment second;
+     long long vXL, vXR, vYL, vYR;
+     long long sXL, sXR, sYL, sYR;
+
      if (isVertical(i)) {
       vertical = segments[i];
       second = bs.segments[j];
+      vXL = tXL;
+      vXR = tXR;
+      vYL = tYL;
+      vYR = tYR;
+      sXL = bsXL;
+      sXR = bsXR;
+      sYL = bsYL;
+      sYR = bsYR;
+
      } else {
       vertical = bs.segments[j];
       second = segments[i];
+      vXL = bsXL;
+      vXR = bsXR;
+      vYL = bsYL;
+      vYR = bsYR;
+      sXL = tXL;
+      sXR = tXR;
+      sYL = tYL;
+      sYR = tYR;
+
      }
-     if (second.getXL() <= vertical.getXL()
-       && vertical.getXL() <= second.getXR()) {
+     if ((sXL <= vXL) && (vXL <= sXR)) {
       // the vertical segment lay between XL and XR
-      long long numerator = second.getYR() - second.getYL();
-      long long denominator = second.getXR() - second.getXL();
-      if ((numerator > 0 && denominator > 0)
-        || (numerator < 0 && denominator < 0)) {
+      long long numerator = sYR - sYL;
+      long long denominator = sXR - sXL;
+
+      if (((numerator > 0) && (denominator > 0))
+        || ((numerator < 0) && (denominator < 0))) {
        /* second has a positive slope
         *  To prevent wrong values by using double we compute
         *  only with integers. If we have a function like
@@ -2818,85 +2896,58 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
         *  intersect.
        */
        if (!((second.getPosition() == top && vertical.getPosition() == pRight
-         && vertical.getXL() == second.getXL())
+         && (vXL == sXL))
          || (second.getPosition() == bottom && vertical.getPosition() == pLeft
-           && vertical.getXL() == second.getXR()))) {
-        long long yValue = (numerator * ((long long)vertical.getXL())
-          + ((long long)second.getYL()) * denominator
-          - numerator * ((long long)second.getXL()))
+           &&(vXL == sXR)))) {
+        long long yValueMin = ((numerator * vXL)
+          + (sYL * denominator)
+          - (numerator * sXL))
           / denominator;
-        /*mpz_class pValue = (numerator * vertical.getXL()
-          + second.getYL() * denominator - numerator * second.getXL())
+        long long yValueMax = ((numerator * (vXL+1))
+          + (sYL * denominator)
+          - (numerator * sXL))
           / denominator;
-        if ((cmp(pValue, numeric_limits<int>::min())<0)
-          ||(cmp(numeric_limits<int>::max(), pValue)<0)){
-         cerr <<"The grid-value "<<pValue
-              <<"don't fit in a variable of type int."<<endl;
-         return true;
-        }
-        int yValue = (int) pValue.get_d();*/
-        if (((vertical.getYL() <= yValue && yValue < vertical.getYR())
-          || (vertical.getYR() <= yValue && yValue <= vertical.getYL()))
-          && !(second.getPosition() == top && vertical.getPosition() == pLeft
-            && vertical.getXL() == second.getXR()
-            && yValue == vertical.getYL())) {
+
+        if (!((vYR < yValueMin) || (yValueMax < vYL))) {
          return true;
         }
        }
       } else {
-       if ((numerator > 0 && denominator < 0)
-         || (numerator < 0 && denominator > 0)) {
+       if (((numerator > 0) && (denominator < 0))
+         || ((numerator < 0) && (denominator > 0))) {
         //second has a negativ slope
         if (!((second.getPosition() == top && vertical.getPosition() == pLeft
           && vertical.getXL() == second.getXR())
           || (second.getPosition() == bottom
             && vertical.getPosition() == pRight
-            && vertical.getXL() == second.getXL()))) {
+            && (vXL == sXL)))) {
 
-         long long yValue = (numerator * ((long long)vertical.getXL())
-           + ((long long)second.getYL()) * denominator
-           - numerator * ((long long)second.getXL()))
+         long long yValueMin = ((numerator * (vXL+1))
+           + (sYL * denominator)
+           - (numerator * sXL))
            / denominator;
-         /*mpz_class pYValue = (numerator * vertical.getXL()
-             + second.getYL() * denominator - numerator * second.getXL())
-             / denominator;
-         if ((cmp(pYValue, numeric_limits<int>::min())<0)
-           ||(cmp(numeric_limits<int>::max(), pYValue)<0)){
-          cerr <<"The grid-value "<<pYValue
-               <<"don't fit in a variable of type int."<<endl;
-          return true;
-         }
-         int yValue = (int) pYValue.get_d();*/
-         if (((vertical.getYL() <= yValue && yValue <= vertical.getYR())
-           || (vertical.getYR() <= yValue && yValue <= vertical.getYL()))
-           && !(second.getPosition() == top && vertical.getPosition() == pRight
-             && vertical.getXL() == second.getXL()
-             && yValue == vertical.getYL())) {
+         long long yValueMax = ((numerator * vXL)
+           + (sYL * denominator)
+           - (numerator * sXL))
+           / denominator;
+
+         if (!((vYR < yValueMin) || (yValueMax < vYL))) {
           return true;
          }
 
         }
-       } else { // second is horizonal
-        if (vertical.getPosition() == pLeft) {
-         if (second.getXL() <= vertical.getXL()
-           && vertical.getXL() < second.getXR()
-           && vertical.getYL() < second.getYL()
-           && second.getYL() < vertical.getYR()) {
+       } else { // second is horizontal
+         if ((sXL <= vXL)
+           && (vXL <= sXR)
+           && (vYL <= sYL)
+           && (sYL <= vYR)) {
           return true;
          }
-        } else { //vertical is right
-         if (second.getXL() < vertical.getXL()
-           && vertical.getXL() <= second.getXR()
-           && vertical.getYL() < second.getYL()
-           && second.getYL() < vertical.getYR()) {
-          return true;
-         }
-        }
        }
       }
      }
     } else { //there is no vertical segment
-     if (thisDenom * bsNum == thisNum * bsDenom) {
+     if ((thisDenom * bsNum) == (thisNum * bsDenom)) {
       //the segments are parallel
       if ((isBottom(i) && bs.isBottom(j)) || (isTop(i) && bs.isTop(j))) {
        //compare the intersection with the y-coordinate
@@ -2904,71 +2955,55 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
        //segments run on the same line and intersect if they
        //overlap
        long long thisB =
-         ((long long)segments[i].getYL()) * ((long long)thisDenom)
-         - ((long long)segments[i].getXL()) * thisNum;
-       long long segB = ((long long)bs.segments[j].getYL()) * thisDenom
-         - ((long long)bs.segments[j].getXL()) * thisNum;
-       if (thisB == segB) {
-        if (!(segments[i].getXR() <= bs.segments[j].getXL()
-          || bs.segments[j].getXR() <= segments[i].getXL())) {
+         (tYL * thisDenom) - (tXL * thisNum);
+       long long segB = (bsYL * bsDenom) - (bsXL * bsNum);
+
+       long long cmptB = thisB * bsDenom;
+       long long cmpsB = segB * thisDenom;
+
+       if (cmptB ==cmpsB) {
+        if (!((tXR <= bsXL) || (bsXR <= tXL))) {
          return true;
         }
        }
       }
      } else { //the segements are not parallel or vertical
       long long xNumerator = (thisDenom * bsDenom
-        * (((long long)bs.segments[j].getYL()) -
-          ((long long)segments[i].getYL())))
-        + (((long long)segments[i].getXL()) * bsDenom * thisNum)
-        - (((long long)bs.segments[j].getXL()) * thisDenom * bsNum);
-      long long xDenominator = (thisNum * bsDenom - thisDenom * bsNum);
+        * ((bsYL) - tYL))
+        + (tXL * bsDenom * thisNum)
+        - (bsXL * thisDenom * bsNum);
+
+      long long xDenominator = ((thisNum * bsDenom) - (thisDenom * bsNum));
       long long gridX = (xNumerator / xDenominator);
 
-      /*mpz_class pThisDenom = thisDenom;
-      mpz_class pBsDenom = bsDenom;
-      mpz_class pXNumerator = (pThisDenom * pBsDenom
-        * (bs.segments[j].getYL() - segments[i].getYL()))
-        + (segments[i].getXL() * pBsDenom * thisNum)
-        - (bs.segments[j].getXL() * pThisDenom * bsNum);
-      mpz_class pXDenominator = (thisNum * pBsDenom - pThisDenom * bsNum);
-      mpz_class pGridX = pXNumerator / pXDenominator;
-      if ((cmp(pGridX, numeric_limits<int>::min())<0)
-        ||(cmp(numeric_limits<int>::max(), pGridX)<0)){
-       cerr <<"The grid-value "<<pGridX
-            <<"don't fit in a variable of type int."<<endl;
-       return true;
-      }
-      int gridX = (int) pGridX.get_d();
-      cout <<"gridX: "<<gridX<<endl;*/
-      if ((segments[i].getXL() <= gridX && gridX < segments[i].getXR())
-        && (bs.segments[j].getXL() <= gridX
-          && gridX < bs.segments[j].getXR())) {
+      if ((tXL <= gridX) && (gridX <= tXR)
+        && (bsXL <= gridX)
+          && (gridX <= bsXR)) {
        //the x-value of the intersection point lays in
        //the x-interval of both segments
        if (thisNum == 0) {
         //this is a horizontal segment
-        if ((bsNum < 0 && bsDenom < 0) || (bsNum > 0 && bsDenom > 0)) {
+        if (((bsNum < 0) && (bsDenom < 0))
+          || ((bsNum > 0) && (bsDenom > 0))) {
          //the segment j of bs has a positiv slope
-         if (!(segments[i].getPosition() == bottom
-           && bs.segments[j].getPosition() == top
-           && segments[i].getXL() == bs.segments[j].getXR())
-           && !(segments[i].getPosition() == top
-             && bs.segments[j].getPosition() == bottom
-             && segments[i].getXR() == bs.segments[j].getXL())) {
-          if (bs.segments[j].getYL() <= segments[i].getYL()
-            && segments[i].getYL() <= bs.segments[j].getYR()) {
+         if ((!((segments[i].getPosition() == bottom)
+           && (bs.segments[j].getPosition() == top)
+           && (tXL == bsXR)))
+           && (!((segments[i].getPosition() == top)
+             && (bs.segments[j].getPosition() == bottom)
+             && (tXR == bsXL)))) {
+          if ((bsYL <= tYL) && (tYL <= bsYR)) {
            return true;
           }
          }
         } else {
-         if (!(segments[i].getPosition() == bottom
-           && bs.segments[j].getPosition() == top
-           && segments[i].getXR() == bs.segments[j].getXL())
-           && !(segments[i].getPosition() == top
-             && bs.segments[j].getPosition() == bottom
-             && segments[i].getXL() == bs.segments[j].getXR())) {
-          if (bs.segments[j].getYR() <= segments[i].getYL()
-            && segments[i].getYL() <= bs.segments[j].getYL()) {
+         if ((!((segments[i].getPosition() == bottom)
+           && (bs.segments[j].getPosition() == top)
+           && (tXR == bsXL)))
+           && (!((segments[i].getPosition() == top)
+             && (bs.segments[j].getPosition() == bottom)
+             && (tXL == bsXR)))) {
+          if (((bsYR <= tYL)) && (tYL <= bsYL)) {
            return true;
           }
          }
@@ -2976,56 +3011,74 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
 
        } else {
         if (bsNum == 0) {
-         if ((thisNum < 0 && thisDenom < 0) || (thisNum > 0 && thisDenom > 0)) {
+         if (((thisNum < 0) && (thisDenom < 0))
+           || ((thisNum > 0) && (thisDenom > 0))) {
           //the segment i of this has a positiv slope
-          if (!(bs.segments[j].getPosition() == bottom
-            && segments[i].getPosition() == top
-            && bs.segments[j].getXL() == segments[i].getXR())
-            && !(bs.segments[j].getPosition() == top
-              && segments[i].getPosition() == bottom
-              && bs.segments[j].getXR() == segments[i].getXL())) {
-           if (segments[i].getYL() <= bs.segments[j].getYL()
-             && bs.segments[j].getYL() <= segments[i].getYR()) {
+          if ((!((bs.segments[j].getPosition() == bottom)
+            && (segments[i].getPosition() == top)
+            && (bsXL == tXR)))
+            && (!((bs.segments[j].getPosition() == top)
+              && (segments[i].getPosition() == bottom)
+              && (bsXR == tXL)))) {
+           if ((tYL <= bsYL) && (bsYL <= tYR)) {
             return true;
            }
           }
          } else {
-          if ((!(bs.segments[j].getPosition() == bottom
-            && segments[i].getPosition() == top
-            && bs.segments[j].getXR() == segments[i].getXL()))
-            && (!(bs.segments[j].getPosition() == top
-              && segments[i].getPosition() == bottom
-              && bs.segments[j].getXL() == segments[i].getXR()))) {
-           if (segments[i].getYR() <= bs.segments[j].getYL()
-             && bs.segments[j].getYL() <= segments[i].getYL()) {
+          if ((!((bs.segments[j].getPosition() == bottom)
+            && (segments[i].getPosition() == top)
+            && (bsXR == tXL)))
+            && (!((bs.segments[j].getPosition() == top)
+              && (segments[i].getPosition() == bottom)
+              && (bsXL == tXR)))) {
+           if ((tYR <= bsYL) && (bsYL <= tYL)) {
             return true;
            }
           }
          }
         } else {
          //both segments are not horizontal
-         long long gridY = ((thisNum * gridX)
-           + (segments[i].getYL() * thisDenom)
-           - (segments[i].getXL() * thisNum)) / thisDenom;
-         /*mpz_class pGridY = ((thisNum * gridX)
-           + (segments[i].getYL() * thisDenom)
-           - (segments[i].getXL() * thisNum)) / thisDenom;
-         if ((cmp(pGridY, numeric_limits<int>::min())<0)
-           ||(cmp(numeric_limits<int>::max(), pGridY)<0)){
-          cerr <<"The grid-value "<<pGridY
-               <<"don't fit in a variable of type int."<<endl;
+         long long tyMin, tyMax, bsyMin, bsyMax;
+         if (((thisNum > 0) && ( thisDenom >0))
+           || (( thisNum < 0)&&( thisDenom <0))){
+          //this has a positive slope
+          tyMin = ((thisNum * gridX)
+            + (tYL * thisDenom)
+            - (tXL * thisNum)) / thisDenom;
+          tyMax = ((thisNum * (gridX+1))
+            + (tYL * thisDenom)
+            - (tXL * thisNum)) / thisDenom;
+         } else {
+          //this has a negative slope
+          tyMin = ((thisNum * (gridX+1))
+            + (tYL * thisDenom)
+            - (tXL * thisNum)) / thisDenom;
+          tyMax = ((thisNum * gridX)
+            + (tYL * thisDenom)
+            - (tXL * thisNum)) / thisDenom;
+         }
+         if ((( bsNum >0)&&( thisDenom >0))
+           || (( thisNum <0)&&( thisDenom <0))){
+          //this has a positive slope
+          bsyMin = ((thisNum * gridX)
+            + (tYL * thisDenom)
+            - (tXL * thisNum)) / thisDenom;
+          bsyMax = ((thisNum * (gridX+1))
+            + (tYL * thisDenom)
+            - (tXL * thisNum)) / thisDenom;
+         } else {
+          //this has a negative slope
+          bsyMin = ((thisNum * (gridX+1))
+            + (tYL * thisDenom)
+            - (tXL * thisNum)) / thisDenom;
+          bsyMax = ((thisNum * gridX)
+            + (tYL * thisDenom)
+            - (tXL * thisNum)) / thisDenom;
+         }
+         if (!(( tyMax < bsyMin)||( bsyMax < tyMin ))){
           return true;
          }
-         int gridY = (int) pGridY.get_d();
-         cout <<"gridY: "<<gridY<<endl;*/
-         int thisYMin = min(segments[i].getYL(), segments[i].getYR());
-         int thisYMax = max(segments[i].getYL(), segments[i].getYR());
-         int bsYMin = min(bs.segments[j].getYL(), bs.segments[j].getYR());
-         int bsYMax = max(bs.segments[j].getYL(), bs.segments[j].getYR());
-         if ((thisYMin <= gridY && gridY <= thisYMax)
-           && (bsYMin <= gridY && gridY <= bsYMax)) {
-          return true;
-         }
+
         }
        }
       }
