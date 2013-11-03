@@ -27,7 +27,8 @@ import java.util.Map;
 /**
  * Profile for loading a relation.	 
  */
-public class RelationProfile{
+public class RelationProfile
+{
 	
 	private String relName;
 	
@@ -37,42 +38,111 @@ public class RelationProfile{
 	
 	private List<String> sortExpressions;
 	
-	public RelationProfile(String pName){
+	public RelationProfile(String pName)
+	{
 		relName = pName;
 		filterExpressions = new ArrayList<String>();
 		projectExpressions = new ArrayList<String>();
 		sortExpressions = new ArrayList<String>();
 	}
 	
-	public String getName(){
+	public boolean addFilterExpression(String pExpression)
+	{
+		boolean result = false;
+		if (!this.filterExpressions.contains(pExpression))
+		{
+			this.filterExpressions.add(pExpression);
+			result = true;
+		}
+		return result;
+	}
+	
+	public boolean addProjectExpression(String pExpression)
+	{
+		boolean result = false;
+		if (!this.projectExpressions.contains(pExpression))
+		{
+			this.projectExpressions.add(pExpression);
+			result = true;
+		}
+		return result;
+	}
+	
+	public boolean addSortExpression(String pExpression)
+	{
+		boolean result = false;
+		if (!this.sortExpressions.contains(pExpression))
+		{
+			this.sortExpressions.add(pExpression);
+			result = true;
+		}
+		return result;
+	}
+	
+	
+	public String getName()
+	{
 		return this.relName;
 	}	
 	
-	public void setName(String pName){
-		this.relName = pName;
-	}	
-	
-	public List<String> getFilterExpressions(){
+	public List<String> getFilterExpressions()
+	{
 		return this.filterExpressions;
 	}	
-	
-	public void setFilterExpressions(List<String> pFilterExpressions){
-		this.filterExpressions = pFilterExpressions;
-	}
-	
-	public List<String> getProjectExpressions(){
+
+	public List<String> getProjectExpressions()
+	{
 		return this.projectExpressions;
 	}	
 	
-	public void setProjectExpressions(List<String> pProjectExpressions){
-		this.projectExpressions = pProjectExpressions;
-	}
-	
-	public List<String> getSortExpressions(){
+	public List<String> getSortExpressions()
+	{
 		return this.sortExpressions;
 	}	
 	
-	public void getSortExpressions(List<String> pSortExpressions){
+	
+	public void removeFilterExpression(String pExpression)
+	{
+		if (this.filterExpressions.contains(pExpression))
+		{
+			this.filterExpressions.remove(pExpression);
+		}
+	}
+	
+	public void removeProjectExpression(String pExpression)
+	{
+		if (this.projectExpressions.contains(pExpression))
+		{
+			this.projectExpressions.remove(pExpression);
+		}
+	}
+	
+	public void removeSortExpression(String pExpression)
+	{
+		if (this.sortExpressions.contains(pExpression))
+		{
+			this.sortExpressions.remove(pExpression);
+		}
+	}
+	
+	
+	public void setFilterExpressions(List<String> pFilterExpressions)
+	{
+		this.filterExpressions = pFilterExpressions;
+	}
+
+	public void setName(String pName)
+	{
+		this.relName = pName;
+	}	
+	
+	public void setProjectExpressions(List<String> pProjectExpressions)
+	{
+		this.projectExpressions = pProjectExpressions;
+	}
+		
+	public void setSortExpressions(List<String> pSortExpressions)
+	{
 		this.sortExpressions = pSortExpressions;
 	}
 }

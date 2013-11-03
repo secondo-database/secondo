@@ -27,6 +27,8 @@ import java.awt.event.*;
 import javax.swing.JOptionPane;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import sj.lang.*;
@@ -35,7 +37,6 @@ import tools.Reporter;
 
 import viewer.*;
 import viewer.update2.gui.*;
-import viewer.update.CommandExecuter;
 import viewer.update.InvalidFormatException;
 
 
@@ -47,7 +48,6 @@ public class UpdateViewerController implements ActionListener, ComponentListener
 	
 	private CommandGenerator commandGenerator;
 	private CommandExecuter commandExecuter;
-	private RelationPanel currRelation;
 	private LoadDialog loadDialog;
 	private LoadProfile loadProfile;
 	private int state;	
@@ -60,19 +60,15 @@ public class UpdateViewerController implements ActionListener, ComponentListener
 	public final static int INSERT = 2;
 	public final static int DELETE = 3;
 	public final static int UPDATE = 4;
-		 	
-	// Indices for the actual relation
-	private Vector<String> btreeNames;
-	private Vector<String> btreeAttrNames;
-	private Vector<String> rtreeNames;
-	private Vector<String> rtreeAttrNames;
 	
+	// Name of relation which contains LoadProfiles
+	public final static String LOAD_PROFILE_RELATION = "uv2loadprofiles";
+		 		
 	//initializes the controller
 	public UpdateViewerController(UpdateViewer2 viewer){
 		this.viewer = viewer;
 		this.commandGenerator = new CommandGenerator();
 		this.commandExecuter = new CommandExecuter();
-		this.currRelation = null;
 		this.loadDialog = new LoadDialog(this);
 		this.loadProfile = null;
 		this.state = INITIAL;
@@ -95,8 +91,9 @@ state.
 		}
 		if (e.getActionCommand() == "Clear")
 		{
-			viewer.clear();
-			if (state == INSERT){
+			this.viewer.clear();
+			if (state == INSERT)
+			{
 				//viewer.removeInsertRelation();
 			}
 			
@@ -106,7 +103,8 @@ state.
 		}
 		if (e.getActionCommand() == "Insert")
 		{
-			if (state == INSERT){ // User wants to insert one more tuple
+			if (state == INSERT)
+			{ // User wants to insert one more tuple
 				viewer.getCurrentRelationPanel().takeOverLastEditing(false);
 				viewer.getCurrentRelationPanel().addInsertTuple();
 				return;
@@ -139,17 +137,19 @@ state.
 					viewer.setSelectionMode(LOADED);
 				}
 			}
-			if(state == UPDATE){
-         viewer.getCurrentRelationPanel().resetUpdates();
-         state = LOADED;
-         viewer.setSelectionMode(LOADED);
-      /* undo functionality */
-			/*	if (! viewer.resetLastUpdate()){
-					state = LOADED;
-					viewer.showOriginalRelation();
-					viewer.setSelectionMode(LOADED);
-				}
-       */
+			if(state == UPDATE)
+			{
+				viewer.getCurrentRelationPanel().resetUpdates();
+				state = LOADED;
+				viewer.setSelectionMode(LOADED);
+				
+				/* undo functionality */
+				/*	if (! viewer.resetLastUpdate()){
+				 state = LOADED;
+				 viewer.showOriginalRelation();
+				 viewer.setSelectionMode(LOADED);
+				 }
+				 */
        
 			}
 			if(state == DELETE)
@@ -167,8 +167,9 @@ state.
 		if (e.getActionCommand() == "Commit")
 		{
 			boolean result = false;
-			if(state == INSERT){
-				result = this.executeInsert(this.viewer.getCurrentRelationPanel().getName());
+			if(state == INSERT)
+			{
+				// TODO
 			}
 			if(state == DELETE)
 			{
@@ -176,7 +177,7 @@ state.
 			}
 			if(state == UPDATE)
 			{
-				result = this.executeUpdate(this.viewer.getCurrentRelationPanel().getName());
+				result = this.executeUpdate();
 			}
 			if ( result )
 			{
@@ -185,6 +186,29 @@ state.
 			}
 			return;
 		}
+		
+		if (e.getActionCommand() == "Undo")
+		{
+			if(state == INSERT)
+			{
+				// TODO
+			}
+			if(state == UPDATE)
+			{
+				/* undo functionality */
+				/*	if (! viewer.resetLastUpdate()){
+				 state = LOADED;
+				 viewer.showOriginalRelation();
+				 viewer.setSelectionMode(LOADED);
+				 }
+				 */
+				
+			}
+			if(state == DELETE)
+			{
+				// TODO
+			}
+		}	
 		
 		//
 		// LoadDialog		
@@ -197,18 +221,25 @@ state.
 			}
 			return;
 		}
+			
 		if (e.getActionCommand() == "Create new profile")
 		{
-			String profileName = this.showChooseProfileNameDialog();
-			if (profileName != null && profileName.length()!=0)
+			String profileName = this.showInputProfileNameDialog();
+			if (profileName != null && !profileName.isEmpty())
 			{
-				if (this.loadDialog.addProfile(profileName))
+				String relName = this.showChooseRelationDialog();
+				if (relName != null && !relName.isEmpty())
 				{
-					this.loadDialog.showProfiles();
-				}
+					// create, insert and show new load profile
+					if (this.processCommandAddRelationProfile(profileName, relName))
+					{
+						this.loadProfiles();
+						this.loadDialog.showProfiles();
+					}				}
 			}	
 			return;
 		}
+			
 		if (e.getActionCommand() == "Delete profile")
 		{
 			if(this.processCommandDeleteLoadProfile(this.loadDialog.getCurrentLoadProfileName()))
@@ -218,11 +249,13 @@ state.
 			}
 			return;
 		}
+			
 		if (e.getActionCommand() == "Cancel")
 		{
 			this.loadDialog.setVisible(false);
 			return;
 		}
+			
 		if (e.getActionCommand() == "Add relation")
 		{
 			String relName = this.showChooseRelationDialog();
@@ -236,15 +269,18 @@ state.
 			}
 			return;
 		}
-		if (e.getActionCommand() == "Edit relation")
+			
+		if (e.getActionCommand() == "Save relation")
 		{
 			// TODO
 			return;
 		}
+			
 		if (e.getActionCommand() == "Remove relation")
 		{
 			String profileName = this.loadDialog.getCurrentLoadProfileName();
 			String relName = loadDialog.getCurrentRelationProfileName();
+			
 			if (this.processCommandRemoveRelationProfile(this.loadDialog.getCurrentLoadProfileName(), relName))
 			{
 				this.loadProfiles();
@@ -256,54 +292,20 @@ state.
 		// This point should never be reached
 		this.showErrorDialog("Command not known");
 	}
+
 	
-	/*
-	 Abort transaction
-	 
+	/**
+	 * Creates an empty relation, that can be queried.
+	 * Returns true on success.
 	 */
-	private boolean abortTransaction()
+	private boolean createRelationLoadprofiles()
 	{
-		if (commandExecuter.executeCommand("(abort transaction)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	
-	
-	/*
-	 Begin transaction
-	 
-	 */
-	private boolean beginTransaction()
-	{
-		if (commandExecuter.executeCommand("(begin transaction)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	
-	/*
-	 Commit transaction
-	 
-	 */
-	private boolean commitTransaction()
-	{
-		if (commandExecuter.executeCommand("(commit transaction)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		StringBuffer sb = new StringBuffer("let ");
+		sb.append(LOAD_PROFILE_RELATION);
+		sb.append(" = [const rel (tuple (");
+		sb.append(" [ProfileName: string, RelName: string, FilterExpr: text, ProjectExpr: text, SortExpr: text]");
+		sb.append(" )) value ()]");
+		return this.commandExecuter.executeCommand(sb.toString(), SecondoInterface.EXEC_COMMAND_SOS_SYNTAX);		
 	}
 	
 
@@ -415,41 +417,65 @@ state.
 		*/
 		return false;
 	}
-
 	
 	/*	
 	 Executes all updatecommands generated by the 'CommandGenerator' in one big
 	 transaction. If one of the commands was not succesfully executed the transaction
 	 is aborted.	 
 	 */
-	private boolean executeUpdate(String pRelName)
-	{
-		// TODO
-		/*
-		viewer.takeOverLastEditing(true); 
+	private boolean executeUpdate()
+	{		
+		RelationPanel rp = this.viewer.getCurrentRelationPanel();
+				
+		rp.takeOverLastEditing(true); 		
+		
 		String errorMessage;
-		String[] updateCommands;
-		try{
-			updateCommands = this.commandGenerator.generateUpdate(pRelName, btreeNames, btreeAttrNames,
-															 rtreeNames, rtreeAttrNames);;
-		} catch(InvalidFormatException e){
-			String message = e.getMessage()+"\n at position ("+e.row+", "+e.column+")";
-			this.showErrorDialog(message);
-			this.viewer.relGoTo(e.row-1,e.column-1);
+		
+		List<String> updateCommands;
+		
+		Map<Integer, HashMap<String, Change>> changedTuples = rp.getChangedTuples();
+		
+		if (changedTuples.isEmpty())
+		{
+			Reporter.debug("UpdateViewerController.executeUpdate: no changes");
 			return false;
 		}
-		if(! beginTransaction()){
+			
+		try
+		{
+			updateCommands = this.commandGenerator.generateUpdate(rp.getName(), 
+																  rp.getRelation().getAttributeNames(), 
+																  changedTuples);
+			
+			for (String com : updateCommands){Reporter.debug("updatecommand: " + com);}
+		} 
+		catch(InvalidFormatException e)
+		{
+			String message = e.getMessage()+"\n at position ("+e.row+", "+e.column+")";
+			this.showErrorDialog(message);
+			this.viewer.getCurrentRelationPanel().relGoTo(e.row-1,e.column-1);
+			return false;
+		}
+		
+		
+		if(! this.commandExecuter.beginTransaction())
+		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			this.showErrorDialog(errorMessage);
 			return false;
 		}
+		
 		int failures = 0;
 		ListExpr result;
-		for (int i = 0; i < updateCommands.length; i++){
-			if(! this.commandExecuter.executeCommand(updateCommands[i], SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX)){
+		
+		for (String command : updateCommands)
+		{
+			if(! this.commandExecuter.executeCommand(command, SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
+			{
 				errorMessage = this.commandExecuter.getErrorMessage().toString();
 				this.showErrorDialog("Error trying to update a tuple: " + errorMessage);
-				if (! abortTransaction()){
+				if (! this.commandExecuter.abortTransaction())
+				{
 					errorMessage = this.commandExecuter.getErrorMessage().toString();
 					this.showErrorDialog("Error trying to abort transaction: " + errorMessage);
 				}
@@ -459,12 +485,16 @@ state.
 			if ( result.second().intValue() != 1)
 				failures++;
 		}
-		if(! commitTransaction()){
+		
+		if(!this.commandExecuter.commitTransaction())
+		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			this.showErrorDialog(errorMessage);
 			return false;
 		}
-		if (failures > 0){
+		
+		if (failures > 0)
+		{
 			if (failures > 1)
 				this.showErrorDialog("Warning: " + failures + " tuples that should be"
 									   + " updated have already been deleted by a different user!");
@@ -472,15 +502,44 @@ state.
 				this.showErrorDialog("Warning: One tuple that should be updated has "
 									   + "already been deleted by a different user!");
 		}
-		this.viewer.clear();
-		return (loadRelation(pRelName));// the new state is set in this method
-		*/
-		return false;
+		
+		//return (loadRelation(pRelName));// the new state is set in this method
+		 
+		return true;
 	}
 	
 	
+	/**
+	 * Returns true if relation exists in currently open database.
+	 */
+	private boolean existsInDb(String pObjectName)
+	{
+		boolean result = false;
+		commandExecuter.executeCommand("(list objects)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX);
+		ListExpr inquiry = commandExecuter.getResultList();
+		ListExpr objectList = inquiry.second().second();
+		objectList.first();
+		ListExpr rest = objectList.rest();
+		ListExpr nextObject;
+		String name;
+
+		while (! rest.isEmpty())
+		{
+			nextObject = rest.first();
+
+			name = nextObject.second().symbolValue();
+			if (name.equals(pObjectName))
+			{
+				result = true;
+			}
+					
+			rest = rest.rest();
+		}
+		return result;
+	}
+	
 	/*	
-	 * Tries to get the LoadProfiles from a relation with name 'uv2loadprofiles'. 
+	 * Tries to get the LoadProfiles from a relation with name LOAD_PROFILE_RELATION. 
 	 * @return true if valid non-empty ListExpression of that relation could be retrieved and evaluated,
 	 * else false.
 	 */
@@ -489,6 +548,11 @@ state.
 		boolean result = false;
 		
 		ListExpr profilesLE = new ListExpr();
+		
+		if (!this.existsInDb(LOAD_PROFILE_RELATION))
+		{
+			this.createRelationLoadprofiles();
+		}
 		
 		try
 		{
@@ -500,14 +564,7 @@ state.
 			}
 			else if (this.commandExecuter.getErrorCode().value==ServerErrorCodes.NOT_DB_NAME_CODE)
 			{
-				Reporter.debug("UpdateViewerController.loadProfiles: relation uv2loadprofiles does not exist in database");
-				StringBuffer sb = new StringBuffer("create uv2loadprofiles: ");
-				sb.append(" rel(tuple(");
-				sb.append("[ProfileName: string, RelName: string, FilterExpr: text, ProjectExpr: text, SortExpr: text]))");
-				this.commandExecuter.executeCommand(sb.toString(), SecondoInterface.EXEC_COMMAND_SOS_SYNTAX);
-				this.commandExecuter.executeCommand("query uv2loadprofiles", SecondoInterface.EXEC_COMMAND_SOS_SYNTAX);
-				
-				result = true;
+
 			}
 		}
 		catch (Exception e)
@@ -541,14 +598,14 @@ state.
 					command.append(" filter [ " + filter + " ] ");
 				}
 			}
-			for (String project : filters)
+			for (String project : projects)
 			{
 				if (!project.equals(""))
 				{
 					command.append(" project [ " + project + " ] ");
 				}
 			}
-			for (String sort : filters)
+			for (String sort : sorts)
 			{
 				if (!sort.equals(""))
 				{
@@ -565,8 +622,8 @@ state.
 		{
 			ListExpr relationLE = commandExecuter.getResultList();
 			Reporter.debug("loadRelation: " + relationLE.toString());
+
 			this.viewer.setRelationPanel(pRelName, relationLE);
-			Reporter.debug("loadRelation: setRelationPanel OK");
 			//retrieveIndices(pRelName);
 			loaded = true;
 		}
@@ -588,14 +645,16 @@ state.
 		sb.append(pLoadProfileName);
 		sb.append("\", \"");
 		sb.append(pRelName);
-		sb.append("\", \"\", \"\", \"\"] consume");
+		sb.append("\", \'\', \'\', \'\'] consume");
 		
 		if (commandExecuter.executeCommand(sb.toString(), SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 		{
+			Reporter.debug("processCommandAddRelationProfile: Executer returned TRUE");
 			return true;
 		}
 		else
 		{
+			Reporter.debug("processCommandAddRelationProfile: Executer returned FALSE");
 			return false;
 		}		
 	}
@@ -605,7 +664,8 @@ state.
 	 * and shows them in the viewer.
 	 */
 	private boolean processCommandLoad()
-	{		
+	{	
+		this.viewer.clear();
 		this.loadProfile = this.loadDialog.getCurrentLoadProfile();
 		String errorMessage = "";
 		
@@ -623,15 +683,14 @@ state.
 				errorMessage += "Error while loading relation " + relname + ". ";
 			}
 		}
-		
-		this.viewer.showRelations();
-		this.viewer.setSelectionMode(LOADED);
-		
+				
 		if (errorMessage != null && errorMessage.length()!=0)
 		{
 			this.showErrorDialog(errorMessage);
 		}
 		
+		this.viewer.showRelations();
+		this.viewer.setSelectionMode(LOADED);
 		this.state = LOADED;
 		return true;		
 	}
@@ -683,87 +742,77 @@ state.
 	}
 	
 
-	/*
-	 Sends a 'list objects'-command to SECONDO and scans the result for all indices for the given relation.
-	 To do this it uses the convention that indices have to begin with the relationname with the first
-	 letter in lowercase, following an underscore and then the name of the attribute over which
-	 the index is built
-	 */	
-	private void retrieveIndices(String pRelName)
+	
+	/**
+	 * Returns names of all relations in currently open database.
+	 */
+	private List<String> retrieveRelationNames()
 	{
+		List<String> result = new ArrayList<String>();
 		commandExecuter.executeCommand("(list objects)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX);
 		ListExpr inquiry = commandExecuter.getResultList();
 		ListExpr objectList = inquiry.second().second();
 		objectList.first();
 		ListExpr rest = objectList.rest();
 		ListExpr nextObject;
-		String name;
-		String attrName;
 		ListExpr type;
-		String[] attrNames = this.viewer.getCurrentRelationPanel().getAttrNames();
-		this.btreeNames = new Vector<String>();
-		this.btreeAttrNames = new Vector<String>();
-		this.rtreeNames = new Vector<String>();
-		this.rtreeAttrNames = new Vector<String>();
-		while (! rest.isEmpty()){
+		String name;
+		
+		while (!rest.isEmpty())
+		{
 			nextObject = rest.first();
 			type = nextObject.fourth();
 			if (!(type.first().isAtom())){
 				if ((type.first().first().isAtom())){
-					if (type.first().first().symbolValue().equals("btree")){
+					String objectType = type.first().first().symbolValue();
+					if (objectType.equals("rel") || objectType.equals("trel") || objectType.equals("mrel")){
 						name = nextObject.second().symbolValue();
-						if (name.indexOf('_') != -1){
-							if(name.substring(0,name.indexOf('_')).equalsIgnoreCase(pRelName)){
-								if(name.substring(1,name.indexOf('_')).equals(pRelName.substring(1))){
-									attrName = name.substring(name.indexOf('_') + 1);
-									for (int i = 0; i < attrNames.length; i++){
-										if (attrName.trim().equals(attrNames[i].trim())){
-											btreeNames.add(name);
-											btreeAttrNames.add(attrNames[i].trim());
-										}
-									}
-								}
-							}
-						}
-					}
-					else {
-						if (type.first().first().symbolValue().equals("rtree")){
-							name = nextObject.second().symbolValue();
-							if (name.indexOf('_') != -1){
-								if(name.substring(0,name.indexOf('_')).equalsIgnoreCase(pRelName)){
-									if(name.substring(1,name.indexOf('_')).equals(pRelName.substring(1))){
-										attrName = name.substring(name.indexOf('_') + 1);
-										for (int i = 0; i < attrNames.length; i++){
-											if (attrName.trim().equals(attrNames[i].trim())){
-												rtreeNames.add(name);
-												rtreeAttrNames.add(attrNames[i].trim());
-											}
-										}
-									}
-								}
-							}
-						}
+						result.add(name);
 					}
 				}
 			}
 			rest = rest.rest();
 		}
+		
+		return result;
 	}
+	
 	
 	private String showChooseRelationDialog()
 	{
-		return JOptionPane.showInputDialog("Bitte Relation angeben " );
+		String result = "";
+		
+		List<String> names = this.retrieveRelationNames();
+		
+		if (names.isEmpty())
+		{
+			JOptionPane.showConfirmDialog(null, "Database contains no relations.", "", JOptionPane.OK_OPTION);
+		}
+		else
+		{
+			Object selection = JOptionPane.showInputDialog(null,
+														   "Choose a relation", "Add relation",
+														   JOptionPane.INFORMATION_MESSAGE, null,
+														   names.toArray(), names.get(0));
+			if (selection!= null)
+			{
+				result = (String)selection;
+			}
+		}
+		return result;
 	}
 	
-	
-	private String showChooseProfileNameDialog()
+	/**
+	 * Shows an input box for specifying the load profile name.
+	 */
+	private String showInputProfileNameDialog()
 	{
-		return JOptionPane.showInputDialog("Bitte einen Profilnamen angeben " );
+		return JOptionPane.showInputDialog("Name the load profile " );
 	}
 	
 
 	/*
-	 Shows a dialog with the errorText.	 
+	 * Shows messagebox with the errorText.	 
 	 */
 	public void showErrorDialog(String errorText)
 	{
@@ -775,7 +824,7 @@ state.
 	
 	
 	/*
-	 Shows the load dialog.	 
+	 * Shows the load dialog.	 
 	 */
 	public void showLoadDialog() 
 	{
@@ -817,8 +866,8 @@ state.
 	/**
 	 * Invoked when the component has been made visible.
 	 */
-	public void componentShown(ComponentEvent e){
-		// TODO
+	public void componentShown(ComponentEvent e)
+	{
 		if (e.getSource() instanceof UpdateViewer2)
 		{
 			this.viewer.setSelectionMode(INITIAL);

@@ -44,7 +44,7 @@ public class RelationTableModel extends AbstractTableModel
 	private Relation relation;
 	private String relationName;
 	private String[] columnNames = {"TupleId", "Name", "Value"};
-	private String[] attributeNames;
+	private List<String> attributeNames;
 	private int tupleSize;
 	private int tupleCount;
 	private int[] maxContentLengths;
@@ -146,28 +146,31 @@ public class RelationTableModel extends AbstractTableModel
 		if( !this.isSeparator(pRow)) 
 		{
 			// get Tuple value
-			int tupleIndex = pRow / (this.tupleSize+1);
-			int attrIndex = pRow % (this.tupleSize+1);
+			int tupleIndex = this.rowToTupleIndex(pRow);
+			int attrIndex = this.rowToAttributeIndex(pRow);
 			
-			SecondoObject soTuple = this.relation.getTupleNo(tupleIndex);
+			//SecondoObject soTuple = this.relation.getTupleNo(tupleIndex);
+			SecondoObject[] soTuple = this.relation.getTupleAt(tupleIndex);
 						
 			// get value
 			switch (pCol)
 			{
 				case 0: 
-					result = soTuple.getID().toString();
+					//result = soTuple.getID().toString();
+					SecondoObject last = soTuple[soTuple.length-1];
+					result = this.formatter.fromListExprToString(last.toListExpr().second()).trim();
 					break;
 				case 1:
-					result = this.attributeNames[attrIndex-1];
+					result = this.attributeNames.get(attrIndex).trim();
 					break;
 				case 2: 
-					ListExpr rest = soTuple.toListExpr().second();
-					//Reporter.debug("RelationTableModel.getValueAt: listLength " + rest.listLength());
-					for (int i = 0; i<attrIndex-1; i++)
+					ListExpr rest = soTuple[attrIndex].toListExpr();
+					//Reporter.debug("RelationTableModel.getValueAt: " + rest.toString());
+					/*for (int i = 0; i<attrIndex; i++)
 					{
 						rest = rest.rest();
-					}
-					result = this.formatter.fromListExprToString(rest.first());
+					}*/
+					result = this.formatter.fromListExprToString(rest.second()).trim();
 					break;
 				default: 
 					result = "fehler";
@@ -184,15 +187,8 @@ public class RelationTableModel extends AbstractTableModel
      */
     public boolean isCellEditable(int pRow, int pCol) 
 	{
-        if (pCol != 2 || this.isSeparator(pRow)) 
-		{
-            return false;
-        } 
-		else
-		{
-            return true;
-        }
-    }
+        return (pCol == 2 && !this.isSeparator(pRow));
+	}
 	
 	/**
 	 * Returns true if rowIndex specifies a separator row (empty row between tuples).
@@ -205,24 +201,50 @@ public class RelationTableModel extends AbstractTableModel
 	
     /*
 	 * Method of interface AbstractTableModel.
-     * Don't need to implement this method unless your table's
-     * data can change.
+     * Change table data.
+	 * TODO set Relation Data
      */
     public void setValueAt(Object pValue, int pRow, int pCol) 
 	{
-		// TODO
-		// this.relation.setValueAt(pValue, pRow, pCol);
+		Reporter.debug("RelationTableModel.setValueAt: " + pRow + ", " + pCol);
+				
+		if(isCellEditable(pRow, pCol)) 
+		{
+			// get Tuple value
+			int tupleIndex = this.rowToTupleIndex(pRow);
+			int attrIndex = this.rowToAttributeIndex(pRow);
+						
+			ListExpr type = ListExpr.symbolAtom(this.relation.getAttributeTypes().get(attrIndex));
+			ListExpr value = ListExpr.textAtom(pValue.toString());
+			
+			ListExpr le = ListExpr.twoElemList(type, value);
+			String name = this.relation.getAttributeNames().get(attrIndex)+"::"+type+"::"+pValue.toString();
+			SecondoObject SO = new SecondoObject(name, le);
+
+			this.relation.setSecondoObject(tupleIndex, attrIndex, SO);
+		}
 		//fireTableCellUpdated(row, col);
     }
+	
+	public int rowToTupleIndex(int pRow)
+	{
+		return (pRow / (this.tupleSize+1));
+	}
+	
+	public int rowToAttributeIndex(int pRow)
+	{
+		return ((pRow % (this.tupleSize+1)) - 1);
+	}
+	
+	
     
 	public String toString()
 	{
 		StringBuffer sb = new StringBuffer("[RelationTableModel]: ");
-		sb.append("columnNames: ").append(columnNames.toString());
 		sb.append(", relationName: ").append(relationName);
-		sb.append(", attributeNames: ").append(attributeNames.toString());
 		sb.append(", tupleCount: ").append(tupleCount);
 		sb.append(", tupleSize: ").append(tupleSize);
+		sb.append(this.relation.toString());
 		return sb.toString();
 	}
 }

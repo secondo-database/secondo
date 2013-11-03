@@ -35,7 +35,8 @@ public class LoadProfile {
 	
 	private List<RelationProfile> relations;
 
-	public LoadProfile(String pName) {
+	public LoadProfile(String pName)
+	{
 		this.profileName = pName;
 		this.relations = new ArrayList<RelationProfile>();
 	}
@@ -43,33 +44,44 @@ public class LoadProfile {
 	/**
 	 * Adds or replaces the relation of the same name.
 	 */
-	public void addRelationProfile(RelationProfile pRelProfile){
+	public void addRelationProfile(RelationProfile pRelProfile)
+	{
 		RelationProfile old = null;
-		for (RelationProfile profile : this.relations){
-			if (profile.getName().equals(pRelProfile.getName())){
+		
+		for (RelationProfile profile : this.relations)
+		{
+			if (profile.getName().equals(pRelProfile.getName()))
+			{
 				old = profile;
 			}
 		}
-		if (old != null){
+		
+		if (old != null)
+		{
 			this.relations.remove(old);
 		}
+		
 		this.relations.add(pRelProfile);
 	}
 	
 	/**
 	 * Returns the name of the LoadProfile.
 	 */
-	public String getName(){
+	public String getName()
+	{
 		return this.profileName;
 	}
 	
 	/**
 	 * Returns the FilterExpressions for the specified relation.
 	 */
-	public List<String> getFilterExpressions(String pRelName){
+	public List<String> getFilterExpressions(String pRelName)
+	{
 		List<String> result;
 		RelationProfile relprof = this.getRelationProfile(pRelName);
-		if (relprof != null){
+		
+		if (relprof != null)
+		{
 			result = relprof.getFilterExpressions();
 		}
 		else{
@@ -81,13 +93,18 @@ public class LoadProfile {
 	/**
 	 * Returns the ProjectExpressions for the specified relation.
 	 */
-	public List<String> getProjectExpressions(String pRelName){
+	public List<String> getProjectExpressions(String pRelName)
+	{
 		List<String> result;
+		
 		RelationProfile relprof = this.getRelationProfile(pRelName);
-		if (relprof != null){
+		
+		if (relprof != null)
+		{
 			result = relprof.getProjectExpressions();
 		}
-		else{
+		else
+		{
 			result = Collections.emptyList();
 		}
 		return result;
@@ -96,13 +113,18 @@ public class LoadProfile {
 	/**
 	 * Returns the SortExpressions for the specified relation.
 	 */
-	public List<String> getSortExpressions(String pRelName){
+	public List<String> getSortExpressions(String pRelName)
+	{
 		List<String> result;
+		
 		RelationProfile relprof = this.getRelationProfile(pRelName);
-		if (relprof != null){
+		
+		if (relprof != null)
+		{
 			result = relprof.getSortExpressions();
 		}
-		else{
+		else
+		{
 			result = Collections.emptyList();
 		}
 		return result;
@@ -111,12 +133,16 @@ public class LoadProfile {
 	/**
 	 * Returns the RelationProfile of the specified relation.
 	 */
-	public RelationProfile getRelationProfile(String pRelationName){
+	public RelationProfile getRelationProfile(String pRelationName)
+	{
 		RelationProfile result = null;
-		for (RelationProfile relprof : this.relations){
-			if (relprof.getName().equals(pRelationName)){
+		
+		for (RelationProfile relprof : this.relations)
+		{
+			if (relprof.getName().equals(pRelationName))
+			{
 				result = relprof;
-			};
+			}
 		}
 		return result;
 	}
@@ -124,9 +150,12 @@ public class LoadProfile {
 	/**
 	 * Returns names of all the relations in the profile.
 	 */
-	public List<String> getRelationNames(){
+	public List<String> getRelationNames()
+	{
 		List<String> result = new ArrayList<String>();
-		for (RelationProfile relprof : this.relations){
+		
+		for (RelationProfile relprof : this.relations)
+		{
 			result.add(relprof.getName());
 		}
 		return result;
@@ -135,21 +164,28 @@ public class LoadProfile {
 	/**
 	 * Returns all the relation profiles.
 	 */
-	public List<RelationProfile> getRelations(){
+	public List<RelationProfile> getRelations()
+	{
 		return this.relations;
 	}
 
 	/**
 	 * Removes the RelationProfile of the specified name.
 	 */
-	public void removeRelationProfile(String pRelName){
+	public void removeRelationProfile(String pRelName)
+	{
 		RelationProfile old = null;
-		for (RelationProfile profile : this.relations){
-			if (profile.getName().equals(pRelName)){
+		
+		for (RelationProfile profile : this.relations)
+		{
+			if (profile.getName().equals(pRelName))
+			{
 				old = profile;
 			}
 		}
-		if (old != null){
+		
+		if (old != null)
+		{
 			this.relations.remove(old);
 		}
 	}

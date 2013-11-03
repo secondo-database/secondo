@@ -19,15 +19,16 @@
 
 package viewer.update2;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import sj.lang.ListExpr;
 import tools.Reporter;
 
 
 public class RelationTypeInfo extends Head{
 	
-	String[] attributeNames;
-	String[] attributeTypes;
+	List<String> attributeNames;
+	List<String> attributeTypes;
 	
 	public boolean readFromRelTypeLE(ListExpr LE)
 	{
@@ -35,27 +36,38 @@ public class RelationTypeInfo extends Head{
 		
 		if (result)
 		{
-			this.attributeNames = new String[this.getSize()];
-			this.attributeTypes = new String[this.getSize()];
+			this.attributeNames = new ArrayList<String>();
+			this.attributeTypes = new ArrayList<String>();
 			for (int i = 0; i < this.getSize(); i++)
 			{
-				attributeNames[i] = this.get(i).Name;
-				attributeTypes[i] = this.get(i).Type;
+				attributeNames.add(this.get(i).Name);
+				attributeTypes.add(this.get(i).Type);
 			}
 		}
 		
 		return result;
 	}
 	
-	public String[] getAttributeNames()
+	public List<String> getAttributeNames()
 	{
 		return this.attributeNames;
 	}
 	
-	public String[] getAttributeTypes()
+	public List<String> getAttributeTypes()
 	{
 		return this.attributeTypes;
 	}
+	
+	public String getAttributeName(int index)
+	{
+		return this.attributeNames.get(index);
+	}
+	
+	public String getAttributeType(int index)
+	{
+		return this.attributeTypes.get(index);
+	}
+	
 	
 }
 

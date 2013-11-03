@@ -19,35 +19,111 @@
 
 package  viewer.update2;
 
+import gui.SecondoObject;
+
 
 /**
- * Single change of an attribute value in a relation.	 
+ * Information concerning ahange of a single tuple in a relation.	 
  */
 public class Change {
 	
-	private String tupleId;
+	private int tupleIndex;
 	
-	private String attrName;
+	private int attributeIndex;
+
+	private String attributeName;
+
+	private String attributeType;
 
 	private String oldValue;
-		
 
-	public Change(String pTupleId, String pAttrName, String pOldValue) {
-		this.tupleId = pTupleId;
-		this.attrName = pAttrName;
+	private String newValue;
+
+
+	/**
+	 * Constructor expects tuple index and SecondoObject representing the tuple.
+	 */
+	public Change(int pTupleIndex, int pAttrIndex, 
+					String pAttrName, String pAttrType,
+					String pOldValue, String pNewValue) 
+	{
+		this.tupleIndex = pTupleIndex;
+		this.attributeIndex = pAttrIndex;
+		this.attributeName = pAttrName;
+		this.attributeType = pAttrType;
 		this.oldValue = pOldValue;
-	}
-		
-	public String getTupleId(){
-		return this.tupleId;
+		this.newValue = pNewValue;
 	}
 	
-	public String getAttrName(){
-		return this.attrName;
+	/**
+	 * Returns tuple index.
+	 */
+	public int getTupleIndex()
+	{
+		return this.tupleIndex;
 	}
 	
-	public String getOldValue(){
+	/**
+	 * Returns attribute index.
+	 */
+	public int getAttributeIndex()
+	{
+		return this.attributeIndex;
+	}
+	
+	/**
+	 * Returns attribute name.
+	 */
+	public String getAttributeName()
+	{
+		return this.attributeName;
+	}
+	
+	/**
+	 * Returns attribute type.
+	 */
+	public String getAttributeType()
+	{
+		return this.attributeType;
+	}
+	
+	
+	/**
+	 * Returns value before change.
+	 */
+	public String getOldValue()
+	{
 		return this.oldValue;
+	}
+	
+	/**
+	 * Returns value after change.
+	 */
+	public String getNewValue()
+	{
+		return this.newValue;
+	}
+	
+	/**
+	 * Returns true if given Change has same tuple id and attribute name.
+	 */
+	public boolean changesSameObject(Change pChange)
+	{
+		return (this.tupleIndex == pChange.getTupleIndex() 
+				&& this.attributeName.equals(pChange.getAttributeName()));
+	}
+	
+	public String toString()
+	{
+		StringBuffer sb = new StringBuffer("[viewer.update2.Change]");
+		sb.append(" tupleIndex=").append(this.tupleIndex);
+		sb.append(", attributeIndex=").append(this.attributeIndex);
+		sb.append(", attributeName=").append(this.attributeName);
+		sb.append(", attributeType=").append(this.attributeType);
+		sb.append(", oldValue=").append(this.oldValue);
+		sb.append(", newValue=").append(this.newValue);
+		
+		return sb.toString();
 	}
 	
 }

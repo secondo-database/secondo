@@ -22,6 +22,8 @@ package viewer.update2;
 import gui.SecondoObject;
 import gui.idmanager.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 import sj.lang.ListExpr;
@@ -58,12 +60,12 @@ public class Relation
 		initialized = false;
 	}
 	
-	public String[] getAttributeNames()
+	public List<String> getAttributeNames()
 	{
 		return this.relTypeInfo.getAttributeNames();
 	}
 	
-	public String[] getAttributeTypes()
+	public List<String> getAttributeTypes()
 	{
 		return this.relTypeInfo.getAttributeTypes();
 	}
@@ -103,7 +105,19 @@ public class Relation
 	
 	public String toString()
 	{
-		return Name;
+		StringBuffer sb = new StringBuffer("[Relation]: ");
+		sb.append(", Name: ").append(this.getName());
+		sb.append(", attributeNames: ");
+		for (String name : this.getAttributeNames())
+		{
+			sb.append(name).append(", ");
+		}
+		sb.append(", attributeTypes: ");
+		for (String type : this.getAttributeTypes())
+		{
+			sb.append(type).append(", ");
+		}
+		return sb.toString();
 	}
 	
 	
@@ -137,6 +151,7 @@ public class Relation
 	/** read the Value of this Relation */
 	private boolean readValue(RelationTypeInfo H, ListExpr ValueList)
 	{
+		this.relTypeInfo = H;
 		ListExpr NextTuple;
 		ListExpr Rest = ValueList;
 		SecondoObjects.clear();
@@ -159,8 +174,8 @@ public class Relation
 				SecondoObject SO;
 				int No = 0;
 				TupleIDs.add(IDManager.getNextID());
-				while(NextTuple.listLength()>0){
-					// TODO
+				while(NextTuple.listLength()>0)
+				{
 					SO = new SecondoObject(IDManager.getNextID());
 					ListExpr Type = ListExpr.symbolAtom(H.get(No).Type);
 					SO.fromList(ListExpr.twoElemList(Type, NextTuple.first()));
@@ -280,6 +295,49 @@ public class Relation
 		return Tuple;
 	}
 	
+	
+	/** 
+	 * Set tuple on given position 
+	 */
+	public void setTupleAt(int pIndex, SecondoObject[] pTuple)
+	{
+		if(!initialized)
+			return;
+		
+		int startTuple = pIndex*relTypeInfo.getSize();
+		if(startTuple < 0 
+				|| startTuple+relTypeInfo.getSize() > SecondoObjects.size() 
+				|| pTuple.length != SecondoObjects.size())
+			return;
+		
+		SecondoObject soNew;
+		
+		for(int i=0;i<relTypeInfo.getSize();i++)
+		{
+			soNew = pTuple[i];
+			soNew.setID(SecondoObjects.get(startTuple + i).getID());
+			SecondoObjects.set(startTuple + i, soNew);
+		}
+	}
+
+	
+	
+	/** 
+	 * Set SecondoObject on given position 
+	 */
+	public void setSecondoObject(int pTupleIndex, int pAttributeIndex, SecondoObject pAttribute)
+	{
+		if(!initialized)
+			return;
+		
+		int objectIndex = pTupleIndex*relTypeInfo.getSize() + pAttributeIndex;
+		if(objectIndex < 0 || objectIndex > SecondoObjects.size())
+			return;
+		
+		SecondoObject so = pAttribute;
+		so.setID(this.SecondoObjects.get(objectIndex).getID());
+		SecondoObjects.set(objectIndex, so);
+	}
 	
 	
 	/** computes a Tuple and returns it */

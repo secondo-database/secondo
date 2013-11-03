@@ -21,6 +21,7 @@ package  viewer.update2.gui;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.event.InputMethodListener;
 
 import javax.swing.border.Border;
 import javax.swing.BorderFactory;
@@ -52,6 +53,11 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 	public Object getCellEditorValue()
 	{
 		return this.textArea.getText();
+	}
+	
+	public void setInputMethodListener(InputMethodListener pListener)
+	{
+		this.textArea.addInputMethodListener(pListener);
 	}
 	
 	/**

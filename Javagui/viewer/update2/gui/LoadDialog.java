@@ -44,7 +44,9 @@ import java.awt.Frame;
 import java.awt.GridLayout;
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Properties;
@@ -280,7 +282,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 			|| !aName.symbolValue().equals("FilterExpr") 
 			|| !aType.isAtom()
 			|| aType.atomType() != ListExpr.SYMBOL_ATOM
-			|| !aType.symbolValue().equals("string") ) {
+			|| !aType.symbolValue().equals("text") ) {
 			return false;
 		}
 			
@@ -293,7 +295,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 			|| !aName.symbolValue().equals("ProjectExpr") 
 			|| !aType.isAtom()
 			|| aType.atomType() != ListExpr.SYMBOL_ATOM
-			|| !aType.symbolValue().equals("string") ) {
+			|| !aType.symbolValue().equals("text") ) {
 			return false;
 		}
 		
@@ -307,7 +309,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 			|| !aName.symbolValue().equals("SortExpr") 
 			|| !aType.isAtom()
 			|| aType.atomType() != ListExpr.SYMBOL_ATOM
-			|| !aType.symbolValue().equals("string") ) {
+			|| !aType.symbolValue().equals("text") ) {
 			return false;
 		}
 		
@@ -325,12 +327,14 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 			
 			String profileName = tupleValue.first().stringValue();
 			String relName = tupleValue.second().stringValue();
-			String filterExpressions = tupleValue.third().stringValue();
-			String projectExpressions = tupleValue.fourth().stringValue();
-			String sortExpressions = tupleValue.fifth().stringValue();
+			String filterValue = tupleValue.third().textValue();
+			String projectValue = tupleValue.fourth().textValue();
+			String sortValue = tupleValue.fifth().textValue();
 			
-			RelationProfile relProfile = new RelationProfile(relName);
-			// TODO set restrictions
+			RelationProfile relProfile = new RelationProfile(relName);	
+			relProfile.setFilterExpressions(this.parseSeparatedList(filterValue));
+			relProfile.setProjectExpressions(this.parseSeparatedList(projectValue));
+			relProfile.setSortExpressions(this.parseSeparatedList(sortValue));			
 			
 			// If there is not yet a LoadProfile of that name,
 			// create one and add its Name to the selection list.
@@ -339,17 +343,38 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 			{
 				lp = new LoadProfile(profileName);
 			}
+			
 			// add RelationProfile to its LoadProfile
 			lp.addRelationProfile(relProfile);
+			
 			//Reporter.debug(profileName + " " + relName);
 			
 			this.profiles.put(lp.getName(), lp);
-			
+					
 			value = value.rest();
 		}
 				
 		this.loaded = true;
 		return true;
+	}
+	
+	/**
+	 * Returns a list of the non-empty substrings in the specified
+	 * semicolon-seprated list.
+	 */
+	private List<String> parseSeparatedList(String pSeparatedList)
+	{
+		List<String> result = new ArrayList<String>();
+		String[] strings = pSeparatedList.split(";");
+		
+		for (String s : strings)
+		{
+			if (!s.isEmpty())
+			{
+				result.add(s);
+			}
+		}
+		return result;
 	}
 	
 
@@ -400,26 +425,24 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 	 */
 	public void showProfiles()
 	{
-		if (this.profiles.isEmpty())
+		this.lmProfiles = new DefaultListModel();
+		for (String profName : profiles.keySet())
 		{
-			JTextArea message = new JTextArea("This database contains no load profiles for loading relations. Click NEW LOAD PROFILE to create one.");
-			this.plLoadProfile.add(message, BorderLayout.CENTER);
+			this.lmProfiles.addElement(profName);
 		}
-		else 
-		{
-			this.lmProfiles = new DefaultListModel();
-			for (String profName : profiles.keySet())
-			{
-				this.lmProfiles.addElement(profName);
-			}
-			this.lsProfiles.setModel(lmProfiles);
-			this.lsProfiles.setSelectedIndex(0);
-			String profileName = (String)lsProfiles.getSelectedValue();
-			this.plLoadProfile.showLoadProfile(this.profiles.get(profileName));
-		}
+		this.lsProfiles.setModel(lmProfiles);
+		this.lsProfiles.setSelectedIndex(0);
+		String profileName = (String)lsProfiles.getSelectedValue();
+		this.plLoadProfile.showLoadProfile(this.profiles.get(profileName));
 		
 		this.repaint();
 		this.validate();		
+		
+		if (this.profiles.isEmpty())
+		{
+			Reporter.showInfo("This database contains no load profiles for loading relations. "
+							  + "Click NEW LOAD PROFILE to create one.");
+		}
 	}
 	
 	/**
