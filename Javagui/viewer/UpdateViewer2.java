@@ -125,6 +125,7 @@ public class UpdateViewer2 extends SecondoViewer {
 		this.tabbedPane = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
 		this.add(tabbedPane, BorderLayout.CENTER);
 
+		this.setSelectionMode(UpdateViewerController.INITIAL);
 	}
 	
 	/**
