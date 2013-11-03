@@ -47,11 +47,17 @@ exceptions: -
 
 int tProperties<double>::GetXDimensionSize()
 {
+  /*
+  According to Prof. Dr. Güting all Tile Algebra data types should have
+  an identical size of x dimension, optimized for data type tint.
+
+  */
+
   int xDimensionSize = static_cast<unsigned int>
                        (std::pow((WinUnix::getPageSize() -
                                   sizeof(tgrid) -
-                                  2 * sizeof(double)) /
-                                  sizeof(double),
+                                  2 * sizeof(int)) /
+                                  sizeof(int),
                                   0.5)
                        );
 
@@ -70,11 +76,17 @@ exceptions: -
 
 int tProperties<double>::GetYDimensionSize()
 {
+  /*
+  According to Prof. Dr. Güting all Tile Algebra data types should have
+  an identical size of y dimension, optimized for data type tint.
+
+  */
+
   int yDimensionSize = static_cast<unsigned int>
                        (std::pow((WinUnix::getPageSize() -
                                   sizeof(tgrid) -
-                                  2 * sizeof(double)) /
-                                  sizeof(double),
+                                  2 * sizeof(int)) /
+                                  sizeof(int),
                                   0.5)
                        );
 
