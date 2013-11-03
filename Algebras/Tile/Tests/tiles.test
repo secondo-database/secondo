@@ -99,7 +99,7 @@ query tiles(sreal1) count;
 query tiles(sreal2) count;
 
 #testcase tiles operator count on a sreal object with four tiles
-#yields (int 4)
+#yields (int 2)
 query tiles(sreal4) count;
 
 #######################################
@@ -107,7 +107,7 @@ query tiles(sreal4) count;
 #######################################
 
 #testcase tiles operator count on a sbool object with one tile
-#yields (int 1)
+#yields (int 5)
 query tiles(sbool1) count;
 
 #testcase tiles operator count on a sbool object with two tiles
@@ -163,7 +163,7 @@ query tiles(msreal1) count;
 query tiles(msreal2) count;
 
 #testcase tiles operator count on a msreal object with four tiles
-#yields (int 4)
+#yields (int 2)
 query tiles(msreal4) count;
 
 #######################################
@@ -171,7 +171,7 @@ query tiles(msreal4) count;
 #######################################
 
 #testcase tiles operator count on a msbool object with one tile
-#yields (int 1)
+#yields (int 5)
 query tiles(msbool1) count;
 
 #testcase tiles operator count on a msbool object with two tiles
@@ -227,7 +227,7 @@ query tiles(isreal1) count;
 query tiles(isreal2) count;
 
 #testcase tiles operator count on a isreal object with four tiles
-#yields (int 4)
+#yields (int 2)
 query tiles(isreal4) count;
 
 #######################################
@@ -235,7 +235,7 @@ query tiles(isreal4) count;
 #######################################
 
 #testcase tiles operator count on a isbool object with one tile
-#yields (int 1)
+#yields (int 5)
 query tiles(isbool1) count;
 
 #testcase tiles operator count on a isbool object with two tiles

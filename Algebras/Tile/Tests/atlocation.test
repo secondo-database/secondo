@@ -230,7 +230,7 @@ query mtreal1 atlocation [[const point value (1.5 1.5)]]
 
 #testcase mtreal atlocation with instant value
 #yields (real 3.0)
-query [const mtreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (20 20 9 (4.0 5.0 6.0 7.0)))] atlocation [[const point value (1.5 1.5)] , [const instant value "2000-01-03-00:00:00.001"]]
+query [const mtreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (29 29 9 (4.0 5.0 6.0 7.0)))] atlocation [[const point value (1.5 1.5)] , [const instant value "2000-01-03-00:00:00.001"]]
 
 #######################################
 # mtbool                              #
@@ -270,7 +270,7 @@ query mtbool1 atlocation [[const point value (1.5 1.5)]]
 
 #testcase mtbool atlocation with instant value
 #yields (bool FALSE)
-query [const mtbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (61 61 9 (FALSE TRUE TRUE FALSE)))] atlocation [[const point value (1.5 1.5)] , [const instant value "2000-01-03-00:00:00.001"]]
+query [const mtbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (29 29 9 (FALSE TRUE TRUE FALSE)))] atlocation [[const point value (1.5 1.5)] , [const instant value "2000-01-03-00:00:00.001"]]
 
 #######################################
 # mtstring                            #

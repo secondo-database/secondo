@@ -12,11 +12,11 @@ create database TileAlgebraTest;
 open database TileAlgebraTest;
 
 let tint1 = [const tint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))];
-let treal1 = [const treal value ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (20 20 (480.0 481.0 482.0 483.0)))];
-let tbool1 = [const tbool value ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (61 61 (FALSE TRUE TRUE FALSE)))];
+let treal1 = [const treal value ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (29 29 (957.0 958.0 959.0 960.0)))];
+let tbool1 = [const tbool value ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (29 29 (FALSE TRUE TRUE FALSE)))];
 let tstring1 = [const tstring value ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (29 29 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))];
 let mtint1 = [const mtint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (8 8 9 (996 997 998 999)))];
-let mtreal1 = [const mtreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (4 4 5 (339.0 340.0 341.0 342.0)))];
+let mtreal1 = [const mtreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (8 8 9 (996.0 997.0 998.0 999.0)))];
 let mtbool1 = [const mtbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (8 8 9 (FALSE TRUE TRUE FALSE)))];
 let mtstring1 = [const mtstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (8 8 9 ("nine hundred ninety six" "nine hundred ninety seven" "nine hundred ninety eight" "nine hundred ninety nine")))];
 
@@ -29,7 +29,7 @@ let mtstring1 = [const mtstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" 
 query maximum(tint1)
 
 #testcase query maximum for type treal
-#yields (real 483.0)
+#yields (real 960.0)
 query maximum(treal1)
 
 #testcase query maximum for type tbool
@@ -45,7 +45,7 @@ query maximum(tstring1);
 query maximum(mtint1)
 
 #testcase query maximum for type mtreal
-#yields (real 342.0)
+#yields (real 999.0)
 query maximum(mtreal1)
 
 #testcase query maximum for type mtbool
