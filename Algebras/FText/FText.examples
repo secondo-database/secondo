@@ -1145,6 +1145,19 @@ Signature : text x string -> stream(longint)
 Example   : query charCodes('abc',"UTF-8") count
 Result    : 3
 
+Operator : morseWav
+Number   : 1
+Signature : text x text -> bool
+Example   : query morseWav('abcd','abcd.wav',40,440);
+Result    : TRUE
+
+Operator : morseWav
+Number   : 2
+Signature : string x text -> bool
+Example   : query morseWav("abcd",'abcd.wav',40,440);
+Result    : TRUE
+
+
 
 
 

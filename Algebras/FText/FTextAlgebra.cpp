@@ -10056,7 +10056,8 @@ Operator getObjectOP(
 /*
 4.38 Operator ~flobInfo~
 
-This operator create a stream of text from an attribute describing the contained FLOB-Ids.
+This operator create a stream of text from an attribute describing the 
+contained FLOB-Ids.
 
 4.38.1 Type Mapping
 
@@ -10412,6 +10413,361 @@ Operator charCodesOP(
   charCodesTM
 );
 
+
+/*
+4.38 Operator morseWav
+
+4.38.1 Type Mapping
+
+   {string, text} x text -> bool
+
+*/
+ListExpr morseWavTM(ListExpr args){
+
+    string err = "{string,text} x text  x int x int expected";
+    if(!nl->HasLength(args,4)){
+      return listutils::typeError(err);
+    }
+    ListExpr arg1 = nl->First(args);
+    ListExpr arg2 = nl->Second(args);
+    if(!CcString::checkType(arg1) &&
+       !FText::checkType(arg1)){
+      return listutils::typeError(err);
+    }
+    if(!FText::checkType(arg2)){
+      return listutils::typeError(err);
+    }
+    if(!CcInt::checkType(nl->Third(args))){
+      return listutils::typeError(err);
+    }
+    if(!CcInt::checkType(nl->Fourth(args))){
+      return listutils::typeError(err);
+    }
+    return listutils::basicSymbol<CcBool>();
+}
+
+template<class T>
+class createMorse{
+
+  public:
+    createMorse(T* _text, FText* _fileName, int _speed, int _freq, 
+                int _sampleRate, int _sampleSize):
+     defined(true), text(""),fileName(""), speed(_speed), freq(_freq), 
+     sampleRate(_sampleRate),
+     sampleSize(_sampleSize), dit(0), dah(0), pause(0), morseMap() {
+       // check validity
+       if(!_text->IsDefined() || !_fileName->IsDefined()){
+         defined= false;
+         return;
+       }
+       if(_speed < 20 || _speed > 300){
+          defined = false;
+          return;
+       } 
+       if(_freq<20 || _freq > 20000){
+          defined = false;
+          return;
+       }
+       if(_sampleRate< 2000 || _sampleRate > 60000 || _sampleRate < _freq*2){
+          defined = false;
+          return;
+       } 
+       if(   sampleSize!=8 && sampleSize!=16 && sampleSize != 24 
+          && sampleSize!=32){
+          defined = false;
+          return;
+       }
+       this->text = _text->GetValue();
+       this->fileName = _fileName->GetValue();
+       init();
+    }
+
+    ~createMorse(){
+       if(dit) { delete[] dit;}
+       if(dah){ delete[] dah; }
+       if(pause){ delete[] pause; }
+     }
+
+     bool createWav(){
+        if(!defined){
+           return false;
+        }
+        ofstream out(fileName.c_str(),ios::binary|ios::trunc);
+        if(!out.good()){
+          return false;
+        }
+        writeHeader(out);
+
+        bool lastSpace = true;
+        for(size_t pos=0;pos<text.length() && out.good();pos++){
+          try{
+            char c = tolower(text[pos]);
+            string code = morseMap.at(c);
+            writeCode(out,code, lastSpace); 
+          } catch(...){}
+        }
+
+        out.flush();
+        streampos length = out.tellp();
+        out.seekp(4,ios::beg);
+        int32_t l1 = (int32_t) length - 8;
+        out.write((char*)&l1,4);
+        out.seekp(40,ios::beg);
+        int32_t l2 = (int32_t) length -44;
+        out.write((char*) &l2, 4); 
+        bool res = out.good();
+        out.close();
+        return res;             
+     }
+ 
+
+  private:
+    bool defined;
+    string text;
+    string fileName;
+    int speed;
+    int freq;
+    int32_t sampleRate;
+    int16_t sampleSize;
+    char* dit;
+    char* dah;
+    char* pause;
+    int ditSize;
+    int dahSize;
+    int pauseSize;
+    map<char,string> morseMap; 
+
+
+    void init(){
+      fillMap();
+      int ditsPerMinute = (speed*50)/6;
+      int t = 60000/ditsPerMinute; // ms for a dit
+      dit = createTone(t, ditSize);
+      dah = createTone(3*t, dahSize);
+      pause = createPause(t, pauseSize);
+    }
+
+    void fillMap(){
+       morseMap['a'] = ".-";
+       morseMap['b'] = "-...";
+       morseMap['c'] = "-.-.";
+       morseMap['d'] = "-..";
+       morseMap['e'] = ".";
+       morseMap['f'] = "..-.";
+       morseMap['g'] = "--.";
+       morseMap['h'] = "....";
+       morseMap['i'] = "..";
+       morseMap['j'] = ".---";
+       morseMap['k'] = "-.-";
+       morseMap['l'] = ".-..";
+       morseMap['m'] = "--";
+       morseMap['n'] = "-.";
+       morseMap['o'] = "---";
+       morseMap['p'] = ".--.";
+       morseMap['q'] = "--.-";
+       morseMap['r'] = ".-.";
+       morseMap['s'] = "...";
+       morseMap['t'] = "-";
+       morseMap['u'] = "..-";
+       morseMap['v'] = "...-";
+       morseMap['w'] = ".--";
+       morseMap['x'] = "-..-";
+       morseMap['y'] = "-.--";
+       morseMap['z'] = "--..";
+       morseMap['0'] = "-----";
+       morseMap['1'] = ".----";
+       morseMap['2'] = "..---";
+       morseMap['3'] = "...--";
+       morseMap['4'] = "....-";
+       morseMap['5'] = ".....";
+       morseMap['6'] = "-....";
+       morseMap['7'] = "--...";
+       morseMap['8'] = "---..";
+       morseMap['9'] = "----.";
+       morseMap[' '] = " ";
+    }
+
+    char* createTone(int ms,int& size){
+      int bytesPerSample = (sampleSize +7) / 8;
+      int size1 = (ms*sampleRate)/  1000 ;
+      size = bytesPerSample*size1;
+      char* res = new char[size];
+      double step = (2*M_PI*freq)/((double)sampleRate);
+      double x = 0;
+      double factor = 0.9*( 1 << (sampleSize-1));
+      char data[bytesPerSample];
+      for(int i=0;i<size;i += bytesPerSample){
+          int64_t value = (int64_t) (sin(x)*factor);
+          fillData(data,bytesPerSample,value);
+          for(int b=0;b<bytesPerSample;b++){
+            res[i+b] = data[b];
+          }   
+          x+= step;
+      }   
+      return res;
+    }
+
+    void fillData(char* res,int b, int64_t value){
+      switch(b){
+         case 1: res[0] = (char) (value);
+                 break;
+         case 2: { int16_t v = (int16_t) value;
+                   res[0] = (char)(v & 0xFF);
+                   res[1] = (char) ((v & 0xFF00) >> 8);
+                 }
+                   break;
+         case 3:
+         case 4: { int32_t v2 = (int32_t) value;
+                   res[0] = (char) (v2& 0xFF);
+                   res[1] = (char) ((v2  & 0xFF00) >> 8);
+                   res[2] = (char) ((v2 & 0xFF0000) >> 16);
+                   if(b==4){
+                      res[3] = (char) ((v2 &0xFF000000) >> 24);
+                   }
+                 }
+                 break;
+       }
+   }
+
+
+    char* createPause(int ms,int& size){
+      int bytesPerSample = (sampleSize +7) / 8;
+      int size1 = (ms*sampleRate)/  1000 ;
+      size = bytesPerSample*size1;
+      char* res = new char[size];
+      memset(res,0,size);
+      return res;
+    }
+
+    void writeHeader(ofstream& out){
+       out << 'R' << 'I' << 'F' << 'F';
+       int32_t l = 0; // placeholder for lenght
+       out.write((char*) &l, 4);
+       out << 'W' << 'A' << 'V' << 'E';
+       out << 'f' << 'm' << 't' << ' ';
+       int32_t hl = 16;
+       out.write((char*) &hl, 4); // header length 
+       int16_t format = 1;
+       out.write((char*) &format, 2);;  // format PCM
+       int16_t channels = 1;
+       out.write((char*) &channels, 2);  // number of channels
+       out.write((char*) & sampleRate, 4);
+       int32_t byteRate = sampleRate * ((sampleSize+7)/8);     
+       out.write((char*) &byteRate,4);
+       int16_t blockAlign = ((sampleSize+7)/8);
+       out.write((char*) &blockAlign, 2);
+       out.write((char*) &sampleSize,2);
+       out << 'd' << 'a' << 't' << 'a';
+       int32_t ph=0;
+       out.write((char*)&ph,4); // placeholder for data size
+    } 
+
+    void writeCode(ofstream& out, string& code, bool& lastSpace){
+       for(size_t pos=0;pos<code.length();pos++){
+          char c = code[pos];
+          switch(c){
+            case '.' : 
+                  out.write(dit,ditSize);
+                  out.write(pause,pauseSize);
+                  break;
+            case '-' : out.write(dah, dahSize);
+                  out.write(pause,pauseSize);
+                  break;
+            case ' ' : if(!lastSpace){
+                     for(int i=0;i<6;i++){
+                       out.write(pause,pauseSize);
+                     }
+                  };
+                  lastSpace = true;
+                  break;
+            case '#' : out.write(pause,pauseSize);
+                  out.write(pause,pauseSize);
+          }
+       } 
+       // mark end of character
+       out.write(pause,pauseSize);
+       out.write(pause,pauseSize);
+    }
+};
+
+
+template<class T>
+int morseWavVM1( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+   T* arg = (T*) args[0].addr;
+   FText* fn = (FText*) args[1].addr;
+   CcInt* speed1 = (CcInt*) args[2].addr;
+   CcInt* freq1 = (CcInt*) args[3].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(    !arg->IsDefined() || !fn->IsDefined() 
+       || !speed1->IsDefined() || !freq1->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   int sampleRate= 4000;
+   int freq = freq1->GetValue();
+   int speed = speed1->GetValue();
+   if(freq<20 || speed < 10){
+     res->Set(true,false);
+     return 0;
+   }
+ 
+
+   if(freq>2000){
+    sampleRate = 8000;
+   }
+   if(freq>4000){
+     sampleRate = 16000;
+   }
+   if(freq > 8000){
+      sampleRate = 44200;
+   }
+   createMorse<T> cm(arg,fn, speed, freq,  sampleRate, 16);
+   res->Set(true, cm.createWav());
+   return 0;
+}
+
+
+ValueMapping morseWavVM[] = {
+  morseWavVM1<CcString>,
+  morseWavVM1<FText>
+};
+
+int morseWavSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+
+
+/*
+4.37.5 Specification
+
+*/
+OperatorSpec morseWavSpec(
+  "{string,text} x string  -> bool ",
+  " morseWav(text, fileName, speed, frequency)",
+  " Creates a wav file containing the  morse code of the text.",
+  "query morseWav('test',test.wav,40,440)"
+);
+
+
+/*
+4.37.6 Operator instance
+
+*/
+Operator morseWavOP(
+  "morseWav",
+  morseWavSpec.getStr(),
+  2,
+  morseWavVM,
+  morseWavSelect,
+  morseWavTM
+);
+
+
+
   /*
   5 Creating the algebra
 
@@ -10532,6 +10888,7 @@ Operator charCodesOP(
       AddOperator(&flobInfoOP);
       AddOperator(&correctFileIdOP);
       AddOperator(&charCodesOP);
+      AddOperator(&morseWavOP);
 
 
 
