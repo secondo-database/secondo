@@ -369,7 +369,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 		
 		for (String s : strings)
 		{
-			if (!s.isEmpty())
+			if (s.length()>0)
 			{
 				result.add(s);
 			}

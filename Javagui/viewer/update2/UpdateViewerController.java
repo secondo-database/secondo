@@ -225,10 +225,10 @@ state.
 		if (e.getActionCommand() == "Create new profile")
 		{
 			String profileName = this.showInputProfileNameDialog();
-			if (profileName != null && !profileName.isEmpty())
+			if ((profileName != null) && (profileName.length()>0))
 			{
 				String relName = this.showChooseRelationDialog();
-				if (relName != null && !relName.isEmpty())
+				if ((relName != null) && (relName.length()>0))
 				{
 					// create, insert and show new load profile
 					if (this.processCommandAddRelationProfile(profileName, relName))
