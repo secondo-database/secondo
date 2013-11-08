@@ -48,7 +48,8 @@ public class RelationTableModel extends AbstractTableModel
 	private int tupleSize;
 	private int tupleCount;
 	private int[] maxContentLengths;
-	private AttributeFormatter formatter;
+	private AttributeFormatter formatter;	
+	private int state;
 		
 	/**
 	 * Constructor.
@@ -66,6 +67,7 @@ public class RelationTableModel extends AbstractTableModel
 		this.tupleSize = pRelation.getTupleSize();
 		this.tupleCount = pRelation.getTupleCount();
 		this.attributeNames = pRelation.getAttributeNames();
+		this.state = States.LOADED;
 			 
 		Reporter.debug(this.toString());
 	}
@@ -187,7 +189,11 @@ public class RelationTableModel extends AbstractTableModel
      */
     public boolean isCellEditable(int pRow, int pCol) 
 	{
-        return (pCol == 2 && !this.isSeparator(pRow));
+		if (this.state == States.UPDATE)
+		{
+			return (pCol == 2 && !this.isSeparator(pRow));
+		}
+		return false;
 	}
 	
 	/**
@@ -202,7 +208,6 @@ public class RelationTableModel extends AbstractTableModel
     /*
 	 * Method of interface AbstractTableModel.
      * Change table data.
-	 * TODO set Relation Data
      */
     public void setValueAt(Object pValue, int pRow, int pCol) 
 	{
@@ -234,6 +239,25 @@ public class RelationTableModel extends AbstractTableModel
 	public int rowToAttributeIndex(int pRow)
 	{
 		return ((pRow % (this.tupleSize+1)) - 1);
+	}
+	
+	
+	public int toRow(int pTupleIndex)
+	{
+		return (pTupleIndex * (this.tupleSize+1));
+	}
+	
+	public int toRow(int pTupleIndex, int pAttrIndex)
+	{
+		return (this.toRow(pTupleIndex) + pAttrIndex);
+	}
+	
+	/**
+	 * 
+	 */
+	public void setState(int pState)
+	{
+		this.state = pState;
 	}
 	
 	

@@ -52,13 +52,48 @@ public class AttributeFormatter
 			int indEnd = result.lastIndexOf('<');
 			result = result.substring(indStart, indEnd);
 		}
+		if (pListExpr.atomType() == ListExpr.STRING_ATOM)
+		{
+			int indStart = result.indexOf('\"')+1;
+			int indEnd = result.lastIndexOf('\"');
+			result = result.substring(indStart, indEnd);
+		}
+		
 		// TODO
 		// format Date
 			
 		return result;
 	}
 	
-
+/*
+	public String ListExprToString(ListExpr LE)
+	{
+		String result = "kein Format gefunden für Typ ";
+		
+		if(LE == null || LE.listLength() != 2 || 
+		    LE.first().atomType != ListExpr.SYMBOL_ATOM)
+		{
+			
+		}
+		if(LE.first().atomType())
+		{
+			result = LE.stringValue();
+		}
+		}
+		
+        return result;
+	}
+	
+	public ListExpr StringToListExpr(String type, String value)
+	{
+		
+		if(value.length()>tools.Environment.MAX_STRING_LENGTH)
+			return null;
+		if(value.indexOf("\"")>=0)
+			return null;
+		return ListExpr.stringAtom(value);
+	}
+	
 	/** Checks whether this is a simple type. 
 	 * Other types are not allowed withing the current implementation
 	 * of the updateviewer.

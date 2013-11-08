@@ -137,7 +137,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 						
 		this.controller = pController;
 		
-		this.addComponentListener(this.controller);
+		//this.addComponentListener(this.controller);
 
 		this.getContentPane().setLayout(new BorderLayout());
 		this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);

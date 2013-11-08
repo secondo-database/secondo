@@ -113,6 +113,19 @@ public class Change {
 				&& this.attributeName.equals(pChange.getAttributeName()));
 	}
 	
+	
+	public void setNewValue(String pValue)
+	{
+		this.newValue = pValue;
+	}
+	
+	
+	public void setOldValue(String pValue)
+	{
+		this.oldValue = pValue;
+	}
+	
+	
 	public String toString()
 	{
 		StringBuffer sb = new StringBuffer("[viewer.update2.Change]");

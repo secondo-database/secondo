@@ -44,7 +44,9 @@ import viewer.update.InvalidFormatException;
 This class controls the actionflow of update-operations in the 'UpdateViewer2'.
 
 */
-public class UpdateViewerController implements ActionListener, ComponentListener{
+public class UpdateViewerController implements ActionListener
+	//, ComponentListener
+{
 	
 	private CommandGenerator commandGenerator;
 	private CommandExecuter commandExecuter;
@@ -53,37 +55,30 @@ public class UpdateViewerController implements ActionListener, ComponentListener
 	private int state;	
 	private UpdateViewer2 viewer;
 	
-	
-	// The controller is always in one certain state 
-	public final static int INITIAL= 0;
-	public final static int LOADED = 1;
-	public final static int INSERT = 2;
-	public final static int DELETE = 3;
-	public final static int UPDATE = 4;
-	
 	// Name of relation which contains LoadProfiles
 	public final static String LOAD_PROFILE_RELATION = "uv2loadprofiles";
 		 		
-	//initializes the controller
-	public UpdateViewerController(UpdateViewer2 viewer){
+	/**
+	 * Constructor
+	 */
+	public UpdateViewerController(UpdateViewer2 viewer)
+	{
 		this.viewer = viewer;
 		this.commandGenerator = new CommandGenerator();
 		this.commandExecuter = new CommandExecuter();
 		this.loadDialog = new LoadDialog(this);
 		this.loadProfile = null;
-		this.state = INITIAL;
+		this.state = States.INITIAL;
 		
 	}
 	
-/*
-If any of the possible actions of the viewer was chosen, this method is called and decides 
-according to the current state, which action shall be executed and what shall be the next
-state.
-
-*/
+	/**
+	 * Reacts on user actions in UpdateViewer2 and LoadDialog.
+	 * Sets the next state.
+	 */
 	public void actionPerformed(ActionEvent e)
 	{
-		// UpdateViewer2-Window
+		// UpdateViewer2 window
 		if (e.getActionCommand() == "Load")
 		{
 			this.showLoadDialog();
@@ -92,119 +87,77 @@ state.
 		if (e.getActionCommand() == "Clear")
 		{
 			this.viewer.clear();
-			if (state == INSERT)
+			if (state == States.INSERT)
 			{
 				//viewer.removeInsertRelation();
 			}
 			
-			state = INITIAL;
-			viewer.setSelectionMode(INITIAL);
+			state = States.INITIAL;
+			viewer.setSelectionMode(States.INITIAL);
 			return;
 		}
 		if (e.getActionCommand() == "Insert")
 		{
-			if (state == INSERT)
+			if (state == States.INSERT)
 			{ // User wants to insert one more tuple
 				viewer.getCurrentRelationPanel().takeOverLastEditing(false);
 				viewer.getCurrentRelationPanel().addInsertTuple();
 				return;
 			}
-			state = INSERT;
-			viewer.setSelectionMode(INSERT);
+			state = States.INSERT;
+			viewer.setSelectionMode(States.INSERT);
 			viewer.getCurrentRelationPanel().showInsertRelation();
 			return;
 		}
 		if (e.getActionCommand() == "Delete")
 		{
-			state = DELETE;
-			viewer.setSelectionMode(DELETE);
+			state = States.DELETE;
+			viewer.setSelectionMode(States.DELETE);
 			return;
 		}
 		if (e.getActionCommand() == "Update")
 		{
-			state = UPDATE;
-			viewer.setSelectionMode(UPDATE);
+			state = States.UPDATE;
+			viewer.setSelectionMode(States.UPDATE);
 			return;
 		}
 		if (e.getActionCommand() == "Reset")
 		{
-			if(state == INSERT)
-			{
-				if (! viewer.getCurrentRelationPanel().removeLastInsertTuple())
-				{
-					state = LOADED;
-					viewer.getCurrentRelationPanel().showOriginalRelation();
-					viewer.setSelectionMode(LOADED);
-				}
-			}
-			if(state == UPDATE)
-			{
-				viewer.getCurrentRelationPanel().resetUpdates();
-				state = LOADED;
-				viewer.setSelectionMode(LOADED);
-				
-				/* undo functionality */
-				/*	if (! viewer.resetLastUpdate()){
-				 state = LOADED;
-				 viewer.showOriginalRelation();
-				 viewer.setSelectionMode(LOADED);
-				 }
-				 */
-       
-			}
-			if(state == DELETE)
-			{
-				if (! viewer.getCurrentRelationPanel().resetDeleteSelections())
-				{
-					state = LOADED;
-					viewer.getCurrentRelationPanel().showOriginalRelation();
-					viewer.setSelectionMode(LOADED);
-				}
-			}
-			
+			this.processCommandReset();
+			state = States.LOADED;
+			viewer.setSelectionMode(States.LOADED);
+			viewer.getCurrentRelationPanel().showOriginalRelation();
+
 			return;
 		}
 		if (e.getActionCommand() == "Commit")
 		{
-			boolean result = false;
-			if(state == INSERT)
-			{
-				// TODO
-			}
-			if(state == DELETE)
-			{
-				result = this.executeDelete(this.viewer.getCurrentRelationPanel().getName());
-			}
-			if(state == UPDATE)
-			{
-				result = this.executeUpdate();
-			}
-			if ( result )
-			{
-				state = LOADED;
-				this.viewer.setSelectionMode(LOADED);
-			}
+			this.processCommandCommit();
+			this.state = States.LOADED;
+			this.viewer.setSelectionMode(States.LOADED);
+			this.viewer.getCurrentRelationPanel().clearChanges();
+			
 			return;
 		}
 		
 		if (e.getActionCommand() == "Undo")
 		{
-			if(state == INSERT)
+			if(state == States.INSERT)
 			{
 				// TODO
 			}
-			if(state == UPDATE)
+			if(state == States.UPDATE)
 			{
 				/* undo functionality */
 				/*	if (! viewer.resetLastUpdate()){
-				 state = LOADED;
+				 state = States.LOADED;
 				 viewer.showOriginalRelation();
 				 viewer.setSelectionMode(LOADED);
 				 }
 				 */
 				
 			}
-			if(state == DELETE)
+			if(state == States.DELETE)
 			{
 				// TODO
 			}
@@ -217,6 +170,8 @@ state.
 		{
 			if (this.processCommandLoad())
 			{
+				state = States.LOADED;
+				this.viewer.setSelectionMode(States.LOADED);
 				this.loadDialog.setVisible(false);
 			}
 			return;
@@ -433,7 +388,7 @@ state.
 		
 		List<String> updateCommands;
 		
-		Map<Integer, HashMap<String, Change>> changedTuples = rp.getChangedTuples();
+		Map<Integer, HashMap<String, Change>> changedTuples = rp.getUpdateTuples();
 		
 		if (changedTuples.isEmpty())
 		{
@@ -659,6 +614,36 @@ state.
 		}		
 	}
 	
+	
+	/**
+	 *
+	 */
+	public boolean processCommandCommit()
+	{
+		boolean result = false;
+		
+		switch (state)
+		{
+			case States.INSERT:
+			{
+				result = this.executeInsert(this.viewer.getCurrentRelationPanel().getName());
+				break;
+			}
+			case States.DELETE:
+			{
+				result = this.executeDelete(this.viewer.getCurrentRelationPanel().getName());
+				break;
+			}
+			case States.UPDATE:
+			{
+				result = this.executeUpdate();
+				break;
+			}
+			default: break;
+		}
+		return result;
+	}
+	
 	/**
 	 * Loads all relations of the currently selected LoadProfile from database
 	 * and shows them in the viewer.
@@ -690,8 +675,8 @@ state.
 		}
 		
 		this.viewer.showRelations();
-		this.viewer.setSelectionMode(LOADED);
-		this.state = LOADED;
+		this.viewer.setSelectionMode(States.LOADED);
+		this.state = States.LOADED;
 		return true;		
 	}
 	
@@ -741,6 +726,30 @@ state.
 		}		
 	}
 	
+	/**
+	 * 
+	 */
+	private boolean processCommandReset()
+	{
+		boolean result = true;
+		
+		switch(this.state)
+		{
+			case States.INSERT:
+				result = this.viewer.getCurrentRelationPanel().removeLastInsertTuple();
+				break;
+			case States.UPDATE:
+				result = this.viewer.getCurrentRelationPanel().resetUpdates();
+				break;
+			case States.DELETE:
+				result = this.viewer.getCurrentRelationPanel().resetDeleteSelections();
+				break;
+			default:
+				break;
+		}
+		
+		return result;
+	}
 
 	
 	/**
@@ -777,7 +786,9 @@ state.
 		return result;
 	}
 	
-	
+	/**
+	 * Shows input dialog with list of relations in open database.
+	 */
 	private String showChooseRelationDialog()
 	{
 		String result = "";
@@ -832,8 +843,8 @@ state.
 		
 		if(!loaded)
 		{
-			this.state = INITIAL;
-			this.viewer.setSelectionMode(INITIAL);
+			this.state = States.INITIAL;
+			this.viewer.setSelectionMode(States.INITIAL);
 			this.showErrorDialog(commandExecuter.getErrorMessage().toString());			
 		}
 		else
@@ -851,21 +862,21 @@ state.
     
 	/**
 	 * Invoked when the components size changes.
-	*/
+
 	public void componentResized(ComponentEvent e){
 		// TODO
 	}	
-	
+		*/
     /**
 	 * Invoked when the components position changes.
-	 */
+
 	public void componentMoved(ComponentEvent e){
 		// TODO
 	}
-	
+		*/
 	/**
 	 * Invoked when the component has been made visible.
-	 */
+
 	public void componentShown(ComponentEvent e)
 	{
 		if (e.getSource() instanceof UpdateViewer2)
@@ -874,14 +885,14 @@ state.
 
 		}
 	}	
-	
+		 */
 	/**
 	 * Invoked when the component has been made invisible. 
-	 */
+
 	public void componentHidden(ComponentEvent e){
 		// TODO
 	}
-	
+	*/	
 	
 	
 }
