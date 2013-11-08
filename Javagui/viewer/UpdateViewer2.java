@@ -125,7 +125,7 @@ public class UpdateViewer2 extends SecondoViewer {
 		this.tabbedPane = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
 		this.add(tabbedPane, BorderLayout.CENTER);
 
-		this.setSelectionMode(UpdateViewerController.INITIAL);
+		this.setSelectionMode(States.INITIAL);
 	}
 	
 	/**
@@ -152,11 +152,12 @@ public class UpdateViewer2 extends SecondoViewer {
 	
 	/**
 	 * Returns list index of currently active RelationPanel.
-	 */	
 	public int getCurrentRelationIndex()
 	{
 		return this.tabbedPane.getSelectedIndex();
 	}
+	 */	
+	
 	
 	/**
 	 * Returns the currently active RelationPanel.
@@ -222,9 +223,12 @@ public class UpdateViewer2 extends SecondoViewer {
 	 This method assures only the actually allowed actions can be executed or chosen.	 
 	 
 	 */
-	public void setSelectionMode(int selectMode) {
-		switch (selectMode) {
-			case UpdateViewerController.INITIAL: {
+	public void setSelectionMode(int selectMode) 
+	{
+		switch (selectMode) 
+		{
+			case States.INITIAL: 
+			{
 				insert.setBackground(Color.LIGHT_GRAY);
 				delete.setBackground(Color.LIGHT_GRAY);
 				update.setBackground(Color.LIGHT_GRAY);
@@ -237,7 +241,8 @@ public class UpdateViewer2 extends SecondoViewer {
 				search.setEnabled(false);
 				break;
 			}
-			case UpdateViewerController.LOADED: {
+			case States.LOADED: 
+			{
 				insert.setBackground(Color.LIGHT_GRAY);
 				delete.setBackground(Color.LIGHT_GRAY);
 				update.setBackground(Color.LIGHT_GRAY);
@@ -248,18 +253,22 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(false);
 				commit.setEnabled(false);
 				search.setEnabled(true);
+				getCurrentRelationPanel().setMode(selectMode);
 				break;
 			}
-			case UpdateViewerController.INSERT: {
+			case States.INSERT: 
+			{
 				insert.setBackground(Color.YELLOW);
 				delete.setEnabled(false);
 				update.setEnabled(false);
 				reset.setEnabled(true);
 				commit.setEnabled(true);
 				search.setEnabled(true);
+				getCurrentRelationPanel().setMode(selectMode);
 				break;
 			}
-			case UpdateViewerController.DELETE: {
+			case States.DELETE: 
+			{
 				delete.setBackground(Color.YELLOW);
 				insert.setEnabled(false);
 				delete.setEnabled(false);
@@ -267,9 +276,11 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(true);
 				commit.setEnabled(true);
 				search.setEnabled(true);
+				getCurrentRelationPanel().setMode(selectMode);
 				break;
 			}
-			case UpdateViewerController.UPDATE: {
+			case States.UPDATE: 
+			{
 				update.setBackground(Color.YELLOW);
 				insert.setEnabled(false);
 				delete.setEnabled(false);
@@ -277,6 +288,7 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(true);
 				commit.setEnabled(true);
 				search.setEnabled(true);
+				getCurrentRelationPanel().setMode(selectMode);
 				break;
 			}
 			default:
