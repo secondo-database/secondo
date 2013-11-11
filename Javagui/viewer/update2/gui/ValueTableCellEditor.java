@@ -22,6 +22,8 @@ package  viewer.update2.gui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.InputMethodListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 import javax.swing.border.Border;
 import javax.swing.BorderFactory;
@@ -30,6 +32,9 @@ import javax.swing.AbstractCellEditor;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.table.TableCellEditor;
+
+import viewer.update2.RelationTableModel;
+
 
 /**
  * TableCellEditor for the attribute column of the relation table.
@@ -46,8 +51,23 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		this.textArea.setLineWrap(true);
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
-		
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
+		
+		// TODO
+		// set highlighting color
+		// set font
+		
+		
+		// insert line break on ENTER Key
+		this.textArea.addKeyListener(new KeyAdapter(){
+								public void keyPressed(KeyEvent event){
+								if(event.getKeyCode()==KeyEvent.VK_ENTER){
+									 textArea.replaceSelection(System.getProperty("line.separator"));
+								}
+								}
+								});
+		
+
 	}
 	
 	public Object getCellEditorValue()
@@ -74,12 +94,21 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		if (pSelected)
 		{
 			this.textArea.setBackground(new Color(210, 230, 255));
-		} else	{
-			this.textArea.setBackground(Color.WHITE);
+		} 
+		else {
+			if (((RelationTableModel)pTable.getModel()).isValueChanged(pRow, pColumn))
+			{
+				this.textArea.setBackground(new Color(210, 230, 255));
+			}
+			else{
+				this.textArea.setBackground(Color.WHITE);
+			}
 		}
 		
-		this.textArea.setBorder(BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground()));
-
+		this.textArea.setBorder(BorderFactory.createCompoundBorder(this.borderFocussed, 
+				BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));
+		
+		//this.textArea.setBorder(BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground()));
 		
 		// set text and correct row height according to textarea content
 		int width = pTable.getColumnModel().getColumn(2).getWidth();
@@ -90,11 +119,5 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		//this.textArea.setToolTipText("test");
 		return this.textArea;
 	}
-	
-	// TODO
-	// Method to set highlighting color
-	// Method to set font
-	
-	
 }
 

@@ -45,7 +45,6 @@ This class controls the actionflow of update-operations in the 'UpdateViewer2'.
 
 */
 public class UpdateViewerController implements ActionListener
-	//, ComponentListener
 {
 	
 	private CommandGenerator commandGenerator;
@@ -69,7 +68,6 @@ public class UpdateViewerController implements ActionListener
 		this.loadDialog = new LoadDialog(this);
 		this.loadProfile = null;
 		this.state = States.INITIAL;
-		
 	}
 	
 	/**
@@ -92,8 +90,7 @@ public class UpdateViewerController implements ActionListener
 				//viewer.removeInsertRelation();
 			}
 			
-			state = States.INITIAL;
-			viewer.setSelectionMode(States.INITIAL);
+			this.setState(States.INITIAL);
 			return;
 		}
 		if (e.getActionCommand() == "Insert")
@@ -104,64 +101,44 @@ public class UpdateViewerController implements ActionListener
 				viewer.getCurrentRelationPanel().addInsertTuple();
 				return;
 			}
-			state = States.INSERT;
-			viewer.setSelectionMode(States.INSERT);
+			this.setState(States.INSERT);
 			viewer.getCurrentRelationPanel().showInsertRelation();
 			return;
 		}
 		if (e.getActionCommand() == "Delete")
 		{
-			state = States.DELETE;
-			viewer.setSelectionMode(States.DELETE);
+			this.setState(States.DELETE);
 			return;
 		}
 		if (e.getActionCommand() == "Update")
 		{
-			state = States.UPDATE;
-			viewer.setSelectionMode(States.UPDATE);
+			this.setState(States.UPDATE);
 			return;
 		}
 		if (e.getActionCommand() == "Reset")
 		{
 			this.processCommandReset();
-			state = States.LOADED;
-			viewer.setSelectionMode(States.LOADED);
-			viewer.getCurrentRelationPanel().showOriginalRelation();
-
+			this.setState(States.LOADED);
 			return;
 		}
 		if (e.getActionCommand() == "Commit")
 		{
 			this.processCommandCommit();
-			this.state = States.LOADED;
-			this.viewer.setSelectionMode(States.LOADED);
-			this.viewer.getCurrentRelationPanel().clearChanges();
-			
+			this.setState(States.LOADED);
 			return;
 		}
 		
 		if (e.getActionCommand() == "Undo")
 		{
-			if(state == States.INSERT)
-			{
-				// TODO
-			}
-			if(state == States.UPDATE)
-			{
-				/* undo functionality */
-				/*	if (! viewer.resetLastUpdate()){
-				 state = States.LOADED;
-				 viewer.showOriginalRelation();
-				 viewer.setSelectionMode(LOADED);
-				 }
-				 */
-				
-			}
-			if(state == States.DELETE)
-			{
-				// TODO
-			}
+			this.processCommandUndo();
+			return;
 		}	
+		if (e.getActionCommand() == "Search")
+		{
+			Reporter.showError("not yet implemented");
+			//this.processCommandSearch();
+			return;
+		}
 		
 		//
 		// LoadDialog		
@@ -222,12 +199,6 @@ public class UpdateViewerController implements ActionListener
 					this.loadDialog.showProfiles();
 				}
 			}
-			return;
-		}
-			
-		if (e.getActionCommand() == "Save relation")
-		{
-			// TODO
 			return;
 		}
 			
@@ -458,7 +429,8 @@ public class UpdateViewerController implements ActionListener
 									   + "already been deleted by a different user!");
 		}
 		
-		//return (loadRelation(pRelName));// the new state is set in this method
+		this.viewer.getCurrentRelationPanel().clearUpdateChanges();
+		//return (this.loadRelation(rp.getName()));// the new state is set in this method
 		 
 		return true;
 	}
@@ -492,6 +464,7 @@ public class UpdateViewerController implements ActionListener
 		}
 		return result;
 	}
+	
 	
 	/*	
 	 * Tries to get the LoadProfiles from a relation with name LOAD_PROFILE_RELATION. 
@@ -576,7 +549,7 @@ public class UpdateViewerController implements ActionListener
 		if (commandExecuter.executeCommand(command.toString(),SecondoInterface.EXEC_COMMAND_SOS_SYNTAX))
 		{
 			ListExpr relationLE = commandExecuter.getResultList();
-			Reporter.debug("loadRelation: " + relationLE.toString());
+			//Reporter.debug("loadRelation: " + relationLE.toString());
 
 			this.viewer.setRelationPanel(pRelName, relationLE);
 			//retrieveIndices(pRelName);
@@ -739,7 +712,7 @@ public class UpdateViewerController implements ActionListener
 				result = this.viewer.getCurrentRelationPanel().removeLastInsertTuple();
 				break;
 			case States.UPDATE:
-				result = this.viewer.getCurrentRelationPanel().resetUpdates();
+				result = this.viewer.getCurrentRelationPanel().resetUpdateChanges();
 				break;
 			case States.DELETE:
 				result = this.viewer.getCurrentRelationPanel().resetDeleteSelections();
@@ -750,7 +723,42 @@ public class UpdateViewerController implements ActionListener
 		
 		return result;
 	}
+	
+	
+	/**
+	 * Retrieves hits for keyword in search field and displays result in UpdateViewer2.
+	 */
+	private void processCommandSearch()
+	{
+		// read keyword from searchfield
+		String key = this.viewer.getSearchKey();
+		List<SearchHit> hitlist = this.retrieveSearchHits(key);
+		this.viewer.showSearchResult(hitlist);
+	}
 
+	
+	public void processCommandUndo()
+	{
+		if(this.state == States.INSERT)
+		{
+			// TODO
+			this.showErrorDialog("not yet implemented");
+		}
+		if(this.state == States.UPDATE)
+		{
+			/* undo functionality */
+			if (this.viewer.getCurrentRelationPanel().undoLastUpdateChange())
+			{
+				// TODO: all changes have been undone, maybe disable Undo button?
+			}
+		}
+		if(this.state == States.DELETE)
+		{
+			// TODO
+			this.showErrorDialog("not yet implemented");
+		}
+	}
+	
 	
 	/**
 	 * Returns names of all relations in currently open database.
@@ -784,6 +792,21 @@ public class UpdateViewerController implements ActionListener
 		}
 		
 		return result;
+	}
+	
+	
+	private List<SearchHit> retrieveSearchHits(String pSearchKey)
+	{		
+		return this.viewer.getCurrentRelationPanel().retrieveSearchHits(pSearchKey);		
+	}
+	
+	/**
+	 * Sets state attribute of this controller and sets selection mode of UpdateViewer2.
+	 */
+	public void setState(int pState)
+	{
+		this.state = pState;
+		this.viewer.setSelectionMode(pState);
 	}
 	
 	/**
@@ -843,8 +866,7 @@ public class UpdateViewerController implements ActionListener
 		
 		if(!loaded)
 		{
-			this.state = States.INITIAL;
-			this.viewer.setSelectionMode(States.INITIAL);
+			this.setState(States.INITIAL);
 			this.showErrorDialog(commandExecuter.getErrorMessage().toString());			
 		}
 		else

@@ -79,6 +79,7 @@ import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
+import javax.swing.JTable;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
@@ -456,6 +457,89 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 		
 		this.repaint();
 		this.validate();
-	}	
+	}
+	
+	/**
+	 * Panel to display and edit Load Profiles for UpdateViewer2.	 
+	 */
+	private class LoadProfilePanel extends JPanel {
+		
+		private LoadProfile profile;
+		
+		private UpdateViewerController controller;
+		
+		private JPanel plButtons;
+		
+		private JButton btAddRelation;
+		
+		private JButton btEditRelation;
+		
+		private JButton btRemoveRelation;
+		
+		private JTable tbRelations;
+		
+		private RelationProfileTableModel mdlRelations;
+		
+		private JScrollPane scpRelations;
+		
+		
+		/**
+		 * Constructor.
+		 */
+		LoadProfilePanel(UpdateViewerController pController) 
+		{
+			this.controller = pController;
+			
+			// buttons
+			this.plButtons = new JPanel();
+			this.plButtons.setLayout(new GridLayout(7, 1));
+			this.btAddRelation = new JButton("Add relation");
+			this.btAddRelation.addActionListener(controller);
+			this.plButtons.add(btAddRelation);
+			this.btRemoveRelation = new JButton("Remove relation");
+			this.btRemoveRelation.addActionListener(controller);
+			this.plButtons.add(btRemoveRelation);
+			
+			// relation table
+			this.tbRelations = new JTable();
+			this.scpRelations = new JScrollPane(tbRelations);
+			//this.tbRelations.setFillsViewportHeight(true);
+			
+			// add all components
+			this.setLayout(new BorderLayout());				
+			this.add(plButtons, BorderLayout.EAST);
+			this.add(scpRelations, BorderLayout.CENTER);
+		}
+		
+		public String getCurrentRelationProfileName()
+		{
+			String result = null;
+			int rowIndex = tbRelations.getSelectedRow();
+			if (this.profile != null && rowIndex > -1)
+			{
+				result = (String)this.tbRelations.getValueAt(rowIndex, 0);
+			}
+			return result;
+		}
+		
+		/**
+		 * Display the LoadProfile
+		 */
+		public void showLoadProfile(LoadProfile pLoadProfile)
+		{
+			if (pLoadProfile != null)
+			{
+				this.profile = pLoadProfile;
+				this.mdlRelations = new RelationProfileTableModel(pLoadProfile);
+				this.tbRelations.setModel(mdlRelations);
+				
+				this.validate();
+				this.repaint();
+			}
+		}
+		
+	}
+	
+	
 }
 

@@ -31,6 +31,8 @@ public class Change {
 	
 	private int attributeIndex;
 
+	private int rowIndex;
+
 	private String attributeName;
 
 	private String attributeType;
@@ -43,12 +45,13 @@ public class Change {
 	/**
 	 * Constructor expects tuple index and SecondoObject representing the tuple.
 	 */
-	public Change(int pTupleIndex, int pAttrIndex, 
+	public Change(int pTupleIndex, int pAttrIndex, int pRowIndex,
 					String pAttrName, String pAttrType,
 					String pOldValue, String pNewValue) 
 	{
 		this.tupleIndex = pTupleIndex;
 		this.attributeIndex = pAttrIndex;
+		this.rowIndex = pRowIndex;
 		this.attributeName = pAttrName;
 		this.attributeType = pAttrType;
 		this.oldValue = pOldValue;
@@ -69,6 +72,14 @@ public class Change {
 	public int getAttributeIndex()
 	{
 		return this.attributeIndex;
+	}
+	
+	/**
+	 * Returns attribute index.
+	 */
+	public int getRowIndex()
+	{
+		return this.rowIndex;
 	}
 	
 	/**

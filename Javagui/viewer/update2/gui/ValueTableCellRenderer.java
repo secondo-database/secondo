@@ -29,6 +29,9 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.table.DefaultTableCellRenderer;
 
+import viewer.update2.RelationTableModel;
+
+
 /**
  * TableCellRenderer for the attribute column of the relation table.
  */
@@ -44,7 +47,6 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel im
 		this.textArea.setLineWrap(true);
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
-		
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
 	}
 	
@@ -60,20 +62,33 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel im
 		//Component c = super.getTableCellRendererComponent(pTable, pValue,
 		//												  pSelected, pFocussed, pRow, pColumn);
 		
+		// background
 		if (pSelected)
 		{
 			this.textArea.setBackground(new Color(210, 230, 255));
-		} else	{
-			this.textArea.setBackground(Color.WHITE);
+		} 
+		else {
+			if (((RelationTableModel)pTable.getModel()).isValueChanged(pRow, pColumn))
+			{
+				this.textArea.setBackground(new Color(210, 230, 255));
+			}
+			else{
+				this.textArea.setBackground(Color.WHITE);
+			}
 		}
 		
+		// border
 		if (pFocussed)
 		{
 			this.textArea.setBorder(BorderFactory.createCompoundBorder(this.borderFocussed, 
 								BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));
-		} else	{
+		} else	
+		{
 			this.textArea.setBorder(BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground()));
 		}
+		
+
+		
 		
 		// set text and correct row height according to textarea content
 		int width = pTable.getColumnModel().getColumn(pColumn).getWidth();

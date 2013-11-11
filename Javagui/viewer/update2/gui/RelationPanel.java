@@ -48,7 +48,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
-
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -60,6 +59,8 @@ import java.util.ListIterator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -121,8 +122,9 @@ import viewer.update2.*;
  * Panel that contains a table used to display one relation sequentially,
  * i.e. as a sequence of triples (tuple ID, attribute name, attribute value).
  */
-public class RelationPanel extends JPanel implements TableModelListener, 
-														PropertyChangeListener
+public class RelationPanel extends JPanel implements 
+	TableModelListener, 
+	PropertyChangeListener
 {
 	
 	private String name;
@@ -142,9 +144,6 @@ public class RelationPanel extends JPanel implements TableModelListener,
 
 	// shows the relation currently edited
 	private JTable insertTable;	
-
-	// contains changes in chronological order
-	private List<Change> changes;
 	
 	private ValueTableCellRenderer tableCellRenderer;
 	private ValueTableCellEditor tableCellEditor;
@@ -162,7 +161,6 @@ public class RelationPanel extends JPanel implements TableModelListener,
 		this.name = pRelationName;
 		this.setLayout(new BorderLayout());		
 		this.controller = pController;
-		this.changes = new ArrayList<Change>();
 		this.tableCellRenderer = new ValueTableCellRenderer();
 		this.tableCellEditor = new ValueTableCellEditor();
 	}
@@ -172,7 +170,8 @@ public class RelationPanel extends JPanel implements TableModelListener,
 	 Is called when yet at least one insert-tuple was edited	and another one shall be
 	 edited. Takes over the already edited insert-tuples and shows one more empty tuple. 	 
 	 */
-	public void addInsertTuple() {
+	public void addInsertTuple() 
+	{
 		// append empty editable tuple fields
 		/*
 		this.remove(insertScroll);
@@ -201,7 +200,8 @@ public class RelationPanel extends JPanel implements TableModelListener,
 	/*
 	 * Add empty row for inserting tuple.
 	 */
-	public void addInsertRow() {
+	public void addInsertRow() 
+	{
 		// TODO
 	}
 	
@@ -222,17 +222,9 @@ public class RelationPanel extends JPanel implements TableModelListener,
 		
 	}
 	
-	/**
-	 *	Removes all changes. Returns true if any changes where deleted.
-	 */
-	public boolean clearChanges()
+	public boolean clearUpdateChanges()
 	{
-		if (!changes.isEmpty())
-		{
-			this.changes.clear();
-			return true;
-		}
-		return false;
+		return this.getTableModel().clearChanges();
 	}
 	
 	/**
@@ -295,25 +287,23 @@ public class RelationPanel extends JPanel implements TableModelListener,
 	}
 
 	
-	
-	/**
-	 * Creates a JTable from the parameter LE. If LE doesn't represent a relation 'null' will be
-	 * returned. The members that represent the original relation-data and the actual relation-data
-	 * are initialized. The IDs of the tuples of the relation are stored in a seperate vector	 
-	 *
+	/*
+	 * If the paramater 'relation' is really a relation it will be shown in the viewer. 
+	 * Otherwise false will be returned.	 
 	 */
-	public boolean createTableFrom(ListExpr LE) 
-	{
-		boolean result = true;
-		SecondoObject relationSO = new SecondoObject(this.getName(), LE);
+	public boolean createFromLE(ListExpr pRelationLE) 
+	{		
+		SecondoObject relationSO = new SecondoObject(this.getName(), pRelationLE);
 		this.relation = new Relation();
 		this.relation.readFromSecondoObject(relationSO);
 		
 		try
 		{
-			RelationTableModel relationTM = new RelationTableModel(relation);
-			this.relTable = new JTable(relationTM);
-	
+			RelationTableModel rtm = new RelationTableModel(relation);
+			this.relTable = new JTable(rtm);
+			this.relTable.setRowSelectionAllowed(false);
+			this.relTable.setColumnSelectionAllowed(false);
+			
 			// suppress calling renderer every time the mouse is moved 
 			ToolTipManager.sharedInstance().unregisterComponent(relTable);
 			
@@ -339,176 +329,37 @@ public class RelationPanel extends JPanel implements TableModelListener,
 			
 			// set listeners
 			this.relTable.addPropertyChangeListener(this);
+			rtm.addTableModelListener(this);
 			
 			/*
-			 this.relTable.getModel().addTableModelListener(this);
-			
-			this.relTable.addComponentListener(new ComponentListener() {
-									   public void componentHidden(ComponentEvent e) {}
-									   public void componentMoved(ComponentEvent e) {}
-									   
-									   public void componentResized(ComponentEvent e) {
-											   correctRowHeight();
-									   }
-									   
-									   public void componentShown(ComponentEvent e) {
-											   correctRowHeight();
-									   }
-									   });			 
+			 this.relTable.addComponentListener(new ComponentListener() {
+			 public void componentHidden(ComponentEvent e) {}
+			 public void componentMoved(ComponentEvent e) {}
+			 
+			 public void componentResized(ComponentEvent e) {
+			 correctRowHeight();
+			 }
+			 
+			 public void componentShown(ComponentEvent e) {
+			 correctRowHeight();
+			 }
+			 });			 
 			 */
 			
 			this.relScroll = new JScrollPane(relTable);
-			this.add(relScroll);
+			this.add(relScroll);			
+			relScroll.setViewportView(relTable);
+			
+			this.repaint();
+			this.validate();
 		}
 		catch(InvalidRelationException e)
 		{
 			Reporter.showError(e.getMessage());
+			return false;
 		}
-		
-		return result;
+		return true;
 	}
-	
-	
-	/*
-	 * Returns the relation data.	 	 
-	 */
-	public Relation getRelation()
-	{
-		return this.relation;
-	}
-	
-	
-	/*
-	 * Returns all changes in chronological order.	 
-	 */	
-	public List<Change> getChanges()
-	{
-		return this.changes;
-	}	
-	
-	/*
-	 * Returns only valid (=last change of attribute) changes mapped by tuple index and attribute name.
-	 * Changes include original values.
-	 */	
-	public Map<Integer, HashMap<String, Change>> getUpdateTuples()
-	{
-		Map<Integer, HashMap<String, Change>> result = new HashMap<Integer, HashMap<String, Change>>();
-		
-		Integer tid;
-		String attrName;
-		HashMap<String, Change> mapTuple;		
-		
-		for (Change ch : this.changes)
-		{
-			tid = ch.getTupleIndex();
-			attrName = ch.getAttributeName();
-			
-			mapTuple = result.get(tid);
-			if (mapTuple == null)
-			{
-				mapTuple = new HashMap<String, Change>();
-			}
-			mapTuple.put(attrName, ch);	
-			
-			if (!mapTuple.isEmpty())
-			{
-				Change chOld = mapTuple.get(attrName);
-				if (chOld == null && ch.changesSameObject(chOld))
-				{
-					ch.setOldValue(chOld.getOldValue());
-				}
-				mapTuple.put(attrName, ch);
-			}
-			
-			result.put(tid, mapTuple);
-		}
-		
-		// only debugging
-		for (Integer i : result.keySet())
-		{
-			for (String s : result.get(i).keySet())
-			{
-				Reporter.debug("RelationPanel.getUpdateTuples result is :" + result.get(i).get(s).toString());
-			}
-		}
-		return result;
-	}
-	
-	/**
-	 * Returns a list of changes, that contain newest value and original value of each changed cell. 
-	 */
-	public List<Change> getChangesForReset()
-	{
-		List<Change> result = new ArrayList<Change>();
-		Map<Integer, HashMap<String, Change>> updateTuples = new HashMap<Integer, HashMap<String, Change>>();
-
-		for (Integer i : updateTuples.keySet())
-		{
-			for (String s : updateTuples.get(i).keySet())
-			{
-				result.add(updateTuples.get(i).get(s));
-			}
-		}
-		return result;
-	}
-	
-	
-	/*
-	 For the tuple at position 'index' returns all indices of the attributes that have
-	 been changed inside this tuple.	 
-	 	
-	public int[] getChangedAttributes(int index) 
-	{
-		boolean[] attrs = changedCells[index];
-		Vector changedAttrs = new Vector();
-		for (int i = 0; i < changedCells[index].length; i++) {
-			if (changedCells[index][i]) {
-				changedAttrs.add(new Integer(i));
-			}
-		}
-		int[] result = new int[changedAttrs.size()];
-		for (int i = 0; i < result.length; i++) {
-			result[i] = ((Integer) changedAttrs.get(i)).intValue();
-		}
-		return result;
-	}	 
-	*/
-	
-	/*
-	 * Returns values to be updated.
-
-	public List<SecondoObject> getUpdateValues()
-	{
-		List<SecondoObject> result = new ArrayList<SecondoObject>();
-		
-		for (Integer index : this.getUpdateTupleIndices())
-		{
-			result.add(this.relation.getTupleAt(index));
-		}
-		
-		return result;
-	}
-	 */	
-	
-	/*
-	 * Returns indices of all values to be updated.
-
-	public List<Integer> getUpdateValueIndices()
-	{
-		List<Integer> result = new ArrayList<Integer>();
-		
-		for (Change ch : this.changes)
-		{
-			if (!result.contains(ch.getIndex()))
-			{
-				result.add(ch.getIndex());
-			}
-		}
-		
-		return result;
-	}
-	 */
-	
 	
 	
 	/*
@@ -546,6 +397,14 @@ public class RelationPanel extends JPanel implements TableModelListener,
 		return this.name;
 	}
 	
+	/*
+	 * Returns the relation data.	 	 
+	 */
+	public Relation getRelation()
+	{
+		return this.relation;
+	}
+	
 	
 	/**
 	 * Returns RelationTabelModel of currently displayed Table. (Convenience shortcut)
@@ -557,14 +416,12 @@ public class RelationPanel extends JPanel implements TableModelListener,
 	
 	
 	/*
-	 Returns the original values of the tuple at position 'index'.	 	 
-	public String[] getOriginalTuple(int index) {
-		return originalData[index];
+	 * Returns values to be updated.
+	 */	
+	public Map<Integer, HashMap<String, Change>> getUpdateTuples()
+	{
+		return this.getTableModel().getChangesForUpdate();
 	}
-	 */
-
-
-
 	
 	
 	/** Starts the editing the specified cell within the insert table **/
@@ -581,71 +438,66 @@ public class RelationPanel extends JPanel implements TableModelListener,
 	}
 	
 	/**
-	 * Saves old value of currently active editable table cell.
+	 * Reacts on PropertyChangeEvent indicating that table cells were edited.
 	 */
-	private void processEditingStarted()
+	public void processEditing()
 	{
-		this.oldEditCellValue = (String)this.tableCellEditor.getCellEditorValue();
-		
-		//Reporter.debug("processEditingStarted: old value in cell is " + this.relTable.getSelectedRow() 
-		//			   + ", " + this.relTable.getSelectedColumn() + this.oldEditCellValue);		
-	}
-	
-	
-	/**
-	 * Updates table model with new value and creates a Change
-	 * if user actually edited the table cell.
-	 */
-	private void processEditingStopped()
-	{
-		int row = this.relTable.getEditingRow();
-		int col = this.relTable.getEditingColumn();
-
-		String newValue = (String)this.tableCellEditor.getCellEditorValue();
-		
-		if (!newValue.equals(this.oldEditCellValue))
+		if (this.relTable.isEditing())
 		{
-			// cell value was changed -> write change back into table model
-			this.relTable.setValueAt(newValue, row, col);
+			// Editing started
+			// Save old value of currently active editable table cell.
+			this.oldEditCellValue = (String)this.tableCellEditor.getCellEditorValue();
 			
-			// create Change for update or undo actions
-			RelationTableModel rtm = (RelationTableModel)this.relTable.getModel();
-			int tupleIndex = Integer.valueOf((String)rtm.getValueAt(row,0));
-			int attributeIndex = rtm.rowToAttributeIndex(row);
-			String attributeName = this.relation.getAttributeNames().get(attributeIndex);
-			String attributeType = this.relation.getAttributeTypes().get(attributeIndex);
+			Reporter.debug("processEditingStarted: saved old value in cell (" 
+						   + this.relTable.getSelectedRow() + ", " + this.relTable.getSelectedColumn() + ")" );		
+		}
+		else
+		{
+			// Editing stopped
+			int row = this.relTable.getEditingRow();
+			int col = this.relTable.getEditingColumn();
 			
+			String newValue = (String)this.tableCellEditor.getCellEditorValue();
 			
-			Change change = new Change(tupleIndex, attributeIndex, 
-									   attributeName, attributeType, 
-									   this.oldEditCellValue, newValue);
-			
-			
-			this.changes.add(change);
-			
-			//Reporter.debug("processEditingStopped: new value of table cell (" + row + ", " + col + ") is " + newValue) ;			
+			if (!newValue.equals(this.oldEditCellValue))
+			{
+				// cell value was changed -> write change back into table model
+				this.relTable.setValueAt(newValue, row, col);
+				
+				// create Change for update or undo actions
+				RelationTableModel rtm = this.getTableModel();
+				int tupleIndex = Integer.valueOf((String)rtm.getValueAt(row,0));
+				int attributeIndex = rtm.rowToAttributeIndex(row);
+				String attributeName = this.relation.getAttributeNames().get(attributeIndex);
+				String attributeType = this.relation.getAttributeTypes().get(attributeIndex);
+				
+				
+				Change change = new Change(tupleIndex, attributeIndex, row,
+										   attributeName, attributeType, 
+										   this.oldEditCellValue, newValue);
+				
+				
+				this.getTableModel().addChange(change);
+				
+				//this.validate();
+				Reporter.debug("processEditingStopped: new value of table cell (" + row + ", " + col + ") is " + newValue) ;			
+			}
 		}
 	}
 	
 	/**
-	*  Implemention of PropertyChangeListener interface.
-	*/
+	 *  Implemention of PropertyChangeListener interface.
+	 */
 	@Override
 	public void propertyChange(PropertyChangeEvent e)
 	{
-		//  A cell has started/stopped editing
+		//  A table cell has started/stopped editing
 		if ("tableCellEditor".equals(e.getPropertyName()))
 		{
-			if (relTable.isEditing())
-			{
-				this.processEditingStarted();
-			}
-			else
-			{
-				this.processEditingStopped();
-			}
+			this.processEditing();
 		}
 	}
+	
 	
 	/*
 	 Removes the relation that could be edited to insert new tuples.	 	 
@@ -756,7 +608,8 @@ public class RelationPanel extends JPanel implements TableModelListener,
 	
 	public void relGoTo(int x, int y)
 	{
-		try{
+		try
+		{
 			relTable.editCellAt(x,y,null); 
 		} catch(Exception e){
 			Reporter.debug(e);
@@ -779,38 +632,14 @@ public class RelationPanel extends JPanel implements TableModelListener,
 		}
 	}
 	
-	/*
-	 Resets the last editited cell in updatemode to its original value.	 
-	 */
-	public boolean resetLastUpdate()
-	{
-		// TODO
-		if (!this.changes.isEmpty()) 
-		{
-			Change ch = this.changes.get(this.changes.size()-1);
-			
-			
-					/*
-			int[] lastChanged = (int[]) updatesOrdered.lastElement();
-			changedCells[lastChanged[0]][lastChanged[1]] = false;
-			changedRows.remove(changedRows.size() - 1);
-			updatesOrdered.remove(updatesOrdered.size() - 1);
-			relData[lastChanged[0]][lastChanged[1]] = originalData[lastChanged[0]][lastChanged[1]];
-					 */
-			this.repaint();
-			this.validate();
-			return true;
-		}
-		else{
-			return false;
-		}
-	}
-	
 	/* 
-	 * Resets all updates: sets table to oeiginal data and removes uncommitted changes.
+	 * Reset for Update mode:
+	 * Sets table to original data and removes uncommitted changes.
 	 */
-	public boolean resetUpdates()
+	public boolean resetUpdateChanges()
 	{
+		Reporter.debug("RelationPanel.resetUpdateChanges");
+		
 		if(this.relTable == null)
 			return false;
 		
@@ -822,18 +651,50 @@ public class RelationPanel extends JPanel implements TableModelListener,
 			this.relTable.editingStopped(new ChangeEvent(this));
 		} 
 		
-		RelationTableModel rtm = (RelationTableModel)this.relTable.getModel();
+		RelationTableModel rtm = this.getTableModel();
+		List<Change> changes = rtm.getChanges();
 		// reset table to original data
-		for(Change ch : this.getChangesForReset())
+		for(int i=changes.size()-1; i>=0; i--)
 		{
-			relTable.setValueAt(ch.getOldValue(), rtm.toRow(ch.getTupleIndex(), ch.getAttributeIndex()), 2);
+			Change ch = changes.get(i);
+			relTable.setValueAt(ch.getOldValue(), ch.getRowIndex(), 2);
+			boolean removed = rtm.removeChange(ch);
+			Reporter.debug("RelationPanel.resetUpdateChanges: reset and removed change " + ch.toString());
 		}
-		
-		this.clearChanges();
-		
+				
 		this.relTable.revalidate();
 		this.relTable.repaint();
+		this.validate();
+		this.repaint();
 		return true;
+	}
+	
+	
+	public List<SearchHit> retrieveSearchHits(String pKey)
+	{
+		List<SearchHit> result = new ArrayList<SearchHit>();
+		
+		if (pKey != null && !pKey.isEmpty() && pKey.length() > 2)
+		{
+			int colIndex = this.relTable.getColumn("Value").getModelIndex();
+			
+			for (int i = 0; i > this.relTable.getRowCount(); i++)
+			{
+				String cellValue = (String)this.relTable.getValueAt(i, colIndex);
+				Pattern pattern = Pattern.compile(pKey);
+				Matcher matcher = pattern.matcher(cellValue);
+				boolean found = matcher.find();
+				while (found)
+				{
+					SearchHit hit = new SearchHit(i, matcher.start(), matcher.start() + pKey.length());
+					result.add(hit);
+					found = matcher.find();
+				}
+			}
+		}
+		Reporter.debug("RelationPanel.retrieveSearchHits: no of hits is " + result.size());
+
+		return result;
 	}
 	
 	
@@ -842,32 +703,12 @@ public class RelationPanel extends JPanel implements TableModelListener,
 	 */
 	public void setMode(int pSelectMode)
 	{
-		switch(pSelectMode)
-		{
-			case States.LOADED: 
-			{
-				((RelationTableModel)this.relTable.getModel()).setState(States.LOADED);
-				break;
-			}
-			case States.INSERT: 
-			{
-				((RelationTableModel)this.relTable.getModel()).setState(States.INSERT);
-				break;
-			}
-			case States.DELETE: 
-			{
-				((RelationTableModel)this.relTable.getModel()).setState(States.DELETE);
-				break;
-			}
-			case States.UPDATE:
-			{
-				((RelationTableModel)this.relTable.getModel()).setState(States.UPDATE);
-				break;
-			}
-			default:
-				((RelationTableModel)this.relTable.getModel()).setState(States.LOADED);
-				break;
-		}
+		(this.getTableModel()).setState(pSelectMode);
+	}
+	
+	public void setSearchHits(List<SearchHit> pHitlist)
+	{
+		this.getTableModel().setSearchHits(pHitlist);
 	}
 	
 
@@ -903,76 +744,17 @@ public class RelationPanel extends JPanel implements TableModelListener,
 	}
 	
 	
-	
-	/*
-	 * If the paramater 'relation' is really a relation it will be shown in the viewer. 
-	 * Otherwise false will be returned.	 
-	 */
-	public boolean showNewRelation(ListExpr pRelationLE) 
+	public void tableChanged(TableModelEvent event) 
 	{
-		boolean created = createTableFrom(pRelationLE);
-		if (created) 
-		{
-			relTable.setRowSelectionAllowed(false);
-			relTable.setColumnSelectionAllowed(false);
-			TableModel model = relTable.getModel();
-			model.addTableModelListener(this);
-			relScroll.setViewportView(relTable);
-			this.repaint();
-			this.validate();
-		}
-		return created;
-	}
-	
-	/*
-	 * Shows the original relation retrieved from SECONDO. All updates that have not been
-	 * commited yet will be lost.	 
-	 */
-	public void showOriginalRelation() 
-	{
-		// TODO
-		/*
-		for (int i = 0; i < relData.length; i++) {
-			for (int j = 0; j < relData[0].length; j++) {
-				changedCells[i][j] = false;
-				changedRows.clear();
-				relData[i][j] = new String(originalData[i][j]);
-			}
-		}
-		 */
-		this.getUpdateTuples();
-		relTable.clearSelection();
-		relTable.invalidate();
-		this.repaint();
-		this.validate();
-	}
-	
-	
-	
-	/**
-	 * Method of Interface TableModelListener.
-	 * If the table was edited this method is called. Registers which cell was edited and
-	 * prepares this cell to be marked differently with the next 'repaint'.	 
-	 */
-	public void tableChanged(TableModelEvent e) 
-	{
-		// set row heights
-			
-		int row = e.getFirstRow();
-		int column = e.getColumn();
-		int[] lastChanged = {row, column};
+		Reporter.debug("RelationPanel.tableChanged: " + event.getFirstRow() + ", " + event.getColumn());
+		this.correctRowHeight();
 		
-		// TODO
-		/*
-		updatesOrdered.add(lastChanged);
-		changedCells[row][column] = true;
-		changedRows.add(new Integer(row));
-		 
-		//this.correctRowHeight();
-		 */
-		//this.repaint();
-		//this.validate();
+		this.relTable.revalidate();
+		this.relTable.repaint();
+		this.validate();
+		this.repaint();
 	}
+	
 	
 	/*
 	 The last cell the user edited before he pressed "commit" is usually not considered
@@ -1004,21 +786,38 @@ public class RelationPanel extends JPanel implements TableModelListener,
 			}
 			*/
 		}
-		
-		
-	}
+	}	
 	
-	/*
-	 Returns an array with the indices of all updated tuples.	 
-	 
-	public int[] updatedTuples() {
-		int[] updateTuples = new int[changedRows.size()];
-		for (int i = 0; i < updateTuples.length; i++) {
-			updateTuples[i] = ((Integer) changedRows.get(i)).intValue();
-		}
-		return updateTuples;
-	}
+	/**
+	 * Resets the last editited cell in updatemode to its original value.
+	 * Returns TRUE if after execution there are no more changes left to undo.
 	 */
-
+	public boolean undoLastUpdateChange()
+	{
+		boolean result = true;
+		
+		this.takeOverLastEditing(true);
+		
+		Change ch = this.getTableModel().getLastChange();
+		
+		if (ch != null)
+		{
+			relTable.setValueAt(ch.getOldValue(), ch.getRowIndex(), 2);
+			
+			this.getTableModel().removeChange(ch);
+			
+			if (this.getTableModel().getLastChange() != null)
+			{
+				result = false;
+			}
+			
+			this.relTable.revalidate();
+			this.relTable.repaint();
+			this.validate();
+			this.repaint();
+		}
+		
+		return result;
+	}
 }
 
