@@ -85,6 +85,14 @@
 //    return ret;
 //}
 //
+
+vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst);
+
+static vector<pair<Reg *, Reg *> > matchFacesLua(vector<Reg> *src,
+        vector<Reg> *dst) {
+    return _matchFacesLua(src, dst);
+}
+
 static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
         vector<Reg> *dst) {
     vector<pair<Reg *, Reg *> > ret;
@@ -207,7 +215,7 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
 //    else
 //         ps = matchFacesNull(sregs, dregs);
     
-    ps = matchFacesDistance(sregs, dregs);
+    ps = matchFacesLua(sregs, dregs);
     MFaces ret, fcs;
 
     for (unsigned int i = 0; i < ps.size(); i++) {
