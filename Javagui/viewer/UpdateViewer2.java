@@ -25,6 +25,7 @@ import gui.idmanager.IDManager;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
 
 import java.util.ArrayList;
@@ -32,9 +33,11 @@ import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
 
 import sj.lang.ListExpr;
 import tools.Reporter;
@@ -54,6 +57,8 @@ public class UpdateViewer2 extends SecondoViewer {
 	private String viewerName = "UpdateViewer2";
 	
 	private JPanel actionPanel;
+	
+	private JPanel searchPanel;
 		
 	private JButton load;
 	
@@ -67,9 +72,17 @@ public class UpdateViewer2 extends SecondoViewer {
 	
 	private JButton reset;
 	
+	private JButton undo;
+	
 	private JButton commit;
 	
 	private JButton search;
+
+	private JLabel searchLabel;
+	
+	private JLabel searchResultLabel;
+
+	private JTextField searchField;
 	
 	
 	// Components to display the loaded relation set.
@@ -112,14 +125,29 @@ public class UpdateViewer2 extends SecondoViewer {
 		this.reset = new JButton("Reset");
 		this.reset.addActionListener(this.controller);
 		this.actionPanel.add(this.reset);
+		this.undo = new JButton("Undo");
+		this.undo.addActionListener(this.controller);
+		this.actionPanel.add(this.undo);
 		this.commit = new JButton("Commit");
-		this.commit.addActionListener(this.controller);
-		this.actionPanel.add(this.commit);
-		this.search = new JButton("Search");
-		this.search.addActionListener(this.controller); 
-		this.actionPanel.add(this.search);		
+		this.commit.addActionListener(this.controller); 
+		this.actionPanel.add(this.commit);		
 		this.add(actionPanel, BorderLayout.NORTH);
 		
+		// searchPanel
+		this.searchPanel = new JPanel();
+		this.searchPanel.setLayout(new FlowLayout());
+		//this.searchLabel = new JLabel("Keyword: ");
+		//this.searchPanel.add(this.searchLabel);
+		this.searchField = new JTextField(20);
+		this.searchPanel.add(this.searchField);
+		this.search = new JButton("Search");
+		this.search.addActionListener(this.controller); 
+		this.searchPanel.add(this.search);
+		this.searchResultLabel = new JLabel();
+		this.searchPanel.add(this.searchResultLabel);
+		this.add(searchPanel, BorderLayout.SOUTH);
+
+
 		// tabbed pane
 		this.relationPanels = new ArrayList<RelationPanel>();
 		this.tabbedPane = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
@@ -191,6 +219,14 @@ public class UpdateViewer2 extends SecondoViewer {
 	}
 	
 	/**
+	 * Returns text from Search field.
+	 */
+	public String getSearchKey()
+	{
+		return this.searchField.getText();
+	}
+	
+	/**
 	 * Creates or overwrites RelationPanel data with specified data.
 	 */
 	public boolean setRelationPanel(String pRelName, ListExpr pRelationLE)
@@ -200,8 +236,9 @@ public class UpdateViewer2 extends SecondoViewer {
 			rp = new RelationPanel(pRelName, this.controller);
 			this.relationPanels.add(rp);
 		}
-		return rp.createTableFrom(pRelationLE);
+		return rp.createFromLE(pRelationLE);
 	}
+	
 	
 	/**
 	 * Displays all loaded RelationPanels.
@@ -215,6 +252,22 @@ public class UpdateViewer2 extends SecondoViewer {
 		
 		this.validate();
 		this.repaint();	
+	}
+	
+	
+	public void showSearchResult(List<SearchHit> pResult)
+	{
+		if (pResult == null || pResult.isEmpty())
+		{
+			this.searchResultLabel.setText("Found 0 matches.");
+		}
+		else
+		{
+			this.getCurrentRelationPanel().setSearchHits(pResult);
+			this.searchResultLabel.setText("1 / " + pResult.size());
+			SearchHit hit = pResult.get(0);
+			this.getCurrentRelationPanel().relGoTo(hit.getRowIndex(), 2);
+		}
 	}
 	
 	
@@ -232,11 +285,13 @@ public class UpdateViewer2 extends SecondoViewer {
 				insert.setBackground(Color.LIGHT_GRAY);
 				delete.setBackground(Color.LIGHT_GRAY);
 				update.setBackground(Color.LIGHT_GRAY);
+				load.setEnabled(true);
 				clear.setEnabled(false);
 				insert.setEnabled(false);
 				delete.setEnabled(false);
 				update.setEnabled(false);
 				reset.setEnabled(false);
+				undo.setEnabled(false);
 				commit.setEnabled(false);
 				search.setEnabled(false);
 				break;
@@ -246,11 +301,13 @@ public class UpdateViewer2 extends SecondoViewer {
 				insert.setBackground(Color.LIGHT_GRAY);
 				delete.setBackground(Color.LIGHT_GRAY);
 				update.setBackground(Color.LIGHT_GRAY);
+				load.setEnabled(true);
 				clear.setEnabled(true);
 				insert.setEnabled(true);
-				delete.setEnabled(true);
 				update.setEnabled(true);
+				delete.setEnabled(true);
 				reset.setEnabled(false);
+				undo.setEnabled(false);
 				commit.setEnabled(false);
 				search.setEnabled(true);
 				getCurrentRelationPanel().setMode(selectMode);
@@ -259,9 +316,13 @@ public class UpdateViewer2 extends SecondoViewer {
 			case States.INSERT: 
 			{
 				insert.setBackground(Color.YELLOW);
+				load.setEnabled(false);
+				clear.setEnabled(false);
+				insert.setEnabled(false);
 				delete.setEnabled(false);
 				update.setEnabled(false);
 				reset.setEnabled(true);
+				undo.setEnabled(true);
 				commit.setEnabled(true);
 				search.setEnabled(true);
 				getCurrentRelationPanel().setMode(selectMode);
@@ -270,10 +331,14 @@ public class UpdateViewer2 extends SecondoViewer {
 			case States.DELETE: 
 			{
 				delete.setBackground(Color.YELLOW);
+				load.setEnabled(false);
+				clear.setEnabled(false);
 				insert.setEnabled(false);
+				update.setEnabled(false);
 				delete.setEnabled(false);
 				update.setEnabled(false);
 				reset.setEnabled(true);
+				undo.setEnabled(true);
 				commit.setEnabled(true);
 				search.setEnabled(true);
 				getCurrentRelationPanel().setMode(selectMode);
@@ -282,10 +347,14 @@ public class UpdateViewer2 extends SecondoViewer {
 			case States.UPDATE: 
 			{
 				update.setBackground(Color.YELLOW);
+				load.setEnabled(false);
+				clear.setEnabled(false);
 				insert.setEnabled(false);
-				delete.setEnabled(false);
 				update.setEnabled(false);
+				delete.setEnabled(false);
+				update.setEnabled(true);
 				reset.setEnabled(true);
+				undo.setEnabled(true);
 				commit.setEnabled(true);
 				search.setEnabled(true);
 				getCurrentRelationPanel().setMode(selectMode);
