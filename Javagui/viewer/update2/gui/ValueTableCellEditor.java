@@ -24,6 +24,7 @@ import java.awt.Component;
 import java.awt.event.InputMethodListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.List;
 
 import javax.swing.border.Border;
 import javax.swing.BorderFactory;
@@ -32,8 +33,12 @@ import javax.swing.AbstractCellEditor;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.table.TableCellEditor;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 
-import viewer.update2.RelationTableModel;
+import tools.Reporter;
+
+import viewer.update2.*;
 
 
 /**
@@ -43,7 +48,12 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 {
 	private JTextArea textArea;
 	private Border borderFocussed;
+	private Highlighter hiliter;
+	private HighlightPainter hilitePainter;
 	
+	/**
+	 * Constructor
+	 */
 	public ValueTableCellEditor()
 	{			
 		this.textArea = new JTextArea();
@@ -52,12 +62,9 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
-		
-		// TODO
-		// set highlighting color
-		// set font
-		
-		
+		this.hiliter = this.textArea.getHighlighter();
+		this.hilitePainter = new HighlightPainter(Color.YELLOW);
+				
 		// insert line break on ENTER Key
 		this.textArea.addKeyListener(new KeyAdapter(){
 								public void keyPressed(KeyEvent event){
@@ -66,19 +73,8 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 								}
 								}
 								});
-		
-
 	}
 	
-	public Object getCellEditorValue()
-	{
-		return this.textArea.getText();
-	}
-	
-	public void setInputMethodListener(InputMethodListener pListener)
-	{
-		this.textArea.addInputMethodListener(pListener);
-	}
 	
 	/**
 	 * Returns a component in which an attribute value can be edited.
@@ -87,10 +83,8 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 												   JTable pTable, Object pValue,
 												   boolean pSelected,
 												   int pRow, int pColumn) 
-	{
-		//Component c = super.getTableCellRendererComponent(pTable, pValue,
-		//												  pSelected, pFocussed, pRow, pColumn);
-		
+	{	
+		// background
 		if (pSelected)
 		{
 			this.textArea.setBackground(new Color(210, 230, 255));
@@ -105,19 +99,54 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 			}
 		}
 		
+		// border
 		this.textArea.setBorder(BorderFactory.createCompoundBorder(this.borderFocussed, 
 				BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));
-		
-		//this.textArea.setBorder(BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground()));
+
 		
 		// set text and correct row height according to textarea content
-		int width = pTable.getColumnModel().getColumn(2).getWidth();
+		int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
 		this.textArea.setSize(width, Short.MAX_VALUE);
 		this.textArea.setText(pValue.toString());
 		pTable.setRowHeight(pRow, this.textArea.getPreferredSize().height);
+		
+		
+		// highlight search matches
+		//hiliter.removeAllHighlights();
+		List<SearchHit> hits = ((RelationTableModel)pTable.getModel()).getSearchHits(pRow);
+		if (hits != null && !hits.isEmpty())
+		{
+			for (SearchHit sh : hits) 
+			{
+				try {
+					hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
+				} catch (Exception ble) 
+				{
+					Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting failed ");
+				}
+			}
+		}
+		
 
 		//this.textArea.setToolTipText("test");
 		return this.textArea;
 	}
+		
+	public Object getCellEditorValue()
+	{
+		return this.textArea.getText();
+	}
+	
+	
+	public void setInputMethodListener(InputMethodListener pListener)
+	{
+		this.textArea.addInputMethodListener(pListener);
+	}
+	
+	private class HighlightPainter extends DefaultHighlighter.DefaultHighlightPainter {  
+        public HighlightPainter(Color color) {  
+            super(color);  
+        }  
+    } 
 }
 

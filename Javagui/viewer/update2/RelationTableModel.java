@@ -24,6 +24,7 @@ import javax.swing.event.*;
 import javax.swing.table.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +59,11 @@ public class RelationTableModel extends AbstractTableModel
 	private List<Change> changes;
 	
 	// hits from latest search, mapped by rowIndex
-	private Map<Integer, List<SearchHit>> searchHits;
+	private List<SearchHit> hitList;
+	// hits from latest search, mapped by rowIndex
+	private Map<Integer, List<SearchHit>> hitMap;
+	// list index of current hit
+	private int currHit;
 	
 	public static final int COL_TUPLEID = 0;
 	public static final int COL_ATTRNAME = 1;
@@ -83,6 +88,8 @@ public class RelationTableModel extends AbstractTableModel
 		this.attributeNames = pRelation.getAttributeNames();
 		this.state = States.LOADED;
 		this.changes = new ArrayList<Change>();
+		this.hitList = null;
+		this.hitMap = new HashMap<Integer,List<SearchHit>>();
 			 
 		Reporter.debug(this.toString());
 	}
@@ -228,6 +235,13 @@ public class RelationTableModel extends AbstractTableModel
         return columnNames[pCol];
     }
 	
+	
+	public int getCurrentHitIndex()
+	{
+		return this.currHit;
+	}
+	
+	
 	/**
 	 * Returns newest change.	 
 	 */
@@ -257,6 +271,31 @@ public class RelationTableModel extends AbstractTableModel
 		// add (empty) extra row as separator between tuples
         return this.tupleCount * (this.tupleSize + 1);
     }
+	
+	
+	public SearchHit getSearchHit(int pIndex)
+	{
+		if (pIndex >= 0 && pIndex < this.hitList.size())
+		{
+			return this.hitList.get(pIndex);
+		}
+		return null;
+	}
+	
+	/*
+	public Map<Integer, List<SearchHit>> getSearchHits()
+	{
+		return this.searchHits;
+	}*/
+	
+	public List<SearchHit> getSearchHits(int pRow)
+	{
+		if (this.hitMap != null)
+		{
+			return this.hitMap.get(pRow);
+		}
+		return Collections.emptyList();
+	}
 	
 	/*
 	 * Method of interface AbstractTableModel.
@@ -305,6 +344,7 @@ public class RelationTableModel extends AbstractTableModel
 		
 		return result;
     }
+	
 	
 	/*
 	 * Method of interface AbstractTableModel.
@@ -377,23 +417,55 @@ public class RelationTableModel extends AbstractTableModel
 		return result;
 	}
 	
+	
+	public int rowToTupleIndex(int pRow)
+	{
+		return (pRow / (this.tupleSize+1));
+	}
+	
+	public int rowToAttributeIndex(int pRow)
+	{
+		return ((pRow % (this.tupleSize+1)) - 1);
+	}
+	
+	
+	/**
+	 * Builds map for searchhits by row index.
+	 * Resets index for currently displayed searchhit.  
+	 */
 	public void setSearchHits(List<SearchHit> pHitlist)
 	{
-		this.searchHits = new HashMap<Integer, List<SearchHit>>();
-		for (SearchHit hit : pHitlist)
+		this.hitList = pHitlist;
+		this.hitMap.clear();
+		
+		if (pHitlist.isEmpty())
 		{
-			Reporter.debug(hit.toString());
-
-			List<SearchHit> list4row = this.searchHits.get(hit.getRowIndex());
-			if (list4row == null)
+			this.currHit = -1;
+		}
+		{
+			this.currHit = 0;
+			for (SearchHit hit : pHitlist)
 			{
-				list4row = new ArrayList<SearchHit>();
+				Reporter.debug(hit.toString());
+				
+				List<SearchHit> list4row = this.hitMap.get(hit.getRowIndex());
+				if (list4row == null)
+				{
+					list4row = new ArrayList<SearchHit>();
+				}
+				list4row.add(hit);
+				this.hitMap.put(hit.getRowIndex(), list4row);
 			}
-			list4row.add(hit);
-			this.searchHits.put(hit.getRowIndex(), list4row);
 		}
 	}
 	
+	public void setCurrentHitIndex(int pIndex)
+	{
+		if (pIndex >= 0 && pIndex < this.hitList.size())
+		{
+			this.currHit = pIndex;
+		}
+	}
 	
 	
     /*
@@ -423,17 +495,7 @@ public class RelationTableModel extends AbstractTableModel
 			//fireTableCellUpdated(pRow, pCol);
 		}
     }
-	
-	public int rowToTupleIndex(int pRow)
-	{
-		return (pRow / (this.tupleSize+1));
-	}
-	
-	public int rowToAttributeIndex(int pRow)
-	{
-		return ((pRow % (this.tupleSize+1)) - 1);
-	}
-	
+
 	/**
 	 * 
 	 */

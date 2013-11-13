@@ -51,8 +51,10 @@ public class UpdateViewerController implements ActionListener
 	private CommandExecuter commandExecuter;
 	private LoadDialog loadDialog;
 	private LoadProfile loadProfile;
-	private int state;	
 	private UpdateViewer2 viewer;
+	private int state;	
+	private int loadstate;	
+	private int searchstate;	
 	
 	// Name of relation which contains LoadProfiles
 	public final static String LOAD_PROFILE_RELATION = "uv2loadprofiles";
@@ -68,6 +70,8 @@ public class UpdateViewerController implements ActionListener
 		this.loadDialog = new LoadDialog(this);
 		this.loadProfile = null;
 		this.state = States.INITIAL;
+		this.loadstate = States.INITIAL;
+		this.searchstate = States.INITIAL;
 	}
 	
 	/**
@@ -95,14 +99,8 @@ public class UpdateViewerController implements ActionListener
 		}
 		if (e.getActionCommand() == "Insert")
 		{
-			if (state == States.INSERT)
-			{ // User wants to insert one more tuple
-				viewer.getCurrentRelationPanel().takeOverLastEditing(false);
-				viewer.getCurrentRelationPanel().addInsertTuple();
-				return;
-			}
+			this.processCommandInsert();
 			this.setState(States.INSERT);
-			viewer.getCurrentRelationPanel().showInsertRelation();
 			return;
 		}
 		if (e.getActionCommand() == "Delete")
@@ -133,12 +131,7 @@ public class UpdateViewerController implements ActionListener
 			this.processCommandUndo();
 			return;
 		}	
-		if (e.getActionCommand() == "Search")
-		{
-			Reporter.showError("not yet implemented");
-			//this.processCommandSearch();
-			return;
-		}
+
 		
 		//
 		// LoadDialog		
@@ -212,6 +205,26 @@ public class UpdateViewerController implements ActionListener
 				this.loadProfiles();
 				this.loadDialog.showProfiles();				
 			}
+			return;
+		}
+		
+		
+		//
+		// Search		
+		//
+		if (e.getActionCommand() == "Search")
+		{
+			this.processCommandSearch();
+			return;
+		}
+		if (e.getActionCommand() == "Next")
+		{
+			this.viewer.getCurrentRelationPanel().goToNextHit();
+			return;
+		}
+		if (e.getActionCommand() == "Previous")
+		{
+			this.viewer.getCurrentRelationPanel().goToPreviousHit();			
 			return;
 		}
 		
@@ -431,7 +444,9 @@ public class UpdateViewerController implements ActionListener
 		
 		this.viewer.getCurrentRelationPanel().clearUpdateChanges();
 		//return (this.loadRelation(rp.getName()));// the new state is set in this method
-		 
+		
+		this.processCommandSearch();
+		
 		return true;
 	}
 	
@@ -618,6 +633,42 @@ public class UpdateViewerController implements ActionListener
 	}
 	
 	/**
+	 * Deletes all entries for specified load profile from relation uv2loadprofiles.
+	 */
+	private boolean processCommandDeleteLoadProfile(String pLoadProfileName)
+	{
+		StringBuffer sb = new StringBuffer();
+		sb.append("query uv2loadprofiles feed filter[.ProfileName = \"");
+		sb.append(pLoadProfileName);
+		sb.append("\"] consume feed uv2loadprofiles deletesearch consume");
+		
+		if (commandExecuter.executeCommand(sb.toString(), SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
+		{
+			return true;
+		}
+		else
+		{
+			Reporter.debug(sb.toString());
+			Reporter.debug(commandExecuter.getErrorMessage().toString());
+			return false;
+		}
+	}
+	
+	
+	private boolean processCommandInsert()
+	{
+		if (state == States.INSERT)
+		{ 
+			// User wants to insert one more tuple
+			viewer.getCurrentRelationPanel().takeOverLastEditing(false);
+			viewer.getCurrentRelationPanel().addInsertTuple();
+		}
+		viewer.getCurrentRelationPanel().showInsertRelation();
+		return true;
+	}
+	
+	
+	/**
 	 * Loads all relations of the currently selected LoadProfile from database
 	 * and shows them in the viewer.
 	 */
@@ -652,28 +703,7 @@ public class UpdateViewerController implements ActionListener
 		this.state = States.LOADED;
 		return true;		
 	}
-	
-	/**
-	 * Deletes all entries for specified load profile from relation uv2loadprofiles.
-	 */
-	private boolean processCommandDeleteLoadProfile(String pLoadProfileName)
-	{
-		StringBuffer sb = new StringBuffer();
-		sb.append("query uv2loadprofiles feed filter[.ProfileName = \"");
-		sb.append(pLoadProfileName);
-		sb.append("\"] consume feed uv2loadprofiles deletesearch consume");
-		
-		if (commandExecuter.executeCommand(sb.toString(), SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
-		{
-			return true;
-		}
-		else
-		{
-			Reporter.debug(sb.toString());
-			Reporter.debug(commandExecuter.getErrorMessage().toString());
-			return false;
-		}
-	}
+
 	
 	/**
 	 * Deletes the entry for the specified relation profile from relation uv2loadprofiles.
@@ -732,10 +762,21 @@ public class UpdateViewerController implements ActionListener
 	{
 		// read keyword from searchfield
 		String key = this.viewer.getSearchKey();
-		List<SearchHit> hitlist = this.retrieveSearchHits(key);
-		this.viewer.showSearchResult(hitlist);
+		
+		if (key != null && !key.isEmpty())
+		{
+			if (key.length() < 2)
+			{
+				this.showErrorDialog("Key length must be 2 at least");
+			}
+			else
+			{
+				List<SearchHit> hitlist = this.viewer.getCurrentRelationPanel().retrieveSearchHits(key);
+				this.viewer.setSearchResult(hitlist);
+			}
+		}
 	}
-
+	
 	
 	public void processCommandUndo()
 	{
@@ -746,11 +787,8 @@ public class UpdateViewerController implements ActionListener
 		}
 		if(this.state == States.UPDATE)
 		{
-			/* undo functionality */
-			if (this.viewer.getCurrentRelationPanel().undoLastUpdateChange())
-			{
-				// TODO: all changes have been undone, maybe disable Undo button?
-			}
+			this.viewer.getCurrentRelationPanel().undoLastUpdateChange();		
+			// TODO: all changes have been undone, maybe disable Undo button?
 		}
 		if(this.state == States.DELETE)
 		{
@@ -794,12 +832,7 @@ public class UpdateViewerController implements ActionListener
 		return result;
 	}
 	
-	
-	private List<SearchHit> retrieveSearchHits(String pSearchKey)
-	{		
-		return this.viewer.getCurrentRelationPanel().retrieveSearchHits(pSearchKey);		
-	}
-	
+		
 	/**
 	 * Sets state attribute of this controller and sets selection mode of UpdateViewer2.
 	 */

@@ -21,6 +21,7 @@ package  viewer.update2.gui;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.util.List;
 
 import javax.swing.border.Border;
 import javax.swing.BorderFactory;
@@ -28,8 +29,13 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 
-import viewer.update2.RelationTableModel;
+import tools.Reporter;
+
+import viewer.update2.*;
+
 
 
 /**
@@ -39,7 +45,12 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel im
 {
 	private JTextArea textArea;
 	private Border borderFocussed;
-	
+	private Highlighter hiliter;
+	private HighlightPainter hilitePainter;
+
+	/**
+	 * Constructor
+	 */
 	public ValueTableCellRenderer()
 	{			
 		this.textArea = new JTextArea();
@@ -48,20 +59,20 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel im
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
+		this.hiliter = this.textArea.getHighlighter();
+		this.hilitePainter = new HighlightPainter(Color.YELLOW);
 	}
 	
+	
 	/**
-	 * Returns a component that  
-	 * displays an attribute value.
+	 * Returns a component that displays an attribute value.
 	 */
+	@Override
 	public Component getTableCellRendererComponent(
 												   JTable pTable, Object pValue,
 												   boolean pSelected, boolean pFocussed,
 												   int pRow, int pColumn) 
 	{
-		//Component c = super.getTableCellRendererComponent(pTable, pValue,
-		//												  pSelected, pFocussed, pRow, pColumn);
-		
 		// background
 		if (pSelected)
 		{
@@ -87,18 +98,39 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel im
 			this.textArea.setBorder(BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground()));
 		}
 		
-
-		
 		
 		// set text and correct row height according to textarea content
 		int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
 		this.textArea.setSize(width, Short.MAX_VALUE);
 		this.textArea.setText(pValue.toString());
 		pTable.setRowHeight(pRow, this.textArea.getPreferredSize().height);
+		
+		
+		// highlight search matches
+		//hiliter.removeAllHighlights();
+		List<SearchHit> hits = ((RelationTableModel)pTable.getModel()).getSearchHits(pRow);
+		if (hits != null && !hits.isEmpty())
+		{
+			for (SearchHit sh : hits) 
+			{
+				try {
+					hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
+				} catch (Exception ble) 
+				{
+					Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting failed ");
+				}
+			}
+		}
 
 		//this.textArea.setToolTipText("test");
 		return this.textArea;
 	}
+	
+	private class HighlightPainter extends DefaultHighlighter.DefaultHighlightPainter {  
+        public HighlightPainter(Color color) {  
+            super(color);  
+        }  
+    } 
 	
 	// TODO
 	// Method to set highlighting color

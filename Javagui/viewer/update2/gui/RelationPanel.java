@@ -423,6 +423,30 @@ public class RelationPanel extends JPanel implements
 		return this.getTableModel().getChangesForUpdate();
 	}
 	
+	public void goToNextHit()
+	{
+		int currIndex = this.getTableModel().getCurrentHitIndex();
+		Reporter.debug("RelationPanel.goToNextHit: currIndex is " + currIndex);
+		SearchHit hit = this.getTableModel().getSearchHit(currIndex+1);
+		if (hit != null)
+		{
+			this.relGoTo(hit.getRowIndex(),2);
+			this.getTableModel().setCurrentHitIndex(currIndex+1);
+		}
+	}
+	
+	public void goToPreviousHit()
+	{
+		int currIndex = this.getTableModel().getCurrentHitIndex();
+		Reporter.debug("RelationPanel.goToNextHit: currIndex is " + currIndex);
+		SearchHit hit = this.getTableModel().getSearchHit(currIndex-1);
+		if (hit != null)
+		{
+			this.relGoTo(hit.getRowIndex(),2);
+			this.getTableModel().setCurrentHitIndex(currIndex-1);
+		}
+	}
+	
 	
 	/** Starts the editing the specified cell within the insert table **/
 	public void insertGoTo(int x, int y)
@@ -669,16 +693,18 @@ public class RelationPanel extends JPanel implements
 		return true;
 	}
 	
-	
+	/**
+	 *
+	 */
 	public List<SearchHit> retrieveSearchHits(String pKey)
 	{
 		List<SearchHit> result = new ArrayList<SearchHit>();
 		
-		if (pKey != null && !pKey.isEmpty() && pKey.length() > 2)
+		if (pKey != null && !pKey.isEmpty())
 		{
-			int colIndex = this.relTable.getColumn("Value").getModelIndex();
+			int colIndex = RelationTableModel.COL_ATTRVALUE;
 			
-			for (int i = 0; i > this.relTable.getRowCount(); i++)
+			for (int i = 0; i < this.relTable.getRowCount(); i++)
 			{
 				String cellValue = (String)this.relTable.getValueAt(i, colIndex);
 				Pattern pattern = Pattern.compile(pKey);
@@ -692,11 +718,10 @@ public class RelationPanel extends JPanel implements
 				}
 			}
 		}
-		Reporter.debug("RelationPanel.retrieveSearchHits: no of hits is " + result.size());
 
 		return result;
 	}
-	
+		
 	
 	/**
 	 * Makes table cells with attribute values editable if pIsUpdate is true, else only display.

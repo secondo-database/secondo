@@ -77,6 +77,10 @@ public class UpdateViewer2 extends SecondoViewer {
 	private JButton commit;
 	
 	private JButton search;
+	
+	private JButton previous;
+	
+	private JButton next;
 
 	private JLabel searchLabel;
 	
@@ -136,17 +140,20 @@ public class UpdateViewer2 extends SecondoViewer {
 		// searchPanel
 		this.searchPanel = new JPanel();
 		this.searchPanel.setLayout(new FlowLayout());
-		//this.searchLabel = new JLabel("Keyword: ");
-		//this.searchPanel.add(this.searchLabel);
 		this.searchField = new JTextField(20);
 		this.searchPanel.add(this.searchField);
 		this.search = new JButton("Search");
 		this.search.addActionListener(this.controller); 
 		this.searchPanel.add(this.search);
+		this.previous = new JButton("Previous");
+		this.previous.addActionListener(this.controller); 
+		this.searchPanel.add(this.previous);
 		this.searchResultLabel = new JLabel();
 		this.searchPanel.add(this.searchResultLabel);
+		this.next = new JButton("Next");
+		this.next.addActionListener(this.controller); 
+		this.searchPanel.add(this.next);
 		this.add(searchPanel, BorderLayout.SOUTH);
-
 
 		// tabbed pane
 		this.relationPanels = new ArrayList<RelationPanel>();
@@ -156,15 +163,6 @@ public class UpdateViewer2 extends SecondoViewer {
 		this.setSelectionMode(States.INITIAL);
 	}
 	
-	/**
-	 * Adds a tab with the specified relation to the tabbed pane.
-
-	public void addRelationPanel(String pRelationName, ListExpr pRelationLe)
-	{
-		RelationPanel tab = new RelationPanel(pRelationName, this.controller, pRelationLe);
-		this.tabbedPane.addTab(tab.getName(), tab);
-	}
-	 	 */
 
 	/**
 	 * Removes currently shown relation set from this viewer. 
@@ -174,17 +172,12 @@ public class UpdateViewer2 extends SecondoViewer {
 	{
 		this.relationPanels.clear();
 		this.tabbedPane.removeAll();
+		this.searchField.setText("");
+		this.searchResultLabel.setText("");
+		
 		this.validate();
 		this.repaint();
 	}
-	
-	/**
-	 * Returns list index of currently active RelationPanel.
-	public int getCurrentRelationIndex()
-	{
-		return this.tabbedPane.getSelectedIndex();
-	}
-	 */	
 	
 	
 	/**
@@ -255,7 +248,7 @@ public class UpdateViewer2 extends SecondoViewer {
 	}
 	
 	
-	public void showSearchResult(List<SearchHit> pResult)
+	public void setSearchResult(List<SearchHit> pResult)
 	{
 		if (pResult == null || pResult.isEmpty())
 		{
@@ -319,8 +312,8 @@ public class UpdateViewer2 extends SecondoViewer {
 				load.setEnabled(false);
 				clear.setEnabled(false);
 				insert.setEnabled(false);
-				delete.setEnabled(false);
 				update.setEnabled(false);
+				delete.setEnabled(false);
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
@@ -336,7 +329,6 @@ public class UpdateViewer2 extends SecondoViewer {
 				insert.setEnabled(false);
 				update.setEnabled(false);
 				delete.setEnabled(false);
-				update.setEnabled(false);
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
@@ -352,7 +344,6 @@ public class UpdateViewer2 extends SecondoViewer {
 				insert.setEnabled(false);
 				update.setEnabled(false);
 				delete.setEnabled(false);
-				update.setEnabled(true);
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
