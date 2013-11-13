@@ -761,7 +761,7 @@ public class UpdateViewerController implements ActionListener
 	private void processCommandSearch()
 	{
 		// read keyword from searchfield
-		String key = this.viewer.getSearchKey();
+		String key = this.viewer.getCurrentRelationPanel().getSearchKey();
 		
 		if (key != null && !key.isEmpty())
 		{
@@ -772,7 +772,7 @@ public class UpdateViewerController implements ActionListener
 			else
 			{
 				List<SearchHit> hitlist = this.viewer.getCurrentRelationPanel().retrieveSearchHits(key);
-				this.viewer.setSearchResult(hitlist);
+				this.viewer.getCurrentRelationPanel().setSearchResult(hitlist);
 			}
 		}
 	}

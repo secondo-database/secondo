@@ -29,6 +29,7 @@ import java.awt.Component;
 import java.awt.Composite;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Frame;
@@ -86,6 +87,7 @@ import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
@@ -137,8 +139,7 @@ public class RelationPanel extends JPanel implements
 	private JTable relTable;
 	
 	private JScrollPane relScroll;
-		
-	
+			
 	// components to display the relation in insert mode
 	private JScrollPane insertScroll;
 
@@ -151,6 +152,20 @@ public class RelationPanel extends JPanel implements
 	// saves the old value of the currently edited cell, when in edit mode
 	private String oldEditCellValue;
 	
+	// search panel
+	private JPanel searchPanel;
+
+	private JButton search;
+	
+	private JButton previous;
+	
+	private JButton next;
+	
+	private JLabel searchLabel;
+	
+	private JLabel searchResultLabel;
+	
+	private JTextField searchField;
 	
 		
 	/**
@@ -161,8 +176,28 @@ public class RelationPanel extends JPanel implements
 		this.name = pRelationName;
 		this.setLayout(new BorderLayout());		
 		this.controller = pController;
+		
+		// table
 		this.tableCellRenderer = new ValueTableCellRenderer();
 		this.tableCellEditor = new ValueTableCellEditor();
+		
+		// searchPanel
+		this.searchPanel = new JPanel();
+		this.searchPanel.setLayout(new FlowLayout());
+		this.searchField = new JTextField(20);
+		this.searchPanel.add(this.searchField);
+		this.search = new JButton("Search");
+		this.search.addActionListener(this.controller); 
+		this.searchPanel.add(this.search);
+		this.previous = new JButton("Previous");
+		this.previous.addActionListener(this.controller); 
+		this.searchPanel.add(this.previous);
+		this.searchResultLabel = new JLabel();
+		this.searchPanel.add(this.searchResultLabel);
+		this.next = new JButton("Next");
+		this.next.addActionListener(this.controller); 
+		this.searchPanel.add(this.next);
+		this.add(searchPanel, BorderLayout.SOUTH);
 	}
 	
 	
@@ -406,6 +441,7 @@ public class RelationPanel extends JPanel implements
 	}
 	
 	
+	
 	/**
 	 * Returns RelationTabelModel of currently displayed Table. (Convenience shortcut)
 	 */
@@ -414,6 +450,14 @@ public class RelationPanel extends JPanel implements
 		return (RelationTableModel)this.relTable.getModel();
 	}
 	
+	/**
+	 * Returns text from Search field.
+	 */
+	public String getSearchKey()
+	{
+		return this.searchField.getText();
+	}
+
 	
 	/*
 	 * Returns values to be updated.
@@ -425,25 +469,27 @@ public class RelationPanel extends JPanel implements
 	
 	public void goToNextHit()
 	{
-		int currIndex = this.getTableModel().getCurrentHitIndex();
-		Reporter.debug("RelationPanel.goToNextHit: currIndex is " + currIndex);
-		SearchHit hit = this.getTableModel().getSearchHit(currIndex+1);
+		int currIndex = this.getTableModel().getCurrentHitIndex()+1;
+		SearchHit hit = this.getTableModel().getSearchHit(currIndex);
 		if (hit != null)
 		{
+			this.getTableModel().setCurrentHitIndex(currIndex);
 			this.relGoTo(hit.getRowIndex(),2);
-			this.getTableModel().setCurrentHitIndex(currIndex+1);
+			this.searchResultLabel.setText((currIndex+1) + " / " + this.getTableModel().getSearchHitCount());
+			Reporter.debug("RelationPanel.goToNextHit: row is " + hit.getRowIndex());
 		}
 	}
 	
 	public void goToPreviousHit()
 	{
-		int currIndex = this.getTableModel().getCurrentHitIndex();
-		Reporter.debug("RelationPanel.goToNextHit: currIndex is " + currIndex);
-		SearchHit hit = this.getTableModel().getSearchHit(currIndex-1);
+		int currIndex = this.getTableModel().getCurrentHitIndex()-1;
+		SearchHit hit = this.getTableModel().getSearchHit(currIndex);
 		if (hit != null)
 		{
+			this.getTableModel().setCurrentHitIndex(currIndex);
 			this.relGoTo(hit.getRowIndex(),2);
-			this.getTableModel().setCurrentHitIndex(currIndex-1);
+			this.searchResultLabel.setText((currIndex+1) + " / " + this.getTableModel().getSearchHitCount());
+			Reporter.debug("RelationPanel.goToPreviousHit: row is " + hit.getRowIndex());
 		}
 	}
 	
@@ -635,7 +681,8 @@ public class RelationPanel extends JPanel implements
 		try
 		{
 			relTable.editCellAt(x,y,null); 
-		} catch(Exception e){
+		} catch(Exception e)
+		{
 			Reporter.debug(e);
 		}
 	}
@@ -731,11 +778,24 @@ public class RelationPanel extends JPanel implements
 		(this.getTableModel()).setState(pSelectMode);
 	}
 	
-	public void setSearchHits(List<SearchHit> pHitlist)
+	
+	public void setSearchResult(List<SearchHit> pHitlist)
 	{
-		this.getTableModel().setSearchHits(pHitlist);
+		if (pHitlist == null || pHitlist.isEmpty())
+		{
+			this.searchResultLabel.setText("Found 0 matches.");
+		}
+		else
+		{
+			this.getTableModel().setSearchHits(pHitlist);
+			int row = pHitlist.get(0).getRowIndex();
+			this.relGoTo(row, 2);
+			this.searchResultLabel.setText("1 / " + this.getTableModel().getSearchHitCount());
+			Reporter.debug("RelationPanel.goToPreviousHit: row is " + row);
+		}
 	}
 	
+
 
 	/*
 	 Shows an empty relation that can be edited to contain tuples that shall be inserted.	 

@@ -25,7 +25,6 @@ import gui.idmanager.IDManager;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.FlowLayout;
 import java.awt.GridLayout;
 
 import java.util.ArrayList;
@@ -37,7 +36,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTextField;
 
 import sj.lang.ListExpr;
 import tools.Reporter;
@@ -57,9 +55,7 @@ public class UpdateViewer2 extends SecondoViewer {
 	private String viewerName = "UpdateViewer2";
 	
 	private JPanel actionPanel;
-	
-	private JPanel searchPanel;
-		
+			
 	private JButton load;
 	
 	private JButton clear;
@@ -75,18 +71,6 @@ public class UpdateViewer2 extends SecondoViewer {
 	private JButton undo;
 	
 	private JButton commit;
-	
-	private JButton search;
-	
-	private JButton previous;
-	
-	private JButton next;
-
-	private JLabel searchLabel;
-	
-	private JLabel searchResultLabel;
-
-	private JTextField searchField;
 	
 	
 	// Components to display the loaded relation set.
@@ -136,24 +120,6 @@ public class UpdateViewer2 extends SecondoViewer {
 		this.commit.addActionListener(this.controller); 
 		this.actionPanel.add(this.commit);		
 		this.add(actionPanel, BorderLayout.NORTH);
-		
-		// searchPanel
-		this.searchPanel = new JPanel();
-		this.searchPanel.setLayout(new FlowLayout());
-		this.searchField = new JTextField(20);
-		this.searchPanel.add(this.searchField);
-		this.search = new JButton("Search");
-		this.search.addActionListener(this.controller); 
-		this.searchPanel.add(this.search);
-		this.previous = new JButton("Previous");
-		this.previous.addActionListener(this.controller); 
-		this.searchPanel.add(this.previous);
-		this.searchResultLabel = new JLabel();
-		this.searchPanel.add(this.searchResultLabel);
-		this.next = new JButton("Next");
-		this.next.addActionListener(this.controller); 
-		this.searchPanel.add(this.next);
-		this.add(searchPanel, BorderLayout.SOUTH);
 
 		// tabbed pane
 		this.relationPanels = new ArrayList<RelationPanel>();
@@ -172,8 +138,6 @@ public class UpdateViewer2 extends SecondoViewer {
 	{
 		this.relationPanels.clear();
 		this.tabbedPane.removeAll();
-		this.searchField.setText("");
-		this.searchResultLabel.setText("");
 		
 		this.validate();
 		this.repaint();
@@ -211,27 +175,7 @@ public class UpdateViewer2 extends SecondoViewer {
 		return result;
 	}
 	
-	/**
-	 * Returns text from Search field.
-	 */
-	public String getSearchKey()
-	{
-		return this.searchField.getText();
-	}
-	
-	/**
-	 * Creates or overwrites RelationPanel data with specified data.
-	 */
-	public boolean setRelationPanel(String pRelName, ListExpr pRelationLE)
-	{
-		RelationPanel rp = this.getRelationPanel(pRelName);
-		if (rp == null){
-			rp = new RelationPanel(pRelName, this.controller);
-			this.relationPanels.add(rp);
-		}
-		return rp.createFromLE(pRelationLE);
-	}
-	
+
 	
 	/**
 	 * Displays all loaded RelationPanels.
@@ -245,22 +189,6 @@ public class UpdateViewer2 extends SecondoViewer {
 		
 		this.validate();
 		this.repaint();	
-	}
-	
-	
-	public void setSearchResult(List<SearchHit> pResult)
-	{
-		if (pResult == null || pResult.isEmpty())
-		{
-			this.searchResultLabel.setText("Found 0 matches.");
-		}
-		else
-		{
-			this.getCurrentRelationPanel().setSearchHits(pResult);
-			this.searchResultLabel.setText("1 / " + pResult.size());
-			SearchHit hit = pResult.get(0);
-			this.getCurrentRelationPanel().relGoTo(hit.getRowIndex(), 2);
-		}
 	}
 	
 	
@@ -286,7 +214,6 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(false);
 				undo.setEnabled(false);
 				commit.setEnabled(false);
-				search.setEnabled(false);
 				break;
 			}
 			case States.LOADED: 
@@ -302,7 +229,6 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(false);
 				undo.setEnabled(false);
 				commit.setEnabled(false);
-				search.setEnabled(true);
 				getCurrentRelationPanel().setMode(selectMode);
 				break;
 			}
@@ -317,7 +243,6 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
-				search.setEnabled(true);
 				getCurrentRelationPanel().setMode(selectMode);
 				break;
 			}
@@ -332,7 +257,6 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
-				search.setEnabled(true);
 				getCurrentRelationPanel().setMode(selectMode);
 				break;
 			}
@@ -347,13 +271,26 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
-				search.setEnabled(true);
 				getCurrentRelationPanel().setMode(selectMode);
 				break;
 			}
 			default:
 				break;
 		}
+	}
+	
+	
+	/**
+	 * Creates or overwrites RelationPanel data with specified data.
+	 */
+	public boolean setRelationPanel(String pRelName, ListExpr pRelationLE)
+	{
+		RelationPanel rp = this.getRelationPanel(pRelName);
+		if (rp == null){
+			rp = new RelationPanel(pRelName, this.controller);
+			this.relationPanels.add(rp);
+		}
+		return rp.createFromLE(pRelationLE);
 	}
 	
 

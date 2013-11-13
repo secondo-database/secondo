@@ -282,6 +282,11 @@ public class RelationTableModel extends AbstractTableModel
 		return null;
 	}
 	
+	public int getSearchHitCount()
+	{
+		return this.hitList.size();
+	}
+	
 	/*
 	public Map<Integer, List<SearchHit>> getSearchHits()
 	{
