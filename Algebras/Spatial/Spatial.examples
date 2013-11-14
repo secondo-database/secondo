@@ -1213,6 +1213,26 @@ Example   : query computeLabel( [const line value ((0 0 3 3))], "aline")
 Result    : (spatiallabel ('aline' 1.0 1.0 -45.0))
 Tolerance : 0.5
 
+Operator  : centroidDisc
+Number    : 1
+Signature : points [x geoid] -> disc
+Example   : query centroidDisc(train7stations)
+Result    : (disc (7166.5 9433.525 12654.90899120278))
+Tolerance : 0.5
 
+Operator  : calcDisc
+Number    : 1
+Signature : points [x geoid] -> disc
+Example   : query calcDisc(train7stations)
+Result    : (disc (6630.5 7743.5 12082.46094551933))
+Tolerance : 0.5
+
+
+Operator  : createDisc
+Number    : 1
+Signature : point [x point[ x point]] -> disc
+Example   : query createDisc([const point value(8 9)])
+Result    : (disc (8.0 9.0 0.0))
+Tolerance : 0.1
 
 

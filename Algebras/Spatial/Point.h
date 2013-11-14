@@ -84,9 +84,9 @@ The first one receives a boolean value ~d~ indicating if the point is defined
 and two coordinate ~x~ and ~y~ values.
 
 */
-    explicit inline Point( const bool d,
-                  const Coord& x = Coord(),
-                  const Coord& y = Coord() );
+    explicit Point( const bool d,
+                    const Coord& x = Coord(),
+                    const Coord& y = Coord() );
 /*
 The second one receives a point ~p~ as argument and creates a point that is a
 copy of ~p~.
@@ -133,7 +133,7 @@ Sets the value of the point object.
 Operators redefinition.
 
 */
-    inline Point& operator=( const Point& p );
+    Point& operator=( const Point& p );
     inline bool operator<=( const Point& p ) const;
     bool operator<( const Point& p ) const;
     inline bool operator>=( const Point& p ) const;

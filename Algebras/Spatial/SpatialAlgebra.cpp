@@ -96,6 +96,8 @@ using namespace std;
 #include "DLine.h"
 
 #include "DRM.h"
+#include "Disc.h"
+#include "Stack.h"
 
 
 #ifndef M_PI
@@ -13476,6 +13478,12 @@ TypeConstructor region(
 */
 GenTC<Label> label;
 
+/*
+8.16 type contructor for disc
+
+*/
+GenTC<Disc> disc;
+
 
 
 
@@ -24954,6 +24962,384 @@ Operator computeLabelOP(
 );
 
 /*
+41 Operator centroidDisc
+
+*/
+ListExpr centroidDiscTM(ListExpr args){
+   string err = "points [x geoid]expected";
+   if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+      return listutils::typeError(err);
+   }
+   if(!Points::checkType(nl->First(args))){
+     return listutils::typeError(err);
+   }
+   if(nl->HasLength(args,2) && !Geoid::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<Disc>();
+}
+
+
+int centroidDiscVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s ){
+
+  result = qp->ResultStorage(s);
+  Points* arg = (Points*) args[0].addr;
+  Disc* res = (Disc*) result.addr;
+  if(!arg->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+  }
+  Geoid* geoid = 0;
+  if(qp->GetNoSons(s) ==2){
+     geoid = (Geoid*) args[1].addr;
+     if(!geoid->IsDefined()){
+       res->SetDefined(false);
+       return 0;
+     }
+  }
+  int size = arg->Size();
+  if(size==0){
+      res->SetDefined(false);
+      return 0;
+  }
+  Point center = arg->theCenter();
+  double rad =0;
+  Point p;
+  for(int i=0;i<size;i++){
+     arg->Get(i,p);
+     double d = center.Distance(p,geoid);
+     if(d>rad){
+        rad = d;
+     }
+  }
+  res->set(center.GetX(),center.GetY(),rad);
+  return 0;
+}
+
+/*
+
+41.3 Specification
+
+*/
+OperatorSpec centroidDiscSpec (
+    " points [x geoid] -> disc",
+    " centroidDisc(_,_)",
+    " Computes a disc enclosing all points from the argument "
+    "with the centroid of the points as center",
+    " query centroidDisc(train7stations) "
+  );
+
+/*
+40.4 Operator instance
+
+*/
+
+Operator centroidDiscOP(
+   "centroidDisc",
+   centroidDiscSpec.getStr(),
+   centroidDiscVM,
+   Operator::SimpleSelect,
+   centroidDiscTM
+);
+
+
+/*
+Operator calcDisc
+
+*/
+ListExpr calcDiscTM(ListExpr args){
+   string err = "points expected";
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+   }
+   if(!Points::checkType(nl->First(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<Disc>();
+}
+
+
+/*
+Implementation from:
+
+Smallest enclosing disks (balls and ellipsoids), Emo Welzl, 1991
+
+*/
+Disc getDisc(const vector<Point>& R){
+      switch(R.size()){
+         case 0 : {Disc d(false); return d;}
+         case 1 : {Disc d(R[0]); return d;}
+         case 2 : {Disc d(R[0],R[1]); 
+                    return d;
+                   }
+                    
+         case 3 : { double d1 = R[0].Distance(R[1]);
+                    double d2 = R[0].Distance(R[2]);
+                    double d3 = R[1].Distance(R[2]);
+                    Disc d (false);
+                    if(d1 > d2 && d1 > d3){
+                      d = Disc(R[0],R[1]);
+                    } else if(d2>d3){
+                       d = Disc(R[0],R[2]);
+                    } else {
+                       d = Disc(R[1],R[2]);
+                    }
+                    if(!d.contains(R[0]) ||
+                       !d.contains(R[1]) ||
+                       !d.contains(R[2])){
+                       d = Disc(R[0],R[1],R[2]);
+                    }
+                    return d;
+                  }
+         default: assert(false);
+      }
+}
+
+
+Disc getDisc(const Point* R, const int Rsize){
+      switch(Rsize){
+         case 0 : {Disc d(false); return d;}
+         case 1 : {Disc d(R[0]); return d;}
+         case 2 : {Disc d(R[0],R[1]); 
+                    return d;
+                   }
+                    
+         case 3 : { double d1 = R[0].Distance(R[1]);
+                    double d2 = R[0].Distance(R[2]);
+                    double d3 = R[1].Distance(R[2]);
+                    Disc d (false);
+                    if(d1 > d2 && d1 > d3){
+                      d = Disc(R[0],R[1]);
+                    } else if(d2>d3){
+                       d = Disc(R[0],R[2]);
+                    } else {
+                       d = Disc(R[1],R[2]);
+                    }
+                    if(!d.contains(R[0]) ||
+                       !d.contains(R[1]) ||
+                       !d.contains(R[2])){
+                       d = Disc(R[0],R[1],R[2]);
+                    }
+                    return d;
+                  }
+         default: assert(false);
+      }
+}
+
+
+Disc sed(Points& P, int pos, vector<Point> R, size_t& calls){
+   calls++;
+   if(pos==P.Size() || R.size()==3){
+       return getDisc(R);
+   }
+   Point p;
+   P.Get(pos,p);
+   Disc d = sed(P,pos+1,R,calls);
+   if(!d.contains(p)){
+      R.push_back(p);
+      d = sed(P,pos+1,R,calls);
+   }
+   return d;
+}
+
+struct sedEntry{
+
+   sedEntry(const int _pos, 
+            const Point _R[3], 
+            int _Rsize,
+            const bool _cond):
+     pos(_pos),cond(_cond),Rsize(_Rsize){
+     for(int i=0;i<Rsize;i++){
+       R[i] = _R[i];
+     }
+   }
+
+   void append(const Point& p){
+     R[Rsize] = p;
+     Rsize++;
+   }
+   
+   int pos;
+   bool cond;
+   int Rsize;
+   Point R[3];
+};
+
+ostream& operator<<( ostream& o,const sedEntry& e){
+  o << e.pos << ", " << e.Rsize;
+  return o;
+}
+
+
+ // stack based variant of sed
+Disc sedSt(Points& P){
+   int size = P.Size();
+   if(size==0){
+      return Disc(false);
+   }
+
+   Disc d(false);
+
+   //stack<sedEntry> st;
+   Stack<sedEntry> st;
+   Point initial[] = {Point(false),Point(false),Point(false)};
+   sedEntry f1(0,initial,3,true);
+   f1.Rsize=0;
+   st.push(f1);
+   sedEntry f2(0,initial,3,false); 
+   f2.Rsize = 0;
+   st.push(f2);
+
+   while(!st.isEmpty()){
+     //sedEntry e = st.top();
+     const sedEntry e = st.pop();
+     if(e.pos==size || e.Rsize==3){
+        d = getDisc(e.R,e.Rsize);
+     } else {
+       if(!e.cond){
+          sedEntry e1(e.pos+1,e.R,e.Rsize,true);
+          sedEntry e2(e.pos+1,e.R,e.Rsize,false);
+          st.push(e1);
+          st.push(e2);
+       } else {
+          int pos = e.pos;
+          //if((pos&1)>0){
+          //   pos = size - (1 +pos/2);
+          //} else {
+          //   pos = pos/2;
+          //}
+          Point p;
+          P.Get(pos,p);
+          if(!d.contains(p)){
+              sedEntry e1(e.pos+1,e.R,e.Rsize,true);
+              sedEntry e2(e.pos+1,e.R,e.Rsize,false);
+              e1.append(p);
+              e2.append(p);
+              st.push(e1);
+              st.push(e2);
+          }
+       }
+     }
+   }
+   return d;
+}
+
+
+
+int calcDiscVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s ){
+
+  Points* ps = (Points*) args[0].addr;
+  result = qp->ResultStorage(s);
+  Disc* res = (Disc*) result.addr;
+  if(!ps->IsDefined() || ps->IsEmpty()){
+     res->SetDefined(false);
+     return 0;
+  }
+  vector<Point> R;
+  //size_t calls =0;
+  //Disc d = sed(*ps,0,R,calls);
+
+  //cout << "Calls : " << calls << endl;
+
+  Disc d = sedSt(*ps);
+
+  *res = d; 
+  return 0;
+}
+
+OperatorSpec calcDiscSpec (
+    " points  -> disc",
+    " calcDisc(_)",
+    " Computes a the minimum disc enclosing all points from the argument ",
+    " query caclcDisc(train7stations) "
+  );
+
+/*
+40.4 Operator instance
+
+*/
+
+Operator calcDiscOP(
+   "calcDisc",
+   calcDiscSpec.getStr(),
+   calcDiscVM,
+   Operator::SimpleSelect,
+   calcDiscTM
+);
+
+
+
+
+/*
+42 Operator createDisc
+
+*/
+ListExpr createDiscTM(ListExpr args){
+  string err = "point [x point [x point]] expected";
+  if(    !nl->HasLength(args,1) && !nl->HasLength(args,2) 
+      && !nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  while(!nl->IsEmpty(args)){
+    if(!Point::checkType(nl->First(args))){
+       return listutils::typeError(err);
+    }
+    args = nl->Rest(args);
+  }
+  return listutils::basicSymbol<Disc>();
+}
+
+
+int createDiscVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s ){
+
+   result = qp->ResultStorage(s);
+   Disc* res = (Disc*) result.addr;
+   switch(qp->GetNoSons(s)){
+      case 1: { Disc d(*((Point*)args[0].addr));
+                *res = d;
+                return 0;
+              }
+      case 2: { Disc d( *((Point*)args[0].addr),
+                        *((Point*)args[1].addr));
+                *res = d;
+                return 0;
+              }
+      case 3: { Disc d(*((Point*)args[0].addr),
+                       *((Point*)args[1].addr),
+                       *((Point*)args[2].addr));
+                *res = d;
+                return 0;
+              }
+      default: assert(false);
+   }
+   return -1;
+}
+
+OperatorSpec createDiscSpec (
+    " point [x point [ x point]]  -> disc",
+    " createDisc(_,_,_)",
+    " Computes a the minimum disc enclosing the arguments ",
+    " query createDisc( [const point value (8 7)]) "
+  );
+
+/*
+40.4 Operator instance
+
+*/
+
+Operator createDiscOP(
+   "createDisc",
+   createDiscSpec.getStr(),
+   createDiscVM,
+   Operator::SimpleSelect,
+   createDiscTM
+);
+
+
+/*
 11 Creating the Algebra
 
 */
@@ -25008,6 +25394,10 @@ class SpatialAlgebra : public Algebra
 
     AddTypeConstructor(&geoid_t);
     geoid_t.AssociateKind(Kind::DATA());
+
+    AddTypeConstructor(&disc);
+    disc.AssociateKind(Kind::DATA());
+
 
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );
@@ -25115,6 +25505,9 @@ class SpatialAlgebra : public Algebra
 
     AddOperator(&collectDline);
     AddOperator(&computeLabelOP);
+    AddOperator(&centroidDiscOP);
+    AddOperator(&calcDiscOP);
+    AddOperator(&createDiscOP);
 
 
   }
