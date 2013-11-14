@@ -25127,21 +25127,20 @@ Disc getDisc(const Point* R, const int Rsize){
       }
 }
 
-
-Disc sed(Points& P, int pos, vector<Point> R, size_t& calls){
-   calls++;
-   if(pos==P.Size() || R.size()==3){
+ /** originally, recursive method to compute the smallest enclosing disc **/
+ Disc sed(Points& P, int pos, vector<Point> R){
+    if(pos==P.Size() || R.size()==3){
        return getDisc(R);
-   }
-   Point p;
-   P.Get(pos,p);
-   Disc d = sed(P,pos+1,R,calls);
-   if(!d.contains(p)){
+    }
+    Point p;
+    P.Get(pos,p);
+    Disc d = sed(P,pos+1,R);
+    if(!d.contains(p)){
       R.push_back(p);
-      d = sed(P,pos+1,R,calls);
-   }
-   return d;
-}
+      d = sed(P,pos+1,R);
+    }
+    return d;
+  }
 
 struct sedEntry{
 
@@ -25191,8 +25190,18 @@ Disc sedSt(Points& P){
    f2.Rsize = 0;
    st.push(f2);
 
+   int* shuffle = new int[size];
+   for(int i=0;i<size;i++){
+      shuffle[i] = i; 
+   }
+   for(int i=0;i<size;i++){
+      int tmp = shuffle[i];
+      int p = rand() % size;
+      shuffle[i] = shuffle[p];
+      shuffle[p] = tmp;
+   }
+   
    while(!st.isEmpty()){
-     //sedEntry e = st.top();
      const sedEntry e = st.pop();
      if(e.pos==size || e.Rsize==3){
         d = getDisc(e.R,e.Rsize);
@@ -25204,13 +25213,8 @@ Disc sedSt(Points& P){
           st.push(e2);
        } else {
           int pos = e.pos;
-          //if((pos&1)>0){
-          //   pos = size - (1 +pos/2);
-          //} else {
-          //   pos = pos/2;
-          //}
           Point p;
-          P.Get(pos,p);
+          P.Get(shuffle[pos],p);
           if(!d.contains(p)){
               sedEntry e1(e.pos+1,e.R,e.Rsize,true);
               sedEntry e2(e.pos+1,e.R,e.Rsize,false);
@@ -25238,13 +25242,7 @@ int calcDiscVM(Word* args, Word& result, int message, Word& local,
      return 0;
   }
   vector<Point> R;
-  //size_t calls =0;
-  //Disc d = sed(*ps,0,R,calls);
-
-  //cout << "Calls : " << calls << endl;
-
   Disc d = sedSt(*ps);
-
   *res = d; 
   return 0;
 }
