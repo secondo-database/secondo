@@ -38,6 +38,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -64,21 +65,15 @@ struct deftimeInfo : OperatorInfo
     syntax    = "deftime(_)";
     meaning   = "Returns the defined periods.";
 
-    std::vector<std::string> mtTypes;
-    GetmtTypes(mtTypes);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    for(size_t i = 0; i < mtTypes.size(); i++)
-    {
-      if(signature.empty())
-      {
-        signature = mtTypes[i] + " -> " + Periods::BasicType();
-      }
-
-      else
-      {
-        appendSignature(mtTypes[i] + " -> " + Periods::BasicType());
-      }
-    }
+    signature = std::string(TYPE_NAME_PREFIX_MT) + "T" +
+                RIGHT_ARROW + Periods::BasicType() +
+                FOR + GetTypeParametersDomain(typeParameterT,
+                                              valueWrapperTypes);
   }
 };
 
