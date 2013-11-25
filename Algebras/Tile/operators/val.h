@@ -37,6 +37,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -63,31 +64,15 @@ struct valInfo : OperatorInfo
     syntax    = "val(_)";
     meaning   = "Returns the t type value of a it type.";
 
-    std::vector<std::string> tTypes;
-    std::vector<std::string> itTypes;
-    GettTypes(tTypes);
-    GetitTypes(itTypes);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    if(tTypes.size() == itTypes.size())
-    {
-      for(size_t i = 0; i < itTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = itTypes[i] + " -> " + tTypes[i];
-        }
-
-        else
-        {
-          appendSignature(itTypes[i] + " -> " + tTypes[i]);
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string(TYPE_NAME_PREFIX_IT) + "T" +
+                RIGHT_ARROW + TYPE_NAME_PREFIX_T + "T" +
+                FOR + GetTypeParametersDomain(typeParameterT,
+                                              valueWrapperTypes);
   }
 };
 
