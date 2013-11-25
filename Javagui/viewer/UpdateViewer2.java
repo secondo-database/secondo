@@ -36,6 +36,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
 
 import sj.lang.ListExpr;
 import tools.Reporter;
@@ -72,6 +73,8 @@ public class UpdateViewer2 extends SecondoViewer {
 	
 	private JButton commit;
 	
+	private JButton format;
+	
 	
 	// Components to display the loaded relation set.
 	private JTabbedPane tabbedPane;
@@ -81,6 +84,8 @@ public class UpdateViewer2 extends SecondoViewer {
 	// the controller decides which action shall be taken next and listens to all buttons
 	// for user-input
 	private UpdateViewerController controller;
+	
+	private JTextArea formattedText;
 		
 	
 	/*
@@ -94,31 +99,43 @@ public class UpdateViewer2 extends SecondoViewer {
 		
 		// actionpanel
 		this.actionPanel = new JPanel();
-		this.actionPanel.setLayout(new GridLayout(1, 8));
+		this.actionPanel.setLayout(new GridLayout(1, 9));
 		this.load = new JButton("Load");
 		this.load.addActionListener(this.controller);
+		this.load.setToolTipText("Open Load Dialog");
 		this.actionPanel.add(load);
 		this.clear = new JButton("Clear");
 		this.clear.addActionListener(this.controller);
+		this.clear.setToolTipText("Remove loaded relations from viewer");
 		this.actionPanel.add(clear);
 		this.insert = new JButton("Insert");
 		this.insert.addActionListener(this.controller);
+		this.insert.setToolTipText("Change to Insert Mode");
 		this.actionPanel.add(this.insert);
 		this.delete = new JButton("Delete");
 		this.delete.addActionListener(this.controller);
+		this.delete.setToolTipText("Change to Delete Mode");
 		this.actionPanel.add(this.delete);
 		this.update = new JButton("Update");
 		this.update.addActionListener(this.controller);
+		this.update.setToolTipText("Change to Update Mode");
 		this.actionPanel.add(this.update);
 		this.reset = new JButton("Reset");
 		this.reset.addActionListener(this.controller);
+		this.reset.setToolTipText("Undo all uncommitted changes");
 		this.actionPanel.add(this.reset);
 		this.undo = new JButton("Undo");
 		this.undo.addActionListener(this.controller);
+		this.undo.setToolTipText("Undo last uncommited change (cell-wise)");
 		this.actionPanel.add(this.undo);
 		this.commit = new JButton("Commit");
 		this.commit.addActionListener(this.controller); 
-		this.actionPanel.add(this.commit);		
+		this.commit.setToolTipText("Save changes to database");
+		this.actionPanel.add(this.commit);
+		this.format = new JButton("Format view");
+		this.format.addActionListener(this.controller); 
+		this.format.setToolTipText("View as formatted document");
+		this.actionPanel.add(this.format);		
 		this.add(actionPanel, BorderLayout.NORTH);
 
 		// tabbed pane
@@ -175,8 +192,12 @@ public class UpdateViewer2 extends SecondoViewer {
 		return result;
 	}
 	
-
+	public List<RelationPanel> getRelationPanels()
+	{
+		return this.relationPanels;
+	}
 	
+
 	/**
 	 * Displays all loaded RelationPanels.
 	 */
@@ -184,7 +205,12 @@ public class UpdateViewer2 extends SecondoViewer {
 	{
 		for (RelationPanel rp : this.relationPanels)
 		{
-			tabbedPane.add(rp.getName(), rp);
+			String tabtitle = rp.getName();
+			if (tabtitle.length() > 30)
+			{
+				tabtitle = tabtitle.substring(0,29) + "...";
+			}
+			tabbedPane.addTab(tabtitle, null, rp, rp.getName());
 		}
 		
 		this.validate();
@@ -197,9 +223,9 @@ public class UpdateViewer2 extends SecondoViewer {
 	 This method assures only the actually allowed actions can be executed or chosen.	 
 	 
 	 */
-	public void setSelectionMode(int selectMode) 
+	public void setSelectionMode(int pState)
 	{
-		switch (selectMode) 
+		switch (pState) 
 		{
 			case States.INITIAL: 
 			{
@@ -214,6 +240,7 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(false);
 				undo.setEnabled(false);
 				commit.setEnabled(false);
+				format.setEnabled(false);
 				break;
 			}
 			case States.LOADED: 
@@ -229,7 +256,7 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(false);
 				undo.setEnabled(false);
 				commit.setEnabled(false);
-				getCurrentRelationPanel().setMode(selectMode);
+				format.setEnabled(true);
 				break;
 			}
 			case States.INSERT: 
@@ -243,7 +270,7 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
-				getCurrentRelationPanel().setMode(selectMode);
+				format.setEnabled(true);
 				break;
 			}
 			case States.DELETE: 
@@ -257,7 +284,6 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
-				getCurrentRelationPanel().setMode(selectMode);
 				break;
 			}
 			case States.UPDATE: 
@@ -271,12 +297,17 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
-				getCurrentRelationPanel().setMode(selectMode);
+				format.setEnabled(true);
 				break;
 			}
 			default:
 				break;
 		}
+        
+        for (RelationPanel rp : this.relationPanels)
+        {
+            rp.setMode(pState);
+        }
 	}
 	
 	
@@ -286,7 +317,8 @@ public class UpdateViewer2 extends SecondoViewer {
 	public boolean setRelationPanel(String pRelName, ListExpr pRelationLE)
 	{
 		RelationPanel rp = this.getRelationPanel(pRelName);
-		if (rp == null){
+		if (rp == null)
+		{
 			rp = new RelationPanel(pRelName, this.controller);
 			this.relationPanels.add(rp);
 		}
@@ -295,53 +327,83 @@ public class UpdateViewer2 extends SecondoViewer {
 	
 
 	/*********************************************************
-	 * Methods of SecondoViewer.
-	 * Most of these methods are without function as the
-	 * responsibility for loading and manipulation objects
-	 * is with UpdateViewer2.
+	 * Methods of SecondoViewer
 	 *********************************************************/
 	
-	/*
-	 Method of SecondoViewer:
-	 Get the name of this viewer.
-	 The name is used in the menu of the MainWindow.
+	/**
+	 * Method of SecondoViewer:
+	 * Get the name of this viewer.
+	 * The name is used in the menu of the MainWindow.
 	 */
-	public String getName() {
+	@Override
+	public String getName() 
+	{
 		return viewerName;
 	}
 	
-	/*
-	 Method of SecondoViewer:
-	 Because this viewer shall not display objects others than relations loaded
-	 by the viewer itself only false is returned.	 
+	/**
+	 * Method of SecondoViewer:
+	 * Add new relation panel to display specified relation SecondoObject
+	 * is SecondoObject is relation and not yet displayed.
 	 */
-	public boolean addObject(SecondoObject o) {
+	@Override
+	public boolean addObject(SecondoObject so) 
+	{
+		if (this.canDisplay(so) && !this.isDisplayed(so))
+		{
+			this.setRelationPanel(so.getName(), so.toListExpr());
+			this.showRelations();
+			this.setSelectionMode(States.LOADED);
+		}
 		return false;
 	}
 	
-	/*
-	 Method of SecondoViewer:
-	 Because this viewer shall not display objects others than relations loaded
-	 by the viewer itself no object shall be removed.	 
+	/**
+	 * Method of SecondoViewer
 	 */
-	public void removeObject(SecondoObject o) {
+	@Override
+	public void removeObject(SecondoObject so) 
+	{
+		RelationPanel rp = getRelationPanel(so.getName());
+		if (rp != null)
+		{
+			this.relationPanels.remove(rp);
+		}
+	}
+	
+	/*
+	 * Method of SecondoViewer.
+	 * Remove all displayed relations from viewer.
+	 */
+	@Override
+	public void removeAll() 
+	{
+		this.clear();
+	}
 		
-	}
-	
 	/*
-	 Method of SecondoViewer:
-	 Because this viewer shall not display objects others than relations loaded
-	 by the viewer itself no objects shall be removed.	 
+	 * Method of SecondoViewer:
+	 * Returns true if specified SecondoObject is a relation.	 
 	 */
-	public void removeAll() {
+	public boolean canDisplay(SecondoObject so)
+	{
+		ListExpr le = so.toListExpr();
+		Reporter.debug("UpdateViewer2.canDisplay: full ListExpr is " + le.toString());
 		
-	}
-	/*
-	 Method of SecondoViewer:
-	 Because this viewer shall not display objects others than relations loaded
-	 by the viewer itself false is returned.	 
-	 */
-	public boolean canDisplay(SecondoObject o) {
+		if (le.listLength() >= 2 && !le.first().isAtom())
+		{
+			ListExpr type = le.first();
+			Reporter.debug("UpdateViewer2.canDisplay: type ListExpr is " + type.toString());
+			
+			if (type.first().isAtom())
+			{
+				String objectType = type.first().symbolValue();
+				if (objectType.equals("rel")) // || objectType.equals("trel") || objectType.equals("mrel"))
+				{
+					return true;
+				}
+			}
+		}
 		return false;
 	}
 	
@@ -350,7 +412,9 @@ public class UpdateViewer2 extends SecondoViewer {
 	 Because this viewer shall not display objects others than relations loaded
 	 by the viewer itself false is returned.	 
 	 */
-	public boolean isDisplayed(SecondoObject o) {
+	@Override
+	public boolean isDisplayed(SecondoObject so) 
+	{
 		return false;
 	}
 	
@@ -359,25 +423,35 @@ public class UpdateViewer2 extends SecondoViewer {
 	 Because this viewer shall not display objects others than relations loaded
 	 by the viewer itself false is returned.	 
 	 */
-	public boolean selectObject(SecondoObject O) {
+	@Override
+	public boolean selectObject(SecondoObject so) 
+	{
 		return false;
 	}
-	
+
 	/*
-	 Method of SecondoViewer:
-	 Because all commands for this viewer can easily be accessed from the actionPanel
-	 no MenuVector is built.	 
-	 */
-	public MenuVector getMenuVector() {
+	* Method of SecondoViewer:
+	* Because all commands for this viewer can be accessed from the actionPanel
+	* no MenuVector is built.	 
+	*/
+	@Override
+	public MenuVector getMenuVector() 
+	{
 		return null;
 	}
 	
 	/*
-	 Method of SecondoViewer:
-	 Because this viewer shall not display objects others than relations loaded
-	 by the viewer itself 0 is returned.	 
+	 * Method of SecondoViewer:
+	 * Because this viewer shall not display objects others than relations loaded
+	 * by the viewer itself 0 is returned.	 
 	 */
-	public double getDisplayQuality(SecondoObject SO) {
+	@Override
+	public double getDisplayQuality(SecondoObject so) 
+	{
+		if (this.canDisplay(so))
+		{
+			return 1;
+		}
 		return 0;
 	}
  
