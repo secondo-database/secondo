@@ -38,6 +38,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../t/tbool.h"
 
 /*
@@ -63,7 +64,8 @@ struct toregionInfo : OperatorInfo
     name      = "toregion";
     syntax    = "_ toregion";
     meaning   = "Maps a tbool object to a region.";
-    signature = tbool::BasicType() + " -> " + Region::BasicType();
+    signature = tbool::BasicType() +
+                RIGHT_ARROW + Region::BasicType();
   }
 };
 
