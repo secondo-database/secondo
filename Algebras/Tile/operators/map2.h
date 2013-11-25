@@ -37,6 +37,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -63,89 +64,37 @@ struct map2Info : OperatorInfo
     syntax    = "_ _ map2[_]";
     meaning   = "Combines two tile types to a new tile type.";
 
+    std::vector<std::string> typeParameterTUV;
+    typeParameterTUV.push_back("T");
+    typeParameterTUV.push_back("U");
+    typeParameterTUV.push_back("V");
     std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-
     GetValueWrapperTypes(valueWrapperTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
 
-    if(valueWrapperTypes.size() == tTypes.size() &&
-       valueWrapperTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        for(size_t j = 0; j < tTypes.size(); j++)
-        {
-          for(size_t k = 0; k < valueWrapperTypes.size(); k++)
-          {
-            if(signature.empty())
-            {
-              signature = tTypes[i] + " x " + tTypes[j] + " x (" +
-                          valueWrapperTypes[i] + " x " +
-                          valueWrapperTypes[j] + " -> " +
-                          valueWrapperTypes[k] + ") -> " + tTypes[k];
-            }
-
-            else
-            {
-              appendSignature(tTypes[i] + " x " + tTypes[j] + " x (" +
-                              valueWrapperTypes[i] + " x " +
-                              valueWrapperTypes[j] + " -> " +
-                              valueWrapperTypes[k] + ") -> " + tTypes[k]);
-            }
-          }
-        }
-      }
-
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        for(size_t j = 0; j < mtTypes.size(); j++)
-        {
-          for(size_t k = 0; k < valueWrapperTypes.size(); k++)
-          {
-            appendSignature(tTypes[i] + " x " + mtTypes[j] + " x (" +
-                            valueWrapperTypes[i] + " x " +
-                            valueWrapperTypes[j] + " -> " +
-                            valueWrapperTypes[k] + ") -> " + mtTypes[k]);
-          }
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        for(size_t j = 0; j < tTypes.size(); j++)
-        {
-          for(size_t k = 0; k < valueWrapperTypes.size(); k++)
-          {
-            appendSignature(mtTypes[i] + " x " + tTypes[j] + " x (" +
-                            valueWrapperTypes[i] + " x " +
-                            valueWrapperTypes[j] + " -> " +
-                            valueWrapperTypes[k] + ") -> " + mtTypes[k]);
-          }
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        for(size_t j = 0; j < mtTypes.size(); j++)
-        {
-          for(size_t k = 0; k < valueWrapperTypes.size(); k++)
-          {
-            appendSignature(mtTypes[i] + " x " + mtTypes[j] + " x (" +
-                            valueWrapperTypes[i] + " x " +
-                            valueWrapperTypes[j] + " -> " +
-                            valueWrapperTypes[k] + ") -> " + mtTypes[k]);
-          }
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string(TYPE_NAME_PREFIX_T) + "T" + " x " +
+                TYPE_NAME_PREFIX_T + "U" + " x " +
+                "(T x U" + RIGHT_ARROW + "V)" +
+                RIGHT_ARROW + TYPE_NAME_PREFIX_T + "V" +
+                FOR + GetTypeParametersDomain(typeParameterTUV,
+                                              valueWrapperTypes);
+    appendSignature(std::string(TYPE_NAME_PREFIX_T) + "T" + " x " +
+                    TYPE_NAME_PREFIX_MT + "U" + " x " +
+                    "(T x U" + RIGHT_ARROW + "V)" +
+                    RIGHT_ARROW + TYPE_NAME_PREFIX_MT + "V" +
+                    FOR + GetTypeParametersDomain(typeParameterTUV,
+                                                  valueWrapperTypes));
+    appendSignature(std::string(TYPE_NAME_PREFIX_MT) + "T" + " x " +
+                    TYPE_NAME_PREFIX_T + "U" + " x " +
+                    "(T x U" + RIGHT_ARROW + "V)" +
+                    RIGHT_ARROW + TYPE_NAME_PREFIX_MT + "V" +
+                    FOR + GetTypeParametersDomain(typeParameterTUV,
+                                                  valueWrapperTypes));
+    appendSignature(std::string(TYPE_NAME_PREFIX_MT) + "T" + " x " +
+                    TYPE_NAME_PREFIX_MT + "U" + " x " +
+                    "(T x U" + RIGHT_ARROW + "V)" +
+                    RIGHT_ARROW + TYPE_NAME_PREFIX_MT + "V" +
+                    FOR + GetTypeParametersDomain(typeParameterTUV,
+                                                  valueWrapperTypes));
   }
 };
 
