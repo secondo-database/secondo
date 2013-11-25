@@ -37,6 +37,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -63,42 +64,23 @@ struct CELLSInfo : OperatorInfo
     syntax    = "Not available";
     meaning   = "Type mapping operator.";
 
+    std::vector<std::string> typeParameterx;
+    typeParameterx.push_back("x");
+    std::vector<std::string> tileAlgebraTypes;
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_T);
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_MT);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
     std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
     GetValueWrapperTypes(valueWrapperTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
 
-    if(valueWrapperTypes.size() == tTypes.size() &&
-       valueWrapperTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = tTypes[i] + " x ... -> rel(tuple([Elem : " +
-                      valueWrapperTypes[i] + "]))";
-        }
-
-        else
-        {
-          appendSignature(tTypes[i] + " x ... -> rel(tuple([Elem : " +
-                          valueWrapperTypes[i] + "]))");
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(mtTypes[i] + " x ... -> rel(tuple([Elem : " +
-                        valueWrapperTypes[i] + "]))");
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string("xT") + " x " +
+                "..." +
+                RIGHT_ARROW + "rel(tuple([Elem : T]))" +
+                FOR + GetTypeParametersDomain(typeParameterx,
+                                              tileAlgebraTypes) +
+                ", " + GetTypeParametersDomain(typeParameterT,
+                                               valueWrapperTypes);
   }
 };
 
