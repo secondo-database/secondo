@@ -38,6 +38,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -64,36 +65,19 @@ struct bboxInfo : OperatorInfo
     syntax    = "bbox(_)";
     meaning   = "Returns the bounding box rectangle.";
 
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    if(tTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = tTypes[i] + " -> " + Rectangle<2>::BasicType();
-        }
-
-        else
-        {
-          appendSignature(tTypes[i] + " -> " + Rectangle<2>::BasicType());
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(mtTypes[i] + " -> " + Rectangle<3>::BasicType());
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string(TYPE_NAME_PREFIX_T) + "T" +
+                RIGHT_ARROW + Rectangle<2>::BasicType() +
+                FOR + GetTypeParametersDomain(typeParameterT,
+                                              valueWrapperTypes);
+    appendSignature(std::string(TYPE_NAME_PREFIX_MT) + "T" +
+                    RIGHT_ARROW + Rectangle<3>::BasicType() +
+                    FOR + GetTypeParametersDomain(typeParameterT,
+                                                  valueWrapperTypes));
   }
 };
 
