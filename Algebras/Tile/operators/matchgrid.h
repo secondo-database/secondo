@@ -38,6 +38,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../grid/tgrid.h"
 #include "../grid/mtgrid.h"
 #include "../Types/Types.h"
@@ -67,57 +68,26 @@ struct matchgridInfo : OperatorInfo
     meaning   = "Resamples a t type object or a mt type object "
                 "by applying a user function.";
 
+    std::vector<std::string> typeParameterTU;
+    typeParameterTU.push_back("T");
+    typeParameterTU.push_back("U");
     std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
     GetValueWrapperTypes(valueWrapperTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
 
-    if(valueWrapperTypes.size() == tTypes.size() &&
-       valueWrapperTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        for(size_t j = 0; j < valueWrapperTypes.size(); j++)
-        {
-          if(signature.empty())
-          {
-            signature = tTypes[i] + " x " + tgrid::BasicType() + " x " +
-                        "(rel(tuple([Elem : " +
-                        valueWrapperTypes[i] + "])) -> " +
-                        valueWrapperTypes[j] + ") x " +
-                        CcBool::BasicType() + " -> " + tTypes[j];
-          }
-
-          else
-          {
-            appendSignature(tTypes[i] + " x " + tgrid::BasicType() + " x " +
-                            "(rel(tuple([Elem : " +
-                            valueWrapperTypes[i] + "])) -> " +
-                            valueWrapperTypes[j] + ") x " +
-                            CcBool::BasicType() + " -> " + tTypes[j]);
-          }
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        for(size_t j = 0; j < valueWrapperTypes.size(); j++)
-        {
-          appendSignature(mtTypes[i] + " x " + mtgrid::BasicType() + " x " +
-                          "(rel(tuple([Elem : " +
-                          valueWrapperTypes[i] + "])) -> " +
-                          valueWrapperTypes[j] + ") x " +
-                          CcBool::BasicType() + " -> " + mtTypes[j]);
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string(TYPE_NAME_PREFIX_T) + "T" + " x " +
+                tgrid::BasicType() + " x " +
+                "(rel(tuple([Elem : T]))" + RIGHT_ARROW + "U)" + " x " +
+                CcBool::BasicType() +
+                RIGHT_ARROW + TYPE_NAME_PREFIX_T + "U" +
+                FOR + GetTypeParametersDomain(typeParameterTU,
+                                              valueWrapperTypes);
+    appendSignature(std::string(TYPE_NAME_PREFIX_MT) + "T" + " x " +
+                    mtgrid::BasicType() + " x " +
+                    "(rel(tuple([Elem : T]))" + RIGHT_ARROW + "U)" + " x " +
+                    CcBool::BasicType() +
+                    RIGHT_ARROW + TYPE_NAME_PREFIX_MT + "U" +
+                    FOR + GetTypeParametersDomain(typeParameterTU,
+                                                  valueWrapperTypes));
   }
 };
 
