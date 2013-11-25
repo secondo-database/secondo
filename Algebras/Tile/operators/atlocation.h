@@ -39,6 +39,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -65,51 +66,27 @@ struct atlocationInfo : OperatorInfo
     syntax    = "_ atlocation [_, _]";
     meaning   = "Returns the value(s) at location point.";
 
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
     std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> MTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
     GetValueWrapperTypes(valueWrapperTypes);
-    GetMTypes(MTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
 
-    if(valueWrapperTypes.size() == MTypes.size() &&
-       valueWrapperTypes.size() == tTypes.size() &&
-       valueWrapperTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = tTypes[i] + " x " + Point::BasicType() +
-                      " -> " + valueWrapperTypes[i];
-        }
-
-        else
-        {
-          appendSignature(tTypes[i] + " x " + Point::BasicType() +
-                          " -> " + valueWrapperTypes[i]);
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(mtTypes[i] + " x " + Point::BasicType() +
-                        " -> " + MTypes[i]);
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(mtTypes[i] + " x " + Point::BasicType() + " x " +
-                        Instant::BasicType() + " -> " + valueWrapperTypes[i]);
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string(TYPE_NAME_PREFIX_T) + "T" + " x " +
+                Point::BasicType() +
+                RIGHT_ARROW + "T" +
+                FOR + GetTypeParametersDomain(typeParameterT,
+                                              valueWrapperTypes);
+    appendSignature(std::string(TYPE_NAME_PREFIX_MT) + "T" + " x " +
+                    Point::BasicType() +
+                    RIGHT_ARROW + TYPE_NAME_PREFIX_M + "T" +
+                    FOR + GetTypeParametersDomain(typeParameterT,
+                                                  valueWrapperTypes));
+    appendSignature(std::string(TYPE_NAME_PREFIX_MT) + "T" + " x " +
+                    Point::BasicType() + " x " +
+                    Instant::BasicType() +
+                    RIGHT_ARROW + "T" +
+                    FOR + GetTypeParametersDomain(typeParameterT,
+                                                  valueWrapperTypes));
   }
 };
 
