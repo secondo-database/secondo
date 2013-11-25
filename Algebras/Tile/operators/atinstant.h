@@ -38,6 +38,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -64,33 +65,16 @@ struct atinstantInfo : OperatorInfo
     syntax    = "_ atinstant _";
     meaning   = "Returns the values for an instant time point.";
 
-    std::vector<std::string> mtTypes;
-    std::vector<std::string> itTypes;
-    GetmtTypes(mtTypes);
-    GetitTypes(itTypes);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    if(mtTypes.size() == itTypes.size())
-    {
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = mtTypes[i] + " x " + Instant::BasicType() +
-                      " -> " + itTypes[i];
-        }
-
-        else
-        {
-          appendSignature(mtTypes[i] + " x " + Instant::BasicType() +
-                          " -> " + itTypes[i]);
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string(TYPE_NAME_PREFIX_MT) + "T" + " x " +
+                Instant::BasicType() +
+                RIGHT_ARROW + TYPE_NAME_PREFIX_IT + "T" +
+                FOR + GetTypeParametersDomain(typeParameterT,
+                                              valueWrapperTypes);
   }
 };
 
