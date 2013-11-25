@@ -38,6 +38,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -64,23 +65,16 @@ struct atperiodsInfo : OperatorInfo
     syntax    = "atperiods(_)";
     meaning   = "Restricts values to periods.";
 
-    std::vector<std::string> mtTypes;
-    GetmtTypes(mtTypes);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    for(size_t i = 0; i < mtTypes.size(); i++)
-    {
-      if(signature.empty())
-      {
-        signature = mtTypes[i] + " x " + Periods::BasicType() +
-                    " -> " + mtTypes[i];
-      }
-
-      else
-      {
-        appendSignature(mtTypes[i] + " x " + Periods::BasicType() +
-                        " -> " + mtTypes[i]);
-      }
-    }
+    signature = std::string(TYPE_NAME_PREFIX_MT) + "T" + " x " +
+                Periods::BasicType() +
+                RIGHT_ARROW + TYPE_NAME_PREFIX_MT + "T" +
+                FOR + GetTypeParametersDomain(typeParameterT,
+                                              valueWrapperTypes);
   }          
 };
 
