@@ -37,6 +37,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../grid/tgrid.h"
 #include "../grid/mtgrid.h"
 #include "../Types/Types.h"
@@ -65,36 +66,19 @@ struct getgridInfo : OperatorInfo
     syntax    = "getgrid(_)";
     meaning   = "Returns the grid.";
 
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    if(tTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = tTypes[i] + " -> " + tgrid::BasicType();
-        }
-
-        else
-        {
-          appendSignature(tTypes[i] + " -> " + tgrid::BasicType());
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(mtTypes[i] + " -> " + mtgrid::BasicType());
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }    
+    signature = std::string(TYPE_NAME_PREFIX_T) + "T" +
+                RIGHT_ARROW + tgrid::BasicType() +
+                FOR + GetTypeParametersDomain(typeParameterT,
+                                              valueWrapperTypes);
+    appendSignature(std::string(TYPE_NAME_PREFIX_MT) + "T" +
+                    RIGHT_ARROW + mtgrid::BasicType() +
+                    FOR + GetTypeParametersDomain(typeParameterT,
+                                                  valueWrapperTypes));
   }
 };
 
