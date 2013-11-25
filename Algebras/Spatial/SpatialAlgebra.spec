@@ -3,7 +3,7 @@ operator adjacent alias ADJACENT pattern _ infixop _
 operator overlaps alias OVERLAPS pattern _ infixop _
 operator onborder alias ONBORDER pattern _ infixop _
 operator ininterior alias ININTERIOR pattern _ infixop _
-operator crossings alias CROSSINGS pattern op ( _, _ )
+operator crossings1 alias CROSSINGS1 pattern op ( _, _ )
 operator single alias SINGLE pattern  op ( _ )
 operator distance alias DISTANCE pattern  op ( _, _ )
 operator direction alias DIRECTION pattern  op ( _, _, _ )
@@ -26,11 +26,11 @@ operator isempty alias ISEMPTY pattern op(_)
 operator = alias EQ pattern _ infixop _
 operator # alias NEQ pattern _ infixop _
 operator < alias LT pattern _ infixop _
-operator intersects alias INTERSECTS pattern _ infixop _
+operator intersects1 alias INTERSECTS1 pattern _ infixop _
 operator inside alias INSIDE pattern _ infixop _
-operator intersection alias INTERSECTION pattern op(_,_)
-operator minus alias MINUS pattern _ infixop _
-operator union alias UNION pattern _ infixop _
+operator intersection1 alias INTERSECTION1 pattern op(_,_)
+operator minus1 alias MINUS1 pattern _ infixop _
+operator union1 alias UNION1 pattern _ infixop _
 operator no_components alias NO_COMPONENTS pattern  op ( _ )
 operator no_segments alias NO_SEGMENTS pattern  op ( _ )
 operator components alias COMPONENTS pattern op(_)

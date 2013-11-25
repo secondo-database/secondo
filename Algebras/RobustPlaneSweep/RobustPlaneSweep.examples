@@ -1,76 +1,76 @@
 Database: berlintest
 Restore : No
 
-Operator  : minus2
+Operator  : minus
 Number    : 1
 Signature : point x line -> points
-Example   : query [const point value ( 3 3 )] minus2 [const line value ((0 0 10 10))]
+Example   : query [const point value ( 3 3 )] minus [const line value ((0 0 10 10))]
 Result    : (points ())
 
-Operator  : minus2
+Operator  : minus
 Number    : 2
 Signature : points x region -> point
-Example   : query mehringdamm minus2 thecenter
+Example   : query mehringdamm minus thecenter
 Result    : (points ())
 
-Operator  : minus2
+Operator  : minus
 Number    : 3
 Signature : points x line -> points
-Example   : query train7stations minus2  trajectory(train7)
+Example   : query train7stations minus  trajectory(train7)
 Result    : (points ())
 
-Operator  : minus2
+Operator  : minus
 Number    : 4
 Signature : points x region -> points
-Example   : query train7stations minus2  thecenter
+Example   : query train7stations minus  thecenter
 Result    : (points ( (-3560.0 14235.0) (-3019.0 14499.0) (-2320.0 14423.0) (-1288.0 14532.0) (-267.0 14501.0) (863.0 14383.0) (1429.0 14388.0) (2354.0 14384.0) (2823.0 14355.0) (3353.0 13710.0) (3643.0 13248.0) (3683.0 11621.0) (3770.0 12208.0) (3809.0 11037.0) (3853.0 10396.0) (4072.0 9636.0) (4381.0 9276.0) (4911.0 8866.0) (13262.0 6390.0) (13582.0 3543.0) (13592.0 5253.0) (13643.0 4410.0) (13933.0 2673.0) (14600.0 2157.0) (15373.0 2039.0) (16013.0 2050.0) (16821.0 1252.0)))
 
-Operator  : minus2
+Operator  : minus
 Number    : 5
 Signature : line x point -> line
-Example   : query (train7sections minus2  mehringdamm) = train7sections
+Example   : query (train7sections minus  mehringdamm) = train7sections
 Result    : TRUE
 
-Operator  : minus2
+Operator  : minus
 Number    : 6
 Signature : line x points -> line
-Example   : query (train7sections minus2 train7stations) = train7sections
+Example   : query (train7sections minus train7stations) = train7sections
 Result    : TRUE
 
-Operator  : minus2
+Operator  : minus
 Number    : 7
 Signature : line x line -> line
-Example   : query train7sections minus2  train7sections
+Example   : query train7sections minus  train7sections
 Result    : (line ())
 
-Operator  : minus2
+Operator  : minus
 Number    : 8
 Signature : line x region -> line
-Example   : query [const line value ((3000 5000 18000 18000))] minus2  thecenter
+Example   : query [const line value ((3000 5000 18000 18000))] minus  thecenter
 Result    : (line ( (3000.0 5000.0 6141.316589425605 7722.474377502192) (13987.266280866977 14522.297443418047 18000.0 18000.0)))
 
-Operator  : minus2
+Operator  : minus
 Number    : 9
 Signature : region x point -> region
-Example   : query (thecenter minus2 mehringdamm) = thecenter
+Example   : query (thecenter minus mehringdamm) = thecenter
 Result    : TRUE
 
-Operator  : minus2
+Operator  : minus
 Number    : 10
 Signature : region x points -> region
-Example   : query (thecenter minus2 train7stations) = thecenter
+Example   : query (thecenter minus train7stations) = thecenter
 Result    : TRUE
 
-Operator  : minus2
+Operator  : minus
 Number    : 11
 Signature : region x line -> region
-Example   : query (thecenter minus2 train7sections) = thecenter
+Example   : query (thecenter minus train7sections) = thecenter
 Result    : TRUE
 
-Operator  : minus2
+Operator  : minus
 Number    : 12
 Signature : region x region -> region
-Example   : query thecenter minus2 thecenter
+Example   : query thecenter minus thecenter
 Result    : (region ())
 
 Operator : trajectory2
@@ -79,10 +79,10 @@ Signature: mpoint -> line
 Example  : query trajectory2(train7)
 Result   : file
 
-Operator : crossings2
+Operator : crossings
 Number   : 1
 Signature: (line x line) -> points
-Example  : query strassen feed {s1} strassen feed {s2} spatialjoin[geoData_s1, geoData_s2] filter[.Name_s1 < .Name_s2] filter[.geoData_s1 intersects .geoData_s2] projectextendstream[Name_s1, Name_s2; Cross: components(crossings2(.geoData_s1, .geoData_s2))] project[Cross] consume
+Example  : query strassen feed {s1} strassen feed {s2} spatialjoin[geoData_s1, geoData_s2] filter[.Name_s1 < .Name_s2] filter[.geoData_s1 intersects .geoData_s2] projectextendstream[Name_s1, Name_s2; Cross: components(crossings(.geoData_s1, .geoData_s2))] project[Cross] consume
 Result   : bug
 Remark   : some points are in the result which are not crossings of streets
 
@@ -92,153 +92,153 @@ Signature: dpoint -> line
 Example  : query toline(train7)
 Result   : file
 
-Operator  : union2
+Operator  : union
 Number    : 1
 Signature : point x line -> line
-Example   : query (mehringdamm union2 train7sections) = train7sections
+Example   : query (mehringdamm union train7sections) = train7sections
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 2
 Signature : point x region -> regions
-Example   : query (mehringdamm union2 thecenter) = thecenter
+Example   : query (mehringdamm union thecenter) = thecenter
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 3
 Signature : points x line -> line
-Example   : query (train7stations union2 train7sections) = train7sections
+Example   : query (train7stations union train7sections) = train7sections
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 4
 Signature : points x region -> region
-Example   : query (train7stations union2 thecenter) = thecenter
+Example   : query (train7stations union thecenter) = thecenter
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 5
 Signature : line x point -> line
-Example   : query (train7sections union2 mehringdamm) = train7sections
+Example   : query (train7sections union mehringdamm) = train7sections
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 6
 Signature : line x points -> line
-Example   : query (train7sections union2 train7stations) = train7sections
+Example   : query (train7sections union train7stations) = train7sections
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 7
 Signature : line x line -> line
-Example   : query (BGrenzenLine union2 train7sections) = (train7sections union2 BGrenzenLine)
+Example   : query (BGrenzenLine union train7sections) = (train7sections union BGrenzenLine)
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 8
 Signature : line x region -> region
-Example   : query (train7sections union2 thecenter) = thecenter
+Example   : query (train7sections union thecenter) = thecenter
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 9
 Signature : region x point -> region
-Example   : query (thecenter union2 mehringdamm) = thecenter
+Example   : query (thecenter union mehringdamm) = thecenter
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 10
 Signature : regions x points -> region
-Example   : query (thecenter union2 train7stations) = thecenter
+Example   : query (thecenter union train7stations) = thecenter
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 11
 Signature : region x line -> region
-Example   : query (thecenter union2 train7sections) = thecenter
+Example   : query (thecenter union train7sections) = thecenter
 Result    : TRUE
 
-Operator  : union2
+Operator  : union
 Number    : 12
 Signature : region x region -> region
-Example   : query (thecenter union2 tiergarten) = thecenter
+Example   : query (thecenter union tiergarten) = thecenter
 Result    : TRUE
 
-Operator : intersection2
+Operator : intersection
 Number   : 1
 Signature: point x line
-Example  : query intersection2(alexanderplatz, BGrenzenLine)
+Example  : query intersection(alexanderplatz, BGrenzenLine)
 Result   : (points ())
 
-Operator : intersection2
+Operator : intersection
 Number   : 2
 Signature: point x region
-Example  : query intersection2(alexanderplatz, thecenter)
+Example  : query intersection(alexanderplatz, thecenter)
 Result   : (points ((11068.0 12895.0)))
 
-Operator : intersection2
+Operator : intersection
 Number   : 3
 Signature: points x line
-Example  : query intersection2(vertices(BGrenzenLine), BGrenzenLine)=vertices(BGrenzenLine)
+Example  : query intersection(vertices(BGrenzenLine), BGrenzenLine)=vertices(BGrenzenLine)
 Result   : TRUE
 
-Operator : intersection2
+Operator : intersection
 Number   : 4
 Signature: points x region
-Example  : query intersection2(train7stations, thecenter)
+Example  : query intersection(train7stations, thecenter)
 Result   : (points ( (5505.0 8963.0) (6126.0 9130.0) (6805.0 9248.0) (7451.0 9347.0) (8238.0 9660.0) (8988.0 10323.0) (9396.0 9871.0) (9883.0 9494.0) (10684.0 9295.0) (11837.0 8980.0) (12518.0 8482.0) (12871.0 7943.0) (13049.0 7140.0)))
 
-Operator : intersection2
+Operator : intersection
 Number   : 5
 Signature: line x point
-Example  : query intersection2(train7sections, mehringdamm)
+Example  : query intersection(train7sections, mehringdamm)
 Result   : (points ((9396.0 9871.0)))
 
-Operator : intersection2
+Operator : intersection
 Number   : 6
 Signature: line x points
-Example  : query intersection2(train7sections, train7stations)
+Example  : query intersection(train7sections, train7stations)
 Result   : (points ( (-3560.0 14235.0) (-3019.0 14499.0) (-2320.0 14423.0) (-1288.0 14532.0) (3643.0 13248.0) (3683.0 11621.0) (3770.0 12208.0) (3809.0 11037.0) (3853.0 10396.0) (8238.0 9660.0) (8988.0 10323.0) (9396.0 9871.0) (9883.0 9494.0) (13582.0 3543.0) (13592.0 5253.0) (13643.0 4410.0) (13933.0 2673.0) (14600.0 2157.0) (16821.0 1252.0)))
 
-Operator : intersection2
+Operator : intersection
 Number   : 7
 Signature: line x line
-Example  : query intersection2(train7sections, train7sections) = train7sections
+Example  : query intersection(train7sections, train7sections) = train7sections
 Result   : TRUE
 
-Operator : intersection2
+Operator : intersection
 Number   : 8
 Signature: line x region
-Example  :  query no_components(intersection2(train7sections, thecenter))
+Example  :  query no_components(intersection(train7sections, thecenter))
 Result   : 1
 
-Operator : intersection2
+Operator : intersection
 Number   : 9
 Signature: region x point
-Example  : query intersection2(thecenter, mehringdamm)
+Example  : query intersection(thecenter, mehringdamm)
 Result   : (points ((9396.0 9871.0)))
 
-Operator : intersection2
+Operator : intersection
 Number   : 10
 Signature: region x points
-Example  : query intersection2(thecenter, train7stations) = intersection2(train7stations, thecenter)
+Example  : query intersection(thecenter, train7stations) = intersection(train7stations, thecenter)
 Result   : TRUE
 
-Operator : intersection2
+Operator : intersection
 Number   : 11
 Signature: region x line
-Example  : query intersection2(thecenter,  boundary(thecenter)) = boundary(thecenter)
+Example  : query intersection(thecenter,  boundary(thecenter)) = boundary(thecenter)
 Result   : TRUE
 
-Operator : intersection2
+Operator : intersection
 Number   : 12
 Signature: region x region
-Example  : query intersection2(thecenter, thecenter)= thecenter
+Example  : query intersection(thecenter, thecenter)= thecenter
 Result   : TRUE
 
-Operator : intersects2
+Operator : intersects
 Number   : 1
 Signature: (points||line||region x points||line||region) -> bool
-Example  : query trajectory(train7) intersects2 thecenter
+Example  : query trajectory(train7) intersects thecenter
 Result   : TRUE
 

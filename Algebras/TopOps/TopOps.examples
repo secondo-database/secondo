@@ -46,14 +46,14 @@ Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE TRUE))
 Operator : toprel
 Number   : 7
 Signature: points x line -> int9m 
-Example  : query toprel(([const point value (9396.0 9871.0)] union [const points value()]), trajectory(train7)) 
+Example  : query toprel(([const point value (9396.0 9871.0)] union1 [const points value()]), trajectory(train7)) 
 Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE))
 
 
 Operator : toprel
 Number   : 8
 Signature: points x region -> int9m 
-Example  : query toprel([const point value (9396.0 9871.0)] union [const points value()], thecenter) 
+Example  : query toprel([const point value (9396.0 9871.0)] union1 [const points value()], thecenter) 
 Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE))
 
 
@@ -67,7 +67,7 @@ Result   : (int9m (TRUE FALSE TRUE FALSE FALSE TRUE FALSE FALSE TRUE))
 Operator : toprel
 Number   : 10
 Signature: line x points -> int9m 
-Example  : query toprel(trajectory(train7), [const point value (9396.0 9871.0)] union [const points value ()]) 
+Example  : query toprel(trajectory(train7), [const point value (9396.0 9871.0)] union1 [const points value ()]) 
 Result   : (int9m (TRUE FALSE TRUE FALSE FALSE TRUE FALSE FALSE TRUE))
 
 
@@ -95,7 +95,7 @@ Result   : (int9m (TRUE FALSE TRUE FALSE FALSE TRUE FALSE FALSE TRUE))
 Operator : toprel
 Number   : 14 
 Signature: region x points -> int9m 
-Example  : query toprel(thecenter, [const point value (9396.0 9871.0)] union [const points value ()] ) 
+Example  : query toprel(thecenter, [const point value (9396.0 9871.0)] union1 [const points value ()] ) 
 Result   : (int9m (TRUE FALSE TRUE FALSE FALSE TRUE FALSE FALSE TRUE))
 
 Operator : toprel
@@ -120,7 +120,7 @@ Result   : (bool TRUE)
 Operator : toppred
 Number   : 2
 Signature: point x points x cluster -> bool
-Example  : query toppred([const point value (9396.0 9871.0)], ([const point value (9396.0 9871.0)] union [const points value ()]), [const cluster value ("t" "ii")])
+Example  : query toppred([const point value (9396.0 9871.0)], ([const point value (9396.0 9871.0)] union1 [const points value ()]), [const cluster value ("t" "ii")])
 Result   : (bool TRUE)
 
 

@@ -19957,7 +19957,7 @@ Operator spatialnotequal (
   SpatialTypeMapCompare );
 
 Operator spatialintersects (
-  "intersects",
+  "intersects1",
   SpatialSpecIntersects,
   10,
   spatialintersectsmap,
@@ -20003,7 +20003,7 @@ Operator spatialininterior (
 
 
 Operator spatialintersection (
-  "intersection",
+  "intersection1",
   SpatialIntersectionSpec,
   25,
   spatialintersectionVM,
@@ -20011,7 +20011,7 @@ Operator spatialintersection (
   SpatialIntersectionTypeMap );
 
 Operator spatialminus (
-  "minus",
+  "minus1",
   SpatialMinusSpec,
   25,
   spatialminusVM,
@@ -20019,7 +20019,7 @@ Operator spatialminus (
   SpatialMinusTypeMap );
 
 Operator spatialunion (
-  "union",
+  "union1",
   SpatialUnionSpec,
   25,
   spatialunionVM,
@@ -20027,7 +20027,7 @@ Operator spatialunion (
   SpatialUnionTypeMap );
 
 Operator spatialcrossings (
-  "crossings",
+  "crossings1",
   SpatialSpecCrossings,
   3,
   SpatialCrossingsMap,

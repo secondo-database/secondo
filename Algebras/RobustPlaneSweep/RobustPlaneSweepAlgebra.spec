@@ -18,9 +18,9 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator trajectory2 alias TRAJECTORY2 pattern op ( _ )
-operator crossings2 alias CROSSINGS2 pattern op ( _, _ )
-operator intersection2 alias INTERSECTION2 pattern op(_,_)
-operator minus2 alias MINUS2 pattern _ infixop _
-operator union2 alias UNION2 pattern _ infixop _
+operator crossings alias CROSSINGS pattern op ( _, _ )
+operator intersection alias INTERSECTION pattern op(_,_)
+operator minus alias MINUS pattern _ infixop _
+operator union alias UNION pattern _ infixop _
 operator toline alias TOLINE pattern op ( _ )
-operator intersects2 alias INTERSECTS2 pattern _ infixop _
+operator intersects alias INTERSECTS pattern _ infixop _
