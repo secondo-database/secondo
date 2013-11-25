@@ -38,6 +38,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -64,39 +65,18 @@ struct t2mtInfo : OperatorInfo
     syntax    = "t2mt(_, _, _, _)";
     meaning   = "Adds a time component to a t type.";
 
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    if(tTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = tTypes[i] + " x " +
-                      Duration::BasicType() + " x " +
-                      Instant::BasicType() + " x " +
-                      Instant::BasicType() +
-                      " -> " + mtTypes[i];
-        }
-
-        else
-        {
-          appendSignature(tTypes[i] + " x " +
-                          Duration::BasicType() + " x " +
-                          Instant::BasicType() + " x " +
-                          Instant::BasicType() +
-                          " -> " + mtTypes[i]);
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string(TYPE_NAME_PREFIX_T) + "T" + " x " +
+                Duration::BasicType() + " x " +
+                Instant::BasicType() + " x " +
+                Instant::BasicType() +
+                RIGHT_ARROW + TYPE_NAME_PREFIX_MT + "T" +
+                FOR + GetTypeParametersDomain(typeParameterT,
+                                              valueWrapperTypes);
   }
 };
 
