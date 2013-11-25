@@ -37,6 +37,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -63,39 +64,22 @@ struct maximumInfo : OperatorInfo
     syntax    = "maximum(_)";
     meaning   = "Returns the maximum value.";
 
+    std::vector<std::string> typeParameterx;
+    typeParameterx.push_back("x");
+    std::vector<std::string> tileAlgebraTypes;
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_T);
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_MT);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
     std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
     GetValueWrapperTypes(valueWrapperTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
 
-    if(valueWrapperTypes.size() == tTypes.size() &&
-       valueWrapperTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = tTypes[i] + " -> " + valueWrapperTypes[i];
-        }
-
-        else
-        {
-          appendSignature(tTypes[i] + " -> " + valueWrapperTypes[i]);
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(mtTypes[i] + " -> " + valueWrapperTypes[i]);
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string("xT") +
+                RIGHT_ARROW + "T" +
+                FOR + GetTypeParametersDomain(typeParameterx,
+                                              tileAlgebraTypes) +
+                ", " + GetTypeParametersDomain(typeParameterT,
+                                               valueWrapperTypes);
   }
 };
 
