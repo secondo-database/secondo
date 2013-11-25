@@ -134,6 +134,10 @@ ALGEBRAS     += RectangleAlgebra
 ALGEBRA_DIRS += Spatial
 ALGEBRAS     += SpatialAlgebra
 
+ALGEBRA_DIRS += RobustPlaneSweep
+ALGEBRAS     += RobustPlaneSweepAlgebra
+
+
 ALGEBRA_DIRS += Temporal
 ALGEBRAS     += TemporalAlgebra
 
