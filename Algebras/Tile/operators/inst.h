@@ -38,6 +38,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -64,21 +65,15 @@ struct instInfo : OperatorInfo
     syntax    = "inst(_)";
     meaning   = "Returns the instant value.";
 
-    std::vector<std::string> itTypes;
-    GetitTypes(itTypes);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    for(size_t i = 0; i < itTypes.size(); i++)
-    {
-      if(signature.empty())
-      {
-        signature = itTypes[i] + " -> " + Instant::BasicType();
-      }
-
-      else
-      {
-        appendSignature(itTypes[i] + " -> " + Instant::BasicType());
-      }
-    }
+    signature = std::string(TYPE_NAME_PREFIX_IT) + "T" +
+                RIGHT_ARROW + Instant::BasicType() +
+                FOR + GetTypeParametersDomain(typeParameterT,
+                                              valueWrapperTypes);
   }
 };
 
