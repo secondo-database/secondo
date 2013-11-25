@@ -39,6 +39,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -65,48 +66,30 @@ struct atrangeInfo : OperatorInfo
     syntax    = "_ atrange [_,_,_]";
     meaning   = "Returns the values at range of the rectangle.";
 
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
+    std::vector<std::string> typeParameterx;
+    typeParameterx.push_back("x");
+    std::vector<std::string> tileAlgebraTypes;
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_T);
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_MT);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    if(tTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = tTypes[i] + " x " + Rectangle<2>::BasicType() +
-                      " -> " + tTypes[i];
-        }
-
-        else
-        {
-          appendSignature(tTypes[i] + " x " + Rectangle<2>::BasicType() +
-                          " -> " + tTypes[i]);
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(mtTypes[i] + " x " + Rectangle<2>::BasicType() +
-                        " -> " + mtTypes[i]);
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(mtTypes[i] + " x " +
-                        Rectangle<2>::BasicType() + " x " +
-                        Instant::BasicType() + " x " +
-                        Instant::BasicType() +
-                        " -> " + mtTypes[i]);
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string("xT") + " x " +
+                Rectangle<2>::BasicType() +
+                RIGHT_ARROW + "xT" +
+                FOR + GetTypeParametersDomain(typeParameterx,
+                                              tileAlgebraTypes) +
+                ", " + GetTypeParametersDomain(typeParameterT,
+                                               valueWrapperTypes);
+    appendSignature(std::string(TYPE_NAME_PREFIX_MT) + "T" + " x " +
+                    Rectangle<2>::BasicType() + " x " +
+                    Instant::BasicType() + " x " +
+                    Instant::BasicType() +
+                    RIGHT_ARROW + TYPE_NAME_PREFIX_MT + "T" +
+                    FOR + GetTypeParametersDomain(typeParameterT,
+                                                  valueWrapperTypes));
   }
 };
 
