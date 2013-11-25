@@ -29,6 +29,11 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableColumn;
 
+import tools.Reporter;
+
+import viewer.update2.*;
+
+
 /**
  * TableCellRenderer for the attribute column of the relation table.
  */
@@ -39,6 +44,7 @@ public class LabelTableCellRenderer extends DefaultTableCellRenderer
 	public LabelTableCellRenderer()
 	{			
 		this.label = new JLabel();
+        this.label.setOpaque(true);
 		this.label.setHorizontalAlignment(SwingConstants.LEFT);
 		this.label.setVerticalAlignment(SwingConstants.TOP);
 	}
@@ -56,17 +62,22 @@ public class LabelTableCellRenderer extends DefaultTableCellRenderer
 		
 		this.label.setText(pValue.toString());
 		this.label.setForeground(Color.BLACK);
-		this.label.setBackground(c.getBackground());
+        
+        // background
+        if (((RelationTableModel)pTable.getModel()).isDeleted(pRow))
+        {
+            this.label.setBackground(new Color(255, 210, 230));
+        }
+        else
+        {
+            this.label.setBackground(Color.WHITE);
+        }
 				
 		// fit width to content
 		int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
 		this.label.setSize(width, Short.MAX_VALUE);
-		/*
-		int rendererWidth = c.getPreferredSize().width;
-		TableColumn tableColumn = pTable.getColumnModel().getColumn(pColumn);
-		tableColumn.setPreferredWidth(Math.max(rendererWidth,
-											   tableColumn.getPreferredWidth()));
-		*/
+		
+		//Reporter.debug("LabelTableCellRenderer.getTableCellRendererComponent for cell (" + pRow + "," + pColumn + ")");
 		
 		return this.label;
 	}

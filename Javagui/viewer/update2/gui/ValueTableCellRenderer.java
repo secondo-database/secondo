@@ -21,6 +21,7 @@ package  viewer.update2.gui;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Rectangle;
 import java.util.List;
 
 import javax.swing.border.Border;
@@ -29,6 +30,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Highlighter;
 
@@ -41,12 +44,14 @@ import viewer.update2.*;
 /**
  * TableCellRenderer for the attribute column of the relation table.
  */
-public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel implements TableCellRenderer
+public class ValueTableCellRenderer 
+	extends DefaultTableCellRenderer 
+	//implements TableCellRenderer
 {
 	private JTextArea textArea;
 	private Border borderFocussed;
 	private Highlighter hiliter;
-	private HighlightPainter hilitePainter;
+	private DefaultHighlighter.DefaultHighlightPainter hilitePainter;
 
 	/**
 	 * Constructor
@@ -60,36 +65,37 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel im
 		this.textArea.setForeground(Color.BLACK);
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
 		this.hiliter = this.textArea.getHighlighter();
-		this.hilitePainter = new HighlightPainter(Color.YELLOW);
+		this.hilitePainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
 	}
 	
 	
 	/**
 	 * Returns a component that displays an attribute value.
 	 */
-	@Override
 	public Component getTableCellRendererComponent(
 												   JTable pTable, Object pValue,
 												   boolean pSelected, boolean pFocussed,
 												   int pRow, int pColumn) 
 	{
 		// background
-		if (pSelected)
+        if (((RelationTableModel)pTable.getModel()).isDeleted(pRow))
+        {
+            this.textArea.setBackground(new Color(255, 210, 230));
+        }
+		else 
 		{
-			this.textArea.setBackground(new Color(210, 230, 255));
-		} 
-		else {
-			if (((RelationTableModel)pTable.getModel()).isValueChanged(pRow, pColumn))
-			{
-				this.textArea.setBackground(new Color(210, 230, 255));
-			}
-			else{
-				this.textArea.setBackground(Color.WHITE);
-			}
+            if (pSelected || ((RelationTableModel)pTable.getModel()).isChanged(pRow, pColumn))
+            {
+                this.textArea.setBackground(new Color(210, 230, 255));
+            }
+            else
+            {
+                this.textArea.setBackground(Color.WHITE);
+            }
 		}
 		
 		// border
-		if (pFocussed)
+		if (pFocussed && !((RelationTableModel)pTable.getModel()).isDeleted(pRow))
 		{
 			this.textArea.setBorder(BorderFactory.createCompoundBorder(this.borderFocussed, 
 								BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));
@@ -97,7 +103,6 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel im
 		{
 			this.textArea.setBorder(BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground()));
 		}
-		
 		
 		// set text and correct row height according to textarea content
 		int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
@@ -107,7 +112,7 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel im
 		
 		
 		// highlight search matches
-		//hiliter.removeAllHighlights();
+		hiliter.removeAllHighlights();
 		List<SearchHit> hits = ((RelationTableModel)pTable.getModel()).getSearchHits(pRow);
 		if (hits != null && !hits.isEmpty())
 		{
@@ -121,16 +126,35 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer //JPanel im
 				}
 			}
 		}
-
-		//this.textArea.setToolTipText("test");
+		
+				
+		//Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent for cell (" + pRow + "," + pColumn + ")");
 		return this.textArea;
 	}
 	
-	private class HighlightPainter extends DefaultHighlighter.DefaultHighlightPainter {  
-        public HighlightPainter(Color color) {  
-            super(color);  
-        }  
-    } 
+	
+	public Rectangle getOffset(int pTextPos)
+	{
+		try
+		{
+			Reporter.debug("ValueTableCellRenderer.getOffset: textarea width is " + this.textArea.getWidth());
+			Reporter.debug("ValueTableCellRenderer.getOffset: value is " + this.textArea.getText());
+			return this.textArea.modelToView(pTextPos);
+		}
+		catch (BadLocationException e)
+		{
+			Reporter.showError("ValueTableCellRenderer.getOffset: BadLocation " + pTextPos +  e.getMessage());
+			return null;
+		}
+	}
+	
+	public void setCaretPosition(int pPosition)
+	{
+		if (pPosition >= 0 && pPosition < this.textArea.getText().length())
+		{
+			this.textArea.setCaretPosition(pPosition);
+		}
+	}
 	
 	// TODO
 	// Method to set highlighting color

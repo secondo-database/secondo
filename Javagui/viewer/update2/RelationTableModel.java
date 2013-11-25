@@ -27,7 +27,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import gui.idmanager.*;
 import gui.SecondoObject;
@@ -57,6 +59,9 @@ public class RelationTableModel extends AbstractTableModel
 	
 	// contains changes in chronological order
 	private List<Change> changes;
+    
+    // contains tuple ids for deletion in chronological order
+	private List<String> deletions;
 	
 	// hits from latest search, mapped by rowIndex
 	private List<SearchHit> hitList;
@@ -88,18 +93,43 @@ public class RelationTableModel extends AbstractTableModel
 		this.attributeNames = pRelation.getAttributeNames();
 		this.state = States.LOADED;
 		this.changes = new ArrayList<Change>();
+		this.deletions = new ArrayList<String>();
 		this.hitList = null;
 		this.hitMap = new HashMap<Integer,List<SearchHit>>();
 			 
 		Reporter.debug(this.toString());
 	}
 	
-	
+	/**
+     * Append specified change to change list for this relation.
+     */
 	public void addChange(Change pChange)
 	{
 		Reporter.debug("RelationTableModel.addChange :" + pChange.toString());
 		this.changes.add(pChange);
 	}
+
+	
+    /**
+     * Marks the tuple corresponding to the specified row index for deletion.
+     * Return true if it was not yet marked else  false.
+     */
+    public boolean addDeletion(int pRow)
+    {
+        boolean result = false;
+        String tupleid = (String)this.getValueAt(pRow, this.COL_TUPLEID);
+		if (!this.isDeleted(pRow))
+        {
+            this.deletions.add(tupleid);
+            Reporter.debug("RelationTableModel.addDeletion: marked tuple " + tupleid);
+            result = true;
+        }
+        else
+        {
+            Reporter.debug("RelationTableModel.addDeletion: already marked tuple " + tupleid);
+        }
+        return result;
+    }
 	
 	
 	/**
@@ -110,6 +140,20 @@ public class RelationTableModel extends AbstractTableModel
 		if (this.changes != null && !this.changes.isEmpty())
 		{
 			this.changes.clear();
+		}
+		return false;
+	}
+    
+    
+    /**
+	 * Removes all deletions. Returns true if any deletions existed.
+	 */
+	public boolean clearDeletions()
+	{
+		if (this.hasDeletions())
+		{
+			this.deletions.clear();
+            return true;
 		}
 		return false;
 	}
@@ -240,6 +284,11 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		return this.currHit;
 	}
+    
+    public List<String> getDeletions()
+    {
+        return this.deletions;
+    }
 	
 	
 	/**
@@ -247,7 +296,7 @@ public class RelationTableModel extends AbstractTableModel
 	 */
 	public Change getLastChange()
 	{
-		if (this.changes != null && !this.changes.isEmpty()) 
+		if (this.hasChanges())
 		{
 			return this.changes.get(this.changes.size()-1);			
 		}
@@ -272,27 +321,33 @@ public class RelationTableModel extends AbstractTableModel
         return this.tupleCount * (this.tupleSize + 1);
     }
 	
-	
+	/**
+     * Returns SearchHit with specified index in this relation.
+     */
 	public SearchHit getSearchHit(int pIndex)
 	{
-		if (pIndex >= 0 && pIndex < this.hitList.size())
+		if (pIndex >= 0 && this.hitList != null && pIndex < this.hitList.size())
 		{
 			return this.hitList.get(pIndex);
 		}
 		return null;
 	}
 	
+	/**
+	 * Returns number of all search hits
+	 */
 	public int getSearchHitCount()
 	{
-		return this.hitList.size();
+		if (this.hitList != null)
+		{
+			return this.hitList.size();
+		}
+		return 0;
 	}
 	
-	/*
-	public Map<Integer, List<SearchHit>> getSearchHits()
-	{
-		return this.searchHits;
-	}*/
-	
+	/**
+	 * Returns all SearchHits for the specified row.
+	 */
 	public List<SearchHit> getSearchHits(int pRow)
 	{
 		if (this.hitMap != null)
@@ -300,6 +355,16 @@ public class RelationTableModel extends AbstractTableModel
 			return this.hitMap.get(pRow);
 		}
 		return Collections.emptyList();
+	}
+	
+    /**
+     * Returns state.
+     * Used in TableCellEditor/-Renderer.
+     * @see viewer.update2.States
+     */
+	public int getState()
+	{
+		return this.state;
 	}
 	
 	/*
@@ -350,6 +415,19 @@ public class RelationTableModel extends AbstractTableModel
 		return result;
     }
 	
+    
+    public boolean hasChanges()
+    {
+        return (this.changes != null && !this.changes.isEmpty());
+    }
+    
+    
+    public boolean hasDeletions()
+    {
+        return (this.deletions != null && !this.deletions.isEmpty());
+    }
+	
+    
 	
 	/*
 	 * Method of interface AbstractTableModel.
@@ -364,19 +442,11 @@ public class RelationTableModel extends AbstractTableModel
 		}
 		return false;
 	}
-	
-	/**
-	 * Returns true if rowIndex specifies a separator row (empty row between tuples).
-	 */
-	private boolean isSeparator(int pRow)
-	{
-		return (pRow % (this.tupleSize+1)==0);
-	}
-	
-	/**
+    
+    /**
 	 * Returns true if there are uncommitted changes for specified table cell.
 	 */
-	public boolean isValueChanged(int pRow, int pCol)
+	public boolean isChanged(int pRow, int pCol)
 	{
 		for (Change ch : this.changes)
 		{
@@ -388,6 +458,31 @@ public class RelationTableModel extends AbstractTableModel
 		return false;
 	}
 	
+    
+    /**
+	 * Returns true if the tuple this row belongs to has been marked for deletion.
+	 */
+	public boolean isDeleted(int pRow)
+	{
+		String tupleid = (String)this.getValueAt(pRow, this.COL_TUPLEID);
+		
+        if (tupleid != null && !tupleid.isEmpty() && this.deletions.contains(tupleid))
+		{
+			return true;
+		}
+		return false;
+	}
+	
+    
+	/**
+	 * Returns true if rowIndex specifies a separator row (empty row between tuples).
+	 */
+	private boolean isSeparator(int pRow)
+	{
+		return (pRow % (this.tupleSize+1)==0);
+	}
+	
+
 		
 	/**
 	 * Removes change at specified index from change history list.	 
@@ -397,7 +492,7 @@ public class RelationTableModel extends AbstractTableModel
 		Reporter.debug("RelationTableModel.removeChange :" + pIndex);
 		Change result = null;
 		
-		if (this.changes != null && !this.changes.isEmpty() && pIndex < this.changes.size()) 
+		if (this.hasChanges() && pIndex < this.changes.size())
 		{
 			return (Change)this.changes.remove(this.changes.size()-1);			
 		}
@@ -407,19 +502,36 @@ public class RelationTableModel extends AbstractTableModel
 	
 	
 	/**
-	 * Removes change at specified index from change history list.	 
+	 * Removes specified change if any.
+	 * Returns TRUE if there change existed.
 	 */
 	public boolean removeChange(Change pChange)
 	{
 		Reporter.debug("RelationTableModel.removeChange :" + pChange.toString());
 		boolean result = false;
 		
-		if (this.changes != null) 
+		if (this.hasChanges())
 		{
 			result = this.changes.remove(pChange);			
 		}
 		
 		return result;
+	}
+    
+	/**
+	 * Removes last deletion from deletion history list, if any.
+     * Returns TRUE if deletion existed.
+	 */
+	public boolean removeLastDeletion()
+	{
+		if (this.hasDeletions())
+		{
+            Reporter.debug("RelationTableModel.removeDeletion: index is " + (this.deletions.size()-1));
+
+			this.deletions.remove(this.deletions.size()-1);
+            return true;
+		}
+        return false;
 	}
 	
 	
@@ -443,15 +555,16 @@ public class RelationTableModel extends AbstractTableModel
 		this.hitList = pHitlist;
 		this.hitMap.clear();
 		
-		if (pHitlist.isEmpty())
+		if (pHitlist == null || pHitlist.isEmpty())
 		{
 			this.currHit = -1;
 		}
+		else
 		{
 			this.currHit = 0;
 			for (SearchHit hit : pHitlist)
 			{
-				Reporter.debug(hit.toString());
+				//Reporter.debug(hit.toString());
 				
 				List<SearchHit> list4row = this.hitMap.get(hit.getRowIndex());
 				if (list4row == null)
@@ -464,6 +577,9 @@ public class RelationTableModel extends AbstractTableModel
 		}
 	}
 	
+    /**
+     * Sets the hit index if valid.
+     */
 	public void setCurrentHitIndex(int pIndex)
 	{
 		if (pIndex >= 0 && pIndex < this.hitList.size())
@@ -497,18 +613,19 @@ public class RelationTableModel extends AbstractTableModel
 
 			this.relation.setSecondoObject(tupleIndex, attrIndex, SO);
 			
-			//fireTableCellUpdated(pRow, pCol);
+			fireTableCellUpdated(pRow, pCol);
 		}
     }
 
 	/**
-	 * 
+     * Set the state.
+	 * @see viewer.update2.States
 	 */
 	public void setState(int pState)
 	{
 		this.state = pState;
 	}
-	
+    
 	
     
 	public String toString()

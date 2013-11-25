@@ -35,6 +35,7 @@ import java.awt.FontMetrics;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
@@ -51,7 +52,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -92,6 +92,7 @@ import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.ListModel;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.ToolTipManager;
 import javax.swing.event.ChangeEvent;
@@ -106,6 +107,7 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
+import javax.swing.JViewport;
 
 import project.Projection;
 import sj.lang.ListExpr;
@@ -124,7 +126,8 @@ import viewer.update2.*;
  * Panel that contains a table used to display one relation sequentially,
  * i.e. as a sequence of triples (tuple ID, attribute name, attribute value).
  */
-public class RelationPanel extends JPanel implements 
+public class RelationPanel extends JPanel implements
+    ListSelectionListener,
 	TableModelListener, 
 	PropertyChangeListener
 {
@@ -137,7 +140,7 @@ public class RelationPanel extends JPanel implements
 	private UpdateViewerController controller;
 	
 	private JTable relTable;
-	
+		
 	private JScrollPane relScroll;
 			
 	// components to display the relation in insert mode
@@ -147,6 +150,7 @@ public class RelationPanel extends JPanel implements
 	private JTable insertTable;	
 	
 	private ValueTableCellRenderer tableCellRenderer;
+	
 	private ValueTableCellEditor tableCellEditor;
 	
 	// saves the old value of the currently edited cell, when in edit mode
@@ -181,6 +185,9 @@ public class RelationPanel extends JPanel implements
 		this.tableCellRenderer = new ValueTableCellRenderer();
 		this.tableCellEditor = new ValueTableCellEditor();
 		
+		// textarea (formatted view)
+		
+		
 		// searchPanel
 		this.searchPanel = new JPanel();
 		this.searchPanel.setLayout(new FlowLayout());
@@ -191,12 +198,14 @@ public class RelationPanel extends JPanel implements
 		this.searchPanel.add(this.search);
 		this.previous = new JButton("Previous");
 		this.previous.addActionListener(this.controller); 
+		this.previous.setToolTipText("Go to previous search hit");
 		this.searchPanel.add(this.previous);
-		this.searchResultLabel = new JLabel();
-		this.searchPanel.add(this.searchResultLabel);
 		this.next = new JButton("Next");
 		this.next.addActionListener(this.controller); 
+		this.next.setToolTipText("Go to next search hit");
 		this.searchPanel.add(this.next);
+		this.searchResultLabel = new JLabel();
+		this.searchPanel.add(this.searchResultLabel);
 		this.add(searchPanel, BorderLayout.SOUTH);
 	}
 	
@@ -250,17 +259,26 @@ public class RelationPanel extends JPanel implements
 		insertTable.addKeyListener(new KeyAdapter(){
 								   public void keyPressed(KeyEvent evt){
 								   if( (evt.getKeyCode()==KeyEvent.VK_DELETE)){ 
-								   removeInsertSelection(); 
+								   removeInsertSelection();
 								   }
 								   }
 								   });
 		
 	}
-	
+    
+
+    public boolean clearDeletions()
+	{
+		return this.getTableModel().clearDeletions();
+	}
+  
+ 
 	public boolean clearUpdateChanges()
 	{
 		return this.getTableModel().clearChanges();
 	}
+    
+    
 	
 	/**
 	 * Returns the length of the specified String as rendered with current FontMetrics.
@@ -300,31 +318,42 @@ public class RelationPanel extends JPanel implements
 		
 		return max;
 	}
-		
-
 	
 	/**
-	 * Computes and sets height of column 2
-	 * which may contain long text values.
+	 * Adjust all row heights according to text value size.
 	 */
-	private void correctRowHeight() 
+	private void correctRowHeight(int pRow) 
 	{
-		int width = relTable.getColumnModel().getColumn(2).getWidth();
-		for (int row = 0; row < relTable.getRowCount(); row++) 
+		int width = this.relTable.getColumn(RelationTableModel.COL_ATTRVALUE).getWidth();
+		int height = this.computeRowHeight(width, pRow);
+		relTable.setRowHeight(pRow, height);
+
+	}
+	
+	
+	/**
+	 * Adjust row height according to text value size and width of textarea.
+	 */
+	private int computeRowHeight(int pWidth, int pRow) 
+	{
+		RelationTableModel rtm = this.getTableModel();
+		String value = rtm.getValueAt(pRow, RelationTableModel.COL_ATTRVALUE).toString();
+		if (value == null || value.isEmpty()) 
 		{
-			JTextArea area = new JTextArea();
-			area.setLineWrap(true);
-			area.setWrapStyleWord(true);
-			area.setSize(width, Short.MAX_VALUE);
-			area.setText(relTable.getValueAt(row, 2).toString());
-			relTable.setRowHeight(row, area.getPreferredSize().height);
+			value = "dummy";
 		}
+		JTextArea area = new JTextArea();
+		area.setLineWrap(true);
+		area.setWrapStyleWord(true);
+		area.setSize(pWidth, Short.MAX_VALUE);
+		area.setText(value);
+		return area.getPreferredSize().height;
 	}
 
 	
 	/*
-	 * If the paramater 'relation' is really a relation it will be shown in the viewer. 
-	 * Otherwise false will be returned.	 
+	 * Creates and shows the table that displays the given relation in sequential manner.
+	 * Returns true if paramater is valid list expression for relation.
 	 */
 	public boolean createFromLE(ListExpr pRelationLE) 
 	{		
@@ -365,21 +394,10 @@ public class RelationPanel extends JPanel implements
 			// set listeners
 			this.relTable.addPropertyChangeListener(this);
 			rtm.addTableModelListener(this);
-			
-			/*
-			 this.relTable.addComponentListener(new ComponentListener() {
-			 public void componentHidden(ComponentEvent e) {}
-			 public void componentMoved(ComponentEvent e) {}
-			 
-			 public void componentResized(ComponentEvent e) {
-			 correctRowHeight();
-			 }
-			 
-			 public void componentShown(ComponentEvent e) {
-			 correctRowHeight();
-			 }
-			 });			 
-			 */
+            
+            ListSelectionModel lsm = this.relTable.getSelectionModel();
+            lsm.addListSelectionListener(this);
+            this.relTable.setSelectionModel(lsm);
 			
 			this.relScroll = new JScrollPane(relTable);
 			this.add(relScroll);			
@@ -398,24 +416,16 @@ public class RelationPanel extends JPanel implements
 	
 	
 	/*
-	 * Returns indices of all tuples that were marked to be deleted.	 	 
+	 * Returns ids of all tuples that were marked to be deleted.	 	 
 	 */
-	public int[] getDeleteRows(){
-		return relTable.getSelectedRows();
+	public List<String> getDeleteTuples()
+    {
+        List<String> del = this.getTableModel().getDeletions();
+        Reporter.debug("RelationPanel.getDeleteTuples: " + del);
+
+		return this.getTableModel().getDeletions();
 	}
 	
-	/*
-	 Returns the values of all tuples that were marked to be deleted.	 	 
-
-	public String[][] getDeleteTuples() {
-		int[] selectedRows = relTable.getSelectedRows();
-		String[][] deleteTuples = new String[selectedRows.length][relData[0].length];
-		for (int i = 0; i < selectedRows.length; i++) {
-			deleteTuples[i] = relData[selectedRows[i]];
-		}
-		return deleteTuples;
-	}
-	 */	
 	
 	/*
 	 Returns the values of all tuples that were edited to be inserted.	 	 
@@ -467,35 +477,92 @@ public class RelationPanel extends JPanel implements
 		return this.getTableModel().getChangesForUpdate();
 	}
 	
-	public void goToNextHit()
+	
+	/** 
+	 * Scrolls table so that specified position within specified row is displayed.
+	 * Some distance to border is added for better context viewing.
+	 * @param pRow row index
+	 * @param pPosition text position within cell
+	 **/
+	public void goTo(int pRow, int pCol, int pPosition)
 	{
-		int currIndex = this.getTableModel().getCurrentHitIndex()+1;
-		SearchHit hit = this.getTableModel().getSearchHit(currIndex);
-		if (hit != null)
+		Rectangle offset = null;
+		
+		if (this.getTableModel().getState() == States.UPDATE)
 		{
-			this.getTableModel().setCurrentHitIndex(currIndex);
-			this.relGoTo(hit.getRowIndex(),2);
-			this.searchResultLabel.setText((currIndex+1) + " / " + this.getTableModel().getSearchHitCount());
-			Reporter.debug("RelationPanel.goToNextHit: row is " + hit.getRowIndex());
+			try
+			{
+				//if (this.relTable.editCellAt(pRow, pCol, null))
+				if (this.relTable.editCellAt(pRow, pCol))
+                {
+                    // get hit position within cell
+                    ValueTableCellEditor tcer = (ValueTableCellEditor)this.relTable.getCellEditor(pRow, pCol);
+                    offset = tcer.getOffset(pPosition);
+                    tcer.setCaretPosition(pPosition);
+                }
+				
+			} 
+			catch(Exception e)
+			{
+				Reporter.debug(e);
+			}
 		}
+		else
+		{
+			ValueTableCellRenderer tcer = (ValueTableCellRenderer)this.relTable.getCellRenderer(pRow, this.getTableModel().COL_ATTRVALUE);
+			offset = tcer.getOffset(pPosition);
+			tcer.setCaretPosition(pPosition);
+		}
+
+		JViewport viewport = (JViewport)relTable.getParent();
+		Rectangle viewRect = viewport.getViewRect();
+
+		// get cell position
+		Rectangle rect = relTable.getCellRect(pRow, 2, true);		
+		
+		// add x-offset within cell
+		if (offset != null)
+		{
+			rect.setLocation(rect.x + offset.x, rect.y + offset.y);			
+		}
+		else
+		{
+			Reporter.debug("RelationPanel.goTo: position not found: " + pPosition);
+		}
+		rect.setLocation(rect.x - viewRect.x, rect.y - viewRect.y);
+		
+		int centerX = (viewRect.width - rect.width) / 2;
+		int centerY = (viewRect.height - rect.height) / 2;
+		if (rect.x < centerX) 
+		{
+			centerX = -centerX;
+		}
+		if (rect.y < centerY) 
+		{
+			centerY = -centerY;
+		}
+		rect.translate(centerX, centerY);
+		
+		viewport.scrollRectToVisible(rect);
 	}
 	
-	public void goToPreviousHit()
+	
+	
+	public void goToEdit(int pRow, int pCol)
 	{
-		int currIndex = this.getTableModel().getCurrentHitIndex()-1;
-		SearchHit hit = this.getTableModel().getSearchHit(currIndex);
-		if (hit != null)
+		try
 		{
-			this.getTableModel().setCurrentHitIndex(currIndex);
-			this.relGoTo(hit.getRowIndex(),2);
-			this.searchResultLabel.setText((currIndex+1) + " / " + this.getTableModel().getSearchHitCount());
-			Reporter.debug("RelationPanel.goToPreviousHit: row is " + hit.getRowIndex());
+			this.relTable.editCellAt(pRow, pCol, null); 
+		} 
+		catch(Exception e)
+		{
+			Reporter.debug(e);
 		}
 	}
 	
 	
 	/** Starts the editing the specified cell within the insert table **/
-	public void insertGoTo(int x, int y)
+	public void goToInsert(int x, int y)
 	{
 		// TODO
 		/*
@@ -531,11 +598,12 @@ public class RelationPanel extends JPanel implements
 			
 			if (!newValue.equals(this.oldEditCellValue))
 			{
-				// cell value was changed -> write change back into table model
-				this.relTable.setValueAt(newValue, row, col);
-				
-				// create Change for update or undo actions
 				RelationTableModel rtm = this.getTableModel();
+				
+				// write changed cell value back into table model
+				rtm.setValueAt(newValue, row, col);
+								
+				// create Change for update or undo actions
 				int tupleIndex = Integer.valueOf((String)rtm.getValueAt(row,0));
 				int attributeIndex = rtm.rowToAttributeIndex(row);
 				String attributeName = this.relation.getAttributeNames().get(attributeIndex);
@@ -547,10 +615,10 @@ public class RelationPanel extends JPanel implements
 										   this.oldEditCellValue, newValue);
 				
 				
-				this.getTableModel().addChange(change);
+				rtm.addChange(change);
 				
 				//this.validate();
-				Reporter.debug("processEditingStopped: new value of table cell (" + row + ", " + col + ") is " + newValue) ;			
+				Reporter.debug("RelationPanel.processEditingStopped: new value of table cell (" + row + ", " + col + ") is " + newValue) ;			
 			}
 		}
 	}
@@ -561,6 +629,8 @@ public class RelationPanel extends JPanel implements
 	@Override
 	public void propertyChange(PropertyChangeEvent e)
 	{
+		//Reporter.debug("RelationPanel.propertyChange: " + e.toString());
+		
 		//  A table cell has started/stopped editing
 		if ("tableCellEditor".equals(e.getPropertyName()))
 		{
@@ -671,37 +741,33 @@ public class RelationPanel extends JPanel implements
 	
 	
 	
-	/** Start edititing the cell at the given position. 
-	 *  All errors (wrong arguments, cell is not editable and so on) are
-	 *  ignored. 
-	 **/
-	
-	public void relGoTo(int x, int y)
-	{
-		try
-		{
-			relTable.editCellAt(x,y,null); 
-		} catch(Exception e)
-		{
-			Reporter.debug(e);
-		}
-	}
-
-	
 	/*
-	 Allows the user to reset delete-selections by pressing 'reset' 
-	 
+     * Reset for Delete mode:
+	 * Clears uncommitted deletions. 
 	 */
 	public boolean resetDeleteSelections()
 	{
-		if (relTable.getSelectedRows().length > 0){
-			relTable.clearSelection();
-			return true;
-		}
-		else{
-			return false;
-		}
+        this.relTable.clearSelection();
+        this.getTableModel().clearDeletions();
+        return true;
 	}
+	
+	/**
+	 * Clears search results from search panel and table data.
+	 */
+	public void resetSearch()
+	{
+		this.getTableModel().setSearchHits(null);
+		this.search.setText("Search");
+		this.searchField.setText("");
+		this.searchField.setEnabled(true);
+		this.searchResultLabel.setText("");
+        
+        this.relTable.revalidate();
+	}
+	
+	
+	
 	
 	/* 
 	 * Reset for Update mode:
@@ -711,16 +777,13 @@ public class RelationPanel extends JPanel implements
 	{
 		Reporter.debug("RelationPanel.resetUpdateChanges");
 		
-		if(this.relTable == null)
-			return false;
-		
 		// handle currently edited cell
-		if(this.relTable.isEditing())
+		/*if(this.relTable.isEditing())
 		{
-			int x = relTable.getEditingRow();
-			int y = relTable.getEditingColumn();
 			this.relTable.editingStopped(new ChangeEvent(this));
 		} 
+         */
+        this.takeOverLastEditing(true);
 		
 		RelationTableModel rtm = this.getTableModel();
 		List<Change> changes = rtm.getChanges();
@@ -729,19 +792,21 @@ public class RelationPanel extends JPanel implements
 		{
 			Change ch = changes.get(i);
 			relTable.setValueAt(ch.getOldValue(), ch.getRowIndex(), 2);
-			boolean removed = rtm.removeChange(ch);
+			rtm.removeChange(ch);
 			Reporter.debug("RelationPanel.resetUpdateChanges: reset and removed change " + ch.toString());
 		}
 				
-		this.relTable.revalidate();
-		this.relTable.repaint();
+		//this.relTable.revalidate();
+		//this.relTable.repaint();
 		this.validate();
 		this.repaint();
-		return true;
+        return true;
 	}
 	
 	/**
-	 *
+	 * Returns SearchHits (containing row, start and end position within cell) 
+     * of all occurences for specified search key.
+     * @param pKey search key (java regex pattern)
 	 */
 	public List<SearchHit> retrieveSearchHits(String pKey)
 	{
@@ -771,31 +836,47 @@ public class RelationPanel extends JPanel implements
 		
 	
 	/**
-	 * Makes table cells with attribute values editable if pIsUpdate is true, else only display.
+	 * Sets state and changes table properties accordingly.
 	 */
 	public void setMode(int pSelectMode)
 	{
 		(this.getTableModel()).setState(pSelectMode);
+        
+        if (pSelectMode == States.DELETE)
+        {
+            this.relTable.setRowSelectionAllowed(true);
+            this.relTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        }
+        else
+        {
+            this.relTable.setRowSelectionAllowed(false);
+        }
 	}
+    
 	
-	
-	public void setSearchResult(List<SearchHit> pHitlist)
+	/**
+	 * Sets buttons and number of search results in search panel.
+     * Scrolls to first hit.
+	 */
+	public void setSearchResult(String pSearchKey, List<SearchHit> pHitlist)
 	{
 		if (pHitlist == null || pHitlist.isEmpty())
 		{
-			this.searchResultLabel.setText("Found 0 matches.");
+			this.searchResultLabel.setText("0 / 0");
 		}
 		else
 		{
+			this.searchResultLabel.setText("1 / " + pHitlist.size());
 			this.getTableModel().setSearchHits(pHitlist);
 			int row = pHitlist.get(0).getRowIndex();
-			this.relGoTo(row, 2);
-			this.searchResultLabel.setText("1 / " + this.getTableModel().getSearchHitCount());
-			Reporter.debug("RelationPanel.goToPreviousHit: row is " + row);
+			int pos = pHitlist.get(0).getStart();
+			this.goTo(row, RelationTableModel.COL_ATTRNAME, pos);
 		}
+		this.searchField.setText(pSearchKey);
+		this.searchField.setEnabled(false);
+		this.search.setText("Clear search");
 	}
 	
-
 
 	/*
 	 Shows an empty relation that can be edited to contain tuples that shall be inserted.	 
@@ -828,16 +909,53 @@ public class RelationPanel extends JPanel implements
 		 */
 	}
 	
+	/**
+	 * Shows next search hit.
+	 */
+	public boolean showNextHit()
+	{
+		int index = this.getTableModel().getCurrentHitIndex()+1;
+		return this.showHit(index);
+	}
+	
+	/**
+	 * Shows next search hit.
+	 */
+	public boolean showPreviousHit()
+	{
+		int index = this.getTableModel().getCurrentHitIndex()-1;
+		return this.showHit(index);
+	}
+	
+	/**
+	 * Shows specified search hit (if valid)
+	 * scrolls table, sets text and number of current hit in search panel.
+	 */
+	public boolean showHit(int pIndex)
+	{
+		SearchHit hit = this.getTableModel().getSearchHit(pIndex);
+		if (hit != null)
+		{
+			this.getTableModel().setCurrentHitIndex(pIndex);			
+			this.goTo(hit.getRowIndex(), RelationTableModel.COL_ATTRNAME, hit.getStart());
+			this.searchResultLabel.setText((pIndex+1) + " / " + this.getTableModel().getSearchHitCount());
+			return true;
+		}
+		return false;
+	}
+	
 	
 	public void tableChanged(TableModelEvent event) 
 	{
 		Reporter.debug("RelationPanel.tableChanged: " + event.getFirstRow() + ", " + event.getColumn());
-		this.correctRowHeight();
+		//this.correctRowHeight(event.getFirstRow());
 		
-		this.relTable.revalidate();
+		/*
+         this.relTable.revalidate();
 		this.relTable.repaint();
 		this.validate();
 		this.repaint();
+         */
 	}
 	
 	
@@ -874,12 +992,28 @@ public class RelationPanel extends JPanel implements
 	}	
 	
 	/**
+	 * Resets the last selection in Delete mode.
+	 * Returns TRUE if after execution there are still deletions left to undo.
+	 */
+	public boolean undoLastDeleteSelection()
+	{
+        if (this.getTableModel().removeLastDeletion())
+		{
+			this.validate();
+			this.repaint();            
+		}
+        
+		return this.getTableModel().hasDeletions();
+	}
+    
+    
+    /**
 	 * Resets the last editited cell in updatemode to its original value.
-	 * Returns TRUE if after execution there are no more changes left to undo.
+	 * Returns TRUE if after execution there are still changes left to undo.
 	 */
 	public boolean undoLastUpdateChange()
 	{
-		boolean result = true;
+		boolean result = false;
 		
 		this.takeOverLastEditing(true);
 		
@@ -893,16 +1027,36 @@ public class RelationPanel extends JPanel implements
 			
 			if (this.getTableModel().getLastChange() != null)
 			{
-				result = false;
+				result = true;
 			}
 			
-			this.relTable.revalidate();
-			this.relTable.repaint();
+			//this.relTable.revalidate();
 			this.validate();
 			this.repaint();
 		}
 		
 		return result;
 	}
+    
+    
+    /**
+     * Method of interface ListSelectionListener.
+     * Reacts to selections in Delete mode.
+     */
+    public void valueChanged(ListSelectionEvent e)
+    {
+		Reporter.debug("RelationPanel.valueChanged: index is " + e.getFirstIndex());
+        
+        if (this.getTableModel().getState() == States.DELETE)
+        {
+            if (e.getValueIsAdjusting())
+            {
+                int rowIndex = e.getLastIndex();
+                this.getTableModel().addDeletion(rowIndex);
+                
+                this.relTable.revalidate();
+            }
+        }
+    }
 }
 

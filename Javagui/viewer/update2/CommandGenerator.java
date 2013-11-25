@@ -109,37 +109,43 @@ public class CommandGenerator {
 		return insertCommands;	
 	}
 	
-/*
-Generates a delete-command for each tuple that shall be deleted. Actualizes the indices as
-well.
+	/*
+	 * Generates a delete-command for each tuple that shall be deleted. Actualizes the indices as
+	 * well.
+	 */
+	public List<String> generateDelete(String pRelName, List<String> pAttributeNames, List<String> pDeletedTupleIds)
+	{
+        this.retrieveIndices(pRelName, pAttributeNames);
 
-*/
-	public String[] generateDelete(String relName, Vector btreeNames, Vector btreeAttrNames,
-									Vector rtreeNames, Vector rtreeAttrNames, 
-								   String[][] deleteTuples, int[] deleteRows){
-		String nextValue;
-		String nextType;
-		String nextAttrName;
-		String[] deleteCommands = new String[deleteTuples.length];
-		String nextTid = ""; // TODO
-		for (int j = 0; j < deleteRows.length; j++){
-			StringBuffer deleteCommand = new StringBuffer("(query (count ");
+		List<String> deleteCommands = new ArrayList<String>();
+		StringBuffer deleteCommand;
+		
+		for (String id : pDeletedTupleIds)
+		{
+			deleteCommand = new StringBuffer("(query (count ");
+			
 			for (int k = 0; k < btreeNames.size(); k ++){
 				deleteCommand.append("(deletebtree ");
 			}
+			
 			for (int k = 0; k < rtreeNames.size(); k ++){
 				deleteCommand.append("(deletertree ");
 			}
-			//nextTid = viewer.getTupleId(deleteRows[j]);
-			deleteCommand.append("(deletebyid " + relName + " (tid " + nextTid + " )) " );
-			for (int k = 0; k < rtreeNames.size(); k ++){
+			
+			deleteCommand.append("(deletebyid " + pRelName + " (tid " + id + " )) " );
+
+			for (int k = 0; k < rtreeNames.size(); k ++)
+			{
 				deleteCommand.append(rtreeNames.get(k)+ " " + rtreeAttrNames.get(k) + ")");
 			}
-			for (int k = 0; k < btreeNames.size(); k ++){
+			
+			for (int k = 0; k < btreeNames.size(); k ++)
+			{
 				deleteCommand.append(btreeNames.get(k)+ " " + btreeAttrNames.get(k) + ")");
-			}
+			}			
 			deleteCommand.append("))");
-			deleteCommands[j] = deleteCommand.toString();
+			
+			deleteCommands.add(deleteCommand.toString());
 		}
 		return deleteCommands;	
 	}
