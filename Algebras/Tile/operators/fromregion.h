@@ -39,6 +39,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../grid/tgrid.h"
 #include "../t/tbool.h"
 
@@ -65,8 +66,9 @@ struct fromregionInfo : OperatorInfo
     name      = "fromregion";
     syntax    = "fromregion(_,_)";
     meaning   = "Creates a stream of tbool objects from a region and a grid.";
-    signature = Region::BasicType() + " x " + tgrid::BasicType() +
-                " -> " + Stream<tbool>::BasicType() +
+    signature = Region::BasicType() + " x " +
+                tgrid::BasicType() +
+                RIGHT_ARROW + Stream<tbool>::BasicType() +
                 "(" + tbool::BasicType() + ")";
   }
 };
