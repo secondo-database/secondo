@@ -40,6 +40,22 @@ namespace TileAlgebra
 {
 
 /*
+Method GetTypeParametersDomain returns the domain of given type parameters.
+
+author: Dirk Zacher
+parameters: rTypeParameters - reference to type parameters
+            rDomainValues - reference to domain values
+return value: domain of given type parameters
+exceptions: -
+
+*/
+
+std::string GetTypeParametersDomain(const std::vector<std::string>&
+                                    rTypeParameters,
+                                    const std::vector<std::string>&
+                                    rDomainValues);
+
+/*
 Method GetValueWrapperTypes returns all value wrapper types.
 
 author: Dirk Zacher
