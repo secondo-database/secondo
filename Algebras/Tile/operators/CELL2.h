@@ -37,6 +37,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -63,60 +64,26 @@ struct CELL2Info : OperatorInfo
     syntax    = "Not available";
     meaning   = "Type mapping operator.";
 
+    std::vector<std::string> typeParameterxy;
+    typeParameterxy.push_back("x");
+    typeParameterxy.push_back("y");
+    std::vector<std::string> tileAlgebraTypes;
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_T);
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_MT);
+    std::vector<std::string> typeParameterTU;
+    typeParameterTU.push_back("T");
+    typeParameterTU.push_back("U");
     std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
     GetValueWrapperTypes(valueWrapperTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
 
-    if(valueWrapperTypes.size() == tTypes.size() &&
-       valueWrapperTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        for(size_t j = 0; j < tTypes.size(); j++)
-        {
-          if(signature.empty())
-          {
-            signature = tTypes[i] + " x " + tTypes[j] +
-                        " x ... -> " + valueWrapperTypes[j];
-          }
-
-          else
-          {
-            appendSignature(tTypes[i] + " x " + tTypes[j] +
-                            " x ... -> " + valueWrapperTypes[j]);
-          }
-        }
-
-        for(size_t j = 0; j < mtTypes.size(); j++)
-        {
-          appendSignature(tTypes[i] + " x " + mtTypes[j] +
-                          " x ... -> " + valueWrapperTypes[j]);
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        for(size_t j = 0; j < tTypes.size(); j++)
-        {
-          appendSignature(mtTypes[i] + " x " + tTypes[j] +
-                          " x ... -> " + valueWrapperTypes[j]);
-        }
-
-        for(size_t j = 0; j < mtTypes.size(); j++)
-        {
-          appendSignature(mtTypes[i] + " x " + mtTypes[j] +
-                          " x ... -> " + valueWrapperTypes[j]);
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string("xT") + " x " +
+                "yU" + " x " +
+                "..." +
+                RIGHT_ARROW + "U" +
+                FOR + GetTypeParametersDomain(typeParameterxy,
+                                              tileAlgebraTypes) +
+                ", " + GetTypeParametersDomain(typeParameterTU,
+                                               valueWrapperTypes);
   }
 };
 
