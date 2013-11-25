@@ -39,6 +39,76 @@ namespace TileAlgebra
 {
 
 /*
+Constant contains right arrow, enclosed by blanks.
+
+*/
+
+extern const char* RIGHT_ARROW;
+
+/*
+Constant contains for, enclosed by blanks.
+
+*/
+
+extern const char* FOR;
+
+/*
+Constant contains in, enclosed by blanks.
+
+*/
+
+extern const char* IN;
+
+/*
+Constant contains the typename prefix m.
+
+*/
+
+extern const char* TYPE_NAME_PREFIX_M;
+
+/*
+Constant contains the typename prefix t.
+
+*/
+
+extern const char* TYPE_NAME_PREFIX_T;
+
+/*
+Constant contains the typename prefix mt.
+
+*/
+
+extern const char* TYPE_NAME_PREFIX_MT;
+
+/*
+Constant contains the typename prefix it.
+
+*/
+
+extern const char* TYPE_NAME_PREFIX_IT;
+
+/*
+Constant contains the typename prefix s.
+
+*/
+
+extern const char* TYPE_NAME_PREFIX_S;
+
+/*
+Constant contains the typename prefix ms.
+
+*/
+
+extern const char* TYPE_NAME_PREFIX_MS;
+
+/*
+Constant contains the typename prefix is.
+
+*/
+
+extern const char* TYPE_NAME_PREFIX_IS;
+
+/*
 Constant contains the typename tgrid.
 
 */
