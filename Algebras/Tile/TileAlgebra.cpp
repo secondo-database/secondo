@@ -95,8 +95,8 @@ TileAlgebra datatype includes
 
 */
 
-#include "t/tintArray.h"
-#include "t/tintFlob.h"
+// #include "t/tintArray.h"
+// #include "t/tintFlob.h"
 #include "grid/tgrid.h"
 #include "grid/mtgrid.h"
 #include "t/tint.h"
@@ -207,22 +207,24 @@ TileAlgebra::TileAlgebra()
 
   */
 
-  AddTypeConstructor(new TypeConstructor(tintArray::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(tintFlob::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(tgrid::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(mtgrid::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(tint::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(treal::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(tbool::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(tstring::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(mtint::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(mtreal::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(mtbool::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(mtstring::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(itint::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(itreal::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(itbool::GetTypeConstructor()),true);
-  AddTypeConstructor(new TypeConstructor(itstring::GetTypeConstructor()),true);
+  // AddTypeConstructor(new TypeConstructor(tintArray::GetTypeConstructor()),
+  //                    true);
+  // AddTypeConstructor(new TypeConstructor(tintFlob::GetTypeConstructor()),
+  //                    true);
+  AddTypeConstructor(new TypeConstructor(tgrid::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(mtgrid::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(tint::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(treal::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(tbool::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(tstring::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(mtint::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(mtreal::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(mtbool::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(mtstring::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(itint::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(itreal::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(itbool::GetTypeConstructor()), true);
+  AddTypeConstructor(new TypeConstructor(itstring::GetTypeConstructor()), true);
 
   /*
   Operators
@@ -254,8 +256,8 @@ TileAlgebra::TileAlgebra()
               getgridTypeMappingFunction);
   AddOperator(instInfo(), instFunctions, instSelectFunction,
               instTypeMappingFunction);
-  AddOperator(loadInfo(), loadFunctions, loadSelectFunction,
-              loadTypeMappingFunction);
+  // AddOperator(loadInfo(), loadFunctions, loadSelectFunction,
+  //             loadTypeMappingFunction);
   AddOperator(mapInfo(), mapFunctions, mapSelectFunction,
               mapTypeMappingFunction);
   AddOperator(map2Info(), map2Functions, map2SelectFunction,
