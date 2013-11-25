@@ -37,6 +37,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -63,52 +64,24 @@ struct mapInfo : OperatorInfo
     syntax    = "_ map[_]";
     meaning   = "Maps a xT type to a xU type.";
 
+    std::vector<std::string> typeParameterx;
+    typeParameterx.push_back("x");
+    std::vector<std::string> tileAlgebraTypes;
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_T);
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_MT);
+    std::vector<std::string> typeParameterTU;
+    typeParameterTU.push_back("T");
+    typeParameterTU.push_back("U");
     std::vector<std::string> valueWrapperTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-
     GetValueWrapperTypes(valueWrapperTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
 
-    if(valueWrapperTypes.size() == tTypes.size() &&
-       valueWrapperTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        for(size_t j = 0; j < valueWrapperTypes.size(); j++)
-        {
-          if(signature.empty())
-          {
-            signature = tTypes[i] + " x (" +
-                        valueWrapperTypes[i] + " -> " +
-                        valueWrapperTypes[j] + ") -> " + tTypes[j];
-          }
-
-          else
-          {
-            appendSignature(tTypes[i] + " x (" +
-                            valueWrapperTypes[i] + " -> " +
-                            valueWrapperTypes[j] + ") -> " + tTypes[j]);
-          }
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        for(size_t j = 0; j < valueWrapperTypes.size(); j++)
-        {
-          appendSignature(mtTypes[i] + " x (" +
-                          valueWrapperTypes[i] + " -> " +
-                          valueWrapperTypes[j] + ") -> " + mtTypes[j]);
-        }
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = std::string("xT") + " x " +
+                "(T" + RIGHT_ARROW + "U)" +
+                RIGHT_ARROW + "xU" +
+                FOR + GetTypeParametersDomain(typeParameterx,
+                                              tileAlgebraTypes) +
+                ", " + GetTypeParametersDomain(typeParameterTU,
+                                               valueWrapperTypes);
   }
 };
 
