@@ -47,6 +47,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../grid/tgrid.h"
 #include "../grid/mtgrid.h"
 #include "../Types/Types.h"
@@ -84,54 +85,30 @@ struct tilesInfo : OperatorInfo
                 "a Raster 2 Algebra is type object to "
                 "a stream of Tile Algebra it type objects.";
     
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-    std::vector<std::string> itTypes;
-    std::vector<std::string> sTypes;
-    std::vector<std::string> msTypes;
-    std::vector<std::string> isTypes;
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
-    GetitTypes(itTypes);
-    GetsTypes(sTypes);
-    GetmsTypes(msTypes);
-    GetisTypes(isTypes);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    if(tTypes.size() == mtTypes.size() &&
-       tTypes.size() == itTypes.size() &&
-       tTypes.size() == sTypes.size() &&
-       tTypes.size() == msTypes.size() &&
-       tTypes.size() == isTypes.size())
-    { 
-      signature = raster2::grid2::BasicType() +
-                  " -> " + tgrid::BasicType();
-
-      appendSignature(raster2::grid3::BasicType() +
-                      " -> " + mtgrid::BasicType());
-
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        appendSignature(sTypes[i] + " -> " + Stream<Attribute>::BasicType() +
-                        "(" + tTypes[i] + ")");
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(msTypes[i] + " -> " + Stream<Attribute>::BasicType() +
-                        "(" + mtTypes[i] + ")");
-      }
-
-      for(size_t i = 0; i < itTypes.size(); i++)
-      {
-        appendSignature(isTypes[i] + " -> " + Stream<Attribute>::BasicType() +
-                        "(" + itTypes[i] + ")");
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = raster2::grid2::BasicType() +
+                RIGHT_ARROW + tgrid::BasicType();
+    appendSignature(raster2::grid3::BasicType() +
+                    RIGHT_ARROW + mtgrid::BasicType());
+    appendSignature(std::string(TYPE_NAME_PREFIX_S) + "T" +
+                    RIGHT_ARROW + Stream<Attribute>::BasicType() +
+                    "(" + TYPE_NAME_PREFIX_T + "T)" +
+                    FOR + GetTypeParametersDomain(typeParameterT,
+                                                  valueWrapperTypes));
+    appendSignature(std::string(TYPE_NAME_PREFIX_MS) + "T" +
+                    RIGHT_ARROW + Stream<Attribute>::BasicType() +
+                    "(" + TYPE_NAME_PREFIX_MT + "T)" +
+                    FOR + GetTypeParametersDomain(typeParameterT,
+                                                  valueWrapperTypes));
+    appendSignature(std::string(TYPE_NAME_PREFIX_IS) + "T" +
+                    RIGHT_ARROW + Stream<Attribute>::BasicType() +
+                    "(" + TYPE_NAME_PREFIX_IT + "T)" +
+                    FOR + GetTypeParametersDomain(typeParameterT,
+                                                  valueWrapperTypes));
   }
 };
 
