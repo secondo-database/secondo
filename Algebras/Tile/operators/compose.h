@@ -38,6 +38,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../Types/Types.h"
 
 /*
@@ -64,42 +65,23 @@ struct composeInfo : OperatorInfo
     syntax    = "_ compose _";
     meaning   = "Merges mpoint and t type object into a mT object.";
 
-    std::vector<std::string> MTypes;
-    std::vector<std::string> tTypes;
-    std::vector<std::string> mtTypes;
-    GetMTypes(MTypes);
-    GettTypes(tTypes);
-    GetmtTypes(mtTypes);
+    std::vector<std::string> typeParameterx;
+    typeParameterx.push_back("x");
+    std::vector<std::string> tileAlgebraTypes;
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_T);
+    tileAlgebraTypes.push_back(TYPE_NAME_PREFIX_MT);
+    std::vector<std::string> typeParameterT;
+    typeParameterT.push_back("T");
+    std::vector<std::string> valueWrapperTypes;
+    GetValueWrapperTypes(valueWrapperTypes);
 
-    if(MTypes.size() == tTypes.size()&&
-       MTypes.size() == mtTypes.size())
-    {
-      for(size_t i = 0; i < tTypes.size(); i++)
-      {
-        if(signature.empty())
-        {
-          signature = MPoint::BasicType() + " x " + tTypes[i] +
-                      " -> " + MTypes[i];
-        }
-
-        else
-        {
-          appendSignature(MPoint::BasicType() + " x " + tTypes[i] +
-                          " -> " + MTypes[i]);
-        }
-      }
-
-      for(size_t i = 0; i < mtTypes.size(); i++)
-      {
-        appendSignature(MPoint::BasicType() + " x " + mtTypes[i] +
-                        " -> " + MTypes[i]);
-      }
-    }
-
-    else
-    {
-      assert(false);
-    }
+    signature = MPoint::BasicType() + " x " +
+                "xT" +
+                RIGHT_ARROW + TYPE_NAME_PREFIX_M + "T" +
+                FOR + GetTypeParametersDomain(typeParameterx,
+                                              tileAlgebraTypes) +
+                ", " + GetTypeParametersDomain(typeParameterT,
+                                               valueWrapperTypes);
   }
 };
 
