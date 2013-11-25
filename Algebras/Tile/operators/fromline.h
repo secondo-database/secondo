@@ -39,6 +39,7 @@ TileAlgebra includes
 
 */
 
+#include "../Constants.h"
 #include "../grid/tgrid.h"
 #include "../t/tbool.h"
 
@@ -65,8 +66,9 @@ struct fromlineInfo : OperatorInfo
     name      = "fromline";
     syntax    = "fromline(_,_)";
     meaning   = "Creates a stream of tbool objects from a line and a grid.";
-    signature = Line::BasicType() + " x " + tgrid::BasicType() +
-                " -> " + Stream<tbool>::BasicType() +
+    signature = Line::BasicType() + " x " +
+                tgrid::BasicType() +
+                RIGHT_ARROW + Stream<tbool>::BasicType() +
                 "(" + tbool::BasicType() + ")";
    }
 };
