@@ -466,7 +466,7 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		String tupleid = (String)this.getValueAt(pRow, this.COL_TUPLEID);
 		
-        if (tupleid != null && !tupleid.isEmpty() && this.deletions.contains(tupleid))
+        if (tupleid != null && (tupleid.length() > 0) && this.deletions.contains(tupleid))
 		{
 			return true;
 		}
