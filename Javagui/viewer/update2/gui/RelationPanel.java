@@ -626,7 +626,6 @@ public class RelationPanel extends JPanel implements
 	/**
 	 *  Implemention of PropertyChangeListener interface.
 	 */
-	@Override
 	public void propertyChange(PropertyChangeEvent e)
 	{
 		//Reporter.debug("RelationPanel.propertyChange: " + e.toString());
