@@ -338,7 +338,7 @@ public class RelationPanel extends JPanel implements
 	{
 		RelationTableModel rtm = this.getTableModel();
 		String value = rtm.getValueAt(pRow, RelationTableModel.COL_ATTRVALUE).toString();
-		if (value == null || value.isEmpty()) 
+		if (value == null || (value.length() == 0)) 
 		{
 			value = "dummy";
 		}
@@ -811,7 +811,7 @@ public class RelationPanel extends JPanel implements
 	{
 		List<SearchHit> result = new ArrayList<SearchHit>();
 		
-		if (pKey != null && !pKey.isEmpty())
+		if (pKey != null && (pKey.length() > 0 ))
 		{
 			int colIndex = RelationTableModel.COL_ATTRVALUE;
 			

@@ -814,7 +814,7 @@ public class UpdateViewerController implements ActionListener
 		// read keyword from searchfield
 		String key = this.viewer.getCurrentRelationPanel().getSearchKey();
 
-		if (key != null && !key.isEmpty())
+		if (key != null && (key.length() > 0))
 		{
 			if (key.length() < 2)
 			{
