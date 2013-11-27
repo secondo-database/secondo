@@ -517,6 +517,7 @@ public class RelationTableModel extends AbstractTableModel
 		
 		return result;
 	}
+	
     
 	/**
 	 * Removes last deletion from deletion history list, if any.

@@ -128,7 +128,7 @@ import viewer.update2.*;
  */
 public class RelationPanel extends JPanel implements
     ListSelectionListener,
-	TableModelListener, 
+	//TableModelListener, 
 	PropertyChangeListener
 {
 	
@@ -181,14 +181,16 @@ public class RelationPanel extends JPanel implements
 		this.setLayout(new BorderLayout());		
 		this.controller = pController;
 		
-		// table
+		// table area
+		this.relScroll = new JScrollPane();
+		this.add(this.relScroll, BorderLayout.CENTER);	
 		this.tableCellRenderer = new ValueTableCellRenderer();
 		this.tableCellEditor = new ValueTableCellEditor();
 		
-		// textarea (formatted view)
+		// formatted text view
 		
 		
-		// searchPanel
+		// search/replace panel
 		this.searchPanel = new JPanel();
 		this.searchPanel.setLayout(new FlowLayout());
 		this.searchField = new JTextField(20);
@@ -206,7 +208,7 @@ public class RelationPanel extends JPanel implements
 		this.searchPanel.add(this.next);
 		this.searchResultLabel = new JLabel();
 		this.searchPanel.add(this.searchResultLabel);
-		this.add(searchPanel, BorderLayout.SOUTH);
+		this.add(this.searchPanel, BorderLayout.SOUTH);
 	}
 	
 	
@@ -271,7 +273,6 @@ public class RelationPanel extends JPanel implements
 	{
 		return this.getTableModel().clearDeletions();
 	}
-  
  
 	public boolean clearUpdateChanges()
 	{
@@ -321,7 +322,7 @@ public class RelationPanel extends JPanel implements
 	
 	/**
 	 * Adjust all row heights according to text value size.
-	 */
+
 	private void correctRowHeight(int pRow) 
 	{
 		int width = this.relTable.getColumn(RelationTableModel.COL_ATTRVALUE).getWidth();
@@ -329,11 +330,11 @@ public class RelationPanel extends JPanel implements
 		relTable.setRowHeight(pRow, height);
 
 	}
-	
+		 */
 	
 	/**
 	 * Adjust row height according to text value size and width of textarea.
-	 */
+
 	private int computeRowHeight(int pWidth, int pRow) 
 	{
 		RelationTableModel rtm = this.getTableModel();
@@ -349,7 +350,7 @@ public class RelationPanel extends JPanel implements
 		area.setText(value);
 		return area.getPreferredSize().height;
 	}
-
+	 */
 	
 	/*
 	 * Creates and shows the table that displays the given relation in sequential manner.
@@ -360,6 +361,12 @@ public class RelationPanel extends JPanel implements
 		SecondoObject relationSO = new SecondoObject(this.getName(), pRelationLE);
 		this.relation = new Relation();
 		this.relation.readFromSecondoObject(relationSO);
+		
+		/*if (this.relScroll != null)
+		{
+			this.remove(this.relScroll);
+		}
+		 */
 		
 		try
 		{
@@ -393,15 +400,15 @@ public class RelationPanel extends JPanel implements
 			
 			// set listeners
 			this.relTable.addPropertyChangeListener(this);
-			rtm.addTableModelListener(this);
+			//rtm.addTableModelListener(this);
             
             ListSelectionModel lsm = this.relTable.getSelectionModel();
             lsm.addListSelectionListener(this);
             this.relTable.setSelectionModel(lsm);
 			
-			this.relScroll = new JScrollPane(relTable);
-			this.add(relScroll);			
-			relScroll.setViewportView(relTable);
+			//this.relScroll = new JScrollPane(this.relTable);
+			//this.add(this.relScroll);			
+			this.relScroll.setViewportView(this.relTable);
 			
 			this.repaint();
 			this.validate();
@@ -628,8 +635,6 @@ public class RelationPanel extends JPanel implements
 	 */
 	public void propertyChange(PropertyChangeEvent e)
 	{
-		//Reporter.debug("RelationPanel.propertyChange: " + e.toString());
-		
 		//  A table cell has started/stopped editing
 		if ("tableCellEditor".equals(e.getPropertyName()))
 		{
@@ -766,8 +771,6 @@ public class RelationPanel extends JPanel implements
 	}
 	
 	
-	
-	
 	/* 
 	 * Reset for Update mode:
 	 * Sets table to original data and removes uncommitted changes.
@@ -795,10 +798,7 @@ public class RelationPanel extends JPanel implements
 			Reporter.debug("RelationPanel.resetUpdateChanges: reset and removed change " + ch.toString());
 		}
 				
-		//this.relTable.revalidate();
-		//this.relTable.repaint();
-		this.validate();
-		this.repaint();
+		this.relTable.revalidate();
         return true;
 	}
 	
@@ -839,7 +839,7 @@ public class RelationPanel extends JPanel implements
 	 */
 	public void setMode(int pSelectMode)
 	{
-		(this.getTableModel()).setState(pSelectMode);
+		this.getTableModel().setState(pSelectMode);
         
         if (pSelectMode == States.DELETE)
         {
@@ -943,19 +943,18 @@ public class RelationPanel extends JPanel implements
 		return false;
 	}
 	
-	
+	/*
 	public void tableChanged(TableModelEvent event) 
 	{
 		Reporter.debug("RelationPanel.tableChanged: " + event.getFirstRow() + ", " + event.getColumn());
 		//this.correctRowHeight(event.getFirstRow());
 		
-		/*
          this.relTable.revalidate();
 		this.relTable.repaint();
 		this.validate();
 		this.repaint();
-         */
 	}
+*/
 	
 	
 	/*
