@@ -186,9 +186,11 @@ public class UpdateViewer2 extends SecondoViewer {
 		{
 			if (relpanel.getName().equals(pRelName))
 			{
+				Reporter.debug("UpdateViewer2.getRelationPanel: returned rel " + pRelName);
 				return relpanel;
 			}
 		}
+		Reporter.debug("UpdateViewer2.getRelationPanel: returned null");
 		return result;
 	}
 	
@@ -197,27 +199,21 @@ public class UpdateViewer2 extends SecondoViewer {
 		return this.relationPanels;
 	}
 	
-
 	/**
-	 * Displays all loaded RelationPanels.
+	 * Creates or overwrites RelationPanel data with specified data.
 	 */
-	public void showRelations()
+	public boolean setRelationPanel(String pRelName, ListExpr pRelationLE)
 	{
-		for (RelationPanel rp : this.relationPanels)
+		RelationPanel rp = this.getRelationPanel(pRelName);
+		if (rp == null)
 		{
-			String tabtitle = rp.getName();
-			if (tabtitle.length() > 30)
-			{
-				tabtitle = tabtitle.substring(0,29) + "...";
-			}
-			tabbedPane.addTab(tabtitle, null, rp, rp.getName());
+			rp = new RelationPanel(pRelName, this.controller);
+			this.relationPanels.add(rp);
 		}
-		
-		this.validate();
-		this.repaint();	
+		return rp.createFromLE(pRelationLE);
 	}
 	
-	
+
 	/*
 	 For each mode and state the viewer is in only certain operations and choices are possible.
 	 This method assures only the actually allowed actions can be executed or chosen.	 
@@ -312,17 +308,22 @@ public class UpdateViewer2 extends SecondoViewer {
 	
 	
 	/**
-	 * Creates or overwrites RelationPanel data with specified data.
+	 * Displays all loaded RelationPanels.
 	 */
-	public boolean setRelationPanel(String pRelName, ListExpr pRelationLE)
+	public void showRelations()
 	{
-		RelationPanel rp = this.getRelationPanel(pRelName);
-		if (rp == null)
+		for (RelationPanel rp : this.relationPanels)
 		{
-			rp = new RelationPanel(pRelName, this.controller);
-			this.relationPanels.add(rp);
+			String tabtitle = rp.getName();
+			if (tabtitle.length() > 30)
+			{
+				tabtitle = tabtitle.substring(0,29) + "...";
+			}
+			tabbedPane.addTab(tabtitle, null, rp, rp.getName());
 		}
-		return rp.createFromLE(pRelationLE);
+		
+		this.validate();
+		this.repaint();	
 	}
 	
 
