@@ -130,17 +130,17 @@ Example  : query inst([const itint value ((instant "2013-05-13") ((0.0 0.0 1.0) 
 Result   : (instant "2013-05-13")
 
 
-Operator : load
-Number   : 1
-Signature: tintArray -> bool
-Example  : query load([const tintArray value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (4 5 6 7)))])
-Result   : TRUE
+# Operator : load
+# Number   : 1
+# Signature: tintArray -> bool
+# Example  : query load([const tintArray value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (4 5 6 7)))])
+# Result   : TRUE
 
-Operator : load
-Number   : 2
-Signature: tintFlob -> bool
-Example  : query load([const tintFlob value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (4 5 6 7)))])
-Result   : TRUE
+# Operator : load
+# Number   : 2
+# Signature: tintFlob -> bool
+# Example  : query load([const tintFlob value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (4 5 6 7)))])
+# Result   : TRUE
 
 
 Operator : map
