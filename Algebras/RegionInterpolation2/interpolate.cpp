@@ -86,15 +86,16 @@
 //}
 //
 
-vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst);
+vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
+        int depth);
 
 static vector<pair<Reg *, Reg *> > matchFacesLua(vector<Reg> *src,
-        vector<Reg> *dst) {
-    return _matchFacesLua(src, dst);
+        vector<Reg> *dst, int depth) {
+    return _matchFacesLua(src, dst, depth);
 }
 
 static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
-        vector<Reg> *dst) {
+        vector<Reg> *dst, int depth) {
     vector<pair<Reg *, Reg *> > ret;
 
     for (unsigned int i = 0; (i < src->size() || (i < dst->size())); i++) {
@@ -114,7 +115,7 @@ static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
 }
 
 static vector<pair<Reg *, Reg *> > matchFacesNull(vector<Reg> *src,
-        vector<Reg> *dst) {
+        vector<Reg> *dst, int depth) {
     vector<pair<Reg *, Reg *> > ret;
 
     for (unsigned int i = 0; i < src->size(); i++) {
@@ -130,7 +131,7 @@ static vector<pair<Reg *, Reg *> > matchFacesNull(vector<Reg> *src,
 }
 
 static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
-        vector<Reg> *dst) {
+        vector<Reg> *dst, int depth) {
     vector<pair<Reg *, Reg *> > ret;
     
     for (unsigned int i = 0; i < src->size(); i++) {
@@ -215,7 +216,8 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
 //    else
 //         ps = matchFacesNull(sregs, dregs);
     
-    ps = matchFacesLua(sregs, dregs);
+    ps = matchFacesLua(sregs, dregs, depth);
+//    ps = matchFacesNull(sregs, dregs, depth);
     MFaces ret, fcs;
 
     for (unsigned int i = 0; i < ps.size(); i++) {

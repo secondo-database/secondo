@@ -179,6 +179,8 @@ MSegs Reg::collapse(bool close) {
 
     Pt dst;
 
+    cerr << "DEBUG " << v.size() << "\n";
+    
     if (peerPoint.valid)
         dst = peerPoint;
     else
