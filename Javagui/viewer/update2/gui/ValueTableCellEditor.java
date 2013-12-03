@@ -75,8 +75,6 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 								public void keyPressed(KeyEvent event){
 								if(event.getKeyCode()==KeyEvent.VK_ENTER){
 									textArea.replaceSelection(System.getProperty("line.separator"));
-                                    //textArea.setCaretPosition(textArea.getDocument().getLength()-1);
-
 								}
 								}
 								});
@@ -90,9 +88,11 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 												   JTable pTable, Object pValue,
 												   boolean pSelected,
 												   int pRow, int pColumn) 
-	{	
+	{
+		RelationTableModel rtm = (RelationTableModel)pTable.getModel();
+
 		// background
-        if (pSelected || ((RelationTableModel)pTable.getModel()).isChanged(pRow, pColumn))
+        if (pSelected || rtm.isChanged(pRow, pColumn))
         {
             this.textArea.setBackground(new Color(210, 230, 255));
         }
@@ -114,20 +114,27 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		pTable.setRowHeight(pRow, this.textArea.getPreferredSize().height);
 		
 		
-		// highlight search matches
+		// render search matches
 		hiliter.removeAllHighlights();
-		List<SearchHit> hits = ((RelationTableModel)pTable.getModel()).getSearchHits(pRow);
+		List<SearchHit> hits = rtm.getHits(pRow);
 		if (hits != null && !hits.isEmpty())
 		{
 			for (SearchHit sh : hits) 
 			{
+				if (sh == rtm.getHit(rtm.getCurrentHitIndex()))
+				{
+					this.setCaret(sh.getStart(), sh.getEnd());
+				}
+				
 				try 
 				{
 					hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
-				} catch (Exception e)
+				} 
+				catch (Exception e) 
 				{
 					Reporter.debug("ValueTableCellEditor.getTableCellEditorComponent: highlighting failed ");
 				}
+				
 			}
 		}
 		
@@ -155,19 +162,21 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		}
 	}
 	
-	public void setCaretPosition(int pPosition)
+	public void setCaret(int pStart, int pEnd)
 	{
-		Reporter.debug("ValueTableCellEditor.setCaretPosition: position is " + pPosition);
-		if (pPosition >= 0 && pPosition < this.textArea.getText().length())
-		{
-			this.textArea.setCaretPosition(pPosition);
-		}
+		Reporter.debug("ValueTableCellEditor.setCaretPosition at position " + pStart);
+		
+		this.textArea.requestFocusInWindow();
+		this.textArea.setCaretPosition(pStart);
+		this.textArea.moveCaretPosition(pEnd);
+		this.textArea.getCaret().setSelectionVisible(true);
 	}
 	
-	
+	/*
 	public void setInputMethodListener(InputMethodListener pListener)
 	{
 		this.textArea.addInputMethodListener(pListener);
 	}
+	 */
 }
 

@@ -19,7 +19,7 @@
 
 package viewer.update2;
 
-public class SearchHit
+public class SearchHit implements Comparable
 {
 
 	private int rowIndex=-1;
@@ -46,6 +46,16 @@ public class SearchHit
 	public int getEnd()
 	{
 		return this.end;
+	}
+	
+	public int compareTo(Object o)
+	{
+		int result = this.rowIndex - ((SearchHit)o).getRowIndex();
+		if (result == 0) 
+		{
+			result = this.start - ((SearchHit)o).getStart();
+		}		
+		return result;
 	}
 	
 	@Override

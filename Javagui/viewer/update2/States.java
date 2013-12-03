@@ -36,4 +36,5 @@ public final class States
 	public final static int INSERT = 2;
 	public final static int DELETE = 3;
 	public final static int UPDATE = 4;
+	public final static int FORMAT = 5;
 }

@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package viewer.update2;
  
 import java.awt.event.*;
+import javax.swing.JCheckBox;
 import javax.swing.JOptionPane;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +45,7 @@ import viewer.update.InvalidFormatException;
 This class controls the actionflow of update-operations in the 'UpdateViewer2'.
 
 */
-public class UpdateViewerController implements ActionListener
+public class UpdateViewerController implements ActionListener, ItemListener
 {
 	
 	private CommandGenerator commandGenerator;
@@ -53,8 +54,9 @@ public class UpdateViewerController implements ActionListener
 	private LoadProfile loadProfile;
 	private UpdateViewer2 viewer;
 	private int state;	
-	private int loadstate;	
-	private int searchstate;
+	private int loadState;	
+	private int searchState;
+	private boolean caseSensitive;
 	
 	// Name of relation which contains LoadProfiles
 	public final static String LOAD_PROFILE_RELATION = "uv2loadprofiles";
@@ -70,8 +72,9 @@ public class UpdateViewerController implements ActionListener
 		this.loadDialog = new LoadDialog(this);
 		this.loadProfile = null;
 		this.state = States.INITIAL;
-		this.loadstate = States.INITIAL;
-		this.searchstate = States.INITIAL;
+		this.loadState = States.INITIAL;
+		this.searchState = States.INITIAL;
+		this.caseSensitive = false;
 	}
 	
 	/**
@@ -99,7 +102,7 @@ public class UpdateViewerController implements ActionListener
 		}
 		if (e.getActionCommand() == "Insert")
 		{
-			this.processCommandInsert();
+			//this.processCommandInsert();
 			this.setState(States.INSERT);
 			return;
 		}
@@ -119,16 +122,25 @@ public class UpdateViewerController implements ActionListener
 			this.setState(States.LOADED);
 			return;
 		}
-		if (e.getActionCommand() == "Commit")
-		{
-			this.processCommandCommit();
-			this.setState(States.LOADED);
-			return;
-		}
-		
 		if (e.getActionCommand() == "Undo")
 		{
 			this.processCommandUndo();
+			return;
+		}
+		if (e.getActionCommand() == "Commit")
+		{
+			if (this.processCommandCommit())
+			{
+				this.setState(States.LOADED);
+			}
+			return;
+		}
+		if (e.getActionCommand() == "Format")
+		{
+			if (this.processCommandFormat())
+			{
+				this.setState(States.FORMAT);
+			}
 			return;
 		}	
 
@@ -209,9 +221,9 @@ public class UpdateViewerController implements ActionListener
 		}
 		
 	
-		//
-		// Search		
-		//
+		/*
+		 * Search		
+		 */
 		if (e.getActionCommand() == "Search")
 		{
 			this.processCommandSearch();
@@ -224,12 +236,33 @@ public class UpdateViewerController implements ActionListener
 		}
 		if (e.getActionCommand() == "Next")
 		{
-			this.viewer.getCurrentRelationPanel().showNextHit();
+			this.processCommandNext();
 			return;
+			
 		}
 		if (e.getActionCommand() == "Previous")
 		{
-			this.viewer.getCurrentRelationPanel().showPreviousHit();			
+			this.processCommandPrevious();
+			return;
+		}
+		if (e.getActionCommand() == "NextFast")
+		{
+			this.viewer.getCurrentRelationPanel().showHit(this.viewer.getCurrentRelationPanel().getHitCount()-1);
+			return;
+		}
+		if (e.getActionCommand() == "PreviousFast")
+		{
+			this.viewer.getCurrentRelationPanel().showHit(0);			
+			return;
+		}
+		if (e.getActionCommand() == "Replace")
+		{
+			this.processCommandReplace();
+			return;
+		}
+		if (e.getActionCommand() == "Replace all")
+		{
+			this.processCommandReplaceAll();
 			return;
 		}
 		
@@ -265,7 +298,8 @@ public class UpdateViewerController implements ActionListener
 		if(!this.commandExecuter.beginTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog("UpdateViewerController.executeDelete: Error on BEGIN TRANSACTION : " + errorMessage);
+			this.showErrorDialog("UpdateViewerController.executeDelete: Error on begin transaction: " 
+								 + errorMessage);
 			return false;
 		}		
 		
@@ -274,18 +308,13 @@ public class UpdateViewerController implements ActionListener
         { 
 			List<String> deleteTupleIds = rp.getDeleteTuples();
 			
-			if (deleteTupleIds.isEmpty())
-			{
-				Reporter.debug("UpdateViewerController.executeDelete: no deletions for relation "
-							   + rp.getName());
-			}
-			else
+			if (!deleteTupleIds.isEmpty())
 			{
 				List<String> commands = this.commandGenerator.generateDelete(rp.getName(),
 																			 rp.getRelation().getAttributeNames(),
 																			 deleteTupleIds);
 				
-				for (String com : commands){Reporter.debug("UpdateViewerController.executeDelete: " + com);}
+				//for (String com : commands){Reporter.debug("UpdateViewerController.executeDelete: " + com);}
 				
 				int failures = 0;
 				ListExpr result;
@@ -295,11 +324,13 @@ public class UpdateViewerController implements ActionListener
 					if(! this.commandExecuter.executeCommand(command, SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 					{
 						errorMessage = this.commandExecuter.getErrorMessage().toString();
-						this.showErrorDialog("Error trying to delete a tuple: " + errorMessage);
+						this.showErrorDialog("UpdateViewerController.executeDelete: Error on executing command " 
+											 + command + ": " + errorMessage);
 						if (! this.commandExecuter.abortTransaction())
 						{
 							errorMessage = this.commandExecuter.getErrorMessage().toString();
-							this.showErrorDialog("Error trying to abort transaction: " + errorMessage);
+							this.showErrorDialog("UpdateViewerController.executeDelete: Error on abort transaction: " 
+												 + errorMessage);
 						}
 						return false;
 					}
@@ -318,12 +349,14 @@ public class UpdateViewerController implements ActionListener
 											 + "already been deleted by a different user!");
 				}				
 			}
+			//else	Reporter.debug("UpdateViewerController.executeDelete: no deletions for relation " + rp.getName());
         }
         
 		if(!this.commandExecuter.commitTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog("UpdateViewerController.executeDelete: Error on COMMIT TRANSACTION: " + errorMessage);
+			this.showErrorDialog("UpdateViewerController.executeDelete: Error on COMMIT TRANSACTION: " 
+								 + errorMessage);
 			return false;
 		}
 		
@@ -483,6 +516,17 @@ public class UpdateViewerController implements ActionListener
         return true;
 	}
 	
+	/**
+	 * Reacts on Checkbox selection.
+	 */
+	public void itemStateChanged(ItemEvent e)
+	{
+		if (e.getItem() instanceof JCheckBox && ((JCheckBox)e.getItem()).getText().equals("case-sensitive"))
+		{
+			this.caseSensitive = (e.getStateChange() == ItemEvent.SELECTED);
+		}
+	}
+	
 	
 	/**
 	 * Returns true if relation exists in currently open database.
@@ -490,25 +534,31 @@ public class UpdateViewerController implements ActionListener
 	private boolean existsInDb(String pObjectName)
 	{
 		boolean result = false;
-		commandExecuter.executeCommand("(list objects)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX);
-		ListExpr inquiry = commandExecuter.getResultList();
-		ListExpr objectList = inquiry.second().second();
-		objectList.first();
-		ListExpr rest = objectList.rest();
-		ListExpr nextObject;
-		String name;
-
-		while (! rest.isEmpty())
+		if (commandExecuter.executeCommand("(list objects)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 		{
-			nextObject = rest.first();
-
-			name = nextObject.second().symbolValue();
-			if (name.equals(pObjectName))
+			ListExpr inquiry = commandExecuter.getResultList();
+			ListExpr objectList = inquiry.second().second();
+			objectList.first();
+			ListExpr rest = objectList.rest();
+			ListExpr nextObject;
+			String name;
+			
+			while (!rest.isEmpty())
 			{
-				result = true;
+				nextObject = rest.first();
+				
+				name = nextObject.second().symbolValue();
+				if (name.equals(pObjectName))
+				{
+					result = true;
+				}
+				
+				rest = rest.rest();
 			}
-					
-			rest = rest.rest();
+		}
+		else
+		{
+			return false;
 		}
 		return result;
 	}
@@ -699,16 +749,26 @@ public class UpdateViewerController implements ActionListener
 		}
 	}
 	
+	/**
+	 * Loads a 
+	 */
+	private boolean processCommandFormat()
+	{
+		this.viewer.showFormattedDocument();
+		//this.showErrorDialog("not yet implemented");
+		return true;
+	}
+	
 	
 	private boolean processCommandInsert()
 	{
-		if (state == States.INSERT)
+		if (this.state == States.INSERT)
 		{ 
 			// User wants to insert one more tuple
 			viewer.getCurrentRelationPanel().takeOverLastEditing(false);
 			viewer.getCurrentRelationPanel().addInsertTuple();
 		}
-		viewer.getCurrentRelationPanel().showInsertRelation();
+		viewer.getCurrentRelationPanel().showInsertTable();
 		return true;
 	}
 	
@@ -748,6 +808,59 @@ public class UpdateViewerController implements ActionListener
 		this.state = States.LOADED;
 		return true;		
 	}
+	
+	
+	private boolean processCommandNext()
+	{
+		int hitIndex = this.viewer.getCurrentRelationPanel().getCurrentHitIndex()+1;
+		if (hitIndex < this.viewer.getCurrentRelationPanel().getHitCount())
+		{
+			this.viewer.getCurrentRelationPanel().showHit(hitIndex);							
+		}			
+		else
+		{
+			int rpIndex = this.viewer.getRelationPanels().indexOf(this.viewer.getCurrentRelationPanel())+1;
+			boolean found = false;
+			while (rpIndex < this.viewer.getRelationPanels().size() && !found)
+			{
+				if (this.viewer.getRelationPanel(rpIndex).hasSearchHits())
+				{
+					found = true;
+					this.viewer.showRelationPanel(rpIndex);
+					this.viewer.getCurrentRelationPanel().showHit(0);			
+				}
+				rpIndex++;
+			}
+		}
+		return true;
+	}
+	
+	
+	private boolean processCommandPrevious()
+	{
+		int hitIndex = this.viewer.getCurrentRelationPanel().getCurrentHitIndex()-1;
+		if (hitIndex >= 0)
+		{
+			this.viewer.getCurrentRelationPanel().showHit(hitIndex);							
+		}
+		else
+		{
+			int rpIndex = this.viewer.getRelationPanels().indexOf(this.viewer.getCurrentRelationPanel())-1;
+			boolean found = false;
+			while (rpIndex >= 0 && !found)
+			{
+				if (this.viewer.getRelationPanel(rpIndex).hasSearchHits())
+				{
+					found = true;
+					this.viewer.showRelationPanel(rpIndex);
+					this.viewer.getCurrentRelationPanel().showHit(this.viewer.getCurrentRelationPanel().getHitCount()-1);			
+				}
+				rpIndex--;
+			}
+		}
+		return true;
+	}
+
 
 	
 	/**
@@ -774,41 +887,72 @@ public class UpdateViewerController implements ActionListener
 		}		
 	}
 	
+	
+	private boolean processCommandReplace()
+	{
+		RelationPanel rp = this.viewer.getCurrentRelationPanel();
+		String replacement = rp.getReplacement();
+		
+		if (replacement != null)
+		{
+			SearchHit hit = rp.getHit(rp.getCurrentHitIndex());
+			rp.replace(hit, replacement);
+			this.processCommandNext();
+		}
+		
+		return true;
+	}
+	
+	private boolean processCommandReplaceAll()
+	{
+		String replacement = this.viewer.getCurrentRelationPanel().getReplacement();
+		
+		if (replacement != null)
+		{
+			for (RelationPanel rp : this.viewer.getRelationPanels())
+			{
+				if (rp.hasSearchHits())
+				{
+					for (int i = 0; i< rp.getHitCount(); i++)
+					{
+						rp.replace(rp.getHit(i), replacement);
+					}
+				}
+			}			
+		}
+		return true;
+	}
+	
 	/**
-	 * 
+	 * Resets all uncommitted changes according to current state. 
 	 */
 	private boolean processCommandReset()
 	{
-		boolean result = true;
-		
 		switch(this.state)
 		{
 			case States.INSERT:
                 for (RelationPanel rp : this.viewer.getRelationPanels())
                 {
-                    if (!this.viewer.getCurrentRelationPanel().removeLastInsertTuple())
-                        result = false;
+                    rp.resetInsert();
                 }
 				break;
 			case States.UPDATE:
                 for (RelationPanel rp : this.viewer.getRelationPanels())
                 {
-                    if (!this.viewer.getCurrentRelationPanel().resetUpdateChanges())
-                        result = false;
+                    rp.resetUpdateChanges();
                 }
 				break;
 			case States.DELETE:
                 for (RelationPanel rp : this.viewer.getRelationPanels())
                 {
-                    if (!this.viewer.getCurrentRelationPanel().resetDeleteSelections())
-                        result = false;
+                    rp.resetDeleteSelections();
                 }
 				break;
 			default:
 				break;
 		}
 		
-		return result;
+		return true;
 	}
 	
 	
@@ -822,19 +966,28 @@ public class UpdateViewerController implements ActionListener
 
 		if (key != null && (key.length() > 0))
 		{
-			if (key.length() < 2)
+			if (key.length() < 3)
 			{
-				this.showErrorDialog("Key length must be 2 at least");
+				this.showErrorDialog("Key length must be 3 at least");
 			}
 			else
 			{
+				int first = -1;
 				for (RelationPanel rp : this.viewer.getRelationPanels())
-				{			
-					
-					List<SearchHit> hitlist = rp.retrieveSearchHits(key);
-					rp.setSearchResult(key, hitlist);
+				{								
+					List<SearchHit> hitlist = rp.retrieveSearchHits(key, this.caseSensitive);
+					rp.setSearchHits(hitlist);
+					rp.showSearchResult(key);
+					if (rp.hasSearchHits())
+					{
+						first = this.viewer.getRelationPanels().indexOf(rp);
+					}
 				}
-				
+				// go to first RelationPanel with a hit (if there is any)
+				if (first >= 0)
+				{
+					this.viewer.showRelationPanel(first);
+				}
 			}
 		}
 	}
@@ -852,7 +1005,6 @@ public class UpdateViewerController implements ActionListener
 		if(this.state == States.UPDATE)
 		{
 			this.viewer.getCurrentRelationPanel().undoLastUpdateChange();		
-			// TODO: all changes have been undone, maybe disable Undo button?
 		}
 		if(this.state == States.DELETE)
 		{

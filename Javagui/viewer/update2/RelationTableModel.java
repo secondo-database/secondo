@@ -63,11 +63,9 @@ public class RelationTableModel extends AbstractTableModel
     // contains tuple ids for deletion in chronological order
 	private List<String> deletions;
 	
-	// hits from latest search, mapped by rowIndex
+	// hits from latest search
 	private List<SearchHit> hitList;
-	// hits from latest search, mapped by rowIndex
-	private Map<Integer, List<SearchHit>> hitMap;
-	// list index of current hit
+	
 	private int currHit;
 	
 	public static final int COL_TUPLEID = 0;
@@ -94,8 +92,7 @@ public class RelationTableModel extends AbstractTableModel
 		this.state = States.LOADED;
 		this.changes = new ArrayList<Change>();
 		this.deletions = new ArrayList<String>();
-		this.hitList = null;
-		this.hitMap = new HashMap<Integer,List<SearchHit>>();
+		this.hitList = new ArrayList<SearchHit>();
 			 
 		Reporter.debug(this.toString());
 	}
@@ -121,14 +118,34 @@ public class RelationTableModel extends AbstractTableModel
 		if (!this.isDeleted(pRow))
         {
             this.deletions.add(tupleid);
-            Reporter.debug("RelationTableModel.addDeletion: marked tuple " + tupleid);
+            //Reporter.debug("RelationTableModel.addDeletion: marked tuple " + tupleid);
             result = true;
         }
-        else
-        {
-            Reporter.debug("RelationTableModel.addDeletion: already marked tuple " + tupleid);
-        }
+        //else Reporter.debug("RelationTableModel.addDeletion: already marked tuple " + tupleid);
+		
         return result;
+    }
+	
+	
+	
+    /**
+	 * Inserts a hit to the list at the 
+     */
+    public void addHit(SearchHit pHit)
+    {
+		for (SearchHit hit : this.hitList)
+        {
+			if (pHit.compareTo(hit) == 0)
+			{
+				return;
+			}
+			else
+			{
+				if (pHit.compareTo(hit) > 0)
+					hitList.add(hitList.indexOf(hit), pHit);
+					return;
+			}
+        }
     }
 	
 	
@@ -280,6 +297,15 @@ public class RelationTableModel extends AbstractTableModel
     }
 	
 	
+	/*
+	 * Method of interface AbstractTableModel.
+	 */
+    public String[] getColumnNames() 
+	{
+        return columnNames;
+    }
+	
+	
 	public int getCurrentHitIndex()
 	{
 		return this.currHit;
@@ -289,6 +315,47 @@ public class RelationTableModel extends AbstractTableModel
     {
         return this.deletions;
     }
+	
+	/**
+     * Returns SearchHit with specified index in this relation.
+     */
+	public SearchHit getHit(int pIndex)
+	{
+		if (pIndex >= 0 && this.hitList != null && pIndex < this.hitList.size())
+		{
+			return this.hitList.get(pIndex);
+		}
+		return null;
+	}
+	
+	/**
+	 * Returns number of all search hits
+	 */
+	public int getHitCount()
+	{
+		if (this.hitList != null)
+		{
+			return this.hitList.size();
+		}
+		return 0;
+	}
+		
+	
+	/**
+	 * Returns all SearchHits for the specified row.
+	 */
+	public List<SearchHit> getHits(int pRow)
+	{
+		List<SearchHit> result = new ArrayList<SearchHit>();
+		for (SearchHit hit : this.hitList)
+		{
+			if (hit.getRowIndex() == pRow)
+			{
+				result.add(hit);
+			}
+		}
+		return result;
+	}
 	
 	
 	/**
@@ -321,42 +388,7 @@ public class RelationTableModel extends AbstractTableModel
         return this.tupleCount * (this.tupleSize + 1);
     }
 	
-	/**
-     * Returns SearchHit with specified index in this relation.
-     */
-	public SearchHit getSearchHit(int pIndex)
-	{
-		if (pIndex >= 0 && this.hitList != null && pIndex < this.hitList.size())
-		{
-			return this.hitList.get(pIndex);
-		}
-		return null;
-	}
-	
-	/**
-	 * Returns number of all search hits
-	 */
-	public int getSearchHitCount()
-	{
-		if (this.hitList != null)
-		{
-			return this.hitList.size();
-		}
-		return 0;
-	}
-	
-	/**
-	 * Returns all SearchHits for the specified row.
-	 */
-	public List<SearchHit> getSearchHits(int pRow)
-	{
-		if (this.hitMap != null)
-		{
-			return this.hitMap.get(pRow);
-		}
-		return Collections.emptyList();
-	}
-	
+
     /**
      * Returns state.
      * Used in TableCellEditor/-Renderer.
@@ -427,6 +459,11 @@ public class RelationTableModel extends AbstractTableModel
         return (this.deletions != null && !this.deletions.isEmpty());
     }
 	
+	public boolean hasSearchHits()
+    {
+        return (this.hitList != null && !this.hitList.isEmpty());
+    }
+	
     
 	
 	/*
@@ -495,15 +532,13 @@ public class RelationTableModel extends AbstractTableModel
 		if (this.hasChanges() && pIndex < this.changes.size())
 		{
 			return (Change)this.changes.remove(this.changes.size()-1);			
-		}
-		
+		}		
 		return result;
 	}
 	
 	
 	/**
-	 * Removes specified change if any.
-	 * Returns TRUE if there change existed.
+	 * Removes specified change and returns TRUE if it existed.
 	 */
 	public boolean removeChange(Change pChange)
 	{
@@ -513,8 +548,30 @@ public class RelationTableModel extends AbstractTableModel
 		if (this.hasChanges())
 		{
 			result = this.changes.remove(pChange);			
-		}
+		}		
+		return result;
+	}
+
+	/**
+	 * Removes specified SearchHit and returns TRUE if it existed.
+	 */
+	public boolean removeHit(SearchHit pHit)
+	{
+		Reporter.debug("RelationTableModel.removeHit :" + pHit.toString());
+		boolean result = false;
 		
+		if (this.hasSearchHits())
+		{
+			int delIndex = this.hitList.indexOf(pHit);
+
+			result = this.hitList.remove(pHit);		
+			
+			if (this.currHit > delIndex  || this.currHit >= this.getHitCount())
+			{
+				this.currHit--;
+			}
+		}
+
 		return result;
 	}
 	
@@ -553,28 +610,14 @@ public class RelationTableModel extends AbstractTableModel
 	 */
 	public void setSearchHits(List<SearchHit> pHitlist)
 	{
-		this.hitList = pHitlist;
-		this.hitMap.clear();
-		
 		if (pHitlist == null || pHitlist.isEmpty())
 		{
 			this.currHit = -1;
 		}
 		else
 		{
+			this.hitList = pHitlist;
 			this.currHit = 0;
-			for (SearchHit hit : pHitlist)
-			{
-				//Reporter.debug(hit.toString());
-				
-				List<SearchHit> list4row = this.hitMap.get(hit.getRowIndex());
-				if (list4row == null)
-				{
-					list4row = new ArrayList<SearchHit>();
-				}
-				list4row.add(hit);
-				this.hitMap.put(hit.getRowIndex(), list4row);
-			}
 		}
 	}
 	

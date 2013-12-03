@@ -77,14 +77,16 @@ public class ValueTableCellRenderer
 												   boolean pSelected, boolean pFocussed,
 												   int pRow, int pColumn) 
 	{
+		RelationTableModel rtm = (RelationTableModel)pTable.getModel();
+		
 		// background
-        if (((RelationTableModel)pTable.getModel()).isDeleted(pRow))
+        if (rtm.isDeleted(pRow))
         {
             this.textArea.setBackground(new Color(255, 210, 230));
         }
 		else 
 		{
-            if (pSelected || ((RelationTableModel)pTable.getModel()).isChanged(pRow, pColumn))
+            if (pSelected || rtm.isChanged(pRow, pColumn))
             {
                 this.textArea.setBackground(new Color(210, 230, 255));
             }
@@ -95,13 +97,16 @@ public class ValueTableCellRenderer
 		}
 		
 		// border
-		if (pFocussed && !((RelationTableModel)pTable.getModel()).isDeleted(pRow))
+		if (pFocussed && !rtm.isDeleted(pRow))
 		{
 			this.textArea.setBorder(BorderFactory.createCompoundBorder(this.borderFocussed, 
 								BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));
-		} else	
+		} 
+		else	
 		{
-			this.textArea.setBorder(BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground()));
+			this.textArea.setBorder(BorderFactory.createCompoundBorder(
+								BorderFactory.createLineBorder(this.textArea.getBackground()), 
+								BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));
 		}
 		
 		// set text and correct row height according to textarea content
@@ -111,18 +116,27 @@ public class ValueTableCellRenderer
 		pTable.setRowHeight(pRow, this.textArea.getPreferredSize().height);
 		
 		
-		// highlight search matches
+		// render search matches
 		hiliter.removeAllHighlights();
-		List<SearchHit> hits = ((RelationTableModel)pTable.getModel()).getSearchHits(pRow);
+		List<SearchHit> hits = rtm.getHits(pRow);
 		if (hits != null && !hits.isEmpty())
 		{
 			for (SearchHit sh : hits) 
 			{
-				try {
-					hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
-				} catch (Exception ble) 
+				if (sh == rtm.getHit(rtm.getCurrentHitIndex()))
 				{
-					Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting failed ");
+					this.setCaret(sh.getStart(), sh.getEnd());
+				}
+				else
+				{
+					try 
+					{
+						hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
+					} 
+					catch (Exception e) 
+					{
+						Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting failed ");
+					}
 				}
 			}
 		}
@@ -148,12 +162,14 @@ public class ValueTableCellRenderer
 		}
 	}
 	
-	public void setCaretPosition(int pPosition)
+	public void setCaret(int pStart, int pEnd)
 	{
-		if (pPosition >= 0 && pPosition < this.textArea.getText().length())
-		{
-			this.textArea.setCaretPosition(pPosition);
-		}
+		Reporter.debug("ValueTableCellRenderer.setCaretPosition at position " + pStart);
+		
+		this.textArea.requestFocusInWindow();
+		this.textArea.setCaretPosition(pStart);
+		this.textArea.moveCaretPosition(pEnd);
+		this.textArea.getCaret().setSelectionVisible(true);
 	}
 	
 	// TODO
