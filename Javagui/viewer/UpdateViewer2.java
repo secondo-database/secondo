@@ -85,7 +85,7 @@ public class UpdateViewer2 extends SecondoViewer {
 	// for user-input
 	private UpdateViewerController controller;
 	
-	private JTextArea formattedText;
+	private JTextArea formattedDocument;
 		
 	
 	/*
@@ -132,7 +132,7 @@ public class UpdateViewer2 extends SecondoViewer {
 		this.commit.addActionListener(this.controller); 
 		this.commit.setToolTipText("Save changes to database");
 		this.actionPanel.add(this.commit);
-		this.format = new JButton("Format view");
+		this.format = new JButton("Format");
 		this.format.addActionListener(this.controller); 
 		this.format.setToolTipText("View as formatted document");
 		this.actionPanel.add(this.format);		
@@ -143,6 +143,9 @@ public class UpdateViewer2 extends SecondoViewer {
 		this.tabbedPane = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
 		this.add(tabbedPane, BorderLayout.CENTER);
 
+		// formatted text will be invisible initially
+		this.formattedDocument = new JTextArea();
+		
 		this.setSelectionMode(States.INITIAL);
 	}
 	
@@ -186,17 +189,44 @@ public class UpdateViewer2 extends SecondoViewer {
 		{
 			if (relpanel.getName().equals(pRelName))
 			{
-				Reporter.debug("UpdateViewer2.getRelationPanel: returned rel " + pRelName);
 				return relpanel;
 			}
 		}
-		Reporter.debug("UpdateViewer2.getRelationPanel: returned null");
 		return result;
 	}
 	
+	/**
+	 * Returns the RelationPanel at specified index (list index = tab index), null if index invalid.
+	 */
+	public RelationPanel getRelationPanel(int pIndex)
+	{
+		if (pIndex >= 0 && pIndex < this.relationPanels.size())
+		{
+			return this.relationPanels.get(pIndex);
+		}
+		return null;
+	}
+	
+	/**
+	 * Returns all RelationPanels (list order = tab order).
+	 */
 	public List<RelationPanel> getRelationPanels()
 	{
 		return this.relationPanels;
+	}
+	
+	/**
+	 * Sets RelationPanel at specified index as active tab in tabbed pane.
+	 * if index is valid.
+	 */
+	public void showRelationPanel(int pIndex)
+	{
+		Reporter.debug("UpdateViewer2.showCurrentRelationPanel: setting index to " + pIndex);
+		if (pIndex >= 0 && pIndex < this.relationPanels.size())
+		{
+			this.tabbedPane.setSelectedIndex(pIndex);
+		}
+		this.revalidate();
 	}
 	
 	/**
@@ -209,15 +239,21 @@ public class UpdateViewer2 extends SecondoViewer {
 		{
 			rp = new RelationPanel(pRelName, this.controller);
 			this.relationPanels.add(rp);
+			
+			String tabtitle = rp.getName();
+			if (tabtitle.length() > 30)
+			{
+				tabtitle = tabtitle.substring(0,29) + "...";
+			}
+			this.tabbedPane.addTab(tabtitle, null, rp, rp.getName());
 		}
 		return rp.createFromLE(pRelationLE);
 	}
 	
 
 	/*
-	 For each mode and state the viewer is in only certain operations and choices are possible.
-	 This method assures only the actually allowed actions can be executed or chosen.	 
-	 
+	 * For each mode and state the viewer is in only certain operations and choices are possible.
+	 * This method assures only the actually allowed actions can be executed or chosen.	 
 	 */
 	public void setSelectionMode(int pState)
 	{
@@ -296,6 +332,20 @@ public class UpdateViewer2 extends SecondoViewer {
 				format.setEnabled(true);
 				break;
 			}
+			case States.FORMAT: 
+			{
+				format.setBackground(Color.YELLOW);
+				load.setEnabled(true);
+				clear.setEnabled(true);
+				insert.setEnabled(false);
+				update.setEnabled(false);
+				delete.setEnabled(false);
+				reset.setEnabled(false);
+				undo.setEnabled(false);
+				commit.setEnabled(false);
+				format.setEnabled(true);
+				break;
+			}
 			default:
 				break;
 		}
@@ -308,10 +358,22 @@ public class UpdateViewer2 extends SecondoViewer {
 	
 	
 	/**
+	 * Displays formatted document created from the laoded relations.
+	 */
+	public void showFormattedDocument()
+	{
+		this.remove(tabbedPane);
+		this.add(formattedDocument, BorderLayout.CENTER);
+		this.validate();
+		this.repaint();	
+	}
+	
+	/**
 	 * Displays all loaded RelationPanels.
 	 */
 	public void showRelations()
 	{
+		/*
 		for (RelationPanel rp : this.relationPanels)
 		{
 			String tabtitle = rp.getName();
@@ -321,10 +383,14 @@ public class UpdateViewer2 extends SecondoViewer {
 			}
 			tabbedPane.addTab(tabtitle, null, rp, rp.getName());
 		}
+		 */
+		this.remove(formattedDocument);
+		this.add(tabbedPane, BorderLayout.CENTER);
 		
 		this.validate();
 		this.repaint();	
 	}
+	
 	
 
 	/*********************************************************
@@ -416,6 +482,11 @@ public class UpdateViewer2 extends SecondoViewer {
 	@Override
 	public boolean isDisplayed(SecondoObject so) 
 	{
+		RelationPanel rp = getRelationPanel(so.getName());
+		if (rp != null)
+		{
+			return true;
+		}
 		return false;
 	}
 	
