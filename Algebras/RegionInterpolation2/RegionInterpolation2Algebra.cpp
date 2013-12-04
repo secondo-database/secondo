@@ -1,6 +1,6 @@
 /*
 */
-#include "Algebra.h"        //always needed in Algebras
+#include "Algebra.h"
 #include "MovingRegionAlgebra.h"
 
 static const string interpolatespec =

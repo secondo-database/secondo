@@ -4,9 +4,12 @@
 #include "interpolate.h"
 
 #include <vector>
-#include <lua5.1/lua.hpp>
+#include <lua5.2/lua.hpp>
 
 static lua_State *L = NULL;
+static void setfield(const char *key, int value);
+
+static int lua_distance(lua_State *L);
 
 int luaInit(void) {
     if (L != NULL)
@@ -25,11 +28,14 @@ int luaInit(void) {
         return -1;
     }
 
+    lua_pushcfunction(L, lua_distance);
+    lua_setglobal(L, "distance");
+
     return 0;
 }
 
 vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
-						int level) {
+        int level) {
     vector<pair<Reg *, Reg *> > ret;
 
     if (!L) {
@@ -38,18 +44,32 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
             return ret;
     }
 
+    Pt srcoff = Reg::GetMinXY(*src);
+    Pt dstoff = Reg::GetMinXY(*dst);
+    Pt off = dstoff - srcoff;
+
+    lua_newtable(L);
+    setfield("x", off.x);
+    setfield("y", off.y);
+    lua_setglobal(L, "offset");
+
+    //    lua_newtable(L);
+    //    setfield("x", dstoff.x);
+    //    setfield("y", dstoff.y);
+    //    lua_setglobal(L, "dstoff");
+
     lua_getglobal(L, "matchFaces");
 
     lua_newtable(L);
     for (unsigned int i = 0; i < src->size(); i++) {
-        lua_pushnumber(L, i+1);
+        lua_pushnumber(L, i + 1);
         lua_pushlightuserdata(L, &(*src)[i]);
         lua_rawset(L, -3);
     }
 
     lua_newtable(L);
     for (unsigned int i = 0; i < dst->size(); i++) {
-        lua_pushnumber(L, i+1);
+        lua_pushnumber(L, i + 1);
         lua_pushlightuserdata(L, &(*dst)[i]);
         lua_rawset(L, -3);
     }
@@ -77,9 +97,9 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
 
                 lua_getfield(L, -1, "dst");
                 if (lua_islightuserdata(L, -1)) {
-                    p.first = (Reg *) lua_touserdata(L, -1);
+                    p.second = (Reg *) lua_touserdata(L, -1);
                 } else {
-                    p.first = NULL;
+                    p.second = NULL;
                 }
                 lua_pop(L, 1);
             }
@@ -95,3 +115,39 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
     return ret;
 }
 
+static void setfield(const char *key, int value) {
+    lua_pushstring(L, key);
+    lua_pushnumber(L, value);
+    lua_settable(L, -3);
+}
+
+static Pt getoffset() {
+    double xoff = 0, yoff = 0;
+
+    lua_getglobal(L, "offset");
+    if (lua_istable(L, -1)) {
+        lua_getfield(L, -1, "x");
+        lua_getfield(L, -2, "y");
+        if (lua_isnumber(L, -1) && lua_isnumber(L, -2)) {
+            xoff = lua_tonumber(L, -2);
+            yoff = lua_tonumber(L, -1);
+        }
+        lua_pop(L, 2);
+    }
+    lua_pop(L, 1);
+    
+    return Pt(xoff, yoff);
+}
+
+static int lua_distance(lua_State *L) {
+    if (!lua_islightuserdata(L, -1) || !lua_islightuserdata(L, -2))
+        return 0;
+
+    Pt offset = getoffset();
+
+    Reg *src = (Reg*) lua_touserdata(L, -1);
+    Reg *dst = (Reg*) lua_touserdata(L, -2);
+    double dist = src->GetMiddle().distance(dst->GetMiddle() - offset);
+    lua_pushnumber(L, dist);
+    return 1;
+}

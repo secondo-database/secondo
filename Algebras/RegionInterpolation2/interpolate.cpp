@@ -203,18 +203,22 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
 MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         vector<Reg> *dregs, Instant *ti2, int depth) {
     
-//    for (unsigned int i = 0; i < sregs->size(); i++) {
+    for (unsigned int i = 0; i < sregs->size(); i++) {
+        (*sregs)[i].isdst = 0;
 //        cerr << "Sreg " << (*sregs)[i].ToString() << "\n";
-//    }
-//    for (unsigned int i = 0; i < dregs->size(); i++) {
+    }
+    for (unsigned int i = 0; i < dregs->size(); i++) {
+        (*sregs)[i].isdst = 1;
 //        cerr << "Dreg " << (*dregs)[i].ToString() << "\n";
-//    }
+    }
     
     vector<pair<Reg *, Reg *> > ps;
 //    if (depth == 0)
 //         ps = matchFacesDistance(sregs, dregs);
 //    else
 //         ps = matchFacesNull(sregs, dregs);
+    
+    
     
     ps = matchFacesLua(sregs, dregs, depth);
 //    ps = matchFacesNull(sregs, dregs, depth);

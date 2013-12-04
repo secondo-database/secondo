@@ -54,6 +54,7 @@ public:
     vector<Seg> v;
     vector<Reg> holes;
     int used;
+    int isdst;
     
     Reg();
     Reg(ListExpr le);
