@@ -140,8 +140,12 @@ public class Dsplmovingstring extends DsplGeneric implements Timed,LabelAttribut
     }
     err = false;
     defined=true;
-    return "mstring";
+    return getType();
     
+  }
+
+  public String getType(){
+     return "mstring";
   }
 
    public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr)
