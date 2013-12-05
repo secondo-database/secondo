@@ -2634,6 +2634,28 @@ private void createMenuBar(){
            }
        }
    });
+   JMenuItem MI_SnapshotEPS = ProgramMenu.add("Snapshot as EPS");
+   MI_SnapshotEPS.setAccelerator(KeyStroke.getKeyStroke("shift alt C"));
+   MI_SnapshotEPS.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+           if(exportToPS(MainWindow.this)){
+              Reporter.showInfo("Snapshot written");
+           }
+       }
+   });
+
+/*
+   JMenuItem MI_CurrentSnapshotEPS = ProgramMenu.add("Current window as EPS");
+   MI_SnapshotEPS.setAccelerator(KeyStroke.getKeyStroke("shift alt F"));
+   MI_SnapshotEPS.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+           if(exportToPS(MainWindow.this)){
+              Reporter.showInfo("Snapshot written");
+           }
+       }
+   });
+*/
+
    JMenuItem MI_ScreenSnapshot = ProgramMenu.add("ScreenSnapshot");
    MI_ScreenSnapshot.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
