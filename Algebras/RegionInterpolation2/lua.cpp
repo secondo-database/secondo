@@ -77,7 +77,11 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
     lua_pushinteger(L, level);
 
     cerr << "Calling LUA START\n";
-    lua_call(L, 3, 1);
+    int st = lua_pcall(L, 3, 1, 0);
+    if (st) {
+        cerr << "Error calling matchFaces: " << lua_tostring(L, -1) << "\n";
+        return ret;
+    }
     cerr << "Calling LUA END\n";
 
     if (lua_istable(L, -1)) {
@@ -151,3 +155,4 @@ static int lua_distance(lua_State *L) {
     lua_pushnumber(L, dist);
     return 1;
 }
+
