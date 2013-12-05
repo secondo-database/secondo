@@ -16,7 +16,7 @@ int luaInit(void) {
         lua_close(L);
     L = luaL_newstate();
     luaL_openlibs(L);
-    int st = luaL_loadfile(L, "/tmp/mf.lua");
+    int st = luaL_loadfile(L, "mf.lua");
     if (st) {
         cerr << "Error parsing LUA-file: " << lua_tostring(L, -1) << "\n";
         return -1;
@@ -38,7 +38,7 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
         int level) {
     vector<pair<Reg *, Reg *> > ret;
 
-    if (!L) {
+    if (!L || level == 0) {
         int st = luaInit();
         if (st < 0)
             return ret;
@@ -115,7 +115,7 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
     } else {
         cerr << "Return-Value is not a table!\n";
     }
-
+    cerr << "Leaving...\n";
     return ret;
 }
 
