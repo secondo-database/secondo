@@ -843,10 +843,7 @@ public MainWindow(String Title,String user,String passwd){
                   c2 = c1.getParent();
                } 
                exportToPS(c1);;
-             } else if(c==KeyEvent.VK_C){
-               exportToPS(MainWindow.this);
-             }
-            
+             } 
           }
       } 
     };
