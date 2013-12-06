@@ -203,12 +203,15 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
 MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         vector<Reg> *dregs, Instant *ti2, int depth) {
     
+    cerr << "A1\n";
+    
     for (unsigned int i = 0; i < sregs->size(); i++) {
         (*sregs)[i].isdst = 0;
 //        cerr << "Sreg " << (*sregs)[i].ToString() << "\n";
     }
+    cerr << "A2\n";
     for (unsigned int i = 0; i < dregs->size(); i++) {
-        (*sregs)[i].isdst = 1;
+        (*dregs)[i].isdst = 1;
 //        cerr << "Dreg " << (*dregs)[i].ToString() << "\n";
     }
     
@@ -220,10 +223,12 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
     
     
     
+    cerr << "A3\n";
     ps = matchFacesLua(sregs, dregs, depth);
 //    ps = matchFacesNull(sregs, dregs, depth);
     MFaces ret, fcs;
 
+    cerr << "A4\n";
     for (unsigned int i = 0; i < ps.size(); i++) {
         pair<Reg *, Reg *> p = ps[i];
 
@@ -240,7 +245,7 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
                     MSegs *s2 = &fcs.faces[j].face;
                     if (s1->ignore || s2->ignore)
                         continue;
-                    if (s1->intersects(*s2)) {
+                    if (s1->intersects(*s2) && 0) {
                         pair<MSegs, MSegs> ss = s1->kill();
                         cerr << "Intersection found: " << ss.first.ToString()
                              << "\n" << ss.second.ToString() << "\n";
@@ -274,6 +279,7 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
             }
         }
     }
+    cerr << "A5\n";
 
     return ret;
 }

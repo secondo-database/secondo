@@ -115,7 +115,7 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
     } else {
         cerr << "Return-Value is not a table!\n";
     }
-    cerr << "Leaving...\n";
+    
     return ret;
 }
 
