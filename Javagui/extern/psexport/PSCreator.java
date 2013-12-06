@@ -598,8 +598,10 @@ public boolean drawImage(Image img, AffineTransform xform, ImageObserver obs){
    double sy = xform.getScaleY();
    int w = img.getWidth(null);
    int h = img.getHeight(null);
-   int wt = (int)(w*sx + 0.6);
-   int ht = (int)(h*sy + 0.6);
+   int wt = (int)(w*sx);
+   if(wt<(w*sx)) wt++;
+   int ht = (int)(h*sy);
+   if(ht<(h*sy)) ht++;
 
    BufferedImage img2 = new BufferedImage(wt,ht, BufferedImage.TYPE_INT_RGB);
    Graphics2D g = (Graphics2D) img2.getGraphics();
@@ -607,7 +609,7 @@ public boolean drawImage(Image img, AffineTransform xform, ImageObserver obs){
    g.scale(1,-1);
    g.drawImage(img,0,0,wt,ht,null);
    
-   writeImage(img2,(int)(xform.getTranslateX()+0.4),(int)(xform.getTranslateY()+0.4));
+   writeImage(img2,(int)(xform.getTranslateX()),(int)(xform.getTranslateY()));
    out.println("grestore");
 
    return false;
@@ -616,7 +618,6 @@ public boolean drawImage(Image img, AffineTransform xform, ImageObserver obs){
 public boolean drawImage(Image img, int x, int y, Color bgcolor, 
                       ImageObserver observer) {
    System.out.println("drawImage/3 called with image of size " + getImageSize(img));
-   //drawImage(convertImage(img),null,x,y);
    writeImage(convertImage(img),x,y);
    return false;
 }
@@ -630,22 +631,31 @@ public boolean drawImage(Image img, int x, int y, ImageObserver observer) {
 public boolean drawImage(Image img, int x, int y, int width, int height,
                          Color bgcolor, ImageObserver observer) {
    System.out.println("drawImage/5 called with image of size " + getImageSize(img));
-   return false;
+   BufferedImage img1 = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
+   Graphics g = img1.getGraphics();
+   boolean res = g.drawImage(img1,0,0,width,height,bgcolor,null);
+   writeImage(img1,x,y);
+   return res;
 }
 
 public boolean drawImage(Image img, int x, int y, int width, int height, 
                ImageObserver observer){
    System.out.println("drawImage/6 called with image of size " + getImageSize(img));
    Image img2 = img.getScaledInstance(width,height,Image.SCALE_DEFAULT);
-   drawImage(convertImage(img),x,y,null);
+   writeImage(convertImage(img2),x,y);
    return false;
 }
 
 public boolean drawImage(Image img, int dx1, int dy1, int dx2, 
                          int dy2, int sx1, int sy1, int sx2, int sy2, 
                          Color bgcolor, ImageObserver observer){
-   System.out.println("drawImage/7 called with image of size " + getImageSize(img));
-   return false;
+   int w = dx2-dx1;
+   int h = dy2-dy1;
+   BufferedImage img1 = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+   Graphics2D g = (Graphics2D)img1.getGraphics();
+   boolean res = g.drawImage(img,0,0,w,h,sx1,sy1,sx2,sy2,bgcolor,null);
+   writeImage(img1,dx1,dy1);
+   return res;
 }
 
 public boolean 	drawImage(Image img, int dx1, int dy1, int dx2, int dy2, 
