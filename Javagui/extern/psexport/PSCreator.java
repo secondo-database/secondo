@@ -12,7 +12,59 @@ import java.text.*;
 import java.awt.image.renderable.*;
 import java.util.Vector;
 
+class Int3{
+  public Int3(int rgb){
+     r = (rgb >> 16) & 0xFF;
+     g = (rgb >> 8) & 0xFF;
+     b = rgb & 0xFF;
+  }
+
+  void readFrom(int rgb){
+     r = (rgb >> 16) & 0xFF;
+     g = (rgb >> 8) & 0xFF;
+     b = rgb & 0xFF;
+  }
+  int r; int g; int b;
+}
+
+ 
+
 public class PSCreator {
+
+private static String extend(String hn){
+   if(hn.length() < 2) return "0"+hn;
+   return  hn;
+}
+
+
+private static void writeBigImage(BufferedImage img, PrintStream out,int x, int y){
+    int w = img.getWidth();
+    int h = img.getHeight();
+    out.println("gsave");
+    out.println(x+" "+ y+" translate");
+    out.println(w+" "+h+"  scale");
+    out.println("" + w + "  " + h + "  8 [" + w  + " 0 0 " + (-h) + " 0 " + h+"]");
+    int rowData = 3 * w;
+    out.println("{currentfile " + rowData + " string readhexstring pop} bind ");
+    out.println("false 3 colorimage");
+    Int3 i3 = new Int3(0);
+    for(int y1=0;y1<h;y1++){
+       for(int x1=0;x1<w;x1++){
+          int rgb = img.getRGB(x1,y1);
+          i3.readFrom(rgb);
+          String r = extend(Integer.toHexString(i3.r));
+          String g = extend(Integer.toHexString(i3.g));
+          String b = extend(Integer.toHexString(i3.b));
+          out.print(r);
+          out.print(g);
+          out.print(b);
+       }
+       out.println();
+    }
+    out.println("grestore");
+
+}
+
 
 
 /** Exports a Component to a file as eps graphic */
@@ -516,9 +568,17 @@ public void drawGlyphVector(GlyphVector g, float x, float y){
    Reporter.writeWarning("PSCreator.drawGlyhVector not implemented");
 }
 
+private Dimension getImageSize(Image img){
+   int w = img.getWidth(null);
+   int h = img.getHeight(null);
+   return new Dimension(w,h);
+}
+
 public void  drawImage(BufferedImage img, BufferedImageOp op, int x, int y){
-   writeImage(img,x,y);
-  
+  System.out.println("drawImage/1 called width image of size " + getImageSize(img));
+  // Rectangle2D r = op.getBounds2D();
+   BufferedImage i2 = img;
+   writeImage(i2,x,y);
 }
 
 private BufferedImage convertImage(Image img){
@@ -532,33 +592,50 @@ private BufferedImage convertImage(Image img){
 
 
 public boolean drawImage(Image img, AffineTransform xform, ImageObserver obs){
-   Reporter.writeWarning("Reporter.drawImage/3 not implemeneted");
-   //drawImage(convertImage(img),null,0,0);
+   //System.out.println("drawImage/2 called with image of size " + getImageSize(img));
+   out.println("gsave");
+   double sx = xform.getScaleX();
+   double sy = xform.getScaleY();
+   int w = img.getWidth(null);
+   int h = img.getHeight(null);
+   int wt = (int)(w*sx + 0.6);
+   int ht = (int)(h*sy + 0.6);
+
+   BufferedImage img2 = new BufferedImage(wt,ht, BufferedImage.TYPE_INT_RGB);
+   Graphics2D g = (Graphics2D) img2.getGraphics();
+   g.translate(0,ht);
+   g.scale(1,-1);
+   g.drawImage(img,0,0,wt,ht,null);
+   
+   writeImage(img2,(int)(xform.getTranslateX()+0.4),(int)(xform.getTranslateY()+0.4));
+   out.println("grestore");
+
    return false;
 }
 
 public boolean drawImage(Image img, int x, int y, Color bgcolor, 
                       ImageObserver observer) {
-   Reporter.writeWarning("Reporter.drawImage/5 not implemeneted");
+   System.out.println("drawImage/3 called with image of size " + getImageSize(img));
    //drawImage(convertImage(img),null,x,y);
+   writeImage(convertImage(img),x,y);
    return false;
 }
 
 public boolean drawImage(Image img, int x, int y, ImageObserver observer) {
-   Reporter.writeWarning("Reporter.drawImage/3 not implemeneted");
-   drawImage(convertImage(img),null,x,y);
+   System.out.println("drawImage/4 called with image of size " + getImageSize(img));
+   writeImage(convertImage(img),x,y);
    return  false;
 }
 
 public boolean drawImage(Image img, int x, int y, int width, int height,
                          Color bgcolor, ImageObserver observer) {
-   Reporter.writeWarning("Reporter.drawImage/7 not implemeneted");
+   System.out.println("drawImage/5 called with image of size " + getImageSize(img));
    return false;
 }
 
 public boolean drawImage(Image img, int x, int y, int width, int height, 
                ImageObserver observer){
-   Reporter.writeWarning("Reporter.drawImage/6 not implemeneted");
+   System.out.println("drawImage/6 called with image of size " + getImageSize(img));
    Image img2 = img.getScaledInstance(width,height,Image.SCALE_DEFAULT);
    drawImage(convertImage(img),x,y,null);
    return false;
@@ -567,15 +644,36 @@ public boolean drawImage(Image img, int x, int y, int width, int height,
 public boolean drawImage(Image img, int dx1, int dy1, int dx2, 
                          int dy2, int sx1, int sy1, int sx2, int sy2, 
                          Color bgcolor, ImageObserver observer){
-   Reporter.writeWarning("Reporter.drawImage/11 not implemeneted");
+   System.out.println("drawImage/7 called with image of size " + getImageSize(img));
    return false;
 }
 
 public boolean 	drawImage(Image img, int dx1, int dy1, int dx2, int dy2, 
-                          int sx1, int sy1, int sx2, int sy2, 
-                          ImageObserver observer) {
-   Reporter.writeWarning("Reporter.drawImage/10 not implemeneted");
-   return false;
+                          int sx1, int sy1, int sx2, int sy2, ImageObserver observer) {
+
+   System.out.println("drawImage/8 called with image of size " + getImageSize(img));
+   Reporter.writeWarning("drawImage/8 not implemented yet");
+   return true;
+
+   /*
+   System.out.println("dx1 = " + dx1);
+   System.out.println("dy1 = " + dy1);
+   System.out.println("dx2 = " + dx2);
+   System.out.println("dy2 = " + dy2);
+   System.out.println("sx1 = " + sx1);
+   System.out.println("sy1 = " + sy1);
+   System.out.println("sx2 = " + sx2);
+   System.out.println("sy2 = " + sy2);
+
+
+   int w = dx2-dx1;
+   int h = dy2-dy1;
+   BufferedImage img1 = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+   Graphics2D g = (Graphics2D)img1.getGraphics();
+   boolean res = g.drawImage(img,0,0,w,h,sx1,sy1,sx2,sy2,null);
+   writeImage(img1,dx1,dy1); // image is written to the wrong position
+   return res;
+   */
 }
 
 public void drawLine(int x1, int y1, int x2, int y2) {
@@ -933,6 +1031,7 @@ public void writeHeader(Rectangle2D bounds){
 
 
   out.println("/Helvetica 12 selectfont");
+  this.bounds = bounds;
 
 }
 
@@ -989,12 +1088,19 @@ private String getHexString(int i){
 }
 
 private void writeImage(BufferedImage bi,int x , int y){
-   System.out.println("writeImage called");
    // get the image data
    int w = bi.getWidth();
    int h = bi.getHeight();
+   if(w>0 || h >0){
+     writeBigImage(bi,out,x,y);
+     return;
+   }
+
+  
+
    int[] data = bi.getRGB(0,0,w,h,null,0,w);
    // write the image code
+   out.println("gsave");
    out.println("/DeviceRGB setcolorspace");
    out.println(x+" "+ y+" translate");
    out.println(w+" "+h+"  scale");
@@ -1017,8 +1123,7 @@ private void writeImage(BufferedImage bi,int x , int y){
       }
    }
    out.println("\n>} false 3 colorimage");
-   out.println(1.0/w+" "+1.0/h+" scale");
-   out.println((-x)+" "+ (-y)+" translate");
+   out.println("grestore");
 }
 
 
@@ -1053,9 +1158,9 @@ private static class PaintContext {
   private AffineTransform affineTransform = null;
   private Shape clip = null;
   private Font font = null;
-  private Vector images = new Vector();
 }
 
+  Rectangle2D bounds;
 
 }
 
