@@ -652,28 +652,14 @@ public boolean 	drawImage(Image img, int dx1, int dy1, int dx2, int dy2,
                           int sx1, int sy1, int sx2, int sy2, ImageObserver observer) {
 
    System.out.println("drawImage/8 called with image of size " + getImageSize(img));
-   Reporter.writeWarning("drawImage/8 not implemented yet");
-   return true;
-
-   /*
-   System.out.println("dx1 = " + dx1);
-   System.out.println("dy1 = " + dy1);
-   System.out.println("dx2 = " + dx2);
-   System.out.println("dy2 = " + dy2);
-   System.out.println("sx1 = " + sx1);
-   System.out.println("sy1 = " + sy1);
-   System.out.println("sx2 = " + sx2);
-   System.out.println("sy2 = " + sy2);
-
 
    int w = dx2-dx1;
    int h = dy2-dy1;
    BufferedImage img1 = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
    Graphics2D g = (Graphics2D)img1.getGraphics();
    boolean res = g.drawImage(img,0,0,w,h,sx1,sy1,sx2,sy2,null);
-   writeImage(img1,dx1,dy1); // image is written to the wrong position
+   writeImage(img1,dx1,dy1);
    return res;
-   */
 }
 
 public void drawLine(int x1, int y1, int x2, int y2) {
@@ -1088,6 +1074,9 @@ private String getHexString(int i){
 }
 
 private void writeImage(BufferedImage bi,int x , int y){
+
+   updateContext();
+
    // get the image data
    int w = bi.getWidth();
    int h = bi.getHeight();
