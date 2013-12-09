@@ -1,11 +1,13 @@
 /*
 */
 
+#include "interpolate.h"
+
 #include <math.h>
 #define FABS(x) (float(fabs(x))) 
 
 #define USE_EPSILON_TEST TRUE
-#define EPSILON 0.000001
+#define EPSILON 0.0001
 
 
 #define CROSS(dest,v1,v2){                     \
@@ -197,7 +199,7 @@ int TriangleIntersection(float V0[3],float V1[3],float V2[3],
   du0du1=du0*du1;
   du0du2=du0*du2;
 
-  if(du0du1>0.0f && du0du2>0.0f)
+  if(du0du1>=0.0f && du0du2>=0.0f)
     return 0;
 
   SUB(E1,U1,U0);
@@ -218,7 +220,7 @@ int TriangleIntersection(float V0[3],float V1[3],float V2[3],
   dv0dv1=dv0*dv1;
   dv0dv2=dv0*dv2;
 
-  if(dv0dv1>0.0f && dv0dv2>0.0f)
+  if(dv0dv1>=0.0f && dv0dv2>=0.0f)
     return 0;
 
   CROSS(D,N1,N2);
@@ -259,7 +261,7 @@ int TriangleIntersection(float V0[3],float V1[3],float V2[3],
 
   SORT(isect1[0],isect1[1]);
   SORT(isect2[0],isect2[1]);
-
-  if(isect1[1]<isect2[0] || isect2[1]<isect1[0]) return 0;
+  
+  if(isect1[1]<=isect2[0] || isect2[1]<=isect1[0]) return 0;
   return 1;
 }

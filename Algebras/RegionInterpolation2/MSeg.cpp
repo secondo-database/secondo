@@ -62,10 +62,11 @@ bool MSeg::intersects(const MSeg& a) const {
     if (ret) {
         cerr << "Intersection between " << ToString()
                 << " and " << a.ToString() << "\n";
-    } else {
-        cerr << "No Intersection between " << ToString()
-                << " and " << a.ToString() << "\n";
     }
+//    else {
+//        cerr << "No Intersection between " << ToString()
+//                << " and " << a.ToString() << "\n";
+//    }
     
     return ret;
 

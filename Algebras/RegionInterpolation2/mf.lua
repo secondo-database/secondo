@@ -1,8 +1,6 @@
 
 function matchFaces (src, dst, depth)
-	print("\nEntering depth "..depth);
-	print("X " .. offset.x .. " Y " .. offset.y);
-	print("Srcregs " .. #src .. " and Dstregs " .. #dst)
+	print("\nDepth "..depth..": Srcregs " .. #src .. ", Dstregs " .. #dst)
 
 	ret = {}
 
@@ -10,13 +8,12 @@ function matchFaces (src, dst, depth)
 	    ret = { { src=src[1], dst=dst[1] } }
 	end
 	
---	return ret
 	
 	if (depth == 1) then
-	    ret = { { src=src[1], dst=dst[1] }, { src=src[2], dst=nil }, { src=src[3], dst=dst[2] } }
+	    ret = { { src=src[1], dst=dst[2] }, { src=src[2], dst=nil }, { src=src[3], dst=dst[1] } }
 	end
 
-	if (depth == 2) then
+	if (depth > 1) then
 	    ret = { { src=src[1], dst=dst[1] } }
 	end
 

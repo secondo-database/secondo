@@ -94,15 +94,17 @@ vector<MSegmentData> MSegs::ToMSegmentData(int face, int cycle) {
 
 // Inefficient!
 bool MSegs::intersects (const MSegs& a) const {
+    bool ret = false;
     for (unsigned int i = 0; i < a.segs.size(); i++) {
         for (unsigned int j = 0; j < segs.size(); j++) {
             if (segs[j].intersects(a.segs[i])) {
-                return true;
+                ret = true;
+                return ret;
             }
         }
     }
     
-    return false;
+    return ret;
 }
 
 pair<MSegs, MSegs> MSegs::kill() {
