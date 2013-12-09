@@ -196,6 +196,8 @@ MSegs Reg::collapse(bool close) {
             ret.AddMSeg(MSeg(dst, dst, v[i].s, v[i].e));
         }
     }
+    
+    ret.iscollapsed = 1;
 
     return ret;
 }

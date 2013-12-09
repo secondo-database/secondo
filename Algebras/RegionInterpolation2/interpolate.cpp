@@ -236,18 +236,32 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
             fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2, depth+1);
             
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
+                MSegs *s1 = &fcs.faces[i].face;
+                if (s1->ignore)
+                    continue;
                 for (unsigned int j = i+1; j < fcs.faces.size(); j++) {
-                    MSegs *s1 = &fcs.faces[i].face;
                     MSegs *s2 = &fcs.faces[j].face;
-                    if (s1->ignore || s2->ignore)
+                    if (s2->ignore)
                         continue;
                     if (s1->intersects(*s2)) {
-                        pair<MSegs, MSegs> ss = s1->kill();
+                        pair<MSegs, MSegs> ss;
+                        if (s1->iscollapsed) {
+                            ss = s2->kill();
+                            s2->ignore = 1;
+                        } else if (s2->iscollapsed) {
+                            ss = s1->kill();
+                            s1->ignore = 1;
+                        } else {
+                            cerr << "Intersection found, but cannot "
+                                    "compensate!\n";
+                            continue;
+                        }
                         cerr << "Intersection found: " << ss.first.ToString()
                              << "\n" << ss.second.ToString() << "\n";
                         rp.face.AddMsegs(ss.first);
                         rp.face.AddMsegs(ss.second);
-                        s1->ignore = 1;
+                        i = -1;
+                        break;
                     }
                 }
             }

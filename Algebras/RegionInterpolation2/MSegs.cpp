@@ -3,7 +3,7 @@
 
 #include "interpolate.h"
 
-MSegs::MSegs() : ignore(0) {
+MSegs::MSegs() : ignore(0), iscollapsed(0) {
 }
 
 void MSegs::AddMSeg (MSeg m) {
