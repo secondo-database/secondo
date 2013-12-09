@@ -284,7 +284,7 @@ static bool maybeEqual(GridPointSegment segment1,
                 maybeEqual(segment1.point1, segment2.point2)));
 }
 
-static bool maybeEqual(ProvisionalTrapezium trapezium1,
+bool maybeEqual(ProvisionalTrapezium trapezium1,
                 ProvisionalTrapezium trapezium2) {
         return ((maybeEqual(trapezium1.segment1, trapezium2.segment1)
                 && maybeEqual(trapezium1.segment2, trapezium2.segment2)) ||
@@ -292,7 +292,7 @@ static bool maybeEqual(ProvisionalTrapezium trapezium1,
                 && maybeEqual(trapezium1.segment1, trapezium2.segment2)));
 }
 
-static bool maybeEqual(GridPointTrapezium trapezium1,
+bool maybeEqual(GridPointTrapezium trapezium1,
                 GridPointTrapezium trapezium2) {
         return ((maybeEqual(trapezium1.segment1, trapezium2.segment1)
                 && maybeEqual(trapezium1.segment2, trapezium2.segment2)) ||
@@ -349,7 +349,7 @@ Checks if a is greater than b, keeping in mind the respective errors, so that
 no precise recalculation is needed.
 
 */
-static bool isGreater
+bool isGreater
         (double a, double b, double aErr, double bErr) {
 
         if (a - aErr > b + bErr)
@@ -407,7 +407,7 @@ static bool preciseBetween
         return false;
 }
 
-static bool preciseBetweenOrEqual
+bool preciseBetweenOrEqual
         (mpq_class a, mpq_class b, mpq_class c) {
 
         if ((cmp(a,b) <= 0 && cmp(b,c) <= 0 )
@@ -418,7 +418,7 @@ static bool preciseBetweenOrEqual
         return false;
 }
 
-static bool isBetween
+bool isBetween
         (mpq_class a, double b, mpq_class c) {
 
         if ((cmp(a,b) < 0 && cmp(b,c) < 0 )
@@ -429,7 +429,7 @@ static bool isBetween
         return false;
 }
 
-static bool isBetween
+bool isBetween
         (double a, mpq_class b, double c) {
 
         if ((cmp(a,b) < 0 && cmp(b,c) < 0 )
@@ -801,11 +801,12 @@ to $0$ during the substraction.
 
 1.1.1.1 Function ~fromDouble()~
 
-Reads from the double value inValue and returns its representation as mpq\_class.
+Reads from the double value inValue and returns its 
+representation as mpq\_class.
 
 */
 
-static mpq_class fromDouble(double inValue) {
+mpq_class fromDouble(double inValue) {
         /*
         We first convert inValue to string, then count the number of digits
         after the point. That tells us which will be our denominator...
@@ -1388,7 +1389,7 @@ static bool touching (GridPointSegment segment1,
         }
 }
 
-static bool touching (PreciseSegment segment1,
+bool touching (PreciseSegment segment1,
                 PreciseSegment segment2) {
         if (segment1.point1 == segment2.point1
                         || segment1.point1 == segment2.point2 ||
@@ -1590,14 +1591,14 @@ $bMaxErr$, respectively:
 
 */
     double A[3][2] =
-        {{ segment1.point2.x-segment1.point1.x,
-                        segment2.point1.x-segment2.point2.x },
-         { segment1.point2.y-segment1.point1.y,
-                         segment2.point1.y-segment2.point2.y },
-         { dt, -dt}};
+        {{ (double) segment1.point2.x-segment1.point1.x,
+           (double) segment2.point1.x-segment2.point2.x },
+         { (double) segment1.point2.y-segment1.point1.y,
+           (double) segment2.point1.y-segment2.point2.y },
+         { (double)dt, (double)-dt}};
     double B[3] =
-        { segment2.point1.x-segment1.point1.x,
-                        segment2.point1.y-segment1.point1.y, 0 };
+        { (double)segment2.point1.x-segment1.point1.x,
+          (double)segment2.point1.y-segment1.point1.y, 0 };
 
     double* Ap[] = { A[0], A[1], A[2] };
 
@@ -1885,11 +1886,11 @@ $bMaxErr$, respectively:
 
 */
     double A[3][2] =
-        {{ segment1.point2.x-segment1.point1.x,
-                        segment2.point1.x-segment2.point2.x },
-         { segment1.point2.y-segment1.point1.y,
-                         segment2.point1.y-segment2.point2.y },
-         { dt, -dt}};
+        {{ (double)segment1.point2.x-segment1.point1.x,
+           (double)segment2.point1.x-segment2.point2.x },
+         { (double)segment1.point2.y-segment1.point1.y,
+           (double)segment2.point1.y-segment2.point2.y },
+         { (double)dt, (double)-dt}};
     double B[3] =
         { segment2.point1.x-segment1.point1.x,
                         segment2.point1.y-segment1.point1.y, 0 };
@@ -2418,7 +2419,8 @@ built of the points coordinates and their respective maximum errors.
     }
 
 /*
-Next we check for special cases. Is the segment vertical or horizontal in $(x, y)$?
+Next we check for special cases. Is the segment vertical or 
+horizontal in $(x, y)$?
 
 */
 
@@ -2461,8 +2463,10 @@ precise point coordinates. Thus, line and segment may overlap.
 
 
 /*
-If the segment is neither vertical nor horizontal in $(x, y)$, we can make a finer
-decision than just that based on the bounding box (the bbox is very imprecise here).
+If the segment is neither vertical nor horizontal in $(x, y)$, we can 
+make a finer
+decision than just that based on the bounding box (the bbox is very 
+imprecise here).
 
 We now calculate the line built by the segment. We then calculate
 the distance of the intersection point $(x, y)$ from the line both by its x- and
@@ -2517,7 +2521,7 @@ respective errors, line and segment may intersect.
         }
 }
 
-static bool segmentsMayIntersect(int dt,
+bool segmentsMayIntersect(int dt,
                 ProvisionalSegment& segment1,
                 ProvisionalSegment& segment2) {
 
@@ -2598,7 +2602,8 @@ $(x, y)$-plane with distance z from the $(x, y)$-plane.
         segment.point1.y : segment.point2.y;
 
 /*
-Next we check for special cases. Is the segment vertical or horizontal in $(x, y)$?
+Next we check for special cases. Is the segment vertical or horizontal 
+in $(x, y)$?
 
 */
 
@@ -2656,7 +2661,8 @@ The segment is horizontal in the $(x, y)$-plane.
 
 
 /*
-If the segment is neither vertical nor horizontal in $(x, y)$, we can use the equations below
+If the segment is neither vertical nor horizontal in $(x, y)$, we can use the 
+equations below
 without running into problems dividing through zero.
 
 We now calculate the line built by the segment.
@@ -2712,29 +2718,32 @@ box parallel to the $(x, y)$-plane.
 
 1.1.1.1 Function ~trapeziumsMayIntersect()~
 
-Returns ~true~ if the two specified trapeziums may intersect in three-dimensional
-space $(x, y, t)$.
+Returns ~true~ if the two specified trapeziums may intersect in 
+three-dimensional space $(x, y, t)$.
 
-The two trapeziums must meet the following conditions. These conditions are
-not checked in the function. If the conditions are not met, the function will
-deliver incorrect results.
+The two trapeziums must meet the following conditions. These 
+conditions are not checked in the function. If the conditions are 
+not met, the function will deliver incorrect results.
 
-Both trapeziums are spanned by two segments which are parallel to the plane (x,y).
-Of each trapezium one segment, called segment1, one is in distance z=0 while the
-other segment, called segment2, is in distance z=dt.
+Both trapeziums are spanned by two segments which are parallel to 
+the plane (x,y).  Of each trapezium one segment, called segment1, one 
+is in distance z=0 while the other segment, called segment2, is in 
+distance z=dt.
 
 For both trapeziums, it is allowed that either the segment between the two
 points at instant 0 or the segment between the two points at instant dt reduces
 to a single point, but never both.
 
 The segment between the two points at instant 0 and the segment between the two
-points at instant dt must be collinear, and this must be true for both trapeziums.
+points at instant dt must be collinear, and this must be true for both 
+trapeziums.
 
 $dt$ must be greater than $0$.
 
-The coordinates of all points spanning the trapeziums are given on the integer grid.
-If the methods returns true, the calculation needs to be repeated with precise
-coordinates to ensure that the trapeziums really intersect with each other.
+The coordinates of all points spanning the trapeziums are given on the 
+integer grid.  If the methods returns true, the calculation needs to be 
+repeated with precise coordinates to ensure that the trapeziums really 
+intersect with each other.
 
 */
 static bool trapeziumsMayIntersect(
@@ -3361,8 +3370,9 @@ parallel to (x,y) in somewhat insecure due to the error in $Q[2]$. This
 insecurity adds to the one of $P[2]$.
 
 We take the length of the longer segment of the trapezium, and calculate how
-much the z coordinate of the line can change on that length because of the maximal
-possible error in $Q[2]$, and then we add this error to the one of $P[2]$.
+much the z coordinate of the line can change on that length because of the 
+maximal possible error in $Q[2]$, and then we add this error to the one 
+of $P[2]$.
 
 */
             double segmentLength1 =
@@ -4272,7 +4282,8 @@ bool maybeInside(int tPoint,
     if (MR2_DEBUG) cerr << "maybeInside() called" << endl;
 
 /*
-Check if $t1Trapezium <= tPoint <= t2Trapezium$ or $t2Trapezium <= tPoint < t1Trapezium$ holds.
+Check if $t1Trapezium <= tPoint <= t2Trapezium$ or 
+$t2Trapezium <= tPoint < t1Trapezium$ holds.
 If not, no intersection can occur.
 
 */
@@ -4370,7 +4381,8 @@ bool preciseInside(mpq_class tPoint,
     if (MR2_DEBUG) cerr << "preciseInside() called" << endl;
 
 /*
-Check if $t1Trapezium <= tPoint <= t2Trapezium$ or $t2Trapezium <= tPoint < t1Trapezium$ holds.
+Check if $t1Trapezium <= tPoint <= t2Trapezium$ or 
+$t2Trapezium <= tPoint < t1Trapezium$ holds.
 If not, no intersection can occur.
 
 */
@@ -4457,7 +4469,7 @@ inside the trapezium, and outside otherwise.
 1.1.1.1 Function ~maybeLeftOrAbove()~
 
 */
-static bool maybeLeftOrAbove(Reg2GridPoint point,
+bool maybeLeftOrAbove(Reg2GridPoint point,
              GridPointSegment segment) {
     if (MR2_DEBUG)
         cerr << "maybeLeftOrAbove() called p=(" 
@@ -4502,7 +4514,7 @@ static bool maybeLeftOrAbove(Reg2GridPoint point,
 1.1.1.1 Function ~preciseLeftOrAbove()~
 
 */
-static bool preciseLeftOrAbove(Reg2PrecisePoint point,
+bool preciseLeftOrAbove(Reg2PrecisePoint point,
                 PreciseSegment segment) {
     if (MR2_DEBUG)
         cerr << "preciseLeftOrAbove() called p=(" 
@@ -4986,8 +4998,12 @@ Only initial or final segment is vertical but not both.
                     collinear = false;
             } else {
 /*
-Both segments are not vertical. We first try to find out with grid coordinates if the segments are collinear or not. If they seem to be collinear, we make a precise recheck.
-Here we must be extremely careful not to divide by zero! If the denominator is zero, we cannot make the check on integer grid and have to do a precise check at once!
+Both segments are not vertical. We first try to find out with grid 
+coordinates if the segments are collinear or not. If they seem to i
+be collinear, we make a precise recheck.
+Here we must be extremely careful not to divide by zero! If the denominator 
+is zero, we cannot make the check on integer grid and have to do a precise 
+check at once!
 
 */
                 if (MR2_DEBUG)
@@ -5304,9 +5320,10 @@ void PreciseMSegmentData::SetFinalEndY (mpq_class x,
 /*
 1.1.1 Read access methods
 
-All these methods fetch the unsigned integer parts of the numerator and the denominator 
-representing the given coordinate from the DbArray using the indices given in 
-this instance's private attributes, and convert them to the correct instance 
+All these methods fetch the unsigned integer parts of the numerator and 
+the denominator representing the given coordinate from the DbArray using 
+the indices given in this instance's private attributes, and convert them 
+to the correct instance 
 of type mpq-class, representing the value of the given coordinate.
 
 Function GetValueX is moved to Region2Tools.h of the Region2-Algebra
@@ -6146,7 +6163,8 @@ URegionEmb2::URegionEmb2(DbArray<MSegmentData2>* segments,
                 }
 
 /*
-In the precise segment, only the difference between the absolute precise value and the grid cell edge is stored
+In the precise segment, only the difference between the absolute precise 
+value and the grid cell edge is stored
 
 */
                 try
@@ -6357,12 +6375,12 @@ accordingly.
 */
 
         const Rectangle<3> rbb = origUremb.BoundingBox();
-        double min[3] = { broughtDown(rbb.MinD(0)),
-                                          broughtDown(rbb.MinD(1)),
-                                          timeInterval.start.ToDouble() };
-        double max[3] = { roundedUp(rbb.MaxD(0)),
-                                          roundedUp(rbb.MaxD(1)),
-                                          timeInterval.end.ToDouble() };
+        double min[3] = { (double)broughtDown(rbb.MinD(0)),
+                          (double) broughtDown(rbb.MinD(1)),
+                          timeInterval.start.ToDouble() };
+        double max[3] = { (double)roundedUp(rbb.MaxD(0)),
+                          (double)roundedUp(rbb.MaxD(1)),
+                           timeInterval.end.ToDouble() };
         bbox.Set(true, min, max);
 
 
@@ -7624,11 +7642,12 @@ static URegionEmb2* InURegionEmbedded2(
             ListExpr interval = nl->First(instance);
 
 /*
-First we check the syntactical correctness of the list expression representing the time interval.
-No syntax check will be done for the fifth part, which is the representation of
-the precise time interval.
-The syntax check of this part will be done later, and - if it fails - the part will be ignored
-and a basic interval will be created instead.
+First we check the syntactical correctness of the list expression 
+representing the time interval.
+No syntax check will be done for the fifth part, which is the i
+representation of the precise time interval.
+The syntax check of this part will be done later, and - if it fails - the part 
+will be ignored and a basic interval will be created instead.
 
 */
 
@@ -7654,15 +7673,16 @@ and a basic interval will be created instead.
 
 /*
 Create first a basic interval (one in the integer grid). The part of the list
-expression describing the time information may already be given as integer values,
-but we cannot be sure about that. Therefor the components for start and end time
-need to be split into an instant component and maybe some fraction that will later
-be added to the precise time interval given in nl->fifth(interval).
+expression describing the time information may already be given as integer 
+values, but we cannot be sure about that. Therefor the components for start 
+and end time need to be split into an instant component and maybe some fraction 
+that will later be added to the precise time interval given in 
+nl->fifth(interval).
 
 */
         bool correct;
-        Instant* start;
-        Instant* end;
+        Instant* start=0;
+        Instant* end=0;
         mpq_class pstart(0);
         mpq_class pend(0);
         mpq_class reststart(0);
@@ -7685,8 +7705,7 @@ be added to the precise time interval given in nl->fifth(interval).
           {
             cerr << "uregion interval invalid start"
                  <<" time" << endl;
-            delete start;
-            delete end;
+            if(start) delete start;
             return 0;
           }
           
@@ -7856,7 +7875,8 @@ the precise part of it.
 Create ~URegionEmb2~ instance and pass storage of segments, if we received
 any.
 A detailed syntax check is needed in order to be sure that a correct unit
-will result. For that purpose, all the segments are checked and compared to each other:
+will result. For that purpose, all the segments are checked and compared to 
+each other:
 So far this is done by inserting the segments into a region2 and relying on the
 algorithms there for syntax check.
 
@@ -9444,16 +9464,20 @@ corners, just for the maximum values we need to adapt them...
                         bbox.Set(true, min, max);
                 } else {
                   double min[3] =
-                        { dms.GetInitialStartX() < dms.GetFinalStartX() ?
-                        dms.GetInitialStartX() : dms.GetFinalStartX(),
-                    dms.GetInitialStartY() < dms.GetFinalStartY() ? 
-                        dms.GetInitialStartY() : dms.GetFinalStartY(),
+                        { dms.GetInitialStartX() < dms.GetFinalStartX() 
+                          ? (double)dms.GetInitialStartX() 
+                          : (double)dms.GetFinalStartX(),
+                    dms.GetInitialStartY() < dms.GetFinalStartY() 
+                        ?  (double)dms.GetInitialStartY() 
+                        : (double)dms.GetFinalStartY(),
                     timeInterval.start.ToDouble() };
                     double max[3] =
-                    { dms.GetInitialStartX() > dms.GetFinalStartX() ? 
-                        dms.GetInitialStartX()+1 : dms.GetFinalStartX()+1,
-                      dms.GetInitialStartY() > dms.GetFinalStartY() ? 
-                        dms.GetInitialStartY()+1 : dms.GetFinalStartY()+1,
+                    { dms.GetInitialStartX() > dms.GetFinalStartX() 
+                       ?  (double) dms.GetInitialStartX()+1 
+                       : (double)dms.GetFinalStartX()+1,
+                      dms.GetInitialStartY() > dms.GetFinalStartY() 
+                        ?  (double)dms.GetInitialStartY()+1 
+                        : (double)dms.GetFinalStartY()+1,
                       timeInterval.end.ToDouble() };
                   bbox.Set(true, min, max);
                 } //if-else...
@@ -9618,7 +9642,7 @@ instances.
 
 */
 
-static bool pointAboveSegment(double x, double y,
+bool pointAboveSegment(double x, double y,
                               mpq_class p1x, mpq_class p1y, 
                               mpq_class p2x, mpq_class p2y) {
     if (MR2_DEBUG)
@@ -10799,10 +10823,12 @@ URegion2::URegion2(unsigned int n) :
 
         
 /*
-This constructor creates a URegion2 object from an existing URegion object, by splitting the double
-coordinates into an integer part and the remaining rest, which will be stored as mpq\_class values in
-PreciseMSegmentData instances...
-In a first step, the double coordinates are multiplied with scaleFactor to get the integer grid values.
+This constructor creates a URegion2 object from an existing URegion object, 
+by splitting the double coordinates into an integer part and the remaining 
+rest, which will be stored as mpq\_class values in PreciseMSegmentData 
+instances...
+In a first step, the double coordinates are multiplied with scaleFactor to 
+get the integer grid values.
 
 */
 URegion2::URegion2(URegion& coarseRegion, const int scaleFactor) :
@@ -10956,15 +10982,19 @@ void URegion2::AddSegment(MSegmentData2 newSeg)
     } else {
         double min[3] =
             { newSeg.GetInitialStartX() < newSeg.GetFinalStartX()
-              ? newSeg.GetInitialStartX() : newSeg.GetFinalStartX(),
+              ? (double)newSeg.GetInitialStartX() 
+              : (double)newSeg.GetFinalStartX(),
               newSeg.GetInitialStartY() < newSeg.GetFinalStartY()
-              ? newSeg.GetInitialStartY() : newSeg.GetFinalStartY(),
+              ? (double)newSeg.GetInitialStartY() 
+              : (double)newSeg.GetFinalStartY(),
               uremb.timeInterval.start.ToDouble() };
         double max[3] =
             { newSeg.GetInitialStartX() > newSeg.GetFinalStartX()
-              ? newSeg.GetInitialStartX()+1 : newSeg.GetFinalStartX()+1,
+              ? (double)newSeg.GetInitialStartX()+1 
+              : (double)newSeg.GetFinalStartX()+1,
               newSeg.GetInitialStartY() > newSeg.GetFinalStartY()
-              ? newSeg.GetInitialStartY()+1 : newSeg.GetFinalStartY()+1,
+              ? (double)newSeg.GetInitialStartY()+1 
+              : (double)newSeg.GetFinalStartY()+1,
               uremb.timeInterval.end.ToDouble() };
         uremb.SetBBox(Rectangle<3>(true, min, max));
   }
@@ -11380,7 +11410,8 @@ Flob* URegion2::GetFLOB(const int i) {
 1.1.1 Access methods for the scalefactor
 
 Read and write access to the scaleFactor. The ~SetScaleFactor~ method only sets
-the scaleFactor, while the ~NewScaleFactor~ method changes the Uregion2-representation, too.
+the scaleFactor, while the ~NewScaleFactor~ method changes the 
+Uregion2-representation, too.
 
 */
 const int URegion2::GetScaleFactor() {
@@ -11781,10 +11812,12 @@ MRegion2::MRegion2(const int n) :
 
 
 /*
-This constructor creates a MRegion2 object from an existing MRegion object, by splitting the double
-coordinates into an integer part and the remaining rest, which will be stored as mpq\_class values in
+This constructor creates a MRegion2 object from an existing MRegion object,
+ by splitting the double coordinates into an integer part and the remaining 
+rest, which will be stored as mpq\_class values in
 PreciseMSegmentData instances...
-In a first step, the double coordinates are multiplied with scaleFactor to get the integer grid values.
+In a first step, the double coordinates are multiplied with scaleFactor to 
+get the integer grid values.
 
 */
 MRegion2::MRegion2(MRegion& coarseRegion, const int scaleFactor) :
@@ -12250,7 +12283,8 @@ void MRegion2::SplitHS(vector<Reg2PreciseHalfSegment>& pHSvector)
 /*
 1.1.1.1 Method ~CollectHS()~
 
-Collects all precise Halfsegements that build a region in the projection to the plane
+Collects all precise Halfsegements that build a region in the projection 
+to the plane
 
 */
 
@@ -12541,7 +12575,8 @@ bool aboveorder(const Reg2PreciseHalfSegment& s1,
 /* 
 1.1.1.1 Method ~PlaneSweepProjection()~
 
-Easy Plane Sweep for unit projections. Precondition: no intersections within all halfsegments
+Easy Plane Sweep for unit projections. Precondition: no intersections 
+within all halfsegments
 
 */
  
@@ -12805,7 +12840,8 @@ const DbArray<unsigned int>* MRegion2::GetPreciseInstants(void) const {
 1.1.1 Access methods for the scalefactor
 
 Read and write access to the scaleFactor. The ~SetScaleFactor~ method only sets
-the scaleFactor, while the ~NewScaleFactor~ method changes the Uregion2-representation, too.
+the scaleFactor, while the ~NewScaleFactor~ method changes the 
+Uregion2-representation, too.
 
 */
 const int MRegion2::GetScaleFactor(void) {
@@ -13692,7 +13728,7 @@ Create ~MPoint~ instance from intervals in units in ~MRegion2~ instance
 
 */
 
-static MPoint CreateMPointFromPoint(MRegion2* mr, Point* p) {
+MPoint CreateMPointFromPoint(MRegion2* mr, Point* p) {
     if (MR2_DEBUG) cerr << "CreateMPointFromPoint() called" << endl;
 
     MPoint mp(0);
@@ -13988,7 +14024,7 @@ Used by ~deftime~ and ~traversed~:
 
 */
 
-static int MRegion2Select(ListExpr args) {
+int MRegion2Select(ListExpr args) {
     if (MR2_DEBUG)
         cerr << "MRegion2Select() called" << endl;
 
