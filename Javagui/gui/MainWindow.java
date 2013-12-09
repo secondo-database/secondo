@@ -2191,30 +2191,7 @@ public static void main(String[] args){
   // start Javagui
   MainWindow SecGui = new MainWindow("Secondo-GUI",user,passwd);
 
-  if(LAF!=null){
-     UIManager.LookAndFeelInfo installedLAFs[];
-     installedLAFs = UIManager.getInstalledLookAndFeels();
-     boolean done = false;
-     for(int i=0;i<installedLAFs.length && !done;i++){
-       if(installedLAFs[i].getName().equals(LAF)){
-          done = true;
-          try{
-            UIManager.setLookAndFeel(installedLAFs[i].getClassName());
-            Reporter.writeInfo("LAF changed"); 
-          } catch(Exception e){
-            Reporter.debug(e);
-            Reporter.writeError("Problem in changing LAF");
-         }
-       }
-     }
-     if(!done){
-         Reporter.writeError("LAF \""+LAF+"\" not found");
-         Reporter.writeInfo("Available LAFs:");
-         for(int i=0;i<installedLAFs.length;i++){
-           Reporter.writeInfo(installedLAFs[i].getName());
-         }
-     }
-  }
+  setLAF();
 
 
   SecGui.setVisible(true);
@@ -2268,6 +2245,34 @@ public static void main(String[] args){
       }
   }
   MainWindow.ComPanel.requestFocus();
+}
+
+
+private static void setLAF(){
+  if(LAF!=null){
+     UIManager.LookAndFeelInfo installedLAFs[];
+     installedLAFs = UIManager.getInstalledLookAndFeels();
+     boolean done = false;
+     for(int i=0;i<installedLAFs.length && !done;i++){
+       if(installedLAFs[i].getName().equals(LAF)){
+          done = true;
+          try{
+            UIManager.setLookAndFeel(installedLAFs[i].getClassName());
+            Reporter.writeInfo("LAF changed"); 
+          } catch(Exception e){
+            Reporter.debug(e);
+            Reporter.writeError("Problem in changing LAF");
+         }
+       }
+     }
+     if(!done){
+         Reporter.writeError("LAF \""+LAF+"\" not found");
+         Reporter.writeInfo("Available LAFs:");
+         for(int i=0;i<installedLAFs.length;i++){
+           Reporter.writeInfo(installedLAFs[i].getName());
+         }
+     }
+  }
 }
 
 
@@ -2477,8 +2482,11 @@ private void createMenuBar(){
 
 
    // create MenuItem for fontsize of console and object list
+
+   JMenu MI_View = new JMenu("View");
    JMenu MI_FontSize = new JMenu("FontSize");
-   ProgramMenu.add(MI_FontSize);
+   ProgramMenu.add(MI_View);
+   MI_View.add(MI_FontSize);
    JMenu MI_FontSize_Console = new JMenu("Console");
    MI_FontSize_Console_Bigger = new JMenuItem("Bigger");
    MI_FontSize_Console_Smaller = new JMenuItem("Smaller");
@@ -2493,6 +2501,38 @@ private void createMenuBar(){
    MI_FontSize_Console.add(MI_FontSize_Console_Bigger);
    MI_FontSize_Console.add(MI_FontSize_Console_Smaller);
    // enable - disable Items
+
+
+   JMenu View_LAF = new JMenu("L&F");
+   MI_View.add(View_LAF);
+
+   UIManager.LookAndFeelInfo installedLAFs[];
+   installedLAFs = UIManager.getInstalledLookAndFeels();
+   ActionListener lafListener = new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        Object src = evt.getSource();
+        if(! (src instanceof JMenuItem)){
+           return;
+        }
+        String name = ((JMenuItem)src).getText();
+        LAF = name;
+        setLAF();
+        repaint();
+        if(AllViewers!=null){
+           for(int i=0;i<AllViewers.size();i++){
+              ((SecondoViewer)AllViewers.get(i)).repaint();
+           }
+        }
+     }
+   };
+
+   for(int i=0;i<installedLAFs.length ;i++){
+      JMenuItem mi = new JMenuItem(""+installedLAFs[i].getName());
+      View_LAF.add(mi); 
+      mi.addActionListener(lafListener);
+   }
+
+
 
    ActionListener FontSizeAL = new ActionListener(){
       public void actionPerformed(ActionEvent evt){
