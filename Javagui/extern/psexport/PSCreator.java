@@ -431,8 +431,9 @@ private void writeClip(Shape s){
 }
 
 private void writeFont(Font f){
-  out.println("/Helvetica "+ f.getSize2D()+ " selectfont");
-  Reporter.writeWarning(" PSCreator : fonts are not supported completely");  
+  //out.println("/Helvetica "+ f.getSize2D()+ " selectfont");
+  out.println("/"+f.getName()+" " + f.getSize2D()+ " selectfont");
+  //Reporter.writeWarning(" PSCreator : fonts are not supported completely, set font to "+f.getName());  
 }
 
 
@@ -539,11 +540,18 @@ public void draw(Shape s){
 
 
 public void draw3DRect(int x, int y, int width, int height, boolean raised){
-   Reporter.writeWarning("PSCreator.draw3DRect paints only a simple rectangle");
-   Stroke s = original.getStroke();
-   original.setStroke(new BasicStroke());
-   drawRect(x,y,width,height);
-   original.setStroke(s);
+    Paint p = getPaint();
+    Color c = getColor();
+    Color brighter = c.brighter();
+    Color darker = c.darker();
+    setColor(raised ? brighter : darker);
+    fillRect(x, y, 1, height + 1);
+    fillRect(x + 1, y, width - 1, 1);
+    setColor(raised ? darker : brighter);
+    fillRect(x + 1, y + height, width, 1);
+    fillRect(x + width, y, 1, height);
+    setPaint(p);
+
 }
 
 public void drawArc(int x, int y, int width, int height, 
@@ -623,7 +631,7 @@ public boolean drawImage(Image img, int x, int y, Color bgcolor,
 }
 
 public boolean drawImage(Image img, int x, int y, ImageObserver observer) {
-   System.out.println("drawImage/4 called with image of size " + getImageSize(img));
+   //System.out.println("drawImage/4 called with image of size " + getImageSize(img));
    writeImage(convertImage(img),x,y);
    return  false;
 }
@@ -661,7 +669,7 @@ public boolean drawImage(Image img, int dx1, int dy1, int dx2,
 public boolean 	drawImage(Image img, int dx1, int dy1, int dx2, int dy2, 
                           int sx1, int sy1, int sx2, int sy2, ImageObserver observer) {
 
-   System.out.println("drawImage/8 called with image of size " + getImageSize(img));
+   //System.out.println("drawImage/8 called with image of size " + getImageSize(img));
 
    int w = dx2-dx1;
    int h = dy2-dy1;
@@ -796,17 +804,24 @@ public void fill(Shape s){
 }
 
 public void fill3DRect(int x, int y, int width, int height, boolean raised){
-   Reporter.debug("PSCreator.fill3DRect paints only a simple rectangle");
-   Color  orig = original.getColor();
-   Stroke s = original.getStroke();
-   original.setColor(new Color(200,200,255));
-   original.setStroke(new BasicStroke());
-   fillRect(x,y,width,height);
-   original.setColor(Color.BLACK);
-   writeColor(Color.BLACK);
-   drawRect(x,y,width,height);
-    original.setColor(orig);
-    original.setStroke(s);
+    Paint p = getPaint();
+    Color c = getColor();
+    Color brighter = c.brighter();
+    Color darker = c.darker();
+    if (!raised) {
+       setColor(darker);
+    } else if (p != c) {
+        setColor(c);
+    }
+
+    fillRect(x+1, y+1, width-2, height-2);
+    setColor(raised ? brighter : darker);
+    fillRect(x, y, 1, height);
+    fillRect(x + 1, y, width - 2, 1);
+    setColor(raised ? darker : brighter);
+    fillRect(x + 1, y + height - 1, width - 1, 1);
+    fillRect(x + width - 1, y, 1, height - 1);
+    setPaint(p);
 }
 
 public void fillArc(int x, int y, int width, int height, int startAngle,
