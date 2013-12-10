@@ -245,12 +245,12 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
                         continue;
                     if (s1->intersects(*s2)) {
                         pair<MSegs, MSegs> ss;
-                        if (s1->iscollapsed) {
-                            ss = s2->kill();
-                            s2->ignore = 1;
-                        } else if (s2->iscollapsed) {
+                        if (!s1->iscollapsed) {
                             ss = s1->kill();
                             s1->ignore = 1;
+                        } else if (!s2->iscollapsed) {
+                            ss = s2->kill();
+                            s2->ignore = 1;
                         } else {
                             cerr << "Intersection found, but cannot "
                                     "compensate!\n";

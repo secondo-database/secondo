@@ -7,7 +7,7 @@
 #define FABS(x) (float(fabs(x))) 
 
 #define USE_EPSILON_TEST TRUE
-#define EPSILON 0.0001
+#define EPSILON 0.001
 
 
 #define CROSS(dest,v1,v2){                     \
