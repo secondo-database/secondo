@@ -746,19 +746,10 @@ void createNFAfromPersistent(DbArray<NFAtransition> &trans, DbArray<int> &s2p,
   }
 }
 
-MLabelIndex::MLabelIndex(DbArray<NodeRef> n, DbArray<NodeLink> nL,
-                     DbArray<size_t> lI) {
-  nodes = n;
-  nodeLinks = nL;
-  labelIndex = lI;
-  root = 0;
-}
-
-void MLabelIndex::insert(string label, set<size_t> pos) {
-  if (!root) {
-    root = new TrieNode();
+void MLabelIndex::insert(TrieNode *ptr, string label, set<size_t> pos) {
+  if (!ptr) {
+    ptr = new TrieNode();
   }
-  TrieNode *ptr = root;
   unsigned char c;
   unsigned int i = 0;
   while (i <= label.length()) {
@@ -779,16 +770,15 @@ void MLabelIndex::insert(string label, set<size_t> pos) {
   }
 }
 
-set<size_t> MLabelIndex::find(string label) {
+set<size_t> MLabelIndex::find(TrieNode *ptr, string label) {
   set<size_t> result;
-  if (!root) {
-    result = findInDbArrays(label);
+  if (!ptr) {
+    result = findInDbArrays(ptr, label);
     return result;
   }
   if (!label.length()) { // empty label
-    return root->positions;
+    return ptr->positions;
   }
-  TrieNode *ptr = root;
   unsigned int i = 0;
   unsigned char c;
   while (i <= label.length()) {
@@ -800,7 +790,7 @@ set<size_t> MLabelIndex::find(string label) {
       ptr = ptr->content[c].nextNode;
     }
     else { // path does not exist
-      result = findInDbArrays(label);
+      result = findInDbArrays(ptr, label);
       return result;
     }
     i++;
@@ -808,7 +798,7 @@ set<size_t> MLabelIndex::find(string label) {
   return result; // should not occur
 }
 
-set<size_t> MLabelIndex::findInDbArrays(string label) {
+set<size_t> MLabelIndex::findInDbArrays(TrieNode* ptr, string label) {
   set<size_t> result;
   if (!nodes.Size()) {
     return result;
@@ -857,17 +847,16 @@ set<size_t> MLabelIndex::findInDbArrays(string label) {
       return result;
     }
   }
-  insert(label, result);
+  insert(ptr, label, result);
   return result;
 }
 
-void MLabelIndex::makePersistent() {
-  if (!root) {
+void MLabelIndex::makePersistent(TrieNode *ptr) {
+  if (!ptr) {
+    return;
   }
-  else {
-    stack<unsigned int> nodeIndexes;
-    makePersistent(root, nodeIndexes);
-  }
+  stack<unsigned int> nodeIndexes;
+  makePersistent(ptr, nodeIndexes);
 }
 
 void MLabelIndex::makePersistent(TrieNode* ptr,
@@ -916,17 +905,16 @@ void MLabelIndex::makePersistent(TrieNode* ptr,
   }
 }
 
-void MLabelIndex::removeTrie() {
-  if (!root) {
+void MLabelIndex::removeTrie(TrieNode* ptr) {
+  if (!ptr) {
     return;
   }
   for (int i = 0; i < 256; i++) {
-    if (root->content[i].nextNode) {
-      remove(root, i);
+    if (ptr->content[i].nextNode) {
+      remove(ptr, i);
     }
   }
-  delete root;
-  root = 0;
+  delete ptr;
 }
 
 void MLabelIndex::remove(TrieNode* ptr1, unsigned char c) {
@@ -975,9 +963,9 @@ void MLabelIndex::printDbArrays() {
   cout << ss.str() << endl;
 }
 
-void MLabelIndex::printContents(set<string> &labels) {
+void MLabelIndex::printContents(TrieNode *ptr, set<string> &labels) {
   for (set<string>::iterator it1 = labels.begin(); it1 != labels.end(); it1++) {
-    set<size_t> p = find(*it1);
+    set<size_t> p = find(ptr, *it1);
     cout << "\"" << *it1 << "\" found at pos: ";
     for (set<size_t>::iterator it = p.begin(); it != p.end(); it++) {
       cout << *it << " ";
@@ -1017,7 +1005,6 @@ void MLabelIndex::destroyDbArrays() {
 }
 
 void MLabelIndex::copyFrom(const MLabelIndex& source) {
-  root = 0;
   nodes.copyFrom(source.getNodeRefs());
   nodeLinks.copyFrom(source.getNodeLinks());
   labelIndex.copyFrom(source.getLabelIndex());

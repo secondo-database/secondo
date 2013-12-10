@@ -149,7 +149,7 @@ Operator : rewrite
 Number   : 1
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
 Example  : query rewrite(Dotraj feed projecttransformstream[Trajectory], rewrite1 feed projecttransformstream[Pattern]) count
-Result   : 133
+Result   : 128
 
 Operator : compress
 Number   : 1

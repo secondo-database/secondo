@@ -565,14 +565,6 @@ MLabel* MLabel::compress() {
     this->Get(i, ul);
     newML->MergeAdd(ul);
   }
-// if (newML->GetNoComponents() < this->GetNoComponents()) {
-//   cout << "MLabel was compressed from " << this->GetNoComponents() << " to "
-//        << newML->GetNoComponents() << " components." << endl;
-// }
-// else {
-//   cout << "MLabel could not be compressed, still has "
-//        << newML->GetNoComponents() << " components." << endl;
-// }
   return newML;
 }
 
@@ -585,7 +577,6 @@ different labels divided by the size.
 
 */
 void MLabel::createML(int size, bool text, double rate = 1.0) {
-  index.initRoot();
   index.cleanDbArrays();
   if ((size > 0) && (rate > 0) && (rate <= 1)) {
     int max = size * rate;
@@ -1846,7 +1837,6 @@ ExtBool Pattern::matches(MLabel *ml) {
   if (initEasyCondOpTrees()) {
     result = match->matches();
   }
-  ml->index.removeTrie();
   delete match;
   return result;
 }
@@ -1889,6 +1879,7 @@ void Match::filterTransitions(vector<map<int, int> > &nfaSimple,
   }
   vector<map<int, int> >* nfaP = p->getNFA();
   map<int, int>::iterator im;
+  TrieNode *ptr = 0;
   for (unsigned int i = 0; i < nfaP->size(); i++) {
     set<int> toErase;
     for (im = (*nfaP)[i].begin(); im != (*nfaP)[i].end(); im++) {
@@ -1896,7 +1887,7 @@ void Match::filterTransitions(vector<map<int, int> > &nfaSimple,
       bool found = labels.empty();
       set<string>::iterator is = labels.begin();
       while ((is != labels.end()) && !found) {
-        if (!ml->index.find(*is).empty()) { // label occurs in mlabel
+        if (!ml->index.find(ptr, *is).empty()) { // label occurs in mlabel
           found = true;
         }
         is++;
@@ -1973,7 +1964,6 @@ ExtBool Match::matches() {
   set<int> states;
   states.insert(0);
   if (ml->hasIndex()) {
-    ml->index.initRoot();
     if (!nfaIsViable()) {
       return FALSE;
     }
@@ -1991,7 +1981,7 @@ ExtBool Match::matches() {
     if (!p->hasConds() && !p->hasAssigns()) {
       for (int i = 0; i < ml->GetNoComponents(); i++) {
         if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
-                          p->easyConds, p->easyCondPos)) {
+                          p->easyConds, p->easyCondPos, p->atomicToElem)) {
 //           cout << "mismatch at unit label " << i << endl;
           return FALSE;
         }
@@ -2002,10 +1992,10 @@ ExtBool Match::matches() {
       }
     }
     else {
-      createSetMatrix(ml->GetNoComponents(), p->getSize());
+      createSetMatrix(ml->GetNoComponents(), p->elemToVar.size());
       for (int i = 0; i < ml->GetNoComponents(); i++) {
         if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
-                          p->easyConds, p->easyCondPos, true)) {
+                          p->easyConds, p->easyCondPos, p->atomicToElem, true)){
 //           cout << "mismatch at unit label " << i << endl;
           ::deleteSetMatrix(matching, ml->GetNoComponents());
           return FALSE;
@@ -2021,7 +2011,8 @@ ExtBool Match::matches() {
         return UNDEF;
       }
       if (!p->hasAssigns()) {
-        bool result = findMatchingBinding(p->nfa, 0, p->elems, p->conds);
+        bool result = findMatchingBinding(p->nfa, 0, p->elems, p->conds, 
+                                          p->atomicToElem, p->elemToVar);
         ::deleteSetMatrix(matching, ml->GetNoComponents());
         return (result ? TRUE : FALSE);
       }
@@ -2051,6 +2042,7 @@ bool Match::indexMatch(StateWithULs swuOld) {
   set<size_t>::iterator it;
   ULabel ul(0);
   StateWithULs swu;
+  TrieNode *ptr = 0;
   for (im = transitions.rbegin(); im != transitions.rend(); im++) {
     swu.clear();
     Wildcard w = p->elems[im->first].getW();
@@ -2059,7 +2051,7 @@ bool Match::indexMatch(StateWithULs swuOld) {
     cout << "pattern element " << im->first << " has " << labels.size()
          << " labels" << endl;
     for (set<string>::iterator st = labels.begin(); st != labels.end(); st++) {
-      set<size_t> labelPos = ml->index.find(*st); // (... ...)
+      set<size_t> labelPos = ml->index.find(ptr, *st); // (... ...)
       for (it = labelPos.begin(); it != labelPos.end(); it++) {
         if (swuOld.isActive((unsigned int)*it)) {
           ml->Get(*it, ul);
@@ -2176,7 +2168,7 @@ each matching is stored.
 bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
              vector<PatElem> &elems, set<int> &finalStates, set<int> &states,
              vector<Condition> &easyConds, map<int, set<int> > &easyCondPos,
-             bool store /* = false */) {
+             map<int, int> &atomicToElem, bool store /* = false */) {
   set<int>::iterator its;
   set<unsigned int>::iterator itu;
   map<int, int> transitions;
@@ -2192,7 +2184,7 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
   ULabel ul(0);
   ml->Get(ulId, ul);
   if (store) {
-    if (ulId < ml->GetNoComponents() - 1) {
+    if (ulId < ml->GetNoComponents() - 1) { // usual case
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
         if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
          && timesMatch(&ul.timeInterval, elems[itm->first].getI())
@@ -2201,21 +2193,22 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
           states.insert(states.end(), itm->second);
           map<int, int> nextTrans = nfa[itm->second];
           for (itn = nextTrans.begin(); itn != nextTrans.end(); itn++) {
-            itu = matching[ulId][itm->first].end();
-            matching[ulId][itm->first].insert(itu, itn->first);// store matching
+            itu = matching[ulId][atomicToElem[itm->first]].end();
+            matching[ulId][atomicToElem[itm->first]].insert
+                               (itu, atomicToElem[itn->first]);// store matching
           }
         }
       }
     }
-    else {
+    else { // last row; mark final states with -1
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
         if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
          && timesMatch(&ul.timeInterval, elems[itm->first].getI())
          && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
           states.insert(states.end(), itm->second);
-          if (finalStates.count(itm->second)) {
-            matching[ulId][itm->first].insert(UINT_MAX); // store last matching
+          if (finalStates.count(itm->second)) { // store last matching
+            matching[ulId][atomicToElem[itm->first]].insert(UINT_MAX);
           }
         }
       }
@@ -2240,11 +2233,11 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
 Deletes all paths inside ~matching~ which do not end at a final state.
 
 */
-void Match::cleanPaths() {
+void Match::cleanPaths(map<int, int> &atomicToElem) {
   map<int, int> transitions = p->getTransitions(0);
   map<int, int>::reverse_iterator itm;
   for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
-    cleanPath(0, itm->first);
+    cleanPath(0, atomicToElem[itm->first]);
   }
 }
 
@@ -2255,10 +2248,11 @@ Searches for a binding which fulfills every condition.
 
 */
 bool Match::findMatchingBinding(vector<map<int, int> > &nfa, int startState,
-                             vector<PatElem> &elems, vector<Condition> &conds) {
+                                vector<PatElem> &elems,vector<Condition> &conds,
+                                map<int, int> &atomicToElem,
+                                map<int, string> &elemToVar) {
   if ((startState < 0) || (startState > (int)nfa.size() - 1)) {
-    cout << "illegal start state " << startState << endl;
-    return false;
+    return false; // illegal start state
   }
   if (conds.empty()) {
     return true;
@@ -2267,7 +2261,8 @@ bool Match::findMatchingBinding(vector<map<int, int> > &nfa, int startState,
   map<string, pair<unsigned int, unsigned int> > binding;
   map<int, int>::reverse_iterator itm;
   for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
-    if (findBinding(0, itm->first, elems, conds, binding)) {
+    if (findBinding(0, atomicToElem[itm->first], elems, conds, elemToVar,
+                    binding)) {
       return true;
     }
   }
@@ -2282,9 +2277,10 @@ they fulfill every condition, stopping immediately after the first success.
 
 */
 bool Match::findBinding(unsigned int ulId, unsigned int pId,
-                      vector<PatElem> &elems, vector<Condition> &conds,
+                        vector<PatElem> &elems, vector<Condition> &conds,
+                        map<int, string> &elemToVar,
                       map<string, pair<unsigned int, unsigned int> > &binding) {
-  string var = elems[pId].getV();
+  string var = elemToVar[pId];
   bool inserted = false;
   if (!var.empty()) {
     if (binding.count(var)) { // extend existing binding
@@ -2303,7 +2299,7 @@ bool Match::findBinding(unsigned int ulId, unsigned int pId,
   else {
     for (set<unsigned int>::reverse_iterator it = matching[ulId][pId].rbegin();
          it != matching[ulId][pId].rend(); it++) {
-      if (findBinding(ulId + 1, *it, elems, conds, binding)) {
+      if (findBinding(ulId + 1, *it, elems, conds, elemToVar, binding)) {
         return true;
       }
     }
@@ -4083,7 +4079,6 @@ int matchesVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
 */
 int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
   MLabel* ml = static_cast<MLabel*>(args[0].addr);
-  ml->index.initRoot();
   FText* patternText = static_cast<FText*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
@@ -4636,8 +4631,8 @@ MLabel* RewriteLI::getNextResult() {
   //    cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
       bindingStack.pop();
       resetBinding(bE.ulId);
-      if (findNextBinding(bE.ulId, bE.pId, match->p, 0)) {
-  //       match->printBinding(binding);
+      if (findNextBinding(bE.ulId, bE.peId, match->p, 0)) {
+//         match->printBinding(binding);
         if (!rewBindings.count(binding)) {
           rewBindings.insert(binding);
           MLabel *source = match->ml;
@@ -4669,11 +4664,11 @@ void RewriteLI::resetBinding(unsigned int limit) {
   }
 }
 
-bool RewriteLI::findNextBinding(unsigned int ulId, unsigned int pId,
+bool RewriteLI::findNextBinding(unsigned int ulId, unsigned int peId,
                                 Pattern *p, int offset) {
-//   cout << "findNextBinding(" << ulId << ", " << pId << ", " << offset
+//   cout << "findNextBinding(" << ulId << ", " << peId << ", " << offset
 //        << ") called" << endl;
-  string var = p->getElem(pId - offset).getV();
+  string var = p->getVarFromElem(peId - offset);
   if (!var.empty() && p->isRelevant(var)) {
     if (binding.count(var)) { // extend existing binding
       binding[var].second++;
@@ -4682,25 +4677,25 @@ bool RewriteLI::findNextBinding(unsigned int ulId, unsigned int pId,
       binding[var] = make_pair(ulId, ulId);
     }
   }
-  if (*(match->matching[ulId][pId].begin()) == UINT_MAX) { // complete match
+  if (*(match->matching[ulId][peId].begin()) == UINT_MAX) { // complete match
     vector<Condition> *conds = p->getConds();
     return match->conditionsMatch(*conds, binding);
   }
-  if (match->matching[ulId][pId].empty()) {
+  if (match->matching[ulId][peId].empty()) {
     return false;
   }
   else { // push all elements except the first one to stack; process first elem
     set<unsigned int>::reverse_iterator it, it2;
-    it2 = match->matching[ulId][pId].rbegin();
+    it2 = match->matching[ulId][peId].rbegin();
     it2++;
-    for (it = match->matching[ulId][pId].rbegin();
-         it2 != match->matching[ulId][pId].rend(); it++) {
+    for (it = match->matching[ulId][peId].rbegin();
+         it2 != match->matching[ulId][peId].rend(); it++) {
       it2++;
       BindingStackElem bE(ulId + 1, *it);
 //       cout << "push (" << ulId + 1 << ", " << *it << ") to stack" << endl;
       bindingStack.push(bE);
     }
-    return findNextBinding(ulId + 1, *(match->matching[ulId][pId].begin()), p,
+    return findNextBinding(ulId + 1, *(match->matching[ulId][peId].begin()), p,
                            offset);
   }
 }
@@ -4897,6 +4892,8 @@ ClassifyLI::ClassifyLI(MLabel *ml, Word _classifier) : classifyTT(0) {
   vector<Condition> easyConds;
   vector<int> startStates;
   map<int, set<int> > easyCondPos;
+  map<int, int> atomicToElem; // TODO: use this sensibly
+  map<int, string> elemToVar; // TODO: use this sensibly
   bool condsOccur = false;
   for (int i = 0; i < c->getCharPosSize() / 2; i++) {
     states.insert(states.end(), startState);
@@ -4943,7 +4940,7 @@ ClassifyLI::ClassifyLI(MLabel *ml, Word _classifier) : classifyTT(0) {
   }
   for (int i = 0; i < ml->GetNoComponents(); i++) {
     if (!match->updateStates(i, nfa, patElems, finalStates, states, easyConds,
-                             easyCondPos, condsOccur)) {
+                             easyCondPos, atomicToElem, condsOccur)){
       for (unsigned int j = 0; j < easyConds.size(); j++) {
         easyConds[j].deleteOpTree();
       }
@@ -4965,7 +4962,8 @@ ClassifyLI::ClassifyLI(MLabel *ml, Word _classifier) : classifyTT(0) {
     vector<Condition>* conds = pats[*it]->getConds();
 //     cout << "call fMB(nfa, " << startStates[*it] << ", " << patElems.size()
 //          << ", " << conds->size() << ")" << endl;
-    if (match->findMatchingBinding(nfa, startStates[*it], patElems, *conds)) {
+    if (match->findMatchingBinding(nfa, startStates[*it], patElems, *conds,
+                                   atomicToElem, elemToVar)) {
       matchingPats.insert(*it);
 //       cout << "p " << *it << " matches after condition check" << endl;
     }
@@ -5007,14 +5005,15 @@ MultiRewriteLI::MultiRewriteLI(Word _mlstream, Word _pstream) : ClassifyLI(0),
           if (p->initCondOpTrees()) {
             pats.push_back(p);
             for (int i = 0; i < p->getSize(); i++) {
+              atomicToElem[patElems.size()] = elemCount + p->getElemFromAtom(i);
+              elemToVar[elemCount+p->getElemFromAtom(i)] = p->getElem(i).getV();
               patElems.push_back(p->getElem(i));
-              elemCount++;
-              patOffset[patElems.size() - 1] =
-                        make_pair(pats.size() - 1, patElems.size() - elemCount);
+              patOffset[elemCount + p->getElemFromAtom(i)] =
+                                          make_pair(pats.size() - 1, elemCount);
             }
-            elemCount = 0;
+            elemCount += p->getElemFromAtom(p->getSize() - 1) + 1;
             map<int, set<int> > easyOld = p->getEasyCondPos();
-            for (im = easyOld.begin();im != easyOld.end(); im++) {
+            for (im = easyOld.begin(); im != easyOld.end(); im++) {
               for (it = im->second.begin(); it != im->second.end(); it++) {
                 easyCondPos[im->first + patElems.size()].insert
                                                        (*it + easyConds.size());
@@ -5026,9 +5025,6 @@ MultiRewriteLI::MultiRewriteLI(Word _mlstream, Word _pstream) : ClassifyLI(0),
             }
           }
         }
-      }
-      else {
-        cout << "invalid pattern \'" << inputText->GetValue() << endl;
       }
     }
     inputText->DeleteIfAllowed();
@@ -5068,8 +5064,8 @@ MLabel* MultiRewriteLI::nextResultML() {
 //     cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
     bindingStack.pop();
     resetBinding(bE.ulId);
-    pair<int, int> patNo = patOffset[bE.pId];
-    if (findNextBinding(bE.ulId, bE.pId, pats[patNo.first], patNo.second)) {
+    pair<int, int> patNo = patOffset[bE.peId];
+    if (findNextBinding(bE.ulId, bE.peId, pats[patNo.first], patNo.second)) {
       return ml->rewrite(binding, pats[patNo.first]->getAssigns());
     }
   }
@@ -5090,7 +5086,7 @@ MLabel* MultiRewriteLI::nextResultML() {
     int i = 0;
     while (!states.empty() && (i < ml->GetNoComponents())) { // loop through ml
       match->updateStates(i, nfa, patElems, finalStates, states, easyConds,
-                               easyCondPos, true);
+                          easyCondPos, atomicToElem, true);
       i++;
     }
     for (it = states.begin(); it != states.end(); it++) { //active states final?
@@ -5105,8 +5101,8 @@ MLabel* MultiRewriteLI::nextResultML() {
 //      cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
       bindingStack.pop();
       resetBinding(bE.ulId);
-      pair<int, int> patNo = patOffset[bE.pId];
-      if (findNextBinding(bE.ulId, bE.pId, pats[patNo.first], patNo.second)) {
+      pair<int, int> patNo = patOffset[bE.peId];
+      if (findNextBinding(bE.ulId, bE.peId, pats[patNo.first], patNo.second)) {
         return ml->rewrite(binding, pats[patNo.first]->getAssigns());
       }
     }
@@ -5129,7 +5125,7 @@ void MultiRewriteLI::initStack(set<int> &startStates) {
     if (matchCands.count(-state2Pat[*it])) {
       map<int, int> transitions = nfa[*it];
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-        BindingStackElem bE(0, itm->first);
+        BindingStackElem bE(0, atomicToElem[itm->first]);
         bindingStack.push(bE);
 //         cout << "(0, " << itm->first << ") pushed onto stack" << endl;
       }
@@ -6098,20 +6094,21 @@ int createindexVM(Word* args, Word& result, int message, Word& local,
   set<size_t> positions;
   set<string> labels;
   MLabel* source = (MLabel*)(args[0].addr);
+  TrieNode* ptr = 0;
   if (source->IsDefined()) {
     for (int i = 0; i < source->GetNoComponents(); i++) {
       source->Get(i, ul);
       positions.insert(i);
       labels.insert(ul.constValue.GetValue());
-      res->index.insert(ul.constValue.GetValue(), positions);
+      res->index.insert(ptr, ul.constValue.GetValue(), positions);
       positions.clear();
       res->Add(ul);
     }
   }
-  res->index.makePersistent();
-  res->index.removeTrie();
+  res->index.makePersistent(ptr);
+  res->index.removeTrie(ptr);
   res->index.printDbArrays();
-  res->index.printContents(labels);
+  res->index.printContents(ptr, labels);
   result.addr = res;
   return 0;
 }

@@ -206,8 +206,8 @@ class MLabel : public MString {
     return sizeof(*this);
   }
 
-  void Initialize() {index.initRoot();}
-  void Finalize() {index.initRoot();}
+  void Initialize() {}
+  void Finalize() {}
   
   MLabel* compress();
   void createML(int size, bool text, double rate);
@@ -399,6 +399,8 @@ class Pattern {
   vector<Condition> conds; // evaluated after matching
   string text, description, regEx;
   map<string, pair<int, int> > varPos;
+  map<int, int> atomicToElem;
+  map<int, string> elemToVar;
   map<int, set<int> > easyCondPos;
   set<string> assignedVars; // variables on the right side of an assignment
   set<string> relevantVars; // variables that occur in conds, results, assigns
@@ -456,6 +458,7 @@ class Pattern {
   int getResultPos(const string v);
   void collectAssVars();
   void addVarPos(string var, int pos);
+  void addAtomicPos();
   int getPatternPos(const string v);
   bool checkAssignTypes();
   static pair<string, Attribute*> getPointer(int key);
@@ -515,6 +518,8 @@ class Pattern {
                                     regEx.find_first_of("()|") != string::npos;}
   void              addRelevantVar(string var) {relevantVars.insert(var);}
   bool              isRelevant(string var)  {return relevantVars.count(var);}
+  string            getVarFromElem(int elem){return elemToVar[elem];}
+  int               getElemFromAtom(int atom) {return atomicToElem[atom];}
 };
 
 class Classifier : public Attribute {
@@ -646,18 +651,21 @@ class Match {
   
   ExtBool matches();
   bool updateStates(int i, vector<map<int, int> > &nfa, vector<PatElem> &elems,
-          set<int> &finalStates, set<int> &states, vector<Condition> &easyConds,
-          map<int, set<int> > &easyCondPos, bool store = false);
+                    set<int> &finalStates, set<int> &states,
+                    vector<Condition> &easyConds, 
+                    map<int, set<int> > &easyCondPos,
+                    map<int, int> &atomicToElem, bool store = false);
   bool easyCondsMatch(int ulId, int pId, PatElem const &up,
                       vector<Condition> &easyConds, set<int> &pos);
   string states2Str(int ulId, set<int> &states);
   string matchings2Str(unsigned int dim1, unsigned int dim2);
   bool findMatchingBinding(vector<map<int, int> > &nfa, int startState,
-                           vector<PatElem> &elems, vector<Condition> &conds);
-  bool findBinding(unsigned int ulId, unsigned int pId,
-                   vector<PatElem> &elems, vector<Condition> &conds,
+                           vector<PatElem> &elems, vector<Condition> &conds,
+                      map<int, int> &atomicToElem, map<int, string> &elemToVar);
+  bool findBinding(unsigned int ulId, unsigned int pId, vector<PatElem> &elems,
+                   vector<Condition> &conds, map<int, string> &elemToVar,
                    map<string, pair<unsigned int, unsigned int> > &binding);
-  void cleanPaths();
+  void cleanPaths(map<int, int> &atomicToElem);
   bool cleanPath(unsigned int ulId, unsigned int pId);
   bool conditionsMatch(vector<Condition> &conds,
                  const map<string, pair<unsigned int, unsigned int> > &binding);
@@ -697,9 +705,9 @@ class Match {
 };
 
 struct BindingStackElem {
-  BindingStackElem(unsigned int ul, unsigned int pe) : ulId(ul), pId(pe) {}
+  BindingStackElem(unsigned int ul, unsigned int pe) : ulId(ul), peId(pe) {}
 
-  unsigned int ulId, pId;
+  unsigned int ulId, peId;
 //   map<string, pair<unsigned int, unsigned int> > binding;
 };
 
@@ -765,6 +773,8 @@ class MultiRewriteLI : public ClassifyLI, public RewriteLI {
   vector<Condition> easyConds;
   map<int, set<int> > easyCondPos;
   map<int, pair<int, int> > patOffset; // elem no |-> (pat no, first pat elem)
+  map<int, int> atomicToElem;
+  map<int, string> elemToVar;
 };
 
 class FilterMatchesLI {

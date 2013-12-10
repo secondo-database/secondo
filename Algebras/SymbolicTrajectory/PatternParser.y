@@ -76,7 +76,7 @@ ExprList exprList;
 bool doublePars(false), firstAssign(true), assignNow(false), easyCond(true);
 string regEx, expr;
 set<string> curIvs, patVars, resultVars, condVars;
-unsigned int pos(0), regExLength(1);
+unsigned int pos(0), regExLength(1), numOfElems(0);
 vector<int> posBeforeOpen;
 char* errMsg;
 %}
@@ -420,6 +420,7 @@ patternsequence : patternsequence variable element {
                       pElems[i].setVar(var);
                       wholepat->addPatElem(pElems[i]);
                     }
+                    numOfElems++;
                     pElems.clear();
                     regEx.clear();
                     free($2);
@@ -446,6 +447,7 @@ patternsequence : patternsequence variable element {
                       wholepat->addVarPos(var, wholepat->getSize());
                       wholepat->addPatElem(pElems[i]);
                     }
+                    numOfElems++;
                     pElems.clear();
                     regEx.clear();
                     free($1);
@@ -462,6 +464,8 @@ element : patternelement {
             }
             string wildcard = (pElem.getW() == STAR ? "*" : (pElem.getW() == PLUS ? "+" : ""));
             regEx += int2String(wholepat->getSize() + pElems.size()) + wildcard + " ";
+            string var = pElem.getV();
+            wholepat->addAtomicPos();
             pElems.push_back(pElem);
             free($1);
           }
@@ -528,6 +532,7 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
   firstAssign = true;
   assignNow = false;
   easyCond = true;
+  numOfElems = 0;
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
     parseSuccess = false;
@@ -701,12 +706,20 @@ bool Assign::convertVarKey(const char *varKey) {
 }
 
 void Pattern::addVarPos(string var, int pos) {
-  if (varPos.count(var)) {
-    varPos[var].second = pos;
+  if (var.length() > 0) {
+    if (varPos.count(var)) {
+      varPos[var].second = pos;
+    }
+    else {
+      varPos[var] = make_pair(pos, pos);
+    }
   }
-  else {
-    varPos[var] = make_pair(pos, pos);
-  }
+  elemToVar[numOfElems] = var;
+}
+
+void Pattern::addAtomicPos() {
+  int atomNo = atomicToElem.size();
+  atomicToElem[atomNo] = numOfElems;
 }
 
 void Pattern::collectAssVars() {

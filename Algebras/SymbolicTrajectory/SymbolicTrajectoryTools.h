@@ -113,26 +113,23 @@ class MLabelIndex {
 public:
   MLabelIndex() {}
   
-  explicit MLabelIndex(int n) : nodes(0), nodeLinks(0), labelIndex(0), root(0){}
+  explicit MLabelIndex(int n) : nodes(0), nodeLinks(0), labelIndex(0) {}
   
-  MLabelIndex(DbArray<NodeRef> n, DbArray<NodeLink> nL, DbArray<size_t> lI);
+  MLabelIndex(DbArray<NodeRef> n, DbArray<NodeLink> nL, DbArray<size_t> lI) :
+              nodes(n), nodeLinks(nL), labelIndex(lI) {}
 
-  ~MLabelIndex() {
-    removeTrie();
-  }
+  ~MLabelIndex() {}
 
-  void initRoot() {root = 0;}
-  TrieNode* getRoot() {return root;}
   void cleanDbArrays() {nodes.clean(); nodeLinks.clean(); labelIndex.clean();}
-  void insert(string label, set<size_t> pos);
-  set<size_t> find(string label); // returns the position(s) of label
-  set<size_t> findInDbArrays(string label);
-  void makePersistent(); // stores main memory tree structure into DbArrays
+  void insert(TrieNode *ptr, string label, set<size_t> pos);
+  set<size_t> find(TrieNode *ptr, string label); // returns position(s) of label
+  set<size_t> findInDbArrays(TrieNode *ptr, string label);
+  void makePersistent(TrieNode *ptr); // stores tree structure into DbArrays
   void makePersistent(TrieNode* ptr, stack<unsigned int>& nodeIndexes);
-  void removeTrie(); // removes main memory tree structure
+  void removeTrie(TrieNode *ptr); // removes main memory tree structure
   void remove(TrieNode* ptr, unsigned char c); // help function for recursion
   void printDbArrays();
-  void printContents(set<string> &labels);
+  void printContents(TrieNode *ptr, set<string> &labels);
   void appendNodeRef(NodeRef nRef)    {nodes.Append(nRef);}
   void appendNodeLink(NodeLink nLink) {nodeLinks.Append(nLink);}
   void appendLabelIndex(size_t index) {labelIndex.Append(index);}
@@ -155,5 +152,4 @@ private:
   DbArray<NodeRef> nodes;
   DbArray<NodeLink> nodeLinks;
   DbArray<size_t> labelIndex;
-  TrieNode* root;
 };
