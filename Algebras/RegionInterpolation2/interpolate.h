@@ -85,6 +85,7 @@ public:
     static vector<Reg> getRegs(ListExpr le);
     static Pt GetMinXY(vector<Reg> regs);
     static Pt GetMaxXY(vector<Reg> regs);
+    static pair<Pt> GetBoundingBox(vector<Reg> regs);
 };
 
 class MSeg {

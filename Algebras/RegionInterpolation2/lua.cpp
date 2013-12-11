@@ -43,10 +43,10 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
         if (st < 0)
             return ret;
     }
-
-    Pt srcoff = Reg::GetMinXY(*src);
-    Pt dstoff = Reg::GetMinXY(*dst);
-    Pt off = dstoff - srcoff;
+    
+    pair<Pt> sbbox = Reg::GetBoundingBox(*src);
+    pair<Pt> dbbox = Reg::GetBoundingBox(*dst);
+    Pt off = dbbox.first - sbbox.first;
 
     lua_newtable(L);
     setfield("x", off.x);
@@ -156,3 +156,16 @@ static int lua_distance(lua_State *L) {
     return 1;
 }
 
+static int lua_getmiddle (lua_State *L) {
+    if (!lua_islightuserdata(L, -1))
+        return 0;
+    
+    Reg *r = (Reg*) lua_touserdata(L, -1);
+    Pt pt = r->GetMiddle();
+    
+    lua_newtable(L);
+    setfield("x", pt.x);
+    setfield("y", pt.y);
+    
+    return 1;
+}

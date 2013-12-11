@@ -180,10 +180,10 @@ MSegs Reg::collapse(bool close) {
     Pt dst;
 
     cerr << "DEBUG " << v.size() << "\n";
-    
+
     if (v.size() < 3)
         return ret;
-    
+
     if (peerPoint.valid)
         dst = peerPoint;
     else
@@ -196,7 +196,7 @@ MSegs Reg::collapse(bool close) {
             ret.AddMSeg(MSeg(dst, dst, v[i].s, v[i].e));
         }
     }
-    
+
     ret.iscollapsed = 1;
 
     return ret;
@@ -217,7 +217,7 @@ vector<Reg> Reg::getRegs(ListExpr le) {
 
 Pt Reg::GetMiddle() {
     Pt middle = (GetMaxXY() + GetMinXY()) / 2;
-    
+
     return middle;
 }
 
@@ -304,4 +304,30 @@ Pt Reg::GetMaxXY() {
     }
 
     return Pt(maxx, maxy);
+}
+
+pair<Pt> Reg::GetBoundingBox(vector<Reg> regs) {
+    if (regs.empty())
+        return pair(Pt(0, 0), Pt(0, 0));
+    assert(regs[0].v.size() > 0);
+    double minx = regs[0].v[0].s.x;
+    double miny = regs[0].v[0].s.y;
+    double maxx = regs[0].v[0].s.x;
+    double maxy = regs[0].v[0].s.y;
+    for (unsigned int i = 0; i < regs.size(); i++) {
+        for (unsigned int j = 0; j < regs[i].v.size(); j++) {
+            if (regs[i].v[j].s.x < minx) {
+                minx = regs[i].v[j].s.x;
+            } else if (regs[i].v[j].s.x > maxx) {
+                maxx = regs[i].v[j].s.x;
+            }
+            if (regs[i].v[j].s.y < miny) {
+                miny = regs[i].v[j].s.y;
+            } else if (regs[i].v[j].s.y > maxy) {
+                maxy = regs[i].v[j].s.y;
+            }
+        }
+    }
+
+    return pair(Pt(minx, miny), Pt(maxx, maxy));
 }
