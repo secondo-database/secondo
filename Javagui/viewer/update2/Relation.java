@@ -24,7 +24,6 @@ import gui.idmanager.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import sj.lang.ListExpr;
 
@@ -38,11 +37,11 @@ public class Relation
 {
 	
 	private RelationTypeInfo relTypeInfo;
-	private Vector<SecondoObject> SecondoObjects;
+	private List<SecondoObject> SecondoObjects;
 	private boolean initialized;
-	private ID myID;
+	private String myID;
 	private String Name;
-	private Vector<ID> TupleIDs;
+	private List<String> TupleIDs;
 	private ListExpr TupleType;
 	private SecondoObject WholeRelation;
 	
@@ -52,13 +51,43 @@ public class Relation
 	
 	public Relation()
 	{
-		SecondoObjects = new Vector<SecondoObject>();
-		TupleIDs = new Vector<ID>();
+		SecondoObjects = new ArrayList<SecondoObject>();
+		TupleIDs = new ArrayList<String>();
 		relTypeInfo = new RelationTypeInfo(); 
 		TupleType = ListExpr.theEmptyList();
 		WholeRelation = null;
 		initialized = false;
 	}
+	
+	
+	/** 
+	 * Append new tuple to relation 
+	 */
+	public void addTuple(ListExpr pTuple)
+	{
+		if(initialized)
+		{
+			List<SecondoObject> tupleSOs = this.readTupleValueFromLE(pTuple);
+			
+			if (tupleSOs.size() == relTypeInfo.getSize())
+			{
+				for(int i=0; i<relTypeInfo.getSize(); i++)
+				{
+					SecondoObject SO = tupleSOs.get(i);
+					SecondoObjects.add(SO);
+					Reporter.debug("Relation.addTuple: SO is " + SO.toString());
+					
+					int tidindex = this.relTypeInfo.getTidIndex();
+					if (tidindex >= 0 && tidindex == i)
+					{
+						this.TupleIDs.add(SO.toListExpr().second().toString().trim());
+					}
+				}
+			}
+		}
+	}
+	
+	
 	
 	public List<String> getAttributeNames()
 	{
@@ -70,57 +99,16 @@ public class Relation
 		return this.relTypeInfo.getAttributeTypes();
 	}
 
-	public boolean readFromSecondoObject(SecondoObject SO)
-	{
-		myID = SO.getID();
-		Name = SO.getName();
-		initialized = false;
-		ListExpr LE = SO.toListExpr();
-		if(LE.listLength()!=2)
-		{
-			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong list length");
-			return false;
-		}
-		if(!relTypeInfo.readFromRelTypeLE(LE.first()))
-		{
-			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong type list");
-			return false;
-		}
-
-		if(!readValue(relTypeInfo,LE.second()))
-		{
-			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong value list");
-			return false;
-		}
-		
-		WholeRelation = SO;
-		TupleType = SO.toListExpr().first().second();
-		initialized = true;
-		return true;
-	}
 	
+	/**
+	 * Returns relation name.
+	 */
 	public String getName(){
 		return this.Name;
 	}
 	
-	public String toString()
-	{
-		StringBuffer sb = new StringBuffer("[Relation]: ");
-		sb.append(", Name: ").append(this.getName());
-		sb.append(", attributeNames: ");
-		for (String name : this.getAttributeNames())
-		{
-			sb.append(name).append(", ");
-		}
-		sb.append(", attributeTypes: ");
-		for (String type : this.getAttributeTypes())
-		{
-			sb.append(type).append(", ");
-		}
-		return sb.toString();
-	}
 	
-	
+	/*
 	public int find(String S,boolean CaseSensitiv,int OffSet)
 	{
 		boolean found =false;
@@ -146,12 +134,42 @@ public class Relation
 		}
 		return pos;
 	}
+	 */
 	
+		
+	public boolean readFromSecondoObject(SecondoObject SO)
+	{
+		myID = SO.getID().toString();
+		Name = SO.getName();
+		initialized = false;
+		ListExpr LE = SO.toListExpr();
+		if(LE.listLength()!=2)
+		{
+			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong list length");
+			return false;
+		}
+		if(!relTypeInfo.readFromRelTypeLE(LE.first()))
+		{
+			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong type list");
+			return false;
+		}
+		
+		if(!readRelationValueFromLE(LE.second()))
+		{
+			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong value list");
+			return false;
+		}
+		
+		WholeRelation = SO;
+		TupleType = SO.toListExpr().first().second();
+		initialized = true;
+		return true;
+	}
+		
 	
 	/** read the Value of this Relation */
-	private boolean readValue(RelationTypeInfo H, ListExpr ValueList)
+	private boolean readRelationValueFromLE(ListExpr ValueList)
 	{
-		this.relTypeInfo = H;
 		ListExpr NextTuple;
 		ListExpr Rest = ValueList;
 		SecondoObjects.clear();
@@ -165,7 +183,7 @@ public class Relation
 			NextTuple = Rest.first();
 			T_no++;
 			Rest = Rest.rest();
-			if(NextTuple.listLength()!=H.getSize())  // wrong tuplelength
+			if(NextTuple.listLength()!=this.relTypeInfo.getSize())  // wrong tuplelength
 			{
 				ok = false;
 			}
@@ -173,17 +191,23 @@ public class Relation
 			{
 				SecondoObject SO;
 				int No = 0;
-				TupleIDs.add(IDManager.getNextID());
+				//TupleIDs.add(IDManager.getNextID().toString());
 				while(NextTuple.listLength()>0)
 				{
 					SO = new SecondoObject(IDManager.getNextID());
-					ListExpr Type = ListExpr.symbolAtom(H.get(No).Type);
+					ListExpr Type = ListExpr.symbolAtom(this.relTypeInfo.get(No).Type);
 					SO.fromList(ListExpr.twoElemList(Type, NextTuple.first()));
-					String aName = computeObjectName(H.get(No).Name, H.get(No).Type, NextTuple.first());
+					String aName = computeObjectName(this.relTypeInfo.get(No).Name, 
+													 this.relTypeInfo.get(No).Type, 
+													 NextTuple.first());
 					SO.setName(Name+"::"+aName+"::"+T_no);
-					NextTuple = NextTuple.rest();
 					SecondoObjects.add(SO);
-				
+					if(this.relTypeInfo.get(No).Name.equals("TID"))
+					{
+						TupleIDs.add(NextTuple.first().toString().trim());
+					}
+					
+					NextTuple = NextTuple.rest();
 					No++;
 				}
 			}
@@ -195,6 +219,43 @@ public class Relation
 			TupleType = ListExpr.theEmptyList();
 		}
 		return ok;
+	}
+	
+	/**
+	 * Reads the first tuple of the relation list expression.
+	 */
+	public List<SecondoObject> readTupleValueFromLE(ListExpr pLE)
+	{
+		List<SecondoObject> result = new ArrayList<SecondoObject>();
+		ListExpr tupleValues = pLE.second().first();
+		ListExpr nextValue;
+		//Reporter.debug("Relation.readTupleValueFromLE: tupleValues is " + tupleValues.toString());
+		int No = 0;
+
+		if(tupleValues.listLength() == this.relTypeInfo.getSize())  // correct tuplelength
+		{
+			while(tupleValues.listLength()>0)
+			{
+				nextValue = tupleValues.first();
+				//Reporter.debug("Relation.readTupleValueFromLE: nextValue is " + nextValue.toString());
+								
+				SecondoObject SO = new SecondoObject(IDManager.getNextID());
+				ListExpr Type = ListExpr.symbolAtom(this.relTypeInfo.get(No).Type);
+				SO.fromList(ListExpr.twoElemList(Type, nextValue));
+				String aName = computeObjectName(this.relTypeInfo.get(No).Name, 
+												 this.relTypeInfo.get(No).Type, 
+												 nextValue);
+				SO.setName(Name+"::"+aName);
+				
+				result.add(SO);
+				//Reporter.debug("Relation.readTupleValueFromLE: new SO is " + SO.toString());
+				
+				tupleValues = tupleValues.rest();
+				No++;
+			}
+		}
+
+		return result;
 	}
 	
 	
@@ -248,10 +309,11 @@ public class Relation
 				case ListExpr.NO_ATOM : 
 					ValueString= type; 
 					break;
-				default : ValueString = "unknow type";
+				default : ValueString = "unknown type";
 			}
 		}
 		return tmpname+": "+ValueString;
+		//return tmpname;
 	}
 	
 	
@@ -295,6 +357,30 @@ public class Relation
 		return Tuple;
 	}
 	
+	/** Removes the tuple by its ID */
+	public void removeTupleByID(String pTupleId)
+	{
+		if(initialized)
+		{
+			int ti = this.TupleIDs.indexOf(pTupleId);
+			Reporter.debug("Relation.removeTupleByID: tupleID "+ pTupleId + " has index " + ti);
+
+			if(ti >= 0)
+			{
+				for(int j=0; j<relTypeInfo.getSize(); j++)
+				{
+					int soi = ti * relTypeInfo.getSize();
+					Reporter.debug("Relation.removeTupleByID: secondoobject has index " + soi);
+					Reporter.debug("Relation.removeTupleByID: secondoobjects.size is " + SecondoObjects.size());
+					Reporter.debug("Relation.removeTupleByID: removing " + SecondoObjects.get(soi).toString());
+					SecondoObjects.remove(soi);
+					Reporter.debug("Relation.removeTupleByID:  XXXX" + SecondoObjects.toString() + "XXXXXXXXXXX");
+				}
+				TupleIDs.remove(ti);
+			}
+		}
+	}
+	
 	
 	/** 
 	 * Set tuple on given position 
@@ -320,7 +406,7 @@ public class Relation
 		}
 	}
 
-	
+
 	
 	/** 
 	 * Set SecondoObject on given position 
@@ -340,7 +426,7 @@ public class Relation
 	}
 	
 	
-	/** computes a Tuple and returns it */
+	/** computes a Tuple and returns it
 	public SecondoObject getTupleNo(int index)
 	{
 		SecondoObject[] Content = getTupleAt(index);
@@ -367,7 +453,7 @@ public class Relation
 		Tuple.setName(Name+" ["+index+"]");
 		return Tuple;
 	}
-	
+	*/
 	
 	/** returns the Relation */
 	public SecondoObject getRelation()
@@ -426,7 +512,7 @@ public class Relation
 	}
 	
 	
-	public ID getID()
+	public String getID()
 	{
 		if(!initialized)
 			return null;
@@ -434,5 +520,21 @@ public class Relation
 			return myID;
 	}
 	
+	public String toString()
+	{
+		StringBuffer sb = new StringBuffer("[Relation]: ");
+		sb.append(", Name: ").append(this.getName());
+		sb.append(", attributeNames: ");
+		for (String name : this.getAttributeNames())
+		{
+			sb.append(name).append(", ");
+		}
+		sb.append(", attributeTypes: ");
+		for (String type : this.getAttributeTypes())
+		{
+			sb.append(type).append(", ");
+		}
+		return sb.toString();
+	}
 	
 }

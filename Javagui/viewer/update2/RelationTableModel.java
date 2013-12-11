@@ -52,9 +52,7 @@ public class RelationTableModel extends AbstractTableModel
 	private String[] columnNames = {"TupleId", "Name", "Value"};
 	private List<String> attributeNames;
 	private int tupleSize;
-	private int tupleCount;
 	private int[] maxContentLengths;
-	private AttributeFormatter formatter;	
 	private int state;
 	
 	// contains changes in chronological order
@@ -63,7 +61,7 @@ public class RelationTableModel extends AbstractTableModel
     // contains tuple ids for deletion in chronological order
 	private List<String> deletions;
 	
-	// hits from latest search
+	// hits from latest search, ordered by tow and startindex
 	private List<SearchHit> hitList;
 	
 	private int currHit;
@@ -83,11 +81,9 @@ public class RelationTableModel extends AbstractTableModel
 			throw(new InvalidRelationException());
 		}
 		
-		this.formatter = new AttributeFormatter(); 
 		this.relation = pRelation;
 		this.relationName = pRelation.getName();
 		this.tupleSize = pRelation.getTupleSize();
-		this.tupleCount = pRelation.getTupleCount();
 		this.attributeNames = pRelation.getAttributeNames();
 		this.state = States.LOADED;
 		this.changes = new ArrayList<Change>();
@@ -129,23 +125,25 @@ public class RelationTableModel extends AbstractTableModel
 	
 	
     /**
-	 * Inserts a hit to the list at the 
+	 * Inserts a hit in the hitlist, if not already exists.
      */
     public void addHit(SearchHit pHit)
     {
-		for (SearchHit hit : this.hitList)
-        {
-			if (pHit.compareTo(hit) == 0)
-			{
-				return;
-			}
-			else
-			{
-				if (pHit.compareTo(hit) > 0)
-					hitList.add(hitList.indexOf(hit), pHit);
-					return;
-			}
-        }
+		if (!this.hitList.contains(pHit))
+		{
+			this.hitList.add(pHit);
+			Collections.sort(hitList);
+		}
+    }
+	
+	
+	/**
+	 * Appends a tuple specified by the ListExpression
+     */
+    public void addTuple(ListExpr pTuple)
+    {
+		this.relation.addTuple(pTuple);
+		fireTableRowsInserted(0, this.tupleSize+1);
     }
 	
 	
@@ -270,7 +268,7 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		List<String> result = new ArrayList<String>();
 		
-		for (int i = 0; i < this.tupleCount * (tupleSize+1); i++)
+		for (int i = 0; i < this.relation.getTupleCount() * (tupleSize+1); i++)
 		{
 			Object o = this.getValueAt(i, pCol);
 			result.add(o.toString());
@@ -347,11 +345,14 @@ public class RelationTableModel extends AbstractTableModel
 	public List<SearchHit> getHits(int pRow)
 	{
 		List<SearchHit> result = new ArrayList<SearchHit>();
-		for (SearchHit hit : this.hitList)
+		if (this.hasSearchHits())
 		{
-			if (hit.getRowIndex() == pRow)
+			for (SearchHit hit : this.hitList)
 			{
-				result.add(hit);
+				if (hit.getRowIndex() == pRow)
+				{
+					result.add(hit);
+				}
 			}
 		}
 		return result;
@@ -385,7 +386,7 @@ public class RelationTableModel extends AbstractTableModel
     public int getRowCount() 
 	{
 		// add (empty) extra row as separator between tuples
-        return this.tupleCount * (this.tupleSize + 1);
+        return this.relation.getTupleCount() * (this.tupleSize + 1);
     }
 	
 
@@ -425,7 +426,7 @@ public class RelationTableModel extends AbstractTableModel
 			{
 				case COL_TUPLEID: 
 					SecondoObject last = soTuple[soTuple.length-1];
-					result = this.formatter.fromListExprToString(last.toListExpr().second()).trim();
+					result = AttributeFormatter.fromListExprToString(last.toListExpr().second()).trim();
 					break;
 				case COL_ATTRNAME:
 					result = this.attributeNames.get(attrIndex).trim();
@@ -437,7 +438,7 @@ public class RelationTableModel extends AbstractTableModel
 					{
 						rest = rest.rest();
 					}*/
-					result = this.formatter.fromListExprToString(rest.second()).trim();
+					result = AttributeFormatter.fromListExprToString(rest.second()).trim();
 					break;
 				default: 
 					result = "fehler";
@@ -592,6 +593,15 @@ public class RelationTableModel extends AbstractTableModel
         return false;
 	}
 	
+	/**
+	 * Removes Tuple from Relation and notifies table of deleted rows.
+	 */
+	public void removeTuple(String pTupleId)
+	{
+		this.relation.removeTupleByID(pTupleId);
+		fireTableRowsDeleted(0, this.tupleSize);
+	}
+	
 	
 	public int rowToTupleIndex(int pRow)
 	{
@@ -610,13 +620,13 @@ public class RelationTableModel extends AbstractTableModel
 	 */
 	public void setSearchHits(List<SearchHit> pHitlist)
 	{
-		if (pHitlist == null || pHitlist.isEmpty())
+		this.hitList = pHitlist;
+		if (this.hitList == null || pHitlist.isEmpty())
 		{
 			this.currHit = -1;
 		}
 		else
 		{
-			this.hitList = pHitlist;
 			this.currHit = 0;
 		}
 	}
@@ -676,7 +686,7 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		StringBuffer sb = new StringBuffer("[RelationTableModel]: ");
 		sb.append(", relationName: ").append(relationName);
-		sb.append(", tupleCount: ").append(tupleCount);
+		sb.append(", tupleCount: ").append(this.relation.getTupleCount());
 		sb.append(", tupleSize: ").append(tupleSize);
 		sb.append(this.relation.toString());
 		return sb.toString();

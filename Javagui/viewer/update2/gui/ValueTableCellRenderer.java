@@ -44,9 +44,7 @@ import viewer.update2.*;
 /**
  * TableCellRenderer for the attribute column of the relation table.
  */
-public class ValueTableCellRenderer 
-	extends DefaultTableCellRenderer 
-	//implements TableCellRenderer
+public class ValueTableCellRenderer extends DefaultTableCellRenderer 
 {
 	private JTextArea textArea;
 	private Border borderFocussed;
@@ -171,11 +169,5 @@ public class ValueTableCellRenderer
 		this.textArea.moveCaretPosition(pEnd);
 		this.textArea.getCaret().setSelectionVisible(true);
 	}
-	
-	// TODO
-	// Method to set highlighting color
-	// Method to set font
-	
-	
 }
 

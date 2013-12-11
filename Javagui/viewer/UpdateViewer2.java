@@ -289,6 +289,10 @@ public class UpdateViewer2 extends SecondoViewer {
 				undo.setEnabled(false);
 				commit.setEnabled(false);
 				format.setEnabled(true);
+				for (RelationPanel rp : this.relationPanels)
+				{
+					rp.setMode(pState);
+				}
 				break;
 			}
 			case States.INSERT: 
@@ -303,6 +307,7 @@ public class UpdateViewer2 extends SecondoViewer {
 				undo.setEnabled(true);
 				commit.setEnabled(true);
 				format.setEnabled(true);
+				this.getCurrentRelationPanel().setMode(pState);
 				break;
 			}
 			case States.DELETE: 
@@ -316,6 +321,10 @@ public class UpdateViewer2 extends SecondoViewer {
 				reset.setEnabled(true);
 				undo.setEnabled(true);
 				commit.setEnabled(true);
+				for (RelationPanel rp : this.relationPanels)
+				{
+					rp.setMode(pState);
+				}
 				break;
 			}
 			case States.UPDATE: 
@@ -330,6 +339,10 @@ public class UpdateViewer2 extends SecondoViewer {
 				undo.setEnabled(true);
 				commit.setEnabled(true);
 				format.setEnabled(true);
+				for (RelationPanel rp : this.relationPanels)
+				{
+					rp.setMode(pState);
+				}
 				break;
 			}
 			case States.FORMAT: 
@@ -349,11 +362,6 @@ public class UpdateViewer2 extends SecondoViewer {
 			default:
 				break;
 		}
-        
-        for (RelationPanel rp : this.relationPanels)
-        {
-            rp.setMode(pState);
-        }
 	}
 	
 	

@@ -27,10 +27,8 @@ import java.util.*;
 
 import gui.SecondoObject;
 import viewer.*;
-import viewer.update2.gui.*;
-import viewer.update.AttributeFormatter;
 import viewer.update.InvalidFormatException;
-import viewer.update.LEFormatter;
+import viewer.update2.gui.*;
 import sj.lang.*;
 import sj.lang.ListExpr;
 import tools.Reporter;
@@ -38,7 +36,8 @@ import tools.Reporter;
 /**
  * This class generates commands for updating relations in 'Nested-List-Syntax'.
 */
-public class CommandGenerator {
+public class CommandGenerator 
+{
 			
 	private CommandExecuter commandExecuter;
 	
@@ -57,17 +56,22 @@ public class CommandGenerator {
 	 Generates an insert-command for each tuple that shall be inserted. Actualizes the indices as
 	 well.
 	 */
-	public String[] generateInsert(String relName, String[] attrTypes, 
-									Vector btreeNames, Vector btreeAttrNames,
-									Vector rtreeNames, Vector rtreeAttrNames, 
-									String[][] insertTuples) throws InvalidFormatException{
+	public String[] generateInsert(String pRelName, List<String> pAttributeNames, List<String> pAttributeTypes, 
+									String[][] insertTuples) throws InvalidFormatException
+	{
+		
+		this.retrieveIndices(pRelName, pAttributeNames);
+
 		String nextValue;
 		String nextType;
-		String[] insertCommands = new String[insertTuples.length];
+		int tupleSize = pAttributeTypes.size()-1;
+		int tupleCount = insertTuples.length / tupleSize;
+		String[] insertCommands = new String[tupleCount];
 		
-		for (int j = 0; j < insertCommands.length; j++)
+		for (int j = 0; j < tupleCount; j++)
 		{
-			StringBuffer insertCommand = new StringBuffer("(query (count ");
+			//StringBuffer insertCommand = new StringBuffer("(query (count ");
+			StringBuffer insertCommand = new StringBuffer("(query (consume ");
 			
 			for (int k = 0; k < btreeNames.size(); k ++)
 			{
@@ -78,16 +82,15 @@ public class CommandGenerator {
 			{
 				insertCommand.append("(insertrtree ");
 			}
-			insertCommand.append("(inserttuple " + relName + " (");
+			insertCommand.append("(inserttuple " + pRelName + " (");
 			
-			for (int i = 0; i < attrTypes.length; i++)
+			for (int i = 0; i < tupleSize; i++)
 			{
-				nextType = attrTypes[i].trim();
-				LEFormatter LEF = AttributeFormatter.getFormatter(nextType);
-				ListExpr LE = LEF.StringToListExpr(insertTuples[j][i]);
+				nextType = pAttributeTypes.get(i).trim();
+				ListExpr LE = AttributeFormatter.fromStringToListExpr(nextType, insertTuples[j*tupleSize+i][1]);
 				if(LE==null)
 				{
-					throw new InvalidFormatException("Invalid Format for "+nextType,j+1,i+1);
+					throw new InvalidFormatException("Invalid Format for "+nextType,j*tupleSize+i+1,i+1);
 				}
 				nextValue = LE.writeListExprToString();				
 				insertCommand.append("( "+nextType+" "+nextValue + ") ");		
@@ -104,6 +107,7 @@ public class CommandGenerator {
 				insertCommand.append(btreeNames.get(k)+ " " + btreeAttrNames.get(k) + ")");
 			}
 			insertCommand.append("))");
+			Reporter.debug("CommandGenerator.generateInsert: " + insertCommand.toString());
 			insertCommands[j] = insertCommand.toString();
 		}
 		return insertCommands;	
@@ -166,7 +170,7 @@ public class CommandGenerator {
 		int index;
 		String type;
 		String value;
-		String formattedValue;
+		String leString;
 		Map<String, Change> tupleChanges;
 		Change attrChange;
 		
@@ -202,16 +206,15 @@ public class CommandGenerator {
 				updateCommand.append("(" + name);
 				updateCommand.append("( fun ( tuple" + (index+1) + " TUPLE )");
 				
-				LEFormatter LEF = AttributeFormatter.getFormatter(type);
-				ListExpr LE = LEF.StringToListExpr(value);
+				ListExpr le = AttributeFormatter.fromStringToListExpr(type, value);
 				
-				if(LE==null)
+				if(le==null)
 				{
 					throw new InvalidFormatException("Invalid Format for " + type, tid, index+1);
 				}
 					
-				formattedValue = LE.writeListExprToString();				
-				updateCommand.append("( " + type + " " + formattedValue + ") ");		
+				leString = le.writeListExprToString();				
+				updateCommand.append("( " + type + " " + leString + ") ");		
 				updateCommand.append("))");
 			}
 			
@@ -255,7 +258,8 @@ public class CommandGenerator {
 		this.btreeAttrNames = new Vector<String>();
 		this.rtreeNames = new Vector<String>();
 		this.rtreeAttrNames = new Vector<String>();
-		while (! rest.isEmpty()){
+		while (! rest.isEmpty())
+		{
 			nextObject = rest.first();
 			type = nextObject.fourth();
 			if (!(type.first().isAtom())){

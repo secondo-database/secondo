@@ -172,11 +172,5 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		this.textArea.getCaret().setSelectionVisible(true);
 	}
 	
-	/*
-	public void setInputMethodListener(InputMethodListener pListener)
-	{
-		this.textArea.addInputMethodListener(pListener);
-	}
-	 */
 }
 

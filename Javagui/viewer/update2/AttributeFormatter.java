@@ -40,8 +40,9 @@ public class AttributeFormatter
 {
 	/**
 	 * Returns the formatted String representation.
+	 * TODO: format Date, handle unallowed types
 	 */
-	public String fromListExprToString(ListExpr pListExpr)
+	public static String fromListExprToString(ListExpr pListExpr)
 	{
 		String result = pListExpr.toString();
 		
@@ -58,54 +59,45 @@ public class AttributeFormatter
 			int indEnd = result.lastIndexOf('\"');
 			result = result.substring(indStart, indEnd);
 		}
-		
-		// TODO
-		// format Date
-			
+					
 		return result;
 	}
 	
-/*
-	public String ListExprToString(ListExpr LE)
-	{
-		String result = "kein Format gefunden für Typ ";
-		
-		if(LE == null || LE.listLength() != 2 || 
-		    LE.first().atomType != ListExpr.SYMBOL_ATOM)
+	/**
+	 * Builds attribute list expression from String
+	 * TODO: format Date, handle unallowed types
+	 */
+	public static ListExpr fromStringToListExpr(String pType, String pValue)
+	{		
+		try
 		{
-			
+			if (pType.equals("bool"))
+				return ListExpr.boolAtom(pValue.toUpperCase().equals("TRUE")? true : false);
+			if (pType.equals("int"))
+				return ListExpr.intAtom(pValue.isEmpty()? 0 : Integer.parseInt(pValue));
+			if (pType.equals("real"))
+				return ListExpr.realAtom(pValue.isEmpty()? 0.0 : Float.parseFloat(pValue));
+			if (pType.equals("string"))
+				return ListExpr.stringAtom(pValue);
+			if (pType.equals("text"))
+				return ListExpr.textAtom(pValue);
 		}
-		if(LE.first().atomType())
+		catch (Exception e)
 		{
-			result = LE.stringValue();
+			return null;
 		}
-		}
-		
-        return result;
+		return null;
 	}
 	
-	public ListExpr StringToListExpr(String type, String value)
-	{
-		
-		if(value.length()>tools.Environment.MAX_STRING_LENGTH)
-			return null;
-		if(value.indexOf("\"")>=0)
-			return null;
-		return ListExpr.stringAtom(value);
-	}
 	
-	/** Checks whether this is a simple type. 
-	 * Other types are not allowed withing the current implementation
-	 * of the updateviewer.
+	/** 
+     * Checks whether this type can be displayed in UpdateViewer2.
+	 * Allowed are atomar types
 	 **/
-	public boolean typeAllowed(ListExpr LE){
+	public static boolean typeAllowed(ListExpr LE)
+	{
 		if(LE==null) return false;
-		return LE.isAtom(); // we allow all atomar types
+		return LE.isAtom();
 	}
-	
-	
-	
-
-
  
 } 

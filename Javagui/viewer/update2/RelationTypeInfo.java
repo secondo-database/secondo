@@ -68,6 +68,11 @@ public class RelationTypeInfo extends Head{
 		return this.attributeTypes.get(index);
 	}
 	
+	public int getTidIndex()
+	{
+		return this.attributeNames.indexOf("TID");
+	}
+	
 	
 }
 

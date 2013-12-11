@@ -89,6 +89,7 @@ import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -120,6 +121,8 @@ public class RelationPanel extends JPanel implements
 	private String name;
 	
 	private Relation relation;
+	
+	private String[][] insertData;
 	
 	// controller listens to action events
 	private UpdateViewerController controller;
@@ -406,12 +409,6 @@ public class RelationPanel extends JPanel implements
 		this.relation = new Relation();
 		this.relation.readFromSecondoObject(relationSO);
 		
-		/*if (this.relScroll != null)
-		{
-			this.remove(this.relScroll);
-		}
-		 */
-		
 		try
 		{
 			RelationTableModel rtm = new RelationTableModel(relation);
@@ -449,8 +446,6 @@ public class RelationPanel extends JPanel implements
             lsm.addListSelectionListener(this);
             this.relTable.setSelectionModel(lsm);
 			
-			//this.relScroll = new JScrollPane(this.relTable);
-			//this.add(this.relScroll);			
 			this.relScroll.setViewportView(this.relTable);
 			
 			this.repaint();
@@ -475,6 +470,43 @@ public class RelationPanel extends JPanel implements
 	}
 	
 	
+	/**
+	 * Deletes marked tuples from the table(model).
+	 */
+	public void deleteTuples()
+	{
+		RelationTableModel rtm = this.getTableModel();
+		if (rtm != null)
+		{
+			for (String tuple : rtm.getDeletions())
+			{
+				this.getTableModel().removeTuple(tuple);
+			}
+			rtm.clearDeletions();
+		}
+		this.relTable.revalidate();
+		this.revalidate();
+		this.repaint();
+	}
+	
+	
+	/**
+	 * Returns TRUE if checkbox case-sensitive is checked.
+	 */
+	public boolean getCaseSensitive()
+	{
+		return this.chkCaseSensitive.isSelected();
+	}
+	
+	/**
+	 * Returns index of current search hit, -1 if none exists.
+	 */
+	public int getCurrentHitIndex()
+	{
+		return this.getTableModel().getCurrentHitIndex();
+	}
+	
+	
 	/*
 	 * Returns ids of all tuples that were marked to be deleted.	 	 
 	 */
@@ -482,16 +514,8 @@ public class RelationPanel extends JPanel implements
     {
         List<String> del = this.getTableModel().getDeletions();
         Reporter.debug("RelationPanel.getDeleteTuples: " + del);
-
+		
 		return this.getTableModel().getDeletions();
-	}
-
-	/**
-	 * Returns index of current search hit, -1 if none exists.
-	 */
-	public int getCurrentHitIndex()
-	{
-		return this.getTableModel().getCurrentHitIndex();
 	}
 	
 	/**
@@ -512,12 +536,12 @@ public class RelationPanel extends JPanel implements
 	
 	
 	/*
-	 Returns the values of all tuples that were edited to be inserted.	 	 
-
-	public String[][] getInsertTuples() {
-		return insertData;
-	}
+	 * Returns values to be inserted.
 	 */	
+	public String[][] getInsertTuples()
+	{
+		return this.insertData;
+	}
 	
 	/*
 	 * Get relation name.
@@ -534,8 +558,6 @@ public class RelationPanel extends JPanel implements
 		return this.relation;
 	}
 	
-	
-	
 	/**
 	 * Returns RelationTabelModel of currently displayed Table. (Convenience shortcut)
 	 */
@@ -545,6 +567,9 @@ public class RelationPanel extends JPanel implements
 	}
 	
 	
+	/**
+	 * Returns text from Replace field.
+	 */
 	public String getReplacement()
 	{
 		return this.replaceField.getText();
@@ -557,7 +582,7 @@ public class RelationPanel extends JPanel implements
 	{
 		return this.searchField.getText();
 	}
-
+	
 	
 	/*
 	 * Returns values to be updated.
@@ -642,6 +667,7 @@ public class RelationPanel extends JPanel implements
 	
 	
 	
+	/** Starts the editing the specified cell within the relation table **/
 	public void goToEdit(int pRow, int pCol)
 	{
 		try
@@ -658,19 +684,31 @@ public class RelationPanel extends JPanel implements
 	/** Starts the editing the specified cell within the insert table **/
 	public void goToInsert(int x, int y)
 	{
-		// TODO
-		/*
-		try{
+		try
+		{
 			insertTable.editCellAt(x,y,null);
 		}catch(Exception e){
 			Reporter.debug(e);
 		}
-		 */
 	}
 	
+	/**
+	 * Returns TRUE if last search has found matches in this relation table.
+	 */
 	public boolean hasSearchHits()
 	{
 		return this.getTableModel().hasSearchHits();
+	}
+	
+	/**
+	 * Inserts the specified tuple into Table(model)
+	 */
+	public void insertTuple(ListExpr pTuple)
+	{
+		this.getTableModel().addTuple(pTuple);
+		this.relTable.revalidate();
+		this.revalidate();
+		this.repaint();
 	}
 	
 	/**
@@ -699,6 +737,19 @@ public class RelationPanel extends JPanel implements
 			{
 				RelationTableModel rtm = this.getTableModel();
 				
+				// update search hits for edited cell
+				List<SearchHit> hits = rtm.getHits(row);
+				if (hits != null && !hits.isEmpty())
+				{
+					for (SearchHit h : hits)
+					{
+						rtm.removeHit(h);
+					}
+				}
+				for (SearchHit newHit : this.retrieveSearchHits(this.getSearchKey(), this.getCaseSensitive(), row))
+				{
+					rtm.addHit(newHit);
+				}
 				// write changed cell value back into table model
 				rtm.setValueAt(newValue, row, col);
 								
@@ -817,6 +868,7 @@ public class RelationPanel extends JPanel implements
 		return false;
 	}
 	
+	
 	/**
 	 * Replaces the text at the given location by the replacement string and creates a change,
 	 * so replacements can be undone.
@@ -824,37 +876,40 @@ public class RelationPanel extends JPanel implements
 	 */
 	public void replace(SearchHit pHit, String pReplacement)
 	{
-		if (pHit != null)
+		if (pHit != null && pReplacement != null)
 		{
 			int row = pHit.getRowIndex();
 			
 			RelationTableModel rtm = this.getTableModel();
-			String oldValue = (String)rtm.getValueAt(row, RelationTableModel.COL_ATTRVALUE);
-			String key = oldValue.substring(pHit.getStart(), pHit.getEnd());
-			String newValue = oldValue.replaceFirst(key, pReplacement);
-			
-			// write changed cell value back into table model
-			this.relTable.setValueAt(newValue, row, RelationTableModel.COL_ATTRVALUE);
-			
-			// create Change for update or undo actions
-			int tupleIndex = Integer.valueOf((String)rtm.getValueAt(row, RelationTableModel.COL_TUPLEID));
-			int attributeIndex = rtm.rowToAttributeIndex(row);
-			String attributeName = this.relation.getAttributeNames().get(attributeIndex);
-			String attributeType = this.relation.getAttributeTypes().get(attributeIndex);
-			
-			Change change = new Change(tupleIndex, attributeIndex, row,
-									   attributeName, attributeType, 
-									   oldValue, newValue);
-			
-			rtm.addChange(change);
-			
-			rtm.removeHit(pHit);
-			
-			this.showSearchResult(key);
-			
-			this.relTable.revalidate();
-			this.relTable.repaint();
-			this.repaint();
+			if (rtm != null)
+			{
+				String oldValue = (String)rtm.getValueAt(row, RelationTableModel.COL_ATTRVALUE);
+				String key = oldValue.substring(pHit.getStart(), pHit.getEnd());
+				String newValue = oldValue.replaceFirst(key, pReplacement);
+				
+				// write changed cell value back into table model
+				this.relTable.setValueAt(newValue, row, RelationTableModel.COL_ATTRVALUE);
+				
+				// create Change for update or undo actions
+				int tupleIndex = Integer.valueOf((String)rtm.getValueAt(row, RelationTableModel.COL_TUPLEID));
+				int attributeIndex = rtm.rowToAttributeIndex(row);
+				String attributeName = this.relation.getAttributeNames().get(attributeIndex);
+				String attributeType = this.relation.getAttributeTypes().get(attributeIndex);
+				
+				Change change = new Change(tupleIndex, attributeIndex, row,
+										   attributeName, attributeType, 
+										   oldValue, newValue);
+				
+				rtm.addChange(change);
+				
+				rtm.removeHit(pHit);
+				
+				this.showSearchResult(key);
+				
+				this.relTable.revalidate();
+				this.relTable.repaint();
+				this.repaint();
+			}
 		}
 	}
 	
@@ -903,7 +958,9 @@ public class RelationPanel extends JPanel implements
 		{
 			this.getTableModel().setSearchHits(null);
 			this.relTable.revalidate();
+			this.relTable.repaint();
 		}
+		this.repaint();
 	}
 	
 	
@@ -943,39 +1000,37 @@ public class RelationPanel extends JPanel implements
 		
 		if (pKey != null && (pKey.length() > 0 ))
 		{
-			Pattern pattern;
-			Matcher matcher;
-			String cellValue;
-			
 			for (int i = 0; i < this.relTable.getRowCount(); i++)
 			{
-				cellValue = (String)this.relTable.getValueAt(i, RelationTableModel.COL_ATTRVALUE);
-				
-				if (pCaseSensitive)
-				{
-					pattern = Pattern.compile(pKey);
-				}
-				else
-				{
-					pattern = Pattern.compile(pKey, Pattern.CASE_INSENSITIVE);
-				}
-				
-				matcher = pattern.matcher(cellValue);
-				boolean found = matcher.find();
-				
-				while (found)
-				{
-					SearchHit hit = new SearchHit(i, matcher.start(), matcher.start() + pKey.length());
-					result.add(hit);
-					found = matcher.find();
-					Reporter.debug("RelationPanel.retrieveSearchHits: match in " + this.getName() + ": " + hit.toString());
-				}
+				result.addAll(this.retrieveSearchHits(pKey, pCaseSensitive, i));
 			}
 		}
 
 		return result;
 	}
 		
+	
+	public List<SearchHit> retrieveSearchHits(String pKey, boolean pCaseSensitive, int pRow)
+	{
+		List<SearchHit> result = new ArrayList<SearchHit>();
+
+		String cellValue = (String)this.relTable.getValueAt(pRow, RelationTableModel.COL_ATTRVALUE);
+		
+		Pattern pattern = pCaseSensitive ? Pattern.compile(pKey) : Pattern.compile(pKey, Pattern.CASE_INSENSITIVE);
+		
+		Matcher matcher = pattern.matcher(cellValue);
+		boolean found = matcher.find();
+		
+		while (found)
+		{
+			SearchHit hit = new SearchHit(pRow, matcher.start(), matcher.start() + pKey.length());
+			result.add(hit);
+			found = matcher.find();
+			Reporter.debug("RelationPanel.retrieveSearchHits: match in " + this.getName() + ": " + hit.toString());
+		}
+		return result;
+	}
+	
 	
 	/**
 	 * Sets state and changes table properties accordingly.
@@ -1010,7 +1065,9 @@ public class RelationPanel extends JPanel implements
 		}
 	}
 	
-	
+	/**
+	 * 
+	 */
 	public void setSearchHits(List<SearchHit> pHits)
 	{
 		this.getTableModel().setSearchHits(pHits);
@@ -1057,40 +1114,47 @@ public class RelationPanel extends JPanel implements
 		colNames[0] = this.getTableModel().getColumnName(RelationTableModel.COL_ATTRNAME);
 		colNames[1] = this.getTableModel().getColumnName(RelationTableModel.COL_ATTRVALUE);
 		
-		String[][] insertData = new String[attributeNames.size()][2];
+		this.insertData = new String[attributeNames.size()-1][2];
 		
-		for (int i = 0; i < attributeNames.size(); i++) 
+		for (int i = 0; i < attributeNames.size()-1; i++) 
 		{
 			insertData[i][0] = attributeNames.get(i);			
 			insertData[i][1] = "";
 		}
 		
-		this.remove(relScroll);
-		this.insertTable = new JTable(insertData, colNames);
+		DefaultTableModel dtm = new DefaultTableModel(insertData, colNames) 
+		{
+			public boolean isCellEditable(int row, int column) {  return (column == 1); }
+			public void setValueAt(Object pValue, int pRow, int pCol) 
+			{
+				if(isCellEditable(pRow, pCol)) 
+				{
+					super.setValueAt(pValue, pRow, pCol);
+					insertData[pRow][pCol] = (String)pValue;
+				}
+			}
+		};
+		
+		this.insertTable = new JTable(dtm);
 		
 		// set column width
 		TableColumn column = this.insertTable.getColumnModel().getColumn(0);
 		column.setMinWidth(this.relTable.getColumnModel().getColumn(1).getMinWidth()); 
 		column.setMaxWidth(this.relTable.getColumnModel().getColumn(1).getMaxWidth()); 
-		column.setCellRenderer(new LabelTableCellRenderer());
 
 		// set cell renderers
-		/*
-		 column = this.relTable.getColumnModel().getColumn(0);
+		/*column.setCellRenderer(new LabelTableCellRenderer());
 		
 		column = this.relTable.getColumnModel().getColumn(1);
 		column.setCellRenderer(this.tableCellRenderer);
 		column.setCellEditor(this.tableCellEditor);
-		
-		column = this.relTable.getColumnModel().getColumn(2);
-		column.setCellRenderer(this.tableCellRenderer);
-		column.setCellEditor(this.tableCellEditor);
 		*/
-		
+		// replace 
 		this.insertScroll.setViewportView(insertTable);		
 		this.splitPane.setTopComponent(this.relScroll);	
 		this.splitPane.setBottomComponent(this.insertScroll);
 		this.splitPane.setResizeWeight(0.5);
+		this.remove(relScroll);
 		this.add(this.splitPane, BorderLayout.CENTER);
 		
 		this.revalidate();
