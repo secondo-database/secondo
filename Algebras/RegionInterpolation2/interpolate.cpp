@@ -141,8 +141,8 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
         (*dst)[i].used = 0;
     }
     
-    Pt srcoff = Reg::GetMinXY(*src);
-    Pt dstoff = Reg::GetMinXY(*dst);
+    Pt srcoff = Reg::GetBoundingBox(*src).first;
+    Pt dstoff = Reg::GetBoundingBox(*dst).first;
 
     if (src->size() >= dst->size()) {
         for (unsigned int i = 0; i < dst->size(); i++) {

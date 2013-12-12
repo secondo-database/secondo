@@ -40,6 +40,7 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
                 }
                 ccv.hullPoint = reg1->Cur().s;
                 ccv.peerPoint = r2.Cur().s;
+                ccv.parent = reg1;
                 ccv.Close();
                 scvs.push_back(ccv);
                  
@@ -66,6 +67,7 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2) {
                 }
                 ccv.hullPoint = reg2->Cur().s;
                 ccv.peerPoint = r1.Cur().s;
+                ccv.parent = reg2;
                 ccv.Close();
                 
                 dcvs.push_back(ccv);

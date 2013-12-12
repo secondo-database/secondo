@@ -6,7 +6,7 @@
 Reg::Reg() : cur(0) {
 }
 
-Reg::Reg(ListExpr tle) : cur(0) {
+Reg::Reg(ListExpr tle) : cur(0), parent(NULL) {
     ListExpr le = nl->First(tle);
     while (nl->ListLength(le) > 1) {
         ListExpr pa = nl->First(le);
@@ -31,7 +31,7 @@ Reg::Reg(ListExpr tle) : cur(0) {
     Close();
 }
 
-Reg::Reg(vector<Seg> v) : cur(0), v(v) {
+Reg::Reg(vector<Seg> v) : cur(0), parent(NULL), v(v) {
 }
 
 Region Reg::MakeRegion(int offx, int offy) {
@@ -66,6 +66,37 @@ void Reg::Sort() {
 }
 
 void Reg::AddSeg(Seg& a) {
+    int minx, miny, maxx, maxy;
+    if (a.s.x > a.e.x) {
+        minx = a.e.x;
+        maxx = a.s.x;
+    } else {
+        minx = a.s.x;
+        maxx = a.e.x;
+    }
+    if (a.s.y > a.e.y) {
+        miny = a.e.y;
+        maxy = a.s.y;
+    } else {
+        miny = a.s.y;
+        maxy = a.e.y;
+    }
+    
+    if (v.size() == 0) {
+        bbox.first.x = minx;
+        bbox.second.x = maxx;
+        bbox.first.y = miny;
+        bbox.second.y = maxy;
+    } else {
+        if (minx < bbox.first.x)
+            bbox.first.x = minx;
+        if (maxx > bbox.second.x)
+            bbox.second.x = maxx;
+        if (miny < bbox.first.y)
+            bbox.first.y = miny;
+        if (maxy > bbox.second.y)
+            bbox.second.y = maxy;
+    }
     v.push_back(a);
 }
 
@@ -179,8 +210,6 @@ MSegs Reg::collapse(bool close) {
 
     Pt dst;
 
-    cerr << "DEBUG " << v.size() << "\n";
-
     if (v.size() < 3)
         return ret;
 
@@ -216,7 +245,7 @@ vector<Reg> Reg::getRegs(ListExpr le) {
 }
 
 Pt Reg::GetMiddle() {
-    Pt middle = (GetMaxXY() + GetMinXY()) / 2;
+    Pt middle = (GetBoundingBox().second + GetBoundingBox().first) / 2;
 
     return middle;
 }
@@ -234,100 +263,26 @@ string Reg::ToString() const {
     return ss.str();
 }
 
-Pt Reg::GetMinXY(vector<Reg> regs) {
+pair<Pt,Pt> Reg::GetBoundingBox(vector<Reg> regs) {
     if (regs.empty())
-        return Pt(0, 0);
-    assert(regs.size() > 0);
+        return pair<Pt,Pt>(Pt(0, 0), Pt(0, 0));
     assert(regs[0].v.size() > 0);
-    double minx = regs[0].v[0].s.x;
-    double miny = regs[0].v[0].s.y;
-    for (unsigned int i = 0; i < regs.size(); i++) {
-        for (unsigned int j = 0; j < regs[i].v.size(); j++) {
-            if (regs[i].v[j].s.x < minx) {
-                minx = regs[i].v[j].s.x;
-            }
-            if (regs[i].v[j].s.y < miny) {
-                miny = regs[i].v[j].s.y;
-            }
-        }
+    pair<Pt,Pt> ret = regs[0].bbox;
+    for (unsigned int i = 1; i < regs.size(); i++) {
+        pair<Pt,Pt> bbox = regs[i].bbox;
+        if (bbox.first.x < ret.first.x)
+            ret.first.x = bbox.first.x;
+        if (bbox.second.x > ret.second.x)
+            ret.second.x = bbox.second.x;
+        if (bbox.first.y < ret.first.y)
+            ret.first.y = bbox.first.y;
+        if (bbox.second.y > ret.second.y)
+            ret.second.y = bbox.second.y;
     }
 
-    return Pt(minx, miny);
+    return ret;
 }
 
-Pt Reg::GetMaxXY(vector<Reg> regs) {
-    if (regs.empty())
-        return Pt(0, 0);
-    assert(regs.size() > 0);
-    assert(regs[0].v.size() > 0);
-    double maxx = regs[0].v[0].s.x;
-    double maxy = regs[0].v[0].s.y;
-    for (unsigned int i = 0; i < regs.size(); i++) {
-        for (unsigned int j = 0; j < regs[i].v.size(); j++) {
-            if (regs[i].v[j].s.x > maxx) {
-                maxx = regs[i].v[j].s.x;
-            }
-            if (regs[i].v[j].s.y > maxy) {
-                maxy = regs[i].v[j].s.y;
-            }
-        }
-    }
-
-    return Pt(maxx, maxy);
-}
-
-Pt Reg::GetMinXY() {
-    double minx = v[0].s.x;
-    double miny = v[0].s.y;
-    for (unsigned int j = 0; j < v.size(); j++) {
-        if (v[j].s.x < minx) {
-            minx = v[j].s.x;
-        }
-        if (v[j].s.y < miny) {
-            miny = v[j].s.y;
-        }
-    }
-
-    return Pt(minx, miny);
-}
-
-Pt Reg::GetMaxXY() {
-    double maxx = v[0].s.x;
-    double maxy = v[0].s.y;
-    for (unsigned int j = 0; j < v.size(); j++) {
-        if (v[j].s.x > maxx) {
-            maxx = v[j].s.x;
-        }
-        if (v[j].s.y > maxy) {
-            maxy = v[j].s.y;
-        }
-    }
-
-    return Pt(maxx, maxy);
-}
-
-pair<Pt> Reg::GetBoundingBox(vector<Reg> regs) {
-    if (regs.empty())
-        return pair(Pt(0, 0), Pt(0, 0));
-    assert(regs[0].v.size() > 0);
-    double minx = regs[0].v[0].s.x;
-    double miny = regs[0].v[0].s.y;
-    double maxx = regs[0].v[0].s.x;
-    double maxy = regs[0].v[0].s.y;
-    for (unsigned int i = 0; i < regs.size(); i++) {
-        for (unsigned int j = 0; j < regs[i].v.size(); j++) {
-            if (regs[i].v[j].s.x < minx) {
-                minx = regs[i].v[j].s.x;
-            } else if (regs[i].v[j].s.x > maxx) {
-                maxx = regs[i].v[j].s.x;
-            }
-            if (regs[i].v[j].s.y < miny) {
-                miny = regs[i].v[j].s.y;
-            } else if (regs[i].v[j].s.y > maxy) {
-                maxy = regs[i].v[j].s.y;
-            }
-        }
-    }
-
-    return pair(Pt(minx, miny), Pt(maxx, maxy));
+pair<Pt,Pt> Reg::GetBoundingBox() {
+    return bbox;
 }

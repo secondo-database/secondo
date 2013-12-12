@@ -29,6 +29,10 @@ Pt Pt::operator/(const double a) const {
     return Pt(x/a,y/a);
 }
 
+Pt Pt::operator*(const Pt& a) const {
+    return Pt(x*a.x,y*a.y);
+}
+
 bool Pt::sortAngle(const Pt& a) const {
     return (angle < a.angle);
 }

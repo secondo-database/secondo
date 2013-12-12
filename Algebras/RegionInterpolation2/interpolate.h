@@ -21,6 +21,7 @@ public:
     Pt   operator-(const Pt& a) const;
     Pt   operator+(const Pt& a) const;
     Pt   operator/(double a) const;
+    Pt   operator*(const Pt& a) const;
     bool sortAngle(const Pt& a) const;
     void calcAngle(const Pt& pt);
     double distance (Pt p);
@@ -48,6 +49,8 @@ private:
     int cur;
 
 public:
+    Reg *parent;
+    
     Pt hullPoint, peerPoint;
     Seg hullSeg;
     vector<Seg> convexhull;
@@ -55,6 +58,7 @@ public:
     vector<Reg> holes;
     int used;
     int isdst;
+    pair<Pt,Pt> bbox;
     
     Reg();
     Reg(ListExpr le);
@@ -75,17 +79,14 @@ public:
     vector<Reg> Concavities2(Reg *r2);
     Region MakeRegion();
     Region MakeRegion(int offx, int offy);
-    Pt GetMinXY();
-    Pt GetMaxXY();
+    pair<Pt,Pt> GetBoundingBox();
     Pt GetMiddle();
     MSegs collapse(bool close);
     string ToString() const;
     double distance (Reg r);
     
     static vector<Reg> getRegs(ListExpr le);
-    static Pt GetMinXY(vector<Reg> regs);
-    static Pt GetMaxXY(vector<Reg> regs);
-    static pair<Pt> GetBoundingBox(vector<Reg> regs);
+    static pair<Pt,Pt> GetBoundingBox(vector<Reg> regs);
 };
 
 class MSeg {
