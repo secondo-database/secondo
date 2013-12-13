@@ -36,6 +36,7 @@ This class implements a longint type in Secondo.
 #include "GenericTC.h"
 #include <errno.h>
 #include "SecondoSMI.h"
+#include "StandardTypes.h"
 
 /*
 1 Class Definition for ~LongInt~
@@ -133,7 +134,7 @@ public:
 
    }
 
-   virtual void ReadFromString(const std::string& v){
+   virtual void ReadFromString( std::string v){
      if(!ReadFrom(v)){
          SetDefined(false);
      }
@@ -215,7 +216,30 @@ ostream& Print(ostream &os) const{
  }
  inline void Dec(){
     value--;
- } 
+ }
+
+/*
+csv support
+
+*/
+ virtual string getCsvStr() const{
+    return ToString(); 
+ }
+
+ virtual bool hasTextRepresentation() const{
+    return true;
+ }
+
+ virtual string toText() const{
+    return ToString(); 
+ }
+
+  virtual bool fromText(const string& value) {
+      ReadFromString(value);
+      return true;
+  }
+
+ 
 
 /*
 Addition

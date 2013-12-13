@@ -36,6 +36,7 @@ This class implements a rational type in Secondo.
 #include <limits>
 #include "GenericTC.h"
 #include <errno.h>
+#include "LongInt.h"
 
 /*
 Class Rational.
@@ -154,6 +155,10 @@ class Rational : public Attribute {
 
     ~Rational(){}
 
+
+    Rational& GetValue(){
+       return *this;
+    }
 
     void readFrom(int64_t n,  int64_t d){
 
@@ -416,6 +421,9 @@ Attribute Support
   }
 
   ListExpr ToListExpr(ListExpr typeInfo) const{
+     if(!IsDefined()){
+       return listutils::getUndefined();
+     }
      if(negative){
         return nl->ThreeElemList( nl->SymbolAtom("-"),
                                   toListExpr(nominator),
