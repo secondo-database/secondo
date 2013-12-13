@@ -1473,15 +1473,13 @@ Type mapping for ~ifthenelse2~ is
 */
 ListExpr ifthenelse2Type(ListExpr args)
 {
-  ListExpr arg1, arg2, arg3,
-           errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  ListExpr arg1, arg2, arg3;
 
   if ( nl->ListLength( args ) == 3 )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     arg3 = nl->Third( args );
-    errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
     if (nl->Equal(arg2, arg3) && listutils::isSymbol(arg1,CcBool::BasicType()))
     {
