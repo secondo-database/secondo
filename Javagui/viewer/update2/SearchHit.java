@@ -48,7 +48,6 @@ public class SearchHit implements Comparable<SearchHit>
 		return this.end;
 	}
 	
-	@Override
 	public int compareTo(SearchHit o)
 	{
 		int result = this.rowIndex - ((SearchHit)o).getRowIndex();
