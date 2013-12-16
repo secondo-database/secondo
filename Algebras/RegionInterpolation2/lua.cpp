@@ -12,6 +12,7 @@ static void setfield(const char *key, int value);
 static int lua_distance(lua_State *L);
 static int lua_getbb(lua_State *L);
 static int lua_getbboverlap(lua_State *L);
+static int lua_getmiddle(lua_State *L);
 
 static void setfield(const char *key, int value) {
     lua_pushstring(L, key);
@@ -52,7 +53,7 @@ static Pt modPt (Pt pt, bool isdst) {
     Pt off = isdst ? lua_getPt("dstoff") : lua_getPt("srcoff");
     Pt scale = isdst ? lua_getPt("dstscale") : lua_getPt("srcscale");    
     
-    return (pt+off)*scale;
+    return (pt-off)*scale;
 }
 
 int luaInit(void) {
@@ -74,6 +75,8 @@ int luaInit(void) {
 
     lua_pushcfunction(L, lua_distance);
     lua_setglobal(L, "distance");
+    lua_pushcfunction(L, lua_getmiddle);
+    lua_setglobal(L, "getmiddle");
     lua_pushcfunction(L, lua_getbb);
     lua_setglobal(L, "bb");
     lua_pushcfunction(L, lua_getbboverlap);
@@ -209,8 +212,8 @@ static int lua_getbb(lua_State *L) {
         return 0;
     }
     Reg *reg = (Reg*) lua_touserdata(L, -1);
-    lua_pushPt(reg->bbox.first);
-    lua_pushPt(reg->bbox.second);
+    lua_pushPt(modPt(reg->bbox.first, reg->isdst));
+    lua_pushPt(modPt(reg->bbox.second, reg->isdst));
     
     return 2;
 }
