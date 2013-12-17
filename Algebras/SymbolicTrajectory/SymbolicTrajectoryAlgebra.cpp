@@ -1679,7 +1679,7 @@ Word Pattern::Create(const ListExpr typeInfo) {
 
 */
 void Pattern::Delete(const ListExpr typeInfo, Word& w) {
-  delete static_cast<Pattern*>(w.addr);
+//   delete static_cast<Pattern*>(w.addr);
   w.addr = 0;
 }
 
@@ -4141,9 +4141,10 @@ struct matchesInfo : OperatorInfo {
 */
 ListExpr indexmatchesTM(ListExpr args) {
   const string errMsg = "Expecting a relation, the name of a mlabel"
-             " attribute of that relation, an invfile, and a text";
+             " attribute of that relation, an invfile, and a pattern/text";
   if (nl->HasLength(args, 4)) {
-    if (FText::checkType(nl->Fourth(args))) {
+    if (FText::checkType(nl->Fourth(args)) || 
+        Pattern::checkType(nl->Fourth(args))) {
       if (Relation::checkType(nl->First(args))) {
         ListExpr tupleList = nl->First(nl->Rest(nl->First(args)));
         if (Tuple::checkType(tupleList)
@@ -4177,10 +4178,12 @@ ListExpr indexmatchesTM(ListExpr args) {
 
 */
 IndexMatchesLI::IndexMatchesLI(Word _mlrel, InvertedFile *inv, int _attrNr,
-                           Pattern *p) : IndexClassifyLI(_mlrel, inv, _attrNr) {
+             Pattern *p, bool deleteP) : IndexClassifyLI(_mlrel, inv, _attrNr) {
   if (p) {
     applyPattern(p);
-    delete p;
+    if (deleteP) {
+      delete p;
+    }
   }
 }
 
@@ -4198,11 +4201,19 @@ Tuple* IndexMatchesLI::nextTuple() {
 }
 
 /*
-\subsection{Value Mapping}
+\subsection{Selection Function}
 
 */
-int indexmatchesVM(Word* args, Word& result, int message, Word& local,
-                   Supplier s){
+int indexmatchesSelect(ListExpr args) {
+  return (FText::checkType(nl->Fourth(args)) ? 0 : 1);
+}
+
+/*
+\subsection{Value Mapping (type text)}
+
+*/
+int indexmatchesVM_T(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
   IndexMatchesLI *li = (IndexMatchesLI*)local.addr;
   switch (message) {
     case OPEN: {
@@ -4222,8 +4233,56 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
             local.addr = 0;
           }
           else {
-            local.addr = new IndexMatchesLI(args[0], inv, attr->GetIntval(), p);
+            local.addr = new IndexMatchesLI(args[0], inv, attr->GetIntval(), p, 
+                                            true);
           }
+        }
+      }
+      else {
+        cout << "undefined parameter(s)" << endl;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Value Mapping (type pattern)}
+
+*/
+int indexmatchesVM_P(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
+  IndexMatchesLI *li = (IndexMatchesLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      Pattern *p = static_cast<Pattern*>(args[3].addr);
+      CcInt *attr = static_cast<CcInt*>(args[4].addr);
+      InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
+      if (p->IsDefined() && attr->IsDefined()) {
+        if (p->hasConds() || p->containsRegEx()) {
+          cout << "pattern is not simple" << endl;
+          local.addr = 0;
+        }
+        else {
+          local.addr = new IndexMatchesLI(args[0], inv, attr->GetIntval(), p,
+                                          false);
         }
       }
       else {
@@ -4300,7 +4359,8 @@ ListExpr filtermatchesTM(ListExpr args) {
 
 */
 FilterMatchesLI::FilterMatchesLI(Word _stream, int _attrIndex, FText* text) :
-      stream(_stream), attrIndex(_attrIndex), match(0), streamOpen(false) {
+                 stream(_stream), attrIndex(_attrIndex), match(0), 
+                 streamOpen(false), deleteP(true) {
   Pattern *p = Pattern::getPattern(text->GetValue());
   if (p) {
     match = new Match(p, 0);
@@ -4310,7 +4370,8 @@ FilterMatchesLI::FilterMatchesLI(Word _stream, int _attrIndex, FText* text) :
 }
 
 FilterMatchesLI::FilterMatchesLI(Word _stream, int _attrIndex, Pattern* p):
-      stream(_stream), attrIndex(_attrIndex), match(0), streamOpen(false) {
+                 stream(_stream), attrIndex(_attrIndex), match(0), 
+                 streamOpen(false), deleteP(false) {
   if (p) {
     match = new Match(p, 0);
     stream.open();
@@ -4324,7 +4385,9 @@ FilterMatchesLI::FilterMatchesLI(Word _stream, int _attrIndex, Pattern* p):
 */
 FilterMatchesLI::~FilterMatchesLI() {
   if (match) {
-    match->deletePattern();
+    if (deleteP) {
+      match->deletePattern();
+    }
     delete match;
     match = 0;
   }
@@ -4365,8 +4428,8 @@ int filtermatchesSelect(ListExpr args) {
 \subsection{Value Mapping for a Text}
 
 */
-int filtermatchesVM_Text(Word* args, Word& result, int message, Word& local,
-                         Supplier s) {
+int filtermatchesVM_T(Word* args, Word& result, int message, Word& local,
+                      Supplier s) {
   FilterMatchesLI* li = (FilterMatchesLI*)local.addr;
   switch (message) {
     case OPEN: {
@@ -4403,8 +4466,8 @@ int filtermatchesVM_Text(Word* args, Word& result, int message, Word& local,
 \subsection{Value Mapping for a Pattern}
 
 */
-int filtermatchesVM_Pat(Word* args, Word& result, int message,
-                        Word& local, Supplier s) {
+int filtermatchesVM_P(Word* args, Word& result, int message, Word& local, 
+                      Supplier s) {
   FilterMatchesLI* li = (FilterMatchesLI*)local.addr;
   switch (message) {
     case OPEN: {
@@ -6395,20 +6458,19 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(toclassifierInfo(), toclassifierVM, toclassifierTM);
 
       ValueMapping matchesVMs[] = {matchesVM_T, matchesVM_P, 0};
-      
       AddOperator(matchesInfo(), matchesVMs, matchesSelect, matchesTM);
+      
+      ValueMapping indexmatchesVMs[] = {indexmatchesVM_T, indexmatchesVM_P, 0};
+      AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
+                  indexmatchesTM);
 
-      AddOperator(indexmatchesInfo(), indexmatchesVM, indexmatchesTM);
-
-      ValueMapping filtermatchesVMs[] = {filtermatchesVM_Text,
-                                         filtermatchesVM_Pat, 0};
-
+      ValueMapping filtermatchesVMs[] = {filtermatchesVM_T,
+                                         filtermatchesVM_P, 0};
       AddOperator(filtermatchesInfo(), filtermatchesVMs, filtermatchesSelect,
                   filtermatchesTM);
       
       ValueMapping rewriteVMs[] = {rewriteVM_T, rewriteVM_P,
                                    rewriteVM_Stream, 0};
-                                   
       AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTM);
 
       AddOperator(classifyInfo(), classifyVM, classifyTM);
@@ -6419,14 +6481,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                     compressVM_1<MString>,
                                     compressVM_Str<MLabel>,
                                     compressVM_Str<MString>, 0};
-      
       AddOperator(compressInfo(), compressVMs, compressSelect, compressTM);
 
       ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>,
                                     fillgapsVM_1<MString>,
                                     fillgapsVM_Str<MLabel>,
                                     fillgapsVM_Str<MString>, 0};
-      
       AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect, fillgapsTM);
 
       AddOperator(createmlInfo(), createmlVM, createmlTM);

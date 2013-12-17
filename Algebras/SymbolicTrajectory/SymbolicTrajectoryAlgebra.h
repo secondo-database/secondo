@@ -452,9 +452,10 @@ class Pattern {
   // other functions
   static const string BasicType();
   static const bool checkType(const ListExpr type);
+  const bool      IsDefined() {return true;}
+  
   static Pattern* getPattern(string input, bool classify = false);
   ExtBool matches(MLabel *ml);
-
   int getResultPos(const string v);
   void collectAssVars();
   void addVarPos(string var, int pos);
@@ -790,7 +791,7 @@ class FilterMatchesLI {
   Stream<Tuple> stream;
   int attrIndex;
   Match* match;
-  bool streamOpen;
+  bool streamOpen, deleteP;
 };
 
 struct IndexMatchInfo {
@@ -838,7 +839,8 @@ friend class IndexMatchesLI;
 
 class IndexMatchesLI : public IndexClassifyLI {
  public:
-  IndexMatchesLI(Word _mlrel, InvertedFile *inv, int _attrNr, Pattern *p);
+  IndexMatchesLI(Word _mlrel, InvertedFile *inv, int _attrNr, Pattern *p, 
+                 bool deleteP);
 
   ~IndexMatchesLI() {}
 
