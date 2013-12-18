@@ -3958,6 +3958,7 @@ int FTextValueMapGetValueNL_tuplestream( Word* args, Word& result, int message,
     case CLOSE:
       if(li){
          delete li;
+         local.addr=0;
       }
       qp->Close(args[0].addr);
       return 0;
