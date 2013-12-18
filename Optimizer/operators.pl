@@ -82,7 +82,8 @@ All constants can be printed using predicate
 
 */
 
-:-assert(helpLine(showOptConstants,0,[],'Display settings of several constants.')).
+:-assert(helpLine(showOptConstants,0,[],
+                  'Display settings of several constants.')).
 
 showOptConstant :-
   secOptConstant(X, Y),
@@ -1169,18 +1170,23 @@ opSignature((>=), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
   ,!.
 opSignature(isempty, temporallifted, [T],mbool,[]) :-
   memberchk(T,[mbool, mint, mstring, mreal, mpoint, mregion]),!.
-opSignature(inside, temporallifted, [mpoint,points],mbool,[exp,liftedspatialrange]).
-opSignature(inside, temporallifted, [mpoint,line],mbool,[exp,liftedspatialrange]).
-opSignature(inside, temporallifted, [mpoint,region],mbool,[exp,liftedspatialrange]).
-opSignature(inside, temporallifted, [mregion,points],mbool,[exp,liftedspatialrange]).
-opSignature(inside, temporallifted, [mregion,line],mbool,[exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [mpoint,points],mbool,
+            [exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [mpoint,line],mbool,
+            [exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [mpoint,region],mbool,
+            [exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [mregion,points],mbool,
+            [exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [mregion,line],mbool,
+            [exp,liftedspatialrange]).
 opSignature(intersection, temporallifted, [T,T],T,[comm,ass,exp]) :-
   memberchk(T,[mbool, mint, mstring, mreal]),!.
 opSignature(intersection, temporallifted, [T1,T2],T1,[comm,exp]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),(mreal,real)]),!.
 opSignature(intersection, temporallifted, [T1,T2],T2,[comm,exp]) :-
   memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),(real,mreal)]),!.
-opSignature(intersection, temporallifted, [mpoint,mpoint],mpoint,[comm,ass,exp]).
+opSignature(intersection, temporallifted,[mpoint,mpoint],mpoint,[comm,ass,exp]).
 opSignature(intersection, temporallifted, [T,mpoint],mpoint,[comm,exp]) :-
   memberchk(T,[line,points]),!.
 opSignature(intersection, temporallifted, [mpoint,T],mpoint,[comm,exp]) :-
@@ -1478,10 +1484,12 @@ opSignature(namedtransformstream, stream, [[stream,T],Attr],
 opSignature(feed, stream,[[rel,[tuple,AttrList]]],[stream,[tuple,AttrList]],[]).
 opSignature(feed, stream,[T],[stream,T],[]) :- isData(T),!.
 % NVK ADDED NR
-opSignature(afeed, stream,[[arel,[tuple,AttrList]]],[stream,[tuple,AttrList]],[]).
+opSignature(afeed, stream,[[arel,[tuple,AttrList]]],
+            [stream,[tuple,AttrList]],[]).
 opSignature(aconsume, relation, [[stream,[tuple,X]]],[nrel,[tuple,X]],[block]).
-opSignature(unnest, nestedrelations, [[stream,[tuple,_]],_],[stream,[tuple,_]], []).
-opSignature(nest, nestedrelations, [[stream,[tuple,_]],_],[stream,[tuple,_]], []).
+opSignature(unnest, nestedrelations, [[stream,[tuple,_]],_],[stream,[tuple,_]],
+            []).
+opSignature(nest, nestedrelations,[[stream,[tuple,_]],_],[stream,[tuple,_]],[]).
 % NVK ADDED NR END
 opSignature(use, stream, [[stream,T1],[map, T1, T2]],[stream,T2],[]) :-
   isData(T1),isData(T2),!.
@@ -1508,7 +1516,7 @@ opSignature(use2,stream,[[stream,T1],T2,[map,T1,T2,[stream,T3]]],[stream,T3],[])
 opSignature(aggregateS,stream,[[stream,T],[map,T,T,T],T],T,[block,aggr,exp]) :-
   isData(T),!.
 opSignature(filter,stream,[[stream,T],[map,T,bool]],[stream,T],[]):-isData(T),!.
-opSignature(ensure, stream, [[stream,T],int],bool,[block,aggr,exp]) :- isData(T).
+opSignature(ensure,stream, [[stream,T],int],bool,[block,aggr,exp]) :- isData(T).
 opSignature(echo,stream,[[stream,T],string],[stream,T],[sidefx]):-isData(T),!.
 opSignature(echo,stream,[[stream,T],bool,string],[stream,T],[sidefx])
           :-isData(T),!.
@@ -1720,8 +1728,8 @@ opSignature(insert, collection, [[multiset,T],T],[set,T],[exp]) :- isData(T), !.
 opSignature((+), collection, [[vector,T],T],[vector,T],[exp]) :- isData(T), !.
 opSignature(collect_set, collection, [[stream,T]],[set,T],[block,aggr,exp]) :-
   isData(T), !.
-opSignature(collect_multiset,collection,[[stream,T]],[multiset,T],[block,aggr,exp])
-        :-isData(T),!.
+opSignature(collect_multiset,collection,[[stream,T]],[multiset,T],
+            [block,aggr,exp]) :-isData(T),!.
 opSignature(collect_vector,collection,[[stream,T]],[vector,T],[block,aggr,exp])
         :-isData(T), !.
 opSignature(components, collection, [[vector,T]],[stream,T],[]) :- isData(T), !.
@@ -1741,9 +1749,10 @@ opSignature(intersection,collection,[[set,T],[set,T]],[set,T],[comm,ass,exp])
         :- isData(T),!.
 opSignature(intersection,collection,[[multiset,T],[multiset,T]],[multiset,T],
         [comm,ass,exp]) :- isData(T),!.
-opSignature(difference, collection, [[set,T],[set,T]],[set,T],[exp]):- isData(T),!.
-opSignature(difference, collection, [[multiset,T],[multiset,T]],[multiset,T],[exp])
-        :- isData(T),!.
+opSignature(difference, collection, [[set,T],[set,T]],[set,T],[exp]):- 
+  isData(T),!.
+opSignature(difference, collection, [[multiset,T],[multiset,T]],[multiset,T],
+            [exp]) :- isData(T),!.
 opSignature(size, collection, [[set,T]],int,[]) :- isData(T),!.
 opSignature(size, collection, [[multiset,T]],int,[]) :- isData(T),!.
 opSignature(size, collection, [[vector,T]],int,[]) :- isData(T),!.
@@ -1812,7 +1821,8 @@ opSignature(sim_fillup_mpoint, simulation, [mpoint,instant,instant,bool,bool,
                                             bool],mpoint,[]).
 opSignature(sim_trips, simulation, [mpoint,duration],[stream,mpoint],[]).
 opSignature(sim_trips, simulation, [mpoint,duration,real],[stream,mpoint],[]).
-opSignature(sim_trips, simulation, [mpoint,duration,real,geoid],[stream,mpoint],[]).
+opSignature(sim_trips, simulation, [mpoint,duration,real,geoid],[stream,mpoint],
+            []).
 
 
 /*
@@ -1880,11 +1890,11 @@ opSignature(saveto, binaryfile, [binfile,string],bool,[sidefx]).
 
 */
 opSignature(createbtree, btree, [[rel,[tuple,AttrList]],Key],
-                                 [btree,[tuple,AttrList],KeyType],[block,exp]) :-
+                                [btree,[tuple,AttrList],KeyType],[block,exp]) :-
   memberchk([Key,KeyType],AttrList),
   (memberchk(KeyType,[int,real,text]);isKind(KeyType,indexable)),!.
 opSignature(createbtree, btree, [[stream,[tuple,AttrList]],Key],
-                                 [btree,[tuple,AttrList2],KeyType],[block,exp]) :-
+                               [btree,[tuple,AttrList2],KeyType],[block,exp]) :-
   select([_,tid],AttrList,AttrList2),
   memberchk([Key,KeyType],AttrList2),
   (memberchk(KeyType,[int,real,text]);isKind(KeyType,indexable)),!.
@@ -1980,7 +1990,7 @@ opSignature(attrsize, relation, [[stream,[tuple,AttrList]],Attr],real,
 opSignature(rename, relation, [[stream,[tuple,A]],P],[stream,[tuple,R]],[]) :-
   ground([[stream,[tuple,A]],P]),
   findall([AR,T],(member([AO,T],A),concat_atom([AO,P],'_',AR)),R),!.
-opSignature(renameattr, relation, [[stream,[tuple,A]],P],[stream,[tuple,R]],[]) :-
+opSignature(renameattr,relation,[[stream,[tuple,A]],P],[stream,[tuple,R]],[]) :-
   % value extraction during typemapping (using string constants in P) is not yet
   % considered by this rule:
   ground([[stream,[tuple,A]],P]),
@@ -2015,7 +2025,7 @@ opSignature(sample, extrelation, [[rel,[tuple,X]],int,real,int],
         [stream,[tuple,X]],[sidefx]).
 opSignature(group, extrelation, [[stream, X]],[rel,X],[typemapop]).
 opSignature(cancel, extrelation, [[stream,X],[map,X,bool]],[stream,X],[]).
-opSignature(extract, extrelation, [[stream,[tuple,AL]],Attr],AType,[aggr,exp]) :-
+opSignature(extract, extrelation,[[stream,[tuple,AL]],Attr],AType,[aggr,exp]) :-
   (not(optimizerOption(determinePredSig)); is_list(AL)),
   memberchk([Attr,AType],AL),!.
 
@@ -2026,15 +2036,15 @@ opSignature(extend,extrelation,[[stream,[tuple,AL]],ExtL],[stream,[tuple,RL]],
   append(AL,EL,RL), !.
 opSignature(concat, extrelation, [[stream,[tuple,X]],[stream,[tuple,X]]],
             [stream,[tuple,X]],[]).
-opSignature(min, extrelation, [[stream,[tuple,AL]],Attr],Type,[block,aggr,exp]) :-
+opSignature(min,extrelation,[[stream,[tuple,AL]],Attr],Type,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),!.
-opSignature(max, extrelation, [[stream,[tuple,AL]],Attr],Type,[block,aggr,exp]) :-
+opSignature(max,extrelation,[[stream,[tuple,AL]],Attr],Type,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),!.
-opSignature(avg, extrelation, [[stream,[tuple,AL]],Attr],real,[block,aggr,exp]) :-
+opSignature(avg,extrelation,[[stream,[tuple,AL]],Attr],real,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),memberchk(Type,[int,real]),!.
-opSignature(sum, extrelation, [[stream,[tuple,AL]],Attr],Type,[block,aggr,exp]) :-
+opSignature(sum,extrelation,[[stream,[tuple,AL]],Attr],Type,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),memberchk(Type,[int,real]),!.
-opSignature(var, extrelation, [[stream,[tuple,AL]],Attr],real,[block,aggr,exp]) :-
+opSignature(var,extrelation,[[stream,[tuple,AL]],Attr],real,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),memberchk(Type,[int,real]),!.
 opSignature(stats, extrelation, [[stream,[tuple,AL]],A1,A2],[stream,[tuple,
     [(countx,int),(minx,real),(maxx,real),(sumx,real),(avgx,real),(varx,real),
@@ -2145,7 +2155,7 @@ opSignature(kbiggest, extrelation, [[stream,[tuple,A]],int,Attr],
 2.7.22 PlugJoinAlgebra
 
 */
-opSignature(spatialjoin, plugjoin, [[stream,[tuple,X]],[stream,[tuple,Y]],AX,AY],
+opSignature(spatialjoin, plugjoin,[[stream,[tuple,X]],[stream,[tuple,Y]],AX,AY],
         [stream,[tuple,R]],[join, block]) :-
   memberchk([AX,_],X), memberchk([AY,_],Y), append(X,Y,R), !. % no type check
 
@@ -2178,7 +2188,7 @@ opSignature(p_intersects, planesweep, [region,region],bool,[comm,bbox(2),exp]).
 opSignature(intersects_new, planesweep, [line,line],bool,[comm,bbox(2),exp]).
 opSignature(intersects_new, planesweep, [line,region],bool,[comm,bbox(2),exp]).
 opSignature(intersects_new, planesweep, [region,line],bool,[comm,bbox(2),exp]).
-opSignature(intersects_new, planesweep, [region,region],bool,[comm,bbox(2),exp]).
+opSignature(intersects_new, planesweep,[region,region],bool,[comm,bbox(2),exp]).
 
 
 /*
@@ -2484,7 +2494,7 @@ opSignature(inserttuple,updaterelation,[[rel,[tuple,X]]|VL],
         [stream,[tuple,R]],[sidefx]):-
   is_list(VL), %% Types in Value-List not checked!
   append(X,[[tid,tid]],R),!.
-opSignature(inserttuplesave, updaterelation,[[rel,[tuple,X]],[rel,[tuple,R]]|VL],
+opSignature(inserttuplesave,updaterelation,[[rel,[tuple,X]],[rel,[tuple,R]]|VL],
         [stream,[tuple,R]],[sidefx]) :-
   is_list(VL), %% Types in Value-List not checked!
   append(X,[[tid,tid]],R),!.
@@ -2645,6 +2655,19 @@ opSignature(knearestfilter, nearestneighbor,[[rtree,[tuple,X1], _, _],
   !.
 
 /*
+2.7.33 SymbolicTrajectoryAlgebra
+
+*/
+opSignature(matches, symbolictrajectory, [mlabel, P], [bool], []) :-
+  memberchk(P, [pattern, text]), !.
+  
+opSignature(filtermatches, symbolictrajectory, 
+            [[stream, [tuple, Attrlist]], Attrname, P],
+            [stream, [tuple, Attrlist]], []) :-
+  memberchk(P, [pattern, text]),
+  memberchk([Attrname, mlabel], Attrlist), !.
+
+/*
 2.7.2 (Still) Missing Algebras
 
 The typemappings for the operators of the following algebras still need to be declared:
@@ -2722,7 +2745,8 @@ NearestNeighbor Algebra
 */
 
 %Faked operator
-opSignature(isknn, nearestneighbor, [IDType, int, mpoint, string, string, string, int], mbool, []):-
+opSignature(isknn, nearestneighbor, [IDType, int, mpoint, string, string, 
+            string, int], mbool, []):-
   memberchk(IDType,[int, real, string]), !.
 
 
@@ -3218,16 +3242,21 @@ nullValue(ipoint,default,'(currenttime (0.0 0.0))').
 
 nullValue(mreal,undefined,'undefined').
 nullValue(mreal,empty,'()').
-nullValue(mreal,null,'((("begin of time" "end of time" TRUE TRUE) (0.0 0.0 0.0 FALSE)))').
-nullValue(mreal,one,'((("begin of time" "end of time" TRUE TRUE) (0.0 0.0 1.0 FALSE)))').
+nullValue(mreal,null,
+          '((("begin of time" "end of time" TRUE TRUE) (0.0 0.0 0.0 FALSE)))').
+nullValue(mreal,one,
+          '((("begin of time" "end of time" TRUE TRUE) (0.0 0.0 1.0 FALSE)))').
 nullValue(mreal,error,'undefined').
 nullValue(mreal,default,'()').
 
 nullValue(ureal,undefined,'undefined').
-nullValue(ureal,null,'(("begin of time" "end of time" TRUE TRUE) (0.0 0.0 0.0 FALSE))').
-nullValue(ureal,one,'(("begin of time" "end of time" TRUE TRUE) (0.0 0.0 1.0 FALSE))').
+nullValue(ureal,null,
+          '(("begin of time" "end of time" TRUE TRUE) (0.0 0.0 0.0 FALSE))').
+nullValue(ureal,one,
+          '(("begin of time" "end of time" TRUE TRUE) (0.0 0.0 1.0 FALSE))').
 nullValue(ureal,error,'undefined').
-nullValue(ureal,default,'((currenttime currenttime TRUE TRUE)(0.0 0.0 0.0 FALSE))').
+nullValue(ureal,default,
+          '((currenttime currenttime TRUE TRUE)(0.0 0.0 0.0 FALSE))').
 
 nullValue(ireal,undefined,'undefined').
 nullValue(ireal,error,'undefined').
@@ -3333,9 +3362,11 @@ nullValue(rect4,error,'undefined').
 nullValue(rect4,default,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
 
 nullValue(rect8,undefined,'undefined').
-nullValue(rect8,empty,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
+nullValue(rect8,empty,
+          '(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
 nullValue(rect8,error,'undefined').
-nullValue(rect8,default,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
+nullValue(rect8,default,
+          '(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
 
 % Section:Start:nullValue_3_e
 % Section:End:nullValue_3_e

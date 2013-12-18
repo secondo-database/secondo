@@ -97,10 +97,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, intersects_new).
 :- op(800, xf , isgrayscale).
 :- op(800, xf , isportrait).
-:- op(800, xfx, matches).
 :- op(800, xf , getHeight).
 :- op(800, xf , leapyear).
 :- op(800, xf , line2region).
+:- op(800, xfx, matches).
 :- op(800, xfx, mod).
 :- op(800, xfx, never).
 :- op(800,  fx, not).
@@ -339,6 +339,7 @@ secondoOp( itHashJoin,        postfixbrackets, 2).
 % NVK ADDED MA END
 secondoOp( fileSize,          prefix,  1).
 secondoOp( filter,            postfixbrackets, 1).
+secondoOp( filtermatches,     postfixbrackets, 1).
 secondoOp( find,              prefix, 2).
 secondoOp( flipleft,          postfixbrackets, 1).
 secondoOp( get,               prefix, 2).
@@ -405,6 +406,7 @@ secondoOp( makeline,          prefix, 2).
 secondoOp( makesline,         prefix, 2).
 secondoOp( makearray,         prefix, 1).
 secondoOp( makemvalue,        postfixbrackets, 1).
+secondoOp((matches),          infix, 2).
 secondoOp( max,               postfixbrackets, 1).
 secondoOp( maxD,              prefix, 2).
 secondoOp( maxdegree,         prefix, 2).

@@ -3174,22 +3174,6 @@ Here ~ArgS~ is meant to indicate ``argument stream''.
 
 */
 
-/*
-Apply an invfile for a relation containing moving labels (symbolic trajectories)
-
-*/
-matches(rel(Name, *), Attr, Text)
-               => indexmatches(rel(Name, *), Attr, dbobject(IndexName), Text) :-
-  writeln('start indexmatches'),
-  hasIndex(rel(Name, *), attr(Attr, _, _), DCindex, IndexType),
-  !,
-  IndexType = invfile,
-  dcName2externalName(DCindex, IndexName).
-
-matches(rel(Name, *), Attr, Text)
-                             => filtermatches(feed(rel(Name, *)), Attr, Text) :-
-  writeln('start filtermatches').
-
 
 /*
 
@@ -4201,6 +4185,7 @@ indexselectLifted(arg(N), Pred ) =>
    (memberchk(T2, [int, string, bool]), Y= Arg2)),
   hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
+  
 
 %     isOfFirst(Res, X, Y)
 % Returns X or Y, depending on which of them comes from the first stream
