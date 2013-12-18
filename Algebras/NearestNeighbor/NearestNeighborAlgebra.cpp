@@ -6330,6 +6330,7 @@ int oldknearestFilterFun (Word* args, Word& result, int message,
     {
       localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
       delete localInfo;
+      local.addr=0;
       return 0;
     }
   }
@@ -7735,7 +7736,10 @@ int knearestFilterFun (Word* args, Word& result, int message,
     case CLOSE :
     {
       localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
-      delete localInfo;
+      if(localInfo){
+        delete localInfo;
+        local.addr=0;
+      }
       return 0;
     }
   }
@@ -8524,8 +8528,11 @@ int covleafnodeFun(Word* args, Word& result, int message,
    }
    case CLOSE : {
       localInfo = (Covleafnode*)local.addr;
-      localInfo->resulttype->DeleteIfAllowed();
-      delete localInfo;
+      if(localInfo){
+         localInfo->resulttype->DeleteIfAllowed();
+         delete localInfo;
+         local.addr = 0;
+      }
       return 0;
    }
  }
@@ -10705,7 +10712,11 @@ int Greeceknearest(Word* args, Word& result, int message,
     case CLOSE :
     {
       localInfo = (TBKnearestLocalInfo*)local.addr;
-      delete localInfo;
+      if(localInfo){
+         delete localInfo;
+         local.addr=0;
+      }
+       
       return 0;
     }
   }
@@ -10805,8 +10816,10 @@ int ChinaknearestFun (Word* args, Word& result, int message,
     case CLOSE :
     {
       localInfo = (TBKnearestLocalInfo*)local.addr;
-
-      delete localInfo;
+      if(localInfo){
+         delete localInfo;
+         local.addr=0;
+      }
       return 0;
     }
   }
@@ -11286,7 +11299,10 @@ int CellIndexFun(Word* args, Word& result, int message,
    }
    case CLOSE : {
       localInfo = (CellIndex<dim>*)local.addr;
-      delete localInfo;
+      if(localInfo){
+         delete localInfo;
+         local.addr=0;
+      }
       return 0;
    }
  }
@@ -12667,7 +12683,7 @@ Supplier s)
       Cov* cov = static_cast<Cov*>(local.addr);
       if(cov){
         delete cov;
-        local.setAddr(NULL);
+        local.setAddr(0);
       }
       return 0;
     }
@@ -12725,7 +12741,7 @@ Supplier s)
       Cov* cov = static_cast<Cov*>(local.addr);
       if(cov){
         delete cov;
-        local.setAddr(NULL);
+        local.setAddr(0);
       }
       return 0;
     }
