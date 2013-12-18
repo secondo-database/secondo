@@ -839,8 +839,11 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
       localInfo = (HashExactMatchLocalInfo*)local.addr;
-      delete localInfo->iter;
-      delete localInfo;
+      if(localInfo){
+         delete localInfo->iter;
+         delete localInfo;
+         local.addr=0;
+      }
       return 0;
   }
   return 0;
@@ -941,17 +944,20 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      delete ili->iter;
+      if(ili){
+        delete ili->iter;
 
-      ili->completeCalls++;
-      ili->completeReturned += ili->returned;
-      ili->returned = 0;
+        ili->completeCalls++;
+        ili->completeReturned += ili->returned;
+        ili->returned = 0;
+      }
 
       return 0;
 
 
     case CLOSEPROGRESS:
       if ( ili ) delete ili;
+      local.addr=0;
       return 0;
 
 
@@ -1163,9 +1169,12 @@ HashExactMatchS(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
       localInfo = (HashExactMatchSLocalInfo*)local.addr;
-      delete localInfo->iter;
-      localInfo->resultTupleType->DeleteIfAllowed();
-      delete localInfo;
+      if(localInfo){
+         delete localInfo->iter;
+         localInfo->resultTupleType->DeleteIfAllowed();
+         delete localInfo;
+         local.addr=0;
+      }
       return 0;
   }
   return 0;
@@ -1420,6 +1429,7 @@ int insertHashValueMap(Word* args, Word& result, int message,
     case CLOSE :
       qp->Close(args[0].addr);
       qp->SetModified(qp->GetSon(s,1));
+      local.addr=0;
       return 0;
   }
   return 0;
@@ -1522,6 +1532,7 @@ int deleteHashValueMap(Word* args, Word& result, int message,
     case CLOSE :
       qp->Close(args[0].addr);
       qp->SetModified(qp->GetSon(s,1));
+      local.addr=0;
       return 0;
   }
   return 0;
@@ -1632,6 +1643,7 @@ int updateHashValueMap(Word* args, Word& result, int message,
     case CLOSE :
       qp->Close(args[0].addr);
       qp->SetModified(qp->GetSon(s,1));
+      local.addr=0;
       return 0;
   }
   return 0;
