@@ -14838,7 +14838,7 @@ int TurnsOperatorValueMapping( Word* args, Word& result, int message,
       case CLOSE:
         if(local.addr){
           delete li;
-          li = 0;
+          local.addr = 0;
         }
         return 0;
     }
