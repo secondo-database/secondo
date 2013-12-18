@@ -3766,6 +3766,10 @@ Deletes an operator tree object.
           /* space was allocated for result */
           DeleteResultStorage(tree);
         }
+       if(tree->u.op.local.addr){
+          Word res;
+          Eval(tree,res,CLOSE);
+        }
         if( (tree->u.op.local.addr != 0) && debugLocal)
         {
           cerr << "LocalInfo for operator "
@@ -5117,7 +5121,6 @@ QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value,
   if ((arg.isList()) || (arg.isSymbol()))
   {
     ListExpr queryList = arg.listExpr();
-    bool success;
     Word queryresultword;
     string typestring   = "";
     string errorstring   = "";
@@ -5125,7 +5128,6 @@ QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value,
     bool evaluable = false;
     bool defined = false;
     bool isFunction = false;
-    success =
         QueryProcessor::ExecuteQuery(queryList,
                                       queryresultword,
                                       typestring,
