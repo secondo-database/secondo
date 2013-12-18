@@ -3222,6 +3222,7 @@ int unitsMLabelVM(Word* args, Word& result, int message, Word& local,
       if (local.addr) {
         li = (UnitsLI*)local.addr;
         delete li;
+        local.addr=0;
       }
       return 0;
     }
@@ -4813,6 +4814,7 @@ int rewriteVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
       if (local.addr) {
         rewriteLI = ((RewriteLI*)local.addr);
         delete rewriteLI;
+        local.addr=0;
       }
       return 0;
     }
@@ -4866,6 +4868,7 @@ int rewriteVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
       if (local.addr) {
         rewriteLI = ((RewriteLI*)local.addr);
         delete rewriteLI;
+        local.addr=0;
       }
       return 0;
     }
@@ -5960,6 +5963,7 @@ int fillgapsVM_Str(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE:{
       qp->Close(args[0].addr);
+      local.addr=0;
       return 0;
     }
   }
