@@ -952,7 +952,7 @@ pfeed_vm(Word* args, Word& result, int message,
     {
       //TRACE(pre << "CLOSE received!")
       delete info;
-
+      local.addr=0;
       return 0;
     }
 
@@ -1043,6 +1043,7 @@ static int pdelete_vm( Word* args, Word& result, int message,
     {
       //TRACE(pre << "CLOSE received")
       qp->Close( args[0].addr );
+      local.addr=0;
       return 0;
     }
 
@@ -1124,6 +1125,7 @@ static int pshow_vm( Word* args, Word& result, int message,
     case CLOSE :
     {
       qp->Close( args[0].addr );
+      local.addr=0;
       return 0;
     }
 
@@ -1434,6 +1436,7 @@ to be evaluated by the parameter function. If a marker is
       qp->Close(fun.addr);
 
       delete m;
+      local.addr=0;
       return 0;
     }
     default: {
@@ -2492,6 +2495,7 @@ to be evaluated by the parameter function. If a marker is
 
       // closing streams is done in the destructor of the JoinInfo instance
       delete pj;
+      local.addr=0;
       return 0;
     }
     default: {
@@ -2756,6 +2760,7 @@ to be evaluated by the parameter function. If a marker is
 
       // closing streams is done in the destructor of the JoinInfo instance
       delete pj;
+      local.addr=0;
       return 0;
     }
     default: {
@@ -2827,7 +2832,7 @@ static int pcreate_vm( Word* args, Word& result, int message,
     {
       //TRACE(pre << "CLOSE received!")
       delete info;
-
+      local.addr=0;
       return 0;
     }
 
@@ -3361,7 +3366,7 @@ static int shuffle2_vm( Word* args,
     {
       qp->Close(stream.addr);
       delete info;
-
+      local.addr=0;
       return 0;
     }
 
@@ -3480,7 +3485,7 @@ static int shuffle_vm( Word* args,
     {
       qp->Close(stream.addr);
       delete info;
-
+      local.addr=0;
       return 0;
     }
 
@@ -3564,7 +3569,7 @@ static int shuffle3_vm( Word* args,
     {
       qp->Close(stream.addr);
       delete info;
-
+      local.addr=0;
       return 0;
     }
 
@@ -3632,7 +3637,7 @@ static int memshuffle_vm( Word* args,
     {
       qp->Close(stream.addr);
       delete info;
-
+      local.addr=0;
       return 0;
     }
 
@@ -3692,7 +3697,7 @@ static int memshuffle2_vm( Word* args,
     {
       qp->Close(stream.addr);
       delete info;
-
+      local.addr=0;
       return 0;
     }
 
