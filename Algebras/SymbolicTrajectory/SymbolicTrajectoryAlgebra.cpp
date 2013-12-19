@@ -1961,6 +1961,9 @@ the loop.
 
 */
 ExtBool Match::matches() {
+  if (p->getNFA()->empty()) {
+    return UNDEF;
+  }
   set<int> states;
   states.insert(0);
   if (ml->hasIndex()) {

@@ -1,4 +1,4 @@
-Database : symtraj
+Database : symtrajsmall
 Restore  : No
 
 Operator : tolabel
@@ -22,8 +22,8 @@ Result   : 'Aubameyang'
 Operator : mstringtomlabel
 Number   : 1
 Signature: mstring -> mlabel
-Example  : query mstringtomlabel(SymbolicTripsTiny feed extract[SymTrip]) matches '(_ at_home) *'
-Result   : FALSE
+Example  : query mstringtomlabel([const mstring value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home"))]) matches '(_ at_home) *'
+Result   : TRUE
 
 Operator : contains
 Number   : 1
@@ -46,14 +46,14 @@ Result   : (mlabel ((("2000-01-03" "2000-01-04" TRUE FALSE)"Mkhitaryan")))
 Operator : passes
 Number   : 6
 Signature: mlabel x label -> bool
-Example  : query michael passes tolabel("at_mensa")
+Example  : query mlabel1 passes tolabel("Eving")
 Result   : TRUE
 
 Operator : at
 Number   : 4
 Signature: mlabel x label -> mlabel
-Example  : query michael at tolabel("sportclub")
-Result   : (mlabel ((("2011-12-10-18:20" "2011-12-10-20:00" TRUE FALSE)"sportclub") (("2011-12-17-18:20" "2011-12-17-20:00" TRUE FALSE)"sportclub")))
+Example  : query mlabel1 at tolabel("Eving")
+Result   : (mlabel ((("2012-01-01" "2012-01-01-00:30" TRUE FALSE)"Eving")))
 
 Operator : deftime
 Number   : 4
@@ -64,8 +64,8 @@ Result   : (periods (("2000-01-03" "2000-01-04" TRUE FALSE)))
 Operator : units
 Number   : 5
 Signature: mlabel -> (stream ulabel)
-Example  : query units(michael) count
-Result   : 62
+Example  : query units(mlabel1) count
+Result   : 6
 
 Operator : initial
 Number   : 12
@@ -100,56 +100,56 @@ Result   : (mbool ((("2000-01-03" "2000-01-04" TRUE FALSE)TRUE)))
 Operator : topattern
 Number   : 1
 Signature: text -> pattern
-Example  : query michael matches ('(_ at_home) * (_ at_home)' topattern)
+Example  : query mlabel1 matches ('(_ "Eving") * (_ "Innenstadt-Ost") +' topattern)
 Result   : TRUE
 
 Operator : toclassifier
 Number   : 1
 Signature: stream(tuple(description: text, pattern: text)) -> classifier
-Example  : query classify(michael, class2 feed toclassifier) count
+Example  : query classify(mlabel1, class3 feed toclassifier) count
 Result   : 0
 
 Operator : matches
 Number   : 1
 Signature: mlabel x text -> bool
-Example  : query michael matches 'A * B (_ sportclub) C * D (_ sportclub) E * // A.card > E.card'
+Example  : query mlabel1 matches '(_ "Eving") * (_ "Innenstadt-Ost") +'
 Result   : TRUE
 
 Operator : filtermatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
 Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * () // X.labels contains "Brackel"'] count
-Result   : 11
+Result   : 1
 
 Operator : indexmatches
 Number   : 1
 Signature: rel(tuple(X)) x IDENT x text -> stream(tuple(X))
-Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") * (_ "Innenstadt-West")'] count
-Result   : 4
+Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Aplerbeck") * (_ "Innenstadt-Ost") *'] count
+Result   : 2
 
 Operator : rewrite
 Number   : 0
 Signature: mlabel x text -> stream(mlabel)
-Example  : query rewrite(michael, 'X * Y [(_ at_home) | (_ sportclub)]+ Z * => Y') count
-Result   : 56
+Example  : query rewrite(mlabel1, 'X * Y [(_ "Scharnhorst") | (_ "Brackel")]+ Z * => Y') count
+Result   : 3
  
 Operator : classify
 Number   : 1
 Signature: mlabel x classifier -> stream(text)
-Example  : query classify(michael, classifier2) count
+Example  : query classify(mlabel1, classifier3) count
 Result   : 0
 
 Operator : indexclassify
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier -> stream(tuple(string, mlabel))
 Example  : query Dotraj indexclassify [Trajectory, Dotrajindex, classifier3] count
-Result   : 7
+Result   : 0
 
 Operator : rewrite
 Number   : 1
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
 Example  : query rewrite(Dotraj feed projecttransformstream[Trajectory], rewrite1 feed projecttransformstream[Pattern]) count
-Result   : 128
+Result   : 3
 
 Operator : compress
 Number   : 1
@@ -160,7 +160,7 @@ Result   : (mlabel ((("2013-01-01" "2013-01-03" TRUE FALSE) "at_home")))
 Operator : compress
 Number   : 3
 Signature: stream(mlabel) -> stream(mlabel)
-Example  : query compress(SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip]) = (SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip])
+Example  : query compress(Dotraj feed projecttransformstream[Trajectory]) = (Dotraj feed projecttransformstream[Trajectory])
 Result   : FALSE
 
 Operator : fillgaps
@@ -184,12 +184,11 @@ Result   : FALSE
 Operator : createindex
 Number   : 1
 Signature: mlabel -> mlabel
-Example  : query createindex(michael) getTypeNL
+Example  : query createindex(mlabel1) getTypeNL
 Result   : (text 'mlabel')
 
 Operator : createtrie
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
-Example  : query Dotraj createtrie[Trajectory]
-Result   : unpredictable
-Remark   : A InvFile has no out function
+Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], '(_ "Mengede") *'] count
+Result   : 3
