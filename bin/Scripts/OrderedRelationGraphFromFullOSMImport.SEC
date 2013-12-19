@@ -14,19 +14,19 @@
 
 # Database hombruch
 
-# query fullosmimport('arnsberg-regbez.osm', "City")
+# query fullosmimport('arnsberg-regbez.osm', "Berlin")
 
 # 155 secs
 
-# relation CityNodes with 5008465 tuples stored
-# relation CityNodeTags with 389898 tuples stored
-# relation CityWays with 6419349 tuples stored
-# relation CityWayTags with 2193352 tuples stored
-# relation CityRelations with 355347 tuples stored
-# relation CityRelationTags with 52448 tuples stored
+# relation BerlinNodes with 5008465 tuples stored
+# relation BerlinNodeTags with 389898 tuples stored
+# relation BerlinWays with 6419349 tuples stored
+# relation BerlinWayTags with 2193352 tuples stored
+# relation BerlinRelations with 355347 tuples stored
+# relation BerlinRelationTags with 52448 tuples stored
 
 
-let CityNodesNew = CityNodes feed 
+let BerlinNodesNew = BerlinNodes feed
   extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
   extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
   sortby[Box]
@@ -36,14 +36,14 @@ let CityNodesNew = CityNodes feed
 
 # 213 secs
 
-# query nodes(CityNodesNew feed addid bulkloadrtree[Pos]) consume
+# query nodes(BerlinNodesNew feed addid bulkloadrtree[Pos]) consume
 
 
 let Ways =
-  CityNodesNew feed   
-  CityWays feed itHashJoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList] 
+  BerlinNodesNew feed
+  BerlinWays feed itHashJoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList]
     extend[Curve  : .NodeList afeed projecttransformstream[Pos] collect_line[TRUE]] 
-  CityWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag]
+  BerlinWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag]
   extend[Box: bbox(.Curve scale[1000000.0])]
   sortby[Box]
   remove[Box]
@@ -75,11 +75,11 @@ derive Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)
 # compute Nodes as the union of start points, end points and intersections of roads
 
 let Nodes = 
-  CityWays feed 
-  CityWays feed {h2}
+  BerlinWays feed
+  BerlinWays feed {h2}
   itHashJoin[NodeRef, NodeRef_h2]
   filter[.WayId # .WayId_h2]
-  CityNodesNew feed  
+  BerlinNodesNew feed
   itHashJoin[NodeRef, NodeId]
   Roads feed {r1} itHashJoin[WayId, WayId_r1]
   Roads feed {r2} itHashJoin[WayId_h2, WayId_r2]
@@ -127,12 +127,10 @@ let EdgesUp =
           attr(u, TargetNodeCounter)] ]
         projecttransformstream[Pos_r]
         collect_sline[TRUE],
-      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "name"] extract 
+      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "Name"] extract
        [WayTagValue_r],
-      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "highway"] extract 
-       [WayTagValue_r],
-      MaxSpeed: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "maxspeed"] extract 
-       [WayTagValue_r]  
+      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "Typ"] extract
+       [WayTagValue_r]
     ]
     aconsume ]
   unnest[Sections]
@@ -165,12 +163,10 @@ let EdgesDown =
           attr(u, SourceNodeCounter)] ]
         projecttransformstream[Pos_r]
         collect_sline[TRUE],
-      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "name"] extract 
+      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "Name"] extract
        [WayTagValue_r],
-      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "highway"] extract 
-       [WayTagValue_r],
-      MaxSpeed: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "maxspeed"] extract 
-       [WayTagValue_r]  
+      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "Typ"] extract
+       [WayTagValue_r]
     ]
     aconsume ]
   unnest[Sections]
