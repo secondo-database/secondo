@@ -4022,17 +4022,36 @@ struct toclassifierInfo : OperatorInfo {
 
 \subsection{Type Mapping}
 
+This type mapping checks whether the second argument (i.e., the pattern) is
+constant or not and passes that information to the value mapping.
+
 */
 ListExpr matchesTM(ListExpr args) {
   if (!nl->HasLength(args, 2)) {
     return NList::typeError("Two arguments expected");
   }
-  NList type(args);
-  if ((type == NList(MLabel::BasicType(), Pattern::BasicType()))
-   || (type == NList(MLabel::BasicType(), FText::BasicType()))) {
-    return NList(CcBool::BasicType()).listExpr();
+  if (!nl->HasLength(nl->First(args),2) || !nl->HasLength(nl->Second(args),2)) {
+    return NList::typeError("Two arguments expected for each sublist");
   }
-  return NList::typeError("Expecting a mlabel and a text/pattern");
+  if (!MLabel::checkType(nl->First(nl->First(args))) ||
+      (!FText::checkType(nl->First(nl->Second(args))) &&
+       !Pattern::checkType(nl->First(nl->Second(args))))) {
+    return NList::typeError("Expecting a mlabel and a text/pattern");
+  }
+  string query = nl->ToString(nl->Second(nl->Second(args)));
+  Word res;
+  bool isConst =  QueryProcessor::ExecuteQuery(query, res);
+  if (isConst) {
+    if(FText::checkType(nl->First(nl->Second(args)))) {
+      ((FText*)res.addr)->DeleteIfAllowed();
+    } 
+    else {
+      delete (Pattern*)res.addr;
+    }
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->OneElemList( nl->BoolAtom(isConst)),
+                           nl->SymbolAtom(CcBool::BasicType()));
 }
 
 /*
@@ -4040,8 +4059,7 @@ ListExpr matchesTM(ListExpr args) {
 
 */
 int matchesSelect(ListExpr args) {
-  NList type(args);
-  return (type.second().isSymbol(Pattern::BasicType())) ? 1 : 0;
+  return (Pattern::checkType(nl->Second(args))) ? 1 : 0;
 }
 
 /*
@@ -4051,10 +4069,6 @@ int matchesSelect(ListExpr args) {
 int matchesVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
   MLabel* ml = static_cast<MLabel*>(args[0].addr);
   Pattern* p = static_cast<Pattern*>(args[1].addr);
-  if (!p) {
-    cout << "Invalid Pattern." << endl;
-    return 0;
-  }
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
   ExtBool match = p->matches(ml);
@@ -4080,40 +4094,88 @@ int matchesVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
 */
 int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
   MLabel* ml = static_cast<MLabel*>(args[0].addr);
-  FText* patternText = static_cast<FText*>(args[1].addr);
+  FText* pText = static_cast<FText*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
-  Pattern *pattern = 0;
-  if (patternText->IsDefined()) {
-    pattern = Pattern::getPattern(patternText->toText());
-  }
-  else {
-    cout << "Undefined pattern text." << endl;
-    b->SetDefined(false);
-    return 0;
-  }
-  if (!pattern) {
-    b->SetDefined(false);
-  }
-  else if (pattern->hasAssigns()) {
-    cout << "No assignments allowed for matches" << endl;
-    b->SetDefined(false);
-  }
-  else {
-    ExtBool res = pattern->matches(ml);
-    delete pattern;
-    switch (res) {
-      case FALSE: {
-        b->Set(true, false);
-        break;
+  Pattern *p = 0;
+  if (message != CLOSE) {
+    if ((static_cast<CcBool*>(args[2].addr))->GetValue()) { //2nd argument const
+      if (!local.addr) {
+        if (pText->IsDefined()) {
+          local.addr = Pattern::getPattern(pText->toText());
+        }
+        else {
+          cout << "Undefined pattern text." << endl;
+          b->SetDefined(false);
+          return 0;
+        }
       }
-      case TRUE: {
-        b->Set(true, true);
-        break;
-      }
-      default: {
+      p = (Pattern*)local.addr;
+      if (!p) {
         b->SetDefined(false);
       }
+      else if (p->hasAssigns()) {
+        cout << "No assignments allowed for matches" << endl;
+        b->SetDefined(false);
+      }
+      else {
+        ExtBool res = p->matches(ml);
+        switch (res) {
+          case FALSE: {
+            b->Set(true, false);
+            break;
+          }
+          case TRUE: {
+            b->Set(true, true);
+            break;
+          }
+          default: {
+            b->SetDefined(false);
+          }
+        }
+      }
+    }
+    else { // second argument non-constant
+      if (pText->IsDefined()) {
+        p = Pattern::getPattern(pText->toText());
+      }
+      else {
+        cout << "Undefined pattern text." << endl;
+        b->SetDefined(false);
+        return 0;
+      }
+      if (!p) {
+        b->SetDefined(false);
+      }
+      else if (p->hasAssigns()) {
+        cout << "No assignments allowed for matches" << endl;
+        b->SetDefined(false);
+      }
+      else {
+        ExtBool res = p->matches(ml);
+        switch (res) {
+          case FALSE: {
+            b->Set(true, false);
+            break;
+          }
+          case TRUE: {
+            b->Set(true, true);
+            break;
+          }
+          default: {
+            b->SetDefined(false);
+          }
+        }
+      }
+      if (p) {
+        delete p;
+      }
+    }
+  }
+  else {
+    if (local.addr) {
+      delete (Pattern*)local.addr;
+      local.addr = 0;
     }
   }
   return 0;
@@ -4123,16 +4185,17 @@ int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
 \subsection{Operator Info}
 
 */
-struct matchesInfo : OperatorInfo {
-  matchesInfo() {
-    name      = "matches";
-    signature = MLabel::BasicType() + " x " + Pattern::BasicType() + " -> "
-                                    + CcBool::BasicType();
-    appendSignature(MLabel::BasicType() + " x text -> " + CcBool::BasicType());
-    syntax    = "_ matches _";
-    meaning   = "Match predicate.";
-  }
-};
+const string matchesSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> mlabel x {pattern|text} -> bool </text--->"
+  "<text> ML matches P </text--->"
+  "<text> Checks whether ML matches P.\n"
+  "<text> query michael matches '(_ at_home) * (_ at_home)' </text--->) )";
+
+ValueMapping matchesVMs[] = {matchesVM_T, matchesVM_P};
+
+Operator matches("matches", matchesSpec, 2, matchesVMs, matchesSelect,
+                 matchesTM);
 
 /*
 \section{Operator ~indexmatches~}
@@ -6461,8 +6524,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddOperator(toclassifierInfo(), toclassifierVM, toclassifierTM);
 
-      ValueMapping matchesVMs[] = {matchesVM_T, matchesVM_P, 0};
-      AddOperator(matchesInfo(), matchesVMs, matchesSelect, matchesTM);
+      AddOperator(&matches);
+      matches.SetUsesArgsInTypeMapping();
       
       ValueMapping indexmatchesVMs[] = {indexmatchesVM_T, indexmatchesVM_P, 0};
       AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
