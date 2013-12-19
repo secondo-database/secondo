@@ -5031,9 +5031,9 @@ bool
   {
     errorString += "Error in operator query. ";
   }
-  else
-  {
-    success = ExecuteQuery( queryList,
+  else { 
+    try{
+       success = ExecuteQuery( queryList,
                             queryResult,
                             typeString,
                             errorString,
@@ -5042,6 +5042,9 @@ bool
                             defined,
                             isFunction,
                             availableMemory);
+    } catch(...){
+      success=false;
+    }
   }
   if (errorString != "OK")
   {
