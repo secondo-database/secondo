@@ -3745,6 +3745,12 @@ Deletes an operator tree object.
         if(tree->u.op.supportsProgress){
           CloseProgress(tree);
         }
+        if(tree->u.op.local.addr){
+          Word result; // dummy result
+          (*(tree->u.op.valueMap))( tree->u.op.sons, result,CLOSE,
+                                    tree->u.op.local, tree );
+
+        }
         for ( int i = 0; i < tree->u.op.noSons; i++ )
         {
           if( tree->u.op.resultAlgId == 0 )
@@ -3766,10 +3772,6 @@ Deletes an operator tree object.
           /* space was allocated for result */
           DeleteResultStorage(tree);
         }
-       //if(tree->u.op.local.addr){
-       //   Word res;
-       //   Eval(tree,res,CLOSE);
-       // }
         if( (tree->u.op.local.addr != 0) && debugLocal)
         {
           cerr << "LocalInfo for operator "
