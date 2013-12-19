@@ -88,7 +88,7 @@ PatternRegExParser.y.c: PatternRegExParser.y
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm -f $(BASE).tab.c parse.o lex.yy.c scan.o mini $(BASE).tab.h $(BASE).output PatternRegExParser.y.c PatternRegExScanner.c PatternRegExParser.y.h PatternParser.l PatternParser.y
+	rm -f $(BASE).tab.c parse.o lex.yy.c scan.o mini $(BASE).tab.h $(BASE).output PatternRegExParser.y.c PatternRegExScanner.c PatternRegExParser.y.h
 
 
 
