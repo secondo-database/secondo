@@ -55,7 +55,7 @@ static void gmpTypeToTextType1
 Reads from inValue and stores its representation as TextType in resultList.
 
 */
-static void gmpTypeToTextType2 (const mpq_class& inValue, ListExpr& resultList) 
+void gmpTypeToTextType2 (const mpq_class& inValue, ListExpr& resultList) 
 {
   stringstream theStream;
   mpf_class helper(inValue,1024);
@@ -129,7 +129,7 @@ static void textTypeToGmpType1
 Reads from inList and stores its representation as mpq\_class in outValue.
 
 */
-static void textTypeToGmpType2
+void textTypeToGmpType2
         (const ListExpr& inList, mpq_class& outValue) {
 
         TextScan theScan = nl->CreateTextScan(inList);
@@ -346,7 +346,7 @@ static bool overflowAsInt(mpq_class x1, mpq_class x2, int s = 0)
 checks int-overflow of x1 or x2 by scaling with s
 
 */
-static bool overflowAsInt(mpq_class x1, mpq_class x2, double s)
+bool overflowAsInt(mpq_class x1, mpq_class x2, double s)
 {
   if (s == 1.0)
     return false;
