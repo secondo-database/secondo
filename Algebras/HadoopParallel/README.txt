@@ -71,7 +71,7 @@ are processed by these operators, a text type file and binary data files.
 The type file's name is fixed by connecting the given file name
 and a string of "type", with an underscore. 
 E.g., if we set the name as FILENAME, then the type file's name is 
-FILENAME_type.
+FILENAME\_type.
 
 There are totally three kinds of scenarios when using these 
 file-related operators. First, a Secondo relation may be exported 
