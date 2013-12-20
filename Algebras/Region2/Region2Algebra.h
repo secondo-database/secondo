@@ -333,6 +333,8 @@ Reads the ith halfsegment from the ~region2~ value.
 Return the internal arrays containing the halfsegments for read-only access.
 
 */
+
+
     const DbArray<Reg2GridHalfSegment>* getgridCoordinates() 
     { return &gridCoordinates; }
     
@@ -341,6 +343,7 @@ Return the internal arrays containing the halfsegments for read-only access.
     
     const DbArray<unsigned int>* getpreciseCoordinates() 
     { return &preciseCoordinates; }
+
 
 /*
 Checks if the factor ~f~ causes an interger overflow.
@@ -734,7 +737,7 @@ class SCycle2
 
     ~SCycle2()
     {
-      if (criticalPoint==NULL){
+      if (criticalPoint!=NULL){
         delete criticalPoint;
         criticalPoint=NULL;
       }
