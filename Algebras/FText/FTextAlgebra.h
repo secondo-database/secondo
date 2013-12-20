@@ -140,6 +140,16 @@ public:
     return true;
   }
 
+  virtual string getCsvStr() const {
+    return GetValue();
+  }
+/*
+Set FText to be csvexportable.
+Note that the text may contain line break mark, in this case the text can be
+exported into the csv file, but cannot be imported.
+
+*/
+
 private:
   Flob theText;
 };

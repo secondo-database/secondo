@@ -10787,6 +10787,7 @@ Operator morseWavOP(
       svg.AssociateKind(Kind::DATA());
       ftext.AssociateKind(Kind::INDEXABLE());
       ftext.AssociateKind(Kind::CSVIMPORTABLE());
+      ftext.AssociateKind(Kind::CSVEXPORTABLE());
       ftext.AssociateKind(Kind::DELIVERABLE());
 
       AddTypeConstructor(&regexPattern);
