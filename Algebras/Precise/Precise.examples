@@ -1,0 +1,208 @@
+Database : berlintest
+Restore  : No 
+
+Operator : +
+Number   : 1  
+Signature: precise x precise -> precise 
+Example  : query [const precise value (10 (1 '1/3'))] + [const precise value (10 (2 '1/3'))]
+Result   : (precise (10 (3 '2/3')))
+
+
+Operator : +
+Number   : 2  
+Signature: precise x int -> precise 
+Example  : query [const precise value (1 (1 '1/3'))] + 5
+Result   : (precise (1 (6 '1/3')))
+
+Operator : +
+Number   : 3  
+Signature: precise x real -> precise 
+Example  : query [const precise value (1 (1 '1/4'))] + 4.25
+Result   : (precise (1 (5 '1/2')))
+
+Operator : +
+Number   : 4  
+Signature: precise x longint -> precise 
+Example  : query [const precise value (1 (1 '1/3'))] + [const longint value 38]
+Result   : (precise (1 (39 '1/3')))
+
+Operator : +
+Number   : 5  
+Signature: precise x rational -> precise 
+Example  : query [const precise value (1 (1 '1/3'))] + [const rational value ( 1 3)]
+Result   : (precise (1 (1 '2/3')))
+
+Operator : +
+Number   : 6  
+Signature: int x precise -> precise 
+Example  : query 5 + [const precise value (1 (2 '1/3'))]
+Result   : (precise (1 (7 '1/3')))
+
+Operator : +
+Number   : 7  
+Signature: real x precise -> precise 
+Example  : query 4.25 + [const precise value (1 (1 '1/4'))]
+Result   : (precise (1 (5 '1/2')))
+
+Operator : +
+Number   : 8  
+Signature: longint x precise -> precise 
+Example  : query [const longint  value 38] + [const precise value (1 (2 '1/3'))]
+Result   : (precise (1 (40 '1/3')))
+
+Operator : +
+Number   : 9  
+Signature: rational x precise -> precise 
+Example  : query [const rational  value (1 3)] + [const precise value (1 (2 '1/3'))]
+Result   : (precise (1 (2 '2/3')))
+
+
+Operator : -
+Number   : 1  
+Signature: precise x precise -> precise 
+Example  : query [const precise value (1 (1 '1/3'))] - [const precise value (1 (2 '1/3'))]
+Result   : (precise (1 (-1)))
+
+
+Operator : -
+Number   : 2  
+Signature: precise x int -> precise 
+Example  : query [const precise value (1 (1 '1/3'))] - 5
+Result   : (precise (1 (-4 '1/3')))
+
+Operator : -
+Number   : 3  
+Signature: precise x real -> precise 
+Example  : query [const precise value (1 (1 '1/4'))] - 4.25
+Result   : (precise (1 (-3)))
+
+Operator : -
+Number   : 4  
+Signature: precise x longint -> precise 
+Example  : query [const precise value (1 (1 '1/3'))] - [const longint value 38]
+Result   : (precise (1 (-37 '1/3')))
+
+Operator : -
+Number   : 5  
+Signature: precise x rational -> precise 
+Example  : query [const precise value (1 (1 '1/3'))] - [const rational value ( 1 3)]
+Result   : (precise (1 (1)))
+
+Operator : -
+Number   : 6  
+Signature: int x precise -> precise 
+Example  : query 5 - [const precise value ( 1(2 '1/3'))]
+Result   : (precise (1 (2 '2/3')))
+
+Operator : -
+Number   : 7  
+Signature: real x precise -> precise 
+Example  : query 4.25 - [const precise value (1 (1 '1/4'))]
+Result   : (precise (1  (3)))
+
+Operator : -
+Number   : 8  
+Signature: longint x precise -> precise 
+Example  : query [const longint  value 38] - [const precise value (1 (2 '1/3'))]
+Result   : (precise (1 (35 '2/3')))
+
+Operator : -
+Number   : 9  
+Signature: rational x precise -> precise 
+Example  : query [const rational  value (1 3)] - [const precise value (1 (2 '1/3'))]
+Result   : (precise (1 (-2)))
+
+
+Operator : *
+Number   : 1  
+Signature: precise x precise -> precise 
+Example  : query [const precise value (1 (1 '1/4'))] * [const precise value (1 (2 '1/4'))]
+Result   : (precise (1 (2 '13/16')))
+
+Operator : /
+Number :   1
+Signature : precise x precise -> precise
+Example  : query [const precise value (1 (1 '1/4'))] /  [const precise value (1 (2 '1/4'))]
+Result   : (precise (1 (0 '5/9')))
+
+
+Operator  : toPrecise
+Number    : 1
+Signature : numeric -> precise
+Example   : query toPrecise( [const rational value (6 5)])
+Result    : (precise (1 (1 '1/5')))
+
+Operator  : toPrecise
+Number    : 2
+Signature : point -> precPoint
+Example   : query toPrecise( [const point value (1.25 6.25)])
+Result    : (precPoint (1 ((1 '1/4') (6 '1/4'))))
+
+Operator  : translate
+Number    : 1 
+Signature : precPoint x numeric x numeric -> precPoint
+Example   : query [const precPoint value (1 ((1 '1/4')(6 '1/4')))] translate[ 6 , [const precise value (1 (0 '1/4'))]]
+Result    : (precPoint (1 ((7 '1/4')(6 '1/2'))))
+
+
+Operator  : scale
+Number    : 1 
+Signature : precPoint x numeric [x numeric] -> precPoint
+Example   : query [const precPoint value (1 ((1 '1/4')(6 '1/4')))] scale[ 4 , 1.5]
+Result    : (precPoint (1 (5 (9 '3/8'))))
+
+Operator  : makePrecPoint
+Number    : 1 
+Signature : numeric x numeric -> precPoint
+Example   : query makePrecPoint( 7, [const precise value (1 (0 '1/3'))])
+Result    : (precPoint (1 (7 (0 '1/3'))))
+
+Operator  : contains
+Number    : 1
+Signature : precPoints x precPoint -> bool
+Example   : query [const precPoints value (1 ((4 8)(3 9))) ] contains [const precPoint value (1 ( 4 8))]
+Result    : TRUE
+
+Operator  : contains
+Number    : 2
+Signature : precPoints x precPoints -> bool
+Example   : query [const precPoints value (1 ((4 8)(3 9))) ] contains [const precPoints value (1 ( (4 8)((3 '1/3') 6)))]
+Result    : (bool FALSE) 
+
+
+Operator  : intersects
+Number    : 1
+Signature : precPoints x precPoints -> bool
+Example   : query [const precPoints value (1 ((4 8)(3 9))) ] intersects [const precPoints value (1 ( (4 8)((3 '1/3') 6)))]
+Result    : TRUE
+
+
+Operator  : union 
+Number    : 1
+Signature : precPoints x precPoints -> precPoints
+Example   : query [const precPoints value (1 ((4 8)(3 9))) ] union [const precPoints value (1 ( (4 8)((3 '1/3') 6)))]
+Result    : (precPoints (1 ((3 9)((3 '1/3') 6) (4 8))))
+
+
+Operator  : intersection 
+Number    : 1
+Signature : precPoints x precPoints -> precPoints
+Example   : query intersection( [const precPoints value (1 ((4 8)(3 9))) ] ,  [const precPoints value(1 ( (4 8)((3 '1/3') 6)))])
+Result    : (precPoints (1 ((4 8))))
+
+
+Operator  : difference 
+Number    : 1
+Signature : precPoints x precPoints -> precPoints
+Example   : query difference( [const precPoints value (1 ((4 8)(3 9))) ] ,  [const precPoints value (1 ( (4 8)((3 '1/3') 6)))])
+Result    : (precPoints (1 ((3 9))))
+
+Operator  : str2precise 
+Number    : 1
+Signature : {string , text}  -> precise
+Example   : query str2precise('8.123',1)
+Result    : (precise (1 (8 '123/1000'))
+
+
+
+
