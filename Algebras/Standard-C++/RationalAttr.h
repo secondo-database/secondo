@@ -156,7 +156,7 @@ class Rational : public Attribute {
     ~Rational(){}
 
 
-    Rational& GetValue(){
+    const Rational& GetValue() const{
        return *this;
     }
 
