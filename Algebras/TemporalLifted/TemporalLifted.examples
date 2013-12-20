@@ -670,7 +670,7 @@ Result   : file
 Operator : inside
 Number   : 3
 Signature: mregion x points -> mbool
-Example  : query mrain inside (intersection((val(mrain atinstant six30)), Sehenswuerdaspoints))
+Example  : query mrain inside (intersection1((val(mrain atinstant six30)), Sehenswuerdaspoints))
 Result   : file
 
 

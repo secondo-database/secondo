@@ -23,7 +23,7 @@ Result   : 55
 Operator : aggregateB
 Number   : 1
 Signature: (stream(tuple((a1 t1) ... (an tn))) ai((ti ti) -> ti) ti -> ti
-Example  : query no_components(Flaechen feed aggregateB[GeoData; fun(r1:region, r2:region) r1 union r2; [const region value ()]])
+Example  : query no_components(Flaechen feed aggregateB[GeoData; fun(r1:region, r2:region) r1 union1 r2; [const region value ()]])
 Result   : 139
 
 Operator : aggregateC
