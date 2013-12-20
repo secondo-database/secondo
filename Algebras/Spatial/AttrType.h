@@ -34,6 +34,7 @@ this attibute is ignored.
 #ifndef ATTRTYPE_H
 #define ATTRTYPE_H
 
+#include <iostream>
 
 struct AttrType
 {
@@ -110,5 +111,7 @@ Stores the position of the partner half segment in half segment ordered array
 
 */
 };
+
+std::ostream& operator<<(std::ostream& out, const AttrType& attr);
 
 #endif
