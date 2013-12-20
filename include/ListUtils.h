@@ -173,6 +173,11 @@ transformes a pointer into a listexpr evaluable by the query processor
  ListExpr getPtrList(const void* ptr);
 
 
+ ListExpr getInt64List(const int64_t value);
+
+ bool decodeInt64(const ListExpr value, int64_t& result);
+
+
 /*
 Checks whether this list represents a pointer
 

@@ -272,6 +272,14 @@ bool isDigit(const char c) {
 
 
 
+std::string double2str(const double v, const int prec /*= 16*/)
+{
+    std::stringstream ss;
+    ss.precision(prec);
+    ss << v;
+    return ss.str();
+}
+
 
 
 

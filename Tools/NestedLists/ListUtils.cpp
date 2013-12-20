@@ -762,6 +762,43 @@ Checks whether the list represents a stream.
 
   }
 
+  ListExpr getInt64List(const int64_t value){
+     int64_t min = numeric_limits<int32_t>::min();
+     int64_t max = numeric_limits<int32_t>::max();
+     if((min<=value) && (value <= max)){
+        return nl->IntAtom(value);
+     }
+    // ensure that two int atoms can pick up a pointer
+    uint32_t v1 = 0;
+    uint32_t v2 = 0;
+    uint64_t v = (uint64_t) value;
+    v1 = v;         // lower bits
+    v2 = (v >> 32); // higher bits
+    ListExpr res = nl->TwoElemList(nl->IntAtom(v2), nl->IntAtom(v1));
+    return res; 
+  }
+
+  bool decodeInt64(const ListExpr value, int64_t& result){
+      if(nl->AtomType(value)==IntType){
+         result = nl->IntValue(value);
+         return true;
+      }
+      if(!nl->HasLength(value,2)){
+         return false;
+      }
+      ListExpr hb = nl->First(value);
+      ListExpr lb = nl->Second(value);
+      if(nl->AtomType(hb)!=IntType || nl->AtomType(lb)!=IntType){
+          return false;
+      }
+      uint64_t v1 = nl->IntValue(hb);
+      uint64_t v2 = nl->IntValue(lb);
+      uint64_t r = (v1 << 32) | v2;
+      result = r; // implicit cast to signed
+      return true;
+  }
+
+
   bool isPtrList(const ListExpr list){
 
     return nl->HasLength(list,2) &&

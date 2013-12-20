@@ -33,6 +33,7 @@ The implentations can be found at StringUtils.cpp in directory Tools/Utilities.
 
 #include <string>
 #include <sstream>
+#include <errno.h>
 
 
 namespace stringutils {
@@ -168,6 +169,11 @@ Converts an int into a string
 std::string int2str(int a);
 
 
+std::string double2str(const double v, const int prec = 16);
+
+
+
+
 /*
 ~ld~ computes the levensthein distance for two strings.
 
@@ -188,6 +194,49 @@ bool isLetter(const char c);
 */
 bool isDigit(const char c);
 
+
+template<class inttype>
+inttype str2int(std::string& str, bool& correct){
+  int sign = 1;
+  inttype value = 0;
+  replaceAll(str," ","");
+
+  for(size_t  i=0;i<str.length();i++){
+    char c = str[i];
+    if(c=='-'){
+      if(i>0){
+        correct = false;
+        return 0;
+      }
+      sign = -1; 
+    } else if(c=='+'){
+       if(i>0){
+          correct=false;
+          return 0;
+       } 
+    } else if(isDigit(c)){
+       errno=0;
+       value = value*10 + (c-'0'); 
+       if(errno){
+         correct = false;
+         return 0;
+       }
+    } else {
+       correct = false;
+       return 0;
+    }
+  }
+  errno = 0;
+  value *= sign;
+  if(errno){
+     correct = false;
+     return 0;
+  }
+  correct = true;
+  return value;
+
+
+}
 
 } // end of namespace stringutils
 #endif
