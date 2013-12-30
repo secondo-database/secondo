@@ -87,6 +87,7 @@ public:
     
     static vector<Reg> getRegs(ListExpr le);
     static pair<Pt,Pt> GetBoundingBox(vector<Reg> regs);
+    static pair<Pt,Pt> GetBoundingBox(set<Reg*> regs);
 };
 
 class MSeg {

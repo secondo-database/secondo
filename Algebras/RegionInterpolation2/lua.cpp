@@ -4,6 +4,7 @@
 #include "interpolate.h"
 
 #include <vector>
+#include <set>
 #include <lua5.2/lua.hpp>
 
 static lua_State *L = NULL;
@@ -85,15 +86,16 @@ int luaInit(void) {
     return 0;
 }
 
-void setupParams (vector<Reg> *regs, const char *prefix, int depth) {
+void setupParams (set<Reg*> *regs, const char *prefix, int depth) {
     char offstr[10];
     char scalestr[12];
     
     snprintf(offstr, sizeof(offstr), "%soff", prefix);
     snprintf(scalestr, sizeof(scalestr), "%sscale", prefix);
     
-    if (regs->size() > 0) {
-        Reg *parent = (*regs)[0].parent;
+    if (!regs->empty()) {
+        Reg *r = *(regs->begin());
+        Reg *parent = r->parent;
         pair<Pt,Pt> bbox;
         if (parent)
             bbox = parent->GetBoundingBox();
@@ -114,17 +116,18 @@ void setupParams (vector<Reg> *regs, const char *prefix, int depth) {
     }
     
     lua_newtable(L);
-    for (unsigned int i = 0; i < regs->size(); i++) {
-        lua_pushnumber(L, i + 1);
-        lua_pushlightuserdata(L, &(*regs)[i]);
+    int i = 1;
+    for (std::set<Reg*>::iterator it=regs->begin(); it != regs->end(); ++it) {
+        lua_pushnumber(L, i++);
+        lua_pushlightuserdata(L, const_cast<Reg*>(*it));
         lua_rawset(L, -3);
     }
 }
 
-vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
+vector<pair<Reg *, Reg *> > __matchFacesLua(set<Reg*> *src, set<Reg*> *dst,
         int depth) {
     vector<pair<Reg *, Reg *> > ret;
-
+    
     if (!L || depth == 0) {
         int st = luaInit();
         if (st < 0)
@@ -154,7 +157,11 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
             if (lua_istable(L, -1)) {
                 lua_getfield(L, -1, "src");
                 if (lua_islightuserdata(L, -1)) {
-                    p.first = (Reg *) lua_touserdata(L, -1);
+                    Reg *r = (Reg *)lua_touserdata(L, -1);
+                    if (src->erase(r) == 0)
+                        p.first = NULL;
+                    else
+                        p.first = r;
                 } else {
                     p.first = NULL;
                 }
@@ -162,7 +169,11 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
 
                 lua_getfield(L, -1, "dst");
                 if (lua_islightuserdata(L, -1)) {
-                    p.second = (Reg *) lua_touserdata(L, -1);
+                    Reg *r = (Reg *)lua_touserdata(L, -1);
+                    if (dst->erase(r) == 0)
+                        p.second = NULL;
+                    else
+                        p.second = r;
                 } else {
                     p.second = NULL;
                 }
@@ -176,6 +187,17 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
     } else {
         cerr << "Return-Value is not a table!\n";
     }
+    
+    for (std::set<Reg*>::iterator it=src->begin(); it != src->end(); ++it) {
+        pair<Reg *, Reg *> p(*it, NULL);
+        ret.push_back(p);
+    }
+    
+    for (std::set<Reg*>::iterator it=dst->begin(); it != dst->end(); ++it) {
+        pair<Reg *, Reg *> p(NULL, *it);
+        ret.push_back(p);
+    }
+    
 
     return ret;
 }
@@ -229,18 +251,23 @@ static int lua_getbboverlap(lua_State *L) {
     pair<Pt,Pt> sbb = src->GetBoundingBox();
     pair<Pt,Pt> dbb = dst->GetBoundingBox();
     
-    sbb.first = modPt(sbb.first, 0);
-    sbb.second = modPt(sbb.second, 0);
-    dbb.first = modPt(dbb.first, 1);
-    dbb.second = modPt(dbb.second, 1);
+    sbb.first = modPt(sbb.first, src->isdst);
+    sbb.second = modPt(sbb.second, src->isdst);
+    dbb.first = modPt(dbb.first, dst->isdst);
+    dbb.second = modPt(dbb.second, dst->isdst);
     
     pair<Pt,Pt> box;
     
     if ((sbb.first.x > dbb.second.x) || (dbb.first.x > sbb.second.x) ||
         (sbb.first.y > dbb.second.y) || (dbb.first.y > sbb.second.y)) {
+//        cerr
+//                << sbb.first.ToString() << " "
+//                << sbb.second.ToString() << " "
+//                << dbb.first.ToString() << " "
+//                << dbb.second.ToString() << "\n";
         lua_pushnumber(L, 0);
         return 1;
-    }            
+    }
     
     box.first.x = (sbb.first.x < dbb.first.x) ? dbb.first.x : sbb.first.x;
     box.first.y = (sbb.first.y < dbb.first.y) ? dbb.first.y : sbb.first.y;
@@ -256,4 +283,15 @@ static int lua_getbboverlap(lua_State *L) {
     lua_pushnumber(L, (box.second.x-box.first.x)*(box.second.y-box.first.y));
     
     return 1;
+}
+
+vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
+        int depth) {
+    set<Reg*> srcset, dstset;
+    for (unsigned int i = 0; i < src->size(); i++)
+        srcset.insert(&((*src)[i]));
+    for (unsigned int i = 0; i < dst->size(); i++)
+        dstset.insert(&((*dst)[i]));
+    
+    return __matchFacesLua(&srcset, &dstset, depth);
 }

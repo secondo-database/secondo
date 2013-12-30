@@ -283,6 +283,29 @@ pair<Pt,Pt> Reg::GetBoundingBox(vector<Reg> regs) {
     return ret;
 }
 
+pair<Pt,Pt> Reg::GetBoundingBox(set<Reg*> regs) {
+    if (regs.empty())
+        return pair<Pt,Pt>(Pt(0, 0), Pt(0, 0));
+//    assert(*(*(regs.begin()))->v.size() > 0);
+    
+//    Reg *r = *(regs.begin());
+    pair<Pt,Pt> ret = (*(regs.begin()))->bbox;
+    
+    for (std::set<Reg*>::iterator it=regs.begin(); it != regs.end(); ++it) {
+        pair<Pt,Pt> bbox = (*it)->bbox;
+        if (bbox.first.x < ret.first.x)
+            ret.first.x = bbox.first.x;
+        if (bbox.second.x > ret.second.x)
+            ret.second.x = bbox.second.x;
+        if (bbox.first.y < ret.first.y)
+            ret.first.y = bbox.first.y;
+        if (bbox.second.y > ret.second.y)
+            ret.second.y = bbox.second.y;
+    }
+
+    return ret;
+}
+
 pair<Pt,Pt> Reg::GetBoundingBox() {
     return bbox;
 }
