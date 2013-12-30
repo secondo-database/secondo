@@ -126,32 +126,3 @@ MSegs MSegs::divide (double start, double end) {
     
     return ret;
 }
-
-
-//Reg MSegs::GetSReg() {
-//    Reg ret;
-//    
-//    for (unsigned int i = 0; i < segs.size(); i++) {
-//        if (segs[i].sx1 == segs[i].sx2 && segs[i].sy1 == segs[i].sy2)
-//            continue;
-//        Seg s(segs[i].sx1, segs[i].sy1, segs[i].sx2, segs[i].sy2);
-//        ret.AddSeg(s);
-//    }
-//    
-//    ret.Close();
-//    return ret;
-//}
-//
-//Reg MSegs::GetDReg() {
-//    Reg ret;
-//    
-//    for (unsigned int i = 0; i < segs.size(); i++) {
-//        if (segs[i].fx1 == segs[i].fx2 && segs[i].fy1 == segs[i].fy2)
-//            continue;
-//        Seg s(segs[i].fx1, segs[i].fy1, segs[i].fx2, segs[i].fy2);
-//        ret.AddSeg(s);
-//    }
-//    
-//    ret.Close();
-//    return ret;
-//}

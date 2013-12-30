@@ -11,7 +11,7 @@ MFace::MFace(MSegs face) : face(face) {
 
 void MFace::AddMsegs(MSegs m) {
     vector<MSeg> match = m.GetMatchingMSegs(face);
-    if (match.size() > 0) {
+    if (1 || match.size() > 0) {
         AddConcavity(m);
     } else {
         holes.push_back(m);
@@ -24,7 +24,10 @@ void MFace::AddConcavity (MSegs c) {
 
 void MFace::MergeConcavities () {
     for (unsigned int i = 0; i < cvs.size(); i++) {
-        face.MergeConcavity(cvs[i]);
+        if (cvs[i].GetMatchingMSegs(face).size() > 0)
+            face.MergeConcavity(cvs[i]);
+        else
+            holes.push_back(cvs[i]);
     }
     cvs.erase(cvs.begin(), cvs.end());
 }

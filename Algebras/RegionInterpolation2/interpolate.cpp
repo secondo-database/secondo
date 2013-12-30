@@ -202,28 +202,22 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
 
 MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         vector<Reg> *dregs, Instant *ti2, int depth) {
+    MFaces ret;
     
+    if (sregs->empty() && dregs->empty())
+        return ret;
     
     for (unsigned int i = 0; i < sregs->size(); i++) {
         (*sregs)[i].isdst = 0;
-//        cerr << "Sreg " << (*sregs)[i].ToString() << "\n";
     }
     for (unsigned int i = 0; i < dregs->size(); i++) {
         (*dregs)[i].isdst = 1;
-//        cerr << "Dreg " << (*dregs)[i].ToString() << "\n";
     }
     
     vector<pair<Reg *, Reg *> > ps;
-//    if (depth == 0)
-//         ps = matchFacesDistance(sregs, dregs);
-//    else
-//         ps = matchFacesNull(sregs, dregs);
-    
-    
     
     ps = matchFacesLua(sregs, dregs, depth);
-//    ps = matchFacesNull(sregs, dregs, depth);
-    MFaces ret, fcs;
+    MFaces fcs;
 
     for (unsigned int i = 0; i < ps.size(); i++) {
         pair<Reg *, Reg *> p = ps[i];
@@ -235,11 +229,12 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
             RotatingPlane rp(src, dst);
             fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2, depth+1);
             
-            for (unsigned int i = 0; i < fcs.faces.size(); i++) {
+            for (int i = 0; i < (int) fcs.faces.size(); i++) {
                 MSegs *s1 = &fcs.faces[i].face;
                 if (s1->ignore)
                     continue;
                 for (unsigned int j = i+1; j < fcs.faces.size(); j++) {
+                    cerr << "Checking face " << i << " / " << j << "\n";
                     MSegs *s2 = &fcs.faces[j].face;
                     if (s2->ignore)
                         continue;
@@ -258,8 +253,8 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
                         }
                         cerr << "Intersection found: " << ss.first.ToString()
                              << "\n" << ss.second.ToString() << "\n";
-                        rp.face.AddMsegs(ss.first);
-                        rp.face.AddMsegs(ss.second);
+                        fcs.faces.push_back(ss.first);
+                        fcs.faces.push_back(ss.second);
                         i = -1;
                         break;
                     }
@@ -278,15 +273,10 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
             rp.face.MergeConcavities();
             ret.AddFace(rp.face);
         } else {
-            if (dst) {
-                MSegs coll = dst->collapse(false);
-                MFace f(coll);
-                ret.AddFace(f);
-            } else {
-                MSegs coll = src->collapse(true);
-                MFace f(coll);
-                ret.AddFace(f);
-            }
+            Reg *r = src ? src : dst;
+            MSegs coll = r->collapse(r == src);
+            MFace f(coll);
+            ret.AddFace(f);
         }
     }
 

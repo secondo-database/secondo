@@ -48,7 +48,7 @@ function matchFaces (src, dst, depth)
 	      "  BBox "..b1.x.."/"..b1.y.." "..b2.x.."/"..b2.y);
     end
 
-    return matchFacesSpecial (src, dst, depth)
+    return matchFacesDistance (src, dst, depth)
 
 end
 
