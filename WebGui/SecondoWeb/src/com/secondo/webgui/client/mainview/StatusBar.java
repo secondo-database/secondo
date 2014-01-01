@@ -43,15 +43,15 @@ public class StatusBar extends Composite{
 	private HorizontalPanel labelBox = new HorizontalPanel();
 	
 	//label and text of current status information
-	private HTML secondoServerLabel = new HTML("<b> Secondo-URL : &nbsp;</b> ");
+	private HTML secondoServerLabel = new HTML("<b>Secondo-URL : &nbsp;</b> ");
 	private Label secondoServer = new Label("no server connection");
-	private HTML userNameLabel = new HTML("<b>&nbsp;|&nbsp;&nbsp; User : &nbsp;</b>");
+	private HTML userNameLabel = new HTML("<b>|&nbsp;&nbsp;User : &nbsp;</b>");
 	private Label userName = new Label("no user");
-	private HTML databaseLabel = new HTML("<b>&nbsp;|&nbsp;&nbsp; Database : &nbsp;</b>");
+	private HTML databaseLabel = new HTML("<b>|&nbsp;&nbsp;DB : &nbsp;</b>");
 	private Label openDatabase = new Label("no database open");
-	private HTML optimizerLabel = new HTML("<b>&nbsp;|&nbsp;&nbsp; Optimizer-URL : &nbsp;</b>");
+	private HTML optimizerLabel = new HTML("<b>|&nbsp;&nbsp;Optimizer-URL : &nbsp;</b>");
 	private Label optimizer = new Label("no optimizer connected");	
-	private HTML optimizerStatusLabel = new HTML("<b>&nbsp;|&nbsp;&nbsp; Optimizer-Status : &nbsp;</b>");
+	private HTML optimizerStatusLabel = new HTML("<b>|&nbsp;&nbsp;Status : &nbsp;</b>");
 	private Image onIcon = new Image("resources/images/bullet-green.png");
 	private Image offIcon = new Image("resources/images/bullet-red.png");
 	
@@ -67,38 +67,38 @@ public class StatusBar extends Composite{
 	    hPanel.setWidth(width-70 + "px");
 	    
 	    //configure labels and text
-	    secondoServerLabel.setSize("90px", "20px");
+	    secondoServerLabel.setSize("95px", "20px");
 	    secondoServerLabel.getElement().getStyle().setFontSize(11, Unit.PX);
 	    secondoServerLabel.getElement().getStyle().setMarginTop(3, Unit.PX);
-	    secondoServer.setSize("155px", "20px");
+	    secondoServer.setSize("170px", "20px");
 	    secondoServer.getElement().getStyle().setFontSize(11, Unit.PX);
 	    secondoServer.getElement().getStyle().setMarginTop(3, Unit.PX);
 	    userNameLabel.setSize("60px", "20px");
 	    userNameLabel.getElement().getStyle().setFontSize(11, Unit.PX);
 	    userNameLabel.getElement().getStyle().setMarginTop(3, Unit.PX);
-	    userName.setSize("50px", "20px");
+	    userName.setSize("80px", "20px");
 	    userName.getElement().getStyle().setFontSize(11, Unit.PX);
 	    userName.getElement().getStyle().setMarginTop(3, Unit.PX);
-	    databaseLabel.setSize("85px", "20px");
+	    databaseLabel.setSize("50px", "20px");
 	    databaseLabel.getElement().getStyle().setFontSize(11, Unit.PX);
 	    databaseLabel.getElement().getStyle().setMarginTop(3, Unit.PX);
-	    openDatabase.setSize("75px", "20px");
+	    openDatabase.setSize("100px", "20px");
 	    openDatabase.getElement().getStyle().setFontSize(11, Unit.PX);
 	    openDatabase.getElement().getStyle().setMarginTop(3, Unit.PX);
 	    openDatabase.getElement().getStyle().setProperty("textAlign", "left");
-	    optimizerLabel.setSize("115px", "20px");
+	    optimizerLabel.setSize("120px", "20px");
 	    optimizerLabel.getElement().getStyle().setFontSize(11, Unit.PX);
 	    optimizerLabel.getElement().getStyle().setMarginTop(3, Unit.PX);
-	    optimizer.setSize("155px", "20px");
+	    optimizer.setSize("170px", "20px");
 	    optimizer.getElement().getStyle().setFontSize(11, Unit.PX);
 	    optimizer.getElement().getStyle().setMarginTop(3, Unit.PX);
-	    optimizerStatusLabel.setSize("125px", "20px");
+	    optimizerStatusLabel.setSize("70px", "20px");
 	    optimizerStatusLabel.getElement().getStyle().setFontSize(11, Unit.PX);
 	    optimizerStatusLabel.getElement().getStyle().setMarginTop(3, Unit.PX);
 	    onIcon.setSize("20px", "20px");
-	    onIcon.getElement().getStyle().setMarginTop(3, Unit.PX);
+	    onIcon.getElement().getStyle().setMarginTop(1, Unit.PX);
 	    offIcon.setSize("20px", "20px");
-	    offIcon.getElement().getStyle().setMarginTop(3, Unit.PX);
+	    offIcon.getElement().getStyle().setMarginTop(1, Unit.PX);
 	    
 	    //add labels and text to labelbox
 	    labelBox.add(secondoServerLabel);

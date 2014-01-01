@@ -75,7 +75,7 @@
 	background: black;
 	border: none;
 	font: 18px;
-	font-family: "ms sans serif", arial, sans-serif;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
 	color: #00FF00;
 	resize: none;
 	margin: 0.0px 0.0px 0.0px 0.0px;
@@ -85,7 +85,7 @@
 	background: #F1F1F1;
 	border: none;
 	font: 15px;
-	font-family: "ms sans serif", arial, sans-serif;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
 	color: black;
 	margin: 0.0px 0.0px 0.0px 0.0px;
 }
@@ -110,7 +110,7 @@
 .statusbar {
 	background: #F1F1F1;
 	border: none;
-	font-family: "ms sans serif", arial, sans-serif;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
 	color: black;
 	margin: 0.0px 0.0px 0.0px 0.0px;
 }
@@ -119,7 +119,7 @@
 	background: white;
 	border: none;
 	font: 15px;
-	font-family: "ms sans serif", arial, sans-serif;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
 	color: black;
 	resize: none;
 	padding: 0.0px 0.0px 20.0px 20.0px;
@@ -142,7 +142,7 @@
 	background: white;
 	border: none;
 	font: 15px;
-	font-family: "ms sans serif", arial, sans-serif;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
 	color: black;
 	resize: none;
 	padding: 5.0px 0.0px 5.0px 10.0px;
@@ -198,7 +198,7 @@
 	border-bottom: none;
 	border-left: none;
 	font: 15px;
-	font-family: "ms sans serif", arial, sans-serif;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
 	color: black;
 	resize: none;
 	padding: 0.0px 10.0px 10.0px 10.0px;
@@ -234,6 +234,6 @@
 }
 
 .axis text {
-    font-family: sans-serif;
+    font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
     font-size: 11px;
 }
