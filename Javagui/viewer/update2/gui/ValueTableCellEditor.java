@@ -65,16 +65,18 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		this.textArea.setLineWrap(true);
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
+		this.textArea.setSelectionColor(Color.YELLOW);
 		//this.scrollPane = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
 		this.hiliter = this.textArea.getHighlighter();
-		this.hilitePainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
+		this.hilitePainter = new DefaultHighlighter.DefaultHighlightPainter(Color.LIGHT_GRAY);
 				
 		// insert line break on ENTER Key
 		this.textArea.addKeyListener(new KeyAdapter(){
 								public void keyPressed(KeyEvent event){
 								if(event.getKeyCode()==KeyEvent.VK_ENTER){
 									textArea.replaceSelection(System.getProperty("line.separator"));
+									 //pTable.setRowHeight(pTable.getSelectedRow(), textArea.getPreferredSize().height);
 								}
 								}
 								});

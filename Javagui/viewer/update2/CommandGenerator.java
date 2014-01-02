@@ -27,7 +27,6 @@ import java.util.*;
 
 import gui.SecondoObject;
 import viewer.*;
-import viewer.update.InvalidFormatException;
 import viewer.update2.gui.*;
 import sj.lang.*;
 import sj.lang.ListExpr;
@@ -109,6 +108,76 @@ public class CommandGenerator
 			insertCommand.append("))");
 			Reporter.debug("CommandGenerator.generateInsert: " + insertCommand.toString());
 			insertCommands[j] = insertCommand.toString();
+		}
+		return insertCommands;	
+	}
+	
+	/*
+	 Generates an insert-command for each tuple that shall be inserted. Actualizes the indices as
+	 well.
+	 */
+	public String[] generateInsert(String pRelName, List<String> pAttributeNames, List<String> pAttributeTypes, List<Tuple> pInsertTuples) throws InvalidFormatException
+	{
+		String[] insertCommands = null;
+				
+		if (pAttributeNames != null && pAttributeTypes != null && pInsertTuples != null && !pInsertTuples.isEmpty())
+		{
+			//Reporter.debug("CommandGenerator.generateInsert: params ok");
+			int tupleCount = pInsertTuples.size();
+			int tupleSize = pAttributeNames.size();
+			Tuple tuple;
+			String type;
+			String value;
+			
+			this.retrieveIndices(pRelName, pAttributeNames);
+			
+			insertCommands = new String[pInsertTuples.size()];
+			
+			for (int j = 0; j < tupleCount; j++)
+			{
+				tuple = pInsertTuples.get(j);
+				StringBuffer insertCommand = new StringBuffer("(query (consume ");
+				
+				for (int k = 0; k < btreeNames.size(); k++)
+				{
+					insertCommand.append("(insertbtree ");
+				}
+				
+				for (int k = 0; k < rtreeNames.size(); k++)
+				{
+					insertCommand.append("(insertrtree ");
+				}
+				insertCommand.append("(inserttuple " + pRelName + " (");
+				
+				for (int i = 0; i < tupleSize; i++)
+				{
+					type = pAttributeTypes.get(i);
+					if (!type.equals("tid"))
+					{
+						value = tuple.getValueAt(i);
+						ListExpr LE = AttributeFormatter.fromStringToListExpr(type, value);
+						if(LE==null)
+						{
+							throw new InvalidFormatException("Invalid Format for " + type, j*tupleSize+i+1, i+1);
+						}
+						insertCommand.append("( " + type + " " + value + ") ");
+					}
+				}
+				insertCommand.append("))");
+				
+				for (int k = 0; k < rtreeNames.size(); k ++)
+				{
+					insertCommand.append(rtreeNames.get(k)+ " " + rtreeAttrNames.get(k) + ")");
+				}
+				
+				for (int k = 0; k < btreeNames.size(); k++)
+				{
+					insertCommand.append(btreeNames.get(k)+ " " + btreeAttrNames.get(k) + ")");
+				}
+				insertCommand.append("))");
+				Reporter.debug("CommandGenerator.generateInsert: " + insertCommand.toString());
+				insertCommands[j] = insertCommand.toString();
+			}
 		}
 		return insertCommands;	
 	}

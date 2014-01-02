@@ -30,7 +30,7 @@ public class RelationTypeInfo extends Head{
 	List<String> attributeNames;
 	List<String> attributeTypes;
 	
-	public boolean readFromRelTypeLE(ListExpr LE)
+	public boolean readValueFromLE(ListExpr LE)
 	{
 		boolean result = super.readFromRelTypeLE(LE);
 		

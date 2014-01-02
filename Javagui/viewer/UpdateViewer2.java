@@ -26,10 +26,12 @@ import gui.idmanager.IDManager;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridLayout;
+import java.awt.Image;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -162,7 +164,7 @@ public class UpdateViewer2 extends SecondoViewer {
 		this.validate();
 		this.repaint();
 	}
-	
+
 	
 	/**
 	 * Returns the currently active RelationPanel.
@@ -245,11 +247,15 @@ public class UpdateViewer2 extends SecondoViewer {
 			{
 				tabtitle = tabtitle.substring(0,29) + "...";
 			}
+
 			this.tabbedPane.addTab(tabtitle, null, rp, rp.getName());
+			this.tabbedPane.setTabComponentAt(this.relationPanels.indexOf(this.getRelationPanel(tabtitle)),
+								   new ButtonTabComponent(this.tabbedPane));
 		}
 		return rp.createFromLE(pRelationLE);
 	}
 	
+
 
 	/*
 	 * For each mode and state the viewer is in only certain operations and choices are possible.
@@ -357,6 +363,7 @@ public class UpdateViewer2 extends SecondoViewer {
 				undo.setEnabled(false);
 				commit.setEnabled(false);
 				format.setEnabled(true);
+				format.setText("Edit View");
 				break;
 			}
 			default:

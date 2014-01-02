@@ -29,73 +29,75 @@ import sj.lang.ListExpr;
 
 import tools.Reporter;
 
+import viewer.relsplit.InvalidRelationException;
+
 
 /**
+ * Contains name, tpye information and tuples of one relation.
  *
+ * @see viewer.update2.Tuple
  */
 public class Relation
 {
 	
+	private String name;	
 	private RelationTypeInfo relTypeInfo;
-	private List<SecondoObject> SecondoObjects;
+	private List<String> tupleIDs;
+	private List<Tuple> tuples;
 	private boolean initialized;
-	private String myID;
-	private String Name;
-	private List<String> TupleIDs;
-	private ListExpr TupleType;
-	private SecondoObject WholeRelation;
 	
 	
-	
-	
-	
+	/**
+	 * Constructor
+	 */
 	public Relation()
 	{
-		SecondoObjects = new ArrayList<SecondoObject>();
-		TupleIDs = new ArrayList<String>();
+		tuples = new ArrayList<Tuple>();
+		tupleIDs = new ArrayList<String>();
 		relTypeInfo = new RelationTypeInfo(); 
-		TupleType = ListExpr.theEmptyList();
-		WholeRelation = null;
 		initialized = false;
 	}
 	
 	
 	/** 
-	 * Append new tuple to relation 
+	 * Append new tuple to relation.
 	 */
-	public void addTuple(ListExpr pTuple)
+	public void addTuple(ListExpr pTupleLE) throws InvalidRelationException
 	{
-		if(initialized)
-		{
-			List<SecondoObject> tupleSOs = this.readTupleValueFromLE(pTuple);
-			
-			if (tupleSOs.size() == relTypeInfo.getSize())
-			{
-				for(int i=0; i<relTypeInfo.getSize(); i++)
-				{
-					SecondoObject SO = tupleSOs.get(i);
-					SecondoObjects.add(SO);
-					Reporter.debug("Relation.addTuple: SO is " + SO.toString());
-					
-					int tidindex = this.relTypeInfo.getTidIndex();
-					if (tidindex >= 0 && tidindex == i)
-					{
-						this.TupleIDs.add(SO.toListExpr().second().toString().trim());
-					}
-				}
-			}
-		}
+		Tuple tup = new Tuple(this.relTypeInfo, pTupleLE);
+		this.tuples.add(tup);
+		this.tupleIDs.add(tup.getID());			
 	}
 	
 	
+	/**
+	 * Returns an empty relation of same name and same type as this.
+	 * Relation is marked as initialized.
+	 */
+	public Relation createEmptyClone()
+	{
+		Relation result = new Relation();
+		result.relTypeInfo = this.relTypeInfo;		
+		result.initialized = true;
+		return result;
+	}
 	
+	
+	/**
+	 * Returns list of attribute names.
+	 */
 	public List<String> getAttributeNames()
 	{
+		//Reporter.debug("Relation.getAttributeNames: " + this.relTypeInfo.getAttributeNames());
 		return this.relTypeInfo.getAttributeNames();
 	}
 	
+	/**
+	 * Returns list of Attribute types.
+	 */
 	public List<String> getAttributeTypes()
 	{
+		//Reporter.debug("Relation.getAttributeTypes: " + this.relTypeInfo.getAttributeTypes());
 		return this.relTypeInfo.getAttributeTypes();
 	}
 
@@ -103,8 +105,66 @@ public class Relation
 	/**
 	 * Returns relation name.
 	 */
-	public String getName(){
-		return this.Name;
+	public String getName()
+	{
+		return this.name;
+	}
+	
+	
+	
+	/** 
+	 * Returns tuple at given index. 
+	 */
+	public Tuple getTupleAt(int pTupleIndex)
+	{
+		if(!initialized || pTupleIndex<0 || pTupleIndex>=this.tuples.size())
+		{
+			return null;
+		}
+		return tuples.get(pTupleIndex);
+	}
+	
+	
+	/** 
+	 * Returns the number of tuples,
+	 * returns -1 if relation is not initialized.
+	 */
+	public int getTupleCount()
+	{
+		if(!initialized)
+			return -1;
+		else
+			return tuples.size();
+	}
+	
+	/* 
+	 * Returns the number of values in a tuple
+	 * if this relation not initialized -1 is returned
+	 */
+	public int getTupleSize()
+	{
+		if (!initialized)
+			return -1;
+		else
+			return relTypeInfo.getSize();
+	}
+	
+	/**
+	 * Returns true if relation name. type info and tuple list were initialized.
+	 */
+	public boolean isInitialized()
+	{ 
+		return initialized;
+	}
+	
+	
+	
+	/**
+	 * Returns TRUE if SO contains a relation 
+	 */
+	public static boolean isRelation(SecondoObject SO)
+	{
+		return RelationTypeInfo.isRelation(SO.toListExpr());
 	}
 	
 	
@@ -136,11 +196,13 @@ public class Relation
 	}
 	 */
 	
-		
-	public boolean readFromSecondoObject(SecondoObject SO)
+	/**
+	 * Initializes Relation from a relation SecondoObject.
+	 * @return TRUE if initalization was successful.
+	 */
+	public boolean readFromSecondoObject(SecondoObject SO) throws InvalidRelationException
 	{
-		myID = SO.getID().toString();
-		Name = SO.getName();
+		name = SO.getName();
 		initialized = false;
 		ListExpr LE = SO.toListExpr();
 		if(LE.listLength()!=2)
@@ -148,378 +210,119 @@ public class Relation
 			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong list length");
 			return false;
 		}
-		if(!relTypeInfo.readFromRelTypeLE(LE.first()))
+		if(!relTypeInfo.readValueFromLE(LE.first()))
 		{
 			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong type list");
 			return false;
 		}
 		
-		if(!readRelationValueFromLE(LE.second()))
+		if(!this.readValueFromLE(LE.second()))
 		{
 			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong value list");
 			return false;
 		}
 		
-		WholeRelation = SO;
-		TupleType = SO.toListExpr().first().second();
 		initialized = true;
 		return true;
 	}
 		
 	
-	/** read the Value of this Relation */
-	private boolean readRelationValueFromLE(ListExpr ValueList)
+	/** 
+	 * Reads the value of this Relation 
+	 */
+	private boolean readValueFromLE(ListExpr ValueList) throws InvalidRelationException
 	{
+		Reporter.debug("update2.Relation.readRelationValueFromLE : LE is " + ValueList);
+		
 		ListExpr NextTuple;
 		ListExpr Rest = ValueList;
-		SecondoObjects.clear();
-		TupleIDs.clear();
-		WholeRelation = null;
-		TupleType = ListExpr.theEmptyList();
+		tuples.clear();
+		tupleIDs.clear();
 		boolean ok = true;
-		int T_no = 0;
+		
 		while(Rest.listLength()>0 && ok)
 		{
 			NextTuple = Rest.first();
-			T_no++;
-			Rest = Rest.rest();
 			if(NextTuple.listLength()!=this.relTypeInfo.getSize())  // wrong tuplelength
 			{
 				ok = false;
 			}
 			else
 			{
-				SecondoObject SO;
-				int No = 0;
-				//TupleIDs.add(IDManager.getNextID().toString());
-				while(NextTuple.listLength()>0)
-				{
-					SO = new SecondoObject(IDManager.getNextID());
-					ListExpr Type = ListExpr.symbolAtom(this.relTypeInfo.get(No).Type);
-					SO.fromList(ListExpr.twoElemList(Type, NextTuple.first()));
-					String aName = computeObjectName(this.relTypeInfo.get(No).Name, 
-													 this.relTypeInfo.get(No).Type, 
-													 NextTuple.first());
-					SO.setName(Name+"::"+aName+"::"+T_no);
-					SecondoObjects.add(SO);
-					if(this.relTypeInfo.get(No).Name.equals("TID"))
-					{
-						TupleIDs.add(NextTuple.first().toString().trim());
-					}
-					
-					NextTuple = NextTuple.rest();
-					No++;
-				}
+				this.addTuple(NextTuple);
 			}
+			Rest = Rest.rest();
 		}
+		
 		if(!ok)
 		{
-			SecondoObjects.clear();
-			TupleIDs.clear();
-			TupleType = ListExpr.theEmptyList();
+			tuples.clear();
+			tupleIDs.clear();
 		}
+		
 		return ok;
 	}
 	
-	/**
-	 * Reads the first tuple of the relation list expression.
-	 */
-	public List<SecondoObject> readTupleValueFromLE(ListExpr pLE)
-	{
-		List<SecondoObject> result = new ArrayList<SecondoObject>();
-		ListExpr tupleValues = pLE.second().first();
-		ListExpr nextValue;
-		//Reporter.debug("Relation.readTupleValueFromLE: tupleValues is " + tupleValues.toString());
-		int No = 0;
 
-		if(tupleValues.listLength() == this.relTypeInfo.getSize())  // correct tuplelength
-		{
-			while(tupleValues.listLength()>0)
-			{
-				nextValue = tupleValues.first();
-				//Reporter.debug("Relation.readTupleValueFromLE: nextValue is " + nextValue.toString());
-								
-				SecondoObject SO = new SecondoObject(IDManager.getNextID());
-				ListExpr Type = ListExpr.symbolAtom(this.relTypeInfo.get(No).Type);
-				SO.fromList(ListExpr.twoElemList(Type, nextValue));
-				String aName = computeObjectName(this.relTypeInfo.get(No).Name, 
-												 this.relTypeInfo.get(No).Type, 
-												 nextValue);
-				SO.setName(Name+"::"+aName);
-				
-				result.add(SO);
-				//Reporter.debug("Relation.readTupleValueFromLE: new SO is " + SO.toString());
-				
-				tupleValues = tupleValues.rest();
-				No++;
-			}
-		}
-
-		return result;
-	}
 	
-	
-	
-	/** computes a short Name for a object */
-	private String computeObjectName(String name,String type,ListExpr value)
-	{
-		int len = relTypeInfo.getMaxNameLength();
-		String tmpname="";
-		for(int i=0;i<len+1-name.length();i++)
-			tmpname = tmpname+" ";
-		tmpname += name+" ";
-		
-		String ValueString;
-		if(!value.isAtom() && value.listLength()==1 && value.first().atomType()==ListExpr.TEXT_ATOM)
-			value = value.first();
-		
-		if (!value.isAtom())
-		{
-			ValueString = type;
-		}
-		else
-		{
-			int atomType = value.atomType();
-			switch (atomType){
-				case ListExpr.REAL_ATOM : 
-					ValueString=Double.toString(value.realValue()); 
-					break;
-				case ListExpr.STRING_ATOM : 
-					ValueString= value.stringValue(); 
-					break;
-				case ListExpr.INT_ATOM : 
-					ValueString = Integer.toString(value.intValue()); 
-					break;
-				case ListExpr.SYMBOL_ATOM : 
-					ValueString = value.symbolValue(); 
-					break;
-				case ListExpr.BOOL_ATOM : 
-					ValueString = Boolean.toString(value.boolValue()); 
-					break;
-				case ListExpr.TEXT_ATOM :  
-					if(value.textLength()>48)
-					{
-						ValueString = "TEXT "+value.textLength()+" chars";
-					}
-					else
-					{
-						ValueString = value.textValue();
-					}
-					break;
-				case ListExpr.NO_ATOM : 
-					ValueString= type; 
-					break;
-				default : ValueString = "unknown type";
-			}
-		}
-		return tmpname+": "+ValueString;
-		//return tmpname;
-	}
-	
-	
-	
-	/** check if SO contains a relation */
-	public static boolean isRelation(SecondoObject SO)
-	{
-		return RelationTypeInfo.isRelation(SO.toListExpr());
-	}
-	
-	
-	/** return the SecondoObject on given position
-	 * both numbers are started with 0
+	/** 
+	 * Removes the tuple by its ID 
 	 */
-	public SecondoObject getSecondoObject(int TupleNumber,int ObjectNumber)
-	{
-		if (!initialized)
-			return null;
-		int index = relTypeInfo.getSize()*TupleNumber+ObjectNumber;
-		if(index<0 |  index>SecondoObjects.size())
-			return null;
-		else
-			return (SecondoObject) SecondoObjects.get(index);
-	}
-	
-	
-	/** return the Tuple on give Position */
-	public SecondoObject[] getTupleAt(int index)
-	{
-		if(!initialized)
-			return null;
-		int startTuple = index*relTypeInfo.getSize();
-		if(startTuple<0 || startTuple+relTypeInfo.getSize()>SecondoObjects.size())
-			return null;
-		
-		SecondoObject[] Tuple = new SecondoObject[relTypeInfo.getSize()];
-		for(int i=0;i<relTypeInfo.getSize();i++)
-		{
-			Tuple[i]  = (SecondoObject) SecondoObjects.get(i+startTuple);
-		}
-		return Tuple;
-	}
-	
-	/** Removes the tuple by its ID */
 	public void removeTupleByID(String pTupleId)
 	{
-		if(initialized)
+		if(!initialized || pTupleId == null)
 		{
-			int ti = this.TupleIDs.indexOf(pTupleId);
-			Reporter.debug("Relation.removeTupleByID: tupleID "+ pTupleId + " has index " + ti);
-
-			if(ti >= 0)
-			{
-				for(int j=0; j<relTypeInfo.getSize(); j++)
-				{
-					int soi = ti * relTypeInfo.getSize();
-					Reporter.debug("Relation.removeTupleByID: secondoobject has index " + soi);
-					Reporter.debug("Relation.removeTupleByID: secondoobjects.size is " + SecondoObjects.size());
-					Reporter.debug("Relation.removeTupleByID: removing " + SecondoObjects.get(soi).toString());
-					SecondoObjects.remove(soi);
-					Reporter.debug("Relation.removeTupleByID:  XXXX" + SecondoObjects.toString() + "XXXXXXXXXXX");
-				}
-				TupleIDs.remove(ti);
-			}
+			return;
+		}
+		
+		int ti = this.tupleIDs.indexOf(pTupleId);
+		Reporter.debug("Relation.removeTupleByID: tupleID "+ pTupleId + " has index " + ti);
+		
+		if(ti >= 0)
+		{
+			tuples.remove(ti);
+			tupleIDs.remove(ti);
 		}
 	}
 	
 	
 	/** 
-	 * Set tuple on given position 
+	 * Replaces all tuple values on given tuple position. 
 	 */
-	public void setTupleAt(int pIndex, SecondoObject[] pTuple)
+	public void setTupleAt(int pTupleIndex, List<String> pTupleValues)
 	{
-		if(!initialized)
-			return;
-		
-		int startTuple = pIndex*relTypeInfo.getSize();
-		if(startTuple < 0 
-				|| startTuple+relTypeInfo.getSize() > SecondoObjects.size() 
-				|| pTuple.length != SecondoObjects.size())
-			return;
-		
-		SecondoObject soNew;
-		
-		for(int i=0;i<relTypeInfo.getSize();i++)
+		if(!initialized || pTupleIndex<0 || pTupleIndex>=this.tuples.size())
 		{
-			soNew = pTuple[i];
-			soNew.setID(SecondoObjects.get(startTuple + i).getID());
-			SecondoObjects.set(startTuple + i, soNew);
+			return;
 		}
+		
+		Tuple tup = this.tuples.get(pTupleIndex);
+		
+		for(int i=0;i<this.relTypeInfo.getSize();i++)
+		{
+			tup.setValueAt(pTupleValues.get(i), i);
+		}		
 	}
 
 
 	
 	/** 
-	 * Set SecondoObject on given position 
+	 * Replaces the value in specified tuple at specified attribute index.
 	 */
-	public void setSecondoObject(int pTupleIndex, int pAttributeIndex, SecondoObject pAttribute)
+	public void setValueAt(int pTupleIndex, int pAttributeIndex, String pAttribute)
 	{
-		if(!initialized)
-			return;
-		
-		int objectIndex = pTupleIndex*relTypeInfo.getSize() + pAttributeIndex;
-		if(objectIndex < 0 || objectIndex > SecondoObjects.size())
-			return;
-		
-		SecondoObject so = pAttribute;
-		so.setID(this.SecondoObjects.get(objectIndex).getID());
-		SecondoObjects.set(objectIndex, so);
-	}
-	
-	
-	/** computes a Tuple and returns it
-	public SecondoObject getTupleNo(int index)
-	{
-		SecondoObject[] Content = getTupleAt(index);
-		if (Content==null)
-			return null;
-		// compute the value_list
-		ListExpr Value,Last=null;
-		if(Content.length==0)
-			Value = ListExpr.theEmptyList();
-		else
+		if(!initialized || pTupleIndex<0 || pTupleIndex>=this.tuples.size() 
+		   || pAttributeIndex<0 || pAttributeIndex>=this.getTupleSize() || pAttribute==null)
 		{
-			Value = ListExpr.oneElemList(Content[0].toListExpr().second());
-			Last = Value;
-		}
-		ListExpr Next;
-		for(int i=1;i<Content.length;i++)
-		{
-			Next = (Content[i].toListExpr().second());
-			Last = ListExpr.append(Last,Next);
+			return;
 		}
 		
-		SecondoObject Tuple = new SecondoObject((ID)TupleIDs.get(index));
-		Tuple.fromList(ListExpr.twoElemList(TupleType,Value));
-		Tuple.setName(Name+" ["+index+"]");
-		return Tuple;
-	}
-	*/
-	
-	/** returns the Relation */
-	public SecondoObject getRelation()
-	{
-		return WholeRelation;
+		Tuple tup = this.tuples.get(pTupleIndex);
+		
+		tup.setValueAt(pAttribute, pAttributeIndex);
 	}
 	
-	
-	/** returns the object on index */
-	public SecondoObject get(int index)
-	{
-		if(index<0 || index>SecondoObjects.size())
-			return null;
-		else
-			return (SecondoObject) SecondoObjects.get(index);
-	}
-	
-	
-	/** returns the number of containing tuples ,
-	 * if this Relation is not initialized -1 is returned
-	 */
-	public int getTupleCount()
-	{
-		if(!initialized)
-			return -1;
-		else
-			return SecondoObjects.size()/relTypeInfo.getSize();
-	}
-	
-	/* returns the number of objects in a tuple
-	 * if this relation not initialized -1 is returned
-	 */
-	public int getTupleSize()
-	{
-		if (!initialized)
-			return -1;
-		else
-			return relTypeInfo.getSize();
-	}
-	
-	/* returns the number of all containing objects
-	 * if this relation not initialized -1 is returned
-	 */
-	public int getSize()
-	{
-		if(!initialized)
-			return -1;
-		else
-			return SecondoObjects.size();
-	}
-	
-	
-	public boolean isInitialized()
-	{ 
-		return initialized;
-	}
-	
-	
-	public String getID()
-	{
-		if(!initialized)
-			return null;
-		else
-			return myID;
-	}
-	
+	@Override
 	public String toString()
 	{
 		StringBuffer sb = new StringBuffer("[Relation]: ");

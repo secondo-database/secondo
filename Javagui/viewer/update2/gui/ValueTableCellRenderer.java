@@ -61,9 +61,10 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 		this.textArea.setLineWrap(true);
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
+		this.textArea.setSelectionColor(Color.YELLOW);
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
 		this.hiliter = this.textArea.getHighlighter();
-		this.hilitePainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
+		this.hilitePainter = new DefaultHighlighter.DefaultHighlightPainter(Color.LIGHT_GRAY);
 	}
 	
 	

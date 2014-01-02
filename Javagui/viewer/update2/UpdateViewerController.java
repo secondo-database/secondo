@@ -38,7 +38,6 @@ import tools.Reporter;
 
 import viewer.*;
 import viewer.update2.gui.*;
-import viewer.update.InvalidFormatException;
 
 
 /*
@@ -135,14 +134,22 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			}
 			return;
 		}
-		if (e.getActionCommand() == "Format")
+		if (e.getActionCommand() == "Format View")
 		{
 			if (this.processCommandFormat())
 			{
 				this.setState(States.FORMAT);
 			}
 			return;
-		}	
+		}
+		if (e.getActionCommand() == "Edit View")
+		{
+			if (this.processCommandEditView())
+			{
+				this.setState(States.LOADED);
+			}
+			return;
+		}
 
 		
 		//
@@ -385,31 +392,28 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		}	
 		
 		RelationPanel rp = this.viewer.getCurrentRelationPanel();
+		rp.takeOverLastEditing(false);
          	
 		{
 			String[] insertCommands = null;
-			String[][] insertTuples = rp.getInsertTuples();
-			
-			for (int i = 0; i<insertTuples.length; i++)	
-				Reporter.debug("UpdateViewerController.executeInsert: " +insertTuples[i][0] + ": " + insertTuples[i][1]);
 
 			try
 			{
 				insertCommands = this.commandGenerator.generateInsert(rp.getName(),
 																	  rp.getRelation().getAttributeNames(),
 																	  rp.getRelation().getAttributeTypes(),
-																	  insertTuples);
+																	  rp.getInsertTuples());
 			} 
 			catch(InvalidFormatException e)
 			{
-				errorMessage = e.getMessage()+"\n at position ("+e.row+", "+e.column+")";
+				errorMessage = e.getMessage() + "\n at table position (" + e.getRow() + ", " + e.getColumn() + ")";
 				if (!this.commandExecuter.abortTransaction())
 				{
 					errorMessage += this.commandExecuter.getErrorMessage().toString();
 					this.showErrorDialog("Error trying to abort transaction: " + errorMessage);
 				}
 				this.showErrorDialog(errorMessage);
-				rp.goToInsert(e.row-1,e.column-1);
+				rp.goToInsert(e.getRow()-1, e.getColumn()-1);
 				return false;
 			}
 			
@@ -430,9 +434,9 @@ public class UpdateViewerController implements ActionListener, ItemListener
 				{
 					ListExpr le = new ListExpr();
 					le.setValueTo(this.commandExecuter.getResultList());
-					if (!le.isEmpty())
+					if (!le.isEmpty() && le.listLength() == 2)
 					{
-						result.add(le); 
+						result.add(le.second().first()); 
 					}
 				}
 			}
@@ -488,9 +492,9 @@ public class UpdateViewerController implements ActionListener, ItemListener
             }
             catch(InvalidFormatException e)
             {
-                String message = e.getMessage()+"\n at position ("+e.row+", "+e.column+")";
+                String message = e.getMessage()+"\n at position ("+ e.getRow() + ", " + e.getColumn() + ")";
                 this.showErrorDialog(message);
-                rp.goToEdit(e.row-1,e.column-1);
+                rp.goToEdit(e.getRow() -1, e.getColumn()-1);
                 return false;
             }
             
@@ -715,6 +719,8 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		}		
 	}
 	
+
+	
 	public void processCommandClearSearch()
 	{
 		for (RelationPanel rp : this.viewer.getRelationPanels())
@@ -777,6 +783,14 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			Reporter.debug(commandExecuter.getErrorMessage().toString());
 			return false;
 		}
+	}
+	
+	/**
+	 * TODO: Show loaded relations in Edit View.
+	 */
+	public boolean processCommandEditView()
+	{
+		return true;
 	}
 	
 	/**

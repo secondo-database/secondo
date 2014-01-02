@@ -122,7 +122,7 @@ public class RelationPanel extends JPanel implements
 	
 	private Relation relation;
 	
-	private String[][] insertData;
+	private Relation insertRelation;
 	
 	// controller listens to action events
 	private UpdateViewerController controller;
@@ -289,15 +289,7 @@ public class RelationPanel extends JPanel implements
 		//insertSplit.setDividerLocation(lastPos);
 	}
 	
-	
-	/*
-	 * Add empty row for inserting tuple.
-	 */
-	public void addInsertRow() 
-	{
-		// TODO
-	}
-	
+		
 	
 	/* Adds remove functionality to the insertTable */
 	private void addRemoveToInsertTable()
@@ -405,12 +397,12 @@ public class RelationPanel extends JPanel implements
 	 */
 	public boolean createFromLE(ListExpr pRelationLE) 
 	{		
-		SecondoObject relationSO = new SecondoObject(this.getName(), pRelationLE);
-		this.relation = new Relation();
-		this.relation.readFromSecondoObject(relationSO);
-		
 		try
 		{
+			SecondoObject relationSO = new SecondoObject(this.getName(), pRelationLE);
+			this.relation = new Relation();
+			this.relation.readFromSecondoObject(relationSO);
+			
 			RelationTableModel rtm = new RelationTableModel(relation);
 			this.relTable = new JTable(rtm);
 			this.relTable.setRowSelectionAllowed(false);
@@ -467,8 +459,7 @@ public class RelationPanel extends JPanel implements
 		ImageIcon icon = new ImageIcon(ClassLoader.getSystemResource(pPath));
 		icon.setImage(icon.getImage().getScaledInstance(15, 15, Image.SCALE_DEFAULT));
 		return icon;
-	}
-	
+	}	
 	
 	/**
 	 * Deletes marked tuples from the table(model).
@@ -538,9 +529,15 @@ public class RelationPanel extends JPanel implements
 	/*
 	 * Returns values to be inserted.
 	 */	
-	public String[][] getInsertTuples()
+	public List<Tuple> getInsertTuples()
 	{
-		return this.insertData;
+		List<Tuple> tuples = new ArrayList<Tuple>();
+		for (int i = 0; i < this.insertRelation.getTupleCount(); i++)
+		{
+			tuples.add(this.insertRelation.getTupleAt(i));
+		}
+		//Reporter.debug("RelationPanel.getInsertTuples: no. of insertTuples is " + tuples.size());
+		return tuples;
 	}
 	
 	/*
@@ -836,11 +833,10 @@ public class RelationPanel extends JPanel implements
 	
 	
 	/*
-	 Removes the last added tuple from the insert-relation	 
+	 * TODO: Removes the last added tuple from the insert-relation	 
 	 */
-	public boolean removeLastInsertTuple(){
-		
-		// TODO
+	public boolean removeLastInsertTuple()
+	{
 		/*
 		if (insertData.length == 1){
 			removeInsertRelation();
@@ -1009,7 +1005,9 @@ public class RelationPanel extends JPanel implements
 		return result;
 	}
 		
-	
+	/**
+	 * Returns hit positions for given key in a single table value cell.
+	 */
 	public List<SearchHit> retrieveSearchHits(String pKey, boolean pCaseSensitive, int pRow)
 	{
 		List<SearchHit> result = new ArrayList<SearchHit>();
@@ -1037,31 +1035,38 @@ public class RelationPanel extends JPanel implements
 	 * @param pSelectMode one of the States constants
 	 * @see viewer.update2.States
 	 */
-	public void setMode(int pSelectMode)
+	public void setMode(int pState)
 	{
-		this.getTableModel().setState(pSelectMode);
+		this.getTableModel().setState(pState);
         
-        if (pSelectMode == States.DELETE)
-        {
-            this.relTable.setRowSelectionAllowed(true);
-            //this.relTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        }
-		if (pSelectMode == States.INSERT)
-        {
-            this.showInsertTable();
-        }
-		if (this.getTableModel().getState() == States.UPDATE)
+		switch (pState)
 		{
-			this.replaceField.setEnabled(true);
-			this.replace.setEnabled(true);
-			this.replaceAll.setEnabled(true);
-		}
-        else
-        {
-            this.relTable.setRowSelectionAllowed(false);
-			this.replaceField.setEnabled(false);
-			this.replace.setEnabled(false);
-			this.replaceAll.setEnabled(false);        
+			case States.DELETE:
+			{
+				this.relTable.setRowSelectionAllowed(true);
+				this.relTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+				break;
+			}
+			case States.INSERT:
+			{
+				this.showInsertTable();
+				((RelationTableModel)this.insertTable.getModel()).setState(pState);
+				break;
+			}
+			case States.UPDATE:
+			{
+				this.replaceField.setEnabled(true);
+				this.replace.setEnabled(true);
+				this.replaceAll.setEnabled(true);
+				break;
+			}
+			default:
+			{
+				this.relTable.setRowSelectionAllowed(false);
+				this.replaceField.setEnabled(false);
+				this.replace.setEnabled(false);
+				this.replaceAll.setEnabled(false);
+			}
 		}
 	}
 	
@@ -1109,56 +1114,44 @@ public class RelationPanel extends JPanel implements
 	 */
 	public void showInsertTable()
 	{	
-		List<String> attributeNames = this.relation.getAttributeNames();
-		String[] colNames = new String[2];
-		colNames[0] = this.getTableModel().getColumnName(RelationTableModel.COL_ATTRNAME);
-		colNames[1] = this.getTableModel().getColumnName(RelationTableModel.COL_ATTRVALUE);
-		
-		this.insertData = new String[attributeNames.size()-1][2];
-		
-		for (int i = 0; i < attributeNames.size()-1; i++) 
+		try
 		{
-			insertData[i][0] = attributeNames.get(i);			
-			insertData[i][1] = "";
-		}
-		
-		DefaultTableModel dtm = new DefaultTableModel(insertData, colNames) 
-		{
-			public boolean isCellEditable(int row, int column) {  return (column == 1); }
-			public void setValueAt(Object pValue, int pRow, int pCol) 
-			{
-				if(isCellEditable(pRow, pCol)) 
-				{
-					super.setValueAt(pValue, pRow, pCol);
-					insertData[pRow][pCol] = (String)pValue;
-				}
-			}
-		};
-		
-		this.insertTable = new JTable(dtm);
-		
-		// set column width
-		TableColumn column = this.insertTable.getColumnModel().getColumn(0);
-		column.setMinWidth(this.relTable.getColumnModel().getColumn(1).getMinWidth()); 
-		column.setMaxWidth(this.relTable.getColumnModel().getColumn(1).getMaxWidth()); 
+			this.insertRelation = this.relation.createEmptyClone();
+			this.insertRelation.addTuple(null);
 
-		// set cell renderers
-		/*column.setCellRenderer(new LabelTableCellRenderer());
-		
-		column = this.relTable.getColumnModel().getColumn(1);
-		column.setCellRenderer(this.tableCellRenderer);
-		column.setCellEditor(this.tableCellEditor);
-		*/
-		// replace 
-		this.insertScroll.setViewportView(insertTable);		
-		this.splitPane.setTopComponent(this.relScroll);	
-		this.splitPane.setBottomComponent(this.insertScroll);
-		this.splitPane.setResizeWeight(0.5);
-		this.remove(relScroll);
-		this.add(this.splitPane, BorderLayout.CENTER);
-		
-		this.revalidate();
-		this.repaint();
+			RelationTableModel dtm = new RelationTableModel(this.insertRelation);
+			this.insertTable = new JTable(dtm);
+			
+			// set column width and renderers
+			TableColumn column = this.insertTable.getColumnModel().getColumn(0);
+			column.setMinWidth(this.relTable.getColumnModel().getColumn(0).getMinWidth()); 
+			column.setMaxWidth(this.relTable.getColumnModel().getColumn(0).getMaxWidth()); 
+			column.setCellRenderer(new LabelTableCellRenderer());
+			
+			column = this.insertTable.getColumnModel().getColumn(1);
+			column.setMinWidth(this.relTable.getColumnModel().getColumn(1).getMinWidth()); 
+			column.setMaxWidth(this.relTable.getColumnModel().getColumn(1).getMaxWidth()); 
+			column.setCellRenderer(new LabelTableCellRenderer());
+			
+			column = this.insertTable.getColumnModel().getColumn(2);
+			column.setCellRenderer(this.tableCellRenderer);
+			column.setCellEditor(this.tableCellEditor);
+			
+			// replace 
+			this.insertScroll.setViewportView(insertTable);		
+			this.splitPane.setTopComponent(this.relScroll);	
+			this.splitPane.setBottomComponent(this.insertScroll);
+			this.splitPane.setResizeWeight(0.5);
+			this.remove(relScroll);
+			this.add(this.splitPane, BorderLayout.CENTER);
+			
+			this.revalidate();
+			this.repaint();
+		}
+		catch(InvalidRelationException e)
+		{
+			// TODO
+		}
 	}
 	
 	
@@ -1213,15 +1206,13 @@ public class RelationPanel extends JPanel implements
 		}
 		else
 		{
-			// TODO
-			/*
-			if (insertTable.isEditing()) {
-				int editedRow = insertTable.getEditingRow();
-				int editedColumn = insertTable.getEditingColumn();
-				CellEditor editor = insertTable.getCellEditor(editedRow, editedColumn);
+			if (insertTable.isEditing()) 
+			{
+				int editedRow = this.insertTable.getEditingRow();
+				int editedColumn = this.insertTable.getEditingColumn();
+				CellEditor editor = this.insertTable.getCellEditor(editedRow, editedColumn);
 				editor.stopCellEditing();
 			}
-			*/
 		}
 	}	
 	
@@ -1283,13 +1274,19 @@ public class RelationPanel extends JPanel implements
         
         if (this.getTableModel().getState() == States.DELETE)
         {
+			int rowIndex;
+			
             if (e.getValueIsAdjusting())
             {
-                int rowIndex = e.getLastIndex();
-                this.getTableModel().addDeletion(rowIndex);
-                
-                this.relTable.revalidate();
+                rowIndex = e.getLastIndex();
             }
+			else
+			{
+                rowIndex = e.getFirstIndex();
+			}
+			
+			this.getTableModel().addDeletion(rowIndex);			
+			this.relTable.revalidate();			
         }
     }
 }

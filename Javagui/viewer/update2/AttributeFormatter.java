@@ -59,6 +59,12 @@ public class AttributeFormatter
 			int indEnd = result.lastIndexOf('\"');
 			result = result.substring(indStart, indEnd);
 		}
+		if (pListExpr.atomType() == ListExpr.INT_ATOM 
+			|| pListExpr.atomType() == ListExpr.REAL_ATOM
+			|| pListExpr.atomType() == ListExpr.BOOL_ATOM)
+		{
+			result = result.trim();
+		}
 					
 		return result;
 	}

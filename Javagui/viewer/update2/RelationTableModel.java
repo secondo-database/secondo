@@ -109,17 +109,18 @@ public class RelationTableModel extends AbstractTableModel
      */
     public boolean addDeletion(int pRow)
     {
-        boolean result = false;
-        String tupleid = (String)this.getValueAt(pRow, this.COL_TUPLEID);
-		if (!this.isDeleted(pRow))
-        {
-            this.deletions.add(tupleid);
-            //Reporter.debug("RelationTableModel.addDeletion: marked tuple " + tupleid);
-            result = true;
-        }
-        //else Reporter.debug("RelationTableModel.addDeletion: already marked tuple " + tupleid);
-		
-        return result;
+		if (!isSeparator(pRow))
+		{
+			String tupleid = (String)this.getValueAt(pRow, this.COL_TUPLEID);
+			if (!this.isDeleted(pRow))
+			{
+				this.deletions.add(tupleid);
+				//Reporter.debug("RelationTableModel.addDeletion: marked tuple " + tupleid);
+				return true;
+			}
+			//else Reporter.debug("RelationTableModel.addDeletion: already marked tuple " + tupleid);
+		}
+        return false;
     }
 	
 	
@@ -142,9 +143,16 @@ public class RelationTableModel extends AbstractTableModel
      */
     public void addTuple(ListExpr pTuple)
     {
-		this.relation.addTuple(pTuple);
-		fireTableRowsInserted(0, this.tupleSize+1);
-    }
+		try
+		{
+			this.relation.addTuple(pTuple);
+			fireTableRowsInserted(0, this.tupleSize);
+		}
+		catch (InvalidRelationException e)
+		{
+			Reporter.writeError("RelationTableModel.addTuple: invalid LE is " + pTuple.toString());
+		}
+	}
 	
 	
 	/**
@@ -268,9 +276,14 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		List<String> result = new ArrayList<String>();
 		
-		for (int i = 0; i < this.relation.getTupleCount() * (tupleSize+1); i++)
+		for (int i = 0; i < this.relation.getTupleCount() * this.tupleSize; i++)
 		{
 			Object o = this.getValueAt(i, pCol);
+			
+			if (o== null)
+			{
+				Reporter.debug("RelationPanel.getColumnContent: tupleindex=" + i + ", columnindex=" + pCol);
+			}
 			result.add(o.toString());
 		}
 		
@@ -386,7 +399,7 @@ public class RelationTableModel extends AbstractTableModel
     public int getRowCount() 
 	{
 		// add (empty) extra row as separator between tuples
-        return this.relation.getTupleCount() * (this.tupleSize + 1);
+        return this.relation.getTupleCount() * this.tupleSize;
     }
 	
 
@@ -405,7 +418,6 @@ public class RelationTableModel extends AbstractTableModel
 	 * Returns String representation of Tuple ID for column 1, 
 	 * String representation of attribute name for column 2,
 	 * formatted String representation of attribute value for column 3.
-	 */
     public Object getValueAt(int pRow, int pCol) 
 	{
 		//Reporter.debug("RelationTableModel.getValueAt: " + pRow + ", " + pCol);
@@ -434,14 +446,52 @@ public class RelationTableModel extends AbstractTableModel
 				case COL_ATTRVALUE: 
 					ListExpr rest = soTuple[attrIndex].toListExpr();
 					//Reporter.debug("RelationTableModel.getValueAt: " + rest.toString());
-					/*for (int i = 0; i<attrIndex; i++)
-					{
-						rest = rest.rest();
-					}*/
 					result = AttributeFormatter.fromListExprToString(rest.second()).trim();
 					break;
 				default: 
 					result = "fehler";
+			}
+		}
+		
+		return result;
+    }
+	*/
+	
+	/*
+	 * Method of interface AbstractTableModel.
+	 * Returns String representation of Tuple ID for column 1, 
+	 * String representation of attribute name for column 2,
+	 * formatted String representation of attribute value for column 3.
+	 */
+    public Object getValueAt(int pRow, int pCol) 
+	{
+		//Reporter.debug("RelationTableModel.getValueAt: " + pRow + ", " + pCol);
+		
+		String result = " ";
+		
+		// if this is not a Separator Row
+		if(!this.isSeparator(pRow)) 
+		{
+			// get Tuple value
+			int tupleIndex = this.rowToTupleIndex(pRow);
+			int attrIndex = this.rowToAttributeIndex(pRow);
+			
+			Tuple tuple = this.relation.getTupleAt(tupleIndex);
+			
+			// get value
+			switch (pCol)
+			{
+				case COL_TUPLEID: 
+					result = tuple.getID();
+					break;
+				case COL_ATTRNAME:
+					result = this.attributeNames.get(attrIndex);
+					break;
+				case COL_ATTRVALUE: 
+					result = tuple.getValueAt(attrIndex);
+					break;
+				default: 
+					result = "Fehler";
 			}
 		}
 		
@@ -474,7 +524,7 @@ public class RelationTableModel extends AbstractTableModel
      */
     public boolean isCellEditable(int pRow, int pCol) 
 	{
-		if (this.state == States.UPDATE)
+		if (this.state == States.UPDATE || this.state == States.INSERT)
 		{
 			return (pCol == COL_ATTRVALUE && !this.isSeparator(pRow));
 		}
@@ -502,12 +552,16 @@ public class RelationTableModel extends AbstractTableModel
 	 */
 	public boolean isDeleted(int pRow)
 	{
-		String tupleid = (String)this.getValueAt(pRow, this.COL_TUPLEID);
-		
-        if (tupleid != null && (tupleid.length() > 0) && this.deletions.contains(tupleid))
-		{
-			return true;
+		if (!this.isSeparator(pRow))
+		{		
+			String tupleid = (String)this.getValueAt(pRow, this.COL_TUPLEID);
+			
+			if (tupleid != null && (tupleid.length() > 0) && this.deletions.contains(tupleid))
+			{
+				return true;
+			}
 		}
+
 		return false;
 	}
 	
@@ -517,9 +571,8 @@ public class RelationTableModel extends AbstractTableModel
 	 */
 	private boolean isSeparator(int pRow)
 	{
-		return (pRow % (this.tupleSize+1)==0);
+		return (pRow % this.tupleSize ==0);
 	}
-	
 
 		
 	/**
@@ -605,12 +658,12 @@ public class RelationTableModel extends AbstractTableModel
 	
 	public int rowToTupleIndex(int pRow)
 	{
-		return (pRow / (this.tupleSize+1));
+		return (pRow / this.tupleSize);
 	}
 	
 	public int rowToAttributeIndex(int pRow)
 	{
-		return ((pRow % (this.tupleSize+1)) - 1);
+		return ((pRow % this.tupleSize) - 1);
 	}
 	
 	
@@ -646,7 +699,6 @@ public class RelationTableModel extends AbstractTableModel
     /*
 	 * Method of interface AbstractTableModel.
      * Change table data.
-     */
 	@Override
     public void setValueAt(Object pValue, int pRow, int pCol) 
 	{
@@ -665,7 +717,28 @@ public class RelationTableModel extends AbstractTableModel
 			String name = this.relation.getAttributeNames().get(attrIndex)+"::"+type+"::"+pValue.toString();
 			SecondoObject SO = new SecondoObject(name, le);
 
-			this.relation.setSecondoObject(tupleIndex, attrIndex, SO);
+			this.relation.setValueAt(tupleIndex, attrIndex, SO);
+			
+			fireTableCellUpdated(pRow, pCol);
+		}
+    }
+     */
+	
+	/*
+	 * Method of interface AbstractTableModel.
+     * Change table data.
+     */
+	@Override
+    public void setValueAt(Object pValue, int pRow, int pCol) 
+	{
+		Reporter.debug("RelationTableModel.setValueAt: " + pRow + ", " + pCol);
+		
+		if(isCellEditable(pRow, pCol)) 
+		{
+			int tupleIndex = this.rowToTupleIndex(pRow);
+			int attrIndex = this.rowToAttributeIndex(pRow);
+									
+			this.relation.setValueAt(tupleIndex, attrIndex, (String)pValue);
 			
 			fireTableCellUpdated(pRow, pCol);
 		}
