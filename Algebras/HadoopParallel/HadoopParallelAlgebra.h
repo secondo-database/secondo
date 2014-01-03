@@ -1017,43 +1017,4 @@ then fetch the needed flob file.
   size_t flobOffset;
 };
 
-/*
-1.9 Incomplete Type class
-
-*/
-class Incomplete : public Attribute
-{
-public:
-  static Word In(const ListExpr typeInfo, const ListExpr instance,
-      const int errorPos, ListExpr& errorInfo, bool& correct);
-
-  static ListExpr Out(ListExpr typeInfo, Word value);
-
-  static Word Create(const ListExpr typeInfo);
-  static void Delete(const ListExpr typeInfo, Word& w);
-  static void Close(const ListExpr typeInfo, Word& w);
-  static Word Clone(const ListExpr typeInfo, const Word& w);
-  static bool KindCheck(ListExpr type, ListExpr& errorInfo);
-
-  static const string BasicType() { return "incomplete"; }
-  static bool checkType(ListExpr list);
-
-  static int SizeOfObj(){ return sizeof(Incomplete); }
-
-  static bool Open(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value){
-    return false;
-  }
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value){
-    return false;
-  }
-  static void* Cast(void* addr){ return 0;}
-
-
-private:
-  Incomplete(){}
-};
-
-
 #endif /* HADOOPPARALLELALGEBRA_H_ */
