@@ -330,10 +330,18 @@
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
                             "Scharnhorst"))))) 
-        (OBJECT Dotrajindex 
+        (OBJECT SEC_DERIVED_OBJ 
             () 
-            invfile 
-            'An invfile') 
+            (rel 
+                (tuple 
+                    (
+                        (Name string) 
+                        (Value text) 
+                        (UsedObjs text)))) 
+            (
+                ("Dotraj_sample_s" 
+                    '(consume (remove (sortby (extend (sample Dotraj 10 1e-05) ((XxxNo (fun (tuple1 TUPLE) (randint 20000))))) ((XxxNo asc))) (XxxNo)))' 
+                    '( Dotraj )'))) 
         (OBJECT class3 
             () 
             (rel 
