@@ -1,0 +1,16 @@
+
+(
+    (rtree 
+        (tuple 
+            (
+                (Name string) 
+                (Typ string) 
+                (GeoData line))) 
+        line 
+        FALSE) 
+    ("R-Tree statistics" 
+        ("Height" 2) 
+        ("# of (leaf) entries" 3212) 
+        ("# of nodes" 74) 
+        ("Bounding Box" 
+            (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001))))

@@ -1,0 +1,28 @@
+
+(
+    (rel 
+        (tuple 
+            (
+                (Level int) 
+                (NodeId int) 
+                (MBR rect) 
+                (FatherID int) 
+                (IsLeaf bool) 
+                (MinEntries int) 
+                (MaxEntries int) 
+                (CountEntries int)))) 
+    (
+        (1 1 
+            (-10836.00000001 12285.00000001 -2805.00000001 28095.00000001) 
+            0 
+            FALSE 
+            24 
+            62 
+            43) 
+        (1 2034 
+            (9521.999999989999 33575.00000001 -6686.00000001 28054.00000001) 
+            0 
+            FALSE 
+            24 
+            62 
+            28)))
