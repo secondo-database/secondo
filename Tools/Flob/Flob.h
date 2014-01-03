@@ -180,6 +180,7 @@ Makes only a flat copy of the source flob (only the handle is copied).
         }
         dataPointer = 0;
       }
+
       return *this;
     };
 
@@ -232,7 +233,6 @@ persistent Flob data.
         free(dataPointer);
         dataPointer = 0;
       }
-
     };
 
 /*
@@ -315,6 +315,10 @@ Keep the Flob data in an external file, set the FlobId to it.
       const SmiSize length, const SmiSize flobOffset){
     return FlobManager::getInstance().
         setExFile(result, flobFile, length, flobOffset);
+  }
+
+  inline void changeMode(char m){
+    FlobManager::getInstance().changeMode(this, m);
   }
 
 /*
@@ -484,8 +488,14 @@ creation of evil flobs.
       return id.getOffset();
    }
 
+/*
+~getFileId~
 
 
+*/
+   inline const SmiFileId getFileId(){
+     return id.getFileId();
+   }
 
 
 /*
@@ -640,11 +650,24 @@ Print function to print debug info about the Flob to an ostream.
     }
   }
 
+/*
+Describe the Flob basic information for fetching its data in the Persistent storage.
+
+*/
+  string describe() const {
+    if (!dataPointer){
+      stringstream ss;
+      ss << id.describe() << " " << size << endl;
+      return ss.str();
+    } else {
+      return "error: not persistent\n";
+    }
+  }
+
   private:
     FlobId id;          // encodes fileid, recordid, offset
     SmiSize size;       // size of the Flob data segment in Bytes
     char*  dataPointer; // an evil pointer for direct saving data
-
 
     Flob(const FlobId& _id, const SmiSize& _size): id(_id), size(_size),
           dataPointer(0){}

@@ -85,3 +85,9 @@ Number   : 1
 Signature: string x string x [int] x [int] x [int x int x int] -> stream(tuple(...))
 Example  : query "plzComp3" ffeed3['',1;;] count
 Result   : 41267
+
+Operator : fetchFlob
+Number   : 1
+Signature: stream(tuple(T, DS_IDX)) x [T] -> stream(tuple(T))
+Example  : query "plzComp3" ffeed3['',1;;] fetchFlob[] count
+Result   : 41267

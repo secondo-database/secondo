@@ -16,6 +16,7 @@ record.
 
 #include <stdint.h>
 #include <ostream>
+#include <sstream>
 #include "SecondoSMI.h"
 
 
@@ -63,7 +64,13 @@ class FlobId{
         << "offset = " << offset << ", "
         << "mode = " << (int) mode;
      return os;
-   }    
+   }
+
+   string describe() const {
+     stringstream ss;
+     ss << fileId << " " << recordId << " " << offset << " " << (int)mode;
+     return ss.str();
+   }
 
    inline bool operator==(const FlobId& fid) const{
      return fileId == fid.fileId &&
@@ -78,8 +85,6 @@ class FlobId{
             offset   != fid.offset ||
             mode != fid.mode;
    }
-
-   
  
    inline bool operator>(const FlobId& fid) const{
       if( mode > fid.mode) return true;
@@ -120,6 +125,8 @@ class FlobId{
    }
 
    inline char getMode(){ return mode;}
+
+   inline SmiFileId getFileId(){ return fileId;}
 
    // support for very  dirty, non explainable things, don't think about any 
    // meaning of this funtion!

@@ -344,20 +344,22 @@ bool FlobManager::getData(
          const bool ignoreCache /* = false*/ ) {  // requested data size
   __TRACE_ENTER__
 
- assert(offset+size <= flob.size);
- if(size==0){
-   return true;
- }
- if(flob.dataPointer){
-   memcpy(dest, flob.dataPointer + offset, size);
-   return true;
- }
-
+  assert(offset+size <= flob.size);
+  if(size==0){
+    return true;
+  }
+  if(flob.dataPointer){
+    memcpy(dest, flob.dataPointer + offset, size);
+    return true;
+  }
 
   assert(!flob.id.isDestroyed());
 
   FlobId id = flob.id;
-  // access data from non bekeley db flobs not implemented yet
+  if (id.mode == 3){
+    cerr << id << endl;
+  }
+
   assert((id.mode==0) || (id.mode==1) || (id.mode == 2));
 
   if (id.mode < 2)
@@ -438,6 +440,10 @@ This Flob is taken over by the NativeFlobCache from now on.
       cerr << " try to read = " << size << endl;
     }
     assert(ok);
+  }
+  else if (id.mode == 3)
+  {
+    // todo: something about the PSLocation
   }
   
   __TRACE_LEAVE__
@@ -740,6 +746,13 @@ bool FlobManager::putData(Flob& dest,         // destination flob
   return true;
 }
 
+void FlobManager::changeMode(Flob* flob, const char mode)
+{
+//  FlobId id = flob.id;
+//  id.mode = mode;
+  flob->id.mode = mode;
+}
+
 
 bool FlobManager::putData(const FlobId& id,         // destination flob
                           const char* buffer, // source buffer
@@ -778,7 +791,7 @@ bool FlobManager::setExFile(Flob& flob, const string& flobFile,
   }
 
   SmiRecordId recordId = flob.id.recordId;
-  assert((flob.id.mode==0) || (flob.id.mode) ==1);
+  assert((flob.id.mode==0) || (flob.id.mode==1) || (flob.id.mode==3));
   externalFileCache->cacheRecord(recordId, flobFile);
 
   flob.id.mode = 2;

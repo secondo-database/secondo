@@ -52,25 +52,6 @@ but includes tuples of different schemes.
 */
 
 #include "HadoopParallelAlgebra.h"
-#include <vector>
-#include <iostream>
-#include <string>
-#include "RelationAlgebra.h"
-#include "QueryProcessor.h"
-#include "StandardTypes.h"
-#include "Counter.h"
-#include "TupleIdentifier.h"
-#include "LogMsg.h"
-#include "ListUtils.h"
-#include "FTextAlgebra.h"
-#include "Symbols.h"
-#include "Base64.h"
-#include "regex.h"
-#include "FileSystem.h"
-#include "StringUtils.h"
-#include "Symbols.h"
-#include "Application.h"
-#include "Attribute.h"
 
 using namespace std;
 
@@ -540,6 +521,7 @@ int paraHashJoinValueMap(Word* args, Word& result,
     localInfo = (phjLocalInfo*) local.addr;
     delete localInfo;
     localInfo = 0;
+    local.setAddr(0);
     return 0;
   }
   return 0;
@@ -1115,9 +1097,11 @@ int paraJoinValueMap(Word* args, Word& result,
   case CLOSE:{
     if (local.addr == 0)
       return CANCEL;
-    localInfo = (pjLocalInfo*) local.addr;
 
+    localInfo = (pjLocalInfo*) local.addr;
     delete localInfo;
+    local.setAddr(0);
+
     qp->Close(args[0].addr);
     return 0;
   }
@@ -1742,7 +1726,6 @@ string clusterInfo::getLocalIP()
   string confPath = string(getenv("SECONDO_CONFIG"));
   localIP = SmiProfile::GetParameter("ParallelSecondo",
       "localIP","", confPath);
-
   bool match = false;
   vector<string> *aIPs = getAvailableIPAddrs();
   for (vector<string>::iterator it = aIPs->begin();
@@ -2444,7 +2427,8 @@ int FConsumeValueMap(Word* args, Word& result,
 
     //Check whether the duplicate parameters are available
     clusterInfo *ci = 0;
-    if (drMode)
+    SmiRecordId sourceDS = 0;
+    if (drMode || noFlob)
     {
       ci = new clusterInfo();
       if ((ti > (int)ci->getSlaveSize()))
@@ -2456,6 +2440,7 @@ int FConsumeValueMap(Word* args, Word& result,
         ((CcBool*)(result.addr))->Set(true, false);
         return 0;
       }
+      sourceDS = ci->getLocalNode();
     }
 
     fcli = (fconsumeLocalInfo*) local.addr;
@@ -2477,6 +2462,28 @@ int FConsumeValueMap(Word* args, Word& result,
       return 0;
     }
 
+    SmiFileId flobFileId;
+    string flobFilePath;
+    ofstream flobFile;
+    if (noFlob)
+    {
+      //Prepare the fileId for the Flob file
+      do{
+        flobFileId = WinUnix::rand() + WinUnix::getpid();
+        flobFilePath = getLocalFilePath(
+            "", "flobFile", "_" + int2string(flobFileId));
+      }
+      while (FileSystem::FileOrFolderExists(flobFilePath));
+
+      flobFile.open(flobFilePath.c_str(), ios::binary);
+      if (!flobFile.good())
+      {
+        cerr << "ERROR!Create Flob file " << flobFilePath << " fail!" << endl;
+        ((CcBool*)(result.addr))->Set(true, false);
+        return 0;
+      }
+    }
+
     //Statistic information
     ListExpr relTypeList =
         qp->GetSupplierTypeExpr(qp->GetSon(s,0));
@@ -2487,6 +2494,7 @@ int FConsumeValueMap(Word* args, Word& result,
     double totalSize = 0.0;
     double totalExtSize = 0.0;
     int count = 0;
+    SmiSize flobBlockOffset = 0;
 
     Word wTuple(Address(0));
     qp->Open(args[0].addr);
@@ -2504,14 +2512,43 @@ int FConsumeValueMap(Word* args, Word& result,
 
       if (noFlob)
       {
-        //Prepare for fconsume2, only keep the core and extension of the tuple
+/*
+Prepare for ~fconsume3~, split the tuple data into two parts.
+The core and extension data is kept in the file named by the given parameters.
+This file is stored with the type in the indicated path.
+
+The flob data is kept in another binary file.
+The file is only used within the intermediate part of Hadoop qureies,
+hence it must be kept in PSFS nodes, and its name is: flobFile\_fileID.
+
+The fileID is a 32bit integer, decided by a {random value} + {the current process id}
+If the file with the id exists, then use another random value.
+
+In this case, the flobId keeps the following information:
+
+----
+fileId: the id used as the suffix of the flob file
+recordId: indicates the sourceDS
+mode: 3, indicate it is a remote mode
+offset: the offset within the flob file
+----
+
+Note here the recordId indicates the source DS, i.e. on which DS the flob is generated.
+Regarding the fault-tolerance feature, the flob file can also be duplicated in
+several continuous Data Servers.
+In this case, the flob file is named: flobFile\_fileID\_sourceIP, like the normal data file.
+On how many DSs to fetch the duplicated flob file is decided by the ~fetchFlob~ operator.
+
+*/
         totalSize     += (coreSize + extensionSize);
         totalExtSize  += (coreSize + extensionSize);
 
-        tupleBlockSize -= flobSize;
         char* tBlock = (char*)malloc(tupleBlockSize);
-        t->WriteTupleToBin(tBlock, coreSize, extensionSize);
-        blockFile.write(tBlock, tupleBlockSize);
+        t->WriteToDivBlock(tBlock, coreSize, extensionSize, flobSize,
+            flobFileId, sourceDS, flobBlockOffset);
+        blockFile.write(tBlock, (tupleBlockSize - flobSize));
+        size_t flobOffset = tupleBlockSize - flobSize;
+        flobFile.write(tBlock + flobOffset, flobSize);
         free(tBlock);
       }
       else
@@ -2530,6 +2567,11 @@ int FConsumeValueMap(Word* args, Word& result,
 
       t->DeleteIfAllowed();
       qp->Request(args[0].addr, wTuple);
+    }
+
+    if (flobFile.is_open()){
+      flobFile.close();
+      cout << "Flob file: " << flobFilePath << " is created. " << endl;
     }
 
     // write a zero after all tuples to indicate the end.
@@ -2555,7 +2597,7 @@ int FConsumeValueMap(Word* args, Word& result,
 
     qp->Close(args[0].addr);
     blockFile.close();
-    cout << "\nData file: " << filePath << " is created" << endl;
+    cout << "\nData file: " << filePath << " is created. " << endl;
 
     if (drMode)
     {
@@ -2635,7 +2677,6 @@ the target IP is appended, for using the scp command.
     ((CcBool*)(result.addr))->Set(true, true);
     fcli->state = 1;
     return 0;
-
   }
   else if ( message == REQUESTPROGRESS )
   {
@@ -2928,6 +2969,7 @@ ListExpr FFeedTypeMap(ListExpr args, bool noFlob)
          return l.typeError(err9);
      }
    
+     bool delTypeFile = false;
      if (tnIndex >= 0)
      {
        //copy the type file from remote to here
@@ -2950,11 +2992,16 @@ ListExpr FFeedTypeMap(ListExpr args, bool noFlob)
            << " from <-" << "\t" << rPath << endl;
        if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
          return l.typeError(err11);
+       delTypeFile = true;
      }
    
      ListExpr relType;
      if (!nl->ReadFromFile(filePath, relType))
        return l.typeError(err2 + filePath);
+     if (delTypeFile){
+       FileSystem::DeleteFileOrFolder(filePath);
+     }
+
      //Read type file of DLF flist
      NList resultType;
      string ostStr, nstStr;
@@ -2964,6 +3011,7 @@ ListExpr FFeedTypeMap(ListExpr args, bool noFlob)
      {
        //Ignore the incomplete term
        int count = 0;
+
        ListExpr realRelType = rmTermNL(relType, "incomplete", count);
        if (!(listutils::isRelDescription(realRelType)
               || listutils::isTupleStream(realRelType)))
@@ -2972,21 +3020,16 @@ ListExpr FFeedTypeMap(ListExpr args, bool noFlob)
                        NList(NList(realRelType).second()));
        ostStr = osType.convertToString();
 
-       NList realAttrList = NList(nl->Second(nl->Second(realRelType)));
-       realAttrList.append(NList(NList("DS_IDX"), NList(CcInt::BasicType())));
-       NList nsType = NList(NList(Symbol::STREAM()),
-                           NList(NList(Tuple::BasicType()), realAttrList));
-       nstStr = nsType.convertToString();
+       //Add the DS\_IDX attribute
+       NList resultAttrList = NList(nl->Second(nl->Second(realRelType)));
+       resultAttrList.append(NList(
+           NList("DS_IDX"), NList(CcInt::BasicType())));
 
-       //Add the DS\_IDX:int attribute
-       NList attrList = NList(nl->Second(nl->Second(relType)));
-       attrList.append(NList(NList("DS_IDX"), NList(CcInt::BasicType())));
+       // remove incomplete
        resultType =
            NList(NList(Symbol::STREAM()),
-               NList(NList(Tuple::BasicType()), attrList));
-       cerr << "The ostStr is : " << ostStr << endl;
-       cerr << "The nstStr is : " << nstStr << endl;
-       cerr << "The resultType is : " << resultType.convertToString() << endl;
+               NList(NList(Tuple::BasicType()), resultAttrList));
+       nstStr = resultType.convertToString();
      }
      else
      {
@@ -3115,11 +3158,12 @@ int FFeedValueMap(Word* args, Word& result,
       if (!ffli)
         return CANCEL;
 
-      Tuple *t;
+      Tuple *t = 0;
       switch(mode)
       {
         case 1: {t = ffli->getNextTuple(); break;}
         case 2: {t = ffli->getNextTuple2(); break;}
+        case 3: {t = ffli->getNextTuple3(); break;}
       }
 
       if (0 == t)
@@ -3401,6 +3445,8 @@ Tuple* FFeedLocalInfo::getNextTuple(){
   u_int32_t blockSize;
 
   assert(tupleBlockFile->good());
+  assert(!noFlob);
+
   tupleBlockFile->read(
       reinterpret_cast<char*>(&blockSize),
       sizeof(blockSize));
@@ -3410,27 +3456,8 @@ Tuple* FFeedLocalInfo::getNextTuple(){
     char *tupleBlock = new char[blockSize];
     tupleBlockFile->read(tupleBlock, blockSize);
 
-    if (noFlob)
-    {
-      //read the tuple from the file, and add an attribute
-      Tuple* ot = new Tuple(rcdTupleType);
-      ot->ReadFromBin(tupleBlock, blockSize);
-
-      t = new Tuple(newTupleType);
-      int i;
-      for (i = 0; i < ot->GetNoAttributes(); i++)
-      {
-        t->CopyAttribute(i, ot, i);
-      }
-
-      t->PutAttribute(i, new CcInt(prdIndex));
-      ot->DeleteIfAllowed();
-    }
-    else
-    {
-      t = new Tuple(rcdTupleType);
-      t->ReadFromBin(tupleBlock, blockSize);
-    }
+    t = new Tuple(rcdTupleType);
+    t->ReadFromBin(tupleBlock, blockSize);
     delete[] tupleBlock;
   }
 
@@ -3454,6 +3481,7 @@ Tuple* FFeedLocalInfo::getNextTuple2(){
   u_int32_t blockSize;
 
   assert(tupleBlockFile->good());
+  assert(!noFlob);
 
   size_t sizeLen = (sizeof(u_int32_t) + sizeof(u_int16_t));
   char sizes[sizeLen];
@@ -3475,7 +3503,7 @@ Tuple* FFeedLocalInfo::getNextTuple2(){
     size_t flobOffset = tupleBlockFile->tellg();
 
     t = new Tuple(rcdTupleType);
-    t->ReadFromBin(tupleOnlyBlock, tupleSize, filePath, flobOffset);
+    t->ReadTupleFromBin(tupleOnlyBlock, tupleSize, filePath, flobOffset);
 
     u_int32_t flobLength = blockSize - sizeof(tupleSize) - tupleSize;
     if (flobLength != 0){
@@ -3485,6 +3513,75 @@ Tuple* FFeedLocalInfo::getNextTuple2(){
   }
 
   return t;
+}
+
+/*
+
+The function getNextTuple3 is prepared for the operator ~ffeed3~
+
+The block contains only the tuple data, while the Flob data is
+kept either locally or remotely in persistent Flob files.
+
+*/
+
+Tuple* FFeedLocalInfo::getNextTuple3(){
+
+  assert(noFlob);
+
+  if (!fileFound)
+    return 0;
+  Tuple* newTuple = 0;
+  u_int32_t blockSize;
+
+  assert(tupleBlockFile->good());
+
+  size_t sizeLen = (sizeof(u_int32_t) + sizeof(u_int16_t));
+  char sizes[sizeLen];
+  size_t offset = 0;
+  tupleBlockFile->read(sizes, sizeLen);
+  ReadVar<u_int32_t>(blockSize, sizes, offset);
+
+  if (!tupleBlockFile->eof() && (blockSize > 0))
+  {
+    //READ only the tuple data out
+    blockSize -= sizeof(blockSize);
+    u_int16_t tupleSize;
+    ReadVar<u_int16_t>(tupleSize, sizes, offset);
+
+    char *tupleOnlyBlock = new char[tupleSize];
+    tupleBlockFile->read(tupleOnlyBlock, tupleSize);
+    size_t flobOffset = tupleBlockFile->tellg();
+
+    u_int32_t flobLength = blockSize - sizeof(tupleSize) - tupleSize;
+    Tuple* t = new Tuple(rcdTupleType);
+
+    if (flobLength == 0){
+      //read as ffeed3
+      t->ReadTupleFromBin(tupleOnlyBlock);
+    }
+    else {
+      //read as ffeed2
+      t->ReadTupleFromBin(tupleOnlyBlock, tupleSize, filePath, flobOffset);
+    }
+
+    //Create the new tuple by adding the DS\_IDX
+    newTuple = new Tuple(newTupleType);
+    int aSize = rcdTupleType->GetNoAttributes();
+    for (int i = 0; i < aSize; i++)
+    {
+      newTuple->CopyAttribute(i, t, i);
+    }
+    newTuple->PutAttribute(aSize, new CcInt(prdIndex));
+    t->DeleteIfAllowed();
+
+    if (flobLength != 0){
+      tupleBlockFile->seekg(flobLength, ios::cur);
+    }
+
+    delete[] tupleOnlyBlock;
+  }
+
+  return newTuple;
 }
 
 /*
@@ -4669,7 +4766,7 @@ Operator fdistributeOp(FDistributeInfo(),
 
 
 /*
-5 Operator ~fconsume2~
+5 Operator ~fconsume3~
 
 2th May 2013
 
@@ -4693,14 +4790,21 @@ The signature of this operator is:
      -> bool
 ----
 
+Update on 15th Oct.
+Rename the operator from ~fconsume2~ to ~fconsume3~
+
+Therefore, ~ffeed~ and ~ffeed2~ reads data from files created by ~fconsume~,
+~ffeed3~ reads data from files created by ~fconsume3~.
+
+
 5.1 Specification
 
 */
 
-struct FConsume2Info : OperatorInfo {
-  FConsume2Info() : OperatorInfo()
+struct FConsume3Info : OperatorInfo {
+  FConsume3Info() : OperatorInfo()
   {
-    name = "fconsume2";
+    name = "fconsume3";
     signature = "stream(tuple( ... )) "
         "x string x text x [int] x [int]"
         "x [ [int] x [int] ] "
@@ -4726,7 +4830,7 @@ struct FConsume2Info : OperatorInfo {
 5.2 Type mapping
 
 */
-ListExpr FConsume2TypeMap(ListExpr args)
+ListExpr FConsume3TypeMap(ListExpr args)
 {
   return FConsumeTypeMap(args, true);
 }
@@ -4735,13 +4839,13 @@ ListExpr FConsume2TypeMap(ListExpr args)
 5.3 Value mapping
 
 */
-int FConsume2ValueMap(Word* args, Word& result,
+int FConsume3ValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
   return FConsumeValueMap(args, result, message, local, s, true);
 }
 
-Operator fconsume2Op(FConsume2Info(), FConsume2ValueMap, FConsume2TypeMap);
+Operator fconsume3Op(FConsume3Info(), FConsume3ValueMap, FConsume3TypeMap);
 
 /*
 5 Operator ~ffeed3~
@@ -4749,7 +4853,7 @@ Operator fconsume2Op(FConsume2Info(), FConsume2ValueMap, FConsume2TypeMap);
 3th May 2013
 
 This operator reads the files created by the ~fconsume~ or ~fconsume2~ operator.
-It accepts a relation schema that contains incomplete type,
+It accepts a relation schema that contains ~incomplete~ type,
 and adds an additional attribute DS\_IDX to the output schema,
 indicating the source Data Server that the tuple comes from.
 Now the operator maps
@@ -4765,6 +4869,14 @@ x [producerIndex x targetNodeIndex x attemptTimes]  ;
 17th Sept 2013
 
 rename it from ~ffeed2~ to ~ffeed3~
+
+28th Oct. 2013
+
+the ~incomplete~ should be removed from the result,
+the result tuples are not completed if they are fed on the remote computer,
+where the ~producerIndex~ is indicated and is not the current computer.
+In this case, the DS\_IDX is set and the flob mode is set to be 3.
+Or else, the DS\_IDX is set as -1 and the flob mode is kept unchanged.
 
 5.1 Specification
 
@@ -4782,9 +4894,10 @@ struct FFeed3Info : OperatorInfo {
         "[producerIndex x targetIndex x attemptTimes] ]";
     meaning =
         "Restore a tuple stream from a pair of type and data files, "
-        "which are created by a fconsume or fconsume2 operator. "
-        "It accepts a relation type containing incomplete type, "
-        "and returns the relation by adding an attribute DS_IDX";
+        "which are created by fconsume3 operator. "
+        "It accepts the incomplete keyword, which will be removed"
+        "when returning the tuple stream with the additional attribute DS_IDX."
+        "The DS_IDX is the same as the given producerIndex";
   }
 };
 
@@ -4859,101 +4972,6 @@ int FFeed2ValueMap(Word* args, Word& result,
 
 Operator ffeed2Op(FFeed2Info(), FFeed2ValueMap, FFeed2TypeMap);
 
-
-
-
-
-/*
-
-4 Data Type ~incomplete~
-
-10th May 2013
-
-Here creates a data type, named ~incomplete~.
-It is used to encapsulate data types containing Flob,
-and is applied in the ~fconsume2~ operator.
-
-This data type is created only for passing the QueryProcessor,
-which needs to create storage space for the result.
-If the incomplete is not a data type,
-then the creation fails.
-
-*/
-
-ListExpr IncompleteProperty(){
-#ifdef DEBUGHEAD
-cout << "IncompleteProperty" << endl;
-#endif
-    return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List"),
-                             nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("(" +
-                                 Incomplete::BasicType()+" text)"),
-                             nl->StringAtom("(elem)"),
-                             nl->StringAtom("('...')"),
-                             nl->StringAtom("The Flob may not be prepared"))));
-}
-
-Word Incomplete::In(const ListExpr typeInfo, const ListExpr instance,
-    const int errorPos, ListExpr& errorInfo, bool& correct)
-{
-  return SetWord(Address(0));
-}
-
-ListExpr Incomplete::Out(ListExpr typeInfo, Word value){
-  return nl->TheEmptyList();
-}
-
-Word Incomplete::Create(const ListExpr typeInfo)
-{
-  return SetWord(Address(0));
-}
-
-void Incomplete::Delete(const ListExpr typeInfo, Word& w)
-{
-  w.addr = 0;
-}
-
-void Incomplete::Close(const ListExpr typeInfo, Word& w)
-{
-  w.addr = 0;
-}
-
-Word Incomplete::Clone(const ListExpr typeInfo, const Word& w)
-{
-  return SetWord(Address(0));
-}
-
-bool Incomplete::KindCheck(ListExpr type, ListExpr& errorInfo)
-{
-  return nl->HasLength(type, 2)
-          && listutils::isSymbol(nl->First(type), BasicType())
-          && listutils::isDATA(nl->Second(type));
-}
-
-
-
-bool Incomplete::checkType(ListExpr list){
-    return nl->HasLength(list, 2)
-        && listutils::isSymbol(nl->First(list), BasicType())
-        && listutils::isDATA(nl->Second(list));
-}
-
-TypeConstructor IncompleteTC(
-    Incomplete::BasicType(), IncompleteProperty,
-    Incomplete::Out, Incomplete::In,
-    0,0,
-    Incomplete::Create, Incomplete::Delete,
-    Incomplete::Open, Incomplete::Save,
-    Incomplete::Close, Incomplete::Clone,
-    Incomplete::Cast, Incomplete::SizeOfObj,
-    Incomplete::KindCheck);
-
-
 /*
 5 Operator ~fetchFlob~
 
@@ -4961,23 +4979,27 @@ TypeConstructor IncompleteTC(
 
 This operator fetches Flob data, locally and also remotely over the cluster.
 The details of this operator are discussed in the attached readme file.
+It is used after the ~ffeed3~ and ~pffeed3~ operator for fetching the Flob data.
 
-It is often used after the ~ffeed2~ and ~pffeed2~ operator.
 If the flob are kept locally, it reads the Flob directly.
-If the remote Flob is required, FlobOrder is prepared and sent to producer DS,
-where needed Flobs are collected into a binary file, and then sent back.
+If the remote Flob is required, FlobOrder is prepared and sent to producer DS
+that is indicated by the requring DS\_IDX attribute.
 
-Note if a Flob attribute is not asked,
-it will be removed from the result stream,
-in order to let the output type list be accepted by other operators.
+The producer will collect the needed Flobs into a binary file and
+then send the file to the local computer.
+Afterwards, the flob mode is set to 2 and the flob file is denoted to the
+dilvered file.
 
-It maps:
+
+The operator maps:
 
 ----
-stream(tuple( ... incomplete(Ai) ... incomplete(Aj) ... DS\_IDX))
+stream(tuple( ... Ai ... Aj ... DS\_IDX))
   x list (Ai)
-\to stream(tuple( ... Ai ...))
+\to stream(tuple( ... Ai ... Aj ...))
 ----
+
+The Ai and Aj are attributes with Flob data.
 
 5.1 Specification
 
@@ -4988,11 +5010,10 @@ struct FetchFlobInfo : OperatorInfo{
   {
     name = "fetchFlob";
     signature =
-        "stream(tuple( ... incomplete(Ai) ... incomplete(Aj) ... DS_IDX)) "
-        "x (Ai) -> stream(tuple( ... Ai ... )";
-    syntax = "";
-    meaning = "Retrieve the Flob data for incomplete attribute, "
-        "locally or remotely.";
+        "stream(tuple( ... Ai ... Aj ... DS_IDX))"
+        " x (Ai) -> stream(tuple( ... Ai ... Aj ... )";
+    syntax = "_ op[list]";
+    meaning = "Retrieve the Flob data locally or remotely.";
   }
 };
 
@@ -5008,11 +5029,9 @@ ListExpr FetchFlobTypeMap(ListExpr args)
 
     string lenErr = "ERROR! Operator fetchFlob expects two elements. ";
     string tpeErr = "ERROR! Operator fetchFlob expects "
-        "stream(tuple(uncomplete(Ai), DS_IDX)) and list(Ai)";
-    string nicErr = "ERROR! The input tuple stream doesn't "
-        "contain incomplete attribute. ";
+        "stream(tuple((Ai) ... (DS_IDX int))), dbName and list(Ai)";
     string nfdErr = "ERROR! The input stream doesn't "
-        "contain one required attribute. ";
+        "contain the required attributes ";
     string ndiErr = "ERROR! The input stream doesn't contain DS_IDX attribute.";
 
 
@@ -5021,17 +5040,13 @@ ListExpr FetchFlobTypeMap(ListExpr args)
 
     NList first = l.first();
     NList instream = first.first();
-    int count = 0;
-    ListExpr realType = rmTermNL(instream.listExpr(), "incomplete", count);
-    if (!listutils::isTupleStream(realType))
+    if (!listutils::isTupleStream(instream.listExpr()))
       return l.typeError(tpeErr);
-    if (count < 1)
-      return l.typeError(nicErr);
 
     //Collect the names of requited attributes
     vector<string> raNames; //required attribute names
-    int raNum;              //required attribut number
-    NList raList = l.second().first();
+    int raNum;              //number of all required attributes
+    NList raList = l.second().second();
     while (!raList.isEmpty()){
       NList attr = raList.first();
       if (! attr.isAtom())
@@ -5042,40 +5057,46 @@ ListExpr FetchFlobTypeMap(ListExpr args)
     }
     raNum = raNames.size();
 
-    //Check whether the required attribute exist,
-    //if an attribute is incomplete and not asked, then remove it
-    NList raiList, daiList;
-    //Get the index for the asked attributes, and also the deleted attributes.
+    //Check whether the required attribute exist and get its index
+    NList raiList;  //required attribute index list
+    NList daiList;  //deleted attribute index list
     NList attrList = instream.second().second();
     NList newAttrList;
     int index = 0, dsiIndex = -1;
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
     while (!attrList.isEmpty())
     {
       NList elem = attrList.first();
-      if (elem.second().isAtom())
+      string aName = elem.first().str();
+      NList aTypeList = elem.second();
+
+      if (aName.compare("DS_IDX") == 0)
       {
-        if (elem.first().str().compare("DS_IDX") == 0)
-        {
-          //remove the DS\_IDX attribute
-          dsiIndex = index;
-        }
-        else
-          newAttrList.append(elem);
+        //remove the DS\_IDX attribute
+        dsiIndex = index;
+        daiList.append(NList(index));
       }
       else
       {
-        string aName = elem.first().str();
-        vector<string>::iterator found =
-            find(raNames.begin(), raNames.end(), aName);
-        if (found != raNames.end())
+        ListExpr nmType = sc->NumericType(aTypeList.listExpr());
+        int algId, typeId;
+        algId = nl->IntValue(nl->First(nmType));
+        typeId = nl->IntValue(nl->Second(nmType));
+        Attribute* attr = static_cast<Attribute*>
+              ((am->CreateObj(algId, typeId))(nmType).addr);
+        if (attr->NumOfFLOBs() > 0)
         {
-          string aType = elem.second().second().str();
-          newAttrList.append(NList(NList(aName), NList(aType)));
-          raiList.append(NList(index));
-          raNum--;
+          if (find(raNames.begin(), raNames.end(), aName) != raNames.end()){
+            raiList.append(NList(index));
+            raNum--;
+            newAttrList.append(elem);
+          }
+          else{
+            daiList.append(NList(index));
+          }
         }
         else{
-          daiList.append(NList(index));
+          newAttrList.append(elem);
         }
       }
       attrList.rest();
@@ -5090,19 +5111,10 @@ ListExpr FetchFlobTypeMap(ListExpr args)
     NList resultType = NList(NList(Symbol::STREAM()),
         NList(NList(Tuple::BasicType()), newAttrList));
 
-    cerr << "The result type is: " << resultType.convertToString() << endl;
-    cerr << "The asked attribute indices are : "
-        << raiList.convertToString() << endl;
-    cerr << "The deleted attribute indices are : "
-        << daiList.convertToString() << endl;
-    cerr << "The index of the DS_IDX is: " << dsiIndex << endl;
-
     NList appList;
     appList.append(NList(raiList.convertToString(), true, true));
     appList.append(NList(daiList.convertToString(), true, true));
     appList.append(NList(dsiIndex));
-
-    cerr << "The appList is: " << appList.convertToString() << endl;
 
     return NList(NList(Symbols::APPEND()),
                   appList,
@@ -5127,11 +5139,12 @@ int FetchFlobValueMap(Word* args, Word& result,
   {
     case OPEN: {
       NList resultType = qp->GetType(s);
-      string raiStr = ((FText*)args[2].addr)->GetValue(),
-             daiStr = ((FText*)args[3].addr)->GetValue();
+      string raiStr = ((FText*)args[2].addr)->GetValue();
+      string daiStr = ((FText*)args[3].addr)->GetValue();
       int dsiIndex = ((CcInt*)args[4].addr)->GetValue();
-      ListExpr raiList, daiList;
+      ListExpr raiList;  //required attribute index list
       nl->ReadFromString(raiStr, raiList);
+      ListExpr daiList;  //deleted attribute index list
       nl->ReadFromString(daiStr, daiList);
 
       ffi = (FetchFlobLocalInfo*)local.addr;
@@ -5140,9 +5153,8 @@ int FetchFlobValueMap(Word* args, Word& result,
         delete ffi;
         ffi = 0;
       }
-      ffi =
-        new FetchFlobLocalInfo(resultType, NList(raiList),
-            NList(daiList), dsiIndex);
+      ffi = new FetchFlobLocalInfo
+          (s, resultType, NList(raiList), NList(daiList), dsiIndex);
 
       qp->Open(args[0].addr);
       ffi->returned = 0;
@@ -5170,12 +5182,8 @@ int FetchFlobValueMap(Word* args, Word& result,
       ffi = (FetchFlobLocalInfo*)local.addr;
       if (!ffi)
         return CANCEL;
+      ffi->clearFetchedFiles();
       qp->Close(args[0].addr);
-
-//      else
-//      {
-
-//      }
 
       return 0; //must return
     }
@@ -5197,71 +5205,345 @@ int FetchFlobValueMap(Word* args, Word& result,
   return 0;
 }
 
-Operator fetchFLobOp(FetchFlobInfo(), FetchFlobValueMap, FetchFlobTypeMap);
+
+Operator fetchFlobOp(FetchFlobInfo(), FetchFlobValueMap, FetchFlobTypeMap);
+
+pthread_mutex_t FetchFlobLocalInfo::FFLI_mutex;
 
 FetchFlobLocalInfo::FetchFlobLocalInfo(
-    NList resultTypeList, NList raList, NList daList, int _dsi):
-    dsIdx(_dsi)
+    const Supplier s, NList resultTypeList, NList _ral,NList _dal, int _dsi):
+    faList(_ral), daList(_dal), dsIdx(_dsi),
+    ci(0), cds(-1), moreInput(true)
 {
+  LFPath = getLocalFilePath("","","");
+  FileSystem::AppendItem(LFPath, "flobFile_");
+
   resultType = new TupleType(
       SecondoSystem::GetCatalog()->NumericType(
           resultTypeList.second().listExpr()));
 
-  raIndices = new vector<int>();
-  daIndices = new vector<int>();
+  standby = prepared = 0;
+  fetchingNum = 0;
+  fetchedFiles = 0;
 
-  NList rest = raList;
-  while (!rest.isEmpty())
-  {
-    raIndices->push_back(rest.first().intval());
-    rest.rest();
-  }
-
-  rest = daList;
-  while (!rest.isEmpty())
-  {
-    daIndices->push_back(rest.first().intval());
-    rest.rest();
-  }
+  maxSheetMem = qp->GetMemorySize(s) * 1024 * 1024;
+  pthread_mutex_init(&FFLI_mutex, NULL);
 }
 
 Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
 {
-  Word t;
-  qp->Request(s, t);
-  if (qp->Received(s))
+  if (moreInput)
   {
-    Tuple* tuple = (Tuple*)t.addr;
-    Tuple* newTuple = new Tuple(resultType);
-    int dsiValue = ((CcInt*)tuple->GetAttribute(dsIdx))->GetIntval();
-    if (dsiValue == -1)
+    Word t;
+    qp->Request(s, t);
+    while (qp->Received(s))
     {
-      //si: source index; di: destination index
-      int di = 0;
-      for (int si = 0; si < tuple->GetNoAttributes(); si++)
-      {
-        if (find(daIndices->begin(), daIndices->end(),si) == daIndices->end()
-            && si != dsIdx)
-        {
-          //Keep this attribute
-          newTuple->CopyAttribute(si, tuple, di++);
+      Tuple* tuple = (Tuple*)t.addr;
+      int tds = ((CcInt*)tuple->GetAttribute(dsIdx))->GetIntval();
+      if ((tds == -1) || (faList.isEmpty())){
+        //If the Flob is kept locally or there is no Flob request at all
+        return setResultTuple(setLocalFlob(tuple));
+      }
+      else{
+        if (ci == 0){
+
+          //Initialize all components that need to fetch remote Flob
+          ci = new clusterInfo();
+          cds = ci->getLocalNode();
+
+          size_t cSize = ci->getClusterSize();
+          standby = new vector<FlobSheet*>(cSize);
+          fetchingNum = 0;
+          prepared = new vector<FlobSheet*>();
+          sheetCounter = new int[cSize];
+          memset(sheetCounter, 0, cSize * sizeof(int));
+          memset(tokenPass, false, PipeWidth);
+          fetchedFiles = new vector<string>();
+        }
+
+        if (tds == cds){
+          return setResultTuple(setLocalFlob(tuple));
+        }
+        else{
+          //Cache the tuple in the buffer and prepares the flob-sheet
+          while (true)
+          {
+            FlobSheet* fs = standby->at(tds);
+            if (fs == 0){
+              //Initialize flob sheet
+              fs = new FlobSheet(tds, faList, maxSheetMem);
+              sheetCounter[tds]++;
+              standby->at(tds) = fs;
+            }
+
+            // standby sheet is full after inserting the new order
+            bool full = fs->addOrder(tuple);
+            if (full){
+              if (sendSheet(fs, sheetCounter[tds])){
+                standby->at(tds) = 0;
+              }
+            }
+            else {
+              break;
+            }
+          }
         }
       }
-      tuple->DeleteIfAllowed();
-      return newTuple;
+      qp->Request(s, t);
     }
-    //TODO else
+    moreInput = false;
+  }
 
-//    else
-//    {
+  if (ci)
+  {
+    //This loop waits until gets a file
+    while (!standby->empty() || fetchingNum > 0 || !prepared->empty())
+    {
+      // Copy the files as soon as possible
+      while (!standby->empty() && fetchingNum < PipeWidth)
+      {
+        FlobSheet* fs = standby->back();
+        int tds = standby->size() - 1;
+        if (fs){
+          bool rt = sendSheet(fs, sheetCounter[tds]);
+          assert(rt);
+        }
+        standby->pop_back();
+      }
 
-//    }
-
-
+      while(!prepared->empty())
+      {
+        FlobSheet* ps = prepared->back();
+        Tuple* t = setResultTuple(ps->getCachedTuple());
+        if (t){
+          return t;
+        }
+        else {
+          //no more tuples in this cache
+          delete ps;
+          prepared->pop_back();
+        }
+      }
+    }
   }
 
   return 0;
 }
+
+Tuple* FetchFlobLocalInfo::setResultTuple(Tuple* tuple)
+{
+  Tuple* newTuple = 0;
+  if (tuple)
+  {
+    newTuple = new Tuple(resultType);
+    int di = 0;
+    //si: source attribute index; di: destination attribute index
+    for (int si = 0; si < tuple->GetNoAttributes(); si++)
+    {
+      NList rest = daList;
+      bool remove = false;
+      while (!rest.isEmpty()){
+        int dai = rest.first().intval();
+        if (si == dai){ //remove this attribute
+          remove = true;
+          break;
+        }
+        rest.rest();
+      }
+
+      if (!remove){
+        newTuple->CopyAttribute(si, tuple, di++);
+      }
+    }
+    tuple->DeleteIfAllowed();
+  }
+  return newTuple;
+}
+
+Tuple* FetchFlobLocalInfo::setLocalFlob(Tuple* tuple)
+{
+  if (tuple){
+    tuple->setLocalFlobFile(LFPath);
+  }
+
+  return tuple;
+}
+
+bool FetchFlobLocalInfo::sendSheet(FlobSheet* fs, int times)
+{
+  if (fetchingNum >= PipeWidth)
+    return false;
+
+  for (int t = 0; t < PipeWidth; t++)
+  {
+    if (!tokenPass[t] || pthread_kill(threadID[t],0))
+    {
+      tokenPass[t] = true;
+      FFLI_Thread* ft = new FFLI_Thread(this, fs, times);
+      pthread_create(&threadID[t], NULL, sendSheetThread, ft);
+      fetchingNum++;
+      return true;
+    }
+  }
+  return false;
+}
+
+void* FetchFlobLocalInfo::sendSheetThread(void* ptr)
+{
+  FFLI_Thread* ft = (FFLI_Thread*)ptr;
+  FetchFlobLocalInfo* ffli = ft->ffli;
+  FlobSheet* fs = ft->sheet;
+  int times = ft->times;
+  string FlobFile;
+
+  int source = fs->getSDS();
+  int dest = ffli->getLocalDS();
+  string localSheetPath = fs->setSheet(source, dest, times);
+
+  //scp sheetFile to node tds
+  string sourcePSFS = ffli->getPSFSPath(source);
+  int atimes = MAX_COPYTIMES;
+  while ( atimes-- > 0){
+    if (0 == system((scpCommand + localSheetPath + " " + sourcePSFS).c_str())){
+      FileSystem::DeleteFileOrFolder(localSheetPath);
+      break;
+    }
+    else{
+      WinUnix::sleep(1);
+    }
+  }
+
+/*
+prepare the parameters that the remote collectFlob program needs:
+
+flobSheetName : string
+PSFSNodePath :  string
+ResultFileName :  string
+TargetPath :  string
+
+*/
+
+  string sourceIP = ffli->getIP(source);
+  string sourceMSec = ffli->getMSecPath(source, false);
+  FileSystem::AppendItem(sourceMSec, "bin/collectFlob");
+  string sPSFS = ffli->getPSFSPath(source, false);
+  string sSheet = sPSFS;
+  string sheetName = localSheetPath.substr(localSheetPath.find_last_of("/"));
+  FileSystem::AppendItem(sSheet, sheetName);
+  string resultFlobFileName = fs->setResultFile(source, dest, times);
+  string localPSFS = ffli->getPSFSPath(dest, true);
+
+  string command = "ssh " + sourceIP + " " + sourceMSec + " "
+      + sSheet + " " + sPSFS + " " + resultFlobFileName + " " + localPSFS;
+//  cerr << "The command is: " << command << endl;
+
+  atimes = MAX_COPYTIMES;
+  int rc;
+  while (atimes-- > 0){
+    rc = system(command.c_str());
+    if (rc == 0){
+      break;
+    }
+  }
+
+  // after getting the result flob file
+  pthread_mutex_lock(&FFLI_mutex);
+  ffli->fetching2prepared(fs);
+  pthread_mutex_unlock(&FFLI_mutex);
+
+  return NULL;
+}
+
+void FetchFlobLocalInfo::fetching2prepared(FlobSheet* fs){
+  fetchingNum--;
+  prepared->push_back(fs);
+  fetchedFiles->push_back(fs->getResultFilePath());
+}
+
+void FetchFlobLocalInfo::clearFetchedFiles(){
+  if (fetchedFiles)
+  {
+    for (vector<string>::iterator it = fetchedFiles->begin();
+        it != fetchedFiles->end(); it++){
+      string filePath = *it;
+      if (!FileSystem::DeleteFileOrFolder(filePath)){
+        cerr << "Warning!! File " << filePath << " cannot be deleted. " << endl;
+      }
+    }
+  }
+}
+
+bool FlobSheet::addOrder(Tuple* tuple)
+{
+  buffer->AppendTuple(tuple);
+  cachedSize += tuple->GetSize();
+
+  return cachedSize >= maxMem;
+}
+
+string FlobSheet::setSheet(int source, int dest, int times)
+{
+  stringstream ss;
+  ss << "Sheet_"
+      << WinUnix::getpid() << "_"
+      << source << "_"
+      << dest << "_"
+      << times;
+  string sheetName = ss.str();
+  sheetName = getLocalFilePath("", sheetName, "");
+  ofstream sfout(sheetName.c_str());
+
+  it = buffer->MakeScan();
+  Tuple* t = it->GetNextTuple();
+  while (t)
+  {
+    NList rest = faList;
+    while(!rest.isEmpty())
+    {
+      int ai = rest.first().intval();
+      Attribute* attr = t->GetAttribute(ai);
+
+      for(int k = 0; k < attr->NumOfFLOBs(); k++){
+        //output: fileId recordId offset mode size
+        Flob* flob = attr->GetFLOB(k);
+        sfout << flob->describe();
+      }
+      rest.rest();
+    }
+    t = it->GetNextTuple();
+  }
+  delete it;
+  it = 0;
+  sfout.close();
+  return sheetName;
+}
+
+string FlobSheet::setResultFile(int source, int dest, int times)
+{
+  stringstream ss;
+  ss << "ResultFlob_" << WinUnix::rand(WinUnix::getpid())
+    << "_" << source << "_" << dest << "_" << times;
+  string resultName = ss.str();
+  resultFilePath = getLocalFilePath("", resultName, "");
+  return resultName;
+}
+
+Tuple* FlobSheet::getCachedTuple()
+{
+  if (it == 0){
+    it = buffer->MakeScan();
+  }
+  Tuple* tuple = it->GetNextTuple();
+
+  if (tuple){
+    size_t flobSize = tuple->ResetExFlobFile(
+        resultFilePath, flobOffset, faList.listExpr());
+    flobOffset += flobSize;
+  }
+
+  return tuple;
+}
+
 
 /*
 6 Auxiliary functions
@@ -5434,7 +5716,8 @@ int copyFile(string source, string dest, bool cfn/* = false*/)
     sourceDepth = sourceDepth > 0 ? (sourceDepth - 1) : 0;
 
     stringstream command;
-    command << "tar -czf - " << source << " | ssh -oCompression=no " << destNode
+    command << "tar -czf - " << source
+      << " | ssh -oCompression=no " << destNode
       << " \"tar -zxf - -C " << dest << " --strip=" << sourceDepth;
     if (cfn){
       command << "; mv " << dest << sourceFileName 
@@ -5467,7 +5750,8 @@ int copyFile(string source, string dest, bool cfn/* = false*/)
       << " \"tar -czf - " << source << " \" | tar -xzf - -C "
       << destPath << " --strip=" << sourceDepth;
     if (cfn){
-      command << "; mv " << destPath << srcName << " " << destPath << destName;
+      command << "; mv " << destPath << srcName
+          << " " << destPath << destName;
     }
 
     return system(command.str().c_str());
@@ -5564,7 +5848,8 @@ public:
   HadoopParallelAlgebra() :
     Algebra()
   {
-    AddTypeConstructor(&IncompleteTC);
+//    AddTypeConstructor(&IncompleteTC);
+//    IncompleteTC.AssociateKind(Kind::DATA());
 
     AddOperator(doubleExportInfo(),
         doubleExportValueMap, doubleExportTypeMap);
@@ -5599,23 +5884,24 @@ public:
     AddOperator(&fdistributeOp);
     fdistributeOp.SetUsesArgsInTypeMapping();
 
-
-    AddOperator(&fconsume2Op);
-    fconsume2Op.SetUsesArgsInTypeMapping();
-//    AddOperator(&ffeed3Op);
-//    ffeed3Op.SetUsesArgsInTypeMapping();
-//    AddOperator(&fetchFLobOp);
-//    fetchFLobOp.SetUsesArgsInTypeMapping();
-
     AddOperator(&ffeed2Op);
     ffeed2Op.SetUsesArgsInTypeMapping();
 
-
-
+    AddOperator(&fconsume3Op);
+    fconsume3Op.SetUsesArgsInTypeMapping();
+    AddOperator(&ffeed3Op);
+    ffeed3Op.SetUsesArgsInTypeMapping();
+    AddOperator(&fetchFlobOp);
+    fetchFlobOp.SetUsesArgsInTypeMapping();
+    fetchFlobOp.SetUsesMemory();
 
 #ifdef USE_PROGRESS
     fconsumeOp.EnableProgress();
+    fconsume3Op.EnableProgress();
     ffeedOp.EnableProgress();
+    ffeed2Op.EnableProgress();
+    ffeed3Op.EnableProgress();
+    fetchFlobOp.EnableProgress();
 #endif
 
   }

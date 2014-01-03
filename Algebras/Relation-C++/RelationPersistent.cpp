@@ -599,6 +599,148 @@ void Tuple::WriteToBlock(char* buf,
   TRACE_LEAVE
 }
 
+void Tuple::WriteToDivBlock(char* buf, size_t coreSize,
+    size_t extensionSize, size_t flobSize,
+    SmiFileId flobFileId, SmiRecordId sourceDS, SmiSize& flobBlockOffset,
+    bool containsLob/* = false*/) const
+{
+  TRACE_ENTER
+  assert(buf);
+
+  //Write block size (uint32)
+  const uint16_t dataSize = coreSize + extensionSize;
+  uint32_t blockSize = sizeof(uint32_t) + sizeof(u_int16_t) + dataSize;
+  if (containsLob){
+    blockSize += flobSize;
+  }
+  SmiSize offset = 0;
+  WriteVar<uint32_t>(blockSize, buf, offset);
+  char* data = buf + offset;
+
+  //Write tuple size (uint16)
+  offset = 0;
+  WriteVar<uint16_t>(dataSize, data, offset);
+
+  SmiSize extOffset = sizeof(dataSize) + coreSize;
+  char* ext = data + extOffset;
+  //The flob offset within the current block
+  SmiSize lobOffset = extOffset + extensionSize;
+  char* lob = data + lobOffset;
+
+  uint32_t currentSize = 0;
+  uint32_t currentExtSize = 0;
+  char mode = 3;
+  SmiRecordId rcdId = sourceDS;
+  if (containsLob){
+    flobFileId = 0;
+    bool isTemp = true;
+    if (tupleFile){
+      flobFileId = tupleFile->GetFileId();
+      isTemp = tupleFile->IsTemp();
+    }
+    mode = isTemp?1:0;
+    rcdId = tupleId;
+  }
+
+  for (int i = 0; i < noAttributes; i++)
+  {
+    SHOW(attributes[i]->IsDefined())
+
+    Attribute::StorageType st =  attributes[i]->GetStorageType();
+
+    if (Attribute::Default == st)
+    {
+      vector<Flob> attrFlobs;
+
+      for (int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+      {
+        Flob *tmpFlob = attributes[i]->GetFLOB(j);
+        SmiSize flobsz = tmpFlob->getSize();
+        attrFlobs.push_back(*tmpFlob);
+
+        if (flobsz >= extensionLimit)
+        {
+          // put big flobs to the flob part
+          tmpFlob->read(lob, flobsz);
+
+          // change the flob header which is exported into the block
+          SmiSize lobset = containsLob?lobOffset:flobBlockOffset;
+          Flob newFlob = Flob::createFrom(
+              flobFileId, rcdId, lobset, mode, flobsz);
+          *tmpFlob = newFlob;
+/*
+The offset in the flob header is set differently, based on containsLob value.
+If we export the whole tuple into one block, then the flob is always accessed
+within the block, hence the offset is set as a relative position.
+Or else, the flob is accessed separately in the flob file,
+hence the offset should be set as a absolute position.
+
+*/
+
+          flobBlockOffset += flobsz;
+          lobOffset += flobsz;
+          lob += flobsz;
+        }
+        else if (flobsz < extensionLimit)
+        {
+          // put small flobs to the extension part
+          tmpFlob->read(ext, flobsz);
+
+          Flob newFlob = Flob::createFrom(
+              flobFileId, rcdId, extOffset, mode, flobsz);
+          *tmpFlob = newFlob;
+
+          extOffset += flobsz;
+          ext += flobsz;
+        }
+      }
+
+      currentSize = tupleType->GetAttributeType(i).size;
+      attributes[i]->Serialize(data, currentSize, offset);
+      offset += currentSize;
+
+      //restore old flob data
+      assert((size_t)attributes[i]->NumOfFLOBs() == attrFlobs.size());
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) {
+        Flob *tmpFlob = attributes[i]->GetFLOB(j);
+        *tmpFlob = attrFlobs[j];
+      }
+      attrFlobs.clear();
+    }
+    else if (Attribute::Core == st)
+    {
+      assert( attributes[i]->NumOfFLOBs() == 0 );
+
+      currentSize = attributes[i]->SerializedSize();
+      attributes[i]->Serialize( data, currentSize, offset );
+      offset += currentSize;
+    }
+    else if (Attribute::Extension == st)
+    {
+      assert( attributes[i]->NumOfFLOBs() == 0 );
+
+      currentSize = sizeof(uint32_t);
+
+      WriteVar<uint32_t>( extOffset, data, offset );
+      SHOW(extOffset)
+
+      currentExtSize = attributes[i]->SerializedSize();
+      attributes[i]->Serialize(ext, currentExtSize, 0);
+      DEBUG_MSG( Array2HexStr(ext, currentExtSize) )
+
+      extOffset += currentExtSize;
+      ext += currentExtSize;
+    }
+    else
+    {
+      cerr << "ERROR: unknown storage type for attribute No " << i << endl;
+      assert(false);
+    }
+  }
+
+  TRACE_LEAVE
+}
+
 size_t Tuple::CalculateBlockSize( size_t& coreSize,
                                   double& extSize,
                                   double& size,
@@ -960,7 +1102,7 @@ Therefore, the flobOffset should be reduced accordingly.
 
 */
 void Tuple::InitializeNoFlobAttributes(char* src,
-  string flobFile, size_t flobOffset)
+  string flobFile/* = ""*/, size_t flobOffset/* = 0*/)
 {
   TRACE_ENTER
 
@@ -986,7 +1128,6 @@ void Tuple::InitializeNoFlobAttributes(char* src,
       attrExtOffset -= sizeof(u_int16_t);
       attributes[i] = Attribute::Create( attr, &src[attrExtOffset],
                                                             0, algId, typeId);
-
     }
     else
     {
@@ -1002,12 +1143,14 @@ void Tuple::InitializeNoFlobAttributes(char* src,
     for (int k = 0; k < attributes[i]->NumOfFLOBs(); k++){
       Flob* flob = attributes[i]->GetFLOB(k);
       if(flob->getSize() < extensionLimit){
-        Flob::createFromBlock(*flob, 
+        Flob::createFromBlock(*flob,
                               src + flob->getOffset() - sizeof(u_int16_t),
                               flob->getSize(), true);
       }
       else{
-        Flob::setExFile(*flob, flobFile, flob->getSize(), flobOffset);
+        if (!flobFile.empty()){
+          Flob::setExFile(*flob, flobFile, flob->getSize(), flobOffset);
+        }
       }
     }
     // Call the Initialize function for every attribute
@@ -1019,6 +1162,59 @@ void Tuple::InitializeNoFlobAttributes(char* src,
   TRACE_LEAVE
 }
 
+
+size_t Tuple::ResetExFlobFile(
+    string flobFile, size_t flobOffset, ListExpr attrList)
+{
+  TRACE_ENTER
+
+  size_t readFlobSize = 0;
+
+  ListExpr rest = attrList;
+  while(!nl->IsEmpty(rest))
+  {
+    int ai = nl->IntValue(nl->First(rest));
+
+    for (int k = 0; k < attributes[ai]->NumOfFLOBs(); k++)
+    {
+      Flob* flob = attributes[ai]->GetFLOB(k);
+      SmiSize bsize = flob->getSize();
+      if (bsize >= extensionLimit){
+        Flob::setExFile(*flob, flobFile, bsize, flobOffset);
+        flobOffset += bsize;
+        readFlobSize += bsize;
+      }
+    }
+    rest = nl->Rest(rest);
+  }
+
+  return readFlobSize;
+
+  TRACE_LEAVE
+}
+
+void Tuple::setLocalFlobFile(const string flobFilePath)
+{
+  TRACE_ENTER
+
+  for (int i = 0; i < noAttributes; i++)
+  {
+    for (int k = 0; k < attributes[i]->NumOfFLOBs(); k++)
+    {
+      Flob* flob = attributes[i]->GetFLOB(k);
+      SmiSize bsize = flob->getSize();
+      if (bsize >= extensionLimit){
+        std::stringstream fileId;
+        fileId << flob->getFileId();
+        string flobFile = flobFilePath + fileId.str();
+
+        Flob::setExFile(*flob, flobFile, bsize, flob->getOffset());
+      }
+    }
+  }
+
+  TRACE_LEAVE
+}
 
 bool Tuple::Open( SmiRecordFile *tuplefile,
                   SmiFileId lobfileId,
@@ -1296,7 +1492,7 @@ size_t Tuple::GetBlockSize( size_t& coreSize,
 }
 
 /*
-Read a tuple from a memory block, outputted from ~WriteToBin~ function.
+Read a tuple from a binary block, created by ~WriteToBin~ function.
 The block contains a tuple's complete data, including its big Flobs.
 
 */
@@ -1330,15 +1526,26 @@ u_int32_t Tuple::ReadFromBin(char* buf, u_int32_t bSize/* = 0*/)
 /*
 Prepare this function for ~ffeed2~ operator
 
+Read the tuple from a binary block created by ~WriteToBin~.
+Although the file data contains the whole tuple data including the Flob,
+this function reads only its root data and leaves the Flob untouched.
+Consequently, the created tuple sets the Flob mode to 2 and
+links the Flob reference to the flobFile.
+
 */
-u_int32_t Tuple::ReadFromBin(char* buf, u_int32_t bSize,
+u_int32_t Tuple::ReadTupleFromBin(char* buf, u_int32_t bSize,
     string flobFile, size_t flobOffset)
 {
   assert(buf);
-
   InitializeNoFlobAttributes(buf, flobFile, flobOffset);
   return bSize;
 }
+
+void Tuple::ReadTupleFromBin(char* buf){
+  assert(buf);
+  InitializeNoFlobAttributes(buf);
+}
+
 
 TupleFileIterator::TupleFileIterator(TupleFile& f)
 : tupleFile(f)
@@ -2298,12 +2505,10 @@ Tuple *TupleBufferIterator::GetNextTuple()
   {
     if( currentTuple == tupleBuffer.memoryBuffer.size() )
       return 0;
-
     Tuple *result =
       tupleBuffer.memoryBuffer[currentTuple];
     result->IncReference();
     currentTuple++;
-
     return result;
   }
 }

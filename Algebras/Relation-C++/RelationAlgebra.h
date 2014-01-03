@@ -1032,13 +1032,34 @@ the extended memory block is.
       size_t coreSize, size_t extensionSize, size_t flobSize);
 
 /*
-Write a tuple into an allocated binary blick,
+Write a tuple into an allocated binary block,
 but without its big flob.
 Therefore, it has only one length heading.
 
 */
   void WriteTupleToBin(char* buf,
       size_t coreSize, size_t extensionSize);
+
+  void WriteToDivBlock( char* buf,
+                        size_t coreSize,
+                        size_t extensionSize,
+                        size_t flobSize,
+                        SmiFileId flobFileId,
+                        SmiRecordId sourceDS,
+                        SmiSize& flobBlockOffset,
+                        bool containsLob = false) const;
+/*
+Write a tuple into an allocated binary block,
+with or without its Flob data, decided by the caontainsLob value.
+
+If contains the Flob, then it should generates the same result as the
+~WriteToBin~ function.
+If not, then its generated memory block contains two parts,
+the first is the tuple data, while the second is the Flob data.
+The blockSize recorded in the first tuple data does not count the flob data size.
+
+*/
+
 
 /*
 Read a tuple from a binary block written by ~WriteToBin~.
@@ -1051,8 +1072,31 @@ Read a tuple from a binary block written by ~WriteToBin~,
 but leave the FLOB data untouched
 
 */
-  u_int32_t ReadFromBin(char* buf, u_int32_t bSize,
+  u_int32_t ReadTupleFromBin(char* buf, u_int32_t bSize,
                         string flobFile, size_t flobOffset);
+
+/*
+Read a tuple from a binary block written by ~WriteTupleToBin~,
+the block contains only the tuple data, while the Flob data is kept in its
+original persistent record file.
+The flob mode is set 3 if the pDS is non-nagtive,
+or else the flob is kept locally and the can be read as usual.
+
+*/
+  void ReadTupleFromBin(char* buf);
+
+/*
+Reset the flob file
+
+*/
+  size_t ResetExFlobFile(string flobFile, size_t flobOffset, ListExpr attrList);
+
+/*
+Set to the local flob file
+
+*/
+
+  void setLocalFlobFile(const string flobFilePath);
 
 /*
 Return the size that a complete binary tuple block needs.
@@ -1267,6 +1311,7 @@ when ~containLOBs~ is true, the TUPLESIZE-TYPE will be set to u\_int32\_t,
 and it's big enough to express the tuple's size
 
 */
+
   size_t CalculateBlockSize( size_t& attrSizes,
                              double& extSize,
                              double& size,
@@ -1298,10 +1343,11 @@ does some evil thing, but it's not clear enough.
                                  char* src);
 
   void InitializeNoFlobAttributes(
-    char* src, string flobFile, size_t flobOffset);
+    char* src, string flobFile = "", size_t flobOffset = 0);
 /*
-It reads the block data created by ~WriteToBlock~,
-but leaves the FLOB data untouched.
+It reads the block data created by ~WriteToBlock~  with no FLOB data.
+If the flobFile and the flobOffset are given, then set the flob to a local disk file.
+Or else, just change the flob mode to 3.
 
 */
 

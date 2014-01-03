@@ -162,6 +162,14 @@ Link Flob to an external file.
           const SmiSize length, const SmiSize flobOffset);
 
 /*
+~changeMode~
+
+Reset the Flob mode.
+
+*/
+      void changeMode(Flob* flob, const char mode);
+
+/*
 ~create~
 
 Creates a new, empty Flob with a given size within a temporal file
