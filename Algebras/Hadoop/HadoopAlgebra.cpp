@@ -55,7 +55,6 @@ This algebra includes follow operators:
 
 */
 
-#include "../HadoopParallel/HadoopParallelAlgebra.h"
 #include "HadoopAlgebra.h"
 
 
@@ -1630,7 +1629,6 @@ int SpreadFilesValueMap(Word* args, Word& result,
   for (int fi = 0; (size_t)fi < size; fi++)
   {
     if (!sts[fi]->getResult()){
-//      cerr << "Error!! File " << fi << " fails. " << endl;
       ((CcBool*)(result.addr))->Set(true, false);
     }
   }
@@ -2950,9 +2948,6 @@ void* PFFeedLocalInfo::tCopyFile(void* ptr)
     else{
       //Copy file from the remote node
       int copyTimes = MAX_COPYTIMES;
-//      pthread_mutex_lock(&CLI_mutex);
-//      cerr << "WANT file " << lPath << " from " << rPath << endl;
-//      pthread_mutex_unlock(&CLI_mutex);
       while (copyTimes-- > 0){
         if (0 == system((scpCommand + rPath + " " + lPath).c_str())){
           break;
@@ -5218,7 +5213,7 @@ int createFListValueMap(Word* args, Word& result,
   fListKind kind = (fListKind)((CcInt*)args[6].addr)->GetValue();
   NList resultType = NList(qp->GetType(s));
   clusterInfo* ci = new clusterInfo();
-  //TODO
+
   size_t dupTime = 1;
   bool distributed = ((CcBool*)args[4].addr)->GetValue();
   NList fileLocList;

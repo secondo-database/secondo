@@ -49,8 +49,9 @@ Select different collect option.
 //#define SEQCOPY
 #define PIPECOPY
 
-#include "../HadoopParallel/HadoopParallelAlgebra.h"
-#include <pthread.h>
+#include "HadoopParallelAlgebra.h"
+#include "RelationAlgebra.h"
+#include "Stream.h"
 
 bool isFListStreamDescription(const NList& typeInfo);
 ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
@@ -527,7 +528,10 @@ private:
   ifstream *curFilePt;
 };
 
+/*
+Thread for Fetching All Files (FAF)
 
+*/
 class PLI_FAF_Thread
 {
 public:
@@ -544,6 +548,11 @@ public:
   Word inputStream;
   int attrPos[3];  //Row, Column, Dest
 };
+
+/*
+Thread for Copying one File (CF)
+
+*/
 
 class PLI_CF_Thread
 {
