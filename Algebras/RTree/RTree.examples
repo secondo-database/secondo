@@ -85,14 +85,14 @@ Operator : no_nodes
 Number   : 1
 Signature: rtree<D> -> int
 Example  : query no_nodes(strassen_GeoData)
-Result   : (platform (linux (int 55)) (win32 (int 65)) (linux64 (int 80))(mac_osx (int 74)))
+Result   : (platform (linux (int 55)) (win32 (int 65)) (linux64 (int 80))(mac_osx (int 55)))
 
 
 Operator : treeheight
 Number   : 1
 Signature: rtree<D> -> int
 Example  : query treeheight(strassen_GeoData)
-Result   : (platform (linux (int 1)) (win32 (int 1)) (linux64 (int 2))(mac_osx (int 2)))
+Result   : (platform (linux (int 1)) (win32 (int 1)) (linux64 (int 2))(mac_osx (int 1)))
 
 
 Operator : windowintersects
