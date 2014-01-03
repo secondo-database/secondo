@@ -60,9 +60,3 @@ Number   : 1
 Signature: text x string x int x string -> bool
 Example  : query divide_osm('kirchditmold.osm', "liesub", 20, "Lie")
 Result   : TRUE
-
-Operator : convertstreets
-Number   : 1
-Signature: stream(tuple(..., x: line, ...)) x IDENT x string -> bool
-Example  : query strassen feed head[3] convertstreets[GeoData, "Berlin"]
-Result   : FALSE

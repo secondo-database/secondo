@@ -1274,8 +1274,8 @@ void FullOsmImport::insertNodes(list<Point> &points, LongInt &wayId,
       node = new Tuple(nodeType);
       node->PutAttribute(0, new LongInt(currentId));
       currentId++;
-      node->PutAttribute(1, new CcReal(true, it->GetY()));
-      node->PutAttribute(2, new CcReal(true, it->GetX()));
+      node->PutAttribute(1, new CcReal(true, it->GetY() / 100000.0 + 52.0));
+      node->PutAttribute(2, new CcReal(true, it->GetX() / 100000.0 + 13.0));
       nodeRel->AppendTuple(node);
       tupleCount[0]++;
     }
@@ -1578,7 +1578,7 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     osmimport.SetUsesArgsInTypeMapping();;
     AddOperator(&fullosmimport);
     AddOperator(&divide_osm);
-    AddOperator(&convertstreets);
+//     AddOperator(&convertstreets);
 }
 
 // Destructor
