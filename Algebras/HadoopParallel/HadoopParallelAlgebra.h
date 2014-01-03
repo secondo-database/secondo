@@ -45,25 +45,21 @@ And includes one method:
 
 #define MAX_WAITING_TIME 10
 
-#include <cstdlib>
-#include <stdio.h>
-#include <fcntl.h>
-#include <signal.h>
 #include "RTuple.h"
 #include "FTextAlgebra.h"
+#include "Base64.h"
 #ifdef SECONDO_WIN32
 #include <winsock2.h>
 #endif
-#include "TemporalAlgebra.h"
-#include "Progress.h"
+
 #include "FileSystem.h"
-#include "../Array/ArrayAlgebra.h"
 #include "Profiles.h"
+#include "Progress.h"
+#include "TemporalAlgebra.h"
 #include <ifaddrs.h>
 #include <arpa/inet.h>
-#include "Stream.h"
 
-const int MAX_COPYTIMES = 5;
+const int MAX_COPYTIMES = 50;
 const size_t MAX_OPENFILE_NUM = 100;
 const string dbLoc = "<READ DB/>";
 
@@ -73,6 +69,8 @@ class fList;
 namespace arrayalgebra{
   void extractIds(const ListExpr,int&,int&);
 }
+
+
 string tranStr(const string& s, const string& from, const string& to);
 string getLocalFilePath(string path, const string fileName,
             string suffix, bool appendFileName = true);
@@ -274,7 +272,6 @@ public:
     if (tbA != 0)
       delete tbA;
     tbA = 0;
-
     if (tbB != 0)
       delete tbB;
     tbB = 0;
@@ -369,6 +366,10 @@ public:
   string getMSECPath(size_t loc,
       bool includeMaster = true, bool round = false,
       bool appendIP = true);
+/*
+Get the remote mini-Secondo path
+
+*/
 
   string getIP(size_t loc, bool round = false);
 
@@ -409,6 +410,10 @@ then the ~searchLocalNode~ function cannot return a correct result.
   }
 
   inline bool isOK(){  return available; }
+/*
+Number of slaves
+
+*/
   inline size_t getSlaveSize(){
     if (dataServers){
         return (dataServers->size() - 1);
@@ -417,6 +422,10 @@ then the ~searchLocalNode~ function cannot return a correct result.
       return 0;
   }
 
+/*
+Number of all DSs. If the mDS is also a sDS, then it is counted repeatedly.
+
+*/
   inline size_t getClusterSize(){
     if (dataServers){
       return dataServers->size();
@@ -458,23 +467,24 @@ public:
   : tupleBlockFile(0), fileFound(false), noFlob(_nf),
     prdIndex(_prd), filePath(_fp)
   {
+
     if (noFlob)
     {
-      string rtStr = ((FText*)qp->Request(
+/*
+Prepared for the ~ffeed3~ operator.
+The type in data file contains no DS\_IDX, while the type for output needs DS\_IDX
+
+*/
+      string ostStr = ((FText*)qp->Request(
           qp->GetSupplierSon(s, 4)).addr)->GetValue();
       ListExpr rcdTypeList;
-      nl->ReadFromString(rtStr, rcdTypeList);
-      cerr << "The rcdTypeList is: " << nl->ToString(rcdTypeList) << endl;
+      nl->ReadFromString(ostStr, rcdTypeList);
       rcdTupleType = new TupleType(SecondoSystem::GetCatalog()
                       ->NumericType(nl->Second(rcdTypeList)));
 
-      string ntStr = ((FText*)qp->Request(
-          qp->GetSupplierSon(s, 5)).addr)->GetValue();
-      ListExpr newTypeList;
-      nl->ReadFromString(ntStr, newTypeList);
+      ListExpr newTypeList = qp->GetType(s);
       newTupleType = new TupleType(SecondoSystem::GetCatalog()
                       ->NumericType(nl->Second(newTypeList)));
-
     }
     else
     {
@@ -503,9 +513,9 @@ public:
       string relName, string fileSuffix, Supplier s,
       int pdi = -1, int tgi = -1, int att = -1);
 
-  Tuple* getNextTuple();
-
-  Tuple* getNextTuple2();
+  Tuple* getNextTuple();  //~ffeed~
+  Tuple* getNextTuple2(); //~ffeed2~
+  Tuple* getNextTuple3(); //~ffeed3~
 
   ifstream *tupleBlockFile;
   TupleType* rcdTupleType;  //The tuple type in the data file
@@ -817,27 +827,194 @@ public:
 
 */
 
+class FlobSheet;
+
 class FetchFlobLocalInfo : public ProgressLocalInfo
 {
 public:
-  FetchFlobLocalInfo(NList resultTypeList, NList raList,
-      NList daList, int dsIdx);
+  FetchFlobLocalInfo(const Supplier s, NList resultTypeList,
+      NList raList, NList daList, int dsIdx);
 
   ~FetchFlobLocalInfo(){
-    delete raIndices;
-    delete daIndices;
-
     if (resultType)
       resultType->DeleteIfAllowed();
+
+    pthread_mutex_destroy(&FFLI_mutex);
+
+    if (ci){
+      delete ci;
+      delete standby;
+      delete prepared;
+      delete []sheetCounter;
+    }
   }
 
   Tuple* getNextTuple(const Supplier s);
 
+  void fetching2prepared(FlobSheet* fs);
+/*
+When one Flob sheet is finished, copy the file back
+and set it into the preparedSheets.
+
+*/
+
+  void clearFetchedFiles();
+
+  inline int getLocalDS(){
+    return ci->getLocalNode();
+  }
+
+  inline string getMSecPath(int dest, bool appendIP = true){
+    return ci->getMSECPath(dest, true, false, appendIP);
+  }
+
+  inline string getPSFSPath(int dest, bool appendIP = true){
+    return ci->getRemotePath(dest, true, false, appendIP);
+  }
+
+  inline string getIP(int dest) {
+    return ci->getIP(dest);
+  }
+
 private:
-  vector<int>* raIndices; //array of required attribute (need flob) indices.
-  vector<int>* daIndices; //array of deleted attribute indices.
-  int dsIdx;      //index of DS_IDX
+  Tuple* setResultTuple(Tuple* tuple);
+  Tuple* setLocalFlob(Tuple* tuple);
+
+  string LFPath;         //local flob file path
+  //Use NL for flob attributes to transfer the list to flobSheet object
+  NList faList;
+  NList daList;          //deleted attribute list
+  int dsIdx;             //index of DS_IDX attribute
   TupleType* resultType;
+
+
+  clusterInfo *ci;
+  int cds;               //index of the current DS
+  bool moreInput;
+
+/*
+Three sheet lists are used to indicate the their status:
+
+  * standby: unsent sheets, collecting input tuples and their FlobOrder.
+Each DS has one slot here.
+
+  * fetching: preparing the sheet by copying the flob file within a thread.
+
+  * prepared: the flob file is prepared. It has unlimited size.
+
+
+Instead of using the fetching vector, I simply use a fetchingNum to find how many
+sheets are being fetched.
+During the fetching procedure, the sheet is kept inside the thread object.
+Since using the vector makes the same sheet to be kept twice:
+in the thread and the vector.
+
+*/
+
+  vector<FlobSheet*>* standby;
+  int fetchingNum;
+  vector<FlobSheet*>* prepared;
+  int *sheetCounter;    //Count the sent sheet number for each DS
+  vector<string>* fetchedFiles;
+
+  bool sendSheet(FlobSheet* fs, int times);
+
+  int maxSheetMem;
+  //thread tokens
+  static const int PipeWidth = 10;
+  bool tokenPass[PipeWidth];
+  pthread_t threadID[PipeWidth];
+  static void* sendSheetThread(void* ptr);
+  static pthread_mutex_t FFLI_mutex;
+
+};
+
+/*
+Thread for fetching a remote file
+
+
+*/
+class FFLI_Thread
+{
+public:
+  FFLI_Thread(FetchFlobLocalInfo* pt, FlobSheet* _fs, int _t):
+    ffli(pt), sheet(_fs), times(_t){}
+
+  FetchFlobLocalInfo* ffli;
+  FlobSheet* sheet;
+  int times;
+};
+
+/*
+Flob orders prepared for one DS
+
+*/
+class FlobSheet
+{
+public:
+  FlobSheet(int _sds, const NList _fal, int _mm)
+    :sourceDS(_sds), cachedSize(0), maxMem(_mm), faList(_fal),
+     resultFilePath(""), flobOffset(0){
+    buffer = new TupleBuffer(maxMem);
+    it = 0;
+  }
+
+  ~FlobSheet(){
+    delete buffer;
+  }
+
+  bool addOrder(Tuple* tuple);
+/*
+Put one tuple into the sheet, if the buffer limit is not reached.
+
+*/
+
+  Tuple* getCachedTuple();
+
+  int getSDS(){
+    return sourceDS;
+  }
+
+  inline void makeScan(){
+    it = buffer->MakeScan();
+  }
+
+  inline Tuple* getNextTuple(){
+    return it->GetNextTuple();
+  }
+
+  inline string getResultFilePath(){
+    return resultFilePath;
+  }
+
+  inline size_t getCurrentFlobOffset(){
+    return flobOffset;
+  }
+
+  inline void shiftFlobOffset(size_t size){
+    flobOffset += size;
+  }
+
+  string setSheet(int source, int dest, int times);
+
+  string setResultFile(int source, int dest, int times);
+
+private:
+  int sourceDS;
+  int cachedSize;
+/*
+If it is larger than a certain threshold, stop adding other order,
+then fetch the needed flob file.
+
+*/
+  int maxMem;
+
+  TupleBuffer* buffer;
+  GenericRelationIterator* it;
+
+  NList faList;  //Flob Attribute list
+  string resultFilePath;
+  size_t flobOffset;
 };
 
 /*
