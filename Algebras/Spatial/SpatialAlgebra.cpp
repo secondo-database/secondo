@@ -23420,7 +23420,7 @@ ListExpr intersection_robTM(ListExpr args){
      return listutils::basicSymbol<Line>();
   }
 
-  return listutils::basicSymbol<Line>();
+  return listutils::typeError();
 }
 
 /*
