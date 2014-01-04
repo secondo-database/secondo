@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="RegionFillColor">#000000FF</color>
+    <color name="RegionStrokeColor">#FF0000FF</color>
+    <color name="canvas_background">#FFFFFF</color>
+</resources>

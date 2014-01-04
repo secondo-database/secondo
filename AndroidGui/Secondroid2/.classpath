@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="gen"/>
+	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
+	<classpathentry kind="lib" path="C:/Users/Michael/workspace/Secondroid2/libs/android-support-v4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Michael/workspace/Secondroid2/libs/google-play-services.jar"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Michael/workspace/libs/slf4j-android-1.6.1-RC1.jar"/>
+	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK/hoese"/>
+	<classpathentry kind="src" path="/hoese"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Michael/workspace/libs/osmdroid-android-4.0.jar" sourcepath="C:/Entwicklung/osmdroid-read-only/osmdroid-android"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Michael/workspace/libs/osmbonuspack_v4.0.jar" sourcepath="C:/Entwicklung/osmbonuspack-read-only/OSMBonusPack"/>
+	<classpathentry kind="output" path="bin/classes"/>
+</classpath>

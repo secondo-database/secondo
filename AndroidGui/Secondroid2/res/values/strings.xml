@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="hello">Hello World, SecondroidActivity!</string>
+    <string name="app_name">Secondroid</string>
+    <string name="Secondo">SECONDO</string>
+    <string name="DbServer">Database Server</string>
+    <string name="DbUser">User</string>
+    <string name="DbPassword">Password</string>
+    <string name="Login">Login</string>
+    <string name="SaveProperties">Save Properties?</string>
+    <string name="btSelect">Select</string>
+    <string name="title_activity_command">Query</string>
+    <string name="action_settings">Properties</string>
+    <string name="go">Ausführen</string>
+    <string name="title_activity_result">Results</string>
+    <string name="title_activity_osm_map">OSM</string>
+    <string name="canvas">Canvas</string>
+    <string name="title_activity_canvas">CanvasActivity</string>
+    <string name="Port">Port</string>
+    <string name="title_activity_output">Output</string>
+    <string name="showOutpunt">Show</string>
+    <string name="title_activity_text">Text</string>
+    <string name="history">History</string>
+    <string name="title_activity_query_history">History</string>
+    <string name="title_activity_test">TestActivity</string>
+    <string name="faster">faster</string>
+    <string name="slower">slower</string>
+    <string name="invert">invert</string>
+    <string name="rotateleft">rotate left</string>
+    <string name="rotateright">rotate right</string>
+    <string name="reset">reset</string>
+    <string name="zoomin">zoom in</string>
+    <string name="zoomout">zoom out</string>
+    <string name="clearResultList">clearResultList</string>
+    <string name="title_activity_results">Results</string>
+    <string name="result">Result</string>
+    <string name="Command">Command</string>
+    <string name="optimizer">Optimizer</string>
+    <string name="location">Location</string>
+    <string name="usingOptimizer">using Optimizer</string>
+    <string name="defaultOptPort">1235</string>
+    <string name="defaultPort">1234</string>
+    <string name="no">No</string>
+    <string name="yes">Yes</string>
+    <string name="delete">Delete</string>
+    <string name="title_activity_category">Properties</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="alpha">Transparency</string>
+    <string name="thickness">Linethickness</string>
+    <string name="color">Farbe</string>
+    <string name="selectedColor">Selektiert</string>
+    <string name="servers">Server selection</string>
+    <string name="title_activity_server_selection">ServerSelectionActivity</string>
+    <string name="grafic">Grafic</string>
+    <string name="map">Map</string>
+    <string name="text">Text</string>
+    <string name="results">Result</string>
+    <string name="running">running</string>
+    <string name="ready">ready</string>
+    <string name="noquery">no Query found</string>
+    <string name="queryexecuted">Query executed.\nPress \"Show\" to view the query result</string>
+    <string name="removeserver">Do you want to delete connection \'%s\'?</string>
+    <string name="removequery">Do you want to delete query \'%s\'?</string>
+    <string name="serverconnection">server connection established</string>
+    <string name="noserverconnection">no server connection</string>
+    <string name="nooptimizerconnection">no optimizer connection</string>
+    <string name="cannotsaveserver">cannot save databaseconnection</string>
+    
+    
+</resources>

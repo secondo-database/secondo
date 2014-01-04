@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Secondroid</string>
+    <string name="Secondo">SECONDO</string>
+    <string name="DbServer">Datenbankserver</string>
+    <string name="DbUser">Benutzer</string>
+    <string name="DbPassword">Kennwort</string>
+    <string name="Login">Anmelden</string>
+    <string name="SaveProperties">Einstellungen speichern?</string>
+    <string name="btSelect">Auswählen</string>
+    <string name="title_activity_command">Abfrage</string>
+    <string name="action_settings">Einstellungen</string>
+    <string name="go">Ausführen</string>
+    <string name="title_activity_result">Ergebnisse</string>
+    <string name="title_activity_osm_map">OSM</string>
+    <string name="map">Karte</string>
+    <string name="canvas">Canvas</string>
+    <string name="title_activity_canvas">CanvasActivity</string>
+    <string name="Port">Port</string>
+    <string name="title_activity_output">Ausgabe</string>
+    <string name="showOutpunt">Anzeigen</string>
+    <string name="title_activity_text">Text</string>
+    <string name="history">Historie</string>
+    <string name="title_activity_query_history">Historie</string>
+    <string name="title_activity_test">TestActivity</string>
+    <string name="faster">schneller</string>
+    <string name="slower">langsamer</string>
+    <string name="invert">Invertiern</string>
+    <string name="rotateleft">links drehen</string>
+    <string name="rotateright">rechts drehen</string>
+    <string name="reset">Zurücksetzen</string>
+    <string name="zoomin">Verkleinern</string>
+    <string name="zoomout">Vergrößern</string>
+    <string name="clearResultList">Ergebnisse löschen</string>
+    <string name="title_activity_results">Ergebnisse</string>
+    <string name="result">Ergebnis</string>
+    <string name="Command">Abfrage</string>
+    <string name="optimizer">Optimierer</string>
+    <string name="location">Location</string>
+    <string name="usingOptimizer">Optimierer verwenden</string>
+    <string name="defaultOptPort">1301</string>
+    <string name="defaultPort">1300</string>
+    <string name="no">Nein</string>
+    <string name="yes">Ja</string>
+    <string name="delete">Löschen</string>
+    <string name="title_activity_category">Einstellungen</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="alpha">Transparenz</string>
+    <string name="thickness">Linienstärke</string>
+    <string name="color">Farbe</string>
+    <string name="selectedColor">Selektiert</string>
+    <string name="servers">Serverauswahl</string>
+    <string name="title_activity_server_selection">ServerSelectionActivity</string>
+    <string name="grafic">Grafik</string>
+    <string name="map">Karte</string>
+    <string name="text">Text</string>
+    <string name="results">Ergebnis</string>
+    <string name="running">Abfrage wird ausgeführt</string>
+    <string name="ready">Abfrage fertig. Daten werden aufbereitet.</string>
+    <string name="noquery">kein Query angegeben</string>
+     <string name="queryexecuted">Query ausgeführt.\nBitte \"Anzeigen\" drücken um das Ergebnis anzuzeigen</string>
+     <string name="removeserver">Soll die Serververbindung \'%s\' gelöscht werden?</string>
+     <string name="removequery">Soll die Abfrage \'%s\' gelöscht werden?</string>
+     <string name="serverconnection">Server Verbindung hergestellt</string>
+     <string name="noserverconnection">keine Serververbindung möglich</string>
+     <string name="nooptimizerconnection">keine Verbindung zum Optimierer möglich</string>
+     <string name="cannotsaveserver">Datenbankeinstellungen konnten nicht gespeichert werden</string>
+     
+     
+</resources>

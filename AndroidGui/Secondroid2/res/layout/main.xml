@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/Secondo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/Secondo"
+        android:textAppearance="?android:attr/textAppearanceLarge" android:paddingRight="10dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="6dp"
+        android:paddingTop="0dp" >
+
+        <TextView
+            android:id="@+id/dbServer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/DbServer" />
+
+        <EditText
+            android:id="@+id/DbServerID"
+            style="@style/editStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/DbServer"
+            />
+
+    </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingLeft="6dp"
+            android:paddingTop="2dp" >
+
+        <TextView
+            android:id="@+id/port"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/Port" />
+
+        <EditText
+            android:id="@+id/PortID"
+            style="@style/editStyle"
+            android:layout_width="82dp"
+            android:layout_height="wrap_content"
+            android:hint="@string/Port"
+            android:text="@string/defaultPort" />
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="6dp"
+        android:paddingTop="0dp" >
+
+        <TextView
+            android:id="@+id/lbDbUser"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/DbUser" />
+
+        <EditText
+            android:id="@+id/DbUserId"
+            style="@style/editStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:hint="@string/DbUser" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="6dp"
+        android:paddingTop="2dp" >
+
+        <TextView
+            android:id="@+id/lbPassword"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/DbPassword" />
+
+        <EditText
+            android:id="@+id/DbPasswordId"
+            style="@style/editStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:hint="@string/DbPassword"
+            android:inputType="textPassword" />
+    </LinearLayout>
+     
+        <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="6dp" >
+
+            <CheckBox
+                android:id="@+id/usingOptimizer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/usingOptimizer" />
+            
+        <TextView
+            android:id="@+id/optServer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/optimizer" />
+
+        <EditText
+            android:id="@+id/OptServerID"
+            style="@style/editStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/optimizer"
+            />
+
+    </LinearLayout>
+    
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingLeft="6dp"
+            android:paddingTop="0dp" >
+
+            <TextView
+            android:id="@+id/optPort"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/Port" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_margin="0dp"
+            android:layout_weight="0.7"
+            android:orientation="horizontal"
+            android:padding="0dp" >
+
+        <EditText
+            android:id="@+id/OptPortID"
+            style="@style/editStyle"
+            android:layout_width="81dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="0dp"
+            android:hint="@string/Port"
+            android:text="@string/defaultOptPort" />
+
+
+        	</LinearLayout>
+ 
+    </LinearLayout>
+        
+
+    <requestFocus />
+
+    <CheckBox
+        android:id="@+id/saveLoginProperties"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:checked="true"
+        android:paddingRight="10dp"
+        android:text="@string/SaveProperties" />
+
+    <Button
+        android:id="@+id/DoLogin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:text="@string/Login" />
+
+</LinearLayout>

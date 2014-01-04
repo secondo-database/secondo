@@ -1,0 +1,8 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/queryKreis" android:title="Query Kreis"></item>
+    <item android:id="@+id/queryAutobahn" android:visible="true" android:enabled="true" android:title="Query Autobahn"></item>
+    <item android:id="@+id/queryLandstrasse" android:title="Query Landstrasse" android:titleCondensed="Landstrasse"></item>
+    <item android:id="@+id/queryStadt" android:title="Query Stadt"></item>
+    <item android:id="@+id/listObjects" android:title="List Objects"></item>
+
+</menu>

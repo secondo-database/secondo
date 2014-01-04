@@ -1,0 +1,88 @@
+<RelativeLayout xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:contentDescription="@string/location"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="5dp"
+    android:paddingRight="5dp"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".CommandActivity" >
+
+    <EditText
+        android:id="@+id/commandText"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_alignLeft="@+id/resultText"
+        android:layout_below="@+id/selectedDatabase"
+        android:layout_marginTop="36dp"
+        android:ems="10"
+        android:gravity="center_vertical|top"
+        android:hint="@string/Command"
+        android:inputType="textMultiLine" />
+
+ <TextView
+        android:id="@+id/selectedDatabase"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/resultText"
+        android:layout_alignParentTop="true"
+        android:text="@+id/selectedDatabase"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+  <Button
+      android:id="@+id/showOutput"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_alignBaseline="@+id/runCommand"
+      android:layout_alignBottom="@+id/runCommand"
+      android:layout_alignParentRight="true"
+      android:text="@string/showOutpunt" />
+
+  <Button
+      android:id="@+id/runCommand"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_alignTop="@+id/selectedDatabase"
+      android:layout_toLeftOf="@+id/showOutput"
+      android:text="@string/go" />
+
+  <EditText
+      android:id="@+id/resultText"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_alignParentBottom="true"
+      android:layout_alignRight="@+id/showOutput"
+      android:layout_below="@+id/commandText"
+      android:ems="10"
+      android:gravity="center_vertical|top"
+      android:hint="@string/result"
+      android:textAppearance="?android:attr/textAppearanceSmallInverse"
+      android:textColor="#000000"
+      android:textSize="12sp"
+      android:typeface="monospace" >
+
+      <requestFocus />
+  </EditText>
+
+  <Button
+      android:id="@+id/history"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_alignBottom="@+id/runCommand"
+      android:layout_alignTop="@+id/selectedDatabase"
+      android:layout_marginLeft="17dp"
+      android:layout_toRightOf="@+id/selectedDatabase"
+      android:text="@string/history" />
+
+  <ImageButton
+      android:id="@+id/location"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_alignBottom="@+id/history"
+      android:layout_alignTop="@+id/history"
+      android:layout_toRightOf="@+id/history"
+      android:src="@drawable/location"
+      android:text="@string/location" />
+    
+</RelativeLayout>

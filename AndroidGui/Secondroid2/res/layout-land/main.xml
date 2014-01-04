@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:paddingTop="1dp" >
+
+    <TextView
+        android:id="@+id/Secondo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/Secondo"
+        android:textAppearance="?android:attr/textAppearanceLarge" android:paddingRight="10dp"/>
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:orientation="horizontal"
+        android:padding="0dp" >
+        
+    <LinearLayout
+        android:id="@+id/DbServerGroup"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="left"
+        android:layout_weight=".70"
+        android:gravity="left"
+        android:orientation="vertical"
+        android:padding="6dp" >
+
+        <TextView
+            android:id="@+id/dbServer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/DbServer" />
+
+        <EditText
+            android:id="@+id/DbServerID"
+            style="@style/editStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/DbServer"
+             />
+
+    </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:layout_weight=".30"
+            android:orientation="vertical"
+            android:padding="6dp" >
+
+        <TextView
+            android:id="@+id/port"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/Port" />
+
+        <EditText
+            android:id="@+id/PortID"
+            style="@style/editStyle"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/Port"
+            android:text="@string/defaultPort" />
+
+    </LinearLayout>
+    </LinearLayout>
+    
+    <CheckBox
+        android:id="@+id/usingOptimizer"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:layout_marginLeft="8dp"
+        android:text="@string/usingOptimizer" />
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:orientation="horizontal"
+        android:padding="0dp" >
+    
+        <LinearLayout
+            android:id="@+id/OptServerGroup"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left"
+            android:layout_weight=".70"
+            android:orientation="vertical"
+            android:padding="6dp" >
+
+        <TextView
+            android:id="@+id/optServer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/optimizer" />
+
+        <EditText
+            android:id="@+id/OptServerID"
+            style="@style/editStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/optimizer"
+             />
+
+    </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:layout_weight=".30"
+            android:orientation="vertical"
+            android:padding="6dp" >
+
+        <TextView
+            android:id="@+id/optPort"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/Port" />
+
+        <EditText
+            android:id="@+id/OptPortID"
+            style="@style/editStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/Port"
+            android:text="@string/defaultOptPort" />
+
+    </LinearLayout>
+    </LinearLayout>
+        
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:orientation="horizontal" >
+    
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight=".33"
+        android:orientation="vertical"
+        android:padding="6dp" >
+
+        <TextView
+            android:id="@+id/lbDbUser"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/DbUser" />
+
+        <EditText
+            android:id="@+id/DbUserId"
+            style="@style/editStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:hint="@string/DbUser" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight=".33"
+        android:orientation="vertical"
+        android:padding="6dp" >
+
+        <TextView
+            android:id="@+id/lbPassword"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/DbPassword" />
+
+        <EditText
+            android:id="@+id/DbPasswordId"
+            style="@style/editStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:hint="@string/DbPassword"
+            android:inputType="textPassword" />
+    </LinearLayout>
+    <CheckBox
+        android:id="@+id/saveLoginProperties"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight=".33"
+        android:checked="true"
+        android:text="@string/SaveProperties" />
+    
+    </LinearLayout>
+    
+    <requestFocus />
+
+
+    <Button
+        android:id="@+id/DoLogin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/Login" />
+
+</LinearLayout>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="de.fernunihagen.dna"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk android:minSdkVersion="10" />
+
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
+
+    <permission
+        android:name="de.fernunihagen.dna.permission.MAPS_RECEIVE"
+        android:protectionLevel="signature" />
+
+    <uses-permission android:name="de.fernunihagen.dna.permission.MAPS_RECEIVE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
+
+    <!-- write Tempdata in Files -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <!--
+     The following two permissions are not required to use
+     Google Maps Android API v2, but are recommended.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <uses-feature android:name="android.hardware.location.network" />
+    <uses-feature android:name="android.hardware.location.gps" />
+    <uses-feature android:name="android.hardware.wifi" />
+
+    <!-- android:largeHeap="true" eingefügt 17.09.2013 -->
+    <application
+        android:icon="@drawable/ic_launcher_white"
+        android:label="@string/app_name" >
+<!--         <uses-library
+            android:name="com.google.android.maps"
+            android:required="true" />
+ -->
+        <activity
+            android:name="de.fernunihagen.dna.SecondroidMainActivity"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name="de.fernunihagen.dna.ShowSettingsActivity" />
+        <activity
+            android:name="de.fernunihagen.dna.DatabasesActivity"
+            android:label="@string/Secondo" />
+        <!-- android:parentActivityName="de.fernunihagen.dna.Secondroid2Activity" -->
+        <meta-data
+            android:name="android.support.PARENT_ACTIVITY"
+            android:value="de.fernunihagen.dna.Secondroid2Activity" />
+
+        <activity
+            android:name="de.fernunihagen.dna.CommandActivity"
+            android:label="@string/title_activity_command" >
+        </activity>
+
+        <activity
+            android:name="de.fernunihagen.dna.osm.OsmMapActivity"
+            android:label="@string/title_activity_osm_map" >
+        </activity>
+        <activity
+            android:name="de.fernunihagen.dna.CanvasActivity"
+            android:label="@string/title_activity_canvas" >
+        </activity>
+        <activity
+            android:name="de.fernunihagen.dna.OutputActivity"
+            android:label="@string/title_activity_output" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="de.fernunihagen.dna.CommandActivity" />
+        </activity>
+        <activity
+            android:name="de.fernunihagen.dna.TextActivity"
+            android:label="@string/title_activity_text" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="de.fernunihagen.dna.OutputActivity" />
+        </activity>
+        <activity
+            android:name="de.fernunihagen.dna.QueryHistoryActivity"
+            android:label="@string/title_activity_query_history" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="de.fernunihagen.dna.CommandActivity" />
+        </activity>
+        <activity
+            android:name="de.fernunihagen.dna.ResultsActivity"
+            android:label="@string/title_activity_results" >
+        </activity>
+        <activity
+            android:name="de.fernunihagen.dna.CategoryActivity"
+            android:label="@string/title_activity_category" >
+        </activity>
+        <activity
+            android:name="de.fernunihagen.dna.ServerSelectionActivity"
+            android:label="@string/title_activity_server_selection" >
+        </activity>
+    </application>
+
+</manifest>

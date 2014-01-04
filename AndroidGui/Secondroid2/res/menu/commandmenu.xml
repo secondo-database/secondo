@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/item1" android:title="Kreise" android:visible="true" android:enabled="true"></item>
+    <item android:id="@+id/query_line" android:title="Line" android:visible="true" android:enabled="true"></item>
+
+</menu>

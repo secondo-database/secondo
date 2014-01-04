@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+      <style name="editStyle" parent="android:Widget.EditText">
+        <item name="android:background">#FFFFFF</item>
+        <item name="android:ems">10</item>
+    </style>
+</resources>
