@@ -94,7 +94,7 @@ public class SecondoWeb implements EntryPoint {
 	public void onModuleLoad() {
 					
 	/*set default values in login textfields*/
-		//this.loginView.getUsername().setText("ksteiger");
+		//this.loginView.getUsername().setText("testuser");
 		//this.loginView.getPassword().setText("s3c0nd0");
 		this.loginView.getIpadresse().setText("agnesi.fernuni-hagen.de");
 		this.loginView.getPort().setText("1302");		
