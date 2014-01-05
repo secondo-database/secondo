@@ -129,6 +129,9 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         vector<Reg> *dregs, Instant *ti2, int depth) {
     MFaces ret;
     
+    ret.sregs = sregs;
+    ret.dregs = dregs;
+    
     if (sregs->empty() && dregs->empty())
         return ret;
     

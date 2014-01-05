@@ -14,6 +14,16 @@ void MFaces::AddFace(MFace face) {
     faces.push_back(face);
 }
 
+MFaces MFaces::GetBorderRegions(vector<Reg> *regs) {
+    MFaces ret;
+    
+    for (unsigned int i = 0; i < regs->size(); i++) {
+        ret.AddFace(MFace((*regs)[i].GetMSegs()));
+    }
+    
+    return ret;
+}
+
 URegion MFaces::ToURegion(Interval<Instant> iv, double start, double end) {
     vector<URegion> uregs;
 
@@ -71,15 +81,15 @@ MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
 
     for (unsigned int i = 0; i < faces.size(); i++) {
         faces[i].MergeConcavities();
-        needStartRegion = needStartRegion || faces[i].needStartRegion;
-        needEndRegion = needEndRegion || faces[i].needEndRegion;
+//        needStartRegion = needStartRegion || faces[i].needStartRegion;
+//        needEndRegion = needEndRegion || faces[i].needEndRegion;
     }
 
     if (needStartRegion) {
         iv.lc = false;
         Interval<Instant> startiv(iv.start, iv.start + msec1, true, true);
         iv.start = iv.start + msec1;
-        URegion start = ToURegion(startiv, 0, 0);
+        URegion start = GetBorderRegions(sregs).ToURegion(startiv, 0, 1);
         ret.AddURegion(start);
     }
 
@@ -87,7 +97,7 @@ MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
         iv.rc = false;
         Interval<Instant> endiv(iv.end - msec1, iv.end, true, true);
         iv.end = iv.end - msec1;
-        URegion end = ToURegion(endiv, 1, 1);
+        URegion end = GetBorderRegions(dregs).ToURegion(endiv, 0, 1);
         ret.AddURegion(end);
     }
 
@@ -117,7 +127,8 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
     if (needStartRegion) {
         iv.lc = false;
         iv.start += msec1;
-        mreg = nl->OneElemList(ToListExpr(startiv, 0, 0));
+        mreg = nl->OneElemList(
+                GetBorderRegions(sregs).ToListExpr(startiv, 0, 1));
     }
     
     if (needEndRegion) {
@@ -131,7 +142,8 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
         le = nl->Append(mreg, ToListExpr(iv, 0, 1));
 
     if (needEndRegion) {
-        le = nl->Append(le, ToListExpr(endiv, 1, 1));
+        cerr << "\n\nCreating END REGION\n";
+        nl->Append(le, GetBorderRegions(dregs).ToListExpr(endiv, 0, 1));
     }
 
     return mreg;

@@ -85,6 +85,7 @@ public:
     pair<Pt,Pt> GetBoundingBox();
     Pt GetMiddle();
     MSegs collapse(bool close);
+    MSegs GetMSegs();
     string ToString() const;
     double distance (Reg r);
     
@@ -152,6 +153,7 @@ public:
 class MFaces {
 public:
     vector<MFace> faces;
+    vector<Reg> *sregs, *dregs;
     
     MFaces();
     MFaces(MFace face);
@@ -162,6 +164,7 @@ public:
     ListExpr ToMListExpr(Interval<Instant> iv);
     string ToString();
     MFaces divide (double start, double end);
+    MFaces GetBorderRegions (vector<Reg> *regs);
 };
 
 class RotatingPlane {

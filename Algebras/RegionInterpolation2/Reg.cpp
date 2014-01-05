@@ -310,3 +310,14 @@ pair<Pt,Pt> Reg::GetBoundingBox(set<Reg*> regs) {
 pair<Pt,Pt> Reg::GetBoundingBox() {
     return bbox;
 }
+
+MSegs Reg::GetMSegs() {
+    MSegs ret;
+    
+    for (unsigned int i = 0; i < v.size(); i++) {
+        Seg s = v[i];
+        ret.AddMSeg(MSeg(s.s, s.e, s.s, s.e));
+    }
+    
+    return ret;
+}
