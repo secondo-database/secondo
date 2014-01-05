@@ -3,10 +3,10 @@
 
 #include "interpolate.h"
 
-Reg::Reg() : cur(0) {
+Reg::Reg() : cur(0), ishole(false) {
 }
 
-Reg::Reg(ListExpr tle) : cur(0), parent(NULL) {
+Reg::Reg(ListExpr tle) : cur(0), parent(NULL), ishole(false) {
     ListExpr le = nl->First(tle);
     while (nl->ListLength(le) > 1) {
         ListExpr pa = nl->First(le);
@@ -26,12 +26,13 @@ Reg::Reg(ListExpr tle) : cur(0), parent(NULL) {
     while (nl->ListLength(tle) > 1) {
         tle = nl->Rest(tle);
         Reg hole(tle);
+        hole.ishole = true;
         holes.push_back(hole);
     }
     Close();
 }
 
-Reg::Reg(vector<Seg> v) : cur(0), parent(NULL), v(v) {
+Reg::Reg(vector<Seg> v) : cur(0), parent(NULL), v(v), ishole(false) {
 }
 
 Region Reg::MakeRegion(int offx, int offy) {

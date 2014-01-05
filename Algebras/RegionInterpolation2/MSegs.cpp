@@ -71,10 +71,8 @@ string MSegs::ToString() const {
     return ss.str();
 }
 
-vector<MSegmentData> MSegs::ToMSegmentData(int face, int cycle) {
+vector<MSegmentData> MSegs::ToMSegmentData(int face, int cycle, int segno) {
     vector<MSegmentData> ret;
-    int segno = 0;
-    
     for (unsigned int i = 0; i < segs.size(); i++) {
         MSegmentData ms(face, cycle, segno++, false,
                 segs[i].is.x,
@@ -121,8 +119,48 @@ MSegs MSegs::divide (double start, double end) {
     ret.dreg = dreg;
     
     for (unsigned int i = 0; i < segs.size(); i++) {
-        ret.AddMSeg(segs[i].divide(start, end));
+        MSeg m = segs[i].divide(start, end);
+        if (m.is == m.ie && m.fs == m.fe)
+            continue;
+        ret.AddMSeg(m);
     }
     
     return ret;
+}
+
+int MSegs::getLowerLeft() {
+    int idx = 0, x, y;
+    
+    x = segs[0].ie.x;
+    y = segs[0].ie.y;
+    
+    for (unsigned int i = 1; i < segs.size(); i++) {
+        if (segs[i].ie.x < x) {
+            idx = i;
+            x = segs[i].ie.x;
+            y = segs[i].ie.y;
+        } else if (segs[i].ie.x == x) {
+            if (segs[i].ie.y < y) {
+                idx = i;
+                x = segs[i].ie.x;
+                y = segs[i].ie.y;
+            }
+        }
+    }
+    
+    return idx;
+}
+
+int MSegs::findNext (int index) {
+    int nrsegs = segs.size();
+    MSeg *s1 = &segs[index];
+    
+    for (unsigned int i = 0; i < nrsegs; i++) {
+        int nindex = (i+index)%nrsegs;
+        MSeg *s2 = &segs[nindex];
+        if (s1->ie == s2->is && s1->fe == s2->fs)
+            return nindex;
+    }
+    
+    return -1;
 }

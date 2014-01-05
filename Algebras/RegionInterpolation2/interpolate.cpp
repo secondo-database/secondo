@@ -11,81 +11,6 @@
 
 #include <string>
 
-//static vector<pair<Reg *, Reg *> > matchFaces(vector<Reg> *src,
-//        vector<Reg> *dst) {
-//    vector<pair<Reg *, Reg *> > ret;
-//
-//    int minsx = INT_MAX;
-//    int minsy = INT_MAX;
-//    int mindx = INT_MAX;
-//    int mindy = INT_MAX;
-//
-//    for (unsigned int i = 0; i < src->size(); i++) {
-//        Pt p = (*src)[i].GetMinXY();
-//        if (p.x < minsx)
-//            minsx = p.x;
-//        if (p.y < minsy)
-//            minsy = p.y;
-//    }
-//    for (unsigned int i = 0; i < dst->size(); i++) {
-//        Pt p = (*dst)[i].GetMinXY();
-//        if (p.x < mindx)
-//            mindx = p.x;
-//        if (p.y < mindy)
-//            mindy = p.y;
-//    }
-//
-//    vector<Region> sregs, dregs;
-//
-//    for (unsigned int i = 0; i < src->size(); i++) {
-//        Region r = (*src)[i].MakeRegion(-minsx, -minsy);
-//        sregs.push_back(r);
-//    }
-//    for (unsigned int i = 0; i < dst->size(); i++) {
-//        Region r = (*dst)[i].MakeRegion(-mindx, -mindy);
-//        dregs.push_back(r);
-//    }
-//
-//    for (unsigned int i = 0; i < sregs.size(); i++) {
-//        for (unsigned int j = 0; j < dregs.size(); j++) {
-//            Region sr = sregs[i];
-//            Region dr = dregs[j];
-//            //          cerr << "Intersecting " << nl->ToString(OutRegion(sr))
-//            //            << " with " << nl->ToString(OutRegion(dr)) << "\n";
-//            cerr << "Intersecting " << sr << " with " << dr << "\n";
-//            Region ir(0);
-//            sr.Intersection(dr, ir, NULL);
-//            ir.ComputeRegion();
-//            cerr << "Size Sregion " << sr.SpatialSize() << " Dregion " <<
-//                    dr.SpatialSize() << "\n";
-//            cerr << "IRegion " << ir << " / " << ir.IsDefined() << "\n";
-//            cerr << "SRegion " << i << " intersects DRegion " << j << " by "<<
-//                    ir.SpatialSize() << "\n";
-//        }
-//    }
-//
-//
-//    unsigned int i;
-//    for (i = 0; i < src->size(); i++) {
-//        if (i < dst->size()) {
-//            pair<Reg *, Reg *> p(&((*src)[i]), &((*dst)[dst->size() - i -1]));
-//            ret.push_back(p);
-//        } else {
-//            pair<Reg *, Reg *> p(&((*src)[i]), NULL);
-//            ret.push_back(p);
-//        }
-//    }
-//
-//    while (i < dst->size()) {
-//        pair<Reg *, Reg *> p(NULL, &((*dst)[i]));
-//        ret.push_back(p);
-//        i++;
-//    }
-//
-//    return ret;
-//}
-//
-
 vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
         int depth);
 
@@ -234,7 +159,6 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
                 if (s1->ignore)
                     continue;
                 for (unsigned int j = i+1; j < fcs.faces.size(); j++) {
-                    cerr << "Checking face " << i << " / " << j << "\n";
                     MSegs *s2 = &fcs.faces[j].face;
                     if (s2->ignore)
                         continue;
@@ -283,6 +207,12 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
     return ret;
 }
 
+Word InMRegion(const ListExpr typeInfo,
+                      const ListExpr instance,
+                      const int errorPos,
+                      ListExpr& errorInfo,
+                      bool& correct);
+
 int interpolatevalmap(Word* args,
         Word& result,
         int message,
@@ -304,10 +234,18 @@ int interpolatevalmap(Word* args,
     vector<Reg> reg2 = Reg::getRegs(_r2);
 
     MFaces mf = interpolate(&reg1, ti1, &reg2, ti2, 0);
-    mf = mf.divide(0, mode->GetRealval());
     cerr << mf.ToString();
-    MRegion mreg = mf.ToMRegion(iv);
-    *m = mreg;
+    ListExpr mreg = mf.ToMListExpr(iv);
+    nl->WriteListExpr(mreg);
+    
+    ListExpr err;
+    bool correct;
+    Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
+    
+    result.setAddr(w.addr);
+    
+//    MRegion mreg = mf.ToMRegion(iv);
+//    *m = mreg;
     
     return 0;
 }

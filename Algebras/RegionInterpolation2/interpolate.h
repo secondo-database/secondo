@@ -4,6 +4,8 @@
 #ifndef INTERPOLATE_HXX
 #define	INTERPOLATE_HXX
 
+#define URMODE2
+
 #include "MovingRegionAlgebra.h"
 
 class MSegs;
@@ -51,6 +53,7 @@ private:
 public:
     Reg *parent;
     
+    bool ishole;
     Pt hullPoint, peerPoint;
     Seg hullSeg;
     vector<Seg> convexhull;
@@ -114,7 +117,7 @@ public:
     MSegs();
     void AddMSeg(MSeg m);
     void AddMSegs(vector<MSeg> v);
-    vector<MSegmentData> ToMSegmentData(int face, int cycle);
+    vector<MSegmentData> ToMSegmentData(int face, int cycle, int segno);
     string ToString() const;
     vector<MSeg> GetMatchingMSegs (MSegs m);
     void MergeConcavity (MSegs c);
@@ -124,11 +127,14 @@ public:
     Reg GetSReg();
     Reg GetDReg();
     
+    int getLowerLeft();
+    int findNext (int index);
     MSegs divide (double start, double end);
 };
 
 class MFace {
 public:
+    bool needStartRegion, needEndRegion;
     MSegs face;
     vector<MSegs> holes, cvs;
     
@@ -138,6 +144,7 @@ public:
     void MergeConcavities ();
     void AddMsegs (MSegs msegs);
     URegion ToURegion(Interval<Instant> iv, int facenr);
+    ListExpr ToListExpr();
     string ToString();
     MFace divide (double start, double end);
 };
@@ -150,6 +157,9 @@ public:
     MFaces(MFace face);
     void AddFace (MFace face);
     MRegion ToMRegion(Interval<Instant> iv);
+    URegion ToURegion(Interval<Instant> iv, double start, double end);
+    ListExpr ToListExpr(Interval<Instant> iv, double start, double end);
+    ListExpr ToMListExpr(Interval<Instant> iv);
     string ToString();
     MFaces divide (double start, double end);
 };
