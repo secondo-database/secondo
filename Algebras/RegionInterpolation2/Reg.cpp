@@ -321,3 +321,42 @@ MSegs Reg::GetMSegs() {
     
     return ret;
 }
+
+Reg Reg::Merge(Reg r) {
+    double mindist = -1;
+    Pt p1, p2;
+    Reg ret;
+    
+    if (0 && r.parent == parent && r.hullSeg.valid && hullSeg.valid) {
+        
+    } else {
+        for (unsigned int i = 0; i < v.size(); i++) {
+            for (unsigned int j = 0; j < r.v.size(); j++) {
+                double dist = v[i].s.distance(r.v[j].s);
+                if (mindist < 0 || mindist > dist) {
+                    mindist = dist;
+                    p1 = v[i].s;
+                    p2 = r.v[j].s;
+                }
+            }
+        }
+        for (unsigned int i = 0; i < v.size(); i++) {
+            if (v[i].s == p1) {
+                Seg s1(p1, p2);
+                ret.AddSeg(s1);
+                int index = 0;
+                while (!(r.v[index].s == p2))
+                    index++;
+                for (unsigned int j = 0; j < r.v.size(); j++) {
+                    ret.AddSeg(r.v[(index+j)%r.v.size()]);
+                }
+                Seg s2(p2, p1);
+                ret.AddSeg(s2);
+            }
+            ret.AddSeg(v[i]);
+        }
+    }
+    ret.Close();
+    
+    return ret;
+}

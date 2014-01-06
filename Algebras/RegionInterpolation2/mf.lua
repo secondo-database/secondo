@@ -23,6 +23,7 @@ end
 
 
 function matchFaces (src, dst, depth)
+    print("\nLUA Start")
     ret = {}
 
     print("\nDepth "..depth..": Srcregs " .. #src .. ", Dstregs " .. #dst)
@@ -48,8 +49,11 @@ function matchFaces (src, dst, depth)
 	      "  BBox "..b1.x.."/"..b1.y.." "..b2.x.."/"..b2.y);
     end
 
-    return matchFacesDistance (src, dst, depth)
+    ret = matchFacesDistance (src, dst, depth)
+    
+    print("\nLUA End")
 
+    return ret;
 end
 
 function matchFacesSpecial (src, dst, depth)
@@ -59,8 +63,7 @@ function matchFacesSpecial (src, dst, depth)
 	return { { src = src[1], dst = dst[1] } }
     elseif (depth == 1) then
 	return { 
-	{ src = src[2], dst = dst[1] },
-	{ src = src[1], dst = dst[2] }
+	{ src = { x = src[1], y = src[2] }, dst = dst[1] }
 	}
     end
 

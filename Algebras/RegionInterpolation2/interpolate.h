@@ -53,12 +53,12 @@ private:
 public:
     Reg *parent;
     
-    bool ishole;
     Pt hullPoint, peerPoint;
     Seg hullSeg;
     vector<Seg> convexhull;
     vector<Seg> v;
     vector<Reg> holes;
+    bool ishole;
     int used;
     int isdst;
     pair<Pt,Pt> bbox;
@@ -88,6 +88,7 @@ public:
     MSegs GetMSegs();
     string ToString() const;
     double distance (Reg r);
+    Reg Merge (Reg r);
     
     static vector<Reg> getRegs(ListExpr le);
     static pair<Pt,Pt> GetBoundingBox(vector<Reg> regs);

@@ -238,17 +238,16 @@ int interpolatevalmap(Word* args,
 
     MFaces mf = interpolate(&reg1, ti1, &reg2, ti2, 0);
     cerr << mf.ToString();
+
     ListExpr mreg = mf.ToMListExpr(iv);
     nl->WriteListExpr(mreg);
-    
     ListExpr err;
     bool correct;
     Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
+//    result.setAddr(w.addr);
     
-    result.setAddr(w.addr);
-    
-//    MRegion mreg = mf.ToMRegion(iv);
-//    *m = mreg;
+    MRegion mr = mf.ToMRegion(iv);
+    *m = mr;
     
     return 0;
 }
