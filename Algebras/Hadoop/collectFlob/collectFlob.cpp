@@ -60,7 +60,9 @@ hence here it only carries out the basic data access.
 #include <fstream>
 #include <sstream>
 #include <map>
-#include <stdint.h>
+#include <sys/types.h> //declaration for u_int32_t
+#include <cstdlib>     //invoking system commands
+
 
 using namespace std;
 
