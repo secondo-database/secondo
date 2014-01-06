@@ -60,6 +60,7 @@ hence here it only carries out the basic data access.
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <stdint.h>
 
 using namespace std;
 
