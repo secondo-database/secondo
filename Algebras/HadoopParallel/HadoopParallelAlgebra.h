@@ -58,6 +58,9 @@ And includes one method:
 #include "TemporalAlgebra.h"
 #include <ifaddrs.h>
 #include <arpa/inet.h>
+#include <pthread.h>
+#include <signal.h>
+
 
 const int MAX_COPYTIMES = 50;
 const size_t MAX_OPENFILE_NUM = 100;
@@ -77,9 +80,11 @@ string getLocalFilePath(string path, const string fileName,
 string addFileIndex(string fileName, int index);
 ListExpr AntiNumericType(ListExpr numericType);
 int copyFile(string source, string dest, bool cfn = false);
-Tuple* readTupleFromFile(ifstream* file, TupleType* type);
+Tuple* readTupleFromFile(ifstream* file, TupleType* type, int mode,
+    string flobFile = "");
 int getRoundRobinIndex(int row, int clusterSize);
 ListExpr rmTermNL(ListExpr list, string term, int& count);
+NList addIncomplete(const NList& attrList);
 
 
 //Set up the remote copy command options uniformly.
@@ -598,10 +603,9 @@ public:
 class fileInfo{
 public:
   fileInfo(size_t _cs, string _fp, string _fn,
-      size_t _an, /*string _rs = ""*/
-      int _rs):
+      size_t _an, int _rs, bool _nf = false, SmiRecordId _sid = -1):
   cnt(0), totalExtSize(0),totalSize(0),
-  lastTupleIndex(0), fileOpen(false)
+  sourceDS(_sid), lastTupleIndex(0), fileOpen(false), noFlob(_nf)
   {
     //\_fn: fileBaseName
     //\_rs: rowNumberSuffix (string "\_X")
@@ -614,6 +618,15 @@ public:
     blockFileName = _fn + "_" + int2string(_cs);
     blockFilePath = _fp;
     FileSystem::AppendItem(blockFilePath, blockFileName);
+    if (noFlob)
+    {
+      do{
+        flobFileId = WinUnix::rand() + WinUnix::getpid();
+        flobFileName = "flobFile_" + int2string(flobFileId);
+        flobFilePath = _fp;
+        FileSystem::AppendItem(flobFilePath, flobFileName);
+      } while (FileSystem::FileOrFolderExists(flobFilePath));
+    }
 
     attrExtSize = new vector<double>(_an);
     attrSize = new vector<double>(_an);
@@ -626,12 +639,18 @@ public:
     }
     else
     {
+      bool fileStatus = false;
       ios_base::openmode mode = ios::binary;
       if (lastTupleIndex > 0)
         mode |= ios::app;
       blockFile.open(blockFilePath.c_str(), mode);
-      fileOpen = true;
-      return blockFile.good();
+      fileStatus = blockFile.good();
+      if (noFlob){
+        flobFile.open(flobFilePath.c_str(), mode);
+        fileStatus &= flobFile.good();
+      }
+      fileOpen = fileStatus;
+      return fileStatus;
     }
   }
 
@@ -639,6 +658,9 @@ public:
   {
     if (fileOpen){
       blockFile.close();
+      if (noFlob){
+        flobFile.close();
+      }
       fileOpen = false;
     }
   }
@@ -670,17 +692,35 @@ public:
           newTuple->CopyAttribute(i, tuple, j++);
       }
     }
-    size_t tupleBlockSize =
-        newTuple->GetBlockSize(coreSize, extensionSize, flobSize,
-                        attrExtSize, attrSize);
-    totalSize += (coreSize + extensionSize + flobSize);
-    totalExtSize += (coreSize + extensionSize);
 
-    char* tBlock = (char*)malloc(tupleBlockSize);
-    newTuple->WriteToBin(tBlock, coreSize,
-                         extensionSize, flobSize);
-    blockFile.write(tBlock, tupleBlockSize);
-    free(tBlock);
+    size_t tupleBlockSize = newTuple->GetBlockSize(
+        coreSize, extensionSize, flobSize, attrExtSize, attrSize);
+    if (noFlob)
+    {
+      totalSize += (coreSize + extensionSize);
+      totalExtSize += (coreSize + extensionSize);
+      SmiSize flobBlockOffset = 0;
+
+      char* tBlock = (char*)malloc(tupleBlockSize);
+      newTuple->WriteToDivBlock(tBlock, coreSize, extensionSize, flobSize,
+          flobFileId, sourceDS, flobBlockOffset);
+      blockFile.write(tBlock, (tupleBlockSize - flobSize));
+      size_t flobOffset = tupleBlockSize - flobSize;
+      flobFile.write(tBlock + flobOffset, flobSize);
+      free(tBlock);
+    }
+    else
+    {
+      totalSize += (coreSize + extensionSize + flobSize);
+      totalExtSize += (coreSize + extensionSize);
+
+      char* tBlock = (char*)malloc(tupleBlockSize);
+      newTuple->WriteToBin(tBlock, coreSize,
+                           extensionSize, flobSize);
+      blockFile.write(tBlock, tupleBlockSize);
+      free(tBlock);
+    }
+
     if (!keepAll)
       newTuple->DeleteIfAllowed();
     lastTupleIndex = tupleIndex + 1;
@@ -740,8 +780,6 @@ public:
   {  return lastTupleIndex;  }
 
 private:
-  string blockFilePath, blockFileName;
-  ofstream blockFile;
 
   int cnt;
   double totalExtSize;
@@ -749,8 +787,14 @@ private:
   vector<double>* attrExtSize;
   vector<double>* attrSize;
 
+  string blockFilePath, blockFileName;
+  SmiFileId flobFileId;
+  SmiRecordId sourceDS;
+  string flobFilePath, flobFileName;
+  ofstream blockFile, flobFile;
+
   size_t lastTupleIndex;
-  bool fileOpen;
+  bool fileOpen, noFlob;
 };
 
 bool static compFileInfo(fileInfo* fi1, fileInfo* fi2)
@@ -779,7 +823,6 @@ private:
   size_t tupleCounter;
 
   string fileBaseName;
-//  string rowNumSuffix;
   int rowNumSuffix;
   string filePath;
   map<size_t, fileInfo*> fileList;
@@ -790,6 +833,9 @@ private:
   string cnIP;  //current node IP
   clusterInfo *ci;
   bool* copyList;
+  bool noFlob;
+  SmiRecordId sourceDS;
+  bool ok;
 
   //~openFileList~ keeps at most MAX_FILEHANDLENUM file handles.
   vector<fileInfo*> openFileList;
@@ -802,7 +848,7 @@ public:
                        bool keepKeyAttribute,
                        ListExpr resultTupleType,
                        ListExpr inputTupleType,
-                       int dtIndex, int dupTimes);
+                       int dtIndex, int dupTimes, bool noFlob);
 
   bool insertTuple(Word tuple);
   bool startCloseFiles();
@@ -820,6 +866,8 @@ public:
     if (exportTupleType)
       exportTupleType->DeleteIfAllowed();
   }
+
+  bool isOK(){ return ok;}
 };
 
 /*

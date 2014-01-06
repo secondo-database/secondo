@@ -497,23 +497,25 @@ public:
   PFFeedLocalInfo(Supplier s, Word inputStream,
       int rp, int cp, int dp,
       string fileName, string filePath,
-      int attTimes);
+      int attTimes, bool noFlob);
   ~PFFeedLocalInfo(){
 
   }
 
   static void* fetchAllFiles(void* ptr);
   //Thread to copy all files
-  Tuple* getNextTuple();
+  Tuple* getNextTuple(int mode);
 
   string getFilePrefixName(){return fileName;}
   string getLocalFilePath(){return localFilePath;}
   int getAttemptTimes(){return attTimes;}
 private:
+  bool noFlob;
   string fileName, localFilePath;
-  TupleType* resultType;
+  TupleType* inputType;   //Type recorded inside the block file
+  TupleType* resultType;  //Type output to the successive operator
   clusterInfo *interCluster;
-  vector<string> partFiles;
+  vector<pair<string, int> > partFiles;
   ifstream *inputFile;
   pthread_t faf_TID;
   int attTimes;
@@ -525,7 +527,10 @@ private:
 
   size_t fIdx;
   string curFileName;
+  int curPrdIndex;
   ifstream *curFilePt;
+
+  Tuple* addDSIdx(Tuple* tuple, int prdIndex);
 };
 
 /*

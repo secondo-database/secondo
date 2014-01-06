@@ -2344,7 +2344,7 @@ Tuple* CollectLocalInfo::getNextTuple2()
   Tuple* t = 0;
   if (inputFile != 0)
   {
-    t = readTupleFromFile(inputFile, resultType);
+    t = readTupleFromFile(inputFile, resultType, 1);
     if ( t == 0 ){
       inputFile->close();
       delete inputFile;
@@ -2389,7 +2389,7 @@ Tuple* CollectLocalInfo::getNextTuple2()
         return 0;
       }
 
-      t = readTupleFromFile(inputFile, resultType);
+      t = readTupleFromFile(inputFile, resultType, 1);
       if ( t == 0 ){
         cerr << "Waring! File " << inputFileName
             << " is empty! " << endl;
@@ -2599,9 +2599,9 @@ from T1 or T2 nodes, if these two optional parameters are set.
 
 */
 
-struct pffeedInfo : OperatorInfo
+struct pffeed1Info : OperatorInfo
 {
-  pffeedInfo()
+  pffeed1Info()
   {
     name = "pffeed";
     signature =
@@ -2613,7 +2613,7 @@ struct pffeedInfo : OperatorInfo
   }
 };
 
-ListExpr pffeedTypeMap(ListExpr args)
+ListExpr pffeedTypeMap(ListExpr args, bool noFlob)
 {
   try{
      NList l(args);
@@ -2722,6 +2722,7 @@ ListExpr pffeedTypeMap(ListExpr args)
        pIdx++;
      }
    
+     bool delTypeFile = false;
      for (int i = 0; i < 2; i++)
      {
        if (typeNode[i] >= 0)
@@ -2742,21 +2743,58 @@ ListExpr pffeedTypeMap(ListExpr args)
              << " from <-" << "\t" << rPath << endl;
          if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
            return l.typeError(ctfErr);
-         else
+         else{
+           delTypeFile = true;
            break;
+         }
        }
      }
    
      ListExpr relType;
      if (!nl->ReadFromFile(filePath, relType))
        return l.typeError(ntfErr + filePath);
-     if (!(listutils::isRelDescription(relType)
-         || listutils::isTupleStream(relType)))
+     if (delTypeFile){
+       FileSystem::DeleteFileOrFolder(filePath);
+     }
+
+     NList resultType;
+     string ostStr, nstStr;
+     //ost: old stream type, type from the type file, no DS\_IDX
+     //nst: new stream type, for pffeed3, with DS\_IDX
+     if (noFlob)
+     {
+       //Ignore the incomplete term and add the DS\_IDX attribute
+       int count = 0;
+       cerr << "relType : " << nl->ToString(relType) << endl;
+       ListExpr realRelType = rmTermNL(relType, "incomplete", count);
+       cerr << "realRelType : " << nl->ToString(realRelType) << endl;
+       if (!(listutils::isRelDescription(realRelType)
+              || listutils::isTupleStream(realRelType)))
          return l.typeError(ntrErr + filePath);
-   
-     NList streamType =
+       NList osType = NList(NList(Symbol::STREAM()),
+                       NList(NList(realRelType).second()));
+       ostStr = osType.convertToString();
+       NList resultAttrList = NList(nl->Second(nl->Second(realRelType)));
+       resultAttrList.append(NList(
+           NList("DS_IDX"), NList(CcInt::BasicType())));
+
+       resultType =
            NList(NList(Symbol::STREAM()),
-           NList(NList(relType).second()));
+             NList(NList(Tuple::BasicType()), resultAttrList));
+       nstStr = resultType.convertToString();
+     }
+     else
+     {
+       if (!(listutils::isRelDescription(relType)
+           || listutils::isTupleStream(relType)))
+           return l.typeError(ntrErr + filePath);
+
+       resultType =
+             NList(NList(Symbol::STREAM()),
+             NList(NList(relType).second()));
+       nstStr = ostStr = resultType.convertToString();
+     }
+   
    
      //Remove the type file name
      filePath = filePath.substr(0, filePath.find_last_of("/"));
@@ -2766,15 +2804,16 @@ ListExpr pffeedTypeMap(ListExpr args)
                NList(attrPos[1]),
                NList(attrPos[2]),
                NList(filePath, true, true),
-               NList(attTimes)),
-             streamType).listExpr();
+               NList(attTimes),
+               NList(ostStr, true, true)),
+             resultType).listExpr();
   } catch(...){
      return listutils::typeError("invalid input");
   }
 }
 
 int pffeedValueMap(Word* args, Word& result,
-    int message, Word& local, Supplier s)
+    int message, Word& local, Supplier s, int mode)
 {
 
   PFFeedLocalInfo* pli = 0;
@@ -2798,8 +2837,10 @@ int pffeedValueMap(Word* args, Word& result,
       pli = (PFFeedLocalInfo*)local.addr;
       if (pli) delete pli;
 
+      assert((mode == 1) || (mode == 2) || (mode == 3));
+      bool noFlob = mode < 3 ? false : true;
       pli = new PFFeedLocalInfo(s, args[0],
-          rp, cp, dp, fileName, filePath, attTimes);
+          rp, cp, dp, fileName, filePath, attTimes, noFlob);
       local.setAddr(pli);
 
       return 0;
@@ -2809,7 +2850,7 @@ int pffeedValueMap(Word* args, Word& result,
       if (!pli)
         return CANCEL;
 
-      Tuple* tuple = pli->getNextTuple();
+      Tuple* tuple = pli->getNextTuple(mode);
       if (tuple)
       {
         result.setAddr(tuple);
@@ -2828,15 +2869,34 @@ int pffeedValueMap(Word* args, Word& result,
   return 0;
 }
 
-Operator pffeedOp(pffeedInfo(), pffeedValueMap, pffeedTypeMap);
+ListExpr pffeed1TypeMap(ListExpr args){
+  return pffeedTypeMap(args, false);
+}
+
+int pffeed1ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s){
+  return pffeedValueMap(args, result, message, local, s, 1);
+}
+
+Operator pffeedOp(pffeed1Info(), pffeed1ValueMap, pffeed1TypeMap);
 
 PFFeedLocalInfo::PFFeedLocalInfo(Supplier s, Word inputStream,
-    int rp, int cp, int dp, string _fn, string _fp, int _at)
-  : fileName(_fn), localFilePath(_fp), attTimes(_at)
+    int rp, int cp, int dp, string _fn, string _fp, int _at, bool _nf)
+  : noFlob(_nf), fileName(_fn), localFilePath(_fp), attTimes(_at)
 {
   ListExpr streamTypeList = qp->GetType(s);
   resultType = new TupleType(SecondoSystem::GetCatalog()
     ->NumericType(nl->Second(streamTypeList)));
+  if (noFlob)
+  {
+    //set the inputType
+    string ostStr = ((FText*)qp->Request(
+        qp->GetSupplierSon(s, 8)).addr)->GetValue();
+    ListExpr inputTypeList;
+    nl->ReadFromString(ostStr, inputTypeList);
+    inputType = new TupleType(SecondoSystem::GetCatalog()
+      ->NumericType(nl->Second(inputTypeList)));
+  }
   interCluster = new clusterInfo();
 
   PLI_FAF_Thread* ft = new PLI_FAF_Thread(
@@ -2846,6 +2906,7 @@ PFFeedLocalInfo::PFFeedLocalInfo(Supplier s, Word inputStream,
   fIdx = 0;
   curFileName = "";
   curFilePt = 0;
+  curPrdIndex = -1;
 }
 
 void* PFFeedLocalInfo::fetchAllFiles(void* ptr)
@@ -2976,7 +3037,8 @@ void* PFFeedLocalInfo::tCopyFile(void* ptr)
         << " in thread " << token << " fails! " << endl;
   }
   else{
-    pli->partFiles.push_back(lPath);
+    int prdIndex = pli->interCluster->getInterIndex(row, true, true);
+    pli->partFiles.push_back(make_pair(lPath, prdIndex));
     pli->tokenPass[token] = false;
   }
   pthread_mutex_unlock(&CLI_mutex);
@@ -2984,19 +3046,23 @@ void* PFFeedLocalInfo::tCopyFile(void* ptr)
   return NULL;
 }
 
-Tuple* PFFeedLocalInfo::getNextTuple()
+Tuple* PFFeedLocalInfo::getNextTuple(int mode)
 {
   Tuple* t = 0;
 
   if (curFilePt != 0)
   {
-    t = readTupleFromFile(curFilePt, resultType);
+    t = readTupleFromFile(curFilePt, resultType, mode, curFileName);
+    if (mode == 3){
+      t = addDSIdx(t, curPrdIndex);
+    }
     if (t == 0){
       //Read the next file
       curFilePt->close();
       delete curFilePt;
       curFilePt = 0;
       curFileName = "";
+      curPrdIndex = -1;
     }
     else
       return t;
@@ -3035,7 +3101,10 @@ Tuple* PFFeedLocalInfo::getNextTuple()
         return 0;
       }
 
-      t = readTupleFromFile(curFilePt, resultType);
+      t = readTupleFromFile(curFilePt, resultType, mode, curFileName);
+      if (mode == 3){
+        t = addDSIdx(t, curPrdIndex);
+      }
       if ( t == 0 ){
         cerr << "Waring! File " << curFileName
             << " is empty! " << endl;
@@ -3047,7 +3116,8 @@ Tuple* PFFeedLocalInfo::getNextTuple()
       return t;
     }
     else if (partFiles.size() > 0 && fIdx < partFiles.size()){
-      curFileName = partFiles[fIdx];
+      curFileName = partFiles[fIdx].first;
+      curPrdIndex = partFiles[fIdx].second;
       fIdx++;
     }
 
@@ -3060,6 +3130,101 @@ Tuple* PFFeedLocalInfo::getNextTuple()
 
   return 0;
 }
+
+Tuple* PFFeedLocalInfo::addDSIdx(Tuple* tuple, int prdIndex)
+{
+  if (!noFlob){
+    return tuple; //no change
+  }
+
+  Tuple* newTuple = 0;
+  if (tuple)
+  {
+    newTuple = new Tuple(resultType);
+    int aSize = inputType->GetNoAttributes();
+    for (int ai = 0; ai < aSize; ai++)
+    {
+      newTuple->CopyAttribute(ai, tuple, ai);
+    }
+    newTuple->PutAttribute(aSize, new CcInt(prdIndex));
+    tuple->DeleteIfAllowed();
+  }
+  return newTuple;
+}
+
+/*
+4 Operator ~pffeed2~
+
+It works like the combination of ~pffeed~ and ~ffeed2~,
+fetching all required data files simultaneously and reading the tuples first.
+The Flob data are read only when they are really needed.
+
+However, both the tuple and Flob data are stored and transferred together
+inside the same data file.
+
+*/
+
+struct pffeed2Info : OperatorInfo
+{
+  pffeed2Info()
+  {
+    name = "pffeed2";
+    signature =
+        "stream(tuple(aR:int, aC:int, aD:int, ...)) "
+        "x aR x aC x aD x string x [text] x [int] "
+        "x [int] x [int] -> stream(tuple())";
+    meaning = "Reads a set of data files from the cluster,"
+        "and returns the tuples without reading the Flob data at first.";
+  }
+};
+
+ListExpr pffeed2TypeMap(ListExpr args){
+  return pffeedTypeMap(args, false);
+}
+
+int pffeed2ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s){
+  return pffeedValueMap(args, result, message, local, s, 2);
+}
+
+Operator pffeed2Op(pffeed2Info(), pffeed2ValueMap, pffeed2TypeMap);
+
+/*
+4 Operator ~pffeed3~
+
+It works like the combination of ~pffeed~ and ~ffeed3~,
+fetching all required data files simultaneously and reading the tuples only.
+The Flob data are remotely read by the ~fetchFlob~ operator later when they
+are needed after the filter step.
+
+The tuple and Flob data are stored and transferred separately in different files.
+
+*/
+
+struct pffeed3Info : OperatorInfo
+{
+  pffeed3Info()
+  {
+    name = "pffeed3";
+    signature =
+        "stream(tuple(aR:int, aC:int, aD:int, ...)) "
+        "x aR x aC x aD x string x [text] x [int] "
+        "x [int] x [int] -> stream(tuple())";
+    meaning = "Reads a set of data files from the cluster,"
+        "and returns the tuples without Flob data.";
+  }
+};
+
+ListExpr pffeed3TypeMap(ListExpr args){
+  return pffeedTypeMap(args, true);
+}
+
+int pffeed3ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s){
+  return pffeedValueMap(args, result, message, local, s, 3);
+}
+
+Operator pffeed3Op(pffeed3Info(), pffeed3ValueMap, pffeed3TypeMap);
 
 
 /*
@@ -5611,6 +5776,13 @@ public:
     hadoopMapAllOP.SetUsesArgsInTypeMapping();
     //Not evaluate the taskQuery on the master
     hadoopMapAllOP.SetRequestsArguments();
+
+    AddOperator(&pffeed2Op);
+    pffeed2Op.SetUsesArgsInTypeMapping();
+
+    AddOperator(&pffeed3Op);
+    pffeed3Op.SetUsesArgsInTypeMapping();
+
   }
   ~HadoopAlgebra()
   {

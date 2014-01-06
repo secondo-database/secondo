@@ -2287,36 +2287,10 @@ ListExpr FConsumeTypeMap(ListExpr args, bool noFlob)
        NList resultList;
        if (noFlob)
        {
-         //Add incomplete term for attributes containing Flob.
+         //Add the incomplete property on attributes containing Flob.
 
-         SecondoCatalog* sc = SecondoSystem::GetCatalog();
-         NList newAttrList;
          NList attrList = tsList.first().second().second();
-         NList rest = attrList;
-         while (!rest.isEmpty())
-         {
-           NList attr = rest.first();
-           NList name = attr.first();
-           NList type = attr.second();
-           string typeStr = type.str();
-
-           ListExpr nmType = sc->NumericType(type.listExpr());
-           int algId, typeId;
-           algId = nl->IntValue(nl->First(nmType));
-           typeId = nl->IntValue(nl->Second(nmType));
-           Attribute* elem = static_cast<Attribute*>
-                 ((am->CreateObj(algId, typeId))(nmType).addr);
-           if (elem->NumOfFLOBs() > 0)
-           {
-             newAttrList.append(
-                 NList(name, NList(NList("incomplete"),type)));
-           }
-           else
-           {
-             newAttrList.append(attr);
-           }
-           rest.rest();
-         }
+         NList newAttrList = addIncomplete(attrList);
 
          resultList = NList(NList(Relation::BasicType()),
              NList(NList(Tuple::BasicType(), newAttrList)));
@@ -3006,12 +2980,11 @@ ListExpr FFeedTypeMap(ListExpr args, bool noFlob)
      NList resultType;
      string ostStr, nstStr;
      //ost: old stream type, type from the type file, no DS\_IDX
-     //nst: new stream type, for ffeed2, with DS\_IDX
+     //nst: new stream type, for ffeed3, with DS\_IDX
      if (noFlob)
      {
        //Ignore the incomplete term
        int count = 0;
-
        ListExpr realRelType = rmTermNL(relType, "incomplete", count);
        if (!(listutils::isRelDescription(realRelType)
               || listutils::isTupleStream(realRelType)))
@@ -3436,32 +3409,13 @@ blockSize = sizeof(blockSize) + sizeof(tupleSize) + sizeof(tuple) + sizeof(Flob)
 tupleSize = sizeof(tuple)
 
 */
-Tuple* FFeedLocalInfo::getNextTuple(){
-
+Tuple* FFeedLocalInfo::getNextTuple()
+{
   if (!fileFound)
     return 0;
-
-  Tuple* t = 0;
-  u_int32_t blockSize;
-
-  assert(tupleBlockFile->good());
   assert(!noFlob);
 
-  tupleBlockFile->read(
-      reinterpret_cast<char*>(&blockSize),
-      sizeof(blockSize));
-  if (!tupleBlockFile->eof() && (blockSize > 0))
-  {
-    blockSize -= sizeof(blockSize);
-    char *tupleBlock = new char[blockSize];
-    tupleBlockFile->read(tupleBlock, blockSize);
-
-    t = new Tuple(rcdTupleType);
-    t->ReadFromBin(tupleBlock, blockSize);
-    delete[] tupleBlock;
-  }
-
-  return t;
+  return readTupleFromFile(tupleBlockFile, rcdTupleType, 1);
 }
 
 /*
@@ -3472,98 +3426,32 @@ The block contains both the tuple and the FLOB,
 but it leaves the FLOB data untouched.
 
 */
-
-Tuple* FFeedLocalInfo::getNextTuple2(){
-
+Tuple* FFeedLocalInfo::getNextTuple2()
+{
   if (!fileFound)
     return 0;
-  Tuple* t = 0;
-  u_int32_t blockSize;
-
-  assert(tupleBlockFile->good());
   assert(!noFlob);
 
-  size_t sizeLen = (sizeof(u_int32_t) + sizeof(u_int16_t));
-  char sizes[sizeLen];
-  size_t offset = 0;
-  tupleBlockFile->read(sizes, sizeLen);
-  ReadVar<u_int32_t>(blockSize, sizes, offset);
-
-  if (!tupleBlockFile->eof() && (blockSize > 0))
-  {
-    blockSize -= sizeof(blockSize);
-    //READ only the tuple data out
-
-    u_int16_t tupleSize;
-    ReadVar<u_int16_t>(tupleSize, sizes, offset);
-
-    //read less data
-    char *tupleOnlyBlock = new char[tupleSize];
-    tupleBlockFile->read(tupleOnlyBlock, tupleSize);
-    size_t flobOffset = tupleBlockFile->tellg();
-
-    t = new Tuple(rcdTupleType);
-    t->ReadTupleFromBin(tupleOnlyBlock, tupleSize, filePath, flobOffset);
-
-    u_int32_t flobLength = blockSize - sizeof(tupleSize) - tupleSize;
-    if (flobLength != 0){
-      tupleBlockFile->seekg(flobLength, ios::cur);
-    }
-    delete[] tupleOnlyBlock;
-  }
-
-  return t;
+  return readTupleFromFile(tupleBlockFile, rcdTupleType, 2, filePath);
 }
 
 /*
-
 The function getNextTuple3 is prepared for the operator ~ffeed3~
 
 The block contains only the tuple data, while the Flob data is
 kept either locally or remotely in persistent Flob files.
 
 */
-
-Tuple* FFeedLocalInfo::getNextTuple3(){
-
-  assert(noFlob);
-
+Tuple* FFeedLocalInfo::getNextTuple3()
+{
   if (!fileFound)
     return 0;
+  assert(noFlob);
+
+  Tuple* t = readTupleFromFile(tupleBlockFile, rcdTupleType, 3, filePath);
   Tuple* newTuple = 0;
-  u_int32_t blockSize;
-
-  assert(tupleBlockFile->good());
-
-  size_t sizeLen = (sizeof(u_int32_t) + sizeof(u_int16_t));
-  char sizes[sizeLen];
-  size_t offset = 0;
-  tupleBlockFile->read(sizes, sizeLen);
-  ReadVar<u_int32_t>(blockSize, sizes, offset);
-
-  if (!tupleBlockFile->eof() && (blockSize > 0))
+  if (t)
   {
-    //READ only the tuple data out
-    blockSize -= sizeof(blockSize);
-    u_int16_t tupleSize;
-    ReadVar<u_int16_t>(tupleSize, sizes, offset);
-
-    char *tupleOnlyBlock = new char[tupleSize];
-    tupleBlockFile->read(tupleOnlyBlock, tupleSize);
-    size_t flobOffset = tupleBlockFile->tellg();
-
-    u_int32_t flobLength = blockSize - sizeof(tupleSize) - tupleSize;
-    Tuple* t = new Tuple(rcdTupleType);
-
-    if (flobLength == 0){
-      //read as ffeed3
-      t->ReadTupleFromBin(tupleOnlyBlock);
-    }
-    else {
-      //read as ffeed2
-      t->ReadTupleFromBin(tupleOnlyBlock, tupleSize, filePath, flobOffset);
-    }
-
     //Create the new tuple by adding the DS\_IDX
     newTuple = new Tuple(newTupleType);
     int aSize = rcdTupleType->GetNoAttributes();
@@ -3573,12 +3461,6 @@ Tuple* FFeedLocalInfo::getNextTuple3(){
     }
     newTuple->PutAttribute(aSize, new CcInt(prdIndex));
     t->DeleteIfAllowed();
-
-    if (flobLength != 0){
-      tupleBlockFile->seekg(flobLength, ios::cur);
-    }
-
-    delete[] tupleOnlyBlock;
   }
 
   return newTuple;
@@ -4164,7 +4046,7 @@ struct FDistributeInfo : OperatorInfo {
 8.1 Type mapping
 
 */
-ListExpr FDistributeTypeMap(ListExpr args){
+ListExpr FDistributeTypeMap(ListExpr args, bool noFlob){
   try{
      NList l(args);
      string lenErr = "ERROR!Operator expects 5 parts arguments.";
@@ -4255,12 +4137,8 @@ ListExpr FDistributeTypeMap(ListExpr args){
        return l.typeError(err11);
      if (1 == pmLen)
      {
-//       if (pType.first().isSymbol(CcInt::BasicType()))
-//         evenMode = true;
-/*       else*/
        if (pType.first().isSymbol(CcBool::BasicType()))
        {
-//         setKPA = true;
          KPA = pValue.first().boolval();
        }
        else if (!pType.first().isSymbol(CcInt::BasicType())){
@@ -4274,8 +4152,6 @@ ListExpr FDistributeTypeMap(ListExpr args){
          return l.typeError(err11);
        else
        {
-//         evenMode = true;
-//         setKPA = true;
          KPA = pValue.second().boolval();
        }
      }
@@ -4300,15 +4176,26 @@ ListExpr FDistributeTypeMap(ListExpr args){
      string typeFileName = filePrefix + "_type";
      filePath = getLocalFilePath(filePath, typeFileName, "");
      ofstream typeFile(filePath.c_str());
-     NList resultList =
-             NList(NList(Relation::BasicType()),
-                   NList(NList(Tuple::BasicType()), newAL));
      if (!typeFile.good())
        return l.typeError(err3 + filePath);
      else
      {
+       NList resultList;
+       if (noFlob)
+       {
+         //Add the incomplete property on attributes containing Flob.
+
+         NList newAL2 = addIncomplete(newAL);
+         resultList = NList(NList(Relation::BasicType()),
+                        NList(NList(Tuple::BasicType(), newAL2)));
+       }
+       else
+       {
+         resultList = NList(NList(Relation::BasicType()),
+                          NList(NList(Tuple::BasicType()), newAL));
+       }
        typeFile << resultList.convertToString() << endl;
-       cerr << "Created type file " << filePath << endl;
+       cerr << "Type file: " << filePath << " is created. " << endl;
      }
      typeFile.close();
    
@@ -4400,7 +4287,7 @@ ListExpr FDistributeTypeMap(ListExpr args){
 
 */
 int FDistributeValueMap(Word* args, Word& result,
-    int message, Word& local, Supplier s)
+    int message, Word& local, Supplier s, bool noFlob)
 {
   string relName, path;
   FDistributeLocalInfo* fdli = 0;
@@ -4427,7 +4314,7 @@ int FDistributeValueMap(Word* args, Word& result,
         rowNum = ((CcInt*)qp->Request(
             qp->GetSupplier(bspList,3)).addr)->GetValue();
 
-      bool /*evenMode = false,*/ kpa = false;
+      bool kpa = false;
       int nBucket = 0;
       int ptmLen = qp->GetNoSons(ptmList);
       if (1 == ptmLen)
@@ -4438,14 +4325,12 @@ int FDistributeValueMap(Word* args, Word& result,
               qp->GetSupplierSon(ptmList,0)).addr)->GetValue();
         else
         {
-//          evenMode = true;
           nBucket = ((CcInt*)qp->Request(
               qp->GetSupplierSon(ptmList,0)).addr)->GetValue();
         }
       }
       else if (2 == ptmLen)
       {
-//        evenMode = true;
         nBucket = ((CcInt*)qp->Request(
             qp->GetSupplierSon(ptmList,0)).addr)->GetValue();
         kpa = ((CcBool*)qp->Request(
@@ -4477,7 +4362,11 @@ int FDistributeValueMap(Word* args, Word& result,
       fdli = new FDistributeLocalInfo(
                relName, rowNum, path, nBucket, attrIndex, kpa,
                resultTupleList, inTupleTypeList,
-               dupTgtIndex, dupTimes);
+               dupTgtIndex, dupTimes, noFlob);
+      if (!fdli->isOK()){
+        delete fdli;
+        return CANCEL;
+      }
       local.setAddr(fdli);
 
       //Write tuples to files completely
@@ -4528,12 +4417,11 @@ int FDistributeValueMap(Word* args, Word& result,
 FDistributeLocalInfo::FDistributeLocalInfo(
     string _bn, int _rn, string _pt, int _nb, int _ai, bool _kpa,
     ListExpr _rtl, ListExpr _itl,
-    int _di, int _dt)
+    int _di, int _dt, bool _nf)
 : nBuckets(_nb), attrIndex(_ai), kpa(_kpa), tupleCounter(0),
-  /*rowNumSuffix(""),*/
   rowNumSuffix(-1), firstDupTarget(_di), dupTimes(_dt),
   localIndex(0), cnIP(""),
-  ci(0), copyList(0)
+  ci(0), copyList(0), noFlob(_nf), sourceDS(-1), ok(true)
 {
   string fnSfx = "";
 
@@ -4545,6 +4433,24 @@ FDistributeLocalInfo::FDistributeLocalInfo(
   filePath = getLocalFilePath(_pt, _bn, fnSfx, false);
   resultTupleType = new TupleType(nl->Second(_rtl));
   exportTupleType = new TupleType(_itl);
+
+  if (dupTimes > 0 || noFlob)
+  {
+    ci = new clusterInfo();
+
+    if(!ci->isOK()){
+      cerr << "ERROR!The slave list file does not exist."
+      "Is $PARALLEL_SECONDO_SLAVES correctly set up ?" << endl;
+      ok = false;
+    }
+
+    if(firstDupTarget > (int)ci->getSlaveSize() ){
+      cerr << "The first target node index is "
+          "out of the range of slave list" << endl;
+      ok = false;
+    }
+    sourceDS = ci->getLocalNode();
+  }
 }
 
 bool FDistributeLocalInfo::insertTuple(Word tupleWord)
@@ -4561,7 +4467,7 @@ bool FDistributeLocalInfo::insertTuple(Word tupleWord)
   else
   {
     fp = new fileInfo(fileSfx, filePath, fileBaseName,
-        exportTupleType->GetNoAttributes(), rowNumSuffix);
+        exportTupleType->GetNoAttributes(), rowNumSuffix, noFlob, sourceDS);
     fileList.insert(pair<size_t, fileInfo*>(fileSfx, fp));
   }
   ok = openFile(fp);
@@ -4624,21 +4530,6 @@ bool FDistributeLocalInfo::startCloseFiles()
 
   if (dupTimes > 0)
   {
-    ci = new clusterInfo();
-    if(!ci->isOK())
-    {
-      cerr << "ERROR!The slave list file does not exist."
-      "Is $PARALLEL_SECONDO_SLAVES correctly set up ?" << endl;
-      return false;
-    }
-
-    if(firstDupTarget > (int)ci->getSlaveSize() )
-    {
-      cerr << "The first target node index is "
-          "out of the range of slave list" << endl;
-      return false;
-    }
-
     int cLen = ci->getClusterSize();
     copyList = new bool[cLen];
     memset(copyList, false, cLen);
@@ -4760,9 +4651,68 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
   return true;
 }
 
+ListExpr FDistribute1TypeMap(ListExpr args)
+{
+  return FDistributeTypeMap(args, false);
+}
+
+int FDistribute1ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  return FDistributeValueMap(args, result, message, local, s, false);
+}
+
 Operator fdistributeOp(FDistributeInfo(),
-                       FDistributeValueMap,
-                       FDistributeTypeMap);
+                       FDistribute1ValueMap,
+                       FDistribute1TypeMap);
+
+/*
+4 Operator ~fdistribute3~
+
+Improve the ~fdistribute~ operator by dividing the data file into two parts,
+the tuple file and the flob file, like what the ~fconsume3~ operator does.
+
+There is no ~fdistribute3~ file defined.
+
+*/
+
+struct FDistribute3Info : OperatorInfo {
+
+  FDistribute3Info() : OperatorInfo()
+  {
+    name = "fdistribute3";
+    signature = "stream(tuple(a1 ... ai ... aj)) "
+        "x string x text x symbol x [int] x [int] x [bool] "
+        "x [int] x [int] x [ int x int ]"
+        "-> stream(tuple( ... )) ";
+    syntax =
+        "stream(tuple(a1 ... ai ... aj)) "
+        " fdistribute[ fileName, path, partitionAttr, [rowNum];"
+        " [bucketNum], [KPA]; "
+        " [typeNode1], [typeNode2]; "
+        " [targetIndex,  dupTimes] ]";
+    meaning =
+        "Generate the split data files, by separating the tuple and flob files";
+  }
+
+};
+
+
+ListExpr FDistribute3TypeMap(ListExpr args)
+{
+  return FDistributeTypeMap(args, true);
+}
+
+int FDistribute3ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  return FDistributeValueMap(args, result, message, local, s, true);
+}
+
+Operator fdistribute3Op(FDistribute3Info(),
+                       FDistribute3ValueMap,
+                       FDistribute3TypeMap);
+
 
 
 /*
@@ -5762,25 +5712,101 @@ int copyFile(string source, string dest, bool cfn/* = false*/)
 Read one tuple from the given data file.
 
 */
-Tuple* readTupleFromFile(ifstream* file, TupleType* type)
+Tuple* readTupleFromFile(ifstream* file, TupleType* type, int mode,
+    string flobFile/* = ""*/)
 {
+  assert((mode == 1) || (mode == 2) || (mode == 3));
+
   Tuple* t = 0;
   u_int32_t blockSize;
-
   assert(file->good());
-  file->read(reinterpret_cast<char*>(&blockSize), sizeof(blockSize));
-  if (!file->eof() && (blockSize > 0))
-  {
-    blockSize -= sizeof(blockSize);
-    char *tupleBlock = new char[blockSize];
-    file->read(tupleBlock, blockSize);
 
-    t = new Tuple(type);
-    t->ReadFromBin(tupleBlock, blockSize);
-    delete[] tupleBlock;
-    return t;
+  if (mode == 1)
+  {
+    file->read(reinterpret_cast<char*>(&blockSize), sizeof(blockSize));
+    if (!file->eof() && (blockSize > 0))
+    {
+      blockSize -= sizeof(blockSize);
+      char *tupleBlock = new char[blockSize];
+      file->read(tupleBlock, blockSize);
+
+      t = new Tuple(type);
+      t->ReadFromBin(tupleBlock, blockSize);
+      delete[] tupleBlock;
+    }
+//    return t;
   }
-  return 0;
+  else if (mode == 2)
+  {
+    size_t sizeLen = (sizeof(u_int32_t) + sizeof(u_int16_t));
+    char sizes[sizeLen];
+    size_t offset = 0;
+    file->read(sizes, sizeLen);
+    ReadVar<u_int32_t>(blockSize, sizes, offset);
+
+    if (!file->eof() && (blockSize > 0))
+    {
+      blockSize -= sizeof(blockSize);
+      //READ only the tuple data out
+
+      u_int16_t tupleSize;
+      ReadVar<u_int16_t>(tupleSize, sizes, offset);
+
+      //read less data
+      char *tupleOnlyBlock = new char[tupleSize];
+      file->read(tupleOnlyBlock, tupleSize);
+      size_t flobOffset = file->tellg();
+
+      t = new Tuple(type);
+      t->ReadTupleFromBin(tupleOnlyBlock, tupleSize, flobFile, flobOffset);
+
+      u_int32_t flobLength = blockSize - sizeof(tupleSize) - tupleSize;
+      if (flobLength != 0){
+        file->seekg(flobLength, ios::cur);
+      }
+      delete[] tupleOnlyBlock;
+    }
+//    return t;
+  }
+  else if (mode == 3)
+  {
+    size_t sizeLen = (sizeof(u_int32_t) + sizeof(u_int16_t));
+    char sizes[sizeLen];
+    size_t offset = 0;
+    file->read(sizes, sizeLen);
+    ReadVar<u_int32_t>(blockSize, sizes, offset);
+
+    if (!file->eof() && (blockSize > 0))
+    {
+      //READ only the tuple data out
+      blockSize -= sizeof(blockSize);
+      u_int16_t tupleSize;
+      ReadVar<u_int16_t>(tupleSize, sizes, offset);
+
+      char *tupleOnlyBlock = new char[tupleSize];
+      file->read(tupleOnlyBlock, tupleSize);
+      size_t flobOffset = file->tellg();
+
+      u_int32_t flobLength = blockSize - sizeof(tupleSize) - tupleSize;
+      t = new Tuple(type);
+
+      if (flobLength == 0){
+        //read as ffeed3
+        t->ReadTupleFromBin(tupleOnlyBlock);
+      }
+      else {
+        //read as ffeed2
+        t->ReadTupleFromBin(tupleOnlyBlock, tupleSize, flobFile, flobOffset);
+      }
+
+      if (flobLength != 0){
+        file->seekg(flobLength, ios::cur);
+      }
+      delete[] tupleOnlyBlock;
+    }
+//    return t;
+  }
+  return t;
 }
 
 int getRoundRobinIndex(int row, int clusterSize)
@@ -5827,6 +5853,42 @@ ListExpr rmTermNL(ListExpr list, string term, int& count)
 
   return (nl->Cons(rmTermNL(nl->First(list), term, count),
     rmTermNL(nl->Rest(list), term, count)));
+}
+
+/*
+Add the incomplete property on attributes containing Flob
+
+*/
+NList addIncomplete(const NList& attrList)
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  NList newAttrList;
+  NList rest = attrList;
+  while (!rest.isEmpty())
+  {
+    NList attr = rest.first();
+    NList name = attr.first();
+    NList type = attr.second();
+
+    ListExpr nmType = sc->NumericType(type.listExpr());
+    int algId, typeId;
+    algId = nl->IntValue(nl->First(nmType));
+    typeId = nl->IntValue(nl->Second(nmType));
+    Attribute* elem = static_cast<Attribute*>
+          ((am->CreateObj(algId, typeId))(nmType).addr);
+    if (elem->NumOfFLOBs() > 0)
+    {
+      newAttrList.append(
+          NList(name, NList(NList("incomplete"),type)));
+    }
+    else
+    {
+      newAttrList.append(attr);
+    }
+    rest.rest();
+  }
+
+  return newAttrList;
 }
 
 /*
@@ -5895,13 +5957,20 @@ public:
     fetchFlobOp.SetUsesArgsInTypeMapping();
     fetchFlobOp.SetUsesMemory();
 
+    AddOperator(&fdistribute3Op);
+    fdistribute3Op.SetUsesArgsInTypeMapping();
+
+
 #ifdef USE_PROGRESS
     fconsumeOp.EnableProgress();
     fconsume3Op.EnableProgress();
+    fdistribute3Op.EnableProgress();
+
     ffeedOp.EnableProgress();
     ffeed2Op.EnableProgress();
     ffeed3Op.EnableProgress();
     fetchFlobOp.EnableProgress();
+
 #endif
 
   }

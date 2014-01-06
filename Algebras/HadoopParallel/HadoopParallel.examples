@@ -91,3 +91,10 @@ Number   : 1
 Signature: stream(tuple(T, DS_IDX)) x [T] -> stream(tuple(T))
 Example  : query "plzComp3" ffeed3['',1;;] fetchFlob[] count
 Result   : 41267
+
+Operator : fdistribute3
+Number   : 1
+Signature: stream(tuple((a1 t1) ... (ai ti) ... (an tm))) x string x text x ai x int -> stream(tuple((sufix int) (ai ti))) 
+Example  : query plz feed fdistribute3["plz_dis", '', PLZ; 50, TRUE; ; ] loopsel["plz_dis" ffeed['',.Suffix; ; ]] count
+Result   : 41267
+
