@@ -64,7 +64,7 @@ public class LabelTableCellRenderer extends DefaultTableCellRenderer
 		this.label.setForeground(Color.BLACK);
         
         // background
-        if (((RelationTableModel)pTable.getModel()).isDeleted(pRow))
+        if (((RelationTableModel)pTable.getModel()).isRowDeleted(pRow))
         {
             this.label.setBackground(new Color(255, 210, 230));
         }

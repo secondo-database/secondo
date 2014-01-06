@@ -152,7 +152,7 @@ public class CommandGenerator
 				for (int i = 0; i < tupleSize; i++)
 				{
 					type = pAttributeTypes.get(i);
-					if (!type.equals("tid"))
+					if (!type.toUpperCase().equals("TID"))
 					{
 						value = tuple.getValueAt(i);
 						ListExpr LE = AttributeFormatter.fromStringToListExpr(type, value);

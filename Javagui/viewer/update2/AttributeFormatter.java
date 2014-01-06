@@ -46,26 +46,39 @@ public class AttributeFormatter
 	{
 		String result = pListExpr.toString();
 		
-		// special case TEXT attribute: remove tags
-		if (pListExpr.atomType() == ListExpr.TEXT_ATOM)
+		if (pListExpr.isAtom())
 		{
-			int indStart = result.indexOf('>')+1;
-			int indEnd = result.lastIndexOf('<');
-			result = result.substring(indStart, indEnd);
+			int atomType = pListExpr.atomType();
+			
+			switch (atomType)
+			{
+				case ListExpr.TEXT_ATOM:
+				{
+					// remove tags
+					int indStart = (result.indexOf("<text>") + 6);
+					int indEnd = result.lastIndexOf("</text--->");
+					result = result.substring(indStart, indEnd);
+					break;
+				}
+				case ListExpr.STRING_ATOM:
+				{
+					// remove quotes
+					int indStart = result.indexOf('\"')+1;
+					int indEnd = result.lastIndexOf('\"');
+					result = result.substring(indStart, indEnd);
+					break;
+				}
+				case ListExpr.INT_ATOM:
+				case ListExpr.REAL_ATOM:
+				case ListExpr.BOOL_ATOM:
+				{
+					// remove whitespace
+					result = result.trim();
+					break;
+				}				
+			}
 		}
-		if (pListExpr.atomType() == ListExpr.STRING_ATOM)
-		{
-			int indStart = result.indexOf('\"')+1;
-			int indEnd = result.lastIndexOf('\"');
-			result = result.substring(indStart, indEnd);
-		}
-		if (pListExpr.atomType() == ListExpr.INT_ATOM 
-			|| pListExpr.atomType() == ListExpr.REAL_ATOM
-			|| pListExpr.atomType() == ListExpr.BOOL_ATOM)
-		{
-			result = result.trim();
-		}
-					
+		
 		return result;
 	}
 	
@@ -77,6 +90,7 @@ public class AttributeFormatter
 	{		
 		try
 		{
+			// atom-type attributes
 			if (pType.equals("bool"))
 				return ListExpr.boolAtom(pValue.toUpperCase().equals("TRUE")? true : false);
 			if (pType.equals("int"))
@@ -87,12 +101,16 @@ public class AttributeFormatter
 				return ListExpr.stringAtom(pValue);
 			if (pType.equals("text"))
 				return ListExpr.textAtom(pValue);
+			
+			// non-atomar attributes
+			ListExpr le = new ListExpr();
+			le.readFromString("(" + pType + " " + pValue + ")");
+			return le;
 		}
 		catch (Exception e)
 		{
 			return null;
 		}
-		return null;
 	}
 	
 	
@@ -102,8 +120,9 @@ public class AttributeFormatter
 	 **/
 	public static boolean typeAllowed(ListExpr LE)
 	{
-		if(LE==null) return false;
-		return LE.isAtom();
+		return true;
+		//if(LE==null) return false;
+		//return LE.isAtom();
 	}
  
 } 

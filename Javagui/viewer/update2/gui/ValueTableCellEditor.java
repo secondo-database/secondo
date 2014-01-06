@@ -94,7 +94,7 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		RelationTableModel rtm = (RelationTableModel)pTable.getModel();
 
 		// background
-        if (pSelected || rtm.isChanged(pRow, pColumn))
+        if (pSelected || rtm.isCellChanged(pRow, pColumn))
         {
             this.textArea.setBackground(new Color(210, 230, 255));
         }

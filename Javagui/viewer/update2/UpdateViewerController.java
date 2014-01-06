@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package viewer.update2;
  
 import java.awt.event.*;
+import java.io.File;
+import java.io.IOException;
 import javax.swing.JCheckBox;
 import javax.swing.JOptionPane;
 import java.util.ArrayList;
@@ -32,11 +34,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
+import javax.accessibility.AccessibleValue;
+
 import sj.lang.*;
 
 import tools.Reporter;
 
 import viewer.*;
+import viewer.relsplit.InvalidRelationException;
 import viewer.update2.gui.*;
 
 
@@ -91,17 +96,12 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		if (e.getActionCommand() == "Clear")
 		{
 			this.viewer.clear();
-			if (state == States.INSERT)
-			{
-				//viewer.removeInsertRelation();
-			}
-			
 			this.setState(States.INITIAL);
 			return;
 		}
 		if (e.getActionCommand() == "Insert")
 		{
-			//this.processCommandInsert();
+			this.processCommandInsert();
 			this.setState(States.INSERT);
 			return;
 		}
@@ -134,23 +134,31 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			}
 			return;
 		}
-		if (e.getActionCommand() == "Format View")
+		if (e.getActionCommand() == "Format")
 		{
-			if (this.processCommandFormat())
+			if (this.processCommandFormatMode())
 			{
 				this.setState(States.FORMAT);
 			}
 			return;
 		}
-		if (e.getActionCommand() == "Edit View")
+		if (e.getActionCommand() == "Edit")
 		{
-			if (this.processCommandEditView())
+			if (this.processCommandEditMode())
 			{
 				this.setState(States.LOADED);
 			}
 			return;
 		}
-
+		if (e.getActionCommand() == "Close tab")
+		{
+			if (e.getSource() instanceof AccessibleValue)
+			{
+				int index = ((AccessibleValue)e.getSource()).getCurrentAccessibleValue().intValue();
+				this.viewer.removeRelationPanel(index);
+			}
+			return;
+		}
 		
 		//
 		// LoadDialog		
@@ -479,7 +487,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
             
             if (changesByTupleId.isEmpty())
             {
-                Reporter.debug("UpdateViewerController.executeUpdate: no changes");
+                Reporter.debug("UpdateViewerController.executeUpdate: no changes in relation " + rp.getName());
             }
 			
             try
@@ -683,8 +691,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			ListExpr relationLE = commandExecuter.getResultList();
 			//Reporter.debug("loadRelation: " + relationLE.toString());
 
-			this.viewer.setRelationPanel(pRelName, relationLE);
-			//retrieveIndices(pRelName);
+			this.viewer.setRelationPanel(pRelName, relationLE, true);
 			loaded = true;
 		}
 		else
@@ -786,33 +793,85 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	}
 	
 	/**
-	 * TODO: Show loaded relations in Edit View.
+	 * Show loaded relations in Edit View.
+	 * TODO: Set cursor position at relation and tuple according to 
+	 * cursor position in formatted document.
 	 */
-	public boolean processCommandEditView()
+	public boolean processCommandEditMode()
 	{
+		this.viewer.showRelations(States.LOADED);
 		return true;
 	}
 	
 	/**
-	 * Loads a 
+	 * Shows the loaded relation as formatted document.
 	 */
-	private boolean processCommandFormat()
+	private boolean processCommandFormatMode()
 	{
-		this.viewer.showFormattedDocument();
-		//this.showErrorDialog("not yet implemented");
+		// load format file
+		//this.generateFormattedPages();
+				
+		File dir = new File ("../../Desktop/Modulhandbuch/Modulehtml/") ;
+		File[] files = dir.listFiles();
+
+		List<String> filenames = new ArrayList<String>();
+		for (int i=0; i<files.length; i++)
+		{
+			File file = files[i];
+			if (file.isFile() && !file.isHidden())
+			{
+				filenames.add(file.getPath());
+			}
+		}
+		
+		try
+		{
+			this.viewer.loadFormattedDocument(filenames, "text/html");
+			this.viewer.showRelations(States.FORMAT);
+		}
+		catch (IOException e)
+		{
+			this.showErrorDialog(e.getMessage());
+			return false;
+		}
 		return true;
 	}
 	
+	private boolean generateFormattedPages()
+	{
+		// load format script file
+		return false;
+	}
 	
+	
+	/**
+	 * Shows insert table with one empty tuple if INSERT was pressed for the first time,
+	 * else adds an empty tuple to the insert table.
+	 */
 	private boolean processCommandInsert()
 	{
-		if (this.state == States.INSERT)
-		{ 
-			// User wants to insert one more tuple
-			viewer.getCurrentRelationPanel().takeOverLastEditing(false);
-			viewer.getCurrentRelationPanel().addInsertTuple();
+		if (viewer.getCurrentRelationPanel().getState() != States.LOADED_READ_ONLY)
+		{
+			try
+			{
+				
+				if (this.state != States.INSERT)
+				{ 
+					viewer.getCurrentRelationPanel().showInsertTable();
+				}
+				else
+				{
+					// User wants to insert one more tuple
+					viewer.getCurrentRelationPanel().takeOverLastEditing(false);
+					viewer.getCurrentRelationPanel().addInsertTuple();
+				}
+			}
+			catch(InvalidRelationException e)
+			{
+				this.showErrorDialog(e.getMessage());
+				return false;
+			}
 		}
-		viewer.getCurrentRelationPanel().showInsertTable();
 		return true;
 	}
 	
@@ -847,7 +906,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			this.showErrorDialog(errorMessage);
 		}
 		
-		this.viewer.showRelations();
+		this.viewer.showRelations(States.LOADED);
 		this.viewer.setSelectionMode(States.LOADED);
 		this.state = States.LOADED;
 		return true;		
@@ -1043,8 +1102,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	{
 		if(this.state == States.INSERT)
 		{
-			// TODO
-			this.showErrorDialog("not yet implemented");
+			this.viewer.getCurrentRelationPanel().removeLastInsertTuple();		
 		}
 		if(this.state == States.UPDATE)
 		{

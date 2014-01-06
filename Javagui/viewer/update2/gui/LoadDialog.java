@@ -496,6 +496,9 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 			this.btAddRelation = new JButton("Add relation");
 			this.btAddRelation.addActionListener(controller);
 			this.plButtons.add(btAddRelation);
+			this.btEditRelation = new JButton("Edit relation");
+			this.btEditRelation.addActionListener(controller);
+			this.plButtons.add(btEditRelation);
 			this.btRemoveRelation = new JButton("Remove relation");
 			this.btRemoveRelation.addActionListener(controller);
 			this.plButtons.add(btRemoveRelation);

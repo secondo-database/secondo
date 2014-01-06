@@ -111,6 +111,11 @@ public class Relation
 	}
 	
 	
+	public RelationTypeInfo getTypeInfo()
+	{
+		return this.relTypeInfo;
+	}
+	
 	
 	/** 
 	 * Returns tuple at given index. 
@@ -215,13 +220,15 @@ public class Relation
 			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong type list");
 			return false;
 		}
-		
+
 		if(!this.readValueFromLE(LE.second()))
 		{
 			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong value list");
 			return false;
 		}
 		
+		Reporter.debug("update2.Relation.readFromSecondoObject: no of tuples is " + this.getTupleCount());
+
 		initialized = true;
 		return true;
 	}
@@ -283,6 +290,23 @@ public class Relation
 			tuples.remove(ti);
 			tupleIDs.remove(ti);
 		}
+	}
+	
+	
+	/** 
+	 * Removes the tuple by its index. 
+	 */
+	public void removeTupleByIndex(int pIndex)
+	{
+		if(!initialized || pIndex<0 || pIndex>=this.tuples.size())
+		{
+			return;
+		}
+		
+		Reporter.debug("Relation.removeTupleByIndex: index "+ pIndex);
+		
+		tuples.remove(pIndex);
+		tupleIDs.remove(pIndex);
 	}
 	
 	

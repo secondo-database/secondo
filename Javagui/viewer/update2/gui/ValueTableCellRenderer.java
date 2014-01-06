@@ -79,13 +79,13 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 		RelationTableModel rtm = (RelationTableModel)pTable.getModel();
 		
 		// background
-        if (rtm.isDeleted(pRow))
+        if (rtm.isRowDeleted(pRow))
         {
             this.textArea.setBackground(new Color(255, 210, 230));
         }
 		else 
 		{
-            if (pSelected || rtm.isChanged(pRow, pColumn))
+            if (pSelected || rtm.isCellChanged(pRow, pColumn))
             {
                 this.textArea.setBackground(new Color(210, 230, 255));
             }
@@ -96,7 +96,7 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 		}
 		
 		// border
-		if (pFocussed && !rtm.isDeleted(pRow))
+		if (pFocussed && !rtm.isRowDeleted(pRow))
 		{
 			this.textArea.setBorder(BorderFactory.createCompoundBorder(this.borderFocussed, 
 								BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));

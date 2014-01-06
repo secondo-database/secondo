@@ -37,6 +37,8 @@ import javax.swing.plaf.basic.BasicButtonUI;
 import java.awt.*;
 import java.awt.event.*;
 
+import javax.accessibility.AccessibleValue;
+
 /**
  * Component to be used as tabComponent;
  * Contains a JLabel to show the text and 
@@ -44,42 +46,36 @@ import java.awt.event.*;
  */ 
 public class ButtonTabComponent extends JPanel 
 {
-    private final JTabbedPane pane;
-	
-    public ButtonTabComponent(final JTabbedPane pane) {
+    public ButtonTabComponent(int pIndex, String pTitle, ActionListener pActionListener) 
+	{
         //unset default FlowLayout' gaps
         super(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        if (pane == null) {
-            throw new NullPointerException("TabbedPane is null");
-        }
-        this.pane = pane;
         setOpaque(false);
         
-        //make JLabel read titles from JTabbedPane
-        JLabel label = new JLabel() {
-            public String getText() {
-                int i = pane.indexOfTabComponent(ButtonTabComponent.this);
-                if (i != -1) {
-                    return pane.getTitleAt(i);
-                }
-                return null;
-            }
-        };
-        
+        //title label
+        JLabel label = new JLabel(pTitle);        
         add(label);
-        //add more space between the label and the button
         label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
-        //tab button
-        JButton button = new TabButton();
+
+        //close button
+        TabButton button = new TabButton(pActionListener);
+		button.setCurrentAccessibleValue(pIndex);
         add(button);
-        //add more space to the top of the component
-        //setBorder(BorderFactory.createEmptyBorder(2, 0, 0, 0));
     }
 	
-    private class TabButton extends JButton implements ActionListener {
-        public TabButton() {
+
+	/**
+	 * Close button in right corner of tab
+	 */
+    private class TabButton extends JButton 
+		implements AccessibleValue
+	{
+		private int index = -1;
+		
+        public TabButton(ActionListener pActionListener) {
             int size = 20;
             setPreferredSize(new Dimension(size, size));
+            setActionCommand("Close tab");
             setToolTipText("Close tab");
             //Make the button looks the same for all Laf's
             setUI(new BasicButtonUI());
@@ -94,15 +90,22 @@ public class ButtonTabComponent extends JPanel
             addMouseListener(buttonMouseListener);
             setRolloverEnabled(true);
             //Close the proper tab by clicking the button
-            addActionListener(this);
+            addActionListener(pActionListener);
         }
 		
-        public void actionPerformed(ActionEvent e) {
-            int i = pane.indexOfTabComponent(ButtonTabComponent.this);
-            if (i != -1) {
-                pane.remove(i);
-            }
-        }
+		public Integer getCurrentAccessibleValue(){return index;}
+		public Integer getMaximumAccessibleValue(){return index;}
+		public Integer getMinimumAccessibleValue(){return index;}
+		public boolean setCurrentAccessibleValue(Number i)
+		{
+			if (i instanceof Integer)
+			{
+				this.index = i.intValue();
+				return true;
+			}
+			return false;
+		}
+		
 		
         //we don't want to update UI for this button
         public void updateUI() {
@@ -135,7 +138,7 @@ public class ButtonTabComponent extends JPanel
 		AbstractButton button = (AbstractButton) component;
 		button.setBorderPainted(true);
 	}
-}
+	}
 
 public void mouseExited(MouseEvent e) {
 Component component = e.getComponent();
