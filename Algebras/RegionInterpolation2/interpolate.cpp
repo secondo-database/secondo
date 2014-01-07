@@ -129,6 +129,18 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         vector<Reg> *dregs, Instant *ti2, int depth) {
     MFaces ret;
     
+    // Just for testing
+    
+//    Reg r = (*sregs)[0];
+//    
+//    vector<MSegs> ms = r.Evaporate(true);
+//    for (unsigned int i = 0; i < ms.size(); i++) {
+//        ret.AddFace(MFace(ms[i]));
+//    }
+//    return ret;
+    
+    // Test end
+    
     ret.sregs = sregs;
     ret.dregs = dregs;
     

@@ -152,7 +152,7 @@ int MSegs::getLowerLeft() {
 }
 
 int MSegs::findNext (int index) {
-    int nrsegs = segs.size();
+    unsigned int nrsegs = segs.size();
     MSeg *s1 = &segs[index];
     
     for (unsigned int i = 0; i < nrsegs; i++) {

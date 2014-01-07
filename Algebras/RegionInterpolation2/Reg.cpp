@@ -206,6 +206,27 @@ int Reg::End() {
     return 0;
 }
 
+MSegs Reg::collapse(bool close, Pt dst) {
+    MSegs ret;
+
+    if (v.size() < 3)
+        return ret;
+
+
+    for (unsigned int i = 0; i < v.size(); i++) {
+        if (close) {
+            ret.AddMSeg(MSeg(v[i].s, v[i].e, dst, dst));
+        } else {
+            ret.AddMSeg(MSeg(dst, dst, v[i].s, v[i].e));
+        }
+    }
+
+    ret.iscollapsed = 1 + (close?0:1);
+
+    return ret;
+}
+
+
 MSegs Reg::collapse(bool close) {
     MSegs ret;
 
@@ -219,17 +240,7 @@ MSegs Reg::collapse(bool close) {
     else
         dst = v[0].s;
 
-    for (unsigned int i = 0; i < v.size(); i++) {
-        if (close) {
-            ret.AddMSeg(MSeg(v[i].s, v[i].e, dst, dst));
-        } else {
-            ret.AddMSeg(MSeg(dst, dst, v[i].s, v[i].e));
-        }
-    }
-
-    ret.iscollapsed = 1;
-
-    return ret;
+    return collapse(close, dst);
 }
 
 vector<Reg> Reg::getRegs(ListExpr le) {
@@ -249,6 +260,17 @@ Pt Reg::GetMiddle() {
     Pt middle = (GetBoundingBox().second + GetBoundingBox().first) / 2;
 
     return middle;
+}
+
+Pt Reg::GetCentroid() {
+    unsigned int n = v.size();
+    double x = 0, y = 0;
+    for (unsigned int i = 0; i < n; i++) {
+        x = x + v[i].s.x;
+        y = y + v[i].s.y;
+    }
+
+    return Pt(x/n, y/n);
 }
 
 double Reg::distance(Reg r) {
@@ -318,6 +340,64 @@ MSegs Reg::GetMSegs() {
         Seg s = v[i];
         ret.AddMSeg(MSeg(s.s, s.e, s.s, s.e));
     }
+    
+    return ret;
+}
+
+Reg Reg::ClipEar() {
+    Reg ret;
+    
+    if (v.size() <= 3) {
+        return Reg(v);
+    } else {
+        Pt a, b, c;
+        unsigned int n = v.size();
+        
+        for (unsigned int i = 0; i < n; i++) {
+            a = v[(i+0)%n].s;
+            b = v[(i+1)%n].s;
+            c = v[(i+2)%n].s;
+            if (Pt::sign(a, b, c) < 0) {
+                continue;
+            }
+            
+            bool inside = false;
+            for (unsigned int j = 0; j < (n-3); j++) {
+                Pt x = v[(i+j+3)%n].s;
+                inside = Pt::insideTriangle(a, b, c, x);
+                if (inside) {
+                    break;
+                }
+            }
+            
+            if (!inside) {
+                ret.AddSeg(v[i+0]);
+                ret.AddSeg(v[i+1]);
+                Seg nw(v[i+1].e, v[i+0].s);
+                ret.AddSeg(nw);
+                v.erase(v.begin()+i);
+                v[i].s = nw.e;
+                v[i].e = nw.s;
+                hullPoint = v[0].s;
+                
+                return ret;
+            }
+        }
+    }
+    assert(false);
+    // Shouldn't ever happen
+    return ret;
+}
+
+vector<MSegs> Reg::Evaporate(bool close) {
+    vector<MSegs> ret;
+    Reg reg(v);
+    
+    while (reg.v.size() > 3) {
+        Reg r = reg.ClipEar();
+        ret.push_back(r.collapse(close, r.GetCentroid()));
+    }
+    ret.push_back(reg.collapse(close, reg.GetCentroid()));
     
     return ret;
 }
