@@ -243,8 +243,8 @@ function get_regFileName
   if [ "$CONF" != "" ]; then
     portNum=$(get_secPort "$CONF")
     if [ $portNum -ne 0 ]; then
-      REGNAME=$(grep "^RegistrarSocketNamePrefix*=" "$CONF")
-      REGNAME=${REGNAME#*=}
+      REGNAME=$(grep "^RegistrarSocketNamePrefix[ ]*=" "$CONF")
+      REGNAME=$(trim ${REGNAME#*=})
       if [ "$REGNAME" != "" ]; then
         echo "${REGNAME}_port${portNum}"
         return 
