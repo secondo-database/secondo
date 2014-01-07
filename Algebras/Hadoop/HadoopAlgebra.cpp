@@ -2765,9 +2765,7 @@ ListExpr pffeedTypeMap(ListExpr args, bool noFlob)
      {
        //Ignore the incomplete term and add the DS\_IDX attribute
        int count = 0;
-       cerr << "relType : " << nl->ToString(relType) << endl;
        ListExpr realRelType = rmTermNL(relType, "incomplete", count);
-       cerr << "realRelType : " << nl->ToString(realRelType) << endl;
        if (!(listutils::isRelDescription(realRelType)
               || listutils::isTupleStream(realRelType)))
          return l.typeError(ntrErr + filePath);
