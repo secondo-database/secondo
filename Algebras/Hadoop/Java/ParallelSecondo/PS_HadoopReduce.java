@@ -47,14 +47,16 @@ public class PS_HadoopReduce implements Constant{
 	 * 	 	Map_DLF_Loc_List
 	 * 	 	Map_DLO_Name_List
 	 * 	 	Map_DLO_Loc_List
+	 *    MapTaskNum
 	 * ]
 	 * PartAttributeName
 	 * ReduceTaskNum
+	 * PSFSMode
 	 */
 	public static void main(String[] args) {
 
-		final int paraLength = 13;
-		final int paraLength2 = 19;
+		final int paraLength = 14;
+		final int paraLength2 = 20;
 		String usage = "Usage HadoopReduce <databaseName> " +
 				"<CreateObjectName> <CreateQuery> " +
 				"<DLF_Name_List> <DLF_fileLoc_List> " +
@@ -119,13 +121,14 @@ public class PS_HadoopReduce implements Constant{
 		String MapQueryStr = "", 
 						Map_DLF_Name_ListStr = "", Map_DLF_Loc_ListStr = "",	
 						Map_DLO_Name_ListStr = "", Map_DLO_Loc_ListStr = "";
-		int mapTasksNum, reduceTasksNum;
+		int mapTasksNum, reduceTasksNum, PSFSMode;
 		if (!runMapper)
 		{
 			InputObjectName	= args[10];
 			PAName 					= args[11];
 			reduceTasksNum 	= Integer.parseInt(args[12]);
 			mapTasksNum 		= slaves.size();
+			PSFSMode				= Integer.parseInt(args[13]);
 		}
 		else
 		{
@@ -138,6 +141,7 @@ public class PS_HadoopReduce implements Constant{
 			mapTasksNum 						= Integer.parseInt(args[16]);
 			PAName 								= args[17];
 			reduceTasksNum 				= Integer.parseInt(args[18]);
+			PSFSMode				      = Integer.parseInt(args[19]);
 		}
 		
 		
@@ -313,7 +317,8 @@ while all other DLF flists are decomposed in the reduce query only.
 								outputKind.ordinal()  + inDim +//13
 								CreateFilePath				+ inDim +//14
 								InputObjectName				+ inDim +//15
-								PAName												 //16
+								PAName								+ inDim +//16
+								PSFSMode											 //17
 						);
 						
 						out.close();
@@ -334,7 +339,8 @@ while all other DLF flists are decomposed in the reduce query only.
 								outputKind.ordinal()  + inDim +
 								CreateFilePath				+ inDim +
 								InputObjectName				+ inDim +
-								PAName								
+								PAName								+ inDim +
+								PSFSMode
 						);
 						out.close();
 					}

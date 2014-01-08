@@ -41,6 +41,7 @@ public class PS_HadoopReduce2_Reduce
 		String DLF_Names = "";           //Other DLF flist parameters
 		String DLF_Locs  = "";
 		FListKind outputKind = FListKind.UNDEF;
+		int PSFSMode = 1;
 		int candSlaveIndex = -1;
 		int resultRowNo = context.getTaskAttemptID().getTaskID().getId() + 1;
 		
@@ -69,6 +70,7 @@ public class PS_HadoopReduce2_Reduce
 				DLF_Locs	 						= parameters[8];
 				outputKind						= 
 					FListKind.values()[Integer.parseInt(parameters[9])];
+				PSFSMode              = Integer.parseInt(parameters[10]);
 			}
 			
 			if (reduceQuery.length() == 0)
@@ -139,7 +141,7 @@ public class PS_HadoopReduce2_Reduce
 			
 			int typeNodeIdx = bothRows.get(side).get(new Random().nextInt(bothRows.get(side).size()));
 			lfInterList[side] = HPA_AuxFunctions.feedInterResult2(
-					interResultName[side], typeNodeIdx, irSuffixList[side]);
+					interResultName[side], typeNodeIdx, irSuffixList[side], PSFSMode);
 
 			ListExpr interPattern = ListExpr.stringAtom(interResultName[side]);
 			reduceQueryList = 

@@ -3260,7 +3260,8 @@ struct hadoopMapInfo : OperatorInfo
   {
     name = "hadoopMap";
     signature =
-        "flist(T) x [string] x [text] x [(DLO):DLF] x [bool] "
+        "flist(T) x [Name:string] x [Path:text] "
+        "x [(DLO):DLF] x [Executed:bool] "
         "x ( map T T1 ) -> flist(T1)";
     meaning = "Create DLO or DLF kind flist after the map step";
   }
@@ -4127,7 +4128,9 @@ struct hadoopReduceInfo : OperatorInfo
   {
     name = "hadoopReduce";
     signature =
-        "flist(T) x partAttr x [string] x [text] x [(DLO):DLF] x [int] "
+        "flist(T) x partAttr x [Name:string] x [Path:text] "
+        "x [DLO:(DLF)] x [ReduceTaskNum:int] "
+        "x [M1:(M2:M3)]"
         "x ( map T T1 ) -> flist(T1)";
     meaning = "Create DLO or DLF kind flist after the reduce step";
   }
@@ -4170,12 +4173,44 @@ T is rel(tuple) or stream(tuple)
 The reduceTaskNum is used to denote the scale of the parallelism.
 The number of map tasks is denoted by the input flist.
 If the operator creates a DLO kind flist, then the reduceTaskNum 
-cannot be larger
-than the amount of data servers, since one data server can only keep at most
-one sub-object of a DLO flist.
+cannot be larger than the amount of data servers,
+since one data server can only keep at most one sub-object of a DLO flist.
 However, if the created flist belong to DLF kind, then the reduceTaskNum can be
 set to arbitrary values.
+It is an optional parameter, with the default value as the cluster scale.
 
+
+Update 8th Jan. 2014
+Jiamin Lu
+
+Add one more optional Mode parameter to this operator with three values:
+M1, M2 and M3.
+They identify the three modes used in the PSFS operators to shuffle data
+between the Map and Reduce stages.
+In M1 and M2, map result are distributed with ~fdistribute~ operator,
+exporting both tuple and Flob data into the same data file.
+Consequently, the reduce tasks read the data with ~pffeed~ and ~pffeed2~ operators.
+In M2, only the tuples are read while the Flob data are left in the copied data files,
+in order to reduce the unnecessary disk IO overhead.
+
+In M3, data are exported with the ~fdistribute3~ operator, then read by the ~pffeed3~ operator.
+In this case, tuple and Flob data are stored in separated files, and only the tuple files
+are shuffled before the Reduce stage. Flob data are fetched only when they are really needed.
+
+The default value for this operator is M1. Now this operator maps:
+
+
+----
+flist(T) x partAttribute
+  x [objectName: string] x [objectPath: text]
+  x [(DLO):DLF] x [reduceTaskNum: int]
+  x [M1:(M2:M3)]
+  x ( interFunc: map ( T \to T1) )
+\to flist(T1)
+
+T is rel(tuple) or stream(tuple)
+
+----
 
 */
 
@@ -4185,8 +4220,8 @@ ListExpr hadoopReduceTypeMap(ListExpr args){
    
      string lenErr = "ERROR! Operator hadoopReduce expects 3 argument lists. ";
      string typErr = "ERROR! Operator hadoopReduce expects "
-         "flist(T) x partAttr x [string] x [text] x [(DLO):DLF] x [int] "
-         "x (map T T1))";
+         "flist(T) x partAttr x [string] x [text] "
+         "x [DLO:(DLF)] x [int] x [M1:(M2:M3))] x (map T T1))";
      string ifsErr = "ERROR! Operator hadoopReduce expects the input flist "
          "contains either a tuple stream or a tuple relation. ";
      string upaErr = "ERROR! The partition attribute "
@@ -4206,6 +4241,7 @@ ListExpr hadoopReduceTypeMap(ListExpr args){
    
      string objName, filePath, qStr;
      fListKind kind = DLO;
+     int psfsMode = 1; //Its value can only be 1, 2 or 3.
      clusterInfo ci;
      int reduceTaskNum = ci.getSlaveSize();
    
@@ -4280,7 +4316,19 @@ ListExpr hadoopReduceTypeMap(ListExpr args){
            else if (pp.isSymbol("DLF")){
              kind = DLF;
            }
-           else if (!pp.isSymbol("DLO")){
+           else if (pp.isSymbol("DLO")){
+             kind = DLO;
+           }
+           else if (pp.isSymbol("M1")){
+             psfsMode = 1;
+           }
+           else if (pp.isSymbol("M2")){
+             psfsMode = 2;
+           }
+           else if (pp.isSymbol("M3")){
+             psfsMode = 3;
+           }
+           else{
              return l.typeError(nprErr);
            }
          }
@@ -4367,7 +4415,8 @@ ListExpr hadoopReduceTypeMap(ListExpr args){
                NList(objName, true, false),
                NList((int)kind),
                NList(coParaName, true, false),
-               NList(dbName, true, false)),
+               NList(dbName, true, false),
+               NList(psfsMode)),
          resultType).listExpr();
   } catch(...){
     return listutils::typeError("invalid input");
@@ -4397,6 +4446,9 @@ int hadoopReduceValueMap(Word* args, Word& result,
     //Get the database name
     string dbName =
         ((CcString*)args[7].addr)->GetValue();
+    //Get the PSFS mode
+    int psfsMode =
+        ((CcInt*)args[8].addr)->GetValue();
 
     clusterInfo *ci = new clusterInfo();
     //Get the partition attribute name, since the partition is done by mappers
@@ -4537,9 +4589,10 @@ int hadoopReduceValueMap(Word* args, Word& result,
 
       //The input flist sub-object, which will be partitioned in the map step
       queryStr << " \"" << PAName << "\" "<< reduceTaskNum
-        << endl;
+          << " " << psfsMode
+          << endl;
       int rtn = -1;
-      cout << queryStr.str() << endl;
+//      cout << queryStr.str() << endl;
       rtn = system(queryStr.str().c_str());
       ok = (rtn == 0);
 
@@ -4629,7 +4682,6 @@ This is also mainly used to process the reduce step of the precast Hadoop job.
 It provides the binary operation, and creates a flist belong to either
 DLO or DLF kind.
 
-
 */
 struct hadoopReduce2Info : OperatorInfo
 {
@@ -4638,7 +4690,9 @@ struct hadoopReduce2Info : OperatorInfo
     name = "hadoopReduce2";
     signature =
       "flist(T1) x flist(T2) x partAttr1 x partAttr2 "
-      "x [string] x [text] x [(DLO):DLF] x [int] x [bool]"
+      "x [Name:string] x [Path:text] x [DLO:(DLF)] "
+      "x [ReduceTaskNum:int] x [isHDJ:bool] "
+      "x [M1:(M2:M3)]"
       "x ( map (T1 T2) T3 ) -> flist(T3)";
     meaning = "Create DLO or DLF kind flist after the binary reduce step";
   }
@@ -4690,7 +4744,7 @@ flist(T1) x flist(T2)
   x partAttr1 x partAttr2
   x [objectName: string] x [objectPath: text] x [(DLO):DLF]
   x [reduceTaskNum: int] x [isHDJ: bool]
-  x ( interFunc: map ( T1 x T2 \to T1) )
+  x ( interFunc: map ( T1 x T2 \to T3) )
 \to flist(T3)
 
 T is rel(tuple) or stream(tuple)
@@ -4698,6 +4752,29 @@ T is rel(tuple) or stream(tuple)
 ----
 
 By default, the ~isHDJ~ parameter is false.
+
+Update 8th Jan. 2014
+Jiamin Lu
+
+Add one more optional Mode parameter to this operator with three values:
+M1, M2 and M3, as being described in the ~hadoopReduce~ operator.
+The default value for this operator is M1.
+Now this operator maps:
+
+
+----
+flist(T1) x flist(T2)
+  x partAttr1 x partAttr2
+  x [objectName: string] x [objectPath: text] x [DLO:(DLF)]
+  x [reduceTaskNum: int] x [isHDJ: bool]
+  x [M1:(M2:M3)]
+  x ( interFunc: map ( T1 x T2 \to T3) )
+\to flist(T1)
+
+T is rel(tuple) or stream(tuple)
+
+----
+
 
 */
 
@@ -4709,7 +4786,7 @@ ListExpr hadoopReduce2TypeMap(ListExpr args){
      string typErr = "ERROR! Operator hadoopReduce expects "
          "flist(T1) x flist(T2) "
          "x partAttr1 x partAttr2 x [string] x [text] x [(DLO):DLF] "
-         "x [int] x [bool] x ( map (T1 T2) T3 ) -> flist(T3)";
+         "x [int] x [bool] x [M1:(M2:M3)] x ( map (T1 T2) T3 ) -> flist(T3)";
      string ifsErr = "ERROR! Operator hadoopReduce expects the input flist "
          "contains either a tuple stream or a tuple relation. ";
      string upaErr = "ERROR! The partition attribute "
@@ -4730,6 +4807,7 @@ ListExpr hadoopReduce2TypeMap(ListExpr args){
    
      string objName, filePath, qStr;
      fListKind kind = DLO;
+     int psfsMode = 1;
      clusterInfo ci;
      int reduceTaskNum = ci.getSlaveSize();
    
@@ -4814,7 +4892,19 @@ ListExpr hadoopReduce2TypeMap(ListExpr args){
        else if (pp.isSymbol("DLF")){
          kind = DLF;
        }
-       else if (!pp.isSymbol("DLO")){
+       else if (pp.isSymbol("DLO")){
+         kind = DLO;
+       }
+       else if (pp.isSymbol("M1")){
+         psfsMode = 1;
+       }
+       else if (pp.isSymbol("M2")){
+         psfsMode = 2;
+       }
+       else if (pp.isSymbol("M3")){
+         psfsMode = 3;
+       }
+       else{
          return l.typeError(nprErr);
        }
      }
@@ -4908,6 +4998,7 @@ ListExpr hadoopReduce2TypeMap(ListExpr args){
      appendList.append(NList(coParaName[1], true, false));
      appendList.append(NList(dbName, true, false));
      appendList.append(NList(isHDJ));
+     appendList.append(NList(psfsMode));
    
      return NList(NList(Symbol::APPEND()),
          appendList,
@@ -4941,6 +5032,8 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
         ((CcString*)args[9].addr)->GetValue();
     //Get isHDJ
     bool isHDJ = ((CcBool*)args[10].addr)->GetValue();
+    //Get PSFS Mode
+    int psfsMode = ((CcInt*)args[11].addr)->GetValue();
 
     clusterInfo *ci = new clusterInfo();
     //Get the partition attribute name, since the partition is done by mappers
@@ -5082,9 +5175,10 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
   << reduceTaskNum << " " << kind << " \\\n"
   << " \"" << tranStr(IUEMapQuery.convertToString(), "\"", "\\\"") << "\" "
   << boolalpha << isHDJ
+  << " " << psfsMode
   << endl;
       int rtn = -1;
-      cout << queryStr.str() << endl;
+//      cout << queryStr.str() << endl;
       rtn = system(queryStr.str().c_str());
       ok = (rtn == 0);
 

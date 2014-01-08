@@ -47,12 +47,13 @@ public class PS_HadoopReduce2 implements Constant{
 	 * ReduceTaskNum
 	 * FListKind
 	 * [ MapQuery(2) ]
-	 * 
+	 * isHDJ
+	 * PSFSMode
 	 */
 
 	public static void main(String[] args) {
 		
-		final int paraLength = 18;
+		final int paraLength = 19;
 		String usage = "Usage HadoopReduce2 " +
 				"<databaseName>  <CreateObjectName> <CreateQuery> " +
 				"<DLF_Name_List> <DLF_fileLoc_List> " +
@@ -60,7 +61,7 @@ public class PS_HadoopReduce2 implements Constant{
 				"<FilePath> "+
 				"<InputObjectName_1> <duplicateTimes_1> <PartAttributeName_1> " +
 				"<InputObjectName_2> <duplicateTimes_2> <PartAttributeName_2> " +
-				"<reduceTasksNum> <FListKind> [ MapQuery(2) ] isHDJ"; 
+				"<reduceTasksNum> <FListKind> [ MapQuery(2) ] isHDJ PSFSMode"; 
 
 		if (args.length != paraLength)
 		{
@@ -111,6 +112,7 @@ public class PS_HadoopReduce2 implements Constant{
 		FListKind outputKind 	= FListKind.values()[Integer.parseInt(args[15])];
 		String UEMapQueryStrs	= args[16];
 		boolean isHDJ = Boolean.parseBoolean(args[17]);
+		int PSFSMode = Integer.parseInt(args[18]);
 		int mapTasksNum = slaves.size();
 
 		if (outputKind == FListKind.DLO && reduceTasksNum > slaves.size()){
@@ -336,6 +338,8 @@ public class PS_HadoopReduce2 implements Constant{
 								dlfLocStr [1]						+ inDim +//27
 								Map_DLO_Name_ListStr[1]	+ inDim +//28
 								dloLocStr[1]						+ inDim +//29
+							  //-------------------------------
+								PSFSMode                + inDim +//30
 
 						"");
 						
@@ -362,8 +366,10 @@ public class PS_HadoopReduce2 implements Constant{
 								PAName[0]							+ inDim +//14
 								inObjName[1]					+ inDim +//15
 								duplicateTimes[1]			+ inDim +//16
-								PAName[1]											 //17	
-						);
+								PAName[1]							+ inDim +//17
+								PSFSMode              + inDim +//18
+								
+						"");
 						out.close();
 					}
 				}

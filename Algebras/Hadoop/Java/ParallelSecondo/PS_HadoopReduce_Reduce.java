@@ -35,6 +35,7 @@ public class PS_HadoopReduce_Reduce
 		String DLF_Names = "";           //Other DLF flist parameters
 		String DLF_Locs  = "";
 		FListKind outputKind = FListKind.UNDEF;
+		int PSFSMode = 1;
 		int candSlaveIndex = -1;
 		int resultRowNo = context.getTaskAttemptID().getTaskID().getId() + 1;
 		
@@ -54,6 +55,7 @@ public class PS_HadoopReduce_Reduce
 				DLF_Names 				= parameters[6];
 				DLF_Locs	 				= parameters[7];
 				outputKind				= FListKind.values()[Integer.parseInt(parameters[8])];
+				PSFSMode          = Integer.parseInt(parameters[9]);
 			}
 		}
 		
@@ -120,7 +122,7 @@ Build up the nested-list of the intermediate result locations
 		String iftName = "xxxjmIFTP";
 		int typeNodeIdx = rows.get(new Random().nextInt(rows.size()));
 		ListExpr lfInterList = HPA_AuxFunctions.feedInterResult2(
-				interResultName,typeNodeIdx, irSuffixList);
+				interResultName,typeNodeIdx, irSuffixList, PSFSMode);
 		
 		
 		ListExpr interPattern = ListExpr.stringAtom(interResultName);

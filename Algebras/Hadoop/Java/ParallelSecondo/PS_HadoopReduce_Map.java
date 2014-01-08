@@ -43,6 +43,7 @@ public class PS_HadoopReduce_Map
 		
 		String 	InputObjectName		= parameters[11];
 		String 	PAName						= parameters[12];
+		int     PSFSMode          = Integer.parseInt(parameters[13]);
 
 		int secondoSlaveIdx = slaveIdx + 1;
 		String interResultName = "P_"+ context.getJobName();
@@ -81,6 +82,10 @@ public class PS_HadoopReduce_Map
 		List<Integer> rColumns = new ArrayList<Integer>();
 		try
 		{
+			String fdoName = "fdistribute";       //The name of the distribute operator
+			if (PSFSMode == 3)
+				fdoName = "fdistribute3";
+			
 			ListExpr comMapQuery;
 			ListExpr InterSymbol = ListExpr.symbolAtom(QUERYNLSTR);
 			comMapQuery = ListExpr.twoElemList(
@@ -90,7 +95,7 @@ public class PS_HadoopReduce_Map
 								ListExpr.threeElemList(
 										ListExpr.symbolAtom("project"), 
 										ListExpr.sixElemList(
-												ListExpr.symbolAtom("fdistribute"),
+												ListExpr.symbolAtom(fdoName),
 												InterSymbol,
 												ListExpr.fourElemList(
 														ListExpr.stringAtom(interResultName), 
@@ -167,7 +172,8 @@ public class PS_HadoopReduce_Map
 									interResultName	  + inDim +
 									parameters[6]			+ inDim +
 									parameters[7]			+ inDim +
-									outputKind.ordinal() 
+									outputKind.ordinal() + inDim +
+									PSFSMode
 							));
 				}
 			}

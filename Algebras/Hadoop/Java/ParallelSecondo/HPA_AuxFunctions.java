@@ -754,9 +754,11 @@ then the other mappers should indicate that as an empty row.
 	 * 
 	 */
 	public static ListExpr feedInterResult2( String interResultName, 
-			int typeNodeIdx, ListExpr feedList)
+			int typeNodeIdx, ListExpr feedList, int PSFSMode)
 	{
-		ListExpr result = ListExpr.oneElemList(ListExpr.symbolAtom("pffeed"));
+		String foName = (PSFSMode == 1) ? "pffeed" : ((PSFSMode == 2) ? "pffeed2" : "pffeed3");
+				
+		ListExpr result = ListExpr.oneElemList(ListExpr.symbolAtom(foName));
 		ListExpr last = result;
 		last = ListExpr.append(last, feedList);
 		last = ListExpr.append(last, ListExpr.fourElemList(

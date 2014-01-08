@@ -42,6 +42,7 @@ public class PS_HadoopReduce2_Map
 		int[] 	 duplicateTimes   = {Integer.parseInt(parameters[13]), 
 																 Integer.parseInt(parameters[16])};
 		String[] PAName						= {parameters[14], parameters[17]};
+		int PSFSMode              = Integer.parseInt(parameters[18]);
 		
 		
 		ListExpr fpList = new ListExpr();
@@ -92,6 +93,10 @@ public class PS_HadoopReduce2_Map
 			boolean bothReplaced = true;
 			for (int side = 0; side < 2; side++)
 			{
+				String fdoName = "fdistribute";
+				if (PSFSMode == 3)
+					fdoName = "fdistribute3";
+
 				//Each time process one side input
 				comMapQuery[side] = ListExpr.twoElemList(
 						ListExpr.symbolAtom("query"),
@@ -100,7 +105,7 @@ public class PS_HadoopReduce2_Map
 								ListExpr.threeElemList(
 										ListExpr.symbolAtom("project"), 
 										ListExpr.sixElemList(
-												ListExpr.symbolAtom("fdistribute"),
+												ListExpr.symbolAtom(fdoName),
 												InterSymbol, 
 												ListExpr.fourElemList(
 														ListExpr.stringAtom(interResultName[side]), 
@@ -222,7 +227,9 @@ public class PS_HadoopReduce2_Map
 										reduceQuery 						+inDim+ 
 										parameters[8] 					+inDim+ 
 										parameters[9] 					+inDim+ 
-										outputKind.ordinal()));
+										outputKind.ordinal()    +inDim+
+										PSFSMode                +inDim+
+										""));
 					}
 				} else {
 					System.err.println("2: The construction of map query fails");

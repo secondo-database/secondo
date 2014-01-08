@@ -52,7 +52,7 @@ public class PS_HadoopReduce2_QMap
 		String[] 	mapFileLoc				= { parameters[18], parameters[27]} ;
 		String[]	mapObjName				= { parameters[19], parameters[28]} ;
 		String[]	mapObjLoc					= { parameters[20], parameters[29]} ;
-
+		int       PSFSMode          = Integer.parseInt(parameters[30]);
 
 		ListExpr recvFileList = new ListExpr();
 		recvFileList.readFromString(AcceptFileLocList);
@@ -100,6 +100,10 @@ public class PS_HadoopReduce2_QMap
 			boolean bothReplaced = true;
 			for (int side = 0; side < 2; side++)
 			{
+				String fdoName = "fdistribute";
+				if (PSFSMode == 3)
+					fdoName = "fdistribute3";
+				
 				comMapQuery[side] = ListExpr.twoElemList(
 					ListExpr.symbolAtom("query"),
 						ListExpr.twoElemList(
@@ -107,7 +111,7 @@ public class PS_HadoopReduce2_QMap
 								ListExpr.threeElemList(
 										ListExpr.symbolAtom("project"), 
 										ListExpr.sixElemList(
-												ListExpr.symbolAtom("fdistribute"),
+												ListExpr.symbolAtom(fdoName),
 												InterSymbol,
 												ListExpr.fourElemList(
 														ListExpr.stringAtom(interResultName[side]), 
@@ -260,9 +264,10 @@ public class PS_HadoopReduce2_QMap
 										parameters[2]						+inDim+//CreateObjectName
 										CreateFilePath					+inDim+
 										reduceQuery							+inDim+
-										parameters[10]						+inDim+//frnstr
-										parameters[11]						+inDim+//frlstr
+										parameters[10]					+inDim+//frnstr
+										parameters[11]					+inDim+//frlstr
 										parameters[5]						+inDim+//outputKind.ordinal
+										PSFSMode                +inDim+
 								""));
 					}
 				}

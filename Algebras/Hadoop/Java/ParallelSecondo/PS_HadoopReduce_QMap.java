@@ -42,6 +42,7 @@ public class PS_HadoopReduce_QMap
 		CreateFilePath = fpList.first().textValue();
 		String 	InputObjectName		= parameters[15];
 		String 	PAName						= parameters[16];
+		int     PSFSMode          = Integer.parseInt(parameters[17]);
 		
 		String 	interResultName = "P_"+ context.getJobName();
 		int secondoSlaveIdx = mapperIdx + 1;
@@ -87,6 +88,10 @@ public class PS_HadoopReduce_QMap
 		{
 			ListExpr comMapQuery;
 			
+			String fdoName = "fdistribute";       //The name of the distribute operator
+			if (PSFSMode == 3)
+				fdoName = "fdistribute3";
+			
 			//DLF
 			ListExpr InterSymbol = ListExpr.symbolAtom(QUERYNLSTR);
 			comMapQuery = ListExpr.twoElemList(
@@ -96,7 +101,7 @@ public class PS_HadoopReduce_QMap
 								ListExpr.threeElemList(
 										ListExpr.symbolAtom("project"), 
 										ListExpr.sixElemList(
-												ListExpr.symbolAtom("fdistribute"),
+												ListExpr.symbolAtom(fdoName),
 												InterSymbol,
 												ListExpr.fourElemList(
 														ListExpr.stringAtom(interResultName), 
@@ -162,7 +167,8 @@ public class PS_HadoopReduce_QMap
 									interResultName			+ inDim +
 									parameters[10]			+ inDim +		// reducer DLF name list
 									parameters[11]			+ inDim +		// reduce DLF loc list
-									parameters[13]									// output kind
+									parameters[13]			+ inDim +   // output kind
+									PSFSMode                        // PSFS mode
 							));
 				}
 			}
