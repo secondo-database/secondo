@@ -162,6 +162,7 @@ class MFaces {
 public:
     vector<MFace> faces;
     vector<Reg> *sregs, *dregs;
+    vector<Reg> sevap, devap;
 
     MFaces();
     MFaces(MFace face);

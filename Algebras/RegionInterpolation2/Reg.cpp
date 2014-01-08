@@ -220,6 +220,11 @@ MSegs Reg::collapse(bool close, Pt dst) {
             ret.AddMSeg(MSeg(dst, dst, v[i].s, v[i].e));
         }
     }
+    
+    if (close)
+        ret.sreg = *this;
+    else
+        ret.dreg = *this;
 
     ret.iscollapsed = 1 + (close?0:1);
 

@@ -186,6 +186,8 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
                             ss = s2->kill();
                             s2->ignore = 1;
                         } else {
+                            
+                            s1->ignore = 1;
                             cerr << "Intersection found, but cannot "
                                     "compensate!\n";
                             continue;
@@ -261,6 +263,31 @@ int interpolatevalmap(Word* args,
     MRegion mr = mf.ToMRegion(iv);
     *m = mr;
     
+    cerr  << "\n\n Intersectiontest1\n";
+    unsigned int dr;
+    if (specialTrapeziumIntersects(100,
+            -37, -15, 9, -39,
+            -88, -19, -88, -19,
+            -127, 5, -79, -18,
+            -106, -1, -106, -1,
+            dr)) {
+        cerr << "Int found " << dr << "\n";
+    } else {
+        cerr << "No int found " << dr << "\n";
+    }
+    
+    cerr  << "\n\n Intersectiontest2\n";
+    if (specialTrapeziumIntersects(100,
+            -127, 5, -79, -18,
+            -106, -1, -106, -1,
+            -37, -15, 9, -39,
+            -88, -19, -88, -19,
+            dr)) {
+        cerr << "Int found " << dr << "\n";
+    } else {
+        cerr << "No int found " << dr << "\n";
+    }
+    exit(0);
     return 0;
 }
 

@@ -81,8 +81,8 @@ MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
 
     for (unsigned int i = 0; i < faces.size(); i++) {
         faces[i].MergeConcavities();
-//        needStartRegion = needStartRegion || faces[i].needStartRegion;
-//        needEndRegion = needEndRegion || faces[i].needEndRegion;
+        needStartRegion = needStartRegion || faces[i].needStartRegion;
+        needEndRegion = needEndRegion || faces[i].needEndRegion;
     }
 
     if (needStartRegion) {
