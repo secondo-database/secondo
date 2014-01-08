@@ -135,7 +135,7 @@ public class QueryAsyncTask extends AsyncTask<String, Integer, QueryResult> {
 			}
 
 			if (resultView != null) {
-				if (result.getCommand().contains("list objects")) {
+				if (result.getCommand().startsWith("list ")) { // list Objects, list algebras
 					resultView.setText(result.getResultString());
 				} else {
 					resultView.setText(this.context.getString(R.string.queryexecuted));

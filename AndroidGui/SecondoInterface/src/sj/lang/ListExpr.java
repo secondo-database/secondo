@@ -571,7 +571,7 @@ public int readFromFile (String fileName) {
     return NO_ERROR_CODE;
 }
 /** This method returns the ListExpr stored in the file given by fileName.
-  * If an error occurs, the resukt will be null.
+  * If an error occurs, the result will be null.
   **/
 public static ListExpr getListExprFromFile(String fileName){
     long startTime=0;

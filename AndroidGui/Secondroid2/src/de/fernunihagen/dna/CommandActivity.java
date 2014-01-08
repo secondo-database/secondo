@@ -128,12 +128,18 @@ public class CommandActivity extends Activity implements OnClickListener {
 		LocationListener locationListener = new LocationListener() {
 			public void onLocationChanged(Location location) {
 				actLocation = location;
+				if (location != null ) {
+					ImageButton button = (ImageButton) findViewById(R.id.location);
+					button.setEnabled(true);
+				}
 			}
 
 			@Override
 			public void onProviderDisabled(String arg0) {
 				Toast.makeText(getApplicationContext(), "GPS deaktiviert",
 						Toast.LENGTH_SHORT).show();
+				ImageButton button = (ImageButton) findViewById(R.id.location);
+				button.setEnabled(false);
 
 			}
 
@@ -218,11 +224,14 @@ public class CommandActivity extends Activity implements OnClickListener {
 			startActivityForResult(i, EXTRA_QUERY);
 			break;
 		case R.id.location:
-			String text = commandText.getText().toString();
-			String part1 = text.substring(0, commandText.getSelectionStart());
-			String part3 = text.substring(commandText.getSelectionEnd());
-			commandText.setText(part1 + LocationFormatter.format(actLocation)
-					+ part3);
+			// Only if we have a location 
+			if (actLocation != null) {
+				String text = commandText.getText().toString();
+				String part1 = text.substring(0, commandText.getSelectionStart());
+				String part3 = text.substring(commandText.getSelectionEnd());
+				commandText.setText(part1 + LocationFormatter.format(actLocation)
+						+ part3);
+			}
 			break;
 		case R.id.runCommand:
 			String query = commandText.getText().toString();

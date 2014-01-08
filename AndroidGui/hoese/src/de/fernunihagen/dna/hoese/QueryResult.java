@@ -96,7 +96,8 @@ public class QueryResult implements Serializable {
         Log.w(TAG, "selectItem Tag ["+ position + "] = " + selected);
 		
 		if (graphObjects.size() <= position) {
-			throw new IllegalArgumentException("position > GraphObject.size"); // position to big
+			return false;
+//			throw new IllegalArgumentException("position > GraphObject.size"); // position to big
 		}
 		
 		boolean oldSelectionState = false;
@@ -116,7 +117,8 @@ public class QueryResult implements Serializable {
 	public boolean getSelected(int position) {
 	
 		if (graphObjects.size() <= position) {
-			throw new IllegalArgumentException("position > GraphObject.size"); // position to big
+			return false;
+		//	throw new IllegalArgumentException("position > GraphObject.size"); // position to big
 		}
 		
 		DsplBase dsplBase = graphObjects.get(position);
@@ -138,6 +140,9 @@ public class QueryResult implements Serializable {
 	}
 
 	public String getResultString() {
+		if (this.fileName == null) {
+			return "";
+		}
 		if (resultList == null) {
 			resultList = new ListExpr();
 			resultList.readFromFile(this.fileName);
@@ -152,6 +157,10 @@ public class QueryResult implements Serializable {
 	}
 
 	public ListExpr getResultList() {
+		if (this.fileName == null) {
+			return null;
+		}
+
 		if (resultList == null) {
 			resultList = new ListExpr();
 			resultList.readFromFile(this.fileName);
