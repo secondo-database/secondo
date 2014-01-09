@@ -316,17 +316,17 @@ let Crossings =
         streets1 feed {s2}
         spatialjoin[GeoData_s1, GeoData_s2]
         filter[.StreetId_s1 < .StreetId_s2]
-        extend[Crossroads: crossings(.GeoData_s1, .GeoData_s2)]
+        extend[Crossroads: crossings1(.GeoData_s1, .GeoData_s2)]
         project[Crossroads]
         filter[not(isempty(.Crossroads))]
         aggregateB[Crossroads; fun(P1: points, P2: points)
-                               P1 union P2; [const points value ()]]
+                               P1 union1 P2; [const points value ()]]
       )
-      union
+      union1
       (streets1 feed
           projectextend[; B : boundary(.GeoData)]
           aggregateB[B; fun(P3 : points, P4 : points)
-                        P3 union P4; [const points value ()]]
+                        P3 union1 P4; [const points value ()]]
       );
 
 # (3.1.2.2) Split the latter line object into polylines:
@@ -342,7 +342,7 @@ let nodes2 =
   sections2 feed
   projectextend[; EndPoints: boundary(.Part)]
   aggregateB[EndPoints; fun(P1: points, P2: points)
-                        P1 union P2 ; [const points value ()]];
+                        P1 union1 P2 ; [const points value ()]];
 
 
 # (3.1.2.4) Create a relation with all nodes
@@ -535,14 +535,14 @@ let WorkRegionCumProbVector =
 let HomeNodesPartition1 =
   intstream(0, size(HomeRegionVector) - 1)
   namedtransformstream[I] extend [
-    Reg : (intersection(get(HomeRegionVector,.I),
-      nodes2)) minus ( intstream(0,.I - 1)
+    Reg : (intersection1(get(HomeRegionVector,.I),
+      nodes2)) minus1 ( intstream(0,.I - 1)
         namedtransformstream[M]
-        extend[Tmpp : intersection(get(
+        extend[Tmpp : intersection1(get(
           HomeRegionVector,.M),nodes2)]
         aggregate[Tmpp
           ;fun(P1: points, P2 : points )
-           P1 union P2
+           P1 union1 P2
           ; [const points value ()] ] ) ]
   sortby[I]
   projecttransformstream[Reg] collect_vector;
@@ -550,14 +550,14 @@ let HomeNodesPartition1 =
 let WorkNodesPartition1 =
   intstream(0, size(WorkRegionVector) - 1)
   namedtransformstream[I] extend [
-    Reg : (intersection(get(WorkRegionVector,.I),
-      nodes2)) minus ( intstream(0,.I - 1)
+    Reg : (intersection1(get(WorkRegionVector,.I),
+      nodes2)) minus1 ( intstream(0,.I - 1)
         namedtransformstream[M]
-        extend[Tmpp : intersection(get(
+        extend[Tmpp : intersection1(get(
           WorkRegionVector,.M),nodes2)]
         aggregate[Tmpp
           ;fun(P1: points, P2 : points )
-           P1 union P2
+           P1 union1 P2
           ; [const points value ()] ] ) ]
   sortby[I]
   projecttransformstream[Reg] collect_vector;
