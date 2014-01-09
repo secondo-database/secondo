@@ -501,9 +501,10 @@ not accessible by the user code.
       // check whether the file exists
       File file = new File(filename);
       if(!file.exists() || !file.canRead()){
-	 Reporter.writeWarning("try to restore an object from an non-existing" +
-		                " or non-readable file");	 
-	 errorMessage.append("error in reading file, file not available");
+         Reporter.writeWarning("try to restore an object from an non-existing" +
+		                            " or non-readable file");	
+         Reporter.writeWarning("file is " + file.getAbsolutePath()); 
+         errorMessage.append("error in reading file, file '" + file.getAbsolutePath() +"'  not available");
          errorCode.value= 28;
          return;
       } 
