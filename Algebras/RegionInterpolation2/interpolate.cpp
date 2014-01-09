@@ -168,6 +168,10 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         if (src && dst) {
             RotatingPlane rp(src, dst);
             fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2, depth+1);
+            ret.sevap.insert(ret.sevap.begin(), fcs.sevap.begin(),
+                    fcs.sevap.end());
+            ret.devap.insert(ret.devap.begin(), fcs.devap.begin(),
+                    fcs.devap.end());
             
             for (int i = 0; i < (int) fcs.faces.size(); i++) {
                 MSegs *s1 = &fcs.faces[i].face;
@@ -186,10 +190,14 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
                             ss = s2->kill();
                             s2->ignore = 1;
                         } else {
-                            
+                            if (s1->iscollapsed == 1) {
+                                ret->sevap.push_back(s1->sreg);
+                            } else if (s1->iscollapsed == 2) {
+                                ret->devap.push_back(s1->dreg);
+                            }
                             s1->ignore = 1;
                             cerr << "Intersection found, but cannot "
-                                    "compensate!\n";
+                                    "compensate! Evaporating Region\n";
                             continue;
                         }
                         cerr << "Intersection found: " << ss.first.ToString()
