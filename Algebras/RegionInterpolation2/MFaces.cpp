@@ -3,10 +3,10 @@
 
 #include "interpolate.h"
 
-MFaces::MFaces() {
+MFaces::MFaces() : sregs(NULL), dregs(NULL) {
 }
 
-MFaces::MFaces(MFace face) {
+MFaces::MFaces(MFace face) : sregs(NULL), dregs(NULL) {
     AddFace(face);
 }
 
@@ -16,11 +16,11 @@ void MFaces::AddFace(MFace face) {
 
 MFaces MFaces::GetBorderRegions(vector<Reg> *regs) {
     MFaces ret;
-    
+
     for (unsigned int i = 0; i < regs->size(); i++) {
         ret.AddFace(MFace((*regs)[i].GetMSegs()));
     }
-    
+
     return ret;
 }
 
@@ -57,7 +57,7 @@ ListExpr MFaces::ToListExpr(Interval<Instant> iv, double start, double end) {
         le = nl->Append(le, nl->BoolAtom(iv.lc));
         le = nl->Append(le, nl->BoolAtom(iv.rc));
         ListExpr ur = nl->OneElemList(inst);
-        
+
         ListExpr urs = nl->OneElemList(faces[0].ToListExpr());
         le = urs;
         for (unsigned int i = 1; i < faces.size(); i++) {
@@ -107,43 +107,68 @@ MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
     return ret;
 }
 
+static void Append(ListExpr &head, ListExpr l) {
+    if (head == nl->Empty()) {
+        head = nl->OneElemList(l);
+    } else {
+        nl->Append(nl->End(head), l);
+    }
+}
+
 ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
     bool needStartRegion = false, needEndRegion = false;
     Interval<Instant> iv;
+    Instant cur;
     iv.CopyFrom(_iv);
     DateTime msec1(durationtype, 1);
+
+    ListExpr mreg = nl->Empty();
     
-    ListExpr mreg;
-    ListExpr le;
     for (unsigned int i = 0; i < faces.size(); i++) {
         faces[i].MergeConcavities();
         needStartRegion = needStartRegion || faces[i].needStartRegion;
         needEndRegion = needEndRegion || faces[i].needEndRegion;
     }
-    
-    Interval<Instant> startiv(iv.start, iv.start + msec1, true, true);
-    Interval<Instant> endiv(iv.end - msec1, iv.end, true, true);
-    
-    if (needStartRegion) {
-        iv.lc = false;
-        iv.start += msec1;
-        mreg = nl->OneElemList(
-                GetBorderRegions(sregs).ToListExpr(startiv, 0, 1));
+
+    if (!sevap.empty()) {
+        Interval<Instant> interval;
+        interval.start = iv.start;
+        interval.end = iv.start + (iv.end - iv.start)/3;
+        iv.start = interval.end;
+        interval.lc = true;
+        interval.rc = false;
+        MFaces fs;
+        for (unsigned int i = 0; i < sevap.size(); i++) {
+            vector<MSegs> ms = sevap[i].Evaporate(false);
+            for (unsigned int j = 0; j < sevap.size(); j++) {
+                fs.AddFace(MFace(ms[j]));
+            }
+        }
+        MFaces x = GetBorderRegions(sregs);
+        for (unsigned int i = 0; i < x.faces.size(); i++) {
+            fs.AddFace(x.faces[i]);
+        }
+        Append(mreg,fs.ToListExpr(interval, 0, 1));
     }
     
+    if (needStartRegion && sregs) {
+        Interval<Instant> interval(iv.start, iv.start+msec1, true, true);
+        iv.lc = false;
+        iv.start += msec1;
+        Append(mreg, GetBorderRegions(sregs).ToListExpr(interval, 0, 1));
+    }
+
     if (needEndRegion) {
         iv.rc = false;
         iv.end -= msec1;
     }
-    
-    if (!needStartRegion)
-        mreg = le = nl->OneElemList(ToListExpr(iv, 0, 1));
-    else
-        le = nl->Append(mreg, ToListExpr(iv, 0, 1));
 
-    if (needEndRegion) {
+    Append(mreg, ToListExpr(iv, 0, 1));
+
+    if (needEndRegion && dregs) {
+        Interval<Instant> interval(iv.end, _iv.end, true, true);
         cerr << "\n\nCreating END REGION\n";
-        nl->Append(le, GetBorderRegions(dregs).ToListExpr(endiv, 0, 1));
+        Append(mreg, GetBorderRegions(dregs).ToListExpr(interval, 0, 1));
     }
 
     return mreg;

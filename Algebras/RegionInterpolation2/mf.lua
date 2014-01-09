@@ -56,12 +56,16 @@ function matchFaces (src, dst, depth)
     return ret;
 end
 
+function matchFacesNull (src,dst,depth)
+    return {}
+end
+
 function matchFacesSpecial (src, dst, depth)
     ret = {}
 
     if (depth == 0) then
 	return { { src = src[1], dst = dst[1] } }
-    elseif (depth == 1) then
+    elseif (depth == 10) then
 	return { 
 	{ src = { x = src[1], y = src[2] }, dst = dst[1] }
 	}

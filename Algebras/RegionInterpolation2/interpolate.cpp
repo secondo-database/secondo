@@ -129,18 +129,6 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         vector<Reg> *dregs, Instant *ti2, int depth) {
     MFaces ret;
     
-    // Just for testing
-    
-//    Reg r = (*sregs)[0];
-//    
-//    vector<MSegs> ms = r.Evaporate(true);
-//    for (unsigned int i = 0; i < ms.size(); i++) {
-//        ret.AddFace(MFace(ms[i]));
-//    }
-//    return ret;
-    
-    // Test end
-    
     ret.sregs = sregs;
     ret.dregs = dregs;
     
@@ -168,10 +156,6 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         if (src && dst) {
             RotatingPlane rp(src, dst);
             fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2, depth+1);
-            ret.sevap.insert(ret.sevap.begin(), fcs.sevap.begin(),
-                    fcs.sevap.end());
-            ret.devap.insert(ret.devap.begin(), fcs.devap.begin(),
-                    fcs.devap.end());
             
             for (int i = 0; i < (int) fcs.faces.size(); i++) {
                 MSegs *s1 = &fcs.faces[i].face;
@@ -191,9 +175,7 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
                             s2->ignore = 1;
                         } else {
                             if (s1->iscollapsed == 1) {
-                                ret->sevap.push_back(s1->sreg);
                             } else if (s1->iscollapsed == 2) {
-                                ret->devap.push_back(s1->dreg);
                             }
                             s1->ignore = 1;
                             cerr << "Intersection found, but cannot "
@@ -232,6 +214,14 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
     return ret;
 }
 
+MFaces interp(vector<Reg> *sregs, Instant *ti1,
+        vector<Reg> *dregs, Instant *ti2, int depth) {
+    MFaces ret = interpolate(sregs, ti1, dregs, ti2, depth);
+    
+    
+    return ret;
+}
+
 Word InMRegion(const ListExpr typeInfo,
                       const ListExpr instance,
                       const int errorPos,
@@ -247,7 +237,7 @@ int interpolatevalmap(Word* args,
 
     Instant* ti1 = static_cast<Instant*> (args[1].addr);
     Instant* ti2 = static_cast<Instant*> (args[3].addr);
-    CcReal* mode = static_cast<CcReal*> (args[4].addr);
+//    CcReal* mode = static_cast<CcReal*> (args[4].addr);
     MRegion* m = static_cast<MRegion*> (result.addr);
 
     Interval<Instant> iv(*ti1, *ti2, true, true);
@@ -264,12 +254,14 @@ int interpolatevalmap(Word* args,
     ListExpr mreg = mf.ToMListExpr(iv);
     nl->WriteListExpr(mreg);
     ListExpr err;
-    bool correct;
+    bool correct = false;
     Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
-//    result.setAddr(w.addr);
-    
-    MRegion mr = mf.ToMRegion(iv);
-    *m = mr;
+    if (correct) 
+        result.setAddr(w.addr);
+    else {
+        MRegion mr = mf.ToMRegion(iv);
+        *m = mr;
+    }
     
     cerr  << "\n\n Intersectiontest1\n";
     unsigned int dr;
@@ -295,7 +287,7 @@ int interpolatevalmap(Word* args,
     } else {
         cerr << "No int found " << dr << "\n";
     }
-    exit(0);
+    
     return 0;
 }
 
