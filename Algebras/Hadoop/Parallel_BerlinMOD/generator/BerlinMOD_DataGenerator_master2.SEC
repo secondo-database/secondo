@@ -1,0 +1,127 @@
+######################################################################
+## File: BerlinMOD_DataGenerator.SEC     #############################
+######################################################################
+##  This file is part of SECONDO.
+##
+##  Copyright (C) 2008, University in Hagen, Faculty of Mathematics and
+##  Computer Science, Database Systems for New Applications.
+##
+##  SECONDO is free software; you can redistribute it and/or modify
+##  it under the terms of the GNU General Public License as published by
+##  the Free Software Foundation; either version 2 of the License, or
+##  (at your option) any later version.
+##
+##  SECONDO is distributed in the hope that it will be useful,
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##  GNU General Public License for more details.
+##
+##  You should have received a copy of the GNU General Public License
+##  along with SECONDO; if not, write to the Free Software
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+######################################################################
+
+## This file is part of the Parallel BerlinMOD data generator. 
+## More details about this generator can be found in README. 
+## Here the file is prepared to create flist objects in order to access 
+## the data that are distributively created on the cluster. 
+
+
+######################################################################
+###### Section (4): COLLECT DATA FROM CLUSTER ########################
+######################################################################
+
+
+let QueryPoints = QueryPointsType feed createFList["QueryPoints",locRel,DLF,TRUE] collect[] consume;
+
+let QueryRegions = QueryRegionsType feed createFList["QueryRegions",locRel,DLF,TRUE] collect[] consume;
+
+let QueryInstants = QueryInstantsType feed createFList["QueryInstants",locRel,DLF,TRUE] collect[] consume;
+
+let QueryPeriods = QueryPeriodsType feed createFList["QueryPeriods",locRel,DLF,TRUE] collect[] consume;
+
+let QueryLicences = QueryLicencesType feed createFList["QueryLicences",locRel,DLF,TRUE] collect[]
+#  sortby[Id] krdup[Id] head[P_SAMPLESIZE] addcounter[Id2, 1] projectextend[Licence; Id: .Id2]
+consume;
+
+let dataScar_List  = dataScarType feed createFList["DataScar",locRel,DLF,TRUE];
+
+let dataMcar_List  = dataMcarType feed createFList["DataMcar",locRel,DLF,TRUE];
+
+let dataMtrip_List = dataMtripType feed createFList["DataMtrip",locRel,DLF,TRUE];
+
+######################################################################
+###### Section (5): WORLD DIMENSION INFO    ##########################
+######################################################################
+
+#========================================================================
+# (5.0) Select Scaling Policy
+#========================================================================
+# Set to one of "NONE", "WORLD", or "AVGUNIT"!
+let STAT_SCALE_POLICY = "WORLD";
+
+#========================================================================
+# (5.1) "NONE" Policy
+#========================================================================
+
+let SCALE_NONE_DIM_X = 1.0;
+let SCALE_NONE_DIM_Y = 1.0;
+let SCALE_NONE_DIM_T = 1.0;
+
+#========================================================================
+# (5.2) "WORLD" policy
+#========================================================================
+
+let STAT_WOLRD_BBOX_rect3 = STAT_WOLRD_BBOX_rect3_Type feed createFList["LocalBBox",locRel,DLF,TRUE] collect[] aggregateB[Rect; fun(R1:rect3, R2:rect3) R1 union R2;[const rect3 value undef]];
+
+let STAT_WORLD_XSIZE_real =   maxD(STAT_WOLRD_BBOX_rect3 ,1)
+                            - minD(STAT_WOLRD_BBOX_rect3 ,1);
+let STAT_WORLD_YSIZE_real =   maxD(STAT_WOLRD_BBOX_rect3 ,2)
+                            - minD(STAT_WOLRD_BBOX_rect3 ,2);
+let STAT_WORLD_TSIZE_real =   maxD(STAT_WOLRD_BBOX_rect3 ,3)
+                            - minD(STAT_WOLRD_BBOX_rect3 ,3);
+
+let STAT_WORLD_MAXSIZE = getMaxVal(STAT_WORLD_XSIZE_real,
+                                   STAT_WORLD_YSIZE_real,
+                                   STAT_WORLD_TSIZE_real);
+let STAT_WORLD_MINSIZE = getMinVal(STAT_WORLD_XSIZE_real,
+                                   STAT_WORLD_YSIZE_real,
+                                   STAT_WORLD_TSIZE_real);
+
+let SCALE_WORLD_DIM_X = STAT_WORLD_MAXSIZE / STAT_WORLD_XSIZE_real;
+let SCALE_WORLD_DIM_Y = STAT_WORLD_MAXSIZE / STAT_WORLD_YSIZE_real;
+let SCALE_WORLD_DIM_T = STAT_WORLD_MAXSIZE / STAT_WORLD_TSIZE_real;
+
+# Prepare for parallel processing, 
+# the scale translation function SCAR_WORLD_SCALE_BOX is actually the scaleBox3D.
+# I named it, only for using exist queries.
+
+let SCAR_WORLD_X_SCALE = SCALE_WORLD_DIM_X;
+
+let SCAR_WORLD_Y_SCALE = SCALE_WORLD_DIM_Y;
+
+let SCAR_WORLD_T_SCALE = SCALE_WORLD_DIM_T;
+
+let SCAR_WORLD_SCALE_BOX = fun(R: rect3) scalerect(R, SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE);
+
+#========================================================================
+# (5.3) Set Scaling Parameters
+#========================================================================
+
+let SCALE_DIM_X = SCALE_WORLD_DIM_X;
+
+let SCALE_DIM_Y = SCALE_WORLD_DIM_Y;
+
+let SCALE_DIM_T = SCALE_WORLD_DIM_T;
+
+#========================================================================
+# (5.4) Translation Functions for Scaling
+#========================================================================
+
+let scaleTimePoint1D = fun(P: point) P scale[SCALE_DIM_T];
+let scalePoint2D = fun(P: point) makepoint(getx(P) * SCALE_DIM_X,
+                                           gety(P) * SCALE_DIM_Y);
+let scaleTimeBox2D = fun(R: rect) scalerect(R,SCALE_DIM_T,SCALE_DIM_T);
+let scaleBox2D = fun(R: rect)  scalerect(R,SCALE_DIM_X,SCALE_DIM_Y);
+let scaleBox3D = fun(R: rect3) scalerect(R,SCALE_DIM_X,SCALE_DIM_Y,SCALE_DIM_T);
+

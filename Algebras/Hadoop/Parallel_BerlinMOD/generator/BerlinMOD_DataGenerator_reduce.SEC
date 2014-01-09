@@ -1,0 +1,401 @@
+######################################################################
+## File: BerlinMOD_DataGenerator.SEC     #############################
+######################################################################
+##  This file is part of SECONDO.
+##
+##  Copyright (C) 2008, University in Hagen, Faculty of Mathematics and
+##  Computer Science, Database Systems for New Applications.
+##
+##  SECONDO is free software; you can redistribute it and/or modify
+##  it under the terms of the GNU General Public License as published by
+##  the Free Software Foundation; either version 2 of the License, or
+##  (at your option) any later version.
+##
+##  SECONDO is distributed in the hope that it will be useful,
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##  GNU General Public License for more details.
+##
+##  You should have received a copy of the GNU General Public License
+##  along with SECONDO; if not, write to the Free Software
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+######################################################################
+
+## This file is part of the Parallel BerlinMOD data generator. 
+## More details about this generator can be found in README. 
+## Here the file is prepared to create data on slaves in the Reduce stage of the Hadoop program. 
+
+# ++++++++++++++  Below queries are prepared in Reduce Step ++++++++++++++++++
+
+if (not(isDBObject("TRIPID_START")))
+then
+  let TRIPID_START = 1
+endif;
+
+# dataMtrip: rel{Moid: int, Licence: string, Trip: mpoint, Tripid: int}
+let dataMtrip = 
+  dataMtrip1 feed 
+  extend[Tripid: ((.Tripid2 + TRIPID_START) - 1)]
+  remove[Tripid2]
+  consume;
+
+# delete dataMtrip1;
+
+######################################################################
+###### Section (4): Data Export    ###################################
+######################################################################
+
+# === Available Export Options ===
+# P_EXPORT_TYPE:
+#   - "None"                 --- (default) just create Secondo objects
+#   - "Secondo Nested List"  --- export data as textfile (Secondo nested list)
+#   - "Shape"                --- export data as a collection of shape files
+#   - "CSV"                  --- export data as textfile (comma separated format)
+#	- "Block"				 --- export data as binary block file (use fconsume operator)
+
+query now();
+
+#========================================================================
+# (4.0) Set Block Export Parameters
+#========================================================================
+
+# By default the block files are kept in the default path of PSFS in Parallel Secondo
+if (not(isDBObject("P_BLOCK_PATH")))
+  then let P_BLOCK_PATH = ''
+endif;
+
+# The index of the Data Server in the cluster
+# 0 (default) indicating the master DS
+if (not(isDBObject("P_DS_INDEX")))
+  then let P_DS_INDEX = 0
+endif;
+
+# The column index of the file matrix
+if (not(isDBObject("P_BFILE_SUFFIX")))
+  then let P_BFILE_SUFFIX = 1
+endif;
+
+#========================================================================
+# (4.1) Export the Data
+#========================================================================
+# export QueryPoints
+query ifthenelse(P_EXPORT_TYPE = "Shape",
+        (QueryPoints feed
+            shpexport['querypoints.shp',Pos]
+            db3export['querypoints.dbf'] count),
+        ifthenelse(P_EXPORT_TYPE = "CSV",
+          (QueryPoints feed
+              projectextend[Id; Pos_x : getx(.Pos), Pos_y : gety(.Pos)]
+              csvexport['querypoints.csv', FALSE, TRUE] count),
+          ifthenelse(P_EXPORT_TYPE = "Secondo Nested List",
+            (bool2int(QueryPoints saveObject["QueryPoints",'querypoints.obj'])),
+            ifthenelse(P_EXPORT_TYPE = "Block",
+              (bool2int(QueryPoints feed fconsume["QueryPoints", P_BLOCK_PATH, P_DS_INDEX, P_BFILE_SUFFIX;;])),
+              -1))));
+
+query now();
+
+#export QueryRegions
+query ifthenelse(P_EXPORT_TYPE = "Shape",
+          (QueryRegions feed
+              shpexport['queryregions.shp',Region]
+              db3export['queryregions.dbf'] count),
+         ifthenelse(P_EXPORT_TYPE = "CSV",
+          (QueryRegions feed projectextendstream[
+              Id; Vertex : components(vertices(.Region))]
+              projectextend[Id; Vertex_x : getx(.Vertex),
+                                Vertex_Y : gety(.Vertex) ]
+              csvexport['queryregions.csv',FALSE,TRUE] count),
+           ifthenelse(P_EXPORT_TYPE = "Secondo Nested List",
+             bool2int(QueryRegions saveObject["QueryRegions",'queryregions.obj']),
+            ifthenelse(P_EXPORT_TYPE = "Block",
+              (bool2int(QueryRegions feed fconsume["QueryRegions",P_BLOCK_PATH, P_DS_INDEX, P_BFILE_SUFFIX;;])),
+           -1))));
+
+query now();
+
+#export QueryInstants
+query ifthenelse(P_EXPORT_TYPE = "Shape",
+         (QueryInstants feed db3export['queryinstants.dbf'] count),
+         ifthenelse(P_EXPORT_TYPE = "CSV",
+           (QueryInstants feed csvexport['queryinstants.csv',FALSE,TRUE] count),
+           ifthenelse(P_EXPORT_TYPE = "Secondo Nested List",
+            bool2int(QueryInstants saveObject["QueryInstants",'queryinstants.obj']),
+            ifthenelse(P_EXPORT_TYPE = "Block",
+              (bool2int(QueryInstants feed fconsume["QueryInstants",P_BLOCK_PATH, P_DS_INDEX, P_BFILE_SUFFIX;;])),
+           -1))));
+
+query now();
+
+#export QueryPeriods
+query ifthenelse(P_EXPORT_TYPE = "Shape",
+         (QueryPeriods feed
+             projectextend[Id; Begin : minimum(.Period),
+                           End : maximum(.Period)]
+             db3export['queryperiods.dbf'] count ),
+         ifthenelse(P_EXPORT_TYPE = "CSV",
+            (QueryPeriods feed projectextend[Id; Begin : minimum(.Period),
+                                             End : maximum(.Period)]
+                          csvexport['queryperiods.csv', FALSE,TRUE] count),
+           ifthenelse(P_EXPORT_TYPE = "Secondo Nested List",
+             bool2int(QueryPeriods saveObject["QueryPeriods",'queryperiods.obj']),
+            ifthenelse(P_EXPORT_TYPE = "Block",
+              (bool2int(QueryPeriods feed fconsume["QueryPeriods",P_BLOCK_PATH, P_DS_INDEX, P_BFILE_SUFFIX;;])),
+           -1))));
+
+query now();
+
+#export QueryLicences
+query ifthenelse(P_EXPORT_TYPE = "Shape",
+         (QueryLicences feed db3export['querylicences.dbf'] count),
+         ifthenelse(P_EXPORT_TYPE = "CSV",
+           (QueryLicences feed csvexport['querylicences.csv',FALSE,TRUE] count),
+           ifthenelse(P_EXPORT_TYPE = "Secondo Nested List",
+            bool2int(QueryLicences saveObject["QueryLicences",'querylicences.obj']),
+            ifthenelse(P_EXPORT_TYPE = "Block",
+              (bool2int(QueryLicences feed fconsume["QueryLicences",P_BLOCK_PATH, P_DS_INDEX, P_BFILE_SUFFIX;;])),
+           -1))));
+
+query now();
+
+#export dataMcar
+query ifthenelse(P_EXPORT_TYPE = "Shape",
+        (dataMcar feed db3export['cars.dbf'] count),
+        ifthenelse(P_EXPORT_TYPE = "CSV",
+          (dataMcar feed csvexport['datamcar.csv',FALSE,TRUE] count),
+          ifthenelse(P_EXPORT_TYPE = "Secondo Nested List",
+           bool2int(dataMcar saveObject["dataMcar",'datamcar.obj']),
+            ifthenelse(P_EXPORT_TYPE = "Block",
+              (bool2int(dataMcar feed fconsume["DataMcar",P_BLOCK_PATH, P_DS_INDEX, P_BFILE_SUFFIX;;])),
+           -1))));
+
+query now();
+
+#export dataMtrip
+query ifthenelse(P_EXPORT_TYPE = "Shape",
+         (dataMtrip feed
+             project[Moid,Tripid, Trip]
+             projectextendstream[Moid, Tripid; Unit : units(.Trip)]
+             projectextend [ Moid, Tripid; Tstart : inst(initial(.Unit)),
+                             Tend : inst(final(.Unit)),
+                             Xstart : getx(val(initial(.Unit))),
+                             Ystart : gety(val(initial(.Unit))),
+                             Xend : getx(val(final(.Unit))),
+                             Yend : gety(val(final(.Unit))) ]
+             db3export['trips.dbf'] count),
+         ifthenelse(P_EXPORT_TYPE = "CSV",
+           (dataMtrip feed
+               project[Moid,Tripid, Trip]
+               projectextendstream[Moid, Tripid; Unit : units(.Trip)]
+               projectextend [ Moid, Tripid; Tstart : inst(initial(.Unit)),
+                               Tend : inst(final(.Unit)),
+                               Xstart : getx(val(initial(.Unit))),
+                               Ystart : gety(val(initial(.Unit))),
+                               Xend : getx(val(final(.Unit))),
+                               Yend : gety(val(final(.Unit))) ]
+               csvexport['trips.csv',FALSE,TRUE] count),
+           ifthenelse(P_EXPORT_TYPE = "Secondo Nested List",
+             bool2int(dataMtrip saveObject["dataMtrip",'datamtrip.obj']),
+            ifthenelse(P_EXPORT_TYPE = "Block",
+              (bool2int(dataMtrip feed fconsume["DataMtrip",P_BLOCK_PATH, P_DS_INDEX, P_BFILE_SUFFIX;;])),
+             -1))));
+query now();
+
+#export dataScar
+query ifthenelse(P_EXPORT_TYPE = "Shape",
+         (dataScar feed
+             project[Moid, Licence, Type, Model, Trip]
+             projectextendstream[Moid, Licence, Type, Model; Unit : units(.Trip)]
+             projectextend [ Moid, Licence, Type, Model; Tstart : inst(initial(.Unit)),
+                             Tend : inst(final(.Unit)),
+                             Xstart : getx(val(initial(.Unit))),
+                             Ystart : gety(val(initial(.Unit))),
+                             Xend : getx(val(final(.Unit))),
+                             Yend : gety(val(final(.Unit))) ]
+             db3export['journey.dbf'] count),
+         ifthenelse(P_EXPORT_TYPE = "CSV",
+           (dataScar feed
+               project[Moid, Licence, Type, Model, Trip]
+               projectextendstream[Moid, Licence, Type, Model; Unit : units(.Trip)]
+               projectextend [ Moid, Licence, Type, Model; Tstart : inst(initial(.Unit)),
+                               Tend : inst(final(.Unit)),
+                               Xstart : getx(val(initial(.Unit))),
+                               Ystart : gety(val(initial(.Unit))),
+                               Xend : getx(val(final(.Unit))),
+                               Yend : gety(val(final(.Unit))) ]
+               csvexport['journey.csv',FALSE,TRUE] count),
+           ifthenelse(P_EXPORT_TYPE = "Secondo Nested List",
+             bool2int(dataScar saveObject["dataScar",'datascar.obj']),
+            ifthenelse(P_EXPORT_TYPE = "Block",
+              (bool2int(dataScar feed fconsume["DataScar",P_BLOCK_PATH, P_DS_INDEX, P_BFILE_SUFFIX;;])),
+             -1))));
+
+query now();
+
+
+######################################################################
+###### Section (5): WORLD DIMENSION INFO    ##########################
+######################################################################
+
+# Index structures may be sensitive to fluctuations in demension scales.
+# E.g. R-Trees work best, when all dimensions work on similar scales.
+# To allow for different scaling policies, we collect some statistics and
+# calculate scaling factors for 3 different scaling policies:
+#   NONE:     No scaling is done. All dimension scale factors are set to 1.0
+#   WORLD:    Sets the dimension scale factor transforming the world scales
+#             into a cube (having same scale width for all 3 dimensions)
+#   AVGUNIT:  Sets dimension scale factors to transform sclaes so that the
+#             average unit forms a cube.
+
+#========================================================================
+# (5.0) Select Scaling Policy
+#========================================================================
+# Set to one of "NONE", "WORLD", or "AVGUNIT"!
+let STAT_SCALE_POLICY = "WORLD";
+
+
+#========================================================================
+# (5.1) "NONE" Policy
+#========================================================================
+
+let SCALE_NONE_DIM_X = 1.0;
+let SCALE_NONE_DIM_Y = 1.0;
+let SCALE_NONE_DIM_T = 1.0;
+
+
+#========================================================================
+# (5.2) "WORLD" policy
+#========================================================================
+
+#Created in reduce step of Hadoop job
+let LOCAL_WORLD_BBOX_rect3 = 
+	dataScar feed
+	projectextend[ ; Bbx: bbox(.Trip)]
+	aggregateB[Bbx; fun(R1:rect3, R2:rect3) R1 union R2;[const rect3 value undef]];
+
+query ifthenelse(P_EXPORT_TYPE = "Block",
+	(bool2int(LOCAL_WORLD_BBOX_rect3 feed namedtransformstream[Rect] fconsume["LocalBBox",P_BLOCK_PATH, P_DS_INDEX, P_BFILE_SUFFIX;;])),
+	-1);
+
+if (not(isDBObject("STAT_WOLRD_BBOX_rect3")))
+  then 
+	let STAT_WOLRD_BBOX_rect3 = LOCAL_WORLD_BBOX_rect3
+endif
+
+let STAT_WORLD_XSIZE_real =   maxD(STAT_WOLRD_BBOX_rect3 ,1)
+                            - minD(STAT_WOLRD_BBOX_rect3 ,1);
+let STAT_WORLD_YSIZE_real =   maxD(STAT_WOLRD_BBOX_rect3 ,2)
+                            - minD(STAT_WOLRD_BBOX_rect3 ,2);
+let STAT_WORLD_TSIZE_real =   maxD(STAT_WOLRD_BBOX_rect3 ,3)
+                            - minD(STAT_WOLRD_BBOX_rect3 ,3);
+
+let STAT_WORLD_MAXSIZE = getMaxVal(STAT_WORLD_XSIZE_real,
+                                   STAT_WORLD_YSIZE_real,
+                                   STAT_WORLD_TSIZE_real);
+let STAT_WORLD_MINSIZE = getMinVal(STAT_WORLD_XSIZE_real,
+                                   STAT_WORLD_YSIZE_real,
+                                   STAT_WORLD_TSIZE_real);
+
+let SCALE_WORLD_DIM_X = STAT_WORLD_MAXSIZE / STAT_WORLD_XSIZE_real;
+let SCALE_WORLD_DIM_Y = STAT_WORLD_MAXSIZE / STAT_WORLD_YSIZE_real;
+let SCALE_WORLD_DIM_T = STAT_WORLD_MAXSIZE / STAT_WORLD_TSIZE_real;
+
+# Prepare for parallel processing, 
+# the scale translation function SCAR_WORLD_SCALE_BOX is actually the scaleBox3D.
+# I named it, only for using exist queries.
+
+let SCAR_WORLD_X_SCALE = SCALE_WORLD_DIM_X;
+
+let SCAR_WORLD_Y_SCALE = SCALE_WORLD_DIM_Y;
+
+let SCAR_WORLD_T_SCALE = SCALE_WORLD_DIM_T;
+
+let SCAR_WORLD_SCALE_BOX = fun(R: rect3) scalerect(R, SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE);
+
+let SCAR_WORLD_CELL_NUM = real2int(sqrt(int2real(P_NUMALLCARS))); 
+
+let SCAR_WORLD_CELL_SIZE = STAT_WORLD_MAXSIZE / SCAR_WORLD_CELL_NUM;
+
+let SCAR_WORLD_GRID_LBP_X = minD(SCAR_WORLD_SCALE_BOX(STAT_WOLRD_BBOX_rect3), 1);
+
+let SCAR_WORLD_GRID_LBP_Y = minD(SCAR_WORLD_SCALE_BOX(STAT_WOLRD_BBOX_rect3), 2);
+
+let SCAR_WORLD_GRID_LBP_T = minD(SCAR_WORLD_SCALE_BOX(STAT_WOLRD_BBOX_rect3), 3);
+
+#========================================================================
+# (5.2) "AVGUNIT" policy
+#========================================================================
+
+let STAT_AVGUNIT_PROPORTIONS =
+  dataScar feed
+  loopsel[ fun(T1: TUPLE)
+    units(attr(T1,Trip))
+    namedtransformstream[Unit]
+    projectextend[;Bbx: bbox(.Unit)]
+    projectextend[; SizeX: maxD(.Bbx,1) - minD(.Bbx,1),
+                    SizeY: maxD(.Bbx,2) - minD(.Bbx,2),
+                    SizeT: maxD(.Bbx,3) - minD(.Bbx,3)]
+  ]
+  groupby[; SizeXavg: group feed avg[SizeX],
+            SizeYavg: group feed avg[SizeY],
+            SizeTavg: group feed avg[SizeT]
+         ]
+  consume;
+
+let STAT_AVGUNIT_XSIZE_real = STAT_AVGUNIT_PROPORTIONS feed extract[SizeXavg];
+let STAT_AVGUNIT_YSIZE_real = STAT_AVGUNIT_PROPORTIONS feed extract[SizeYavg];
+let STAT_AVGUNIT_TSIZE_real = STAT_AVGUNIT_PROPORTIONS feed extract[SizeTavg];
+
+let STAT_AVGUNIT_MAXSIZE = getMaxVal(STAT_AVGUNIT_XSIZE_real,
+                                     STAT_AVGUNIT_YSIZE_real,
+                                     STAT_AVGUNIT_TSIZE_real);
+let STAT_AVGUNIT_MINSIZE = getMinVal(STAT_AVGUNIT_XSIZE_real,
+                                     STAT_AVGUNIT_YSIZE_real,
+                                     STAT_AVGUNIT_TSIZE_real);
+
+let SCALE_AVGUNIT_DIM_X = STAT_AVGUNIT_MAXSIZE / STAT_AVGUNIT_XSIZE_real;
+let SCALE_AVGUNIT_DIM_Y = STAT_AVGUNIT_MAXSIZE / STAT_AVGUNIT_YSIZE_real;
+let SCALE_AVGUNIT_DIM_T = STAT_AVGUNIT_MAXSIZE / STAT_AVGUNIT_TSIZE_real;
+
+
+#========================================================================
+# (5.3) Set Scaling Parameters
+#========================================================================
+let SCALE_DIM_X = ifthenelse( STAT_SCALE_POLICY = "WORLD",
+                              SCALE_WORLD_DIM_X,
+                              ifthenelse( STAT_SCALE_POLICY  = "AVGUNIT",
+                                          SCALE_AVGUNIT_DIM_X,
+                                          SCALE_NONE_DIM_X
+                                        )
+                            );
+let SCALE_DIM_Y = ifthenelse( STAT_SCALE_POLICY = "WORLD",
+                              SCALE_WORLD_DIM_Y,
+                              ifthenelse( STAT_SCALE_POLICY  = "AVGUNIT",
+                                          SCALE_AVGUNIT_DIM_Y,
+                                          SCALE_NONE_DIM_Y
+                                        )
+                            );
+let SCALE_DIM_T = ifthenelse( STAT_SCALE_POLICY = "WORLD",
+                              SCALE_WORLD_DIM_T,
+                              ifthenelse( STAT_SCALE_POLICY  = "AVGUNIT",
+                                          SCALE_AVGUNIT_DIM_T,
+                                          SCALE_NONE_DIM_T
+                                        )
+                            );
+
+#========================================================================
+# (5.4) Translation Functions for Scaling
+#========================================================================
+
+let scaleTimePoint1D = fun(P: point) P scale[SCALE_DIM_T];
+let scalePoint2D = fun(P: point) makepoint(getx(P) * SCALE_DIM_X,
+                                           gety(P) * SCALE_DIM_Y);
+let scaleTimeBox2D = fun(R: rect) scalerect(R,SCALE_DIM_T,SCALE_DIM_T);
+let scaleBox2D = fun(R: rect)  scalerect(R,SCALE_DIM_X,SCALE_DIM_Y);
+let scaleBox3D = fun(R: rect3) scalerect(R,SCALE_DIM_X,SCALE_DIM_Y,SCALE_DIM_T);
+
+
+######################################################################
+# Finished. Closing the database
+######################################################################
+#close database;

@@ -1,0 +1,124 @@
+######################################################################
+## File: Parallel_Verification          ##############################
+######################################################################
+##  This file is part of SECONDO.
+##
+##  Copyright (C) 2007, University in Hagen, Faculty of Mathematics and
+##  Computer Science, Database Systems for New Applications.
+##
+##  SECONDO is free software; you can redistribute it and/or modify
+##  it under the terms of the GNU General Public License as published by
+##  the Free Software Foundation; either version 2 of the License, or
+##  (at your option) any later version.
+##
+##  SECONDO is distributed in the hope that it will be useful,
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##  GNU General Public License for more details.
+##
+##  You should have received a copy of the GNU General Public License
+##  along with SECONDO; if not, write to the Free Software
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+######################################################################
+
+## This file performs a comparison between the results got 
+## from sequential queries and parallel queries. 
+## All queries should return TRUE. 
+
+query now();
+#############################################################
+# A - 1
+query (SQ_OBACRres001 count = OBACRres001 count) and (
+  SQ_OBACRres001 feed sort OBACRres001 feed sort mergediff count = 0);
+
+#############################################################
+# B - 2
+query SQ_OBACRres002 = OBACRres002;
+
+#############################################################
+# C - 3
+query (SQ_OBACRres003 count = OBACRres003 count) and (
+  SQ_OBACRres003 feed sort OBACRres003 feed sort mergediff count = 0);
+
+#############################################################
+# D - 4
+query (SQ_OBACRres004 count = OBACRres004 count) and (
+  SQ_OBACRres004 feed sort OBACRres004 feed sort mergediff count = 0);
+
+#############################################################
+# E - 5
+query (SQ_OBACRres005 count = OBACRres005 count) and (
+  SQ_OBACRres005 feed sort OBACRres005 feed sort mergediff count = 0);
+
+#############################################################
+# F - 6
+query (SQ_OBACRres006 count = OBACRres006 count) and (
+  SQ_OBACRres006 feed sort OBACRres006 feed sort mergediff count = 0);
+
+#############################################################
+# G - 7
+query (SQ_OBACRres007 count = OBACRres007 count) and (
+  SQ_OBACRres007 feed sort OBACRres007 feed sort mergediff count = 0);
+
+#############################################################
+# H - 8
+
+query (SQ_OBACRres008 count = OBACRres008 count) and (
+  SQ_OBACRres008 feed {r} OBACRres008 feed {s}  
+  symmjoin[ (.Licence_r = ..Licence_s) and (.Period_r = ..Period_s)
+    and (.Dist_r # ..Dist_s) ]
+filter[ (abs(.Dist_r - .Dist_s) / .Dist_r) > 0.0001]
+count = 0);
+
+# Comment: slight differences happens on the distance, 
+# because of the precision problem
+#############################################################
+# I - 9
+query (SQ_OBACRres009 count = OBACRres009 count) and (
+  SQ_OBACRres009 feed sort OBACRres009 feed sort mergediff count = 0);
+
+#############################################################
+# J - 10
+query (SQ_OBACRres010 count = OBACRres010 count) and (
+  OBACRres010 feed {r} 
+  SQ_OBACRres010 feed {s} 
+  symmjoin[(.QueryLicence_r = ..QueryLicence_s) and (.OtherLicence_r = ..OtherLicence_s)] 
+  projectextend[;QueryLicence: .QueryLicence_r, OtherLicence: .OtherLicence_r, 
+    Dist: distance(.Pos_r, .Pos_s)] 
+filter[sometimes(.Dist > 0.0)] count = 0);
+
+#############################################################
+# K - 11
+query (SQ_OBACRres011 count = OBACRres011 count) and (
+  SQ_OBACRres011 feed sort OBACRres011 feed sort mergediff count = 0);
+
+#############################################################
+# L - 12
+query (SQ_OBACRres012 count = OBACRres012 count) and (
+  SQ_OBACRres012 feed sort OBACRres012 feed sort mergediff count = 0);
+
+#############################################################
+# M - 13
+query (SQ_OBACRres013 count = OBACRres013 count) and (
+  SQ_OBACRres013 feed sort OBACRres013 feed sort mergediff count = 0);
+
+#############################################################
+# M1 - 14
+query (SQ_OBACRres014 count = OBACRres014 count) and (
+  SQ_OBACRres014 feed sort OBACRres014 feed sort mergediff count = 0);
+
+#############################################################
+# M2 - 15
+query (SQ_OBACRres015 count = OBACRres015 count) and (
+  SQ_OBACRres015 feed sort OBACRres015 feed sort mergediff count = 0);
+
+#############################################################
+# N - 16
+query (SQ_OBACRres016 count = OBACRres016 count) and (
+  SQ_OBACRres016 feed sort OBACRres016 feed sort mergediff count = 0);
+
+#############################################################
+# O - 17
+query (SQ_OBACRres017 count = OBACRres017 count) and (
+  SQ_OBACRres017 feed sort OBACRres017 feed sort mergediff count = 0);
+

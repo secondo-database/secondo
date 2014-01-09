@@ -1,0 +1,156 @@
+######################################################################
+##  This file is part of SECONDO.
+##
+##  Copyright (C) 2008, University in Hagen, Faculty of Mathematics and
+##  Computer Science, Database Systems for New Applications.
+##
+##  SECONDO is free software; you can redistribute it and/or modify
+##  it under the terms of the GNU General Public License as published by
+##  the Free Software Foundation; either version 2 of the License, or
+##  (at your option) any later version.
+##
+##  SECONDO is distributed in the hope that it will be useful,
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##  GNU General Public License for more details.
+##
+##  You should have received a copy of the GNU General Public License
+##  along with SECONDO; if not, write to the Free Software
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+######################################################################
+
+######################################################################
+# This file creates a set of auxiliary objects in parallel BerlinMOD database,
+# to process the parallel benchmark queries. 
+######################################################################
+
+################################################################
+#             Set the scale of Parallel Secondo                #
+################################################################
+
+# The number of slave Data Servers.
+let CLUSTER_SIZE = 12;
+
+# The number of tasks that can run in parallel, 
+# usually for reduce tasks. 
+let PS_SCALE     = 36;
+
+################################################################
+#                   Prepare the database                       #
+################################################################
+
+######################################
+#    OBA & Compact Representation    #
+######################################
+# dataSCcar_List: flist ( rel{Licence: string, Type: string,
+#                             Model: string, Journey: mpoint} )
+let dataSCcar_List = dataScar_List 
+  hadoopMap["PDataSCcar"; . projectextend[Licence, Type, Model; Journey: .Trip] consume];
+
+# Create B-Tree based on licence
+let dataSCcar_Licence_btree_List = dataSCcar_List hadoopMap[ ; . createbtree[Licence] ];
+
+# Create temporal R-Tree based on units' definition time
+let dataSCcar_Journey_tmpuni_List =
+  dataSCcar_List hadoopMap[ ; . 
+    feed projectextend[Journey ; TID: tupleid(.)] 
+    projectextendstream[TID; MBR: 
+      units(.Journey) use[fun(U: upoint) point2d(deftime(U)) ]]
+    sortby[MBR asc]  bulkloadrtree[MBR]
+];
+
+# Create 2D Spatial R-Tree based units' bounding boxes
+let dataSCcar_Journey_sptuni_List = 
+  dataSCcar_List hadoopMap[ ; . 
+    feed projectextend[Journey ; TID: tupleid(.)] 
+    projectextendstream[TID; MBR: 
+      units(.Journey) use[fun(U: upoint) bbox2d(U) ]] 
+    sortby[MBR asc] bulkloadrtree[MBR] 
+]; 
+
+# Create 3D Spatio-temporal R-Tree based on units' bounding boxes
+let dataSCcar_Journey_sptmpuni_List =
+  dataSCcar_List hadoopMap[  ; . 
+    feed projectextend[Journey ; TID: tupleid(.)] 
+    projectextendstream[TID; MBR: 
+      units(.Journey) use[fun(U: upoint) bbox(U) ]]
+    sortby[MBR asc]  bulkloadrtree[MBR]
+];
+
+
+################################################################
+#              Prepare the Global Cell-Grid                    #
+################################################################
+
+let SCAR_WORLD_CELL_NUM = real2int(sqrt(int2real(P_NUMALLCARS))); 
+
+let SCAR_WORLD_CELL_SIZE = STAT_WORLD_MAXSIZE / SCAR_WORLD_CELL_NUM;
+
+let SCAR_WORLD_GRID_LBP_X = minD(SCAR_WORLD_SCALE_BOX(STAT_WOLRD_BBOX_rect3), 1);
+
+let SCAR_WORLD_GRID_LBP_Y = minD(SCAR_WORLD_SCALE_BOX(STAT_WOLRD_BBOX_rect3), 2);
+
+let SCAR_WORLD_GRID_LBP_T = minD(SCAR_WORLD_SCALE_BOX(STAT_WOLRD_BBOX_rect3), 3);
+
+let SCAR_WORLD_GRID_3D = createCellGrid3D( 
+  SCAR_WORLD_GRID_LBP_X, SCAR_WORLD_GRID_LBP_Y, SCAR_WORLD_GRID_LBP_T,
+  SCAR_WORLD_CELL_SIZE, SCAR_WORLD_CELL_SIZE, SCAR_WORLD_CELL_SIZE, 
+  SCAR_WORLD_CELL_NUM, SCAR_WORLD_CELL_NUM ); 
+
+let SCAR_WORLD_GRID_2D = createCellGrid2D( 
+  SCAR_WORLD_GRID_LBP_X, SCAR_WORLD_GRID_LBP_Y,
+  SCAR_WORLD_CELL_SIZE, SCAR_WORLD_CELL_SIZE, SCAR_WORLD_CELL_NUM );
+
+let SCAR_WORLD_LAYERS_3D = createCellGrid3D(
+  SCAR_WORLD_GRID_LBP_X, SCAR_WORLD_GRID_LBP_Y, SCAR_WORLD_GRID_LBP_T,
+  STAT_WORLD_MAXSIZE, STAT_WORLD_MAXSIZE, SCAR_WORLD_CELL_SIZE, 1, 1);
+
+################################################################
+#                  Prepare Distributed Samples                 #
+################################################################
+
+let QueryLicences_Dup_List = QueryLicences feed 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] product
+  spread[;SID,CLUSTER_SIZE,FALSE;];
+
+let QueryLicences_Top10_Dup_List =
+  QueryLicences feed head[10] 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product
+  spread[;SID, CLUSTER_SIZE, TRUE;];
+
+let QueryLicences_2Top10_Dup_List =
+  QueryLicences feed head[20]  filter[.Id>10] 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product
+  spread[;SID, CLUSTER_SIZE, TRUE;];
+
+let QueryInstants_Top10_Dup_List = 
+  QueryInstants feed head[10] 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product
+  spread[;SID, CLUSTER_SIZE, TRUE;]
+  hadoopMap[; . consume];
+
+let QueryPoints_Dup_List =
+  QueryPoints feed 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] product 
+  spread["QueryPoints_Dup",'';SID, CLUSTER_SIZE, FALSE;];
+
+# * ???? Maybe I should use dup ???
+let QueryPoints_Top10_List = 
+  QueryPoints feed head[10] project[Pos] 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product 
+  spread["QueryPoints_Top10_dup"; SID, CLUSTER_SIZE, FALSE;];
+
+let QueryPeriods_Dup_List = 
+  QueryPeriods feed 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] product 
+  spread["QueryPeriods_Dup",'';SID, CLUSTER_SIZE, FALSE;];
+
+let QueryPeriods_Top10_Dup_List = 
+  QueryPeriods feed head[10] 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] product 
+  spread["QueryPeriods_TOP10_Dup",'';SID, CLUSTER_SIZE, TRUE;] 
+  hadoopMap[; . consume];

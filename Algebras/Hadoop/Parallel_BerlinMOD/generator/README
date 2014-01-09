@@ -1,0 +1,73 @@
+# The Parallel BerlinMOD Data Generator creates a BerlinMOD data set in parallel on a cluster. 
+# It can only run after Parallel Secondo has been correctly installed. 
+# The generator contains following files: 
+#	* Bash generator script, named genParaBerlinMOD.sh. 
+#	* A Hadoop program named GenMOD.jar
+# 	* A set of Secondo scripts, include: 
+#		- BerlinMOD_DataGenerator_map.SEC		(Generate data on slaves in Map stage)
+#		- BerlinMOD_DataGenerator_reduce.SEC	(Generate data on slaves in Reduce stage)
+#		- BerlinMOD_DataGenerator_master1.SEC	(Set global parameters on the master database)
+#		- BerlinMOD_DataGenerator_master2.SEC	(Collect distributed data on the master at last)
+# All required files are prepared in the generator, along with this explanatory document. 
+
+##################################################################################
+# Generate the data set on a single computer
+##################################################################################
+# The user can also use this generator to sequentially create 
+# the BerlinMOD data set in a single computer, 
+# by running BerlinMOD_DataGenerator_map.SEC and BerlinMOD_DataGenerator_reduce.SEC in order. 
+# It can be achieved either with the bash generate script by setting the argument -l, 
+# or with the following steps. 
+#	. Copy the two scripts to the $SECONDO_BUILD_DIR/bin/
+#	. Prepare the streets, homeRegions and workRegions data files to $SECONDO_BUILD_DIR/bin/. 
+#	. Start SecondoTTYBDB, create a database. 
+#	. Set SCALEFACTOR, like: let SCALEFACTOR = 0.01. 
+#	. Run the BerlinMOD_DataGenerator_map.SEC, and then the BerlinMOD_DataGenerator_reduce.SEC script. 
+#	. Close the database. 
+# Note the data set created by this generator is different from the one that is created by the normal BerlinMOD generator. 
+# However, it is identical to the data set created with this generator on a cluster, by setting the same scale factor. 
+
+##################################################################################
+# Use the generate script. 
+##################################################################################
+# Before running the bash script, following prerequisites are needed: 
+#   . Distribute the data files streets, homeRegions and workRegions to the cluster. 
+#		This can be done by simply put the data files to $SECONDO_BUILD_DIR/bin/, and then run ps-secondo-buildMini -co. 
+# 	. Start Parallel Secondo
+#	. Keep all files of the generator together, and run the generator on the master node of the cluster. 
+
+# The data set can be simply created with "genParaBerlinMOD.sh", 
+# which asks three optional arguments: 
+#	* -d : Sets the name of the created database
+#	* -s : Sets the scale factor of the data set
+#	* -p : Sets the simulated period in days
+#	* -l : Generate the data on a single computer, in the first Data Server of the local machine. 
+
+# Basically, this generator creates the data set with the following workflow. 
+#	# Create a master database, setting global parameters and environment data sets. 
+#	# Run the Hadoop program to generate the data in each slave Data Server. 
+#	# Create a set of flist objects in the master database, to access the data created in slaves. 
+
+##################################################################################
+## The following notes are prepared only for advanced users. 
+##################################################################################
+
+## Differences between the Parallel Generator and the normal BerlinMOD Generator. 
+##	* Disable the creating, opening and closing database operations. 
+##	* Check the existent of data files, also they are directly put in the bin directory
+##	* Use (if, then, else, endif) commands. Although they cannot be used in TTYCS interface, 
+##		but working fine in the parallel generation. 
+##	* Not locally set the SCALEFACTOR value
+##	* Add L_START and L_END for setting local P_NUMCARS and vehicle Ids. 
+##	* Not set global random seed, but set the seed for each trip. 
+##	* Add S_START and S_END, to locate local samples. 
+##	* For dataMtrip relation, temporally create local dataMtrip1 in Map tasks, 
+##		and then globally adjust the TripId in the Reduce stage. 
+##	* Create a WORLD_BBOX for the local data in the Map stage, 
+##		and get a global bounding box at last. 
+##	* Disable the export for streets relation
+##	* Locally export datasets to disks, by setting P_EXPORT_TYPE as "Block"
+##	* Locally export the bounding box of the data space, according to the WORLD policy. 
+##	* Change the generation policy for QueryLicences, 
+##		in order to produce the same samples running on a single computer. 
+## 

@@ -1,0 +1,478 @@
+######################################################################
+## File: Parallel-OBA-Queries           ##############################
+######################################################################
+##  This file is part of SECONDO.
+##
+##  Copyright (C) 2007, University in Hagen, Faculty of Mathematics and
+##  Computer Science, Database Systems for New Applications.
+##
+##  SECONDO is free software; you can redistribute it and/or modify
+##  it under the terms of the GNU General Public License as published by
+##  the Free Software Foundation; either version 2 of the License, or
+##  (at your option) any later version.
+##
+##  SECONDO is distributed in the hope that it will be useful,
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##  GNU General Public License for more details.
+##
+##  You should have received a copy of the GNU General Public License
+##  along with SECONDO; if not, write to the Free Software
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+######################################################################
+
+## This file performs PARALLEL OBA-Queries of the BerlinMOD benchmark
+## in the SECONDO database produced by parallel generation. 
+## All queries are written based on their each sequential OBA query. 
+## Results are kept in objects named like OBACRresXXX, 
+## XXX indicates the no. of the query. 
+
+#############################################################
+#############################################################
+# All OBA/CR- Queries
+
+query now();
+#############################################################
+# A - 1
+let OBACRres001 = 
+  QueryLicences_Dup_List 
+  hadoopMap[ "Q1_Result", DLF; . {O} loopsel[   
+    para(dataSCcar_Licence_btree_List) para(dataSCcar_List)   
+    exactmatch[.Licence_O]] project[Licence,Model]  
+  ]  
+collect[] consume; 
+
+query now();
+#############################################################
+# B - 2
+let OBACRres002 = dataSCcar_List 
+  hadoopMap[ "Q2_Result", DLF; . feed filter[.Type = "passenger"] 
+  ] 
+collect[] count; 
+
+query now();
+#############################################################
+# C - 3
+let OBACRres003 =
+  QueryLicences_Top10_Dup_List
+  hadoopMap["Q3_Result", DLF; . loopjoin[ para(dataSCcar_Licence_btree_List) 
+      para(dataSCcar_List) exactmatch[.Licence] {LL} ]  
+      para(QueryInstants_Top10_Dup_List) feed {II} product
+      projectextend[; Licence: .Licence_LL, Instant: .Instant_II,
+        Pos: val(.Journey_LL atinstant .Instant_II)] ]
+collect[] consume;
+
+query now();
+#############################################################
+# D - 4
+let OBACRres004 = 
+  QueryPoints_Dup_List
+  hadoopMap["Q4_Result", DLF
+    ; . loopjoin[ para(dataSCcar_Journey_sptuni_List) 
+      windowintersectsS[bbox(.Pos)] sort rdup 
+    para(dataSCcar_List) gettuples] 
+    filter[.Journey passes .Pos] project[Pos, Licence] 
+    sortby[Pos, Licence] krdup[Pos, Licence] 
+  ] 
+collect[] consume; 
+
+query now();
+#############################################################
+# E - 5
+let OBACRres005 =
+  QueryLicences_Top10_Dup_List
+  hadoopMap[DLF, FALSE; . loopsel[
+    para(dataSCcar_Licence_btree_List) para(dataSCcar_List)
+    exactmatch[.Licence] ]
+    projectextend[Licence; Traj: simplify(trajectory(.Journey),0.000001)]]
+  QueryLicences_2Top10_Dup_List
+  hadoopMap[DLF, FALSE; . loopsel[
+    para(dataSCcar_Licence_btree_List) para(dataSCcar_List)
+    exactmatch[.Licence] ]
+    projectextend[Licence; Traj: simplify(trajectory(.Journey),0.000001)]
+    intstream(1, PS_SCALE) namedtransformstream[RTID] product ]
+  hadoopReduce2[Licence, RTID, DLF, PS_SCALE
+    ; . {V1} .. {V2} product
+      projectextend[; Licence1: .Licence_V1, Licence2: .Licence_V2,
+        Dist: distance(.Traj_V1, .Traj_V2) ] sort rdup]
+collect[] sort rdup consume;
+
+# Comment: The second relation is duplicated for every reduce task. 
+
+query now();
+#############################################################
+# F - 6
+let OBACRres006 = dataSCcar_List
+  hadoopMap[DLF, FALSE; . feed filter[.Type = "truck"]
+    extendstream[UTrip: units(.Journey)]
+    extend[Box: scalerect(bbox(.UTrip),
+      SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE)]
+    projectextendstream[Licence, Box, UTrip
+      ;Cell: cellnumber(.Box, SCAR_WORLD_GRID_3D) ] ]
+  dataSCcar_List
+  hadoopMap[DLF, FALSE; . feed filter[.Type = "truck"]
+    extendstream[UTrip: units(.Journey)]
+    extend[Box: scalerect(bbox(.UTrip),
+      SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE)]
+    projectextendstream[Licence, Box, UTrip
+      ;Cell: cellnumber(.Box, SCAR_WORLD_GRID_3D) ] ]
+  hadoopReduce2[Cell, Cell, DLF, PS_SCALE
+    ; . sortby[Cell] {V1} .. sortby[Cell] {V2}
+      parajoin2[ Cell_V1, Cell_V2; . ..
+        realJoinMMRTreeVec[Box_V1, Box_V2, 10, 20] 
+        filter[(.Licence_V1 < .Licence_V2)
+          and gridintersects(SCAR_WORLD_GRID_3D, .Box_V1, .Box_V2, .Cell_V1)
+          and sometimes(distance(.UTrip_V1,.UTrip_V2) <= 10.0) ]
+        projectextend[; Licence1: .Licence_V1, Licence2: .Licence_V2] ]
+      sort rdup]
+collect[] sort rdup consume;
+
+# Comment: The rdup in both partial and global query is required, 
+# since we can remove duplicated results for units but not for moving objects.
+
+query now();
+#############################################################
+# G - 7
+let OBACRres007PointMinInst_List = 
+  QueryPoints_Dup_List
+  hadoopMap[ DLF; . loopjoin[ para(dataSCcar_Journey_sptuni_List) 
+      windowintersectsS[bbox(.Pos)] 
+      sort rdup para(dataSCcar_List) gettuples ] 
+    filter[.Type = "passenger"] 
+    projectextend[Pos ; Instant: inst(initial(.Journey at .Pos)) ] 
+    filter[not(isempty(.Instant))] 
+    sortby[Pos asc, Instant asc] 
+    groupby[Pos; SlaveFirstTime: group feed min[Instant] ] 
+    ] collect[] 
+    sortby[Pos] groupby[Pos; FirstTime: group feed min[SlaveFirstTime]] 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product 
+  spread["OBACRres007PointMinInst_Dup",'';SID, CLUSTER_SIZE, FALSE;];
+
+let OBACRres007 = 
+  OBACRres007PointMinInst_List  
+  hadoopMap[ "Q7_Result", DLF; . extend[MBR: box3d(bbox(.Pos),.FirstTime) ] 
+    loopjoin[ para(dataSCcar_Journey_sptmpuni_List) 
+      windowintersectsS[.MBR] 
+      sort rdup para(dataSCcar_List) gettuples ] 
+    filter[.Type = "passenger"] filter[.Journey passes .Pos] 
+    projectextend[Licence, FirstTime, 
+      Pos ; Instant: inst(initial(.Journey at .Pos))] 
+    filter[.Instant <= .FirstTime] 
+    project[ Pos, Licence ] 
+  ]
+collect[] consume; 
+
+query now();
+#############################################################
+# H - 8
+let OBACRres008 = 
+  QueryLicences_Top10_Dup_List
+  hadoopMap[DLF, FALSE; . {LL} loopsel[ 
+    para(dataSCcar_Licence_btree_List) para(dataSCcar_List) 
+    exactmatch[.Licence_LL] ]
+    projectextendstream[Licence; UTrip: units(.Journey)]
+    extend[Box: scalerect(bbox(.UTrip),
+      SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE)]
+    extendstream[Cell: cellnumber(.Box, SCAR_WORLD_GRID_3D )] ]
+  hadoopReduce[Cell, DLF, "Q8_Result", PS_SCALE 
+  ; . para(QueryPeriods_Top10_Dup_List) feed {PP} product  
+    projectextendstream[Licence, Period_PP, UTrip
+      ; UPTrip: .UTrip atperiods .Period_PP]
+    extend[UDist: round(length(.UPTrip), 3)]
+    projectextend[Licence, UTrip, UDist;Period:.Period_PP]]
+collect[] sort rdup 
+groupby2[Licence, Period; Dist: fun(t2:TUPLE, d2:real) d2 + attr(t2, UDist)::0.0]
+consume;
+
+query now();
+#############################################################
+# I - 9
+let OBACRres009 = 
+  QueryPeriods_Dup_List
+  hadoopMap["Q9_Result", DLF; . {PP} 
+    para(dataSCcar_List) feed project[Journey] {V1} product 
+    projectextend[Id_PP ; Period: .Period_PP, 
+      D: length(.Journey_V1 atperiods .Period_PP)] 
+    sortby[Id_PP, Period, D desc] 
+    groupby[Id_PP, Period; SubDist: round(group feed max[D],3) ] 
+    project[Id_PP, Period, SubDist] 
+  ] collect[] 
+  sortby [Id_PP, Period, SubDist desc] 
+  groupby[Id_PP, Period; Dist: round(group feed max[SubDist],3) ] 
+  project[Period, Dist]
+consume; 
+
+query now();
+#############################################################
+# J - 10
+let OBACRres010 =
+  QueryLicences_Top10_Dup_List
+  hadoopMap[DLF, FALSE; . loopsel[
+    para(dataSCcar_Licence_btree_List) para(dataSCcar_List)
+    exactmatch[.Licence] ]
+    extendstream[UTrip: units(.Journey)]
+    extend[Box: enlargeRect(scalerect(bbox(.UTrip),
+      SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE), 1.5, 1.5, 0.0)]
+    projectextendstream[Licence, Box, UTrip
+      ;Cell: cellnumber(.Box, SCAR_WORLD_GRID_3D) ] ]
+  dataSCcar_List
+  hadoopMap[DLF, FALSE; . feed 
+    extendstream[UTrip: units(.Journey)]
+    extend[Box: enlargeRect(scalerect(bbox(.UTrip),
+      SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE), 1.5, 1.5, 0.0)]
+    projectextendstream[Licence, Box, UTrip
+      ;Cell: cellnumber(.Box, SCAR_WORLD_GRID_3D) ] ]
+  hadoopReduce2[Cell, Cell, PS_SCALE, "Q10_Result", DLF
+    ; . sortby[Cell] {V1} .. sortby[Cell] {V2}
+      parajoin2[ Cell_V1, Cell_V2; . ..
+        realJoinMMRTreeVec[Box_V1, Box_V2, 10, 20] 
+      filter[(.Licence_V1 # .Licence_V2)
+        and gridintersects( SCAR_WORLD_GRID_3D, .Box_V1, .Box_V2, .Cell_V1)
+        and sometimes(distance(.UTrip_V1,.UTrip_V2) < 3.0) ]
+      projectextend[; QueryLicence: .Licence_V1, OtherLicence: .Licence_V2,
+        DPos: (.UTrip_V1 atperiods
+          deftime((distance(.UTrip_V1,.UTrip_V2) < 3.0) the_mvalue at TRUE )) the_mvalue]
+      filter[not(isempty(deftime(.DPos)))]
+      project[QueryLicence, OtherLicence, DPos] ]]
+collect[] sortby[QueryLicence, OtherLicence]
+groupby[QueryLicence, OtherLicence
+  ; Pos: group feed project[DPos] sort transformstream concatS]
+consume;
+
+query now();
+#############################################################
+# K - 11
+let OBACRres011 = 
+  QueryPoints feed head[10] project[Pos] {PP} 
+  QueryInstants feed head[10] project[Instant] {II} 
+  product 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product 
+  spread["Query_Points_Instants_top10_dup",''; SID, CLUSTER_SIZE, FALSE;] 
+  hadoopMap[ "Q11_Result", DLF; .
+    loopjoin[ para(dataSCcar_Journey_sptmpuni_List) 
+      windowintersectsS[box3d(bbox(.Pos_PP), .Instant_II)] 
+      sort rdup ] 
+    para(dataSCcar_List) gettuples 
+    projectextend[Licence, Pos_PP, Instant_II; XPos: 
+      val(.Journey atinstant .Instant_II) ] 
+    filter[not(isempty(.XPos))] 
+    filter[distance(.XPos,.Pos_PP) < 0.5] 
+    projectextend[Licence; Pos: .Pos_PP, Instant: .Instant_II] 
+    sort rdup 
+] collect[]
+consume; 
+
+query now();
+#############################################################
+# L - 12
+let OBACRres012allInstants_List = 
+  QueryInstants feed head[10] 
+  extend[Period: theRange(.Instant, .Instant, TRUE, TRUE)] 
+  aggregateB[Period; fun(I1: periods, I2:periods) 
+    I1 union I2; [const periods value ()] 
+  ] feed namedtransformstream[Period] 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product 
+  spread["OBACRres012allInstants_dup"; SID, CLUSTER_SIZE, FALSE;]
+  hadoopMap[DLO; . extract[Period]];
+
+let OBACRres012 =
+  QueryPoints_Top10_List
+  hadoopMap[DLF, FALSE
+  ; . loopjoin[ para(dataSCcar_Journey_sptuni_List) 
+    windowintersectsS[bbox(.Pos)] sort rdup
+    para(dataSCcar_List) gettuples
+    projectextend[Licence; Journey: .Journey atperiods para(OBACRres012allInstants_List)] ]
+    filter[.Journey passes .Pos]
+    projectextendstream[Licence, Pos; UTrip: units(.Journey)]
+    extend[Box: scalerect(bbox(.UTrip),
+      SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE)]
+    extendstream[ Cell: cellnumber( .Box, SCAR_WORLD_GRID_3D)] ]
+  QueryPoints_Top10_List
+  hadoopMap[DLF, FALSE
+  ; . loopjoin[ para(dataSCcar_Journey_sptuni_List) 
+    windowintersectsS[bbox(.Pos)] sort rdup
+    para(dataSCcar_List) gettuples
+    projectextend[Licence; Journey: .Journey atperiods para(OBACRres012allInstants_List)] ]
+    filter[.Journey passes .Pos]
+    projectextendstream[Licence, Pos; UTrip: units(.Journey)]
+    extend[Box: scalerect(bbox(.UTrip),
+      SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE)]
+    extendstream[ Cell: cellnumber( .Box, SCAR_WORLD_GRID_3D)] ]
+  hadoopReduce2[ Cell, Cell, PS_SCALE, DLF
+  ; . sortby[Cell] {V1} .. sortby[Cell] {V2}
+    parajoin2[Cell_V1, Cell_V2; . ..
+      realJoinMMRTreeVec[Box_V1, Box_V2, 10, 20] 
+      filter[(.Licence_V1 < .Licence_V2)
+          and gridintersects( SCAR_WORLD_GRID_3D, .Box_V1, .Box_V2, .Cell_V1) ]]
+    para(QueryInstants_Top10_Dup_List) feed
+    symmjoin[val(.UTrip_V1 atinstant ..Instant)
+      = val(.UTrip_V2 atinstant ..Instant)]
+    projectextend[ Pos_V2, Instant; Licence1: .Licence_V1, 
+      Licence2: .Licence_V2] 
+    sort rdup ]
+collect[] consume;
+
+query now();
+#############################################################
+# M - 13
+let OBACRres013 = 
+  QueryRegions feed head[10] filter[not(isempty(.Region))] {RR} 
+  QueryPeriods feed head[10] filter[not(isempty(.Period))] {PP} 
+  product 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product 
+  spread["Query_Region_Period_top10_dup",''; SID, CLUSTER_SIZE, FALSE;] 
+  hadoopMap["Q13_Result", DLF; .
+    loopsel [ fun(t:TUPLE) para(dataSCcar_Journey_sptmpuni_List)
+      windowintersectsS[box3d(bbox(attr(t,Region_RR)), attr(t,Period_PP))] 
+      sort rdup para(dataSCcar_List) gettuples 
+      filter[(.Journey atperiods attr(t,Period_PP)) passes attr(t,Region_RR) ] 
+      projectextend[Licence; Region: attr(t,Region_RR), 
+        Period: attr(t,Period_PP), Id_RR: attr(t,Id_RR), Id_PP: attr(t,Id_PP)] ] 
+    sortby[Id_RR, Id_PP, Licence] krdup[Id_RR, Id_PP, Licence] 
+    project[Region, Period, Licence] ]
+collect[] consume; 
+
+query now();
+#############################################################
+# M1 - 14
+let OBACRres014 = 
+  QueryRegions feed head[10] filter[not(isempty(.Region))] {RR} 
+  QueryInstants feed head[10] filter[not(isempty(.Instant))] {II} 
+  product 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product 
+  spread["Query_Region_Instant_top10_dup", ''; SID, CLUSTER_SIZE, FALSE;] 
+  hadoopMap["Q14_Result", DLF; .
+    loopsel [ fun(t:TUPLE) para(dataSCcar_Journey_sptmpuni_List)
+      windowintersectsS[box3d( bbox(attr(t,Region_RR)), attr(t,Instant_II))] 
+      sort rdup para(dataSCcar_List) gettuples 
+      filter[val(.Journey atinstant attr(t,Instant_II)) inside attr(t,Region_RR) ] 
+      projectextend[Licence; Region: attr(t,Region_RR), 
+        Instant: attr(t,Instant_II), Id_RR: attr(t,Id_RR), 
+        Id_II: attr(t,Id_II)] ] 
+    sortby[Id_RR, Id_II, Licence] krdup[Id_RR, Id_II, Licence] 
+    project[Region, Instant, Licence] ]
+collect[] consume; 
+
+query now();
+#############################################################
+# M2 - 15
+let OBACRres015 = 
+  QueryPoints feed head[10] filter[not(isempty(.Pos))] {PO} 
+  QueryPeriods feed head[10] filter[not(isempty(.Period))] {PR} 
+  product 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product 
+  spread["Query_Point_Period_top10_dup",''; SID, CLUSTER_SIZE, FALSE;] 
+  hadoopMap["Q15_Result", DLF; .
+    loopsel [ fun(t:TUPLE) para(dataSCcar_Journey_sptmpuni_List)
+      windowintersectsS[box3d(bbox(attr(t,Pos_PO)),attr(t,Period_PR))] 
+      sort rdup para(dataSCcar_List) gettuples
+      filter[(.Journey atperiods attr(t,Period_PR)) passes attr(t,Pos_PO) ] 
+      projectextend[Licence; Point: attr(t,Pos_PO),
+        Period: attr(t,Period_PR), Id_PO: attr(t,Id_PO), Id_PR: attr(t,Id_PR)] ]
+    sortby[Id_PO, Id_PR, Licence] krdup[Id_PO, Id_PR, Licence] 
+    project[Point, Period, Licence]
+  ]
+collect[] consume; 
+
+query now();
+#############################################################
+# N - 16
+let Query_Period_Region_DupList = 
+  QueryPeriods feed head[10] {PP} QueryRegions feed head[10] {RR} 
+  product 
+  intstream(1, CLUSTER_SIZE) namedtransformstream[SID] 
+  product 
+  spread["Query_Period_Region_top10_dup"; SID, CLUSTER_SIZE, FALSE;]
+  hadoopMap[; . consume];
+
+# Comment: Partition upoints to levels, instead of cells
+let OBACRres016 = 
+  QueryLicences_Top10_Dup_List
+  hadoopMap[DLF, FALSE; . loopsel[
+    para(dataSCcar_Licence_btree_List) para(dataSCcar_List)
+    exactmatch[.Licence] ]
+    para(Query_Period_Region_DupList) feed
+    product
+    projectextend[Licence, Region_RR, Period_PP, Id_RR, Id_PP 
+      ; Journey: (.Journey atperiods .Period_PP) at .Region_RR]
+    filter[no_components(.Journey) > 0]
+    projectextendstream[Licence, Region_RR, Period_PP, Id_RR, Id_PP
+      ; UTrip: units(.Journey)]
+    extend[Box: scalerect(bbox(.UTrip),
+      SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE)]
+    extendstream[ Layer: cellnumber(.Box, SCAR_WORLD_LAYERS_3D ) ] ]
+  QueryLicences_2Top10_Dup_List
+  hadoopMap[DLF, FALSE; . loopsel[
+    para(dataSCcar_Licence_btree_List) para(dataSCcar_List)
+    exactmatch[.Licence] ]
+    para(Query_Period_Region_DupList) feed
+    product
+    projectextend[Licence, Region_RR, Period_PP, Id_RR, Id_PP 
+      ; Journey: (.Journey atperiods .Period_PP) at .Region_RR]
+    filter[no_components(.Journey) > 0]
+    projectextendstream[Licence, Region_RR, Period_PP, Id_RR, Id_PP
+      ; UTrip: units(.Journey)]
+    extend[Box: scalerect(bbox(.UTrip),
+      SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE, SCAR_WORLD_T_SCALE)]
+    extendstream[ Layer: cellnumber(.Box, SCAR_WORLD_LAYERS_3D) ] ]
+  hadoopReduce2[ Layer, Layer, PS_SCALE, DLF
+  ; . sortby[Layer] {C1} .. sortby[Layer] {C2}
+    parajoin2[Layer_C1, Layer_C2
+      ; . .. symmjoin[ (.Licence_C1 < ..Licence_C2) 
+          and (.Id_RR_C1 = ..Id_RR_C2) and (.Id_PP_C1 = ..Id_PP_C2) ]
+        filter[ not(sometimes(distance(.UTrip_C1,.UTrip_C2) < 0.1))] ]
+    projectextend[; Licence1: .Licence_C1, Licence2: .Licence_C2,
+      Region: .Region_RR_C1, Period: .Period_PP_C1,
+      Id_RR: .Id_RR_C1, Id_PP: .Id_PP_C1 ]
+    sortby[Id_RR, Id_PP, Licence1, Licence2]
+    krdup[Id_RR, Id_PP, Licence1, Licence2]
+    project[Region, Period, Licence1, Licence2] ]
+collect[] sort rdup consume;
+
+# Comment: The gridintersects operator cannot be used here,
+# as units' boxes doesn't intersect with each other. 
+
+query now();
+#############################################################
+# O - 17
+let OBACRres017PosCount_List =
+  QueryPoints_Dup_List
+  hadoopMap[DLF, FALSE; . project[Pos] {PP} loopjoin[
+    fun(t:TUPLE) para(dataSCcar_Journey_sptuni_List) 
+    windowintersectsS[bbox(attr(t,Pos_PP))] sort rdup
+      para(dataSCcar_List) gettuples filter[.Journey passes attr(t,Pos_PP)] 
+      project[Licence] ] 
+    projectextend[Licence; Pos: .Pos_PP]
+    extend[Box: scalerect(bbox(.Pos), SCAR_WORLD_X_SCALE, SCAR_WORLD_Y_SCALE)]
+    extendstream[ Cell: cellnumber( .Box, SCAR_WORLD_GRID_2D )] ]
+  hadoopReduce[Cell, DLF, "OBACRres017PosCount", PS_SCALE
+  ; . sortby[Pos asc, Licence asc]
+    groupby[Pos; Hits: group feed rdup count]
+  ];
+
+let OBACRres017PosMaxCount = 
+  OBACRres017PosCount_List 
+  hadoopMap["OBACRres017PosMaxCount", DLF
+  ; . max[Hits] feed namedtransformstream[DisMaxHits]
+  ]
+collect[] max[DisMaxHits];
+
+let OBACRres017 = 
+  OBACRres017PosCount_List 
+  hadoopMap["OBACRres017", DLF
+    ; . filter[.Hits = OBACRres017PosMaxCount] 
+    project[Pos, Hits] 
+  ]
+collect[] consume; 
+
+query now();
+#############################################################
+#############################################################
+let EVAL_SEC2COMMANDS_BACKUP01 = SEC2COMMANDS feed consume;
+

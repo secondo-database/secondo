@@ -1,0 +1,26 @@
+# The Parallel BerlinMOD is set up based on the common BerlinMOD benchmark. 
+# It process both the data generation and all OBA queries on Parallel SECONDO, in a parallel way. 
+# A Parallel SECONDO should be installed at first. 
+# It contains following files: 
+# 	* The parallel generator
+#	* Two parallel query scripts: BerlinMOD_Parallel_CreateObjects.SEC and BerlinMOD_Parallel_OBA-Queries.SEC
+#	* Two sequential query scripts: BerlinMOD_Sequential_CreateObjects.SEC and BerlinMOD_Sequential_OBA-Queries.SEC
+#	* A comparison script BerlinMOD_Parallel_Verification.SEC
+# All scripts are SECONDO scripts, runnable in a text terminal provided by SECONDO
+
+# The parallel generator generates the benchmark data for BerlinMOD. 
+# Its detailed explanation is contained inside itself. 
+
+# The parallel query scripts are consisting of two files. 
+# The BerlinMOD_Parallel_CreateObjects.SEC creates a set of auxiliary objects required by the parallel queries. 
+# The BerlinMOD_Parallel_OBA-Queries.SEC contains all 17 OBA queries in BerlinMOD benchmark. 
+# They are adapted to the common BerlinMOD queries, and all can run in parallel way. 
+
+# The sequential query scripts also are consisting of two files. 
+# The BerlinMOD_Sequential_CreateObjects.SEC creates a set of auxiliary objects required by the sequential queries. 
+# It is almost the same as the CreateObjects.SEC file provided in the normal BerlinMOD benchmark. 
+# The BerlinMOD_Sequential_OBA-Queries.SEC contains all 17 OBA queries in BerlinMOD benchmark. 
+# They are all normal sequential queries, being the same as the normal BerlinMOD OBA queries. 
+
+# The comparison script estimate the correctness of parallel queries, 
+# by comparing whether the parallel query result is the same as the sequential query result. 

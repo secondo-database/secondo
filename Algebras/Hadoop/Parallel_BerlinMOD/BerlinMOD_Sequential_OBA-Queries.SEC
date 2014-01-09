@@ -1,0 +1,401 @@
+######################################################################
+## File: Sequential-OBA-Queries         ##############################
+######################################################################
+##  This file is part of SECONDO.
+##
+##  Copyright (C) 2007, University in Hagen, Faculty of Mathematics and
+##  Computer Science, Database Systems for New Applications.
+##
+##  SECONDO is free software; you can redistribute it and/or modify
+##  it under the terms of the GNU General Public License as published by
+##  the Free Software Foundation; either version 2 of the License, or
+##  (at your option) any later version.
+##
+##  SECONDO is distributed in the hope that it will be useful,
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##  GNU General Public License for more details.
+##
+##  You should have received a copy of the GNU General Public License
+##  along with SECONDO; if not, write to the Free Software
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+######################################################################
+
+## This file performs the OBA-Queries of the BerlinMOD benchmark
+## in the SECONDO database produced by parallel generation. 
+## All results are kept in objects named like SQ_OBACRresXXX, 
+## XXX indicates the no. of the query. 
+#############################################################
+#############################################################
+# All OBA/CR- Queries
+
+query now();
+#############################################################
+# A - 1
+let SQ_OBACRres001 = QueryLicences feed {O} 
+  loopjoin[ dataSCcar_Licence_btree dataSCcar exactmatch[.Licence_O]] 
+  project[Licence, Model] 
+consume; 
+
+query now();
+#############################################################
+# B - 2
+let SQ_OBACRres002 = 
+  dataSCcar feed filter [.Type = "passenger"] 
+count;  
+
+query now();
+#############################################################
+# C - 3
+let SQ_OBACRres003 =
+  QueryLicences feed {LL} head[10]
+  loopjoin[dataSCcar_Licence_btree dataSCcar exactmatch[.Licence_LL]]
+  QueryInstants feed {II} head[10]
+  product
+  projectextend[; Licence: .Licence_LL, Instant: .Instant_II,
+                  Pos: val(.Journey atinstant .Instant_II)]
+consume;
+
+query now();
+#############################################################
+# D - 4
+let SQ_OBACRres004 = 
+  QueryPoints feed 
+  loopjoin[ dataSCcar_Journey_sptuni 
+    windowintersectsS[bbox(.Pos)] sort rdup 
+    dataSCcar gettuples] 
+  filter[.Journey passes .Pos] project[Pos, Licence] 
+  sortby[Pos, Licence] krdup[Pos, Licence] 
+consume; 
+
+query now();
+#############################################################
+# E - 5
+let SQ_OBACRres005tmp1 =
+  QueryLicences feed head[10] 
+  loopsel[ dataSCcar_Licence_btree dataSCcar 
+  exactmatch[.Licence] ] 
+  projectextend[Licence; Traj: 
+    simplify(trajectory(.Journey),0.000001)] 
+consume; 
+
+query now();
+
+let SQ_OBACRres005tmp2 =
+  QueryLicences feed head[20] filter[.Id>10] 
+  loopsel[ dataSCcar_Licence_btree dataSCcar 
+  exactmatch[.Licence] ] 
+  projectextend[Licence; Traj: 
+    simplify(trajectory(.Journey),0.000001)] 
+consume; 
+
+query now();
+
+let SQ_OBACRres005 =
+  SQ_OBACRres005tmp1 feed {V1} SQ_OBACRres005tmp2 feed {V2} 
+  product 
+  projectextend[ ; Licence1: .Licence_V1, 
+    Licence2: .Licence_V2, Dist: distance(.Traj_V1, .Traj_V2)] 
+sort rdup 
+consume; 
+
+delete SQ_OBACRres005tmp1;
+delete SQ_OBACRres005tmp2;
+
+query now();
+#############################################################
+# F - 6
+let SQ_OBACRres006 = 
+  dataSCcar feed {V1} filter[.Type_V1 = "truck"] 
+  dataSCcar feed {V2} filter[.Type_V2 = "truck"] 
+  symmjoin[.Licence_V1 < ..Licence_V2] 
+  filter[ minimum(distance(.Journey_V1, .Journey_V2)) <= 10.0 ] 
+  projectextend[ ; Licence1: .Licence_V1, Licence2: .Licence_V2 ] 
+consume; 
+
+query now();
+#############################################################
+# G - 7
+let SQ_OBACRres007PointMinInst = QueryPoints feed project[Pos]
+  loopjoin[ dataSCcar_Journey_sptuni
+            windowintersectsS[bbox(.Pos)]
+            sort rdup dataSCcar gettuples ]
+  filter[.Type = "passenger"]
+  projectextend[Pos ; Instant: inst(initial(.Journey at .Pos)) ]
+  filter[not(isempty(.Instant))]
+  sortby[Pos asc, Instant asc]
+  groupby[Pos; FirstTime: group feed min[Instant] ]
+consume;
+
+query now();
+
+let SQ_OBACRres007 =
+  SQ_OBACRres007PointMinInst feed
+  extend[MBR: box3d(bbox(.Pos),.FirstTime) ]
+  loopjoin[ dataSCcar_Journey_sptmpuni
+            windowintersectsS[.MBR]
+            sort rdup dataSCcar gettuples ]
+  filter[.Type = "passenger"] filter[.Journey passes .Pos]
+  projectextend[Licence, FirstTime,
+    Pos ; Instant: inst(initial(.Journey at .Pos))]
+  filter[.Instant <= .FirstTime]
+  project[ Pos, Licence ]
+consume;
+
+delete SQ_OBACRres007PointMinInst;
+
+query now();
+#############################################################
+# H - 8
+let SQ_OBACRres008 = 
+  QueryLicences feed {LL} head[10] 
+    loopsel[ dataSCcar_Licence_btree dataSCcar exactmatch[.Licence_LL] ] 
+  QueryPeriods feed project[Period] head[10] {PP} 
+  product 
+  projectextend[Licence; Period: .Period_PP, 
+    Dist: round(length(.Journey atperiods .Period_PP),3)] 
+  project[Licence, Period, Dist] 
+consume; 
+
+query now();
+#############################################################
+# I - 9
+let SQ_OBACRres009 = 
+  dataSCcar feed project[Journey] {V1} 
+  QueryPeriods feed {PP} 
+  product 
+  projectextend[Id_PP ; Period: .Period_PP, D: 
+    length(.Journey_V1 atperiods .Period_PP)] 
+  sortby[Id_PP, Period, D desc] 
+  groupby[ Id_PP, Period; Dist: round(group feed max[D],3) ] 
+  project[Period, Dist]
+consume;
+
+query now();
+#############################################################
+# J - 10
+let SQ_OBACRres010 = 
+  QueryLicences feed head[10] 
+  loopsel[ dataSCcar_Licence_btree dataSCcar exactmatch[.Licence] 
+    project[Licence, Journey] ] {V1}
+  dataSCcar feed project[Licence, Journey] {V2} 
+  symmjoin[(.Licence_V1 # ..Licence_V2) ] 
+  filter[ (everNearerThan(.Journey_V1, .Journey_V2, 3.0)) ] 
+  projectextend[; QueryLicence: .Licence_V1, 
+    OtherLicence: .Licence_V2, 
+    Pos: .Journey_V1 atperiods deftime((distance(.Journey_V1, 
+      .Journey_V2) < 3.0) at TRUE) 
+  ] 
+  filter[not(isempty(deftime(.Pos)))] 
+  project[QueryLicence, OtherLicence, Pos] 
+  sort rdup 
+consume;
+
+query now();
+#############################################################
+# K - 11
+let SQ_OBACRres011 =
+  QueryPoints feed head[10] project[Pos] {PP} 
+  QueryInstants feed head[10] project[Instant] {II} 
+  product 
+  loopjoin[ dataSCcar_Journey_sptmpuni 
+    windowintersectsS[box3d(bbox(.Pos_PP), .Instant_II)] 
+    sort rdup ] 
+  dataSCcar gettuples 
+  projectextend[Licence, Pos_PP, Instant_II; XPos: 
+    val(.Journey atinstant .Instant_II) ] 
+  filter[not(isempty(.XPos))] 
+  filter[distance(.XPos,.Pos_PP) < 0.5] 
+  projectextend[Licence; Pos: .Pos_PP, Instant: .Instant_II] 
+  sort rdup
+consume; 
+
+query now();
+#############################################################
+# L - 12
+let SQ_OBACRres012allInstants = 
+  QueryInstants feed head[10] 
+  extend[Period: theRange(.Instant, .Instant, TRUE, TRUE)] 
+  aggregateB[Period; fun(I1: periods, I2:periods) 
+    I1 union I2; [const periods value ()] 
+]; 
+
+let SQ_OBACRres012 = 
+  QueryPoints feed head[10] project[Pos] 
+  loopjoin[ dataSCcar_Journey_sptuni 
+    windowintersectsS[bbox(.Pos)] 
+    sort rdup dataSCcar gettuples 
+    projectextend[Licence 
+      ; Journey: .Journey atperiods SQ_OBACRres012allInstants] 
+  ] 
+  filter[.Journey passes .Pos] 
+  projectextend[Licence, Pos; Journey: .Journey at .Pos] {V1} 
+  QueryPoints feed head[10] project[Pos] 
+  loopjoin[ dataSCcar_Journey_sptuni 
+    windowintersectsS[bbox(.Pos)] 
+    sort rdup dataSCcar gettuples 
+    projectextend[Licence; Journey: .Journey atperiods SQ_OBACRres012allInstants] 
+  ] 
+  filter[.Journey passes .Pos] 
+  projectextend[Licence, Pos; Journey: .Journey at .Pos] {V2} 
+  symmjoin[.Licence_V1 < ..Licence_V2] 
+  QueryInstants feed head[10] 
+  symmjoin[val(.Journey_V1 atinstant ..Instant) 
+    = val(.Journey_V2 atinstant ..Instant)] 
+  projectextend[ Pos_V2, Instant; Licence1: .Licence_V1, 
+    Licence2: .Licence_V2] 
+  sort rdup 
+consume; 
+
+delete SQ_OBACRres012allInstants;
+
+query now();
+#############################################################
+# M - 13
+let SQ_OBACRres013 = 
+  QueryRegions feed head[10] filter[not(isempty(.Region))] {RR} 
+  QueryPeriods feed head[10] filter[not(isempty(.Period))] {PP} 
+  product 
+  loopsel [ fun(t:TUPLE) 
+    dataSCcar_Journey_sptmpuni windowintersectsS[box3d(
+      bbox(attr(t,Region_RR)), attr(t,Period_PP))] 
+    sort rdup dataSCcar gettuples 
+    filter[(.Journey atperiods attr(t,Period_PP)) 
+      passes attr(t,Region_RR) 
+    ] 
+    projectextend[Licence; Region: attr(t,Region_RR), 
+      Period: attr(t,Period_PP), Id_RR: attr(t,Id_RR), 
+      Id_PP: attr(t,Id_PP)] 
+  ] 
+  sortby[Id_RR, Id_PP, Licence] krdup[Id_RR, Id_PP, Licence] 
+  project[Region, Period, Licence]
+consume; 
+
+query now();
+#############################################################
+# M1 - 14
+let SQ_OBACRres014 = 
+  QueryRegions feed head[10] {RR} 
+  QueryInstants feed head[10] {II} product 
+  loopsel [ fun(t:TUPLE) 
+    dataSCcar_Journey_sptmpuni windowintersectsS[box3d(
+      bbox(attr(t,Region_RR)),attr(t,Instant_II))] 
+    sort rdup dataSCcar gettuples 
+    filter[val(.Journey atinstant attr(t,Instant_II)) 
+      inside attr(t,Region_RR) 
+    ] 
+    projectextend[Licence; Region: attr(t,Region_RR), 
+      Instant: attr(t,Instant_II), Id_RR: attr(t,Id_RR), 
+      Id_II: attr(t,Id_II)] 
+  ] 
+  sortby[Id_RR, Id_II, Licence] krdup[Id_RR, Id_II, Licence] 
+  project[Region, Instant, Licence] 
+consume; 
+
+query now();
+#############################################################
+# M2 - 15
+let SQ_OBACRres015 = 
+  QueryPoints feed head[10] {PO} 
+  QueryPeriods feed head[10] {PR} product 
+  loopsel [ fun(t:TUPLE) 
+    dataSCcar_Journey_sptmpuni windowintersectsS[ box3d(
+      bbox(attr(t,Pos_PO)),attr(t,Period_PR)) ] 
+    sort rdup dataSCcar gettuples 
+    filter[(.Journey atperiods attr(t,Period_PR)) 
+      passes attr(t,Pos_PO) 
+    ] 
+    projectextend[Licence; Point: attr(t,Pos_PO), 
+      Period: attr(t,Period_PR), Id_PO: attr(t,Id_PO), 
+      Id_PR: attr(t,Id_PR)] 
+  ] 
+  sortby[Id_PO, Id_PR, Licence] krdup[Id_PO, Id_PR, Licence] 
+  project[Point, Period, Licence]
+consume; 
+
+query now();
+#############################################################
+# N - 16
+let SQ_OBACRres016Candidates1 =
+  QueryLicences feed head[10] 
+  loopsel[ fun(t:TUPLE) 
+    dataSCcar_Licence_btree dataSCcar exactmatch[attr(t,Licence)]] 
+  QueryPeriods feed head[10] {PP} 
+  QueryRegions feed head[10] {RR} 
+  product 
+  product 
+  projectextend[Licence, Region_RR, Period_PP, Id_RR, Id_PP 
+    ; Journey: (.Journey atperiods .Period_PP) at .Region_RR] 
+  filter[no_components(.Journey) > 0] 
+consume; 
+
+query now();
+
+let SQ_OBACRres016Candidates2 = 
+  QueryLicences feed head[20] filter[.Id > 10] 
+  loopsel[ fun(t:TUPLE) 
+    dataSCcar_Licence_btree dataSCcar exactmatch[attr(t,Licence)]] 
+  QueryPeriods feed head[10] {PP} 
+  QueryRegions feed head[10] {RR} 
+  product 
+  product  
+  projectextend[Licence, Region_RR, Period_PP, Id_RR, Id_PP 
+    ; Journey: (.Journey atperiods .Period_PP) at .Region_RR] 
+  filter[no_components(.Journey) > 0] 
+consume;
+  
+query now();
+
+### Increased Tolerance to 0.1m 
+let SQ_OBACRres016 = 
+  SQ_OBACRres016Candidates1 feed {C1} 
+  SQ_OBACRres016Candidates2 feed {C2} 
+  symmjoin[ (.Licence_C1 < ..Licence_C2) 
+    and (.Id_RR_C1 = ..Id_RR_C2) 
+    and (.Id_PP_C1 = ..Id_PP_C2) 
+  ] 
+  filter[ not(everNearerThan(.Journey_C1, .Journey_C2, 0.1)) ] 
+  projectextend[; Licence1: .Licence_C1, 
+    Licence2: .Licence_C2, Region: .Region_RR_C1,
+    Period: .Period_PP_C1, Id_RR: .Id_RR_C1,
+    Id_PP: .Id_PP_C1 ] 
+  sortby[Id_RR, Id_PP, Licence1, Licence2] 
+  krdup[Id_RR, Id_PP, Licence1, Licence2] 
+  project[Region, Period, Licence1, Licence2] 
+consume; 
+
+delete SQ_OBACRres016Candidates1;
+delete SQ_OBACRres016Candidates2;
+
+query now();
+#############################################################
+# O - 17
+let SQ_OBACRres017PosCount = QueryPoints feed project[Pos] {PP}
+  loopjoin[ fun(t:TUPLE)
+    dataSCcar_Journey_sptuni
+    windowintersectsS[bbox(attr(t,Pos_PP))]
+    sort rdup dataSCcar gettuples
+    filter[.Journey passes attr(t,Pos_PP)]
+    project[Licence]
+  ]
+  projectextend[Licence; Pos: .Pos_PP]
+  sortby[Pos asc, Licence asc]
+  groupby[Pos; Hits: group feed rdup count] 
+consume;
+
+query now();
+
+let SQ_OBACRres017 =
+  SQ_OBACRres017PosCount feed
+  filter[.Hits = (SQ_OBACRres017PosCount feed max[Hits])]
+  project[Pos, Hits] 
+consume;
+
+delete SQ_OBACRres017PosCount;
+
+query now();
+#############################################################
+#############################################################
+let EVAL_SEC2COMMANDS_BACKUP02 = SEC2COMMANDS feed consume;
+
+

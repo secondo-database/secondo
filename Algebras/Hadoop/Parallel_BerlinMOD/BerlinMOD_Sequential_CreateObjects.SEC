@@ -1,0 +1,67 @@
+######################################################################
+##  This file is part of SECONDO.
+##
+##  Copyright (C) 2008, University in Hagen, Faculty of Mathematics and
+##  Computer Science, Database Systems for New Applications.
+##
+##  SECONDO is free software; you can redistribute it and/or modify
+##  it under the terms of the GNU General Public License as published by
+##  the Free Software Foundation; either version 2 of the License, or
+##  (at your option) any later version.
+##
+##  SECONDO is distributed in the hope that it will be useful,
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##  GNU General Public License for more details.
+##
+##  You should have received a copy of the GNU General Public License
+##  along with SECONDO; if not, write to the Free Software
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+######################################################################
+
+######################################################################
+# This file creates a set of auxiliary objects in parallel BerlinMOD database,
+# to process the sequential benchmark queries. 
+# Note here all distributed data need to be collected in the master database, 
+# hence this script is not recommended when large scale factor is used. 
+######################################################################
+
+################################################################
+#					Prepare the database					   #
+################################################################
+
+######################################
+#    OBA & Compact Representation    #
+######################################
+# dataSCcar: rel{Licence: string, Type: string,
+#                Model: string, Journey: mpoint}
+let dataSCcar = dataScar_List collect[] 
+	projectextend[Licence, Type, Model; Journey: .Trip] consume;
+
+# Create B-Tree based on licence
+let dataSCcar_Licence_btree = dataSCcar createbtree[Licence];
+
+# Create temporal R-Tree based on units' definition time
+let dataSCcar_Journey_tmpuni =
+  dataSCcar feed
+  projectextend[Journey ; TID: tupleid(.)]
+  projectextendstream[TID; MBR: units(.Journey)
+    use[fun(U: upoint) point2d(deftime(U)) ]]
+  sortby[MBR asc]
+  bulkloadrtree[MBR];
+
+# Create 2D Spatial R-Tree based units' bounding boxes
+let dataSCcar_Journey_sptuni =
+  dataSCcar feed projectextend[Journey ; TID: tupleid(.)]
+  projectextendstream[TID
+    ; MBR: units(.Journey) use[fun(U: upoint) bbox2d(U) ]]
+  sortby[MBR asc]  bulkloadrtree[MBR];
+
+# Create 3D Spatio-temporal R-Tree based on units' bounding boxes
+let dataSCcar_Journey_sptmpuni =
+  dataSCcar feed
+  projectextend[Journey ; TID: tupleid(.)]
+  projectextendstream[TID; MBR: units(.Journey)
+    use[fun(U: upoint) bbox(U) ]]
+  sortby[MBR asc]
+  bulkloadrtree[MBR];
