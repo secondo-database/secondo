@@ -7,7 +7,7 @@ CLS_P = ${BIN_P}/${PKGNM}
 SRC_P = ./${PKGNM}
 SECLIB = ${BIN_P}/lib/SecondoInterface.jar
 
-all: checkenv checkbin checklib editor ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class ${CLS_P}/PS_HadoopMapAll.class
+all: checkenv checkbin checklib editor mod ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class ${CLS_P}/PS_HadoopMapAll.class
 	jar -cf ${JarFile} -C ${BIN_P} .
 	cp ${JarFile} ../../../bin/
 
@@ -147,6 +147,9 @@ checklib:
 editor:
 	(cd PSEditor; javac *.java)
 	jar -cfm PSEditor.jar PSEditor/META-INF/MANIFEST.MF PSEditor *.xml
+
+mod:
+	(cd genMod; make all)
 
 help:
 	@echo "Usage:"
