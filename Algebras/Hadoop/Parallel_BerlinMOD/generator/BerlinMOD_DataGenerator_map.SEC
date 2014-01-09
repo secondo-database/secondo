@@ -55,13 +55,28 @@
 #      - GeoData is a region describing the region's area
 
 # ------- restore streets -------
-restore streets from 'streets.data';
+if (not(isDBObject("streets")))
+  then if (isFile('streets.data'))
+    then restore streets from 'streets.data'
+    else let streets = [const rel(tuple([Vmax: real, GeoData: line])) value ()]
+  endif
+endif;
 
 # ------- restore homeRegions -------
-restore homeRegions from 'homeRegions.data';
+if (not(isDBObject("homeRegions")))
+  then if (isFile('homeRegions.data'))
+    then restore homeRegions from 'homeRegions.data'
+    else let streets = [const rel(tuple([Vmax: real, GeoData: line])) value ()]
+  endif
+endif;
 
 # ------- restore workRegions -------
-restore workRegions from 'workRegions.data';
+if (not(isDBObject("workRegions")))
+  then if (isFile('workRegions.data'))
+    then restore workRegions from 'workRegions.data'
+    else let streets = [const rel(tuple([Vmax: real, GeoData: line])) value ()]
+  endif
+endif;
 
 ######################################################################
 ###### Section (2): Setting Parameters ###############################
