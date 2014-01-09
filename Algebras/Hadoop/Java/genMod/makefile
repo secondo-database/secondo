@@ -2,7 +2,7 @@ JarFile = GenMOD.jar
 SEC_P = ${SECONDO_BUILD_DIR}/Javagui/secondoInterface/SecondoInterface.jar
 HDC_P = ${HADOOP_HOME}/hadoop-0.20.2-core.jar
 
-all:
+all: checkbin
 	javac src/Constant.java -d bin/
 	javac -classpath ${SEC_P} src/QuerySecondo.java -d bin/
 	javac src/PSNode.java -d bin/
@@ -15,3 +15,6 @@ all:
 clean:
 	rm ${JarFile}
 	rm ./bin/*.class
+
+checkbin:
+	if [ ! -d ./bin ];then mkdir ./bin; fi
