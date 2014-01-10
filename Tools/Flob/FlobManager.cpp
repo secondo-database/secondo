@@ -356,10 +356,6 @@ bool FlobManager::getData(
   assert(!flob.id.isDestroyed());
 
   FlobId id = flob.id;
-  if (id.mode == 3){
-    cerr << id << endl;
-  }
-
   assert((id.mode==0) || (id.mode==1) || (id.mode == 2));
 
   if (id.mode < 2)
@@ -423,14 +419,11 @@ This Flob is taken over by the NativeFlobCache from now on.
 
 */
     Flob& Vflob = const_cast<Flob&>(flob); //Make the flob be variable
-    Vflob.id.mode = 1;
 
-    char* flobBuf = new char[flobLength];
-    tupleFile->seekg((floboffset/* + recOffset*/), ios::beg);
-    tupleFile->read(flobBuf, flobLength);
-    ok = nativeFlobCache->putData(flob, flobBuf, recOffset, flobLength, false);
-    memcpy(dest, flobBuf, size);
-    delete[] flobBuf;
+    tupleFile->seekg(floboffset, ios::beg);
+    tupleFile->read(dest, size);
+    ok = nativeFlobCache->putData(flob, dest, recOffset, size, false);
+    Vflob.id.mode = 1;
 
     if(!ok){
       cerr << " error in getting data from flob " << flob << endl;
@@ -470,15 +463,8 @@ bool FlobManager::destroy(Flob& victim) {
     }
 
     FlobId id = victim.id;
-    if( (id.mode==2) || (id.mode == 3)){
-        // do not destroy flob data within non berkeley db files.
-        victim.id.destroy();
-        return true;
-    }
-
-
     assert(!victim.id.isDestroyed());
-   bool isTemp = id.mode == 1;
+   bool isTemp = (id.mode == 1 || id.mode == 2);
    if(victim.id.fileId == nativeFlobs && isTemp){
       nativeFlobCache->erase(victim); // delete from cache
       DestroyedFlobs->push(victim);
@@ -551,7 +537,8 @@ bool FlobManager::destroy(Flob& victim) {
 
 
 bool FlobManager::destroyIfNonPersistent(Flob& victim) {
-   if(victim.id.fileId == nativeFlobs && victim.id.mode == 1){
+   if(victim.id.fileId == nativeFlobs
+       && (victim.id.mode == 1 || victim.id.mode == 2) ){
       return destroy(victim);
    }
    return true;
@@ -748,8 +735,6 @@ bool FlobManager::putData(Flob& dest,         // destination flob
 
 void FlobManager::changeMode(Flob* flob, const char mode)
 {
-//  FlobId id = flob.id;
-//  id.mode = mode;
   flob->id.mode = mode;
 }
 
@@ -791,7 +776,6 @@ bool FlobManager::setExFile(Flob& flob, const string& flobFile,
   }
 
   SmiRecordId recordId = flob.id.recordId;
-  assert((flob.id.mode==0) || (flob.id.mode==1) || (flob.id.mode==3));
   externalFileCache->cacheRecord(recordId, flobFile);
 
   flob.id.mode = 2;
