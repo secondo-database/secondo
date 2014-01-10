@@ -30,6 +30,18 @@ int TriangleIntersection(float V0[3], float V1[3], float V2[3],
 bool MSeg::intersects(const MSeg& a) const {
     int ret;
     
+    if (!(is == ie) && !(fs == fe)) {
+        MSeg ms1(is, ie, fs, fs);
+        MSeg ms2(is, is, fs, fe);
+        return ms1.intersects(a) || ms2.intersects(a);
+    }
+    
+    if (!(a.is == a.ie) && !(a.fs == a.fe)) {
+        MSeg ms1(a.is, a.ie, a.fs, a.fs);
+        MSeg ms2(a.is, a.is, a.fs, a.fe);
+        return intersects(ms1) || intersects(ms2);
+    }
+    
     float V0[3], V1[3], V2[3];
     float U0[3], U1[3], U2[3];
     

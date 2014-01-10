@@ -23,8 +23,11 @@ void MFace::AddConcavity(MSegs c) {
     cvs.push_back(c);
 }
 
+static ListExpr CycleToListExpr(MSegs face);
 void MFace::MergeConcavities() {
+    CycleToListExpr(face);
     for (unsigned int i = 0; i < cvs.size(); i++) {
+        CycleToListExpr(cvs[i]);
         if (cvs[i].GetMatchingMSegs(face).size() > 0) {
             face.MergeConcavity(cvs[i]);
         } else {
@@ -57,6 +60,8 @@ static ListExpr CycleToListExpr(MSegs face) {
     first = cur = 0;
 
     assert(face.segs.size() > 0);
+    
+    cerr << "Cycle " << face.ToString() << "\n";
 
     ListExpr c = nl->OneElemList(nl->RealAtom(face.segs[cur].ie.x));
     le = nl->Append(c, nl->RealAtom(face.segs[cur].ie.y));
@@ -64,16 +69,19 @@ static ListExpr CycleToListExpr(MSegs face) {
     le = nl->Append(le, nl->RealAtom(face.segs[cur].fe.y));
     ListExpr cy = nl->OneElemList(c);
     le2 = cy;
+    cerr << "fst " << face.segs[cur].ToString() << "\n";
     cur = face.findNext(cur);
     while (cur != first) {
+        cerr << "cur " << face.segs[cur].ToString() << "\n";
+        assert(cur >= 0);
         c = nl->OneElemList(nl->RealAtom(face.segs[cur].ie.x));
         le = nl->Append(c, nl->RealAtom(face.segs[cur].ie.y));
         le = nl->Append(le, nl->RealAtom(face.segs[cur].fe.x));
         le = nl->Append(le, nl->RealAtom(face.segs[cur].fe.y));
         le2 = nl->Append(le2, c);
         cur = face.findNext(cur);
-        assert(cur >= 0);
     }
+    cerr << "Cycle end\n";
 
     return cy;
 }
@@ -114,4 +122,34 @@ string MFace::ToString() {
     ss << "\n";
 
     return ss.str();
+}
+
+Reg MFace::CreateBorderRegion(bool src) {
+    vector<Seg> segs;
+    
+    for (unsigned int i = 0; i < face.segs.size(); i++) {
+        MSeg ms = face.segs[i];
+        if ((src && (ms.is == ms.ie)) ||
+            (!src && (ms.fs == ms.fe)))
+            continue;
+        segs.push_back(src?Seg(ms.is, ms.ie):Seg(ms.fs, ms.fe));
+    }
+    
+    Reg ret(segs);
+    cerr << "Ret " << ret.ToString() << "\n";
+    for (unsigned int h = 0; h < holes.size(); h++) {
+        vector<Seg> hole;
+        MSegs mss = holes[h];
+        for (unsigned int i = 0; i < mss.segs.size(); i++) {
+            MSeg ms = mss.segs[i];
+            if ((src && (ms.is == ms.ie)) ||
+                (!src && (ms.fs == ms.fe)))
+                continue;
+            hole.push_back(src?Seg(ms.is, ms.ie):Seg(ms.fs, ms.fe));
+        }
+        ret.AddHole(hole);
+        cerr << "Ret2 " << ret.ToString() << "\n";
+    }
+    
+    return ret;
 }

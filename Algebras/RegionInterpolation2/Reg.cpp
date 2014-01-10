@@ -102,6 +102,8 @@ void Reg::AddSeg(Seg& a) {
 }
 
 void Reg::Close() {
+    if (!v.size())
+        return;
     int i = v.size() - 1;
     if (!(v[i].e == v[0].s)) {
         Seg s(v[i].e, v[0].s);
@@ -444,4 +446,42 @@ Reg Reg::Merge(Reg r) {
     ret.Close();
     
     return ret;
+}
+
+void Reg::AddHole(vector<Seg> hole) {
+    vector<Seg> nsegs;
+    bool ishole = true;
+    
+    if (hole.size() < 3)
+        return;
+    
+    for (unsigned int i = 0; i < hole.size(); i++) {
+        bool found = false;
+        for (unsigned int j = 0; j < v.size(); j++) {
+            if (hole[i] == v[j]) {
+                found = true;
+                ishole = false;
+                v.erase(v.begin()+j);
+                cerr << "Erasing v-element " << j << ", now " << v.size() <<
+                        "\n";
+                break;
+            }
+        }
+        if (!found) {
+           nsegs.push_back(hole[i]);
+        }
+    }
+    if (ishole) {
+        Reg r(hole);
+        r.ishole = true;
+        r.Close();
+        holes.push_back(r);
+    } else {
+        for (unsigned int i = 0; i < nsegs.size(); i++) {
+            nsegs[i].ChangeDir();
+        }
+        nsegs.insert(nsegs.end(), v.begin(), v.end());
+        cerr << "nsegs has " << nsegs.size() << " segs\n";
+        v = Seg::sortSegs(nsegs);
+    }
 }

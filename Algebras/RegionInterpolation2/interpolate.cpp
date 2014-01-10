@@ -58,14 +58,14 @@ static vector<pair<Reg *, Reg *> > matchFacesNull(vector<Reg> *src,
 static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
         vector<Reg> *dst, int depth) {
     vector<pair<Reg *, Reg *> > ret;
-    
+
     for (unsigned int i = 0; i < src->size(); i++) {
         (*src)[i].used = 0;
     }
     for (unsigned int i = 0; i < dst->size(); i++) {
         (*dst)[i].used = 0;
     }
-    
+
     Pt srcoff = Reg::GetBoundingBox(*src).first;
     Pt dstoff = Reg::GetBoundingBox(*dst).first;
 
@@ -125,26 +125,77 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
     return ret;
 }
 
-MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
-        vector<Reg> *dregs, Instant *ti2, int depth) {
-    MFaces ret;
+static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
+        vector<Reg> *dst, int depth) {
+    vector<pair<Reg *, Reg *> > ret;
     
+    for (unsigned int i = 0; i < src->size(); i++) {
+        (*src)[i].used = 0;
+        (*src)[i].Close();
+        if (!(*src)[i].v.size())
+            (*src)[i].used = 1;
+    }
+    for (unsigned int i = 0; i < dst->size(); i++) {
+        (*dst)[i].used = 0;
+        (*dst)[i].Close();
+        if (!(*dst)[i].v.size())
+            (*dst)[i].used = 1;
+    }
+    
+    for (unsigned int i = 0; i < src->size(); i++) {
+        for (unsigned int j = 0; j < dst->size(); j++) {
+            if ((*dst)[j].used)
+                continue;
+            cerr << "Comparing " << (*src)[i].v[0].s.ToString() << " with " <<
+                    (*dst)[j].v[0].s.ToString() << "\n";
+            if ((*src)[i].v[0].s == (*dst)[j].v[0].s) {
+                (*src)[i].used = 1;
+                (*dst)[j].used = 1;
+                ret.push_back(pair<Reg*,Reg*>(&(*src)[i], &(*dst)[j]));
+            }
+        }
+    }
+    
+    for (unsigned int i = 0; i < src->size(); i++) {
+        if (!(*src)[i].used) {
+            ret.push_back(pair<Reg*,Reg*>(&(*src)[i], NULL));
+        }
+    }
+    
+    for (unsigned int i = 0; i < dst->size(); i++) {
+        if (!(*dst)[i].used) {
+            ret.push_back(pair<Reg*,Reg*>(NULL, &(*dst)[i]));
+        }
+    }
+    
+    return ret;
+}
+
+MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth, bool evap
+{
+    MFaces ret;
+
+        cerr << "x\n";
     ret.sregs = sregs;
     ret.dregs = dregs;
-    
+
     if (sregs->empty() && dregs->empty())
         return ret;
-    
+
     for (unsigned int i = 0; i < sregs->size(); i++) {
         (*sregs)[i].isdst = 0;
     }
     for (unsigned int i = 0; i < dregs->size(); i++) {
         (*dregs)[i].isdst = 1;
     }
-    
+
     vector<pair<Reg *, Reg *> > ps;
+
+    if (!evap)
+        ps = matchFacesLua(sregs, dregs, depth);
+    else
+        ps = matchFacesLowerLeft(sregs, dregs, depth);
     
-    ps = matchFacesLua(sregs, dregs, depth);
     MFaces fcs;
 
     for (unsigned int i = 0; i < ps.size(); i++) {
@@ -154,14 +205,17 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
         Reg *dst = p.second;
 
         if (src && dst) {
+            cerr << "Rotating\n" << src->ToString() << "\n with \n"
+                    << dst->ToString() << "\n";
             RotatingPlane rp(src, dst);
-            fcs = interpolate(&rp.scvs, ti1, &rp.dcvs, ti2, depth+1);
-            
+            cerr << "Results " << rp.face.ToString() << "\n";
+            fcs = interpolate(&rp.scvs, &rp.dcvs, depth + 1, evap);
+
             for (int i = 0; i < (int) fcs.faces.size(); i++) {
                 MSegs *s1 = &fcs.faces[i].face;
                 if (s1->ignore)
                     continue;
-                for (unsigned int j = i+1; j < fcs.faces.size(); j++) {
+                for (unsigned int j = i + 1; j < fcs.faces.size(); j++) {
                     MSegs *s2 = &fcs.faces[j].face;
                     if (s2->ignore)
                         continue;
@@ -174,16 +228,15 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
                             ss = s2->kill();
                             s2->ignore = 1;
                         } else {
-                            if (s1->iscollapsed == 1) {
-                            } else if (s1->iscollapsed == 2) {
-                            }
-                            s1->ignore = 1;
+                            MSegs *rm = s1;
+//                            if (!evap)
+                                rm->ignore = 1;
                             cerr << "Intersection found, but cannot "
-                                    "compensate! Evaporating Region\n";
+                                    "compensate! Eliminating Region\n";
                             continue;
                         }
                         cerr << "Intersection found: " << ss.first.ToString()
-                             << "\n" << ss.second.ToString() << "\n";
+                                << "\n" << ss.second.ToString() << "\n";
                         fcs.faces.push_back(ss.first);
                         fcs.faces.push_back(ss.second);
                         i = -1;
@@ -191,7 +244,7 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
                     }
                 }
             }
-            
+
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
                 if (fcs.faces[i].face.ignore)
                     continue;
@@ -214,19 +267,11 @@ MFaces interpolate(vector<Reg> *sregs, Instant *ti1,
     return ret;
 }
 
-MFaces interp(vector<Reg> *sregs, Instant *ti1,
-        vector<Reg> *dregs, Instant *ti2, int depth) {
-    MFaces ret = interpolate(sregs, ti1, dregs, ti2, depth);
-    
-    
-    return ret;
-}
-
 Word InMRegion(const ListExpr typeInfo,
-                      const ListExpr instance,
-                      const int errorPos,
-                      ListExpr& errorInfo,
-                      bool& correct);
+        const ListExpr instance,
+        const int errorPos,
+        ListExpr& errorInfo,
+        bool& correct);
 
 int interpolatevalmap(Word* args,
         Word& result,
@@ -237,7 +282,7 @@ int interpolatevalmap(Word* args,
 
     Instant* ti1 = static_cast<Instant*> (args[1].addr);
     Instant* ti2 = static_cast<Instant*> (args[3].addr);
-//    CcReal* mode = static_cast<CcReal*> (args[4].addr);
+    //    CcReal* mode = static_cast<CcReal*> (args[4].addr);
     MRegion* m = static_cast<MRegion*> (result.addr);
 
     Interval<Instant> iv(*ti1, *ti2, true, true);
@@ -248,7 +293,7 @@ int interpolatevalmap(Word* args,
     vector<Reg> reg1 = Reg::getRegs(_r1);
     vector<Reg> reg2 = Reg::getRegs(_r2);
 
-    MFaces mf = interpolate(&reg1, ti1, &reg2, ti2, 0);
+    MFaces mf = interpolate(&reg1, &reg2, 0, false);
     cerr << mf.ToString();
 
     ListExpr mreg = mf.ToMListExpr(iv);
@@ -256,14 +301,14 @@ int interpolatevalmap(Word* args,
     ListExpr err;
     bool correct = false;
     Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
-    if (correct) 
+    if (correct)
         result.setAddr(w.addr);
     else {
         MRegion mr = mf.ToMRegion(iv);
         *m = mr;
     }
-    
-    cerr  << "\n\n Intersectiontest1\n";
+
+    cerr << "\n\n Intersectiontest1\n";
     unsigned int dr;
     if (specialTrapeziumIntersects(100,
             -37, -15, 9, -39,
@@ -275,8 +320,8 @@ int interpolatevalmap(Word* args,
     } else {
         cerr << "No int found " << dr << "\n";
     }
-    
-    cerr  << "\n\n Intersectiontest2\n";
+
+    cerr << "\n\n Intersectiontest2\n";
     if (specialTrapeziumIntersects(100,
             -127, 5, -79, -18,
             -106, -1, -106, -1,
@@ -287,7 +332,7 @@ int interpolatevalmap(Word* args,
     } else {
         cerr << "No int found " << dr << "\n";
     }
-    
+
     return 0;
 }
 

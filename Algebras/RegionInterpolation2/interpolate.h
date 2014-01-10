@@ -96,6 +96,7 @@ public:
     Reg Merge(Reg r);
     Reg ClipEar();
     vector<MSegs> Evaporate(bool close);
+    void AddHole (vector<Seg> segs);
 
     static vector<Reg> getRegs(ListExpr le);
     static pair<Pt, Pt> GetBoundingBox(vector<Reg> regs);
@@ -146,6 +147,7 @@ public:
     bool needStartRegion, needEndRegion;
     MSegs face;
     vector<MSegs> holes, cvs;
+    vector<Reg> sevap, devap;
 
     MFace();
     MFace(MSegs face);
@@ -156,6 +158,7 @@ public:
     ListExpr ToListExpr();
     string ToString();
     MFace divide(double start, double end);
+    Reg CreateBorderRegion(bool src);
 };
 
 class MFaces {
@@ -173,7 +176,9 @@ public:
     ListExpr ToMListExpr(Interval<Instant> iv);
     string ToString();
     MFaces divide(double start, double end);
-    MFaces GetBorderRegions(vector<Reg> *regs);
+    vector<Reg> CreateBorderRegions(bool src);
+    MFaces CreateBorderMFaces(bool src);
+    
 };
 
 class RotatingPlane {
@@ -190,6 +195,9 @@ static double eps = 0.00001;
 static bool nearlyEqual(double a, double b) {
     return abs(a - b) <= eps;
 }
+
+MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
+        bool evap);
 
 #endif	/* INTERPOLATE_HXX */
 

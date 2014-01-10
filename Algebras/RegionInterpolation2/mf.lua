@@ -65,9 +65,10 @@ function matchFacesSpecial (src, dst, depth)
 
     if (depth == 0) then
 	return { { src = src[1], dst = dst[1] } }
-    elseif (depth == 10) then
+    elseif (depth == 1) then
 	return { 
-	{ src = { x = src[1], y = src[2] }, dst = dst[1] }
+	{ src = src[1] , dst = dst[2] },
+	{ src = src[2] , dst = dst[1] }
 	}
     end
 
