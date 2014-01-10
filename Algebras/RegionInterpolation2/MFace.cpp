@@ -135,7 +135,9 @@ Reg MFace::CreateBorderRegion(bool src) {
         segs.push_back(src?Seg(ms.is, ms.ie):Seg(ms.fs, ms.fe));
     }
     
+    segs = Seg::sortSegs(segs);
     Reg ret(segs);
+    
     cerr << "Ret " << ret.ToString() << "\n";
     for (unsigned int h = 0; h < holes.size(); h++) {
         vector<Seg> hole;
@@ -150,6 +152,7 @@ Reg MFace::CreateBorderRegion(bool src) {
         ret.AddHole(hole);
         cerr << "Ret2 " << ret.ToString() << "\n";
     }
+    
     
     return ret;
 }

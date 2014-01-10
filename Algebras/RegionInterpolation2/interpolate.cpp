@@ -128,7 +128,7 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
 static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
         vector<Reg> *dst, int depth) {
     vector<pair<Reg *, Reg *> > ret;
-    
+
     for (unsigned int i = 0; i < src->size(); i++) {
         (*src)[i].used = 0;
         (*src)[i].Close();
@@ -141,7 +141,7 @@ static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
         if (!(*dst)[i].v.size())
             (*dst)[i].used = 1;
     }
-    
+
     for (unsigned int i = 0; i < src->size(); i++) {
         for (unsigned int j = 0; j < dst->size(); j++) {
             if ((*dst)[j].used)
@@ -151,31 +151,31 @@ static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
             if ((*src)[i].v[0].s == (*dst)[j].v[0].s) {
                 (*src)[i].used = 1;
                 (*dst)[j].used = 1;
-                ret.push_back(pair<Reg*,Reg*>(&(*src)[i], &(*dst)[j]));
+                ret.push_back(pair<Reg*, Reg*>(&(*src)[i], &(*dst)[j]));
             }
         }
     }
-    
+
     for (unsigned int i = 0; i < src->size(); i++) {
         if (!(*src)[i].used) {
-            ret.push_back(pair<Reg*,Reg*>(&(*src)[i], NULL));
+            ret.push_back(pair<Reg*, Reg*>(&(*src)[i], NULL));
         }
     }
-    
+
     for (unsigned int i = 0; i < dst->size(); i++) {
         if (!(*dst)[i].used) {
-            ret.push_back(pair<Reg*,Reg*>(NULL, &(*dst)[i]));
+            ret.push_back(pair<Reg*, Reg*>(NULL, &(*dst)[i]));
         }
     }
-    
+
     return ret;
 }
 
-MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth, bool evap
-{
+MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
+        bool evap) {
     MFaces ret;
 
-        cerr << "x\n";
+    cerr << "x\n";
     ret.sregs = sregs;
     ret.dregs = dregs;
 
@@ -195,7 +195,7 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth, bool evap
         ps = matchFacesLua(sregs, dregs, depth);
     else
         ps = matchFacesLowerLeft(sregs, dregs, depth);
-    
+
     MFaces fcs;
 
     for (unsigned int i = 0; i < ps.size(); i++) {
@@ -211,6 +211,7 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth, bool evap
             cerr << "Results " << rp.face.ToString() << "\n";
             fcs = interpolate(&rp.scvs, &rp.dcvs, depth + 1, evap);
 
+            vector<MSegs> evp;
             for (int i = 0; i < (int) fcs.faces.size(); i++) {
                 MSegs *s1 = &fcs.faces[i].face;
                 if (s1->ignore)
@@ -221,16 +222,31 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth, bool evap
                         continue;
                     if (s1->intersects(*s2)) {
                         pair<MSegs, MSegs> ss;
-                        if (!s1->iscollapsed) {
+                        if (!s1->iscollapsed && !evap) {
                             ss = s1->kill();
                             s1->ignore = 1;
-                        } else if (!s2->iscollapsed) {
+                        } else if (!s2->iscollapsed && !evap) {
                             ss = s2->kill();
                             s2->ignore = 1;
                         } else {
-                            MSegs *rm = s1;
-//                            if (!evap)
-                                rm->ignore = 1;
+                            MSegs *rm;
+                            if (evap) {
+                                assert(s1->iscollapsed || s2->iscollapsed);
+                                if (s1->iscollapsed)
+                                    rm = s1;
+                                else
+                                    rm = s2;
+                                vector<MSegs> ms;
+                                if (rm->iscollapsed == 1) {
+                                    ms = rm->sreg.Evaporate(true);
+                                } else {
+                                    ms = rm->dreg.Evaporate(false);
+                                }
+                                evp.insert(evp.end(), ms.begin(), ms.end());
+                            } else {
+                                rm = s1;
+                            }
+                            rm->ignore = 1;
                             cerr << "Intersection found, but cannot "
                                     "compensate! Eliminating Region\n";
                             continue;
@@ -244,6 +260,7 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth, bool evap
                     }
                 }
             }
+            fcs.faces.insert(fcs.faces.end(), evp.begin(), evp.end());
 
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
                 if (fcs.faces[i].face.ignore)

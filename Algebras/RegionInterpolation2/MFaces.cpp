@@ -139,11 +139,12 @@ static void Append(ListExpr &head, ListExpr l) {
 }
 
 ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
-    bool needStartRegion = false, needEndRegion = false;
+    bool needStartRegion = false, needEndRegion = false,
+            needStartEvap = true, needEndEvap = true;
     Interval<Instant> iv;
     Instant cur;
     iv.CopyFrom(_iv);
-    DateTime msec1(durationtype, 1);
+    DateTime msec1(durationtype, 10000);
 
     ListExpr mreg = nl->Empty();
     
@@ -152,42 +153,96 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
         needStartRegion = needStartRegion || faces[i].needStartRegion;
         needEndRegion = needEndRegion || faces[i].needEndRegion;
     }
+    
+    Instant onethird = (_iv.end - _iv.start)/3;
+    // Compiling intervals
+    Interval<Instant> startEvapIv, endEvapIv;
+    Interval<Instant> startRegIv, endRegIv;
+    Interval<Instant> mainIv;
+    
+    mainIv.CopyFrom(_iv);
+    if (needStartEvap) {
+        startEvapIv.lc = mainIv.lc;
+        
+        startEvapIv.start = mainIv.start;
+        mainIv.start = mainIv.start + onethird;
+        startEvapIv.end = mainIv.start;
+        
+        startEvapIv.rc = true;
+        mainIv.lc = false;
+    }
+    
+    if (needEndEvap) {
+        endEvapIv.rc = mainIv.rc;
+        
+        endEvapIv.end = mainIv.end;
+        mainIv.end = mainIv.end - onethird;
+        endEvapIv.start = mainIv.end;
+        
+        endEvapIv.lc = true;
+        mainIv.rc = false;
+    }
+    
+    if (needStartRegion) {
+        startRegIv.lc = mainIv.lc;
+        
+        startRegIv.start = mainIv.start;
+        mainIv.start = mainIv.start + msec1;
+        startRegIv.end = mainIv.start;
+        
+        startRegIv.rc = true;
+        mainIv.lc = false;
+    }
+    
+    if (needEndRegion) {
+        endRegIv.rc = mainIv.rc;
+        
+        endRegIv.end = mainIv.end;
+        mainIv.end = mainIv.end - msec1;
+        endRegIv.start = mainIv.end;
+        
+        endRegIv.lc = true;
+        mainIv.rc = false;
+    }
+    
 
-    if (1) {
-        Interval<Instant> interval;
-        interval.start = iv.start;
-        interval.end = iv.start + (iv.end - iv.start)/3;
-        iv.start = interval.end;
-        interval.lc = true;
-        interval.rc = false;
+    if (needStartEvap) {
         MFaces fs;
+        cerr << "X=======================================\n"
+                "===================================\n";
         vector<Reg> bordersregs = CreateBorderRegions(true);
         cerr << "Y=======================================\n"
                 "===================================\n";
         fs = interpolate(sregs, &bordersregs, 0, true);
         cerr << "Z=======================================\n"
                 "===================================\n";
-        Append(mreg,fs.ToListExpr(interval, 0, 1));
+        Append(mreg,fs.ToListExpr(startEvapIv, 0, 1));
     }
     
-    if (needStartRegion && sregs) {
+    if (needStartRegion) {
         Interval<Instant> interval(iv.start, iv.start+msec1, true, true);
         iv.lc = false;
         iv.start += msec1;
-        Append(mreg, CreateBorderMFaces(true).ToListExpr(interval, 0, 1));
+        Append(mreg, CreateBorderMFaces(true).ToListExpr(startRegIv, 0, 1));
     }
+
+    Append(mreg, ToListExpr(mainIv, 0, 1));
 
     if (needEndRegion) {
-        iv.rc = false;
-        iv.end -= msec1;
+        Append(mreg, CreateBorderMFaces(false).ToListExpr(endRegIv, 0, 1));
     }
-
-    Append(mreg, ToListExpr(iv, 0, 1));
-
-    if (needEndRegion && dregs) {
-        Interval<Instant> interval(iv.end, _iv.end, true, true);
-        cerr << "\n\nCreating END REGION\n";
-        Append(mreg, CreateBorderMFaces(false).ToListExpr(interval, 0, 1));
+    
+    if (needEndEvap) {
+        MFaces fs;
+        cerr << "X=======================================\n"
+                "===================================\n";
+        vector<Reg> borderdregs = CreateBorderRegions(false);
+        cerr << "Y=======================================\n"
+                "===================================\n";
+        fs = interpolate(&borderdregs, dregs, 0, true);
+        cerr << "Z=======================================\n"
+                "===================================\n";
+        Append(mreg,fs.ToListExpr(endEvapIv, 0, 1));
     }
 
     return mreg;

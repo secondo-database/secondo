@@ -7,6 +7,7 @@ MSegs::MSegs() : ignore(0), iscollapsed(0) {
 }
 
 void MSegs::AddMSeg(MSeg m) {
+    bool merged = false;
     if ((m.is == m.ie) && (m.fs == m.fe))
         return;
 
@@ -19,6 +20,7 @@ void MSegs::AddMSeg(MSeg m) {
             if (s1.angle() == s2.angle()) {
                 prev->fs = m.fs;
                 prev->fe = m.fe;
+                merged = true;
                 cerr << "Merging collinear segments 1b\n";
             }
         } else if ((prev->is == prev->ie) && (m.fs == m.fe) &&
@@ -30,11 +32,11 @@ void MSegs::AddMSeg(MSeg m) {
                 prev->is = m.is;
                 prev->ie = m.ie;
                 cerr << "Merging collinear segments 2b\n";
+                merged = true;
             }
-        } else {
-            segs.push_back(m);
         }
-    } else
+    }
+    if (!merged)
         segs.push_back(m);
 }
 
