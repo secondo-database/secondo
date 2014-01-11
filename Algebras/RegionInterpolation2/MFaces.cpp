@@ -72,7 +72,9 @@ URegion MFaces::ToURegion(Interval<Instant> iv, double start, double end) {
 
 ListExpr MFaces::ToListExpr(Interval<Instant> iv, double start, double end) {
     ListExpr le;
-
+    
+    assert(faces.size() > 0);
+    
     if (start == 0 && end == 1) {
         ListExpr inst =
                 nl->OneElemList(nl->StringAtom(iv.start.ToString(false), true));
@@ -97,38 +99,149 @@ ListExpr MFaces::ToListExpr(Interval<Instant> iv, double start, double end) {
 
 MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
     MRegion ret(1);
-    bool needStartRegion = false, needEndRegion = false;
+    bool needStartRegion = false, needEndRegion = false,
+            needStartEvap = true, needEndEvap = true;
     Interval<Instant> iv;
+    Instant cur;
     iv.CopyFrom(_iv);
-    DateTime msec1(durationtype, 1);
+    DateTime msec1(durationtype, 10000);
 
     for (unsigned int i = 0; i < faces.size(); i++) {
         faces[i].MergeConcavities();
         needStartRegion = needStartRegion || faces[i].needStartRegion;
         needEndRegion = needEndRegion || faces[i].needEndRegion;
     }
-
+    
+    Instant onethird = (_iv.end - _iv.start)/3;
+    // Compiling intervals
+    Interval<Instant> startEvapIv, endEvapIv;
+    Interval<Instant> startRegIv, endRegIv;
+    Interval<Instant> mainIv;
+    
+    mainIv.CopyFrom(_iv);
+    if (needStartEvap) {
+        startEvapIv.lc = mainIv.lc;
+        
+        startEvapIv.start = mainIv.start;
+        mainIv.start = mainIv.start + onethird;
+        startEvapIv.end = mainIv.start;
+        
+        startEvapIv.rc = true;
+        mainIv.lc = false;
+    }
+    
+    if (needEndEvap) {
+        endEvapIv.rc = mainIv.rc;
+        
+        endEvapIv.end = mainIv.end;
+        mainIv.end = mainIv.end - onethird;
+        endEvapIv.start = mainIv.end;
+        
+        endEvapIv.lc = true;
+        mainIv.rc = false;
+    }
+    
     if (needStartRegion) {
-        iv.lc = false;
-        Interval<Instant> startiv(iv.start, iv.start + msec1, true, true);
-        iv.start = iv.start + msec1;
-        URegion start = CreateBorderMFaces(true).ToURegion(startiv, 0, 1);
-        ret.AddURegion(start);
+        startRegIv.lc = mainIv.lc;
+        
+        startRegIv.start = mainIv.start;
+        mainIv.start = mainIv.start + msec1;
+        startRegIv.end = mainIv.start;
+        
+        startRegIv.rc = true;
+        mainIv.lc = false;
     }
-
+    
     if (needEndRegion) {
-        iv.rc = false;
-        Interval<Instant> endiv(iv.end - msec1, iv.end, true, true);
-        iv.end = iv.end - msec1;
-        URegion end = CreateBorderMFaces(false).ToURegion(endiv, 0, 1);
-        ret.AddURegion(end);
+        endRegIv.rc = mainIv.rc;
+        
+        endRegIv.end = mainIv.end;
+        mainIv.end = mainIv.end - msec1;
+        endRegIv.start = mainIv.end;
+        
+        endRegIv.lc = true;
+        mainIv.rc = false;
+    }
+    
+
+    if (needStartEvap) {
+        cerr << "\n==== Start-Evaporations ====\n";
+        MFaces fs;
+        vector<Reg> bordersregs = CreateBorderRegions(true);
+        fs = interpolate(sregs, &bordersregs, 0, true);
+        URegion u = fs.ToURegion(startEvapIv, 0, 1);
+        ret.AddURegion(u);
+        cerr << "==== /Start-Evaporations ====\n";
+    }
+    
+    if (needStartRegion) {
+        cerr << "\n==== Start-Region ====\n";
+        URegion u = CreateBorderMFaces(true).ToURegion(startRegIv, 0, 1);
+        ret.AddURegion(u);
+        cerr << "==== /Start-Region ====\n";
     }
 
-    URegion ureg = ToURegion(iv, 0, 1);
-    ret.AddURegion(ureg);
+    if (1) {
+        cerr << "\n==== Main-Interpolation to List ====\n";
+        URegion u = ToURegion(mainIv, 0, 1);
+        ret.AddURegion(u);
+        cerr << "==== /Main-Interpolation to List ====\n";
+    }
+    
+    if (needEndRegion) {
+        cerr << "\n==== End-Region ====\n";
+        URegion u = CreateBorderMFaces(false).ToURegion(endRegIv, 0, 1);
+        ret.AddURegion(u);
+        cerr << "==== /End-Region ====\n";
+    }
+    
+    if (needEndEvap) {
+        cerr << "\n==== End-Evaporations ====\n";
+        MFaces fs;
+        vector<Reg> borderdregs = CreateBorderRegions(false);
+        fs = interpolate(&borderdregs, dregs, 0, true);
+        URegion u = fs.ToURegion(endEvapIv, 0, 1);
+        ret.AddURegion(u);
+        cerr << "==== /End-Evaporations ====\n";
+    }
 
     return ret;
 }
+
+//MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
+//    MRegion ret(1);
+//    bool needStartRegion = false, needEndRegion = false;
+//    Interval<Instant> iv;
+//    iv.CopyFrom(_iv);
+//    DateTime msec1(durationtype, 1);
+//
+//    for (unsigned int i = 0; i < faces.size(); i++) {
+//        faces[i].MergeConcavities();
+//        needStartRegion = needStartRegion || faces[i].needStartRegion;
+//        needEndRegion = needEndRegion || faces[i].needEndRegion;
+//    }
+//
+//    if (needStartRegion) {
+//        iv.lc = false;
+//        Interval<Instant> startiv(iv.start, iv.start + msec1, true, true);
+//        iv.start = iv.start + msec1;
+//        URegion start = CreateBorderMFaces(true).ToURegion(startiv, 0, 1);
+//        ret.AddURegion(start);
+//    }
+//
+//    if (needEndRegion) {
+//        iv.rc = false;
+//        Interval<Instant> endiv(iv.end - msec1, iv.end, true, true);
+//        iv.end = iv.end - msec1;
+//        URegion end = CreateBorderMFaces(false).ToURegion(endiv, 0, 1);
+//        ret.AddURegion(end);
+//    }
+//
+//    URegion ureg = ToURegion(iv, 0, 1);
+//    ret.AddURegion(ureg);
+//
+//    return ret;
+//}
 
 static void Append(ListExpr &head, ListExpr l) {
     if (head == nl->Empty()) {
@@ -207,42 +320,37 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
     
 
     if (needStartEvap) {
+        cerr << "\n==== Start-Evaporations ====\n";
         MFaces fs;
-        cerr << "X=======================================\n"
-                "===================================\n";
         vector<Reg> bordersregs = CreateBorderRegions(true);
-        cerr << "Y=======================================\n"
-                "===================================\n";
         fs = interpolate(sregs, &bordersregs, 0, true);
-        cerr << "Z=======================================\n"
-                "===================================\n";
         Append(mreg,fs.ToListExpr(startEvapIv, 0, 1));
+        cerr << "==== /Start-Evaporations ====\n";
     }
     
     if (needStartRegion) {
-        Interval<Instant> interval(iv.start, iv.start+msec1, true, true);
-        iv.lc = false;
-        iv.start += msec1;
+        cerr << "\n==== Start-Region ====\n";
         Append(mreg, CreateBorderMFaces(true).ToListExpr(startRegIv, 0, 1));
+        cerr << "==== /Start-Region ====\n";
     }
 
+    cerr << "\n==== Main-Interpolation to List ====\n";
     Append(mreg, ToListExpr(mainIv, 0, 1));
+    cerr << "==== /Main-Interpolation to List ====\n";
 
     if (needEndRegion) {
+        cerr << "\n==== End-Region ====\n";
         Append(mreg, CreateBorderMFaces(false).ToListExpr(endRegIv, 0, 1));
+        cerr << "==== /End-Region ====\n";
     }
     
     if (needEndEvap) {
+        cerr << "\n==== End-Evaporations ====\n";
         MFaces fs;
-        cerr << "X=======================================\n"
-                "===================================\n";
         vector<Reg> borderdregs = CreateBorderRegions(false);
-        cerr << "Y=======================================\n"
-                "===================================\n";
         fs = interpolate(&borderdregs, dregs, 0, true);
-        cerr << "Z=======================================\n"
-                "===================================\n";
         Append(mreg,fs.ToListExpr(endEvapIv, 0, 1));
+        cerr << "==== /End-Evaporations ====\n";
     }
 
     return mreg;

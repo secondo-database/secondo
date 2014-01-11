@@ -57,9 +57,13 @@ string Seg::ToString() const {
 vector<Seg> Seg::sortSegs(vector<Seg> v) {
     vector<Seg> ret;
 
+    if (v.size() == 0)
+        return ret;
+    
     int start = -1, start2 = -1;
     double minx = 0, miny = 0;
     Seg minseg1, minseg2;
+    
 
     // Find the lowest point
     for (unsigned int i = 0; i < v.size(); i++) {

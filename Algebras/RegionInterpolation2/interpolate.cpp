@@ -171,11 +171,23 @@ static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
     return ret;
 }
 
+/*
+2 Interpolate
+
+Main interpolation function between two lists of regions.
+It calls a matching-function to create pairs of regions from the source- and
+destination-list and interpolates the convex hulls of these regions using the
+RotatingPlane-function. Then it creates two new lists from the concavities and
+holes of the region and recurses. The result of the recursion is then merged
+into the current result. Intersections are detected and tried to be compensated
+
+*/
+
+
 MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
         bool evap) {
     MFaces ret;
 
-    cerr << "x\n";
     ret.sregs = sregs;
     ret.dregs = dregs;
 
@@ -189,43 +201,49 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
         (*dregs)[i].isdst = 1;
     }
 
-    vector<pair<Reg *, Reg *> > ps;
+    vector<pair<Reg *, Reg *> > matches;
 
     if (!evap)
-        ps = matchFacesLua(sregs, dregs, depth);
+        matches = matchFacesLua(sregs, dregs, depth);
     else
-        ps = matchFacesLowerLeft(sregs, dregs, depth);
+        matches = matchFacesLowerLeft(sregs, dregs, depth);
 
     MFaces fcs;
 
-    for (unsigned int i = 0; i < ps.size(); i++) {
-        pair<Reg *, Reg *> p = ps[i];
+    for (unsigned int i = 0; i < matches.size(); i++) {
+        pair<Reg *, Reg *> p = matches[i];
 
         Reg *src = p.first;
         Reg *dst = p.second;
 
         if (src && dst) {
-            cerr << "Rotating\n" << src->ToString() << "\n with \n"
-                    << dst->ToString() << "\n";
+
+            // Use the RotatingPlane-Algorithm to create an interpolation of
+            // the convex hull of src and dst and identify all concavities
             RotatingPlane rp(src, dst);
-            cerr << "Results " << rp.face.ToString() << "\n";
+            
+            // Recurse and try to match and interpolate the list of concavities
             fcs = interpolate(&rp.scvs, &rp.dcvs, depth + 1, evap);
 
+
+            // Now check if the interpolations intersect in any way
             vector<MSegs> evp;
-            for (int i = 0; i < (int) fcs.faces.size(); i++) {
-                MSegs *s1 = &fcs.faces[i].face;
+            for (int i = 0; i < (int) fcs.faces.size() + 1; i++) {
+                MSegs *s1 = (i == 0)?&rp.face.face:&fcs.faces[i-1].face;
                 if (s1->ignore)
                     continue;
-                for (unsigned int j = i + 1; j < fcs.faces.size(); j++) {
+                for (unsigned int j = i; j < fcs.faces.size(); j++) {
                     MSegs *s2 = &fcs.faces[j].face;
                     if (s2->ignore)
                         continue;
                     if (s1->intersects(*s2)) {
                         pair<MSegs, MSegs> ss;
-                        if (!s1->iscollapsed && !evap) {
+                        if (!s1->iscollapsed && (s1 != &rp.face.face) && !evap)
+                        {
                             ss = s1->kill();
                             s1->ignore = 1;
-                        } else if (!s2->iscollapsed && !evap) {
+                        } else if (!s2->iscollapsed && (s2 != &rp.face.face)
+                                && !evap) {
                             ss = s2->kill();
                             s2->ignore = 1;
                         } else {
@@ -244,7 +262,7 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
                                 }
                                 evp.insert(evp.end(), ms.begin(), ms.end());
                             } else {
-                                rm = s1;
+                                rm = s2;
                             }
                             rm->ignore = 1;
                             cerr << "Intersection found, but cannot "
