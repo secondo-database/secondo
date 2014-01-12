@@ -9,12 +9,13 @@
 #include "MovingRegionAlgebra.h"
 
 class MSegs;
+class MFace;
 
 class Pt {
 public:
     double x, y;
     int valid;
-    double angle;
+    long double angle;
 
     Pt();
     Pt(double x, double y);
@@ -40,7 +41,7 @@ public:
 
     Seg();
     Seg(Pt s, Pt e);
-    double angle() const;
+    long double angle() const;
     bool operator<(const Seg& a) const;
     bool operator==(const Seg& a) const;
     string ToString() const;
@@ -90,6 +91,8 @@ public:
     Pt GetCentroid();
     MSegs collapse(bool close);
     MSegs collapse(bool close, Pt dst);
+    MFace collapseWithHoles(bool close);
+    Pt collapsePoint();
     MSegs GetMSegs();
     string ToString() const;
     double distance(Reg r);
@@ -120,19 +123,21 @@ public:
 
 class MSegs {
 public:
-    int ignore, iscollapsed;
+    int ignore, iscollapsed, id;
     vector<MSeg> segs;
     Reg sreg, dreg;
+    pair<Pt,Pt> bbox;
 
     MSegs();
     void AddMSeg(MSeg m);
-    void AddMSegs(vector<MSeg> v);
     vector<MSegmentData> ToMSegmentData(int face, int cycle, int segno);
     string ToString() const;
     vector<MSeg> GetMatchingMSegs(MSegs m);
     void MergeConcavity(MSegs c);
     bool intersects(const MSegs& a) const;
-
+    void updateBBox(MSeg& seg);
+    pair<Pt, Pt> calculateBBox();
+    
     pair<MSegs, MSegs> kill();
     Reg GetSReg();
     Reg GetDReg();
@@ -148,6 +153,7 @@ public:
     MSegs face;
     vector<MSegs> holes, cvs;
     vector<Reg> sevap, devap;
+    pair<Pt, Pt> bbox;
 
     MFace();
     MFace(MSegs face);
@@ -165,7 +171,7 @@ class MFaces {
 public:
     vector<MFace> faces;
     vector<Reg> *sregs, *dregs;
-    vector<Reg> sevap, devap;
+    bool needSEvap, needDEvap;
 
     MFaces();
     MFaces(MFace face);
@@ -179,6 +185,8 @@ public:
     vector<Reg> CreateBorderRegions(bool src);
     MFaces CreateBorderMFaces(bool src);
     
+    static ListExpr fallback(vector<Reg> *s, vector<Reg> *d, 
+                             Interval<Instant> iv);
 };
 
 class RotatingPlane {
@@ -186,15 +194,8 @@ public:
     MFace face;
     vector<Reg> scvs, dcvs;
 
-    RotatingPlane(Reg *src, Reg *dst);
+    RotatingPlane(Reg *src, Reg *dst, int depth);
 };
-
-
-static double eps = 0.00001;
-
-static bool nearlyEqual(double a, double b) {
-    return abs(a - b) <= eps;
-}
 
 MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
         bool evap);

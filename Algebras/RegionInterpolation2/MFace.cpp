@@ -24,10 +24,11 @@ void MFace::AddConcavity(MSegs c) {
 }
 
 static ListExpr CycleToListExpr(MSegs face);
+
 void MFace::MergeConcavities() {
-    CycleToListExpr(face);
+    //    CycleToListExpr(face);
     for (unsigned int i = 0; i < cvs.size(); i++) {
-        CycleToListExpr(cvs[i]);
+        //        CycleToListExpr(cvs[i]);
         if (cvs[i].GetMatchingMSegs(face).size() > 0) {
             face.MergeConcavity(cvs[i]);
         } else {
@@ -46,7 +47,8 @@ URegion MFace::ToURegion(Interval<Instant> iv, int facenr) {
     MergeConcavities();
     vector<MSegmentData> ms = face.ToMSegmentData(facenr, 0, 0);
     for (unsigned int i = 0; i < holes.size(); i++) {
-        vector<MSegmentData> h = holes[i].ToMSegmentData(facenr,i+1,ms.size());
+        vector<MSegmentData> h = holes[i].ToMSegmentData(facenr, i + 1,
+                ms.size());
         ms.insert(ms.end(), h.begin(), h.end());
     }
     URegion ret(ms, iv);
@@ -58,10 +60,10 @@ static ListExpr CycleToListExpr(MSegs face) {
     ListExpr le, le2;
     int first, cur;
     first = cur = 0;
+    
+    cerr << "\nAdding listexpr for " << face.ToString() << "\n";
 
     assert(face.segs.size() > 0);
-    
-    cerr << "Cycle " << face.ToString() << "\n";
 
     ListExpr c = nl->OneElemList(nl->RealAtom(face.segs[cur].ie.x));
     le = nl->Append(c, nl->RealAtom(face.segs[cur].ie.y));
@@ -69,10 +71,8 @@ static ListExpr CycleToListExpr(MSegs face) {
     le = nl->Append(le, nl->RealAtom(face.segs[cur].fe.y));
     ListExpr cy = nl->OneElemList(c);
     le2 = cy;
-    cerr << "fst " << face.segs[cur].ToString() << "\n";
     cur = face.findNext(cur);
     while (cur != first) {
-        cerr << "cur " << face.segs[cur].ToString() << "\n";
         assert(cur >= 0);
         c = nl->OneElemList(nl->RealAtom(face.segs[cur].ie.x));
         le = nl->Append(c, nl->RealAtom(face.segs[cur].ie.y));
@@ -81,7 +81,8 @@ static ListExpr CycleToListExpr(MSegs face) {
         le2 = nl->Append(le2, c);
         cur = face.findNext(cur);
     }
-    cerr << "Cycle end\n";
+    
+    cerr << "\nAdded listexpr\n";
 
     return cy;
 }
@@ -126,33 +127,32 @@ string MFace::ToString() {
 
 Reg MFace::CreateBorderRegion(bool src) {
     vector<Seg> segs;
-    
+
     for (unsigned int i = 0; i < face.segs.size(); i++) {
         MSeg ms = face.segs[i];
         if ((src && (ms.is == ms.ie)) ||
-            (!src && (ms.fs == ms.fe)))
+                (!src && (ms.fs == ms.fe)))
             continue;
-        segs.push_back(src?Seg(ms.is, ms.ie):Seg(ms.fs, ms.fe));
+        segs.push_back(src ? Seg(ms.is, ms.ie) : Seg(ms.fs, ms.fe));
     }
-    
+
     segs = Seg::sortSegs(segs);
     Reg ret(segs);
-    
-    cerr << "Ret " << ret.ToString() << "\n";
+
     for (unsigned int h = 0; h < holes.size(); h++) {
         vector<Seg> hole;
         MSegs mss = holes[h];
         for (unsigned int i = 0; i < mss.segs.size(); i++) {
             MSeg ms = mss.segs[i];
             if ((src && (ms.is == ms.ie)) ||
-                (!src && (ms.fs == ms.fe)))
+                    (!src && (ms.fs == ms.fe)))
                 continue;
-            hole.push_back(src?Seg(ms.is, ms.ie):Seg(ms.fs, ms.fe));
+            hole.push_back(src ? Seg(ms.is, ms.ie) : Seg(ms.fs, ms.fe));
         }
         ret.AddHole(hole);
-        cerr << "Ret2 " << ret.ToString() << "\n";
     }
-    
-    
+
+
     return ret;
 }
+

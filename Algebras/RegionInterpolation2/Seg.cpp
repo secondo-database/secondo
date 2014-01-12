@@ -25,15 +25,15 @@ bool Seg::operator==(const Seg& a) const {
     return ((s == a.s) && (e == a.e));
 }
 
-double Seg::angle() const {
-    double ret;
-    double dx = e.x - s.x;
-    double dy = e.y - s.y;
+long double Seg::angle() const {
+    long double ret;
+    long double dx = e.x - s.x;
+    long double dy = e.y - s.y;
 
     if (e.x == s.x) {
         ret = (e.y < s.y) ? -M_PI / 2 : M_PI / 2;
     } else {
-        ret = atan((double(dy)) / (double(dx)));
+        ret = atan(dy / dx);
     }
 
     ret = ret * 90.0 / (M_PI / 2);

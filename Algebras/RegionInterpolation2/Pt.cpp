@@ -14,7 +14,7 @@ bool Pt::operator<(const Pt& a) const {
 }
 
 bool Pt::operator==(const Pt& a) const {
-    return (nearlyEqual(x, a.x) && nearlyEqual(y, a.y));
+    return (x == a.x && y == a.y);
 }
 
 Pt Pt::operator-(const Pt& a) const {
@@ -38,9 +38,9 @@ bool Pt::sortAngle(const Pt& a) const {
 }
 
 void Pt::calcAngle(const Pt& pt) {
-    double tmpx = x - pt.x;
-    double tmpy = y - pt.y;
-    double hyp = sqrt(tmpx * tmpx + tmpy * tmpy);
+    long double tmpx = x - pt.x;
+    long double tmpy = y - pt.y;
+    long double hyp = sqrt(tmpx * tmpx + tmpy * tmpy);
     angle = acos(tmpx / hyp);
 }
 

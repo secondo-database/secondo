@@ -67,7 +67,7 @@ void Reg::Sort() {
 }
 
 void Reg::AddSeg(Seg& a) {
-    int minx, miny, maxx, maxy;
+    double minx, miny, maxx, maxy;
     if (a.s.x > a.e.x) {
         minx = a.e.x;
         maxx = a.s.x;
@@ -132,12 +132,19 @@ static bool leftOf(Pt pt1, Pt pt2, Pt next) {
 }
 
 static bool sortAngle(const Pt& a, const Pt& b) {
+    if (a.angle == b.angle) {
+        if (a.y < b.y)
+            return true;
+    }
     return (a.angle < b.angle);
 }
 
 void Reg::ConvexHull() {
+    assert(v.size() > 0);
     convexhull.erase(convexhull.begin(), convexhull.end());
     vector<Pt> lt = getPoints();
+    
+    
     std::sort(lt.begin(), lt.end());
 
     lt[0].angle = -1.0;
@@ -146,7 +153,7 @@ void Reg::ConvexHull() {
     }
     std::sort(lt.begin(), lt.end(), sortAngle);
 
-    vector<Pt> uh = vector<Pt > ();
+    vector<Pt> uh = vector<Pt> ();
     uh.push_back(lt[0]);
     uh.push_back(lt[1]);
 
@@ -214,6 +221,7 @@ MSegs Reg::collapse(bool close, Pt dst) {
     if (v.size() < 3)
         return ret;
 
+    Close();
 
     for (unsigned int i = 0; i < v.size(); i++) {
         if (close) {
@@ -233,21 +241,40 @@ MSegs Reg::collapse(bool close, Pt dst) {
     return ret;
 }
 
+MFace Reg::collapseWithHoles(bool close) {
+    MFace ret(collapse(close));
+    
+    for (unsigned int i = 0; i < holes.size(); i++) {
+        ret.AddConcavity(holes[i].collapse(close, collapsePoint()));
+    }
+    
+    ret.MergeConcavities();
+    
+    return ret;
+}
+
 
 MSegs Reg::collapse(bool close) {
     MSegs ret;
 
-    Pt dst;
 
     if (v.size() < 3)
         return ret;
 
+    Pt dst = collapsePoint();
+
+    return collapse(close, dst);
+}
+
+Pt Reg::collapsePoint() {
+    Pt dst;
+    
     if (peerPoint.valid)
         dst = peerPoint;
     else
         dst = v[0].s;
-
-    return collapse(close, dst);
+    
+    return dst;
 }
 
 vector<Reg> Reg::getRegs(ListExpr le) {
@@ -462,8 +489,6 @@ void Reg::AddHole(vector<Seg> hole) {
                 found = true;
                 ishole = false;
                 v.erase(v.begin()+j);
-                cerr << "Erasing v-element " << j << ", now " << v.size() <<
-                        "\n";
                 break;
             }
         }
@@ -481,7 +506,6 @@ void Reg::AddHole(vector<Seg> hole) {
             nsegs[i].ChangeDir();
         }
         nsegs.insert(nsegs.end(), v.begin(), v.end());
-        cerr << "nsegs has " << nsegs.size() << " segs\n";
         v = Seg::sortSegs(nsegs);
     }
 }

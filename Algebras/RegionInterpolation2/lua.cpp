@@ -7,6 +7,8 @@
 #include <set>
 #include <lua5.2/lua.hpp>
 
+static int SCALESIZE = 1000000000;
+
 static lua_State *L = NULL;
 static void setfield(const char *key, int value);
 
@@ -103,9 +105,9 @@ void setupParams(set<Reg*> *regs, const char *prefix, int depth) {
             bbox = Reg::GetBoundingBox(*regs);
         lua_setPt(offstr, bbox.first);
         if ((bbox.second.x > bbox.first.x) &&
-                (bbox.second.y > bbox.first.y) && depth > 0) {
-            Pt scale(1000 / (bbox.second.x - bbox.first.x),
-                    1000 / (bbox.second.y - bbox.first.y));
+                (bbox.second.y > bbox.first.y)) {
+            Pt scale(SCALESIZE / (bbox.second.x - bbox.first.x),
+                    SCALESIZE / (bbox.second.y - bbox.first.y));
             lua_setPt(scalestr, scale);
         } else {
             lua_setPt(scalestr, Pt(1, 1));
@@ -191,15 +193,15 @@ vector<pair<Reg *, Reg *> > __matchFacesLua(set<Reg*> *src, set<Reg*> *dst,
         cerr << "Return-Value is not a table!\n";
     }
 
-    for (std::set<Reg*>::iterator it = src->begin(); it != src->end(); ++it) {
-        pair<Reg *, Reg *> p(*it, NULL);
-        ret.push_back(p);
-    }
-
-    for (std::set<Reg*>::iterator it = dst->begin(); it != dst->end(); ++it) {
-        pair<Reg *, Reg *> p(NULL, *it);
-        ret.push_back(p);
-    }
+//    for (std::set<Reg*>::iterator it = src->begin(); it != src->end(); ++it) {
+//        pair<Reg *, Reg *> p(*it, NULL);
+//        ret.push_back(p);
+//    }
+//
+//    for (std::set<Reg*>::iterator it = dst->begin(); it != dst->end(); ++it) {
+//        pair<Reg *, Reg *> p(NULL, *it);
+//        ret.push_back(p);
+//    }
 
 
     return ret;

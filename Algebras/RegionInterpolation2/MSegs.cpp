@@ -3,7 +3,7 @@
 
 #include "interpolate.h"
 
-MSegs::MSegs() : ignore(0), iscollapsed(0) {
+MSegs::MSegs() : ignore(0), iscollapsed(0), id(-1) {
 }
 
 void MSegs::AddMSeg(MSeg m) {
@@ -16,34 +16,25 @@ void MSegs::AddMSeg(MSeg m) {
         if ((prev->fs == prev->fe) && (m.is == m.ie) && (prev->ie == m.is)) {
             Seg s1(prev->is, prev->ie);
             Seg s2(m.fs, m.fe);
-            cerr << "Merging collinear segments 1a\n";
             if (s1.angle() == s2.angle()) {
                 prev->fs = m.fs;
                 prev->fe = m.fe;
                 merged = true;
-                cerr << "Merging collinear segments 1b\n";
             }
         } else if ((prev->is == prev->ie) && (m.fs == m.fe) &&
                 (prev->fe == m.fs)) {
             Seg s1(prev->fs, prev->fe);
             Seg s2(m.is, m.ie);
-            cerr << "Merging collinear segments 2a\n";
             if (s1.angle() == s2.angle()) {
                 prev->is = m.is;
                 prev->ie = m.ie;
-                cerr << "Merging collinear segments 2b\n";
                 merged = true;
             }
         }
     }
     if (!merged)
         segs.push_back(m);
-}
-
-void MSegs::AddMSegs(vector<MSeg> v) {
-    for (unsigned int i = 0; i < v.size(); i++) {
-        segs.push_back(v[i]);
-    }
+    calculateBBox();
 }
 
 vector<MSeg> MSegs::GetMatchingMSegs(MSegs m) {
@@ -68,7 +59,7 @@ vector<MSeg> MSegs::GetMatchingMSegs(MSegs m) {
 }
 
 void MSegs::MergeConcavity(MSegs c) {
-//    cerr << "Merging " << ToString() << " with " << c.ToString() << "\n";
+    //    cerr << "Merging " << ToString() << " with " << c.ToString() << "\n";
     std::sort(segs.begin(), segs.end());
     std::sort(c.segs.begin(), c.segs.end());
     std::vector<MSeg>::iterator i = segs.begin();
@@ -87,7 +78,7 @@ void MSegs::MergeConcavity(MSegs c) {
         c.segs[x].ChangeDirection();
     segs.insert(segs.end(), c.segs.begin(), c.segs.end());
     std::sort(segs.begin(), segs.end());
-//    cerr << "Result: " << ToString() << "\n\n";
+    //    cerr << "Result: " << ToString() << "\n\n";
 }
 
 string MSegs::ToString() const {
@@ -120,9 +111,17 @@ vector<MSegmentData> MSegs::ToMSegmentData(int face, int cycle, int segno) {
     return ret;
 }
 
-// Inefficient!
-
 bool MSegs::intersects(const MSegs& a) const {
+    
+    // Fast path if the boundingboxes are disjoint
+    
+    if ((bbox.first.x > a.bbox.second.x) ||
+        (a.bbox.first.x > bbox.second.x) ||
+        (bbox.first.y > a.bbox.second.y) ||
+        (a.bbox.first.y > bbox.second.y))
+            return false;
+    
+    
     bool ret = false;
     for (unsigned int i = 0; i < a.segs.size(); i++) {
         for (unsigned int j = 0; j < segs.size(); j++) {
@@ -194,4 +193,66 @@ int MSegs::findNext(int index) {
     }
 
     return -1;
+}
+
+static inline double max(double a, double b, double c, double d) {
+    double m = a;
+
+    if (b > m)
+        m = b;
+    if (c > m)
+        m = c;
+    if (d > m)
+        m = d;
+
+    return m;
+}
+
+static inline double min(double a, double b, double c, double d) {
+    double m = a;
+
+    if (b < m)
+        m = b;
+    if (c < m)
+        m = c;
+    if (d < m)
+        m = d;
+
+    return m;
+}
+
+pair<Pt, Pt> MSegs::calculateBBox() {
+    if (segs.empty()) {
+        bbox = pair<Pt, Pt>(Pt(0, 0), Pt(0, 0));
+    } else {
+        bbox.first.valid = bbox.second.valid = 0;
+        for (unsigned int i = 0; i < segs.size(); i++) {
+            updateBBox(segs[i]);
+        }
+    }
+
+    return bbox;
+}
+
+void MSegs::updateBBox(MSeg& seg) {
+    Pt p1(min(seg.is.x, seg.ie.x,
+            seg.fs.x, seg.fe.x),
+            min(seg.is.y, seg.ie.y,
+            seg.fs.y, seg.fe.y)
+            );
+    Pt p2(max(seg.is.x, seg.ie.x,
+            seg.fs.x, seg.fe.x),
+            max(seg.is.y, seg.ie.y,
+            seg.fs.y, seg.fe.y)
+            );
+    if ((bbox.first.x > p1.x) || !bbox.first.valid)
+        bbox.first.x = p1.x;
+    if ((bbox.first.y > p1.y) || !bbox.first.valid)
+        bbox.first.y = p1.y;
+    if ((bbox.second.x < p2.x) || !bbox.second.valid)
+        bbox.second.x = p2.x;
+    if ((bbox.second.y < p2.y) || !bbox.second.valid)
+        bbox.second.y = p2.y;
+    bbox.first.valid = 1;
+    bbox.second.valid = 1;
 }

@@ -1,4 +1,3 @@
-
 function matchFacesold (src, dst, depth)
     print("\nDepth "..depth..": Srcregs " .. #src .. ", Dstregs " .. #dst)
     
@@ -63,11 +62,11 @@ end
 function matchFacesSpecial (src, dst, depth)
     ret = {}
 
-    if (depth < 2) then
+    if (depth < 0) then
 	return matchFacesDistance(src, dst, depth)
     else
 	return { 
-	{ src = src[1] , dst = dst[1] }
+--	{ src = src[1] , dst = dst[1] }
 --	{ src = src[2] , dst = dst[1] }
 	}
     end
