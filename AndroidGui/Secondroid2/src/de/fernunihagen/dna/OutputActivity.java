@@ -2,10 +2,16 @@ package de.fernunihagen.dna;
 
 import java.util.Vector;
 
+import javamini.awt.geom.Rectangle2D;
+
 import sj.lang.ListExpr;
 
+import de.fernunihagen.dna.hoese.DsplBase;
+import de.fernunihagen.dna.hoese.DsplGraph;
 import de.fernunihagen.dna.hoese.LEUtils;
 import de.fernunihagen.dna.hoese.QueryResult;
+import de.fernunihagen.dna.hoese.QueryResultHelper;
+import de.fernunihagen.dna.hoese.QueryResultHelper.CoordinateSystem;
 import de.fernunihagen.dna.osm.OsmMapActivity;
 import android.os.Bundle;
 import android.app.Activity;
@@ -51,7 +57,7 @@ public class OutputActivity extends TabActivity implements OnTabChangeListener {
 			}
 		}
 
-		if (!queryresults.contains(queryResultExtra)) {
+		if (!queryresults.contains(queryResultExtra) || queryResultExtra.getStrings().size() == 0) {
 			final ListExpr listExpr = queryResultExtra.getResultList();
 
 			if (listExpr == null) {
@@ -63,16 +69,10 @@ public class OutputActivity extends TabActivity implements OnTabChangeListener {
 			LEUtils.analyse(name, 0, 0, listExpr.first(), listExpr.second(),
 					queryResultExtra);
 			Log.i(TAG, queryResultExtra.getStrings().toString());
-			queryresults.add(queryResultExtra);
-		}
-
-		// Resources res = getResources();
-		// Configuration cfg = res.getConfiguration();
-		// boolean hor = cfg.orientation == Configuration.ORIENTATION_LANDSCAPE;
-		//
-		// if (hor) {
-		// getTabWidget().setOrientation(LinearLayout.VERTICAL);
-		// }
+			if (!queryresults.contains(queryResultExtra)) {
+				queryresults.add(queryResultExtra);
+			}
+		} 
 
 		// Tab for Textoutput
 		TabSpec textSpec = tabHost.newTabSpec("Text");
@@ -125,21 +125,14 @@ public class OutputActivity extends TabActivity implements OnTabChangeListener {
 
 		// deactivate one Tab
 		// tabHost.getTabWidget().getChildTabViewAt(3).setEnabled(false);
+		getTabHost().setCurrentTab(1); // Set the Text Tab as first visible Tab
 	}
+
 
 	public void switchTab(int tab) {
 		getTabHost().setCurrentTab(tab);
 	}
 
-	/**
-	 * Set up the {@link android.app.ActionBar}, if the API is available.
-	 */
-	// @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-	private void setupActionBar() {
-		// if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-		// getActionBar().setDisplayHomeAsUpEnabled(true);
-		// }
-	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {

@@ -39,7 +39,7 @@ public class OsmMapView extends MapView {
 				if (max < 2000000) {
 					zoomlevel = 8;
 				} else {
-					if (max < 4000000) {
+					if (max < 8000000) {
 						zoomlevel = 7;
 					} else {
 						if (max < 9000000) {

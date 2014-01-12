@@ -112,11 +112,26 @@ public class CanvasActivity extends Activity implements OnClickListener, Viewer 
 		ll.addView(buttonPlay, lpButtonNext);
 		buttonPlay.setOnClickListener(this);
 
+		// Create the "Slower" Button for timed Objects
+		RelativeLayout.LayoutParams lpSlower = new RelativeLayout.LayoutParams(
+				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+		lpSlower.addRule(RelativeLayout.ALIGN_BOTTOM, R.id.play);
+		lpSlower.addRule(RelativeLayout.RIGHT_OF, R.id.play);
+		lpSlower.setMargins(0, 0, 0, 0);
+		ImageButton buttonSlower = new ImageButton(this, null,
+				android.R.attr.buttonStyleSmall);
+		buttonSlower.setAdjustViewBounds(true);
+		buttonSlower.setId(R.id.slower);
+		buttonSlower.setImageResource(R.drawable.mediaslower);
+		buttonSlower.setMaxHeight(pixel * 3);
+		ll.addView(buttonSlower, lpSlower);
+		buttonSlower.setOnClickListener(this);
+
 		// Create the Faster Button for timed Objects
 		RelativeLayout.LayoutParams lpFaster = new RelativeLayout.LayoutParams(
 				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
 		lpFaster.addRule(RelativeLayout.ALIGN_BOTTOM, R.id.play);
-		lpFaster.addRule(RelativeLayout.RIGHT_OF, R.id.play);
+		lpFaster.addRule(RelativeLayout.RIGHT_OF, R.id.slower);
 		lpFaster.setMargins(0, 0, 0, 0);
 		ImageButton buttonFaster = new ImageButton(this, null,
 				android.R.attr.buttonStyleSmall);
@@ -164,6 +179,9 @@ public class CanvasActivity extends Activity implements OnClickListener, Viewer 
 				: Button.VISIBLE);
 		buttonFaster.setVisibility(boundingInter == null ? Button.INVISIBLE
 				: Button.VISIBLE);
+		buttonSlower.setVisibility(boundingInter == null ? Button.INVISIBLE
+				: Button.VISIBLE);
+
 		setProgressBarIndeterminateVisibility(false);
 	}
 
@@ -270,6 +288,10 @@ public class CanvasActivity extends Activity implements OnClickListener, Viewer 
 		switch (v.getId()) {
 		case R.id.faster:
 			period *= 0.5f;
+			startTimer();
+			break;
+		case R.id.slower:
+			period *= 2.0f;
 			startTimer();
 			break;
 		case R.id.play:

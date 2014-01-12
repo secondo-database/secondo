@@ -24,8 +24,9 @@ import android.widget.Toast;
 
 /**
  * This Activity handles the querys an get the result from QueryAsyncTask
+ * 
  * @author Michael Küpper
- *
+ * 
  */
 public class CommandActivity extends Activity implements OnClickListener {
 	private static final String TAG = CommandActivity.class.getName();
@@ -48,8 +49,7 @@ public class CommandActivity extends Activity implements OnClickListener {
 		setupLocationManager();
 
 		final Intent intent = getIntent();
-		databaseName = intent
-				.getStringExtra(DatabasesActivity.EXTRA_MESSAGE);
+		databaseName = intent.getStringExtra(DatabasesActivity.EXTRA_MESSAGE);
 		TextView textView = (TextView) findViewById(R.id.selectedDatabase);
 		textView.setText(databaseName);
 
@@ -66,24 +66,7 @@ public class CommandActivity extends Activity implements OnClickListener {
 
 			@Override
 			public void onClick(View v) {
-				Intent i = new Intent(CommandActivity.this,
-						OutputActivity.class);
-
-				View resultView = findViewById(R.id.resultText);
-
-				QueryResult result = (QueryResult) resultView.getTag();
-				i.putExtra(EXTRA_DATABASE, databaseName);
-
-				if (result != null) {
-					result.setSelected(true);
-					i.putExtra(EXTRA_RESULT, result);
-				} else {
-					return;
-					// i.putExtra(EXTRA_RESULT, new QueryResult());
-
-				}
-
-				startActivity(i);
+				startOutputActivity();
 			}
 		});
 
@@ -106,19 +89,18 @@ public class CommandActivity extends Activity implements OnClickListener {
 	protected void onDestroy() {
 		if ("".equals(databaseName))
 			return;
-		executeAsyncQuery("close database");		
+		executeAsyncQuery("close database");
 		super.onDestroy();
 	}
 
-//	@Override
-//	protected void onStart() {
-//		super.onStart();
-//		if ("".equals(databaseName))
-//			return;
-//		executeAsyncQuery("open database " + databaseName);		
-//	}
-	
-	
+	// @Override
+	// protected void onStart() {
+	// super.onStart();
+	// if ("".equals(databaseName))
+	// return;
+	// executeAsyncQuery("open database " + databaseName);
+	// }
+
 	private void setupLocationManager() {
 		// Getting LocationManager object from System Service LOCATION_SERVICE
 		LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
@@ -128,25 +110,27 @@ public class CommandActivity extends Activity implements OnClickListener {
 		LocationListener locationListener = new LocationListener() {
 			public void onLocationChanged(Location location) {
 				actLocation = location;
-				if (location != null ) {
-					ImageButton button = (ImageButton) findViewById(R.id.location);
-					button.setEnabled(true);
-				}
+				// if (location != null ) {
+				// ImageButton button = (ImageButton)
+				// findViewById(R.id.location);
+				// button.setEnabled(true);
+				// }
 			}
 
 			@Override
 			public void onProviderDisabled(String arg0) {
-				Toast.makeText(getApplicationContext(), "GPS deaktiviert",
-						Toast.LENGTH_SHORT).show();
-				ImageButton button = (ImageButton) findViewById(R.id.location);
-				button.setEnabled(false);
+				Toast.makeText(getApplicationContext(),
+						getString(R.string.nogps), Toast.LENGTH_SHORT).show();
+				// ImageButton button = (ImageButton)
+				// findViewById(R.id.location);
+				// button.setEnabled(false);
 
 			}
 
 			@Override
 			public void onProviderEnabled(String arg0) {
-				Toast.makeText(getApplicationContext(), "GPS aktiviert",
-						Toast.LENGTH_SHORT).show();
+				Toast.makeText(getApplicationContext(),
+						getString(R.string.gps), Toast.LENGTH_SHORT).show();
 
 			}
 
@@ -166,6 +150,15 @@ public class CommandActivity extends Activity implements OnClickListener {
 	}
 
 	public void postAsyncTask() {
+		boolean intermediateMode = true; // Show the resultwindow
+		View resultView = findViewById(R.id.resultText);
+
+		if (intermediateMode) {
+			if (resultView.getTag() != null) {
+				startOutputActivity();
+			}
+		}
+		
 		Button btShowOutput = (Button) findViewById(R.id.showOutput);
 		btShowOutput.setEnabled(true);
 	}
@@ -224,14 +217,20 @@ public class CommandActivity extends Activity implements OnClickListener {
 			startActivityForResult(i, EXTRA_QUERY);
 			break;
 		case R.id.location:
-			// Only if we have a location 
+			// Only if we have a location
 			if (actLocation != null) {
 				String text = commandText.getText().toString();
-				String part1 = text.substring(0, commandText.getSelectionStart());
+				String part1 = text.substring(0,
+						commandText.getSelectionStart());
 				String part3 = text.substring(commandText.getSelectionEnd());
-				commandText.setText(part1 + LocationFormatter.format(actLocation)
-						+ part3);
+				commandText.setText(part1
+						+ LocationFormatter.format(actLocation) + part3);
+			} else {
+				Toast.makeText(getApplicationContext(),
+						getString(R.string.nolocation), 1).show();
+
 			}
+
 			break;
 		case R.id.runCommand:
 			String query = commandText.getText().toString();
@@ -282,6 +281,26 @@ public class CommandActivity extends Activity implements OnClickListener {
 		queryDto.setStartTime(new Date());
 		ds.save(queryDto);
 		ds.close();
+	}
+
+	private void startOutputActivity() {
+		Intent i = new Intent(CommandActivity.this, OutputActivity.class);
+
+		View resultView = findViewById(R.id.resultText);
+
+		QueryResult result = (QueryResult) resultView.getTag();
+		i.putExtra(EXTRA_DATABASE, databaseName);
+
+		if (result != null) {
+			result.setSelected(true);
+			i.putExtra(EXTRA_RESULT, result);
+		} else {
+			return;
+			// i.putExtra(EXTRA_RESULT, new QueryResult());
+
+		}
+
+		startActivity(i);
 	}
 
 }

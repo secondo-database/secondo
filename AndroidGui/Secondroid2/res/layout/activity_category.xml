@@ -65,6 +65,27 @@
             android:inputType="number"
             android:text="4" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="bottom" >
+
+            <Button
+                android:id="@+id/okayButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="@string/okay" />
+
+            <Button
+                android:id="@+id/cancelButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="@string/cancel" />
+
+        </LinearLayout>
+
     </LinearLayout>
 
 </RelativeLayout>

@@ -46,6 +46,12 @@ public class CategoryActivity extends Activity implements OnClickListener {
 		EditText alpha = (EditText) findViewById(R.id.alpha);
 		alpha.setText(new Integer(cat.getAlpha()).toString());
 		alpha.setFilters(new InputFilter[] { new InputFilterMinMax("0", "255") });
+
+		Button okayButton = (Button) findViewById(R.id.okayButton);
+		okayButton.setOnClickListener(this);
+
+		Button cancelButton = (Button) findViewById(R.id.cancelButton);
+		cancelButton.setOnClickListener(this);
 	}
 
 	@Override
@@ -56,6 +62,13 @@ public class CategoryActivity extends Activity implements OnClickListener {
 	}
 
 	public void onBackPressed() {
+		saveCategory();
+
+		finish();
+		return;
+	}
+
+	private void saveCategory() {
 		EditText thickness = (EditText) findViewById(R.id.thickness);
 		EditText alpha = (EditText) findViewById(R.id.alpha);
 		cat.setStrokeWidth(Integer.parseInt(thickness.getText().toString()));
@@ -64,9 +77,6 @@ public class CategoryActivity extends Activity implements OnClickListener {
 		Intent returnIntent = new Intent();
 		returnIntent.putExtra(ResultsActivity.EXTRA_CATEGORY, cat);
 		setResult(RESULT_OK, returnIntent);
-
-		finish();
-		return;
 	}
 
 	@Override
@@ -122,7 +132,16 @@ public class CategoryActivity extends Activity implements OnClickListener {
 
 			selectedDialog.show();
 			break;
+		case R.id.cancelButton:
+			finish();
+			break;
+		case R.id.okayButton:
+			saveCategory();
+
+			finish();
+			break;
 		}
+		
 
 	}
 

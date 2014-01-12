@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <string name="hello">Hello World, SecondroidActivity!</string>
     <string name="app_name">Secondroid</string>
     <string name="Secondo">SECONDO</string>
@@ -47,9 +46,9 @@
     <string name="title_activity_category">Properties</string>
     <string name="hello_world">Hello world!</string>
     <string name="alpha">Transparency</string>
-    <string name="thickness">Linethickness</string>
-    <string name="color">Farbe</string>
-    <string name="selectedColor">Selektiert</string>
+    <string name="thickness">Line thickness</string>
+    <string name="color">Color (normal)</string>
+    <string name="selectedColor">Color (selected)</string>
     <string name="servers">Server selection</string>
     <string name="title_activity_server_selection">ServerSelectionActivity</string>
     <string name="grafic">Grafic</string>
@@ -59,13 +58,18 @@
     <string name="running">running</string>
     <string name="ready">ready</string>
     <string name="noquery">no Query found</string>
-    <string name="queryexecuted">Query executed.\nPress \"Show\" to view the query result</string>
+    <string name="queryexecuted">Query executed.\nThe query result will soon be displayed...</string>
     <string name="removeserver">Do you want to delete connection \'%s\'?</string>
     <string name="removequery">Do you want to delete query \'%s\'?</string>
     <string name="serverconnection">server connection established</string>
     <string name="noserverconnection">no server connection</string>
     <string name="nooptimizerconnection">no optimizer connection</string>
     <string name="cannotsaveserver">cannot save databaseconnection</string>
+    <string name="nolocation">No GPS Position. GPS sensor on?</string>
+    <string name="nogps">GPS off</string>
+    <string name="gps">GPS on</string>
+    <string name="okay">Okay</string>
+    <string name="cancel">Cancel</string>
     
     
 </resources>

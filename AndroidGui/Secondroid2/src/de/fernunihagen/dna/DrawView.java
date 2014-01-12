@@ -79,6 +79,10 @@ public class DrawView extends View {
 
 	private String actTimeString;
 
+	private float distanceY;
+
+	private float distanceX;
+
 	public DrawView(Context context, List<QueryResult> queryResults,
 			Point displaySize) {
 		super(context);
@@ -125,15 +129,17 @@ public class DrawView extends View {
 			double maxDoubleDimension = Math.max(totalBound.getWidth(),
 					totalBound.getHeight());
 			maxDimension = (float) maxDoubleDimension;
+			float border = maxDimension * 0.1f; // 10%
 
 			// Verschieben, damit linke obere Ecke 0.0 Koordinaten hat
-			matrix1.setTranslate(-(float) totalBound.x, 
-					-(float) totalBound.y); 
+			matrix1.setTranslate((-(float) totalBound.x) + border, 
+					(-(float) totalBound.y) + border); 
 			// Set the matrix to mirror the image in the x direction
 			// matrix1.preScale(-1.0f, 1.0f);
 			// Anzeige so verkleinern/vergrößern, damit sie auf das Dispay passt
-			matrix1.postScale(displaySize.x / maxDimension, displaySize.x
-					/ maxDimension);
+			float minDisplaySize =  Math.min(displaySize.x, displaySize.y);
+			matrix1.postScale(minDisplaySize / (maxDimension + border), minDisplaySize
+					/ (maxDimension + border));
 			stdWidthX = maxDimension > displaySize.x ? maxDimension
 					: (displaySize.x / maxDimension);
 			stdWidthY = maxDimension > displaySize.y ? maxDimension
@@ -292,10 +298,22 @@ public class DrawView extends View {
 
 	private class ScaleListener extends
 			ScaleGestureDetector.SimpleOnScaleGestureListener {
+
 		@Override
 		public boolean onScale(ScaleGestureDetector detector) {
-			scaleFactor *= detector.getScaleFactor();
+			float actScalefactor = detector.getScaleFactor();
+			scaleFactor *= actScalefactor;
 			Log.w(TAG, "scaleFactor = " + scaleFactor);
+
+			//actScalefactor = maxDimension > displaySize.x ? actScalefactor : scaleFactor;
+			Point p = getDisplaySize();
+			
+			if (actScalefactor < 1.0) {
+				onMove(p.x - (p.x * actScalefactor), p.y - (p.y * actScalefactor));
+			} else {
+				onMove(  (p.x * (1 - actScalefactor)),  (p.y * (1- actScalefactor)));
+
+			}
 
 			// // Don't let the object get too small or too large.
 			// scaleFactor = Math.max(0.1f, Math.min(scaleFactor, 5.0f));
@@ -405,7 +423,7 @@ public class DrawView extends View {
 
 			@SuppressWarnings("unused")
 			ListExpr listExpr = actQueryResult.getResultList();
-			// region
+
 			List<DsplBase> results = actQueryResult.getEntries();
 
 			for (DsplBase obj : results) {
@@ -512,6 +530,10 @@ public class DrawView extends View {
 
 	protected void setInvert(float newInvert) {
 		this.invert = newInvert;
+	}
+	
+	protected Point getDisplaySize() {
+		return displaySize;
 	}
 
 	public void onAnimateMove(float dx, float dy, long duration) {

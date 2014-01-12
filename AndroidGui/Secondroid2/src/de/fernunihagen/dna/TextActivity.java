@@ -4,7 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import sj.lang.ListExpr;
+
 import de.fernunihagen.dna.hoese.QueryResult;
+import de.fernunihagen.dna.hoese.QueryResultHelper;
+import de.fernunihagen.dna.hoese.QueryResultHelper.CoordinateSystem;
 import android.os.Bundle;
 import android.app.Activity;
 import android.util.Log;
@@ -28,6 +32,7 @@ public class TextActivity extends Activity {
 	private static final String NEWLINE = "\n";
 	private QueryResult queryResult;
 	private List<QueryResult> queryResults;
+	private int actSelectedPosition = -1;
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -54,7 +59,28 @@ public class TextActivity extends Activity {
 		createAdapter();
 
 	}
+	
+	@Override
+	public void onWindowFocusChanged(boolean hasFocus) {
+//		final ListView listview = (ListView) findViewById(R.id.listview);
 
+//		listview.invalidate();
+		super.onWindowFocusChanged(hasFocus);
+	}
+
+	
+	@Override
+	protected void onResume() {
+		final ListView listview = (ListView) findViewById(R.id.listview);
+
+		actSelectedPosition = queryResult.getActSelected();
+		if (actSelectedPosition >= 0) {
+			listview.smoothScrollToPosition(actSelectedPosition);
+		}
+//		listview.invalidate();
+		super.onResume();
+	}
+	
 	public void updateActivity() {
 		QueryResult lastresult = queryResult;
 
@@ -71,7 +97,6 @@ public class TextActivity extends Activity {
 
 	private void createAdapter() {
 		// Search for actual QueryResult
-		
 		final StableArrayAdapter adapter = new StableArrayAdapter(this,
 				R.xml.datatextitem, 
 				convertToItem(queryResult.getStrings()), queryResult);
@@ -85,9 +110,13 @@ public class TextActivity extends Activity {
 		          int position, long id) {
 		        CheckBox checkBox = (CheckBox) view.findViewById(R.id.itemcheck);
 		        checkBox.setChecked(!checkBox.isChecked());
-		        boolean changeTagMode = false; // If you want to switch immediately to the grafic tab, set to true
-				if (changeTagMode) {
-		        	switchTabInActivity(2);
+		        
+		        actSelectedPosition = checkBox.isChecked() ? position : -1;
+		        
+		        boolean changeTagMode = true; // If you want to switch immediately to the graphic tab, set to true
+				if (changeTagMode && checkBox.isChecked() && queryResult.getGraphObjects().size() > 0) {
+					int tab = QueryResultHelper.getCoordinateSystem(queryResults) == CoordinateSystem.GEO ? 3 : 2;
+		        	switchTabInActivity(tab);
 		        }
 		      }
 
@@ -167,7 +196,7 @@ public class TextActivity extends Activity {
 	      return true;
 	    }
 
-	    public View getView(int position, View convertView, ViewGroup parent) {
+	    public View getView(int position, final View convertView, final ViewGroup parent) {
 	        View row = convertView;
 	        // Holderpattern: http://www.jmanzano.es/blog/?p=166
 	        final ItemViewHolder holder;
@@ -177,6 +206,7 @@ public class TextActivity extends Activity {
 	          LayoutInflater inflater = getLayoutInflater();
 	          row = inflater.inflate(R.xml.datatextitem, parent, false);
 		      CheckBox checkBox = (CheckBox) row.findViewById(R.id.itemcheck);
+
 		      checkBox.setChecked(queryResult.getSelected(position));
 		      
 		      TextView label = (TextView) row.findViewById(R.id.dbServer);
@@ -189,9 +219,8 @@ public class TextActivity extends Activity {
 				@Override
 				public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 			         Log.w(TAG, "Tag ["+ buttonView.getTag() + "]");
-			         queryResult.selectItem((Integer) buttonView.getTag(), isChecked);
-			         }					
-			});
+			         queryResult.selectItem((Integer) buttonView.getTag(), isChecked);		
+				}});
 		      
 	        } else {
 	        	holder = (ItemViewHolder) convertView.getTag();
@@ -203,9 +232,9 @@ public class TextActivity extends Activity {
 		    holder.text.setText(text);
 	        holder.checkbox.setTag(position); // Zuerst die Position setzen
 		    boolean selected = queryResult.getSelected(position);
-	         Log.w(TAG, "1: setChecked ["+ selected + "]");
+	        Log.w(TAG, "1: setChecked ["+ selected + "]");
 	        holder.checkbox.setChecked(selected);
-	         Log.w(TAG, "2: setChecked ["+ selected + "]");
+	        Log.w(TAG, "2: setChecked ["+ selected + "]");
 	        return (row);
 	      }
 

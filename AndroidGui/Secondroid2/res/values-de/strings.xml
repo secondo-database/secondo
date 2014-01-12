@@ -48,8 +48,8 @@
     <string name="hello_world">Hello world!</string>
     <string name="alpha">Transparenz</string>
     <string name="thickness">Linienstärke</string>
-    <string name="color">Farbe</string>
-    <string name="selectedColor">Selektiert</string>
+    <string name="color">Farbe (normal)</string>
+    <string name="selectedColor">Farbe (selektiert)</string>
     <string name="servers">Serverauswahl</string>
     <string name="title_activity_server_selection">ServerSelectionActivity</string>
     <string name="grafic">Grafik</string>
@@ -59,13 +59,18 @@
     <string name="running">Abfrage wird ausgeführt</string>
     <string name="ready">Abfrage fertig. Daten werden aufbereitet.</string>
     <string name="noquery">kein Query angegeben</string>
-     <string name="queryexecuted">Query ausgeführt.\nBitte \"Anzeigen\" drücken um das Ergebnis anzuzeigen</string>
+     <string name="queryexecuted">Query ausgeführt.\nDas Ergebnis wir gleich angezeigt...</string>
      <string name="removeserver">Soll die Serververbindung \'%s\' gelöscht werden?</string>
      <string name="removequery">Soll die Abfrage \'%s\' gelöscht werden?</string>
      <string name="serverconnection">Server Verbindung hergestellt</string>
      <string name="noserverconnection">keine Serververbindung möglich</string>
      <string name="nooptimizerconnection">keine Verbindung zum Optimierer möglich</string>
      <string name="cannotsaveserver">Datenbankeinstellungen konnten nicht gespeichert werden</string>
-     
-     
+     <string name="nolocation">Keine GPS Position gefunden. GPS eingeschaltet?</string>     
+    <string name="nogps">GPS ausgeschaltet</string>
+    <string name="gps">GPS aktiviert</string>
+    <string name="okay">Okay</string>
+    <string name="cancel">Abbrechen</string>
+    
+    
 </resources>

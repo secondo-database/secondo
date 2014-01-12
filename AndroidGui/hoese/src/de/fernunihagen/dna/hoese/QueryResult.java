@@ -36,6 +36,11 @@ public class QueryResult implements Serializable {
 	
 	/** Selected */
 	private boolean selected;
+	/** only one element is selected **/
+	private boolean singleSelect = true;
+	/** act selected element **/
+	private int actSelectedElement = -1; // start value 
+
 	
 	// actual Item 
 	private boolean actual;
@@ -96,8 +101,16 @@ public class QueryResult implements Serializable {
         Log.w(TAG, "selectItem Tag ["+ position + "] = " + selected);
 		
 		if (graphObjects.size() <= position) {
-			return false;
+			return false; // if there is no graphic element, return
 //			throw new IllegalArgumentException("position > GraphObject.size"); // position to big
+		}
+		
+		// Only one selection
+		if (singleSelect && selected) {
+			for (DsplBase dsplBase : graphObjects) {
+				dsplBase.setSelected(false);
+			}
+			actSelectedElement = position;
 		}
 		
 		boolean oldSelectionState = false;
@@ -117,7 +130,7 @@ public class QueryResult implements Serializable {
 	public boolean getSelected(int position) {
 	
 		if (graphObjects.size() <= position) {
-			return false;
+			return false; // if there is no graphic element, return
 		//	throw new IllegalArgumentException("position > GraphObject.size"); // position to big
 		}
 		
@@ -333,6 +346,14 @@ public class QueryResult implements Serializable {
 		this.actual = actual;
 	}
 
+	public boolean isSingleSelect() {
+		return singleSelect;
+	}
+
+	public void setSingleSelect(boolean singleSelect) {
+		this.singleSelect = singleSelect;
+	}
+
 	public Category getCategory() {
 		if (category == null) {
 			category = new Category();
@@ -347,6 +368,21 @@ public class QueryResult implements Serializable {
 		this.category = category;
 	}
 	
+	public int getActSelected() {
+		actSelectedElement = -1; // no element selected
+		if (!singleSelect)
+			return actSelectedElement;
+		int index = 0;
+		for (DsplBase dsplBase: graphObjects) {
+			if (dsplBase.getSelected()) {
+				actSelectedElement = index;
+				return actSelectedElement;
+			}
+			++index;
+				
+		}
+		return actSelectedElement;
+	}
 	
 
 }

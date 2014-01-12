@@ -164,6 +164,11 @@ public class SecondoServerService {
 				IntObj errorcode = new IntObj();
 				String optimizedcommand = optimizerInterface.optimize_execute(
 						command, database, errorcode, false);
+				if(optimizedcommand.startsWith("::ERROR::")){
+					errorMessage.append("Error while executung Optimizer: ");
+					errorMessage.append(optimizedcommand);
+			       return null;
+				}
 				if (!"".equals(optimizedcommand)) {
 					command = optimizedcommand;
 				}
@@ -200,6 +205,10 @@ public class SecondoServerService {
 				Log.i(TAG, resultList.toString());
 			}
 		}
+		
+		if (!isOptimizerQuery(command)){
+			directQuery = true;  
+		}
 
 		Log.i(TAG, "Query " + command + " wird gestartet");
 		try {
@@ -207,6 +216,11 @@ public class SecondoServerService {
 				IntObj errorcode = new IntObj();
 				String optimizedcommand = optimizerInterface.optimize_execute(
 						command, database, errorcode, false);
+				if(optimizedcommand.startsWith("::ERROR::")){
+					errorMessage.append("Error while executung Optimizer: ");
+					errorMessage.append(optimizedcommand);
+			       return null;
+				}
 				if (errorCode.value == ErrorCodes.NO_ERROR
 						&& !"".equals(optimizedcommand)) {
 					command = optimizedcommand;
@@ -231,6 +245,40 @@ public class SecondoServerService {
 		resultList.writeToFile(fileName);
 
 		return fileName;
+	}
+
+	private boolean isOptimizerQuery(String command) {
+		
+		 // look for insert into, delete from and update rename 
+		   boolean isOptUpdateCommand = false;
+		   boolean isSelect = true;
+		   boolean catChanged = false;
+
+		   if(command.startsWith("sql ")){
+		      isOptUpdateCommand = true;
+		   } else if( command.matches("insert +into.*")){
+		      isOptUpdateCommand = true;
+		   } else if( command.matches("delete +from.*")){
+		      isOptUpdateCommand = true;
+		   } else if( command.matches("update +[a-z][a-z,A-Z,0-9,_]* *set.*")){
+		      isOptUpdateCommand = true;
+		   } else if(command.matches("create +table .*")){
+		      isOptUpdateCommand = true;
+		      isSelect = false;
+		      catChanged = true;
+		   } else if(command.matches("create +index .*")){
+		      isOptUpdateCommand = true;
+		      isSelect = false;
+		      catChanged = true;
+		   } else if(command.startsWith("drop ")){
+		      isOptUpdateCommand = true;
+		      isSelect = false;
+		      catChanged = true;
+		   } else if(command.startsWith("select ")){
+		      isOptUpdateCommand = true;
+		   } 
+
+		   return isOptUpdateCommand;
 	}
 
 	public void reconnect() {

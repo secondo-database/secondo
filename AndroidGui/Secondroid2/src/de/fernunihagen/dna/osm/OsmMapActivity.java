@@ -49,6 +49,7 @@ import javamini.awt.Shape;
 import javamini.awt.geom.Area;
 import de.fernunihagen.dna.hoese.algebras.DisplayGraph;
 import de.fernunihagen.dna.osm.TextOverlay.Position;
+import android.app.backup.RestoreObserver;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -201,11 +202,26 @@ public class OsmMapActivity extends OsmActivity implements
 		rl.addView(buttonPlay, lpButtonNext);
 		buttonPlay.setOnClickListener(this);
 
+		// Create the slower button for timed objects
+		RelativeLayout.LayoutParams lpSlower = new RelativeLayout.LayoutParams(
+				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+		lpSlower.addRule(RelativeLayout.ALIGN_BOTTOM, R.id.play);
+		lpSlower.addRule(RelativeLayout.RIGHT_OF, R.id.play);
+		lpSlower.setMargins(0, 0, 0, 0);
+		ImageButton buttonSlower = new ImageButton(this, null,
+				android.R.attr.buttonStyleSmall);
+		buttonSlower.setAdjustViewBounds(true);
+		buttonSlower.setId(R.id.slower);
+		buttonSlower.setImageResource(R.drawable.mediaslower);
+		buttonSlower.setMaxHeight(pixel * 3);
+		rl.addView(buttonSlower, lpSlower);
+		buttonSlower.setOnClickListener(this);
+
 		// Create the faster button for timed objects
 		RelativeLayout.LayoutParams lpFaster = new RelativeLayout.LayoutParams(
 				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
 		lpFaster.addRule(RelativeLayout.ALIGN_BOTTOM, R.id.play);
-		lpFaster.addRule(RelativeLayout.RIGHT_OF, R.id.play);
+		lpFaster.addRule(RelativeLayout.RIGHT_OF, R.id.slower);
 		lpFaster.setMargins(0, 0, 0, 0);
 		ImageButton buttonFaster = new ImageButton(this, null,
 				android.R.attr.buttonStyleSmall);
@@ -261,6 +277,8 @@ public class OsmMapActivity extends OsmActivity implements
 				: Button.VISIBLE);
 		buttonFaster.setVisibility(boundingInter == null ? Button.INVISIBLE
 				: Button.VISIBLE);
+		buttonSlower.setVisibility(boundingInter == null ? Button.INVISIBLE
+				: Button.VISIBLE);
 
 		drawQueryResult();
 
@@ -291,6 +309,13 @@ public class OsmMapActivity extends OsmActivity implements
 		super.onResume();
 		if (dirty)
 			drawQueryResult();
+	}
+	
+	@Override
+	public void onWindowFocusChanged(boolean hasFocus) {
+		// TODO: Move to the selected element
+		
+		super.onWindowFocusChanged(hasFocus);
 	}
 
 	private void TimerMethod() {
@@ -377,10 +402,11 @@ public class OsmMapActivity extends OsmActivity implements
 			if (cat == null)
 				cat = Category.getDefaultCat();
 
-			ListExpr resultList = actQueryResult.getResultList();
+			//ListExpr resultList = actQueryResult.getResultList();
 
 			// relation
 			List<DsplBase> results = actQueryResult.getEntries();
+			int index = 0;
 			for (DsplBase obj : results) {
 				if (obj instanceof DisplayGraph) {
 					DisplayGraph dsplGraph = (DisplayGraph) obj;
@@ -409,7 +435,7 @@ public class OsmMapActivity extends OsmActivity implements
 						if (dsplGraph.isPointType(0)) {
 							String label = dsplGraph.getLabelText(0);
 
-							overlays.addAll(drawPoint((Ellipse2D) shape,
+							overlays.addAll(drawPoint(actQueryResult, index, (Ellipse2D) shape,
 									dsplGraph, !dsplGraph.isPointType(0), label));
 						} else {
 							overlays.addAll(drawPolygon(shape, dsplGraph));
@@ -421,6 +447,7 @@ public class OsmMapActivity extends OsmActivity implements
 						overlays.addAll(drawLine(shape, dsplGraph));
 					}
 				}
+				++index;
 			}
 		}
 
@@ -512,7 +539,7 @@ public class OsmMapActivity extends OsmActivity implements
 	}
 
 	private ArrayList<ItemizedIconOverlay<OverlayItem>> drawPoint(
-			Ellipse2D shape, DsplGraph dsplGraph, boolean lineType, String label) {
+			QueryResult qr, int position, Ellipse2D shape, DsplGraph dsplGraph, boolean lineType, String label) {
 		ArrayList<OverlayItem> items = new ArrayList<OverlayItem>();
 
 		Rectangle2D bounce = shape.getBounds2D();
@@ -525,30 +552,39 @@ public class OsmMapActivity extends OsmActivity implements
 						: pointMarker);
 		markerOverlayItem.setDescription("Desc");
 		markerOverlayItem.setSubDescription("subdesc");
-		markerOverlayItem.setRelatedObject(dsplGraph);
 		markerOverlayItem.setMarkerHotspot(OverlayItem.HotspotPlace.CENTER);
 
 		items.add(markerOverlayItem);
 
-		// go to the Center of the elements
-		mOsmv.getController().animateTo(
-				new GeoPoint(bounce.getCenterY(), bounce.getCenterX()));
-
+		if (dsplGraph.getSelected()) {
+			// go to the Center of the elements
+			mOsmv.getController().animateTo(
+					new GeoPoint(bounce.getCenterY(), bounce.getCenterX()));
+		}
 		DefaultResourceProxyImpl resourceProxy = new DefaultResourceProxyImpl(
 				getApplicationContext());
 
-		ItemizedIconOverlay<OverlayItem> currentLocationOverlay = new ItemizedIconOverlay<OverlayItem>(
+		MyItemizedIconOverlay currentLocationOverlay = new MyItemizedIconOverlay(this.mOsmv, getApplicationContext(),
 				items,
 				new ItemizedIconOverlay.OnItemGestureListener<OverlayItem>() {
 					public boolean onItemSingleTapUp(final int index,
 							final OverlayItem item) {
+
 						if (item instanceof ExtendedOverlayItem) {
-							DsplGraph dsplGraph = (DsplGraph) ((ExtendedOverlayItem) item)
+							Holder holder = (Holder) ((ExtendedOverlayItem) item)
 									.getRelatedObject();
-							boolean newSelected = !dsplGraph.getSelected();
-							dsplGraph.setSelected(newSelected);
+							boolean newSelected = !holder.dsplBase.getSelected();
+//							int lastActSelected = holder.queryResult.getActSelected();
+							
+							holder.queryResult.selectItem(holder.position, newSelected);
+							//	holder.dsplBase.setSelected(newSelected);
+							
+							// reset the other Marker
+							holder.overlay.resetMarker();
+
 							item.setMarker(newSelected ? pointMarkerSelected
 									: pointMarker);
+							
 							mOsmv.invalidate();
 						}
 						return true;
@@ -560,8 +596,12 @@ public class OsmMapActivity extends OsmActivity implements
 					}
 				}, resourceProxy);
 
+		Holder holder = new Holder(qr, position, dsplGraph, currentLocationOverlay);
+		markerOverlayItem.setRelatedObject(holder);
+
 		ArrayList<ItemizedIconOverlay<OverlayItem>> overlays = new ArrayList<ItemizedIconOverlay<OverlayItem>>();
 		overlays.add(currentLocationOverlay);
+
 
 		return overlays;
 	}
@@ -722,6 +762,10 @@ public class OsmMapActivity extends OsmActivity implements
 			period *= 0.5f;
 			startTimer();
 			break;
+		case R.id.slower:
+			period *= 2.0f;
+			startTimer();
+			break;
 		case R.id.play:
 			period = 1000L; // reset
 			if (running) {
@@ -776,6 +820,19 @@ public class OsmMapActivity extends OsmActivity implements
 
 	public void updateActivity() {
 		dirty = true;
+	}
+	
+	private class Holder {
+		public Holder(QueryResult qr, int position, DsplBase dsplGraph, MyItemizedIconOverlay overlay) {
+			this.queryResult = qr;
+			this.dsplBase = dsplGraph;
+			this.position = position;
+			this.overlay = overlay;
+		}
+		public QueryResult queryResult;
+		public DsplBase dsplBase;
+		public int position;
+		public MyItemizedIconOverlay overlay;
 	}
 
 }

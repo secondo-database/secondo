@@ -115,6 +115,8 @@ public class QueryAsyncTask extends AsyncTask<String, Integer, QueryResult> {
 		if (result.getError() != null) {
 			Toast.makeText(this.context, "Fehler: " + result.getError(), Toast.LENGTH_LONG)
 					.show();
+			resultView.setText(result.getError());
+
 			return;
 		}
 		
@@ -126,6 +128,7 @@ public class QueryAsyncTask extends AsyncTask<String, Integer, QueryResult> {
 		} else {
 			String error = result.getError();
 			if (error != null && !"".equals(error)) {
+				resultView.setText(error);
 				Toast.makeText(
 						this.context,
 						"Fehler beim Ausführen: "
@@ -137,15 +140,18 @@ public class QueryAsyncTask extends AsyncTask<String, Integer, QueryResult> {
 			if (resultView != null) {
 				if (result.getCommand().startsWith("list ")) { // list Objects, list algebras
 					resultView.setText(result.getResultString());
+					resultView.setTag(null);
 				} else {
 					resultView.setText(this.context.getString(R.string.queryexecuted));
+					resultView.setTag(result);
 				}
-				resultView.setTag(result);
 			}
 		}
 		activity.setProgressBarIndeterminateVisibility(false);
 		if (activity instanceof CommandActivity) {
-			((CommandActivity) activity).postAsyncTask();
+			if (!result.getCommand().startsWith("open ") && !result.getCommand().startsWith("close ")) {
+				((CommandActivity) activity).postAsyncTask();
+			}
 		}
 }
 }
