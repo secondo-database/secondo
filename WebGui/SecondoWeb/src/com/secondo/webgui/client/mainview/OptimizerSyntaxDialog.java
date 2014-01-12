@@ -55,11 +55,11 @@ public class OptimizerSyntaxDialog {
 				"language within a PROLOG environment. Commands are passed directly to the SECONDO kernel for execution. Queries are translated to query " +
 				"plans which are then also sent to the kernel for exection. One can also experiment with the optimizer and just see how queries are translated " +
 				"without executing them.<p>" +
-				"<h3>An SQL-like Query Language</h3>"+
-				"The optimizer implements a part of an SQL-like language by a predicate sql, to be written in prefix notation, and provides some operator " +
-				"definitions and priorities, e.g. for select, from, where, that allow us to write an SQL query directly as a PROLOG term. For example, one can " +
-				"write (assuming database opt is open): sql select * from staedte where bev > 500000. <p>" +
-				"Note that in this environment all relation names and attribute names are written in lower case letters only. Remember that words starting " +
+				/*"<h3>An SQL-like Query Language</h3>"+
+				"The optimizer implements a part of an SQL-like language, to be written in prefix notation, and provides some operator " +
+				"definitions and priorities, e.g. for select, from, where, that allow us to write an SQL query directly as a PROLOG term." +
+				/* For example, one can write (assuming database opt is open): sql select * from staedte where bev > 500000. <p>" +
+				"In the PROLOG environment all relation names and attribute names are written in lower case letters only. Remember that words starting " +
 				"with a capital are variables in PROLOG; therefore we cannot use such words. The optimizer on its own gets information from the SECONDO kernel " +
 				"about the spellings of relation and attribute names and sends query plans to SECONDO with the correct spelling.<p>" +
 				"Some messages appear that tell you something about the inner workings of the optimizer. Possibly the optimizer sends by itself some small " +
@@ -69,7 +69,8 @@ public class OptimizerSyntaxDialog {
 				"The best plan is:<p>" +
 				"Staedte feed filter[.Bev > 500000] {0.20669, 3.27586} consume<br/>" +
 				"Estimated Cost: 310.64 <p>" +
-				"After that appear evaluation messages and the result of the query. If you are interested in understanding how the optimizer works, please read " +
+				"After that appear evaluation messages and the result of the query. " +*/
+				"If you are interested in understanding how the optimizer works, please read " +
 				"the paper: Gueting, R.H., T. Behr, V.T. de Almeida, Z. Ding, F. Hoffmann, and M. Spiekermann, SECONDO: An Extensible DBMS Architecture and Prototype. Fernuniversitaet Hagen, Informatik-Report 313, 2004. " +
 				"If you wish to understand the working of the optimizer in more detail, you can also read the source code documentation, " +
 				"that is, say in the directory Optimizer:<p>" +
@@ -83,9 +84,9 @@ public class OptimizerSyntaxDialog {
 				"from (rel-list)<br>" +
 				"where (pred-list)<p>" +
 				"Each of the lists has to be written in PROLOG syntax (i.e., in square brackets, entries separated by comma). If any of the lists has only a " +
-				"single element, the square brackets can be omitted. Instead of an attribute list one can also write *. Hence one can write (dont forget to " +
-				"type sql before all such queries and end them with a .):<p>" +
-				"select [sname, bev]<br>" +
+				"single element, the square brackets can be omitted. Instead of an attribute list one can also write *. Hence one can write: " +
+				/*(dont forget to type sql before all such queries and end them with a .)" +,*/
+				"<p>select [sname, bev]<br>" +
 				"from staedte<br>" +
 				"where [bev > 270000, sname starts S]<p>" +
 				"To avoid name conflicts, one can introduce explicit variables. In this case one refers to attributes in the form <variable>:<attr>. " +
