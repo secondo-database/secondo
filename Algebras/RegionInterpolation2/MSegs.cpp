@@ -11,6 +11,7 @@ void MSegs::AddMSeg(MSeg m) {
     if ((m.is == m.ie) && (m.fs == m.fe))
         return;
 
+#if 0
     if (!segs.empty()) {
         MSeg *prev = &segs[segs.size() - 1];
         if ((prev->fs == prev->fe) && (m.is == m.ie) && (prev->ie == m.is)) {
@@ -32,6 +33,7 @@ void MSegs::AddMSeg(MSeg m) {
             }
         }
     }
+#endif
     if (!merged)
         segs.push_back(m);
     calculateBBox();
