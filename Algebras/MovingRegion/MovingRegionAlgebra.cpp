@@ -1533,7 +1533,7 @@ separately.
         if (specialSegmentIntersects1(
                 dt,
                 t1p1x, t1p1y, t1p3x, t1p3y,
-                P[0], P[1], P[0]+Q[0], P[1]+Q[1])) {
+                P[0], P[1], P[0]+Q[0], P[1]+Q[1], z)) {
             if (MRA_DEBUG) cerr << "#3c" << endl;
             t1zMin = t1zMin > z ? z : t1zMin;
             t1zMax = t1zMax < z ? z : t1zMax;
@@ -1542,8 +1542,7 @@ separately.
         if (specialSegmentIntersects1(
                 dt,
                 t1p2x, t1p2y, t1p4x, t1p4y,
-                P[0], P[1], P[0]+Q[0], P[1]+Q[1],
-                z)) {
+                P[0], P[1], P[0]+Q[0], P[1]+Q[1], z)) {
             if (MRA_DEBUG) cerr << "#3d" << endl;
             t1zMin = t1zMin > z ? z : t1zMin;
             t1zMax = t1zMax < z ? z : t1zMax;
@@ -1572,8 +1571,7 @@ separately.
         if (specialSegmentIntersects1(
                 dt,
                 t2p1x, t2p1y, t2p3x, t2p3y,
-                P[0], P[1], P[0]+Q[0], P[1]+Q[1],
-                z)) {
+                P[0], P[1], P[0]+Q[0], P[1]+Q[1], z)) {
             if (MRA_DEBUG) cerr << "#4c" << endl;
             t2zMin = t2zMin > z ? z : t2zMin;
             t2zMax = t2zMax < z ? z : t2zMax;
@@ -1582,8 +1580,7 @@ separately.
         if (specialSegmentIntersects1(
                 dt,
                 t2p2x, t2p2y, t2p4x, t2p4y,
-                P[0], P[1], P[0]+Q[0], P[1]+Q[1],
-                z)) {
+                P[0], P[1], P[0]+Q[0], P[1]+Q[1], z)) {
             if (MRA_DEBUG) cerr << "#4d" << endl;
             t2zMin = t2zMin > z ? z : t2zMin;
             t2zMax = t2zMax < z ? z : t2zMax;
