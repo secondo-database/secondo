@@ -23,8 +23,8 @@ package viewer.update2;
 class HeadEntry{
   
  public HeadEntry(String Name, String Type){
-    this.Name = Name;
-    this.Type = Type;
+    this.Name = Name.trim();
+    this.Type = Type.trim();
   } 
 
   public String Name;

@@ -21,12 +21,10 @@ package viewer.update2;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import sj.lang.ListExpr;
-
 import tools.Reporter;
-
-import viewer.relsplit.InvalidRelationException;
+import viewer.update2.InvalidRelationException;
+import viewer.update2.AttributeFormatter;
 
 
 /**
@@ -53,6 +51,10 @@ public class Tuple
 		}
 	}
 	
+	/**
+	 * Creates Tuple from ListExpr.
+	 * If pLE is null, Tuple is empty, i.e. all values are ""
+	 */
 	public boolean readValueFromLE(ListExpr pLE)
 	{
 		boolean result = false;
@@ -104,6 +106,7 @@ public class Tuple
 		return result;
 	}
 
+	
 	public String getTypeAt(int pIndex)
 	{
 		if (pIndex >= 0 && pIndex < this.typeInfo.getSize())
@@ -111,6 +114,12 @@ public class Tuple
 			return this.typeInfo.getAttributeType(pIndex);
 		}
 		return null;
+	}
+	
+	
+	public RelationTypeInfo getTypeInfo()
+	{
+		return this.typeInfo;
 	}
 	
 	
@@ -124,6 +133,13 @@ public class Tuple
 	}
 	
 	
+	public String getValueByAttrName(String pAttrName)
+	{
+		int index = this.typeInfo.getAttributeNames().indexOf(pAttrName);
+		return this.getValueAt(index);
+	}
+	
+	
 	public void setValueAt(String pValue, int pIndex)
 	{
 		if (pIndex >= 0 && pIndex < this.typeInfo.getSize())
@@ -133,11 +149,24 @@ public class Tuple
 	}
 	
 	
+	public boolean setValueByAttrName(String pValue, String pAttrName)
+	{
+		int index = this.typeInfo.getAttributeNames().indexOf(pAttrName);
+		if (index >= 0 && index < this.typeInfo.getSize())
+		{
+			this.values.set(index, pValue);
+			return true;
+		}
+		return false;
+	}
+	
+	
 	
 	public String getID()
 	{
 		return id;
 	}
+	
 	
 	public String toString()
 	{

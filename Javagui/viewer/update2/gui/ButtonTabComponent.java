@@ -39,6 +39,8 @@ import java.awt.event.*;
 
 import javax.accessibility.AccessibleValue;
 
+import viewer.update2.UpdateViewerController;
+
 /**
  * Component to be used as tabComponent;
  * Contains a JLabel to show the text and 
@@ -75,7 +77,7 @@ public class ButtonTabComponent extends JPanel
         public TabButton(ActionListener pActionListener) {
             int size = 20;
             setPreferredSize(new Dimension(size, size));
-            setActionCommand("Close tab");
+            setActionCommand(UpdateViewerController.CMD_CLOSE_TAB);
             setToolTipText("Close tab");
             //Make the button looks the same for all Laf's
             setUI(new BasicButtonUI());

@@ -25,8 +25,11 @@ import gui.idmanager.IDManager;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Image;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -41,6 +44,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JEditorPane;
 import javax.swing.JScrollPane;
+import javax.swing.text.html.HTMLDocument;
+import javax.swing.text.html.HTMLEditorKit;
 
 import sj.lang.ListExpr;
 import tools.Reporter;
@@ -107,39 +112,39 @@ public class UpdateViewer2 extends SecondoViewer {
 		// actionpanel
 		this.actionPanel = new JPanel();
 		this.actionPanel.setLayout(new GridLayout(1, 9));
-		this.load = new JButton("Load");
+		this.load = new JButton(UpdateViewerController.CMD_LOAD);
 		this.load.addActionListener(this.controller);
 		this.load.setToolTipText("Open Load Dialog");
 		this.actionPanel.add(load);
-		this.clear = new JButton("Clear");
+		this.clear = new JButton(UpdateViewerController.CMD_CLEAR);
 		this.clear.addActionListener(this.controller);
 		this.clear.setToolTipText("Remove loaded relations from viewer");
 		this.actionPanel.add(clear);
-		this.insert = new JButton("Insert");
+		this.insert = new JButton(UpdateViewerController.CMD_INSERT);
 		this.insert.addActionListener(this.controller);
 		this.insert.setToolTipText("Change to Insert Mode");
 		this.actionPanel.add(this.insert);
-		this.delete = new JButton("Delete");
+		this.delete = new JButton(UpdateViewerController.CMD_DELETE);
 		this.delete.addActionListener(this.controller);
 		this.delete.setToolTipText("Change to Delete Mode");
 		this.actionPanel.add(this.delete);
-		this.update = new JButton("Update");
+		this.update = new JButton(UpdateViewerController.CMD_UPDATE);
 		this.update.addActionListener(this.controller);
 		this.update.setToolTipText("Change to Update Mode");
 		this.actionPanel.add(this.update);
-		this.reset = new JButton("Reset");
+		this.reset = new JButton(UpdateViewerController.CMD_RESET);
 		this.reset.addActionListener(this.controller);
 		this.reset.setToolTipText("Undo all uncommitted changes");
 		this.actionPanel.add(this.reset);
-		this.undo = new JButton("Undo");
+		this.undo = new JButton(UpdateViewerController.CMD_UNDO);
 		this.undo.addActionListener(this.controller);
 		this.undo.setToolTipText("Undo last uncommited change (cell-wise)");
 		this.actionPanel.add(this.undo);
-		this.commit = new JButton("Commit");
+		this.commit = new JButton(UpdateViewerController.CMD_COMMIT);
 		this.commit.addActionListener(this.controller); 
 		this.commit.setToolTipText("Save changes to database");
 		this.actionPanel.add(this.commit);
-		this.format = new JButton("Format");
+		this.format = new JButton(UpdateViewerController.CMD_FORMAT);
 		this.format.addActionListener(this.controller); 
 		this.format.setToolTipText("View as formatted document");
 		this.actionPanel.add(this.format);		
@@ -166,6 +171,7 @@ public class UpdateViewer2 extends SecondoViewer {
 	{
 		this.relationPanels.clear();
 		this.tabbedPane.removeAll();
+		this.formattedDocuments.clear();
 		
 		this.validate();
 		this.repaint();
@@ -322,7 +328,7 @@ public class UpdateViewer2 extends SecondoViewer {
 				undo.setEnabled(false);
 				commit.setEnabled(false);
 				format.setEnabled(true);
-				format.setText("Format");
+				format.setText(UpdateViewerController.CMD_FORMAT);
 				format.setToolTipText("View as formatted document");
 				for (RelationPanel rp : this.relationPanels)
 				{
@@ -392,7 +398,7 @@ public class UpdateViewer2 extends SecondoViewer {
 				undo.setEnabled(false);
 				commit.setEnabled(false);
 				format.setEnabled(true);
-				format.setText("Edit");
+				format.setText(UpdateViewerController.CMD_EDIT);
 				format.setToolTipText("Edit relations");			
 				break;
 			}
@@ -408,15 +414,46 @@ public class UpdateViewer2 extends SecondoViewer {
 	 */
 	public void loadFormattedDocument(List<String> pFiles, String pContentType) throws IOException
 	{
+		this.formattedDocuments.clear();
+
 		for (String path: pFiles)
 		{
+			/*
 			URL url = new URL("file", "", path);
-			Reporter.debug(url.toString());
+			JEditorPane editorPane = new JEditorPane();
+			editorPane.setContentType(pContentType);
+			editorPane.setPage(url);			
+			editorPane.setEditable(false);
+			*/
+			
+			// read formatted file
+			FileReader fr = new FileReader(path);
+			BufferedReader br = new BufferedReader(fr);
+			StringBuffer sb = new StringBuffer();
+			String zeile = "";
+			while( (zeile = br.readLine()) != null )
+			{
+				sb.append(zeile);
+			}
+			br.close();
+			String page = sb.toString();
+			Reporter.debug("DocumentFormatter.format: page=" + page);
+			
+			
+			JEditorPane editorPane = new JEditorPane();
+			editorPane.setEditable(false);
+			HTMLDocument htmlDoc = new HTMLDocument();
+			HTMLEditorKit editorKit = new HTMLEditorKit();
+			editorPane.setEditorKit(editorKit);
+			editorPane.setSize(new Dimension(800,600));
+			editorPane.setMinimumSize(new Dimension(800,600));
+			editorPane.setMaximumSize(new Dimension(800,600));
+			editorPane.setOpaque(true);
+			editorPane.setText(page);
+			//bg.add(editorPane, BorderLayout.CENTER);
+			
 
-			JEditorPane doc = new JEditorPane();
-			doc.setContentType(pContentType);
-			doc.setPage(url);			
-			this.formattedDocuments.add(doc);
+			this.formattedDocuments.add(editorPane);
 		}
 	}
 	
@@ -430,14 +467,29 @@ public class UpdateViewer2 extends SecondoViewer {
 			case States.FORMAT:
 			{
 				this.remove(tabbedPane);
+				/*
 				JPanel panel = new JPanel(new GridLayout(this.formattedDocuments.size(), 1));
+				panel.setSize(new Dimension(800,600));
+				panel.setMinimumSize(new Dimension(800,600));
+				panel.setMaximumSize(new Dimension(800,600));
+				
+				panel.add(this.formattedDocuments.get(0));
+				this.add(panel);
+				
 				for (JEditorPane doc: this.formattedDocuments)
 				{
-					panel.add(doc);
+					this.scpFormattedDocument.add(doc);
 				}
-				this.scpFormattedDocument.setViewportView(panel);
-				//this.scpFormattedDocument.add(new JformattedDocument);
+				*/
+				
+				this.scpFormattedDocument.setViewportView(this.formattedDocuments.get(0));
+				
+				//this.scpFormattedDocument.setSize(new Dimension(100,100));
+				//this.scpFormattedDocument.setMaximumSize(new Dimension(100,100));
+				//this.scpFormattedDocument.setViewportView(panel);
+				
 				this.add(scpFormattedDocument, BorderLayout.CENTER);
+				
 				break;
 			}
 			case States.LOADED:

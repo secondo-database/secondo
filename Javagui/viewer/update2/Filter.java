@@ -27,16 +27,19 @@ package viewer.update2;
 /*
  * This class contains constants that each name a state of the 'UpdateViewer2'.
  */
-public final class States 
+public class Filter 
 {
+	public static final int FILTERTYPE_EQUALS = 0;
+	public static final int FILTERTYPE_CONTAINS = 1;
 	
-	// The controller is always in one certain state 
-	public final static int INITIAL= 0;
-	public final static int LOADED = 1;
-	public final static int INSERT = 2;
-	public final static int DELETE = 3;
-	public final static int UPDATE = 4;
-	public final static int FORMAT = 5;
-
-	public final static int LOADED_READ_ONLY = 11;
+	public int type = FILTERTYPE_EQUALS;
+	public String attributeName;
+	public String attributeValue;
+	
+	public Filter(int pFilterType, String pAttributeName, String pAttributeValue)
+	{
+		this.type = pFilterType;
+		this.attributeName = pAttributeName;
+		this.attributeValue = pAttributeValue;
+	}
 }

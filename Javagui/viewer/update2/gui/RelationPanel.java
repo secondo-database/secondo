@@ -60,7 +60,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.StringTokenizer;
-
 import javax.swing.AbstractAction;
 import javax.swing.BoxLayout;
 import javax.swing.CellEditor;
@@ -77,6 +76,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JViewport;
 import javax.swing.KeyStroke;
 import javax.swing.ListModel;
 import javax.swing.ListSelectionModel;
@@ -95,7 +95,6 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
-import javax.swing.JViewport;
 
 import project.Projection;
 import sj.lang.ListExpr;
@@ -106,7 +105,6 @@ import components.ChangeValueEvent;
 import components.ChangeValueListener;
 import components.LongScrollBar;
 
-import viewer.relsplit.InvalidRelationException;
 import viewer.update.CommandExecuter;
 import viewer.update2.*;
 
@@ -206,7 +204,7 @@ public class RelationPanel extends JPanel implements
 		//this.searchPanel.setPreferredSize(new Dimension(600, 80));
 		this.searchField = new JTextField(15);
 		this.searchPanel.add(this.searchField);
-		this.search = new JButton("Search");
+		this.search = new JButton(UpdateViewerController.CMD_SEARCH);
 		this.search.addActionListener(this.controller); 
 		this.searchPanel.add(this.search);
 		this.chkCaseSensitive = new JCheckBox("case-sensitive");
@@ -214,22 +212,22 @@ public class RelationPanel extends JPanel implements
 		this.searchPanel.add(this.chkCaseSensitive);
 		this.previousFast = new JButton(this.createIcon("res/TOFRONT.gif"));
 		this.previousFast.addActionListener(this.controller); 
-		this.previousFast.setActionCommand("PreviousFast");
+		this.previousFast.setActionCommand(UpdateViewerController.CMD_FIRST);
 		this.previousFast.setToolTipText("Go to first search hit in this relation");
 		this.searchPanel.add(this.previousFast);
 		this.previous = new JButton(this.createIcon("res/REVERSE.gif"));
 		this.previous.addActionListener(this.controller); 
-		this.previous.setActionCommand("Previous");
+		this.previous.setActionCommand(UpdateViewerController.CMD_PREVIOUS);
 		this.previous.setToolTipText("Go to previous search hit");
 		this.searchPanel.add(this.previous);
 		this.next = new JButton(this.createIcon("res/play.gif"));
 		this.next.addActionListener(this.controller); 
-		this.next.setActionCommand("Next");
+		this.next.setActionCommand(UpdateViewerController.CMD_NEXT);
 		this.next.setToolTipText("Go to next search hit");
 		this.searchPanel.add(this.next);
 		this.nextFast = new JButton(this.createIcon("res/TOEND.gif"));
 		this.nextFast.addActionListener(this.controller); 
-		this.nextFast.setActionCommand("NextFast");
+		this.nextFast.setActionCommand(UpdateViewerController.CMD_LAST);
 		this.nextFast.setToolTipText("Go to last search hit in this relation");
 		this.searchPanel.add(this.nextFast);
 		this.searchResultLabel = new JLabel();
@@ -240,11 +238,11 @@ public class RelationPanel extends JPanel implements
 		this.replacePanel.setLayout(new FlowLayout());
 		this.replaceField = new JTextField(15);
 		this.replacePanel.add(this.replaceField);
-		this.replace = new JButton("Replace");
+		this.replace = new JButton(UpdateViewerController.CMD_REPLACE);
 		this.replace.addActionListener(this.controller); 
 		this.replace.setToolTipText("Replace current match and go to next");
 		this.replacePanel.add(this.replace);
-		this.replaceAll = new JButton("Replace all");
+		this.replaceAll = new JButton(UpdateViewerController.CMD_REPLACE_ALL);
 		this.replaceAll.addActionListener(this.controller); 
 		this.replaceAll.setToolTipText("Replace in all loaded relations");
 		this.replacePanel.add(this.replaceAll);
@@ -254,7 +252,7 @@ public class RelationPanel extends JPanel implements
 
 		this.add(this.southPanel, BorderLayout.SOUTH);
 
-		this.resetSearch();
+		this.clearSearch();
 		this.revalidate();
 	}
 	
@@ -292,6 +290,35 @@ public class RelationPanel extends JPanel implements
 	{
 		return this.getTableModel().clearDeletions();
 	}
+	
+	
+	/**
+	 * Clears search results from search panel and table data.
+	 */
+	public void clearSearch()
+	{
+		this.search.setText(UpdateViewerController.CMD_SEARCH);
+		this.searchField.setText("");
+		this.replaceField.setText("");
+		this.searchField.setEnabled(true);
+		this.searchResultLabel.setText("");
+		this.next.setEnabled(false);
+		this.nextFast.setEnabled(false);
+		this.previous.setEnabled(false);
+		this.previousFast.setEnabled(false);
+		
+		this.replaceField.setText("");
+		
+		if (this.relTable != null)
+		{
+			this.getTableModel().setSearchHits(null);
+			this.relTable.revalidate();
+			this.relTable.repaint();
+		}
+		this.repaint();
+	}
+	
+	
  
 	public boolean clearUpdateChanges()
 	{
@@ -556,7 +583,7 @@ public class RelationPanel extends JPanel implements
 	 * @param pRow row index
 	 * @param pStartPosition position of first within cell
 	 **/
-	public void goTo(int pRow, int pCol, int pStartPosition, int pEndPosition)
+	public void goTo(int pRow, int pStartPosition, int pEndPosition)
 	{
 		//this.relTable.changeSelection(pRow, pCol, false, false);
 
@@ -566,11 +593,11 @@ public class RelationPanel extends JPanel implements
 		{
 			try
 			{
-				//if (this.relTable.editCellAt(pRow, pCol, null))
-				if (this.relTable.editCellAt(pRow, pCol))
+				//if (this.relTable.editCellAt(pRow, RelationTableModel.COL_ATTRVALUE, null))
+				if (this.relTable.editCellAt(pRow, RelationTableModel.COL_ATTRVALUE))
                 {
                     // get hit position within cell
-                    ValueTableCellEditor tc = (ValueTableCellEditor)this.relTable.getCellEditor(pRow, pCol);
+                    ValueTableCellEditor tc = (ValueTableCellEditor)this.relTable.getCellEditor(pRow, RelationTableModel.COL_ATTRVALUE);
                     offset = tc.getOffset(pStartPosition);
                     //tc.setCaret(pStartPosition, pEndPosition);
                 }
@@ -583,7 +610,7 @@ public class RelationPanel extends JPanel implements
 		}
 		else
 		{
-			ValueTableCellRenderer tc = (ValueTableCellRenderer)this.relTable.getCellRenderer(pRow, pCol);
+			ValueTableCellRenderer tc = (ValueTableCellRenderer)this.relTable.getCellRenderer(pRow, RelationTableModel.COL_ATTRVALUE);
 			offset = tc.getOffset(pStartPosition);
 		}
 		
@@ -817,7 +844,8 @@ public class RelationPanel extends JPanel implements
 	 */
 	public void replace(SearchHit pHit, String pReplacement)
 	{
-		if (pHit != null && pReplacement != null)
+		//Reporter.debug("RelationPanel.replace: relation=" + this.getName() + ", hit=" + pHit.toString());
+		if (this.getState() == States.UPDATE && pHit != null && pReplacement != null)
 		{
 			int row = pHit.getRowIndex();
 			
@@ -825,11 +853,19 @@ public class RelationPanel extends JPanel implements
 			if (rtm != null)
 			{
 				String oldValue = (String)rtm.getValueAt(row, RelationTableModel.COL_ATTRVALUE);
-				String key = oldValue.substring(pHit.getStart(), pHit.getEnd());
+				
+				String key = this.getSearchKey();
+				if (!this.getCaseSensitive())
+				{
+					key = "(?i)" + key;
+				}
+				
 				String newValue = oldValue.replaceFirst(key, pReplacement);
 				
+				//Reporter.debug("RelationPanel.replace: relation=" + this.getName() + ", row=" + row + ", oldvalue=" + oldValue + ", newValue=" + newValue);
+				
 				// write changed cell value back into table model
-				this.relTable.setValueAt(newValue, row, RelationTableModel.COL_ATTRVALUE);
+				relTable.setValueAt(newValue, row, RelationTableModel.COL_ATTRVALUE);
 				
 				// create Change for update or undo actions
 				int tupleIndex = Integer.valueOf((String)rtm.getValueAt(row, RelationTableModel.COL_TUPLEID));
@@ -843,12 +879,16 @@ public class RelationPanel extends JPanel implements
 				
 				rtm.addChange(change);
 				
-				rtm.removeHit(pHit);
+				if (!pReplacement.contains(this.getSearchKey()))
+				{
+					rtm.removeHit(pHit);
+				}
 				
-				this.showSearchResult(key);
+				Reporter.debug("RelationPanel.replace: rtm.getValue()=" + rtm.getValueAt(row, RelationTableModel.COL_ATTRVALUE));
+				Reporter.debug("RelationPanel.replace: relTable.getValue()=" + relTable.getValueAt(row, RelationTableModel.COL_ATTRVALUE));
 				
 				this.relTable.revalidate();
-				this.relTable.repaint();
+				this.revalidate();
 				this.repaint();
 			}
 		}
@@ -876,35 +916,7 @@ public class RelationPanel extends JPanel implements
 		this.validate();
 	}
 	
-	
-	/**
-	 * Clears search results from search panel and table data.
-	 */
-	public void resetSearch()
-	{
-		this.search.setText("Search");
-		this.searchField.setText("");
-		this.replaceField.setText("");
-		this.searchField.setEnabled(true);
-		this.searchResultLabel.setText("");
-		this.next.setEnabled(false);
-		this.nextFast.setEnabled(false);
-		this.previous.setEnabled(false);
-		this.previousFast.setEnabled(false);
-		this.replace.setEnabled(false);
-		this.replaceAll.setEnabled(false);
-		this.replaceField.setEnabled(false);
-
-		if (this.relTable != null)
-		{
-			this.getTableModel().setSearchHits(null);
-			this.relTable.revalidate();
-			this.relTable.repaint();
-		}
-		this.repaint();
-	}
-	
-	
+		
 	/* 
 	 * Reset for Update mode:
 	 * Sets table to original data and removes uncommitted changes.
@@ -982,7 +994,7 @@ public class RelationPanel extends JPanel implements
 	 */
 	public void setState(int pState)
 	{
-		Reporter.debug("RelationPanel.setState: oldState of relation " + this.getName() + " is " + this.getTableModel().getState());
+		//Reporter.debug("RelationPanel.setState: oldState of relation " + this.getName() + " is " + this.getTableModel().getState());
 
 		if (this.getTableModel().getState() != States.LOADED_READ_ONLY)
 		{
@@ -1018,13 +1030,14 @@ public class RelationPanel extends JPanel implements
 				default:
 				{
 					this.relTable.setRowSelectionAllowed(false);
+					this.replaceField.setText("");
 					this.replaceField.setEnabled(false);
 					this.replace.setEnabled(false);
 					this.replaceAll.setEnabled(false);
 				}
 			}
 		}
-		Reporter.debug("RelationPanel.setState: newState of relation " + this.getName() + " is " + this.getTableModel().getState());
+		//Reporter.debug("RelationPanel.setState: newState of relation " + this.getName() + " is " + this.getTableModel().getState());
 	}
 	
 	/**
@@ -1037,34 +1050,22 @@ public class RelationPanel extends JPanel implements
     
 	
 	/**
-	 * Sets buttons and number of search results in search panel.
-     * Scrolls to first hit.
+	 * Shows specified search hit (if valid)
+	 * scrolls table, sets text and number of current hit in search panel.
 	 */
-	public void showSearchResult(String pKey)
+	public boolean showHit(int pIndex)
 	{
-		this.searchField.setText(pKey);
-		this.searchField.setEnabled(false);
-		this.search.setText("Clear search");
-
-		if (!this.getTableModel().hasSearchHits())
+		Reporter.debug("RelationPanel.showHit: relation=" + this.getName() + ", hit=" + pIndex);
+		SearchHit hit = this.getTableModel().getHit(pIndex);
+		if (hit != null)
 		{
-			this.searchResultLabel.setText("0 / 0");
+			this.getTableModel().setCurrentHitIndex(pIndex);			
+			this.goTo(hit.getRowIndex(), hit.getStart(), hit.getEnd());
+			this.searchResultLabel.setText((pIndex+1) + " / " + this.getTableModel().getHitCount());
+			return true;
 		}
-		else
-		{
-			int curr = this.getTableModel().getCurrentHitIndex();
-			SearchHit hit = this.getTableModel().getHit(curr);
-			
-			this.searchResultLabel.setText(curr+1 + " / " + this.getTableModel().getHitCount());
-			this.next.setEnabled(true);
-			this.nextFast.setEnabled(true);
-			this.previous.setEnabled(true);
-			this.previousFast.setEnabled(true);
-			
-			this.goTo(hit.getRowIndex(), RelationTableModel.COL_ATTRVALUE, hit.getStart(), hit.getEnd());
-		}
+		return false;
 	}
-	
 
 	/*
 	 * Shows an empty relation that can be edited to contain tuples that shall be inserted.	 
@@ -1072,7 +1073,7 @@ public class RelationPanel extends JPanel implements
 	public void showInsertTable() throws InvalidRelationException
 	{	
 		this.insertRelation = this.relation.createEmptyClone();
-		this.insertRelation.addTuple(null);
+		this.insertRelation.addTuple(this.insertRelation.createEmptyTuple());
 		
 		RelationTableModel dtm = new RelationTableModel(this.insertRelation, true);
 		this.insertTable = new JTable(dtm);
@@ -1104,22 +1105,36 @@ public class RelationPanel extends JPanel implements
 		this.repaint();
 	}
 	
-	
 	/**
-	 * Shows specified search hit (if valid)
-	 * scrolls table, sets text and number of current hit in search panel.
+	 * Sets buttons and number of search results in search panel.
+     * Scrolls to first hit.
 	 */
-	public boolean showHit(int pIndex)
+	public void showSearchResult(String pKey)
 	{
-		SearchHit hit = this.getTableModel().getHit(pIndex);
-		if (hit != null)
+		this.searchField.setText(pKey);
+		this.searchField.setEnabled(false);
+		this.search.setText(UpdateViewerController.CMD_CLEAR_SEARCH);
+		
+		if (!this.getTableModel().hasSearchHits())
 		{
-			this.getTableModel().setCurrentHitIndex(pIndex);			
-			this.goTo(hit.getRowIndex(), RelationTableModel.COL_ATTRVALUE, hit.getStart(), hit.getEnd());
-			this.searchResultLabel.setText((pIndex+1) + " / " + this.getTableModel().getHitCount());
-			return true;
+			this.searchResultLabel.setText("0 / 0");
 		}
-		return false;
+		else
+		{
+			int curr = this.getTableModel().getCurrentHitIndex();
+			//SearchHit hit = this.getTableModel().getHit(curr);
+			
+			this.searchResultLabel.setText(curr+1 + " / " + this.getTableModel().getHitCount());
+			this.next.setEnabled(true);
+			this.nextFast.setEnabled(true);
+			this.previous.setEnabled(true);
+			this.previousFast.setEnabled(true);
+		}
+		
+		this.relTable.revalidate();
+		this.relTable.repaint();
+		this.revalidate();
+		this.repaint();
 	}
 	
 	

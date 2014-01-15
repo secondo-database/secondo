@@ -38,7 +38,6 @@ import sj.lang.ListExpr;
 
 import tools.Reporter;
 
-import viewer.relsplit.InvalidRelationException;
 import viewer.update2.*;
 
 /**
@@ -149,7 +148,9 @@ public class RelationTableModel extends AbstractTableModel
     {
 		try
 		{
-			this.relation.addTuple(pTuple);
+			Tuple tuple = this.relation.createEmptyTuple();
+			tuple.readValueFromLE(pTuple);
+			this.relation.addTuple(tuple);
 			fireTableRowsInserted(0, this.getRowsPerTuple());
 		}
 		catch (InvalidRelationException e)
@@ -493,8 +494,11 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		if (this.state == States.UPDATE || this.state == States.INSERT)
 		{
-			int attrIndex = this.rowToAttributeIndex(pRow);
-			if (attrIndex != this.relation.getTypeInfo().getTidIndex())
+			int attrIndex = this.rowToAttributeIndex(pRow);			
+			String attrName = this.relation.getAttributeNames().get(attrIndex);
+			
+			if (attrIndex != this.relation.getTypeInfo().getTidIndex() 
+				&& !this.relation.isAttributeReadOnly(attrName))
 			{
 				return (pCol == COL_ATTRVALUE && !this.isRowSeparator(pRow));
 			}
@@ -646,21 +650,21 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		return ((pRow % this.getRowsPerTuple()) - 1);
 	}
-	
-	
+		
 	/**
 	 * Builds map for searchhits by row index.
 	 * Resets index for currently displayed searchhit.  
 	 */
 	public void setSearchHits(List<SearchHit> pHitlist)
 	{
-		this.hitList = pHitlist;
-		if (this.hitList == null || pHitlist.isEmpty())
+		if (pHitlist == null || pHitlist.isEmpty())
 		{
+			this.hitList.clear();
 			this.currHit = -1;
 		}
 		else
 		{
+			this.hitList = pHitlist;
 			this.currHit = 0;
 		}
 	}

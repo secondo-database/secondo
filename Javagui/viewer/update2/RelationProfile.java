@@ -29,6 +29,7 @@ import java.util.Map;
  */
 public class RelationProfile
 {
+	private String profileName;
 	
 	private String relName;
 	
@@ -38,9 +39,19 @@ public class RelationProfile
 	
 	private List<String> sortExpressions;
 	
-	public RelationProfile(String pName)
+	private String formatScript;
+	
+	private String formatTemplate;
+	
+	private String outputDirectory;
+	
+	/**
+	 * Constructor.
+	 */
+	public RelationProfile(String pProfileName, String pRelName)
 	{
-		relName = pName;
+		profileName = pProfileName;
+		relName = pRelName;
 		filterExpressions = new ArrayList<String>();
 		projectExpressions = new ArrayList<String>();
 		sortExpressions = new ArrayList<String>();
@@ -80,16 +91,23 @@ public class RelationProfile
 	}
 	
 	
-	public String getName()
-	{
-		return this.relName;
-	}	
 	
 	public List<String> getFilterExpressions()
 	{
 		return this.filterExpressions;
 	}	
-
+	
+	
+	public String getProfileName()
+	{
+		return this.profileName;
+	}
+	
+	public String getRelationName()
+	{
+		return this.relName;
+	}	
+	
 	public List<String> getProjectExpressions()
 	{
 		return this.projectExpressions;
@@ -125,17 +143,16 @@ public class RelationProfile
 		}
 	}
 	
-	
 	public void setFilterExpressions(List<String> pFilterExpressions)
 	{
 		this.filterExpressions = pFilterExpressions;
 	}
-
-	public void setName(String pName)
+		
+	public void setRelationName(String pRelName)
 	{
-		this.relName = pName;
+		this.relName = pRelName;
 	}	
-	
+
 	public void setProjectExpressions(List<String> pProjectExpressions)
 	{
 		this.projectExpressions = pProjectExpressions;

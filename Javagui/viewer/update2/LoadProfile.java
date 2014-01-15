@@ -29,15 +29,23 @@ import java.util.Map;
 /**
  * Load Profile for UpdateViewer2.	 
  */
-public class LoadProfile {
-	
+public class LoadProfile 
+{
+	private String formatFields;
 	private String profileName;
-	
+	private String formatScript;
+	private String formatTemplate;
+	private String outputDirectory;
 	private List<RelationProfile> relations;
 
+	
 	public LoadProfile(String pName)
 	{
 		this.profileName = pName;
+		this.formatFields = "";
+		this.formatScript = "";
+		this.formatTemplate = "";
+		this.outputDirectory = "";
 		this.relations = new ArrayList<RelationProfile>();
 	}
 	
@@ -50,7 +58,7 @@ public class LoadProfile {
 		
 		for (RelationProfile profile : this.relations)
 		{
-			if (profile.getName().equals(pRelProfile.getName()))
+			if (profile.getRelationName().equals(pRelProfile.getRelationName()))
 			{
 				old = profile;
 			}
@@ -72,63 +80,25 @@ public class LoadProfile {
 		return this.profileName;
 	}
 	
-	/**
-	 * Returns the FilterExpressions for the specified relation.
-	 */
-	public List<String> getFilterExpressions(String pRelName)
+	public String getFormatFields()
 	{
-		List<String> result;
-		RelationProfile relprof = this.getRelationProfile(pRelName);
-		
-		if (relprof != null)
-		{
-			result = relprof.getFilterExpressions();
-		}
-		else{
-			result = Collections.emptyList();
-		}
-		return result;
-	}
-		
-	/**
-	 * Returns the ProjectExpressions for the specified relation.
-	 */
-	public List<String> getProjectExpressions(String pRelName)
-	{
-		List<String> result;
-		
-		RelationProfile relprof = this.getRelationProfile(pRelName);
-		
-		if (relprof != null)
-		{
-			result = relprof.getProjectExpressions();
-		}
-		else
-		{
-			result = Collections.emptyList();
-		}
-		return result;
+		return this.formatFields;
 	}
 	
-	/**
-	 * Returns the SortExpressions for the specified relation.
-	 */
-	public List<String> getSortExpressions(String pRelName)
+	public String getFormatScript()
 	{
-		List<String> result;
-		
-		RelationProfile relprof = this.getRelationProfile(pRelName);
-		
-		if (relprof != null)
-		{
-			result = relprof.getSortExpressions();
-		}
-		else
-		{
-			result = Collections.emptyList();
-		}
-		return result;
+		return this.formatScript;
 	}
+	
+	public String getFormatTemplate()
+	{
+		return this.formatTemplate;
+	}
+	public String getOutputDirectory()
+	{
+		return this.outputDirectory;
+	}
+	
 	
 	/**
 	 * Returns the RelationProfile of the specified relation.
@@ -139,7 +109,7 @@ public class LoadProfile {
 		
 		for (RelationProfile relprof : this.relations)
 		{
-			if (relprof.getName().equals(pRelationName))
+			if (relprof.getRelationName().equals(pRelationName))
 			{
 				result = relprof;
 			}
@@ -156,7 +126,7 @@ public class LoadProfile {
 		
 		for (RelationProfile relprof : this.relations)
 		{
-			result.add(relprof.getName());
+			result.add(relprof.getRelationName());
 		}
 		return result;
 	}
@@ -164,7 +134,7 @@ public class LoadProfile {
 	/**
 	 * Returns all the relation profiles.
 	 */
-	public List<RelationProfile> getRelations()
+	public List<RelationProfile> getRelationProfiles()
 	{
 		return this.relations;
 	}
@@ -178,7 +148,7 @@ public class LoadProfile {
 		
 		for (RelationProfile profile : this.relations)
 		{
-			if (profile.getName().equals(pRelName))
+			if (profile.getRelationName().equals(pRelName))
 			{
 				old = profile;
 			}
@@ -189,6 +159,25 @@ public class LoadProfile {
 			this.relations.remove(old);
 		}
 	}
-		
+	
+	public void setFormatFields(String pFormatFields)
+	{
+		this.formatFields = pFormatFields;
+	}
+	
+	public void setFormatScript(String pFormatScript)
+	{
+		this.formatScript = pFormatScript;
+	}
+	
+	public void setFormatTemplate(String pFormatTemplate)
+	{
+		this.formatTemplate = pFormatTemplate;
+	}
+	
+	public void setOutputDirectory(String pOutputDirectory)
+	{
+		this.outputDirectory = pOutputDirectory;
+	}
 }
 

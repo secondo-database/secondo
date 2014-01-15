@@ -21,29 +21,24 @@ package viewer.update2;
 
 import gui.SecondoObject;
 import gui.idmanager.*;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import sj.lang.ListExpr;
-
 import tools.Reporter;
-
-import viewer.relsplit.InvalidRelationException;
-
+import viewer.update2.InvalidRelationException;
 
 /**
  * Contains name, tpye information and tuples of one relation.
  *
- * @see viewer.update2.Tuple
+ * @see viewer.update2.model.Tuple
  */
 public class Relation
 {
-	
 	private String name;	
 	private RelationTypeInfo relTypeInfo;
 	private List<String> tupleIDs;
 	private List<Tuple> tuples;
+	private List<String> readOnlyAttributes; 
 	private boolean initialized;
 	
 	
@@ -54,7 +49,8 @@ public class Relation
 	{
 		tuples = new ArrayList<Tuple>();
 		tupleIDs = new ArrayList<String>();
-		relTypeInfo = new RelationTypeInfo(); 
+		relTypeInfo = new RelationTypeInfo();
+		readOnlyAttributes = new ArrayList<String>();
 		initialized = false;
 	}
 	
@@ -62,13 +58,41 @@ public class Relation
 	/** 
 	 * Append new tuple to relation.
 	 */
-	public void addTuple(ListExpr pTupleLE) throws InvalidRelationException
+	public void addTuple(Tuple pTuple) throws InvalidRelationException
 	{
-		Tuple tup = new Tuple(this.relTypeInfo, pTupleLE);
-		this.tuples.add(tup);
-		this.tupleIDs.add(tup.getID());			
+		if(initialized && pTuple!=null)
+		{
+			if (!pTuple.getTypeInfo().equals(this.getTypeInfo()))
+			{
+				throw new InvalidRelationException("Param Tuple type does not match relation's tuple type.");
+			}
+			else
+			{
+				this.tuples.add(pTuple);
+				
+				if (pTuple.getID() != null && !pTuple.getID().isEmpty())
+				{
+					this.tupleIDs.add(pTuple.getID());		
+				}
+				else
+				{
+					this.tupleIDs.add(""+tupleIDs.size());		
+				}
+			}
+		}
 	}
 	
+	/** 
+	 * Append new tuple to relation.
+
+	public Tuple addTupleAsLE(ListExpr pTupleLE) throws InvalidRelationException
+	{
+		Tuple result = new Tuple(this.relTypeInfo, pTupleLE);
+		this.tuples.add(result);
+		this.tupleIDs.add(result.getID());
+		return result;
+	}
+	 */
 	
 	/**
 	 * Returns an empty relation of same name and same type as this.
@@ -77,9 +101,33 @@ public class Relation
 	public Relation createEmptyClone()
 	{
 		Relation result = new Relation();
+		result.name = this.name;
 		result.relTypeInfo = this.relTypeInfo;		
+		result.readOnlyAttributes = this.readOnlyAttributes;
 		result.initialized = true;
 		return result;
+	}
+	
+	
+	/**
+	 * Returns an empty relation of same name and same type as this.
+	 * Relation is marked as initialized.
+	 */
+	public Tuple createEmptyTuple()
+	{
+		if (this.initialized)
+		{
+			try
+			{
+				return new Tuple(this.relTypeInfo, null);
+			}
+			catch (InvalidRelationException e)
+			{
+				// do nothing: as relTypeinfo is taken from this initialized 
+				// relation it is guaranteed to be ok.
+			}
+		}
+		return null;
 	}
 	
 	
@@ -88,7 +136,6 @@ public class Relation
 	 */
 	public List<String> getAttributeNames()
 	{
-		//Reporter.debug("Relation.getAttributeNames: " + this.relTypeInfo.getAttributeNames());
 		return this.relTypeInfo.getAttributeNames();
 	}
 	
@@ -97,7 +144,6 @@ public class Relation
 	 */
 	public List<String> getAttributeTypes()
 	{
-		//Reporter.debug("Relation.getAttributeTypes: " + this.relTypeInfo.getAttributeTypes());
 		return this.relTypeInfo.getAttributeTypes();
 	}
 
@@ -131,6 +177,89 @@ public class Relation
 	
 	
 	/** 
+	 * Returns tuple at given index. 
+	 */
+	public List<Tuple> getTuplesByFilter(int pFilterType, String pAttrName, String pValue)
+	{
+		List<Tuple> result = new ArrayList<Tuple>();
+		for (Tuple tup : this.tuples)
+		{
+			switch(pFilterType)
+			{
+				case Filter.FILTERTYPE_CONTAINS:
+				{
+					if (tup.getValueByAttrName(pAttrName).contains(pValue))
+					{
+						result.add(tup);
+					}
+					break;
+				}
+				case Filter.FILTERTYPE_EQUALS:
+				default:
+				{
+					if (tup.getValueByAttrName(pAttrName).equals(pValue))
+					{
+						result.add(tup);
+					}
+					break;
+				}
+			}
+		}
+		return result;
+	}
+	
+	
+	/** 
+	 * Returns list of all tuples that match all filter conditions. 
+	 */
+	public List<Tuple> getTuplesByFilter(List<Filter> pFilters)
+	{
+		List<Tuple> result = new ArrayList<Tuple>();
+		Filter filter;
+		boolean ok;
+		int index;
+		
+		for (Tuple tup : this.tuples)
+		{
+			ok = true;
+			index = 0;
+			
+			while (ok && index < pFilters.size())
+			{
+				filter = pFilters.get(index);
+				switch(filter.type)
+				{
+					case Filter.FILTERTYPE_CONTAINS:
+					{
+						if (!tup.getValueByAttrName(filter.attributeName).contains(filter.attributeValue))
+						{
+							ok = false;
+						}
+						break;
+					}
+					case Filter.FILTERTYPE_EQUALS:
+					{
+						if (!tup.getValueByAttrName(filter.attributeName).equals(filter.attributeValue))
+						{
+							ok = false;
+						}
+						break;
+					}
+					default:
+						ok = false;
+				}
+				index++;
+			}
+			if (ok)
+			{
+				result.add(tup);
+			}
+		}
+		return result;
+	}
+	
+	
+	/** 
 	 * Returns the number of tuples,
 	 * returns -1 if relation is not initialized.
 	 */
@@ -152,6 +281,15 @@ public class Relation
 			return -1;
 		else
 			return relTypeInfo.getSize();
+	}
+	
+	
+	/**
+	 * Returns true if relation name. type info and tuple list were initialized.
+	 */
+	public boolean isAttributeReadOnly(String pAttributeName)
+	{ 
+		return this.readOnlyAttributes.contains(pAttributeName);
 	}
 	
 	/**
@@ -221,6 +359,8 @@ public class Relation
 			return false;
 		}
 
+		initialized = true;
+
 		if(!this.readValueFromLE(LE.second()))
 		{
 			Reporter.writeError("update2.Relation.readFromSecondoObject : wrong value list");
@@ -229,7 +369,6 @@ public class Relation
 		
 		Reporter.debug("update2.Relation.readFromSecondoObject: no of tuples is " + this.getTupleCount());
 
-		initialized = true;
 		return true;
 	}
 		
@@ -256,7 +395,10 @@ public class Relation
 			}
 			else
 			{
-				this.addTuple(NextTuple);
+				Tuple tuple = this.createEmptyTuple();
+				tuple.readValueFromLE(NextTuple);
+				this.addTuple(tuple);
+				//this.addTupleAsLE(NextTuple);
 			}
 			Rest = Rest.rest();
 		}
@@ -310,10 +452,19 @@ public class Relation
 	}
 	
 	
+	public void setAttributeReadOnly(String pAttributeName)
+	{
+		if (this.getAttributeNames().contains(pAttributeName)
+			&& !this.readOnlyAttributes.contains(pAttributeName))
+		{
+			this.readOnlyAttributes.add(pAttributeName);
+		}
+	}
+	
 	/** 
 	 * Replaces all tuple values on given tuple position. 
 	 */
-	public void setTupleAt(int pTupleIndex, List<String> pTupleValues)
+	public void setTupleByIndex(int pTupleIndex, List<String> pTupleValues)
 	{
 		if(!initialized || pTupleIndex<0 || pTupleIndex>=this.tuples.size())
 		{
@@ -327,7 +478,29 @@ public class Relation
 			tup.setValueAt(pTupleValues.get(i), i);
 		}		
 	}
-
+	
+	
+	/** 
+	 * Replaces tuple.
+	 */
+	public void setTupleByID(Tuple pTuple) throws InvalidRelationException
+	{
+		if(initialized && pTuple!=null)
+		{
+			if (!pTuple.getTypeInfo().equals(this.getTypeInfo()))
+			{
+				throw new InvalidRelationException("Param Tuple type does not match relation's tuple type.");
+			}
+			else
+			{
+				int index = this.tupleIDs.indexOf(pTuple.getID());
+				if (index >= 0) 
+				{
+					this.tuples.set(index, pTuple);
+				}
+			}
+		}
+	}
 
 	
 	/** 

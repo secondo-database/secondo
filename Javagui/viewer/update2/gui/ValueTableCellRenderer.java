@@ -50,6 +50,7 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 	private Border borderFocussed;
 	private Highlighter hiliter;
 	private DefaultHighlighter.DefaultHighlightPainter hilitePainter;
+	private DefaultHighlighter.DefaultHighlightPainter hilitePainterCurr;
 
 	/**
 	 * Constructor
@@ -61,10 +62,10 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 		this.textArea.setLineWrap(true);
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
-		this.textArea.setSelectionColor(Color.YELLOW);
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
 		this.hiliter = this.textArea.getHighlighter();
 		this.hilitePainter = new DefaultHighlighter.DefaultHighlightPainter(Color.LIGHT_GRAY);
+		this.hilitePainterCurr = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
 	}
 	
 	
@@ -122,20 +123,22 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 		{
 			for (SearchHit sh : hits) 
 			{
-				if (sh == rtm.getHit(rtm.getCurrentHitIndex()))
+				try 
 				{
-					this.setCaret(sh.getStart(), sh.getEnd());
-				}
-				else
-				{
-					try 
+					if (sh == rtm.getHit(rtm.getCurrentHitIndex()))
 					{
-						hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
-					} 
-					catch (Exception e) 
-					{
-						Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting failed ");
+						this.setCaret(sh.getStart(), sh.getEnd());
+						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainterCurr);
+						Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting CURRENT HIT ");
 					}
+					else
+					{
+						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
+					}
+				}  
+				catch (Exception e) 
+				{
+					Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting failed ");
 				}
 			}
 		}
@@ -150,8 +153,8 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 	{
 		try
 		{
-			Reporter.debug("ValueTableCellRenderer.getOffset: textarea width is " + this.textArea.getWidth());
-			Reporter.debug("ValueTableCellRenderer.getOffset: value is " + this.textArea.getText());
+			//Reporter.debug("ValueTableCellRenderer.getOffset: textarea width is " + this.textArea.getWidth());
+			//Reporter.debug("ValueTableCellRenderer.getOffset: value is " + this.textArea.getText());
 			return this.textArea.modelToView(pTextPos);
 		}
 		catch (BadLocationException e)
@@ -163,12 +166,12 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 	
 	public void setCaret(int pStart, int pEnd)
 	{
-		Reporter.debug("ValueTableCellRenderer.setCaretPosition at position " + pStart);
+		//Reporter.debug("ValueTableCellRenderer.setCaretPosition at position " + pStart);
 		
 		this.textArea.requestFocusInWindow();
 		this.textArea.setCaretPosition(pStart);
 		this.textArea.moveCaretPosition(pEnd);
-		this.textArea.getCaret().setSelectionVisible(true);
+		//this.textArea.getCaret().setSelectionVisible(true);
 	}
 }
 

@@ -52,18 +52,22 @@ public class CommandExecuter {
 	    errorMessage = new StringBuffer();
 	}
 	 
-	public boolean executeCommand (String command, int commandLevel){
-		if (updateInterface == null){
+	public boolean executeCommand (String command, int commandLevel)
+	{
+		if (updateInterface == null)
+		{
 			updateInterface = MainWindow.getUpdateInterface();
 		}
 		// Executes the remote command.
-		if(updateInterface.isInitialized()){
+		if(updateInterface.isInitialized())
+		{
 			updateInterface.secondo(command,           //Command to execute.
 		         resultList, errorCode, errorPos, errorMessage);
 		    boolean success = errorCode.value==0;
 		    return success;
 		}
-		else{
+		else
+		{
 			errorMessage = new StringBuffer("Connection to SECONDO lost!");
 			return false;
 		}
@@ -101,19 +105,23 @@ public class CommandExecuter {
 	
 	
 	
-	public ListExpr getResultList(){
+	public ListExpr getResultList()
+	{
 		return resultList;
 	}
 	
-	public IntByReference getErrorCode(){
+	public IntByReference getErrorCode()
+	{
 		return errorCode;	
 	}
 	
-	public IntByReference getErrorPos(){
+	public IntByReference getErrorPos()
+	{
 		return errorPos;
 	}
 	
-	public StringBuffer getErrorMessage(){
+	public StringBuffer getErrorMessage()
+	{
 		return errorMessage;
 	}
 

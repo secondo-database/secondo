@@ -47,7 +47,7 @@ public class RelationProfileTableModel extends AbstractTableModel
 	
 	public RelationProfileTableModel(LoadProfile pLoadProfile)
 	{
-		data = pLoadProfile.getRelations();
+		data = pLoadProfile.getRelationProfiles();
 	}
 	
 	public int getColumnCount() 
@@ -73,7 +73,7 @@ public class RelationProfileTableModel extends AbstractTableModel
 		{
 			switch (pCol)
 			{
-				case 0: result = rp.getName(); break;
+				case 0: result = rp.getRelationName(); break;
 				case 1: result = rp.getFilterExpressions().toString(); break;
 				case 2: result = rp.getProjectExpressions().toString(); break;
 				case 3: result = rp.getSortExpressions().toString(); break;

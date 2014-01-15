@@ -53,6 +53,7 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 	private Border borderFocussed;
 	private Highlighter hiliter;
 	private DefaultHighlighter.DefaultHighlightPainter hilitePainter;
+	private DefaultHighlighter.DefaultHighlightPainter hilitePainterCurr;
 	//private JScrollPane scrollPane;
 	
 	/**
@@ -65,12 +66,12 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		this.textArea.setLineWrap(true);
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
-		this.textArea.setSelectionColor(Color.YELLOW);
 		//this.scrollPane = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
 		this.hiliter = this.textArea.getHighlighter();
 		this.hilitePainter = new DefaultHighlighter.DefaultHighlightPainter(Color.LIGHT_GRAY);
-				
+		this.hilitePainterCurr = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
+		
 		// insert line break on ENTER Key
 		this.textArea.addKeyListener(new KeyAdapter(){
 								public void keyPressed(KeyEvent event){
@@ -123,14 +124,18 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		{
 			for (SearchHit sh : hits) 
 			{
-				if (sh == rtm.getHit(rtm.getCurrentHitIndex()))
-				{
-					this.setCaret(sh.getStart(), sh.getEnd());
-				}
-				
 				try 
 				{
-					hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
+					if (sh == rtm.getHit(rtm.getCurrentHitIndex()))
+					{
+						this.setCaret(sh.getStart(), sh.getEnd());
+						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainterCurr);
+						//Reporter.debug("ValueTableCellEditor.getTableCellRendererComponent: highlighting CURRENT HIT ");
+					}
+					else
+					{
+						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
+					}
 				} 
 				catch (Exception e) 
 				{
@@ -153,8 +158,8 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 	{
 		try
 		{
-			Reporter.debug("ValueTableCellEditor.getOffset: textarea width is " + this.textArea.getPreferredSize().width);
-			Reporter.debug("ValueTableCellEditor.getOffset: value is " + this.textArea.getText());
+			//Reporter.debug("ValueTableCellEditor.getOffset: textarea width is " + this.textArea.getPreferredSize().width);
+			//Reporter.debug("ValueTableCellEditor.getOffset: value is " + this.textArea.getText());
 			return this.textArea.modelToView(pTextPos);
 		}
 		catch (BadLocationException e)
@@ -166,12 +171,12 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 	
 	public void setCaret(int pStart, int pEnd)
 	{
-		Reporter.debug("ValueTableCellEditor.setCaretPosition at position " + pStart);
+		//Reporter.debug("ValueTableCellEditor.setCaretPosition at position " + pStart);
 		
 		this.textArea.requestFocusInWindow();
 		this.textArea.setCaretPosition(pStart);
 		this.textArea.moveCaretPosition(pEnd);
-		this.textArea.getCaret().setSelectionVisible(true);
+		//this.textArea.getCaret().setSelectionVisible(true);
 	}
 	
 }

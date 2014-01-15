@@ -51,74 +51,14 @@ public class CommandGenerator
 		this.commandExecuter = new CommandExecuter();
 	}
 	
+	 
 	/*
 	 Generates an insert-command for each tuple that shall be inserted. Actualizes the indices as
 	 well.
 	 */
-	public String[] generateInsert(String pRelName, List<String> pAttributeNames, List<String> pAttributeTypes, 
-									String[][] insertTuples) throws InvalidFormatException
+	public List<String> generateInsert(String pRelName, List<String> pAttributeNames, List<String> pAttributeTypes, List<Tuple> pInsertTuples) throws InvalidFormatException
 	{
-		
-		this.retrieveIndices(pRelName, pAttributeNames);
-
-		String nextValue;
-		String nextType;
-		int tupleSize = pAttributeTypes.size()-1;
-		int tupleCount = insertTuples.length / tupleSize;
-		String[] insertCommands = new String[tupleCount];
-		
-		for (int j = 0; j < tupleCount; j++)
-		{
-			//StringBuffer insertCommand = new StringBuffer("(query (count ");
-			StringBuffer insertCommand = new StringBuffer("(query (consume ");
-			
-			for (int k = 0; k < btreeNames.size(); k ++)
-			{
-				insertCommand.append("(insertbtree ");
-			}
-			
-			for (int k = 0; k < rtreeNames.size(); k ++)
-			{
-				insertCommand.append("(insertrtree ");
-			}
-			insertCommand.append("(inserttuple " + pRelName + " (");
-			
-			for (int i = 0; i < tupleSize; i++)
-			{
-				nextType = pAttributeTypes.get(i).trim();
-				ListExpr LE = AttributeFormatter.fromStringToListExpr(nextType, insertTuples[j*tupleSize+i][1]);
-				if(LE==null)
-				{
-					throw new InvalidFormatException("Invalid Format for "+nextType,j*tupleSize+i+1,i+1);
-				}
-				nextValue = LE.writeListExprToString();				
-				insertCommand.append("( "+nextType+" "+nextValue + ") ");		
-			}
-			insertCommand.append("))");
-			
-			for (int k = 0; k < rtreeNames.size(); k ++)
-			{
-				insertCommand.append(rtreeNames.get(k)+ " " + rtreeAttrNames.get(k) + ")");
-			}
-			
-			for (int k = 0; k < btreeNames.size(); k ++)
-			{
-				insertCommand.append(btreeNames.get(k)+ " " + btreeAttrNames.get(k) + ")");
-			}
-			insertCommand.append("))");
-			Reporter.debug("CommandGenerator.generateInsert: " + insertCommand.toString());
-			insertCommands[j] = insertCommand.toString();
-		}
-		return insertCommands;	
-	}
-	
-	/*
-	 Generates an insert-command for each tuple that shall be inserted. Actualizes the indices as
-	 well.
-	 */
-	public String[] generateInsert(String pRelName, List<String> pAttributeNames, List<String> pAttributeTypes, List<Tuple> pInsertTuples) throws InvalidFormatException
-	{
-		String[] insertCommands = null;
+		List<String> insertCommands = new ArrayList<String>();
 				
 		if (pAttributeNames != null && pAttributeTypes != null && pInsertTuples != null && !pInsertTuples.isEmpty())
 		{
@@ -130,9 +70,7 @@ public class CommandGenerator
 			String value;
 			
 			this.retrieveIndices(pRelName, pAttributeNames);
-			
-			insertCommands = new String[pInsertTuples.size()];
-			
+						
 			for (int j = 0; j < tupleCount; j++)
 			{
 				tuple = pInsertTuples.get(j);
@@ -160,7 +98,8 @@ public class CommandGenerator
 						{
 							throw new InvalidFormatException("Invalid Format for " + type, j*tupleSize+i+1, i+1);
 						}
-						insertCommand.append("( " + type + " " + value + ") ");
+						insertCommand.append(LE.toString());
+						//insertCommand.append("(" + type + " " + value + ") ");
 					}
 				}
 				insertCommand.append("))");
@@ -176,7 +115,7 @@ public class CommandGenerator
 				}
 				insertCommand.append("))");
 				Reporter.debug("CommandGenerator.generateInsert: " + insertCommand.toString());
-				insertCommands[j] = insertCommand.toString();
+				insertCommands.add(insertCommand.toString());
 			}
 		}
 		return insertCommands;	
