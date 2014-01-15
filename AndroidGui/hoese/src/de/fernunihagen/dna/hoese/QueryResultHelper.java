@@ -56,6 +56,23 @@ public class QueryResultHelper {
 	
 	return totalBound;
 	}
+	
+	public static void setActQueryResult(List<QueryResult> queryresults, QueryResult queryresult) {
+		for (QueryResult actresult : queryresults) {
+			actresult.setActual(actresult.equals(queryresult));
+		}
+	}
+
+	public static QueryResult getActualQueryResult(List <QueryResult> queryResults) {
+		for (QueryResult qr : queryResults) {
+			if (qr.isActual()) return qr;
+		}
+		if (queryResults.size() >= 1) {
+			queryResults.get(0).isActual();
+			return queryResults.get(0);
+		}
+		return null;
+	}
 
 	
 	public static CoordinateSystem getCoordinateSystem(List<QueryResult> queryresults) {

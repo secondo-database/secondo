@@ -223,7 +223,7 @@ public class SecondoServerService {
 				}
 				if (errorCode.value == ErrorCodes.NO_ERROR
 						&& !"".equals(optimizedcommand)) {
-					command = optimizedcommand;
+					command = "query " + optimizedcommand;
 				}
 			}
 

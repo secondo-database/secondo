@@ -13,6 +13,7 @@ import android.view.Menu;
 import org.osmdroid.DefaultResourceProxyImpl;
 import org.osmdroid.ResourceProxy;
 import de.fernunihagen.dna.CommandActivity;
+import de.fernunihagen.dna.OutputActivity;
 import de.fernunihagen.dna.R;
 import de.fernunihagen.dna.ResourceProxyImpl;
 import de.fernunihagen.dna.constants.OpenStreetMapConstants;
@@ -427,7 +428,7 @@ public class OsmMapActivity extends OsmActivity implements
 						if (dsplGraph.isLineType(0)) {
 							overlays.addAll(drawLine(area, dsplGraph));
 						} else {
-							overlays.addAll(drawPolygon(area, dsplGraph));
+							overlays.addAll(drawPolygon(actQueryResult, index, area, dsplGraph));
 						}
 
 					}
@@ -438,7 +439,7 @@ public class OsmMapActivity extends OsmActivity implements
 							overlays.addAll(drawPoint(actQueryResult, index, (Ellipse2D) shape,
 									dsplGraph, !dsplGraph.isPointType(0), label));
 						} else {
-							overlays.addAll(drawPolygon(shape, dsplGraph));
+							overlays.addAll(drawPolygon(actQueryResult, index, shape, dsplGraph));
 
 						}
 					}
@@ -454,7 +455,7 @@ public class OsmMapActivity extends OsmActivity implements
 		return overlays;
 	}
 
-	private ArrayList<Overlay> drawPolygon(Shape shape, DsplGraph dsplGraph) {
+	private ArrayList<Overlay> drawPolygon(QueryResult qr, int position, Shape shape, DsplGraph dsplGraph) {
 		ArrayList<Overlay> pathOverlays = new ArrayList<Overlay>();
 		// Ob ein neues Overlay angelegt werden muss oder nicht, ist abhängig,
 		// ob die neue Line eine Fläche (geschlossen) ist
@@ -469,7 +470,7 @@ public class OsmMapActivity extends OsmActivity implements
 
 			if (type == PathIterator.SEG_MOVETO) {
 				// neues Overlay erzeugen
-				pathOverlay = createPolygonOverlay(dsplGraph);
+				pathOverlay = createPolygonOverlay(qr, position, dsplGraph);
 				pathOverlays.add(pathOverlay);
 				pathOverlay.addPoint(p.getLatitudeE6(), p.getLongitudeE6());
 			}
@@ -489,8 +490,10 @@ public class OsmMapActivity extends OsmActivity implements
 		}
 
 		Rectangle2D bounce = shape.getBounds2D();
-		mOsmv.getController().animateTo(
-				new GeoPoint(bounce.getCenterY(), bounce.getCenterX()));
+		if (dsplGraph.getSelected()) {
+			mOsmv.getController().animateTo(
+					new GeoPoint(bounce.getCenterY(), bounce.getCenterX()));
+		}
 
 		return pathOverlays;
 	}
@@ -532,9 +535,10 @@ public class OsmMapActivity extends OsmActivity implements
 		}
 
 		Rectangle2D bounce = shape.getBounds2D();
-		mOsmv.getController().animateTo(
-				new GeoPoint(bounce.getCenterY(), bounce.getCenterX()));
-
+		if (dsplGraph.getSelected()) {
+			mOsmv.getController().animateTo(
+					new GeoPoint(bounce.getCenterY(), bounce.getCenterX()));
+		}
 		return pathOverlays;
 	}
 
@@ -575,7 +579,7 @@ public class OsmMapActivity extends OsmActivity implements
 									.getRelatedObject();
 							boolean newSelected = !holder.dsplBase.getSelected();
 //							int lastActSelected = holder.queryResult.getActSelected();
-							
+							QueryResultHelper.setActQueryResult(queryResults, holder.queryResult);
 							holder.queryResult.selectItem(holder.position, newSelected);
 							//	holder.dsplBase.setSelected(newSelected);
 							
@@ -585,6 +589,7 @@ public class OsmMapActivity extends OsmActivity implements
 							item.setMarker(newSelected ? pointMarkerSelected
 									: pointMarker);
 							
+							switchTabInActivity(1);
 							mOsmv.invalidate();
 						}
 						return true;
@@ -606,6 +611,11 @@ public class OsmMapActivity extends OsmActivity implements
 		return overlays;
 	}
 
+	public void switchTabInActivity(int indexTabToSwitchTo){
+        OutputActivity parentActivity;
+        parentActivity = (OutputActivity) this.getParent();
+        parentActivity.switchTab(indexTabToSwitchTo);
+}
 	private PathOverlay createPathOverlay(DsplGraph dsplGraph) {
 		Category cat = dsplGraph.getCategory();
 
@@ -629,7 +639,7 @@ public class OsmMapActivity extends OsmActivity implements
 		return paint;
 	}
 
-	private PolygonOverlay createPolygonOverlay(DsplGraph dsplGraph) {
+	private PolygonOverlay createPolygonOverlay(QueryResult qr, int position, DsplGraph dsplGraph) {
 		Category cat = dsplGraph.getCategory();
 
 		int color = (dsplGraph != null && dsplGraph.getSelected()) ? cat
@@ -637,7 +647,7 @@ public class OsmMapActivity extends OsmActivity implements
 		// Create color with alpha
 		int argbcolor = Color.argb(cat.getAlpha(), Color.red(color),
 				Color.green(color), Color.blue(color));
-		MyPolygonOverlay polygonOverlay = new MyPolygonOverlay(
+		MyPolygonOverlay polygonOverlay = new MyPolygonOverlay(this, qr, dsplGraph, position,
 				this.getApplicationContext());
 
 		polygonOverlay.setFillColor(argbcolor);

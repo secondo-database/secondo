@@ -19,6 +19,7 @@ import android.view.MenuItem;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
@@ -33,7 +34,8 @@ public class TextActivity extends Activity {
 	private QueryResult queryResult;
 	private List<QueryResult> queryResults;
 	private int actSelectedPosition = -1;
-
+	private CheckBox lastSelectedCheckBox = null;
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -45,48 +47,39 @@ public class TextActivity extends Activity {
 		assert(queryResult != null);
 		queryResults = (List<QueryResult>) intent.getSerializableExtra(CommandActivity.EXTRA_RESULTS);
 
-		for (QueryResult qr : queryResults) {
-			if (qr.isActual()) queryResult = qr;
-		}
+		queryResult = QueryResultHelper.getActualQueryResult(queryResults);
 		
-		// if no actual result, then take the first Result
-		if (queryResults.size() > 0 && queryResult == null) {
-			queryResult = queryResults.get(0);
-			queryResult.setActual(true);
-			
-		}
+//		// if no actual result, then take the first Result
+//		if (queryResults.size() > 0 && queryResult == null) {
+//			queryResult = queryResults.get(0);
+//			queryResult.setActual(true);
+//			
+//		}
 		
 		createAdapter();
 
 	}
 	
-	@Override
-	public void onWindowFocusChanged(boolean hasFocus) {
-//		final ListView listview = (ListView) findViewById(R.id.listview);
-
-//		listview.invalidate();
-		super.onWindowFocusChanged(hasFocus);
-	}
-
 	
 	@Override
 	protected void onResume() {
 		final ListView listview = (ListView) findViewById(R.id.listview);
+		
+		updateActivity();
 
 		actSelectedPosition = queryResult.getActSelected();
 		if (actSelectedPosition >= 0) {
+			((BaseAdapter) listview.getAdapter()).notifyDataSetChanged();			
+
 			listview.smoothScrollToPosition(actSelectedPosition);
 		}
-//		listview.invalidate();
 		super.onResume();
 	}
 	
 	public void updateActivity() {
 		QueryResult lastresult = queryResult;
 
-		for (QueryResult qr : queryResults) {
-			if (qr.isActual()) queryResult = qr;
-		}
+		queryResult = QueryResultHelper.getActualQueryResult(queryResults);
 		
 		if (lastresult.equals(queryResult))
 			return;
@@ -108,15 +101,21 @@ public class TextActivity extends Activity {
 		      @Override
 		      public void onItemClick(AdapterView<?> parent, final View view,
 		          int position, long id) {
+		    	  
+//		    	if (lastSelectedCheckBox != null) {
+//		    		lastSelectedCheckBox.setChecked(false);
+//		    	}
+		    	
 		        CheckBox checkBox = (CheckBox) view.findViewById(R.id.itemcheck);
 		        checkBox.setChecked(!checkBox.isChecked());
 		        
 		        actSelectedPosition = checkBox.isChecked() ? position : -1;
-		        
 		        boolean changeTagMode = true; // If you want to switch immediately to the graphic tab, set to true
 				if (changeTagMode && checkBox.isChecked() && queryResult.getGraphObjects().size() > 0) {
+//					lastSelectedCheckBox = checkBox;
 					int tab = QueryResultHelper.getCoordinateSystem(queryResults) == CoordinateSystem.GEO ? 3 : 2;
 		        	switchTabInActivity(tab);
+		        	((BaseAdapter) listview.getAdapter()).notifyDataSetChanged();
 		        }
 		      }
 
@@ -175,6 +174,7 @@ public class TextActivity extends Activity {
 
 		final private HashMap<String, Integer> mIdMap = new HashMap<String, Integer>();
 	    final private QueryResult queryResult;
+		boolean noUpdate = false;
 	    
 	    public StableArrayAdapter(Context context, int textViewResourceId,
 	        List<String> objects, QueryResult queryResult) {
@@ -195,6 +195,11 @@ public class TextActivity extends Activity {
 	    public boolean hasStableIds() {
 	      return true;
 	    }
+	    
+		public void notifyChanged() {
+			((BaseAdapter) this).notifyDataSetChanged(); 
+		}
+
 
 	    public View getView(int position, final View convertView, final ViewGroup parent) {
 	        View row = convertView;
@@ -218,8 +223,14 @@ public class TextActivity extends Activity {
 				
 				@Override
 				public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-			         Log.w(TAG, "Tag ["+ buttonView.getTag() + "]");
-			         queryResult.selectItem((Integer) buttonView.getTag(), isChecked);		
+					if (noUpdate) return;
+					
+					noUpdate = true;
+			        Log.w(TAG, "Tag ["+ buttonView.getTag() + "]");
+			        queryResult.selectItem((Integer) buttonView.getTag(), isChecked);	
+			       
+			        notifyChanged();
+			        noUpdate = false;
 				}});
 		      
 	        } else {
@@ -235,6 +246,8 @@ public class TextActivity extends Activity {
 	        Log.w(TAG, "1: setChecked ["+ selected + "]");
 	        holder.checkbox.setChecked(selected);
 	        Log.w(TAG, "2: setChecked ["+ selected + "]");
+
+	        
 	        return (row);
 	      }
 

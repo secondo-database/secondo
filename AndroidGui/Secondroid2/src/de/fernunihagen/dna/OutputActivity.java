@@ -57,6 +57,7 @@ public class OutputActivity extends TabActivity implements OnTabChangeListener {
 			}
 		}
 
+		
 		if (!queryresults.contains(queryResultExtra) || queryResultExtra.getStrings().size() == 0) {
 			final ListExpr listExpr = queryResultExtra.getResultList();
 
@@ -65,14 +66,20 @@ public class OutputActivity extends TabActivity implements OnTabChangeListener {
 				return;
 			}
 
-			String name = listExpr.first().toString();
-			LEUtils.analyse(name, 0, 0, listExpr.first(), listExpr.second(),
-					queryResultExtra);
+			if (listExpr.first() != null) {
+				String name = listExpr.first().toString();
+				LEUtils.analyse(name, 0, 0, listExpr.first(), listExpr.second(),
+						queryResultExtra);
+			}
+
 			Log.i(TAG, queryResultExtra.getStrings().toString());
 			if (!queryresults.contains(queryResultExtra)) {
 				queryresults.add(queryResultExtra);
 			}
 		} 
+
+		// new result is always the actual result
+		QueryResultHelper.setActQueryResult(queryresults, queryResultExtra);
 
 		// Tab for Textoutput
 		TabSpec textSpec = tabHost.newTabSpec("Text");
@@ -130,6 +137,7 @@ public class OutputActivity extends TabActivity implements OnTabChangeListener {
 
 
 	public void switchTab(int tab) {
+		mapTabDirty = true;
 		getTabHost().setCurrentTab(tab);
 	}
 

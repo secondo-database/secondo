@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import de.fernunihagen.dna.hoese.Category;
 import de.fernunihagen.dna.hoese.QueryResult;
+import de.fernunihagen.dna.hoese.QueryResultHelper;
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.Context;
@@ -66,8 +67,9 @@ public class ResultsActivity extends Activity implements
 					int position, long id) {
 				CheckBox checkBox = (CheckBox) view
 						.findViewById(R.id.itemcheck);
-				setActualQueryResult((Integer) checkBox.getTag());
+				QueryResultHelper.setActQueryResult(queryResults, queryResults.get((Integer) checkBox.getTag()));
 				invalidateTabs();
+	        	switchTabInActivity(1); // Goto TextTab
 			}
 
 		});
@@ -76,14 +78,11 @@ public class ResultsActivity extends Activity implements
 		listview.setAdapter(adapter);
 
 	}
-
-	private void setActualQueryResult(int index) {
-		for (QueryResult queryResult : queryResults) {
-			queryResult.setActual(false);
-		}
-
-		queryResults.get(index).setActual(true);
-	}
+	public void switchTabInActivity(int indexTabToSwitchTo){
+        OutputActivity parentActivity;
+        parentActivity = (OutputActivity) this.getParent();
+        parentActivity.switchTab(indexTabToSwitchTo);
+}
 
 	private List<String> convertToItem(List<QueryResult> queryResults) {
 		ArrayList<String> items = new ArrayList<String>();
@@ -220,8 +219,8 @@ public class ResultsActivity extends Activity implements
 						.findViewById(R.id.properties);
 				button.setBackgroundColor(Color.BLACK);
 				button.setOnClickListener((ResultsActivity) getContext());
-				// There is a problem, wehn using a ImageButton in ListView and
-				// usiung the onItemCLick Event
+				// There is a problem, when using a ImageButton in ListView and
+				// using the onItemCLick Event
 				// http://xjaphx.wordpress.com/2011/07/14/listview-doesnt-respond-to-onitemclicklistener/
 				button.setFocusable(false);
 				TextView label = (TextView) row.findViewById(R.id.dbServer);
