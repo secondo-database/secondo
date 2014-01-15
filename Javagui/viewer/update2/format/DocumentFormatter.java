@@ -91,7 +91,7 @@ public class DocumentFormatter
 		while( (zeile = br.readLine()) != null )
 		{
 			zeile = zeile.trim();
-			if (!zeile.isEmpty() && !zeile.startsWith("#"))
+			if (zeile.length() > 0 && !zeile.startsWith("#"))
 			{
 				sb.append(zeile);
 			}
@@ -182,7 +182,7 @@ public class DocumentFormatter
 	
 	public String getFormatTemplateText() throws IOException
 	{
-		if (this.formatTemplate == null || this.formatTemplate.isEmpty())
+		if (this.formatTemplate == null || this.formatTemplate.length() == 0)
 		{
 			return this.createDefaultTemplate();
 		}

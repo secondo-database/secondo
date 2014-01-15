@@ -70,7 +70,7 @@ public class Relation
 			{
 				this.tuples.add(pTuple);
 				
-				if (pTuple.getID() != null && !pTuple.getID().isEmpty())
+				if (pTuple.getID() != null && pTuple.getID().length() > 0)
 				{
 					this.tupleIDs.add(pTuple.getID());		
 				}

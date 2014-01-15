@@ -790,7 +790,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	{
 		String name = this.showInputProfileNameDialog();
 		
-		if (name == null || name.isEmpty())
+		if (name == null || name.length() == 0)
 		{
 			return false;
 		}
@@ -813,7 +813,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	{
 		String relname = this.showChooseRelationDialog();
 		
-		if (relname == null || relname.isEmpty())
+		if (relname == null || relname.length() == 0)
 		{
 			return false;
 		}
@@ -911,28 +911,28 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		String outputDir = loadProfile.getOutputDirectory();
 		StringBuilder errorMessage = new StringBuilder();
 		
-		if (formatScript==null || formatScript.isEmpty())
+		if (formatScript==null || formatScript.length() == 0)
 		{
 			errorMessage.append("Please specify path of file that contains the format script. \n");
 		}
-		if (outputDir==null || outputDir.isEmpty())
+		if (outputDir==null || outputDir.length() == 0)
 		{
 			errorMessage.append("Please specify path of output directory. \n");
 		}
-		if (formatFields==null || formatFields.isEmpty())
+		if (formatFields==null || formatFields.length() == 0)
 		{
 			errorMessage.append("Please specify FormatFields in the load profile. ");
 			errorMessage.append("FormatFields is a list of triples [Placeholdername, Relationname, Attributename] ");
 			errorMessage.append("that are to be displayed in the formatted document. \n");
 			errorMessage.append("Example: \"CHAPTERTITLE,Chapters,Title; SUBTITLE,Chapters,Title2;  \" ");
 		}
-		if (!errorMessage.toString().isEmpty())
+		if (errorMessage.toString().length() > 0)
 		{
 			this.showErrorDialog(errorMessage.toString());
 			return false;
 		}
 		
-		if (formatTemplate==null || formatTemplate.isEmpty())
+		if (formatTemplate==null || formatTemplate.length() == 0)
 		{
 			this.showInfoDialog("Template file not specified in load profile. \nWill use default template. ");
 		}
@@ -1367,7 +1367,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			return false;
 		}
 		
-		if (tuple.getID() == null || tuple.getID().isEmpty()) // tuple is to be inserted
+		if (tuple.getID() == null || tuple.getID().length() == 0) // tuple is to be inserted
 		{
 			ListExpr resultLE = new ListExpr();
 			if (!this.insertTuple(RELNAME_LOAD_PROFILES_HEAD, tuple, resultLE))
@@ -1419,7 +1419,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			return false;
 		}
 		
-		if (tuple.getID() == null || tuple.getID().isEmpty()) // tuple is to be inserted
+		if (tuple.getID() == null || tuple.getID().length() == 0) // tuple is to be inserted
 		{
 			ListExpr resultLE = new ListExpr();
 			if (!this.insertTuple(RELNAME_LOAD_PROFILES_POS, tuple, resultLE))

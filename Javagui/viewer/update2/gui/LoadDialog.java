@@ -408,7 +408,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 	public static List<String> splitList(String pSeparatedList, String pSeparator)
 	{
 		List<String> result = new ArrayList<String>();
-		if (pSeparatedList != null && !pSeparatedList.isEmpty())
+		if (pSeparatedList != null && pSeparatedList.length() > 0)
 		{
 			String[] strings = pSeparatedList.split(pSeparator);
 			
