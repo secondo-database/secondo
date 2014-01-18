@@ -3,11 +3,12 @@ package eu.ehnes.secondoandroid;
 import java.util.List;
 
 import sj.lang.ListExpr;
-
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -18,17 +19,25 @@ import android.widget.TextView;
 
 
 /**
- * Abfrage per Kommandozeile
- * 
- * @author juergen
+ * Abfrage per Kommandozeile.
  *
+ * @author juergen
  */
 public class QueryDatabaseActivity extends Activity {
 
+	/** The eingabe. */
 	private EditText eingabe;
+	
+	/** The ausgabe. */
 	private TextView ausgabe;
+	
+	/** The history. */
 	private History history;
 	
+	/* (non-Javadoc)
+	 * @see android.app.Activity#onCreate(android.os.Bundle)
+	 */
+	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_querydatabase);
@@ -42,8 +51,8 @@ public class QueryDatabaseActivity extends Activity {
 	
 	/**
 	 * Wenn auf den Send Requestbutton gedrückt wurde, wird hier die Abfrage ausgeführt und das Ergebnis als Rawtext ausgegeben.
-	 * 
-	 * @param v
+	 *
+	 * @param v the View 
 	 */
 	public void send_request(View v) {
 		ProgressDialog dialog = ProgressDialog.show(this, "Secondo", "Query in Progress, please wait");
@@ -70,7 +79,10 @@ public class QueryDatabaseActivity extends Activity {
 
 				ProcessQueries pq=new ProcessQueries();
 				List<String> itemlist=pq.CreateItemList((ListExpr)liste);
-				if(PreferencesActivity.isFormattedOutputState() && itemlist!=null) {
+				SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+				boolean formattedOutputState = preferences.getBoolean("formattedOutputState", true);
+
+				if(formattedOutputState && itemlist!=null) {
 					ausgabe.setVisibility(View.INVISIBLE);
 					sv.setVisibility(View.GONE);
 					ausgabeliste.setVisibility(View.VISIBLE);
@@ -101,18 +113,28 @@ public class QueryDatabaseActivity extends Activity {
 	
 	/**
 	 * Der Last Command Button wurde gedrückt und das letzte Kommando aus der History geholt.
-	 * 
-	 * @param v
+	 *
+	 * @param v the v
 	 */
 	public void last_command(View v) {
 		eingabe.setText(history.last());
-
 	}
 
+	/**
+	 * Shows the next entry from history
+	 *
+	 * @param v the View
+	 */
 	public void next_command(View v) {
 		eingabe.setText(history.next());
 
 	}
+	
+	/**
+	 * Clears the entry field
+	 *
+	 * @param v the View 
+	 */
 	public void clear_command(View v) {
 		eingabe.setText("");
 

@@ -23,11 +23,13 @@ import android.widget.Toast;
  */
 public class ListObjectsResultActivity extends Activity {
 	
+	@Override
 	public void onLowMemory() {
 		super.onLowMemory();
 		System.out.println("Main memory is low");
 	}
 
+	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 
 		super.onCreate(savedInstanceState);

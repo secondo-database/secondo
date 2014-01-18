@@ -51,7 +51,7 @@
     <TextView
         android:id="@+id/textView1"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_gravity="bottom|end"
         android:layout_weight="0.96"
         android:gravity="bottom"
@@ -61,6 +61,6 @@
         android:id="@+id/statusline"
         android:layout_width="317dp"
         android:layout_height="wrap_content"
-        android:text="Statusmeldungen" />
+        android:text="@string/statusdata" />
 
 </LinearLayout>

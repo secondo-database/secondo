@@ -6,7 +6,9 @@ import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -19,6 +21,11 @@ import java.util.List;
 import eu.ehnes.secondoandroid.R;
 
 
+/**
+ * The Class FileDialogActivity opens a windows with the files in the given path
+ * and shows them in a List View
+ *  
+ */
 public class FileDialogActivity extends ListActivity {
 	private List<String> item=null;
 	private List<String> path=null;
@@ -26,6 +33,7 @@ public class FileDialogActivity extends ListActivity {
 	
 	private TextView myPath;
 	
+	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		String root;
 		super.onCreate(savedInstanceState);
@@ -34,17 +42,30 @@ public class FileDialogActivity extends ListActivity {
 		myPath=(TextView) findViewById(R.id.path);
 
 		// Diese Funktion ermittelt den eigenen Pfad des Programms
-		root=OwnPath.getInstance().getPath();
+		root=OwnPath.getInstance().getPath(); // Default Value
+
+		SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+		boolean externalSourceStateBoolean = preferences.getBoolean("externalSourceState", false);
+		if (externalSourceStateBoolean) {
+			root = preferences.getString("externalSourcePath", root );
+		}
 		
 		getDir(root);
 		
 	}
 	
 	// Name: getDir
-	// Funktion: Ermittelt die Dateien im mitgegebenen Verzeichnis und schreibt 
-	// 			sie in eine Liste item
+	// Funktion: 
 	// Parameter: dirPath - Enthält das Verzeichnis, das gelesen werden soll.
 	
+	/**
+	 * Ermittelt die Dateien im mitgegebenen Verzeichnis und schreibt 
+	 * 			sie in eine Liste item
+	 * Finds the Files in the given Directory and writes them to a listitem  
+	 *
+	 * @param dirPath the given Directory Path path
+	 * @return no Return Value
+	 */
 	private void getDir(String dirPath) {
 		
 		myPath.setText("Location: "+dirPath);
@@ -74,6 +95,7 @@ public class FileDialogActivity extends ListActivity {
 	     setListAdapter(fileList); 
 	}
 	
+	@Override
 	protected void onListItemClick(ListView l, View v, int position, long id) {
 
 		File file = new File(path.get(position));
@@ -107,6 +129,7 @@ public class FileDialogActivity extends ListActivity {
 
 				// Die Meldung dient nur zur Information, deshalb
 				// wird ein Drücken des OK-Buttons ignoriert 
+				@Override
 				public void onClick(DialogInterface dialog, int which) {
 					dialog.dismiss();
 

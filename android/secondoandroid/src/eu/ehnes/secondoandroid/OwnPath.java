@@ -5,6 +5,7 @@ import android.app.Activity;
 /** 
  * OnwPath
  * Diese Klasse hält den aktuellen Programmpfad als statische Variable
+ * 
  * @author Jürgen Ehnes
  * @version 1.0
  */

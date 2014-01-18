@@ -26,6 +26,8 @@ import android.view.MotionEvent;
 import android.view.View.OnTouchListener;
 
 /**
+ * ListObjectsActivity - Shows the List of the Root objects in the database
+ * 
  * @author Jürgen Ehnes
  * @version 1.0
  *
@@ -39,8 +41,10 @@ public class ListObjectsActivity extends ListActivity {
     
     /**
      * onCreate
+     * 
      * @param savedInstanceState Der gespeicherte Zustand der Instanz
      */
+	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		boolean fehler=false;
 		
@@ -56,11 +60,14 @@ public class ListObjectsActivity extends ListActivity {
 		catch(OutOfMemoryError ome) {
 	        Toast.makeText(this, "Query is not successful. System is running out of memory", Toast.LENGTH_LONG).show();
 		}
+		if (liste == null) {
+			Toast.makeText(this, "Secondo returns Null for result. Potential Configuration or Database Problem?", Toast.LENGTH_LONG).show();
+			return;
+		}
 		stringList=new ArrayList<String>(liste.listLength());
 		typeList=new HashMap<String,String>(liste.listLength());
 		List<String> item = new ArrayList<String>(liste.listLength());
 		
-		if(liste!=null) {
 			 
 			ListOut lo=new ListOut();
 			
@@ -89,7 +96,7 @@ public class ListObjectsActivity extends ListActivity {
 				item.add(SecondoActivity.sh.errorMessage());
 				fehler=true;
 			}			
-		} 
+		 
 		
 		// Der Arrayadapter wird als Vorbereitung für die ausgabe erstellt und bekommt als Paramter die itemliste sowie das Design der Zeile (row)
 		ArrayAdapter<String> fileList = new ArrayAdapter<String>(this, R.layout.row, item);
@@ -98,6 +105,7 @@ public class ListObjectsActivity extends ListActivity {
 			LinearLayout ll=(LinearLayout)findViewById(R.id.listobjectslinearlayout);
 			
 			ll.setOnTouchListener(new OnTouchListener() {
+				@Override
 				public boolean onTouch(View v, MotionEvent event) {
 					if(popupWindow!=null && popupWindow.isShowing() && (event.getAction() != MotionEvent.ACTION_UP) ) {
 						popupWindow.dismiss();
@@ -110,6 +118,7 @@ public class ListObjectsActivity extends ListActivity {
 				
 			);
 			lv.setOnTouchListener(new OnTouchListener() {
+				@Override
 				public boolean onTouch(View v, MotionEvent event) {
 					if(popupWindow!=null && popupWindow.isShowing() && (event.getAction() != MotionEvent.ACTION_UP) ) {
 						popupWindow.dismiss();
@@ -124,6 +133,7 @@ public class ListObjectsActivity extends ListActivity {
 			
 			lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			
+				@Override
 				public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
 					// Es wurde auf ein Element geklickt. Dieses wird nun ausgewählt und ein neues Fenster mit dem Ergebnis
 					// des queries geöffnet. 
@@ -148,6 +158,7 @@ public class ListObjectsActivity extends ListActivity {
 			
 			lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
 				// Wenn lang auf das Display gedrückt wurde, werden die Typen angezeigt.
+				@Override
 				public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
 
 					// Wenn das Fenster schon angezeigt wird, wird es ausgeblendet
@@ -180,13 +191,14 @@ public class ListObjectsActivity extends ListActivity {
 			
 			
 		} else {
-			
+			// To be implemented
 			}
 		
 			this.setListAdapter(fileList); 
 		
 	}
 	
+	@Override
 	public void onLowMemory() {
 		super.onLowMemory();
 		System.out.println("Main memory is low");

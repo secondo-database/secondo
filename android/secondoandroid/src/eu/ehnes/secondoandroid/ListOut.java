@@ -8,13 +8,14 @@ import sj.lang.ListExpr;
 /**
  * ListOut - Klasse um eine ListExpr in Java auszugeben.
  *
+ *@author juergen
  */
 public class ListOut {
 	private List<String> al;
 	private int aktElem=0;
 	
 	/**
-	 * Konstruktor
+	 * Constructor
 	 */
 	
 	ListOut() {
@@ -37,10 +38,10 @@ public class ListOut {
 	 * @return int größe des Arrays
 	 */
 	public int size() {
-		if(al!=null)
+		if(al != null) {
 			return al.size();
-		else
-			return 0;
+		}
+		return 0;
 	}
 	
 	/**
@@ -50,11 +51,10 @@ public class ListOut {
 	 * @return String des angefragten Elements
 	 */
 	public String getElem(int num) {
-		if(num<size()) {
+		if(num < size()) {
 			return al.get(num);
-		} else {
-			return "";
 		}
+		return "";
 				
 	}
 	
@@ -82,8 +82,8 @@ public class ListOut {
 	 */
 	public List<String> ListToStringArray(ListExpr li) {
 		
-		if(al==null)
-			al=new ArrayList<String>();
+		if(al == null)
+			al = new ArrayList<String>();
 		else
 			al.clear();
 		
@@ -98,26 +98,28 @@ public class ListOut {
 	 * @return boolean Ergebns ob Umwandlung geklappt hat oder nicht.
 	 */
 	private boolean LTSA(ListExpr li) {
-		if(li.isEmpty()) {
+		ListExpr localLi=li;
+		
+		if(localLi.isEmpty()) {
 			return false;
-		} else if(li.isAtom()) {
-			switch(li.atomType()) {
+		} else if(localLi.isAtom()) {
+			switch(localLi.atomType()) {
 			case ListExpr.BIN_TEXT: case ListExpr.BIN_STRING: case ListExpr.BIN_SHORTSTRING: case ListExpr.BIN_SHORTTEXT: case ListExpr.BIN_LONGTEXT: case ListExpr.BIN_LONGSTRING:
-				al.add(li.textValue());
+				al.add(localLi.textValue());
 				break;
 			case ListExpr.BIN_DOUBLE: case ListExpr.BIN_REAL:
-				al.add(String.valueOf(li.realValue()));
+				al.add(String.valueOf(localLi.realValue()));
 				break;
 			case ListExpr.BIN_SYMBOL: case ListExpr.BIN_SHORTSYMBOL: case ListExpr.BIN_LONGSYMBOL:
-				al.add(li.symbolValue());
+				al.add(localLi.symbolValue());
 				break;
 			case ListExpr.BIN_INTEGER: case ListExpr.BIN_SHORTINT:
-				al.add(String.valueOf(li.intValue()));
+				al.add(String.valueOf(localLi.intValue()));
 				break;
 			case ListExpr.BIN_BYTE:
 				break;
 			case ListExpr.BIN_BOOLEAN:
-				al.add(String.valueOf(li.boolValue()));
+				al.add(String.valueOf(localLi.boolValue()));
 				
 				break;
 			default:
@@ -125,16 +127,16 @@ public class ListOut {
 
 			}
 		} else {
-			    boolean ok = LTSA(li.first());
+			    boolean ok = LTSA(localLi.first());
 
 			    if ( !ok ) {
 			      return (ok);
 			    }
 
-			    while ( !li.rest().isEmpty())
+			    while ( !localLi.rest().isEmpty())
 			    {
-			      li = li.rest();
-			      ok = LTSA(li.first() );
+			      localLi = localLi.rest();
+			      ok = LTSA(localLi.first() );
 
 			      if ( !ok ) {
 			        return (ok);

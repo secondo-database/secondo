@@ -122,17 +122,17 @@ transactions of errorneous queries were not aborted.
 
 
 
+
 std::string substring(std::string s, unsigned int start, unsigned int ende);
 jobject executeCommand2(JNIEnv *env, SecondoInterface *si, string command);
+jclass instrumentationclass;
+jmethodID getObjectSizeID;
 
 
 using namespace std;
 
 SecondoInterface* si =0;
 string lasterror="";
-
-const unsigned int ergebnisLaenge=30000;
-
 
 std::string substring(std::string s, unsigned int start, unsigned int ende) {
 	string ergebnis="";
@@ -149,10 +149,8 @@ std::string substring(std::string s, unsigned int start, unsigned int ende) {
 
 JNIEXPORT jboolean JNICALL
 	Java_eu_ehnes_secondoandroid_starthelper_initialize(
-			JNIEnv *env, jobject jo) {
-	__android_log_write(ANDROID_LOG_ERROR,"Tag", "Start secondomain");
-
-
+			JNIEnv *env, jobject jo, jstring js) {
+	__android_log_write(ANDROID_LOG_INFO,"FU", "Start secondomain");
 
 
    // create an interface to the secondo functionality
@@ -160,8 +158,12 @@ JNIEXPORT jboolean JNICALL
    si = new SecondoInterface(false);
 
    // define the name of the configuration file
-   string config = "/data/data/eu.ehnes.secondoandroid/Config.ini";
+   string config = env->GetStringUTFChars(js, NULL);
+   //string config = "/data/data/eu.ehnes.secondoandroid/Config.ini";
 
+   __android_log_write(ANDROID_LOG_INFO, "FU", "Config file path:");
+
+   __android_log_write(ANDROID_LOG_INFO, "FU", config.c_str());
    // read in runtime flags from the config file
    si->InitRTFlags(config);
 
@@ -246,16 +248,16 @@ jobject executeCommand2(
 	          // command was successful
 	          // do what ever you want to de with the result list
 	          // in this little example, the result is just printed out
-	          __android_log_write(ANDROID_LOG_INFO,
-			"FU", "Command sucessful processed");
-	          __android_log_write(ANDROID_LOG_INFO,
-			"FU", "Result is:");
-	          __android_log_write(ANDROID_LOG_INFO,
-			"FU", nl->ToString(res).c_str());
-	          __android_log_print(ANDROID_LOG_INFO,
-			"FU", "Länge des Strings %d", 
-			strlen(nl->ToString(res).c_str()));
-	          cout << nl->ToString(res) << endl << endl;
+//	          __android_log_write(ANDROID_LOG_INFO,
+//			"FU", "Command sucessful processed");
+//	          __android_log_write(ANDROID_LOG_INFO,
+//			"FU", "Result is:");
+//	          __android_log_write(ANDROID_LOG_INFO,
+//			"FU", nl->ToString(res).c_str());
+//	          __android_log_print(ANDROID_LOG_INFO,
+//			"FU", "Länge des Strings %d",
+//			strlen(nl->ToString(res).c_str()));
+//	          cout << nl->ToString(res) << endl << endl;
 
 	          JNITool *jnitool=new JNITool(env, nl);
         	  jobject obj=NULL;
@@ -266,6 +268,10 @@ jobject executeCommand2(
 			"FU", "Exception geworfen");
 
         	  };
+
+
+
+
 
         	  return obj;
 

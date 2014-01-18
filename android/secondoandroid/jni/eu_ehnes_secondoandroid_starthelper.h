@@ -119,7 +119,7 @@ transactions of errorneous queries were not aborted.
 extern "C" {
 #endif
 JNIEXPORT jboolean JNICALL Java_eu_ehnes_secondoandroid_starthelper_initialize
-  (JNIEnv *, jobject);
+  (JNIEnv *, jobject, jstring);
 
 JNIEXPORT void JNICALL Java_eu_ehnes_secondoandroid_starthelper_shutdown
   (JNIEnv *, jobject);

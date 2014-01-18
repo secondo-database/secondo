@@ -31,6 +31,9 @@ This class provides some functions useful in jni calls.
 #include <JVMInit.h>
 #include "JNITool.h"
 #include <android/log.h>
+#include <unistd.h>
+#include <string>
+
 bool JNITool::initialized=false;
 
 
@@ -162,7 +165,6 @@ JNITool::JNITool(JNIEnv *env, NestedList *nl){
    gcID = env->GetStaticMethodID(systemclass,"gc","()V");
    assert(gcID);
 
-
 }
 
 
@@ -271,7 +273,12 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
  
       if(!res) Error(__LINE__);
       jobject last =  res;
+	  char memText[100];
+
       while(!nl->IsEmpty(R)){
+//    	  sprintf(memText, "Memory: sizeof(res) %d",sizeof(*res) );
+//    	  __android_log_write(ANDROID_LOG_INFO, "FU", memText);
+
            jobject next = GetJavaList(env, nl->First(R));
            jobject oldlast = last;
            if(next!=NULL) {
@@ -289,7 +296,6 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
       if(last!=res)
          env->DeleteLocalRef(last);
 
-
       return res;
    } 
    // unknow atomtype
@@ -299,7 +305,6 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
    return 0;
 
 }
-
 
 
 /*

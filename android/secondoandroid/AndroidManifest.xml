@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="eu.ehnes.secondoandroid"
     android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionName="1.101" >
 
     <uses-sdk
         android:minSdkVersion="14"
@@ -14,7 +14,7 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme"
         android:debuggable="true"
-        >
+        android:largeHeap="true">
  
          <activity android:name="eu.ehnes.secondoandroid.SplashScreenActivity" android:screenOrientation="portrait">
              <intent-filter>
@@ -33,6 +33,7 @@
          <activity android:name="eu.ehnes.secondoandroid.ListObjectsResultActivity" android:label="ListObjects Result"></activity>
          <activity android:name="eu.ehnes.secondoandroid.QueryDatabaseActivity" android:label="Query Database"></activity>
          <activity android:name="eu.ehnes.secondoandroid.PreferencesActivity" android:label="Preferences" ></activity>
+         <activity android:label="Show Memory" android:name="eu.ehnes.secondoandroid.MemoryActivity"></activity>
          
     </application>
 

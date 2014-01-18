@@ -4,8 +4,8 @@
 		<cconfiguration id="0.2033377662">
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="0.2033377662" moduleId="org.eclipse.cdt.core.settings" name="Default">
 				<macros>
+					<stringMacro name="ANDROID_NDK" type="VALUE_PATH_DIR" value="/home/juergen/android-ndk"/>
 					<stringMacro name="NDK_MODULE_PATH" type="VALUE_PATH_DIR" value="${HOME}/secondo/android/secondoandroid"/>
-					<stringMacro name="Android_NDK" type="VALUE_PATH_DIR" value="${HOME}/android-ndk"/>
 				</macros>
 				<externalSettings>
 					<externalSetting/>
@@ -24,7 +24,7 @@
 					<folderInfo id="0.2033377662." name="/" resourcePath="">
 						<toolChain errorParsers="" id="org.eclipse.cdt.build.core.prefbase.toolchain.518162422" name="No ToolChain" resourceTypeBasedDiscovery="false" superClass="org.eclipse.cdt.build.core.prefbase.toolchain">
 							<targetPlatform id="org.eclipse.cdt.build.core.prefbase.toolchain.518162422.1736081395" name=""/>
-							<builder autoBuildTarget="all" buildPath="${workspace_loc:/secondoandroid}" cleanBuildTarget="clean" command="${ANDROID_NDK}/ndk-build" enableAutoBuild="true" enableCleanBuild="true" enabledIncrementalBuild="false" id="cdt.managedbuild.target.gnu.builder.base.808527563" incrementalBuildTarget="all" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" parallelizationNumber="1" superClass="cdt.managedbuild.target.gnu.builder.base"/>
+							<builder autoBuildTarget="all" buildPath="${workspace_loc:/secondoandroid}" cleanBuildTarget="clean" command="${ANDROID_NDK}/ndk-build" enableAutoBuild="true" enableCleanBuild="true" enabledIncrementalBuild="false" id="cdt.managedbuild.target.gnu.builder.base.808527563" incrementalBuildTarget="all" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.base"/>
 							<tool errorParsers="org.eclipse.cdt.core.VCErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GLDErrorParser" id="org.eclipse.cdt.build.core.settings.holder.libs.1365818249" name="holder for library settings" superClass="org.eclipse.cdt.build.core.settings.holder.libs">
 								<option id="org.eclipse.cdt.build.core.settings.holder.libfiles.2070065205" name="Library Files" superClass="org.eclipse.cdt.build.core.settings.holder.libfiles"/>
 							</tool>
@@ -32,9 +32,9 @@
 								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.2047359040" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${HOME}/secondo/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/platforms/android-9/arch-arm/usr/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.7/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.7/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/sources/cxx-stl/gnu-libstdc++/4.6/libs/armeabi/include/&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.7&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.8&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.8/include&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.build.core.settings.holder.symbols.772548396" name="Symbols" superClass="org.eclipse.cdt.build.core.settings.holder.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="&quot;NDK_MODULE_PATH=${HOME}/git/secondo2/secondo2/jni&quot;"/>
@@ -45,9 +45,9 @@
 								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.1804517365" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${HOME}/secondo/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/platforms/android-9/arch-arm/usr/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/sources/cxx-stl/gnu-libstdc++/4.7/libs/armeabi/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.7/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.7/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.7&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.8&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/sources/cxx-stl/gnu-libstdc++/4.8/libs/armeabi/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.8/include&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.build.core.settings.holder.symbols.724931638" name="Symbols" superClass="org.eclipse.cdt.build.core.settings.holder.symbols"/>
 								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.725926340" languageId="org.eclipse.cdt.core.g++" languageName="GNU C++" sourceContentType="org.eclipse.cdt.core.cxxSource,org.eclipse.cdt.core.cxxHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
@@ -56,9 +56,9 @@
 								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.1008927414" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${HOME}/secondo/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/platforms/android-9/arch-arm/usr/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.7/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.7/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/sources/cxx-stl/gnu-libstdc++/4.6/libs/armeabi/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.7&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.8&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.8/include&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.build.core.settings.holder.symbols.424455793" name="Symbols" superClass="org.eclipse.cdt.build.core.settings.holder.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="&quot;NDK_MODULE_PATH=${HOME}/git/secondo2/secondo2/jni&quot;"/>
@@ -77,9 +77,9 @@
 								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.1981919830" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${HOME}/secondo/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/platforms/android-9/arch-arm/usr/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/sources/cxx-stl/gnu-libstdc++/4.7/libs/armeabi/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.7/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.7/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.7&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.8&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/sources/cxx-stl/gnu-libstdc++/4.8/libs/armeabi/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.8/include&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.build.core.settings.holder.symbols.1133690858" name="Symbols" superClass="org.eclipse.cdt.build.core.settings.holder.symbols"/>
 								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.449425135" languageId="org.eclipse.cdt.core.g++" languageName="GNU C++" sourceContentType="org.eclipse.cdt.core.cxxSource,org.eclipse.cdt.core.cxxHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
@@ -88,9 +88,9 @@
 								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.482062188" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${HOME}/secondo/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/platforms/android-9/arch-arm/usr/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.7/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.7/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/sources/cxx-stl/gnu-libstdc++/4.6/libs/armeabi/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.7&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/toolchain-standalone/include/c++/4.8&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/android-ndk/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.8/include&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.build.core.settings.holder.symbols.129687685" name="Symbols" superClass="org.eclipse.cdt.build.core.settings.holder.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="&quot;NDK_MODULE_PATH=${HOME}/git/secondo2/secondo2/jni&quot;"/>

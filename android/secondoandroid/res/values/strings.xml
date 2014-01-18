@@ -19,5 +19,16 @@
     <string name="last">Last command</string>
     <string name="clear">C</string>
     <string name="next">Next command</string>
+    <string name="statusdata">Statusmeldungen</string>
+    <string name="maxmemory">Max Memory</string>
+    <string name="totalmemory">Total Memory</string>
+    <string name="refresh">Refresh</string>
+    <string name="freememory">Free Memory</string>
+    <string name="zero">0</string>
+    <string name="pleaseinsertquery">Please insert your query here</string>
+    <string name="editconfiguration">Edit Configuration</string>
+    <string name="editpreferences">Edit Preferences</string>
+    <string name="showmemory">Show Memory</string>
+    <string name="pleasetouchscreen">Please touch the screen anywhere to start secondo!</string>
 
 </resources>

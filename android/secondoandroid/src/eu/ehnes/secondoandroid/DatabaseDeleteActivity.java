@@ -17,23 +17,23 @@ import android.widget.Toast;
 
 public class DatabaseDeleteActivity extends ListActivity {
 	private ListView lv;
-	
-	
+
+	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_databaseopen);
-		
+
 		lv=getListView();		// Den aktuellen Listview für die Weiterbearbeitung ermitteln
-		
+
 		List<String> item = new ArrayList<String>();
-		
-		
+
+
 		Object liste=SecondoActivity.sh.query("list databases");	// Die verfügbaren Datenbanken abfragen 
 		if(liste!=null) {
 			ListExpr newlist=(ListExpr)liste;	
 			ListOut lo=new ListOut();		
 			System.out.println(lo.ListToStringArray(newlist));		// Die Liste der Datenbanken in eine ArrayListe umwandeln
-			
+
 			// In der folgenden Schleife werden die ersten zwei Elemente ignoriert und bei allen
 			// Elementen danach muss es sich um Datenbanknamen handeln. Diese werden in eine Itemliste 
 			// geschrieben. 
@@ -43,25 +43,27 @@ public class DatabaseDeleteActivity extends ListActivity {
 				}
 			}
 		} else {
+			// to be implemented
 		}
-	
+
 		ArrayAdapter<String> fileList = new ArrayAdapter<String>(this, R.layout.row, item);
-		
+
 		// Die Liste wird in einem ListView ausgegeben
 		lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-			
+
 			// Wenn ein Eintrag ausgewählt wurde, muss er gelöscht werden
+			@Override
 			public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
 				Object o=lv.getItemAtPosition(position);
 				SecondoActivity.sh.query("delete database "+o.toString());
-				
-		        Toast.makeText(getBaseContext(), "Datenbank deleted", Toast.LENGTH_LONG).show();
 
-		     
+				Toast.makeText(getBaseContext(), "Datenbank deleted", Toast.LENGTH_LONG).show();
+
+
 				finish();
 			}
 		});
-	    setListAdapter(fileList); 
+		setListAdapter(fileList); 
 	}
 
 }

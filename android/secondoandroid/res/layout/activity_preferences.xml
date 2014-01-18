@@ -11,4 +11,42 @@
         android:onClick="formattingChanged"
         android:text="Formatted Output" />
 
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/configPath"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Position of Config.ini"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <EditText
+        android:id="@+id/configPathValue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10" >
+        <requestFocus />
+    </EditText>
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <Switch
+        android:id="@+id/externalSourceSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="externalSourceChanged"
+        android:text="Import from External Source" />
+
+    <EditText
+        android:id="@+id/externalSourceValue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10" />
+
 </LinearLayout>
