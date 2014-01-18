@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:columnCount="3" >
+
+    <TextView
+        android:id="@+id/maxMemoryLabel"
+        android:layout_column="0"
+        android:layout_gravity="left|top"
+        android:layout_row="0"
+        android:text="@string/maxmemory"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/maxMemoryValue"
+        android:layout_column="2"
+        android:layout_gravity="right|top"
+        android:layout_row="0"
+        android:text="@string/zero" />
+
+    <TextView
+        android:id="@+id/totalMemoryLabel"
+        android:layout_column="0"
+        android:layout_gravity="left|top"
+        android:layout_row="1"
+        android:text="@string/totalmemory" />
+
+    <TextView
+        android:id="@+id/totalMemoryValue"
+        android:layout_column="2"
+        android:layout_gravity="right|top"
+        android:layout_row="1"
+        android:text="@string/zero" />
+    
+    <TextView
+        android:id="@+id/freeMemoryLabel"
+        android:layout_column="0"
+        android:layout_gravity="left|top"
+        android:layout_row="2"
+        android:text="@string/freememory" />
+
+    <TextView
+        android:id="@+id/freeMemoryValue"
+        android:layout_column="2"
+        android:layout_gravity="right|top"
+        android:layout_row="2"
+        android:text="@string/zero" />
+
+    <Button
+        android:id="@+id/memoryRefresh"
+        style="?android:attr/buttonStyleSmall"
+        android:layout_column="1"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_row="4"
+        android:onClick="refreshMemory"
+        android:text="@string/refresh" />
+    
+</GridLayout>
