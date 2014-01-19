@@ -63,7 +63,7 @@ echo ' export J2SDK_ROOT=/usr/lib64/jvm/java-1.7.0-openjdk-1.7.0/' >> $HOME/.sec
 echo ' export JAVAVER="1.6"' >> $HOME/.secondorc
 echo '' >> $HOME/.secondorc
 echo ' # prolog related' >> $HOME/.secondorc
-echo " export SWI_HOME_DIR=/usr/lib64/swipl-$PLVER" >> $HOME/.secondorc
+echo " export SWI_HOME_DIR=/usr/local/lib64/swipl-$PLVER" >> $HOME/.secondorc
 echo ' export PL_LIB_DIR=$SWI_HOME_DIR/lib/x86_64-linux/' >> $HOME/.secondorc
 echo ' export PL_DLL_DIR=$PL_LIB_DIR' >> $HOME/.secondorc
 echo ' export PL_LIB=swipl' >> $HOME/.secondorc
