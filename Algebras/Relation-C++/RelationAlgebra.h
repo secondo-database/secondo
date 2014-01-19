@@ -1086,17 +1086,11 @@ or else the flob is kept locally and the can be read as usual.
   void ReadTupleFromBin(char* buf);
 
 /*
-Reset the flob file
-
-*/
-  size_t ResetExFlobFile(string flobFile, size_t flobOffset, ListExpr attrList);
-
-/*
-Set to the local flob file
+Read the data from the disk file to a Flob with mode 1
 
 */
 
-  void setLocalFlobFile(const string flobFilePath);
+  void readLocalFlobFile(const string flobFilePath);
 
 /*
 Return the size that a complete binary tuple block needs.

@@ -499,7 +499,12 @@ public:
       string fileName, string filePath,
       int attTimes, bool noFlob);
   ~PFFeedLocalInfo(){
+    pthread_join(faf_TID, NULL);
 
+    resultType->DeleteIfAllowed();
+    if (inputType)
+      inputType->DeleteIfAllowed();
+    delete interCluster;
   }
 
   static void* fetchAllFiles(void* ptr);
@@ -516,7 +521,6 @@ private:
   TupleType* resultType;  //Type output to the successive operator
   clusterInfo *interCluster;
   vector<pair<string, int> > partFiles;
-  ifstream *inputFile;
   pthread_t faf_TID;
   int attTimes;
 
@@ -530,7 +534,6 @@ private:
   int curPrdIndex;
   ifstream *curFilePt;
 
-  Tuple* addDSIdx(Tuple* tuple, int prdIndex);
 };
 
 /*

@@ -603,158 +603,17 @@ public:
 class fileInfo{
 public:
   fileInfo(size_t _cs, string _fp, string _fn,
-      size_t _an, int _rs, bool _nf = false, SmiRecordId _sid = -1):
-  cnt(0), totalExtSize(0),totalSize(0),
-  sourceDS(_sid), lastTupleIndex(0), fileOpen(false), noFlob(_nf)
-  {
-    //\_fn: fileBaseName
-    //\_rs: rowNumberSuffix (string "\_X")
-    //\_hv: columnSuffix    (integer)
-    //\_fn, \_fp: file name and path
-    //\_an: attributes number
-    if (_rs >= 0){
-      _fn += "_" + int2string(_rs);
-    }
-    blockFileName = _fn + "_" + int2string(_cs);
-    blockFilePath = _fp;
-    FileSystem::AppendItem(blockFilePath, blockFileName);
-    if (noFlob)
-    {
-      do{
-        flobFileId = WinUnix::rand() + WinUnix::getpid();
-        flobFileName = "flobFile_" + int2string(flobFileId);
-        flobFilePath = _fp;
-        FileSystem::AppendItem(flobFilePath, flobFileName);
-      } while (FileSystem::FileOrFolderExists(flobFilePath));
-    }
+      size_t _an, int _rs, bool _nf = false, SmiRecordId _sid = -1);
 
-    attrExtSize = new vector<double>(_an);
-    attrSize = new vector<double>(_an);
-  }
+  bool openFile();
 
-  bool openFile()
-  {
-    if (fileOpen){
-      return true;
-    }
-    else
-    {
-      bool fileStatus = false;
-      ios_base::openmode mode = ios::binary;
-      if (lastTupleIndex > 0)
-        mode |= ios::app;
-      blockFile.open(blockFilePath.c_str(), mode);
-      fileStatus = blockFile.good();
-      if (noFlob){
-        flobFile.open(flobFilePath.c_str(), mode);
-        fileStatus &= flobFile.good();
-      }
-      fileOpen = fileStatus;
-      return fileStatus;
-    }
-  }
-
-  void closeFile()
-  {
-    if (fileOpen){
-      blockFile.close();
-      if (noFlob){
-        flobFile.close();
-      }
-      fileOpen = false;
-    }
-  }
+  void closeFile();
 
   bool writeTuple(Tuple* tuple, size_t tupleIndex, TupleType* exTupleType,
-       int ai, bool kai, int aj = -1, bool kaj = false)
-  {
-    if (!fileOpen)
-      return false;
+       int ai, bool kai, int aj = -1, bool kaj = false);
 
-    size_t coreSize = 0;
-    size_t extensionSize = 0;
-    size_t flobSize = 0;
+  int writeLastDscr();
 
-    //The tuple written to the file need remove the key attribute
-    Tuple* newTuple;
-    bool keepAll = ((ai >= 0) ? kai : true) && ((aj >= 0) ? kaj : true);
-
-    if (keepAll){
-      newTuple = tuple;
-    }
-    else
-    {
-      newTuple = new Tuple(exTupleType);
-      int j = 0;
-      for (int i = 0; i < tuple->GetNoAttributes(); i++)
-      {
-        if ( (i != ai || kai) && ( i != aj || kaj) )
-          newTuple->CopyAttribute(i, tuple, j++);
-      }
-    }
-
-    size_t tupleBlockSize = newTuple->GetBlockSize(
-        coreSize, extensionSize, flobSize, attrExtSize, attrSize);
-    if (noFlob)
-    {
-      totalSize += (coreSize + extensionSize);
-      totalExtSize += (coreSize + extensionSize);
-      SmiSize flobBlockOffset = 0;
-
-      char* tBlock = (char*)malloc(tupleBlockSize);
-      newTuple->WriteToDivBlock(tBlock, coreSize, extensionSize, flobSize,
-          flobFileId, sourceDS, flobBlockOffset);
-      blockFile.write(tBlock, (tupleBlockSize - flobSize));
-      size_t flobOffset = tupleBlockSize - flobSize;
-      flobFile.write(tBlock + flobOffset, flobSize);
-      free(tBlock);
-    }
-    else
-    {
-      totalSize += (coreSize + extensionSize + flobSize);
-      totalExtSize += (coreSize + extensionSize);
-
-      char* tBlock = (char*)malloc(tupleBlockSize);
-      newTuple->WriteToBin(tBlock, coreSize,
-                           extensionSize, flobSize);
-      blockFile.write(tBlock, tupleBlockSize);
-      free(tBlock);
-    }
-
-    if (!keepAll)
-      newTuple->DeleteIfAllowed();
-    lastTupleIndex = tupleIndex + 1;
-    cnt++;
-
-    return true;
-  }
-
-  int writeLastDscr()
-  {
-    // write a zero after all tuples to indicate the end.
-    u_int32_t endMark = 0;
-    blockFile.write((char*)&endMark, sizeof(endMark));
-
-    // build a description list of output tuples
-    NList descList;
-    descList.append(NList(cnt));
-    descList.append(NList(totalExtSize));
-    descList.append(NList(totalSize));
-    int attrNum = attrExtSize->size();
-    for(int i = 0; i < attrNum; i++)
-    {
-      descList.append(NList((*attrExtSize)[i]));
-      descList.append(NList((*attrSize)[i]));
-    }
-
-    //put the base64 code of the description list to the file end.
-    string descStr = binEncode(descList.listExpr());
-    u_int32_t descSize = descStr.size() + 1;
-    blockFile.write(descStr.c_str(), descSize);
-    blockFile.write((char*)&descSize, sizeof(descSize));
-
-    return cnt;
-  }
   ~fileInfo()
   {
     if (fileOpen){
@@ -767,16 +626,16 @@ public:
     delete attrSize;
   }
 
-  string getFileName() {
+  inline string getFileName() {
     return blockFileName;
   }
 
-  string getFilePath() {
+  inline string getFilePath() {
     return blockFilePath;
   }
-  bool isFileOpen()
+  inline bool isFileOpen()
   {  return fileOpen;  }
-  size_t getLastTupleIndex()
+  inline size_t getLastTupleIndex()
   {  return lastTupleIndex;  }
 
 private:
@@ -792,6 +651,7 @@ private:
   SmiRecordId sourceDS;
   string flobFilePath, flobFileName;
   ofstream blockFile, flobFile;
+  SmiSize flobBlockOffset;
 
   size_t lastTupleIndex;
   bool fileOpen, noFlob;
@@ -881,7 +741,7 @@ class FetchFlobLocalInfo : public ProgressLocalInfo
 {
 public:
   FetchFlobLocalInfo(const Supplier s, NList resultTypeList,
-      NList raList, NList daList, int dsIdx);
+      NList raList, NList daList);
 
   ~FetchFlobLocalInfo(){
     if (resultType)
@@ -928,11 +788,14 @@ private:
   Tuple* setResultTuple(Tuple* tuple);
   Tuple* setLocalFlob(Tuple* tuple);
 
+  Tuple* readLocalFlob(Tuple* tuple);
+  int getSheetKey(const vector<int>& sdss);
+  int getMaxSheetKey();
+
   string LFPath;         //local flob file path
   //Use NL for flob attributes to transfer the list to flobSheet object
   NList faList;
   NList daList;          //deleted attribute list
-  int dsIdx;             //index of DS_IDX attribute
   TupleType* resultType;
 
 
@@ -985,29 +848,48 @@ Thread for fetching a remote file
 class FFLI_Thread
 {
 public:
-  FFLI_Thread(FetchFlobLocalInfo* pt, FlobSheet* _fs, int _t):
-    ffli(pt), sheet(_fs), times(_t){}
+  FFLI_Thread(FetchFlobLocalInfo* pt, FlobSheet* _fs, int _t, int _tk):
+    ffli(pt), sheet(_fs), times(_t), token(_tk){}
 
   FetchFlobLocalInfo* ffli;
   FlobSheet* sheet;
   int times;
+  int token;
 };
 
+
 /*
-Flob orders prepared for one DS
+Flob orders prepared for one tuple,
+which may contain Flobs coming from several Data Servers.
 
 */
 class FlobSheet
 {
 public:
-  FlobSheet(int _sds, const NList _fal, int _mm)
-    :sourceDS(_sds), cachedSize(0), maxMem(_mm), faList(_fal),
-     resultFilePath(""), flobOffset(0){
+
+  FlobSheet(const vector<int>& _sources, const int _si,
+      const NList& _faList, int maxMemory)
+    : sheetIndex(_si), cachedSize(0), maxMem(maxMemory), faList(_faList){
+
+    flobFiles = new map<int, pair<string, size_t> >();
     buffer = new TupleBuffer(maxMem);
     it = 0;
+    rtCounter = 0;
+
+    int faCounter = 0;
+    NList rest = faList;
+    while (!rest.isEmpty()){
+      int ai = rest.first().intval();
+      int source = _sources[faCounter];
+      flobFiles->insert(make_pair(ai, make_pair("", 0)));
+      sourceDSs.push_back(source);
+      rest.rest();
+      faCounter++;
+    }
   }
 
   ~FlobSheet(){
+    delete flobFiles;
     delete buffer;
   }
 
@@ -1019,36 +901,55 @@ Put one tuple into the sheet, if the buffer limit is not reached.
 
   Tuple* getCachedTuple();
 
-  int getSDS(){
-    return sourceDS;
-  }
+  const vector<int>& getSDSs() { return sourceDSs;}
 
   inline void makeScan(){
     it = buffer->MakeScan();
   }
 
-  inline Tuple* getNextTuple(){
-    return it->GetNextTuple();
+  inline string getResultFilePath(int sds, int attrId){
+    return flobFiles->find(attrId)->second.first;
   }
 
-  inline string getResultFilePath(){
-    return resultFilePath;
+  string setSheet(int source, int dest, int times, int attrId);
+
+  string setResultFile(int source, int dest, int times, int attrId);
+
+  ostream& print(ostream& os) const {
+
+    os << "Sheet index is: " << sheetIndex << endl;
+    os << "source DSs: ";
+    for (vector<int>::const_iterator it = sourceDSs.begin();
+        it != sourceDSs.end(); it++){
+      os << (*it) << " ";
+    }
+    os << endl;
+
+    os << "flobFiles: ------------- " << endl;
+    for (map<int, pair<string, size_t> >::iterator it = flobFiles->begin();
+        it != flobFiles->end(); it++ ){
+      os << "attrId(" << it->first << ") : " << it->second.first
+          << " offset(" << it->second.second << ")" << endl;
+    }
+    os << "-----------------------------" << endl;
+
+    os << "maxsize (" << maxMem
+        << ") cachedSize (" << cachedSize << ")" << endl;
+    os << "Cached tuples : " << buffer->GetNoTuples() << endl;
+    os << "Read tuples : " << rtCounter << endl;
+    os << endl << endl;
+
+    return os;
   }
 
-  inline size_t getCurrentFlobOffset(){
-    return flobOffset;
-  }
-
-  inline void shiftFlobOffset(size_t size){
-    flobOffset += size;
-  }
-
-  string setSheet(int source, int dest, int times);
-
-  string setResultFile(int source, int dest, int times);
 
 private:
-  int sourceDS;
+  // Map with : (attrId (flobFilePath, flobOffset))
+  //Collect one Flob for each attribute, hence use the attribute id as the key
+  map<int, pair<string, size_t> >* flobFiles;
+
+  vector<int> sourceDSs;
+  int sheetIndex;
   int cachedSize;
 /*
 If it is larger than a certain threshold, stop adding other order,
@@ -1057,12 +958,21 @@ then fetch the needed flob file.
 */
   int maxMem;
 
+/*
+newRecIds is used to record the id of all new Flobs created within this sheet.
+It happens that a Flob is listed in the current sheet,
+but has already been created in another sheet.
+
+*/
+  set<SmiRecordId> newRecIds;
+
   TupleBuffer* buffer;
   GenericRelationIterator* it;
+  size_t rtCounter;
 
   NList faList;  //Flob Attribute list
-  string resultFilePath;
-  size_t flobOffset;
 };
+
+ostream& operator<<(ostream& os, const FlobSheet& f);
 
 #endif /* HADOOPPARALLELALGEBRA_H_ */

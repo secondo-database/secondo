@@ -130,7 +130,6 @@ and the nativFlobFile is deleted.
          delete externalFileCache;
          externalFileCache = 0;
        }
-
      }
 
 
@@ -402,37 +401,30 @@ bool FlobManager::getData(
   {
     // retrieve data from external disk file
     SmiRecordId recordId = id.recordId;
-    SmiSize     floboffset = id.offset;
-    SmiSize recOffset = offset;
+    SmiSize     flobOffset = id.offset;
+    SmiSize recOffset = flobOffset + offset;
     SmiSize actRead;
-    bool ok;
 
     ifstream* tupleFile = externalFileCache->getFile(recordId);
 
-    //Read the Flob completely only when it is read at the first time
-    assert(recOffset == 0);
-    SmiSize flobLength = flob.size;
-
 /*
-Change the Flob mode to 1.
-This Flob is taken over by the NativeFlobCache from now on.
+Each time read part data within the Flob, decided by the recOffset and the size
 
 */
-    Flob& Vflob = const_cast<Flob&>(flob); //Make the flob be variable
-
-    tupleFile->seekg(floboffset, ios::beg);
+    tupleFile->seekg(recOffset, ios::beg);
     tupleFile->read(dest, size);
-    ok = nativeFlobCache->putData(flob, dest, recOffset, size, false);
-    Vflob.id.mode = 1;
 
-    if(!ok){
+    SmiSize curr = tupleFile->tellg();
+    actRead =  curr - recOffset;
+    if (actRead == size)
+      return true;
+    else{
       cerr << " error in getting data from flob " << flob << endl;
       cerr << " mode = 2" << endl;
-      cerr << " flobOffset = " << floboffset << endl;
+      cerr << " flobOffset = " << flobOffset << endl;
       cerr << " actSize = " << actRead << endl;
       cerr << " try to read = " << size << endl;
     }
-    assert(ok);
   }
   else if (id.mode == 3)
   {
@@ -463,8 +455,16 @@ bool FlobManager::destroy(Flob& victim) {
     }
 
     FlobId id = victim.id;
+    if( (id.mode==2) || (id.mode == 3)){
+      cerr << "FlobManager::destroy(Flob& victim)" << endl;
+        // do not destroy flob data within non berkeley db files.
+        victim.id.destroy();
+        return true;
+    }
+
+
     assert(!victim.id.isDestroyed());
-   bool isTemp = (id.mode == 1 || id.mode == 2);
+   bool isTemp = id.mode == 1;
    if(victim.id.fileId == nativeFlobs && isTemp){
       nativeFlobCache->erase(victim); // delete from cache
       DestroyedFlobs->push(victim);
@@ -537,8 +537,7 @@ bool FlobManager::destroy(Flob& victim) {
 
 
 bool FlobManager::destroyIfNonPersistent(Flob& victim) {
-   if(victim.id.fileId == nativeFlobs
-       && (victim.id.mode == 1 || victim.id.mode == 2) ){
+   if(victim.id.fileId == nativeFlobs && victim.id.mode == 1){
       return destroy(victim);
    }
    return true;
@@ -709,7 +708,6 @@ bool FlobManager::putData(Flob& dest,         // destination flob
 
   assert(targetoffset + length <= dest.size);
 
-
   // do not allow putting data into non berkeley db flobs
   assert((id.mode==0) || (id.mode==1));
 
@@ -786,6 +784,55 @@ bool FlobManager::setExFile(Flob& flob, const string& flobFile,
 }
 
 
+bool FlobManager::SwitchToMode1(Flob& flob, const string& flobFile,
+    const SmiSize size, const SmiSize flobOffset)
+{
+  __TRACE_ENTER__
+
+  if (flob.id.mode < 2)
+    return true;
+  assert(!flobFile.empty());
+  assert(flob.id.mode == 2 || flob.id.mode == 3);
+
+  Flob newFlob(size);
+
+  //Read data from the disk file
+  ifstream* tupleFile = 0;
+  if (flob.id.mode == 3){
+/*
+In Mode 3, the record id is used to identify the remote DS,
+it is impossible to cache the file input stream based on its value.
+Therefore, we use the record id from the newly created flob structure.
+
+*/
+    SmiRecordId recordId = newFlob.id.recordId;
+    externalFileCache->cacheRecord(recordId, flobFile, true);
+    tupleFile = externalFileCache->getFile(recordId);
+  }
+  else {
+    // mode 2
+    SmiRecordId recordId = flob.id.recordId;
+    tupleFile = externalFileCache->getFile(recordId);
+  }
+
+  tupleFile->seekg(flobOffset, ios::beg);
+  char flobBlock[size];
+  tupleFile->read(flobBlock, size);
+
+  if (tupleFile->gcount() != size){
+    cerr << "Error!! Cannot read enough data for Flob: " << flob << endl;
+    assert(false);
+  }
+
+  //Cache data into nativeFlobCache
+  newFlob.write(flobBlock, size);
+  flob = newFlob;
+
+  __TRACE_LEAVE__
+  return true;
+}
+
+
 /*
 ~create~
 
@@ -828,7 +875,6 @@ Warning: this function does not change the dataPointer.
       }
    }
 
-  
    __TRACE_LEAVE__
    return true;
  }

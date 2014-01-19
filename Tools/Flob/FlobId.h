@@ -126,7 +126,9 @@ class FlobId{
 
    inline char getMode(){ return mode;}
 
-   inline SmiFileId getFileId(){ return fileId;}
+   inline SmiFileId getFileId(){ return fileId; }
+
+   inline SmiRecordId getRecordId(){ return recordId; }
 
    // support for very  dirty, non explainable things, don't think about any 
    // meaning of this funtion!

@@ -130,19 +130,49 @@ int ExternalFileCache::getFileId(const string fileName)
   return -1;
 }
 
-ifstream* ExternalFileCache::getFile(const SmiRecordId& recId)
+ifstream* ExternalFileCache::getFile(
+    const SmiRecordId& recId, const string& flobFile/* = ""*/)
 {
   int cachedFileId = findRecord(recId);
   assert(cachedFileId >= 0);
   if (list){
-    return list->at(cachedFileId).second;
+    string cachedFileName = list->at(cachedFileId).first;
+    ifstream* file = list->at(cachedFileId).second;
+
+    if (flobFile.empty()){
+      return file;
+    } else {
+      if (cachedFileName.compare(flobFile) != 0) {
+        cerr << "Error!! ExternalFileCache::getFile: "
+            << flobFile << ", while cached "
+            << cachedFileName << endl;
+      } else {
+        return file;
+      }
+    }
   }
   return 0;
 }
 
+void ExternalFileCache::closeFile(const int cachedFileId)
+{
+  if (list)
+  {
+    string fileName = list->at(cachedFileId).first;
+    ifstream* file = list->at(cachedFileId).second;
+    if (FileSystem::FileOrFolderExists(fileName)){
+      if (file){
+        file->close();
+      }
+    } else {
+      cerr << fileName << " does not exist" << endl;
+    }
+    list->erase(list->begin() + cachedFileId);
+  }
+}
 
 void ExternalFileCache::cacheRecord(const SmiRecordId& recId,
-    const string& flobFile)
+    const string& flobFile, const bool& replace/* = false*/)
 {
   size_t index = recId % tableSize;
   CachedFileIdEntry* entry = hashtable[index];
@@ -168,7 +198,16 @@ void ExternalFileCache::cacheRecord(const SmiRecordId& recId,
       reduceTable();
     }
   }
-  // the entry has been cached already
+  else if (replace)
+  {
+    int fileId = getFileId(flobFile);
+    assert(fileId >= 0);
+    if (entry->cachedFileId != fileId){
+      entry->cachedFileId = fileId;
+    }
+  }
+//the entry has been cached already
+//and do not need to be replaced with new file
 }
 
 int ExternalFileCache::findRecord(const SmiRecordId& recId)

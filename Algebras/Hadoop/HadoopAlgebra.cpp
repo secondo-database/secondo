@@ -2723,6 +2723,7 @@ ListExpr pffeedTypeMap(ListExpr args, bool noFlob)
      }
    
      bool delTypeFile = false;
+     bool typePrepared = false;
      for (int i = 0; i < 2; i++)
      {
        if (typeNode[i] >= 0)
@@ -2739,16 +2740,26 @@ ListExpr pffeedTypeMap(ListExpr args, bool noFlob)
          string rPath = ci->getRemotePath(typeNode[i], true, false, true,
              true, (fileName + "_type"));
          filePath = FileSystem::MakeTemp(filePath);
-         cerr << "Copy the type file " << filePath
-             << " from <-" << "\t" << rPath << endl;
-         if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
-           return l.typeError(ctfErr);
-         else{
-           delTypeFile = true;
-           break;
+//         cerr << "Copy the type file " << filePath
+//             << " from <-" << "\t" << rPath << endl;
+         int atimes = MAX_COPYTIMES;
+         int rc = 0;
+         while (atimes-- > 0){
+           rc = system((scpCommand + rPath + " " + filePath).c_str());
+           if (0 == rc){
+             delTypeFile = true;
+             typePrepared = true;
+             break;
+           } else {
+             WinUnix::sleep(1);
+           }
          }
+         if (typePrepared)
+           break;
        }
      }
+     if (!typePrepared)
+       return l.typeError(ctfErr);
    
      ListExpr relType;
      if (!nl->ReadFromFile(filePath, relType))
@@ -2773,13 +2784,12 @@ ListExpr pffeedTypeMap(ListExpr args, bool noFlob)
                        NList(NList(realRelType).second()));
        ostStr = osType.convertToString();
        NList resultAttrList = NList(nl->Second(nl->Second(realRelType)));
-       resultAttrList.append(NList(
-           NList("DS_IDX"), NList(CcInt::BasicType())));
 
        resultType =
            NList(NList(Symbol::STREAM()),
              NList(NList(Tuple::BasicType()), resultAttrList));
        nstStr = resultType.convertToString();
+       assert(nstStr.compare(ostStr) == 0);
      }
      else
      {
@@ -2885,6 +2895,7 @@ PFFeedLocalInfo::PFFeedLocalInfo(Supplier s, Word inputStream,
   ListExpr streamTypeList = qp->GetType(s);
   resultType = new TupleType(SecondoSystem::GetCatalog()
     ->NumericType(nl->Second(streamTypeList)));
+  inputType = 0;
   if (noFlob)
   {
     //set the inputType
@@ -3051,9 +3062,6 @@ Tuple* PFFeedLocalInfo::getNextTuple(int mode)
   if (curFilePt != 0)
   {
     t = readTupleFromFile(curFilePt, resultType, mode, curFileName);
-    if (mode == 3){
-      t = addDSIdx(t, curPrdIndex);
-    }
     if (t == 0){
       //Read the next file
       curFilePt->close();
@@ -3100,9 +3108,6 @@ Tuple* PFFeedLocalInfo::getNextTuple(int mode)
       }
 
       t = readTupleFromFile(curFilePt, resultType, mode, curFileName);
-      if (mode == 3){
-        t = addDSIdx(t, curPrdIndex);
-      }
       if ( t == 0 ){
         cerr << "Waring! File " << curFileName
             << " is empty! " << endl;
@@ -3129,26 +3134,6 @@ Tuple* PFFeedLocalInfo::getNextTuple(int mode)
   return 0;
 }
 
-Tuple* PFFeedLocalInfo::addDSIdx(Tuple* tuple, int prdIndex)
-{
-  if (!noFlob){
-    return tuple; //no change
-  }
-
-  Tuple* newTuple = 0;
-  if (tuple)
-  {
-    newTuple = new Tuple(resultType);
-    int aSize = inputType->GetNoAttributes();
-    for (int ai = 0; ai < aSize; ai++)
-    {
-      newTuple->CopyAttribute(ai, tuple, ai);
-    }
-    newTuple->PutAttribute(aSize, new CcInt(prdIndex));
-    tuple->DeleteIfAllowed();
-  }
-  return newTuple;
-}
 
 /*
 4 Operator ~pffeed2~

@@ -47,6 +47,7 @@ With it, the Flob can get access to the opened file pointer directly.
 
 #include "SecondoSMI.h"
 #include "Flob.h"
+#include "FileSystem.h"
 
 class CachedFileIdEntry
 {
@@ -91,14 +92,17 @@ public:
 Get the input file stream pointer.
 
 */
-  ifstream* getFile(const SmiRecordId& recId);
+  ifstream* getFile(const SmiRecordId& recId,
+      const string& flobFile = "");
 
-  void cacheRecord(const SmiRecordId& recId, const string& flobFile);
+  void cacheRecord(const SmiRecordId& recId,
+      const string& flobFile, const bool& replace = false);
   int findRecord(const SmiRecordId& recId);
+
+  void clear();
 
 private:
 
-  void clear();
 
 /*
 According to the file name, create the input file stream and return the fildId.
@@ -106,6 +110,7 @@ The fileId is the serial number of the file in the vector.
 
 */
   int getFileId(const string fileName);
+  void closeFile(const int fileId);
 
   void putAtFront(CachedFileIdEntry* newEntry);
   void bringToFront(CachedFileIdEntry* entry);

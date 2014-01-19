@@ -630,6 +630,7 @@ void Tuple::WriteToDivBlock(char* buf, size_t coreSize,
   uint32_t currentSize = 0;
   uint32_t currentExtSize = 0;
   char mode = 3;
+  char smode = 1; //mode for small Flob data
   SmiRecordId rcdId = sourceDS;
   if (containsLob){
     flobFileId = 0;
@@ -638,7 +639,7 @@ void Tuple::WriteToDivBlock(char* buf, size_t coreSize,
       flobFileId = tupleFile->GetFileId();
       isTemp = tupleFile->IsTemp();
     }
-    mode = isTemp?1:0;
+    smode = mode = isTemp?1:0;
     rcdId = tupleId;
   }
 
@@ -676,7 +677,6 @@ Or else, the flob is accessed separately in the flob file,
 hence the offset should be set as a absolute position.
 
 */
-
           flobBlockOffset += flobsz;
           lobOffset += flobsz;
           lob += flobsz;
@@ -687,7 +687,7 @@ hence the offset should be set as a absolute position.
           tmpFlob->read(ext, flobsz);
 
           Flob newFlob = Flob::createFrom(
-              flobFileId, rcdId, extOffset, mode, flobsz);
+              flobFileId, rcdId, extOffset, smode, flobsz);
           *tmpFlob = newFlob;
 
           extOffset += flobsz;
@@ -1162,38 +1162,7 @@ void Tuple::InitializeNoFlobAttributes(char* src,
   TRACE_LEAVE
 }
 
-
-size_t Tuple::ResetExFlobFile(
-    string flobFile, size_t flobOffset, ListExpr attrList)
-{
-  TRACE_ENTER
-
-  size_t readFlobSize = 0;
-
-  ListExpr rest = attrList;
-  while(!nl->IsEmpty(rest))
-  {
-    int ai = nl->IntValue(nl->First(rest));
-
-    for (int k = 0; k < attributes[ai]->NumOfFLOBs(); k++)
-    {
-      Flob* flob = attributes[ai]->GetFLOB(k);
-      SmiSize bsize = flob->getSize();
-      if (bsize >= extensionLimit){
-        Flob::setExFile(*flob, flobFile, bsize, flobOffset);
-        flobOffset += bsize;
-        readFlobSize += bsize;
-      }
-    }
-    rest = nl->Rest(rest);
-  }
-
-  return readFlobSize;
-
-  TRACE_LEAVE
-}
-
-void Tuple::setLocalFlobFile(const string flobFilePath)
+void Tuple::readLocalFlobFile(const string flobFilePath)
 {
   TRACE_ENTER
 
@@ -1208,13 +1177,14 @@ void Tuple::setLocalFlobFile(const string flobFilePath)
         fileId << flob->getFileId();
         string flobFile = flobFilePath + fileId.str();
 
-        Flob::setExFile(*flob, flobFile, bsize, flob->getOffset());
+        Flob::readExFile(*flob, flobFile, bsize, flob->getOffset());
       }
     }
   }
 
   TRACE_LEAVE
 }
+
 
 bool Tuple::Open( SmiRecordFile *tuplefile,
                   SmiFileId lobfileId,

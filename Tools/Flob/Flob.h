@@ -317,6 +317,20 @@ Keep the Flob data in an external file, set the FlobId to it.
         setExFile(result, flobFile, length, flobOffset);
   }
 
+/*
+~readExFile~
+
+Read the data from the external file to a Flob with mode 1
+
+*/
+  inline static bool readExFile(Flob& result, const string& flobFile,
+      const SmiSize length, const SmiSize flobOffset){
+    return FlobManager::getInstance().
+        SwitchToMode1(result, flobFile, length, flobOffset);
+  }
+
+
+
   inline void changeMode(char m){
     FlobManager::getInstance().changeMode(this, m);
   }
@@ -497,6 +511,14 @@ creation of evil flobs.
      return id.getFileId();
    }
 
+
+   inline const char getMode(){
+     return id.getMode();
+   }
+
+   inline const SmiRecordId getRecordId(){
+     return id.getRecordId();
+   }
 
 /*
 ~destroy~

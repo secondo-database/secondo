@@ -162,6 +162,16 @@ Link Flob to an external file.
           const SmiSize length, const SmiSize flobOffset);
 
 /*
+~SwitchToMode1~
+
+Read the data to Flob with mode 1
+
+*/
+
+      bool SwitchToMode1(Flob& flob, const string& flobFile,
+          const SmiSize length, const SmiSize flobOffset);
+
+/*
 ~changeMode~
 
 Reset the Flob mode.
