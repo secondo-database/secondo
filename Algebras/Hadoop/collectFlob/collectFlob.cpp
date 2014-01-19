@@ -60,6 +60,8 @@ hence here it only carries out the basic data access.
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <set>
+#include <utility>
 #include <sys/types.h> //declaration for u_int32_t
 #include <cstdlib>     //invoking system commands
 
@@ -75,6 +77,19 @@ string int2string(const int& number)
   oss << number;
   return oss.str();
 }
+
+template<typename T1, typename T2>
+struct classCompPair
+{
+  bool operator() (const pair<T1,T2>& pair_1,
+      const pair<T1,T2>& pair_2) const
+  {
+    return (pair_1.first < pair_2.first)
+        || (!(pair_1.first > pair_2.first && pair_1.first < pair_2.first)
+          && (pair_1.second < pair_2.second));
+  }
+};
+
 
 int main(int argc, char** argv)
 {
@@ -105,9 +120,13 @@ int main(int argc, char** argv)
   map< u_int32_t, ifstream* > flobFiles;
   map< u_int32_t, ifstream* >::iterator it;
   ifstream* flobFile = 0;
-  string resultFilePath = PSFSNode + "/" + resultFileName;
+  string resultFilePath = PSFSNode + "/tmp_" + resultFileName;
+  targetPath += ("/" + resultFileName);
   ofstream resultFile(resultFilePath.c_str(), ios::binary);
   
+  //Cached Flob markers, avoid extract the same Flob
+  set<pair<u_int32_t, size_t>, classCompPair<u_int32_t, size_t> > lobMarkers;
+
   string flobOrder;
   u_int32_t lastFileId = 0;
   while (getline(sheetFile, flobOrder))
@@ -129,6 +148,15 @@ int main(int argc, char** argv)
       }
       lastFileId = fileId;
     }
+
+    //make sure this Flob is never found
+    pair<u_int32_t, size_t> mlob(fileId, offset);
+    if (lobMarkers.find(mlob) != lobMarkers.end()){
+      continue;
+    } else {
+      lobMarkers.insert(mlob);
+    }
+
     char block[size];
     flobFile = it->second;
     flobFile->seekg(offset, ios_base::beg);
@@ -138,10 +166,10 @@ int main(int argc, char** argv)
  
   for (it = flobFiles.begin(); it != flobFiles.end(); it++)
   {
-	flobFile = it->second;
-	flobFile->close();
-	delete flobFile;
-	flobFile = 0;
+    flobFile = it->second;
+    flobFile->close();
+    delete flobFile;
+    flobFile = 0;
   }
   flobFiles.clear();
   resultFile.close();
@@ -154,6 +182,7 @@ int main(int argc, char** argv)
       if (::unlink(resultFilePath.c_str()) != 0){
         cerr << "Warning! Deleting the result file fails. " << endl;
       }
+
       if (::unlink(sheetName.c_str()) != 0){
         cerr << "Warning! Deleting the sheet file fails. " << endl;
       }
