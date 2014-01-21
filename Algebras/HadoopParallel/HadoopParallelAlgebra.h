@@ -735,26 +735,26 @@ public:
 
 */
 
-class FlobSheet;
+class FlobSheet1;
 
-class FetchFlobLocalInfo : public ProgressLocalInfo
+class FetchFlobLocalInfo1 : public ProgressLocalInfo
 {
 public:
-  FetchFlobLocalInfo(const Supplier s, NList resultTypeList,
+  FetchFlobLocalInfo1(const Supplier s, NList resultTypeList,
       NList raList, NList daList);
 
-  ~FetchFlobLocalInfo(){
+  ~FetchFlobLocalInfo1(){
     if (resultType)
       resultType->DeleteIfAllowed();
 
-    pthread_mutex_destroy(&FFLI_mutex);
+    pthread_mutex_destroy(&FFLI_mutex1);
 
     if (ci){
       delete ci;
       delete standby;
-      for (vector<FlobSheet*>::iterator cit = prepared->begin();
+      for (vector<FlobSheet1*>::iterator cit = prepared->begin();
         cit != prepared->end(); cit++){
-        FlobSheet* fs = (*cit);
+        FlobSheet1* fs = (*cit);
         delete fs;
       }
       delete prepared;
@@ -764,7 +764,7 @@ public:
 
   Tuple* getNextTuple(const Supplier s);
 
-  void fetching2prepared(FlobSheet* fs);
+  void fetching2prepared(FlobSheet1* fs);
 /*
 When one Flob sheet is finished, copy the file back
 and set it into the preparedSheets.
@@ -791,7 +791,7 @@ and set it into the preparedSheets.
 
 private:
   Tuple* setResultTuple(Tuple* tuple);
-  Tuple* setLocalFlob(Tuple* tuple);
+//  Tuple* setLocalFlob(Tuple* tuple);
 
   Tuple* readLocalFlob(Tuple* tuple);
   int getSheetKey(const vector<int>& sdss);
@@ -833,22 +833,22 @@ in the thread and the vector.
 
 */
 
-  vector<FlobSheet*>* standby;
+  vector<FlobSheet1*>* standby;
   int fetchingNum;
-  vector<FlobSheet*>* prepared;
+  vector<FlobSheet1*>* prepared;
   int *sheetCounter;    //Count the sent sheet number for each DS
   vector<string>* fetchedFiles;
   int preparedNum;
-  FlobSheet* pfs;
+  FlobSheet1* pfs;
 
   int maxSheetMem;
-  //thread tokens
   static const int PipeWidth = 20;
+  //thread tokens
   bool tokenPass[PipeWidth];
   pthread_t threadID[PipeWidth];
   static void* sendSheetThread(void* ptr);
-  bool sendSheet(FlobSheet* fs, int times);
-  static pthread_mutex_t FFLI_mutex;
+  bool sendSheet(FlobSheet1* fs, int times);
+  static pthread_mutex_t FFLI_mutex1;
 
 };
 
@@ -856,14 +856,14 @@ in the thread and the vector.
 Thread for fetching a remote file
 
 */
-class FFLI_Thread
+class FFLI_Thread1
 {
 public:
-  FFLI_Thread(FetchFlobLocalInfo* pt, FlobSheet* _fs, int _t, int _tk):
+  FFLI_Thread1(FetchFlobLocalInfo1* pt, FlobSheet1* _fs, int _t, int _tk):
     ffli(pt), sheet(_fs), times(_t), token(_tk){}
 
-  FetchFlobLocalInfo* ffli;
-  FlobSheet* sheet;
+  FetchFlobLocalInfo1* ffli;
+  FlobSheet1* sheet;
   int times;
   int token;
 };
@@ -874,11 +874,11 @@ Flob orders prepared for one tuple,
 which may contain Flobs coming from several Data Servers.
 
 */
-class FlobSheet
+class FlobSheet1
 {
 public:
 
-  FlobSheet(const vector<int>& _sources, const int _si,
+  FlobSheet1(const vector<int>& _sources, const int _si,
       const NList& _faList, int maxMemory)
     : sheetIndex(_si), cachedSize(0), maxMem(maxMemory), faList(_faList){
 
@@ -904,7 +904,7 @@ public:
     finished = false;
   }
 
-  ~FlobSheet(){
+  ~FlobSheet1(){
     delete flobFiles;
     delete buffer;
   }
@@ -1000,6 +1000,238 @@ but has already been created in another sheet.
   bool finished;
 };
 
+ostream& operator<<(ostream& os, const FlobSheet1& f);
+
+/*
+1.9 FetchFlobLocalInfo class (2rd version)
+
+This update is prepared to avoid creating massive small flob files in the last version.
+
+One FlobSheet collects the Flob data from the same DS of all tuples.
+
+
+*/
+
+class FlobSheet
+{
+public:
+
+  FlobSheet(int source, int dest, int times, int maxMemory);
+/*
+Create the result flob file path here.
+
+*/
+
+  bool addOrder(const Flob& flob, size_t& offset);
+/*
+Add one more flob order to the current sheet,
+returns the offset within the collected flob file.
+
+If the sheet file does not exist, then create it.
+Returns whether the sheet is full.
+
+*/
+
+  void closeSheetFile();
+
+  inline string getResultFile(){ return resultFlobFilePath;}
+
+  inline int getTimes() { return times;}
+
+  inline int getSource() { return sourceDSId; }
+
+  inline int getDest() { return destDSId; }
+
+  inline string getSheetPath() { return sheetFilePath;}
+
+//  inline string getResultPath() { return resultFlobFilePath; }
+
+  ostream& print(ostream& os) const;
+private:
+  string resultFlobFilePath;
+  int sourceDSId;
+  int destDSId;
+  int times;
+  size_t cachedSize;
+  size_t maxMem;
+
+  string sheetFilePath;
+  ofstream* sheetFile;
+};
+
 ostream& operator<<(ostream& os, const FlobSheet& f);
+
+/*
+Flob information for one tuple
+
+*/
+
+class FFLI_Thread;
+
+class TupleFlobInfo
+{
+public:
+  TupleFlobInfo(size_t _aSize):
+    returned(false), attrSize(_aSize){
+    dsVec = new int[attrSize];
+    timesVec = new int[attrSize];
+    offsetVec = new size_t[attrSize];
+  }
+
+  ~TupleFlobInfo(){
+    delete []dsVec;
+    delete []timesVec;
+  }
+
+  inline void setReturned(){ returned = true; }
+
+  inline void setFlobInfo(size_t aid, int ds, int times, size_t offset){
+/*
+ Here the aid is not the attribute id, but only the id among the requested Flob attributes
+
+*/
+    dsVec[aid] = ds;
+    timesVec[aid] = times;
+    offsetVec[aid] = offset;
+  }
+
+  inline bool isReturned() { return returned;}
+
+  inline int getDS(size_t attrId) { return dsVec[attrId];}
+
+  inline int getSheetTimes(size_t attrId) { return timesVec[attrId]; }
+
+  inline size_t getOffset(size_t attrId) {return offsetVec[attrId]; }
+
+private:
+  TupleFlobInfo(){}
+
+  bool returned;
+  size_t attrSize;
+  int* dsVec;         //The DS list for all Flob attributes
+  int* timesVec;      //The sheet times of all Flob attributes
+  size_t* offsetVec;  //The offset within the Flob file for all Flob attributes
+};
+
+class FetchFlobLocalInfo : public ProgressLocalInfo
+{
+public:
+  FetchFlobLocalInfo(const Supplier s,
+      NList resultTypeList, NList _fal, NList _dal);
+
+  ~FetchFlobLocalInfo();
+
+  Tuple* getNextTuple(const Supplier s);
+
+
+
+  void fetching2prepared(FlobSheet* fs);
+
+  void clearFetchedFiles();
+
+  inline int getLocalDS(){
+    assert(ci);
+    return ci->getLocalNode();
+  }
+
+  inline string getPSFSPath(int dest, bool appendIP = true){
+    return ci->getRemotePath(dest, true, false, appendIP);
+  }
+
+  inline string getIP(int dest) {
+    return ci->getIP(dest);
+  }
+
+  inline string getMSecPath(int dest, bool appendIP = true){
+    return ci->getMSECPath(dest, true, false, appendIP);
+  }
+
+private:
+  Tuple* setResultTuple(Tuple* tuple);
+/*
+Remove useless Flob attribute
+
+*/
+  Tuple* readLocalFlob(Tuple* tuple);
+/*
+Read the Flob data from all flob files that are collected from remote DSs.
+
+*/
+
+/*
+Use the totalTupleBuffer to collect all input tuples, then use the ~flobInfo~
+buffer indicate the detailed information for every tuple.
+
+*/
+  TupleBuffer* totalTupleBuffer; //Buffer for all input tuples
+  vector<TupleFlobInfo>* flobInfo;
+  set<SmiRecordId>* newRecIds;    //Record all newly created Flob id
+
+  int *faVec, *daVec;   //record all needed and deleted Flob attribute list
+  size_t faLen, daLen;
+  TupleType* resultType;
+  string LFPath;        //Local Flob File Path, prepared for mode 2
+
+
+  clusterInfo* ci;
+  int cds;              //current DS
+  bool moreInput;       //indicate whether there are more input tuples
+
+/*
+Three sheet lists are used to indicate the their status:
+
+  * standby: unsent sheets, collecting FlobOrder for each DS.
+
+  * fetching: copying the requested flob file within a thread.
+
+  * prepared: the flob file is prepared. Considering one sheet may be split into
+several pieces, each for a flob file within a size threshold. There is no length
+limitation on this list.
+
+
+Instead of using the fetching vector, I simply use a fetchingNum to find how many
+sheets are being fetched.
+I also use preparedNumber to indicate how many files are prepared but unfetched.
+During the fetching procedure, the sheet is kept inside the thread object.
+Since using the vector makes the same sheet to be kept twice:
+in the thread and the vector.
+
+
+The prepaerd is a map structure, with the (sourceID, times) as the key.
+In order to quickly find whether the asked flob file is prepared.
+
+*/
+  vector<FlobSheet*>* standby;
+  size_t fetchingNum;
+//  vector<FlobSheet*>* prepared;
+  map<pair<int, int>, FlobSheet*>* prepared;
+
+  size_t preparedNum;
+  vector<string>* fetchedFiles; //all fetched files are deleted at last.
+  int *sheetCounter;            //the number of sent sheet for each DS
+  size_t maxBufferSize, maxSheetSize;
+
+  static const size_t PipeWidth = 20;
+  bool tokenPass[PipeWidth];
+  pthread_t threadID[PipeWidth];
+  static pthread_mutex_t FFLI_mutex;
+  static void* sendSheetThread(void* ptr);
+  bool sendSheet(FlobSheet* fs);
+};
+
+class FFLI_Thread
+{
+public:
+  FFLI_Thread(FetchFlobLocalInfo* _ffli, FlobSheet* _fs, int _tk):
+    ffli(_ffli), sheet(_fs), token(_tk){
+    times = sheet->getTimes();
+  }
+
+  FetchFlobLocalInfo* ffli;
+  FlobSheet* sheet;
+  int times;
+  int token;
+};
+
 
 #endif /* HADOOPPARALLELALGEBRA_H_ */
