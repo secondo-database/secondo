@@ -820,7 +820,10 @@ Therefore, we use the record id from the newly created flob structure.
   tupleFile->read(flobBlock, size);
 
   if (tupleFile->gcount() != size){
-    cerr << "Error!! Cannot read enough data for Flob: " << flob << endl;
+    cerr << "Error!! read " << tupleFile->gcount() 
+         << " from " << flobFile 
+         << " at " << flobOffset 
+         << ", need " << size << endl;
     assert(false);
   }
 

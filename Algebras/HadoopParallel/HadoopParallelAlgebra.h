@@ -752,6 +752,11 @@ public:
     if (ci){
       delete ci;
       delete standby;
+      for (vector<FlobSheet*>::iterator cit = prepared->begin();
+        cit != prepared->end(); cit++){
+        FlobSheet* fs = (*cit);
+        delete fs;
+      }
       delete prepared;
       delete []sheetCounter;
     }
@@ -793,11 +798,17 @@ private:
   int getMaxSheetKey();
 
   string LFPath;         //local flob file path
-  //Use NL for flob attributes to transfer the list to flobSheet object
   NList faList;
   NList daList;          //deleted attribute list
   TupleType* resultType;
 
+/*
+Use array instead of NList for the attribute list faList, 
+since the NList is NOT thread-safe. 
+
+*/  
+  int* faVec;
+  size_t faLen;
 
   clusterInfo *ci;
   int cds;               //index of the current DS
@@ -827,22 +838,22 @@ in the thread and the vector.
   vector<FlobSheet*>* prepared;
   int *sheetCounter;    //Count the sent sheet number for each DS
   vector<string>* fetchedFiles;
-
-  bool sendSheet(FlobSheet* fs, int times);
+  int preparedNum;
+  FlobSheet* pfs;
 
   int maxSheetMem;
   //thread tokens
-  static const int PipeWidth = 10;
+  static const int PipeWidth = 20;
   bool tokenPass[PipeWidth];
   pthread_t threadID[PipeWidth];
   static void* sendSheetThread(void* ptr);
+  bool sendSheet(FlobSheet* fs, int times);
   static pthread_mutex_t FFLI_mutex;
 
 };
 
 /*
 Thread for fetching a remote file
-
 
 */
 class FFLI_Thread
@@ -875,7 +886,10 @@ public:
     buffer = new TupleBuffer(maxMem);
     it = 0;
     rtCounter = 0;
-
+    toCounter = 0;
+     
+    faLen = faList.length();
+    faVec = new int[faLen];
     int faCounter = 0;
     NList rest = faList;
     while (!rest.isEmpty()){
@@ -883,9 +897,11 @@ public:
       int source = _sources[faCounter];
       flobFiles->insert(make_pair(ai, make_pair("", 0)));
       sourceDSs.push_back(source);
+      faVec[faCounter] = ai;
       rest.rest();
       faCounter++;
     }
+    finished = false;
   }
 
   ~FlobSheet(){
@@ -907,13 +923,15 @@ Put one tuple into the sheet, if the buffer limit is not reached.
     it = buffer->MakeScan();
   }
 
-  inline string getResultFilePath(int sds, int attrId){
+  inline string getResultFilePath(int attrId){
     return flobFiles->find(attrId)->second.first;
   }
 
   string setSheet(int source, int dest, int times, int attrId);
 
   string setResultFile(int source, int dest, int times, int attrId);
+  
+  inline bool isFinished(){ return finished;}
 
   ostream& print(ostream& os) const {
 
@@ -937,11 +955,15 @@ Put one tuple into the sheet, if the buffer limit is not reached.
         << ") cachedSize (" << cachedSize << ")" << endl;
     os << "Cached tuples : " << buffer->GetNoTuples() << endl;
     os << "Read tuples : " << rtCounter << endl;
+    os << "Prepared Flob Orders: " << toCounter << endl;
     os << endl << endl;
 
     return os;
   }
-
+  
+  inline int getSheetIndex() {
+    return sheetIndex;
+  } 
 
 private:
   // Map with : (attrId (flobFilePath, flobOffset))
@@ -957,6 +979,8 @@ then fetch the needed flob file.
 
 */
   int maxMem;
+  
+  size_t toCounter; // tuple order counter
 
 /*
 newRecIds is used to record the id of all new Flobs created within this sheet.
@@ -971,6 +995,9 @@ but has already been created in another sheet.
   size_t rtCounter;
 
   NList faList;  //Flob Attribute list
+  size_t faLen;
+  int* faVec;
+  bool finished;
 };
 
 ostream& operator<<(ostream& os, const FlobSheet& f);

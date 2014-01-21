@@ -64,7 +64,7 @@ hence here it only carries out the basic data access.
 #include <utility>
 #include <sys/types.h> //declaration for u_int32_t
 #include <cstdlib>     //invoking system commands
-
+#include<string.h>
 
 using namespace std;
 
@@ -126,9 +126,13 @@ int main(int argc, char** argv)
   
   //Cached Flob markers, avoid extract the same Flob
   set<pair<u_int32_t, size_t>, classCompPair<u_int32_t, size_t> > lobMarkers;
+  //Empty lobs are prepared for Flobs that have been created in another sheet
+  set<pair<u_int32_t, size_t>, classCompPair<u_int32_t, size_t> > emptyLobs;
 
   string flobOrder;
   u_int32_t lastFileId = 0;
+//  size_t outputSize = 0;
+//  size_t totalSize = 0;
   while (getline(sheetFile, flobOrder))
   {
     stringstream ss(flobOrder);
@@ -136,6 +140,32 @@ int main(int argc, char** argv)
     int sourceDS, mode;
     size_t offset, size;
     ss >> fileId >> sourceDS >> offset >> mode >> size;
+//    totalSize += size;    
+
+    if ( mode != 3) {
+      //This Flob may already have been fetched by another thread. 
+      size_t recId = sourceDS;
+      pair<u_int32_t, size_t> mlob(fileId, recId);
+      if (emptyLobs.find(mlob) != emptyLobs.end()){
+        continue;
+      } else {
+        emptyLobs.insert(mlob);
+      }
+
+      char block[size];
+      memset(block, 0, size);
+      resultFile.write(block, size);
+//    outputSize += size;
+      continue;
+    } 
+
+    //The flob is never mentioned in the current sheet
+    pair<u_int32_t, size_t> mlob(fileId, offset);
+    if (lobMarkers.find(mlob) != lobMarkers.end()){
+      continue;
+    } else {
+      lobMarkers.insert(mlob);
+    }
 
     if (lastFileId != fileId)
     {
@@ -149,19 +179,12 @@ int main(int argc, char** argv)
       lastFileId = fileId;
     }
 
-    //make sure this Flob is never found
-    pair<u_int32_t, size_t> mlob(fileId, offset);
-    if (lobMarkers.find(mlob) != lobMarkers.end()){
-      continue;
-    } else {
-      lobMarkers.insert(mlob);
-    }
-
     char block[size];
     flobFile = it->second;
     flobFile->seekg(offset, ios_base::beg);
     flobFile->read(block, size);
     resultFile.write(block, size);
+//    outputSize += size;
   }
  
   for (it = flobFiles.begin(); it != flobFiles.end(); it++)
