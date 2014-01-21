@@ -539,7 +539,7 @@ bboxSizeQueryJoin(Term,Rel1,Rel2,[_,_,T],Size) :-
            ;  % New version uses slower symmproduct to enable a balanced stream
               % consumption within the timeout
               SizeQueryT = avg(timeout(projectextend(
-                symmproduct(head(Rel1Query, JoinSize), head(Rel2Query, JoinSize)),
+                symmproduct(head(Rel1Query,JoinSize),head(Rel2Query,JoinSize)),
                 [],
                 [field(attr(NewAttr,0,l),size(bbox(Term)))]),
                 value_expr(real,Timeout)),NewAttr)
@@ -783,7 +783,7 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
               Query = count(timeout(filter(counter(loopjoin(
                       counter(Rel1Query, 1),
                       fun([param(txx1, tuple)],
-                      filter(counter(Rel2Query, 2), Pred3))),3), Pred2), Timeout ))
+                      filter(counter(Rel2Query,2),red3))),3),Pred2),Timeout ))
            ; %  New version uses slower symmjoin to enable a balanced stream
              %  consumption within the timeout
               Query = count(timeout(filter(counter(
@@ -2756,9 +2756,11 @@ showDatabase :-
     write('\':\n'),
   findall(_, showSingleRelation, _),
   write('\n(Type \'showDatabaseSchema.\' to view the complete '),
-  write('database schema.)\n').
+  write('database schema.)\n'),
+  !.
 
 showDatabase :-
+  not(databaseName(_)),
   write('\nNo database open. Use open \'database <name>\' to'),
   write(' open an existing database.\n'),
   fail.
