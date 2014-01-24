@@ -282,8 +282,8 @@ public class MainView extends Composite {
 						// checkbox is checked
 						if (toolbox.getCheckBoxLines().getValue() == true) { 
 							mapView.getPolylineController().showPolylines();
-							graphicalView.getPolylineController()
-									.drawAllPolylines();
+							//graphicalView.getPolylineController().drawAllPolylines();
+							graphicalView.updateView();
 						} else {
 							mapView.getPolylineController().hidePolylines();
 							graphicalView.getPolylineController().removeLines();
