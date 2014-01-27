@@ -944,7 +944,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		String outputDir = loadProfile.getOutputDirectory();
 		StringBuilder errorMessage = new StringBuilder();
 		
-		if (formatType==null || formatType.isEmpty())
+		if (formatType==null || formatType.length() == 0)
 		{
 			errorMessage.append("Please specify format type in load profile. Available formats: ");
 			errorMessage.append(DocumentFormatter.getFormatTypes().toString());
@@ -953,7 +953,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			return false;
 		}
 		
-		if (formatQuery==null || formatQuery.isEmpty())
+		if (formatQuery==null || formatQuery.length() == 0)
 		{
 			errorMessage.append("Please specify query that fetches the document relation. \n");
 			errorMessage.append("With each relation you must first add a tuple ID and rename the relation. \n\n");
@@ -969,7 +969,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			return false;
 		}
 
-		if (formatAliases==null || formatAliases.isEmpty())
+		if (formatAliases==null || formatAliases.length() == 0)
 		{
 			errorMessage.append("Please list each relation name and its alias in the format query. \n\n");
 			errorMessage.append("Example: \"ARelation a; AnotherRelation b \" ");
@@ -986,9 +986,9 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			formatter.setQuery(formatQuery); 
 			formatter.setScript(formatScript); 
 			formatter.setOutputDirectory(outputDir); 
-			if (templateBody==null || templateBody.isEmpty()
-				|| templateHead==null || templateHead.isEmpty()
-				|| templateTail==null || templateTail.isEmpty())
+			if (templateBody==null || templateBody.length() == 0
+				|| templateHead==null || templateHead.length() == 0
+				|| templateTail==null || templateTail.length() == 0)
 			{
 				this.showInfoDialog("Format templates in load profile are not complete. \nWill use default templates. ");
 			}

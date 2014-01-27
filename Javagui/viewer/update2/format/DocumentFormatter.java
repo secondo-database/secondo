@@ -160,10 +160,10 @@ public abstract class DocumentFormatter
 		for (String mapStr : mappings)
 		{
 			mapStr = mapStr.trim();
-			if (mapStr != null && !mapStr.isEmpty())
+			if (mapStr != null && mapStr.length() > 0)
 			{
 				List<String> alias = LoadDialog.splitList(mapStr, " ");
-				if (alias.size()==2 && !alias.get(0).trim().isEmpty() && !alias.get(1).trim().isEmpty())
+				if (alias.size()==2 && alias.get(0).trim().length() > 0 && alias.get(1).trim().length() > 0)
 				{
 					result.put(alias.get(1).trim(), alias.get(0).trim());
 				}

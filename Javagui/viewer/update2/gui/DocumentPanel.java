@@ -78,33 +78,27 @@ public abstract class DocumentPanel extends JPanel implements Scrollable
 	 * Reads specified files and displays them sequentially in apropriate Components.
 	 */
 	public abstract void loadFiles(List<String> pPathNames) throws IOException, FileNotFoundException;
-
-
-	@Override
+	
 	public Dimension getPreferredScrollableViewportSize() 
 	{
 		return getPreferredSize();
 	}
-	
-	@Override
-	public int getScrollableBlockIncrement(Rectangle arg0, int arg1, int arg2) 
+
+        public int getScrollableBlockIncrement(Rectangle arg0, int arg1, int arg2) 
 	{
 		return 50;
 	}
 	
-	@Override
 	public boolean getScrollableTracksViewportHeight() 
 	{
 		return false;
 	}
 	
-	@Override
 	public boolean getScrollableTracksViewportWidth() 
 	{
 		return true;
 	}
 	
-	@Override
 	public int getScrollableUnitIncrement(Rectangle arg0, int arg1, int arg2) 
 	{
 		return 10;
