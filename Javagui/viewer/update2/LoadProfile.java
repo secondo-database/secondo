@@ -31,10 +31,14 @@ import java.util.Map;
  */
 public class LoadProfile 
 {
-	private String formatFields;
 	private String profileName;
+	private String formatType;
+	private String formatAliases;
+	private String formatQuery;
 	private String formatScript;
-	private String formatTemplate;
+	private String formatTemplateBody;
+	private String formatTemplateHead;
+	private String formatTemplateTail;
 	private String outputDirectory;
 	private List<RelationProfile> relations;
 
@@ -42,9 +46,13 @@ public class LoadProfile
 	public LoadProfile(String pName)
 	{
 		this.profileName = pName;
-		this.formatFields = "";
+		this.formatType = "";
+		this.formatAliases = "";
+		this.formatQuery = "";
 		this.formatScript = "";
-		this.formatTemplate = "";
+		this.formatTemplateBody = "";
+		this.formatTemplateHead = "";
+		this.formatTemplateTail = "";
 		this.outputDirectory = "";
 		this.relations = new ArrayList<RelationProfile>();
 	}
@@ -75,29 +83,15 @@ public class LoadProfile
 	/**
 	 * Returns the name of the LoadProfile.
 	 */
-	public String getName()
-	{
-		return this.profileName;
-	}
-	
-	public String getFormatFields()
-	{
-		return this.formatFields;
-	}
-	
-	public String getFormatScript()
-	{
-		return this.formatScript;
-	}
-	
-	public String getFormatTemplate()
-	{
-		return this.formatTemplate;
-	}
-	public String getOutputDirectory()
-	{
-		return this.outputDirectory;
-	}
+	public String getName()	{ return this.profileName; }
+	public String getFormatAliases() { return this.formatAliases; }
+	public String getFormatQuery() { return this.formatQuery; }
+	public String getFormatScript()	{ return this.formatScript;	}	
+	public String getFormatTemplateBody() { return this.formatTemplateBody;	}
+	public String getFormatTemplateHead() { return this.formatTemplateHead;	}
+	public String getFormatTemplateTail() { return this.formatTemplateTail;	}
+	public String getFormatType() { return this.formatType;	}
+	public String getOutputDirectory() { return this.outputDirectory; }
 	
 	
 	/**
@@ -160,24 +154,13 @@ public class LoadProfile
 		}
 	}
 	
-	public void setFormatFields(String pFormatFields)
-	{
-		this.formatFields = pFormatFields;
-	}
-	
-	public void setFormatScript(String pFormatScript)
-	{
-		this.formatScript = pFormatScript;
-	}
-	
-	public void setFormatTemplate(String pFormatTemplate)
-	{
-		this.formatTemplate = pFormatTemplate;
-	}
-	
-	public void setOutputDirectory(String pOutputDirectory)
-	{
-		this.outputDirectory = pOutputDirectory;
-	}
+	public void setFormatAliases(String pFormatAliases)	{this.formatAliases = pFormatAliases; }
+	public void setFormatQuery(String pFormatQuery)	{ this.formatQuery = pFormatQuery;	}
+	public void setFormatScript(String pFormatScript) { this.formatScript = pFormatScript;	}
+	public void setFormatTemplateBody(String pFormatTemplate) {	this.formatTemplateBody = pFormatTemplate;	}
+	public void setFormatTemplateHead(String pFormatTemplate) {	this.formatTemplateHead = pFormatTemplate;	}
+	public void setFormatTemplateTail(String pFormatTemplate) {	this.formatTemplateTail = pFormatTemplate;	}
+	public void setFormatType(String pFormatType) { this.formatType = pFormatType;	}	
+	public void setOutputDirectory(String pOutputDirectory)	{ this.outputDirectory = pOutputDirectory;	}
 }
 

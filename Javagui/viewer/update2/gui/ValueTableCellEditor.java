@@ -114,8 +114,9 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
 		this.textArea.setSize(width, Short.MAX_VALUE);
 		this.textArea.setText(pValue.toString());
-		pTable.setRowHeight(pRow, this.textArea.getPreferredSize().height);
-		
+		int height1 = this.textArea.getPreferredSize().height;
+		int height2 = pTable.getRowHeight(pRow);
+		pTable.setRowHeight(pRow, Math.max(height1, height2));		
 		
 		// render search matches
 		hiliter.removeAllHighlights();

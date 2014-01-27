@@ -124,5 +124,14 @@ public class CommandExecuter {
 	{
 		return errorMessage;
 	}
+	
+	/**
+	 * Returns the ServerErrorCode for a 'list objects' command.
+	 */
+	public int testConnection()
+	{
+		this.executeCommand("(list objects)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX);
+		return getErrorCode().value;
+	}
 
 }

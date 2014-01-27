@@ -271,6 +271,11 @@ public class Relation
 			return tuples.size();
 	}
 	
+	public int getTupleIndex(String pTupleId)
+	{
+		return this.tupleIDs.indexOf(pTupleId);
+	}
+	
 	/* 
 	 * Returns the number of values in a tuple
 	 * if this relation not initialized -1 is returned
@@ -367,7 +372,7 @@ public class Relation
 			return false;
 		}
 		
-		Reporter.debug("update2.Relation.readFromSecondoObject: no of tuples is " + this.getTupleCount());
+		//Reporter.debug("update2.Relation.readFromSecondoObject: no of tuples is " + this.getTupleCount());
 
 		return true;
 	}
@@ -378,7 +383,7 @@ public class Relation
 	 */
 	private boolean readValueFromLE(ListExpr ValueList) throws InvalidRelationException
 	{
-		Reporter.debug("update2.Relation.readRelationValueFromLE : LE is " + ValueList);
+		//Reporter.debug("update2.Relation.readRelationValueFromLE : LE is " + ValueList);
 		
 		ListExpr NextTuple;
 		ListExpr Rest = ValueList;
@@ -425,7 +430,7 @@ public class Relation
 		}
 		
 		int ti = this.tupleIDs.indexOf(pTupleId);
-		Reporter.debug("Relation.removeTupleByID: tupleID "+ pTupleId + " has index " + ti);
+		//Reporter.debug("Relation.removeTupleByID: tupleID "+ pTupleId + " has index " + ti);
 		
 		if(ti >= 0)
 		{
@@ -445,7 +450,7 @@ public class Relation
 			return;
 		}
 		
-		Reporter.debug("Relation.removeTupleByIndex: index "+ pIndex);
+		//Reporter.debug("Relation.removeTupleByIndex: index "+ pIndex);
 		
 		tuples.remove(pIndex);
 		tupleIDs.remove(pIndex);

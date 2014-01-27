@@ -398,6 +398,15 @@ public class RelationTableModel extends AbstractTableModel
 		return this.relationName;
 	}
 	
+	
+	public int getRow(String pTupleId, String pAttributeName)
+	{
+		int tupleIndex = this.relation.getTupleIndex(pTupleId);
+		int attributeIndex = this.relation.getAttributeNames().indexOf(pAttributeName);
+		int result = tupleIndex*this.getRowsPerTuple() + attributeIndex;
+		return result;
+	}
+	
 	/*
 	 * Method of interface AbstractTableModel.
 	 */

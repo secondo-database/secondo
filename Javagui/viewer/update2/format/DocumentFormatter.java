@@ -26,6 +26,7 @@ package viewer.update2.format;
 
 import gui.SecondoObject;
 
+import java.awt.Component;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -49,207 +50,163 @@ This class is the central instance for formatting documents within the
 UpdateViewer2.  
 
 */
-public class DocumentFormatter
+public abstract class DocumentFormatter 
 {
-	
-	private String contentType;
-	private String formatScript;
-	private String formatTemplate;
+	private String type;	
+	private String aliases;
+	private String query;
+	private String script;
+	private String templateHead;
+	private String templateBody;
+	private String templateTail;
 	private String outputDirectory;
-	// Placeholdername -> Field qualifier (Relationname.Attributename)
-	private Map<String,FieldMapping> fieldMap;
-	private boolean success;
 	
-	public DocumentFormatter(String pContentType, 
-							 String pFormatFields, 
-							 String pFormatScript, 
-							 String pFormatTemplate, 
-							 String pOutputDirectory) throws Exception
+	private Map<String,String> aliasMap;	// alias -> relationname
+	
+	/**
+	 * Executes formatQuery, fills templates with query result 
+	 * and saves the resulting page(s) to outputDirectory.
+	 */
+	public abstract boolean format(boolean separatePages) throws Exception;
+	
+	/**
+	 * Returns path names of formatted document files.
+	 */
+	public abstract List<String> getOutputFiles();
+	
+	/**
+	 * Fills templateHead, templateBody and templateTail with default values.
+	 */
+	public abstract void createDefaultTemplate(Relation relation);
+	
+	/**
+	 * Returns formatter of class '<pFormatType>Formatter' if that class exists in package viewer.update2.format.
+	 */
+	public static DocumentFormatter createFormatter(String pFormatType) throws Exception
 	{
-		this.formatScript = pFormatScript;
-		this.formatTemplate = pFormatTemplate;
+		// try to instatiate specific formatter class
+		Class formatterClass = Class.forName("viewer.update2.format." + pFormatType.trim() + "Formatter");
+		Object o = formatterClass.newInstance();
+		if(!(o instanceof DocumentFormatter))
+		{
+			throw new Exception("Found class does not extend the abstract class DocumentFormatter. ");
+		}
+		return (DocumentFormatter)o;
+	}
+	
+	/**
+	 * Returns a list of the prefixes of currently implemented Formatters.
+	 * Each of the returned prefixes can be used as parameter 'FormatType'.
+	 */
+	public static List<String> getFormatTypes()
+	{
+		List<String> result = new ArrayList<String>();
+		
+		File dir = new File ("viewer/update2/format/");
+		File[] files = dir.listFiles();
+		
+		for (int i=0; i<files.length; i++)
+		{
+			File file = files[i];
+			if (file.isFile() && !file.isHidden() 
+				&& file.getName().endsWith("Formatter.class") 
+				&& !file.getName().contains("Document"))
+			{
+				String name = file.getPath();
+				name = name.substring(file.getParent().length()+1, name.length());
+				name = name.substring(0, name.indexOf("Formatter.class"));
+				result.add(name);
+			}
+		}
+		return result;
+	}
+	
+	
+	public String getAliases(){ return this.aliases;	}
+	public String getQuery(){ return this.query;	}
+	public String getScript(){ return this.script;	}
+	public String getTemplateBody(){ return this.templateBody;	}
+	public String getTemplateHead(){ return this.templateHead;	}
+	public String getTemplateTail(){ return this.templateTail;	}
+	public String getType(){	return this.type;	}
+	public String getOutputDirectory() { return this.outputDirectory; }
+	
+	
+	public void setType(String pFormatType){ this.type = pFormatType; }
+	public void setQuery(String pFormatQuery){ this.query = pFormatQuery; }
+	public void setScript(String pFormatScript){ this.script = pFormatScript; }
+	public void setTemplateBody(String pFormatTemplate){ this.templateBody = pFormatTemplate;	}
+	public void setTemplateHead(String pFormatTemplate){ this.templateHead = pFormatTemplate;	}
+	public void setTemplateTail(String pFormatTemplate){ this.templateTail = pFormatTemplate;	}
+	public void setAliases(String pRelationAliases)
+	{ 
+		this.aliases = pRelationAliases;
+		this.aliasMap = this.getAliasMap();
+	}
+	public void setOutputDirectory(String pOutputDirectory)
+	{
 		this.outputDirectory = pOutputDirectory;
-		this.contentType = pContentType;
-		this.fieldMap = new HashMap<String,FieldMapping>();		
-		this.readFormatFields(pFormatFields);
-		this.success = false;
+ 		if (!this.outputDirectory.endsWith("/"))
+		{
+			this.outputDirectory += "/";
+		}
 	}
 	
-	public void format() throws Exception
+	protected Map<String,String> getAliasMap()
 	{
-		this.success = false;
-		List<String> scriptlines;
+		Map<String,String> result = new HashMap<String,String>();
 		
-		String template = getFormatTemplateText();
-		Reporter.debug("DocumentFormatter.format: template=" + template);
-
-		// read script from file
-		FileReader fr = new FileReader(this.formatScript);
-		BufferedReader br = new BufferedReader(fr);
-		StringBuffer sb = new StringBuffer();
-		String zeile = "";
-		while( (zeile = br.readLine()) != null )
+		List<String> mappings = LoadDialog.splitList(this.aliases, ";");
+		for (String mapStr : mappings)
 		{
-			zeile = zeile.trim();
-			if (zeile.length() > 0 && !zeile.startsWith("#"))
+			mapStr = mapStr.trim();
+			if (mapStr != null && !mapStr.isEmpty())
 			{
-				sb.append(zeile);
-			}
-		}
-		br.close();
-		scriptlines = LoadDialog.splitList(sb.toString(), ";");
-		Reporter.debug("DocumentFormatter.format: scriptlines=" + scriptlines);
-		
-		// execute script
-		CommandExecuter commandExecuter = new CommandExecuter();
-		ListExpr scriptResult = null;
-		for(String command : scriptlines)
-		{
-			if (commandExecuter.executeCommand(command, SecondoInterface.EXEC_COMMAND_SOS_SYNTAX))
-			{
-				scriptResult = new ListExpr();
-				scriptResult.setValueTo(commandExecuter.getResultList());
-				//Reporter.debug("loadRelation: resultLE=" + scriptResult.toString());
-			}
-			else
-			{
-				String errorMessage = commandExecuter.getErrorMessage().toString();
-				Reporter.writeError(errorMessage);
-				success = false;
-				return;
-			}
-		}
-
-		// create relation from script result
-		if (scriptResult == null || scriptResult.isEmpty()) return;
-		
-		SecondoObject relationSO = new SecondoObject("output", scriptResult);
-		Relation relation = new Relation();
-		relation.readFromSecondoObject(relationSO);
-		
-		// create page for each tuple
-		for (int i = 0; i<relation.getTupleCount(); i++)
-		{
-			Tuple tuple = relation.getTupleAt(i);
-			String page = template;
-			
-			for (String fieldName : this.fieldMap.keySet())
-			{
-				FieldMapping mapping = fieldMap.get(fieldName);
-				StringBuffer sbReplace = new StringBuffer();
-				sbReplace.append("<!--###").append(mapping.relationName);
-				sbReplace.append(";").append(mapping.attributeName).append("###-->");
-				sbReplace.append(tuple.getValueByAttrName(mapping.attributeName));
-				page = page.replace("<<" + fieldName + ">>", sbReplace.toString());
-			}
-			
-			FileWriter file = new FileWriter(this.outputDirectory + i + ".html");
-			PrintWriter out = new PrintWriter(file);
-			out.print(page);
-			out.close();
-			//Reporter.debug("DocumentFormatter.format: page=" + page);
-		}
-		
-		success = true;
-	}
-	
-	public String getContentType(){	return this.contentType;	}
-	public String getFormatScript(){ return this.formatScript;	}
-	public String getFormatTemplate(){	return this.formatTemplate;	}
-	public String getOutputDirectory(){	return this.outputDirectory;	}
-	
-	public List<String> getOutputFiles()
-	{
-		List<String> filenames = new ArrayList<String>();
-
-		if (success) 
-		{
-			File dir = new File (this.outputDirectory) ;
-			File[] files = dir.listFiles();
-			
-			for (int i=0; i<files.length; i++)
-			{
-				File file = files[i];
-				if (file.isFile() && !file.isHidden())
+				List<String> alias = LoadDialog.splitList(mapStr, " ");
+				if (alias.size()==2 && !alias.get(0).trim().isEmpty() && !alias.get(1).trim().isEmpty())
 				{
-					filenames.add(file.getPath());
+					result.put(alias.get(1).trim(), alias.get(0).trim());
 				}
 			}
 		}
-		return filenames;
-	}
-	
-	
-	public String getFormatTemplateText() throws IOException
-	{
-		if (this.formatTemplate == null || this.formatTemplate.length() == 0)
-		{
-			return this.createDefaultTemplate();
-		}
-		
-		// read template from file
-		FileReader fr = new FileReader(this.formatTemplate);
-		BufferedReader br = new BufferedReader(fr);
-		StringBuffer sb = new StringBuffer();
-		String zeile = "";
-		while( (zeile = br.readLine()) != null )
-		{
-			sb.append(zeile);
-		}
-		br.close();
-		
-		return sb.toString();
+		return result;
 	}
 	
 
-	private void readFormatFields(String pFormatFields) throws Exception
+	protected String getRelationFromAliasedName(String pAliasedAttributeName)
 	{
-		List<String> mappings = LoadDialog.splitList(pFormatFields, ";");
-		for (String mapStr : mappings)
+		String result = "";
+		int start = pAliasedAttributeName.lastIndexOf("_");
+		if (start >= 0)
 		{
-			List<String> comps = LoadDialog.splitList(mapStr, ",");
-			if (comps.size()!=3)
-			{
-				throw new Exception("Invalid String for FormatFields");
-			}
-			else
-			{
-				fieldMap.put(comps.get(0).trim(), 
-							 new FieldMapping(comps.get(0).trim(), comps.get(1).trim(), comps.get(2).trim()));
-			}
+			String alias = pAliasedAttributeName.substring(start+1, pAliasedAttributeName.length());
+			result = this.aliasMap.get(alias);
 		}
+		//Reporter.debug("DocumentFormatter.getRelationFromAliasedName: relation=" + result);
+		return result;
 	}
 	
-	
-	private String createDefaultTemplate()
+	protected String getAttributeFromAliasedName(String pAliasedAttributeName)
 	{
-		StringBuilder sb = new StringBuilder("<!DOCTYPE HTML PUBLIC ");
-		sb.append(" \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3c.org/TR/1999/REC-html401-19991224/loose.dtd\">");
-		sb.append("<HTML xmlns=\"http://www.w3.org/1999/xhtml\"></HEAD><BODY>");
-		for (String placeholder : this.fieldMap.keySet())
+		String result = "";
+		int end = pAliasedAttributeName.lastIndexOf("_");
+		if (end >= 0)
 		{
-			sb.append("<h1>").append(placeholder).append("</h1>");
-			sb.append("<p>");
-			sb.append("<<").append(placeholder).append(">>");
-			sb.append("</p>");
+			result = pAliasedAttributeName.substring(0, end);
 		}
-		sb.append("</BODY></HTML>");
-		return sb.toString();
+		//Reporter.debug("DocumentFormatter.getAttributeFromAliasedName: attribute=" + result);
+		return result;
 	}
 	
-
-	class FieldMapping
+	protected String getIdNameFromAliasedName(String pAliasedAttributeName)
 	{
-		public String fieldName;
-		public String relationName;
-		public String attributeName;
-		
-		public FieldMapping(String pFieldName, String pRelationName, String pAttributeName)
+		String result = "TID";
+		int start = pAliasedAttributeName.lastIndexOf("_");
+		if (start >= 0)
 		{
-			this.fieldName = pFieldName;
-			this.relationName = pRelationName;
-			this.attributeName = pAttributeName;
+			result += pAliasedAttributeName.substring(start, pAliasedAttributeName.length());
 		}
+		//Reporter.debug("DocumentFormatter.getIdNameFromAliasedName: id=" + result);
+		return result;
 	}
- 
 } 

@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package viewer.update2;
  
+import java.awt.Component;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
@@ -55,19 +56,20 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	
 	private CommandGenerator commandGenerator;
 	private CommandExecuter commandExecuter;
+	private FormatDialog formatDialog;
 	private LoadDialog loadDialog;
 	private UpdateViewer2 viewer;
 	private int state;	
-	private int loadState;	
 	private boolean searchActive;
-	private boolean caseSensitive;
+	private LoadProfile loadProfile;
 	
 	// Name of relation which contain LoadProfiles
 	public final static String RELNAME_LOAD_PROFILES_HEAD = "uv2loadprofiles";
 	public final static String RELNAME_LOAD_PROFILES_POS = "uv2loadprofilespos";
 	
-	// button commands in UpdateViewer2 window
-	public final static String CMD_LOAD = "Load";
+	// button commands in UpdateViewer2 main window
+	public final static String CMD_OPEN_LOAD_DIALOG = "Open Load Dialog";
+	public final static String CMD_OPEN_FORMAT_DIALOG = "Open Format Dialog";
 	public final static String CMD_CLEAR = "Clear";
 	public final static String CMD_INSERT = "Insert";
 	public final static String CMD_UPDATE = "Update";
@@ -75,11 +77,14 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	public final static String CMD_UNDO = "Undo";
 	public final static String CMD_RESET = "Reset";
 	public final static String CMD_COMMIT = "Commit";
-	public final static String CMD_FORMAT = "Format";
-	public final static String CMD_EDIT = "Edit";
 	public final static String CMD_CLOSE_TAB = "Close tab";
+	// button commands in FormatDialog
+	public final static String CMD_CLOSE_FORMAT_DIALOG = "Close Format Dialog";
+	public final static String CMD_FORMAT = "Format";
+	public final static String CMD_GOTO_EDIT = "Go to edit relation";
 	// button commands in LoadDialog
 	public final static String CMD_LOAD_PROFILE = "Load selected profile";
+	public final static String CMD_CLOSE_LOAD_DIALOG = "Close Load Dialog";
 	public final static String CMD_CREATE_PROFILE = "Create new profile";
 	public final static String CMD_CREATE_PROFILEPOS = "Add relation";
 	public final static String CMD_EDIT_PROFILE = "Edit load profile";
@@ -106,13 +111,11 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	public UpdateViewerController(UpdateViewer2 viewer)
 	{
 		this.viewer = viewer;
+		this.formatDialog = new FormatDialog(this);
 		this.commandGenerator = new CommandGenerator();
 		this.commandExecuter = new CommandExecuter();
-		this.loadDialog = new LoadDialog(this);
 		this.state = States.INITIAL;
-		this.loadState = States.INITIAL;
 		this.searchActive = false;
-		this.caseSensitive = false;
 	}
 	
 	/**
@@ -122,15 +125,14 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	public void actionPerformed(ActionEvent e)
 	{
 		// UpdateViewer2 window
-		if (e.getActionCommand() == CMD_LOAD)
+		if (e.getActionCommand() == CMD_OPEN_LOAD_DIALOG)
 		{
-			this.processCommandLoad();
+			this.processCommandOpenLoadDialog();
 			return;
 		}
 		if (e.getActionCommand() == CMD_CLEAR)
 		{
-			this.viewer.clear();
-			this.setState(States.INITIAL);
+			this.processCommandClear();
 			return;
 		}
 		if (e.getActionCommand() == CMD_INSERT)
@@ -168,20 +170,9 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			}
 			return;
 		}
-		if (e.getActionCommand() == CMD_FORMAT)
+		if (e.getActionCommand() == CMD_OPEN_FORMAT_DIALOG)
 		{
-			if (this.processCommandFormatMode())
-			{
-				this.setState(States.FORMAT);
-			}
-			return;
-		}
-		if (e.getActionCommand() == UpdateViewerController.CMD_EDIT)
-		{
-			if (this.processCommandEditMode())
-			{
-				this.setState(States.LOADED);
-			}
+			this.processCommandOpenFormatDialog();
 			return;
 		}
 		if (e.getActionCommand() == CMD_CLOSE_TAB)
@@ -193,18 +184,43 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			}
 			return;
 		}
+		//
+		// FormatDialog		
+		//
+		if (e.getActionCommand() == CMD_FORMAT)
+		{
+			this.processCommandFormat();
+			return;
+		}
+		if (e.getActionCommand() == CMD_GOTO_EDIT)
+		{
+			this.processCommandGoToEdit();
+			return;
+		}
+		if (e.getActionCommand() == CMD_CLOSE_FORMAT_DIALOG)
+		{
+			this.formatDialog.setVisible(false);
+			return;
+		}
 		
 		//
 		// LoadDialog		
 		//
 		if (e.getActionCommand() == CMD_LOAD_PROFILE)
 		{
-			if (processCommandLoadSelectedProfile())
+			if (processCommandLoad())
 			{
 				state = States.LOADED;
 				this.viewer.setSelectionMode(States.LOADED);
-				this.loadDialog.setVisible(false);
+				this.loadDialog.dispose();
+				this.loadDialog = null;
 			}
+			return;
+		}
+		if (e.getActionCommand() == CMD_CLOSE_LOAD_DIALOG)
+		{
+			this.loadDialog.dispose();
+			this.loadDialog = null;
 			return;
 		}
 			
@@ -234,9 +250,16 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		if (e.getActionCommand() == CMD_REMOVE_PROFILE)
 		{
 			String profileName = this.loadDialog.getCurrentLoadProfileName();
-			if (this.processCommandRemoveLoadProfile(profileName))
-			{
-				this.loadDialog.removeLoadProfile(profileName);
+			int option = JOptionPane.showConfirmDialog(this.loadDialog
+													   , "Really remove load profile \"" + profileName + " \"?"
+													   , "Remove load profile"
+													   , JOptionPane.YES_NO_OPTION);
+			if (option == JOptionPane.YES_OPTION)
+			{	
+				if (this.processCommandRemoveLoadProfile(profileName))
+				{
+					this.loadDialog.removeLoadProfile(profileName);
+				}
 			}
 			return;
 		}
@@ -344,8 +367,9 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		StringBuffer sb = new StringBuffer("let ");
 		sb.append(RELNAME_LOAD_PROFILES_HEAD);
 		sb.append(" = [const rel (tuple (");
-		sb.append(" [ProfileName: string, FormatFields: text, ");
-		sb.append(" FormatScript: text, FormatTemplate: text, OutputDir: text]");
+		sb.append(" [ProfileName: string, FormatType: string, FormatAliases: text, ");
+		sb.append(" FormatQuery: text, FormatScript: text, OutputDir: text, ");
+		sb.append(" FormatTemplateHead: text, FormatTemplateBody: text, FormatTemplateTail: text]");
 		sb.append(" )) value ()]");
 		commands.add(sb.toString());
 		
@@ -660,8 +684,8 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		Reporter.debug("UpdateViewerController.executeInsert: " + pCommand);
 		if(!this.commandExecuter.executeCommand(pCommand, SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 		{
-			String errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog("Error trying to insert a tuple: " + errorMessage);
+			this.showErrorDialog("Error trying to insert a tuple: " 
+								 + this.commandExecuter.getErrorMessage().toString());
 			return null;
 		}
 		else
@@ -682,34 +706,34 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	 */
 	private boolean existsInDb(String pObjectName)
 	{
-		boolean result = false;
-		if (commandExecuter.executeCommand("(list objects)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
+		if (!commandExecuter.executeCommand("(list objects)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 		{
-			ListExpr inquiry = commandExecuter.getResultList();
-			ListExpr objectList = inquiry.second().second();
-			objectList.first();
-			ListExpr rest = objectList.rest();
-			ListExpr nextObject;
-			String name;
-			
-			while (!rest.isEmpty())
-			{
-				nextObject = rest.first();
-				
-				name = nextObject.second().symbolValue();
-				if (name.equals(pObjectName))
-				{
-					result = true;
-				}
-				
-				rest = rest.rest();
-			}
-		}
-		else
-		{
+			this.showErrorDialog("Error on command \"list objects\": " 
+								 + this.commandExecuter.getErrorMessage().toString());
 			return false;
 		}
-		return result;
+			
+		ListExpr inquiry = commandExecuter.getResultList();
+		ListExpr objectList = inquiry.second().second();
+		objectList.first();
+		ListExpr rest = objectList.rest();
+		ListExpr nextObject;
+		String name;
+		
+		while (!rest.isEmpty())
+		{
+			nextObject = rest.first();
+			
+			name = nextObject.second().symbolValue();
+			if (name.equals(pObjectName))
+			{
+				return true;
+			}
+			
+			rest = rest.rest();
+		}
+		
+		return false;
 	}
 	
 	
@@ -718,10 +742,10 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	 */
 	public void itemStateChanged(ItemEvent e)
 	{
-		if (e.getItem() instanceof JCheckBox && ((JCheckBox)e.getItem()).getText().equals("case-sensitive"))
+		/*if (e.getItem() instanceof JCheckBox && ((JCheckBox)e.getItem()).getText().equals("case-sensitive"))
 		{
 			this.caseSensitive = (e.getStateChange() == ItemEvent.SELECTED);
-		}
+		}*/
 	}
 	
 		
@@ -830,7 +854,23 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	}
 		
 
+	/**
+	 * Removes any relations from viewer panel and disposes of format window if open.
+	 */
+	private void processCommandClear()
+	{
+		this.viewer.clear();
+		if (this.formatDialog != null)
+		{
+			this.formatDialog.dispose();
+			this.formatDialog = null;
+		}
+		this.setState(States.INITIAL);
+	}
 	
+	/**
+	 * Resets search panels for all relations.
+	 */
 	public void processCommandClearSearch()
 	{
 		this.searchActive = false;
@@ -843,7 +883,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	
 	
 	/**
-	 *
+	 * Commits all changes (INSERT, DELETE or UPDATE) to database.
 	 */
 	public boolean processCommandCommit()
 	{
@@ -887,73 +927,126 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		return true;
 	}
 	
-	/**
-	 * Show loaded relations in Edit View.
-	 * TODO: Set cursor position at relation and tuple according to 
-	 * cursor position in formatted document.
-	 */
-	public boolean processCommandEditMode()
-	{
-		this.viewer.showRelations(States.LOADED);
-		return true;
-	}
 	
 	/**
-	 * Shows the loaded relation as formatted document.
+	 * Shows the formatted document as specified in the load profile.
 	 */
-	private boolean processCommandFormatMode()
+	private boolean processCommandFormat()
 	{
-		LoadProfile loadProfile = this.loadDialog.getLoadProfile(this.loadDialog.getCurrentLoadProfileName());
 		// check if all neccessary information is in load profile
-		String formatFields = loadProfile.getFormatFields();
+		String formatType = loadProfile.getFormatType();
+		String formatAliases = loadProfile.getFormatAliases();
+		String formatQuery = loadProfile.getFormatQuery();
 		String formatScript = loadProfile.getFormatScript();
-		String formatTemplate = loadProfile.getFormatTemplate();
+		String templateHead = loadProfile.getFormatTemplateHead();
+		String templateBody = loadProfile.getFormatTemplateBody();
+		String templateTail = loadProfile.getFormatTemplateTail();
 		String outputDir = loadProfile.getOutputDirectory();
 		StringBuilder errorMessage = new StringBuilder();
 		
-		if (formatScript==null || formatScript.length() == 0)
+		if (formatType==null || formatType.isEmpty())
 		{
-			errorMessage.append("Please specify path of file that contains the format script. \n");
-		}
-		if (outputDir==null || outputDir.length() == 0)
-		{
-			errorMessage.append("Please specify path of output directory. \n");
-		}
-		if (formatFields==null || formatFields.length() == 0)
-		{
-			errorMessage.append("Please specify FormatFields in the load profile. ");
-			errorMessage.append("FormatFields is a list of triples [Placeholdername, Relationname, Attributename] ");
-			errorMessage.append("that are to be displayed in the formatted document. \n");
-			errorMessage.append("Example: \"CHAPTERTITLE,Chapters,Title; SUBTITLE,Chapters,Title2;  \" ");
-		}
-		if (errorMessage.toString().length() > 0)
-		{
+			errorMessage.append("Please specify format type in load profile. Available formats: ");
+			errorMessage.append(DocumentFormatter.getFormatTypes().toString());
+			errorMessage.append("\n");
 			this.showErrorDialog(errorMessage.toString());
 			return false;
 		}
 		
-		if (formatTemplate==null || formatTemplate.length() == 0)
+		if (formatQuery==null || formatQuery.isEmpty())
 		{
-			this.showInfoDialog("Template file not specified in load profile. \nWill use default template. ");
+			errorMessage.append("Please specify query that fetches the document relation. \n");
+			errorMessage.append("With each relation you must first add a tuple ID and rename the relation. \n\n");
+			errorMessage.append("Example: \"query MyRelation feed addid {a} consume\" \n");
+			this.showErrorDialog(errorMessage.toString());
+			return false;
+		}
+		
+		if (outputDir==null || outputDir.length() == 0)
+		{
+			errorMessage.append("Please specify path of output directory. \n");
+			this.showErrorDialog(errorMessage.toString());
+			return false;
+		}
+
+		if (formatAliases==null || formatAliases.isEmpty())
+		{
+			errorMessage.append("Please list each relation name and its alias in the format query. \n\n");
+			errorMessage.append("Example: \"ARelation a; AnotherRelation b \" ");
+			this.showErrorDialog(errorMessage.toString());
+			return false;
 		}
 		
 		// format
 		try
 		{
-			DocumentFormatter formatter = new DocumentFormatter("text/html", 
-																formatFields, formatScript, formatTemplate, outputDir);
-			formatter.format();
-			this.viewer.loadFormattedDocument(formatter.getOutputFiles(), formatter.getContentType());
-			this.viewer.showRelations(States.FORMAT);
+			// init formatter
+			DocumentFormatter formatter = DocumentFormatter.createFormatter(formatType);
+			formatter.setAliases(formatAliases); 
+			formatter.setQuery(formatQuery); 
+			formatter.setScript(formatScript); 
+			formatter.setOutputDirectory(outputDir); 
+			if (templateBody==null || templateBody.isEmpty()
+				|| templateHead==null || templateHead.isEmpty()
+				|| templateTail==null || templateTail.isEmpty())
+			{
+				this.showInfoDialog("Format templates in load profile are not complete. \nWill use default templates. ");
+			}
+			else
+			{
+				formatter.setTemplateBody(templateBody); 
+				formatter.setTemplateHead(templateHead); 
+				formatter.setTemplateTail(templateTail); 
+			}
+			// should output come as separate pages or single-paged?
+			boolean separatePages = this.formatDialog.getSeparatePages();
+			// let formatter format and get output
+			
+			if (!formatter.format(separatePages))
+			{
+				return false;
+			}
+			
+			List<String> outputFiles = formatter.getOutputFiles();
+			if (outputFiles == null || outputFiles.isEmpty())
+			{
+				this.showErrorDialog("No output found");
+				return false;
+			}
+			
+			DocumentPanel docPanel = DocumentPanel.createDocumentPanel(formatType);
+			docPanel.loadFiles(outputFiles);
+			this.formatDialog.setFormattedDocument(docPanel);
 		}
 		catch (Exception e)
 		{
-			this.showErrorDialog(e.getMessage());
+			this.showInfoDialog(e.getMessage());
 			return false;
 		}
 		return true;
 	}
 	
+	
+	private boolean processCommandGoToEdit()
+	{
+		this.viewer.setVisible(true);
+		RelationPosition posInfo = this.formatDialog.getCurrentPosition();
+		if (posInfo == null)
+		{
+			return false;
+		}
+		RelationPanel rp = this.viewer.getRelationPanel(posInfo.getRelationName());
+		if (rp == null)
+		{
+			this.showErrorDialog("Relation \"" + posInfo.getRelationName() + "\" is currently not loaded. \n"
+								 + "Please add relation to your load profile. ");
+			return false;
+		}
+		this.viewer.showRelationPanel(this.viewer.getRelationPanels().indexOf(rp));
+		
+		rp.goToEdit(posInfo.getAttributeName(), posInfo.getTupleId(), posInfo.getOffset());
+		return true;
+	}
 
 	
 	/**
@@ -986,56 +1079,17 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		}
 		return true;
 	}
-	
-	/*
-	 * Shows the load dialog.
-	 * Loads Profiles from DB.
-	 * Creates Profile relations if not yet existent.
-	 */
-	public void processCommandLoad() 
-	{
-		boolean result = true;
 		
-		if (!this.existsInDb(RELNAME_LOAD_PROFILES_HEAD))
-		{
-			result = this.createProfileRelations();
-		}
-		
-		if (result)
-		{
-			try
-			{
-				ListExpr profilesLE = this.loadRelation(RELNAME_LOAD_PROFILES_HEAD, null, null, null);
-				ListExpr relationsLE = this.loadRelation(RELNAME_LOAD_PROFILES_POS, null, null, null);
-				
-				if(profilesLE == null || relationsLE == null)
-				{
-					this.setState(States.INITIAL);
-					this.showErrorDialog(commandExecuter.getErrorMessage().toString());			
-				}
-				else
-				{
-					this.loadDialog.showProfiles(profilesLE, relationsLE);		
-					this.loadDialog.setVisible(true);
-				}
-			}
-			catch (InvalidRelationException e)
-			{
-				Reporter.writeError(e.getMessage());
-			}
-		}
-	}
-	
 	
 	/**
 	 * Loads all relations of the currently selected LoadProfile from database
 	 * and shows them in the viewer.
 	 */
-	private boolean processCommandLoadSelectedProfile()
+	private boolean processCommandLoad()
 	{	
-		this.viewer.clear();
+		this.processCommandClear();
 		String profileName = this.loadDialog.getCurrentLoadProfileName();
-		LoadProfile loadProfile = this.loadDialog.getLoadProfile(profileName);
+		this.loadProfile = this.loadDialog.getLoadProfile(profileName);
 		String errorMessage = "";
 		
 		if (loadProfile == null)
@@ -1067,7 +1121,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			this.showErrorDialog(errorMessage);
 		}
 		
-		this.viewer.showRelations(States.LOADED);
+		//this.viewer.showRelations(States.LOADED);
 		this.viewer.setSelectionMode(States.LOADED);
 		this.state = States.LOADED;
 		return true;		
@@ -1101,7 +1155,83 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		return true;
 	}
 	
+	/*
+	 * Shows the load dialog.
+	 * Loads Profiles from DB.
+	 * Creates Profile relations if not yet existent.
+	 */
+	public void processCommandOpenLoadDialog() 
+	{
+		try
+		{
+			// test if client is connected to secondo and database is open
+			int connectionState = this.commandExecuter.testConnection();
+			if (connectionState != 0)
+			{
+				this.showErrorDialog(ServerErrorCodes.getErrorMessageText(connectionState));
+				return;
+			}
+			
+			// test if profiles exist in database
+			boolean result = true;
+			
+			if (!this.existsInDb(RELNAME_LOAD_PROFILES_HEAD))
+			{
+				result = this.createProfileRelations();
+			}
+			
+			// load profiles
+			if (result)
+			{
+				try
+				{
+					ListExpr profilesLE = this.loadRelation(RELNAME_LOAD_PROFILES_HEAD, null, null, null);
+					ListExpr relationsLE = this.loadRelation(RELNAME_LOAD_PROFILES_POS, null, null, null);
+					
+					if(profilesLE == null || relationsLE == null)
+					{
+						this.setState(States.INITIAL);
+						this.showErrorDialog(commandExecuter.getErrorMessage().toString());			
+					}
+					else
+					{
+						this.loadDialog = new LoadDialog(this);
+						this.loadDialog.showProfiles(profilesLE, relationsLE);		
+						this.loadDialog.setVisible(true);
+					}
+				}
+				catch (InvalidRelationException e)
+				{
+					this.showErrorDialog(e.getMessage());
+					return;
+				}
+			}
+		}
+		catch(Exception e)
+		{
+			this.showErrorDialog(e.getMessage());
+			return;
+		}
+	}
 	
+	
+	/*
+	 * Shows the format dialog.
+	 */
+	public void processCommandOpenFormatDialog() 
+	{
+		if (this.formatDialog == null)
+		{
+			this.formatDialog = new FormatDialog(this);
+		}
+		this.formatDialog.setVisible(true);		
+	}
+	
+	/**
+	 * Skips to previous search hit, if any.
+	 * If current search hit was first search hit in the current relation,
+	 * skips to last search hit in a previous relation if there are search hits.
+	 */
 	private boolean processCommandPrevious()
 	{
 		int hitIndex = this.viewer.getCurrentRelationPanel().getCurrentHitIndex()-1;
@@ -1127,13 +1257,22 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		return true;
 	}
 
+	
 	/**
-	 * Deletes all entries for specified load profile from relation uv2loadprofiles.
+	 * Deletes all entries for specified load profile from the database.
 	 */
 	private boolean processCommandRemoveLoadProfile(String pProfileName)
 	{
 		String profileName = this.loadDialog.getCurrentLoadProfileName();
 		
+		// remove dependent relation profiles
+		for (RelationProfile rp : this.loadDialog.getRelationProfiles(profileName))
+		{
+			this.processCommandRemoveRelationProfile(profileName, rp.getRelationName());
+			this.loadDialog.removeRelationProfile(profileName, rp.getRelationName());
+		}
+		
+		// remove load profile
 		StringBuffer sb = new StringBuffer();
 		sb.append("query ").append(RELNAME_LOAD_PROFILES_HEAD);
 		sb.append(" feed filter[.ProfileName = \"");
@@ -1153,7 +1292,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	
 	
 	/**
-	 * Deletes the entry for the specified relation profile from relation uv2loadprofiles.
+	 * Deletes the entry for the specified relation profile from the database.
 	 */
 	private boolean processCommandRemoveRelationProfile(String pLoadProfileName, String pRelName)
 	{
@@ -1171,6 +1310,8 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			this.showErrorDialog(commandExecuter.getErrorMessage().toString());
 			return false;
 		}
+		Reporter.debug("processCommandRemoveRelationProfile: removed relation profile " + pRelName);
+
 		return true;
 
 	}
@@ -1223,11 +1364,12 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		RelationPanel crp = this.viewer.getCurrentRelationPanel();
 		String replacement = crp.getReplacement();
 		String key = crp.getSearchKey();
+		boolean caseSensitive = crp.getCaseSensitive();
 		int count = 0;
 
 		StringBuilder msg = new StringBuilder();
 		msg.append("Really replace all search matches by \"").append(replacement).append("\" in all loaded relations?");
-		if (!this.caseSensitive)
+		if (!caseSensitive)
 		{
 			msg.append("\n\n(Please note: current search mode is CASE-INSENSITIVE.)");
 		}
@@ -1335,6 +1477,12 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			List<String> commands = this.commandGenerator.generateUpdate(pRelName,
 																		 pAttributeNames,
 																		 pChangesForUpdate);
+			
+			if (commands == null || commands.isEmpty())
+			{
+				Reporter.debug("UpadteViewerConntroller.updateTuple: no update commands generated for relation " + pRelName);
+				return false;
+			}
 
 			if(! this.commandExecuter.executeCommand(commands.get(0), SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 			{
@@ -1468,6 +1616,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	{
 		// read keyword from searchfield
 		String key = this.viewer.getCurrentRelationPanel().getSearchKey();
+		boolean caseSensitive = this.viewer.getCurrentRelationPanel().getCaseSensitive();
 		
 		// retrieve hitlists for all relation panels
 		if (key == null || key.length() < 3)
@@ -1480,7 +1629,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 			
 			for (RelationPanel rp : this.viewer.getRelationPanels())
 			{								
-				List<SearchHit> hitlist = rp.retrieveSearchHits(key, this.caseSensitive);
+				List<SearchHit> hitlist = rp.retrieveSearchHits(key, caseSensitive);
 				if (!hitlist.isEmpty())
 				{
 					map.put(rp.getName(), hitlist);
@@ -1642,6 +1791,4 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		this.viewer.repaint();
 		this.viewer.validate();
 	}
-	
-	
 }

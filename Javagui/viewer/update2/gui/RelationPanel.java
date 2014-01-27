@@ -122,10 +122,7 @@ public class RelationPanel extends JPanel implements
 	private Relation relation;
 	
 	private Relation insertRelation;
-	
-	// controller listens to action events
-	private UpdateViewerController controller;
-	
+		
 	private JSplitPane splitPane;
 	
 	// currently loaded relation
@@ -147,10 +144,6 @@ public class RelationPanel extends JPanel implements
 	private String oldEditCellValue;
 	
 	// search panel
-	private JPanel southPanel;
-	
-	private JPanel searchPanel;
-
 	private JButton search;
 	
 	private JButton previous;
@@ -182,75 +175,71 @@ public class RelationPanel extends JPanel implements
 	public RelationPanel(String pRelationName, UpdateViewerController pController) 
 	{
 		this.name = pRelationName;
-		this.setLayout(new BorderLayout());		
-		this.controller = pController;
 		
 		// tables
-		this.splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
 		this.relScroll = new JScrollPane();
 		this.relScroll.getVerticalScrollBar().setUnitIncrement(10);
 		this.insertScroll = new JScrollPane();
-		this.add(this.relScroll, BorderLayout.CENTER);
+		this.splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
 		this.tableCellRenderer = new ValueTableCellRenderer();
 		this.tableCellEditor = new ValueTableCellEditor();
-		
-		// formatted text view
-		
-		this.southPanel = new JPanel(new GridLayout(2, 1));
-
+				
 		// search panel
-		this.searchPanel = new JPanel();
-		this.searchPanel.setLayout(new FlowLayout());
-		//this.searchPanel.setPreferredSize(new Dimension(600, 80));
+		JPanel searchPanel = new JPanel();
+		searchPanel.setLayout(new FlowLayout());
 		this.searchField = new JTextField(15);
-		this.searchPanel.add(this.searchField);
+		searchPanel.add(this.searchField);
 		this.search = new JButton(UpdateViewerController.CMD_SEARCH);
-		this.search.addActionListener(this.controller); 
-		this.searchPanel.add(this.search);
+		this.search.addActionListener(pController); 
+		searchPanel.add(this.search);
 		this.chkCaseSensitive = new JCheckBox("case-sensitive");
-		this.chkCaseSensitive.addItemListener(this.controller);
-		this.searchPanel.add(this.chkCaseSensitive);
+		this.chkCaseSensitive.addItemListener(pController);
+		searchPanel.add(this.chkCaseSensitive);
 		this.previousFast = new JButton(this.createIcon("res/TOFRONT.gif"));
-		this.previousFast.addActionListener(this.controller); 
+		this.previousFast.addActionListener(pController); 
 		this.previousFast.setActionCommand(UpdateViewerController.CMD_FIRST);
 		this.previousFast.setToolTipText("Go to first search hit in this relation");
-		this.searchPanel.add(this.previousFast);
+		searchPanel.add(this.previousFast);
 		this.previous = new JButton(this.createIcon("res/REVERSE.gif"));
-		this.previous.addActionListener(this.controller); 
+		this.previous.addActionListener(pController); 
 		this.previous.setActionCommand(UpdateViewerController.CMD_PREVIOUS);
 		this.previous.setToolTipText("Go to previous search hit");
-		this.searchPanel.add(this.previous);
+		searchPanel.add(this.previous);
 		this.next = new JButton(this.createIcon("res/play.gif"));
-		this.next.addActionListener(this.controller); 
+		this.next.addActionListener(pController); 
 		this.next.setActionCommand(UpdateViewerController.CMD_NEXT);
 		this.next.setToolTipText("Go to next search hit");
-		this.searchPanel.add(this.next);
+		searchPanel.add(this.next);
 		this.nextFast = new JButton(this.createIcon("res/TOEND.gif"));
-		this.nextFast.addActionListener(this.controller); 
+		this.nextFast.addActionListener(pController); 
 		this.nextFast.setActionCommand(UpdateViewerController.CMD_LAST);
 		this.nextFast.setToolTipText("Go to last search hit in this relation");
-		this.searchPanel.add(this.nextFast);
+		searchPanel.add(this.nextFast);
 		this.searchResultLabel = new JLabel();
-		this.searchPanel.add(this.searchResultLabel);
+		searchPanel.add(this.searchResultLabel);
 		
 		// replace panel
-		this.replacePanel = new JPanel();
-		this.replacePanel.setLayout(new FlowLayout());
+		JPanel replacePanel = new JPanel();
+		replacePanel.setLayout(new FlowLayout());
 		this.replaceField = new JTextField(15);
-		this.replacePanel.add(this.replaceField);
+		replacePanel.add(this.replaceField);
 		this.replace = new JButton(UpdateViewerController.CMD_REPLACE);
-		this.replace.addActionListener(this.controller); 
+		this.replace.addActionListener(pController); 
 		this.replace.setToolTipText("Replace current match and go to next");
-		this.replacePanel.add(this.replace);
+		replacePanel.add(this.replace);
 		this.replaceAll = new JButton(UpdateViewerController.CMD_REPLACE_ALL);
-		this.replaceAll.addActionListener(this.controller); 
+		this.replaceAll.addActionListener(pController); 
 		this.replaceAll.setToolTipText("Replace in all loaded relations");
-		this.replacePanel.add(this.replaceAll);
+		replacePanel.add(this.replaceAll);
 		
-		this.southPanel.add(this.searchPanel);
-		this.southPanel.add(this.replacePanel);
+		// layout
+		JPanel southPanel = new JPanel(new GridLayout(2, 1));
+		southPanel.add(searchPanel);
+		southPanel.add(replacePanel);
 
-		this.add(this.southPanel, BorderLayout.SOUTH);
+		this.setLayout(new BorderLayout());		
+		this.add(this.relScroll, BorderLayout.CENTER);
+		this.add(southPanel, BorderLayout.SOUTH);
 
 		this.clearSearch();
 		this.revalidate();
@@ -664,6 +653,20 @@ public class RelationPanel extends JPanel implements
 		}
 	}
 	
+	/** Starts the editing the specified cell within the relation table **/
+	public void goToEdit(String pAttributeName, String pTupleId, int pOffset)
+	{
+		int row = this.getTableModel().getRow(pTupleId, pAttributeName);
+		try
+		{
+			this.goTo(row, pOffset, pOffset); 
+		} 
+		catch(Exception e)
+		{
+			Reporter.debug(e);
+		}
+	}
+	
 	
 	/** Starts the editing the specified cell within the insert table **/
 	public void goToInsert(int x, int y)
@@ -751,7 +754,7 @@ public class RelationPanel extends JPanel implements
 				
 				rtm.addChange(change);
 				
-				Reporter.debug("RelationPanel.processEditingStopped: new value of table cell (" + row + ", " + col + ") is " + newValue) ;			
+				//Reporter.debug("RelationPanel.processEditingStopped: new value of table cell (" + row + ", " + col + ") is " + newValue) ;			
 			}
 		}
 	}
@@ -868,12 +871,12 @@ public class RelationPanel extends JPanel implements
 				relTable.setValueAt(newValue, row, RelationTableModel.COL_ATTRVALUE);
 				
 				// create Change for update or undo actions
-				int tupleIndex = Integer.valueOf((String)rtm.getValueAt(row, RelationTableModel.COL_TUPLEID));
+				int tupleId = Integer.valueOf((String)rtm.getValueAt(row, RelationTableModel.COL_TUPLEID));
 				int attributeIndex = rtm.rowToAttributeIndex(row);
 				String attributeName = this.relation.getAttributeNames().get(attributeIndex);
 				String attributeType = this.relation.getAttributeTypes().get(attributeIndex);
 				
-				Change change = new Change(tupleIndex, attributeIndex, row,
+				Change change = new Change(tupleId, attributeIndex, row,
 										   attributeName, attributeType, 
 										   oldValue, newValue);
 				

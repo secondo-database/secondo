@@ -58,7 +58,6 @@ import viewer.update2.*;
  */
 public class TupleEditDialog extends JDialog implements PropertyChangeListener
 {
-	private JPanel pnlButtons;
 	private JButton btSave;
 	private JButton btCancel;
 	private JTable table;
@@ -75,7 +74,7 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 		this.setTitle(pTitle);
 		
 		// buttons
-		this.pnlButtons = new JPanel();
+		JPanel pnlButtons = new JPanel();
 		if (pRelation.getName().equals(UpdateViewerController.RELNAME_LOAD_PROFILES_HEAD))
 		{
 			this.btSave = new JButton(UpdateViewerController.CMD_SAVE_PROFILE);
@@ -85,25 +84,16 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 			this.btSave = new JButton(UpdateViewerController.CMD_SAVE_PROFILEPOS);
 		}
 		this.btSave.addActionListener(pActionListener);
-		this.pnlButtons.add(btSave);
+		pnlButtons.add(btSave);
 		this.btCancel = new JButton(UpdateViewerController.CMD_CANCEL);
 		this.btCancel.addActionListener(pActionListener);
-		this.pnlButtons.add(btCancel);
+		pnlButtons.add(btCancel);
 		
 		// table
 		this.relation = pRelation.createEmptyClone();
 		try
 		{
 			this.relation.addTuple(pEditTuple);
-			/*if (this.relation.getName().equals(UpdateViewerController.RELNAME_LOAD_PROFILES_HEAD))
-			{
-				this.relation.setAttributeReadOnly("ProfileName");
-			}
-			if (this.relation.getName().equals(UpdateViewerController.RELNAME_LOAD_PROFILES_POS))
-			{
-				this.relation.setAttributeReadOnly("ProfileName");
-				this.relation.setAttributeReadOnly("RelName");
-			}*/
 			
 			RelationTableModel dtm = new RelationTableModel(this.relation, true);
 			dtm.setState(pState);
@@ -116,7 +106,6 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 			// do nothing
 			// should always be ok as Tuples were cloned from valid relation
 		}
-
 		
 		// set column width and renderers
 		TableColumn column = table.getColumnModel().getColumn(0);
@@ -125,8 +114,8 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 		column.setCellRenderer(new LabelTableCellRenderer());
 		
 		column = this.table.getColumnModel().getColumn(1);
-		column.setMinWidth(100); 
-		column.setMaxWidth(100); 
+		column.setMinWidth(200); 
+		column.setMaxWidth(200); 
 		column.setCellRenderer(new LabelTableCellRenderer());
 		
 		column = this.table.getColumnModel().getColumn(2);
@@ -134,8 +123,10 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 		column.setCellEditor(new ValueTableCellEditor());
 		
 		// 
-		this.getContentPane().add(this.table, BorderLayout.CENTER);
-		this.getContentPane().add(this.pnlButtons, BorderLayout.SOUTH);
+		JScrollPane scp = new JScrollPane(table);
+		scp.getVerticalScrollBar().setUnitIncrement(10);
+		this.getContentPane().add(scp, BorderLayout.CENTER);
+		this.getContentPane().add(pnlButtons, BorderLayout.SOUTH);
 	}
 	
 	public Tuple getEditTuple()
@@ -163,7 +154,9 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 	{
 		//  A table cell has started/stopped editing
 		if ("tableCellEditor".equals(e.getPropertyName()))
-		{
+		{	
+			this.btSave.setEnabled(true);
+
 			if (this.table.isEditing())
 			{
 				// Editing started
@@ -186,7 +179,15 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 					rtm.setValueAt(newValue, row, col);
 					
 					// create Change for update or undo actions
-					int tupleIndex = Integer.valueOf((String)rtm.getValueAt(row,0));
+					int tupleIndex;
+					try
+					{
+						tupleIndex = Integer.valueOf((String)rtm.getValueAt(row,0));
+					}
+					catch (NumberFormatException ex)
+					{
+						tupleIndex = -1;
+					}
 					int attributeIndex = rtm.rowToAttributeIndex(row);
 					String attributeName = this.relation.getAttributeNames().get(attributeIndex);
 					String attributeType = this.relation.getAttributeTypes().get(attributeIndex);
@@ -198,7 +199,7 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 					
 					
 					rtm.addChange(change);
-					
+										
 					Reporter.debug("TupleEditDialog.processEditingStopped: new value of table cell (" + row + ", " + col + ") is " + newValue) ;			
 				}
 			}
