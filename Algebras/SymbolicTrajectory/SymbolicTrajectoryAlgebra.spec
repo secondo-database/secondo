@@ -13,5 +13,4 @@ operator compress alias COMPRESS pattern op ( _ )
 operator fillgaps alias FILLGAPS pattern op ( _ , _ )
 operator createml alias CREATEML pattern op ( _ , _ )
 operator createmlrelation alias CREATEMLRELATION pattern op ( _ , _ , _ )
-operator createindex alias INDEX pattern op(_)
 operator createtrie alias CREATETRIE pattern _ op [ _ ]

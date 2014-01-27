@@ -181,7 +181,7 @@ public:
 class MLabel : public MString {
  public:
   MLabel() {}
-  explicit MLabel(int i): MString(i), index(0) {}
+  explicit MLabel(int i): MString(i) {}
   explicit MLabel(MString* ms);
   explicit MLabel(MLabel* ml);
   MLabel(const MLabel &ml);
@@ -214,16 +214,10 @@ class MLabel : public MString {
   void convertFromMString(MString* source);
   MLabel* rewrite(map<string, pair<unsigned int, unsigned int> > binding,
                   vector<Assign> &assigns) const;
-  const bool hasIndex() {
-    return (index.getNodeRefSize() && index.getNodeLinkSize() &&
-            index.getLabelIndexSize());
-  }
   bool Passes(Label *label);
   MLabel* At(Label *label);
   void DefTime(Periods *per);
   void Inside(MBool *mbool, Label *label);
-
-  MLabelIndex index;
 };
 
 class ULabel : public UString {

@@ -181,12 +181,6 @@ Signature: int x int x string -> bool
 Example  : query createmlrelation(10, 50, "Dotraj")
 Result   : FALSE
 
-Operator : createindex
-Number   : 1
-Signature: mlabel -> mlabel
-Example  : query createindex(mlabel1) getTypeNL
-Result   : (text 'mlabel')
-
 Operator : createtrie
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile

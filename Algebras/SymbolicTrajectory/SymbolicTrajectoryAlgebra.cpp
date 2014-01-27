@@ -371,7 +371,7 @@ For example:
 ----
 
 */
-MLabel::MLabel(MString* ms): MString(1), index(0) {
+MLabel::MLabel(MString* ms): MString(1) {
   ULabel ul(1);
   for (int i = 0; i < ms->GetNoComponents(); i++) {
     ms->Get(i, ul);
@@ -380,7 +380,7 @@ MLabel::MLabel(MString* ms): MString(1), index(0) {
   SetDefined(ms->IsDefined());
 }
 
-MLabel::MLabel(MLabel* ml): MString(0), index(ml->index) {
+MLabel::MLabel(MLabel* ml): MString(0) {
   ULabel ul(1);
   for (int i = 0; i < ml->GetNoComponents(); i++) {
     ml->Get(i, ul);
@@ -389,7 +389,7 @@ MLabel::MLabel(MLabel* ml): MString(0), index(ml->index) {
   SetDefined(ml->IsDefined());
 }
 
-MLabel::MLabel(const MLabel &ml) : MString(ml), index(ml.index) {}
+MLabel::MLabel(const MLabel &ml) : MString(ml) {}
 
 ListExpr MLabel::MLabelProperty() {
     return (nl->TwoElemList(
@@ -426,9 +426,6 @@ void MLabel::Close(const ListExpr typeInfo, Word& w) {
 MLabel* MLabel::Clone() const {
   MLabel* result = new MLabel(1);
   *result = *this;
-//   cout << "result has " << result->GetNoComponents() << " units" << endl;
-  result->index.copyFrom(this->index);
-//   cout << result->index.getNodeRefSize() << " nodes copied" << endl;
   return result;
 }
 
@@ -485,22 +482,15 @@ int MLabel::Compare(const Attribute * arg) const {
 
 void MLabel::CopyFrom(const Attribute* right) {
   *this = *((MLabel*)right);
-  const MLabel* source = (const MLabel*)right;
-  index.copyFrom(source->index);
 }
 
 int MLabel::NumOfFLOBs() const {
-  return 4; // one for the time intervals, three for the index
+  return 1;
 }
 
 Flob* MLabel::GetFLOB(const int i) {
-  assert((0 <= i) && (i < 4));
-  switch (i) {
-    case 0: return &units;
-    case 1: return index.getNodeRefsPtr();
-    case 2: return index.getNodeLinksPtr();
-    default: return index.getLabelIndexPtr();
-  }
+  assert(i == 0);
+  return &units;
 }
 
 bool MLabel::Passes(Label *label) {
@@ -577,14 +567,13 @@ different labels divided by the size.
 
 */
 void MLabel::createML(int size, bool text, double rate = 1.0) {
-  index.cleanDbArrays();
   if ((size > 0) && (rate > 0) && (rate <= 1)) {
     int max = size * rate;
     MLabel* newML = new MLabel(1);
     ULabel ul(1);
     DateTime* start = new DateTime(instanttype);
     DateTime* halfHour = new DateTime(0, 1800000, durationtype); // duration
-    start->Set(2012, 1, 1);
+    start->Set(2014, 1, 1);
     Instant* end = new Instant(*start);
     end->Add(halfHour);
     SecInterval* iv = new SecInterval(*start, *end, true, false);
@@ -1852,58 +1841,58 @@ both automata.
 This function is only called if the mlabel provides an index.
 
 */
-void Match::filterTransitions(vector<map<int, int> > &nfaSimple,
-                              string regExSimple /* = "" */) {
-  if (!ml->hasIndex()) {
-    return;
-  }
-  if (!regExSimple.empty()) {
-    map<int, int>::iterator im;
-    IntNfa* intNfa = 0;
-    if (parsePatternRegEx(regExSimple.c_str(), &intNfa) != 0) {
-      return;
-    }
-    intNfa->nfa.makeDeterministic();
-    intNfa->nfa.minimize();
-    intNfa->nfa.bringStartStateToTop();
-    map<int, set<int> >::iterator it;
-    for (unsigned int i = 0; i < intNfa->nfa.numOfStates(); i++) {
-      map<int,set<int> > transitions = intNfa->nfa.getState(i).getTransitions();
-      map<int, int> newTrans;
-      for (it = transitions.begin(); it != transitions.end(); it++) {
-        newTrans[it->first] = *(it->second.begin());
-      }
-      nfaSimple.push_back(newTrans);
-    }
-    delete intNfa;
-  }
-  vector<map<int, int> >* nfaP = p->getNFA();
-  map<int, int>::iterator im;
-  TrieNode *ptr = 0;
-  for (unsigned int i = 0; i < nfaP->size(); i++) {
-    set<int> toErase;
-    for (im = (*nfaP)[i].begin(); im != (*nfaP)[i].end(); im++) {
-      set<string> labels = p->getElem(im->first).getL();
-      bool found = labels.empty();
-      set<string>::iterator is = labels.begin();
-      while ((is != labels.end()) && !found) {
-        if (!ml->index.find(ptr, *is).empty()) { // label occurs in mlabel
-          found = true;
-        }
-        is++;
-      }
-      if (!found) { // label does not occur in mlabel
-        toErase.insert(im->first);
-      }
-    }
-    for (set<int>::iterator it = toErase.begin(); it != toErase.end(); it++) {
-      p->eraseTransition(i, *it);
-      if (i < nfaSimple.size()) {
-        nfaSimple[i].erase(*it);
-      }
-    }
-  }
-}
+// void Match::filterTransitions(vector<map<int, int> > &nfaSimple,
+//                               string regExSimple /* = "" */) {
+//   if (!ml->hasIndex()) {
+//     return;
+//   }
+//   if (!regExSimple.empty()) {
+//     map<int, int>::iterator im;
+//     IntNfa* intNfa = 0;
+//     if (parsePatternRegEx(regExSimple.c_str(), &intNfa) != 0) {
+//       return;
+//     }
+//     intNfa->nfa.makeDeterministic();
+//     intNfa->nfa.minimize();
+//     intNfa->nfa.bringStartStateToTop();
+//     map<int, set<int> >::iterator it;
+//     for (unsigned int i = 0; i < intNfa->nfa.numOfStates(); i++) {
+//    map<int,set<int> > transitions = intNfa->nfa.getState(i).getTransitions();
+//       map<int, int> newTrans;
+//       for (it = transitions.begin(); it != transitions.end(); it++) {
+//         newTrans[it->first] = *(it->second.begin());
+//       }
+//       nfaSimple.push_back(newTrans);
+//     }
+//     delete intNfa;
+//   }
+//   vector<map<int, int> >* nfaP = p->getNFA();
+//   map<int, int>::iterator im;
+//   TrieNode *ptr = 0;
+//   for (unsigned int i = 0; i < nfaP->size(); i++) {
+//     set<int> toErase;
+//     for (im = (*nfaP)[i].begin(); im != (*nfaP)[i].end(); im++) {
+//       set<string> labels = p->getElem(im->first).getL();
+//       bool found = labels.empty();
+//       set<string>::iterator is = labels.begin();
+//       while ((is != labels.end()) && !found) {
+//         if (!ml->index.find(ptr, *is).empty()) { // label occurs in mlabel
+//           found = true;
+//         }
+//         is++;
+//       }
+//       if (!found) { // label does not occur in mlabel
+//         toErase.insert(im->first);
+//       }
+//     }
+//    for (set<int>::iterator it = toErase.begin(); it != toErase.end(); it++) {
+//       p->eraseTransition(i, *it);
+//       if (i < nfaSimple.size()) {
+//         nfaSimple[i].erase(*it);
+//       }
+//     }
+//   }
+// }
 
 /*
 \subsection{Function ~reachesFinalState~}
@@ -1911,31 +1900,31 @@ void Match::filterTransitions(vector<map<int, int> > &nfaSimple,
 Checks whether ~nfa~ has a path which reaches a final state.
 
 */
-bool Match::reachesFinalState(vector<map<int, int> > &nfa) {
-  set<int> finalStates = p->getFinalStates();
-  printNfa(*(p->getNFA()), finalStates);
-//   cout << "==================================================" << endl;
-//   printNfa(nfa, finalStates);
-  set<int> states;
-  states.insert(0);
-  map<int, int>::iterator im;
-  while (!states.empty()) {
-    set<int> newStates;
-    for (set<int>::iterator it = states.begin(); it != states.end(); it++) {
-      map<int, int> trans = nfa[*it];
-      for (im = trans.begin(); im != trans.end(); im++) {
-        if (finalStates.count(im->second)) {
-          cout << "final state " << im->second << " reached => Viable." << endl;
-          return true;
-        }
-        newStates.insert(im->second);
-      }
-    }
-    states = newStates;
-  }
-  cout << "final state(s) inaccessible" << endl;
-  return false;
-}
+// bool Match::reachesFinalState(vector<map<int, int> > &nfa) {
+//   set<int> finalStates = p->getFinalStates();
+//   printNfa(*(p->getNFA()), finalStates);
+// //   cout << "==================================================" << endl;
+// //   printNfa(nfa, finalStates);
+//   set<int> states;
+//   states.insert(0);
+//   map<int, int>::iterator im;
+//   while (!states.empty()) {
+//     set<int> newStates;
+//     for (set<int>::iterator it = states.begin(); it != states.end(); it++) {
+//       map<int, int> trans = nfa[*it];
+//       for (im = trans.begin(); im != trans.end(); im++) {
+//         if (finalStates.count(im->second)) {
+//        cout << "final state " << im->second << " reached => Viable." << endl;
+//           return true;
+//         }
+//         newStates.insert(im->second);
+//       }
+//     }
+//     states = newStates;
+//   }
+//   cout << "final state(s) inaccessible" << endl;
+//   return false;
+// }
 
 /*
 \subsection{Function ~isViable~}
@@ -1944,13 +1933,13 @@ Checks whether a final state can be reached in a NFA, according to a mlabel
 index.
 
 */
-bool Match::nfaIsViable() {
-  string regExSimple = p->getRegEx();
-  simplifyRegEx(regExSimple);
-  vector<map<int, int> > nfaSimple;
-  filterTransitions(nfaSimple, regExSimple);
-  return reachesFinalState(nfaSimple);
-}
+// bool Match::nfaIsViable() {
+//   string regExSimple = p->getRegEx();
+//   simplifyRegEx(regExSimple);
+//   vector<map<int, int> > nfaSimple;
+//   filterTransitions(nfaSimple, regExSimple);
+//   return reachesFinalState(nfaSimple);
+// }
 
 /*
 \subsection{Function ~match~}
@@ -1966,61 +1955,45 @@ ExtBool Match::matches() {
   }
   set<int> states;
   states.insert(0);
-  if (ml->hasIndex()) {
-    if (!nfaIsViable()) {
+  if (!p->hasConds() && !p->hasAssigns()) {
+    for (int i = 0; i < ml->GetNoComponents(); i++) {
+      if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
+                        p->easyConds, p->easyCondPos, p->atomicToElem)) {
+//           cout << "mismatch at unit label " << i << endl;
+        return FALSE;
+      }
+    }
+    if (!p->containsFinalState(states)) {
+//         cout << "no final state is active" << endl;
       return FALSE;
     }
-    if (p->hasConds()) {
-      createSetMatrix(ml->GetNoComponents(), p->getSize());
-      // TODO: a lot
-      ::deleteSetMatrix(matching, ml->GetNoComponents());
-    }
-    else {
-      StateWithULs swu(0);
-      return (indexMatch(swu) ? TRUE : FALSE);
-    }
   }
-  else { // no index => process whole mlabel
-    if (!p->hasConds() && !p->hasAssigns()) {
-      for (int i = 0; i < ml->GetNoComponents(); i++) {
-        if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
-                          p->easyConds, p->easyCondPos, p->atomicToElem)) {
+  else {
+    createSetMatrix(ml->GetNoComponents(), p->elemToVar.size());
+    for (int i = 0; i < ml->GetNoComponents(); i++) {
+      if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
+                        p->easyConds, p->easyCondPos, p->atomicToElem, true)){
 //           cout << "mismatch at unit label " << i << endl;
-          return FALSE;
-        }
-      }
-      if (!p->containsFinalState(states)) {
-//         cout << "no final state is active" << endl;
+        ::deleteSetMatrix(matching, ml->GetNoComponents());
         return FALSE;
       }
     }
-    else {
-      createSetMatrix(ml->GetNoComponents(), p->elemToVar.size());
-      for (int i = 0; i < ml->GetNoComponents(); i++) {
-        if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
-                          p->easyConds, p->easyCondPos, p->atomicToElem, true)){
-//           cout << "mismatch at unit label " << i << endl;
-          ::deleteSetMatrix(matching, ml->GetNoComponents());
-          return FALSE;
-        }
-      }
-      if (!p->containsFinalState(states)) {
+    if (!p->containsFinalState(states)) {
 //         cout << "no final state is active" << endl;
-        ::deleteSetMatrix(matching, ml->GetNoComponents());
-        return FALSE;
-      }
-      if (!p->initCondOpTrees()) {
-        ::deleteSetMatrix(matching, ml->GetNoComponents());
-        return UNDEF;
-      }
-      if (!p->hasAssigns()) {
-        bool result = findMatchingBinding(p->nfa, 0, p->elems, p->conds, 
-                                          p->atomicToElem, p->elemToVar);
-        ::deleteSetMatrix(matching, ml->GetNoComponents());
-        return (result ? TRUE : FALSE);
-      }
-      return TRUE; // happens iff rewrite is called
+      ::deleteSetMatrix(matching, ml->GetNoComponents());
+      return FALSE;
     }
+    if (!p->initCondOpTrees()) {
+      ::deleteSetMatrix(matching, ml->GetNoComponents());
+      return UNDEF;
+    }
+    if (!p->hasAssigns()) {
+      bool result = findMatchingBinding(p->nfa, 0, p->elems, p->conds, 
+                                        p->atomicToElem, p->elemToVar);
+      ::deleteSetMatrix(matching, ml->GetNoComponents());
+      return (result ? TRUE : FALSE);
+    }
+    return TRUE; // happens iff rewrite is called
   }
   return TRUE;
 }
@@ -2033,76 +2006,76 @@ Recursively decides whether a pattern matches a mlabel with an index.
 TODO: A LOT!
 
 */
-bool Match::indexMatch(StateWithULs swuOld) {
-  cout << "indexMatch invoked with state " << swuOld.state
-       << " range start " << swuOld.rangeStart << " and " << swuOld.items.size()
-       << " items" << endl;
-  map<int, int> transitions = p->getTransitions(swuOld.state);
-  if (transitions.empty() || swuOld.mismatch(ml->GetNoComponents())) {
-    return false;
-  }
-  map<int, int>::reverse_iterator im;
-  set<size_t>::iterator it;
-  ULabel ul(0);
-  StateWithULs swu;
-  TrieNode *ptr = 0;
-  for (im = transitions.rbegin(); im != transitions.rend(); im++) {
-    swu.clear();
-    Wildcard w = p->elems[im->first].getW();
-    set<string> ivs = p->elems[im->first].getI();
-    set<string> labels = p->elems[im->first].getL();
-    cout << "pattern element " << im->first << " has " << labels.size()
-         << " labels" << endl;
-    for (set<string>::iterator st = labels.begin(); st != labels.end(); st++) {
-      set<size_t> labelPos = ml->index.find(ptr, *st); // (... ...)
-      for (it = labelPos.begin(); it != labelPos.end(); it++) {
-        if (swuOld.isActive((unsigned int)*it)) {
-          ml->Get(*it, ul);
-          if (timesMatch(&ul.timeInterval, ivs) /*&& easyCondsMatch(...)*/) {
-            swu.items.insert(*it + 1);
-            swu.state = im->second;
-            cout << "ul " << *it + 1 << " and state " << im->second
-                 << " are active now" << endl;
-          }
-        }
-      }
-    }
-    if (labels.empty()) {
-      if (w == NO) { // (... _)
-        if (ivs.empty()) { // no time information
-          swu.activateNextItems(swuOld);
-        }
-        else { // time information exists
-          if (swuOld.rangeStart != UINT_MAX) {
-            for (int i = swuOld.rangeStart; i < ml->GetNoComponents(); i++) {
-              ml->Get(i, ul);
-              if (timesMatch(&ul.timeInterval, ivs)) {
-                swu.items.insert(i + 1);
-              }
-            }
-          }
-          set<unsigned int>::iterator it;
-          for (it = swuOld.items.begin(); it != swuOld.items.end(); it++) {
-            ml->Get(*it, ul);
-            if (timesMatch(&ul.timeInterval, ivs)) {
-              swu.items.insert(*it + 1);
-            }
-          }
-        }
-      }
-      else { // either + or *
-
-      }
-    }
-    if (swu.match(p->getFinalStates(), (unsigned int)ml->GetNoComponents())) {
-      return true;
-    }
-    if (indexMatch(swu)) {
-      return true;
-    }
-  }
-  return false;
-}
+// bool Match::indexMatch(StateWithULs swuOld) {
+//   cout << "indexMatch invoked with state " << swuOld.state
+//     << " range start " << swuOld.rangeStart << " and " << swuOld.items.size()
+//        << " items" << endl;
+//   map<int, int> transitions = p->getTransitions(swuOld.state);
+//   if (transitions.empty() || swuOld.mismatch(ml->GetNoComponents())) {
+//     return false;
+//   }
+//   map<int, int>::reverse_iterator im;
+//   set<size_t>::iterator it;
+//   ULabel ul(0);
+//   StateWithULs swu;
+//   TrieNode *ptr = 0;
+//   for (im = transitions.rbegin(); im != transitions.rend(); im++) {
+//     swu.clear();
+//     Wildcard w = p->elems[im->first].getW();
+//     set<string> ivs = p->elems[im->first].getI();
+//     set<string> labels = p->elems[im->first].getL();
+//     cout << "pattern element " << im->first << " has " << labels.size()
+//          << " labels" << endl;
+//    or (set<string>::iterator st = labels.begin(); st != labels.end(); st++) {
+//       set<size_t> labelPos = ml->index.find(ptr, *st); // (... ...)
+//       for (it = labelPos.begin(); it != labelPos.end(); it++) {
+//         if (swuOld.isActive((unsigned int)*it)) {
+//           ml->Get(*it, ul);
+//           if (timesMatch(&ul.timeInterval, ivs) /*&& easyCondsMatch(...)*/) {
+//             swu.items.insert(*it + 1);
+//             swu.state = im->second;
+//             cout << "ul " << *it + 1 << " and state " << im->second
+//                  << " are active now" << endl;
+//           }
+//         }
+//       }
+//     }
+//     if (labels.empty()) {
+//       if (w == NO) { // (... _)
+//         if (ivs.empty()) { // no time information
+//           swu.activateNextItems(swuOld);
+//         }
+//         else { // time information exists
+//           if (swuOld.rangeStart != UINT_MAX) {
+//             for (int i = swuOld.rangeStart; i < ml->GetNoComponents(); i++) {
+//               ml->Get(i, ul);
+//               if (timesMatch(&ul.timeInterval, ivs)) {
+//                 swu.items.insert(i + 1);
+//               }
+//             }
+//           }
+//           set<unsigned int>::iterator it;
+//           for (it = swuOld.items.begin(); it != swuOld.items.end(); it++) {
+//             ml->Get(*it, ul);
+//             if (timesMatch(&ul.timeInterval, ivs)) {
+//               swu.items.insert(*it + 1);
+//             }
+//           }
+//         }
+//       }
+//       else { // either + or *
+// 
+//       }
+//     }
+//    if (swu.match(p->getFinalStates(), (unsigned int)ml->GetNoComponents())) {
+//       return true;
+//     }
+//     if (indexMatch(swu)) {
+//       return true;
+//     }
+//   }
+//   return false;
+// }
 
 /*
 \subsection{Function ~states2Str~}
@@ -6200,64 +6173,64 @@ struct createmlrelationInfo : OperatorInfo {
   }
 };
 
-/*
-\section{Operator ~index~}
-
-\subsection{Type Mapping}
-
-*/
-ListExpr createindexTM(ListExpr args) {
-  if (nl->ListLength(args) != 1) {
-    return listutils::typeError("One argument expected.");
-  }
-  if (MLabel::checkType(nl->First(args))) {
-    return nl->SymbolAtom(MLabel::BasicType());
-  }
-  return listutils::typeError("Argument type must be mlabel.");
-}
-
-/*
-\subsection{Value Mapping}
-
-*/
-int createindexVM(Word* args, Word& result, int message, Word& local,
-                  Supplier s) {
-  MLabel* res = new MLabel(1);
-  ULabel ul(1);
-  set<size_t> positions;
-  set<string> labels;
-  MLabel* source = (MLabel*)(args[0].addr);
-  TrieNode* ptr = 0;
-  if (source->IsDefined()) {
-    for (int i = 0; i < source->GetNoComponents(); i++) {
-      source->Get(i, ul);
-      positions.insert(i);
-      labels.insert(ul.constValue.GetValue());
-      res->index.insert(ptr, ul.constValue.GetValue(), positions);
-      positions.clear();
-      res->Add(ul);
-    }
-  }
-  res->index.makePersistent(ptr);
-  res->index.removeTrie(ptr);
-  res->index.printDbArrays();
-  res->index.printContents(ptr, labels);
-  result.addr = res;
-  return 0;
-}
-
-/*
-\subsection{Operator Info}
-
-*/
-struct createindexInfo : OperatorInfo {
-  createindexInfo() {
-    name      = "createindex";
-    signature = "mlabel -> mlabel";
-    syntax    = "createindex(_)";
-    meaning   = "Builds an index for a moving label.";
-  }
-};
+// /*
+// \section{Operator ~index~}
+// 
+// \subsection{Type Mapping}
+// 
+// */
+// ListExpr createindexTM(ListExpr args) {
+//   if (nl->ListLength(args) != 1) {
+//     return listutils::typeError("One argument expected.");
+//   }
+//   if (MLabel::checkType(nl->First(args))) {
+//     return nl->SymbolAtom(MLabel::BasicType());
+//   }
+//   return listutils::typeError("Argument type must be mlabel.");
+// }
+// 
+// /*
+// \subsection{Value Mapping}
+// 
+// */
+// int createindexVM(Word* args, Word& result, int message, Word& local,
+//                   Supplier s) {
+//   MLabel* res = new MLabel(1);
+//   ULabel ul(1);
+//   set<size_t> positions;
+//   set<string> labels;
+//   MLabel* source = (MLabel*)(args[0].addr);
+//   TrieNode* ptr = 0;
+//   if (source->IsDefined()) {
+//     for (int i = 0; i < source->GetNoComponents(); i++) {
+//       source->Get(i, ul);
+//       positions.insert(i);
+//       labels.insert(ul.constValue.GetValue());
+//       res->index.insert(ptr, ul.constValue.GetValue(), positions);
+//       positions.clear();
+//       res->Add(ul);
+//     }
+//   }
+//   res->index.makePersistent(ptr);
+//   res->index.removeTrie(ptr);
+//   res->index.printDbArrays();
+//   res->index.printContents(ptr, labels);
+//   result.addr = res;
+//   return 0;
+// }
+// 
+// /*
+// \subsection{Operator Info}
+// 
+// */
+// struct createindexInfo : OperatorInfo {
+//   createindexInfo() {
+//     name      = "createindex";
+//     signature = "mlabel -> mlabel";
+//     syntax    = "createindex(_)";
+//     meaning   = "Builds an index for a moving label.";
+//   }
+// };
 
 /*
 \section{Operator ~createtrie~}
@@ -6564,7 +6537,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(createmlrelationInfo(), createmlrelationVM,
                   createmlrelationTM);
 
-      AddOperator(createindexInfo(), createindexVM, createindexTM);
+//       AddOperator(createindexInfo(), createindexVM, createindexTM);
 
       AddOperator(createtrieInfo(), createtrieVM, createtrieTM);
 
