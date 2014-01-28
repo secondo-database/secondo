@@ -152,9 +152,9 @@ public class HtmlFormatter extends DocumentFormatter
 		relation.readFromSecondoObject(relationSO);
 				
 		// check template and create default template if necessary
-		if (this.getTemplateBody()==null || this.getTemplateBody().isEmpty()
-			|| this.getTemplateHead()==null || this.getTemplateHead().isEmpty()
-			|| this.getTemplateTail()==null || this.getTemplateTail().isEmpty())
+		if (this.getTemplateBody()==null || this.getTemplateBody().length() == 0
+			|| this.getTemplateHead()==null || this.getTemplateHead().length() == 0
+			|| this.getTemplateTail()==null || this.getTemplateTail().length() == 0)
 		{
 			this.createDefaultTemplate(relation);
 		}
