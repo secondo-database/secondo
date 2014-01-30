@@ -936,7 +936,7 @@ The first constructor.
 */
 
   Intime( const Intime<Alpha>& intime ):
-    instant( intime.instant )
+    instant( intime.instant ), value(false)
   {
     if( intime.IsDefined() ){
       value.CopyFrom( &intime.value );
@@ -1653,28 +1653,25 @@ class ConstTemporalUnit : public StandardTemporalUnit<Alpha>
   { }
 
   ConstTemporalUnit( const Interval<Instant>& _interval, const Alpha& a ):
-    StandardTemporalUnit<Alpha>( _interval )
+    StandardTemporalUnit<Alpha>( _interval ), constValue(a)
   {
     this->del.isDefined = true;
-    constValue.CopyFrom( &a );
   }
 
   // the following constructor is for implementation compatibility with
   // UnitTypes for continious value range types (like UReal, UPoint)
   ConstTemporalUnit( const Interval<Instant>& _interval, const Alpha& a,
                                                          const Alpha& b ):
-    StandardTemporalUnit<Alpha>( _interval )
+    StandardTemporalUnit<Alpha>( _interval ), constValue(a)
   {
     assert(a == b);
     this->del.isDefined = true;
-    constValue.CopyFrom( &a );
   }
 
   ConstTemporalUnit( const ConstTemporalUnit<Alpha>& u ):
-    StandardTemporalUnit<Alpha>( u.timeInterval )
+    StandardTemporalUnit<Alpha>( u.timeInterval ), constValue(u.constValue)
   {
     this->del.isDefined = u.del.isDefined;
-    constValue.CopyFrom( &u.constValue );
   }
 
 /*
