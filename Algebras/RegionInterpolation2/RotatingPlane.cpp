@@ -30,8 +30,8 @@ RotatingPlane::RotatingPlane(Reg *reg1, Reg *reg2, int depth) {
 
     Reg r1 = Reg(reg1->convexhull);
     Reg r2 = Reg(reg2->convexhull);
-
-    if (!hullIdentical(reg1, reg2)) {
+    
+    if (1 || !hullIdentical(reg1, reg2)) {
         do {
             double a1 = r1.Cur().angle();
             double a2 = r2.Cur().angle();

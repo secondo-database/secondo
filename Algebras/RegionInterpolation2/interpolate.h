@@ -15,7 +15,7 @@ class Pt {
 public:
     double x, y;
     int valid;
-    long double angle;
+    long double angle, dist;
 
     Pt();
     Pt(double x, double y);

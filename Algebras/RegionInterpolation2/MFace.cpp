@@ -61,7 +61,7 @@ static ListExpr CycleToListExpr(MSegs face) {
     int first, cur;
     first = cur = 0;
     
-    cerr << "\nAdding listexpr for " << face.ToString() << "\n";
+//    cerr << "\nAdding listexpr for " << face.ToString() << "\n";
 
     assert(face.segs.size() > 0);
 
@@ -82,7 +82,7 @@ static ListExpr CycleToListExpr(MSegs face) {
         cur = face.findNext(cur);
     }
     
-    cerr << "\nAdded listexpr\n";
+//    cerr << "\nAdded listexpr\n";
 
     return cy;
 }

@@ -220,12 +220,23 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
     iv.CopyFrom(_iv);
     DateTime msec1(durationtype, 10000);
 
+<<<<<<< MFaces.cpp
+//    needSEvap = false;
+//    needDEvap = false;
+    
+=======
+>>>>>>> 1.12
     ListExpr mreg = nl->Empty();
 
     for (unsigned int i = 0; i < faces.size(); i++) {
         faces[i].MergeConcavities();
+<<<<<<< MFaces.cpp
+//        needStartRegion = needStartRegion || faces[i].needStartRegion;
+//         needEndRegion = needEndRegion || faces[i].needEndRegion;
+=======
         needStartRegion = needStartRegion || faces[i].needStartRegion;
         needEndRegion = needEndRegion || faces[i].needEndRegion;
+>>>>>>> 1.12
     }
 
     Instant onethird = (_iv.end - _iv.start) / 3;

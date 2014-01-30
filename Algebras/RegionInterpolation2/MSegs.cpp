@@ -7,11 +7,11 @@ MSegs::MSegs() : ignore(0), iscollapsed(0), id(-1) {
 }
 
 void MSegs::AddMSeg(MSeg m) {
-    bool merged = false;
     if ((m.is == m.ie) && (m.fs == m.fe))
         return;
 
 #if 0
+    bool merged = false;
     if (!segs.empty()) {
         MSeg *prev = &segs[segs.size() - 1];
         if ((prev->fs == prev->fe) && (m.is == m.ie) && (prev->ie == m.is)) {
@@ -33,8 +33,8 @@ void MSegs::AddMSeg(MSeg m) {
             }
         }
     }
-#endif
     if (!merged)
+#endif
         segs.push_back(m);
     calculateBBox();
 }

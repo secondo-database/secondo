@@ -48,7 +48,7 @@ function matchFaces (src, dst, depth)
 	      "  BBox "..b1.x.."/"..b1.y.." "..b2.x.."/"..b2.y);
     end
 
-    ret = matchFacesDistance (src, dst, depth)
+    ret = matchFacesSpecial (src, dst, depth)
     
     print("\nLUA End")
 
@@ -62,7 +62,7 @@ end
 function matchFacesSpecial (src, dst, depth)
     ret = {}
 
-    if (depth < 0) then
+    if (depth < 1) then
 	return matchFacesDistance(src, dst, depth)
     else
 	return { 

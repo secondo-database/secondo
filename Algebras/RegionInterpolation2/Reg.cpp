@@ -133,7 +133,7 @@ static bool leftOf(Pt pt1, Pt pt2, Pt next) {
 
 static bool sortAngle(const Pt& a, const Pt& b) {
     if (a.angle == b.angle) {
-        if (a.y < b.y)
+        if (a.dist > b.dist)
             return true;
     }
     return (a.angle < b.angle);
@@ -144,7 +144,6 @@ void Reg::ConvexHull() {
     convexhull.erase(convexhull.begin(), convexhull.end());
     vector<Pt> lt = getPoints();
     
-    
     std::sort(lt.begin(), lt.end());
 
     lt[0].angle = -1.0;
@@ -152,7 +151,13 @@ void Reg::ConvexHull() {
         lt[a].calcAngle(lt[0]);
     }
     std::sort(lt.begin(), lt.end(), sortAngle);
-
+    
+    std::vector<Pt>::iterator s = lt.begin()+1, e = s;
+    while (s->angle == e->angle)
+        e++;
+    
+    std::reverse(s, e);
+    
     vector<Pt> uh = vector<Pt> ();
     uh.push_back(lt[0]);
     uh.push_back(lt[1]);
@@ -372,7 +377,8 @@ MSegs Reg::GetMSegs() {
     
     for (unsigned int i = 0; i < v.size(); i++) {
         Seg s = v[i];
-        ret.AddMSeg(MSeg(s.s, s.e, s.s, s.e));
+        ret.AddMSeg(MSeg(s.s, s.e, s.s, s.s));
+        ret.AddMSeg(MSeg(s.e, s.e, s.s, s.e));
     }
     
     return ret;

@@ -42,6 +42,7 @@ void Pt::calcAngle(const Pt& pt) {
     long double tmpy = y - pt.y;
     long double hyp = sqrt(tmpx * tmpx + tmpy * tmpy);
     angle = acos(tmpx / hyp);
+    dist = hyp;
 }
 
 string Pt::ToString() const {
