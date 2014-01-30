@@ -79,6 +79,8 @@ public:
   size_t Sizeof() const;
 
   int Compare(const Attribute* attr) const;
+  
+  ostream& Print(ostream& os) const;
 
   bool Adjacent(const Attribute* attr) const;
 

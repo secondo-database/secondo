@@ -10742,6 +10742,13 @@ int SecInterval::Compare(const Attribute* attr) const {
   return Interval<Instant>::CompareTo(*si);
 }
 
+ostream& SecInterval::Print(ostream &os) const {
+  os << (lc?"[":"(");
+  start.Print(os) << ", ";
+  end.Print(os) << (rc?"]":")");
+  return os;
+}
+
 bool SecInterval::Adjacent(const Attribute* attr) const {
   if(!IsDefined() || !attr->IsDefined())
     return false;
