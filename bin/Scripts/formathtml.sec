@@ -54,7 +54,7 @@ let POSTFIX = 'postfix.html'
 
 let RESULT = 'result.html'
 
-let TABLE = fun () Table feed consume
+let TABLE = fun () Staedte feed consume
 
 ###########################################################################
 
@@ -77,19 +77,19 @@ let HTML_rowhtml = readFile(PATH + ROW)
 delete HTML_Markups 
 
 let HTML_Markups =
-    FieldNames feed 
-      extendstream[Start: find(rowhtml, "<<" + .Field + ">>")]
+    HTML_FieldNames feed
+      extendstream[Start: find(HTML_rowhtml, "<<" + .Field + ">>")]
       extend[End: .Start + length(.Field) + 3]
     sortby[Start]
     extend_last[StartMarkup: ..End + 1 :: 1] 
     extend[EndMarkup: .Start - 1]
-    extend[Markup: subtext(rowhtml, .StartMarkup, .EndMarkup)]
+    extend[Markup: subtext(HTML_rowhtml, .StartMarkup, .EndMarkup)]
     project[Field, StartMarkup, EndMarkup, Start, End, Markup]
     consume
 
 delete HTML_FinalMarkup
 
-let HTML_FinalMarkup = subtext(rowhtml, Markups feed max[End] + 1, length(rowhtml))
+query HTML_prefix
 
 # Create the output file. For each attribute (field), concatenate the markup 
 # with the field value. Then concatenate all pieces and append the FinalMarkup 
@@ -107,12 +107,12 @@ query TABLE() feed addcounter[XXXNo, 1]
   toFields[XXXNo]
   nest[XXXNo; Row]
   extend[Page:
-    .Row afeed Markups feed {mu} hashjoin[Field, Field_mu]
+    .Row afeed HTML_Markups feed {mu} hashjoin[Field, Field_mu]
     sortby[StartMarkup_mu]
     extend[Field2: .Markup_mu + .Value]
-    aggregateB[Field2; fun(t1: text, t2: text) t1 + t2; ''] + FinalMarkup]
+    aggregateB[Field2; fun(t1: text, t2: text) t1 + t2; ''] + HTML_FinalMarkup]
   aggregateB[Page; fun(t3: text, t4: text) t3 + t4; '']
-  within[writeFile(prefix + . + postfix, PATH + RESULT)]
+  within[writeFile(HTML_prefix + . recode["latin1", "utf8"] + HTML_postfix, PATH + RESULT)]
 
 
 
