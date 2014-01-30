@@ -89,7 +89,7 @@ let HTML_Markups =
 
 delete HTML_FinalMarkup
 
-query HTML_prefix
+let HTML_FinalMarkup = subtext(HTML_rowhtml, HTML_Markups feed max[End] + 1, length(HTML_rowhtml))
 
 # Create the output file. For each attribute (field), concatenate the markup 
 # with the field value. Then concatenate all pieces and append the FinalMarkup 
