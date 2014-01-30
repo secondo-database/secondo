@@ -1,0 +1,1223 @@
+
+(DATABASE LITSMALL 
+    (TYPES) 
+    (OBJECTS 
+        (OBJECT Authordoc 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (Name string) 
+                        (Lclastname string) 
+                        (Authorid int) 
+                        (Docid int)))) 
+            (
+                ("Ralf Hartmut Gueting" "gueting" 45669 26124) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 71465) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 72108) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 72896) 
+                ("Ralf Hartmann" "hartmann" 176788 141919) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 162569) 
+                ("Ralf Hauser" "hauser" 199131 171388) 
+                ("Ralf Hartmann" "hartmann" 176788 172613) 
+                ("Ralf Hartmann" "hartmann" 176788 172772) 
+                ("Ralf Hauser" "hauser" 199131 178963) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 189819) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 191200) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 191936) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 192140) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 215669) 
+                ("Ralf Harneit" "harneit" 278732 244509) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 252066) 
+                ("Ralf Hannemann" "hannemann" 307635 282499) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 288903) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 289748) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 303439) 
+                ("Ralf Hannemann" "hannemann" 307635 314188) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 323711) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 363777) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 363823) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 363827) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 363857) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 363900) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 385352) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 385910) 
+                ("Ralf Hannemann" "hannemann" 307635 390630) 
+                ("Ralf Hartmann" "hartmann" 176788 390726) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 396107) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 445174) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 461513) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 461518) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 461609) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 461692) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 461697) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 461894) 
+                ("Ralf Hauser" "hauser" 199131 465409) 
+                ("Ralf Hartmann" "hartmann" 176788 505917) 
+                ("Ralf Habel" "habel" 467793 521357) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 532127) 
+                ("Ralf Hauser" "hauser" 199131 641172) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 658947) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 724983) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 725904) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 726023) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 726724) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 728922) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 729461) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 729946) 
+                ("Ralf Haeusler" "haeusler" 609296 801193) 
+                ("Ralf Haeger" "haeger" 721089 1057074) 
+                ("Ralf Habermann" "habermann" 814132 1270307) 
+                ("Ralf Habel" "habel" 467793 1278435) 
+                ("Ralf Hauber" "hauber" 824495 1293812) 
+                ("Ralf Hannemann" "hannemann" 307635 1310955) 
+                ("Ralf Haupt" "haupt" 852991 1359266) 
+                ("Ralf Hartmann" "hartmann" 176788 1384805) 
+                ("Ralf Hauser" "hauser" 199131 1390589) 
+                ("Ralf Hahn" "hahn" 879473 1420232) 
+                ("Ralf Hayn" "hayn" 892456 1449946) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1618929) 
+                ("Ralf Haselhorst" "haselhorst" 1001327 1699471) 
+                ("Ralf Harneit" "harneit" 278732 1725409) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1753980) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1755416) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1756293) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1757933) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1864962) 
+                ("Ralf Hahn" "hahn" 879473 1866540) 
+                ("Ralf Habel" "habel" 467793 1868991) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1882433) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1882436) 
+                ("Ralf Hahn" "hahn" 879473 1889819) 
+                ("Ralf Hayn" "hayn" 892456 1904518) 
+                ("Ralf Harneit" "harneit" 278732 1905615) 
+                ("Ralf Habel" "habel" 467793 1933758) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1936083) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1994441) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 1994484) 
+                ("Ralf Haupt" "haupt" 852991 2021338) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2051105) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2053367) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2060218) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2070925) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2079229) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2083114) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2091085) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2199580) 
+                ("Ralf Haeusler" "haeusler" 609296 2211348) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2308028) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2308338) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2308426) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2316288) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2317216) 
+                ("Ralf Habermann" "habermann" 814132 2317683) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2335997) 
+                ("Ralf Harneit" "harneit" 278732 2338125) 
+                ("Ralf Hauber" "hauber" 824495 2372725) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2374778) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2418351) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2418661) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2482332) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2482335) 
+                ("Ralf Hauber" "hauber" 824495 2499121) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2500012) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2513491) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2513561) 
+                ("Ralf Haselhorst" "haselhorst" 1001327 2526764) 
+                ("Ralf Haeusler" "haeusler" 609296 2527107) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2538804) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2538982) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2539288) 
+                ("Ralf Haeger" "haeger" 721089 2575862) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2583202) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2584031) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2590577) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2590587) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2590603) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2590611) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2590626) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2590661) 
+                ("Ralf Hauser" "hauser" 199131 2622111) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2647763) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2647962) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2722387) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2722527) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2722548) 
+                ("Ralf Hartmut Gueting" "gueting" 45669 2722585))) 
+        (OBJECT Document 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (Type string) 
+                        (Docid int) 
+                        (Authors text) 
+                        (Title text) 
+                        (Booktitle text) 
+                        (Pages string) 
+                        (Year string) 
+                        (Journal text) 
+                        (Volume string) 
+                        (Number string) 
+                        (Month string) 
+                        (Url text) 
+                        (School text) 
+                        (Publisher text) 
+                        (Isbn string)))) 
+            (
+                ("article" 26124 
+                    'Martin Erwig, Ralf Hartmut Gueting' 
+                    'Explicit Graphs in a Functional Model for Spatial Databases.' 
+                    '' "787-804" "1994" 
+                    'IEEE Trans. Knowl. Data Eng.' "6" "5" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 71465 
+                    'Ralf Hartmut Gueting, Zhiming Ding' 
+                    'A simple but effective improvement to the plumb-line algorithm.' 
+                    '' "251-257" "2004" 
+                    'Inf. Process. Lett.' "91" "6" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 72108 
+                    'Ralf Hartmut Gueting' 
+                    'Fast Dynamic Intersection Searching in a Set of Isothetic Line Segments.' 
+                    '' "165-171" "1985" 
+                    'Inf. Process. Lett.' "21" "4" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 72896 
+                    'Ralf Hartmut Gueting' 
+                    'Stabbing C-Oriented Polygons.' 
+                    '' "35-40" "1983" 
+                    'Inf. Process. Lett.' "16" "1" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 141919 
+                    'Ralf Hartmann' 
+                    'Adjoint Consistency Analysis of Discontinuous Galerkin Discretizations.' 
+                    '' "2671-2696" "2007" 
+                    'SIAM J. Numerical Analysis' "45" "6" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 162569 
+                    'Ralf Hartmut Gueting' 
+                    'Optimal Divide-and-Conquer to Compute Measure and Contour for a Set of Iso-Rectangles.' 
+                    '' "271-291" "1984" 
+                    'Acta Inf.' "21" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 171388 
+                    'Rolf Oppliger, Ralf Hauser' 
+                    'Protecting TLS-SA implementations for the challenge-response feature of EMV-CAP against challenge collision attacks.' 
+                    '' "125-134" "2008" 
+                    'Security and Communication Networks' "1" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 172613 
+                    'Tobias Leicht, Ralf Hartmann' 
+                    'Error estimation and anisotropic mesh refinement for 3d laminar aerodynamic flow simulations.' 
+                    '' "7344-7360" "2010" 
+                    'J. Comput. Physics' "229" "19" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 172772 
+                    'Ralf Hartmann, Joachim Held, Tobias Leicht' 
+                    'Adjoint-based error estimation and adaptive mesh refinement for the RANS and k-  turbulence model equations.' 
+                    '' "4268-4284" "2011" 
+                    'J. Comput. Physics' "230" "11" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 178963 
+                    'Rolf Oppliger, Ralf Hauser, David A. Basin' 
+                    'SSL/TLS session-aware user authentication - Or how to effectively thwart the man-in-the-middle.' 
+                    '' "2238-2246" "2006" 
+                    'Computer Communications' "29" "12" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 189819 
+                    'Gabriele Blankenagel, Ralf Hartmut Gueting' 
+                    'External Segment Trees.' 
+                    '' "498-532" "1994" 
+                    'Algorithmica' "12" "6" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 191200 
+                    'Gabriele Blankenagel, Ralf Hartmut Gueting' 
+                    'Internal and External Algorithms for the Points-in-Regions Problem-the INSIDE Join of Geo-Relational Algebra.' 
+                    '' "251-276" "1990" 
+                    'Algorithmica' "5" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 191936 
+                    'Ralf Hartmut Gueting, Michael H. Boehlen, Martin Erwig, Christian S. Jensen, Nikos A. Lorentzos, Markus Schneider, Michalis Vazirgiannis' 
+                    'A foundation for representing and querying moving objects.' 
+                    '' "1-42" "2000" 
+                    'ACM Trans. Database Syst.' "25" "1" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 192140 
+                    'Ludger Becker, Ralf Hartmut Gueting' 
+                    'Rule-Based Optimization and Query Processing in an Extensible Geometric Database System.' 
+                    '' "247-303" "1992" 
+                    'ACM Trans. Database Syst.' "17" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 215669 
+                    'Ralf Hartmut Gueting' 
+                    'Dynamic C-Oriented Polygonal Intersections Searching' 
+                    '' "143-163" "1984" 
+                    'Information and Control' "63" "3" "December" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 244509 
+                    'Bernd Franke, Ralf Harneit, Axel Kern, Hans Christoph Zeidler' 
+                    'The pipeline bus: An interconnection network for multiprocessor systems.' 
+                    '' "403-412" "1988" 
+                    'Parallel Computing' "7" "3" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 252066 
+                    'Ralf Hartmut Gueting, Thomas Behr, Christian Duentgen' 
+                    'SECONDO: A Platform for Moving Objects Database Research and for Publishing and Integrating Research Implementations.' 
+                    '' "56-63" "2010" 
+                    'IEEE Data Eng. Bull.' "33" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 282499 
+                    'Ralf Hannemann, Wolfgang Marquardt, Uwe Naumann, Boris Gendler' 
+                    'Discrete first- and second-order adjoints and automatic differentiation for the sensitivity analysis of dynamic models.' 
+                    '' "297-305" "2010" 
+                    'Procedia CS' "1" "1" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 288903 
+                    'Ralf Hartmut Gueting, Werner Schilling' 
+                    'A practical divide-and-conquer algorithm for the rectangle intersection problem.' 
+                    '' "95-112" "1987" 
+                    'Inf. Sci.' "42" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 289748 
+                    'Ralf Hartmut Gueting, Derick Wood' 
+                    'The parenthesis tree.' 
+                    '' "151-162" "1982" 
+                    'Inf. Sci.' "27" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 303439 
+                    'Ralf Hartmut Gueting, Derick Wood' 
+                    'Finding Rectangle Intersections by Divide-and Conquer.' 
+                    '' "671-675" "1984" 
+                    'IEEE Trans. Computers' "33" "7" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 314188 
+                    'Claas Michalik, Ralf Hannemann, Wolfgang Marquardt' 
+                    'Incremental single shooting - A robust method for the estimation of parameters in dynamical systems.' 
+                    '' "1298-1305" "2009" 
+                    'Computers  +  Chemical Engineering' "33" "7" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 323711 
+                    'Stefan Dieker, Ralf Hartmut Gueting' 
+                    'Efficient Handling of Tuples with Embedded Large Objects.' 
+                    '' "247-269" "2000" 
+                    'Data Knowl. Eng.' "32" "3" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 363777 
+                    'Martin Erwig, Ralf Hartmut Gueting, Markus Schneider, Michalis Vazirgiannis' 
+                    'Spatio-Temporal Data Types: An Approach to Modeling and Querying Moving Objects in Databases.' 
+                    '' "269-296" "1999" 
+                    'GeoInformatica' "3" "3" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 363823 
+                    'Thomas Behr, Ralf Hartmut Gueting' 
+                    'User defined topological predicates in database systems.' 
+                    '' "23-53" "2010" 
+                    'GeoInformatica' "14" "1" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 363827 
+                    'Victor Teixeira de Almeida, Ralf Hartmut Gueting' 
+                    'Indexing the Trajectories of Moving Objects in Networks.' 
+                    '' "33-60" "2005" 
+                    'GeoInformatica' "9" "1" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 363857 
+                    'Mahmoud Attia Sakr, Ralf Hartmut Gueting' 
+                    'Spatiotemporal pattern queries.' 
+                    '' "497-540" "2011" 
+                    'GeoInformatica' "15" "3" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 363900 
+                    'Jose Antonio Cotelo Lema, Ralf Hartmut Gueting' 
+                    'Dual Grid: A New Approach for Robust Spatial Algebra Implementation.' 
+                    '' "57-76" "2002" 
+                    'GeoInformatica' "6" "1" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 385352 
+                    'Ralf Hartmut Gueting' 
+                    'An Optimal Contour Algorithm for Iso-Oriented Rectangles.' 
+                    '' "303-326" "1984" 
+                    'J. Algorithms' "5" "3" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 385910 
+                    'Ralf Hartmut Gueting, Otto Nurmi, Thomas Ottmann' 
+                    'Fast Algorithms for Direct Enclosures and Direct Dominances.' 
+                    '' "170-186" "1989" 
+                    'J. Algorithms' "10" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 390630 
+                    'Ralf Hannemann, Wolfgang Marquardt' 
+                    'Continuous and Discrete Composite Adjoints for the Hessian of the Lagrangian in Shooting Algorithms for Dynamic Optimization.' 
+                    '' "4675-4695" "2010" 
+                    'SIAM J. Scientific Computing' "31" "6" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 390726 
+                    'Ralf Hartmann' 
+                    'Multitarget Error Estimation and Adaptivity in Aerodynamic Flow Simulations.' 
+                    '' "708-731" "2008" 
+                    'SIAM J. Scientific Computing' "31" "1" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 396107 
+                    'Andrew U. Frank, Stephane Grumbach, Ralf Hartmut Gueting, Christian S. Jensen, Manolis Koubarakis, Nikos A. Lorentzos, Yannis Manolopoulos, Enrico Nardelli, Barbara Pernici, Hans-Joerg Schek, Michel Scholl, Timos K. Sellis, Babis Theodoulidis, Peter Widmayer' 
+                    'Chorochronos: A Research Network for Spatiotemporal Database Systems.' 
+                    '' "12-21" "1999" 
+                    'SIGMOD Record' "28" "3" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 445174 
+                    'Jose Antonio Cotelo Lema, Luca Forlizzi, Ralf Hartmut Gueting, Enrico Nardelli, Markus Schneider' 
+                    'Algorithms for Moving Objects Databases.' 
+                    '' "680-712" "2003" 
+                    'Comput. J.' "46" "6" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 461513 
+                    'Ralf Hartmut Gueting, Markus Schneider' 
+                    'Realm-Based Spatial Data Types: The ROSE Algebra' 
+                    '' "243-286" "1995" 
+                    'VLDB J.' "4" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 461518 
+                    'Ralf Hartmut Gueting, Thomas Behr, Jianqiu Xu' 
+                    'Efficient <i>k</i>-nearest neighbor search on moving object trajectories.' 
+                    '' "687-714" "2010" 
+                    'VLDB J.' "19" "5" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 461609 
+                    'Ralf Hartmut Gueting, Nikos Mamoulis' 
+                    'Special issue on data management for mobile services.' 
+                    '' "641-642" "2011" 
+                    'VLDB J.' "20" "5" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 461692 
+                    'Christian Duentgen, Thomas Behr, Ralf Hartmut Gueting' 
+                    'BerlinMOD: a benchmark for moving object databases.' 
+                    '' "1335-1368" "2009" 
+                    'VLDB J.' "18" "6" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 461697 
+                    'Ralf Hartmut Gueting, Victor Teixeira de Almeida, Zhiming Ding' 
+                    'Modeling and querying moving objects in networks.' 
+                    '' "165-190" "2006" 
+                    'VLDB J.' "15" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 461894 
+                    'Ralf Hartmut Gueting' 
+                    'An Introduction to Spatial Database Systems' 
+                    '' "357-399" "1994" 
+                    'VLDB J.' "3" "4" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 465409 
+                    'Rolf Oppliger, Ralf Hauser, David A. Basin' 
+                    'SSL/TLS Session-Aware User Authentication.' 
+                    '' "59-65" "2008" 
+                    'IEEE Computer' "41" "3" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 505917 
+                    'Wolfgang Bangerth, Ralf Hartmann, Guido Kanschat' 
+                    'deal.II - A general-purpose object-oriented finite element library.' 
+                    '' "" "2007" 
+                    'ACM Trans. Math. Softw.' "33" "4" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 521357 
+                    'Ralf Habel, Alexander Kusternig, Michael Wimmer' 
+                    'Physically Guided Animation of Trees.' 
+                    '' "523-532" "2009" 
+                    'Comput. Graph. Forum' "28" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 532127 
+                    'Ralf Hartmut Gueting, Roberto Zicari, David M. Choy' 
+                    'An Algebra for Structured Office Documents.' 
+                    '' "123-157" "1989" 
+                    'ACM Trans. Inf. Syst.' "7" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 641172 
+                    'Rolf Oppliger, Ralf Hauser, David A. Basin' 
+                    'SSL/TLS session-aware user authentication revisited.' 
+                    '' "64-70" "2008" 
+                    'Computers  +  Security' "27" "3-4" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("article" 658947 
+                    'Ralf Hartmut Gueting, Thomas Ottmann' 
+                    'New algorithms for special cases of the hidden line elimination problem.' 
+                    '' "188-204" "1987" 
+                    'Computer Vision, Graphics, and Image Processing' "40" "2" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("incollection" 724983 
+                    'Ralf Hartmut Gueting' 
+                    'Spatio-Temporal Data Types.' 
+                    'Encyclopedia of Database Systems' "2730-2731" "2009" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("incollection" 725904 
+                    'Ralf Hartmut Gueting' 
+                    'Trajectory.' 
+                    'Encyclopedia of Database Systems' "3150" "2009" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("incollection" 726023 
+                    'Ralf Hartmut Gueting' 
+                    'Moving Objects Databases and Tracking.' 
+                    'Encyclopedia of Database Systems' "1770-1776" "2009" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("incollection" 726724 
+                    'Ralf Hartmut Gueting' 
+                    'Moving Object.' 
+                    'Encyclopedia of Database Systems' "1770" "2009" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("incollection" 728922 
+                    'Ralf Hartmut Gueting' 
+                    'Trajectory.' 
+                    'Encyclopedia of GIS' "1173" "2008" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("incollection" 729461 
+                    'Ralf Hartmut Gueting' 
+                    'Moving Object Languages.' 
+                    'Encyclopedia of GIS' "732-740" "2008" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("incollection" 729946 
+                    'Ralf Hartmut Gueting' 
+                    'Spatio-temporal Data Types.' 
+                    'Encyclopedia of GIS' "1113-1114" "2008" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 801193 
+                    'Ralf Haeusler' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1057074 
+                    'Ralf Haeger' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1270307 
+                    'Ralf Habermann' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1278435 
+                    'Ralf Habel' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1293812 
+                    'Ralf Hauber' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1310955 
+                    'Ralf Hannemann' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1359266 
+                    'Ralf Haupt' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1384805 
+                    'Ralf Hartmann' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1390589 
+                    'Ralf Hauser' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1420232 
+                    'Ralf Hahn' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1449946 
+                    'Ralf Hayn' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1618929 
+                    'Ralf Hartmut Gueting' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    'http://dna.fernuni-hagen.de/gueting/home.html' 
+                    '' 
+                    '' "") 
+                ("www" 1699471 
+                    'Ralf Haselhorst' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("www" 1725409 
+                    'Ralf Harneit' 
+                    'Home Page' 
+                    '' "" "" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("book" 1753980 
+                    'Ralf Hartmut Gueting, Martin Erwig' 
+                    'Uebersetzerbau - Techniken, Werkzeuge, Anwendungen' 
+                    '' "" "1999" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    'Springer' "3-540-65389-9") 
+                ("book" 1755416 
+                    'Ralf Hartmut Gueting, Markus Schneider' 
+                    'Moving Objects Databases' 
+                    '' "" "2005" 
+                    '' "" "" "" 
+                    'http://books.elsevier.com/us//computerscience/us/subindex.asp?maintarget= + isbn=0120887991' 
+                    '' 
+                    'Morgan Kaufmann' "0-12-088799-1") 
+                ("phdthesis" 1756293 
+                    'Ralf Hartmut Gueting' 
+                    'Conquering contours - efficient algorithms for computational geometry.' 
+                    '' "1-179" "1983" 
+                    '' "" "" "" 
+                    '' 
+                    'Universitaet Dortmund' 
+                    '' "") 
+                ("book" 1757933 
+                    'Ralf Hartmut Gueting' 
+                    'Datenstrukturen und Algorithmen.' 
+                    '' "I-XII, 1-308" "1992" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    'Teubner' "978-3-519-02121-6") 
+                ("inproceedings" 1864962 
+                    'Zhiming Ding, Ralf Hartmut Gueting' 
+                    'Modeling Temporally Variable Transportation Networks.' 
+                    'DASFAA' "154-168" "2004" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1866540 
+                    'Claudia Fritsch, Ralf Hahn' 
+                    'Product Line Potential Analysis.' 
+                    'SPLC' "228-237" "2004" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1868991 
+                    'Ralf Habel, Michael Wimmer' 
+                    'Efficient irradiance normal mapping.' 
+                    'SI3D' "189-195" "2010" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1882433 
+                    'Martin Breunig, Can Tuerker, Michael H. Boehlen, Stefan Dieker, Ralf Hartmut Gueting, Christian S. Jensen, Lukas Relly, Philippe Rigaux, Hans-Joerg Schek, Michel Scholl' 
+                    'Architectures and Implementations of Spatio-temporal Database Management Systems.' 
+                    'Spatio-Temporal Databases: The CHOROCHRONOS Approach' "263-318" "2003" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1882436 
+                    'Ralf Hartmut Gueting, Michael H. Boehlen, Martin Erwig, Christian S. Jensen, Nikos A. Lorentzos, Enrico Nardelli, Markus Schneider, Jose Ramon Rios Viqueira' 
+                    'Spatio-temporal Models and Languages: An Approach Based on Data Types.' 
+                    'Spatio-Temporal Databases: The CHOROCHRONOS Approach' "117-176" "2003" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1889819 
+                    'Ralf Hahn, Rolf Krieger, Bernd Becker' 
+                    'A Hierarchical Approach to Fault Collapsing.' 
+                    'EDAC-ETC-EUROASIC' "171-176" "1994" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1904518 
+                    'Juergen Schirmer, Ralf Hayn' 
+                    'Multimedia Authoring and Synchronization within ActiveM3: A system for composing active e-mail messages as subtypes of mobile agents.' 
+                    'SYBEN' "456-465" "1998" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1905615 
+                    'Jochen Gries, Axel Hahlweg, Ralf Harneit, Axel Kern, Hans Christoph Zeidler' 
+                    'Ein leistungsfaehiges Kommunikationssystem fuer Multiprozessor-Systeme.' 
+                    'ARCS' "159-167" "1990" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1933758 
+                    'Ralf Habel, Alexander Kusternig, Michael Wimmer' 
+                    'Physically Based Real-Time Translucency for Leaves.' 
+                    'Rendering Techniques' "253-263" "2007" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1936083 
+                    'Ralf Hartmut Gueting, Hans-Peter Kriegel' 
+                    'Dynamic k-Dimensional Multiway Search under Time-Varying Access Frequencies.' 
+                    'Theoretical Computer Science' "135-145" "1981" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1994441 
+                    'Ralf Hartmut Gueting' 
+                    'Algebras for Moving Objects and Their Implementation.' 
+                    'GeoInfo' "" "2004" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 1994484 
+                    'Leonardo Guerreiro Azevedo, Ralf Hartmut Gueting' 
+                    'Polygon Clipping and Polygon Reconstruction.' 
+                    'GeoInfo' "159-170" "2007" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2021338 
+                    'Konrad Miegel, Birgit Zachow, Ralf Haupt, Thomas Salzman' 
+                    'Probleme der Datenverarbeitung und Modellanwendung bei der Simulation potenzieller hydrologischer Folgen durch den globalen Klimawandel.' 
+                    'GIL Jahrestagung' "101-104" "2009" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2051105 
+                    'Ralf Hartmut Gueting, Victor Teixeira de Almeida, Dirk Ansorge, Thomas Behr, Zhiming Ding, Thomas Hoese, Frank Hoffmann, Markus Spiekermann, Ulrich Telle' 
+                    'SECONDO: An Extensible DBMS Platform for Research Prototyping and Teaching.' 
+                    'ICDE' "1115-1116" "2005" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2053367 
+                    'Thomas Behr, Ralf Hartmut Gueting' 
+                    'Fuzzy Spatial Objects: An Algebra Implementation in SECONDO.' 
+                    'ICDE' "1137-1139" "2005" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2060218 
+                    'Ralf Hartmut Gueting' 
+                    'Representing and querying moving objects in databases.' 
+                    'SEBD' "3-4" "2000" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2070925 
+                    'Ralf Hartmut Gueting, Otto Nurmi, Thomas Ottmann' 
+                    'The direct dominance problem.' 
+                    'Symposium on Computational Geometry' "81-88" "1985" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2079229 
+                    'Markus Schneider, Ralf Hartmut Gueting, Thomas de Ridder' 
+                    'Computational geometry on the grid: Transversal and planesweep algorithms for spatial applications.' 
+                    'CCCG' "" "1998" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2083114 
+                    'Ralf Hartmut Gueting, Thomas Ottmann' 
+                    'New Algorithms for Special Cases of the Hidden Line Elimination Problem.' 
+                    'STACS' "161-172" "1985" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2091085 
+                    'Victor Teixeira de Almeida, Ralf Hartmut Gueting' 
+                    'Using Dijkstra\'s algorithm to incrementally find the k-Nearest Neighbors in spatial network databases.' 
+                    'SAC' "58-62" "2006" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2199580 
+                    'Ralf Hartmut Gueting' 
+                    'Geo-Relational Algebra: A Model and Query Language for Geometric Database Systems.' 
+                    'EDBT' "506-527" "1988" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2211348 
+                    'Ralf Haeusler, Reinhard Klette' 
+                    'Benchmarking Stereo Data (Not the Matching Algorithms).' 
+                    'DAGM-Symposium' "383-392" "2010" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2308028 
+                    'Victor Teixeira de Almeida, Ralf Hartmut Gueting' 
+                    'Indexing the Trajectories of Moving Objects in Networks (Extended Abstract).' 
+                    'SSDBM' "115-118" "2004" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2308338 
+                    'Stefan Dieker, Ralf Hartmut Gueting, Miguel Rodriguez Luaces' 
+                    'A Tool for Nesting and Clustering Large Objects.' 
+                    'SSDBM' "169-181" "2000" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2308426 
+                    'Zhiming Ding, Ralf Hartmut Gueting' 
+                    'Managing Moving Objects on Dynamic Transportation Networks.' 
+                    'SSDBM' "287-296" "2004" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2316288 
+                    'Luca Forlizzi, Ralf Hartmut Gueting, Enrico Nardelli, Markus Schneider' 
+                    'A Data Model and Data Structures for Moving Objects Databases.' 
+                    'SIGMOD Conference' "319-330" "2000" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2317216 
+                    'Ralf Hartmut Gueting' 
+                    'Second-Order Signature: A Tool for Specifying Data Models, Query Processing, and Optimization.' 
+                    'SIGMOD Conference' "277-286" "1993" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2317683 
+                    'Josh F. Peterson, Benjamin P. Rosenbaum, Lemuel R. Waitman, Ralf Habermann, James Powers, Debbie Harrell, Randolph A. Miller' 
+                    'Physicians\' Response to Guided Geriatric Dosing: Initial Results from a Randomized Trial.' 
+                    'MedInfo' "1037-1040" "2007" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2335997 
+                    'Ralf Hartmut Gueting, Roberto Zicari' 
+                    'An Introduction to the Nested Sequences of Tuples Data Model and Algebra.' 
+                    'NF ' "153-175" "1987" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2338125 
+                    'Jochen Gries, Axel Hahlweg, Ralf Harneit, Axel Kern, Hans Christoph Zeidler' 
+                    'High performance communication for MIMD supercomputers.' 
+                    'ICS' "20-27" "1991" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2372725 
+                    'Ralf Hauber' 
+                    'Towards a hypertext navigation language.' 
+                    'Hypertext' "280-281" "2005" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2374778 
+                    'Martin Erwig, Markus Schneider, Ralf Hartmut Gueting' 
+                    'Temporal Objects for Spatio-Temporal Data Models and a Comparison of Their Representations.' 
+                    'ER Workshops' "454-465" "1998" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2418351 
+                    'Ralf Hartmut Gueting' 
+                    'Gral: An Extensible Relational Database System for Geometric Applications.' 
+                    'VLDB' "33-44" "1989" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2418661 
+                    'Ralf Hartmut Gueting' 
+                    'GraphDB: Modeling and Querying Graphs in Databases.' 
+                    'VLDB' "297-308" "1994" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2482332 
+                    'Gabriele Blankenagel, Ralf Hartmut Gueting' 
+                    'Internal and External Algorithms for the Points-in-Regions Problem - the Inside Join of Geo-Relational Algebra.' 
+                    'Workshop on Computational Geometry' "85-89" "1988" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2482335 
+                    'Ralf Hartmut Gueting' 
+                    'Geo-Relational Algebra: A Model and Query Language for Geometric Database Systems.' 
+                    'Workshop on Computational Geometry' "90-96" "1988" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2499121 
+                    'Ralf Hauber' 
+                    'Kompendium philosophischer Begriffe und Fragestellungen in der Informatik: Ein Vorschlag.' 
+                    'GI Jahrestagung (2)' "763-764" "2001" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2500012 
+                    'Ralf Hartmut Gueting, Hans-Peter Kriegel' 
+                    'Multidimensional B-tree: An Efficient Dynamic File Structure for Exact Match Queries.' 
+                    'GI Jahrestagung' "375-388" "1980" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2513491 
+                    'Ralf Hartmut Gueting' 
+                    'Die NST-Algebra: Eine relationale Algebra mit Arithmetik.' 
+                    'Grundlagen von Datenbanken' "" "1989" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2513561 
+                    'Martin Erwig, Ralf Hartmut Gueting' 
+                    'Modellierung von Netzen in Geo-Datenbanken.' 
+                    'Grundlagen von Datenbanken' "27-29" "1992" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2526764 
+                    'Ralf Haselhorst' 
+                    'Der Software-Analyse-Baukasten - Ein Bericht aus der universitaeren Ausbildung.' 
+                    'Testen, Analysieren und Verifizieren von Software' "81-90" "1992" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2527107 
+                    'Ralf Haeusler, Reinhard Klette, Fay Huang' 
+                    'Monocular 3D Reconstruction of Objects Based on Cylindrical Panoramas.' 
+                    'PSIVT' "60-70" "2009" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2538804 
+                    'Mahmoud Attia Sakr, Ralf Hartmut Gueting' 
+                    'A New Approach for Spatiotemporal Pattern Queries in Trajectory Databases.' 
+                    'Mobile Data Management' "270-272" "2010" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2538982 
+                    'Victor Teixeira de Almeida, Ralf Hartmut Gueting, Thomas Behr' 
+                    'Querying Moving Objects in SECONDO.' 
+                    'MDM' "47" "2006" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2539288 
+                    'Ralf Hartmut Gueting' 
+                    'How to Build Your Own Moving Objects Database System.' 
+                    'MDM' "1-2" "2007" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2575862 
+                    'Sepideh Chakaveh, Olaf Geuer, Stefan Werning, Sorina Borggrefe, Ralf Haeger' 
+                    'Application of web-based visualizations to interactive television: a practical approach.' 
+                    'VCIP' "1062-1067" "2003" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2583202 
+                    'Ralf Hartmut Gueting, Stefan Dieker, Claudia Freundorfer, Ludger Becker, Holger Schenk' 
+                    'SECONDO/QP: Implementation of a Generic Query Processor.' 
+                    'DEXA' "66-87" "1999" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2584031 
+                    'Zhiming Ding, Ralf Hartmut Gueting' 
+                    'Uncertainty Management for Network Constrained Moving Objects.' 
+                    'DEXA' "411-421" "2004" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2590577 
+                    'Ralf Hartmut Gueting, Thomas de Ridder, Markus Schneider' 
+                    'Implementation of the ROSE Algebra: Efficient Algorithms for Realm-Based Spatial Data Types.' 
+                    'SSD' "216-239" "1995" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2590587 
+                    'Ralf Hartmut Gueting, Markus Schneider' 
+                    'Realms: A Foundation for Spatial Data Types in Database Systems.' 
+                    'SSD' "14-35" "1993" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2590603 
+                    'Ralf Hartmut Gueting, Angelika Braese, Thomas Behr, Jianqiu Xu' 
+                    'Nearest Neighbor Search on Moving Object Trajectories in Secondo.' 
+                    'SSTD' "427-431" "2009" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2590611 
+                    'Mahmoud Attia Sakr, Ralf Hartmut Gueting' 
+                    'Spatiotemporal Pattern Queries in Secondo.' 
+                    'SSTD' "422-426" "2009" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2590626 
+                    'Erlend Tossebro, Ralf Hartmut Gueting' 
+                    'Creating Representations for Continuously Moving Regions from Observations.' 
+                    'SSTD' "321-344" "2001" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2590661 
+                    'Leonardo Guerreiro Azevedo, Geraldo Zimbrao, Jano Moreira de Souza, Ralf Hartmut Gueting' 
+                    'Estimating the Overlapping Area of Polygon Join.' 
+                    'SSTD' "91-108" "2005" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2622111 
+                    'Rolf Oppliger, Ralf Hauser, David A. Basin, Aldo Rodenhaeuser, Bruno Kaiser' 
+                    'A Proof of Concept Implementation of SSL/TLS Session-Aware User Authentication (TLS-SA).' 
+                    'KiVS' "225-236" "2007" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2647763 
+                    'Stefan Dieker, Ralf Hartmut Gueting' 
+                    'Plug and Play with Query Algebras: SECONDO-A Generic DBMS Development Environment.' 
+                    'IDEAS' "380-392" "2000" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2647962 
+                    'Victor Teixeira de Almeida, Ralf Hartmut Gueting, Christian Duentgen' 
+                    'Multiple Entry Indexing and Double Indexing.' 
+                    'IDEAS' "181-189" "2007" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2722387 
+                    'Leonardo Guerreiro Azevedo, Ralf Hartmut Gueting, Rafael Brand Rodrigues, Geraldo Zimbrao, Jano Moreira de Souza' 
+                    'Filtering with raster signatures.' 
+                    'GIS' "187-194" "2006" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2722527 
+                    'Victor Teixeira de Almeida, Ralf Hartmut Gueting' 
+                    'Supporting uncertainty in moving objects in network databases.' 
+                    'GIS' "31-40" "2005" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2722548 
+                    'Martin Erwig, Ralf Hartmut Gueting, Markus Schneider, Michalis Vazirgiannis' 
+                    'Abstract and Discrete Modeling of Spatio-Temporal Data Types.' 
+                    'ACM-GIS' "131-136" "1998" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "") 
+                ("inproceedings" 2722585 
+                    'Thomas Behr, Victor Teixeira de Almeida, Ralf Hartmut Gueting' 
+                    'Representation of periodic moving objects in databases.' 
+                    'GIS' "43-50" "2006" 
+                    '' "" "" "" 
+                    '' 
+                    '' 
+                    '' "")))))
