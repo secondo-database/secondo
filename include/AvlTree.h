@@ -38,6 +38,21 @@ class unary_functor{
 };
 
 
+template<class Obj>
+class StdComp{
+   public:
+     static bool smaller(const Obj& o1, const Obj& o2){
+       return o1 < o2;
+     }
+     static bool equal(const Obj& o1, const Obj& o2){
+       return o1 == o2;
+     }
+     static bool greater(const Obj& o1, const Obj& o2){
+       return o1 > o2;
+     }
+};
+
+
 
 namespace avltree{
 
@@ -46,7 +61,7 @@ namespace avltree{
 0 Forward declaration of the AVLTree class
 
 */
-template <class contenttype>
+template <class contenttype, class Comparator = StdComp<contenttype> >
 class AVLTree;
 
 
@@ -57,9 +72,9 @@ This class represents a single node of
 an AVL tree.
 
 */
-template<class contenttype>
+template<class contenttype, class Comparator>
 class AvlNode{
-friend class AVLTree<contenttype>;
+friend class AVLTree<contenttype, Comparator>;
 public:
 
 /*
@@ -68,12 +83,9 @@ public:
 This constructor creates a new leaf with the given content.
 
 */
-   AvlNode(const contenttype& content1){
+   AvlNode(const contenttype& content1): content(content1),left(0),
+                                         right(0),height(0){
       __AVL_TRACE__
-      height=0;
-      left=NULL;
-      right = NULL;
-      this->content = content1;
    }
 /*
 1.0 Copy constructor
@@ -81,12 +93,11 @@ This constructor creates a new leaf with the given content.
 Creates a depth copy of this node.
 
 */
-  AvlNode(const AvlNode<contenttype>& source){
+  AvlNode(const AvlNode<contenttype, Comparator>& source):
+    content(source.content), left(0), right(0),height(source.height){
      __AVL_TRACE__
-     this->content = source.content;
      this->left = source.left==NULL?NULL:new AvlNode(*source.left);
      this->right = source.right==NULL?NULL:new AvlNode(*source.right);
-     this->height = source.height;
    }
 
 /*
@@ -95,11 +106,16 @@ Creates a depth copy of this node.
 
 
 */
-  AvlNode<contenttype>& operator=(const AvlNode<contenttype>&  source){
+  AvlNode<contenttype,Comparator>& operator=(
+        const AvlNode<contenttype,Comparator>&  source){
      __AVL_TRACE__
      this->content = source.content;
-     this->left = source.left?new AvlNode<contenttype>(source.left):NULL;
-     this->right = source.right?new AvlNode<contenttype>(source.right):NULL;
+     this->left =   source.left
+                  ? new AvlNode<contenttype,Comparator>(source.left)
+                  :NULL;
+     this->right =   source.right
+                   ? new AvlNode<contenttype,Comparator>(source.right)
+                   :NULL;
      this->heigth = source.height;
      return *this;
   }
@@ -139,7 +155,7 @@ but keeping the subtrees in the memory
 returns the left subtree
 
 */
-   AvlNode<contenttype> const* getLeftSon()const{
+   AvlNode<contenttype,Comparator> const* getLeftSon()const{
       __AVL_TRACE__
       return left;
    }
@@ -150,7 +166,7 @@ returns the left subtree
 Returns the right subtree.
 
 */
-   AvlNode<contenttype> const* getRightSon()const{
+   AvlNode<contenttype,Comparator> const* getRightSon()const{
       __AVL_TRACE__
       return right;
    }
@@ -206,8 +222,8 @@ private:
 
 */
    contenttype content;
-   AvlNode<contenttype>* left;
-   AvlNode<contenttype>* right;
+   AvlNode<contenttype,Comparator>* left;
+   AvlNode<contenttype,Comparator>* right;
    int height; // required for the balance computation
 };
 
@@ -219,7 +235,7 @@ This class provides an AVL Tree.
 
 */
 
-template<class contenttype>
+template<class contenttype, class Comparator>
 class AVLTree{
 public:
 
@@ -253,12 +269,12 @@ Removes all entries from the tree.
 Creates a depth copy of the argument.
 
 */
-   AVLTree(const AVLTree<contenttype>& T){
+   AVLTree(const AVLTree<contenttype, Comparator>& T){
       __AVL_TRACE__
       if(T.root==NULL)
         root = NULL;
       else
-        root = new AvlNode<contenttype>(*T.root);
+        root = new AvlNode<contenttype,Comparator>(*T.root);
    }
 
 /*
@@ -277,12 +293,15 @@ Creates a depth copy of the argument.
 2.4 Assignment operator
 
 */
-    AVLTree<contenttype>& operator=(const AVLTree<contenttype> source){
+    AVLTree<contenttype, Comparator>& operator=(
+             const AVLTree<contenttype, Comparator> source){
        __AVL_TRACE__
        if(root){
           delete root;
        }
-       root = source.root?new AvlNode<contenttype>(source.root) : NULL;
+       root =   source.root
+              ? new AvlNode<contenttype,Comparator>(source.root) 
+              : NULL;
        return  *this;
     }
 
@@ -650,7 +669,7 @@ The ~Get~ function returns the value currently under this iterator.
         if(thestack.empty()){
           return 0;
         } else {
-          const AvlNode<contenttype>* elem = thestack.top();
+          const AvlNode<contenttype,Comparator>* elem = thestack.top();
           return (elem->getContent());
         }
      }
@@ -667,8 +686,8 @@ otherwise   __true__.
      if(thestack.empty()){
         return false;
      }
-     const AvlNode<contenttype>* elem = thestack.top();
-     const AvlNode<contenttype>* son;
+     const AvlNode<contenttype,Comparator>* elem = thestack.top();
+     const AvlNode<contenttype,Comparator>* son;
      if( (son = elem->getRightSon())){
         thestack.pop(); // the current node is processed
         thestack.push(son);
@@ -689,9 +708,9 @@ Creates an iterator for the given tree. The position
 is set to the smallest entry in the tree.
 
 */
-  iterator(const AvlNode<contenttype>* root){
+  iterator(const AvlNode<contenttype,Comparator>* root){
      __AVL_TRACE__
-     const AvlNode<contenttype>* son = root;
+     const AvlNode<contenttype,Comparator>* son = root;
      while(son){
        thestack.push(son);
        son = son->getLeftSon();   
@@ -705,7 +724,7 @@ Creates a new iterator for root. The position is set to the first
 entry within the tree which is equals to or greater than min.
 
 */
-  iterator(const AvlNode<contenttype>* root, const contenttype min){
+  iterator(const AvlNode<contenttype,Comparator>* root, const contenttype min){
      __AVL_TRACE__
      if(root){
         tail(root,min);
@@ -779,7 +798,7 @@ any elements, i.e. whether Get or [*] would return NULL.
 
 */
  
-     stack<const AvlNode<contenttype>*> thestack;
+     stack<const AvlNode<contenttype,Comparator>*> thestack;
 
 /*
 ~tail~
@@ -787,15 +806,16 @@ any elements, i.e. whether Get or [*] would return NULL.
  This function support the contructor having a mimimum argument.
 
 */
- const AvlNode<contenttype>* tail(const AvlNode<contenttype>* root, 
-                                  const contenttype& min){
+ const AvlNode<contenttype,Comparator>* tail(
+         const AvlNode<contenttype,Comparator>* root, 
+         const contenttype& min){
     __AVL_TRACE__
    assert(root);
    thestack.push(root);
-   if(root->content==min){
+   if(Comparator::equal(root->content,min)){
        return root;
-   } else if(root->content < min){
-      const AvlNode<contenttype>* node = root->getRightSon();
+   } else if(Comparator::smaller(root->content , min)){
+      const AvlNode<contenttype,Comparator>* node = root->getRightSon();
       if(node){
         node = tail(node,min);
         if(!node){
@@ -812,7 +832,7 @@ any elements, i.e. whether Get or [*] would return NULL.
       } 
    } else { // root.content > min 
       // in the left subtree may be an element nearer to min
-      const AvlNode<contenttype>* node = root->getLeftSon();
+      const AvlNode<contenttype,Comparator>* node = root->getLeftSon();
       if(!node){ // no better element available
          return root;
       } else {
@@ -836,7 +856,7 @@ any elements, i.e. whether Get or [*] would return NULL.
 
 private:
 
-void Print(const AvlNode<contenttype>* root, ostream& out)const{
+void Print(const AvlNode<contenttype,Comparator>* root, ostream& out)const{
   if(!root){
      out << " '' ";
      return;
@@ -859,11 +879,12 @@ Note there is no check wether the sons required for this
 operations exists
 
 */
-static AvlNode<contenttype>* rotateRight(AvlNode<contenttype>* root){
+static AvlNode<contenttype,Comparator>* rotateRight(
+       AvlNode<contenttype,Comparator>* root){
    __AVL_TRACE__
-   AvlNode<contenttype>* y = root->left;
-   AvlNode<contenttype>* B = y->right;
-   AvlNode<contenttype>* C = root->right;
+   AvlNode<contenttype,Comparator>* y = root->left;
+   AvlNode<contenttype,Comparator>* B = y->right;
+   AvlNode<contenttype,Comparator>* C = root->right;
    root->left=B;
    root->right=C;
    root->updateHeight();
@@ -878,14 +899,15 @@ static AvlNode<contenttype>* rotateRight(AvlNode<contenttype>* root){
 Performs a left right double rotation around root
 
 */
-static AvlNode<contenttype>* rotateLeftRight(AvlNode<contenttype>* root){
+static AvlNode<contenttype,Comparator>* rotateLeftRight(
+         AvlNode<contenttype,Comparator>* root){
    __AVL_TRACE__
-    AvlNode<contenttype>* x = root;
-    AvlNode<contenttype>* z = root->left;
-    AvlNode<contenttype>* y = z->right;
-    AvlNode<contenttype>* A = z->left;
-    AvlNode<contenttype>* B = y->left;
-    AvlNode<contenttype>* C = y->right;
+    AvlNode<contenttype,Comparator>* x = root;
+    AvlNode<contenttype,Comparator>* z = root->left;
+    AvlNode<contenttype,Comparator>* y = z->right;
+    AvlNode<contenttype,Comparator>* A = z->left;
+    AvlNode<contenttype,Comparator>* B = y->left;
+    AvlNode<contenttype,Comparator>* C = y->right;
     z->left=A;
     z->right=B;
     z->updateHeight();
@@ -903,10 +925,11 @@ static AvlNode<contenttype>* rotateLeftRight(AvlNode<contenttype>* root){
 Performs a left rotation around root. 
 
 */
-static AvlNode<contenttype>* rotateLeft(AvlNode<contenttype>* root){
+static AvlNode<contenttype,Comparator>* rotateLeft(
+         AvlNode<contenttype,Comparator>* root){
    __AVL_TRACE__
-  AvlNode<contenttype>* y = root->right;
-  AvlNode<contenttype>* B = y->left;
+  AvlNode<contenttype,Comparator>* y = root->right;
+  AvlNode<contenttype,Comparator>* B = y->left;
   root->right = B;
   root->updateHeight();
   y->left=root;
@@ -920,13 +943,14 @@ static AvlNode<contenttype>* rotateLeft(AvlNode<contenttype>* root){
 performs a right left double rotation around root 
 
 */
-static AvlNode<contenttype>* rotateRightLeft(AvlNode<contenttype>* root){
+static AvlNode<contenttype,Comparator>* rotateRightLeft(
+         AvlNode<contenttype,Comparator>* root){
    __AVL_TRACE__
-   AvlNode<contenttype>* x = root;
-   AvlNode<contenttype>* z = x->right;
-   AvlNode<contenttype>* y = z->left;
-   AvlNode<contenttype>* B1 = y->left;
-   AvlNode<contenttype>* B2 = y->right;
+   AvlNode<contenttype,Comparator>* x = root;
+   AvlNode<contenttype,Comparator>* z = x->right;
+   AvlNode<contenttype,Comparator>* y = z->left;
+   AvlNode<contenttype,Comparator>* B1 = y->left;
+   AvlNode<contenttype,Comparator>* B2 = y->right;
    x->right=B1;
    x->updateHeight();
    z->left = B2;
@@ -945,18 +969,19 @@ This function inserts __content__ into the subtree given by root.
 It returns the root of the new tree.
 
 */
-static  AvlNode<contenttype>* insert(AvlNode<contenttype>* root, 
+static  AvlNode<contenttype,Comparator>* insert(
+        AvlNode<contenttype,Comparator>* root, 
                                   const contenttype& content,bool& success){
    __AVL_TRACE__
    if(root==NULL){ // leaf reached
       success=true;
-      return new AvlNode<contenttype>(content);
+      return new AvlNode<contenttype,Comparator>(content);
    }
    contenttype c = root->content;
-   if(c==content){ // an AVL tree represents a set, do nothing
+   if(Comparator::equal(c,content)){ //an AVL tree represents a set, do nothing
       success=false;
       return root;
-   } else if(content<c){ // perform the left subtree
+   } else if(Comparator::smaller(content,c)){ // perform the left subtree
       root->left = insert(root->left,content,success);
       root->updateHeight();
       if(abs(root->balance())>1){ // rotation or double rotation required
@@ -1003,28 +1028,29 @@ present. __left__ and __right__ must be initialized with 0 to ensure a
 correct result for them.
 
 */
-static  AvlNode<contenttype>* insertN(AvlNode<contenttype>* root, 
+static  AvlNode<contenttype,Comparator>* insertN(
+                              AvlNode<contenttype,Comparator>* root, 
                               const contenttype& content,bool& success,
                               const contenttype*& left,
                               const contenttype*& right){
    __AVL_TRACE__
    if(root==NULL){ // leaf reached
       success=true;
-      return new AvlNode<contenttype>(content);
+      return new AvlNode<contenttype,Comparator>(content);
    }
 
    contenttype c = root->content;
-   if(c==content){ // an AVL tree represents a set, do nothing
+   if(Comparator::equal(c,content)){// an AVL tree represents a set, do nothing
      // set the neighbours
      if(root->left){
-        AvlNode<contenttype>* tmp = root->left;
+        AvlNode<contenttype,Comparator>* tmp = root->left;
         while(tmp->right){
           tmp = tmp->right;
         }
         left = &tmp->content;
      }
      if(root->right){
-        AvlNode<contenttype>* tmp = root->right;
+        AvlNode<contenttype,Comparator>* tmp = root->right;
         while(tmp->left){
           tmp = tmp->left;
         }
@@ -1034,12 +1060,12 @@ static  AvlNode<contenttype>* insertN(AvlNode<contenttype>* root,
 
       success=false;
       return root;
-   } else if(content<c){ // perform the left subtree
+   } else if(Comparator::smaller(content,c)){ // perform the left subtree
       root->left = insertN(root->left,content,success,left,right);
       if(!right){
         right =  &root->content;
       }
-      if(!left && content>root->content){
+      if(!left && Comparator::smaller(root->content,content)){
         left = &root->content;
       }
       root->updateHeight();
@@ -1062,7 +1088,7 @@ static  AvlNode<contenttype>* insertN(AvlNode<contenttype>* root,
       if(!left){
         left = &root->content; 
       } 
-      if(!right && content<root->content){
+      if(!right && Comparator::smaller(content,root->content)){
         right = &root->content;
       }
       root->updateHeight();
@@ -1082,20 +1108,22 @@ static  AvlNode<contenttype>* insertN(AvlNode<contenttype>* root,
 }
 
 
-static  AvlNode<contenttype>* insert2(AvlNode<contenttype>* root, 
+static  AvlNode<contenttype,Comparator>* insert2(
+                                  AvlNode<contenttype,Comparator>* root, 
                                   const contenttype& content,
                                   contenttype const*& elem){
    __AVL_TRACE__
    if(root==NULL){ // leaf reached
-      AvlNode<contenttype>* res =  new AvlNode<contenttype>(content);
+      AvlNode<contenttype,Comparator>* res =  
+                   new AvlNode<contenttype,Comparator>(content);
       elem = &res->content;
       return res;
    }
    contenttype c = root->content;
-   if(c==content){ // an AVL tree represents a set, do nothing
+   if(Comparator::equal(c,content)){ //an AVL tree represents a set, do nothing
       elem = &root->content;
       return root;
-   } else if(content<c){ // perform the left subtree
+   } else if(Comparator::smaller(content,c)){ // perform the left subtree
       root->left = insert2(root->left,content,elem);
       root->updateHeight();
       if(abs(root->balance())>1){ // rotation or double rotation required
@@ -1140,15 +1168,16 @@ rooted by __root__.
 It returns the new root of the created tree.
 
 */
-static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
-                                 const contenttype& x, bool& found){
+static AvlNode<contenttype,Comparator>* remove(
+                     AvlNode<contenttype,Comparator>* root,
+                     const contenttype& x, bool& found){
    __AVL_TRACE__
    if(root==NULL){ // nothing found
       found = false;
       return NULL;
    }
    contenttype  value = root->content;
-   if(x<value){
+   if(Comparator::smaller(x,value)){
       root->left = remove(root->left,x,found);
       root->updateHeight();
       if(root->right==NULL){ // because we have deleted  
@@ -1168,7 +1197,7 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
       } else{ // balance of root is ok
         return root;
       }
-   } else if(x>value){
+   } else if(Comparator::smaller(value,x)){
        root->right = remove(root->right,x,found);
        root->updateHeight();
        if(root->left==NULL){
@@ -1191,18 +1220,18 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
         return NULL; // delete a single leaf
       } 
       if(root->left==NULL){
-        AvlNode<contenttype>* res = root->right;
+        AvlNode<contenttype,Comparator>* res = root->right;
         root->cut();
         delete root;
         return res;
       }
       if(root->right==NULL){
-        AvlNode<contenttype>* res = root->left;
+        AvlNode<contenttype,Comparator>* res = root->left;
         root->cut();
         delete root;
         return res;
       }
-      AvlNode<contenttype>*  minimum(0);
+      AvlNode<contenttype,Comparator>*  minimum(0);
       root->right=deletemin(root->right,minimum);
       minimum->left = root->left;
       minimum->right = root->right;
@@ -1224,7 +1253,8 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
 }
 
 
-static AvlNode<contenttype>* remove_smallest(AvlNode<contenttype>* root,
+static AvlNode<contenttype,Comparator>* remove_smallest(
+                 AvlNode<contenttype,Comparator>* root,
                  const unary_functor<contenttype, bool>& pred, 
                  bool& found){
    __AVL_TRACE__
@@ -1262,18 +1292,18 @@ static AvlNode<contenttype>* remove_smallest(AvlNode<contenttype>* root,
         return NULL; // delete a single leaf
       } 
       if(root->left==NULL){
-        AvlNode<contenttype>* res = root->right;
+        AvlNode<contenttype,Comparator>* res = root->right;
         root->cut();
         delete root;
         return res;
       }
       if(root->right==NULL){
-        AvlNode<contenttype>* res = root->left;
+        AvlNode<contenttype,Comparator>* res = root->left;
         root->cut();
         delete root;
         return res;
       }
-      AvlNode<contenttype>*  minimum(0);
+      AvlNode<contenttype,Comparator>*  minimum(0);
       root->right=deletemin(root->right,minimum);
       minimum->left = root->left;
       minimum->right = root->right;
@@ -1332,7 +1362,8 @@ initialized with NULL.
 It returns the new root of the created tree.
 
 */
-static AvlNode<contenttype>* removeN(AvlNode<contenttype>* root,
+static AvlNode<contenttype,Comparator>* removeN(
+                                 AvlNode<contenttype,Comparator>* root,
                                  const contenttype& x, bool& found,
                                  const contenttype*& left,
                                  const contenttype*& right){
@@ -1342,12 +1373,12 @@ static AvlNode<contenttype>* removeN(AvlNode<contenttype>* root,
       return NULL;
    }
    contenttype  value = root->content;
-   if(x<value){
+   if(Comparator::smaller(x,value)){
       root->left = removeN(root->left,x,found,left,right);
       if(!right){
         right = &root->content;
       } 
-      if(!left && value < x){
+      if(!left && Comparator::smaller(value , x)){
          left = &root->content;
       }
       root->updateHeight();
@@ -1368,12 +1399,12 @@ static AvlNode<contenttype>* removeN(AvlNode<contenttype>* root,
       } else{ // balance of root is ok
         return root;
       }
-   } else if(x>value){
+   } else if(Comparator::smaller(value,x)){
        root->right = removeN(root->right,x,found,left,right);
        if(!left){
           left = &root->content;
        } 
-       if(!right && value > x){
+       if(!right && Comparator::smaller(x,value)){
           right = &root->content;
        }
        root->updateHeight();
@@ -1395,31 +1426,31 @@ static AvlNode<contenttype>* removeN(AvlNode<contenttype>* root,
       } 
       if(root->left==NULL){
         // search the content of the right neighbour
-        AvlNode<contenttype>* r = root->right;
+        AvlNode<contenttype,Comparator>* r = root->right;
         while(r->left){
            r = r->left;
         }
         right = &r->content;
-        AvlNode<contenttype>* res = root->right;
+        AvlNode<contenttype,Comparator>* res = root->right;
         root->cut();
         delete root;
         return res;
       }
       if(root->right==NULL){
         // search for the left neighbour
-        AvlNode<contenttype>* l = root->left;
+        AvlNode<contenttype,Comparator>* l = root->left;
         while(l->right){
            l = l->right;
         }
         left = &l->content;
-        AvlNode<contenttype>* res = root->left;
+        AvlNode<contenttype,Comparator>* res = root->left;
         root->cut();
         delete root;
         return res;
       }
       // both sons exist
 
-      AvlNode<contenttype>* tmp;
+      AvlNode<contenttype,Comparator>* tmp;
       tmp = root->left;
       assert(tmp);
       while(tmp->right){
@@ -1427,7 +1458,7 @@ static AvlNode<contenttype>* removeN(AvlNode<contenttype>* root,
       }
       left = &tmp->content;
 
-      AvlNode<contenttype>* minimum(0);
+      AvlNode<contenttype,Comparator>* minimum(0);
       root->right=deletemin(root->right,minimum);
       minimum->left = root->left;
       minimum->right = root->right;
@@ -1461,12 +1492,13 @@ is returned in the appropriate parameter. The left and right pointer
 of mininum a set to be null. 
 
 **/
-static AvlNode<contenttype>* deletemin(AvlNode<contenttype>* root,
-                                       AvlNode<contenttype>*& minimum){
+static AvlNode<contenttype,Comparator>* deletemin(
+           AvlNode<contenttype,Comparator>* root,
+           AvlNode<contenttype,Comparator>*& minimum){
    __AVL_TRACE__
    if(root->left==NULL){ // this node is to remove
        minimum = root; // save the value
-       AvlNode<contenttype>* res = root->right;
+       AvlNode<contenttype,Comparator>* res = root->right;
        root->cut();
        return res;
    } else{ // try to delete more left
@@ -1493,23 +1525,24 @@ static AvlNode<contenttype>* deletemin(AvlNode<contenttype>* root,
 Checks whether x is contained in the subtree given by __root__. 
 
 */
-static bool member(AvlNode<contenttype>const* const root,
+static bool member(AvlNode<contenttype,Comparator>const* const root,
                   const contenttype& content){
    __AVL_TRACE__
   if(root==NULL) return false;
-  if(root->content==content) return true;
-  return   content<root->content
+  if(Comparator::equal(root->content,content)) return true;
+  return   Comparator::smaller(content,root->content)
           ? member(root->left,content) 
           : member(root->right,content);
 }
 
 
-static const contenttype* getMember(AvlNode<contenttype>const* const root,
-                  const contenttype& content){
+static const contenttype* getMember(
+             AvlNode<contenttype,Comparator>const* const root,
+             const contenttype& content){
    __AVL_TRACE__
-  AvlNode<contenttype>const* current = root;
-  while(current && !(current->content==content)){
-      if(content < current->content){
+  AvlNode<contenttype,Comparator>const* current = root;
+  while(current && !( Comparator::equal(current->content,content))){
+      if(Comparator::smaller(content , current->content)){
         current = current->left;
       } else {
         current = current->right;   
@@ -1523,17 +1556,18 @@ static const contenttype* getMember(AvlNode<contenttype>const* const root,
 }
 
 
-static const contenttype* getMember(AvlNode<contenttype>const* const root,
-                                    const contenttype& x,
-                                    const contenttype*& left,
-                                    const contenttype*& right){
+static const contenttype* getMember(
+            AvlNode<contenttype,Comparator>const* const root,
+            const contenttype& x,
+            const contenttype*& left,
+            const contenttype*& right){
 
   __AVL_TRACE__
   if(root==NULL) return 0;  // member not found
-  if(root->content==x){
+  if(Comparator::equal(root->content,x)){
 
      if(root->left){ // search the left neighbour
-        AvlNode<contenttype>* tmp = root->left;
+        AvlNode<contenttype,Comparator>* tmp = root->left;
         while(tmp->right){
            tmp = tmp->right;
         }
@@ -1542,7 +1576,7 @@ static const contenttype* getMember(AvlNode<contenttype>const* const root,
     
 
      if(root->right){ // search the right neighbour
-        AvlNode<contenttype>* tmp = root->right;
+        AvlNode<contenttype,Comparator>* tmp = root->right;
         while(tmp->left){
            tmp = tmp->left;
         }
@@ -1550,7 +1584,7 @@ static const contenttype* getMember(AvlNode<contenttype>const* const root,
      }
      return &root->content;
   }
-  if(x < root->content){
+  if(Comparator::smaller(x , root->content)){
      const contenttype* res = getMember(root->left,x,left,right);
      if(!right){
         right = &root->content;
@@ -1571,7 +1605,7 @@ static const contenttype* getMember(AvlNode<contenttype>const* const root,
 2.1 Check
 
 */
-static bool Check(AvlNode<contenttype>const* const root,
+static bool Check(AvlNode<contenttype,Comparator>const* const root,
                   ostream& out) {
 
    if(!root){
@@ -1608,7 +1642,7 @@ static bool Check(AvlNode<contenttype>const* const root,
 
 
 */
-static bool CheckCmp(AvlNode<contenttype>const* const root,
+static bool CheckCmp(AvlNode<contenttype,Comparator>const* const root,
                      const contenttype& content,
                      bool smaller, ostream& out){
 
@@ -1617,14 +1651,14 @@ static bool CheckCmp(AvlNode<contenttype>const* const root,
   }
   // check the sons
   if(smaller){
-    if(! (root->content < content)){
+    if(! ( Comparator::smaller(root->content , content))){
         cout << root->content << endl <<" is located in the left subtree of "
              << endl
              << content << " but it's not smaller" << endl;
         return false;
     }
   } else {
-    if(! (content < root->content)){
+    if(! (Comparator::smaller(content , root->content))){
         cout << root->content << endl <<" is located in the right subtree of "
              << endl
              << content << " but it's not greater" << endl;
@@ -1655,17 +1689,18 @@ object, NULL is returned.
 */
 
 static contenttype const*  GetNearestSmallerOrEqual(
-                       AvlNode<contenttype> const* const root,
+                       AvlNode<contenttype,Comparator> const* const root,
                        const contenttype& pattern) {
    __AVL_TRACE__
    if(root==NULL) return NULL;
    contenttype value = root->content;   
  
-   if(value==pattern){ // the nearest is equal to the pattern
+   if(Comparator::equal(value,pattern)){ // the nearest is equal to the pattern
       return &root->content;
    }
-   if(value>pattern){ // a value smaller than pattern can only found
-                      // in the left subtree
+   if(Comparator::smaller(pattern, value)){ 
+          // a value smaller than pattern can only found
+          // in the left subtree
       return GetNearestSmallerOrEqual(root->left,pattern);
    }
    // at this point holds value < pattern
@@ -1686,16 +1721,17 @@ The symmetric function to ~GetSmallerOrEqual~.
 
 */
 static contenttype const* GetNearestGreaterOrEqual(
-                             AvlNode<contenttype> const* const root,
+                             AvlNode<contenttype,Comparator> const* const root,
                              const contenttype& pattern) {
    __AVL_TRACE__
 
     if(root==NULL) return NULL;
     contenttype value = root->content;
-    if(value==pattern){
+    if(Comparator::equal(value,pattern)){
        return &root->content;
     }
-    if(value>pattern){ // search for a closer object in the left subtree
+    if(Comparator::smaller(pattern, value)){ 
+       // search for a closer object in the left subtree
        contenttype const* tmp = GetNearestGreaterOrEqual(root->left,pattern);
        if(tmp){
            return tmp;
@@ -1716,16 +1752,16 @@ returned.
 
 */
 static contenttype const* GetNearestSmaller(
-                             AvlNode<contenttype> const * const root,
-                             const contenttype& pattern) {
+                         AvlNode<contenttype,Comparator> const * const root,
+                         const contenttype& pattern) {
    __AVL_TRACE__
 
   if(root==NULL) return NULL;
   contenttype value = root->content;
-  if(value==pattern){
+  if(Comparator::equal(value,pattern)){
      return GetMax(root->left);
   }
-  if(value<pattern){
+  if(Comparator::smaller(value,pattern)){
      // this is a candidate search for closer object in right subtree
      contenttype const* tmp = GetNearestSmaller(root->right,pattern);
      if(tmp){
@@ -1747,15 +1783,16 @@ stored objects (or the tree is empty), NULL is returned.
 
 */
 static contenttype const* GetNearestGreater(
-                             AvlNode<contenttype> const * const root,
-                             const contenttype& pattern) {
+                         AvlNode<contenttype,Comparator> const * const root,
+                         const contenttype& pattern) {
    __AVL_TRACE__
    if(root==NULL) return NULL;
    contenttype value = root->content;
-   if(value==pattern){
+   if(Comparator::equal(value,pattern)){
        return GetMin(root->right);
    }
-   if(value<pattern){ // search in the right tree for greater objects
+   if(Comparator::smaller(value,pattern)){ 
+        // search in the right tree for greater objects
       return GetNearestGreater(root->right,pattern);
    }
    contenttype const* tmp = GetNearestGreater(root->left,pattern);
@@ -1776,10 +1813,11 @@ Returns a pointer to the maximum entry or NULL if the tree is empty.
 */
 
 static contenttype const* GetMax(
-                            AvlNode<contenttype> const* const root) {
+                 AvlNode<contenttype,Comparator> const* const root) {
    __AVL_TRACE__
    if(root==NULL) return NULL;
-   AvlNode<contenttype> const* tmp; // create tmp to keep root constant
+   AvlNode<contenttype,Comparator> const* tmp; 
+        // create tmp to keep root constant
    tmp = root;
    while(tmp->right){
       tmp = tmp->right;
@@ -1795,10 +1833,11 @@ is empty.
 
 */
 static contenttype const* GetMin(
-                             AvlNode<contenttype> const* const root) {
+                     AvlNode<contenttype,Comparator> const* const root) {
    __AVL_TRACE__
    if(root==NULL) return NULL;
-   AvlNode<contenttype> const* tmp; // create tmp to keep root constant
+   AvlNode<contenttype,Comparator> const* tmp; 
+      // create tmp to keep root constant
    tmp = root;
    while(tmp->left){
       tmp = tmp->left;
@@ -1812,7 +1851,7 @@ static contenttype const* GetMin(
 Computes the number of nodes in the given subtree.
 
 */
-static  int Size(AvlNode<contenttype> const * const root) {
+static  int Size(AvlNode<contenttype,Comparator> const * const root) {
    __AVL_TRACE__
     if(root==NULL) return 0;
     return Size(root->left) + Size(root->right) + 1;
@@ -1825,7 +1864,7 @@ static  int Size(AvlNode<contenttype> const * const root) {
 3.1 The root of this tree
 
 */
-AvlNode<contenttype>*  root;
+AvlNode<contenttype,Comparator>*  root;
 
 
 } ;
@@ -1833,11 +1872,13 @@ AvlNode<contenttype>*  root;
 
 } // end of namespace avltree
 
-template<class T>
-ostream& operator<<(ostream& o,const avltree::AVLTree<T>& tree){
+template<class T,class C>
+ostream& operator<<(ostream& o,const avltree::AVLTree<T,C>& tree){
     tree.Print(o);
     return o;
 }
+
+
 
 
 #endif
