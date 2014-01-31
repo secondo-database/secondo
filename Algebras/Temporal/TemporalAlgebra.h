@@ -922,12 +922,12 @@ The simple constructor.
 
 */
 
-  Intime(const int i):instant((int64_t)i),value(i){}
+  Intime(const int i):instant((int64_t)i),value(false){}
 
   Intime( const Instant& _instant, const Alpha& alpha ):
-    instant( _instant ), value(false)
+    instant( _instant ), value(alpha)
   {
-    value.CopyFrom( &alpha );
+    //value.CopyFrom( &alpha );
     SetDefined( instant.IsDefined());
   }
 /*
@@ -936,10 +936,10 @@ The first constructor.
 */
 
   Intime( const Intime<Alpha>& intime ):
-    instant( intime.instant ), value(false)
+    instant( intime.instant ), value(intime.value)
   {
     if( intime.IsDefined() ){
-      value.CopyFrom( &intime.value );
+      //value.CopyFrom( &intime.value );
       this->del.isDefined=true;
     } else {
       this->del.isDefined = false;
@@ -951,6 +951,10 @@ The second constructor.
 3.4.2 Functions to be part of relations
 
 */
+  inline int NumOfFLOBs() const {return value.NumOfFLOBs();}
+  
+  inline Flob *GetFLOB(const int i) {return value.GetFLOB(i);}
+
   size_t Sizeof() const
   {
     return sizeof( *this );
@@ -1829,6 +1833,10 @@ not modify this unit and return ~false~.
 3.6.3 Functions to be part of relations
 
 */
+
+  inline int NumOfFLOBs() const {return constValue.NumOfFLOBs();}
+  
+  inline Flob *GetFLOB(const int i) {return constValue.GetFLOB(i);}
 
   virtual size_t Sizeof() const
   {
@@ -7302,7 +7310,7 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
 
   if ( listutils::isSymbolUndefined( instance ) )
   {
-    Intime<Alpha> *intime = new Intime<Alpha>;
+    Intime<Alpha> *intime = new Intime<Alpha>(false);
     intime->SetDefined( false );
     correct = true;
     return SetWord( intime );
@@ -7317,9 +7325,11 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
                                                          errorInfo,
                                                          correct ).addr;
 
-    if( correct == false )
+    if(!correct)
     {
-      delete instant;
+      if(instant){
+         delete instant;
+      }
       return SetWord( Address(0) );
     }
 
@@ -7334,7 +7344,9 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
       return SetWord( intime );
     }
     delete instant;
-    delete value;
+    if(value){
+       delete value;
+    }
   }
   correct = false;
   return SetWord( Address(0) );
