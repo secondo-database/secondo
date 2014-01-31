@@ -5,6 +5,7 @@ import com.sun.j3d.utils.behaviors.mouse.MouseRotate;
 import com.sun.j3d.utils.behaviors.mouse.MouseTranslate;
 import com.sun.j3d.utils.behaviors.mouse.MouseWheelZoom;
 import com.sun.j3d.utils.universe.SimpleUniverse;
+import com.sun.j3d.utils.universe.ViewingPlatform;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -23,6 +24,7 @@ import javax.media.j3d.TriangleArray;
 import javax.vecmath.Color3b;
 import javax.vecmath.Point3d;
 import javax.vecmath.Point3f;
+import javax.vecmath.Vector3d;
 import javax.vecmath.Vector3f;
 import sj.lang.ListExpr;
 import viewer.MenuVector;
@@ -45,24 +47,15 @@ public class V3DViewer extends SecondoViewer {
         setLayout(new BorderLayout());
         add(BorderLayout.NORTH, ComboBox);
         Canvas3D c3d = new Canvas3D(SimpleUniverse.getPreferredConfiguration());
-//        GraphicsConfigTemplate3D gct3d = new GraphicsConfigTemplate3D();
-//        JCanvas3D c3d = new JCanvas3D(gct3d);
 
         universe = new SimpleUniverse(c3d);
 
         ScrollPane.add(c3d);
         ScrollPane.setViewportView(universe.getCanvas());
 
-//        JPanel jp = new JPanel(new BorderLayout());
-//        jp.add(BorderLayout.CENTER, ScrollPane);
-//        jp.setDoubleBuffered(true);
         add(BorderLayout.CENTER, ScrollPane);
 
-        //   tg.addChild(shape);
-        //  ScrollPane.add(TextArea);
         JMenu StdMenu = new JMenu("V3DViewer");
-        JMenuItem MI_Remove = StdMenu.add("remove");
-        JMenuItem MI_RemoveAll = StdMenu.add("remove all");
         MI_CageModel = StdMenu.add(new JCheckBoxMenuItem("Cage-Model"));
         MI_CTransl = StdMenu.add(new JCheckBoxMenuItem("Compensate Translation"));
         MV.addMenu(StdMenu);
@@ -82,40 +75,6 @@ public class V3DViewer extends SecondoViewer {
                 if (CurrentObject != null) {
                     showObject();
                 }
-            }
-        });
-
-        MI_Remove.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (CurrentObject != null) {
-                    SecondoObject Victim = CurrentObject;
-                    if (ItemObjects.remove(CurrentObject)) {
-                        ComboBox.removeItem(CurrentObject.getName());
-                        CurrentObject = null;
-                        int index = ComboBox.getSelectedIndex();          // the new current object
-                        if (index >= 0) {
-                            CurrentObject = (SecondoObject) ItemObjects.get(index);
-                            showObject();
-                        }
-                    }
-                    if (VC != null) {
-                        VC.removeObject(Victim);  // inform the ViewerControl
-                    }
-                }
-            }
-        });
-
-        MI_RemoveAll.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ItemObjects.clear();
-                ComboBox.removeAllItems();
-                CurrentObject = null;
-                if (VC != null) {
-                    VC.removeObject(null);
-                }
-                showObject();
             }
         });
 
@@ -158,8 +117,7 @@ public class V3DViewer extends SecondoViewer {
 
     /* returns true if o is a SecondoObject in this viewer */
     public boolean isDisplayed(SecondoObject o) {
-        return ItemObjects.indexOf(o) >= 0;
-
+        return CurrentObject == o;
     }
 
     /**
@@ -170,6 +128,8 @@ public class V3DViewer extends SecondoViewer {
         if (ItemObjects.remove(o)) {
             ComboBox.removeItem(o.getName());
         }
+        if (CurrentObject == o)
+            CurrentObject = null;
     }
 
     /**
@@ -226,6 +186,8 @@ public class V3DViewer extends SecondoViewer {
             return false;
         }
     }
+    
+    
     BranchGroup bg = null;
     int cnr = 0;
 
@@ -263,134 +225,6 @@ public class V3DViewer extends SecondoViewer {
         return c;
     }
     
-    private void addURegionFace(ListExpr ll, LinkedList<Point3f> pl, LinkedList<Color3b> cl, float zoff) {
-        ll = ll.first();
-        System.err.println("Displaying: " + ll.toString());
-        boolean finish = false;
-        ListExpr fp = ll.first();
-        float scale = 200f;
-        float height = 1f;
-        float minsx = 999999, minsy = 999999, minfx = 999999, minfy = 999999;
-        do {
-            ListExpr p = ll.first();
-            if (p == null) {
-                System.err.println("p is null");
-                p = fp;
-                finish = true;
-            }
-            System.err.println("p is "+p.toString());            
-            float sx1 = (float) p.first().realValue();
-            float sy1 = (float) p.second().realValue();
-            float fx1 = (float) p.third().realValue();
-            float fy1 = (float) p.fourth().realValue();
-            p = ll.rest().first();
-            if (finish) {
-                System.err.println("2p is null");
-                break;
-            }
-            if (p == null) {
-                p = fp;
-                finish = true;
-            }
-            float sx2 = (float) p.first().realValue();
-            float sy2 = (float) p.second().realValue();
-            float fx2 = (float) p.third().realValue();
-            float fy2 = (float) p.fourth().realValue();
-
-            if ((sx1 != fx1) || (sy1 != fy1)) {
-                if (minsx > sx1) {
-                    minsx = sx1;
-                }
-                if (minsy > sy1) {
-                    minsy = sy1;
-                }
-                if (minfx > fx1) {
-                    minfx = fx1;
-                }
-                if (minfx > fx2) {
-                    minfx = fx2;
-                }
-                if (minfy > fy1) {
-                    minfy = fy1;
-                }
-                if (minfy > fy2) {
-                    minfy = fy2;
-                }
-                pl.add(new Point3f(sx1 / scale, sy1 / scale, zoff * height));
-                pl.add(new Point3f(fx1 / scale, fy1 / scale, (zoff + 1) * height));
-                pl.add(new Point3f(fx2 / scale, fy2 / scale, (zoff + 1) * height));
-                Color3b c = nextColor();
-                cl.add(c);
-                cl.add(c);
-                cl.add(c);
-//                        pl.add(new Point3f(sx1 / scale, sy1 / scale, 0f));
-//                        pl.add(new Point3f(fx2 / scale, fy2 / scale, height));
-//                        pl.add(new Point3f(fx1 / scale, fy1 / scale, height));
-            }
-            if ((sx2 != fx2) || (sy2 != fy2)) {
-                if (minfx > fx1) {
-                    minfx = fx1;
-                }
-                if (minfy > fy1) {
-                    minfy = fy1;
-                }
-                if (minsx > sx1) {
-                    minsx = sx1;
-                }
-                if (minsx > sx2) {
-                    minsx = sx2;
-                }
-                if (minsy > sy1) {
-                    minsy = sy1;
-                }
-                if (minsy > sy2) {
-                    minsy = sy2;
-                }
-                pl.add(new Point3f(sx1 / scale, sy1 / scale, zoff * height));
-                pl.add(new Point3f(sx2 / scale, sy2 / scale, zoff * height));
-                pl.add(new Point3f(fx2 / scale, fy2 / scale, (zoff + 1) * height));
-                Color3b c = nextColor();
-                cl.add(c);
-                cl.add(c);
-                cl.add(c);
-//                        pl.add(new Point3f(sx1 / scale, sy1 / scale, 0));
-//                        pl.add(new Point3f(fx2 / scale, fy2 / scale, height));
-//                        pl.add(new Point3f(sx2 / scale, sy2 / scale, 0));
-            }
-
-            ll = ll.rest();
-        } while (!finish);
-        float minx = Math.min(minsx, minfx);
-        float miny = Math.min(minsy, minfy);
-        for (int i = 0; i < pl.size(); i++) {
-            Point3f p = pl.get(i);
-            if (MI_CTransl.isSelected()) {
-                if (p.z == zoff * height) {
-                    p.x -= minsx / scale;
-                    p.y -= minsy / scale;
-                } else {
-                    p.x -= minfx / scale;
-                    p.y -= minfy / scale;
-                }
-            } else {
-//                p.x -= minx / scale;
-//                p.y -= miny / scale;
-            }
-            p.z -= height / 20;
-        }
-    }
-
-    private void addURegion(ListExpr ll, LinkedList<Point3f> pl, LinkedList<Color3b> cl, float zoff) {
-        ll = ll.second();
-        
-        System.out.println("Adding URegion "+ll.toString());
-
-        while (ll != null && !ll.isEmpty()) {
-            addURegionFace(ll.first(), pl, cl, zoff);
-            ll = ll.rest();
-        }
-    }
-
     private void showObject() {
 
         int index = ComboBox.getSelectedIndex();
@@ -400,16 +234,7 @@ public class V3DViewer extends SecondoViewer {
                 LinkedList<Point3f> pl = new LinkedList();
                 LinkedList<Color3b> cl = new LinkedList();
                 
-                List<Point3d> px = Face.MRegionList2Triangles(CurrentObject.toListExpr());
-
-//                ListExpr ll = CurrentObject.toListExpr().second();
-//                float zoff = 0;
-//                while (ll != null && !ll.isEmpty()) {
-//                    addURegion(ll.first(), pl, cl, zoff);
-//                    ll = ll.rest();
-//                    zoff++;
-//                    System.out.println("Ok, size: "+pl.size());
-//                }
+                List<Point3d> px = Face.MRegionList2Triangles(CurrentObject.toListExpr(), MI_CTransl.isSelected());
 
                 Appearance app = new Appearance();
                 PolygonAttributes pa = new PolygonAttributes();
@@ -424,13 +249,17 @@ public class V3DViewer extends SecondoViewer {
                 shape.setAppearance(app);
                 TriangleArray tri = new TriangleArray(px.size(), TriangleArray.COORDINATES | TriangleArray.COLOR_3);
                 Color3b c = nextColor();
+                Color3b white = new Color3b(Color.WHITE);
                 for (int i = 0; i < px.size(); i++) {
                     if (i%3 == 0)
                         c = nextColor();
                     tri.setCoordinate(i, px.get(i));
-                    System.err.println("YYY "+px.get(i).toString());
-                    tri.setColor(i, c);
+                    if (i < px.size()-6)
+                        tri.setColor(i, c);
+                    else // The last six values are the arrow, which we want to be white
+                        tri.setColor(i, white);
                 }
+                
                 shape.setGeometry(tri);
                 Transform3D viewtransform3d = new Transform3D();
                 viewtransform3d.setTranslation(new Vector3f(0.0f, 0.0f, 1.0f));
@@ -459,11 +288,15 @@ public class V3DViewer extends SecondoViewer {
                 mwz.setSchedulingBounds(new BoundingSphere());
                 bg.addChild(mwz);
 
-//                bg.addChild(new MouseWheelZoom());
                 bg.setCapability(BranchGroup.ALLOW_DETACH);
                 bg.compile();
                 universe.addBranchGraph(bg);
-                universe.getViewingPlatform().setNominalViewingTransform();
+                
+                TransformGroup tg3 = universe.getViewingPlatform().getViewPlatformTransform();
+                Transform3D t3d = new Transform3D();
+                t3d.setTranslation(new Vector3f(0.0f, 0.0f, 25));
+                tg3.setTransform(t3d);
+                
             } catch (Exception e) {
                 e.printStackTrace();
             }

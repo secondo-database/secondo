@@ -14,14 +14,31 @@ public class Face {
             RANGEY = 5,
             RANGEZ = 5;
 
-    static List<Point3d> MRegionList2Triangles(ListExpr le) {
+    static List<Point3d> MRegionList2Triangles(ListExpr le,
+            boolean compensate) {
         List<Point3d> ret = new LinkedList();
 
+        String type = le.first().textValue();
         le = le.second();
 
-        ListExpr p = le.first();
-        while (p != null) {
-            le = le.rest();
+        if (type.equals("mregion")) {
+            ListExpr p = le.first();
+            while (p != null) {
+                le = le.rest();
+                ListExpr interval = p.first();
+
+                String start = interval.first().textValue();
+                String stop = interval.second().textValue();
+
+                double z1 = parseInstant(start);
+                double z2 = parseInstant(stop);
+
+                ListExpr uregion = p.second();
+                ret.addAll(FacesList2Triangles(uregion, z1, z2, compensate));
+                p = le.first();
+            }
+        } else if (type.equals("uregion")) {
+            ListExpr p = le;
             ListExpr interval = p.first();
 
             String start = interval.first().textValue();
@@ -31,11 +48,19 @@ public class Face {
             double z2 = parseInstant(stop);
 
             ListExpr uregion = p.second();
-            ret.addAll(FacesList2Triangles(uregion, z1, z2));
+            ret.addAll(FacesList2Triangles(uregion, z1, z2, compensate));
             p = le.first();
         }
-        
+
         FixCoordinates(ret);
+
+        // Draw an arrow for orientation
+        ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1, -RANGEZ / 2));
+        ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1 + 0.1, -RANGEZ / 2));
+        ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1 + 0.05, RANGEZ / 2));
+        ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1, RANGEZ / 2 * 0.9));
+        ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1 + 0.1, RANGEZ / 2 * 0.95));
+        ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1 + 0.05, RANGEZ / 2));
 
         return ret;
     }
@@ -68,9 +93,6 @@ public class Face {
                 maxz = p.z;
             }
         }
-//        double offx = -minx - (maxx - minx) / 2;
-//        double offy = -miny - (maxy - miny) / 2;
-//        double offz = -minz - (maxz - minz) / 2;
         double offx = -minx;
         double offy = -miny;
         double offz = -minz;
@@ -80,13 +102,38 @@ public class Face {
 
         for (int i = 0; i < l.size(); i++) {
             Point3d p = l.get(i);
-            p.x = (p.x + offx)*scalex - RANGEX/2;
-            p.y = (p.y + offy)*scaley - RANGEY/2;
-            p.z = (p.z + offz)*scalez - RANGEZ/2;
+            p.x = (p.x + offx) * scalex - RANGEX / 2;
+            p.y = (p.y + offy) * scaley - RANGEY / 2;
+            p.z = (p.z + offz) * scalez - RANGEZ / 2;
         }
     }
 
-    static List<Point3d> FacesList2Triangles(ListExpr le, double z1, double z2) {
+    static void CompensateTranslation(List<Point3d> l, double z1, double z2) {
+        Point2d[] off = new Point2d[2];
+
+        for (Point3d p : l) {
+            int i = (p.z == z1) ? 0 : 1;
+            if (off[i] == null) {
+                off[i] = new Point2d(p.x, p.y);
+            } else {
+                if (p.x < off[i].x) {
+                    off[i].x = p.x;
+                }
+                if (p.y < off[i].y) {
+                    off[i].y = p.y;
+                }
+            }
+        }
+
+        for (Point3d p : l) {
+            int i = (p.z == z1) ? 0 : 1;
+            p.x -= off[i].x;
+            p.y -= off[i].y;
+        }
+    }
+
+    static List<Point3d> FacesList2Triangles(ListExpr le, double z1, double z2,
+            boolean compensate) {
         List<Point3d> ret = new LinkedList();
 
         ListExpr p = le.first();
@@ -94,6 +141,10 @@ public class Face {
             le = le.rest();
             ret.addAll(FaceList2Triangles(p, z1, z2));
             p = le.first();
+        }
+
+        if (compensate) {
+            CompensateTranslation(ret, z1, z2);
         }
 
         return ret;
@@ -118,7 +169,7 @@ public class Face {
         List<HalfSeg> lhs = List2HS(le);
         for (int i = 0; i < lhs.size() - 1; i++) {
             ret.addAll(HS2Triangles(lhs.get(i), lhs.get(i + 1), z1, z2));
-            
+
         }
 
         return ret;
@@ -163,11 +214,6 @@ public class Face {
             ret.add(new Point3d(i1.x, i1.y, z1));
             ret.add(new Point3d(i2.x, i2.y, z1));
             ret.add(new Point3d(f2.x, f2.y, z2));
-        }
-        
-        System.out.println("Triangle(s):");
-        for (Point3d p : ret) {
-            System.out.println(p.toString());
         }
 
         return ret;
