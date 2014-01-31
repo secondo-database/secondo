@@ -484,7 +484,7 @@ void Tuple::WriteToBlock(char* buf,
           if (!containLOBs)
           {
             DEBUG_MSG("tmpFlob->saveToFile");
-            tmpFlob->saveToFile( lobFileId,false, *tmpFlob );
+            tmpFlob->saveToFile( lobFileId,(char)0, *tmpFlob );
           }
           else
           {
