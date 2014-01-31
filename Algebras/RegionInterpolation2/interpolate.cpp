@@ -200,7 +200,7 @@ static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
 
 static vector<pair<Reg *, Reg *> > matchFaces(
         vector<Reg> *src, vector<Reg> *dst, int depth,
-        vector<pair<Reg*,Reg*> > fn(*)(vector<Reg>*, vector<Reg>*, int, string),
+        vector<pair<Reg*,Reg*> > (*fn)(vector<Reg>*, vector<Reg>*, int, string),
         string args) {
     vector<pair<Reg *, Reg *> > ret;
 
