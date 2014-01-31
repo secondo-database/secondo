@@ -154,12 +154,15 @@ class MPrecCoordinate : public PPrecCoordinate{
                      const uint32_t _scale, 
                      DbArray<uint32_t>* _fracStorage):
           PPrecCoordinate(_gridCoord,_precPos), 
-          fracStorage(_fracStorage), fractional(0), scale(_scale) {}
+          fracStorage(_fracStorage), fractional(0), scale(_scale) {
+        assert(_scale>0);
+     }
 
      MPrecCoordinate(const int64_t intPart, const string& fracPart, 
                      const uint32_t _scale): 
             PPrecCoordinate(intPart,1), fracStorage(0), 
             fractional(0), scale(_scale){
+         assert(_scale>0);
          fractional = new mpq_class(fracPart);
          canonicalize();
      }
@@ -168,42 +171,53 @@ class MPrecCoordinate : public PPrecCoordinate{
                      const DbArray<uint32_t>* _fracStore,
                      const uint32_t _scale):
        PPrecCoordinate(_p), fracStorage(_fracStore), 
-       fractional(0), scale(_scale) {}
+       fractional(0), scale(_scale) {
+        assert(_scale>0);
+     }
 
      MPrecCoordinate(const int64_t _gridCoord, const mpq_class& _fractional, 
                      const int32_t _scale):
           PPrecCoordinate(_gridCoord,1),fracStorage(0), 
           fractional(new mpq_class(_fractional)),
           scale(_scale) {
+       assert(_scale>0);
        canonicalize();
      }
 
      MPrecCoordinate(const MPrecCoordinate& src):
-       PPrecCoordinate(src), fracStorage(src.fracStorage),scale(src.scale){
+       PPrecCoordinate(src), fracStorage(src.fracStorage),
+       fractional(0),scale(src.scale){
         fractional = src.fractional?new mpq_class(*(src.fractional)):0;
      }
      
      MPrecCoordinate(const MPrecCoordinate& src, uint32_t newScale):
-       PPrecCoordinate(src), fracStorage(src.fracStorage),scale(src.scale){
+       PPrecCoordinate(src), fracStorage(src.fracStorage),
+       fractional(0),scale(src.scale){
+        assert(newScale >0);
         fractional = src.fractional?new mpq_class(*(src.fractional)):0;
         changeScaleTo(newScale);
      }
 
      MPrecCoordinate(const int64_t value, uint32_t _scale=1):
-         PPrecCoordinate(value,0), fracStorage(0),fractional(0), scale(_scale) {
+         PPrecCoordinate(value,0), fracStorage(0),
+         fractional(0), scale(_scale) {
+         assert(_scale>0);
      }
 
      MPrecCoordinate(const int32_t value, const uint32_t _scale =1):
        PPrecCoordinate(value,0), fracStorage(0),fractional(0) , scale(_scale){
+       assert(_scale>0);
      }
      
      MPrecCoordinate(const uint32_t value, const uint32_t _scale =1):
        PPrecCoordinate(value,0), fracStorage(0),fractional(0) , scale(_scale){
+         assert(_scale>0);
      }
 
      MPrecCoordinate(const double& value, const uint32_t _scale=1):
          PPrecCoordinate(0,0),fracStorage(0), 
           fractional( new mpq_class(value)), scale(_scale){
+         assert(_scale>0);
           canonicalize(); 
      }
 
@@ -211,12 +225,14 @@ class MPrecCoordinate : public PPrecCoordinate{
           PPrecCoordinate(0,0), fracStorage(0), 
           fractional(new mpq_class(value.ToString())),
           scale(_scale){
+         assert(_scale>0);
           canonicalize();
      }
 
      MPrecCoordinate(const mpq_class& value, uint32_t _scale=1):
          PPrecCoordinate(0,0), fracStorage(0), 
          fractional(new mpq_class(value)), scale(_scale){
+         assert(_scale>0);
          canonicalize();
      }
 
@@ -275,6 +291,7 @@ class MPrecCoordinate : public PPrecCoordinate{
            fracStorage = 0;
            scale = _scale;
            operator *=(_scale);
+           assert(scale >0);
            return true;
         } else {
            if(isFraction){
@@ -290,6 +307,7 @@ class MPrecCoordinate : public PPrecCoordinate{
                  precPos = 1;
                  canonicalize();
                  operator*=(_scale);
+                 assert(scale>0);
                  return true;
                } catch(...){
                  return false;  
@@ -315,6 +333,7 @@ class MPrecCoordinate : public PPrecCoordinate{
                 fracStorage = 0;
                 precPos = 0;
                 scale = _scale;
+                assert(scale >0);
                 return true; 
               }
               uint64_t denom = 1;
@@ -332,6 +351,7 @@ class MPrecCoordinate : public PPrecCoordinate{
               scale = _scale;
               canonicalize();
               operator *=(_scale);
+              assert(scale >0);
               return  true; 
            }
         }
@@ -356,6 +376,7 @@ class MPrecCoordinate : public PPrecCoordinate{
            }
          }
          scale = src.scale;
+         assert(scale>0);
          return *this;
      }
 
@@ -366,9 +387,12 @@ class MPrecCoordinate : public PPrecCoordinate{
         }
      }
 
-     std::string toString() const{
+     std::string toString( bool includeScale=true) const{
          stringstream ss;
-         ss << scale << " :: " << gridCoord;
+         if(includeScale){
+              ss << scale << " :: ";
+         }
+         ss  << gridCoord;
          if(precPos==0){
              return ss.str();
          }
@@ -605,7 +629,7 @@ Binary operators
        v.retrieveFractional();
        int64_t gc = gridCoord * v.gridCoord*v.scale;
        mpq_class f = v.scale*gridCoord*(*v.fractional) +
-                     *(fractional)*v.gridCoord + *(fractional)* *(v.fractional);
+                    *(fractional)*v.gridCoord + *(fractional)* *(v.fractional);
        gridCoord = gc;
        *fractional =  f;
        canonicalize();
@@ -669,6 +693,7 @@ Binary operators
         }
         gridCoord = intPart;
         scale = _scale;
+        assert(scale>0);
         canonicalize(); 
     }
 
@@ -690,11 +715,24 @@ Binary operators
     } 
 
 
+/*
+  Debugging function
+
+*/
+  void getFractional(void*& result) const{
+      result = fractional;
+  }
+
 
   private:
      mutable const DbArray<uint32_t>* fracStorage;
      mutable mpq_class* fractional;
      mutable uint32_t scale;
+
+
+     MPrecCoordinate(): PPrecCoordinate(0,0), 
+                        fracStorage(0), fractional(0), 
+                        scale(1){}
 
 
      void retrieveFractional() const{

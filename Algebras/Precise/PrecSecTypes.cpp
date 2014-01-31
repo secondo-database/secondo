@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "StringUtils.h"
 
+#include "HsTools.h"
+
 class MPrecPointComp{
   public:
      bool operator()(const MPrecPoint& p1, const MPrecPoint& p2){
@@ -74,6 +76,13 @@ ListExpr toListExpr(const MPrecCoordinate& x){
 ListExpr toListExpr(const MPrecPoint& p){
    return nl->TwoElemList( toListExpr(p.getX()), 
                            toListExpr(p.getY()));
+}
+
+
+ListExpr toListExpr(const MPrecHalfSegment& hs){
+   return nl->TwoElemList( toListExpr(hs.getLeftPoint()),
+                           toListExpr(hs.getRightPoint()));
+
 }
 
 
@@ -345,6 +354,90 @@ MPrecPoint getPrecPoint( const Point& p, int scale, bool useStr){
    MPrecPoint res(x,y);
    return res;
     
+}
+
+/*
+~getMPrecHsExact~
+
+Converts a usual halfsegment into a precise one.
+
+*/
+MPrecHalfSegment getMPrecHsExact(const HalfSegment& hs, int scale){
+   assert(scale>0);
+   MPrecPoint lp( MPrecCoordinate(hs.GetLeftPoint().GetX(),scale),
+                  MPrecCoordinate( hs.GetLeftPoint().GetY(), scale));
+   MPrecPoint rp( MPrecCoordinate(hs.GetRightPoint().GetX(),scale),
+                  MPrecCoordinate( hs.GetRightPoint().GetY(), scale));
+   lp.compScale(scale);
+   rp.compScale(scale);
+   MPrecHalfSegment mhs(lp,rp,hs.IsLeftDomPoint(), hs.attr);
+   return mhs;
+}
+
+/*
+~getMPrecHs~
+
+Converts a usual halfsegment into a precise one using the given precision.
+
+*/
+MPrecHalfSegment getMPrecHs(const HalfSegment& hs, 
+                            int scale, uint32_t precision){
+   assert(scale>0);
+
+   MPrecCoordinate x(0);
+   MPrecCoordinate y(0);
+   
+   if(!x.readFromString(stringutils::double2str(hs.GetLeftPoint().GetX(), 
+                        precision),scale) ||
+      !y.readFromString(stringutils::double2str( hs.GetLeftPoint().GetY(), 
+                        precision), scale)){
+      assert(false);
+   }
+   MPrecPoint lp(x,y);
+   if(!x.readFromString(stringutils::double2str(hs.GetRightPoint().GetX(), 
+                                     precision),scale) ||
+      !y.readFromString(stringutils::double2str( hs.GetRightPoint().GetY(), 
+                                     precision), scale)){
+      assert(false);
+   }
+   MPrecPoint rp(x,y);
+   MPrecHalfSegment mhs(lp,rp,hs.IsLeftDomPoint(), hs.attr);
+   return mhs;
+}
+
+
+bool readHalfSegment(ListExpr le, MPrecHalfSegment& result, 
+                     const bool includeScale, int scale){
+
+  if(includeScale){
+     if(!nl->HasLength(le,2)){
+       return false;
+     }
+     ListExpr sc = nl->First(le);
+     le = nl->Second(le);
+     if(nl->AtomType(sc)!=IntType){
+        return false;
+     }
+     scale = nl->IntValue(sc);
+     if(scale<=0){
+         return false;
+     }
+  }
+  if(!nl->HasLength(le,2)){
+    return false;
+  }
+  MPrecPoint p1(0,0);
+  MPrecPoint p2(0,0);
+  if(   !readPoint(nl->First(le),p1,false,scale) 
+     || !readPoint(nl->Second(le),p2,false,scale)){
+    return false;
+  } 
+  if(p1==p2){
+     return false;
+  }
+  AttrType dummy(0);
+  result = MPrecHalfSegment(p1,p2,true, dummy);
+  return true;
 }
 
 
@@ -964,6 +1057,156 @@ void precPoints::readFrom(const Points& points, int scale, bool useString){
 }
  
 
+/*
+3.3 precLine
+
+*/
+
+int PrecLine::compareTo(const PrecLine& rhs)const{
+        if(!IsDefined()){
+           return rhs.IsDefined()?-1:0;
+        }
+        if(!rhs.IsDefined()){
+           return 1;
+        }
+        int cbb = bbox.Compare(&rhs.bbox);
+        if(cbb!=0){
+          return cbb;
+        }
+        if(Size() < rhs.Size()){
+            return -1;
+        }
+        if(Size()> rhs.Size()){
+            return 1;
+        }
+        for(size_t i =0; i< Size(); i++){
+           MPrecHalfSegment hs1 = getHalfSegment(i);
+           MPrecHalfSegment hs2 = rhs.getHalfSegment(i);
+           int cmp = hs1.compareTo(hs2);
+           if(cmp!=0){
+              return cmp;
+           }
+        }
+        return 0;
+    }
+
+
+
+ListExpr PrecLine::ToListExpr(ListExpr typeInfo) const{
+      if(!IsDefined()){
+         return listutils::getUndefined();
+      }
+
+       ListExpr hsList = nl->TheEmptyList();
+       ListExpr last;
+       bool first = true;
+       for(size_t i=0;i<Size();i++){
+          MPrecHalfSegment hs = getHalfSegment(i);
+          if(hs.isLeftDomPoint()){
+              if(first){
+                  hsList = nl->OneElemList( toListExpr(hs));
+                  last = hsList;
+                  first = false;
+              } else {
+                 last = nl->Append(last, toListExpr(hs));
+              }
+          }
+       }
+       return nl->TwoElemList( nl->IntAtom(scale), 
+                               hsList); 
+    }
+
+
+
+void PrecLine::readFrom(const Line& line, int scale, bool useString){
+    if(!line.IsDefined() || scale<=0){
+      clear();
+      SetDefined(false);
+      return;
+    }
+    vector<MPrecHalfSegment> hsv;
+    HalfSegment hs;
+    
+    for(int i=0;i<line.Size();i++){
+       line.Get(i,hs);
+       if(useString){
+          hsv.push_back(getMPrecHs(hs, scale, 16));
+       } else {
+          hsv.push_back(getMPrecHsExact(hs, scale));
+       }
+    }
+    gridData.resize(hsv.size());
+    for(size_t i=0;i<hsv.size(); i++){
+       MPrecHalfSegment mhs = hsv[i];
+       mhs.appendTo(&gridData, &fracStorage);
+       enlarge(bbox, mhs.getLeftPoint());
+       enlarge(bbox, mhs.getRightPoint()); 
+    }
+    this->scale = scale; 
+    SetDefined(true);
+}
+
+bool PrecLine::ReadFrom(ListExpr value, ListExpr typeInfo){
+   if(listutils::isSymbolUndefined(value)){
+     clear();
+     SetDefined(false);
+     return true;
+   }
+
+   if(!nl->HasLength(value,2)){
+      return false;
+   }
+   ListExpr sc = nl->First(value);
+   value = nl->Second(value);
+   if(nl->AtomType(sc)!=IntType ||
+      nl->AtomType(value)!=NoAtom){
+     return false;
+   }
+   int scale = nl->IntValue(sc);
+   if(scale<=0){
+      return false;
+   }
+   
+   startBulkLoad();
+   AttrType dummy(0);
+   MPrecHalfSegment hs(MPrecPoint(0,0),MPrecPoint(1,0),true,dummy);
+   while(!nl->IsEmpty(value)){
+      ListExpr first = nl->First(value);
+      value = nl->Rest(value);
+      if(!readHalfSegment(first, hs,false,scale)){
+          clear();
+          SetDefined(false);
+          delete bulkloadStorage;
+          bulkloadStorage=0;
+          return false;
+      }
+      append(hs);
+   }
+   endBulkLoad();
+   this->scale = scale;
+   SetDefined(true);
+   return true;
+}
+
+void PrecLine::endBulkLoad(bool realminize){
+   assert(bulkloadStorage);
+
+   hstools::sort(*bulkloadStorage);
+
+   vector<MPrecHalfSegment> v2;
+   hstools::realminize(*bulkloadStorage,v2);
+
+   hstools::sort(v2);
+   hstools::setPartnerNumbers(v2);
+   delete bulkloadStorage;
+   bulkloadStorage=0;
+   bbox.SetDefined(false);
+   for(size_t i=0;i<v2.size();i++){
+      v2[i].appendTo(&gridData, &fracStorage);
+      enlarge(bbox, v2[i].getLeftPoint());
+      enlarge(bbox, v2[i].getRightPoint());
+   }
+}
 
 
 /*
@@ -972,6 +1215,12 @@ void precPoints::readFrom(const Points& points, int scale, bool useString){
 */
 
 int PrecRegion::compareTo(const PrecRegion& rhs)const{
+        if(!IsDefined()){
+           return rhs.IsDefined()?-1:0;
+        }
+        if(!rhs.IsDefined()){
+           return 1;
+        }
         int cbb = bbox.Compare(&rhs.bbox);
         if(cbb!=0){
           return cbb;
@@ -1037,46 +1286,6 @@ bool correctHs(vector<MPrecHalfSegment>& v){
 
 }
 
-MPrecHalfSegment getMPrecHsExact(const HalfSegment& hs, int scale){
-   assert(scale>0);
-   MPrecPoint lp( MPrecCoordinate(hs.GetLeftPoint().GetX(),scale),
-                  MPrecCoordinate( hs.GetLeftPoint().GetY(), scale));
-   MPrecPoint rp( MPrecCoordinate(hs.GetRightPoint().GetX(),scale),
-                  MPrecCoordinate( hs.GetRightPoint().GetY(), scale));
-   lp.compScale(scale);
-   rp.compScale(scale);
-   MPrecHalfSegment mhs(lp,rp,hs.IsLeftDomPoint(), hs.attr);
-   return mhs;
-}
-
-
-
-
-
-MPrecHalfSegment getMPrecHs(const HalfSegment& hs, 
-                            int scale, uint32_t precision){
-   assert(scale>0);
-
-   MPrecCoordinate x(0);
-   MPrecCoordinate y(0);
-   
-   if(!x.readFromString(stringutils::double2str(hs.GetLeftPoint().GetX(), 
-                        precision),scale) ||
-      !y.readFromString(stringutils::double2str( hs.GetLeftPoint().GetY(), 
-                        precision), scale)){
-      assert(false);
-   }
-   MPrecPoint lp(x,y);
-   if(!x.readFromString(stringutils::double2str(hs.GetRightPoint().GetX(), 
-                                     precision),scale) ||
-      !y.readFromString(stringutils::double2str( hs.GetRightPoint().GetY(), 
-                                     precision), scale)){
-      assert(false);
-   }
-   MPrecPoint rp(x,y);
-   MPrecHalfSegment mhs(lp,rp,hs.IsLeftDomPoint(), hs.attr);
-   return mhs;
-}
 
 void PrecRegion::readFrom(const Region& reg, int scale, bool useString){
     if(!reg.IsDefined() || scale<=0){

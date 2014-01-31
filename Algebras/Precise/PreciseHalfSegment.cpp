@@ -33,9 +33,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "PreciseHalfSegment.h"
 
 ostream& operator<<(ostream& os, const MPrecHalfSegment& hs){
- 
-   os << "lp: " << hs.getLeftPoint() 
-      << ", rp : " << hs.getRightPoint() 
+   os << "scale: " << hs.getScale()  << ":: " 
+      << "lp: " << hs.getLeftPoint().toString(false) 
+      << ", rp : " << hs.getRightPoint().toString(false)
       << ", ldp : " << hs.isLeftDomPoint() 
       << " Attr : " << hs.attributes;
    return os;

@@ -85,7 +85,8 @@ class PPrecHalfSegment{
 
 };
 
-
+class MPrecHalfSegment;
+ostream& operator<<(ostream& os, const MPrecHalfSegment& hs);
 
 class MPrecHalfSegment{
 
@@ -96,6 +97,7 @@ class MPrecHalfSegment{
       ldp(phs.ldp), lp(phs.lp,fracStorage,_scale), 
       rp(phs.rp,fracStorage, _scale),
       attributes(phs.attributes) {
+       assert(_scale>0);
        correctOrder();
       }
 
@@ -104,7 +106,12 @@ class MPrecHalfSegment{
 
      MPrecHalfSegment(const MPrecPoint& _lp, const MPrecPoint _rp, 
                       const bool _ldp, AttrType _attributes):
-        ldp(_ldp), lp(_lp), rp(_rp), attributes(_attributes) {}
+        ldp(_ldp), lp(_lp), rp(_rp), attributes(_attributes) {
+        if(lp.getScale()!=rp.getScale()){
+           rp.changeScaleTo(lp.getScale());
+        }
+        correctOrder();
+     }
                       
 
 
@@ -115,6 +122,25 @@ class MPrecHalfSegment{
         attributes = src.attributes;
         return *this;
      }
+/*
+Check for exact equality of the halfsegment's geometry.
+The dominating points as well as the attributes are not checked.
+
+*/
+    bool operator==(const MPrecHalfSegment& hs) const{
+       return ldp==hs.ldp && lp==hs.lp && rp==hs.rp;
+    }
+
+/*
+Checks whether this halfsegment and the argument have the same geometry,
+i.e. if lp and rp are equal.
+
+*/
+
+    bool sameGeometry(const MPrecHalfSegment& hs) const{
+       return (lp==hs.lp) && (rp==hs.rp);
+    }
+
 
      MPrecPoint getLeftPoint() const{ return lp; }
      MPrecPoint getRightPoint() const{ return rp; }
@@ -159,6 +185,10 @@ class MPrecHalfSegment{
        rp = _rp;
        attributes = _attributes;
        correctOrder();
+    }
+
+    void setLDP(const bool _ldp){
+        ldp = _ldp;
     }
 
     void compScale(const MPrecCoordinate& sx, const MPrecCoordinate& sy){
@@ -236,7 +266,7 @@ Checks whether this halfsegment contains a certain point
       return (x-x1)*(y2-y1) == (y-y2)*(x2-x1);
     }
    
-    bool boxIntersects(const MPrecHalfSegment& hs){
+    bool boxIntersects(const MPrecHalfSegment& hs) const{
        MPrecCoordinate x1 = lp.getX();
        MPrecCoordinate y1 = lp.getY();
        MPrecCoordinate x2 = rp.getX();
@@ -276,7 +306,7 @@ Checks whether this halfsegment contains a certain point
 Checks whether this segment and hs have a common segment
 
 */
-    bool overlaps(const MPrecHalfSegment& hs) {
+    bool overlaps(const MPrecHalfSegment& hs) const{
         if(!boxIntersects(hs)){
           return false;
         }
@@ -302,7 +332,7 @@ This function checks whether the interior of this segment and the interior
 of hs have a common point.
 
 */
-    bool crosses(const MPrecHalfSegment& hs){
+    bool crosses(const MPrecHalfSegment& hs) const{
       if(!boxIntersects(hs)){
          return false;
       }
@@ -351,7 +381,7 @@ Computes the intersectionPOint of the interiors of this and hs.
 If no such intersection exists, 0 is returned
 
 */
-    MPrecPoint* crossPoint(const MPrecHalfSegment& hs){
+    MPrecPoint* crossPoint(const MPrecHalfSegment& hs) const{
       if(!boxIntersects(hs)){
          return 0;
       }
@@ -394,6 +424,81 @@ If no such intersection exists, 0 is returned
       return new MPrecPoint(xp,yp);    
     }
 
+/*
+~checkRealm~
+
+This function checks whether this halfsegment and ~hs~ have at most 
+end points in common.
+
+*/
+    bool checkRealm(const MPrecHalfSegment& hs) const{
+       if(!boxIntersects(hs)){
+          return true;
+       }
+
+       if(isVertical()) {
+          if(hs.isVertical()){
+             MPrecCoordinate y1 = hs.lp.getY();
+             MPrecCoordinate y2 = hs.rp.getY();
+             return ( y1 >= rp.getY() || y2 <= lp.getY());   
+          } else {
+             MPrecCoordinate y = hs.getY(lp.getX());
+             if(y<lp.getY() || y>rp.getY()){
+                return true;
+             }
+             if(y>lp.getY() && y<rp.getY()){
+                return false;
+             }
+             // y is one of the endpoints of this segment
+             return (lp.getX()==hs.lp.getX() || lp.getX()==hs.rp.getX());
+          }
+       } else if(hs.isVertical()){
+           MPrecCoordinate y = getY(hs.lp.getX());
+           if(y<hs.lp.getY() || y>hs.rp.getY()){
+              return true;
+           } 
+           if(y>hs.lp.getX() && y<hs.rp.getY()){
+              return false;
+           }
+           return (lp.getX() == hs.lp.getX() || rp.getX() == hs.lp.getX());
+       }
+       // both segments are non-vertical
+       
+       if(lp==hs.lp && rp==hs.rp){ // equal halfsegments
+            return false;
+       }  
+       if(innerContains(hs.lp) || innerContains(hs.rp)){
+          return false;
+       } 
+       if(hs.innerContains(lp) || hs.innerContains(rp)){
+          return false;
+       }
+       return !crosses(hs);
+
+    }
+
+/*
+~innerContains~
+
+Checks whether ~p~ is located in the interior of this halfsegment.
+
+*/ 
+   bool innerContains(const MPrecPoint& p)const{
+       if(isVertical()){
+          return lp.getX() == p.getX() &&
+                 p.getY()>lp.getY() && p.getY() < rp.getY();
+       }
+       MPrecCoordinate dx = (p.getX() - lp.getX()) / (rp.getX() - lp.getX());
+       if(dx <= 0 || dx>=1){
+           return false;
+       }
+       MPrecCoordinate y = lp.getY() + dx*(rp.getY()-lp.getY());
+       return y == p.getY();
+   }
+
+
+
+
     int compareTo(const MPrecHalfSegment& rhs) const{
        int cmp = getDomPoint().compareTo(rhs.getDomPoint());
        if(cmp!=0) return cmp;
@@ -427,6 +532,50 @@ If no such intersection exists, 0 is returned
        return slope.compare(hsslope);
     }
 
+/*
+~getY~
+
+This function returns the y value for the line defined by this segment 
+for a given x-coordinate. If the segment is vertical and the given x value corresponds 
+to the x value of this segment. the smallest y -value of this segment is returned.
+If the x-values differ for a vertical segment, an exception is thrown.
+
+*/    
+    MPrecCoordinate getY(const MPrecCoordinate& x) const{
+      if(isVertical()){
+          if(x==lp.getX()){
+             return lp.getY();
+          } else {
+             throw 1;
+          }
+      }
+      // non vertical segment
+      MPrecCoordinate delta = (x - lp.getX()) / (rp.getX() - lp.getX());
+      MPrecCoordinate y = lp.getY() + delta * (rp.getY() - lp.getY());
+      return y;
+    }
+
+
+    int getScale() const{
+       return lp.getScale();
+    }
+
+/**
+  Debugging function. not for normal use 
+
+*/    
+  void getFractionals(void** result ) const{
+     lp.getFractionals(result);
+     rp.getFractionals(result+2);
+  }
+
+  bool checkScales() const{
+     return     lp.checkScale() 
+             && rp.checkScale()
+             && (lp.getScale()==rp.getScale());
+  }
+
+
      
   private:
      bool ldp;
@@ -437,11 +586,13 @@ If no such intersection exists, 0 is returned
   private: 
   
 
+    MPrecHalfSegment():ldp(true),lp(0,0),rp(1,1), attributes(1) {}
+
 
     void correctOrder(){
        assert(lp!=rp);
 
-       if(lp < rp){
+       if(rp < lp){
          MPrecPoint tmp(lp);
          lp = rp;
          rp = tmp;
@@ -451,13 +602,32 @@ If no such intersection exists, 0 is returned
 
 };
 
-ostream& operator<<(ostream& os, const MPrecHalfSegment& hs);
 
 
 class HalfSegmentComparator{
   public:
+
+  HalfSegmentComparator():print(false){}
+
   int operator()(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2){
-      int cmp = hs1.getDomPoint().compareTo(hs2.getDomPoint());
+
+      //cout << "compare " << hs1 << endl
+      //     << "with    " << hs2 << endl;
+
+      MPrecPoint dp1 = hs1.getDomPoint();
+
+      if(print){
+        cout << "comapre halfsegments, dp1 = " << dp1 << endl; 
+      }
+
+      MPrecPoint dp2 = hs2.getDomPoint();
+
+      if(print){
+        cout << "comapre halfsegments, dp2 = " << dp2 << endl; 
+      }
+
+
+      int cmp = dp1.compareTo(dp2);
       if(cmp!=0) return cmp;
       if( hs1.isLeftDomPoint()  != hs2.isLeftDomPoint() ) {
            if( hs1.isLeftDomPoint() == false ){
@@ -470,7 +640,39 @@ class HalfSegmentComparator{
       return hs1.compareSlope(hs2);
   }
 
+  bool print; 
+
+
 };
+
+
+class LogicalHalfSegmentComparator{
+  public:
+     int operator()(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2){
+        if(hs1.attributes.faceno < hs2.attributes.faceno) return -1;
+        if(hs1.attributes.faceno > hs2.attributes.faceno) return 1;
+        if(hs1.attributes.cycleno < hs2.attributes.cycleno) return -1;
+        if(hs1.attributes.cycleno > hs2.attributes.cycleno) return 1;
+        if(hs1.attributes.edgeno < hs2.attributes.edgeno) return -1;
+        if(hs1.attributes.edgeno > hs2.attributes.edgeno) return 1;
+        return 0;
+     }
+};
+
+
+template<class Obj, class Comp>
+class IsSmaller{
+
+  public:
+     bool operator()(const Obj& o1, const Obj& o2){
+        return comp(o1,o2)<0;
+     }
+
+  private:
+     Comp comp;
+
+};
+
 
 
 

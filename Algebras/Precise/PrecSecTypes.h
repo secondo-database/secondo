@@ -814,7 +814,209 @@ compute the difference of this and ps
 
 
 /*
-5 Implementation of a precise Region
+5 Implementation of a precise line type
+
+
+*/
+class Line;
+
+class PrecLine : public StandardSpatialAttribute<2> {
+
+  public:
+     PrecLine() {}
+     PrecLine(bool defined) :
+         StandardSpatialAttribute(defined), 
+         bbox(false),
+         scale(1), gridData(0),fracStorage(0), bulkloadStorage(0) {}
+
+     PrecLine(int dummy) :
+         StandardSpatialAttribute(false), bbox(false),
+         scale(1), gridData(0), fracStorage(0), bulkloadStorage(0) {}
+
+     PrecLine(const PrecLine& src) :
+        StandardSpatialAttribute(src), bbox(src.bbox),
+        scale(src.scale), gridData(src.gridData.Size()),
+        fracStorage(src.fracStorage.Size()), bulkloadStorage(0){
+           assert(src.bulkloadStorage==0);
+           gridData.copyFrom(src.gridData);
+           fracStorage.copyFrom(src.fracStorage); 
+     }
+
+
+     PrecLine& operator=(const PrecLine& src){
+        bbox = src.bbox;
+        scale = src.scale;
+        gridData.copyFrom(src.gridData);
+        fracStorage.copyFrom(src.fracStorage);
+        assert(bulkloadStorage==0);
+        assert(src.bulkloadStorage==0);
+        return *this;
+     }
+
+     size_t Size() const{
+        return gridData.Size();
+     }
+
+     MPrecHalfSegment getHalfSegment(size_t index) const{
+       PPrecHalfSegment pps;
+       gridData.Get(index,pps);
+       return MPrecHalfSegment(pps,&fracStorage, scale);
+     }
+
+     const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const{
+         assert(geoid==0);
+         return bbox;         
+      } 
+
+     
+     bool Adjacent(const Attribute* arg) const{
+       bool implemented = false;
+       assert(implemented);
+       return false;
+     }
+
+     size_t Sizeof() const{
+        return sizeof(*this);
+     }
+
+
+    size_t HashValue() const{
+       if(!IsDefined()){
+          return 0;
+       } 
+       size_t sum = 0;
+       for(size_t i=0;i<min((size_t)5,Size()); i++){
+          PPrecHalfSegment hs;
+          gridData.Get(i,hs);
+          sum += hs.getHash();
+       }
+       return sum*scale;
+    }
+
+    int compareTo(const PrecLine& rhs)const;
+
+    int Compare( const Attribute *rhs ) const{
+      return compareTo(*((PrecLine*) rhs));
+    }
+
+    void CopyFrom(const Attribute* right) {
+        *this = *( (PrecLine*) right);
+    }
+
+    PrecLine* Clone() const{
+       return new PrecLine(*this);
+    }
+
+    ostream& Print(ostream& os ) const{
+       os << "precLine " << endl;
+       for(size_t i =0; i< Size(); i++){
+           MPrecHalfSegment hs = getHalfSegment(i);
+           os << hs << endl;
+        }
+        return os;
+    }
+
+    int NumOfFLOBs() const{
+      return 2;
+    } 
+   
+    Flob* GetFLOB( const int i ) {
+      if(i==0) return &gridData;
+      if(i==1) return &fracStorage;
+      assert(false);
+      return 0;
+    }
+
+    static string BasicType() {
+       return "precLine";
+    }
+
+    static bool checkType(const ListExpr e){
+       return listutils::isSymbol(e, BasicType());
+    }    
+
+    static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+      return nl->IsEqual(type,BasicType());
+    }    
+     
+    static ListExpr Property(){
+       return gentc::GenProperty("-> DATA",
+                          BasicType(),
+                          "( scale (hs1, hs2, ...))",
+                          "( 100 ( (0 0 1 1 )))");
+     }    
+
+
+    virtual double Distance(const Rectangle<2>& rect,
+                            const Geoid* geoid=0) const {
+       assert(false);
+       // TODO: Implement this function
+       return 0;
+
+    }; 
+    
+    virtual bool Intersects(const Rectangle<2>& rect,
+                            const Geoid* geoid=0 ) const {
+        assert(false);
+        // TODO: Implement this function
+        return false;
+    } 
+
+    virtual bool IsEmpty() const {
+        return !IsDefined() || Size()==0;  
+    } 
+
+    ListExpr ToListExpr(ListExpr typeInfo) const;
+
+
+    bool ReadFrom(ListExpr value, ListExpr typeInfo);
+
+
+    void clear(){
+       bbox.SetDefined(false);
+       gridData.clean();
+       fracStorage.clean(); 
+    }
+
+
+    void startBulkLoad(){
+        assert(bulkloadStorage==0);
+        clear(); // ensure to start from beginning
+        bulkloadStorage = new vector<MPrecHalfSegment>();
+    }
+
+    void append(MPrecHalfSegment& hs){
+        assert(bulkloadStorage!=0);
+        size_t edgeno = bulkloadStorage->size()/2;
+        hs.attributes.edgeno = edgeno;
+        bulkloadStorage->push_back(hs);
+        hs.switchLDP();
+        bulkloadStorage->push_back(hs);
+    }
+
+    void endBulkLoad( bool realminize = true ); 
+
+    void readFrom(const Line& line, int scale, bool useString);
+
+
+  private:
+    Rectangle<2> bbox;
+    uint32_t scale;        // should be 10^x
+    DbArray<PPrecHalfSegment> gridData;
+    DbArray<uint32_t> fracStorage;
+
+    vector<MPrecHalfSegment>* bulkloadStorage; // only used during bulkload
+                                               // after end of bulkload 0
+
+
+};
+
+
+
+
+
+/*
+6 Implementation of a precise Region
 
 */
 

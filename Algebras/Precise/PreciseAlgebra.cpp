@@ -63,6 +63,7 @@ GenTC<PrecCoord> precise;
 GenTC<PrecPoint> precisePoint;
 GenTC<precPoints> precisePoints;
 GenTC<PrecRegion> preciseRegion;
+GenTC<PrecLine> preciseLine;
 
 
 /*
@@ -100,6 +101,9 @@ ListExpr arOpsTM(ListExpr args){
         } else {
            return listutils::basicSymbol<PrecCoord>();
         }
+    }
+    if(!PrecCoord::checkType(nl->Second(args))){
+       return listutils::typeError(err);
     }
     if(!isNumeric(nl->First(args))){
        return listutils::typeError(err);
@@ -336,6 +340,8 @@ ListExpr toPreciseTM(ListExpr args){
      resType = listutils::basicSymbol<precPoints>();
   } else if(Region::checkType(arg1)){
      resType = listutils::basicSymbol<PrecRegion>();
+  } else if(Line::checkType(arg1)){
+     resType = listutils::basicSymbol<PrecLine>();
   } else {
     return listutils::typeError(err);
   }
@@ -358,111 +364,8 @@ ListExpr toPreciseTM(ListExpr args){
 */
 
 
-template<class T>
-int toPreciseVM1 (Word* args, Word& result, int message, Word& local,
-            Supplier s ){
-
-  T* arg = (T*) args[0].addr;
-  result = qp->ResultStorage(s);
-  PrecCoord* res = (PrecCoord*) result.addr;
-  uint32_t scale = 1;
-  if(qp->GetNoSons(s)==2){
-     CcInt* arg2 = (CcInt*) args[1].addr;
-     if(!arg2->IsDefined()){
-          res->SetDefined(false);
-          return 0;
-     } 
-     CcInt::inttype v = arg2->GetValue();
-     if(v<=0){
-        res->SetDefined(false);
-        return 0;
-     }
-     scale = v;
-  }
- 
-  if(!arg->IsDefined()){
-     res->SetDefined(false);
-     return 0;
-  }
-  MPrecCoordinate m (arg->GetValue(), scale);
-  if(scale!=1){
-       m *= scale;
-  }
-  *res = m;
-  return 0;
-}
-
-
-int toPreciseVM2 (Word* args, Word& result, int message, Word& local,
-            Supplier s ){
-  Point* arg = (Point*) args[0].addr;
-  result = qp->ResultStorage(s);
-  PrecPoint* res = (PrecPoint*) result.addr;
-  uint32_t scale = 1;
-  if(qp->GetNoSons(s)==2){
-     CcInt* arg2 = (CcInt*) args[1].addr;
-     if(!arg2->IsDefined()){
-          res->SetDefined(false);
-          return 0;
-     } 
-     CcInt::inttype v = arg2->GetValue();
-     if(v<=0){
-        res->SetDefined(false);
-        return 0;
-     }
-     scale = v;
-  }
-  res->set(arg->GetX(), arg->GetY(), scale);
-  if(scale!=1){
-     res->compScale(scale, scale,*res);
-  }
-  return 0;
-}
-
-int toPreciseVM3 (Word* args, Word& result, int message, Word& local,
-            Supplier s ){
-
-  Points* arg = (Points*) args[0].addr;
-  result = qp->ResultStorage(s);
-  precPoints* res = (precPoints*) result.addr;
-  res->clear();
-  if(!arg->IsDefined()){
-     res->SetDefined(false);
-     return 0;   
-  }
-  uint32_t scale = 1;
-  if(qp->GetNoSons(s)==2){
-     CcInt* arg2 = (CcInt*) args[1].addr;
-     if(!arg2->IsDefined()){
-          res->SetDefined(false);
-          return 0;
-     } 
-     CcInt::inttype v = arg2->GetValue();
-     if(v<=0){
-        res->SetDefined(false);
-        return 0;
-     }
-     scale = v;
-  }
-
-  Point p;
-  MPrecPoint pp(0,0);
-  res->StartBulkLoad(scale);
-  for(int i=0;i<arg->Size(); i++){
-      arg->Get(i,p);
-      pp.set(p.GetX(), p.GetY(), scale);
-      if(scale!=1){
-         pp.compScale(scale);
-      }
-      res->append(pp);
-  }
-  res->EndBulkLoad();
-  return 0;
-}
-
-
 template<class S, class T>
-int toPreciseVM4 (Word* args, Word& result, int message, Word& local,
+int toPreciseVM1 (Word* args, Word& result, int message, Word& local,
             Supplier s ){
 
   result = qp->ResultStorage(s);
@@ -486,14 +389,15 @@ int toPreciseVM4 (Word* args, Word& result, int message, Word& local,
 */
 
 ValueMapping toPreciseVM[] = {
-     toPreciseVM4<PrecCoord,PrecCoord>,
-     toPreciseVM4<CcInt,PrecCoord>,
-     toPreciseVM4<CcReal,PrecCoord>,
-     toPreciseVM4<LongInt,PrecCoord>,
-     toPreciseVM4<Rational,PrecCoord>,
-     toPreciseVM4<Point,PrecPoint>,
-     toPreciseVM4<Points,precPoints>,
-     toPreciseVM4<Region,PrecRegion>
+     toPreciseVM1<PrecCoord,PrecCoord>,
+     toPreciseVM1<CcInt,PrecCoord>,
+     toPreciseVM1<CcReal,PrecCoord>,
+     toPreciseVM1<LongInt,PrecCoord>,
+     toPreciseVM1<Rational,PrecCoord>,
+     toPreciseVM1<Point,PrecPoint>,
+     toPreciseVM1<Points,precPoints>,
+     toPreciseVM1<Region,PrecRegion>,
+     toPreciseVM1<Line,PrecLine>
   };
 
 int toPreciseSelect(ListExpr args){
@@ -507,6 +411,7 @@ int toPreciseSelect(ListExpr args){
   if(Point::checkType(arg)) return 5;
   if(Points::checkType(arg)) return 6;
   if(Region::checkType(arg)) return 7;
+  if(Line::checkType(arg)) return 8;
   return -1;
 }
 
@@ -516,7 +421,7 @@ int toPreciseSelect(ListExpr args){
 */
 
 OperatorSpec toPreciseSpec(
-        " {numeric, point, points, region} -> precise",
+        " {numeric, point, points, line, region} -> preciseXX",
         " toPrecise(_)",
         " Converts a numeric value into a precise value",
         "query toPrecise(17.5)"
@@ -530,7 +435,7 @@ OperatorSpec toPreciseSpec(
 Operator toPreciseOP(
   "toPrecise",
   toPreciseSpec.getStr(),
-  8,
+  9,
   toPreciseVM,
   toPreciseSelect,
   toPreciseTM
@@ -1488,6 +1393,8 @@ class PreciseAlgebra : public Algebra
     precise::precisePoints.AssociateKind("DATA");
     AddTypeConstructor( &precise::preciseRegion );
     precise::preciseRegion.AssociateKind("DATA");
+    AddTypeConstructor( &precise::preciseLine );
+    precise::preciseLine.AssociateKind("DATA");
 
     AddOperator(&precise::plusOP);
     AddOperator(&precise::minusOP);

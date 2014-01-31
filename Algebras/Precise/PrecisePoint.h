@@ -88,8 +88,12 @@ class MPrecPoint {
                  const uint32_t _scale):
         x(point.getX(),fst,_scale), y(point.getY(),fst,_scale)
       {
-
+         assert(_scale>0);
       }
+
+      MPrecPoint(const MPrecPoint& src) : x(src.x), y(src.y)
+      { }
+
 
       MPrecPoint& operator=(const MPrecPoint&  src){
             x = src.x;
@@ -168,9 +172,12 @@ class MPrecPoint {
          return dx*dx + dy*dy;
       }
 
-      std::string toString() const {
+      std::string toString(bool includeScale=true) const {
         stringstream ss;
-        ss << "(" << x.getScale() << ":: "<< x << ", " << y << ")";
+        if(includeScale){
+            ss << x.getScale() << ":: ";
+        } 
+        ss << "( " << x.toString(false) << ", " << y.toString(false) << ")";
         return ss.str();
       }    
 
@@ -195,11 +202,25 @@ class MPrecPoint {
         }
       } 
 
+/*
+  Debugging function
+
+*/    
+   void getFractionals(void** result) const{
+       x.getFractional(result[0]);
+       y.getFractional(result[1]);
+    }
+
+    bool checkScale() const{
+       return x.getScale()==y.getScale();
+    }
 
    private:
      MPrecCoordinate x;
      MPrecCoordinate y;
 
+
+     MPrecPoint():x(0),y(0){ assert(false); }
     
     void unifyScale(){
        if(x.getScale()==y.getScale()){
