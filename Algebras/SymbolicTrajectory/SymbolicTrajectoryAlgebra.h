@@ -68,7 +68,6 @@ class IndexLI;
 
 enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
-enum LabelsState {partial, complete};
 
 Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
@@ -114,7 +113,9 @@ int CompareLabels(const void *a, const void *b);
 
 class Labels : public Attribute {
  public:
-  Labels(const int n, const Label *Lb = 0);
+  Labels() {} // this constructor is reserved for the cast function.
+  explicit Labels(const int n, const Label *Lb = 0);
+  explicit Labels(const bool defined);
   Labels(const Labels& src);
   ~Labels();
 
@@ -129,11 +130,9 @@ class Labels : public Attribute {
   ostream& Print(ostream& os) const;
 
   void Append( const Label &lb );
-  void Complete();
   void Destroy();
   int GetNoLabels() const;
   Label GetLabel(int i) const;
-  string GetState() const;
   const bool IsEmpty() const;
   void CopyFrom(const Attribute* right);
   size_t HashValue() const;
@@ -160,12 +159,10 @@ class Labels : public Attribute {
                                  return listutils::isSymbol(type, BasicType());}
   DbArray<Label> GetDbArray() {return labels;}
   void Sort() {labels.Sort(CompareLabels);}
-  void Clean() {if (labels.Size()) {labels.clean();} state = partial;}
+  void Clean() {if (labels.Size()) {labels.clean();}}
 
  private:
-  Labels() {} // this constructor is reserved for the cast function.
   DbArray<Label> labels;
-  LabelsState state;
 };
 
 class ILabel : public IString {
@@ -236,6 +233,77 @@ class ULabel : public UString {
   void Initial(ILabel *result);
   void Final(ILabel *result);
 };
+
+/*
+\section{Implementation of ILabels, ULabels, MLabels}
+
+*/
+class MLabels; // forward declaration
+
+class ILabels : public Intime<Labels> {
+ public:
+  ILabels() {}
+  explicit ILabels(const bool defined);
+  explicit ILabels(const ILabels& ils);
+  ILabels(const Instant &inst, const Labels &lbs);
+  
+  static ListExpr Property();
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word &w);
+  static void Close(const ListExpr typeInfo, Word &w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static void* Cast(void* addr) {return (new (addr)ILabels);}
+  static int SizeOfObj() {return sizeof(ILabels);}
+  static bool KindCheck(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "i" + Labels::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return value.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return value.GetFLOB(i);}
+};
+
+class ULabels : public ConstTemporalUnit<Labels> {
+ private:
+  friend class MLabels;
+  
+ public:
+  ULabels() {}
+  explicit ULabels(int n);
+  explicit ULabels(const SecInterval &iv, const Labels &lbs);
+  explicit ULabels(const ULabels& uls);
+  ULabels(int i, MLabels &mls);
+  
+  static ListExpr Property();
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word &w);
+  static void Close(const ListExpr typeInfo, Word &w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static void* Cast(void* addr) {return (new (addr)ULabels);}
+  static int SizeOfObj() {return sizeof(ULabels);}
+  static bool KindCheck(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "u" + Labels::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return constValue.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return constValue.GetFLOB(i);}
+};
+
+class MLabels : public Mapping<ULabel, Labels> {
+ private:
+  DbArray<Label> labels;
+  DbArray<unsigned int> labelsStart, labelsEnd;
+  
+ public:
+  MLabels() {}
+  MLabels(int n);
+  
+  void Get(int i, ULabels &uls) const;
+};
+
+
+
 
 class ExprList {
  public: 

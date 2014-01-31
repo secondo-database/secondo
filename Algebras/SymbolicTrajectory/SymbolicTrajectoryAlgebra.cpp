@@ -992,20 +992,19 @@ ostream& operator<<(ostream& os, const Label& lb) {
 \subsection{Constructors}
 
 */
-Labels::Labels(const int n, const Label *lb) :
-                                    Attribute(true), labels(n), state(partial) {
+Labels::Labels(const int n, const Label *lb) : Attribute(true), labels(n) {
   SetDefined(true);
   if (n > 0) {
     for(int i = 0; i < n; i++) {
       Append(lb[i]);
     }
-    Complete();
   }
 }
 
+Labels::Labels(const bool defined) : Attribute(defined), labels(0) {}
+
 Labels::Labels(const Labels& src):
-  Attribute(src.IsDefined()),
-  labels(src.labels.Size()), state(src.state) {
+  Attribute(src.IsDefined()), labels(src.labels.Size()) {
   labels.copyFrom(src.labels);
 }
 
@@ -1020,7 +1019,7 @@ Labels::~Labels() {}
 
 */
 Labels& Labels::operator=(const Labels& src) {
-  this->state = src.state;
+  Attribute::operator=(src);
   labels.copyFrom(src.labels);
   return *this;
 }
@@ -1047,6 +1046,12 @@ Flob *Labels::GetFLOB(const int i) {
 
 */
 int Labels::Compare(const Attribute* arg) const {
+  if (NumOfFLOBs() > arg->NumOfFLOBs()) {
+    return 1;
+  }
+  if (NumOfFLOBs() < arg->NumOfFLOBs()) {
+    return -1;
+  }
   return 0;
 }
 
@@ -1071,7 +1076,6 @@ bool Labels::Adjacent(const Attribute*) const {
 
 */
 Labels *Labels::Clone() const {
-  assert(state == complete);
   Labels *lbs = new Labels(*this);
   return lbs;
 }
@@ -1105,17 +1109,7 @@ ostream& Labels::Print(ostream& os) const {
 
 */
 void Labels::Append(const Label& lb) {
-  assert(state == partial);
   labels.Append(lb);
-}
-
-/*
-\subsection{Function ~Complete~}
-
-*/
-void Labels::Complete() {
-  assert(state == partial);
-  state = complete;
 }
 
 /*
@@ -1123,7 +1117,6 @@ void Labels::Complete() {
 
 */
 void Labels::Destroy() {
-  state = complete;
   labels.destroy();
 }
 
@@ -1147,19 +1140,6 @@ Label Labels::GetLabel(int i) const {
 }
 
 /*
-\subsection{Function ~GetState~}
-
-*/
-string Labels::GetState() const {
-  switch (state) {
-    case partial:
-      return "partial";
-    default:
-      return "complete";
-  }
-}
-
-/*
 \subsection{Function ~IsEmpty~}
 
 */
@@ -1172,7 +1152,6 @@ const bool Labels::IsEmpty() const {
 
 */
 ostream& operator<<(ostream& os, const Labels& lbs) {
-  os << " State: " << lbs.GetState() << "<";
   for(int i = 0; i < lbs.GetNoLabels(); i++)
     os << lbs.GetLabel(i) << " ";
   os << ">";
@@ -1184,19 +1163,20 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 
 */
 ListExpr Labels::Out(ListExpr typeInfo, Word value) {
-  Labels* labels = static_cast<Labels*>(value.addr);
-  if (!labels->IsDefined()) {
-    return (NList(Symbol::UNDEFINED())).listExpr();
+  Labels* lbs = static_cast<Labels*>(value.addr);
+  if (!lbs->IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
   }
-  if (labels->IsEmpty()) {
-    return (NList()).listExpr();
+  if (lbs->IsEmpty()) {
+    return nl->Empty();
   }
   else {
-    NList element("", true);
-    for (int i = 0; i < labels->GetNoLabels(); i++) {
-      element.append(NList((labels->GetLabel(i)).GetValue(), true));
+    ListExpr res = nl->OneElemList(nl->StringAtom(lbs->GetLabel(0).GetValue()));
+    ListExpr last = res;
+    for (int i = 1; i < lbs->GetNoLabels(); i++) {
+      last = nl->Append(last, nl->StringAtom(lbs->GetLabel(i).GetValue()));
     }
-    return element.listExpr();    
+    return res;
   }
 }
 
@@ -1209,25 +1189,24 @@ Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
   Word result = SetWord(Address(0));
   correct = false;
   NList list(instance); 
-  Labels* labels = new Labels(0);
-  labels->SetDefined(true);
+  Labels* lbs = new Labels(0);
+  lbs->SetDefined(true);
   while (!list.isEmpty()) {
     if (!list.isAtom() && list.first().isAtom() && list.first().isString()) {
       Label label(list.first().str());
-      labels->Append(label);
+      lbs->Append(label);
       correct = true;
     }
     else {
       correct = false;
       cmsg.inFunError("Expecting a list of string atoms!");
-      delete labels;
+      delete lbs;
       return SetWord(Address(0));
     }
     list.rest();
   }
-  labels->labels.Sort(CompareLabels);
-  labels->Complete();  
-  result.addr = labels;
+//   labels->labels.Sort(CompareLabels);
+  result.addr = lbs;
   return result;
 }
 
@@ -1341,14 +1320,223 @@ void* Labels::Cast(void* addr) {
 TypeConstructor labelsTC(
         Labels::BasicType(),               //name
         Labels::Property,                  //property function
-        Labels::Out,   Labels::In,        //Out and In functions
-        0,              0,                  //SaveTo and RestoreFrom functions
-        Labels::Create,  Labels::Delete,  //object creation and deletion
-        Labels::Open,    Labels::Save,    //object open and save
-        Labels::Close,   Labels::Clone,   //object close and clone
+        Labels::Out,   Labels::In,         //Out and In functions
+        0,              0,                 //SaveTo and RestoreFrom functions
+        Labels::Create,  Labels::Delete,   //object creation and deletion
+        OpenAttribute<Labels>, 
+        SaveAttribute<Labels>,             //object open and save
+        Labels::Close,   Labels::Clone,    //object close and clone
         Labels::Cast,                      //cast function
         Labels::SizeOfObj,                 //sizeof function
         Labels::KindCheck );               //kind checking function
+
+/*
+\section{Implementation of class ~ILabels~}
+
+\subsection{Constructors}
+
+*/
+ILabels::ILabels(const bool defined) : Intime<Labels>(defined) {
+  SetDefined(defined);
+}
+
+ILabels::ILabels(const ILabels &ils) : Intime<Labels>(ils.instant, ils.value) {
+  SetDefined(ils.IsDefined());
+}
+
+ILabels::ILabels(const Instant &inst, const Labels &lbs) : 
+  Intime<Labels>(inst, lbs) {}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr ILabels::Property() {
+  return (nl->TwoElemList(
+         nl->FourElemList(nl->StringAtom("Signature"),
+                          nl->StringAtom("Example Type List"),
+                          nl->StringAtom("List Rep"),
+                          nl->StringAtom("Example List")),
+         nl->FourElemList(nl->StringAtom("->" + Kind::DATA() ),
+                          nl->StringAtom(ILabels::BasicType()),
+                          nl->StringAtom("<instant> <labels>)"),
+                          nl->StringAtom("(\"2014-01-28\" (\"Dortmund\" "
+                          "\"home\")"))));
+}
+
+/*
+\subsection{Function ~Create~}
+
+*/
+Word ILabels::Create(const ListExpr typeInfo) {
+  return SetWord(new ILabels(false));
+}
+
+/*
+\subsection{Function ~Delete~}
+
+*/
+void ILabels::Delete(const ListExpr typeInfo, Word &w) {
+  ILabels *ils = (ILabels*)w.addr;
+  delete ils;
+  w.addr = 0;
+}
+
+/*
+ \subsection{Function ~Close~}
+ 
+*/
+void ILabels::Close(const ListExpr typeInfo, Word &w) {
+  ILabels *ils = (ILabels*)w.addr;
+  delete ils;
+  w.addr = 0;
+}
+
+/*
+\subsection{Function ~Clone~}
+
+*/
+Word ILabels::Clone(const ListExpr typeInfo, const Word& w) {
+  return SetWord(new ILabels(*((ILabels*)w.addr)));
+}
+
+/*
+\subsection{Function ~KindCheck~}
+
+*/
+bool ILabels::KindCheck(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, ILabels::BasicType());
+}
+
+/*
+\subsection{Type Constructor}
+
+*/
+TypeConstructor intimelabels(
+  ILabels::BasicType(),               //name
+  ILabels::Property,                  //property function
+  OutIntime<Labels, Labels::Out>, 
+  InIntime<Labels, Labels::In>,       //Out and In functions
+  0,              0,                  //SaveTo and RestoreFrom functions
+  ILabels::Create,  ILabels::Delete,  //object creation and deletion
+  OpenAttribute<ILabels>,
+  SaveAttribute<ILabels>,             //object open and save
+  ILabels::Close,   ILabels::Clone,   //object close and clone
+  ILabels::Cast,                      //cast function
+  ILabels::SizeOfObj,                 //sizeof function
+  ILabels::KindCheck );               //kind checking function
+
+/*
+\section{Implementation of class ~ULabels~}
+
+\subsection{Constructors}
+
+*/
+ULabels::ULabels(int n) : ConstTemporalUnit<Labels>(n != 0) {}
+
+ULabels::ULabels(const SecInterval &iv, const Labels &lbs)
+  : ConstTemporalUnit<Labels>(iv, lbs) {
+  SetDefined(true);
+}
+
+ULabels::ULabels(int i, MLabels &mls) 
+  : ConstTemporalUnit<Labels>(mls.IsDefined() && i < mls.GetNoComponents()) {
+  if ((i >= 0) && (i < mls.GetNoComponents())) {
+    mls.Get(i, *this);
+  }
+}
+
+ULabels::ULabels(const ULabels& uls) : ConstTemporalUnit<Labels>(uls) {
+  SetDefined(uls.IsDefined());
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr ULabels::Property() {
+  return (nl->TwoElemList(
+         nl->FiveElemList(nl->StringAtom("Signature"),
+                          nl->StringAtom("Example Type List"),
+                          nl->StringAtom("List Rep"),
+                          nl->StringAtom("Example List"),
+                          nl->StringAtom("")),
+         nl->FiveElemList(nl->StringAtom("->" + Kind::DATA() ),
+                          nl->StringAtom(ULabels::BasicType()),
+                          nl->StringAtom("<interval> <labels>)"),
+                          nl->StringAtom("((\"2014-01-29\" \"2014-01-30\" "),
+                          nl->StringAtom("TRUE FALSE) (\"home\" \"work\"))"))));
+}
+
+/*
+\subsection{Function ~Create~}
+
+*/
+Word ULabels::Create(const ListExpr typeInfo) {
+  return SetWord(new ULabels(false));
+}
+
+/*
+\subsection{Function ~Delete~}
+
+*/
+void ULabels::Delete(const ListExpr typeInfo, Word &w) {
+  ULabels *uls = (ULabels*)w.addr;
+  delete uls;
+  w.addr = 0;
+}
+
+/*
+ \subsection{Function ~Close~}
+ 
+*/
+void ULabels::Close(const ListExpr typeInfo, Word &w) {
+  ULabels *uls = (ULabels*)w.addr;
+  delete uls;
+  w.addr = 0;
+}
+
+/*
+\subsection{Function ~Clone~}
+
+*/
+Word ULabels::Clone(const ListExpr typeInfo, const Word& w) {
+  return SetWord(new ULabels(*((ULabels*)w.addr)));
+}
+
+/*
+\subsection{Function ~KindCheck~}
+
+*/
+bool ULabels::KindCheck(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, ULabels::BasicType());
+}
+
+/*
+\subsection{Type Constructor}
+
+*/
+TypeConstructor unitlabels(
+  ULabels::BasicType(),                   //name
+  ULabels::Property,                      //property function
+  OutConstTemporalUnit<Labels, Labels::Out>,
+  InConstTemporalUnit<Labels, Labels::In>,//Out and In functions
+  0,              0,                      //SaveTo and RestoreFrom functions
+  ULabels::Create,  ULabels::Delete,      //object creation and deletion
+  OpenAttribute<ULabels>, 
+  SaveAttribute<ULabels>,                 //object open and save
+  ULabels::Close,   ULabels::Clone,       //object close and clone
+  ULabels::Cast,                          //cast function
+  ULabels::SizeOfObj,                     //sizeof function
+  ULabels::KindCheck );                   //kind checking functions
+
+
+
+
+void MLabels::Get(int i, ULabels &uls) const {
+  
+}
+
 
 /*
 \section{Operator ~tolabel~}
@@ -2554,7 +2742,6 @@ void Condition::appendToLabelsPtr(unsigned int pos, Label value) {
 
 void Condition::completeLabelsPtr(unsigned int pos) {
   if (pos < pointers.size()) {
-    ((Labels*)pointers[pos])->Complete();
     ((Labels*)pointers[pos])->Sort();
   }
 }
@@ -6451,10 +6638,15 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddTypeConstructor(&intimelabel);
       AddTypeConstructor(&unitlabel);
       AddTypeConstructor(&movinglabel);
+      
+      AddTypeConstructor(&intimelabels);
+      AddTypeConstructor(&unitlabels);
 
       unitlabel.AssociateKind(Kind::DATA());
       movinglabel.AssociateKind(Kind::TEMPORAL());
       movinglabel.AssociateKind(Kind::DATA());
+      intimelabels.AssociateKind(Kind::DATA());
+      unitlabels.AssociateKind(Kind::DATA());
 
       AddTypeConstructor(&labelsTC);
       AddTypeConstructor(&patternTC);

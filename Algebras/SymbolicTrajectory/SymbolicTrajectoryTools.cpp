@@ -288,7 +288,7 @@ string extendDate(string input, const bool start) {
     input.resize(input.size() - 1);
   }
   result.assign(input);
-  int pos = 1;
+  size_t pos = 1;
   if ((pos = input.find('-', pos)) == string::npos) {
     result.append(mask.substr(0));
     return result;
