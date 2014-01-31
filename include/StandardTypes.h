@@ -642,16 +642,24 @@ class CcReal : public Attribute
   explicit inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) :
       Attribute(d),realval(v)
   {
-    SetDefined(d);
     realsCreated++;
   }
 
   explicit inline CcReal( SEC_STD_REAL v, bool d=true ) :
       Attribute(d),realval(v)
   {
-    SetDefined(d);
     realsCreated++;
   }
+
+  CcReal(const CcReal& r): Attribute(r), realval(r.realval){}
+
+  CcReal& operator=(const CcReal& src){
+    Attribute::operator=(src);
+    realval = src.realval; 
+    return *this;
+  }	  
+
+
 
   inline ~CcReal()
   {
@@ -768,10 +776,6 @@ class CcReal : public Attribute
     return realval < rhs.realval;
   }
 
-  CcReal& operator=(const CcReal& r){
-    Set(r.IsDefined(), r.realval);
-    return *this;
-  }
 
   CcReal& operator+=(const CcReal& r){
      if(IsDefined()){
