@@ -345,6 +345,10 @@ class PrecCoord: public Attribute{
        SetDefined(true);
     }
 
+    uint32_t getScale() const{
+      return scale;
+    }
+
   private:
      DbArray<uint32_t> fracStorage;
      PPrecCoordinate coord;
@@ -550,7 +554,15 @@ class PrecPoint: public StandardSpatialAttribute<2> {
         pos = PPrecPoint(0,0);
         fracStorage.clean(); 
         scale = 1;
+     }
+
+     size_t getNoElements() const{
+       return IsDefined()?1:0;
      } 
+    
+     uint32_t getScale() const{
+       return scale;
+     }
 
   private:
      PPrecPoint pos;
@@ -561,24 +573,24 @@ class PrecPoint: public StandardSpatialAttribute<2> {
 
 
 /*
-5 class precPoints
+5 class PrecPoints
 
 This class represents a set of precise points.
 
 */
-class precPoints: public StandardSpatialAttribute<2>{
+class PrecPoints: public StandardSpatialAttribute<2>{
     
  public:
-   precPoints() {}
-   precPoints(bool defined) :
+   PrecPoints() {}
+   PrecPoints(bool defined) :
       StandardSpatialAttribute(defined), gridPoints(0), 
       fracStorage(0), bbox(false), bulkloadStorage(0) {}
 
-   precPoints(int dummy) :
+   PrecPoints(int dummy) :
       StandardSpatialAttribute(false), gridPoints(0), 
       fracStorage(0), bbox(false), bulkloadStorage(0) {}
 
-   precPoints(const precPoints& src):
+   PrecPoints(const PrecPoints& src):
      StandardSpatialAttribute(src), gridPoints(src.gridPoints.Size()),
      fracStorage(src.fracStorage.Size()), bbox(src.bbox) , 
      bulkloadStorage(0) {
@@ -587,7 +599,7 @@ class precPoints: public StandardSpatialAttribute<2>{
           assert(src.bulkloadStorage==0);
      }
 
-    precPoints& operator=(const precPoints& src){
+    PrecPoints& operator=(const PrecPoints& src){
        gridPoints.copyFrom(src.gridPoints);
        fracStorage.copyFrom(src.fracStorage);
        assert(bulkloadStorage==0);
@@ -596,7 +608,7 @@ class precPoints: public StandardSpatialAttribute<2>{
        return *this;
     }
 
-   ~precPoints(){
+   ~PrecPoints(){
         if(bulkloadStorage){
           bulkloadStorage->clear();
           delete bulkloadStorage;
@@ -667,10 +679,10 @@ class precPoints: public StandardSpatialAttribute<2>{
 
      ListExpr ToListExpr (ListExpr typeInfo);
    
-     int compareTo(const precPoints& rhs)const;
+     int compareTo(const PrecPoints& rhs)const;
  
      int Compare(const Attribute* arg) const{
-       return compareTo(*((precPoints*)arg));
+       return compareTo(*((PrecPoints*)arg));
      }
 
      bool Adjacent(const Attribute* arg) const{
@@ -694,11 +706,11 @@ class precPoints: public StandardSpatialAttribute<2>{
     }
 
     void CopyFrom(const Attribute* arg){
-       *this = *((precPoints*)arg);
+       *this = *((PrecPoints*)arg);
     }
 
-    precPoints* Clone() const{
-       return new precPoints(*this);
+    PrecPoints* Clone() const{
+       return new PrecPoints(*this);
     }
 
      std::ostream& Print(std::ostream &os) const;
@@ -721,7 +733,7 @@ class precPoints: public StandardSpatialAttribute<2>{
      bool ReadFrom(ListExpr LE, ListExpr typeInfo);
 
      void StartBulkLoad(const uint32_t _scale){
-       assert(Size()==0);
+       clear();
        assert(bulkloadStorage==0);
        scale = _scale;
        bulkloadStorage = new vector<MPrecPoint>();  
@@ -740,11 +752,11 @@ class precPoints: public StandardSpatialAttribute<2>{
 
      void compScale(const MPrecCoordinate& s1, 
                 const MPrecCoordinate& s2,
-                 precPoints& result) const;
+                 PrecPoints& result) const;
 
      void compTranslate(const MPrecCoordinate& t1, 
                     const MPrecCoordinate& t2,
-                    precPoints& result) const;
+                    PrecPoints& result) const;
 
 /*
 ~contains~
@@ -752,7 +764,7 @@ class precPoints: public StandardSpatialAttribute<2>{
 Checks whether all points of ps are contained in this point set.
 
 */
-     void contains(const precPoints& ps, CcBool& result) const;
+     void contains(const PrecPoints& ps, CcBool& result) const;
 
 /*
 ~contains~
@@ -769,7 +781,7 @@ Checks whether p is contained in this set.
 checks whether this point set and ps have any common points.
 
 */
-     void intersects(const precPoints& ps, CcBool& result)const;
+     void intersects(const PrecPoints& ps, CcBool& result)const;
 
 /*
 ~intersection~
@@ -777,7 +789,7 @@ checks whether this point set and ps have any common points.
 computes the intersection between this point set and the argument
 
 */
-    void intersection(const precPoints& ps, precPoints& result) const;
+    void intersection(const PrecPoints& ps, PrecPoints& result) const;
 
 /*
 ~union~
@@ -785,7 +797,7 @@ computes the intersection between this point set and the argument
 compute the union of this and ps
 
 */    
-    void compUnion(const precPoints& ps, precPoints& result)const;
+    void compUnion(const PrecPoints& ps, PrecPoints& result)const;
 
 
 
@@ -795,11 +807,19 @@ compute the union of this and ps
 compute the difference of this and ps
 
 */    
-    void difference(const precPoints& ps, precPoints& result)const;
+    void difference(const PrecPoints& ps, PrecPoints& result)const;
     
 
     void readFrom(const Points& points, int scale, bool useString);
 
+
+    size_t getNoElements() const{
+        return IsDefined()?gridPoints.Size():0;
+    }
+
+    uint32_t getScale() const{
+      return scale;
+    }
 
  private:
     DbArray<PPrecPoint> gridPoints;
@@ -998,6 +1018,13 @@ class PrecLine : public StandardSpatialAttribute<2> {
 
     void readFrom(const Line& line, int scale, bool useString);
 
+    size_t getNoElements()const{
+      return IsDefined()?gridData.Size()/2:0;
+    }
+
+    uint32_t getScale() const{
+      return scale;
+    }
 
   private:
     Rectangle<2> bbox;
@@ -1207,6 +1234,14 @@ class PrecRegion : public StandardSpatialAttribute<2> {
 
     void readFrom(const Region& region, int scale, bool useString);
 
+
+    size_t getNoElements()const{
+      return IsDefined()?gridData.Size()/2:0;
+    }
+    
+    uint32_t getScale() const{
+      return scale;
+    }
 
   private:
     Rectangle<2> bbox;

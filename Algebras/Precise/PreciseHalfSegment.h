@@ -516,15 +516,23 @@ Checks whether ~p~ is located in the interior of this halfsegment.
 
     int compareSlope(const MPrecHalfSegment& hs)const{
        if(isVertical()){
+           bool up = ldp;
            if(hs.isVertical()){
-             return 0;
+             bool hsup = hs.ldp;
+             if(hsup==up){
+               return 0;
+             }
+             if(up){
+                return 1;
+             }
            }
            bool hsright = hs.getDomPoint().getX() < hs.getSecPoint().getX();
-           return hsright?-1:1;
+           return up==hsright?1:-1;           
        }
        if(hs.isVertical()){
+           bool hsup = hs.ldp;
            bool right = getDomPoint().getX() < getSecPoint().getX();
-           return right?1:-1;
+           return hsup==right?-1:1; 
        }  
        MPrecCoordinate slope = (lp.getY()-rp.getY()) / (lp.getX() - rp.getX());
        MPrecCoordinate hsslope = (hs.lp.getY()-hs.rp.getY()) /

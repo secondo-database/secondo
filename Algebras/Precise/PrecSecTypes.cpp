@@ -248,22 +248,34 @@ bool intersects(const Rectangle<2>& rect,
 
 ListExpr getCycleList(const vector<MPrecHalfSegment>& v, size_t& pos){
   assert(pos < v.size());
+
+
+
   MPrecHalfSegment hs = v[pos];
-  int ffaceno = hs.attributes.faceno;
-  int fcycleno = hs.attributes.cycleno;
+  int ffaceno = hs.attributes.faceno;  // facno of first segment
+  int fcycleno = hs.attributes.cycleno; // facno of second segment
+  MPrecPoint firstPoint = hs.getDomPoint();
   
   bool first = true;
   ListExpr cycle;
   ListExpr last;
+  MPrecPoint lastPoint(0,0);
 
   while( pos < v.size() && hs.attributes.cycleno == fcycleno &&
                            hs.attributes.faceno==ffaceno){
       if(first){
-         cycle = nl->OneElemList( toListExpr(hs.getDomPoint()));
+         lastPoint = hs.getLeftPoint();
+         cycle = nl->OneElemList( toListExpr(lastPoint));
          last = cycle;
          first = false;
       } else {
-         last = nl->Append(last,  toListExpr(hs.getDomPoint())); 
+         MPrecPoint cp = hs.getLeftPoint();
+         if(cp==lastPoint || cp==firstPoint ){
+            lastPoint = hs.getRightPoint();
+         }else {
+            lastPoint = cp;
+         }
+         last = nl->Append(last, toListExpr(lastPoint)); 
       }
       pos++;
       if(pos<v.size()){
@@ -599,11 +611,11 @@ bool PrecPoint::ReadFrom(ListExpr LE, ListExpr typeInfo){
 
 
 /*
-3.3 precPoints
+3.3 PrecPoints
 
 */
 
-ListExpr precPoints::ToListExpr (ListExpr typeInfo){
+ListExpr PrecPoints::ToListExpr (ListExpr typeInfo){
          if(!IsDefined()){
             return listutils::getUndefined();
          }
@@ -623,7 +635,7 @@ ListExpr precPoints::ToListExpr (ListExpr typeInfo){
      }
 
 
-int precPoints::compareTo(const precPoints& rhs)const{
+int PrecPoints::compareTo(const PrecPoints& rhs)const{
         if(!IsDefined()){
            return rhs.IsDefined()?-1:0;
         }
@@ -647,7 +659,7 @@ int precPoints::compareTo(const precPoints& rhs)const{
      }
  
 
-std::ostream& precPoints::Print(std::ostream &os) const{
+std::ostream& PrecPoints::Print(std::ostream &os) const{
         if(!IsDefined()){
             os << "undef";
             return os;
@@ -662,7 +674,7 @@ std::ostream& precPoints::Print(std::ostream &os) const{
      }
 
 
- double precPoints::Distance(const Rectangle<2>& rect,
+ double PrecPoints::Distance(const Rectangle<2>& rect,
                             const Geoid* geoid/*=0*/) const {
        assert(geoid==0);
        if(!IsDefined()){
@@ -679,7 +691,7 @@ std::ostream& precPoints::Print(std::ostream &os) const{
     } 
 
 
- bool precPoints::Intersects(const Rectangle<2>& rect,
+ bool PrecPoints::Intersects(const Rectangle<2>& rect,
                             const Geoid* geoid/*=0*/ ) const {
        if(!IsDefined()){
           return false;
@@ -697,7 +709,7 @@ std::ostream& precPoints::Print(std::ostream &os) const{
 
 
 
-bool precPoints::ReadFrom(ListExpr LE, ListExpr typeInfo){
+bool PrecPoints::ReadFrom(ListExpr LE, ListExpr typeInfo){
         if(listutils::isSymbolUndefined(LE)){
            SetDefined(false);
            clear();
@@ -742,7 +754,7 @@ bool precPoints::ReadFrom(ListExpr LE, ListExpr typeInfo){
      }
 
 
-void precPoints::EndBulkLoad(bool sort/*=true*/){
+void PrecPoints::EndBulkLoad(bool sort/*=true*/){
         assert(bulkloadStorage);
         if(sort){
            MPrecPointComp cmp; 
@@ -772,9 +784,9 @@ void precPoints::EndBulkLoad(bool sort/*=true*/){
      }
 
 
-void precPoints::compScale(const MPrecCoordinate& s1, 
+void PrecPoints::compScale(const MPrecCoordinate& s1, 
                 const MPrecCoordinate& s2,
-                 precPoints& result) const{
+                 PrecPoints& result) const{
 
          result.clear();
          if(!IsDefined()){
@@ -791,9 +803,9 @@ void precPoints::compScale(const MPrecCoordinate& s1,
      }
 
 
-void precPoints::compTranslate(const MPrecCoordinate& t1, 
+void PrecPoints::compTranslate(const MPrecCoordinate& t1, 
                     const MPrecCoordinate& t2,
-                    precPoints& result) const{
+                    PrecPoints& result) const{
          result.clear();
          if(!IsDefined()){
            result.SetDefined(false);
@@ -809,7 +821,7 @@ void precPoints::compTranslate(const MPrecCoordinate& t1,
      }
 
 
-void precPoints::contains(const precPoints& ps, CcBool& result) const{
+void PrecPoints::contains(const PrecPoints& ps, CcBool& result) const{
         if(!IsDefined() || !ps.IsDefined()){
             result.SetDefined(false);
             return;
@@ -850,7 +862,7 @@ Checks whether p is contained in this set.
 
 */
 
-void precPoints::contains(const PrecPoint& p, CcBool& result) const{
+void PrecPoints::contains(const PrecPoint& p, CcBool& result) const{
         if(!IsDefined() || !p.IsDefined()){
            result.SetDefined(false);
            return;
@@ -888,7 +900,7 @@ void precPoints::contains(const PrecPoint& p, CcBool& result) const{
      }
 
 
- void precPoints::intersects(const precPoints& ps, CcBool& result)const{
+ void PrecPoints::intersects(const PrecPoints& ps, CcBool& result)const{
         if(!IsDefined() || !ps.IsDefined()){
            result.SetDefined(false);
            return;
@@ -917,7 +929,7 @@ void precPoints::contains(const PrecPoint& p, CcBool& result) const{
 
 
 
- void precPoints::intersection(const precPoints& ps, precPoints& result) const{
+ void PrecPoints::intersection(const PrecPoints& ps, PrecPoints& result) const{
         result.clear();
         if(!IsDefined() || !ps.IsDefined()){
            result.SetDefined(false);
@@ -950,7 +962,7 @@ void precPoints::contains(const PrecPoint& p, CcBool& result) const{
 compute the union of this and ps
 
 */    
-void precPoints::compUnion(const precPoints& ps, precPoints& result)const{
+void PrecPoints::compUnion(const PrecPoints& ps, PrecPoints& result)const{
         result.clear();
         if(!IsDefined() || !ps.IsDefined()){
            result.SetDefined(false);
@@ -998,7 +1010,7 @@ void precPoints::compUnion(const precPoints& ps, precPoints& result)const{
 compute the difference of this and ps
 
 */    
-void precPoints::difference(const precPoints& ps, precPoints& result)const{
+void PrecPoints::difference(const PrecPoints& ps, PrecPoints& result)const{
         result.clear();
         if(!IsDefined() || !ps.IsDefined()){
            result.SetDefined(false);
@@ -1035,7 +1047,7 @@ void precPoints::difference(const precPoints& ps, precPoints& result)const{
 Converts the argument into a precise value
 
 */
-void precPoints::readFrom(const Points& points, int scale, bool useString){
+void PrecPoints::readFrom(const Points& points, int scale, bool useString){
     clear();
     if(!points.IsDefined() || scale<=0){
       SetDefined(false);

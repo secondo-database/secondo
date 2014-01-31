@@ -46,6 +46,8 @@ This algebra provides precise types based on rationals of arbitrary size.
 #include "Point.h"
 #include "SpatialAlgebra.h"
 #include "FTextAlgebra.h"
+#include "Stream.h"
+#include "RelationAlgebra.h"
 
 
 extern NestedList* nl;
@@ -61,7 +63,7 @@ namespace precise{
 */
 GenTC<PrecCoord> precise;
 GenTC<PrecPoint> precisePoint;
-GenTC<precPoints> precisePoints;
+GenTC<PrecPoints> precisePoints;
 GenTC<PrecRegion> preciseRegion;
 GenTC<PrecLine> preciseLine;
 
@@ -337,7 +339,7 @@ ListExpr toPreciseTM(ListExpr args){
   } else if(Point::checkType(arg1)){
      resType = listutils::basicSymbol<PrecPoint>();
   } else if(Points::checkType(arg1)){
-     resType = listutils::basicSymbol<precPoints>();
+     resType = listutils::basicSymbol<PrecPoints>();
   } else if(Region::checkType(arg1)){
      resType = listutils::basicSymbol<PrecRegion>();
   } else if(Line::checkType(arg1)){
@@ -395,7 +397,7 @@ ValueMapping toPreciseVM[] = {
      toPreciseVM1<LongInt,PrecCoord>,
      toPreciseVM1<Rational,PrecCoord>,
      toPreciseVM1<Point,PrecPoint>,
-     toPreciseVM1<Points,precPoints>,
+     toPreciseVM1<Points,PrecPoints>,
      toPreciseVM1<Region,PrecRegion>,
      toPreciseVM1<Line,PrecLine>
   };
@@ -530,35 +532,35 @@ ValueMapping translateVM[] = {
     translateVM1<PrecPoint,PrecCoord,Rational>,
     translateVM1<PrecPoint,PrecCoord,PrecCoord>,
     
-    translateVM1<precPoints,CcInt,CcInt>,
-    translateVM1<precPoints,CcInt,CcReal>,
-    translateVM1<precPoints,CcInt,LongInt>,
-    translateVM1<precPoints,CcInt,Rational>,
-    translateVM1<precPoints,CcInt,PrecCoord>,
+    translateVM1<PrecPoints,CcInt,CcInt>,
+    translateVM1<PrecPoints,CcInt,CcReal>,
+    translateVM1<PrecPoints,CcInt,LongInt>,
+    translateVM1<PrecPoints,CcInt,Rational>,
+    translateVM1<PrecPoints,CcInt,PrecCoord>,
 
-    translateVM1<precPoints,CcReal,CcInt>,
-    translateVM1<precPoints,CcReal,CcReal>,
-    translateVM1<precPoints,CcReal,LongInt>,
-    translateVM1<precPoints,CcReal,Rational>,
-    translateVM1<precPoints,CcReal,PrecCoord>,
+    translateVM1<PrecPoints,CcReal,CcInt>,
+    translateVM1<PrecPoints,CcReal,CcReal>,
+    translateVM1<PrecPoints,CcReal,LongInt>,
+    translateVM1<PrecPoints,CcReal,Rational>,
+    translateVM1<PrecPoints,CcReal,PrecCoord>,
 
-    translateVM1<precPoints,LongInt,CcInt>,
-    translateVM1<precPoints,LongInt,CcReal>,
-    translateVM1<precPoints,LongInt,LongInt>,
-    translateVM1<precPoints,LongInt,Rational>,
-    translateVM1<precPoints,LongInt,PrecCoord>,
+    translateVM1<PrecPoints,LongInt,CcInt>,
+    translateVM1<PrecPoints,LongInt,CcReal>,
+    translateVM1<PrecPoints,LongInt,LongInt>,
+    translateVM1<PrecPoints,LongInt,Rational>,
+    translateVM1<PrecPoints,LongInt,PrecCoord>,
 
-    translateVM1<precPoints,Rational,CcInt>,
-    translateVM1<precPoints,Rational,CcReal>,
-    translateVM1<precPoints,Rational,LongInt>,
-    translateVM1<precPoints,Rational,Rational>,
-    translateVM1<precPoints,Rational,PrecCoord>,
+    translateVM1<PrecPoints,Rational,CcInt>,
+    translateVM1<PrecPoints,Rational,CcReal>,
+    translateVM1<PrecPoints,Rational,LongInt>,
+    translateVM1<PrecPoints,Rational,Rational>,
+    translateVM1<PrecPoints,Rational,PrecCoord>,
 
-    translateVM1<precPoints,PrecCoord,CcInt>,
-    translateVM1<precPoints,PrecCoord,CcReal>,
-    translateVM1<precPoints,PrecCoord,LongInt>,
-    translateVM1<precPoints,PrecCoord,Rational>,
-    translateVM1<precPoints,PrecCoord,PrecCoord>,
+    translateVM1<PrecPoints,PrecCoord,CcInt>,
+    translateVM1<PrecPoints,PrecCoord,CcReal>,
+    translateVM1<PrecPoints,PrecCoord,LongInt>,
+    translateVM1<PrecPoints,PrecCoord,Rational>,
+    translateVM1<PrecPoints,PrecCoord,PrecCoord>,
  };
 
 int getNumIndex(ListExpr arg){
@@ -579,7 +581,7 @@ int translateSelect(ListExpr args){
   if(PrecPoint::checkType(arg1)){
      o1 = 0;
   }
-  if(precPoints::checkType(arg1)){
+  if(PrecPoints::checkType(arg1)){
      o1 = 1;
   }
 
@@ -625,7 +627,7 @@ ListExpr scaleTM(ListExpr args){
      return listutils::typeError(err);
   }
   if(    !PrecPoint::checkType(nl->First(args)) 
-      && !precPoints::checkType(nl->First(args))){
+      && !PrecPoints::checkType(nl->First(args))){
      return listutils::typeError(err);
   } 
   if(!isNumeric(nl->Second(args))){
@@ -711,35 +713,35 @@ ValueMapping scaleVM[] = {
     scaleVM1<PrecPoint,PrecCoord,Rational>,
     scaleVM1<PrecPoint,PrecCoord,PrecCoord>,
     
-    scaleVM1<precPoints,CcInt,CcInt>,
-    scaleVM1<precPoints,CcInt,CcReal>,
-    scaleVM1<precPoints,CcInt,LongInt>,
-    scaleVM1<precPoints,CcInt,Rational>,
-    scaleVM1<precPoints,CcInt,PrecCoord>,
+    scaleVM1<PrecPoints,CcInt,CcInt>,
+    scaleVM1<PrecPoints,CcInt,CcReal>,
+    scaleVM1<PrecPoints,CcInt,LongInt>,
+    scaleVM1<PrecPoints,CcInt,Rational>,
+    scaleVM1<PrecPoints,CcInt,PrecCoord>,
 
-    scaleVM1<precPoints,CcReal,CcInt>,
-    scaleVM1<precPoints,CcReal,CcReal>,
-    scaleVM1<precPoints,CcReal,LongInt>,
-    scaleVM1<precPoints,CcReal,Rational>,
-    scaleVM1<precPoints,CcReal,PrecCoord>,
+    scaleVM1<PrecPoints,CcReal,CcInt>,
+    scaleVM1<PrecPoints,CcReal,CcReal>,
+    scaleVM1<PrecPoints,CcReal,LongInt>,
+    scaleVM1<PrecPoints,CcReal,Rational>,
+    scaleVM1<PrecPoints,CcReal,PrecCoord>,
 
-    scaleVM1<precPoints,LongInt,CcInt>,
-    scaleVM1<precPoints,LongInt,CcReal>,
-    scaleVM1<precPoints,LongInt,LongInt>,
-    scaleVM1<precPoints,LongInt,Rational>,
-    scaleVM1<precPoints,LongInt,PrecCoord>,
+    scaleVM1<PrecPoints,LongInt,CcInt>,
+    scaleVM1<PrecPoints,LongInt,CcReal>,
+    scaleVM1<PrecPoints,LongInt,LongInt>,
+    scaleVM1<PrecPoints,LongInt,Rational>,
+    scaleVM1<PrecPoints,LongInt,PrecCoord>,
 
-    scaleVM1<precPoints,Rational,CcInt>,
-    scaleVM1<precPoints,Rational,CcReal>,
-    scaleVM1<precPoints,Rational,LongInt>,
-    scaleVM1<precPoints,Rational,Rational>,
-    scaleVM1<precPoints,Rational,PrecCoord>,
+    scaleVM1<PrecPoints,Rational,CcInt>,
+    scaleVM1<PrecPoints,Rational,CcReal>,
+    scaleVM1<PrecPoints,Rational,LongInt>,
+    scaleVM1<PrecPoints,Rational,Rational>,
+    scaleVM1<PrecPoints,Rational,PrecCoord>,
 
-    scaleVM1<precPoints,PrecCoord,CcInt>,
-    scaleVM1<precPoints,PrecCoord,CcReal>,
-    scaleVM1<precPoints,PrecCoord,LongInt>,
-    scaleVM1<precPoints,PrecCoord,Rational>,
-    scaleVM1<precPoints,PrecCoord,PrecCoord>,
+    scaleVM1<PrecPoints,PrecCoord,CcInt>,
+    scaleVM1<PrecPoints,PrecCoord,CcReal>,
+    scaleVM1<PrecPoints,PrecCoord,LongInt>,
+    scaleVM1<PrecPoints,PrecCoord,Rational>,
+    scaleVM1<PrecPoints,PrecCoord,PrecCoord>,
  };
 
 int scaleSelect(ListExpr args){
@@ -747,7 +749,7 @@ int scaleSelect(ListExpr args){
   if(PrecPoint::checkType(nl->First(args))){
       o1 = 0;
   }
-  if(precPoints::checkType(nl->First(args))){
+  if(PrecPoints::checkType(nl->First(args))){
       o1 = 1;
   }
 
@@ -902,11 +904,11 @@ ListExpr containsTM(ListExpr args){
   if(!nl->HasLength(args,2)){
       return listutils::typeError(err);
   }
-  if(!precPoints::checkType(nl->First(args))){
+  if(!PrecPoints::checkType(nl->First(args))){
       return listutils::typeError(err);
   }
   ListExpr arg2 = nl->Second(args);
-  if(!precPoints::checkType(arg2) && !PrecPoint::checkType(arg2)){
+  if(!PrecPoints::checkType(arg2) && !PrecPoint::checkType(arg2)){
       return listutils::typeError(err);
   }
   return listutils::basicSymbol<CcBool>();
@@ -935,8 +937,8 @@ int containsVM1 (Word* args, Word& result, int message, Word& local,
 
 */
 ValueMapping containsVM[] = {
-    containsVM1<precPoints, PrecPoint>,
-    containsVM1<precPoints, precPoints>
+    containsVM1<PrecPoints, PrecPoint>,
+    containsVM1<PrecPoints, PrecPoints>
 };
 
 int containsSelect(ListExpr args){
@@ -983,8 +985,8 @@ ListExpr intersectsTM(ListExpr args){
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
   }
-  if(!precPoints::checkType(nl->First(args)) ||
-     !precPoints::checkType(nl->Second(args))){
+  if(!PrecPoints::checkType(nl->First(args)) ||
+     !PrecPoints::checkType(nl->Second(args))){
      return listutils::typeError(err);
   }
   return listutils::basicSymbol<CcBool>();
@@ -1011,7 +1013,7 @@ int intersectsVM1 (Word* args, Word& result, int message, Word& local,
 
 */
 ValueMapping intersectsVM[] = {
-    intersectsVM1<precPoints, precPoints> // to be continued
+    intersectsVM1<PrecPoints, PrecPoints> // to be continued
 };
 
 int intersectsSelect(ListExpr args){
@@ -1057,11 +1059,11 @@ ListExpr unionTM(ListExpr args){
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
   }
-  if(   !precPoints::checkType(nl->First(args))
-     || !precPoints::checkType(nl->Second(args))){
+  if(   !PrecPoints::checkType(nl->First(args))
+     || !PrecPoints::checkType(nl->Second(args))){
      return listutils::typeError(err);
   }
-  return listutils::basicSymbol<precPoints>();
+  return listutils::basicSymbol<PrecPoints>();
 
 }
 
@@ -1088,7 +1090,7 @@ int unionVM1 (Word* args, Word& result, int message, Word& local,
 */
 
 ValueMapping unionVM[] = {
-   unionVM1<precPoints,precPoints, precPoints> // to be continued
+   unionVM1<PrecPoints,PrecPoints, PrecPoints> // to be continued
 };
 
 int unionSelect(ListExpr args){
@@ -1135,11 +1137,11 @@ ListExpr intersectionTM(ListExpr args){
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
   }
-  if(   !precPoints::checkType(nl->First(args))
-     || !precPoints::checkType(nl->Second(args))){
+  if(   !PrecPoints::checkType(nl->First(args))
+     || !PrecPoints::checkType(nl->Second(args))){
      return listutils::typeError(err);
   }
-  return listutils::basicSymbol<precPoints>();
+  return listutils::basicSymbol<PrecPoints>();
 
 }
 
@@ -1166,7 +1168,7 @@ int intersectionVM1 (Word* args, Word& result, int message, Word& local,
 */
 
 ValueMapping intersectionVM[] = {
-   intersectionVM1<precPoints,precPoints, precPoints> // to be continued
+   intersectionVM1<PrecPoints,PrecPoints, PrecPoints> // to be continued
 };
 
 int intersectionSelect(ListExpr args){
@@ -1213,11 +1215,11 @@ ListExpr differenceTM(ListExpr args){
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
   }
-  if(   !precPoints::checkType(nl->First(args))
-     || !precPoints::checkType(nl->Second(args))){
+  if(   !PrecPoints::checkType(nl->First(args))
+     || !PrecPoints::checkType(nl->Second(args))){
      return listutils::typeError(err);
   }
-  return listutils::basicSymbol<precPoints>();
+  return listutils::basicSymbol<PrecPoints>();
 
 }
 
@@ -1244,7 +1246,7 @@ int differenceVM1 (Word* args, Word& result, int message, Word& local,
 */
 
 ValueMapping differenceVM[] = {
-   differenceVM1<precPoints,precPoints, precPoints> // to be continued
+   differenceVM1<PrecPoints,PrecPoints, PrecPoints> // to be continued
 };
 
 int differenceSelect(ListExpr args){
@@ -1373,9 +1375,288 @@ Operator str2preciseOP(
 );
 
 
+/*
+2.12 Operator noElements
+
+This operator returns the number of contained elements, e.g.
+the number of points within a point value and the number
+of segments within a line or region.
+
+*/
+ListExpr noElementsTM(ListExpr args){
+   string err = "precPoints, precLine, or precRegion expected";
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+   }
+   ListExpr arg = nl->First(args);
+   if(   PrecPoints::checkType(arg) 
+      || PrecLine::checkType(arg) 
+      || PrecRegion::checkType(arg)){
+     return listutils::basicSymbol<CcInt>();
+  }
+  return listutils::typeError(err);
+}
+
+template<class T>
+int noElementsVM1 (Word* args, Word& result, int message, Word& local,
+                  Supplier s ){
+
+    T* arg = (T*) args[0].addr;
+    result = qp->ResultStorage(s);
+    CcInt* res = (CcInt*) result.addr;
+    if(!arg->IsDefined()){
+        res->SetDefined(false);
+    } else {
+      res->Set(true,arg->getNoElements());
+    }
+    return 0;
+}
+
+ValueMapping noElementsVM[] = {
+    noElementsVM1<PrecPoints>,
+    noElementsVM1<PrecLine>,
+    noElementsVM1<PrecRegion>
+};
+
+int noElementsSelect(ListExpr args){
+    ListExpr a = nl->First(args);
+    if(PrecPoints::checkType(a)) return 0;
+    if(PrecLine::checkType(a)) return 1;
+    if(PrecRegion::checkType(a)) return 2;
+    return -1;
+}
+
+OperatorSpec noElementsSpec(
+        "  {precPoints, precLine, precRegion} -> precise",
+        " noElements(_)",
+        " returns the number of elements (points, segments)",
+        " query noElements(toPrecise(BGrenzenLine))"
+);
+
+Operator noElementsOP(
+  "noElements",
+  noElementsSpec.getStr(),
+  3,
+  noElementsVM,
+  noElementsSelect,
+  noElementsTM
+);
+
+/*
+2.12 operator halfSegments
+
+This operator returns the halfsegments of a region or line 
+as a stream of tuples.
+
+*/
+
+template<class T>
+ListExpr getAttr(const string& name){
+    return nl->TwoElemList(
+            nl->SymbolAtom(name),
+            listutils::basicSymbol<T>());
+}
+
+ListExpr halfSegmentsTM(ListExpr args){
+   string err = "precLine or precRegion expected";
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError(err);
+   }
+   ListExpr a = nl->First(args);
+   if(PrecLine::checkType(a) ||
+      PrecRegion::checkType(a)){
+
+     ListExpr attrList = nl->OneElemList(getAttr<CcInt>("FaceNo"));
+                  
+     ListExpr last = attrList;
+     last = nl->Append(last, getAttr<CcInt>("CycleNo"));
+     last = nl->Append(last, getAttr<CcInt>("EdgeNo"));
+     last = nl->Append(last, getAttr<CcInt>("CoverageNo"));
+     last = nl->Append(last, getAttr<CcBool>("InsideAbove"));
+     last = nl->Append(last, getAttr<CcInt>("PartnerNo"));
+     last = nl->Append(last, getAttr<CcBool>("Ldp"));
+     last = nl->Append(last, getAttr<PrecLine>("Segment"));
+
+     return nl->TwoElemList(
+           listutils::basicSymbol<Stream<Tuple> >(),
+           nl->TwoElemList(
+               listutils::basicSymbol<Tuple>(),
+               attrList)) ;
+   }
+   return listutils::typeError(err);
+
+}
+
+template<class T>
+class halfSegmentsInfo{
+
+  public:
+    halfSegmentsInfo(const T* v, ListExpr ttl): 
+      pos(0), size(v->IsDefined()?v->Size():0), value(v){
+      cout << "Build tuple type from " << nl->ToString(ttl) << endl;
+      tt = new TupleType(ttl); 
+   }
+
+   ~halfSegmentsInfo(){
+       tt->DeleteIfAllowed();
+    }
+
+   Tuple* getNext(){
+      if(pos>=size){
+         return 0;
+      }
+      Tuple* res = getTuple(value->getHalfSegment(pos));
+      pos++;
+      return res;
+   }
+
+  private:
+     size_t pos;
+     size_t size;
+     const T* value;
+     TupleType* tt;
+
+   Tuple* getTuple(MPrecHalfSegment hs){
+      Tuple* res = new Tuple(tt);
+      res->PutAttribute(0, new CcInt(true,hs.attributes.faceno));
+      res->PutAttribute(1, new CcInt(true,hs.attributes.cycleno));
+      res->PutAttribute(2, new CcInt(true,hs.attributes.edgeno));
+      res->PutAttribute(3, new CcInt(true,hs.attributes.coverageno));
+      res->PutAttribute(4, new CcBool(true,hs.attributes.insideAbove));
+      res->PutAttribute(5, new CcInt(true,hs.attributes.partnerno));
+      res->PutAttribute(6, new CcBool(true,hs.isLeftDomPoint()));
+      PrecLine* l = new PrecLine(true);
+      l->startBulkLoad();
+      l->append(hs);
+      l->endBulkLoad();
+      res->PutAttribute(7, l);
+      return res;
+   }
+};
 
 
+template<class T>
+int halfSegmentsVM1 (Word* args, Word& result, int message, Word& local,
+                  Supplier s ){
 
+  halfSegmentsInfo<T>* li = (halfSegmentsInfo<T>*) local.addr;
+  switch(message){
+     case OPEN: {
+          if(li){ delete li; }
+          local.addr = new halfSegmentsInfo<T>((T*)args[0].addr,
+                                       nl->Second(GetTupleResultType(s)));
+          return 0;
+     }
+     case REQUEST: {
+         result.addr = li?li->getNext():0;
+         return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE: {
+         if(li){
+            delete li;
+            local.addr = 0;
+         }
+         return 0;
+     }
+  }
+  return -1;
+}
+
+ValueMapping halfSegmentsVM[] = {
+    halfSegmentsVM1<PrecLine>,
+    halfSegmentsVM1<PrecRegion>
+};
+
+int halfSegmentsSelect(ListExpr args){
+    ListExpr a = nl->First(args);
+    if(PrecLine::checkType(a)) return 0;
+    if(PrecRegion::checkType(a)) return 1;
+    return -1;
+}
+
+OperatorSpec halfSegmentsSpec(
+        "  { precLine, precRegion} -> stream(tuple([FaceNo : int, ...]))",
+        " halfSegments(_)",
+        " returns the halfsegemnts building the argument",
+        " query halfSegments(toPrecise(BGrenzenLine)) count"
+);
+
+Operator halfSegmentsOP(
+  "halfSegments",
+  halfSegmentsSpec.getStr(),
+  2,
+  halfSegmentsVM,
+  halfSegmentsSelect,
+  halfSegmentsTM
+);
+
+/*
+2.13 Operator vertices
+
+*/
+
+ListExpr verticesTM(ListExpr args){
+   string err="precLine or precRegion expected";
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+   }
+   ListExpr a = nl->First(args);
+   if(PrecLine::checkType(a) ||
+      PrecRegion::checkType(a)){
+       return listutils::basicSymbol<PrecPoints>();
+   }
+   return listutils::typeError(err);
+}
+
+template<class T>
+int verticesVM1 (Word* args, Word& result, int message, Word& local,
+                 Supplier s ){
+
+  result = qp->ResultStorage(s);
+  PrecPoints* res = (PrecPoints*) result.addr;
+  T* arg = (T*) args[0].addr;
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+  } else {
+     res->StartBulkLoad( arg->getScale());
+     for(size_t i=0;i<arg->Size();i++){
+         MPrecHalfSegment hs = arg->getHalfSegment(i);
+         res->append(hs.getLeftPoint());
+         res->append(hs.getRightPoint());
+     }
+     res->EndBulkLoad();
+  }
+  return 0;
+}
+
+
+ValueMapping verticesVM[] = {
+    verticesVM1<PrecLine>,
+    verticesVM1<PrecRegion>
+};
+
+int verticesSelect(ListExpr args){
+    ListExpr a = nl->First(args);
+    if(PrecLine::checkType(a)) return 0;
+    if(PrecRegion::checkType(a)) return 1;
+    return -1;
+}
+
+OperatorSpec verticesSpec(
+        "  { precLine, precRegion} -> precPoints",
+        " vertices(_)",
+        " returns the vertices of the argument",
+        " query vertices(toPrecise(BGrenzenLine)) "
+);
+
+Operator verticesOP(
+  "vertices",
+  verticesSpec.getStr(),
+  2,
+  verticesVM,
+  verticesSelect,
+  verticesTM
+);
 
 
 } // end of namespace precise
@@ -1410,7 +1691,9 @@ class PreciseAlgebra : public Algebra
     AddOperator(&precise::intersectionOP);
     AddOperator(&precise::differenceOP);
     AddOperator(&precise::str2preciseOP);
-
+    AddOperator(&precise::noElementsOP);
+    AddOperator(&precise::halfSegmentsOP);
+    AddOperator(&precise::verticesOP);
   }
 };
 
