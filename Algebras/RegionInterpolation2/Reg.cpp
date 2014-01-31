@@ -35,31 +35,67 @@ Reg::Reg(ListExpr tle) : cur(0), parent(NULL), ishole(false) {
 Reg::Reg(vector<Seg> v) : cur(0), parent(NULL), v(v), ishole(false) {
 }
 
-Region Reg::MakeRegion(int offx, int offy) {
-    Region ret(0);
-
-    ret.StartBulkLoad();
-    int edgeno = 0;
-    for (unsigned int i = 0; i < v.size(); i++) {
-        Point s(true, v[i].s.x + offx, v[i].s.y + offy);
-        Point e(true, v[i].e.x + offx, v[i].e.y + offy);
-        HalfSegment hs(false, s, e);
-        hs.attr.faceno = 0;
-        hs.attr.cycleno = 0;
-        hs.attr.edgeno = edgeno;
-        hs.attr.partnerno = edgeno;
-        edgeno++;
-        ret += hs;
-        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-        ret += hs;
+static void Append(ListExpr &head, ListExpr l) {
+    if (l == nl->Empty())
+        return;
+    if (head == nl->Empty()) {
+        head = nl->OneElemList(l);
+    } else {
+        nl->Append(nl->End(head), l);
     }
-    ret.EndBulkLoad(true, true, true, true);
+}
+
+Region Reg::MakeRegion(double offx, double offy, double scalex, double scaley) {
+//    Region ret(0);
+//
+//    ret.StartBulkLoad();
+//    int edgeno = 0;
+//    for (unsigned int i = 0; i < v.size(); i++) {
+//        Point s(true, v[i].s.x + offx, v[i].s.y + offy);
+//        Point e(true, v[i].e.x + offx, v[i].e.y + offy);
+//        HalfSegment hs(false, s, e);
+//        hs.attr.faceno = 0;
+//        hs.attr.cycleno = 0;
+//        hs.attr.edgeno = edgeno;
+//        hs.attr.partnerno = edgeno;
+//        edgeno++;
+//        ret += hs;
+//        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+//        ret += hs;
+//    }
+//    ret.EndBulkLoad(true, true, true, true);
+    
+    
+    ListExpr cycle = nl->Empty();
+    
+    cerr << "Using off " << offx << "/" << offy << " and scale " << scalex
+            << "/" << scaley << "\n";
+    
+    for (unsigned int i = 0; i < v.size(); i++) {
+        cerr << "Converting " << v[i].s.ToString() << "\n";
+        ListExpr seg = nl->OneElemList(nl->RealAtom((v[i].s.x-offx)*scalex));
+        nl->Append(seg, nl->RealAtom((v[i].s.y-offy)*scaley));
+        Append(cycle, seg);
+    }
+    
+    ListExpr cycles = nl->OneElemList(cycle);
+    
+    ListExpr reg = nl->OneElemList(cycles);
+    
+    ListExpr err = nl->Empty();
+    bool correct = false;
+        nl->WriteListExpr(reg);
+    Word w = InRegion(nl->Empty(), reg, 0, err, correct);
+    if (!correct) {
+        cerr << "Region not correct" << "\n";
+    }
+    Region ret(*((Region*)w.addr));
 
     return ret;
 }
 
 Region Reg::MakeRegion() {
-    return MakeRegion(0, 0);
+    return MakeRegion(0, 0, 1, 1);
 }
 
 void Reg::Sort() {
@@ -377,8 +413,12 @@ MSegs Reg::GetMSegs() {
     
     for (unsigned int i = 0; i < v.size(); i++) {
         Seg s = v[i];
+#if 0
         ret.AddMSeg(MSeg(s.s, s.e, s.s, s.s));
         ret.AddMSeg(MSeg(s.e, s.e, s.s, s.e));
+#else
+        ret.AddMSeg(MSeg(s.s, s.e, s.s, s.e));
+#endif
     }
     
     return ret;

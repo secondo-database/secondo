@@ -5,10 +5,10 @@
 
 static const string interpolatespec =
  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
- "  ( <text>region x instant x region x instant [ x real ] -> mregion</text--->"
+ " (<text>region x instant x region x instant [ x string ] -> mregion</text--->"
  "<text>interpolate( _ , _ , _ , _ [ , _ ] )</text--->"
  "<text>Interpolate two regions to an interval region</text--->"
- "<text>interpolate( region1, instant1, region2, instant2, mode )</text--->) )";
+ "<text>interpolate( region1, instant1, region2, instant2, args )</text--->) )";
 
 int interpolatevalmap(Word* args,
         Word& result,
@@ -17,7 +17,7 @@ int interpolatevalmap(Word* args,
         Supplier s);
 
 ListExpr interpolatetypemap(ListExpr args) {
-    string err = "region x instant x region x instant [x real] expected";
+    string err = "region x instant x region x instant [x string] expected";
     int len = nl->ListLength(args);
     if ((len != 4) && (len != 5)) {
         return listutils::typeError(err + " (wrong number of arguments)");
@@ -36,10 +36,10 @@ ListExpr interpolatetypemap(ListExpr args) {
     }
     if (len == 4) {
         return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                nl->OneElemList(nl->RealAtom(1.0)),
+                nl->OneElemList(nl->StringAtom("", true)),
                 nl->SymbolAtom(MRegion::BasicType()));
     }
-    if (!CcReal::checkType(nl->Fifth(args))) {
+    if (!CcString::checkType(nl->Fifth(args))) {
         return listutils::typeError(err);
     }
     return nl->SymbolAtom(MRegion::BasicType());

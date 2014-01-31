@@ -85,7 +85,7 @@ public:
     vector<Reg> Concavities();
     vector<Reg> Concavities2(Reg *r2);
     Region MakeRegion();
-    Region MakeRegion(int offx, int offy);
+    Region MakeRegion(double offx, double offy, double scalex, double scaley);
     pair<Pt, Pt> GetBoundingBox();
     Pt GetMiddle();
     Pt GetCentroid();
@@ -198,7 +198,7 @@ public:
 };
 
 MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
-        bool evap);
+        bool evap, string args);
 
 #endif	/* INTERPOLATE_HXX */
 

@@ -21,8 +21,8 @@ function matchFacesold (src, dst, depth)
 end
 
 
-function matchFaces (src, dst, depth)
-    print("\nLUA Start")
+function matchFaces (src, dst, depth, args)
+    print("\nLUA Start with args "..args)
     ret = {}
 
     print("\nDepth "..depth..": Srcregs " .. #src .. ", Dstregs " .. #dst)
@@ -48,15 +48,39 @@ function matchFaces (src, dst, depth)
 	      "  BBox "..b1.x.."/"..b1.y.." "..b2.x.."/"..b2.y);
     end
 
-    ret = matchFacesSpecial (src, dst, depth)
+    ret = matchFacesDistance (src, dst, depth)
+--    ret = matchFacesOL (src, dst, depth)
+--    ret = matchFacesSpecial (src, dst, depth)
     
     print("\nLUA End")
 
     return ret;
 end
 
+function checkOverlap (src, dst)
+    i,s,d = overlap(src[1],dst[1])
+
+    return i/s*100,i/d*100
+end
+
+function matchFacesOL (src,dst,depth)
+
+    sp,dp = checkOverlap(src, dst)
+    print("SP " .. sp .. " DP " .. dp)
+    
+    return {}
+end
+
 function matchFacesNull (src,dst,depth)
     return {}
+end
+
+function matchFacesMW (src, dst, depth)
+    if (depth == 0) then
+	return matchFacesDistance(src, dst, depth)
+    else
+	return {}
+    end
 end
 
 function matchFacesSpecial (src, dst, depth)

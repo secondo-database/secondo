@@ -177,7 +177,6 @@ public class Face {
 
     static List<HalfSeg> List2HS(ListExpr le) {
         List<HalfSeg> ret = new LinkedList();
-        System.out.println(le.toString());
 
         ListExpr first = le.first();
         ListExpr p = le.first();

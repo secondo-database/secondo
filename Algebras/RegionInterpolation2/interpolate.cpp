@@ -12,11 +12,11 @@
 #include <string>
 
 vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
-        int depth);
+        int depth, string args);
 
 static vector<pair<Reg *, Reg *> > matchFacesLua(vector<Reg> *src,
-        vector<Reg> *dst, int depth) {
-    return _matchFacesLua(src, dst, depth);
+        vector<Reg> *dst, int depth, string args) {
+    return _matchFacesLua(src, dst, depth, args);
 }
 
 static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
@@ -130,7 +130,7 @@ static bool sortLowerLeft(const Reg& r1, const Reg& r2) {
 }
 
 static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
-        vector<Reg> *dst, int depth) {
+        vector<Reg> *dst, int depth, string args) {
     vector<pair<Reg *, Reg *> > ret;
 
     for (unsigned int i = 0; i < src->size(); i++) {
@@ -200,7 +200,8 @@ static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
 
 static vector<pair<Reg *, Reg *> > matchFaces(
         vector<Reg> *src, vector<Reg> *dst, int depth,
-        vector<pair<Reg *, Reg *> > (*fn)(vector<Reg> *, vector<Reg> *, int)) {
+        vector<pair<Reg*,Reg*> > fn(*)(vector<Reg>*, vector<Reg>*, int, string),
+        string args) {
     vector<pair<Reg *, Reg *> > ret;
 
     for (unsigned int i = 0; i < src->size(); i++) {
@@ -210,7 +211,7 @@ static vector<pair<Reg *, Reg *> > matchFaces(
         (*dst)[i].used = 0;
     }
 
-    vector<pair<Reg *, Reg *> > pairs = fn(src, dst, depth);
+    vector<pair<Reg *, Reg *> > pairs = fn(src, dst, depth, args);
 
     for (unsigned int i = 0; i < src->size(); i++) {
         (*src)[i].used = 0;
@@ -258,7 +259,7 @@ into the current result. Intersections are detected and tried to be compensated
 
 
 MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
-        bool evap) {
+        bool evap, string args) {
     MFaces ret;
 
     ret.sregs = sregs;
@@ -286,9 +287,9 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
     // Match the faces to pairs of faces in the source- and destination-realm
     vector<pair<Reg *, Reg *> > matches;
     if (!evap)
-        matches = matchFaces(sregs, dregs, depth, matchFacesLua);
+        matches = matchFaces(sregs, dregs, depth, matchFacesLua, args);
     else
-        matches = matchFaces(sregs, dregs, depth, matchFacesLowerLeft);
+        matches = matchFaces(sregs, dregs, depth, matchFacesLowerLeft, args);
     
  
     for (unsigned int i = 0; i < matches.size(); i++) {
@@ -303,7 +304,7 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
             RotatingPlane rp(src, dst, depth);
 
             // Recurse and try to match and interpolate the list of concavities
-            MFaces fcs = interpolate(&rp.scvs, &rp.dcvs, depth + 1, evap);
+            MFaces fcs = interpolate(&rp.scvs, &rp.dcvs, depth + 1, evap, args);
 
             // Now check if the interpolations intersect in any way
             handleIntersections(fcs, rp.face, evap);
@@ -485,7 +486,7 @@ int interpolatevalmap(Word* args,
 
     Instant* ti1 = static_cast<Instant*> (args[1].addr);
     Instant* ti2 = static_cast<Instant*> (args[3].addr);
-    //    CcReal* mode = static_cast<CcReal*> (args[4].addr);
+    CcString* arg = static_cast<CcString*> (args[4].addr);
     MRegion* m = static_cast<MRegion*> (result.addr);
 
     Interval<Instant> iv(*ti1, *ti2, true, true);
@@ -496,7 +497,7 @@ int interpolatevalmap(Word* args,
     vector<Reg> sregs = Reg::getRegs(_sregs);
     vector<Reg> dregs = Reg::getRegs(_dregs);
 
-    MFaces mf = interpolate(&sregs, &dregs, 0, false);
+    MFaces mf = interpolate(&sregs, &dregs, 0, false, arg->GetValue());
 
 #ifdef USE_LISTS
     ListExpr mreg = mf.ToMListExpr(iv);
@@ -517,38 +518,12 @@ int interpolatevalmap(Word* args,
         else {
             MRegion mr = mf.ToMRegion(iv);
             *m = mr;
-            *m = mr;
         }
     }
 #else    
     MRegion mr = mf.ToMRegion(iv);
     *m = mr;
 #endif
-
-    //    cerr << "\n\n Intersectiontest1\n";
-    //    unsigned int dr;
-    //    if (specialTrapeziumIntersects(100,
-    //            -37, -15, 9, -39,
-    //            -88, -19, -88, -19,
-    //            -127, 5, -79, -18,
-    //            -106, -1, -106, -1,
-    //            dr)) {
-    //        cerr << "Int found " << dr << "\n";
-    //    } else {
-    //        cerr << "No int found " << dr << "\n";
-    //    }
-    //
-    //    cerr << "\n\n Intersectiontest2\n";
-    //    if (specialTrapeziumIntersects(100,
-    //            -127, 5, -79, -18,
-    //            -106, -1, -106, -1,
-    //            -37, -15, 9, -39,
-    //            -88, -19, -88, -19,
-    //            dr)) {
-    //        cerr << "Int found " << dr << "\n";
-    //    } else {
-    //        cerr << "No int found " << dr << "\n";
-    //    }
 
     return 0;
 }

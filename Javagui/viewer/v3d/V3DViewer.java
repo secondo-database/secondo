@@ -30,17 +30,19 @@ import sj.lang.ListExpr;
 import viewer.MenuVector;
 import viewer.SecondoViewer;
 
-/* this viewer shows an MRegion as 3D-Object */
+/* this viewer shows an MRegion or a URegion as a 3D-Object */
 public class V3DViewer extends SecondoViewer {
 
-    private JScrollPane ScrollPane = new JScrollPane();
-    private SimpleUniverse universe;
+    private final MenuVector MV = new MenuVector();
+    private final JMenuItem MI_CageModel;
+    private final JMenuItem MI_CTransl;
+
     private JComboBox ComboBox = new JComboBox();
     private java.util.List ItemObjects = new LinkedList();
-    private MenuVector MV = new MenuVector();
     private SecondoObject CurrentObject = null;
-    private JMenuItem MI_CageModel;
-    private JMenuItem MI_CTransl;
+
+    private final JScrollPane ScrollPane = new JScrollPane();
+    private final SimpleUniverse universe;
 
     /* create a new StandardViewer */
     public V3DViewer() {
@@ -128,8 +130,9 @@ public class V3DViewer extends SecondoViewer {
         if (ItemObjects.remove(o)) {
             ComboBox.removeItem(o.getName());
         }
-        if (CurrentObject == o)
+        if (CurrentObject == o) {
             CurrentObject = null;
+        }
     }
 
     /**
@@ -186,45 +189,26 @@ public class V3DViewer extends SecondoViewer {
             return false;
         }
     }
-    
-    
-    BranchGroup bg = null;
-    int cnr = 0;
 
+    private int cnr = 0;
+    private final Color3b[] colors = {
+        new Color3b(Color.RED),
+        new Color3b(Color.BLUE),
+        new Color3b(Color.YELLOW),
+        new Color3b(Color.GREEN),
+        new Color3b(Color.MAGENTA),
+        new Color3b(Color.CYAN),
+        new Color3b(Color.ORANGE),
+        new Color3b(Color.PINK)
+    };
+    
     private Color3b nextColor() {
-        Color3b c = new Color3b();
+        Color3b c = new Color3b(Color.RED);
 
-        switch (cnr) {
-            case 0:
-                c.set(Color.RED);
-                break;
-            case 1:
-                c.set(Color.BLUE);
-                break;
-            case 2:
-                c.set(Color.YELLOW);
-                break;
-            case 3:
-                c.set(Color.GREEN);
-                break;
-            case 4:
-                c.set(Color.MAGENTA);
-                break;
-            case 5:
-                c.set(Color.CYAN);
-                break;
-            case 6:
-                c.set(Color.ORANGE);
-                break;
-            case 7:
-                c.set(Color.PINK);
-                break;
-        }
-        cnr = (cnr + 1) % 8;
-
-        return c;
+        return colors[cnr++ % colors.length];
     }
-    
+
+    BranchGroup bg = null;
     private void showObject() {
 
         int index = ComboBox.getSelectedIndex();
@@ -233,7 +217,7 @@ public class V3DViewer extends SecondoViewer {
                 CurrentObject = (SecondoObject) ItemObjects.get(index);
                 LinkedList<Point3f> pl = new LinkedList();
                 LinkedList<Color3b> cl = new LinkedList();
-                
+
                 List<Point3d> px = Face.MRegionList2Triangles(CurrentObject.toListExpr(), MI_CTransl.isSelected());
 
                 Appearance app = new Appearance();
@@ -251,15 +235,18 @@ public class V3DViewer extends SecondoViewer {
                 Color3b c = nextColor();
                 Color3b white = new Color3b(Color.WHITE);
                 for (int i = 0; i < px.size(); i++) {
-                    if (i%3 == 0)
+                    if (i % 3 == 0) {
                         c = nextColor();
+                    }
                     tri.setCoordinate(i, px.get(i));
-                    if (i < px.size()-6)
+                    if (i < px.size() - 6) {
                         tri.setColor(i, c);
-                    else // The last six values are the arrow, which we want to be white
+                    } else // The last six values are the arrow, which we want to be white
+                    {
                         tri.setColor(i, white);
+                    }
                 }
-                
+
                 shape.setGeometry(tri);
                 Transform3D viewtransform3d = new Transform3D();
                 viewtransform3d.setTranslation(new Vector3f(0.0f, 0.0f, 1.0f));
@@ -291,12 +278,12 @@ public class V3DViewer extends SecondoViewer {
                 bg.setCapability(BranchGroup.ALLOW_DETACH);
                 bg.compile();
                 universe.addBranchGraph(bg);
-                
+
                 TransformGroup tg3 = universe.getViewingPlatform().getViewPlatformTransform();
                 Transform3D t3d = new Transform3D();
                 t3d.setTranslation(new Vector3f(0.0f, 0.0f, 25));
                 tg3.setTransform(t3d);
-                
+
             } catch (Exception e) {
                 e.printStackTrace();
             }

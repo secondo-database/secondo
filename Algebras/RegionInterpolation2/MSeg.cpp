@@ -27,8 +27,12 @@ bool MSeg::operator==(const MSeg& a) const {
 int TriangleIntersection(float V0[3], float V1[3], float V2[3],
         float U0[3], float U1[3], float U2[3]);
 
+#define USE_SPECIALTRAPEZIUMINTERSECTS
+
+
 bool MSeg::intersects(const MSeg& a) const {
     int ret;
+#ifndef USE_SPECIALTRAPEZIUMINTERSECTS
     
     if (!(is == ie) && !(fs == fe)) {
         MSeg ms1(is, ie, fs, fs);
@@ -70,7 +74,22 @@ bool MSeg::intersects(const MSeg& a) const {
     }
     
     ret = TriangleIntersection(V0, V1, V2, U0, U1, U2);
-
+#else
+        unsigned int detailedResult;
+        ret = specialTrapeziumIntersects(
+                1,
+                is.x, is.y,
+                ie.x, ie.y,
+                fe.x, fe.y,
+                fs.x, fs.y,
+                
+                a.is.x, a.is.y,
+                a.ie.x, a.ie.y,
+                a.fe.x, a.fe.y,
+                a.fs.x, a.fs.y,
+                detailedResult
+                );
+#endif
     if (ret) {
         cerr << "Intersection between " << ToString()
                 << " and " << a.ToString() << "\n";
