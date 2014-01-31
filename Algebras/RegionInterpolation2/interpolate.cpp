@@ -20,7 +20,7 @@ static vector<pair<Reg *, Reg *> > matchFacesLua(vector<Reg> *src,
 }
 
 static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
-        vector<Reg> *dst, int depth) {
+        vector<Reg> *dst, int depth, string args) {
     vector<pair<Reg *, Reg *> > ret;
 
     for (unsigned int i = 0; (i < src->size() || (i < dst->size())); i++) {
@@ -40,7 +40,7 @@ static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
 }
 
 static vector<pair<Reg *, Reg *> > matchFacesNull(vector<Reg> *src,
-        vector<Reg> *dst, int depth) {
+        vector<Reg> *dst, int depth, string args) {
     vector<pair<Reg *, Reg *> > ret;
 
     for (unsigned int i = 0; i < src->size(); i++) {
@@ -56,7 +56,7 @@ static vector<pair<Reg *, Reg *> > matchFacesNull(vector<Reg> *src,
 }
 
 static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
-        vector<Reg> *dst, int depth) {
+        vector<Reg> *dst, int depth, string args) {
     vector<pair<Reg *, Reg *> > ret;
 
     for (unsigned int i = 0; i < src->size(); i++) {
