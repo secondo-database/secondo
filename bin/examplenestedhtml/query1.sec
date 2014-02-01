@@ -1,0 +1,23 @@
+let PATH = '../bin/examplenestedhtml/'
+
+let nl = '
+'
+
+
+let TABLE = fun() Orte feed addid filter[.BevT > 100] 
+  projectextend[TID
+  ; HT: .BevT div 100,
+    Licence: .Kennzeichen,
+    Name: .Ort,
+    Phone: .Vorwahl,
+    Population: .BevT * 1000]
+  sortby[HT, Population] 
+  nest[HT; Places] 
+  consume
+
+
+
+
+
+
+

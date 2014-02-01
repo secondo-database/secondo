@@ -1,0 +1,114 @@
+
+
+# handling subrelation Places
+
+delete FieldNames
+
+delete prefix;
+delete per_tuple;
+delete postfix;
+
+delete Markups_Places
+
+delete FinalMarkup_Places
+
+delete TEMP1
+
+
+let FieldNames = TABLE() feed 
+  project[Places] unnest[Places]
+  addcounter[XXXNo, 1] toFields[XXXNo] project[Field]
+  sort rdup consume
+
+let prefix = ' ';
+let per_tuple = 'Licence: <<Licence>>, Name: <<Name>>, Phone: <<Phone>>, Population: <<Population>>
+<p>';
+let postfix = ' ';
+
+let Markups_Places =
+    FieldNames feed
+      extendstream[Start: find(per_tuple, "<<" + .Field + ">>")]
+      extend[End: .Start + length(.Field) + 3]
+    sortby[Start]
+    extend_last[StartMarkup: ..End + 1 :: 1] 
+    extend[EndMarkup: .Start - 1]
+    extend[Markup: subtext(per_tuple, .StartMarkup, .EndMarkup)]
+    project[Field, StartMarkup, EndMarkup, Start, End, Markup]
+    consume
+
+let FinalMarkup_Places = subtext(per_tuple, Markups_Places feed max[End] + 1, length(per_tuple))
+
+let TEMP1 = 
+  TABLE() feed addcounter[NoTop, 1] remove[Places]
+  TABLE() feed addcounter[NoTop, 1]
+    project[NoTop, Places] 
+    unnest[Places]
+    addcounter[NoPlaces, 1]
+    extend[XXXNo: (.NoTop * 1000) + .NoPlaces]
+    toFields[XXXNo]
+    Markups_Places feed project[Field, Markup, StartMarkup] {mu} 
+    hashjoin[Field, Field_mu]
+    extend[Field2: .Markup_mu + .Value]
+    sortby[XXXNo, StartMarkup_mu]
+    groupby[XXXNo; Page: group feed 
+      aggregateB[Field2; fun(t1: text, t2: text) t1 + t2; ''] 
+        + FinalMarkup_Places + nl]
+    extend[NoTop: .XXXNo div 1000, NoPlaces: .XXXNo mod 1000]
+    groupby[NoTop; Places: prefix + group feed 
+      aggregateB[Page; fun(t3: text, t4: text) t3 + t4; ''] + postfix] {f}
+  mergejoin[NoTop, NoTop_f]
+  remove[NoTop, NoTop_f]
+  consume
+  
+
+
+# handling the top level
+
+delete FieldNames
+
+delete prefix;
+delete per_tuple;
+delete postfix;
+
+delete Markups
+
+delete FinalMarkup
+
+
+let FieldNames = TEMP1 feed 
+  addcounter[XXXNo, 1] toFields[XXXNo] project[Field]
+  sort rdup consume
+
+let prefix = readFile(PATH + 'prefix.html');
+let per_tuple = readFile(PATH + 'per_tuple.html');
+let postfix = readFile(PATH + 'postfix.html');
+
+let Markups =
+    FieldNames feed
+      extendstream[Start: find(per_tuple, "<<" + .Field + ">>")]
+      extend[End: .Start + length(.Field) + 3]
+    sortby[Start]
+    extend_last[StartMarkup: ..End + 1 :: 1] 
+    extend[EndMarkup: .Start - 1]
+    extend[Markup: subtext(per_tuple, .StartMarkup, .EndMarkup)]
+    project[Field, StartMarkup, EndMarkup, Start, End, Markup]
+    consume
+
+let FinalMarkup = subtext(per_tuple, Markups feed max[End] + 1, length(per_tuple))
+
+
+query TEMP1 feed 
+  addcounter[XXXNo, 1]
+  toFields[XXXNo]
+  nest[XXXNo; Row]
+  extend[Page:
+    .Row afeed Markups feed {mu} hashjoin[Field, Field_mu]
+    sortby[StartMarkup_mu]
+    extend[Field2: .Markup_mu + .Value]
+    aggregateB[Field2; fun(t1: text, t2: text) t1 + t2; ''] + FinalMarkup]
+  aggregateB[Page; fun(t3: text, t4: text) t3 + t4; '']
+  within[writeFile(prefix + . recode["latin1", "utf8"] + postfix, PATH + 'result.html')]
+
+
+
+

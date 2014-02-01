@@ -1,0 +1,9 @@
+Example for nested formatting on database opt
+
+Use query1.sec just once to prepare the database. Adjust PATH before doing that.
+
+Use query2.html to format if formatting templates have changed.
+
+Use query3.html to format if templates did not change.
+
+Result of formatting appears in file result.html.
