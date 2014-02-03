@@ -160,6 +160,7 @@ class Labels : public Attribute {
   DbArray<Label> GetDbArray() {return labels;}
   void Sort() {labels.Sort(CompareLabels);}
   void Clean() {if (labels.Size()) {labels.clean();}}
+  ListExpr ToListExpr(ListExpr typeInfo);
 
  private:
   DbArray<Label> labels;
@@ -248,9 +249,6 @@ class ILabels : public Intime<Labels> {
   ILabels(const Instant &inst, const Labels &lbs);
   
   static ListExpr Property();
-  static Word In(const ListExpr typeInfo, const ListExpr instance,
-                 const int errorPos, ListExpr& errorInfo, bool& correct);
-  static ListExpr Out(ListExpr typeInfo, Word value);
   static Word Create(const ListExpr typeInfo);
   static void Delete(const ListExpr typeInfo, Word &w);
   static void Close(const ListExpr typeInfo, Word &w);
@@ -270,13 +268,12 @@ class ULabels : public ConstTemporalUnit<Labels> {
   
  public:
   ULabels() {}
-  explicit ULabels(int n);
+  explicit ULabels(bool defined);
   explicit ULabels(const SecInterval &iv, const Labels &lbs);
   explicit ULabels(const ULabels& uls);
   ULabels(int i, MLabels &mls);
   
   static ListExpr Property();
-  static ListExpr Out(ListExpr typeInfo, Word value);
   static Word Create(const ListExpr typeInfo);
   static void Delete(const ListExpr typeInfo, Word &w);
   static void Close(const ListExpr typeInfo, Word &w);
@@ -290,16 +287,57 @@ class ULabels : public ConstTemporalUnit<Labels> {
   Flob* GetFLOB(const int i) {return constValue.GetFLOB(i);}
 };
 
-class MLabels : public Mapping<ULabel, Labels> {
+class MLabelsUnit {
+ public: 
+  MLabelsUnit() {}
+  MLabelsUnit(int pos) : interval(true), startPos(pos) {}
+  ~MLabelsUnit() {}
+  
+  SecInterval interval;
+  int startPos;
+};
+
+class MLabels : public Attribute {
  private:
+  DbArray<MLabelsUnit> units;
   DbArray<Label> labels;
-  DbArray<unsigned int> labelsStart, labelsEnd;
   
  public:
   MLabels() {}
-  MLabels(int n);
+  explicit MLabels(int n);
+  explicit MLabels(const MLabels& mls);
   
-  void Get(int i, ULabels &uls) const;
+  ~MLabels() {}
+  
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(MLabels);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "m" + Labels::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return 2;}
+  Flob* GetFLOB(const int i);
+  size_t Sizeof() const {return sizeof(*this);}
+  int Compare(const Attribute* arg) const;
+  bool Adjacent(const Attribute *arg) const {return false;}
+  Attribute *Clone() const {return new MLabels(*this);}
+  size_t HashValue() const {return labels.Size() * units.Size();}
+  virtual void CopyFrom(const Attribute* right) {*this = *((MLabels*)right);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  
+  string unitToString(int i) const;
+  string toString() const;
+  int getEndPos(int i) const;
+  ListExpr labelsToListExpr(int start, int end);
+  ListExpr unitToListExpr(int i);
+  void readLabels(ListExpr labelslist);
+  bool readUnit(ListExpr unitlist);
+  
+  bool IsEmpty() const {return units.Size() == 0;}
+  vector<Label>* GetLabels(int i) const;
+  SecInterval GetInterval(int i) const;
+  int GetNoComponents() const {return units.Size();}
+  int GetNoLabels() const {return labels.Size();}
 };
 
 

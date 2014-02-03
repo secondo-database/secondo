@@ -53,6 +53,7 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 #include "SecParser.h"
 #include "SymbolicTrajectoryAlgebra.h"
 #include "TemporalUnitAlgebra.h"
+#include "GenericTC.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -1152,10 +1153,32 @@ const bool Labels::IsEmpty() const {
 
 */
 ostream& operator<<(ostream& os, const Labels& lbs) {
-  for(int i = 0; i < lbs.GetNoLabels(); i++)
+  for(int i = 0; i < lbs.GetNoLabels() - 1; i++) {
     os << lbs.GetLabel(i) << " ";
-  os << ">";
+  }
+  os << lbs.GetLabel(lbs.GetNoLabels() - 1);
   return os;
+}
+
+/*
+\subsection{Function ~Out~}
+
+*/
+ListExpr Labels::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  if (IsEmpty()) {
+    return nl->Empty();
+  }
+  else {
+    ListExpr res = nl->OneElemList(nl->StringAtom(GetLabel(0).GetValue()));
+    ListExpr last = res;
+    for (int i = 1; i < GetNoLabels(); i++) {
+      last = nl->Append(last, nl->StringAtom(GetLabel(i).GetValue()));
+    }
+    return res;
+  }
 }
 
 /*
@@ -1164,20 +1187,7 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 */
 ListExpr Labels::Out(ListExpr typeInfo, Word value) {
   Labels* lbs = static_cast<Labels*>(value.addr);
-  if (!lbs->IsDefined()) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  if (lbs->IsEmpty()) {
-    return nl->Empty();
-  }
-  else {
-    ListExpr res = nl->OneElemList(nl->StringAtom(lbs->GetLabel(0).GetValue()));
-    ListExpr last = res;
-    for (int i = 1; i < lbs->GetNoLabels(); i++) {
-      last = nl->Append(last, nl->StringAtom(lbs->GetLabel(i).GetValue()));
-    }
-    return res;
-  }
+  return lbs->ToListExpr(typeInfo);
 }
 
 /*
@@ -1432,7 +1442,7 @@ TypeConstructor intimelabels(
 \subsection{Constructors}
 
 */
-ULabels::ULabels(int n) : ConstTemporalUnit<Labels>(n != 0) {}
+ULabels::ULabels(bool defined) : ConstTemporalUnit<Labels>(defined) {}
 
 ULabels::ULabels(const SecInterval &iv, const Labels &lbs)
   : ConstTemporalUnit<Labels>(iv, lbs) {
@@ -1442,7 +1452,12 @@ ULabels::ULabels(const SecInterval &iv, const Labels &lbs)
 ULabels::ULabels(int i, MLabels &mls) 
   : ConstTemporalUnit<Labels>(mls.IsDefined() && i < mls.GetNoComponents()) {
   if ((i >= 0) && (i < mls.GetNoComponents())) {
-    mls.Get(i, *this);
+    timeInterval = mls.GetInterval(i);
+    constValue.Clean();
+    vector<Label> *labelsVec = mls.GetLabels(i);
+    for (unsigned int j = 0; j < labelsVec->size(); j++) {
+      constValue.Append((*labelsVec)[j]);
+    }
   }
 }
 
@@ -1530,13 +1545,291 @@ TypeConstructor unitlabels(
   ULabels::SizeOfObj,                     //sizeof function
   ULabels::KindCheck );                   //kind checking functions
 
+/*
+\section{Implementation of class ~ULabels~}
 
+\subsection{Constructors}
 
+*/
+MLabels::MLabels(int n) : Attribute(n > 0), units(n), labels(0) {}
 
-void MLabels::Get(int i, ULabels &uls) const {
-  
+MLabels::MLabels(const MLabels &mls) : Attribute(mls.IsDefined()), 
+                                       units(mls.GetNoComponents()), labels(0) {
+  labels.copyFrom(mls.labels);
+  units.copyFrom(mls.units);
 }
 
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr MLabels::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(),
+    "((<interval> <labels>) (<interval> <labels>) ...)",
+    "(((\"2014-01-29\" \"2014-01-30\" TRUE FALSE) (\"home\" \"Dortmund\")))");
+}
+
+/*
+\subsection{Function ~KindCheck~}
+
+*/
+bool MLabels::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, MLabels::BasicType());
+}
+
+/*
+\subsection{Function ~GetFLOB~}
+
+*/
+Flob* MLabels::GetFLOB(const int i) {
+  assert((i >= 0) && (i < 2));
+  if (i == 0) {
+    return &units;
+  }
+  return &labels;
+}
+
+/*
+\subsection{Function ~Compare~}
+
+*/
+int MLabels::Compare(const Attribute* arg) const {
+  if (units.Size() == ((MLabels*)arg)->units.Size()) {
+    if (labels.Size() == ((MLabels*)arg)->labels.Size()) {
+      return 0;
+    }
+    return (labels.Size() > ((MLabels*)arg)->labels.Size() ? 1 : -1);
+  }
+  else {
+    return (units.Size() > ((MLabels*)arg)->units.Size() ? 1 : -1);
+  }
+}
+
+/*
+\subsection{Function ~getEndPos~}
+
+*/
+int MLabels::getEndPos(int i) const {
+  if (i < GetNoComponents() - 1) {
+    MLabelsUnit nextUnit(true);
+    units.Get(i + 1, nextUnit);
+    return nextUnit.startPos - 1;
+  }
+  else { // last unit
+    return labels.Size() - 1;
+  }
+}
+
+/*
+\subsection{Function ~labelsToListExpr~}
+
+*/
+ListExpr MLabels::labelsToListExpr(int start, int end) {
+  if (start > end) {
+    return nl->Empty();
+  }
+  if ((start < 0) || (end >= GetNoLabels())) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  Label lb(true);
+  labels.Get(start, lb);
+  ListExpr result = nl->OneElemList(nl->StringAtom(lb.GetValue()));
+  ListExpr last = result;
+  for (int i = start + 1; i <= end; i++) {
+    labels.Get(i, lb);
+    last = nl->Append(last, nl->StringAtom(lb.GetValue()));
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+ListExpr MLabels::unitToListExpr(int i) {
+  if ((i < 0) || (i >= GetNoComponents())) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  MLabelsUnit unit(-1);
+  units.Get(i, unit);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  return nl->TwoElemList(unit.interval.ToListExpr(sc->GetTypeExpr(
+                                                     SecInterval::BasicType())),
+                         labelsToListExpr(unit.startPos, getEndPos(i)));
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+ListExpr MLabels::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  if (IsEmpty()) {
+    return nl->Empty();
+  }
+  ListExpr result = nl->OneElemList(unitToListExpr(0));
+  ListExpr last = result;
+  for (int i = 1; i < GetNoComponents(); i++) {
+    last = nl->Append(last, unitToListExpr(i));
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~readLabels~}
+
+*/
+void MLabels::readLabels(ListExpr labelslist) {
+  ListExpr rest = labelslist;
+  while (!nl->IsEmpty(rest)) {
+    if (!listutils::isSymbolUndefined(nl->First(rest))) {
+      string labelStr = nl->ToString(nl->First(rest));
+      Label label(labelStr.substr(1, labelStr.length() - 2));
+      labels.Append(label);
+    }
+    rest = nl->Rest(rest);
+  }
+}
+
+/*
+\subsection{Function ~readUnit~}
+
+*/
+bool MLabels::readUnit(ListExpr unitlist) {
+  if (!nl->HasLength(unitlist, 2)) {
+    return false;
+  }
+  MLabelsUnit unit(GetNoLabels());
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (!unit.interval.ReadFrom(nl->First(unitlist), 
+                              sc->GetTypeExpr(SecInterval::BasicType()))) {
+    return false;
+  }
+  unit.interval.SetDefined(true);
+  readLabels(nl->Second(unitlist));
+  units.Append(unit);
+  return true;
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+bool MLabels::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  if (listutils::isSymbolUndefined(LE)) {
+    SetDefined(false);
+    units.clean();
+    labels.clean();
+    return true;
+  }
+  ListExpr rest = LE;
+  while (!nl->IsEmpty(rest)) {
+    if (!readUnit(nl->First(rest))) {
+      SetDefined(false);
+      return false;
+    }
+    rest = nl->Rest(rest);
+  }
+  SetDefined(true);
+  return true;
+}
+
+/*
+\subsection{Function ~unitToString~}
+
+*/
+string MLabels::unitToString(int i) const {
+  if ((i < 0) || (i >= GetNoComponents())) {
+    return "ERROR: invalid unit " + i;
+  }
+  MLabelsUnit unit(-1);
+  units.Get(i, unit);
+  string labelsStr = "";
+  if (unit.startPos > -1) {
+    for (int j = unit.startPos; j <= getEndPos(i); j++) {
+      Label label(true);
+      labels.Get(j, label);
+      labelsStr.append(label.GetValue() + (j < getEndPos(i) ? " " : ""));
+    }
+  }
+  return unit.interval.ToString() + "(" + labelsStr + ")\n";
+}
+
+/*
+\subsection{Function ~toString~}
+
+*/
+string MLabels::toString() const {
+  if (!IsDefined()) {
+    return "(undefined)";
+  }
+  string result = "(\n";
+  for (int i = 0; i < GetNoComponents(); i++) {
+    result.append(unitToString(i));
+  }
+  return result + ")";
+}
+
+/*
+\subsection{Operator ~<<~}
+
+*/
+ostream& operator<<(ostream& o, const MLabels& mls) {
+  o << mls.toString();
+  return o;
+}
+
+/*
+\subsection{Function ~GetLabels~}
+
+*/
+vector<Label>* MLabels::GetLabels(int i) const {
+  vector<Label>* result(0);
+  MLabelsUnit unit(-1);
+  for (int j = unit.startPos; j <= getEndPos(i); j++) {
+    Label label(true);
+    labels.Get(j, label);
+    result->push_back(label);
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~GetInterval~}
+
+*/
+SecInterval MLabels::GetInterval(int i) const {
+  if ((i < 0) || (i >= GetNoComponents())) {
+    SecInterval iv(false);
+    return iv;
+  }
+  MLabelsUnit unit(-1);
+  return unit.interval;
+}
+
+/*
+\subsection{Type Constructor}
+
+*/
+GenTC<MLabels> movinglabels;
+
+/*
+TypeConstructor movinglabels(
+  MLabels::BasicType(),                   //name
+  MLabels::Property,                      //property function
+  OutMapping<MLabels, ULabels, OutConstTemporalUnit<Labels, Labels::Out> >,
+  InMapping<MLabels, ULabels, InConstTemporalUnit<Labels, Labels::In> >,//Out and In functions
+  0,              0,                      //SaveTo and RestoreFrom functions
+  MLabels::Create,  MLabels::Delete,      //object creation and deletion
+  OpenAttribute<MLabels>, 
+  SaveAttribute<MLabels>,                 //object open and save
+  MLabels::Close,   MLabels::Clone,       //object close and clone
+  MLabels::Cast,                          //cast function
+  MLabels::SizeOfObj,                     //sizeof function
+  MLabels::KindCheck );                   //kind checking functions
+*/
 
 /*
 \section{Operator ~tolabel~}
@@ -6641,12 +6934,14 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       
       AddTypeConstructor(&intimelabels);
       AddTypeConstructor(&unitlabels);
+      AddTypeConstructor(&movinglabels);
 
       unitlabel.AssociateKind(Kind::DATA());
       movinglabel.AssociateKind(Kind::TEMPORAL());
       movinglabel.AssociateKind(Kind::DATA());
       intimelabels.AssociateKind(Kind::DATA());
       unitlabels.AssociateKind(Kind::DATA());
+      movinglabels.AssociateKind(Kind::DATA());
 
       AddTypeConstructor(&labelsTC);
       AddTypeConstructor(&patternTC);
