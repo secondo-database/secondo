@@ -199,7 +199,8 @@ public class V3DViewer extends SecondoViewer {
         new Color3b(Color.MAGENTA),
         new Color3b(Color.CYAN),
         new Color3b(Color.ORANGE),
-        new Color3b(Color.PINK)
+        new Color3b(Color.PINK),
+        new Color3b(Color.GRAY)
     };
     
     private Color3b nextColor() {

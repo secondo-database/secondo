@@ -134,10 +134,16 @@ vector<Pt> Reg::getPoints() {
     return pt;
 }
 
+//#define GS1
+
 static bool leftOf(Pt pt1, Pt pt2, Pt next) {
-    return ((pt2.x - pt1.x)*(next.y - pt1.y)
-            -(next.x - pt1.x)*(pt2.y - pt1.y)) >= 0;
+    long double sign = ((pt2.x - pt1.x)*(next.y - pt1.y)
+            -(next.x - pt1.x)*(pt2.y - pt1.y));
+    return sign
+            >= 0
+            ;
 }
+
 
 static bool sortAngle(const Pt& a, const Pt& b) {
     if (a.angle == b.angle) {

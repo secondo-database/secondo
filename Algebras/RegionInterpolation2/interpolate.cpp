@@ -355,6 +355,8 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
 void handleIntersections(MFaces& children, MFace parent, bool evap) {
     vector<MSegs> evp;
 
+    return;
+    
     for (int i = 0; i < (int) children.faces.size(); i++) {
         children.faces[i].face.calculateBBox();
     }
@@ -460,8 +462,8 @@ int interpolatevalmap(Word* args,
     ListExpr err;
     bool correct = false;
     Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
-
-    if (correct)
+    
+    if (0 && correct)
         result.setAddr(w.addr);
     else {
 

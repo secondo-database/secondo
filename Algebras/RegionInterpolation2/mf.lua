@@ -25,10 +25,12 @@ function matchFaces (src, dst, depth, args)
 	      "  BBox "..b1.x.."/"..b1.y.." "..b2.x.."/"..b2.y);
     end
 
+--    ret = matchFacesSpecial (src, dst, depth)
+--    ret = matchFacesDistance (src, dst, depth)
+--    ret = matchFacesMW (src, dst, depth)
 --    ret = matchFacesDistance (src, dst, depth)
     ret = matchFacesOverlap (src, dst, depth)
 --    ret = matchFacesOL (src, dst, depth)
---    ret = matchFacesSpecial (src, dst, depth)
     
     print("\nLUA End")
 
@@ -96,17 +98,18 @@ function matchFacesDistance (src, dst, depth)
     return matchFacesCriterion (src, dst, depth, distance)
 end
 
-function overlap (src, dst)
-    i,s,d = overlap(src,dst)
+function overlapx (src, dst)
+    ia,sa,da = overlap(src,dst)
+    print("overlap "..ia.." "..sa.." "..da);
 
-    return 100-((i/s*100+i/d*100)/2)
+    return 100-((ia/sa*100+ia/da*100)/2)
 end
 
 function matchFacesOverlap (src, dst, depth)
-    return matchFacesCriterion (src, dst, depth, overlap)
+    return matchFacesCriterion (src, dst, depth, overlapx, 50)
 end
 
-function matchFacesCriterion (src, dst, depth, func)
+function matchFacesCriterion (src, dst, depth, func, thres)
     ret = {}
     
     nrsrc = #src
@@ -118,11 +121,15 @@ function matchFacesCriterion (src, dst, depth, func)
 	for j=1,nrdst do
 	    s = src[i]
 	    d = dst[j]
-	    dist[k] = {}
-	    dist[k].criterion = func(s,d)
-	    dist[k].s = s;
-	    dist[k].d = d;
-	    k = k + 1
+	    val = func(s,d)
+	    if ((thres == nil) or (val < thres)) then
+   	        print("Crit is "..val);
+		dist[k] = {}
+		dist[k].criterion = val
+		dist[k].s = s
+		dist[k].d = d
+		k = k + 1
+	    end
 	end
     end
 

@@ -69,7 +69,7 @@ RotatingPlane::RotatingPlane(Reg *sreg, Reg *dreg, int depth, bool evap) {
     }
 
     if (evap) {
-        msegs = shull.GetMSegs(false);
+        msegs = shull.GetMSegs(true);
         msegs.sreg = *sreg;
         msegs.dreg = *dreg;
     }
