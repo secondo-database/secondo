@@ -46,50 +46,22 @@ static void Append(ListExpr &head, ListExpr l) {
 }
 
 Region Reg::MakeRegion(double offx, double offy, double scalex, double scaley) {
-//    Region ret(0);
-//
-//    ret.StartBulkLoad();
-//    int edgeno = 0;
-//    for (unsigned int i = 0; i < v.size(); i++) {
-//        Point s(true, v[i].s.x + offx, v[i].s.y + offy);
-//        Point e(true, v[i].e.x + offx, v[i].e.y + offy);
-//        HalfSegment hs(false, s, e);
-//        hs.attr.faceno = 0;
-//        hs.attr.cycleno = 0;
-//        hs.attr.edgeno = edgeno;
-//        hs.attr.partnerno = edgeno;
-//        edgeno++;
-//        ret += hs;
-//        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-//        ret += hs;
-//    }
-//    ret.EndBulkLoad(true, true, true, true);
-    
-    
     ListExpr cycle = nl->Empty();
-    
-    cerr << "Using off " << offx << "/" << offy << " and scale " << scalex
-            << "/" << scaley << "\n";
-    
+
     for (unsigned int i = 0; i < v.size(); i++) {
-        cerr << "Converting " << v[i].s.ToString() << "\n";
-        ListExpr seg = nl->OneElemList(nl->RealAtom((v[i].s.x-offx)*scalex));
-        nl->Append(seg, nl->RealAtom((v[i].s.y-offy)*scaley));
+        ListExpr seg = nl->OneElemList(nl->RealAtom((v[i].s.x-offx) * scalex));
+        nl->Append(seg, nl->RealAtom((v[i].s.y - offy) * scaley));
         Append(cycle, seg);
     }
-    
+
     ListExpr cycles = nl->OneElemList(cycle);
-    
+
     ListExpr reg = nl->OneElemList(cycles);
-    
+
     ListExpr err = nl->Empty();
     bool correct = false;
-        nl->WriteListExpr(reg);
     Word w = InRegion(nl->Empty(), reg, 0, err, correct);
-    if (!correct) {
-        cerr << "Region not correct" << "\n";
-    }
-    Region ret(*((Region*)w.addr));
+    Region ret(*((Region*) w.addr));
 
     return ret;
 }
@@ -102,7 +74,7 @@ void Reg::Sort() {
     v = Seg::sortSegs(v);
 }
 
-void Reg::AddSeg(Seg& a) {
+void Reg::AddSeg(Seg a) {
     double minx, miny, maxx, maxy;
     if (a.s.x > a.e.x) {
         minx = a.e.x;
@@ -118,7 +90,7 @@ void Reg::AddSeg(Seg& a) {
         miny = a.s.y;
         maxy = a.e.y;
     }
-    
+
     if (v.size() == 0) {
         bbox.first.x = minx;
         bbox.second.x = maxx;
@@ -175,11 +147,11 @@ static bool sortAngle(const Pt& a, const Pt& b) {
     return (a.angle < b.angle);
 }
 
-void Reg::ConvexHull() {
+Reg Reg::ConvexHull() {
     assert(v.size() > 0);
     convexhull.erase(convexhull.begin(), convexhull.end());
     vector<Pt> lt = getPoints();
-    
+
     std::sort(lt.begin(), lt.end());
 
     lt[0].angle = -1.0;
@@ -187,13 +159,13 @@ void Reg::ConvexHull() {
         lt[a].calcAngle(lt[0]);
     }
     std::sort(lt.begin(), lt.end(), sortAngle);
-    
-    std::vector<Pt>::iterator s = lt.begin()+1, e = s;
+
+    std::vector<Pt>::iterator s = lt.begin() + 1, e = s;
     while (s->angle == e->angle)
         e++;
-    
+
     std::reverse(s, e);
-    
+
     vector<Pt> uh = vector<Pt> ();
     uh.push_back(lt[0]);
     uh.push_back(lt[1]);
@@ -217,6 +189,8 @@ void Reg::ConvexHull() {
         Seg s = Seg(p1, p2);
         convexhull.push_back(s);
     }
+    
+    return Reg(convexhull);
 }
 
 void Reg::Translate(int offx, int offy) {
@@ -271,29 +245,28 @@ MSegs Reg::collapse(bool close, Pt dst) {
             ret.AddMSeg(MSeg(dst, dst, v[i].s, v[i].e));
         }
     }
-    
+
     if (close)
         ret.sreg = *this;
     else
         ret.dreg = *this;
 
-    ret.iscollapsed = 1 + (close?0:1);
+    ret.iscollapsed = 1 + (close ? 0 : 1);
 
     return ret;
 }
 
 MFace Reg::collapseWithHoles(bool close) {
     MFace ret(collapse(close));
-    
+
     for (unsigned int i = 0; i < holes.size(); i++) {
         ret.AddConcavity(holes[i].collapse(close, collapsePoint()));
     }
-    
+
     ret.MergeConcavities();
-    
+
     return ret;
 }
-
 
 MSegs Reg::collapse(bool close) {
     MSegs ret;
@@ -309,12 +282,12 @@ MSegs Reg::collapse(bool close) {
 
 Pt Reg::collapsePoint() {
     Pt dst;
-    
+
     if (peerPoint.valid)
         dst = peerPoint;
     else
         dst = v[0].s;
-    
+
     return dst;
 }
 
@@ -345,7 +318,7 @@ Pt Reg::GetCentroid() {
         y = y + v[i].s.y;
     }
 
-    return Pt(x/n, y/n);
+    return Pt(x / n, y / n);
 }
 
 double Reg::distance(Reg r) {
@@ -357,17 +330,21 @@ string Reg::ToString() const {
 
     for (unsigned int i = 0; i < v.size(); i++)
         ss << v[i].ToString() << "\n";
+    for (unsigned int i = 0; i < holes.size(); i++) {
+        ss << "Hole " << (i+1) << "\n";
+        ss << holes[i].ToString();
+    }
 
     return ss.str();
 }
 
-pair<Pt,Pt> Reg::GetBoundingBox(vector<Reg> regs) {
+pair<Pt, Pt> Reg::GetBoundingBox(vector<Reg> regs) {
     if (regs.empty())
-        return pair<Pt,Pt>(Pt(0, 0), Pt(0, 0));
+        return pair<Pt, Pt>(Pt(0, 0), Pt(0, 0));
     assert(regs[0].v.size() > 0);
-    pair<Pt,Pt> ret = regs[0].bbox;
+    pair<Pt, Pt> ret = regs[0].bbox;
     for (unsigned int i = 1; i < regs.size(); i++) {
-        pair<Pt,Pt> bbox = regs[i].bbox;
+        pair<Pt, Pt> bbox = regs[i].bbox;
         if (bbox.first.x < ret.first.x)
             ret.first.x = bbox.first.x;
         if (bbox.second.x > ret.second.x)
@@ -381,16 +358,16 @@ pair<Pt,Pt> Reg::GetBoundingBox(vector<Reg> regs) {
     return ret;
 }
 
-pair<Pt,Pt> Reg::GetBoundingBox(set<Reg*> regs) {
+pair<Pt, Pt> Reg::GetBoundingBox(set<Reg*> regs) {
     if (regs.empty())
-        return pair<Pt,Pt>(Pt(0, 0), Pt(0, 0));
-//    assert(*(*(regs.begin()))->v.size() > 0);
-    
-//    Reg *r = *(regs.begin());
-    pair<Pt,Pt> ret = (*(regs.begin()))->bbox;
-    
-    for (std::set<Reg*>::iterator it=regs.begin(); it != regs.end(); ++it) {
-        pair<Pt,Pt> bbox = (*it)->bbox;
+        return pair<Pt, Pt>(Pt(0, 0), Pt(0, 0));
+    //    assert(*(*(regs.begin()))->v.size() > 0);
+
+    //    Reg *r = *(regs.begin());
+    pair<Pt, Pt> ret = (*(regs.begin()))->bbox;
+
+    for (std::set<Reg*>::iterator it = regs.begin(); it != regs.end(); ++it) {
+        pair<Pt, Pt> bbox = (*it)->bbox;
         if (bbox.first.x < ret.first.x)
             ret.first.x = bbox.first.x;
         if (bbox.second.x > ret.second.x)
@@ -404,62 +381,62 @@ pair<Pt,Pt> Reg::GetBoundingBox(set<Reg*> regs) {
     return ret;
 }
 
-pair<Pt,Pt> Reg::GetBoundingBox() {
+pair<Pt, Pt> Reg::GetBoundingBox() {
     return bbox;
 }
 
-MSegs Reg::GetMSegs() {
+MSegs Reg::GetMSegs(bool triangles) {
     MSegs ret;
-    
+
     for (unsigned int i = 0; i < v.size(); i++) {
         Seg s = v[i];
-#if 0
-        ret.AddMSeg(MSeg(s.s, s.e, s.s, s.s));
-        ret.AddMSeg(MSeg(s.e, s.e, s.s, s.e));
-#else
-        ret.AddMSeg(MSeg(s.s, s.e, s.s, s.e));
-#endif
+        if (triangles) {
+            ret.AddMSeg(MSeg(s.s, s.e, s.s, s.s));
+            ret.AddMSeg(MSeg(s.e, s.e, s.s, s.e));
+        } else {
+            ret.AddMSeg(MSeg(s.s, s.e, s.s, s.e));
+        }
     }
-    
+
     return ret;
 }
 
 Reg Reg::ClipEar() {
     Reg ret;
-    
+
     if (v.size() <= 3) {
         return Reg(v);
     } else {
         Pt a, b, c;
         unsigned int n = v.size();
-        
+
         for (unsigned int i = 0; i < n; i++) {
-            a = v[(i+0)%n].s;
-            b = v[(i+1)%n].s;
-            c = v[(i+2)%n].s;
+            a = v[(i + 0) % n].s;
+            b = v[(i + 1) % n].s;
+            c = v[(i + 2) % n].s;
             if (Pt::sign(a, b, c) < 0) {
                 continue;
             }
-            
+
             bool inside = false;
-            for (unsigned int j = 0; j < (n-3); j++) {
-                Pt x = v[(i+j+3)%n].s;
+            for (unsigned int j = 0; j < (n - 3); j++) {
+                Pt x = v[(i + j + 3) % n].s;
                 inside = Pt::insideTriangle(a, b, c, x);
                 if (inside) {
                     break;
                 }
             }
-            
+
             if (!inside) {
-                ret.AddSeg(v[i+0]);
-                ret.AddSeg(v[i+1]);
-                Seg nw(v[i+1].e, v[i+0].s);
+                ret.AddSeg(v[i + 0]);
+                ret.AddSeg(v[i + 1]);
+                Seg nw(v[i + 1].e, v[i + 0].s);
                 ret.AddSeg(nw);
-                v.erase(v.begin()+i);
+                v.erase(v.begin() + i);
                 v[i].s = nw.e;
                 v[i].e = nw.s;
                 hullPoint = v[0].s;
-                
+
                 return ret;
             }
         }
@@ -472,13 +449,14 @@ Reg Reg::ClipEar() {
 vector<MSegs> Reg::Evaporate(bool close) {
     vector<MSegs> ret;
     Reg reg(v);
-    
+    cerr << "Clipping ear of " << ToString() << "\n";
+
     while (reg.v.size() > 3) {
         Reg r = reg.ClipEar();
         ret.push_back(r.collapse(close, r.GetCentroid()));
     }
     ret.push_back(reg.collapse(close, reg.GetCentroid()));
-    
+
     return ret;
 }
 
@@ -486,9 +464,9 @@ Reg Reg::Merge(Reg r) {
     double mindist = -1;
     Pt p1, p2;
     Reg ret;
-    
+
     if (0 && r.parent == parent && r.hullSeg.valid && hullSeg.valid) {
-        
+
     } else {
         for (unsigned int i = 0; i < v.size(); i++) {
             for (unsigned int j = 0; j < r.v.size(); j++) {
@@ -508,7 +486,7 @@ Reg Reg::Merge(Reg r) {
                 while (!(r.v[index].s == p2))
                     index++;
                 for (unsigned int j = 0; j < r.v.size(); j++) {
-                    ret.AddSeg(r.v[(index+j)%r.v.size()]);
+                    ret.AddSeg(r.v[(index + j) % r.v.size()]);
                 }
                 Seg s2(p2, p1);
                 ret.AddSeg(s2);
@@ -517,29 +495,29 @@ Reg Reg::Merge(Reg r) {
         }
     }
     ret.Close();
-    
+
     return ret;
 }
 
 void Reg::AddHole(vector<Seg> hole) {
     vector<Seg> nsegs;
     bool ishole = true;
-    
+
     if (hole.size() < 3)
         return;
-    
+
     for (unsigned int i = 0; i < hole.size(); i++) {
         bool found = false;
         for (unsigned int j = 0; j < v.size(); j++) {
             if (hole[i] == v[j]) {
                 found = true;
                 ishole = false;
-                v.erase(v.begin()+j);
+                v.erase(v.begin() + j);
                 break;
             }
         }
         if (!found) {
-           nsegs.push_back(hole[i]);
+            nsegs.push_back(hole[i]);
         }
     }
     if (ishole) {

@@ -3,10 +3,11 @@
 
 #include "interpolate.h"
 
-MSeg::MSeg() {
+MSeg::MSeg() : valid(true) {
 }
 
-MSeg::MSeg(Pt is, Pt ie, Pt fs, Pt fe) : is(is), ie(ie), fs(fs), fe(fe) {
+MSeg::MSeg(Pt is, Pt ie, Pt fs, Pt fe) : is(is), ie(ie), fs(fs), fe(fe),
+  valid(true) {
 }
 
 MSegmentData MSeg::ToMSegmentData(int face, int cycle, int segno) {

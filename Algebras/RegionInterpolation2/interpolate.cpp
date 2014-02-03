@@ -173,7 +173,7 @@ static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
 //        for (unsigned int j = 0; j < dst->size(); j++) {
 //            if ((*dst)[j].used)
 //                continue;
-//            cerr << "Comparing " << (*src)[i].v[0].s.ToString() << " with " <<
+//          cerr << "Comparing " << (*src)[i].v[0].s.ToString() << " with " <<
 //                    (*dst)[j].v[0].s.ToString() << "\n";
 //            if ((*src)[i].v[0].s == (*dst)[j].v[0].s) {
 //                (*src)[i].used = 1;
@@ -200,7 +200,7 @@ static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
 
 static vector<pair<Reg *, Reg *> > matchFaces(
         vector<Reg> *src, vector<Reg> *dst, int depth,
-        vector<pair<Reg*,Reg*> > (*fn)(vector<Reg>*, vector<Reg>*, int, string),
+        vector<pair<Reg*,Reg*> > (*fn)(vector<Reg>*,vector<Reg>*,int,string),
         string args) {
     vector<pair<Reg *, Reg *> > ret;
 
@@ -284,6 +284,9 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
         }
     }
     
+    cerr << "Interpolate depth " << depth << " start with " << sregs->size()
+     << "/" << dregs->size() << "\n";
+    
     // Match the faces to pairs of faces in the source- and destination-realm
     vector<pair<Reg *, Reg *> > matches;
     if (!evap)
@@ -291,6 +294,7 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
     else
         matches = matchFaces(sregs, dregs, depth, matchFacesLowerLeft, args);
     
+    cerr << "Found " << matches.size() << " matches!\n";
  
     for (unsigned int i = 0; i < matches.size(); i++) {
         pair<Reg *, Reg *> p = matches[i];
@@ -301,20 +305,26 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
  
             // Use the RotatingPlane-Algorithm to create an interpolation of
             // the convex hull of src and dst and identify all concavities
-            RotatingPlane rp(src, dst, depth);
+            RotatingPlane rp(src, dst, depth, evap);
 
             // Recurse and try to match and interpolate the list of concavities
-            MFaces fcs = interpolate(&rp.scvs, &rp.dcvs, depth + 1, evap, args);
+            MFaces fcs = interpolate(&rp.scvs, &rp.dcvs, depth+1, evap, args);
 
             // Now check if the interpolations intersect in any way
             handleIntersections(fcs, rp.face, evap);
+            cerr << "Restart handleIntersections\n";
+            handleIntersections(fcs, rp.face, false);
+            cerr << "Restarted handleIntersections\n";
 
             ret.needSEvap = ret.needSEvap || fcs.needSEvap;
             ret.needDEvap = ret.needDEvap || fcs.needDEvap;
 
+            cerr << "Current Face is " << rp.face.ToString() << "\n";
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
                 if (fcs.faces[i].face.ignore)
                     continue;
+                cerr << "Adding MSegs " <<
+		 fcs.faces[i].face.ToString() << "\n";
                 rp.face.AddMsegs(fcs.faces[i].face);
                 for (unsigned int j = 0; j < fcs.faces[i].holes.size(); j++) {
                     MFace fc(fcs.faces[i].holes[j]);
@@ -323,9 +333,11 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
             }
 
             rp.face.MergeConcavities();
+            cerr << "New Face is " << rp.face.ToString() << "\n";
             ret.AddFace(rp.face);
         } else {
             Reg *r = src ? src : dst;
+            cerr << "Collapse called for " << r->ToString() << "\n";
             MFace coll = r->collapseWithHoles(r == src);
             ret.AddFace(coll);
         }
@@ -335,74 +347,10 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
     if (depth == 0) {
         handleIntersections(ret, MFace(), evap);
     }
+    cerr << "Interpolate depth " << depth << " end\n";
 
     return ret;
 }
-
-//void handleIntersections(MFaces& children, MFace parent, bool evap) {
-//    vector<MSegs> evp;
-//
-//    for (int i = 0; i < (int) children.faces.size(); i++) {
-//        children.faces[i].face.calculateBBox();
-//    }
-//    parent.face.calculateBBox();
-//    
-//    
-//    for (int i = 0; i < (int) children.faces.size() + 1; i++) {
-//        MSegs *s1 = (i == 0) ? &parent.face : &children.faces[i - 1].face;
-//        for (unsigned int j = i; j < children.faces.size(); j++) {
-//            MSegs *s2 = &children.faces[j].face;
-//            
-//            if (s1->intersects(*s2)) {
-//                pair<MSegs, MSegs> ss;
-//                if (!s1->iscollapsed && (s1 != &parent.face) && !evap) {
-//                    ss = s1->kill();
-//                    children.faces.erase(children.faces.begin()+(i - 1));
-//                } else if (!s2->iscollapsed && (s2 != &parent.face)
-//                        && !evap) {
-//                    ss = s2->kill();
-//                    children.faces.erase(children.faces.begin() + j);
-//                } else {
-//                    MSegs *rm;
-//                    if (evap) {
-//                        assert(s1->iscollapsed || s2->iscollapsed);
-//                        if (s1->iscollapsed)
-//                            rm = s1;
-//                        else
-//                            rm = s2;
-//                        vector<MSegs> ms;
-//                        if (rm->iscollapsed == 1) {
-//                            ms = rm->sreg.Evaporate(true);
-//                        } else {
-//                            ms = rm->dreg.Evaporate(false);
-//                        }
-//                        evp.insert(evp.end(), ms.begin(), ms.end());
-//                    } else {
-//                        rm = s2;
-//                        if (rm->iscollapsed == 1)
-//                            children.needSEvap = true;
-//                        else
-//                            children.needDEvap = true;
-//                    }
-//                    children.faces.erase(children.faces.begin()+
-//                                         (rm == s1 ? i - 1 : j));
-//                    cerr << "Intersection found, but cannot "
-//                            "compensate! Eliminating Region\n";
-//                    i = -1;
-//                    break;
-//                }
-//                cerr << "Intersection found: " << ss.first.ToString()
-//                        << "\n" << ss.second.ToString() << "\n";
-//                children.faces.push_back(ss.first);
-//                children.faces.push_back(ss.second);
-//                i = -1;
-//                break;
-//            }
-//        }
-//    }
-//
-//    children.faces.insert(children.faces.end(), evp.begin(), evp.end());
-//}
 
 void handleIntersections(MFaces& children, MFace parent, bool evap) {
     vector<MSegs> evp;
@@ -415,6 +363,8 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
     for (int i = 0; i < (int) children.faces.size(); i++) {
         MSegs *s1 = &children.faces[i].face;
         for (int j = 0; j <= i; j++) {
+            cerr << "Checking " << i << "/" << j << " total " <<
+	     children.faces.size() << "\n";
             MSegs *s2 = (j == 0) ? &parent.face : &children.faces[j - 1].face;
 
             if (s1->intersects(*s2)) {
@@ -429,6 +379,10 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                 } else {
                     MSegs *rm;
                     if (evap) {
+                        if (!(s1->iscollapsed || s2->iscollapsed)) {
+                            cerr << "Intersection " << s1->ToString() << "\n"
+			     << s2->ToString() << "\n";
+                        }
                         assert(s1->iscollapsed || s2->iscollapsed);
                         if (s1->iscollapsed)
                             rm = s1;
@@ -441,21 +395,22 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                             ms = rm->dreg.Evaporate(false);
                         }
                         evp.insert(evp.end(), ms.begin(), ms.end());
+                        cerr << "Intersection found, evaporating\n";
                     } else {
                         rm = s1;
                         if (rm->iscollapsed == 1)
                             children.needSEvap = true;
                         else
                             children.needDEvap = true;
+                        cerr << "Intersection found, but cannot "
+                                "compensate! Eliminating Region\n";
+                        cerr << rm->ToString() << "\n";
                     }
                     children.faces.erase(children.faces.begin()+
                                          (rm == s1 ? i : j - 1));
-                    cerr << "Intersection found, but cannot "
-                            "compensate! Eliminating Region\n";
                     i--;
                     break;
                 }
-                cerr << "Intersection found\n";
                 children.faces.push_back(ss.first);
                 children.faces.push_back(ss.second);
                 i--;

@@ -1,26 +1,3 @@
-function matchFacesold (src, dst, depth)
-    print("\nDepth "..depth..": Srcregs " .. #src .. ", Dstregs " .. #dst)
-    
-    ret = {}
-    
-    if (depth == 0) then
-	ret = { { src=src[1], dst=dst[1] } }
-    end
-    
-    
-    if (depth == 1) then
-	ret = { { src=src[1], dst=dst[2] }, { src=src[2], dst=nil }, { src=src[3], dst=dst[1] } }
-    end
-    
-    if (depth > 1) then
-	ret = { { src=src[1], dst=dst[1] } }
-    end
-    
-    print("Leaving depth "..depth.."\n");
-    return ret
-end
-
-
 function matchFaces (src, dst, depth, args)
     print("\nLUA Start with args "..args)
     ret = {}
@@ -48,7 +25,8 @@ function matchFaces (src, dst, depth, args)
 	      "  BBox "..b1.x.."/"..b1.y.." "..b2.x.."/"..b2.y);
     end
 
-    ret = matchFacesDistance (src, dst, depth)
+--    ret = matchFacesDistance (src, dst, depth)
+    ret = matchFacesOverlap (src, dst, depth)
 --    ret = matchFacesOL (src, dst, depth)
 --    ret = matchFacesSpecial (src, dst, depth)
     
@@ -115,6 +93,20 @@ function matchFacesRandom (src, dst, depth)
 end
 
 function matchFacesDistance (src, dst, depth)
+    return matchFacesCriterion (src, dst, depth, distance)
+end
+
+function overlap (src, dst)
+    i,s,d = overlap(src,dst)
+
+    return 100-((i/s*100+i/d*100)/2)
+end
+
+function matchFacesOverlap (src, dst, depth)
+    return matchFacesCriterion (src, dst, depth, overlap)
+end
+
+function matchFacesCriterion (src, dst, depth, func)
     ret = {}
     
     nrsrc = #src
@@ -127,14 +119,14 @@ function matchFacesDistance (src, dst, depth)
 	    s = src[i]
 	    d = dst[j]
 	    dist[k] = {}
-	    dist[k].distance = distance(s,d)
+	    dist[k].criterion = func(s,d)
 	    dist[k].s = s;
 	    dist[k].d = d;
 	    k = k + 1
 	end
     end
 
-    table.sort(dist, function (a,b) return a.distance < b.distance end);
+    table.sort(dist, function (a,b) return a.criterion < b.criterion end);
 
     used = {}
 
@@ -144,7 +136,7 @@ function matchFacesDistance (src, dst, depth)
 	    ret[i] = { src=y.s, dst=y.d }
 	    used[y.s] = 1
 	    used[y.d] = 1
-	    print (x.." = "..y.distance)
+	    print (x.." = "..y.criterion)
 	    i = i + 1
 	end
     end

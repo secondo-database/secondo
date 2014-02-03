@@ -152,7 +152,6 @@ Reg MFace::CreateBorderRegion(bool src) {
         ret.AddHole(hole);
     }
 
-
     return ret;
 }
 

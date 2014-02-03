@@ -70,10 +70,10 @@ public:
     Reg();
     Reg(ListExpr le);
     Reg(vector<Seg> v);
-    void AddSeg(Seg& a);
+    void AddSeg(Seg a);
     void Print();
     void Close();
-    void ConvexHull();
+    Reg ConvexHull();
     void Translate(int offx, int offy);
     void Begin();
     Seg Next();
@@ -93,7 +93,7 @@ public:
     MSegs collapse(bool close, Pt dst);
     MFace collapseWithHoles(bool close);
     Pt collapsePoint();
-    MSegs GetMSegs();
+    MSegs GetMSegs(bool triangles);
     string ToString() const;
     double distance(Reg r);
     Reg Merge(Reg r);
@@ -109,6 +109,7 @@ public:
 class MSeg {
 public:
     Pt is, ie, fs, fe;
+    bool valid;
 
     MSeg();
     MSeg(Pt is, Pt ie, Pt fs, Pt fe);
@@ -145,6 +146,8 @@ public:
     int getLowerLeft();
     int findNext(int index);
     MSegs divide(double start, double end);
+    void crossAdd(set<Seg> csegssrc, set<Seg> csegsdst);
+    
 };
 
 class MFace {
@@ -194,7 +197,7 @@ public:
     MFace face;
     vector<Reg> scvs, dcvs;
 
-    RotatingPlane(Reg *src, Reg *dst, int depth);
+    RotatingPlane(Reg *src, Reg *dst, int depth, bool evap);
 };
 
 MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,

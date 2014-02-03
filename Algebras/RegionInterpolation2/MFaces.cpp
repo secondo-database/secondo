@@ -21,7 +21,7 @@ MFaces MFaces::CreateBorderMFaces(bool src) {
     vector<Reg> regs = CreateBorderRegions(src);
 
     for (unsigned int i = 0; i < regs.size(); i++) {
-        ret.AddFace(regs[i].GetMSegs());
+        ret.AddFace(regs[i].GetMSegs(false));
     }
 
     return ret;
@@ -34,6 +34,7 @@ vector<Reg> MFaces::CreateBorderRegions(bool src) {
         Reg r = faces[i].CreateBorderRegion(src);
         if (r.v.size() >= 3)
             ret.push_back(r);
+        cerr << "CBR " <<  src << " " << r.ToString() << "\n";
     }
 
     return ret;
@@ -104,6 +105,8 @@ MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
         needStartRegion = needStartRegion || faces[i].needStartRegion;
         needEndRegion = needEndRegion || faces[i].needEndRegion;
     }
+    
+    needSEvap = needDEvap = false;
 
     Instant onethird = (_iv.end - _iv.start) / 3;
     // Compiling intervals
@@ -234,6 +237,8 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
     Interval<Instant> startRegIv, endRegIv;
     Interval<Instant> mainIv;
 
+//    needSEvap = needDEvap = false;
+
     mainIv.CopyFrom(_iv);
     if (needSEvap) {
         startEvapIv.lc = mainIv.lc;
@@ -242,8 +247,8 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
         mainIv.start = mainIv.start + onethird;
         startEvapIv.end = mainIv.start;
 
-        startEvapIv.rc = true;
-        mainIv.lc = false;
+        startEvapIv.rc = false;
+        mainIv.lc = true;
     }
 
     if (needDEvap) {
@@ -253,8 +258,8 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
         mainIv.end = mainIv.end - onethird;
         endEvapIv.start = mainIv.end;
 
-        endEvapIv.lc = true;
-        mainIv.rc = false;
+        endEvapIv.lc = false;
+        mainIv.rc = true;
     }
 
     if (needStartRegion) {
@@ -285,6 +290,7 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
         MFaces fs;
         vector<Reg> bordersregs = CreateBorderRegions(true);
         cerr << "Interpolate start\n";
+        cerr << (*sregs)[0].ToString() << "\n";
         fs = interpolate(sregs, &bordersregs, 0, true, "");
         cerr << "Interpolate end\n";
         Append(mreg, fs.ToListExpr(startEvapIv, 0, 1));
@@ -328,13 +334,13 @@ ListExpr MFaces::fallback(vector<Reg> *sregs, vector<Reg> *dregs,
     MFaces start;
     for (unsigned int i = 0; i < sregs->size(); i++) {
         Reg r = (*sregs)[i];
-        MFace f(r.GetMSegs());
+        MFace f(r.GetMSegs(false));
         start.AddFace(f);
     }
     MFaces end;
     for (unsigned int i = 0; i < dregs->size(); i++) {
         Reg r = (*dregs)[i];
-        MFace f(r.GetMSegs());
+        MFace f(r.GetMSegs(false));
         end.AddFace(f);
     }
 

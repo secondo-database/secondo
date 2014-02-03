@@ -61,7 +61,7 @@ vector<MSeg> MSegs::GetMatchingMSegs(MSegs m) {
 }
 
 void MSegs::MergeConcavity(MSegs c) {
-    //    cerr << "Merging " << ToString() << " with " << c.ToString() << "\n";
+#if 1
     std::sort(segs.begin(), segs.end());
     std::sort(c.segs.begin(), c.segs.end());
     std::vector<MSeg>::iterator i = segs.begin();
@@ -76,6 +76,32 @@ void MSegs::MergeConcavity(MSegs c) {
             j++;
         }
     }
+#else
+    // Delete cross-added segments
+   std::vector<MSeg>::iterator i = segs.begin();
+    while (i != segs.end()) {
+        std::vector<MSeg>::iterator j = c.segs.begin();
+        while (j != segs.end()) {
+            MSeg s = *i, e = *j;
+            if (((s.is == e.is) && (s.ie == e.ie)) ||
+                ((s.fs == e.fs) && (s.fe == e.fe))) {
+                i->valid = false;
+                j->valid = false;
+            }
+        }
+    }
+    
+    for (i = segs.begin(); i != segs.end(); i++) {
+        if (!i->valid)
+            i = segs.erase(i);
+    }
+    
+    for (i = c.segs.begin(); i != c.segs.end(); i++) {
+        if (!i->valid)
+            i = c.segs.erase(i);
+    }
+#endif
+    
     for (unsigned int x = 0; x < c.segs.size(); x++)
         c.segs[x].ChangeDirection();
     segs.insert(segs.end(), c.segs.begin(), c.segs.end());
@@ -195,6 +221,28 @@ int MSegs::findNext(int index) {
     }
 
     return -1;
+}
+
+void MSegs::crossAdd(set<Seg> csegssrc, set<Seg> csegsdst) {
+    std::set<Seg>::iterator si = csegssrc.begin();
+    std::set<Seg>::iterator di;
+    
+    while (si != csegssrc.end()) {
+        di = csegsdst.begin();
+        while (di != csegsdst.end()) {
+            Seg s = *si, d = *di;
+            
+            AddMSeg(MSeg(s.s, s.e, d.s, d.s));
+            AddMSeg(MSeg(s.s, s.s, d.s, d.e));
+            
+            AddMSeg(MSeg(s.e, s.e, d.s, d.e));
+            AddMSeg(MSeg(s.s, s.e, d.e, d.e));
+            
+            di++;
+        }
+        si++;
+    }
+    
 }
 
 static inline double max(double a, double b, double c, double d) {
