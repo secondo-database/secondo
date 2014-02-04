@@ -1,0 +1,21 @@
+Database : prttest
+Restore  : YES
+
+Operator : insideop
+Number   : 1
+Signature: xpoint x xrectangle -> bool
+Example  : query p1 insideop r1
+Result   : TRUE
+
+Operator : insideop
+Number   : 2
+Signature: xrectangle x xrectangle -> bool
+Example  : query r2 insideop r1
+Result   : TRUE
+
+Operator : intersectsop
+Number   : 1
+Signature: xrectangle x xrectangle -> bool
+Example  : query r1 intersectsop r2
+Result   : TRUE
+
