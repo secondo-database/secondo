@@ -191,17 +191,17 @@ int matchgridFunctiont(Word* pArguments,
                      (resultCurrentIndex[1] + 1) * gridLength);
 
                     Index<2> sourceStartIndex
-                    ((int[]){std::floor((currentBoundingBox.MinD(0) -
+                    ((int[]){(int)std::floor((currentBoundingBox.MinD(0) -
                                          sourceGridX) /
                                          sourceGridLength),
-                             std::floor((currentBoundingBox.MinD(1) -
+                             (int)std::floor((currentBoundingBox.MinD(1) -
                                          sourceGridY) /
                                          sourceGridLength)});
                     Index<2> sourceEndIndex
-                    ((int[]){std::floor((currentBoundingBox.MaxD(0) -
+                    ((int[]){(int)std::floor((currentBoundingBox.MaxD(0) -
                                          sourceGridX) /
                                          sourceGridLength),
-                             std::floor((currentBoundingBox.MaxD(1) -
+                             (int)std::floor((currentBoundingBox.MaxD(1) -
                                          sourceGridY) /
                                          sourceGridLength)});
                     rel.Clear();
@@ -484,22 +484,22 @@ int matchgridFunctionmt(Word* pArguments,
                      (resultCurrentIndex[2] + 1) * gridDuration);
 
                     Index<3> sourceStartIndex
-                    ((int[]){std::floor((currentBoundingBox.MinD(0) -
+                    ((int[]){(int)std::floor((currentBoundingBox.MinD(0) -
                                          sourceGridX) /
                                          sourceGridLength),
-                             std::floor((currentBoundingBox.MinD(1) -
+                             (int)std::floor((currentBoundingBox.MinD(1) -
                                          sourceGridY) /
                                          sourceGridLength),
-                             std::floor((currentBoundingBox.MinD(2) /
+                             (int)std::floor((currentBoundingBox.MinD(2) /
                                          sourceGridDuration))});
                     Index<3> sourceEndIndex
-                    ((int[]){std::floor((currentBoundingBox.MaxD(0) -
+                    ((int[]){(int)std::floor((currentBoundingBox.MaxD(0) -
                                          sourceGridX) /
                                          sourceGridLength),
-                             std::floor((currentBoundingBox.MaxD(1) -
+                             (int)std::floor((currentBoundingBox.MaxD(1) -
                                          sourceGridY) /
                                          sourceGridLength),
-                             std::floor((currentBoundingBox.MaxD(2) /
+                             (int)std::floor((currentBoundingBox.MaxD(2) /
                                          sourceGridDuration))});
                     rel.Clear();
 
