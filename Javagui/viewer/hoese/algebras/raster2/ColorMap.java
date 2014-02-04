@@ -122,77 +122,48 @@ public class ColorMap
     return this.values;
   }
 
+
+  /**
+    * Computes a double value from a Comparable
+    **/
+
+  private static Double getDouble(Comparable c){
+      if(c==null){
+        return null;
+      }
+      if(c instanceof Integer) {
+        return  new Double((Integer)c);
+      } else if(c instanceof Double) {
+        return new Double((Double)c);
+      } else if(c instanceof Boolean) {
+        if((Boolean)c == Boolean.FALSE) {
+          return new Double(0.0);
+        } else {
+          return new Double(1.0);
+        }
+      } else if(c instanceof String) {
+        return  new Double(((String)c).hashCode());
+      }
+      Reporter.writeError("Unsupported type in getDouble " + c.getClass().getName());
+      return null;
+  }
+
+
   /**
   * Sets the minimum value of color map.
   */
-  private void setMinimumValue(Comparable minimumValue)
-  {
-    if(minimumValue != null)
-    {
-      if(minimumValue instanceof Integer)
-      {
-        minValue = new Double((Integer)minimumValue);
-      }
-
-      else if(minimumValue instanceof Double)
-      {
-        minValue = new Double((Double)minimumValue);
-      }
-
-      else if(minimumValue instanceof Boolean)
-      {
-        if((Boolean)minimumValue == Boolean.FALSE)
-        {
-          minValue = new Double(0.0);
-        }
-
-        else
-        {
-          minValue = new Double(1.0);
-        }
-      }
-
-      else if(minimumValue instanceof String)
-      {
-        minValue = new Double(((String)minimumValue).hashCode());
-      }
+  private void setMinimumValue(Comparable minimumValue) {
+    if(minimumValue != null) {
+       minValue = getDouble(minimumValue);
     }
   }
 
   /**
   * Sets the maximum value of color map.
   */
-  private void setMaximumValue(Comparable maximumValue)
-  {
-    if(maximumValue != null)
-    {
-      if(maximumValue instanceof Integer)
-      {
-        maxValue = new Double((Integer)maximumValue);
-      }
-
-      else if(maximumValue instanceof Double)
-      {
-        maxValue = new Double((Double)maximumValue);
-      }
-
-      else if(maximumValue instanceof Boolean)
-      {
-        if((Boolean)maximumValue == Boolean.FALSE)
-        {
-          minValue = new Double(0.0);
-        }
-
-        else
-        {
-          minValue = new Double(1.0);
-        }
-      }
-
-      else if(maximumValue instanceof String)
-      {
-        maxValue = new Double(((String)maximumValue).hashCode());
-      }
+  private void setMaximumValue(Comparable maximumValue) {
+    if(maximumValue != null) {
+       maxValue = getDouble(maximumValue);
     }
   }
   
@@ -465,6 +436,9 @@ public class ColorMap
   private void computeGradientImage()
   {
       Graphics2D g2;
+      //System.out.println("maxValue = " + maxValue);
+      //System.out.println("minValue = " + minValue);
+
       double valuerange = this.maxValue - this.minValue;      
       
       // if only few values, map values directly to colors
