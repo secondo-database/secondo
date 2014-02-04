@@ -5,7 +5,7 @@
 
 #include <vector>
 #include <set>
-#include <lua5.2/lua.hpp>
+#include <lua5.1/lua.hpp>
 
 static int SCALESIZE = 1000000;
 
