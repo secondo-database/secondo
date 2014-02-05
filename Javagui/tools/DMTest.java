@@ -109,7 +109,7 @@ public class DMTest{
      f = new File(f,"myDownloads"+File.separator);
      DownloadManager dm = null;
      try{
-         dm = new DownloadManager(f,maxDownloads);
+         dm = new DownloadManager(f,maxDownloads, false);
      } catch (Exception e){
          System.out.println("Cannot create downloadManager");
          System.out.println("File = " + f);

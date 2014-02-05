@@ -15,6 +15,8 @@ public abstract class  DownloadObserver implements Comparable{
   public abstract void downloadStateChanged(DownloadEvent evt);
 
 
+  public void fileExists(java.net.URL url){}
+
   public int compareTo(Object obj){
      DownloadObserver o = (DownloadObserver) obj;
      if(o.id==id) return 0;

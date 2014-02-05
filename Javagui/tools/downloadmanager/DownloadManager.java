@@ -15,7 +15,7 @@ public class DownloadManager extends  DownloadObserver{
 
   /** Creates a new DownloadManager. 
    **/
-  public DownloadManager(File tmpDirectory, int maxDownloads) throws InvalidArgumentException{
+  public DownloadManager(File tmpDirectory, int maxDownloads, boolean lastImportant) throws InvalidArgumentException{
    //  if(!tmpDirectory.isDirectory()){
    //      throw new InvalidArgumentException("tmpdirectory must be an directiry");
    //  }
@@ -32,6 +32,7 @@ public class DownloadManager extends  DownloadObserver{
      plannedDownloads = new HashMap<URL, PlannedDownload>();
      activeDownloads = new HashMap<URL, ActiveDownload>();
      plannedQueue = new LinkedList<URL>();
+     this.lastImportant = lastImportant;
   }
 
 
@@ -58,6 +59,9 @@ public class DownloadManager extends  DownloadObserver{
 
 			File f = computeFile(url);
 			if (f.exists()) {
+        if(ob!=null){
+            ob.fileExists(url);
+        }
 				return f;
 			}
 
@@ -188,8 +192,8 @@ public class DownloadManager extends  DownloadObserver{
    synchronized(syncObj){
       ActiveDownload ad = (ActiveDownload) evt.getSource();
       activeDownloads.remove(ad.getURL());
-      while(plannedQueue.size()>0){
-         URL url = (URL) plannedQueue.poll();
+      while(plannedQueue.size()>0 && activeDownloads.size() < maxDownloads){
+         URL url = lastImportant?plannedQueue.removeLast(): plannedQueue.poll();
          PlannedDownload pd = plannedDownloads.get(url);
          if(pd!=null){
             plannedDownloads.remove(url);
@@ -314,16 +318,18 @@ public class DownloadManager extends  DownloadObserver{
   }
 
 
-
-
+  /** returns the number of pending downloads ***/
+  public int numOfPendingDownloads(){
+      return activeDownloads.size() + plannedDownloads.size();
+  }
 
   private File rootDir;
   private int maxDownloads;
   private HashMap<URL, ActiveDownload> activeDownloads;
   private HashMap<URL, PlannedDownload> plannedDownloads;
-  private Queue<URL> plannedQueue;
+  private LinkedList<URL> plannedQueue;
   private final Object syncObj = new Object();
   private int connectTimeout = 3000;
   private int readTimeout = 3000;
-  
+  private boolean lastImportant;  
 }
