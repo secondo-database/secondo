@@ -403,7 +403,7 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		int tupleIndex = this.relation.getTupleIndex(pTupleId);
 		int attributeIndex = this.relation.getAttributeNames().indexOf(pAttributeName);
-		int result = tupleIndex*this.getRowsPerTuple() + attributeIndex;
+		int result = tupleIndex*this.getRowsPerTuple() + attributeIndex +1;
 		return result;
 	}
 	
@@ -442,8 +442,6 @@ public class RelationTableModel extends AbstractTableModel
 	 */
     public Object getValueAt(int pRow, int pCol) 
 	{
-		//Reporter.debug("RelationTableModel.getValueAt: " + pRow + ", " + pCol);
-		
 		String result = " ";
 		
 		// if this is not a Separator Row
@@ -471,7 +469,7 @@ public class RelationTableModel extends AbstractTableModel
 					result = "Fehler";
 			}
 		}
-		
+		//Reporter.debug("RelationTableModel.getValueAt(" + pRow + ", " + pCol + ": " + result);		
 		return result;
     }
 	

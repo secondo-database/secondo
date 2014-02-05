@@ -51,7 +51,7 @@ import viewer.update2.format.*;
 This class controls the actionflow of update-operations in the 'UpdateViewer2'.
 
 */
-public class UpdateViewerController implements ActionListener, ItemListener
+public class UpdateViewerController implements ActionListener, MouseListener
 {
 	
 	private CommandGenerator commandGenerator;
@@ -60,7 +60,6 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	private LoadDialog loadDialog;
 	private UpdateViewer2 viewer;
 	private int state;	
-	private boolean searchActive;
 	private LoadProfile loadProfile;
 	
 	// Name of relation which contain LoadProfiles
@@ -115,7 +114,6 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		this.commandGenerator = new CommandGenerator();
 		this.commandExecuter = new CommandExecuter();
 		this.state = States.INITIAL;
-		this.searchActive = false;
 	}
 	
 	/**
@@ -311,7 +309,21 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		//
 		if (e.getActionCommand() == CMD_SEARCH)
 		{
-			this.processCommandSearch();
+			// read keyword from searchfield
+			String key = this.viewer.getCurrentRelationPanel().getSearchKey();
+			boolean caseSensitive = this.viewer.getCurrentRelationPanel().getCaseSensitive();
+			
+			if (key == null || key.isEmpty())
+			{
+				this.showInfoDialog("Please specify a search key");
+			}
+			else
+			{
+				if (!this.processCommandSearch())
+				{
+					this.showInfoDialog("No matches found.");
+				}
+			}
 			return;
 		}
 		if (e.getActionCommand() == CMD_CLEAR_SEARCH)
@@ -553,7 +565,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 					this.showErrorDialog("Error trying to abort transaction: " + errorMessage);
 				}
 				this.showErrorDialog(errorMessage);
-				rp.goToInsert(e.getRow()-1, e.getColumn()-1);
+				rp.goToInsert(e.getRow()-1);
 				return false;
 			}
 			
@@ -627,7 +639,13 @@ public class UpdateViewerController implements ActionListener, ItemListener
             {
                 String message = e.getMessage()+"\n at position ("+ e.getRow() + ", " + e.getColumn() + ")";
                 this.showErrorDialog(message);
-                rp.goToEdit(e.getRow() -1, e.getColumn()-1);
+                rp.goTo(e.getRow(), 0, 0);
+				
+				if (! this.commandExecuter.abortTransaction())
+				{
+					errorMessage = this.commandExecuter.getErrorMessage().toString();
+					this.showErrorDialog("Error trying to abort transaction: " + errorMessage);
+				}
                 return false;
             }
             
@@ -700,6 +718,33 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		}
 	}
 	
+	/**
+	 * Executes search and shows results in specified RelationPanel.
+	 */
+	private boolean executeSearch(String pRelationName)
+	{
+		RelationPanel rp = this.viewer.getRelationPanel(pRelationName);
+		
+		if (rp == null || !rp.getSearchActive())
+		{
+			return false;
+		}
+		
+		String key = rp.getSearchKey();
+		boolean caseSensitive = rp.getCaseSensitive();
+		List<SearchHit> hitlist = rp.retrieveSearchHits(key, caseSensitive);
+		
+		rp.setSearchHits(hitlist);
+		rp.showSearchResult();
+		
+		if (hitlist == null || hitlist.isEmpty())
+		{
+			return false;
+		}
+		
+		return true;
+	}
+	
 	
 	/**
 	 * Returns true if relation exists in currently open database.
@@ -734,18 +779,6 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		}
 		
 		return false;
-	}
-	
-	
-	/**
-	 * Reacts on Checkbox selection.
-	 */
-	public void itemStateChanged(ItemEvent e)
-	{
-		/*if (e.getItem() instanceof JCheckBox && ((JCheckBox)e.getItem()).getText().equals("case-sensitive"))
-		{
-			this.caseSensitive = (e.getStateChange() == ItemEvent.SELECTED);
-		}*/
 	}
 	
 		
@@ -806,6 +839,21 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		return result;
 	} 
 	
+	public void mouseClicked(MouseEvent pEvent){;}
+	public void mouseEntered(MouseEvent pEvent){;}
+	public void mouseExited(MouseEvent pEvent){;}
+	public void mouseReleased(MouseEvent pEvent){;}
+
+	public void mousePressed(MouseEvent pEvent)
+	{
+		if (pEvent.getSource() instanceof DocumentPanel)
+		{
+			DocumentPanel doc = (DocumentPanel)pEvent.getSource();
+			RelationPosition pos = this.formatDialog.getCurrentPosition();
+			this.formatDialog.setPositionInfo(pos);
+			this.processCommandGoToEdit();
+		}
+	}
 	
 	/**
 	 *
@@ -873,11 +921,10 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	 */
 	public void processCommandClearSearch()
 	{
-		this.searchActive = false;
-		
 		for (RelationPanel rp : this.viewer.getRelationPanels())
 		{
 			rp.clearSearch();
+			rp.setSearchActive(false);
 		}
 	}
 	
@@ -907,10 +954,6 @@ public class UpdateViewerController implements ActionListener, ItemListener
 				break;
 			}
 			default: break;
-		}
-		if (this.searchActive)
-		{
-			this.processCommandSearch();
 		}
 		return result;
 	}
@@ -1029,7 +1072,7 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	
 	private boolean processCommandGoToEdit()
 	{
-		this.viewer.setVisible(true);
+		this.viewer.getMainFrame().toFront();
 		RelationPosition posInfo = this.formatDialog.getCurrentPosition();
 		if (posInfo == null)
 		{
@@ -1042,9 +1085,9 @@ public class UpdateViewerController implements ActionListener, ItemListener
 								 + "Please add relation to your load profile. ");
 			return false;
 		}
+		this.setState(States.UPDATE);
 		this.viewer.showRelationPanel(this.viewer.getRelationPanels().indexOf(rp));
-		
-		rp.goToEdit(posInfo.getAttributeName(), posInfo.getTupleId(), posInfo.getOffset());
+		rp.goTo(posInfo.getAttributeName(), posInfo.getTupleId(), posInfo.getOffset());
 		return true;
 	}
 
@@ -1220,10 +1263,16 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	 */
 	public void processCommandOpenFormatDialog() 
 	{
+		if (this.loadProfile == null)
+		{
+			this.showInfoDialog("No load profile active.");
+			return;
+		}
 		if (this.formatDialog == null)
 		{
 			this.formatDialog = new FormatDialog(this);
 		}
+		
 		this.formatDialog.setVisible(true);		
 	}
 	
@@ -1325,6 +1374,13 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	private boolean processCommandReplace()
 	{
 		RelationPanel rp = this.viewer.getCurrentRelationPanel();
+		
+		if (rp.getState() == States.LOADED_READ_ONLY)
+		{
+			this.showInfoDialog("Replace not possible: relation \"" + rp.getName() + "\" is read-only.");
+			return false;
+		}
+		
 		String key = rp.getSearchKey();
 		String replacement = rp.getReplacement();
 		
@@ -1337,18 +1393,15 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		{
 			int option = JOptionPane.showConfirmDialog(rp
 													   , "Replace by \"" + replacement + "\"?"
-													   , "Replace and skip"
+													   , "Replace and go to next hit"
 													   , JOptionPane.YES_NO_OPTION);
 			if (option == JOptionPane.YES_OPTION)
-			{					
-				SearchHit hit = rp.getHit(rp.getCurrentHitIndex());
-				rp.replace(hit, replacement);
-				rp.showSearchResult(key);
-				
-				if (!rp.showHit(rp.getCurrentHitIndex()))
-				{
-					this.processCommandNext();
-				}
+			{	
+				int currHitIndex = rp.getCurrentHitIndex();
+				SearchHit hit = rp.getHit(currHitIndex);
+				rp.replace(hit);
+				rp.showSearchResult();
+				rp.showHit(currHitIndex);
 			}
 		}
 		
@@ -1383,12 +1436,21 @@ public class UpdateViewerController implements ActionListener, ItemListener
 		{
 			for (RelationPanel rp : this.viewer.getRelationPanels())
 			{
-				while (rp.hasSearchHits())
+				if (rp.getState() == States.LOADED_READ_ONLY)
 				{
-					rp.replace(rp.getHit(0), replacement);
-					count ++;
+					this.showInfoDialog("Replace not possible: relation \"" + rp.getName() + "\" is read-only and will be skipped.");
 				}
-				rp.showSearchResult(key);
+				else
+				{
+					rp.setReplacement(replacement);
+					
+					while (rp.hasSearchHits())
+					{
+						rp.replace(rp.getHit(0));
+						count ++;
+					}
+					rp.showSearchResult();
+				}
 			}			
 		}
 		
@@ -1425,9 +1487,9 @@ public class UpdateViewerController implements ActionListener, ItemListener
 				break;
 		}
 		
-		if (this.searchActive)
+		for (RelationPanel rp : this.viewer.getRelationPanels())
 		{
-			this.processCommandSearch(); 
+			this.executeSearch(rp.getName()); 
 		}
 		
 		return true;
@@ -1607,70 +1669,43 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	}
 	
 	
-	
-	
 	/**
 	 * Retrieves hits for keyword in search field and displays result in UpdateViewer2.
+	 * @return TRUE if any hits were found
 	 */
-	private void processCommandSearch()
+	private boolean processCommandSearch()
 	{
-		// read keyword from searchfield
 		String key = this.viewer.getCurrentRelationPanel().getSearchKey();
 		boolean caseSensitive = this.viewer.getCurrentRelationPanel().getCaseSensitive();
 		
-		// retrieve hitlists for all relation panels
-		if (key == null || key.length() < 3)
-		{
-			this.showInfoDialog("Key length must be 3 at least");
-		}
-		else
-		{
-			Map<String,List<SearchHit>> map = new HashMap<String,List<SearchHit>>();
-			
-			for (RelationPanel rp : this.viewer.getRelationPanels())
-			{								
-				List<SearchHit> hitlist = rp.retrieveSearchHits(key, caseSensitive);
-				if (!hitlist.isEmpty())
-				{
-					map.put(rp.getName(), hitlist);
-				}
-			}
-			
-			// if none of the relations has hits, display messagebox, else display search results in RelationPanel.
-			if (map.isEmpty())
+		// if at least one of the relations has hits then display search results in RelationPanel.
+		int first = -1;
+		for (RelationPanel rp : this.viewer.getRelationPanels())
+		{	
+			rp.setSearchKey(key);
+			rp.setCaseSensitive(caseSensitive);
+			rp.setSearchActive(true);
+
+			if (this.executeSearch(rp.getName()) && first<0)
 			{
-				showErrorDialog("No matches found.");
-				this.processCommandClearSearch();
-			}
-			else
-			{
-				this.searchActive = true;
-				
-				int first = -2;
-				for (RelationPanel rp : this.viewer.getRelationPanels())
-				{								
-					List<SearchHit> hitlist = map.get(rp.getName());
-					if (hitlist != null)
-					{
-						rp.setSearchHits(hitlist);
-						rp.showSearchResult(key);
-						if (first<0)
-						{
-							first = this.viewer.getRelationPanels().indexOf(rp);
-						}
-					}
-				}
-				// go to first hit in first RelationPanel with a hit (if there is any)
-				if (first >= 0)
-				{
-					this.viewer.showRelationPanel(first);
-					RelationPanel rp = this.viewer.getCurrentRelationPanel();
-					rp.showHit(0);
-				}
+				first = this.viewer.getRelationPanels().indexOf(rp);
 			}
 		}
+
+		// go to first hit in first RelationPanel with a hit (if there is any)
+		if (first < 0)
+		{
+			return false;
+		}
+		
+		this.viewer.showRelationPanel(first);
+		RelationPanel rp = this.viewer.getCurrentRelationPanel();
+		rp.showHit(0);
+		
+		return true;
 	}
 	
+		
 	
 	/**
      * Undoes last uncommitted change (cell-wise), deletion or insertion.
@@ -1732,8 +1767,16 @@ public class UpdateViewerController implements ActionListener, ItemListener
 	 */
 	public void setState(int pState)
 	{
-		this.state = pState;
-		this.viewer.setSelectionMode(pState);
+		if (this.loadProfile == null)
+		{
+			this.state = States.LOADED_READ_ONLY;
+			this.viewer.setSelectionMode(States.LOADED_READ_ONLY);
+		}
+		else
+		{
+			this.state = pState;
+			this.viewer.setSelectionMode(pState);
+		}
 	}
 	
 	/**

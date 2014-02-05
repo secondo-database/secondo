@@ -96,7 +96,7 @@ public class CommandGenerator
 						ListExpr LE = AttributeFormatter.fromStringToListExpr(type, value);
 						if(LE==null)
 						{
-							throw new InvalidFormatException("Invalid Format for " + type, j*tupleSize+i+1, i+1);
+							throw new InvalidFormatException("Invalid Format for " + type, j*tupleSize+i, 2);
 						}
 						insertCommand.append(LE.toString());
 						//insertCommand.append("(" + type + " " + value + ") ");
@@ -176,6 +176,7 @@ public class CommandGenerator
 		List<String> updateCommands = new ArrayList<String>();
 		
 		int index;
+		int tupleSize = pAttributeNames.size();
 		String type;
 		String value;
 		String leString;
@@ -218,7 +219,7 @@ public class CommandGenerator
 				
 				if(le==null)
 				{
-					throw new InvalidFormatException("Invalid Format for " + type, tid, index+1);
+					throw new InvalidFormatException("Invalid Format for " + type, tid*tupleSize+index, 2);
 				}
 					
 				leString = le.writeListExprToString();				

@@ -27,6 +27,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.io.BufferedReader;
@@ -194,6 +195,11 @@ public class UpdateViewer2 extends SecondoViewer {
 		return result;
 	}
 	
+	public Frame getMainFrame()
+	{
+		return this.VC.getMainFrame();
+	}
+	
 
 	/**
 	 * Returns the RelationPanel with the Relation of the specified name.
@@ -328,8 +334,26 @@ public class UpdateViewer2 extends SecondoViewer {
 				undo.setEnabled(false);
 				commit.setEnabled(false);
 				format.setEnabled(true);
-				format.setText(UpdateViewerController.CMD_FORMAT);
-				format.setToolTipText("View as formatted document");
+				for (RelationPanel rp : this.relationPanels)
+				{
+					rp.setState(pState);
+				}
+				break;
+			}
+			case States.LOADED_READ_ONLY: 
+			{
+				insert.setBackground(Color.LIGHT_GRAY);
+				delete.setBackground(Color.LIGHT_GRAY);
+				update.setBackground(Color.LIGHT_GRAY);
+				load.setEnabled(true);
+				clear.setEnabled(true);
+				insert.setEnabled(false);
+				update.setEnabled(false);
+				delete.setEnabled(false);
+				reset.setEnabled(false);
+				undo.setEnabled(false);
+				commit.setEnabled(false);
+				format.setEnabled(false);
 				for (RelationPanel rp : this.relationPanels)
 				{
 					rp.setState(pState);
@@ -470,8 +494,17 @@ public class UpdateViewer2 extends SecondoViewer {
 			return false;
 		}
 		
-		//this.showRelations(States.LOADED);
-		this.setSelectionMode(States.LOADED);
+		boolean allReadOnly = true;
+		for (RelationPanel rp : this.relationPanels)
+		{
+			if (rp.getState() == States.LOADED)
+			{
+				allReadOnly = false;
+			}
+		}		
+		if (allReadOnly) this.setSelectionMode(States.LOADED_READ_ONLY);
+		else this.setSelectionMode(States.LOADED);
+		
 		RelationPanel rp = getRelationPanel(so.getName());
 		if (rp != null)
 		{

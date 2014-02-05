@@ -155,9 +155,13 @@ public class HtmlDocumentPanel extends DocumentPanel
 					currentPosition = null;
 				}
 				
+				// contruct new MouseEvent that has this DocumentPanel as source
+				MouseEvent me = new MouseEvent(HtmlDocumentPanel.this, pEvent.getID(), pEvent.getWhen(), pEvent.getModifiers(), 
+											   pEvent.getX(), pEvent.getY(), pEvent.getClickCount(), pEvent.isPopupTrigger());
+				
 				for(MouseListener ml: getMouseListeners())
 				{
-					ml.mousePressed(pEvent);
+					ml.mousePressed(me);
 				}
 			}
 		}

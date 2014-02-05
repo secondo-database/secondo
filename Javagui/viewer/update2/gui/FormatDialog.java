@@ -51,21 +51,20 @@ public class FormatDialog extends JDialog
 	private DocumentPanel formattedDocument;
 	private JButton btFormat;
 	private JButton btClose;
-	private JButton btGoTo;
 	private JScrollPane scpDocument;
 	private JCheckBox chkSepPages;
 	private JLabel lbPosInfo;
-	//private PositionTracker positionTracker;
+	private UpdateViewerController controller;
 
 	/** Constructor */
 	public FormatDialog(UpdateViewerController pController)
 	{
+		this.controller = pController;
+
 		this.setDefaultCloseOperation(HIDE_ON_CLOSE);
 		this.setModal(false);
-		this.setSize(800,600);
-		this.setTitle("Format document");
-		
-		//this.positionTracker = new PositionTracker();
+		this.setSize(600,400);
+		this.setTitle("Format document");		
 		
 		// buttons
 		JPanel plButtons = new JPanel();
@@ -75,12 +74,6 @@ public class FormatDialog extends JDialog
 		this.btFormat.addActionListener(pController);
 		this.btFormat.setToolTipText("Write formatted document to files and show");
 		plButtons.add(this.btFormat);
-		this.btGoTo = new JButton("Show in relation");
-		this.btGoTo.addActionListener(pController);
-		this.btGoTo.setActionCommand(UpdateViewerController.CMD_GOTO_EDIT);
-		this.btGoTo.setEnabled(false);
-		this.btGoTo.setToolTipText("Show current position in relation editor");
-		plButtons.add(this.btGoTo);
 		this.btClose = new JButton("Close");
 		this.btClose.addActionListener(pController);
 		this.btClose.setActionCommand(UpdateViewerController.CMD_CLOSE_FORMAT_DIALOG);
@@ -128,11 +121,7 @@ public class FormatDialog extends JDialog
 	public void setFormattedDocument(DocumentPanel pDisplayComponent)
 	{
 		this.formattedDocument = pDisplayComponent;
-		this.formattedDocument.addMouseListener(new MouseAdapter(){
-												public void mousePressed(MouseEvent pEvent)
-												{
-												setPositionInfo(getCurrentPosition());
-												}});
+		this.formattedDocument.addMouseListener(this.controller);
 		this.scpDocument.setViewportView(this.formattedDocument);
 		this.scpDocument.getVerticalScrollBar().setValue(0);
 		this.scpDocument.getViewport().setViewPosition(new java.awt.Point(0,0));
@@ -143,7 +132,6 @@ public class FormatDialog extends JDialog
 		if (pPositionInfo == null)
 		{
 			this.lbPosInfo.setText("Position not in relation content.");
-			this.btGoTo.setEnabled(false);
 		}
 		else
 		{
@@ -153,7 +141,6 @@ public class FormatDialog extends JDialog
 			sb.append("\", attribute \"").append(pPositionInfo.getAttributeName());
 			sb.append("\", offset ").append(pPositionInfo.getOffset());
 			this.lbPosInfo.setText(sb.toString()); 
-			this.btGoTo.setEnabled(true);
 		}
 	}
 }

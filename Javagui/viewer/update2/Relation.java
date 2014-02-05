@@ -516,6 +516,7 @@ public class Relation
 		if(!initialized || pTupleIndex<0 || pTupleIndex>=this.tuples.size() 
 		   || pAttributeIndex<0 || pAttributeIndex>=this.getTupleSize() || pAttribute==null)
 		{
+			//Reporter.writeError("Relation.setValueAt: returned without setting value!");
 			return;
 		}
 		

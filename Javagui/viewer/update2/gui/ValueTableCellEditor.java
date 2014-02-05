@@ -49,12 +49,13 @@ import viewer.update2.*;
  */
 public class ValueTableCellEditor extends AbstractCellEditor implements TableCellEditor
 {
+	private JTable table;
 	private JTextArea textArea;
 	private Border borderFocussed;
 	private Highlighter hiliter;
 	private DefaultHighlighter.DefaultHighlightPainter hilitePainter;
 	private DefaultHighlighter.DefaultHighlightPainter hilitePainterCurr;
-	//private JScrollPane scrollPane;
+	private KeyAdapter keyListener;
 	
 	/**
 	 * Constructor
@@ -66,21 +67,11 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		this.textArea.setLineWrap(true);
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
-		//this.scrollPane = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
 		this.hiliter = this.textArea.getHighlighter();
 		this.hilitePainter = new DefaultHighlighter.DefaultHighlightPainter(Color.LIGHT_GRAY);
 		this.hilitePainterCurr = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
-		
-		// insert line break on ENTER Key
-		this.textArea.addKeyListener(new KeyAdapter(){
-								public void keyPressed(KeyEvent event){
-								if(event.getKeyCode()==KeyEvent.VK_ENTER){
-									textArea.replaceSelection(System.getProperty("line.separator"));
-									 //pTable.setRowHeight(pTable.getSelectedRow(), textArea.getPreferredSize().height);
-								}
-								}
-								});
+		this.textArea.addKeyListener(new TableCellKeyAdapter());
 	}
 	
 	
@@ -93,7 +84,8 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 												   int pRow, int pColumn) 
 	{
 		RelationTableModel rtm = (RelationTableModel)pTable.getModel();
-
+		this.table = pTable;
+		
 		// background
         if (pSelected || rtm.isCellChanged(pRow, pColumn))
         {
@@ -107,29 +99,35 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		
 		// border
 		this.textArea.setBorder(BorderFactory.createCompoundBorder(this.borderFocussed,
-                BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));
+				BorderFactory.createEmptyBorder(1,5,1,1)));
 
 		
-		// set text and correct row height according to textarea content
-		int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
-		this.textArea.setSize(width, Short.MAX_VALUE);
 		this.textArea.setText(pValue.toString());
-		int height1 = this.textArea.getPreferredSize().height;
-		int height2 = pTable.getRowHeight(pRow);
-		pTable.setRowHeight(pRow, Math.max(height1, height2));		
+
+		// correct row height according to textarea content
+		if (pValue!=null && !((String)pValue).isEmpty())
+		{
+			int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
+			this.textArea.setSize(width, Short.MAX_VALUE);
+			//this.textArea.setText(pValue.toString());
+			pTable.setRowHeight(pRow, this.textArea.getPreferredSize().height);
+		}
 		
 		// render search matches
 		hiliter.removeAllHighlights();
-		List<SearchHit> hits = rtm.getHits(pRow);
-		if (hits != null && !hits.isEmpty())
+		
+		if (rtm.hasSearchHits())
 		{
+			List<SearchHit> hits = rtm.getHits(pRow);
+			SearchHit currHit = rtm.getHit(rtm.getCurrentHitIndex());
+
 			for (SearchHit sh : hits) 
 			{
 				try 
 				{
-					if (sh == rtm.getHit(rtm.getCurrentHitIndex()))
+					if (sh.equals(currHit))
 					{
-						this.setCaret(sh.getStart(), sh.getEnd());
+						//this.setCaret(sh.getStart(), sh.getEnd());
 						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainterCurr);
 						//Reporter.debug("ValueTableCellEditor.getTableCellRendererComponent: highlighting CURRENT HIT ");
 					}
@@ -178,6 +176,21 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		this.textArea.setCaretPosition(pStart);
 		this.textArea.moveCaretPosition(pEnd);
 		//this.textArea.getCaret().setSelectionVisible(true);
+	}
+	
+	class TableCellKeyAdapter extends KeyAdapter
+	{
+		public void keyPressed(KeyEvent event)
+		{
+			// insert line break on ENTER Key
+			if(event.getKeyCode()==KeyEvent.VK_ENTER)
+			{
+				textArea.replaceSelection(System.getProperty("line.separator"));
+			}
+			//Reporter.debug("ValueTableCellEditor.keyPressed: selectedRow" + table.getSelectedRow());
+			
+			table.setRowHeight(table.getSelectedRow(), textArea.getPreferredSize().height);			
+		}
 	}
 	
 }

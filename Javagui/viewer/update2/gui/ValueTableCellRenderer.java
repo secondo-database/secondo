@@ -21,6 +21,7 @@ package  viewer.update2.gui;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Insets;
 import java.awt.Rectangle;
 import java.util.List;
 
@@ -46,6 +47,7 @@ import viewer.update2.*;
  */
 public class ValueTableCellRenderer extends DefaultTableCellRenderer 
 {
+	private JTable table;
 	private JTextArea textArea;
 	private Border borderFocussed;
 	private Highlighter hiliter;
@@ -60,6 +62,7 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 		this.textArea = new JTextArea();
 		this.textArea.setEditable(true);
 		this.textArea.setLineWrap(true);
+		this.textArea.setMargin(new Insets(5,5,5,5));
 		this.textArea.setWrapStyleWord(true);
 		this.textArea.setForeground(Color.BLACK);
 		this.borderFocussed = BorderFactory.createLineBorder(Color.BLUE);
@@ -78,63 +81,78 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 												   int pRow, int pColumn) 
 	{
 		RelationTableModel rtm = (RelationTableModel)pTable.getModel();
+		int state = rtm.getState();
+		this.table = pTable;
 		
 		// background
-        if (rtm.isRowDeleted(pRow))
-        {
-            this.textArea.setBackground(new Color(255, 210, 230));
-        }
-		else 
+		if (rtm.isRowDeleted(pRow))
 		{
-            if (pSelected || rtm.isCellChanged(pRow, pColumn))
-            {
-                this.textArea.setBackground(new Color(210, 230, 255));
-            }
-            else
-            {
-                this.textArea.setBackground(Color.WHITE);
-            }
+			this.textArea.setBackground(new Color(255, 210, 230));
 		}
-		
+		else
+		{
+			if (state==States.UPDATE && pSelected || rtm.isCellChanged(pRow, pColumn))
+			{
+				this.textArea.setBackground(new Color(210, 230, 255));
+			}
+			else
+			{
+				this.textArea.setBackground(Color.WHITE);
+			}
+		}
+			
 		// border
 		if (pFocussed && !rtm.isRowDeleted(pRow))
 		{
 			this.textArea.setBorder(BorderFactory.createCompoundBorder(this.borderFocussed, 
-								BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));
+								BorderFactory.createEmptyBorder(1,5,1,1)));
 		} 
 		else	
 		{
 			this.textArea.setBorder(BorderFactory.createCompoundBorder(
 								BorderFactory.createLineBorder(this.textArea.getBackground()), 
-								BorderFactory.createMatteBorder(1,5,1,1, this.textArea.getBackground())));
+								BorderFactory.createEmptyBorder(1,5,1,1)));
 		}
 		
-		// set text and correct row height according to textarea content
-		int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
-		this.textArea.setSize(width, Short.MAX_VALUE);
 		this.textArea.setText(pValue.toString());
-		int height1 = this.textArea.getPreferredSize().height;
-		int height2 = pTable.getRowHeight(pRow);
-		pTable.setRowHeight(pRow, Math.max(height1, height2));
+
+		// correct row height according to textarea content
+		if (pValue!=null && !((String)pValue).isEmpty())
+		{
+			int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
+			this.textArea.setSize(width, Short.MAX_VALUE);
+			pTable.setRowHeight(pRow, this.textArea.getPreferredSize().height);
+		}
+		else
+		{
+			// explicitly set row height of empty cells to label cell's height plus border
+			// otherwise height of empty table rows will shrink to nearly 0 in linux 
+			pTable.setRowHeight(pRow, pTable.getRowHeight()+4);
+		}
+		
 		
 		// render search matches
 		hiliter.removeAllHighlights();
-		List<SearchHit> hits = rtm.getHits(pRow);
-		if (hits != null && !hits.isEmpty())
+		
+		if (rtm.hasSearchHits())
 		{
+			List<SearchHit> hits = rtm.getHits(pRow);
+			SearchHit currHit = rtm.getHit(rtm.getCurrentHitIndex());
+
 			for (SearchHit sh : hits) 
 			{
 				try 
 				{
-					if (sh == rtm.getHit(rtm.getCurrentHitIndex()))
+					if (currHit!=null && sh.equals(currHit))
 					{
-						this.setCaret(sh.getStart(), sh.getEnd());
+						//this.setCaret(sh.getStart(), sh.getEnd());
 						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainterCurr);
-						Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting CURRENT HIT ");
+						//Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting CURRENT HIT ");
 					}
 					else
 					{
 						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
+						//Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlight at " + sh.getStart() + ", " + sh.getEnd());
 					}
 				}  
 				catch (Exception e) 
@@ -154,16 +172,19 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 	{
 		try
 		{
-			//Reporter.debug("ValueTableCellRenderer.getOffset: textarea width is " + this.textArea.getWidth());
-			//Reporter.debug("ValueTableCellRenderer.getOffset: value is " + this.textArea.getText());
+			this.textArea.setSize(this.table.getColumnModel().getColumn(2).getWidth(), Short.MAX_VALUE);
+			this.textArea.setText(this.textArea.getText());
+			Reporter.debug("ValueTableCellRenderer.getOffset: textarea width is " + this.textArea.getWidth());
+			Reporter.debug("ValueTableCellRenderer.getOffset: value is " + this.textArea.getText());
 			return this.textArea.modelToView(pTextPos);
 		}
 		catch (BadLocationException e)
 		{
-			Reporter.showError("ValueTableCellRenderer.getOffset: BadLocation " + pTextPos +  e.getMessage());
+			Reporter.writeError("ValueTableCellRenderer.getOffset: position=" + pTextPos + ", " +  e.getMessage());
 			return null;
 		}
 	}
+	
 	
 	public void setCaret(int pStart, int pEnd)
 	{
@@ -174,5 +195,6 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 		this.textArea.moveCaretPosition(pEnd);
 		//this.textArea.getCaret().setSelectionVisible(true);
 	}
+	
 }
 

@@ -44,6 +44,7 @@ public class LabelTableCellRenderer extends DefaultTableCellRenderer
 	public LabelTableCellRenderer()
 	{			
 		this.label = new JLabel();
+		this.label.setForeground(Color.BLACK);
         this.label.setOpaque(true);
 		this.label.setHorizontalAlignment(SwingConstants.LEFT);
 		this.label.setVerticalAlignment(SwingConstants.TOP);
@@ -57,11 +58,10 @@ public class LabelTableCellRenderer extends DefaultTableCellRenderer
 												   boolean pSelected, boolean pFocussed,
 												   int pRow, int pColumn) 
 	{
-		Component c = super.getTableCellRendererComponent(pTable, pValue,
-														  pSelected, pFocussed, pRow, pColumn);
+		//Component c = super.getTableCellRendererComponent(pTable, pValue, pSelected, pFocussed, pRow, pColumn);
 		
 		this.label.setText(pValue.toString());
-		this.label.setForeground(Color.BLACK);
+		//this.label.setToolTipText();
         
         // background
         if (((RelationTableModel)pTable.getModel()).isRowDeleted(pRow))
@@ -72,10 +72,6 @@ public class LabelTableCellRenderer extends DefaultTableCellRenderer
         {
             this.label.setBackground(Color.WHITE);
         }
-				
-		// fit width to content
-		int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
-		this.label.setSize(width, Short.MAX_VALUE);
 		
 		//Reporter.debug("LabelTableCellRenderer.getTableCellRendererComponent for cell (" + pRow + "," + pColumn + ")");
 		
