@@ -97,6 +97,42 @@ Signature: mlabel x label -> mbool
 Example  : query the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem] inside tolabel("Mkhitaryan")
 Result   : (mbool ((("2000-01-03" "2000-01-04" TRUE FALSE)TRUE)))
 
+Operator : the_unit
+Number   : 7
+Signature: labels x instant x instant x bool x bool -> ulabels
+Example  : query the_unit([const labels value ("Mkhitaryan" "Reus")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE)
+Result   : (ulabels (("2000-01-03" "2000-01-04" TRUE FALSE) ("Mkhitaryan" "Reus"))
+
+Operator : makemvalue
+Number   : 8
+Signature: stream (tuple ((x1 t1)...(xi ulabels)...(xn tn))) xi -> mlabels
+Example  : query the_unit([const labels value ("Mkhitaryan" "Reus")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem]
+Result   : (mlabels ((("2000-01-03" "2000-01-04" TRUE FALSE) ("Mkhitaryan" "Reus"))))
+
+Operator : passes
+Number   : 7
+Signature: mlabels x label -> bool
+Example  : query mlabels1 passes tolabel("Eving")
+Result   : TRUE
+
+Operator : passes
+Number   : 8
+Signature: mlabels x labels -> bool
+Example  : query mlabels1 passes [const labels value ("Eving" "Hörde")]
+Result   : TRUE
+
+Operator : deftime
+Number   : 5
+Signature: mlabels -> periods
+Example  : query deftime(the_unit([const labels value ("Mkhitaryan" "Reus")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem])
+Result   : (periods (("2000-01-03" "2000-01-04" TRUE FALSE)))
+
+
+
+
+
+
+
 Operator : topattern
 Number   : 1
 Signature: text -> pattern

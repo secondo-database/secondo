@@ -505,24 +505,28 @@ bool MLabel::Passes(Label *label) {
   return false;
 }
 
-MLabel* MLabel::At(Label *label) {
-  MLabel *result = new MLabel(1);
+void MLabel::At(const Label& label, MLabel& result) const {
+  result.Clear();
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
   ULabel ul(0);
   for (int i = 0; i < GetNoComponents(); i++) {
     Get(i, ul);
-    if (ul.constValue.GetValue() == label->GetValue()) {
-      result->Add(ul);
+    if (ul.constValue.GetValue() == label.GetValue()) {
+      result.Add(ul);
     }
   }
-  return result;
 }
 
-void MLabel::DefTime(Periods *per) {
-  per->Clear();
+void MLabel::DefTime(Periods& per) const {
+  per.Clear();
   ULabel ul(0);
   for (int i = 0; i < GetNoComponents(); i++) {
     Get(i, ul);
-    per->MergeAdd(ul.timeInterval);
+    per.MergeAdd(ul.timeInterval);
   }
 }
 
@@ -995,14 +999,18 @@ ostream& operator<<(ostream& os, const Label& lb) {
 */
 Labels::Labels(const int n, const Label *lb) : Attribute(true), labels(n) {
   SetDefined(true);
-  if (n > 0) {
-    for(int i = 0; i < n; i++) {
-      Append(lb[i]);
-    }
+  for(int i = 0; i < n; i++) {
+    Append(lb[i]);
   }
 }
 
 Labels::Labels(const bool defined) : Attribute(defined), labels(0) {}
+
+Labels::Labels(vector<Label> *lbs) : Attribute(true), labels(lbs->size()) {
+  for (unsigned int i = 0; i < lbs->size(); i++) {
+    Append((*lbs)[i]);
+  }
+}
 
 Labels::Labels(const Labels& src):
   Attribute(src.IsDefined()), labels(src.labels.Size()) {
@@ -1023,6 +1031,22 @@ Labels& Labels::operator=(const Labels& src) {
   Attribute::operator=(src);
   labels.copyFrom(src.labels);
   return *this;
+}
+
+/*
+\subsection{Operator ~==~}
+
+*/
+bool Labels::operator==(const Labels& src) const {
+  if (GetNoLabels() != src.GetNoLabels()) {
+      return false;
+  }
+  for (int i = 0; i < GetNoLabels(); i++) {
+    if (!(GetLabel(i) == src.GetLabel(i))) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /*
@@ -1454,9 +1478,9 @@ ULabels::ULabels(int i, MLabels &mls)
   if ((i >= 0) && (i < mls.GetNoComponents())) {
     timeInterval = mls.GetInterval(i);
     constValue.Clean();
-    vector<Label> *labelsVec = mls.GetLabels(i);
-    for (unsigned int j = 0; j < labelsVec->size(); j++) {
-      constValue.Append((*labelsVec)[j]);
+    Labels *labels = mls.GetLabels(i);
+    for (int j = 0; j < labels->GetNoLabels(); j++) {
+      constValue.Append(labels->GetLabel(j));
     }
   }
 }
@@ -1546,7 +1570,7 @@ TypeConstructor unitlabels(
   ULabels::KindCheck );                   //kind checking functions
 
 /*
-\section{Implementation of class ~ULabels~}
+\section{Implementation of class ~MLabels~}
 
 \subsection{Constructors}
 
@@ -1709,6 +1733,13 @@ bool MLabels::readUnit(ListExpr unitlist) {
   }
   unit.interval.SetDefined(true);
   readLabels(nl->Second(unitlist));
+  if (GetNoComponents() > 0) {
+    MLabelsUnit prevUnit(-1);
+    units.Get(GetNoComponents() - 1, prevUnit);
+    if (!(prevUnit.interval.Before(unit.interval))) {
+      return false;
+    }
+  }
   units.Append(unit);
   return true;
 }
@@ -1718,17 +1749,17 @@ bool MLabels::readUnit(ListExpr unitlist) {
 
 */
 bool MLabels::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  units.clean();
+  labels.clean();
   if (listutils::isSymbolUndefined(LE)) {
     SetDefined(false);
-    units.clean();
-    labels.clean();
     return true;
   }
   ListExpr rest = LE;
   while (!nl->IsEmpty(rest)) {
     if (!readUnit(nl->First(rest))) {
       SetDefined(false);
-      return false;
+      return true;
     }
     rest = nl->Rest(rest);
   }
@@ -1785,13 +1816,14 @@ ostream& operator<<(ostream& o, const MLabels& mls) {
 \subsection{Function ~GetLabels~}
 
 */
-vector<Label>* MLabels::GetLabels(int i) const {
-  vector<Label>* result(0);
+Labels* MLabels::GetLabels(int i) const {
+  Labels* result = new Labels(true);
   MLabelsUnit unit(-1);
+  units.Get(i, unit);
   for (int j = unit.startPos; j <= getEndPos(i); j++) {
     Label label(true);
     labels.Get(j, label);
-    result->push_back(label);
+    result->Append(label);
   }
   return result;
 }
@@ -1806,30 +1838,200 @@ SecInterval MLabels::GetInterval(int i) const {
     return iv;
   }
   MLabelsUnit unit(-1);
+  units.Get(i, unit);
   return unit.interval;
 }
+
+/*
+\subsection{Function ~Clear~}
+
+*/
+void MLabels::Clear() {
+  units.clean();
+  labels.clean();
+}
+
+/*
+\subsection{Function ~EndBulkLoad~}
+
+*/
+void MLabels::EndBulkLoad(const bool sort /*= true*/, 
+                          const bool checkvalid /*= true*/) {
+  if (!IsDefined()) {
+    units.clean();
+    labels.clean();
+  }
+  units.TrimToSize();
+  labels.TrimToSize();
+}
+
+/*
+\subsection{Function ~Add~}
+
+*/
+void MLabels::Add(const ULabels& uls) {
+  MLabelsUnit unit(GetNoLabels());
+  unit.interval = uls.timeInterval;
+  units.Append(unit);
+  for (int i = 0; i < uls.constValue.GetNoLabels(); i++) {
+    labels.Append(uls.constValue.GetLabel(i));
+  }
+}
+
+/*
+\subsection{Function ~MergeAdd~}
+
+*/
+void MLabels::MergeAdd(const ULabels& uls) {
+  assert(IsDefined());
+  if (!uls.IsDefined() || !uls.IsValid()) {
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+      << " MergeAdd(Unit): Unit is undefined or invalid:";
+    uls.Print(cout); cout << endl;
+    assert(false);
+  }
+  if (GetNoComponents() > 0) {
+    MLabelsUnit prevUnit(-1);
+    units.Get(GetNoComponents() - 1, prevUnit);
+    int numOfLabels = getEndPos(GetNoComponents() - 1) - prevUnit.startPos + 1;
+    bool equalLabels = (uls.constValue.GetNoLabels() == numOfLabels);
+    for (int i = 0; (i < numOfLabels) && equalLabels; i++) {
+      Label label(true);
+      labels.Get(i + prevUnit.startPos, label);
+      if (uls.constValue.GetLabel(i).Compare(&label) != 0) {
+        equalLabels = false;
+      }
+    }
+    if (equalLabels && (prevUnit.interval.end == uls.timeInterval.start) &&
+        (prevUnit.interval.rc || uls.timeInterval.lc)) { // adjacent intervals
+      prevUnit.interval.end = uls.timeInterval.end;      // \& equal labels
+      prevUnit.interval.rc = uls.timeInterval.rc;
+      units.Put(GetNoComponents() - 1, prevUnit);
+    }
+    else if (prevUnit.interval.Before(uls.timeInterval)) {
+      Add(uls);
+    }
+  }
+  else { // first unit
+    Add(uls);
+  }
+}
+
+/*
+\subsection{Function ~Passes~}
+
+mlabels x label -> bool
+
+*/
+bool MLabels::Passes(const Label *label) const {
+  Label lb(true);
+  for (int i = 0; i < GetNoLabels(); i++) {
+    labels.Get(i, lb);
+    if (lb == *label) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Passes~}
+
+mlabels x labels -> bool
+
+*/
+bool MLabels::Passes(const Labels *lbs) const {
+  Label lb(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Labels *labels = GetLabels(i);
+    if (*labels == *lbs) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~At~}
+
+mlabels x label -> mlabel
+
+*/
+void MLabels::At(const Label& label, MLabels& result) const {
+  result.Clear();
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Labels *lbs = GetLabels(i);
+    bool found = false;
+    int j = 0;
+    while ((j < lbs->GetNoLabels()) && !found) {
+      if (lbs->GetLabel(j) == label) {
+        found = true;
+      }
+      j++;
+    }
+    if (found) {
+      ULabels uls(GetInterval(i), *lbs);
+      result.Add(uls);
+    }
+    delete lbs;
+  }
+}
+
+/*
+\subsection{Function ~At~}
+
+mlabels x labels -> mlabel
+
+*/
+void MLabels::At(const Labels& lbs, MLabels& result) const {
+  result.Clear();
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Labels *labels = GetLabels(i);
+    if (*labels == lbs) {
+      ULabels uls(GetInterval(i), *labels);
+      result.Add(uls);
+    }
+    delete labels;
+  }
+}
+
+/*
+\subsection{Function ~DefTime~}
+
+mlabels -> periods
+
+*/
+void MLabels::DefTime(Periods& per) const {
+  per.Clear();
+  per.SetDefined(IsDefined());
+  if (!IsDefined()) {
+    return;
+  }
+  MLabelsUnit unit(-1);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    units.Get(i, unit);
+    per.MergeAdd(unit.interval);
+  }
+}
+
+
+
 
 /*
 \subsection{Type Constructor}
 
 */
 GenTC<MLabels> movinglabels;
-
-/*
-TypeConstructor movinglabels(
-  MLabels::BasicType(),                   //name
-  MLabels::Property,                      //property function
-  OutMapping<MLabels, ULabels, OutConstTemporalUnit<Labels, Labels::Out> >,
-  InMapping<MLabels, ULabels, InConstTemporalUnit<Labels, Labels::In> >,//Out and In functions
-  0,              0,                      //SaveTo and RestoreFrom functions
-  MLabels::Create,  MLabels::Delete,      //object creation and deletion
-  OpenAttribute<MLabels>, 
-  SaveAttribute<MLabels>,                 //object open and save
-  MLabels::Close,   MLabels::Clone,       //object close and clone
-  MLabels::Cast,                          //cast function
-  MLabels::SizeOfObj,                     //sizeof function
-  MLabels::KindCheck );                   //kind checking functions
-*/
 
 /*
 \section{Operator ~tolabel~}
@@ -3266,11 +3468,13 @@ void Pattern::deleteEasyCondOpTrees() {
 }
 
 /*
-\section{Operator ~the\_unit~}
+\section{Generic operators for ~ILabel~, ~ULabel~, ~MLabel~}
+
+\subsection{Operator ~the\_unit~}
 
 the\_unit: label instant instant bool bool --> ulabel
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
 ListExpr the_unit_Label_TM(ListExpr args) {
@@ -3291,7 +3495,7 @@ ListExpr the_unit_Label_TM(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Value Mapping}
 
 */
 int the_unit_Label_VM(Word* args, Word& result,
@@ -3327,7 +3531,7 @@ int the_unit_Label_VM(Word* args, Word& result,
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
 struct the_unit_LabelInfo : OperatorInfo {
@@ -3340,14 +3544,14 @@ struct the_unit_LabelInfo : OperatorInfo {
 };
 
 /*
-\section{Operator ~makemvalue~}
+\subsection{Operator ~makemvalue~}
 
 makemvalue: stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
-ListExpr makemvalue_ULabelTM(ListExpr args) {
+ListExpr makemvalueSymbolic_TM(ListExpr args) {
   ListExpr first, second, rest, listn,
            lastlistn, first2, second2, firstr, listfull, attrtype;
   int j;
@@ -3395,18 +3599,20 @@ ListExpr makemvalue_ULabelTM(ListExpr args) {
   rest = second;
   listfull = listn;
   nl->WriteToString(fulllist, listfull);
-  if (inputtype=="") {
+  if (inputtype == "") {
     return listutils::typeError("attribute not found");
   }
-  if (inputtype != ULabel::BasicType()) {
-    return listutils::typeError("attr type not in {ubool, uint,"
-                                " ustring, ulabel, ureal, upoint");
+  if ((inputtype != ULabel::BasicType()) &&(inputtype != ULabels::BasicType())){
+    return listutils::typeError("attr type not in {ulabel, ulabels}");
   }
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-  assert(j !=0);
-  if (inputtype == ULabel::BasicType()) {
+  assert(j != 0);
+  if (inputtype == ULabel::BasicType()) {    
     attrtype = nl->SymbolAtom(MLabel::BasicType());
+  }
+  if (inputtype == ULabels::BasicType()) {
+    attrtype = nl->SymbolAtom(MLabels::BasicType());
   }
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
          nl->TwoElemList(nl->IntAtom(j),
@@ -3414,13 +3620,25 @@ ListExpr makemvalue_ULabelTM(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Selection Function}
 
 */
-int makemvalue_ULabelVM(Word* args,Word& result,int message,
-                         Word& local,Supplier s) {
-  MLabel* m;
-  ULabel* unit;
+int makemvalueSymbolicSelect(ListExpr args) {
+  ListExpr arg = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
+  if (ULabel::checkType(arg)) return 0;
+  if (ULabels::checkType(arg)) return 1;
+  return -1;
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class Unit, class Mapping>
+int makemvalueSymbolicVM(Word* args, Word& result, int message,
+                         Word& local, Supplier s) {
+  Mapping* m;
+  Unit* unit;
   Word curTupleWord;
   assert(args[2].addr != 0);
   assert(args[3].addr != 0);
@@ -3428,7 +3646,7 @@ int makemvalue_ULabelVM(Word* args,Word& result,int message,
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, curTupleWord);
   result = qp->ResultStorage(s);
-  m = (MLabel*)result.addr;
+  m = (Mapping*)result.addr;
   m->Clear();
   m->SetDefined(true);
   m->StartBulkLoad();
@@ -3438,10 +3656,10 @@ int makemvalue_ULabelVM(Word* args,Word& result,int message,
     if (curAttr == 0) {
       cout << endl << "ERROR in " << __PRETTY_FUNCTION__
            << ": received Nullpointer!" << endl;
-      assert( false );
+      assert(false);
     }
     else if (curAttr->IsDefined()) {
-      unit = static_cast<ULabel*>(curAttr);
+      unit = static_cast<Unit*>(curAttr);
       m->MergeAdd(*unit);
     }
     else {
@@ -3456,52 +3674,70 @@ int makemvalue_ULabelVM(Word* args,Word& result,int message,
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
-struct makemvalue_ULabelInfo : OperatorInfo {
-  makemvalue_ULabelInfo() {
+struct makemvalueSymbolicInfo : OperatorInfo {
+  makemvalueSymbolicInfo() {
     name      = "makemvalue";
     signature = "stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel";
+    appendSignature("stream (tuple ((x1 t1)...(xi ulabels)...(xn tn))) xi -> "
+                    "mlabels");
     syntax    = "_ makemvalue[ _ ]";
     meaning   = "Create a moving object from a (not necessarily sorted) "
-                "tuple stream containing a ulabel attribute. No two unit "
-                "timeintervals may overlap. Undefined units are allowed and "
-                "will be ignored. A stream without defined units will result "
-                "in an \'empty\' moving object, not in an \'undef\'.";
+                "tuple stream containing a ulabel or ulabels attribute. No two "
+                "unit timeintervals may overlap. Undefined units are allowed "
+                "and will be ignored. A stream without defined units will "
+                "result in an \'empty\' moving object, not in an \'undef\'.";
   }
 };
 
 /*
-\section{Operator ~passes~}
+\subsection{Operator ~passes~}
 
 passes: mlabel x label -> bool
+passes: mlabels x label -> bool
+passes: mlabels x labels -> bool
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
-ListExpr passesMLabelTM(ListExpr args) {
+ListExpr passesSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 2)) {
-    if (MLabel::checkType(nl->First(args)) &&
-        Label::checkType(nl->Second(args))) {
+    if ((MLabel::checkType(nl->First(args))&&Label::checkType(nl->Second(args)))
+   || (MLabels::checkType(nl->First(args))&&Label::checkType(nl->Second(args)))
+ || (MLabels::checkType(nl->First(args))&&Labels::checkType(nl->Second(args)))){
       return nl->SymbolAtom(CcBool::BasicType());
     }
   }
-  return listutils::typeError("Correct signature:  mlabel x label -> bool");
+  return listutils::typeError("Correct signatures:  mlabel x label -> bool,   "
+                         "mlabels x label -> bool,   mlabels x labels -> bool");
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Selection Function}
 
 */
-int passesMLabelVM(Word* args, Word& result, int message, Word& local,
-                   Supplier s) {
+int atPassesSymbolicSelect(ListExpr args) {
+  if (MLabel::checkType(nl->First(args))) return 0;
+  if (Label::checkType(nl->Second(args))) return 1;
+  if (Labels::checkType(nl->Second(args))) return 2;
+  return -1;
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class Mapping, class L>
+int passesSymbolicVM(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
   result = qp->ResultStorage(s);
   CcBool* res = static_cast<CcBool*>(result.addr);
-  MLabel *ml = static_cast<MLabel*>(args[0].addr);
-  Label *label = static_cast<Label*>(args[1].addr);
-  if (ml->IsDefined() && label->IsDefined()) {
-    res->Set(true, ml->Passes(label));
+  Mapping *m = static_cast<Mapping*>(args[0].addr);
+  L *lab = static_cast<L*>(args[1].addr);
+  if (m->IsDefined() && lab->IsDefined()) {
+    res->Set(true, m->Passes(lab));
   }
   else {
     res->SetDefined(false);
@@ -3510,122 +3746,139 @@ int passesMLabelVM(Word* args, Word& result, int message, Word& local,
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
-struct passesMLabelInfo : OperatorInfo {
-  passesMLabelInfo() {
+struct passesSymbolicInfo : OperatorInfo {
+  passesSymbolicInfo() {
     name      = "passes";
     signature = "mlabel x label -> bool";
+    appendSignature("mlabels x label -> bool");
+    appendSignature("mlabels x labels -> bool");
     syntax    = "_ passes _ ";
-    meaning   = "Returns TRUE if and only if the label occurs at least once "
-                "in the mlabel.";
+    meaning   = "Returns TRUE if and only if the label(s) occur(s) at least "
+                "once in the mlabel(s).";
   }
 };
 
 /*
-\section{Operator ~at~}
+\subsection{Operator ~at~}
 
 at: mlabel x label -> mlabel
+at: mlabels x label -> mlabels
+at: mlabels x labels -> mlabels
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
-ListExpr atMLabelTM(ListExpr args) {
+ListExpr atSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 2)) {
-    if (MLabel::checkType(nl->First(args)) &&
-        Label::checkType(nl->Second(args))) {
+    if (MLabel::checkType(nl->First(args))&&Label::checkType(nl->Second(args))){
       return nl->SymbolAtom(MLabel::BasicType());
     }
+    if((MLabels::checkType(nl->First(args))&&Label::checkType(nl->Second(args)))
+ || (MLabels::checkType(nl->First(args))&&Labels::checkType(nl->Second(args)))){
+      return nl->SymbolAtom(MLabels::BasicType());
+    }
   }
-  return listutils::typeError("Correct signature:  mlabel x label -> mlabel");
+  return listutils::typeError("Correct signatures: mlabel x label -> mlabel,   "
+                   "mlabels x label -> mlabels,   mlabels x labels -> mlabels");
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Value Mapping}
 
 */
-int atMLabelVM(Word* args, Word& result, int message, Word& local, Supplier s) {
-  MLabel *src = static_cast<MLabel*>(args[0].addr);
-  Label *label = static_cast<Label*>(args[1].addr);
-  if (src->IsDefined() && label->IsDefined()) {
-    result.addr = src->At(label);
-  }
-  else {
-    result.addr = 0;
-  }
+template<class Mapping, class L>
+int atSymbolicVM(Word* args, Word& result, int message, Word& local,Supplier s){
+  result = qp->ResultStorage(s);
+  Mapping *src = static_cast<Mapping*>(args[0].addr);
+  L *lab = static_cast<L*>(args[1].addr);
+  Mapping *res = static_cast<Mapping*>(result.addr);
+  src->At(*lab, *res);
   return 0;
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
-struct atMLabelInfo : OperatorInfo {
-  atMLabelInfo() {
+struct atSymbolicInfo : OperatorInfo {
+  atSymbolicInfo() {
     name      = "at";
     signature = "mlabel x label -> mlabel";
+    appendSignature("mlabels x label -> mlabels");
+    appendSignature("mlabels x labels -> mlabels");
     syntax    = "_ at _ ";
-    meaning   = "Reduces the mlabel to those units whose label equals the "
-                "label.";
+    meaning   = "Reduces the mlabel(s) to those units whose label(s) equals the"
+                " label(s).";
   }
 };
 
 /*
-\section{Operator ~deftime~}
+\subsection{Operator ~deftime~}
 
 deftime: mlabel -> periods
+deftime: mlabels -> periods
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
-ListExpr deftimeMLabelTM(ListExpr args) {
+ListExpr deftimeSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 1)) {
-    if (MLabel::checkType(nl->First(args))) {
+    if(MLabel::checkType(nl->First(args))||MLabels::checkType(nl->First(args))){
       return nl->SymbolAtom(Periods::BasicType());
     }
   }
-  return listutils::typeError("Correct signature:  mlabel -> periods");
+  return listutils::typeError("Correct signature: mlabel -> periods    "
+                              "mlabels -> periods");
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Selection Function}
 
 */
-int deftimeMLabelVM(Word* args, Word& result, int message, Word& local,
-                    Supplier s) {
+int deftimeSymbolicSelect(ListExpr args) {
+  if (MLabel::checkType(nl->First(args))) return 0;
+  if (MLabels::checkType(nl->First(args))) return 1;
+  return -1;
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class Mapping>
+int deftimeSymbolicVM(Word* args, Word& result, int message, Word& local,
+                      Supplier s) {
   result = qp->ResultStorage(s);
   Periods* res = static_cast<Periods*>(result.addr);
-  MLabel *src = static_cast<MLabel*>(args[0].addr);
-  if (src->IsDefined()) {
-    src->DefTime(res);
-  }
-  else {
-    res = 0;
-  }
+  Mapping *src = static_cast<Mapping*>(args[0].addr);
+  src->DefTime(*res);
   return 0;
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
-struct deftimeMLabelInfo : OperatorInfo {
-  deftimeMLabelInfo() {
+struct deftimeSymbolicInfo : OperatorInfo {
+  deftimeSymbolicInfo() {
     name      = "deftime";
     signature = "mlabel -> periods";
+    appendSignature("mlabels -> periods");
     syntax    = "deftime ( _ )";
     meaning   = "Returns the periods containing the time intervals during which"
-                "the mlabel is defined.";
+                "the mlabel(s) is defined.";
   }
 };
 
 /*
-\section{Operator ~units~}
+\subsection{Operator ~units~}
 
 units: mlabel -> (stream ulabel)
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
 ListExpr unitsMLabelTM(ListExpr args) {
@@ -3638,22 +3891,24 @@ ListExpr unitsMLabelTM(ListExpr args) {
   return listutils::typeError("Correct signature:  mlabel -> (stream ulabel)");
 }
 
-ULabel* UnitsLI::getNextUnit() {
+void UnitsLI::getNextUnit(ULabel& result) {
   if ((index >= ml->GetNoComponents()) || (index < 0)) {
-    return 0;
+    result.SetDefined(false);
+    return;
   }
-  ULabel result(true);
+  result.SetDefined(true);
   ml->Get(index, result);
   index++;
-  return (ULabel*)(result.Clone());
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Value Mapping}
 
 */
 int unitsMLabelVM(Word* args, Word& result, int message, Word& local,
                   Supplier s) {
+  result = qp->ResultStorage(s);
+  ULabel* res = static_cast<ULabel*>(result.addr);
   MLabel *source = static_cast<MLabel*>(args[0].addr);
   UnitsLI *li = static_cast<UnitsLI*>(local.addr);
   switch (message) {
@@ -3671,8 +3926,8 @@ int unitsMLabelVM(Word* args, Word& result, int message, Word& local,
         return CANCEL;
       }
       li = (UnitsLI*)local.addr;
-      result.addr = li->getNextUnit();
-      return (result.addr ? YIELD : CANCEL);
+      li->getNextUnit(*res);
+      return (res->IsDefined() ? YIELD : CANCEL);
     }
     case CLOSE: {
       if (local.addr) {
@@ -3687,7 +3942,7 @@ int unitsMLabelVM(Word* args, Word& result, int message, Word& local,
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
 struct unitsMLabelInfo : OperatorInfo {
@@ -3700,11 +3955,11 @@ struct unitsMLabelInfo : OperatorInfo {
 };
 
 /*
-\section{Operator ~initial~}
+\subsection{Operator ~initial~}
 
 initial: ulabel -> ilabel
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
 ListExpr initialULabelTM(ListExpr args) {
@@ -3723,7 +3978,7 @@ void ULabel::Initial(ILabel *result) {
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Value Mapping}
 
 */
 int initialULabelVM(Word* args, Word& result, int message, Word& local,
@@ -3741,7 +3996,7 @@ int initialULabelVM(Word* args, Word& result, int message, Word& local,
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
 struct initialULabelInfo : OperatorInfo {
@@ -3755,11 +4010,11 @@ struct initialULabelInfo : OperatorInfo {
 };
 
 /*
-\section{Operator ~final~}
+\subsection{Operator ~final~}
 
-initial: ulabel -> ilabel
+final: ulabel -> ilabel
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
 ListExpr finalULabelTM(ListExpr args) {
@@ -3778,7 +4033,7 @@ void ULabel::Final(ILabel *result) {
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Value Mapping}
 
 */
 int finalULabelVM(Word* args, Word& result, int message, Word& local,
@@ -3796,7 +4051,7 @@ int finalULabelVM(Word* args, Word& result, int message, Word& local,
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
 struct finalULabelInfo : OperatorInfo {
@@ -3810,11 +4065,11 @@ struct finalULabelInfo : OperatorInfo {
 };
 
 /*
-\section{Operator ~val~}
+\subsection{Operator ~val~}
 
 val: ilabel -> label
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
 ListExpr valILabelTM(ListExpr args) {
@@ -3827,7 +4082,7 @@ ListExpr valILabelTM(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Value Mapping}
 
 */
 int valILabelVM(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -3845,7 +4100,7 @@ int valILabelVM(Word* args, Word& result, int message, Word& local, Supplier s){
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
 struct valILabelInfo : OperatorInfo {
@@ -3858,11 +4113,11 @@ struct valILabelInfo : OperatorInfo {
 };
 
 /*
-\section{Operator ~inst~}
+\subsection{Operator ~inst~}
 
 inst: ilabel -> instant
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
 ListExpr instILabelTM(ListExpr args) {
@@ -3875,7 +4130,7 @@ ListExpr instILabelTM(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Value Mapping}
 
 */
 int instILabelVM(Word* args, Word& result, int message, Word& local,Supplier s){
@@ -3892,7 +4147,7 @@ int instILabelVM(Word* args, Word& result, int message, Word& local,Supplier s){
 }
 
 /*
-\subsection{Operator Info}
+\subsubsection{Operator Info}
 
 */
 struct instILabelInfo : OperatorInfo {
@@ -3905,11 +4160,11 @@ struct instILabelInfo : OperatorInfo {
 };
 
 /*
-\section{Operator ~inside~}
+\subsection{Operator ~inside~}
 
 inside: mlabel x label -> mbool
 
-\subsection{Type Mapping}
+\subsubsection{Type Mapping}
 
 */
 ListExpr insideMLabelTM(ListExpr args) {
@@ -3923,7 +4178,7 @@ ListExpr insideMLabelTM(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping}
+\subsubsection{Value Mapping}
 
 */
 int insideMLabelVM(Word* args, Word& result, int message, Word& local,
@@ -3953,6 +4208,82 @@ struct insideMLabelInfo : OperatorInfo {
     meaning   = "Returns a mbool with the same time intervals as the mlabel. "
                 "A unit\'s value is TRUE if and only if its value equals the "
                 "specified label.";
+  }
+};
+
+/*
+\section{Generic operators for ~ILabels~, ~ULabels~, ~MLabels~}
+
+\subsection{Operator ~the\_unit~}
+
+the\_unit: labels instant instant bool bool --> ulabels
+
+\subsubsection{Type Mapping}
+
+*/
+ListExpr the_unit_Labels_TM(ListExpr args) {
+  if (nl->Equal(args, nl->FiveElemList(nl->SymbolAtom(Labels::BasicType()),
+                                       nl->SymbolAtom(Instant::BasicType()),
+                                       nl->SymbolAtom(Instant::BasicType()),
+                                       nl->SymbolAtom(CcBool::BasicType()),
+                                       nl->SymbolAtom(CcBool::BasicType())))) {
+    return nl->SymbolAtom(ULabels::BasicType());
+  }
+  return listutils::typeError(
+    "Operator 'the_unit' expects a list with structure\n"
+     "'(point point instant instant bool bool)', or \n"
+     "'(ipoint ipoint bool bool)', or \n"
+     "'(real real real bool instant instant bool bool)', or\n"
+     "'(T instant instant bool bool)', or \n"
+     "'(iT duration bool bool)'\n for T in {bool, int, string, label}.");
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+int the_unit_Labels_VM(Word* args, Word& result,
+                       int message, Word& local, Supplier s) {
+  result = (qp->ResultStorage(s));
+  ULabels *res = static_cast<ULabels*>(result.addr);
+  Labels *value= static_cast<Labels*>(args[0].addr);
+  Instant *i1  = static_cast<DateTime*>(args[1].addr);
+  Instant *i2  = static_cast<DateTime*>(args[2].addr);
+  CcBool  *cl  = static_cast<CcBool*>(args[3].addr);
+  CcBool  *cr  = static_cast<CcBool*>(args[4].addr);
+  bool clb, crb;
+  if (!value->IsDefined() || !i1->IsDefined() || !i2->IsDefined() ||
+      !cl->IsDefined() || !cr->IsDefined()) {
+    res->SetDefined( false );
+    return 0;
+  }
+  clb = cl->GetBoolval();
+  crb = cr->GetBoolval();
+  if (((*i1 == *i2) && (!clb || !crb)) || (i1->Adjacent(i2) && !(clb || crb))) {
+    res->SetDefined(false); // illegal interval setting
+    return 0;
+  }
+  if (*i1 < *i2) { // sorted instants
+    Interval<Instant> interval(*i1, *i2, clb, crb);
+    *res = ULabels(interval, *value);
+  }
+  else {
+    Interval<Instant> interval(*i2, *i1, clb, crb);
+    *res = ULabels(interval, *value);
+  }
+  return 0;
+}
+
+/*
+\subsubsection{Operator Info}
+
+*/
+struct the_unit_LabelsInfo : OperatorInfo {
+  the_unit_LabelsInfo() {
+    name      = "the_unit";
+    signature = "labels x instant x instant x bool x bool -> ulabel";
+    syntax    = "the_unit( _ _ _ _ _ )";
+    meaning   = "Creates a ulabels from its components.";
   }
 };
 
@@ -6961,27 +7292,36 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(containsInfo(), containsVM, containsTM);
 
       AddOperator(the_unit_LabelInfo(), the_unit_Label_VM, the_unit_Label_TM);
-
-      AddOperator(makemvalue_ULabelInfo(), makemvalue_ULabelVM,
-                  makemvalue_ULabelTM);
-
-      AddOperator(passesMLabelInfo(), passesMLabelVM, passesMLabelTM);
-
-      AddOperator(atMLabelInfo(), atMLabelVM, atMLabelTM);
-
-      AddOperator(deftimeMLabelInfo(), deftimeMLabelVM, deftimeMLabelTM);
-
+      
+      ValueMapping makemvalueSymbolicVMs[] = {makemvalueSymbolicVM<ULabel, 
+                            MLabel>, makemvalueSymbolicVM<ULabels, MLabels>, 0};
+      AddOperator(makemvalueSymbolicInfo(), makemvalueSymbolicVMs,
+                  makemvalueSymbolicSelect, makemvalueSymbolic_TM);
+      
+      ValueMapping passesSymbolicVMs[] = {passesSymbolicVM<MLabel, Label>,
+        passesSymbolicVM<MLabels, Label>, passesSymbolicVM<MLabels, Labels>, 0};
+      AddOperator(passesSymbolicInfo(), passesSymbolicVMs, 
+                  atPassesSymbolicSelect, passesSymbolicTM);
+      
+      ValueMapping atSymbolicVMs[] = {atSymbolicVM<MLabel, Label>,
+                atSymbolicVM<MLabels, Label>, atSymbolicVM<MLabels, Labels>, 0};
+      AddOperator(atSymbolicInfo(), atSymbolicVMs, atPassesSymbolicSelect, 
+                  atSymbolicTM);
+      
+      ValueMapping deftimeSymbolicVMs[] = {deftimeSymbolicVM<MLabel>,
+                                           deftimeSymbolicVM<MLabels>, 0};
+      AddOperator(deftimeSymbolicInfo(), deftimeSymbolicVMs, 
+                  deftimeSymbolicSelect, deftimeSymbolicTM);
+      
+      
       AddOperator(unitsMLabelInfo(), unitsMLabelVM, unitsMLabelTM);
-
       AddOperator(initialULabelInfo(), initialULabelVM, initialULabelTM);
-
       AddOperator(finalULabelInfo(), finalULabelVM, finalULabelTM);
-
       AddOperator(valILabelInfo(), valILabelVM, valILabelTM);
-
       AddOperator(instILabelInfo(), instILabelVM, instILabelTM);
-
       AddOperator(insideMLabelInfo(), insideMLabelVM, insideMLabelTM);
+      
+      AddOperator(the_unit_LabelsInfo(), the_unit_Labels_VM,the_unit_Labels_TM);
       
       AddOperator(topatternInfo(), topatternVM, topatternTM);
 

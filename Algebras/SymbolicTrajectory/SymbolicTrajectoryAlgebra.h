@@ -83,6 +83,7 @@ class Label : public Attribute {
   string GetValue() const;
   void Set(const bool def, const string &value);
   Label* Clone();
+  bool operator==(const Label lb) const {return GetValue() == lb.GetValue();}
 
   static Word     In(const ListExpr typeInfo, const ListExpr instance,
                      const int errorPos, ListExpr& errorInfo, bool& correct);
@@ -116,10 +117,12 @@ class Labels : public Attribute {
   Labels() {} // this constructor is reserved for the cast function.
   explicit Labels(const int n, const Label *Lb = 0);
   explicit Labels(const bool defined);
+  explicit Labels(vector<Label>* lbs);
   Labels(const Labels& src);
   ~Labels();
 
   Labels& operator=(const Labels& src);
+  bool operator==(const Labels& src) const;
 
   int NumOfFLOBs() const;
   Flob *GetFLOB(const int i);
@@ -168,7 +171,7 @@ class Labels : public Attribute {
 
 class ILabel : public IString {
 public:
-  static const string BasicType() { return "ilabel"; }
+  static const string BasicType() {return "ilabel";}
   static ListExpr IntimeLabelProperty();
   static bool CheckIntimeLabel(ListExpr type, ListExpr& errorInfo);
   static bool checkType(ListExpr t) {
@@ -213,8 +216,8 @@ class MLabel : public MString {
   MLabel* rewrite(map<string, pair<unsigned int, unsigned int> > binding,
                   vector<Assign> &assigns) const;
   bool Passes(Label *label);
-  MLabel* At(Label *label);
-  void DefTime(Periods *per);
+  void At(const Label& label, MLabel& result) const;
+  void DefTime(Periods& per) const;
   void Inside(MBool *mbool, Label *label);
 };
 
@@ -334,14 +337,21 @@ class MLabels : public Attribute {
   bool readUnit(ListExpr unitlist);
   
   bool IsEmpty() const {return units.Size() == 0;}
-  vector<Label>* GetLabels(int i) const;
+  Labels* GetLabels(int i) const;
   SecInterval GetInterval(int i) const;
   int GetNoComponents() const {return units.Size();}
   int GetNoLabels() const {return labels.Size();}
+  void Clear();
+  void StartBulkLoad() {assert(IsDefined());}
+  void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
+  void Add(const ULabels& uls);
+  void MergeAdd(const ULabels& uls);
+  bool Passes(const Label *label) const;
+  bool Passes(const Labels *lbs) const;
+  void At(const Label& label, MLabels& result) const;
+  void At(const Labels& lbs, MLabels& result) const;
+  void DefTime(Periods& per) const;
 };
-
-
-
 
 class ExprList {
  public: 
@@ -949,13 +959,15 @@ class IndexMatchesLI : public IndexClassifyLI {
 
 class UnitsLI {
  public:
-  UnitsLI(MLabel *source) : ml(source), index(0) {}
+  UnitsLI(MLabel *source) : ml(source), mls(0), index(0) {}
   ~UnitsLI() {}
   
-  ULabel* getNextUnit();
+  void getNextUnit(ULabel& result);
+  void getNextUnit(ULabels *result);
 
  private:
-  MLabel* ml;
+  MLabel *ml;
+  MLabels *mls;
   int index;
 };
 
