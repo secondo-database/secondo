@@ -105,7 +105,7 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		this.textArea.setText(pValue.toString());
 
 		// correct row height according to textarea content
-		if (pValue!=null && !((String)pValue).isEmpty())
+		if (pValue!=null && ((String)pValue).length() > 0)
 		{
 			int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
 			this.textArea.setSize(width, Short.MAX_VALUE);

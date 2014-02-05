@@ -313,7 +313,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			String key = this.viewer.getCurrentRelationPanel().getSearchKey();
 			boolean caseSensitive = this.viewer.getCurrentRelationPanel().getCaseSensitive();
 			
-			if (key == null || key.isEmpty())
+			if (key == null || key.length() == 0)
 			{
 				this.showInfoDialog("Please specify a search key");
 			}
