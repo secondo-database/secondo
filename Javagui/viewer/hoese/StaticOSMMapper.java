@@ -58,6 +58,16 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 		return new Pair<URL, AffineTransform>(url, at);
 	}
 
+  protected URL getURL(int x, int y, int z){
+		try {
+			return  new URL(baseUrl, "" + z + "/" + x + "/" + y + ".png");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+  }
+
+
 
   /** computes the affine transformation to map an rectangle (0,0,tileSizeX, tileSizeY)
     * to the given rectangle.
@@ -80,7 +90,6 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 				r.getY() + r.getHeight());
 		at.scale(scale_x, scale_y);
 		return at;
-
 	}
 
 
@@ -94,7 +103,12 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	 *         matrices
 	 **/
 	public LinkedList<Pair<URL, AffineTransform>> computeURLs(
-			Rectangle2D.Double bbox) {
+			Rectangle2D.Double bbox, AffineTransform world2screen ) {
+     return computeURLs(bbox,false, world2screen);
+  }
+
+	public LinkedList<Pair<URL, AffineTransform>> computeURLs(
+			Rectangle2D.Double bbox , boolean first, AffineTransform world2screen) {
 		if (bbox == null) {
 			return null;
 		}
@@ -103,7 +117,7 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 			return lastURLs;
 		}
 
-		int zoom = computeZoomLevel(bbox.getWidth(), bbox.getHeight());
+		int zoom = computeZoomLevel(bbox.getWidth(), bbox.getHeight(), world2screen);
 
 		int x1 = getTileX(zoom, bbox.getX());
 		int x2 = getTileX(zoom, bbox.getX() + bbox.getWidth());
@@ -126,19 +140,118 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 		LinkedList<Pair<URL, AffineTransform>> res = new LinkedList<Pair<URL, AffineTransform>>();
 		for (int x = x1; x <= x2; x++) {
 			for (int y = y1; y <= y2; y++) {
-				Pair<URL, AffineTransform> p = computeURL(x, y, zoom);
-				if (p != null) {
-					res.add(p);
-				} else {
-					System.err
-							.println("Problem in computinmg URL from (x,y,z) = ("
-									+ x + ", " + y + ", " + zoom + ")");
-				}
+        if(isValidTile(x,y,zoom)){
+	  			Pair<URL, AffineTransform> p = computeURL(x, y, zoom);
+  				if (p != null) {
+					  res.add(p);
+            if(first){
+              return res;
+            }
+	  			} else {
+  					System.err
+					  		.println("Problem in computinmg URL from (x,y,z) = ("
+				  					+ x + ", " + y + ", " + zoom + ")");
+			  	}
+       }
 			}
+       
 		}
 		lastURLs = res;
+    lastClipRect = bbox;
 		return res;
 	}
+
+
+  public double getAntiScale(AffineTransform at, Rectangle2D clipRect){
+     // at transforms world to screen
+
+     clipRect = toGeoCoords(clipRect);
+      
+     int z = computeZoomLevel(clipRect.getWidth(), clipRect.getHeight(), at);
+     Rectangle2D.Double r = getBBoxForTile(1, 1, z);
+     AffineTransform tile2world = computeTransform(r);
+
+     AffineTransform world2Screen = new AffineTransform(at);
+     world2Screen.concatenate(tile2world);
+     double sc = world2Screen.getScaleX();   
+     if(sc==0){
+        return 1.0;
+     }
+     return 1.0/sc;
+  }
+
+
+   public Rectangle2D.Double toGeoCoords(Rectangle2D r){
+		if (ProjectionManager.isReversible()) {
+			java.awt.geom.Point2D.Double p1 = new java.awt.geom.Point2D.Double();
+			java.awt.geom.Point2D.Double p2 = new java.awt.geom.Point2D.Double();
+
+			ProjectionManager.getOrigWithoutScale(r.getX(), r.getY(), p1);
+			ProjectionManager.getOrigWithoutScale(r.getX() + r.getWidth(),
+					r.getY() + r.getHeight(), p2);
+			return new Rectangle2D.Double(p1.getX(), p1.getY(), p2.getX() - p1.getX(),
+					p2.getY() - p1.getY());
+		} else {
+       return new Rectangle2D.Double(r.getX(),r.getY(),r.getWidth(),r.getHeight());
+    }
+   }
+
+   public int numberOfPreloadFiles(Rectangle2D.Double clipRect){
+      int res = 0;
+      clipRect = toGeoCoords(clipRect);
+      for(int i=minZoomLevel; i<=maxZoomLevel;i++){
+         res += numberOfPreloadFiles(clipRect,i);
+      }
+      return  res;
+   }
+
+
+   public LinkedList<URL> getPreloadURLs(Rectangle2D.Double clipRect){
+      LinkedList<URL> res = new LinkedList<URL>();
+      clipRect = toGeoCoords(clipRect);
+      for(int i=minZoomLevel; i<=maxZoomLevel;i++){
+         getPreloadURLs(clipRect,i, res);
+      }
+      return  res;
+   }
+
+
+   private int numberOfPreloadFiles(Rectangle2D.Double clipRect, int zoom){
+      double x1 = clipRect.getX();
+      double x2 = x1 + clipRect.getWidth();
+      double y1 = clipRect.getY();
+      double y2 = y1 + clipRect.getHeight();
+      int dx = Math.abs(getTileX(zoom,x2) - getTileX(zoom,x1));
+      int dy = Math.abs(getTileY(zoom,y2) - getTileY(zoom,y1));
+      return (dx+1)*(dy+1);
+   }
+
+   private void getPreloadURLs(Rectangle2D.Double clipRect, int zoom, LinkedList<URL> result){
+      double x1 = clipRect.getX();
+      double x2 = x1 + clipRect.getWidth();
+      double y1 = clipRect.getY();
+      double y2 = y1 + clipRect.getHeight();
+      for(int x = getTileX(zoom,x1); x<= getTileX(zoom,x2); x++){
+         for(int y = getTileY(zoom,y2); y <= getTileY(zoom,y1); y++){
+             result.add( getURL(x,y,zoom));
+         }
+      }
+   }
+
+
+
+
+  private boolean isValidTile(int x, int y, int zoom){
+    if(x<0 || y<0){
+       return false;
+    }
+    int numTiles = 1 << zoom;
+    if(x>numTiles || y>numTiles){
+       return false;
+    }
+    return true;
+  }
+
 
 	/**
 	 * returns the X index of a tile covering longitude at specified zoom level.
@@ -178,18 +291,61 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 	 *            size in y dimension within the world
 	 * @return The recommended zoom level
 	 **/
-	protected int computeZoomLevel(double width, double height) {
-		double z_x = Math.log((360 * DIM_X) / (width * tileSizeX)) / l2; // computing
-																			// log_2
-		double z_y = Math.log((180 * DIM_Y) / (height * tileSizeY)) / l2;
-		double z = Math.max(z_x, z_y);
-		int zoom = (int) z;
-		if (zoom > maxZoomLevel) {
-			zoom = maxZoomLevel;
-		}
-		if (zoom < minZoomLevel) {
-			zoom = minZoomLevel;
-		}
+	protected int computeZoomLevel(double width, double height, AffineTransform at) {
+
+    // DIM_X     : X-resolution of the screen
+    // DIM_Y     : Y-resolution of the screen
+    // tileSizeX : x-size of a single tile
+    // tileSizeY  : y-size of a single tile
+    // l2 : log(2)
+
+		 double z_x = Math.log((360 * DIM_X) / (width * tileSizeX)) / l2; 
+																			
+		 double z_y = Math.log((180 * DIM_Y) / (height * tileSizeY)) / l2;
+
+    //System.out.println("z_x = " + z_x);
+    //System.out.println("z_y = " + z_y);
+    
+    double z = 0;
+
+    boolean useX;
+    if(z_x<z_y){
+     z = z_x;
+     useX = true;
+    } else{
+     z = z_y;
+     useX = false;
+    }
+
+
+    int zoom = (int) z;
+    if(zoom < z){
+       zoom++;
+    }
+    zoom--;
+
+    if(zoom < minZoomLevel){
+      zoom = minZoomLevel;
+    }
+    if(zoom > maxZoomLevel){
+      zoom = maxZoomLevel;
+    }
+
+    if(at!=null){
+      Rectangle2D.Double r = getBBoxForTile(1, 1, zoom);
+      AffineTransform tile2world = computeTransform(r);
+      AffineTransform world2Screen = new AffineTransform(at);
+      world2Screen.concatenate(tile2world);
+      double sc = world2Screen.getScaleX(); 
+      if(sc<0.5){
+         zoom--;
+      } else if(sc>1.5){
+         zoom++;
+      }
+
+    }
+
+
 		return zoom;
 	}
 

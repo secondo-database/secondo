@@ -30,9 +30,14 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseAdapter;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
+import javax.swing.JPopupMenu;
+import javax.swing.JOptionPane;
+import javax.swing.JMenuItem;
 import java.util.ListIterator;
 import java.util.Vector;
 import java.awt.geom.*;
@@ -83,6 +88,9 @@ public class GraphWindow extends JLayeredPane
   * all objects under the cursor or only for the first object found.
   **/   
    boolean multisound = false;
+
+
+   PreloadDialog  preloadDialog;
 
 
   private class SoundMouseListener implements MouseMotionListener{
@@ -157,6 +165,7 @@ public class GraphWindow extends JLayeredPane
       }
     };
     soundListener = new SoundMouseListener();
+
   }
 
   public void enableSound(boolean on){
@@ -167,6 +176,36 @@ public class GraphWindow extends JLayeredPane
      }
   }
 
+
+  public void startPreload(){
+
+     preloadDialog = new PreloadDialog(mw.getViewerControl().getMainFrame());
+     if(!background.supportsPreload()){
+        return;
+     }
+
+     // compute clipRect
+     Rectangle2D.Double clipRect = getClipRect();
+     int fileNumber = background.numberOfPreloadFiles(clipRect);
+
+
+     if(fileNumber<1){
+       return;
+     }
+     if(JOptionPane.showConfirmDialog(mw.getViewerControl().getMainFrame(), "This will download " + fileNumber + " files \n continue?")!=JOptionPane.YES_OPTION){
+          return;
+     }
+     preloadDialog.setTarget(fileNumber);
+     CancelListener cl = new CancelListener(){
+         public void cancel(){
+           background.cancelPreload();
+           preloadDialog.finish(false);
+         }
+     };
+     preloadDialog.setCancelListener(cl);
+     background.preload(clipRect,preloadDialog);
+     preloadDialog.setVisible(true);
+  }
 
 
 
@@ -387,6 +426,19 @@ public class GraphWindow extends JLayeredPane
     Background bgi = getBackgroundObject();
     if(bgi.useForBoundingBox()){
          r = (Rectangle2D.Double) bgi.getBBox().clone();
+
+         Point2D.Double aPoint = new Point2D.Double();
+         double x1 = r.getX();
+         double y1 = r.getY();
+         if(ProjectionManager.project(x1,y1,aPoint)){
+             double x2 = x1 + r.getWidth();
+             double y2 = y1 + r.getHeight();
+             x1 = aPoint.getX();
+             y1 = aPoint.getY();
+             if(ProjectionManager.project(x2,y2,aPoint)){
+                 r.setRect(x1,y1,aPoint.getX()-x1, aPoint.getY()-y1);
+             }
+         }
     }else{
          r = null;
     }
@@ -432,6 +484,30 @@ public class GraphWindow extends JLayeredPane
    * @param g
    * @see <a href="Categorysrc.html#paintChildren">Source</a>
    */
+
+  /** computes the currently displayed rectangle in world coordinates **/
+
+  private Rectangle2D.Double getClipRect(){
+      AffineTransform at = CurrentState.transform;
+      try{
+         AffineTransform at1 = new AffineTransform(at);
+         AffineTransform iat = at1.createInverse();
+         Rectangle vpbounds1 =  mw.GeoScrollPane.getViewport().getViewRect();
+         Rectangle2D.Double vpbounds = new Rectangle2D.Double(vpbounds1.x, vpbounds1.y,vpbounds1.width, vpbounds1.height);
+         Rectangle2D cbbi1 = iat.createTransformedShape(vpbounds.getBounds2D()).getBounds2D();
+         Rectangle2D.Double cbbi;
+         if(cbbi1 instanceof Rectangle2D.Double){
+            cbbi = (Rectangle2D.Double)cbbi1;
+         } else {
+            cbbi=new Rectangle2D.Double( cbbi1.getMinX(), cbbi1.getMinY(), cbbi1.getWidth(), cbbi1.getHeight());
+         }
+         return cbbi;
+      } catch(Exception e){
+         return null;
+      }
+  }
+
+
   public void paintChildren (Graphics g) {
   if (ignorePaint) {
       return;
@@ -444,27 +520,22 @@ public class GraphWindow extends JLayeredPane
   // first transform the bounding box for the background
   // into screen coordinates
   try{
-    double sf = ProjectionManager.getScaleFactor();
-    double rsf = 1/sf;
-    AffineTransform at1 = new AffineTransform(at);
-    //at1.scale(sf,sf);
 
-    AffineTransform iat = at1.createInverse();
-
-    Rectangle vpbounds1 =  mw.GeoScrollPane.getViewport().getViewRect();
-
-    Rectangle2D.Double vpbounds = new Rectangle2D.Double(vpbounds1.x, vpbounds1.y,vpbounds1.width, vpbounds1.height);
-
-    Rectangle2D cbbi1 = iat.createTransformedShape(vpbounds.getBounds2D()).getBounds2D();
-    Rectangle2D.Double cbbi;
-    if(cbbi1 instanceof Rectangle2D.Double){
-       cbbi = (Rectangle2D.Double)cbbi1;
-    } else {
-        cbbi=new Rectangle2D.Double( cbbi1.getMinX(), cbbi1.getMinY(), cbbi1.getWidth(), cbbi1.getHeight());
+    Rectangle2D.Double clipRect = getClipRect();
+    double antiScale = background.getAntiScale(CurrentState.transform,clipRect);
+    if(Auxiliary.almostEqual(antiScale,1.0)){
+       antiScale = 1.0;
     }
 
+
+    if(antiScale!=1){
+        mw.zoom(antiScale);
+    }
+
+
+
     if(background != null) {
-      background.paint(this,g2,at1, cbbi);
+      background.paint(this,g2,CurrentState.transform, clipRect);
     }
   } catch(Exception e){
      Reporter.writeError("Problem while drawing background");

@@ -48,7 +48,7 @@ public class OSMBackground extends Background {
 		listeners = new LinkedList<BackgroundListener>();
 		useforbbox = true;
 		try {
-			downloadManager = new DownloadManager(new File(PATH), maxDownloads);
+			downloadManager = new DownloadManager(new File(PATH), maxDownloads, true);
 		} catch (Exception e) {
 			System.err.println("Problem in initiating download manager");
 			downloadManager = null;
@@ -91,6 +91,86 @@ public class OSMBackground extends Background {
 		setCheckedConfiguration(props);
 	}
 
+
+  /** This background supports preloading **/
+  @Override
+  public boolean supportsPreload(){
+     return true;
+  }
+
+  @Override
+  public int numberOfPreloadFiles(Rectangle2D.Double clipRect){
+     return mapper.numberOfPreloadFiles(clipRect); 
+  }
+
+
+  @Override
+  public void preload(Rectangle2D.Double clipRect, PreloadObserver observer){
+     preloadObserver = observer;
+     LinkedList<URL> files = mapper.getPreloadURLs(clipRect);
+     try{
+        preloadManager = new DownloadManager(new File(PATH), maxDownloads, false);
+        DownloadObserver obs = new DownloadObserver(){
+           public void downloadStateChanged(DownloadEvent evt){
+              if(preloadObserver==null){
+                 return;
+              } 
+              if(evt.getState() == DownloadState.DONE){
+                  preloadObserver.step(true);
+              } else {
+                 preloadObserver.step(false);
+             }
+             int pending = preloadManager.numOfPendingDownloads();
+             if(pending==0){
+                preloadObserver.finish(true);
+             }
+           }
+         @Override
+         public void fileExists(URL url){
+              if(preloadObserver==null){
+                 return;
+              } 
+              preloadObserver.step(true);
+         }
+             
+       };
+        
+       Iterator<URL> it = files.iterator();
+       while(it.hasNext()){
+          preloadManager.getURL(it.next(),obs);
+       }     
+       int pending = preloadManager.numOfPendingDownloads();
+       if(pending==0){
+          preloadObserver.finish(true);
+       }
+    } catch(Exception e){}
+ 
+  }
+
+  @Override
+  public void cancelPreload(){
+     if(preloadManager!=null){
+        preloadManager.cancelDownloads();
+        preloadManager=null;
+     }
+  } 
+
+
+
+  
+
+  public double getAntiScale(AffineTransform at, Rectangle2D clipRect){
+     if(!fixedZoomLevels) return 1.0;
+     return mapper.getAntiScale(at,clipRect);
+  }
+
+
+  
+  public double getZoomStep(){
+     return 2.0;
+  }
+
+
 	/**
 	 * Overrides the paint method from Background. Paints the tiles downloaded
 	 * from a specific server.
@@ -122,13 +202,13 @@ public class OSMBackground extends Background {
 		if (ProjectionManager.isReversible()) {
 			java.awt.geom.Point2D.Double p1 = new java.awt.geom.Point2D.Double();
 			java.awt.geom.Point2D.Double p2 = new java.awt.geom.Point2D.Double();
+
 			ProjectionManager.getOrigWithoutScale(clipRect.getX(), clipRect.getY(), p1);
 			ProjectionManager.getOrigWithoutScale(clipRect.getX() + clipRect.getWidth(),
 					clipRect.getY() + clipRect.getHeight(), p2);
 			clipRect.setRect(p1.getX(), p1.getY(), p2.getX() - p1.getX(),
 					p2.getY() - p1.getY());
 		}
-
 
 		try {
 			lastParent = parent;
@@ -141,8 +221,7 @@ public class OSMBackground extends Background {
 			// compute the urls of all required tiles and
 			// define an affine transformation to move the tile to it's location
 			// within the world
-			LinkedList<Pair<URL, AffineTransform>> urls = mapper.computeURLs((Rectangle2D.Double) clipRect);
-
+			LinkedList<Pair<URL, AffineTransform>> urls = mapper.computeURLs((Rectangle2D.Double) clipRect, at);
 			// paint the tiles, frames, and labels
 			if (urls != null) {
 				paintURLs(g, urls, at);
@@ -282,6 +361,11 @@ public class OSMBackground extends Background {
 		if (img != null) {
 			AffineTransform at = new AffineTransform(world2Screen);
 			at.concatenate(img2world);
+
+      if(Auxiliary.almostEqual(at.getScaleX(),1.0) && Auxiliary.almostEqual(at.getScaleY(),1.0)){
+         double[] flat = new double[6];
+         Auxiliary.setScale(at,1.0,1.0);
+      }
 			g.drawImage(img, at, null);
 		}
 	}
@@ -324,8 +408,6 @@ public class OSMBackground extends Background {
 		if (lastParent != null && state == DownloadState.DONE) {
 			lastParent.repaint();
 		} else if (state == DownloadState.BROKEN) {
-			System.out.println("Dowlnload broken: " + ad.getURL());
-			System.out.println("Exception: " + evt.getException());
 			if (evt.getException() != null) {
 				evt.getException().printStackTrace();
 			}
@@ -389,6 +471,7 @@ public class OSMBackground extends Background {
 			name = s.getProperty(KEY_NAME);
 			showFrames = s.getProperty(KEY_SHOWFRAMES).equals("TRUE");
 			showNames = s.getProperty(KEY_SHOWNAMES).equals("TRUE");
+			fixedZoomLevels = s.getProperty(KEY_FIXEDZOOM).equals("TRUE");
 			useforbbox = s.getProperty(Background.KEY_USEFORBBOX)
 					.equals("TRUE");
 			backgroundColor = new Color(Integer.parseInt(s
@@ -428,6 +511,7 @@ public class OSMBackground extends Background {
 	static final String KEY_NAME = "NAME";
 	static final String KEY_SHOWFRAMES = "SHOWFRAMES";
 	static final String KEY_SHOWNAMES = "SHOWNAMES";
+	static final String KEY_FIXEDZOOM = "FIXEDZOOM";
 	static final String KEY_BACKGROUNDCOLOR = "BACKGROUNDCOLOR";
 	static final String KEY_FOREGROUNDCOLOR = "FOREGROUNDCOLOR";
 	static final String KEY_MAPPERCLASS = "MAPPERCLASS";
@@ -468,6 +552,9 @@ public class OSMBackground extends Background {
 	/** DownloadManager for downloading images from osm **/
 	private DownloadManager downloadManager;
 
+  private DownloadManager preloadManager; 
+  private PreloadObserver preloadObserver;
+
 	/** cache for images **/
 	private Cache<CachedImage, ImgLoader> imageCache;
 
@@ -498,5 +585,7 @@ public class OSMBackground extends Background {
 
 	/** Mapper for mapping world coordinates to map tile URLs **/
 	private Rect2UrlMapper mapper;
+
+  private boolean fixedZoomLevels = true;
 
 }

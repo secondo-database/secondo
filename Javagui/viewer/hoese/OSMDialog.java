@@ -54,6 +54,8 @@ public class OSMDialog extends JDialog {
 		mapperClassTF = new JTextField(24);
 
 		showFrames = new JCheckBox("Show tile frames");
+		fixedZoom = new JCheckBox("Use fixed zoom levels");
+		fixedZoom.setSelected(true);
 		showNames = new JCheckBox("Show tile names");
 		showCompleteMap = new JCheckBox("Show complete map");
 		backgroundColor = new JLabel("   ");
@@ -208,6 +210,7 @@ public class OSMDialog extends JDialog {
 		displayOptions.add(foregroundPanel);
 		JPanel showCompleteMapPanel = new JPanel();
 		showCompleteMapPanel.add(showCompleteMap);
+    showCompleteMapPanel.add(fixedZoom);
 		displayOptions.add(showCompleteMapPanel);
 
 		centerPanel.add(serverSettingsTab, BorderLayout.NORTH);
@@ -676,7 +679,10 @@ public class OSMDialog extends JDialog {
 
 		settings.setProperty(OSMBackground.KEY_SHOWFRAMES,
 				(showFrames.isSelected() ? "TRUE" : "FALSE"));
-		;
+	
+   	settings.setProperty(OSMBackground.KEY_FIXEDZOOM,
+				(fixedZoom.isSelected() ? "TRUE" : "FALSE"));
+		
 		settings.setProperty(OSMBackground.KEY_SHOWNAMES,
 				(showNames.isSelected() ? "TRUE" : "FALSE"));
 		settings.setProperty(Background.KEY_USEFORBBOX,
@@ -721,6 +727,8 @@ public class OSMDialog extends JDialog {
 		tileSizeYTF
 				.setText(properties.getProperty(OSMBackground.KEY_TILESIZEY));
 		nameTF.setText(properties.getProperty(OSMBackground.KEY_NAME));
+
+    fixedZoom.setSelected("TRUE".equals(properties.getProperty(OSMBackground.KEY_FIXEDZOOM)));
 
 		showFrames.setSelected(properties.getProperty(
 				OSMBackground.KEY_SHOWFRAMES).equals("TRUE"));
@@ -1018,6 +1026,7 @@ public class OSMDialog extends JDialog {
 
 	// display and cache settings
 	private JCheckBox showFrames;
+	private JCheckBox fixedZoom;
 	private JCheckBox showNames;
 	private JCheckBox showCompleteMap;
 	private JLabel backgroundColor;

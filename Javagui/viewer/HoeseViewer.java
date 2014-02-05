@@ -117,6 +117,7 @@ import viewer.hoese.TimeInputDialog;
 import viewer.hoese.TimePanel;
 import viewer.hoese.Timed;
 import viewer.hoese.algebras.Dsplpointsequence;
+import gui.ViewerControl;
 
 import components.ChangeValueEvent;
 import components.ChangeValueListener;
@@ -151,8 +152,6 @@ public class HoeseViewer extends SecondoViewer {
   public QueryResult CurrentQueryResult;
   private TimePanel TimeDisplay;
 
-  /** The Zoomfactor of the GraphWindow */
-  private double ZoomFactor = 1;
   private SelMouseAdapter SelectionControl;
 
   private Interval TimeBounds;
@@ -277,6 +276,7 @@ public class HoeseViewer extends SecondoViewer {
   private AbstractAction AAViewCat;
   private AbstractAction AASetBackground;
   private AbstractAction AAOSMBackground;
+  private JMenuItem preloadBackground;
   private AbstractAction AACaptureBackground;
   private AbstractAction AALabelAttr;
   private String tok, PickTok;
@@ -587,7 +587,6 @@ public class HoeseViewer extends SecondoViewer {
 
     TextDisplay = new TextWindow(this);
     DoQuerySelection = new QueryListSelectionListener();
-    CurrentState.transform.scale(ZoomFactor, ZoomFactor);
     LayerSwitchBar = new JPanel();
     GraphDisplay = new GraphWindow(this);
     Color bgColor = getBackground();
@@ -738,25 +737,6 @@ public class HoeseViewer extends SecondoViewer {
     VisualPanel.setDividerLocation(200);
   }
 
-
-  /**
-   *
-   * @return The zoomfactor of the GraphWindow
-   * @see <a href="MainWindowsrc.html#getZoomFactor">Source</a>
-   */
-  public double getZoomFactor () {
-    return  ZoomFactor;
-  }
-
-  /**
-   * Sets the ZoomFactor to zf
-   * @param zf
-   * @see <a href="MainWindowsrc.html#setZoomFactor">Source</a>
-   */
-  public void setZoomFactor (double zf) {
-    ZoomFactor = zf;
-  }
-
   /**
    * Reads all categories out of the Listexpr le
    * @param le a ListExpr containing Categories
@@ -856,6 +836,7 @@ public class HoeseViewer extends SecondoViewer {
            Color c = null;
            GraphDisplay.setBackgroundObject(new SimpleBackground(c));
          }
+         preloadBackground.setEnabled(GraphDisplay.getBackgroundObject().supportsPreload());
          repaint();
       }
     });
@@ -867,6 +848,7 @@ public class HoeseViewer extends SecondoViewer {
               GraphDisplay.setBackgroundObject(new SimpleBackground(TextDisplay.getBackground()));
             }
             GraphDisplay.getBackgroundObject().showConfigDialog(null);
+            preloadBackground.setEnabled(GraphDisplay.getBackgroundObject().supportsPreload());
             repaint();
         }
     });
@@ -1310,6 +1292,7 @@ public class HoeseViewer extends SecondoViewer {
           background = new ImageBackground();
           GraphDisplay.setBackgroundObject(background);
         }
+        preloadBackground.setEnabled(GraphDisplay.getBackgroundObject().supportsPreload());
         background.showConfigDialog(null);
         GraphDisplay.updateBackground();
       }
@@ -1325,6 +1308,7 @@ public class HoeseViewer extends SecondoViewer {
          background.showConfigDialog(null);
          GraphDisplay.setBackgroundObject(background);
          GraphDisplay.updateBackground();
+         preloadBackground.setEnabled(GraphDisplay.getBackgroundObject().supportsPreload());
       }
     };
 
@@ -1382,6 +1366,7 @@ public class HoeseViewer extends SecondoViewer {
               g.dispose();
               GraphDisplay.setBackgroundObject(background);
               GraphDisplay.updateBackground();
+              preloadBackground.setEnabled(GraphDisplay.getBackgroundObject().supportsPreload());
             }catch(Exception e){
                // because large sized data are processed, a OutOfMemory error is possible
                Reporter.showError("An error occured while capturing the background.");
@@ -1432,6 +1417,7 @@ public class HoeseViewer extends SecondoViewer {
               g.dispose();
               GraphDisplay.setBackgroundObject(background);
               GraphDisplay.updateBackground();
+              preloadBackground.setEnabled(GraphDisplay.getBackgroundObject().supportsPreload());
             }catch(Exception e){
                // because large sized data are processed, a OutOfMemory error is possible
                Reporter.showError("An error occured while capturing the background.");
@@ -1495,12 +1481,22 @@ public class HoeseViewer extends SecondoViewer {
     BGMenu.add(SelectBorder);
     BGMenu.add(AAOSMBackground);
 
+    preloadBackground = new JMenuItem("preload Background");
+    preloadBackground.setEnabled(false);
+    BGMenu.add(preloadBackground);
+
+    preloadBackground.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          GraphDisplay.startPreload();
+       }
+    });
+
+
    jMenuGui.add(BGMenu);
 
     AAZoomOut = new AbstractAction("Zoom out"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
-        double zf = 1/ZoomFactor;
-        setZoomFactor(1);
+        double zf = 1/CurrentState.getZoomFactor();
         ClipRect = null;
         Point p = GeoScrollPane.getViewport().getViewPosition();
         updateViewParameter(true);
@@ -1513,37 +1509,10 @@ public class HoeseViewer extends SecondoViewer {
 
     MIZoomMinus = new JMenuItem("Zoom -");
     MIZoomMinus.setAccelerator(KeyStroke.getKeyStroke("alt MINUS"));
-
     MIZoomMinus.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
-        double zf = 0.75;
-        if (ZoomFactor*zf < 1) {
-          zf = 1/ZoomFactor;
-          setZoomFactor(1);
-          ClipRect = null;
-          Point p = GeoScrollPane.getViewport().getViewPosition();
-          updateViewParameter(true);
-          //GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),(int)(p.getY()*zf)));
-          return;
-        }
-        double zf2 = ZoomFactor * zf;
-        setZoomFactor(zf2);
-        double m[] = new double[6];
-        CurrentState.transform.getMatrix(m);
-        m[0] *= zf;
-        m[3] *= zf;
-        m[4] *= zf;
-        m[5] *= zf;
-        CurrentState.transform = new AffineTransform(m);
-        BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
-        GraphDisplay.updateLayersSize(BBoxDC);
-        Point p = GeoScrollPane.getViewport().getViewPosition();
-        Rectangle VP = GeoScrollPane.getViewport().getViewRect();
-        int x = (int)p.getX();
-        int y = (int)p.getY();
-        x = (int)(((x+VP.width/2)*zf)-VP.width/2);
-        y = (int)(((y+VP.height/2)*zf)-VP.height/2);
-        GeoScrollPane.getViewport().setViewPosition(new Point(x,y));
+        double zf = 1/GraphDisplay.getBackgroundObject().getZoomStep();
+        zoom(zf);
         GraphDisplay.repaint();
       }
     });
@@ -1553,33 +1522,17 @@ public class HoeseViewer extends SecondoViewer {
 
 
     MIZoomPlus = new JMenuItem("Zoom +");
+    MIZoomPlus.setAccelerator(KeyStroke.getKeyStroke("alt E"));
+
     MIZoomPlus.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
-        double zf = 1.25;
-        setZoomFactor(ZoomFactor* zf);
-        double m[] = new double[6];
-        CurrentState.transform.getMatrix(m);
-        m[0] *= zf;
-        m[3] *= zf;
-        m[4] *= zf;
-        m[5] *= zf;
-        CurrentState.transform = new AffineTransform(m);
-        BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
-        GraphDisplay.updateLayersSize(BBoxDC);
-        Point p = GeoScrollPane.getViewport().getViewPosition(); // left-top
-        Rectangle VP = GeoScrollPane.getViewport().getViewRect();
-        int x = (int)p.getX();
-        int y = (int)p.getY();
-        x = (int)(((x+VP.width/2)*zf)-VP.width/2);
-        y = (int)(((y+VP.height/2)*zf)-VP.height/2);
-        //GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),(int)(p.getY()*zf)));
-        GeoScrollPane.getViewport().setViewPosition(new Point(x,y));
+        double zf = GraphDisplay.getBackgroundObject().getZoomStep();
+        zoom(zf);
         GraphDisplay.repaint();
       }
     });
 
 
-    MIZoomPlus.setAccelerator(KeyStroke.getKeyStroke("alt PLUS"));
     jMenuGui.add(MIZoomPlus);
 
 
@@ -1845,6 +1798,31 @@ private int getQueryIndex(SecondoObject so){
    return pos;
 }
 
+
+public void zoom(double zf){
+    if(zf<=0){
+       return;
+     }
+     // compute the center point of the view
+     Point p = GeoScrollPane.getViewport().getViewPosition(); 
+     Rectangle VP = GeoScrollPane.getViewport().getViewRect();
+
+     int x = (int)p.getX() + VP.width/2;
+     int y = (int)p.getY() + VP.height/2;
+
+     double m[] = new double[6];
+     CurrentState.transform.getMatrix(m);
+     m[0] *= zf;
+     m[3] *= zf;
+     m[4] *= zf;
+     m[5] *= zf;
+     CurrentState.transform.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);
+     BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
+     GraphDisplay.updateLayersSize(BBoxDC);
+     x = (int) (x*zf - VP.width/2); 
+     y = (int) (y*zf - VP.height/2);
+     GeoScrollPane.getViewport().setViewPosition(new Point(x,y));
+}
 
 public MenuVector getMenuVector(){
     return MenuExtension;
@@ -2226,6 +2204,7 @@ public boolean canDisplay(SecondoObject o){
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
       Background background = Background.createFromListExpr(le.first(), DirName);
       GraphDisplay.setBackgroundObject(background);
+      preloadBackground.setEnabled(GraphDisplay.getBackgroundObject().supportsPreload());
       readAllCats(le.second());
       if(!Cats.contains(Category.getDefaultCat())){
          Cats.add(Category.getDefaultCat());
@@ -2317,24 +2296,6 @@ public boolean canDisplay(SecondoObject o){
 
 
   /**
-  Adds the scale of the ZoomFactor to the matrix of th e at transform
-
-   * @see <a href="MainWindowsrc.html#addScaling">Source</a>
-   */
-  public AffineTransform addScaling (AffineTransform at) {
-    //at.scale(ZoomFactor,ZoomFactor);
-    double w[] = new double[6];
-    at.getMatrix(w);
-    double z = ZoomFactor;
-    w[0] *= z;
-    w[3] *= z;
-    w[4] *= z;
-    w[5] *= z;
-    at = new AffineTransform(w);
-    return  at;
-  }
-
-  /**
    * Calc. the projection that all objects fit into visible window with border
    * @return Thecalc. transformation
    * @see <a href="MainWindowsrc.html#calcProjection">Source</a>
@@ -2391,7 +2352,7 @@ public boolean canDisplay(SecondoObject o){
       ClipRect = new Rectangle(0, 0, (int)w, (int)h);
     }
     if(changeZoom){
-        CurrentState.transform = calcProjection();         //addScaling(calcProjection());
+        CurrentState.transform.setTransform(calcProjection());
     }
     Rectangle2D rDC = (Rectangle2D)CurrentState.transform.createTransformedShape(BBoxWC).getBounds();
     double x = rDC.getX();
@@ -2615,7 +2576,7 @@ public boolean canDisplay(SecondoObject o){
           double w = (double)GeoScrollPane.getViewport().getWidth();
           double h = (double)GeoScrollPane.getViewport().getHeight();
           double zf = Math.min(w/r.getWidth(), h/r.getHeight());
-          setZoomFactor(ZoomFactor * zf);
+          //setZoomFactor(ZoomFactor * zf);
           double m[] = new double[6];
           CurrentState.transform.getMatrix(m);
           //double z=ZoomFactor;
@@ -2623,7 +2584,7 @@ public boolean canDisplay(SecondoObject o){
           m[3] *= zf;
           m[4] *= zf;
           m[5] *= zf;
-          CurrentState.transform = new AffineTransform(m);
+          CurrentState.transform.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);
           BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
           GraphDisplay.updateLayersSize(BBoxDC);
           GraphDisplay.scrollRectToVisible(new Rectangle((int)(r.getX()*zf),
@@ -3187,6 +3148,10 @@ public boolean canDisplay(SecondoObject o){
      private JMenu Menu;
      private int selectedIndex = -1;
   }
+
+  public ViewerControl getViewerControl(){
+      return VC;
+   }
 
 
 	class CreatePointSequenceListener extends MouseInputAdapter {

@@ -78,6 +78,7 @@ public abstract class Background {
   public static final String KEY_BACKGROUNDCLASSNAME = "backgroundclassname";
 
 
+  @Override
   public String toString(){
      return  getClass().getName()+"["+
                   "name = " + name + ", " +
@@ -86,7 +87,50 @@ public abstract class Background {
                   "bbox = " + bbox +  "] ";
   }
 
+
+  /** Paints the background to g using the clipRect as bounding box and at as
+    * the transformation from world to screen coordinates.
+   *
+  **/
   public abstract void paint(JComponent parent, Graphics2D g, AffineTransform at, Rectangle2D clipRect);
+  
+
+  /** Returns a zoom value ensring that only a certain zoom level
+    * should be used, e.g., in a tiled map to ensure a non resized tile view.
+    **/
+  public double getAntiScale( AffineTransform at, Rectangle2D clipRect){
+     return 1.0;
+  }
+
+  /** Returns the zoom factor for single zoom in, zoom out.
+    **/
+  public double getZoomStep(){
+     return 1.25;
+  }
+
+  /** Returns true, if preload is supported. **/
+  public boolean supportsPreload(){
+    return false;
+  }
+
+  /** Returns the number of files to download if preloading is started
+    **/
+  public int numberOfPreloadFiles(Rectangle2D.Double clipRect){
+     return 0;
+  }
+
+  /** starts preloading of files.
+    **/
+  public void preload(Rectangle2D.Double clipRect, PreloadObserver observer){
+  }
+
+  /** Cancels a running preloading **/
+  public void cancelPreload() {
+
+  }
+
+
+
 	/**
 	 * The constructor sets all member variables to null. SInce this is an
 	 * abstract class, it should never be used anyway.

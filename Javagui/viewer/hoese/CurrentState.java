@@ -16,6 +16,11 @@ public class CurrentState {
 	public static AffineTransform transform = AffineTransform.getScaleInstance(
 			1.0, -1.0);
 
+  public static double getZoomFactor(){
+     return transform.getScaleX();
+  }
+
+
 	public static Rectangle2D.Double getWorldBB() {
 		return worldBB;
 	}
