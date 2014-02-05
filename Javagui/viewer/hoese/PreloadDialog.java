@@ -22,8 +22,8 @@ public class PreloadDialog extends JDialog implements PreloadObserver {
    private int success;
    private int failed;
 
-   public PreloadDialog( Window parent){
-      super(parent,Dialog.ModalityType.APPLICATION_MODAL);
+   public PreloadDialog( Frame parent){
+      super(parent,true);
       bar = new JProgressBar(SwingConstants.HORIZONTAL);
       cancelBtn = new JButton("Cancel");
       setLayout(new BorderLayout());
