@@ -1,10 +1,9 @@
-# file: viewer/update2/makefile
+# file: viewer/update2/format/makefile
 #
-# last change: 05-2003; Thomas Behr
-# very last change: 01-2005; Uwe Hartmann
+# last change: 01-2014; Thomas Behr
 #
 
-include ../../makefile.inc
+include ../../../makefile.inc
 
 
 JAVAFILES =$(shell find -name "*.java")
@@ -13,8 +12,6 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: $(CLASSFILES)
-	make -C format
-	make -C gui
 
 %.class: %.java
 	$(JAVAC) -Xlint:unchecked -classpath $(CLASSPATH) $<
@@ -22,6 +19,4 @@ all: $(CLASSFILES)
 
 .PHONY: clean
 clean:
-	make -C format clean
-	make -C gui clean
 	rm -f *.class

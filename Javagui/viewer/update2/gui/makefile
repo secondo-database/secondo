@@ -1,7 +1,6 @@
 # file: viewer/update2/gui/makefile
 #
-# last change: 05-2003; Thomas Behr
-# very last change: 01-2005; Uwe Hartmann
+# last change: 01-2014; Thomas Behr
 #
 
 include ../../../makefile.inc
@@ -15,7 +14,7 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 all: $(CLASSFILES)
 
 %.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH) $<
+	$(JAVAC) -Xlint:unchecked -classpath $(CLASSPATH) $<
 
 
 .PHONY: clean
