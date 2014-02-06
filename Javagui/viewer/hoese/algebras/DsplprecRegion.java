@@ -89,7 +89,7 @@ public class DsplprecRegion extends DisplayGraph {
      if(face.atomType()!=ListExpr.NO_ATOM || face.isEmpty()){
          return null;
      }
-     GeneralPath res = new GeneralPath( Path2D.WIND_EVEN_ODD);
+     GeneralPath res = new GeneralPath( GeneralPath.WIND_EVEN_ODD);
      AffineTransform af = new AffineTransform();
      while(!face.isEmpty()){
          GeneralPath cycle = getCycle(face.first(), scale);
