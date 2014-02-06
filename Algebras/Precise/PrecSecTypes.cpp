@@ -247,40 +247,70 @@ bool intersects(const Rectangle<2>& rect,
 
 
 ListExpr getCycleList(const vector<MPrecHalfSegment>& v, size_t& pos){
-  assert(pos < v.size());
 
+  assert(pos < v.size()-2); // we need at leat 3 segments to build a cycle
 
+  MPrecHalfSegment hs1 = v[pos];
+  int ffaceno = hs1.attributes.faceno;  // facno of first segment
+  int fcycleno = hs1.attributes.cycleno; // facno of second segment
+  MPrecHalfSegment hs2 = v[pos+1];
 
-  MPrecHalfSegment hs = v[pos];
-  int ffaceno = hs.attributes.faceno;  // facno of first segment
-  int fcycleno = hs.attributes.cycleno; // facno of second segment
-  MPrecPoint firstPoint = hs.getDomPoint();
-  
-  bool first = true;
+  assert(ffaceno == hs2.attributes.faceno);
+  assert(fcycleno == hs2.attributes.cycleno);
+
+  MPrecPoint p1l = hs1.getLeftPoint();
+  MPrecPoint p1r = hs1.getRightPoint();
+  MPrecPoint p2l = hs2.getLeftPoint();
+  MPrecPoint p2r = hs2.getRightPoint();
+
   ListExpr cycle;
   ListExpr last;
   MPrecPoint lastPoint(0,0);
 
-  while( pos < v.size() && hs.attributes.cycleno == fcycleno &&
-                           hs.attributes.faceno==ffaceno){
-      if(first){
-         lastPoint = hs.getLeftPoint();
-         cycle = nl->OneElemList( toListExpr(lastPoint));
-         last = cycle;
-         first = false;
-      } else {
-         MPrecPoint cp = hs.getLeftPoint();
-         if(cp==lastPoint || cp==firstPoint ){
-            lastPoint = hs.getRightPoint();
-         }else {
-            lastPoint = cp;
-         }
-         last = nl->Append(last, toListExpr(lastPoint)); 
-      }
-      pos++;
-      if(pos<v.size()){
-         hs = v[pos];
-      } 
+  if(p1l==p2l){
+     cycle = nl->OneElemList( toListExpr(p1r));
+     last = cycle;
+     last = nl->Append( last, toListExpr(p1l));
+     last = nl->Append( last, toListExpr(p2r));
+     lastPoint = p2r;
+  } else if(p1l == p2r){
+     cycle = nl->OneElemList( toListExpr(p1r));
+     last = cycle;
+     last = nl->Append( last, toListExpr(p1l));
+     last = nl->Append( last, toListExpr(p2l));
+     lastPoint = p2l;
+  } else if(p1r == p2l){
+     cycle = nl->OneElemList( toListExpr(p1l));
+     last = cycle;
+     last = nl->Append( last, toListExpr(p1r));
+     last = nl->Append( last, toListExpr(p2r));
+     lastPoint = p2r;
+  } else if(p1r==p2r){
+     cycle = nl->OneElemList( toListExpr(p1l));
+     last = cycle;
+     last = nl->Append( last, toListExpr(p1r));
+     last = nl->Append( last, toListExpr(p2l));
+     lastPoint = p2l;
+  }
+
+  pos = pos + 2;
+  hs1 = v[pos];
+
+  while( pos < v.size() && hs1.attributes.cycleno == fcycleno &&
+                           hs1.attributes.faceno==ffaceno){
+     p1l = hs1.getLeftPoint();
+     p1r = hs1.getRightPoint();
+     if(p1l==lastPoint){
+        lastPoint = p1r;
+     } else {
+        assert(p1r == lastPoint);
+        lastPoint = p1l; 
+     }
+     last = nl->Append(last, toListExpr(lastPoint));
+     pos++;
+     if(pos<v.size()){
+       hs1 = v[pos];
+     }
   }
   return cycle;
 }
@@ -317,6 +347,12 @@ ListExpr getRegionList(vector<MPrecHalfSegment>& v){
    }
    LogicCompare cmp;
    sort(v.begin(), v.end(), cmp);
+
+   cout << "sorted halfsegments " << endl;
+   for(size_t i=0;i<v.size();i++){
+      cout << v[i] << endl;
+   }
+
    ListExpr faces;
    ListExpr last;
    size_t pos = 0;
@@ -760,6 +796,7 @@ void PrecPoints::EndBulkLoad(bool sort/*=true*/){
            MPrecPointComp cmp; 
            std::sort(bulkloadStorage->begin(), bulkloadStorage->end(), cmp); 
         }
+        
         // make vector persistent
         bbox.SetDefined(false);
         if(bulkloadStorage->size() == 0){
