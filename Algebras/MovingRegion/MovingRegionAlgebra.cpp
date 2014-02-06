@@ -924,6 +924,33 @@ static bool specialSegmentIntersects1(double dt,
                                   dummy);
 }
 
+static int getNearestExpOf2(uint64_t src) {
+  if (src == 0) {
+    return 0;
+  }
+  int exp = 0;
+  while (((uint64_t(1 << exp)) <= src) && (exp < 30)) {
+    exp++;
+  }
+  exp--;
+  if ((exp > 0) && (((1 << (exp - 1)) & src) > 0)) {
+    exp++;
+  }
+  return exp;
+}
+
+static uint64_t getScaleFactor(double dsrc) {
+  uint64_t isrc = (uint64_t)dsrc;
+  if (isrc <= (1 << 30)) {
+    int exp = getNearestExpOf2(isrc);
+    if (exp > 30) {
+      exp = 30;
+    }
+    return (1 << (30 - exp));
+  }
+  return 1;
+}
+
 /*
 1.1 Intersections between two trapeziums
 
@@ -1037,6 +1064,48 @@ trapeziums.
              << " t2MaxY=" << t2MaxY
              << endl;
     }
+    
+    
+ // cout << "specialTrapeziumIntersects() trapezium 1: (" << t1p1x << ", " 
+ //      << t1p1y << "), (" << t1p2x << ", " << t1p2y << "), (" << t1p3x << ", "
+ //      << t1p3y << "), (" << t1p4x << ", " << t1p4y << ")" << endl;
+ // cout << "specialTrapeziumIntersects() trapezium 2: (" << t2p1x << ", " 
+ //      << t2p1y << "), (" << t2p2x << ", " << t2p2y << "), (" << t2p3x << ", "
+ //      << t2p3y << "), (" << t2p4x << ", " << t2p4y << ")" << endl;
+    
+    double minX, minY, maxX, maxY;
+    minmax4(t1MinX, t1MaxX, t2MinX, t2MaxX, minX, maxX);
+    minmax4(t1MinY, t1MaxY, t2MinY, t2MaxY, minY, maxY);
+    
+ //     cout << "distX = " << maxX - minX << "distY = " << maxY - minY 
+ //          << "dt = " << dt << endl;
+    
+    uint64_t sx = getScaleFactor(maxX - minX);
+    uint64_t sy = getScaleFactor(maxY - minY);
+    uint64_t st = getScaleFactor(dt);
+    
+ //   cout << "sx = " << sx << ", sy = " << sy << ", st = " << st << endl;
+    
+    uint64_t tx = 1 << getNearestExpOf2((maxX + minX) / 2);
+    uint64_t ty = 1 << getNearestExpOf2((maxY + minY) / 2);
+    uint64_t tt = 1 << getNearestExpOf2(dt);
+    
+    t1p1x = (t1p1x - tx) * sx;     t1p1y = (t1p1y - ty) * sy;
+    t1p2x = (t1p2x - tx) * sx;     t1p2y = (t1p2y - ty) * sy;
+    t1p3x = (t1p3x - tx) * sx;     t1p3y = (t1p3y - ty) * sy;
+    t1p4x = (t1p4x - tx) * sx;     t1p4y = (t1p4y - ty) * sy;
+    t2p1x = (t2p1x - tx) * sx;     t2p1y = (t2p1y - ty) * sy;
+    t2p2x = (t2p2x - tx) * sx;     t2p2y = (t2p2y - ty) * sy;
+    t2p3x = (t2p3x - tx) * sx;     t2p3y = (t2p3y - ty) * sy;
+    t2p4x = (t2p4x - tx) * sx;     t2p4y = (t2p4y - ty) * sy;
+    dt = (dt - tt) * st;
+    
+ // cout << "specialTrapeziumIntersects() trapezium 1: (" << t1p1x << ", " 
+ //      << t1p1y << "), (" << t1p2x << ", " << t1p2y << "), (" << t1p3x << ", "
+ //      << t1p3y << "), (" << t1p4x << ", " << t1p4y << ")" << endl;
+ // cout << "specialTrapeziumIntersects() trapezium 2: (" << t2p1x << ", " 
+ //      << t2p1y << "), (" << t2p2x << ", " << t2p2y << "), (" << t2p3x << ", "
+ //     << t2p3y << "), (" << t2p4x << ", " << t2p4y << ")" << endl;
 
     if (lower(t1MaxX, t2MinX)
         || lower(t2MaxX, t1MinX)
