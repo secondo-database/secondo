@@ -71,6 +71,8 @@ public class DsplprecRegion extends DisplayGraph {
          if(!ProjectionManager.project(x,y,aPoint)){
            return null;
          }
+         x = aPoint.x;
+         y = aPoint.y;
          if(res==null){
             res = new GeneralPath();
             res.moveTo((float)x,(float)y);
@@ -87,7 +89,7 @@ public class DsplprecRegion extends DisplayGraph {
      if(face.atomType()!=ListExpr.NO_ATOM || face.isEmpty()){
          return null;
      }
-     GeneralPath res = new GeneralPath();
+     GeneralPath res = new GeneralPath( Path2D.WIND_EVEN_ODD);
      AffineTransform af = new AffineTransform();
      while(!face.isEmpty()){
          GeneralPath cycle = getCycle(face.first(), scale);
