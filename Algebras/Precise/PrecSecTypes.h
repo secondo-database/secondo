@@ -584,16 +584,16 @@ class PrecPoints: public StandardSpatialAttribute<2>{
    PrecPoints() {}
    PrecPoints(bool defined) :
       StandardSpatialAttribute(defined), gridPoints(0), 
-      fracStorage(0), bbox(false), bulkloadStorage(0) {}
+      fracStorage(0), bbox(false), bulkloadStorage(0), scale(1) {}
 
    PrecPoints(int dummy) :
       StandardSpatialAttribute(false), gridPoints(0), 
-      fracStorage(0), bbox(false), bulkloadStorage(0) {}
+      fracStorage(0), bbox(false), bulkloadStorage(0), scale(1){}
 
    PrecPoints(const PrecPoints& src):
      StandardSpatialAttribute(src), gridPoints(src.gridPoints.Size()),
      fracStorage(src.fracStorage.Size()), bbox(src.bbox) , 
-     bulkloadStorage(0) {
+     bulkloadStorage(0), scale(src.scale) {
           gridPoints.copyFrom(src.gridPoints);
           fracStorage.copyFrom(src.fracStorage);
           assert(src.bulkloadStorage==0);
@@ -605,6 +605,7 @@ class PrecPoints: public StandardSpatialAttribute<2>{
        assert(bulkloadStorage==0);
        assert(src.bulkloadStorage==0);
        bbox = src.bbox; 
+       scale = src.scale;
        return *this;
     }
 
@@ -733,6 +734,7 @@ class PrecPoints: public StandardSpatialAttribute<2>{
      bool ReadFrom(ListExpr LE, ListExpr typeInfo);
 
      void StartBulkLoad(const uint32_t _scale){
+       assert(_scale>0);
        clear();
        assert(bulkloadStorage==0);
        scale = _scale;
