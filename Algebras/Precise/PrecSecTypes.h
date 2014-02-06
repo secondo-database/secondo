@@ -1006,6 +1006,14 @@ class PrecLine : public StandardSpatialAttribute<2> {
         clear(); // ensure to start from beginning
         bulkloadStorage = new vector<MPrecHalfSegment>();
     }
+    
+    void startBulkLoad(uint32_t newScale){
+        assert(bulkloadStorage==0);
+        assert(newScale>0);
+        scale = newScale;
+        clear(); // ensure to start from beginning
+        bulkloadStorage = new vector<MPrecHalfSegment>();
+    }
 
     void append(MPrecHalfSegment& hs){
         assert(bulkloadStorage!=0);
@@ -1243,6 +1251,23 @@ class PrecRegion : public StandardSpatialAttribute<2> {
     
     uint32_t getScale() const{
       return scale;
+    }
+
+    void boundary(PrecLine& result){
+       result.clear();
+       if(!IsDefined()){
+         result.SetDefined(false);
+         return;
+       }
+       result.SetDefined(true);
+       result.startBulkLoad(scale);
+       for(int i=0;i<gridData.Size();i++){
+           MPrecHalfSegment h = getHalfSegment(i);
+           if(h.isLeftDomPoint()){
+              result.append(h);
+           }
+       } 
+       result.endBulkLoad(false);
     }
 
   private:

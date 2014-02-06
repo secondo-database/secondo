@@ -208,11 +208,26 @@ Operator  : noElements
 Number    : 1 
 Signature : {precPoints, precLine, precRegion} -> int
 Example   : query noElements(toPrecise(BGrenzenLine)) = no_segments(BGrenzenLine)
-result    : TRUE
+Result    : TRUE
 
 Operator  : halfSegments
 Number    : 1
 Signature : {precLine, precRegion} -> stream(tuple([FaceNo : int, CycleNo : int ...]))
-Example   : query (halfSegemnts(BGrenzenLine) count) = halfSegments((toPrecise(BGrenzenLine)) count)
+Example   : query (halfSegments(BGrenzenLine) count) = halfSegments((toPrecise(BGrenzenLine)) count)
+Result    : TRUE
+
+
+Operator  : vertices
+Number    : 1
+Signature : {precLine, precRegion} -> precPoints
+Example   : query noElements(vertices(toPrecise(BGrenzenLine))) = no_components(vertices(BGrenzenLine))
+Result    : TRUE
+
+Operator  : boundary
+Number    : 1
+Signature : precPregion -> precLine
+Example   : query (halfSegments(boundary(toPrecise(tiergarten))) count) = (halfSegments(boundary(tiergarten)) count)
+
+
 
 

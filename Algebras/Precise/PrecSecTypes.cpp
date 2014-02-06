@@ -1241,9 +1241,13 @@ void PrecLine::endBulkLoad(bool realminize){
    assert(bulkloadStorage);
 
    hstools::sort(*bulkloadStorage);
-
+   
    vector<MPrecHalfSegment> v2;
-   hstools::realminize(*bulkloadStorage,v2);
+   if(realminize){
+      hstools::realminize(*bulkloadStorage,v2);
+   } else {
+      v2 = *bulkloadStorage;
+   }
 
    hstools::sort(v2);
    hstools::setPartnerNumbers(v2);

@@ -1658,6 +1658,81 @@ Operator verticesOP(
   verticesTM
 );
 
+/*
+2.13 operator boundary
+
+2.13.1 Type Mapping
+
+*/
+ListExpr boundaryTM(ListExpr args){
+   string err = "precRegion expected";
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError(err);
+   }
+   ListExpr a = nl->First(args);
+   if(PrecRegion::checkType(a)){
+      return listutils::basicSymbol<PrecLine>();
+   }
+   return listutils::typeError(err);
+}
+
+/*
+2.13.2 Value Mapping 
+
+*/
+template<class AT, class RT>
+int boundaryVM1 (Word* args, Word& result, int message, Word& local,
+                 Supplier s ){
+    AT* arg = (AT*) args[0].addr;
+    result = qp->ResultStorage(s);
+    RT* res = (RT*) result.addr;
+    arg->boundary(*res);
+    return 0; 
+}
+
+/*
+2.13.3 ValueMapping Array and Selection function
+
+*/
+ValueMapping boundaryVM[] = {
+    boundaryVM1<PrecRegion, PrecLine>
+ };
+
+int boundarySelect(ListExpr args){
+   ListExpr arg = nl->First(args);
+   if(PrecRegion::checkType(arg)){
+      return 0;
+   }
+   return -1;
+}
+
+/*
+2.13.4 Specification
+
+*/
+OperatorSpec boundarySpec(
+        "  precRegion -> precLine, precLine -> precPoint",
+        " boundary(_)",
+        " returns the boundary of the argument",
+        " query boundary(toPrecise(BGrenzenLine)) "
+);
+
+/*
+2.13.5 Operator instance
+
+*/
+Operator boundaryOP(
+  "boundary",
+  boundarySpec.getStr(),
+  1,
+  boundaryVM,
+  boundarySelect,
+  boundaryTM
+);
+
+
+
+
 
 } // end of namespace precise
 
@@ -1694,6 +1769,7 @@ class PreciseAlgebra : public Algebra
     AddOperator(&precise::noElementsOP);
     AddOperator(&precise::halfSegmentsOP);
     AddOperator(&precise::verticesOP);
+    AddOperator(&precise::boundaryOP);
   }
 };
 
