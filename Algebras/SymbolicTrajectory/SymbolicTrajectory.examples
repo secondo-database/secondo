@@ -93,9 +93,9 @@ Result   : (instant "2013-10-29")
 
 Operator : inside
 Number   : 1
-Signature: mlabel x label -> mbool
-Example  : query the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem] inside tolabel("Mkhitaryan")
-Result   : (mbool ((("2000-01-03" "2000-01-04" TRUE FALSE)TRUE)))
+Signature: mlabel x labels -> mbool
+Example  : query (mlabel1 inside [const labels value ("Innenstadt-Ost")]) at TRUE
+Result   : (mbool ((("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE)TRUE)))
 
 Operator : the_unit
 Number   : 7
@@ -112,14 +112,14 @@ Result   : (mlabels ((("2000-01-03" "2000-01-04" TRUE FALSE) ("Mkhitaryan" "Reus
 Operator : passes
 Number   : 7
 Signature: mlabels x label -> bool
-Example  : query mlabels1 passes tolabel("Eving")
+Example  : query mlabels1 passes tolabel("Hummels")
 Result   : TRUE
 
 Operator : passes
 Number   : 8
 Signature: mlabels x labels -> bool
-Example  : query mlabels1 passes [const labels value ("Eving" "Hörde")]
-Result   : TRUE
+Example  : query mlabels1 passes [const labels value ("Jojic" "Ji")]
+Result   : FALSE
 
 Operator : deftime
 Number   : 5
@@ -127,7 +127,35 @@ Signature: mlabels -> periods
 Example  : query deftime(the_unit([const labels value ("Mkhitaryan" "Reus")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem])
 Result   : (periods (("2000-01-03" "2000-01-04" TRUE FALSE)))
 
+Operator : units
+Number   : 6
+Signature: mlabels -> (stream ulabels)
+Example  : query units(mlabels1) count
+Result   : 3
 
+Operator : initial
+Number   : 13
+Signature: ulabels -> ilabels
+Example  : query initial(the_unit([const labels value ("Mkhitaryan")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
+Result   : (ilabel ("2000-01-03" ("Mkhitaryan")))
+
+Operator : final
+Number   : 13
+Signature: ulabels -> ilabels
+Example  : query final(the_unit([const labels value ("Schmelzer" "Mkhitaryan")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
+Result   : (ilabel ("2000-01-04" ("Schmelzer" "Mkhitaryan")))
+
+Operator : val
+Number   : 5
+Signature: ilabels -> label
+Example  : query val([const ilabels value ("2013-10-29" ("Mkhitaryan" "Jojic"))])
+Result   : (labels ("Mkhitaryan" "Jojic"))
+
+Operator : inst
+Number   : 5
+Signature: ilabels -> instant
+Example  : query inst([const ilabels value ("2013-10-29" ("Mkhitaryan" "Jojic"))])
+Result   : (instant "2013-10-29")
 
 
 

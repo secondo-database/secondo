@@ -160,7 +160,7 @@ class Labels : public Attribute {
   static const    string BasicType() {return "labels";}
   static const    bool checkType(const ListExpr type) {
                                  return listutils::isSymbol(type, BasicType());}
-  DbArray<Label> GetDbArray() {return labels;}
+  DbArray<Label> GetDbArray() const {return labels;}
   void Sort() {labels.Sort(CompareLabels);}
   void Clean() {if (labels.Size()) {labels.clean();}}
   ListExpr ToListExpr(ListExpr typeInfo);
@@ -177,6 +177,25 @@ public:
   static bool checkType(ListExpr t) {
     return listutils::isSymbol(t, BasicType());
   }
+  
+  void Val(Label& result) const;
+};
+
+class ULabel : public UString {
+ public:
+  ULabel() {}
+  explicit ULabel(int i): UString(i) {}
+  ULabel(const Interval<Instant>& interval, const Label& label);
+
+  static const string BasicType() {return "ulabel";}
+  static ListExpr ULabelProperty();
+  static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
+  static bool checkType(ListExpr t) {
+    return listutils::isSymbol(t, BasicType());
+  }
+
+  void Initial(ILabel& result) const;
+  void Final(ILabel& result) const;
 };
 
 class MLabel : public MString {
@@ -203,9 +222,7 @@ class MLabel : public MString {
   void CopyFrom(const Attribute* right);
   int NumOfFLOBs() const;
   Flob* GetFLOB(const int i);
-  size_t Sizeof() const{
-    return sizeof(*this);
-  }
+  size_t Sizeof() const{return sizeof(*this);}
 
   void Initialize() {}
   void Finalize() {}
@@ -218,24 +235,9 @@ class MLabel : public MString {
   bool Passes(Label *label);
   void At(const Label& label, MLabel& result) const;
   void DefTime(Periods& per) const;
-  void Inside(MBool *mbool, Label *label);
-};
-
-class ULabel : public UString {
- public:
-  ULabel() {}
-  explicit ULabel(int i): UString(i) {}
-  ULabel(const Interval<Instant>& interval, const Label& label);
-
-  static const string BasicType() {return "ulabel";}
-  static ListExpr ULabelProperty();
-  static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
-  static bool checkType(ListExpr t) {
-    return listutils::isSymbol(t, BasicType());
-  }
-
-  void Initial(ILabel *result);
-  void Final(ILabel *result);
+  void Inside(const Labels& lbs, MBool& result) const;
+  void Initial(ILabel& result) const;
+  void Final(ILabel& result) const;
 };
 
 /*
@@ -263,6 +265,8 @@ class ILabels : public Intime<Labels> {
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return value.NumOfFLOBs();}
   Flob* GetFLOB(const int i) {return value.GetFLOB(i);}
+  
+  void Val(Labels& result) const;
 };
 
 class ULabels : public ConstTemporalUnit<Labels> {
@@ -288,6 +292,10 @@ class ULabels : public ConstTemporalUnit<Labels> {
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return constValue.NumOfFLOBs();}
   Flob* GetFLOB(const int i) {return constValue.GetFLOB(i);}
+  
+  ULabels* Clone() const {return new ULabels(*this);}
+  void Initial(ILabels& result) const;
+  void Final(ILabels& result) const;
 };
 
 class MLabelsUnit {
@@ -336,8 +344,9 @@ class MLabels : public Attribute {
   void readLabels(ListExpr labelslist);
   bool readUnit(ListExpr unitlist);
   
+  void Get(const int i, ULabels& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
-  Labels* GetLabels(int i) const;
+  void GetLabels(const int i, Labels& result) const;
   SecInterval GetInterval(int i) const;
   int GetNoComponents() const {return units.Size();}
   int GetNoLabels() const {return labels.Size();}
@@ -351,6 +360,8 @@ class MLabels : public Attribute {
   void At(const Label& label, MLabels& result) const;
   void At(const Labels& lbs, MLabels& result) const;
   void DefTime(Periods& per) const;
+  void Initial(ILabels& result) const;
+  void Final(ILabels& result) const;
 };
 
 class ExprList {
@@ -959,15 +970,9 @@ class IndexMatchesLI : public IndexClassifyLI {
 
 class UnitsLI {
  public:
-  UnitsLI(MLabel *source) : ml(source), mls(0), index(0) {}
+  UnitsLI() : index(0) {}
   ~UnitsLI() {}
-  
-  void getNextUnit(ULabel& result);
-  void getNextUnit(ULabels *result);
 
- private:
-  MLabel *ml;
-  MLabels *mls;
   int index;
 };
 
