@@ -84,8 +84,6 @@ import javax.swing.SwingConstants;
 import javax.swing.ToolTipManager;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
@@ -112,9 +110,7 @@ import viewer.update2.*;
  * Panel that contains a table used to display one relation sequentially,
  * i.e. as a sequence of triples (tuple ID, attribute name, attribute value).
  */
-public class RelationPanel extends JPanel implements
-    ListSelectionListener,
-	PropertyChangeListener
+public class RelationPanel extends JPanel implements PropertyChangeListener
 {	
 	// relation
 	private String name;	
@@ -158,7 +154,7 @@ public class RelationPanel extends JPanel implements
 	/**
 	 * Builds a panel to display one relation
 	 */
-	public RelationPanel(String pRelationName, UpdateViewerController pController) 
+	public RelationPanel(String pRelationName, UpdateViewerController pController)
 	{
 		this.name = pRelationName;
 		this.searchActive = false;
@@ -292,10 +288,10 @@ public class RelationPanel extends JPanel implements
 		if (this.relTable != null)
 		{
 			this.getTableModel().setSearchHits(null);
-			this.relTable.revalidate();
-			this.relTable.repaint();
+			//this.relTable.revalidate();
+			//this.relTable.repaint();
 		}
-		this.repaint();
+		//this.repaint();
 	}
 	
 	
@@ -389,10 +385,17 @@ public class RelationPanel extends JPanel implements
 			
 			// set listeners
 			this.relTable.addPropertyChangeListener(this);
-            
-            ListSelectionModel lsm = this.relTable.getSelectionModel();
-            lsm.addListSelectionListener(this);
-            this.relTable.setSelectionModel(lsm);
+			this.relTable.addMouseListener(new MouseAdapter()
+										   {
+										   public void mousePressed(MouseEvent pEvent)
+										   {
+										   if (getState()==States.DELETE)
+										   {
+										   int row = relTable.rowAtPoint(pEvent.getPoint());
+										   getTableModel().addDeletion(row);
+										   }
+										   }
+										   });
 			
 			this.relScroll.setViewportView(this.relTable);
 			
@@ -598,6 +601,7 @@ public class RelationPanel extends JPanel implements
 		}
 
 
+		
 		//JViewport viewport = (JViewport)relTable.getParent();
 		JViewport viewport = this.relScroll.getViewport();
 		Rectangle viewRect = viewport.getViewRect();
@@ -614,11 +618,10 @@ public class RelationPanel extends JPanel implements
 		{
 			Reporter.debug("RelationPanel.goTo: position not found: " + pStartPosition);
 		}
-		 
-		
 		
 		rect.setLocation(rect.x - viewRect.x, rect.y - viewRect.y);
-		 
+		
+		
 		int centerX = (viewRect.width - rect.width) / 2;
 		int centerY = (viewRect.height - rect.height) / 2;
 		if (rect.x < centerX) 
@@ -632,6 +635,7 @@ public class RelationPanel extends JPanel implements
 		rect.translate(centerX, centerY);
 		
 		viewport.scrollRectToVisible(rect);
+		
 	}
 	
 	
@@ -914,6 +918,15 @@ public class RelationPanel extends JPanel implements
 	}
 	
 	/**
+	 * 
+	 */
+	public void setSearchHits(List<SearchHit> pHits)
+	{
+		this.getTableModel().setSearchHits(pHits);
+	}
+    
+	
+	/**
 	 * Sets search field.
 	 */
 	public void setSearchKey(String pSearchKey)
@@ -986,14 +999,6 @@ public class RelationPanel extends JPanel implements
 		//Reporter.debug("RelationPanel.setState: newState of relation " + this.getName() + " is " + this.getTableModel().getState());
 	}
 	
-	/**
-	 * 
-	 */
-	public void setSearchHits(List<SearchHit> pHits)
-	{
-		this.getTableModel().setSearchHits(pHits);
-	}
-    
 	
 	/**
 	 * Shows specified search hit (if valid)
@@ -1188,31 +1193,6 @@ public class RelationPanel extends JPanel implements
 		}
 		
 	}
-    
-    /**
-     * Method of interface ListSelectionListener.
-     * Reacts to selections in Delete mode.
-     */
-    public void valueChanged(ListSelectionEvent e)
-    {
-		//Reporter.debug("RelationPanel.valueChanged: index is " + e.getFirstIndex());
-        
-        if (this.getTableModel().getState() == States.DELETE)
-        {
-			int rowIndex;
-			
-            if (e.getValueIsAdjusting())
-            {
-                rowIndex = e.getLastIndex();
-            }
-			else
-			{
-                rowIndex = e.getFirstIndex();
-			}
-			
-			this.getTableModel().addDeletion(rowIndex);			
-			this.relTable.revalidate();			
-        }
-    }
+
 }
 

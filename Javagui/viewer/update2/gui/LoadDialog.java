@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
+import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -75,26 +76,22 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 	
 	private TupleEditDialog editDialog;
 
-	// names of load profiles and dependent relation profiles
-	private List<String> loadProfiles;
-	
+	private UpdateViewerController controller;
+
+	// load profiles and relation profiles
+	private List<String> loadProfiles;	
 	private Relation relLoadProfiles;
 	private Relation relRelProfiles;
 	
+	// lists
 	private DefaultListModel lmProfiles;
 	private JList lsProfiles;
-
 	private DefaultListModel lmRelations;
 	private JList lsRelations;
 	
-	// Controller
-	private UpdateViewerController controller;
-	
-	// Buttons
-	//private JPanel plGeneralButtons;
-	//private JPanel plProfileButtons;
-	//private JPanel plRelationButtons;
-	private JButton btLoad;
+	// buttons
+	private JButton btLoadDirect;
+	private JButton btLoadFromProfile;
 	private JButton btClose;
 	private JButton btNewProfile;
 	private JButton btEditProfile;
@@ -120,85 +117,103 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 		this.setTitle("Load relations");
 		
 		// buttons
-		JPanel plGeneralButtons = new JPanel();
-		this.btLoad = new JButton(UpdateViewerController.CMD_LOAD_PROFILE);
-		this.btLoad.addActionListener(controller);
-		this.btLoad.setEnabled(false);
-		plGeneralButtons.add(this.btLoad);
+		this.btLoadFromProfile = new JButton("Load from profile");
+		this.btLoadFromProfile.addActionListener(controller);
+		this.btLoadFromProfile.setActionCommand(UpdateViewerController.CMD_LOAD_FROM_PROFILE);
+		this.btLoadFromProfile.setEnabled(false);
+		this.btLoadFromProfile.setToolTipText("Load relation(s) from selected profile");
+
+		this.btLoadDirect = new JButton("Load direct");
+		this.btLoadDirect.addActionListener(controller);
+		this.btLoadDirect.setActionCommand(UpdateViewerController.CMD_LOAD_DIRECT);
+		this.btLoadDirect.setToolTipText("Load a single relation directly without load profile");
+
 		this.btClose = new JButton("Close");
+		this.btClose.addActionListener(controller);
 		this.btClose.setActionCommand(UpdateViewerController.CMD_CLOSE_LOAD_DIALOG);
 		this.btClose.setToolTipText("Hide this window");
-		this.btClose.addActionListener(controller);
-		plGeneralButtons.add(this.btClose);
-		//
-		JPanel plProfileButtons = new JPanel(new GridLayout(7, 1));
-		//this.plProfileButtons.setLayout(new GridLayout(7, 1));
+
 		this.btNewProfile = new JButton(UpdateViewerController.CMD_CREATE_PROFILE);
 		this.btNewProfile.addActionListener(controller);
 		this.btNewProfile.setToolTipText("Create a new load profile");
-		plProfileButtons.add(this.btNewProfile);
+
 		this.btEditProfile = new JButton(UpdateViewerController.CMD_EDIT_PROFILE);
 		this.btEditProfile.addActionListener(controller);
 		this.btEditProfile.setEnabled(false);
 		this.btEditProfile.setToolTipText("Edit the selected load profile");
-		plProfileButtons.add(this.btEditProfile);
+
 		this.btRemoveProfile = new JButton(UpdateViewerController.CMD_REMOVE_PROFILE);
 		this.btRemoveProfile.addActionListener(controller);
 		this.btRemoveProfile.setEnabled(false);
 		this.btRemoveProfile.setToolTipText("Remove the selected load profile");
-		plProfileButtons.add(this.btRemoveProfile);
-		JPanel space = new JPanel();
-		space.setPreferredSize(new Dimension(200,10));
-		plProfileButtons.add(space);		
-		//
-		JPanel plRelationButtons = new JPanel(new GridLayout(7, 1));
-		//this.plRelationButtons.setLayout(new GridLayout(7, 1));
+		
 		this.btAddRelation = new JButton(UpdateViewerController.CMD_CREATE_PROFILEPOS);
 		this.btAddRelation.addActionListener(controller);
 		this.btAddRelation.setEnabled(false);
 		this.btAddRelation.setToolTipText("Add a relation to the current load profile");
-		plRelationButtons.add(this.btAddRelation);
+
 		this.btEditRelation = new JButton(UpdateViewerController.CMD_EDIT_PROFILEPOS);
 		this.btEditRelation.addActionListener(controller);
 		this.btEditRelation.setEnabled(false);
 		this.btEditRelation.setToolTipText("Edit restrictions for the selected relation");
-		plRelationButtons.add(this.btEditRelation);
+
 		this.btRemoveRelation = new JButton(UpdateViewerController.CMD_REMOVE_PROFILEPOS);
 		this.btRemoveRelation.addActionListener(controller);
 		this.btRemoveRelation.setEnabled(false);
 		this.btRemoveRelation.setToolTipText("Remove the selected relation from the load profile");
-		plRelationButtons.add(this.btRemoveRelation);
-		JPanel space2 = new JPanel();
-		space2.setPreferredSize(new Dimension(200,10));
-		plRelationButtons.add(space2);		
 		
-		// profile selection list
+		// profiles list
 		this.lmProfiles = new DefaultListModel();
 		this.lsProfiles = new JList();
 		this.lsProfiles.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-		//this.lsProfiles.setLayoutOrientation(JList.HORIZONTAL_WRAP);
 		this.lsProfiles.addListSelectionListener(this);
 		this.lsProfiles.setVisibleRowCount(-1);
-		JScrollPane scpProfiles = new JScrollPane(lsProfiles);
 		
-		// relation selection list
+		// relations list
 		this.lmRelations = new DefaultListModel();
 		this.lsRelations = new JList();
 		this.lsRelations.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		this.lsRelations.addListSelectionListener(this);
 		this.lsRelations.setVisibleRowCount(-1);
-		JScrollPane scpRelations = new JScrollPane(lsRelations);
 		
-		//
+		// component arrangement
+		JPanel plProfileButtons = new JPanel(new GridLayout(7, 1));
+		plProfileButtons.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+		plProfileButtons.add(this.btNewProfile);
+		plProfileButtons.add(this.btEditProfile);
+		plProfileButtons.add(this.btRemoveProfile);		
+		JPanel space = new JPanel();
+		space.setPreferredSize(new Dimension(200,10));
+		plProfileButtons.add(space);		
+		
+		JPanel plRelationButtons = new JPanel(new GridLayout(7, 1));
+		plRelationButtons.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+		plRelationButtons.add(this.btAddRelation);
+		plRelationButtons.add(this.btEditRelation);
+		plRelationButtons.add(this.btRemoveRelation);
+		JPanel space2 = new JPanel();
+		space2.setPreferredSize(new Dimension(200,10));
+		plRelationButtons.add(space2);		
+
+		JPanel plGeneralButtons = new JPanel();
+		plGeneralButtons.add(this.btLoadFromProfile);
+		plGeneralButtons.add(this.btLoadDirect);
+		plGeneralButtons.add(this.btClose);
+		
 		JPanel plProfiles = new JPanel(new BorderLayout());
+		plProfiles.setBorder(BorderFactory.createEmptyBorder(5,10,5,5));
 		plProfiles.add(new JLabel("Load profiles:"), BorderLayout.NORTH);		
+		JScrollPane scpProfiles = new JScrollPane(lsProfiles);
 		plProfiles.add(scpProfiles, BorderLayout.CENTER);
 		plProfiles.add(plProfileButtons, BorderLayout.EAST);
+		
 		JPanel plRelations = new JPanel(new BorderLayout());
+		plRelations.setBorder(BorderFactory.createEmptyBorder(5,10,5,5));
 		plRelations.add(new JLabel("Relations:"), BorderLayout.NORTH);		
+		JScrollPane scpRelations = new JScrollPane(lsRelations);
 		plRelations.add(scpRelations, BorderLayout.CENTER);
 		plRelations.add(plRelationButtons, BorderLayout.EAST);
-		//
+		
 		JPanel listPanel = new JPanel(new GridLayout(2,1));
 		listPanel.add(plProfiles);
 		listPanel.add(plRelations);
@@ -234,14 +249,12 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 	{
 		this.relLoadProfiles.setTupleByID(pTuple);
 		String name = pTuple.getValueByAttrName("ProfileName");
-		//this.lsProfiles.setSelectedValue(name, true);
 	}
 	
 	public void updateRelationProfile(Tuple pTuple) throws InvalidRelationException
 	{
 		this.relRelProfiles.setTupleByID(pTuple);
 		String name = pTuple.getValueByAttrName("RelName");
-		//this.lsRelations.setSelectedValue(name, true);
 	}
 	
 	
@@ -273,7 +286,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 	
 	public void closeEditDialog()
 	{
-		this.editDialog.dispose();//setVisible(false);
+		this.editDialog.dispose();
 		this.editDialog = null;
 	}
 	
@@ -548,7 +561,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 			
 			if (profileName != null)
 			{
-				this.btLoad.setEnabled(true);
+				this.btLoadFromProfile.setEnabled(true);
 				this.btEditProfile.setEnabled(true);
 				this.btRemoveProfile.setEnabled(true);
 				this.btAddRelation.setEnabled(true);
@@ -567,7 +580,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 			}
 			else
 			{
-				this.btLoad.setEnabled(false);
+				this.btLoadFromProfile.setEnabled(false);
 				this.btEditProfile.setEnabled(false);
 				this.btRemoveProfile.setEnabled(false);
 				this.btAddRelation.setEnabled(false);

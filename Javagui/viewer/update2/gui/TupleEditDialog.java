@@ -28,24 +28,35 @@ import gui.idmanager.ID;
 import gui.idmanager.IDManager;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ResourceBundle;
 
+import javax.swing.BorderFactory;
 import javax.swing.CellEditor;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JWindow;
 import javax.swing.table.TableColumn;
 
 import tools.Reporter;
@@ -63,31 +74,32 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 	private JTable table;
 	private Relation relation;
 	private String oldEditCellValue;
+	private InfoPanel infoPanel;
 	
 	public TupleEditDialog(Relation pRelation, Tuple pEditTuple, ActionListener pActionListener, int pState, String pTitle)
 	{
-		this.getContentPane().setLayout(new BorderLayout());
-		//this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 		this.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		this.setSize(600,400);
 		this.setModal(true);
 		this.setTitle(pTitle);
 		
-		// buttons
-		JPanel pnlButtons = new JPanel();
+		// help information
+		this.infoPanel = new InfoPanel(this);
+		
+		// buttons		
 		if (pRelation.getName().equals(UpdateViewerController.RELNAME_LOAD_PROFILES_HEAD))
 		{
 			this.btSave = new JButton(UpdateViewerController.CMD_SAVE_PROFILE);
 		}
+		
 		if (pRelation.getName().equals(UpdateViewerController.RELNAME_LOAD_PROFILES_POS))
 		{
 			this.btSave = new JButton(UpdateViewerController.CMD_SAVE_PROFILEPOS);
 		}
+		
 		this.btSave.addActionListener(pActionListener);
-		pnlButtons.add(btSave);
 		this.btCancel = new JButton(UpdateViewerController.CMD_CANCEL);
 		this.btCancel.addActionListener(pActionListener);
-		pnlButtons.add(btCancel);
 		
 		// table
 		this.relation = pRelation.createEmptyClone();
@@ -97,9 +109,38 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 			
 			RelationTableModel dtm = new RelationTableModel(this.relation, true);
 			dtm.setState(pState);
-
+			
 			this.table = new JTable(dtm);
+			
+			// table column width and renderers
+			TableColumn column = table.getColumnModel().getColumn(0);
+			column.setMinWidth(20); 
+			column.setMaxWidth(20); 
+			column.setCellRenderer(new LabelTableCellRenderer());
+			
+			column = this.table.getColumnModel().getColumn(1);
+			column.setMinWidth(200); 
+			column.setMaxWidth(200); 
+			column.setCellRenderer(new LabelTableCellRenderer());
+			
+			column = this.table.getColumnModel().getColumn(2);
+			column.setCellRenderer(new ValueTableCellRenderer());
+			column.setCellEditor(new ValueTableCellEditor());
+			
+			// listener
 			this.table.addPropertyChangeListener(this);
+			this.table.addMouseListener(new MouseAdapter()
+										{
+										public void mousePressed(MouseEvent pEvent)	{
+										if (pEvent.getButton()==MouseEvent.BUTTON3)
+										showInfo(pEvent.getPoint());
+										else 
+										hideInfo();
+										}
+										});
+			
+			// tooltip
+			this.table.setToolTipText("Right-click for help");
 		}
 		catch (InvalidRelationException e)
 		{
@@ -107,28 +148,25 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 			// should always be ok as Tuples were cloned from valid relation
 		}
 		
-		// set column width and renderers
-		TableColumn column = table.getColumnModel().getColumn(0);
-		column.setMinWidth(20); 
-		column.setMaxWidth(20); 
-		column.setCellRenderer(new LabelTableCellRenderer());
-		
-		column = this.table.getColumnModel().getColumn(1);
-		column.setMinWidth(200); 
-		column.setMaxWidth(200); 
-		column.setCellRenderer(new LabelTableCellRenderer());
-		
-		column = this.table.getColumnModel().getColumn(2);
-		column.setCellRenderer(new ValueTableCellRenderer());
-		column.setCellEditor(new ValueTableCellEditor());
-		
-		// 
+		// table scrolling
 		JScrollPane scp = new JScrollPane(table);
 		scp.getVerticalScrollBar().setUnitIncrement(10);
-		this.getContentPane().add(scp, BorderLayout.CENTER);
-		this.getContentPane().add(pnlButtons, BorderLayout.SOUTH);
+		
+		// component arrangement	
+		JPanel pnlButtons = new JPanel();
+		pnlButtons.add(btSave);
+		pnlButtons.add(btCancel);
+		
+		JPanel pnl = new JPanel(new BorderLayout());
+		pnl.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+		pnl.add(scp, BorderLayout.CENTER);
+		pnl.add(pnlButtons, BorderLayout.SOUTH);
+		this.getContentPane().add(pnl);
 	}
 	
+	/**
+	 * Returns the displayed tuple (with its probably changed values)
+	 */
 	public Tuple getEditTuple()
 	{
 		Tuple result = null;
@@ -197,13 +235,34 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 											   attributeName, attributeType, 
 											   this.oldEditCellValue, newValue);
 					
-					
 					rtm.addChange(change);
 										
 					Reporter.debug("TupleEditDialog.processEditingStopped: new value of table cell (" + row + ", " + col + ") is " + newValue) ;			
 				}
 			}
 		}
+	}
+	
+	private void hideInfo()
+	{
+		this.infoPanel.setVisible(false);
+	}
+	
+	private void showInfo(Point pPoint)
+	{
+		int row = this.table.rowAtPoint(pPoint);
+		int attrIndex = ((RelationTableModel)this.table.getModel()).rowToAttributeIndex(row);
+		String attrName = this.relation.getAttributeNames().get(attrIndex);
+		
+		this.infoPanel.setTitle(attrName + " (" + this.relation.getAttributeTypes().get(attrIndex) + "):");
+		this.infoPanel.setInfo(ResourceBundle.getBundle("viewer.update2.gui.help").getString(this.relation.getName().toLowerCase() 
+																		  + "." + attrName.toLowerCase() + ".info"));
+		this.infoPanel.setExample(ResourceBundle.getBundle("viewer.update2.gui.help").getString(this.relation.getName().toLowerCase() 
+																			 + "." + attrName.toLowerCase() + ".example"));
+		
+		this.infoPanel.pack();
+		this.infoPanel.setLocation(pPoint.x +30, pPoint.y +30);
+		this.infoPanel.setVisible(true);
 	}
 	
 	/*
@@ -221,5 +280,59 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 			CellEditor editor = this.table.getCellEditor(editedRow, editedColumn);
 			editor.stopCellEditing();
 		}			
-	}	
+	}
+	
+	
+	class InfoPanel extends JDialog
+	{
+		private JLabel title;
+		private JTextArea info;
+		private JTextArea example;
+		
+		InfoPanel(JDialog pOwner)
+		{
+			super(pOwner);
+
+			this.setSize(300,300);
+			
+			this.title = new JLabel();
+			this.info = new JTextArea();
+			this.info.setEditable(false);
+			this.info.setLineWrap(true);
+			this.info.setWrapStyleWord(true);
+			this.example = new JTextArea();
+			this.example.setEditable(true);
+			this.example.setLineWrap(true);
+			this.example.setWrapStyleWord(true);
+			
+			// component arrangement
+			JPanel pnl1 = new JPanel(new BorderLayout());
+			pnl1.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+			pnl1.add(this.title, BorderLayout.NORTH);
+			JScrollPane scp1 = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+			scp1.setPreferredSize(new Dimension(300,100));
+			scp1.setBorder(null);
+			scp1.setOpaque(false);
+			scp1.setViewportView(info);
+			pnl1.add(scp1, BorderLayout.CENTER);
+			
+			JPanel pnl2 = new JPanel(new BorderLayout());
+			pnl2.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+			pnl2.add(new JLabel("Example:"), BorderLayout.NORTH);
+			JScrollPane scp2 = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+			scp2.setPreferredSize(new Dimension(300,100));
+			scp2.setViewportView(example);
+			pnl2.add(scp2, BorderLayout.CENTER);
+
+			this.getContentPane().setLayout(new GridLayout(2,1));
+			this.getContentPane().add(pnl1);
+			this.getContentPane().add(pnl2);
+		}
+	
+		public void setTitle(String pTitle) { this.title.setText(pTitle); }
+		public void setInfo(String pInfo) { this.info.setText(pInfo); }
+		public void setExample(String pExample) { this.example.setText(pExample); }
+		
+	}
+	
 }

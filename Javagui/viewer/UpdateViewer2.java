@@ -287,7 +287,7 @@ public class UpdateViewer2 extends SecondoViewer {
 			{
 				Reporter.debug("UpdateViewer2.setRelationPanel: index=" + this.relationPanels.indexOf(this.getRelationPanel(rp.getName())));
 				int index = this.relationPanels.indexOf(this.getRelationPanel(rp.getName()));
-				this.tabbedPane.setComponentAt(index, new ButtonTabComponent(index, tabtitle, this.controller));
+				this.tabbedPane.setTabComponentAt(index, new ButtonTabComponent(index, tabtitle, this.controller));
 			}
 		}
 

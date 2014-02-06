@@ -84,9 +84,20 @@ public abstract class DocumentFormatter
 	 */
 	public static DocumentFormatter createFormatter(String pFormatType) throws Exception
 	{
+		String formatterName = "viewer.update2.format." + pFormatType.trim() + "Formatter";
+		Object o;
 		// try to instatiate specific formatter class
-		Class formatterClass = Class.forName("viewer.update2.format." + pFormatType.trim() + "Formatter");
-		Object o = formatterClass.newInstance();
+		try
+		{
+			Class formatterClass = Class.forName(formatterName);
+			o = formatterClass.newInstance();
+		}
+		catch (Exception e)
+		{
+			throw new Exception("DocumentFormatter \"" + formatterName 
+								+ "\" not implemented. DocumentFormatters are implemented for these FormatTypes: " 
+								+ getFormatTypes());
+		}
 		if(!(o instanceof DocumentFormatter))
 		{
 			throw new Exception("Found class does not extend the abstract class DocumentFormatter. ");
