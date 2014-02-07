@@ -391,6 +391,19 @@
                 (
                     ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
                     "Lütgendortmund"))) 
+        (OBJECT mlabels1 
+            () 
+            mlabels 
+            (
+                (
+                    ("2010-07-01" "2011-06-30" TRUE FALSE) 
+                    ("Kagawa" "Barrios" "Hummels")) 
+                (
+                    ("2014-01-30" "2014-01-31-21:55:44.002" TRUE FALSE) 
+                    ("Hummels" "Reus" "Schieber" "Großkreutz" "Durm")) 
+                (
+                    ("2014-07-01" "2015-06-30" TRUE FALSE) 
+                    ("Ji" "Jojic")))) 
         (OBJECT rewrite1 
             () 
             (rel 
