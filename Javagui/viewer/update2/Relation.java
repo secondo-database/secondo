@@ -82,17 +82,6 @@ public class Relation
 		}
 	}
 	
-	/** 
-	 * Append new tuple to relation.
-
-	public Tuple addTupleAsLE(ListExpr pTupleLE) throws InvalidRelationException
-	{
-		Tuple result = new Tuple(this.relTypeInfo, pTupleLE);
-		this.tuples.add(result);
-		this.tupleIDs.add(result.getID());
-		return result;
-	}
-	 */
 	
 	/**
 	 * Returns an empty relation of same name and same type as this.
@@ -315,35 +304,7 @@ public class Relation
 		return RelationTypeInfo.isRelation(SO.toListExpr());
 	}
 	
-	
-	/*
-	public int find(String S,boolean CaseSensitiv,int OffSet)
-	{
-		boolean found =false;
-		int pos = -1;
-		String US = S.toUpperCase();
-		for(int i=OffSet;i<SecondoObjects.size()&&!found;i++)
-		{
-			String tmpname = get(i).getName();
-			if(CaseSensitiv){
-				if (tmpname.indexOf(S)>=0)
-				{
-					found=true;
-					pos=i;
-				}
-			} else{
-				if (tmpname.toUpperCase().indexOf(US)>=0)
-				{
-					found=true;
-					pos=i;
-				}
-				
-			}
-		}
-		return pos;
-	}
-	 */
-	
+		
 	/**
 	 * Initializes Relation from a relation SecondoObject.
 	 * @return TRUE if initalization was successful.

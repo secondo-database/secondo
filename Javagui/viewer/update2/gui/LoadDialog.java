@@ -539,7 +539,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 		
 		if (this.relLoadProfiles == null || this.relLoadProfiles.getTupleCount() == 0)
 		{
-			Reporter.showInfo("This database contains no load profiles for loading relations. "
+			Reporter.showInfo("This database contains no load profiles for loading relations. \n"
 							  + "Click NEW LOAD PROFILE to create one.");
 		}
 		else

@@ -61,7 +61,7 @@ public class HtmlFormatter extends DocumentFormatter
 		StringBuilder sb = new StringBuilder("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" ");
 		sb.append(" \"http://www.w3c.org/TR/1999/REC-html401-19991224/loose.dtd\">");
 		sb.append("<HTML xmlns=\"http://www.w3.org/1999/xhtml\">");
-		sb.append("</HEAD><BODY></p>");
+		sb.append("</HEAD><BODY>");
 		this.setTemplateHead(sb.toString());
 		
 		// body
@@ -70,12 +70,12 @@ public class HtmlFormatter extends DocumentFormatter
 		{
 			if (!attributeName.toUpperCase().startsWith("TID"))
 			{
-				sb.append("<b><i>").append(attributeName).append(":</i></b>");
-				sb.append("<<").append(attributeName).append(">>");
+				sb.append("<p><b><i>").append(attributeName).append(":</i></b>");
+				sb.append(" <<").append(attributeName).append(">>");
 				sb.append("</br></p>");
 			}
 		}
-		sb.append("</p><HR/>");
+		sb.append("<HR/>");
 		this.setTemplateBody(sb.toString());
 		
 		// tail
@@ -100,13 +100,12 @@ public class HtmlFormatter extends DocumentFormatter
 			
 			StringBuffer sbReplace = new StringBuffer();
 			// hidden markup for tracing back 
-			sbReplace.append("<div id=\"");
+			sbReplace.append("<!--");
 			sbReplace.append(relationName).append(";");
 			sbReplace.append(attributeName).append(";");
 			sbReplace.append(pTuple.getValueByAttrName(idName));
-			sbReplace.append("\">");
+			sbReplace.append("-->");
 			sbReplace.append(pTuple.getValueByAttrName(aliasedName));
-			sbReplace.append("</div>");
 			page = page.replace("<<" + aliasedName + ">>", sbReplace.toString());
 		}
 		
@@ -134,7 +133,7 @@ public class HtmlFormatter extends DocumentFormatter
 		if (!commandExecuter.executeCommand(this.getQuery(), SecondoInterface.EXEC_COMMAND_SOS_SYNTAX))
 		{
 			String errorMessage = commandExecuter.getErrorMessage().toString();
-			Reporter.writeError(errorMessage);
+			Reporter.showError("HtmlFormatter: Error while trying to load relation from database: " + errorMessage);
 			return false;
 		}
 		

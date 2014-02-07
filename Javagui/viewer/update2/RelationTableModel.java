@@ -630,8 +630,6 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		if (this.hasDeletions())
 		{
-            //Reporter.debug("RelationTableModel.removeDeletion: index is " + (this.deletions.size()-1));
-
 			this.deletions.remove(this.deletions.size()-1);
             return true;
 		}
@@ -644,7 +642,7 @@ public class RelationTableModel extends AbstractTableModel
 	public void removeTuple(String pTupleId)
 	{
 		this.relation.removeTupleByID(pTupleId);
-		fireTableRowsDeleted(0, this.getRowsPerTuple());
+		fireTableRowsDeleted(0, this.getRowsPerTuple()-1);
 	}
 	
 	

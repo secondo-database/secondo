@@ -55,8 +55,12 @@ public class Head
 		if(Type.listLength()!=2)
 			return false;
 		ListExpr R = Type.first();
-		return (R.isAtom() && (R.atomType()==ListExpr.SYMBOL_ATOM) &&
-				(R.symbolValue().equals("rel") | R.symbolValue().equals("mrel")));
+		return (R.isAtom() 
+					&& (R.atomType()==ListExpr.SYMBOL_ATOM) 
+					&& (R.symbolValue().equals("rel") 
+						| R.symbolValue().equals("mrel")
+						| R.symbolValue().equals("trel"))
+				);
 	}
 	
 	
@@ -70,12 +74,12 @@ public class Head
 		if(TName.atomType()!=ListExpr.SYMBOL_ATOM)
 			return false;
 		String Name = TName.symbolValue();
-		if( ! (Name.equals("rel") | Name.equals("mrel")))
+		if( ! (Name.equals("rel") | Name.equals("mrel") | Name.equals("trel")))
 			return false;
 		
 		ListExpr Tuple = LE.second();
 		if(Tuple.listLength()!=2){
-			Reporter.writeError("wrong tuple listlength");
+			Reporter.writeError("wrong tuple list length");
 			return false;
 		}
 		

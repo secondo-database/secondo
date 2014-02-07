@@ -82,7 +82,8 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	public final static String CMD_FORMAT = "Format";
 	public final static String CMD_GOTO_EDIT = "Go to edit relation";
 	// button commands in LoadDialog
-	public final static String CMD_LOAD_PROFILE = "Load selected profile";
+	public final static String CMD_LOAD_DIRECT = "Load single relation";
+	public final static String CMD_LOAD_FROM_PROFILE = "Load selected profile";
 	public final static String CMD_CLOSE_LOAD_DIALOG = "Close Load Dialog";
 	public final static String CMD_CREATE_PROFILE = "Create new profile";
 	public final static String CMD_CREATE_PROFILEPOS = "Add relation";
@@ -204,12 +205,21 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		//
 		// LoadDialog		
 		//
-		if (e.getActionCommand() == CMD_LOAD_PROFILE)
+		if (e.getActionCommand() == CMD_LOAD_DIRECT)
 		{
-			if (processCommandLoad())
+			if (processCommandLoadDirect())
 			{
-				state = States.LOADED;
-				this.viewer.setSelectionMode(States.LOADED);
+				this.setState(States.LOADED);
+				this.loadDialog.dispose();
+				this.loadDialog = null;
+			}
+			return;
+		}
+		if (e.getActionCommand() == CMD_LOAD_FROM_PROFILE)
+		{
+			if (processCommandLoadFromProfile())
+			{
+				this.setState(States.LOADED);
 				this.loadDialog.dispose();
 				this.loadDialog = null;
 			}
@@ -315,13 +325,14 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			
 			if (key == null || key.length() == 0)
 			{
-				this.showInfoDialog("Please specify a search key");
+				Reporter.showInfo("Please specify a search key");
 			}
 			else
 			{
 				if (!this.processCommandSearch())
 				{
-					this.showInfoDialog("No matches found.");
+					Reporter.showInfo("No matches found.");
+					this.processCommandClearSearch();
 				}
 			}
 			return;
@@ -364,7 +375,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		}
 		
 		// This point should never be reached
-		this.showErrorDialog("Command not known");
+		Reporter.showError("Command not known");
 	}
 
 	
@@ -411,7 +422,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if(!this.commandExecuter.beginTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog("UpdateViewerController.executeBulk: Error on begin transaction: " 
+			Reporter.showError("UpdateViewerController.executeBulk: Error on begin transaction: " 
 								 + errorMessage);
 			return false;
 		}
@@ -421,12 +432,12 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			if(!this.commandExecuter.executeCommand(command, SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 			{
 				errorMessage = this.commandExecuter.getErrorMessage().toString();
-				this.showErrorDialog("UpdateViewerController.executeBulk: Error on executing command " 
+				Reporter.showError("UpdateViewerController.executeBulk: Error on executing command " 
 									 + command + ": " + errorMessage);
 				if (! this.commandExecuter.abortTransaction())
 				{
 					errorMessage = this.commandExecuter.getErrorMessage().toString();
-					this.showErrorDialog("UpdateViewerController.executeBulk: Error on abort transaction: " 
+					Reporter.showError("UpdateViewerController.executeBulk: Error on abort transaction: " 
 										 + errorMessage);
 					return false;
 				}
@@ -436,7 +447,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if(!this.commandExecuter.commitTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog("UpdateViewerController.executeBulk: Error on commit transaction: " 
+			Reporter.showError("UpdateViewerController.executeBulk: Error on commit transaction: " 
 								 + errorMessage);
 			return false;
 		}
@@ -457,7 +468,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if(!this.commandExecuter.beginTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog("UpdateViewerController.executeDelete: Error on begin transaction: " 
+			Reporter.showError("UpdateViewerController.executeDelete: Error on begin transaction: " 
 								 + errorMessage);
 			return false;
 		}		
@@ -483,12 +494,12 @@ public class UpdateViewerController implements ActionListener, MouseListener
 					if(! this.commandExecuter.executeCommand(command, SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 					{
 						errorMessage = this.commandExecuter.getErrorMessage().toString();
-						this.showErrorDialog("UpdateViewerController.executeDelete: Error on executing command " 
+						Reporter.showError("UpdateViewerController.executeDelete: Error on executing command " 
 											 + command + ": " + errorMessage);
 						if (! this.commandExecuter.abortTransaction())
 						{
 							errorMessage = this.commandExecuter.getErrorMessage().toString();
-							this.showErrorDialog("UpdateViewerController.executeDelete: Error on abort transaction: " 
+							Reporter.showError("UpdateViewerController.executeDelete: Error on abort transaction: " 
 												 + errorMessage);
 						}
 						return false;
@@ -501,14 +512,15 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				if (failures > 0)
 				{
 					if (failures > 1)
-						this.showErrorDialog("Warning: " + failures + " tuples that should be"
+						Reporter.showError("Warning: " + failures + " tuples that should be"
 											 + " deleted have already been deleted by a different user!");
 					else
-						this.showErrorDialog("Warning: One tuple that should be deleted has "
+						Reporter.showError("Warning: One tuple that should be deleted has "
 											 + "already been deleted by a different user!");
 				}
 				
 				rp.deleteTuples();
+				this.executeSearch(rp.getName());
 			}
 			//else	Reporter.debug("UpdateViewerController.executeDelete: no deletions for relation " + rp.getName());
         }
@@ -516,7 +528,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if(!this.commandExecuter.commitTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog("UpdateViewerController.executeDelete: Error on commit transaction: " 
+			Reporter.showError("UpdateViewerController.executeDelete: Error on commit transaction: " 
 								 + errorMessage);
 			return false;
 		}
@@ -538,7 +550,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if(!this.commandExecuter.beginTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog("UpdateViewerController.executeInsert: Error on begin transaction: " 
+			Reporter.showError("UpdateViewerController.executeInsert: Error on begin transaction: " 
 								 + errorMessage);
 			return false;
 		}	
@@ -562,9 +574,9 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				if (!this.commandExecuter.abortTransaction())
 				{
 					errorMessage += this.commandExecuter.getErrorMessage().toString();
-					this.showErrorDialog("Error trying to abort transaction: " + errorMessage);
+					Reporter.showError("Error trying to abort transaction: " + errorMessage);
 				}
-				this.showErrorDialog(errorMessage);
+				Reporter.showError(errorMessage);
 				rp.goToInsert(e.getRow()-1);
 				return false;
 			}
@@ -582,17 +594,18 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if(!this.commandExecuter.commitTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog("UpdateViewerController.executeInsert: Error on COMMIT TRANSACTION: " 
+			Reporter.showError("UpdateViewerController.executeBulkInsert: Error on COMMIT TRANSACTION: " 
 								 + errorMessage);
 			return false;
 		}
 		
 		for (ListExpr le : result)
 		{
-			Reporter.debug("UpdateViewerController.executeInsert: " + le.toString());
+			Reporter.debug("UpdateViewerController.executeBulkInsert: " + le.toString());
 			rp.insertTuple(le);
 		}
 		rp.resetInsert();
+		this.executeSearch(rp.getName());
 		
 		return true;
 	}
@@ -610,7 +623,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if(! this.commandExecuter.beginTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog(errorMessage);
+			Reporter.showError(errorMessage);
 			return false;
 		}
 		
@@ -624,7 +637,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
             
             if (changesByTupleId.isEmpty())
             {
-                Reporter.debug("UpdateViewerController.executeUpdate: no changes in relation " + rp.getName());
+                Reporter.debug("UpdateViewerController.executeBulkUpdate: no changes in relation " + rp.getName());
             }
 			
             try
@@ -633,18 +646,18 @@ public class UpdateViewerController implements ActionListener, MouseListener
                                                                       rp.getRelation().getAttributeNames(),
                                                                       changesByTupleId);
                 
-                for (String com : commands){Reporter.debug("UpdateViewerController.executeUpdate: " + com);}
+                for (String com : commands){Reporter.debug("UpdateViewerController.executeBulkUpdate: " + com);}
             }
             catch(InvalidFormatException e)
             {
                 String message = e.getMessage()+"\n at position ("+ e.getRow() + ", " + e.getColumn() + ")";
-                this.showErrorDialog(message);
+                Reporter.showError(message);
                 rp.goTo(e.getRow(), 0, 0);
 				
 				if (! this.commandExecuter.abortTransaction())
 				{
 					errorMessage = this.commandExecuter.getErrorMessage().toString();
-					this.showErrorDialog("Error trying to abort transaction: " + errorMessage);
+					Reporter.showError("Error trying to abort transaction: " + errorMessage);
 				}
                 return false;
             }
@@ -657,11 +670,11 @@ public class UpdateViewerController implements ActionListener, MouseListener
                 if(! this.commandExecuter.executeCommand(command, SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
                 {
                     errorMessage = this.commandExecuter.getErrorMessage().toString();
-                    this.showErrorDialog("Error trying to update a tuple: " + errorMessage);
+                    Reporter.showError("Error trying to update a tuple: " + errorMessage);
                     if (! this.commandExecuter.abortTransaction())
                     {
                         errorMessage = this.commandExecuter.getErrorMessage().toString();
-                        this.showErrorDialog("Error trying to abort transaction: " + errorMessage);
+                        Reporter.showError("Error trying to abort transaction: " + errorMessage);
                     }
                     return false;
                 }
@@ -673,10 +686,10 @@ public class UpdateViewerController implements ActionListener, MouseListener
             if (failures > 0)
             {
                 if (failures > 1)
-                    this.showErrorDialog("Warning: " + failures + " tuples that should be"
+                    Reporter.showError("Warning: " + failures + " tuples that should be"
                                          + " updated have already been deleted by a different user!");
                 else
-                    this.showErrorDialog("Warning: One tuple that should be updated has "
+                    Reporter.showError("Warning: One tuple that should be updated has "
                                          + "already been deleted by a different user!");
             }
             
@@ -686,7 +699,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if(!this.commandExecuter.commitTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog(errorMessage);
+			Reporter.showError(errorMessage);
 			return false;
 		}
 		
@@ -702,7 +715,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		Reporter.debug("UpdateViewerController.executeInsert: " + pCommand);
 		if(!this.commandExecuter.executeCommand(pCommand, SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 		{
-			this.showErrorDialog("Error trying to insert a tuple: " 
+			Reporter.showError("Error trying to insert a tuple: " 
 								 + this.commandExecuter.getErrorMessage().toString());
 			return null;
 		}
@@ -746,6 +759,76 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	}
 	
 	
+	private boolean executeSingleInsert(String pRelName, Tuple pTuple, ListExpr ioLE)
+	{
+		if (pTuple == null)
+		{
+			return false;
+		}
+		
+		try
+		{
+			List<Tuple> li = new ArrayList<Tuple>();
+			li.add(pTuple);
+			RelationTypeInfo type = pTuple.getTypeInfo();
+			
+			List<String> commands = this.commandGenerator.generateInsert(pRelName,
+																		 type.getAttributeNames(),
+																		 type.getAttributeTypes(),
+																		 li);
+			
+			ListExpr tupleLE = this.executeInsert(commands.get(0));
+			if (tupleLE != null)
+			{
+				Reporter.debug("executeSingleInsert: resultLE=" + tupleLE.toString());
+				ioLE.setValueTo(tupleLE);
+			}
+			
+		}
+		catch (InvalidFormatException e)
+		{
+			Reporter.showError("InvalidFormatException: " + e.getMessage());
+			return false;
+		}	
+		return true;	
+	}
+	
+	
+	private boolean executeSingleUpdate(String pRelName, List<String> pAttributeNames, 
+										Map<Integer,HashMap<String, Change>> pChangesForUpdate)
+	{
+		try 
+		{
+			List<String> commands = this.commandGenerator.generateUpdate(pRelName,
+																		 pAttributeNames,
+																		 pChangesForUpdate);
+			
+			if (commands == null || commands.isEmpty())
+			{
+				Reporter.debug("UpadteViewerConntroller.executeSingleUpdate: no update commands generated for relation " + pRelName);
+				return false;
+			}
+			
+			if(! this.commandExecuter.executeCommand(commands.get(0), SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
+			{
+				String errorMessage = this.commandExecuter.getErrorMessage().toString();
+				Reporter.showError("Error trying to update a tuple: " + errorMessage);
+				return false;
+			}
+			ListExpr result = this.commandExecuter.getResultList();
+			if ( result.second().intValue() != 1)
+			{
+				return false;
+			}		
+		}
+		catch (InvalidFormatException e)
+		{
+			Reporter.showError("InvalidFormatException: " + e.getMessage());
+			return false;
+		}	
+		return true;		
+	}
+	
 	/**
 	 * Returns true if relation exists in currently open database.
 	 */
@@ -753,7 +836,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	{
 		if (!commandExecuter.executeCommand("(list objects)", SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 		{
-			this.showErrorDialog("Error on command \"list objects\": " 
+			Reporter.showError("Error on command \"list objects\": " 
 								 + this.commandExecuter.getErrorMessage().toString());
 			return false;
 		}
@@ -801,29 +884,41 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				}
 			}
 		}
-		if (pProject != null)
-		{			
-			for (String project : pProject)
+		if (pProject != null && !pProject.isEmpty())
+		{	
+			command.append(" project [ ");
+			for (String fieldName : pProject)
 			{
-				if (!project.equals(""))
+				if (!fieldName.isEmpty())
 				{
-					command.append(" project [ " + project + " ] ");
+					command.append(fieldName);
+					if (pProject.indexOf(fieldName) < pProject.size()-1)
+					{
+						command.append(", ");
+					}
 				}
 			}
+			command.append(" ] ");
 		}
-		if (pSort != null)
+		if (pSort != null && !pSort.isEmpty())
 		{	
+			command.append(" sortby [ ");
 			for (String sort : pSort)
 			{
-				if (!sort.equals(""))
+				if (!sort.isEmpty())
 				{
-					command.append(" sortBy [ " + sort + " ] ");
+					command.append(sort);
+					if (pSort.indexOf(sort) < pSort.size()-1)
+					{
+						command.append(", ");
+					}
 				}
 			}
+			command.append(" ] ");
 		}
 		
 		command.append(" addid consume ");
-		//Reporter.debug("loadRelation: command=" + command.toString());
+		Reporter.debug("loadRelation: command=" + command.toString());
 				
 		if (commandExecuter.executeCommand(command.toString(),SecondoInterface.EXEC_COMMAND_SOS_SYNTAX))
 		{
@@ -834,7 +929,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		else
 		{
 			String errorMessage = commandExecuter.getErrorMessage().toString();
-			this.showErrorDialog(errorMessage);
+			Reporter.showError(errorMessage);
 		}
 		return result;
 	} 
@@ -851,7 +946,10 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			DocumentPanel doc = (DocumentPanel)pEvent.getSource();
 			RelationPosition pos = this.formatDialog.getCurrentPosition();
 			this.formatDialog.setPositionInfo(pos);
-			this.processCommandGoToEdit();
+			if (pos!=null)
+			{
+				this.processCommandGoToEdit();
+			}
 		}
 	}
 	
@@ -869,7 +967,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		
 		if (this.loadDialog.getLoadProfile(name) != null)
 		{
-			this.showErrorDialog("Profile name already exists. Please choose a different name.");
+			Reporter.showError("Profile name already exists. Please choose a different name.");
 			return false;
 		}
 		
@@ -893,7 +991,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		String profname = this.loadDialog.getCurrentLoadProfileName();
 		if (this.loadDialog.getRelationProfile(profname, relname) != null)
 		{
-			this.showErrorDialog("Relation already exists in this load profile. Please choose a different relation.");
+			Reporter.showError("Relation already exists in this load profile. Please choose a different relation.");
 			return false;
 		}
 		
@@ -908,6 +1006,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	private void processCommandClear()
 	{
 		this.viewer.clear();
+		this.loadProfile = null;
 		if (this.formatDialog != null)
 		{
 			this.formatDialog.dispose();
@@ -992,7 +1091,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			errorMessage.append("Please specify format type in load profile. Available formats: ");
 			errorMessage.append(DocumentFormatter.getFormatTypes().toString());
 			errorMessage.append("\n");
-			this.showErrorDialog(errorMessage.toString());
+			Reporter.showError(errorMessage.toString());
 			return false;
 		}
 		
@@ -1001,14 +1100,14 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			errorMessage.append("Please specify query that fetches the document relation. \n");
 			errorMessage.append("With each relation you must first add a tuple ID and rename the relation. \n\n");
 			errorMessage.append("Example: \"query MyRelation feed addid {a} consume\" \n");
-			this.showErrorDialog(errorMessage.toString());
+			Reporter.showError(errorMessage.toString());
 			return false;
 		}
 		
 		if (outputDir==null || outputDir.length() == 0)
 		{
 			errorMessage.append("Please specify path of output directory. \n");
-			this.showErrorDialog(errorMessage.toString());
+			Reporter.showError(errorMessage.toString());
 			return false;
 		}
 
@@ -1016,7 +1115,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		{
 			errorMessage.append("Please list each relation name and its alias in the format query. \n\n");
 			errorMessage.append("Example: \"ARelation a; AnotherRelation b \" ");
-			this.showErrorDialog(errorMessage.toString());
+			Reporter.showError(errorMessage.toString());
 			return false;
 		}
 		
@@ -1025,6 +1124,15 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		{
 			// init formatter
 			DocumentFormatter formatter = DocumentFormatter.createFormatter(formatType);
+			
+			if (formatter == null)
+			{
+				Reporter.showError(formatType 
+								   + "DocumentFormatter is not implemented. \n"
+								   +" DocumentFormatters are available for these FormatTypes: \n" 
+								   + DocumentFormatter.getFormatTypes());
+			}
+			
 			formatter.setAliases(formatAliases); 
 			formatter.setQuery(formatQuery); 
 			formatter.setScript(formatScript); 
@@ -1033,7 +1141,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				|| templateHead==null || templateHead.length() == 0
 				|| templateTail==null || templateTail.length() == 0)
 			{
-				this.showInfoDialog("Format templates in load profile are not complete. \nWill use default templates. ");
+				Reporter.showInfo("Format templates in load profile are not complete. \nWill use default templates. ");
 			}
 			else
 			{
@@ -1053,7 +1161,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			List<String> outputFiles = formatter.getOutputFiles();
 			if (outputFiles == null || outputFiles.isEmpty())
 			{
-				this.showErrorDialog("No output found");
+				Reporter.showError("No output found");
 				return false;
 			}
 			
@@ -1063,7 +1171,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		}
 		catch (Exception e)
 		{
-			this.showInfoDialog(e.getMessage());
+			Reporter.showError(e.getMessage());
 			return false;
 		}
 		return true;
@@ -1081,7 +1189,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		RelationPanel rp = this.viewer.getRelationPanel(posInfo.getRelationName());
 		if (rp == null)
 		{
-			this.showErrorDialog("Relation \"" + posInfo.getRelationName() + "\" is currently not loaded. \n"
+			Reporter.showError("Relation \"" + posInfo.getRelationName() + "\" is currently not loaded. \n"
 								 + "Please add relation to your load profile. ");
 			return false;
 		}
@@ -1116,21 +1224,48 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch(InvalidRelationException e)
 			{
-				this.showErrorDialog(e.getMessage());
+				Reporter.showError(e.getMessage());
 				return false;
 			}
 		}
 		return true;
 	}
 		
+	/**
+	 * Loads all relations of the currently selected LoadProfile from database
+	 * and shows them in the viewer.
+	 */
+	private boolean processCommandLoadDirect()
+	{	
+
+		String relName = this.showChooseRelationDialog();
+		if (relName == null || relName.isEmpty())
+		{
+			return false;
+		}
+		
+		ListExpr relationLE = this.loadRelation(relName, null, null, null);
+		
+		if (relationLE == null)
+		{
+			Reporter.showError("Error while loading relation " + relName);
+			return false;
+		}
+		
+		this.processCommandClear();
+		this.viewer.setRelationPanel(relName, relationLE, true);		
+		return true;		
+	}
+	
 	
 	/**
 	 * Loads all relations of the currently selected LoadProfile from database
 	 * and shows them in the viewer.
 	 */
-	private boolean processCommandLoad()
+	private boolean processCommandLoadFromProfile()
 	{	
 		this.processCommandClear();
+		
 		String profileName = this.loadDialog.getCurrentLoadProfileName();
 		this.loadProfile = this.loadDialog.getLoadProfile(profileName);
 		String errorMessage = "";
@@ -1138,7 +1273,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if (loadProfile == null)
 		{
 			errorMessage = "Please select or create a Load Profile.";
-			this.showErrorDialog(errorMessage);
+			Reporter.showError(errorMessage);
 			return false;
 		}
 				
@@ -1161,12 +1296,8 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				
 		if (errorMessage != null && errorMessage.length()!=0)
 		{
-			this.showErrorDialog(errorMessage);
-		}
-		
-		//this.viewer.showRelations(States.LOADED);
-		this.viewer.setSelectionMode(States.LOADED);
-		this.state = States.LOADED;
+			Reporter.showError(errorMessage);
+		}		
 		return true;		
 	}
 	
@@ -1211,7 +1342,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			int connectionState = this.commandExecuter.testConnection();
 			if (connectionState != 0)
 			{
-				this.showErrorDialog(ServerErrorCodes.getErrorMessageText(connectionState));
+				Reporter.showError(ServerErrorCodes.getErrorMessageText(connectionState));
 				return;
 			}
 			
@@ -1234,7 +1365,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 					if(profilesLE == null || relationsLE == null)
 					{
 						this.setState(States.INITIAL);
-						this.showErrorDialog(commandExecuter.getErrorMessage().toString());			
+						Reporter.showError(commandExecuter.getErrorMessage().toString());			
 					}
 					else
 					{
@@ -1245,14 +1376,14 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				}
 				catch (InvalidRelationException e)
 				{
-					this.showErrorDialog(e.getMessage());
+					Reporter.showError(e.getMessage());
 					return;
 				}
 			}
 		}
 		catch(Exception e)
 		{
-			this.showErrorDialog(e.getMessage());
+			Reporter.showError(e.getMessage());
 			return;
 		}
 	}
@@ -1265,7 +1396,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	{
 		if (this.loadProfile == null)
 		{
-			this.showInfoDialog("No load profile active.");
+			Reporter.showInfo("No active load profile found. To format please load relation(s) from a load profile.");
 			return;
 		}
 		if (this.formatDialog == null)
@@ -1332,8 +1463,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		
 		if (!commandExecuter.executeCommand(sb.toString(), SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 		{
-			Reporter.debug(sb.toString());
-			this.showErrorDialog(commandExecuter.getErrorMessage().toString());
+			Reporter.showError(commandExecuter.getErrorMessage().toString());
 			return false;
 		}
 		return true;
@@ -1356,13 +1486,10 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if (!commandExecuter.executeCommand(sb.toString(), SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
 		{
 			Reporter.debug(sb.toString());
-			this.showErrorDialog(commandExecuter.getErrorMessage().toString());
+			Reporter.showError(commandExecuter.getErrorMessage().toString());
 			return false;
 		}
-		Reporter.debug("processCommandRemoveRelationProfile: removed relation profile " + pRelName);
-
 		return true;
-
 	}
 	
 	
@@ -1377,7 +1504,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		
 		if (rp.getState() == States.LOADED_READ_ONLY)
 		{
-			this.showInfoDialog("Replace not possible: relation \"" + rp.getName() + "\" is read-only.");
+			Reporter.showInfo("Replace not possible: relation \"" + rp.getName() + "\" is read-only.");
 			return false;
 		}
 		
@@ -1391,18 +1518,11 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		
 		if (rp.getCurrentHitIndex() >= 0)
 		{
-			int option = JOptionPane.showConfirmDialog(rp
-													   , "Replace by \"" + replacement + "\"?"
-													   , "Replace and go to next hit"
-													   , JOptionPane.YES_NO_OPTION);
-			if (option == JOptionPane.YES_OPTION)
-			{	
-				int currHitIndex = rp.getCurrentHitIndex();
-				SearchHit hit = rp.getHit(currHitIndex);
-				rp.replace(hit);
-				rp.showSearchResult();
-				rp.showHit(currHitIndex);
-			}
+			int currHitIndex = rp.getCurrentHitIndex();
+			SearchHit hit = rp.getHit(currHitIndex);
+			rp.replace(hit);
+			rp.showSearchResult();
+			rp.showHit(currHitIndex);			
 		}
 		
 		return true;
@@ -1438,7 +1558,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			{
 				if (rp.getState() == States.LOADED_READ_ONLY)
 				{
-					this.showInfoDialog("Replace not possible: relation \"" + rp.getName() + "\" is read-only and will be skipped.");
+					Reporter.showInfo("Replace not possible: relation \"" + rp.getName() + "\" is read-only and will be skipped.");
 				}
 				else
 				{
@@ -1454,7 +1574,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}			
 		}
 		
-		this.showInfoDialog("Replaced " + count + " occurences.");
+		Reporter.showInfo("Replaced " + count + " occurences.");
 		return true;
 	}
 	
@@ -1496,76 +1616,6 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	}
 	
 	
-	private boolean insertTuple(String pRelName, Tuple pTuple, ListExpr ioLE)
-	{
-		if (pTuple == null)
-		{
-			return false;
-		}
-		
-		try
-		{
-			List<Tuple> li = new ArrayList<Tuple>();
-			li.add(pTuple);
-			RelationTypeInfo type = pTuple.getTypeInfo();
-			
-			List<String> commands = this.commandGenerator.generateInsert(pRelName,
-																		 type.getAttributeNames(),
-																		 type.getAttributeTypes(),
-																		 li);
-
-			ListExpr tupleLE = this.executeInsert(commands.get(0));
-			if (tupleLE != null)
-			{
-				Reporter.debug("insertTuple: resultLE=" + tupleLE.toString());
-				ioLE.setValueTo(tupleLE);
-			}
-
-		}
-		catch (InvalidFormatException e)
-		{
-			this.showErrorDialog("InvalidFormatException: " + e.getMessage());
-			return false;
-		}	
-		return true;	
-	}
-	
-	
-	private boolean updateTuple(String pRelName, List<String> pAttributeNames, 
-								Map<Integer,HashMap<String, Change>> pChangesForUpdate)
-	{
-		try 
-		{
-			List<String> commands = this.commandGenerator.generateUpdate(pRelName,
-																		 pAttributeNames,
-																		 pChangesForUpdate);
-			
-			if (commands == null || commands.isEmpty())
-			{
-				Reporter.debug("UpadteViewerConntroller.updateTuple: no update commands generated for relation " + pRelName);
-				return false;
-			}
-
-			if(! this.commandExecuter.executeCommand(commands.get(0), SecondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX))
-			{
-				String errorMessage = this.commandExecuter.getErrorMessage().toString();
-				this.showErrorDialog("Error trying to update a tuple: " + errorMessage);
-				return false;
-			}
-			ListExpr result = this.commandExecuter.getResultList();
-			if ( result.second().intValue() != 1)
-			{
-				return false;
-			}		
-		}
-		catch (InvalidFormatException e)
-		{
-			this.showErrorDialog("InvalidFormatException: " + e.getMessage());
-			return false;
-		}	
-		return true;		
-	}
-	
 	/**
 	 *
 	 */
@@ -1580,7 +1630,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if (tuple.getID() == null || tuple.getID().length() == 0) // tuple is to be inserted
 		{
 			ListExpr resultLE = new ListExpr();
-			if (!this.insertTuple(RELNAME_LOAD_PROFILES_HEAD, tuple, resultLE))
+			if (!this.executeSingleInsert(RELNAME_LOAD_PROFILES_HEAD, tuple, resultLE))
 			{
 				return false;
 			}
@@ -1590,7 +1640,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch (InvalidRelationException e)
 			{
-				this.showErrorDialog(e.getMessage());
+				Reporter.showError(e.getMessage());
 				return false;
 			}
 		}
@@ -1599,7 +1649,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			List<String> attributeNames = tuple.getTypeInfo().getAttributeNames();
 			Map<Integer, HashMap<String, Change>> changesForUpdate = this.loadDialog.getUpdateTuples();
 
-			if (!this.updateTuple(RELNAME_LOAD_PROFILES_HEAD, attributeNames, changesForUpdate))
+			if (!this.executeSingleUpdate(RELNAME_LOAD_PROFILES_HEAD, attributeNames, changesForUpdate))
 			{
 				return false;
 			}
@@ -1609,7 +1659,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch (InvalidRelationException e) 
 			{
-				this.showErrorDialog(e.getMessage());
+				Reporter.showError(e.getMessage());
 				return false;
 			}
 		}
@@ -1632,7 +1682,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if (tuple.getID() == null || tuple.getID().length() == 0) // tuple is to be inserted
 		{
 			ListExpr resultLE = new ListExpr();
-			if (!this.insertTuple(RELNAME_LOAD_PROFILES_POS, tuple, resultLE))
+			if (!this.executeSingleInsert(RELNAME_LOAD_PROFILES_POS, tuple, resultLE))
 			{
 				return false;
 			}
@@ -1642,7 +1692,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch (InvalidRelationException e)
 			{
-				this.showErrorDialog(e.getMessage());
+				Reporter.showError(e.getMessage());
 				return false;
 			}
 		}
@@ -1651,7 +1701,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			List<String> attributeNames = tuple.getTypeInfo().getAttributeNames();
 			Map<Integer, HashMap<String, Change>> changesForUpdate = this.loadDialog.getUpdateTuples();
 			
-			if (!this.updateTuple(RELNAME_LOAD_PROFILES_POS, attributeNames, changesForUpdate))
+			if (!this.executeSingleUpdate(RELNAME_LOAD_PROFILES_POS, attributeNames, changesForUpdate))
 			{
 				return false;
 			}
@@ -1661,7 +1711,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch (InvalidRelationException e)
 			{
-				this.showErrorDialog(e.getMessage());
+				Reporter.showError(e.getMessage());
 				return false;
 			}
 		}
@@ -1767,16 +1817,16 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	 */
 	public void setState(int pState)
 	{
-		if (this.loadProfile == null)
+		/*if (this.loadProfile == null)
 		{
 			this.state = States.LOADED_READ_ONLY;
 			this.viewer.setSelectionMode(States.LOADED_READ_ONLY);
 		}
 		else
-		{
+		{*/
 			this.state = pState;
 			this.viewer.setSelectionMode(pState);
-		}
+		//}
 	}
 	
 	/**
@@ -1795,7 +1845,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		else
 		{
 			Object selection = JOptionPane.showInputDialog(null,
-														   "Choose a relation", "Add relation",
+														   "Select a relation", "Select a relation",
 														   JOptionPane.INFORMATION_MESSAGE, null,
 														   names.toArray(), names.get(0));
 			if (selection != null)
@@ -1814,24 +1864,4 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		return JOptionPane.showInputDialog("Name the load profile " );
 	}
 	
-
-	/*
-	 * Shows messagebox with the error message.	 
-	 */
-	public void showErrorDialog(String pMessage)
-	{
-		Reporter.showError(pMessage);
-		this.viewer.repaint();
-		this.viewer.validate();
-	}
-	
-	/*
-	 * Shows messagebox with the info message.	 
-	 */
-	public void showInfoDialog(String pMessage)
-	{
-		Reporter.showInfo(pMessage);
-		this.viewer.repaint();
-		this.viewer.validate();
-	}
 }

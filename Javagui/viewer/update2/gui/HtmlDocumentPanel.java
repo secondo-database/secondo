@@ -30,15 +30,18 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import javax.swing.JEditorPane;
 import javax.swing.JTextPane;
 //import javax.swing.event.CaretEvent;
 //import javax.swing.event.CaretListener;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 import javax.swing.text.html.HTML;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.HTMLDocument.Iterator;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,7 +87,7 @@ public class HtmlDocumentPanel extends DocumentPanel
 			}
 			br.close();
 			String page = sb.toString();
-			page = this.clean(page);
+			//page = this.clean(page);
 			//Reporter.debug("HtmlFormatter.getDocumentDisplay: page=" + page);
 			
 			JTextPane pane = new JTextPane();
@@ -110,15 +113,14 @@ public class HtmlDocumentPanel extends DocumentPanel
 	}
 	
 	/**
-	 * Removes tags that should not be displayed in EditorPane:
-	 * Comments like <!-- this comment -->
-	 */
+	 * Removes comments like <!-- this comment -->
 	private String clean(String pPage)
 	{
 		String result = pPage.replaceAll("<![ \r\n\t]*(--([^-]|[\r\n]|-[^-])*--[ \r\n\t]*)>" , "");
 		//String result = pPage.replaceAll("<!--[ ([^-]|[\r\n]|-[^-])]*-->" , "");		
 		return result;
 	}
+	*/
 	
 	
 	private class PositionTracker extends MouseAdapter
@@ -127,27 +129,50 @@ public class HtmlDocumentPanel extends DocumentPanel
 			{
 				JTextPane sourcePane = (JTextPane)pEvent.getSource();
 				int position = sourcePane.viewToModel(pEvent.getPoint());
+				//Reporter.debug("HtmlDocumentPanel.PositionTracker: position=" + position);
+
 				HTMLDocument doc = (HTMLDocument) sourcePane.getDocument();				
-				HTMLDocument.BlockElement elem = (HTMLDocument.BlockElement)doc.getParagraphElement(position).getParentElement();								  
-				String elemName = elem.getName();
-				if (elemName.equals("div") && elem.getAttribute(HTML.Attribute.ID)!=null)
+				HTMLDocument.BlockElement elem = (HTMLDocument.BlockElement)doc.getParagraphElement(position);
+				HTMLDocument.RunElement commentElement = null;
+				
+				boolean found = false;
+				int childIndex = 0;
+				while (!found && childIndex < elem.getElementCount())
 				{
-					String id = elem.getAttribute(HTML.Attribute.ID).toString();
-					//Reporter.debug("HtmlDocumentPanel.PositionTracker: found div id=" + id);
-					//Reporter.debug("HtmlDocumentPanel.PositionTracker: position=" + position);
-					int startOffset = elem.getStartOffset();
+					if (elem.getElement(childIndex).getName().equals(HTML.Tag.COMMENT.toString()))
+					{
+						commentElement = (HTMLDocument.RunElement)elem.getElement(childIndex);
+						found = true;
+					}					
+					childIndex++;
+				}
+				
+				if (found && commentElement.getAttribute(HTML.Attribute.COMMENT)!=null)
+				{
+					int startOffset = commentElement.getEndOffset() + 1;
 					//Reporter.debug("HtmlDocumentPanel.PositionTracker: start offset=" + startOffset);
+					
 					int offset = position - startOffset;
 					//Reporter.debug("HtmlDocumentPanel.PositionTracker: offset within field=" + offset);
 					
-					List<String> trackingInfo = LoadDialog.splitList(id, ";");
-					if (trackingInfo != null && !trackingInfo.isEmpty() && trackingInfo.size()==3)
+					if (offset < 0)
 					{
-						currentPosition = new RelationPosition(trackingInfo.get(0), 
-																	trackingInfo.get(1), 
-																	trackingInfo.get(2),
-																	offset);
-						Reporter.debug("HtmlDocumentPanel.PositionTracker: RelationPosition=" + currentPosition.toString());
+						// mouse click occured not within text content but within or before comment
+						currentPosition = null;
+					}
+					else
+					{
+						String positionString = (String)commentElement.getAttribute(HTML.Attribute.COMMENT);
+						
+						List<String> trackingInfo = LoadDialog.splitList(positionString, ";");
+						if (trackingInfo != null && !trackingInfo.isEmpty() && trackingInfo.size()==3)
+						{
+							currentPosition = new RelationPosition(trackingInfo.get(0), 
+																   trackingInfo.get(1), 
+																   trackingInfo.get(2),
+																   offset);
+							//Reporter.debug("HtmlDocumentPanel.PositionTracker: RelationPosition=" + currentPosition.toString());
+						}
 					}
 				}
 				else
