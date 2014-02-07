@@ -101,7 +101,7 @@ Operator : the_unit
 Number   : 7
 Signature: labels x instant x instant x bool x bool -> ulabels
 Example  : query the_unit([const labels value ("Mkhitaryan" "Reus")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE)
-Result   : (ulabels (("2000-01-03" "2000-01-04" TRUE FALSE) ("Mkhitaryan" "Reus"))
+Result   : (ulabels (("2000-01-03" "2000-01-04" TRUE FALSE) ("Mkhitaryan" "Reus")))
 
 Operator : makemvalue
 Number   : 8
@@ -137,13 +137,13 @@ Operator : initial
 Number   : 13
 Signature: ulabels -> ilabels
 Example  : query initial(the_unit([const labels value ("Mkhitaryan")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
-Result   : (ilabel ("2000-01-03" ("Mkhitaryan")))
+Result   : (ilabels ("2000-01-03" ("Mkhitaryan")))
 
 Operator : final
 Number   : 13
 Signature: ulabels -> ilabels
 Example  : query final(the_unit([const labels value ("Schmelzer" "Mkhitaryan")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
-Result   : (ilabel ("2000-01-04" ("Schmelzer" "Mkhitaryan")))
+Result   : (ilabels ("2000-01-04" ("Schmelzer" "Mkhitaryan")))
 
 Operator : val
 Number   : 5
