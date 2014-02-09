@@ -1,11 +1,11 @@
 package viewer.v3d;
 
+import com.sun.j3d.exp.swing.JCanvas3D;
 import com.sun.j3d.utils.behaviors.mouse.MouseBehavior;
 import com.sun.j3d.utils.behaviors.mouse.MouseRotate;
 import com.sun.j3d.utils.behaviors.mouse.MouseTranslate;
 import com.sun.j3d.utils.behaviors.mouse.MouseWheelZoom;
 import com.sun.j3d.utils.universe.SimpleUniverse;
-import com.sun.j3d.utils.universe.ViewingPlatform;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -13,18 +13,19 @@ import gui.SecondoObject;
 import java.util.LinkedList;
 import java.util.List;
 import javax.media.j3d.Appearance;
+import javax.media.j3d.Background;
 import javax.media.j3d.BoundingSphere;
 import javax.media.j3d.BranchGroup;
-import javax.media.j3d.Canvas3D;
+import javax.media.j3d.GraphicsConfigTemplate3D;
 import javax.media.j3d.PolygonAttributes;
 import javax.media.j3d.Shape3D;
 import javax.media.j3d.Transform3D;
 import javax.media.j3d.TransformGroup;
 import javax.media.j3d.TriangleArray;
 import javax.vecmath.Color3b;
+import javax.vecmath.Color3f;
 import javax.vecmath.Point3d;
 import javax.vecmath.Point3f;
-import javax.vecmath.Vector3d;
 import javax.vecmath.Vector3f;
 import sj.lang.ListExpr;
 import viewer.MenuVector;
@@ -34,13 +35,11 @@ import viewer.SecondoViewer;
 public class V3DViewer extends SecondoViewer {
 
     private final MenuVector MV = new MenuVector();
-    private final JMenuItem MI_CageModel;
-    private final JMenuItem MI_CTransl;
-
+    private final JMenuItem MI_CageModel, MI_LightBackground;
+    private final JMenuItem MI_CTransl, MI_AntiAliasing;
     private JComboBox ComboBox = new JComboBox();
     private java.util.List ItemObjects = new LinkedList();
     private SecondoObject CurrentObject = null;
-
     private final JScrollPane ScrollPane = new JScrollPane();
     private final SimpleUniverse universe;
 
@@ -48,11 +47,13 @@ public class V3DViewer extends SecondoViewer {
     public V3DViewer() {
         setLayout(new BorderLayout());
         add(BorderLayout.NORTH, ComboBox);
-        Canvas3D c3d = new Canvas3D(SimpleUniverse.getPreferredConfiguration());
+        GraphicsConfigTemplate3D template = new GraphicsConfigTemplate3D();
+        template.setDoubleBuffer(GraphicsConfigTemplate3D.PREFERRED);
+        template.setSceneAntialiasing(GraphicsConfigTemplate3D.PREFERRED);
+        JCanvas3D j3d = new JCanvas3D(template);
+        universe = new SimpleUniverse(j3d.getOffscreenCanvas3D());
 
-        universe = new SimpleUniverse(c3d);
-
-        ScrollPane.add(c3d);
+        ScrollPane.add(j3d);
         ScrollPane.setViewportView(universe.getCanvas());
 
         add(BorderLayout.CENTER, ScrollPane);
@@ -60,25 +61,23 @@ public class V3DViewer extends SecondoViewer {
         JMenu StdMenu = new JMenu("V3DViewer");
         MI_CageModel = StdMenu.add(new JCheckBoxMenuItem("Cage-Model"));
         MI_CTransl = StdMenu.add(new JCheckBoxMenuItem("Compensate Translation"));
+        MI_AntiAliasing = StdMenu.add(new JCheckBoxMenuItem("Anti-Aliasing"));
+        MI_LightBackground = StdMenu.add(new JCheckBoxMenuItem("Light Background"));
         MV.addMenu(StdMenu);
 
-        MI_CageModel.addActionListener(new ActionListener() {
+        ActionListener redraw = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (CurrentObject != null) {
                     showObject();
                 }
             }
-        });
+        };
 
-        MI_CTransl.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (CurrentObject != null) {
-                    showObject();
-                }
-            }
-        });
+        MI_CageModel.addActionListener(redraw);
+        MI_AntiAliasing.addActionListener(redraw);
+        MI_CTransl.addActionListener(redraw);
+        MI_LightBackground.addActionListener(redraw);
 
         ComboBox.addActionListener(new ActionListener() {
             @Override
@@ -189,7 +188,6 @@ public class V3DViewer extends SecondoViewer {
             return false;
         }
     }
-
     private int cnr = 0;
     private final Color3b[] colors = {
         new Color3b(Color.RED),
@@ -202,14 +200,14 @@ public class V3DViewer extends SecondoViewer {
         new Color3b(Color.PINK),
         new Color3b(Color.GRAY)
     };
-    
+
     private Color3b nextColor() {
         Color3b c = new Color3b(Color.RED);
 
         return colors[cnr++ % colors.length];
     }
-
     BranchGroup bg = null;
+
     private void showObject() {
 
         int index = ComboBox.getSelectedIndex();
@@ -235,6 +233,7 @@ public class V3DViewer extends SecondoViewer {
                 TriangleArray tri = new TriangleArray(px.size(), TriangleArray.COORDINATES | TriangleArray.COLOR_3);
                 Color3b c = nextColor();
                 Color3b white = new Color3b(Color.WHITE);
+                Color3b black = new Color3b(Color.BLACK);
                 for (int i = 0; i < px.size(); i++) {
                     if (i % 3 == 0) {
                         c = nextColor();
@@ -242,9 +241,13 @@ public class V3DViewer extends SecondoViewer {
                     tri.setCoordinate(i, px.get(i));
                     if (i < px.size() - 6) {
                         tri.setColor(i, c);
-                    } else // The last six values are the arrow, which we want to be white
+                    } else // The last six values are the arrow, which we want to be white or black
                     {
-                        tri.setColor(i, white);
+                        if (MI_LightBackground.isSelected()) {
+                            tri.setColor(i, black);
+                        } else {
+                            tri.setColor(i, white);
+                        }
                     }
                 }
 
@@ -267,6 +270,15 @@ public class V3DViewer extends SecondoViewer {
                     universe.getLocale().removeBranchGraph(bg);
                 }
                 bg = new BranchGroup();
+                if (MI_LightBackground.isSelected()) {
+                    Background background = new Background(255, 255, 255);
+                    background.setCapability(Background.ALLOW_COLOR_WRITE);
+                    BoundingSphere sphere = new BoundingSphere(new Point3d(0.0, 0.0,
+                            0.0),
+                            1000.0);
+                    background.setApplicationBounds(sphere);
+                    bg.addChild(background);
+                }
                 bg.addChild(tg);
                 bg.addChild(rotor);
                 bg.addChild(trans);
@@ -281,6 +293,7 @@ public class V3DViewer extends SecondoViewer {
                 universe.addBranchGraph(bg);
 
                 TransformGroup tg3 = universe.getViewingPlatform().getViewPlatformTransform();
+                universe.getViewer().getView().setSceneAntialiasingEnable(MI_AntiAliasing.isSelected());
                 Transform3D t3d = new Transform3D();
                 t3d.setTranslation(new Vector3f(0.0f, 0.0f, 25));
                 tg3.setTransform(t3d);
