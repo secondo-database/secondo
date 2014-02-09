@@ -385,4 +385,21 @@ public class QueryResult implements Serializable {
 	}
 	
 
+	public int findNext(int startPosition, String searchString) {
+		int position = 0;
+		
+		for (int index = 0; index < this.strings.size(); ++index) {
+			if ("---------".equals(strings.get(index))) { // getting a new Item
+				++position;
+			}
+			if (position <= startPosition) continue;
+			
+			String value = strings.get(index);
+			if (value.toLowerCase().contains(searchString.toLowerCase())) {
+				return position;
+			}
+		}
+		
+		return -1;
+	}
 }

@@ -65,11 +65,13 @@
     <string name="noserverconnection">no server connection</string>
     <string name="nooptimizerconnection">no optimizer connection</string>
     <string name="cannotsaveserver">cannot save databaseconnection</string>
-    <string name="nolocation">No GPS Position. GPS sensor on?</string>
+    <string name="nolocation">No GPS-position. Is the GPS sensor on?</string>
     <string name="nogps">GPS off</string>
     <string name="gps">GPS on</string>
     <string name="okay">Okay</string>
     <string name="cancel">Cancel</string>
+    <string name="search">search</string>
+    <string name="nodatabase">no database found!</string>
     
     
 </resources>

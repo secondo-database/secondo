@@ -41,7 +41,7 @@ public class DatabasesActivity extends Activity implements OnItemClickListener {
 		boolean usingOptimizer = intent.getBooleanExtra(
 				SecondroidMainActivity.EXTRA_USINGOPTIMIZER, false);
 
-		final ListView listview = (ListView) findViewById(R.id.listview);
+		final ListView listview = (ListView) findViewById(R.id.databaseListview);
 
 		listview.setItemsCanFocus(false);
 		listview.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
@@ -54,7 +54,7 @@ public class DatabasesActivity extends Activity implements OnItemClickListener {
 	}
 
 	public void setAdapter(StableArrayAdapter adapter) {
-		final ListView listview = (ListView) findViewById(R.id.listview);
+		final ListView listview = (ListView) findViewById(R.id.databaseListview);
 
 		listview.setAdapter(adapter);
 	}
@@ -90,7 +90,7 @@ public class DatabasesActivity extends Activity implements OnItemClickListener {
 	public void onItemClick(AdapterView<?> arg0, View arg1, int position,
 			long arg3) {
 
-		final ListView listview = (ListView) findViewById(R.id.listview);
+		final ListView listview = (ListView) findViewById(R.id.databaseListview);
 		String selection = (String) listview.getItemAtPosition(position);
 		Log.i(TAG, "onItemClick: index=" + position + " arg3 " + arg3
 				+ " selection: " + selection);
@@ -142,7 +142,7 @@ public class DatabasesActivity extends Activity implements OnItemClickListener {
 
 		protected void onPostExecute(List<String> result) {
 			if (result == null || result.size() == 0) {
-				Toast.makeText(this.context, "keine Datenbanken gefunden!",
+				Toast.makeText(this.context, getString(R.string.nodatabase),
 						Toast.LENGTH_LONG).show();
 				return;
 			}

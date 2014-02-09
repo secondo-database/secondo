@@ -71,6 +71,8 @@
     <string name="gps">GPS aktiviert</string>
     <string name="okay">Okay</string>
     <string name="cancel">Abbrechen</string>
+    <string name="search">Suchen</string>
+    <string name="nodatabase">Keine Datenbanken gefunden!</string>
     
     
 </resources>

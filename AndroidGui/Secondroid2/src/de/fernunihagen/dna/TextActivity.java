@@ -10,6 +10,7 @@ import de.fernunihagen.dna.hoese.QueryResult;
 import de.fernunihagen.dna.hoese.QueryResultHelper;
 import de.fernunihagen.dna.hoese.QueryResultHelper.CoordinateSystem;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.app.Activity;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -17,12 +18,14 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewGroup;
+import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.content.Context;
@@ -35,6 +38,8 @@ public class TextActivity extends Activity {
 	private List<QueryResult> queryResults;
 	private int actSelectedPosition = -1;
 	private CheckBox lastSelectedCheckBox = null;
+	private int lastSearchPosition = -1;
+	protected String lastSearchText;
 	
 	@SuppressWarnings("unchecked")
 	@Override
@@ -49,12 +54,22 @@ public class TextActivity extends Activity {
 
 		queryResult = QueryResultHelper.getActualQueryResult(queryResults);
 		
-//		// if no actual result, then take the first Result
-//		if (queryResults.size() > 0 && queryResult == null) {
-//			queryResult = queryResults.get(0);
-//			queryResult.setActual(true);
-//			
-//		}
+
+		ImageButton searchButton = (ImageButton) findViewById(R.id.search);
+		searchButton.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				TextView searchBox = (TextView) findViewById(R.id.searchBox);
+				String searchText = searchBox.getText().toString();
+				if (!searchText.equals(lastSearchText)) {
+					lastSearchPosition = -1;
+					lastSearchText = searchText;
+				}
+				searchNext(searchText);
+			}
+		});
+		
 		
 		createAdapter();
 
@@ -63,7 +78,7 @@ public class TextActivity extends Activity {
 	
 	@Override
 	protected void onResume() {
-		final ListView listview = (ListView) findViewById(R.id.listview);
+		final ListView listview = (ListView) findViewById(R.id.tuplelistview);
 		
 		updateActivity();
 
@@ -81,20 +96,41 @@ public class TextActivity extends Activity {
 
 		queryResult = QueryResultHelper.getActualQueryResult(queryResults);
 		
-		if (lastresult.equals(queryResult))
+		if (lastresult.equals(queryResult)) {
+			final ListView listview = (ListView) findViewById(R.id.tuplelistview);
+
+			// hide the Searchbox
+			View view = (View) findViewById(R.id.searchBoxContainer);
+			view.setVisibility(listview.getAdapter().getCount() <= 10 ? View.GONE : View.VISIBLE);
+			
 			return;
+		}
 
 		createAdapter();
 	}
 
+	private void searchNext(String searchString) {
+		final ListView listview = (ListView) findViewById(R.id.tuplelistview);
+		int searchPosition = queryResult.findNext(lastSearchPosition, searchString);
+		if (searchPosition >= 0) {
+			listview.smoothScrollToPosition(searchPosition);
+			lastSearchPosition = searchPosition;
+		} else {
+			Vibrator v = (Vibrator) this.getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+			 // Vibrate for 200 milliseconds
+			v.vibrate(200);
+			lastSearchPosition = -1;
 
+		}
+	}
+	
 	private void createAdapter() {
 		// Search for actual QueryResult
 		final StableArrayAdapter adapter = new StableArrayAdapter(this,
 				R.xml.datatextitem, 
 				convertToItem(queryResult.getStrings()), queryResult);
 		
-		final ListView listview = (ListView) findViewById(R.id.listview);
+		final ListView listview = (ListView) findViewById(R.id.tuplelistview);
 		listview.setAdapter(adapter);	
 		listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -120,6 +156,11 @@ public class TextActivity extends Activity {
 		      }
 
 		    });
+		
+		// hide or show the Searchbox
+		View view = (View) findViewById(R.id.searchBoxContainer);
+		view.setVisibility(adapter.getCount() <= 10 ? View.GONE : View.VISIBLE);
+		
 	}
 
 
