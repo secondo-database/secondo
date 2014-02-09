@@ -2,8 +2,14 @@ package de.fernunihagen.dna;
 
 import java.util.Date;
 
+import org.osmdroid.tileprovider.tilesource.ITileSource;
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
+
+import tools.Environment;
+
 import de.fernunihagen.dna.data.QueryDto;
 import de.fernunihagen.dna.data.SecondoDataSource;
+import de.fernunihagen.dna.hoese.Encoding;
 import de.fernunihagen.dna.hoese.QueryResult;
 import android.location.Location;
 import android.location.LocationListener;
@@ -11,8 +17,10 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.Window;
 import android.view.View.OnClickListener;
@@ -34,6 +42,9 @@ public class CommandActivity extends Activity implements OnClickListener {
 	public final static String EXTRA_RESULT = "de.fernunihagen.dna.secondo.RESULT";
 	public final static String EXTRA_RESULTS = "de.fernunihagen.dna.secondo.RESULTS";
 	public final static String EXTRA_DATABASE = "de.fernunihagen.dna.secondo.DATABASE";
+
+	private static final int MENU_SUB_ID = Menu.FIRST;
+
 	private static final int EXTRA_QUERY = 1;
 
 	protected static final String PROVIDER_NAME = LocationManager.GPS_PROVIDER;
@@ -158,7 +169,7 @@ public class CommandActivity extends Activity implements OnClickListener {
 				startOutputActivity();
 			}
 		}
-		
+
 		Button btShowOutput = (Button) findViewById(R.id.showOutput);
 		btShowOutput.setEnabled(true);
 	}
@@ -167,6 +178,15 @@ public class CommandActivity extends Activity implements OnClickListener {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.command, menu);
+
+		final SubMenu subMenu = menu.addSubMenu(0, MENU_SUB_ID, Menu.NONE,
+				"Encoding");
+		{
+			int index = 0;
+			for (Encoding e : Encoding.values()) {
+				subMenu.add(0, 1000 + index++, Menu.NONE, e.getName());
+			}
+		}
 		return true;
 	}
 
@@ -196,9 +216,30 @@ public class CommandActivity extends Activity implements OnClickListener {
 			return true;
 		case R.id.action_settings:
 			return true;
+
 		default:
+			if (item.getItemId() >= 1000
+					&& item.getItemId() < 1000 + Encoding.values().length) {
+				if (item.getTitle().toString().equals(Encoding.none.getName())) {
+					Environment.ENCODING = null;
+
+				} else {
+					Environment.ENCODING = item.getTitle().toString();
+				}
+				storeProperty();
+			}
 			return super.onOptionsItemSelected(item);
 		}
+	}
+
+	private void storeProperty() {
+		// We need an Editor object to make preference changes.
+		// All objects are from android.context.Context
+		SharedPreferences settings = getSharedPreferences(SecondroidMainActivity.PREFS_NAME, 0);
+		SharedPreferences.Editor editor = settings.edit();
+		editor.putString("encoding", Environment.ENCODING);
+		// Commit the edits!
+		editor.commit();
 	}
 
 	/**

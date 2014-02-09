@@ -1,9 +1,11 @@
 package de.fernunihagen.dna;
 
+import tools.Environment;
 import de.fernunihagen.dna.data.DatabaseServerDto;
 import de.fernunihagen.dna.data.SecondoDataSource;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -34,6 +36,7 @@ public class SecondroidMainActivity extends Activity implements
 	public static final String EXTRA_USINGOPTIMIZER = "de.fernunihagen.dna.secondo.USINGOPTIMIZER";
 	public static final String EXTRA_SERVERPROP = "de.fernunihagen.dna.secondo.EXTRA_SERVERPROP";
 	private static final int EXTRAS_RESULT = 0;
+	public static final String PREFS_NAME = "secondroid.properties";
 
 	/** Called when the activity is first created. */
 	@Override
@@ -45,9 +48,19 @@ public class SecondroidMainActivity extends Activity implements
 
 		CheckBox cbUsingOptimizer = (CheckBox) findViewById(R.id.usingOptimizer);
 		cbUsingOptimizer.setOnCheckedChangeListener(this);
-		
+	
+		loadProperties();
 		loadLastUsedServer();
+	
 	}
+
+	private void loadProperties() {
+	      // Restore preferences
+	       SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+	       String encoding = settings.getString("encoding", null);
+	       Environment.ENCODING = encoding;
+	}
+
 
 	/*
 	 * loads the last Serverproperties from the SQLiteDatabase
