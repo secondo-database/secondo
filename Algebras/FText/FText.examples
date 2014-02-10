@@ -1157,7 +1157,17 @@ Signature : string x text -> bool
 Example   : query morseWav("abcd",'abcd.wav',40,440);
 Result    : TRUE
 
+Operator : computeRegEx
+Number   : 1 
+Signature : regex -> text
+Example   : computeRegEx( [const regex value "a"] )
+Result    : (text 'a')
 
+Operator : computeRegEx
+Number   : 2 
+Signature : regex2 -> text
+Example   : computeRegEx( [const regex2 value "a"] )
+Result    : (text 'a')
 
 
 

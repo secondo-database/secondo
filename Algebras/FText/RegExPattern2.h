@@ -611,6 +611,39 @@ Secondo specific operators
        }
        return true;
    }
+
+
+   bool computeRegEx(stringstream& ss ){
+      regexcreator::DeaRegEx automaton;
+      for(int s=0;s<numOfStates;s++){
+         for(int c=0;c<NUMCHARS;c++){
+             int state = nextState(s,c);
+             if(state>=0){
+                automaton.addEdge(s,state,c);
+             }     
+         }
+      }
+      automaton.setStart(0);
+      for(int i=0;i<numOfStates;i++){
+         if(isFinal(i)){
+            automaton.addFinal(i);
+         }
+      }
+      regexcreator::RegEx* re = automaton.computeRegEx(true);
+      if(re==0){
+          return false;
+      }
+      re->printTo(ss);
+      delete re;
+      return true;
+   }
+   
+
+   bool isFinal(int i){
+      if(i<0 || i>numOfStates) return false;
+      return  finalStates[i];
+   }
+
  private: 
    bool defined;
    int numOfStates;
@@ -618,6 +651,16 @@ Secondo specific operators
    std::vector<bool> finalStates;
    std::string src;
    bool srcDefined;
+
+
+   int nextState(const int state, const int c) const{
+      assert(state >= 0 && state < numOfStates);
+      assert(c>=0 && c<=NUMCHARS);
+      int pos = state*NUMCHARS+c;
+      return transitions[pos];
+   }
+
+
 };
 
 

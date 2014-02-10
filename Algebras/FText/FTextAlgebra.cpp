@@ -108,6 +108,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "Stream.h"
 #include "LongInt.h"
 
+
 // includes for debugging
 #define LOGMSG_OFF
 #include "LogMsg.h"
@@ -10768,6 +10769,84 @@ Operator morseWavOP(
 );
 
 
+/*
+4.38 Operator computeRegEx
+
+This operator computes a regular expression from a finite automaton even if the source was lost.
+Note that the source for the automaton and the result msut not be the same, but both decribe the
+same language.
+
+*/
+ListExpr computeRegExTM(ListExpr args){
+  string err = "regex or regex2 expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  ListExpr a = nl->First(args);
+  if(RegExPattern::checkType(a) ||
+     RegExPattern2::checkType(a)){
+     return listutils::basicSymbol<FText>();
+  }
+  return listutils::typeError(err);
+}
+
+
+template<class T>
+int computeRegExVM1( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+   T* arg = (T*) args[0].addr;
+   result = qp->ResultStorage(s);
+   FText* res = (FText*) result.addr;
+   if(!arg->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   stringstream ss;
+   if(arg->computeRegEx(ss)){
+      res->Set(true,ss.str());
+   } else {
+       res->SetDefined(false);
+   }
+   return  0;
+}
+
+ValueMapping computeRegExVM[] = {
+  computeRegExVM1<RegExPattern>,
+  computeRegExVM1<RegExPattern2>
+};
+
+int computeRegExSelect(ListExpr args){
+  return RegExPattern::checkType(nl->First(args))?0:1;
+}
+
+
+
+/*
+4.37.5 Specification
+
+*/
+OperatorSpec computeRegExSpec(
+  "{regex, regex2} -> text ",
+  " computeRegEx(_)",
+  " Computes a regular expression form a finite automaton",
+  "query computeRegEx([const regex2 value 'a'])"
+);
+
+
+/*
+4.37.6 Operator instance
+
+*/
+Operator computeRegExOP(
+  "computeRegEx",
+  computeRegExSpec.getStr(),
+  2,
+  computeRegExVM,
+  computeRegExSelect,
+  computeRegExTM
+);
+
 
   /*
   5 Creating the algebra
@@ -10891,6 +10970,7 @@ Operator morseWavOP(
       AddOperator(&correctFileIdOP);
       AddOperator(&charCodesOP);
       AddOperator(&morseWavOP);
+      AddOperator(&computeRegExOP);
 
 
 

@@ -38,6 +38,7 @@ This class is the implementation of a finite automaton.
 #include "../../Tools/Flob/DbArray.h"
 #include "GenericTC.h"
 #include "IntNfa.h"
+#include "DeaRegEx.h"
 
 
 
@@ -551,6 +552,39 @@ Returns the representation of this dfa as a nested list.
 
    bool hasSource() const{
      return srcDefined;
+   }
+
+   bool computeRegEx(stringstream& ss ){
+      regexcreator::DeaRegEx automaton;
+      for(int s=0;s<numOfStates;s++){
+         for(int c=0;c<NUMCHARS;c++){
+             int state = nextState(s,c);
+             if(state>=0){
+                automaton.addEdge(s,state,c);
+             }     
+         }
+      }
+      automaton.setStart(0);
+      for(int i=0;i<numOfStates;i++){
+         if(isFinal(i)){
+            automaton.addFinal(i);
+         }
+      }
+
+      regexcreator::RegEx* re = automaton.computeRegEx(true);
+      if(re==0){
+          return false;
+      }
+      re->printTo(ss);
+      delete re;
+      return true;
+   }
+
+   bool isFinal(int i){
+      if(i<0 || i>numOfStates) return false;
+      bool b;
+      finalStates.Get(i,b);
+      return b; 
    }
 
 
