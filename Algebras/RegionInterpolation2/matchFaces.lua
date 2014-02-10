@@ -36,7 +36,7 @@ function matchFaces (src, dst, depth, args)
     
     local status, err = pcall(
     function () 
-	dofile("funs.lua")
+	dofile("matchStrategies.lua")
 	ret = _G[funname](src, dst, depth, unpack(argv))
     end
     );

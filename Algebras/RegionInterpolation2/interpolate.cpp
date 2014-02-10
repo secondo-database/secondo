@@ -317,7 +317,7 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
 
             // Now check if the interpolations intersect in any way
             handleIntersections(fcs, rp.mface, evap, false);
-            handleIntersections(fcs, rp.mface, false, true);
+//            handleIntersections(fcs, rp.mface, false, true);
 
             ret.needSEvap = ret.needSEvap || fcs.needSEvap;
             ret.needDEvap = ret.needDEvap || fcs.needDEvap;
@@ -344,7 +344,7 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
     // Toplevel-Intersections are still not handled yet, do that now.
     if (depth == 0) {
         handleIntersections(ret, MFace(), evap, false);
-        handleIntersections(ret, MFace(), evap, true);
+//        handleIntersections(ret, MFace(), evap, true);
     }
 
     return ret;
@@ -367,7 +367,6 @@ void handleIntersections(MFaces& children, MFace parent, bool evap, bool rs) {
             MSegs *s2 = (j == 0) ? &parent.face : &children.faces[j - 1].face;
 
             if (s1->intersects(*s2, false, false)) {
-                assert(!restart);
                 pair<MSegs, MSegs> ss;
                 if (!s1->iscollapsed && !evap) {
                     ss = s1->kill();
