@@ -8,15 +8,111 @@ MFace::MFace() : needStartRegion(false), needEndRegion(false) {
 
 MFace::MFace(MSegs face) : needStartRegion(false), needEndRegion(false),
 face(face) {
+    Check();
+}
+
+bool MFace::SortCycle() {
+    vector<MSeg> s1 = face.segs;
+    vector<MSeg> s2;
+
+    int cur = 0, i = 0;
+    bool ret = true;
+    
+    do {
+        s2.push_back(s1[cur]);
+        cur = face.findNext(cur);
+        if (i++ > face.segs.size()) {
+            ret = false;
+            cerr << "Endless loop!\n";
+            break;
+        }
+        
+    } while (cur > 0);
+    
+    if (cur == -1) {
+        ret = false;
+        cerr << "Error: cycle incomplete!\n";
+    } else if (cur == -2) {
+        ret = false;
+        cerr << "Error: cycle ambiguous!\n";
+    } else if (cur < 0) {
+        ret = false;
+        cerr << "Error: unknown error in cycle!\n";
+    }
+
+    if (s2.size() != face.segs.size()) {
+        ret = false;
+        cerr << "Unused segments! " << "has " << face.segs.size() <<
+                " used " << s2.size() << "\n";
+    } else {
+        face.segs = s2;
+    }
+    
+    return ret;
+}
+
+bool MFace::Check() {
+    bool ret = true;
+    
+    // Checking Border-Regions
+    
+    CreateBorderRegion(true);
+    CreateBorderRegion(false);
+    
+    for (unsigned int i = 0; i < holes.size(); i++) {
+        MFace h1(holes[i]);
+        for (unsigned int j = 0; j < holes.size(); j++) {
+            if (holes[i].intersects(holes[j], false, false))
+                ret = false;
+        }
+    }
+    
+//    for (unsigned int i = 0; i < face.segs.size(); i++) {
+//        for (unsigned int j = 0; j < face.segs.size(); j++) {
+//            if (i == j)
+//                continue;
+//            MSeg a = face.segs[i];
+//            MSeg b = face.segs[j];
+//            if (a.intersects(b, true)) {
+//                ret = false;
+//                cerr << "Intersection!\n";
+//            }
+//            Seg ai(a.is, a.ie), af(a.fs, a.fe);
+//            Seg bi(b.is, b.ie), bf(b.fs, b.fe);
+//            if (ai.intersects(bi)) {
+//                ret = false;
+//                cerr << "Intersection initial!\n" << ai.ToString()
+//                        << " " << bi.ToString() << "\n";
+//            }
+//            if (af.intersects(bf)) {
+//                ret = false;
+//                cerr << "Intersection final!\n" << af.ToString()
+//                        << " " << bf.ToString() << "\n";
+//            }
+//        }
+//    }
+
+    
+    if (!SortCycle()) {
+        ret = false;
+    }
+
+    
+    if (face.intersects(face, false, true)) {
+        cerr << "Intersection!\n";
+        ret = false;
+    }
+    
+    if (!ret) {
+        cerr << "Error with MFace " << this->ToString() << "\n";
+    }
+    assert(ret);
+
+    return ret;
 }
 
 void MFace::AddMsegs(MSegs m) {
-    vector<MSeg> match = m.GetMatchingMSegs(face);
-    if (1 || match.size() > 0) {
-        AddConcavity(m);
-    } else {
-        holes.push_back(m);
-    }
+    AddConcavity(m);
 }
 
 void MFace::AddConcavity(MSegs c) {
@@ -26,11 +122,21 @@ void MFace::AddConcavity(MSegs c) {
 static ListExpr CycleToListExpr(MSegs face);
 
 void MFace::MergeConcavities() {
-    //    CycleToListExpr(face);
+    Check();
     for (unsigned int i = 0; i < cvs.size(); i++) {
-        //        CycleToListExpr(cvs[i]);
-        if (cvs[i].GetMatchingMSegs(face).size() > 0) {
-            face.MergeConcavity(cvs[i]);
+        MFace check(cvs[i]);
+        if (face.intersects(cvs[i], false, false))
+            assert(false);
+        cerr << "Merging\n";
+        cerr << face.ToString() << "\n"; 
+        PrintMRegionListExpr();
+        cerr << "\nwith\n";
+        cerr << cvs[i].ToString() << "\n"; 
+        check.PrintMRegionListExpr();
+        cerr << "\n";
+        if (face.MergeConcavity(cvs[i])) {
+            cerr << "Merged\n";
+            Check();
         } else {
             if (!cvs[i].sreg.ishole)
                 needStartRegion = true;
@@ -39,6 +145,8 @@ void MFace::MergeConcavities() {
             holes.push_back(cvs[i]);
         }
     }
+    
+    Check();
 
     cvs.erase(cvs.begin(), cvs.end());
 }
@@ -60,8 +168,6 @@ static ListExpr CycleToListExpr(MSegs face) {
     ListExpr le, le2;
     int first, cur;
     first = cur = 0;
-    
-//    cerr << "\nAdding listexpr for " << face.ToString() << "\n";
 
     assert(face.segs.size() > 0);
 
@@ -81,14 +187,12 @@ static ListExpr CycleToListExpr(MSegs face) {
         le2 = nl->Append(le2, c);
         cur = face.findNext(cur);
     }
-    
-//    cerr << "\nAdded listexpr\n";
 
     return cy;
 }
 
 ListExpr MFace::ToListExpr() {
-    MergeConcavities();
+//    MergeConcavities();
 
     ListExpr ret = nl->OneElemList(CycleToListExpr(face));
     ListExpr le = ret;
@@ -97,6 +201,12 @@ ListExpr MFace::ToListExpr() {
     }
 
     return ret;
+}
+
+void MFace::PrintMRegionListExpr() {
+    cerr << "(OBJECT mr () mregion ( ( "
+            "(\"2013-01-01\" \"2013-01-02\" TRUE TRUE)"
+            << nl->ToString(ToListExpr()) << ") ) )";
 }
 
 MFace MFace::divide(double start, double end) {
@@ -125,8 +235,11 @@ string MFace::ToString() {
     return ss.str();
 }
 
-Reg MFace::CreateBorderRegion(bool src) {
+Face MFace::CreateBorderRegion(bool src) {
     vector<Seg> segs;
+
+    assert(SortCycle());
+    cerr << "CBR " << face.ToString() << "\n";
 
     for (unsigned int i = 0; i < face.segs.size(); i++) {
         MSeg ms = face.segs[i];
@@ -136,8 +249,7 @@ Reg MFace::CreateBorderRegion(bool src) {
         segs.push_back(src ? Seg(ms.is, ms.ie) : Seg(ms.fs, ms.fe));
     }
 
-    segs = Seg::sortSegs(segs);
-    Reg ret(segs);
+    Face ret(segs);
 
     for (unsigned int h = 0; h < holes.size(); h++) {
         vector<Seg> hole;

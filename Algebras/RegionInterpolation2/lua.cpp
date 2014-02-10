@@ -3,9 +3,17 @@
 
 #include "interpolate.h"
 
+#ifdef USE_LUA
+
 #include <vector>
 #include <set>
+#ifdef LUA5_1
 #include <lua5.1/lua.hpp>
+#elif LUA5_2
+#include <lua5.2/lua.hpp>
+#else
+#error "Unknown Lua-Version"
+#endif
 
 static int SCALESIZE = 1000000;
 
@@ -13,12 +21,15 @@ static lua_State *L = NULL;
 static void setfield(const char *key, int value);
 
 static int lua_distance(lua_State *L);
-static int lua_getbb(lua_State *L);
-static int lua_getbboverlap(lua_State *L);
-static int lua_getoverlap(lua_State *L);
-static int lua_getmiddle(lua_State *L);
+static int lua_boundingbox(lua_State *L);
+static int lua_bboverlap(lua_State *L);
+static int lua_overlap(lua_State *L);
+static int lua_middle(lua_State *L);
+static int lua_area(lua_State *L);
+static int lua_points(lua_State *L);
+static int lua_centroid(lua_State *L);
 
-static void setfield(const char *key, int value) {
+static void setfield(const char *key, double value) {
     lua_pushstring(L, key);
     lua_pushnumber(L, value);
     lua_settable(L, -3);
@@ -53,19 +64,18 @@ static Pt lua_getPt(const char *name) {
     return Pt(x, y);
 }
 
-static pair<Pt,Pt> getOffAndScale(bool isdst) {
+static pair<Pt, Pt> getOffAndScale(bool isdst) {
     Pt off = isdst ? lua_getPt("dstoff") : lua_getPt("srcoff");
     Pt scale = isdst ? lua_getPt("dstscale") : lua_getPt("srcscale");
 
-    return pair<Pt,Pt>(off, scale);
+    return pair<Pt, Pt>(off, scale);
 }
 
-
 static Pt modPt(Pt pt, bool isdst) {
-    pair<Pt,Pt> offandscale = getOffAndScale(isdst);
+    pair<Pt, Pt> offandscale = getOffAndScale(isdst);
     Pt off = offandscale.first;
     Pt scale = offandscale.second;
-    
+
     return (pt - off)*scale;
 }
 
@@ -74,10 +84,13 @@ int luaInit(void) {
         lua_close(L);
     L = luaL_newstate();
     luaL_openlibs(L);
-    int st = luaL_loadfile(L, "mf.lua");
+    int st = luaL_loadfile(L, "matchFaces.luac");
     if (st) {
-        cerr << "Error parsing LUA-file: " << lua_tostring(L, -1) << "\n";
-        return -1;
+        st = luaL_loadfile(L, "matchFaces.lua");
+        if (st) {
+            cerr << "Error parsing LUA-file: " << lua_tostring(L, -1) << "\n";
+            return -1;
+        }
     }
 
     st = lua_pcall(L, 0, 0, 0);
@@ -88,19 +101,23 @@ int luaInit(void) {
 
     lua_pushcfunction(L, lua_distance);
     lua_setglobal(L, "distance");
-    lua_pushcfunction(L, lua_getmiddle);
-    lua_setglobal(L, "getmiddle");
-    lua_pushcfunction(L, lua_getbb);
-    lua_setglobal(L, "bb");
-    lua_pushcfunction(L, lua_getbboverlap);
+    lua_pushcfunction(L, lua_middle);
+    lua_setglobal(L, "middle");
+    lua_pushcfunction(L, lua_boundingbox);
+    lua_setglobal(L, "boundingbox");
+    lua_pushcfunction(L, lua_bboverlap);
     lua_setglobal(L, "bboverlap");
-    lua_pushcfunction(L, lua_getoverlap);
+    lua_pushcfunction(L, lua_overlap);
     lua_setglobal(L, "overlap");
+    lua_pushcfunction(L, lua_points);
+    lua_setglobal(L, "points");
+    lua_pushcfunction(L, lua_area);
+    lua_setglobal(L, "area");
 
     return 0;
 }
 
-void setupParams(set<Reg*> *regs, const char *prefix, int depth) {
+void setupParams(set<Face*> *regs, const char *prefix, int depth) {
     char offstr[10];
     char scalestr[12];
 
@@ -108,13 +125,14 @@ void setupParams(set<Reg*> *regs, const char *prefix, int depth) {
     snprintf(scalestr, sizeof (scalestr), "%sscale", prefix);
 
     if (!regs->empty()) {
-        Reg *r = *(regs->begin());
-        Reg *parent = r->parent;
+        Face *r = *(regs->begin());
+        Face *parent = r->parent;
         pair<Pt, Pt> bbox;
         if (parent)
             bbox = parent->GetBoundingBox();
         else
-            bbox = Reg::GetBoundingBox(*regs);
+            bbox = Face::GetBoundingBox(*regs);
+        cerr << "Bbox is " << bbox.first.ToString() << "\n";
         lua_setPt(offstr, bbox.first);
         if ((bbox.second.x > bbox.first.x) &&
                 (bbox.second.y > bbox.first.y)) {
@@ -131,23 +149,23 @@ void setupParams(set<Reg*> *regs, const char *prefix, int depth) {
 
     lua_newtable(L);
     int i = 1;
-    for (std::set<Reg*>::iterator it = regs->begin(); it != regs->end(); ++it) {
+    for (std::set<Face*>::iterator it = regs->begin(); it != regs->end(); ++it){
         lua_pushnumber(L, i++);
-        lua_pushlightuserdata(L, const_cast<Reg*> (*it));
+        lua_pushlightuserdata(L, const_cast<Face*> (*it));
         lua_rawset(L, -3);
     }
 }
 
-vector<pair<Reg *, Reg *> > __matchFacesLua(set<Reg*> *src, set<Reg*> *dst,
+vector<pair<Face *, Face *> > __matchFacesLua(set<Face*> *src, set<Face*> *dst,
         int depth, string args) {
-    vector<pair<Reg *, Reg *> > ret;
+    vector<pair<Face *, Face *> > ret;
 
     if (!L || depth == 0) {
         int st = luaInit();
         if (st < 0)
             return ret;
     }
-    
+
 
     lua_getglobal(L, "matchFaces");
 
@@ -166,23 +184,23 @@ vector<pair<Reg *, Reg *> > __matchFacesLua(set<Reg*> *src, set<Reg*> *dst,
         lua_pushnil(L);
         int i = 0;
         while (lua_next(L, -2) != 0) {
-            pair<Reg *, Reg *> p(NULL, NULL);
+            pair<Face *, Face *> p(NULL, NULL);
             if (lua_istable(L, -1)) {
                 lua_getfield(L, -1, "src");
                 if (lua_islightuserdata(L, -1)) {
-                    Reg *r = (Reg *) lua_touserdata(L, -1);
+                    Face *r = (Face *) lua_touserdata(L, -1);
                     if (src->erase(r) != 0)
                         p.first = r;
                 } else if (lua_istable(L, -1)) {
                     lua_pushnil(L);
                     if (lua_next(L, -2) && lua_islightuserdata(L, -1)) {
-                        Reg *r1 = (Reg *) lua_touserdata(L, -1);
+                        Face *r1 = (Face *) lua_touserdata(L, -1);
                         lua_pop(L, 1);
                         if (lua_next(L, -2) && lua_islightuserdata(L, -1)) {
-                            Reg *r2 = (Reg *) lua_touserdata(L, -1);
-                            Reg *r3 = new Reg();
-                            *r3 = r2->Merge(*r1);
-                            p.first = r3;
+                            Face *r2 = (Face *) lua_touserdata(L, -1);
+                            Face *r3 = new Face();
+                            //                            *r3 = r2->Merge(*r1);
+                            p.first = r2;
                             lua_pop(L, 1);
                         }
                     }
@@ -192,7 +210,7 @@ vector<pair<Reg *, Reg *> > __matchFacesLua(set<Reg*> *src, set<Reg*> *dst,
 
                 lua_getfield(L, -1, "dst");
                 if (lua_islightuserdata(L, -1)) {
-                    Reg *r = (Reg *) lua_touserdata(L, -1);
+                    Face *r = (Face *) lua_touserdata(L, -1);
                     if (dst->erase(r) != 0)
                         p.second = r;
                 }
@@ -207,17 +225,6 @@ vector<pair<Reg *, Reg *> > __matchFacesLua(set<Reg*> *src, set<Reg*> *dst,
         cerr << "Return-Value is not a table!\n";
     }
 
-//    for (std::set<Reg*>::iterator it = src->begin(); it != src->end(); ++it) {
-//        pair<Reg *, Reg *> p(*it, NULL);
-//        ret.push_back(p);
-//    }
-//
-//    for (std::set<Reg*>::iterator it = dst->begin(); it != dst->end(); ++it) {
-//        pair<Reg *, Reg *> p(NULL, *it);
-//        ret.push_back(p);
-//    }
-
-
     return ret;
 }
 
@@ -225,19 +232,19 @@ static int lua_distance(lua_State *L) {
     if (!lua_islightuserdata(L, -1) || !lua_islightuserdata(L, -2))
         return 0;
 
-    Reg *src = (Reg*) lua_touserdata(L, -1);
-    Reg *dst = (Reg*) lua_touserdata(L, -2);
+    Face *src = (Face*) lua_touserdata(L, -1);
+    Face *dst = (Face*) lua_touserdata(L, -2);
     double dist = modPt(src->GetMiddle(), src->isdst)
             .distance(modPt(dst->GetMiddle(), dst->isdst));
     lua_pushnumber(L, dist);
     return 1;
 }
 
-static int lua_getmiddle(lua_State *L) {
+static int lua_middle(lua_State *L) {
     if ((lua_gettop(L) != 1) || !lua_islightuserdata(L, -1))
         return 0;
 
-    Reg *r = (Reg*) lua_touserdata(L, -1);
+    Face *r = (Face*) lua_touserdata(L, -1);
     Pt pt = modPt(r->GetMiddle(), r->isdst);
 
     lua_newtable(L);
@@ -247,24 +254,24 @@ static int lua_getmiddle(lua_State *L) {
     return 1;
 }
 
-static int lua_getbb(lua_State *L) {
+static int lua_boundingbox(lua_State *L) {
     if ((lua_gettop(L) != 1) || !lua_islightuserdata(L, -1)) {
         return 0;
     }
-    Reg *reg = (Reg*) lua_touserdata(L, -1);
+    Face *reg = (Face*) lua_touserdata(L, -1);
     lua_pushPt(modPt(reg->bbox.first, reg->isdst));
     lua_pushPt(modPt(reg->bbox.second, reg->isdst));
 
     return 2;
 }
 
-static int lua_getbboverlap(lua_State *L) {
+static int lua_bboverlap(lua_State *L) {
     if ((lua_gettop(L) != 2) ||
             !lua_islightuserdata(L, 1) || !lua_islightuserdata(L, 2))
         return 0;
 
-    Reg *src = (Reg*) lua_touserdata(L, 1);
-    Reg *dst = (Reg*) lua_touserdata(L, 2);
+    Face *src = (Face*) lua_touserdata(L, 1);
+    Face *dst = (Face*) lua_touserdata(L, 2);
 
     pair<Pt, Pt> sbb = src->GetBoundingBox();
     pair<Pt, Pt> dbb = dst->GetBoundingBox();
@@ -300,49 +307,84 @@ static int lua_getbboverlap(lua_State *L) {
 
     lua_pushnumber(L, (box.second.x - box.first.x)*
             (box.second.y - box.first.y));
-    
+
     lua_pushnumber(L, (sbb.second.x - sbb.first.x)*
             (sbb.second.y - sbb.first.y));
-    
+
     lua_pushnumber(L, (dbb.second.x - dbb.first.x)*
             (dbb.second.y - dbb.first.y));
 
     return 3;
 }
 
-static int lua_getoverlap(lua_State *L) {
+static int lua_overlap(lua_State *L) {
     if ((lua_gettop(L) != 2) ||
             !lua_islightuserdata(L, 1) || !lua_islightuserdata(L, 2))
         return 0;
 
-    Reg *src = (Reg*) lua_touserdata(L, 1);
-    Reg *dst = (Reg*) lua_touserdata(L, 2);
+    Face *src = (Face*) lua_touserdata(L, 1);
+    Face *dst = (Face*) lua_touserdata(L, 2);
 
-    pair<Pt,Pt> oassrc = getOffAndScale(src->isdst);
-    pair<Pt,Pt> oasdst = getOffAndScale(dst->isdst);
-    
+    pair<Pt, Pt> oassrc = getOffAndScale(src->isdst);
+    pair<Pt, Pt> oasdst = getOffAndScale(dst->isdst);
+
     Region r1 = src->MakeRegion(oassrc.first.x, oassrc.first.y,
             oassrc.second.x, oassrc.second.y);
     Region r2 = dst->MakeRegion(oasdst.first.x, oasdst.first.y,
             oasdst.second.x, oasdst.second.y);
-    
+
     Region intersect(0);
-    
+
     r1.Intersection(r2, intersect, NULL);
     double r1area = r1.Area(NULL);
     double r2area = r2.Area(NULL);
     double intersectarea = intersect.Area(NULL);
-    
+
     lua_pushnumber(L, intersectarea);
     lua_pushnumber(L, r1area);
     lua_pushnumber(L, r2area);
-    
+
     return 3;
 }
 
-vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
-        int depth, string args) {
-    set<Reg*> srcset, dstset;
+static int lua_points(lua_State *L) {
+    if ((lua_gettop(L) != 1) || !lua_islightuserdata(L, 1))
+        return 0;
+    Face *f = (Face*) lua_touserdata(L, 1);
+
+    lua_newtable(L);
+    for (unsigned int i = 0; i < f->v.size(); i++) {
+        lua_pushnumber(L, i + 1);
+        lua_pushPt(modPt(f->v[i].s, f->isdst));
+        lua_rawset(L, -3);
+    }
+
+    return 1;
+}
+
+static int lua_centroid(lua_State *L) {
+    if ((lua_gettop(L) != 1) || !lua_islightuserdata(L, 1))
+        return 0;
+    Face *f = (Face*) lua_touserdata(L, 1);
+
+    lua_pushPt(modPt(f->GetCentroid(), f->isdst));
+
+    return 1;
+}
+
+static int lua_area(lua_State *L) {
+    if ((lua_gettop(L) != 1) || !lua_islightuserdata(L, 1))
+        return 0;
+    Face *f = (Face*) lua_touserdata(L, 1);
+
+    lua_pushnumber(L, f->GetArea());
+
+    return 1;
+}
+
+vector<pair<Face *, Face *> > _matchFacesLua(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
+    set<Face*> srcset, dstset;
     for (unsigned int i = 0; i < src->size(); i++)
         srcset.insert(&((*src)[i]));
     for (unsigned int i = 0; i < dst->size(); i++)
@@ -350,3 +392,5 @@ vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
 
     return __matchFacesLua(&srcset, &dstset, depth, args);
 }
+
+#endif

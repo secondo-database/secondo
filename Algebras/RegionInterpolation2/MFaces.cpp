@@ -18,7 +18,7 @@ void MFaces::AddFace(MFace face) {
 
 MFaces MFaces::CreateBorderMFaces(bool src) {
     MFaces ret;
-    vector<Reg> regs = CreateBorderRegions(src);
+    vector<Face> regs = CreateBorderRegions(src);
 
     for (unsigned int i = 0; i < regs.size(); i++) {
         ret.AddFace(regs[i].GetMSegs(false));
@@ -27,14 +27,13 @@ MFaces MFaces::CreateBorderMFaces(bool src) {
     return ret;
 }
 
-vector<Reg> MFaces::CreateBorderRegions(bool src) {
-    vector<Reg> ret;
+vector<Face> MFaces::CreateBorderRegions(bool src) {
+    vector<Face> ret;
 
     for (unsigned int i = 0; i < faces.size(); i++) {
-        Reg r = faces[i].CreateBorderRegion(src);
+        Face r = faces[i].CreateBorderRegion(src);
         if (r.v.size() >= 3)
             ret.push_back(r);
-        cerr << "CBR " <<  src << " " << r.ToString() << "\n";
     }
 
     return ret;
@@ -106,7 +105,7 @@ MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
         needEndRegion = needEndRegion || faces[i].needEndRegion;
     }
     
-    needSEvap = needDEvap = false;
+//    needSEvap = needDEvap = false;
 
     Instant onethird = (_iv.end - _iv.start) / 3;
     // Compiling intervals
@@ -164,7 +163,7 @@ MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
         cerr << "\n==== Start-Evaporations ====\n";
         MFaces fs;
         cerr << "CreateBorderRegs start\n";
-        vector<Reg> bordersregs = CreateBorderRegions(true);
+        vector<Face> bordersregs = CreateBorderRegions(true);
         cerr << "Interpolate start\n";
         fs = interpolate(sregs, &bordersregs, 0, true, "");
         cerr << "Interpolate end\n";
@@ -197,7 +196,7 @@ MRegion MFaces::ToMRegion(Interval<Instant> _iv) {
     if (needDEvap) {
         cerr << "\n==== End-Evaporations ====\n";
         MFaces fs;
-        vector<Reg> borderdregs = CreateBorderRegions(false);
+        vector<Face> borderdregs = CreateBorderRegions(false);
         fs = interpolate(&borderdregs, dregs, 0, true, "");
         URegion u = fs.ToURegion(endEvapIv, 0, 1);
         ret.AddURegion(u);
@@ -227,8 +226,8 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
 
     for (unsigned int i = 0; i < faces.size(); i++) {
         faces[i].MergeConcavities();
-        needStartRegion = needStartRegion || faces[i].needStartRegion;
-        needEndRegion = needEndRegion || faces[i].needEndRegion;
+//        needStartRegion = needStartRegion || faces[i].needStartRegion;
+//        needEndRegion = needEndRegion || faces[i].needEndRegion;
     }
 
     Instant onethird = (_iv.end - _iv.start) / 3;
@@ -288,7 +287,7 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
     if (needSEvap) {
         cerr << "\n==== Start-Evaporations ====\n";
         MFaces fs;
-        vector<Reg> bordersregs = CreateBorderRegions(true);
+        vector<Face> bordersregs = CreateBorderRegions(true);
         cerr << "Interpolate start\n";
         cerr << (*sregs)[0].ToString() << "\n";
         fs = interpolate(sregs, &bordersregs, 0, true, "");
@@ -316,7 +315,7 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
     if (needDEvap) {
         cerr << "\n==== End-Evaporations ====\n";
         MFaces fs;
-        vector<Reg> borderdregs = CreateBorderRegions(false);
+        vector<Face> borderdregs = CreateBorderRegions(false);
         fs = interpolate(&borderdregs, dregs, 0, true, "");
         Append(mreg, fs.ToListExpr(endEvapIv, 0, 1));
         cerr << "==== /End-Evaporations ====\n";
@@ -329,17 +328,17 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
     return mreg;
 }
 
-ListExpr MFaces::fallback(vector<Reg> *sregs, vector<Reg> *dregs,
+ListExpr MFaces::fallback(vector<Face> *sregs, vector<Face> *dregs,
         Interval<Instant> iv) {
     MFaces start;
     for (unsigned int i = 0; i < sregs->size(); i++) {
-        Reg r = (*sregs)[i];
+        Face r = (*sregs)[i];
         MFace f(r.GetMSegs(false));
         start.AddFace(f);
     }
     MFaces end;
     for (unsigned int i = 0; i < dregs->size(); i++) {
-        Reg r = (*dregs)[i];
+        Face r = (*dregs)[i];
         MFace f(r.GetMSegs(false));
         end.AddFace(f);
     }

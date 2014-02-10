@@ -11,27 +11,29 @@
 
 #include <string>
 
-vector<pair<Reg *, Reg *> > _matchFacesLua(vector<Reg> *src, vector<Reg> *dst,
-        int depth, string args);
+#ifdef USE_LUA
+vector<pair<Face *, Face *> > _matchFacesLua(vector<Face> *src,
+        vector<Face> *dst, int depth, string args);
 
-static vector<pair<Reg *, Reg *> > matchFacesLua(vector<Reg> *src,
-        vector<Reg> *dst, int depth, string args) {
+static vector<pair<Face *, Face *> > matchFacesLua(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
     return _matchFacesLua(src, dst, depth, args);
 }
+#endif
 
-static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
-        vector<Reg> *dst, int depth, string args) {
-    vector<pair<Reg *, Reg *> > ret;
+static vector<pair<Face *, Face *> > matchFacesSimple(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
+    vector<pair<Face *, Face *> > ret;
 
     for (unsigned int i = 0; (i < src->size() || (i < dst->size())); i++) {
         if ((i < src->size()) && (i < dst->size())) {
-            pair<Reg *, Reg *> p(&((*src)[i]), &((*dst)[i]));
+            pair<Face *, Face *> p(&((*src)[i]), &((*dst)[i]));
             ret.push_back(p);
         } else if (i < src->size()) {
-            pair<Reg *, Reg *> p(&((*src)[i]), NULL);
+            pair<Face *, Face *> p(&((*src)[i]), NULL);
             ret.push_back(p);
         } else {
-            pair<Reg *, Reg *> p(NULL, &((*dst)[i]));
+            pair<Face *, Face *> p(NULL, &((*dst)[i]));
             ret.push_back(p);
         }
     }
@@ -39,25 +41,25 @@ static vector<pair<Reg *, Reg *> > matchFacesSimple(vector<Reg> *src,
     return ret;
 }
 
-static vector<pair<Reg *, Reg *> > matchFacesNull(vector<Reg> *src,
-        vector<Reg> *dst, int depth, string args) {
-    vector<pair<Reg *, Reg *> > ret;
+static vector<pair<Face *, Face *> > matchFacesNull(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
+    vector<pair<Face *, Face *> > ret;
 
     for (unsigned int i = 0; i < src->size(); i++) {
-        pair<Reg *, Reg *> p(&((*src)[i]), NULL);
+        pair<Face *, Face *> p(&((*src)[i]), NULL);
         ret.push_back(p);
     }
     for (unsigned int i = 0; i < dst->size(); i++) {
-        pair<Reg *, Reg *> p(NULL, &((*dst)[i]));
+        pair<Face *, Face *> p(NULL, &((*dst)[i]));
         ret.push_back(p);
     }
 
     return ret;
 }
 
-static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
-        vector<Reg> *dst, int depth, string args) {
-    vector<pair<Reg *, Reg *> > ret;
+static vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
+    vector<pair<Face *, Face *> > ret;
 
     for (unsigned int i = 0; i < src->size(); i++) {
         (*src)[i].used = 0;
@@ -66,8 +68,8 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
         (*dst)[i].used = 0;
     }
 
-    Pt srcoff = Reg::GetBoundingBox(*src).first;
-    Pt dstoff = Reg::GetBoundingBox(*dst).first;
+    Pt srcoff = Face::GetBoundingBox(*src).first;
+    Pt dstoff = Face::GetBoundingBox(*dst).first;
 
     if (src->size() >= dst->size()) {
         for (unsigned int i = 0; i < dst->size(); i++) {
@@ -84,14 +86,14 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
                     candidate = j;
                 }
             }
-            pair<Reg *, Reg *> p(&(*src)[candidate], &(*dst)[i]);
+            pair<Face *, Face *> p(&(*src)[candidate], &(*dst)[i]);
             ret.push_back(p);
             (*src)[candidate].used = 1;
         }
         for (unsigned int j = 0; j < src->size(); j++) {
             if ((*src)[j].used)
                 continue;
-            pair<Reg *, Reg *> p(&(*src)[j], NULL);
+            pair<Face *, Face *> p(&(*src)[j], NULL);
             ret.push_back(p);
         }
     } else {
@@ -109,14 +111,14 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
                     candidate = j;
                 }
             }
-            pair<Reg *, Reg *> p(&(*src)[i], &(*dst)[candidate]);
+            pair<Face *, Face *> p(&(*src)[i], &(*dst)[candidate]);
             ret.push_back(p);
             (*dst)[candidate].used = 1;
         }
         for (unsigned int j = 0; j < dst->size(); j++) {
             if ((*dst)[j].used)
                 continue;
-            pair<Reg *, Reg *> p(NULL, &(*dst)[j]);
+            pair<Face *, Face *> p(NULL, &(*dst)[j]);
             ret.push_back(p);
         }
 
@@ -125,13 +127,13 @@ static vector<pair<Reg *, Reg *> > matchFacesDistance(vector<Reg> *src,
     return ret;
 }
 
-static bool sortLowerLeft(const Reg& r1, const Reg& r2) {
+static bool sortLowerLeft(const Face& r1, const Face& r2) {
     return r1.v[0].s < r2.v[0].s;
 }
 
-static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
-        vector<Reg> *dst, int depth, string args) {
-    vector<pair<Reg *, Reg *> > ret;
+static vector<pair<Face *, Face *> > matchFacesLowerLeft(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
+    vector<pair<Face *, Face *> > ret;
 
     for (unsigned int i = 0; i < src->size(); i++) {
         (*src)[i].used = 0;
@@ -158,7 +160,7 @@ static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
         if (p1 == p2) {
             (*src)[i].used = 1;
             (*dst)[j].used = 1;
-            ret.push_back(pair<Reg*, Reg*>(&(*src)[i], &(*dst)[j]));
+            ret.push_back(pair<Face*, Face*>(&(*src)[i], &(*dst)[j]));
             i++;
             j++;
         } else if (p1 < p2) {
@@ -198,20 +200,22 @@ static vector<pair<Reg *, Reg *> > matchFacesLowerLeft(vector<Reg> *src,
     return ret;
 }
 
-static vector<pair<Reg *, Reg *> > matchFaces(
-        vector<Reg> *src, vector<Reg> *dst, int depth,
-        vector<pair<Reg*,Reg*> > (*fn)(vector<Reg>*,vector<Reg>*,int,string),
-        string args) {
-    vector<pair<Reg *, Reg *> > ret;
+static vector<pair<Face *, Face *> > matchFaces(
+       vector<Face> *src, vector<Face> *dst, int depth,
+       vector<pair<Face*,Face*> > (*fn)(vector<Face>*,vector<Face>*,int,string),
+       string args) {
+    vector<pair<Face *, Face *> > ret;
 
     for (unsigned int i = 0; i < src->size(); i++) {
         (*src)[i].used = 0;
+        (*src)[i].isdst = 0;
     }
     for (unsigned int i = 0; i < dst->size(); i++) {
         (*dst)[i].used = 0;
+        (*dst)[i].isdst = 1;
     }
 
-    vector<pair<Reg *, Reg *> > pairs = fn(src, dst, depth, args);
+    vector<pair<Face *, Face *> > pairs = fn(src, dst, depth, args);
 
     for (unsigned int i = 0; i < src->size(); i++) {
         (*src)[i].used = 0;
@@ -221,7 +225,9 @@ static vector<pair<Reg *, Reg *> > matchFaces(
     }
 
     for (unsigned int i = 0; i < pairs.size(); i++) {
-        if (pairs[i].first->used || pairs[i].second->used)
+        if (!pairs[i].first || !pairs[i].second || 
+                pairs[i].first->used || pairs[i].second->used ||
+                pairs[i].first->isdst || !pairs[i].second->isdst)
             continue;
         pairs[i].first->used = 1;
         pairs[i].second->used = 1;
@@ -230,20 +236,23 @@ static vector<pair<Reg *, Reg *> > matchFaces(
 
     for (unsigned int i = 0; i < src->size(); i++) {
         if (!(*src)[i].used) {
-            ret.push_back(pair<Reg*, Reg*>(&(*src)[i], NULL));
+            ret.push_back(pair<Face*, Face*>(&(*src)[i], NULL));
         }
     }
 
     for (unsigned int i = 0; i < dst->size(); i++) {
         if (!(*dst)[i].used) {
-            ret.push_back(pair<Reg*, Reg*>(NULL, &(*dst)[i]));
+            ret.push_back(pair<Face*, Face*>(NULL, &(*dst)[i]));
         }
     }
 
     return ret;
 }
 
-void handleIntersections(MFaces& children, MFace parent, bool evap);
+void handleIntersections(MFaces& children, MFace parent, bool evap, bool rs);
+
+vector<pair<Face*,Face*> > (*matchingStrategy)(vector<Face>*,vector<Face>*,
+        int,string);
 
 /*
 2 Interpolate
@@ -257,8 +266,7 @@ into the current result. Intersections are detected and tried to be compensated
 
 */
 
-
-MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
+MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args) {
     MFaces ret;
 
@@ -284,23 +292,20 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
         }
     }
     
-    cerr << "Interpolate depth " << depth << " start with " << sregs->size()
-     << "/" << dregs->size() << "\n";
     
     // Match the faces to pairs of faces in the source- and destination-realm
-    vector<pair<Reg *, Reg *> > matches;
+    vector<pair<Face *, Face *> > matches;
     if (!evap)
-        matches = matchFaces(sregs, dregs, depth, matchFacesLua, args);
+        matches = matchFaces(sregs, dregs, depth, matchingStrategy, args);
     else
         matches = matchFaces(sregs, dregs, depth, matchFacesLowerLeft, args);
     
-    cerr << "Found " << matches.size() << " matches!\n";
  
     for (unsigned int i = 0; i < matches.size(); i++) {
-        pair<Reg *, Reg *> p = matches[i];
+        pair<Face *, Face *> p = matches[i];
 
-        Reg *src = p.first;
-        Reg *dst = p.second;
+        Face *src = p.first;
+        Face *dst = p.second;
         if (src && dst) {
  
             // Use the RotatingPlane-Algorithm to create an interpolation of
@@ -311,33 +316,26 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
             MFaces fcs = interpolate(&rp.scvs, &rp.dcvs, depth+1, evap, args);
 
             // Now check if the interpolations intersect in any way
-            handleIntersections(fcs, rp.face, evap);
-            cerr << "Restart handleIntersections\n";
-            handleIntersections(fcs, rp.face, false);
-            cerr << "Restarted handleIntersections\n";
+            handleIntersections(fcs, rp.mface, evap, false);
+            handleIntersections(fcs, rp.mface, false, true);
 
             ret.needSEvap = ret.needSEvap || fcs.needSEvap;
             ret.needDEvap = ret.needDEvap || fcs.needDEvap;
 
-            cerr << "Current Face is " << rp.face.ToString() << "\n";
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
                 if (fcs.faces[i].face.ignore)
                     continue;
-                cerr << "Adding MSegs " <<
-		 fcs.faces[i].face.ToString() << "\n";
-                rp.face.AddMsegs(fcs.faces[i].face);
+                rp.mface.AddMsegs(fcs.faces[i].face);
                 for (unsigned int j = 0; j < fcs.faces[i].holes.size(); j++) {
                     MFace fc(fcs.faces[i].holes[j]);
                     ret.AddFace(fc);
                 }
             }
 
-            rp.face.MergeConcavities();
-            cerr << "New Face is " << rp.face.ToString() << "\n";
-            ret.AddFace(rp.face);
+            rp.mface.MergeConcavities();
+            ret.AddFace(rp.mface);
         } else {
-            Reg *r = src ? src : dst;
-            cerr << "Collapse called for " << r->ToString() << "\n";
+            Face *r = src ? src : dst;
             MFace coll = r->collapseWithHoles(r == src);
             ret.AddFace(coll);
         }
@@ -345,17 +343,15 @@ MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
 
     // Toplevel-Intersections are still not handled yet, do that now.
     if (depth == 0) {
-        handleIntersections(ret, MFace(), evap);
+        handleIntersections(ret, MFace(), evap, false);
+        handleIntersections(ret, MFace(), evap, true);
     }
-    cerr << "Interpolate depth " << depth << " end\n";
 
     return ret;
 }
 
-void handleIntersections(MFaces& children, MFace parent, bool evap) {
+void handleIntersections(MFaces& children, MFace parent, bool evap, bool rs) {
     vector<MSegs> evp;
-
-    return;
     
     for (int i = 0; i < (int) children.faces.size(); i++) {
         children.faces[i].face.calculateBBox();
@@ -364,12 +360,14 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
 
     for (int i = 0; i < (int) children.faces.size(); i++) {
         MSegs *s1 = &children.faces[i].face;
+//        cerr << "Checking i = " << i << "\n" << s1->ToString() << "\n";
         for (int j = 0; j <= i; j++) {
-            cerr << "Checking " << i << "/" << j << " total " <<
-	     children.faces.size() << "\n";
+//            cerr << "Checking " << i << "/" << j << " total " <<
+//            children.faces.size() << "\n";
             MSegs *s2 = (j == 0) ? &parent.face : &children.faces[j - 1].face;
 
-            if (s1->intersects(*s2)) {
+            if (s1->intersects(*s2, false, false)) {
+                assert(!restart);
                 pair<MSegs, MSegs> ss;
                 if (!s1->iscollapsed && !evap) {
                     ss = s1->kill();
@@ -383,7 +381,7 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                     if (evap) {
                         if (!(s1->iscollapsed || s2->iscollapsed)) {
                             cerr << "Intersection " << s1->ToString() << "\n"
-			     << s2->ToString() << "\n";
+                                 << s2->ToString() << "\n";
                         }
                         assert(s1->iscollapsed || s2->iscollapsed);
                         if (s1->iscollapsed)
@@ -406,16 +404,17 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                             children.needDEvap = true;
                         cerr << "Intersection found, but cannot "
                                 "compensate! Eliminating Region\n";
-                        cerr << rm->ToString() << "\n";
+//                        cerr << rm->ToString() << "\n";
                     }
                     children.faces.erase(children.faces.begin()+
                                          (rm == s1 ? i : j - 1));
                     i--;
                     break;
                 }
+                cerr << "Intersection found, breaking up connection\n";
                 children.faces.push_back(ss.first);
                 children.faces.push_back(ss.second);
-                i--;
+                i-=2;
                 break;
             }
         }
@@ -434,7 +433,7 @@ Word InMRegion(const ListExpr typeInfo,
 
 #define USE_LISTS 1
 
-int interpolatevalmap(Word* args,
+int interpolate2valmap(Word* args,
         Word& result,
         int message,
         Word& local,
@@ -451,9 +450,15 @@ int interpolatevalmap(Word* args,
     ListExpr _sregs = OutRegion(nl->Empty(), args[0]);
     ListExpr _dregs = OutRegion(nl->Empty(), args[2]);
 
-    vector<Reg> sregs = Reg::getRegs(_sregs);
-    vector<Reg> dregs = Reg::getRegs(_dregs);
+    vector<Face> sregs = Face::getFaces(_sregs);
+    vector<Face> dregs = Face::getFaces(_dregs);
 
+#ifdef USE_LUA
+    matchingStrategy = matchFacesLua;
+#else
+    matchingStrategy = matchFacesDistance;
+#endif
+    
     MFaces mf = interpolate(&sregs, &dregs, 0, false, arg->GetValue());
 
 #ifdef USE_LISTS
@@ -463,11 +468,9 @@ int interpolatevalmap(Word* args,
     bool correct = false;
     Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
     
-    if (0 && correct)
+    if (correct)
         result.setAddr(w.addr);
     else {
-
-
         mreg = MFaces::fallback(&sregs, &dregs, iv);
         //        Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
         if (correct)

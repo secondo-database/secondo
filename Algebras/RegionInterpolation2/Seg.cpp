@@ -54,55 +54,43 @@ string Seg::ToString() const {
     return ss.str();
 }
 
-vector<Seg> Seg::sortSegs(vector<Seg> v) {
-    vector<Seg> ret;
-
-    if (v.size() == 0)
-        return ret;
-    
-    int start = -1, start2 = -1;
-    double minx = 0, miny = 0;
-    Seg minseg1, minseg2;
-    
-
-    // Find the lowest point
-    for (unsigned int i = 0; i < v.size(); i++) {
-        if ((v[i].s.y < miny) || ((v[i].s.y == miny) &&
-                (v[i].s.x < minx)) || (start < 0)) {
-            start = i;
-            miny = v[i].s.y;
-            minx = v[i].s.x;
-            minseg1 = v[i];
-        }
-    }
-
-    for (unsigned int i = 0; i < v.size(); i++) {
-        if ((v[i].e.x == minx) && (v[i].e.y == miny)) {
-            start2 = i;
-            minseg2 = v[i];
-        }
-    }
-
-    minseg2.ChangeDir();
-    if (minseg2.angle() < minseg1.angle()) {
-        for (unsigned int i = 0; i < v.size(); i++) {
-            v[i].ChangeDir();
-        }
-        start = start2;
-    }
-
-    ret.push_back(v[start]);
-    Seg cur = v[start];
-    for (unsigned int j = 0; j < v.size(); j++) {
-        for (unsigned int i = 0; i < v.size(); i++) {
-            if ((v[i].s.x == cur.e.x) && (v[i].s.y == cur.e.y)) {
-                if (!(v[i] == v[start]))
-                    ret.push_back(v[i]);
-                cur = v[i];
-                break;
-            }
-        }
-    }
-
-    return ret;
+static inline bool isOnLine(Pt a, Pt b, Pt c) {
+    return (b.x <= max(a.x, c.x) && b.x >= min(a.x, c.x) &&
+            b.y <= max(a.y, c.y) && b.y >= min(a.y, c.y));
 }
+
+static inline int sign(Pt a, Pt b, Pt c) {
+    double s = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
+
+    if (!s)
+        return 0;
+    else
+        return (s > 0) ? 1 : -1;
+}
+
+bool Seg::intersects(const Seg& a) const {
+    
+    if ((this->e == a.s) || (this->s == a.e) ||
+            (this->s == a.s) || (this->e == a.e))
+        return false;
+    
+    int s1 = sign(s, e, a.s);
+    int s2 = sign(s, e, a.e);
+    int s3 = sign(a.s, a.e, s);
+    int s4 = sign(a.s, a.e, e);
+
+    if ((s1 != s2) && (s3 != s4)) {
+        return true;
+    }
+
+    if ((s1 == 0 && isOnLine(s, a.s, e)) ||
+            (s2 == 0 && isOnLine(s, a.e, e)) ||
+            (s3 == 0 && isOnLine(a.s, s, a.e)) ||
+            (s4 == 0 && isOnLine(a.s, e, a.e))) {
+        return true;
+    }
+    
+
+    return false;
+}
+

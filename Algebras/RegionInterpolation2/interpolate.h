@@ -2,7 +2,14 @@
 */
 
 #ifndef INTERPOLATE_HXX
-#define	INTERPOLATE_HXX
+#define INTERPOLATE_HXX
+
+#define LUA5_1
+//#define LUA5_2
+
+#if defined(LUA5_1) || defined(LUA5_2)
+#define USE_LUA
+#endif
 
 #define URMODE2
 
@@ -46,34 +53,34 @@ public:
     bool operator==(const Seg& a) const;
     string ToString() const;
     void ChangeDir();
+    bool intersects(const Seg& a) const;
 
-    static vector<Seg> sortSegs(vector<Seg> v);
 };
 
-class Reg {
+class Face {
 private:
     int cur;
 
 public:
-    Reg *parent;
+    Face *parent;
 
-    Pt hullPoint, peerPoint;
+    Pt peerPoint;
     Seg hullSeg;
     vector<Seg> convexhull;
     vector<Seg> v;
-    vector<Reg> holes;
+    vector<Face> holes;
     bool ishole;
     int used;
     int isdst;
     pair<Pt, Pt> bbox;
 
-    Reg();
-    Reg(ListExpr le);
-    Reg(vector<Seg> v);
+    Face();
+    Face(ListExpr le);
+    Face(vector<Seg> v);
     void AddSeg(Seg a);
     void Print();
     void Close();
-    Reg ConvexHull();
+    Face ConvexHull();
     void Translate(int offx, int offy);
     void Begin();
     Seg Next();
@@ -82,8 +89,8 @@ public:
     int End();
     void Sort();
     vector<Pt> getPoints();
-    vector<Reg> Concavities();
-    vector<Reg> Concavities2(Reg *r2);
+    vector<Face> Concavities();
+    vector<Face> Concavities2(Face *r2);
     Region MakeRegion();
     Region MakeRegion(double offx, double offy, double scalex, double scaley);
     pair<Pt, Pt> GetBoundingBox();
@@ -95,21 +102,25 @@ public:
     Pt collapsePoint();
     MSegs GetMSegs(bool triangles);
     string ToString() const;
-    double distance(Reg r);
-    Reg Merge(Reg r);
-    Reg ClipEar();
+    double distance(Face r);
+    double GetArea();
+    Face ClipEar();
     vector<MSegs> Evaporate(bool close);
     void AddHole (vector<Seg> segs);
+    bool Check();
+    void IntegrateHoles();
 
-    static vector<Reg> getRegs(ListExpr le);
-    static pair<Pt, Pt> GetBoundingBox(vector<Reg> regs);
-    static pair<Pt, Pt> GetBoundingBox(set<Reg*> regs);
+    static vector<Face> getFaces(ListExpr le);
+    static pair<Pt, Pt> GetBoundingBox(vector<Face> regs);
+    static pair<Pt, Pt> GetBoundingBox(set<Face*> regs);
+    static vector<Seg> sortSegs(vector<Seg> v);
 };
 
 class MSeg {
 public:
     Pt is, ie, fs, fe;
     bool valid;
+    vector<Pt> ip, fp;
 
     MSeg();
     MSeg(Pt is, Pt ie, Pt fs, Pt fe);
@@ -117,7 +128,9 @@ public:
     string ToString() const;
     bool operator<(const MSeg& a) const;
     bool operator==(const MSeg& a) const;
-    bool intersects(const MSeg& a) const;
+    bool intersects(const MSeg& a, bool checkSegs) const;
+    bool Merge(const MSeg& a);
+    bool Integrate(MSeg& n, MSeg& m1, MSeg& m2);
     void ChangeDirection();
     MSeg divide(double start, double end);
 };
@@ -126,7 +139,7 @@ class MSegs {
 public:
     int ignore, iscollapsed, id;
     vector<MSeg> segs;
-    Reg sreg, dreg;
+    Face sreg, dreg;
     pair<Pt,Pt> bbox;
 
     MSegs();
@@ -134,19 +147,18 @@ public:
     vector<MSegmentData> ToMSegmentData(int face, int cycle, int segno);
     string ToString() const;
     vector<MSeg> GetMatchingMSegs(MSegs m);
-    void MergeConcavity(MSegs c);
-    bool intersects(const MSegs& a) const;
+    bool MergeConcavity(MSegs c);
+    bool intersects(const MSegs& a, bool matchIdent, bool matchSegs) const;
     void updateBBox(MSeg& seg);
     pair<Pt, Pt> calculateBBox();
     
     pair<MSegs, MSegs> kill();
-    Reg GetSReg();
-    Reg GetDReg();
+    Face GetSReg();
+    Face GetDReg();
 
     int getLowerLeft();
     int findNext(int index);
     MSegs divide(double start, double end);
-    void crossAdd(set<Seg> csegssrc, set<Seg> csegsdst);
     
 };
 
@@ -155,25 +167,28 @@ public:
     bool needStartRegion, needEndRegion;
     MSegs face;
     vector<MSegs> holes, cvs;
-    vector<Reg> sevap, devap;
+    vector<Face> sevap, devap;
     pair<Pt, Pt> bbox;
 
     MFace();
     MFace(MSegs face);
+    bool Check();
+    bool SortCycle();
     void AddConcavity(MSegs c);
     void MergeConcavities();
     void AddMsegs(MSegs msegs);
     URegion ToURegion(Interval<Instant> iv, int facenr);
     ListExpr ToListExpr();
+    void PrintMRegionListExpr();
     string ToString();
     MFace divide(double start, double end);
-    Reg CreateBorderRegion(bool src);
+    Face CreateBorderRegion(bool src);
 };
 
 class MFaces {
 public:
     vector<MFace> faces;
-    vector<Reg> *sregs, *dregs;
+    vector<Face> *sregs, *dregs;
     bool needSEvap, needDEvap;
 
     MFaces();
@@ -185,23 +200,22 @@ public:
     ListExpr ToMListExpr(Interval<Instant> iv);
     string ToString();
     MFaces divide(double start, double end);
-    vector<Reg> CreateBorderRegions(bool src);
+    vector<Face> CreateBorderRegions(bool src);
     MFaces CreateBorderMFaces(bool src);
     
-    static ListExpr fallback(vector<Reg> *s, vector<Reg> *d, 
+    static ListExpr fallback(vector<Face> *s, vector<Face> *d, 
                              Interval<Instant> iv);
 };
 
 class RotatingPlane {
 public:
-    MFace face;
-    vector<Reg> scvs, dcvs;
+    MFace mface;
+    vector<Face> scvs, dcvs;
 
-    RotatingPlane(Reg *src, Reg *dst, int depth, bool evap);
+    RotatingPlane(Face *src, Face *dst, int depth, bool evap);
 };
 
-MFaces interpolate(vector<Reg> *sregs, vector<Reg> *dregs, int depth,
+MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args);
 
-#endif	/* INTERPOLATE_HXX */
-
+#endif /* INTERPOLATE_HXX */

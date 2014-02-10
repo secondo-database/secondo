@@ -1,8 +1,8 @@
 Database  : berlintest
 Restore   : No
 
-Operator  : interpolate
+Operator  : interpolate2
 Number    : 1
 Signature : region x instant x region x instant [ x string ] -> mregion
-Example   : query interpolate(region1, instant1, region2, instant2, args)
+Example   : query interpolate2(region1, instant1, region2, instant2, args)
 Result    : file
