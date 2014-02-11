@@ -119,7 +119,7 @@ public:
 class MSeg {
 public:
     Pt is, ie, fs, fe;
-    bool valid;
+//    bool valid;
     vector<Pt> ip, fp;
 
     MSeg();

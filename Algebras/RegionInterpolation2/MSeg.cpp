@@ -1,25 +1,47 @@
-/*
+/* 
+   1 MSeg represents a Moving Segment determined by the endpoints of the
+   initial and the final segment. It also maintains two lists of merge-points on
+   the initial and final segment in the case that two collinear moving segments
+   were merged to one.
+
 */
 
 #include "interpolate.h"
 
-MSeg::MSeg() : valid(true) {
+MSeg::MSeg()  {
 }
 
-MSeg::MSeg(Pt is, Pt ie, Pt fs, Pt fe) : is(is), ie(ie), fs(fs), fe(fe),
-valid(true) {
+/*
+  1.1 Constructs a MSeg from the endpoints of the initial and final segment.
+ 
+ 
+*/
+MSeg::MSeg(Pt is, Pt ie, Pt fs, Pt fe) : is(is), ie(ie), fs(fs), fe(fe)
+ {
+    // The endpoints are members of the initial-pointlist (ip) and the
+    // final-pointlist (fp)
     ip.push_back(is);
     ip.push_back(ie);
     fp.push_back(fs);
     fp.push_back(fe);
 }
 
+/*
+  1.2 Converts this MSeg to a Secondo MSegmentData-object with the given
+  face-, cycle- and segment-number.
+ 
+*/
 MSegmentData MSeg::ToMSegmentData(int face, int cycle, int segno) {
     MSegmentData m(face, cycle, segno, false,
             is.x, is.y, ie.x, ie.y, fs.x, fs.y, fe.x, fe.y);
     return m;
 }
 
+/*
+ 1.3 ==
+ Two MSeg-objects equal if the initial and final segments endpoints match.
+
+*/
 bool MSeg::operator==(const MSeg& a) const {
     return (
             is == a.is &&
@@ -34,6 +56,10 @@ int TriangleIntersection(float V0[3], float V1[3], float V2[3],
 
 #define USE_SPECIALTRAPEZIUMINTERSECTS
 
+/*
+ 1.4 
+ 
+*/
 bool MSeg::intersects(const MSeg& a, bool checkSegs) const {
     int ret;
 #ifndef USE_SPECIALTRAPEZIUMINTERSECTS
@@ -103,6 +129,7 @@ bool MSeg::intersects(const MSeg& a, bool checkSegs) const {
 
     ret = TriangleIntersection(V0, V1, V2, U0, U1, U2);
 #else
+    
     unsigned int detailedResult;
 
     ret = specialTrapeziumIntersects(
