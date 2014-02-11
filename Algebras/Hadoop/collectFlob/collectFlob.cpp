@@ -131,8 +131,6 @@ int main(int argc, char** argv)
 
   string flobOrder;
   u_int32_t lastFileId = 0;
-//  size_t outputSize = 0;
-//  size_t totalSize = 0;
   while (getline(sheetFile, flobOrder))
   {
     stringstream ss(flobOrder);
@@ -140,7 +138,6 @@ int main(int argc, char** argv)
     int sourceDS, mode;
     size_t offset, size;
     ss >> fileId >> sourceDS >> offset >> mode >> size;
-//    totalSize += size;    
 
     if ( mode != 3) {
       //This Flob may already have been fetched by another thread. 
@@ -155,7 +152,6 @@ int main(int argc, char** argv)
       char block[size];
       memset(block, 0, size);
       resultFile.write(block, size);
-//    outputSize += size;
       continue;
     } 
 
@@ -184,7 +180,6 @@ int main(int argc, char** argv)
     flobFile->seekg(offset, ios_base::beg);
     flobFile->read(block, size);
     resultFile.write(block, size);
-//    outputSize += size;
   }
  
   for (it = flobFiles.begin(); it != flobFiles.end(); it++)
