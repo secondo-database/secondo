@@ -11,7 +11,6 @@ function matchFacesNull (src,dst,depth)
 end
 
 function matchFacesMW (src, dst, depth)
-    print("Using Method McKenney&Webb")
     if (depth == 0) then
 	return matchFacesDistance(src, dst, depth)
     else

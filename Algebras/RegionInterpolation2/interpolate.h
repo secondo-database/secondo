@@ -138,11 +138,12 @@ public:
 class MSegs {
 public:
     int ignore, iscollapsed, id;
-    vector<MSeg> segs;
+    vector<MSeg> msegs;
     Face sreg, dreg;
     pair<Pt,Pt> bbox;
 
     MSegs();
+    vector<Seg> CreateBorderSegs(bool initial);
     void AddMSeg(MSeg m);
     vector<MSegmentData> ToMSegmentData(int face, int cycle, int segno);
     string ToString() const;
@@ -176,7 +177,6 @@ public:
     bool SortCycle();
     void AddConcavity(MSegs c);
     void MergeConcavities();
-    void AddMsegs(MSegs msegs);
     URegion ToURegion(Interval<Instant> iv, int facenr);
     ListExpr ToListExpr();
     void PrintMRegionListExpr();
@@ -217,5 +217,11 @@ public:
 
 MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args);
+
+Word InMRegion(const ListExpr typeInfo,
+        const ListExpr instance,
+        const int errorPos,
+        ListExpr& errorInfo,
+        bool& correct);
 
 #endif /* INTERPOLATE_HXX */

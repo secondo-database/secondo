@@ -82,9 +82,11 @@ RotatingPlane::RotatingPlane(Face *sreg, Face *dreg, int depth, bool evap) {
     
     /* Add the holes of the faces to the list of concavities */
     for (unsigned int i = 0; i < sreg->holes.size(); i++) {
+        sreg->holes[i].parent = sreg;
         scvs.push_back(sreg->holes[i]);
     }
     for (unsigned int i = 0; i < dreg->holes.size(); i++) {
+        dreg->holes[i].parent = dreg;
         dcvs.push_back(dreg->holes[i]);
     }
 

@@ -669,22 +669,30 @@ bool Face::Check() {
     assert(v.size() >= 3);
 
     for (unsigned int i = 0; i < v.size(); i++) {
-        if (v[i].s == v[i].e)
+        if (v[i].s == v[i].e) {
+            cerr << "degenerated segment\n";
             ret = false;
+        }
         for (unsigned int j = 0; j < v.size(); j++) {
             if (i == j)
                 continue;
             if (v[i].intersects(v[j])) {
+                cerr << "Region intersects\n";
                 ret = false;
             }
-            if (v[i].s == v[j].s)
+            if (v[i].s == v[j].s) {
+                cerr << "Same startpoint\n";
                 ret = false;
-            if (v[i].e == v[j].e)
+            }
+            if (v[i].e == v[j].e) {
+                cerr << "Same endpoint\n";
                 ret = false;
+            }
         }
     }
 
     unsigned int nr = (int) v.size();
+#ifdef DO_ANGLECHECK
     for (unsigned int i = 0; i < nr; i++) {
         Seg a = v[i];
         Seg b = v[(i + 1) % nr];
@@ -699,15 +707,24 @@ bool Face::Check() {
             ret = false;
         }
     }
+#endif
 
     for (unsigned int i = 0; i < (nr - 1); i++) {
-        if (!(v[i].e == v[i + 1].s))
+        if (!(v[i].e == v[i + 1].s)) {
+            cerr << "Region not contiguous\n";
             ret = false;
+        }
     }
-    if (!(v[nr - 1].e == v[0].s))
+    
+    if (!(v[nr - 1].e == v[0].s)) {
+        cerr << "Region not closed\n";
         ret = false;
-    if (v[0].angle() > v[nr - 1].angle())
+    }
+    
+    if (v[0].angle() > v[nr - 1].angle()) {
+        cerr << "Region not clockwise\n";
         ret = false;
+    }
 
     if (!ret) {
         cerr << "Invalid Region:\n" << this->ToString() << "\n";

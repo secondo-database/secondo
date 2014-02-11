@@ -325,7 +325,7 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
                 if (fcs.faces[i].face.ignore)
                     continue;
-                rp.mface.AddMsegs(fcs.faces[i].face);
+                rp.mface.AddConcavity(fcs.faces[i].face);
                 for (unsigned int j = 0; j < fcs.faces[i].holes.size(); j++) {
                     MFace fc(fcs.faces[i].holes[j]);
                     ret.AddFace(fc);
@@ -423,11 +423,7 @@ void handleIntersections(MFaces& children, MFace parent, bool evap, bool rs) {
 }
 
 
-Word InMRegion(const ListExpr typeInfo,
-        const ListExpr instance,
-        const int errorPos,
-        ListExpr& errorInfo,
-        bool& correct);
+
 
 
 #define USE_LISTS 1

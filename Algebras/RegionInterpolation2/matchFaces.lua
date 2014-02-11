@@ -10,16 +10,16 @@ function matchFaces (src, dst, depth, args)
     
     print("Sregs:");
     for key,reg in pairs(src) do
-	pt = getmiddle(reg)
-	b1,b2 = bb(reg)
+	pt = middle(reg)
+	b1,b2 = boundingbox(reg)
 	print("SReg "..key..": "..pt.x.." / "..pt.y..
 	      "  BBox ".. b1.x .. "/"..b1.y.." "..b2.x.."/"..b2.y)
     end
     
     print("Dregs:");
     for key,reg in pairs(dst) do
-	pt = getmiddle(reg)
-	b1,b2 = bb(reg)
+	pt = middle(reg)
+	b1,b2 = boundingbox(reg)
 	print("DReg "..key..": "..pt.x.." / "..pt.y..
 	      "  BBox "..b1.x.."/"..b1.y.." "..b2.x.."/"..b2.y)
     end
@@ -43,6 +43,11 @@ function matchFaces (src, dst, depth, args)
 
     if err then
 	print("An error occurred: " .. err)
+    end
+
+    for idx,r in pairs(ret) do
+	local s,d = middle(r.src),middle(r.dst)
+	print("Matched " .. s.x .. "/" .. s.y .. " with " .. d.x .. "/" .. d.y)
     end
 
     return ret;

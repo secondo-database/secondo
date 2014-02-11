@@ -226,8 +226,8 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> _iv) {
 
     for (unsigned int i = 0; i < faces.size(); i++) {
         faces[i].MergeConcavities();
-//        needStartRegion = needStartRegion || faces[i].needStartRegion;
-//        needEndRegion = needEndRegion || faces[i].needEndRegion;
+        needStartRegion = needStartRegion || faces[i].needStartRegion;
+        needEndRegion = needEndRegion || faces[i].needEndRegion;
     }
 
     Instant onethird = (_iv.end - _iv.start) / 3;

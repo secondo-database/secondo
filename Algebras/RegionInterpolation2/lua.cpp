@@ -128,11 +128,13 @@ void setupParams(set<Face*> *regs, const char *prefix, int depth) {
         Face *r = *(regs->begin());
         Face *parent = r->parent;
         pair<Pt, Pt> bbox;
-        if (parent)
+        if (parent) {
+            cout << "Parent is " << bbox.first.ToString() << "\n";
             bbox = parent->GetBoundingBox();
-        else
+        } else {
+            cout << "Bbox is " << bbox.first.ToString() << "\n";
             bbox = Face::GetBoundingBox(*regs);
-        cerr << "Bbox is " << bbox.first.ToString() << "\n";
+        }
         lua_setPt(offstr, bbox.first);
         if ((bbox.second.x > bbox.first.x) &&
                 (bbox.second.y > bbox.first.y)) {
