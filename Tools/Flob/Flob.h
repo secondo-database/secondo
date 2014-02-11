@@ -498,7 +498,7 @@ flob representation. This funtion is required for supporting the
 creation of evil flobs.
 
 */
-   inline const SmiSize getOffset(){
+   inline const SmiSize getOffset() const{
       return id.getOffset();
    }
 
@@ -507,7 +507,7 @@ creation of evil flobs.
 
 
 */
-   inline const SmiFileId getFileId(){
+   inline const SmiFileId getFileId() const{
      return id.getFileId();
    }
 

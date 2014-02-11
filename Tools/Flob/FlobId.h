@@ -126,13 +126,13 @@ class FlobId{
 
    inline char getMode(){ return mode;}
 
-   inline SmiFileId getFileId(){ return fileId; }
+   inline SmiFileId getFileId() const { return fileId; }
 
    inline SmiRecordId getRecordId(){ return recordId; }
 
    // support for very  dirty, non explainable things, don't think about any 
    // meaning of this funtion!
-   SmiSize   getOffset() { return  offset; }
+   SmiSize   getOffset() const { return  offset; }
 
  private:
    SmiFileId   fileId;  

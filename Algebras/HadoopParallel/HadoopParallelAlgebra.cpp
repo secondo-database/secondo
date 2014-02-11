@@ -5260,7 +5260,7 @@ ListExpr FetchFlobTypeMap(ListExpr args)
 int FetchFlobValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-  FetchFlobLocalInfo1* ffi;
+  FetchFlobLocalInfo* ffi;
 
   switch(message)
   {
@@ -5273,13 +5273,13 @@ int FetchFlobValueMap(Word* args, Word& result,
       ListExpr daiList;  //deleted attribute index list
       nl->ReadFromString(daiStr, daiList);
 
-      ffi = (FetchFlobLocalInfo1*)local.addr;
+      ffi = (FetchFlobLocalInfo*)local.addr;
       if (ffi)
       {
         delete ffi;
         ffi = 0;
       }
-      ffi = new FetchFlobLocalInfo1
+      ffi = new FetchFlobLocalInfo
           (s, resultType, NList(raiList), NList(daiList));
 
       qp->Open(args[0].addr);
@@ -5289,7 +5289,7 @@ int FetchFlobValueMap(Word* args, Word& result,
       return 0;
     }
     case REQUEST: {
-      ffi = (FetchFlobLocalInfo1*)local.addr;
+      ffi = (FetchFlobLocalInfo*)local.addr;
       if (! ffi)
         return CANCEL;
 
@@ -5305,7 +5305,7 @@ int FetchFlobValueMap(Word* args, Word& result,
       return 0;
     }
     case CLOSE: {
-      ffi = (FetchFlobLocalInfo1*)local.addr;
+      ffi = (FetchFlobLocalInfo*)local.addr;
       if (!ffi)
         return CANCEL;
 
@@ -5313,7 +5313,7 @@ int FetchFlobValueMap(Word* args, Word& result,
       return 0; //must return
     }
     case CLOSEPROGRESS: {
-      ffi = (FetchFlobLocalInfo1*)local.addr;
+      ffi = (FetchFlobLocalInfo*)local.addr;
       if (ffi)
       {
         ffi->clearFetchedFiles();
@@ -5877,6 +5877,14 @@ FetchFlobLocalInfo::FetchFlobLocalInfo(
     rest.rest();
   }
 
+  maxFlobNum = 0;
+  for(no = 0; no < faLen; no++){
+    int ai = faVec[no];
+    int numOfFlobs = resultType->GetAttributeType(ai).numOfFlobs;
+    if (numOfFlobs > maxFlobNum)
+      maxFlobNum = numOfFlobs;
+  }
+
   daLen = _dal.length();
   daVec = new int[daLen];
   rest = _dal;
@@ -5926,6 +5934,8 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
           cds = ci->getLocalNode();
           size_t slaveSize = ci->getSlaveSize();
           maxSheetSize = maxBufferSize / slaveSize;
+          totalTupleBuffer = new TupleBuffer(maxBufferSize);
+          flobInfo = new vector<TupleFlobInfo>();
 
           //Increase the slaveSize with 1 to visit them by the source id
           standby = new vector<FlobSheet*>(slaveSize + 1);
@@ -5956,51 +5966,70 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
         }
         else
         {
+/*
+For each Flob with mode 3, its elements mean:
+
+----
+* FileId: the integer suffix for its Flob file
+
+* RecordId: the source DS of the cluster
+
+* offset: its offset within the Flob file
+
+* size: the size of the flob
+----
+
+*/
           totalTupleBuffer->AppendTuple(tuple);
-          TupleFlobInfo tif(faLen);
+          TupleFlobInfo tif(faLen, maxFlobNum);
           for (size_t no = 0; no < faLen; no++)
           {
             int ai = faVec[no];
             Attribute* attr = tuple->GetAttribute(ai);
             if (attr->NumOfFLOBs() == 0){
-              tif.setFlobInfo(no, 0, 0, 0);
+              tif.setFlobInfo(no, 0, 0, 0, 0);
             } else {
-              Flob* flob = attr->GetFLOB(0);
-              if (flob->getMode() < 3){
-                tif.setFlobInfo(no, 0, 0, 0);
-                continue;
-              }
-              int source = flob->getFileId();
 
-              int times;
-              while (true)
+              for (int k = 0; k < attr->NumOfFLOBs(); k++)
               {
-                FlobSheet* fs = standby->at(source);
-                if (fs == 0){
-                  sheetCounter[source]++;
-                  times = sheetCounter[source];
-                  fs = new FlobSheet(source, cds, times, maxSheetSize);
-                  standby->at(source) = fs;
+                Flob* flob = attr->GetFLOB(k);
+                if (flob->getMode() < 3){
+                  tif.setFlobInfo(no, k, 0, 0, 0);
+                  continue;
                 }
-                else {
-                  times = fs->getTimes();
-                }
+                int source = flob->getRecordId();
 
-                size_t fileOffset;
-                assert(flob->getMode() == 3);
-                bool full = fs->addOrder(*flob, fileOffset);
-                bool ok = false;
-                if (full){
-                  if (sendSheet(fs)){
-                    standby->at(source) = 0;
+                int times;
+                while (true)
+                {
+                  FlobSheet* fs = standby->at(source);
+                  if (fs == 0){
+                    sheetCounter[source]++;
+                    times = sheetCounter[source];
+                    fs = new FlobSheet(source, cds, times, maxSheetSize);
+                    standby->at(source) = fs;
                   }
-                } else {
-                  ok = true;
-                }
+                  else {
+                    times = fs->getTimes();
+                  }
 
-                if (ok){
-                  //The Flob is inserted into the sheet
-                  tif.setFlobInfo(no, source, times, fileOffset);
+                  size_t fileOffset;
+                  assert(flob->getMode() == 3);
+                  bool full = fs->addOrder(*flob, fileOffset);
+                  bool ok = false;
+                  if (full){
+                    if (sendSheet(fs)){
+                      standby->at(source) = 0;
+                    }
+                  } else {
+                    ok = true;
+                  }
+
+                  if (ok){
+                    //The Flob is inserted into the sheet
+                    tif.setFlobInfo(no, k, source, times, fileOffset);
+                    break;
+                  }
                 }
               }
             } // set up for one Flob
@@ -6024,6 +6053,7 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
         FlobSheet* fs = standby->back();
         if (fs)
         {
+          fs->closeSheetFile();
           if (!sendSheet(fs)){
             continue;
           }
@@ -6035,11 +6065,13 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
     while (preparedNum > 0){
       GenericRelationIterator* tit = totalTupleBuffer->MakeScan();
       vector<TupleFlobInfo>::iterator fiit= flobInfo->begin();
-
       while (!tit->EndOfScan())
       {
         Tuple* tuple = tit->GetNextTuple();
+        if (tuple == 0)
+          break;
         TupleFlobInfo tfi = (*fiit);
+
         if (!tfi.isReturned())
         {
           //Whether the Flobs have been fetched
@@ -6056,43 +6088,58 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
             }
             if (!flobAllRead) break;
           } // detect whether there exists un-read flob
-          if (flobAllRead)
-            return tuple;
-
+          if (flobAllRead){
+            fiit->setReturned();
+            return setResultTuple(tuple);
+          }
 
           //Find its related Flob files, whether they are prepared ?
           bool dataPrepared = true;
-          FlobSheet *sheets[faLen];
+          FlobSheet *sheets[faLen][maxFlobNum];
           int source, times;
+
           for (size_t no = 0; no < faLen; no++){
-            source = tfi.getDS(no);
-            times = tfi.getSheetTimes(no);
-            if (prepared->find(make_pair(source, times)) == prepared->end()){
-              dataPrepared = false;
-            } else {
-              sheets[no] = prepared->find(make_pair(source, times))->second;
+            int ai = faVec[no];
+            Attribute* attr = tuple->GetAttribute(ai);
+            for (int k = 0; k < attr->NumOfFLOBs(); k++){
+              source = tfi.getDS(no, k);
+              times = tfi.getSheetTimes(no, k);
+              if (prepared->find(make_pair(source, times)) == prepared->end()){
+                dataPrepared = false;
+              } else {
+                sheets[no][k] =
+                    prepared->find(make_pair(source, times))->second;
+              }
             }
           }
+
           if (dataPrepared){
             //Prepare all needed Flob structure.
             for (size_t no = 0; no < faLen; no++)
             {
-              FlobSheet* sheet = sheets[no];
-              string flobFile = sheet->getResultFile();
               int ai = faVec[no];
               Attribute* attr = tuple->GetAttribute(ai);
-              Flob* flob = attr->GetFLOB(0);
-              if (flob->getMode() > 2)
+
+              for (int k = 0; k < attr->NumOfFLOBs(); k++)
               {
-                Flob::readExFile(*flob, flobFile,
-                    flob->getSize(), tfi.getOffset(no));
+                FlobSheet* sheet = sheets[no][k];
+                string flobFile = sheet->getResultFile();
+
+                Flob* flob = attr->GetFLOB(k);
+                if (flob->getMode() > 2)
+                {
+                  Flob::readExFile(*flob, flobFile,
+                      flob->getSize(), tfi.getOffset(no, k));
+                }
               }
             }
-            return tuple;
+            fiit->setReturned();
+            return setResultTuple(tuple);
           }
         }
         fiit++;
       }
+
       return 0; //No more un-returned tuples
     }
   }
@@ -6119,9 +6166,11 @@ void FetchFlobLocalInfo::clearFetchedFiles()
     for (vector<string>::iterator it = fetchedFiles->begin();
         it != fetchedFiles->end(); it++){
       string filePath = *it;
+
       if (!FileSystem::DeleteFileOrFolder(filePath)){
         cerr << "Warning!! File " << filePath << " cannot be deleted. " << endl;
       }
+
     }
   }
 }
@@ -6194,9 +6243,12 @@ TargetPath :  string
   FileSystem::AppendItem(sourceMSec, "bin/collectFlob");
   string sPSFS = ffli->getPSFSPath(source, false);
   string sSheet = sPSFS;
-  string sheetName = localSheetPath.substr(localSheetPath.find_last_of("/"));
+  string sheetName = localSheetPath.substr(
+      localSheetPath.find_last_of("/") + 1);
   FileSystem::AppendItem(sSheet, sheetName);
-  string resultFlobFileName = fs->getResultFile();
+  string resultFlobFilePath = fs->getResultFile();
+  string resultFlobFileName =
+      resultFlobFilePath.substr(resultFlobFilePath.find_last_of("/") + 1);
   string localPSFS = ffli->getPSFSPath(dest, true);
   string command = "ssh " + sourceIP + " " + sourceMSec + " "
       + sSheet + " " + sPSFS + " " + resultFlobFileName + " " + localPSFS;
@@ -6288,8 +6340,17 @@ FlobSheet::FlobSheet(int source, int dest, int times, int maxMemory):
   sheetFilePath = getLocalFilePath("", sheetFilePath, "");
   sheetFile = new ofstream(sheetFilePath.c_str());
 
+/*
+The random function makes the result Flob files being different,
+within the same process lifetime.
+This is because the file names are used in caching the file pointers.
+
+*/
+
+  ss.str("");
+  ss.clear();
   ss << "ResultFlob_"
-      << WinUnix::getpid() << "_"
+      << WinUnix::rand(WinUnix::getpid()) << "_"
       << source << "_"
       << dest << "_"
       << times;
@@ -6297,20 +6358,34 @@ FlobSheet::FlobSheet(int source, int dest, int times, int maxMemory):
   resultFlobFilePath = getLocalFilePath("", resultFlobFilePath, "");
 }
 
-bool FlobSheet::addOrder(const Flob& flob, size_t& offset)
+/*
+Adds one more order to the current sheet,
+then returns whether the sheet is full.
+
+*/
+bool FlobSheet::addOrder (const Flob& flob, size_t& offset)
 {
   assert(sheetFile);
 
   if (cachedSize + flob.getSize() > maxMem){
     closeSheetFile();
-    return false;
+    return true;
   }
 
-  offset = cachedSize;
-  *sheetFile << flob.describe();
-  cachedSize += flob.getSize();
+  pair<SmiFileId, SmiSize> mlob(flob.getFileId(), flob.getOffset());
+  bool exists = (lobMarkers.find(mlob) != lobMarkers.end());
 
-  return true;
+  if (!exists){
+    offset = cachedSize;
+    lobMarkers.insert(make_pair(mlob, offset));
+
+    *sheetFile << flob.describe();
+    cachedSize += flob.getSize();
+  } else {
+    offset = lobMarkers.find(mlob)->second;
+  }
+
+  return false;
 }
 
 void FlobSheet::closeSheetFile()
@@ -6320,6 +6395,10 @@ void FlobSheet::closeSheetFile()
     delete sheetFile;
     sheetFile = 0;
   }
+}
+
+ostream& operator<<(ostream& os, const TupleFlobInfo& f){
+  return f.print(os);
 }
 
 
