@@ -7,9 +7,9 @@
 
 #include <vector>
 #include <set>
-#ifdef LUA5_1
+#if defined(LUA5_1)
 #include <lua5.1/lua.hpp>
-#elif LUA5_2
+#elif defined(LUA5_2)
 #include <lua5.2/lua.hpp>
 #else
 #error "Unknown Lua-Version"
@@ -331,9 +331,9 @@ static int lua_overlap(lua_State *L) {
     pair<Pt, Pt> oasdst = getOffAndScale(dst->isdst);
 
     Region r1 = src->MakeRegion(oassrc.first.x, oassrc.first.y,
-            oassrc.second.x, oassrc.second.y);
+            oassrc.second.x, oassrc.second.y, false);
     Region r2 = dst->MakeRegion(oasdst.first.x, oasdst.first.y,
-            oasdst.second.x, oasdst.second.y);
+            oasdst.second.x, oasdst.second.y, false);
 
     Region intersect(0);
 

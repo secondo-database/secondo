@@ -281,13 +281,17 @@ bool MSeg::Merge(const MSeg& m) {
     if ((ie == m.is) && (fe == m.fs)) {
         ie = m.ie;
         fe = m.fe;
-        ip.push_back(ie);
-        fp.push_back(fe);
+        if (!(ip[ip.size()-1] == ie))
+            ip.push_back(ie);
+        if (!(fp[fp.size()-1] == fe))
+            fp.push_back(fe);
     } else if ((m.ie == is) && (m.fe == fs)) {
         is = m.is;
         fs = m.fs;
-        ip.insert(ip.begin(), is);
-        fp.insert(fp.begin(), fs);
+        if (!(ip[0] == is))
+            ip.insert(ip.begin(), is);
+        if (!(fp[0] == fs))
+            fp.insert(fp.begin(), fs);
     } else {
         return false;
     }

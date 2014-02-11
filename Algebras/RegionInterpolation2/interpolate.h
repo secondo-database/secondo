@@ -82,17 +82,18 @@ public:
     void Close();
     Face ConvexHull();
     void Translate(int offx, int offy);
-    void Begin();
+    Seg Begin();
     Seg Next();
     Seg Prev();
     Seg Cur();
-    int End();
+    bool End();
     void Sort();
     vector<Pt> getPoints();
     vector<Face> Concavities();
     vector<Face> Concavities2(Face *r2);
-    Region MakeRegion();
-    Region MakeRegion(double offx, double offy, double scalex, double scaley);
+    Region MakeRegion(bool withholes);
+    Region MakeRegion(double offx, double offy, double scalex, double scaley,
+                      bool withholes);
     pair<Pt, Pt> GetBoundingBox();
     Pt GetMiddle();
     Pt GetCentroid();

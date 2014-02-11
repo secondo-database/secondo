@@ -65,23 +65,39 @@ static void Append(ListExpr &head, ListExpr l) {
     }
 }
 
-/*
-  1.3 Convert this face to a region with the given offsets and scale-factors
-
-*/
-Region Face::MakeRegion(double offx, double offy, double scalex, double scaley)
-{
+// Helper-Function to get the NestedList-representation of a list of segments
+static ListExpr Segs2NL(vector<Seg> segs, double offx, double offy,
+        double scalex, double scaley) {
     ListExpr cycle = nl->Empty();
 
-    for (unsigned int i = 0; i < v.size(); i++) {
+    for (unsigned int i = 0; i < segs.size(); i++) {
         ListExpr seg = nl->Empty();
-        Append(seg, nl->RealAtom((v[i].s.x - offx) * scalex / SCALE));
-        Append(seg, nl->RealAtom((v[i].s.y - offy) * scaley / SCALE));
+        Append(seg, nl->RealAtom((segs[i].s.x - offx) * scalex / SCALE));
+        Append(seg, nl->RealAtom((segs[i].s.y - offy) * scaley / SCALE));
         Append(cycle, seg);
     }
 
+    return cycle;
+}
+
+/*
+  1.3 Convert this face to a region with the given offsets and scale-factors.
+  Also convert holes, if the parameter ~withholes~ is true
+
+*/
+Region Face::MakeRegion(double offx, double offy, double scalex, double scaley,
+        bool withholes)
+{
+    ListExpr cycle = Segs2NL(v, offx, offy, scalex, scaley);
     ListExpr cycles = nl->OneElemList(cycle);
 
+    if (withholes) {
+        for (unsigned int h = 0; h < holes.size(); h++) {
+            ListExpr hcycle = Segs2NL(holes[h].v, offx, offy, scalex, scaley);
+            Append(cycles, hcycle);
+        }
+    }
+    
     ListExpr face = nl->OneElemList(cycles);
 
     ListExpr err = nl->Empty();
@@ -99,8 +115,8 @@ Region Face::MakeRegion(double offx, double offy, double scalex, double scaley)
   1.4 Convert this face to a region
 
 */
-Region Face::MakeRegion() {
-    return MakeRegion(0, 0, 1, 1);
+Region Face::MakeRegion(bool withholes) {
+    return MakeRegion(0, 0, 1, 1, withholes);
 }
 
 /*
@@ -112,7 +128,7 @@ void Face::Sort() {
 }
 
 /* 
-  1.6 Sort a list of segments to be in the correct order of a cycle.
+  1.6 sortSegs sorts a list of segments to be in the correct order of a cycle.
   A cycle should begin with the lowest-(leftest)-point and then go counter-
   clockwise.
 
@@ -175,41 +191,27 @@ vector<Seg> Face::sortSegs(vector<Seg> v) {
                     break;
             }
         }
-        assert(found);
+        assert(found); // This should never happen on a complete cycle.
+        /* If the endpoint of this segment is the startpoint of the first, we
+         * are done.                                                         */
         if (cur.e == startseg.s)
             break;
     }
-//    for (unsigned int j = 0; j < v.size(); j++) {
-//        for (unsigned int i = 0; i < v.size(); i++) {
-//            if ((v[i].s.x == cur.e.x) && (v[i].s.y == cur.e.y)) {
-//                if (!(v[i] == v[start]))
-//                    ret.push_back(v[i]);
-//                cur = v[i];
-//                break;
-//            }
-//        }
-//    }
 
     return ret;
 }
 
+/*
+ 1.7 AddSeg adds a segment to this face and updates the bounding-box
+ accordingly.
+ 
+*/
 void Face::AddSeg(Seg a) {
-    double minx, miny, maxx, maxy;
-    if (a.s.x > a.e.x) {
-        minx = a.e.x;
-        maxx = a.s.x;
-    } else {
-        minx = a.s.x;
-        maxx = a.e.x;
-    }
-    if (a.s.y > a.e.y) {
-        miny = a.e.y;
-        maxy = a.s.y;
-    } else {
-        miny = a.s.y;
-        maxy = a.e.y;
-    }
-
+    double minx = (a.s.x > a.e.x) ? a.e.x : a.s.x;
+    double maxx = (a.s.x > a.e.x) ? a.s.x : a.e.x;
+    double miny = (a.s.y > a.e.y) ? a.e.y : a.s.y;
+    double maxy = (a.s.y > a.e.y) ? a.s.y : a.e.y;
+    
     if (v.size() == 0) {
         bbox.first.x = minx;
         bbox.second.x = maxx;
@@ -228,42 +230,52 @@ void Face::AddSeg(Seg a) {
     v.push_back(a);
 }
 
+/*
+ 1.8 Close completes the cycle if this is not already the case and precalculates
+ the convex hull.
+ 
+*/
 void Face::Close() {
     if (!v.size())
         return;
     int i = v.size() - 1;
     if (!(v[i].e == v[0].s)) {
+        // The cycle is not closed yet, we do that now.
         Seg s(v[i].e, v[0].s);
         AddSeg(s);
     }
-
-    Sort();
 
     ConvexHull();
     Check();
 }
 
+/*
+ 1.8 getPoints returns a vector with all points of the current cycle.
+ 
+*/
 vector<Pt> Face::getPoints() {
-    vector<Pt> pt = vector<Pt > (v.size());
+    vector<Pt> points;
 
     for (unsigned int i = 0; i < v.size(); i++) {
-
-        pt[i] = v[i].s;
+        points.push_back(v[i].s);
     }
 
-    return pt;
+    return points;
 }
 
-//#define GS1
-
+/*
+ 1.9 leftOf determines if the point ~next~ is left of the segment (pt1 pt2).
+ It also returns true if it is on the line.
+ 
+*/
 static bool leftOf(Pt pt1, Pt pt2, Pt next) {
     long double sign = ((pt2.x - pt1.x)*(next.y - pt1.y)
             -(next.x - pt1.x)*(pt2.y - pt1.y));
-    return sign
-            >= 0
-            ;
+    return sign >= 0;
 }
 
+// helper-function to sort the points by angle. If the angle is identical, the
+// lower distance wins.
 static bool sortAngle(const Pt& a, const Pt& b) {
     if (a.angle == b.angle) {
         if (a.dist > b.dist)
@@ -272,42 +284,66 @@ static bool sortAngle(const Pt& a, const Pt& b) {
     return (a.angle < b.angle);
 }
 
+/*
+ 1.10 ConvexHull calculates the convex hull of this face and returns it as a
+ new face.
+ Cornerpoints on the convex hull are treated as members of the hull.
+ 
+*/
 Face Face::ConvexHull() {
-    assert(v.size() > 0);
+    // erase the previously calculated hull
     convexhull.erase(convexhull.begin(), convexhull.end());
     vector<Pt> lt = getPoints();
 
+    // Sort the points by the y-axis, begin with the lowest-(leftest) point
     std::sort(lt.begin(), lt.end());
 
-    lt[0].angle = -1.0;
+    // Now calculate the polar coordinates (angle and distance of each point
+    // with the lowest-(leftest) point as origin.
     for (unsigned int a = 1; a < lt.size(); a++) {
         lt[a].calcAngle(lt[0]);
     }
-    std::sort(lt.begin(), lt.end(), sortAngle);
+    // Sort the other points by their angle (startpoint lt[0] remains in place)
+    std::sort(lt.begin()+1, lt.end(), sortAngle);
 
-    std::vector<Pt>::iterator s = lt.begin() + 1, e = s;
+    // since we want the cornerpoints on the hull, too, we need to list the
+    // points with the lowest angle in counter-clockwise order. We sorted with
+    // descending distance as second criterion, so we need to reverse these.
+    // For that reason the points with the highest angle are already in
+    // ccw-order.
+    
+    std::vector<Pt>::iterator s = lt.begin() + 1, e = s; // Start with the
+    // second point and find the last point with the same angle.
     while (s->angle == e->angle)
         e++;
+    std::reverse(s, e); // Now reverse these to get the correct order.
 
-    std::reverse(s, e);
-
+    // This is the main part of the Graham scan. Initially, take the first two
+    // points and put them on a stack
     vector<Pt> uh = vector<Pt> ();
     uh.push_back(lt[0]);
     uh.push_back(lt[1]);
-
     for (int a = 2; a < (int) lt.size();) {
-        assert(uh.size() >= 2);
+        assert(uh.size() >= 2); // If the stack shrinks to 1, something went
+                                // ugly wrong.
+        // Examine the two points on top of the stack ...
         Pt point1 = uh[uh.size() - 1];
         Pt point2 = uh[uh.size() - 2];
-        Pt next = lt[a];
+        Pt next = lt[a]; // ... and the next candidate for the hull
         if (leftOf(point2, point1, next)) {
-            uh.push_back(next);
+            // If the candidate is left of (or on) the segment made up of the
+            // twp topmost points on the stack, we assume it is part of the hull
+            uh.push_back(next); // and push it on the stack
             a++;
         } else {
-            uh.pop_back();
+            uh.pop_back(); // Otherwise it is right of the hull and the topmost
+                           // point is definitively _not_ part of the hull, so
+                           // we kick it.
         }
     }
 
+    // Now make a face from the points on the convex hull, which the vector uh
+    // now contains in counter-clockwise order.
     for (unsigned int i = 0; i < uh.size(); i++) {
         Pt p1 = uh[i];
         Pt p2 = uh[(i + 1) % uh.size()];
@@ -317,7 +353,10 @@ Face Face::ConvexHull() {
 
     return Face(convexhull);
 }
-
+/*
+  1.11 Translate moves all points of a face by the given offsets
+ 
+*/
 void Face::Translate(int offx, int offy) {
     for (unsigned int i = 0; i < v.size(); i++) {
         v[i].s.x += offx;
@@ -327,8 +366,18 @@ void Face::Translate(int offx, int offy) {
     }
 }
 
-void Face::Begin() {
+/* 
+  1.12 The following four functions are used to iterate over the segments of
+  a face. Begin() resets the position to the first segment, Next() and Prev()
+  change the position to the segment after/before the current segment (with
+  wraparound). Cur() returns the current segment and End() determines, if the
+  position is already past the end of the cycle.
+
+*/
+Seg Face::Begin() {
     cur = 0;
+    
+    return v[cur];
 }
 
 Seg Face::Prev() {
@@ -349,24 +398,25 @@ Seg Face::Cur() {
     return v[cur % v.size()];
 }
 
-int Face::End() {
-    if (cur >= (int) v.size())
-        return 1;
-    return 0;
+bool Face::End() {
+    return cur >= (int) v.size();
 }
 
+/*
+   1.13 collapse is used to generate the MSegs which collapse this Face to the
+   point ~dst~. If ~close~ is false, then the initial and final segments are
+   swapped, effectively making this the function "expand"
+  
+*/
 MSegs Face::collapse(bool close, Pt dst) {
     MSegs ret;
 
-    if (v.size() < 3)
-        return ret;
-
-    Close();
-
     for (unsigned int i = 0; i < v.size(); i++) {
         if (close) {
+            // The final segmens are degenerated to the collapse-point
             ret.AddMSeg(MSeg(v[i].s, v[i].e, dst, dst));
         } else {
+            // The initial segments are degenerated to the expand-point
             ret.AddMSeg(MSeg(dst, dst, v[i].s, v[i].e));
         }
     }
@@ -376,11 +426,16 @@ MSegs Face::collapse(bool close, Pt dst) {
     else
         ret.dreg = *this;
 
+    // Mark the MSegs as collapsed (1) or expanded (2)
     ret.iscollapsed = 1 + (close ? 0 : 1);
 
     return ret;
 }
 
+/*
+ 1.14 collapseWithHoles collapses (or expands) the Face with all of its holes.
+ 
+*/
 MFace Face::collapseWithHoles(bool close) {
     MFace ret(collapse(close));
 
@@ -393,84 +448,113 @@ MFace Face::collapseWithHoles(bool close) {
     return ret;
 }
 
+/*
+  1.15 Wrapper around 1.13 which selects the collapse-point automatically
+ 
+*/
 MSegs Face::collapse(bool close) {
     MSegs ret;
-
-
-    if (v.size() < 3)
-        return ret;
 
     Pt dst = collapsePoint();
 
     return collapse(close, dst);
 }
 
+/*
+  1.16 Select a suitable collapse-point for this face
+ 
+*/
 Pt Face::collapsePoint() {
     Pt dst;
 
+    // The peerpoint (usually set by RotatingPlane) is the best choice
     if (peerPoint.valid)
         dst = peerPoint;
-    else
+    else // Otherwise just use the first point
         dst = v[0].s;
-
+    
     return dst;
 }
 
+/*
+ 1.17 getFaces extracts all Faces from the NestedList-Representation of a
+ Secondo-region (including their holes)
+ 
+*/
 vector<Face> Face::getFaces(ListExpr le) {
     vector<Face> ret;
 
     while (!nl->IsEmpty(le)) {
+        // Iterate over all faces
         ListExpr l = nl->First(le);
+        // Create a Face with optional holes from the current list-position
         Face r(l);
         ret.push_back(r);
+        // Advance in the list
         le = nl->Rest(le);
     }
 
     return ret;
 }
 
+/*
+  1.18 GetMiddle returns the middle-point of the bounding-box of this face.
+  This is much easier to calculate than for example the centroid.
+ 
+*/
 Pt Face::GetMiddle() {
     Pt middle = (GetBoundingBox().second + GetBoundingBox().first) / 2;
 
     return middle;
 }
 
+/*
+  1.19 GetArea returns the area of this polygon (ignoring holes) 
+
+*/
 double Face::GetArea() {
-    return this->MakeRegion().Area(NULL);
+    return this->MakeRegion(false).Area(NULL);
 }
 
+/*
+ 1.20 GetCentroid returns the centroid of this face disregarding holes.
+ 
+*/
 Pt Face::GetCentroid() {
     double area = GetArea();
     double x = 0, y = 0;
 
+    // Just return some point of the face if the area is zero
     if (area == 0)
         return v[0].s;
 
+    // Otherwise calculate the centroid by the common method
     unsigned int n = v.size();
     for (unsigned int i = 0; i < n; i++) {
         double tmp = (v[i].s.x * v[i].e.y - v[i].e.x * v[i].s.y);
         x += (v[i].s.x + v[i].e.x) * tmp;
         y += (v[i].s.y + v[i].e.y) * tmp;
     }
-    x = x * 1 / (6 * area);
-    y = y * 1 / (6 * area);
+    x = x * (1 / (6 * area));
+    y = y * (1 / (6 * area));
 
     return Pt(x, y);
-
-    //    unsigned int n = v.size();
-    //    double x = 0, y = 0;
-    //    for (unsigned int i = 0; i < n; i++) {
-    //        x = x + v[i].s.x;
-    //        y = y + v[i].s.y;
-    //    }
-    //
-    //    return Pt(x / n, y / n);
 }
 
+/*
+  1.21 distance calculates the distance of the middlepoints of the bounding-
+  boxes of this face to the given face.
+ 
+*/
 double Face::distance(Face r) {
     return r.GetMiddle().distance(GetMiddle());
 }
 
+/*
+ 1.22 ToString gives a string-representation of this face (mainly for debugging
+ purposes)
+
+*/
 string Face::ToString() const {
     std::ostringstream ss;
 
@@ -484,6 +568,11 @@ string Face::ToString() const {
     return ss.str();
 }
 
+/*
+  1.23 GetBoundingBox of a list of Faces returns the Bounding-Box which
+  encloses all faces together.
+ 
+*/
 pair<Pt, Pt> Face::GetBoundingBox(vector<Face> regs) {
     if (regs.empty())
         return pair<Pt, Pt>(Pt(0, 0), Pt(0, 0));
@@ -526,10 +615,23 @@ pair<Pt, Pt> Face::GetBoundingBox(set<Face*> regs) {
     return ret;
 }
 
+/*
+ 1.24 GetBoundingBox returns the bounding-box of this face. It is not
+ calculated here since this is always tracked when segments are added to this
+ face.
+ 
+*/
 pair<Pt, Pt> Face::GetBoundingBox() {
     return bbox;
 }
 
+/*
+ 1.25 GetMSegs returns an MSegs-object containing MSeg-objects representing
+ this face statically (initial and final segments equal the segments of this
+ face). If ~triangles~ is set, then for each segment two MSeg-objects are
+ created, one with degenerated initial and one with degenerated final segment.
+ 
+*/
 MSegs Face::GetMSegs(bool triangles) {
     MSegs ret;
 
