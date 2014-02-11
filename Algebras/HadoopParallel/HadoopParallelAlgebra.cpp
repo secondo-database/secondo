@@ -5936,6 +5936,7 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
           maxSheetSize = maxBufferSize / slaveSize;
           totalTupleBuffer = new TupleBuffer(maxBufferSize);
           flobInfo = new vector<TupleFlobInfo>();
+          gtbit = 0;
 
           //Increase the slaveSize with 1 to visit them by the source id
           standby = new vector<FlobSheet*>(slaveSize + 1);
@@ -6063,16 +6064,18 @@ For each Flob with mode 3, its elements mean:
     }
 
     while (preparedNum > 0){
-      GenericRelationIterator* tit = totalTupleBuffer->MakeScan();
-      vector<TupleFlobInfo>::iterator fiit= flobInfo->begin();
-      while (!tit->EndOfScan())
+      if (gtbit == 0){
+        gtbit = totalTupleBuffer->MakeScan();
+        gtfit = flobInfo->begin();
+      }
+      
+      while (!gtbit->EndOfScan())
       {
-        Tuple* tuple = tit->GetNextTuple();
+        Tuple* tuple = gtbit->GetNextTuple();
         if (tuple == 0)
           break;
-        TupleFlobInfo tfi = (*fiit);
 
-        if (!tfi.isReturned())
+        if (!gtfit->isReturned())
         {
           //Whether the Flobs have been fetched
           bool flobAllRead = true;
@@ -6089,7 +6092,9 @@ For each Flob with mode 3, its elements mean:
             if (!flobAllRead) break;
           } // detect whether there exists un-read flob
           if (flobAllRead){
-            fiit->setReturned();
+            Counter::getRef("FetchFlob")++;
+            gtfit->setReturned();
+            gtfit++;
             return setResultTuple(tuple);
           }
 
@@ -6102,8 +6107,12 @@ For each Flob with mode 3, its elements mean:
             int ai = faVec[no];
             Attribute* attr = tuple->GetAttribute(ai);
             for (int k = 0; k < attr->NumOfFLOBs(); k++){
-              source = tfi.getDS(no, k);
-              times = tfi.getSheetTimes(no, k);
+              source = gtfit->getDS(no, k);
+              times = gtfit->getSheetTimes(no, k);
+              if (source == 0){
+                //Flob are kept locally
+                continue;
+              }
               if (prepared->find(make_pair(source, times)) == prepared->end()){
                 dataPrepared = false;
               } else {
@@ -6122,6 +6131,12 @@ For each Flob with mode 3, its elements mean:
 
               for (int k = 0; k < attr->NumOfFLOBs(); k++)
               {
+                source = gtfit->getDS(no, k);
+                if (source == 0){
+                  //Flob is kept within the Tuple
+                  continue;
+                }
+
                 FlobSheet* sheet = sheets[no][k];
                 string flobFile = sheet->getResultFile();
 
@@ -6129,18 +6144,24 @@ For each Flob with mode 3, its elements mean:
                 if (flob->getMode() > 2)
                 {
                   Flob::readExFile(*flob, flobFile,
-                      flob->getSize(), tfi.getOffset(no, k));
+                      flob->getSize(), gtfit->getOffset(no, k));
                 }
               }
             }
-            fiit->setReturned();
+            Counter::getRef("FetchFlob")++;
+            gtfit->setReturned();
+            gtfit++;
             return setResultTuple(tuple);
           }
         }
-        fiit++;
       }
 
-      return 0; //No more un-returned tuples
+      if (Counter::getRef("FetchFlob") >= totalTupleBuffer->GetNoTuples()){
+        //All tuples are fetched
+        return 0;
+      } else {
+        gtbit = 0;
+      }
     }
   }
 
@@ -6170,7 +6191,6 @@ void FetchFlobLocalInfo::clearFetchedFiles()
       if (!FileSystem::DeleteFileOrFolder(filePath)){
         cerr << "Warning!! File " << filePath << " cannot be deleted. " << endl;
       }
-
     }
   }
 }

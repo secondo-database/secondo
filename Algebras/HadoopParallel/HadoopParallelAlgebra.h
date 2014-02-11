@@ -1242,6 +1242,8 @@ buffer indicate the detailed information for every tuple.
   TupleBuffer* totalTupleBuffer; //Buffer for all input tuples
   vector<TupleFlobInfo>* flobInfo;
   set<SmiRecordId>* newRecIds;    //Record all newly created Flob id
+  GenericRelationIterator* gtbit;
+  vector<TupleFlobInfo>::iterator gtfit;
 
   int *faVec, *daVec;   //record all needed and deleted Flob attribute list
   size_t faLen, daLen;
