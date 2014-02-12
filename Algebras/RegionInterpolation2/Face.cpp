@@ -638,48 +638,68 @@ MSegs Face::GetMSegs(bool triangles) {
     for (unsigned int i = 0; i < v.size(); i++) {
         Seg s = v[i];
         if (triangles) {
-            ret.AddMSeg(MSeg(s.s, s.e, s.s, s.s));
-            ret.AddMSeg(MSeg(s.e, s.e, s.s, s.e));
+            // Add two triangles, 
+            ret.AddMSeg(MSeg(s.s, s.e, s.s, s.s)); // one with degenerated final
+            ret.AddMSeg(MSeg(s.e, s.e, s.s, s.e)); // and degenerated source seg
         } else {
-            ret.AddMSeg(MSeg(s.s, s.e, s.s, s.e));
+            ret.AddMSeg(MSeg(s.s, s.e, s.s, s.e)); // Add a trapezium here
         }
     }
 
     return ret;
 }
 
+/*
+  1.26 ClipEar implements the Clipping-Ear-Algorithm.
+  It finds an "Ear" in this Face, clips it and returns it as separate face.
+  Note that the original Face is modified by this method!
+  It is mainly used to implement evaporisation of faces
+ 
+*/
 Face Face::ClipEar() {
     Face ret;
 
     if (v.size() <= 3) {
+        // Nothing to do if this Face consists only of three points
         return Face(v);
     } else {
         Pt a, b, c;
         unsigned int n = v.size();
 
+        // Go through the corner-points, which are sorted counter-clockwise
         for (unsigned int i = 0; i < n; i++) {
+            // Take the next three points
             a = v[(i + 0) % n].s;
             b = v[(i + 1) % n].s;
             c = v[(i + 2) % n].s;
             if (Pt::sign(a, b, c) < 0) {
+                // If the third point c is right of the segment (a b), then
+                // the three points don't form an "Ear"
                 continue;
             }
 
+            // Otherwise check, if any point is inside the triangle (abc)
             bool inside = false;
             for (unsigned int j = 0; j < (n - 3); j++) {
                 Pt x = v[(i + j + 3) % n].s;
                 inside = Pt::insideTriangle(a, b, c, x);
                 if (inside) {
+                    // If a point inside was found, we haven't found an ear.
                     break;
                 }
             }
 
             if (!inside) {
+                // No point was inside, so build the Ear-Face in "ret",
                 ret.AddSeg(v[i + 0]);
                 ret.AddSeg(v[i + 1]);
                 Seg nw(v[i + 1].e, v[i + 0].s);
                 ret.AddSeg(nw);
+                
+                // remove the Face-Segment (a b),
                 v.erase(v.begin() + i);
+                
+                // and finally replace the segment (b c) by (a c)
                 v[i].s = nw.e;
                 v[i].e = nw.s;
                 hullSeg.valid = 0;
@@ -688,79 +708,119 @@ Face Face::ClipEar() {
             }
         }
     }
+    
+    // If we are here it means we haven't found an ear. This shouldn't happen.
+    // One reason could be that the face wasn't valid in the first place.
     assert(false);
-    // Shouldn't ever happen
     return ret;
 }
 
-vector<MSegs> Face::Evaporate(bool close) {
-    vector<MSegs> ret;
-    Face reg(v);
-    reg.IntegrateHoles();
-    //    cerr << "Clipping ear of " << ToString() << "\n";
-
-    while (reg.v.size() > 3) {
-        Face r = reg.ClipEar();
-        ret.push_back(r.collapse(close, r.GetCentroid()));
-    }
-    ret.push_back(reg.collapse(close, reg.GetCentroid()));
-
-    return ret;
-}
-
+/*
+  1.27 IntegrateHoles is used to integrate all holes of a face into the main
+  cycle by creating "bridges". This usually yields an invalid face, it is
+  exclusively used to triangulate a face.
+ 
+*/
 void Face::IntegrateHoles() {
     vector<Seg> allsegs = v;
 
+    // First, get a list of all segments (inclusively the holes' segments)
     for (unsigned int i = 0; i < holes.size(); i++) {
         allsegs.insert(allsegs.end(), holes[i].v.begin(), holes[i].v.end());
     }
 
     for (unsigned int h = 0; h < holes.size(); h++) {
-        Face hole = holes[h];
+        Face hole = holes[h]; // Integrate one hole after another
         unsigned int i = 0, j = 0;
         bool found = false;
 
         Pt s, e;
         Seg se;
-        while (!found) {
-            s = v[i].s;
+        // Try to find a suitable bridge-segment by creating all segments
+        // which connect the hole to the face and testing them for intersection
+        // with any other segment
+        while (!found && i < v.size()) {
+            s = v[i].e;
             while (!found && j < hole.v.size()) {
-                e = hole.v[j].e;
-                se = Seg(s, e);
+                e = hole.v[j].s;
+                se = Seg(s, e); // A segment connecting the face to the hole
                 bool intersects = false;
                 for (unsigned int k = 0; k < allsegs.size(); k++) {
                     if (se.intersects(allsegs[k])) {
+                        // We have found an intersection, so this segment is
+                        // not our bridge
                         intersects = true;
                         break;
                     }
                 }
                 if (!intersects) {
+                    // No intersection was found, so this is the bridge we use
                     found = true;
                     break;
-                } else {
-                    j = j + 1;
                 }
+                j = j + 1;
+            }
+            if (!found) {
+               i = i + 1;
             }
         }
+        
+        assert(found); // We should always be able to find a bridge
 
+        // Now insert the bridge and the hole into the face-cycle
         vector<Seg> newsegs;
-        newsegs.insert(newsegs.end(), v.begin(), v.begin()+(i - 1));
-        newsegs.push_back(Seg(s, e));
+        // First copy the cycle from start to the begin of the bridge
+        newsegs.insert(newsegs.end(), v.begin(), v.begin()+i);
+        newsegs.push_back(Seg(s, e)); // Then add the bridge segment
         unsigned int n = hole.v.size();
         for (unsigned int k = 0; k < n; k++) {
-            Seg ns = hole.v[n - (k + j) % n - 1];
-            ns.ChangeDir();
+            // Now add the hole-segments clockwise
+            Seg ns = hole.v[n - (j + k) % n - 1];
+            ns.ChangeDir(); // and change the orientation of each segment
             newsegs.push_back(ns);
         }
-        newsegs.push_back(Seg(e, s));
-        newsegs.insert(newsegs.end(), v.begin() + i, v.end());
+        newsegs.push_back(Seg(e, s)); // Bridge back to the original face
+        // and add the rest of the original cycle
+        newsegs.insert(newsegs.end(), v.begin() + i + 1, v.end());
         v = newsegs;
+        // For the next holes we have to test intersection with the newly
+        // created bridge, too.
         allsegs.push_back(Seg(s, e));
     }
 
+    // All holes were integrated, so clear the list.
     holes.clear();
 }
 
+/*
+ 1.28 Evaporate splits this face in triangles and collapses these to a point
+ inside. When the parameter ~close~ is false, then the triangles are expanded,
+ making this the function "Condensate".
+ 
+*/
+vector<MSegs> Face::Evaporate(bool close) {
+    vector<MSegs> ret;
+    Face reg(v);
+    
+    // At first, integrate all holes into the cycle
+    reg.IntegrateHoles();
+
+    while (reg.v.size() > 3) {
+        // Then, repeatedly clip an ear until only a triangle is left
+        Face r = reg.ClipEar();
+        // and collapse (or expand) the triangles towards its centroid.
+        ret.push_back(r.collapse(close, r.GetCentroid()));
+    }
+    // Finally, handle the last triangle left.
+    ret.push_back(reg.collapse(close, reg.GetCentroid()));
+
+    return ret;
+}
+
+/*
+ 1.29 Check tests, if the cycle of this face is valid.
+ 
+*/
 bool Face::Check() {
     bool ret = true;
 
@@ -779,15 +839,15 @@ bool Face::Check() {
             if (i == j)
                 continue;
             if (v[i].intersects(v[j])) {
-                cerr << "Region intersects\n";
+                cerr << "ERROR: Segments intersect\n";
                 ret = false;
             }
             if (v[i].s == v[j].s) {
-                cerr << "Same startpoint\n";
+                cerr << "ERROR: Same startpoint\n";
                 ret = false;
             }
             if (v[i].e == v[j].e) {
-                cerr << "Same endpoint\n";
+                cerr << "ERROR: Same endpoint\n";
                 ret = false;
             }
         }
@@ -813,18 +873,18 @@ bool Face::Check() {
 
     for (unsigned int i = 0; i < (nr - 1); i++) {
         if (!(v[i].e == v[i + 1].s)) {
-            cerr << "Region not contiguous\n";
+            cerr << "ERROR: Region not contiguous\n";
             ret = false;
         }
     }
     
     if (!(v[nr - 1].e == v[0].s)) {
-        cerr << "Region not closed\n";
+        cerr << "ERROR: Region not closed\n";
         ret = false;
     }
     
     if (v[0].angle() > v[nr - 1].angle()) {
-        cerr << "Region not clockwise\n";
+        cerr << "ERROR: Region not in counter-clockwise order\n";
         ret = false;
     }
 
@@ -837,40 +897,64 @@ bool Face::Check() {
     return ret;
 }
 
-void Face::AddHole(vector<Seg> hole) {
-    vector<Seg> nsegs;
+/*
+  1.30 AddHole takes a cycle and checks, if one if its segments is identical
+  with one of this faces segments. If this is the case, then the cycle is
+  integrated into the face. Otherwise it is added to the list of holes.
+ 
+*/
+void Face::AddHole(Face hface) {
+    vector<Seg> hole = hface.v;
     bool ishole = true;
 
-    if (hole.size() < 3)
-        return;
+    std::sort(v.begin(), v.end());
+    std::sort(hole.begin(), hole.end());
 
-    hole = sortSegs(hole);
-
-    for (unsigned int i = 0; i < hole.size(); i++) {
-        bool found = false;
-        for (unsigned int j = 0; j < v.size(); j++) {
-            if (hole[i] == v[j]) {
-                found = true;
-                ishole = false;
-                v.erase(v.begin() + j);
-                break;
-            }
+    // First, eliminate all matching segments by sorting both lists and
+    // traversing them in parallel
+    std::vector<Seg>::iterator i = hole.begin();
+    std::vector<Seg>::iterator j = v.begin();
+    do {
+        if (*i == *j) {
+            i = hole.erase(i);
+            j = v.erase(j);
+            ishole = false;
+        } else if (*i < *j) {
+            i++;
+        } else {
+            j++;
         }
-        if (!found) {
-            nsegs.push_back(hole[i]);
-        }
-    }
+    } while (i != hole.end() && j != v.end());
+    
     if (ishole) {
+        // We didn't find a matching segment, so this is a hole
         Face r(hole);
         r.ishole = true;
         r.Close();
         holes.push_back(r);
     } else {
-        for (unsigned int i = 0; i < nsegs.size(); i++) {
-            nsegs[i].ChangeDir();
+        // We found matching segments, so change the orientation of the
+        // hole-segments and integrate them into the face-cycle
+        for (unsigned int i = 0; i < hole.size(); i++) {
+            hole[i].ChangeDir();
+            v.push_back(hole[i]);
         }
-        nsegs.insert(nsegs.end(), v.begin(), v.end());
-        v = sortSegs(nsegs);
+        v = sortSegs(v);
     }
+    
+    Check();
 }
 
+/*
+ 1.31 CreateMFaces creates a static MFaces-object from a list of faces.
+
+*/
+MFaces Face::CreateMFaces(vector<Face> *faces) {
+    MFaces ret;
+    
+    for (unsigned int i = 0; i < faces->size(); i++) {
+        ret.AddFace((*faces)[i].GetMSegs(false));
+    }
+    
+    return ret;
+}

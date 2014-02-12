@@ -83,8 +83,8 @@ bool MFace::Check() {
     
     // Checking Border-Regions
     
-    CreateBorderRegion(true);
-    CreateBorderRegion(false);
+    CreateBorderFace(true);
+    CreateBorderFace(false);
     
     for (unsigned int i = 0; i < holes.size(); i++) {
         MFace h1(holes[i]);
@@ -94,37 +94,10 @@ bool MFace::Check() {
         }
     }
     
-//    for (unsigned int i = 0; i < face.segs.size(); i++) {
-//        for (unsigned int j = 0; j < face.segs.size(); j++) {
-//            if (i == j)
-//                continue;
-//            MSeg a = face.segs[i];
-//            MSeg b = face.segs[j];
-//            if (a.intersects(b, true)) {
-//                ret = false;
-//                cerr << "Intersection!\n";
-//            }
-//            Seg ai(a.is, a.ie), af(a.fs, a.fe);
-//            Seg bi(b.is, b.ie), bf(b.fs, b.fe);
-//            if (ai.intersects(bi)) {
-//                ret = false;
-//                cerr << "Intersection initial!\n" << ai.ToString()
-//                        << " " << bi.ToString() << "\n";
-//            }
-//            if (af.intersects(bf)) {
-//                ret = false;
-//                cerr << "Intersection final!\n" << af.ToString()
-//                        << " " << bf.ToString() << "\n";
-//            }
-//        }
-//    }
-
-    
     if (!SortCycle()) {
         ret = false;
     }
 
-    
     if (face.intersects(face, false, true)) {
         cerr << "Intersection!\n";
         ret = false;
@@ -347,21 +320,20 @@ string MFace::ToString() {
 
 
 /*
- 1.12 CreateBorderRegion is used to reconstruct a Face from this MFace.
+ 1.12 CreateBorderFace is used to reconstruct a Face from this MFace.
  
  If the parameter ~src~ is TRUE, then the face is created from the initial
  segments of the MSegs (thus representing the state at the start of the
  timeinterval), otherwise from the final segments.
  
 */
-Face MFace::CreateBorderRegion(bool src) {
+Face MFace::CreateBorderFace(bool src) {
     assert(SortCycle());
 
-    vector<Seg> segs = face.CreateBorderSegs(src);
-    Face ret(segs);
+    Face ret = face.CreateBorderFace(src);
 
     for (unsigned int h = 0; h < holes.size(); h++) {
-        vector<Seg> hole = holes[h].CreateBorderSegs(src);
+        Face hole = holes[h].CreateBorderFace(src);
         
         // AddHole also merges concavities if segments overlap
         ret.AddHole(hole);

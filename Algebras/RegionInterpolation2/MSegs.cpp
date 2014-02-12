@@ -87,7 +87,7 @@ bool MSegs::MergeConcavity(MSegs c) {
                 // Try to integrate the MSeg of the (possible) concavity into
                 // the parents MSeg. This leads to a split of the parent into
                 // m1 and m2, which must be added to the cycle, too.
-                if ((integrated = i->Integrate(*j, m1, m2))) {
+                if ((integrated = i->Split(*j, m1, m2))) {
                     // Integration was successful, so erase both segments
                     i = msegs.erase(i);
                     j = c.msegs.erase(j);
@@ -191,15 +191,15 @@ bool MSegs::intersects(const MSegs& a, bool matchIdent, bool matchSegs) const {
 }
 
 /* 
-   1.6 CreateBorderSegs returns a list of segments which represent the initial
-   or final face of this cycle (depending on the parameter ~initial~)
+   1.6 CreateBorderFace returns a face which represents the initial
+   or final face of this MSegs (depending on the parameter ~initial~)
  
    A moving segment can consist of several points if collinear MSeg-objects were
    merged into one. Reconstruct the original segments from the list of
    MSeg-objects here to be able to merge concavities properly.
 
 */
-vector<Seg> MSegs::CreateBorderSegs(bool initial) {
+Face MSegs::CreateBorderFace(bool initial) {
     vector<Seg> ret;
     
     for (unsigned int i = 0; i < msegs.size(); i++) {
@@ -210,7 +210,7 @@ vector<Seg> MSegs::CreateBorderSegs(bool initial) {
         }
     }
     
-    return ret;
+    return Face(ret);
 }
 
 
@@ -223,8 +223,8 @@ vector<Seg> MSegs::CreateBorderSegs(bool initial) {
  
 */
 pair<MSegs, MSegs> MSegs::kill() {
-    MSegs src = Face(CreateBorderSegs(true)).collapse(true);
-    MSegs dst = Face(CreateBorderSegs(false)).collapse(false);
+    MSegs src = CreateBorderFace(true).collapse(true);
+    MSegs dst = CreateBorderFace(false).collapse(false);
 //    MSegs src = sreg.collapse(true);
 //    MSegs dst = dreg.collapse(false);
 

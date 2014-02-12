@@ -17,6 +17,7 @@
 
 class MSegs;
 class MFace;
+class MFaces;
 
 class Pt {
 public:
@@ -107,14 +108,15 @@ public:
     double GetArea();
     Face ClipEar();
     vector<MSegs> Evaporate(bool close);
-    void AddHole (vector<Seg> segs);
+    void AddHole (Face hole);
     bool Check();
     void IntegrateHoles();
 
     static vector<Face> getFaces(ListExpr le);
-    static pair<Pt, Pt> GetBoundingBox(vector<Face> regs);
-    static pair<Pt, Pt> GetBoundingBox(set<Face*> regs);
+    static pair<Pt, Pt> GetBoundingBox(vector<Face> faces);
+    static pair<Pt, Pt> GetBoundingBox(set<Face*> faces);
     static vector<Seg> sortSegs(vector<Seg> v);
+    static MFaces CreateMFaces(vector<Face> *faces);
 };
 
 class MSeg {
@@ -131,7 +133,7 @@ public:
     bool operator==(const MSeg& a) const;
     bool intersects(const MSeg& a, bool checkSegs) const;
     bool Merge(const MSeg& a);
-    bool Integrate(MSeg& n, MSeg& m1, MSeg& m2);
+    bool Split(MSeg& n, MSeg& m1, MSeg& m2);
     void ChangeDirection();
     MSeg divide(double start, double end);
 };
@@ -144,7 +146,7 @@ public:
     pair<Pt,Pt> bbox;
 
     MSegs();
-    vector<Seg> CreateBorderSegs(bool initial);
+    Face CreateBorderFace(bool initial);
     void AddMSeg(MSeg m);
     vector<MSegmentData> ToMSegmentData(int face, int cycle, int segno);
     string ToString() const;
@@ -183,7 +185,7 @@ public:
     void PrintMRegionListExpr();
     string ToString();
     MFace divide(double start, double end);
-    Face CreateBorderRegion(bool src);
+    Face CreateBorderFace(bool src);
 };
 
 class MFaces {
@@ -201,7 +203,7 @@ public:
     ListExpr ToMListExpr(Interval<Instant> iv);
     string ToString();
     MFaces divide(double start, double end);
-    vector<Face> CreateBorderRegions(bool src);
+    vector<Face> CreateBorderFaces(bool src);
     MFaces CreateBorderMFaces(bool src);
     
     static ListExpr fallback(vector<Face> *s, vector<Face> *d, 

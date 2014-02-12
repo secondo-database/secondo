@@ -12,7 +12,26 @@ Seg::Seg(Pt s, Pt e) : s(s), e(e), valid(1) {
 }
 
 bool Seg::operator<(const Seg& a) const {
-    return ((s.y < a.s.y) || ((s.y == a.s.y) && (s.x < a.s.x)));
+    if (s.y < a.s.y)
+        return true;
+    else if (s.y > a.s.y)
+        return false;
+    else if (s.x < a.s.x)
+        return true;
+    else if (s.x > a.s.x)
+        return false;
+    else if (e.y < a.e.y)
+        return true;
+    else if (e.y > a.e.y)
+        return false;
+    else if (e.x < a.e.x)
+        return true;
+    else if (e.x > a.e.x)
+        return false;
+    else
+        return false;
+        
+//    return ((s.y < a.s.y) || ((s.y == a.s.y) && (s.x < a.s.x)));
 }
 
 void Seg::ChangeDir() {
