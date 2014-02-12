@@ -108,13 +108,13 @@ class LoadBalancerListener {
    public:
       LoadBalancerListener(int myListenPort, DataSheduler* myDataSheduler) {
          listenPort = myListenPort;
-	 dataReceiver = myDataSheduler;
+         dataReceiver = myDataSheduler;
          listenfd = 0;
          connfd = 0;
       }
       
       virtual ~LoadBalancerListener() {
-	close();
+          close();
       }
       
       virtual void openSocket() {
@@ -152,7 +152,7 @@ class LoadBalancerListener {
             return;
          } 
          
-	 SocketHelper::setSocketToBlockingMode(connfd);
+         SocketHelper::setSocketToBlockingMode(connfd);
       }
       
    bool isSocketOpen() {
@@ -173,27 +173,27 @@ class LoadBalancerListener {
    
    void readData(string* result) {
      
-    string::iterator pos;
+      string::iterator pos;
     
-    // Read data until we got a "\n"
-    while((pos = find(buffer.begin(), buffer.end(), '\n')) == buffer.end()) {
+      // Read data until we got a "\n"
+      while((pos = find(buffer.begin(), buffer.end(), '\n')) == buffer.end()) {
       
-      if(isSocketOpen()) {
-	char buf[1024];
-	memset(buf, 0, sizeof(buf));
-	cout << "read()" << endl;
-	size_t bytesRead = read(connfd, buf, sizeof(buf));
-	
-	// End of transmisson ?
-	if((buffer.compare("\004") == 0) || (bytesRead <= 0)) {
-	  cout << "End of transmisson, close listen socket" << endl;
-	  close();
-	  *result = string("\004");
-	  return;
-	}
-	
-   	buffer += buf;
-      }
+       if(isSocketOpen()) {
+          char buf[1024];
+          memset(buf, 0, sizeof(buf));
+          cout << "read()" << endl;
+          size_t bytesRead = read(connfd, buf, sizeof(buf));
+   
+          // End of transmisson ?
+          if((buffer.compare("\004") == 0) || (bytesRead <= 0)) {
+            cout << "End of transmisson, close listen socket" << endl;
+            close();
+            *result = string("\004");
+            return;
+          }
+   
+          buffer += buf;
+       }
     }
        
     *result = string (buffer.begin(), pos + 1);
@@ -204,9 +204,9 @@ class LoadBalancerListener {
 
   void run() {
     while(isSocketOpen()) {
-	string line;
-	readData(&line);
-	dataReceiver->sendData(line);
+      string line;
+      readData(&line);
+      dataReceiver->sendData(line);
     }
   }
   
@@ -262,17 +262,17 @@ public:
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
     
     if(socketfd < 0) {
-	cerr << "Error opening socket" << endl;
-	socketfd = 0;
-	return false;
+      cerr << "Error opening socket" << endl;
+      socketfd = 0;
+      return false;
     }
     
     server = gethostbyname(hostname.c_str());
     
     if(server == NULL) {
-	cerr << "Error resolving hostname: " << hostname << endl;
-	socketfd = 0;
-	return false;
+      cerr << "Error resolving hostname: " << hostname << endl;
+      socketfd = 0;
+      return false;
     }
    
     memset(&server_addr, 0, sizeof(server_addr));
@@ -285,9 +285,9 @@ public:
     if(connect(socketfd, (struct sockaddr*) 
       &server_addr, sizeof(struct sockaddr)) < 0) {
 
-	cerr << "Error in connect() " << endl;
-	socketfd = 0;
-	return false;
+      cerr << "Error in connect() " << endl;
+      socketfd = 0;
+      return false;
     }
           
     SocketHelper::setSocketToBlockingMode(socketfd);
@@ -328,11 +328,11 @@ protected:
     }
   }
   
-  string hostname;			// Hostname
-  int port;				// Port
-  int socketfd;				// Socket
-  struct hostent *server;		// Server name
-  struct sockaddr_in server_addr;	// Server addr
+  string hostname;                   // Hostname
+  int port;                          // Port
+  int socketfd;                      // Socket
+  struct hostent *server;            // Server name
+  struct sockaddr_in server_addr;    // Server addr
   
 };
 
@@ -364,7 +364,7 @@ public:
       
       pthread_mutex_lock(&queueMutex);
       while(myQueue.empty()) {
-	pthread_cond_wait(&queueCondition, &queueMutex);
+        pthread_cond_wait(&queueCondition, &queueMutex);
       }
       pthread_mutex_unlock(&queueMutex);
       
@@ -374,10 +374,10 @@ public:
       pthread_mutex_unlock(&queueMutex);
       
       if(data -> compare("\004") == 0) {
-	_sendData(*data);
-	cout << "Got EOT, exiting thread" << endl;
-	delete data;
-	exitThread();
+         _sendData(*data);
+         cout << "Got EOT, exiting thread" << endl;
+         delete data;
+         exitThread();
       }
       
       _sendData(*data);
@@ -425,7 +425,7 @@ class ReliableThreadedTargetServer : public ThreadedTargetServer {
 public:
   ReliableThreadedTargetServer(string connString, int myAcknowledgeAfter) 
       : ThreadedTargetServer(connString) {
-	
+   
     acknowledgeAfter = myAcknowledgeAfter;
     sendTupel = 0;
   }
@@ -445,9 +445,9 @@ public:
       
       // Ack?
       if(buffer[0] == '\006') {
-	sendTupel = 0;
+         sendTupel = 0;
       } else {
-	cout << "Got something different back from targetServer" << endl;
+         cout << "Got something different back from targetServer" << endl;
       }
       
     }
@@ -494,10 +494,10 @@ public:
       
       // Send EOT to all Threads
       for(vector<TargetServer*>::iterator iter = serverList->begin(); 
-	  iter != serverList->end(); ++iter) {
-	
-	TargetServer* ts = *iter;
-	ts -> sendData(data);
+          iter != serverList->end(); ++iter) {
+   
+         TargetServer* ts = *iter;
+         ts -> sendData(data);
       }
       
       return;
@@ -520,14 +520,14 @@ public:
       
       // Switch back to first server
       if(lastServer >= serverList->size()) {
-	lastServer = 0;
+         lastServer = 0;
       }
       
       // We contacted every server two times
       // But no one was ready
       if(tryCount > 2 * serverList->size()) {
-	cout << "Could not find a ready server, IGNORING DATA" << endl;
-	return;
+        cout << "Could not find a ready server, IGNORING DATA" << endl;
+        return;
       }
       
     } while(! ts -> isReady() );
@@ -577,7 +577,7 @@ void printHelp(char* progName) {
   cerr << "e.g. rtrr-10 " << endl;
   cerr << endl;
   cerr << "Example: " << progName << " 10000 rr 192.168.1.1:10001 " 
-        << "192.168.1.2:10001 192.168.1.3:10001" << endl;
+       << "192.168.1.2:10001 192.168.1.3:10001" << endl;
   cerr << endl;
 }
 
@@ -623,7 +623,7 @@ void parseServerList(int argc, char* argv[],
         int acknowledgeAfter = atoi((mode.substr(5, mode.length())).c_str());
         ts = new ReliableThreadedTargetServer(argv[i], acknowledgeAfter); 
      } else {
-       	 printHelp(argv[0]);
+          printHelp(argv[0]);
          exit(EXIT_FAILURE);
      }
      
@@ -631,7 +631,7 @@ void parseServerList(int argc, char* argv[],
      
      if(result == false) {
        cout << "Unable to open connection to: " << argv[i] 
-       	    << " ignoring" << endl;
+             << " ignoring" << endl;
      } else {
         serverList->push_back(ts);
      }
@@ -643,7 +643,7 @@ void parseServerList(int argc, char* argv[],
 
 */
 void startThreadedServer(string &mode, vector<TargetServer*> &serverList, 
-			 char *argv[], int listenPort) {
+          char *argv[], int listenPort) {
   
   if((mode.compare("trr") == 0)) {
     cout << "Mode is thraded round robin" << endl;
