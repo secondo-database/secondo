@@ -137,13 +137,15 @@ class LoadBalancerListener {
             return;
          }
       
+         // Listen
          if(( listen(listenfd, 10)) < 0 ){
             cerr << " Listen failed " << endl;
             return;
          }
          
          unsigned int clientlen = sizeof(client_addr);
-      
+     
+         // Accept connection
          if(! (connfd = accept(listenfd, 
             (struct sockaddr *) &client_addr, 
             &clientlen))) {
@@ -152,6 +154,7 @@ class LoadBalancerListener {
             return;
          } 
          
+	 // set blocking mode
          SocketHelper::setSocketToBlockingMode(connfd);
       }
       
@@ -159,6 +162,7 @@ class LoadBalancerListener {
       return listenfd != 0;
    }
    
+   // Close client socket and server socket
    void close() {
      if(listenfd != 0) {
        shutdown(listenfd, 2);
@@ -196,12 +200,15 @@ class LoadBalancerListener {
        }
     }
        
+    // Split buffer on "\n"
     *result = string (buffer.begin(), pos + 1);
     buffer = string (pos + 1, buffer.end());
     
     cout << "Got: " << *result << endl;
   }
 
+  // Server main method
+  // Read a line and send it to the sheduler
   void run() {
     while(isSocketOpen()) {
       string line;
@@ -255,6 +262,7 @@ public:
     return socketfd;
   }
   
+  // Open tcp connection to target server
   bool open() {
     cout << "Open TCP connection to server: " << hostname  
          << " Port " << port << endl;
@@ -275,6 +283,7 @@ public:
       return false;
     }
    
+    // Prepare server_addr
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
@@ -282,6 +291,7 @@ public:
     server_addr.sin_addr.s_addr = 
       ((struct in_addr *)server->h_addr_list[0])->s_addr;
 
+    // Connect to target server
     if(connect(socketfd, (struct sockaddr*) 
       &server_addr, sizeof(struct sockaddr)) < 0) {
 
@@ -289,7 +299,8 @@ public:
       socketfd = 0;
       return false;
     }
-          
+    
+    // Send socket to blocking mode
     SocketHelper::setSocketToBlockingMode(socketfd);
 
     return true;
@@ -300,6 +311,7 @@ public:
     return isSocketOpen();
   }
   
+  // Close TCP-Connection to target server
   void close() {
     cout << "Shutdown connection to server: " << hostname 
          << " Port " << port << endl;
@@ -312,6 +324,9 @@ public:
     socketfd = 0;
   }
   
+  // sendData to socket
+  // this method can be overwritten in
+  // subclasses
   virtual void sendData(string data) {
     _sendData(data);
   }
@@ -362,17 +377,21 @@ public:
     
     while(true) {
       
+      // If the queue is emptry, wait for
+      // new data
       pthread_mutex_lock(&queueMutex);
       while(myQueue.empty()) {
         pthread_cond_wait(&queueCondition, &queueMutex);
       }
       pthread_mutex_unlock(&queueMutex);
       
+      // Remove fist line from queue
       pthread_mutex_lock(&queueMutex);
       string* data = myQueue.front();
       myQueue.pop();
       pthread_mutex_unlock(&queueMutex);
       
+      // End of Transmission? => Exit
       if(data -> compare("\004") == 0) {
          _sendData(*data);
          cout << "Got EOT, exiting thread" << endl;
@@ -380,8 +399,12 @@ public:
          exitThread();
       }
       
+      // Send Data to target server
       _sendData(*data);
+
+      // Callback
       tupelSend();
+
       delete data;
     }
   }
@@ -390,12 +413,15 @@ public:
   virtual void tupelSend() {
   }
   
+  // Exit thread
   void exitThread() {
     pthread_mutex_destroy(&queueMutex);
     pthread_cond_destroy(&queueCondition);
     pthread_exit(NULL);
   }
   
+  // Insert data into queue
+  // Called from sheduler
   virtual void sendData(string data) {
     pthread_mutex_lock(&queueMutex);
     bool wasEmpty = myQueue.empty();
@@ -435,6 +461,7 @@ public:
     return isSocketOpen() && (sendTupel < acknowledgeAfter);
   }
   
+  // Wait for acknowledge after n tuples send
   virtual void tupelSend() {
     ++sendTupel;
     
@@ -449,7 +476,7 @@ public:
       } else {
          cout << "Got something different back from targetServer" << endl;
       }
-      
+    
     }
   }
   
@@ -503,6 +530,7 @@ public:
       return;
     }
     
+    // No target server known?
     if(serverList -> empty()) {
       cout << "Server list is empty, ignore data" << endl;
       return;
@@ -627,6 +655,7 @@ void parseServerList(int argc, char* argv[],
          exit(EXIT_FAILURE);
      }
      
+     // Open the TCP-Socket to target server
      bool result = ts -> open();
      
      if(result == false) {
@@ -646,7 +675,7 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
           char *argv[], int listenPort) {
   
   if((mode.compare("trr") == 0)) {
-    cout << "Mode is thraded round robin" << endl;
+    cout << "Mode is threaded round robin" << endl;
   } else {
        
     if(mode.length() <= 5) {
@@ -657,7 +686,7 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
        
     cout << "Mode is reliable thraded round robin" << endl;
     int acknowledgeAfter = atoi((mode.substr(5, mode.length())).c_str());
-    cout << "Acknowledge After " << acknowledgeAfter << endl;
+    cout << "Acknowledge after: " << acknowledgeAfter << endl;
   }
      
   RRDataSheduler dataReceiver(&serverList);
@@ -667,6 +696,7 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
   // Start target server threads
   for(vector<TargetServer*>::iterator it = serverList.begin(); 
       it != serverList.end(); ++it) {
+
      pthread_t targetThread;
      pthread_create(&targetThread, NULL, &startThreadedTargerServer, *it);
      threads.push_back(targetThread);
@@ -713,7 +743,6 @@ int main(int argc, char* argv[]) {
      RRDataSheduler dataReceiver(&serverList);
      LoadBalancerListener lb(listenPort, &dataReceiver);  
      lb.openSocket();
-     cout << "Ready!" << endl;
      lb.run();
    } else if ((mode.compare("trr") == 0) 
               || (mode.compare(0, 5, "rtrr-") == 0) ) {
@@ -731,3 +760,4 @@ int main(int argc, char* argv[]) {
    
    return EXIT_SUCCESS;
 }
+
