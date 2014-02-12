@@ -1,4 +1,6 @@
 /*
+ 1 interpolate.cpp is the home of the main interpolation recursion.
+ 
 */
 
 #include "MovingRegionAlgebra.h"
@@ -11,201 +13,26 @@
 
 #include <string>
 
-#ifdef USE_LUA
-vector<pair<Face *, Face *> > _matchFacesLua(vector<Face> *src,
-        vector<Face> *dst, int depth, string args);
 
-static vector<pair<Face *, Face *> > matchFacesLua(vector<Face> *src,
-        vector<Face> *dst, int depth, string args) {
-    return _matchFacesLua(src, dst, depth, args);
-}
-#endif
-
-static vector<pair<Face *, Face *> > matchFacesSimple(vector<Face> *src,
-        vector<Face> *dst, int depth, string args) {
-    vector<pair<Face *, Face *> > ret;
-
-    for (unsigned int i = 0; (i < src->size() || (i < dst->size())); i++) {
-        if ((i < src->size()) && (i < dst->size())) {
-            pair<Face *, Face *> p(&((*src)[i]), &((*dst)[i]));
-            ret.push_back(p);
-        } else if (i < src->size()) {
-            pair<Face *, Face *> p(&((*src)[i]), NULL);
-            ret.push_back(p);
-        } else {
-            pair<Face *, Face *> p(NULL, &((*dst)[i]));
-            ret.push_back(p);
-        }
-    }
-
-    return ret;
-}
-
-static vector<pair<Face *, Face *> > matchFacesNull(vector<Face> *src,
-        vector<Face> *dst, int depth, string args) {
-    vector<pair<Face *, Face *> > ret;
-
-    for (unsigned int i = 0; i < src->size(); i++) {
-        pair<Face *, Face *> p(&((*src)[i]), NULL);
-        ret.push_back(p);
-    }
-    for (unsigned int i = 0; i < dst->size(); i++) {
-        pair<Face *, Face *> p(NULL, &((*dst)[i]));
-        ret.push_back(p);
-    }
-
-    return ret;
-}
-
-static vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
-        vector<Face> *dst, int depth, string args) {
-    vector<pair<Face *, Face *> > ret;
-
-    for (unsigned int i = 0; i < src->size(); i++) {
-        (*src)[i].used = 0;
-    }
-    for (unsigned int i = 0; i < dst->size(); i++) {
-        (*dst)[i].used = 0;
-    }
-
-    Pt srcoff = Face::GetBoundingBox(*src).first;
-    Pt dstoff = Face::GetBoundingBox(*dst).first;
-
-    if (src->size() >= dst->size()) {
-        for (unsigned int i = 0; i < dst->size(); i++) {
-            int dist = 2000000000;
-            int candidate = -1;
-            for (unsigned int j = 0; j < src->size(); j++) {
-                if ((*src)[j].used == 1)
-                    continue;
-                Pt srcm = (*src)[j].GetMiddle() - srcoff;
-                Pt dstm = (*dst)[i].GetMiddle() - dstoff;
-                int d2 = dstm.distance(srcm);
-                if (d2 < dist) {
-                    dist = d2;
-                    candidate = j;
-                }
-            }
-            pair<Face *, Face *> p(&(*src)[candidate], &(*dst)[i]);
-            ret.push_back(p);
-            (*src)[candidate].used = 1;
-        }
-        for (unsigned int j = 0; j < src->size(); j++) {
-            if ((*src)[j].used)
-                continue;
-            pair<Face *, Face *> p(&(*src)[j], NULL);
-            ret.push_back(p);
-        }
-    } else {
-        for (unsigned int i = 0; i < src->size(); i++) {
-            int dist = 2000000000;
-            int candidate = -1;
-            for (unsigned int j = 0; j < dst->size(); j++) {
-                if ((*dst)[j].used == 1)
-                    continue;
-                Pt srcm = (*src)[i].GetMiddle() - srcoff;
-                Pt dstm = (*dst)[j].GetMiddle() - dstoff;
-                int d2 = dstm.distance(srcm);
-                if (d2 < dist) {
-                    dist = d2;
-                    candidate = j;
-                }
-            }
-            pair<Face *, Face *> p(&(*src)[i], &(*dst)[candidate]);
-            ret.push_back(p);
-            (*dst)[candidate].used = 1;
-        }
-        for (unsigned int j = 0; j < dst->size(); j++) {
-            if ((*dst)[j].used)
-                continue;
-            pair<Face *, Face *> p(NULL, &(*dst)[j]);
-            ret.push_back(p);
-        }
-
-    }
-
-    return ret;
-}
-
-static bool sortLowerLeft(const Face& r1, const Face& r2) {
-    return r1.v[0].s < r2.v[0].s;
-}
-
-static vector<pair<Face *, Face *> > matchFacesLowerLeft(vector<Face> *src,
-        vector<Face> *dst, int depth, string args) {
-    vector<pair<Face *, Face *> > ret;
-
-    for (unsigned int i = 0; i < src->size(); i++) {
-        (*src)[i].used = 0;
-        (*src)[i].Close();
-        if (!(*src)[i].v.size())
-            (*src)[i].used = 1;
-    }
-    for (unsigned int i = 0; i < dst->size(); i++) {
-        (*dst)[i].used = 0;
-        (*dst)[i].Close();
-        if (!(*dst)[i].v.size())
-            (*dst)[i].used = 1;
-    }
-
-    std::sort(src->begin(), src->end(), sortLowerLeft);
-    std::sort(dst->begin(), dst->end(), sortLowerLeft);
-
-
-    unsigned int i = 0, j = 0;
-    while (i < src->size() && j < dst->size()) {
-        Pt p1 = (*src)[i].v[0].s;
-        Pt p2 = (*dst)[j].v[0].s;
-
-        if (p1 == p2) {
-            (*src)[i].used = 1;
-            (*dst)[j].used = 1;
-            ret.push_back(pair<Face*, Face*>(&(*src)[i], &(*dst)[j]));
-            i++;
-            j++;
-        } else if (p1 < p2) {
-            i++;
-        } else {
-            j++;
-        }
-    }
-
-
-//    for (unsigned int i = 0; i < src->size(); i++) {
-//        for (unsigned int j = 0; j < dst->size(); j++) {
-//            if ((*dst)[j].used)
-//                continue;
-//          cerr << "Comparing " << (*src)[i].v[0].s.ToString() << " with " <<
-//                    (*dst)[j].v[0].s.ToString() << "\n";
-//            if ((*src)[i].v[0].s == (*dst)[j].v[0].s) {
-//                (*src)[i].used = 1;
-//                (*dst)[j].used = 1;
-//                ret.push_back(pair<Reg*, Reg*>(&(*src)[i], &(*dst)[j]));
-//            }
-//        }
-//    }
-
-    //    for (unsigned int i = 0; i < src->size(); i++) {
-    //        if (!(*src)[i].used) {
-    //            ret.push_back(pair<Reg*, Reg*>(&(*src)[i], NULL));
-    //        }
-    //    }
-    //
-    //    for (unsigned int i = 0; i < dst->size(); i++) {
-    //        if (!(*dst)[i].used) {
-    //            ret.push_back(pair<Reg*, Reg*>(NULL, &(*dst)[i]));
-    //        }
-    //    }
-
-    return ret;
-}
-
+/*
+ 1.1 matchFaces is the interface to all matching strategies.
+ It prepares the lists of faces, calls the real matching function and cleans
+ up afterwards.
+ 
+ This function is called with the two lists ~src~ and ~dst~ of source- and
+ destinationfaces, the current recursionlevel ~depth~, the matching function
+ ~fn~ to be used and the string-argument for that function. It returns the
+ pairs of faces, which should be interpolated with each other.
+ 
+*/
 static vector<pair<Face *, Face *> > matchFaces(
        vector<Face> *src, vector<Face> *dst, int depth,
        vector<pair<Face*,Face*> > (*fn)(vector<Face>*,vector<Face>*,int,string),
        string args) {
     vector<pair<Face *, Face *> > ret;
 
+    // Mark all faces as unused and if they are from the source- or
+    // destination-set
     for (unsigned int i = 0; i < src->size(); i++) {
         (*src)[i].used = 0;
         (*src)[i].isdst = 0;
@@ -215,8 +42,10 @@ static vector<pair<Face *, Face *> > matchFaces(
         (*dst)[i].isdst = 1;
     }
 
+    // The real work is done here
     vector<pair<Face *, Face *> > pairs = fn(src, dst, depth, args);
 
+    // The function above may have used the ~used~-attribute, so reset it
     for (unsigned int i = 0; i < src->size(); i++) {
         (*src)[i].used = 0;
     }
@@ -224,22 +53,27 @@ static vector<pair<Face *, Face *> > matchFaces(
         (*dst)[i].used = 0;
     }
 
+    // Put all sane pairs of faces into the return-list
     for (unsigned int i = 0; i < pairs.size(); i++) {
-        if (!pairs[i].first || !pairs[i].second || 
-                pairs[i].first->used || pairs[i].second->used ||
+        // Ignore a pair if: one partner is NULL, already used or from the
+        // wrong set
+        if (!pairs[i].first || !pairs[i].second ||
+             pairs[i].first->used || pairs[i].second->used ||
                 pairs[i].first->isdst || !pairs[i].second->isdst)
             continue;
+        // This pairing seems ok, mark the members as used 
         pairs[i].first->used = 1;
         pairs[i].second->used = 1;
-        ret.push_back(pairs[i]);
+        ret.push_back(pairs[i]); // and put it into the list
     }
 
+    // All faces left are not in a real pairing, put them into the list
+    // without a partner
     for (unsigned int i = 0; i < src->size(); i++) {
         if (!(*src)[i].used) {
             ret.push_back(pair<Face*, Face*>(&(*src)[i], NULL));
         }
     }
-
     for (unsigned int i = 0; i < dst->size(); i++) {
         if (!(*dst)[i].used) {
             ret.push_back(pair<Face*, Face*>(NULL, &(*dst)[i]));
@@ -249,51 +83,37 @@ static vector<pair<Face *, Face *> > matchFaces(
     return ret;
 }
 
-void handleIntersections(MFaces& children, MFace parent, bool evap, bool rs);
+void handleIntersections(MFaces& children, MFace parent, bool evap);
 
+// This variable holds the pointer to the matching strategy to use
 vector<pair<Face*,Face*> > (*matchingStrategy)(vector<Face>*,vector<Face>*,
         int,string);
 
 /*
-2 Interpolate
+   1.2 Interpolate
 
-Main interpolation function between two lists of regions.
-It calls a matching-function to create pairs of regions from the source- and
+   Main interpolation function between two lists of regions.
+It calls the matching-function to create pairs of regions from the source- and
 destination-list and interpolates the convex hulls of these regions using the
 RotatingPlane-function. Then it creates two new lists from the concavities and
 holes of the region and recurses. The result of the recursion is then merged
 into the current result. Intersections are detected and tried to be compensated
 
 */
-
 MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args) {
     MFaces ret;
 
+    // Remember the original faces-lists from which the result was created.
     ret.sregs = sregs;
     ret.dregs = dregs;
 
     if (sregs->empty() && dregs->empty()) // Nothing to do!
         return ret;
 
-    // Prepare the regions
-    for (unsigned int i = 0; i < sregs->size(); i++) {
-        (*sregs)[i].isdst = 0;
-        if ((*sregs)[i].v.size() < 3) {
-            sregs->erase(sregs->begin() + i);
-            i--;
-        }
-    }
-    for (unsigned int i = 0; i < dregs->size(); i++) {
-        (*dregs)[i].isdst = 1;
-        if ((*dregs)[i].v.size() < 3) {
-            dregs->erase(dregs->begin() + i);
-            i--;
-        }
-    }
-    
-    
     // Match the faces to pairs of faces in the source- and destination-realm
+    // If we are in the evaporation (or condensation) phase, just try to match
+    // equal faces by their lower left point.
     vector<pair<Face *, Face *> > matches;
     if (!evap)
         matches = matchFaces(sregs, dregs, depth, matchingStrategy, args);
@@ -316,25 +136,36 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
             MFaces fcs = interpolate(&rp.scvs, &rp.dcvs, depth+1, evap, args);
 
             // Now check if the interpolations intersect in any way
-            handleIntersections(fcs, rp.mface, evap, false);
-//            handleIntersections(fcs, rp.mface, false, true);
+            handleIntersections(fcs, rp.mface, evap);
 
+            // Inherit if the interpolation needs a evaporisation- or
+            // condensation-phase
             ret.needSEvap = ret.needSEvap || fcs.needSEvap;
             ret.needDEvap = ret.needDEvap || fcs.needDEvap;
 
+            // Try to merge the recursively created moving segments with the
+            // parent rp.mface
             for (unsigned int i = 0; i < fcs.faces.size(); i++) {
-                if (fcs.faces[i].face.ignore)
-                    continue;
-                rp.mface.AddConcavity(fcs.faces[i].face);
+                // The holes of the faces are new faces now
+                // Since they should be completely contained by their parent,
+                // an intersection-check is unnecessary. Intersections with
+                // each other were already checked one recursion level lower.
                 for (unsigned int j = 0; j < fcs.faces[i].holes.size(); j++) {
                     MFace fc(fcs.faces[i].holes[j]);
                     ret.AddFace(fc);
                 }
+                // Add the cycles to its parent
+                rp.mface.AddConcavity(fcs.faces[i].face);
             }
 
+            // and try to merge them into the cycle here (otherwise they are
+            // added as a hole)
             rp.mface.MergeConcavities();
+            // Now the resulting moving face is added to the return value
             ret.AddFace(rp.mface);
         } else {
+            // Our face doesn't have a partner, so the recursion stops here and
+            // we collapse (or expand) the face together with its holes
             Face *r = src ? src : dst;
             MFace coll = r->collapseWithHoles(r == src);
             ret.AddFace(coll);
@@ -343,91 +174,139 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
 
     // Toplevel-Intersections are still not handled yet, do that now.
     if (depth == 0) {
-        handleIntersections(ret, MFace(), evap, false);
-//        handleIntersections(ret, MFace(), evap, true);
+        handleIntersections(ret, MFace(), evap);
     }
 
     return ret;
 }
 
-void handleIntersections(MFaces& children, MFace parent, bool evap, bool rs) {
-    vector<MSegs> evp;
+/*
+ 1.3 handleIntersections checks the newly created moving faces ~children~ 
+ for intersection with each other or their parent ~parent~.
+ 
+ If a real interpolation intersects, then we remove it and collapse/expand the
+ source- and destinationface of that moving face. If both intersecting moving
+ faces are already collapsed or expanded, then one of them is removed and we
+ need an evaporation- or condensationphase.
+ If we currently are in the evaporation- or condensationphase, then ~evap~ is
+ set and we handle intersections a little different.
+ 
+*/
+void handleIntersections(MFaces& children, MFace parent, bool evap) {
+    vector<MSegs> evp; // The list of evaporation-mfaces
     
+    // precalculate the bounding boxes of the children and the parent
     for (int i = 0; i < (int) children.faces.size(); i++) {
         children.faces[i].face.calculateBBox();
     }
     parent.face.calculateBBox();
 
+    // Now check all pairs of faces of children and the parent, but skip
+    // symmetric and reflexive pairs.
     for (int i = 0; i < (int) children.faces.size(); i++) {
         MSegs *s1 = &children.faces[i].face;
-//        cerr << "Checking i = " << i << "\n" << s1->ToString() << "\n";
         for (int j = 0; j <= i; j++) {
-//            cerr << "Checking " << i << "/" << j << " total " <<
-//            children.faces.size() << "\n";
             MSegs *s2 = (j == 0) ? &parent.face : &children.faces[j - 1].face;
 
             if (s1->intersects(*s2, false, false)) {
+                // We have found two intersecting moving faces.
                 pair<MSegs, MSegs> ss;
                 if (!s1->iscollapsed && !evap) {
-                    ss = s1->kill();
+                    // If this moving face is not collapsed and we do not
+                    // evaporate then break the connection and collapse/expand 
+                    // the related faces.
+                    ss = s1->kill(); // Create the pair of MSegs
+                    // Remove the original object from the list
                     children.faces.erase(children.faces.begin()+i);
                 } else if (!s2->iscollapsed && (s2 != &parent.face)
                         && !evap) {
+                    // s1 already was collapsed but s2 is not, so this is the
+                    // victim now. Refuse to remove the parent.
                     ss = s2->kill();
                     children.faces.erase(children.faces.begin() + (j-1));
                 } else {
+                    // Both intersecting objects are already collapsing or
+                    // expanding (or we are evaporating right now)
                     MSegs *rm;
                     if (evap) {
-                        if (!(s1->iscollapsed || s2->iscollapsed)) {
-                            cerr << "Intersection " << s1->ToString() << "\n"
-                                 << s2->ToString() << "\n";
-                        }
-                        assert(s1->iscollapsed || s2->iscollapsed);
+                        // Evaporation- or Condensation-Phase.
+                        // Minimum one of the two definitively is already
+                        // collapsing/expanding, choose this one
                         if (s1->iscollapsed)
                             rm = s1;
                         else
                             rm = s2;
                         vector<MSegs> ms;
+                        // iscollapsed is 1, if the mface is collapsing,
+                        // otherwise (2) it is expanding and we have to
+                        // condensate it
                         if (rm->iscollapsed == 1) {
                             ms = rm->sreg.Evaporate(true);
                         } else {
                             ms = rm->dreg.Evaporate(false);
                         }
+                        // Insert the evaporation-cycles into the list
                         evp.insert(evp.end(), ms.begin(), ms.end());
-                        cerr << "Intersection found, evaporating\n";
                     } else {
+                        // We are in the main interpolation and cannot
+                        // compensate this intersection. Remove one offending
+                        // object and save, that we have to evaporate or
+                        // condensate to fix that up.
                         rm = s1;
+                        // iscollapsed is 1, if the mface is collapsing,
+                        // otherwise (2) it is expanding and we have to
+                        // do a condensation-phase
                         if (rm->iscollapsed == 1)
                             children.needSEvap = true;
                         else
                             children.needDEvap = true;
-                        cerr << "Intersection found, but cannot "
-                                "compensate! Eliminating Region\n";
-//                        cerr << rm->ToString() << "\n";
                     }
+                    // Simply erase the offending object from the list now,
+                    // either we have already created evaporisation/condensation
+                    // cycles or we marked that we have to fix things up later
                     children.faces.erase(children.faces.begin()+
                                          (rm == s1 ? i : j - 1));
+                    // Restart the checks with the last face, since we changed
+                    // the lists
                     i--;
                     break;
                 }
-                cerr << "Intersection found, breaking up connection\n";
+                // Add the collapse- and expand-cycles
                 children.faces.push_back(ss.first);
                 children.faces.push_back(ss.second);
+                // Restart the checks one object earlier, since we removed
+                // the current object and the following objects filled the gap.
                 i-=2;
                 break;
             }
         }
     }
 
+    // Insert the evaporation- and condensation-cycles into the list of faces
     children.faces.insert(children.faces.end(), evp.begin(), evp.end());
 }
 
+// Configure the fallbacks with their arguments here, in case the interpolation
+// failed for some reason.
+static struct {
+    vector<pair<Face*,Face*> > (*matchingStrategy)(vector<Face>*,vector<Face>*,
+                                                   int,string);
+    string args;
+} fallbacks[] = {
+#ifdef USE_LUA
+    { matchFacesLua, "Overlap:1" },
+    { matchFacesLua, "MW" },
+#endif
+    { matchFacesNull, "" },
+    { NULL, "" }
+};
 
-
-
-
-#define USE_LISTS 1
-
+/*
+ 1.4 interpolate2valmap is the interface to the Secondo-Algebra
+ RegionInterpolation2Algebra and called for the database function interpolate2.
+ The result is an mregion.
+ 
+*/
 int interpolate2valmap(Word* args,
         Word& result,
         int message,
@@ -438,13 +317,13 @@ int interpolate2valmap(Word* args,
     Instant* ti1 = static_cast<Instant*> (args[1].addr);
     Instant* ti2 = static_cast<Instant*> (args[3].addr);
     CcString* arg = static_cast<CcString*> (args[4].addr);
-    MRegion* m = static_cast<MRegion*> (result.addr);
 
     Interval<Instant> iv(*ti1, *ti2, true, true);
 
+    // We create the Face-objects from the NestedList-representation of the
+    // regions, this interface seems most stable.
     ListExpr _sregs = OutRegion(nl->Empty(), args[0]);
     ListExpr _dregs = OutRegion(nl->Empty(), args[2]);
-
     vector<Face> sregs = Face::getFaces(_sregs);
     vector<Face> dregs = Face::getFaces(_dregs);
 
@@ -454,31 +333,35 @@ int interpolate2valmap(Word* args,
     matchingStrategy = matchFacesDistance;
 #endif
     
+    // Create the interpolation from the lists of faces
     MFaces mf = interpolate(&sregs, &dregs, 0, false, arg->GetValue());
-
-#ifdef USE_LISTS
-    ListExpr mreg = mf.ToMListExpr(iv);
-
-    ListExpr err;
+    ListExpr err, mreg = mf.ToMListExpr(iv);
     bool correct = false;
     Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
+    int i = 0;
+    
+    while (!correct) {
+        // Import failed, try the next fallback...
+        matchingStrategy = fallbacks[i++].matchingStrategy;
+        if (!matchingStrategy) 
+            break; // Last fallback reached, bail out
+        mf = interpolate(&sregs, &dregs, 0, false, fallbacks[i].args);
+        mreg = mf.ToMListExpr(iv);
+        w = InMRegion(nl->Empty(), mreg, 0, err, correct);
+    }
     
     if (correct)
         result.setAddr(w.addr);
     else {
+        // We still do not have a correct mregion, try the last fallback
         mreg = MFaces::fallback(&sregs, &dregs, iv);
-        //        Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
+        Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
         if (correct)
             result.setAddr(w.addr);
         else {
-            MRegion mr = mf.ToMRegion(iv);
-            *m = mr;
+            // Yield a database error here.
         }
     }
-#else    
-    MRegion mr = mf.ToMRegion(iv);
-    *m = mr;
-#endif
 
     return 0;
 }

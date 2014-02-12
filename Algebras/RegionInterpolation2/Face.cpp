@@ -269,9 +269,9 @@ vector<Pt> Face::getPoints() {
  
 */
 static bool leftOf(Pt pt1, Pt pt2, Pt next) {
-    long double sign = ((pt2.x - pt1.x)*(next.y - pt1.y)
+    long double tmp = ((pt2.x - pt1.x)*(next.y - pt1.y)
             -(next.x - pt1.x)*(pt2.y - pt1.y));
-    return sign >= 0;
+    return tmp >= 0;
 }
 
 // helper-function to sort the points by angle. If the angle is identical, the

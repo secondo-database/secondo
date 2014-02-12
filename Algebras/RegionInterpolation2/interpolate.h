@@ -5,7 +5,7 @@
 #define INTERPOLATE_HXX
 
 #define LUA5_1
-//#define LUA5_2
+#define LUA5_2
 
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA
@@ -140,7 +140,7 @@ public:
 
 class MSegs {
 public:
-    int ignore, iscollapsed, id;
+    int iscollapsed, id;
     vector<MSeg> msegs;
     Face sreg, dreg;
     pair<Pt,Pt> bbox;
@@ -226,5 +226,17 @@ Word InMRegion(const ListExpr typeInfo,
         const int errorPos,
         ListExpr& errorInfo,
         bool& correct);
+
+vector<pair<Face *, Face *> > matchFacesSimple(vector<Face> *src,
+        vector<Face> *dst, int depth, string args);
+vector<pair<Face *, Face *> > matchFacesNull(vector<Face> *src,
+        vector<Face> *dst, int depth, string args);
+vector<pair<Face *, Face *> > matchFacesLowerLeft(vector<Face> *src,
+        vector<Face> *dst, int depth, string args);
+vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
+        vector<Face> *dst, int depth, string args);
+vector<pair<Face *, Face *> > matchFacesLua(vector<Face> *src,
+        vector<Face> *dst, int depth, string args);
+
 
 #endif /* INTERPOLATE_HXX */

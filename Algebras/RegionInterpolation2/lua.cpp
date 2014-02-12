@@ -7,10 +7,10 @@
 
 #include <vector>
 #include <set>
-#if defined(LUA5_1)
-#include <lua5.1/lua.hpp>
-#elif defined(LUA5_2)
+#if defined(LUA5_2)
 #include <lua5.2/lua.hpp>
+#elif defined(LUA5_1)
+#include <lua5.1/lua.hpp>
 #else
 #error "Unknown Lua-Version"
 #endif
@@ -110,6 +110,8 @@ int luaInit(void) {
     lua_pushcfunction(L, lua_overlap);
     lua_setglobal(L, "overlap");
     lua_pushcfunction(L, lua_points);
+    lua_setglobal(L, "centroid");
+    lua_pushcfunction(L, lua_centroid);
     lua_setglobal(L, "points");
     lua_pushcfunction(L, lua_area);
     lua_setglobal(L, "area");
