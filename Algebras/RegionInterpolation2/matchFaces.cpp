@@ -125,31 +125,28 @@ vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
     return ret;
 }
 
+// Helper function for matchFacesLowerLeft below to sort a list of faces by
+// their lower-(leftmost)-point
 static bool sortLowerLeft(const Face& r1, const Face& r2) {
     return r1.v[0].s < r2.v[0].s;
 }
 
+/*
+ 1.4 matchFacesLowerLeft matches the faces by the lowest-(leftmost)-point.
+ It is used in the evaporation-phase, when we only need to match faces
+ with identical hull.
+ 
+*/
 vector<pair<Face *, Face *> > matchFacesLowerLeft(vector<Face> *src,
         vector<Face> *dst, int depth, string args) {
     vector<pair<Face *, Face *> > ret;
 
-    for (unsigned int i = 0; i < src->size(); i++) {
-        (*src)[i].used = 0;
-        (*src)[i].Close();
-        if (!(*src)[i].v.size())
-            (*src)[i].used = 1;
-    }
-    for (unsigned int i = 0; i < dst->size(); i++) {
-        (*dst)[i].used = 0;
-        (*dst)[i].Close();
-        if (!(*dst)[i].v.size())
-            (*dst)[i].used = 1;
-    }
-
+    // Sort the faces by their lower-(leftmost)-point which is always the first
+    // point if the face is sorted correctly (which it should be!)
     std::sort(src->begin(), src->end(), sortLowerLeft);
     std::sort(dst->begin(), dst->end(), sortLowerLeft);
 
-
+    // Traverse the two lists in parallel and try to find matches
     unsigned int i = 0, j = 0;
     while (i < src->size() && j < dst->size()) {
         Pt p1 = (*src)[i].v[0].s;

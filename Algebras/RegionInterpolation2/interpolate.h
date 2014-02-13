@@ -9,7 +9,8 @@
 
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA
-#define LUA_ADD_FUNCTION(FNAME) lua_pushcfunction(L, lua_ ## FNAME); \
+#define LUA_FUNCTION(FNAME) int luafunc_ ## FNAME(lua_State *L)
+#define LUA_ADD_FUNCTION(FNAME) lua_pushcfunction(L, luafunc_ ## FNAME); \
                                 lua_setglobal(L, #FNAME)
 #endif
 
