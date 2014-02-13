@@ -104,11 +104,11 @@ double Pt::sign(const Pt& a, const Pt& b, const Pt& c) {
 }
 
 /*
- 1.8 insideTriangle checks, if the point x is inside the triangle (abc).
+ 1.8 insideTriangle checks, if the point x is inside the triangle (a b c).
  This is exactly the case, if the point x is on the same side of all three
  triangle-segments (a b), (b c) and (c a).
- * left,  when the triangle (abc) is counterclockwise oriented)
- * right, when the triangle (abc) is clockwise oriented)
+ * left,  when the triangle (a b c) is counterclockwise oriented)
+ * right, when the triangle (a b c) is clockwise oriented)
  
 */
 bool Pt::insideTriangle(const Pt& a, const Pt& b, const Pt& c, const Pt& x) {

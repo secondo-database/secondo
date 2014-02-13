@@ -229,7 +229,7 @@ bool MSeg::Merge(const MSeg& m) {
             fp.push_back(fe);
     } else if ((m.ie == is) && (m.fe == fs)) {
         // The MSeg to merge is adjacent to the begin of this MSeg, so correct
-        // the startpoints of this MSeg
+        // the initial-pointlist of this MSeg
         is = m.is;
         fs = m.fs;
         

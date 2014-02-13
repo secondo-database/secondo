@@ -5,10 +5,12 @@
 #define INTERPOLATE_HXX
 
 #define LUA5_1
-#define LUA5_2
+//#define LUA5_2
 
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA
+#define LUA_ADD_FUNCTION(FNAME) lua_pushcfunction(L, lua_ ## FNAME); \
+                                lua_setglobal(L, #FNAME)
 #endif
 
 #define URMODE2

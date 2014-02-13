@@ -1,4 +1,10 @@
 /*
+ 1 RegionInterpolation2Algebra
+ 
+ Specifies a new Secondo-algebra for interpolating two regions.
+ This algebra defines a new operator ~interpolate2~, which takes two regions
+ and instants, and creates an interpolated mregion.
+ 
 */
 
 #include "Algebra.h"
@@ -17,6 +23,12 @@ int interpolate2valmap(Word* args,
         Word& local,
         Supplier s);
 
+/*
+ 1.1 interpolate2typemap checks, if the number and type of arguments is
+ correct. The function takes exactly two region-objects and two instants and
+ an optional parameter-string.
+ 
+*/
 ListExpr interpolate2typemap(ListExpr args) {
     string err = "region x instant x region x instant [x string] expected";
     int len = nl->ListLength(args);
@@ -35,7 +47,7 @@ ListExpr interpolate2typemap(ListExpr args) {
     if (!Instant::checkType(nl->Fourth(args))) {
         return listutils::typeError(err);
     }
-    if (len == 4) {
+    if (len == 4) { // By default, the parameter string is empty
         return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                 nl->OneElemList(nl->StringAtom("", true)),
                 nl->SymbolAtom(MRegion::BasicType()));

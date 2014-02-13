@@ -30,7 +30,7 @@ void MFaces::AddFace(MFace face) {
 /*
  1.3 CreateBorderMFaces constructs a new MFaces-Object which 
  statically represents the situation at the start or end of the
- timeinterval (depending on the parameter ~src~).
+ time-interval (depending on the parameter ~src~).
  
 */
 MFaces MFaces::CreateBorderMFaces(bool src) {
@@ -47,7 +47,7 @@ MFaces MFaces::CreateBorderMFaces(bool src) {
 
 /*
  1.4 CreateBorderFaces creates a list of Faces representing the region at the
- start (or the end, depending on the parameter ~src~) of the timeinterval.
+ start (or the end, depending on the parameter ~src~) of the time-interval.
  
 */
 vector<Face> MFaces::CreateBorderFaces(bool src) {
@@ -60,7 +60,7 @@ vector<Face> MFaces::CreateBorderFaces(bool src) {
     return ret;
 }
 
-// Helper function, which appends a List-item to the end of a list.
+// Helper function, which appends a list-item to the end of a list.
 static void Append(ListExpr &head, ListExpr l) {
     if (l == nl->Empty())
         return;
@@ -84,7 +84,7 @@ ListExpr MFaces::ToListExpr(Interval<Instant> iv, double start, double end) {
     if (start == 0 && end == 1) {
         // No restrictions, so we can start the real work
         
-        // Build the ListExpr for the timeinterval
+        // Build the ListExpr for the time-interval
         ListExpr interval = nl->Empty();
         Append(interval, nl->StringAtom(iv.start.ToString(false), true));
         Append(interval, nl->StringAtom(iv.end.ToString(false), true));
@@ -243,7 +243,7 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
 
 /*
  1.8 ToURegion converts this MFaces-object into a uregion using the given
- timeinterval (honoring the restrictions ~start~ and ~end~). Only used by
+ time-interval (honoring the restrictions ~start~ and ~end~). Only used by
  ToMRegion below.
  
 */
@@ -397,12 +397,12 @@ MRegion MFaces::ToMRegion(Interval<Instant> iv) {
  This function tries to create a mregion-ListExpression is such a simple manner,
  that no errors are to be expected in any case:
  
- * Divide the timeinterval in two halves
+ * Divide the time-interval in two halves
  * The first half shows statically the source region
  * The second half shows statically the destination region
  
  If the source- and destination-faces are valid, this can only fail if the
- timeinterval is too short. One of the intervals must be half-open and so has
+ time-interval is too short. One of the intervals must be half-open and so has
  to have a minimum duration.
 
 */

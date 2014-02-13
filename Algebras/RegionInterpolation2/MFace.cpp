@@ -159,24 +159,9 @@ static ListExpr CycleToListExpr(MSegs face);
 void MFace::MergeConcavities() {
     Check();
     for (unsigned int i = 0; i < cvs.size(); i++) {
-        MFace check(cvs[i]);
-        // Should never happen, since handleIntersections should have taken
-        // care of that.
-        if (face.intersects(cvs[i], false, false))
-            assert(false);
-        cerr << "Merging\n";
-        cerr << face.ToString() << "\n"; 
-        PrintMRegionListExpr();
-        cerr << "\nwith\n";
-        cerr << cvs[i].ToString() << "\n";
-        check.PrintMRegionListExpr();
-        cerr << "\n";
-        
         if (face.MergeConcavity(cvs[i])) {
             // Merging the concavity into the cycle was successful.
-            cerr << "Merged\n";
             PrintMRegionListExpr();
-            Check();
         } else {
             // Merging the concavity into the cycle was not successful, add
             // this cycle to the list of holes.
@@ -191,8 +176,6 @@ void MFace::MergeConcavities() {
         }
     }
     
-    Check();
-
     // All Concavities have been handled, clear the list.
     cvs.erase(cvs.begin(), cvs.end());
 }
@@ -201,21 +184,18 @@ void MFace::MergeConcavities() {
  1.6 Create a URegion-Object from this MFace
  
  As the time of this writing, the URegion-Constructor didn't work properly, so
- the resulting URegion is broken.
+ the resulting URegion would be broken.
  
 */
 URegion MFace::ToURegion(Interval<Instant> iv, int facenr) {
-    // First of all handle the list of pending concavities.
-    MergeConcavities();
-    
-    // Then create the MSegments from this cycle
+    // Create the MSegmentData-objects from this cycle
     vector<MSegmentData> ms = face.ToMSegmentData(facenr, 0, 0);
     for (unsigned int i = 0; i < holes.size(); i++) {
         vector<MSegmentData> h = holes[i].ToMSegmentData(facenr, i + 1,
                 ms.size());
         ms.insert(ms.end(), h.begin(), h.end());
     }
-    // Finally construct the URegion
+    // Finally, construct the URegion
     URegion ret(ms, iv);
 
     return ret;
@@ -254,7 +234,7 @@ static ListExpr CycleToListExpr(MSegs face) {
 
 /*
  1.8 ToListExpr converts this face and its holes to a NestedList-Expression
- suitable to be embedded in a uregion- or mregion-Nestedlist
+ suitable to be embedded in a uregion- or mregion-NestedList
  
  
 */
@@ -282,9 +262,9 @@ void MFace::PrintMRegionListExpr() {
 
 /*
  1.10 divide is used to create a MFace from this MFace over a part of the whole
- timeinterval.
+ time-interval.
  For example: divide(0.0, 0.5) creates an MFace over the first half of the
- original timeinterval.
+ original time-interval.
  
 */
 MFace MFace::divide(double start, double end) {
@@ -324,7 +304,7 @@ string MFace::ToString() {
  
  If the parameter ~src~ is TRUE, then the face is created from the initial
  segments of the MSegs (thus representing the state at the start of the
- timeinterval), otherwise from the final segments.
+ time-interval), otherwise from the final segments.
  
 */
 Face MFace::CreateBorderFace(bool src) {

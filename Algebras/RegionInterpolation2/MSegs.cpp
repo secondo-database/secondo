@@ -52,7 +52,7 @@ bool MSegs::MergeConcavity(MSegs c) {
         }
     }
     
-    // If the Fast path can be used, then we can find identical MSeg-objects
+    // If the fast-path can be used, then we can find identical MSeg-objects
     // by sorting both lists and comparing them step-by-step.
     if (fastPath) {
         std::sort(msegs.begin(), msegs.end());
@@ -162,12 +162,13 @@ vector<MSegmentData> MSegs::ToMSegmentData(int face, int cycle, int segno) {
  1.5 Check if the MSeg-objects of two MSegs intersect
  
  If matchIdent is set, then also complain if two MSeg-objects are identical.
- If matchSegs is set, the initial and final Segs are also checked for overlap.
+ If matchSegs is set, the initial and final segments are also checked for
+ overlap.
  
 */
 bool MSegs::intersects(const MSegs& a, bool matchIdent, bool matchSegs) const {
 
-    // Fast path if the boundingboxes are disjoint
+    // Fast path if the bounding-boxes are disjoint
     if ((bbox.first.x > a.bbox.second.x) ||
         (a.bbox.first.x > bbox.second.x) ||
         (bbox.first.y > a.bbox.second.y) ||
@@ -225,14 +226,12 @@ Face MSegs::CreateBorderFace(bool initial) {
 pair<MSegs, MSegs> MSegs::kill() {
     MSegs src = CreateBorderFace(true).collapse(true);
     MSegs dst = CreateBorderFace(false).collapse(false);
-//    MSegs src = sreg.collapse(true);
-//    MSegs dst = dreg.collapse(false);
 
     return pair<MSegs, MSegs>(src, dst);
 }
 
 /*
- 1.8 divide is used to restrict the timeinterval of the MSeg-objects of this
+ 1.8 divide is used to restrict the time-interval of the MSeg-objects of this
  cycle to the given boundaries.
  Example: divide(0.0, 0.5) would restrict to the first half of the whole
  interval.
@@ -246,7 +245,7 @@ MSegs MSegs::divide(double start, double end) {
 
     for (unsigned int i = 0; i < msegs.size(); i++) {
         MSeg m = msegs[i].divide(start, end);
-        // Ignore degenerated moving segments. This can happenif the interval
+        // Ignore degenerated moving segments. This can happen if the interval
         // is restricted to the start- or endpoint.
         if (m.is == m.ie && m.fs == m.fe)
             continue;
@@ -270,8 +269,8 @@ int MSegs::findNext(int index) {
     for (unsigned int i = 0; i < nrsegs; i++) {
         int nindex = (i + index) % nrsegs;
         MSeg *s2 = &msegs[nindex];
-        // We have found a successor, if the initial and final startpoints match
-        // the initial and final endpoints of the current MSeg.
+        // We have found a successor, if the initial and final start-points
+        // match the initial and final endpoints of the current MSeg.
         if (s1->ie == s2->is && s1->fe == s2->fs) {
             if (ret == -1) {
                 ret = nindex;
@@ -331,7 +330,7 @@ pair<Pt, Pt> MSegs::calculateBBox() {
         bbox = pair<Pt, Pt>(Pt(0, 0), Pt(0, 0));
     } else {
         bbox.first.valid = bbox.second.valid = 0;
-        // Enlarge the current boundingbox MSeg by MSeg.
+        // Enlarge the current bounding-box MSeg by MSeg.
         for (unsigned int i = 0; i < msegs.size(); i++) {
             updateBBox(msegs[i]);
         }

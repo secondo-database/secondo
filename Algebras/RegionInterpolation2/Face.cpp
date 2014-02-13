@@ -14,7 +14,7 @@ Face::Face() : cur(0), ishole(false) {
 }
 
 /*
-  1.1 Constructs a face from a region-listexpression
+  1.1 Constructs a face from a region-listexpression.
 
 */
 Face::Face(ListExpr tle) : cur(0), parent(NULL), ishole(false) {
@@ -129,7 +129,7 @@ void Face::Sort() {
 
 /* 
   1.6 sortSegs sorts a list of segments to be in the correct order of a cycle.
-  A cycle should begin with the lowest-(leftest)-point and then go counter-
+  A cycle should begin with the lowest-(leftmost)-point and then go counter-
   clockwise.
 
 */
@@ -155,8 +155,8 @@ vector<Seg> Face::sortSegs(vector<Seg> v) {
         }
     }
 
-    /* Find the corresponding segment with the lowest
-     * end-point and change its direction to compare the angle*/
+    // Find the corresponding segment with the lowest
+    // end-point and change its direction to compare the angle
     for (unsigned int i = 0; i < v.size(); i++) {
         if ((v[i].e.x == minx) && (v[i].e.y == miny)) {
             start2 = i;
@@ -165,9 +165,9 @@ vector<Seg> Face::sortSegs(vector<Seg> v) {
     }
     minseg2.ChangeDir();
 
-    /* If the angle of the segment with the lowest end-point is less than
-     * the segment with the lowest start-point, then the segments are oriented
-     * clockwise at the moment, so we have to change their direction */
+    // If the angle of the segment with the lowest end-point is less than
+    // the segment with the lowest start-point, then the segments are oriented
+    // clockwise at the moment, so we have to change their direction
     if (minseg2.angle() < minseg1.angle()) {
         for (unsigned int i = 0; i < v.size(); i++) {
             v[i].ChangeDir();
@@ -175,8 +175,8 @@ vector<Seg> Face::sortSegs(vector<Seg> v) {
         start = start2;
     }
 
-    /* Now go and seek the next segment for each segment and put it ordered
-     * into a list */
+    // Now go and seek the next segment for each segment and put it ordered
+    // into a list
     Seg cur = v[start];
     Seg startseg = cur;
     ret.push_back(cur);
@@ -192,8 +192,8 @@ vector<Seg> Face::sortSegs(vector<Seg> v) {
             }
         }
         assert(found); // This should never happen on a complete cycle.
-        /* If the endpoint of this segment is the startpoint of the first, we
-         * are done.                                                         */
+        // If the endpoint of this segment is the startpoint of the first, we
+        // are done.
         if (cur.e == startseg.s)
             break;
     }
@@ -231,8 +231,8 @@ void Face::AddSeg(Seg a) {
 }
 
 /*
- 1.8 Close completes the cycle if this is not already the case and precalculates
- the convex hull.
+ 1.8 Close completes the cycle if this is not already the case and
+ pre-calculates the convex hull.
  
 */
 void Face::Close() {
@@ -264,7 +264,7 @@ vector<Pt> Face::getPoints() {
 }
 
 /*
- 1.9 leftOf determines if the point ~next~ is left of the segment (pt1 pt2).
+ 1.9 leftOf determines if the point ~next~ is left of the segment (~pt1~ ~pt2~).
  It also returns true if it is on the line.
  
 */
@@ -287,7 +287,7 @@ static bool sortAngle(const Pt& a, const Pt& b) {
 /*
  1.10 ConvexHull calculates the convex hull of this face and returns it as a
  new face.
- Cornerpoints on the convex hull are treated as members of the hull.
+ Corner-points on the convex hull are treated as members of the hull.
  
 */
 Face Face::ConvexHull() {
@@ -295,22 +295,22 @@ Face Face::ConvexHull() {
     convexhull.erase(convexhull.begin(), convexhull.end());
     vector<Pt> lt = getPoints();
 
-    // Sort the points by the y-axis, begin with the lowest-(leftest) point
+    // Sort the points by the y-axis, begin with the lowest-(leftmost) point
     std::sort(lt.begin(), lt.end());
 
     // Now calculate the polar coordinates (angle and distance of each point
-    // with the lowest-(leftest) point as origin.
+    // with the lowest-(leftmost) point as origin.
     for (unsigned int a = 1; a < lt.size(); a++) {
         lt[a].calcAngle(lt[0]);
     }
     // Sort the other points by their angle (startpoint lt[0] remains in place)
     std::sort(lt.begin()+1, lt.end(), sortAngle);
 
-    // since we want the cornerpoints on the hull, too, we need to list the
+    // since we want the corner-points on the hull, too, we need to list the
     // points with the lowest angle in counter-clockwise order. We sorted with
     // descending distance as second criterion, so we need to reverse these.
     // For that reason the points with the highest angle are already in
-    // ccw-order.
+    // counter-clockwise order.
     
     std::vector<Pt>::iterator s = lt.begin() + 1, e = s; // Start with the
     // second point and find the last point with the same angle.
@@ -332,17 +332,17 @@ Face Face::ConvexHull() {
         Pt next = lt[a]; // ... and the next candidate for the hull
         if (leftOf(point2, point1, next)) {
             // If the candidate is left of (or on) the segment made up of the
-            // twp topmost points on the stack, we assume it is part of the hull
+            // two topmost points on the stack, we assume it is part of the hull
             uh.push_back(next); // and push it on the stack
             a++;
         } else {
             uh.pop_back(); // Otherwise it is right of the hull and the topmost
-                           // point is definitively _not_ part of the hull, so
+                           // point is definitively not part of the hull, so
                            // we kick it.
         }
     }
 
-    // Now make a face from the points on the convex hull, which the vector uh
+    // Now make a face from the points on the convex hull, which the vector ~uh~
     // now contains in counter-clockwise order.
     for (unsigned int i = 0; i < uh.size(); i++) {
         Pt p1 = uh[i];
@@ -413,7 +413,7 @@ MSegs Face::collapse(bool close, Pt dst) {
 
     for (unsigned int i = 0; i < v.size(); i++) {
         if (close) {
-            // The final segmens are degenerated to the collapse-point
+            // The final segments are degenerated to the collapse-point
             ret.AddMSeg(MSeg(v[i].s, v[i].e, dst, dst));
         } else {
             // The initial segments are degenerated to the expand-point
@@ -542,7 +542,7 @@ Pt Face::GetCentroid() {
 }
 
 /*
-  1.21 distance calculates the distance of the middlepoints of the bounding-
+  1.21 distance calculates the distance of the center-points of the bounding-
   boxes of this face to the given face.
  
 */
@@ -595,9 +595,7 @@ pair<Pt, Pt> Face::GetBoundingBox(vector<Face> regs) {
 pair<Pt, Pt> Face::GetBoundingBox(set<Face*> regs) {
     if (regs.empty())
         return pair<Pt, Pt>(Pt(0, 0), Pt(0, 0));
-    //    assert(*(*(regs.begin()))->v.size() > 0);
-
-    //    Reg *r = *(regs.begin());
+    
     pair<Pt, Pt> ret = (*(regs.begin()))->bbox;
 
     for (std::set<Face*>::iterator it = regs.begin(); it != regs.end(); ++it) {
@@ -678,7 +676,7 @@ Face Face::ClipEar() {
                 continue;
             }
 
-            // Otherwise check, if any point is inside the triangle (abc)
+            // Otherwise check, if any point is inside the triangle (a b c)
             bool inside = false;
             for (unsigned int j = 0; j < (n - 3); j++) {
                 Pt x = v[(i + j + 3) % n].s;
@@ -724,7 +722,7 @@ Face Face::ClipEar() {
 void Face::IntegrateHoles() {
     vector<Seg> allsegs = v;
 
-    // First, get a list of all segments (inclusively the holes' segments)
+    // First, get a list of all segments (inclusively all holes' segments)
     for (unsigned int i = 0; i < holes.size(); i++) {
         allsegs.insert(allsegs.end(), holes[i].v.begin(), holes[i].v.end());
     }

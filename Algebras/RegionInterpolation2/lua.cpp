@@ -1,4 +1,11 @@
 /*
+ 1 Lua-interface to matchFaces-strategies.
+
+ This file implements the Lua-interface for the matchFaces-strategies. Lua can
+ be activated and deactivated in interpolate.h (comment out the define of the
+ correct lua-version there. If both are commented, the lua-interface is not
+ compiled).
+ 
 */
 
 #include "interpolate.h"
@@ -15,19 +22,13 @@
 #error "Unknown Lua-Version"
 #endif
 
-static int SCALESIZE = 1000000;
-
 static lua_State *L = NULL;
 static void setfield(const char *key, int value);
+static void add_custom_functions();
 
-static int lua_distance(lua_State *L);
-static int lua_boundingbox(lua_State *L);
-static int lua_bboverlap(lua_State *L);
-static int lua_overlap(lua_State *L);
-static int lua_middle(lua_State *L);
-static int lua_area(lua_State *L);
-static int lua_points(lua_State *L);
-static int lua_centroid(lua_State *L);
+// The set of faces is scaled to the boundary-box (0/0) - (SCALESIZE/SCALESIZE)
+static int SCALESIZE = 1000000;
+
 
 static void setfield(const char *key, double value) {
     lua_pushstring(L, key);
@@ -99,22 +100,7 @@ int luaInit(void) {
         return -1;
     }
 
-    lua_pushcfunction(L, lua_distance);
-    lua_setglobal(L, "distance");
-    lua_pushcfunction(L, lua_middle);
-    lua_setglobal(L, "middle");
-    lua_pushcfunction(L, lua_boundingbox);
-    lua_setglobal(L, "boundingbox");
-    lua_pushcfunction(L, lua_bboverlap);
-    lua_setglobal(L, "bboverlap");
-    lua_pushcfunction(L, lua_overlap);
-    lua_setglobal(L, "overlap");
-    lua_pushcfunction(L, lua_points);
-    lua_setglobal(L, "centroid");
-    lua_pushcfunction(L, lua_centroid);
-    lua_setglobal(L, "points");
-    lua_pushcfunction(L, lua_area);
-    lua_setglobal(L, "area");
+    add_custom_functions();
 
     return 0;
 }
@@ -231,6 +217,17 @@ vector<pair<Face *, Face *> > __matchFacesLua(set<Face*> *src, set<Face*> *dst,
 
     return ret;
 }
+
+
+/*
+  3 C-Functions for Lua-scripts
+ 
+ Custom functions to be called from Lua-scripts should be defined here.
+ A prototype 
+ 
+*/
+
+
 
 static int lua_distance(lua_State *L) {
     if (!lua_islightuserdata(L, -1) || !lua_islightuserdata(L, -2))
@@ -395,6 +392,16 @@ vector<pair<Face *, Face *> > _matchFacesLua(vector<Face> *src,
         dstset.insert(&((*dst)[i]));
 
     return __matchFacesLua(&srcset, &dstset, depth, args);
+}
+
+static void add_custom_functions () {
+    LUA_ADD_FUNCTION(distance);
+    LUA_ADD_FUNCTION(middle);
+    LUA_ADD_FUNCTION(boundingbox);
+    LUA_ADD_FUNCTION(bboverlap);
+    LUA_ADD_FUNCTION(centroid);
+    LUA_ADD_FUNCTION(points);
+    LUA_ADD_FUNCTION(area);
 }
 
 #endif
