@@ -464,7 +464,8 @@ bboxSizeQuerySel(Term,Rel,[_,_,T],Size) :-
   SizeQueryT = avg(timeout(projectextend(RelQuery,
                                  [],
                                  [field(attr(NewAttr,0,l),size(bbox(Term)))]),
-                                            value_expr(real,Timeout)),NewAttr),
+                                     	value_expr(real,Timeout)), 
+					attrname(attr(NewAttr,0,l))),
   plan_to_atom(SizeQueryT,SizeQueryA),
   concat_atom(['query ',SizeQueryA],'',SizeQuery),
   dm(selectivity,['\nThe Avg-Size Query is: ', SizeQuery, '\n']),
@@ -518,7 +519,7 @@ bboxSizeQueryJoin(Term,Rel1,Rel2,[_,_,T],Size) :-
                 symmproduct(Rel1Query, Rel2Query),
                 [],
                 [field(attr(NewAttr,0,l),size(bbox(Term)))]),
-                value_expr(real,Timeout)),NewAttr)
+                value_expr(real,Timeout)), attrname(attr(NewAttr,0,l)))
          )
        )
     ;  ( ensureSampleSexists(DCrelName1),
@@ -535,14 +536,14 @@ bboxSizeQueryJoin(Term,Rel1,Rel2,[_,_,T],Size) :-
                          fun([param(txx1, tuple)], head(Rel2Query,JoinSize))),
                 [],
                 [field(attr(NewAttr,0,l),size(bbox(Term2)))]),
-                value_expr(real,Timeout)),NewAttr)
+                value_expr(real,Timeout)), attrname(attr(NewAttr,0,l)))
            ;  % New version uses slower symmproduct to enable a balanced stream
               % consumption within the timeout
               SizeQueryT = avg(timeout(projectextend(
                 symmproduct(head(Rel1Query,JoinSize),head(Rel2Query,JoinSize)),
                 [],
                 [field(attr(NewAttr,0,l),size(bbox(Term)))]),
-                value_expr(real,Timeout)),NewAttr)
+                value_expr(real,Timeout)), attrname(attr(NewAttr,0,l)))
          )
        )
   ),
