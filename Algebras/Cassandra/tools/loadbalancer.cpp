@@ -600,7 +600,7 @@ void printHelp(char* progName) {
   cerr << "Where <Mode> is rr or fs-n" << endl;
   cerr << "rr = round robin" << endl;
   cerr << "trr = multi-thraded round robin" << endl;
-  cerr << "rtrr-n = reliable multi-threaded rr" << endl:
+  cerr << "rtrr-n = reliable multi-threaded rr" << endl;
   cerr << "         acknowledge every n lines" << endl;
   cerr << "e.g. rtrr-10 " << endl;
   cerr << endl;
