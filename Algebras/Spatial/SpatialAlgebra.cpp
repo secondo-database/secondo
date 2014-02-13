@@ -14453,7 +14453,8 @@ SpatialBBoxMap( ListExpr args )
        SpatialTypeOfSymbol( arg1 ) != stpoint &&
        SpatialTypeOfSymbol( arg1 ) != stline &&
        SpatialTypeOfSymbol( arg1 ) != stpoints &&
-       SpatialTypeOfSymbol( arg1 ) != stsline ){
+       SpatialTypeOfSymbol( arg1 ) != stsline  &&
+       !Rectangle<2>::checkType(arg1) ){
     return listutils::typeError(errmsg);
   }
   if( (noargs == 2) &&
@@ -15816,6 +15817,9 @@ SpatialSelectBBox( ListExpr args )
 
   if (SpatialTypeOfSymbol( arg1 ) == stsline)
     return 4;
+  if(Rectangle<2>::checkType(arg1)){
+     return 5;
+  }
 
   return -1; // This point should never be reached
 }
@@ -19128,7 +19132,8 @@ ValueMapping spatialbboxmap[] = {
   SpatialBBox<Points>,
   SpatialBBox<Line>,
   SpatialBBox<Region>,
-  SpatialBBox<SimpleLine> };
+  SpatialBBox<SimpleLine>,
+  SpatialBBox<Rectangle<2> > };
 
 ValueMapping spatialtouchpointsmap[] = {
   SpatialTouchPoints_lr,
@@ -20090,7 +20095,7 @@ Operator spatialnosegments (
 Operator spatialbbox (
   "bbox",
   SpatialSpecBbox,
-  5,
+  6,
   spatialbboxmap,
   SpatialSelectBBox,
   SpatialBBoxMap );
