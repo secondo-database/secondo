@@ -1,12 +1,17 @@
 /* 
+ 1 interpolate.h is the main include file for the RegionInterpolation2Algebra.
+ All classes and functions are declared here.
+
 */
 
 #ifndef INTERPOLATE_HXX
 #define INTERPOLATE_HXX
 
+#include "MovingRegionAlgebra.h"
+
+// Choose the installed Lua-version here
 #define LUA5_1
 //#define LUA5_2
-
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA
 #define LUA_FUNCTION(FNAME) int luafunc_ ## FNAME(lua_State *L)
@@ -14,222 +19,250 @@
                                 lua_setglobal(L, #FNAME)
 #endif
 
-#define URMODE2
 
-#include "MovingRegionAlgebra.h"
-
+// Forward-declarations of the classes
+class Pt;
+class Seg;
+class Face;
+class MSeg;
 class MSegs;
 class MFace;
 class MFaces;
 
-class Pt {
+class Pt { // a point
 public:
+    // Fields
     double x, y;
     int valid;
     long double angle, dist;
 
+    //Constructors
     Pt();
     Pt(double x, double y);
+    
+    // Operators
     bool operator<(const Pt& a) const;
     bool operator==(const Pt& a) const;
     Pt operator-(const Pt& a) const;
     Pt operator+(const Pt& a) const;
     Pt operator/(double a) const;
     Pt operator*(const Pt& a) const;
-    bool sortAngle(const Pt& a) const;
-    void calcAngle(const Pt& pt);
-    double distance(Pt p);
+    
+    // Methods
+    bool lessPolar(const Pt& a) const;  // comparison by polar angle/distance
+    void calcPolar(const Pt& pt); // calculates polar coordinates with origin p
+    double distance(Pt p); // calculates the distance to p
     string ToString() const;
-    static double sign(const Pt& a, const Pt& b, const Pt& c);
+    
+    // Static functions
+    static double sign(const Pt& a, const Pt& b, const Pt& c); // checks order
     static bool insideTriangle(const Pt& a, const Pt& b, const Pt& c,
-            const Pt& x);
+            const Pt& x); // checks if x is inside the triangle (a b c)
 };
 
-class Seg {
+class Seg { // a segment
 public:
-    Pt s, e;
+    // Fields
+    Pt s, e;    // start- and endpoint
     int valid;
 
+    // Constructors
     Seg();
     Seg(Pt s, Pt e);
-    long double angle() const;
-    bool operator<(const Seg& a) const;
+    
+    // Operators
     bool operator==(const Seg& a) const;
+    bool operator<(const Seg& a) const;
+    
+    // Methods
+    long double angle() const; // calculates angle with x-axis
+    void ChangeDir(); // changes the direction of the segment
+    bool intersects(const Seg& seg) const; // checks for intersection with seg
     string ToString() const;
-    void ChangeDir();
-    bool intersects(const Seg& a) const;
-
 };
 
-class Face {
+class Face { // a face
 private:
     int cur;
 
 public:
-    Face *parent;
+    // Fields
+    vector<Seg> v; // the segments of this face in ccw-order (start lower-left)
+    vector<Face> holes; // the list holes of this face
+    vector<Seg> convexhull; // the convex hull
+    Face *parent; // the parent face of this face
+    Pt peerPoint; // point on a peer-face to collapse to
+    Seg hullSeg; // segment on hull of the parent face if this is a concavity
+    bool ishole; // true if this face is a hole in another face
+    int used; // used by matchFaces if this face was paired with another face
+    int isdst; // is this face from the source- or destination-region
+    pair<Pt, Pt> bbox; // bounding-box of this face
 
-    Pt peerPoint;
-    Seg hullSeg;
-    vector<Seg> convexhull;
-    vector<Seg> v;
-    vector<Face> holes;
-    bool ishole;
-    int used;
-    int isdst;
-    pair<Pt, Pt> bbox;
-
+    // Constructors
     Face();
-    Face(ListExpr le);
-    Face(vector<Seg> v);
-    void AddSeg(Seg a);
-    void Print();
-    void Close();
-    Face ConvexHull();
-    void Translate(int offx, int offy);
-    Seg Begin();
-    Seg Next();
-    Seg Prev();
-    Seg Cur();
-    bool End();
-    void Sort();
-    vector<Pt> getPoints();
-    vector<Face> Concavities();
-    vector<Face> Concavities2(Face *r2);
-    Region MakeRegion(bool withholes);
+    Face(ListExpr le);   // Construct from NestedList
+    Face(vector<Seg> v); // Construct from list of segments
+    
+    // Methods
+    void AddSeg(Seg a); // Add a new segment
+    void Close();       // Close the face
+    Face ConvexHull();  // Calculate the convex hull
+    void Translate(int offx, int offy); // Move the face by offx/offy
+    Seg Begin(); // Traversal: Go to first segment
+    Seg Next();  // Traversal: Advance one segment
+    Seg Prev();  // Traversal: Go back one segment
+    Seg Cur();   // Traversal: Get the current segment
+    bool End();  // Traversal: Check if we are past the last segment
+    void Sort(); // Sort the segments (start lower-left, counterclockwise)
+    vector<Pt> getPoints(); // Get the list of cornerpoints in correct order
+    Region MakeRegion(bool withholes); // create a region from this face
     Region MakeRegion(double offx, double offy, double scalex, double scaley,
-                      bool withholes);
-    pair<Pt, Pt> GetBoundingBox();
-    Pt GetMiddle();
-    Pt GetCentroid();
-    MSegs collapse(bool close);
-    MSegs collapse(bool close, Pt dst);
-    MFace collapseWithHoles(bool close);
-    Pt collapsePoint();
-    MSegs GetMSegs(bool triangles);
+                      bool withholes); // same with offset/scale
+    pair<Pt, Pt> GetBoundingBox(); // Get the bounding box of this face
+    Pt GetMiddle(); // Get the center of the bounding box
+    Pt GetCentroid(); // Calculate the centroid of this face
+    MSegs collapse(bool close); // collapse the face
+    MSegs collapse(bool close, Pt dst); // collapse the face to a given point
+    MFace collapseWithHoles(bool close); // include the holes when collapsing
+    Pt collapsePoint(); // Determine the best collapse point for this face
+    MSegs GetMSegs(bool triangles); // convert this face to a static moving face
+    double distance(Face r); // calculate the distance of the middle points
+    double GetArea(); // calculate the area of this face
+    Face ClipEar();  // Clip an ear for triangulation
+    vector<MSegs> Evaporate(bool close); // calculate evaporation-msegs
+    void AddHole (Face hole); // Add a new hole to this face
+    bool Check(); // Check, if this face is valid
+    void IntegrateHoles(); // Integrate holes into the cycle for triangulation
     string ToString() const;
-    double distance(Face r);
-    double GetArea();
-    Face ClipEar();
-    vector<MSegs> Evaporate(bool close);
-    void AddHole (Face hole);
-    bool Check();
-    void IntegrateHoles();
 
-    static vector<Face> getFaces(ListExpr le);
+    // Static functions
+    static vector<Face> getFaces(ListExpr le); // Get faces from NestedList
     static pair<Pt, Pt> GetBoundingBox(vector<Face> faces);
     static pair<Pt, Pt> GetBoundingBox(set<Face*> faces);
-    static vector<Seg> sortSegs(vector<Seg> v);
+    static vector<Seg> sortSegs(vector<Seg> v); // Sort segs to a cycle
     static MFaces CreateMFaces(vector<Face> *faces);
 };
 
-class MSeg {
+class MSeg { // a moving segment
 public:
-    Pt is, ie, fs, fe;
-//    bool valid;
-    vector<Pt> ip, fp;
+    // Fields
+    Pt is, ie, fs, fe; // Points of initial and final segment
+    vector<Pt> ip, fp; // Intermediary points if MSeg was merged
 
+    // Constructors
     MSeg();
-    MSeg(Pt is, Pt ie, Pt fs, Pt fe);
+    MSeg(Pt is, Pt ie, Pt fs, Pt fe); // Construct from segments' endpoints
+    
+    // Operators
+    bool operator==(const MSeg& a) const;
+    bool operator<(const MSeg& a) const;
+    
+    // Methods
+    bool intersects(const MSeg& a, bool checkSegs) const;
+    bool Merge(const MSeg& a); // Merge two MSegs if collinear
+    bool Split(MSeg& n, MSeg& m1, MSeg& m2); // Split MSeg on "n"
+    void ChangeDirection(); // Change the orientation
+    MSeg divide(double start, double end); // restrict interval
     MSegmentData ToMSegmentData(int face, int cycle, int segno);
     string ToString() const;
-    bool operator<(const MSeg& a) const;
-    bool operator==(const MSeg& a) const;
-    bool intersects(const MSeg& a, bool checkSegs) const;
-    bool Merge(const MSeg& a);
-    bool Split(MSeg& n, MSeg& m1, MSeg& m2);
-    void ChangeDirection();
-    MSeg divide(double start, double end);
 };
 
-class MSegs {
+class MSegs { // a set of moving segments
 public:
-    int iscollapsed, id;
-    vector<MSeg> msegs;
-    Face sreg, dreg;
-    pair<Pt,Pt> bbox;
+    // Fields
+    vector<MSeg> msegs; // the msegs which make up a cycle
+    Face sreg, dreg; // the faces from which this msegs were calculated
+    int iscollapsed; // >0 if the face collapses or expands
+    pair<Pt,Pt> bbox; // corner-points of the bounding box
 
+    // Constructor
     MSegs();
-    Face CreateBorderFace(bool initial);
-    void AddMSeg(MSeg m);
+    
+    // Methods
+    void AddMSeg(MSeg m); // Add a new MSeg to the cycle
+    bool MergeConcavity(MSegs c); // Merge a concavity cycle if possible
+    void updateBBox(MSeg& seg); // Update the bounding box after adding seg
+    pair<Pt, Pt> calculateBBox(); // Calculate the bounding box
+    Face CreateBorderFace(bool initial); // Create static mface from border
+    int findNext(int index); // find the next segment of the segment at index
+    MSegs divide(double start, double end); // restrict the interval
+    pair<MSegs, MSegs> kill(); // create pair of expanding/collapsing faces
+    bool intersects(const MSegs& a, bool matchIdent, bool matchSegs) const;
     vector<MSegmentData> ToMSegmentData(int face, int cycle, int segno);
     string ToString() const;
-    vector<MSeg> GetMatchingMSegs(MSegs m);
-    bool MergeConcavity(MSegs c);
-    bool intersects(const MSegs& a, bool matchIdent, bool matchSegs) const;
-    void updateBBox(MSeg& seg);
-    pair<Pt, Pt> calculateBBox();
-    
-    pair<MSegs, MSegs> kill();
-    Face GetSReg();
-    Face GetDReg();
-
-    int getLowerLeft();
-    int findNext(int index);
-    MSegs divide(double start, double end);
     
 };
 
-class MFace {
+class MFace { // a complete cycle of moving segments aka moving face
 public:
-    bool needStartRegion, needEndRegion;
-    MSegs face;
-    vector<MSegs> holes, cvs;
-    vector<Face> sevap, devap;
-    pair<Pt, Pt> bbox;
+    // Fields
+    MSegs face; // the moving segments which make up this face
+    bool needStartRegion, needEndRegion; // this face needs a start/end-region
+    vector<MSegs> holes, cvs; // list of holes and concavities
+    pair<Pt, Pt> bbox; // the bounding box of this mface
 
+    // Constructors
     MFace();
-    MFace(MSegs face);
-    bool Check();
-    bool SortCycle();
-    void AddConcavity(MSegs c);
-    void MergeConcavities();
-    URegion ToURegion(Interval<Instant> iv, int facenr);
-    ListExpr ToListExpr();
-    void PrintMRegionListExpr();
+    MFace(MSegs face); // Construct from an MSegs-object
+    
+    // Methods
+    bool Check();                // Check if this MFace is a valid cycle
+    bool SortCycle();            // Sort this cycle
+    void AddConcavity(MSegs c);  // Add a concavity to this cycle
+    void MergeConcavities();     // Merge previously added concavities
+    ListExpr ToListExpr();       // Create a list expression
+    MFace divide(double start, double end); // restrict the interval
+    Face CreateBorderFace(bool src); // get face from border of the interval
+    void PrintMRegionListExpr(); // Output list expression for debugging
+    URegion ToURegion(Interval<Instant> iv, int facenr); // convert to uregion
     string ToString();
-    MFace divide(double start, double end);
-    Face CreateBorderFace(bool src);
 };
 
-class MFaces {
+class MFaces { // a set of moving faces
 public:
-    vector<MFace> faces;
-    vector<Face> *sregs, *dregs;
-    bool needSEvap, needDEvap;
+    // Fields
+    vector<MFace> faces; // List of mface-objects
+    vector<Face> *sregs, *dregs; // lists of faces from which it was created
+    bool needSEvap, needDEvap; // evaporation- or condensation-phase is needed
 
+    // Constructor
     MFaces();
     MFaces(MFace face);
-    void AddFace(MFace face);
-    MRegion ToMRegion(Interval<Instant> iv);
-    URegion ToURegion(Interval<Instant> iv, double start, double end);
-    ListExpr ToListExpr(Interval<Instant> iv, double start, double end);
-    ListExpr ToMListExpr(Interval<Instant> iv);
-    string ToString();
-    MFaces divide(double start, double end);
-    vector<Face> CreateBorderFaces(bool src);
-    MFaces CreateBorderMFaces(bool src);
     
+    // Methods
+    void AddFace(MFace face); // Add a new mface to this mfaces-object
+    ListExpr ToListExpr(Interval<Instant> iv, double start, double end);
+    ListExpr ToMListExpr(Interval<Instant> iv); // create NestedList-Expressions
+    MFaces divide(double start, double end); // restrict the interval
+    vector<Face> CreateBorderFaces(bool src); // create faces from border
+    MFaces CreateBorderMFaces(bool src); // create static mfaces from border
+    URegion ToURegion(Interval<Instant> iv, double start, double end);
+    MRegion ToMRegion(Interval<Instant> iv); // create mregion-object
+    string ToString();
+    
+    // Static functions
     static ListExpr fallback(vector<Face> *s, vector<Face> *d, 
                              Interval<Instant> iv);
 };
 
-class RotatingPlane {
+class RotatingPlane { // the rotating plane algorithm
 public:
-    MFace mface;
-    vector<Face> scvs, dcvs;
+    // Fields
+    MFace mface; // mface created by rotating plane algorithm
+    vector<Face> scvs, dcvs; // source- and destination-concavity
 
+    // Constructor (this constructor already does all the work)
     RotatingPlane(Face *src, Face *dst, int depth, bool evap);
 };
+
+
+
+// Function prototypes
 
 MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args);
 
-Word InMRegion(const ListExpr typeInfo,
-        const ListExpr instance,
-        const int errorPos,
-        ListExpr& errorInfo,
-        bool& correct);
-
+// Prototypes of the matchFaces-strategies
 vector<pair<Face *, Face *> > matchFacesSimple(vector<Face> *src,
         vector<Face> *dst, int depth, string args);
 vector<pair<Face *, Face *> > matchFacesNull(vector<Face> *src,
@@ -241,5 +274,12 @@ vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
 vector<pair<Face *, Face *> > matchFacesLua(vector<Face> *src,
         vector<Face> *dst, int depth, string args);
 
+// InMRegion is defined in the MovingRegionAlgebra and converts a NestedList-
+// expression to an mregion
+Word InMRegion(const ListExpr typeInfo,
+        const ListExpr instance,
+        const int errorPos,
+        ListExpr& errorInfo,
+        bool& correct);
 
 #endif /* INTERPOLATE_HXX */

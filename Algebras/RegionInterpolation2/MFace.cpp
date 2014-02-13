@@ -12,8 +12,9 @@ MFace::MFace() : needStartRegion(false), needEndRegion(false) {
  1.1 Constructs a Moving Face from a set of Moving Segments
  
 */
-MFace::MFace(MSegs face) : needStartRegion(false), needEndRegion(false),
-face(face) {
+MFace::MFace(MSegs face) : face(face),
+        needStartRegion(false), needEndRegion(false)
+{
     Check();
 }
 

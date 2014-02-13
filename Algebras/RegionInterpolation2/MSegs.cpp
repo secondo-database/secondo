@@ -5,7 +5,7 @@
 
 #include "interpolate.h"
 
-MSegs::MSegs() : iscollapsed(0), id(-1) {
+MSegs::MSegs() : iscollapsed(0) {
 }
 
 /*

@@ -62,17 +62,17 @@ Pt Pt::operator*(const Pt& a) const {
 
 // Helper-function to sort the points by their (pre-calculated) polar
 // coordinates. If the angle is equal, then sort by descending (!) distance
-bool Pt::sortAngle(const Pt& a) const {
+bool Pt::lessPolar(const Pt& a) const {
     return ((angle < a.angle) || ((angle == a.angle) && (dist > a.dist))) ;
 }
 
 /*
-  1.5 calcAngle calculates the polar coordinates of this point relative to the
- origin ~origin~. This sets the attributes ~angle~ and ~distance~ of this
- object.
+  1.5 calcPolar calculates the polar coordinates of this point relative to the
+  origin ~origin~. This sets the attributes ~angle~ and ~distance~ of this
+  object.
  
 */
-void Pt::calcAngle(const Pt& origin) {
+void Pt::calcPolar(const Pt& origin) {
     long double tmpx = x - origin.x;
     long double tmpy = y - origin.y;
     long double hyp = sqrt(tmpx * tmpx + tmpy * tmpy);

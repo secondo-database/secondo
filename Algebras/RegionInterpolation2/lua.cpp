@@ -203,6 +203,7 @@ void setupParams(set<Face*> *faces, const char *prefix, int depth) {
         lua_rawset(L, -3);
     }
 }
+
 /*
  2.3 matchFacesLua is the primary interface between the interpolation and the
  matching strategies implemented in lua.

@@ -48,13 +48,12 @@ Face::Face(ListExpr tle) : cur(0), parent(NULL), ishole(false) {
   1.2 Constructs a face from a set of segments.
 
 */
-Face::Face(vector<Seg> v) : cur(0), parent(NULL), v(v), ishole(false) {
+Face::Face(vector<Seg> v) : cur(0), v(v), parent(NULL), ishole(false) {
     Sort();
     Check();
 }
 
 // Helper-function to append an item to a nested-list
-
 static void Append(ListExpr &head, ListExpr l) {
     if (l == nl->Empty())
         return;
@@ -301,7 +300,7 @@ Face Face::ConvexHull() {
     // Now calculate the polar coordinates (angle and distance of each point
     // with the lowest-(leftmost) point as origin.
     for (unsigned int a = 1; a < lt.size(); a++) {
-        lt[a].calcAngle(lt[0]);
+        lt[a].calcPolar(lt[0]);
     }
     // Sort the other points by their angle (startpoint lt[0] remains in place)
     std::sort(lt.begin()+1, lt.end(), sortAngle);
@@ -353,6 +352,7 @@ Face Face::ConvexHull() {
 
     return Face(convexhull);
 }
+
 /*
   1.11 Translate moves all points of a face by the given offsets
  
