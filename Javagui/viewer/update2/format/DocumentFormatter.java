@@ -31,6 +31,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -52,27 +53,19 @@ UpdateViewer2.
 */
 public abstract class DocumentFormatter 
 {
-	private String type;	
-	private String aliases;
-	private String query;
-	private String script;
-	private String templateHead;
-	private String templateBody;
-	private String templateTail;
-	private String outputDirectory;
-	
-	private Map<String,String> aliasMap;	// alias -> relationname
-	
-	/**
-	 * Executes formatQuery, fills templates with query result 
-	 * and saves the resulting page(s) to outputDirectory.
-	 */
-	public abstract boolean format(boolean separatePages) throws Exception;
-	
-	/**
-	 * Returns path names of formatted document files.
-	 */
-	public abstract List<String> getOutputFiles();
+	protected String type;
+//	protected String errorMessage;
+	protected String aliases;
+	protected String query;
+	protected String script;
+	protected String templateHead;
+	protected String templateBody;
+	protected String templateTail;
+	protected String outputDirectory;
+	protected List<Object> outputPages;
+	// alias -> relationname
+	protected Map<String,String> aliasMap;	
+
 	
 	/**
 	 * Fills templateHead, templateBody and templateTail with default values.
@@ -80,30 +73,59 @@ public abstract class DocumentFormatter
 	public abstract void createDefaultTemplate(Relation relation);
 	
 	/**
+	 * Executes formatQuery and fills templates with query result.
+	 * Resulting output is accessible by method getOutputPages().
+	 */
+	public abstract void format(boolean separatePages, boolean pApplyScript) throws Exception;
+		
+	
+	/**
 	 * Returns formatter of class '<pFormatType>Formatter' if that class exists in package viewer.update2.format.
 	 */
 	public static DocumentFormatter createFormatter(String pFormatType) throws Exception
 	{
-		String formatterName = "viewer.update2.format." + pFormatType.trim() + "Formatter";
-		Object o;
-		// try to instatiate specific formatter class
-		try
+		if (!getFormatTypes().contains(pFormatType))
 		{
-			Class formatterClass = Class.forName(formatterName);
-			o = formatterClass.newInstance();
-		}
-		catch (Exception e)
-		{
-			throw new Exception("DocumentFormatter \"" + formatterName 
-								+ "\" not implemented. DocumentFormatters are implemented for these FormatTypes: " 
+			throw new Exception(pFormatType 
+								+ "Formatter is not implemented. DocumentFormatters are available for these FormatTypes: " 
 								+ getFormatTypes());
 		}
+		
+		// try to instatiate specific formatter class
+		String formatterName = "viewer.update2.format." + pFormatType.trim() + "Formatter";
+		Class formatterClass = Class.forName(formatterName);
+		Object o = formatterClass.newInstance();
 		if(!(o instanceof DocumentFormatter))
 		{
-			throw new Exception("Found class does not extend the abstract class DocumentFormatter. ");
+			throw new Exception("Found class does not extend abstract class DocumentFormatter. ");
 		}
-		return (DocumentFormatter)o;
+		
+		DocumentFormatter formatter = (DocumentFormatter)o;
+		formatter.type = pFormatType;
+		return formatter;
 	}
+	
+	
+	/**
+	 * Executes a sequence of commands.
+	 * Returns output of all commands as one string.
+	 */
+	protected String executeCommands(String[] pCommands) throws Exception
+	{
+		StringBuffer commandOutput = new StringBuffer();		
+		Process process = Runtime.getRuntime().exec(pCommands);
+		InputStreamReader inputReader = new InputStreamReader(process.getInputStream());
+		BufferedReader input = new BufferedReader(inputReader);
+		String line = null;
+		
+		while ((line = input.readLine()) != null) {
+			commandOutput.append(line);
+			commandOutput.append("\n");
+		}
+		
+		return commandOutput.toString();
+	}
+	
 	
 	/**
 	 * Returns a list of the prefixes of currently implemented Formatters.
@@ -133,7 +155,8 @@ public abstract class DocumentFormatter
 	}
 	
 	
-	public String getAliases(){ return this.aliases;	}
+//	public String getAliases(){ return this.aliases;	}
+//	public String getErrorMessage(){ return this.errorMessage;	}
 	public String getQuery(){ return this.query;	}
 	public String getScript(){ return this.script;	}
 	public String getTemplateBody(){ return this.templateBody;	}
@@ -142,48 +165,17 @@ public abstract class DocumentFormatter
 	public String getType(){	return this.type;	}
 	public String getOutputDirectory() { return this.outputDirectory; }
 	
-	
-	public void setType(String pFormatType){ this.type = pFormatType; }
-	public void setQuery(String pFormatQuery){ this.query = pFormatQuery; }
-	public void setScript(String pFormatScript){ this.script = pFormatScript; }
-	public void setTemplateBody(String pFormatTemplate){ this.templateBody = pFormatTemplate;	}
-	public void setTemplateHead(String pFormatTemplate){ this.templateHead = pFormatTemplate;	}
-	public void setTemplateTail(String pFormatTemplate){ this.templateTail = pFormatTemplate;	}
-	public void setAliases(String pRelationAliases)
-	{ 
-		this.aliases = pRelationAliases;
-		this.aliasMap = this.getAliasMap();
-	}
-	public void setOutputDirectory(String pOutputDirectory)
-	{
-		this.outputDirectory = pOutputDirectory;
- 		if (!this.outputDirectory.endsWith("/"))
-		{
-			this.outputDirectory += "/";
-		}
-	}
-	
-	protected Map<String,String> getAliasMap()
-	{
-		Map<String,String> result = new HashMap<String,String>();
-		
-		List<String> mappings = LoadDialog.splitList(this.aliases, ";");
-		for (String mapStr : mappings)
-		{
-			mapStr = mapStr.trim();
-			if (mapStr != null && mapStr.length() > 0)
-			{
-				List<String> alias = LoadDialog.splitList(mapStr, " ");
-				if (alias.size()==2 && alias.get(0).trim().length() > 0 && alias.get(1).trim().length() > 0)
-				{
-					result.put(alias.get(1).trim(), alias.get(0).trim());
-				}
-			}
-		}
-		return result;
-	}
-	
+	/**
+	 * Returns the formatted document pages that are to be displayed in the appropriate DocumentPanel.
+	 */
+	public List<Object> getOutputPages() { return this.outputPages; }
 
+	
+	/**
+	 * Determines the alias part in the specified string 
+	 * (i.e. the substring following the last underscore) and returns
+	 * the corresponding relation name.
+	 */
 	protected String getRelationFromAliasedName(String pAliasedAttributeName)
 	{
 		String result = "";
@@ -197,6 +189,10 @@ public abstract class DocumentFormatter
 		return result;
 	}
 	
+	/**
+	 * Returns the attribute part in the specified string 
+	 * (i.e. substring before the last underscore).
+	 */
 	protected String getAttributeFromAliasedName(String pAliasedAttributeName)
 	{
 		String result = "";
@@ -209,6 +205,9 @@ public abstract class DocumentFormatter
 		return result;
 	}
 	
+	/**
+	 * Returns the name of the ID attribute of the  relation
+	 */
 	protected String getIdNameFromAliasedName(String pAliasedAttributeName)
 	{
 		String result = "TID";
@@ -220,4 +219,160 @@ public abstract class DocumentFormatter
 		//Reporter.debug("DocumentFormatter.getIdNameFromAliasedName: id=" + result);
 		return result;
 	}
+	
+	/**
+	 * Returns TRUE if all templates are filled (no validity check!).
+	 */
+	public boolean hasTemplates()
+	{
+		return (this.templateBody==null || this.templateBody.isEmpty()
+				|| this.templateHead==null || this.templateHead.isEmpty()
+				|| this.templateTail==null || this.templateTail.isEmpty());
+	}
+	
+	/**
+	 * Returns TRUE if load profile all necessary information
+	 * for constructing a valid formatter.
+	 */
+	public void initialize(String pAliases, String pQuery, String pOutputDirectory, String pScript,  
+						   String pTemplateHead, String pTemplateBody, String pTemplateTail)
+	throws Exception
+	{
+		StringBuilder errorMessage = new StringBuilder();
+		if (pQuery==null || pQuery.isEmpty())
+		{
+			errorMessage.append("Please specify query that fetches the document relation. \n");
+			Reporter.showError(errorMessage.toString());
+		}
+		if (pOutputDirectory==null || pOutputDirectory.isEmpty())
+		{
+			errorMessage.append("Please specify path of output directory. \n");
+		}
+		if (pAliases==null || pAliases.isEmpty())
+		{
+			errorMessage.append("Please list each relation name and its alias in the format query. \n\n");
+		}
+		if (!errorMessage.toString().isEmpty())
+		{
+			throw new Exception("DocumentFormatter.initialize: " + errorMessage.toString());
+		}
+		
+		this.initializeAliasMap(pAliases);
+		this.query = pQuery;
+		this.script = pScript;
+		this.templateHead = pTemplateHead;
+		this.templateBody = pTemplateBody;
+		this.templateTail = pTemplateTail;
+		this.outputDirectory = pOutputDirectory;
+ 		if (!this.outputDirectory.endsWith("/"))
+		{
+			this.outputDirectory += "/";
+		}
+	}
+	
+	
+	/**
+	 * Creates a map of all aliases as keys and the corresponding relations
+	 * from the Aliases in a LoadProfile.
+	 * alias -> relation name
+	 */
+	protected void initializeAliasMap(String pAliases) throws Exception
+	{
+		this.aliasMap = new HashMap<String,String>();
+		
+		List<String> mappings = LoadDialog.splitList(pAliases, ";");
+		for (String mapStr : mappings)
+		{
+			mapStr = mapStr.trim();
+			if (mapStr == null || mapStr.isEmpty())
+			{
+				this.aliasMap.clear();
+				throw new Exception("DocumentFormatter.initializeAliasMap: Invalid alias \"" + mapStr + "\"");
+			}
+			
+			List<String> alias = LoadDialog.splitList(mapStr, " ");
+			if (alias.size()!=2 || alias.get(0).trim().isEmpty() || alias.get(1).trim().isEmpty())
+			{
+				this.aliasMap.clear();
+				throw new Exception("DocumentFormatter.initializeAliasMap: Invalid alias \"" + mapStr + "\"");
+			}
+			this.aliasMap.put(alias.get(1).trim(), alias.get(0).trim());
+		}
+	}
+	
+	
+	protected Relation loadRelation() throws Exception
+	{
+		CommandExecuter commandExecuter = new CommandExecuter();
+		
+		if (!commandExecuter.executeCommand(this.getQuery(), SecondoInterface.EXEC_COMMAND_SOS_SYNTAX))
+		{
+			throw new Exception("DocumentFormatter: Error while trying to load relation from database: " 
+								+ commandExecuter.getErrorMessage().toString());
+		}
+		
+		ListExpr queryResult = new ListExpr();
+		queryResult.setValueTo(commandExecuter.getResultList());
+		
+		if (queryResult == null || queryResult.isEmpty()) 
+		{
+			throw new Exception("DocumentFormatter: could not load relation from database (query result null or empty).");
+		}
+		
+		SecondoObject relationSO = new SecondoObject("output", queryResult);
+		Relation relation = new Relation();
+		relation.readFromSecondoObject(relationSO);	
+		
+		return relation;
+	}
+	
+	/**
+	 * Returns non-empty lines from the specified file.
+	 */
+	protected String[] readLines(String pFileName) throws IOException
+	{
+		List<String> lines = new ArrayList<String>();
+		FileReader fileReader = new FileReader(pFileName);
+		BufferedReader bufferedReader = new BufferedReader(fileReader);
+		String line;
+		while ((line = bufferedReader.readLine()) != null)
+		{
+			line = line.trim();
+			if (line!=null && !line.isEmpty() && !line.startsWith("#"))
+			{
+				lines.add(line);
+			}
+		}
+		fileReader.close();
+		String[] result = new String[lines.size()];
+		for(int i=0; i<lines.size(); i++)
+		{
+			result[i] = lines.get(i);
+		}
+		return result;
+	}
+	
+	/*
+	public void setType(String pFormatType){ this.type = pFormatType; }
+	public void setQuery(String pFormatQuery){ this.query = pFormatQuery; }
+	public void setScript(String pFormatScript){ this.script = pFormatScript; }
+	public void setTemplateBody(String pFormatTemplate){ this.templateBody = pFormatTemplate;	}
+	public void setTemplateHead(String pFormatTemplate){ this.templateHead = pFormatTemplate;	}
+	public void setTemplateTail(String pFormatTemplate){ this.templateTail = pFormatTemplate;	}
+	 
+	public void setAliases(String pRelationAliases)
+	{ 
+		this.aliases = pRelationAliases;
+		this.aliasMap = this.getAliasMap();
+	}	
+	public void setOutputDirectory(String pOutputDirectory)
+	{
+		this.outputDirectory = pOutputDirectory;
+ 		if (!this.outputDirectory.endsWith("/"))
+		{
+			this.outputDirectory += "/";
+		}
+	}
+	*/
+	
 } 

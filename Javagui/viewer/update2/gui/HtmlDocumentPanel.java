@@ -47,6 +47,8 @@ import java.util.List;
 
 import tools.Reporter;
 import viewer.update2.*;
+import viewer.update2.format.HtmlFormatter;
+
 
 /**
  * Panel that displays a formatted HTML document.
@@ -62,46 +64,40 @@ public class HtmlDocumentPanel extends DocumentPanel
 		this.positionTracker = null;
 	}
 	
-	public void loadFiles(List<String> pFileNames) throws IOException, FileNotFoundException
+
+	public void goTo(RelationPosition pPositionInfo)
+	{
+		this.currentPosition = pPositionInfo;
+		String markup = HtmlFormatter.createReferenceMarkup(pPositionInfo.getRelationName(), 
+															pPositionInfo.getAttributeName(),
+															pPositionInfo.getTupleId());
+	}
+
+	
+	public void load(List<Object> pOutputPages) 
 	{		
-		if (pFileNames == null || pFileNames.isEmpty())
+		if (pOutputPages == null || pOutputPages.isEmpty())
 		{
 			return;
 		}
 		
 		this.positionTracker = new PositionTracker();
 		this.currentPosition = null;
+		this.setLayout(new GridLayout(pOutputPages.size(), 1));
 
-		this.setLayout(new GridLayout(pFileNames.size(), 1));
-
-		for (String path: pFileNames)
+		String page;
+		HTMLEditorKit editorKit = new HTMLEditorKit();
+		
+		for (Object pageObject: pOutputPages)
 		{
-			// read formatted file
-			FileReader fr = new FileReader(path);
-			BufferedReader br = new BufferedReader(fr);
-			StringBuffer sb = new StringBuffer();
-			String zeile = "";
-			while( (zeile = br.readLine()) != null )
-			{
-				sb.append(zeile);
-			}
-			br.close();
-			String page = sb.toString();
-			//page = this.clean(page);
-			//Reporter.debug("HtmlFormatter.getDocumentDisplay: page=" + page);
-			
+			page = (String)pageObject;			
 			JTextPane pane = new JTextPane();
 			pane.setEditable(false);
 			pane.setContentType("text/html");
-			HTMLEditorKit editorKit = new HTMLEditorKit();
 			pane.setEditorKit(editorKit);
 			pane.setSize(new Dimension(800,600));
-			//pane.setMinimumSize(new Dimension(800,600));
-			//pane.setMaximumSize(new Dimension(800,600));
 			pane.setOpaque(true);
-			//pane.addCaretListener(this);
 			pane.addMouseListener(this.positionTracker);
-			
 			
 			HTMLDocument htmlDoc = (HTMLDocument)pane.getDocument();
 			htmlDoc.putProperty("IgnoreCharsetDirective", Boolean.TRUE);
@@ -128,13 +124,16 @@ public class HtmlDocumentPanel extends DocumentPanel
 			public void mousePressed(MouseEvent pEvent)
 			{
 				JTextPane sourcePane = (JTextPane)pEvent.getSource();
+				
+				// determine mouse position within document
 				int position = sourcePane.viewToModel(pEvent.getPoint());
-				//Reporter.debug("HtmlDocumentPanel.PositionTracker: position=" + position);
 
+				// determine enclosing block element where mouse action occurred
 				HTMLDocument doc = (HTMLDocument) sourcePane.getDocument();				
 				HTMLDocument.BlockElement elem = (HTMLDocument.BlockElement)doc.getParagraphElement(position);
-				HTMLDocument.RunElement commentElement = null;
 				
+				// find comment element within block (if any)
+				HTMLDocument.RunElement commentElement = null;
 				boolean found = false;
 				int childIndex = 0;
 				while (!found && childIndex < elem.getElementCount())
@@ -149,38 +148,37 @@ public class HtmlDocumentPanel extends DocumentPanel
 				
 				if (found && commentElement.getAttribute(HTML.Attribute.COMMENT)!=null)
 				{
+					// determine position of comment block end within document
 					int startOffset = commentElement.getEndOffset() + 1;
-					//Reporter.debug("HtmlDocumentPanel.PositionTracker: start offset=" + startOffset);
 					
+					// determine cursor position within text content block
 					int offset = position - startOffset;
-					//Reporter.debug("HtmlDocumentPanel.PositionTracker: offset within field=" + offset);
 					
-					if (offset < 0)
+					// if mouse action occured not within text content
+					// (e.g. when text element is empty)
+					offset = offset<0? 0 : offset;
+					
+					// read position information from comment attribute of the comment element
+					String positionString = (String)commentElement.getAttribute(HTML.Attribute.COMMENT);
+					List<String> trackingInfo = LoadDialog.splitList(positionString, ";");
+					if (trackingInfo != null && !trackingInfo.isEmpty() && trackingInfo.size()==3)
 					{
-						// mouse click occured not within text content but within or before comment
-						currentPosition = null;
+						currentPosition = new RelationPosition(trackingInfo.get(0), 
+															   trackingInfo.get(1), 
+															   trackingInfo.get(2),
+															   offset);
+						//Reporter.debug("HtmlDocumentPanel.PositionTracker: RelationPosition=" + currentPosition.toString());
 					}
-					else
-					{
-						String positionString = (String)commentElement.getAttribute(HTML.Attribute.COMMENT);
-						
-						List<String> trackingInfo = LoadDialog.splitList(positionString, ";");
-						if (trackingInfo != null && !trackingInfo.isEmpty() && trackingInfo.size()==3)
-						{
-							currentPosition = new RelationPosition(trackingInfo.get(0), 
-																   trackingInfo.get(1), 
-																   trackingInfo.get(2),
-																   offset);
-							//Reporter.debug("HtmlDocumentPanel.PositionTracker: RelationPosition=" + currentPosition.toString());
-						}
-					}
+					
 				}
 				else
 				{
 					currentPosition = null;
 				}
 				
-				// contruct new MouseEvent that has this DocumentPanel as source
+				// Construct new MouseEvent that has this DocumentPanel as source.
+				// This is for convenience so that the listener can ask the source
+				// for RelationPosition.
 				MouseEvent me = new MouseEvent(HtmlDocumentPanel.this, pEvent.getID(), pEvent.getWhen(), pEvent.getModifiers(), 
 											   pEvent.getX(), pEvent.getY(), pEvent.getClickCount(), pEvent.isPopupTrigger());
 				

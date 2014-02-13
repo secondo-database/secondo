@@ -26,6 +26,7 @@ import java.awt.event.ActionListener;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.Rectangle;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -48,13 +49,15 @@ import viewer.update2.*;
  */
 public class FormatDialog extends JDialog
 {
-	private DocumentPanel formattedDocument;
 	private JButton btFormat;
 	private JButton btClose;
-	private JScrollPane scpDocument;
 	private JCheckBox chkSepPages;
+	private JCheckBox chkApplyScript;
 	private JLabel lbPosInfo;
+	private JScrollPane scpDocument;
 	private UpdateViewerController controller;
+	private DocumentPanel formattedDocument;
+	private RelationPosition currentPosition;
 
 	/** Constructor */
 	public FormatDialog(UpdateViewerController pController)
@@ -66,44 +69,60 @@ public class FormatDialog extends JDialog
 		this.setSize(600,400);
 		this.setTitle("Format document");		
 		
-		// buttons
-		JPanel plButtons = new JPanel();
 		this.chkSepPages = new JCheckBox("separate pages");
-		plButtons.add(this.chkSepPages);
+		this.chkSepPages.setToolTipText("separate pages");
+		this.chkApplyScript = new JCheckBox("apply script");
+		this.chkApplyScript.setToolTipText("apply script on output files");
+		this.lbPosInfo = new JLabel();
+		this.lbPosInfo.setHorizontalAlignment(SwingConstants.CENTER);		
+		this.scpDocument = new JScrollPane();
+		
+		// buttons
 		this.btFormat = new JButton(UpdateViewerController.CMD_FORMAT);
 		this.btFormat.addActionListener(pController);
-		this.btFormat.setToolTipText("Write formatted document to files and show");
-		plButtons.add(this.btFormat);
+		this.btFormat.setToolTipText("Generate and show formatted document");
 		this.btClose = new JButton("Close");
 		this.btClose.addActionListener(pController);
 		this.btClose.setActionCommand(UpdateViewerController.CMD_CLOSE_FORMAT_DIALOG);
 		this.btClose.setToolTipText("Close format dialog");
-		plButtons.add(this.btClose);
 		
+		// arrange components
+		JPanel plButtons = new JPanel();
+		plButtons.add(this.chkSepPages);
+		plButtons.add(this.chkApplyScript);
+		plButtons.add(this.btFormat);
+		plButtons.add(this.btClose);
+
 		JPanel plSouth = new JPanel(new GridLayout(2,1));
 		plSouth.add(plButtons);
-		this.lbPosInfo = new JLabel();
-		this.lbPosInfo.setHorizontalAlignment(SwingConstants.CENTER);
 		plSouth.add(lbPosInfo);
-		
-		// scrollpane
+
 		JPanel plCenter = new JPanel();
 		plCenter.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-		this.scpDocument = new JScrollPane();
 		plCenter.add(this.scpDocument);
 
-		// content pane
 		this.getContentPane().setLayout(new BorderLayout());
 		this.getContentPane().add(scpDocument, BorderLayout.CENTER);
 		this.getContentPane().add(plSouth, BorderLayout.SOUTH);
 	}
-		
+	
+	/**
+	 * Returns TRUE if checkbox 'apply script' is checked.
+	 */
+	public boolean getApplyScript()
+	{
+		return this.chkApplyScript.isSelected();
+	}
 	
 	/**
 	 * Returns position information.
 	 */
 	public RelationPosition getCurrentPosition()
 	{
+		if (this.formattedDocument==null)
+		{
+			return null;
+		}
 		return this.formattedDocument.getCurrentRelationPosition();
 	}
 	
@@ -115,31 +134,59 @@ public class FormatDialog extends JDialog
 		return this.chkSepPages.isSelected();
 	}
 	
+	public void goTo(RelationPosition pPositionInfo)
+	{
+		if (this.formattedDocument != null) return;
+		
+		if (pPositionInfo==null)
+		{
+			//this.scpDocument.getVerticalScrollBar().setValue(0);
+			//this.scpDocument.getViewport().setViewPosition(new java.awt.Point(0,0));
+			this.scpDocument.getViewport().scrollRectToVisible(new Rectangle(0,0,0,0));
+		}
+		else
+		{
+			//this.formattedDocument.getRectangle(pPositionInfo);
+		}
+		this.repaint();
+	}
+	
+	/**
+	 * Returns position information.
+	 */
+	public void setCurrentPosition(RelationPosition pPositionInfo)
+	{
+		this.currentPosition = pPositionInfo;
+	}
+	
 	/**
 	 * Shows the Panel with the formatted document in it.
 	 */
 	public void setFormattedDocument(DocumentPanel pDisplayComponent)
 	{
 		this.formattedDocument = pDisplayComponent;
-		this.formattedDocument.addMouseListener(this.controller);
-		this.scpDocument.setViewportView(this.formattedDocument);
-		this.scpDocument.getVerticalScrollBar().setValue(0);
-		this.scpDocument.getViewport().setViewPosition(new java.awt.Point(0,0));
+
+		if (pDisplayComponent!=null)
+		{
+			this.formattedDocument.addMouseListener(this.controller);
+			this.scpDocument.setViewportView(this.formattedDocument);
+			this.goTo(this.currentPosition);
+		}
 	}
 	
-	public void setPositionInfo(RelationPosition pPositionInfo)
+	public void showPositionInfo()
 	{
-		if (pPositionInfo == null)
+		if (this.currentPosition == null)
 		{
 			this.lbPosInfo.setText("Position not in relation content.");
 		}
 		else
 		{
 			StringBuffer sb = new StringBuffer("Cursor position: ");
-			sb.append("relation \"").append(pPositionInfo.getRelationName());
-			sb.append("\", tuple \"").append(pPositionInfo.getTupleId());
-			sb.append("\", attribute \"").append(pPositionInfo.getAttributeName());
-			sb.append("\", offset ").append(pPositionInfo.getOffset());
+			sb.append("relation \"").append(this.currentPosition.getRelationName());
+			sb.append("\", tuple \"").append(this.currentPosition.getTupleId());
+			sb.append("\", attribute \"").append(this.currentPosition.getAttributeName());
+			sb.append("\", offset ").append(this.currentPosition.getOffset());
 			this.lbPosInfo.setText(sb.toString()); 
 		}
 	}

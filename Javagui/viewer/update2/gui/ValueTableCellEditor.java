@@ -21,7 +21,8 @@ package  viewer.update2.gui;
 
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.event.InputMethodListener;
+//import java.awt.event.InputMethodListener;
+//import java.awt.event.InputMethodEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.Rectangle;
@@ -31,12 +32,14 @@ import javax.swing.border.Border;
 import javax.swing.BorderFactory;
 import javax.swing.border.EmptyBorder;
 import javax.swing.AbstractCellEditor;
-//import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
+//import javax.swing.event.DocumentListener;
+//import javax.swing.event.DocumentEvent;
 import javax.swing.table.TableCellEditor;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Document;
 import javax.swing.text.Highlighter;
 
 import tools.Reporter;
@@ -55,7 +58,7 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 	private Highlighter hiliter;
 	private DefaultHighlighter.DefaultHighlightPainter hilitePainter;
 	private DefaultHighlighter.DefaultHighlightPainter hilitePainterCurr;
-	private KeyAdapter keyListener;
+	//private KeyAdapter keyListener;
 	
 	/**
 	 * Constructor
@@ -109,7 +112,6 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 		{
 			int width = pTable.getColumnModel().getColumn(pColumn).getWidth();
 			this.textArea.setSize(width, Short.MAX_VALUE);
-			//this.textArea.setText(pValue.toString());
 			pTable.setRowHeight(pRow, this.textArea.getPreferredSize().height);
 		}
 		
@@ -127,9 +129,7 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 				{
 					if (sh.equals(currHit))
 					{
-						//this.setCaret(sh.getStart(), sh.getEnd());
 						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainterCurr);
-						//Reporter.debug("ValueTableCellEditor.getTableCellRendererComponent: highlighting CURRENT HIT ");
 					}
 					else
 					{
@@ -140,44 +140,45 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 				{
 					Reporter.debug("ValueTableCellEditor.getTableCellEditorComponent: highlighting failed ");
 				}
-				
 			}
 		}
 		
 		return this.textArea;
 	}
-		
+	
+	
 	public Object getCellEditorValue()
 	{
 		return this.textArea.getText();
 	}
 	
 	
-	public Rectangle getOffset(int pTextPos)
+	public Rectangle getOffset(int pTextPos) throws BadLocationException
 	{
-		try
+		//Reporter.debug("ValueTableCellEditor.getOffset: textarea width is " + this.textArea.getPreferredSize().width);
+		//Reporter.debug("ValueTableCellEditor.getOffset: value is " + this.textArea.getText());
+		if (pTextPos<0 || pTextPos>=this.textArea.getText().length())
 		{
-			//Reporter.debug("ValueTableCellEditor.getOffset: textarea width is " + this.textArea.getPreferredSize().width);
-			//Reporter.debug("ValueTableCellEditor.getOffset: value is " + this.textArea.getText());
-			return this.textArea.modelToView(pTextPos);
+			return new Rectangle(0,0,0,0);
 		}
-		catch (BadLocationException e)
-		{
-			Reporter.showError("ValueTableCellEditor.getOffset: BadLocation " + pTextPos +  e.getMessage());
-			return null;
-		}
+		return this.textArea.modelToView(pTextPos);
 	}
+	
 	
 	public void setCaret(int pStart, int pEnd)
 	{
-		//Reporter.debug("ValueTableCellEditor.setCaretPosition at position " + pStart);
-		
+		int start = pStart<0? 0 : pStart;
+		start = start<this.textArea.getText().length()? start : this.textArea.getText().length();
+		int end = pEnd<0? 0 : pEnd;
+		end = end<this.textArea.getText().length()? end : this.textArea.getText().length();
 		this.textArea.requestFocusInWindow();
-		this.textArea.setCaretPosition(pStart);
-		this.textArea.moveCaretPosition(pEnd);
-		//this.textArea.getCaret().setSelectionVisible(true);
+		this.textArea.setCaretPosition(start);
+		this.textArea.moveCaretPosition(end);
 	}
 	
+	/**
+	 * Insert line break when ENTER key is pressed.
+	 */
 	class TableCellKeyAdapter extends KeyAdapter
 	{
 		public void keyPressed(KeyEvent event)
@@ -186,9 +187,7 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 			if(event.getKeyCode()==KeyEvent.VK_ENTER)
 			{
 				textArea.replaceSelection(System.getProperty("line.separator"));
-			}
-			//Reporter.debug("ValueTableCellEditor.keyPressed: selectedRow" + table.getSelectedRow());
-			
+			}			
 			table.setRowHeight(table.getSelectedRow(), textArea.getPreferredSize().height);			
 		}
 	}

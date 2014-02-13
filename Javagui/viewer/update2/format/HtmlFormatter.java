@@ -26,13 +26,17 @@ package viewer.update2.format;
 
 import gui.SecondoObject;
 
-import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import javax.swing.JOptionPane;
 
 import sj.lang.*;
 import tools.Reporter;
@@ -48,9 +52,8 @@ UpdateViewer2.
 public class HtmlFormatter extends DocumentFormatter
 {
 	
-	private List<String> outputFiles = new ArrayList<String>();
+	public static String FILE_ENDING = "html";
 
-	
 	/**
 	 * Creates default markup for head, body and end of document. 
 	 */
@@ -62,7 +65,7 @@ public class HtmlFormatter extends DocumentFormatter
 		sb.append(" \"http://www.w3c.org/TR/1999/REC-html401-19991224/loose.dtd\">");
 		sb.append("<HTML xmlns=\"http://www.w3.org/1999/xhtml\">");
 		sb.append("</HEAD><BODY>");
-		this.setTemplateHead(sb.toString());
+		this.templateHead = sb.toString();
 		
 		// body
 		sb = new StringBuilder();
@@ -76,11 +79,25 @@ public class HtmlFormatter extends DocumentFormatter
 			}
 		}
 		sb.append("<HR/>");
-		this.setTemplateBody(sb.toString());
+		this.templateBody = sb.toString();
 		
 		// tail
 		sb = new StringBuilder("</BODY></HTML>");
-		this.setTemplateTail(sb.toString());
+		this.templateTail = sb.toString();
+	}
+	
+	/**
+	 * Creates the hidden reference markup for tracing back 
+	 */
+	public static String createReferenceMarkup(String pRelationName, String pAttrName, String pTupleId)
+	{
+		StringBuffer sb = new StringBuffer();
+		sb.append("<!--");
+		sb.append(pRelationName).append(";");
+		sb.append(pAttrName).append(";");
+		sb.append(pTupleId);
+		sb.append("-->");
+		return sb.toString();
 	}
 	
 	
@@ -98,17 +115,14 @@ public class HtmlFormatter extends DocumentFormatter
 			String attributeName = this.getAttributeFromAliasedName(aliasedName);
 			String idName = this.getIdNameFromAliasedName(aliasedName);
 			
-			StringBuffer sbReplace = new StringBuffer();
-			// hidden markup for tracing back 
-			sbReplace.append("<!--");
-			sbReplace.append(relationName).append(";");
-			sbReplace.append(attributeName).append(";");
-			sbReplace.append(pTuple.getValueByAttrName(idName));
-			sbReplace.append("-->");
-			sbReplace.append(pTuple.getValueByAttrName(aliasedName));
-			page = page.replace("<<" + aliasedName + ">>", sbReplace.toString());
+			StringBuffer sb = new StringBuffer();
+			sb.append(createReferenceMarkup(relationName, attributeName, pTuple.getValueByAttrName(idName)));
+			sb.append(pTuple.getValueByAttrName(aliasedName));
+			
+			page = page.replace("<<" + aliasedName + ">>", sb.toString());
 		}
 		
+		// handle placeholders that could not be filled
 		page = page.replaceAll("<<", "&lt;&lt;");
 		page = page.replaceAll(">>", " NOT FOUND&gt;&gt;");
 		
@@ -119,98 +133,166 @@ public class HtmlFormatter extends DocumentFormatter
 	
 
 	/**
-	 * Executes the given query.
-	 * Formats the relation.
+	 * Loads relation by means of given query.
 	 * Checks for templates and creates templates if neccessary.
-	 * Writes formatted pages to output directory.
+	 * Creates formatted pages from the relation.
 	 */
 	@Override
-	public boolean format(boolean pSeparatePages) throws Exception
+	public void format(boolean pSeparatePages, boolean pApplyScript) throws Exception
 	{
-		// execute query
-		CommandExecuter commandExecuter = new CommandExecuter();
-
-		if (!commandExecuter.executeCommand(this.getQuery(), SecondoInterface.EXEC_COMMAND_SOS_SYNTAX))
-		{
-			String errorMessage = commandExecuter.getErrorMessage().toString();
-			Reporter.showError("HtmlFormatter: Error while trying to load relation from database: " + errorMessage);
-			return false;
-		}
+		// load relation
+		long millisStart = System.currentTimeMillis();			
+		Relation relation = this.loadRelation();
+		long millis = System.currentTimeMillis() - millisStart;
+		Reporter.debug("HtmlFormatter.format: relation load time (millis): " + millis);
 		
-		ListExpr queryResult = new ListExpr();
-		queryResult.setValueTo(commandExecuter.getResultList());
-		
-		if (queryResult == null || queryResult.isEmpty()) 
-		{
-			return false;
-		}
-		
-		// create relation from query result
-		SecondoObject relationSO = new SecondoObject("output", queryResult);
-		Relation relation = new Relation();
-		relation.readFromSecondoObject(relationSO);
-				
 		// check template and create default template if necessary
-		if (this.getTemplateBody()==null || this.getTemplateBody().length() == 0
-			|| this.getTemplateHead()==null || this.getTemplateHead().length() == 0
-			|| this.getTemplateTail()==null || this.getTemplateTail().length() == 0)
+		if (this.hasTemplates())
 		{
 			this.createDefaultTemplate(relation);
 		}
 		
+		// create formatted document
+		millisStart = System.currentTimeMillis();			
+		this.outputPages = new ArrayList<Object>();
 		if (pSeparatePages)
 		{
 			// create separate page for each tuple
 			for (int i = 0; i<relation.getTupleCount(); i++)
 			{
-				String filename = this.getOutputDirectory() + relation.getName() + i + ".html";
-				FileWriter file = new FileWriter(filename);
-				PrintWriter out = new PrintWriter(file);
-				out.print(this.getTemplateHead());
-				String filledPage = this.fillTemplateBody(relation.getTupleAt(i));
-				//Reporter.debug("HtmlFormatter.format: filled page=" + filledPage.substring(0,1000));
-				out.print(filledPage);
-				out.print(this.getTemplateTail());
-				out.close();
-				this.outputFiles.add(filename);
+				StringBuffer sb = new StringBuffer();
+				sb.append(this.getTemplateHead());
+				sb.append(this.fillTemplateBody(relation.getTupleAt(i)));
+				sb.append(this.getTemplateTail());
+				this.outputPages.add(sb.toString());
+				//Reporter.debug("HtmlFormatter.format: filled page=" + sb.toString().substring(0,100));
 			}
 		}
 		else
 		{
 			// create document as single page
-			String filename = this.getOutputDirectory() + relation.getName() + ".html";
-			FileWriter file = new FileWriter(filename);
-			PrintWriter out = new PrintWriter(file);
-			out.print(this.getTemplateHead());			
+			StringBuffer sb = new StringBuffer();
+			sb.append(this.getTemplateHead());
 			for (int i = 0; i<relation.getTupleCount(); i++)
 			{
-				String filledPage = this.fillTemplateBody(relation.getTupleAt(i));
-				//Reporter.debug("HtmlFormatter.format: filled page=" + filledPage.substring(0,1000));
-				out.print(filledPage);
+				sb.append(this.fillTemplateBody(relation.getTupleAt(i)));
 			}
-			out.print(this.getTemplateTail());			
-			out.close();
-			this.outputFiles.add(filename);
+			sb.append(this.getTemplateTail());
+			this.outputPages.add(sb.toString());
+			//Reporter.debug("HtmlFormatter.format: filled page=" + sb.toString().substring(0,1000));
+		}
+		millis = System.currentTimeMillis() - millisStart;
+		Reporter.debug("HtmlFormatter.format: create pages time (millis): " + millis);
+		
+		// save files in output directory
+		this.saveOutputPages();
+		
+		// if document has to be post-processed by a script
+		if (pApplyScript)
+		{
+			// execute the script
+			String[] commands = this.readLines(this.getScript());
+			this.executeCommands(commands);
+			// reload (processed) files from the output directory
+			this.readOutputPages();
+		}
+	}
+	
+	/**
+	 * Returns non-empty lines from the specified file.
+	 */
+	protected String readFile(File pFile) throws IOException
+	{
+		FileReader fileReader = new FileReader(pFile);
+		BufferedReader bufferedReader = new BufferedReader(fileReader);
+		StringBuffer sb = new StringBuffer();
+		String line;
+		while ((line = bufferedReader.readLine()) != null)
+		{
+			if (line!=null && !line.isEmpty())
+				sb.append(line);
+		}
+		fileReader.close();		
+		return sb.toString();
+	}
+	
+	/**
+	 * Returns a list of HTML pages read from the output directory
+	 */
+	protected void readOutputPages() throws IOException
+	{
+		this.outputPages.clear();
+		File outputDir = new File(this.outputDirectory);
+		FileReader fileReader;
+		
+		for (File file : outputDir.listFiles())
+		{
+			if (file.isFile() && !file.isHidden() && file.getName().endsWith(this.FILE_ENDING))
+			{
+				String htmlPage = this.readFile(file);
+				this.outputPages.add(htmlPage);
+			}
+		}
+	}
+	
+	
+	
+	/**
+	 * Saves formatted pages as HTML files. 
+	 */
+	public void saveOutputPages()
+	{
+		String baseFileName = JOptionPane.showInputDialog(this.outputPages.size() 
+														  + " pages were created and will be saved in "
+														  + this.outputDirectory 
+														  + ". \nClick Cancel if you do not want to save the output to disk. "
+														  + " \nYou may change the base file name: "
+														  , "output");
+		if (baseFileName != null && !baseFileName.isEmpty())
+		{
+			long millisStart = System.currentTimeMillis();
+			Thread thread = new Thread(new FileSaver(baseFileName));
+			thread.run();
+			long millis = System.currentTimeMillis() - millisStart;
+			Reporter.debug("HtmlFormatter.saveOutputPages: disk writing time (millis): " + millis);
+		}
+	}
+	
+	
+	class FileSaver implements Runnable
+	{
+		private String baseName;
+		
+		FileSaver(String pBaseName)
+		{
+			this.baseName = pBaseName;
 		}
 		
-		return true;
+		public void run()
+		{
+			String filename;
+			FileWriter fileWriter;
+			PrintWriter printWriter;
+			String page;
+			
+			for (int i=0; i<outputPages.size(); i++)
+			{
+				page = (String)outputPages.get(i);
+				filename = getOutputDirectory() + baseName + i + "." + HtmlFormatter.FILE_ENDING;
+				try
+				{
+					fileWriter = new FileWriter(filename);
+					printWriter = new PrintWriter(fileWriter);
+					printWriter.print((String)page);			
+					printWriter.close();
+				}
+				catch (IOException e)
+				{
+					Reporter.showError("Error while wrting formatted documents to disk: " + e.getMessage());
+					return;
+				}
+			}
+		}
 	}
-	
-	
-	/**
-	 * Returns path names of all files that were produced during format().
-	 */
-	@Override
-	public List<String> getOutputFiles()
-	{
-		return this.outputFiles;
-	}
-	
-	
-	/**
-	 * Returns type of the displayed Document.
-	 * This is the Classname prefix (as Html in HtmlFormatter).
-	 */
-	public String getType() { return "Html"; }
-	
+		
 } 

@@ -93,6 +93,7 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
+import javax.swing.text.BadLocationException;
 
 import project.Projection;
 import sj.lang.ListExpr;
@@ -591,16 +592,14 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 			else
 			{
 				ValueTableCellRenderer tc = (ValueTableCellRenderer)this.relTable.getCellRenderer(pRow, RelationTableModel.COL_ATTRVALUE);
+				tc.setCaret(pStartPosition, pEndPosition);
 				offset = tc.getOffset(pStartPosition);
-				//tc.setCaret(pStartPosition, pEndPosition);
 			}
 		} 
-		catch(Exception e)
+		catch(BadLocationException e)
 		{
-			Reporter.debug(e);
+			Reporter.writeError(e.getMessage());
 		}
-
-
 		
 		//JViewport viewport = (JViewport)relTable.getParent();
 		JViewport viewport = this.relScroll.getViewport();
@@ -699,8 +698,8 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 			// Save old value of currently active editable table cell.
 			this.oldEditCellValue = (String)this.tableCellEditor.getCellEditorValue();
 			
-			Reporter.debug("processEditingStarted: saved old value in cell (" 
-						   + this.relTable.getSelectedRow() + ", " + this.relTable.getSelectedColumn() + ")" );		
+			//Reporter.debug("processEditingStarted: saved old value in cell (" 
+			//			   + this.relTable.getSelectedRow() + ", " + this.relTable.getSelectedColumn() + ")" );		
 		}
 		else
 		{
@@ -886,7 +885,7 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 			SearchHit hit = new SearchHit(pRow, matcher.start(), matcher.start() + pKey.length());
 			result.add(hit);
 			found = matcher.find();
-			Reporter.debug("RelationPanel.retrieveSearchHits: match in " + this.getName() + ": " + hit.toString());
+			//Reporter.debug("RelationPanel.retrieveSearchHits: match in " + this.getName() + ": " + hit.toString());
 		}
 		return result;
 	}

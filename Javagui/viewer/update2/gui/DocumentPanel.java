@@ -37,15 +37,13 @@ import viewer.update2.*;
  */
 public abstract class DocumentPanel extends JPanel implements Scrollable
 {
- 	RelationPosition currentPosition;
+ 	protected RelationPosition currentPosition;
 	
 	public DocumentPanel()
 	{
 		super();
 		this.currentPosition = null;
 		this.setSize(new Dimension(800,600));
-		//this.setMinimumSize(new Dimension(800,600));
-		//this.setMaximumSize(new Dimension(800,600));
 	}
 	
 	/**
@@ -73,34 +71,20 @@ public abstract class DocumentPanel extends JPanel implements Scrollable
 		return this.currentPosition;
 	}	
 	
+	/**
+	 * Scrolls the Document to the specified position.
+	 */
+	public abstract void goTo(RelationPosition pRelationPosition);
 	
 	/**
-	 * Reads specified files and displays them sequentially in apropriate Components.
+	 * Displays pages sequentially in appropriate Components.
 	 */
-	public abstract void loadFiles(List<String> pPathNames) throws IOException, FileNotFoundException;
+	public abstract void load(List<Object> pOutputPages);
 	
-	public Dimension getPreferredScrollableViewportSize() 
-	{
-		return getPreferredSize();
-	}
-
-        public int getScrollableBlockIncrement(Rectangle arg0, int arg1, int arg2) 
-	{
-		return 50;
-	}
-	
-	public boolean getScrollableTracksViewportHeight() 
-	{
-		return false;
-	}
-	
-	public boolean getScrollableTracksViewportWidth() 
-	{
-		return true;
-	}
-	
-	public int getScrollableUnitIncrement(Rectangle arg0, int arg1, int arg2) 
-	{
-		return 10;
-	}
+	// Methods of Interface Scrollable
+	public Dimension getPreferredScrollableViewportSize() {	return getPreferredSize();	}
+    public int getScrollableBlockIncrement(Rectangle arg0, int arg1, int arg2) { return 50;	}
+	public boolean getScrollableTracksViewportHeight() { return false; }
+	public boolean getScrollableTracksViewportWidth() { return true; }
+	public int getScrollableUnitIncrement(Rectangle arg0, int arg1, int arg2) {	return 10; }
 }

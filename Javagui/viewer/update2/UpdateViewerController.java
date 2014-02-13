@@ -80,7 +80,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	// button commands in FormatDialog
 	public final static String CMD_CLOSE_FORMAT_DIALOG = "Close Format Dialog";
 	public final static String CMD_FORMAT = "Format";
-	public final static String CMD_GOTO_EDIT = "Go to edit relation";
+	public final static String CMD_SAVE_DOCUMENT = "Save formatted document";
 	// button commands in LoadDialog
 	public final static String CMD_LOAD_DIRECT = "Load single relation";
 	public final static String CMD_LOAD_FROM_PROFILE = "Load selected profile";
@@ -191,9 +191,9 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			this.processCommandFormat();
 			return;
 		}
-		if (e.getActionCommand() == CMD_GOTO_EDIT)
+		if (e.getActionCommand() == CMD_SAVE_DOCUMENT)
 		{
-			this.processCommandGoToEdit();
+			this.processCommandSaveDocument();
 			return;
 		}
 		if (e.getActionCommand() == CMD_CLOSE_FORMAT_DIALOG)
@@ -730,6 +730,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			return null;
 		}
 	}
+
 	
 	/**
 	 * Executes search and shows results in specified RelationPanel.
@@ -945,7 +946,8 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		{
 			DocumentPanel doc = (DocumentPanel)pEvent.getSource();
 			RelationPosition pos = this.formatDialog.getCurrentPosition();
-			this.formatDialog.setPositionInfo(pos);
+			this.formatDialog.setCurrentPosition(pos);
+			this.formatDialog.showPositionInfo();
 			if (pos!=null)
 			{
 				this.processCommandGoToEdit();
@@ -958,7 +960,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	 */
 	private boolean processCommandAddLoadProfile()
 	{
-		String name = this.showInputProfileNameDialog();
+		String name = JOptionPane.showInputDialog("Name the load profile " );
 		
 		if (name == null || name.length() == 0)
 		{
@@ -1018,7 +1020,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	/**
 	 * Resets search panels for all relations.
 	 */
-	public void processCommandClearSearch()
+	private void processCommandClearSearch()
 	{
 		for (RelationPanel rp : this.viewer.getRelationPanels())
 		{
@@ -1031,7 +1033,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	/**
 	 * Commits all changes (INSERT, DELETE or UPDATE) to database.
 	 */
-	public boolean processCommandCommit()
+	private boolean processCommandCommit()
 	{
 		boolean result = false;
 		
@@ -1062,7 +1064,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	 * Load Dialog action:
 	 * Show currently selected load profile in editor.
 	 */
-	public boolean processCommandEditLoadProfile()
+	private boolean processCommandEditLoadProfile()
 	{
 		String loadProfile = this.loadDialog.getCurrentLoadProfileName();
 		this.loadDialog.showEditLoadProfile(loadProfile);
@@ -1075,99 +1077,45 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	 */
 	private boolean processCommandFormat()
 	{
-		// check if all neccessary information is in load profile
-		String formatType = loadProfile.getFormatType();
-		String formatAliases = loadProfile.getFormatAliases();
-		String formatQuery = loadProfile.getFormatQuery();
-		String formatScript = loadProfile.getFormatScript();
-		String templateHead = loadProfile.getFormatTemplateHead();
-		String templateBody = loadProfile.getFormatTemplateBody();
-		String templateTail = loadProfile.getFormatTemplateTail();
-		String outputDir = loadProfile.getOutputDirectory();
-		StringBuilder errorMessage = new StringBuilder();
-		
-		if (formatType==null || formatType.length() == 0)
-		{
-			errorMessage.append("Please specify format type in load profile. Available formats: ");
-			errorMessage.append(DocumentFormatter.getFormatTypes().toString());
-			errorMessage.append("\n");
-			Reporter.showError(errorMessage.toString());
-			return false;
-		}
-		
-		if (formatQuery==null || formatQuery.length() == 0)
-		{
-			errorMessage.append("Please specify query that fetches the document relation. \n");
-			errorMessage.append("With each relation you must first add a tuple ID and rename the relation. \n\n");
-			errorMessage.append("Example: \"query MyRelation feed addid {a} consume\" \n");
-			Reporter.showError(errorMessage.toString());
-			return false;
-		}
-		
-		if (outputDir==null || outputDir.length() == 0)
-		{
-			errorMessage.append("Please specify path of output directory. \n");
-			Reporter.showError(errorMessage.toString());
-			return false;
-		}
-
-		if (formatAliases==null || formatAliases.length() == 0)
-		{
-			errorMessage.append("Please list each relation name and its alias in the format query. \n\n");
-			errorMessage.append("Example: \"ARelation a; AnotherRelation b \" ");
-			Reporter.showError(errorMessage.toString());
-			return false;
-		}
-		
-		// format
 		try
 		{
 			// init formatter
-			DocumentFormatter formatter = DocumentFormatter.createFormatter(formatType);
+			DocumentFormatter formatter = DocumentFormatter.createFormatter(this.loadProfile.getFormatType());
+			formatter.initialize(this.loadProfile.getFormatAliases(), 
+								 this.loadProfile.getFormatQuery(), 
+								 this.loadProfile.getOutputDirectory(),
+								 this.loadProfile.getFormatScript(),
+								 this.loadProfile.getFormatTemplateBody(),
+								 this.loadProfile.getFormatTemplateHead(),
+								 this.loadProfile.getFormatTemplateTail());
 			
-			if (formatter == null)
-			{
-				Reporter.showError(formatType 
-								   + "DocumentFormatter is not implemented. \n"
-								   +" DocumentFormatters are available for these FormatTypes: \n" 
-								   + DocumentFormatter.getFormatTypes());
-			}
-			
-			formatter.setAliases(formatAliases); 
-			formatter.setQuery(formatQuery); 
-			formatter.setScript(formatScript); 
-			formatter.setOutputDirectory(outputDir); 
-			if (templateBody==null || templateBody.length() == 0
-				|| templateHead==null || templateHead.length() == 0
-				|| templateTail==null || templateTail.length() == 0)
+			if (!formatter.hasTemplates())
 			{
 				Reporter.showInfo("Format templates in load profile are not complete. \nWill use default templates. ");
 			}
-			else
-			{
-				formatter.setTemplateBody(templateBody); 
-				formatter.setTemplateHead(templateHead); 
-				formatter.setTemplateTail(templateTail); 
-			}
-			// should output come as separate pages or single-paged?
+			
+			// should document come as separate pages or single-paged?
 			boolean separatePages = this.formatDialog.getSeparatePages();
-			// let formatter format and get output
-			
-			if (!formatter.format(separatePages))
+			// is there a script to be executed on the output?
+			boolean applyScript = this.formatDialog.getApplyScript();
+
+			// let formatter get data and do the formatting
+			formatter.format(separatePages, applyScript);
+
+			List<Object> outputPages = formatter.getOutputPages();
+			if (outputPages == null || outputPages.isEmpty())
 			{
+				Reporter.showError("No output created.");
 				return false;
 			}
-			
-			List<String> outputFiles = formatter.getOutputFiles();
-			if (outputFiles == null || outputFiles.isEmpty())
-			{
-				Reporter.showError("No output found");
-				return false;
-			}
-			
-			DocumentPanel docPanel = DocumentPanel.createDocumentPanel(formatType);
-			docPanel.loadFiles(outputFiles);
+												
+			// display formatted page(s)
+			long millisStart = System.currentTimeMillis();
+			DocumentPanel docPanel = DocumentPanel.createDocumentPanel(this.loadProfile.getFormatType());
+			docPanel.load(outputPages);
 			this.formatDialog.setFormattedDocument(docPanel);
+			long millis = System.currentTimeMillis() - millisStart;
+			Reporter.debug("UpdateViewerController.processCommandFormat: display creation time (millis): " + millis);
 		}
 		catch (Exception e)
 		{
@@ -1180,22 +1128,28 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	
 	private boolean processCommandGoToEdit()
 	{
-		this.viewer.getMainFrame().toFront();
 		RelationPosition posInfo = this.formatDialog.getCurrentPosition();
+
 		if (posInfo == null)
 		{
 			return false;
 		}
+		
+		this.viewer.getMainFrame().toFront();
 		RelationPanel rp = this.viewer.getRelationPanel(posInfo.getRelationName());
+		
 		if (rp == null)
 		{
-			Reporter.showError("Relation \"" + posInfo.getRelationName() + "\" is currently not loaded. \n"
-								 + "Please add relation to your load profile. ");
+			Reporter.showError("Relation \"" + posInfo.getRelationName() 
+							   + "\" is currently not loaded. \nPlease add relation to your load profile. ");
 			return false;
 		}
+		
 		this.setState(States.UPDATE);
 		this.viewer.showRelationPanel(this.viewer.getRelationPanels().indexOf(rp));
-		rp.goTo(posInfo.getAttributeName(), posInfo.getTupleId(), posInfo.getOffset());
+		rp.goTo(posInfo.getAttributeName(), 
+				posInfo.getTupleId(), 
+				posInfo.getOffset());
 		return true;
 	}
 
@@ -1334,7 +1288,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	 * Loads Profiles from DB.
 	 * Creates Profile relations if not yet existent.
 	 */
-	public void processCommandOpenLoadDialog() 
+	private void processCommandOpenLoadDialog() 
 	{
 		try
 		{
@@ -1392,7 +1346,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	/*
 	 * Shows the format dialog.
 	 */
-	public void processCommandOpenFormatDialog() 
+	private void processCommandOpenFormatDialog() 
 	{
 		if (this.loadProfile == null)
 		{
@@ -1616,6 +1570,12 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	}
 	
 	
+	public void processCommandSaveDocument()
+	{
+		
+	}
+	
+	
 	/**
 	 *
 	 */
@@ -1760,7 +1720,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	/**
      * Undoes last uncommitted change (cell-wise), deletion or insertion.
      */
-	public void processCommandUndo()
+	private void processCommandUndo()
 	{
 		if(this.state == States.INSERT)
 		{
@@ -1856,12 +1816,5 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		return result;
 	}
 	
-	/**
-	 * Shows an input box for specifying the load profile name.
-	 */
-	private String showInputProfileNameDialog()
-	{
-		return JOptionPane.showInputDialog("Name the load profile " );
-	}
 	
 }

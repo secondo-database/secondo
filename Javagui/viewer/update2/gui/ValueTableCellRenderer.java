@@ -130,7 +130,6 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 			pTable.setRowHeight(pRow, pTable.getRowHeight()+4);
 		}
 		
-		
 		// render search matches
 		hiliter.removeAllHighlights();
 		
@@ -145,14 +144,11 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 				{
 					if (currHit!=null && sh.equals(currHit))
 					{
-						//this.setCaret(sh.getStart(), sh.getEnd());
 						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainterCurr);
-						//Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting CURRENT HIT ");
 					}
 					else
 					{
 						this.hiliter.addHighlight(sh.getStart(), sh.getEnd(), this.hilitePainter);
-						//Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlight at " + sh.getStart() + ", " + sh.getEnd());
 					}
 				}  
 				catch (Exception e) 
@@ -162,38 +158,31 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 			}
 		}
 		
-				
-		//Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent for cell (" + pRow + "," + pColumn + ")");
 		return this.textArea;
-	}
+	}	
 	
 	
-	public Rectangle getOffset(int pTextPos)
+	public Rectangle getOffset(int pTextPos) throws BadLocationException
 	{
-		try
+		//Reporter.debug("ValueTableCellEditor.getOffset: textarea width is " + this.textArea.getPreferredSize().width);
+		//Reporter.debug("ValueTableCellEditor.getOffset: value is " + this.textArea.getText());
+		if (pTextPos<0 || pTextPos>=this.textArea.getText().length())
 		{
-			this.textArea.setSize(this.table.getColumnModel().getColumn(2).getWidth(), Short.MAX_VALUE);
-			this.textArea.setText(this.textArea.getText());
-			Reporter.debug("ValueTableCellRenderer.getOffset: textarea width is " + this.textArea.getWidth());
-			Reporter.debug("ValueTableCellRenderer.getOffset: value is " + this.textArea.getText());
-			return this.textArea.modelToView(pTextPos);
+			return new Rectangle(0,0,0,0);
 		}
-		catch (BadLocationException e)
-		{
-			Reporter.writeError("ValueTableCellRenderer.getOffset: position=" + pTextPos + ", " +  e.getMessage());
-			return null;
-		}
+		return this.textArea.modelToView(pTextPos);
 	}
 	
 	
 	public void setCaret(int pStart, int pEnd)
 	{
-		//Reporter.debug("ValueTableCellRenderer.setCaretPosition at position " + pStart);
-		
+		int start = pStart<0? 0 : pStart;
+		start = start<this.textArea.getText().length()? start : this.textArea.getText().length();
+		int end = pEnd<0? 0 : pEnd;
+		end = end<this.textArea.getText().length()? end : this.textArea.getText().length();
 		this.textArea.requestFocusInWindow();
-		this.textArea.setCaretPosition(pStart);
-		this.textArea.moveCaretPosition(pEnd);
-		//this.textArea.getCaret().setSelectionVisible(true);
+		this.textArea.setCaretPosition(start);
+		this.textArea.moveCaretPosition(end);
 	}
 	
 }
