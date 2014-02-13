@@ -277,7 +277,7 @@ class ULabels : public ConstTemporalUnit<Labels> {
   ULabels() {}
   explicit ULabels(bool defined);
   explicit ULabels(const SecInterval &iv, const Labels &lbs);
-  explicit ULabels(const ULabels& uls);
+  ULabels(const ULabels& uls);
   ULabels(int i, MLabels &mls);
   
   static ListExpr Property();
