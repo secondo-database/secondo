@@ -201,8 +201,8 @@ class LoadBalancerListener {
             *result = string("\004");
             return;
           }
-   
-          buffer += buf;
+          
+          buffer += string(buf, 0, bytesRead);
        }
     }
        
@@ -578,7 +578,7 @@ public:
 protected:
   
   // Get the next server 
-  TargetServer* getTargetServer() {
+  virtual TargetServer* getTargetServer() {
     
     TargetServer* ts;
     int tryCount = 0;
@@ -621,7 +621,7 @@ public:
 protected:
 
   // Get the next server 
-  TargetServer* getTargetServer() {
+  virtual TargetServer* getTargetServer() {
     
     ThreadedTargetServer* ts = NULL;
     size_t queueSize = 999999999;
