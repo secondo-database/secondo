@@ -43,7 +43,7 @@ sheduling stategies:
 
 rr = Round robin
 trr = Thraded round robin
-rtrr = Reliable thraded round robin
+lbtrr = Load based thraded round robin
 
 
 2 Defines, includes, and constants
@@ -560,7 +560,7 @@ public:
       if(lastServer >= serverList->size()) {
          lastServer = 0;
       }
-      
+
       // We contacted every server two times
       // But no one was ready
       if(tryCount > 2 * serverList->size()) {
@@ -611,9 +611,9 @@ void printHelp(char* progName) {
   cerr << "Where <Mode> is rr or fs-n" << endl;
   cerr << "rr = round robin" << endl;
   cerr << "trr = multi-thraded round robin" << endl;
-  cerr << "rtrr-n = reliable multi-threaded rr" << endl;
+  cerr << "lbtrr-n = load based multi-threaded rr" << endl;
   cerr << "         acknowledge every n lines" << endl;
-  cerr << "e.g. rtrr-10 " << endl;
+  cerr << "e.g. lbtrr-10 " << endl;
   cerr << endl;
   cerr << "Example: " << progName << " 10000 rr 192.168.1.1:10001 " 
        << "192.168.1.2:10001 192.168.1.3:10001" << endl;
@@ -658,7 +658,7 @@ void parseServerList(int argc, char* argv[],
        ts = new TargetServer(argv[i]);
      } else if(mode.compare("trr") == 0) {
        ts = new ThreadedTargetServer(argv[i]);
-     } else if(mode.compare(0, 5, "rtrr-") == 0) {
+     } else if(mode.compare(0, 6, "lbtrr-") == 0) {
         int acknowledgeAfter = atoi((mode.substr(5, mode.length())).c_str());
         ts = new ReliableThreadedTargetServer(argv[i], acknowledgeAfter); 
      } else {
@@ -756,7 +756,7 @@ int main(int argc, char* argv[]) {
      lb.openSocket();
      lb.run();
    } else if ((mode.compare("trr") == 0) 
-              || (mode.compare(0, 5, "rtrr-") == 0) ) {
+              || (mode.compare(0, 6, "lbtrr-") == 0) ) {
 
      startThreadedServer(mode, serverList, argv, listenPort);
 
