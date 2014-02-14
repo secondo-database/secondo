@@ -343,6 +343,16 @@ public:
     return socketfd != 0;
   }
   
+  // get our hostname
+  string getHostname() {
+    return hostname;
+  }
+  
+  // get our port
+  int getPort() {
+    return port;
+  }
+  
 protected:
   
   void _sendData(string data) {
@@ -443,6 +453,15 @@ public:
     pthread_mutex_unlock(&queueMutex);
   }
   
+  // Get the size of the queue
+  size_t getQueueSize() {
+    size_t result;
+    pthread_mutex_lock(&queueMutex);
+    result = myQueue.size();
+    pthread_mutex_unlock(&queueMutex);
+    return result;
+  }
+  
 protected:
   queue<string*> myQueue;
   pthread_mutex_t queueMutex;
@@ -520,11 +539,7 @@ public:
   }
   
   virtual void sendData(string data) {
-    
-#ifdef LB_DEBUG
-    cout << "DataSheduler: got " << data << " to " << lastServer << endl;
-#endif
-    
+        
     // End of Transmission?
     if(data.compare("\004") == 0) {
       cout << "Got EOT, send EOT to all Threads" << endl;
@@ -546,6 +561,25 @@ public:
       return;
     }
     
+    TargetServer* ts = getTargetServer();
+    
+    if(ts != NULL) {
+      #ifdef LB_DEBUG
+       cout << "DataSheduler: got " << data << " to " << ts -> getHostname() 
+         << ":" << ts -> getPort() << endl;
+      #endif
+      ts -> sendData(data);
+    } else {
+        cout << "Could not find a ready server, IGNORING DATA:" << endl;
+        cout << data << endl;
+    }
+  }
+  
+protected:
+  
+  // Get the next server 
+  TargetServer* getTargetServer() {
+    
     TargetServer* ts;
     int tryCount = 0;
     
@@ -564,20 +598,51 @@ public:
       // We contacted every server two times
       // But no one was ready
       if(tryCount > 2 * serverList->size()) {
-        cout << "Could not find a ready server, IGNORING DATA:" << endl;
-        cout << data << endl;
-        return;
+        return NULL;
       }
       
     } while(! ts -> isReady() );
     
-    ts -> sendData(data);
+    return ts;
   }
   
-private:
   vector<TargetServer*>* serverList;
   size_t lastServer;
 };
+
+
+class QBDataSheduler : public RRDataSheduler {
+  
+public:
+    QBDataSheduler(vector<TargetServer*>* myServerList) 
+      : RRDataSheduler(myServerList) {
+    }
+
+protected:
+
+  // Get the next server 
+  TargetServer* getTargetServer() {
+    
+    ThreadedTargetServer* ts = NULL;
+    size_t queueSize = 999999999;
+    
+    // Search for the server with the smallest queue size
+    for(vector<TargetServer*>::iterator iter = serverList->begin(); 
+        iter != serverList->end(); ++iter) {
+      
+      TargetServer* server = *iter;
+      ThreadedTargetServer* tserver = (ThreadedTargetServer*) server;
+      size_t tServerQueueSize = tserver -> getQueueSize();
+      if(tServerQueueSize < queueSize) {
+        queueSize = tServerQueueSize;
+        ts = tserver;
+      }
+    }
+    
+    return ts;
+  }
+};
+
 
 /* 
 11 Helper function for starting the load balancer listener
@@ -608,12 +673,13 @@ void* startThreadedTargerServer(void *ptr) {
 void printHelp(char* progName) {
   cerr << "Usage: " << progName << " <ListenPort> <Mode> <ServerList>" << endl;
   cerr << endl;
-  cerr << "Where <Mode> is rr or fs-n" << endl;
-  cerr << "rr = round robin" << endl;
-  cerr << "trr = multi-thraded round robin" << endl;
-  cerr << "lbtrr-n = load based multi-threaded rr" << endl;
-  cerr << "         acknowledge every n lines" << endl;
-  cerr << "e.g. lbtrr-10 " << endl;
+  cerr << "Where <Mode> is rr, trr, lbtrr-n or qbts:" << endl;
+  cerr << "rr      = round robin" << endl;
+  cerr << "trr     = thraded round robin" << endl;
+  cerr << "lbtrr-n = load based threaded rr" << endl;
+  cerr << "            acknowledge every n lines" << endl;
+  cerr << "            (e.g. lbtrr-10)" << endl;
+  cerr << "qbts    = Queue based threaded sheduling" << endl;
   cerr << endl;
   cerr << "Example: " << progName << " 10000 rr 192.168.1.1:10001 " 
        << "192.168.1.2:10001 192.168.1.3:10001" << endl;
@@ -656,10 +722,10 @@ void parseServerList(int argc, char* argv[],
      
      if(mode.compare("rr") == 0) {
        ts = new TargetServer(argv[i]);
-     } else if(mode.compare("trr") == 0) {
+     } else if((mode.compare("trr") == 0) || (mode.compare("qbts") == 0)) {
        ts = new ThreadedTargetServer(argv[i]);
      } else if(mode.compare(0, 6, "lbtrr-") == 0) {
-        int acknowledgeAfter = atoi((mode.substr(5, mode.length())).c_str());
+        int acknowledgeAfter = atoi((mode.substr(6, mode.length())).c_str());
         ts = new ReliableThreadedTargetServer(argv[i], acknowledgeAfter); 
      } else {
           printHelp(argv[0]);
@@ -685,8 +751,14 @@ void parseServerList(int argc, char* argv[],
 void startThreadedServer(string &mode, vector<TargetServer*> &serverList, 
           char *argv[], int listenPort) {
   
+  DataSheduler* dataSheduler;
+  
   if((mode.compare("trr") == 0)) {
     cout << "Mode is threaded round robin" << endl;
+    dataSheduler = new RRDataSheduler(&serverList);
+  } else if(mode.compare("qbts") == 0) {
+     cout << "Mode is queue based threaded sheduling" << endl;
+     dataSheduler = new QBDataSheduler(&serverList);
   } else {
        
     if(mode.length() <= 5) {
@@ -694,14 +766,14 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
        printHelp(argv[0]);
        exit(EXIT_FAILURE);
     }
-       
-    cout << "Mode is reliable thraded round robin" << endl;
-    int acknowledgeAfter = atoi((mode.substr(5, mode.length())).c_str());
-    cout << "Acknowledge after: " << acknowledgeAfter << endl;
+    
+    dataSheduler = new RRDataSheduler(&serverList);   
+    cout << "Mode is load based thraded round robin" << endl;
+    int acknowledgeAfter = atoi((mode.substr(6, mode.length())).c_str());
+    cout << "Acknowledge after: " << acknowledgeAfter << " lines" << endl;
   }
-     
-  RRDataSheduler dataReceiver(&serverList);
-  LoadBalancerListener lb(listenPort, &dataReceiver);  
+  
+  LoadBalancerListener lb(listenPort, dataSheduler);  
   vector<pthread_t> threads;
      
   // Start target server threads
@@ -725,6 +797,8 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
     pthread_join(thread, NULL);
   }
   threads.clear();
+  delete dataSheduler;
+  dataSheduler = NULL;
 }
 
 /* 
@@ -756,7 +830,8 @@ int main(int argc, char* argv[]) {
      lb.openSocket();
      lb.run();
    } else if ((mode.compare("trr") == 0) 
-              || (mode.compare(0, 6, "lbtrr-") == 0) ) {
+              || (mode.compare(0, 6, "lbtrr-") == 0) 
+              || (mode.compare("qbts") == 0)) {
 
      startThreadedServer(mode, serverList, argv, listenPort);
 
