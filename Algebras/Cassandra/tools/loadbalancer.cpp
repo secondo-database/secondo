@@ -191,7 +191,7 @@ class LoadBalancerListener {
 #ifdef LB_DEBUG
           cout << "read()" << endl;
 #endif
-	  
+
           size_t bytesRead = read(connfd, buf, sizeof(buf));
    
           // End of transmisson ?
@@ -565,7 +565,7 @@ public:
       // But no one was ready
       if(tryCount > 2 * serverList->size()) {
         cout << "Could not find a ready server, IGNORING DATA:" << endl;
-	cout << data << endl;
+        cout << data << endl;
         return;
       }
       
