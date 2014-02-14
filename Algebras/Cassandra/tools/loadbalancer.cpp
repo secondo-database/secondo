@@ -202,7 +202,7 @@ class LoadBalancerListener {
             return;
           }
           
-          buffer += string(buf, 0, bytesRead);
+          buffer += string(buf, bytesRead);
        }
     }
        
