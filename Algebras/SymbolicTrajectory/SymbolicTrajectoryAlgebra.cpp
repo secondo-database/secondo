@@ -37,31 +37,12 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 \section{Defines and Includes}
 
 */
-#include "Algebra.h"
-#include "NestedList.h"
-#include "ListUtils.h"
-#include "NList.h"
-#include "QueryProcessor.h"
-#include "ConstructorTemplates.h"
-#include "StandardTypes.h"
-#include "TemporalAlgebra.h"
-#include "TemporalExtAlgebra.h"
-#include "FTextAlgebra.h"
-#include "DateTime.h"
-#include "CharTransform.h"
-#include "Stream.h"
-#include "SecParser.h"
+
 #include "SymbolicTrajectoryAlgebra.h"
-#include "TemporalUnitAlgebra.h"
-#include "GenericTC.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
-
-#include <string>
-#include <vector>
-#include <math.h>
 
 using namespace std;
 
@@ -80,8 +61,6 @@ Label::Label(const bool def) : Attribute(def) {
   strncpy(text, "", MAX_STRINGSIZE);
   text[MAX_STRINGSIZE] = '\0';
 }
-
-Label::~Label() {}
 
 string Label::GetValue() const {
   string value = text;
@@ -120,10 +99,13 @@ Word Label::In(const ListExpr typeInfo, const ListExpr instance,
   return result;
 }
 
+ListExpr Label::ToListExpr(ListExpr typeInfo) {
+  return nl->OneElemList(nl->StringAtom(GetValue()));
+}
+
 ListExpr Label::Out(ListExpr typeInfo, Word value) {
   Label* label = static_cast<Label*>(value.addr);
-  NList element(label->GetValue(), true);
-  return element.listExpr();
+  return label->ToListExpr(typeInfo);
 }
 
 Word Label::Create(const ListExpr typeInfo) {
@@ -151,11 +133,6 @@ int Label::SizeOfObj() {
 
 bool Label::Adjacent(const Attribute*) const {
   return false;
-}
-
-Label* Label::Clone() const {
-  Label* result = new Label(this);
-  return result;
 }
 
 size_t Label::HashValue() const {
@@ -542,6 +519,24 @@ void MLabel::DefTime(Periods& per) const {
   for (int i = 0; i < GetNoComponents(); i++) {
     Get(i, ul);
     per.MergeAdd(ul.timeInterval);
+  }
+}
+
+void MLabel::Atinstant(const Instant& inst, ILabel& result) const {
+  if(!IsDefined() || !inst.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  int pos = Position(inst);
+  if (pos == -1) {
+    result.SetDefined(false);
+  }
+  else {
+    ULabel ul(true);
+    Get(pos, ul);
+    result.SetDefined(true);
+    result.instant = inst;
+    result.value = ul.constValue;
   }
 }
 
@@ -958,57 +953,6 @@ TypeConstructor movinglabel(
     SizeOfMapping<MLabel>, //sizeof function
     MLabel::CheckMLabel    //kind checking function
 );
-
-
-template <class Mapping, class Alpha>
-int MappingAtInstantExt(Word* args, Word& result, int message, Word& local,
-                        Supplier s) {
-  result = qp->ResultStorage(s);
-  Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
-  ((Mapping*)args[0].addr)->AtInstant(*((Instant*)args[1].addr), *pResult);
-  return 0;
-}
-
-const string TemporalSpecAtInstantExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>T in {label},\n"
-    "mT x instant  -> iT</text--->"
-    "<text>_ atinstant _ </text--->"
-    "<text>get the Intime value corresponding to the instant.</text--->"
-    "<text>mlabel1 atinstant instant1</text--->"
-    ") )";
-    
-int MovingExtSimpleSelect(ListExpr args) {
-  ListExpr arg1 = nl->First(args);
-  if (nl->SymbolValue(arg1) == MLabel::BasicType()) {
-    return 0;
-  }
-  return -1; // This point should never be reached
-}
-
-ListExpr MovingInstantExtTypeMapIntime(ListExpr args) {
-  if (nl->ListLength(args) == 2) {
-    ListExpr arg1 = nl->First(args),
-    arg2 = nl->Second(args);
-    if(nl->IsEqual(arg2, Instant::BasicType())) {
-      if(nl->IsEqual(arg1, MLabel::BasicType()))
-        return nl->SymbolAtom(Intime<Label>::BasicType());
-    }
-  }
-  return nl->SymbolAtom(Symbol::TYPEERROR());
-}
-
-ValueMapping temporalatinstantextmap[] = {
-    MappingAtInstantExt<MString, CcString> };
-//    MappingAtInstantExt<MLabel, Label> };
-
-Operator temporalatinstantext(
-    "atinstant",
-    TemporalSpecAtInstantExt,
-    5,
-    temporalatinstantextmap,
-    MovingExtSimpleSelect,
-    MovingInstantExtTypeMapIntime);
 
 /*
 \subsection{Function ~CompareLabels~}
@@ -1899,6 +1843,40 @@ ostream& operator<<(ostream& o, const MLabels& mls) {
 }
 
 /*
+\subsection{Function ~Position~}
+
+*/
+int MLabels::Position(const Instant& inst) const {
+  assert(IsDefined());
+  assert(inst.IsDefined());
+  int first = 0, last = GetNoComponents() - 1;
+  Instant t1 = inst;
+  while (first <= last) {
+    int mid = (first + last) / 2;
+    if ((mid < 0) || (mid >= GetNoComponents())) {
+      return -1;
+    }
+    MLabelsUnit unit;
+    units.Get(mid, unit);
+    if (((Interval<Instant>)(unit.interval)).Contains(t1)) {
+      return mid;
+    }
+    else { // not contained
+      if ((t1 > unit.interval.end) || (t1 == unit.interval.end)) {
+        first = mid + 1;
+      }
+      else if ((t1 < unit.interval.start) || (t1 == unit.interval.start)) {
+        last = mid - 1;
+      }
+      else {
+        return -1; // should never be reached.
+      }
+    }
+  }
+  return -1;
+}
+
+/*
 \subsection{Function ~Get~}
 
 */
@@ -1915,6 +1893,11 @@ void MLabels::Get(const int i, ULabels& result) const {
 
 */
 void MLabels::GetLabels(const int i, Labels& result) const {
+  if (!IsDefined() || (i < 0) || (i > GetNoComponents() - 1)) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
   result.Clean();
   MLabelsUnit unit(-1);
   units.Get(i, unit);
@@ -2123,7 +2106,32 @@ void MLabels::DefTime(Periods& per) const {
 }
 
 /*
+\subsection{Function ~Atinstant~}
+
+mlabels x instant -> ilabels
+
+*/
+void MLabels::Atinstant(const Instant& inst, ILabels& result) const {
+  if(!IsDefined() || !inst.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  int pos = Position(inst);
+  if (pos == -1) {
+    result.SetDefined(false);
+  }
+  else {
+    Labels labels(true);
+    GetLabels(pos, result.value);
+    result.SetDefined(true);
+    result.instant = inst;
+  }
+}
+
+/*
 \subsection{Function ~Initial~}
+
+mlabels -> ilabels
 
 */
 void MLabels::Initial(ILabels& result) const {
@@ -2141,6 +2149,8 @@ void MLabels::Initial(ILabels& result) const {
 /*
 \subsection{Function ~Final~}
 
+mlabels -> ilabels
+
 */
 void MLabels::Final(ILabels& result) const {
   if (!IsDefined() || !GetNoComponents()) {
@@ -2154,12 +2164,87 @@ void MLabels::Final(ILabels& result) const {
   result.value = labels;
 }
 
-
 /*
 \subsection{Type Constructor}
 
 */
 GenTC<MLabels> movinglabels;
+
+/*
+\section{Implementation of class ~Place~}
+
+\subsection{Function ~CheckKind~}
+
+*/
+bool Place::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, Place::BasicType());
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr Place::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(),
+    "(<string> <int>)",
+    "(\"Dortmund\" 1909)");
+}
+
+/*
+\subsection{Function ~Compare~}
+
+*/
+int Place::Compare(const Attribute* arg) const {
+  int cmp = Label::Compare(arg);
+  if (cmp != 0) {
+    return cmp;
+  }
+  else {
+    if (ref > ((Place*)arg)->GetRef()) {
+      return 1;
+    }
+    if (ref < ((Place*)arg)->GetRef()) {
+      return -1;
+    }
+    return 0;
+  }
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+ListExpr Place::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(nl->StringAtom(GetName()), nl->IntAtom(GetRef()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+bool Place::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  if (listutils::isSymbolUndefined(LE)) {
+    SetDefined(false);
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    SetDefined(false);
+    return false;
+  }
+  SetValue(nl->StringValue(nl->First(LE)));
+  SetRef(nl->IntValue(nl->Second(LE)));
+  SetDefined(true);
+  return true;
+}
+
+/*
+\subsection{Type Constructor}
+
+*/
+GenTC<Place> place;
 
 /*
 \section{Operator ~tolabel~}
@@ -3982,7 +4067,7 @@ ListExpr deftimeSymbolicTM(ListExpr args) {
 \subsubsection{Selection Function}
 
 */
-int deftimeUnitsSymbolicSelect(ListExpr args) {
+int deftimeUnitsAtinstantSymbolicSelect(ListExpr args) {
   if (MLabel::checkType(nl->First(args))) return 0;
   if (MLabels::checkType(nl->First(args))) return 1;
   return -1;
@@ -4014,6 +4099,60 @@ struct deftimeSymbolicInfo : OperatorInfo {
     syntax    = "deftime ( _ )";
     meaning   = "Returns the periods containing the time intervals during which"
                 "the mlabel(s) is defined.";
+  }
+};
+
+/*
+\subsection{Operator ~atinstant~}
+
+atinstant: mlabel x instant -> ilabel
+atinstant: mlabels x instant -> ilabels
+
+\subsubsection{Type Mapping}
+
+*/
+ListExpr atinstantSymbolicTM(ListExpr args) {
+  if (nl->HasLength(args, 2)) {
+    if (Instant::checkType(nl->Second(args))) {
+      if (MLabel::checkType(nl->First(args))) {
+        return nl->SymbolAtom(ILabel::BasicType());
+      }
+      if (MLabels::checkType(nl->First(args))) {
+        return nl->SymbolAtom(ILabels::BasicType());
+      }
+    }
+  }
+  return listutils::typeError("Correct signature: mlabel x instant -> ilabel,"
+                              "   mlabels x instant -> ilabels");
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class Mapping, class Intime>
+int atinstantSymbolicVM(Word* args, Word& result, int message, Word& local,
+                        Supplier s) {
+  result = qp->ResultStorage(s);
+  Mapping *src = static_cast<Mapping*>(args[0].addr);
+  Instant *inst = static_cast<Instant*>(args[1].addr);
+  Intime *res = static_cast<Intime*>(result.addr);
+  src->Atinstant(*inst, *res);
+  return 0;
+}
+
+/*
+\subsubsection{Operator Info}
+
+*/
+struct atinstantSymbolicInfo : OperatorInfo {
+  atinstantSymbolicInfo() {
+    name      = "atinstant";
+    signature = "mlabel x instant -> ilabel";
+    appendSignature("mlabels x instant -> ilabels");
+    syntax    = "_ atinstant _";
+    meaning   = "Gets the intime value from a moving object corresponding to "
+                "the temporal value at the given instant.";
   }
 };
 
@@ -7348,6 +7487,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     AddTypeConstructor(&intimelabels);
     AddTypeConstructor(&unitlabels);
     AddTypeConstructor(&movinglabels);
+    
+    AddTypeConstructor(&place);
 
     unitlabel.AssociateKind(Kind::DATA());
     movinglabel.AssociateKind(Kind::TEMPORAL());
@@ -7355,12 +7496,13 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     intimelabels.AssociateKind(Kind::DATA());
     unitlabels.AssociateKind(Kind::DATA());
     movinglabels.AssociateKind(Kind::DATA());
+    
+    place.AssociateKind(Kind::DATA());
 
     AddTypeConstructor(&labelsTC);
     AddTypeConstructor(&patternTC);
     AddTypeConstructor(&classifierTC);
 
-//       AddOperator(&temporalatinstantext);
     ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
     
     AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);
@@ -7396,12 +7538,17 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     ValueMapping deftimeSymbolicVMs[] = {deftimeSymbolicVM<MLabel>,
                                          deftimeSymbolicVM<MLabels>, 0};
     AddOperator(deftimeSymbolicInfo(), deftimeSymbolicVMs, 
-                deftimeUnitsSymbolicSelect, deftimeSymbolicTM);
+                deftimeUnitsAtinstantSymbolicSelect, deftimeSymbolicTM);
+    
+    ValueMapping atinstantSymbolicVMs[] = {atinstantSymbolicVM<MLabel, ILabel>,
+                                      atinstantSymbolicVM<MLabels, ILabels>, 0};
+    AddOperator(atinstantSymbolicInfo(), atinstantSymbolicVMs,
+                deftimeUnitsAtinstantSymbolicSelect, atinstantSymbolicTM);
     
     ValueMapping unitsSymbolicVMs[] = {unitsSymbolicVM<MLabel, ULabel>,
                                        unitsSymbolicVM<MLabels, ULabels>, 0};
     AddOperator(unitsSymbolicInfo(), unitsSymbolicVMs, 
-                deftimeUnitsSymbolicSelect, unitsSymbolicTM);
+                deftimeUnitsAtinstantSymbolicSelect, unitsSymbolicTM);
     
     ValueMapping initialSymbolicVMs[] = {initialSymbolicVM<ULabel, ILabel>,
          initialSymbolicVM<ULabels, ILabels>, initialSymbolicVM<MLabel, ILabel>,

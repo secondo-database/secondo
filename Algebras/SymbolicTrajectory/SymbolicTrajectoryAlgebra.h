@@ -35,19 +35,33 @@ This is the header file for the Symbolic Trajectory Algebra.
 \section{Defines and Includes}
 
 */
+#include "Algebra.h"
 #include "NestedList.h"
-#include "SymbolicTrajectoryTools.h"
+#include "NList.h"
+#include "QueryProcessor.h"
+#include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 #include "TemporalAlgebra.h"
+#include "TemporalExtAlgebra.h"
+#include "DateTime.h"
+#include "CharTransform.h"
+#include "Stream.h"
+#include "SecParser.h"
+#include "NestedList.h"
+#include "SymbolicTrajectoryTools.h"
 #include "ListUtils.h"
 #include "RelationAlgebra.h"
 #include "Stream.h"
 #include "InvertedFile.h"
 #include "FTextAlgebra.h"
 #include "IntNfa.h"
+#include "TemporalUnitAlgebra.h"
+#include "GenericTC.h"
 #include <string>
 #include <set>
 #include <stack>
+#include <vector>
+#include <math.h>
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
@@ -74,19 +88,20 @@ void patternFlushBuffer();
 
 class Label : public Attribute {
  public:
-  Label() {};
+  Label() {}
   explicit Label(const string& val);
   Label(const Label& rhs);
-  explicit Label(const bool def);
-  ~Label();
+  Label(const bool def);
+  ~Label() {}
 
   string GetValue() const;
   void Set(const bool def, const string &value);
-  Label* Clone();
+//   Label* Clone() const {return new Label(*this);}
   bool operator==(const Label lb) const {return GetValue() == lb.GetValue();}
 
   static Word     In(const ListExpr typeInfo, const ListExpr instance,
                      const int errorPos, ListExpr& errorInfo, bool& correct);
+  ListExpr ToListExpr(ListExpr typeInfo);
   static ListExpr Out(ListExpr typeInfo, Word value);
   static Word     Create(const ListExpr typeInfo);
   static void     Delete(const ListExpr typeInfo, Word& w);
@@ -102,11 +117,12 @@ class Label : public Attribute {
   int             Compare(const Attribute* arg) const;
   size_t          Sizeof() const;
   bool            Adjacent(const Attribute*) const;
-  Label*          Clone() const;
+  Attribute*      Clone() const {return new Label(*this);}
   size_t          HashValue() const;
   void            SetValue(const string &value);
   ostream&        Print(ostream& os) const {return os << GetValue();}
 
+ protected:
   char text[MAX_STRINGSIZE + 1];
 };
 
@@ -114,7 +130,7 @@ int CompareLabels(const void *a, const void *b);
 
 class Labels : public Attribute {
  public:
-  Labels() {} // this constructor is reserved for the cast function.
+  Labels() {}
   explicit Labels(const int n, const Label *Lb = 0);
   explicit Labels(const bool defined);
   explicit Labels(vector<Label>* lbs);
@@ -235,6 +251,7 @@ class MLabel : public MString {
   bool Passes(Label *label);
   void At(const Label& label, MLabel& result) const;
   void DefTime(Periods& per) const;
+  void Atinstant(const Instant& inst, ILabel& result) const;
   void Inside(const Labels& lbs, MBool& result) const;
   void Initial(ILabel& result) const;
   void Final(ILabel& result) const;
@@ -343,6 +360,7 @@ class MLabels : public Attribute {
   ListExpr unitToListExpr(int i);
   void readLabels(ListExpr labelslist);
   bool readUnit(ListExpr unitlist);
+  int Position(const Instant& inst) const;
   
   void Get(const int i, ULabels& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
@@ -360,14 +378,49 @@ class MLabels : public Attribute {
   void At(const Label& label, MLabels& result) const;
   void At(const Labels& lbs, MLabels& result) const;
   void DefTime(Periods& per) const;
+  void Atinstant(const Instant& inst, ILabels& result) const;
   void Initial(ILabels& result) const;
   void Final(ILabels& result) const;
+};
+
+class Place : public Label {
+ public:
+  Place() : Label(), ref(0) {}
+  explicit Place(const string& n, const unsigned int r) : Label(n), ref(r) {}
+  Place(const Place& rhs) : Label(rhs.GetName()), ref(rhs.GetRef()) {}
+  Place(const bool def) : Label(def) {}
+
+  ~Place() {}
+
+  string GetName() const {return text;}
+  unsigned int GetRef() const {return ref;}
+  void SetRef(const unsigned int r) {ref = r;}
+  bool operator==(const Place& p) const;
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(Place);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "place";}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return 0;}
+  Flob* GetFLOB(const int i) {return 0;}
+  size_t Sizeof() const {return sizeof(*this);}
+  int Compare(const Attribute* arg) const;
+  bool Adjacent(const Attribute *arg) const {return false;}
+  Attribute *Clone() const {return new Place(*this);}
+  size_t HashValue() const {return text[0] * text[9] * ref;}
+  virtual void CopyFrom(const Attribute* right) {*this = *((Place*)right);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+
+ private:
+  unsigned int ref;
 };
 
 class ExprList {
  public: 
   vector<string> exprs;
-  
+
   ExprList() {}
   ~ExprList() {}
 
