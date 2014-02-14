@@ -67,6 +67,8 @@ rtrr = Reliable thraded round robin
 
 using namespace std;
 
+#define LB_DEBUG
+
 
 /* 
 3 Class - Generic DataScheduler, sendData must been overwriten in subclasses
@@ -185,7 +187,11 @@ class LoadBalancerListener {
        if(isSocketOpen()) {
           char buf[1024];
           memset(buf, 0, sizeof(buf));
+
+#ifdef LB_DEBUG
           cout << "read()" << endl;
+#endif
+	  
           size_t bytesRead = read(connfd, buf, sizeof(buf));
    
           // End of transmisson ?
@@ -203,8 +209,10 @@ class LoadBalancerListener {
     // Split buffer on "\n"
     *result = string (buffer.begin(), pos + 1);
     buffer = string (pos + 1, buffer.end());
-    
+
+#ifdef LB_DEBUG
     cout << "Got: " << *result << endl;
+#endif
   }
 
   // Server main method
@@ -513,7 +521,9 @@ public:
   
   virtual void sendData(string data) {
     
-    // cout << "DataSheduler: got " << data << " to " << lastServer << endl;
+#ifdef LB_DEBUG
+    cout << "DataSheduler: got " << data << " to " << lastServer << endl;
+#endif
     
     // End of Transmission?
     if(data.compare("\004") == 0) {
@@ -554,7 +564,8 @@ public:
       // We contacted every server two times
       // But no one was ready
       if(tryCount > 2 * serverList->size()) {
-        cout << "Could not find a ready server, IGNORING DATA" << endl;
+        cout << "Could not find a ready server, IGNORING DATA:" << endl;
+	cout << data << endl;
         return;
       }
       
@@ -660,7 +671,7 @@ void parseServerList(int argc, char* argv[],
      
      if(result == false) {
        cout << "Unable to open connection to: " << argv[i] 
-             << " ignoring" << endl;
+             << " ignoring target server" << endl;
      } else {
         serverList->push_back(ts);
      }
