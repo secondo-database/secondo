@@ -131,6 +131,7 @@ public:
     Face ClipEar();  // Clip an ear for triangulation
     vector<MSegs> Evaporate(bool close); // calculate evaporation-msegs
     void AddHole (Face hole); // Add a new hole to this face
+    bool isEmpty(); // Check, if this is an empty face
     bool Check(); // Check, if this face is valid
     void IntegrateHoles(); // Integrate holes into the cycle for triangulation
     string ToString() const;
@@ -173,6 +174,7 @@ public:
     vector<MSeg> msegs; // the msegs which make up a cycle
     Face sreg, dreg; // the faces from which this msegs were calculated
     int iscollapsed; // >0 if the face collapses or expands
+    int isevaporating; // >0 if the face evaporates
     pair<Pt,Pt> bbox; // corner-points of the bounding box
 
     // Constructor
@@ -215,6 +217,7 @@ public:
     Face CreateBorderFace(bool src); // get face from border of the interval
     void PrintMRegionListExpr(); // Output list expression for debugging
     URegion ToURegion(Interval<Instant> iv, int facenr); // convert to uregion
+    bool isEmpty(); // Check, if this is an empty mface
     string ToString();
 };
 
@@ -230,7 +233,7 @@ public:
     MFaces(MFace face);
     
     // Methods
-    void AddFace(MFace face); // Add a new mface to this mfaces-object
+    void AddMFace(MFace face); // Add a new mface to this mfaces-object
     ListExpr ToListExpr(Interval<Instant> iv, double start, double end);
     ListExpr ToMListExpr(Interval<Instant> iv); // create NestedList-Expressions
     MFaces divide(double start, double end); // restrict the interval
@@ -262,6 +265,13 @@ public:
 MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args);
 
+vector<pair<Face *, Face *> > matchFaces(
+        vector<Face> *src, vector<Face> *dst, int depth,
+        string args);
+
+typedef vector<pair<Face *, Face *> > (*matchFaces_t)(vector<Face> *src,
+        vector<Face> *dst, int depth, string args);
+
 // Prototypes of the matchFaces-strategies
 vector<pair<Face *, Face *> > matchFacesSimple(vector<Face> *src,
         vector<Face> *dst, int depth, string args);
@@ -281,5 +291,6 @@ Word InMRegion(const ListExpr typeInfo,
         const int errorPos,
         ListExpr& errorInfo,
         bool& correct);
+
 
 #endif /* INTERPOLATE_HXX */

@@ -117,6 +117,8 @@ static inline int sign(Pt a, Pt b, Pt c) {
  
 */
 bool Seg::intersects(const Seg& a) const {
+    if ((s == e) || (a.s == a.e))
+        return false; // If any segment is degenerated, it cannot intersect
     
     // The two segments completely overlap
     if ((*this == a) || ((s == a.s) && (e == a.e)))

@@ -19,6 +19,7 @@ Face::Face() : cur(0), ishole(false) {
 */
 Face::Face(ListExpr tle) : cur(0), parent(NULL), ishole(false) {
     ListExpr le = nl->First(tle);
+    // Construct segments from the points
     while (nl->ListLength(le) > 1) {
         ListExpr pa = nl->First(le);
         ListExpr pb = nl->First(nl->Rest(le));
@@ -34,13 +35,23 @@ Face::Face(ListExpr tle) : cur(0), parent(NULL), ishole(false) {
         Seg s = Seg(Pt(p1, p2), Pt(p3, p4));
         AddSeg(s);
     }
+    if (v.size() < 2) {
+        // Only one segment yet, this cannot be valid. Return an empty region.
+        v.clear();
+        return;
+    }
+    Close(); // Close and sort the cycle
+    
+    // Construct the holes
     while (nl->ListLength(tle) > 1) {
         tle = nl->Rest(tle);
         Face hole(tle);
+        if (hole.v.size() < 3) // Invalid hole
+            continue;
         hole.ishole = true;
         holes.push_back(hole);
     }
-    Close();
+    
     Check();
 }
 
@@ -235,7 +246,7 @@ void Face::AddSeg(Seg a) {
  
 */
 void Face::Close() {
-    if (!v.size())
+    if (isEmpty())
         return;
     int i = v.size() - 1;
     if (!(v[i].e == v[0].s)) {
@@ -243,7 +254,7 @@ void Face::Close() {
         Seg s(v[i].e, v[0].s);
         AddSeg(s);
     }
-
+    Sort();
     ConvexHull();
     Check();
 }
@@ -290,6 +301,8 @@ static bool sortAngle(const Pt& a, const Pt& b) {
  
 */
 Face Face::ConvexHull() {
+    if (isEmpty())
+        return Face();
     // erase the previously calculated hull
     convexhull.erase(convexhull.begin(), convexhull.end());
     vector<Pt> lt = getPoints();
@@ -470,7 +483,7 @@ Pt Face::collapsePoint() {
     // The peerpoint (usually set by RotatingPlane) is the best choice
     if (peerPoint.valid)
         dst = peerPoint;
-    else // Otherwise just use the first point
+    else if (!isEmpty()) // Otherwise just use the first point
         dst = v[0].s;
     
     return dst;
@@ -489,6 +502,8 @@ vector<Face> Face::getFaces(ListExpr le) {
         ListExpr l = nl->First(le);
         // Create a Face with optional holes from the current list-position
         Face r(l);
+        if (r.isEmpty()) // Invalid face
+            continue;
         ret.push_back(r);
         // Advance in the list
         le = nl->Rest(le);
@@ -523,6 +538,9 @@ double Face::GetArea() {
 Pt Face::GetCentroid() {
     double area = GetArea();
     double x = 0, y = 0;
+    
+    if (isEmpty()) // Return anything if this is an empty face
+        return Pt(0,0);
 
     // Just return some point of the face if the area is zero
     if (area == 0)
@@ -573,12 +591,12 @@ string Face::ToString() const {
   encloses all faces together.
  
 */
-pair<Pt, Pt> Face::GetBoundingBox(vector<Face> regs) {
-    if (regs.empty())
+pair<Pt, Pt> Face::GetBoundingBox(vector<Face> fcs) {
+    if (fcs.empty())
         return pair<Pt, Pt>(Pt(0, 0), Pt(0, 0));
-    pair<Pt, Pt> ret = regs[0].bbox;
-    for (unsigned int i = 1; i < regs.size(); i++) {
-        pair<Pt, Pt> bbox = regs[i].bbox;
+    pair<Pt, Pt> ret = fcs[0].bbox;
+    for (unsigned int i = 1; i < fcs.size(); i++) {
+        pair<Pt, Pt> bbox = fcs[i].bbox;
         if (bbox.first.x < ret.first.x)
             ret.first.x = bbox.first.x;
         if (bbox.second.x > ret.second.x)
@@ -729,6 +747,8 @@ void Face::IntegrateHoles() {
 
     for (unsigned int h = 0; h < holes.size(); h++) {
         Face hole = holes[h]; // Integrate one hole after another
+        if (hole.isEmpty())
+            continue;
         unsigned int i = 0, j = 0;
         bool found = false;
 
@@ -807,10 +827,14 @@ vector<MSegs> Face::Evaporate(bool close) {
         // Then, repeatedly clip an ear until only a triangle is left
         Face r = reg.ClipEar();
         // and collapse (or expand) the triangles towards its centroid.
-        ret.push_back(r.collapse(close, r.GetCentroid()));
+        MSegs s = r.collapse(close, r.GetCentroid());
+        s.isevaporating = 1;
+        ret.push_back(s);
     }
     // Finally, handle the last triangle left.
-    ret.push_back(reg.collapse(close, reg.GetCentroid()));
+    MSegs s = reg.collapse(close, reg.GetCentroid());
+    s.isevaporating = 1;
+    ret.push_back(s);
 
     return ret;
 }
@@ -821,12 +845,14 @@ vector<MSegs> Face::Evaporate(bool close) {
 */
 bool Face::Check() {
     bool ret = true;
+    
+    if (v.size() == 0) // Accept an empty face
+        return true;
 
-    if (v.size() == 0) {
-        return false;
+    if (v.size() < 3) {
+        cerr << "too less segments: " << v.size() << "\n";
+        ret = false;
     }
-
-    assert(v.size() >= 3);
 
     for (unsigned int i = 0; i < v.size(); i++) {
         if (v[i].s == v[i].e) {
@@ -851,7 +877,7 @@ bool Face::Check() {
         }
     }
 
-    unsigned int nr = (int) v.size();
+    int nr = (int) v.size();
 #ifdef DO_ANGLECHECK
     for (unsigned int i = 0; i < nr; i++) {
         Seg a = v[i];
@@ -869,21 +895,23 @@ bool Face::Check() {
     }
 #endif
 
-    for (unsigned int i = 0; i < (nr - 1); i++) {
+    for (int i = 0; i < (nr - 1); i++) {
         if (!(v[i].e == v[i + 1].s)) {
             cerr << "ERROR: Region not contiguous\n";
             ret = false;
         }
     }
     
-    if (!(v[nr - 1].e == v[0].s)) {
-        cerr << "ERROR: Region not closed\n";
-        ret = false;
-    }
+    if (nr > 0) {
+        if (!(v[nr - 1].e == v[0].s)) {
+            cerr << "ERROR: Region not closed\n";
+            ret = false;
+        }
     
-    if (v[0].angle() > v[nr - 1].angle()) {
-        cerr << "ERROR: Region not in counter-clockwise order\n";
-        ret = false;
+        if (v[0].angle() > v[nr - 1].angle()) {
+            cerr << "ERROR: Region not in counter-clockwise order\n";
+            ret = false;
+        }
     }
 
     if (!ret) {
@@ -904,6 +932,9 @@ bool Face::Check() {
 void Face::AddHole(Face hface) {
     vector<Seg> hole = hface.v;
     bool ishole = true;
+    
+    if (hface.isEmpty())
+        return;
 
     std::sort(v.begin(), v.end());
     std::sort(hole.begin(), hole.end());
@@ -937,9 +968,9 @@ void Face::AddHole(Face hface) {
             hole[i].ChangeDir();
             v.push_back(hole[i]);
         }
-        v = sortSegs(v);
     }
     
+    Sort();
     Check();
 }
 
@@ -951,8 +982,16 @@ MFaces Face::CreateMFaces(vector<Face> *faces) {
     MFaces ret;
     
     for (unsigned int i = 0; i < faces->size(); i++) {
-        ret.AddFace((*faces)[i].GetMSegs(false));
+        ret.AddMFace((*faces)[i].GetMSegs(false));
     }
     
     return ret;
+}
+
+/*
+ 1.32 isEmpty determines, if this is an empty face without segments.
+
+*/
+bool Face::isEmpty() {
+    return v.size() == 0;
 }

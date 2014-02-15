@@ -28,6 +28,11 @@ MFace::MFace(MSegs face) : face(face),
 bool MFace::SortCycle() {
     vector<MSeg> s1 = face.msegs;
     vector<MSeg> s2;
+    
+    assert(face.msegs.size() != 0);
+    
+    if (face.msegs.size() < 3)
+        return true;
 
     int cur = 0;
     unsigned int i = 0;
@@ -81,6 +86,10 @@ bool MFace::SortCycle() {
 
 bool MFace::Check() {
     bool ret = true;
+    
+    return true;
+    if (isEmpty()) // an empty MFace is valid per definition
+        return true;
     
     // Checking Border-Regions
     
@@ -321,4 +330,12 @@ Face MFace::CreateBorderFace(bool src) {
     }
 
     return ret;
+}
+
+/*
+ 1.13 isEmpty returns true, if this MFace does not contain any moving segments
+
+*/
+bool MFace::isEmpty() {
+    return face.msegs.size() == 0;
 }

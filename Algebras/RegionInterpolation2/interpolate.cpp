@@ -14,75 +14,6 @@
 #include <string>
 
 
-/*
- 1.1 matchFaces is the interface to all matching strategies.
- It prepares the lists of faces, calls the real matching function and cleans
- up afterwards.
- 
- This function is called with the two lists ~src~ and ~dst~ of source- and
- destinationfaces, the current recursionlevel ~depth~, the matching function
- ~fn~ to be used and the string-argument for that function. It returns the
- pairs of faces, which should be interpolated with each other.
- 
-*/
-static vector<pair<Face *, Face *> > matchFaces(
-       vector<Face> *src, vector<Face> *dst, int depth,
-       vector<pair<Face*,Face*> > (*fn)(vector<Face>*,vector<Face>*,int,string),
-       string args) {
-    vector<pair<Face *, Face *> > ret;
-
-    // Mark all faces as unused and if they are from the source- or
-    // destination-set
-    for (unsigned int i = 0; i < src->size(); i++) {
-        (*src)[i].used = 0;
-        (*src)[i].isdst = 0;
-    }
-    for (unsigned int i = 0; i < dst->size(); i++) {
-        (*dst)[i].used = 0;
-        (*dst)[i].isdst = 1;
-    }
-
-    // The real work is done here
-    vector<pair<Face *, Face *> > pairs = fn(src, dst, depth, args);
-
-    // The function above may have used the ~used~-attribute, so reset it
-    for (unsigned int i = 0; i < src->size(); i++) {
-        (*src)[i].used = 0;
-    }
-    for (unsigned int i = 0; i < dst->size(); i++) {
-        (*dst)[i].used = 0;
-    }
-
-    // Put all sane pairs of faces into the return-list
-    for (unsigned int i = 0; i < pairs.size(); i++) {
-        // Ignore a pair if: one partner is NULL, already used or from the
-        // wrong set
-        if (!pairs[i].first || !pairs[i].second ||
-             pairs[i].first->used || pairs[i].second->used ||
-                pairs[i].first->isdst || !pairs[i].second->isdst)
-            continue;
-        // This pairing seems ok, mark the members as used 
-        pairs[i].first->used = 1;
-        pairs[i].second->used = 1;
-        ret.push_back(pairs[i]); // and put it into the list
-    }
-
-    // All faces left are not in a real pairing, put them into the list
-    // without a partner
-    for (unsigned int i = 0; i < src->size(); i++) {
-        if (!(*src)[i].used) {
-            ret.push_back(pair<Face*, Face*>(&(*src)[i], NULL));
-        }
-    }
-    for (unsigned int i = 0; i < dst->size(); i++) {
-        if (!(*dst)[i].used) {
-            ret.push_back(pair<Face*, Face*>(NULL, &(*dst)[i]));
-        }
-    }
-
-    return ret;
-}
-
 void handleIntersections(MFaces& children, MFace parent, bool evap);
 
 // This variable holds the pointer to the matching strategy to use
@@ -103,6 +34,8 @@ into the current result. Intersections are detected and tried to be compensated
 MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args) {
     MFaces ret;
+    
+    cerr << "Entering depth " << depth << "\n";
 
     // Remember the original faces-lists from which the result was created.
     ret.sregs = sregs;
@@ -116,9 +49,9 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
     // equal faces by their lower left point.
     vector<pair<Face *, Face *> > matches;
     if (!evap)
-        matches = matchFaces(sregs, dregs, depth, matchingStrategy, args);
+        matches = matchFaces(sregs, dregs, depth, args);
     else
-        matches = matchFaces(sregs, dregs, depth, matchFacesLowerLeft, args);
+        matches = matchFaces(sregs, dregs, depth, "LowerLeft");
     
  
     for (unsigned int i = 0; i < matches.size(); i++) {
@@ -152,7 +85,7 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
                 // each other were already checked one recursion level lower.
                 for (unsigned int j = 0; j < fcs.faces[i].holes.size(); j++) {
                     MFace fc(fcs.faces[i].holes[j]);
-                    ret.AddFace(fc);
+                    ret.AddMFace(fc);
                 }
                 // Add the cycles to its parent
                 rp.mface.AddConcavity(fcs.faces[i].face);
@@ -162,13 +95,13 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
             // added as a hole)
             rp.mface.MergeConcavities();
             // Now the resulting moving face is added to the return value
-            ret.AddFace(rp.mface);
+            ret.AddMFace(rp.mface);
         } else {
             // Our face doesn't have a partner, so the recursion stops here and
             // we collapse (or expand) the face together with its holes
             Face *r = src ? src : dst;
             MFace coll = r->collapseWithHoles(r == src);
-            ret.AddFace(coll);
+            ret.AddMFace(coll);
         }
     }
 
@@ -177,6 +110,7 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         handleIntersections(ret, MFace(), evap);
     }
 
+    cerr << "Leaving depth " << depth << "\n";
     return ret;
 }
 
@@ -206,9 +140,12 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
     for (int i = 0; i < (int) children.faces.size(); i++) {
         MSegs *s1 = &children.faces[i].face;
         for (int j = 0; j <= i; j++) {
+            cerr << "Check intersection between " << i << " and " << j << "\n";
             MSegs *s2 = (j == 0) ? &parent.face : &children.faces[j - 1].face;
 
             if (s1->intersects(*s2, false, false)) {
+                cerr << "Found intersection between " << s1->ToString() <<
+                     " and " << s2->ToString() << "\n";
                 // We have found two intersecting moving faces.
                 pair<MSegs, MSegs> ss;
                 if (!s1->iscollapsed && !evap) {
@@ -232,20 +169,25 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                         // Evaporation- or Condensation-Phase.
                         // Minimum one of the two definitively is already
                         // collapsing/expanding, choose this one
-                        if (s1->iscollapsed)
+                        if (s1->iscollapsed && !s1->isevaporating)
                             rm = s1;
-                        else
+                        else if (!s2->isevaporating && (s2 != &parent.face))
                             rm = s2;
+                        else
+                            assert(false);
                         vector<MSegs> ms;
                         // iscollapsed is 1, if the mface is collapsing,
                         // otherwise (2) it is expanding and we have to
                         // condensate it
+                        cerr << "Evaporating " << rm->ToString() << "\n";
                         if (rm->iscollapsed == 1) {
                             ms = rm->sreg.Evaporate(true);
                         } else {
                             ms = rm->dreg.Evaporate(false);
                         }
                         // Insert the evaporation-cycles into the list
+                        children.faces.insert(children.faces.end(),
+                                              ms.begin(), ms.end());
                         evp.insert(evp.end(), ms.begin(), ms.end());
                     } else {
                         // We are in the main interpolation and cannot
@@ -264,16 +206,19 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                     // Simply erase the offending object from the list now,
                     // either we have already created evaporisation/condensation
                     // cycles or we marked that we have to fix things up later
+                    cerr << "Erasing " << (rm == s1 ? i : j - 1) << "\n";
                     children.faces.erase(children.faces.begin()+
                                          (rm == s1 ? i : j - 1));
                     // Restart the checks with the last face, since we changed
                     // the lists
                     i--;
+                    cerr << "Found intersection, need evaporate faces\n";
                     break;
                 }
                 // Add the collapse- and expand-cycles
                 children.faces.push_back(ss.first);
                 children.faces.push_back(ss.second);
+                cerr << "Found intersection, killing faces\n";
                 // Restart the checks one object earlier, since we removed
                 // the current object and the following objects filled the gap.
                 i-=2;
@@ -283,23 +228,19 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
     }
 
     // Insert the evaporation- and condensation-cycles into the list of faces
-    children.faces.insert(children.faces.end(), evp.begin(), evp.end());
+//    children.faces.insert(children.faces.end(), evp.begin(), evp.end());
 }
 
 // Configure the fallbacks with their arguments here, in case the interpolation
 // failed for some reason.
-static struct {
-    vector<pair<Face*,Face*> > (*matchingStrategy)(vector<Face>*,vector<Face>*,
-                                                   int,string);
-    string args;
-} fallbacks[] = {
+string fallbacks[] = {
 #ifdef USE_LUA
-    { matchFacesLua, "Overlap:1" },
-    { matchFacesLua, "MW" },
+    "Overlap:1",
+    "MW",
 #endif
-    { matchFacesNull, "" },
-    { NULL, "" }
+    "Null"
 };
+#define nrfallbacks (sizeof(fallbacks)/sizeof(fallbacks[0]))
 
 /*
  1.4 interpolate2valmap is the interface to the Secondo-Algebra
@@ -326,26 +267,17 @@ int interpolate2valmap(Word* args,
     ListExpr _dregs = OutRegion(nl->Empty(), args[2]);
     vector<Face> sregs = Face::getFaces(_sregs);
     vector<Face> dregs = Face::getFaces(_dregs);
-
-#ifdef USE_LUA
-    matchingStrategy = matchFacesLua;
-#else
-    matchingStrategy = matchFacesDistance;
-#endif
     
     // Create the interpolation from the lists of faces
     MFaces mf = interpolate(&sregs, &dregs, 0, false, arg->GetValue());
     ListExpr err, mreg = mf.ToMListExpr(iv);
     bool correct = false;
     Word w = InMRegion(nl->Empty(), mreg, 0, err, correct);
-    int i = 0;
     
-    while (!correct) {
+    unsigned int i = 0;
+    while (!correct && (i < nrfallbacks)) {
         // Import failed, try the next fallback...
-        matchingStrategy = fallbacks[i++].matchingStrategy;
-        if (!matchingStrategy) 
-            break; // Last fallback reached, bail out
-        mf = interpolate(&sregs, &dregs, 0, false, fallbacks[i].args);
+        mf = interpolate(&sregs, &dregs, 0, false, fallbacks[i++]);
         mreg = mf.ToMListExpr(iv);
         w = InMRegion(nl->Empty(), mreg, 0, err, correct);
     }

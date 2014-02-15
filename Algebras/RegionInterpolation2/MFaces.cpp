@@ -16,14 +16,14 @@ MFaces::MFaces() : sregs(NULL), dregs(NULL),
 */
 MFaces::MFaces(MFace face) : sregs(NULL), dregs(NULL), 
         needSEvap(false), needDEvap(false) {
-    AddFace(face);
+    AddMFace(face);
 }
 
 /*
  1.2 AddFace adds an additional MFace to this MFaces-object
  
 */
-void MFaces::AddFace(MFace face) {
+void MFaces::AddMFace(MFace face) {
     faces.push_back(face);
 }
 
@@ -39,7 +39,9 @@ MFaces MFaces::CreateBorderMFaces(bool src) {
     vector<Face> fcs = CreateBorderFaces(src);
 
     for (unsigned int i = 0; i < fcs.size(); i++) {
-        ret.AddFace(fcs[i].GetMSegs(true));
+        MFace f(fcs[i].GetMSegs(true));
+        if (!f.isEmpty())
+            ret.AddMFace(f);
     }
 
     return ret;
@@ -54,7 +56,9 @@ vector<Face> MFaces::CreateBorderFaces(bool src) {
     vector<Face> ret;
 
     for (unsigned int i = 0; i < faces.size(); i++) {
-        ret.push_back(faces[i].CreateBorderFace(src));
+        Face f = faces[i].CreateBorderFace(src);
+        if (!f.isEmpty())
+            ret.push_back(faces[i].CreateBorderFace(src));
     }
 
     return ret;
@@ -437,7 +441,7 @@ MFaces MFaces::divide(double start, double end) {
     MFaces ret;
 
     for (unsigned int i = 0; i < faces.size(); i++) {
-        ret.AddFace(faces[i].divide(start, end));
+        ret.AddMFace(faces[i].divide(start, end));
     }
 
     return ret;

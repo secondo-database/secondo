@@ -30,7 +30,6 @@
 #endif
 
 static lua_State *L = NULL;
-static void setfield(const char *key, int value);
 static void add_custom_functions();
 
 // The set of faces is translated and scaled to the

@@ -14,13 +14,16 @@
 
 #include <string>
 
+
 #ifdef USE_LUA
+
 // This is the interface to Lua, the mainly used strategy.
 vector<pair<Face *, Face *> > _matchFacesLua(vector<Face> *src,
         vector<Face> *dst, int depth, string args);
 
 vector<pair<Face *, Face *> > matchFacesLua(vector<Face> *src,
         vector<Face> *dst, int depth, string args) {
+    cerr << "Called matchFacesLua(" << args << ")\n";
     return _matchFacesLua(src, dst, depth, args);
 }
 #endif
@@ -33,6 +36,7 @@ vector<pair<Face *, Face *> > matchFacesLua(vector<Face> *src,
 vector<pair<Face *, Face *> > matchFacesNull(vector<Face> *src,
         vector<Face> *dst, int depth, string args) {
     vector<pair<Face *, Face *> > ret;
+    cerr << "Called matchFacesNull(" << args << ")\n";
 
     return ret;
 }
@@ -45,6 +49,7 @@ vector<pair<Face *, Face *> > matchFacesNull(vector<Face> *src,
 vector<pair<Face *, Face *> > matchFacesSimple(vector<Face> *src,
         vector<Face> *dst, int depth, string args) {
     vector<pair<Face *, Face *> > ret;
+    cerr << "Called matchFacesSimple(" << args << ")\n";
 
     for (unsigned int i = 0; (i < src->size() || (i < dst->size())); i++) {
         if ((i < src->size()) && (i < dst->size())) {
@@ -65,6 +70,7 @@ vector<pair<Face *, Face *> > matchFacesSimple(vector<Face> *src,
 vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
         vector<Face> *dst, int depth, string args) {
     vector<pair<Face *, Face *> > ret;
+    cerr << "Called matchFacesDistance(" << args << ")\n";
 
     Pt srcoff = Face::GetBoundingBox(*src).first;
     Pt dstoff = Face::GetBoundingBox(*dst).first;
@@ -155,6 +161,9 @@ vector<pair<Face *, Face *> > matchFacesLowerLeft(vector<Face> *src,
         if (p1 == p2) {
             (*src)[i].used = 1;
             (*dst)[j].used = 1;
+            cerr << (*src)[i].ToString() << "\n";
+            cerr << (*dst)[j].ToString() << "\n";
+            cerr << "MatchFacesds matched " << i << " with " << j << "\n";
             ret.push_back(pair<Face*, Face*>(&(*src)[i], &(*dst)[j]));
             i++;
             j++;
@@ -167,3 +176,130 @@ vector<pair<Face *, Face *> > matchFacesLowerLeft(vector<Face> *src,
 
     return ret;
 }
+
+#define nrMatchFacesStrategies (sizeof(matchFacesStrategies)/            \
+                                sizeof(matchFacesStrategies[0]))
+
+// Register all matching strategies in this list.
+// The argument must be in the form "<name>[:<paramstring>]"
+static struct {
+    string name;
+    matchFaces_t fn;
+} matchFacesStrategies[] = {
+    { "Distance", matchFacesDistance }, //The first is also the default strategy
+    { "Null", matchFacesNull },
+    { "Simple", matchFacesSimple },
+    { "LowerLeft", matchFacesLowerLeft }
+};
+
+
+
+/*
+ 2 matchFaces is the interface to all matching strategies.
+ It prepares the lists of faces, calls the real matching function and cleans
+ up afterwards.
+ 
+ This function is called with the two lists ~src~ and ~dst~ of source- and
+ destinationfaces, the current recursionlevel ~depth~
+ and the string-argument which configures the matching-strategy. It returns
+ the pairs of faces, which should be interpolated with each other.
+ 
+ The args-string should be in this form:  "<name>[:<paramstring>]"
+ 
+ paramstring could be also composed from several parameters, for example
+ "<arg1>,<arg2>,...,<argn>", but it is the responsibility of the matching
+ function to parse that.
+ 
+ where "name" is searched in the strategies above and the corresponding
+ function is called with the name stripped from the args-string.
+ 
+ If "name" is not found and Lua is compiled, then call Lua with the full
+ args-string. If Lua is not compiled, use the first strategy in the
+ list above as the default-strategy.
+ 
+*/
+vector<pair<Face *, Face *> > matchFaces(
+        vector<Face> *src, vector<Face> *dst, int depth,
+        string args) {
+    vector<pair<Face *, Face *> > pairs, ret;
+    
+    // Mark all faces as unused and if they are from the source- or
+    // destination-set.
+    for (unsigned int i = 0; i < src->size(); i++) {
+        (*src)[i].used = 0;
+        (*src)[i].isdst = 0;
+    }
+    for (unsigned int i = 0; i < dst->size(); i++) {
+        (*dst)[i].used = 0;
+        (*dst)[i].isdst = 1;
+    }
+
+    // Try to find the matching-strategy defined in the argument-string.
+    matchFaces_t fn = NULL;
+    string fname = args, fargs = "";
+    unsigned int pos = fname.find(':');
+    if (pos != string::npos) {
+        // Split it into name and params, if a colon is present
+        fname = args.substr(0, pos);
+        fargs = args.substr(pos+1, string::npos);
+    } else {
+        // Otherwise the argument string is only the name
+        fname = args;
+    }
+    
+    for (unsigned int i = 0; i < nrMatchFacesStrategies; i++) {
+        if (matchFacesStrategies[i].name == fname) {
+            fn = matchFacesStrategies[i].fn;
+            break;
+        }
+    }
+    
+    // The real work is done here
+    if (fn) {
+        pairs = fn(src, dst, depth, fargs);
+    } else {
+#ifdef USE_LUA
+        pairs = matchFacesLua(src, dst, depth, args);
+#else
+        pairs = matchFacesStrategies[0].fn(src, dst, depth, fargs);
+#endif
+    }
+
+    // The function above may have used the ~used~-attribute, so reset it
+    for (unsigned int i = 0; i < src->size(); i++) {
+        (*src)[i].used = 0;
+    }
+    for (unsigned int i = 0; i < dst->size(); i++) {
+        (*dst)[i].used = 0;
+    }
+
+    // Put all sane pairs of faces into the return-list
+    for (unsigned int i = 0; i < pairs.size(); i++) {
+        // Ignore a pair if: one partner is NULL, already used or from the
+        // wrong set
+        if (!pairs[i].first || !pairs[i].second ||
+             pairs[i].first->used || pairs[i].second->used ||
+                pairs[i].first->isdst || !pairs[i].second->isdst)
+            continue;
+        // This pairing seems ok, mark the members as used 
+        pairs[i].first->used = 1;
+        pairs[i].second->used = 1;
+        ret.push_back(pairs[i]); // and put it into the list
+    }
+
+    // All faces left are not in a real pairing, put them into the list
+    // without a partner
+    for (unsigned int i = 0; i < src->size(); i++) {
+        if (!(*src)[i].used) {
+            ret.push_back(pair<Face*, Face*>(&(*src)[i], NULL));
+        }
+    }
+    for (unsigned int i = 0; i < dst->size(); i++) {
+        if (!(*dst)[i].used) {
+            ret.push_back(pair<Face*, Face*>(NULL, &(*dst)[i]));
+        }
+    }
+
+    return ret;
+}
+
