@@ -86,7 +86,7 @@ public class MVPolygonController {
 	 * @param lat The Latitude of the point
      * @param lng The Longitude of the point
      * @param bounds The Bounds object*/
-	public void addPolygonPoint(double lat, double lng, Bounds bounds) {
+	public void addPolygonPoint(double lat, double lng, Bounds boundsAll, Bounds boundsLast) {
 
 		if (isLatitude(lat) && isLongitude(lng)) {
 			Point point = new Point(lng, lat);
@@ -94,7 +94,8 @@ public class MVPolygonController {
 
 			polygonPointArray.add(point);
 
-			bounds.extend(point);
+			boundsAll.extend(point);
+			boundsLast.extend(point);
 		}
 	}
 
