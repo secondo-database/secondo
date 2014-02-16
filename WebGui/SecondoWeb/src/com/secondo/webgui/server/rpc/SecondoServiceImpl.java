@@ -73,8 +73,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements SecondoS
 			e.printStackTrace();
 		}
   	
-    	    //save command and result in the history lists
-	    	sd.getCommandHistory().add(command);
+    	    //save the result in the history lists
 	    	sd.getResultHistory().add(sc.getSecondoresult());	    	
 	    	sd.getFormattedResultHistory().add(sc.getFormattedList());
 		
@@ -274,6 +273,15 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements SecondoS
 	public ArrayList<String> getCommandHistory() {
 		return sd.getCommandHistory();
 	}
+    
+    /**Add the given command in the history list
+     * 
+     * @param command The command to be added to the history list
+     */
+    @Override
+    public void addCommandToHistory(String command){
+    	sd.getCommandHistory().add(command);
+    }
 	
 	/**This method deletes the command history of the current session */
     @Override
