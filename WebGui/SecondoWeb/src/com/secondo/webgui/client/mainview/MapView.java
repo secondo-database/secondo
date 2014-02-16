@@ -64,8 +64,11 @@ public class MapView extends Composite implements View{
 	/**The MapWidget containing the map*/
 	private MapWidget mapWidget;
 	
-	/**The Bounds object containing all geographic bound points*/
-	private Bounds bounds = new Bounds();
+	/**The Bounds object containing all geographic bound points of all queries*/
+	private Bounds boundsAll = new Bounds();
+	
+	/**The Bounds object containing all geographic bound points of the last query*/
+	private Bounds boundsLast = new Bounds();
 	
 	 /**Controller for point objects*/
 	private MVPointController pointController = new MVPointController();
@@ -91,6 +94,8 @@ public class MapView extends Composite implements View{
     /**Value is true if data has finished loading*/
     private boolean dataLoaded= false;
     private boolean dataInitialized = false;
+    
+    private boolean zoomToAll = false;
     
     public MapView(){	
  					
@@ -306,13 +311,14 @@ public class MapView extends Composite implements View{
 
     		 dataLoaded=false;
     		 dataInitialized = false;
+    		 boundsLast = new Bounds();
 								
 				for(DataType data : currentResultTypeList){
 
 					if(data.getType().equals("Point")){
 						
 						pointController.addPoint(((com.secondo.webgui.shared.model.Point) data).getY(), 
-								((com.secondo.webgui.shared.model.Point) data).getX(), data.getId(), bounds);					
+								((com.secondo.webgui.shared.model.Point) data).getX(), data.getId(), boundsAll, boundsLast);					
 					}
 					
 					if(data.getType().equals("Polyline")){
@@ -321,7 +327,7 @@ public class MapView extends Composite implements View{
 						
 						for(Line line : ((Polyline) data).getPath()){			
 						    polylineController.addLine(line.getPointA().getY(), line.getPointA().getX(), 
-						    		line.getPointB().getY(), line.getPointB().getX(), bounds);
+						    		line.getPointB().getY(), line.getPointB().getX(), boundsAll, boundsLast);
 						}
 						polylineController.addPolyline(data.getId());
 					}
@@ -330,7 +336,7 @@ public class MapView extends Composite implements View{
              	        polygonController.deleteAllPolygonPoints();
              	   
 						for (com.secondo.webgui.shared.model.Point point: ((Polygon) data).getPath()){
-							polygonController.addPolygonPoint(point.getY(), point.getX(), bounds);	
+							polygonController.addPolygonPoint(point.getY(), point.getX(), boundsAll, boundsLast);	
 						}	
 						polygonController.addPolygon(data.getId());		
 					}
@@ -340,7 +346,7 @@ public class MapView extends Composite implements View{
                 	   
               		 //add just pointA of all lines, not pointB, because thats the same as pointA from the next element
                 	   for(Line line: ((MPoint)data).getPath()){
-                   		  mpointController.addLonLat(line.getPointA().getY(), line.getPointA().getX(), bounds);
+                   		  mpointController.addLonLat(line.getPointA().getY(), line.getPointA().getX(), boundsAll, boundsLast);
                    	   } 
                 	   
                 	   //add all dates to calculate the time bounds
@@ -373,20 +379,40 @@ public class MapView extends Composite implements View{
     	    if(!currentResultTypeList.isEmpty()){
 
     	    	   if(!pointController.getPointMap().isEmpty()){
-				      pointController.showPointOverlays(map, bounds);
+    	    		   if(zoomToAll == true){
+    	    			   pointController.showPointOverlays(map, boundsAll);
+    	    		   }
+    	    		   else{
+    	    			   pointController.showPointOverlays(map, boundsLast);
+    	    		   }				      
 				   }
 
 				    if(!polylineController.getPolylineMap().isEmpty()){
-				      polylineController.showPolylineOverlays(map, bounds);
+				    	if(zoomToAll == true){
+				    		polylineController.showPolylineOverlays(map, boundsAll);
+				    	}
+				    	else{
+				    		polylineController.showPolylineOverlays(map, boundsLast);
+				    	}				      
 				    }
 				    
 				    if(!polygonController.getPolygonMap().isEmpty()){
-				      polygonController.showPolygonOverlays(map, bounds);
+				    	if(zoomToAll == true){
+				    		polygonController.showPolygonOverlays(map, boundsAll);
+				    	}
+				    	else{
+				    		polygonController.showPolygonOverlays(map, boundsLast);
+				    	}				      
 				    }	
 				    
 				    if(!mpointController.getMpointArray().isEmpty()){
 					    mpointController.stopAllAnimations();
-			            mpointController.drawFirstMovingPoint(map, bounds);
+					    if(zoomToAll == true){
+					    	mpointController.drawFirstMovingPoint(map, boundsAll);
+					    }
+					    else{
+					    	mpointController.drawFirstMovingPoint(map, boundsLast);
+					    }			            
 				    }
     	    } 
     	    dataLoaded = true;
@@ -409,7 +435,8 @@ public class MapView extends Composite implements View{
     
     /**Resets bounds by creating a new bounds object*/
     public void resetBounds(){
-    	bounds = new Bounds();
+    	boundsAll = new Bounds();
+    	boundsLast = new Bounds();
     }
     
     /**Resets the map by deleting all overlays from the map*/
@@ -447,16 +474,38 @@ public class MapView extends Composite implements View{
 	 * */
 	public void setDataLoaded(boolean dataLoaded) {
 		this.dataLoaded = dataLoaded;
-	}
-	
-	
+	}	
 
+	/**Returns true if the data is initialized
+	 * 
+	 * @return True if data is initialized
+	 * */
 	public boolean isDataInitialized() {
 		return dataInitialized;
 	}
 
+	/**Sets the datainitialized attribute to the given value
+	 * 
+	 * @param dataInitialized True if data is initialized, else false
+	 * */
 	public void setDataInitialized(boolean dataInitialized) {
 		this.dataInitialized = dataInitialized;
+	}
+
+	/**Returns true if the map should zoom to all queries
+	 * 
+	 * @return True if the map should zoom to all queries
+	 * */
+	public boolean isZoomToAll() {
+		return zoomToAll;
+	}
+
+	/**Sets the zoomToAll attribute to the given value
+	 * 
+	 * @param zoomToAll True if the map should zoom to all queries, else false
+	 * */
+	public void setZoomToAll(boolean zoomToAll) {
+		this.zoomToAll = zoomToAll;
 	}
 
 	/**Returns the map element
