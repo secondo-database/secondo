@@ -19,6 +19,7 @@
 
 package com.secondo.webgui.client.mainview;
 
+import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
@@ -113,8 +114,8 @@ public class MenuCommandPanel extends Composite{
 	private OptimizerSyntaxDialog optimizerSyntaxDialog = new OptimizerSyntaxDialog();
 	
 	private FlowPanel zoomPanel = new FlowPanel();
-	private Button zoomAllButton = new Button("<img src='resources/images/world_add.png' height='20px' width='20px'/>");
-	private Button zoomLastButton = new Button("<img src='resources/images/world_delete.png' height='20px' width='20px'/>");
+	private Button zoomAllButton = new Button("<img src='resources/images/world_add.png' height='25px' width='25px'/>");
+	private Button zoomLastButton = new Button("<img src='resources/images/world_delete.png' height='25px' width='25px'/>");
 	
 	/**Value is true if optimizer is turned on*/
     private boolean optimizerTurnedOn = false; 
@@ -131,18 +132,12 @@ public class MenuCommandPanel extends Composite{
         commandHistoryBox.addItem(command);
         hPanel.add(commandHistoryBox);
         
-	    zoomAllButton.setTitle("Zoom to all queries");
-		zoomAllButton.getElement().setClassName("zoomallbutton");
-		zoomLastButton.setTitle("Zoom to the last query");
-		zoomLastButton.getElement().setClassName("zoomlastbutton");
-        zoomPanel.add(zoomAllButton);
-		hPanel.add(zoomPanel);
-        
 	    //Configure the main menu bar
 	    menuBar.setAutoOpen(true);
 	    menuBar.setAnimationEnabled(true);
 	    menuBar.ensureDebugId("MenuBar");
 	    menuBar.getElement().setClassName("menubarpopup");
+	    menuBar.setWidth("150px");
 	    hPanel.add(menuBar);
 	    
         //create optimizer menu items
@@ -225,7 +220,16 @@ public class MenuCommandPanel extends Composite{
 	    };
 	    helpItem2 = new MenuItem("Optimizer Syntax", optimizerInfo);
 	    helpMenu.addItem(helpItem2);
-	  
+	    
+	    //configure zoom level button
+	    zoomAllButton.setTitle("Zoom to all queries");
+		zoomAllButton.getElement().setClassName("zoomallbutton");
+		zoomLastButton.setTitle("Zoom to the last query");
+		zoomLastButton.getElement().setClassName("zoomlastbutton");
+        zoomPanel.add(zoomAllButton);
+        zoomPanel.setWidth("30px");
+        zoomPanel.getElement().getStyle().setMarginLeft(40, Unit.PX);
+		hPanel.add(zoomPanel);	  
 		
 	    //configure the button to hide the commandpanel
 		hideTerminalButton.setSize("28px", "28px");
@@ -242,12 +246,14 @@ public class MenuCommandPanel extends Composite{
 	public void resizeWidth(int width){
 		if(width > 1000){
 			hPanel.setWidth(width-70 + "px");
-			//add 60 px for 2 buttons + 300px for history +40 padding
-			menuBar.setWidth((width-470) + "px");
+			//add 65 px for buttons + 40px marginleft + 300px for history + 150px menubar + 40px padding +70
+			//menuBar.setWidth((width-475) + "px");
+	        zoomPanel.getElement().getStyle().setMarginRight((width-665), Unit.PX);
 		}
 		else{
 			hPanel.setWidth(1000-70 + "px");
-			menuBar.setWidth((1000-470) + "px");
+			//menuBar.setWidth((1000-475) + "px");
+			zoomPanel.getElement().getStyle().setMarginRight((width-665), Unit.PX);
 		}
 	}
 	
