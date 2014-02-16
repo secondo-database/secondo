@@ -130,7 +130,8 @@ public class SecondoWeb implements EntryPoint {
 						rpcConnector.sendCommand(command, mainView, loadingPopup);
 					}
 
-					mainView.getTextView().getResultListBox().addItem(command);
+					rpcConnector.addCommandToHistory(command);
+					rpcConnector.updateCommandHistory(mainView);
 					
 					//show the loading popup in the center of the application until the call is finished
 			    	loadingPopup.center(); 				
@@ -273,7 +274,7 @@ public class SecondoWeb implements EntryPoint {
         //check for ie8 and display default message
         if(Window.Navigator.getUserAgent().contains("MSIE 8")){
 		    System.out.println("###Browser version: " + Window.Navigator.getUserAgent());
-		    HTML defaultText = new HTML("<p><h3>Your browser does not support Scalable Vector Graphihcs (SVG).<br>" +
+		    HTML defaultText = new HTML("<p><h3>Your browser does not support Scalable Vector Graphics (SVG).<br>" +
 		    		" Please upgrade to a modern browser.</h3></p>");
 		    loginView.getMainPanel().remove(2); 
 		    loginView.getMainPanel().insert(defaultText, 2);
