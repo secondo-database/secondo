@@ -22,6 +22,7 @@ package com.secondo.webgui.client.mainview;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HasVerticalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -111,6 +112,10 @@ public class MenuCommandPanel extends Composite{
 	private MenuItem helpItem2;
 	private OptimizerSyntaxDialog optimizerSyntaxDialog = new OptimizerSyntaxDialog();
 	
+	private FlowPanel zoomPanel = new FlowPanel();
+	private Button zoomAllButton = new Button("<img src='resources/images/world_add.png' height='20px' width='20px'/>");
+	private Button zoomLastButton = new Button("<img src='resources/images/world_delete.png' height='20px' width='20px'/>");
+	
 	/**Value is true if optimizer is turned on*/
     private boolean optimizerTurnedOn = false; 
 	
@@ -125,6 +130,13 @@ public class MenuCommandPanel extends Composite{
         commandHistoryBox.setWidth("300px");
         commandHistoryBox.addItem(command);
         hPanel.add(commandHistoryBox);
+        
+	    zoomAllButton.setTitle("Zoom to all queries");
+		zoomAllButton.getElement().setClassName("zoomallbutton");
+		zoomLastButton.setTitle("Zoom to the last query");
+		zoomLastButton.getElement().setClassName("zoomlastbutton");
+        zoomPanel.add(zoomAllButton);
+		hPanel.add(zoomPanel);
         
 	    //Configure the main menu bar
 	    menuBar.setAutoOpen(true);
@@ -213,6 +225,7 @@ public class MenuCommandPanel extends Composite{
 	    };
 	    helpItem2 = new MenuItem("Optimizer Syntax", optimizerInfo);
 	    helpMenu.addItem(helpItem2);
+	  
 		
 	    //configure the button to hide the commandpanel
 		hideTerminalButton.setSize("28px", "28px");
@@ -229,12 +242,12 @@ public class MenuCommandPanel extends Composite{
 	public void resizeWidth(int width){
 		if(width > 1000){
 			hPanel.setWidth(width-70 + "px");
-			//add 30 px for button + 300px for history +40 padding
-			menuBar.setWidth((width-440) + "px");
+			//add 60 px for 2 buttons + 300px for history +40 padding
+			menuBar.setWidth((width-470) + "px");
 		}
 		else{
 			hPanel.setWidth(1000-70 + "px");
-			menuBar.setWidth((1000-440) + "px");
+			menuBar.setWidth((1000-470) + "px");
 		}
 	}
 	
@@ -429,4 +442,17 @@ public class MenuCommandPanel extends Composite{
 	public MenuBar getOptimizerMenu() {
 		return optimizerMenu;
 	}
+
+	public FlowPanel getZoomPanel() {
+		return zoomPanel;
+	}
+
+	public Button getZoomAllButton() {
+		return zoomAllButton;
+	}
+
+	public Button getZoomLastButton() {
+		return zoomLastButton;
+	}
+	
 }
