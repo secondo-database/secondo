@@ -527,6 +527,7 @@ static void add_custom_functions () {
     LUA_ADD_FUNCTION(middle);
     LUA_ADD_FUNCTION(boundingbox);
     LUA_ADD_FUNCTION(bboverlap);
+    LUA_ADD_FUNCTION(overlap);
     LUA_ADD_FUNCTION(centroid);
     LUA_ADD_FUNCTION(points);
     LUA_ADD_FUNCTION(area);

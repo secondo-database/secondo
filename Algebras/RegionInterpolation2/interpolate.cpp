@@ -173,8 +173,8 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                             rm = s1;
                         else if (!s2->isevaporating && (s2 != &parent.face))
                             rm = s2;
-                        else
-                            assert(false);
+                        else // cannot be a real intersection, continue
+                            continue;
                         vector<MSegs> ms;
                         // iscollapsed is 1, if the mface is collapsing,
                         // otherwise (2) it is expanding and we have to

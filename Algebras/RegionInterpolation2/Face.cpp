@@ -528,6 +528,7 @@ Pt Face::GetMiddle() {
 
 */
 double Face::GetArea() {
+    cerr << "Get area of " << this->ToString() << "\n";
     return this->MakeRegion(false).Area(NULL);
 }
 
@@ -698,7 +699,8 @@ Face Face::ClipEar() {
             bool inside = false;
             for (unsigned int j = 0; j < (n - 3); j++) {
                 Pt x = v[(i + j + 3) % n].s;
-                inside = Pt::insideTriangle(a, b, c, x);
+                inside = Pt::insideTriangle(a, b, c, x) &&
+                        !(a == x) && !(b == x) && !(c == x);
                 if (inside) {
                     // If a point inside was found, we haven't found an ear.
                     break;
@@ -708,8 +710,8 @@ Face Face::ClipEar() {
             if (!inside) {
                 // No point was inside, so build the Ear-Face in "ret",
                 ret.AddSeg(v[i + 0]);
-                ret.AddSeg(v[i + 1]);
-                Seg nw(v[i + 1].e, v[i + 0].s);
+                ret.AddSeg(v[(i + 1)%n]);
+                Seg nw(v[(i + 1)%n].e, v[i + 0].s);
                 ret.AddSeg(nw);
                 
                 // remove the Face-Segment (a b),
@@ -725,6 +727,7 @@ Face Face::ClipEar() {
         }
     }
     
+    cerr << "No ear found on face " << this->ToString() << "\n";
     // If we are here it means we haven't found an ear. This shouldn't happen.
     // One reason could be that the face wasn't valid in the first place.
     assert(false);
@@ -747,9 +750,10 @@ void Face::IntegrateHoles() {
 
     for (unsigned int h = 0; h < holes.size(); h++) {
         Face hole = holes[h]; // Integrate one hole after another
+        cerr << "Integrating hole " << h << "\n" << hole.ToString() << "\n";
         if (hole.isEmpty())
             continue;
-        unsigned int i = 0, j = 0;
+        unsigned int i = 0, j;
         bool found = false;
 
         Pt s, e;
@@ -759,6 +763,7 @@ void Face::IntegrateHoles() {
         // with any other segment
         while (!found && i < v.size()) {
             s = v[i].e;
+            j = 0;
             while (!found && j < hole.v.size()) {
                 e = hole.v[j].s;
                 se = Seg(s, e); // A segment connecting the face to the hole
@@ -771,7 +776,9 @@ void Face::IntegrateHoles() {
                         break;
                     }
                 }
-                if (!intersects) {
+                Seg tmp = v[(i+1)%v.size()];
+                if (leftOf(tmp.s, tmp.e, e) && !intersects) {
+                    cerr << "Using bridge " << se.ToString() << "\n";
                     // No intersection was found, so this is the bridge we use
                     found = true;
                     break;
@@ -788,12 +795,12 @@ void Face::IntegrateHoles() {
         // Now insert the bridge and the hole into the face-cycle
         vector<Seg> newsegs;
         // First copy the cycle from start to the begin of the bridge
-        newsegs.insert(newsegs.end(), v.begin(), v.begin()+i);
+        newsegs.insert(newsegs.end(), v.begin(), v.begin()+i+1);
         newsegs.push_back(Seg(s, e)); // Then add the bridge segment
         unsigned int n = hole.v.size();
         for (unsigned int k = 0; k < n; k++) {
             // Now add the hole-segments clockwise
-            Seg ns = hole.v[n - (j + k) % n - 1];
+            Seg ns = hole.v[(n + j - k - 1) % n];
             ns.ChangeDir(); // and change the orientation of each segment
             newsegs.push_back(ns);
         }
@@ -804,7 +811,9 @@ void Face::IntegrateHoles() {
         // For the next holes we have to test intersection with the newly
         // created bridge, too.
         allsegs.push_back(Seg(s, e));
+        cerr << "After integrate " << h << ": " << ToString() << "\n";
     }
+    
 
     // All holes were integrated, so clear the list.
     holes.clear();
@@ -818,7 +827,7 @@ void Face::IntegrateHoles() {
 */
 vector<MSegs> Face::Evaporate(bool close) {
     vector<MSegs> ret;
-    Face reg(v);
+    Face reg = *this; // Crate a copy first
     
     // At first, integrate all holes into the cycle
     reg.IntegrateHoles();
@@ -826,6 +835,7 @@ vector<MSegs> Face::Evaporate(bool close) {
     while (reg.v.size() > 3) {
         // Then, repeatedly clip an ear until only a triangle is left
         Face r = reg.ClipEar();
+        cerr << "Reg after clip: \n" << reg.ToString() << "\n";
         // and collapse (or expand) the triangles towards its centroid.
         MSegs s = r.collapse(close, r.GetCentroid());
         s.isevaporating = 1;
