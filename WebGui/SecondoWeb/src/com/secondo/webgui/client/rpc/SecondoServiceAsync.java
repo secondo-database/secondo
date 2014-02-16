@@ -58,5 +58,6 @@ public interface SecondoServiceAsync {
 	 void deleteCommandHistory(AsyncCallback<Void> callback);	 
 	 void resetObjectCounter(AsyncCallback<Void> callback);
 	 
+	 void addCommandToHistory(String command, AsyncCallback<Void> callback);
 	 void saveTextFile(String text, String filename, AsyncCallback<Void> callback);	 
 }
