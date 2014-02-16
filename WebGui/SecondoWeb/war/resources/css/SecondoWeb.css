@@ -63,6 +63,24 @@
 	text-shadow: none;
 }
 
+.zoombutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.zoomallbutton{
+	background: #F1F1F1;
+	border: none;
+	text-shadow: none;
+}
+
+.zoomlastbutton{
+	background: #F1F1F1;
+	border: none;
+	text-shadow: none;
+}
+
 .resetobjectlistbutton{
 	background: white;
 	border: none;
