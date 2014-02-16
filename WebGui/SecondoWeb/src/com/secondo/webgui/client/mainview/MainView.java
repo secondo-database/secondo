@@ -375,6 +375,23 @@ public class MainView extends Composite {
 						toolbox.getColorChooserDialog().getDialogBox().hide();
 					}
 				});
+		
+		/** Adds an event handler to the save button of the zoom level dialog to change the zoom level */
+		this.toolbox.getZoomLevelDialog().getSaveButton().addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+
+						if (toolbox.getZoomLevelDialog().getZoomAll().getValue() == true) {
+
+							mapView.setZoomToAll(true);
+						}
+						else{
+							mapView.setZoomToAll(false);
+						}
+						
+						mapView.updateView();
+						toolbox.getZoomLevelDialog().getDialogBox().hide();
+					}
+				});
 
 /* ********************************* EventHandler for the Menubar of the CommandPanel ************************************* */
 
@@ -396,6 +413,28 @@ public class MainView extends Composite {
 											.getCommandHistoryBox()
 											.getItemText(selectedCommandIndex));
 						}
+					}
+				});
+		
+		/**Adds an event handler on the zoomallButton of the commandpanel menubar to zoom to all queries */
+		this.commandPanel.getMenubarCP().getZoomAllButton()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						mapView.setZoomToAll(true);
+						mapView.updateView();
+						commandPanel.getMenubarCP().getZoomPanel().clear();
+						commandPanel.getMenubarCP().getZoomPanel().add(commandPanel.getMenubarCP().getZoomLastButton());
+					}
+				});
+		
+		/**Adds an event handler on the zoomlastButton of the commandpanel menubar to zoom to the last query */
+		this.commandPanel.getMenubarCP().getZoomLastButton()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						mapView.setZoomToAll(false);
+						mapView.updateView();
+						commandPanel.getMenubarCP().getZoomPanel().clear();
+						commandPanel.getMenubarCP().getZoomPanel().add(commandPanel.getMenubarCP().getZoomAllButton());
 					}
 				});
 
