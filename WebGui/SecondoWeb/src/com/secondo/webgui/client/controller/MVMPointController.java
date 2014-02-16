@@ -106,7 +106,7 @@ public class MVMPointController {
      * @param lng The Longitude of the point
      * @param bounds The Bounds object
      * */
-    public void addLonLat(double lat, double lng, Bounds bounds){
+    public void addLonLat(double lat, double lng, Bounds boundsAll, Bounds boundsLast){
 
     	if(isLatitude(lat) && isLongitude(lng)){
     		
@@ -114,7 +114,8 @@ public class MVMPointController {
     	 lonLat.transform("EPSG:4326", "EPSG:900913");
 
           mpointPath.add(lonLat);       
-          bounds.extend(lonLat);
+          boundsAll.extend(lonLat);
+          boundsLast.extend(lonLat);
     	}	
     }
     
