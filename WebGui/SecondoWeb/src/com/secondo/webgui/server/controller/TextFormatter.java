@@ -330,7 +330,14 @@ public class TextFormatter{
 					formattedTextentry = formattedTextentry +  "(geometry) \n \n"; //  (geometry)
 	    		}	    		
 	    		else{
-	    			formattedTextentry = formattedTextentry + tuplelist.first().first().stringValue().trim() + " : "; //Name :
+	    			formattedTextentry = formattedTextentry + tuplelist.first().first().stringValue().trim() + " : ";
+	    			//add all other textentries, but remove the substrings: <text>, </text--->, <date>, </date--->, ""
+	    			formattedTextentry = formattedTextentry.replaceAll("\"", "");
+	    			formattedTextentry = formattedTextentry.replaceAll("<text>", "");
+	    			formattedTextentry = formattedTextentry.replaceAll("</text--->", "");
+	    			formattedTextentry = formattedTextentry.replaceAll("<text></text--->", "");
+	    			formattedTextentry = formattedTextentry.replaceAll("<date>", "");
+	    			formattedTextentry = formattedTextentry.replaceAll("</date--->", "");
 					formattedTextentry = formattedTextentry + listentry.first().writeListExprToString().trim() + "\n \n";
 	    		}
 			    tuplelist = tuplelist.rest();
