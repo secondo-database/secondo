@@ -81,14 +81,15 @@ public class MVPointController {
      * @param key The ID of the point to be added
      * @param bounds The Bounds object
      * */
-    public void addPoint(double lat, double lng, int key, Bounds bounds){
+    public void addPoint(double lat, double lng, int key, Bounds boundsAll, Bounds boundsLast){
     	
     	if(isLatitude(lat) && isLongitude(lng)){
         	
         	Point point = new Point(lng, lat);
             point.transform(externalProjection, internalProjection);
             
-            bounds.extend(point);
+            boundsAll.extend(point);
+            boundsLast.extend(point);
             
             //Create a style for the vectorlayer
             Style style = new Style();
