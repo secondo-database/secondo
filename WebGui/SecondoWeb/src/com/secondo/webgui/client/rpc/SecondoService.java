@@ -58,5 +58,6 @@ public interface SecondoService extends RemoteService {
 	void deleteCommandHistory();
 	void resetObjectCounter();
 	
+	void addCommandToHistory(String command);
 	void saveTextFile(String text, String filename);
 }
