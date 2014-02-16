@@ -102,8 +102,10 @@ public class ToolBox extends Composite {
     private Tree objectTree = new Tree();  
     private Image objectsIcon = new Image("resources/images/cube-icon.jpg");
     private Button colorButton = new Button("<img src='resources/images/color-circle-icon.png' height='15px' width='15px'/>");
+    private Button zoomButton = new Button("<img src='resources/images/zoom.png' height='15px' width='15px'/>");
     private Button resetObjectlistButton = new Button("<img src='resources/images/red-cross-icon.png' height='15px' width='15px'/>");
     private ColorChooserDialog colorChooserDialog = new ColorChooserDialog();
+    private ZoomLevelDialog zoomLevelDialog = new ZoomLevelDialog();
     
     //Maps for checkboxes to make them controllable from mainview
     private Map<Number, CheckBox> queryBoxes = new HashMap<Number, CheckBox>();
@@ -119,8 +121,9 @@ public class ToolBox extends Composite {
 	    fpanel.add(heading);
 	    
 	    //Add items to objecttools
-	    objectTools.setSize("50px", "20px");
+	    objectTools.setSize("75px", "20px");
 	    objectTools.add(colorButton);
+	    objectTools.add(zoomButton);
 	    objectTools.add(resetObjectlistButton);
 		
 	    //Add items to objectpanel
@@ -143,6 +146,9 @@ public class ToolBox extends Composite {
 	    colorButton.getElement().setClassName("colorpickerbutton");
 	    colorButton.getElement().getStyle().setPadding(5, Unit.PX); 
 	    colorButton.setTitle("Change color of a query");
+	    zoomButton.getElement().setClassName("zoombutton");
+	    zoomButton.getElement().getStyle().setPadding(5, Unit.PX); 
+	    zoomButton.setTitle("Change the default zoomlevel");
 	    resetObjectlistButton.getElement().setClassName("resetobjectlistbutton");
 	    resetObjectlistButton.getElement().getStyle().setPadding(5, Unit.PX);   
 	    resetObjectlistButton.setTitle("Delete all objects from the objectlist");
@@ -233,7 +239,7 @@ public class ToolBox extends Composite {
 	    this.colorButton.addClickHandler(new ClickHandler() {
 	          public void onClick(ClickEvent event) {
 
-	         // Show the popup of contact info
+	         // Show the popup of the color chooser
 	          int left = colorButton.getAbsoluteLeft() - 100;
 	          int top = colorButton.getAbsoluteTop() - 100;
 	          
@@ -242,6 +248,18 @@ public class ToolBox extends Composite {
 	          colorChooserDialog.getDialogBox().show();
 	        }
 	      });
+	    
+	    /*Add an event handler on the zoom button to change the zoomlevel of the shown objects*/
+		this.zoomButton.addClickHandler(new ClickHandler() {
+	          public void onClick(ClickEvent event) {
+	        	// Show the popup for the zoom level
+		          int left = zoomButton.getAbsoluteLeft() - 100;
+		          int top = zoomButton.getAbsoluteTop() - 100;
+		          
+		          zoomLevelDialog.getDialogBox().setPopupPosition(left, top);
+		          zoomLevelDialog.getDialogBox().show();
+	          }
+		 });
 	}
 	
 	/**On resizing of the browser window the elements of the toolbox are readjusted with the commandpanel displayed
@@ -637,6 +655,15 @@ public class ToolBox extends Composite {
 	 * */
 	public ColorChooserDialog getColorChooserDialog() {
 		return colorChooserDialog;
+	}
+	
+	
+	/**Returns the zoom level dialog box
+	 * 
+	 * @return The zoom level dialog box
+	 * */
+	public ZoomLevelDialog getZoomLevelDialog() {
+		return zoomLevelDialog;
 	}
 
 	/**Returns the textbox for the time counter
