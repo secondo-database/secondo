@@ -89,7 +89,7 @@ public class MVPolylineController {
      * @param lng2 The Longitude of the point y2
      * @param bounds The Bounds object
      * */
-    public void addLine(double lat1, double lng1, double lat2, double lng2, Bounds bounds){
+    public void addLine(double lat1, double lng1, double lat2, double lng2, Bounds boundsAll, Bounds boundsLast){
     	
     	if(isLatitude(lat1) && isLongitude(lng1)){              
        // create one point 
@@ -105,8 +105,10 @@ public class MVPolylineController {
              LineString lineString = new LineString(points);
              lineArray.add(lineString);
         
-             bounds.extend(point1);
-             bounds.extend(point2);
+             boundsAll.extend(point1);
+             boundsAll.extend(point2);
+             boundsLast.extend(point1);
+             boundsLast.extend(point2);
           }
        }
     }
