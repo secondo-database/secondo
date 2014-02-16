@@ -41,6 +41,7 @@ public class RPCConnector {
 	private SecondoServiceAsync secondoService = (SecondoServiceAsync) GWT.create(SecondoService.class);
 	private MainView mainView;
 	private PopupPanel loadingPopup;
+	private String currentCommand = "";
 	
 	/**The standard message displayed to the user when the server cannot be reached or returns an error.*/
 	private static final String SERVER_ERROR = "An error occurred while "
@@ -63,6 +64,7 @@ public class RPCConnector {
 		
 		this.mainView = mv;
 		this.loadingPopup = lp;
+		this.currentCommand = command;
 								
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
@@ -83,15 +85,18 @@ public class RPCConnector {
 					loadingPopup.hide();
 				}
 				else{
+					
 					mainView.getCommandPanel().getTextArea().setText("Query successful! Loading Views..."  + "\n" + "Sec >");			
 				
 				    updateCommandHistory(mainView);
+				    
 				    mainView.getToolbox().getCheckBoxPoints().setValue(true);
 		            mainView.getToolbox().getCheckBoxLines().setValue(true);
 		            mainView.getToolbox().getCheckBoxPolygons().setValue(true);
 				
 				   //put secondo data into the corresponding views
 	        	    setTextView(mainView, loadingPopup);
+					mainView.getTextView().getResultListBox().addItem(currentCommand);
 
 	        	   //get datatype resultlist for map, graphical view and toolbox 
 	        	    getDatatypeResultList(mainView, loadingPopup);	
@@ -316,6 +321,28 @@ public class RPCConnector {
 			}
 		  };		  
 		secondoService.getCommandHistory(callback); 
+	}
+	
+	/** Starts an RPC call to the server to add a command to the command history in the sessiondata-object
+	 * 
+	 * @param command The command to be added to the commandhistory.
+	 * */
+	public void addCommandToHistory(String command){
+
+		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);				
+			}
+
+			@Override
+			public void onSuccess(Void result) {
+				
+				System.out.println("####### Command is added to CommandHistory.");
+			}
+		  };		  
+		secondoService.addCommandToHistory(command, callback); 
 	}
 	
 	/** Starts an RPC call to the server to delete the command history in the sessiondata-object and clear the dropdownlist for command history
