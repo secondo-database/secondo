@@ -5988,14 +5988,14 @@ For each Flob with mode 3, its elements mean:
             int ai = faVec[no];
             Attribute* attr = tuple->GetAttribute(ai);
             if (attr->NumOfFLOBs() == 0){
-              tif.setFlobInfo(no, 0, 0, 0, 0);
+              tif.setFlobInfo(no, 0, -1, 0, 0);
             } else {
 
               for (int k = 0; k < attr->NumOfFLOBs(); k++)
               {
                 Flob* flob = attr->GetFLOB(k);
                 if (flob->getMode() < 3){
-                  tif.setFlobInfo(no, k, 0, 0, 0);
+                  tif.setFlobInfo(no, k, -1, 0, 0);
                   continue;
                 }
                 int source = flob->getRecordId();
@@ -6019,9 +6019,12 @@ For each Flob with mode 3, its elements mean:
                   bool full = fs->addOrder(*flob, fileOffset);
                   bool ok = false;
                   if (full){
-                    if (sendSheet(fs)){
-                      standby->at(source) = 0;
-                    }
+                	while(true){
+                	  if (sendSheet(fs)){
+                		standby->at(source) = 0;
+                		break;
+                	  }
+                	}
                   } else {
                     ok = true;
                   }
@@ -6109,7 +6112,7 @@ For each Flob with mode 3, its elements mean:
             for (int k = 0; k < attr->NumOfFLOBs(); k++){
               source = gtfit->getDS(no, k);
               times = gtfit->getSheetTimes(no, k);
-              if (source == 0){
+              if (source < 0){
                 //Flob are kept locally
                 continue;
               }
@@ -6132,7 +6135,7 @@ For each Flob with mode 3, its elements mean:
               for (int k = 0; k < attr->NumOfFLOBs(); k++)
               {
                 source = gtfit->getDS(no, k);
-                if (source == 0){
+                if (source < 0){
                   //Flob is kept within the Tuple
                   continue;
                 }
