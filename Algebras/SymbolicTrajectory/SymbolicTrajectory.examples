@@ -31,6 +31,18 @@ Signature: labels x string -> bool
 Example  : query [const labels value ("Hummels" "Reus")] contains "Reus"
 Result   : TRUE
 
+Operator : name
+Number   : 1
+Signature: place -> string
+Example  : query name([const place value ("Hummels" 5)])
+Result   : "Hummels"
+
+Operator : ref
+Number   : 1
+Signature: place -> int
+Example  : query ref([const place value ("Hummels" 5)])
+Result   : 5
+
 Operator : the_unit
 Number   : 6
 Signature: label x instant x instant x bool x bool -> ulabel
