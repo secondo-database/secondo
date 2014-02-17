@@ -6424,6 +6424,261 @@ ostream& operator<<(ostream& os, const TupleFlobInfo& f){
   return f.print(os);
 }
 
+/*
+5 Operator ~genFlobResult~
+
+This is an internal operator used within the operator ~fetchFlob~.
+It reads a Flob sheet remotely, then creates a result Flob file based on the local Flob file.
+At last, it sends the result file back to the source DS.
+Both the sheet and the result Flob files are kept in the PSFS.
+
+This operator maps:
+
+----
+sourceDS:int x sheetFile:string x resultFile:string
+  \to bool
+----
+
+
+5.1 Specification
+
+*/
+struct genFlobResultInfo : OperatorInfo{
+  genFlobResultInfo() : OperatorInfo()
+  {
+    name = "genFlobResult";
+    signature =
+        "int x string x string -> bool";
+    syntax = "op(source, sheet, result)";
+    meaning = "Create the result flob file based on a remote sheet";
+  }
+};
+
+/*
+5.2 Type Mapping
+
+*/
+ListExpr genFRTypeMap(ListExpr args)
+{
+  try{
+    NList l(args);
+
+    if (l.length() != 3){
+      return(l.typeError("Error! Operator expects 3 arguments."));
+    }
+
+    string typErr = "Error! Operator expects "
+           "int x string x string";
+
+    if (!l.first().isSymbol(CcInt::BasicType())){
+      return l.typeError(typErr);
+    }
+
+    if (!l.second().isSymbol(CcString::BasicType())){
+      return l.typeError(typErr);
+    }
+
+    if (!l.third().isSymbol(CcString::BasicType())){
+          return l.typeError(typErr);
+    }
+
+    return NList(NList(CcBool::BasicType())).listExpr();
+  } catch(...){
+    return listutils::typeError("invalid input");
+  }
+}
+
+int genFRValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  if ( message <= CLOSE)
+  {
+    result = qp->ResultStorage(s);
+    ((CcBool*)(result.addr))->Set(true, false);
+    int source = ((CcInt*)args[0].addr)->GetValue();
+    string sheetFilePath = ((CcString*)args[1].addr)->GetValue();
+    string resultFileName = ((CcString*)args[2].addr)->GetValue();
+
+    clusterInfo ci;
+    if (ci.isOK())
+    {
+      bool isLocal = false;
+      int localDS = ci.getLocalNode();
+      if (localDS == source){
+        isLocal = true;
+      }
+
+      string localSheetPath = ci.getLocalPath();
+      FileSystem::AppendItem(localSheetPath, sheetFilePath);
+      //Get the sheet file
+      if (!isLocal){
+        //get the sheet file if not local
+        string remoteSheetPath = ci.getRemotePath(
+            source, true, false, true, true, sheetFilePath);
+        int atimes = MAX_COPYTIMES;
+        while ( atimes-- > 0){
+          if (0 == system(
+              (scpCommand + remoteSheetPath + " " + localSheetPath).c_str())){
+            break;
+          }
+          else{
+            WinUnix::sleep(1);
+          }
+        }
+        if (atimes < 0){
+          cerr << "Error!! Get the sheet file "
+               << localSheetPath << " fails" << endl;
+          return 0;
+        }
+      }
+
+      //Collect the Flob data
+      if (!FileSystem::FileOrFolderExists(localSheetPath)){
+        cerr << "Error!! The sheet file " << localSheetPath
+          << " does not exist." << endl;
+        return 0;
+      }
+      ifstream sheetFile(localSheetPath.c_str());
+      if (!sheetFile.good()){
+        cerr << "Error!! Cannot open the sheet file "
+          << localSheetPath << endl;
+        return 0;
+      }
+
+      string localResultPath = ci.getLocalPath();
+      if (!FileSystem::FileOrFolderExists(localResultPath)){
+        cerr << "Error!! The result path " << localResultPath
+          << " does not exist. " << endl;
+        return 0;
+      }
+      string PSFSNode = localResultPath;
+      FileSystem::AppendItem(localResultPath, resultFileName);
+
+      map<u_int32_t, ifstream*> flobFiles;
+      map<u_int32_t, ifstream*>::iterator it;
+      ifstream* flobFile = 0;
+      string tmpResultPath = ci.getLocalPath();
+      FileSystem::AppendItem(tmpResultPath, "tmp_" + resultFileName);
+      ofstream resultFile(tmpResultPath.c_str(), ios::binary);
+
+      //Cached Flob markers, avoid extracting the same Flob
+      set<pair<u_int32_t, size_t>,
+        classCompPair<u_int32_t, size_t> > lobMarkers;
+      //Empty lobs are prepared for Flobs created in another sheet
+      set<pair<u_int32_t, size_t>,
+        classCompPair<u_int32_t, size_t> > emptyLobs;
+
+      string flobOrder;
+      u_int32_t lastFileId = 0;
+      while (getline(sheetFile, flobOrder))
+      {
+        stringstream ss(flobOrder);
+        u_int32_t fileId;
+        int sourceDS, mode;
+        size_t offset, size;
+        ss >> fileId >> sourceDS >> offset >> mode >> size;
+
+        if ( mode != 3){
+          //This Flob may already have been fetched by another thread.
+          size_t recId = sourceDS;
+          pair<u_int32_t, size_t> mlob(fileId, recId);
+          if (emptyLobs.find(mlob) != emptyLobs.end()){
+            continue;
+          } else {
+            emptyLobs.insert(mlob);
+          }
+
+          char block[size];
+          memset(block, 0, size);
+          resultFile.write(block, size);
+          continue;
+        }
+
+        pair<u_int32_t, size_t> mlob(fileId, offset);
+        if (lobMarkers.find(mlob) != lobMarkers.end()){
+          continue;
+        } else {
+          lobMarkers.insert(mlob);
+        }
+
+        //The flob is never mentioned in the current sheet
+        if (lastFileId != fileId)
+        {
+          it = flobFiles.find(fileId);
+          if ( it == flobFiles.end()){
+            string flobFileName = PSFSNode + "/flobFile_" + int2string(fileId);
+            flobFile = new ifstream(flobFileName.c_str(), ios::binary);
+            flobFiles[fileId] = flobFile;
+            it = flobFiles.find(fileId);
+          }
+          lastFileId = fileId;
+        }
+
+        char block[size];
+        flobFile = it->second;
+        flobFile->seekg(offset, ios_base::beg);
+        flobFile->read(block, size);
+        resultFile.write(block, size);
+      }
+
+      for (it = flobFiles.begin(); it != flobFiles.end(); it++){
+        flobFile = it->second;
+        flobFile->close();
+        delete flobFile;
+        flobFile = 0;
+      }
+      flobFiles.clear();
+      resultFile.close();
+      sheetFile.close();
+
+      if (!FileSystem::FileOrFolderExists(tmpResultPath)){
+        cerr << "Error!! The result file " << tmpResultPath
+          << " does not exist." << endl;
+        return 0;
+      }
+
+      //send the result file
+      if (!isLocal){
+        //send the result file if not local
+        string remoteResultPath = ci.getRemotePath(
+          source, true, false, true, true, resultFileName);
+        int atimes = MAX_COPYTIMES;
+        while ( atimes-- > 0){
+          if (0 == system(
+              (scpCommand + tmpResultPath + " " + remoteResultPath).c_str())){
+            break;
+          }
+          else{
+            WinUnix::sleep(1);
+          }
+        }
+        if (atimes < 0){
+          cerr << "Error!! Send the result file "
+            << remoteResultPath << " fails" << endl;
+          return 0;
+        }
+      }
+      else {
+        if (!FileSystem::RenameFileOrFolder(tmpResultPath, localResultPath)){
+          cerr << "Error!! Rename " << tmpResultPath
+            << " to " << localResultPath << " fails" << endl;
+          return 0;
+        }
+      }
+
+      FileSystem::DeleteFileOrFolder(localSheetPath);
+      if (FileSystem::FileOrFolderExists(tmpResultPath)){
+        FileSystem::DeleteFileOrFolder(tmpResultPath);
+      }
+
+      ((CcBool*)(result.addr))->Set(true, true);
+      return 0;
+    }
+  }
+    return 0;
+}
+
+Operator genFlobResultOp(genFlobResultInfo(), genFRValueMap, genFRTypeMap);
 
 /*
 6 Auxiliary functions
@@ -6886,6 +7141,8 @@ public:
 
     AddOperator(&fdistribute3Op);
     fdistribute3Op.SetUsesArgsInTypeMapping();
+
+    AddOperator(&genFlobResultOp);
 
 
 #ifdef USE_PROGRESS

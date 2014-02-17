@@ -1311,5 +1311,18 @@ public:
   int token;
 };
 
+template<typename T1, typename T2>
+struct classCompPair
+{
+  bool operator() (const pair<T1,T2>& pair_1,
+      const pair<T1,T2>& pair_2) const
+  {
+    return (pair_1.first < pair_2.first)
+        || (!(pair_1.first > pair_2.first && pair_1.first < pair_2.first)
+          && (pair_1.second < pair_2.second));
+  }
+};
+
+
 
 #endif /* HADOOPPARALLELALGEBRA_H_ */

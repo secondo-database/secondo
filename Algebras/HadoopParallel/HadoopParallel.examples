@@ -98,3 +98,8 @@ Signature: stream(tuple((a1 t1) ... (ai ti) ... (an tm))) x string x text x ai x
 Example  : query plz feed fdistribute3["plz_dis", '', PLZ; 50, TRUE; ; ] loopsel["plz_dis" ffeed['',.Suffix; ; ]] count
 Result   : 41267
 
+Operator : genFlobResult
+Number   : 1
+Signature: int x string x string -> bool 
+Example  : query genFlobResult(0, "exampleSheet", "exampleResult")
+Result   : crashes 

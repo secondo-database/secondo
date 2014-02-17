@@ -30,3 +30,4 @@ operator fconsume3 alias FCONSUME3 pattern _ op [list; list; list]
 operator ffeed3 alias FFEED3 pattern _ op [list; list; list]
 operator fetchFlob alias FETCHFLOB pattern _ op [list]
 operator fdistribute3 alias FDISTRIBUTE3 pattern _ op [list; list; list; list]
+operator genFlobResult alias GENFLOBRESULT pattern op(_, _, _)
