@@ -161,9 +161,9 @@ public class HtmlFormatter extends DocumentFormatter
 			for (int i = 0; i<relation.getTupleCount(); i++)
 			{
 				StringBuffer sb = new StringBuffer();
-				sb.append(this.getTemplateHead());
+				sb.append(this.templateHead);
 				sb.append(this.fillTemplateBody(relation.getTupleAt(i)));
-				sb.append(this.getTemplateTail());
+				sb.append(this.templateTail);
 				this.outputPages.add(sb.toString());
 				//Reporter.debug("HtmlFormatter.format: filled page=" + sb.toString().substring(0,100));
 			}
@@ -172,7 +172,7 @@ public class HtmlFormatter extends DocumentFormatter
 		{
 			// create document as single page
 			StringBuffer sb = new StringBuffer();
-			sb.append(this.getTemplateHead());
+			sb.append(this.templateHead);
 			for (int i = 0; i<relation.getTupleCount(); i++)
 			{
 				sb.append(this.fillTemplateBody(relation.getTupleAt(i)));
@@ -187,12 +187,14 @@ public class HtmlFormatter extends DocumentFormatter
 		// save files in output directory
 		this.saveOutputPages();
 		
-		// if document has to be post-processed by a script
+		// if output shall be post-processed by a script
 		if (pApplyScript)
 		{
 			// execute the script
-			String[] commands = this.readLines(this.getScript());
-			this.executeCommands(commands);
+			List<String> commands = this.readLines(this.script);
+			File script = new File(this.script);
+			Reporter.writeInfo("HtmlFormatter executed script: " + this.executeCommands(commands, script.getParent()));
+
 			// reload (processed) files from the output directory
 			this.readOutputPages();
 		}
@@ -248,28 +250,11 @@ public class HtmlFormatter extends DocumentFormatter
 														  + ". \nClick Cancel if you do not want to save the output to disk. "
 														  + " \nYou may change the base file name: "
 														  , "output");
+		
 		if (baseFileName != null && !baseFileName.isEmpty())
 		{
 			long millisStart = System.currentTimeMillis();
-			Thread thread = new Thread(new FileSaver(baseFileName));
-			thread.run();
-			long millis = System.currentTimeMillis() - millisStart;
-			Reporter.debug("HtmlFormatter.saveOutputPages: disk writing time (millis): " + millis);
-		}
-	}
-	
-	
-	class FileSaver implements Runnable
-	{
-		private String baseName;
-		
-		FileSaver(String pBaseName)
-		{
-			this.baseName = pBaseName;
-		}
-		
-		public void run()
-		{
+			
 			String filename;
 			FileWriter fileWriter;
 			PrintWriter printWriter;
@@ -278,7 +263,7 @@ public class HtmlFormatter extends DocumentFormatter
 			for (int i=0; i<outputPages.size(); i++)
 			{
 				page = (String)outputPages.get(i);
-				filename = getOutputDirectory() + baseName + i + "." + HtmlFormatter.FILE_ENDING;
+				filename = getOutputDirectory() + baseFileName + i + "." + HtmlFormatter.FILE_ENDING;
 				try
 				{
 					fileWriter = new FileWriter(filename);
@@ -292,7 +277,26 @@ public class HtmlFormatter extends DocumentFormatter
 					return;
 				}
 			}
+			long millis = System.currentTimeMillis() - millisStart;
+			Reporter.debug("HtmlFormatter.saveOutputPages: disk writing time (millis): " + millis);
 		}
 	}
+	
+		/*
+	class FileSaver implements Runnable
+	{
+		private String baseName;
+		
+		FileSaver(String pBaseName)
+		{
+			this.baseName = pBaseName;
+		}
+		
+		public void run()
+		{
+			
+		}
+	}
+		 */
 		
 } 

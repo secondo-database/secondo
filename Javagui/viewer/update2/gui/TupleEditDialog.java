@@ -57,6 +57,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JWindow;
+import javax.swing.SwingUtilities;
 import javax.swing.table.TableColumn;
 
 import tools.Reporter;
@@ -132,7 +133,7 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 			this.table.addMouseListener(new MouseAdapter()
 										{
 										public void mousePressed(MouseEvent pEvent)	{
-										if (pEvent.getButton()==MouseEvent.BUTTON3)
+										if (SwingUtilities.isRightMouseButton(pEvent))
 										showInfo(pEvent.getPoint());
 										else 
 										hideInfo();

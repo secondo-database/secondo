@@ -71,6 +71,12 @@ public class HtmlDocumentPanel extends DocumentPanel
 		String markup = HtmlFormatter.createReferenceMarkup(pPositionInfo.getRelationName(), 
 															pPositionInfo.getAttributeName(),
 															pPositionInfo.getTupleId());
+		/*
+		for(JTextPane pane : this.getComponents())
+		{
+			// TODO
+		}
+		 */
 	}
 
 	
@@ -108,17 +114,10 @@ public class HtmlDocumentPanel extends DocumentPanel
 		}
 	}
 	
+	
 	/**
-	 * Removes comments like <!-- this comment -->
-	private String clean(String pPage)
-	{
-		String result = pPage.replaceAll("<![ \r\n\t]*(--([^-]|[\r\n]|-[^-])*--[ \r\n\t]*)>" , "");
-		//String result = pPage.replaceAll("<!--[ ([^-]|[\r\n]|-[^-])]*-->" , "");		
-		return result;
-	}
-	*/
-	
-	
+	 * This class translates position of mouse-click in RelationPosition and stores this position.
+	 */
 	private class PositionTracker extends MouseAdapter
 		{
 			public void mousePressed(MouseEvent pEvent)

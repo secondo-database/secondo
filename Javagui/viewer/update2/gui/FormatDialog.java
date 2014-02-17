@@ -26,6 +26,7 @@ import java.awt.event.ActionListener;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.List;
 
@@ -38,6 +39,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 
 import tools.Reporter;
 
@@ -138,17 +140,28 @@ public class FormatDialog extends JDialog
 	{
 		if (this.formattedDocument != null) return;
 		
+		this.currentPosition = pPositionInfo;
+		
 		if (pPositionInfo==null)
 		{
-			//this.scpDocument.getVerticalScrollBar().setValue(0);
-			//this.scpDocument.getViewport().setViewPosition(new java.awt.Point(0,0));
-			this.scpDocument.getViewport().scrollRectToVisible(new Rectangle(0,0,0,0));
+			SwingUtilities.invokeLater(new Runnable() {
+									   public void run() {
+											scpDocument.getViewport().setViewPosition(new Point(0,0));
+											scpDocument.getViewport().scrollRectToVisible(new Rectangle(0,0,0,0));
+											scpDocument.getVerticalScrollBar().getModel().setValue(0);
+									   }
+									   });
 		}
 		else
 		{
-			//this.formattedDocument.getRectangle(pPositionInfo);
+			SwingUtilities.invokeLater(new Runnable() {
+									   public void run() {
+											//formattedDocument.getRectangle(currentPosition);
+											scpDocument.getViewport().scrollRectToVisible(new Rectangle(0,0,0,0));
+									   }
+									   });
 		}
-		this.repaint();
+		repaint();
 	}
 	
 	/**

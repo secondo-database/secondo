@@ -1111,8 +1111,8 @@ public class UpdateViewerController implements ActionListener, MouseListener
 												
 			// display formatted page(s)
 			long millisStart = System.currentTimeMillis();
-			DocumentPanel docPanel = DocumentPanel.createDocumentPanel(this.loadProfile.getFormatType());
-			docPanel.load(outputPages);
+			DocumentPanel docPanel = DocumentPanel.createDocumentPanel(formatter);
+			docPanel.load(formatter.getOutputPages());
 			this.formatDialog.setFormattedDocument(docPanel);
 			long millis = System.currentTimeMillis() - millisStart;
 			Reporter.debug("UpdateViewerController.processCommandFormat: display creation time (millis): " + millis);

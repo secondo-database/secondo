@@ -305,16 +305,6 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
     
 	
 	/**
-	 * Returns the length of the specified String as rendered with current FontMetrics.
-	 */
-	public int computeLengthByCurrentFont(String pString)
-	{
-		FontMetrics metrics = ((Component)this).getFontMetrics(this.getFont());
-		return metrics.stringWidth(pString);
-	}
-	
-	
-	/**
 	 * Computes maximum content length of each table column 
 	 * and initializes maxContentLengths.
 	 * TODO: nicer to have this done while scanning the relation during init phase.
@@ -322,6 +312,7 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 	private int computeMaxContentLength(int pCol)
 	{		
 		int max = 0;
+		FontMetrics metrics = ((Component)this).getFontMetrics(this.getFont());
 		
 		if (pCol == 0 || pCol == 1)
 		{
@@ -330,14 +321,13 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 			
 			for (String s : strings)
 			{
-				int length = this.computeLengthByCurrentFont(s);
+				int length = metrics.stringWidth(s);
 				if (length > max)
 					max = length;
 			}
 		}
 		
 		// add some extra space
-		FontMetrics metrics = ((Component)this).getFontMetrics(this.getFont());
 		max = max + metrics.getMaxAdvance();
 		
 		return max;

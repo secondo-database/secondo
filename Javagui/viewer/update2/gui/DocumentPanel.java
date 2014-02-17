@@ -30,6 +30,7 @@ import java.util.List;
 
 
 import viewer.update2.*;
+import viewer.update2.format.*;
 
 /**
  * Panel that displays a formatted document.
@@ -38,6 +39,7 @@ import viewer.update2.*;
 public abstract class DocumentPanel extends JPanel implements Scrollable
 {
  	protected RelationPosition currentPosition;
+	protected DocumentFormatter formatter;
 	
 	public DocumentPanel()
 	{
@@ -49,16 +51,18 @@ public abstract class DocumentPanel extends JPanel implements Scrollable
 	/**
 	 * Returns formatter of class '<pFormatType>Formatter' if that class exists in package viewer.update2.format.
 	 */
-	public static DocumentPanel createDocumentPanel(String pFormatType) throws Exception
+	public static DocumentPanel createDocumentPanel(DocumentFormatter pFormatter) throws Exception
 	{
 		// try to instatiate specific formatter class
-		Class panelClass = Class.forName("viewer.update2.gui." + pFormatType.trim() + "DocumentPanel");
+		Class panelClass = Class.forName("viewer.update2.gui." + pFormatter.getType() + "DocumentPanel");
 		Object o = panelClass.newInstance();
 		if(!(o instanceof DocumentPanel))
 		{
 			throw new Exception("Found class does not extend the abstract class DocumentPanel. ");
 		}
-		return (DocumentPanel)o;
+		DocumentPanel panel = (DocumentPanel)o;
+		panel.formatter = pFormatter;
+		return panel;
 	}
 	
 	/**
@@ -66,10 +70,7 @@ public abstract class DocumentPanel extends JPanel implements Scrollable
 	 * relation name, attribute name, tuple id, position within value.
 	 * This information is read from the hidden markup in the document.
 	 */
-	public RelationPosition getCurrentRelationPosition()
-	{
-		return this.currentPosition;
-	}	
+	public RelationPosition getCurrentRelationPosition() { return this.currentPosition;	}	
 	
 	/**
 	 * Scrolls the Document to the specified position.
@@ -80,6 +81,9 @@ public abstract class DocumentPanel extends JPanel implements Scrollable
 	 * Displays pages sequentially in appropriate Components.
 	 */
 	public abstract void load(List<Object> pOutputPages);
+	
+	//public int getPageCount() { return this.formatter.getPageCount(); }
+	//public Object getPageAt(int pIndex) { return this.formatter.getPageAt(pIndex); }
 	
 	// Methods of Interface Scrollable
 	public Dimension getPreferredScrollableViewportSize() {	return getPreferredSize();	}

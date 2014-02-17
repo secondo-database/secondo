@@ -110,19 +110,45 @@ public abstract class DocumentFormatter
 	 * Executes a sequence of commands.
 	 * Returns output of all commands as one string.
 	 */
-	protected String executeCommands(String[] pCommands) throws Exception
+	protected String executeCommands(List<String> pCommands, String pWorkDirectory) throws Exception
 	{
-		StringBuffer commandOutput = new StringBuffer();		
-		Process process = Runtime.getRuntime().exec(pCommands);
-		InputStreamReader inputReader = new InputStreamReader(process.getInputStream());
-		BufferedReader input = new BufferedReader(inputReader);
-		String line = null;
+		File workDirectory = new File(pWorkDirectory);
+		StringBuffer commandOutput = new StringBuffer();
 		
-		while ((line = input.readLine()) != null) {
-			commandOutput.append(line);
-			commandOutput.append("\n");
+		for (String cmd : pCommands)
+		{
+			Process process = Runtime.getRuntime().exec(cmd, null, workDirectory);
+			InputStreamReader inputReader;
+			
+			int returnValue = process.waitFor();
+			
+			if (returnValue != 0)
+			{
+				inputReader = new InputStreamReader(process.getErrorStream());
+			}
+			else
+			{
+				inputReader = new InputStreamReader(process.getInputStream());
+			}
+			
+			commandOutput.append("\n\"").append(cmd).append("\" terminated ");
+			commandOutput.append((returnValue==0)? "ok" : "with error").append(": \n");
+			
+			// read process (or error) output
+			BufferedReader input = new BufferedReader(inputReader);
+			String line = null;
+			while ((line = input.readLine()) != null) 
+			{
+				commandOutput.append(line);
+				commandOutput.append("\n");
+			}
+
+			if (returnValue != 0)
+			{
+				throw new Exception(commandOutput.toString());
+			}
 		}
-		
+
 		return commandOutput.toString();
 	}
 	
@@ -329,9 +355,9 @@ public abstract class DocumentFormatter
 	/**
 	 * Returns non-empty lines from the specified file.
 	 */
-	protected String[] readLines(String pFileName) throws IOException
+	protected List<String> readLines(String pFileName) throws IOException
 	{
-		List<String> lines = new ArrayList<String>();
+		List<String> result = new ArrayList<String>();
 		FileReader fileReader = new FileReader(pFileName);
 		BufferedReader bufferedReader = new BufferedReader(fileReader);
 		String line;
@@ -340,15 +366,10 @@ public abstract class DocumentFormatter
 			line = line.trim();
 			if (line!=null && !line.isEmpty() && !line.startsWith("#"))
 			{
-				lines.add(line);
+				result.add(line);
 			}
 		}
 		fileReader.close();
-		String[] result = new String[lines.size()];
-		for(int i=0; i<lines.size(); i++)
-		{
-			result[i] = lines.get(i);
-		}
 		return result;
 	}
 	
