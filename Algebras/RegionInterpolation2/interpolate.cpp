@@ -152,7 +152,9 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                     // If this moving face is not collapsed and we do not
                     // evaporate then break the connection and collapse/expand 
                     // the related faces.
+                    cerr << "Kill start\n";
                     ss = s1->kill(); // Create the pair of MSegs
+                    cerr << "Kill end\n";
                     // Remove the original object from the list
                     children.faces.erase(children.faces.begin()+i);
                 } else if (!s2->iscollapsed && (s2 != &parent.face)
@@ -226,6 +228,8 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
             }
         }
     }
+    
+    cerr << "Left handle-intersections\n";
 
     // Insert the evaporation- and condensation-cycles into the list of faces
 //    children.faces.insert(children.faces.end(), evp.begin(), evp.end());

@@ -153,7 +153,8 @@ bool MFace::Check() {
  
 */
 void MFace::AddConcavity(MSegs c) {
-    cvs.push_back(c);
+    if (c.msegs.size() > 3) // Ignore invalid or degenerated cycles
+        cvs.push_back(c);
 }
 
 static ListExpr CycleToListExpr(MSegs face);
@@ -169,6 +170,8 @@ static ListExpr CycleToListExpr(MSegs face);
 void MFace::MergeConcavities() {
     Check();
     for (unsigned int i = 0; i < cvs.size(); i++) {
+        if (cvs[i].msegs.size() < 3) // Ignore invalid or degenerated faces
+            continue;
         if (face.MergeConcavity(cvs[i])) {
             // Merging the concavity into the cycle was successful.
             PrintMRegionListExpr();
@@ -252,6 +255,8 @@ ListExpr MFace::ToListExpr() {
     ListExpr ret = nl->OneElemList(CycleToListExpr(face));
     ListExpr le = ret;
     for (unsigned int i = 0; i < holes.size(); i++) {
+        if (holes[i].msegs.size() < 0)
+            continue;
         le = nl->Append(le, CycleToListExpr(holes[i]));
     }
 

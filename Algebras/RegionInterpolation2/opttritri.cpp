@@ -265,3 +265,74 @@ int TriangleIntersection(float V0[3],float V1[3],float V2[3],
   if(isect1[1]<=isect2[0] || isect2[1]<=isect1[0]) return 0;
   return 1;
 }
+
+bool trapeziumIntersects2 (MSeg m, MSeg a) {
+    if (!(m.is == m.ie) && !(m.fs == m.fe)) {
+        MSeg ms1(m.is, m.ie, m.fs, m.fs);
+        MSeg ms2(m.is, m.is, m.fs, m.fe);
+        return trapeziumIntersects2(ms1, a) || trapeziumIntersects2(ms2, a);
+    }
+
+    if (!(a.is == a.ie) && !(a.fs == a.fe)) {
+        MSeg ms1(a.is, a.ie, a.fs, a.fs);
+        MSeg ms2(a.is, a.is, a.fs, a.fe);
+        return trapeziumIntersects2(m, ms1) || trapeziumIntersects2(m, ms2);
+    }
+
+    float V0[3], V1[3], V2[3];
+    float U0[3], U1[3], U2[3];
+
+    if (m.is.x == m.ie.x && m.is.y == m.ie.y) {
+        V0[0] = m.is.x;
+        V0[1] = m.is.y;
+        V0[2] = 0;
+        V1[0] = m.fs.x;
+        V1[1] = m.fs.y;
+        V1[2] = 1;
+        V2[0] = m.fe.x;
+        V2[1] = m.fe.y;
+        V2[2] = 1;
+    } else if (m.fs.x == m.fe.x && m.fs.y == m.fe.y) {
+        V0[0] = m.is.x;
+        V0[1] = m.is.y;
+        V0[2] = 0;
+        V1[0] = m.ie.x;
+        V1[1] = m.ie.y;
+        V1[2] = 0;
+        V2[0] = m.fs.x;
+        V2[1] = m.fs.y;
+        V2[2] = 1;
+    } else {
+        cerr << "ERROR: src-triangle is a trapezium!\n";
+        assert(false);
+    }
+
+    if (a.is.x == a.ie.x && a.is.y == a.ie.y) {
+        U0[0] = a.is.x;
+        U0[1] = a.is.y;
+        U0[2] = 0;
+        U1[0] = a.fs.x;
+        U1[1] = a.fs.y;
+        U1[2] = 1;
+        U2[0] = a.fe.x;
+        U2[1] = a.fe.y;
+        U2[2] = 1;
+    } else if (a.fs.x == a.fe.x && a.fs.y == a.fe.y) {
+        U0[0] = a.is.x;
+        U0[1] = a.is.y;
+        U0[2] = 0;
+        U1[0] = a.ie.x;
+        U1[1] = a.ie.y;
+        U1[2] = 0;
+        U2[0] = a.fs.x;
+        U2[1] = a.fs.y;
+        U2[2] = 1;
+    } else {
+        cerr << "ERROR: dst-triangle is a trapezium!\n";
+        assert(false);
+    }
+
+    bool ret = TriangleIntersection(V0, V1, V2, U0, U1, U2);
+    
+    return ret;
+}

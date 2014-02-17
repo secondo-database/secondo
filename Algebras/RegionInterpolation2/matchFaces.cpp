@@ -134,7 +134,12 @@ vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
 // Helper function for matchFacesLowerLeft below to sort a list of faces by
 // their lower-(leftmost)-point
 static bool sortLowerLeft(const Face& r1, const Face& r2) {
-    return r1.v[0].s < r2.v[0].s;
+    if (r1.isEmpty())
+        return true;
+    else if (r2.isEmpty()) 
+        return false;
+    else
+        return r1.v[0].s < r2.v[0].s;
 }
 
 /*
@@ -155,26 +160,142 @@ vector<pair<Face *, Face *> > matchFacesLowerLeft(vector<Face> *src,
     // Traverse the two lists in parallel and try to find matches
     unsigned int i = 0, j = 0;
     while (i < src->size() && j < dst->size()) {
-        Pt p1 = (*src)[i].v[0].s;
-        Pt p2 = (*dst)[j].v[0].s;
 
-        if (p1 == p2) {
-            (*src)[i].used = 1;
-            (*dst)[j].used = 1;
-            cerr << (*src)[i].ToString() << "\n";
-            cerr << (*dst)[j].ToString() << "\n";
-            cerr << "MatchFacesds matched " << i << " with " << j << "\n";
-            ret.push_back(pair<Face*, Face*>(&(*src)[i], &(*dst)[j]));
+        if ((*src)[i].isEmpty()) {
             i++;
+        } else if ((*dst)[j].isEmpty()) {
             j++;
-        } else if (p1 < p2) {
-            i++;
         } else {
-            j++;
+            Pt p1 = (*src)[i].v[0].s;
+            Pt p2 = (*dst)[j].v[0].s;
+            if (p1 == p2) {
+                (*src)[i].used = 1;
+                (*dst)[j].used = 1;
+                ret.push_back(pair<Face*, Face*>(&(*src)[i], &(*dst)[j]));
+                i++;
+                j++;
+            } else if (p1 < p2) {
+                i++;
+            } else {
+                j++;
+            }
         }
     }
 
     return ret;
+}
+
+// Helper class for matchFacesCriterion
+class matchItem {
+public:
+    Face *s, *d;
+    double val;
+    
+    matchItem(Face *s, Face *d, double val) : s(s), d(d), val(val) {};
+    bool operator<(const matchItem& a) const { return val < a.val; }
+};
+
+// Try to find a suitable offset and scale for this set of faces.
+// After transformation, the bounding box of the parent of these faces will be
+// (0/0) - (SCALESIZE/SCALESIZE). If there is no parent, the common bounding box
+// of all faces of the set is used.
+// SCALESIZE is defined in interpolate.h.
+static pair<Pt, Pt> getOffsetAndScale (vector<Face> *fcs) {
+    if (fcs->empty())
+        return pair<Pt,Pt>(Pt(0,0), Pt(1,1));
+    Face *parent = ((*fcs)[0]).parent;
+    pair<Pt, Pt> bbox, ret;
+    if (parent) {
+        // If we have a parent face, use its bounding box
+        bbox = parent->GetBoundingBox();
+    } else {
+        // otherwise get the common bounding box of all faces in this set
+        bbox = Face::GetBoundingBox(*fcs);
+    }
+    
+    ret.first = bbox.first;
+        
+    if ((bbox.second.x > bbox.first.x) &&
+        (bbox.second.y > bbox.first.y)) {
+        // Calculate the factor which scales the bounding box to SCALESIZE
+        // (defined in interpolate.h) in each direction.
+        Pt scale(SCALESIZE / (bbox.second.x - bbox.first.x),
+                 SCALESIZE / (bbox.second.y - bbox.first.y));
+        ret.second = scale;
+    } else {
+        // The factor would be invalid (FPE), so just use 1
+        ret.second = Pt(1, 1);
+    }
+    
+    return ret;
+}
+
+/*
+ 1.5 matchFacesCriterion is a framework for matching-strategies.
+ It takes the two lists of faces and a scoring-function ~fn~, which calculates
+ a score for each pair of faces. A smaller score wins over higher scores.
+ Then, the results are sorted by this value and the best pairings are taken
+ into the result list. An optional threshold defines the maximum score a
+ pair may have to be a candidate for the result list.
+ 
+*/
+static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
+        vector<Face> *dst, int depth,
+        double (*fn)(Face *src, Face *dst), double thres) {
+    vector<pair<Face *, Face *> > ret;
+    vector<matchItem> mtab;
+    
+    // Get source- and destination-transform-values
+    pair<Pt, Pt> stf = getOffsetAndScale(src);
+    pair<Pt, Pt> dtf = getOffsetAndScale(dst);
+    
+    for (unsigned int i = 0; i < src->size(); i++) {
+        for (unsigned int j = 0; j < dst->size(); j++) {
+            Face s = (*src)[i], d = (*dst)[i];
+            s.Transform(stf.first, stf.second);
+            d.Transform(dtf.first, dtf.second);
+            double val = fn(&s, &d);
+            if (val < thres) {
+                mtab.push_back(matchItem(&((*src)[i]), &((*dst)[i]), val));
+            }
+        }
+    }
+    std::sort(mtab.begin(), mtab.end());
+    std::vector<matchItem>::iterator it = mtab.begin();
+    while (it != mtab.end()) {
+        if (!it->s->used && !it->d->used) {
+            it->s->used = 1;
+            it->d->used = 1;
+            ret.push_back(pair<Face *, Face *>(it->s, it->d));
+        }
+    }
+    
+    return ret;
+}
+
+// Helper-function for matchFacesOverlap below. Calculates a score from the
+// overlapping area of two faces.
+static double overlap (Face *src, Face *dst) {
+    Region r1 = src->MakeRegion(false);
+    Region r2 = dst->MakeRegion(false);
+    Region is(0);
+    r1.Intersection(r2, is, NULL);
+
+    double a1 = r1.Area(NULL);
+    double a2 = r2.Area(NULL);
+    double ai = is.Area(NULL);
+    
+    return ((ai*100/a1+ai*100/a2)/2);
+}
+
+/*
+ 1.6 matchFacesOverlap uses matchFacesCriterion for matching faces by their
+ overlapping area. The average overlap must be 30 percent minimum.
+ 
+*/
+static vector<pair<Face *, Face *> > matchFacesOverlap(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
+    return matchFacesCriterion(src, dst, depth, overlap, 30);
 }
 
 #define nrMatchFacesStrategies (sizeof(matchFacesStrategies)/            \
@@ -189,10 +310,9 @@ static struct {
     { "Distance", matchFacesDistance }, //The first is also the default strategy
     { "Null", matchFacesNull },
     { "Simple", matchFacesSimple },
-    { "LowerLeft", matchFacesLowerLeft }
+    { "LowerLeft", matchFacesLowerLeft },
+    { "Overlap", matchFacesOverlap }
 };
-
-
 
 /*
  2 matchFaces is the interface to all matching strategies.
@@ -302,4 +422,3 @@ vector<pair<Face *, Face *> > matchFaces(
 
     return ret;
 }
-

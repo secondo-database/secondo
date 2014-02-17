@@ -46,7 +46,7 @@ bool MSegs::MergeConcavity(MSegs c) {
     // MSeg-object was merged, so the pointlists only include the endpoints of
     // the MSeg.
     for (unsigned int i = 0; i < msegs.size(); i++) {
-        if (msegs[i].ip.size() > 2 || msegs[i].fp.size() > 2) {
+        if ((msegs[i].ip.size() + msegs[i].fp.size()) > 3) {
             fastPath = false;
             break;
         }
@@ -206,11 +206,9 @@ Face MSegs::CreateBorderFace(bool initial) {
     for (unsigned int i = 0; i < msegs.size(); i++) {
         vector<Pt> points = initial ? msegs[i].ip : msegs[i].fp;
         for (unsigned int j = 0; j < points.size() - 1; j++) {
-            if (!(points[j] == points[j+1])) // Ignore if segment is degenerated
-                ret.push_back(Seg(points[j], points[j+1]));
+            ret.push_back(Seg(points[j], points[j+1]));
         }
     }
-    
     return Face(ret);
 }
 

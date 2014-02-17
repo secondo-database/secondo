@@ -19,6 +19,11 @@
                                 lua_setglobal(L, #FNAME)
 #endif
 
+// For matching faces, each set of faces will be translated and scaled to the
+// boundary-box (0/0) - (SCALESIZE/SCALESIZE). Used by matchFacesCriterion and
+// matchFacesLua
+#define SCALESIZE 1000000
+
 
 // Forward-declarations of the classes
 class Pt;
@@ -107,14 +112,13 @@ public:
     void AddSeg(Seg a); // Add a new segment
     void Close();       // Close the face
     Face ConvexHull();  // Calculate the convex hull
-    void Translate(int offx, int offy); // Move the face by offx/offy
     Seg Begin(); // Traversal: Go to first segment
     Seg Next();  // Traversal: Advance one segment
     Seg Prev();  // Traversal: Go back one segment
     Seg Cur();   // Traversal: Get the current segment
     bool End();  // Traversal: Check if we are past the last segment
     void Sort(); // Sort the segments (start lower-left, counterclockwise)
-    vector<Pt> getPoints(); // Get the list of cornerpoints in correct order
+    vector<Pt> getPoints(); // Get the list of corner points in correct order
     Region MakeRegion(bool withholes); // create a region from this face
     Region MakeRegion(double offx, double offy, double scalex, double scaley,
                       bool withholes); // same with offset/scale
@@ -131,9 +135,10 @@ public:
     Face ClipEar();  // Clip an ear for triangulation
     vector<MSegs> Evaporate(bool close); // calculate evaporation-msegs
     void AddHole (Face hole); // Add a new hole to this face
-    bool isEmpty(); // Check, if this is an empty face
+    bool isEmpty() const; // Check, if this is an empty face
     bool Check(); // Check, if this face is valid
     void IntegrateHoles(); // Integrate holes into the cycle for triangulation
+    void Transform (Pt off, Pt scale); // Transform by offset and scale factor
     string ToString() const;
 
     // Static functions

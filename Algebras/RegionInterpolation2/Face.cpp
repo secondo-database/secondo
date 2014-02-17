@@ -38,7 +38,6 @@ Face::Face(ListExpr tle) : cur(0), parent(NULL), ishole(false) {
     if (v.size() < 2) {
         // Only one segment yet, this cannot be valid. Return an empty region.
         v.clear();
-        return;
     }
     Close(); // Close and sort the cycle
     
@@ -122,7 +121,7 @@ Region Face::MakeRegion(double offx, double offy, double scalex, double scaley,
 }
 
 /*
-  1.4 Convert this face to a region
+  1.4 Convert this face to a ~region~
 
 */
 Region Face::MakeRegion(bool withholes) {
@@ -138,7 +137,7 @@ void Face::Sort() {
 }
 
 /* 
-  1.6 sortSegs sorts a list of segments to be in the correct order of a cycle.
+  1.6 ~sortSegs~ sorts a list of segments to be in the correct order of a cycle.
   A cycle should begin with the lowest-(leftmost)-point and then go counter-
   clockwise.
 
@@ -192,13 +191,17 @@ vector<Seg> Face::sortSegs(vector<Seg> v) {
     ret.push_back(cur);
     while (1) {
         bool found = false;
-        for (unsigned int i = 0; i < v.size(); i++) {
-            if (v[i].s == cur.e) {
-                cur = v[i];
+        std::vector<Seg>::iterator i = v.begin();
+        while (i != v.end()) {
+            if (i->s == cur.e) {
+                cur = *i;
                 ret.push_back(cur);
+                i = v.erase(i);
                 found = true;
                 if (cur.e == startseg.s)
                     break;
+            } else {
+                i++;
             }
         }
         assert(found); // This should never happen on a complete cycle.
@@ -246,7 +249,7 @@ void Face::AddSeg(Seg a) {
  
 */
 void Face::Close() {
-    if (isEmpty())
+    if (v.size() < 2) // Cannot close a face with only one (or even no) segment
         return;
     int i = v.size() - 1;
     if (!(v[i].e == v[0].s)) {
@@ -367,18 +370,19 @@ Face Face::ConvexHull() {
 }
 
 /*
-  1.11 Translate moves all points of a face by the given offsets
- 
+  1.11 Transform modifies all points of this face by the given offsets and
+  scale-factors
+
 */
-void Face::Translate(int offx, int offy) {
+void Face::Transform(Pt off, Pt scale) {
     for (unsigned int i = 0; i < v.size(); i++) {
-        v[i].s.x += offx;
-        v[i].e.x += offx;
-        v[i].s.y += offy;
-        v[i].e.y += offy;
+        v[i].s = (v[i].s+off)*scale;
+        v[i].e = (v[i].e+off)*scale;
+    }
+    for (unsigned int h = 0; h < holes.size(); h++) {
+        holes[h].Transform(off, scale);
     }
 }
-
 /* 
   1.12 The following four functions are used to iterate over the segments of
   a face. Begin() resets the position to the first segment, Next() and Prev()
@@ -750,7 +754,6 @@ void Face::IntegrateHoles() {
 
     for (unsigned int h = 0; h < holes.size(); h++) {
         Face hole = holes[h]; // Integrate one hole after another
-        cerr << "Integrating hole " << h << "\n" << hole.ToString() << "\n";
         if (hole.isEmpty())
             continue;
         unsigned int i = 0, j;
@@ -778,7 +781,6 @@ void Face::IntegrateHoles() {
                 }
                 Seg tmp = v[(i+1)%v.size()];
                 if (leftOf(tmp.s, tmp.e, e) && !intersects) {
-                    cerr << "Using bridge " << se.ToString() << "\n";
                     // No intersection was found, so this is the bridge we use
                     found = true;
                     break;
@@ -811,7 +813,6 @@ void Face::IntegrateHoles() {
         // For the next holes we have to test intersection with the newly
         // created bridge, too.
         allsegs.push_back(Seg(s, e));
-        cerr << "After integrate " << h << ": " << ToString() << "\n";
     }
     
 
@@ -835,7 +836,6 @@ vector<MSegs> Face::Evaporate(bool close) {
     while (reg.v.size() > 3) {
         // Then, repeatedly clip an ear until only a triangle is left
         Face r = reg.ClipEar();
-        cerr << "Reg after clip: \n" << reg.ToString() << "\n";
         // and collapse (or expand) the triangles towards its centroid.
         MSegs s = r.collapse(close, r.GetCentroid());
         s.isevaporating = 1;
@@ -855,6 +855,7 @@ vector<MSegs> Face::Evaporate(bool close) {
 */
 bool Face::Check() {
     bool ret = true;
+    return ret;
     
     if (v.size() == 0) // Accept an empty face
         return true;
@@ -992,7 +993,12 @@ MFaces Face::CreateMFaces(vector<Face> *faces) {
     MFaces ret;
     
     for (unsigned int i = 0; i < faces->size(); i++) {
-        ret.AddMFace((*faces)[i].GetMSegs(false));
+        MFace mf = (*faces)[i].GetMSegs(false);
+        for (unsigned int j = 0; j < (*faces)[i].holes.size(); j++) {
+           mf.AddConcavity((*faces)[i].holes[j].GetMSegs(false));
+        }
+        mf.MergeConcavities();
+        ret.AddMFace(mf);
     }
     
     return ret;
@@ -1002,6 +1008,6 @@ MFaces Face::CreateMFaces(vector<Face> *faces) {
  1.32 isEmpty determines, if this is an empty face without segments.
 
 */
-bool Face::isEmpty() {
-    return v.size() == 0;
+bool Face::isEmpty() const {
+    return v.size() < 3;
 }

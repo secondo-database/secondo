@@ -193,6 +193,9 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
 
     if (needSEvap) { // We need to perform an evaporations-phase
         cerr << "\n==== Evaporations ====\n";
+        Interval<Instant> siv(evaporIv.start, evaporIv.start, true, true);
+        MFaces s = Face::CreateMFaces(sregs);
+        Append(mreg, s.ToListExpr(siv, 0, 1));
         MFaces fs;
         // Reconstruct the borderfaces at the start of the main interpolation ..
         vector<Face> borderfaces = CreateBorderFaces(true);
@@ -233,6 +236,10 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
         // the evaporation-mode-flag set.
         fs = interpolate(&borderdregs, dregs, 0, true, "");
         Append(mreg, fs.ToListExpr(condensIv, 0, 1));
+        
+        Interval<Instant> eiv(condensIv.end, condensIv.end, true, true);
+        MFaces s = Face::CreateMFaces(dregs);
+        Append(mreg, s.ToListExpr(eiv, 0, 1));
         cerr << "==== /Condensations ====\n";
     }
     

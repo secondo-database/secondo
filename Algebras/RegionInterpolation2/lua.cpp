@@ -32,10 +32,6 @@
 static lua_State *L = NULL;
 static void add_custom_functions();
 
-// The set of faces is translated and scaled to the
-// boundary-box (0/0) - (SCALESIZE/SCALESIZE)
-static int SCALESIZE = 1000000;
-
 /*
  2 Helper-functions which make the code below more clear.
  
