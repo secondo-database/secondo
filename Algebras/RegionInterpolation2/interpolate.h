@@ -11,7 +11,7 @@
 
 // Choose the installed Lua-version here
 #define LUA5_1
-#define LUA5_2
+//#define LUA5_2
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA
 #define LUA_FUNCTION(FNAME) int luafunc_ ## FNAME(lua_State *L)
