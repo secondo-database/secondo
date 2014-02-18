@@ -95,7 +95,9 @@ JARS := $(JARS):$(LIBPATH)/grappa1_2.jar
 
 
 
-
+ifdef SECONDO_SOURCE_ENCODING
+ENCODING= -encoding $(SECONDO_SOURCE_ENCODING)
+endif
 
 
 
