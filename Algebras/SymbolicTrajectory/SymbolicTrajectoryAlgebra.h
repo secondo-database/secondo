@@ -112,7 +112,6 @@ class Label : public Attribute {
   static ListExpr Property();
   static const string BasicType() {return "label";}
   static const bool checkType(const ListExpr type);
-  const bool      IsDefined() {return true;}
   void            CopyFrom(const Attribute* right);
   int             Compare(const Attribute* arg) const;
   size_t          Sizeof() const;
@@ -132,10 +131,11 @@ class Labels : public Attribute {
  public:
   Labels() {}
   explicit Labels(const int n, const Label *Lb = 0);
-  explicit Labels(const bool defined);
+  explicit Labels(const bool defined) : Attribute(defined), labels(0) {}
   explicit Labels(vector<Label>* lbs);
   Labels(const Labels& src);
-  ~Labels();
+  
+  ~Labels() {}
 
   Labels& operator=(const Labels& src);
   bool operator==(const Labels& src) const;
@@ -385,10 +385,10 @@ class MLabels : public Attribute {
 
 class Place : public Label {
  public:
-  Place() : Label(), ref(0) {}
+  Place() : Label() {}
   explicit Place(const string& n, const unsigned int r) : Label(n), ref(r) {}
   Place(const Place& rhs) : Label(rhs.GetName()), ref(rhs.GetRef()) {}
-  Place(const bool def) : Label(def) {}
+  Place(const bool def) : Label(def), ref(0) {}
 
   ~Place() {}
 
@@ -396,6 +396,7 @@ class Place : public Label {
   unsigned int GetRef() const {return ref;}
   void SetRef(const unsigned int r) {ref = r;}
   bool operator==(const Place& p) const;
+  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Place);}
@@ -415,6 +416,47 @@ class Place : public Label {
 
  private:
   unsigned int ref;
+};
+
+int ComparePlaces(const void *a, const void *b);
+
+class Places : public Attribute {
+ public:
+  Places() {}
+  Places(const int n) : Attribute(true), places(n) {}
+  Places(const Places& rhs);
+  Places(const bool def) : Attribute(def), places(0) {}
+
+  ~Places() {}
+
+  void Append(const Place &pl);
+  void Destroy();
+  int GetNoPlaces() const;
+  void GetPlace(const int i, Place& result) const;
+  bool IsEmpty() const;
+  void Sort();
+  void Clean() {if (places.Size()) {places.clean();}}
+  bool operator==(const Places& p) const;
+  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(Places);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return Place::BasicType() + "s";}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return 1;}
+  Flob* GetFLOB(const int i) {assert(i == 0); return &places;}
+  size_t Sizeof() const {return sizeof(*this);}
+  int Compare(const Attribute* arg) const;
+  bool Adjacent(const Attribute *arg) const {return false;}
+  Attribute *Clone() const {return new Places(*this);}
+  size_t HashValue() const;
+  virtual void CopyFrom(const Attribute* right) {*this = *((Places*)right);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+
+ private:
+  DbArray<Place> places;
 };
 
 class ExprList {

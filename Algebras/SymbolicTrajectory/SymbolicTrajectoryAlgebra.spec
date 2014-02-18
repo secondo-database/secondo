@@ -1,6 +1,8 @@
 operator tolabel alias TOLABEL pattern op ( _ )
 operator mstringtomlabel alias MSTRINGTOMLABEL pattern op ( _ )
 operator contains alias CONTAINS pattern _ infixop _
+operator name alias NAME pattern op ( _ )
+operator ref alias REF pattern op ( _ )
 operator topattern alias TOPATTERN pattern _ op
 operator toclassifier alias TOCLASSIFIER pattern _ op
 operator matches alias MATCHES pattern _ infixop _

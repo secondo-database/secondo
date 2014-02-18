@@ -992,8 +992,6 @@ Labels::Labels(const int n, const Label *lb) : Attribute(true), labels(n) {
   }
 }
 
-Labels::Labels(const bool defined) : Attribute(defined), labels(0) {}
-
 Labels::Labels(vector<Label> *lbs) : Attribute(true), labels(lbs->size()) {
   for (unsigned int i = 0; i < lbs->size(); i++) {
     Append((*lbs)[i]);
@@ -1004,12 +1002,6 @@ Labels::Labels(const Labels& src):
   Attribute(src.IsDefined()), labels(src.labels.Size()) {
   labels.copyFrom(src.labels);
 }
-
-/*
-\subsection{Destructor}
-
-*/
-Labels::~Labels() {}
 
 /*
 \subsection{Operator ~=~}
@@ -2173,6 +2165,23 @@ GenTC<MLabels> movinglabels;
 /*
 \section{Implementation of class ~Place~}
 
+\subsection{Operator ~==~}
+
+*/
+bool Place::operator==(const Place& p) const {
+  if (!IsDefined() && !p.IsDefined()) { // both undefined
+    return true;
+  }
+  if (IsDefined() != p.IsDefined()) { // one defined, one undefined
+    return false;
+  }
+  if ((GetName() == p.GetName()) && (GetRef() == p.GetRef())) { // equal values
+    return true;
+  }
+  return false; // different values
+}
+
+/*
 \subsection{Function ~CheckKind~}
 
 */
@@ -2245,6 +2254,207 @@ bool Place::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 
 */
 GenTC<Place> place;
+
+/*
+\section{Implementation of class ~Places~}
+
+\subsection{Constructor}
+
+*/
+Places::Places(const Places& rhs) : Attribute(rhs.IsDefined()), 
+                                    places(rhs.GetNoPlaces()) {
+  places.copyFrom(rhs.places);
+}
+
+/*
+\subsection{Function ~Append~}
+
+*/
+void Places::Append(const Place& pl) {
+  places.Append(pl);
+  Place place(pl);
+}
+
+/*
+\subsection{Function ~Destroy~}
+
+*/
+void Places::Destroy() {
+  places.destroy();
+}
+
+/*
+\subsection{Function ~GetNoPlaces~}
+
+*/
+int Places::GetNoPlaces() const {
+  return places.Size();
+}
+
+/*
+\subsection{Function ~GetPlace~}
+
+*/
+void Places::GetPlace(const int i, Place& result) const {
+  assert((0 <= i) && (i < GetNoPlaces()));
+  places.Get(i, result);
+}
+
+/*
+\subsection{Function ~IsEmpty~}
+
+*/
+bool Places::IsEmpty() const {
+  return (GetNoPlaces() == 0);
+}
+
+int ComparePlaces(const void *a, const void *b) {
+  const Place *place1 = (const Place*)a;
+  const Place *place2 = (const Place*)b;
+  return place1->Compare(place2);
+}
+
+/*
+\subsection{Function ~Sort~}
+
+*/
+void Places::Sort() {
+  places.Sort(ComparePlaces);
+}
+
+/*
+\subsection{Operator ~==~}
+
+*/
+bool Places::operator==(const Places& p) const {
+  if (!IsDefined() && !p.IsDefined()) {
+    return true;
+  }
+  if (IsDefined() && p.IsDefined()) {
+    if (GetNoPlaces() == p.GetNoPlaces()) {
+      Place place1(true), place2(true);
+      for (int i = 0; i < GetNoPlaces(); i++) {
+        GetPlace(i, place1);
+        p.GetPlace(i, place2);
+        if (!(place1 == place2)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+bool Places::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, Places::BasicType());
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr Places::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(),
+    "((<string> <int>) (<string> <int>) ...)",
+    "((\"Dortmund\" 1909) (\"Mailand\" 1899))");
+}
+
+/*
+\subsection{Function ~Compare~}
+
+*/
+int Places::Compare(const Attribute* arg) const {
+  if (GetNoPlaces() == ((Places*)arg)->GetNoPlaces()) {
+    Place place1(true), place2(true);
+    for (int i = 0; i < GetNoPlaces(); i++) {
+      GetPlace(i, place1);
+      ((Places*)arg)->GetPlace(i, place2);
+      int comp = place1.Compare(&place2);
+      if (comp != 0) {
+        return comp;
+      }
+    }
+    return 0;
+  }
+  if (GetNoPlaces() > ((Places*)arg)->GetNoPlaces()) {
+    return 1;
+  }
+  return -1;
+}
+
+/*
+\subsection{Function ~HashValue~}
+
+*/
+size_t Places::HashValue() const {
+  if (IsEmpty() || !IsDefined()) {
+    return 0;
+  }
+  size_t result = 1;
+  Place place(true);
+  for (int i = 0; i < GetNoPlaces(); i++) {
+    GetPlace(i, place);
+    result *= place.HashValue();
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+ListExpr Places::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  if (IsEmpty()) {
+    return nl->Empty();
+  }
+  Place place(true);
+  GetPlace(0, place);
+  ListExpr res = nl->OneElemList(place.ToListExpr(nl->Empty()));
+  ListExpr last = res;
+  for (int i = 1; i < GetNoPlaces(); i++) {
+    GetPlace(i, place);
+    last = nl->Append(last, place.ToListExpr(nl->Empty()));
+  }
+  return res;
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+bool Places::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  Clean();
+  if (listutils::isSymbolUndefined(LE)) {
+    SetDefined(false);
+    return true;
+  }
+  SetDefined(true);
+  ListExpr rest = LE;
+  Place place(0);
+  while (!nl->IsEmpty(rest)) {
+    if (!place.ReadFrom(nl->First(rest), nl->Empty())) {
+      SetDefined(false);
+      return false;
+    }
+    Append(place);
+    rest = nl->Rest(rest);
+  }
+  return true;
+}
+
+/*
+\subsection{Type Constructor}
+
+*/
+GenTC<Places> places;
 
 /*
 \section{Operator ~tolabel~}
@@ -2478,6 +2688,87 @@ struct containsInfo : OperatorInfo {
   }
 };
 
+/*
+\section{Operator ~name~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr nameTM(ListExpr args) {
+  if (nl->ListLength(args) != 1) {
+    return listutils::typeError("One argument expected.");
+  }
+  if (Place::checkType(nl->First(args))) {
+    return nl->SymbolAtom(CcString::BasicType());
+  }
+  return NList::typeError("Expecting a place.");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int nameVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  Place *src = static_cast<Place*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcString* res = static_cast<CcString*>(result.addr);
+  res->Set(true, src->GetName());
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct nameInfo : OperatorInfo {
+  nameInfo() {
+    name      = "name";
+    signature = "place -> string";
+    syntax    = "name( _ );";
+    meaning   = "Returns the name from a place object.";
+  }
+};
+
+/*
+\section{Operator ~name~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr refTM(ListExpr args) {
+  if (nl->ListLength(args) != 1) {
+    return listutils::typeError("One argument expected.");
+  }
+  if (Place::checkType(nl->First(args))) {
+    return nl->SymbolAtom(CcInt::BasicType());
+  }
+  return NList::typeError("Expecting a place.");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int refVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  Place *src = static_cast<Place*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcInt* res = static_cast<CcInt*>(result.addr);
+  res->Set(true, src->GetRef());
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct refInfo : OperatorInfo {
+  refInfo() {
+    name      = "ref";
+    signature = "place -> int";
+    syntax    = "ref( _ );";
+    meaning   = "Returns the reference from a place object.";
+  }
+};
 
 /*
 \section{Implementation of class ~Pattern~}
@@ -7489,6 +7780,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     AddTypeConstructor(&movinglabels);
     
     AddTypeConstructor(&place);
+    AddTypeConstructor(&places);
 
     unitlabel.AssociateKind(Kind::DATA());
     movinglabel.AssociateKind(Kind::TEMPORAL());
@@ -7498,6 +7790,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     movinglabels.AssociateKind(Kind::DATA());
     
     place.AssociateKind(Kind::DATA());
+    places.AssociateKind(Kind::DATA());
 
     AddTypeConstructor(&labelsTC);
     AddTypeConstructor(&patternTC);
@@ -7514,6 +7807,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     AddOperator(mstringtomlabelInfo(), mstringtomlabelVM, mstringtomlabelTM);
 
     AddOperator(containsInfo(), containsVM, containsTM);
+    
+    AddOperator(nameInfo(), nameVM, nameTM);
+    
+    AddOperator(refInfo(), refVM, refTM);
 
     ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
                                         the_unitSymbolicVM<Labels, ULabels>, 0};
