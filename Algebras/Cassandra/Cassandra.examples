@@ -1,0 +1,9 @@
+Database : berlintest
+Restore  : NO
+
+Operator : sleep
+Number   : 1
+Signature: stream(T) x int -> stream(T)
+Example  : query Trains feed sleep[100] head[7] count
+Result   : 7
+
