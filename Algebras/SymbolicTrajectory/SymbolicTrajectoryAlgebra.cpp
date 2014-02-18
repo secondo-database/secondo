@@ -2457,6 +2457,89 @@ bool Places::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 GenTC<Places> places;
 
 /*
+\section{Implementation of Class ~IPlace~}
+
+\subsection{Constructors}
+
+*/
+IPlace::IPlace(const Instant& inst, const Place& pl) : Intime<Place>(inst, pl) {
+  SetDefined(inst.IsDefined() && pl.IsDefined());
+}
+
+IPlace::IPlace(const IPlace &rhs) : Intime<Place>(rhs.instant, rhs.value) {
+  SetDefined(rhs.IsDefined());
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr IPlace::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(),
+    "(<instant> (<string> <int>))",
+    "(\"2014-02-18\" (\"Dortmund\" 1909))");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+bool IPlace::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, IPlace::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+ListExpr IPlace::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(instant.ToListExpr(false), 
+                         value.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+bool IPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  if (instant.ReadFrom(nl->First(LE), nl->Empty()) &&
+      value.ReadFrom(nl->Second(LE), nl->Empty())) {
+    SetDefined(instant.IsDefined() && value.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Val~}
+
+*/
+void IPlace::Val(Place& result) const {
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.Set(true, value.GetValue());
+  result.SetRef(value.GetRef());
+}
+
+/*
+\subsection{Type Constructor}
+
+*/
+GenTC<IPlace> iplace;
+
+/*
 \section{Operator ~tolabel~}
 
 \subsection{Type Mapping}
@@ -4644,6 +4727,7 @@ struct finalSymbolicInfo : OperatorInfo {
 
 val: ilabel -> label
 val: ilabels -> labels
+val: iplace -> place
 
 \subsubsection{Type Mapping}
 
@@ -4656,9 +4740,12 @@ ListExpr valSymbolicTM(ListExpr args) {
     if (ILabels::checkType(nl->First(args))) {
       return nl->SymbolAtom(Labels::BasicType());
     }
+    if (IPlace::checkType(nl->First(args))) {
+      return nl->SymbolAtom(Place::BasicType());
+    }
   }
   return listutils::typeError("Correct signature:  ilabel -> label,   "
-                              "ilabels -> labels");
+                              "ilabels -> labels,   iplace -> place");
 }
 
 /*
@@ -4668,6 +4755,7 @@ ListExpr valSymbolicTM(ListExpr args) {
 int valInstSymbolicSelect(ListExpr args) {
   if (ILabel::checkType(nl->First(args))) return 0;
   if (ILabels::checkType(nl->First(args))) return 1;
+  if (IPlace::checkType(nl->First(args))) return 2;
   return -1;
 }
 
@@ -4694,8 +4782,9 @@ struct valSymbolicInfo : OperatorInfo {
     name      = "val";
     signature = "ilabel -> label";
     appendSignature("ilabels -> labels");
+    appendSignature("iplace -> place");
     syntax    = "val ( _ )";
-    meaning   = "Returns the value of the ilabel(s).";
+    meaning   = "Returns the value of the ilabel(s) or the iplace.";
   }
 };
 
@@ -4704,6 +4793,7 @@ struct valSymbolicInfo : OperatorInfo {
 
 inst: ilabel -> instant
 inst: ilabels -> instant
+inst: iplace -> instant
 
 \subsubsection{Type Mapping}
 
@@ -4711,12 +4801,13 @@ inst: ilabels -> instant
 ListExpr instSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 1)) {
     if (ILabel::checkType(nl->First(args)) || 
-        ILabels::checkType(nl->First(args))) {
+        ILabels::checkType(nl->First(args)) ||
+        IPlace::checkType(nl->First(args))) {
       return nl->SymbolAtom(Instant::BasicType());
     }
   }
   return listutils::typeError("Correct signature:  ilabel -> instant,   "
-                              "ilabels -> instant");
+                              "ilabels -> instant,   iplace -> instant");
 }
 
 /*
@@ -4747,8 +4838,9 @@ struct instSymbolicInfo : OperatorInfo {
     name      = "inst";
     signature = "ilabel -> instant";
     appendSignature("ilabels -> instant");
+    appendSignature("iplace -> instant");
     syntax    = "inst ( _ )";
-    meaning   = "Returns the instant of the ilabel(s).";
+    meaning   = "Returns the instant of the ilabel(s) or the iplace.";
   }
 };
 
@@ -7774,13 +7866,13 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     AddTypeConstructor(&intimelabel);
     AddTypeConstructor(&unitlabel);
     AddTypeConstructor(&movinglabel);
-    
     AddTypeConstructor(&intimelabels);
     AddTypeConstructor(&unitlabels);
     AddTypeConstructor(&movinglabels);
     
     AddTypeConstructor(&place);
     AddTypeConstructor(&places);
+    AddTypeConstructor(&iplace);
 
     unitlabel.AssociateKind(Kind::DATA());
     movinglabel.AssociateKind(Kind::TEMPORAL());
@@ -7791,6 +7883,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     
     place.AssociateKind(Kind::DATA());
     places.AssociateKind(Kind::DATA());
+    iplace.AssociateKind(Kind::DATA());
 
     AddTypeConstructor(&labelsTC);
     AddTypeConstructor(&patternTC);
@@ -7860,12 +7953,14 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                 initialFinalSymbolicSelect, initialFinalSymbolicTM);
     
     ValueMapping valSymbolicVMs[] = {valSymbolicVM<ILabel, Label>,
-                                     valSymbolicVM<ILabels, Labels>, 0};
+                                     valSymbolicVM<ILabels, Labels>,
+                                     valSymbolicVM<IPlace, Place>, 0};
     AddOperator(valSymbolicInfo(), valSymbolicVMs, valInstSymbolicSelect,
                 valSymbolicTM);
     
     ValueMapping instSymbolicVMs[] = {instSymbolicVM<ILabel>,
-                                      instSymbolicVM<ILabels>, 0};
+                                      instSymbolicVM<ILabels>,
+                                      instSymbolicVM<IPlace>, 0};
     AddOperator(instSymbolicInfo(), instSymbolicVMs, valInstSymbolicSelect,
                 instSymbolicTM);
     
