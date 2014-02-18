@@ -112,6 +112,8 @@ ListExpr SleepTypeMap( ListExpr args )
 /*
 2.8.2 Generic Cost Estimation Function
 
+This class will forward the progess of the predecessor
+
 */
 class ForwardCostEstimation : public CostEstimation {
 
@@ -131,7 +133,7 @@ public:
     if ( qp->RequestProgress(sonOfFeed, &p1) ) {
       pRes->Card = p1.Card;
       pRes->CopySizes(p1);
-      pRes->Time = p1.Time;
+      pRes->Time = p1.Time * getDelay(localInfo);
       pRes->Progress = p1.Progress;
       pRes->BTime = p1.BTime;
       pRes->BProgress = p1.BProgress;
@@ -144,6 +146,8 @@ public:
     return CANCEL;
   }
   
+  // Template Method, can be used in subclasses
+  virtual int getDelay(void* localInfo) { return 1; }
   
 /*
 2.8.2 init our class
@@ -154,14 +158,6 @@ public:
   }
 };
 
-CostEstimation* SleepCostEstimationFunc() {
-  return new ForwardCostEstimation();
-}
-
-/*
-2.8.3 Value mapping function of operator ~sleep~
-
-*/
 struct SleepLocalInfo
 {
   SleepLocalInfo( const int numDelay = 0 ):
@@ -171,6 +167,38 @@ struct SleepLocalInfo
   int delay; // in ms
 };
 
+/*
+2.8.2 Specialized Cost Estimation function for operator ~sleep~
+
+Multiplies the delay with the estimated time of 
+the predecessor
+
+*/
+class SleepCostEstimation : public ForwardCostEstimation {
+  
+public:
+  
+  virtual int getDelay(void* localInfo) { 
+    SleepLocalInfo* li = (SleepLocalInfo*) localInfo;
+    
+    if(li == NULL) {
+      return 1;
+    }
+    
+    // Convert to ms
+    return li -> delay;     
+  }
+};
+
+CostEstimation* SleepCostEstimationFunc() {
+  return new SleepCostEstimation();
+}
+
+
+/*
+2.8.3 Value mapping function of operator ~sleep~
+
+*/
 int Sleep(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   SleepLocalInfo *sli; 
