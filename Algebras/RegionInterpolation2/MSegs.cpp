@@ -41,6 +41,9 @@ void MSegs::AddMSeg(MSeg m) {
 bool MSegs::MergeConcavity(MSegs c) {
     bool fastPath = true;
     bool success = false;
+    
+    cerr << "Trying to merge\n" << this->ToString() << " with\n" <<
+            c.ToString() << endl;
 
     // Determine if a fast path can be used. This is possible if no
     // MSeg-object was merged, so the pointlists only include the endpoints of
@@ -75,7 +78,6 @@ bool MSegs::MergeConcavity(MSegs c) {
             }
         }
     } else {
-
         // We cannot use the Fast path, so we have to try to integrate each
         // segment of the parent with each segment of the cycle to merge
         std::vector<MSeg>::iterator i = msegs.begin();
@@ -102,7 +104,9 @@ bool MSegs::MergeConcavity(MSegs c) {
                 j++;
             }
             if (!integrated) // If we integrated a segment we do not need to
-                i++;         // advance, since we erased the parent-segment
+                i++;         // advance, since we erased this segment
+            else
+                i = msegs.begin(); // Since we modified the iterators, reset
         }
     }
     
@@ -203,13 +207,21 @@ bool MSegs::intersects(const MSegs& a, bool matchIdent, bool matchSegs) const {
 Face MSegs::CreateBorderFace(bool initial) {
     vector<Seg> ret;
     
+    // Use the original parent-face
+    Face f = initial ? sreg : dreg;
+    
+    // but construct the segments new, since this may have changed due to
+    // intersection problems.
     for (unsigned int i = 0; i < msegs.size(); i++) {
         vector<Pt> points = initial ? msegs[i].ip : msegs[i].fp;
         for (unsigned int j = 0; j < points.size() - 1; j++) {
             ret.push_back(Seg(points[j], points[j+1]));
         }
     }
-    return Face(ret);
+    f.v = ret;
+    f.Sort();
+    
+    return f;
 }
 
 

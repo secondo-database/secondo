@@ -51,7 +51,7 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
     if (!evap)
         matches = matchFaces(sregs, dregs, depth, args);
     else
-        matches = matchFaces(sregs, dregs, depth, "LowerLeft");
+        matches = matchFaces(sregs, dregs, depth, "lowerleft");
     
  
     for (unsigned int i = 0; i < matches.size(); i++) {
@@ -140,21 +140,16 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
     for (int i = 0; i < (int) children.faces.size(); i++) {
         MSegs *s1 = &children.faces[i].face;
         for (int j = 0; j <= i; j++) {
-            cerr << "Check intersection between " << i << " and " << j << "\n";
             MSegs *s2 = (j == 0) ? &parent.face : &children.faces[j - 1].face;
 
             if (s1->intersects(*s2, false, false)) {
-                cerr << "Found intersection between " << s1->ToString() <<
-                     " and " << s2->ToString() << "\n";
                 // We have found two intersecting moving faces.
                 pair<MSegs, MSegs> ss;
                 if (!s1->iscollapsed && !evap) {
                     // If this moving face is not collapsed and we do not
                     // evaporate then break the connection and collapse/expand 
                     // the related faces.
-                    cerr << "Kill start\n";
                     ss = s1->kill(); // Create the pair of MSegs
-                    cerr << "Kill end\n";
                     // Remove the original object from the list
                     children.faces.erase(children.faces.begin()+i);
                 } else if (!s2->iscollapsed && (s2 != &parent.face)

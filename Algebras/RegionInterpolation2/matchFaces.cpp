@@ -7,7 +7,8 @@
  vector<pair<Face *, Face *> > fn(vector<Face> *src, vector<Face> *dst,
                                   int depth, string args);
  
-  
+ and must be registered with a name in the struct matchFacesStrategies below.
+
 */
 
 #include "interpolate.h"
@@ -307,11 +308,11 @@ static struct {
     string name;
     matchFaces_t fn;
 } matchFacesStrategies[] = {
-    { "Distance", matchFacesDistance }, //The first is also the default strategy
-    { "Null", matchFacesNull },
-    { "Simple", matchFacesSimple },
-    { "LowerLeft", matchFacesLowerLeft },
-    { "Overlap", matchFacesOverlap }
+    { "distance", matchFacesDistance }, //The first is also the default strategy
+    { "null", matchFacesNull },
+    { "simple", matchFacesSimple },
+    { "lowerleft", matchFacesLowerLeft },
+    { "overlap", matchFacesOverlap }
 };
 
 /*

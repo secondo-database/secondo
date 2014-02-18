@@ -206,7 +206,8 @@ MSeg MSeg::divide(double start, double end) {
  1.9 Merge tries to merge another MSeg-object into this one.
  This is only possible if the initial and final segments are both collinear
  (collinearity with a degenerated segment is trivially given) and the segments
- are adjacent.
+ are adjacent. We only check, if it can be merged with the last segment
+ inserted since RotatingPlane pushes them in the correct order.
  The object also remembers the original endpoints to be able to split this
  object again, for example to integrate another cycle
  (MergeConcavity uses that)

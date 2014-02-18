@@ -25,8 +25,8 @@ function matchFacesSpecial (src, dst, depth)
 	return matchFacesOverlap(src, dst, depth)
     else
 	return {
---	{ src = src[1] , dst = dst[1] }
---	{ src = src[2] , dst = dst[1] }
+	{ src = src[1] , dst = dst[2] },
+	{ src = src[2] , dst = dst[1] }
 	}
     end
 
