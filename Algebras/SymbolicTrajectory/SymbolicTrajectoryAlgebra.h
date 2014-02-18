@@ -459,6 +459,35 @@ class Places : public Attribute {
   DbArray<Place> places;
 };
 
+class IPlace : public Intime<Place> {
+ public:
+  IPlace() {}
+  explicit IPlace(const Instant& inst, const Place& pl);
+  explicit IPlace(const IPlace& rhs);
+  IPlace(const bool def) : Intime<Place>(def) {}
+
+  ~IPlace() {}
+
+  string GetName() const {return value.GetName();}
+  unsigned int GetRef() const {return value.GetRef();}
+  void SetRef(const unsigned int r) {value.SetRef(r);}
+  bool operator==(const IPlace& rhs) const;
+  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(IPlace);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "iplace";}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return 0;}
+  Flob* GetFLOB(const int i) {return 0;}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  
+  void Val(Place& result) const;
+};
+
 class ExprList {
  public: 
   vector<string> exprs;
