@@ -1866,6 +1866,14 @@ string clusterInfo::getIP(size_t loc, bool round /* = false*/)
   return (*dataServers)[loc].first;
 }
 
+int clusterInfo::getPort(size_t loc, bool round /* = false*/)
+{
+  if ( 0 == loc)
+    loc = masterNode;
+  loc = getInterIndex(loc, true, round);
+  return (*dataServers)[loc].second.second;
+}
+
 size_t clusterInfo::getInterIndex(
     size_t loc, bool includeMaster, bool round){
   assert(dataServers->size() > 1);
@@ -6220,7 +6228,7 @@ bool FetchFlobLocalInfo::sendSheet(FlobSheet* fs)
 }
 
 
-void* FetchFlobLocalInfo::sendSheetThread(void* ptr)
+void* FetchFlobLocalInfo::sendSheetThread1(void* ptr)
 {
   FFLI_Thread* ft = (FFLI_Thread*)ptr;
   FetchFlobLocalInfo* ffli = ft->ffli;
@@ -6303,6 +6311,115 @@ TargetPath :  string
 
   return NULL;
 }
+
+void* FetchFlobLocalInfo::sendSheetThread(void* ptr)
+{
+
+  FFLI_Thread* ft = (FFLI_Thread*)ptr;
+  FetchFlobLocalInfo* ffli = ft->ffli;
+  FlobSheet* fs = ft->sheet;
+  int token = ft->token;
+  int dest = fs->getDest();
+
+  //start a thread to fetch the flob file.
+  string localSheetPath = fs->getSheetPath();
+  string sheetName = localSheetPath.substr(
+      localSheetPath.find_last_of("/") + 1);
+  string resultFlobFilePath = fs->getResultFile();
+  string resultFlobFileName =
+      resultFlobFilePath.substr(resultFlobFilePath.find_last_of("/") + 1);
+  int source = fs->getSource();
+  int local = ffli->getLocalDS();
+
+  //Use a Secondo query to get the result flob file
+  //First create a temporal config file and the temp db folder
+  string config = string(getenv("SECONDO_CONFIG"));
+  string localConfig = getLocalFilePath("", "", "", false);
+  string localSecHome = localConfig;
+  FileSystem::AppendItem(localSecHome, "tmpSecdb");
+  FileSystem::AppendItem(localConfig, "config.ini");
+  if (!FileSystem::FileOrFolderExists(localConfig)){
+    FileSystem::Copy_File(config, localConfig);
+    if (!SmiProfile::SetParameter("Environment",
+        "SecondoHome", localSecHome, localConfig)){
+      cerr << "Change the Local Config Environment:SecondoHome fails. " << endl;
+      return NULL;
+    }
+  }
+  string secondoHome = SmiProfile::GetParameter( "Environment",
+      "SecondoHome","", localConfig);
+  if (secondoHome.compare(localSecHome) != 0){
+    cerr << "Set the temporal SecondoHome fails" << endl;
+    return NULL;
+  }
+  if (!FileSystem::FileOrFolderExists(localSecHome)){
+    FileSystem::CreateFolder(localSecHome);
+  }
+
+/*
+Instead of creating a CS SecondoInterface within the operator,
+I have to use an external program askFlob, which is kept within the msec\/bin,
+to process the genFlobResult query since it is difficult to create the interface
+based on the CS implementation.
+
+The askFlob program asks the following parameters:
+
+----
+  * host
+
+  * port
+
+  * localConfig
+
+  * dbName
+
+  * source
+
+  * sheetFileName
+
+  * ResultFileName
+----
+
+*/
+  string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+  string host = ffli->getIP(source);
+  string port = int2string(ffli->getPort(source));
+  string app = ffli->getMSecPath(local, false);
+  FileSystem::AppendItem(app, "bin/askFlob");
+  string command = app + " " + host + " " + port
+    + " " + localConfig + " " + dbname
+    + " " + int2string(dest)
+    + " " + sheetName + " " +  resultFlobFileName;
+//  cerr << command << endl;
+
+  int atimes = MAX_COPYTIMES;
+  int rc;
+  while (atimes-- > 0){
+    rc = system(command.c_str());
+    if (rc == 0){
+      // Delete the sheet file after the result Flob file is prepared,
+      // in case the sheet is sent to the local computer.
+      if (FileSystem::FileOrFolderExists(localSheetPath)){
+        FileSystem::DeleteFileOrFolder(localSheetPath);
+      }
+      break;
+    } else {
+      WinUnix::sleep(1);
+    }
+  }
+  if (atimes == 0){
+    cerr << "Warning!! Processing command: " << command << " fails" << endl;
+  }
+
+  // after getting all result flob files
+  pthread_mutex_lock(&FFLI_mutex);
+  ffli->fetching2prepared(fs);
+  ffli->tokenPass[token] = false;
+  pthread_mutex_unlock(&FFLI_mutex);
+
+  return NULL;
+}
+
 
 /*
 Remove the useless (unrequired) Flob attribute

@@ -378,6 +378,8 @@ Get the remote mini-Secondo path
 
   string getIP(size_t loc, bool round = false);
 
+  int getPort(size_t loc, bool round = false);
+
   inline int getLocalNode(){
     if (localNode < 0)
       localNode = searchLocalNode();
@@ -1218,6 +1220,10 @@ public:
     return ci->getIP(dest);
   }
 
+  inline int getPort(int dest) {
+    return ci->getPort(dest);
+  }
+
   inline string getMSecPath(int dest, bool appendIP = true){
     return ci->getMSECPath(dest, true, false, appendIP);
   }
@@ -1293,6 +1299,7 @@ In order to quickly find whether the asked flob file is prepared.
   bool tokenPass[PipeWidth];
   pthread_t threadID[PipeWidth];
   static pthread_mutex_t FFLI_mutex;
+  static void* sendSheetThread1(void* ptr);
   static void* sendSheetThread(void* ptr);
   bool sendSheet(FlobSheet* fs);
 };
