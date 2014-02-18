@@ -251,24 +251,23 @@ public abstract class DocumentFormatter
 	 */
 	public boolean hasTemplates()
 	{
-		return (this.templateBody==null || this.templateBody.isEmpty()
+		return !(this.templateBody==null || this.templateBody.isEmpty()
 				|| this.templateHead==null || this.templateHead.isEmpty()
 				|| this.templateTail==null || this.templateTail.isEmpty());
 	}
 	
 	/**
-	 * Returns TRUE if load profile all necessary information
-	 * for constructing a valid formatter.
+	 * Initializes formatter.
 	 */
 	public void initialize(String pAliases, String pQuery, String pOutputDirectory, String pScript,  
 						   String pTemplateHead, String pTemplateBody, String pTemplateTail)
 	throws Exception
 	{
 		StringBuilder errorMessage = new StringBuilder();
+		
 		if (pQuery==null || pQuery.isEmpty())
 		{
 			errorMessage.append("Please specify query that fetches the document relation. \n");
-			Reporter.showError(errorMessage.toString());
 		}
 		if (pOutputDirectory==null || pOutputDirectory.isEmpty())
 		{
@@ -373,27 +372,18 @@ public abstract class DocumentFormatter
 		return result;
 	}
 	
-	/*
-	public void setType(String pFormatType){ this.type = pFormatType; }
-	public void setQuery(String pFormatQuery){ this.query = pFormatQuery; }
-	public void setScript(String pFormatScript){ this.script = pFormatScript; }
-	public void setTemplateBody(String pFormatTemplate){ this.templateBody = pFormatTemplate;	}
-	public void setTemplateHead(String pFormatTemplate){ this.templateHead = pFormatTemplate;	}
-	public void setTemplateTail(String pFormatTemplate){ this.templateTail = pFormatTemplate;	}
-	 
-	public void setAliases(String pRelationAliases)
-	{ 
-		this.aliases = pRelationAliases;
-		this.aliasMap = this.getAliasMap();
-	}	
-	public void setOutputDirectory(String pOutputDirectory)
-	{
-		this.outputDirectory = pOutputDirectory;
- 		if (!this.outputDirectory.endsWith("/"))
-		{
-			this.outputDirectory += "/";
-		}
-	}
-	*/
 	
+	public String toString()
+	{
+		StringBuffer sb = new StringBuffer("[DocumentFormatter]");
+		sb.append(" Type=").append(this.type);
+		sb.append(", Script=").append(this.script);
+		sb.append(", TemplateHead=").append(this.templateHead);
+		sb.append(", TemplateBody=").append(this.templateBody);
+		sb.append(", TemplateTail=").append(this.templateTail);
+		sb.append(", OutputDir=").append(this.outputDirectory);
+		sb.append(", Aliases=").append(this.aliasMap.keySet());
+		
+		return sb.toString();
+	}
 } 

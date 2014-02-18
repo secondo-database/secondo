@@ -1085,9 +1085,11 @@ public class UpdateViewerController implements ActionListener, MouseListener
 								 this.loadProfile.getFormatQuery(), 
 								 this.loadProfile.getOutputDirectory(),
 								 this.loadProfile.getFormatScript(),
-								 this.loadProfile.getFormatTemplateBody(),
 								 this.loadProfile.getFormatTemplateHead(),
+								 this.loadProfile.getFormatTemplateBody(),
 								 this.loadProfile.getFormatTemplateTail());
+			
+			Reporter.debug("UpdateViewerController.processCommandFormat: initialized " + formatter.toString());
 			
 			if (!formatter.hasTemplates())
 			{

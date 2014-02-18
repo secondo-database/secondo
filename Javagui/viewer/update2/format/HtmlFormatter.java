@@ -147,7 +147,7 @@ public class HtmlFormatter extends DocumentFormatter
 		Reporter.debug("HtmlFormatter.format: relation load time (millis): " + millis);
 		
 		// check template and create default template if necessary
-		if (this.hasTemplates())
+		if (!this.hasTemplates())
 		{
 			this.createDefaultTemplate(relation);
 		}
