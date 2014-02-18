@@ -166,7 +166,7 @@ bool SmiProfile::SetParameter ( const string& sectionName,
     tmp = tmpFile;
     ofstream outf( tmp.c_str() );
 #endif
-    outf.open( tmp.c_str() );
+//    outf.open( tmp.c_str() );
     if ( outf )
     {
       while( getline( inf, line ) )
