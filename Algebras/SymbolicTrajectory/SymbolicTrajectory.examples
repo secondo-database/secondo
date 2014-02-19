@@ -27,9 +27,21 @@ Result   : TRUE
 
 Operator : contains
 Number   : 1
-Signature: labels x string -> bool
-Example  : query [const labels value ("Hummels" "Reus")] contains "Reus"
+Signature: labels x label -> bool
+Example  : query [const labels value ("Hummels" "Reus")] contains tolabel("Reus")
 Result   : TRUE
+
+Operator : contains
+Number   : 2
+Signature: places x place -> bool
+Example  : query [const places value (("Mkhitaryan" 10) ("Jojic" 14))] contains toplace("Reus", 11)
+Result   : FALSE
+
+Operator : toplace
+Number   : 1
+Signature: string x int -> place
+Example  : query toplace("Reus", 11)
+Result   : (place ("Reus" 11))
 
 Operator : name
 Number   : 1
@@ -207,7 +219,7 @@ Result   : TRUE
 Operator : filtermatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
-Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * () // X.labels contains "Brackel"'] count
+Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * () // X.labels contains tolabel("Brackel")'] count
 Result   : 1
 
 Operator : indexmatches
