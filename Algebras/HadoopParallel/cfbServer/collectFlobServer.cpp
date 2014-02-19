@@ -44,12 +44,13 @@ limited number of threads.
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <signal.h>
+#include <algorithm>
 
 #include "Profiles.h"
 #include <map>
 #include <queue>
 #include <set>
-
 
 using namespace std;
 
@@ -81,6 +82,7 @@ struct classCompPair
 
 void* ReceiveRequest(void*);
 void* ProcessRequest(void*);
+void* TraverseRequest(void*);
 bool collectFlob(string request);
 
 
@@ -89,6 +91,7 @@ queue<pair<string, int*> > requests;
 pthread_mutex_t CFBS_mutex;
 const size_t PipeWidth = 1;
 bool tokenPass[PipeWidth];
+pthread_t threadId[PipeWidth];
 
 class Prcv_Thread{
 public:
@@ -120,8 +123,7 @@ int main(){
   int* csock;
   sockaddr_in sadr;
 
-  pthread_t recvTID = 0;
-  pthread_t threadId[PipeWidth];
+  pthread_t recvTID = 0, trvsTID = 0;
 
   memset(threadId, 0, sizeof(pthread_t)*PipeWidth);
 
@@ -161,24 +163,27 @@ int main(){
 
   addr_size = sizeof(sockaddr_in);
 
+  pthread_create(&trvsTID, 0, &TraverseRequest, 0);
+  pthread_detach(trvsTID);
+
   while(true){
     //Process all received requests first
-    if (!requests.empty()){
-      for (size_t t = 0; t < PipeWidth; t++){
-        if (tokenPass[t] || pthread_kill(threadId[t], 0))
-        {
-          pair<string, int*> r = requests.front();
-          tokenPass[t] = true;
-          Prcv_Thread* pt = new Prcv_Thread(r, t);
-          pthread_create(&threadId[t], 0, &ProcessRequest, (void*)pt);
-          requests.pop();
-        }
-
-        if (requests.empty()){
-          break;
-        }
-      }
-    }
+//    if (!requests.empty()){
+//      for (size_t t = 0; t < PipeWidth; t++){
+//        if (tokenPass[t] || pthread_kill(threadId[t], 0))
+//        {
+//          pair<string, int*> r = requests.front();
+//          tokenPass[t] = true;
+//          Prcv_Thread* pt = new Prcv_Thread(r, t);
+//          pthread_create(&threadId[t], 0, &ProcessRequest, (void*)pt);
+//          requests.pop();
+//        }
+//
+//        if (requests.empty()){
+//          break;
+//        }
+//      }
+//    }
 
     csock = (int*)malloc(sizeof(int));
     if((*csock = accept(hsock, (sockaddr*)&sadr, &addr_size))!= -1){
@@ -217,6 +222,32 @@ void* ReceiveRequest(void* lp)
   pthread_mutex_unlock(&CFBS_mutex);
 
   return NULL;
+}
+
+void* TraverseRequest(void* ptr)
+{
+  while(true)
+  {
+    if (!requests.empty()){
+      for (size_t t = 0; t < PipeWidth; t++){
+        if (tokenPass[t] || pthread_kill(threadId[t], 0))
+        {
+          pair<string, int*> r = requests.front();
+          tokenPass[t] = true;
+          Prcv_Thread* pt = new Prcv_Thread(r, t);
+          pthread_create(&threadId[t], 0, &ProcessRequest, (void*)pt);
+
+          pthread_mutex_lock(&CFBS_mutex);
+          requests.pop();
+          pthread_mutex_unlock(&CFBS_mutex);
+        }
+
+        if (requests.empty()){
+          break;
+        }
+      }
+    }
+  }
 }
 
 void* ProcessRequest(void* ptr)
