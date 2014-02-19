@@ -16,9 +16,7 @@ ifndef $(BERKELEY_DB_LIB)
 endif
 
 .PHONY: all
-all: Config.ini app$(EXEEXT)
-
-
+all: app$(EXEEXT)
 
 
 LDFLAGS:=-L$(SECONDO_BUILD_DIR)/api_cpp/cs/lib/ -lsecondo    -lfl -ly -lstdc++ 
@@ -35,21 +33,14 @@ endif
 
 LDFLAGS += -lpthread
 
-Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
-	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
-	sed -i -e "s#SecondoHome=.*#SecondoHome=$$PWD/nltemp#g" Config.ini
-
-
 app$(EXEEXT): askFlob.o
 	$(CPPC) -o askFlob$(EXEEXT) askFlob.o  $(LDFLAGS)
-	rm -rf nltemp
-	mkdir nltemp
-
+	cp askFlob$(EXEEXT) $(SECONDO_BUILD_DIR)/bin
 
 askFlob.o: askFlob.cpp
 	$(CPPC) -c -o askFlob.o $(CCFLAGS) askFlob.cpp -I../include -I$(BDBINCLUDE) 
 
 .PHONY:clean
 clean:
-	rm -f Config.ini askFlob$(EXEEXT) askFlob.o
-	rm -rf nltemp
+	rm -f askFlob$(EXEEXT) askFlob.o
+

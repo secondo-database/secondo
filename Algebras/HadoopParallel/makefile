@@ -34,7 +34,14 @@ CCFLAGS += $(ALG_INC_DIRS)
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: allcpp askflob
+
+.PHONY: allcpp
+allcpp: $(OBJECTS) $(LIBOBJ)
+
+.PHONY: askflob
+askflob:
+	make -f makeafb all
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -49,3 +56,4 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	$(MAKE) -f makeafb clean

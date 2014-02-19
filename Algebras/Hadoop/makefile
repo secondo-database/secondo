@@ -40,7 +40,7 @@ CCFLAGS += $(ALG_INC_DIRS)
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: allcpp alljava allflob
+all: allcpp alljava
 
 .PHONY: alljava
 alljava:
