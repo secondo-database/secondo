@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -48,21 +49,66 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
    
-   int socketfd;
-   int port;
-   char buffer[255];
+   int socketfd;        // Our socket
+   int port;            // Port to connect to
+   string buffer;       // Buffer for writing
+   
+   int lines;           // Lines to send
+   int delay;           // Delay in ms
+   int columns;         // Number of columns
+   int sizePerColumn;   // Size per column
    
    struct hostent *server;
    struct sockaddr_in server_addr;
 
-   if(argc != 3) {
-      cerr << "Usage: " << argv[0] << " <hostname> <port>" << endl;
+   // Allowed chars to send
+   static const char charArray[] = 
+      "0123456789"
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijlkmnopqrstuvwxyz";
+   
+   if(argc != 7) {
+      cerr << "Usage: " << argv[0] << " <hostname> <port> <lines> "
+               "<delay> <columns> <size per column>" << endl;
+      cerr << endl;
+      cerr << "Where <hostname> is a hostname to connect to" << endl;
+      cerr << "<port> is the port to connect to" << endl;
+      cerr << "<lines> is the numer of lines to send" << endl;
+      cerr << "<delay> is the pause (in ms) between two lines " << endl;
+      cerr << "<columns> is the number of columns to generate" << endl;
+      cerr << "<size per column> is the size per column" << endl;
+      cerr << endl;
+      cerr << "Example: " << argv[0] << " 127.0.0.1 10000 10 4 10" << endl;
       return -1;
    }
+   
+   // Parameter
+   lines = atoi(argv[3]);
+   delay = atoi(argv[4]);
+   columns = atoi(argv[5]);
+   sizePerColumn = atoi(argv[6]);
  
+   // Initalize Rand
+   srand (time(NULL));
+  
    // Prepare buffer
-   memset(buffer, '0', sizeof(buffer));
-   strcpy(buffer,"Data;\"Data:Data\"\n");
+   for(int i = 0; i < columns; i++) {
+     
+     if(i != 0) {
+       buffer.append(";");
+     }
+     
+     for(int charNum = 0; charNum < sizePerColumn; charNum++) {
+       char aChar = charArray[rand() % (sizeof(charArray) - 1)];
+       buffer.push_back(aChar);
+     }
+     
+   }
+   
+   buffer.append("\n");
+   
+   cout << "The size of the buffer is " << buffer.length() << endl;
+   cout << "The buffer contains: " << buffer << endl;
    
    // Create socket
    port = atoi(argv[2]);
@@ -73,6 +119,7 @@ int main(int argc, char* argv[]) {
       return -1;
    }
    
+   // Resolve hostname
    server = gethostbyname(argv[1]);
    
    if(server == NULL) {
@@ -80,16 +127,14 @@ int main(int argc, char* argv[]) {
       return -1;
    }
    
+   // Connect
    memset(&server_addr, 0, sizeof(server_addr));
    server_addr.sin_family = AF_INET;
    server_addr.sin_port = htons(port);
    
    server_addr.sin_addr.s_addr = 
      ((struct in_addr *)server->h_addr_list[0])->s_addr;
-
-   cout << server_addr.sin_addr.s_addr << " / " 
-        << server -> h_length << endl;
-   
+  
    if(connect(socketfd, (struct sockaddr*) &server_addr, 
          sizeof(struct sockaddr)) < 0) {
 
@@ -97,11 +142,24 @@ int main(int argc, char* argv[]) {
       return -1;
    }
  
-   // Write data to server
-   for(int i = 0; i < 10; i++) {
-      write(socketfd, buffer, strlen(buffer));
-      usleep(1000000);
+   // Calculate progess (i)
+   cout << "Writing: ";
+   int fifePercents = max(((int) ((lines / 100.0) * 5.0)), 1);
+   
+   // Write lines to server
+   for(int i = 0; i < lines; i++) {
+      write(socketfd, buffer.c_str(), buffer.length());
+   
+      // Calculate progess (ii)
+      if(i % fifePercents == 0) {
+         cout << ".";
+         cout << flush;
+      }
+      
+      usleep(delay * 1000);
    }
+   
+   cout << endl;
    
    // Send EOT (End of Transmission)
    write(socketfd, "\004", sizeof(char));
