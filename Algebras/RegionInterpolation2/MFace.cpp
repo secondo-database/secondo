@@ -21,7 +21,7 @@ MFace::MFace(MSegs face) : face(face),
 /*
  1.2 SortCycle
 
- Sort the Moving Segments according to their position in the cycle and do
+ Sort the Moving Segments according to their position in the cycle and perform
  several sanity-checks.
  
 */
@@ -79,7 +79,62 @@ bool MFace::SortCycle() {
 }
 
 /*
-   1.3 Check
+ 1.3 SortAndFixCycle
+
+ Sort the Moving Segments according to their position in the cycle and do
+ several sanity-checks.
+ 
+*/
+bool MFace::SortAndFixCycle() {
+    if (face.msegs.size() < 3)
+        return true;
+    
+    bool ret = SortCycle();
+
+    std::vector<MSeg>::iterator cur, prev;
+    cur = face.msegs.begin();
+    prev = face.msegs.begin();
+    while (cur != face.msegs.end()) {
+        if (cur->ie == prev->is) {
+            while (prev != cur) {
+                prev->is = cur->ie;
+                prev->ie = cur->ie;
+                prev++;
+            }
+            cur->is = cur->ie;
+        } else if (!(cur->is == cur->ie))
+            prev = cur;
+        cur++;
+    }
+    
+    cur = face.msegs.begin();
+    prev = face.msegs.begin();
+    while (cur != face.msegs.end()) {
+        if (cur->fe == prev->fs) {
+            while (prev != cur) {
+                prev->fs = cur->fe;
+                prev->fe = cur->fe;
+                prev++;
+            }
+            cur->fs = cur->fe;
+        } else if (!(cur->fs == cur->fe))
+            prev = cur;
+        cur++;
+    }
+    
+    cur = face.msegs.begin();
+    while (cur != face.msegs.end()) {
+        if (cur->is == cur->ie && cur->fs == cur->fe)
+            cur = face.msegs.erase(cur);
+        else
+            cur++;
+    }
+    
+    return ret;
+}
+
+/*
+   1.4 Check
    Performs several sanity-checks on this object
 
 */
@@ -145,7 +200,7 @@ bool MFace::Check() {
 }
 
 /*
-   1.4 AddConcavity
+   1.5 AddConcavity
  
    Add a new concavity or hole to this MFace-Object.
    The cycle will be integrated as a Concavity or hole when the function
@@ -174,9 +229,14 @@ void MFace::MergeConcavities() {
        if (cvs[i].msegs.size() < 3) // Ignore invalid or degenerated faces
             continue;
         SortCycle();
+        MFace f(cvs[i]);
+        cerr << endl << "Face: " << endl;
+        PrintMRegionListExpr();
+        cerr << endl << "Concavity:" << endl;
+        f.PrintMRegionListExpr();
         if (face.MergeConcavity(cvs[i])) {
             // Merging the concavity into the cycle was successful.
-            SortCycle();
+            SortAndFixCycle();
             cerr << "Result\n" << ToString() << endl;
             PrintMRegionListExpr();
         } else {
@@ -275,8 +335,8 @@ ListExpr MFace::ToListExpr() {
 */
 void MFace::PrintMRegionListExpr() {
     cerr << "(OBJECT mr () mregion ( ( "
-            "(\"2013-01-01\" \"2013-01-02\" TRUE TRUE)"
-            << nl->ToString(ToListExpr()) << ") ) )";
+            "(\"2013-01-01\" \"2013-01-02\" TRUE TRUE)("
+            << nl->ToString(ToListExpr()) << ") ) ) )";
 }
 
 /*

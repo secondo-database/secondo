@@ -118,7 +118,7 @@ bool MSegs::MergeConcavity(MSegs c) {
 
         msegs.insert(msegs.end(), c.msegs.begin(), c.msegs.end());
     }
-
+    
     return success;
 }
 

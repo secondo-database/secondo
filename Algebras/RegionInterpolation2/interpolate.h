@@ -215,6 +215,7 @@ public:
     // Methods
     bool Check();                // Check if this MFace is a valid cycle
     bool SortCycle();            // Sort this cycle
+    bool SortAndFixCycle();      // Sort this cycle
     void AddConcavity(MSegs c);  // Add a concavity to this cycle
     void MergeConcavities();     // Merge previously added concavities
     ListExpr ToListExpr();       // Create a list expression
