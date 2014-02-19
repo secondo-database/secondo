@@ -2,7 +2,7 @@
  ----
  This file is part of SECONDO.
 
- Copyright (C) 2013, University in Hagen, Faculty of Mathematics and
+ Copyright (C) 2014, University in Hagen, Faculty of Mathematics and
  Computer Science, Database Systems for New Applications.
 
  SECONDO is free software; you can redistribute it and/or modify
@@ -37,6 +37,10 @@
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
+#include <fstream>
+#include <iostream>
+
+#include <sys/time.h>
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -74,11 +78,11 @@ namespace cassandra
 {
 
 /*
-2.8 Operator ~Sleep~
+2.1 Operator ~Sleep~
 
 This operator sleeps for a configurable time
 
-2.8.1 Type mapping function of operator ~sleep~
+2.1.1 Type mapping function of operator ~sleep~
 
 Type mapping for ~sleep~ is
 
@@ -110,7 +114,7 @@ ListExpr SleepTypeMap( ListExpr args )
 }
 
 /*
-2.8.2 Generic Cost Estimation Function
+2.1.2 Generic Cost Estimation Function
 
 This class will forward the progess of the predecessor
 
@@ -133,7 +137,8 @@ public:
     if ( qp->RequestProgress(sonOfFeed, &p1) ) {
       pRes->Card = p1.Card;
       pRes->CopySizes(p1);
-      pRes->Time = p1.Time * getDelay(localInfo);
+      // Add delay per tuple (default 0)
+      pRes->Time = p1.Time + (p1.Card * getDelay(localInfo));
       pRes->Progress = p1.Progress;
       pRes->BTime = p1.BTime;
       pRes->BProgress = p1.BProgress;
@@ -147,10 +152,10 @@ public:
   }
   
   // Template Method, can be used in subclasses
-  virtual int getDelay(void* localInfo) { return 1; }
+  virtual int getDelay(void* localInfo) { return 0; }
   
 /*
-2.8.2 init our class
+2.1.2 init our class
 
 */
   virtual void init(Word* args, void* localInfo) {
@@ -160,15 +165,15 @@ public:
 
 struct SleepLocalInfo
 {
-  SleepLocalInfo( const int numDelay = 0 ):
-    delay( numDelay )
-    {}
+  SleepLocalInfo( const int numDelay = 0 ): delay( numDelay ) {
+      
+  }
 
   int delay; // in ms
 };
 
 /*
-2.8.2 Specialized Cost Estimation function for operator ~sleep~
+2.1.2 Specialized Cost Estimation function for operator ~sleep~
 
 Multiplies the delay with the estimated time of 
 the predecessor
@@ -185,7 +190,7 @@ public:
       return 1;
     }
     
-    // Convert to ms
+    // delay per tuple in ms
     return li -> delay;     
   }
 };
@@ -196,7 +201,7 @@ CostEstimation* SleepCostEstimationFunc() {
 
 
 /*
-2.8.3 Value mapping function of operator ~sleep~
+2.1.3 Value mapping function of operator ~sleep~
 
 */
 int Sleep(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -221,8 +226,14 @@ int Sleep(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST:
 
+      // Operator not ready
+      if ( ! sli ) {
+        return CANCEL;
+      }
+      
       // Delay is in ms 
       usleep(sli -> delay * 1000);
+      
       
       qp->Request(args[0].addr, tupleWord);
       if(qp->Received(args[0].addr))
@@ -235,6 +246,11 @@ int Sleep(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE:
       qp->Close(args[0].addr);
+      if(sli) {
+        delete sli;
+        sli = NULL;
+        local.setAddr( sli );
+      }
       return 0;
   }
   return 0;
@@ -242,7 +258,7 @@ int Sleep(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 /*
-2.8.4 Specification of operator ~sleep~
+2.1.4 Specification of operator ~sleep~
 
 */
 const string SleepSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -262,7 +278,7 @@ const string SleepSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               ") )";
 
 /*
-2.8.5 Definition of operator ~head~
+2.1.5 Definition of operator ~sleep~
 
 */
 Operator cassandrasleep (
@@ -273,7 +289,227 @@ Operator cassandrasleep (
          SleepTypeMap,            // type mapping
          SleepCostEstimationFunc  // Cost estimation
 );                         
-                         
+     
+
+/*
+2.2 Operator ~statistics~
+
+The operator ~statistics~ generates tuple flow statistics. 
+The first parameter is the output file for the 
+operator. The second parameter is the interval for
+the statistics.
+
+2.1.1 Type mapping function of operator ~statistics~
+
+Type mapping for ~statistics~ is
+
+----
+
+ stream ( tuple ( (a1 t1) ... (an tn))) x text x
+                int -> stream (tuple(...))
+                
+----
+
+*/
+ListExpr StatisticsTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 3){
+    return listutils::typeError("three arguments expected");
+  }
+
+  string err = " stream(tuple(...) x text x int expected";
+
+  ListExpr stream = nl->First(args);
+  ListExpr filename = nl->Second(args);
+  ListExpr interval = nl->Third(args);
+
+  if(( !Stream<Tuple>::checkType(stream) &&
+       !Stream<Attribute>::checkType(stream) ) ||
+       !FText::checkType(filename) ||
+       !CcInt::checkType(interval)) {
+    return listutils::typeError(err);
+  }
+  
+  return stream;
+}
+
+/*
+2.2.2 Cost estimation
+
+*/
+CostEstimation* StatisticsCostEstimationFunc() {
+  return new ForwardCostEstimation();
+}
+
+/*
+2.2.3 Value mapping function of operator ~statistics~
+
+*/
+class StatisticsLocalInfo {
+public:
+  StatisticsLocalInfo(string myFilename, int myInterval) 
+    : interval(myInterval), iteration(0), filename(myFilename) {
+      
+      //cout << "Filename is " << filename 
+      //     << " interval is " << interval << endl;
+      
+      // Open file for output
+      filehandle.open(filename.c_str());
+      if(! filehandle.is_open() ) {
+        cout << "Unable to open file: " << filename << endl;
+      } else {
+        filehandle << "Time,Tuples" << endl;
+      }
+       
+      // Init interval
+      reset();
+  }
+  
+  virtual ~StatisticsLocalInfo() {
+    dumpTuples();
+    close();
+  }
+  
+  // We received a new tuple
+  // Register and dump
+  void tupleReceived() {
+    timeval curtime;
+    gettimeofday(&curtime, NULL); 
+    
+    if(lastdump.tv_sec + interval <= curtime.tv_sec) {
+      dumpTuples();
+      reset();
+    }
+      
+    seenTuples++;
+  }
+  
+  // Reset seenTuples counter
+  void reset() {
+    gettimeofday(&lastdump, NULL); 
+    seenTuples = 0;
+  }
+  
+  // Close file
+  void close() {
+    filehandle.close();
+  }
+  
+  // Dump seen tuples to output file
+  void dumpTuples() {
+    //cout << "Cur tuples " << seenTuples << endl;
+    filehandle << iteration * interval << "," << seenTuples << endl;
+    reset();
+    iteration++;
+  }
+  
+  // Are we ready?
+  bool isReady() {
+    return filehandle.is_open();
+  }
+  
+private:
+  int interval;           // Intervall in sec for dumping
+  int iteration;          // Current iteration
+  string filename;        // Filename for statistics
+  timeval lastdump;       // When did we the last dump?
+  size_t seenTuples;      // Seen tuples since last dump
+  ofstream filehandle;    // Filehandle
+};
+
+int Statistics(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  StatisticsLocalInfo *sli; 
+  Word tupleWord;
+
+  sli = (StatisticsLocalInfo*)local.addr;
+
+  switch(message)
+  {
+    case OPEN: 
+
+      if ( sli ) delete sli;
+      
+      if(! ((FText*)args[1].addr)->IsDefined()) {
+        cout << "Filename is not defined" << endl;
+      } else {
+        sli = new StatisticsLocalInfo((((FText*)args[1].addr)->GetValue()),
+                      (((CcInt*)args[2].addr)->GetIntval()));
+                      
+        // Is statistics class ready (file open...)
+        if(sli -> isReady()) {
+          local.setAddr( sli );
+          qp->Open(args[0].addr);
+        }
+      }
+      return 0;
+
+    case REQUEST:
+      
+      // Operator not ready
+      if ( ! sli ) {
+        return CANCEL;
+      }
+      
+      qp->Request(args[0].addr, tupleWord);
+      if(qp->Received(args[0].addr))
+      {     
+        sli -> tupleReceived();
+        result = tupleWord;
+        return YIELD;
+      } else  {     
+        return CANCEL;
+      }     
+
+    case CLOSE:
+      qp->Close(args[0].addr);
+      if(sli) {
+        delete sli;
+        sli = NULL;
+        local.setAddr( sli );
+      }
+      return 0;
+  }
+  return 0;
+}
+
+
+/*
+2.1.4 Specification of operator ~statistics~
+
+*/
+const string StatisticsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>((stream (tuple([a1:d1, ... ,an:dn]"
+                         "))) y string x int) -> (stream (tuple([a1:d1, ... ,"
+                         "an:dn]))) or \n"
+                         "((stream T) text x int) -> (stream T), "
+                         "for T in kind DATA.</text--->"
+                         "<text>_ statistics [ _ , _ ]</text--->"
+                         "<text> The operator statistics generates tuple flow "
+                         "statistics. The first parameter is the output file "
+                         "for the operator. The second parameter is the "
+                         "interval for the statistics (sec). </text--->"
+                         "<text>query intstream(1,10) transformstream "
+                         "statistics['/tmp/statistics.csv', 1] count</text--->"
+                              ") )";
+
+/*
+2.1.5 Definition of operator ~statistics~
+
+*/
+Operator cassandrastatistics (
+         "statistics",                 // name
+         StatisticsSpec,               // specification
+         Statistics,                   // value mapping
+         Operator::SimpleSelect,       // trivial selection function
+         StatisticsTypeMap,            // type mapping
+         StatisticsCostEstimationFunc  // Cost estimation
+);                         
+
+
 /*
  7 Creating the Algebra
 
@@ -290,8 +526,8 @@ public:
 
      */
     AddOperator(&cassandrasleep);
-    //addOperator
-
+    AddOperator(&cassandrastatistics);
+    
   }
   
   ~CassandraAlgebra()

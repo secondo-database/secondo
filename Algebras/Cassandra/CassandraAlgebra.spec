@@ -19,5 +19,6 @@
 
 
 operator sleep alias SLEEP pattern _ op [ _ ]
+operator statistics alias STATISTICS pattern _ op [ _ , _ ]
 
 
