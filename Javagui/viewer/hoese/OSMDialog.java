@@ -37,7 +37,7 @@ public class OSMDialog extends JDialog {
 		licenseDialog = new LicenseDialog(null);
 
 		// create components for server settings
-		selectionCB = new JComboBox();
+		selectionCB = new JComboBox<String>();
 		protocolTF = new JTextField(8);
 		serverTF = new JTextField(24);
 		portTF = new JTextField(3);
@@ -1002,7 +1002,7 @@ public class OSMDialog extends JDialog {
 	}
 
 	// fields for server settings
-	private JComboBox selectionCB; // selection of predefined server settings +
+	private JComboBox<String> selectionCB; // selection of predefined server settings +
 									// customize
 
 	private JTextField protocolTF;
