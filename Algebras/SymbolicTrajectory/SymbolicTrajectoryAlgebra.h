@@ -472,7 +472,7 @@ class IPlace : public Intime<Place> {
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(IPlace);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "iplace";}
+  static const string BasicType() {return "i" + Place::BasicType();}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return 0;}
   Flob* GetFLOB(const int i) {return 0;}
@@ -481,6 +481,43 @@ class IPlace : public Intime<Place> {
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   
   void Val(Place& result) const;
+};
+
+class MPlace; // forward declaration
+
+/*
+\section{Class ~UPlace~}
+
+*/
+class UPlace : public ConstTemporalUnit<Place> {
+ public:
+  UPlace() {}
+  explicit UPlace(bool defined) : ConstTemporalUnit<Place>(defined) {}
+  explicit UPlace(const SecInterval &iv, const Place& pl);
+  UPlace(const UPlace& up);
+  UPlace(int i, MPlace &mp);
+  
+  ~UPlace() {}
+
+  string GetName() const {return constValue.GetName();}
+  unsigned int GetRef() const {return constValue.GetRef();}
+  void SetRef(const unsigned int r) {constValue.SetRef(r);}
+  bool operator==(const UPlace& rhs) const;
+  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(UPlace);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "u" + Place::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return 0;}
+  Flob* GetFLOB(const int i) {return 0;}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+
+  void Initial(IPlace& result) const;
+  void Final(IPlace& result) const;
 };
 
 int ComparePlaces(const void *a, const void *b);
@@ -541,16 +578,11 @@ class IPlaces : public Intime<Places> {
   explicit IPlaces(const Instant& inst, const Places& pls);
   explicit IPlaces(const IPlaces& rhs);
   IPlaces(const bool def) : Intime<Places>(def) {}
-
-  void GetPlace(const int i, Place& result) const;
-  bool IsEmpty() const;
-  void Sort();
-  void Clean() {value.Clean();}
-  bool operator==(const IPlace& rhs) const;
+  
   string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
 
   static ListExpr Property();
-  static int SizeOfObj() {return sizeof(IPlace);}
+  static int SizeOfObj() {return sizeof(IPlaces);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
   static const string BasicType() {return IPlace::BasicType() + "s";}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
@@ -561,6 +593,37 @@ class IPlaces : public Intime<Places> {
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   
   void Val(Places& result) const;
+};
+
+class MPlaces; // forward declaration
+
+/*
+\section{Class ~UPlaces~}
+
+*/
+class UPlaces : public ConstTemporalUnit<Places> {
+ public:
+  UPlaces() {}
+  explicit UPlaces(const SecInterval& iv, const Places& pls);
+  UPlaces(int i, MPlaces &mps);
+  explicit UPlaces(const UPlaces& rhs);
+  UPlaces(const bool def) : ConstTemporalUnit<Places>(def) {}
+
+  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(UPlaces);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return UPlace::BasicType() + "s";}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return constValue.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return constValue.GetFLOB(i);}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  
+  void Initial(IPlaces& result) const;
+  void Final(IPlaces& result) const;
 };
 
 class ExprList {

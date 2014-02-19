@@ -2520,7 +2520,7 @@ IPlace::IPlace(const IPlace &rhs) : Intime<Place>(rhs.instant, rhs.value) {
 */
 ListExpr IPlace::Property() {
   return gentc::GenProperty("-> DATA", BasicType(),
-    "(<instant> (<string> <int>))",
+    "(<instant> <place>)",
     "(\"2014-02-18\" (\"Dortmund\" 1909))");
 }
 
@@ -2604,7 +2604,7 @@ IPlaces::IPlaces(const IPlaces &rhs) : Intime<Places>(rhs.instant, rhs.value) {
 */
 ListExpr IPlaces::Property() {
   return gentc::GenProperty("-> DATA", BasicType(),
-    "(<instant> ((<string> <int>) (<string> <int>) ...))",
+    "(<instant> <places>)",
     "(\"2014-02-18\" ((\"Dortmund\" 1909) (\"Mailand\" 1899)))");
 }
 
@@ -2665,6 +2665,241 @@ void IPlaces::Val(Places& result) const {
 
 */
 GenTC<IPlaces> iplaces;
+
+/*
+\section{Implementation of class ~UPlace~}
+
+\subsection{Constructors}
+
+*/
+UPlace::UPlace(const SecInterval &iv, const Place& pl)
+                                            : ConstTemporalUnit<Place>(iv, pl) {
+  SetDefined(true);
+}
+
+UPlace::UPlace(int i, MPlace &mp) {} 
+//   : ConstTemporalUnit<Labels>(mp.IsDefined() && i < mls.GetNoComponents()) {
+//   if ((i >= 0) && (i < mls.GetNoComponents())) {
+//     timeInterval = mls.GetInterval(i);
+//     constValue.Clean();
+//     Labels labels(true);
+//     mls.GetLabels(i, labels);
+//     for (int j = 0; j < labels.GetNoLabels(); j++) {
+//       constValue.Append(labels.GetLabel(j));
+//     }
+//   }
+// }
+
+UPlace::UPlace(const UPlace& up) : ConstTemporalUnit<Place>(up) {
+  SetDefined(up.IsDefined());
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr UPlace::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(),
+    "(<interval> <place>)",
+    "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" 1909))");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+bool UPlace::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, UPlace::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+ListExpr UPlace::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(((SecInterval)timeInterval).ToListExpr(nl->Empty()), 
+                         constValue.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+bool UPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  SecInterval iv(true);
+  if (iv.ReadFrom(nl->First(LE), nl->Empty()) &&
+      constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
+    timeInterval = iv;
+    SetDefined(timeInterval.IsDefined() && constValue.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Initial~}
+
+*/
+void UPlace::Initial(IPlace& result) const {
+  if (IsDefined()) {
+    result.instant = timeInterval.start;
+    result.value.Set(true, constValue.GetName());
+    result.value.SetRef(constValue.GetRef());
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+void UPlace::Final(IPlace& result) const {
+  if (IsDefined()) {
+    result.instant = timeInterval.end;
+    result.value.Set(true, constValue.GetName());
+    result.value.SetRef(constValue.GetRef());
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Type Constructor}
+
+*/
+GenTC<UPlace> uplace;
+
+/*
+\section{Implementation of class ~UPlace~}
+
+\subsection{Constructors}
+
+*/
+UPlaces::UPlaces(const SecInterval &iv, const Places& pls)
+                                          : ConstTemporalUnit<Places>(iv, pls) {
+  SetDefined(true);
+}
+
+UPlaces::UPlaces(int i, MPlaces &mps) {} 
+//   : ConstTemporalUnit<Labels>(mp.IsDefined() && i < mls.GetNoComponents()) {
+//   if ((i >= 0) && (i < mls.GetNoComponents())) {
+//     timeInterval = mls.GetInterval(i);
+//     constValue.Clean();
+//     Labels labels(true);
+//     mls.GetLabels(i, labels);
+//     for (int j = 0; j < labels.GetNoLabels(); j++) {
+//       constValue.Append(labels.GetLabel(j));
+//     }
+//   }
+// }
+
+UPlaces::UPlaces(const UPlaces& rhs) : ConstTemporalUnit<Places>(rhs) {
+  SetDefined(rhs.IsDefined());
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr UPlaces::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(),
+    "(<interval> <places>)",
+    "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) "
+      "(\"Dortmund\" 1909) (\"Mailand\" 1899))");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+bool UPlaces::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, UPlaces::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+ListExpr UPlaces::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(((SecInterval)timeInterval).ToListExpr(nl->Empty()), 
+                         constValue.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+bool UPlaces::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  SecInterval iv(true);
+  if (iv.ReadFrom(nl->First(LE), nl->Empty()) &&
+      constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
+    timeInterval = iv;
+    SetDefined(timeInterval.IsDefined() && constValue.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Initial~}
+
+*/
+void UPlaces::Initial(IPlaces& result) const {
+  if (IsDefined()) {
+    result.instant = timeInterval.start;
+    result.value = constValue;
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+void UPlaces::Final(IPlaces& result) const {
+  if (IsDefined()) {
+    result.instant = timeInterval.end;
+    result.value = constValue;
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Type Constructor}
+
+*/
+GenTC<UPlaces> uplaces;
 
 /*
 \section{Operator ~tolabel~}
@@ -4258,12 +4493,14 @@ void Pattern::deleteEasyCondOpTrees() {
 }
 
 /*
-\section{Generic operators for ~ILabel~, ~ULabel~, ~MLabel~}
+\section{Generic operators for ~[i|m|u] [label|place] [s]?~}
 
 \subsection{Operator ~the\_unit~}
 
 the\_unit: label x instant x instant x bool x bool -> ulabel
 the\_unit: labels x instant x instant x bool x bool -> ulabels
+the\_unit: place x instant x instant x bool x bool -> uplace
+the\_unit: places x instant x instant x bool x bool -> uplaces
 
 \subsubsection{Type Mapping}
 
@@ -4278,6 +4515,12 @@ ListExpr the_unitSymbolicTM(ListExpr args) {
     if (Labels::checkType(nl->First(args))) {
       return nl->SymbolAtom(ULabels::BasicType());
     }
+    if (Place::checkType(nl->First(args))) {
+      return nl->SymbolAtom(UPlace::BasicType());
+    }
+    if (Places::checkType(nl->First(args))) {
+      return nl->SymbolAtom(UPlaces::BasicType());
+    }
   }
   return listutils::typeError(
     "Operator 'the_unit' expects a list with structure\n"
@@ -4285,7 +4528,8 @@ ListExpr the_unitSymbolicTM(ListExpr args) {
     "'(ipoint ipoint bool bool)', or \n"
     "'(real real real bool instant instant bool bool)', or\n"
     "'(T instant instant bool bool)', or \n"
-    "'(iT duration bool bool)'\n for T in {bool, int, string, label, labels}.");
+    "'(iT duration bool bool)'\n for T in "
+    "{bool, int, string, label, labels, place, places}.");
 }
 
 /*
@@ -4295,6 +4539,8 @@ ListExpr the_unitSymbolicTM(ListExpr args) {
 int the_unitSymbolicSelect(ListExpr args) {
   if (Label::checkType(nl->First(args))) return 0;
   if (Labels::checkType(nl->First(args))) return 1;
+  if (Place::checkType(nl->First(args))) return 2;
+  if (Places::checkType(nl->First(args))) return 3;
   return -1;
 }
 
@@ -4302,12 +4548,12 @@ int the_unitSymbolicSelect(ListExpr args) {
 \subsubsection{Value Mapping}
 
 */
-template<class L, class Unit>
+template<class Value, class Unit>
 int the_unitSymbolicVM(Word* args, Word& result, 
                        int message, Word& local, Supplier s) {
   result = (qp->ResultStorage(s));
-  Unit  *res = static_cast<Unit*>(result.addr);
-  L *value = static_cast<L*>(args[0].addr);
+  Unit *res = static_cast<Unit*>(result.addr);
+  Value *value = static_cast<Value*>(args[0].addr);
   Instant *i1 = static_cast<DateTime*>(args[1].addr);
   Instant *i2 = static_cast<DateTime*>(args[2].addr);
   CcBool *cl = static_cast<CcBool*>(args[3].addr);
@@ -4344,8 +4590,10 @@ struct the_unitSymbolicInfo : OperatorInfo {
     name      = "the_unit";
     signature = "label x instant x instant x bool x bool -> ulabel";
     appendSignature("labels x instant x instant x bool x bool -> ulabels");
+    appendSignature("place x instant x instant x bool x bool -> uplace");
+    appendSignature("places x instant x instant x bool x bool -> uplaces");
     syntax    = "the_unit( _ _ _ _ _ )";
-    meaning   = "Creates a ulabel(s) from its components.";
+    meaning   = "Creates a ulabel(s) / uplace(s) from its components.";
   }
 };
 
@@ -4825,6 +5073,8 @@ initial: ulabel -> ilabel
 initial: ulabels -> ilabels
 initial: mlabel -> ilabel
 initial: mlabels -> ilabels
+initial: uplace -> iplace
+initial: uplaces -> iplaces
 
 \subsubsection{Type Mapping}
 
@@ -4839,9 +5089,16 @@ ListExpr initialFinalSymbolicTM(ListExpr args) {
         MLabels::checkType(nl->First(args))) {
       return nl->SymbolAtom(ILabels::BasicType());
     }
+    if (UPlace::checkType(nl->First(args))) {
+      return nl->SymbolAtom(IPlace::BasicType());
+    }
+    if (UPlaces::checkType(nl->First(args))) {
+      return nl->SymbolAtom(IPlaces::BasicType());
+    }
   }
   return listutils::typeError("Correct signature:  ulabel -> ilabel,   "
-                "ulabels -> ilabels,   mlabel -> ilabel,   mlabels -> ilabels");
+    "ulabels -> ilabels,   mlabel -> ilabel,   mlabels -> ilabels,   "
+    "uplace -> iplace,   uplaces -> iplaces");
 }
 
 /*
@@ -4853,6 +5110,8 @@ int initialFinalSymbolicSelect(ListExpr args) {
   if (ULabels::checkType(nl->First(args))) return 1;
   if (MLabel::checkType(nl->First(args))) return 2;
   if (MLabels::checkType(nl->First(args))) return 3;
+  if (UPlace::checkType(nl->First(args))) return 4;
+  if (UPlaces::checkType(nl->First(args))) return 5;
   return -1;
 }
 
@@ -4881,9 +5140,11 @@ struct initialSymbolicInfo : OperatorInfo {
     appendSignature("ulabels -> ilabels");
     appendSignature("mlabel -> ilabel");
     appendSignature("mlabels -> ilabels");
+    appendSignature("uplace -> iplace");
+    appendSignature("uplaces -> iplaces");
     syntax    = "initial ( _ )";
     meaning   = "Returns the ilabel(s) belonging to the initial instant of the "
-                "ulabel(s) / mlabel(s).";
+                "ulabel(s) / mlabel(s) / uplace(s).";
   }
 };
 
@@ -4894,6 +5155,8 @@ final: ulabel -> ilabel
 final: ulabels -> ilabels
 final: mlabel -> ilabel
 final: mlabels -> ilabels
+final: uplace -> iplace
+final: uplaces -> iplaces
 
 \subsubsection{Value Mapping}
 
@@ -4919,9 +5182,11 @@ struct finalSymbolicInfo : OperatorInfo {
     appendSignature("ulabels -> ilabels");
     appendSignature("mlabel -> ilabel");
     appendSignature("mlabels -> ilabels");
+    appendSignature("uplace -> iplace");
+    appendSignature("uplaces -> iplaces");
     syntax    = "final ( _ )";
     meaning   = "Returns the ilabel(s) belonging to the final instant of the "
-                "ulabel(s) / mlabel(s).";
+                "ulabel(s) / mlabel(s) / uplace(s).";
   }
 };
 
@@ -8075,10 +8340,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   SymbolicTrajectoryAlgebra() : Algebra() {
 
     AddTypeConstructor(&labelTC);
-    AddTypeConstructor(&labelsTC);
     AddTypeConstructor(&intimelabel);
     AddTypeConstructor(&unitlabel);
     AddTypeConstructor(&movinglabel);
+    AddTypeConstructor(&labelsTC);
     AddTypeConstructor(&intimelabels);
     AddTypeConstructor(&unitlabels);
     AddTypeConstructor(&movinglabels);
@@ -8087,10 +8352,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     AddTypeConstructor(&places);
     AddTypeConstructor(&iplace);
     AddTypeConstructor(&iplaces);
+    AddTypeConstructor(&uplace);
+    AddTypeConstructor(&uplaces);
 
     labelTC.AssociateKind(Kind::DATA());
-    labelsTC.AssociateKind(Kind::DATA());
-    
     intimelabel.AssociateKind(Kind::DATA());
     intimelabel.AssociateKind(Kind::TEMPORAL());
     unitlabel.AssociateKind(Kind::DATA());
@@ -8098,6 +8363,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     movinglabel.AssociateKind(Kind::DATA());
     movinglabel.AssociateKind(Kind::TEMPORAL());
     
+    labelsTC.AssociateKind(Kind::DATA());
     intimelabels.AssociateKind(Kind::DATA());
     intimelabels.AssociateKind(Kind::TEMPORAL());
     unitlabels.AssociateKind(Kind::DATA());
@@ -8105,13 +8371,17 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     movinglabels.AssociateKind(Kind::DATA());
     movinglabels.AssociateKind(Kind::TEMPORAL());
     
-    place.AssociateKind(Kind::DATA());
-    places.AssociateKind(Kind::DATA());
-    
+    place.AssociateKind(Kind::DATA());    
     iplace.AssociateKind(Kind::DATA());
     iplace.AssociateKind(Kind::TEMPORAL());
+    uplace.AssociateKind(Kind::DATA());
+    uplace.AssociateKind(Kind::TEMPORAL());
+    
+    places.AssociateKind(Kind::DATA());
     iplaces.AssociateKind(Kind::DATA());
     iplaces.AssociateKind(Kind::TEMPORAL());
+    uplaces.AssociateKind(Kind::DATA());
+    uplaces.AssociateKind(Kind::TEMPORAL());
 
     AddTypeConstructor(&patternTC);
     AddTypeConstructor(&classifierTC);
@@ -8137,7 +8407,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     AddOperator(refInfo(), refVM, refTM);
 
     ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
-                                        the_unitSymbolicVM<Labels, ULabels>, 0};
+      the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,
+      the_unitSymbolicVM<Places, UPlaces>, 0};
     AddOperator(the_unitSymbolicInfo(), the_unitSymbolicVMs,
                 the_unitSymbolicSelect, the_unitSymbolicTM);
     
@@ -8172,14 +8443,16 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                 deftimeUnitsAtinstantSymbolicSelect, unitsSymbolicTM);
     
     ValueMapping initialSymbolicVMs[] = {initialSymbolicVM<ULabel, ILabel>,
-         initialSymbolicVM<ULabels, ILabels>, initialSymbolicVM<MLabel, ILabel>,
-         initialSymbolicVM<MLabels, ILabels>, 0};
+      initialSymbolicVM<ULabels, ILabels>, initialSymbolicVM<MLabel, ILabel>,
+      initialSymbolicVM<MLabels, ILabels>, initialSymbolicVM<UPlace, IPlace>,
+      initialSymbolicVM<UPlaces, IPlaces>, 0};
     AddOperator(initialSymbolicInfo(), initialSymbolicVMs, 
                 initialFinalSymbolicSelect, initialFinalSymbolicTM);
     
     ValueMapping finalSymbolicVMs[] = {finalSymbolicVM<ULabel, ILabel>,
-             finalSymbolicVM<ULabels, ILabels>, finalSymbolicVM<MLabel, ILabel>,
-             finalSymbolicVM<MLabels, ILabels>, 0};
+      finalSymbolicVM<ULabels, ILabels>, finalSymbolicVM<MLabel, ILabel>,
+      finalSymbolicVM<MLabels, ILabels>, finalSymbolicVM<UPlace, IPlace>,
+      finalSymbolicVM<UPlaces, IPlaces>, 0};
     AddOperator(finalSymbolicInfo(), finalSymbolicVMs, 
                 initialFinalSymbolicSelect, initialFinalSymbolicTM);
     
