@@ -6340,17 +6340,15 @@ void* FetchFlobLocalInfo::sendSheetThread(void* ptr)
   FileSystem::AppendItem(localConfig, "config.ini");
   if (!FileSystem::FileOrFolderExists(localConfig)){
     FileSystem::Copy_File(config, localConfig);
+  }
+  string secondoHome = SmiProfile::GetParameter( "Environment",
+      "SecondoHome","", localConfig);
+  if (secondoHome.compare(localSecHome) != 0){
     if (!SmiProfile::SetParameter("Environment",
         "SecondoHome", localSecHome, localConfig)){
       cerr << "Change the Local Config Environment:SecondoHome fails. " << endl;
       return NULL;
     }
-  }
-  string secondoHome = SmiProfile::GetParameter( "Environment",
-      "SecondoHome","", localConfig);
-  if (secondoHome.compare(localSecHome) != 0){
-    cerr << "Set the temporal SecondoHome fails" << endl;
-    return NULL;
   }
   if (!FileSystem::FileOrFolderExists(localSecHome)){
     FileSystem::CreateFolder(localSecHome);
