@@ -349,7 +349,8 @@ CostEstimation* StatisticsCostEstimationFunc() {
 class StatisticsLocalInfo {
 public:
   StatisticsLocalInfo(string myFilename, int myInterval) 
-    : interval(myInterval), iteration(0), filename(myFilename) {
+    : interval(myInterval), iteration(0), filename(myFilename), 
+    seenTuples(0), totalTuples(0) {
       
       //cout << "Filename is " << filename 
       //     << " interval is " << interval << endl;
@@ -359,7 +360,7 @@ public:
       if(! filehandle.is_open() ) {
         cout << "Unable to open file: " << filename << endl;
       } else {
-        filehandle << "Time,Tuples" << endl;
+        filehandle << "Time,Current Tuples,Total Tuples" << endl;
       }
        
       // Init interval
@@ -388,6 +389,7 @@ public:
   // Reset seenTuples counter
   void reset() {
     gettimeofday(&lastdump, NULL); 
+    totalTuples = totalTuples + seenTuples;
     seenTuples = 0;
   }
   
@@ -399,7 +401,8 @@ public:
   // Dump seen tuples to output file
   void dumpTuples() {
     //cout << "Cur tuples " << seenTuples << endl;
-    filehandle << iteration * interval << "," << seenTuples << endl;
+    filehandle << iteration * interval << "," << seenTuples 
+      << "," << (totalTuples + seenTuples) << endl;
     reset();
     iteration++;
   }
@@ -415,6 +418,7 @@ private:
   string filename;        // Filename for statistics
   timeval lastdump;       // When did we the last dump?
   size_t seenTuples;      // Seen tuples since last dump
+  size_t totalTuples;     // Total seen tuples
   ofstream filehandle;    // Filehandle
 };
 
