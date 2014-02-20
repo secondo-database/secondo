@@ -51,6 +51,9 @@ limited number of threads.
 #include <map>
 #include <queue>
 #include <set>
+#include <sys/time.h>
+
+#define LOGFILE 1
 
 using namespace std;
 
@@ -82,7 +85,6 @@ struct classCompPair
 
 void* ReceiveRequest(void*);
 void* ProcessRequest(void*);
-void* TraverseRequest(void*);
 bool collectFlob(string request);
 
 const int MAX_COPYTIMES = 20;
@@ -91,6 +93,10 @@ pthread_mutex_t CFBS_mutex;
 const size_t PipeWidth = 1;
 bool tokenPass[PipeWidth];
 pthread_t threadId[PipeWidth];
+
+#ifdef LOGFILE
+ofstream logFile;
+#endif
 
 class Prcv_Thread{
 public:
@@ -163,9 +169,6 @@ int main(){
 
   addr_size = sizeof(sockaddr_in);
 
-  pthread_create(&trvsTID, 0, &TraverseRequest, 0);
-  pthread_detach(trvsTID);
-
   while(true){
     csock = (int*)malloc(sizeof(int));
     if((*csock = accept(hsock, (sockaddr*)&sadr, &addr_size))!= -1){
@@ -199,37 +202,15 @@ void* ReceiveRequest(void* lp)
   string args(buffer, find(buffer, buffer + buffer_len, '\0'));
 
   pthread_mutex_lock(&CFBS_mutex);
-//  cerr << "Received: " << args << endl;
-  requests.push(make_pair(args, csock));
+  pair<string, int*> r = make_pair(args, csock);   
+  size_t t = 0;
+  tokenPass[t] = true;
+  Prcv_Thread* pt = new Prcv_Thread(r, t);
+  pthread_create(&threadId[t], 0, &ProcessRequest, (void*)pt);
+  pthread_join(threadId[t], NULL); 
   pthread_mutex_unlock(&CFBS_mutex);
-
+ 
   return NULL;
-}
-
-void* TraverseRequest(void* ptr)
-{
-  while(true)
-  {
-    if (!requests.empty()){
-      for (size_t t = 0; t < PipeWidth; t++){
-        if (tokenPass[t] || pthread_kill(threadId[t], 0))
-        {
-          pair<string, int*> r = requests.front();
-          tokenPass[t] = true;
-          Prcv_Thread* pt = new Prcv_Thread(r, t);
-          pthread_create(&threadId[t], 0, &ProcessRequest, (void*)pt);
-
-          pthread_mutex_lock(&CFBS_mutex);
-          requests.pop();
-          pthread_mutex_unlock(&CFBS_mutex);
-        }
-
-        if (requests.empty()){
-          break;
-        }
-      }
-    }
-  }
 }
 
 void* ProcessRequest(void* ptr)
@@ -240,6 +221,12 @@ void* ProcessRequest(void* ptr)
   int* csock = pt->csock;
 
   bool ok = collectFlob(pt->request);
+  //cerr << "The collect result is: " << (ok ? "true" : "false") << endl;
+  #ifdef LOGFILE
+    logFile.open("cfbServ.log", ios::app);
+    logFile << "The collect result is: " << (ok ? "true" : "false") << endl;
+    logFile.close();
+  #endif
 
   int bytecount = 0;
   if ((bytecount = send(*csock, (char*)&ok, sizeof(bool), 0)) == -1){
@@ -249,15 +236,19 @@ void* ProcessRequest(void* ptr)
   }
   free(csock);
 
-  pthread_mutex_lock(&CFBS_mutex);
+//  pthread_mutex_lock(&CFBS_mutex);
+  //Todo: use a different mutex, orelse it causes dead lock
   tokenPass[token] = false;
-  pthread_mutex_unlock(&CFBS_mutex);
+//  pthread_mutex_unlock(&CFBS_mutex);
 
   return NULL;
 }
 
 bool collectFlob(string request)
 {
+  timeval start,stop,result;
+  gettimeofday(&start,NULL);
+
   istringstream ss(request);
   //The destPSFS contains the remote IP
   string sheetName, resultName, serverPSFS, clientPSFS;
@@ -387,6 +378,16 @@ bool collectFlob(string request)
     cerr << "Error!! sending the result flob file fails" << endl;
     return false;
   }
+  
+//  clock_t end = clock();
+  gettimeofday(&stop,NULL);
+  timersub(&start,&stop,&result);
+#ifdef LOGFILE
+    logFile.open("cfbServ.log", ios::app);
+    //logFile << "Cost: " << ((double)(end - start)) / CLOCKS_PER_SEC << endl;
+    logFile << "Cost: " << (result.tv_sec + result.tv_usec/1000000.0) << endl;
+    logFile.close();
+#endif
 
   return true;
 }
