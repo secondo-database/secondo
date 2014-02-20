@@ -224,11 +224,6 @@ void* ProcessRequest(void* ptr)
 
   bool ok = collectFlob(pt->request);
   //cerr << "The collect result is: " << (ok ? "true" : "false") << endl;
-  #ifdef LOGFILE
-    logFile.open("cfbServ.log", ios::app);
-    logFile << "The collect result is: " << (ok ? "true" : "false") << endl;
-    logFile.close();
-  #endif
 
   int bytecount = 0;
   if ((bytecount = send(*csock, (char*)&ok, sizeof(bool), 0)) == -1){
@@ -407,15 +402,14 @@ bool collectFlob(string request)
 void writeToFlobFile(char* buffer, char* data, size_t size,
     ofstream* file, size_t& offset)
 {
-  if (offset + size < bufferLen){
-    //Write to the buffer as the priority,
-    memcpy(buffer + offset, data, size);
-    offset += size;
-  }
-  else {
-    //the file is written only when it cannot hold more
+  if (offset + size >= bufferLen){
+    //the file is written only when the buffer cannot hold more
     file->write(buffer, offset);
     offset = 0;
     memset(buffer, 0, bufferLen);
   }
+
+  //Write to the buffer as the priority,
+  memcpy(buffer + offset, data, size);
+  offset += size;
 }
