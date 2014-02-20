@@ -246,7 +246,7 @@ void* ProcessRequest(void* ptr)
 
 bool collectFlob(string request)
 {
-  timeval start,stop,result;
+  timeval start,stop;
   gettimeofday(&start,NULL);
 
   istringstream ss(request);
@@ -379,13 +379,13 @@ bool collectFlob(string request)
     return false;
   }
   
-//  clock_t end = clock();
   gettimeofday(&stop,NULL);
-  timersub(&start,&stop,&result);
 #ifdef LOGFILE
+  double diffSec = (stop.tv_sec - start.tv_sec)*1.0;
+  diffSec += (stop.tv_usec - start.tv_usec)*1.0 / 1000000;
+
     logFile.open("cfbServ.log", ios::app);
-    //logFile << "Cost: " << ((double)(end - start)) / CLOCKS_PER_SEC << endl;
-    logFile << "Cost: " << (result.tv_sec + result.tv_usec/1000000.0) << endl;
+    logFile << "Cost: " << diffSec << endl;
     logFile.close();
 #endif
 
