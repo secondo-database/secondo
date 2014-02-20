@@ -499,9 +499,6 @@ class UPlace : public ConstTemporalUnit<Place> {
   
   ~UPlace() {}
 
-  string GetName() const {return constValue.GetName();}
-  unsigned int GetRef() const {return constValue.GetRef();}
-  void SetRef(const unsigned int r) {constValue.SetRef(r);}
   bool operator==(const UPlace& rhs) const;
   string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
 
@@ -516,6 +513,47 @@ class UPlace : public ConstTemporalUnit<Place> {
   ListExpr ToListExpr(ListExpr typeInfo);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
 
+  void Initial(IPlace& result) const;
+  void Final(IPlace& result) const;
+};
+
+/*
+\section{Class ~MPlace~}
+
+*/
+class MPlace : public Mapping<UPlace, Place> {
+ public:
+  MPlace() {}
+  explicit MPlace(const int n);
+  explicit MPlace(const MPlace& mp);
+  
+  ~MPlace() {}
+
+  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(MPlace);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "m" + Place::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return 1;}
+  Flob* GetFLOB(const int i) {return &units;}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+
+  void Get(const int i, UPlace& result) const;
+  bool IsEmpty() const {return units.Size() == 0;}
+  int GetNoComponents() const {return units.Size();}
+  void Clear() {Mapping<UPlace, Place>::Clear();}
+  void StartBulkLoad() {assert(IsDefined());}
+  void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
+  void Add(const UPlace& up);
+  void MergeAdd(const UPlace& up);
+  bool Passes(const Place& pl) const;
+  void At(const Place& pl, MPlace& result) const;
+  void DefTime(Periods& per) const;
+  void Atinstant(const Instant& inst, IPlace& result) const;
   void Initial(IPlace& result) const;
   void Final(IPlace& result) const;
 };

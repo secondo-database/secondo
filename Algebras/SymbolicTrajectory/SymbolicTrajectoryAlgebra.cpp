@@ -2677,21 +2677,26 @@ UPlace::UPlace(const SecInterval &iv, const Place& pl)
   SetDefined(true);
 }
 
-UPlace::UPlace(int i, MPlace &mp) {} 
-//   : ConstTemporalUnit<Labels>(mp.IsDefined() && i < mls.GetNoComponents()) {
-//   if ((i >= 0) && (i < mls.GetNoComponents())) {
-//     timeInterval = mls.GetInterval(i);
-//     constValue.Clean();
-//     Labels labels(true);
-//     mls.GetLabels(i, labels);
-//     for (int j = 0; j < labels.GetNoLabels(); j++) {
-//       constValue.Append(labels.GetLabel(j));
-//     }
-//   }
-// }
+UPlace::UPlace(int i, MPlace &mp)
+  : ConstTemporalUnit<Place>(mp.IsDefined() && i < mp.GetNoComponents()) {
+  if (IsDefined()) {
+    UPlace up(true);
+    mp.Get(i, up);
+    timeInterval = up.timeInterval;
+    constValue = up.constValue;
+  }
+}
 
 UPlace::UPlace(const UPlace& up) : ConstTemporalUnit<Place>(up) {
   SetDefined(up.IsDefined());
+}
+
+/*
+\subsection{Operator ~==~}
+
+*/
+bool UPlace::operator==(const UPlace& rhs) const {
+  return (timeInterval == rhs.timeInterval) && (constValue == rhs.constValue);
 }
 
 /*
@@ -2900,6 +2905,263 @@ void UPlaces::Final(IPlaces& result) const {
 
 */
 GenTC<UPlaces> uplaces;
+
+/*
+\section{Implementation of class ~MPlace~}
+
+\subsection{Constructors}
+
+*/
+MPlace::MPlace(const int n) : Mapping<UPlace, Place>(n) {}
+
+MPlace::MPlace(const MPlace &mp) : Mapping<UPlace, Place>(mp.GetNoComponents()){
+  if (mp.IsDefined()) {
+    units.copyFrom(mp.units);
+  }
+  SetDefined(mp.IsDefined());
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr MPlace::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(),
+    "((<interval> <place>) (<interval> <place>) ...)",
+    "(((\"2014-01-29\" \"2014-01-30\" TRUE FALSE) (\"Hummels\" 5))"
+     "((\"2014-02-19-17:26\" \"2014-02-20\" TRUE FALSE) (\"Piszczek\" 26)))");
+}
+
+/*
+\subsection{Function ~KindCheck~}
+
+*/
+bool MPlace::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, MPlace::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+ListExpr MPlace::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  if (IsEmpty()) {
+    return nl->Empty();
+  }
+  UPlace up(true);
+  Get(0, up);
+  ListExpr result = nl->OneElemList(up.ToListExpr(nl->Empty()));
+  ListExpr last = result;
+  for (int i = 1; i < GetNoComponents(); i++) {
+    Get(i, up);
+    last = nl->Append(last, up.ToListExpr(nl->Empty()));
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+bool MPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  SetDefined(false);
+  Clear();
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  ListExpr rest = LE;
+  UPlace up(true);
+  while (!nl->IsEmpty(rest)) {
+    if (!up.ReadFrom(nl->First(rest), nl->Empty())) {
+      return false;
+    }
+    Add(up);
+    rest = nl->Rest(rest);
+  }
+  SetDefined(true);
+  return true;
+}
+
+/*
+\subsection{Function ~Get~}
+
+*/
+void MPlace::Get(const int i, UPlace& result) const {
+  assert((i >= 0) && (GetNoComponents()));
+  units.Get(i, result);
+}
+
+/*
+\subsection{Function ~EndBulkLoad~}
+
+*/
+void MPlace::EndBulkLoad(const bool sort, const bool checkvalid) {
+  if (!IsDefined()) {
+    units.clean();
+  }
+  units.TrimToSize();
+}
+
+/*
+\subsection{Function ~Add~}
+
+*/
+void MPlace::Add(const UPlace& up) {
+  assert(up.IsDefined());
+  assert(up.IsValid());
+  if (IsDefined()) {
+    units.Append(up);
+  }
+}
+
+/*
+\subsection{Function ~MergeAdd~}
+
+*/
+void MPlace::MergeAdd(const UPlace& up) {
+  assert(IsDefined());
+  if (!up.IsDefined() || !up.IsValid()) {
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+      << " MergeAdd(Unit): Unit is undefined or invalid:";
+    up.Print(cout); cout << endl;
+    assert(false);
+  }
+  if (GetNoComponents() > 0) {
+    UPlace last(true);
+    units.Get(GetNoComponents() - 1, last);
+    if ((last.constValue == up.constValue) && // equal places
+        (last.timeInterval.end == up.timeInterval.start) &&
+        (last.timeInterval.rc || up.timeInterval.lc)) { //and adjacent intervals
+      last.timeInterval.end = up.timeInterval.end; // extend last interval
+      last.timeInterval.rc = up.timeInterval.rc;
+      units.Put(GetNoComponents() - 1, last);
+    }
+    else if (last.timeInterval.Before(up.timeInterval)) {
+      Add(up);
+    }
+  }
+  else { // first unit
+    Add(up);
+  }
+}
+
+/*
+\subsection{Function ~Passes~}
+
+*/
+bool MPlace::Passes(const Place& pl) const {
+  cout << "\"" << pl.GetName() << "\" " << pl.GetRef() << endl;
+  if (!IsDefined() || !pl.IsDefined()) {
+    return false;
+  }
+  UPlace up(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, up);
+    if (up.constValue == pl) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~At~}
+
+*/
+void MPlace::At(const Place& pl, MPlace& result) const {
+  result.Clear();
+  if (!IsDefined() || !pl.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    UPlace up(true);
+    Get(i, up);
+    if (up.constValue == pl) {
+      result.Add(up);
+    }
+  }
+}
+
+/*
+\subsection{Function ~DefTime~}
+
+*/
+void MPlace::DefTime(Periods& per) const {
+  per.Clear();
+  per.SetDefined(IsDefined());
+  if (IsDefined()) {
+    UPlace up(true);
+    for (int i = 0; i < GetNoComponents(); i++) {
+      Get(i, up);
+      per.MergeAdd(up.timeInterval);
+    }
+  }
+}
+
+/*
+\subsection{Function ~Atinstant~}
+
+*/
+void MPlace::Atinstant(const Instant& inst, IPlace& result) const {
+  if(!IsDefined() || !inst.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  int pos = Position(inst);
+  if (pos == -1) {
+    result.SetDefined(false);
+  }
+  else {
+    UPlace up(true);
+    Get(pos, up);
+    result.value = up.constValue;
+    result.SetDefined(true);
+    result.instant = inst;
+  }
+}
+
+/*
+\subsection{Function ~Initial~}
+
+*/
+void MPlace::Initial(IPlace& result) const {
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  UPlace up(true);
+  Get(0, up);
+  result.instant = up.timeInterval.start;
+  result.value = up.constValue;
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+void MPlace::Final(IPlace& result) const {
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  UPlace up(true);
+  Get(GetNoComponents() - 1, up);
+  result.instant = up.timeInterval.end;
+  result.value = up.constValue;
+}
+
+/*
+\subsection{Type Constructor}
+
+*/
+GenTC<MPlace> mplace;
 
 /*
 \section{Operator ~tolabel~}
@@ -4601,6 +4863,8 @@ struct the_unitSymbolicInfo : OperatorInfo {
 \subsection{Operator ~makemvalue~}
 
 makemvalue: stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel
+makemvalue: stream (tuple ((x1 t1)...(xi ulabels)...(xn tn))) xi -> mlabels
+makemvalue: stream (tuple ((x1 t1)...(xi uplace)...(xn tn))) xi -> mplace
 
 \subsubsection{Type Mapping}
 
@@ -4616,8 +4880,8 @@ ListExpr makemvalueSymbolic_TM(ListExpr args) {
   first = nl->First(args);
   nl->WriteToString(argstr, first);
   if (!listutils::isTupleStream(first)) {
-    ErrorReporter::ReportError("Operator makemvalue expects as first argument "
-      "a tuplestream, but gets '" + argstr + "'.");
+    ErrorReporter::ReportError("Operator makemvalue expects a tuplestream as "
+    "first argument, but gets '" + argstr + "'.");
     return nl->TypeError();
   }
   second  = nl->Second(args);
@@ -4656,8 +4920,9 @@ ListExpr makemvalueSymbolic_TM(ListExpr args) {
   if (inputtype == "") {
     return listutils::typeError("attribute not found");
   }
-  if ((inputtype != ULabel::BasicType()) &&(inputtype != ULabels::BasicType())){
-    return listutils::typeError("attr type not in {ulabel, ulabels}");
+  if ((inputtype != ULabel::BasicType()) && (inputtype != ULabels::BasicType())
+   && (inputtype != UPlace::BasicType())) {
+    return listutils::typeError("attr type not in {ulabel, ulabels, uplace}");
   }
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
@@ -4665,8 +4930,11 @@ ListExpr makemvalueSymbolic_TM(ListExpr args) {
   if (inputtype == ULabel::BasicType()) {    
     attrtype = nl->SymbolAtom(MLabel::BasicType());
   }
-  if (inputtype == ULabels::BasicType()) {
+  else if (inputtype == ULabels::BasicType()) {
     attrtype = nl->SymbolAtom(MLabels::BasicType());
+  }
+  else if (inputtype == UPlace::BasicType()) {
+    attrtype = nl->SymbolAtom(MPlace::BasicType());
   }
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
          nl->TwoElemList(nl->IntAtom(j),
@@ -4681,6 +4949,7 @@ int makemvalueSymbolicSelect(ListExpr args) {
   ListExpr arg = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
   if (ULabel::checkType(arg)) return 0;
   if (ULabels::checkType(arg)) return 1;
+  if (UPlace::checkType(arg)) return 2;
   return -1;
 }
 
@@ -4737,12 +5006,14 @@ struct makemvalueSymbolicInfo : OperatorInfo {
     signature = "stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel";
     appendSignature("stream (tuple ((x1 t1)...(xi ulabels)...(xn tn))) xi -> "
                     "mlabels");
+    appendSignature("stream (tuple ((x1 t1)...(xi uplace)...(xn tn))) xi -> "
+                    "mplace");
     syntax    = "_ makemvalue[ _ ]";
-    meaning   = "Create a moving object from a (not necessarily sorted) "
-                "tuple stream containing a ulabel or ulabels attribute. No two "
-                "unit timeintervals may overlap. Undefined units are allowed "
-                "and will be ignored. A stream without defined units will "
-                "result in an \'empty\' moving object, not in an \'undef\'.";
+    meaning   = "Creates a moving object from a (not necessarily sorted) tuple "
+                "stream containing a ulabel(s) or uplace attribute. No two unit"
+                " timeintervals may overlap. Undefined units are allowed and "
+                "will be ignored. A stream without defined units will result in"
+                " an \'empty\' moving object, not in an \'undef\'.";
   }
 };
 
@@ -4752,20 +5023,24 @@ struct makemvalueSymbolicInfo : OperatorInfo {
 passes: mlabel x label -> bool
 passes: mlabels x label -> bool
 passes: mlabels x labels -> bool
+passes: mplace x place -> bool
 
 \subsubsection{Type Mapping}
 
 */
 ListExpr passesSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 2)) {
-    if ((MLabel::checkType(nl->First(args))&&Label::checkType(nl->Second(args)))
-   || (MLabels::checkType(nl->First(args))&&Label::checkType(nl->Second(args)))
- || (MLabels::checkType(nl->First(args))&&Labels::checkType(nl->Second(args)))){
+    ListExpr first(nl->First(args)), second(nl->Second(args));
+    if ((MLabel::checkType(first) && Label::checkType(second)) ||
+        (MLabels::checkType(first) && Label::checkType(second)) ||
+        (MLabels::checkType(first) && Labels::checkType(second)) ||
+        (MPlace::checkType(first) && Place::checkType(second))) {
       return nl->SymbolAtom(CcBool::BasicType());
     }
   }
   return listutils::typeError("Correct signatures:  mlabel x label -> bool,   "
-                         "mlabels x label -> bool,   mlabels x labels -> bool");
+    "mlabels x label -> bool,   mlabels x labels -> bool,   "
+    "mplace x place -> bool");
 }
 
 /*
@@ -4776,6 +5051,7 @@ int atPassesSymbolicSelect(ListExpr args) {
   if (MLabel::checkType(nl->First(args))) return 0;
   if (Label::checkType(nl->Second(args))) return 1;
   if (Labels::checkType(nl->Second(args))) return 2;
+  if (MPlace::checkType(nl->First(args))) return 3;
   return -1;
 }
 
@@ -4783,15 +5059,16 @@ int atPassesSymbolicSelect(ListExpr args) {
 \subsubsection{Value Mapping}
 
 */
-template<class Mapping, class L>
+template<class Mapping, class Value>
 int passesSymbolicVM(Word* args, Word& result, int message, Word& local,
                      Supplier s) {
   result = qp->ResultStorage(s);
   CcBool* res = static_cast<CcBool*>(result.addr);
   Mapping *m = static_cast<Mapping*>(args[0].addr);
-  L *lab = static_cast<L*>(args[1].addr);
-  if (m->IsDefined() && lab->IsDefined()) {
-    res->Set(true, m->Passes(lab));
+  Value *val = static_cast<Value*>(args[1].addr);
+  if (m->IsDefined() && val->IsDefined()) {
+    cout << ((Place*)val)->toString() << endl; // TODO: fix the bug!
+    res->Set(true, m->Passes(val));
   }
   else {
     res->SetDefined(false);
@@ -4809,9 +5086,10 @@ struct passesSymbolicInfo : OperatorInfo {
     signature = "mlabel x label -> bool";
     appendSignature("mlabels x label -> bool");
     appendSignature("mlabels x labels -> bool");
+    appendSignature("mplace x place -> bool");
     syntax    = "_ passes _ ";
-    meaning   = "Returns TRUE if and only if the label(s) occur(s) at least "
-                "once in the mlabel(s).";
+    meaning   = "Returns TRUE if and only if the label(s) / place occur(s) "
+                "at least once in the mlabel(s) / mplace.";
   }
 };
 
@@ -4821,35 +5099,41 @@ struct passesSymbolicInfo : OperatorInfo {
 at: mlabel x label -> mlabel
 at: mlabels x label -> mlabels
 at: mlabels x labels -> mlabels
+at: mplace x place -> mplace
 
 \subsubsection{Type Mapping}
 
 */
 ListExpr atSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 2)) {
-    if (MLabel::checkType(nl->First(args))&&Label::checkType(nl->Second(args))){
+    ListExpr first(nl->First(args)), second(nl->Second(args));
+    if (MLabel::checkType(first) && Label::checkType(second)) {
       return nl->SymbolAtom(MLabel::BasicType());
     }
-    if((MLabels::checkType(nl->First(args))&&Label::checkType(nl->Second(args)))
- || (MLabels::checkType(nl->First(args))&&Labels::checkType(nl->Second(args)))){
+    if ((MLabels::checkType(first) && Label::checkType(second)) ||
+        (MLabels::checkType(first) && Labels::checkType(second))) {
       return nl->SymbolAtom(MLabels::BasicType());
+    }
+    if (MPlace::checkType(first) && Place::checkType(second)) {
+      return nl->SymbolAtom(MPlace::BasicType());
     }
   }
   return listutils::typeError("Correct signatures: mlabel x label -> mlabel,   "
-                   "mlabels x label -> mlabels,   mlabels x labels -> mlabels");
+    "mlabels x label -> mlabels,   mlabels x labels -> mlabels,   "
+    "mplace x place -> mplace");
 }
 
 /*
 \subsubsection{Value Mapping}
 
 */
-template<class Mapping, class L>
+template<class Mapping, class Value>
 int atSymbolicVM(Word* args, Word& result, int message, Word& local,Supplier s){
   result = qp->ResultStorage(s);
   Mapping *src = static_cast<Mapping*>(args[0].addr);
-  L *lab = static_cast<L*>(args[1].addr);
+  Value *val = static_cast<Value*>(args[1].addr);
   Mapping *res = static_cast<Mapping*>(result.addr);
-  src->At(*lab, *res);
+  src->At(*val, *res);
   return 0;
 }
 
@@ -4863,9 +5147,10 @@ struct atSymbolicInfo : OperatorInfo {
     signature = "mlabel x label -> mlabel";
     appendSignature("mlabels x label -> mlabels");
     appendSignature("mlabels x labels -> mlabels");
+    appendSignature("mplace x place -> mplace");
     syntax    = "_ at _ ";
-    meaning   = "Reduces the mlabel(s) to those units whose label(s) equals the"
-                " label(s).";
+    meaning   = "Reduces the mlabel(s) / mplace to those units whose "
+                "label(s) / place equals the label(s) / place.";
   }
 };
 
@@ -4874,18 +5159,21 @@ struct atSymbolicInfo : OperatorInfo {
 
 deftime: mlabel -> periods
 deftime: mlabels -> periods
+deftime: mplace -> periods
 
 \subsubsection{Type Mapping}
 
 */
 ListExpr deftimeSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 1)) {
-    if(MLabel::checkType(nl->First(args))||MLabels::checkType(nl->First(args))){
+    ListExpr first = nl->First(args);
+    if (MLabel::checkType(first) || MLabels::checkType(first) ||
+        MPlace::checkType(first)) {
       return nl->SymbolAtom(Periods::BasicType());
     }
   }
   return listutils::typeError("Correct signature: mlabel -> periods,    "
-                              "mlabels -> periods");
+    "mlabels -> periods,   mplace -> periods");
 }
 
 /*
@@ -4895,6 +5183,7 @@ ListExpr deftimeSymbolicTM(ListExpr args) {
 int deftimeUnitsAtinstantSymbolicSelect(ListExpr args) {
   if (MLabel::checkType(nl->First(args))) return 0;
   if (MLabels::checkType(nl->First(args))) return 1;
+  if (MPlace::checkType(nl->First(args))) return 2;
   return -1;
 }
 
@@ -4921,9 +5210,10 @@ struct deftimeSymbolicInfo : OperatorInfo {
     name      = "deftime";
     signature = "mlabel -> periods";
     appendSignature("mlabels -> periods");
+    appendSignature("mplace -> periods");
     syntax    = "deftime ( _ )";
     meaning   = "Returns the periods containing the time intervals during which"
-                "the mlabel(s) is defined.";
+                "the mlabel(s) / mplace is defined.";
   }
 };
 
@@ -4932,6 +5222,7 @@ struct deftimeSymbolicInfo : OperatorInfo {
 
 atinstant: mlabel x instant -> ilabel
 atinstant: mlabels x instant -> ilabels
+atinstant: mplace x instant -> iplace
 
 \subsubsection{Type Mapping}
 
@@ -4945,10 +5236,13 @@ ListExpr atinstantSymbolicTM(ListExpr args) {
       if (MLabels::checkType(nl->First(args))) {
         return nl->SymbolAtom(ILabels::BasicType());
       }
+      if (MPlace::checkType(nl->First(args))) {
+        return nl->SymbolAtom(IPlace::BasicType());
+      }
     }
   }
   return listutils::typeError("Correct signature: mlabel x instant -> ilabel,"
-                              "   mlabels x instant -> ilabels");
+    "   mlabels x instant -> ilabels,   mplace x instant -> iplace");
 }
 
 /*
@@ -4975,6 +5269,7 @@ struct atinstantSymbolicInfo : OperatorInfo {
     name      = "atinstant";
     signature = "mlabel x instant -> ilabel";
     appendSignature("mlabels x instant -> ilabels");
+    appendSignature("mplace x instant -> iplace");
     syntax    = "_ atinstant _";
     meaning   = "Gets the intime value from a moving object corresponding to "
                 "the temporal value at the given instant.";
@@ -4986,6 +5281,7 @@ struct atinstantSymbolicInfo : OperatorInfo {
 
 units: mlabel -> (stream ulabel)
 units: mlabels -> (stream ulabels)
+units: mplace -> (stream uplace)
 
 \subsubsection{Type Mapping}
 
@@ -5000,9 +5296,13 @@ ListExpr unitsSymbolicTM(ListExpr args) {
       return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
                              nl->SymbolAtom(ULabels::BasicType()));
     }
+    if (MPlace::checkType(nl->First(args))) {
+      return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                             nl->SymbolAtom(UPlace::BasicType()));
+    }
   }
   return listutils::typeError("Correct signatures:  mlabel -> (stream ulabel),"
-                                              "   mlabels -> (stream ulabels)");
+    "   mlabels -> (stream ulabels),   mplace -> (stream uplace)");
 }
 
 /*
@@ -5061,8 +5361,10 @@ struct unitsSymbolicInfo : OperatorInfo {
     name      = "units";
     signature = "mlabel -> (stream ulabel)";
     appendSignature("mlabels -> (stream ulabels)");
+    appendSignature("mplace -> (stream uplace)");
     syntax    = "units ( _ )";
-    meaning = "Splits a mlabel(s) into its units and returns them as a stream.";
+    meaning = "Splits a mlabel(s) / mplace into its units and returns them "
+              "as a stream.";
   }
 };
 
@@ -5075,21 +5377,21 @@ initial: mlabel -> ilabel
 initial: mlabels -> ilabels
 initial: uplace -> iplace
 initial: uplaces -> iplaces
+initial: mplace -> iplace
 
 \subsubsection{Type Mapping}
 
 */
 ListExpr initialFinalSymbolicTM(ListExpr args) {
   if (nl->HasLength(args, 1)) {
-    if (ULabel::checkType(nl->First(args)) ||
-        MLabel::checkType(nl->First(args))) {
+    ListExpr first = nl->First(args);
+    if (ULabel::checkType(first) || MLabel::checkType(first)) {
       return nl->SymbolAtom(ILabel::BasicType());
     }
-    if (ULabels::checkType(nl->First(args)) ||
-        MLabels::checkType(nl->First(args))) {
+    if (ULabels::checkType(first) || MLabels::checkType(first)) {
       return nl->SymbolAtom(ILabels::BasicType());
     }
-    if (UPlace::checkType(nl->First(args))) {
+    if (UPlace::checkType(first) || MPlace::checkType(first)) {
       return nl->SymbolAtom(IPlace::BasicType());
     }
     if (UPlaces::checkType(nl->First(args))) {
@@ -5098,7 +5400,7 @@ ListExpr initialFinalSymbolicTM(ListExpr args) {
   }
   return listutils::typeError("Correct signature:  ulabel -> ilabel,   "
     "ulabels -> ilabels,   mlabel -> ilabel,   mlabels -> ilabels,   "
-    "uplace -> iplace,   uplaces -> iplaces");
+    "uplace -> iplace,   uplaces -> iplaces,   mplace -> iplace");
 }
 
 /*
@@ -5112,6 +5414,7 @@ int initialFinalSymbolicSelect(ListExpr args) {
   if (MLabels::checkType(nl->First(args))) return 3;
   if (UPlace::checkType(nl->First(args))) return 4;
   if (UPlaces::checkType(nl->First(args))) return 5;
+  if (MPlace::checkType(nl->First(args))) return 6;
   return -1;
 }
 
@@ -5142,9 +5445,10 @@ struct initialSymbolicInfo : OperatorInfo {
     appendSignature("mlabels -> ilabels");
     appendSignature("uplace -> iplace");
     appendSignature("uplaces -> iplaces");
+    appendSignature("mplace -> iplace");
     syntax    = "initial ( _ )";
     meaning   = "Returns the ilabel(s) belonging to the initial instant of the "
-                "ulabel(s) / mlabel(s) / uplace(s).";
+                "ulabel(s) / mlabel(s) / uplace(s) / mplace.";
   }
 };
 
@@ -5157,6 +5461,7 @@ final: mlabel -> ilabel
 final: mlabels -> ilabels
 final: uplace -> iplace
 final: uplaces -> iplaces
+final: mplace -> iplace
 
 \subsubsection{Value Mapping}
 
@@ -5184,9 +5489,10 @@ struct finalSymbolicInfo : OperatorInfo {
     appendSignature("mlabels -> ilabels");
     appendSignature("uplace -> iplace");
     appendSignature("uplaces -> iplaces");
+    appendSignature("mplace -> iplace");
     syntax    = "final ( _ )";
     meaning   = "Returns the ilabel(s) belonging to the final instant of the "
-                "ulabel(s) / mlabel(s) / uplace(s).";
+                "ulabel(s) / mlabel(s) / uplace(s) / mplace.";
   }
 };
 
@@ -8339,181 +8645,189 @@ class SymbolicTrajectoryAlgebra : public Algebra {
  public:
   SymbolicTrajectoryAlgebra() : Algebra() {
 
-    AddTypeConstructor(&labelTC);
-    AddTypeConstructor(&intimelabel);
-    AddTypeConstructor(&unitlabel);
-    AddTypeConstructor(&movinglabel);
-    AddTypeConstructor(&labelsTC);
-    AddTypeConstructor(&intimelabels);
-    AddTypeConstructor(&unitlabels);
-    AddTypeConstructor(&movinglabels);
-    
-    AddTypeConstructor(&place);
-    AddTypeConstructor(&places);
-    AddTypeConstructor(&iplace);
-    AddTypeConstructor(&iplaces);
-    AddTypeConstructor(&uplace);
-    AddTypeConstructor(&uplaces);
+  AddTypeConstructor(&labelTC);
+  AddTypeConstructor(&intimelabel);
+  AddTypeConstructor(&unitlabel);
+  AddTypeConstructor(&movinglabel);
+  AddTypeConstructor(&labelsTC);
+  AddTypeConstructor(&intimelabels);
+  AddTypeConstructor(&unitlabels);
+  AddTypeConstructor(&movinglabels);
+  
+  AddTypeConstructor(&place);
+  AddTypeConstructor(&places);
+  AddTypeConstructor(&iplace);
+  AddTypeConstructor(&iplaces);
+  AddTypeConstructor(&uplace);
+  AddTypeConstructor(&uplaces);
+  AddTypeConstructor(&mplace);
 
-    labelTC.AssociateKind(Kind::DATA());
-    intimelabel.AssociateKind(Kind::DATA());
-    intimelabel.AssociateKind(Kind::TEMPORAL());
-    unitlabel.AssociateKind(Kind::DATA());
-    unitlabel.AssociateKind(Kind::TEMPORAL());
-    movinglabel.AssociateKind(Kind::DATA());
-    movinglabel.AssociateKind(Kind::TEMPORAL());
-    
-    labelsTC.AssociateKind(Kind::DATA());
-    intimelabels.AssociateKind(Kind::DATA());
-    intimelabels.AssociateKind(Kind::TEMPORAL());
-    unitlabels.AssociateKind(Kind::DATA());
-    unitlabels.AssociateKind(Kind::TEMPORAL());
-    movinglabels.AssociateKind(Kind::DATA());
-    movinglabels.AssociateKind(Kind::TEMPORAL());
-    
-    place.AssociateKind(Kind::DATA());    
-    iplace.AssociateKind(Kind::DATA());
-    iplace.AssociateKind(Kind::TEMPORAL());
-    uplace.AssociateKind(Kind::DATA());
-    uplace.AssociateKind(Kind::TEMPORAL());
-    
-    places.AssociateKind(Kind::DATA());
-    iplaces.AssociateKind(Kind::DATA());
-    iplaces.AssociateKind(Kind::TEMPORAL());
-    uplaces.AssociateKind(Kind::DATA());
-    uplaces.AssociateKind(Kind::TEMPORAL());
+  labelTC.AssociateKind(Kind::DATA());
+  intimelabel.AssociateKind(Kind::DATA());
+  intimelabel.AssociateKind(Kind::TEMPORAL());
+  unitlabel.AssociateKind(Kind::DATA());
+  unitlabel.AssociateKind(Kind::TEMPORAL());
+  movinglabel.AssociateKind(Kind::DATA());
+  movinglabel.AssociateKind(Kind::TEMPORAL());
+  
+  labelsTC.AssociateKind(Kind::DATA());
+  intimelabels.AssociateKind(Kind::DATA());
+  intimelabels.AssociateKind(Kind::TEMPORAL());
+  unitlabels.AssociateKind(Kind::DATA());
+  unitlabels.AssociateKind(Kind::TEMPORAL());
+  movinglabels.AssociateKind(Kind::DATA());
+  movinglabels.AssociateKind(Kind::TEMPORAL());
+  
+  place.AssociateKind(Kind::DATA());    
+  iplace.AssociateKind(Kind::DATA());
+  iplace.AssociateKind(Kind::TEMPORAL());
+  uplace.AssociateKind(Kind::DATA());
+  uplace.AssociateKind(Kind::TEMPORAL());
+  mplace.AssociateKind(Kind::DATA());
+  mplace.AssociateKind(Kind::TEMPORAL());
+  
+  places.AssociateKind(Kind::DATA());
+  iplaces.AssociateKind(Kind::DATA());
+  iplaces.AssociateKind(Kind::TEMPORAL());
+  uplaces.AssociateKind(Kind::DATA());
+  uplaces.AssociateKind(Kind::TEMPORAL());
 
-    AddTypeConstructor(&patternTC);
-    AddTypeConstructor(&classifierTC);
+  AddTypeConstructor(&patternTC);
+  AddTypeConstructor(&classifierTC);
 
-    ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
-    
-    AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);
+  ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
+  
+  AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);
 
-    AddOperator(tostringInfo(), tostringVM, tostringTM);
+  AddOperator(tostringInfo(), tostringVM, tostringTM);
 
-    AddOperator(totextInfo(), totextVM, totextTM);
-    
-    AddOperator(mstringtomlabelInfo(), mstringtomlabelVM, mstringtomlabelTM);
+  AddOperator(totextInfo(), totextVM, totextTM);
+  
+  AddOperator(mstringtomlabelInfo(), mstringtomlabelVM, mstringtomlabelTM);
 
-    ValueMapping containsVMs[] = {containsVM<Labels, Label>,
-                                  containsVM<Places, Place>, 0};
-    AddOperator(containsInfo(), containsVMs, containsSelect, containsTM);
-    
-    AddOperator(toplaceInfo(), toplaceVM, toplaceTM);
-    
-    AddOperator(nameInfo(), nameVM, nameTM);
-    
-    AddOperator(refInfo(), refVM, refTM);
+  ValueMapping containsVMs[] = {containsVM<Labels, Label>,
+                                containsVM<Places, Place>, 0};
+  AddOperator(containsInfo(), containsVMs, containsSelect, containsTM);
+  
+  AddOperator(toplaceInfo(), toplaceVM, toplaceTM);
+  
+  AddOperator(nameInfo(), nameVM, nameTM);
+  
+  AddOperator(refInfo(), refVM, refTM);
 
-    ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
-      the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,
-      the_unitSymbolicVM<Places, UPlaces>, 0};
-    AddOperator(the_unitSymbolicInfo(), the_unitSymbolicVMs,
-                the_unitSymbolicSelect, the_unitSymbolicTM);
-    
-    ValueMapping makemvalueSymbolicVMs[] = {makemvalueSymbolicVM<ULabel, 
-                            MLabel>, makemvalueSymbolicVM<ULabels, MLabels>, 0};
-    AddOperator(makemvalueSymbolicInfo(), makemvalueSymbolicVMs,
-                makemvalueSymbolicSelect, makemvalueSymbolic_TM);
-    
-    ValueMapping passesSymbolicVMs[] = {passesSymbolicVM<MLabel, Label>,
-        passesSymbolicVM<MLabels, Label>, passesSymbolicVM<MLabels, Labels>, 0};
-    AddOperator(passesSymbolicInfo(), passesSymbolicVMs, atPassesSymbolicSelect,
-                passesSymbolicTM);
-    
-    ValueMapping atSymbolicVMs[] = {atSymbolicVM<MLabel, Label>,
-                atSymbolicVM<MLabels, Label>, atSymbolicVM<MLabels, Labels>, 0};
-    AddOperator(atSymbolicInfo(), atSymbolicVMs, atPassesSymbolicSelect, 
-                atSymbolicTM);
-    
-    ValueMapping deftimeSymbolicVMs[] = {deftimeSymbolicVM<MLabel>,
-                                         deftimeSymbolicVM<MLabels>, 0};
-    AddOperator(deftimeSymbolicInfo(), deftimeSymbolicVMs, 
-                deftimeUnitsAtinstantSymbolicSelect, deftimeSymbolicTM);
-    
-    ValueMapping atinstantSymbolicVMs[] = {atinstantSymbolicVM<MLabel, ILabel>,
-                                      atinstantSymbolicVM<MLabels, ILabels>, 0};
-    AddOperator(atinstantSymbolicInfo(), atinstantSymbolicVMs,
-                deftimeUnitsAtinstantSymbolicSelect, atinstantSymbolicTM);
-    
-    ValueMapping unitsSymbolicVMs[] = {unitsSymbolicVM<MLabel, ULabel>,
-                                       unitsSymbolicVM<MLabels, ULabels>, 0};
-    AddOperator(unitsSymbolicInfo(), unitsSymbolicVMs, 
-                deftimeUnitsAtinstantSymbolicSelect, unitsSymbolicTM);
-    
-    ValueMapping initialSymbolicVMs[] = {initialSymbolicVM<ULabel, ILabel>,
-      initialSymbolicVM<ULabels, ILabels>, initialSymbolicVM<MLabel, ILabel>,
-      initialSymbolicVM<MLabels, ILabels>, initialSymbolicVM<UPlace, IPlace>,
-      initialSymbolicVM<UPlaces, IPlaces>, 0};
-    AddOperator(initialSymbolicInfo(), initialSymbolicVMs, 
-                initialFinalSymbolicSelect, initialFinalSymbolicTM);
-    
-    ValueMapping finalSymbolicVMs[] = {finalSymbolicVM<ULabel, ILabel>,
-      finalSymbolicVM<ULabels, ILabels>, finalSymbolicVM<MLabel, ILabel>,
-      finalSymbolicVM<MLabels, ILabels>, finalSymbolicVM<UPlace, IPlace>,
-      finalSymbolicVM<UPlaces, IPlaces>, 0};
-    AddOperator(finalSymbolicInfo(), finalSymbolicVMs, 
-                initialFinalSymbolicSelect, initialFinalSymbolicTM);
-    
-    ValueMapping valSymbolicVMs[] = {valSymbolicVM<ILabel, Label>,
-      valSymbolicVM<ILabels, Labels>, valSymbolicVM<IPlace, Place>,
-      valSymbolicVM<IPlaces, Places>, 0};
-    AddOperator(valSymbolicInfo(), valSymbolicVMs, valInstSymbolicSelect,
-                valSymbolicTM);
-    
-    ValueMapping instSymbolicVMs[] = {instSymbolicVM<ILabel>,
-      instSymbolicVM<ILabels>, instSymbolicVM<IPlace>, instSymbolicVM<IPlaces>,
-      0};
-    AddOperator(instSymbolicInfo(), instSymbolicVMs, valInstSymbolicSelect,
-                instSymbolicTM);
-    
-    AddOperator(insideSymbolicInfo(), insideSymbolicVM, insideSymbolicTM);
-        
-    AddOperator(topatternInfo(), topatternVM, topatternTM);
+  ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
+    the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,
+    the_unitSymbolicVM<Places, UPlaces>, 0};
+  AddOperator(the_unitSymbolicInfo(), the_unitSymbolicVMs,
+              the_unitSymbolicSelect, the_unitSymbolicTM);
+  
+  ValueMapping makemvalueSymbolicVMs[] = {makemvalueSymbolicVM<ULabel, MLabel>,
+    makemvalueSymbolicVM<ULabels, MLabels>, makemvalueSymbolicVM<UPlace,MPlace>,
+    0};
+  AddOperator(makemvalueSymbolicInfo(), makemvalueSymbolicVMs,
+              makemvalueSymbolicSelect, makemvalueSymbolic_TM);
+  
+  ValueMapping passesSymbolicVMs[] = {passesSymbolicVM<MLabel, Label>,
+    passesSymbolicVM<MLabels, Label>, passesSymbolicVM<MLabels, Labels>,
+    passesSymbolicVM<MPlace, Place>, 0};
+  AddOperator(passesSymbolicInfo(), passesSymbolicVMs, atPassesSymbolicSelect,
+              passesSymbolicTM);
+  
+  ValueMapping atSymbolicVMs[] = {atSymbolicVM<MLabel, Label>,
+    atSymbolicVM<MLabels, Label>, atSymbolicVM<MLabels, Labels>,
+    atSymbolicVM<MPlace, Place>, 0};
+  AddOperator(atSymbolicInfo(), atSymbolicVMs, atPassesSymbolicSelect, 
+              atSymbolicTM);
+  
+  ValueMapping deftimeSymbolicVMs[] = {deftimeSymbolicVM<MLabel>,
+    deftimeSymbolicVM<MLabels>, deftimeSymbolicVM<MPlace>, 0};
+  AddOperator(deftimeSymbolicInfo(), deftimeSymbolicVMs, 
+              deftimeUnitsAtinstantSymbolicSelect, deftimeSymbolicTM);
+  
+  ValueMapping atinstantSymbolicVMs[] = {atinstantSymbolicVM<MLabel, ILabel>,
+    atinstantSymbolicVM<MLabels, ILabels>, atinstantSymbolicVM<MPlace, IPlace>,
+    0};
+  AddOperator(atinstantSymbolicInfo(), atinstantSymbolicVMs,
+              deftimeUnitsAtinstantSymbolicSelect, atinstantSymbolicTM);
+  
+  ValueMapping unitsSymbolicVMs[] = {unitsSymbolicVM<MLabel, ULabel>,
+    unitsSymbolicVM<MLabels, ULabels>, unitsSymbolicVM<MPlace, UPlace>, 0};
+  AddOperator(unitsSymbolicInfo(), unitsSymbolicVMs, 
+              deftimeUnitsAtinstantSymbolicSelect, unitsSymbolicTM);
+  
+  ValueMapping initialSymbolicVMs[] = {initialSymbolicVM<ULabel, ILabel>,
+    initialSymbolicVM<ULabels, ILabels>, initialSymbolicVM<MLabel, ILabel>,
+    initialSymbolicVM<MLabels, ILabels>, initialSymbolicVM<UPlace, IPlace>,
+    initialSymbolicVM<UPlaces, IPlaces>, initialSymbolicVM<MPlace, IPlace>,
+    0};
+  AddOperator(initialSymbolicInfo(), initialSymbolicVMs, 
+              initialFinalSymbolicSelect, initialFinalSymbolicTM);
+  
+  ValueMapping finalSymbolicVMs[] = {finalSymbolicVM<ULabel, ILabel>,
+    finalSymbolicVM<ULabels, ILabels>, finalSymbolicVM<MLabel, ILabel>,
+    finalSymbolicVM<MLabels, ILabels>, finalSymbolicVM<UPlace, IPlace>,
+    finalSymbolicVM<UPlaces, IPlaces>, finalSymbolicVM<MPlace, IPlace>, 0};
+  AddOperator(finalSymbolicInfo(), finalSymbolicVMs, 
+              initialFinalSymbolicSelect, initialFinalSymbolicTM);
+  
+  ValueMapping valSymbolicVMs[] = {valSymbolicVM<ILabel, Label>,
+    valSymbolicVM<ILabels, Labels>, valSymbolicVM<IPlace, Place>,
+    valSymbolicVM<IPlaces, Places>, 0};
+  AddOperator(valSymbolicInfo(), valSymbolicVMs, valInstSymbolicSelect,
+              valSymbolicTM);
+  
+  ValueMapping instSymbolicVMs[] = {instSymbolicVM<ILabel>,
+    instSymbolicVM<ILabels>, instSymbolicVM<IPlace>, instSymbolicVM<IPlaces>,
+    0};
+  AddOperator(instSymbolicInfo(), instSymbolicVMs, valInstSymbolicSelect,
+              instSymbolicTM);
+  
+  AddOperator(insideSymbolicInfo(), insideSymbolicVM, insideSymbolicTM);
+      
+  AddOperator(topatternInfo(), topatternVM, topatternTM);
 
-    AddOperator(toclassifierInfo(), toclassifierVM, toclassifierTM);
+  AddOperator(toclassifierInfo(), toclassifierVM, toclassifierTM);
 
-    AddOperator(&matches);
-    matches.SetUsesArgsInTypeMapping();
-    
-    ValueMapping indexmatchesVMs[] = {indexmatchesVM_T, indexmatchesVM_P, 0};
-    AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
-                indexmatchesTM);
+  AddOperator(&matches);
+  matches.SetUsesArgsInTypeMapping();
+  
+  ValueMapping indexmatchesVMs[] = {indexmatchesVM_T, indexmatchesVM_P, 0};
+  AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
+              indexmatchesTM);
 
-    ValueMapping filtermatchesVMs[] = {filtermatchesVM_T,
-                                        filtermatchesVM_P, 0};
-    AddOperator(filtermatchesInfo(), filtermatchesVMs, filtermatchesSelect,
-                filtermatchesTM);
-    
-    ValueMapping rewriteVMs[] = {rewriteVM_T, rewriteVM_P,
-                                  rewriteVM_Stream, 0};
-    AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTM);
+  ValueMapping filtermatchesVMs[] = {filtermatchesVM_T,
+                                      filtermatchesVM_P, 0};
+  AddOperator(filtermatchesInfo(), filtermatchesVMs, filtermatchesSelect,
+              filtermatchesTM);
+  
+  ValueMapping rewriteVMs[] = {rewriteVM_T, rewriteVM_P,
+                                rewriteVM_Stream, 0};
+  AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTM);
 
-    AddOperator(classifyInfo(), classifyVM, classifyTM);
+  AddOperator(classifyInfo(), classifyVM, classifyTM);
 
-    AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTM);
+  AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTM);
 
-    ValueMapping compressVMs[] = {compressVM_1<MLabel>,
-                                  compressVM_1<MString>,
-                                  compressVM_Str<MLabel>,
-                                  compressVM_Str<MString>, 0};
-    AddOperator(compressInfo(), compressVMs, compressSelect, compressTM);
+  ValueMapping compressVMs[] = {compressVM_1<MLabel>,
+                                compressVM_1<MString>,
+                                compressVM_Str<MLabel>,
+                                compressVM_Str<MString>, 0};
+  AddOperator(compressInfo(), compressVMs, compressSelect, compressTM);
 
-    ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>,
-                                  fillgapsVM_1<MString>,
-                                  fillgapsVM_Str<MLabel>,
-                                  fillgapsVM_Str<MString>, 0};
-    AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect, fillgapsTM);
+  ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>,
+                                fillgapsVM_1<MString>,
+                                fillgapsVM_Str<MLabel>,
+                                fillgapsVM_Str<MString>, 0};
+  AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect, fillgapsTM);
 
-    AddOperator(createmlInfo(), createmlVM, createmlTM);
+  AddOperator(createmlInfo(), createmlVM, createmlTM);
 
-    AddOperator(createmlrelationInfo(), createmlrelationVM,
-                createmlrelationTM);
+  AddOperator(createmlrelationInfo(), createmlrelationVM,
+              createmlrelationTM);
 
 //       AddOperator(createindexInfo(), createindexVM, createindexTM);
 
-    AddOperator(createtrieInfo(), createtrieVM, createtrieTM);
+  AddOperator(createtrieInfo(), createtrieVM, createtrieTM);
 
 //       AddOperator(triptompointInfo(), triptompointVM, triptompointTM);
 
