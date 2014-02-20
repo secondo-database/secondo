@@ -1295,11 +1295,12 @@ In order to quickly find whether the asked flob file is prepared.
   int *sheetCounter;            //the number of sent sheet for each DS
   size_t maxBufferSize, maxSheetSize;
 
-  static const size_t PipeWidth = 20;
+  static const size_t PipeWidth = 10;
   bool tokenPass[PipeWidth];
   pthread_t threadID[PipeWidth];
   static pthread_mutex_t FFLI_mutex;
   static void* sendSheetThread1(void* ptr);
+  static void* sendSheetThread2(void* ptr);
   static void* sendSheetThread(void* ptr);
   bool sendSheet(FlobSheet* fs);
 };

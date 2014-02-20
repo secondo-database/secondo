@@ -6027,12 +6027,12 @@ For each Flob with mode 3, its elements mean:
                   bool full = fs->addOrder(*flob, fileOffset);
                   bool ok = false;
                   if (full){
-                	while(true){
-                	  if (sendSheet(fs)){
-                		standby->at(source) = 0;
-                		break;
-                	  }
-                	}
+                    while(true){
+                      if (sendSheet(fs)){
+                        standby->at(source) = 0;
+                        break;
+                      }
+                    }
                   } else {
                     ok = true;
                   }
@@ -6312,7 +6312,7 @@ TargetPath :  string
   return NULL;
 }
 
-void* FetchFlobLocalInfo::sendSheetThread(void* ptr)
+void* FetchFlobLocalInfo::sendSheetThread2(void* ptr)
 {
 
   FFLI_Thread* ft = (FFLI_Thread*)ptr;
@@ -6408,6 +6408,115 @@ The askFlob program asks the following parameters:
   if (atimes == 0){
     cerr << "Warning!! Processing command: " << command << " fails" << endl;
   }
+
+  // after getting all result flob files
+  pthread_mutex_lock(&FFLI_mutex);
+  ffli->fetching2prepared(fs);
+  ffli->tokenPass[token] = false;
+  pthread_mutex_unlock(&FFLI_mutex);
+
+  return NULL;
+}
+
+
+void* FetchFlobLocalInfo::sendSheetThread(void* ptr)
+{
+  FFLI_Thread* ft = (FFLI_Thread*)ptr;
+  FetchFlobLocalInfo* ffli = ft->ffli;
+  FlobSheet* fs = ft->sheet;
+  int token = ft->token;
+
+/*
+Start a socket request to the remote collectFlobServer,
+it asks the following parameters:
+
+  * sheetName
+
+  * resultName
+
+  * sourcePSFS
+
+  * clientPSFS (start with IP address)
+
+*/
+
+  int server = fs->getSource();
+  int client = fs->getDest();
+  string localSheetPath = fs->getSheetPath();
+  string sheetName = localSheetPath.substr(
+      localSheetPath.find_last_of("/") + 1);
+  string resultFlobFilePath = fs->getResultFile();
+  string resultFlobFileName =
+      resultFlobFilePath.substr(resultFlobFilePath.find_last_of("/") + 1);
+  string sourcePSFS = ffli->getPSFSPath(server, false);
+  string clientPSFS = ffli->getPSFSPath(client, true);
+
+  string serverIP = ffli->getIP(server);
+  //By default I set the cfbServer port as the miniSec port plus 1
+  int serverPort = ffli->getPort(server) + 1;
+
+  struct sockaddr_in my_addr;
+  char buffer[1024];
+  int buffer_len = 1024;
+  int bytecount;
+  int hsock;
+  int* p_int;
+
+  hsock = socket(AF_INET, SOCK_STREAM, 0);
+  if (hsock == -1){
+    cerr << "Error!! Initializing socket fails: " << errno << endl;
+    return NULL;
+  }
+
+  p_int = (int*)malloc(sizeof(int));
+  *p_int = 1;
+  if ((setsockopt(hsock, SOL_SOCKET, SO_REUSEADDR,
+        (char*)p_int, sizeof(int)) == -1)
+    ||(setsockopt(hsock, SOL_SOCKET, SO_KEEPALIVE,
+        (char*)p_int, sizeof(int)) == -1)){
+    cerr << "Error!! Setting socket options fails: " << errno << endl;
+    free(p_int);
+    return NULL;
+  }
+  free(p_int);
+
+  my_addr.sin_family = AF_INET;
+  my_addr.sin_port = htons(serverPort);
+  memset(&(my_addr.sin_zero), 0, 8);
+  my_addr.sin_addr.s_addr = inet_addr(serverIP.c_str());
+  if ( connect(hsock, (struct sockaddr*)&my_addr, sizeof(my_addr)) == -1){
+    if (errno != EINPROGRESS){
+      cerr << "Error!! Connecting socket fails: " << errno << endl;
+      return NULL;
+    }
+  }
+
+  ostringstream ss;
+  ss << sheetName << " " << resultFlobFileName
+      << " " << sourcePSFS << " " << clientPSFS;
+  string args = ss.str();
+  memset(buffer, '\0', buffer_len);
+  memcpy(buffer, args.c_str(), args.length());
+
+  if ((bytecount = send(hsock, buffer, strlen(buffer), 0)) == -1){
+    cerr << "Error!! sending data fails: " << errno << endl;
+    return NULL;
+  }
+
+  if ((bytecount = recv(hsock, buffer, buffer_len, 0)) == -1){
+    cerr << "Error!! Receiving data fails: " << errno << endl;
+    return NULL;
+  }
+
+  bool res;
+  memcpy(&res, buffer, sizeof(bool));
+  if (!res){
+    cerr << "Error!! Cannot get the result file. " << endl;
+  }
+  if (FileSystem::FileOrFolderExists(localSheetPath)){
+    FileSystem::DeleteFileOrFolder(localSheetPath);
+  }
+  close(hsock);
 
   // after getting all result flob files
   pthread_mutex_lock(&FFLI_mutex);

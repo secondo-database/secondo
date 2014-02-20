@@ -85,7 +85,6 @@ void* ProcessRequest(void*);
 void* TraverseRequest(void*);
 bool collectFlob(string request);
 
-
 const int MAX_COPYTIMES = 20;
 queue<pair<string, int*> > requests;
 pthread_mutex_t CFBS_mutex;
@@ -113,7 +112,8 @@ int main(){
   //Read the port for collectFlobServer
   string config = string(getenv("SECONDO_CONFIG"));
   int host_port = string2int(SmiProfile::GetParameter(
-      "ParallelSecondo","CFBServPort", "", config));
+      "Environment","SecondoPort", "", config)) + 1;
+
 
   struct sockaddr_in my_addr;
   int hsock;
@@ -167,24 +167,6 @@ int main(){
   pthread_detach(trvsTID);
 
   while(true){
-    //Process all received requests first
-//    if (!requests.empty()){
-//      for (size_t t = 0; t < PipeWidth; t++){
-//        if (tokenPass[t] || pthread_kill(threadId[t], 0))
-//        {
-//          pair<string, int*> r = requests.front();
-//          tokenPass[t] = true;
-//          Prcv_Thread* pt = new Prcv_Thread(r, t);
-//          pthread_create(&threadId[t], 0, &ProcessRequest, (void*)pt);
-//          requests.pop();
-//        }
-//
-//        if (requests.empty()){
-//          break;
-//        }
-//      }
-//    }
-
     csock = (int*)malloc(sizeof(int));
     if((*csock = accept(hsock, (sockaddr*)&sadr, &addr_size))!= -1){
       //Put it into the queue first
@@ -217,7 +199,7 @@ void* ReceiveRequest(void* lp)
   string args(buffer, find(buffer, buffer + buffer_len, '\0'));
 
   pthread_mutex_lock(&CFBS_mutex);
-  cerr << "Received: " << args << endl;
+//  cerr << "Received: " << args << endl;
   requests.push(make_pair(args, csock));
   pthread_mutex_unlock(&CFBS_mutex);
 
@@ -278,19 +260,12 @@ bool collectFlob(string request)
 {
   istringstream ss(request);
   //The destPSFS contains the remote IP
-  string sheetName, resultName, localPSFS, destPSFS;
-  ss >> sheetName >> resultName >> localPSFS >> destPSFS;
-
-  pthread_mutex_lock(&CFBS_mutex);
-  cerr << "sheetName: " << sheetName << endl;
-  cerr << "resultName: " << resultName << endl;
-  cerr << "localPSFS: " << localPSFS << endl;
-  cerr << "destPSFS: " << destPSFS << endl;
-  pthread_mutex_unlock(&CFBS_mutex);
+  string sheetName, resultName, serverPSFS, clientPSFS;
+  ss >> sheetName >> resultName >> serverPSFS >> clientPSFS;
 
   //1. Fetch the sheet
-  string command = "scp -q" + destPSFS + "/" + sheetName
-      + " " + localPSFS;
+  string command = "scp -q " + clientPSFS + "/" + sheetName
+      + " " + serverPSFS;
   int atimes = MAX_COPYTIMES;
   while( atimes-- > 0 ){
     if (0 == system(command.c_str())){
@@ -300,10 +275,10 @@ bool collectFlob(string request)
       sleep(1);
     }
   }
-  if (atimes <= 0){
+  if (atimes < 0){
     pthread_mutex_lock(&CFBS_mutex);
     cerr << "Error!! Fetching the sheet file "
-        << destPSFS << "/" << sheetName << " fails" << endl;
+        << clientPSFS << "/" << sheetName << " fails" << endl;
     pthread_mutex_unlock(&CFBS_mutex);
     return false;
   }
@@ -313,8 +288,8 @@ bool collectFlob(string request)
   map< u_int32_t, ifstream* >::iterator it;
   ifstream* flobFile = 0;
 
-  string sheetFilePath = localPSFS + "/" + sheetName;
-  string resultFilePath = localPSFS + "/tmp_" + resultName;
+  string sheetFilePath = serverPSFS + "/" + sheetName;
+  string resultFilePath = serverPSFS + "/tmp_" + resultName;
   ifstream sheetFile(sheetFilePath.c_str());
   ofstream resultFile(resultFilePath.c_str(), ios::binary);
 
@@ -361,7 +336,7 @@ bool collectFlob(string request)
     {
       it = flobFiles.find(fileId);
       if ( it == flobFiles.end()){
-        string flobFileName = localPSFS + "/flobFile_" + int2string(fileId);
+        string flobFileName = serverPSFS + "/flobFile_" + int2string(fileId);
         flobFile = new ifstream(flobFileName.c_str(), ios::binary);
         flobFiles[fileId] = flobFile;
         it = flobFiles.find(fileId);
@@ -388,7 +363,7 @@ bool collectFlob(string request)
   sheetFile.close();
 
   //3. Send the result
-  command = "scp -q " + resultFilePath + " " + destPSFS + "/" + resultName;
+  command = "scp -q " + resultFilePath + " " + clientPSFS + "/" + resultName;
   atimes = MAX_COPYTIMES;
   while ( atimes-- > 0){
     if ( 0 == system(command.c_str())){
@@ -407,6 +382,10 @@ bool collectFlob(string request)
     else {
       sleep(1);
     }
+  }
+  if (atimes < 0){
+    cerr << "Error!! sending the result flob file fails" << endl;
+    return false;
   }
 
   return true;

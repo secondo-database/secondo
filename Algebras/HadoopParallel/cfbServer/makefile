@@ -16,7 +16,7 @@ ifndef $(BERKELEY_DB_LIB)
 endif
 
 .PHONY: all
-all: app$(EXEEXT)
+all: collectFlobServer$(EXEEXT)
 
 
 LDFLAGS:=-L$(SECONDO_BUILD_DIR)/api_cpp/direct/lib/ -lsecondo -lpthread   -lfl -ly -lstdc++ 
@@ -34,7 +34,7 @@ endif
 
 LDFLAGS += -lpthread
 
-app$(EXEEXT): collectFlobServer.o
+collectFlobServer$(EXEEXT): collectFlobServer.o
 	$(CPPC) -o collectFlobServer$(EXEEXT) collectFlobServer.o  $(LDFLAGS)
 	cp collectFlobServer$(EXEEXT) $(SECONDO_BUILD_DIR)/bin
 
@@ -43,5 +43,5 @@ collectFlobServer.o: collectFlobServer.cpp
 
 .PHONY:clean
 clean:
-	rm -f askFlob$(EXEEXT) askFlob.o
+	rm -f collectFlobServer$(EXEEXT) collectFlobServer.o
 
