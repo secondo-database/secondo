@@ -25,8 +25,7 @@ cd $dir
 git clone https://github.com/datastax/cpp-driver.git
 cd cpp-driver
 
-# Build the driver
-# on RPM based distributions, you can build
+# On RPM based distributions, you can build
 # the driver with: 
 # cmake . && make && make cql_demo && make cql_test && make test && make install
 
