@@ -86,8 +86,10 @@ struct classCompPair
 void* ReceiveRequest(void*);
 void* ProcessRequest(void*);
 bool collectFlob(string request);
+void writeToFlobFile(char*, char*, size_t, ofstream*, size_t&);
 
 const int MAX_COPYTIMES = 20;
+const size_t bufferLen = 16 * 1024 * 1024;
 queue<pair<string, int*> > requests;
 pthread_mutex_t CFBS_mutex;
 const size_t PipeWidth = 1;
@@ -129,7 +131,7 @@ int main(){
   int* csock;
   sockaddr_in sadr;
 
-  pthread_t recvTID = 0, trvsTID = 0;
+  pthread_t recvTID = 0;
 
   memset(threadId, 0, sizeof(pthread_t)*PipeWidth);
 
@@ -289,6 +291,10 @@ bool collectFlob(string request)
   //Empty lobs are prepared for Flobs that have been created in another sheet
   set<pair<u_int32_t, size_t>, classCompPair<u_int32_t, size_t> > emptyLobs;
 
+  char* buffer = new char[bufferLen];
+  memset(buffer, 0, bufferLen);
+  size_t byteWritten = 0;
+
   string flobOrder;
   u_int32_t lastFileId = 0;
   while (getline(sheetFile, flobOrder))
@@ -311,7 +317,7 @@ bool collectFlob(string request)
 
       char block[size];
       memset(block, 0, size);
-      resultFile.write(block, size);
+      writeToFlobFile(buffer, block, size, &resultFile, byteWritten);
       continue;
     }
 
@@ -339,7 +345,7 @@ bool collectFlob(string request)
     flobFile = it->second;
     flobFile->seekg(offset, ios_base::beg);
     flobFile->read(block, size);
-    resultFile.write(block, size);
+    writeToFlobFile(buffer, block, size, &resultFile, byteWritten);
   }
 
   for (it = flobFiles.begin(); it != flobFiles.end(); it++)
@@ -350,8 +356,14 @@ bool collectFlob(string request)
     flobFile = 0;
   }
   flobFiles.clear();
+
+  if (byteWritten > 0){
+    //Clean the buffer;
+    resultFile.write(buffer, byteWritten);
+  }
   resultFile.close();
   sheetFile.close();
+  delete buffer;
 
   //3. Send the result
   command = "scp -q " + resultFilePath + " " + clientPSFS + "/" + resultName;
@@ -392,4 +404,18 @@ bool collectFlob(string request)
   return true;
 }
 
-
+void writeToFlobFile(char* buffer, char* data, size_t size,
+    ofstream* file, size_t& offset)
+{
+  if (offset + size < bufferLen){
+    //Write to the buffer as the priority,
+    memcpy(buffer + offset, data, size);
+    offset += size;
+  }
+  else {
+    //the file is written only when it cannot hold more
+    file->write(buffer, offset);
+    offset = 0;
+    memset(buffer, 0, bufferLen);
+  }
+}
