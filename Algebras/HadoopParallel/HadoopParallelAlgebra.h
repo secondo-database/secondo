@@ -1056,7 +1056,8 @@ private:
   size_t maxMem;
 
   string sheetFilePath;
-  ofstream* sheetFile;
+//  ofstream* sheetFile;
+  vector<string>* allOrders;
 
   map<pair<SmiFileId, SmiSize>, SmiSize> lobMarkers;
 };

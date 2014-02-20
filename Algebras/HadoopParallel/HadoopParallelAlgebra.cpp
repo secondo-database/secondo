@@ -6585,7 +6585,7 @@ FlobSheet::FlobSheet(int source, int dest, int times, int maxMemory):
       << times;
   sheetFilePath = ss.str();
   sheetFilePath = getLocalFilePath("", sheetFilePath, "");
-  sheetFile = new ofstream(sheetFilePath.c_str());
+  allOrders = new vector<string>();
 
 /*
 The random function makes the result Flob files being different,
@@ -6612,7 +6612,7 @@ then returns whether the sheet is full.
 */
 bool FlobSheet::addOrder (const Flob& flob, size_t& offset)
 {
-  assert(sheetFile);
+  assert(allOrders);
 
   if (cachedSize + flob.getSize() > maxMem){
     closeSheetFile();
@@ -6626,7 +6626,7 @@ bool FlobSheet::addOrder (const Flob& flob, size_t& offset)
     offset = cachedSize;
     lobMarkers.insert(make_pair(mlob, offset));
 
-    *sheetFile << flob.describe();
+    allOrders->push_back(flob.describe());
     cachedSize += flob.getSize();
   } else {
     offset = lobMarkers.find(mlob)->second;
@@ -6637,11 +6637,15 @@ bool FlobSheet::addOrder (const Flob& flob, size_t& offset)
 
 void FlobSheet::closeSheetFile()
 {
-  if (sheetFile){
-    sheetFile->close();
-    delete sheetFile;
-    sheetFile = 0;
+  ofstream sheetFile(sheetFilePath.c_str());
+  for ( vector<string>::iterator oit = allOrders->begin();
+      oit != allOrders->end(); oit++){
+    sheetFile << (*oit);
   }
+  sheetFile.close();
+  allOrders->clear();
+  delete allOrders;
+  allOrders = 0;
 }
 
 ostream& operator<<(ostream& os, const TupleFlobInfo& f){
