@@ -35,14 +35,15 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args) {
     MFaces ret;
     
+    if (sregs->empty() && dregs->empty()) // Nothing to do!
+        return ret;
+    
     cerr << "Entering depth " << depth << "\n";
 
     // Remember the original faces-lists from which the result was created.
     ret.sregs = sregs;
     ret.dregs = dregs;
 
-    if (sregs->empty() && dregs->empty()) // Nothing to do!
-        return ret;
 
     // Match the faces to pairs of faces in the source- and destination-realm
     // If we are in the evaporation (or condensation) phase, just try to match

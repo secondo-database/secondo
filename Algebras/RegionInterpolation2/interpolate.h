@@ -105,7 +105,7 @@ public:
 
     // Constructors
     Face();
-    Face(ListExpr le);   // Construct from NestedList
+    Face(ListExpr le, bool withHoles);   // Construct from NestedList
     Face(vector<Seg> v); // Construct from list of segments
     
     // Methods

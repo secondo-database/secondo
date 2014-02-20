@@ -17,7 +17,7 @@ Face::Face() : cur(0), ishole(false) {
   1.1 Constructs a face from a region-listexpression.
 
 */
-Face::Face(ListExpr tle) : cur(0), parent(NULL), ishole(false) {
+Face::Face(ListExpr tle, bool withHoles) : cur(0), parent(NULL), ishole(false) {
     ListExpr le = nl->First(tle);
     // Construct segments from the points
     while (nl->ListLength(le) > 1) {
@@ -42,9 +42,9 @@ Face::Face(ListExpr tle) : cur(0), parent(NULL), ishole(false) {
     Close(); // Close and sort the cycle
     
     // Construct the holes
-    while (nl->ListLength(tle) > 1) {
+    while (withHoles && nl->ListLength(tle) > 1) {
         tle = nl->Rest(tle);
-        Face hole(tle);
+        Face hole(tle, false);
         if (hole.v.size() < 3) // Invalid hole
             continue;
         hole.ishole = true;
@@ -505,7 +505,7 @@ vector<Face> Face::getFaces(ListExpr le) {
         // Iterate over all faces
         ListExpr l = nl->First(le);
         // Create a Face with optional holes from the current list-position
-        Face r(l);
+        Face r(l, true);
         if (r.isEmpty()) // Invalid face
             continue;
         ret.push_back(r);

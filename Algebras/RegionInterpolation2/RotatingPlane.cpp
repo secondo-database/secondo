@@ -114,7 +114,7 @@ RotatingPlane::RotatingPlane(Face *sreg, Face *dreg, int depth, bool evap) {
 */
 static Face getConcavity(Face *face, Face *hull, Face *peer) {
     Face concavity;
-
+    
     // hullSeg is the segment of the hull which shortcuts the concavity.
     concavity.hullSeg = hull->Cur();
     
