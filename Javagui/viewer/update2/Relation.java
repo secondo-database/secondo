@@ -344,7 +344,7 @@ public class Relation
 	 */
 	private boolean readValueFromLE(ListExpr ValueList) throws InvalidRelationException
 	{
-		//Reporter.debug("update2.Relation.readRelationValueFromLE : LE is " + ValueList);
+		//Reporter.debug("update2.Relation.readValueFromLE: LE is " + ValueList);
 		
 		ListExpr NextTuple;
 		ListExpr Rest = ValueList;
@@ -357,6 +357,7 @@ public class Relation
 			NextTuple = Rest.first();
 			if(NextTuple.listLength()!=this.relTypeInfo.getSize())  // wrong tuplelength
 			{
+				Reporter.debug("update2.Relation.readValueFromLE: NextTuple is " + NextTuple);
 				ok = false;
 			}
 			else
@@ -364,7 +365,6 @@ public class Relation
 				Tuple tuple = this.createEmptyTuple();
 				tuple.readValueFromLE(NextTuple);
 				this.addTuple(tuple);
-				//this.addTupleAsLE(NextTuple);
 			}
 			Rest = Rest.rest();
 		}

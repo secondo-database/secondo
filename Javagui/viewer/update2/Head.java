@@ -57,10 +57,18 @@ public class Head
 		ListExpr R = Type.first();
 		return (R.isAtom() 
 					&& (R.atomType()==ListExpr.SYMBOL_ATOM) 
-					&& (R.symbolValue().equals("rel") 
-						| R.symbolValue().equals("mrel")
-						| R.symbolValue().equals("trel"))
+					&& (Head.isRelationType(R.symbolValue()))
 				);
+	}
+	
+	public static boolean isRelationType(String pType)
+	{
+		return (pType.equals("rel") 
+				|| pType.equals("mrel")
+				|| pType.equals("trel")
+				|| pType.equals("orel")
+				|| pType.equals("nrel")
+				|| pType.equals("arel"));
 	}
 	
 	
@@ -68,13 +76,13 @@ public class Head
 		V.clear();
 		MaxTypeLength = 0;
 		MaxNameLength = 0;
-		if(LE.listLength()!=2) // (rel (tuple ... ))
+		if(LE.listLength()!=2) // should be (xrel (tuple ... ))
 			return false;
 		ListExpr TName = LE.first();
 		if(TName.atomType()!=ListExpr.SYMBOL_ATOM)
 			return false;
 		String Name = TName.symbolValue();
-		if( ! (Name.equals("rel") | Name.equals("mrel") | Name.equals("trel")))
+		if(!Head.isRelationType(Name))
 			return false;
 		
 		ListExpr Tuple = LE.second();
@@ -90,13 +98,13 @@ public class Head
 			return false;
 		
 		
-		ListExpr TupleValue = Tuple.second(); // should be ( <name type) (name type) ... )
+		ListExpr TupleValue = Tuple.second(); // should be ((name type)(name type)...)
 		boolean ok = true;
 		
 		
 		while (TupleValue.listLength()>0 & ok) {
 			ListExpr EntryList = TupleValue.first();
-			if(EntryList.listLength()!=2){  // (name type)
+			if(EntryList.listLength()!=2){  // should be (name type)
 				ok = false;
 			}
 			else{
@@ -105,12 +113,21 @@ public class Head
 				if(! (NameList.isAtom() && NameList.atomType()==ListExpr.SYMBOL_ATOM)){
 					ok =false;
 				}
-				if(!( TypeList.isAtom() && TypeList.atomType()==ListExpr.SYMBOL_ATOM)){
+				// allow non-atomar attributes as well, e.g. attribute relations
+				/*if(!( TypeList.isAtom() && TypeList.atomType()==ListExpr.SYMBOL_ATOM)){
 					ok = false;
+				}*/
+				boolean isAtom = (TypeList.isAtom() && TypeList.atomType()==ListExpr.SYMBOL_ATOM);
+				String typeValue;
+				if(isAtom) {
+					typeValue = TypeList.symbolValue();
+				}
+				else {
+					typeValue = TypeList.toString().trim();
 				}
 				if(ok){
-					V.add(new HeadEntry(NameList.symbolValue(),TypeList.symbolValue() ) );
-					MaxTypeLength = Math.max(MaxTypeLength,TypeList.symbolValue().length());
+					V.add(new HeadEntry(NameList.symbolValue(),typeValue,isAtom) );
+					MaxTypeLength = Math.max(MaxTypeLength,typeValue.length());
 					MaxNameLength = Math.max(MaxNameLength,NameList.symbolValue().length());
 				}
 			}

@@ -24,20 +24,20 @@
 package viewer.update2;
 
 
-class HeadEntry{
-  
- public HeadEntry(String Name, String Type){
-    this.Name = Name.trim();
-    this.Type = Type.trim();
-  } 
-
-  public String Name;
-  public String Type;
-
-  
-  public String toString(){
-    return Name +"  :  "+Type;
-  } 
-
+public class HeadEntry{
+	
+	public HeadEntry(String Name, String Type, boolean isAtomic){
+		this.Name = Name.trim();
+		this.Type = Type.trim();
+		this.Atomic = isAtomic;
+	} 
+	
+	public String Name;
+	public String Type;
+	public boolean Atomic;
+	
+	public String toString(){
+		return (Name + "  :  " + Type + (Atomic?"(Atom)":"(Non-Atom)"));
+	}
 }
 

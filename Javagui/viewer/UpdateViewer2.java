@@ -430,37 +430,6 @@ public class UpdateViewer2 extends SecondoViewer {
 	}
 	
 
-	
-	/**
-	 * Shows relations in different display modes: States.FORMAT, States.LOADED, States.LOADED_READ_ONLY.
-	
-	public void showRelations(int pState)
-	{
-		switch (pState)
-		{
-			case States.FORMAT:
-			{
-				if (this.formattedDocument != null)
-				{
-					this.remove(tabbedPane);
-					this.scpFormattedDocument.setViewportView(this.formattedDocument);
-					this.add(scpFormattedDocument, BorderLayout.CENTER);
-				}
-				break;
-			}
-			case States.LOADED:
-			case States.LOADED_READ_ONLY:
-			{
-				this.remove(scpFormattedDocument);
-				this.add(tabbedPane, BorderLayout.CENTER);
-				break;
-			}
-		}
-		this.validate();
-		this.repaint();	
-	}
-	 */
-
 	/*********************************************************
 	 * Methods of SecondoViewer
 	 *********************************************************/
@@ -559,10 +528,7 @@ public class UpdateViewer2 extends SecondoViewer {
 			if (!le.isAtom() && !le.isEmpty() && le.first().isAtom())
 			{
 				String objectType = le.first().symbolValue();
-				if (objectType.equals("rel") || objectType.equals("trel") || objectType.equals("mrel"))
-				{
-					return true;
-				}
+				return Head.isRelationType(objectType);
 			}
 		}
 		return false;

@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package viewer.update2.format;
 
-import gui.SecondoObject;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -38,7 +37,6 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.swing.JOptionPane;
 
-import sj.lang.*;
 import tools.Reporter;
 
 //import viewer.update2.gui.LoadDialog;
@@ -104,10 +102,9 @@ public class HtmlFormatter extends DocumentFormatter
 	/**
 	 * Returns page with format markup filled with tuple values and hidden markup.
 	 */
-	private String fillTemplateBody(Tuple pTuple)
+	private String fillTemplate(String pTemplate, Tuple pTuple) throws Exception
 	{
-		String page = this.getTemplateBody();
-		//Reporter.debug("HtmlFormatter.fillTemplateBody: templateBody=" + page.substring(0,1000));
+		String result = pTemplate;
 		
 		for (String aliasedName : pTuple.getTypeInfo().getAttributeNames())
 		{	
@@ -116,18 +113,36 @@ public class HtmlFormatter extends DocumentFormatter
 			String idName = this.getIdNameFromAliasedName(aliasedName);
 			
 			StringBuffer sb = new StringBuffer();
-			sb.append(createReferenceMarkup(relationName, attributeName, pTuple.getValueByAttrName(idName)));
-			sb.append(pTuple.getValueByAttrName(aliasedName));
+			sb.append(this.createReferenceMarkup(relationName, attributeName, pTuple.getValueByAttrName(idName)));
 			
-			page = page.replace("<<" + aliasedName + ">>", sb.toString());
+			if (pTuple.getTypeInfo().get(aliasedName).Atomic)
+			{
+				sb.append(pTuple.getValueByAttrName(aliasedName));
+			}
+			else
+			{
+				File templateFile = new File (this.outputDirectory + "templates/" + aliasedName);
+				String subTemplate = this.readFile(templateFile);
+				Relation arel = pTuple.getAttributeRelation(aliasedName);
+				
+				if (arel != null)
+				{
+					for (int i = 0; i< arel.getTupleCount(); i++)
+					{
+						sb.append(fillTemplate(subTemplate, arel.getTupleAt(i)));
+					}
+				}
+			}
+			
+			result = result.replace("<<" + aliasedName + ">>", sb.toString());
 		}
 		
 		// handle placeholders that could not be filled
-		page = page.replaceAll("<<", "&lt;&lt;");
-		page = page.replaceAll(">>", " NOT FOUND&gt;&gt;");
+		result = result.replaceAll("<<", "&lt;&lt;");
+		result = result.replaceAll(">>", " NOT FOUND&gt;&gt;");
 		
-		//Reporter.debug("HtmlFormatter.fillTemplateBody: page=" + page.substring(0,1000));
-		return page;
+		//Reporter.debug("HtmlFormatter.fillTemplate: page=" + page.substring(0,1000));
+		return result;
 	}
 	
 	
@@ -162,7 +177,7 @@ public class HtmlFormatter extends DocumentFormatter
 			{
 				StringBuffer sb = new StringBuffer();
 				sb.append(this.templateHead);
-				sb.append(this.fillTemplateBody(relation.getTupleAt(i)));
+				sb.append(this.fillTemplate(this.templateBody, relation.getTupleAt(i)));
 				sb.append(this.templateTail);
 				this.outputPages.add(sb.toString());
 				//Reporter.debug("HtmlFormatter.format: filled page=" + sb.toString().substring(0,100));
@@ -175,7 +190,7 @@ public class HtmlFormatter extends DocumentFormatter
 			sb.append(this.templateHead);
 			for (int i = 0; i<relation.getTupleCount(); i++)
 			{
-				sb.append(this.fillTemplateBody(relation.getTupleAt(i)));
+				sb.append(this.fillTemplate(this.templateBody, relation.getTupleAt(i)));
 			}
 			sb.append(this.getTemplateTail());
 			this.outputPages.add(sb.toString());
@@ -200,23 +215,6 @@ public class HtmlFormatter extends DocumentFormatter
 		}
 	}
 	
-	/**
-	 * Returns non-empty lines from the specified file.
-	 */
-	protected String readFile(File pFile) throws IOException
-	{
-		FileReader fileReader = new FileReader(pFile);
-		BufferedReader bufferedReader = new BufferedReader(fileReader);
-		StringBuffer sb = new StringBuffer();
-		String line;
-		while ((line = bufferedReader.readLine()) != null)
-		{
-			if (line!=null && !line.isEmpty())
-				sb.append(line);
-		}
-		fileReader.close();		
-		return sb.toString();
-	}
 	
 	/**
 	 * Returns a list of HTML pages read from the output directory
@@ -244,59 +242,34 @@ public class HtmlFormatter extends DocumentFormatter
 	 */
 	public void saveOutputPages()
 	{
-		String baseFileName = JOptionPane.showInputDialog(this.outputPages.size() 
-														  + " pages were created and will be saved in "
-														  + this.outputDirectory 
-														  + ". \nClick Cancel if you do not want to save the output to disk. "
-														  + " \nYou may change the base file name: "
-														  , "output");
+		long millisStart = System.currentTimeMillis();
 		
-		if (baseFileName != null && !baseFileName.isEmpty())
+		String filename;
+		FileWriter fileWriter;
+		PrintWriter printWriter;
+		String page;
+		
+		for (int i=0; i<outputPages.size(); i++)
 		{
-			long millisStart = System.currentTimeMillis();
-			
-			String filename;
-			FileWriter fileWriter;
-			PrintWriter printWriter;
-			String page;
-			
-			for (int i=0; i<outputPages.size(); i++)
+			page = (String)outputPages.get(i);
+			filename = getOutputDirectory() + this.outputFile + i + "." + HtmlFormatter.FILE_ENDING;
+			try
 			{
-				page = (String)outputPages.get(i);
-				filename = getOutputDirectory() + baseFileName + i + "." + HtmlFormatter.FILE_ENDING;
-				try
-				{
-					fileWriter = new FileWriter(filename);
-					printWriter = new PrintWriter(fileWriter);
-					printWriter.print((String)page);			
-					printWriter.close();
-				}
-				catch (IOException e)
-				{
-					Reporter.showError("Error while wrting formatted documents to disk: " + e.getMessage());
-					return;
-				}
+				fileWriter = new FileWriter(filename);
+				printWriter = new PrintWriter(fileWriter);
+				printWriter.print((String)page);			
+				printWriter.close();
 			}
-			long millis = System.currentTimeMillis() - millisStart;
-			Reporter.debug("HtmlFormatter.saveOutputPages: disk writing time (millis): " + millis);
+			catch (IOException e)
+			{
+				Reporter.showError("Error while writing formatted documents to disk: " + e.getMessage());
+				return;
+			}
 		}
+		long millis = System.currentTimeMillis() - millisStart;
+		Reporter.debug("HtmlFormatter.saveOutputPages: disk writing time (millis): " + millis);
+		
 	}
 	
-		/*
-	class FileSaver implements Runnable
-	{
-		private String baseName;
-		
-		FileSaver(String pBaseName)
-		{
-			this.baseName = pBaseName;
-		}
-		
-		public void run()
-		{
-			
-		}
-	}
-		 */
 		
 } 

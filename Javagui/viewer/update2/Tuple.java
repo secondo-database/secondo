@@ -19,6 +19,8 @@
 
 package viewer.update2;
 
+import gui.SecondoObject;
+
 import java.util.ArrayList;
 import java.util.List;
 import sj.lang.ListExpr;
@@ -81,8 +83,12 @@ public class Tuple
 			for(int i=0; i<this.typeInfo.getSize(); i++)
 			{
 				nextValue = pLE.first();
-				//Reporter.debug("Tuple.readValueFromLE: nextValue is " + nextValue.toString());
-				
+				if(!this.typeInfo.get(i).Atomic)
+				{
+					nextValue = nextValue.rest();
+					//Reporter.debug("Tuple.readValueFromLE: nextValue is " + nextValue.toString());
+				}
+
 				String val = AttributeFormatter.fromListExprToString(nextValue);
 				values.add(val);
 				
@@ -104,6 +110,19 @@ public class Tuple
 			result = true;
 		}
 		return result;
+	}
+	
+	
+	public Relation getAttributeRelation(String pAttrName) throws InvalidRelationException
+	{
+		HeadEntry info = this.typeInfo.get(pAttrName);
+		ListExpr le = new ListExpr();
+		le.readFromString("(" + info.Type + this.getValueByAttrName(pAttrName) +")");
+		//Reporter.debug("Tuple.getAttributeRelation: arel le =" + le.toString());
+		SecondoObject relationSO = new SecondoObject(pAttrName, le);
+		Relation arel = new Relation();
+		arel.readFromSecondoObject(relationSO);
+		return arel;
 	}
 
 	

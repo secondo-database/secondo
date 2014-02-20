@@ -48,6 +48,12 @@ public class RelationTypeInfo extends Head{
 		return result;
 	}
 	
+	public HeadEntry get(String pAttributeName)
+	{
+		int index = this.attributeNames.indexOf(pAttributeName);
+		return this.get(index);
+	}
+	
 	public List<String> getAttributeNames()
 	{
 		return this.attributeNames;

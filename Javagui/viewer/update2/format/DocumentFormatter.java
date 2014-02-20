@@ -62,6 +62,7 @@ public abstract class DocumentFormatter
 	protected String templateBody;
 	protected String templateTail;
 	protected String outputDirectory;
+	protected String outputFile;
 	protected List<Object> outputPages;
 	// alias -> relationname
 	protected Map<String,String> aliasMap;	
@@ -289,9 +290,18 @@ public abstract class DocumentFormatter
 		this.templateBody = pTemplateBody;
 		this.templateTail = pTemplateTail;
 		this.outputDirectory = pOutputDirectory;
- 		if (!this.outputDirectory.endsWith("/"))
+ 		if (this.outputDirectory.endsWith(System.getProperty("file.separator")))
 		{
-			this.outputDirectory += "/";
+			this.outputFile = "output";
+		}
+		else
+		{
+			File outDir = new File(this.outputDirectory);
+			Reporter.debug("DocumentFormatter.initialize: outDir name=" + outDir.getName());
+			Reporter.debug("DocumentFormatter.initialize: outDir absolutePath=" + outDir.getAbsolutePath());
+			Reporter.debug("DocumentFormatter.initialize: outDir canonicalPath=" + outDir.getCanonicalPath());
+			this.outputDirectory = outDir.getParent() + System.getProperty("file.separator");
+			this.outputFile = outDir.getName();
 		}
 	}
 	
@@ -349,6 +359,25 @@ public abstract class DocumentFormatter
 		relation.readFromSecondoObject(relationSO);	
 		
 		return relation;
+	}
+	
+	
+	/**
+	 * Returns content from specified file as string.
+	 */
+	protected String readFile(File pFile) throws IOException
+	{
+		FileReader fileReader = new FileReader(pFile);
+		BufferedReader bufferedReader = new BufferedReader(fileReader);
+		StringBuffer sb = new StringBuffer();
+		String line;
+		while ((line = bufferedReader.readLine()) != null)
+		{
+			if (line!=null && !line.isEmpty())
+				sb.append(line);
+		}
+		fileReader.close();		
+		return sb.toString();
 	}
 	
 	/**

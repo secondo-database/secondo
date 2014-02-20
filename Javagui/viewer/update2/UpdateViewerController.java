@@ -61,6 +61,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	private UpdateViewer2 viewer;
 	private int state;	
 	private LoadProfile loadProfile;
+	private DocumentFormatter formatter;
 	
 	// Name of relation which contain LoadProfiles
 	public final static String RELNAME_LOAD_PROFILES_HEAD = "uv2loadprofiles";
@@ -1009,6 +1010,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	{
 		this.viewer.clear();
 		this.loadProfile = null;
+		this.formatter = null;
 		if (this.formatDialog != null)
 		{
 			this.formatDialog.dispose();
@@ -1077,25 +1079,30 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	 */
 	private boolean processCommandFormat()
 	{
+
 		try
 		{
-			// init formatter
-			DocumentFormatter formatter = DocumentFormatter.createFormatter(this.loadProfile.getFormatType());
-			formatter.initialize(this.loadProfile.getFormatAliases(), 
-								 this.loadProfile.getFormatQuery(), 
-								 this.loadProfile.getOutputDirectory(),
-								 this.loadProfile.getFormatScript(),
-								 this.loadProfile.getFormatTemplateHead(),
-								 this.loadProfile.getFormatTemplateBody(),
-								 this.loadProfile.getFormatTemplateTail());
-			
-			Reporter.debug("UpdateViewerController.processCommandFormat: initialized " + formatter.toString());
-			
-			if (!formatter.hasTemplates())
+			if (this.formatter== null)
 			{
-				Reporter.showInfo("Format templates in load profile are not complete. \nWill use default templates. ");
+				// create formatter
+				this.formatter = DocumentFormatter.createFormatter(this.loadProfile.getFormatType());
+				
+				this.formatter.initialize(this.loadProfile.getFormatAliases(), 
+										  this.loadProfile.getFormatQuery(), 
+										  this.loadProfile.getOutputDirectory(),
+										  this.loadProfile.getFormatScript(),
+										  this.loadProfile.getFormatTemplateHead(),
+										  this.loadProfile.getFormatTemplateBody(),
+										  this.loadProfile.getFormatTemplateTail());
+				
+				Reporter.debug("UpdateViewerController.processCommandFormat: initialized " + formatter.toString());
+				
+				if (!formatter.hasTemplates())
+				{
+					Reporter.showInfo("Format templates in load profile are not complete. \nWill use default templates. ");
+				}
 			}
-			
+							
 			// should document come as separate pages or single-paged?
 			boolean separatePages = this.formatDialog.getSeparatePages();
 			// is there a script to be executed on the output?
