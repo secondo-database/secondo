@@ -124,11 +124,11 @@ class FlobId{
             offset == 0;
    }
 
-   inline char getMode(){ return mode;}
+   inline char getMode() const{ return mode;}
 
    inline SmiFileId getFileId() const { return fileId; }
 
-   inline SmiRecordId getRecordId(){ return recordId; }
+   inline SmiRecordId getRecordId() const { return recordId; }
 
    // support for very  dirty, non explainable things, don't think about any 
    // meaning of this funtion!

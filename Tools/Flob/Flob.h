@@ -512,11 +512,11 @@ creation of evil flobs.
    }
 
 
-   inline const char getMode(){
+   inline const char getMode() const{
      return id.getMode();
    }
 
-   inline const SmiRecordId getRecordId(){
+   inline const SmiRecordId getRecordId() const{
      return id.getRecordId();
    }
 
