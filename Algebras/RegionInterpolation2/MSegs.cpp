@@ -218,6 +218,7 @@ Face MSegs::CreateBorderFace(bool initial) {
             ret.push_back(Seg(points[j], points[j+1]));
         }
     }
+    f.holes.clear();
     f.v = ret;
     f.Sort();
     

@@ -11,7 +11,6 @@ import java.awt.*;
 import java.awt.event.*;
 import gui.SecondoObject;
 import java.util.LinkedList;
-import java.util.List;
 import javax.media.j3d.Appearance;
 import javax.media.j3d.Background;
 import javax.media.j3d.BoundingSphere;
@@ -22,10 +21,7 @@ import javax.media.j3d.Shape3D;
 import javax.media.j3d.Transform3D;
 import javax.media.j3d.TransformGroup;
 import javax.media.j3d.TriangleArray;
-import javax.vecmath.Color3b;
-import javax.vecmath.Color3f;
 import javax.vecmath.Point3d;
-import javax.vecmath.Point3f;
 import javax.vecmath.Vector3f;
 import sj.lang.ListExpr;
 import viewer.MenuVector;
@@ -47,6 +43,7 @@ public class V3DViewer extends SecondoViewer {
     public V3DViewer() {
         setLayout(new BorderLayout());
         add(BorderLayout.NORTH, ComboBox);
+        
         GraphicsConfigTemplate3D template = new GraphicsConfigTemplate3D();
         template.setDoubleBuffer(GraphicsConfigTemplate3D.PREFERRED);
         template.setSceneAntialiasing(GraphicsConfigTemplate3D.PREFERRED);
@@ -149,7 +146,9 @@ public class V3DViewer extends SecondoViewer {
     }
 
 
-    /* returns true if the object is a uregion or an mregion */
+    /* returns true if the object is a uregion or an mregion, which is all this
+    viewer can display.
+    */
     @Override
     public boolean canDisplay(SecondoObject o) {
         ListExpr LE = o.toListExpr();
@@ -165,16 +164,15 @@ public class V3DViewer extends SecondoViewer {
     }
 
 
-    /* returns the Menuextension of this viewer */
+    /* returns the additional Menu-Items of this viewer */
     public MenuVector getMenuVector() {
         return MV;
     }
 
-    /* returns Standard */
+    /* returns the name of the V3D-Viewer*/
     public String getName() {
         return "V3D";
     }
-
 
     /* select O */
     public boolean selectObject(SecondoObject O) {
@@ -188,24 +186,7 @@ public class V3DViewer extends SecondoViewer {
             return false;
         }
     }
-    private int cnr = 0;
-    private final Color3b[] colors = {
-        new Color3b(Color.RED),
-        new Color3b(Color.BLUE),
-        new Color3b(Color.YELLOW),
-        new Color3b(Color.GREEN),
-        new Color3b(Color.MAGENTA),
-        new Color3b(Color.CYAN),
-        new Color3b(Color.ORANGE),
-        new Color3b(Color.PINK),
-        new Color3b(Color.GRAY)
-    };
-
-    private Color3b nextColor() {
-        Color3b c = new Color3b(Color.RED);
-
-        return colors[cnr++ % colors.length];
-    }
+    
     BranchGroup bg = null;
 
     private void showObject() {
@@ -214,10 +195,9 @@ public class V3DViewer extends SecondoViewer {
         if (index >= 0) {
             try {
                 CurrentObject = (SecondoObject) ItemObjects.get(index);
-                LinkedList<Point3f> pl = new LinkedList();
-                LinkedList<Color3b> cl = new LinkedList();
-
-                List<Point3d> px = Face.MRegionList2Triangles(CurrentObject.toListExpr(), MI_CTransl.isSelected());
+                Face f = new Face(CurrentObject, MI_CTransl.isSelected(),
+                        MI_LightBackground.isSelected());
+                TriangleArray tri = f.GetTriangleArray();
 
                 Appearance app = new Appearance();
                 PolygonAttributes pa = new PolygonAttributes();
@@ -230,27 +210,6 @@ public class V3DViewer extends SecondoViewer {
                 app.setPolygonAttributes(pa);
                 Shape3D shape = new Shape3D();
                 shape.setAppearance(app);
-                TriangleArray tri = new TriangleArray(px.size(), TriangleArray.COORDINATES | TriangleArray.COLOR_3);
-                Color3b c = nextColor();
-                Color3b white = new Color3b(Color.WHITE);
-                Color3b black = new Color3b(Color.BLACK);
-                for (int i = 0; i < px.size(); i++) {
-                    if (i % 3 == 0) {
-                        c = nextColor();
-                    }
-                    tri.setCoordinate(i, px.get(i));
-                    if (i < px.size() - 6) {
-                        tri.setColor(i, c);
-                    } else // The last six values are the arrow, which we want to be white or black
-                    {
-                        if (MI_LightBackground.isSelected()) {
-                            tri.setColor(i, black);
-                        } else {
-                            tri.setColor(i, white);
-                        }
-                    }
-                }
-
                 shape.setGeometry(tri);
                 Transform3D viewtransform3d = new Transform3D();
                 viewtransform3d.setTranslation(new Vector3f(0.0f, 0.0f, 1.0f));
@@ -261,7 +220,6 @@ public class V3DViewer extends SecondoViewer {
                 MouseRotate rotor = new MouseRotate();
                 MouseTranslate trans = new MouseTranslate();
                 rotor.setFactor(0.001f);
-
                 rotor.setSchedulingBounds(new BoundingSphere());
                 rotor.setTransformGroup(tg);
                 trans.setSchedulingBounds(new BoundingSphere());
@@ -282,22 +240,18 @@ public class V3DViewer extends SecondoViewer {
                 bg.addChild(tg);
                 bg.addChild(rotor);
                 bg.addChild(trans);
-
                 MouseWheelZoom mwz = new MouseWheelZoom(MouseBehavior.INVERT_INPUT);
                 mwz.setTransformGroup(universe.getViewingPlatform().getViewPlatformTransform());
                 mwz.setSchedulingBounds(new BoundingSphere());
                 bg.addChild(mwz);
-
                 bg.setCapability(BranchGroup.ALLOW_DETACH);
                 bg.compile();
                 universe.addBranchGraph(bg);
-
                 TransformGroup tg3 = universe.getViewingPlatform().getViewPlatformTransform();
                 universe.getViewer().getView().setSceneAntialiasingEnable(MI_AntiAliasing.isSelected());
                 Transform3D t3d = new Transform3D();
                 t3d.setTranslation(new Vector3f(0.0f, 0.0f, 25));
                 tg3.setTransform(t3d);
-
             } catch (Exception e) {
                 e.printStackTrace();
             }

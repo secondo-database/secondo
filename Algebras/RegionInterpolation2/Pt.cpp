@@ -75,9 +75,24 @@ bool Pt::lessPolar(const Pt& a) const {
 void Pt::calcPolar(const Pt& origin) {
     long double tmpx = x - origin.x;
     long double tmpy = y - origin.y;
-    long double hyp = sqrt(tmpx * tmpx + tmpy * tmpy);
-    angle = acos(tmpx / hyp);
-    dist = hyp;
+
+    long double tmp = (tmpy != 0) ? tmpy/tmpx : 0;
+    if (tmpx > 0) {
+        angle = atan(tmp);
+    } else if (tmpx < 0 && tmpy >= 0) {
+        angle = atan(tmp)+M_PI;
+    } else if (tmpx < 0 && tmpy < 0) {
+        angle = atan(tmp)-M_PI;
+    } else if (tmpx == 0 && tmpy > 0) {
+        angle = M_PI/2;
+    } else if (tmpx == 0 && tmpy < 0) {
+        angle = -M_PI/2;
+    } else {
+        angle = -5;
+    }
+    
+//    angle = acos(tmpx / hyp);
+    dist = sqrt(tmpx * tmpx + tmpy * tmpy);
 }
 
 /*

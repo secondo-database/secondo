@@ -326,7 +326,6 @@ Face Face::ConvexHull() {
     // descending distance as second criterion, so we need to reverse these.
     // For that reason the points with the highest angle are already in
     // counter-clockwise order.
-    
     std::vector<Pt>::iterator s = lt.begin() + 1, e = s; // Start with the
     // second point and find the last point with the same angle.
     while (s->angle == e->angle)
