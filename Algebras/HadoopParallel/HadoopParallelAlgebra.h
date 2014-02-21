@@ -1014,14 +1014,16 @@ One FlobSheet collects the Flob data from the same DS of all tuples.
 
 */
 
-typedef pair<SmiFileId, SmiSize> flobKey;
+typedef pair<SmiFileId, SmiSize> flobKeyT;
 
 typedef struct{
   SmiSize newOffset;
   char mode;
   SmiRecordId sourceDS;
   SmiSize size;
-} flobInfo;
+
+  Flob* pLob;
+} flobInfoT;
 
 
 class FlobSheet
@@ -1034,7 +1036,7 @@ Create the result flob file path here.
 
 */
 
-  bool addOrder(const Flob& flob);
+  bool addOrder(Flob* flob);
 /*
 Add one more flob order to the current sheet,
 returns whether the sheet is full.
@@ -1042,6 +1044,8 @@ returns whether the sheet is full.
 */
 
   SmiSize getNewOffset(SmiFileId fileId, SmiSize oldOffset);
+
+  void initializeAllFlobs(string flobFilePath);
 
   void closeSheetFile();
 
@@ -1065,7 +1069,7 @@ private:
   size_t maxMem;
 
   string sheetFilePath;
-  map<flobKey, flobInfo> lobMarkers;
+  map<flobKeyT, flobInfoT> lobMarkers;
 };
 
 ostream& operator<<(ostream& os, const FlobSheet& f);
