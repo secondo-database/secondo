@@ -1014,6 +1014,16 @@ One FlobSheet collects the Flob data from the same DS of all tuples.
 
 */
 
+typedef pair<SmiFileId, SmiSize> flobKey;
+
+typedef struct{
+  SmiSize newOffset;
+  char mode;
+  SmiRecordId sourceDS;
+  SmiSize size;
+} flobInfo;
+
+
 class FlobSheet
 {
 public:
@@ -1024,15 +1034,14 @@ Create the result flob file path here.
 
 */
 
-  bool addOrder (const Flob& flob, size_t& offset);
+  bool addOrder(const Flob& flob);
 /*
 Add one more flob order to the current sheet,
-returns the offset within the collected flob file.
-
-If the sheet file does not exist, then create it.
-Returns whether the sheet is full.
+returns whether the sheet is full.
 
 */
+
+  SmiSize getNewOffset(SmiFileId fileId, SmiSize oldOffset);
 
   void closeSheetFile();
 
@@ -1056,16 +1065,13 @@ private:
   size_t maxMem;
 
   string sheetFilePath;
-//  ofstream* sheetFile;
-  vector<string>* allOrders;
-
-  map<pair<SmiFileId, SmiSize>, SmiSize> lobMarkers;
+  map<flobKey, flobInfo> lobMarkers;
 };
 
 ostream& operator<<(ostream& os, const FlobSheet& f);
 
 /*
-Flob information for one tuple
+Flob information for a tuple
 
 */
 
@@ -1079,11 +1085,9 @@ public:
 
     dsVec = new int*[attrSize];
     timesVec = new int*[attrSize];
-    offsetVec = new size_t*[attrSize];
     for (size_t i = 0; i < attrSize; i++){
       dsVec[i] = new int[maxFlobSize];
       timesVec[i] = new int[maxFlobSize];
-      offsetVec[i] = new size_t[maxFlobSize];
     }
   }
 
@@ -1092,12 +1096,10 @@ public:
     for (size_t i = 0; i < attrSize; i++){
       delete[] dsVec[i];
       delete[] timesVec[i];
-      delete[] offsetVec[i];
     }
 
     delete[] dsVec;
     delete[] timesVec;
-    delete[] offsetVec;
   }
 
   TupleFlobInfo(const TupleFlobInfo& r){
@@ -1107,22 +1109,19 @@ public:
 
     dsVec = new int*[attrSize];
     timesVec = new int*[attrSize];
-    offsetVec = new size_t*[attrSize];
     for (size_t i = 0; i < attrSize; i++){
       dsVec[i] = new int[maxFlobSize];
       timesVec[i] = new int[maxFlobSize];
-      offsetVec[i] = new size_t[maxFlobSize];
 
       memcpy(dsVec[i], r.dsVec[i], maxFlobSize*sizeof(int));
       memcpy(timesVec[i], r.timesVec[i], maxFlobSize*sizeof(int));
-      memcpy(offsetVec[i], r.offsetVec[i], maxFlobSize*sizeof(size_t));
     }
   }
 
   inline void setReturned(){ returned = true; }
 
   inline void setFlobInfo(size_t aid, size_t fid,
-      int ds, int times, size_t offset){
+      int ds, int times){
 /*
 Here the aid is not the attribute id,
 but only the id among the requested Flob attributes
@@ -1130,7 +1129,6 @@ but only the id among the requested Flob attributes
 */
     dsVec[aid][fid] = ds;
     timesVec[aid][fid] = times;
-    offsetVec[aid][fid] = offset;
   }
 
   inline bool isReturned() { return returned;}
@@ -1141,8 +1139,6 @@ but only the id among the requested Flob attributes
   inline int getSheetTimes(size_t attrId, size_t fId) {
     return timesVec[attrId][fId]; }
 
-  inline size_t getOffset(size_t attrId, size_t fId) {
-    return offsetVec[attrId][fId]; }
 
   ostream& print(ostream& os) const{
     os << "Returned: " << (returned ? "True" : "False") << endl;
@@ -1152,7 +1148,7 @@ but only the id among the requested Flob attributes
       for (size_t k = 0; k < maxFlobSize; k++){
         os << "\t" << i << "_" << k << ": source(" << dsVec[i][k] << ") "
             << "times(" << timesVec[i][k] << ") "
-            << "offset(" << offsetVec[i][k] << ")" << endl;
+            << endl;
       }
     }
     return os;
@@ -1166,7 +1162,6 @@ private:
   size_t maxFlobSize;  //The maximum Flob number for all Flob attributes
   int** dsVec;         //The DS list for all Flob attributes
   int** timesVec;      //The sheet times of all Flob attributes
-  size_t** offsetVec;  //The offset within the Flob file for all Flob attributes
 };
 
 ostream& operator<<(ostream& os, const TupleFlobInfo& f);

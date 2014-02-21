@@ -52,6 +52,7 @@ limited number of threads.
 #include <queue>
 #include <set>
 #include <sys/time.h>
+#include <assert.h>
 
 #include "Profiles.h"
 
@@ -89,9 +90,11 @@ void* ReceiveRequest(void*);
 void* ProcessRequest(void*);
 bool collectFlob(string request);
 void writeToFlobFile(char*, char*, size_t, ofstream*, size_t&);
+void readFromFlobFile(char*, size_t, size_t, ifstream*, char*, size_t&);
 
 const int MAX_COPYTIMES = 20;
-const size_t bufferLen = 16 * 1024 * 1024;
+const size_t bufferLen = 32 * 1024 * 1024;
+const size_t wbLen = bufferLen / 2, rbLen = bufferLen / 2;
 queue<pair<string, int*> > requests;
 pthread_mutex_t CFBS_mutex;
 const size_t PipeWidth = 1;
@@ -233,6 +236,7 @@ void* ProcessRequest(void* ptr)
     free(csock);
     return NULL;
   }
+  close(*csock);
   free(csock);
 
 //  pthread_mutex_lock(&CFBS_mutex);
@@ -274,8 +278,7 @@ bool collectFlob(string request)
   }
 
   //2. Prepare the result
-  map< u_int32_t, ifstream* > flobFiles;
-  map< u_int32_t, ifstream* >::iterator it;
+  u_int32_t lastFileId = 0;
   ifstream* flobFile = 0;
 
   string sheetFilePath = serverPSFS + "/" + sheetName;
@@ -288,12 +291,17 @@ bool collectFlob(string request)
   //Empty lobs are prepared for Flobs that have been created in another sheet
   set<pair<u_int32_t, size_t>, classCompPair<u_int32_t, size_t> > emptyLobs;
 
-  char* buffer = new char[bufferLen];
-  memset(buffer, 0, bufferLen);
+  //Write buffer
+  char* wbuffer = new char[wbLen];
+  memset(wbuffer, 0, wbLen);
   size_t byteWritten = 0;
 
+  //Read buffer
+  char* rbuffer = new char[rbLen];
+  //Number of read blocks
+  size_t bcNum = 0;
+
   string flobOrder;
-  u_int32_t lastFileId = 0;
   while (getline(sheetFile, flobOrder))
   {
     stringstream ss(flobOrder);
@@ -314,7 +322,7 @@ bool collectFlob(string request)
 
       char block[size];
       memset(block, 0, size);
-      writeToFlobFile(buffer, block, size, &resultFile, byteWritten);
+      writeToFlobFile(wbuffer, block, size, &resultFile, byteWritten);
       continue;
     }
 
@@ -328,39 +336,35 @@ bool collectFlob(string request)
 
     if (lastFileId != fileId)
     {
-      it = flobFiles.find(fileId);
-      if ( it == flobFiles.end()){
-        string flobFileName = serverPSFS + "/flobFile_" + int2string(fileId);
-        flobFile = new ifstream(flobFileName.c_str(), ios::binary);
-        flobFiles[fileId] = flobFile;
-        it = flobFiles.find(fileId);
+      if (lastFileId > 0){
+        //Close the last one
+        assert(flobFile);
+        flobFile->close();
       }
+
+      string flobFileName = serverPSFS + "/flobFile_" + int2string(fileId);
+      flobFile = new ifstream(flobFileName.c_str(), ios::binary);
       lastFileId = fileId;
+      flobFile->read(rbuffer, rbLen);
     }
 
     char block[size];
-    flobFile = it->second;
-    flobFile->seekg(offset, ios_base::beg);
-    flobFile->read(block, size);
-    writeToFlobFile(buffer, block, size, &resultFile, byteWritten);
+    readFromFlobFile(block, offset, size, flobFile, rbuffer, bcNum);
+    writeToFlobFile(wbuffer, block, size, &resultFile, byteWritten);
   }
 
-  for (it = flobFiles.begin(); it != flobFiles.end(); it++)
-  {
-    flobFile = it->second;
+  if (lastFileId > 0){
+    assert(flobFile);
     flobFile->close();
-    delete flobFile;
-    flobFile = 0;
   }
-  flobFiles.clear();
 
   if (byteWritten > 0){
     //Clean the buffer;
-    resultFile.write(buffer, byteWritten);
+    resultFile.write(wbuffer, byteWritten);
   }
   resultFile.close();
   sheetFile.close();
-  delete buffer;
+  delete wbuffer;
 
   //3. Send the result
   command = "scp -q " + resultFilePath + " " + clientPSFS + "/" + resultName;
@@ -404,14 +408,41 @@ bool collectFlob(string request)
 void writeToFlobFile(char* buffer, char* data, size_t size,
     ofstream* file, size_t& offset)
 {
-  if (offset + size >= bufferLen){
+  if (offset + size >= wbLen){
     //the file is written only when the buffer cannot hold more
     file->write(buffer, offset);
     offset = 0;
-    memset(buffer, 0, bufferLen);
+    memset(buffer, 0, wbLen);
   }
 
   //Write to the buffer as the priority,
   memcpy(buffer + offset, data, size);
   offset += size;
+}
+
+void readFromFlobFile(char* block, size_t offset, size_t size,
+    ifstream* file, char* buffer, size_t& bcNum)
+{
+/*
+The Flob is read from the buffer as the priority,
+if it is not completely cached within the buffer,
+then read its partial data and load another buffer,
+as last read the left part.
+
+*/
+  bool contained = ((offset + size) < (bcNum + 1) * rbLen);
+  size_t inOffset = offset - (bcNum * rbLen);
+
+  if (contained){
+    memcpy(block, buffer + inOffset, size);
+  }
+  else{
+    size_t pSize1 = (bcNum + 1)* rbLen - offset;
+    size_t pSize2 = size - pSize1;
+    memcpy(block, buffer + inOffset, pSize1);
+
+    file->read(buffer, rbLen);
+    memcpy(block + pSize1, buffer, pSize2);
+    bcNum++;
+  }
 }
