@@ -18,9 +18,9 @@ endif
 .PHONY: all
 all: collectFlobServer$(EXEEXT)
 
+ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
-LDFLAGS:=-L$(SECONDO_BUILD_DIR)/api_cpp/direct/lib/ -lsecondo -lpthread   -lfl -ly -lstdc++ 
-#LDFLAGS:= -L$(SECONDO_BUILD_DIR)/lib/ -lpthread -lfl -ly -lstdc++ 
+LDFLAGS:=-L$(SECONDO_BUILD_DIR)/api_cpp/direct/lib/ -lsecondo -lfl -ly -lstdc++ $(ALGDEPFLAGS)  $(DEFAULTLIB)
 ifeq ($(SECONDO_PLATFORM),win32)
 LDFLAGS+=-lwsock32 -lws2_32
 endif
