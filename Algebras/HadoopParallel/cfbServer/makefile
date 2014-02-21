@@ -21,8 +21,15 @@ all: collectFlobServer$(EXEEXT)
 ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
 LDFLAGS:=-L$(SECONDO_BUILD_DIR)/api_cpp/direct/lib/ -lsecondo -lfl -ly -lstdc++ $(ALGDEPFLAGS)  $(DEFAULTLIB)
+
+ifeq ($(readline),true)
+  LDFLAGS+=-lreadline 
+endif
+
 ifeq ($(SECONDO_PLATFORM),win32)
-LDFLAGS+=-lwsock32 -lws2_32
+  LDFLAGS+=-lwsock32 -lws2_32
+else
+  LDFLAGS+=-ldl
 endif
 
 ifneq ($(SECONDO_PLATFORM),mac_osx)
@@ -30,7 +37,6 @@ ifneq ($(SECONDO_PLATFORM),mac_osx)
 else
   LDFLAGS+= -l$(BERKELEY_DB_LIB)
 endif
-
 
 LDFLAGS += -lpthread
 
