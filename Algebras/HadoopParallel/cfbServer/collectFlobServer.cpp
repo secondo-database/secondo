@@ -228,7 +228,7 @@ void* ProcessRequest(void* ptr)
   int* csock = pt->csock;
 
   bool ok = collectFlob(pt->request);
-  //cerr << "The collect result is: " << (ok ? "true" : "false") << endl;
+  cerr << "The collect result is: " << (ok ? "true" : "false") << endl;
 
   int bytecount = 0;
   if ((bytecount = send(*csock, (char*)&ok, sizeof(bool), 0)) == -1){
@@ -256,7 +256,7 @@ bool collectFlob(string request)
   //The destPSFS contains the remote IP
   string sheetName, resultName, serverPSFS, clientPSFS;
   ss >> sheetName >> resultName >> serverPSFS >> clientPSFS;
-
+cerr << "Process " << sheetName << ", then generate " << resultName << endl;
   //1. Fetch the sheet
   string command = "scp -q " + clientPSFS + "/" + sheetName
       + " " + serverPSFS;
@@ -341,11 +341,12 @@ bool collectFlob(string request)
         assert(flobFile);
         flobFile->close();
       }
-
+      
       string flobFileName = serverPSFS + "/flobFile_" + int2string(fileId);
       flobFile = new ifstream(flobFileName.c_str(), ios::binary);
       lastFileId = fileId;
       flobFile->read(rbuffer, rbLen);
+      bcNum = 0;
     }
 
     char block[size];
@@ -371,6 +372,7 @@ bool collectFlob(string request)
   atimes = MAX_COPYTIMES;
   while ( atimes-- > 0){
     if ( 0 == system(command.c_str())){
+
       if (::unlink(resultFilePath.c_str()) != 0){
         cerr << "Warning! Deleting the result file "
             << resultFilePath << " fails. " << endl;
@@ -430,6 +432,7 @@ then read its partial data and load another buffer,
 as last read the left part.
 
 */
+//todo: leave the problem that one flob may cover several blocks
   bool contained = ((offset + size) < (bcNum + 1) * rbLen);
   size_t inOffset = offset - (bcNum * rbLen);
 
@@ -437,12 +440,31 @@ as last read the left part.
     memcpy(block, buffer + inOffset, size);
   }
   else{
-    size_t pSize1 = (bcNum + 1)* rbLen - offset;
-    size_t pSize2 = size - pSize1;
-    memcpy(block, buffer + inOffset, pSize1);
+    size_t nb = bcNum;
+    while ( (nb + 1)*rbLen < offset ){
+      //Skip useless blocks
+      nb++;
+    }
 
-    file->read(buffer, rbLen);
-    memcpy(block + pSize1, buffer, pSize2);
-    bcNum++;
+    if (nb > bcNum){
+      //Read the block completely in the new block 
+      if (nb > (bcNum + 1)){
+        file->seekg(nb*rbLen, ios::beg);
+      }
+      file->read(buffer, rbLen);
+      inOffset = offset - (nb*rbLen);
+      memcpy(block, buffer + inOffset, size);
+      bcNum = nb;
+    }
+    else{
+      //Read in two adjacent blocks
+      size_t pSize1 = (bcNum + 1)* rbLen - offset;
+      size_t pSize2 = size - pSize1;
+      memcpy(block, buffer + inOffset, pSize1);
+
+      file->read(buffer, rbLen);
+      memcpy(block + pSize1, buffer, pSize2);
+      bcNum++;
+    }
   }
 }
