@@ -53,6 +53,8 @@ limited number of threads.
 #include <set>
 #include <sys/time.h>
 
+#include "Profiles.h"
+
 #define LOGFILE 1
 
 using namespace std;
