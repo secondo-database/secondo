@@ -10,7 +10,13 @@ Result   : 7
 Operator : statistics
 Number   : 1
 Signature: stream(tuple(...)) x text x int -> stream(T)
-Example  : query intstream(1,10) transformstream statistics["/tmp/statistics.csv", 1] count
+Example  : query intstream(1,10) transformstream statistics['/tmp/statistics.csv', 1] count
+Result   : 10
+
+Operator : cdelete
+Number   : 1
+Signature: (text text) -> int
+Example  : query cdelete ('127.0.0.1', 'plz') 
 Result   : 10
 
 

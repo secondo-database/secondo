@@ -299,7 +299,7 @@ The first parameter is the output file for the
 operator. The second parameter is the interval for
 the statistics.
 
-2.1.1 Type mapping function of operator ~statistics~
+2.2.1 Type mapping function of operator ~statistics~
 
 Type mapping for ~statistics~ is
 
@@ -480,7 +480,7 @@ int Statistics(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 /*
-2.1.4 Specification of operator ~statistics~
+2.2.4 Specification of operator ~statistics~
 
 */
 const string StatisticsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -501,7 +501,7 @@ const string StatisticsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               ") )";
 
 /*
-2.1.5 Definition of operator ~statistics~
+2.2.5 Definition of operator ~statistics~
 
 */
 Operator cassandrastatistics (
@@ -511,6 +511,152 @@ Operator cassandrastatistics (
          Operator::SimpleSelect,       // trivial selection function
          StatisticsTypeMap,            // type mapping
          StatisticsCostEstimationFunc  // Cost estimation
+);                         
+
+
+/*
+2.3 Operator ~cdelete~
+
+The operator ~cdelete~ deletes a relation in our
+cassandra cluster. The first parameter is the contact
+point to the cluster, the second paramter is the 
+name of the relation to delete.
+
+2.3.1 Type mapping function of operator ~cdelete~
+
+Type mapping for ~cdelete~ is
+
+----
+ (text text) -> int            
+----
+
+*/
+
+ListExpr CDeleteTypeMap( ListExpr args )
+{
+  string err = "text x text expected";
+  
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  
+  if(!listutils::isSymbol(nl->First(args),FText::BasicType()) ||
+     !listutils::isSymbol(nl->Second(args),FText::BasicType())) {
+    
+    return listutils::typeError(err);
+  }    
+
+  return nl->SymbolAtom(CcInt::BasicType());
+}
+
+
+/*
+2.3.3 Value mapping function of operator ~cdelete~
+
+*/
+class CDeleteLocalInfo {
+
+public:
+  CDeleteLocalInfo(string myContactPoint, string myRelationName) 
+    : contactPoint(myContactPoint), relationName(myRelationName),
+    deletePerformed(false) {
+      
+      cout << "Contact point is " << contactPoint << endl;
+      cout << "Relation name is " << relationName << endl;
+  }
+  
+/*
+2.3.3.1 Delete our relation
+
+*/  
+  size_t deleteRelation() {
+    deletePerformed = true;
+    
+    return 10;
+  }
+
+/*
+2.3.3.2 Did we deleted the relation?
+
+*/  
+  bool isDeletePerformed() {
+    return deletePerformed;
+  }
+  
+private:
+  string contactPoint;      // Contactpoint for our cluster
+  string relationName;      // Relation name to delete
+  bool deletePerformed;     // Did we deleted the relation
+};
+
+int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  CDeleteLocalInfo *cli; 
+  Word tupleWord;
+  size_t deletedObjects;
+  
+  cli = (CDeleteLocalInfo*)local.addr;
+
+  switch(message)
+  {
+    case OPEN: 
+    case REQUEST:
+    case CLOSE:
+      
+      if ( cli ) delete cli;
+      
+      if(! ((FText*) args[0].addr)->IsDefined()) {
+        cout << "Cluster contactpoint is not defined" << endl;
+        return CANCEL;
+      } else if (! ((FText*) args[1].addr)->IsDefined()) {
+        cout << "Relationname is not defined" << endl;
+        return CANCEL;
+      } else {
+      cli = new CDeleteLocalInfo((((FText*)args[0].addr)->GetValue()),
+                      (((FText*)args[1].addr)->GetValue()));
+      
+      deletedObjects = cli -> deleteRelation();
+      
+      result = qp->ResultStorage(s);
+      static_cast<CcInt*>(result.addr)->Set(true, deletedObjects);
+      
+      delete cli;
+      cli = NULL;
+      
+      return YIELD;
+      }
+  }
+  return 0;
+}
+
+
+/*
+2.3.4 Specification of operator ~cdelete~
+
+*/
+const string CDeleteSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>(text x text) -> int</text--->"
+                         "<text> cdelete ( _ , _ )</text--->"
+                         "<text> The operator cdelete deletes a relation "
+                         "in our cassandra cluster. The first parameter is "
+                         "the contact point to the cluster, the second "
+                         "paramter is the name of the relation to delete."
+                         "</text--->"
+                         "<text>query cdelete ('127.0.0.1', 'plz') </text--->"
+                              ") )";
+
+/*
+2.3.5 Definition of operator ~cdelete~
+
+*/
+Operator cassandradelete (
+         "cdelete",                 // name
+         CDeleteSpec,               // specification
+         CDelete,                   // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         CDeleteTypeMap             // type mapping
 );                         
 
 
@@ -531,6 +677,7 @@ public:
      */
     AddOperator(&cassandrasleep);
     AddOperator(&cassandrastatistics);
+    AddOperator(&cassandradelete);
     
   }
   

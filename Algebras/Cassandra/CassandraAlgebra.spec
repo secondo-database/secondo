@@ -22,3 +22,4 @@ operator sleep alias SLEEP pattern _ op [ _ ]
 operator statistics alias STATISTICS pattern _ op [ _ , _ ]
 
 
+operator cdelete alias CDELETE pattern op ( _ , _ )
