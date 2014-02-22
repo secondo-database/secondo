@@ -676,12 +676,16 @@ QUORUM - More then n/2+1 cassandra nodes have written the tuple
          n is the replication factor of the cluster
 ALL    - All cassandra nodes have written the tuple
 
+The fourth parameter is the name of the local
+system. The name must be unique for each secondo
+node
+
 2.2.1 Type mapping function of operator ~cfeed~
 
 Type mapping for ~cfeed~ is
 
 ----
-  stream(tuple(...)) x text x text x text -> int
+  stream(tuple(...)) x text x text x text x text -> int
                 
 ----
 
@@ -689,23 +693,25 @@ Type mapping for ~cfeed~ is
 ListExpr CFeedTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 4){
-    return listutils::typeError("four arguments expected");
+  if(nl->ListLength(args) != 5){
+    return listutils::typeError("five arguments expected");
   }
 
-  string err = " stream(tuple(...)) x text x text x text expected";
+  string err = " stream(tuple(...)) x text x text x text x text expected";
 
   ListExpr stream = nl->First(args);
   
   ListExpr contactpoint = nl->Second(args);
   ListExpr relation = nl->Third(args);
   ListExpr consistence = nl->Fourth(args);
+  ListExpr systemname = nl->Fifth(args);
   
   if(( !Stream<Tuple>::checkType(stream) &&
        !Stream<Attribute>::checkType(stream) ) ||
        !FText::checkType(contactpoint) ||
        !FText::checkType(relation) ||
-       !FText::checkType(consistence)) {
+       !FText::checkType(consistence) ||
+       !FText::checkType(systemname)) {
     return listutils::typeError(err);
   }
   
@@ -728,18 +734,36 @@ class CFeedLocalInfo {
 
 public:
   CFeedLocalInfo(string myContactPoint, string myRelationName, 
-                   string myConsistence) 
+                   string myConsistence, string mySystemname) 
   
     : contactPoint(myContactPoint), relationName(myRelationName),
-    consistence(myConsistence) {
+    consistence(myConsistence), systemname(mySystemname),
+    tupleNumber(0) {
       
       cout << "Contact point is " << contactPoint << endl;
       cout << "Relation name is " << relationName << endl;
       cout << "Consistence is " << consistence << endl;
+      cout << "Systemname is " << systemname << endl;
+  }
+  
+  string buildKey() {
+    stringstream ss;
+    ss << relationName;
+    ss << "-";
+    ss << systemname;
+    ss << "-";
+    ss << tupleNumber;
+    return ss.str();
   }
   
   bool feed(Tuple* tuple) {
+    cout << buildKey() << " - " << tuple -> WriteToBinStr() << endl;
+    ++tupleNumber;
     return true;
+  }
+  
+  size_t getTupleNumber() {
+    return tupleNumber;
   }
   
   
@@ -747,13 +771,14 @@ private:
   string contactPoint;      // Contactpoint for our cluster
   string relationName;      // Relation name to delete
   string consistence;       // Consistence
+  string systemname;        // Name of our system
+  size_t tupleNumber;       // Number of the current tuple
 };
 
 int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CFeedLocalInfo *cli; 
   Word elem;
-  size_t objects = 0;
   bool feedOk = true;
   bool parameterOk = true;
   
@@ -775,6 +800,9 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
       } else if (! ((FText*) args[3].addr)->IsDefined()) {
         cout << "Consistence level is not defined" << endl;
         parameterOk = false;
+      } else if (! ((FText*) args[4].addr)->IsDefined()) {
+        cout << "Systemname is not defined" << endl;
+        parameterOk = false;
       }
       
       string consistenceLevel = ((FText*) args[3].addr)->GetValue();
@@ -791,7 +819,8 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
       cli = new CFeedLocalInfo(
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
-                      (((FText*)args[3].addr)->GetValue())
+                      (((FText*)args[3].addr)->GetValue()),
+                      (((FText*)args[4].addr)->GetValue())
                       );
       
       // Consume stream
@@ -804,9 +833,7 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
         if(parameterOk) {
           feedOk = cli -> feed((Tuple*)elem.addr);
 
-          if(feedOk) {
-              objects++;
-          } else {
+          if(! feedOk) {
             cout << "Unable to write tuple to cassandra" << endl;
           }
         }
@@ -815,7 +842,7 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
         qp->Request(args[0].addr, elem);
       }  
       qp->Close(args[0].addr);
-      static_cast<CcInt*>(result.addr)->Set(true, objects);    
+      static_cast<CcInt*>(result.addr)->Set(true, cli -> getTupleNumber());  
       
       delete cli;
       cli = NULL;
@@ -834,9 +861,9 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>stream(tuple(...)) x text x text x text -> "
-                         "int</text--->"
-                         "<text>cfeed _ op [ _ , _ , _ ] </text--->"
+                         "<text>stream(tuple(...)) x text x text x text "
+                         "x text -> int</text--->"
+                         "<text>cfeed _ op [ _ , _ , _ , _ ] </text--->"
                          "<text>The operator cfeed feeds a tuple stream"
                          "into a cassandra cluster. The first paramter is "
                          "the contactpoint to the cluster. The second "
@@ -849,9 +876,12 @@ const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "         written the tuple. Where n is the "
                          "         replication factor of the cluster"
                          "ALL    - All cassandra nodes have written the tuple"
+                         "The fourth parameter is the name of the local "
+                         "system. The name must be unique for each secondo"
+                         "node"
                          "</text--->"
                          "<text>query plz feed cfeed['127.0.0.1', 'plz', "
-                         "'ANY']</text--->"
+                         "'ANY'. 'node1']</text--->"
                               ") )";
 
 /*

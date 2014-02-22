@@ -23,5 +23,5 @@ operator statistics alias STATISTICS pattern _ op [ _ , _ ]
 
 
 operator cdelete alias CDELETE pattern op ( _ , _ )
-operator cfeed alias CFEED pattern _ op [ _ , _ , _ ]
+operator cfeed alias CFEED pattern _ op [ _ , _ , _ , _ ]
 

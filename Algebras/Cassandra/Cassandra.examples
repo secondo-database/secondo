@@ -22,5 +22,5 @@ Result   : 10
 Operator : cfeed
 Number   : 1
 Signature: ((stream (tuple x) x text x text x text)) -> int
-Example  : query plz feed cfeed['127.0.0.1', 'plz', 'ANY']
+Example  : query plz feed cfeed['127.0.0.1', 'plz', 'ANY', 'node1']
 Result   : 41267
