@@ -19,4 +19,8 @@ Signature: (text text) -> int
 Example  : query cdelete ('127.0.0.1', 'plz') 
 Result   : 10
 
-
+Operator : cfeed
+Number   : 1
+Signature: ((stream (tuple x) x text x text x text)) -> int
+Example  : query plz feed cfeed['127.0.0.1', 'plz', 'ANY']
+Result   : 41267

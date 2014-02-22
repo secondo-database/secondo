@@ -595,15 +595,14 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
   Word tupleWord;
   size_t deletedObjects;
   
-  cli = (CDeleteLocalInfo*)local.addr;
-
   switch(message)
   {
     case OPEN: 
     case REQUEST:
     case CLOSE:
       
-      if ( cli ) delete cli;
+      result = qp->ResultStorage(s);
+      static_cast<CcInt*>(result.addr)->Set(false, 0);
       
       if(! ((FText*) args[0].addr)->IsDefined()) {
         cout << "Cluster contactpoint is not defined" << endl;
@@ -617,7 +616,7 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
       
       deletedObjects = cli -> deleteRelation();
       
-      result = qp->ResultStorage(s);
+      
       static_cast<CcInt*>(result.addr)->Set(true, deletedObjects);
       
       delete cli;
@@ -660,6 +659,215 @@ Operator cassandradelete (
 );                         
 
 
+
+
+
+/*
+2.4 Operator ~cfeed~
+
+The operator ~cfeed~ feeds a tuple stream into
+a cassandra cluster. The first paramter is the contactpoint
+to the cluster. The second paramter is the name of the relation.
+The third parameter is the consistence level:
+
+ANY    - Only a hinted handoff is created
+ONE    - One of the cassandra nodes has written the tuple
+QUORUM - More then n/2+1 cassandra nodes have written the tuple
+         n is the replication factor of the cluster
+ALL    - All cassandra nodes have written the tuple
+
+2.2.1 Type mapping function of operator ~cfeed~
+
+Type mapping for ~cfeed~ is
+
+----
+  stream(tuple(...)) x text x text x text -> int
+                
+----
+
+*/
+ListExpr CFeedTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 4){
+    return listutils::typeError("four arguments expected");
+  }
+
+  string err = " stream(tuple(...)) x text x text x text expected";
+
+  ListExpr stream = nl->First(args);
+  
+  ListExpr contactpoint = nl->Second(args);
+  ListExpr relation = nl->Third(args);
+  ListExpr consistence = nl->Fourth(args);
+  
+  if(( !Stream<Tuple>::checkType(stream) &&
+       !Stream<Attribute>::checkType(stream) ) ||
+       !FText::checkType(contactpoint) ||
+       !FText::checkType(relation) ||
+       !FText::checkType(consistence)) {
+    return listutils::typeError(err);
+  }
+  
+  return nl->SymbolAtom(CcInt::BasicType());
+}
+
+/*
+2.4.2 Cost estimation
+
+*/
+CostEstimation* CFeedCostEstimation() {
+  return new ForwardCostEstimation();
+}
+
+/*
+2.4.3 Value mapping function of operator ~cfeed~
+
+*/
+class CFeedLocalInfo {
+
+public:
+  CFeedLocalInfo(string myContactPoint, string myRelationName, 
+                   string myConsistence) 
+  
+    : contactPoint(myContactPoint), relationName(myRelationName),
+    consistence(myConsistence) {
+      
+      cout << "Contact point is " << contactPoint << endl;
+      cout << "Relation name is " << relationName << endl;
+      cout << "Consistence is " << consistence << endl;
+  }
+  
+  bool feed(Tuple* tuple) {
+    return true;
+  }
+  
+  
+private:
+  string contactPoint;      // Contactpoint for our cluster
+  string relationName;      // Relation name to delete
+  string consistence;       // Consistence
+};
+
+int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  CFeedLocalInfo *cli; 
+  Word elem;
+  size_t objects = 0;
+  bool feedOk = true;
+  bool parameterOk = true;
+  
+  switch(message)
+  {
+    case OPEN: 
+    case REQUEST:
+    case CLOSE:
+      
+      result = qp->ResultStorage(s);
+      static_cast<CcInt*>(result.addr)->Set(false, 0);
+      
+      if(! ((FText*) args[1].addr)->IsDefined()) {
+        cout << "Cluster contactpoint is not defined" << endl;
+        parameterOk = false;
+      } else if (! ((FText*) args[2].addr)->IsDefined()) {
+        cout << "Relationname is not defined" << endl;
+        parameterOk = false;
+      } else if (! ((FText*) args[3].addr)->IsDefined()) {
+        cout << "Consistence level is not defined" << endl;
+        parameterOk = false;
+      }
+      
+      string consistenceLevel = ((FText*) args[3].addr)->GetValue();
+      if( ! ((consistenceLevel.compare("ANY") == 0)
+          || (consistenceLevel.compare("ONE") == 0)
+          || (consistenceLevel.compare("QUORUM") == 0)
+          || (consistenceLevel.compare("ALL") == 0))) {
+        
+        cout << "Unknown consistence level: " << consistenceLevel << endl;
+        
+        return CANCEL;
+      } 
+      
+      cli = new CFeedLocalInfo(
+                      (((FText*)args[1].addr)->GetValue()),
+                      (((FText*)args[2].addr)->GetValue()),
+                      (((FText*)args[3].addr)->GetValue())
+                      );
+      
+      // Consume stream
+      qp->Open(args[0].addr);
+      qp->Request(args[0].addr, elem);
+      
+      while ( qp->Received(args[0].addr) ) {      
+        
+        // Cassandra ready?
+        if(parameterOk) {
+          feedOk = cli -> feed((Tuple*)elem.addr);
+
+          if(feedOk) {
+              objects++;
+          } else {
+            cout << "Unable to write tuple to cassandra" << endl;
+          }
+        }
+        
+        ((Tuple*)elem.addr)->DeleteIfAllowed();         
+        qp->Request(args[0].addr, elem);
+      }  
+      qp->Close(args[0].addr);
+      static_cast<CcInt*>(result.addr)->Set(true, objects);    
+      
+      delete cli;
+      cli = NULL;
+      
+      return YIELD;
+      
+  }
+  return 0;
+}
+
+
+/*
+2.3.4 Specification of operator ~cfeed~
+
+*/
+const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>stream(tuple(...)) x text x text x text -> "
+                         "int</text--->"
+                         "<text>cfeed _ op [ _ , _ , _ ] </text--->"
+                         "<text>The operator cfeed feeds a tuple stream"
+                         "into a cassandra cluster. The first paramter is "
+                         "the contactpoint to the cluster. The second "
+                         "paramter is the name of the relation. The third "
+                         "parameter is the consistence level:"
+                         "ANY    - Only a hinted handoff is created"
+                         "ONE    - One of the cassandra nodes has written the "
+                         "         tuple"
+                         "QUORUM - More then n/2+1 cassandra nodes have" 
+                         "         written the tuple. Where n is the "
+                         "         replication factor of the cluster"
+                         "ALL    - All cassandra nodes have written the tuple"
+                         "</text--->"
+                         "<text>query plz feed cfeed['127.0.0.1', 'plz', "
+                         "'ANY']</text--->"
+                              ") )";
+
+/*
+2.3.5 Definition of operator ~cfeed~
+
+*/
+Operator cassandrafeed (
+         "cfeed",                 // name
+         CFeedSpec,               // specification
+         CFeed,                   // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         CFeedTypeMap,            // type mapping
+         CFeedCostEstimation      // Cost estimation
+);                         
+
+
 /*
  7 Creating the Algebra
 
@@ -678,6 +886,7 @@ public:
     AddOperator(&cassandrasleep);
     AddOperator(&cassandrastatistics);
     AddOperator(&cassandradelete);
+    AddOperator(&cassandrafeed);
     
   }
   
