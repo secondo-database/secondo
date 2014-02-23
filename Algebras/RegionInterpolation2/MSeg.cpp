@@ -97,6 +97,7 @@ bool MSeg::operator<(const MSeg & a) const {
     }
 }
 
+
 /*
  1.5 intersects is called to test if two MSeg-objects intersect in 3D. In the
  backend the function specialTrapeziumIntersects from the MovingRegion-Algebra
@@ -104,33 +105,17 @@ bool MSeg::operator<(const MSeg & a) const {
  initial or final segments overlap.
  
 */
+#define TRAPEZIUMINTERSECTS trapeziumIntersects2
 bool MSeg::intersects(const MSeg& a, bool checkSegs) const {
     int ret;
-#ifndef USE_SPECIALTRAPEZIUMINTERSECTS
-    bool trapeziumIntersects2 (MSeg m, MSeg a);
-
-    ret = trapeziumIntersects2(*this, a);
-#else    
     unsigned int detailedResult;
-
-    ret = specialTrapeziumIntersects(
-            100,
-            is.x, is.y,
-            ie.x, ie.y,
-            fe.x, fe.y,
-            fs.x, fs.y,
-
-            a.is.x, a.is.y,
-            a.ie.x, a.ie.y,
-            a.fe.x, a.fe.y,
-            a.fs.x, a.fs.y,
-            detailedResult
-            );
+    
+    bool TRAPEZIUMINTERSECTS(MSeg m, MSeg a, unsigned int &detailedResult);
+    ret = TRAPEZIUMINTERSECTS(*this, a, detailedResult);
     if (ret) {
         cerr << "Intersection between " << ToString()
                 << " and " << a.ToString() << "\n";
     }
-#endif
 
     if (checkSegs) {
         Seg ai(a.is, a.ie), af(a.fs, a.fe);
@@ -146,6 +131,24 @@ bool MSeg::intersects(const MSeg& a, bool checkSegs) const {
                     << bf.ToString() << "\n";
         }
     }
+    return ret;
+}
+
+static int trapeziumIntersects (MSeg m, MSeg a, unsigned int& detailedResult) {
+    int ret = specialTrapeziumIntersects(
+            100,
+            m.is.x, m.is.y,
+            m.ie.x, m.ie.y,
+            m.fe.x, m.fe.y,
+            m.fs.x, m.fs.y,
+
+            a.is.x, a.is.y,
+            a.ie.x, a.ie.y,
+            a.fe.x, a.fe.y,
+            a.fs.x, a.fs.y,
+            detailedResult
+            );
+    
     return ret;
 }
 

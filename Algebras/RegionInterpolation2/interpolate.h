@@ -11,7 +11,7 @@
 
 // Choose the installed Lua-version here
 #define LUA5_1
-//#define LUA5_2
+#define LUA5_2
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA
 #define LUA_FUNCTION(FNAME) int luafunc_ ## FNAME(lua_State *L)
@@ -23,7 +23,6 @@
 // boundary-box (0/0) - (SCALESIZE/SCALESIZE). Used by matchFacesCriterion and
 // matchFacesLua
 #define SCALESIZE 1000000
-
 
 // Forward-declarations of the classes
 class Pt;
@@ -215,7 +214,7 @@ public:
     // Methods
     bool Check();                // Check if this MFace is a valid cycle
     bool SortCycle();            // Sort this cycle
-    bool SortAndFixCycle();      // Sort this cycle
+    void EliminateSpikes();      // Eliminate empty spikes after merge
     void AddConcavity(MSegs c);  // Add a concavity to this cycle
     void MergeConcavities();     // Merge previously added concavities
     ListExpr ToListExpr();       // Create a list expression

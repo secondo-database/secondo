@@ -79,58 +79,58 @@ bool MFace::SortCycle() {
 }
 
 /*
- 1.3 SortAndFixCycle
+ 1.4 EliminateSpikes
 
- Sort the Moving Segments according to their position in the cycle and do
- several sanity-checks.
+ Try to find and eliminate empty spikes in the initial and/or final instant.
  
 */
-bool MFace::SortAndFixCycle() {
-    if (face.msegs.size() < 3)
-        return true;
+void MFace::EliminateSpikes() {
+    // Search spikes in the initial segments
+    unsigned int i = 0, sz = face.msegs.size(), prev = 0;
+    // Iterate twice over the segments to handle spikes at the wraparound, too
+    while (i < 2*sz) {
+        unsigned int cur = i%sz; // Access the arrays modulo arraysize
+        if (face.msegs[cur].ie == face.msegs[prev].is) {
+            // We have found an empty spike
+            while (prev != cur) {
+                // Degenerate initial segment to the startpoint of the spike
+                face.msegs[prev].is = face.msegs[cur].ie;
+                face.msegs[prev].ie = face.msegs[cur].ie;
+                prev = (prev + 1)%sz;
+            }
+            face.msegs[cur].is = face.msegs[cur].ie; // also for current segment
+        } else if (!(face.msegs[cur].is == face.msegs[cur].ie)) {
+            // This was no spike, continue search from here
+            prev = cur;
+        }
+        i++;
+    }
     
-    bool ret = SortCycle();
+    // Repeat the same procedure for the final segments
+    i = 0; prev = 0;
+    while (i < 2*sz) {
+        unsigned int cur = i%sz;
+        if (face.msegs[cur].fe == face.msegs[prev].fs) {
+            while (prev != cur) {
+                face.msegs[prev].fs = face.msegs[cur].fe;
+                face.msegs[prev].fe = face.msegs[cur].fe;
+                prev = (prev + 1)%sz;
+            }
+            face.msegs[cur].fs = face.msegs[cur].fe;
+        } else if (!(face.msegs[cur].fs == face.msegs[cur].fe)) {
+            prev = cur;
+        }
+        i++;
+    }
 
-    std::vector<MSeg>::iterator cur, prev;
-    cur = face.msegs.begin();
-    prev = face.msegs.begin();
-    while (cur != face.msegs.end()) {
-        if (cur->ie == prev->is) {
-            while (prev != cur) {
-                prev->is = cur->ie;
-                prev->ie = cur->ie;
-                prev++;
-            }
-            cur->is = cur->ie;
-        } else if (!(cur->is == cur->ie))
-            prev = cur;
-        cur++;
-    }
-    
-    cur = face.msegs.begin();
-    prev = face.msegs.begin();
-    while (cur != face.msegs.end()) {
-        if (cur->fe == prev->fs) {
-            while (prev != cur) {
-                prev->fs = cur->fe;
-                prev->fe = cur->fe;
-                prev++;
-            }
-            cur->fs = cur->fe;
-        } else if (!(cur->fs == cur->fe))
-            prev = cur;
-        cur++;
-    }
-    
-    cur = face.msegs.begin();
-    while (cur != face.msegs.end()) {
-        if (cur->is == cur->ie && cur->fs == cur->fe)
-            cur = face.msegs.erase(cur);
+    // Now eliminate MSeg-Objects with degenerated initial and final segments
+    std::vector<MSeg>::iterator c = face.msegs.begin();
+    while (c != face.msegs.end()) {
+        if (c->is == c->ie && c->fs == c->fe)
+            c = face.msegs.erase(c);
         else
-            cur++;
+            c++;
     }
-    
-    return ret;
 }
 
 /*
@@ -225,20 +225,14 @@ static ListExpr CycleToListExpr(MSegs face);
 void MFace::MergeConcavities() {
     Check();
     for (unsigned int i = 0; i < cvs.size(); i++) {
-        cerr << "Merging concavity " << i << endl;
        if (cvs[i].msegs.size() < 3) // Ignore invalid or degenerated faces
             continue;
         SortCycle();
         MFace f(cvs[i]);
-        cerr << endl << "Face: " << endl;
-        PrintMRegionListExpr();
-        cerr << endl << "Concavity:" << endl;
-        f.PrintMRegionListExpr();
         if (face.MergeConcavity(cvs[i])) {
             // Merging the concavity into the cycle was successful.
-            SortAndFixCycle();
-            cerr << "Result\n" << ToString() << endl;
-            PrintMRegionListExpr();
+            SortCycle(); // Sort the cycle 
+            EliminateSpikes(); // Eliminate empty spikes
         } else {
             // Merging the concavity into the cycle was not successful, add
             // this cycle to the list of holes.
@@ -253,7 +247,7 @@ void MFace::MergeConcavities() {
         }
     }
     
-    // All Concavities have been handled, clear the list.
+    // All concavities have been handled, clear the list.
     cvs.erase(cvs.begin(), cvs.end());
 }
 

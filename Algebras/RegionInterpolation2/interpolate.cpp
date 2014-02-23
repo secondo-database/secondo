@@ -235,10 +235,12 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
 // failed for some reason.
 string fallbacks[] = {
 #ifdef USE_LUA
-    "Overlap:1",
     "MW",
-#endif
     "Null"
+#else
+    "mw",
+    "null"
+#endif
 };
 #define nrfallbacks (sizeof(fallbacks)/sizeof(fallbacks[0]))
 

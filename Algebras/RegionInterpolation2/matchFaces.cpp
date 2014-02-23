@@ -24,7 +24,6 @@ vector<pair<Face *, Face *> > _matchFacesLua(vector<Face> *src,
 
 vector<pair<Face *, Face *> > matchFacesLua(vector<Face> *src,
         vector<Face> *dst, int depth, string args) {
-    cerr << "Called matchFacesLua(" << args << ")\n";
     return _matchFacesLua(src, dst, depth, args);
 }
 #endif
@@ -37,7 +36,6 @@ vector<pair<Face *, Face *> > matchFacesLua(vector<Face> *src,
 vector<pair<Face *, Face *> > matchFacesNull(vector<Face> *src,
         vector<Face> *dst, int depth, string args) {
     vector<pair<Face *, Face *> > ret;
-    cerr << "Called matchFacesNull(" << args << ")\n";
 
     return ret;
 }
@@ -50,7 +48,6 @@ vector<pair<Face *, Face *> > matchFacesNull(vector<Face> *src,
 vector<pair<Face *, Face *> > matchFacesSimple(vector<Face> *src,
         vector<Face> *dst, int depth, string args) {
     vector<pair<Face *, Face *> > ret;
-    cerr << "Called matchFacesSimple(" << args << ")\n";
 
     for (unsigned int i = 0; (i < src->size() || (i < dst->size())); i++) {
         if ((i < src->size()) && (i < dst->size())) {
@@ -62,75 +59,6 @@ vector<pair<Face *, Face *> > matchFacesSimple(vector<Face> *src,
     return ret;
 }
 
-
-/*
- 1.3 matchFacesDistance uses a simple distance matching algorithmus. It tries
- to pair faces with low distance.
- 
-*/
-vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
-        vector<Face> *dst, int depth, string args) {
-    vector<pair<Face *, Face *> > ret;
-    cerr << "Called matchFacesDistance(" << args << ")\n";
-
-    Pt srcoff = Face::GetBoundingBox(*src).first;
-    Pt dstoff = Face::GetBoundingBox(*dst).first;
-
-    if (src->size() >= dst->size()) {
-        for (unsigned int i = 0; i < dst->size(); i++) {
-            int dist = 2000000000;
-            int candidate = -1;
-            for (unsigned int j = 0; j < src->size(); j++) {
-                if ((*src)[j].used == 1)
-                    continue;
-                Pt srcm = (*src)[j].GetMiddle() - srcoff;
-                Pt dstm = (*dst)[i].GetMiddle() - dstoff;
-                int d2 = dstm.distance(srcm);
-                if (d2 < dist) {
-                    dist = d2;
-                    candidate = j;
-                }
-            }
-            pair<Face *, Face *> p(&(*src)[candidate], &(*dst)[i]);
-            ret.push_back(p);
-            (*src)[candidate].used = 1;
-        }
-        for (unsigned int j = 0; j < src->size(); j++) {
-            if ((*src)[j].used)
-                continue;
-            pair<Face *, Face *> p(&(*src)[j], NULL);
-            ret.push_back(p);
-        }
-    } else {
-        for (unsigned int i = 0; i < src->size(); i++) {
-            int dist = 2000000000;
-            int candidate = -1;
-            for (unsigned int j = 0; j < dst->size(); j++) {
-                if ((*dst)[j].used == 1)
-                    continue;
-                Pt srcm = (*src)[i].GetMiddle() - srcoff;
-                Pt dstm = (*dst)[j].GetMiddle() - dstoff;
-                int d2 = dstm.distance(srcm);
-                if (d2 < dist) {
-                    dist = d2;
-                    candidate = j;
-                }
-            }
-            pair<Face *, Face *> p(&(*src)[i], &(*dst)[candidate]);
-            ret.push_back(p);
-            (*dst)[candidate].used = 1;
-        }
-        for (unsigned int j = 0; j < dst->size(); j++) {
-            if ((*dst)[j].used)
-                continue;
-            pair<Face *, Face *> p(NULL, &(*dst)[j]);
-            ret.push_back(p);
-        }
-
-    }
-
-    return ret;
-}
 
 // Helper function for matchFacesLowerLeft below to sort a list of faces by
 // their lower-(leftmost)-point
@@ -144,7 +72,7 @@ static bool sortLowerLeft(const Face& r1, const Face& r2) {
 }
 
 /*
- 1.4 matchFacesLowerLeft matches the faces by the lowest-(leftmost)-point.
+ 1.3 matchFacesLowerLeft matches the faces by the lowest-(leftmost)-point.
  It is used in the evaporation-phase, when we only need to match faces
  with identical hull.
  
@@ -232,7 +160,7 @@ static pair<Pt, Pt> getOffsetAndScale (vector<Face> *fcs) {
 }
 
 /*
- 1.5 matchFacesCriterion is a framework for matching-strategies.
+ 1.4 matchFacesCriterion is a framework for matching-strategies.
  It takes the two lists of faces and a scoring-function ~fn~, which calculates
  a score for each pair of faces. A smaller score wins over higher scores.
  Then, the results are sorted by this value and the best pairings are taken
@@ -286,33 +214,73 @@ static double overlap (Face *src, Face *dst) {
     double a2 = r2.Area(NULL);
     double ai = is.Area(NULL);
     
-    return ((ai*100/a1+ai*100/a2)/2);
+    // Subtract the value from 100, since matchFacesCriterion tries to minimize
+    return 100-((ai*100/a1+ai*100/a2)/2);
 }
 
 /*
- 1.6 matchFacesOverlap uses matchFacesCriterion for matching faces by their
- overlapping area. The average overlap must be 30 percent minimum.
+ 1.5 matchFacesOverlap uses matchFacesCriterion for matching faces by their
+ overlapping area. The average overlap must be 30 percent minimum if no other
+ value is given.
  
 */
 static vector<pair<Face *, Face *> > matchFacesOverlap(vector<Face> *src,
         vector<Face> *dst, int depth, string args) {
-    return matchFacesCriterion(src, dst, depth, overlap, 30);
+    int minpercent = atoi(args.c_str());
+    if ((minpercent <= 0) || (minpercent > 100))
+        minpercent = 30;
+    return matchFacesCriterion(src, dst, depth, overlap, (100 - minpercent));
 }
 
 #define nrMatchFacesStrategies (sizeof(matchFacesStrategies)/            \
                                 sizeof(matchFacesStrategies[0]))
 
+
+// Helper-Function for matchFacesDistance
+static double distance (Face *src, Face *dst) {
+    return src->GetMiddle().distance(dst->GetMiddle());
+}
+
+/*
+ 1.6 matchFacesDistance uses a distance-based scoring function. It tries
+ to pair faces with low distance.
+ 
+*/
+vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
+    return matchFacesCriterion(src, dst, depth, distance, 1000000);
+}
+
+/*
+ 1.7 matchFacesMW tries to match Faces at the highest level by distance but then
+ doesn't try to match concavities or holes. This is about what McKenney and Webb
+ suggested.
+ 
+*/
+vector<pair<Face *, Face *> > matchFacesMW(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
+    if (depth == 0) {
+        return matchFacesDistance(src, dst, depth, "");
+    } else {
+        return matchFacesNull(src, dst, depth, "");
+    }
+}
+
+
 // Register all matching strategies in this list.
-// The argument must be in the form "<name>[:<paramstring>]"
+// The argument for interpolate2 must be in the form "<name>[:<paramstring>]"
+// to select the function
 static struct {
     string name;
     matchFaces_t fn;
 } matchFacesStrategies[] = {
-    { "distance", matchFacesDistance }, //The first is also the default strategy
+    //The first is also the default strategy if Lua is not compiled
+    { "overlap", matchFacesOverlap },
+    { "distance", matchFacesDistance },
     { "null", matchFacesNull },
     { "simple", matchFacesSimple },
-    { "lowerleft", matchFacesLowerLeft },
-    { "overlap", matchFacesOverlap }
+    { "mw", matchFacesMW },
+    { "lowerleft", matchFacesLowerLeft }
 };
 
 /*

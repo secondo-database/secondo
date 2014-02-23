@@ -90,7 +90,7 @@
   }                                         \
 }
 
-int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
+static int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
                      float U0[3],float U1[3],float U2[3])
 {
    float A[3];
@@ -167,7 +167,7 @@ int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
 
 
 
-int TriangleIntersection(float V0[3],float V1[3],float V2[3],
+static int TriangleIntersection(float V0[3],float V1[3],float V2[3],
                      float U0[3],float U1[3],float U2[3])
 {
   float E1[3],E2[3];
@@ -266,17 +266,17 @@ int TriangleIntersection(float V0[3],float V1[3],float V2[3],
   return 1;
 }
 
-bool trapeziumIntersects2 (MSeg m, MSeg a) {
+static bool _trapeziumIntersects2 (MSeg m, MSeg a) {
     if (!(m.is == m.ie) && !(m.fs == m.fe)) {
         MSeg ms1(m.is, m.ie, m.fs, m.fs);
         MSeg ms2(m.is, m.is, m.fs, m.fe);
-        return trapeziumIntersects2(ms1, a) || trapeziumIntersects2(ms2, a);
+        return _trapeziumIntersects2(ms1, a) || _trapeziumIntersects2(ms2, a);
     }
 
     if (!(a.is == a.ie) && !(a.fs == a.fe)) {
         MSeg ms1(a.is, a.ie, a.fs, a.fs);
         MSeg ms2(a.is, a.is, a.fs, a.fe);
-        return trapeziumIntersects2(m, ms1) || trapeziumIntersects2(m, ms2);
+        return _trapeziumIntersects2(m, ms1) || _trapeziumIntersects2(m, ms2);
     }
 
     float V0[3], V1[3], V2[3];
@@ -335,4 +335,10 @@ bool trapeziumIntersects2 (MSeg m, MSeg a) {
     bool ret = TriangleIntersection(V0, V1, V2, U0, U1, U2);
     
     return ret;
+}
+
+bool trapeziumIntersects2 (MSeg m, MSeg a, unsigned int& detailedResult) {
+    detailedResult = 0;
+    
+    return _trapeziumIntersects2(m, a);
 }
