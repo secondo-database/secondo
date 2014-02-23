@@ -6122,9 +6122,14 @@ For each Flob with mode 3, its elements mean:
                 //Flob are kept locally
                 continue;
               }
-              if (prepared->find(make_pair(source, times)) == prepared->end()){
+              map<pair<int, int>, FlobSheet*>::iterator pit =
+                  prepared->find(make_pair(source, times));
+              if (pit == prepared->end()){
                 dataPrepared = false;
               } else {
+                if (!pit->second->isAllPrepared()){
+                  pit->second->initializeAllFlobs();
+                }
                 sheets[no][k] =
                     prepared->find(make_pair(source, times))->second;
               }
@@ -6132,6 +6137,7 @@ For each Flob with mode 3, its elements mean:
           }
 
           if (dataPrepared){
+
             //Prepare all needed Flob structure.
             for (size_t no = 0; no < faLen; no++)
             {
@@ -6152,11 +6158,18 @@ For each Flob with mode 3, its elements mean:
                 Flob* flob = attr->GetFLOB(k);
                 if (flob->getMode() > 2)
                 {
+                 if (! (sheet->isAllPrepared() 
+                        && sheet->findInitializedFlob(*flob))){
                   Flob::readExFile(*flob, flobFile, flob->getSize(),
-                    sheet->getNewOffset(flob->getFileId(), flob->getOffset()));
+                      sheet->getCFOffset(flob->getFileId(), flob->getOffset()));
+                  }
+                 
+                  //Flob::readExFile(*flob, flobFile, flob->getSize(),
+                  //  sheet->getRFOffset(flob->getFileId(), flob->getOffset()));
                 }
               }
             }
+
             Counter::getRef("FetchFlob")++;
             gtfit->setReturned();
             gtfit++;
@@ -6196,7 +6209,6 @@ void FetchFlobLocalInfo::clearFetchedFiles()
     for (vector<string>::iterator it = fetchedFiles->begin();
         it != fetchedFiles->end(); it++){
       string filePath = *it;
-
       if (!FileSystem::DeleteFileOrFolder(filePath)){
         cerr << "Warning!! File " << filePath << " cannot be deleted. " << endl;
       }
@@ -6495,7 +6507,6 @@ it asks the following parameters:
   string args = ss.str();
   memset(buffer, '\0', buffer_len);
   memcpy(buffer, args.c_str(), args.length());
-
   if ((bytecount = send(hsock, buffer, strlen(buffer), 0)) == -1){
     cerr << "Error!! sending data fails: " << errno << endl;
     return NULL;
@@ -6510,16 +6521,15 @@ it asks the following parameters:
   memcpy(&res, buffer, sizeof(bool));
   if (!res){
     cerr << "Error!! Cannot get the result file. " << endl;
-  }
-  else {
-    fs->initializeAllFlobs(resultFlobFilePath);
+  } else {
+    //re-organize the result flob file
+    //fs->shuffleCollectedFlobs();
   }
 
   if (FileSystem::FileOrFolderExists(localSheetPath)){
     FileSystem::DeleteFileOrFolder(localSheetPath);
   }
   close(hsock);
-
 
   // after getting all result flob files
   pthread_mutex_lock(&FFLI_mutex);
@@ -6578,7 +6588,7 @@ Tuple* FetchFlobLocalInfo::readLocalFlob(Tuple* tuple)
 
 FlobSheet::FlobSheet(int source, int dest, int times, int maxMemory):
   sourceDSId(source), destDSId(dest), times(times),
-  cachedSize(0), maxMem(maxMemory)
+  cachedSize(0), maxMem(maxMemory), dataInitialized(false)
 {
   stringstream ss;
   ss << "Sheet_"
@@ -6629,8 +6639,9 @@ bool FlobSheet::addOrder(Flob* flob)
     lobInfo.mode = flob->getMode();
     lobInfo.sourceDS = flob->getRecordId();
     lobInfo.size = flob->getSize();
-    lobInfo.newOffset = 0;
+    lobInfo.cfOffset = 0;
     lobInfo.pLob = flob;
+    lobInfo.rfOffset = cachedSize;
 
     lobMarkers.insert(make_pair(lob, lobInfo));
 
@@ -6646,7 +6657,7 @@ void FlobSheet::closeSheetFile()
   size_t noffset = 0;
   for (map<flobKeyT, flobInfoT>::iterator mit = lobMarkers.begin();
       mit != lobMarkers.end(); mit++){
-    mit->second.newOffset = noffset;
+    mit->second.cfOffset = noffset;
     sheetFile << mit->first.first << " "
               << mit->second.sourceDS << " "
               << mit->first.second << " "
@@ -6657,7 +6668,7 @@ void FlobSheet::closeSheetFile()
   sheetFile.close();
 }
 
-SmiSize FlobSheet::getNewOffset(SmiFileId fileId, SmiSize oldOffset){
+SmiSize FlobSheet::getCFOffset(SmiFileId fileId, SmiSize oldOffset){
   flobKeyT mlob(fileId, oldOffset);
   map<flobKeyT, flobInfoT>::iterator nmit = lobMarkers.find(mlob);
   if (nmit == lobMarkers.end()){
@@ -6665,30 +6676,86 @@ SmiSize FlobSheet::getNewOffset(SmiFileId fileId, SmiSize oldOffset){
         "(" << fileId << ", " << oldOffset << ")" << endl;
     assert(false);
   } else {
-    return nmit->second.newOffset;
+    return nmit->second.cfOffset;
   }
 }
 
-void FlobSheet::initializeAllFlobs(string flobFilePath)
+SmiSize FlobSheet::getRFOffset(SmiFileId fileId, SmiSize oldOffset){
+  flobKeyT mlob(fileId, oldOffset);
+  map<flobKeyT, flobInfoT>::iterator nmit = lobMarkers.find(mlob);
+  if (nmit == lobMarkers.end()){
+    cerr << "Error!! Cannot find the flob "
+        "(" << fileId << ", " << oldOffset << ")" << endl;
+    assert(false);
+  } else {
+    return nmit->second.rfOffset;
+  }
+}
+
+void FlobSheet::initializeAllFlobs()
 {
-  bool fileExist = FileSystem::FileOrFolderExists(flobFilePath);
+  bool fileExist = FileSystem::FileOrFolderExists(resultFlobFilePath);
   if (!fileExist){
-    cerr << "Error!! The flob file " << flobFilePath << " does not exist. \n";
+    cerr << "Error!! The flob file " 
+      << resultFlobFilePath << " does not exist. \n";
     return;
   }
 
-  ifstream resultFile(flobFilePath.c_str(), ios::binary);
   map<flobKeyT, flobInfoT>::iterator mit = lobMarkers.begin();
+  SmiSize offset = 0;
   for (; mit != lobMarkers.end(); mit++)
   {
     Flob* flob = mit->second.pLob;
+    SmiSize size = flob->getSize();
+    Flob::readExFile(*flob, resultFlobFilePath, size, offset);
+    offset += size;
+  }
+
+  dataInitialized = true;
+}
+
+bool FlobSheet::findInitializedFlob(Flob& result)
+{
+  flobKeyT mlob(result.getFileId(), result.getOffset());
+  map<flobKeyT, flobInfoT>::iterator mit = lobMarkers.find(mlob);
+  if (mit != lobMarkers.end()){
+    result = *(mit->second.pLob);
+    return true;
+  }
+  return false;
+}
+
+void FlobSheet::shuffleCollectedFlobs()
+{
+  bool fileExist = FileSystem::FileOrFolderExists(resultFlobFilePath);
+  if (!fileExist){
+    cerr << "Error!! The flob file " 
+      << resultFlobFilePath << " does not exist. \n";
+    return;
+  }
+
+  string newFilePath =
+      resultFlobFilePath.substr(0, resultFlobFilePath.find_last_of("/"))
+      + "ctmp_" +
+      resultFlobFilePath.substr(resultFlobFilePath.find_last_of("/") + 1);
+
+  //Re-organize the collected results, in order to read them by the tuple order
+  char* buffer = new char[cachedSize];
+  ifstream resultFile(resultFlobFilePath.c_str(), ios::binary);
+  map<flobKeyT, flobInfoT>::iterator mit = lobMarkers.begin();
+  for (; mit != lobMarkers.end(); mit++)
+  {
     SmiSize size = mit->second.size;
-    char data[size];
-    resultFile.read(data, size);
-    Flob::createFromBlock(*flob, data, size, true);
-    flob->resize(size);
+    SmiSize offset = mit->second.rfOffset;
+    resultFile.read(buffer + offset, size);
   }
   resultFile.close();
+
+  ofstream newResultFile(newFilePath.c_str(), ios::binary);
+  newResultFile.write(buffer, cachedSize);
+  newResultFile.close();
+  FileSystem::DeleteFileOrFolder(resultFlobFilePath);
+  FileSystem::RenameFileOrFolder(newFilePath, resultFlobFilePath);
 }
 
 ostream& operator<<(ostream& os, const TupleFlobInfo& f){

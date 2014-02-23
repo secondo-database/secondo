@@ -1017,7 +1017,8 @@ One FlobSheet collects the Flob data from the same DS of all tuples.
 typedef pair<SmiFileId, SmiSize> flobKeyT;
 
 typedef struct{
-  SmiSize newOffset;
+  SmiSize cfOffset;
+  SmiSize rfOffset;
   char mode;
   SmiRecordId sourceDS;
   SmiSize size;
@@ -1043,9 +1044,15 @@ returns whether the sheet is full.
 
 */
 
-  SmiSize getNewOffset(SmiFileId fileId, SmiSize oldOffset);
+  SmiSize getCFOffset(SmiFileId fileId, SmiSize oldOffset);
 
-  void initializeAllFlobs(string flobFilePath);
+  SmiSize getRFOffset(SmiFileId fileId, SmiSize oldOffset);
+
+  void initializeAllFlobs();
+  
+  void shuffleCollectedFlobs();
+
+  bool findInitializedFlob(Flob& result);
 
   void closeSheetFile();
 
@@ -1059,6 +1066,8 @@ returns whether the sheet is full.
 
   inline string getSheetPath() { return sheetFilePath;}
 
+  inline bool isAllPrepared() { return dataInitialized;}
+
   ostream& print(ostream& os) const;
 private:
   string resultFlobFilePath;
@@ -1067,6 +1076,8 @@ private:
   int times;
   size_t cachedSize;
   size_t maxMem;
+
+  bool dataInitialized;
 
   string sheetFilePath;
   map<flobKeyT, flobInfoT> lobMarkers;
