@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
    for(int i = 0; i < columns; i++) {
      
      if(i != 0) {
-       buffer.append(";");
+       buffer.append(",");
      }
      
      for(int charNum = 0; charNum < sizePerColumn; charNum++) {
