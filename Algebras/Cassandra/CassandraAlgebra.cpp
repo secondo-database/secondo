@@ -56,6 +56,8 @@
 #include "Stream.h"
 #include "Progress.h"
 
+#include "CassandraAdapter.h"
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
@@ -806,13 +808,9 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       
       string consistenceLevel = ((FText*) args[3].addr)->GetValue();
-      if( ! ((consistenceLevel.compare("ANY") == 0)
-          || (consistenceLevel.compare("ONE") == 0)
-          || (consistenceLevel.compare("QUORUM") == 0)
-          || (consistenceLevel.compare("ALL") == 0))) {
-        
+      
+      if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel) ) {
         cout << "Unknown consistence level: " << consistenceLevel << endl;
-        
         return CANCEL;
       } 
       
@@ -855,7 +853,7 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 /*
-2.3.4 Specification of operator ~cfeed~
+2.4.4 Specification of operator ~cfeed~
 
 */
 const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -885,7 +883,7 @@ const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               ") )";
 
 /*
-2.3.5 Definition of operator ~cfeed~
+2.4.5 Definition of operator ~cfeed~
 
 */
 Operator cassandrafeed (
@@ -895,6 +893,189 @@ Operator cassandrafeed (
          Operator::SimpleSelect,  // trivial selection function
          CFeedTypeMap,            // type mapping
          CFeedCostEstimation      // Cost estimation
+);                         
+
+
+/*
+2.5 Operator ~ccollect~
+
+The operator ~ccollect~ fetches a relation from our
+cassandra cluster and create a stream of tuples.
+
+The first paramter is the contact point to the cassandra cluster
+The second parameter contains the name of the relation to fetch
+The third parameter specifies the consistence level used for reading:
+
+ANY    - Only a hinted handoff is created
+ONE    - One of the cassandra nodes has written the tuple
+QUORUM - More then n/2+1 cassandra nodes have written the tuple
+         n is the replication factor of the cluster
+ALL    - All cassandra nodes have written the tuple
+
+
+2.5.1 Type mapping function of operator ~ccollect~
+
+Type mapping for ~collect~ is
+
+----
+  rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n)) x text x
+                     text x text -> stream(tuple(...))
+----
+
+*/
+ListExpr CCollectTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 4){
+    return listutils::typeError("three arguments expected");
+  }
+
+  string err = " stream(tuple(...) x text x int expected";
+
+  ListExpr relation = nl->First(args);
+  ListExpr contactPoint = nl->Second(args);
+  ListExpr relationName = nl->Third(args);
+  ListExpr consistenceLevel = nl->Fourth(args);
+
+  if(  !Relation::checkType(relation) ||
+       !FText::checkType(consistenceLevel) ||
+       !FText::checkType(contactPoint) ||
+       !FText::checkType(relationName)) {
+    return listutils::typeError(err);
+  }
+  
+  // create result list
+  ListExpr resList = nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
+                     nl->Second(relation));
+  
+  return resList;
+}
+
+
+/*
+2.5.3 Value mapping function of operator ~ccollect~
+
+*/
+class CCollectLocalInfo {
+
+public:
+  CCollectLocalInfo(string myContactPoint, string myRelationName, 
+                   string myConsistence) 
+  
+    : contactPoint(myContactPoint), relationName(myRelationName),
+    consistence(myConsistence) {
+      
+      cout << "Contact point is " << contactPoint << endl;
+      cout << "Relation name is " << relationName << endl;
+      cout << "Consistence is " << consistence << endl;
+
+  }
+
+  Tuple* fetchNextTuple() {
+    return NULL;
+  }
+  
+private:
+  string contactPoint;      // Contactpoint for our cluster
+  string relationName;      // Relation name to delete
+  string consistence;       // Consistence  
+};
+
+int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  CCollectLocalInfo *cli; 
+  Word elem;
+  string consistenceLevel;
+
+  cli = (CCollectLocalInfo*)local.addr;
+  
+  switch(message) {
+    case OPEN: 
+
+     if ( cli ) delete cli;
+     
+     consistenceLevel = ((FText*) args[3].addr)->GetValue();
+     
+     if(! ((FText*) args[1].addr)->IsDefined()) {
+       cout << "Cluster contactpoint is not defined" << endl;
+     } else if (! ((FText*) args[2].addr)->IsDefined()) {
+       cout << "Relationname is not defined" << endl;
+     } else if (! ((FText*) args[3].addr)->IsDefined()) {
+       cout << "Consistence level is not defined" << endl;
+     } else if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel)) {
+       cout << "Unknown consistence level: " << consistenceLevel << endl; 
+     } else {
+       cli = new CCollectLocalInfo(
+                      (((FText*)args[1].addr)->GetValue()),
+                      (((FText*)args[2].addr)->GetValue()),
+                      (((FText*)args[3].addr)->GetValue())
+                 );
+        
+         local.setAddr( cli );
+     }
+      
+     return 0;
+
+    case REQUEST:
+      
+      // Operator not ready
+      if ( ! cli ) {
+        return CANCEL;
+      }
+      
+      // Fetch next tuple from cassandra
+      result.addr = cli -> fetchNextTuple();
+      
+      if(result.addr != NULL) {     
+        return YIELD;
+      } else  {     
+        return CANCEL;
+      }     
+
+    case CLOSE:
+      if(cli) {
+        delete cli;
+        cli = NULL;
+        local.setAddr( cli );
+      }
+      return 0;
+  }
+  
+  return 0;    
+}
+
+
+/*
+2.5.4 Specification of operator ~ccollect~
+
+*/
+const string CCollectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n))"
+                         "x text x text x text -> stream(tuple(...))</text--->"
+                         "<text>cfeed _ op [ _ , _ , _ ] </text--->"
+                         "<text>The operator ccollect fetches a relation from"
+                         "our cassandra cluster and create a stream of"
+                         "tuples. The first paramter is the contact point to "
+                         "the cassandra cluster. The second parameter contains "
+                         "the name of the relation to fetch. The third "
+                         "parameter specifies the consistence level used "
+                         "for reading</text--->"
+                         "<text>query plz ccollect['127.0.0.1', 'plz', 'ANY'] "
+                         "count</text--->"
+                              ") )";
+
+/*
+2.4.5 Definition of operator ~ccollect~
+
+*/
+Operator cassandracollect (
+         "ccollect",                // name
+         CCollectSpec,              // specification
+         CCollect,                  // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         CCollectTypeMap            // type mapping
 );                         
 
 
@@ -917,6 +1098,7 @@ public:
     AddOperator(&cassandrastatistics);
     AddOperator(&cassandradelete);
     AddOperator(&cassandrafeed);
+    AddOperator(&cassandracollect);
     
   }
   

@@ -24,3 +24,11 @@ Number   : 1
 Signature: ((stream (tuple x) x text x text x text)) -> int
 Example  : query plz feed cfeed['127.0.0.1', 'plz', 'ANY', 'node1']
 Result   : 41267
+
+Operator : ccollect
+Number   : 1
+Signature: rel(tuple(...)) x text x text x text  -> stream(tuple(...))
+Example  : query plz ccollect['127.0.0.1', 'plz', 'ANY'] count
+Result   : 41267
+
+
