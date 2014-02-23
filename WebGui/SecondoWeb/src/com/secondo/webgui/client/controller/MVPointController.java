@@ -125,9 +125,9 @@ public class MVPointController {
     		}
 
 			map.zoomToExtent(bounds); 
-				if(map.getZoom() > 10){ //zoom not closer than 10
+				/*if(map.getZoom() > 10){ //zoom not closer than 10
 					map.zoomTo(10);
-				}
+				}*/
     	}
     }
     

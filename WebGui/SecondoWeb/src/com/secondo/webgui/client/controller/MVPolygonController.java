@@ -146,9 +146,9 @@ public class MVPolygonController {
 			}
 
 			map.zoomToExtent(bounds);
-			if (map.getZoom() > 10) {
+			/*if (map.getZoom() > 10) {
 				map.zoomTo(10);
-			}
+			}*/
 		}
 	}
 

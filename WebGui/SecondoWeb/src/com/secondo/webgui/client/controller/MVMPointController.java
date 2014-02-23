@@ -176,9 +176,9 @@ public class MVMPointController {
     	   map.addLayer(mpointMap.get(idOfFirstPoint));
         
            map.zoomToExtent(bounds); 
-           if(map.getZoom() > 10){ 
+           /*if(map.getZoom() > 10){ 
     			map.zoomTo(10);
-    		}
+    		}*/
         }
     }
     

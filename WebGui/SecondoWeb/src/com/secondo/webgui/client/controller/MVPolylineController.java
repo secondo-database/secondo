@@ -152,9 +152,9 @@ public class MVPolylineController {
         
            map.zoomToExtent(bounds); 
            //zoom not closer than 10
-           if(map.getZoom() > 10){ 
+           /*if(map.getZoom() > 10){ 
     			map.zoomTo(10);
-    		}
+    		}*/
     	}
     }
     
