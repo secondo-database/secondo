@@ -5903,9 +5903,7 @@ FetchFlobLocalInfo::FetchFlobLocalInfo(
 
   maxBufferSize = qp->GetMemorySize(s) * 1024 * 1024;
   maxSheetSize = 0;
-  totalTupleBuffer = 0;
-  flobInfo = 0;
-  newRecIds = 0;
+  tbList = 0;
 
   ci = 0;
   cds = -1;
@@ -5916,6 +5914,86 @@ FetchFlobLocalInfo::FetchFlobLocalInfo(
   fetchingNum = preparedNum = 0;
   fetchedFiles = 0;
   pthread_mutex_init(&FFLI_mutex, NULL);
+}
+
+size_t FetchFlobLocalInfo::getKey(int sdsVec[])
+{
+  assert(ci);
+
+  size_t key = 0;
+  size_t cSize = ci->getClusterSize();
+  for (size_t i = 0; i < faLen; i++)
+  {
+    key += sdsVec[i] * pow((double)cSize, (int)(faLen - i - 1));
+  }
+  return key;
+}
+
+size_t FetchFlobLocalInfo::getMaxKey()
+{
+  assert(ci);
+
+  int sdsVec[faLen];
+  for (size_t i = 0; i < faLen; i++)
+  {
+    sdsVec[i] = ci->getClusterSize();
+  }
+  return getKey(sdsVec);
+}
+
+void FetchFlobLocalInfo::decodeKey(size_t key, int sdsVec[])
+{
+  assert(ci);
+
+  size_t cSize = ci->getClusterSize();
+  size_t rest = key;
+  for (size_t i = 0; i < faLen; i++)
+  {
+    sdsVec[i] = rest / pow((double)cSize, int(faLen -i - 1));
+    rest = rest % (size_t)pow((double)cSize, int(faLen -i - 1));
+  }
+}
+
+bool FetchFlobLocalInfo::isReadAll(Tuple* tuple)
+{
+  assert(tuple);
+  bool allRead = true;
+  for (size_t no = 0; no < faLen; no++){
+    int ai = faVec[no];
+    Attribute* attr = tuple->GetAttribute(ai);
+    if(attr->GetFLOB(0)->getMode() > 2){
+      allRead = false;
+      break;
+    }
+  }
+  return allRead;
+}
+
+bool FetchFlobLocalInfo::isPreparedAll(Tuple* tuple, TupleFlobInfo* tif)
+{
+  bool allPrepared = true;
+  int source, times;
+  for (size_t no = 0; no < faLen; no++)
+  {
+    int ai = faVec[no];
+    Attribute* attr = tuple->GetAttribute(ai);
+    for (int k = 0; k < attr->NumOfFLOBs(); k++){
+      source = tif->getDS(no, k);
+      times = tif->getSheetTimes(no, k);
+      if (source < 0){
+        continue;
+      }
+      map<pair<int, int>, FlobSheet*>::iterator pit =
+        prepared->find(make_pair(source, times));
+      if (pit == prepared->end()){
+        allPrepared = false;
+        break;
+      }
+    }
+    if (!allPrepared)
+      break;
+  }
+  return allPrepared;
 }
 
 Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
@@ -5941,9 +6019,13 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
           cds = ci->getLocalNode();
           size_t slaveSize = ci->getSlaveSize();
           maxSheetSize = maxBufferSize / slaveSize;
-          totalTupleBuffer = new TupleBuffer(maxBufferSize);
-          flobInfo = new vector<TupleFlobInfo>();
-          gtbit = 0;
+
+          tbList = new
+              map<size_t, pair<TupleBuffer*, vector<TupleFlobInfo>*> >();
+          size_t maxKey = getMaxKey();
+          perBufferSize = maxBufferSize / maxKey ;
+          tbfIt = 0;
+          curKey = 0;
 
           //Increase the slaveSize with 1 to visit them by the source id
           standby = new vector<FlobSheet*>(slaveSize + 1);
@@ -5957,12 +6039,14 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
         }
 
         bool isLocal = true;
+        int sdsVec[faLen];
         for (size_t no = 0; no < faLen; no++)
         {
           int ai = faVec[no];
           Attribute* attr = tuple->GetAttribute(ai);
           if ( attr->NumOfFLOBs() > 0){
             char mode = attr->GetFLOB(0)->getMode();
+            sdsVec[no] = attr->GetFLOB(0)->getRecordId();
             if (mode > 2)
               isLocal = false;
           }
@@ -5988,7 +6072,16 @@ For each Flob with mode 3, its elements mean:
 ----
 
 */
-          totalTupleBuffer->AppendTuple(tuple);
+          size_t key = getKey(sdsVec);
+          if (tbList->find(key) == tbList->end()){
+            tbList->insert(make_pair(key,
+                make_pair(new TupleBuffer(perBufferSize),
+                          new vector<TupleFlobInfo>())));
+          }
+          TupleBuffer* tb = tbList->find(key)->second.first;
+          vector<TupleFlobInfo>* tfis = tbList->find(key)->second.second;
+
+          tb->AppendTuple(tuple);
           TupleFlobInfo tif(faLen, maxFlobNum);
           for (size_t no = 0; no < faLen; no++)
           {
@@ -6044,7 +6137,7 @@ For each Flob with mode 3, its elements mean:
               }
             } // set up for one Flob
           } // set up for one attribute
-          flobInfo->push_back(tif);
+          tfis->push_back(tif);
         } // set up for tuple asks Flob
       } // set up for one tuple
       qp->Request(s, t);
@@ -6073,116 +6166,115 @@ For each Flob with mode 3, its elements mean:
     }
 
     while (preparedNum > 0){
-      if (gtbit == 0){
-        gtbit = totalTupleBuffer->MakeScan();
-        gtfit = flobInfo->begin();
-      }
-      
-      while (!gtbit->EndOfScan())
-      {
-        Tuple* tuple = gtbit->GetNextTuple();
-        if (tuple == 0)
-          break;
 
-        if (!gtfit->isReturned())
+      //Find a tuple buffer where all its required files are prepared
+      if (tbfIt == 0){
+        bool allPrepared = false;
+        map<size_t, tupleListT>::iterator mit = tbList->begin();
+        while (!allPrepared)
         {
-          //Whether the Flobs have been fetched
-          bool flobAllRead = true;
-          for (size_t no = 0; no < faLen; no++){
-            int ai = faVec[no];
-            Attribute* attr = tuple->GetAttribute(ai);
-            for (int k = 0; k < attr->NumOfFLOBs(); k++){
-              Flob* flob = attr->GetFLOB(k);
-              if (flob->getMode() > 2){
-                flobAllRead = false;
+          //wait until one tuple list fullfill the condition
+          for (; mit != tbList->end(); mit++){
+            vector<TupleFlobInfo>::iterator infoIt
+              = mit->second.second->begin();
+            GenericRelationIterator* tIt = mit->second.first->MakeScan();
+            for (; infoIt != mit->second.second->end(); infoIt++){
+              Tuple* tuple = tIt->GetNextTuple();
+              if (isReadAll(tuple)){
+                continue;
+              } else {
+                allPrepared = isPreparedAll(tuple, &(*infoIt));
                 break;
               }
             }
-            if (!flobAllRead) break;
-          } // detect whether there exists un-read flob
-          if (flobAllRead){
-            Counter::getRef("FetchFlob")++;
-            gtfit->setReturned();
-            gtfit++;
-            return setResultTuple(tuple);
-          }
-
-          //Find its related Flob files, whether they are prepared ?
-          bool dataPrepared = true;
-          FlobSheet *sheets[faLen][maxFlobNum];
-          int source, times;
-
-          for (size_t no = 0; no < faLen; no++){
-            int ai = faVec[no];
-            Attribute* attr = tuple->GetAttribute(ai);
-            for (int k = 0; k < attr->NumOfFLOBs(); k++){
-              source = gtfit->getDS(no, k);
-              times = gtfit->getSheetTimes(no, k);
-              if (source < 0){
-                //Flob are kept locally
-                continue;
-              }
-              map<pair<int, int>, FlobSheet*>::iterator pit =
-                  prepared->find(make_pair(source, times));
-              if (pit == prepared->end()){
-                dataPrepared = false;
-              } else {
-                if (!pit->second->isAllPrepared()){
-                  pit->second->initializeAllFlobs();
-                }
-                sheets[no][k] =
-                    prepared->find(make_pair(source, times))->second;
-              }
+            if (allPrepared){
+              break;
             }
-          }
-
-          if (dataPrepared){
-
-            //Prepare all needed Flob structure.
-            for (size_t no = 0; no < faLen; no++)
-            {
-              int ai = faVec[no];
-              Attribute* attr = tuple->GetAttribute(ai);
-
-              for (int k = 0; k < attr->NumOfFLOBs(); k++)
-              {
-                source = gtfit->getDS(no, k);
-                if (source < 0){
-                  //Flob is kept within the Tuple
-                  continue;
-                }
-
-                FlobSheet* sheet = sheets[no][k];
-                string flobFile = sheet->getResultFile();
-
-                Flob* flob = attr->GetFLOB(k);
-                if (flob->getMode() > 2)
-                {
-                 if (! (sheet->isAllPrepared() 
-                        && sheet->findInitializedFlob(*flob))){
-                  Flob::readExFile(*flob, flobFile, flob->getSize(),
-                      sheet->getCFOffset(flob->getFileId(), flob->getOffset()));
-                  }
-                 
-                  //Flob::readExFile(*flob, flobFile, flob->getSize(),
-                  //  sheet->getRFOffset(flob->getFileId(), flob->getOffset()));
-                }
-              }
-            }
-
-            Counter::getRef("FetchFlob")++;
-            gtfit->setReturned();
-            gtfit++;
-            return setResultTuple(tuple);
           }
         }
+        curKey = mit->first;
+        tbfIt = mit->second.first->MakeScan();
+        tifIt = mit->second.second->begin();
       }
 
-      if (Counter::getRef("FetchFlob") >= totalTupleBuffer->GetNoTuples()){
-        //All tuples are fetched
-        return 0;
-      } else {
-        gtbit = 0;
+      Tuple* tuple = tbfIt->GetNextTuple();
+      if (tuple)
+      {
+        //Whether the Flobs have been fetched
+        if (isReadAll(tuple)){
+          tifIt->setReturned();
+          tifIt++;
+
+          Tuple* resultTuple = setResultTuple(tuple);
+          return resultTuple;
+        }
+
+        //Find all related flob sheets
+        FlobSheet *sheets[faLen][maxFlobNum];
+        int source, times;
+        for (size_t no = 0; no < faLen; no++)
+        {
+          int ai = faVec[no];
+          Attribute* attr = tuple->GetAttribute(ai);
+          for (int k = 0; k < attr->NumOfFLOBs(); k++){
+            source = tifIt->getDS(no, k);
+            times = tifIt->getSheetTimes(no, k);
+
+            if (source < 0){
+              //Flob are kept locally
+              continue;
+            }
+            map<pair<int, int>, FlobSheet*>::iterator pit =
+                prepared->find(make_pair(source, times));
+            sheets[no][k] = pit ->second;
+          }
+        }
+
+        //Prepare all needed Flob structure.
+        for (size_t no = 0; no < faLen; no++)
+        {
+          int ai = faVec[no];
+          Attribute* attr = tuple->GetAttribute(ai);
+          for (int k = 0; k < attr->NumOfFLOBs(); k++){
+            source = tifIt->getDS(no, k);
+            if (source < 0){
+              //Flob is kept within the Tuple
+              continue;
+            }
+
+            FlobSheet* sheet = sheets[no][k];
+            string flobFile = sheet->getResultFile();
+
+            Flob* flob = attr->GetFLOB(k);
+            if (flob->getMode() > 2)
+            {
+              //Read collected file
+              Flob::readExFile(*flob, flobFile, flob->getSize(),
+                  sheet->getCFOffset(flob->getFileId(), flob->getOffset()));
+
+              //Read re-organized file
+              //Flob::readExFile(*flob, flobFile, flob->getSize(),
+              //  sheet->getRFOffset(flob->getFileId(), flob->getOffset()));
+            }
+          }
+        }
+
+        tifIt->setReturned();
+        tifIt++;
+        Tuple* resultTuple = setResultTuple(tuple);
+        return resultTuple;
+      }
+      else {
+        //The current tuple list is exhausted
+        delete tbList->find(curKey)->second.first;
+        tbList->find(curKey)->second.second->clear();
+        delete tbList->find(curKey)->second.second;
+        tbList->erase(curKey);
+        tbfIt = 0;
+
+        if (tbList->empty()){
+          return 0;
+        }
       }
     }
   }

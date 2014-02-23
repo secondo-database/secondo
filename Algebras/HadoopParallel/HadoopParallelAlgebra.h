@@ -1017,8 +1017,8 @@ One FlobSheet collects the Flob data from the same DS of all tuples.
 typedef pair<SmiFileId, SmiSize> flobKeyT;
 
 typedef struct{
-  SmiSize cfOffset;
-  SmiSize rfOffset;
+  SmiSize cfOffset;  //Offset within the collected file
+  SmiSize rfOffset;  //Offset within the file being read
   char mode;
   SmiRecordId sourceDS;
   SmiSize size;
@@ -1181,6 +1181,7 @@ private:
 
 ostream& operator<<(ostream& os, const TupleFlobInfo& f);
 
+typedef pair<TupleBuffer*, vector<TupleFlobInfo>*> tupleListT;
 
 class FetchFlobLocalInfo : public ProgressLocalInfo
 {
@@ -1196,8 +1197,6 @@ public:
 
     if(ci){
       delete ci;
-      delete flobInfo;
-      delete newRecIds;
       for(map<pair<int, int>, FlobSheet*>::iterator ci = prepared->begin();
           ci != prepared->end(); ci++){
         FlobSheet* fs = ci->second;
@@ -1206,7 +1205,16 @@ public:
       delete prepared;
       delete fetchedFiles;
       delete []sheetCounter;
-      delete totalTupleBuffer;
+      if (!tbList->empty()){
+        for (map<size_t, tupleListT>::iterator ti = tbList->begin();
+          ti != tbList->end(); ti++){
+          delete ti->second.first;
+          ti->second.second->clear();
+          delete ti->second.second;
+        }
+        tbList->clear();
+      }
+      delete tbList;
     }
   }
 
@@ -1252,15 +1260,26 @@ Read the Flob data from all flob files that are collected from remote DSs.
 */
 
 /*
-Use the totalTupleBuffer to collect all input tuples, then use the ~flobInfo~
-buffer indicate the detailed information for every tuple.
+Create a set of small tuple buffers based on all possible DataServer combinations,
+instead of using a large global tuple buffer, in order to erase useless tuples
+and their Flob data as soon as possible. 
 
 */
-  TupleBuffer* totalTupleBuffer; //Buffer for all input tuples
-  vector<TupleFlobInfo>* flobInfo;
-  set<SmiRecordId>* newRecIds;    //Record all newly created Flob id
-  GenericRelationIterator* gtbit;
-  vector<TupleFlobInfo>::iterator gtfit;
+  map<size_t, tupleListT>* tbList;
+  GenericRelationIterator* tbfIt;         //tuple buffer iterator
+  vector<TupleFlobInfo>::iterator tifIt;  //tuple info iterator
+  size_t curKey;
+
+  size_t getKey(int sdsVec[]);
+  size_t getMaxKey();
+  void decodeKey(size_t key, int sdsVec[]);
+  size_t perBufferSize;
+
+  bool isReadAll(Tuple* tuple);
+  bool isPreparedAll(Tuple* tuple, TupleFlobInfo* tif);
+
+
+
 
   int *faVec, *daVec;   //record all needed and deleted Flob attribute list
   size_t faLen, daLen;
