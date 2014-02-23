@@ -1016,15 +1016,24 @@ One FlobSheet collects the Flob data from the same DS of all tuples.
 
 typedef pair<SmiFileId, SmiSize> flobKeyT;
 
-typedef struct{
+class flobInfoT{
+
+public:
+  flobInfoT(const Flob& flob) : pLob(flob){
+    cfOffset = rfOffset = 0;
+    mode = flob.getMode();
+    sourceDS = flob.getRecordId();
+    size = flob.getSize();
+  }
+
   SmiSize cfOffset;  //Offset within the collected file
   SmiSize rfOffset;  //Offset within the file being read
   char mode;
   SmiRecordId sourceDS;
   SmiSize size;
 
-  Flob* pLob;
-} flobInfoT;
+  Flob pLob;
+};
 
 
 class FlobSheet
@@ -1052,7 +1061,8 @@ returns whether the sheet is full.
   
   void shuffleCollectedFlobs();
 
-  bool findInitializedFlob(Flob& result);
+  bool findInitializedFlob(Flob* result,
+      map<flobKeyT, flobInfoT>::iterator& mit);
 
   void closeSheetFile();
 

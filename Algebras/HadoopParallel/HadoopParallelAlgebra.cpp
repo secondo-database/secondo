@@ -6249,8 +6249,14 @@ For each Flob with mode 3, its elements mean:
             if (flob->getMode() > 2)
             {
               //Read collected file
-              Flob::readExFile(*flob, flobFile, flob->getSize(),
+              map<flobKeyT, flobInfoT>::iterator mit;
+              if (sheet->findInitializedFlob(flob, mit)){
+                *flob = mit->second.pLob;
+              } else {
+                Flob::readExFile(*flob, flobFile, flob->getSize(),
                   sheet->getCFOffset(flob->getFileId(), flob->getOffset()));
+                mit->second.pLob = *flob;
+              }
 
               //Read re-organized file
               //Flob::readExFile(*flob, flobFile, flob->getSize(),
@@ -6716,7 +6722,6 @@ then returns whether the sheet is full.
 */
 bool FlobSheet::addOrder(Flob* flob)
 {
-
   if (cachedSize + flob->getSize() > maxMem){
     closeSheetFile();
     return true;
@@ -6727,12 +6732,8 @@ bool FlobSheet::addOrder(Flob* flob)
   bool exists = ((mit = lobMarkers.find(lob)) != lobMarkers.end());
 
   if (!exists){
-    flobInfoT lobInfo;
-    lobInfo.mode = flob->getMode();
-    lobInfo.sourceDS = flob->getRecordId();
-    lobInfo.size = flob->getSize();
+    flobInfoT lobInfo(*flob);
     lobInfo.cfOffset = 0;
-    lobInfo.pLob = flob;
     lobInfo.rfOffset = cachedSize;
 
     lobMarkers.insert(make_pair(lob, lobInfo));
@@ -6797,7 +6798,7 @@ void FlobSheet::initializeAllFlobs()
   SmiSize offset = 0;
   for (; mit != lobMarkers.end(); mit++)
   {
-    Flob* flob = mit->second.pLob;
+    Flob* flob = &(mit->second.pLob);
     SmiSize size = flob->getSize();
     Flob::readExFile(*flob, resultFlobFilePath, size, offset);
     offset += size;
@@ -6806,13 +6807,15 @@ void FlobSheet::initializeAllFlobs()
   dataInitialized = true;
 }
 
-bool FlobSheet::findInitializedFlob(Flob& result)
+bool FlobSheet::findInitializedFlob(Flob* result,
+    map<flobKeyT, flobInfoT>::iterator& mit)
 {
-  flobKeyT mlob(result.getFileId(), result.getOffset());
-  map<flobKeyT, flobInfoT>::iterator mit = lobMarkers.find(mlob);
+  flobKeyT mlob(result->getFileId(), result->getOffset());
+  mit = lobMarkers.find(mlob);
   if (mit != lobMarkers.end()){
-    result = *(mit->second.pLob);
-    return true;
+    if (mit->second.pLob.getMode() == 1){
+      return true;
+    }
   }
   return false;
 }
