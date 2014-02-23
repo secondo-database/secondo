@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
       cerr << "<columns> is the number of columns to generate" << endl;
       cerr << "<size per column> is the size per column" << endl;
       cerr << endl;
-      cerr << "Example: " << argv[0] << " 127.0.0.1 10000 10 4 10" << endl;
+      cerr << "Example: " << argv[0] << " 127.0.0.1 10000 10 4 10 10" << endl;
       return -1;
    }
    
