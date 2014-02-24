@@ -105,7 +105,6 @@ bool MSeg::operator<(const MSeg & a) const {
  initial or final segments overlap.
  
 */
-#define TRAPEZIUMINTERSECTS trapeziumIntersects2
 bool MSeg::intersects(const MSeg& a, bool checkSegs) const {
     bool ret;
     unsigned int detailedResult;

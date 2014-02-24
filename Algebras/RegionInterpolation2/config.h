@@ -29,5 +29,10 @@
 #define SCALEIN  1   // Imported values are multiplied by SCALEIN
 #define SCALEOUT 1   // Exported values are divided    by SCALEOUT
 
+// function name of trapezium-intersects-check.
+// Must have the prototype:
+// bool TRAPEZIUMINTERSECTS(MSeg m, MSeg a, unsigned int &detailedResult);
+// #define TRAPEZIUMINTERSECTS trapeziumIntersects // specialTrapeziumIntersects
+#define TRAPEZIUMINTERSECTS trapeziumIntersects2
 
 #endif /* _INTERPOLATE2_CONFIG_H */
