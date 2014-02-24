@@ -42,8 +42,8 @@ bool MSegs::MergeConcavity(MSegs c) {
     bool fastPath = true;
     bool success = false;
     
-    cerr << "Trying to merge\n" << this->ToString() << " with\n" <<
-            c.ToString() << endl;
+//    cerr << "Trying to merge\n" << this->ToString() << " with\n" <<
+//            c.ToString() << endl;
 
     // Determine if a fast path can be used. This is possible if no
     // MSeg-object was merged, so the pointlists only include the endpoints of

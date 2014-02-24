@@ -28,11 +28,19 @@ bool Pt::operator==(const Pt& a) const {
 }
 
 /*
- 1.2 Minus-operator calculates the x- and y-offset of two points.
+ 1.2a Minus-operator calculates the x- and y-offset of two points.
  
 */
 Pt Pt::operator-(const Pt& a) const {
     return Pt(x-a.x,y-a.y);
+}
+
+/*
+ 1.2b Unary Minus-operator negates the coordinates.
+ 
+*/
+Pt Pt::operator-() const {
+    return Pt(-x,-y);
 }
 
 /*

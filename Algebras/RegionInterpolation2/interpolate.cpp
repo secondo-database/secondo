@@ -38,8 +38,6 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
     if (sregs->empty() && dregs->empty()) // Nothing to do!
         return ret;
     
-    cerr << "Entering depth " << depth << "\n";
-
     // Remember the original faces-lists from which the result was created.
     ret.sregs = sregs;
     ret.dregs = dregs;
@@ -111,7 +109,6 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         handleIntersections(ret, MFace(), evap);
     }
 
-    cerr << "Leaving depth " << depth << "\n";
     return ret;
 }
 
@@ -177,7 +174,6 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                         // iscollapsed is 1, if the mface is collapsing,
                         // otherwise (2) it is expanding and we have to
                         // condensate it
-                        cerr << "Evaporating " << rm->ToString() << "\n";
                         if (rm->iscollapsed == 1) {
                             ms = rm->sreg.Evaporate(true);
                         } else {
@@ -204,19 +200,16 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                     // Simply erase the offending object from the list now,
                     // either we have already created evaporisation/condensation
                     // cycles or we marked that we have to fix things up later
-                    cerr << "Erasing " << (rm == s1 ? i : j - 1) << "\n";
                     children.faces.erase(children.faces.begin()+
                                          (rm == s1 ? i : j - 1));
                     // Restart the checks with the last face, since we changed
                     // the lists
                     i--;
-                    cerr << "Found intersection, need evaporate faces\n";
                     break;
                 }
                 // Add the collapse- and expand-cycles
                 children.faces.push_back(ss.first);
                 children.faces.push_back(ss.second);
-                cerr << "Found intersection, killing faces\n";
                 // Restart the checks one object earlier, since we removed
                 // the current object and the following objects filled the gap.
                 i-=2;
@@ -225,8 +218,6 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
         }
     }
     
-    cerr << "Left handle-intersections\n";
-
     // Insert the evaporation- and condensation-cycles into the list of faces
 //    children.faces.insert(children.faces.end(), evp.begin(), evp.end());
 }

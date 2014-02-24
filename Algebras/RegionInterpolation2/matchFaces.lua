@@ -47,7 +47,9 @@ function matchFaces (src, dst, depth, args)
 
     for idx,r in pairs(ret) do
 	local s,d = middle(r.src),middle(r.dst)
-	print("Matched " .. s.x .. "/" .. s.y .. " with " .. d.x .. "/" .. d.y)
+        if s ~= nil and d ~= nil then
+	    print("Matched " .. s.x .. "/" .. s.y .. " with " .. d.x .. "/" .. d.y)
+        end
     end
 
     return ret;

@@ -113,8 +113,8 @@ ListExpr MFaces::ToListExpr(Interval<Instant> iv, double start, double end) {
     }
 }
 
-// This is the duration of one moment, used for the borderregions
-DateTime moment(durationtype, 0); // One moment has duration 0 here
+// This is the duration of one moment in ms, used for the borderregions.
+DateTime moment(durationtype, 1); // Set to zero for an empty interval
 
 /*
  1.7 ToMListExpr converts this MFaces-object to the NestedList-representation
@@ -192,7 +192,6 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
 
 
     if (needSEvap) { // We need to perform an evaporations-phase
-        cerr << "\n==== Evaporations ====\n";
         Interval<Instant> siv(evaporIv.start, evaporIv.start, true, true);
         MFaces s = Face::CreateMFaces(sregs);
         Append(mreg, s.ToListExpr(siv, 0, 1));
@@ -203,32 +202,24 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
         // the evaporation-mode-flag set.
         fs = interpolate(sregs, &borderfaces, 0, true, "");
         Append(mreg, fs.ToListExpr(evaporIv, 0, 1));
-        cerr << "==== /Evaporations ====\n";
     }
 
     if (needStartRegion) {
-        cerr << "\n==== Start-Region ====\n";
         // Create the borderregion at the begin of the main interpolation
         // interval here and add it to the list.
         Append(mreg, CreateBorderMFaces(true).ToListExpr(startRegIv, 0, 1));
-        cerr << "==== /Start-Region ====\n";
     }
 
-    cerr << "\n==== Main-Interpolation to List ====\n";
     // Add the main-interpolation
     Append(mreg, ToListExpr(mainIv, 0, 1));
-    cerr << "==== /Main-Interpolation to List ====\n";
 
     if (needEndRegion) {
-        cerr << "\n==== End-Region ====\n";
         // Create the borderregion at the end of the main interpolation
         // interval here and add it to the list.
         Append(mreg, CreateBorderMFaces(false).ToListExpr(endRegIv, 0, 1));
-        cerr << "==== /End-Region ====\n";
     }
 
     if (needDEvap) { // A condensation-phase is needed
-        cerr << "\n==== Condensations ====\n";
         MFaces fs;
         // Reconstruct the borderfaces at the end of the main interpolation ..
         vector<Face> borderdregs = CreateBorderFaces(false);
@@ -240,12 +231,9 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
         Interval<Instant> eiv(condensIv.end, condensIv.end, true, true);
         MFaces s = Face::CreateMFaces(dregs);
         Append(mreg, s.ToListExpr(eiv, 0, 1));
-        cerr << "==== /Condensations ====\n";
     }
     
-    cerr << "\n==== Result ====\n";
     nl->WriteListExpr(mreg);
-    cerr << "\n";
     
     return mreg;
 }
@@ -353,47 +341,34 @@ MRegion MFaces::ToMRegion(Interval<Instant> iv) {
 
 
     if (needSEvap) {
-        cerr << "\n==== Start-Evaporations ====\n";
         MFaces fs;
-        cerr << "CreateBorderRegs start\n";
         vector<Face> bordersregs = CreateBorderFaces(true);
-        cerr << "Interpolate start\n";
         fs = interpolate(sregs, &bordersregs, 0, true, "");
-        cerr << "Interpolate end\n";
         URegion u = fs.ToURegion(startEvapIv, 0, 1);
         ret.AddURegion(u);
-        cerr << "==== /Start-Evaporations ====\n";
     }
 
     if (needStartRegion) {
-        cerr << "\n==== Start-Region ====\n";
         URegion u = CreateBorderMFaces(true).ToURegion(startRegIv, 0, 1);
         ret.AddURegion(u);
-        cerr << "==== /Start-Region ====\n";
     }
 
     if (1) {
-        cerr << "\n==== Main-Interpolation to List ====\n";
         URegion u = ToURegion(mainIv, 0, 1);
         ret.AddURegion(u);
-        cerr << "==== /Main-Interpolation to List ====\n";
     }
 
     if (needEndRegion) {
-        cerr << "\n==== End-Region ====\n";
         URegion u = CreateBorderMFaces(false).ToURegion(endRegIv, 0, 1);
         ret.AddURegion(u);
-        cerr << "==== /End-Region ====\n";
     }
 
     if (needDEvap) {
-        cerr << "\n==== End-Evaporations ====\n";
         MFaces fs;
         vector<Face> borderdregs = CreateBorderFaces(false);
         fs = interpolate(&borderdregs, dregs, 0, true, "");
         URegion u = fs.ToURegion(endEvapIv, 0, 1);
         ret.AddURegion(u);
-        cerr << "==== /End-Evaporations ====\n";
     }
 
     return ret;

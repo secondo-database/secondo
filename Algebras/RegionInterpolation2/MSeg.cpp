@@ -107,30 +107,29 @@ bool MSeg::operator<(const MSeg & a) const {
 */
 #define TRAPEZIUMINTERSECTS trapeziumIntersects2
 bool MSeg::intersects(const MSeg& a, bool checkSegs) const {
-    int ret;
+    bool ret;
     unsigned int detailedResult;
     
     bool TRAPEZIUMINTERSECTS(MSeg m, MSeg a, unsigned int &detailedResult);
     ret = TRAPEZIUMINTERSECTS(*this, a, detailedResult);
-    if (ret) {
-        cerr << "Intersection between " << ToString()
-                << " and " << a.ToString() << "\n";
-    }
+    
+    if (ret)
+        DEBUG(3, "Segments intersect: " << this->ToString() <<
+                " with " << a.ToString());
 
     if (checkSegs) {
         Seg ai(a.is, a.ie), af(a.fs, a.fe);
         Seg bi(is, ie), bf(fs, fe);
         if (ai.intersects(bi)) {
-            ret = 1;
-            cerr << "Intersection initial!\n" << ai.ToString() << " "
-                    << bi.ToString() << "\n";
+            DEBUG(3, "Initial segment intersects: " << ai.ToString());
+            ret = true;
         }
         if (af.intersects(bf)) {
-            ret = 1;
-            cerr << "Intersection final!\n" << af.ToString() << " "
-                    << bf.ToString() << "\n";
+            DEBUG(3, "Final segment intersects: " << af.ToString());
+            ret = true;
         }
     }
+    
     return ret;
 }
 

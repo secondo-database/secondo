@@ -9,6 +9,10 @@
 
 #include "MovingRegionAlgebra.h"
 
+#include "config.h"
+
+#define DEBUG(l,m) do { if (l < DEBUGLEVEL) { cerr << m << endl; } } while (0)
+
 // Choose the installed Lua-version here
 #define LUA5_1
 //#define LUA5_2
@@ -48,6 +52,7 @@ public:
     bool operator<(const Pt& a) const;
     bool operator==(const Pt& a) const;
     Pt operator-(const Pt& a) const;
+    Pt operator-() const; // Unary minus
     Pt operator+(const Pt& a) const;
     Pt operator/(double a) const;
     Pt operator*(const Pt& a) const;

@@ -142,7 +142,8 @@ static pair<Pt, Pt> getOffsetAndScale (vector<Face> *fcs) {
         bbox = Face::GetBoundingBox(*fcs);
     }
     
-    ret.first = bbox.first;
+    
+    ret.first = -bbox.first;
         
     if ((bbox.second.x > bbox.first.x) &&
         (bbox.second.y > bbox.first.y)) {
@@ -180,7 +181,7 @@ static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
     
     for (unsigned int i = 0; i < src->size(); i++) {
         for (unsigned int j = 0; j < dst->size(); j++) {
-            Face s = (*src)[i], d = (*dst)[i];
+            Face s = (*src)[i], d = (*dst)[j];
             s.Transform(stf.first, stf.second);
             d.Transform(dtf.first, dtf.second);
             double val = fn(&s, &d);
@@ -197,6 +198,7 @@ static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
             it->d->used = 1;
             ret.push_back(pair<Face *, Face *>(it->s, it->d));
         }
+        it++;
     }
     
     return ret;
@@ -214,8 +216,11 @@ static double overlap (Face *src, Face *dst) {
     double a2 = r2.Area(NULL);
     double ai = is.Area(NULL);
     
+    // Calculate the average overlap percentage between a1 and a2 and vice versa
+    double ret = (ai*100/a1+ai*100/a2)/2;
+    
     // Subtract the value from 100, since matchFacesCriterion tries to minimize
-    return 100-((ai*100/a1+ai*100/a2)/2);
+    return 100-ret;
 }
 
 /*

@@ -6,7 +6,8 @@
 */
 
 /* scale-factor for ~region~-import and export */
-#define SCALE 1
+#define SCALEIN 1
+#define SCALEOUT 1
 
 #include "interpolate.h"
 
@@ -23,13 +24,13 @@ Face::Face(ListExpr tle, bool withHoles) : cur(0), parent(NULL), ishole(false) {
     while (nl->ListLength(le) > 1) {
         ListExpr pa = nl->First(le);
         ListExpr pb = nl->First(nl->Rest(le));
-        double p1 = nl->RealValue(nl->First(pa)) * SCALE;
+        double p1 = nl->RealValue(nl->First(pa)) * SCALEIN;
         pa = nl->Rest(pa);
-        double p2 = nl->RealValue(nl->First(pa)) * SCALE;
+        double p2 = nl->RealValue(nl->First(pa)) * SCALEIN;
         pa = nl->Rest(pa);
-        double p3 = nl->RealValue(nl->First(pb)) * SCALE;
+        double p3 = nl->RealValue(nl->First(pb)) * SCALEIN;
         pb = nl->Rest(pb);
-        double p4 = nl->RealValue(nl->First(pb)) * SCALE;
+        double p4 = nl->RealValue(nl->First(pb)) * SCALEIN;
         pb = nl->Rest(pb);
         le = nl->Rest(le);
         Seg s = Seg(Pt(p1, p2), Pt(p3, p4));
@@ -81,8 +82,8 @@ static ListExpr Segs2NL(vector<Seg> segs, double offx, double offy,
 
     for (unsigned int i = 0; i < segs.size(); i++) {
         ListExpr seg = nl->Empty();
-        Append(seg, nl->RealAtom((segs[i].s.x - offx) * scalex / SCALE));
-        Append(seg, nl->RealAtom((segs[i].s.y - offy) * scaley / SCALE));
+        Append(seg, nl->RealAtom((segs[i].s.x - offx) * scalex / SCALEOUT));
+        Append(seg, nl->RealAtom((segs[i].s.y - offy) * scaley / SCALEOUT));
         Append(cycle, seg);
     }
 
