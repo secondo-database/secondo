@@ -33,8 +33,8 @@ CCFLAGS += $(ALG_INC_DIRS)
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-	cp -n matchFaces.lua ../../bin || /bin/true
-	cp -n matchStrategies.lua ../../bin || /bin/true
+	cp -n matchFaces.lua ../../bin || true
+	cp -n matchStrategies.lua ../../bin || true
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)

@@ -71,6 +71,34 @@ function matchFacesOverlap (src, dst, depth, minoverlap)
     return matchFacesCriterion (src, dst, depth, overlapx, 100 - minoverlap)
 end
 
+function matchFacesCloud (src, dst, depth, direction)
+    if (depth > 0) then
+        return matchFacesOverlap(src, dst, depth, 30)
+    end
+
+    degree = tonumber(direction) or 0
+
+    return matchFacesCriterion (src, dst, depth, clouddistance)
+end
+
+function clouddistance (src, dst)
+   local cs = centroid(src)
+   local ds = centroid(dst)
+
+   local dx = cs.x - ds.x
+   local dy = cs.y - ds.y
+
+   local xx = math.sin(math.rad(degree))
+   local xy = math.cos(math.rad(degree))
+
+   local dist = dx*xx + dy*xy
+
+   print("Dist ".. dist )
+
+   if (dist > 0) then
+       return dist
+   end
+end
 
 function matchFacesCriterion (src, dst, depth, func, thres)
     ret = {}
@@ -85,7 +113,7 @@ function matchFacesCriterion (src, dst, depth, func, thres)
 	    s = src[i]
 	    d = dst[j]
 	    val = func(s,d)
-	    if ((thres == nil) or (val < thres)) then
+	    if (val ~= nil and ((thres == nil) or (val < thres))) then
 		dist[k] = {}
 		dist[k].criterion = val
 		dist[k].s = s

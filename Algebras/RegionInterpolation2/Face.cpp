@@ -5,10 +5,6 @@
   
 */
 
-/* scale-factor for ~region~-import and export */
-#define SCALEIN 1
-#define SCALEOUT 1
-
 #include "interpolate.h"
 
 Face::Face() : cur(0), ishole(false) {

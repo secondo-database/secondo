@@ -283,19 +283,19 @@ static ListExpr CycleToListExpr(MSegs face) {
     int first, cur;
     first = cur = 0;
 
-    ListExpr c = nl->OneElemList(nl->RealAtom(face.msegs[cur].ie.x));
-    le = nl->Append(c, nl->RealAtom(face.msegs[cur].ie.y));
-    le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.x));
-    le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.y));
+    ListExpr c = nl->OneElemList(nl->RealAtom(face.msegs[cur].ie.x / SCALEOUT));
+    le = nl->Append(c, nl->RealAtom(face.msegs[cur].ie.y / SCALEOUT));
+    le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.x / SCALEOUT));
+    le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.y / SCALEOUT));
     ListExpr cy = nl->OneElemList(c);
     le2 = cy;
     cur = face.findNext(cur);
     while (cur != first) {
         assert(cur >= 0);
-        c = nl->OneElemList(nl->RealAtom(face.msegs[cur].ie.x));
-        le = nl->Append(c, nl->RealAtom(face.msegs[cur].ie.y));
-        le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.x));
-        le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.y));
+        c = nl->OneElemList(nl->RealAtom(face.msegs[cur].ie.x / SCALEOUT));
+        le = nl->Append(c, nl->RealAtom(face.msegs[cur].ie.y / SCALEOUT));
+        le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.x / SCALEOUT));
+        le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.y / SCALEOUT));
         le2 = nl->Append(le2, c);
         cur = face.findNext(cur);
     }

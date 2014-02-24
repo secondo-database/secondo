@@ -116,10 +116,10 @@ int luaInit(void) {
     add_custom_functions(); // and add our own functions
 
     // First try to load the compiled version of the matchFaces-script
-    int st = luaL_loadfile(L, "matchFaces.luac");
+    int st = luaL_loadfile(L, LUASCRIPTNAME ".luac");
     if (st) {
         // That failed, so we try to open the source-file
-        st = luaL_loadfile(L, "matchFaces.lua");
+        st = luaL_loadfile(L, LUASCRIPTNAME ".lua");
         if (st) {
             // Either it wasn't present or a parse-error occurred
             cerr << "Error parsing LUA-file: " << lua_tostring(L, -1) << "\n";

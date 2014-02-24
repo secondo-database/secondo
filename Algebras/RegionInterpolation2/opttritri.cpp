@@ -3,8 +3,10 @@
 
 #include "interpolate.h"
 
+typedef double num;
+
 #include <math.h>
-#define FABS(x) (float(fabs(x))) 
+#define FABS(x) (num(fabs(x))) 
 
 #define USE_EPSILON_TEST TRUE
 #define EPSILON 0.001
@@ -25,7 +27,7 @@
 #define SORT(a,b)       \
              if(a>b)    \
              {          \
-               float c; \
+               num c; \
                c=a;     \
                a=b;     \
                b=c;     \
@@ -54,7 +56,7 @@
 
 #define EDGE_AGAINST_TRI_EDGES(V0,V1,U0,U1,U2) \
 {                                              \
-  float Ax,Ay,Bx,By,Cx,Cy,e,d,f;               \
+  num Ax,Ay,Bx,By,Cx,Cy,e,d,f;               \
   Ax=V1[i0]-V0[i0];                            \
   Ay=V1[i1]-V0[i1];                            \
   /* test edge U0,U1 against V0,V1 */          \
@@ -67,7 +69,7 @@
 
 #define POINT_IN_TRI(V0,U0,U1,U2)           \
 {                                           \
-  float a,b,c,d0,d1,d2;                     \
+  num a,b,c,d0,d1,d2;                     \
   /* is T1 completly inside T2? */          \
   /* check if V0 is inside tri(U0,U1,U2) */ \
   a=U1[i1]-U0[i1];                          \
@@ -90,10 +92,10 @@
   }                                         \
 }
 
-static int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
-                     float U0[3],float U1[3],float U2[3])
+static int coplanar_tri_tri(num N[3],num V0[3],num V1[3],num V2[3],
+                     num U0[3],num U1[3],num U2[3])
 {
-   float A[3];
+   num A[3];
    short i0,i1;
    A[0]=FABS(N[0]);
    A[1]=FABS(N[1]);
@@ -167,19 +169,19 @@ static int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
 
 
 
-static int TriangleIntersection(float V0[3],float V1[3],float V2[3],
-                     float U0[3],float U1[3],float U2[3])
+static int TriangleIntersection(num V0[3],num V1[3],num V2[3],
+                     num U0[3],num U1[3],num U2[3])
 {
-  float E1[3],E2[3];
-  float N1[3],N2[3],d1,d2;
-  float du0,du1,du2,dv0,dv1,dv2;
-  float D[3];
-  float isect1[2], isect2[2];
-  float du0du1,du0du2,dv0dv1,dv0dv2;
+  num E1[3],E2[3];
+  num N1[3],N2[3],d1,d2;
+  num du0,du1,du2,dv0,dv1,dv2;
+  num D[3];
+  num isect1[2], isect2[2];
+  num du0du1,du0du2,dv0dv1,dv0dv2;
   short index;
-  float vp0,vp1,vp2;
-  float up0,up1,up2;
-  float bb,cc,max;
+  num vp0,vp1,vp2;
+  num up0,up1,up2;
+  num bb,cc,max;
 
   SUB(E1,V1,V0);
   SUB(E2,V2,V0);
@@ -225,10 +227,10 @@ static int TriangleIntersection(float V0[3],float V1[3],float V2[3],
 
   CROSS(D,N1,N2);
 
-  max=(float)FABS(D[0]);
+  max=(num)FABS(D[0]);
   index=0;
-  bb=(float)FABS(D[1]);
-  cc=(float)FABS(D[2]);
+  bb=(num)FABS(D[1]);
+  cc=(num)FABS(D[2]);
   if(bb>max) max=bb,index=1;
   if(cc>max) max=cc,index=2;
 
@@ -240,13 +242,13 @@ static int TriangleIntersection(float V0[3],float V1[3],float V2[3],
   up1=U1[index];
   up2=U2[index];
 
-  float a,b,c,x0,x1;
+  num a,b,c,x0,x1;
   NEWCOMPUTE_INTERVALS(vp0,vp1,vp2,dv0,dv1,dv2,dv0dv1,dv0dv2,a,b,c,x0,x1);
 
-  float d,e,f,y0,y1;
+  num d,e,f,y0,y1;
   NEWCOMPUTE_INTERVALS(up0,up1,up2,du0,du1,du2,du0du1,du0du2,d,e,f,y0,y1);
 
-  float xx,yy,xxyy,tmp;
+  num xx,yy,xxyy,tmp;
   xx=x0*x1;
   yy=y0*y1;
   xxyy=xx*yy;
@@ -279,8 +281,8 @@ static bool _trapeziumIntersects2 (MSeg m, MSeg a) {
         return _trapeziumIntersects2(m, ms1) || _trapeziumIntersects2(m, ms2);
     }
 
-    float V0[3], V1[3], V2[3];
-    float U0[3], U1[3], U2[3];
+    num V0[3], V1[3], V2[3];
+    num U0[3], U1[3], U2[3];
 
     if (m.is.x == m.ie.x && m.is.y == m.ie.y) {
         V0[0] = m.is.x;

@@ -47,7 +47,7 @@ bool MSegs::MergeConcavity(MSegs c) {
 
     // Determine if a fast path can be used. This is possible if no
     // MSeg-object was merged, so the pointlists only include the endpoints of
-    // the MSeg.
+    // the MSeg, which is degenerated in one point.
     for (unsigned int i = 0; i < msegs.size(); i++) {
         if ((msegs[i].ip.size() + msegs[i].fp.size()) > 3) {
             fastPath = false;

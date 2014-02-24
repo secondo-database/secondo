@@ -331,13 +331,13 @@ vector<pair<Face *, Face *> > matchFaces(
     // Try to find the matching-strategy defined in the argument-string.
     matchFaces_t fn = NULL;
     string fname = args, fargs = "";
-    unsigned int pos = fname.find(':');
+    size_t pos = fname.find(':');   // Find the index of the colon
     if (pos != string::npos) {
         // Split it into name and params, if a colon is present
         fname = args.substr(0, pos);
         fargs = args.substr(pos+1, string::npos);
     } else {
-        // Otherwise the argument string is only the name
+        // Otherwise the argument string consists only of the name (we assume)
         fname = args;
     }
     
@@ -348,13 +348,16 @@ vector<pair<Face *, Face *> > matchFaces(
         }
     }
     
-    // The real work is done here
     if (fn) {
+        // If we have found a matching function, call it here
         pairs = fn(src, dst, depth, fargs);
     } else {
+        // Otherwise use a default strategy
 #ifdef USE_LUA
+        // which is Lua, if it is compiled
         pairs = matchFacesLua(src, dst, depth, args);
 #else
+        // or the first strategy in the list otherwise
         pairs = matchFacesStrategies[0].fn(src, dst, depth, fargs);
 #endif
     }

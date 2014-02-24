@@ -11,11 +11,8 @@
 
 #include "config.h"
 
-#define DEBUG(l,m) do { if (l < DEBUGLEVEL) { cerr << m << endl; } } while (0)
+#define DEBUG(l,m) do { if (l <= DEBUGLEVEL) { cerr << m << endl; } } while (0)
 
-// Choose the installed Lua-version here
-#define LUA5_1
-//#define LUA5_2
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA
 #define LUA_FUNCTION(FNAME) int luafunc_ ## FNAME(lua_State *L)
@@ -23,10 +20,6 @@
                                 lua_setglobal(L, #FNAME)
 #endif
 
-// For matching faces, each set of faces will be translated and scaled to the
-// boundary-box (0/0) - (SCALESIZE/SCALESIZE). Used by matchFacesCriterion and
-// matchFacesLua
-#define SCALESIZE 1000000
 
 // Forward-declarations of the classes
 class Pt;

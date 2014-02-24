@@ -151,6 +151,16 @@ static int trapeziumIntersects (MSeg m, MSeg a, unsigned int& detailedResult) {
     return ret;
 }
 
+static bool trapeziumIntersects3 (MSeg m, MSeg a) {
+    double s1 = Pt::sign(m.is, a.is, a.ie);
+    double s2 = Pt::sign(m.fs, a.fs, a.fe);
+    
+    if ((s1 <= 0) && (s2 <= 0) ||
+        (s1 >= 0) && (s2 >= 0))
+        return false;
+        
+}
+
 /*
  1.6 ChangeDirection is used to change the orientation of the initial and final
  segments. This is mainly used to integrate one cycle into another cycle.
