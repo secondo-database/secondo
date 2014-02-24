@@ -62,6 +62,7 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include <stack>
 #include <vector>
 #include <math.h>
+#include <time.h>
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
@@ -79,6 +80,11 @@ class PatElem;
 class Assign;
 class ClassifyLI;
 class IndexLI;
+struct LabelValue;
+struct PlaceValue;
+class ILabels;
+class ULabels;
+class MLabels;
 
 enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
@@ -86,47 +92,64 @@ enum Wildcard {NO, STAR, PLUS};
 Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
 
+struct LabelValue {
+  ListExpr ToListExpr() const {return nl->StringAtom(string(v));}
+  bool operator==(const LabelValue& lv) const {return string(v) ==string(lv.v);}
+  
+  char v[MAX_STRINGSIZE + 1];
+};
+
+struct PlaceValue{
+  ListExpr ToListExpr() const {return nl->TwoElemList(name.ToListExpr(), 
+                                      nl->IntAtom(ref));}
+  bool operator==(const PlaceValue& pv) const {return (name == pv.name) &&
+                                                      (ref == pv.ref);}
+  
+  LabelValue name;
+  unsigned int ref;
+};
+
 /*
 \section{Class ~Label~}
 
 */
 class Label : public Attribute {
  public:
+  friend class Labels;
+  friend class MLabels;
+   
   Label() {}
   explicit Label(const string& val);
   Label(const Label& rhs);
   Label(const bool def);
+  
   ~Label() {}
 
-  string GetValue() const;
+  string GetValue() const {string value = val.v; return value;}
   void Set(const bool def, const string &value);
 //   Label* Clone() const {return new Label(*this);}
   bool operator==(const Label lb) const {return GetValue() == lb.GetValue();}
+  bool operator==(const LabelValue& lv) const;
+  void ToBase(LabelValue &lv) const {lv = val;}
 
-  static Word     In(const ListExpr typeInfo, const ListExpr instance,
-                     const int errorPos, ListExpr& errorInfo, bool& correct);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   ListExpr ToListExpr(ListExpr typeInfo);
-  static ListExpr Out(ListExpr typeInfo, Word value);
-  static Word     Create(const ListExpr typeInfo);
-  static void     Delete(const ListExpr typeInfo, Word& w);
-  static void     Close(const ListExpr typeInfo, Word& w);
-  static Word     Clone(const ListExpr typeInfo, const Word& w);
-  static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
+  static bool     CheckKind(ListExpr type, ListExpr& errorInfo);
   static int      SizeOfObj();
   static ListExpr Property();
   static const string BasicType() {return "label";}
   static const bool checkType(const ListExpr type);
   void            CopyFrom(const Attribute* right);
   int             Compare(const Attribute* arg) const;
-  size_t          Sizeof() const;
-  bool            Adjacent(const Attribute*) const;
+  size_t          Sizeof() const {return sizeof(*this);}
+  bool            Adjacent(const Attribute*) const {return false;}
   Attribute*      Clone() const {return new Label(*this);}
-  size_t          HashValue() const;
+  size_t          HashValue() const {return val.v[0];}
   void            SetValue(const string &value);
   ostream&        Print(ostream& os) const {return os << GetValue();}
-
+  
  protected:
-  char text[MAX_STRINGSIZE + 1];
+  LabelValue val;
 };
 
 int CompareLabels(const void *a, const void *b);
@@ -137,30 +160,40 @@ int CompareLabels(const void *a, const void *b);
 */
 class Labels : public Attribute {
  public:
+  typedef LabelValue base;
+  typedef Label single;
+  typedef ILabels itype;
+  typedef ULabels utype;
+  typedef MLabels mtype;
+   
+  friend class MLabels;
+   
   Labels() {}
   explicit Labels(const int n, const Label *Lb = 0);
-  explicit Labels(const bool defined) : Attribute(defined), labels(0) {}
+  explicit Labels(const bool defined) : Attribute(defined), values(0) {}
   explicit Labels(vector<Label>* lbs);
-  Labels(const Labels& src);
+  Labels(const Labels& src, const bool sort = false);
   
   ~Labels() {}
 
   Labels& operator=(const Labels& src);
   bool operator==(const Labels& src) const;
-  int NumOfFLOBs() const;
+  int NumOfFLOBs() const {return 1;}
   Flob *GetFLOB(const int i);
   int Compare(const Attribute*) const;
-  bool Adjacent(const Attribute*) const;
+  bool Adjacent(const Attribute*) const {return false;}
   Labels *Clone() const;
-  size_t Sizeof() const;
-  ostream& Print(ostream& os) const;
+  size_t Sizeof() const {return sizeof(*this);}
+  ostream& Print(ostream& os) const {return (os << *this);}
 
-  void Append( const Label &lb );
-  void Destroy();
-  int GetNoLabels() const;
-  Label GetLabel(int i) const;
-  const bool IsEmpty() const;
-  void CopyFrom(const Attribute* right);
+  void Append(const Label &lb) {values.Append(lb.val);}
+  void Append(const LabelValue& lv) {values.Append(lv);}
+  void Destroy() {values.destroy();}
+  int GetNoValues() const {return values.Size();}
+  void GetValue(int i, Label& lb) const;
+  void GetBasicValue(int i, LabelValue& lv) const;
+  const bool IsEmpty() const {return GetNoValues() == 0;}
+  void CopyFrom(const Attribute* right) {*this = *((Labels*)right);}
   size_t HashValue() const;
 
   friend ostream& operator <<( ostream& os, const Labels& p );
@@ -177,20 +210,20 @@ class Labels : public Attribute {
                        const ListExpr typeInfo, Word& value);
   static Word     Clone(const ListExpr typeInfo, const Word& w);
   static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
-  static int      SizeOfObj();
+  static int      SizeOfObj() {return sizeof(Labels);}
   static ListExpr Property();
-  static void*    Cast(void* addr);
-  static const    string BasicType() {return "labels";}
+  static void*    Cast(void* addr) {return (new (addr)Labels);}
+  static const    string BasicType() {return Label::BasicType() + "s";}
   static const    bool checkType(const ListExpr type) {
                                  return listutils::isSymbol(type, BasicType());}
-  DbArray<Label> GetDbArray() const {return labels;}
-  void Sort() {labels.Sort(CompareLabels);}
-  void Clean() {if (labels.Size()) {labels.clean();}}
+  void Sort() {values.Sort(CompareLabels);}
+  bool Find(Label& lb) {int p; return values.Find(&(lb.val), CompareLabels, p);}
+  void Clean() {if (values.Size()) {values.clean();}}
   ListExpr ToListExpr(ListExpr typeInfo);
   bool Contains(Label& lb) const;
 
  private:
-  DbArray<Label> labels;
+  DbArray<LabelValue> values;
 };
 
 /*
@@ -268,7 +301,7 @@ class MLabel : public MString {
   void convertFromMString(MString* source);
   MLabel* rewrite(map<string, pair<unsigned int, unsigned int> > binding,
                   vector<Assign> &assigns) const;
-  bool Passes(Label *label);
+  bool Passes(const Label& label) const;
   void At(const Label& label, MLabel& result) const;
   void DefTime(Periods& per) const;
   void Atinstant(const Instant& inst, ILabel& result) const;
@@ -276,8 +309,6 @@ class MLabel : public MString {
   void Initial(ILabel& result) const;
   void Final(ILabel& result) const;
 };
-
-class MLabels; // forward declaration
 
 /*
 \section{Class ~ILabels~}
@@ -339,11 +370,11 @@ class ULabels : public ConstTemporalUnit<Labels> {
   void Final(ILabels& result) const;
 };
 
-class MLabelsUnit {
+class SymbolicUnit {
  public: 
-  MLabelsUnit() {}
-  MLabelsUnit(int pos) : interval(true), startPos(pos) {}
-  ~MLabelsUnit() {}
+  SymbolicUnit() {}
+  SymbolicUnit(int pos) : interval(true), startPos(pos) {}
+  ~SymbolicUnit() {}
   
   SecInterval interval;
   int startPos;
@@ -353,62 +384,73 @@ class MLabelsUnit {
 \section{Class ~MLabels~}
 
 */
-class MLabels : public Attribute {
+template<class B>
+class MBasics : public Attribute {
  private:
-  DbArray<MLabelsUnit> units;
-  DbArray<Label> labels;
+  DbArray<SymbolicUnit> units;
+  DbArray<typename B::base> values;
   
  public:
-  MLabels() {}
-  explicit MLabels(int n);
-  explicit MLabels(const MLabels& mls);
+  MBasics() {}
+  explicit MBasics(int n) : Attribute(n > 0), units(n), values(0) {}
+  explicit MBasics(const MBasics& mbs);
   
-  ~MLabels() {}
+  ~MBasics() {}
   
   static ListExpr Property();
-  static int SizeOfObj() {return sizeof(MLabels);}
+  static int SizeOfObj() {return sizeof(B::mtype);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "m" + Labels::BasicType();}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  static const string BasicType() {return "m" + B::BasicType();}
+  static bool checkType(ListExpr t);
   int NumOfFLOBs() const {return 2;}
   Flob* GetFLOB(const int i);
   size_t Sizeof() const {return sizeof(*this);}
   int Compare(const Attribute* arg) const;
   bool Adjacent(const Attribute *arg) const {return false;}
-  Attribute *Clone() const {return new MLabels(*this);}
-  size_t HashValue() const {return labels.Size() * units.Size();}
-  virtual void CopyFrom(const Attribute* right) {*this = *((MLabels*)right);}
+  Attribute *Clone() const;
+  size_t HashValue() const {return values.Size() * units.Size();}
+  void CopyFrom(const Attribute* right) {*this = *((typename B::mtype*)right);}
   ListExpr ToListExpr(ListExpr typeInfo);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  void Destroy() {units.destroy(); values.destroy();}
   
-  string unitToString(int i) const;
-  string toString() const;
   int getEndPos(int i) const;
-  ListExpr labelsToListExpr(int start, int end);
+  ListExpr valuesToListExpr(int start, int end);
   ListExpr unitToListExpr(int i);
-  void readLabels(ListExpr labelslist);
+  void readValues(ListExpr valuelist);
   bool readUnit(ListExpr unitlist);
   int Position(const Instant& inst) const;
   
-  void Get(const int i, ULabels& result) const;
+  void Get(const int i, typename B::utype& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
-  void GetLabels(const int i, Labels& result) const;
+  void GetValues(const int i, B& result) const;
   SecInterval GetInterval(int i) const;
   int GetNoComponents() const {return units.Size();}
-  int GetNoLabels() const {return labels.Size();}
+  int GetNoValues() const {return values.Size();}
   void Clear();
   void StartBulkLoad() {assert(IsDefined());}
   void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
-  void Add(const ULabels& uls);
-  void MergeAdd(const ULabels& uls);
-  bool Passes(const Label *label) const;
-  bool Passes(const Labels *lbs) const;
-  void At(const Label& label, MLabels& result) const;
-  void At(const Labels& lbs, MLabels& result) const;
+  void Add(const typename B::utype& ut);
+  void MergeAdd(const typename B::utype& ut);
+  bool Passes(const typename B::single& sg) const;
+  bool Passes(const B& bs) const;
+  void At(const typename B::single& sg, typename B::mtype& result) const;
+  void At(const B& bs, typename B::mtype& result) const;
   void DefTime(Periods& per) const;
-  void Atinstant(const Instant& inst, ILabels& result) const;
-  void Initial(ILabels& result) const;
-  void Final(ILabels& result) const;
+  void Atinstant(const Instant& inst, typename B::itype& result) const;
+  void Initial(typename B::itype& result) const;
+  void Final(typename B::itype& result) const;
+};
+
+class MLabels : public MBasics<Labels> {
+ public: 
+  MLabels() {}
+  explicit MLabels(int n) : MBasics<Labels>(n) {}
+  explicit MLabels(const MLabels& mls) : MBasics<Labels>(mls) {}
+  
+  ~MLabels() {}
+  
+  static ListExpr Property();
 };
 
 /*
@@ -416,16 +458,20 @@ class MLabels : public Attribute {
 
 */
 class Place : public Label {
- public:
+  friend class Places;
+  
+ public: 
   Place() : Label() {}
   explicit Place(const string& n, const unsigned int r) : Label(n), ref(r) {}
   Place(const Place& rhs) : Label(rhs.GetName()), ref(rhs.GetRef()) {}
-  Place(const bool def) : Label(def), ref(0) {}
+  explicit Place(const bool def) : Label(def), ref(0) {}
 
   ~Place() {}
 
-  string GetName() const {return text;}
+  void Set(PlaceValue pv) {val = pv.name; ref = pv.ref;}
+  string GetName() const {string text = val.v; return text;}
   unsigned int GetRef() const {return ref;}
+  void SetName(const string& n) {Label::Set(IsDefined(), n);}
   void SetRef(const unsigned int r) {ref = r;}
   bool operator==(const Place& p) const;
   string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
@@ -441,7 +487,7 @@ class Place : public Label {
   int Compare(const Attribute* arg) const;
   bool Adjacent(const Attribute *arg) const {return false;}
   Attribute *Clone() const {return new Place(*this);}
-  size_t HashValue() const {return text[0] * text[9] * ref;}
+  size_t HashValue() const {return val.v[0] * val.v[9] * ref;}
   virtual void CopyFrom(const Attribute* right) {*this = *((Place*)right);}
   ListExpr ToListExpr(ListExpr typeInfo);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
@@ -560,26 +606,38 @@ class MPlace : public Mapping<UPlace, Place> {
 
 int ComparePlaces(const void *a, const void *b);
 
+class IPlaces;
+class UPlaces;
+class MPlaces;
+
 /*
 \section{Class ~Places~}
 
 */
 class Places : public Attribute {
  public:
+  typedef PlaceValue base;
+  typedef Place single;
+  typedef IPlaces itype;
+  typedef UPlaces utype;
+  typedef MPlaces mtype;
+   
   Places() {}
-  Places(const int n) : Attribute(true), places(n) {}
+  Places(const int n) : Attribute(true), values(n) {}
   Places(const Places& rhs);
-  Places(const bool def) : Attribute(def), places(0) {}
+  Places(const bool def) : Attribute(def), values(0) {}
 
   ~Places() {}
 
-  void Append(const Place &pl);
-  void Destroy();
-  int GetNoPlaces() const;
+  void Append(const PlaceValue &pv) {values.Append(pv);}
+  void Append(const Place& pl);
+  void Destroy() {values.destroy();}
+  int GetNoValues() const {return values.Size();}
   void GetPlace(const int i, Place& result) const;
-  bool IsEmpty() const;
-  void Sort();
-  void Clean() {if (places.Size()) {places.clean();}}
+  void GetPlaceValue(const int i, PlaceValue& result) const;
+  bool IsEmpty() const {return (GetNoValues() == 0);}
+  void Sort() {values.Sort(ComparePlaces);}
+  void Clean() {if (values.Size()) {values.clean();}}
   void operator=(const Places& p);
   bool operator==(const Places& p) const;
   string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
@@ -590,7 +648,7 @@ class Places : public Attribute {
   static const string BasicType() {return Place::BasicType() + "s";}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return 1;}
-  Flob* GetFLOB(const int i) {assert(i == 0); return &places;}
+  Flob* GetFLOB(const int i) {assert(i == 0); return &values;}
   size_t Sizeof() const {return sizeof(*this);}
   int Compare(const Attribute* arg) const;
   bool Adjacent(const Attribute *arg) const {return false;}
@@ -603,7 +661,7 @@ class Places : public Attribute {
   bool Contains(Place& pl) const;
 
  private:
-  DbArray<Place> places;
+  DbArray<PlaceValue> values;
 };
 
 /*
