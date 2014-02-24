@@ -10,9 +10,9 @@
 #######################################
 
 cassandra_dir=/opt/cassandra
-cassandra_version=2.0.3
+cassandra_version=2.0.5
 cassandra_url=http://ftp-stud.hs-esslingen.de/pub/Mirrors/ftp.apache.org/dist/cassandra/$cassandra_version/apache-cassandra-$cassandra_version-bin.tar.gz
-seed_ip=192.168.1.105
+seed_ip=192.168.1.108
 
 # Set language for output processing
 LANG=C
