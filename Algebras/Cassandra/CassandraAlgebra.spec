@@ -22,7 +22,7 @@ operator sleep alias SLEEP pattern _ op [ _ ]
 operator statistics alias STATISTICS pattern _ op [ _ , _ ]
 
 
-operator cdelete alias CDELETE pattern op ( _ , _ )
-operator cfeed alias CFEED pattern _ op [ _ , _ , _ , _ ]
-operator ccollect alias CCOLLECT pattern _ op [ _ , _ , _ ]
+operator cdelete alias CDELETE pattern op ( _ , _ , _ )
+operator cfeed alias CFEED pattern _ op [ _ , _ , _ , _ , _ ]
+operator ccollect alias CCOLLECT pattern _ op [ _ , _ , _ , _ ]
 

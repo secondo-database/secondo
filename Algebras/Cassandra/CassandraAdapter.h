@@ -61,6 +61,14 @@ public:
     }
 
 };
+
+class CassandraAdapter {
+
+private:
+  string contactpoint;
+  
+};
+
 }
 
 #endif

@@ -522,28 +522,30 @@ Operator cassandrastatistics (
 The operator ~cdelete~ deletes a relation in our
 cassandra cluster. The first parameter is the contact
 point to the cluster, the second paramter is the 
-name of the relation to delete.
+keyspace. The third paramter is then name of the 
+relation to delete.
 
 2.3.1 Type mapping function of operator ~cdelete~
 
 Type mapping for ~cdelete~ is
 
 ----
- (text text) -> int            
+ (text x text x text) -> int            
 ----
 
 */
 
 ListExpr CDeleteTypeMap( ListExpr args )
 {
-  string err = "text x text expected";
+  string err = "text x text x text expected";
   
-  if(!nl->HasLength(args,2)){
+  if(!nl->HasLength(args,3)){
     return listutils::typeError(err);
   }
   
-  if(!listutils::isSymbol(nl->First(args),FText::BasicType()) ||
-     !listutils::isSymbol(nl->Second(args),FText::BasicType())) {
+  if(!listutils::isSymbol(nl->First(args),FText::BasicType())  ||
+     !listutils::isSymbol(nl->Second(args),FText::BasicType()) ||
+     !listutils::isSymbol(nl->Third(args),FText::BasicType())) {
     
     return listutils::typeError(err);
   }    
@@ -559,11 +561,14 @@ ListExpr CDeleteTypeMap( ListExpr args )
 class CDeleteLocalInfo {
 
 public:
-  CDeleteLocalInfo(string myContactPoint, string myRelationName) 
-    : contactPoint(myContactPoint), relationName(myRelationName),
-    deletePerformed(false) {
+  CDeleteLocalInfo(string myContactPoint, string myKeyspace, 
+                   string myRelationName) 
+  
+    : contactPoint(myContactPoint), keyspace(myKeyspace),
+    relationName(myRelationName), deletePerformed(false) {
       
       cout << "Contact point is " << contactPoint << endl;
+      cout << "Keyspace is " << keyspace << endl;
       cout << "Relation name is " << relationName << endl;
   }
   
@@ -587,6 +592,7 @@ public:
   
 private:
   string contactPoint;      // Contactpoint for our cluster
+  string keyspace;          // Keyspace
   string relationName;      // Relation name to delete
   bool deletePerformed;     // Did we deleted the relation
 };
@@ -609,12 +615,18 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
       if(! ((FText*) args[0].addr)->IsDefined()) {
         cout << "Cluster contactpoint is not defined" << endl;
         return CANCEL;
-      } else if (! ((FText*) args[1].addr)->IsDefined()) {
+      }  else if (! ((FText*) args[1].addr)->IsDefined()) {
+        cout << "Keyspace is not defined" << endl;
+        return CANCEL;
+      } else if (! ((FText*) args[2].addr)->IsDefined()) {
         cout << "Relationname is not defined" << endl;
         return CANCEL;
       } else {
-      cli = new CDeleteLocalInfo((((FText*)args[0].addr)->GetValue()),
-                      (((FText*)args[1].addr)->GetValue()));
+      cli = new CDeleteLocalInfo(
+        (((FText*)args[0].addr)->GetValue()),
+        (((FText*)args[1].addr)->GetValue()),
+        (((FText*)args[2].addr)->GetValue())
+      );
       
       deletedObjects = cli -> deleteRelation();
       
@@ -638,14 +650,16 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CDeleteSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>(text x text) -> int</text--->"
-                         "<text> cdelete ( _ , _ )</text--->"
+                         "<text>(text x text x text) -> int</text--->"
+                         "<text> cdelete ( _ , _ , _ )</text--->"
                          "<text> The operator cdelete deletes a relation "
                          "in our cassandra cluster. The first parameter is "
                          "the contact point to the cluster, the second "
-                         "paramter is the name of the relation to delete."
+                         "paramter is the keyspace. The third parameter is" 
+                         "name of the relation to delete."
                          "</text--->"
-                         "<text>query cdelete ('127.0.0.1', 'plz') </text--->"
+                         "<text>query cdelete ('127.0.0.1', 'keyspace1'"
+                         ", 'plz') </text--->"
                               ") )";
 
 /*
@@ -669,7 +683,8 @@ Operator cassandradelete (
 
 The operator ~cfeed~ feeds a tuple stream into
 a cassandra cluster. The first paramter is the contactpoint
-to the cluster. The second paramter is the name of the relation.
+to the cluster. The second paramter is the keyspace. The 
+third parameter is the name of the relation.
 The third parameter is the consistence level:
 
 ANY    - Only a hinted handoff is created
@@ -687,7 +702,7 @@ node
 Type mapping for ~cfeed~ is
 
 ----
-  stream(tuple(...)) x text x text x text x text -> int
+  stream(tuple(...)) x text x text x text x text x text -> int
                 
 ----
 
@@ -695,22 +710,25 @@ Type mapping for ~cfeed~ is
 ListExpr CFeedTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 5){
-    return listutils::typeError("five arguments expected");
+  if(nl->ListLength(args) != 6){
+    return listutils::typeError("six arguments expected");
   }
 
-  string err = " stream(tuple(...)) x text x text x text x text expected";
+  string err = " stream(tuple(...)) x text x text x text x text "
+    " x text expected";
 
   ListExpr stream = nl->First(args);
   
   ListExpr contactpoint = nl->Second(args);
-  ListExpr relation = nl->Third(args);
-  ListExpr consistence = nl->Fourth(args);
-  ListExpr systemname = nl->Fifth(args);
+  ListExpr keyspace = nl->Third(args);
+  ListExpr relation = nl->Fourth(args);
+  ListExpr consistence = nl->Fifth(args);
+  ListExpr systemname = nl->Sixth(args);
   
   if(( !Stream<Tuple>::checkType(stream) &&
        !Stream<Attribute>::checkType(stream) ) ||
        !FText::checkType(contactpoint) ||
+       !FText::checkType(keyspace) ||
        !FText::checkType(relation) ||
        !FText::checkType(consistence) ||
        !FText::checkType(systemname)) {
@@ -735,14 +753,16 @@ CostEstimation* CFeedCostEstimation() {
 class CFeedLocalInfo {
 
 public:
-  CFeedLocalInfo(string myContactPoint, string myRelationName, 
-                   string myConsistence, string mySystemname) 
+  CFeedLocalInfo(string myContactPoint, string myKeyspace, 
+                 string myRelationName, string myConsistence, 
+                 string mySystemname) 
   
-    : contactPoint(myContactPoint), relationName(myRelationName),
-    consistence(myConsistence), systemname(mySystemname),
-    tupleNumber(0) {
+    : contactPoint(myContactPoint), keyspace(myKeyspace), 
+    relationName(myRelationName), consistence(myConsistence), 
+    systemname(mySystemname), tupleNumber(0) {
       
       cout << "Contact point is " << contactPoint << endl;
+      cout << "Keyspace is " << keyspace << endl;
       cout << "Relation name is " << relationName << endl;
       cout << "Consistence is " << consistence << endl;
       cout << "Systemname is " << systemname << endl;
@@ -771,6 +791,7 @@ public:
   
 private:
   string contactPoint;      // Contactpoint for our cluster
+  string keyspace;          // Keyspace
   string relationName;      // Relation name to delete
   string consistence;       // Consistence
   string systemname;        // Name of our system
@@ -797,17 +818,20 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
         cout << "Cluster contactpoint is not defined" << endl;
         parameterOk = false;
       } else if (! ((FText*) args[2].addr)->IsDefined()) {
+        cout << "Keyspace is not defined" << endl;
+        parameterOk = false;        
+      } else if (! ((FText*) args[3].addr)->IsDefined()) {
         cout << "Relationname is not defined" << endl;
         parameterOk = false;
-      } else if (! ((FText*) args[3].addr)->IsDefined()) {
+      } else if (! ((FText*) args[4].addr)->IsDefined()) {
         cout << "Consistence level is not defined" << endl;
         parameterOk = false;
-      } else if (! ((FText*) args[4].addr)->IsDefined()) {
+      } else if (! ((FText*) args[5].addr)->IsDefined()) {
         cout << "Systemname is not defined" << endl;
         parameterOk = false;
       }
       
-      string consistenceLevel = ((FText*) args[3].addr)->GetValue();
+      string consistenceLevel = ((FText*) args[4].addr)->GetValue();
       
       if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel) ) {
         cout << "Unknown consistence level: " << consistenceLevel << endl;
@@ -818,7 +842,8 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
                       (((FText*)args[3].addr)->GetValue()),
-                      (((FText*)args[4].addr)->GetValue())
+                      (((FText*)args[4].addr)->GetValue()),
+                      (((FText*)args[5].addr)->GetValue())
                       );
       
       // Consume stream
@@ -860,12 +885,13 @@ const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
                          "<text>stream(tuple(...)) x text x text x text "
-                         "x text -> int</text--->"
-                         "<text>cfeed _ op [ _ , _ , _ , _ ] </text--->"
+                         "x text x text -> int</text--->"
+                         "<text>cfeed _ op [ _ , _ , _ , _ , _ ] </text--->"
                          "<text>The operator cfeed feeds a tuple stream"
                          "into a cassandra cluster. The first paramter is "
                          "the contactpoint to the cluster. The second "
-                         "paramter is the name of the relation. The third "
+                         "paramter is the keyspace. The third parameter is "
+                         "the name of the relation. The fourth "
                          "parameter is the consistence level:"
                          "ANY    - Only a hinted handoff is created"
                          "ONE    - One of the cassandra nodes has written the "
@@ -874,12 +900,12 @@ const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "         written the tuple. Where n is the "
                          "         replication factor of the cluster"
                          "ALL    - All cassandra nodes have written the tuple"
-                         "The fourth parameter is the name of the local "
+                         "The sixth parameter is the name of the local "
                          "system. The name must be unique for each secondo"
                          "node"
                          "</text--->"
-                         "<text>query plz feed cfeed['127.0.0.1', 'plz', "
-                         "'ANY'. 'node1']</text--->"
+                         "<text>query plz feed cfeed['127.0.0.1', 'keyspace', "
+                         "'plz', 'ANY'. 'node1']</text--->"
                               ") )";
 
 /*
@@ -903,8 +929,9 @@ The operator ~ccollect~ fetches a relation from our
 cassandra cluster and create a stream of tuples.
 
 The first paramter is the contact point to the cassandra cluster
-The second parameter contains the name of the relation to fetch
-The third parameter specifies the consistence level used for reading:
+The second parameter specifies the keyspace to use
+The third parameter contains the name of the relation to fetch
+The fourth parameter specifies the consistence level used for reading:
 
 ANY    - Only a hinted handoff is created
 ONE    - One of the cassandra nodes has written the tuple
@@ -919,28 +946,30 @@ Type mapping for ~collect~ is
 
 ----
   rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n)) x text x
-                     text x text -> stream(tuple(...))
+                     text x text x text -> stream(tuple(...))
 ----
 
 */
 ListExpr CCollectTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 4){
-    return listutils::typeError("three arguments expected");
+  if(nl->ListLength(args) != 5){
+    return listutils::typeError("five arguments expected");
   }
 
-  string err = " stream(tuple(...) x text x int expected";
+  string err = " stream(tuple(...) x text x text x text x text expected";
 
   ListExpr relation = nl->First(args);
   ListExpr contactPoint = nl->Second(args);
-  ListExpr relationName = nl->Third(args);
-  ListExpr consistenceLevel = nl->Fourth(args);
+  ListExpr keyspace = nl->Third(args);
+  ListExpr relationName = nl->Fourth(args);
+  ListExpr consistenceLevel = nl->Fifth(args);
 
   if(  !Relation::checkType(relation) ||
-       !FText::checkType(consistenceLevel) ||
        !FText::checkType(contactPoint) ||
-       !FText::checkType(relationName)) {
+       !FText::checkType(keyspace) ||
+       !FText::checkType(relationName) ||
+       !FText::checkType(consistenceLevel)) {
     return listutils::typeError(err);
   }
   
@@ -959,13 +988,14 @@ ListExpr CCollectTypeMap( ListExpr args )
 class CCollectLocalInfo {
 
 public:
-  CCollectLocalInfo(string myContactPoint, string myRelationName, 
-                   string myConsistence) 
+  CCollectLocalInfo(string myContactPoint, string myKeyspace,
+                    string myRelationName, string myConsistence) 
   
-    : contactPoint(myContactPoint), relationName(myRelationName),
-    consistence(myConsistence) {
+    : contactPoint(myContactPoint), keyspace(myKeyspace), 
+    relationName(myRelationName), consistence(myConsistence) {
       
       cout << "Contact point is " << contactPoint << endl;
+      cout << "Keyspace is " << keyspace << endl;
       cout << "Relation name is " << relationName << endl;
       cout << "Consistence is " << consistence << endl;
 
@@ -977,6 +1007,7 @@ public:
   
 private:
   string contactPoint;      // Contactpoint for our cluster
+  string keyspace;          // Keyspace
   string relationName;      // Relation name to delete
   string consistence;       // Consistence  
 };
@@ -994,13 +1025,15 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
 
      if ( cli ) delete cli;
      
-     consistenceLevel = ((FText*) args[3].addr)->GetValue();
+     consistenceLevel = ((FText*) args[4].addr)->GetValue();
      
      if(! ((FText*) args[1].addr)->IsDefined()) {
        cout << "Cluster contactpoint is not defined" << endl;
      } else if (! ((FText*) args[2].addr)->IsDefined()) {
-       cout << "Relationname is not defined" << endl;
+       cout << "Keyspace is not defined" << endl;
      } else if (! ((FText*) args[3].addr)->IsDefined()) {
+       cout << "Relationname is not defined" << endl;
+     } else if (! ((FText*) args[4].addr)->IsDefined()) {
        cout << "Consistence level is not defined" << endl;
      } else if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel)) {
        cout << "Unknown consistence level: " << consistenceLevel << endl; 
@@ -1008,7 +1041,8 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
        cli = new CCollectLocalInfo(
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
-                      (((FText*)args[3].addr)->GetValue())
+                      (((FText*)args[3].addr)->GetValue()),
+                      (((FText*)args[4].addr)->GetValue())
                  );
         
          local.setAddr( cli );
@@ -1058,12 +1092,13 @@ const string CCollectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "<text>The operator ccollect fetches a relation from"
                          "our cassandra cluster and create a stream of"
                          "tuples. The first paramter is the contact point to "
-                         "the cassandra cluster. The second parameter contains "
-                         "the name of the relation to fetch. The third "
-                         "parameter specifies the consistence level used "
-                         "for reading</text--->"
-                         "<text>query plz ccollect['127.0.0.1', 'plz', 'ANY'] "
-                         "count</text--->"
+                         "the cassandra cluster. The second parameter "
+                         "specifies the keyspace to use. The third parameter "
+                         "contains the name of the relation to fetch. The "
+                         "fourth parameter specifies the consistence "
+                         "level used for reading</text--->"
+                         "<text>query plz ccollect['127.0.0.1', 'keyspace1', "
+                         "'plz', 'ANY'] count</text--->"
                               ") )";
 
 /*
