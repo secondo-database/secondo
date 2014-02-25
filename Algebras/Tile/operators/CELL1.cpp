@@ -53,7 +53,7 @@ ListExpr CELL1TypeMappingFunction(ListExpr arguments)
 
   NList argumentsList(arguments);
 
-  if(argumentsList.hasLength(1))
+  if(argumentsList.hasLength(1) || argumentsList.hasLength(2))
   {
     std::string argument1 = argumentsList.first().str();
     
