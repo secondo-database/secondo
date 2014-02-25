@@ -6020,8 +6020,7 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
           size_t slaveSize = ci->getSlaveSize();
           maxSheetSize = maxBufferSize / slaveSize;
 
-          tbList = new
-              map<size_t, pair<TupleBuffer*, vector<TupleFlobInfo>*> >();
+          tbList = new map<size_t, tupleListT>();
           size_t maxKey = getMaxKey();
           perBufferSize = maxBufferSize / maxKey ;
           tbfIt = 0;
@@ -6075,10 +6074,10 @@ For each Flob with mode 3, its elements mean:
           size_t key = getKey(sdsVec);
           if (tbList->find(key) == tbList->end()){
             tbList->insert(make_pair(key,
-                make_pair(new TupleBuffer(perBufferSize),
+                make_pair(new TupleQueue(perBufferSize),
                           new vector<TupleFlobInfo>())));
           }
-          TupleBuffer* tb = tbList->find(key)->second.first;
+          TupleQueue* tb = tbList->find(key)->second.first;
           vector<TupleFlobInfo>* tfis = tbList->find(key)->second.second;
 
           tb->AppendTuple(tuple);
@@ -6166,45 +6165,62 @@ For each Flob with mode 3, its elements mean:
     }
 
     while (preparedNum > 0){
-
       //Find a tuple buffer where all its required files are prepared
       if (tbfIt == 0){
         bool allPrepared = false;
-        map<size_t, tupleListT>::iterator mit = tbList->begin();
+        map<size_t, tupleListT>::iterator mit; 
         while (!allPrepared)
         {
           //wait until one tuple list fullfill the condition
-          for (; mit != tbList->end(); mit++){
-            vector<TupleFlobInfo>::iterator infoIt
-              = mit->second.second->begin();
-            GenericRelationIterator* tIt = mit->second.first->MakeScan();
-            for (; infoIt != mit->second.second->end(); infoIt++){
+          for (mit = tbList->begin(); mit != tbList->end();){
+            // check list with key: mit->first
+            TupleQueueIterator* tIt = mit->second.first->MakeScan();
+            vector<TupleFlobInfo>::iterator infoIt;
+            for ( infoIt = mit->second.second->begin(); 
+                  infoIt != mit->second.second->end(); infoIt++){
               Tuple* tuple = tIt->GetNextTuple();
+              
               if (isReadAll(tuple)){
                 continue;
               } else {
                 allPrepared = isPreparedAll(tuple, &(*infoIt));
                 break;
               }
+              //tuple->DeleteIfAllowed();
             }
+            if ( infoIt == mit->second.second->end()){
+              //It may happen that all tuples ask no Flob
+              allPrepared = true;
+            }
+
             if (allPrepared){
               break;
-            }
+            } 
+            mit++;
           }
         }
         curKey = mit->first;
-        tbfIt = mit->second.first->MakeScan();
+        tbfIt = mit->second.first;
         tifIt = mit->second.second->begin();
       }
 
-      Tuple* tuple = tbfIt->GetNextTuple();
+      bool bulkLoaded = false;
+      Tuple* tuple = tbfIt->PopTuple(bulkLoaded);
+      if (bulkLoaded){
+        //All cahced Flobs are removed from the NativeFlobCache
+        for (map<pair<int, int>, FlobSheet*>::iterator uit = ruSheets.begin();
+            uit != ruSheets.end(); uit++){
+          FlobSheet* s = uit->second;
+          s->killAllCachedFlobs();
+        }
+        ruSheets.clear();
+      }
       if (tuple)
       {
         //Whether the Flobs have been fetched
         if (isReadAll(tuple)){
           tifIt->setReturned();
           tifIt++;
-
           Tuple* resultTuple = setResultTuple(tuple);
           return resultTuple;
         }
@@ -6226,7 +6242,8 @@ For each Flob with mode 3, its elements mean:
             }
             map<pair<int, int>, FlobSheet*>::iterator pit =
                 prepared->find(make_pair(source, times));
-            sheets[no][k] = pit ->second;
+            sheets[no][k] = pit->second;
+            ruSheets.insert(make_pair(make_pair(source, times), pit->second));
           }
         }
 
@@ -6256,7 +6273,10 @@ For each Flob with mode 3, its elements mean:
                 Flob::readExFile(*flob, flobFile, flob->getSize(),
                   sheet->getCFOffset(flob->getFileId(), flob->getOffset()));
                 mit->second.pLob = *flob;
+                //read and cache it in the NativeFlobCache
+                mit->second.mode = 1;
               }
+              tbfIt->IncFlobReference(*flob);
 
               //Read re-organized file
               //Flob::readExFile(*flob, flobFile, flob->getSize(),
@@ -6268,15 +6288,25 @@ For each Flob with mode 3, its elements mean:
         tifIt->setReturned();
         tifIt++;
         Tuple* resultTuple = setResultTuple(tuple);
+
         return resultTuple;
       }
       else {
         //The current tuple list is exhausted
+
         delete tbList->find(curKey)->second.first;
         tbList->find(curKey)->second.second->clear();
         delete tbList->find(curKey)->second.second;
         tbList->erase(curKey);
         tbfIt = 0;
+
+        //Clean up the NativeFlob Cache for the current TupleQueue
+        for (map<pair<int, int>, FlobSheet*>::iterator uit = ruSheets.begin();
+            uit != ruSheets.end(); uit++){
+          FlobSheet* s = uit->second;
+          s->killAllCachedFlobs();
+        }
+        ruSheets.clear();
 
         if (tbList->empty()){
           return 0;
@@ -6813,7 +6843,8 @@ bool FlobSheet::findInitializedFlob(Flob* result,
   flobKeyT mlob(result->getFileId(), result->getOffset());
   mit = lobMarkers.find(mlob);
   if (mit != lobMarkers.end()){
-    if (mit->second.pLob.getMode() == 1){
+    if (mit->second.mode == 1){
+      Counter::getRef("FetchFlob::ReuseCached")++;
       return true;
     }
   }
@@ -6852,6 +6883,17 @@ void FlobSheet::shuffleCollectedFlobs()
   FileSystem::DeleteFileOrFolder(resultFlobFilePath);
   FileSystem::RenameFileOrFolder(newFilePath, resultFlobFilePath);
 }
+
+void FlobSheet::killAllCachedFlobs()
+{
+  for (map<flobKeyT, flobInfoT>::iterator lit = lobMarkers.begin();
+      lit != lobMarkers.end(); lit++){
+    if (lit->second.mode == 1){
+      lit->second.mode = 3;
+    }
+  }
+}
+
 
 ostream& operator<<(ostream& os, const TupleFlobInfo& f){
   return f.print(os);

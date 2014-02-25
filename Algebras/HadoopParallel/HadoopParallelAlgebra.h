@@ -51,6 +51,7 @@ And includes one method:
 #ifdef SECONDO_WIN32
 #include <winsock2.h>
 #endif
+#include "TupleQueue.h"
 
 #include "FileSystem.h"
 #include "Profiles.h"
@@ -1014,8 +1015,6 @@ One FlobSheet collects the Flob data from the same DS of all tuples.
 
 */
 
-typedef pair<SmiFileId, SmiSize> flobKeyT;
-
 class flobInfoT{
 
 public:
@@ -1035,6 +1034,7 @@ public:
   Flob pLob;
 };
 
+typedef pair<SmiFileId, SmiSize> flobKeyT;
 
 class FlobSheet
 {
@@ -1058,13 +1058,15 @@ returns whether the sheet is full.
   SmiSize getRFOffset(SmiFileId fileId, SmiSize oldOffset);
 
   void initializeAllFlobs();
-  
+
   void shuffleCollectedFlobs();
 
   bool findInitializedFlob(Flob* result,
       map<flobKeyT, flobInfoT>::iterator& mit);
 
   void closeSheetFile();
+
+  void killAllCachedFlobs();
 
   inline string getResultFile(){ return resultFlobFilePath;}
 
@@ -1080,6 +1082,7 @@ returns whether the sheet is full.
 
   ostream& print(ostream& os) const;
 private:
+
   string resultFlobFilePath;
   int sourceDSId;
   int destDSId;
@@ -1191,8 +1194,6 @@ private:
 
 ostream& operator<<(ostream& os, const TupleFlobInfo& f);
 
-typedef pair<TupleBuffer*, vector<TupleFlobInfo>*> tupleListT;
-
 class FetchFlobLocalInfo : public ProgressLocalInfo
 {
 public:
@@ -1258,6 +1259,8 @@ public:
   }
 
 private:
+  typedef pair<TupleQueue*, vector<TupleFlobInfo>*> tupleListT;
+
   Tuple* setResultTuple(Tuple* tuple);
 /*
 Remove useless Flob attribute
@@ -1276,9 +1279,10 @@ and their Flob data as soon as possible.
 
 */
   map<size_t, tupleListT>* tbList;
-  GenericRelationIterator* tbfIt;         //tuple buffer iterator
+  TupleQueue* tbfIt;                      //current tuple queue
   vector<TupleFlobInfo>::iterator tifIt;  //tuple info iterator
   size_t curKey;
+  map<pair<int, int>, FlobSheet*> ruSheets; //recently used sheets
 
   size_t getKey(int sdsVec[]);
   size_t getMaxKey();
@@ -1320,7 +1324,6 @@ I also use preparedNumber to indicate how many files are prepared but unfetched.
 During the fetching procedure, the sheet is kept inside the thread object.
 Since using the vector makes the same sheet to be kept twice:
 in the thread and the vector.
-
 
 The prepaerd is a map structure, with the (sourceID, times) as the key.
 In order to quickly find whether the asked flob file is prepared.
