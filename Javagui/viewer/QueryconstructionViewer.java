@@ -220,7 +220,7 @@ public class QueryconstructionViewer extends SecondoViewer {
      */
     private void runQuery() {
         if (!VC.execUserCommand(mainPane.getStringsQuery())) {
-            System.out.println("Kann nicht ausgeführt werden. Fehler: "
+            System.out.println("Kann nicht ausgefuehrt werden. Fehler: "
                     +VC.execCommand(mainPane.getStringsQuery()));
         }
     }
