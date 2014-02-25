@@ -110,6 +110,24 @@ public:
 
 };
 
+class CassandraResult {
+  
+public:
+     CassandraResult(cql::cql_result_t& myResult) : result(myResult) {
+     }
+     
+     bool hasNext() {
+       return result.next();
+     }
+     
+     void getValue(string &resultString) {
+        result.get_string(0, resultString);
+     }
+  
+private:
+     cql::cql_result_t& result;
+};
+
 class CassandraAdapter {
 
 public:
@@ -147,6 +165,8 @@ public:
        if(future.get().error.is_err()) {
          cerr << "Unable to execute " << keyspaceCql << endl;
          cerr << "Error is " << future.get().error.message << endl;
+         
+         disconnect();
        } else {
          cout << "Cassandra: Connection successful established" << endl;
          cout << "You are connected to host " << contactpoint 
@@ -156,6 +176,8 @@ public:
       } catch(std::exception& e) {
         cerr << "Got exception while connection to cassandra: " 
              << e.what() << endl;
+             
+             disconnect();
       }
     }
     
@@ -173,6 +195,48 @@ public:
              ss.str(), 
              CassandraHelper::convertConsistencyStringToEnum(consistenceLevel)
            );
+    }
+    
+    CassandraResult* readDataFromCassandra(string relation, 
+                                           string consistenceLevel) {
+      
+        if(! isConnected() ) {
+           cerr << "Cassandra session not ready" << endl;
+           return NULL;
+        }
+      
+        stringstream ss;
+        ss << "SELECT value from ";
+        ss << relation;
+        ss << ";";
+        
+        try { 
+          boost::shared_ptr<cql::cql_query_t> cqlStatement(
+            new cql::cql_query_t(ss.str(), 
+               CassandraHelper::convertConsistencyStringToEnum(consistenceLevel)
+            ));
+          
+          boost::shared_future<cql::cql_future_result_t> future 
+             = session->query(cqlStatement);
+          
+          // Wait for result
+          future.wait();
+          
+          if(future.get().error.is_err()) {
+             cerr << "Unable to execute " << cqlStatement << endl;
+             cerr << "Error is " << future.get().error.message << endl;
+          } else {
+          
+            cql::cql_result_t& result = *(future.get().result);
+            
+            return new CassandraResult(result);
+            
+          }
+        } catch(std::exception& e) {
+            cerr << "Got exception while reading data: " << e.what() << endl;
+        } 
+        
+        return NULL;
     }
     
     bool createTable(string tablename) {
@@ -196,8 +260,17 @@ public:
     
     void disconnect() {
       if(isConnected()) {
+        
+        cout << "Disconnecting from cassandra" << endl;
+        
+        // Close session and cluster
         session -> close();
         cluster -> shutdown();
+        
+        // Reset pointer
+        session.reset();
+        cluster.reset();
+        builder.reset();
       }
     }
   

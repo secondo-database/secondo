@@ -15,9 +15,9 @@ Result   : 10
 
 Operator : cdelete
 Number   : 1
-Signature: (text text text) -> int
+Signature: (text text text) -> bool
 Example  : query cdelete ('127.0.0.1', 'keyspace1', 'plz') 
-Result   : 10
+Result   : TRUE
 
 Operator : cfeed
 Number   : 1
@@ -28,7 +28,7 @@ Result   : 41267
 Operator : ccollect
 Number   : 1
 Signature: rel(tuple(...)) x text x text x text x text -> stream(tuple(...))
-Example  : query plz ccollect['127.0.0.1', 'keyspace1', 'plz', 'ANY'] count
+Example  : query plz ccollect['127.0.0.1', 'keyspace1', 'plz', 'ONE'] count
 Result   : 41267
 
 

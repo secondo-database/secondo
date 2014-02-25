@@ -522,7 +522,7 @@ Operator cassandrastatistics (
 The operator ~cdelete~ deletes a relation in our
 cassandra cluster. The first parameter is the contact
 point to the cluster, the second paramter is the 
-keyspace. The third paramter is then name of the 
+keyspace. The third paramter is the name of the 
 relation to delete.
 
 2.3.1 Type mapping function of operator ~cdelete~
@@ -530,7 +530,7 @@ relation to delete.
 Type mapping for ~cdelete~ is
 
 ----
- (text x text x text) -> int            
+ (text x text x text) -> bool            
 ----
 
 */
@@ -550,7 +550,7 @@ ListExpr CDeleteTypeMap( ListExpr args )
     return listutils::typeError(err);
   }    
 
-  return nl->SymbolAtom(CcInt::BasicType());
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 
@@ -581,13 +581,13 @@ public:
         = new CassandraAdapter(contactPoint, keyspace);
         
       cassandra -> connect();
-      cassandra -> dropTable(relationName);
+      bool result = cassandra -> dropTable(relationName);
       cassandra -> disconnect();
       delete cassandra;
       cassandra = NULL;
     
      deletePerformed = true;
-     return 10; // TODO: Fixme
+     return result;
   }
 
 /*
@@ -609,7 +609,7 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CDeleteLocalInfo *cli; 
   Word tupleWord;
-  size_t deletedObjects;
+  bool deleteOk;
   
   switch(message)
   {
@@ -636,10 +636,8 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
         (((FText*)args[2].addr)->GetValue())
       );
       
-      deletedObjects = cli -> deleteRelation();
-      
-      
-      static_cast<CcInt*>(result.addr)->Set(true, deletedObjects);
+      deleteOk = cli -> deleteRelation();
+      static_cast<CcBool*>(result.addr)->Set(true, deleteOk);
       
       delete cli;
       cli = NULL;
@@ -658,7 +656,7 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CDeleteSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>(text x text x text) -> int</text--->"
+                         "<text>(text x text x text) -> bool</text--->"
                          "<text> cdelete ( _ , _ , _ )</text--->"
                          "<text> The operator cdelete deletes a relation "
                          "in our cassandra cluster. The first parameter is "
@@ -1014,28 +1012,65 @@ ListExpr CCollectTypeMap( ListExpr args )
 class CCollectLocalInfo {
 
 public:
-  CCollectLocalInfo(string myContactPoint, string myKeyspace,
+  CCollectLocalInfo(ListExpr myType, string myContactPoint, string myKeyspace,
                     string myRelationName, string myConsistence) 
   
-    : contactPoint(myContactPoint), keyspace(myKeyspace), 
-    relationName(myRelationName), consistence(myConsistence) {
+    : tupleType(myType), contactPoint(myContactPoint), keyspace(myKeyspace), 
+    relationName(myRelationName), consistence(myConsistence),
+    cassandra(NULL), result(NULL) {
       
       cout << "Contact point is " << contactPoint << endl;
       cout << "Keyspace is " << keyspace << endl;
       cout << "Relation name is " << relationName << endl;
       cout << "Consistence is " << consistence << endl;
 
+      open();
+  }
+  
+  virtual ~CCollectLocalInfo() {
+    
+    if(result != NULL) {
+      delete result;
+      result = NULL;
+    }
+    
+    if(cassandra != NULL) {
+      delete cassandra;
+      cassandra = NULL;
+    }
+  }
+  
+  void open(){
+    if(cassandra == NULL) {
+      cassandra = new CassandraAdapter(contactPoint, keyspace);
+      cassandra -> connect();
+      result = cassandra -> readDataFromCassandra(relationName, consistence);
+    }
   }
 
   Tuple* fetchNextTuple() {
+    if(result->hasNext()) {
+      
+      string myResult;
+      result -> getValue(myResult);
+      
+      Tuple* tuple = new Tuple(tupleType);
+      tuple->ReadFromBinStr(myResult);
+      
+      return tuple;
+    }
+    
     return NULL;
   }
   
 private:
-  string contactPoint;      // Contactpoint for our cluster
-  string keyspace;          // Keyspace
-  string relationName;      // Relation name to delete
-  string consistence;       // Consistence  
+  ListExpr tupleType;          // Tuple Type
+  string contactPoint;         // Contactpoint for our cluster
+  string keyspace;             // Keyspace
+  string relationName;         // Relation name to delete
+  string consistence;          // Consistence  
+  CassandraAdapter* cassandra; // Our cassandra connection
+  CassandraResult* result;     // Query result
 };
 
 int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -1045,6 +1080,8 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
   string consistenceLevel;
 
   cli = (CCollectLocalInfo*)local.addr;
+  
+  ListExpr resultType = GetTupleResultType(s);
   
   switch(message) {
     case OPEN: 
@@ -1064,7 +1101,7 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
      } else if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel)) {
        cout << "Unknown consistence level: " << consistenceLevel << endl; 
      } else {
-       cli = new CCollectLocalInfo(
+       cli = new CCollectLocalInfo(nl -> Second(resultType),
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
                       (((FText*)args[3].addr)->GetValue()),
