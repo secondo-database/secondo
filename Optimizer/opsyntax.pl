@@ -227,6 +227,7 @@ secondoOp( arctan,            prefix, 1).
 secondoOp( arctan2,           prefix, 2).
 secondoOp((at),               infix, 2).
 secondoOp((atinstant),        infix, 2).
+secondoOp((atlocation),       postfixbrackets, 1).
 secondoOp((atperiods),        infix, 2).
 secondoOp((attached),         infix, 2).
 secondoOp( attr,              prefix, 2).
