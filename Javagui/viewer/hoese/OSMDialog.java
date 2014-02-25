@@ -499,7 +499,7 @@ public class OSMDialog extends JDialog {
 
 					tileSizeXTF.setText("256");
 					tileSizeYTF.setText("256");
-					nameTF.setText("OutdoorActive.com (Österreich)");
+					nameTF.setText("OutdoorActive.com (Oesterreich)");
 					licenseUrlTF.setText("http://www.outdooractive.com/");
 					mapperClassTF.setText("viewer.hoese.StaticOSMMapper");
 
@@ -519,7 +519,7 @@ public class OSMDialog extends JDialog {
 
 					tileSizeXTF.setText("256");
 					tileSizeYTF.setText("256");
-					nameTF.setText("OutdoorActive.com (Südtyrol)");
+					nameTF.setText("OutdoorActive.com (Suedtyrol)");
 					licenseUrlTF.setText("http://www.outdooractive.com/");
 					mapperClassTF.setText("viewer.hoese.StaticOSMMapper");
 
