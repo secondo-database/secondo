@@ -577,9 +577,17 @@ public:
 
 */  
   size_t deleteRelation() {
-    deletePerformed = true;
+     CassandraAdapter* cassandra 
+        = new CassandraAdapter(contactPoint, keyspace);
+        
+      cassandra -> connect();
+      cassandra -> dropTable(relationName);
+      cassandra -> disconnect();
+      delete cassandra;
+      cassandra = NULL;
     
-    return 10;
+     deletePerformed = true;
+     return 10; // TODO: Fixme
   }
 
 /*
@@ -766,6 +774,19 @@ public:
       cout << "Relation name is " << relationName << endl;
       cout << "Consistence is " << consistence << endl;
       cout << "Systemname is " << systemname << endl;
+      
+      cassandra = new CassandraAdapter(contactPoint, keyspace);
+      cassandra -> connect();
+      cassandra -> createTable(relationName);
+  }
+  
+  virtual ~CFeedLocalInfo() {
+    
+    if(cassandra != NULL) {
+      delete cassandra;
+      cassandra = NULL;
+    }
+    
   }
   
   string buildKey() {
@@ -780,6 +801,10 @@ public:
   
   bool feed(Tuple* tuple) {
     cout << buildKey() << " - " << tuple -> WriteToBinStr() << endl;
+    
+    cassandra->writeDataToCassandra(buildKey(), tuple -> WriteToBinStr(), 
+                                    relationName, consistence);
+    
     ++tupleNumber;
     return true;
   }
@@ -790,12 +815,13 @@ public:
   
   
 private:
-  string contactPoint;      // Contactpoint for our cluster
-  string keyspace;          // Keyspace
-  string relationName;      // Relation name to delete
-  string consistence;       // Consistence
-  string systemname;        // Name of our system
-  size_t tupleNumber;       // Number of the current tuple
+  string contactPoint;         // Contactpoint for our cluster
+  string keyspace;             // Keyspace
+  string relationName;         // Relation name to delete
+  string consistence;          // Consistence
+  string systemname;           // Name of our system
+  size_t tupleNumber;          // Number of the current tuple
+  CassandraAdapter *cassandra; // Cassandra connection
 };
 
 int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
