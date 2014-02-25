@@ -154,10 +154,11 @@ static bool trapeziumIntersects3 (MSeg m, MSeg a) {
     double s1 = Pt::sign(m.is, a.is, a.ie);
     double s2 = Pt::sign(m.fs, a.fs, a.fe);
     
-    if ((s1 <= 0) && (s2 <= 0) ||
-        (s1 >= 0) && (s2 >= 0))
+    if (((s1 <= 0) && (s2 <= 0)) ||
+        ((s1 >= 0) && (s2 >= 0)))
         return false;
         
+    return true;
 }
 
 /*

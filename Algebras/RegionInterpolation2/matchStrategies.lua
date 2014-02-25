@@ -66,6 +66,18 @@ end
 function matchFacesOverlap (src, dst, depth, minoverlap)
     minoverlap = minoverlap or 10 -- default is 10 percent
 
+    if (depth == 0) then 
+       srcscale.x = 1
+       srcscale.y = 1
+       dstscale.x = 1
+       dstscale.y = 1
+       srcoff.x = 0
+       dstoff.x = 0
+       srcoff.y = 0
+       dstoff.y = 0
+    end
+       
+
     print("Using Overlap with " .. minoverlap .. "% minimum")
     
     return matchFacesCriterion (src, dst, depth, overlapx, 100 - minoverlap)

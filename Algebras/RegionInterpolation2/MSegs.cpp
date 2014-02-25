@@ -42,9 +42,6 @@ bool MSegs::MergeConcavity(MSegs c) {
     bool fastPath = true;
     bool success = false;
     
-//    cerr << "Trying to merge\n" << this->ToString() << " with\n" <<
-//            c.ToString() << endl;
-
     // Determine if a fast path can be used. This is possible if no
     // MSeg-object was merged, so the pointlists only include the endpoints of
     // the MSeg, which is degenerated in one point.
@@ -237,7 +234,7 @@ Face MSegs::CreateBorderFace(bool initial) {
 pair<MSegs, MSegs> MSegs::kill() {
     MSegs src = CreateBorderFace(true).collapse(true);
     MSegs dst = CreateBorderFace(false).collapse(false);
-
+    
     return pair<MSegs, MSegs>(src, dst);
 }
 
@@ -268,39 +265,44 @@ MSegs MSegs::divide(double start, double end) {
 
 /*
  1.9 findNext tries to find the index of the next matching MSeg for the MSeg
- with the given index. It also checks, if there are two or more successors,
+ ~cur~. It also checks, if there are two or more successors (if check is true),
  which should not happen, since the cycle is ambiguous then.
  
 */
-int MSegs::findNext(int index) {
+int MSegs::findNext(MSeg cur, int start, bool check) {
     unsigned int nrsegs = msegs.size();
-    MSeg *s1 = &msegs[index];
     int ret = -1;
 
     for (unsigned int i = 0; i < nrsegs; i++) {
-        int nindex = (i + index) % nrsegs;
-        MSeg *s2 = &msegs[nindex];
+        int nindex = (i + start) % nrsegs;
+        MSeg *next = &msegs[nindex];
         // We have found a successor, if the initial and final start-points
         // match the initial and final endpoints of the current MSeg.
-        if (s1->ie == s2->is && s1->fe == s2->fs) {
+        if (cur.ie == next->is && cur.fe == next->fs) {
             if (ret == -1) {
                 ret = nindex;
             } else {
                 // We had already found a successor, so this is bad.
-                cerr << msegs[index].ToString() << " has 2 successors:\n" <<
+                DEBUG(2, " Found 2 successors for " << cur.ToString() << endl <<
                         msegs[ret].ToString() << " AND\n" <<
-                        msegs[nindex].ToString() << "\n";
-
+                        msegs[nindex].ToString() << "\n");
                 ret = -2;
+
                 break;
             }
             
-            // We have found a candidate, but we search on to see, if a second
-            // object matches too.
+            if (!check)
+                break;
+            // We have found a candidate, but since "check" is true, we search
+            // on to see, if a second object matches too.
         }
     }
 
     return ret;
+}
+
+int MSegs::findNext(int index, bool check) {
+    return findNext(msegs[index], index, check);
 }
 
 // helper-function: Find the maximum of four double-values

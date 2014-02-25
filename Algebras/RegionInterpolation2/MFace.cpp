@@ -15,6 +15,8 @@ MFace::MFace() : needStartRegion(false), needEndRegion(false) {
 MFace::MFace(MSegs face) : face(face),
         needStartRegion(false), needEndRegion(false)
 {
+    SortCycle(); // Sort the cycle
+    EliminateSpikes(); // Eliminate empty spikes
     Check();
 }
 
@@ -28,9 +30,7 @@ MFace::MFace(MSegs face) : face(face),
 bool MFace::SortCycle() {
     vector<MSeg> s1 = face.msegs;
     vector<MSeg> s2;
-    
-    assert(face.msegs.size() != 0);
-    
+        
     if (face.msegs.size() < 3)
         return true;
 
@@ -42,39 +42,94 @@ bool MFace::SortCycle() {
     do {
         s2.push_back(s1[cur]);
         // Find the following segment
-        cur = face.findNext(cur);
+        cur = face.findNext(face.msegs[cur], cur, true);
         if (i++ > face.msegs.size()) {
             // If we have more iterations than the total number of msegments,
             // then we are stuck in an endless loop.
             ret = false;
-            cerr << "Endless loop!\n";
+            DEBUG(3, "Endless loop!");
             break;
         }
     } while (cur > 0); // We started with msegment 0, so stop here.
     
     if (cur == -1) { // We didn't find a following msegment, this is an error
         ret = false;
-        cerr << "Error: cycle incomplete!\n";
+        DEBUG(3, "Error: cycle incomplete!");
     } else if (cur == -2) {
          // findNext returns -2 if two matching msegments were found
         ret = false;
-        cerr << "Error: cycle ambiguous!\n";
+        DEBUG(3, "Error: cycle ambiguous!");
     } else if (cur < 0) {
         // Should never happen
         ret = false;
-        cerr << "Error: unknown error in cycle!\n";
+        DEBUG(3, "Error: unknown error in cycle!");
     }
 
     if (s2.size() != face.msegs.size()) {
         // If the sorted cycle has less msegments than the original list,
         // then we didn't use all of them. This is an error.
         ret = false;
-        cerr << "Unused segments! " << "has " << face.msegs.size() <<
-                " used " << s2.size() << "\n";
+        DEBUG(3, "Unused segments! " << "has " << face.msegs.size() <<
+                " used " << s2.size());
     } else {
         face.msegs = s2;
     }
     
+    return ret;
+}
+
+/*
+ 1.2b SortAndSplitCycle
+
+ Sort the Moving Segments according to their position in the cycle and perform
+ several sanity-checks.
+ 
+*/
+vector<MFace> MFace::SortAndSplitCycle() {
+    MSegs ms = face;
+    vector<MFace> ret;
+        
+    DEBUG(4, "Called SortAndSplitCycle on " << this->ToString());
+    
+    do {
+        bool found = false;
+        for (unsigned int i = 0; i < ms.msegs.size(); i++) {
+            int next = ms.findNext(ms.msegs[i], 0, true);
+            if (next == -2) {
+                // We have found the startpoint of an ambiguous cycle!
+                MSeg cur = ms.msegs[i];
+                MSegs cycle;
+
+                DEBUG(4, "Start " << cur.ie.ToString() <<
+                        " / " << cur.fe.ToString());
+                next = ms.findNext(cur, 0, false);
+                int c = 0;
+                do {
+                    if (next < 0 || c++ > ms.msegs.size())
+                        return ret;
+                    DEBUG(4, "Cycle: " << ms.msegs[next].ToString());
+                    MSeg n = ms.msegs[next];
+                    cycle.AddMSeg(n);
+                    ms.msegs.erase(ms.msegs.begin() + next);
+                    if (n.ie == cur.ie && n.fe == cur.fe)
+                        break;
+                    next = ms.findNext(n, 0, false);
+                } while (1);
+                MFace f = MFace(cycle);
+                ret.push_back(f);
+                found = true;
+                break;
+            }
+        }
+        if (found == false)
+            break;
+    } while (ms.msegs.size() > 0);
+    
+    if (ret.size() > 0) {
+       face = ms;
+       ms.calculateBBox();
+    }
+        
     return ret;
 }
 
@@ -142,14 +197,13 @@ void MFace::EliminateSpikes() {
 bool MFace::Check() {
     bool ret = true;
     
-    return true;
     if (isEmpty()) // an empty MFace is valid per definition
         return true;
     
-    // Checking Border-Regions
+    if (!SortCycle()) {
+        ret = false;
+    }
     
-    CreateBorderFace(true);
-    CreateBorderFace(false);
     
     for (unsigned int i = 0; i < holes.size(); i++) {
         MFace h1(holes[i]);
@@ -159,42 +213,19 @@ bool MFace::Check() {
         }
     }
     
-    if (!SortCycle()) {
+    if (face.intersects(face, false, true)) {
+        DEBUG(3, "Intersection!");
         ret = false;
     }
 
-    if (face.intersects(face, false, true)) {
-        cerr << "Intersection!\n";
-        ret = false;
-    }
-    
     if (!ret) {
-        cerr << "Error with MFace " << this->ToString() << "\n";
+        DEBUG(2, "Error with MFace " << ToString());
     }
     
-    MFaces mfs(*this);
-    Interval<Instant> mainIv(0.0,100.0,true,true);
-    bool correct = true;
-    ListExpr le, err = nl->Empty();
-    
-    ListExpr c = ToListExpr();
-    ListExpr interval = 
-            nl->OneElemList(nl->StringAtom(mainIv.start.ToString(false), true));
-    le = interval;
-    le = nl->Append(le, nl->StringAtom(mainIv.end.ToString(false), true));
-    le = nl->Append(le, nl->BoolAtom(mainIv.lc));
-    le = nl->Append(le, nl->BoolAtom(mainIv.rc));
-    ListExpr top = nl->OneElemList(interval);
-    nl->Append(top, nl->OneElemList(c));
-    ListExpr mreg = nl->OneElemList(top);
-    
-    InMRegion(nl->Empty(), mreg, 0, err, correct);
-    if (!correct) {
-        nl->WriteListExpr(mreg);
-        cerr << "MRegion import failed!\n";
-        ret = false;
-    }
-    assert(ret);
+    if (STRICT)
+       assert(ret);
+    else if (!ret)
+        *this = MFace();
 
     return ret;
 }
@@ -222,18 +253,17 @@ static ListExpr CycleToListExpr(MSegs face);
  added as a hole.
  
 */
-void MFace::MergeConcavities() {
+vector<MFace> MFace::MergeConcavities() {
     Check();
     for (unsigned int i = 0; i < cvs.size(); i++) {
        if (cvs[i].msegs.size() < 3) // Ignore invalid or degenerated faces
             continue;
-        SortCycle();
         MFace f(cvs[i]);
+        DEBUG(4, "Merging " << ToString() << " with " << f.ToString());
         if (face.MergeConcavity(cvs[i])) {
-            // Merging the concavity into the cycle was successful.
-            SortCycle(); // Sort the cycle 
-            EliminateSpikes(); // Eliminate empty spikes
+            DEBUG(4, "Success, result: " << ToString());
         } else {
+            DEBUG(4, "Failed, adding as hole");
             // Merging the concavity into the cycle was not successful, add
             // this cycle to the list of holes.
             holes.push_back(cvs[i]);
@@ -246,9 +276,25 @@ void MFace::MergeConcavities() {
                 needEndRegion = true;
         }
     }
+
+    vector<MFace> split = SortAndSplitCycle();
+    if (split.size() > 0) {
+        DEBUG(3, "Cycle is ambiguous, splitted into ");
+        DEBUG(3, this->ToString());
+        for (unsigned int i = 0; i < split.size(); i++) {
+            DEBUG(3, split[i].ToString());
+        }
+    }
+
+    // Merging the concavity into the cycle was successful.
+    SortCycle(); // Sort the cycle 
+    EliminateSpikes(); // Eliminate empty spikes
+    Check();
     
     // All concavities have been handled, clear the list.
     cvs.erase(cvs.begin(), cvs.end());
+    
+    return split;
 }
 
 /*
@@ -282,6 +328,8 @@ static ListExpr CycleToListExpr(MSegs face) {
     ListExpr le, le2;
     int first, cur;
     first = cur = 0;
+    
+    assert(face.msegs.size() > 0);
 
     ListExpr c = nl->OneElemList(nl->RealAtom(face.msegs[cur].ie.x / SCALEOUT));
     le = nl->Append(c, nl->RealAtom(face.msegs[cur].ie.y / SCALEOUT));
@@ -289,7 +337,7 @@ static ListExpr CycleToListExpr(MSegs face) {
     le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.y / SCALEOUT));
     ListExpr cy = nl->OneElemList(c);
     le2 = cy;
-    cur = face.findNext(cur);
+    cur = face.findNext(face.msegs[cur], cur, true);
     while (cur != first) {
         assert(cur >= 0);
         c = nl->OneElemList(nl->RealAtom(face.msegs[cur].ie.x / SCALEOUT));
@@ -297,7 +345,7 @@ static ListExpr CycleToListExpr(MSegs face) {
         le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.x / SCALEOUT));
         le = nl->Append(le, nl->RealAtom(face.msegs[cur].fe.y / SCALEOUT));
         le2 = nl->Append(le2, c);
-        cur = face.findNext(cur);
+        cur = face.findNext(face.msegs[cur], cur, true);
     }
 
     return cy;
@@ -381,7 +429,7 @@ string MFace::ToString() {
  
 */
 Face MFace::CreateBorderFace(bool src) {
-    assert(SortCycle());
+    Check();
 
     Face ret = face.CreateBorderFace(src);
 

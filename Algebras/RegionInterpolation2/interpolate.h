@@ -188,7 +188,8 @@ public:
     void updateBBox(MSeg& seg); // Update the bounding box after adding seg
     pair<Pt, Pt> calculateBBox(); // Calculate the bounding box
     Face CreateBorderFace(bool initial); // Create static mface from border
-    int findNext(int index); // find the next segment of the segment at index
+    int findNext(int index, bool check); // get successor of segment at index
+    int findNext(MSeg cur, int start, bool check); // get successor of cur
     MSegs divide(double start, double end); // restrict the interval
     pair<MSegs, MSegs> kill(); // create pair of expanding/collapsing faces
     bool intersects(const MSegs& a, bool matchIdent, bool matchSegs) const;
@@ -212,9 +213,10 @@ public:
     // Methods
     bool Check();                // Check if this MFace is a valid cycle
     bool SortCycle();            // Sort this cycle
+    vector<MFace> SortAndSplitCycle(); // Sort and split this cycle if possible
     void EliminateSpikes();      // Eliminate empty spikes after merge
     void AddConcavity(MSegs c);  // Add a concavity to this cycle
-    void MergeConcavities();     // Merge previously added concavities
+    vector<MFace> MergeConcavities();  // Merge previously added concavities
     ListExpr ToListExpr();       // Create a list expression
     MFace divide(double start, double end); // restrict the interval
     Face CreateBorderFace(bool src); // get face from border of the interval

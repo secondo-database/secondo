@@ -201,7 +201,12 @@ vector<Seg> Face::sortSegs(vector<Seg> v) {
                 i++;
             }
         }
-        assert(found); // This should never happen on a complete cycle.
+        if (STRICT)
+           assert(found); // This should never happen on a complete cycle.
+        else if (!found) {
+            ret.clear(); 
+            break;
+        }
         // If the endpoint of this segment is the startpoint of the first, we
         // are done.
         if (cur.e == startseg.s)
@@ -851,34 +856,33 @@ vector<MSegs> Face::Evaporate(bool close) {
 */
 bool Face::Check() {
     bool ret = true;
-    return ret;
     
     if (v.size() == 0) // Accept an empty face
         return true;
 
     if (v.size() < 3) {
-        cerr << "too less segments: " << v.size() << "\n";
+        DEBUG(3, "too few segments: ");
         ret = false;
     }
 
     for (unsigned int i = 0; i < v.size(); i++) {
         if (v[i].s == v[i].e) {
-            cerr << "degenerated segment\n";
+            DEBUG(3, "degenerated segment");
             ret = false;
         }
         for (unsigned int j = 0; j < v.size(); j++) {
             if (i == j)
                 continue;
             if (v[i].intersects(v[j])) {
-                cerr << "ERROR: Segments intersect\n";
+                DEBUG(3, "ERROR: Segments intersect");
                 ret = false;
             }
             if (v[i].s == v[j].s) {
-                cerr << "ERROR: Same startpoint\n";
+                DEBUG(3, "ERROR: Same startpoint");
                 ret = false;
             }
             if (v[i].e == v[j].e) {
-                cerr << "ERROR: Same endpoint\n";
+                DEBUG(3, "ERROR: Same endpoint");
                 ret = false;
             }
         }
@@ -896,7 +900,7 @@ bool Face::Check() {
         if (ab2 > 360)
             ab2 -= 180;
         if ((aa == ab) || (aa == ab2)) {
-            cerr << "Angle-Check failed!\n";
+            DEBUG(3, "Angle-Check failed!");
             ret = false;
         }
     }
@@ -904,28 +908,32 @@ bool Face::Check() {
 
     for (int i = 0; i < (nr - 1); i++) {
         if (!(v[i].e == v[i + 1].s)) {
-            cerr << "ERROR: Region not contiguous\n";
+            DEBUG(3, "ERROR: Region not contiguous");
             ret = false;
         }
     }
     
     if (nr > 0) {
         if (!(v[nr - 1].e == v[0].s)) {
-            cerr << "ERROR: Region not closed\n";
+            DEBUG(3, "ERROR: Region not closed\n");
             ret = false;
         }
     
         if (v[0].angle() > v[nr - 1].angle()) {
-            cerr << "ERROR: Region not in counter-clockwise order\n";
+            DEBUG(3, "ERROR: Region not in counter-clockwise order");
             ret = false;
         }
     }
 
     if (!ret) {
-        cerr << "Invalid Region:\n" << this->ToString() << "\n";
+        DEBUG(2, "Invalid Region:\n" << this->ToString());
     }
-
-    assert(ret);
+    
+    if (STRICT)
+       assert(ret);
+    else if (!ret) {
+        *this = Face();
+    }
 
     return ret;
 }

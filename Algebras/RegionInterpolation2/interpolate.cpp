@@ -35,6 +35,8 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args) {
     MFaces ret;
     
+    DEBUG(1, "== Entering Interpolate depth " << depth << " ==");
+    
     if (sregs->empty() && dregs->empty()) // Nothing to do!
         return ret;
     
@@ -92,9 +94,11 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
 
             // and try to merge them into the cycle here (otherwise they are
             // added as a hole)
-            rp.mface.MergeConcavities();
+            vector<MFace> splits = rp.mface.MergeConcavities();
             // Now the resulting moving face is added to the return value
             ret.AddMFace(rp.mface);
+            for (unsigned int i = 0; i < splits.size(); i++)
+                ret.AddMFace(splits[i]);
         } else {
             // Our face doesn't have a partner, so the recursion stops here and
             // we collapse (or expand) the face together with its holes
@@ -108,6 +112,8 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
     if (depth == 0) {
         handleIntersections(ret, MFace(), evap);
     }
+    
+    DEBUG(1, "== Leaving Interpolate depth " << depth << " ==");
 
     return ret;
 }
@@ -208,8 +214,8 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                     break;
                 }
                 // Add the collapse- and expand-cycles
-                children.faces.push_back(ss.first);
-                children.faces.push_back(ss.second);
+                children.AddMFace(ss.first);
+                children.AddMFace(ss.second);
                 // Restart the checks one object earlier, since we removed
                 // the current object and the following objects filled the gap.
                 i-=2;

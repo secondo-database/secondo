@@ -24,7 +24,8 @@ MFaces::MFaces(MFace face) : sregs(NULL), dregs(NULL),
  
 */
 void MFaces::AddMFace(MFace face) {
-    faces.push_back(face);
+    if (!face.isEmpty())
+        faces.push_back(face);
 }
 
 /*
@@ -113,8 +114,7 @@ ListExpr MFaces::ToListExpr(Interval<Instant> iv, double start, double end) {
     }
 }
 
-// This is the duration of one moment in ms, used for the borderregions.
-DateTime moment(durationtype, 1); // Set to zero for an empty interval
+static DateTime moment(durationtype, MOMENTMS); // defined in config.h
 
 /*
  1.7 ToMListExpr converts this MFaces-object to the NestedList-representation
