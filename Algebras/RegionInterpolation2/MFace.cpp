@@ -105,7 +105,7 @@ vector<MFace> MFace::SortAndSplitCycle() {
                 next = ms.findNext(cur, 0, false);
                 int c = 0;
                 do {
-                    if (next < 0 || c++ > ms.msegs.size())
+                    if ((next < 0) || (c++ > (int) ms.msegs.size()))
                         return ret;
                     DEBUG(4, "Cycle: " << ms.msegs[next].ToString());
                     MSeg n = ms.msegs[next];
@@ -277,6 +277,11 @@ vector<MFace> MFace::MergeConcavities() {
         }
     }
 
+    // All concavities have been handled, clear the list.
+    cvs.erase(cvs.begin(), cvs.end());
+    
+    // Check and see, if this cycle was split into several cycles due to the
+    // merge. 
     vector<MFace> split = SortAndSplitCycle();
     if (split.size() > 0) {
         DEBUG(3, "Cycle is ambiguous, splitted into ");
@@ -291,8 +296,6 @@ vector<MFace> MFace::MergeConcavities() {
     EliminateSpikes(); // Eliminate empty spikes
     Check();
     
-    // All concavities have been handled, clear the list.
-    cvs.erase(cvs.begin(), cvs.end());
     
     return split;
 }

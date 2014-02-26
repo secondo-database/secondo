@@ -14,7 +14,7 @@ static const string interpolate2spec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 " (<text>region x instant x region x instant [ x string ] -> mregion</text--->"
 "<text>interpolate2( _ , _ , _ , _ [ , _ ] )</text--->"
-"<text>Interpolate2 two regions to an interval region</text--->"
+"<text>Interpolates two regions to a moving region</text--->"
 "<text>interpolate2( region1, instant1, region2, instant2, args )</text--->) )";
 
 int interpolate2valmap(Word* args,

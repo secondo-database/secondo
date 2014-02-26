@@ -1,8 +1,9 @@
-Database  : berlintest
-Restore   : No
+Database  : interpolate2db
+Restore   : Yes
 
 Operator  : interpolate2
 Number    : 1
 Signature : region x instant x region x instant [ x string ] -> mregion
-Example   : query interpolate2(region1, instant1, region2, instant2, args)
-Result    : file
+Example   : query interpolate2(triangle, t1, pentagon, t2, "distance")
+Result    : (mregion((("2014-01-01" "2014-01-02" TRUE TRUE)((((-56.0 -31.0 -50.0 -24.0)(-56.0 -31.0 -71.0 47.0)(-84.0 50.0 -71.0 47.0)(-84.0 50.0 -145.0 47.0)(-145.0 -10.0 -145.0 47.0)(-145.0 -10.0 -176.0 -10.0)(-145.0 -10.0 -112.0 -60.0)(-56.0 -31.0 -112.0 -60.0)))))))
+Remark    : Interpolates a pentagon with a triangle
