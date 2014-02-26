@@ -926,13 +926,15 @@ bool Face::Check() {
     }
 
     if (!ret) {
-        DEBUG(2, "Invalid Region:\n" << this->ToString());
+        DEBUG(2, "Invalid Region:" <<  endl << this->ToString());
     }
     
     if (STRICT)
        assert(ret);
     else if (!ret) {
-        *this = Face();
+        v.clear();
+        convexhull.clear();
+        holes.clear();
     }
 
     return ret;
@@ -948,7 +950,7 @@ void Face::AddHole(Face hface) {
     vector<Seg> hole = hface.v;
     bool ishole = true;
     
-    if (hface.isEmpty())
+    if (hface.isEmpty() || isEmpty())
         return;
 
     std::sort(v.begin(), v.end());
@@ -958,7 +960,7 @@ void Face::AddHole(Face hface) {
     // traversing them in parallel
     std::vector<Seg>::iterator i = hole.begin();
     std::vector<Seg>::iterator j = v.begin();
-    do {
+    while (i != hole.end() && j != v.end()) {
         if (*i == *j) {
             i = hole.erase(i);
             j = v.erase(j);
@@ -968,7 +970,7 @@ void Face::AddHole(Face hface) {
         } else {
             j++;
         }
-    } while (i != hole.end() && j != v.end());
+    }
     
     if (ishole) {
         // We didn't find a matching segment, so this is a hole

@@ -368,13 +368,13 @@ void MSegs::updateBBox(MSeg& mseg) {
             max(mseg.is.y, mseg.ie.y,
             mseg.fs.y, mseg.fe.y)
             );
-    if ((bbox.first.x > p1.x) || !bbox.first.valid)
+    if (!bbox.first.valid || (bbox.first.x > p1.x))
         bbox.first.x = p1.x;
-    if ((bbox.first.y > p1.y) || !bbox.first.valid)
+    if (!bbox.first.valid || (bbox.first.y > p1.y))
         bbox.first.y = p1.y;
-    if ((bbox.second.x < p2.x) || !bbox.second.valid)
+    if (!bbox.second.valid || (bbox.second.x < p2.x))
         bbox.second.x = p2.x;
-    if ((bbox.second.y < p2.y) || !bbox.second.valid)
+    if (!bbox.second.valid || (bbox.second.y < p2.y))
         bbox.second.y = p2.y;
     bbox.first.valid = 1;
     bbox.second.valid = 1;

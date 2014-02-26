@@ -81,8 +81,8 @@ bool MFace::SortCycle() {
 /*
  1.2b SortAndSplitCycle
 
- Sort the Moving Segments according to their position in the cycle and perform
- several sanity-checks.
+ Sort the Moving Segments according to their position in the cycle. Split
+ the cycle, if two independent cycles can be built from this cycle.
  
 */
 vector<MFace> MFace::SortAndSplitCycle() {
@@ -442,7 +442,7 @@ Face MFace::CreateBorderFace(bool src) {
         // AddHole also merges concavities if segments overlap
         ret.AddHole(hole);
     }
-
+    
     return ret;
 }
 

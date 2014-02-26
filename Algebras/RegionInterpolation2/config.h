@@ -37,7 +37,7 @@
 // Must have the prototype:
 // bool TRAPEZIUMINTERSECTS(MSeg m, MSeg a, unsigned int &detailedResult);
 // #define TRAPEZIUMINTERSECTS trapeziumIntersects // specialTrapeziumIntersects
-#define TRAPEZIUMINTERSECTS trapeziumIntersects2
+#define TRAPEZIUMINTERSECTS trapeziumIntersects4
 #define STRICT 0
 
 #endif /* _INTERPOLATE2_CONFIG_H */

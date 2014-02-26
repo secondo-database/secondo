@@ -1,4 +1,15 @@
 /*
+ opttritri.cpp
+ 
+ Interim trapezium intersection test, used until specialTrapeziumIntersects
+ in the MovingRegionAlgebra works properly. Change the define in the 
+ file config.h accordingly then and delete this file!
+ 
+ Based on a function from Tomas M[oe]ller:
+ Tomas M[oe]ller. 1997. A fast triangle-triangle intersection test. J. Graph.
+ Tools 2, 2 (November 1997), 25-30. DOI=10.1080/10867651.1997.10487472
+ http://dx.doi.org/10.1080/10867651.1997.10487472
+ 
 */
 
 #include "interpolate.h"
