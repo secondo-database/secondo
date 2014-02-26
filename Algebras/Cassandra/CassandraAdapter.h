@@ -147,6 +147,9 @@ public:
     void writeDataToCassandra(string key, string value, 
                               string relation, string consistenceLevel);
     
+    void writeDataToCassandraPrepared(string key, string value,
+                              string relation, string consistenceLevel);
+    
     CassandraResult* readDataFromCassandra(string relation, 
                                            string consistenceLevel);
     
@@ -167,10 +170,16 @@ public:
 protected:
   
   bool executeCQLSync(string cql, cql::cql_consistency_enum consistency);
+  bool executeCQLFutureSync(
+    boost::shared_future<cql::cql_future_result_t> cqlFuture);
   
   boost::shared_future<cql::cql_future_result_t> 
      executeCQL(string cql, cql::cql_consistency_enum consistency);
     
+  string getInsertCQL(string key, string value, string relation);
+  
+  bool prepareCQLInsert(string relation, string consistenceLevel);
+  
 private:
   string contactpoint;            // Our cassandra contact point
   string keyspace;                // Our keyspace
@@ -178,6 +187,8 @@ private:
   boost::shared_ptr<cql::cql_builder_t> builder;
   boost::shared_ptr<cql::cql_cluster_t> cluster;
   boost::shared_ptr<cql::cql_session_t> session;
+  std::vector<cql::cql_byte_t> insertCQLid;  // Query ID for prepared insert 
+                                             // statement
 };
 
 }

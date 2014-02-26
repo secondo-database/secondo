@@ -798,10 +798,10 @@ public:
   }
   
   bool feed(Tuple* tuple) {
-    cout << buildKey() << " - " << tuple -> WriteToBinStr() << endl;
-    
-    cassandra->writeDataToCassandra(buildKey(), tuple -> WriteToBinStr(), 
-                                    relationName, consistence);
+    cassandra->writeDataToCassandraPrepared(
+                         buildKey(), 
+                         tuple -> WriteToBinStr(), 
+                         relationName, consistence);
     
     ++tupleNumber;
     return true;

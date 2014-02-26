@@ -77,27 +77,14 @@ void CassandraAdapter::connect() {
 
         cluster = builder -> build();
         session = cluster -> connect();
-
+        
         // Switch keyspace
-        string keyspaceCql = string("USE ").append(keyspace).append(";");
-
-        boost::shared_future<cql::cql_future_result_t> future
-        = executeCQL(keyspaceCql, cql::CQL_CONSISTENCY_ONE);
-
-        // Wait for execution
-        future.wait();
-
-        if(future.get().error.is_err()) {
-            cerr << "Unable to execute " << keyspaceCql << endl;
-            cerr << "Error is " << future.get().error.message << endl;
-
-            disconnect();
-        } else {
-            cout << "Cassandra: Connection successful established" << endl;
-            cout << "You are connected to host " << contactpoint
+        session -> set_keyspace(keyspace);
+       
+        cout << "Cassandra: Connection successful established" << endl;
+        cout << "You are connected to host " << contactpoint
                  << " keyspace " << keyspace << endl;
-        }
-
+       
     } catch(std::exception& e) {
         cerr << "Got exception while connection to cassandra: "
              << e.what() << endl;
@@ -109,18 +96,104 @@ void CassandraAdapter::connect() {
 
 void CassandraAdapter::writeDataToCassandra(string key, string value,
         string relation, string consistenceLevel) {
+
+    executeCQLSync(
+        getInsertCQL(key, value, relation),
+        CassandraHelper::convertConsistencyStringToEnum(consistenceLevel)
+    );
+    
+}
+
+void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
+        string relation, string consistenceLevel) {
+
+    // Statement unknown? => Prepare
+    if(insertCQLid.empty()) {
+       prepareCQLInsert(relation, consistenceLevel);
+       
+       if(insertCQLid.empty()) {
+         cout << "Unable to prepare CQL Insert statement" << endl;
+         return;
+       }
+    }
+    
+    try {
+    // Use prepared query for execution
+    boost::shared_ptr<cql::cql_execute_t> boundCQLInsert(
+            new cql::cql_execute_t(
+              insertCQLid,         
+              CassandraHelper::convertConsistencyStringToEnum(consistenceLevel)
+    ));
+
+    // Bound prameter
+    boundCQLInsert -> push_back(key);
+    boundCQLInsert -> push_back(value);
+    
+    // Build future and execute
+    boost::shared_future<cql::cql_future_result_t> future 
+       = session->execute(boundCQLInsert);
+    
+    executeCQLFutureSync(future);
+    
+    } catch(std::exception& e) {
+        cerr << "Got exception executing perpared cql query: " 
+             << e.what() << endl;
+    }
+}
+
+bool CassandraAdapter::prepareCQLInsert(string relation, 
+                                        string consistenceLevel) {
+     try {
+        string cqlQuery = getInsertCQL("?", "?", relation);
+        cout << "Preparing insert query: "  << cqlQuery << endl;
+        
+        boost::shared_ptr<cql::cql_query_t> unboundInsert(
+            new cql::cql_query_t(cqlQuery, 
+            CassandraHelper::convertConsistencyStringToEnum
+                   (consistenceLevel))
+        );
+            
+        // Prepare CQL
+        boost::shared_future<cql::cql_future_result_t> future 
+            = session->prepare(unboundInsert);
+            
+        // Wait for result
+        future.wait();
+        
+        if(future.get().error.is_err()) {
+                cerr << "Unable to prepare Insert CQL " << endl;
+                cerr << "Error is " << future.get().error.message << endl;
+        } else {
+            insertCQLid = future.get().result->query_id();
+            return true;
+        }
+    } catch(std::exception& e) {
+        cerr << "Got exception while preparing cql query: " 
+             << e.what() << endl;
+    }
+    
+    return false;
+}
+
+string CassandraAdapter::getInsertCQL(string key, string value, 
+                                      string relation) {
     stringstream ss;
     ss << "INSERT INTO ";
     ss << relation;
-    ss << " (key, value) ";
-    ss << " values ( ";
-    ss << "'" << key << "', ";
-    ss << "'" << value << "');";
-
-    executeCQLSync(
-        ss.str(),
-        CassandraHelper::convertConsistencyStringToEnum(consistenceLevel)
-    );
+    ss << " (key, value)";
+    ss << " VALUES (";
+    
+    string quote = "'";
+    
+    // Prepared statemnt? No quoting! 
+    if(key.compare("?") == 0 && value.compare("?") == 0) {
+      quote = "";
+    }
+    
+    ss << quote << key << quote << ", ";
+    ss << quote << value << quote << ");";
+    
+    return ss.str();
 }
 
 CassandraResult* CassandraAdapter::readDataFromCassandra(string relation,
@@ -200,9 +273,29 @@ void CassandraAdapter::disconnect() {
     }
 }
 
-
 bool CassandraAdapter::executeCQLSync
 (string cql, cql::cql_consistency_enum consistency) {
+      try {
+
+        if(! isConnected() ) {
+            cerr << "Cassandra session not ready" << endl;
+            return false;
+        }
+
+        boost::shared_future<cql::cql_future_result_t> future
+          = executeCQL(cql, consistency);
+          
+        return executeCQLFutureSync(future);
+
+      } catch(std::exception& e) {
+        cerr << "Got exception while executing cql: " << e.what() << endl;
+    }
+
+    return false;
+}
+
+bool CassandraAdapter::executeCQLFutureSync
+(boost::shared_future<cql::cql_future_result_t> cqlFuture) {
 
     try {
 
@@ -211,22 +304,19 @@ bool CassandraAdapter::executeCQLSync
             return false;
         }
 
-        boost::shared_future<cql::cql_future_result_t> future
-        = executeCQL(cql, consistency);
-
         // Wait for execution
-        future.wait();
+        cqlFuture.wait();
 
-        if(future.get().error.is_err()) {
-            cerr << "Unable to execute " << cql << endl;
-            cerr << "Error is " << future.get().error.message << endl;
+        if(cqlFuture.get().error.is_err()) {
+            cerr << "Error is " << cqlFuture.get().error.message << endl;
             return false;
         }
 
         return true;
 
     } catch(std::exception& e) {
-        cerr << "Got exception while creating table: " << e.what() << endl;
+        cerr << "Got exception while executing cql future: " 
+             << e.what() << endl;
     }
 
     return false;
