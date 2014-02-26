@@ -43,7 +43,7 @@ public class Dsplvertex extends Dsplpoint implements Comparable
 	{
 		if (search.equals(replace))
 		{
-			return source; // kann ja sein, dass wir nichts tun müssen
+			return source; // kann ja sein, dass wir nichts tun muessen
 		}
 
 		StringBuffer result = new StringBuffer();

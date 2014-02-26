@@ -95,7 +95,7 @@ public void init (String name, int namewidth, int indent, ListExpr type, ListExp
   subtyp=getTypeName(type).symbolValue();
   //System.out.println("aktueller value ist: " +value);
   if(isGraph(subtyp) && value.listLength()!=0)initVector(value,type.second(), indent);
- System.out.println("Größe des graphVectors: " + graphVector.size());
+ System.out.println("Groesse des graphVectors: " + graphVector.size());
  }
 
 /** The displayExtern Method of the ExternDisplay Interface

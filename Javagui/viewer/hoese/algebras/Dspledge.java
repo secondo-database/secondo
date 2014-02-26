@@ -337,7 +337,7 @@ public class Dspledge extends Dsplline implements Comparable
 	{
 		long tmp;
 		int hc = 9;
-		int hashMultiplier = 53; // nächste Primzahlen: 61 ;67
+		int hashMultiplier = 53; // naechste Primzahlen: 61 ;67
 		tmp = ((point1.x == 0.0) ? 0L : Double.doubleToLongBits(point1.x));
 		hc = hc * hashMultiplier + (int) (tmp >>> 32);
 		hc = hc * hashMultiplier + (int) (tmp & 0xFFFFFFFF);

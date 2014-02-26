@@ -93,7 +93,7 @@ public void init (String name, int namewidth, int indent, ListExpr type, ListExp
   tempType = type;
   subtyp=getTypeName(type).symbolValue();
   if(isGraph(subtyp))initSet(value,type.second());
- System.out.println("Größe des graphVectors: " + graphVector.size());
+ System.out.println("Groesse des graphVectors: " + graphVector.size());
  }
 
 /** The displayExtern Method of the ExternDisplay Interface
