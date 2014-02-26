@@ -57,7 +57,7 @@ public class InfoDialog extends JDialog {
      */
     protected void view() {
         if (textArea.getText() == null) {
-            textArea.setText("Keine Informationen verfügbar.");
+            textArea.setText("No informationen available.");
         }
         pack();
         setVisible(true);
