@@ -212,7 +212,7 @@ public:
 
 /*
 2.3.6 Create a new relation in cassandra. Should be called before
-      the first write request for the relation is called. Returns
+      the first write request for the relation is send. Returns
       true if the relation could be created, false otherwise.
 
 1. Parameter is the name of the relation
@@ -222,7 +222,7 @@ public:
 
 /*
 2.3.7 Remove a relation from the cassandra cluster. Returns true if
-      the relation could be successfully removed. False otherwise. 
+      the relation could be successfully removed, false otherwise. 
 
 1. Parameter is the name of the relation
 
@@ -230,9 +230,9 @@ public:
     bool dropTable(string tablename);
     
 /*
-2.3.8 Disconnect from our cassandra cluster. This method waits for
-      all pending requests before the connection is closed. So the 
-      call can take some time to finish.
+2.3.8 Disconnect from cassandra cluster. This method waits for
+      all pending requests to finish before the connection is 
+      closed. So the call can take some time.
       
 */
     void disconnect();
