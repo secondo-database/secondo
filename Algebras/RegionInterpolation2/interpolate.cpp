@@ -89,7 +89,7 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
                     ret.AddMFace(fc);
                 }
                 // Add the cycles to its parent
-                rp.mface.AddConcavity(fcs.faces[i].face);
+                rp.mface.AddConcavity(fcs.faces[i]);
             }
 
             // and try to merge them into the cycle here (otherwise they are

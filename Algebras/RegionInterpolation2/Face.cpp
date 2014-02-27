@@ -977,7 +977,14 @@ void Face::AddHole(Face hface) {
         Face r(hole);
         r.ishole = true;
         r.Close();
-        holes.push_back(r);
+        bool merged = false;
+        for (unsigned int i = 0; i < holes.size(); i++) {
+            merged = holes[i].Merge(r);
+            if (merged)
+                break;
+        }
+        if (!merged)
+            holes.push_back(r);
     } else {
         // We found matching segments, so change the orientation of the
         // hole-segments and integrate them into the face-cycle
@@ -1016,4 +1023,56 @@ MFaces Face::CreateMFaces(vector<Face> *faces) {
 */
 bool Face::isEmpty() const {
     return v.size() < 3;
+}
+
+// Helper function for Face::Merge, which defines an order which is independent
+// of the orientation of the function.
+static bool segsLess2 (const Seg a, const Seg b) {
+    Pt p1a = (a.s < a.e) ? a.s : a.e;
+    Pt p2a = (b.s < b.e) ? b.s : b.e;
+    
+    Pt p1b = (a.s < a.e) ? a.e : a.s;
+    Pt p2b = (b.s < b.e) ? b.e : b.s;
+    
+    return ((p1a < p2a) || ((p1a == p2a) && (p1b < p2b)));
+}
+
+/*
+ 1.33 Merge two adjacent faces into one face. Return true, if that succeeded.
+ 
+*/
+bool Face::Merge(Face m) {
+    vector<Seg> segs = v;
+    vector<Seg> nsegs = m.v;
+    DEBUG(4, "Trying to merge " << ToString() << " and " << m.ToString());
+    
+    sort(segs.begin(), segs.end(), segsLess2);
+    sort(nsegs.begin(), nsegs.end(), segsLess2);
+    
+    std::vector<Seg>::iterator i = nsegs.begin();
+    std::vector<Seg>::iterator j = segs.begin();
+    
+    bool found = false;
+    while (i != nsegs.end() && j != segs.end()) {
+        if (i->s == j->e && i->e == j->s) {
+            i = nsegs.erase(i);
+            j = segs.erase(j);
+            found = true;
+        } else if (segsLess2(*i, *j)) {
+            i++;
+        } else {
+            j++;
+        }
+    }
+    
+    if (found) {
+        DEBUG(3, "Merged faces");
+        v = segs;
+        v.insert(v.end(), nsegs.begin(), nsegs.end());
+        holes.insert(holes.end(), m.holes.begin(), m.holes.end());
+        Sort();
+        Check();
+    }
+    
+    return found;
 }

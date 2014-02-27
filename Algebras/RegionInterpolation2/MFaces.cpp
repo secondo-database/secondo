@@ -58,8 +58,16 @@ vector<Face> MFaces::CreateBorderFaces(bool src) {
 
     for (unsigned int i = 0; i < faces.size(); i++) {
         Face f = faces[i].CreateBorderFace(src);
-        if (!f.isEmpty())
-            ret.push_back(faces[i].CreateBorderFace(src));
+        if (!f.isEmpty()) {
+            bool merged = false;
+            for (unsigned int j = 0; j < ret.size(); j++) {
+                merged = ret[j].Merge(f);
+                if (merged)
+                    break;
+            }
+            if (!merged)
+                ret.push_back(f);
+        }
     }
 
     return ret;

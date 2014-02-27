@@ -238,13 +238,12 @@ bool MFace::Check() {
    MergeConcavities is called afterwards.
  
 */
-void MFace::AddConcavity(MSegs c) {
-    if (c.msegs.size() >= 3) // Ignore invalid or degenerated cycles
+void MFace::AddConcavity(MFace c) {
+    if (c.face.msegs.size() >= 3) // Ignore invalid or degenerated cycles
         cvs.push_back(c);
 }
 
 static ListExpr CycleToListExpr(MSegs face);
-
 /*
  1.5 MergeConcavities
  
@@ -256,30 +255,33 @@ static ListExpr CycleToListExpr(MSegs face);
 vector<MFace> MFace::MergeConcavities() {
     Check();
     for (unsigned int i = 0; i < cvs.size(); i++) {
-       if (cvs[i].msegs.size() < 3) // Ignore invalid or degenerated faces
+        if (cvs[i].face.msegs.size() < 3) // Ignore invalid or degenerated faces
             continue;
-        MFace f(cvs[i]);
-        DEBUG(4, "Merging " << ToString() << " with " << f.ToString());
-        if (face.MergeConcavity(cvs[i])) {
+        
+        // Inherit the need of a start or endregion
+        needStartRegion |= cvs[i].needStartRegion;
+        needEndRegion |= cvs[i].needEndRegion;
+        DEBUG(4, "Merging " << ToString() << " with " << cvs[i].ToString());
+        if (face.MergeConcavity(cvs[i].face)) {
             DEBUG(4, "Success, result: " << ToString());
         } else {
             DEBUG(4, "Failed, adding as hole");
             // Merging the concavity into the cycle was not successful, add
             // this cycle to the list of holes.
-            holes.push_back(cvs[i]);
-            
+            holes.push_back(cvs[i].face);
+
             // If the hole was not a real hole but a concavity in the source- or
             // destination region, we have to create a start and/or end region.
-            if (!cvs[i].sreg.ishole)
+            if (!cvs[i].face.sreg.ishole)
                 needStartRegion = true;
-            if (!cvs[i].dreg.ishole)
+            if (!cvs[i].face.dreg.ishole)
                 needEndRegion = true;
         }
     }
 
     // All concavities have been handled, clear the list.
     cvs.erase(cvs.begin(), cvs.end());
-    
+
     // Check and see, if this cycle was split into several cycles due to the
     // merge. 
     vector<MFace> split = SortAndSplitCycle();
@@ -295,8 +297,8 @@ vector<MFace> MFace::MergeConcavities() {
     SortCycle(); // Sort the cycle 
     EliminateSpikes(); // Eliminate empty spikes
     Check();
-    
-    
+
+
     return split;
 }
 

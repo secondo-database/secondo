@@ -136,6 +136,7 @@ public:
     bool Check(); // Check, if this face is valid
     void IntegrateHoles(); // Integrate holes into the cycle for triangulation
     void Transform (Pt off, Pt scale); // Transform by offset and scale factor
+    bool Merge (Face m); // Merge two adjacent faces into one
     string ToString() const;
 
     // Static functions
@@ -203,7 +204,8 @@ public:
     // Fields
     MSegs face; // the moving segments which make up this face
     bool needStartRegion, needEndRegion; // this face needs a start/end-region
-    vector<MSegs> holes, cvs; // list of holes and concavities
+    vector<MSegs> holes; // list of holes
+    vector<MFace> cvs; // list of pending concavities
     pair<Pt, Pt> bbox; // the bounding box of this mface
 
     // Constructors
@@ -215,7 +217,7 @@ public:
     bool SortCycle();            // Sort this cycle
     vector<MFace> SortAndSplitCycle(); // Sort and split this cycle if possible
     void EliminateSpikes();      // Eliminate empty spikes after merge
-    void AddConcavity(MSegs c);  // Add a concavity to this cycle
+    void AddConcavity(MFace c);  // Add a concavity to this cycle
     vector<MFace> MergeConcavities();  // Merge previously added concavities
     ListExpr ToListExpr();       // Create a list expression
     MFace divide(double start, double end); // restrict the interval
