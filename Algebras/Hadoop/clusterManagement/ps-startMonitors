@@ -87,9 +87,9 @@ for MINISEC in ${MSECARR[*]}; do
       exec_scr_commands ${sid_TTY} "source .profile"
     fi
     if [ $PFOPT = false ]; then
-      exec_scr_commands ${sid_TTY} "export SECONDO_CONFIG=${CONFFILE}" "cd ${MINISEC}/bin" "./SecondoMonitor -s"
+      exec_scr_commands ${sid_TTY} "export SECONDO_CONFIG=${CONFFILE}" "cd ${MINISEC}/bin" "./collectFlobServer &" "./SecondoMonitor -s"
     else
-      exec_scr_commands ${sid_TTY} "export SECONDO_CONFIG=${CONFFILE}" "cd ${MINISEC}/bin" "valgrind --tool=callgrind --dump-instr=yes --trace-jump=yes --trace-children=yes SecondoMoni
+      exec_scr_commands ${sid_TTY} "export SECONDO_CONFIG=${CONFFILE}" "cd ${MINISEC}/bin" "./collectFlobServer &" "valgrind --tool=callgrind --dump-instr=yes --trace-jump=yes --trace-children=yes SecondoMoni
 tor -s"
     fi
  
