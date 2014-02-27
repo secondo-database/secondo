@@ -1216,16 +1216,27 @@ public:
       delete prepared;
       delete fetchedFiles;
       delete []sheetCounter;
-      if (!tbList->empty()){
-        for (map<size_t, tupleListT>::iterator ti = tbList->begin();
-          ti != tbList->end(); ti++){
-          delete ti->second.first;
-          ti->second.second->clear();
-          delete ti->second.second;
+      if (tbList)
+      {
+        if (!tbList->empty()){
+          for (map<size_t, tupleListT>::iterator ti = tbList->begin();
+            ti != tbList->end(); ti++){
+            delete ti->second.first;
+            ti->second.second->clear();
+            delete ti->second.second;
+          }
+          tbList->clear();
         }
-        tbList->clear();
+        delete tbList;
       }
-      delete tbList;
+
+      if (totalBufferedTuples){
+        delete totalBufferedTuples;
+        totalBufferedTuples = 0;
+        totalBufferedTupleInfo->clear();
+        delete totalBufferedTupleInfo;
+        totalBufferedTupleInfo = 0;
+      }
     }
   }
 
@@ -1282,15 +1293,28 @@ and their Flob data as soon as possible.
   TupleQueue* tbfIt;                      //current tuple queue
   vector<TupleFlobInfo>::iterator tifIt;  //tuple info iterator
   size_t curKey;
+  Tuple* getTupleFromBuffer1();
+  void orderOneTuple1(Tuple* tuple, int sds[]);
+
   map<pair<int, int>, FlobSheet*> ruSheets; //recently used sheets
+
+  //Use one large TupleQueue to increase the possibility of reusing cached Flob
+  TupleQueue* totalBufferedTuples;
+  list<TupleFlobInfo>* totalBufferedTupleInfo;
+  Tuple* getTupleFromBuffer();
+  void orderOneTuple(Tuple* tuple);
+
 
   size_t getKey(int sdsVec[]);
   size_t getMaxKey();
   void decodeKey(size_t key, int sdsVec[]);
+  size_t maxBufferSize, maxSheetSize;
   size_t perBufferSize;
 
   bool isReadAll(Tuple* tuple);
   bool isPreparedAll(Tuple* tuple, TupleFlobInfo* tif);
+  bool isPreparedAll(Tuple* tuple, TupleFlobInfo* tif,
+      vector<vector<FlobSheet*> >& rs);
 
 
 
@@ -1336,7 +1360,6 @@ In order to quickly find whether the asked flob file is prepared.
   size_t preparedNum;
   vector<string>* fetchedFiles; //all fetched files are deleted at last.
   int *sheetCounter;            //the number of sent sheet for each DS
-  size_t maxBufferSize, maxSheetSize;
 
   static const size_t PipeWidth = 10;
   bool tokenPass[PipeWidth];
