@@ -1,0 +1,139 @@
+
+
+
+This document describes, how to include new 
+distance functions into the general tree algebra, at the example point.
+
+
+STEP 1 : Implement a mapping from Secondo data type to void* 
+============================================================
+
+1.1. Declare the function
+---------------------------
+In the file DistDataReg.h, declare a function like:
+
+static DistData *getDataPoint(const void *attr);
+
+
+1.2 implement the function
+---------------------------
+
+This step changes the file  DistDataReg.cpp 
+
+Firstly, add missing include into this file
+
+#include "Coord.h"
+#include "Point.h"
+
+
+Secondly, implement this function
+
+DistData* DistDataReg::getDataPoint(const void* attr) {
+   // cast to the correct type
+   const Point* point = static_cast<const Point*>(attr);
+   // special treatment for undefined values
+   if(!point->IsDefined()){ // undefined points value
+      return new DistData(0,0);
+   }
+   // serialize the point
+   Coord x = point->GetX();
+   Coord y = point->GetY();
+
+   char buffer[2*sizeof(Coord)];
+   memcpy(buffer, &x, sizeof(Coord));
+   memcpy(buffer + sizeof(Coord), &y, sizeof(Coord));
+   return new DistData(2*sizeof(Coord) , buffer);
+}
+
+
+1.3. Register this function
+-----------------------------
+
+Navigate to the function DistDataReg::initialize()
+in file DistDataReg.cpp and add a call like:
+
+addInfo(DistDataInfo(
+     DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+     Point::BasicType(), getDataPoint));
+
+The first parameters are predefined values. If you are not hapy with them,
+define new value and use them here.
+
+The fourth parameter contains the Type name used in Secondo.
+The last parameter is the function defined before.
+
+
+
+
+STEP 2: Computing the distance
+===============================
+
+1.1 Declaring the function
+--------------------------
+
+Firstly, change the file DistfunReg.h and add a declaration of the distance function
+and possible new descriptions.
+
+static void euklidPoint(
+            const DistData *data1, const DistData *data2,
+            double &result);
+
+
+1.2 implement the function
+--------------------------
+
+add missing includes
+#include "Coord.h"
+#include "Point.h"
+
+
+ void DistfunReg::euklidPoint(
+         const DistData *data1, const DistData *data2,
+         double &result) {
+
+     // handle undefined values
+     if(data1->size()==0 && data2->size()==0){
+        return 0;
+     }
+     if(data1->size()==0 || data2->size()==0){
+        return numeric_limits<double>::max();
+     }
+
+     Coord x1;
+     Coord y1;
+     memcpy(&x1, data1->value(), sizeof(Coord));
+     memcpy(&y1, (char*) data1->value() + sizeof(Coord), sizeof(Coord));
+     Coord x2;
+     Coord y2;
+     memcpy(&x2, data2->value(), sizeof(Coord));
+     memcpy(&y2, (char*) data2->value() + sizeof(Coord), sizeof(Coord));
+     result = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)); 
+ }
+
+
+1.3 register the function
+-------------------------
+
+navigate to function DistfunReg::initialize() in file DistfunReg.cpp.
+and add a function call
+
+
+ addInfo(DistfunInfo(
+      DFUN_EUCLID, DFUN_EUCLID_DESCR,
+      euklidPoint,
+      DistDataReg::getInfo(Point::BasicType(), DDATA_NATIVE),
+      DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+
+The first two parameters are the name and a description of the function.
+If predefined names and descriptions are not sufficient, just add new definitions.
+
+The third parameter is the distance function itself.
+
+
+The next argument is build up from the name of the data type in secondo and the name 
+in of the conversion function defined in step1.
+
+The last parameter determines that this distance function describes a metric and is to use 
+as the default function. See code for additional flags.
+
+
