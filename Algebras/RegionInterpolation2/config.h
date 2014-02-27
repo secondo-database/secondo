@@ -27,7 +27,7 @@
 #define LUASCRIPTNAME "matchFaces"
 
 // Values for testing and developing
-#define DEBUGLEVEL 3 // The current debug level (valid: 1-4, 0 means off)
+#define DEBUGLEVEL 4 // The current debug level (valid: 1-4, 0 means off)
 
 // scale-factor for region-import and (m)region-export
 #define SCALEIN  1   // Imported values are multiplied by SCALEIN

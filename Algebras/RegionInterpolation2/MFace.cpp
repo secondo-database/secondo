@@ -13,11 +13,7 @@ MFace::MFace() : needStartRegion(false), needEndRegion(false) {
  
 */
 MFace::MFace(MSegs face) : face(face),
-        needStartRegion(false), needEndRegion(false)
-{
-    SortCycle(); // Sort the cycle
-    EliminateSpikes(); // Eliminate empty spikes
-    Check();
+        needStartRegion(false), needEndRegion(false) {
 }
 
 /*
@@ -85,11 +81,11 @@ bool MFace::SortCycle() {
  the cycle, if two independent cycles can be built from this cycle.
  
 */
-vector<MFace> MFace::SortAndSplitCycle() {
+vector<MFace> MFace::SplitCycle() {
     MSegs ms = face;
     vector<MFace> ret;
         
-    DEBUG(4, "Called SortAndSplitCycle on " << this->ToString());
+    DEBUG(4, "Called SplitCycle on " << this->ToString());
     
     do {
         bool found = false;
@@ -116,6 +112,8 @@ vector<MFace> MFace::SortAndSplitCycle() {
                     next = ms.findNext(n, 0, false);
                 } while (1);
                 MFace f = MFace(cycle);
+                f.EliminateSpikes();
+                f.Check();
                 ret.push_back(f);
                 found = true;
                 break;
@@ -126,8 +124,8 @@ vector<MFace> MFace::SortAndSplitCycle() {
     } while (ms.msegs.size() > 0);
     
     if (ret.size() > 0) {
-       face = ms;
        ms.calculateBBox();
+       face = ms;
     }
         
     return ret;
@@ -284,7 +282,7 @@ vector<MFace> MFace::MergeConcavities() {
 
     // Check and see, if this cycle was split into several cycles due to the
     // merge. 
-    vector<MFace> split = SortAndSplitCycle();
+    vector<MFace> split = SplitCycle();
     if (split.size() > 0) {
         DEBUG(3, "Cycle is ambiguous, splitted into ");
         DEBUG(3, this->ToString());
@@ -294,9 +292,9 @@ vector<MFace> MFace::MergeConcavities() {
     }
 
     // Merging the concavity into the cycle was successful.
-    SortCycle(); // Sort the cycle 
+    SortCycle();       // Sort the cycle 
     EliminateSpikes(); // Eliminate empty spikes
-    Check();
+    Check();           // Check the validity of the resulting MFace
 
 
     return split;

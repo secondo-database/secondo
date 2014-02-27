@@ -215,7 +215,7 @@ public:
     // Methods
     bool Check();                // Check if this MFace is a valid cycle
     bool SortCycle();            // Sort this cycle
-    vector<MFace> SortAndSplitCycle(); // Sort and split this cycle if possible
+    vector<MFace> SplitCycle(); // Sort and split this cycle if possible
     void EliminateSpikes();      // Eliminate empty spikes after merge
     void AddConcavity(MFace c);  // Add a concavity to this cycle
     vector<MFace> MergeConcavities();  // Merge previously added concavities
