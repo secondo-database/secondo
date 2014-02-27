@@ -104,7 +104,8 @@ size_t TupleQueue::GetNoTuples() const {
     return memoryBuffer.size();
   }
   else {
-    return memoryBuffer.size() + diskBuffer->GetNoTuples();
+    return (memoryBuffer.size() + diskBuffer->GetNoTuples()
+      - transportedTuples->size());
   }
 }
 
