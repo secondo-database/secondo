@@ -33,13 +33,22 @@ namespace raster2 {
   int fromLineFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    result = qp->ResultStorage(s);
 
+    
+    result = qp->ResultStorage(s);
     sbool* sb = static_cast<sbool*>(result.addr);
     Line* line = static_cast<Line*>(args[0].addr);
     grid2* grid = static_cast<grid2*>(args[1].addr);
 
     sb->setGrid(*grid);
+
+    bool falsify = false;
+    if(qp->GetNoSons(s)==3){
+      CcBool* falsifyA = (CcBool*) args[2].addr;
+      if(falsifyA->IsDefined() && falsifyA->GetValue()){
+        falsify=true;
+      }
+    }
 
     if(!line->IsDefined() || grid->getLength()<=0){
         sb->setDefined(false);
@@ -63,17 +72,20 @@ namespace raster2 {
           grid->getIndex(to.GetX(), to.GetY()));
     }
 
-    const sbool::index_type& region_size = sbool::storage_type::region_size;
 
-    for (std::tr1::unordered_set<sbool::index_type>::iterator
-            it = regions.begin(), e = regions.end();
-         it != e; ++it)
-    {
-      for (RasterIndex<2> i = *it, e = *it + region_size; i != e;
-           i.increment(*it, e))
+    if(falsify){
+      const sbool::index_type& region_size = sbool::storage_type::region_size;
+
+      for (std::tr1::unordered_set<sbool::index_type>::iterator
+              it = regions.begin(), e = regions.end();
+           it != e; ++it)
       {
-        if (sbool_helper::isUndefined(sb->get(i))) {
-          sb->set(i, false);
+        for (RasterIndex<2> i = *it, e = *it + region_size; i != e;
+             i.increment(*it, e))
+        {
+          if (sbool_helper::isUndefined(sb->get(i))) {
+            sb->set(i, false);
+          }
         }
       }
     }
@@ -84,9 +96,15 @@ namespace raster2 {
   {
     NList type(args);
 
-    if (type.length() != 2) return type.typeError("Expect two arguments.");
+    if (type.length() != 2 && type.length()!=3) {
+       return type.typeError("Expect two ior three arguments.");
+    }
 
     if (type == NList(Line::BasicType(), grid2::BasicType())) {
+      return NList(sbool::BasicType()).listExpr();
+    }
+    if (type == NList(Line::BasicType(), grid2::BasicType(),
+        CcBool::BasicType())) {
       return NList(sbool::BasicType()).listExpr();
     }
 
