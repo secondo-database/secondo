@@ -366,6 +366,7 @@ cerr << "Process " << sheetName << ", then generate " << resultName << endl;
   resultFile.close();
   sheetFile.close();
   delete wbuffer;
+  delete rbuffer;
 
   //3. Send the result
   command = "scp -q " + resultFilePath + " " + clientPSFS + "/" + resultName;
