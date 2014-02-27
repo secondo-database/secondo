@@ -68,12 +68,18 @@ using namespace std;
 namespace cassandra {
 
 /*
-2.1 Helper Functions
+2.1 Helper Classes
 
 */
 class CassandraHelper {
 
 public:
+  
+/*
+2.1.1 Return true if the string matches a known
+      Consistence level, false otherwise
+
+*/
     static bool checkConsistenceLevel(string consistenceLevel) {
         if ((consistenceLevel.compare("ANY") == 0)
                 || (consistenceLevel.compare("ONE") == 0)
@@ -86,6 +92,10 @@ public:
         return false;
     }
     
+/*
+2.1.1 Converts a string into a ~cql\_consistency\_enum~
+
+*/    
     static cql::cql_consistency_enum convertConsistencyStringToEnum
       (string consistenceLevel) {
         
@@ -110,6 +120,12 @@ public:
 
 };
 
+
+/*
+2.2 This class is used as return value for CQL querys
+    You can use it to iteratate over the result set
+
+*/
 class CassandraResult {
   
 public:
@@ -120,18 +136,29 @@ public:
        return result.next();
      }
      
-     void getValue(string &resultString) {
-        result.get_string(0, resultString);
+     void getStringValue(string &resultString, int pos) {
+        result.get_string(pos, resultString);
      }
   
 private:
      cql::cql_result_t& result;
 };
 
+/*
+2.3 Adapter for cassandra
+
+*/
 class CassandraAdapter {
 
 public:
-  
+
+/*
+2.3.1 Constructor
+
+1. Parameter the contactpoint of the cassadra cluster
+2. Parameter the keyspace to use (e.g. secondo)
+
+*/
     CassandraAdapter(string myContactpoint, string myKeyspace) 
       : contactpoint(myContactpoint), keyspace(myKeyspace) {
     
@@ -142,27 +169,79 @@ public:
          disconnect();
     }
     
+
+/*
+2.3.2 Open the connection the cassandra cluster
+
+*/
     void connect();
-    
+
+/*
+2.3.3 Write a tuple to the cluster
+
+1. Parameter is the unique key of the data
+2. Parameter is the data
+3. Parameter is the name of the relation (e.g. plz)
+4. Parameter is the consistence level used for writing
+5. Parameter specifies to use synchronus or asynchronus writes
+
+*/
     void writeDataToCassandra(string key, string value, 
                               string relation, string consistenceLevel,
                               bool sync
                              );
-    
+  
+/* 
+2.3.4 Same as writeDataToCassandra, but with prepared statements
+
+*/
     void writeDataToCassandraPrepared(string key, string value,
                               string relation, string consistenceLevel,
                               bool sync
                              );
-    
+
+/*
+2.3.5 Read data rom cassandra
+
+1. Parameter is the relation to read
+2. Parameter is the consistence level used for writing
+
+*/
     CassandraResult* readDataFromCassandra(string relation, 
                                            string consistenceLevel);
-    
+
+/*
+2.3.6 Create a new relation in cassandra. Should be called before
+      the first write request for the relation is called. Returns
+      true if the relation could be created, false otherwise.
+
+1. Parameter is the name of the relation
+
+*/
     bool createTable(string tablename);
-    
+
+/*
+2.3.7 Remove a relation from the cassandra cluster. Returns true if
+      the relation could be successfully removed. False otherwise. 
+
+1. Parameter is the name of the relation
+
+*/
     bool dropTable(string tablename);
     
+/*
+2.3.8 Disconnect from our cassandra cluster. This method waits for
+      all pending requests before the connection is closed. So the 
+      call can take some time to finish.
+      
+*/
     void disconnect();
   
+/*
+2.3.9 Is the connection to the cluster open? Return true if the 
+      connection is open. False otherweise.
+      
+*/    
     bool isConnected() {
       if(session) {
         return true;
@@ -172,21 +251,55 @@ public:
     }
     
 protected:
-  
+
+/*
+2.3.10 Execute the cql statement with a given consistence level synchronus
+
+*/    
   bool executeCQLSync(string cql, cql::cql_consistency_enum consistency);
-  
+
+/*
+2.3.11 Execute the cql statement with a given consistence level asynchronus
+
+*/    
   bool executeCQLASync(string cql, cql::cql_consistency_enum consistency);
-  
+
+/*
+2.3.12 Execute the given cql future and check for errors. Returns
+       true if the future is executed successfully. False otherwise.
+       
+*/    
   bool executeCQLFutureSync(
     boost::shared_future<cql::cql_future_result_t> cqlFuture);
-  
+
+/*
+2.3.13 Execute the given cql. Returns a future containing the
+       Query result.
+       
+*/    
   boost::shared_future<cql::cql_future_result_t> 
      executeCQL(string cql, cql::cql_consistency_enum consistency);
-    
+
+/*
+2.3.14 Returns a CQL statement for inserting a new row. The
+       first parameter is the key, the second parameter is the
+       value. The last parameter is the relation for this request.
+       
+*/    
   string getInsertCQL(string key, string value, string relation);
-  
+
+/*
+2.3.15 Create a pepared statement for inserting data into the 
+       relation spoecified in the first parameter.
+       
+*/    
   bool prepareCQLInsert(string relation, string consistenceLevel);
-  
+
+/*
+2.3.16 Iterate over all pending futures (e.g. writes), reports
+       errors and remove finished futures from our future list.
+       
+*/    
   void removeFinishedFutures();
   
 private:
@@ -201,7 +314,7 @@ private:
                                              // statement
                                              
   std::vector<boost::shared_future<cql::cql_future_result_t> > 
-      pendingFutures;             // Pending futures
+      pendingFutures;             // Pending futures (e.g. write requests)
 };
 
 }

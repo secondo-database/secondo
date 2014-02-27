@@ -1057,7 +1057,7 @@ public:
     if(result->hasNext()) {
       
       string myResult;
-      result -> getValue(myResult);
+      result -> getStringValue(myResult, 0);
       
       Tuple* tuple = new Tuple(tupleType);
       tuple->ReadFromBinStr(myResult);
