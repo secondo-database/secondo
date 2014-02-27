@@ -669,6 +669,13 @@ Getdata function for the "real"[4] type constructor.
 */
     static DistData *getDataReal(const void *attr);
 
+
+/*
+Getdata function for the "points"[4] type constructor.
+
+*/
+    static DistData *getDataPoints(const void *attr);
+
 /*
 Getdata function for the "hpoint"[4] type constructor.
 

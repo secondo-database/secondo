@@ -35,6 +35,10 @@ January-May 2008, Mirko Dibbert
 #include "DistDataReg.h"
 #include "PictureFuns.h"
 
+#include "Coord.h"
+#include "Point.h"
+#include "SpatialAlgebra.h"
+
 using namespace gta;
 
 /*
@@ -262,6 +266,40 @@ DistData* DistDataReg::getDataReal(const void* attr)
     return new DistData(sizeof(SEC_STD_REAL), buffer);
 }
 
+
+/*
+Method ~DistDataReg::getDataPoints~:
+
+*/
+DistData* DistDataReg::getDataPoints(const void* attr)
+{
+  const Points* points = static_cast<const Points*>(attr);
+  if(!points->IsDefined()){ // undefined points value
+     char def = 0;
+     return new DistData(1,&def);
+  }
+  if(points->Size()==0){ // empty points value
+     return new DistData(0,0);
+  }
+  size_t s = 2 * points->Size() * sizeof(Coord);
+  char* buffer = new char[s];
+  size_t offset=0;
+  Point p;
+  for(int i=0;i<points->Size();i++){
+     points->Get(i,p);
+     Coord x = p.GetX();
+     Coord y = p.GetY();
+     memcpy(buffer + offset, &x, sizeof(Coord));
+     offset += sizeof(Coord);
+     memcpy(buffer + offset, &y, sizeof(Coord));
+     offset += sizeof(Coord);
+  } 
+  DistData* res = new DistData(s,buffer);
+  delete[] buffer;
+  return res; 
+
+}
+
 /*
 Method ~DistDataReg::getDataHPoint~:
 
@@ -326,6 +364,9 @@ void DistDataReg::initialize()
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
                          CcReal::BasicType(), getDataReal));
 
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+                         Points::BasicType(), getDataPoints));
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
                          CcString::BasicType(), getDataString));

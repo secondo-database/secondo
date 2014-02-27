@@ -35,6 +35,8 @@ January-May 2008, Mirko Dibbert
 #include "DistfunReg.h"
 #include "PictureFuns.h"
 #include "GTA_SpatialAttr.h"
+#include "Coord.h"
+#include "SpatialAlgebra.h"
 
 using namespace gta;
 
@@ -285,6 +287,76 @@ void DistfunReg::EuclideanReal(
 }
 
 /*
+Method specialPoints.
+
+*/
+void DistfunReg::specialPoints(
+        const DistData *data1, const DistData *data2,
+        double &result)
+{
+
+  if(data1->size()==1 && data2->size() == 1){
+     result = 0;
+  }
+  size_t n1 = data1->size();
+  size_t n2 = data2->size();
+
+  size_t o1 = 0; // offset in value1
+  size_t o2 = 0;
+
+  result = 0; 
+
+  while(o1<n1 && o2<n2){
+     Coord x1;
+     Coord x2;
+     memcpy(&x1, (char*)data1->value() + o1, sizeof(Coord));
+     memcpy(&x2, (char*)data2->value() +o2, sizeof(Coord));
+     if(AlmostEqual(x1,x2)){
+        o1 += sizeof(Coord);
+        o2 += sizeof(Coord);
+        Coord y1;
+        Coord y2;
+        memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
+        memcpy(&y2,(char*)data2->value() + o2, sizeof(Coord));
+        result += abs(y1-y2);
+        o1 += sizeof(Coord);
+        o2 += sizeof(Coord);
+     } else if(x1<x2) {
+        o1 += sizeof(Coord);
+        Coord y1;
+        memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
+        result += abs(y1);
+        o1 += sizeof(Coord);
+     } else {
+        o2 += sizeof(Coord);
+        Coord y2;
+        memcpy(&y2,(char*)data2->value() + o2, sizeof(Coord));
+        result += abs(y2);
+        o1 += sizeof(Coord);
+        o2 += sizeof(Coord);
+     }
+  }
+  while(o1<n1){
+        o1 += sizeof(Coord); // overread x
+        Coord y1;
+        memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
+        result += abs(y1);
+        o1 += sizeof(Coord);
+  } 
+  while(o2<n2){
+        o2 += sizeof(Coord);
+        Coord y2;
+        memcpy(&y2,(char*)data2->value() + o2, sizeof(Coord));
+        result += abs(y2);
+        o1 += sizeof(Coord);
+        o2 += sizeof(Coord);
+  }
+}
+
+
+
+
+/*
 Method ~DistfunReg::EuclideanHPoint~:
 
 */
@@ -415,6 +487,13 @@ void DistfunReg::initialize()
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         EuclideanReal,
         DistDataReg::getInfo(CcReal::BasicType(), DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+    
+
+    addInfo(DistfunInfo(
+        DFUN_SPECIALPOINTS, DFUN_SPECIALPOINTS_DESCR,
+        specialPoints,
+        DistDataReg::getInfo(Points::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     addInfo(DistfunInfo(

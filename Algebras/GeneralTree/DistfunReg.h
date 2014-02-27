@@ -78,6 +78,10 @@ const string DFUN_UNDEFINED("n/a");
 const string DFUN_EUCLID("euclid");
 const string DFUN_EUCLID_DESCR("euclidean distance function");
 
+const string DFUN_SPECIALPOINTS("specialpoints");
+const string DFUN_SPECIALPOINTS_DESCR("compute a distance assuming that "
+                                      "x coordinates denote a dimension");
+
 const string DFUN_EDIT_DIST("edit");
 const string DFUN_EDIT_DIST_DESCR("edit distance function");
 
@@ -324,6 +328,18 @@ Euclidean distance function for the "real"[4] type constructor.
 
 */
     static void EuclideanReal(
+            const DistData *data1, const DistData *data2,
+            double &result);
+
+/*
+Distance function for the "Points"[4] type constructor.
+
+This function is used for computing the distacce between two points values.
+The first dimension is used a dimension identifier and the second dimension is
+the value for this dimensioni.
+
+*/
+    static void specialPoints(
             const DistData *data1, const DistData *data2,
             double &result);
 
