@@ -590,12 +590,13 @@ int rangesearch_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  search_LI *info;
+  search_LI *info = (search_LI*) local.addr;
 
   switch (message)
   {
     case OPEN :
     {
+      if(info){ delete info; }
       MTree *mtree = static_cast<MTree*>(args[0].addr);
       info = new search_LI( static_cast<Relation*>(args[1].addr));
       local = SetWord(info);
@@ -626,7 +627,7 @@ int rangesearch_VM(
 
     case REQUEST :
     {
-      info = (search_LI*)local.addr;
+      if(!info){ return CANCEL; }
       if(!info->defined)
         return CANCEL;
 
@@ -645,8 +646,10 @@ int rangesearch_VM(
 
     case CLOSE :
     {
-      info = (search_LI*)local.addr;
-      delete info;
+      if(info){
+         delete info;
+         local.addr=0;
+      }
       return 0;
     }
   }
@@ -662,12 +665,15 @@ int rangesearchDD_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  search_LI *info;
+  search_LI * info = (search_LI*)local.addr;
 
   switch (message)
   {
     case OPEN :
     {
+      if(info){
+        delete info;
+      }
       MTree *mtree = static_cast<MTree*>(args[0].addr);
       info = new search_LI( static_cast<Relation*>(args[1].addr));
       local = SetWord(info);
@@ -701,7 +707,9 @@ int rangesearchDD_VM(
 
     case REQUEST :
     {
-      info = (search_LI*)local.addr;
+      if(!info){
+        return CANCEL;
+      }
       if(!info->defined)
         return CANCEL;
 
@@ -720,8 +728,10 @@ int rangesearchDD_VM(
 
     case CLOSE :
     {
-      info = (search_LI*)local.addr;
-      delete info;
+       if(info){
+         delete info;
+         local.addr = 0;
+       }
       return 0;
     }
   }
@@ -736,12 +746,14 @@ int nnsearch_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  search_LI *info;
+  search_LI * info = (search_LI*)local.addr;
 
   switch (message)
   {
     case OPEN :
-    {
+    { if(info){
+        delete info;
+      }
       MTree *mtree = static_cast<MTree*>(args[0].addr);
       info = new search_LI( static_cast<Relation*>(args[1].addr));
       local = SetWord(info);
@@ -771,8 +783,10 @@ int nnsearch_VM(
     }
 
     case REQUEST :
-    {
-      info = (search_LI*)local.addr;
+    { 
+      if(!info){
+        return CANCEL;
+      }
       if(!info->defined)
         return CANCEL;
 
@@ -790,9 +804,10 @@ int nnsearch_VM(
     }
 
     case CLOSE :
-    {
-      info = (search_LI*)local.addr;
-      delete info;
+    { if(info){
+        delete info;
+        local.addr = 0;
+      }
       return 0;
     }
   }
@@ -807,11 +822,14 @@ int nnsearchDD_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  search_LI *info;
+  search_LI *info = (search_LI*)local.addr;
   switch (message)
   {
     case OPEN :
     {
+      if(info){
+       delete info;
+      }
       MTree *mtree = static_cast<MTree*>(args[0].addr);
 
       info = new search_LI(
@@ -846,7 +864,9 @@ int nnsearchDD_VM(
 
     case REQUEST :
     {
-      info = (search_LI*)local.addr;
+      if(!info){
+         return CANCEL;
+      }
       if(!info->defined)
          return CANCEL;
 
@@ -865,8 +885,10 @@ int nnsearchDD_VM(
 
     case CLOSE :
     {
-      info = (search_LI*)local.addr;
-      delete info;
+      if(info){
+         delete info;
+         local.addr = 0;
+      }
       return 0;
     }
   }

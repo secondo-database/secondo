@@ -180,7 +180,7 @@ Default Constructor, creates a new m-tree.
 
 */
     inline MTree(bool temporary = false)
-        : gtree::Tree<Header>(temporary), splitpol(false)
+        : gtree::Tree<Header>(temporary), splitpol(0)
     {}
 
 /*
@@ -188,7 +188,7 @@ Constructor, opens an existing tree.
 
 */
     inline MTree(const SmiFileId fileId)
-        : gtree::Tree<Header>(fileId), splitpol(false)
+        : gtree::Tree<Header>(fileId), splitpol(0)
     {
         if (header.initialized)
         {
@@ -203,7 +203,7 @@ Default copy constructor
 
 */
     inline MTree(const MTree& mtree)
-        : gtree::Tree<Header>(mtree), splitpol(false)
+        : gtree::Tree<Header>(mtree), splitpol(0)
     {
         if (mtree.isInitialized())
             initialize();
