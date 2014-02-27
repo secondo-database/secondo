@@ -36,6 +36,10 @@
 // function name of trapezium-intersects-check.
 // Must have the prototype:
 // bool TRAPEZIUMINTERSECTS(MSeg m, MSeg a, unsigned int &detailedResult);
+// currently valid values:
+// trapeziumIntersects : use specialTrapeziumIntersects
+// trapeziumIntersects2 : interim function defined in opttritri.cpp
+// trapeziumIntersects3 : modified interim function defined in ointersect.cpp
 // #define TRAPEZIUMINTERSECTS trapeziumIntersects // specialTrapeziumIntersects
 #define TRAPEZIUMINTERSECTS trapeziumIntersects4
 #define STRICT 0

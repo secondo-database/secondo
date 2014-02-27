@@ -1,5 +1,5 @@
 /*
- intersect.cpp
+ ointersect.cpp
  
  Interim trapezium intersection test, used until specialTrapeziumIntersects
  in the MovingRegionAlgebra works properly. Change the define in the 
@@ -258,7 +258,7 @@ static bool _trapeziumIntersects2(MSeg m, MSeg a) {
     return ret;
 }
 
-bool trapeziumIntersects4(MSeg m, MSeg a, unsigned int& detailedResult) {
+bool trapeziumIntersects3(MSeg m, MSeg a, unsigned int& detailedResult) {
     detailedResult = 0;
 
     return _trapeziumIntersects2(m, a);
