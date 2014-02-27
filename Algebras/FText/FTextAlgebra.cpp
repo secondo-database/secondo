@@ -10848,6 +10848,135 @@ Operator computeRegExOP(
 );
 
 
+/*
+4.38 letObject2
+
+This operator stores an arbritrary object to the database.
+
+
+4.38.1 Type Mapping
+
+signature is: string x any -> bool
+
+where any is not a stream.
+
+*/
+ListExpr letObject2TM(ListExpr args){
+
+  string err = " {string,text} x ANY  expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  ListExpr name = nl->First(args);
+  ListExpr value = nl->Second(args);
+
+  if(!CcString::checkType(name) && !FText::checkType(name)){
+    return listutils::typeError(err);
+  }
+  if(nl->HasLength(value,2) &&
+     nl->IsEqual(nl->First(value), Stream<Tuple>::BasicType())){
+    return listutils::typeError("second argument cannot be a stream");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+/*
+4.38.2 ValueMapping
+
+*/
+template <class T>
+int letObject2VM1( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  T* name = (T*) args[0].addr;
+
+  // objectname must be defined
+  if(!name->IsDefined()){
+     res->Set(true,false);
+     return 0;
+  }
+  string n = name->GetValue();
+  if( n == "" ){
+    res->Set(true, false);
+    return 0;
+  } 
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  if ( ctlg->IsSystemObject(n) ) {
+    res->Set(true,false);
+    return 0;
+  }
+  if( ctlg->IsObjectName(n )) {
+    res->Set(true, false);
+    return 0;
+  } 
+  if(!ctlg->IsValidIdentifier(n)){
+    res->Set(true,false);
+    return 0;
+  }
+
+  // InsertObject(Name, typename, resultType, value, defined)
+  ListExpr resultType = qp->GetType(qp->GetSon(s,1));
+
+   int algId = 0;
+   int typeId = 0;
+   string basicType;
+   bool ok = ctlg->LookUpTypeExpr(resultType, basicType,algId,typeId);
+   if(!ok){
+       res->Set(true,false);
+       cerr << "Problem in LookUp TypeExpr";
+       return 0;
+   }
+   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+   Word valueClone =  am->CloneObj(algId,typeId)(resultType,args[1]);
+   bool success =  ctlg->InsertObject( n, "",resultType,valueClone,true);
+   res->Set(true,success);
+  return 0;
+}
+
+
+ValueMapping letObject2VM[] = {
+  letObject2VM1<CcString>,
+  letObject2VM1<FText>
+};
+
+int letObject2Select(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+
+
+/*
+4.37.5 Specification
+
+*/
+OperatorSpec letObject2Spec(
+  "{string,text} x any -> text ",
+  "letObject2(name, value)",
+  "Stores an object to the database",
+  "query letObject2('sum', 4 + 3)"
+);
+
+
+/*
+4.37.6 Operator instance
+
+*/
+Operator letObject2OP(
+  "letObject2",
+  letObject2Spec.getStr(),
+  2,
+  letObject2VM,
+  letObject2Select,
+  letObject2TM
+);
+
+
+
+
+
   /*
   5 Creating the algebra
 
@@ -10971,6 +11100,8 @@ Operator computeRegExOP(
       AddOperator(&charCodesOP);
       AddOperator(&morseWavOP);
       AddOperator(&computeRegExOP);
+      
+      AddOperator(&letObject2OP);
 
 
 

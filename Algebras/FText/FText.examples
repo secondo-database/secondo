@@ -1160,15 +1160,20 @@ Result    : TRUE
 Operator : computeRegEx
 Number   : 1 
 Signature : regex -> text
-Example   : computeRegEx( [const regex value "a"] )
+Example   : query computeRegEx( [const regex value "a"] )
 Result    : (text 'a')
 
 Operator : computeRegEx
 Number   : 2 
 Signature : regex2 -> text
-Example   : computeRegEx( [const regex2 value "a"] )
+Example   : query computeRegEx( [const regex2 value "a"] )
 Result    : (text 'a')
 
+Operator  : letObject2
+Number    : 1
+Signature : {string,text} x any -> bool
+Example   : query letObject2("BGrenzenLine", 3 + 4)
+Result    : FALSE
 
 
 
