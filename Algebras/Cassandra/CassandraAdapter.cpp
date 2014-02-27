@@ -95,17 +95,29 @@ void CassandraAdapter::connect() {
 
 
 void CassandraAdapter::writeDataToCassandra(string key, string value,
-        string relation, string consistenceLevel) {
+        string relation, string consistenceLevel, bool sync) {
 
-    executeCQLSync(
-        getInsertCQL(key, value, relation),
-        CassandraHelper::convertConsistencyStringToEnum(consistenceLevel)
-    );
-    
+    // Convert consistence level
+    cql::cql_consistency_enum consitence 
+       = CassandraHelper::convertConsistencyStringToEnum(consistenceLevel);
+       
+    // Write Data and wait for result
+    if(sync) {
+      executeCQLSync(
+          getInsertCQL(key, value, relation),
+          consitence
+      );
+      
+    } else {
+      executeCQLASync(
+          getInsertCQL(key, value, relation),
+          consitence
+      );
+    }
 }
 
 void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
-        string relation, string consistenceLevel) {
+        string relation, string consistenceLevel, bool sync) {
 
     // Statement unknown? => Prepare
     if(insertCQLid.empty()) {
@@ -133,7 +145,13 @@ void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
     boost::shared_future<cql::cql_future_result_t> future 
        = session->execute(boundCQLInsert);
     
-    executeCQLFutureSync(future);
+    // Execution sync or async?
+    if(sync) {
+       executeCQLFutureSync(future);
+    } else {
+      pendingFutures.push_back(future);
+      removeFinishedFutures();
+    }
     
     } catch(std::exception& e) {
         cerr << "Got exception executing perpared cql query: " 
@@ -245,7 +263,12 @@ bool CassandraAdapter::createTable(string tablename) {
     ss << " ( key text PRIMARY KEY, ";
     ss << " value text );";
 
-    return executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
+    bool result = executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
+    
+    // Wait propagation of the table
+    sleep(1);
+    
+    return result;
 }
 
 bool CassandraAdapter::dropTable(string tablename) {
@@ -260,6 +283,26 @@ bool CassandraAdapter::dropTable(string tablename) {
 void CassandraAdapter::disconnect() {
     if(isConnected()) {
 
+        if(! pendingFutures.empty()) {
+          cout << "Wait for pending futures: " << flush;
+          
+          for(vector < boost::shared_future<cql::cql_future_result_t> >
+             ::iterator iter = pendingFutures.begin(); 
+             iter != pendingFutures.end(); ++iter) {
+            
+             boost::shared_future<cql::cql_future_result_t> future = *iter;
+          
+             future.wait();
+             cout << "." << flush;
+          }
+          
+          cout << endl;
+          
+          removeFinishedFutures();
+          
+          cout << "All futures finished" << endl;
+        }
+      
         cout << "Disconnecting from cassandra" << endl;
 
         // Close session and cluster
@@ -289,9 +332,59 @@ bool CassandraAdapter::executeCQLSync
 
       } catch(std::exception& e) {
         cerr << "Got exception while executing cql: " << e.what() << endl;
-    }
+      }
 
     return false;
+}
+
+bool CassandraAdapter::executeCQLASync
+(string cql, cql::cql_consistency_enum consistency) {
+      
+      try {
+
+        if(! isConnected() ) {
+            cerr << "Cassandra session not ready" << endl;
+            return false;
+        }
+
+        boost::shared_future<cql::cql_future_result_t> future
+          = executeCQL(cql, consistency);
+          
+        pendingFutures.push_back(future);
+        
+        removeFinishedFutures();
+        
+        return true;
+      
+      } catch(std::exception& e) {
+        cerr << "Got exception while executing cql: " << e.what() << endl;
+      }
+
+    return false;
+}
+
+void CassandraAdapter::removeFinishedFutures() {
+    // Are some futures finished?
+    for(vector < boost::shared_future<cql::cql_future_result_t> >
+      ::iterator iter = pendingFutures.begin(); 
+      iter != pendingFutures.end(); 
+      ) {
+      
+      boost::shared_future<cql::cql_future_result_t> future = *iter;
+      
+      // Remove finished futures
+      if(future.is_ready()) {
+        
+        if(future.get().error.is_err()) {
+          cerr << "Got error while executing future: " 
+                << future.get().error.message << endl;
+        }
+        
+        iter = pendingFutures.erase(iter);
+      } else {
+        ++iter;
+      }
+    }
 }
 
 bool CassandraAdapter::executeCQLFutureSync

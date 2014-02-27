@@ -779,12 +779,15 @@ public:
   }
   
   virtual ~CFeedLocalInfo() {
-    
+    disconnect();
+  }
+  
+  void disconnect() {
     if(cassandra != NULL) {
+      cassandra -> disconnect();
       delete cassandra;
       cassandra = NULL;
     }
-    
   }
   
   string buildKey() {
@@ -798,10 +801,10 @@ public:
   }
   
   bool feed(Tuple* tuple) {
-    cassandra->writeDataToCassandraPrepared(
+    cassandra->writeDataToCassandra(
                          buildKey(), 
                          tuple -> WriteToBinStr(), 
-                         relationName, consistence);
+                         relationName, consistence, false);
     
     ++tupleNumber;
     return true;
@@ -890,6 +893,8 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
       }  
       qp->Close(args[0].addr);
       static_cast<CcInt*>(result.addr)->Set(true, cli -> getTupleNumber());  
+      
+      cli -> disconnect();
       
       delete cli;
       cli = NULL;
