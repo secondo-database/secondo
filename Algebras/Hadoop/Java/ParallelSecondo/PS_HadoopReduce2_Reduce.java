@@ -44,7 +44,9 @@ public class PS_HadoopReduce2_Reduce
 		int PSFSMode = 1;
 		int candSlaveIndex = -1;
 		int resultRowNo = context.getTaskAttemptID().getTaskID().getId() + 1;
-		
+
+int taskId = context.getTaskAttemptID().getTaskID().getId();		
+System.out.println("The taskID is: " + taskId);
 		for (Text value : values)
 		{
 			String parameters[] = value.toString().split(inDim);
@@ -90,11 +92,16 @@ public class PS_HadoopReduce2_Reduce
 		ListExpr reduceQueryList = new ListExpr();
 		reduceQueryList.readFromString(reduceQuery);
 
+                PSNode node;
 		if (outputKind == FListKind.DLO){
 			candSlaveIndex = resultRowNo;
-		}
+                  node = PSNode.SelectDataServer(candSlaveIndex);
+		} else {
+                  //DLF
+                  node = PSNode.SelectDataServer(-1, taskId); 
+                }
 
-		PSNode node = PSNode.SelectDataServer(candSlaveIndex);
+		//PSNode node = PSNode.SelectDataServer(candSlaveIndex);
 		if (node == null)
 			throw new IOException("Cannot find proper data server");
 		else{

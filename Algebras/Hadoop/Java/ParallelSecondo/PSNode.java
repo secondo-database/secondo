@@ -15,6 +15,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Random;
 
 public class PSNode implements Constant{
 
@@ -67,6 +68,11 @@ public class PSNode implements Constant{
 	 * @throws InterruptedException 
 	 */
 	public static PSNode SelectDataServer(int candidate) 
+		throws IOException, InterruptedException{
+            return SelectDataServer(candidate, -1);
+        }
+
+	public static PSNode SelectDataServer(int candidate, int taskId) 
 		throws IOException, InterruptedException
 	{
 		String slFile = System.getenv().get("PARALLEL_SECONDO_SLAVES");
@@ -99,6 +105,24 @@ public class PSNode implements Constant{
 		if ( candidate > 0 ){
 			return slaves.get(candidate -1 );
 		}
+                else if(taskId >= 0){
+                  int localSlavesNum = 0;
+                  for (PSNode slave : slaves){
+                    if (localAddr.compareTo(slave.getIpAddr()) == 0){
+                      localSlavesNum++;
+                    }
+                  } 
+                  Random r = new Random();
+                  int localDSId = (taskId + r.nextInt(slaves.size())) % localSlavesNum;
+                  int locDSCnt = 0;
+                  for (PSNode slave : slaves){
+                    if ((localAddr.compareTo(slave.getIpAddr()) == 0) 
+                        && (locDSCnt++ == localDSId )){
+                      return slave;
+                    }                     
+                  }
+                  return null;
+                }
 		else {
 			int pCnt = Integer.MAX_VALUE;
 			for (PSNode slave : slaves){
