@@ -672,32 +672,6 @@ vector<string> createTrajectory(int size) {
   return result;
 }
 
-void fillML(const MString& source, MString& result, DateTime* duration) {
-//   result.Clear();
-  if (!source.IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  if (!source.GetNoComponents()) {
-    return;
-  }
-  UString last, next;
-  source.Get(0, last);
-  for (int i = 1; i < source.GetNoComponents(); i++) {
-    source.Get(i, next);
-    if ((last.constValue == next.constValue) && (!duration ||
-        (next.timeInterval.start - last.timeInterval.end <= *duration))) {
-      last.timeInterval.end = next.timeInterval.end;
-      last.timeInterval.rc = next.timeInterval.rc;
-    }
-    else {
-      result.MergeAdd(last);
-      last = next;
-    }
-  }
-  result.MergeAdd(last);
-}
-
 void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates) {
   map<int, int>::iterator it;
   for (unsigned int i = 0; i < nfa.size(); i++) {

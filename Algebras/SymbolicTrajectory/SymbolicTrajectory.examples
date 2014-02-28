@@ -5,7 +5,7 @@ Operator : tolabel
 Number   : 1
 Signature: (string | text) -> label
 Example  : query tolabel('Aubameyang')
-Result   : (label ("Aubameyang"))
+Result   : (label ('Aubameyang'))
 
 Operator : tostring
 Number   : 1
@@ -41,13 +41,13 @@ Operator : toplace
 Number   : 1
 Signature: string x int -> place
 Example  : query toplace("Reus", 11)
-Result   : (place ("Reus" 11))
+Result   : (place ('Reus' 11))
 
 Operator : name
 Number   : 1
-Signature: place -> string
+Signature: place -> text
 Example  : query name([const place value ("Hummels" 5)])
-Result   : "Hummels"
+Result   : 'Hummels'
 
 Operator : ref
 Number   : 1
@@ -59,25 +59,25 @@ Operator : the_unit
 Number   : 6
 Signature: label x instant x instant x bool x bool -> ulabel
 Example  : query the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE)
-Result   : (ulabel (("2000-01-03" "2000-01-04" TRUE FALSE)"Mkhitaryan"))
+Result   : (ulabel (("2000-01-03" "2000-01-04" TRUE FALSE)'Mkhitaryan'))
 
 Operator : the_unit
 Number   : 7
 Signature: place x instant x instant x bool x bool -> uplace
 Example  : query the_unit(toplace("Mkhitaryan", 10), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE)
-Result   : (uplace (("2000-01-03" "2000-01-04" TRUE FALSE) ("Mkhitaryan" 10)))
+Result   : (uplace (("2000-01-03" "2000-01-04" TRUE FALSE) ('Mkhitaryan' 10)))
 
 Operator : makemvalue
 Number   : 7
 Signature: stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel
 Example  : query the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem]
-Result   : (mlabel ((("2000-01-03" "2000-01-04" TRUE FALSE)"Mkhitaryan")))
+Result   : (mlabel ((("2000-01-03" "2000-01-04" TRUE FALSE)'Mkhitaryan')))
 
 Operator : makemvalue
 Number   : 8
 Signature: stream (tuple ((x1 t1)...(xi uplace)...(xn tn))) xi -> mplace
 Example  : query the_unit(toplace("Mkhitaryan", 10), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem]
-Result   : (mplace ((("2000-01-03" "2000-01-04" TRUE FALSE) ("Mkhitaryan" 10))))
+Result   : (mplace ((("2000-01-03" "2000-01-04" TRUE FALSE) ('Mkhitaryan' 10))))
 
 Operator : passes
 Number   : 6
@@ -89,7 +89,7 @@ Operator : at
 Number   : 4
 Signature: mlabel x label -> mlabel
 Example  : query mlabel1 at tolabel("Eving")
-Result   : (mlabel ((("2012-01-01" "2012-01-01-00:30" TRUE FALSE)"Eving")))
+Result   : (mlabel ((("2012-01-01" "2012-01-01-00:30" TRUE FALSE)'Eving')))
 
 Operator : deftime
 Number   : 4

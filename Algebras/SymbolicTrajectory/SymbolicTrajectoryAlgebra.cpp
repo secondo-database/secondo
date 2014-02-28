@@ -48,493 +48,228 @@ using namespace std;
 
 namespace stj {
 
-Label::Label(const string& value) : Attribute(true) {
-  strncpy(val.v, value.c_str(), MAX_STRINGSIZE);
-  val.v[MAX_STRINGSIZE] = '\0';
+/*
+\section{Implementation of class ~Label~}
+
+\subsection{Constructor}
+
+*/
+Label::Label(const Label& rhs) : Attribute(rhs.IsDefined()), value(0) {
+  CopyFrom(&rhs);
 }
 
-Label::Label(const Label& rhs) : Attribute(rhs) {
-  strncpy(val.v, rhs.val.v, MAX_STRINGSIZE);
+/*
+\subsection{Function ~GetValue~}
+
+*/
+void Label::GetValue(string& text) const {
+  assert(IsDefined());
+  SmiSize sz = value.getSize();
+  char *bytes;
+  if (sz == 0) {
+    bytes = new char[1];
+    bytes[0] = 0;
+  }
+  else {
+    bytes = new char[sz];
+    bool ok = value.read(bytes, sz);
+    assert(ok);
+  }
+  text = bytes;
+  delete[] bytes;
 }
 
-Label::Label(const bool def) : Attribute(def) {
-  strncpy(val.v, "", MAX_STRINGSIZE);
-  val.v[MAX_STRINGSIZE] = '\0';
+/*
+\subsection{Function ~buildValue~}
+
+*/
+void Label::buildValue(const string& text, const unitelem& unit, base& result) {
+  result = text;
 }
 
-void Label::Set(const bool def, const string &value) {
-  SetDefined(def);
-  SetValue(value);
+/*
+\subsection{Function ~SetValue~}
+
+*/
+void Label::SetValue(const string &text) {
+  const char *bytes = text.c_str();
+  SmiSize sz = strlen(bytes) + 1;
+  if (sz > 0) {
+    assert(bytes[sz - 1] == 0);
+    value.write(bytes, sz);
+  }
+  else {
+    char d = 0;
+    value.write(&d, 1);
+  }
 }
 
-void Label::SetValue(const string &value) {
-  strncpy(val.v, value.c_str(), MAX_STRINGSIZE);
+/*
+\subsection{Operator ~==~}
+
+*/
+bool Label::operator==(const Label& lb) const {
+  if (!IsDefined() && !lb.IsDefined()) {
+    return true;
+  }
+  if (IsDefined() != lb.IsDefined()) {
+    return false;
+  }
+  string str1, str2;
+  GetValue(str1);
+  lb.GetValue(str2);
+  return (str1 == str2);
 }
 
-bool Label::operator==(const LabelValue& lv) const {
-  return (val == lv);
+/*
+\subsection{Operator ~==~}
+
+*/
+bool Label::operator==(const string& text) const {
+  if (!IsDefined()) {
+    return false;
+  }
+  string str;
+  GetValue(str);
+  return (str == text);
 }
 
-bool Label::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+/*
+\subsection{Function ~readValueFrom~}
+
+*/
+bool Label::readValueFrom(ListExpr LE, string& text, unitelem& unit) {
   if (nl->IsAtom(LE)) {
-    Set(true, nl->StringValue(LE));
+    nl->WriteToString(text, LE);
     return true;
   }
   return false;
 }
 
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+bool Label::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  if (nl->IsAtom(LE)) {
+    string text;
+    nl->WriteToString(text, LE);
+    Set(true, text.substr(1, text.length() - 2));
+    return true;
+  }
+  SetDefined(false);
+  return false;
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
 ListExpr Label::ToListExpr(ListExpr typeInfo) {
-  return nl->OneElemList(nl->StringAtom(GetValue()));
+  string text;
+  GetValue(text);
+  return nl->TextAtom(text);
 }
 
+/*
+\subsection{Function ~CheckKind~}
+
+*/
 bool Label::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return (nl->IsEqual( type, Label::BasicType()));
+  return (nl->IsEqual(type, Label::BasicType()));
 }
 
+/*
+\subsection{Function ~Property~}
+
+*/
 ListExpr Label::Property() {
-  return (nl->TwoElemList(
-      nl->FiveElemList(nl->StringAtom("Signature"),
-         nl->StringAtom("Example Type List"),
-         nl->StringAtom("List Rep"),
-         nl->StringAtom("Example List"),
-         nl->StringAtom("Remarks")),
-      nl->FiveElemList(nl->StringAtom("-> DATA"),
-         nl->StringAtom(Label::BasicType()),
-         nl->StringAtom("<x>"),
-         nl->StringAtom("\"at home\""),
-         nl->StringAtom("x must be of type string (max. 48 characters)."))));
+  return gentc::GenProperty("-> DATA", BasicType(), "(<text>)", "\'Dortmund\'");
 }
 
+/*
+\subsection{Function ~checkType~}
+
+*/
 const bool Label::checkType(const ListExpr type) {
   return listutils::isSymbol(type, BasicType());
 }
 
+/*
+\subsection{Function ~CopyFrom~}
+
+*/
 void Label::CopyFrom(const Attribute* right) {
-  string value = ((Label*)right)->GetValue();
-  strncpy(val.v, value.c_str(), MAX_STRINGSIZE);
-  val.v[MAX_STRINGSIZE] = '\0';
+  SetDefined(right->IsDefined());
+  if (IsDefined()) {
+    string text;
+    ((Label*)right)->GetValue(text);
+    SetValue(text);
+  }
 }
 
+/*
+\subsection{Function ~Compare~}
+
+*/
 int Label::Compare(const Attribute* arg) const {
-  return this->GetValue().compare(((Label*)arg)->GetValue());
+  string str1, str2;
+  GetValue(str1);
+  ((Label*)arg)->GetValue(str2);
+  return str1.compare(str2);
 }
 
-GenTC<Label> labelTC;
-
 /*
-
-4 Type Constructor ~ilabel~
-
-4.1 function Describing the Signature of the Type Constructor
+\subsection{Function ~Print~}
 
 */
-ListExpr ILabel::IntimeLabelProperty() {
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> TEMPORAL"),
-                             nl->StringAtom("(ilabel) "),
-                             nl->StringAtom("(instant string-value)"),
-                             nl->StringAtom("((instant 0.5) \"at home\")"))));
+ostream& Label::Print(ostream& os) const {
+  string text;
+  GetValue(text);
+  return os << text;
 }
 
 /*
-4.2 Kind Checking Function
+\subsection{Operator ~<<~}
 
 */
-bool ILabel::CheckIntimeLabel(ListExpr type, ListExpr& errorInfo) {
-  return (nl->IsEqual(type, Intime<Label>::BasicType()));
+ostream& operator<<(ostream& os, const Label& lb) {
+  string text;
+  lb.GetValue(text);
+  os << "\'" << text << "\'";
+  return os;
 }
 
 /*
-\subsection{Function ~Val~}
+\subsection{Type Constructor}
 
 */
-void ILabel::Val(Label& result) const {
-  if (!IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  result.Set(true, value.GetValue());
-}
+GenTC<Label> label;
 
 /*
-4.3 Creation of the type constructor ~ilabel~
+\section{Implementation of class ~MLabels~}
 
-*/
-TypeConstructor intimelabel(
-        ILabel::BasicType(),  //name
-        ILabel::IntimeLabelProperty,   //property function describing signature
-        OutIntime<CcString, OutCcString>,
-        InIntime<CcString, InCcString>,     //Out and In functions
-        0,
-        0,  //SaveToList and RestoreFromList functions
-        CreateIntime<CcString>,
-        DeleteIntime<CcString>, //object creation and deletion
-        0,
-        0,  // object open and save
-        CloseIntime<CcString>,
-        CloneIntime<CcString>,  //object close and clone
-        CastIntime<CcString>,   //cast function
-        SizeOfIntime<CcString>, //sizeof function
-        ILabel::CheckIntimeLabel       //kind checking function
-);
-
-/*
-\section{Implementation of class ~ULabel~}
-
-\subsection{Constructor}
-
-*/
-ULabel::ULabel(const Interval<Instant>& interval, const Label& label)
-                                                               : UString(true) {
-  timeInterval = interval;
-  CcString *ccstr = new CcString(true, label.GetValue());
-  constValue.CopyFrom(ccstr);
-  ccstr->DeleteIfAllowed();
-}
-
-/*
-5.2 function Describing the Signature of the Type Constructor
-
-*/
-ListExpr ULabel::ULabelProperty() {
-    return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-    nl->FourElemList(nl->StringAtom("-> UNIT"),
-                     nl->StringAtom("(ulabel) "),
-                     nl->StringAtom("(timeInterval string) "),
-                     nl->StringAtom("((i1 i2 FALSE FALSE) \"at home\")"))));
-}
-
-/*
-5.3 Kind Checking Function
-
-*/
-bool ULabel::CheckULabel(ListExpr type, ListExpr& errorInfo) {
-  return (nl->IsEqual(type, ULabel::BasicType()));
-}
-
-/*
-\subsection{Function ~Initial~}
-
-*/
-void ULabel::Initial(ILabel& result) const {
-  if (IsDefined()) {
-    result.instant = timeInterval.start;
-    result.value.Set(true, constValue.GetValue());
-    result.SetDefined(true);
-  }
-  else {
-    result.SetDefined(false);
-  }
-}
-
-/*
-\subsection{Function ~Final~}
-
-*/
-void ULabel::Final(ILabel& result) const {
-  if (IsDefined()) {
-    result.instant = timeInterval.end;
-    result.value.Set(true, constValue.GetValue());
-    result.SetDefined(true);
-  }
-  else {
-    result.SetDefined(false);
-  }
-}
-
-/*
-5.4 Creation of the type constructor ~ulabel~
-
-*/
-TypeConstructor unitlabel(
-        ULabel::BasicType(), // ULabel::BasicType(),  //name
-        ULabel::ULabelProperty,    //property function describing signature
-        OutConstTemporalUnit<CcString, OutCcString>,
-        InConstTemporalUnit<CcString, InCcString>,  //Out and In functions
-        0,
-        0,  //SaveToList and RestoreFromList functions
-        CreateConstTemporalUnit<CcString>,
-        DeleteConstTemporalUnit<CcString>,  //object creation and deletion
-        0,
-        0,  // object open and save
-        CloseConstTemporalUnit<CcString>,
-        CloneConstTemporalUnit<CcString>,   //object close and clone
-        CastConstTemporalUnit<CcString>,    //cast function
-        SizeOfConstTemporalUnit<CcString>,  //sizeof function
-        ULabel::CheckULabel    //kind checking function
-);
-
-/*
-\subsection{Type Constructor ~mlabel~}
-
-Type ~mlabel~ represents a moving string.
-
-\subsubsection{List Representation}
-
-The list representation of a ~mlabel~ is
-
-----    ( u1 ... un )
-----
-
-,where u1, ..., un are units of type ~ulabel~.
-
-For example:
-
-----    (
-          ( (instant 6.37)  (instant 9.9)   TRUE FALSE) ["]Label 1["] )
-          ( (instant 11.4)  (instant 13.9)  FALSE FALSE) ["]Label 2["] )
-        )
-----
-
-*/
-MLabel::MLabel(MString* ms): MString(1) {
-  ULabel ul(1);
-  for (int i = 0; i < ms->GetNoComponents(); i++) {
-    ms->Get(i, ul);
-    Add(ul);
-  }
-  SetDefined(ms->IsDefined());
-}
-
-MLabel::MLabel(MLabel* ml): MString(0) {
-  ULabel ul(1);
-  for (int i = 0; i < ml->GetNoComponents(); i++) {
-    ml->Get(i, ul);
-    Add(ul);
-  }
-  SetDefined(ml->IsDefined());
-}
-
-MLabel::MLabel(const MLabel &ml) : MString(ml) {}
-
-ListExpr MLabel::MLabelProperty() {
-    return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-    nl->FourElemList(nl->StringAtom("-> MAPPING"),
-                     nl->StringAtom("(mlabel) "),
-                     nl->StringAtom("( u1 ... un)"),
-                     nl->StringAtom("(((i1 i2 TRUE TRUE) \"at home\") ...)"))));
-}
-
-/*
-\subsubsection{Kind Checking Function}
-
-This function checks whether the type constructor is applied correctly.
-
-*/
-bool MLabel::CheckMLabel(ListExpr type, ListExpr& errorInfo) {
-  return (nl->IsEqual(type, MLabel::BasicType()));
-}
-
-Word MLabel::Create(const ListExpr typeInfo) {
-  MLabel* ml = new MLabel(0);
-  return (SetWord(ml));
-}
-
-void MLabel::Close(const ListExpr typeInfo, Word& w) {
-  delete static_cast<MLabel*>(w.addr);
-  w.addr = 0;
-}
-
-MLabel* MLabel::Clone() const {
-  MLabel* result = new MLabel(1);
-  *result = *this;
-  return result;
-}
-
-int MLabel::Compare(const Attribute * arg) const {
-  if(!IsDefined() && !arg->IsDefined()) {
-    return 0;
-  }
-  if(!IsDefined()) {
-    return -1;
-  }
-  if(!arg->IsDefined()) {
-    return 1;
-  }
-  const MLabel* ml = (const MLabel*)(arg);
-  if (GetNoComponents() != ml->GetNoComponents()) {
-    return (GetNoComponents() > ml->GetNoComponents() ? 1 : -1);
-  }
-  ULabel ul1(1), ul2(1);
-  for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, ul1);
-    ml->Get(i, ul2);
-    if (ul1.constValue.GetValue().compare(ul2.constValue.GetValue())) {
-      return ul1.constValue.GetValue().compare(ul2.constValue.GetValue());
-    }
-    if (ul1.timeInterval != ul2.timeInterval) {
-      if (ul1.timeInterval.start < ul2.timeInterval.start) {
-        return 1;
-      }
-      else if (ul1.timeInterval.start > ul2.timeInterval.start) {
-        return -1;
-      }
-      if (ul1.timeInterval.end < ul2.timeInterval.end) {
-        return -1;
-      }
-      else if (ul1.timeInterval.end > ul2.timeInterval.end) {
-        return 1;
-      }
-      if (ul1.timeInterval.lc < ul2.timeInterval.lc) {
-        return -1;
-      }
-      else if (ul1.timeInterval.lc > ul2.timeInterval.lc) {
-        return 1;
-      }
-      if (ul1.timeInterval.rc < ul2.timeInterval.rc) {
-        return -1;
-      }
-      else if (ul1.timeInterval.rc > ul2.timeInterval.rc) {
-        return 1;
-      }
-    }
-  }
-  return 0;
-}
-
-void MLabel::CopyFrom(const Attribute* right) {
-  *this = *((MLabel*)right);
-}
-
-int MLabel::NumOfFLOBs() const {
-  return 1;
-}
-
-Flob* MLabel::GetFLOB(const int i) {
-  assert(i == 0);
-  return &units;
-}
-
-bool MLabel::Passes(const Label& label) const {
-  ULabel ul(0);
-  for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, ul);
-    if (ul.constValue.GetValue() == label.GetValue()) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void MLabel::At(const Label& label, MLabel& result) const {
-  result.Clear();
-  if (!IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  result.SetDefined(true);
-  ULabel ul(0);
-  for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, ul);
-    if (ul.constValue.GetValue() == label.GetValue()) {
-      result.Add(ul);
-    }
-  }
-}
-
-void MLabel::DefTime(Periods& per) const {
-  per.Clear();
-  ULabel ul(0);
-  for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, ul);
-    per.MergeAdd(ul.timeInterval);
-  }
-}
-
-void MLabel::Atinstant(const Instant& inst, ILabel& result) const {
-  if(!IsDefined() || !inst.IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  int pos = Position(inst);
-  if (pos == -1) {
-    result.SetDefined(false);
-  }
-  else {
-    ULabel ul(true);
-    Get(pos, ul);
-    result.SetDefined(true);
-    result.instant = inst;
-    result.value = ul.constValue;
-  }
-}
-
-void MLabel::Inside(const Labels& lbs, MBool& result) const {
-  result.Clear();
-  if (!IsDefined() || !lbs.IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  ULabel ul(0);
-  Labels labels(lbs, true); // sort labels
-  for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, ul);
-    Label label(ul.constValue.GetValue());
-    CcBool res(true, labels.Find(label));
-    UBool ub(ul.timeInterval, res);
-    result.Add(ub);
-  }
-}
-
-void MLabel::Initial(ILabel& result) const {
-  if (!IsDefined() || !GetNoComponents()) {
-    result.SetDefined(false);
-    return;
-  }
-  ULabel ul(true);
-  Get(0, ul);
-  result.SetDefined(true);
-  result.instant = ul.timeInterval.start;
-  result.value = ul.constValue;
-}
-
-void MLabel::Final(ILabel& result) const {
-  if (!IsDefined() || !GetNoComponents()) {
-    result.SetDefined(false);
-    return;
-  }
-  ULabel ul(true);
-  Get(GetNoComponents() - 1, ul);
-  result.SetDefined(true);
-  result.instant = ul.timeInterval.start;
-  result.value = ul.constValue;
-}
-
-/*
-\subsubsection{Function ~compress~}
+\subsection{Function ~compress~}
 
 If there are subsequent ULabels with the same Label, this function squeezes
 them to one ULabel.
 
 */
-MLabel* MLabel::compress() {
-  MLabel* newML = new MLabel(1);
-  if(!IsDefined()){
-    newML->SetDefined(false);
-    return newML;
+void MLabel::compress(MLabel& result) const {
+  result.Clear();
+  if(!IsDefined()) {
+    result.SetDefined(false);
+    return;
   }
   ULabel ul(1);
-  for (size_t i = 0; i < (size_t)this->GetNoComponents(); i++) {
-    this->Get(i, ul);
-    newML->MergeAdd(ul);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ul);
+    result.MergeAdd(ul);
   }
-  return newML;
 }
 
 /*
-\subsubsection{Function ~create~}
+\subsection{Function ~create~}
 
 Creates an MLabel of a certain size for testing purposes. The labels will be
 contain only numbers between 1 and size[*]rate; rate being the number of
@@ -583,7 +318,7 @@ void MLabel::createML(int size, bool text, double rate = 1.0) {
         Add(ul);
       }
     }
-    TrimToSize();
+    units.TrimToSize();
   }
   else {
     cout << "Invalid parameters for creation." << endl;
@@ -595,18 +330,21 @@ void MLabel::createML(int size, bool text, double rate = 1.0) {
 \subsection{Function ~convertFromMString~}
 
 */
-void MLabel::convertFromMString(MString* source) {
+void MLabel::convertFromMString(const MString& source) {
   Clear();
-  UString us(0);
-  ULabel ul(0);
-  ul.SetDefined(true);
-  for (int i = 0; i < source->GetNoComponents(); i++) {
-    source->Get(i, us);
+  if (!IsDefined()) {
+    return;
+  }
+  SetDefined(true);
+  UString us(true);
+  ULabel ul(true);
+  for (int i = 0; i < source.GetNoComponents(); i++) {
+    source.Get(i, us);
     ul.timeInterval = us.timeInterval;
-    ul.constValue = us.constValue;
+    ul.constValue.SetValue(us.constValue.GetValue());
     Add(ul);
   }
-  SetDefined(source->IsDefined());
+  
 }
 
 /*
@@ -665,8 +403,7 @@ MLabel* MLabel::rewrite(map<string, pair<unsigned int, unsigned int> > binding,
 //          << i->second.second << "]  ";
 //   }
 //   cout << endl;
-  MLabel *result = new MLabel(0);
-  result->SetDefined(true);
+  MLabel *result = new MLabel(1);
   Word qResult;
   string label(""), var("");
   Instant start(instanttype), end(instanttype);
@@ -683,7 +420,9 @@ MLabel* MLabel::rewrite(map<string, pair<unsigned int, unsigned int> > binding,
             switch (assigns[i].getRightKey(j, k)) {
               case 0: { // label
                 Get(segment.first, ul);
-                assigns[i].setLabelPtr(k, ul.constValue.GetValue());
+                string text;
+                ul.constValue.GetValue(text);
+                assigns[i].setLabelPtr(k, text);
                 break;
               }
               case 1: { // time
@@ -862,62 +601,8 @@ MLabel* MLabel::rewrite(map<string, pair<unsigned int, unsigned int> > binding,
       }
     }
   }
-  result->TrimToSize();
   result->SetDefined(result->IsValid());
   return result;
-}
-
-/*
-\subsubsection{Creation of the type constructor ~mlabel~}
-
-*/
-TypeConstructor movinglabel(
-    MLabel::BasicType(), // name
-    MLabel::MLabelProperty,    //property function describing signature
-    //Out and In functions
-    OutMapping<MLabel, UString, OutConstTemporalUnit<CcString, OutCcString> >,
-    InMapping<MLabel, UString, InConstTemporalUnit<CcString, InCcString> >,
-    0,
-    0,  //SaveToList and RestoreFromList functions
-    CreateMapping<MLabel>,
-    DeleteMapping<MLabel>,     //object creation and deletion
-    OpenAttribute<MLabel>,
-    SaveAttribute<MLabel>,  // object open and save
-    CloseMapping<MLabel>,
-    CloneMapping<MLabel>,  //object close and clone
-    CastMapping<MLabel>,   //cast function
-    SizeOfMapping<MLabel>, //sizeof function
-    MLabel::CheckMLabel    //kind checking function
-);
-
-int LabelValue::Compare(const LabelValue& lv) const {
-  string text1(v), text2(lv.v);
-  if (text1.compare(text2) > 0) {
-    return 1;
-  }
-  if (text1.compare(text2) < 0) {
-    return -1;
-  }
-  return 0;
-}
-
-/*
-\subsection{Function ~CompareLabels~}
-
-*/
-int CompareLabels(const void *a, const void *b) {
-  const LabelValue *lv1 = (const LabelValue*)a;
-  const LabelValue *lv2 = (const LabelValue*)b;
-  return lv1->Compare(*lv2);
-}
-
-/*
-\subsection{Print function for class ~Label~}
-
-*/
-ostream& operator<<(ostream& os, const Label& lb) {
-  os << "(" << lb.GetValue() << ")";
-  return os;
 }
 
 /*
@@ -926,23 +611,21 @@ ostream& operator<<(ostream& os, const Label& lb) {
 \subsection{Constructors}
 
 */
-Labels::Labels(const int n, const Label *lb) : Attribute(n), values(n) {
-  for(int i = 0; i < n; i++) {
-    Append(lb[i]);
-  }
-}
-
-Labels::Labels(vector<Label> *lbs) : Attribute(lbs), values(lbs->size()) {
-  for (unsigned int i = 0; i < lbs->size(); i++) {
-    Append((*lbs)[i]);
-  }
-}
-
 Labels::Labels(const Labels& src, const bool sort /* = false */) :
-  Attribute(src.IsDefined()), values(src.values.Size()) {
-  values.copyFrom(src.values);
+  Attribute(src.IsDefined()), values(src.GetLength()), pos(src.GetNoValues()) {
   if (sort) {
-    Sort();
+    set<string> labels;
+    for (int i = 0; i < src.GetNoValues(); i++) {
+      string text;
+      src.GetValue(i, text);
+      labels.insert(text); // automatic sorting
+    }
+    for (set<string>::iterator it = labels.begin(); it != labels.end(); it++) {
+      Append(*it); // append in alphabetical order
+    }
+  }
+  else {
+    CopyFrom(&src); // keep original order
   }
 }
 
@@ -953,6 +636,7 @@ Labels::Labels(const Labels& src, const bool sort /* = false */) :
 Labels& Labels::operator=(const Labels& src) {
   Attribute::operator=(src);
   values.copyFrom(src.values);
+  pos.copyFrom(src.pos);
   return *this;
 }
 
@@ -961,18 +645,173 @@ Labels& Labels::operator=(const Labels& src) {
 
 */
 bool Labels::operator==(const Labels& src) const {
-  if (GetNoValues() != src.GetNoValues()) {
-      return false;
+  if (!IsDefined() && !src.IsDefined()) {
+    return true;
   }
-  Label lb1(true), lb2(true);
+  if (IsDefined() != src.IsDefined()) {
+    return false;
+  }
+  if ((GetNoValues() != src.GetNoValues()) || (GetLength() != src.GetLength())){
+    return false;
+  }
+  string str1, str2;
   for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, lb1);
-    src.GetValue(i, lb2);
-    if (!(lb1 == lb2)) {
+    GetValue(i, str1);
+    src.GetValue(i, str2);
+    if (str1 != str2) {
       return false;
     }
   }
   return true;
+}
+
+/*
+\subsection{Functions ~Append~}
+
+*/
+void Labels::Append(const Label& lb) {
+  string text;
+  lb.GetValue(text);
+  Append(text);
+}
+
+void Labels::Append(const string& text) {
+  pos.Append(values.getSize());
+  const char *bytes = text.c_str();
+  SmiSize sz = strlen(bytes) + 1;
+  if (sz > 0) {
+    assert(bytes[sz - 1] == 0);
+    values.write(bytes, sz, values.getSize());
+  }
+  else {
+    char d = 0;
+    values.write(&d, 1, values.getSize());
+  }
+}
+
+/*
+\subsection{Function ~Get~}
+
+*/
+void Labels::Get(int i, Label& lb) const {
+  lb.SetDefined(IsDefined());
+  assert((0 <= i) && (i < GetNoValues()));
+  if (IsDefined()) {
+    string text;
+    GetValue(i, text);
+    lb.Set(true, text);
+  }
+}
+
+/*
+\subsection{Function ~GetValue~}
+
+*/
+void Labels::GetValue(int i, string& text) const {
+  assert((0 <= i) && (i < GetNoValues()) && IsDefined());
+  unsigned int cur(-1), next(-1);
+  pos.Get(i, cur);
+  if (i == GetNoValues() - 1) { // last value
+    next = values.getSize();
+  }
+  else {
+    pos.Get(i + 1, next);
+  }
+  char *bytes = new char[next - cur];
+  values.read(bytes, next - cur, cur);
+  text = bytes;
+  delete[] bytes;
+}
+
+/*
+\subsection{Function ~getRefToLastElem~}
+
+*/
+void Labels::getRefToLastElem(const int size, unsigned int& result) {
+  result = size;
+}
+
+/*
+\subsection{Function ~getFlobPos~}
+
+*/
+void Labels::getFlobPos(const pair<unsigned int, unsigned int> elems, 
+                        pair<size_t, size_t>& result) {
+  result.first = elems.first;
+  result.second = elems.second;
+}
+
+/*
+\subsection{Function ~valuesToListExpr~}
+
+*/
+void Labels::valuesToListExpr(const vector<string>& values, ListExpr& result) {
+  if (values.empty()) {
+    result = nl->Empty();
+    return;
+  }
+  result = nl->OneElemList(nl->TextAtom(values[0]));
+  ListExpr last = result;
+  for (unsigned int i = 1; i < values.size(); i++) {
+    last = nl->Append(last, nl->TextAtom(values[i]));
+  }
+}
+
+/*
+\subsection{Function ~getString~}
+
+*/
+void Labels::getString(const ListExpr& list, string& result) {
+  nl->WriteToString(result, list);
+}
+
+/*
+\subsection{Function ~getElemFromList~}
+
+*/
+void Labels::getElemFromList(const ListExpr& list, const unsigned int size, 
+                             unsigned int& result) {
+  result = size;
+}
+
+/*
+\subsection{Function ~buildValue~}
+
+*/
+void Labels::buildValue(const string& text, const unsigned int pos,
+                        string& result) {
+  result = text;
+}
+
+/*
+\subsection{Function ~Contains~}
+
+*/
+bool Labels::Contains(string& text) const {
+  string str;
+  for (int i = 0; i < GetNoValues(); i++) {
+    GetValue(i, str);
+    if (str == text) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Operator ~<<~}
+
+*/
+ostream& operator<<(ostream& os, const Labels& lbs) {
+  Label lb(true);
+  string text;
+  for(int i = 0; i < lbs.GetNoValues() - 1; i++) {
+    lbs.GetValue(i, text);
+    os << text << " ";
+  }
+  lbs.GetValue(lbs.GetNoValues() - 1, text);
+  os << text;
+  return os;
 }
 
 /*
@@ -981,8 +820,9 @@ bool Labels::operator==(const Labels& src) const {
 */
 Flob *Labels::GetFLOB(const int i) {
   assert(i >= 0 && i < NumOfFLOBs());
-  return &values;
+  return (i == 0 ? &values : &pos);
 }
+
 
 /*
 \subsection{Function ~Compare~}
@@ -995,11 +835,11 @@ int Labels::Compare(const Attribute* arg) const {
   if (GetNoValues() < ((Labels*)arg)->GetNoValues()) {
     return -1;
   }
-  Label lb1(true), lb2(true);
-  for (int i = 0; i < GetNoValues(); i++) { // equal size; compare single labels
-    GetValue(i, lb1);
-    ((Labels*)arg)->GetValue(i, lb2);
-    int comp = lb1.Compare(&lb2);
+  string str1, str2;
+  for (int i = 0; i < GetNoValues(); i++) { // equal size; compare labels
+    GetValue(i, str1);
+    ((Labels*)arg)->GetValue(i, str2);
+    int comp = str1.compare(str2);
     if (comp != 0) {
       return comp;
     }
@@ -1008,65 +848,24 @@ int Labels::Compare(const Attribute* arg) const {
 }
 
 /*
-\subsection{Function ~HashValue~}
+\subsection{Function ~Property~}
 
 */
-size_t Labels::HashValue() const {
-  if (IsEmpty()) {
-    return 0;
-  }
-  Label lb(true);
-  GetValue(0, lb);
-  return GetNoValues() * lb.HashValue();
+ListExpr Labels::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(), "(<label> <label> ...)",
+    "(\'Dortmund\' \'Mailand\')");
 }
 
 /*
-\subsection{Function ~Clone~}
+\subsection{Function ~CheckKind~}
 
 */
-Labels *Labels::Clone() const {
-  Labels *lbs = new Labels(*this);
-  return lbs;
+bool Labels::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, Labels::BasicType());
 }
 
 /*
-\subsection{Function ~GetValue~}
-
-*/
-void Labels::GetValue(int i, Label& lb) const {
-  lb.SetDefined(IsDefined());
-  assert((0 <= i) && (i < GetNoValues()));
-  if (IsDefined()) {
-    values.Get(i, lb.val);
-  }
-}
-
-/*
-\subsection{Function ~GetBasicValue~}
-
-*/
-void Labels::GetBasicValue(int i, LabelValue& lv) const {
-  assert((0 <= i) && (i < GetNoValues()) && IsDefined());
-  values.Get(i, lv);
-}
-
-/*
-\subsection{Operator ~<<~}
-
-*/
-ostream& operator<<(ostream& os, const Labels& lbs) {
-  Label lb(true);
-  for(int i = 0; i < lbs.GetNoValues() - 1; i++) {
-    lbs.GetValue(i, lb);
-    os << lb << " ";
-  }
-  lbs.GetValue(lbs.GetNoValues() - 1, lb);
-  os << lb;
-  return os;
-}
-
-/*
-\subsection{Function ~Out~}
+\subsection{Function ~ToListExpr~}
 
 */
 ListExpr Labels::ToListExpr(ListExpr typeInfo) {
@@ -1077,424 +876,65 @@ ListExpr Labels::ToListExpr(ListExpr typeInfo) {
     return nl->Empty();
   }
   else {
-    Label lb(true);
-    GetValue(0, lb);
-    ListExpr res = lb.ToListExpr(nl->Empty());
+    string text;
+    GetValue(0, text);
+    ListExpr res = nl->OneElemList(nl->TextAtom(text));
     ListExpr last = res;
-    cout << nl->ToString(last);
     for (int i = 1; i < GetNoValues(); i++) {
-      GetValue(i, lb);
-      last = nl->Append(last, nl->StringAtom(lb.GetValue()));
+      GetValue(i, text);
+      last = nl->Append(last, nl->TextAtom(text));
     }
     return res;
   }
 }
 
 /*
-\subsection{Function ~Out~}
+\subsection{Function ~ReadFrom~}
 
 */
-ListExpr Labels::Out(ListExpr typeInfo, Word value) {
-  Labels* lbs = static_cast<Labels*>(value.addr);
-  return lbs->ToListExpr(typeInfo);
-}
-
-/*
-\subsection{Function ~In~}
-
-*/
-Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
-                const int errorPos, ListExpr& errorInfo, bool& correct) {
-  Word result = SetWord(Address(0));
-  correct = false;
-  NList list(instance); 
-  Labels* lbs = new Labels(0);
-  lbs->SetDefined(true);
-  while (!list.isEmpty()) {
-    if (!list.isAtom() && list.first().isAtom() && list.first().isString()) {
-      Label label(list.first().str());
-      lbs->Append(label);
-      correct = true;
-    }
-    else {
-      correct = false;
-      cmsg.inFunError("Expecting a list of string atoms!");
-      delete lbs;
-      return SetWord(Address(0));
-    }
-    list.rest();
+bool Labels::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  Clean();
+  if (listutils::isSymbolUndefined(LE)) {
+    SetDefined(false);
+    return true;
   }
-  result.addr = lbs;
-  return result;
-}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-ListExpr Labels::Property() {
-  return (nl->TwoElemList(
-         nl->FiveElemList(nl->StringAtom("Signature"),
-                          nl->StringAtom("Example Type List"),
-                          nl->StringAtom("List Rep"),
-                          nl->StringAtom("Example List"),
-                          nl->StringAtom("Remarks")),
-         nl->FiveElemList(nl->StringAtom("->" + Kind::DATA() ),
-                          nl->StringAtom(Labels::BasicType()),
-                          nl->StringAtom("(<label>*) where <label> is "
-                          "a string"),
-                          nl->StringAtom("( \"at home\" \"at work\" \"cinema\" "
-                          "\"at home\" )"),
-                          nl->StringAtom("Each label must be of "
-                          "type string."))));
-}
-
-/*
-\subsection{Function ~KindCheck~}
-
-*/
-bool Labels::KindCheck(ListExpr type, ListExpr& errorInfo) {
-  return (nl->IsEqual(type, Labels::BasicType()));
-}
-
-/*
-\subsection{Function ~Create~}
-
-*/
-Word Labels::Create(const ListExpr typeInfo) {
-  Labels* labels = new Labels(0);
-  return (SetWord(labels));
-}
-
-/*
-\subsection{Function ~Delete~}
-
-*/
-void Labels::Delete(const ListExpr typeInfo, Word& w) {
-  Labels* labels = (Labels*)w.addr;
-  labels->Destroy();
-  delete labels;
-}
-
-/*
-\subsection{Function ~Open~}
-
-*/
-bool Labels::Open(SmiRecord& valueRecord, size_t& offset,
-                  const ListExpr typeInfo, Word& value) {
-  Labels *lbs = (Labels*)Attribute::Open(valueRecord, offset, typeInfo);
-  value.setAddr(lbs);
-  return true;
-}
-
-/*
-\subsection{Function ~Save~}
-
-*/
-bool Labels::Save(SmiRecord& valueRecord, size_t& offset,
-             const ListExpr typeInfo, Word& value) {
-  Labels *lbs = (Labels *)value.addr;
-  Attribute::Save(valueRecord, offset, typeInfo, lbs);
-  return true;
-}
-
-/*
-\subsection{Function ~Close~}
-
-*/
-void Labels::Close(const ListExpr typeInfo, Word& w) {
-  Labels* labels = (Labels*)w.addr;
-  delete labels;
-}
-
-/*
-\subsection{Function ~Clone~}
-
-*/
-Word Labels::Clone(const ListExpr typeInfo, const Word& w) {
-  return SetWord(((Labels*)w.addr)->Clone());
-}
-
-/*
-\subsection{Function ~Contains~}
-
-*/
-bool Labels::Contains(Label& lb) const {
-  Label label(true);
-  for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, label);
-    if (label == lb) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/*
-\subsection{Type Constructor}
-
-*/
-TypeConstructor labelsTC(
-        Labels::BasicType(),               //name
-        Labels::Property,                  //property function
-        Labels::Out,   Labels::In,         //Out and In functions
-        0,              0,                 //SaveTo and RestoreFrom functions
-        Labels::Create,  Labels::Delete,   //object creation and deletion
-        OpenAttribute<Labels>, 
-        SaveAttribute<Labels>,             //object open and save
-        Labels::Close,   Labels::Clone,    //object close and clone
-        Labels::Cast,                      //cast function
-        Labels::SizeOfObj,                 //sizeof function
-        Labels::KindCheck );               //kind checking function
-
-/*
-\section{Implementation of class ~ILabels~}
-
-\subsection{Constructors}
-
-*/
-ILabels::ILabels(const bool defined) : Intime<Labels>(defined) {
-  SetDefined(defined);
-}
-
-ILabels::ILabels(const ILabels &ils) : Intime<Labels>(ils.instant, ils.value) {
-  SetDefined(ils.IsDefined());
-}
-
-ILabels::ILabels(const Instant &inst, const Labels &lbs) : 
-  Intime<Labels>(inst, lbs) {}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-ListExpr ILabels::Property() {
-  return (nl->TwoElemList(
-         nl->FourElemList(nl->StringAtom("Signature"),
-                          nl->StringAtom("Example Type List"),
-                          nl->StringAtom("List Rep"),
-                          nl->StringAtom("Example List")),
-         nl->FourElemList(nl->StringAtom("->" + Kind::DATA() ),
-                          nl->StringAtom(ILabels::BasicType()),
-                          nl->StringAtom("(<instant> <labels>)"),
-                          nl->StringAtom("(\"2014-01-28\" (\"Dortmund\" "
-                          "\"home\"))"))));
-}
-
-/*
-\subsection{Function ~Create~}
-
-*/
-Word ILabels::Create(const ListExpr typeInfo) {
-  return SetWord(new ILabels(false));
-}
-
-/*
-\subsection{Function ~Delete~}
-
-*/
-void ILabels::Delete(const ListExpr typeInfo, Word &w) {
-  ILabels *ils = (ILabels*)w.addr;
-  delete ils;
-  w.addr = 0;
-}
-
-/*
- \subsection{Function ~Close~}
- 
-*/
-void ILabels::Close(const ListExpr typeInfo, Word &w) {
-  ILabels *ils = (ILabels*)w.addr;
-  delete ils;
-  w.addr = 0;
-}
-
-/*
-\subsection{Function ~Clone~}
-
-*/
-Word ILabels::Clone(const ListExpr typeInfo, const Word& w) {
-  return SetWord(new ILabels(*((ILabels*)w.addr)));
-}
-
-/*
-\subsection{Function ~KindCheck~}
-
-*/
-bool ILabels::KindCheck(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, ILabels::BasicType());
-}
-
-/*
-\subsection{Function ~Val~}
-
-*/
-void ILabels::Val(Labels& result) const {
-  result.SetDefined(IsDefined());
-  if (IsDefined()) {
-    result = value;
-  }
-}
-
-/*
-\subsection{Type Constructor}
-
-*/
-TypeConstructor intimelabels(
-  ILabels::BasicType(),               //name
-  ILabels::Property,                  //property function
-  OutIntime<Labels, Labels::Out>, 
-  InIntime<Labels, Labels::In>,       //Out and In functions
-  0,              0,                  //SaveTo and RestoreFrom functions
-  ILabels::Create,  ILabels::Delete,  //object creation and deletion
-  OpenAttribute<ILabels>,
-  SaveAttribute<ILabels>,             //object open and save
-  ILabels::Close,   ILabels::Clone,   //object close and clone
-  ILabels::Cast,                      //cast function
-  ILabels::SizeOfObj,                 //sizeof function
-  ILabels::KindCheck );               //kind checking function
-
-/*
-\section{Implementation of class ~ULabels~}
-
-\subsection{Constructors}
-
-*/
-ULabels::ULabels(bool defined) : ConstTemporalUnit<Labels>(defined) {}
-
-ULabels::ULabels(const SecInterval &iv, const Labels &lbs)
-  : ConstTemporalUnit<Labels>(iv, lbs) {
   SetDefined(true);
-}
-
-ULabels::ULabels(int i, MLabels &mls) 
-  : ConstTemporalUnit<Labels>(mls.IsDefined() && i < mls.GetNoComponents()) {
-  if ((i >= 0) && (i < mls.GetNoComponents())) {
-    timeInterval = mls.GetInterval(i);
-    constValue.Clean();
-    Labels lbs(true);
-    mls.GetValues(i, lbs);
-    Label lb(true);
-    for (int j = 0; j < lbs.GetNoValues(); j++) {
-      lbs.GetValue(j, lb);
-      constValue.Append(lb);
+  ListExpr rest = LE;
+  string text;
+  while (!nl->IsEmpty(rest)) {
+    if (!nl->IsAtom(nl->First(rest))) {
+      SetDefined(false);
+      return false;
     }
+    nl->WriteToString(text, nl->First(rest));
+    Append(text.substr(1, text.length() - 2));
+    rest = nl->Rest(rest);
   }
-}
-
-ULabels::ULabels(const ULabels& uls) : ConstTemporalUnit<Labels>(uls) {
-  SetDefined(uls.IsDefined());
+  return true;
 }
 
 /*
-\subsection{Function ~Property~}
+\subsection{Function ~HashValue~}
 
 */
-ListExpr ULabels::Property() {
-  return (nl->TwoElemList(
-         nl->FiveElemList(nl->StringAtom("Signature"),
-                          nl->StringAtom("Example Type List"),
-                          nl->StringAtom("List Rep"),
-                          nl->StringAtom("Example List"),
-                          nl->StringAtom("")),
-         nl->FiveElemList(nl->StringAtom("->" + Kind::DATA() ),
-                          nl->StringAtom(ULabels::BasicType()),
-                          nl->StringAtom("<interval> <labels>)"),
-                          nl->StringAtom("((\"2014-01-29\" \"2014-01-30\" "),
-                          nl->StringAtom("TRUE FALSE) (\"home\" \"work\"))"))));
-}
-
-/*
-\subsection{Function ~Create~}
-
-*/
-Word ULabels::Create(const ListExpr typeInfo) {
-  return SetWord(new ULabels(false));
-}
-
-/*
-\subsection{Function ~Delete~}
-
-*/
-void ULabels::Delete(const ListExpr typeInfo, Word &w) {
-  ULabels *uls = (ULabels*)w.addr;
-  delete uls;
-  w.addr = 0;
-}
-
-/*
- \subsection{Function ~Close~}
- 
-*/
-void ULabels::Close(const ListExpr typeInfo, Word &w) {
-  ULabels *uls = (ULabels*)w.addr;
-  delete uls;
-  w.addr = 0;
-}
-
-/*
-\subsection{Function ~Clone~}
-
-*/
-Word ULabels::Clone(const ListExpr typeInfo, const Word& w) {
-  return SetWord(new ULabels(*((ULabels*)w.addr)));
-}
-
-/*
-\subsection{Function ~KindCheck~}
-
-*/
-bool ULabels::KindCheck(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, ULabels::BasicType());
-}
-
-/*
-\subsection{Function ~Initial~}
-
-*/
-void ULabels::Initial(ILabels& result) const {
-  if (IsDefined()) {
-    result.instant = timeInterval.start;
-    result.value = constValue;
-    result.SetDefined(true);
+size_t Labels::HashValue() const {
+  if (IsEmpty()) {
+    return 0;
   }
-  else {
-    result.SetDefined(false);
+  size_t result = 1;
+  for (int i = 1; i < pos.Size(); i++) {
+    unsigned int factor;
+    pos.Get(i, factor);
+    result *= factor;
   }
-}
-
-/*
-\subsection{Function ~Final~}
-
-*/
-void ULabels::Final(ILabels& result) const {
-  if (IsDefined()) {
-    result.instant = timeInterval.end;
-    result.value = constValue;
-    result.SetDefined(true);
-  }
-  else {
-    result.SetDefined(false);
-  }
+  return GetNoValues() * result;
 }
 
 /*
 \subsection{Type Constructor}
 
 */
-TypeConstructor unitlabels(
-  ULabels::BasicType(),                   //name
-  ULabels::Property,                      //property function
-  OutConstTemporalUnit<Labels, Labels::Out>,
-  InConstTemporalUnit<Labels, Labels::In>,//Out and In functions
-  0,              0,                      //SaveTo and RestoreFrom functions
-  ULabels::Create,  ULabels::Delete,      //object creation and deletion
-  OpenAttribute<ULabels>, 
-  SaveAttribute<ULabels>,                 //object open and save
-  ULabels::Close,   ULabels::Clone,       //object close and clone
-  ULabels::Cast,                          //cast function
-  ULabels::SizeOfObj,                     //sizeof function
-  ULabels::KindCheck );                   //kind checking functions
+GenTC<Labels> labels;
 
 /*
 \section{Implementation of class ~MBasics~}
@@ -1504,9 +944,10 @@ TypeConstructor unitlabels(
 */
 template<class B>
 MBasics<B>::MBasics(const MBasics &mbs) : Attribute(mbs.IsDefined()), 
-                                       units(mbs.GetNoComponents()), values(0) {
+  values(0), units(mbs.GetNoComponents()), pos(0) {
   values.copyFrom(mbs.values);
   units.copyFrom(mbs.units);
+  pos.copyFrom(mbs.pos);
 }
 
 /*
@@ -1515,12 +956,12 @@ MBasics<B>::MBasics(const MBasics &mbs) : Attribute(mbs.IsDefined()),
 */
 template<class B>
 ListExpr MBasics<B>::Property() {
-  if (BasicType() == "mlabels") {
+  if (B::BasicType() == "labels") {
     return gentc::GenProperty("-> DATA", BasicType(),
       "((<interval> <labels>) (<interval> <labels>) ...)",
       "(((\"2014-01-29\" \"2014-01-30\" TRUE FALSE) (\"home\" \"Dortmund\")))");
   }
-  if (BasicType() == "mplaces") {
+  if (B::BasicType() == "places") {
     return gentc::GenProperty("-> DATA", BasicType(),
       "((<interval> <places>) (<interval> <places>) ...)",
       "(((\"2014-01-29\" \"2014-01-30\" TRUE FALSE) ((\"home\" 2012) "
@@ -1535,7 +976,7 @@ ListExpr MBasics<B>::Property() {
 */
 template<class B>
 bool MBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, B::mtype::BasicType());
+  return nl->IsEqual(type, MBasics<B>::BasicType());
 }
 
 /*
@@ -1544,7 +985,7 @@ bool MBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
 */
 template<class B>
 bool MBasics<B>::checkType(ListExpr t) {
-  return listutils::isSymbol(t, B::mtype::BasicType());
+  return listutils::isSymbol(t, MBasics<B>::BasicType());
 }
 
 /*
@@ -1553,11 +994,14 @@ bool MBasics<B>::checkType(ListExpr t) {
 */
 template<class B>
 Flob* MBasics<B>::GetFLOB(const int i) {
-  assert((i >= 0) && (i < 2));
+  assert((i >= 0) && (i < 3));
   if (i == 0) {
+    return &values;
+  }
+  if (i == 1) {
     return &units;
   }
-  return &values;
+  return &pos;
 }
 
 /*
@@ -1566,14 +1010,15 @@ Flob* MBasics<B>::GetFLOB(const int i) {
 */
 template<class B>
 int MBasics<B>::Compare(const Attribute* arg) const {
-  if (units.Size() == ((typename B::mtype*)arg)->units.Size()) {
-    if (values.Size() == ((typename B::mtype*)arg)->values.Size()) {
+  if (GetNoComponents() == ((MBasics<B>*)arg)->GetNoComponents()) {
+    if (GetNoValues() == ((MBasics<B>*)arg)->GetNoValues()) {
       return 0;
     }
-    return (values.Size() > ((typename B::mtype*)arg)->values.Size() ? 1 : -1);
+    return (GetNoValues() > ((MBasics<B>*)arg)->GetNoValues() ? 1 : -1);
   }
   else {
-    return (units.Size() > ((typename B::mtype*)arg)->units.Size() ? 1 : -1);
+    return (GetNoComponents() > ((MBasics<B>*)arg)->GetNoComponents() ? 
+            1 : -1);
   }
 }
 
@@ -1583,7 +1028,7 @@ int MBasics<B>::Compare(const Attribute* arg) const {
 */
 template<class B>
 Attribute* MBasics<B>::Clone() const {
-  return new (typename B::mtype)(*(typename B::mtype*)this);
+  return new (MBasics<B>)(*(MBasics<B>*)this);
 }
 
 /*
@@ -1591,55 +1036,34 @@ Attribute* MBasics<B>::Clone() const {
 
 */
 template<class B>
-int MBasics<B>::getEndPos(int i) const {
+int MBasics<B>::getUnitEndPos(const int i) const {
   if (i < GetNoComponents() - 1) {
-    SymbolicUnit nextUnit(true);
+    SymbolicUnit nextUnit;
     units.Get(i + 1, nextUnit);
-    return nextUnit.startPos - 1;
+    return nextUnit.pos - 1;
   }
   else { // last unit
-    return values.Size() - 1;
+    return pos.Size() - 1;
   }
 }
 
 /*
-\subsection{Function ~valuesToListExpr~}
-
-*/
-template<class B>
-ListExpr MBasics<B>::valuesToListExpr(int start, int end) {
-  if (start > end) {
-    return nl->Empty();
-  }
-  if ((start < 0) || (end >= GetNoValues())) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  typename B::base val;
-  values.Get(start, val);
-  ListExpr result = nl->OneElemList(val.ToListExpr());
-  ListExpr last = result;
-  for (int i = start + 1; i <= end; i++) {
-    values.Get(i, val);
-    last = nl->Append(last, val.ToListExpr());
-  }
-  return result;
-}
-
-/*
-\subsection{Function ~ToListExpr~}
+\subsection{Function ~unitToListExpr~}
 
 */
 template<class B>
 ListExpr MBasics<B>::unitToListExpr(int i) {
-  if ((i < 0) || (i >= GetNoComponents())) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  SymbolicUnit unit(-1);
+  assert ((i >= 0) && (i < GetNoComponents()));
+  SymbolicUnit unit;
   units.Get(i, unit);
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  return nl->TwoElemList(unit.interval.ToListExpr(sc->GetTypeExpr(
-                                                     SecInterval::BasicType())),
-                         valuesToListExpr(unit.startPos, getEndPos(i)));
+  vector<typename B::base> values;
+  GetValues(i, values);
+  ListExpr valuelist;
+  B::valuesToListExpr(values, valuelist);
+  return nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
+                                            SecInterval::BasicType())),
+                         valuelist);
 }
 
 /*
@@ -1667,18 +1091,30 @@ ListExpr MBasics<B>::ToListExpr(ListExpr typeInfo) {
 
 */
 template<class B>
-void MBasics<B>::readValues(ListExpr valuelist) {
+bool MBasics<B>::readValues(ListExpr valuelist) {
   ListExpr rest = valuelist;
+  string text;
+  typename B::arrayelem elem;
   while (!nl->IsEmpty(rest)) {
-    if (!listutils::isSymbolUndefined(nl->First(rest))) {
-      typename B::single sg;
-      sg.ReadFrom(nl->First(rest), nl->Empty());
-      typename B::base bs;
-      sg.ToBase(bs);
-      values.Append(bs);
+    if (listutils::isSymbolUndefined(nl->First(rest))) {
+      return false;
+    }
+    B::getString(nl->First(rest), text);
+    B::getElemFromList(nl->First(rest), values.getSize(), elem);
+    pos.Append(elem);
+    const char *bytes = (text.substr(1, text.length() - 2)).c_str();
+    SmiSize sz = strlen(bytes) + 1;
+    if (sz > 0) {
+      assert(bytes[sz - 1] == 0);
+      values.write(bytes, sz, values.getSize());
+    }
+    else {
+      char d = 0;
+      values.write(&d, 1, values.getSize());
     }
     rest = nl->Rest(rest);
   }
+  return true;
 }
 
 /*
@@ -1692,16 +1128,17 @@ bool MBasics<B>::readUnit(ListExpr unitlist) {
   }
   SymbolicUnit unit(GetNoValues());
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  if (!unit.interval.ReadFrom(nl->First(unitlist), 
-                              sc->GetTypeExpr(SecInterval::BasicType()))) {
+  if (!unit.iv.ReadFrom(nl->First(unitlist), 
+                        sc->GetTypeExpr(SecInterval::BasicType()))) {
     return false;
   }
-  unit.interval.SetDefined(true);
-  readValues(nl->Second(unitlist));
+  if (!readValues(nl->Second(unitlist))) {
+    return false;
+  }
   if (GetNoComponents() > 0) {
-    SymbolicUnit prevUnit(-1);
+    SymbolicUnit prevUnit;
     units.Get(GetNoComponents() - 1, prevUnit);
-    if (!(prevUnit.interval.Before(unit.interval))) {
+    if (!(prevUnit.iv.Before(unit.iv))) { // check time intervals
       return false;
     }
   }
@@ -1715,8 +1152,9 @@ bool MBasics<B>::readUnit(ListExpr unitlist) {
 */
 template<class B>
 bool MBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  units.clean();
   values.clean();
+  units.clean();
+  pos.clean();
   if (listutils::isSymbolUndefined(LE)) {
     SetDefined(false);
     return true;
@@ -1760,14 +1198,14 @@ int MBasics<B>::Position(const Instant& inst) const {
     }
     SymbolicUnit unit;
     units.Get(mid, unit);
-    if (((Interval<Instant>)(unit.interval)).Contains(t1)) {
+    if (((Interval<Instant>)(unit.iv)).Contains(t1)) {
       return mid;
     }
     else { // not contained
-      if ((t1 > unit.interval.end) || (t1 == unit.interval.end)) {
+      if ((t1 > unit.iv.end) || (t1 == unit.iv.end)) {
         first = mid + 1;
       }
-      else if ((t1 < unit.interval.start) || (t1 == unit.interval.start)) {
+      else if ((t1 < unit.iv.start) || (t1 == unit.iv.start)) {
         last = mid - 1;
       }
       else {
@@ -1783,11 +1221,19 @@ int MBasics<B>::Position(const Instant& inst) const {
 
 */
 template<class B>
-void MBasics<B>::Get(const int i, typename B::utype& result) const {
+void MBasics<B>::Get(const int i, UBasics<B>& result) const {
   assert(IsDefined());
   assert((i >= 0) && (i < GetNoComponents()));
-  GetValues(i, result.constValue);
-  result.timeInterval = GetInterval(i);
+  result.SetDefined(true);
+  result.constValue.Clean();
+  vector<typename B::base> values;
+  GetValues(i, values);
+  for (unsigned int j = 0; j < values.size(); j++) {
+    result.constValue.Append(values[j]);
+  }
+  SecInterval iv;
+  GetInterval(i, iv);
+  result.timeInterval = iv;
 }
 
 /*
@@ -1795,16 +1241,48 @@ void MBasics<B>::Get(const int i, typename B::utype& result) const {
 
 */
 template<class B>
-void MBasics<B>::GetValues(const int i, B& result) const {
-  assert (IsDefined() && (i >= 0) && (i < GetNoComponents()));
-  result.SetDefined(true);
+void MBasics<B>::GetBasics(const int i, B& result) const {
+  assert(IsDefined());
+  assert((i >= 0) && (i < GetNoComponents()));
   result.Clean();
-  SymbolicUnit unit(-1);
+  vector<typename B::base> values;
+  GetValues(i, values);
+  for (unsigned int j = 0; j < values.size(); j++) {
+    result.Append(values[j]);
+  }
+}
+
+/*
+\subsection{Function ~GetValues~}
+
+*/
+template<class B>
+void MBasics<B>::GetValues(const int i, vector<typename B::base>& result) const{
+  assert (IsDefined() && (i >= 0) && (i < GetNoComponents()));
+  result.clear();
+  SymbolicUnit unit;
   units.Get(i, unit);
   typename B::base val;
-  for (int j = unit.startPos; j <= getEndPos(i); j++) {
-    values.Get(j, val);
-    result.Append(val);
+  pair<typename B::arrayelem, typename B::arrayelem> elems;
+  pair<size_t, size_t> flobpos;
+  for (int j = unit.pos; j <= getUnitEndPos(i); j++) {
+    cout << "j=" << j << endl;
+    pos.Get(j, elems.first);
+    if (j < pos.Size() - 1) { // not the final entry
+      pos.Get(j + 1, elems.second);
+    }
+    else {
+      B::getRefToLastElem(values.getSize() - 1, elems.second);
+    }
+    B::getFlobPos(elems, flobpos);
+    cout << values.getSize() << " " << flobpos.first << " " << flobpos.second 
+         << endl;
+    char *bytes = new char[flobpos.second - flobpos.first + 1];
+    values.read(bytes, flobpos.second - flobpos.first + 1, flobpos.first);
+    string text = bytes;
+    B::buildValue(text, elems.first, val);
+    result.push_back(val);
+    delete[] bytes;
   }
 }
 
@@ -1813,11 +1291,12 @@ void MBasics<B>::GetValues(const int i, B& result) const {
 
 */
 template<class B>
-SecInterval MBasics<B>::GetInterval(int i) const {
+void MBasics<B>::GetInterval(const int i, SecInterval& result) const {
   assert((i >= 0) && (i < GetNoComponents()));
-  SymbolicUnit unit(-1);
+  result.SetDefined(true);
+  SymbolicUnit unit;
   units.Get(i, unit);
-  return unit.interval;
+  result = unit.iv;
 }
 
 /*
@@ -1828,6 +1307,7 @@ template<class B>
 void MBasics<B>::Clear() {
   units.clean();
   values.clean();
+  pos.clean();
 }
 
 /*
@@ -1840,9 +1320,10 @@ void MBasics<B>::EndBulkLoad(const bool sort /*= true*/,
   if (!IsDefined()) {
     units.clean();
     values.clean();
+    pos.clean();
   }
   units.TrimToSize();
-  values.TrimToSize();
+  pos.TrimToSize();
 }
 
 /*
@@ -1850,15 +1331,11 @@ void MBasics<B>::EndBulkLoad(const bool sort /*= true*/,
 
 */
 template<class B>
-void MBasics<B>::Add(const typename B::utype& ut) {
+void MBasics<B>::Add(const UBasics<B>& ut) {
   assert(IsDefined() && ut.IsDefined());
-  SymbolicUnit unit(GetNoValues());
-  unit.interval = ut.timeInterval;
-  units.Append(unit);
-  typename B::base val;
-  for (int i = 0; i < ut.constValue.GetNoValues(); i++) {
-    ut.constValue.GetBasicValue(i, val);
-    values.Append(val);
+  UBasics<B> ut2(ut); // TODO: implement Add(const SecInterval& iv, B::base& b)
+  if (!readUnit(ut2.ToListExpr(nl->Empty()))) {
+    SetDefined(false);
   }
 }
 
@@ -1867,40 +1344,40 @@ void MBasics<B>::Add(const typename B::utype& ut) {
 
 */
 template<class B>
-void MBasics<B>::MergeAdd(const typename B::utype& ut) {
+void MBasics<B>::MergeAdd(const UBasics<B>& ub) {
   assert(IsDefined());
-  if (!ut.IsDefined() || !ut.IsValid()) {
+  if (!ub.IsDefined() || !ub.IsValid()) {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " MergeAdd(Unit): Unit is undefined or invalid:";
-    ut.Print(cout); cout << endl;
+    ub.Print(cout); cout << endl;
     assert(false);
   }
   if (GetNoComponents() > 0) {
-    SymbolicUnit prevUnit(-1);
+    SymbolicUnit prevUnit;
     units.Get(GetNoComponents() - 1, prevUnit);
-    int numOfValues = getEndPos(GetNoComponents() - 1) - prevUnit.startPos + 1;
-    bool equalValues = (ut.constValue.GetNoValues() == numOfValues);
-    for (int i = 0; (i < numOfValues) && equalValues; i++) {
-      typename B::single sg;
-      typename B::base bs;
-      values.Get(i + prevUnit.startPos, bs);
-      ut.constValue.GetValue(i, sg);
-      if (!(sg == bs)) {
+    int numOfValues = getUnitEndPos(GetNoComponents() - 1) - prevUnit.pos + 1;
+    bool equalValues = (ub.constValue.GetNoValues() == numOfValues);
+    vector<typename B::base> values;
+    GetValues(GetNoComponents() - 1, values);
+    for (unsigned int i = 0; ((i < values.size()) && equalValues); i++) {
+      typename B::base value;
+      ub.constValue.GetValue(i, value);
+      if (!(values[i] == value)) {
         equalValues = false;
       }
     }
-    if (equalValues && (prevUnit.interval.end == ut.timeInterval.start) &&
-       (prevUnit.interval.rc || ut.timeInterval.lc)) { // adjacent intervals
-      prevUnit.interval.end = ut.timeInterval.end;      // \& equal labels
-      prevUnit.interval.rc = ut.timeInterval.rc;
+    if (equalValues && (prevUnit.iv.end == ub.timeInterval.start) &&
+       (prevUnit.iv.rc || ub.timeInterval.lc)) { // adjacent intervals
+      prevUnit.iv.end = ub.timeInterval.end;     // \& equal labels
+      prevUnit.iv.rc = ub.timeInterval.rc;
       units.Put(GetNoComponents() - 1, prevUnit);
     }
-    else if (prevUnit.interval.Before(ut.timeInterval)) {
-      Add(ut);
+    else if (prevUnit.iv.Before(ub.timeInterval)) {
+      Add(ub);
     }
   }
   else { // first unit
-    Add(ut);
+    Add(ub);
   }
 }
 
@@ -1910,12 +1387,15 @@ void MBasics<B>::MergeAdd(const typename B::utype& ut) {
 */
 template<class B>
 bool MBasics<B>::Passes(const typename B::single& sg) const {
+  vector<typename B::base> vals;
   typename B::base val;
-  for (int i = 0; i < GetNoValues(); i++) {
-    values.Get(i, val);
-    // TODO: CHANGE
-    if (sg == val) {
-      return true;
+  sg.GetValue(val);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetValues(i, vals);
+    for (unsigned int j = 0; j < vals.size(); j++) {
+      if (vals[j] == val) {
+        return true;
+      }
     }
   }
   return false;
@@ -1929,7 +1409,7 @@ template<class B>
 bool MBasics<B>::Passes(const B& bs) const {
   B basics(true);
   for (int i = 0; i < GetNoComponents(); i++) {
-    GetValues(i, basics);
+    GetBasics(i, basics);
     if (basics == bs) {
       return true;
     }
@@ -1942,8 +1422,7 @@ bool MBasics<B>::Passes(const B& bs) const {
 
 */
 template<class B>
-void MBasics<B>::At(const typename B::single& sg,
-                    typename B::mtype& result) const {
+void MBasics<B>::At(const typename B::single& sg, MBasics<B>& result) const {
   result.Clear();
   if (!IsDefined()) {
     result.SetDefined(false);
@@ -1952,19 +1431,21 @@ void MBasics<B>::At(const typename B::single& sg,
   result.SetDefined(true);
   for (int i = 0; i < GetNoComponents(); i++) {
     B basics(true);
-    GetValues(i, basics);
+    GetBasics(i, basics);
     bool found = false;
     int j = 0;
     typename B::base val;
     while ((j < basics.GetNoValues()) && !found) {
-      basics.GetBasicValue(j, val);
+      basics.GetValue(j, val);
       if (sg == val) {
         found = true;
       }
       j++;
     }
     if (found) {
-      typename B::utype ut(GetInterval(i), basics);
+      SecInterval iv;
+      GetInterval(i, iv);
+      UBasics<B> ut(iv, basics);
       result.Add(ut);
     }
   }
@@ -1975,7 +1456,7 @@ void MBasics<B>::At(const typename B::single& sg,
 
 */
 template<class B>
-void MBasics<B>::At(const B& bs, typename B::mtype& result) const {
+void MBasics<B>::At(const B& bs, MBasics<B>& result) const {
   result.Clear();
   if (!IsDefined()) {
     result.SetDefined(false);
@@ -1984,9 +1465,11 @@ void MBasics<B>::At(const B& bs, typename B::mtype& result) const {
   result.SetDefined(true);
   for (int i = 0; i < GetNoComponents(); i++) {
     B basics(true);
-    GetValues(i, basics);
+    GetBasics(i, basics);
     if (basics == bs) {
-      typename B::utype ut(GetInterval(i), basics);
+      SecInterval iv;
+      GetInterval(i, iv);
+      UBasics<B> ut(iv, basics);
       result.Add(ut);
     }
   }
@@ -2001,10 +1484,10 @@ void MBasics<B>::DefTime(Periods& per) const {
   per.Clear();
   per.SetDefined(IsDefined());
   if (IsDefined()) {
-    SymbolicUnit unit(-1);
+    SymbolicUnit unit;
     for (int i = 0; i < GetNoComponents(); i++) {
       units.Get(i, unit);
-      per.MergeAdd(unit.interval);
+      per.MergeAdd(unit.iv);
     }
   }
 }
@@ -2015,7 +1498,7 @@ void MBasics<B>::DefTime(Periods& per) const {
 */
 template<class B>
 void MBasics<B>::Atinstant(const Instant& inst, 
-                           typename B::itype& result) const {
+                           IBasics<B>& result) const {
   if(!IsDefined() || !inst.IsDefined()) {
     result.SetDefined(false);
     return;
@@ -2025,7 +1508,7 @@ void MBasics<B>::Atinstant(const Instant& inst,
     result.SetDefined(false);
   }
   else {
-    GetValues(pos, result.value);
+    GetBasics(pos, result.value);
     result.SetDefined(true);
     result.instant = inst;
   }
@@ -2036,14 +1519,16 @@ void MBasics<B>::Atinstant(const Instant& inst,
 
 */
 template<class B>
-void MBasics<B>::Initial(typename B::itype& result) const {
+void MBasics<B>::Initial(IBasics<B>& result) const {
   if (!IsDefined() || !GetNoComponents()) {
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
-  result.instant = GetInterval(0).start;
-  GetValues(0, result.value);
+  SecInterval iv;
+  GetInterval(0, iv);
+  result.instant = iv.start;
+  GetBasics(0, result.value);
 }
 
 /*
@@ -2051,52 +1536,114 @@ void MBasics<B>::Initial(typename B::itype& result) const {
 
 */
 template<class B>
-void MBasics<B>::Final(typename B::itype& result) const {
+void MBasics<B>::Final(IBasics<B>& result) const {
   if (!IsDefined() || !GetNoComponents()) {
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
-  result.instant = GetInterval(GetNoComponents() - 1).end;
-  GetValues(GetNoComponents() - 1, result.value);
+  SecInterval iv;
+  GetInterval(GetNoComponents() - 1, iv);
+  result.instant = iv.end;
+  GetBasics(GetNoComponents() - 1, result.value);
 }
 
 /*
-\section{Type Constructor for ~MLabels~}
+\section{Type Constructors}
 
 */
-GenTC<MLabels> movinglabels;
+GenTC<MBasics<Labels> > mlabels;
+GenTC<MBasics<Places> > mplaces;
 
 /*
 \section{Implementation of class ~Place~}
 
+\subsection{Function ~Set~}
+
+*/
+void Place::Set(const bool defined, const pair<string, unsigned int>& value) {
+  Label::Set(defined, value.first);
+  SetRef(value.second);
+}
+
+/*
+\subsection{Function ~SetValue~}
+
+*/
+void Place::SetValue(const pair<string, unsigned int>& value) {
+  Label::SetValue(value.first);
+  SetRef(value.second);
+}
+
+/*
+\subsection{Function ~GetValue~}
+
+*/
+void Place::GetValue(pair<string, unsigned int>& value) const {
+  Label::GetValue(value.first);
+  value.second = GetRef();
+}
+
+/*
+\subsection{Function ~buildValue~}
+
+*/
+void Place::buildValue(const string& text, const unitelem& unit, base& result) {
+  result.first = text;
+  result.second = unit.ref;
+}
+
+/*
+\subsection{Function ~getList~}
+
+*/
+ListExpr Place::getList(const base& value) {
+  return nl->TwoElemList(nl->TextAtom(value.first), nl->IntAtom(value.second));
+}
+
+/*
+\subsection{Operator ~=~}
+
+*/
+Place& Place::operator=(const Place& p) {
+  pair<string, unsigned int> value;
+  p.GetValue(value);
+  Set(p.IsDefined(), value);
+  return *this;
+}
+
+/*
 \subsection{Operator ~==~}
 
 */
 bool Place::operator==(const Place& p) const {
-  cout << "==" << endl;
   if (!IsDefined() && !p.IsDefined()) { // both undefined
     return true;
   }
   if (IsDefined() != p.IsDefined()) { // one defined, one undefined
     return false;
   }
-  if ((GetName() == p.GetName()) && (GetRef() == p.GetRef())) { // equal values
-    return true;
-  }
-  return false; // different values
+  pair<string, unsigned int> value;
+  p.GetValue(value);
+  return operator==(value);
 }
 
-bool Place::operator==(const PlaceValue& pv) const {
-  cout << string(Label::val.v) << " " << string(pv.name.v) << endl;
-  cout << ref << " " << pv.ref << endl;
+bool Place::operator==(const pair<string, unsigned int>& value) const {
   if (!IsDefined()) {
     return false;
   }
-  if ((Label::val == pv.name) && (ref == pv.ref)) { // equal values
-    return true;
-  }
-  return false; // different values
+  pair<string, unsigned int> val;
+  GetValue(val);
+  return (val == value);
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr Place::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(), "(<label> <int>)",
+    "(\'Dortmund\' 1909)");
 }
 
 /*
@@ -2108,16 +1655,6 @@ bool Place::CheckKind(ListExpr type, ListExpr& errorInfo) {
 }
 
 /*
-\subsection{Function ~Property~}
-
-*/
-ListExpr Place::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(),
-    "(<string> <int>)",
-    "(\"Dortmund\" 1909)");
-}
-
-/*
 \subsection{Function ~Compare~}
 
 */
@@ -2126,15 +1663,13 @@ int Place::Compare(const Attribute* arg) const {
   if (cmp != 0) {
     return cmp;
   }
-  else {
-    if (ref > ((Place*)arg)->GetRef()) {
-      return 1;
-    }
-    if (ref < ((Place*)arg)->GetRef()) {
-      return -1;
-    }
-    return 0;
+  if (ref > ((Place*)arg)->GetRef()) {
+    return 1;
   }
+  if (ref < ((Place*)arg)->GetRef()) {
+    return -1;
+  }
+  return 0;
 }
 
 /*
@@ -2145,7 +1680,24 @@ ListExpr Place::ToListExpr(ListExpr typeInfo) {
   if (!IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
-  return nl->TwoElemList(nl->StringAtom(GetName()), nl->IntAtom(GetRef()));
+  base val;
+  GetValue(val);
+  return nl->TwoElemList(nl->TextAtom(val.first), nl->IntAtom(val.second));
+}
+
+/*
+\subsection{Function ~readValueFrom~}
+
+*/
+bool Place::readValueFrom(ListExpr LE, string& text, unitelem& unit) {
+  if (nl->HasLength(LE, 2)) {
+    if (nl->IsAtom(nl->First(LE)) && nl->IsAtom(nl->Second(LE))) {
+      nl->WriteToString(text, nl->First(LE));
+      unit.ref = nl->IntValue(nl->Second(LE));
+      return true;
+    }
+  }
+  return false;
 }
 
 /*
@@ -2161,9 +1713,10 @@ bool Place::ReadFrom(ListExpr LE, ListExpr typeInfo) {
     SetDefined(false);
     return false;
   }
-  SetValue(nl->StringValue(nl->First(LE)));
-  SetRef(nl->IntValue(nl->Second(LE)));
-  SetDefined(true);
+  string text;
+  nl->WriteToString(text, nl->First(LE));
+  Set(true, make_pair(text.substr(1, text.length() - 2), 
+                      nl->IntValue(nl->Second(LE))));
   return true;
 }
 
@@ -2179,11 +1732,22 @@ GenTC<Place> place;
 \subsection{Constructor}
 
 */
-Places::Places(const Places& rhs,  const bool sort /* = false */) 
-  : Attribute(rhs.IsDefined()), values(rhs.GetNoValues()) {
-  values.copyFrom(rhs.values);
+Places::Places(const Places& rhs,  const bool sort /* = false */) :
+  Attribute(rhs.IsDefined()), values(rhs.GetNoValues()) {
   if (sort) {
-    Sort();
+    set<base> vals;
+    for (int i = 0; i < rhs.GetNoValues(); i++) {
+      base val;
+      rhs.GetValue(i, val);
+      vals.insert(val); // automatic sorting
+    }
+    set<base>::iterator it;
+    for (it = vals.begin(); it != vals.end(); it++) {
+      Append(*it); // append in automatic order
+    }
+  }
+  else {
+    CopyFrom(&rhs); // keep original order
   }
 }
 
@@ -2191,62 +1755,156 @@ Places::Places(const Places& rhs,  const bool sort /* = false */)
 \subsection{Function ~Append~}
 
 */
+void Places::Append(const base& val) {
+  cout << posref.Size() <<  "; append " << values.getSize() << " " << val.second
+       << endl;
+  pair<unsigned int, unsigned int> bla, blub;
+  bla.first = values.getSize();
+  bla.second = val.second;
+  posref.Append(bla);
+  posref.Get(posref.Size() - 1, blub);
+  cout << posref.Size() <<  "; appended " << blub.first << " " << blub.second
+       << endl;
+  const char *bytes = val.first.c_str();
+  SmiSize sz = strlen(bytes) + 1;
+  if (sz > 0) {
+    assert(bytes[sz - 1] == 0);
+    values.write(bytes, sz, values.getSize());
+  }
+  else {
+    char d = 0;
+    values.write(&d, 1, values.getSize());
+  }
+}
+
 void Places::Append(const Place& pl) {
-  PlaceValue pv;
-  pv.name = pl.val;
-  pv.ref = pl.ref;
-  Append(pv);
+  pair<string, unsigned int> val;
+  pl.GetValue(val);
+  Append(val);
 }
 
 /*
 \subsection{Function ~GetPlace~}
 
 */
-void Places::GetValue(const int i, Place& result) const {
+void Places::Get(const int i, Place& result) const {
   assert((0 <= i) && (i < GetNoValues()));
-  PlaceValue pv;
-  values.Get(i, pv);
-  result.Set(pv);
+  base val;
+  GetValue(i, val);
+  result.Set(true, val);
 }
 
 /*
-\subsection{Function ~GetPlaceValue~}
+\subsection{Function ~GetValue~}
 
 */
-void Places::GetBasicValue(const int i, PlaceValue& result) const {
-  assert((0 <= i) && (i < GetNoValues()));
-  values.Get(i, result);
-}
-
-int PlaceValue::Compare(const PlaceValue& pv) const {
-  int comp = name.Compare(pv.name);
-  if (comp != 0) {
-    return comp;
+void Places::GetValue(const int i, base& result) const {
+  assert(IsDefined() && (0 <= i) && (i < GetNoValues()));
+  pair<unsigned int, unsigned int> cur, next;
+  unsigned int nextPos;
+  posref.Get(i, cur);
+  cout << i << ": " << cur.first << " " << cur.second << endl;
+  if (i == GetNoValues() - 1) { // last value
+    nextPos = values.getSize();
   }
-  if (ref > pv.ref) {
-    return 1;
+  else {
+    posref.Get(i + 1, next);
+    nextPos = next.first;
   }
-  if (ref < pv.ref) {
-    return -1;
+  cout << "i=" << i << ", nextPos=" << nextPos << endl;
+  SmiSize sz = nextPos - cur.first + 1;
+  char *bytes;
+  if (sz == 0) {
+    bytes = new char[1];
+    bytes[0] = 0;
   }
-  return 0;
-}
-
-int ComparePlaces(const void *a, const void *b) {
-  const PlaceValue *pv1 = (const PlaceValue*)a;
-  const PlaceValue *pv2 = (const PlaceValue*)b;
-  return pv1->Compare(*pv2);
+  else {
+    bytes = new char[sz];
+    cout << "read " << cur.first << " " << sz << endl;
+    bool ok = values.read(bytes, sz, cur.first);
+    assert(ok);
+  }
+  result.first = bytes;
+  result.second = cur.second;
+  delete[] bytes;
 }
 
 /*
-\subsection{Function ~Find~}
+\subsection{Function ~Contains~}
 
 */
-bool Places::Find(const Place& pl) {
-  PlaceValue pv;
-  pl.ToBase(pv);
-  int p;
-  return values.Find(&pv, ComparePlaces, p);
+bool Places::Contains(const base& val) const {
+  base value;
+  for (int i = 0; i < GetNoValues(); i++) {
+    GetValue(i, value);
+    if (value == val) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~getRefToLastElem~}
+
+*/
+void Places::getRefToLastElem(const int size, arrayelem& result) {
+  result.first = size;
+}
+
+/*
+\subsection{Function ~getFlobPos~}
+
+*/
+void Places::getFlobPos(const pair<arrayelem, arrayelem>& elems, 
+                        pair<size_t, size_t>& result) {
+  result.first = elems.first.first;
+  result.second = elems.second.first;
+}
+
+/*
+\subsection{Function ~valuesToListExpr~}
+
+*/
+void Places::valuesToListExpr(const vector<base>& values, ListExpr& result) {
+  if (values.empty()) {
+    result = nl->Empty();
+    return;
+  }
+  result = nl->OneElemList(nl->TwoElemList(nl->StringAtom(values[0].first),
+                                           nl->IntAtom(values[0].second)));
+  ListExpr last = result;
+  for (unsigned int i = 1; i < values.size(); i++) {
+    last = nl->Append(last, nl->TwoElemList(nl->StringAtom(values[i].first),
+                                            nl->IntAtom(values[i].second)));
+  }
+}
+
+/*
+\subsection{Function ~getString~}
+
+*/
+void Places::getString(const ListExpr& list, string& result) {
+  result = nl->StringValue(nl->First(list));
+}
+
+/*
+\subsection{Function ~getElemFromList~}
+
+*/
+void Places::getElemFromList(const ListExpr& list, const unsigned int size, 
+                             arrayelem& result) {
+  result.first = size;
+  result.second = nl->IntValue(nl->Second(list));
+}
+
+/*
+\subsection{Function ~buildValue~}
+
+*/
+void Places::buildValue(const string& text, const arrayelem pos, base& result) {
+  result.first = text;
+  result.second = pos.second;
 }
 
 /*
@@ -2257,10 +1915,10 @@ void Places::operator=(const Places& p) {
   Clean();
   SetDefined(p.IsDefined());
   if (IsDefined()) {
-    PlaceValue pv;
+    base value;
     for (int i = 0; i < p.GetNoValues(); i++) {
-      p.GetBasicValue(i, pv);
-      values.Append(pv);
+      p.GetValue(i, value);
+      Append(value);
     }
   }
 }
@@ -2273,20 +1931,30 @@ bool Places::operator==(const Places& p) const {
   if (!IsDefined() && !p.IsDefined()) {
     return true;
   }
-  if (IsDefined() && p.IsDefined()) {
-    if (GetNoValues() == p.GetNoValues()) {
-      PlaceValue pv1, pv2;
-      for (int i = 0; i < GetNoValues(); i++) {
-        GetBasicValue(i, pv1);
-        p.GetBasicValue(i, pv2);
-        if (!(pv1 == pv2)) {
-          return false;
-        }
+  if (IsDefined() != p.IsDefined()) {
+    return false;
+  }
+  if ((GetNoValues() == p.GetNoValues()) && (GetLength() == p.GetLength())) {
+    base val1, val2;
+    for (int i = 0; i < GetNoValues(); i++) {
+      GetValue(i, val1);
+      p.GetValue(i, val2);
+      if (val1 != val2) {
+        return false;
       }
     }
-    return true;
   }
-  return false;
+  return true;
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+ListExpr Places::Property() {
+  return gentc::GenProperty("-> DATA", BasicType(),
+    "((<label> <int>) (<label> <int>) ...)",
+    "((\'Dortmund\' 1909) (\'Mailand\' 1899))");
 }
 
 /*
@@ -2298,13 +1966,12 @@ bool Places::CheckKind(ListExpr type, ListExpr& errorInfo) {
 }
 
 /*
-\subsection{Function ~Property~}
+\subsection{Function ~GetFLOB~}
 
 */
-ListExpr Places::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(),
-    "((<string> <int>) (<string> <int>) ...)",
-    "((\"Dortmund\" 1909) (\"Mailand\" 1899))");
+Flob* Places::GetFLOB(const int i) {
+  assert((i >= 0) && (i < 2));
+  return (i == 0 ? &values : &posref);
 }
 
 /*
@@ -2313,14 +1980,20 @@ ListExpr Places::Property() {
 */
 int Places::Compare(const Attribute* arg) const {
   if (GetNoValues() == ((Places*)arg)->GetNoValues()) {
-    Place place1(true), place2(true);
+    base val1, val2;
     for (int i = 0; i < GetNoValues(); i++) {
-      GetValue(i, place1);
-      ((Places*)arg)->GetValue(i, place2);
-      int comp = place1.Compare(&place2);
-      if (comp != 0) {
-        return comp;
+      GetValue(i, val1);
+      ((Places*)arg)->GetValue(i, val2);
+      int comp = val1.first.compare(val2.first);
+      if (comp == 0) { // equal strings
+        if (val1.second > val2.second) {
+          return 1;
+        }
+        if (val1.second < val2.second) {
+          return -1;
+        }
       }
+      return (comp > 0 ? 1 : -1);
     }
     return 0;
   }
@@ -2339,10 +2012,10 @@ size_t Places::HashValue() const {
     return 0;
   }
   size_t result = 1;
-  Place place(true);
+  base value;
   for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, place);
-    result *= place.HashValue();
+    GetValue(i, value);
+    result *= value.first.length() * value.second;
   }
   return result;
 }
@@ -2358,13 +2031,16 @@ ListExpr Places::ToListExpr(ListExpr typeInfo) {
   if (IsEmpty()) {
     return nl->Empty();
   }
-  Place place(true);
-  GetValue(0, place);
-  ListExpr res = nl->OneElemList(place.ToListExpr(nl->Empty()));
+  base val;
+  GetValue(0, val);
+  cout << "val=" << val.first << endl;
+  ListExpr res = nl->OneElemList(nl->TwoElemList(nl->TextAtom(val.first),
+                                                 nl->IntAtom(val.second)));
   ListExpr last = res;
   for (int i = 1; i < GetNoValues(); i++) {
-    GetValue(i, place);
-    last = nl->Append(last, place.ToListExpr(nl->Empty()));
+    GetValue(i, val);
+    last = nl->Append(last, nl->TwoElemList(nl->TextAtom(val.first),
+                                            nl->IntAtom(val.second)));
   }
   return res;
 }
@@ -2381,31 +2057,18 @@ bool Places::ReadFrom(ListExpr LE, ListExpr typeInfo) {
   }
   SetDefined(true);
   ListExpr rest = LE;
-  Place place(0);
   while (!nl->IsEmpty(rest)) {
-    if (!place.ReadFrom(nl->First(rest), nl->Empty())) {
+    if (!nl->HasLength(nl->First(rest), 2)) {
       SetDefined(false);
       return false;
     }
-    Append(place);
+    string text;
+    nl->WriteToString(text, nl->First(nl->First(rest)));
+    Append(make_pair(text.substr(1, text.length() - 2),
+                     nl->IntValue(nl->Second(nl->First(rest)))));
     rest = nl->Rest(rest);
   }
   return true;
-}
-
-/*
-\subsection{Function ~Contains~}
-
-*/
-bool Places::Contains(Place& pl) const {
-  PlaceValue pv;
-  for (int i = 0; i < GetNoValues(); i++) {
-    GetBasicValue(i, pv);
-    if (pl == pv) {
-      return true;
-    }
-  }
-  return false;
 }
 
 /*
@@ -2415,16 +2078,18 @@ bool Places::Contains(Place& pl) const {
 GenTC<Places> places;
 
 /*
-\section{Implementation of Class ~IPlace~}
+\section{Implementation of Class ~IBasic~}
 
 \subsection{Constructors}
 
 */
-IPlace::IPlace(const Instant& inst, const Place& pl) : Intime<Place>(inst, pl) {
-  SetDefined(inst.IsDefined() && pl.IsDefined());
+template<class B>
+IBasic<B>::IBasic(const Instant& inst, const B& val) : Intime<B>(inst, val) {
+  SetDefined(inst.IsDefined() && val.IsDefined());
 }
 
-IPlace::IPlace(const IPlace &rhs) : Intime<Place>(rhs.instant, rhs.value) {
+template<class B>
+IBasic<B>::IBasic(const IBasic& rhs) : Intime<B>(rhs.instant, rhs.value) {
   SetDefined(rhs.IsDefined());
 }
 
@@ -2432,47 +2097,58 @@ IPlace::IPlace(const IPlace &rhs) : Intime<Place>(rhs.instant, rhs.value) {
 \subsection{Function ~Property~}
 
 */
-ListExpr IPlace::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(),
-    "(<instant> <place>)",
-    "(\"2014-02-18\" (\"Dortmund\" 1909))");
+template<class B>
+ListExpr IBasic<B>::Property() {
+  if (BasicType() == "ilabel") {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <label>)",
+                              "(\"2014-02-26\" \'Dortmund\')");
+  }
+  if (BasicType() == "iplace") {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <place>)",
+                              "(\"2014-02-18\" (\'Dortmund\' 1909))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
 }
 
 /*
 \subsection{Function ~CheckKind~}
 
 */
-bool IPlace::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, IPlace::BasicType());
+template<class B>
+bool IBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, IBasic<B>::BasicType());
 }
 
 /*
 \subsection{Function ~ToListExpr~}
 
 */
-ListExpr IPlace::ToListExpr(ListExpr typeInfo) {
-  if (!IsDefined()) {
+template<class B>
+ListExpr IBasic<B>::ToListExpr(ListExpr typeInfo) {
+  if (!Intime<B>::IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
-  return nl->TwoElemList(instant.ToListExpr(false), 
-                         value.ToListExpr(nl->Empty()));
+  return nl->TwoElemList(Intime<B>::instant.ToListExpr(false), 
+                         Intime<B>::value.ToListExpr(nl->Empty()));
 }
 
 /*
 \subsection{Function ~ReadFrom~}
 
 */
-bool IPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  SetDefined(false);
+template<class B>
+bool IBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  Intime<B>::SetDefined(false);
   if (listutils::isSymbolUndefined(LE)) {
     return true;
   }
   if (!nl->HasLength(LE, 2)) {
     return false;
   }
-  if (instant.ReadFrom(nl->First(LE), nl->Empty()) &&
-      value.ReadFrom(nl->Second(LE), nl->Empty())) {
-    SetDefined(instant.IsDefined() && value.IsDefined());
+  if (Intime<B>::instant.ReadFrom(nl->First(LE), nl->Empty()) &&
+      Intime<B>::value.ReadFrom(nl->Second(LE), nl->Empty())) {
+    Intime<B>::SetDefined(Intime<B>::instant.IsDefined() && 
+                          Intime<B>::value.IsDefined());
     return true;
   }
   return false;
@@ -2482,80 +2158,87 @@ bool IPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 \subsection{Function ~Val~}
 
 */
-void IPlace::Val(Place& result) const {
-  if (!IsDefined()) {
+template<class B>
+void IBasic<B>::Val(B& result) const {
+  if (!Intime<B>::IsDefined()) {
     result.SetDefined(false);
     return;
   }
-  result.CopyFrom(&value);
+  result.CopyFrom(&(Intime<B>::value));
 }
 
 /*
 \subsection{Type Constructor}
 
 */
-GenTC<IPlace> iplace;
+GenTC<IBasic<Label> > ilabel;
+GenTC<IBasic<Place> > iplace;
 
 /*
-\section{Implementation of Class ~IPlace~}
+\section{Implementation of Class ~IBasics~}
 
 \subsection{Constructors}
 
 */
-IPlaces::IPlaces(const Instant& inst, const Places& pls) : 
-                                                     Intime<Places>(inst, pls) {
-  SetDefined(inst.IsDefined() && pls.IsDefined());
-}
-
-IPlaces::IPlaces(const IPlaces &rhs) : Intime<Places>(rhs.instant, rhs.value) {
-  SetDefined(rhs.IsDefined());
-}
+template<class B>
+IBasics<B>::IBasics(const Instant& inst, const B& values) : 
+                                                     Intime<B>(inst, values) {}
 
 /*
 \subsection{Function ~Property~}
 
 */
-ListExpr IPlaces::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(),
-    "(<instant> <places>)",
-    "(\"2014-02-18\" ((\"Dortmund\" 1909) (\"Mailand\" 1899)))");
+template<class B>
+ListExpr IBasics<B>::Property() {
+  if (B::BasicType() == Labels::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <labels>)",
+      "(\"2014-02-18\" (\"Dortmund\" \"Mailand\"))");
+  }
+  if (B::BasicType() == Places::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <places>)",
+      "(\"2014-02-18\" ((\"Dortmund\" 1909) (\"Mailand\" 1899)))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
 }
 
 /*
 \subsection{Function ~CheckKind~}
 
 */
-bool IPlaces::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, IPlaces::BasicType());
+template<class B>
+bool IBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, IBasics<B>::BasicType());
 }
 
 /*
 \subsection{Function ~ToListExpr~}
 
 */
-ListExpr IPlaces::ToListExpr(ListExpr typeInfo) {
-  if (!IsDefined()) {
+template<class B>
+ListExpr IBasics<B>::ToListExpr(ListExpr typeInfo) {
+  if (!this->IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
-  return nl->TwoElemList(instant.ToListExpr(false), 
-                         value.ToListExpr(nl->Empty()));
+  return nl->TwoElemList(this->instant.ToListExpr(false), 
+                         this->value.ToListExpr(nl->Empty()));
 }
 
 /*
 \subsection{Function ~ReadFrom~}
 
 */
-bool IPlaces::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  SetDefined(false);
+template<class B>
+bool IBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
   if (listutils::isSymbolUndefined(LE)) {
     return true;
   }
   if (!nl->HasLength(LE, 2)) {
     return false;
   }
-  if (instant.ReadFrom(nl->First(LE), nl->Empty()) &&
-      value.ReadFrom(nl->Second(LE), nl->Empty())) {
-    SetDefined(instant.IsDefined() && value.IsDefined());
+  if (this->instant.ReadFrom(nl->First(LE), nl->Empty()) &&
+      this->value.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->SetDefined(this->instant.IsDefined() && this->value.IsDefined());
     return true;
   }
   return false;
@@ -2565,89 +2248,94 @@ bool IPlaces::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 \subsection{Function ~Val~}
 
 */
-void IPlaces::Val(Places& result) const {
-  if (!IsDefined()) {
+template<class B>
+void IBasics<B>::Val(B& result) const {
+  if (!this->IsDefined()) {
     result.SetDefined(false);
     return;
   }
-  result = value;
+  result = this->value;
 }
 
 /*
 \subsection{Type Constructor}
 
 */
-GenTC<IPlaces> iplaces;
+GenTC<IBasics<Labels> > ilabels;
+GenTC<IBasics<Places> > iplaces;
 
 /*
-\section{Implementation of class ~UPlace~}
+\section{Implementation of class ~UBasic~}
 
 \subsection{Constructors}
 
 */
-UPlace::UPlace(const SecInterval &iv, const Place& pl)
-                                            : ConstTemporalUnit<Place>(iv, pl) {
-  SetDefined(true);
+template<class B>
+UBasic<B>::UBasic(const SecInterval &iv, const B& val)
+                                            : ConstTemporalUnit<B>(iv, val) {
+  SetDefined(iv.IsDefined() && val.IsDefined());
 }
 
-UPlace::UPlace(int i, MPlace &mp)
-  : ConstTemporalUnit<Place>(mp.IsDefined() && i < mp.GetNoComponents()) {
-  if (IsDefined()) {
-    UPlace up(true);
-    mp.Get(i, up);
-    timeInterval = up.timeInterval;
-    constValue = up.constValue;
-  }
-}
-
-UPlace::UPlace(const UPlace& up) : ConstTemporalUnit<Place>(up) {
-  SetDefined(up.IsDefined());
+template<class B>
+UBasic<B>::UBasic(const UBasic<B>& ub) : ConstTemporalUnit<B>(ub) {
+  this->SetDefined(ub.IsDefined());
 }
 
 /*
 \subsection{Operator ~==~}
 
 */
-bool UPlace::operator==(const UPlace& rhs) const {
-  return (timeInterval == rhs.timeInterval) && (constValue == rhs.constValue);
+template<class B>
+bool UBasic<B>::operator==(const UBasic<B>& rhs) const {
+  return Compare(&rhs) == 0;
 }
 
 /*
 \subsection{Function ~Property~}
 
 */
-ListExpr UPlace::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(),
-    "(<interval> <place>)",
-    "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" 1909))");
+template<class B>
+ListExpr UBasic<B>::Property() {
+  if (B::BasicType() == Label::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <label>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) \"Dortmund\")");
+  }
+  if (B::BasicType() == Place::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <place>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" 1909))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
 }
 
 /*
 \subsection{Function ~CheckKind~}
 
 */
-bool UPlace::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, UPlace::BasicType());
+template<class B>
+bool UBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, UBasic<B>::BasicType());
 }
 
 /*
 \subsection{Function ~ToListExpr~}
 
 */
-ListExpr UPlace::ToListExpr(ListExpr typeInfo) {
-  if (!IsDefined()) {
+template<class B>
+ListExpr UBasic<B>::ToListExpr(ListExpr typeInfo) {
+  if (!this->IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
-  return nl->TwoElemList(((SecInterval)timeInterval).ToListExpr(nl->Empty()), 
-                         constValue.ToListExpr(nl->Empty()));
+  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
+          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
 }
 
 /*
 \subsection{Function ~ReadFrom~}
 
 */
-bool UPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  SetDefined(false);
+template<class B>
+bool UBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
   if (listutils::isSymbolUndefined(LE)) {
     return true;
   }
@@ -2655,10 +2343,12 @@ bool UPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
     return false;
   }
   SecInterval iv(true);
-  if (iv.ReadFrom(nl->First(LE), nl->Empty()) &&
-      constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
-    timeInterval = iv;
-    SetDefined(timeInterval.IsDefined() && constValue.IsDefined());
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
+      this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->timeInterval = iv;
+    this->SetDefined(this->timeInterval.IsDefined() && 
+                     this->constValue.IsDefined());
     return true;
   }
   return false;
@@ -2668,10 +2358,11 @@ bool UPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 \subsection{Function ~Initial~}
 
 */
-void UPlace::Initial(IPlace& result) const {
-  if (IsDefined()) {
-    result.instant = timeInterval.start;
-    result.value.CopyFrom(&constValue);
+template<class B>
+void UBasic<B>::Initial(IBasic<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.start;
+    result.value.CopyFrom(&(this->constValue));
     result.SetDefined(true);
   }
   else {
@@ -2683,10 +2374,11 @@ void UPlace::Initial(IPlace& result) const {
 \subsection{Function ~Final~}
 
 */
-void UPlace::Final(IPlace& result) const {
-  if (IsDefined()) {
-    result.instant = timeInterval.end;
-    result.value.CopyFrom(&constValue);
+template<class B>
+void UBasic<B>::Final(IBasic<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.end;
+    result.value.CopyFrom(&(this->constValue));
     result.SetDefined(true);
   }
   else {
@@ -2698,7 +2390,8 @@ void UPlace::Final(IPlace& result) const {
 \subsection{Type Constructor}
 
 */
-GenTC<UPlace> uplace;
+GenTC<UBasic<Label> > ulabel;
+GenTC<UBasic<Place> > uplace;
 
 /*
 \section{Implementation of class ~UPlace~}
@@ -2706,65 +2399,58 @@ GenTC<UPlace> uplace;
 \subsection{Constructors}
 
 */
-UPlaces::UPlaces(const SecInterval &iv, const Places& pls)
-                                          : ConstTemporalUnit<Places>(iv, pls) {
-  SetDefined(true);
-}
-
-UPlaces::UPlaces(int i, MPlaces &mps) {} 
-//   : ConstTemporalUnit<Labels>(mp.IsDefined() && i < mls.GetNoComponents()) {
-//   if ((i >= 0) && (i < mls.GetNoComponents())) {
-//     timeInterval = mls.GetInterval(i);
-//     constValue.Clean();
-//     Labels labels(true);
-//     mls.GetLabels(i, labels);
-//     for (int j = 0; j < labels.GetNoLabels(); j++) {
-//       constValue.Append(labels.GetLabel(j));
-//     }
-//   }
-// }
-
-UPlaces::UPlaces(const UPlaces& rhs) : ConstTemporalUnit<Places>(rhs) {
-  SetDefined(rhs.IsDefined());
-}
+template<class B>
+UBasics<B>::UBasics(const SecInterval &iv, const B& values)
+                                           : ConstTemporalUnit<B>(iv, values) {}
 
 /*
 \subsection{Function ~Property~}
 
 */
-ListExpr UPlaces::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(),
-    "(<interval> <places>)",
-    "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) "
-      "(\"Dortmund\" 1909) (\"Mailand\" 1899))");
+template<class B>
+ListExpr UBasics<B>::Property() {
+  if (B::BasicType() == Labels::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <labels>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" "
+      "\"Mailand\"))");
+  }
+  if (B::BasicType() == Places::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <places>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) ((\"Dortmund\" 1909) "
+      "(\"Mailand\" 1899)))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
 }
 
 /*
 \subsection{Function ~CheckKind~}
 
 */
-bool UPlaces::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, UPlaces::BasicType());
+template<class B>
+bool UBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, UBasics<B>::BasicType());
 }
 
 /*
 \subsection{Function ~ToListExpr~}
 
 */
-ListExpr UPlaces::ToListExpr(ListExpr typeInfo) {
-  if (!IsDefined()) {
+template<class B>
+ListExpr UBasics<B>::ToListExpr(ListExpr typeInfo) {
+  if (!this->IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
-  return nl->TwoElemList(((SecInterval)timeInterval).ToListExpr(nl->Empty()), 
-                         constValue.ToListExpr(nl->Empty()));
+  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
+          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
 }
 
 /*
 \subsection{Function ~ReadFrom~}
 
 */
-bool UPlaces::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  SetDefined(false);
+template<class B>
+bool UBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
   if (listutils::isSymbolUndefined(LE)) {
     return true;
   }
@@ -2772,10 +2458,12 @@ bool UPlaces::ReadFrom(ListExpr LE, ListExpr typeInfo) {
     return false;
   }
   SecInterval iv(true);
-  if (iv.ReadFrom(nl->First(LE), nl->Empty()) &&
-      constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
-    timeInterval = iv;
-    SetDefined(timeInterval.IsDefined() && constValue.IsDefined());
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
+      this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->timeInterval = iv;
+    this->SetDefined(this->timeInterval.IsDefined() &&
+                     this->constValue.IsDefined());
     return true;
   }
   return false;
@@ -2785,10 +2473,11 @@ bool UPlaces::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 \subsection{Function ~Initial~}
 
 */
-void UPlaces::Initial(IPlaces& result) const {
-  if (IsDefined()) {
-    result.instant = timeInterval.start;
-    result.value = constValue;
+template<class B>
+void UBasics<B>::Initial(IBasics<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.start;
+    result.value = this->constValue;
     result.SetDefined(true);
   }
   else {
@@ -2800,10 +2489,11 @@ void UPlaces::Initial(IPlaces& result) const {
 \subsection{Function ~Final~}
 
 */
-void UPlaces::Final(IPlaces& result) const {
-  if (IsDefined()) {
-    result.instant = timeInterval.end;
-    result.value = constValue;
+template<class B>
+void UBasics<B>::Final(IBasics<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.end;
+    result.value = this->constValue;
     result.SetDefined(true);
   }
   else {
@@ -2815,60 +2505,149 @@ void UPlaces::Final(IPlaces& result) const {
 \subsection{Type Constructor}
 
 */
-GenTC<UPlaces> uplaces;
+GenTC<UBasics<Labels> > ulabels;
+GenTC<UBasics<Places> > uplaces;
 
 /*
-\section{Implementation of class ~MPlace~}
+\section{Implementation of class ~MBasic~}
 
 \subsection{Constructors}
 
 */
-MPlace::MPlace(const int n) : Mapping<UPlace, Place>(n) {}
-
-MPlace::MPlace(const MPlace &mp) : Mapping<UPlace, Place>(mp.GetNoComponents()){
-  if (mp.IsDefined()) {
-    units.copyFrom(mp.units);
+template<class B>
+MBasic<B>::MBasic(const MBasic &mb) : Attribute(mb.IsDefined()) {
+  if (IsDefined()) {
+    values.copyFrom(mb.values);
+    units.copyFrom(mb.units);
   }
-  SetDefined(mp.IsDefined());
 }
 
 /*
 \subsection{Function ~Property~}
 
 */
-ListExpr MPlace::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(),
-    "((<interval> <place>) (<interval> <place>) ...)",
-    "(((\"2014-01-29\" \"2014-01-30\" TRUE FALSE) (\"Hummels\" 5))"
-     "((\"2014-02-19-17:26\" \"2014-02-20\" TRUE FALSE) (\"Piszczek\" 26)))");
+template<class B>
+ListExpr MBasic<B>::Property() {
+  if (B::BasicType() == Label::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(),
+      "((<interval> <label>) (<interval> <label>) ...)",
+      "(((\"2014-02-27\" \"2014-02-27-09:48\" TRUE FALSE) \"Dortmund\") "
+      "((\"2014-05-17\" \"2014-05-17-22:00\" TRUE FALSE) \"Berlin\"))");
+  }
+  if (B::BasicType() == Place::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(),
+      "((<interval> <place>) (<interval> <place>) ...)",
+      "(((\"2014-02-27\" \"2014-02-27-09:48\" TRUE FALSE) (\"Dortmund\" 1909)) "
+      "((\"2014-05-17\" \"2014-05-17-22:00\" TRUE FALSE) (\"Berlin\" 4)))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~GetFLOB~}
+
+*/
+template<class B>
+Flob* MBasic<B>::GetFLOB(const int i) {
+  assert((i >= 0) && (i < NumOfFLOBs()));
+  return (i == 0 ? &values : &units);
 }
 
 /*
 \subsection{Function ~KindCheck~}
 
 */
-bool MPlace::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, MPlace::BasicType());
+template<class B>
+bool MBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, MBasic<B>::BasicType());
+}
+
+/*
+\subsection{Function ~Compare~}
+
+*/
+template<class B>
+int MBasic<B>::Compare(const Attribute* arg) const {
+  if (GetNoComponents() > ((MBasic<B>*)arg)->GetNoComponents()) {
+    return 1;
+  }
+  if (GetNoComponents() < ((MBasic<B>*)arg)->GetNoComponents()) {
+    return -1;
+  }
+  UBasic<B> ub1(true), ub2(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub1);
+    ((MBasic<B>*)arg)->Get(i, ub2);
+    int comp = ub1.Compare(&ub2);
+    if (comp != 0) {
+      return comp;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Function ~HashValue~}
+
+*/
+template<class B>
+size_t MBasic<B>::HashValue() const {
+  if (!IsDefined() || IsEmpty()) {
+    return 0;
+  }
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  return values.getSize() * unit.iv.HashValue();
+}
+
+/*
+\subsection{Function ~CopyFrom~}
+
+*/
+template<class B>
+void MBasic<B>::CopyFrom(const Attribute *arg) {
+  if (!arg->IsDefined()) {
+    SetDefined(false);
+    return;
+  }
+  SetDefined(true);
+  values.copyFrom(((MBasic<B>*)arg)->values);
+  units.copyFrom(((MBasic<B>*)arg)->units);
+}
+
+/*
+\subsection{Function ~unitToListExpr~}
+
+*/
+template<class B>
+ListExpr MBasic<B>::unitToListExpr(const int i) {
+  assert(i < GetNoComponents());
+  typename B::base value;
+  GetValue(i, value);
+  typename B::unitelem unit;
+  units.Get(i, unit);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  return nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
+                                                     SecInterval::BasicType())),
+                         B::getList(value));
 }
 
 /*
 \subsection{Function ~ToListExpr~}
 
 */
-ListExpr MPlace::ToListExpr(ListExpr typeInfo) {
+template<class B>
+ListExpr MBasic<B>::ToListExpr(ListExpr typeInfo) {
   if (!IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
   if (IsEmpty()) {
     return nl->Empty();
   }
-  UPlace up(true);
-  Get(0, up);
-  ListExpr result = nl->OneElemList(up.ToListExpr(nl->Empty()));
+  ListExpr result = nl->OneElemList(unitToListExpr(0));
   ListExpr last = result;
   for (int i = 1; i < GetNoComponents(); i++) {
-    Get(i, up);
-    last = nl->Append(last, up.ToListExpr(nl->Empty()));
+    last = nl->Append(last, unitToListExpr(i));
   }
   return result;
 }
@@ -2877,19 +2656,52 @@ ListExpr MPlace::ToListExpr(ListExpr typeInfo) {
 \subsection{Function ~ReadFrom~}
 
 */
-bool MPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+template<class B>
+bool MBasic<B>::readUnitFrom(ListExpr LE) {
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  SecInterval iv;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (!iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType()))) {
+    return false;
+  }
+  typename B::unitelem unit(values.getSize());
+  unit.iv = iv;
+  string text;
+  if (!B::readValueFrom(nl->Second(LE), text, unit)) {
+    return false;
+  }
+  units.Append(unit);
+  const char *bytes = (text.substr(1, text.length() - 2)).c_str();
+  SmiSize sz = strlen(bytes) + 1;
+  if (sz > 0) {
+    assert(bytes[sz - 1] == 0);
+    values.write(bytes, sz, values.getSize());
+  }
+  else {
+    char d = 0;
+    values.write(&d, 1, values.getSize());
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool MBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
   SetDefined(false);
   Clear();
   if (listutils::isSymbolUndefined(LE)) {
     return true;
   }
   ListExpr rest = LE;
-  UPlace up(true);
   while (!nl->IsEmpty(rest)) {
-    if (!up.ReadFrom(nl->First(rest), nl->Empty())) {
+    if (!readUnitFrom(nl->First(rest))) {
       return false;
     }
-    Add(up);
     rest = nl->Rest(rest);
   }
   SetDefined(true);
@@ -2897,19 +2709,136 @@ bool MPlace::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 }
 
 /*
+\subsection{Function ~Position~}
+
+*/
+template<class B>
+int MBasic<B>::Position(const Instant& inst) const {
+  assert(IsDefined());
+  assert(inst.IsDefined());
+  int first = 0, last = GetNoComponents() - 1;
+  Instant t1 = inst;
+  while (first <= last) {
+    int mid = (first + last) / 2;
+    if ((mid < 0) || (mid >= GetNoComponents())) {
+      return -1;
+    }
+    typename B::unitelem unit;
+    units.Get(mid, unit);
+    if (((Interval<Instant>)(unit.iv)).Contains(t1)) {
+      return mid;
+    }
+    else { // not contained
+      if ((t1 > unit.iv.end) || (t1 == unit.iv.end)) {
+        first = mid + 1;
+      }
+      else if ((t1 < unit.iv.start) || (t1 == unit.iv.start)) {
+        last = mid - 1;
+      }
+      else {
+        return -1; // should never be reached.
+      }
+    }
+  }
+  return -1;
+}
+
+/*
 \subsection{Function ~Get~}
 
 */
-void MPlace::Get(const int i, UPlace& result) const {
-  assert((i >= 0) && (GetNoComponents()));
-  units.Get(i, result);
+template<class B>
+void MBasic<B>::Get(const int i, UBasic<B>& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  typename B::unitelem unit;
+  units.Get(i, unit);
+  result.timeInterval = unit.iv;
+  GetBasic(i, result.constValue);
+}
+
+/*
+\subsection{Function ~GetBasic~}
+
+*/
+template<class B>
+void MBasic<B>::GetBasic(const int i, B& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  typename B::base value;
+  GetValue(i, value);
+  result.SetValue(value);
+}
+
+/*
+\subsection{Function ~getUnitEndPos~}
+
+*/
+template<class B>
+unsigned int MBasic<B>::getUnitEndPos(const int i) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  if (i == GetNoComponents() - 1) {
+    return values.getSize() - 1;
+  }
+  typename B::unitelem nextUnit;
+  units.Get(i + 1, nextUnit);
+  return nextUnit.pos - 1;
+}
+
+/*
+\subsection{Function ~GetValue~}
+
+*/
+template<class B>
+void MBasic<B>::GetValue(const int i, typename B::base& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  typename B::unitelem unit;
+  units.Get(i, unit);
+  unsigned int endPos = getUnitEndPos(i);
+  char* bytes = new char[endPos - unit.pos + 1];
+  values.read(bytes, endPos - unit.pos + 1, unit.pos);
+  string text = bytes;
+  B::buildValue(text, unit, result);
+  delete[] bytes;
+}
+
+/*
+\subsection{Function ~IsValid~}
+
+*/
+template<class B>
+bool MBasic<B>::IsValid() const {
+  if (!IsDefined() || IsEmpty()) {
+    return true;
+  }
+  typename B::unitelem lastUnit, unit;
+  units.Get(0, lastUnit);
+  if (!lastUnit.iv.IsValid()) {
+    return false;
+  }
+  if (GetNoComponents() == 1) {
+    return true;
+  }
+  for (int i = 1; i < GetNoComponents(); i++) {
+    units.Get(i, unit);
+    if (!unit.iv.IsValid()) {
+      return false;
+    }
+    if (lastUnit.iv.end > unit.iv.start) {
+      return false;
+    }
+    if (!lastUnit.iv.Disjoint(unit.iv)) {
+      return false;
+    }
+    lastUnit = unit;
+  }
+  return true;
 }
 
 /*
 \subsection{Function ~EndBulkLoad~}
 
 */
-void MPlace::EndBulkLoad(const bool sort, const bool checkvalid) {
+template<class B>
+void MBasic<B>::EndBulkLoad(const bool sort, const bool checkvalid) {
   if (!IsDefined()) {
     units.clean();
   }
@@ -2920,11 +2849,13 @@ void MPlace::EndBulkLoad(const bool sort, const bool checkvalid) {
 \subsection{Function ~Add~}
 
 */
-void MPlace::Add(const UPlace& up) {
-  assert(up.IsDefined());
-  assert(up.IsValid());
+template<class B>
+void MBasic<B>::Add(const UBasic<B>& ub) {
+  assert(ub.IsDefined());
+  assert(ub.IsValid());
+  UBasic<B> ub2(ub);
   if (IsDefined()) {
-    units.Append(up);
+    readUnitFrom(ub2.ToListExpr(nl->Empty()));
   }
 }
 
@@ -2932,30 +2863,37 @@ void MPlace::Add(const UPlace& up) {
 \subsection{Function ~MergeAdd~}
 
 */
-void MPlace::MergeAdd(const UPlace& up) {
+template<class B>
+void MBasic<B>::MergeAdd(const UBasic<B>& ub) {
   assert(IsDefined());
-  if (!up.IsDefined() || !up.IsValid()) {
+  if (!ub.IsDefined() || !ub.IsValid()) {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " MergeAdd(Unit): Unit is undefined or invalid:";
-    up.Print(cout); cout << endl;
+    ub.Print(cout); cout << endl;
     assert(false);
   }
-  if (GetNoComponents() > 0) {
-    UPlace last(true);
-    units.Get(GetNoComponents() - 1, last);
-    if ((last.constValue == up.constValue) && // equal places
-        (last.timeInterval.end == up.timeInterval.start) &&
-        (last.timeInterval.rc || up.timeInterval.lc)) { //and adjacent intervals
-      last.timeInterval.end = up.timeInterval.end; // extend last interval
-      last.timeInterval.rc = up.timeInterval.rc;
-      units.Put(GetNoComponents() - 1, last);
+  if (!IsEmpty()) {
+    bool extend = false;
+    typename B::unitelem lastUnit;
+    units.Get(GetNoComponents() - 1, lastUnit);
+    if ((lastUnit.iv.end == ub.timeInterval.start) &&
+        (lastUnit.iv.rc || ub.timeInterval.lc)) { // adjacent intervals
+      typename B::base value1, value2;
+      GetValue(GetNoComponents() - 1, value1);
+      ub.constValue.GetValue(value2);
+      if (value1 == value2) {
+        lastUnit.iv.end = ub.timeInterval.end; // extend last interval
+        lastUnit.iv.rc = ub.timeInterval.rc;
+        units.Put(GetNoComponents() - 1, lastUnit);
+        extend = true;
+      }
     }
-    else if (last.timeInterval.Before(up.timeInterval)) {
-      Add(up);
+    if (!extend && lastUnit.iv.Before(ub.timeInterval)) {
+      Add(ub);
     }
   }
   else { // first unit
-    Add(up);
+    Add(ub);
   }
 }
 
@@ -2963,14 +2901,16 @@ void MPlace::MergeAdd(const UPlace& up) {
 \subsection{Function ~Passes~}
 
 */
-bool MPlace::Passes(const Place& pl) const {
-  if (!IsDefined() || !pl.IsDefined()) {
+template<class B>
+bool MBasic<B>::Passes(const B& basic) const {
+  if (!IsDefined() || !basic.IsDefined()) {
     return false;
   }
-  UPlace up(true);
+  typename B::base value1, value2;
+  basic.GetValue(value2);
   for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, up);
-    if (up.constValue == pl) {
+    GetValue(i, value1);
+    if (value1 == value2) {
       return true;
     }
   }
@@ -2981,18 +2921,25 @@ bool MPlace::Passes(const Place& pl) const {
 \subsection{Function ~At~}
 
 */
-void MPlace::At(const Place& pl, MPlace& result) const {
+template<class B>
+void MBasic<B>::At(const B& basic, MBasic<B>& result) const {
   result.Clear();
-  if (!IsDefined() || !pl.IsDefined()) {
+  if (!IsDefined() || !basic.IsDefined()) {
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
+  typename B::base value1, value2;
+  basic.GetValue(value2);
+  typename B::unitelem unit;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
   for (int i = 0; i < GetNoComponents(); i++) {
-    UPlace up(true);
-    Get(i, up);
-    if (up.constValue == pl) {
-      result.Add(up);
+    GetValue(i, value1);
+    if (value1 == value2) {
+      units.Get(i, unit);
+      result.readUnitFrom(nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
+                                                     SecInterval::BasicType())),
+                                          B::getList(value1)));
     }
   }
 }
@@ -3001,14 +2948,15 @@ void MPlace::At(const Place& pl, MPlace& result) const {
 \subsection{Function ~DefTime~}
 
 */
-void MPlace::DefTime(Periods& per) const {
+template<class B>
+void MBasic<B>::DefTime(Periods& per) const {
   per.Clear();
   per.SetDefined(IsDefined());
   if (IsDefined()) {
-    UPlace up(true);
+    typename B::unitelem unit;
     for (int i = 0; i < GetNoComponents(); i++) {
-      Get(i, up);
-      per.MergeAdd(up.timeInterval);
+      units.Get(i, unit);
+      per.MergeAdd(unit.iv);
     }
   }
 }
@@ -3017,87 +2965,119 @@ void MPlace::DefTime(Periods& per) const {
 \subsection{Function ~Atinstant~}
 
 */
-void MPlace::Atinstant(const Instant& inst, IPlace& result) const {
+template<class B>
+void MBasic<B>::Atinstant(const Instant& inst, IBasic<B>& result) const {
   if(!IsDefined() || !inst.IsDefined()) {
     result.SetDefined(false);
     return;
   }
-  int pos = Position(inst);
+  int pos = this->Position(inst);
   if (pos == -1) {
     result.SetDefined(false);
+    return;
   }
-  else {
-    UPlace up(true);
-    Get(pos, up);
-    result.value = up.constValue;
-    result.SetDefined(true);
-    result.instant = inst;
-  }
+  result.SetDefined(true);
+  result.value.SetDefined(true);
+  typename B::unitelem unit;
+  units.Get(pos, unit);
+  GetBasic(pos, result.value);
+  result.instant = unit.iv.start;
 }
 
 /*
 \subsection{Function ~Initial~}
 
 */
-void MPlace::Initial(IPlace& result) const {
+template<class B>
+void MBasic<B>::Initial(IBasic<B>& result) const {
   if (!IsDefined() || IsEmpty()) {
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
-  UPlace up(true);
-  Get(0, up);
-  result.instant = up.timeInterval.start;
-  result.value = up.constValue;
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  GetBasic(0, result.value);
+  result.instant = unit.iv.start;
 }
 
 /*
 \subsection{Function ~Final~}
 
 */
-void MPlace::Final(IPlace& result) const {
+template<class B>
+void MBasic<B>::Final(IBasic<B>& result) const {
   if (!IsDefined() || IsEmpty()) {
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
-  UPlace up(true);
-  Get(GetNoComponents() - 1, up);
-  result.instant = up.timeInterval.end;
-  result.value = up.constValue;
+  typename B::unitelem unit;
+  units.Get(GetNoComponents() - 1, unit);
+  GetBasic(GetNoComponents() - 1, result.value);
+  result.instant = unit.iv.end;
 }
 
 /*
 \subsection{Function ~Inside~}
 
 */
-void MPlace::Inside(const Places& pls, MBool& result) const {
+template<class B>
+void MBasic<B>::Inside(const typename B::coll& coll, MBool& result) const {
   result.Clear();
-  if (!IsDefined() || !pls.IsDefined()) {
+  if (!IsDefined() || !coll.IsDefined()) {
     result.SetDefined(false);
     return;
   }
-  UPlace up(true);
-  Places places(pls, true); // sort places
+  typename B::unitelem unit;
+  typename B::base value;
   for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, up);
-    CcBool res(true, places.Find(up.constValue));
-    UBool ub(up.timeInterval, res);
+    units.Get(i, unit);
+    GetValue(i, value);
+    CcBool res(true, coll.Contains(value));
+    UBool ub(unit.iv, res);
     result.Add(ub);
   }
 }
 
 /*
-\subsection{Type Constructor}
+\subsection{Function ~Fill~}
 
 */
-GenTC<MPlace> mplace;
+template<class B>
+void MBasic<B>::Fill(MBasic<B>& result, DateTime& dur) const {
+  result.Clear();
+  result.SetDefined(true);
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  if (IsEmpty()) {
+    return;
+  }
+  UBasic<B> unit, lastUnit;
+  Get(0, lastUnit);
+  for (int i = 1; i < GetNoComponents(); i++) {
+    Get(i, unit);
+    if ((lastUnit.constValue == unit.constValue) && 
+        (unit.timeInterval.start - lastUnit.timeInterval.end <= dur)) {
+      lastUnit.timeInterval.end = unit.timeInterval.end;
+      lastUnit.timeInterval.rc = unit.timeInterval.rc;
+    }
+    else {
+      result.MergeAdd(lastUnit);
+      lastUnit = unit;
+    }
+  }
+  result.MergeAdd(lastUnit);
+}
 
 /*
-\section{Type Constructor for ~MPlaces~}
+\subsection{Type Constructors}
 
 */
-GenTC<MPlaces> mplaces;
+GenTC<MLabel> mlabel;
+GenTC<MBasic<Place> > mplace;
 
 /*
 \section{Operator ~tolabel~}
@@ -3179,7 +3159,9 @@ int tostringVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   Label* source = static_cast<Label*>(args[0].addr);
   CcString* res = static_cast<CcString*>(result.addr);
   if (source->IsDefined()) {
-    res->Set(true, source->GetValue());
+    string text;
+    source->GetValue(text),
+    res->Set(true, text);
   }
   result.addr = res;
   return 0;
@@ -3222,7 +3204,9 @@ int totextVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   Label* source = static_cast<Label*>(args[0].addr);
   FText* res = static_cast<FText*>(result.addr);
   if (source->IsDefined()) {
-    res->Set(true, source->GetValue());
+    string text;
+    source->GetValue(text);
+    res->Set(true, text);
   }
   result.addr = res;
   return 0;
@@ -3265,7 +3249,7 @@ int mstringtomlabelVM(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
   MString *source = static_cast<MString*>(args[0].addr);
   MLabel* res = static_cast<MLabel*>(result.addr);
-  res->convertFromMString(source);
+  res->convertFromMString(*source);
   result.addr = res;
   return 0;
 }
@@ -3325,7 +3309,9 @@ int containsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   result = qp->ResultStorage(s);
   CcBool* ccbool = static_cast<CcBool*>(result.addr);
   if (coll->IsDefined() && val->IsDefined()) {
-    ccbool->Set(true, coll->Contains(*val));
+    typename Value::base value;
+    val->GetValue(value);
+    ccbool->Set(true, coll->Contains(value));
   }
   else {
     ccbool->SetDefined(false);
@@ -3357,26 +3343,37 @@ toplace: string x int -> place
 */
 ListExpr toplaceTM(ListExpr args) {
   if (nl->ListLength(args) == 2) {
-    if (CcString::checkType(nl->First(args)) && 
+    if ((CcString::checkType(nl->First(args)) || 
+         FText::checkType(nl->First(args))) && 
         CcInt::checkType(nl->Second(args))) {
       return nl->SymbolAtom(Place::BasicType());
     }
   }
-  return NList::typeError("Expecting (string x int).");
+  return NList::typeError("Expecting ([string | text] x int).");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int toplaceSelect(ListExpr args) {
+  if (CcString::checkType(nl->First(args))) return 0; 
+  if (FText::checkType(nl->First(args))) return 1;
+  return -1;
 }
 
 /*
 \subsection{Value Mapping}
 
 */
+template<class T>
 int toplaceVM(Word* args, Word& result, int message, Word& local, Supplier s) {
-  CcString *name = static_cast<CcString*>(args[0].addr);
+  T *name = static_cast<T*>(args[0].addr);
   CcInt *ref = static_cast<CcInt*>(args[1].addr);
   result = qp->ResultStorage(s);
   Place *res = static_cast<Place*>(result.addr);
   if (name->IsDefined() && ref->IsDefined()) {
-    res->SetRef(ref->GetIntval());
-    res->SetName(name->GetValue());
+    res->Set(true, make_pair(name->GetValue(), ref->GetIntval()));
   }
   else {
     res->SetDefined(false);
@@ -3391,9 +3388,9 @@ int toplaceVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 struct toplaceInfo : OperatorInfo {
   toplaceInfo() {
     name      = "toplace";
-    signature = "string x int -> place";
+    signature = "[string | text] x int -> place";
     syntax    = "toplace( _ );";
-    meaning   = "Converts a string and an int into a place.";
+    meaning   = "Converts a string/text and an int into a place.";
   }
 };
 
@@ -3408,7 +3405,7 @@ ListExpr nameTM(ListExpr args) {
     return listutils::typeError("One argument expected.");
   }
   if (Place::checkType(nl->First(args))) {
-    return nl->SymbolAtom(CcString::BasicType());
+    return nl->SymbolAtom(FText::BasicType());
   }
   return NList::typeError("Expecting a place.");
 }
@@ -3420,9 +3417,11 @@ ListExpr nameTM(ListExpr args) {
 int nameVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   Place *src = static_cast<Place*>(args[0].addr);
   result = qp->ResultStorage(s);
-  CcString* res = static_cast<CcString*>(result.addr);
+  FText* res = static_cast<FText*>(result.addr);
   if (src->IsDefined()) {
-    res->Set(true, src->GetName());
+    pair<string, unsigned int> value;
+    src->GetValue(value);
+    res->Set(true, value.first);
   }
   else {
     res->SetDefined(false);
@@ -3437,7 +3436,7 @@ int nameVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 struct nameInfo : OperatorInfo {
   nameInfo() {
     name      = "name";
-    signature = "place -> string";
+    signature = "place -> text";
     syntax    = "name( _ );";
     meaning   = "Returns the name from a place object.";
   }
@@ -4065,10 +4064,12 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
   map<int, int>::iterator itm, itn;
   ULabel ul(0);
   ml->Get(ulId, ul);
+  string text;
+  ul.constValue.GetValue(text);
   if (store) {
     if (ulId < ml->GetNoComponents() - 1) { // usual case
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-        if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
+        if (labelsMatch(text, elems[itm->first].getL())
          && timesMatch(&ul.timeInterval, elems[itm->first].getI())
          && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
@@ -4084,7 +4085,7 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
     }
     else { // last row; mark final states with -1
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-        if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
+        if (labelsMatch(text, elems[itm->first].getL())
          && timesMatch(&ul.timeInterval, elems[itm->first].getI())
          && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
@@ -4098,7 +4099,7 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
   }
   else {
     for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-      if (labelsMatch(ul.constValue.GetValue(), elems[itm->first].getL())
+      if (labelsMatch(text, elems[itm->first].getL())
        && timesMatch(&ul.timeInterval, elems[itm->first].getI())
        && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                          easyCondPos[itm->first])){
@@ -4321,10 +4322,12 @@ bool Match::evaluateCond(Condition &cond,
     if (binding.count(var)) {
       from = binding.find(var)->second.first;
       to = binding.find(var)->second.second;
+      string text;
       switch (cond.getKey(i)) {
         case 0: { // label
           ml->Get(from, ul);
-          cond.setLabelPtr(i, ul.constValue.GetValue());
+          ul.constValue.GetValue(text);
+          cond.setLabelPtr(i, text);
           break;
         }
         case 1: { // time
@@ -4362,11 +4365,10 @@ bool Match::evaluateCond(Condition &cond,
         default: { // labels
           cond.cleanLabelsPtr(i);
           for (unsigned int j = from; j <= to; j++) {
-            ml->Get(j, ul);
-            Label label(ul.constValue.GetValue());
+            Label label(true);
+            ml->GetBasic(j, label);
             cond.appendToLabelsPtr(i, label);
           }
-          cond.completeLabelsPtr(i);
         }
       }
     }
@@ -4454,12 +4456,6 @@ void Condition::cleanLabelsPtr(unsigned int pos) {
 void Condition::appendToLabelsPtr(unsigned int pos, Label value) {
   if (pos < pointers.size()) {
     ((Labels*)pointers[pos])->Append(value);
-  }
-}
-
-void Condition::completeLabelsPtr(unsigned int pos) {
-  if (pos < pointers.size()) {
-    ((Labels*)pointers[pos])->Sort();
   }
 }
 
@@ -4694,10 +4690,8 @@ void Pattern::deleteEasyCondOpTrees() {
 
 \subsection{Operator ~the\_unit~}
 
-the\_unit: label x instant x instant x bool x bool -> ulabel
-the\_unit: labels x instant x instant x bool x bool -> ulabels
-the\_unit: place x instant x instant x bool x bool -> uplace
-the\_unit: places x instant x instant x bool x bool -> uplaces
+the\_unit: T x instant x instant x bool x bool -> uT,   with T in 
+{label, labels, place, places}
 
 \subsubsection{Type Mapping}
 
@@ -4768,13 +4762,14 @@ int the_unitSymbolicVM(Word* args, Word& result,
     return 0;
   }
   if (*i1 < *i2) { // sorted instants
-    Interval<Instant> interval(*i1, *i2, clb, crb);
-    *res = Unit(interval, *value);
+    Interval<Instant> iv(*i1, *i2, clb, crb);
+    res->timeInterval = iv;
   }
   else {
-    Interval<Instant> interval(*i2, *i1, clb, crb);
-    *res = Unit(interval, *value);
+    Interval<Instant> iv(*i2, *i1, clb, crb);
+    res->timeInterval = iv;
   }
+  res->constValue = *value;
   return 0;
 }
 
@@ -4797,10 +4792,8 @@ struct the_unitSymbolicInfo : OperatorInfo {
 /*
 \subsection{Operator ~makemvalue~}
 
-makemvalue: stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel
-makemvalue: stream (tuple ((x1 t1)...(xi ulabels)...(xn tn))) xi -> mlabels
-makemvalue: stream (tuple ((x1 t1)...(xi uplace)...(xn tn))) xi -> mplace
-makemvalue: stream (tuple ((x1 t1)...(xi uplaces)...(xn tn))) xi -> mplaces
+makemvalue: stream (tuple ((x1 t1)...(xi uT)...(xn tn))) xi -> mT,   with T in
+{label, labels, place, places}
 
 \subsubsection{Type Mapping}
 
@@ -4944,11 +4937,8 @@ int makemvalueSymbolicVM(Word* args, Word& result, int message,
 struct makemvalueSymbolicInfo : OperatorInfo {
   makemvalueSymbolicInfo() {
     name      = "makemvalue";
-    signature = "stream (tuple ((x1 t1)...(xi ulabel)...(xn tn))) xi -> mlabel";
-    appendSignature("stream (tuple ((x1 t1)...(xi ulabels)...(xn tn))) xi -> "
-                    "mlabels");
-    appendSignature("stream (tuple ((x1 t1)...(xi uplace)...(xn tn))) xi -> "
-                    "mplace");
+    signature = "stream (tuple ((x1 t1)...(xi uT)...(xn tn))) xi -> mT,   with"
+                "T in {label, labels, place, places}";
     syntax    = "_ makemvalue[ _ ]";
     meaning   = "Creates a moving object from a (not necessarily sorted) tuple "
                 "stream containing a ulabel(s) or uplace attribute. No two unit"
@@ -7979,14 +7969,12 @@ bool IndexMatchInfo::matches(int patSize) {
 
 */
 ListExpr compressTM(ListExpr args) {
-  const string errMsg
-          = "Expecting mlabel or mstring or stream(mlabel) or stream(mstring).";
+  const string errMsg = "Expecting mlabel or stream(mlabel).";
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError(errMsg);
   }
   ListExpr arg = nl->First(args);
-  if (MLabel::checkType(arg) || MString::checkType(arg)
-   || Stream<MLabel>::checkType(arg) || Stream<MString>::checkType(arg)) {
+  if (MLabel::checkType(arg) || Stream<MLabel>::checkType(arg)) {
     return arg;
   }
   return listutils::typeError(errMsg);
@@ -7999,9 +7987,7 @@ ListExpr compressTM(ListExpr args) {
 int compressSelect(ListExpr args) {
   ListExpr arg = nl->First(args);
   if (MLabel::checkType(arg)) return 0;
-  if (MString::checkType(arg)) return 1;
-  if (Stream<MLabel>::checkType(arg)) return 2;
-  if (Stream<MString>::checkType(arg)) return 3;
+  if (Stream<MLabel>::checkType(arg)) return 1;
   return -1;
 }
 
@@ -8012,12 +7998,10 @@ int compressSelect(ListExpr args) {
 template<class T>
 int compressVM_1(Word* args, Word& result, int message, Word& local,
                   Supplier s){
-  T* mlabel = static_cast<T*>(args[0].addr);
+  T* source = static_cast<T*>(args[0].addr);
   result = qp->ResultStorage(s);
   T* res = (T*)result.addr;
-  T* tmp = mlabel->compress();
-  res->CopyFrom(tmp);
-  delete tmp;
+  source->compress(*res);
   return  0;
 }
 
@@ -8038,7 +8022,9 @@ int compressVM_Str(Word* args, Word& result, int message, Word& local,
       qp->Request(args[0].addr,arg);
       if (qp->Received(args[0].addr)) {
         T* mlabel =(T*) arg.addr;
-        result.addr = mlabel->compress();
+        T* res = new T(true);
+        mlabel->compress(*res);
+        result.addr = res;
         return YIELD;
       }
       else {
@@ -8083,8 +8069,8 @@ ListExpr fillgapsTM(ListExpr args) {
     return listutils::typeError("Two arguments expected.");
   }
   ListExpr arg = nl->First(args);
-  if ((MString::checkType(arg) || MLabel::checkType(arg)
-    || Stream<MString>::checkType(arg) || Stream<MLabel>::checkType(arg))
+  if ((MLabel::checkType(arg) || MPlace::checkType(arg)
+    || Stream<MLabel>::checkType(arg) || Stream<MPlace>::checkType(arg))
     && CcInt::checkType(nl->Second(args))) {
     return arg;
   }
@@ -8100,9 +8086,9 @@ ListExpr fillgapsTM(ListExpr args) {
 int fillgapsSelect(ListExpr args) {
   ListExpr arg = nl->First(args);
   if (MLabel::checkType(arg)) return 0;
-  if (MString::checkType(arg)) return 1;
+  if (MPlace::checkType(arg)) return 1;
   if (Stream<MLabel>::checkType(arg)) return 2;
-  if (Stream<MString>::checkType(arg)) return 3;
+  if (Stream<MPlace>::checkType(arg)) return 3;
   return -1;
 }
 
@@ -8117,9 +8103,8 @@ int fillgapsVM_1(Word* args, Word& result, int message, Word& local,
   CcInt* ccDur = (CcInt*)(args[1].addr);
   result = qp->ResultStorage(s);
   T* res = (T*)result.addr;
-  DateTime* dur = new DateTime(0, ccDur->GetValue(), durationtype);
-  fillML(*source, *res, dur);
-  dur->DeleteIfAllowed();
+  DateTime dur(0, ccDur->GetValue(), durationtype);
+  source->Fill(*res, dur);
   return 0;
 }
 
@@ -8149,8 +8134,8 @@ int fillgapsVM_Str(Word* args, Word& result, int message, Word& local,
         ccInt = (CcInt*)local.addr;
         T* source =(T*)arg.addr;
         T* res = new T(1);
-        DateTime* dur = new DateTime(0, ccInt->GetValue(), durationtype);
-        fillML(*source, *res, dur);
+        DateTime dur(0, ccInt->GetValue(), durationtype);
+        source->Fill(*res, dur);
         result.addr = res;
         return YIELD;
       }
@@ -8429,7 +8414,6 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,
   Tuple *tuple = 0;
   MLabel *ml = 0;
   MString *ms = 0;
-  ULabel ul(1);
   result = qp->ResultStorage(s);
   InvertedFile* inv = (InvertedFile*)result.addr;
   inv->setParams(false, 1, "");
@@ -8451,17 +8435,20 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,
     tuple = rel->GetTuple(i + 1, false);
     if (((CcBool*)args[3].addr)->GetBoolval()) {
       ml = (MLabel*)tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval()-1);
+      ULabel ul(1);
+      string text;
       for (int j = 0; j < ml->GetNoComponents(); j++) {
         ml->Get(j, ul);
-        inv->insertString(tuple->GetTupleId(), ul.constValue.GetValue(), j, 0,
-                          cache, trieCache);
+        ul.constValue.GetValue(text);
+        inv->insertString(tuple->GetTupleId(), text, j, 0, cache, trieCache);
       }
     }
     else {
       ms = (MString*)tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval()-1);
+      UString us(1);
       for (int j = 0; j < ms->GetNoComponents(); j++) {
-        ms->Get(j, ul);
-        inv->insertString(tuple->GetTupleId(), ul.constValue.GetValue(), j, 0,
+        ms->Get(j, us);
+        inv->insertString(tuple->GetTupleId(), us.constValue.GetValue(), j, 0,
                           cache, trieCache);
       }
     }
@@ -8607,14 +8594,14 @@ class SymbolicTrajectoryAlgebra : public Algebra {
  public:
   SymbolicTrajectoryAlgebra() : Algebra() {
 
-  AddTypeConstructor(&labelTC);
-  AddTypeConstructor(&intimelabel);
-  AddTypeConstructor(&unitlabel);
-  AddTypeConstructor(&movinglabel);
-  AddTypeConstructor(&labelsTC);
-  AddTypeConstructor(&intimelabels);
-  AddTypeConstructor(&unitlabels);
-  AddTypeConstructor(&movinglabels);
+  AddTypeConstructor(&label);
+  AddTypeConstructor(&ilabel);
+  AddTypeConstructor(&ulabel);
+  AddTypeConstructor(&mlabel);
+  AddTypeConstructor(&labels);
+  AddTypeConstructor(&ilabels);
+  AddTypeConstructor(&ulabels);
+  AddTypeConstructor(&mlabels);
   
   AddTypeConstructor(&place);
   AddTypeConstructor(&places);
@@ -8625,21 +8612,21 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddTypeConstructor(&mplace);
   AddTypeConstructor(&mplaces);
 
-  labelTC.AssociateKind(Kind::DATA());
-  intimelabel.AssociateKind(Kind::DATA());
-  intimelabel.AssociateKind(Kind::TEMPORAL());
-  unitlabel.AssociateKind(Kind::DATA());
-  unitlabel.AssociateKind(Kind::TEMPORAL());
-  movinglabel.AssociateKind(Kind::DATA());
-  movinglabel.AssociateKind(Kind::TEMPORAL());
+  label.AssociateKind(Kind::DATA());
+  ilabel.AssociateKind(Kind::DATA());
+  ilabel.AssociateKind(Kind::TEMPORAL());
+  ulabel.AssociateKind(Kind::DATA());
+  ulabel.AssociateKind(Kind::TEMPORAL());
+  mlabel.AssociateKind(Kind::DATA());
+  mlabel.AssociateKind(Kind::TEMPORAL());
   
-  labelsTC.AssociateKind(Kind::DATA());
-  intimelabels.AssociateKind(Kind::DATA());
-  intimelabels.AssociateKind(Kind::TEMPORAL());
-  unitlabels.AssociateKind(Kind::DATA());
-  unitlabels.AssociateKind(Kind::TEMPORAL());
-  movinglabels.AssociateKind(Kind::DATA());
-  movinglabels.AssociateKind(Kind::TEMPORAL());
+  labels.AssociateKind(Kind::DATA());
+  ilabels.AssociateKind(Kind::DATA());
+  ilabels.AssociateKind(Kind::TEMPORAL());
+  ulabels.AssociateKind(Kind::DATA());
+  ulabels.AssociateKind(Kind::TEMPORAL());
+  mlabels.AssociateKind(Kind::DATA());
+  mlabels.AssociateKind(Kind::TEMPORAL());
   
   place.AssociateKind(Kind::DATA());    
   iplace.AssociateKind(Kind::DATA());
@@ -8648,7 +8635,6 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   uplace.AssociateKind(Kind::TEMPORAL());
   mplace.AssociateKind(Kind::DATA());
   mplace.AssociateKind(Kind::TEMPORAL());
-  
   
   places.AssociateKind(Kind::DATA());
   iplaces.AssociateKind(Kind::DATA());
@@ -8675,7 +8661,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                 containsVM<Places, Place>, 0};
   AddOperator(containsInfo(), containsVMs, containsSelect, containsTM);
   
-  AddOperator(toplaceInfo(), toplaceVM, toplaceTM);
+  ValueMapping toplaceVMs[] = {toplaceVM<CcString>, toplaceVM<FText>, 0};
+  AddOperator(toplaceInfo(), toplaceVMs, toplaceSelect, toplaceTM);
   
   AddOperator(nameInfo(), nameVM, nameTM);
   
@@ -8781,16 +8768,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
   AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTM);
 
-  ValueMapping compressVMs[] = {compressVM_1<MLabel>,
-                                compressVM_1<MString>,
-                                compressVM_Str<MLabel>,
-                                compressVM_Str<MString>, 0};
+  ValueMapping compressVMs[] = {compressVM_1<MLabel>, compressVM_Str<MLabel>,0};
   AddOperator(compressInfo(), compressVMs, compressSelect, compressTM);
 
-  ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>,
-                                fillgapsVM_1<MString>,
-                                fillgapsVM_Str<MLabel>,
-                                fillgapsVM_Str<MString>, 0};
+  ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>, fillgapsVM_1<MPlace>,
+                             fillgapsVM_Str<MLabel>, fillgapsVM_Str<MPlace>, 0};
   AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect, fillgapsTM);
 
   AddOperator(createmlInfo(), createmlVM, createmlTM);

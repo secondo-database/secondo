@@ -80,11 +80,6 @@ class PatElem;
 class Assign;
 class ClassifyLI;
 class IndexLI;
-struct LabelValue;
-struct PlaceValue;
-class ILabels;
-class ULabels;
-class MLabels;
 
 enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
@@ -92,24 +87,23 @@ enum Wildcard {NO, STAR, PLUS};
 Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
 
-struct LabelValue {
-  ListExpr ToListExpr() const {return nl->StringAtom(string(v));}
-  bool operator==(const LabelValue& lv) const {return string(v) ==string(lv.v);}
-  int Compare(const LabelValue& lv) const;
+struct SymbolicUnit {
+ public: 
+  SymbolicUnit() {}
+  SymbolicUnit(unsigned int p) : iv(true), pos(p) {}
   
-  char v[MAX_STRINGSIZE + 1];
+  SecInterval iv;
+  unsigned int pos;
 };
 
-struct PlaceValue{
-  ListExpr ToListExpr() const {return nl->TwoElemList(name.ToListExpr(), 
-                                      nl->IntAtom(ref));}
-  bool operator==(const PlaceValue& pv) const {return (name == pv.name) &&
-                                                      (ref == pv.ref);}
-  int Compare(const PlaceValue& pv) const;
+struct ExtSymbolicUnit : public SymbolicUnit {
+  ExtSymbolicUnit() {}
+  ExtSymbolicUnit(unsigned int p) : SymbolicUnit(p), ref(0) {}
   
-  LabelValue name;
   unsigned int ref;
 };
+
+class Labels;
 
 /*
 \section{Class ~Label~}
@@ -118,43 +112,50 @@ struct PlaceValue{
 class Label : public Attribute {
  public:
   friend class Labels;
-  friend class MLabels;
+  
+  typedef SymbolicUnit unitelem;
+  typedef string base;
+  typedef Labels coll;
    
   Label() {}
-  explicit Label(const string& val);
+  Label(const string& text) : Attribute(true), value(0) {SetValue(text);}
   Label(const Label& rhs);
-  Label(const bool def);
+  explicit Label(const bool def) : Attribute(def), value(0) {}
   
   ~Label() {}
+  
+  void Clean() {value.clean();}
+  void Destroy() {value.destroy();}
+  void GetValue(string &text) const;
+  static void buildValue(const string& text, const unitelem& unit,base& result);
+  static ListExpr getList(const string& text) {return nl->TextAtom(text);}
+  void Set(const bool def, const string &text) {SetDefined(def);SetValue(text);}
+  void SetValue(const string &text);
+  Label& operator=(const Label& lb) {CopyFrom(&lb); return *this;}
+  bool operator==(const Label& lb) const;
+  bool operator==(const string& text) const;
 
-  string GetValue() const {string value = val.v; return value;}
-  void Set(const bool def, const string &value);
-//   Label* Clone() const {return new Label(*this);}
-  bool operator==(const Label lb) const {return GetValue() == lb.GetValue();}
-  bool operator==(const LabelValue& lv) const;
-  void ToBase(LabelValue &lv) const {lv = val;}
-
+  static bool readValueFrom(ListExpr LE, string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   ListExpr ToListExpr(ListExpr typeInfo);
   static bool     CheckKind(ListExpr type, ListExpr& errorInfo);
-  static int      SizeOfObj();
+  static int      SizeOfObj() {return sizeof(Label);}
   static ListExpr Property();
   static const string BasicType() {return "label";}
   static const bool checkType(const ListExpr type);
   void            CopyFrom(const Attribute* right);
+  int NumOfFLOBs() const {return 1;}
+  Flob *GetFLOB(const int i) {assert(i == 0); return &value;}
   int             Compare(const Attribute* arg) const;
   size_t          Sizeof() const {return sizeof(*this);}
   bool            Adjacent(const Attribute*) const {return false;}
   Attribute*      Clone() const {return new Label(*this);}
-  size_t          HashValue() const {return val.v[0];}
-  void            SetValue(const string &value);
-  ostream&        Print(ostream& os) const {return os << GetValue();}
+  size_t          HashValue() const {return value.getSize();}
+  ostream&        Print(ostream& os) const;
   
  protected:
-  LabelValue val;
+  Flob value;
 };
-
-int CompareLabels(const void *a, const void *b);
 
 /*
 \section{Class ~Labels~}
@@ -162,376 +163,115 @@ int CompareLabels(const void *a, const void *b);
 */
 class Labels : public Attribute {
  public:
-  typedef LabelValue base;
+  typedef unsigned int arrayelem;
+  typedef string base;
   typedef Label single;
-  typedef ILabels itype;
-  typedef ULabels utype;
-  typedef MLabels mtype;
-   
-  friend class MLabels;
-   
+      
   Labels() {}
-  explicit Labels(const int n, const Label *Lb = 0);
-  explicit Labels(const bool defined) : Attribute(defined), values(0) {}
-  explicit Labels(vector<Label>* lbs);
+  explicit Labels(const int n) : values(0), pos(n) {}
+  explicit Labels(const bool defined) : Attribute(defined), values(0), pos(0) {}
   Labels(const Labels& src, const bool sort = false);
   
   ~Labels() {}
 
   Labels& operator=(const Labels& src);
   bool operator==(const Labels& src) const;
-  int NumOfFLOBs() const {return 1;}
+  void Append(const Label &lb);
+  void Append(const string& text);
+  void Destroy() {values.destroy(); pos.destroy();}
+  int GetNoValues() const {return pos.Size();}
+  size_t GetLength() const {return values.getSize();}
+  void Get(int i, Label& lb) const;
+  void GetValue(int i, string& text) const;
+  static void getRefToLastElem(const int size, unsigned int& result);
+  static void getFlobPos(const pair<unsigned int, unsigned int> elems, 
+                         pair<size_t, size_t>& result);
+  static void valuesToListExpr(const vector<string>& values, ListExpr& result);
+  static void getString(const ListExpr& list, string& result);
+  static void getElemFromList(const ListExpr& list, const unsigned int size, 
+                              unsigned int& result);
+  static void buildValue(const string& text, const unsigned int pos,
+                         string& result);
+  static void printArrayElem(const arrayelem e) {cout << "print " << e << endl;}
+  const bool IsEmpty() const {return GetNoValues() == 0;}
+  void Clean() {values.clean(); pos.clean();}
+  bool Contains(string& text) const;
+  friend ostream& operator<<(ostream& os, const Labels& lbs);
+  
+  int NumOfFLOBs() const {return 2;}
   Flob *GetFLOB(const int i);
   int Compare(const Attribute*) const;
   bool Adjacent(const Attribute*) const {return false;}
-  Labels *Clone() const;
+  Attribute *Clone() const {return new Labels(*this);}
   size_t Sizeof() const {return sizeof(*this);}
   ostream& Print(ostream& os) const {return (os << *this);}
-
-  void Append(const Label &lb) {values.Append(lb.val);}
-  void Append(const LabelValue& lv) {values.Append(lv);}
-  void Destroy() {values.destroy();}
-  int GetNoValues() const {return values.Size();}
-  void GetValue(int i, Label& lb) const;
-  void GetBasicValue(int i, LabelValue& lv) const;
-  const bool IsEmpty() const {return GetNoValues() == 0;}
+  static ListExpr Property();
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  static int SizeOfObj() {return sizeof(Labels);}
+  static const string BasicType() {return Label::BasicType() + "s";}
   void CopyFrom(const Attribute* right) {*this = *((Labels*)right);}
   size_t HashValue() const;
 
-  friend ostream& operator <<( ostream& os, const Labels& p );
-
-  static Word     In(const ListExpr typeInfo, const ListExpr instance,
-                    const int errorPos, ListExpr& errorInfo, bool& correct);
-  static ListExpr Out(ListExpr typeInfo, Word value);
-  static Word     Create(const ListExpr typeInfo);
-  static void     Delete(const ListExpr typeInfo, Word& w);
-  static void     Close(const ListExpr typeInfo, Word& w);
-  static bool     Save(SmiRecord& valueRecord, size_t& offset,
-                       const ListExpr typeInfo, Word& value);
-  static bool     Open(SmiRecord& valueRecord, size_t& offset,
-                       const ListExpr typeInfo, Word& value);
-  static Word     Clone(const ListExpr typeInfo, const Word& w);
-  static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
-  static int      SizeOfObj() {return sizeof(Labels);}
-  static ListExpr Property();
-  static void*    Cast(void* addr) {return (new (addr)Labels);}
-  static const    string BasicType() {return Label::BasicType() + "s";}
-  static const    bool checkType(const ListExpr type) {
-                                 return listutils::isSymbol(type, BasicType());}
-  void Sort() {values.Sort(CompareLabels);}
-  bool Find(Label& lb) {int p; return values.Find(&(lb.val), CompareLabels, p);}
-  void Clean() {if (values.Size()) {values.clean();}}
-  ListExpr ToListExpr(ListExpr typeInfo);
-  bool Contains(Label& lb) const;
-
- private:
-  DbArray<LabelValue> values;
+ protected:
+  Flob values;
+  DbArray<unsigned int> pos;
 };
 
-/*
-\section{Class ~ILabel~}
-
-*/
-class ILabel : public IString {
-public:
-  static const string BasicType() {return "ilabel";}
-  static ListExpr IntimeLabelProperty();
-  static bool CheckIntimeLabel(ListExpr type, ListExpr& errorInfo);
-  static bool checkType(ListExpr t) {
-    return listutils::isSymbol(t, BasicType());
-  }
-  
-  void Val(Label& result) const;
-};
-
-/*
-\section{Class ~ULabel~}
-
-*/
-class ULabel : public UString {
- public:
-  ULabel() {}
-  explicit ULabel(int i): UString(i) {}
-  ULabel(const Interval<Instant>& interval, const Label& label);
-
-  static const string BasicType() {return "ulabel";}
-  static ListExpr ULabelProperty();
-  static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
-  static bool checkType(ListExpr t) {
-    return listutils::isSymbol(t, BasicType());
-  }
-
-  void Initial(ILabel& result) const;
-  void Final(ILabel& result) const;
-};
-
-/*
-\section{Class ~MLabel~}
-
-*/
-class MLabel : public MString {
- public:
-  MLabel() {}
-  explicit MLabel(int i): MString(i) {}
-  explicit MLabel(MString* ms);
-  explicit MLabel(MLabel* ml);
-  MLabel(const MLabel &ml);
-  
-  ~MLabel() {}
-
-  static const string BasicType() {return "mlabel";}
-  static bool checkType(ListExpr t) {
-    return listutils::isSymbol(t, BasicType());
-  }
-  static ListExpr MLabelProperty();
-  static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
-
-  Word Create(const ListExpr typeInfo);
-  void Close(const ListExpr typeInfo, Word& w);
-  MLabel* Clone() const;
-  int Compare(const Attribute * arg) const;
-  void CopyFrom(const Attribute* right);
-  int NumOfFLOBs() const;
-  Flob* GetFLOB(const int i);
-  size_t Sizeof() const{return sizeof(*this);}
-
-  void Initialize() {}
-  void Finalize() {}
-  
-  MLabel* compress();
-  void createML(int size, bool text, double rate);
-  void convertFromMString(MString* source);
-  MLabel* rewrite(map<string, pair<unsigned int, unsigned int> > binding,
-                  vector<Assign> &assigns) const;
-  bool Passes(const Label& label) const;
-  void At(const Label& label, MLabel& result) const;
-  void DefTime(Periods& per) const;
-  void Atinstant(const Instant& inst, ILabel& result) const;
-  void Inside(const Labels& lbs, MBool& result) const;
-  void Initial(ILabel& result) const;
-  void Final(ILabel& result) const;
-};
-
-/*
-\section{Class ~ILabels~}
-
-*/
-class ILabels : public Intime<Labels> {
- public:
-  ILabels() {}
-  explicit ILabels(const bool defined);
-  explicit ILabels(const ILabels& ils);
-  ILabels(const Instant &inst, const Labels &lbs);
-  
-  static ListExpr Property();
-  static Word Create(const ListExpr typeInfo);
-  static void Delete(const ListExpr typeInfo, Word &w);
-  static void Close(const ListExpr typeInfo, Word &w);
-  static Word Clone(const ListExpr typeInfo, const Word& w);
-  static void* Cast(void* addr) {return (new (addr)ILabels);}
-  static int SizeOfObj() {return sizeof(ILabels);}
-  static bool KindCheck(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "i" + Labels::BasicType();}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return value.NumOfFLOBs();}
-  Flob* GetFLOB(const int i) {return value.GetFLOB(i);}
-  
-  void Val(Labels& result) const;
-};
-
-/*
-\section{Class ~ULabels~}
-
-*/
-class ULabels : public ConstTemporalUnit<Labels> {
- private:
-  friend class MLabels;
-  
- public:
-  ULabels() {}
-  explicit ULabels(bool defined);
-  explicit ULabels(const SecInterval &iv, const Labels &lbs);
-  ULabels(const ULabels& uls);
-  ULabels(int i, MLabels &mls);
-  
-  static ListExpr Property();
-  static Word Create(const ListExpr typeInfo);
-  static void Delete(const ListExpr typeInfo, Word &w);
-  static void Close(const ListExpr typeInfo, Word &w);
-  static Word Clone(const ListExpr typeInfo, const Word& w);
-  static void* Cast(void* addr) {return (new (addr)ULabels);}
-  static int SizeOfObj() {return sizeof(ULabels);}
-  static bool KindCheck(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "u" + Labels::BasicType();}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return constValue.NumOfFLOBs();}
-  Flob* GetFLOB(const int i) {return constValue.GetFLOB(i);}
-  
-  ULabels* Clone() const {return new ULabels(*this);}
-  void Initial(ILabels& result) const;
-  void Final(ILabels& result) const;
-};
+class Places;
 
 /*
 \section{Class ~Place~}
 
 */
 class Place : public Label {
+ public: 
   friend class Places;
   
- public: 
+  typedef ExtSymbolicUnit unitelem;
+  typedef pair<string, unsigned int> base;
+  typedef Places coll;
+  
   Place() : Label() {}
-  explicit Place(const string& n, const unsigned int r) : Label(n), ref(r) {}
-  Place(const Place& rhs) : Label(rhs.GetName()), ref(rhs.GetRef()) {}
+  Place(const pair<string, unsigned int>& v) : Label(v.first), ref(v.second) {}
+  Place(const Place& rhs) : Label(rhs.IsDefined()) {CopyFrom(&rhs);}
   explicit Place(const bool def) : Label(def), ref(0) {}
 
   ~Place() {}
 
-  void Set(PlaceValue pv) {val = pv.name; ref = pv.ref;}
-  string GetName() const {string text = val.v; return text;}
+  void Set(const bool defined, const pair<string, unsigned int>& value);
+  void SetValue(const pair<string, unsigned int>& value);
+  void SetRef(const unsigned int value) {ref = value;}
+  void GetValue(pair<string, unsigned int>& value) const;
+  static void buildValue(const string& text, const unitelem& unit,base& result);
+  static ListExpr getList(const base& value);
   unsigned int GetRef() const {return ref;}
-  void SetName(const string& n) {Label::Set(IsDefined(), n);}
-  void SetRef(const unsigned int r) {ref = r;}
+  Place& operator=(const Place& p);
   bool operator==(const Place& p) const;
-  bool operator==(const PlaceValue& pv) const;
-  void ToBase(PlaceValue &pv) const {pv.name = Label::val; pv.ref = ref;}
-  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
+  bool operator==(const pair<string, unsigned int>& value) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Place);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
   static const string BasicType() {return "place";}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return 0;}
-  Flob* GetFLOB(const int i) {return 0;}
+  int NumOfFLOBs() const {return Label::NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return Label::GetFLOB(i);}
   size_t Sizeof() const {return sizeof(*this);}
   int Compare(const Attribute* arg) const;
   bool Adjacent(const Attribute *arg) const {return false;}
   Attribute *Clone() const {return new Place(*this);}
-  size_t HashValue() const {return val.v[0] * val.v[9] * ref;}
+  size_t HashValue() const {return Label::HashValue() * ref;}
   virtual void CopyFrom(const Attribute* right) {*this = *((Place*)right);}
   ListExpr ToListExpr(ListExpr typeInfo);
+  static bool readValueFrom(ListExpr LE, string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
 
- private:
+ protected:
   unsigned int ref;
 };
-
-/*
-\section{Class ~IPlace~}
-
-*/
-class IPlace : public Intime<Place> {
- public:
-  IPlace() {}
-  explicit IPlace(const Instant& inst, const Place& pl);
-  explicit IPlace(const IPlace& rhs);
-  IPlace(const bool def) : Intime<Place>(def) {}
-
-  ~IPlace() {}
-
-  string GetName() const {return value.GetName();}
-  unsigned int GetRef() const {return value.GetRef();}
-  void SetRef(const unsigned int r) {value.SetRef(r);}
-  bool operator==(const IPlace& rhs) const;
-  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
-
-  static ListExpr Property();
-  static int SizeOfObj() {return sizeof(IPlace);}
-  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "i" + Place::BasicType();}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return 0;}
-  Flob* GetFLOB(const int i) {return 0;}
-  size_t Sizeof() const {return sizeof(*this);}
-  ListExpr ToListExpr(ListExpr typeInfo);
-  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-  
-  void Val(Place& result) const;
-};
-
-class MPlace; // forward declaration
-
-/*
-\section{Class ~UPlace~}
-
-*/
-class UPlace : public ConstTemporalUnit<Place> {
- public:
-  UPlace() {}
-  explicit UPlace(bool defined) : ConstTemporalUnit<Place>(defined) {}
-  explicit UPlace(const SecInterval &iv, const Place& pl);
-  UPlace(const UPlace& up);
-  UPlace(int i, MPlace &mp);
-  
-  ~UPlace() {}
-
-  bool operator==(const UPlace& rhs) const;
-  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
-
-  static ListExpr Property();
-  static int SizeOfObj() {return sizeof(UPlace);}
-  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "u" + Place::BasicType();}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return 0;}
-  Flob* GetFLOB(const int i) {return 0;}
-  size_t Sizeof() const {return sizeof(*this);}
-  ListExpr ToListExpr(ListExpr typeInfo);
-  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-
-  void Initial(IPlace& result) const;
-  void Final(IPlace& result) const;
-};
-
-class Places;
-class IPlaces;
-class UPlaces;
-class MPlaces;
-
-/*
-\section{Class ~MPlace~}
-
-*/
-class MPlace : public Mapping<UPlace, Place> {
- public:
-  MPlace() {}
-  explicit MPlace(const int n);
-  explicit MPlace(const MPlace& mp);
-  
-  ~MPlace() {}
-
-  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
-
-  static ListExpr Property();
-  static int SizeOfObj() {return sizeof(MPlace);}
-  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "m" + Place::BasicType();}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return 1;}
-  Flob* GetFLOB(const int i) {return &units;}
-  size_t Sizeof() const {return sizeof(*this);}
-  ListExpr ToListExpr(ListExpr typeInfo);
-  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-
-  void Get(const int i, UPlace& result) const;
-  bool IsEmpty() const {return units.Size() == 0;}
-  int GetNoComponents() const {return units.Size();}
-  void Clear() {Mapping<UPlace, Place>::Clear();}
-  void StartBulkLoad() {assert(IsDefined());}
-  void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
-  void Add(const UPlace& up);
-  void MergeAdd(const UPlace& up);
-  bool Passes(const Place& pl) const;
-  void At(const Place& pl, MPlace& result) const;
-  void DefTime(Periods& per) const;
-  void Atinstant(const Instant& inst, IPlace& result) const;
-  void Initial(IPlace& result) const;
-  void Final(IPlace& result) const;
-  void Inside(const Places& pls, MBool& result) const;
-};
-
-int ComparePlaces(const void *a, const void *b);
 
 /*
 \section{Class ~Places~}
@@ -539,32 +279,39 @@ int ComparePlaces(const void *a, const void *b);
 */
 class Places : public Attribute {
  public:
-  typedef PlaceValue base;
+  typedef pair<unsigned int, unsigned int> arrayelem;
+  typedef pair<string, unsigned int> base;
   typedef Place single;
-  typedef IPlaces itype;
-  typedef UPlaces utype;
-  typedef MPlaces mtype;
    
   Places() {}
-  Places(const int n) : Attribute(true), values(n) {}
+  Places(const int n) : Attribute(n > 0), values(0), posref(n) {}
   Places(const Places& rhs, const bool sort = false);
-  Places(const bool def) : Attribute(def), values(0) {}
+  explicit Places(const bool def) : Attribute(def), values(0), posref(0) {}
 
   ~Places() {}
 
-  void Append(const PlaceValue &pv) {values.Append(pv);}
+  void Append(const base& value);
   void Append(const Place& pl);
-  void Destroy() {values.destroy();}
-  int GetNoValues() const {return values.Size();}
-  void GetValue(const int i, Place& result) const;
-  void GetBasicValue(const int i, PlaceValue& result) const;
+  void Destroy() {values.destroy(); posref.destroy();}
+  int GetNoValues() const {return posref.Size();}
+  size_t GetLength() const {return values.getSize();}
+  void Get(const int i, Place& pl) const;
+  void GetValue(int i, base& val) const;
   bool IsEmpty() const {return (GetNoValues() == 0);}
-  void Sort() {values.Sort(ComparePlaces);}
-  bool Find(const Place& pl);
-  void Clean() {if (values.Size()) {values.clean();}}
+  bool Contains(const base& val) const;
+  void Clean() {values.clean(); posref.clean();}
+  static void getRefToLastElem(const int size, arrayelem& result);
+  static void getFlobPos(const pair<arrayelem, arrayelem>& elems, 
+                         pair<size_t, size_t>& result);
+  static void valuesToListExpr(const vector<base>& values, ListExpr& result);
+  static void getString(const ListExpr& list, string& result);
+  static void getElemFromList(const ListExpr& list, const unsigned int size, 
+                              arrayelem& result);
+  static void buildValue(const string& text, const arrayelem pos, base& result);
+  static void printArrayElem(const arrayelem e) {cout << e.first << " " 
+                                                      << e.second;}
   void operator=(const Places& p);
   bool operator==(const Places& p) const;
-  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Places);}
@@ -572,7 +319,7 @@ class Places : public Attribute {
   static const string BasicType() {return Place::BasicType() + "s";}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return 1;}
-  Flob* GetFLOB(const int i) {assert(i == 0); return &values;}
+  Flob* GetFLOB(const int i);
   size_t Sizeof() const {return sizeof(*this);}
   int Compare(const Attribute* arg) const;
   bool Adjacent(const Attribute *arg) const {return false;}
@@ -582,78 +329,184 @@ class Places : public Attribute {
   ListExpr ToListExpr(ListExpr typeInfo);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   
-  bool Contains(Place& pl) const;
+ protected:
+  Flob values;
+  DbArray<pair<unsigned int, unsigned int> > posref;
+};
 
- private:
-  DbArray<PlaceValue> values;
+/*
+\section{Class ~IPlace~}
+
+*/
+template<class B>
+class IBasic : public Intime<B> {
+ public:
+  IBasic() {}
+  explicit IBasic(const Instant& inst, const B& val);
+  explicit IBasic(const IBasic& rhs);
+  IBasic(const bool def) : Intime<B>(def) {}
+
+  ~IBasic() {}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(IBasic<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "i" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return this->value.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->value.GetFLOB(i);}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  
+  void Val(B& result) const;
+};
+
+// class MPlace; // forward declaration
+
+/*
+\section{Class ~UPlace~}
+
+*/
+template<class B>
+class UBasic : public ConstTemporalUnit<B> {
+ public:
+  UBasic() {}
+  explicit UBasic(bool def) : ConstTemporalUnit<B>(def) {}
+  explicit UBasic(const SecInterval &iv, const B& val);
+  UBasic(const UBasic& ub);
+  
+  ~UBasic() {}
+
+  bool operator==(const UBasic<B>& rhs) const;
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(UBasic<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "u" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return this->constValue.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->constValue.GetFLOB(i);}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+
+  void Initial(IBasic<B>& result) const;
+  void Final(IBasic<B>& result) const;
+};
+
+/*
+\section{Class ~MPlace~}
+
+*/
+template<class B>
+class MBasic : public Attribute {
+ public:
+  MBasic() {}
+  explicit MBasic(unsigned int n) : Attribute(n>0), values(0), units(n) {}
+  explicit MBasic(const MBasic& mb);
+  
+  ~MBasic() {}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(MBasic<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "m" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return 2;}
+  Flob* GetFLOB(const int i);
+  size_t Sizeof() const {return sizeof(*this);}
+  int Compare(const Attribute *arg) const;
+  Attribute* Clone() const {return new MBasic<B>(*this);}
+  bool Adjacent(const Attribute *arg) const {return false;}
+  size_t HashValue() const;
+  void CopyFrom(const Attribute *arg);
+  
+  ListExpr unitToListExpr(const int i);
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool readUnitFrom(ListExpr LE);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+
+  int Position(const Instant& inst) const;
+  void Get(const int i, UBasic<B>& result) const;
+  void GetBasic(const int i, B& result) const;
+  unsigned int getUnitEndPos(const int i) const;
+  void GetValue(const int i, typename B::base& result) const;
+  bool IsEmpty() const {return units.Size() == 0;}
+  int GetNoComponents() const {return units.Size();}
+  bool IsValid() const;
+  void Clear() {values.clean(); units.clean();}
+  void StartBulkLoad() {assert(IsDefined());}
+  void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
+  void Add(const UBasic<B>& ub);
+  void MergeAdd(const UBasic<B>& ub);
+  bool Passes(const B& basic) const;
+  void At(const B& basic, MBasic<B>& result) const;
+  void DefTime(Periods& per) const;
+  void Atinstant(const Instant& inst, IBasic<B>& result) const;
+  void Initial(IBasic<B>& result) const;
+  void Final(IBasic<B>& result) const;
+  void Inside(const typename B::coll& coll, MBool& result) const;
+  void Fill(MBasic<B>& result, DateTime& duration) const;
+  
+ protected:
+  Flob values;
+  DbArray<typename B::unitelem> units;
 };
 
 /*
 \section{Class ~IPlaces~}
 
 */
-class IPlaces : public Intime<Places> {
+template<class B>
+class IBasics : public Intime<B> {
  public:
-  IPlaces() {}
-  explicit IPlaces(const Instant& inst, const Places& pls);
-  explicit IPlaces(const IPlaces& rhs);
-  IPlaces(const bool def) : Intime<Places>(def) {}
+  IBasics() {}
+  explicit IBasics(const Instant& inst, const B& values);
+  IBasics(const IBasics& rhs) : Intime<B>(rhs) {}
+  IBasics(const bool def) : Intime<B>(def) {}
   
-  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
-
   static ListExpr Property();
-  static int SizeOfObj() {return sizeof(IPlaces);}
+  static int SizeOfObj() {return sizeof(IBasics<B>);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return IPlace::BasicType() + "s";}
+  static const string BasicType() {return "i" + B::BasicType();}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return value.NumOfFLOBs();}
-  Flob* GetFLOB(const int i) {return value.GetFLOB(i);}
+  int NumOfFLOBs() const {return this->value.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->value.GetFLOB(i);}
   size_t Sizeof() const {return sizeof(*this);}
   ListExpr ToListExpr(ListExpr typeInfo);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   
-  void Val(Places& result) const;
+  void Val(B& result) const;
 };
 
-class MPlaces; // forward declaration
+// class MPlaces; // forward declaration
 
 /*
 \section{Class ~UPlaces~}
 
 */
-class UPlaces : public ConstTemporalUnit<Places> {
+template<class B>
+class UBasics : public ConstTemporalUnit<B> {
  public:
-  UPlaces() {}
-  explicit UPlaces(const SecInterval& iv, const Places& pls);
-  UPlaces(int i, MPlaces &mps);
-  explicit UPlaces(const UPlaces& rhs);
-  UPlaces(const bool def) : ConstTemporalUnit<Places>(def) {}
-
-  string toString() {return nl->ToString(ToListExpr(nl->Empty()));}
+  UBasics() {}
+  UBasics(const SecInterval& iv, const B& values);
+  UBasics(const UBasics& rhs) : ConstTemporalUnit<B>(rhs) {}
+  explicit UBasics(const bool def) : ConstTemporalUnit<B>(def) {}
 
   static ListExpr Property();
-  static int SizeOfObj() {return sizeof(UPlaces);}
+  static int SizeOfObj() {return sizeof(UBasics<B>);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return UPlace::BasicType() + "s";}
+  static const string BasicType() {return "u" + B::BasicType();}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return constValue.NumOfFLOBs();}
-  Flob* GetFLOB(const int i) {return constValue.GetFLOB(i);}
+  int NumOfFLOBs() const {return this->constValue.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->constValue.GetFLOB(i);}
   size_t Sizeof() const {return sizeof(*this);}
   ListExpr ToListExpr(ListExpr typeInfo);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   
-  void Initial(IPlaces& result) const;
-  void Final(IPlaces& result) const;
-};
-
-class SymbolicUnit {
- public: 
-  SymbolicUnit() {}
-  SymbolicUnit(int pos) : interval(true), startPos(pos) {}
-  ~SymbolicUnit() {}
-  
-  SecInterval interval;
-  int startPos;
+  void Initial(IBasics<B>& result) const;
+  void Final(IBasics<B>& result) const;
 };
 
 /*
@@ -662,19 +515,16 @@ class SymbolicUnit {
 */
 template<class B>
 class MBasics : public Attribute {
- private:
-  DbArray<SymbolicUnit> units;
-  DbArray<typename B::base> values;
   
  public:
   MBasics() {}
-  explicit MBasics(int n) : Attribute(n > 0), units(n), values(0) {}
+  explicit MBasics(int n) : Attribute(n > 0), values(0), units(n), pos(0) {}
   explicit MBasics(const MBasics& mbs);
   
   ~MBasics() {}
   
   static ListExpr Property();
-  static int SizeOfObj() {return sizeof(B::mtype);}
+  static int SizeOfObj() {return sizeof(MBasics<B>);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
   static const string BasicType() {return "m" + B::BasicType();}
   static bool checkType(ListExpr t);
@@ -684,57 +534,95 @@ class MBasics : public Attribute {
   int Compare(const Attribute* arg) const;
   bool Adjacent(const Attribute *arg) const {return false;}
   Attribute *Clone() const;
-  size_t HashValue() const {return values.Size() * units.Size();}
-  void CopyFrom(const Attribute* right) {*this = *((typename B::mtype*)right);}
+  size_t HashValue() const {return pos.Size() * units.Size();}
+  void CopyFrom(const Attribute* right) {*this = *((MBasics<B>*)right);}
   ListExpr ToListExpr(ListExpr typeInfo);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-  void Destroy() {units.destroy(); values.destroy();}
+  void Destroy() {values.destroy(); units.destroy(); pos.destroy();}
   
-  int getEndPos(int i) const;
+  int getUnitEndPos(const int i) const;
   ListExpr valuesToListExpr(int start, int end);
   ListExpr unitToListExpr(int i);
-  void readValues(ListExpr valuelist);
+  bool readValues(ListExpr valuelist);
   bool readUnit(ListExpr unitlist);
   int Position(const Instant& inst) const;
   
-  void Get(const int i, typename B::utype& result) const;
+  void Get(const int i, UBasics<B>& result) const;
+  void GetBasics(const int i, B& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
-  void GetValues(const int i, B& result) const;
-  SecInterval GetInterval(int i) const;
+  void GetValues(const int i, vector<typename B::base>& result) const;
+  void GetInterval(const int i, SecInterval& result) const;
   int GetNoComponents() const {return units.Size();}
-  int GetNoValues() const {return values.Size();}
+  int GetNoValues() const {return pos.Size();}
   void Clear();
   void StartBulkLoad() {assert(IsDefined());}
   void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
-  void Add(const typename B::utype& ut);
-  void MergeAdd(const typename B::utype& ut);
+  void Add(const UBasics<B>& ut);
+  void MergeAdd(const UBasics<B>& ut);
   bool Passes(const typename B::single& sg) const;
   bool Passes(const B& bs) const;
-  void At(const typename B::single& sg, typename B::mtype& result) const;
-  void At(const B& bs, typename B::mtype& result) const;
+  void At(const typename B::single& sg, MBasics<B>& result) const;
+  void At(const B& bs, MBasics<B>& result) const;
   void DefTime(Periods& per) const;
-  void Atinstant(const Instant& inst, typename B::itype& result) const;
-  void Initial(typename B::itype& result) const;
-  void Final(typename B::itype& result) const;
+  void Atinstant(const Instant& inst, IBasics<B>& result) const;
+  void Initial(IBasics<B>& result) const;
+  void Final(IBasics<B>& result) const;
+  
+ protected:
+  Flob values;
+  DbArray<SymbolicUnit> units;
+  DbArray<typename B::arrayelem> pos;
+
 };
 
-class MLabels : public MBasics<Labels> {
- public: 
-  MLabels() {}
-  explicit MLabels(int n) : MBasics<Labels>(n) {}
-  explicit MLabels(const MLabels& mls) : MBasics<Labels>(mls) {}
+/*
+\section{Class ~MLabel~}
+
+*/
+class MLabel : public MBasic<Label> {
+ public:
+  MLabel() {}
+  MLabel(unsigned int n) : MBasic<Label>(n) {}
+   
+  void compress(MLabel& result) const;
+  void createML(int size, bool text, double rate);
+  void convertFromMString(const MString& source);
+  MLabel* rewrite(map<string, pair<unsigned int, unsigned int> > binding,
+                  vector<Assign> &assigns) const;
+                  
   
-  ~MLabels() {}
 };
 
-class MPlaces : public MBasics<Places> {
- public: 
-  MPlaces() {}
-  explicit MPlaces(int n) : MBasics<Places>(n) {}
-  explicit MPlaces(const MPlaces& mps) : MBasics<Places>(mps) {}
-  
-  ~MPlaces() {}
-};
+// class MLabels : public MBasics<Labels> {
+//  public: 
+//   MLabels() {}
+//   explicit MLabels(int n) : MBasics<Labels>(n) {}
+//   explicit MLabels(const MLabels& mls) : MBasics<Labels>(mls) {}
+//   
+//   ~MLabels() {}
+// };
+// 
+// class MPlaces : public MBasics<Places> {
+//  public: 
+//   MPlaces() {}
+//   explicit MPlaces(int n) : MBasics<Places>(n) {}
+//   explicit MPlaces(const MPlaces& mps) : MBasics<Places>(mps) {}
+//   
+//   ~MPlaces() {}
+// };
+
+typedef IBasic<Label> ILabel;
+typedef UBasic<Label> ULabel;
+typedef IBasic<Place> IPlace;
+typedef UBasic<Place> UPlace;
+typedef MBasic<Place> MPlace;
+
+typedef IBasics<Labels> ILabels;
+typedef UBasics<Labels> ULabels;
+typedef MBasics<Labels> MLabels;
+typedef IBasics<Places> IPlaces;
+typedef UBasics<Places> UPlaces;
+typedef MBasics<Places> MPlaces;
 
 class ExprList {
  public: 
