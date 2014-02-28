@@ -293,14 +293,32 @@ int tilesFunctiont(Word* pArguments,
                         pResultInfo->m_dX =
                         pResultInfo->m_BoundingBox.MinD(0);
                       }
+                      
+                      else
+                      {
+                        break;
+                      }
                     }
                   }
 
                   while(bHasDefinedValue == false);
-
-                  // return the next stream element
-                  rResult.addr = pDestinationType;
-                  nRetVal = YIELD;
+                  
+                  if(bHasDefinedValue == true)
+                  {
+                    // return the next stream element
+                    rResult.addr = pDestinationType;
+                    nRetVal = YIELD;
+                  }
+                  
+                  else
+                  {
+                    delete pDestinationType;
+                    pDestinationType = 0;
+                    
+                    // always set the result to null before return CANCEL
+                    rResult.addr = 0;
+                    nRetVal = CANCEL;
+                  }
                 }
               }
 
@@ -490,6 +508,11 @@ int tilesFunctionmt(Word* pArguments,
                           pResultInfo->m_dY =
                           pResultInfo->m_BoundingBox.MinD(1);
                         }
+                        
+                        else
+                        {
+                          break;
+                        }
                       }
 
                       else
@@ -501,9 +524,22 @@ int tilesFunctionmt(Word* pArguments,
                   }
 
                   while(bHasDefinedValue == false);
-
-                  rResult.addr = pDestinationType;
-                  nRetVal = YIELD;
+                  
+                  if(bHasDefinedValue == true)
+                  {
+                    rResult.addr = pDestinationType;
+                    nRetVal = YIELD;
+                  }
+                  
+                  else
+                  {
+                    delete pDestinationType;
+                    pDestinationType = 0;
+                    
+                    // always set the result to null before return CANCEL
+                    rResult.addr = 0;
+                    nRetVal = CANCEL;
+                  }
                 }
               }
 
@@ -679,14 +715,32 @@ int tilesFunctionit(Word* pArguments,
                           pResultInfo->m_dX =
                           pResultInfo->m_BoundingBox.MinD(0);
                         }
+                        
+                        else
+                        {
+                          break;
+                        }
                       }
                     }
 
                     while(bHasDefinedValue == false);
-
-                    // return the next stream element
-                    rResult.addr = pDestinationType;
-                    nRetVal = YIELD;
+                    
+                    if(bHasDefinedValue == true)
+                    {
+                      // return the next stream element
+                      rResult.addr = pDestinationType;
+                      nRetVal = YIELD;
+                    }
+                    
+                    else
+                    {
+                      delete pDestinationType;
+                      pDestinationType = 0;
+                      
+                      // always set the result to null before return CANCEL
+                      rResult.addr = 0;
+                      nRetVal = CANCEL;
+                    }
                   }
 
                   delete pstype;
