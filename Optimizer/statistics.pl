@@ -784,7 +784,7 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
               Query = count(timeout(filter(counter(loopjoin(
                       counter(Rel1Query, 1),
                       fun([param(txx1, tuple)],
-                      filter(counter(Rel2Query,2),red3))),3),Pred2),Timeout ))
+                      filter(counter(Rel2Query,2), Pred3))),3),Pred2),Timeout ))
            ; %  New version uses slower symmjoin to enable a balanced stream
              %  consumption within the timeout
               Query = count(timeout(filter(counter(
