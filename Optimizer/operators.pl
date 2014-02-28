@@ -155,10 +155,10 @@ type of expressions
 ---- opSignature(+Operator, ?Algebra, +ArgTypeList, -Resulttype, -Flags).
 ----
 
-Basically, these clauses do the same as the ~type mapping fubctions~ within the
+Basically, these clauses do the same as the ~type mapping functions~ within the
 Secondo kernel: They are provided with a list of argument (~ArgTypeList~) types
-and return the type ~Resulttype~ of the ~Operator~, when called with that argument
-types. Addiditionally, we register information on which algebra defines the operator
+and return the type ~Resulttype~ of the ~Operator~, when called with those argument
+types. Additionally, we register information on which algebra defines the operator
 and on whether the operator has certain properties, resp. belongs to certain classes
 of operators.
 
@@ -169,7 +169,7 @@ we strongly recommend to provide descriptions for each operator available!
 expressions for all arguments. Simple types are noted by their DC-name.
 
 Valid Type Expressions are given in Secondo nested list syntax, but using
-Prolog-style lists with suqared brackets and commas separating elements.
+Prolog-style lists with squared brackets and commas separating elements.
 To avoid confusion with Prolog-variables, everything is written in lower case
 letters (DC-spelling).
 
