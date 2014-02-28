@@ -2617,7 +2617,7 @@ NVK ADDED NR
 */
 
 /*
-There is even no afeedproject operator as for arel's (see below). Note that these rules are used for optimization of subquries, there are usually subqueries create like 0 COMPARE\_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
+There is even no afeedproject operator as for arel's (see below). Note that these rules are used for optimization of subqueries, there are usually subqueries create like 0 COMPARE\_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
 
 */
 
