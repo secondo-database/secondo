@@ -185,6 +185,7 @@ static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
             s.Transform(stf.first, stf.second);
             d.Transform(dtf.first, dtf.second);
             double val = fn(&s, &d);
+            DEBUG(3, i << "/" << j << " = " << val);
             if (val < thres) {
                 mtab.push_back(matchItem(&((*src)[i]), &((*dst)[i]), val));
             }

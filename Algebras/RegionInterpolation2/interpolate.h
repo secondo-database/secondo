@@ -11,7 +11,8 @@
 
 #include "config.h"
 
-#define DEBUG(l,m) do { if (l <= DEBUGLEVEL) { cerr << m << endl; } } while (0)
+#define DEBUG(l,m) do { if (l <= DEBUGLEVEL) { \
+        cerr << __FILE__ "(" << __LINE__ << "): " << endl; } } while (0)
 
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA
@@ -120,6 +121,7 @@ public:
     Region MakeRegion(double offx, double offy, double scalex, double scaley,
                       bool withholes); // same with offset/scale
     pair<Pt, Pt> GetBoundingBox(); // Get the bounding box of this face
+    pair<Pt, Pt> GetBoundingBox(bool recalc); // Recalculate if recalc is true
     Pt GetMiddle(); // Get the center of the bounding box
     Pt GetCentroid(); // Calculate the centroid of this face
     MSegs collapse(bool close); // collapse the face

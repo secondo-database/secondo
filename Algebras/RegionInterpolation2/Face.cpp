@@ -380,10 +380,16 @@ void Face::Transform(Pt off, Pt scale) {
         v[i].s = (v[i].s+off)*scale;
         v[i].e = (v[i].e+off)*scale;
     }
+    // The bounding box scales exactly like the polygon cornerpoints
+    bbox.first = (bbox.first+off)*scale;
+    bbox.second = (bbox.second+off)*scale;
+    
+    // Now handle the holes, too
     for (unsigned int h = 0; h < holes.size(); h++) {
         holes[h].Transform(off, scale);
     }
 }
+
 /* 
   1.12 The following four functions are used to iterate over the segments of
   a face. Begin() resets the position to the first segment, Next() and Prev()
@@ -471,8 +477,6 @@ MFace Face::collapseWithHoles(bool close) {
  
 */
 MSegs Face::collapse(bool close) {
-    MSegs ret;
-
     Pt dst = collapsePoint();
 
     return collapse(close, dst);
@@ -643,8 +647,27 @@ pair<Pt, Pt> Face::GetBoundingBox(set<Face*> regs) {
  face.
  
 */
-pair<Pt, Pt> Face::GetBoundingBox() {
+pair<Pt, Pt> Face::GetBoundingBox(bool recalculate) {
+    if (isEmpty())
+        return pair<Pt,Pt>(Pt(0,0),Pt(0,0));
+    bbox.first.x = bbox.second.x = v[0].s.x;
+    bbox.first.y = bbox.second.y = v[0].s.y;
+    
+    for (unsigned int i = 1; i < v.size(); i++) {
+        if (v[i].s.x < bbox.first.x)
+            bbox.first.x = v[i].s.x;
+        if (v[i].s.x > bbox.second.x)
+            bbox.second.x = v[i].s.x;
+        if (v[i].s.y < bbox.first.y)
+            bbox.first.y = v[i].s.y;
+        if (v[i].s.y > bbox.second.y)
+            bbox.second.y = v[i].s.y;
+    }
     return bbox;
+}
+
+pair<Pt, Pt> Face::GetBoundingBox() {
+    return GetBoundingBox(false);
 }
 
 /*

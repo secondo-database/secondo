@@ -1,7 +1,7 @@
 function matchFaces (src, dst, depth, args)
     print("\nLUA Start with args "..args)
+    local default = "Overlap:30" -- the default-strategy
     local ret = {}, key, reg
-    local default = "MW" -- the default-strategy
     
     print("\nDepth "..depth..": Srcregs " .. #src .. ", Dstregs " .. #dst)
 
@@ -23,6 +23,8 @@ function matchFaces (src, dst, depth, args)
 	print("DReg "..key..": "..pt.x.." / "..pt.y..
 	      "  BBox "..b1.x.."/"..b1.y.." "..b2.x.."/"..b2.y)
     end
+
+    if (args == "") then args = default end
 
     local argv = {}
     local i = 1

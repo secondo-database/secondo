@@ -27,7 +27,7 @@
 #define LUASCRIPTNAME "matchFaces"
 
 // Values for testing and developing
-#define DEBUGLEVEL 4 // The current debug level (valid: 1-4, 0 means off)
+#define DEBUGLEVEL 3 // The current debug level (valid: 1-4, 0 means off)
 
 // scale-factor for region-import and (m)region-export
 #define SCALEIN  1   // Imported values are multiplied by SCALEIN
@@ -41,7 +41,7 @@
 // trapeziumIntersects2 : interim function defined in opttritri.cpp
 // trapeziumIntersects3 : modified interim function defined in ointersect.cpp
 // #define TRAPEZIUMINTERSECTS trapeziumIntersects // specialTrapeziumIntersects
-#define TRAPEZIUMINTERSECTS trapeziumIntersects4
+#define TRAPEZIUMINTERSECTS trapeziumIntersects3
 #define STRICT 0
 
 #endif /* _INTERPOLATE2_CONFIG_H */
