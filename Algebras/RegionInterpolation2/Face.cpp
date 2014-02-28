@@ -537,7 +537,6 @@ Pt Face::GetMiddle() {
 
 */
 double Face::GetArea() {
-    cerr << "Get area of " << this->ToString() << "\n";
     return this->MakeRegion(false).Area(NULL);
 }
 
@@ -755,10 +754,9 @@ Face Face::ClipEar() {
         }
     }
     
-    cerr << "No ear found on face " << this->ToString() << "\n";
+    DEBUG(2, "No ear found on face " << ToString());
     // If we are here it means we haven't found an ear. This shouldn't happen.
     // One reason could be that the face wasn't valid in the first place.
-    assert(false);
     return ret;
 }
 

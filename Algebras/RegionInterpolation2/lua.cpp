@@ -83,6 +83,10 @@ static Pt lua_getPt(const char *name) {
 static pair<Pt, Pt> getOffAndScale(bool isdst) {
     Pt off = isdst ? lua_getPt("dstoff") : lua_getPt("srcoff");
     Pt scale = isdst ? lua_getPt("dstscale") : lua_getPt("srcscale");
+    
+    // Do not allow scale-factors of 0
+    if (!scale.x || !scale.y)
+        scale = Pt(1,1);
 
     return pair<Pt, Pt>(off, scale);
 }
@@ -122,7 +126,7 @@ int luaInit(void) {
         st = luaL_loadfile(L, LUASCRIPTNAME ".lua");
         if (st) {
             // Either it wasn't present or a parse-error occurred
-            cerr << "Error parsing LUA-file: " << lua_tostring(L, -1) << "\n";
+            DEBUG(1, "Error parsing LUA-file: " << lua_tostring(L, -1));
             return -1;
         }
     }
@@ -131,7 +135,7 @@ int luaInit(void) {
     st = lua_pcall(L, 0, 0, 0);
     if (st) {
         // Runtime error
-        cerr << "Error running LUA-file: " << lua_tostring(L, -1) << "\n";
+        DEBUG(1, "Error running LUA-file: " << lua_tostring(L, -1));
         return -1;
     }
 
@@ -229,7 +233,7 @@ vector<pair<Face *, Face *> > _matchFacesLua(set<Face*> *src, set<Face*> *dst,
 
     int st = lua_pcall(L, 4, 1, 0); // The actual Lua-functioncall happens here
     if (st) {
-        cerr << "Error calling matchFaces: " << lua_tostring(L, -1) << "\n";
+        DEBUG(1, "Error calling matchFaces: " << lua_tostring(L, -1));
         return ret;
     }
 
@@ -512,7 +516,19 @@ LUA_FUNCTION(area) {
 }
 
 /*
- 3.9 add\_custom\_functions inserts the functions defined above into the
+ 3.9 Print prints information to cerr
+ 
+*/
+LUA_FUNCTION(print) {
+    if ((lua_gettop(L) != 1) || !lua_isstring(L, 1))
+        return 0;
+    
+    cerr << lua_tolstring(L, 1, NULL) << endl;
+    
+    return 0;
+}
+/*
+ 3.10 add\_custom\_functions inserts the functions defined above into the
  global list of functions in the Lua-environment.
  If you added a function above, then you also have to add a corresponding line
  in this function.
@@ -527,6 +543,7 @@ static void add_custom_functions () {
     LUA_ADD_FUNCTION(centroid);
     LUA_ADD_FUNCTION(points);
     LUA_ADD_FUNCTION(area);
+    LUA_ADD_FUNCTION(print);
 }
 
 #endif

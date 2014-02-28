@@ -11,8 +11,8 @@
 
 #include "config.h"
 
-#define DEBUG(l,m) do { if (l <= DEBUGLEVEL) { \
-        cerr << __FILE__ "(" << __LINE__ << "): " << endl; } } while (0)
+#define DEBUG(l,m) do { if (l <= DEBUGLEVEL) { cerr << __FILE__ "(" << \
+                       setw(4) << __LINE__ << "): " << m << endl; } } while (0)
 
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA

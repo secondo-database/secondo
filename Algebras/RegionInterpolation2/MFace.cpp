@@ -285,7 +285,7 @@ vector<MFace> MFace::MergeConcavities() {
     vector<MFace> split = SplitCycle();
     if (split.size() > 0) {
         DEBUG(3, "Cycle is ambiguous, splitted into ");
-        DEBUG(3, this->ToString());
+        DEBUG(3, ToString());
         for (unsigned int i = 0; i < split.size(); i++) {
             DEBUG(3, split[i].ToString());
         }
@@ -379,9 +379,9 @@ ListExpr MFace::ToListExpr() {
  
 */
 void MFace::PrintMRegionListExpr() {
-    cerr << "(OBJECT mr () mregion ( ( "
+    DEBUG(1, "(OBJECT mr () mregion ( ( "
             "(\"2013-01-01\" \"2013-01-02\" TRUE TRUE)("
-            << nl->ToString(ToListExpr()) << ") ) ) )";
+            << nl->ToString(ToListExpr()) << ") ) ) )");
 }
 
 /*

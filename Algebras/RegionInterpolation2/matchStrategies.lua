@@ -100,6 +100,14 @@ function clouddistance (src, dst)
    end
 end
 
+function matchFacesWood (src, dst, depth)
+   if (depth == 0) then
+      srcoff, dstoff, srcscale, dstscale = nil
+   end
+
+   return matchFacesOverlap(src, dst, depth, 10)
+end
+
 function matchFacesCriterion (src, dst, depth, func, thres)
     ret = {}
     

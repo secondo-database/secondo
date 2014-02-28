@@ -316,8 +316,7 @@ static bool _trapeziumIntersects2 (MSeg m, MSeg a) {
         V2[1] = m.fs.y;
         V2[2] = 1;
     } else {
-        cerr << "ERROR: src-triangle is a trapezium!\n";
-        assert(false);
+        DEBUG(1, "ERROR: src-triangle is a trapezium!");
     }
 
     if (a.is.x == a.ie.x && a.is.y == a.ie.y) {
@@ -341,8 +340,7 @@ static bool _trapeziumIntersects2 (MSeg m, MSeg a) {
         U2[1] = a.fs.y;
         U2[2] = 1;
     } else {
-        cerr << "ERROR: dst-triangle is a trapezium!\n";
-        assert(false);
+        DEBUG(1, "ERROR: dst-triangle is a trapezium!");
     }
 
     bool ret = TriangleIntersection(V0, V1, V2, U0, U1, U2);

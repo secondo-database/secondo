@@ -236,8 +236,7 @@ static bool _trapeziumIntersects2(MSeg m, MSeg a) {
         v1 = Vec(m.ie.x, m.ie.y, 0);
         v2 = Vec(m.fs.x, m.fs.y, 1);
     } else {
-        cerr << "ERROR: src-triangle is a trapezium!\n";
-        assert(false);
+        DEBUG(1, "ERROR: src-triangle is a trapezium!");
     }
 
     if (a.is.x == a.ie.x && a.is.y == a.ie.y) {
@@ -249,7 +248,7 @@ static bool _trapeziumIntersects2(MSeg m, MSeg a) {
         u1 = Vec(a.ie.x, a.ie.y, 0);
         u2 = Vec(a.fs.x, a.fs.y, 1);
     } else {
-        cerr << "ERROR: dst-triangle is a trapezium!\n";
+        DEBUG(1, "ERROR: dst-triangle is a trapezium!");
         assert(false);
     }
 

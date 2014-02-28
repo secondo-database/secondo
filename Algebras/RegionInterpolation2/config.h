@@ -18,7 +18,7 @@
 #define MOMENTMS 100
 
 
-// Choose the installed Lua-version here
+// Choose the installed Lua-version here. undefine both to deactivate Lua
 #define LUA5_1 // Lua5.1
 //#define LUA5_2 // Lua5.2
 

@@ -185,9 +185,9 @@ static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
             s.Transform(stf.first, stf.second);
             d.Transform(dtf.first, dtf.second);
             double val = fn(&s, &d);
-            DEBUG(3, i << "/" << j << " = " << val);
+            DEBUG(4, "Criterion: " << i << "/" << j << " = " << val);
             if (val < thres) {
-                mtab.push_back(matchItem(&((*src)[i]), &((*dst)[i]), val));
+                mtab.push_back(matchItem(&((*src)[i]), &((*dst)[j]), val));
             }
         }
     }
@@ -235,6 +235,7 @@ static vector<pair<Face *, Face *> > matchFacesOverlap(vector<Face> *src,
     int minpercent = atoi(args.c_str());
     if ((minpercent <= 0) || (minpercent > 100))
         minpercent = 30;
+    DEBUG(2, "Strategy overlap with minimum " << minpercent << "%");
     return matchFacesCriterion(src, dst, depth, overlap, (100 - minpercent));
 }
 
@@ -344,6 +345,7 @@ vector<pair<Face *, Face *> > matchFaces(
     
     for (unsigned int i = 0; i < nrMatchFacesStrategies; i++) {
         if (matchFacesStrategies[i].name == fname) {
+            DEBUG(2, "Using C++-MatchFaces-strategy " << fname);
             fn = matchFacesStrategies[i].fn;
             break;
         }
@@ -355,9 +357,12 @@ vector<pair<Face *, Face *> > matchFaces(
     } else {
         // Otherwise use a default strategy
 #ifdef USE_LUA
+        DEBUG(2, "Using Lua-MatchFaces-strategy " << args);
         // which is Lua, if it is compiled
         pairs = matchFacesLua(src, dst, depth, args);
 #else
+        DEBUG(2, "Using Default-C++-MatchFaces-strategy " <<
+                matchFacesStrategies[0].name);
         // or the first strategy in the list otherwise
         pairs = matchFacesStrategies[0].fn(src, dst, depth, fargs);
 #endif

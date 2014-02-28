@@ -368,6 +368,9 @@ void MSegs::updateBBox(MSeg& mseg) {
             max(mseg.is.y, mseg.ie.y,
             mseg.fs.y, mseg.fe.y)
             );
+    
+    // Expand the bounding box if any part of the moving segment is outside the
+    // current bounding box
     if (!bbox.first.valid || (bbox.first.x > p1.x))
         bbox.first.x = p1.x;
     if (!bbox.first.valid || (bbox.first.y > p1.y))
