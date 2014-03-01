@@ -32,8 +32,8 @@ static Face getConcavity(Face *reg, Face *hull, Face *peer);
 RotatingPlane::RotatingPlane(Face *sreg, Face *dreg, int depth, bool evap) {
     MSegs msegs;
 
-    /* Store a copy of the original source- and destination-regions for further
-     * reference (e.g. collapse or expand in case of intersections) */
+    // Store a copy of the original source- and destination-regions for further
+    // reference (e.g. collapse or expand in case of intersections)
     msegs.sreg = *sreg;
     msegs.dreg = *dreg;
 
@@ -123,6 +123,8 @@ static Face getConcavity(Face *face, Face *hull, Face *peer) {
         concavity.AddSeg(face->Cur());
         face->Next();
     }
+    
+    // The peerpoint is the point on the other hull to collapse/expand
     concavity.peerPoint = peer->Cur().s;
     concavity.parent = face;
     concavity.Close();

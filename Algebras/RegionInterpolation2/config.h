@@ -15,6 +15,7 @@
 #define SCALESIZE 1000000
 
 // This is the duration of one moment in ms, used for the borderregions.
+// Set to 0 for a real moment
 #define MOMENTMS 100
 
 
@@ -22,12 +23,12 @@
 #define LUA5_1 // Lua5.1
 //#define LUA5_2 // Lua5.2
 
-// The main Lua Scriptname (without suffic .lua or .luac)
+// The main Lua script name (without suffix .lua or .luac)
 // This can be a relative or an absolute path
 #define LUASCRIPTNAME "matchFaces"
 
 // Values for testing and developing
-#define DEBUGLEVEL 3 // The current debug level (valid: 1-4, 0 means off)
+#define DEBUGLEVEL 0 // The current debug level (valid: 1-4, 0 means off)
 
 // scale-factor for region-import and (m)region-export
 #define SCALEIN  1   // Imported values are multiplied by SCALEIN

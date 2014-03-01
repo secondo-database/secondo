@@ -82,22 +82,26 @@ function matchFacesCloud (src, dst, depth, direction)
 end
 
 function clouddistance (src, dst)
-   local cs = centroid(src)
-   local ds = centroid(dst)
+   local cs = middle(src)
+   local ds = middle(dst)
 
    local dx = cs.x - ds.x
    local dy = cs.y - ds.y
 
-   local xx = math.sin(math.rad(degree))
-   local xy = math.cos(math.rad(degree))
+   local deg = math.deg(math.atan2(dy, dx))%360
+   local mindeg = (degree-25)%360
+   local maxdeg = (degree+25)%360
 
-   local dist = dx*xx + dy*xy
-
-   print("Dist ".. dist )
-
-   if (dist > 0) then
-       return dist
+   if (((deg < mindeg) or (deg > maxdeg)) and (mindeg < maxdeg)) then
+       return nil
    end
+   if (((deg < mindeg) and (deg > maxdeg)) and (mindeg > maxdeg)) then
+       return nil
+   end
+
+   local dist = math.sqrt(dx*dx + dy*dy)
+
+   return dist
 end
 
 function matchFacesWood (src, dst, depth)

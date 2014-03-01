@@ -157,7 +157,7 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
         // need a borderregion there
         evaporIv.lc = false;
 
-        evaporIv.start = mainIv.start;
+        evaporIv.start = mainIv.start + moment;
         mainIv.start = mainIv.start + onethird;
         evaporIv.end = mainIv.start;
 
@@ -169,7 +169,7 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
         // need a borderregion there
         condensIv.rc = false;
 
-        condensIv.end = mainIv.end;
+        condensIv.end = mainIv.end - moment;
         mainIv.end = mainIv.end - onethird;
         condensIv.start = mainIv.end;
 
@@ -200,7 +200,7 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
 
 
     if (needSEvap) { // We need to perform an evaporations-phase
-        Interval<Instant> siv(evaporIv.start, evaporIv.start, true, true);
+        Interval<Instant> siv(evaporIv.start-moment, evaporIv.start, true,true);
         MFaces s = Face::CreateMFaces(sregs);
         Append(mreg, s.ToListExpr(siv, 0, 1));
         MFaces fs;
@@ -236,7 +236,7 @@ ListExpr MFaces::ToMListExpr(Interval<Instant> iv) {
         fs = interpolate(&borderdregs, dregs, 0, true, "");
         Append(mreg, fs.ToListExpr(condensIv, 0, 1));
         
-        Interval<Instant> eiv(condensIv.end, condensIv.end, true, true);
+        Interval<Instant> eiv(condensIv.end, condensIv.end+moment, true, true);
         MFaces s = Face::CreateMFaces(dregs);
         Append(mreg, s.ToListExpr(eiv, 0, 1));
     }
@@ -299,30 +299,30 @@ MRegion MFaces::ToMRegion(Interval<Instant> iv) {
     }
 
     Instant onethird = (iv.end - iv.start) / 3;
-    Interval<Instant> startEvapIv, endEvapIv;
+    Interval<Instant> evaporIv, condensIv;
     Interval<Instant> startRegIv, endRegIv;
     Interval<Instant> mainIv;
 
     mainIv.CopyFrom(iv);
     mainIv.lc = mainIv.rc = true;
     if (needSEvap) {
-        startEvapIv.lc = false;
+        evaporIv.lc = false;
 
-        startEvapIv.start = mainIv.start;
+        evaporIv.start = mainIv.start;
         mainIv.start = mainIv.start + onethird;
-        startEvapIv.end = mainIv.start;
+        evaporIv.end = mainIv.start;
 
-        startEvapIv.rc = false;
+        evaporIv.rc = false;
     }
 
     if (needDEvap) {
-        endEvapIv.rc = false;
+        condensIv.rc = false;
 
-        endEvapIv.end = mainIv.end;
+        condensIv.end = mainIv.end;
         mainIv.end = mainIv.end - onethird;
-        endEvapIv.start = mainIv.end;
+        condensIv.start = mainIv.end;
 
-        endEvapIv.lc = false;
+        condensIv.lc = false;
     }
 
     if (needStartRegion) {
@@ -349,10 +349,14 @@ MRegion MFaces::ToMRegion(Interval<Instant> iv) {
 
 
     if (needSEvap) {
+        Interval<Instant> siv(evaporIv.start, evaporIv.start+moment, true,true);
+        MFaces s = Face::CreateMFaces(sregs);
+        URegion u2 = s.ToURegion(siv, 0, 1);
+        ret.AddURegion(u2);
         MFaces fs;
         vector<Face> bordersregs = CreateBorderFaces(true);
         fs = interpolate(sregs, &bordersregs, 0, true, "");
-        URegion u = fs.ToURegion(startEvapIv, 0, 1);
+        URegion u = fs.ToURegion(evaporIv, 0, 1);
         ret.AddURegion(u);
     }
 
@@ -375,8 +379,12 @@ MRegion MFaces::ToMRegion(Interval<Instant> iv) {
         MFaces fs;
         vector<Face> borderdregs = CreateBorderFaces(false);
         fs = interpolate(&borderdregs, dregs, 0, true, "");
-        URegion u = fs.ToURegion(endEvapIv, 0, 1);
+        URegion u = fs.ToURegion(condensIv, 0, 1);
         ret.AddURegion(u);
+        Interval<Instant> eiv(condensIv.end, condensIv.end+moment, true, true);
+        MFaces s = Face::CreateMFaces(dregs);
+        URegion u2 = s.ToURegion(eiv, 0, 1);
+        ret.AddURegion(u2);
     }
 
     return ret;
