@@ -84,7 +84,7 @@ static pair<Pt, Pt> getOffAndScale(bool isdst) {
     Pt off = isdst ? lua_getPt("dstoff") : lua_getPt("srcoff");
     Pt scale = isdst ? lua_getPt("dstscale") : lua_getPt("srcscale");
     
-    // Do not allow scale-factors of 0
+    // Do not allow scale-factors of 0 to avoid FPE
     if (!scale.x || !scale.y)
         scale = Pt(1,1);
 
