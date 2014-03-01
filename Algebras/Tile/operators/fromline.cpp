@@ -285,15 +285,17 @@ int fromlineFunction(Word* pArguments,
                 pResultInfo->m_dMaximumY = endPoint.GetY();
               }
             }
-
-            pResultInfo->m_dX = gridX +
-                                std::floor((pResultInfo->m_dMinimumX - gridX) /
-                                          (xDimensionSize * gridLength)) *
-                                          (xDimensionSize * gridLength);
-            pResultInfo->m_dY = gridY +
-                                std::floor((pResultInfo->m_dMinimumY -gridY) /
-                                          (yDimensionSize * gridLength)) *
-                                          (yDimensionSize * gridLength);
+            
+            double deltaX = pResultInfo->m_dMinimumX - gridX;
+            double tileSizeX = xDimensionSize * gridLength;
+            pResultInfo->m_dX = gridX + std::floor(deltaX / tileSizeX) *
+                                tileSizeX;
+            
+            double deltaY = pResultInfo->m_dMinimumY - gridY;
+            double tileSizeY = yDimensionSize * gridLength;    
+            pResultInfo->m_dY = gridY + std::floor(deltaY / tileSizeY) *
+                                tileSizeY;
+            
             rLocal.addr = pResultInfo;
             nRetVal = 0;
           }
@@ -340,12 +342,11 @@ int fromlineFunction(Word* pArguments,
                       if(pResultInfo->m_dY <=
                          pResultInfo->m_dMaximumY)
                       {
+                        double deltaX = pResultInfo->m_dMinimumX - gridX;
+                        double tileSizeX = xDimensionSize * gridLength;
                         pResultInfo->m_dX = gridX +
-                                            std::floor
-                                            ((pResultInfo->m_dMinimumX -
-                                              gridX) /
-                                            (xDimensionSize * gridLength)) *
-                                            (xDimensionSize * gridLength);
+                                            std::floor(deltaX / tileSizeX) *
+                                            tileSizeX;
                       }
                     }
                   }
