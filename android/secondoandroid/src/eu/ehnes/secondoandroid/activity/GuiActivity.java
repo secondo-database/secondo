@@ -1,7 +1,12 @@
-package eu.ehnes.secondoandroid;
+package eu.ehnes.secondoandroid.activity;
 
+import eu.ehnes.secondoandroid.AccessDatabase;
 import eu.ehnes.secondoandroid.R;
+import eu.ehnes.secondoandroid.R.id;
+import eu.ehnes.secondoandroid.R.layout;
+import eu.ehnes.secondoandroid.itf.ISecondoDbaCallback;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -11,11 +16,12 @@ import android.widget.Toast;
 /**
  * The Class GuiActivity.
  */
-public class GuiActivity extends Activity {
+public class GuiActivity extends Activity implements ISecondoDbaCallback{
 	private String path = null;
 	private String filename = null;
 	TextView messageLine;
-
+	ProgressDialog progressDialog = null;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 
@@ -120,7 +126,7 @@ public class GuiActivity extends Activity {
 		// Fehler werden nicht abgefragt
 		String dbname = AccessDatabase.ActiveDatabase();
 		if (dbname.length() > 0) {
-			SecondoActivity.sh.query("close database");
+			SecondoActivity.secondoDba.querySync("close database");
 			messageLine.setText("No database open");
 			Toast.makeText(this, "Database closed", Toast.LENGTH_LONG).show();
 
@@ -153,8 +159,10 @@ public class GuiActivity extends Activity {
 			Bundle rucksack = data.getExtras();
 			path = rucksack.getString("resultPath");
 			filename = rucksack.getString("resultFile");
-			SecondoActivity.sh.query("restore database " + filename + " from '"
-					+ path + "'");
+			progressDialog = ProgressDialog.show(this, "Secondo", "Secondo is restoring a database from file. Please wait!");
+
+			SecondoActivity.secondoDba.queryASync("restore database " + filename + " from '"
+					+ path + "'", this);
 		}
 
 		System.out.println("Ergebnispfad: " + path);
@@ -173,6 +181,18 @@ public class GuiActivity extends Activity {
 			}
 
 		}
+	}
+
+	@Override
+	public void queryCallBack(Object result) {
+		if (progressDialog != null && progressDialog.isShowing()) {
+			progressDialog.dismiss();
+		}
+	}
+
+	@Override
+	public void initializeCallBack(boolean result) {
+		// not called
 	}
 
 }

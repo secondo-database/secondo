@@ -1,9 +1,10 @@
-package eu.ehnes.secondoandroid;
+package eu.ehnes.secondoandroid.activity;
 
 import java.util.ArrayList;
 
+import eu.ehnes.secondoandroid.ListOut;
 import eu.ehnes.secondoandroid.R;
-
+import eu.ehnes.secondoandroid.R.layout;
 import android.app.ListActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -27,7 +28,7 @@ public class DatabaseOpenActivity extends ListActivity {
 		ArrayList<String> item = new ArrayList<String>();
 		
 		
-		ListExpr liste=(ListExpr)SecondoActivity.sh.query("list databases");
+		ListExpr liste=(ListExpr)SecondoActivity.secondoDba.querySync("list databases");
 		if(liste!=null) {
 			ListOut lo=new ListOut();
 			lo.ListToStringArray(liste);
@@ -51,7 +52,7 @@ public class DatabaseOpenActivity extends ListActivity {
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
 				Object o=lv.getItemAtPosition(position);
-				SecondoActivity.sh.query("open database "+o.toString());
+				SecondoActivity.secondoDba.querySync("open database "+o.toString());
 		        Toast.makeText(getBaseContext(), "Database opened", Toast.LENGTH_LONG).show();
 
 				finish();

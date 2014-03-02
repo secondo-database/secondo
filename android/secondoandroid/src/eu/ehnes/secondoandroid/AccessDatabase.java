@@ -1,5 +1,6 @@
 package eu.ehnes.secondoandroid;
 
+import eu.ehnes.secondoandroid.activity.SecondoActivity;
 import sj.lang.ListExpr;
 
 /**
@@ -12,10 +13,10 @@ public class AccessDatabase {
 	 *
 	 * @return a String with the name of the active Database
 	 */
-	static String ActiveDatabase() {
+	public static String ActiveDatabase() {
 		
 		// Der aktuelle Name der Datenbank wird abgefragt
-		ListExpr liste=(ListExpr)SecondoActivity.sh.query("query getDatabaseName()");
+		ListExpr liste=(ListExpr)SecondoActivity.secondoDba.querySync("query getDatabaseName()");
 		ListOut lo=new ListOut();
 		String dbname="";
 		

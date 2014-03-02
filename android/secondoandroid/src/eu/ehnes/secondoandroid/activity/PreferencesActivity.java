@@ -1,5 +1,8 @@
-package eu.ehnes.secondoandroid;
+package eu.ehnes.secondoandroid.activity;
 
+import eu.ehnes.secondoandroid.R;
+import eu.ehnes.secondoandroid.R.id;
+import eu.ehnes.secondoandroid.R.layout;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.os.Bundle;

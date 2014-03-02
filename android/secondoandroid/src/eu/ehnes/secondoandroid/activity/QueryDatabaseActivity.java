@@ -1,7 +1,12 @@
-package eu.ehnes.secondoandroid;
+package eu.ehnes.secondoandroid.activity;
 
 import java.util.List;
 
+import eu.ehnes.secondoandroid.History;
+import eu.ehnes.secondoandroid.ProcessQueries;
+import eu.ehnes.secondoandroid.R;
+import eu.ehnes.secondoandroid.R.id;
+import eu.ehnes.secondoandroid.R.layout;
 import sj.lang.ListExpr;
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -72,7 +77,7 @@ public class QueryDatabaseActivity extends Activity {
 			String eingabetext=eingabe.getText().toString().replace('"', '\'');
 			history.add(eingabe.getText().toString());
 			
-			Object liste=SecondoActivity.sh.query(eingabetext);
+			Object liste=SecondoActivity.secondoDba.querySync(eingabetext);
 			if(liste!=null) {
 				eingabe.setText("");
 				eingabe.setHint("Last entered command:\n\n"+eingabetext);
@@ -104,7 +109,7 @@ public class QueryDatabaseActivity extends Activity {
 				ausgabeliste.setVisibility(View.GONE);
 				ausgabe.setVisibility(View.VISIBLE);
 				eingabe.setText("");
-				ausgabe.setText("Error: "+SecondoActivity.sh.errorMessage());
+				ausgabe.setText("Error: "+SecondoActivity.secondoDba.errorMessageSync());
 
 			}
 		}

@@ -1,7 +1,10 @@
-package eu.ehnes.secondoandroid;
+package eu.ehnes.secondoandroid.activity;
 
 import java.text.SimpleDateFormat;
+
 import eu.ehnes.secondoandroid.R;
+import eu.ehnes.secondoandroid.R.id;
+import eu.ehnes.secondoandroid.R.layout;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ProgressDialog;

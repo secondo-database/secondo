@@ -1,21 +1,31 @@
 // SecondoActivity
 // (c) Jürgen Ehnes 2012-2013
 
-package eu.ehnes.secondoandroid;
+package eu.ehnes.secondoandroid.activity;
 
+import eu.ehnes.secondoandroid.HandleAssets;
+import eu.ehnes.secondoandroid.OwnPath;
 import eu.ehnes.secondoandroid.R;
+import eu.ehnes.secondoandroid.R.layout;
+import eu.ehnes.secondoandroid.R.menu;
+import eu.ehnes.secondoandroid.impl.SecondoDba;
+import eu.ehnes.secondoandroid.itf.ISecondoDba;
+import eu.ehnes.secondoandroid.itf.ISecondoDbaCallback;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.view.Menu;
 import android.view.View;
 
 
-public class SecondoActivity extends Activity {
-	public static starthelper sh;
-	
+public class SecondoActivity extends Activity implements ISecondoDbaCallback {
+	//public static starthelper sh;
+	public static ISecondoDba secondoDba;
+	ProgressDialog progressDialog = null;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		System.out.println("Start des Programms");
@@ -44,12 +54,12 @@ public class SecondoActivity extends Activity {
 		handleAssets.copyAssets("constrainttest",filesPath);
 		
 		// Die Starthelpervariable wird initialisiert
-		sh=new starthelper();
+		secondoDba = new SecondoDba();
 		SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-		String configPath = preferences.getString("configPath", getApplicationContext().getFilesDir().getPath()+"/../Config.ini");
+		final String configPath = preferences.getString("configPath", getApplicationContext().getFilesDir().getPath()+"/../Config.ini");
 
-		sh.initialize(configPath);
-
+		progressDialog = ProgressDialog.show(this,"Secondo", "Secondo is starting, please be patient ...");
+		secondoDba.initializeASync(configPath, this);
 	}
 
 	@Override
@@ -108,8 +118,8 @@ public class SecondoActivity extends Activity {
 	protected void onDestroy() {
 		super.onDestroy();
 		System.out.println("closedb");
-		sh.shutdown();
-		sh=null;
+		secondoDba.shutdownSync();
+		secondoDba=null;
 	}
 	
 	/**
@@ -121,6 +131,20 @@ public class SecondoActivity extends Activity {
 		Intent myIntent = new Intent(v.getContext(), MemoryActivity.class);
 		startActivityForResult(myIntent, 0);
 		
+	}
+
+	@Override
+	public void queryCallBack(Object result) {
+		System.out.println("queryCallback called");
+		
+	}
+
+	@Override
+	public void initializeCallBack(boolean result) {
+		System.out.println("initializeCallback called");
+		progressDialog.dismiss();
+	
+
 	}
 	
 }

@@ -1,6 +1,6 @@
 // FileDialogActivity
 
-package eu.ehnes.secondoandroid;
+package eu.ehnes.secondoandroid.activity;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
@@ -18,7 +18,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import eu.ehnes.secondoandroid.OwnPath;
 import eu.ehnes.secondoandroid.R;
+import eu.ehnes.secondoandroid.R.drawable;
+import eu.ehnes.secondoandroid.R.id;
+import eu.ehnes.secondoandroid.R.layout;
 
 
 /**

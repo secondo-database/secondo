@@ -18,7 +18,7 @@ public class ListOut {
 	 * Constructor
 	 */
 	
-	ListOut() {
+	public ListOut() {
 		al=null;
 	}
 	

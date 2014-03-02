@@ -1,12 +1,12 @@
-package eu.ehnes.secondoandroid;
+package eu.ehnes.secondoandroid.activity;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import eu.ehnes.secondoandroid.ListOut;
 import eu.ehnes.secondoandroid.R;
-
+import eu.ehnes.secondoandroid.R.layout;
 import sj.lang.ListExpr;
-
 import android.app.ListActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -14,6 +14,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
+import eu.ehnes.secondoandroid.ListOut;
 
 public class DatabaseDeleteActivity extends ListActivity {
 	private ListView lv;
@@ -28,7 +29,7 @@ public class DatabaseDeleteActivity extends ListActivity {
 		List<String> item = new ArrayList<String>();
 
 
-		Object liste=SecondoActivity.sh.query("list databases");	// Die verfügbaren Datenbanken abfragen 
+		Object liste=SecondoActivity.secondoDba.querySync("list databases");	// Die verfügbaren Datenbanken abfragen 
 		if(liste!=null) {
 			ListExpr newlist=(ListExpr)liste;	
 			ListOut lo=new ListOut();		
@@ -55,7 +56,7 @@ public class DatabaseDeleteActivity extends ListActivity {
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
 				Object o=lv.getItemAtPosition(position);
-				SecondoActivity.sh.query("delete database "+o.toString());
+				SecondoActivity.secondoDba.querySync("delete database "+o.toString());
 
 				Toast.makeText(getBaseContext(), "Datenbank deleted", Toast.LENGTH_LONG).show();
 

@@ -1,12 +1,15 @@
-package eu.ehnes.secondoandroid;
+package eu.ehnes.secondoandroid.activity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import eu.ehnes.secondoandroid.ListOut;
 import eu.ehnes.secondoandroid.R;
-
+import eu.ehnes.secondoandroid.SecondoCommands;
+import eu.ehnes.secondoandroid.R.id;
+import eu.ehnes.secondoandroid.R.layout;
 import sj.lang.ListExpr;
 import android.app.ListActivity;
 import android.content.Context;
@@ -55,7 +58,7 @@ public class ListObjectsActivity extends ListActivity {
 		ListExpr liste=null;
 		
 		try {
-			liste=(ListExpr)SecondoActivity.sh.query(SecondoCommands.listobjects);
+			liste=(ListExpr)SecondoActivity.secondoDba.querySync(SecondoCommands.listobjects);
 		}
 		catch(OutOfMemoryError ome) {
 	        Toast.makeText(this, "Query is not successful. System is running out of memory", Toast.LENGTH_LONG).show();
@@ -93,7 +96,7 @@ public class ListObjectsActivity extends ListActivity {
 					}
 				}
 			}else {
-				item.add(SecondoActivity.sh.errorMessage());
+				item.add(SecondoActivity.secondoDba.errorMessageSync());
 				fehler=true;
 			}			
 		 
