@@ -15,8 +15,9 @@
 #define SCALESIZE 1000000
 
 // This is the duration of one moment in ms, used for the borderregions.
-// Set to 0 for a real moment
-#define MOMENTMS 0
+// Set to 0 for a real moment (makes problems with some platforms, import fails
+// there with message "invalid uregion interval")
+#define MOMENTMS 100
 
 
 // Choose the installed Lua-version here. undefine both to deactivate Lua
