@@ -22,35 +22,48 @@ public final class R {
         public static final int zahnrad_klein=0x7f020003;
     }
     public static final class id {
-        public static final int LinearLayout=0x7f080015;
-        public static final int button1=0x7f080014;
-        public static final int call_settings=0x7f080013;
-        public static final int cancel=0x7f080018;
+        public static final int LinearLayout=0x7f080022;
+        public static final int button1=0x7f080020;
+        public static final int call_settings=0x7f08001f;
+        public static final int cancel=0x7f080025;
         public static final int closedatabase=0x7f080004;
-        public static final int configeditview=0x7f080016;
+        public static final int configPath=0x7f080015;
+        public static final int configPathValue=0x7f080016;
+        public static final int configeditview=0x7f080023;
         public static final int deletedatabase=0x7f080005;
-        public static final int imageView1=0x7f080019;
+        public static final int externalSourceSwitch=0x7f080018;
+        public static final int externalSourceValue=0x7f080019;
+        public static final int freeMemoryLabel=0x7f080011;
+        public static final int freeMemoryValue=0x7f080012;
+        public static final int imageView1=0x7f080026;
         public static final int listobjects=0x7f080003;
         public static final int listobjectslinearlayout=0x7f080009;
-        public static final int menu_settings=0x7f08001c;
+        public static final int maxMemoryLabel=0x7f08000d;
+        public static final int maxMemoryValue=0x7f08000e;
+        public static final int memory=0x7f080021;
+        public static final int memoryRefresh=0x7f080013;
+        public static final int menu_settings=0x7f080029;
         public static final int opendatabase=0x7f080002;
-        public static final int opengui=0x7f080012;
+        public static final int opengui=0x7f08001e;
         public static final int path=0x7f080000;
-        public static final int popupTextView=0x7f08001a;
+        public static final int popupTextView=0x7f080027;
         public static final int querydatabase=0x7f080006;
         public static final int queryresultlistview=0x7f08000c;
-        public static final int queryresultlistview2=0x7f080011;
-        public static final int queryresultstring=0x7f080010;
+        public static final int queryresultlistview2=0x7f08001d;
+        public static final int queryresultstring=0x7f08001c;
         public static final int queryresulttextview=0x7f08000b;
-        public static final int queryscrollview=0x7f08000f;
-        public static final int querystring=0x7f08000e;
+        public static final int queryscrollview=0x7f08001b;
+        public static final int querystring=0x7f08001a;
         public static final int restoredatabase=0x7f080001;
-        public static final int rowtext=0x7f08001b;
-        public static final int save=0x7f080017;
+        public static final int rowtext=0x7f080028;
+        public static final int save=0x7f080024;
         public static final int scrollView1=0x7f08000a;
         public static final int statusline=0x7f080008;
-        public static final int switch1=0x7f08000d;
+        public static final int switch1=0x7f080014;
         public static final int textView1=0x7f080007;
+        public static final int textView2=0x7f080017;
+        public static final int totalMemoryLabel=0x7f08000f;
+        public static final int totalMemoryValue=0x7f080010;
     }
     public static final class layout {
         public static final int activity_databasedelete=0x7f030000;
@@ -59,14 +72,15 @@ public final class R {
         public static final int activity_gui=0x7f030003;
         public static final int activity_listobjects=0x7f030004;
         public static final int activity_listobjectsresult=0x7f030005;
-        public static final int activity_preferences=0x7f030006;
-        public static final int activity_querydatabase=0x7f030007;
-        public static final int activity_secondo=0x7f030008;
-        public static final int activity_settings=0x7f030009;
-        public static final int activity_splashscreen=0x7f03000a;
-        public static final int main=0x7f03000b;
-        public static final int popup=0x7f03000c;
-        public static final int row=0x7f03000d;
+        public static final int activity_memory=0x7f030006;
+        public static final int activity_preferences=0x7f030007;
+        public static final int activity_querydatabase=0x7f030008;
+        public static final int activity_secondo=0x7f030009;
+        public static final int activity_settings=0x7f03000a;
+        public static final int activity_splashscreen=0x7f03000b;
+        public static final int main=0x7f03000c;
+        public static final int popup=0x7f03000d;
+        public static final int row=0x7f03000e;
     }
     public static final class menu {
         public static final int activity_secondo=0x7f070000;
@@ -77,19 +91,30 @@ public final class R {
         public static final int clear=0x7f050010;
         public static final int closedb=0x7f05000a;
         public static final int deletedb=0x7f050009;
+        public static final int editconfiguration=0x7f050019;
+        public static final int editpreferences=0x7f05001a;
+        public static final int freememory=0x7f050016;
         public static final int gui=0x7f050005;
         public static final int hello_world=0x7f050001;
         public static final int last=0x7f05000f;
         public static final int listobjects=0x7f050007;
+        public static final int maxmemory=0x7f050013;
         public static final int menu_settings=0x7f050002;
         public static final int next=0x7f050011;
         public static final int nodata=0x7f05000b;
         public static final int opendb=0x7f050008;
+        public static final int pleaseinsertquery=0x7f050018;
+        public static final int pleasetouchscreen=0x7f05001c;
         public static final int query=0x7f05000e;
+        public static final int refresh=0x7f050015;
         public static final int restoredb=0x7f050006;
         public static final int save=0x7f05000d;
         public static final int sendrequest=0x7f050004;
+        public static final int showmemory=0x7f05001b;
+        public static final int statusdata=0x7f050012;
         public static final int textview=0x7f050003;
+        public static final int totalmemory=0x7f050014;
+        public static final int zero=0x7f050017;
     }
     public static final class style {
         /** 
