@@ -225,6 +225,46 @@ bool mtgrid::SetDuration(const datetime::DateTime& rDuration)
 }
 
 /*
+Method IsEqualGrid checks if this object equals given tgrid object.
+
+author: Dirk Zacher
+parameters: rtgrid - reference to a tgrid object
+return value: true, if this object equals rtgrid object, otherwise false
+exceptions: -
+
+*/
+
+bool mtgrid::IsEqualGrid(const tgrid& rtgrid) const
+{
+  bool bIsEqualGrid = tgrid::IsEqualGrid(rtgrid);
+
+  return bIsEqualGrid;
+}
+
+/*
+Method IsEqualGrid checks if this object equals given mtgrid object.
+
+author: Dirk Zacher
+parameters: rmtgrid - reference to a mtgrid object
+return value: true, if this object equals rmtgrid object, otherwise false
+exceptions: -
+
+*/
+
+bool mtgrid::IsEqualGrid(const mtgrid& rmtgrid) const
+{
+  bool bIsEqualGrid = tgrid::IsEqualGrid(rmtgrid);
+
+  if(bIsEqualGrid == true &&
+     m_Duration == rmtgrid.m_Duration)
+  {
+    bIsEqualGrid = true;
+  }
+
+  return bIsEqualGrid;
+}
+
+/*
 Method IsMatchingGrid checks if this object matches given tgrid object.
 
 author: Dirk Zacher

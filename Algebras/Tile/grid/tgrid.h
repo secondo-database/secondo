@@ -215,6 +215,18 @@ class tgrid : public Attribute
   bool SetLength(const double& rLength);
 
   /*
+  Method IsEqualGrid checks if this object equals given tgrid object.
+
+  author: Dirk Zacher
+  parameters: rtgrid - reference to a tgrid object
+  return value: true, if this object equals rtgrid object, otherwise false
+  exceptions: -
+
+  */
+
+  bool IsEqualGrid(const tgrid& rtgrid) const;
+
+  /*
   Method IsMatchingGrid checks if this object matches given tgrid object.
 
   author: Dirk Zacher

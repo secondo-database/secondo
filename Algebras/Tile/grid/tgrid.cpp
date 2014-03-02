@@ -294,6 +294,30 @@ bool tgrid::SetLength(const double& rLength)
 }
 
 /*
+Method IsEqualGrid checks if this object equals given tgrid object.
+
+author: Dirk Zacher
+parameters: rtgrid - reference to a tgrid object
+return value: true, if this object equals rtgrid object, otherwise false
+exceptions: -
+
+*/
+
+bool tgrid::IsEqualGrid(const tgrid& rtgrid) const
+{
+  bool bIsEqualGrid = false;
+
+  if(AlmostEqual(m_dX, rtgrid.m_dX) &&
+     AlmostEqual(m_dY, rtgrid.m_dY) &&
+     AlmostEqual(m_dLength, rtgrid.m_dLength))
+  {
+    bIsEqualGrid = true;
+  }
+
+  return bIsEqualGrid;
+}
+
+/*
 Method IsMatchingGrid checks if this object matches given tgrid object.
 
 author: Dirk Zacher
