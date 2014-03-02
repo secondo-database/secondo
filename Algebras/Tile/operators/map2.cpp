@@ -296,11 +296,10 @@ int map2Functiontmt(Word* pArguments,
                       typename SourceType2Properties::TypeProperties::
                       PropertiesType value2 = pSourceType2->GetValue(index2);
 
-                      if((SourceType1Properties::TypeProperties::
-                          IsUndefinedValue(value1) == false &&
-                          time == 0) ||
-                          SourceType2Properties::TypeProperties::
-                          IsUndefinedValue(value2) == false)
+                      if(SourceType1Properties::TypeProperties::
+                         IsUndefinedValue(value1) == false ||
+                         SourceType2Properties::TypeProperties::
+                         IsUndefinedValue(value2) == false)
                       {
                         typename SourceType1Properties::TypeProperties::
                         WrapperType wrappedValue1 = SourceType1Properties::
@@ -456,9 +455,8 @@ int map2Functionmtt(Word* pArguments,
 
                       if(SourceType1Properties::TypeProperties::
                          IsUndefinedValue(value1) == false ||
-                        (SourceType2Properties::TypeProperties::
-                         IsUndefinedValue(value2) == false &&
-                         time == 0))
+                         SourceType2Properties::TypeProperties::
+                         IsUndefinedValue(value2) == false)
                       {
                         typename SourceType1Properties::TypeProperties::
                         WrapperType wrappedValue1 = SourceType1Properties::
