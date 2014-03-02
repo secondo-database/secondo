@@ -16,7 +16,7 @@
 
 // This is the duration of one moment in ms, used for the borderregions.
 // Set to 0 for a real moment
-#define MOMENTMS 100
+#define MOMENTMS 0
 
 
 // Choose the installed Lua-version here. undefine both to deactivate Lua

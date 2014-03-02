@@ -1,24 +1,20 @@
-function matchFacesOL (src,dst,depth)
-
-    local sp,dp = checkOverlap(src, dst)
-    print("SP " .. sp .. " DP " .. dp)
-    
-    return {}
-end
-
 function matchFacesNull (src,dst,depth)
+    -- Do not create any pairings
     return {}
 end
 
 function matchFacesMW (src, dst, depth)
+    -- Create pairings on top-level faces, but
+    -- don't pair concavities then (McKenney&Webb)
     if (depth == 0) then
 	return matchFacesDistance(src, dst, depth)
     else
-	return {}
+	return matchFacesNull(src, dst, depth)
     end
 end
 
 function matchFacesSpecial (src, dst, depth)
+    -- Use this function for temporary tests
     local ret = {}
 
     if (depth < 1) then
@@ -34,6 +30,7 @@ function matchFacesSpecial (src, dst, depth)
 end
 
 function matchFacesRandom (src, dst, depth)
+    -- Assing faces randomly, for testing mainly
     ret = {}
     i = 1
     while (#src > 0 and #dst > 0) do
@@ -48,12 +45,8 @@ function matchFacesRandom (src, dst, depth)
     return ret
 end
 
-function distancex (src, dst)
-    return distance(src,dst)
-end
-
 function matchFacesDistance (src, dst, depth)
-    return matchFacesCriterion (src, dst, depth, distancex)
+    return matchFacesCriterion (src, dst, depth, distance)
 end
 
 function overlapx (src, dst)
@@ -66,58 +59,30 @@ end
 function matchFacesOverlap (src, dst, depth, minoverlap)
     minoverlap = minoverlap or 10 -- default is 10 percent
 
-    print("Using Overlap with " .. minoverlap .. "% minimum")
+    debug(2, "Using Overlap with " .. minoverlap .. "% minimum")
     
     return matchFacesCriterion (src, dst, depth, overlapx, 100 - minoverlap)
 end
 
-function matchFacesCloud (src, dst, depth, direction)
-    if (depth > 0) then
-        return matchFacesOverlap(src, dst, depth, 30)
-    end
-
-    degree = tonumber(direction) or 0
-
-    return matchFacesCriterion (src, dst, depth, clouddistance)
-end
-
-function clouddistance (src, dst)
-   local cs = middle(src)
-   local ds = middle(dst)
-
-   local dx = cs.x - ds.x
-   local dy = cs.y - ds.y
-
-   local deg = math.deg(math.atan2(dy, dx))%360
-   local mindeg = (degree-25)%360
-   local maxdeg = (degree+25)%360
-
-   if (((deg < mindeg) or (deg > maxdeg)) and (mindeg < maxdeg)) then
-       return nil
-   end
-   if (((deg < mindeg) and (deg > maxdeg)) and (mindeg > maxdeg)) then
-       return nil
-   end
-
-   local dist = math.sqrt(dx*dx + dy*dy)
-
-   return dist
-end
-
 function matchFacesWood (src, dst, depth)
+   -- Do not compensate translation and scaling on top-level
    if (depth == 0) then
       srcoff, dstoff, srcscale, dstscale = nil
    end
 
+   -- otherwise, just behave like Overlap with 10% thresold
    return matchFacesOverlap(src, dst, depth, 10)
 end
 
+-- Try to find best pairings using a scoring-function
 function matchFacesCriterion (src, dst, depth, func, thres)
     ret = {}
     
     nrsrc = #src
     nrdst = #dst
 
+    -- Call the scoring function for each pairing and store the
+    -- result in a table
     k = 1
     dist = {}
     for i=1,nrsrc do
@@ -135,17 +100,20 @@ function matchFacesCriterion (src, dst, depth, func, thres)
 	end
     end
 
+    -- Sort this table with ascending score
     table.sort(dist, function (a,b) return a.criterion < b.criterion end);
 
     used = {}
 
+    -- Try to get a low overall score by prefering pairs at the beginning
+    -- of the sorted table
     i = 1
     for x,y in pairs(dist) do
 	if (used[y.s] ~= 1 and used[y.d] ~= 1) then
 	    ret[i] = { src=y.s, dst=y.d }
 	    used[y.s] = 1
 	    used[y.d] = 1
-	    print (x.." = "..y.criterion)
+	    debug(4, x.." = "..y.criterion)
 	    i = i + 1
 	end
     end

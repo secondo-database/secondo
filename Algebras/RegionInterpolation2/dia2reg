@@ -4,6 +4,6 @@
 # file suitable to import into Secondo. Dia must be installed for this to work.
 
 for FILE in $@; do
-NNAME=${FILE/.dia/_obj}
-( echo "(OBJECT r () region ("; dia -t svg -e - $FILE | grep -Eo points=\".*\" | grep -o [0-9].*[0-9] | sed 's/^\(.*\)$/(((\1)))/' | sed s/\ /\)\(/g | tr , ' '; echo "))" ) > $NNAME
+NNAME=${FILE/.dia/}_obj
+( echo "(OBJECT r () region ("; dia -t svg -e - $FILE | grep -Eo points=\".*\" | uniq | grep -o [0-9].*[0-9] | sed 's/^\(.*\)$/(((\1)))/' | sed s/\ /\)\(/g | tr , ' '; echo "))" ) > $NNAME
 done;
