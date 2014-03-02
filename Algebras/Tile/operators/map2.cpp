@@ -102,16 +102,8 @@ int map2Functiontt(Word* pArguments,
             typename SourceType2Properties::GridType grid2;
             pSourceType2->getgrid(grid2);
 
-            if(grid1.IsMatchingGrid(grid2))
+            if(grid1.IsEqualGrid(grid2))
             {
-              double dx = (grid1.GetX() - grid2.GetX()) / grid1.GetLength();
-              double dy = (grid1.GetY() - grid2.GetY()) / grid1.GetLength();
-              int dc = dx + 0.5;
-              int dr = dy + 0.5;
-              assert(grid1.GetLength() == grid2.GetLength());
-              assert(AlmostEqual(dx, dc) &&
-                     AlmostEqual(dy, dr));
-
               typename SourceType1Properties::RectangleType boundingBox1;
               pSourceType1->bbox(boundingBox1);
 
@@ -142,16 +134,14 @@ int map2Functiontt(Word* pArguments,
                   for(int column = startIndex[0]; column <= endIndex[0];
                       column++)
                   {
-                    Index<2> index1((int[]){column, row});
+                    Index<2> index((int[]){column, row});
                     typename SourceType1Properties::TypeProperties::
-                    PropertiesType value1 = pSourceType1->GetValue(index1);
-
-                    Index<2> index2((int[]){column + dc, row + dr});
+                    PropertiesType value1 = pSourceType1->GetValue(index);
                     typename SourceType2Properties::TypeProperties::
-                    PropertiesType value2 = pSourceType2->GetValue(index2);
+                    PropertiesType value2 = pSourceType2->GetValue(index);
 
                     if(SourceType1Properties::TypeProperties::
-                       IsUndefinedValue(value1) == false &&
+                       IsUndefinedValue(value1) == false ||
                        SourceType2Properties::TypeProperties::
                        IsUndefinedValue(value2) == false)
                     {
@@ -183,7 +173,7 @@ int map2Functiontt(Word* pArguments,
                           if(DestinationTypeProperties::TypeProperties::
                              IsUndefinedValue(unwrappedValue) == false)
                           {
-                            pResult->SetValue(index1, unwrappedValue, true);
+                            pResult->SetValue(index, unwrappedValue, true);
                           }
                         }
                       }
@@ -258,16 +248,8 @@ int map2Functiontmt(Word* pArguments,
             typename SourceType2Properties::GridType grid2;
             pSourceType2->getgrid(grid2);
 
-            if(grid2.IsMatchingGrid(grid1))
+            if(grid2.IsEqualGrid(grid1))
             {
-              double dx = (grid1.GetX() - grid2.GetX()) / grid1.GetLength();
-              double dy = (grid1.GetY() - grid2.GetY()) / grid1.GetLength();
-              int dc = dx + 0.5;
-              int dr = dy + 0.5;
-              assert(grid1.GetLength() == grid2.GetLength());
-              assert(AlmostEqual(dx, dc) &&
-                     AlmostEqual(dy, dr));
-
               typename SourceType1Properties::RectangleType boundingBox1;
               pSourceType1->bbox(boundingBox1);
 
@@ -306,7 +288,7 @@ int map2Functiontmt(Word* pArguments,
                     for(int column = startIndex[0]; column <= endIndex[0];
                         column++)
                     {
-                      Index<2> index1((int[]){column + dc, row + dr});
+                      Index<2> index1((int[]){column, row});
                       typename SourceType1Properties::TypeProperties::
                       PropertiesType value1 = pSourceType1->GetValue(index1);
 
@@ -314,10 +296,11 @@ int map2Functiontmt(Word* pArguments,
                       typename SourceType2Properties::TypeProperties::
                       PropertiesType value2 = pSourceType2->GetValue(index2);
 
-                      if(SourceType1Properties::TypeProperties::
-                         IsUndefinedValue(value1) == false &&
-                         SourceType2Properties::TypeProperties::
-                         IsUndefinedValue(value2) == false)
+                      if((SourceType1Properties::TypeProperties::
+                          IsUndefinedValue(value1) == false &&
+                          time == 0) ||
+                          SourceType2Properties::TypeProperties::
+                          IsUndefinedValue(value2) == false)
                       {
                         typename SourceType1Properties::TypeProperties::
                         WrapperType wrappedValue1 = SourceType1Properties::
@@ -423,16 +406,8 @@ int map2Functionmtt(Word* pArguments,
             typename SourceType2Properties::GridType grid2;
             pSourceType2->getgrid(grid2);
 
-            if(grid1.IsMatchingGrid(grid2))
+            if(grid1.IsEqualGrid(grid2))
             {
-              double dx = (grid1.GetX() - grid2.GetX()) / grid1.GetLength();
-              double dy = (grid1.GetY() - grid2.GetY()) / grid1.GetLength();
-              int dc = dx + 0.5;
-              int dr = dy + 0.5;
-              assert(grid1.GetLength() == grid2.GetLength());
-              assert(AlmostEqual(dx, dc) &&
-                     AlmostEqual(dy, dr));
-
               typename SourceType1Properties::RectangleType boundingBox1;
               pSourceType1->bbox(boundingBox1);
 
@@ -475,14 +450,15 @@ int map2Functionmtt(Word* pArguments,
                       typename SourceType1Properties::TypeProperties::
                       PropertiesType value1 = pSourceType1->GetValue(index1);
 
-                      Index<2> index2((int[]){column + dc, row + dr});
+                      Index<2> index2((int[]){column, row});
                       typename SourceType2Properties::TypeProperties::
                       PropertiesType value2 = pSourceType2->GetValue(index2);
 
                       if(SourceType1Properties::TypeProperties::
-                         IsUndefinedValue(value1) == false &&
-                         SourceType2Properties::TypeProperties::
-                         IsUndefinedValue(value2) == false)
+                         IsUndefinedValue(value1) == false ||
+                        (SourceType2Properties::TypeProperties::
+                         IsUndefinedValue(value2) == false &&
+                         time == 0))
                       {
                         typename SourceType1Properties::TypeProperties::
                         WrapperType wrappedValue1 = SourceType1Properties::
@@ -588,16 +564,8 @@ int map2Functionmtmt(Word* pArguments,
             typename SourceType2Properties::GridType grid2;
             pSourceType2->getgrid(grid2);
 
-            if(grid1.IsMatchingGrid(grid2))
+            if(grid1.IsEqualGrid(grid2))
             {
-              double dx = (grid1.GetX() - grid2.GetX()) / grid1.GetLength();
-              double dy = (grid1.GetY() - grid2.GetY()) / grid1.GetLength();
-              int dc = dx + 0.5;
-              int dr = dy + 0.5;
-              assert(grid1.GetLength() == grid2.GetLength());
-              assert(AlmostEqual(dx, dc) &&
-                     AlmostEqual(dy, dr));
-
               typename SourceType1Properties::RectangleType boundingBox1;
               pSourceType1->bbox(boundingBox1);
 
@@ -632,16 +600,14 @@ int map2Functionmtmt(Word* pArguments,
                     for(int column = startIndex[0]; column <= endIndex[0];
                         column++)
                     {
-                      Index<3> index1((int[]){column, row, time});
+                      Index<3> index((int[]){column, row, time});
                       typename SourceType1Properties::TypeProperties::
-                      PropertiesType value1 = pSourceType1->GetValue(index1);
-
-                      Index<3> index2((int[]){column + dc, row + dr, time});
+                      PropertiesType value1 = pSourceType1->GetValue(index);
                       typename SourceType2Properties::TypeProperties::
-                      PropertiesType value2 = pSourceType2->GetValue(index2);
+                      PropertiesType value2 = pSourceType2->GetValue(index);
 
                       if(SourceType1Properties::TypeProperties::
-                         IsUndefinedValue(value1) == false &&
+                         IsUndefinedValue(value1) == false ||
                          SourceType2Properties::TypeProperties::
                          IsUndefinedValue(value2) == false)
                       {
@@ -673,7 +639,7 @@ int map2Functionmtmt(Word* pArguments,
                             if(DestinationTypeProperties::TypeProperties::
                                IsUndefinedValue(unwrappedValue) == false)
                             {
-                              pResult->SetValue(index1, unwrappedValue, true);
+                              pResult->SetValue(index, unwrappedValue, true);
                             }
                           }
                         }
