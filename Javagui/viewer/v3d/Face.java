@@ -155,7 +155,7 @@ class Face {
         ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1 + 0.1, -RANGEZ / 2));
         ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1 + 0.05, RANGEZ / 2));
         ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1, RANGEZ / 2 * 0.9));
-        ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1 + 0.1, RANGEZ / 2 * 0.95));
+        ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1+0.1, RANGEZ/2*0.95));
         ret.add(new Point3d(-RANGEX / 2 * 1.1, -RANGEY / 2 * 1.1 + 0.05, RANGEZ / 2));
 
         return ret;

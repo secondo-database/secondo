@@ -105,7 +105,7 @@ public class V3DViewer extends SecondoViewer {
             ItemObjects.add(o);
             ComboBox.addItem(o.getName());
             try {
-                ComboBox.setSelectedIndex(ComboBox.getItemCount() - 1);  // make the new object to active object
+                ComboBox.setSelectedIndex(ComboBox.getItemCount() - 1);
                 showObject();
             } catch (Exception e) {
             }
@@ -241,14 +241,17 @@ public class V3DViewer extends SecondoViewer {
                 bg.addChild(rotor);
                 bg.addChild(trans);
                 MouseWheelZoom mwz = new MouseWheelZoom(MouseBehavior.INVERT_INPUT);
-                mwz.setTransformGroup(universe.getViewingPlatform().getViewPlatformTransform());
+                mwz.setTransformGroup(universe.getViewingPlatform()
+                                      .getViewPlatformTransform());
                 mwz.setSchedulingBounds(new BoundingSphere());
                 bg.addChild(mwz);
                 bg.setCapability(BranchGroup.ALLOW_DETACH);
                 bg.compile();
                 universe.addBranchGraph(bg);
-                TransformGroup tg3 = universe.getViewingPlatform().getViewPlatformTransform();
-                universe.getViewer().getView().setSceneAntialiasingEnable(MI_AntiAliasing.isSelected());
+                TransformGroup tg3 = universe.getViewingPlatform()
+                                             .getViewPlatformTransform();
+                universe.getViewer().getView()
+                        .setSceneAntialiasingEnable(MI_AntiAliasing.isSelected());
                 Transform3D t3d = new Transform3D();
                 t3d.setTranslation(new Vector3f(0.0f, 0.0f, 25));
                 tg3.setTransform(t3d);
