@@ -729,7 +729,8 @@ public class CommandPanel extends JScrollPane {
                    wordPos++;    
                    buf.append(toLower(c));
                 } else {
-                   buf.append(toLower(c));
+                   //buf.append(toLower(c));
+                   buf.append(c);
                 }
              } else {
                wordPos = 0;
