@@ -292,8 +292,10 @@ void CassandraAdapter::disconnect() {
             
              boost::shared_future<cql::cql_future_result_t> future = *iter;
           
-             future.wait();
-             cout << "." << flush;
+             if(! future.is_ready() ) {
+                future.wait();
+                cout << "." << flush;
+             }
           }
           
           cout << endl;
@@ -363,7 +365,13 @@ bool CassandraAdapter::executeCQLASync
     return false;
 }
 
-void CassandraAdapter::removeFinishedFutures() {
+void CassandraAdapter::removeFinishedFutures(bool force) {
+  
+    // Do the cleanup only sometimes
+    if(pendingFutures.size() % 100 != 0 && force == false) {
+      return;
+    }
+  
     // Are some futures finished?
     for(vector < boost::shared_future<cql::cql_future_result_t> >
       ::iterator iter = pendingFutures.begin(); 

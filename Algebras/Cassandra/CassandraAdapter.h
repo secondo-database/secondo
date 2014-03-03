@@ -296,11 +296,14 @@ protected:
   bool prepareCQLInsert(string relation, string consistenceLevel);
 
 /*
-2.3.16 Iterate over all pending futures (e.g. writes), reports
-       errors and remove finished futures from our future list.
+2.3.16 Iterate over all pending futures (e.g. writes), report
+       errors and remove finished futures from the future list.
+       Normally a cleanup is started only if the condition
+       list.length % 100 = 0 is true. 
+       With the parameter force, you can override this policy.
        
 */    
-  void removeFinishedFutures();
+  void removeFinishedFutures(bool force = false);
   
 private:
   string contactpoint;            // Our cassandra contact point
