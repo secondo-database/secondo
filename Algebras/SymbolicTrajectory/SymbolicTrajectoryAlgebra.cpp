@@ -994,7 +994,7 @@ bool MBasics<B>::checkType(ListExpr t) {
 */
 template<class B>
 Flob* MBasics<B>::GetFLOB(const int i) {
-  assert((i >= 0) && (i < 3));
+  assert((i >= 0) && (i < NumOfFLOBs()));
   if (i == 0) {
     return &values;
   }
@@ -1094,7 +1094,7 @@ template<class B>
 bool MBasics<B>::readValues(ListExpr valuelist) {
   ListExpr rest = valuelist;
   string text;
-  typename B::arrayelem elem;
+  typename B::arrayelem elem, testelem;
   while (!nl->IsEmpty(rest)) {
     if (listutils::isSymbolUndefined(nl->First(rest))) {
       return false;
@@ -1102,6 +1102,7 @@ bool MBasics<B>::readValues(ListExpr valuelist) {
     B::getString(nl->First(rest), text);
     B::getElemFromList(nl->First(rest), values.getSize(), elem);
     pos.Append(elem);
+    pos.Get(pos.Size() - 1, testelem);
     const char *bytes = (text.substr(1, text.length() - 2)).c_str();
     SmiSize sz = strlen(bytes) + 1;
     if (sz > 0) {
@@ -1266,7 +1267,6 @@ void MBasics<B>::GetValues(const int i, vector<typename B::base>& result) const{
   pair<typename B::arrayelem, typename B::arrayelem> elems;
   pair<size_t, size_t> flobpos;
   for (int j = unit.pos; j <= getUnitEndPos(i); j++) {
-    cout << "j=" << j << endl;
     pos.Get(j, elems.first);
     if (j < pos.Size() - 1) { // not the final entry
       pos.Get(j + 1, elems.second);
@@ -1275,8 +1275,6 @@ void MBasics<B>::GetValues(const int i, vector<typename B::base>& result) const{
       B::getRefToLastElem(values.getSize() - 1, elems.second);
     }
     B::getFlobPos(elems, flobpos);
-    cout << values.getSize() << " " << flobpos.first << " " << flobpos.second 
-         << endl;
     char *bytes = new char[flobpos.second - flobpos.first + 1];
     values.read(bytes, flobpos.second - flobpos.first + 1, flobpos.first);
     string text = bytes;
@@ -1333,8 +1331,19 @@ void MBasics<B>::EndBulkLoad(const bool sort /*= true*/,
 template<class B>
 void MBasics<B>::Add(const UBasics<B>& ut) {
   assert(IsDefined() && ut.IsDefined());
-  UBasics<B> ut2(ut); // TODO: implement Add(const SecInterval& iv, B::base& b)
+  UBasics<B> ut2(ut);
   if (!readUnit(ut2.ToListExpr(nl->Empty()))) {
+    SetDefined(false);
+  }
+}
+
+template<class B>
+void MBasics<B>::Add(const SecInterval& iv, const B& values) {
+  assert(IsDefined() && iv.IsDefined() && values.IsDefined());
+  B values2(values);
+  ListExpr unitlist = nl->TwoElemList(iv.ToListExpr(nl->Empty()),
+                                      values2.ToListExpr(nl->Empty()));
+  if (!readUnit(unitlist)) {
     SetDefined(false);
   }
 }
@@ -1344,41 +1353,45 @@ void MBasics<B>::Add(const UBasics<B>& ut) {
 
 */
 template<class B>
-void MBasics<B>::MergeAdd(const UBasics<B>& ub) {
-  assert(IsDefined());
-  if (!ub.IsDefined() || !ub.IsValid()) {
+void MBasics<B>::MergeAdd(const SecInterval& iv, const B& values) {
+  assert(IsDefined() && iv.IsDefined() && values.IsDefined());
+  if (!iv.IsDefined() || !iv.IsValid()) {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " MergeAdd(Unit): Unit is undefined or invalid:";
-    ub.Print(cout); cout << endl;
+    iv.Print(cout); cout << endl;
     assert(false);
   }
   if (GetNoComponents() > 0) {
     SymbolicUnit prevUnit;
     units.Get(GetNoComponents() - 1, prevUnit);
     int numOfValues = getUnitEndPos(GetNoComponents() - 1) - prevUnit.pos + 1;
-    bool equalValues = (ub.constValue.GetNoValues() == numOfValues);
-    vector<typename B::base> values;
-    GetValues(GetNoComponents() - 1, values);
-    for (unsigned int i = 0; ((i < values.size()) && equalValues); i++) {
+    bool equal = (values.GetNoValues() == numOfValues);
+    vector<typename B::base> mvalues;
+    GetValues(GetNoComponents() - 1, mvalues);
+    for (unsigned int i = 0; ((i < mvalues.size()) && equal); i++) {
       typename B::base value;
-      ub.constValue.GetValue(i, value);
-      if (!(values[i] == value)) {
-        equalValues = false;
+      values.GetValue(i, value);
+      if (!(mvalues[i] == value)) {
+        equal = false;
       }
     }
-    if (equalValues && (prevUnit.iv.end == ub.timeInterval.start) &&
-       (prevUnit.iv.rc || ub.timeInterval.lc)) { // adjacent intervals
-      prevUnit.iv.end = ub.timeInterval.end;     // \& equal labels
-      prevUnit.iv.rc = ub.timeInterval.rc;
+    if (equal && (prevUnit.iv.end == iv.start) && (prevUnit.iv.rc || iv.lc)) {
+      prevUnit.iv.end = iv.end; // adjacent invervals \& equal labels
+      prevUnit.iv.rc = iv.rc;
       units.Put(GetNoComponents() - 1, prevUnit);
     }
-    else if (prevUnit.iv.Before(ub.timeInterval)) {
-      Add(ub);
+    else if (prevUnit.iv.Before(iv)) {
+      Add(iv, values);
     }
   }
   else { // first unit
-    Add(ub);
+    Add(iv, values);
   }
+}
+
+template<class B>
+void MBasics<B>::MergeAdd(const UBasics<B>& ub) {
+  MergeAdd(ub.timeInterval, ub.constValue);
 }
 
 /*
@@ -1469,8 +1482,8 @@ void MBasics<B>::At(const B& bs, MBasics<B>& result) const {
     if (basics == bs) {
       SecInterval iv;
       GetInterval(i, iv);
-      UBasics<B> ut(iv, basics);
-      result.Add(ut);
+//       UBasics<B> ut(iv, basics);
+      result.Add(iv, basics);
     }
   }
 }
@@ -1756,15 +1769,10 @@ Places::Places(const Places& rhs,  const bool sort /* = false */) :
 
 */
 void Places::Append(const base& val) {
-  cout << posref.Size() <<  "; append " << values.getSize() << " " << val.second
-       << endl;
-  pair<unsigned int, unsigned int> bla, blub;
-  bla.first = values.getSize();
-  bla.second = val.second;
-  posref.Append(bla);
-  posref.Get(posref.Size() - 1, blub);
-  cout << posref.Size() <<  "; appended " << blub.first << " " << blub.second
-       << endl;
+  NewPair<unsigned int, unsigned int> pr;
+  pr.first = values.getSize();
+  pr.second = val.second;
+  posref.Append(pr);
   const char *bytes = val.first.c_str();
   SmiSize sz = strlen(bytes) + 1;
   if (sz > 0) {
@@ -1800,10 +1808,9 @@ void Places::Get(const int i, Place& result) const {
 */
 void Places::GetValue(const int i, base& result) const {
   assert(IsDefined() && (0 <= i) && (i < GetNoValues()));
-  pair<unsigned int, unsigned int> cur, next;
+  NewPair<unsigned int, unsigned int> cur, next;
   unsigned int nextPos;
   posref.Get(i, cur);
-  cout << i << ": " << cur.first << " " << cur.second << endl;
   if (i == GetNoValues() - 1) { // last value
     nextPos = values.getSize();
   }
@@ -1811,8 +1818,7 @@ void Places::GetValue(const int i, base& result) const {
     posref.Get(i + 1, next);
     nextPos = next.first;
   }
-  cout << "i=" << i << ", nextPos=" << nextPos << endl;
-  SmiSize sz = nextPos - cur.first + 1;
+  SmiSize sz = nextPos - cur.first;
   char *bytes;
   if (sz == 0) {
     bytes = new char[1];
@@ -1820,7 +1826,6 @@ void Places::GetValue(const int i, base& result) const {
   }
   else {
     bytes = new char[sz];
-    cout << "read " << cur.first << " " << sz << endl;
     bool ok = values.read(bytes, sz, cur.first);
     assert(ok);
   }
@@ -1871,11 +1876,11 @@ void Places::valuesToListExpr(const vector<base>& values, ListExpr& result) {
     result = nl->Empty();
     return;
   }
-  result = nl->OneElemList(nl->TwoElemList(nl->StringAtom(values[0].first),
+  result = nl->OneElemList(nl->TwoElemList(nl->TextAtom(values[0].first),
                                            nl->IntAtom(values[0].second)));
   ListExpr last = result;
   for (unsigned int i = 1; i < values.size(); i++) {
-    last = nl->Append(last, nl->TwoElemList(nl->StringAtom(values[i].first),
+    last = nl->Append(last, nl->TwoElemList(nl->TextAtom(values[i].first),
                                             nl->IntAtom(values[i].second)));
   }
 }
@@ -1885,7 +1890,7 @@ void Places::valuesToListExpr(const vector<base>& values, ListExpr& result) {
 
 */
 void Places::getString(const ListExpr& list, string& result) {
-  result = nl->StringValue(nl->First(list));
+  nl->WriteToString(result, nl->First(list));
 }
 
 /*
@@ -1912,14 +1917,16 @@ void Places::buildValue(const string& text, const arrayelem pos, base& result) {
 
 */
 void Places::operator=(const Places& p) {
-  Clean();
   SetDefined(p.IsDefined());
   if (IsDefined()) {
-    base value;
-    for (int i = 0; i < p.GetNoValues(); i++) {
-      p.GetValue(i, value);
-      Append(value);
-    }
+    values.copyFrom(p.values);
+    posref.copyFrom(p.posref);
+    
+//     base value;
+//     for (int i = 0; i < p.GetNoValues(); i++) {
+//       p.GetValue(i, value);
+//       Append(value);
+//     }
   }
 }
 
@@ -2033,7 +2040,6 @@ ListExpr Places::ToListExpr(ListExpr typeInfo) {
   }
   base val;
   GetValue(0, val);
-  cout << "val=" << val.first << endl;
   ListExpr res = nl->OneElemList(nl->TwoElemList(nl->TextAtom(val.first),
                                                  nl->IntAtom(val.second)));
   ListExpr last = res;
@@ -2750,10 +2756,13 @@ int MBasic<B>::Position(const Instant& inst) const {
 template<class B>
 void MBasic<B>::Get(const int i, UBasic<B>& result) const {
   assert((i >= 0) && (i < GetNoComponents()));
-  typename B::unitelem unit;
-  units.Get(i, unit);
-  result.timeInterval = unit.iv;
-  GetBasic(i, result.constValue);
+  result.SetDefined(IsDefined());
+  if (IsDefined()) {
+    typename B::unitelem unit;
+    units.Get(i, unit);
+    result.timeInterval = unit.iv;
+    GetBasic(i, result.constValue);
+  }
 }
 
 /*
@@ -2763,9 +2772,12 @@ void MBasic<B>::Get(const int i, UBasic<B>& result) const {
 template<class B>
 void MBasic<B>::GetBasic(const int i, B& result) const {
   assert((i >= 0) && (i < GetNoComponents()));
-  typename B::base value;
-  GetValue(i, value);
-  result.SetValue(value);
+  result.SetDefined(IsDefined());
+  if (IsDefined()) {
+    typename B::base value;
+    GetValue(i, value);
+    result.SetValue(value);
+  }
 }
 
 /*
@@ -4062,7 +4074,7 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
   }
   states.clear();
   map<int, int>::iterator itm, itn;
-  ULabel ul(0);
+  ULabel ul(true);
   ml->Get(ulId, ul);
   string text;
   ul.constValue.GetValue(text);
@@ -6225,11 +6237,11 @@ int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
   if (message != CLOSE) {
     if ((static_cast<CcBool*>(args[2].addr))->GetValue()) { //2nd argument const
       if (!local.addr) {
-        if (pText->IsDefined()) {
+        if (pText->IsDefined() && ml->IsDefined()) {
           local.addr = Pattern::getPattern(pText->toText());
         }
         else {
-          cout << "Undefined pattern text." << endl;
+          cout << "Undefined pattern text or mlabel." << endl;
           b->SetDefined(false);
           return 0;
         }

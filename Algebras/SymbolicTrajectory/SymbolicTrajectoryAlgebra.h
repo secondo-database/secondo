@@ -87,6 +87,13 @@ enum Wildcard {NO, STAR, PLUS};
 Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
 
+template<class F, class S>
+class NewPair {
+ public:
+  F first;
+  S second;
+};
+
 struct SymbolicUnit {
  public: 
   SymbolicUnit() {}
@@ -279,7 +286,7 @@ class Place : public Label {
 */
 class Places : public Attribute {
  public:
-  typedef pair<unsigned int, unsigned int> arrayelem;
+  typedef NewPair<unsigned int, unsigned int> arrayelem;
   typedef pair<string, unsigned int> base;
   typedef Place single;
    
@@ -318,7 +325,7 @@ class Places : public Attribute {
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
   static const string BasicType() {return Place::BasicType() + "s";}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return 1;}
+  int NumOfFLOBs() const {return 2;}
   Flob* GetFLOB(const int i);
   size_t Sizeof() const {return sizeof(*this);}
   int Compare(const Attribute* arg) const;
@@ -331,7 +338,7 @@ class Places : public Attribute {
   
  protected:
   Flob values;
-  DbArray<pair<unsigned int, unsigned int> > posref;
+  DbArray<NewPair<unsigned int, unsigned int> > posref;
 };
 
 /*
@@ -528,7 +535,7 @@ class MBasics : public Attribute {
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
   static const string BasicType() {return "m" + B::BasicType();}
   static bool checkType(ListExpr t);
-  int NumOfFLOBs() const {return 2;}
+  int NumOfFLOBs() const {return 3;}
   Flob* GetFLOB(const int i);
   size_t Sizeof() const {return sizeof(*this);}
   int Compare(const Attribute* arg) const;
@@ -558,7 +565,9 @@ class MBasics : public Attribute {
   void StartBulkLoad() {assert(IsDefined());}
   void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
   void Add(const UBasics<B>& ut);
+  void Add(const SecInterval& iv, const B& values);
   void MergeAdd(const UBasics<B>& ut);
+  void MergeAdd(const SecInterval& iv, const B& values);
   bool Passes(const typename B::single& sg) const;
   bool Passes(const B& bs) const;
   void At(const typename B::single& sg, MBasics<B>& result) const;
@@ -572,7 +581,6 @@ class MBasics : public Attribute {
   Flob values;
   DbArray<SymbolicUnit> units;
   DbArray<typename B::arrayelem> pos;
-
 };
 
 /*
