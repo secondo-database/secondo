@@ -3925,15 +3925,19 @@ void MovingMultiplyMRR(
   else
     val2= op2->GetRealval() ;
 
+  double sval2 = val2*val2;
+
   result->Resize(op1->GetNoComponents());
   result->StartBulkLoad();
   for( int i = 0; i < op1->GetNoComponents(); i++)
   {
     op1->Get(i, uin);
-    if(!(uin.IsDefined() && op2->IsDefined() && !uin.r))
-        continue;
+    if(uin.r && val2<0){
+       continue;
+    }
+    double val3 = uin.r?sval2:val2;
     ures.timeInterval.CopyFrom(uin.timeInterval);
-    ures.a= uin.a * val2;  ures.b= uin.b * val2; ures.c= uin.c * val2;
+    ures.a= uin.a * val3;  ures.b= uin.b * val3; ures.c= uin.c * val3;
     ures.r= uin.r;
     ures.SetDefined(true);
     result->MergeAdd(ures);
