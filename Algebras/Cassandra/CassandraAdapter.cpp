@@ -367,7 +367,7 @@ bool CassandraAdapter::executeCQLASync
 
 void CassandraAdapter::removeFinishedFutures(bool force) {
   
-    // Do the cleanup only sometimes
+    // The cleanup is not needed everytime
     if(pendingFutures.size() % 100 != 0 && force == false) {
       return;
     }

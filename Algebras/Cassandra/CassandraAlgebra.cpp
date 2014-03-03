@@ -377,10 +377,14 @@ public:
   // We received a new tuple
   // Register and dump
   void tupleReceived() {
-    timeval curtime;
+    timeval curtime, difference;
     gettimeofday(&curtime, NULL); 
     
-    if(lastdump.tv_sec + interval <= curtime.tv_sec) {
+    timersub(&curtime, &lastdump, &difference);
+    
+    int miliseconds = difference.tv_sec * 1000 + (difference.tv_usec / 1000);
+    
+    if(miliseconds >= interval) {
       dumpTuples();
       reset();
     }
@@ -497,9 +501,9 @@ const string StatisticsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "<text> The operator statistics generates tuple flow "
                          "statistics. The first parameter is the output file "
                          "for the operator. The second parameter is the "
-                         "interval for the statistics (sec). </text--->"
+                         "interval for the statistics (msec). </text--->"
                          "<text>query intstream(1,10) transformstream "
-                         "statistics['/tmp/statistics.csv', 1] count</text--->"
+                         "statistics['/tmp/statistics.csv', 10] count</text--->"
                               ") )";
 
 /*
