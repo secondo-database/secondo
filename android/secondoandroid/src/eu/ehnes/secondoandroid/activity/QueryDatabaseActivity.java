@@ -5,8 +5,7 @@ import java.util.List;
 import eu.ehnes.secondoandroid.History;
 import eu.ehnes.secondoandroid.ProcessQueries;
 import eu.ehnes.secondoandroid.R;
-import eu.ehnes.secondoandroid.R.id;
-import eu.ehnes.secondoandroid.R.layout;
+import eu.ehnes.secondoandroid.itf.ISecondoDbaCallback;
 import sj.lang.ListExpr;
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -28,7 +27,7 @@ import android.widget.TextView;
  *
  * @author juergen
  */
-public class QueryDatabaseActivity extends Activity {
+public class QueryDatabaseActivity extends Activity implements ISecondoDbaCallback {
 
 	/** The eingabe. */
 	private EditText eingabe;
@@ -38,6 +37,8 @@ public class QueryDatabaseActivity extends Activity {
 	
 	/** The history. */
 	private History history;
+	
+	ProgressDialog dialog=null;
 	
 	/* (non-Javadoc)
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
@@ -60,13 +61,13 @@ public class QueryDatabaseActivity extends Activity {
 	 * @param v the View 
 	 */
 	public void send_request(View v) {
-		ProgressDialog dialog = ProgressDialog.show(this, "Secondo", "Query in Progress, please wait");
+		dialog = ProgressDialog.show(this, "Secondo", "Query in Progress, please wait");
 		
 		SystemClock.sleep(1000);
 				
 
-		ScrollView sv= (ScrollView)findViewById(R.id.queryscrollview);
-		ListView ausgabeliste = (ListView) findViewById(R.id.queryresultlistview2);
+//		ScrollView sv= (ScrollView)findViewById(R.id.queryscrollview);
+//		ListView ausgabeliste = (ListView) findViewById(R.id.queryresultlistview2);
 
 		System.out.println("send_request");
 		eingabe= (EditText) findViewById(R.id.querystring);
@@ -77,43 +78,10 @@ public class QueryDatabaseActivity extends Activity {
 			String eingabetext=eingabe.getText().toString().replace('"', '\'');
 			history.add(eingabe.getText().toString());
 			
-			Object liste=SecondoActivity.secondoDba.querySync(eingabetext);
-			if(liste!=null) {
-				eingabe.setText("");
-				eingabe.setHint("Last entered command:\n\n"+eingabetext);
+			SecondoActivity.secondoDba.queryASync(eingabetext, this);
 
-				ProcessQueries pq=new ProcessQueries();
-				List<String> itemlist=pq.CreateItemList((ListExpr)liste);
-				SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-				boolean formattedOutputState = preferences.getBoolean("formattedOutputState", true);
-
-				if(formattedOutputState && itemlist!=null) {
-					ausgabe.setVisibility(View.INVISIBLE);
-					sv.setVisibility(View.GONE);
-					ausgabeliste.setVisibility(View.VISIBLE);
-
-					@SuppressWarnings({ "unchecked", "rawtypes" })
-					ListAdapter ausgabeAdapter = new ArrayAdapter(this, R.layout.row, itemlist);
-					ausgabeliste.setAdapter(ausgabeAdapter);
-				}
-				else {
-					sv.setVisibility(View.VISIBLE);
-					ausgabeliste.setVisibility(View.GONE);
-					ausgabe.setVisibility(View.VISIBLE);
-
-					ausgabe.setText(liste.toString());
-				}
-
-			} else {
-				sv.setVisibility(View.VISIBLE);
-				ausgabeliste.setVisibility(View.GONE);
-				ausgabe.setVisibility(View.VISIBLE);
-				eingabe.setText("");
-				ausgabe.setText("Error: "+SecondoActivity.secondoDba.errorMessageSync());
-
-			}
 		}
-		dialog.dismiss();
+		
 	}
 	
 	/**
@@ -143,6 +111,65 @@ public class QueryDatabaseActivity extends Activity {
 	public void clear_command(View v) {
 		eingabe.setText("");
 
+	}
+
+	@Override
+	public void queryCallBack(final Object liste) {
+		final Activity thisActivity = this;
+
+		runOnUiThread(new Runnable() { 
+			@Override
+			public void run() {
+
+				ScrollView sv= (ScrollView)findViewById(R.id.queryscrollview);
+				ListView ausgabeliste = (ListView) findViewById(R.id.queryresultlistview2);
+				String eingabetext=eingabe.getText().toString().replace('"', '\'');
+
+				if(liste!=null) {
+					eingabe.setText("");
+					eingabe.setHint("Last entered command:\n\n"+eingabetext);
+
+					ProcessQueries pq=new ProcessQueries();
+					List<String> itemlist=pq.CreateItemList((ListExpr)liste);
+					SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+					boolean formattedOutputState = preferences.getBoolean("formattedOutputState", true);
+
+					if(formattedOutputState && itemlist!=null) {
+						ausgabe.setVisibility(View.INVISIBLE);
+						sv.setVisibility(View.GONE);
+						ausgabeliste.setVisibility(View.VISIBLE);
+
+						@SuppressWarnings({ "unchecked", "rawtypes" })
+						ListAdapter ausgabeAdapter = new ArrayAdapter(thisActivity, R.layout.row, itemlist);
+						ausgabeliste.setAdapter(ausgabeAdapter);
+					}
+					else {
+						sv.setVisibility(View.VISIBLE);
+						ausgabeliste.setVisibility(View.GONE);
+						ausgabe.setVisibility(View.VISIBLE);
+
+						ausgabe.setText(liste.toString());
+					}
+
+				} else {
+					sv.setVisibility(View.VISIBLE);
+					ausgabeliste.setVisibility(View.GONE);
+					ausgabe.setVisibility(View.VISIBLE);
+					eingabe.setText("");
+					ausgabe.setText("Error: "+SecondoActivity.secondoDba.errorMessageSync());
+
+				}		
+			}
+		});
+		if (dialog != null && dialog.isShowing()) {
+			dialog.dismiss();
+			dialog = null;
+		}
+	}
+
+	@Override
+	public void initializeCallBack(boolean result) {
+		// Nothing to do here
 	}
 
 }
