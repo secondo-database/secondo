@@ -23,7 +23,7 @@
 #
 ########################################################################
 
-# inlcude global definitions
+# include global definitions
 include ../../makefile.env
 
 # expand compile flags if necessary

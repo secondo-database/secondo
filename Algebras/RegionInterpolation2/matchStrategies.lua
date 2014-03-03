@@ -1,3 +1,7 @@
+-- matchStrategies.lua
+-- This file is included from matchFaces.lua and
+-- contains the actual strategy-implementations
+
 function matchFacesNull (src,dst,depth)
     -- Do not create any pairings
     return {}

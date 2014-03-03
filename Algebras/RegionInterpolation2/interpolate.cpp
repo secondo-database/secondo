@@ -231,13 +231,8 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
 // Configure the fallbacks with their arguments here, in case the interpolation
 // failed for some reason.
 string fallbacks[] = {
-#ifdef USE_LUA
-    "MW",
-    "Null"
-#else
     "mw",
     "null"
-#endif
 };
 #define nrfallbacks (sizeof(fallbacks)/sizeof(fallbacks[0]))
 
@@ -290,10 +285,13 @@ int interpolate2valmap(Word* args,
         if (correct)
             result.setAddr(w.addr);
         else {
-            // Yield a database error here.
+            // Yield an error message here.
+            ErrorReporter::ReportError("interpolate2 internal error");
+            MRegion *res = new MRegion(0);
+            result.setAddr(res);
         }
     }
-
+    
     return 0;
 }
 

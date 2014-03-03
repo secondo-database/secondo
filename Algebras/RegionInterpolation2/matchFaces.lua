@@ -1,3 +1,7 @@
+-- matchFaces.lua
+-- This is the main Lua-file, which is loaded by default from
+-- matchFacesLua.
+
 debuglevel = 0 -- Increase debuglevel for more verbosity
 
 function matchFaces (src, dst, depth, args)
@@ -8,8 +12,10 @@ function matchFaces (src, dst, depth, args)
     -- accordingly
     debug(1, "LUA Start with args "..args)
     debug(1, "Depth "..depth..": Srcregs " .. #src .. ", Dstregs " .. #dst)
-    debug(2, "Offset src "..srcoff.x.."/"..srcoff.y.."  Scale src "..srcscale.x.."/"..srcscale.y)
-    debug(2, "Offset dst "..dstoff.x.."/"..dstoff.y.."  Scale dst "..dstscale.x.."/"..dstscale.y)
+    debug(2, "Src: Offset " .. srcoff.x .. "/" .. srcoff.y ..
+                 " Scale " ..srcscale.x .. "/" .. srcscale.y)
+    debug(2, "Dst: Offset " .. dstoff.x .. "/" .. dstoff.y ..
+                 " Scale " ..dstscale.x .. "/" .. dstscale.y)
     debug(3, "Sregs:");
     for key,reg in pairs(src) do
 	pt = middle(reg)
