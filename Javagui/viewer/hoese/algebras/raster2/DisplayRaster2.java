@@ -156,7 +156,6 @@ public abstract class DisplayRaster2 extends DisplayGraph
   public void init(String name, int nameWidth,  int indent, ListExpr type, ListExpr value, QueryResult qr)
   {     
     AttrName = extendString(name, nameWidth, indent);
-    this.typeName = this.extractTypeName(name);
     
     if (!isScanned)
     {
@@ -329,10 +328,6 @@ public abstract class DisplayRaster2 extends DisplayGraph
     this.bounds.setRect(x, y, width, height); 
       
   }
-  
-
-
-  
     
   /**
   * Scans the list representation of a Raster2 datatype:
@@ -348,19 +343,24 @@ public abstract class DisplayRaster2 extends DisplayGraph
   {
     Comparable val = null;    
     int atomType = valueLe.atomType();
+    setTypeName(atomType);
     
     switch (atomType)
     {
       case ListExpr.INT_ATOM:
+        this.typeName = "int";
         val = valueLe.intValue();
         break;
       case ListExpr.REAL_ATOM:
+        this.typeName = "real";
         val = valueLe.realValue();
         break;
       case ListExpr.BOOL_ATOM:
+        this.typeName = "bool";
         val = valueLe.boolValue();
         break;
       case ListExpr.STRING_ATOM:
+        this.typeName = "string";
         val = (valueLe.stringValue());
         break;
       case ListExpr.SYMBOL_ATOM:
@@ -371,13 +371,53 @@ public abstract class DisplayRaster2 extends DisplayGraph
       default:
     }
     
-    if (val != null){
+    if (val != null)
+    {
       this.valueSet.add(val);
     }
     
     return val;
   }
 
+  /**
+  * Sets the type name of raster cell values.
+  */
+  
+  void setTypeName(int atomType)
+  {
+    if(this.typeName.isEmpty())
+    {
+      switch (atomType)
+      {
+        case ListExpr.INT_ATOM:
+        {
+          this.typeName = "int";
+        }
+        break;
+        
+        case ListExpr.REAL_ATOM:
+        {
+          this.typeName = "real";
+        }
+        break;
+        
+        case ListExpr.BOOL_ATOM:
+        {
+          this.typeName = "bool";
+        }
+        break;
+        
+        case ListExpr.STRING_ATOM:
+        {
+          this.typeName = "string";
+        }
+        break;
+        
+        default:
+        break;
+      }
+    }
+  }
   
   /**
   * Keeps track of minimum and maximum values of all cells
@@ -643,18 +683,6 @@ public abstract class DisplayRaster2 extends DisplayGraph
   public boolean isEmpty()
   {
     return (this.cellCount==0);
-  }
- 
-  /**
-  *  Extracts data type name of the raster's cell values (from AttributeName).
-  */
-  public String extractTypeName(String pName)
-  {     
-    if (pName.endsWith("int")) return "int";
-    if (pName.endsWith("real")) return "real";
-    if (pName.endsWith("bool")) return "bool";
-    if (pName.endsWith("string")) return "string";
-    return "";
   }
   
   /**
