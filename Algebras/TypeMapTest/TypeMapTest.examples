@@ -1,0 +1,27 @@
+
+Database: berlintest
+Restore: No
+
+
+Operator : tminit
+Number   : 1
+Signature: {string, text} -> bool
+Example  : query tminit('../Algebras/tmspecs')
+Result   : FALSE
+
+
+Operator : tmgetOpSig
+Number   : 1
+Signature: {string, text} x string -> text
+Example  : query tmgetOpSig("StandardAlgebra","+")
+Result   : (text '()')
+
+Operator : tmtypemap
+Number   : 1
+Signature: text x any x any ... -> text
+Example  : query tmtypemap(tmgetOpSig('StandardAlgebra',"+"),3,4)
+Result   : (text '()')
+
+
+
+
