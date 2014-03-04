@@ -2128,8 +2128,8 @@ ListExpr IBasic<B>::ToListExpr(ListExpr typeInfo) {
   if (!Intime<B>::IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
-  return nl->TwoElemList(Intime<B>::instant.ToListExpr(false), 
-                         Intime<B>::value.ToListExpr(nl->Empty()));
+  return nl->TwoElemList(this->instant.ToListExpr(false), 
+                         this->value.ToListExpr(nl->Empty()));
 }
 
 /*
@@ -2138,17 +2138,16 @@ ListExpr IBasic<B>::ToListExpr(ListExpr typeInfo) {
 */
 template<class B>
 bool IBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  Intime<B>::SetDefined(false);
+  this->SetDefined(false);
   if (listutils::isSymbolUndefined(LE)) {
     return true;
   }
   if (!nl->HasLength(LE, 2)) {
     return false;
   }
-  if (Intime<B>::instant.ReadFrom(nl->First(LE), nl->Empty()) &&
-      Intime<B>::value.ReadFrom(nl->Second(LE), nl->Empty())) {
-    Intime<B>::SetDefined(Intime<B>::instant.IsDefined() && 
-                          Intime<B>::value.IsDefined());
+  if (this->instant.ReadFrom(nl->First(LE), nl->Empty()) &&
+      this->value.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->SetDefined(this->instant.IsDefined() && this->value.IsDefined());
     return true;
   }
   return false;
@@ -2160,11 +2159,11 @@ bool IBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 */
 template<class B>
 void IBasic<B>::Val(B& result) const {
-  if (!Intime<B>::IsDefined()) {
+  if (!this->IsDefined()) {
     result.SetDefined(false);
     return;
   }
-  result.CopyFrom(&(Intime<B>::value));
+  result.CopyFrom(&(this->value));
 }
 
 /*
