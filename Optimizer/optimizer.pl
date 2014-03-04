@@ -2617,7 +2617,7 @@ NVK ADDED NR
 */
 
 /*
-There is even no afeedproject operator as for arel's (see below). Note that these rules are used for optimization of subqueries, there are usually subqueries create like 0 COMPARE\_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
+There is even no afeedproject operator as for arel's (see below). Note that these rules are used for optimization of subquries, there are usually subqueries create like 0 COMPARE\_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
 
 */
 
@@ -4423,7 +4423,7 @@ assignSize(Source, Target, sortby(Arg1, _), Result) :-
   optimizerOption(memoryAllocation),
   resSize(Arg1, Card1),
   resTupleSize(Arg1, TupleSize1),
-  Sel = 1, % Here we have to predicate, so there is no selection, every
+  Sel = 1, % Here we have no predicate, so there is no selection, every
   % row is processed.
   Size is Card1 * Sel,
   !,
@@ -4446,9 +4446,12 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   not( optimizerOption(improvedcosts) ), % standard cost functions
   \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   resSize(Arg, Card),
+  resTupleSize(Arg, TupleSize),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card * Sel,
+  !,
   setNodeSize(Result, Size),
+  setNodeTupleSize(Result, TupleSize),
   assert(edgeSelectivity(Source, Target, Sel)),
   assert(edgeInputCards(Source, Target, Arg, undefined)),
   assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
@@ -4459,9 +4462,14 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
+  resTupleSize(Arg1, TupleSize1),
+  resTupleSize(Arg2, TupleSize2),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card1 * Card2 * Sel,
+  addSizeTerms([TupleSize1,TupleSize2],TupleSize),
+  !,
   setNodeSize(Result, Size),
+  setNodeTupleSize(Result, TupleSize),  
   assert(edgeSelectivity(Source, Target, Sel)),
   assert(edgeInputCards(Source, Target, Arg1, Arg2)),
   assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
