@@ -1482,7 +1482,6 @@ void MBasics<B>::At(const B& bs, MBasics<B>& result) const {
     if (basics == bs) {
       SecInterval iv;
       GetInterval(i, iv);
-//       UBasics<B> ut(iv, basics);
       result.Add(iv, basics);
     }
   }
@@ -1746,7 +1745,7 @@ GenTC<Place> place;
 
 */
 Places::Places(const Places& rhs,  const bool sort /* = false */) :
-  Attribute(rhs.IsDefined()), values(rhs.GetNoValues()) {
+Attribute(rhs.IsDefined()), values(rhs.GetLength()), posref(rhs.GetNoValues()) {
   if (sort) {
     set<base> vals;
     for (int i = 0; i < rhs.GetNoValues(); i++) {
@@ -1921,12 +1920,6 @@ void Places::operator=(const Places& p) {
   if (IsDefined()) {
     values.copyFrom(p.values);
     posref.copyFrom(p.posref);
-    
-//     base value;
-//     for (int i = 0; i < p.GetNoValues(); i++) {
-//       p.GetValue(i, value);
-//       Append(value);
-//     }
   }
 }
 
@@ -1950,8 +1943,9 @@ bool Places::operator==(const Places& p) const {
         return false;
       }
     }
+    return true;
   }
-  return true;
+  return false;
 }
 
 /*
