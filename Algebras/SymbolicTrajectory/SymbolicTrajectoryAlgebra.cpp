@@ -64,19 +64,16 @@ Label::Label(const Label& rhs) : Attribute(rhs.IsDefined()), value(0) {
 */
 void Label::GetValue(string& text) const {
   assert(IsDefined());
-  SmiSize sz = value.getSize();
-  char *bytes;
-  if (sz == 0) {
-    bytes = new char[1];
-    bytes[0] = 0;
+  if (value.getSize() > 0) {
+    char *bytes = new char[value.getSize()];
+    value.read(bytes, value.getSize());
+    string text2(bytes, value.getSize());
+    delete[] bytes;
+    text = text2;
   }
   else {
-    bytes = new char[sz];
-    bool ok = value.read(bytes, sz);
-    assert(ok);
+    text.clear();
   }
-  text = bytes;
-  delete[] bytes;
 }
 
 /*
@@ -92,15 +89,9 @@ void Label::buildValue(const string& text, const unitelem& unit, base& result) {
 
 */
 void Label::SetValue(const string &text) {
-  const char *bytes = text.c_str();
-  SmiSize sz = strlen(bytes) + 1;
-  if (sz > 0) {
-    assert(bytes[sz - 1] == 0);
-    value.write(bytes, sz);
-  }
-  else {
-    char d = 0;
-    value.write(&d, 1);
+  if (text.length() > 0) {
+    const char *bytes = text.c_str();
+    value.write(bytes, text.length());
   }
 }
 
@@ -141,6 +132,9 @@ bool Label::operator==(const string& text) const {
 bool Label::readValueFrom(ListExpr LE, string& text, unitelem& unit) {
   if (nl->IsAtom(LE)) {
     nl->WriteToString(text, LE);
+    if (text.length() == 0) {
+      unit.pos = UINT_MAX;
+    }
     return true;
   }
   return false;
@@ -676,16 +670,13 @@ void Labels::Append(const Label& lb) {
 }
 
 void Labels::Append(const string& text) {
-  pos.Append(values.getSize());
-  const char *bytes = text.c_str();
-  SmiSize sz = strlen(bytes) + 1;
-  if (sz > 0) {
-    assert(bytes[sz - 1] == 0);
-    values.write(bytes, sz, values.getSize());
+  if (text.length() > 0) {
+    pos.Append(values.getSize());
+    const char *bytes = text.c_str();
+    values.write(bytes, text.length(), values.getSize());
   }
   else {
-    char d = 0;
-    values.write(&d, 1, values.getSize());
+    pos.Append(UINT_MAX);
   }
 }
 
@@ -711,16 +702,28 @@ void Labels::GetValue(int i, string& text) const {
   assert((0 <= i) && (i < GetNoValues()) && IsDefined());
   unsigned int cur(-1), next(-1);
   pos.Get(i, cur);
-  if (i == GetNoValues() - 1) { // last value
-    next = values.getSize();
+  if (cur != UINT_MAX) {
+    int j = i + 1;
+    bool finished = false;
+    while (!finished && (j < GetNoValues())) {
+      pos.Get(j, next);
+      if (next != UINT_MAX) {
+        finished = true;
+      }
+      j++;
+    }
+    if (!finished) {
+      next = GetLength();
+    }
+    char *bytes = new char[next - cur];
+    values.read(bytes, next - cur, cur);
+    string text2(bytes, next - cur);
+    delete[] bytes;
+    text = text2;
   }
   else {
-    pos.Get(i + 1, next);
+    text.clear();
   }
-  char *bytes = new char[next - cur];
-  values.read(bytes, next - cur, cur);
-  text = bytes;
-  delete[] bytes;
 }
 
 /*
@@ -735,10 +738,8 @@ void Labels::getRefToLastElem(const int size, unsigned int& result) {
 \subsection{Function ~getFlobPos~}
 
 */
-void Labels::getFlobPos(const pair<unsigned int, unsigned int> elems, 
-                        pair<size_t, size_t>& result) {
-  result.first = elems.first;
-  result.second = elems.second;
+unsigned int Labels::getFlobPos(const arrayelem elem) {
+  return elem;
 }
 
 /*
@@ -1094,24 +1095,19 @@ template<class B>
 bool MBasics<B>::readValues(ListExpr valuelist) {
   ListExpr rest = valuelist;
   string text;
-  typename B::arrayelem elem, testelem;
+  typename B::arrayelem elem;
   while (!nl->IsEmpty(rest)) {
     if (listutils::isSymbolUndefined(nl->First(rest))) {
       return false;
     }
     B::getString(nl->First(rest), text);
-    B::getElemFromList(nl->First(rest), values.getSize(), elem);
+    text = text.substr(1, text.length() - 2);
+    unsigned int newPos = (text.length() > 0 ? values.getSize() : UINT_MAX);
+    B::getElemFromList(nl->First(rest), newPos, elem);
     pos.Append(elem);
-    pos.Get(pos.Size() - 1, testelem);
-    const char *bytes = (text.substr(1, text.length() - 2)).c_str();
-    SmiSize sz = strlen(bytes) + 1;
-    if (sz > 0) {
-      assert(bytes[sz - 1] == 0);
-      values.write(bytes, sz, values.getSize());
-    }
-    else {
-      char d = 0;
-      values.write(&d, 1, values.getSize());
+    if (text.length() > 0) {
+      const char *bytes = text.c_str();
+      values.write(bytes, text.length(), values.getSize());
     }
     rest = nl->Rest(rest);
   }
@@ -1251,6 +1247,7 @@ void MBasics<B>::GetBasics(const int i, B& result) const {
   for (unsigned int j = 0; j < values.size(); j++) {
     result.Append(values[j]);
   }
+  result.SetDefined(true);
 }
 
 /*
@@ -1264,23 +1261,40 @@ void MBasics<B>::GetValues(const int i, vector<typename B::base>& result) const{
   SymbolicUnit unit;
   units.Get(i, unit);
   typename B::base val;
-  pair<typename B::arrayelem, typename B::arrayelem> elems;
-  pair<size_t, size_t> flobpos;
+  typename B::arrayelem elem1, elem2;
+  pair<unsigned int, unsigned int> flobPos; // pos, size
   for (int j = unit.pos; j <= getUnitEndPos(i); j++) {
-    pos.Get(j, elems.first);
-    if (j < pos.Size() - 1) { // not the final entry
-      pos.Get(j + 1, elems.second);
+    flobPos = make_pair(0, 0);
+    pos.Get(j, elem1);
+    unsigned int start = B::getFlobPos(elem1);
+    if (start != UINT_MAX) {
+      int k = j + 1;
+      bool finished = false;
+      while (!finished && (k < GetNoValues())) {
+        pos.Get(k, elem2);
+        unsigned int next = B::getFlobPos(elem2);
+        if (next != UINT_MAX) { // valid reference
+          flobPos = make_pair(start, next - start);
+          finished = true;
+        }
+        k++;
+      }
+      if (!finished) { // end of array
+        flobPos = make_pair(start, values.getSize() - start);
+      }
+    }
+    if (flobPos.second > 0) {
+      char *bytes = new char[flobPos.second];
+      values.read(bytes, flobPos.second, flobPos.first);
+      string text(bytes, flobPos.second);
+      delete[] bytes;
+      B::buildValue(text, elem1, val);
+      result.push_back(val);
     }
     else {
-      B::getRefToLastElem(values.getSize() - 1, elems.second);
+      B::buildValue("", elem1, val);
+      result.push_back(val);
     }
-    B::getFlobPos(elems, flobpos);
-    char *bytes = new char[flobpos.second - flobpos.first + 1];
-    values.read(bytes, flobpos.second - flobpos.first + 1, flobpos.first);
-    string text = bytes;
-    B::buildValue(text, elems.first, val);
-    result.push_back(val);
-    delete[] bytes;
   }
 }
 
@@ -1705,6 +1719,9 @@ bool Place::readValueFrom(ListExpr LE, string& text, unitelem& unit) {
   if (nl->HasLength(LE, 2)) {
     if (nl->IsAtom(nl->First(LE)) && nl->IsAtom(nl->Second(LE))) {
       nl->WriteToString(text, nl->First(LE));
+      if (text.length() == 0) {
+        unit.pos = UINT_MAX;
+      }
       unit.ref = nl->IntValue(nl->Second(LE));
       return true;
     }
@@ -1769,18 +1786,12 @@ Attribute(rhs.IsDefined()), values(rhs.GetLength()), posref(rhs.GetNoValues()) {
 */
 void Places::Append(const base& val) {
   NewPair<unsigned int, unsigned int> pr;
-  pr.first = values.getSize();
+  pr.first = (val.first.length() > 0 ? values.getSize() : UINT_MAX);
   pr.second = val.second;
   posref.Append(pr);
-  const char *bytes = val.first.c_str();
-  SmiSize sz = strlen(bytes) + 1;
-  if (sz > 0) {
-    assert(bytes[sz - 1] == 0);
-    values.write(bytes, sz, values.getSize());
-  }
-  else {
-    char d = 0;
-    values.write(&d, 1, values.getSize());
+  if (val.first.length() > 0) {
+    const char *bytes = val.first.c_str();
+    values.write(bytes, val.first.length(), values.getSize());
   }
 }
 
@@ -1808,29 +1819,30 @@ void Places::Get(const int i, Place& result) const {
 void Places::GetValue(const int i, base& result) const {
   assert(IsDefined() && (0 <= i) && (i < GetNoValues()));
   NewPair<unsigned int, unsigned int> cur, next;
-  unsigned int nextPos;
   posref.Get(i, cur);
-  if (i == GetNoValues() - 1) { // last value
-    nextPos = values.getSize();
-  }
-  else {
-    posref.Get(i + 1, next);
-    nextPos = next.first;
-  }
-  SmiSize sz = nextPos - cur.first;
-  char *bytes;
-  if (sz == 0) {
-    bytes = new char[1];
-    bytes[0] = 0;
-  }
-  else {
-    bytes = new char[sz];
-    bool ok = values.read(bytes, sz, cur.first);
-    assert(ok);
-  }
-  result.first = bytes;
   result.second = cur.second;
-  delete[] bytes;
+  if (cur.first != UINT_MAX) {
+    int j = i + 1;
+    bool finished = false;
+    while (!finished && (j < GetNoValues())) {
+      posref.Get(j, next);
+      if (next.first != UINT_MAX) {
+        finished = true;
+      }
+      j++;
+    }
+    if (!finished) {
+      next.first = GetLength();
+    }
+    char *bytes = new char[next.first - cur.first];
+    values.read(bytes, next.first - cur.first, cur.first);
+    string text(bytes, next.first - cur.first);
+    result.first = text;
+    delete[] bytes; 
+  }
+  else {
+    result.first.clear();
+  }
 }
 
 /*
@@ -1860,10 +1872,8 @@ void Places::getRefToLastElem(const int size, arrayelem& result) {
 \subsection{Function ~getFlobPos~}
 
 */
-void Places::getFlobPos(const pair<arrayelem, arrayelem>& elems, 
-                        pair<size_t, size_t>& result) {
-  result.first = elems.first.first;
-  result.second = elems.second.first;
+unsigned int Places::getFlobPos(const arrayelem elem) {
+  return elem.first;
 }
 
 /*
@@ -2514,7 +2524,8 @@ GenTC<UBasics<Places> > uplaces;
 
 */
 template<class B>
-MBasic<B>::MBasic(const MBasic &mb) : Attribute(mb.IsDefined()) {
+MBasic<B>::MBasic(const MBasic &mb) : Attribute(mb.IsDefined()),
+                                      values(0), units(GetNoComponents()) {
   if (IsDefined()) {
     values.copyFrom(mb.values);
     units.copyFrom(mb.units);
@@ -2672,15 +2683,10 @@ bool MBasic<B>::readUnitFrom(ListExpr LE) {
     return false;
   }
   units.Append(unit);
-  const char *bytes = (text.substr(1, text.length() - 2)).c_str();
-  SmiSize sz = strlen(bytes) + 1;
-  if (sz > 0) {
-    assert(bytes[sz - 1] == 0);
-    values.write(bytes, sz, values.getSize());
-  }
-  else {
-    char d = 0;
-    values.write(&d, 1, values.getSize());
+  text = text.substr(1, text.length() - 2);
+  if (text.length() > 0) {
+    const char *bytes = text.c_str();
+    values.write(bytes, text.length(), values.getSize());
   }
   return true;
 }
@@ -2774,35 +2780,37 @@ void MBasic<B>::GetBasic(const int i, B& result) const {
 }
 
 /*
-\subsection{Function ~getUnitEndPos~}
-
-*/
-template<class B>
-unsigned int MBasic<B>::getUnitEndPos(const int i) const {
-  assert((i >= 0) && (i < GetNoComponents()));
-  if (i == GetNoComponents() - 1) {
-    return values.getSize() - 1;
-  }
-  typename B::unitelem nextUnit;
-  units.Get(i + 1, nextUnit);
-  return nextUnit.pos - 1;
-}
-
-/*
 \subsection{Function ~GetValue~}
 
 */
 template<class B>
 void MBasic<B>::GetValue(const int i, typename B::base& result) const {
   assert((i >= 0) && (i < GetNoComponents()));
-  typename B::unitelem unit;
-  units.Get(i, unit);
-  unsigned int endPos = getUnitEndPos(i);
-  char* bytes = new char[endPos - unit.pos + 1];
-  values.read(bytes, endPos - unit.pos + 1, unit.pos);
-  string text = bytes;
-  B::buildValue(text, unit, result);
-  delete[] bytes;
+  typename B::unitelem cur, next;
+  units.Get(i, cur);
+  unsigned int size;
+  if (cur.pos != UINT_MAX) {
+    int j = i + 1;
+    bool finished = false;
+    while (!finished && (j < units.Size())) {
+      units.Get(j, next);
+      if (next.pos != UINT_MAX) {
+        finished = true;
+        size = next.pos - cur.pos;
+      }
+    }
+    if (!finished) {
+      size = values.getSize() - cur.pos;
+    }
+    char* bytes = new char[size];
+    values.read(bytes, size, cur.pos);
+    string text(bytes, size);
+    delete[] bytes;
+    B::buildValue(text, cur, result);
+  }
+  else {
+    B::buildValue("", cur, result);
+  }
 }
 
 /*
@@ -2986,7 +2994,7 @@ void MBasic<B>::Atinstant(const Instant& inst, IBasic<B>& result) const {
   typename B::unitelem unit;
   units.Get(pos, unit);
   GetBasic(pos, result.value);
-  result.instant = unit.iv.start;
+  result.instant = inst;
 }
 
 /*
@@ -3060,7 +3068,7 @@ void MBasic<B>::Fill(MBasic<B>& result, DateTime& dur) const {
   if (IsEmpty()) {
     return;
   }
-  UBasic<B> unit, lastUnit;
+  UBasic<B> unit(true), lastUnit(true);
   Get(0, lastUnit);
   for (int i = 1; i < GetNoComponents(); i++) {
     Get(i, unit);
@@ -8687,7 +8695,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   ValueMapping passesSymbolicVMs[] = {passesSymbolicVM<MLabel, Label>,
     passesSymbolicVM<MLabels, Label>, passesSymbolicVM<MLabels, Labels>,
-    passesSymbolicVM<MPlace, Place>, passesSymbolicVM<MPlaces, Places>, 0};
+    passesSymbolicVM<MPlace, Place>, passesSymbolicVM<MPlaces, Place>,
+    passesSymbolicVM<MPlaces, Places>, 0};
   AddOperator(passesSymbolicInfo(), passesSymbolicVMs, atPassesSymbolicSelect,
               passesSymbolicTM);
   

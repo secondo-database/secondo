@@ -5,7 +5,7 @@ Operator : tolabel
 Number   : 1
 Signature: (string | text) -> label
 Example  : query tolabel('Aubameyang')
-Result   : (label ('Aubameyang'))
+Result   : (label 'Aubameyang')
 
 Operator : tostring
 Number   : 1
@@ -85,11 +85,23 @@ Signature: mlabel x label -> bool
 Example  : query mlabel1 passes tolabel("Eving")
 Result   : TRUE
 
+Operator : passes
+Number   : 7
+Signature: mplace x place -> bool
+Example  : query mplace1 passes toplace("Kehl", 5)
+Result   : TRUE
+
 Operator : at
 Number   : 4
 Signature: mlabel x label -> mlabel
 Example  : query mlabel1 at tolabel("Eving")
 Result   : (mlabel ((("2012-01-01" "2012-01-01-00:30" TRUE FALSE)'Eving')))
+
+Operator : at
+Number   : 5
+Signature: mplace x place -> mplace
+Example  : query mplace1 at toplace('Kehl', 5)
+Result   : (mplace ((("2014-01-01-02:00" "2014-01-01-02:30" TRUE FALSE) ('Kehl' 5))))
 
 Operator : deftime
 Number   : 4
@@ -99,9 +111,15 @@ Result   : (periods (("2000-01-03" "2000-01-04" TRUE FALSE)))
 
 Operator : atinstant
 Number   : 4
-Signature: mlabel -> ilabel
+Signature: mlabel x instant -> ilabel
 Example  : query mlabel1 atinstant [const instant value "2012-01-01-01:15"]
-Result   : (ilabel ("2012-01-01-01:15" "Brackel"))
+Result   : (ilabel ("2012-01-01-01:15" 'Brackel'))
+
+Operator : atinstant
+Number   : 5
+Signature: mplace x instant -> iplace
+Example  : query mplace1 atinstant [const instant value "2014-01-01-01:15"]
+Result   : (iplace ("2014-01-01-01:15" ('Aubameyang' 17)))
 
 Operator : units
 Number   : 5
@@ -113,24 +131,24 @@ Operator : initial
 Number   : 12
 Signature: ulabel -> ilabel
 Example  : query initial(the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
-Result   : (ilabel ("2000-01-03" "Mkhitaryan"))
+Result   : (ilabel ("2000-01-03" 'Mkhitaryan'))
 
 Operator : final
 Number   : 12
 Signature: ulabel -> ilabel
 Example  : query final(the_unit(tolabel("Mkhitaryan"), [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
-Result   : (ilabel ("2000-01-04" "Mkhitaryan"))
+Result   : (ilabel ("2000-01-04" 'Mkhitaryan'))
 
 Operator : val
 Number   : 4
 Signature: ilabel -> label
 Example  : query val([const ilabel value ("2013-10-29" "Mkhitaryan")])
-Result   : (label ("Mkhitaryan"))
+Result   : (label 'Mkhitaryan')
 
 Operator : inst
 Number   : 4
-Signature: ilabel -> instant
-Example  : query inst([const ilabel value ("2013-10-29" "Mkhitaryan")])
+Signature: iplace -> instant
+Example  : query inst([const iplace value ("2013-10-29" ("Mkhitaryan" 10))])
 Result   : (instant "2013-10-29")
 
 Operator : inside
@@ -139,6 +157,11 @@ Signature: mlabel x labels -> mbool
 Example  : query (mlabel1 inside [const labels value ("Innenstadt-Ost")]) at TRUE
 Result   : (mbool ((("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE)TRUE)))
 
+Operator : inside
+Number   : 2
+Signature: mplace x places -> mbool
+Example  : query (mplace1 inside [const places value (('Hummels' 15) ("Schmelzer" 29))]) at TRUE
+Result   : (mbool ((("2014-01-01" "2014-01-01-00:30" TRUE FALSE)TRUE)))
 
 
 
@@ -171,16 +194,52 @@ Example  : query the_unit([const places value (("Mkhitaryan" 10) ("Reus" 11))], 
 Result   : (mplaces ((("2000-01-03" "2000-01-04" TRUE FALSE) (('Mkhitaryan' 10) ('Reus' 11)))))
 
 Operator : passes
-Number   : 7
+Number   : 8
+Signature: mlabels x labels -> bool
+Example  : query mlabels1 passes [const labels value ("Hummels")]
+Result   : FALSE
+
+Operator : passes
+Number   : 9
 Signature: mlabels x label -> bool
 Example  : query mlabels1 passes tolabel("Hummels")
 Result   : TRUE
 
 Operator : passes
+Number   : 10
+Signature: mplaces x places -> bool
+Example  : query mplaces1 passes [const places value (("Mkhitaryan" 10))]
+Result   : TRUE
+
+Operator : passes
+Number   : 11
+Signature: mplaces x place -> bool
+Example  : query mplaces1 passes toplace('Piszczek', 26)
+Result   : TRUE
+
+Operator : at
+Number   : 6
+Signature: mlabels x label -> mlabels
+Example  : query mlabels1 at tolabel("Jojic")
+Result   : (mlabels ((("2014-07-01" "2015-06-30" TRUE FALSE)('Ji' 'Jojic'))))
+
+Operator : at
+Number   : 7
+Signature: mlabels x labels -> mlabels
+Example  : query mlabels1 at [const labels value ('Ji' "Jojic")]
+Result   : (mlabels ((("2014-07-01" "2015-06-30" TRUE FALSE)('Ji' 'Jojic'))))
+
+Operator : at
 Number   : 8
-Signature: mlabels x labels -> bool
-Example  : query mlabels1 passes [const labels value ("Jojic" "Ji")]
-Result   : FALSE
+Signature: mplaces x place -> mplaces
+Example  : query mplaces1 at toplace("Mkhitaryan", 10)
+Result   : (mplaces ((("2014-01-01-00:30" "2014-01-01-01:00" TRUE FALSE)(('Mkhitaryan' 10)))))
+
+Operator : at
+Number   : 9
+Signature: mplaces x places -> mplaces
+Example  : query mplaces1 at [const places value (('Mkhitaryan' 10))]
+Result   : (mplaces ((("2014-01-01-00:30" "2014-01-01-01:00" TRUE FALSE)(('Mkhitaryan' 10)))))
 
 Operator : deftime
 Number   : 5
@@ -198,32 +257,37 @@ Operator : initial
 Number   : 13
 Signature: ulabels -> ilabels
 Example  : query initial(the_unit([const labels value ("Mkhitaryan")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
-Result   : (ilabels ("2000-01-03" ("Mkhitaryan")))
+Result   : (ilabels ("2000-01-03" ('Mkhitaryan')))
 
 Operator : final
 Number   : 13
-Signature: ulabels -> ilabels
-Example  : query final(the_unit([const labels value ("Schmelzer" "Mkhitaryan")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
-Result   : (ilabels ("2000-01-04" ("Schmelzer" "Mkhitaryan")))
+Signature: mplaces -> iplaces
+Example  : query final(mplaces1)
+Result   : (iplaces ("2014-01-01-03:00" (('Weidenfeller' 1) ('Langerak' 20))))
 
 Operator : val
 Number   : 5
 Signature: ilabels -> label
 Example  : query val([const ilabels value ("2013-10-29" ("Mkhitaryan" "Jojic"))])
-Result   : (labels ("Mkhitaryan" "Jojic"))
+Result   : (labels ('Mkhitaryan' 'Jojic'))
 
 Operator : inst
 Number   : 5
-Signature: ilabels -> instant
-Example  : query inst([const ilabels value ("2013-10-29" ("Mkhitaryan" "Jojic"))])
+Signature: iplaces -> instant
+Example  : query inst([const iplaces value ("2013-10-29" (('Jojic' 14)))])
 Result   : (instant "2013-10-29")
 
 Operator : atinstant
-Number   : 5
+Number   : 6
 Signature: mlabels -> ilabels
 Example  : query mlabels1 atinstant [const instant value "2014-07-07-11:00"]
-Result   : (ilabels ("2014-07-07-11:00" ("Ji" "Jojic")))
+Result   : (ilabels ("2014-07-07-11:00" ('Ji' 'Jojic')))
 
+Operator : atinstant
+Number   : 7
+Signature: mplaces -> iplaces
+Example  : query mplaces1 atinstant [const instant value "2014-01-01-02:55"]
+Result   : (iplaces ("2014-01-01-02:55" (('Weidenfeller' 1) ('Langerak' 20))))
 
 
 
@@ -254,13 +318,13 @@ Operator : filtermatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
 Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * () // X.labels contains tolabel("Brackel")'] count
-Result   : 1
+Result   : 0
 
 Operator : indexmatches
 Number   : 1
 Signature: rel(tuple(X)) x IDENT x text -> stream(tuple(X))
 Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], '(_ "Aplerbeck") * (_ "Innenstadt-Ost") *'] count
-Result   : 2
+Result   : 0
 
 Operator : rewrite
 Number   : 0
@@ -284,13 +348,13 @@ Operator : rewrite
 Number   : 1
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
 Example  : query rewrite(Dotraj feed projecttransformstream[Trajectory], rewrite1 feed projecttransformstream[Pattern]) count
-Result   : 3
+Result   : 0
 
 Operator : compress
 Number   : 1
 Signature: mlabel -> mlabel
 Example  : query compress([const mlabel value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home") (("2013-01-02" "2013-01-03" TRUE FALSE) "at_home"))])
-Result   : (mlabel ((("2013-01-01" "2013-01-03" TRUE FALSE) "at_home")))
+Result   : (mlabel ((("2013-01-01" "2013-01-03" TRUE FALSE) 'at_home')))
 
 Operator : compress
 Number   : 3
@@ -302,7 +366,7 @@ Operator : fillgaps
 Number   : 1
 Signature: mlabel -> mlabel
 Example  : query fillgaps([const mlabel value ((("2012-10-01" "2012-10-02-05:00:00" TRUE FALSE) "at_home") (("2012-10-02-05:00:58" "2012-10-02-07:00:00" TRUE FALSE) "at_home"))], 60000)
-Result   : (mlabel ((("2012-10-01" "2012-10-02-07:00" TRUE FALSE) "at_home")))
+Result   : (mlabel ((("2012-10-01" "2012-10-02-07:00" TRUE FALSE) 'at_home')))
 
 Operator : createml
 Number   : 1
@@ -320,4 +384,4 @@ Operator : createtrie
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
 Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], '(_ "Mengede") *'] count
-Result   : 3
+Result   : 0

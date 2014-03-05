@@ -191,8 +191,7 @@ class Labels : public Attribute {
   void Get(int i, Label& lb) const;
   void GetValue(int i, string& text) const;
   static void getRefToLastElem(const int size, unsigned int& result);
-  static void getFlobPos(const pair<unsigned int, unsigned int> elems, 
-                         pair<size_t, size_t>& result);
+  static unsigned int getFlobPos(const arrayelem elem);
   static void valuesToListExpr(const vector<string>& values, ListExpr& result);
   static void getString(const ListExpr& list, string& result);
   static void getElemFromList(const ListExpr& list, const unsigned int size, 
@@ -308,8 +307,7 @@ class Places : public Attribute {
   bool Contains(const base& val) const;
   void Clean() {values.clean(); posref.clean();}
   static void getRefToLastElem(const int size, arrayelem& result);
-  static void getFlobPos(const pair<arrayelem, arrayelem>& elems, 
-                         pair<size_t, size_t>& result);
+  static unsigned int getFlobPos(const arrayelem elem);
   static void valuesToListExpr(const vector<base>& values, ListExpr& result);
   static void getString(const ListExpr& list, string& result);
   static void getElemFromList(const ListExpr& list, const unsigned int size, 
@@ -403,7 +401,7 @@ class UBasic : public ConstTemporalUnit<B> {
 };
 
 /*
-\section{Class ~MPlace~}
+\section{Class ~MBasic~}
 
 */
 template<class B>
@@ -437,7 +435,6 @@ class MBasic : public Attribute {
   int Position(const Instant& inst) const;
   void Get(const int i, UBasic<B>& result) const;
   void GetBasic(const int i, B& result) const;
-  unsigned int getUnitEndPos(const int i) const;
   void GetValue(const int i, typename B::base& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
   int GetNoComponents() const {return units.Size();}
@@ -600,24 +597,6 @@ class MLabel : public MBasic<Label> {
                   
   
 };
-
-// class MLabels : public MBasics<Labels> {
-//  public: 
-//   MLabels() {}
-//   explicit MLabels(int n) : MBasics<Labels>(n) {}
-//   explicit MLabels(const MLabels& mls) : MBasics<Labels>(mls) {}
-//   
-//   ~MLabels() {}
-// };
-// 
-// class MPlaces : public MBasics<Places> {
-//  public: 
-//   MPlaces() {}
-//   explicit MPlaces(int n) : MBasics<Places>(n) {}
-//   explicit MPlaces(const MPlaces& mps) : MBasics<Places>(mps) {}
-//   
-//   ~MPlaces() {}
-// };
 
 typedef IBasic<Label> ILabel;
 typedef UBasic<Label> ULabel;
