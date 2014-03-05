@@ -14,322 +14,322 @@
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Aplerbeck") 
+                            'Aplerbeck') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Aplerbeck") 
+                            'Aplerbeck') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Aplerbeck") 
+                            'Aplerbeck') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Brackel") 
+                            'Brackel') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Hombruch") 
+                            'Hombruch') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Innenstadt-West") 
+                            'Innenstadt-West') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Innenstadt-West"))) 
+                            'Innenstadt-West'))) 
                 (1 
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Scharnhorst") 
+                            'Scharnhorst') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Innenstadt-West") 
+                            'Innenstadt-West') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Lütgendortmund") 
+                            'Lütgendortmund') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Hombruch") 
+                            'Hombruch') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Hörde") 
+                            'Hörde') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Aplerbeck") 
+                            'Aplerbeck') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Brackel"))) 
+                            'Brackel'))) 
                 (2 
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Innenstadt-West") 
+                            'Innenstadt-West') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Brackel") 
+                            'Brackel') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Innenstadt-Nord"))) 
+                            'Innenstadt-Nord'))) 
                 (3 
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Brackel") 
+                            'Brackel') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Brackel") 
+                            'Brackel') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Scharnhorst") 
+                            'Scharnhorst') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Innenstadt-West") 
+                            'Innenstadt-West') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Lütgendortmund") 
+                            'Lütgendortmund') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Innenstadt-West") 
+                            'Innenstadt-West') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Lütgendortmund"))) 
+                            'Lütgendortmund'))) 
                 (4 
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Huckarde") 
+                            'Huckarde') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Innenstadt-West") 
+                            'Innenstadt-West') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Huckarde") 
+                            'Huckarde') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Innenstadt-West") 
+                            'Innenstadt-West') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Hombruch") 
+                            'Hombruch') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Innenstadt-Ost"))) 
+                            'Innenstadt-Ost'))) 
                 (5 
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Aplerbeck") 
+                            'Aplerbeck') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Aplerbeck") 
+                            'Aplerbeck') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Hörde") 
+                            'Hörde') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Brackel") 
+                            'Brackel') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Huckarde") 
+                            'Huckarde') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Brackel"))) 
+                            'Brackel'))) 
                 (6 
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Huckarde") 
+                            'Huckarde') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Innenstadt-West") 
+                            'Innenstadt-West') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Lütgendortmund") 
+                            'Lütgendortmund') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Hombruch") 
+                            'Hombruch') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Lütgendortmund"))) 
+                            'Lütgendortmund'))) 
                 (7 
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Lütgendortmund") 
+                            'Lütgendortmund') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Huckarde") 
+                            'Huckarde') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Huckarde") 
+                            'Huckarde') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Hombruch") 
+                            'Hombruch') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Innenstadt-Ost"))) 
+                            'Innenstadt-Ost'))) 
                 (8 
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Hörde") 
+                            'Hörde') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Hörde") 
+                            'Hörde') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Aplerbeck") 
+                            'Aplerbeck') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Aplerbeck") 
+                            'Aplerbeck') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Aplerbeck") 
+                            'Aplerbeck') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Innenstadt-Ost") 
+                            'Innenstadt-Ost') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Hörde") 
+                            'Hörde') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Hombruch"))) 
+                            'Hombruch'))) 
                 (9 
                     (
                         (
                             ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                            "Mengede") 
+                            'Mengede') 
                         (
                             ("2012-01-01-03:00" "2012-01-01-03:30" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-03:30" "2012-01-01-04:00" TRUE FALSE) 
-                            "Innenstadt-Nord") 
+                            'Innenstadt-Nord') 
                         (
                             ("2012-01-01-04:00" "2012-01-01-04:30" TRUE FALSE) 
-                            "Eving") 
+                            'Eving') 
                         (
                             ("2012-01-01-04:30" "2012-01-01-05:00" TRUE FALSE) 
-                            "Scharnhorst"))))) 
+                            'Scharnhorst'))))) 
         (OBJECT SEC_DERIVED_OBJ 
             () 
             (rel 
@@ -359,51 +359,104 @@
                 (
                     'trip through several districts' 
                     '* (_ "Aplerbeck") * (_ "Lütgendortmund") * (_ "Eving") *'))) 
-        (OBJECT classifier3 
-            () 
-            classifier 
-            (
-                'start at Hörde, end at Brackel' 
-                '(_ "Hörde") * (_ "Brackel")' 
-                'start at Innenstadt-West, Lütgendortmund' 
-                '(_ "Innenstadt-West") (_ "Lütgendortmund") *' 
-                'trip through several districts' 
-                '* (_ "Aplerbeck") * (_ "Lütgendortmund") * (_ "Eving") *')) 
         (OBJECT mlabel1 
             () 
             mlabel 
             (
                 (
                     ("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 
-                    "Eving") 
+                    'Eving') 
                 (
                     ("2012-01-01-00:30" "2012-01-01-01:00" TRUE FALSE) 
-                    "Scharnhorst") 
+                    'Scharnhorst') 
                 (
                     ("2012-01-01-01:00" "2012-01-01-01:30" TRUE FALSE) 
-                    "Brackel") 
+                    'Brackel') 
                 (
                     ("2012-01-01-01:30" "2012-01-01-02:00" TRUE FALSE) 
-                    "Innenstadt-Ost") 
+                    'Innenstadt-Ost') 
                 (
                     ("2012-01-01-02:00" "2012-01-01-02:30" TRUE FALSE) 
-                    "Innenstadt-West") 
+                    'Innenstadt-West') 
                 (
                     ("2012-01-01-02:30" "2012-01-01-03:00" TRUE FALSE) 
-                    "Lütgendortmund"))) 
+                    'Lütgendortmund'))) 
         (OBJECT mlabels1 
             () 
             mlabels 
             (
                 (
                     ("2010-07-01" "2011-06-30" TRUE FALSE) 
-                    ("Kagawa" "Barrios" "Hummels")) 
+                    (
+                        'Kagawa' 
+                        'Barrios' 
+                        'Hummels')) 
                 (
                     ("2014-01-30" "2014-01-31-21:55:44.002" TRUE FALSE) 
-                    ("Hummels" "Reus" "Schieber" "Großkreutz" "Durm")) 
+                    (
+                        'Hummels' 
+                        'Reus' 
+                        'Schieber' 
+                        'Großkreutz' 
+                        'Durm')) 
                 (
                     ("2014-07-01" "2015-06-30" TRUE FALSE) 
-                    ("Ji" "Jojic")))) 
+                    (
+                        'Ji' 
+                        'Jojic')))) 
+        (OBJECT mplace1 
+            () 
+            mplace 
+            (
+                (
+                    ("2014-01-01" "2014-01-01-00:30" TRUE FALSE) 
+                    (
+                        'Hummels' 15)) 
+                (
+                    ("2014-01-01-00:30" "2014-01-01-01:00" TRUE FALSE) 
+                    (
+                        'Mkhitaryan' 10)) 
+                (
+                    ("2014-01-01-01:00" "2014-01-01-01:30" TRUE FALSE) 
+                    (
+                        'Aubameyang' 17)) 
+                (
+                    ("2014-01-01-01:30" "2014-01-01-02:00" TRUE FALSE) 
+                    (
+                        'Bender' 6)) 
+                (
+                    ("2014-01-01-02:00" "2014-01-01-02:30" TRUE FALSE) 
+                    (
+                        'Kehl' 5)) 
+                (
+                    ("2014-01-01-02:30" "2014-01-01-03:00" TRUE FALSE) 
+                    (
+                        'Weidenfeller' 1)))) 
+        (OBJECT mplaces1 
+            () 
+            mplaces 
+            (
+                (
+                    ("2014-01-01" "2014-01-01-00:30" TRUE FALSE) 
+                    (
+                        (
+                            'Hummels' 15) 
+                        (
+                            'Sahin' 8) 
+                        (
+                            'Piszczek' 26))) 
+                (
+                    ("2014-01-01-00:30" "2014-01-01-01:00" TRUE FALSE) 
+                    (
+                        (
+                            'Mkhitaryan' 10))) 
+                (
+                    ("2014-01-01-02:30" "2014-01-01-03:00" TRUE FALSE) 
+                    (
+                        (
+                            'Weidenfeller' 1) 
+                        (
+                            'Langerak' 20))))) 
         (OBJECT rewrite1 
             () 
             (rel 
