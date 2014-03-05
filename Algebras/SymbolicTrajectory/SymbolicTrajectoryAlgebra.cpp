@@ -4328,7 +4328,7 @@ matches a certain condition.
 bool Match::evaluateCond(Condition &cond,
                 const map<string, pair<unsigned int, unsigned int> > &binding) {
   Word qResult;
-  ULabel ul;
+  ULabel ul(true);
   unsigned int from, to;
   for (int i = 0; i < cond.getVarKeysSize(); i++) {
     string var = cond.getVar(i);
