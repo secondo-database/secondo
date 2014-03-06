@@ -28,9 +28,9 @@ import android.widget.Toast;
  */
 public class ListObjectsResultActivity extends Activity implements ISecondoDbaCallback {
 	
-	ListView ausgabeliste = null;
-	TextView ausgabe = null;
-	ScrollView sv = null;
+//	ListView ausgabeliste = null;
+//	TextView ausgabe = null;
+//	ScrollView sv = null;
 	ProgressDialog progressDialog = null;
 	
 	@Override
@@ -45,9 +45,9 @@ public class ListObjectsResultActivity extends Activity implements ISecondoDbaCa
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_listobjectsresult);
 		// Object liste=null;
-		ausgabe = (TextView) findViewById(R.id.queryresulttextview);
-		ausgabeliste = (ListView) findViewById(R.id.queryresultlistview);
-		sv= (ScrollView)findViewById(R.id.scrollView1);
+		TextView ausgabe = (TextView) findViewById(R.id.queryresulttextview);
+		ListView ausgabeliste = (ListView) findViewById(R.id.queryresultlistview);
+		
 
 		Bundle extras=getIntent().getExtras();
 		if(extras!=null) {
@@ -69,39 +69,46 @@ public class ListObjectsResultActivity extends Activity implements ISecondoDbaCa
 
 	@Override
 	public void queryCallBack(final Object liste) {
-		System.out.println(this.getClass().getName());
 		final Activity thisActivity = this;
-		
+
 		runOnUiThread(new Runnable() { 
 			@Override
 			public void run() {
-			ListExpr newlist=(ListExpr)liste;
+				ListExpr newlist=(ListExpr)liste;
 
-			// Die Darstellung erfolgt je nachdem, ob die Ausgabetypen bekannt sind, als Listview 
-			// oder als Textview.
-			if(liste!=null) {
-				ProcessQueries pq=new ProcessQueries();
-				List<String> itemlist=pq.CreateItemList(newlist);
-				if(itemlist!=null) {
-					ausgabe.setVisibility(View.GONE);
-					sv.setVisibility(View.GONE);
-					@SuppressWarnings({ "unchecked", "rawtypes" })
-					ListAdapter ausgabeAdapter = new ArrayAdapter(thisActivity, R.layout.row, itemlist);
-					ausgabeliste.setAdapter(ausgabeAdapter);
+				ScrollView sv= (ScrollView)findViewById(R.id.scrollView1);
+				ListView ausgabeliste = (ListView) findViewById(R.id.queryresultlistview);
+				TextView ausgabe = (TextView) findViewById(R.id.queryresulttextview);
 
-				} else	{
+				// Die Darstellung erfolgt je nachdem, ob die Ausgabetypen bekannt sind, als Listview 
+				// oder als Textview.
+				if(liste!=null) {
+					ProcessQueries pq=new ProcessQueries();
+					List<String> itemlist=pq.CreateItemList(newlist);
+					if(itemlist!=null) {
+						ausgabe.setVisibility(View.GONE);
+						sv.setVisibility(View.GONE);
+						@SuppressWarnings({ "unchecked", "rawtypes" })
+						ListAdapter ausgabeAdapter = new ArrayAdapter(thisActivity, R.layout.row, itemlist);
+						ausgabeliste.setAdapter(ausgabeAdapter);
+
+					} else	{
+						ausgabeliste.setVisibility(View.GONE);
+						String teststring = liste.toString();
+						System.out.println(teststring);
+						//String teststring = "Hallo Welt";
+						ausgabe.setText(teststring);
+					}
+				} else {
 					ausgabeliste.setVisibility(View.GONE);
-					ausgabe.setText(liste.toString());
+					ausgabe.setText(SecondoActivity.secondoDba.errorMessageSync());
 				}
-			} else {
-				ausgabeliste.setVisibility(View.GONE);
-				ausgabe.setText(SecondoActivity.secondoDba.errorMessageSync());
-			}
-			if (progressDialog != null && progressDialog.isShowing()) {
-				progressDialog.dismiss();
-			}
 			}
 		});
+		if (progressDialog != null && progressDialog.isShowing()) {
+			progressDialog.dismiss();
+			progressDialog = null;
+		}
 
 	}
 
