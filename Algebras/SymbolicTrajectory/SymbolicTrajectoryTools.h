@@ -49,13 +49,12 @@ struct NFAtransition {
 
 string int2String(int i);
 int str2Int(string const &text);
-set<string> stringToSet(string input);
 string setToString(set<string> input);
 int prefixCount(string str, set<string> strings);
-vector<string> splitPattern(string input);
+void splitPattern(string& input, vector<string>& result);
 char* convert(string arg);
-string eraseQM(string arg); // QM = quotation marks
-string addQM(string arg);
+void eraseQM(string& arg); // QM = quotation marks
+void addQM(string& arg);
 void simplifyRegEx(string &regEx);
 set<unsigned int>** createSetMatrix(unsigned int dim1, unsigned int dim2);
 void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
@@ -65,10 +64,10 @@ string extendDate(string input, const bool start);
 bool checkSemanticDate(const string &text, const SecInterval &uIv,
                        const bool resultNeeded);
 bool checkDaytime(const string text, const SecInterval uIv);
-bool labelsMatch(string label, set<string> lbs);
-bool timesMatch(Interval<DateTime>* iv, set<string> ivs);
-Word evaluate(string input);
-vector<string> createTrajectory(int size);
+bool labelsMatch(const string& label, const set<string>& lbs);
+bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
+// Word evaluate(string input);
+void createTrajectory(int size, vector<string>& result);
 void fillML(const MString& source, MString& result, DateTime* duration);
 void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates);
 void makeNFApersistent(vector<map<int, int> > &nfa, set<int> &finalStates,

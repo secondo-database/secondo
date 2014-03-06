@@ -675,6 +675,7 @@ class PatElem {
   string var;
   set<string> ivs;
   set<string> lbs;
+  set<pair<string, unsigned int> > pls;
   Wildcard wc;
   bool ok;
 
@@ -683,20 +684,23 @@ class PatElem {
   PatElem(const char* contents);
   ~PatElem() {}
 
-  void setUnit(const char *v, const char *i, const char *l, const char *w);
+  void stringToSet(const string& input, const bool isTime);
   void getUnit(const char *v, bool assignment);
-  void setVar(string v) {var = v;}
+  void setVar(const string& v) {var = v;}
 
-  string      getV() const                {return var;}
-  set<string> getL() const                {return lbs;}
-  set<string> getI() const                {return ivs;}
-  Wildcard    getW() const                {return wc;}
-  bool        isOk() const                {return ok;}
-  void        clearL()                    {lbs.clear();}
-  void        insertL(string newLabel)    {lbs.insert(newLabel);}
-  void        clearI()                    {ivs.clear();}
-  void        insertI(string newInterval) {ivs.insert(newInterval);}
-  void        clearW()                    {wc = NO;}
+  void     getV(string& result) const                     {result = var;}
+  void     getL(set<string>& result) const                {result = lbs;}
+  void     getP(set<pair<string, unsigned int> >& result) {result = pls;}
+  void     getI(set<string>& result) const                {result = ivs;}
+  Wildcard getW() const                                   {return wc;}
+  bool     isOk() const                                   {return ok;}
+  void     clearL()                                       {lbs.clear();}
+  void     clearP()                                       {pls.clear();}
+  void     insertL(const string& lb)                      {lbs.insert(lb);}
+  void     insertP(const pair<string, unsigned int>& pl)  {pls.insert(pl);}
+  void     clearI()                                       {ivs.clear();}
+  void     insertI(string& iv)                            {ivs.insert(iv);}
+  void     clearW()                                       {wc = NO;}
 };
 
 class Assign {
@@ -1192,8 +1196,8 @@ friend class IndexMatchesLI;
   Tuple* nextResultTuple();
   void applyPattern(Pattern *p);
   int getMLsize(TupleId tId);
-  ULabel getUL(TupleId tId, unsigned int ulId);
-  bool timesMatch(TupleId tId, unsigned int ulId, set<string> ivs);
+  void getUL(TupleId tId, unsigned int ulId, ULabel& result);
+  bool timesMatch(TupleId tId, unsigned int ulId, set<string>& ivs);
 
  private:
   Classifier *c;

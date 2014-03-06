@@ -91,9 +91,8 @@ char* errMsg;
 %name-prefix="pattern"
 
 %token ZZEND
-%token<text> ZZVARIABLE ZZCONTENTS ZZEMPTYPAT ZZWILDCARD ZZDOUBLESLASH
-             ZZVAR_DOT_TYPE ZZRIGHTARROW ZZCONST_OP ZZASSIGN ZZOPENREGEX
-             ZZCLOSEREGEX ZZERROR
+%token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE 
+             ZZRIGHTARROW ZZCONST_OP ZZASSIGN ZZOPENREGEX ZZCLOSEREGEX ZZERROR
 %type<text> variable patternelement conditionsequence condition expression
             resultsequence result assignment element separator regexseq
             results_assignments assignmentsequence
@@ -464,7 +463,6 @@ element : patternelement {
             }
             string wildcard = (pElem.getW() == STAR ? "*" : (pElem.getW() == PLUS ? "+" : ""));
             regEx += int2String(wholepat->getSize() + pElems.size()) + wildcard + " ";
-            string var = pElem.getV();
             wholepat->addAtomicPos();
             pElems.push_back(pElem);
             free($1);
@@ -498,15 +496,14 @@ variable : ZZVARIABLE
            }
          ;
 
-patternelement : '(' ZZCONTENTS ')' {
-                $$ = $2;
-              }
-            | '(' ')' {
-                $$ = convert("");
-              }
-            | ZZWILDCARD
-            | ZZEMPTYPAT
-            ;
+patternelement : '(' ZZCONTENTS ')'{
+                   $$ = $2;
+                 }
+               | '(' ')' {
+                   $$ = convert("");
+                 }
+               | ZZWILDCARD {}
+               ;
 
 %%
 /*
@@ -601,20 +598,64 @@ void PatElem::getUnit(const char *varP, bool order) {
   }
 }
 
-void PatElem::setUnit(const char *v, const char *i, const char *l, const char *w) {
-  string lstr(l), istr(i);
-  var.assign(v);
-  ivs = stringToSet(istr);
-  lbs = stringToSet(lstr);
-  string wcstr(w);
-  if (!wcstr.compare("*")) {
-    wc = STAR;
+/*
+function ~stringToSet~
+
+Converts a string containing time, label, or place information for internal
+storage.
+
+*/
+void PatElem::stringToSet(const string& input, bool isTime) {
+  string element, contents(input);
+  pair<string, unsigned int> place;
+  bool isPlace = false;
+  int limitpos;
+  contents.erase(0, input.find_first_not_of(" "));
+  if (contents == "_") {
+    return;
   }
-  else if (!wcstr.compare("+")) {
-    wc = PLUS;
+  if (contents[0] == '{') {
+    contents = contents.substr(1, contents.length() - 2);
   }
-  else {
-    wc = NO;
+  while (!contents.empty()) {
+    contents.erase(0, contents.find_first_not_of(", "));
+    if ((contents[0] == '\"') || (contents[0] == '\'')) { //label/time inside qm
+      limitpos = contents.find('\"', 1);
+      element = contents.substr(1, limitpos - 1);
+      contents.erase(0, limitpos + 1);
+      isPlace = false;
+    }
+    else if (contents[0] == '(') { // place
+      limitpos = contents.find(')');
+      element = contents.substr(1, limitpos - 1);
+      element.erase(0, limitpos + 1);
+      isPlace = true;
+      element.erase(0, element.find_first_not_of(" "));
+      place.first = element.substr(1, element.find_first_of("\"\'", 1) - 1);
+      cout << "place (" << place.first;
+      element.erase(0, element.find_first_of("\"\'", 1));
+      element.erase(0, element.find_first_not_of(" "));
+      place.second = str2Int(element);
+      cout << " " << place.second << ") found" << endl;
+      pls.insert(place);
+    }
+    else { // label/time without qm
+      limitpos = contents.find_first_of(",");
+      element = contents.substr(0, limitpos);
+      contents.erase(0, limitpos);
+      isPlace = false;
+    }
+    if (isTime) {
+      ivs.insert(element);
+    }
+    else {
+      if (!isPlace) {
+        lbs.insert(element);
+      }
+      if (!lbs.empty() && !pls.empty()) {
+        ok = false;
+      }
+    }
   }
 }
 
@@ -622,13 +663,14 @@ void PatElem::setUnit(const char *v, const char *i, const char *l, const char *w
 Constructor for class ~PatElem~
 
 */
-PatElem::PatElem(const char *contents) : wc(NO) {
-  ok = true;
+PatElem::PatElem(const char *contents) : wc(NO), ok(true) {
   string input(contents);
-  vector<string> parts = splitPattern(input);
+  vector<string> parts;
+  ::splitPattern(input, parts);
   if (parts.size() == 2) {
-    ivs = stringToSet(parts[0]);
-    lbs = stringToSet(parts[1]);
+    cout << "\'" << parts[0] << "\' \'" << parts[1] << "\'" << endl;
+    stringToSet(parts[0], true);
+    stringToSet(parts[1], false);
     SecInterval iv;
     for (set<string>::iterator it = ivs.begin(); it != ivs.end(); it++) {
       if ((*it)[0] >= 65 && (*it)[0] <= 122 && !checkSemanticDate(*it, iv, false)) {
@@ -660,8 +702,8 @@ int Condition::convertVarKey(const char *varKey) {
   string varInput(input.substr(0, dotpos));
   string kInput(input.substr(dotpos + 1));
   for (unsigned int i = 0; i < wholepat->getElems().size(); i++) {
-    if (varInput == wholepat->getElem(i).getV()) {
-      var = varInput;
+    wholepat->getElem(i).getV(var);
+    if (varInput == var) {
       key = ::getKey(kInput);
       if (!key && (wholepat->getElem(i).getW()
                || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
@@ -695,8 +737,8 @@ bool Assign::convertVarKey(const char *varKey) {
   string kInput(input.substr(dotpos + 1));
   pair<string, int> right;
   for (int i = 0; i < wholepat->getSize(); i++) {
-    if (varInput == (wholepat->getElem(i)).getV()) {
-      right.first = varInput;
+    wholepat->getElem(i).getV(right.first);
+    if (varInput == right.first) {
       right.second = getKey(kInput);
       addRight(6, right); // assign to n \in {0, 1, ..., 5} afterwards
       wholepat->addRelevantVar(varInput);
@@ -734,8 +776,10 @@ void Pattern::collectAssVars() {
 }
 
 int Pattern::getPatternPos(const string var) {
+  string v;
   for (int i = 0; i < (int)elems.size(); i++) {
-    if (elems[i].getV() == var) {
+    elems[i].getV(v);
+    if (v == var) {
       return i;
     }
   }

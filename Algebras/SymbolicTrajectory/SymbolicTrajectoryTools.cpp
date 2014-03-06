@@ -73,20 +73,17 @@ char* convert(string arg) {
 Deletes enclosing quotation marks from a string.
 
 */
-string eraseQM(string arg) {
+void eraseQM(string& arg) {
   if (arg.at(0) == '"') {
-    return arg.substr(1, arg.length() - 2);
+    arg = arg.substr(1, arg.length() - 2);
   }
-  return arg;
 }
 
-string addQM(string arg) {
-  if (arg.at(0) == '"') {
-    return arg;
+void addQM(string& arg) {
+  if (arg.at(0) != '"') {
+    arg.insert(0, "\"");
+    arg.append("\"");
   }
-  arg.insert(0, "\"");
-  arg.append("\"");
-  return arg;
 }
 
 void simplifyRegEx(string &regEx) {
@@ -105,41 +102,6 @@ void simplifyRegEx(string &regEx) {
       }
     }
   }
-}
-
-/*
-\subsection{Function ~stringToSet~}
-
-Splits a string {a, b, c, ...} into a set of strings a, b, c, ...
-
-*/
-set<string> stringToSet(string input) {
-  string element, contents(input);
-  int limitpos;
-  set<string> result;
-  contents.erase(0, input.find_first_not_of(" "));
-  if (!contents.compare("_")) {
-    return result;
-  }
-  if (contents.at(0) == '{') {
-    contents.assign(contents.substr(1, contents.length() - 2));
-  }
-  while (!contents.empty()) {
-    contents.erase(0, contents.find_first_not_of(", "));
-    if (contents.at(0) == '\"') {
-      limitpos = contents.find('\"', 1);
-      element = contents.substr(1, limitpos - 1);
-      contents.erase(0, limitpos + 1);
-    }
-    else {
-      limitpos = contents.find_first_of(",");
-      element = contents.substr(0, limitpos);
-      contents.erase(0, limitpos);
-    }
-    result.insert(element);
-//     cout << "element " << element << " added" << endl;
-  }
-  return result;
 }
 
 /*
@@ -213,10 +175,10 @@ int prefixCount(string str, set<string> strings) {
   return result;
 }
 
-vector<string> splitPattern(string input) {
-  vector<string> result;
-  if (!input.size()) {
-    return result;
+void splitPattern(string& input, vector<string>& result) {
+  result.clear();
+  if (input.empty()) {
+    return;
   }
   size_t pos = input.find('{');
   if (pos == 0) { // ({2012, 2013}, ...)
@@ -228,7 +190,7 @@ vector<string> splitPattern(string input) {
       result.push_back(input.substr(input.find('}') + 1));
     }
   }
-  else if (pos == string::npos) { // no set
+  else if (pos == string::npos) { // no curly brackets
     if (input.find(' ') == string::npos) { // * or +
       result.push_back(input);
     }
@@ -241,7 +203,6 @@ vector<string> splitPattern(string input) {
     result.push_back(input.substr(0, input.find(' ')));
     result.push_back(input.substr(input.find(' ')));
   }
-  return result;
 }
 
 /*
@@ -493,22 +454,18 @@ bool checkDaytime(const string text, const SecInterval uIv) {
     endString.assign(startString);
     startString.append(text.substr(0, text.find('~')));
     endString.append(text.substr(text.find('~') + 1));
-    Instant *pStart = new DateTime(instanttype);
-    Instant *pEnd = new DateTime(instanttype);
-    if (!pStart->ReadFrom(extendDate(startString, true))) {
+    Instant pStart(instanttype);
+    Instant pEnd(instanttype);
+    if (!pStart.ReadFrom(extendDate(startString, true))) {
       cout << "error: ReadFrom " << extendDate(startString, true) << endl;
       return false;
     }
-    if (!pEnd->ReadFrom(extendDate(endString, false))) {
+    if (!pEnd.ReadFrom(extendDate(endString, false))) {
       cout << "error: ReadFrom " << extendDate(endString, false) << endl;
       return false;
     }
-    SecInterval *pInterval = new SecInterval(*pStart, *pEnd, true, true);
-    bool result = pInterval->Contains(uIv);
-    delete pInterval;
-    delete pStart;
-    delete pEnd;
-    return result;
+    SecInterval pInterval(pStart, pEnd, true, true);
+    return pInterval.Contains(uIv);
   } // no match possible in case of different days
   return false;
 }
@@ -520,55 +477,50 @@ Checks whether the time interval ~uIv~ is completely enclosed by each of the
 intervals specified in ~ivs~. If ~ivs~ is empty, the result is ~true~.
 
 */
-bool timesMatch(Interval<DateTime>* iv, set<string> ivs) {
+bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs) {
   if (ivs.empty()) {
     return true;
   }
-  bool result(true), elementOk(false);
-  Instant *pStart = new DateTime(instanttype);
-  Instant *pEnd = new DateTime(instanttype);
-  SecInterval *pIv = new SecInterval(0);
-  SecInterval uIv(*iv);
+  bool elementOk(false);
+  Instant pStart(instanttype);
+  Instant pEnd(instanttype);
+  SecInterval pIv(true);
   for (set<string>::iterator j = ivs.begin(); j != ivs.end(); j++) {
     if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
-      elementOk = checkSemanticDate(*j, uIv, true);
+      elementOk = checkSemanticDate(*j, iv, true);
     }
     else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
           && (((*j).find(':') < (*j).find('~')) // on each side of [~],
               || ((*j)[0] == '~')) // there has to be either xx:yy or nothing
           && (((*j).find(':', (*j).find('~')) != string::npos)
               || (*j)[(*j).size() - 1] == '~')) {
-      elementOk = checkDaytime(*j, uIv);
+      elementOk = checkDaytime(*j, iv);
     }
     else {
       if ((*j)[0] == '~') { // 3rd case: ~2012-05-12
-        pStart->ToMinimum();
-        pEnd->ReadFrom(extendDate((*j).substr(1), false));
+        pStart.ToMinimum();
+        pEnd.ReadFrom(extendDate((*j).substr(1), false));
       }
       else if ((*j)[(*j).size() - 1] == '~') { // 4th case: 2011-04-02-19:09~
-        pStart->ReadFrom(extendDate((*j).substr(0, (*j).size() - 1), true));
-        pEnd->ToMaximum();
+        pStart.ReadFrom(extendDate((*j).substr(0, (*j).size() - 1), true));
+        pEnd.ToMaximum();
       }
       else if (((*j).find('~')) == string::npos) { // 5th case: no [~] found
-        pStart->ReadFrom(extendDate(*j, true));
-        
-        pEnd->ReadFrom(extendDate(*j, false));
+        pStart.ReadFrom(extendDate(*j, true));
+        pEnd.ReadFrom(extendDate(*j, false));
       }
       else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
-        pStart->ReadFrom(extendDate((*j).substr(0, (*j).find('~')), true));
-        pEnd->ReadFrom(extendDate((*j).substr((*j).find('~') + 1), false));
+        pStart.ReadFrom(extendDate((*j).substr(0, (*j).find('~')), true));
+        pEnd.ReadFrom(extendDate((*j).substr((*j).find('~') + 1), false));
       }
-      pIv->Set(*pStart, *pEnd, true, true);
-      elementOk = pIv->Contains(uIv);
+      pIv.Set(pStart, pEnd, true, true);
+      elementOk = pIv.Contains(iv);
     }
     if (!elementOk) { // all intervals have to match
-      result = false;
+      return false;
     }
   }
-  pIv->DeleteIfAllowed();
-  pStart->DeleteIfAllowed();
-  pEnd->DeleteIfAllowed();
-  return result;
+  return true;
 }
 
 /*
@@ -578,16 +530,11 @@ Checks whether the string ~label~ matches one of the strings from the set ~lbs~.
 If ~lbs~ is empty, ~true~ is returned.
 
 */
-bool labelsMatch(string label, set<string> lbs) {
+bool labelsMatch(const string& label, const set<string>& lbs) {
   if (lbs.empty()) {
     return true;
   }
-  for (set<string>::iterator i = lbs.begin(); i != lbs.end(); i++) {
-    if (!label.compare(*i)) { // look for a matching label
-      return true;
-    }
-  }
-  return false;
+  return (lbs.find(label) != lbs.end());
 }
 
 /*
@@ -596,24 +543,24 @@ bool labelsMatch(string label, set<string> lbs) {
 The string ~input~ is evaluated by Secondo. The result is returned as a Word.
 
 */
-Word evaluate(string input) {
-  SecParser qParser;
-  string query, queryStr;
-  ListExpr queryList;
-  Word queryResult;
-  input.insert(0, "query ");
-  if (!qParser.Text2List(input, queryStr)) {
-    if (nl->ReadFromString(queryStr, queryList)) {
-      if (!nl->IsEmpty(nl->Rest(queryList))) {
-        query = nl->ToString(nl->First(nl->Rest(queryList)));
-        if (qp->ExecuteQuery(query, queryResult)) {
-          return queryResult;
-        }
-      }
-    }
-  }
-  return queryResult;
-}
+// Word evaluate(string input) {
+//   SecParser qParser;
+//   string query, queryStr;
+//   ListExpr queryList;
+//   Word queryResult;
+//   input.insert(0, "query ");
+//   if (!qParser.Text2List(input, queryStr)) {
+//     if (nl->ReadFromString(queryStr, queryList)) {
+//       if (!nl->IsEmpty(nl->Rest(queryList))) {
+//         query = nl->ToString(nl->First(nl->Rest(queryList)));
+//         if (qp->ExecuteQuery(query, queryResult)) {
+//           return queryResult;
+//         }
+//       }
+//     }
+//   }
+//   return queryResult;
+// }
 
 /*
 \subsection{Function ~createTrajectory~}
@@ -622,8 +569,7 @@ Creates a vector of string containing districts of Dortmund in a random but
 sensible order.
 
 */
-vector<string> createTrajectory(int size) {
-  vector<string> result;
+void createTrajectory(int size, vector<string>& result) {
   string districts[12] = {"Aplerbeck", "Brackel", "Eving", "Hörde", "Hombruch",
                           "Huckarde", "Innenstadt-Nord", "Innenstadt-Ost",
                           "Innenstadt-West", "Lütgendortmund", "Mengede",
@@ -669,7 +615,6 @@ vector<string> createTrajectory(int size) {
     result.push_back(districts[*it]);
     prevPos = *it;
   }
-  return result;
 }
 
 void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates) {

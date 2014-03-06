@@ -284,7 +284,8 @@ void MLabel::createML(int size, bool text, double rate = 1.0) {
     end.Add(&dur);
     SecInterval iv(start, end, true, false);
     if (text) {
-      vector<string> trajectory = createTrajectory(size);
+      vector<string> trajectory;
+      createTrajectory(size, trajectory);
       for (int i = 0; i < size; i++) {
         time_t tm;
         time(&tm);
@@ -4078,12 +4079,14 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
   ULabel ul(true);
   ml->Get(ulId, ul);
   string text;
+  set<string> lbs, ivs;
   ul.constValue.GetValue(text);
   if (store) {
     if (ulId < ml->GetNoComponents() - 1) { // usual case
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-        if (labelsMatch(text, elems[itm->first].getL())
-         && timesMatch(&ul.timeInterval, elems[itm->first].getI())
+        elems[itm->first].getL(lbs);
+        elems[itm->first].getI(ivs);
+        if (labelsMatch(text, lbs) && timesMatch(ul.timeInterval, ivs)
          && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
           states.insert(states.end(), itm->second);
@@ -4098,8 +4101,9 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
     }
     else { // last row; mark final states with -1
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-        if (labelsMatch(text, elems[itm->first].getL())
-         && timesMatch(&ul.timeInterval, elems[itm->first].getI())
+        elems[itm->first].getL(lbs);
+        elems[itm->first].getI(ivs);
+        if (labelsMatch(text, lbs) && timesMatch(ul.timeInterval, ivs)
          && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
           states.insert(states.end(), itm->second);
@@ -4112,10 +4116,11 @@ bool Match::updateStates(int ulId, vector<map<int, int> > &nfa,
   }
   else {
     for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-      if (labelsMatch(text, elems[itm->first].getL())
-       && timesMatch(&ul.timeInterval, elems[itm->first].getI())
+      elems[itm->first].getL(lbs);
+      elems[itm->first].getI(ivs);
+      if (labelsMatch(text, lbs) && timesMatch(ul.timeInterval, ivs)
        && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
-                         easyCondPos[itm->first])){
+                         easyCondPos[itm->first])) {
         states.insert(states.end(), itm->second);
       }
     }
@@ -4262,7 +4267,9 @@ bool Match::easyCondsMatch(int ulId, int pId, PatElem const &up,
     return true;
   }
   map<string, pair<unsigned int, unsigned int> > binding;
-  binding[up.getV()] = make_pair(ulId, ulId);
+  string var;
+  up.getV(var);
+  binding[var] = make_pair(ulId, ulId);
   for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
     if (!evaluateCond(easyConds[*it], binding)) {
       return false;
@@ -7257,6 +7264,7 @@ MultiRewriteLI::MultiRewriteLI(Word _mlstream, Word _pstream) : ClassifyLI(0),
   set<int>::iterator it;
   map<int, set<int> >::iterator im;
   int elemCount(0);
+  string var;
   while (inputText) {
     if (!inputText->IsDefined()) {
       cout << "undefined input is ignored" << endl;
@@ -7272,7 +7280,8 @@ MultiRewriteLI::MultiRewriteLI(Word _mlstream, Word _pstream) : ClassifyLI(0),
             pats.push_back(p);
             for (int i = 0; i < p->getSize(); i++) {
               atomicToElem[patElems.size()] = elemCount + p->getElemFromAtom(i);
-              elemToVar[elemCount+p->getElemFromAtom(i)] = p->getElem(i).getV();
+              p->getElem(i).getV(var);
+              elemToVar[elemCount+p->getElemFromAtom(i)] = var;
               patElems.push_back(p->getElem(i));
               patOffset[elemCount + p->getElemFromAtom(i)] =
                                           make_pair(pats.size() - 1, elemCount);
@@ -7647,12 +7656,10 @@ IndexClassifyLI::~IndexClassifyLI() {
 
 */
 bool IndexClassifyLI::timesMatch(TupleId tId, unsigned int ulId,
-                                 set<string> ivs) {
-  if (ivs.empty()) {
-    return true;
-  }
-  ULabel ul = getUL(tId, ulId);
-  return ::timesMatch(&ul.timeInterval, ivs);
+                                 set<string>& ivs) {
+  ULabel ul(true);
+  getUL(tId, ulId, ul);
+  return ::timesMatch(ul.timeInterval, ivs);
 }
 
 /*
@@ -7665,6 +7672,7 @@ void IndexClassifyLI::applyPattern(Pattern *p) {
   wordPosType wc;
   charPosType cc;
   vector<IndexMatchInfo> matchInfo;
+  set<string> lbs, ivs;
   for (int i = 0; i < mlRel->GetNoTuples(); i++) {
     IndexMatchInfo imi(getMLsize(i + 1));
     matchInfo.push_back(imi);
@@ -7672,15 +7680,15 @@ void IndexClassifyLI::applyPattern(Pattern *p) {
   int pSize = p->getSize();
   for (int i = 0; i < pSize; i++) { // iterate over pattern elements
     if (p->getElem(i).getW() == NO) {
-      set<string> labels = p->getElem(i).getL();
-      set<string>::iterator is;
-      for (is = labels.begin(); is != labels.end(); is++) {
+      p->getElem(i).getL(lbs);
+      for (set<string>::iterator is = lbs.begin(); is != lbs.end(); is++) {
         eit = invFile->getExactIterator(*is, 4096);
         set<int> foundULs;
         TupleId lastId = UINT_MAX;
         while (eit->next(id, wc, cc)) {
           if (matchInfo[id - 1].isActive(i)) {
-            if (timesMatch(id, wc, p->getElem(i).getI())) {
+            p->getElem(i).getI(ivs);
+            if (timesMatch(id, wc, ivs)) {
               if ((id == lastId) || (lastId == UINT_MAX)) {
                 foundULs.insert(foundULs.end(), wc); // collect unit label ids
               }
@@ -7700,8 +7708,9 @@ void IndexClassifyLI::applyPattern(Pattern *p) {
           delete eit;
         }
       }
-      if (labels.empty()) { // index cannot be exploited
-        if (p->getElem(i).getI().empty()) { // empty unit pattern
+      if (lbs.empty()) { // index cannot be exploited
+        p->getElem(i).getI(ivs);
+        if (ivs.empty()) { // empty unit pattern
           for (unsigned j = 0; j < matchInfo.size(); j++) {
             if (matchInfo[j].isActive(i)) {
               matchInfo[j].processSimple();
@@ -7715,7 +7724,8 @@ void IndexClassifyLI::applyPattern(Pattern *p) {
                 matchInfo[j].range = false;
                 matchInfo[j].items.clear();
                 for (int k = matchInfo[j].start; k < matchInfo[j].size; k++) {
-                  if (timesMatch(j + 1, k, p->getElem(i).getI())) {
+                  p->getElem(i).getI(ivs);
+                  if (timesMatch(j + 1, k, ivs)) {
                     matchInfo[j].insert(k + 1);
                   }
                 }
@@ -7723,7 +7733,8 @@ void IndexClassifyLI::applyPattern(Pattern *p) {
               else {
                 for (set<int>::iterator it = matchInfo[j].items.begin();
                      it != matchInfo[j].items.end(); it++) {
-                  if (timesMatch(j + 1, *it, p->getElem(i).getI())) {
+                  p->getElem(i).getI(ivs);
+                  if (timesMatch(j + 1, *it, ivs)) {
                     matchInfo[j].insert(*it + 1);
                   }
                 }
@@ -7769,12 +7780,10 @@ int IndexClassifyLI::getMLsize(TupleId tId) {
 \subsection{Function ~getUL~}
 
 */
-ULabel IndexClassifyLI::getUL(TupleId tId, unsigned int ulId) {
-  ULabel result(1);
+void IndexClassifyLI::getUL(TupleId tId, unsigned int ulId, ULabel& result) {
   Tuple* tuple = mlRel->GetTuple(tId, false);
   ((MLabel*)tuple->GetAttribute(attrNr))->Get(ulId, result);
   deleteIfAllowed(tuple);
-  return result;
 }
 
 /*

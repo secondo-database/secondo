@@ -55,27 +55,26 @@ ui [0-9]+
 real {si}+(\.{ui}+)?
 star \*
 plus \+
+setrelation disjoint|superset|equal|intersect
 wildcard {star}|{plus}
 date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
 time {ui}\:{ui}(\:{ui}(\.{ui})?)?
 interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-z_][a-zA-Z0-9_]*)|\~{time}|{time}\~|{time}\~{time}
 intervalset {interval}|(\{{interval}(\,[ ]*{interval})*\})
 label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-]*\"
-labelset {label}|(\{{label}(\,[ ]*{label})*\})
-contents {intervalset}[\ ]+{labelset}
-contents_result {interval}[\ ]+{label}
+place \({label}[\ ]*{ui}\)
+labelset {label}|(({setrelation})?\{{label}(\,[ ]*{label})*\})
+placeset {place}|(\{{place}(\,[ ]*{place})*\})
+contents {intervalset}[\ ]*({labelset}|{placeset})
 variable [A-Z][a-zA-Z0-9_\-]*
 doubleslash \/{2}
-conditiontype label|time|start|end|leftclosed|rightclosed|card|labels
-assigntype label|time|start|end|leftclosed|rightclosed
+conditiontype label|place|time|start|end|leftclosed|rightclosed|card|labels|places
+assigntype label|place|time|start|end|leftclosed|rightclosed
 vardottype {variable}\.{conditiontype}
 vardottype2 {variable}\.{assigntype}
 rightarrow =>
 const_op ([^A-Z\(\)\[\]\,\t\n ][^\(\)\[\]\,\t\n ]*)|TRUE|FALSE|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-]*\"
-vardotlabel {variable}\.label
-vardottime {variable}\.time
 assign \:=
-emptypat <>
 openregex \[
 closeregex (\]\+)|(\]\*)|(\]\?)|\]
 
@@ -90,7 +89,6 @@ closeregex (\]\+)|(\]\*)|(\]\?)|\]
 <INITIAL>{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
 <INITIAL>{wildcard} {patternlval.text = strdup(patterntext); return ZZWILDCARD;}
 <INITIAL>{contents} {patternlval.text = strdup(patterntext); return ZZCONTENTS;}
-<INITIAL>{emptypat} {patternlval.text = strdup(patterntext); return ZZEMPTYPAT;}
 <INITIAL>\| {return '|';}
 <INITIAL>{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
 <INITIAL>\n {return ZZEND;}
