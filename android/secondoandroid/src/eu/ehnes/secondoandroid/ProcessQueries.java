@@ -8,8 +8,8 @@ import sj.lang.ListExpr;
 public class ProcessQueries {
 	private List<String> liste1;
 	private StringBuffer listenstring=new StringBuffer();
-	
-	
+
+
 	public List<String> CreateItemList(ListExpr liste) {
 
 		ListExpr types=liste.first();
@@ -31,34 +31,35 @@ public class ProcessQueries {
 				int position=0;
 				int maxposition=liste1.size();
 				String itemString;
-				while(!data.isEmpty()) {
-					listenstring.delete(0, listenstring.length());
-					ListExpr data2=data.first();
-					while(!data2.isEmpty()) {
-						itemString="";
-						itemString += liste1.get(position % maxposition);
-						if(liste1.get(position % maxposition+1).equals("point")) {
-							itemString+=liste1.get(position % maxposition+1)+" :: ";
-						}
-						if(liste1.get(position % maxposition+1).equals("line")) {
-							itemString+=liste1.get(position % maxposition+1)+" :: ";
-						}
+				if (data != null) {
+					while(!data.isEmpty()) {
+						listenstring.delete(0, listenstring.length());
+						ListExpr data2=data.first();
+						while(!data2.isEmpty()) {
+							itemString="";
+							itemString += liste1.get(position % maxposition);
+							if(liste1.get(position % maxposition+1).equals("point")) {
+								itemString+=liste1.get(position % maxposition+1)+" :: ";
+							}
+							if(liste1.get(position % maxposition+1).equals("line")) {
+								itemString+=liste1.get(position % maxposition+1)+" :: ";
+							}
 
-						if(displaytuples(data2.first())) {
-							itemString+=listenstring;
-							listenstring.delete(0, listenstring.length());
+							if(displaytuples(data2.first())) {
+								itemString+=listenstring;
+								listenstring.delete(0, listenstring.length());
 
+							}
+							itemlist.add(itemString);
+							position += 2; 
+							if(position%maxposition==0) {
+								itemlist.add("");
+							}
+							data2=data2.rest();
 						}
-						itemlist.add(itemString);
-						position += 2; 
-						if(position%maxposition==0) {
-							itemlist.add("");
-						}
-						data2=data2.rest();
+						data=data.rest();
 					}
-					data=data.rest();
 				}
-
 			}
 			if(typeslist.size()>=1 && (typeslist.getElem(0).equals("int") || typeslist.getElem(0).equals("double") || 
 					typeslist.getElem(0).equals("real") || typeslist.getElem(0).equals("text"))) {
@@ -108,7 +109,7 @@ public class ProcessQueries {
 
 	private boolean displaytuples(ListExpr data) {
 		ListExpr localData = data;
-		
+
 		if(localData.isEmpty()) {
 			return false;
 		} else if(localData.isAtom()) {
