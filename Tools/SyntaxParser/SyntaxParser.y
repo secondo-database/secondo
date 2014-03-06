@@ -176,13 +176,13 @@ spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit buf
         {     case PREFIX:
              {
 //             pFile << ":-op(800 , fx , " << op << ")." << endl;
-             pFile1 << " SecondoOp(("<< op <<") ," << " prefix, " << s->no_args << ")." << endl;
+             pFile1 << " secondoOp(("<< op <<") ," << " prefix, " << s->no_args << ")." << endl;
              break;   
 	     }
              case INFIX:
             {
               pFile  << ":-op(800 , xfx , " << op << ")." << endl;
-              pFile1 << " SecondoOp(("<< op <<") ," << " infix," << s->no_args << ")." << endl;
+              pFile1 << " secondoOp(("<< op <<") ," << " infix," << s->no_args << ")." << endl;
               break;
             }
              case POSTFIX:
@@ -190,18 +190,18 @@ spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit buf
               bool implicit = $7;
               pFile  << ":-op(800 , xf , "<< op <<")." << endl; // not for postfixbrackets!
               if(  (s->isSpecial== true) /* || (implicit == true) */ ){
-                 pFile1 << " SecondoOp(("<< op <<") ," << " special, " << s->no_args << ")." << endl;
+                 pFile1 << " secondoOp(("<< op <<") ," << " special, " << s->no_args << ")." << endl;
               } else {
-                pFile1 << " SecondoOp(("<< op <<") ," << " postfix, " << s->no_args << ")." << endl;
+                pFile1 << " secondoOp(("<< op <<") ," << " postfix, " << s->no_args << ")." << endl;
               }
               break;
           }
              case POSTFIXBRACKETS:
            {
               if(  (s->isSpecial== true) /* || (implicit == true) */ ){
-                 pFile1 << " SecondoOp(("<< op <<") ," << " special, " << s->no_args << ")." << endl;
+                 pFile1 << " secondoOp(("<< op <<") ," << " special, " << s->no_args << ")." << endl;
               } else {
-                pFile1 << " SecondoOp(("<< op <<") ," << " postfixbrackets, " << s->no_args << ")." << endl;
+                pFile1 << " secondoOp(("<< op <<") ," << " postfixbrackets, " << s->no_args << ")." << endl;
               }
               break;
   }
