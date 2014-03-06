@@ -3838,7 +3838,7 @@ const string realJoinMMRTreeSpecInfoGrep  =
 
 */
 Operator InfoGrepSpatialJoin(
-      "InfoGrepSpatialJoin",
+      "infoGrepSpatialJoin",
        realJoinMMRTreeSpecInfoGrep,
        2, 
        InfoGrepSpatialJoinVM,

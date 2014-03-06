@@ -20,5 +20,5 @@
 operator cellnumberG alias CELLNUMBERG pattern op(_, _, _, _, _, _, _, _, _)
 operator cellnumberLine alias CELLNUMBERLINE pattern op(_, _, _, _, _, _, _, _, _)
 operator cellnumberZ alias CELLNUMBERZ pattern op(_, _, _, _, _, _, _, _, _)
-operator InfoGrepSpatialJoin    alias   INFOGREPSPATIALJOIN  pattern _ _ op [ _, _ ,_,_]
+operator infoGrepSpatialJoin    alias   INFOGREPSPATIALJOIN  pattern _ _ op [ _, _ ,_,_]
 

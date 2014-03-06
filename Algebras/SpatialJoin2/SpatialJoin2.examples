@@ -37,9 +37,9 @@ Signature: (rect3 x real x real x real x real x real x real x int x int) -> stre
 Example  : query cellnumberZ(rectangle3(131.3, 132.5, 131.3, 132.5, 131.7, 132.5), 131.0, 131.0, 131.0, 1.0, 1.0, 1.0, 10, 6) printstream count
 Result   : 8
 
-Operator : InfoGrepSpatialJoin 
+Operator : infoGrepSpatialJoin 
 Number   : 1 
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
-Example  : query (Roads feed head[100000] {r1} Roads feed head[100000] {r2} InfoGrepSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count) =  (Roads feed head[100000] {r1} Roads feed head[100000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count)
+Example  : query (Roads feed head[100000] {r1} Roads feed head[100000] {r2} infoGrepSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count) =  (Roads feed head[100000] {r1} Roads feed head[100000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count)
 Result   : TRUE
 
