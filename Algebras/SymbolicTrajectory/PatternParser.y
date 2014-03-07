@@ -628,16 +628,14 @@ void PatElem::stringToSet(const string& input, bool isTime) {
     else if (contents[0] == '(') { // place
       limitpos = contents.find(')');
       element = contents.substr(1, limitpos - 1);
-      element.erase(0, limitpos + 1);
-      isPlace = true;
+      contents.erase(0, limitpos + 1);
       element.erase(0, element.find_first_not_of(" "));
       place.first = element.substr(1, element.find_first_of("\"\'", 1) - 1);
-      cout << "place (" << place.first;
-      element.erase(0, element.find_first_of("\"\'", 1));
+      element.erase(0, element.find_first_of("\"\'", 1) + 1);
       element.erase(0, element.find_first_not_of(" "));
       place.second = str2Int(element);
-      cout << " " << place.second << ") found" << endl;
       pls.insert(place);
+      isPlace = true;
     }
     else { // label/time without qm
       limitpos = contents.find_first_of(",");
@@ -668,7 +666,6 @@ PatElem::PatElem(const char *contents) : wc(NO), ok(true) {
   vector<string> parts;
   ::splitPattern(input, parts);
   if (parts.size() == 2) {
-    cout << "\'" << parts[0] << "\' \'" << parts[1] << "\'" << endl;
     stringToSet(parts[0], true);
     stringToSet(parts[1], false);
     SecInterval iv;
@@ -705,14 +702,14 @@ int Condition::convertVarKey(const char *varKey) {
     wholepat->getElem(i).getV(var);
     if (varInput == var) {
       key = ::getKey(kInput);
-      if (!key && (wholepat->getElem(i).getW()
-               || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
-        cout << "label condition not allowed for sequences" << endl;
+      if ((key < 2) && (wholepat->getElem(i).getW()
+       || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
+        cout << "label/place condition not allowed for sequences" << endl;
         return -1;
       }
-      if ((key > 5) && (!wholepat->getElem(i).getW()
+      if ((key == 7) && (!wholepat->getElem(i).getW()
                     && (wholepat->getVarPos(var).first == wholepat->getVarPos(var).second))) {
-        cout << "card / labels condition not allowed for non-sequences" << endl;
+        cout << "card condition not allowed for non-sequences" << endl;
         return -1;
       }
       condVars.insert(var);

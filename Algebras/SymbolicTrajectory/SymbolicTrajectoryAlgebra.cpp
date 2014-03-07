@@ -649,15 +649,15 @@ bool Labels::operator==(const Labels& src) const {
   if ((GetNoValues() != src.GetNoValues()) || (GetLength() != src.GetLength())){
     return false;
   }
-  string str1, str2;
+  set<string> strings1, strings2;
+  string str;
   for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, str1);
-    src.GetValue(i, str2);
-    if (str1 != str2) {
-      return false;
-    }
+    GetValue(i, str);
+    strings1.insert(str);
+    src.GetValue(i, str);
+    strings2.insert(str);
   }
-  return true;
+  return strings1 == strings2;
 }
 
 /*
@@ -3503,6 +3503,71 @@ struct refInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~=~}
+
+=: T x T -> bool,   where T in {place(s), label(s)}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr equalsTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+    return NList::typeError("Expecting two arguments.");
+  }
+  if ((Label::checkType(nl->First(args)) && Label::checkType(nl->Second(args)))
+|| (Labels::checkType(nl->First(args)) && Labels::checkType(nl->Second(args)))
+|| (Place::checkType(nl->First(args)) && Place::checkType(nl->Second(args)))
+|| (Places::checkType(nl->First(args)) && Places::checkType(nl->Second(args)))){
+      return nl->SymbolAtom(CcBool::BasicType());
+  }
+  return NList::typeError("Expecting T x T, where  T in {place(s), label(s)}");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int equalsSelect(ListExpr args) {
+  if (Label::checkType(nl->First(args))) return 0; 
+  if (Labels::checkType(nl->First(args))) return 1;
+  if (Place::checkType(nl->First(args))) return 2; 
+  if (Places::checkType(nl->First(args))) return 3;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int equalsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  T *second = static_cast<T*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool *res = static_cast<CcBool*>(result.addr);
+  if (first->IsDefined() && second->IsDefined()) {
+    res->Set(true, *first == *second);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct equalsInfo : OperatorInfo {
+  equalsInfo() {
+    name      = "=";
+    signature = "T x T -> bool,   where T in {label(s), place(s)}";
+    syntax    = "_ = _;";
+    meaning   = "Checks whether both objects are equal.";
+  }
+};
+
+/*
 \section{Implementation of class ~Pattern~}
 
 \subsection{Function ~GetText~}
@@ -3682,6 +3747,21 @@ TypeConstructor patternTC(
   0,                               // cast function
   Pattern::SizeOfObj,               // sizeof function
   Pattern::KindCheck );             // kind checking function
+
+/*
+\subsection{Function ~isPlacePattern~}
+
+Decides whether the pattern is suitable for an MPlace(s) or an MLabel(s) object.
+
+*/
+bool Pattern::suitableFor(const bool place) const {
+  for (int i = 0; i < getSize(); i++) {
+    if ((place && elems[i].hasLabel()) || (!place && elems[i].hasPlace())) {
+      return false;
+    }
+  }
+  return true;
+}
 
 /*
 \subsection{Function ~getPattern~}
@@ -4342,15 +4422,22 @@ bool Match::evaluateCond(Condition &cond,
     if (binding.count(var)) {
       from = binding.find(var)->second.first;
       to = binding.find(var)->second.second;
-      string text;
       switch (cond.getKey(i)) {
         case 0: { // label
           ml->Get(from, ul);
+          string text;
           ul.constValue.GetValue(text);
           cond.setLabelPtr(i, text);
           break;
         }
-        case 1: { // time
+        case 1: { // place
+          ml->Get(from, ul);
+          pair<string, unsigned int> value;
+//           ul.constValue.GetValue(value); TODO: not possible yet
+          cond.setPlacePtr(i, value);
+          break;
+        }
+        case 2: { // time
           cond.clearTimePtr(i);
           for (unsigned int j = from; j <= to; j++) {
             ml->Get(j, ul);
@@ -4358,52 +4445,61 @@ bool Match::evaluateCond(Condition &cond,
           }
           break;
         }
-        case 2: { // start
+        case 3: { // start
           ml->Get(from, ul);
           cond.setStartEndPtr(i, ul.timeInterval.start);
           break;
         }
-        case 3: { // end
+        case 4: { // end
           ml->Get(to, ul);
           cond.setStartEndPtr(i, ul.timeInterval.end);
           break;
         }
-        case 4: { // leftclosed
+        case 5: { // leftclosed
           ml->Get(from, ul);
           cond.setLeftRightclosedPtr(i, ul.timeInterval.lc);
           break;
         }
-        case 5: { // rightclosed
+        case 6: { // rightclosed
           ml->Get(to, ul);
           cond.setLeftRightclosedPtr(i, ul.timeInterval.rc);
           break;
         }
-        case 6: { // card
+        case 7: { // card
           cond.setCardPtr(i, to - from + 1);
           break;
         }
-        default: { // labels
+        case 8: { // labels
           cond.cleanLabelsPtr(i);
           for (unsigned int j = from; j <= to; j++) {
-            Label label(true);
-            ml->GetBasic(j, label);
-            cond.appendToLabelsPtr(i, label);
+            string value;
+            ml->GetValue(j, value);
+            cond.appendToLabelsPtr(i, value);
+          }
+          break;
+        }
+        default: { // places
+          cond.cleanPlacesPtr(i);
+          for (unsigned int j = from; j <= to; j++) {
+            pair<string, unsigned int> value;
+//           ml->GetValue(j, value); TODO: difference between MBasic and MBasics
+            cond.appendToPlacesPtr(i, value);
           }
         }
       }
     }
     else { // variable bound to empty sequence
       switch (cond.getKey(i)) {
-        case 6: {
+        case 7: {
           cond.setCardPtr(i, 0);
           break;
         }
-        case 7: {
+        case 8: {
           cond.cleanLabelsPtr(i);
           break;
         }
         default: { // no other attributes allowed
-          return false;
+          cond.cleanPlacesPtr(i);
         }
       }
     }
@@ -4415,13 +4511,15 @@ bool Match::evaluateCond(Condition &cond,
 string Condition::getType(int t) {
   switch (t) {
     case 0: return ".label";
-    case 1: return ".time";
-    case 2: return ".start";
-    case 3: return ".end";
-    case 4: return ".leftclosed";
-    case 5: return ".rightclosed";
-    case 6: return ".card";
-    case 7: return ".labels";
+    case 1: return ".place";
+    case 2: return ".time";
+    case 3: return ".start";
+    case 4: return ".end";
+    case 5: return ".leftclosed";
+    case 6: return ".rightclosed";
+    case 7: return ".card";
+    case 8: return ".labels";
+    case 9: return ".places";
     default: return ".ERROR";
   }
 }
@@ -4435,9 +4533,15 @@ string Condition::toString() const {
   return result.str();
 }
 
-void Condition::setLabelPtr(unsigned int pos, string value) {
+void Condition::setLabelPtr(unsigned int pos, string& value) {
   if (pos < pointers.size()) {
-    ((CcString*)pointers[pos])->Set(true, value);
+    ((Label*)pointers[pos])->Set(true, value);
+  }
+}
+
+void Condition::setPlacePtr(unsigned int pos, pair<string,unsigned int>& value){
+  if (pos < pointers.size()) {
+    ((Place*)pointers[pos])->Set(true, value);
   }
 }
 
@@ -4449,13 +4553,13 @@ void Condition::clearTimePtr(unsigned int pos) {
   }
 }
 
-void Condition::mergeAddTimePtr(unsigned int pos, SecInterval value) {
+void Condition::mergeAddTimePtr(unsigned int pos, Interval<Instant>& value) {
   if (pos < pointers.size()) {
     ((Periods*)pointers[pos])->MergeAdd(value);
   }
 }
 
-void Condition::setStartEndPtr(unsigned int pos, Instant value) {
+void Condition::setStartEndPtr(unsigned int pos, Instant& value) {
   if (pos < pointers.size()) {
     *((Instant*)pointers[pos]) = value;
   }
@@ -4473,9 +4577,22 @@ void Condition::cleanLabelsPtr(unsigned int pos) {
   }
 }
 
-void Condition::appendToLabelsPtr(unsigned int pos, Label value) {
+void Condition::appendToLabelsPtr(unsigned int pos, string& value) {
   if (pos < pointers.size()) {
     ((Labels*)pointers[pos])->Append(value);
+  }
+}
+
+void Condition::cleanPlacesPtr(unsigned int pos) {
+  if (pos < pointers.size()) {
+    ((Places*)pointers[pos])->Clean();
+  }
+}
+
+void Condition::appendToPlacesPtr(unsigned int pos, 
+                                  pair<string, unsigned int>& value) {
+  if (pos < pointers.size()) {
+    ((Places*)pointers[pos])->Append(value);
   }
 }
 
@@ -4507,45 +4624,55 @@ Static function invoked by ~initCondOpTrees~ or ~initAssignOpTrees~
 pair<string, Attribute*> Pattern::getPointer(int key) {
   pair<string, Attribute*> result;
   switch (key) {
-    case 0: { // label, type CcString
-      result.second = new CcString(false, "");
-      result.first = "[const string pointer "
+    case 0: { // label, type Label
+      result.second = new Label(true);
+      result.first = "[const label pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    case 1: { // time, type Periods
+    case 1: { // place, type Place
+      result.second = new Place(true);
+      result.first = "[const place pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 2: { // time, type Periods
       result.second = new Periods(1);
       result.first = "[const periods pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    case 2:   // start, type Instant
-    case 3: { // end, type Instant
+    case 3:   // start, type Instant
+    case 4: { // end, type Instant
       result.second = new DateTime(instanttype);
       result.first = "[const instant pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    case 4:   // leftclosed, type CcBool
-    case 5: { // rightclosed, type CcBool
+    case 5:   // leftclosed, type CcBool
+    case 6: { // rightclosed, type CcBool
       result.second = new CcBool(false);
       result.first = "[const bool pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    case 6: { // card, type CcInt
+    case 7: { // card, type CcInt
       result.second = new CcInt(false);
       result.first = "[const int pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    default: { // labels, type Labels
+    case 8: { // labels, type Labels
       result.second = new Labels(true);
       result.first = "[const labels pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    
+    default: { // places, type Places
+      result.second = new Places(true);
+      result.first = "[const places pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+    }
   }
   return result;
 }
@@ -6177,16 +6304,18 @@ ListExpr matchesTM(ListExpr args) {
   if (!nl->HasLength(nl->First(args),2) || !nl->HasLength(nl->Second(args),2)) {
     return NList::typeError("Two arguments expected for each sublist");
   }
-  if (!MLabel::checkType(nl->First(nl->First(args))) ||
-      (!FText::checkType(nl->First(nl->Second(args))) &&
-       !Pattern::checkType(nl->First(nl->Second(args))))) {
-    return NList::typeError("Expecting a mlabel and a text/pattern");
+  ListExpr mtype = nl->First(nl->First(args));
+  ListExpr ptype = nl->First(nl->Second(args));
+  if ((!MLabel::checkType(mtype) && !MPlace::checkType(mtype) &&
+       !MLabels::checkType(mtype) && !MPlaces::checkType(mtype)) ||
+      (!FText::checkType(ptype) && !Pattern::checkType(ptype))) {
+    return NList::typeError("Expecting mlabel(s)/mplace(s) x text/pattern");
   }
   string query = nl->ToString(nl->Second(nl->Second(args)));
   Word res;
-  bool isConst =  QueryProcessor::ExecuteQuery(query, res);
+  bool isConst = QueryProcessor::ExecuteQuery(query, res);
   if (isConst) {
-    if(FText::checkType(nl->First(nl->Second(args)))) {
+    if (FText::checkType(nl->First(nl->Second(args)))) {
       ((FText*)res.addr)->DeleteIfAllowed();
     } 
     else {
@@ -6194,7 +6323,7 @@ ListExpr matchesTM(ListExpr args) {
     }
   }
   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-                           nl->OneElemList( nl->BoolAtom(isConst)),
+                           nl->OneElemList(nl->BoolAtom(isConst)),
                            nl->SymbolAtom(CcBool::BasicType()));
 }
 
@@ -6203,19 +6332,36 @@ ListExpr matchesTM(ListExpr args) {
 
 */
 int matchesSelect(ListExpr args) {
-  return (Pattern::checkType(nl->Second(args))) ? 1 : 0;
+  if (MLabel::checkType(nl->First(args))) {
+    return (Pattern::checkType(nl->Second(args))) ? 4 : 0;
+  }
+  if (MPlace::checkType(nl->First(args))) {
+    return (Pattern::checkType(nl->Second(args))) ? 5 : 1;
+  }
+  if (MLabels::checkType(nl->First(args))) {
+    return (Pattern::checkType(nl->Second(args))) ? 6 : 2;
+  }
+  if (MPlaces::checkType(nl->First(args))) {
+    return (Pattern::checkType(nl->Second(args))) ? 7 : 3;
+  }
+  return -1;
 }
 
 /*
 \subsection{Value Mapping (for a Pattern)}
 
 */
+template<class M>
 int matchesVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
-  MLabel* ml = static_cast<MLabel*>(args[0].addr);
+  M *traj = static_cast<M*>(args[0].addr);
   Pattern* p = static_cast<Pattern*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
-  ExtBool match = p->matches(ml);
+  if (!p->IsDefined() || !((MLabel*)traj)->IsDefined()) {
+    b->SetDefined(false);
+    return 0;
+  }
+  ExtBool match = p->matches((MLabel*)traj);
   switch (match) {
     case FALSE: {
       b->Set(true, false);
@@ -6236,8 +6382,9 @@ int matchesVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
 \subsection{Value Mapping (for a text)}
 
 */
+template<class M>
 int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
-  MLabel* ml = static_cast<MLabel*>(args[0].addr);
+  M *traj = static_cast<M*>(args[0].addr);
   FText* pText = static_cast<FText*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
@@ -6245,7 +6392,7 @@ int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
   if (message != CLOSE) {
     if ((static_cast<CcBool*>(args[2].addr))->GetValue()) { //2nd argument const
       if (!local.addr) {
-        if (pText->IsDefined() && ml->IsDefined()) {
+        if (pText->IsDefined() && ((MLabel*)traj)->IsDefined()) {
           local.addr = Pattern::getPattern(pText->toText());
         }
         else {
@@ -6263,7 +6410,7 @@ int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
         b->SetDefined(false);
       }
       else {
-        ExtBool res = p->matches(ml);
+        ExtBool res = p->matches((MLabel*)traj);
         switch (res) {
           case FALSE: {
             b->Set(true, false);
@@ -6296,7 +6443,7 @@ int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
         b->SetDefined(false);
       }
       else {
-        ExtBool res = p->matches(ml);
+        ExtBool res = p->matches((MLabel*)traj);
         switch (res) {
           case FALSE: {
             b->Set(true, false);
@@ -6331,14 +6478,16 @@ int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
 */
 const string matchesSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> mlabel x {pattern|text} -> bool </text--->"
-  "<text> ML matches P </text--->"
-  "<text> Checks whether ML matches P.\n"
-  "<text> query michael matches '(_ at_home) * (_ at_home)' </text--->) )";
+  "( <text> {mlabel(s)|mplace(s)} x {pattern|text} -> bool </text--->"
+  "<text> M matches P </text--->"
+  "<text> Checks whether the trajectory M matches the pattern P.\n"
+  "<text> query mlabel1 matches '(_ \"Eving\") *' </text--->) )";
 
-ValueMapping matchesVMs[] = {matchesVM_T, matchesVM_P};
+ValueMapping matchesVMs[] = {matchesVM_T<MLabel>, matchesVM_T<MPlace>,
+  matchesVM_T<MLabels>, matchesVM_T<MPlaces>, matchesVM_P<MLabel>, 
+  matchesVM_P<MPlace>, matchesVM_P<MLabels>, matchesVM_P<MPlaces>};
 
-Operator matches("matches", matchesSpec, 2, matchesVMs, matchesSelect,
+Operator matches("matches", matchesSpec, 8, matchesVMs, matchesSelect,
                  matchesTM);
 
 /*
@@ -8689,6 +8838,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(nameInfo(), nameVM, nameTM);
   
   AddOperator(refInfo(), refVM, refTM);
+  
+  ValueMapping equalsVMs[] = {equalsVM<Label>, equalsVM<Labels>, 
+    equalsVM<Place>, equalsVM<Places>, 0};
+  AddOperator(equalsInfo(), equalsVMs, equalsSelect, equalsTM);
 
   ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
     the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,

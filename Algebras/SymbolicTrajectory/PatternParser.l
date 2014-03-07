@@ -61,15 +61,15 @@ date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
 time {ui}\:{ui}(\:{ui}(\.{ui})?)?
 interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-z_][a-zA-Z0-9_]*)|\~{time}|{time}\~|{time}\~{time}
 intervalset {interval}|(\{{interval}(\,[ ]*{interval})*\})
-label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-]*\"
+label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|(\"|\')[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-\*\:]*(\"|\')
 place \({label}[\ ]*{ui}\)
 labelset {label}|(({setrelation})?\{{label}(\,[ ]*{label})*\})
-placeset {place}|(\{{place}(\,[ ]*{place})*\})
+placeset {place}|(({setrelation})?\{{place}(\,[ ]*{place})*\})
 contents {intervalset}[\ ]*({labelset}|{placeset})
 variable [A-Z][a-zA-Z0-9_\-]*
 doubleslash \/{2}
 conditiontype label|place|time|start|end|leftclosed|rightclosed|card|labels|places
-assigntype label|place|time|start|end|leftclosed|rightclosed
+assigntype label|place|time|start|end|leftclosed|rightclosed|labels|places
 vardottype {variable}\.{conditiontype}
 vardottype2 {variable}\.{assigntype}
 rightarrow =>

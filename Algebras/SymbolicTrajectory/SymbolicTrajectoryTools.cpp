@@ -219,13 +219,15 @@ string extractVar(string input) {
 
 int getKey(string type) {
   if (type == "label")       return 0;
-  if (type == "time")        return 1;
-  if (type == "start")       return 2;
-  if (type == "end")         return 3;
-  if (type == "leftclosed")  return 4;
-  if (type == "rightclosed") return 5;
-  if (type == "card")        return 6;
-  if (type == "labels")      return 7;
+  if (type == "place")       return 1;
+  if (type == "time")        return 2;
+  if (type == "start")       return 3;
+  if (type == "end")         return 4;
+  if (type == "leftclosed")  return 5;
+  if (type == "rightclosed") return 6;
+  if (type == "card")        return 7;
+  if (type == "labels")      return 8;
+  if (type == "places")      return 9;
   else return -1; // should not occur
 }
 

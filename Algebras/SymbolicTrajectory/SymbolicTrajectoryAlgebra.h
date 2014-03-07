@@ -175,7 +175,6 @@ class Labels : public Attribute {
   typedef Label single;
       
   Labels() {}
-  explicit Labels(const int n) : values(0), pos(n) {}
   explicit Labels(const bool defined) : Attribute(defined), values(0), pos(0) {}
   Labels(const Labels& src, const bool sort = false);
   
@@ -654,14 +653,16 @@ class Condition {
 //                                                   vars[pos] : "");}
   void    setOpTree(pair<QueryProcessor*, OpTree> qp_op) {opTree = qp_op;}
   void    setPointers(vector<Attribute*> ptrs)           {pointers = ptrs;}
-  void    setLabelPtr(unsigned int pos, string value);
+  void    setLabelPtr(unsigned int pos, string& value);
+  void    setPlacePtr(unsigned int pos, pair<string, unsigned int>& value);
   void    clearTimePtr(unsigned int pos);
-  void    mergeAddTimePtr(unsigned int pos, SecInterval value);
-  void    setStartEndPtr(unsigned int pos, Instant value);
+  void    mergeAddTimePtr(unsigned int pos, Interval<Instant>& value);
+  void    setStartEndPtr(unsigned int pos, Instant& value);
   void    setCardPtr(unsigned int pos, int value);
   void    cleanLabelsPtr(unsigned int pos);
-  void    appendToLabelsPtr(unsigned int pos, Label value);
-  void    completeLabelsPtr(unsigned int pos);
+  void    appendToLabelsPtr(unsigned int pos, string& value);
+  void    cleanPlacesPtr(unsigned int pos);
+  void    appendToPlacesPtr(unsigned int pos, pair<string,unsigned int>& value);
   void    setLeftRightclosedPtr(unsigned int pos, bool value);
   QueryProcessor* getQP()          {return opTree.first;}
   OpTree  getOpTree()              {return opTree.second;}
@@ -701,6 +702,8 @@ class PatElem {
   void     clearI()                                       {ivs.clear();}
   void     insertI(string& iv)                            {ivs.insert(iv);}
   void     clearW()                                       {wc = NO;}
+  bool     hasLabel() const                             {return lbs.size() > 0;}
+  bool     hasPlace() const                             {return pls.size() > 0;}
 };
 
 class Assign {
@@ -761,6 +764,11 @@ class Assign {
   void    setTreesOk(bool value)             {treesOk = value;}
 };
 
+class PatPersistent : public Label {
+ public:
+  string toText() const {string value; Label::GetValue(value); return value;}
+};
+
 class Pattern {
   friend class Match;
   
@@ -783,21 +791,6 @@ class Pattern {
   Pattern() {}
 
   Pattern(int i) {}
-
-  Pattern(const Pattern& rhs) {
-    elems = rhs.elems;
-    assigns = rhs.assigns;
-    easyConds = rhs.easyConds;
-    conds = rhs.conds;
-    text = rhs.text;
-    description = rhs.description;
-    regEx = rhs.regEx;
-    varPos = rhs.varPos;
-    easyCondPos = rhs.easyCondPos;
-    assignedVars = rhs.assignedVars;
-    nfa = rhs.nfa;
-    finalStates = rhs.finalStates;
-  }
 
   ~Pattern() {
     deleteEasyCondOpTrees();
@@ -826,6 +819,7 @@ class Pattern {
   static const bool checkType(const ListExpr type);
   const bool      IsDefined() {return true;}
   
+  bool suitableFor(const bool place) const;
   static Pattern* getPattern(string input, bool classify = false);
   ExtBool matches(MLabel *ml);
   int getResultPos(const string v);
