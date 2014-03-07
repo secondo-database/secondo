@@ -37,6 +37,7 @@ public PriorityDialog(Frame F){
   ScrollPane = new JScrollPane(ViewerList);
   ObjectDepending = new JCheckBox("depending from object");
   KeepCurrentViewer = new JCheckBox(" try to keep the current Viewer");
+  KeepCurrentViewer.setSelected(true);
   JPanel P = new JPanel();
   P.add(ObjectDepending);
   P.add(KeepCurrentViewer);
@@ -134,6 +135,15 @@ public SecondoViewer getBestViewer(SecondoViewer CurrentViewer,SecondoObject SO)
    return TheBestViewer;
 
 }
+  public void setKeepCurrentViewer(boolean b){
+     KeepCurrentViewer.setSelected(b);
+  }
+
+  public void setObjectDependingViewerSelection(boolean b){
+     ObjectDepending.setSelected(b);
+  }
+
+
 
 
 private JScrollPane ScrollPane;
@@ -214,8 +224,6 @@ private class ViewerListModel implements ListModel{
      }
   }
   
-
-
   private void informListeners(){
     ListDataEvent LDE = new ListDataEvent(this,ListDataEvent.CONTENTS_CHANGED,0,0);
     for(int i=0;i<MyDataListeners.size();i++)

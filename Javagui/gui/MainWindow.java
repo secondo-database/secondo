@@ -337,6 +337,21 @@ public MainWindow(String Title,String user,String passwd){
      }
      UseFormattedText=null;
 
+     String keepCurrentViewer = Config.getProperty("KEEP_CURRENT_VIEWER", "TRUE");
+     if(keepCurrentViewer.toLowerCase().equals("true")){
+         PriorityDlg.setKeepCurrentViewer(true);
+     } else {
+         PriorityDlg.setKeepCurrentViewer(false);
+     }
+     
+     String objectDependingViewerSelection = Config.getProperty("OBJECT_DEPENDING_VIEWER_SELECTION", "TRUE");
+     if(objectDependingViewerSelection.toLowerCase().equals("true")){
+         PriorityDlg.setObjectDependingViewerSelection(true);
+     } else {
+         PriorityDlg.setObjectDependingViewerSelection(false);
+     }
+
+
      String TestOptimizerConfig = Config.getProperty("TESTOPTFILE");
      if(TestOptimizerConfig!=null){
           gui.Environment.testOptimizerConfigFile = TestOptimizerConfig;
