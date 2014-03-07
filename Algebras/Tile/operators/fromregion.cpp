@@ -205,6 +205,7 @@ bool SetRegionValues(const Region& rRegion,
                                        nextRightPoint, rtbool);
             nextLeftPoint = nextLeftPoint - offsetPoint;
             nextRightPoint = nextRightPoint - offsetPoint;
+            bHasTrueValue |= bNextRow;
           }
 
           nextLeftPoint = leftPoint + offsetPoint;
@@ -218,6 +219,7 @@ bool SetRegionValues(const Region& rRegion,
                                        nextRightPoint, rtbool);
             nextLeftPoint = nextLeftPoint + offsetPoint;
             nextRightPoint = nextRightPoint + offsetPoint;
+            bHasTrueValue |= bNextRow;
           }
         }
 
@@ -229,7 +231,10 @@ bool SetRegionValues(const Region& rRegion,
 
           */
           
-          SetRegionValues(rRegion, leftPoint, rightPoint, rtbool);
+          bHasTrueValue |= SetRegionValues(rRegion,
+                                           leftPoint,
+                                           rightPoint,
+                                           rtbool);
         }
 
         else
@@ -245,13 +250,15 @@ bool SetRegionValues(const Region& rRegion,
 
           if(bNextRow == true)
           {
+            bHasTrueValue = true;
+            
             Point nextLeftPoint(true);
             Point nextRightPoint(true);
             nextLeftPoint.Set(leftPoint.GetX(),
                               std::min(leftPoint.GetY(), rightPoint.GetY()));
             nextRightPoint.Set(rightPoint.GetX(),
                                std::min(leftPoint.GetY(), rightPoint.GetY()));
-            bool bNextRow = true;
+            bNextRow = true;
 
             while(bNextRow == true &&
                   nextLeftPoint.GetY() >= Minima[1] &&
@@ -348,70 +355,22 @@ int fromregionFunction(Word* pArguments,
 
           if(pResultInfo != 0)
           {
-            double doubleMaximum = std::numeric_limits<double>::max();
-            pResultInfo->m_dMinimumX = doubleMaximum;
-            pResultInfo->m_dMinimumY = doubleMaximum;
-            pResultInfo->m_dMaximumX = -doubleMaximum;
-            pResultInfo->m_dMaximumY = -doubleMaximum;
-
-            int regionSize = pRegion->Size();
-
-            for(int i = 0; i < regionSize; i++)
-            {
-              HalfSegment halfSegment;
-              pRegion->Get(i, halfSegment);
-              Point leftPoint = halfSegment.GetLeftPoint();
-              Point rightPoint = halfSegment.GetRightPoint();
-
-              if(leftPoint.GetX() < pResultInfo->m_dMinimumX)
-              {
-                pResultInfo->m_dMinimumX = leftPoint.GetX();
-              }
-
-              if(leftPoint.GetX() > pResultInfo->m_dMaximumX)
-              {
-                pResultInfo->m_dMaximumX = leftPoint.GetX();
-              }
-
-              if(leftPoint.GetY() < pResultInfo->m_dMinimumY)
-              {
-                pResultInfo->m_dMinimumY = leftPoint.GetY();
-              }
-
-              if(leftPoint.GetY() > pResultInfo->m_dMaximumY)
-              {
-                pResultInfo->m_dMaximumY = leftPoint.GetY();
-              }
-
-              if(rightPoint.GetX() < pResultInfo->m_dMinimumX)
-              {
-                pResultInfo->m_dMinimumX = rightPoint.GetX();
-              }
-
-              if(rightPoint.GetX() > pResultInfo->m_dMaximumX)
-              {
-                pResultInfo->m_dMaximumX = rightPoint.GetX();
-              }
-
-              if(rightPoint.GetY() < pResultInfo->m_dMinimumY)
-              {
-                pResultInfo->m_dMinimumY = rightPoint.GetY();
-              }
-
-              if(rightPoint.GetY() > pResultInfo->m_dMaximumY)
-              {
-                pResultInfo->m_dMaximumY = rightPoint.GetY();
-              }
-            }
-
-            pResultInfo->m_dX = gridX +
-                                std::floor((pResultInfo->m_dMinimumX - gridX) /
-                                          (xDimensionSize * gridLength)) *
-                                          (xDimensionSize * gridLength);
-            pResultInfo->m_dY = gridY +
-                                std::floor((pResultInfo->m_dMinimumY -gridY) /
-                                          (yDimensionSize * gridLength)) *
-                                          (yDimensionSize * gridLength);
+            Rectangle<2> boundingBox = pRegion->BoundingBox();
+            pResultInfo->m_dMinimumX = boundingBox.MinD(0);
+            pResultInfo->m_dMinimumY = boundingBox.MinD(1);
+            pResultInfo->m_dMaximumX = boundingBox.MaxD(0);
+            pResultInfo->m_dMaximumY = boundingBox.MaxD(1);
+            
+            double deltaX = pResultInfo->m_dMinimumX - gridX;
+            double tileSizeX = xDimensionSize * gridLength;
+            pResultInfo->m_dX = gridX + std::floor(deltaX / tileSizeX) *
+                                tileSizeX;
+            
+            double deltaY = pResultInfo->m_dMinimumY - gridY;
+            double tileSizeY = yDimensionSize * gridLength;    
+            pResultInfo->m_dY = gridY + std::floor(deltaY / tileSizeY) *
+                                tileSizeY;
+            
             rLocal.addr = pResultInfo;
             nRetVal = 0;
           }
@@ -442,16 +401,58 @@ int fromregionFunction(Word* pArguments,
                     ptbool->SetGrid(pResultInfo->m_dX,
                                     pResultInfo->m_dY,
                                     gridLength);
+                    
+                    double tileMinima[2] = { pResultInfo->m_dX,
+                                             pResultInfo->m_dY };
+                    double tileMaxima[2] = { pResultInfo->m_dX +
+                                             xDimensionSize * gridLength,
+                                             pResultInfo->m_dY +
+                                             yDimensionSize * gridLength };
+                    Rectangle<2> tileRectangle(true, tileMinima, tileMaxima);
+                    bool halfSegmentIntersectsRectangle = false;
 
                     for(int i = 0; i < regionSize; i++)
                     {
                       HalfSegment halfSegment;
                       pRegion->Get(i, halfSegment);
-                      bHasTrueValue |= SetRegionValues(*pRegion,
-                                                       halfSegment,
-                                                       *ptbool);
+                      
+                      if(HalfSegmentIntersectsRectangle(halfSegment,
+                                                        tileRectangle))
+                      {
+                        halfSegmentIntersectsRectangle = true;
+                        break;
+                      }
                     }
+                    
+                    if(halfSegmentIntersectsRectangle == true)
+                    {
+                      Point tileMinimaPoint(true,
+                                            pResultInfo->m_dX,
+                                            pResultInfo->m_dY);
+                      Point tileMaximaPoint(true,
+                                            pResultInfo->m_dX +
+                                            xDimensionSize * gridLength,
+                                            pResultInfo->m_dY +
+                                            yDimensionSize * gridLength);
 
+                      bHasTrueValue = SetRegionValues(*pRegion,
+                                                      tileMinimaPoint,
+                                                      tileMaximaPoint,
+                                                      *ptbool);
+                    }
+                    
+                    else
+                    {
+                      Point tileMinimaPoint(true,
+                                            pResultInfo->m_dX,
+                                            pResultInfo->m_dY);
+
+                      if(robust::contains(*pRegion, tileMinimaPoint) > 0)
+                      {
+                        bHasTrueValue = ptbool->SetValues(true, true);
+                      }
+                    }
+                    
                     pResultInfo->m_dX += xDimensionSize * gridLength;
 
                     if(pResultInfo->m_dX > pResultInfo->m_dMaximumX)
@@ -461,12 +462,11 @@ int fromregionFunction(Word* pArguments,
                       if(pResultInfo->m_dY <=
                          pResultInfo->m_dMaximumY)
                       {
+                        double deltaX = pResultInfo->m_dMinimumX - gridX;
+                        double tileSizeX = xDimensionSize * gridLength;
                         pResultInfo->m_dX = gridX +
-                                            std::floor
-                                            ((pResultInfo->m_dMinimumX -
-                                              gridX) /
-                                            (xDimensionSize * gridLength)) *
-                                            (xDimensionSize * gridLength);
+                                            std::floor(deltaX / tileSizeX) *
+                                            tileSizeX;
                       }
                     }
                   }
@@ -474,10 +474,23 @@ int fromregionFunction(Word* pArguments,
                   while(bHasTrueValue == false &&
                         pResultInfo->m_dX <= pResultInfo->m_dMaximumX &&
                         pResultInfo->m_dY <= pResultInfo->m_dMaximumY);
+                  
+                  if(bHasTrueValue == true)
+                  {
+                    // return the next stream element
+                    rResult.addr = ptbool;
+                    nRetVal = YIELD;
+                  }
 
-                  // return the next stream element
-                  rResult.addr = ptbool;
-                  nRetVal = YIELD;
+                  else
+                  {
+                    delete ptbool;
+                    ptbool = 0;
+
+                    // always set the result to null before return CANCEL
+                    rResult.addr = 0;
+                    nRetVal = CANCEL;
+                  }
                 }
               }
 
