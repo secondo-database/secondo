@@ -4515,6 +4515,7 @@ Assign tuple sizes to a node. Tuple sizes are saved as facts of the form
 */
 
 :- dynamic nodeTupleSize/2.
+:- dynamic argTupleSize/2.
 :- dynamic storedPredNoPET/3.
 
 setNodeTupleSize(Node, _) :-
@@ -4539,10 +4540,28 @@ resTupleSize(arg(N), SizeTerm) :-
   !.
 % NVK ADDED NR END
 
+
+
+resTupleSize(arg(N), TupleSize) :-   % reflects initial projections
+  argTupleSize(N, TupleSize),
+  !.
+
 resTupleSize(arg(N), TupleSize) :-
- argument(N, rel(Rel, _)),
- tupleSizeSplit(Rel, TupleSize), % should also reflect initial projections
- !.
+  argument(N, rel(Rel, _)),
+  isStarQuery,
+  tupleSizeSplit(Rel, TupleSize),
+  assert(argTupleSize(N, TupleSize)),
+  !.
+
+resTupleSize(arg(N), TupleSize) :-
+  argument(N, rel(Rel, _)), 
+  !,
+  getRelAttrList(Rel, OrigAttrs, _),
+  usedAttrList(rel(Rel, _), List),
+  attributes(List, AList),
+  projectAttrList(OrigAttrs, AList, _, TupleSize),
+  assert(argTupleSize(N, TupleSize)).
+ 
 
 resTupleSize(res(N), TupleSize) :-
   nodeTupleSize(N, TupleSize), !.
@@ -4604,6 +4623,7 @@ Clauses for writing sizes and selectivities for nodes and edges.
 
 writeSizes :-
   writeNodeSizes,
+  writeTupleSizes,
   writeEdgeSels.
 
 writeNodeSizes :-
@@ -4611,6 +4631,30 @@ writeNodeSizes :-
   Format = [ ['Node', 'l'],
              ['Size', 'l'] ],
   showTuples(L, Format).
+
+
+writeTupleSizes :-
+  writeArgTupleSizes,
+  writeNodeTupleSizes.
+
+writeArgTupleSizes :-
+  findall([Arg, MemoryFix, DiskCore, DiskLOB], 
+    argTupleSize(Arg, sizeTerm(MemoryFix, DiskCore, DiskLOB)), L),
+  Format = [ ['Argument Rel', 'l'],
+             ['MemoryFix', 'l'],
+             ['DiskCore', 'l'],
+             ['DiskLOB', 'l'] ],
+  showTuples(L, Format).
+
+writeNodeTupleSizes :-
+  findall([Node, MemoryFix, DiskCore, DiskLOB], 
+    nodeTupleSize(Node, sizeTerm(MemoryFix, DiskCore, DiskLOB)), L),
+  Format = [ ['Node', 'l'],
+             ['MemoryFix', 'l'],
+             ['DiskCore', 'l'],
+             ['DiskLOB', 'l'] ],
+  showTuples(L, Format).
+
 
 edgeSelInfo(Source, Target, Sel, Pred) :-
  edgeSelectivity(Source, Target, Sel),
@@ -4817,6 +4861,7 @@ deleteSizes :-
   retractall(edgeInputCards(_, _, _, _)),
   retractall(edgeInfoProgress(_, _, _, _)),
   retractall(nodeTupleSize(_, _)),
+  retractall(argTupleSize(_, _)),
   retractall(nodeAttributeList(_, _)),
   retractall(nodeSizeCounter(_, _, _, _)),
   retractall(nodeSizeCounter(_, _)),
@@ -7911,6 +7956,8 @@ usedAttrList(Rel, ResList) :-
   %nl, write('AttrList: '), write(R1), nl,
   attrnames(R1, ResList).
 
+
+
 renameAttributes(_, [], []).
 renameAttributes(Var, [attrname(attr(Attr,Arg,Case))|AttrNames],
                       [attrname(attr(Var:Attr,Arg,Case))|RenamedAttrNames]
@@ -9036,6 +9083,36 @@ attrnameSort(Attr asc, attrname(Attr) asc) :- !.
 attrnameSort(Attr desc, attrname(Attr) desc) :- !.
 
 attrnameSort(Attr, attrname(Attr) asc).
+
+/*
+
+----	attributes(Attrs, Attributes) :-
+----
+
+Extract from a list of attribute names just the attribute names in DownCasedSpelling.
+
+*/
+
+attributes([], []).
+
+attributes([attrname(attr(Name, _, _)) | Attrs], [Attr | Attrs2]) :-
+  dcName2internalName(Attr, Name),
+  attributes(Attrs, Attrs2).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /*
