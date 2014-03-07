@@ -149,6 +149,13 @@ TESTOPTFILE testOptimizer.cfg
 ENCODING ISO-8859-1
 
 
+#keeps the current viewer if its possible to display the current object
+KEEP_CURRENT_VIEWER true
+
+#use of object depending selection of the new viewer
+OBJECT_DEPENDING_VIEWER_SELECTION true
+
+
 # Here, the look and feel of the gui can be changed
 # If the L&F was not found, the standard L&F will be used and
 # a list of available L&Fs is printed out
