@@ -239,24 +239,26 @@ bool HalfSegmentIntersectsRectangle(const HalfSegment& rHalfSegment,
 
         if(bHalfSegmentIntersectsRectangle == false)
         {
-          if(leftPoint.GetX() < rRectangle.MinD(0) &&
-             rightPoint.GetX() > rRectangle.MaxD(0))
+          double deltaX = rightPoint.GetX() - leftPoint.GetX();
+          double deltaY = rightPoint.GetY() - leftPoint.GetY();
+          double m = deltaY / deltaX;
+          double n = leftPoint.GetY() - m * leftPoint.GetX();
+          
+          double leftY = m * rRectangle.MinD(0) + n;
+          double rightY = m * rRectangle.MaxD(0) + n;
+          double downX = (rRectangle.MinD(1) - n) / m;
+          double upX = (rRectangle.MaxD(1) - n) / m;
+          
+          if((leftY >= rRectangle.MinD(1) &&
+              leftY < rRectangle.MaxD(1)) ||
+             (rightY >= rRectangle.MinD(1) &&
+              rightY < rRectangle.MaxD(1)) ||
+             (downX >= rRectangle.MinD(0) &&
+              downX < rRectangle.MaxD(0)) ||
+             (upX >= rRectangle.MinD(0) &&
+              upX < rRectangle.MaxD(0)))
           {
-            double deltaX = rightPoint.GetX() - leftPoint.GetX();
-            double deltaY = rightPoint.GetY() - leftPoint.GetY();
-            double m = deltaY / deltaX;
-            double n = leftPoint.GetY() - m * leftPoint.GetX();
-  
-            double rectangleLeftPointY = m * rRectangle.MinD(0) + n;
-            double rectangleRightPointY = m * rRectangle.MaxD(0) + n;
-  
-            if((rectangleLeftPointY >= rRectangle.MinD(1) &&
-                rectangleLeftPointY < rRectangle.MaxD(1)) ||
-               (rectangleRightPointY >= rRectangle.MinD(1) &&
-                rectangleRightPointY < rRectangle.MaxD(1)))
-            {
-              bHalfSegmentIntersectsRectangle = true;
-            }
+            bHalfSegmentIntersectsRectangle = true;
           }
         }
       }
