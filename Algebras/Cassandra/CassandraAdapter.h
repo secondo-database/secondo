@@ -242,30 +242,38 @@ public:
       connection is open. False otherweise.
       
 */    
-    bool isConnected() {
-      if(session) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-    
+    bool isConnected();
+
+/*
+2.3.10 Get the token list of the current node
+1. Parameter is the token result list
+
+*/
+  bool getLocalTokens(vector <long> &result);
+  
+/*
+2.3.11 Get the token list of all peer nodes
+1. Parameter is the token result list
+
+*/
+  bool getPeerTokens(vector <long> &result);
+  
 protected:
 
 /*
-2.3.10 Execute the cql statement with a given consistence level synchronus
+2.3.12 Execute the cql statement with a given consistence level synchronus
 
 */    
   bool executeCQLSync(string cql, cql::cql_consistency_enum consistency);
 
 /*
-2.3.11 Execute the cql statement with a given consistence level asynchronus
+2.3.13 Execute the cql statement with a given consistence level asynchronus
 
 */    
   bool executeCQLASync(string cql, cql::cql_consistency_enum consistency);
 
 /*
-2.3.12 Execute the given cql future and check for errors. Returns
+2.3.14 Execute the given cql future and check for errors. Returns
        true if the future is executed successfully. False otherwise.
        
 */    
@@ -273,7 +281,7 @@ protected:
     boost::shared_future<cql::cql_future_result_t> cqlFuture);
 
 /*
-2.3.13 Execute the given cql. Returns a future containing the
+2.3.15 Execute the given cql. Returns a future containing the
        Query result.
        
 */    
@@ -281,7 +289,7 @@ protected:
      executeCQL(string cql, cql::cql_consistency_enum consistency);
 
 /*
-2.3.14 Returns a CQL statement for inserting a new row. The
+2.3.16 Returns a CQL statement for inserting a new row. The
        first parameter is the key, the second parameter is the
        value. The last parameter is the relation for this request.
        
@@ -289,14 +297,14 @@ protected:
   string getInsertCQL(string key, string value, string relation);
 
 /*
-2.3.15 Create a pepared statement for inserting data into the 
+2.3.17 Create a pepared statement for inserting data into the 
        relation spoecified in the first parameter.
        
 */    
   bool prepareCQLInsert(string relation, string consistenceLevel);
 
 /*
-2.3.16 Iterate over all pending futures (e.g. writes), report
+2.3.18 Iterate over all pending futures (e.g. writes), report
        errors and remove finished futures from the future list.
        Normally a cleanup is started only if the condition
        list.length % 100 = 0 is true. 
@@ -304,20 +312,43 @@ protected:
        
 */    
   void removeFinishedFutures(bool force = false);
-  
+
+/*
+2.3.19 Execute a CQL query and extract result tokens
+
+1. Parameter is the query to execute
+2. Parameter is the token result list
+
+*/
+  bool getTokensFromQuery (string query, vector <long> &result);
+   
 private:
-  string contactpoint;            // Our cassandra contact point
-  string keyspace;                // Our keyspace
-  string relation;                // Our relation
+
+  // Our cassandra contact point
+  string contactpoint;            
+  
+  // Our keyspace
+  string keyspace;
+  
+  // Our relation
+  string relation;                
+  
+  // Cassandra session builder
   boost::shared_ptr<cql::cql_builder_t> builder;
+  
+  // Cassandra cluster
   boost::shared_ptr<cql::cql_cluster_t> cluster;
+  
+  // Cassandra session
   boost::shared_ptr<cql::cql_session_t> session;
   
-  std::vector<cql::cql_byte_t> insertCQLid;  // Query ID for prepared insert 
-                                             // statement
-                                             
+  // Query ID for prepared insert statement
+  std::vector<cql::cql_byte_t> insertCQLid;  
+
+  // Pending futures (e.g. write requests)
   std::vector<boost::shared_future<cql::cql_future_result_t> > 
-      pendingFutures;             // Pending futures (e.g. write requests)
+      pendingFutures;             
+      
 };
 
 }

@@ -58,6 +58,7 @@
 #include <cql/cql_builder.hpp>
 #include <cql/cql_execute.hpp>
 #include <cql/cql_result.hpp>
+#include <cql/cql_set.hpp>
 
 #include "CassandraAdapter.h"
 
@@ -93,6 +94,13 @@ void CassandraAdapter::connect() {
     }
 }
 
+bool CassandraAdapter::isConnected() {
+      if(session) {
+        return true;
+      } else {
+        return false;
+      }
+    }
 
 void CassandraAdapter::writeDataToCassandra(string key, string value,
         string relation, string consistenceLevel, bool sync) {
@@ -435,6 +443,48 @@ CassandraAdapter::executeCQL
     = session->query(cqlStatement);
 
     return future;
+}
+
+bool CassandraAdapter::getTokensFromQuery
+    (string query, vector <long> &result) {    
+      
+    boost::shared_future< cql::cql_future_result_t > future = 
+        executeCQL(query, cql::CQL_CONSISTENCY_ONE);
+  
+    future.wait();
+    
+    if(future.get().error.is_err()) {
+      cerr << "Unable to fetch local token list" << endl;
+      return false;
+    }
+    
+    cql::cql_result_t& cqlResult = *(future.get().result);
+    
+    while(cqlResult.next()) {
+      cql::cql_set_t* setResult = NULL;
+      cqlResult.get_set("tokens", &setResult);
+      
+      if(setResult!=NULL) {
+          for (size_t i = 0; i < setResult->size(); ++i) {
+             string token;
+             setResult->get_string(i, token);
+             result.push_back(atol(token.c_str()));
+          }
+    
+          delete setResult;
+      }
+    }
+    
+    return true;
+}
+
+bool CassandraAdapter::getLocalTokens(vector <long> &result) {
+  return getTokensFromQuery("SELECT tokens FROM system.local", result);
+}
+
+
+bool CassandraAdapter::getPeerTokens(vector <long> &result) {
+  return getTokensFromQuery("SELECT tokens FROM system.peers", result);
 }
 
 }

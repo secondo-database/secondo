@@ -382,6 +382,7 @@ public:
     
     timersub(&curtime, &lastdump, &difference);
     
+    
     int miliseconds = difference.tv_sec * 1000 + (difference.tv_usec / 1000);
     
     if(miliseconds >= interval) {
@@ -780,6 +781,22 @@ public:
       cassandra = new CassandraAdapter(contactPoint, keyspace);
       cassandra -> connect();
       cassandra -> createTable(relationName);
+      
+      
+      /*vector < long > tokens;
+      cassandra -> getLocalTokens(tokens);
+      cout << "Token size " << tokens.size() << endl;
+      copy(tokens.begin(), tokens.end(), 
+         std::ostream_iterator<long>(cout, " "));
+      cout << std::endl;
+      
+      tokens.clear();
+      cassandra -> getPeerTokens(tokens);
+      cout << "Token size " << tokens.size() << endl;
+      copy(tokens.begin(), tokens.end(), 
+         std::ostream_iterator<long>(cout, " "));
+      cout << std::endl;*/
+      
   }
   
   virtual ~CFeedLocalInfo() {
@@ -805,7 +822,7 @@ public:
   }
   
   bool feed(Tuple* tuple) {
-    cassandra->writeDataToCassandra(
+    cassandra->writeDataToCassandraPrepared(
                          buildKey(), 
                          tuple -> WriteToBinStr(), 
                          relationName, consistence, false);

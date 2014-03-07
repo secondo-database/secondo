@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
       cerr << "Usage: " << argv[0] << " <hostname> <port> <lines> "
                "<delay> <columns> <size per column>" << endl;
       cerr << endl;
-      cerr << "Where <hostname> is a hostname to connect to" << endl;
+      cerr << "Where <hostname> is the hostname to connect to" << endl;
       cerr << "<port> is the port to connect to" << endl;
       cerr << "<lines> is the numer of lines to send" << endl;
       cerr << "<delay> is the pause (in ms) between two lines " << endl;
@@ -107,7 +107,8 @@ int main(int argc, char* argv[]) {
    
    buffer.append("\n");
    
-   cout << "The size of the buffer is " << buffer.length() << endl;
+   cout << "The size of the buffer is: " << buffer.length() 
+        << " bytes " << endl;
    cout << "The buffer contains: " << buffer << endl;
    
    // Create socket
