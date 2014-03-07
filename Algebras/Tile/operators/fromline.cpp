@@ -232,60 +232,12 @@ int fromlineFunction(Word* pArguments,
 
           if(pResultInfo != 0)
           {
-            double doubleMaximum = std::numeric_limits<double>::max();
-            pResultInfo->m_dMinimumX = doubleMaximum;
-            pResultInfo->m_dMinimumY = doubleMaximum;
-            pResultInfo->m_dMaximumX = -doubleMaximum;
-            pResultInfo->m_dMaximumY = -doubleMaximum;
+            Rectangle<2> boundingBox = pLine->BoundingBox();
+            pResultInfo->m_dMinimumX = boundingBox.MinD(0);
+            pResultInfo->m_dMinimumY = boundingBox.MinD(1);
+            pResultInfo->m_dMaximumX = boundingBox.MaxD(0);
+            pResultInfo->m_dMaximumY = boundingBox.MaxD(1);
 
-            for(int i = 0; i < pLine->Size(); i++)
-            {
-              HalfSegment halfSegment;
-              pLine->Get(i, halfSegment);
-              Point startPoint = halfSegment.GetLeftPoint();
-              Point endPoint = halfSegment.GetRightPoint();
-
-              if(startPoint.GetX() < pResultInfo->m_dMinimumX)
-              {
-                pResultInfo->m_dMinimumX = startPoint.GetX();
-              }
-
-              if(startPoint.GetX() > pResultInfo->m_dMaximumX)
-              {
-                pResultInfo->m_dMaximumX = startPoint.GetX();
-              }
-
-              if(startPoint.GetY() < pResultInfo->m_dMinimumY)
-              {
-                pResultInfo->m_dMinimumY = startPoint.GetY();
-              }
-
-              if(startPoint.GetY() > pResultInfo->m_dMaximumY)
-              {
-                pResultInfo->m_dMaximumY = startPoint.GetY();
-              }
-
-              if(endPoint.GetX() < pResultInfo->m_dMinimumX)
-              {
-                pResultInfo->m_dMinimumX = endPoint.GetX();
-              }
-
-              if(endPoint.GetX() > pResultInfo->m_dMaximumX)
-              {
-                pResultInfo->m_dMaximumX = endPoint.GetX();
-              }
-
-              if(endPoint.GetY() < pResultInfo->m_dMinimumY)
-              {
-                pResultInfo->m_dMinimumY = endPoint.GetY();
-              }
-
-              if(endPoint.GetY() > pResultInfo->m_dMaximumY)
-              {
-                pResultInfo->m_dMaximumY = endPoint.GetY();
-              }
-            }
-            
             double deltaX = pResultInfo->m_dMinimumX - gridX;
             double tileSizeX = xDimensionSize * gridLength;
             pResultInfo->m_dX = gridX + std::floor(deltaX / tileSizeX) *
