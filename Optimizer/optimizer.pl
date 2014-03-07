@@ -539,12 +539,6 @@ Example call:
 */
 
 
-createPredicateFacts(Preds) :-
-  optimizerOption(adaptiveJoin),
-  storePredicates(Preds),
-  !.
-
-createPredicateFacts(_).
 
 
 pog(Rels, Preds, Nodes, Edges) :-
@@ -556,11 +550,31 @@ pog(Rels, Preds, Nodes, Edges) :-
   deleteEdges, storeEdges(Edges),
   deleteVariables, deleteCounters,
   createPredicateFacts(Preds),
+  countJoins(Preds),
   deletePlanEdges, createPlanEdges,
   HighNode is 2**M -1,
   retract(highNode(_)), assert(highNode(HighNode)),
   % uncomment next line for debugging
   dc(pog, showpog(Rels, Preds)).
+
+
+
+createPredicateFacts(Preds) :-
+  optimizerOption(adaptiveJoin),
+  storePredicates(Preds),
+  !.
+
+createPredicateFacts(_).
+
+countJoins([]).		% for memory allocation
+
+countJoins([pr(_, _) | Preds]) :-
+  countJoins(Preds).
+
+countJoins([pr(P, _, _) | Preds]) :-
+  assert(memoryOp(join, P)),
+  countJoins(Preds).
+
 
 /*
 
@@ -4873,6 +4887,33 @@ deleteSizesNawra :-
   retractall(storedPredNoPET(_, _, _)).
 
 
+
+/*
+7.2 Memory Management
+
+In recent years, the query processor performs a simple memory management for query processing operators. Basically it determines which operators in a query plan need large memory buffers and it divides the available global memory equally among such operators.
+
+The optimizer should be aware of this strategy in order use appropriate cost functions that take available memory into account. Hence at least the optimizer needs to determine how many memory-using operators are needed for a given query. It may also employ more sophisticated stategies to assign specific amounts of memory to each operator (for example, by the option memoryAllocation).
+
+Here we just determine how many memory-using operators are there. We assume that one such operator occurs for each join. Further, sorting operator instances are created for groupby, orderby, and distinct (duplicate elimination).
+
+To keep track of this, in the relevant places where such operators are created, facts of the form
+
+----	memoryOp(Reason, Details)
+----
+
+are asserted. Possible reasons are ~sort~, ~groupby~, ~removeDuplicates~, and ~join~. Details are the join predicate, for example.
+
+Later the optimizer can count how many such facts have been asserted and compute the memory per operator accordingly.
+
+*/
+
+:- dynamic memoryOp/2.
+
+globalMemory(2048).	% The available global memory in MB
+         		% Should be obtained from kernel system later.
+
+
 /*
 8 Computing Edge Costs for Plan Edges
 
@@ -7659,6 +7700,8 @@ translate(Query groupby Attrs,
   makeList(Select, SelAttrs),
   % translateFields(SelAttrs, Attrs2, Fields, Select2), % Original Code
   translateFields(SelAttrs, Attrs2, Fields, Select2,_,_), % change by Goehr
+  assert(memoryOp(grouping, Attrs)),
+  assert(memoryOp(sortingForGrouping, Attrs)),
   !.
 
 % insert query
@@ -9017,7 +9060,8 @@ fRemoveExtendedVirtualAttributes(Stream,Stream) :- !.
 
 fRdup(Stream, duplicates, Stream) :- !.
 
-fRdup(Stream, distinct, rdup(sort(Stream))).
+fRdup(Stream, distinct, rdup(sort(Stream))) :-
+  assert(memoryOp(removingDuplicates, noDetails)).
 
 
 
@@ -9026,7 +9070,8 @@ fSort(Stream, [], Stream) :- !.
 fSort(Stream, SortAttrs, StreamOut) :-
   rewriteForDistanceSort(Stream, SortAttrs, Stream2, SortAttrs2, NewAttrs),
   attrnamesSort(SortAttrs2, AttrNames),
-  removeAttrs(sortby(Stream2, AttrNames), NewAttrs, StreamOut).
+  removeAttrs(sortby(Stream2, AttrNames), NewAttrs, StreamOut),
+  assert(memoryOp(sorting, AttrNames)).
 
 
 /*
@@ -9159,9 +9204,10 @@ optimize(Query, QueryOut, CostOut) :-
 
 
 optimize(Query, QueryOut, CostOut) :-
-  retractall(removefilter(_)),
-  rewriteQuery(Query, RQuery),
-  callLookup(RQuery, Query2), !,
+  retractall(removefilter(_)),		% some cleanups before new query
+  retractall(memoryOp(_, _)),
+  rewriteQuery(Query, RQuery),		
+  callLookup(RQuery, Query2), !,	% the three main steps
   queryToPlan(Query2, Plan, CostOut), !,
   plan_to_atom(Plan, QueryOut).
 
