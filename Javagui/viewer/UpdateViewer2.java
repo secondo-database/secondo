@@ -593,7 +593,7 @@ public class UpdateViewer2 extends SecondoViewer {
 		// other relations are displayed as well
 		// but may use too much space
 		// as attributes are displayed sequentially
-		return 1;
+		return 0.4;
 	}
  
 }
