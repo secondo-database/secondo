@@ -116,7 +116,7 @@ bool IsHorizontalHalfSegment(const HalfSegment& rHalfSegment)
   if(leftPoint.IsDefined() &&
      rightPoint.IsDefined())
   {
-    if(leftPoint.GetY() == rightPoint.GetY())
+    if(AlmostEqual(leftPoint.GetY(), rightPoint.GetY()))
     {
       bIsHorizontalHalfSegment = true;
     }
@@ -145,7 +145,7 @@ bool IsVerticalHalfSegment(const HalfSegment& rHalfSegment)
   if(leftPoint.IsDefined() &&
      rightPoint.IsDefined())
   {
-    if(leftPoint.GetX() == rightPoint.GetX())
+    if(AlmostEqual(leftPoint.GetX(), rightPoint.GetX()))
     {
       bIsVerticalHalfSegment = true;
     }
@@ -239,20 +239,24 @@ bool HalfSegmentIntersectsRectangle(const HalfSegment& rHalfSegment,
 
         if(bHalfSegmentIntersectsRectangle == false)
         {
-          double deltaX = rightPoint.GetX() - leftPoint.GetX();
-          double deltaY = rightPoint.GetY() - leftPoint.GetY();
-          double m = deltaY / deltaX;
-          double n = leftPoint.GetY() - m * leftPoint.GetX();
-
-          double rectangleLeftPointY = m * rRectangle.MinD(0) + n;
-          double rectangleRightPointY = m * rRectangle.MaxD(0) + n;
-
-          if((rectangleLeftPointY >= rRectangle.MinD(1) &&
-              rectangleLeftPointY < rRectangle.MaxD(1)) ||
-             (rectangleRightPointY >= rRectangle.MinD(1) &&
-              rectangleRightPointY < rRectangle.MaxD(1)))
+          if(leftPoint.GetX() < rRectangle.MinD(0) &&
+             rightPoint.GetX() > rRectangle.MaxD(0))
           {
-            bHalfSegmentIntersectsRectangle = true;
+            double deltaX = rightPoint.GetX() - leftPoint.GetX();
+            double deltaY = rightPoint.GetY() - leftPoint.GetY();
+            double m = deltaY / deltaX;
+            double n = leftPoint.GetY() - m * leftPoint.GetX();
+  
+            double rectangleLeftPointY = m * rRectangle.MinD(0) + n;
+            double rectangleRightPointY = m * rRectangle.MaxD(0) + n;
+  
+            if((rectangleLeftPointY >= rRectangle.MinD(1) &&
+                rectangleLeftPointY < rRectangle.MaxD(1)) ||
+               (rectangleRightPointY >= rRectangle.MinD(1) &&
+                rectangleRightPointY < rRectangle.MaxD(1)))
+            {
+              bHalfSegmentIntersectsRectangle = true;
+            }
           }
         }
       }
