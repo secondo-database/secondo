@@ -166,9 +166,10 @@ ListExpr spatialJoinTypeMap(ListExpr args)
      !listutils::isSymbol(type2)){
     return listutils::typeError("composite types not supported");
   }
-  if(!nl->Equal(type1,type2)){
-    return listutils::typeError("different types");
-  }
+
+  // if(!nl->Equal(type1,type2)){
+  //   return listutils::typeError("different types");
+  // }
 
   ListExpr attrlist = listutils::concat(al1, al2);
 
