@@ -152,8 +152,9 @@ bool SetLineValues(const HalfSegment& rHalfSegment,
           double deltaY = lineEndPoint.GetY() - lineStartPoint.GetY();
           double m = deltaY / deltaX;
           double n = lineStartPoint.GetY() - m * lineStartPoint.GetX();
+          double step = (xEnd - xStart) / xDimensionSize;
 
-          for(double x = xStart; x <= xEnd; x += gridLength)
+          for(double x = xStart; x <= xEnd; x += step)
           {
             double y = m * x + n;
 
