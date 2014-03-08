@@ -343,6 +343,7 @@ secondoOp( filter,            postfixbrackets, 1).
 secondoOp( filtermatches,     postfixbrackets, 1).
 secondoOp( find,              prefix, 2).
 secondoOp( flipleft,          postfixbrackets, 1).
+secondoOp( gdistance,         prefix, 2).
 secondoOp( get,               prefix, 2).
 secondoOp( getcatalog,        prefix, 2).
 secondoOp( getDirectory,      prefix, 1).
@@ -355,6 +356,7 @@ secondoOp( getMaxVal,         prefix, 1).
 secondoOp( getMinVal,         prefix, 1).
 secondoOp( getTypeNL,         postfix, 1).
 secondoOp( getValueNL,        postfix, 1).
+secondoOp( getWidth,          postfix, 1).
 secondoOp( gps,               prefix, 2).
 secondoOp( groupby,           special, 1).
 secondoOp( hashjoin,          postfixbrackets, 2).
@@ -407,6 +409,7 @@ secondoOp( makeline,          prefix, 2).
 secondoOp( makesline,         prefix, 2).
 secondoOp( makearray,         prefix, 1).
 secondoOp( makemvalue,        postfixbrackets, 1).
+secondoOp( makepoint,         prefix, 2).
 secondoOp((matches),          infix, 2).
 secondoOp( max,               postfixbrackets, 1).
 secondoOp( maxD,              prefix, 2).
@@ -588,7 +591,6 @@ secondoOp( use2,              postfixbrackets, 2).
 secondoOp( val,               prefix, 1).
 secondoOp( var,               postfixbrackets, 1).
 secondoOp( vec,               prefix, 1).
-secondoOp( getWidth,          postfix, 1).
 secondoOp((when),             infix, 2).
 secondoOp( windowclippingin,  prefix, 2).
 secondoOp( windowclippingout, prefix, 2).
