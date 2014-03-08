@@ -3546,8 +3546,7 @@ join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
     -> ( checkOpProperty(Pred,comm),
          isBBoxPredicate(Pred,_Dim)
        )
-    ; (isBBoxPredicate(Op),
-       isCommutativeOP(Op)
+    ; (isBBoxPredicate(Op)
       )
   ),
   X = attr(_, _, _),
@@ -3561,19 +3560,17 @@ join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
 
 % spatialjoin with generic BBoxPredicate:
 join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
-  Arg2S, attrname(Attr1), attrname(Attr2)), Pred2) :-
+  Arg2S, attrname(Attr1), attrname(Attr2)), Pred) :-
   Pred =.. [Op, X, Y],
   ( optimizerOption(determinePredSig)
     -> ( checkOpProperty(Pred,comm),
          isBBoxPredicate(Pred,_Dim)
        )
-    ; (isBBoxPredicate(OP),
-       isCommutativeOP(OP)
+    ; (isBBoxPredicate(Op)
       )
   ),
   isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  Pred2 =.. [Op, Attr1, Attr2].
+  isOfSecond(Attr2, X, Y).
 
 % spatialjoin with generic commutative BBoxPredicate (additional):
 join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S,
@@ -3583,8 +3580,8 @@ join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S,
     -> ( checkOpProperty(Pred,comm),
          isBBoxPredicate(Pred,_Dim)
        )
-    ;  ( isBBoxPredicate(OP),
-         isCommutativeOP(OP)
+    ;  ( isBBoxPredicate(Op),
+         isCommutativeOP(Op)
        )
   ),
   isOfFirst(Attr1, X, Y),
