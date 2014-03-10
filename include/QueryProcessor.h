@@ -591,6 +591,12 @@ Sets the global memory available for all operators together. To be distributed
 by query processor or optimizer.
 
 */
+  size_t GetGlobalMemory() const;
+
+/*
+Returns the size of the globel memory
+
+*/
 
 
   size_t GetMemorySize( const Supplier s);
