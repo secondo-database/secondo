@@ -1,0 +1,35 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="de.fernunihagen.dna.secondo4android"
+    android:versionCode="1"
+    android:versionName="1.2.1" >
+
+    <uses-sdk
+        android:minSdkVersion="14"
+        android:targetSdkVersion="17" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" android:largeHeap="true">
+        <activity android:name=".activity.SplashActivity">
+        </activity>
+        <activity android:name=".activity.SplashScreenActivity" android:label="@string/app_name"><intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter></activity>
+        <activity android:name=".activity.QueryDatabaseActivity"></activity>
+        <activity android:name=".activity.SecondoActivity"></activity>
+        <activity android:name=".activity.ListObjectsActivity"></activity>
+        <activity android:name=".activity.PreferencesActivity"></activity>
+        <activity android:name=".activity.SettingsActivity"></activity>
+        <activity android:name=".activity.DatabaseDeleteActivity"></activity>
+        <activity android:name=".activity.DatabaseOpenActivity"></activity>
+        <activity android:name=".activity.FileDialogActivity"></activity>
+        <activity android:name=".activity.GuiActivity"></activity>
+        <activity android:name=".activity.ListObjectsResultActivity"></activity>
+        <activity android:name=".activity.MemoryActivity"></activity>
+    </application>
+
+</manifest>

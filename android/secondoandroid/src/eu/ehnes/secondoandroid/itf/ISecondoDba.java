@@ -1,7 +1,7 @@
 /*
  * 
  */
-package eu.ehnes.secondoandroid.itf;
+package de.fernunihagen.dna.secondocore.itf;
 
 // TODO: Auto-generated Javadoc
 /**

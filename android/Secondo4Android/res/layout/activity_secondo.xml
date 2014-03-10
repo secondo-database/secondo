@@ -1,0 +1,52 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:padding="8dp"
+    tools:context=".SecondoActivity" >
+
+    <Button
+        android:id="@+id/opengui"
+        android:layout_gravity="center"
+        android:onClick="opengui"
+        android:text="@string/gui"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" 
+         />
+
+    <Button
+        android:id="@+id/call_settings"
+        android:layout_gravity="center"
+        android:onClick="call_settings"
+        android:text="@string/editconfiguration"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" 
+        />
+
+    <Button
+        android:id="@+id/button1"
+        android:layout_gravity="center_horizontal|top"
+        android:text="@string/editpreferences" 
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" 
+        android:onClick="call_preferences"
+        />
+
+    <Button
+        android:id="@+id/memory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="showMemory"
+        android:text="@string/showmemory" 
+        />
+    
+    <Button
+        android:id="@+id/info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="showInfo"
+        android:text="@string/showinfo" 
+        />
+    
+</LinearLayout>

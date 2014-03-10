@@ -1,9 +1,9 @@
-package eu.ehnes.secondoandroid.impl;
+package de.fernunihagen.dna.secondocore.impl;
 
 
-import eu.ehnes.secondoandroid.starthelper;
-import eu.ehnes.secondoandroid.itf.ISecondoDba;
-import eu.ehnes.secondoandroid.itf.ISecondoDbaCallback;
+import de.fernunihagen.dna.secondocore.starthelper;
+import de.fernunihagen.dna.secondocore.itf.ISecondoDba;
+import de.fernunihagen.dna.secondocore.itf.ISecondoDbaCallback;
 
 public class SecondoDba implements ISecondoDba {
 	

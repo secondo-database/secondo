@@ -107,7 +107,7 @@ transactions of errorneous queries were not aborted.
 
 */
 
-#include "eu_ehnes_secondoandroid_starthelper.h"
+#include "de_fernunihagen_dna_secondocore_starthelper.h"
 #include <string>
 #include <iostream>
 #include <stdlib.h>
@@ -148,7 +148,7 @@ std::string substring(std::string s, unsigned int start, unsigned int ende) {
 
 
 JNIEXPORT jboolean JNICALL
-	Java_eu_ehnes_secondoandroid_starthelper_initialize(
+	Java_de_fernunihagen_dna_secondocore_starthelper_initialize(
 			JNIEnv *env, jobject jo, jstring js) {
 	__android_log_write(ANDROID_LOG_INFO,"FU", "Start secondomain");
 
@@ -200,7 +200,7 @@ JNIEXPORT jboolean JNICALL
 }
 
 JNIEXPORT void JNICALL
-	Java_eu_ehnes_secondoandroid_starthelper_shutdown(
+	Java_de_fernunihagen_dna_secondocore_starthelper_shutdown(
 				JNIEnv * je, jobject jo)
 {
 	 // close connection to secondo
@@ -211,7 +211,7 @@ JNIEXPORT void JNICALL
 }
 
 JNIEXPORT jobject JNICALL
-	Java_eu_ehnes_secondoandroid_starthelper_query(
+	Java_de_fernunihagen_dna_secondocore_starthelper_query(
 			JNIEnv *env, jobject obj, jstring kommando) {
 
 	const char *nativeString = env->GetStringUTFChars(kommando, 0);
@@ -281,7 +281,7 @@ jobject executeCommand2(
 	     return NULL;
 }
 JNIEXPORT jstring JNICALL
-	Java_eu_ehnes_secondoandroid_starthelper_errorMessage
+	Java_de_fernunihagen_dna_secondocore_starthelper_errorMessage
   (JNIEnv *env, jobject obj) {
 	jstring rueckgabeString=env->NewStringUTF(lasterror.c_str());
 	return rueckgabeString;

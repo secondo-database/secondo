@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Secondo4Android</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="menu_settings">Settings</string>
+    <string name="textview">TextView</string>
+    <string name="sendrequest">Send request</string>
+    <string name="gui">Start Queries</string>
+    <string name="restoredb">Restore DB</string>
+    <string name="listobjects">List Objects</string>
+    <string name="opendb">Open DB</string>
+    <string name="deletedb">Delete DB</string>
+    <string name="closedb">Close DB</string>
+    <string name="nodata">No Data</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="query">Query Database</string>
+    <string name="last">Last command</string>
+    <string name="clear">C</string>
+    <string name="next">Next command</string>
+    <string name="statusdata">Statusmeldungen</string>
+    <string name="maxmemory">Max Memory</string>
+    <string name="totalmemory">Total Memory</string>
+    <string name="refresh">Refresh</string>
+    <string name="freememory">Free Memory</string>
+    <string name="zero">0</string>
+    <string name="pleaseinsertquery">Please insert your query here</string>
+    <string name="editconfiguration">Edit Configuration</string>
+    <string name="editpreferences">Edit Preferences</string>
+    <string name="showmemory">Show Memory</string>
+    <string name="pleasetouchscreen">Please touch the screen anywhere to start secondo!</string>
+    <string name="showinfo">About</string>
+
+</resources>
