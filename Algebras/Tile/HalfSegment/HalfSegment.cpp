@@ -70,6 +70,38 @@ bool CheckPoints(Point& rLeftPoint,
 }
 
 /*
+Method IsPointInRectangle checks if given Point is in given Rectangle<2>.
+
+author: Dirk Zacher
+parameters: rPoint - reference to a point
+            rRectangle - reference to a rectangle
+return value: true, if rPoint is in rRectangle,
+              otherwise false
+exceptions: -
+
+*/
+
+bool IsPointInRectangle(const Point& rPoint,
+                        const Rectangle<2>& rRectangle)
+{
+  bool bIsPointInRectangle = false;
+
+  if(rPoint.IsDefined() &&
+     rRectangle.IsDefined())
+  {
+    if(rPoint.GetX() >= rRectangle.MinD(0) &&
+       rPoint.GetX() < rRectangle.MaxD(0) &&
+       rPoint.GetY() >= rRectangle.MinD(1) &&
+       rPoint.GetY() < rRectangle.MaxD(1))
+    {
+      bIsPointInRectangle = true;
+    }
+  }
+
+  return bIsPointInRectangle;
+}
+
+/*
 Method CheckHalfSegment checks the consistency of the given HalfSegment.
 
 author: Dirk Zacher
@@ -155,6 +187,272 @@ bool IsVerticalHalfSegment(const HalfSegment& rHalfSegment)
 }
 
 /*
+Method HalfSegmentPointsInRectangle returns the number of HalfSegment points
+inside the given Rectangle<2>.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+            rRectangle - reference to a Rectangle<2>
+return value: number of HalfSegment points inside rRectangle
+exceptions: -
+
+*/
+
+unsigned char HalfSegmentPointsInRectangle(const HalfSegment& rHalfSegment,
+                                           const Rectangle<2>& rRectangle)
+{
+  unsigned char halfSegmentPointsInRectangle = 0;
+
+  if(rRectangle.IsDefined())
+  {
+    Point leftPoint = rHalfSegment.GetLeftPoint();
+    Point rightPoint = rHalfSegment.GetRightPoint();
+
+    if(leftPoint.IsDefined() &&
+       rightPoint.IsDefined())
+    {
+      CheckPoints(leftPoint, rightPoint);
+
+      if(IsPointInRectangle(leftPoint, rRectangle))
+      {
+        halfSegmentPointsInRectangle++;
+      }
+
+      if(IsPointInRectangle(rightPoint, rRectangle))
+      {
+        halfSegmentPointsInRectangle++;
+      }
+    }
+  }
+
+  return halfSegmentPointsInRectangle;
+}
+
+/*
+Method HalfSegmentIntersectsLeftRectangleBorder checks if given HalfSegment
+intersects the left border of given Rectangle<2> and returns
+the intersection point between HalfSegment and left rectangle border.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+            rRectangle - reference to a Rectangle<2>
+            rPoint - reference to a Point containing intersection coordinates
+return value: true, if rHalfSegment intersects left border of rRectangle,
+              otherwise false
+exceptions: -
+
+*/
+
+bool HalfSegmentIntersectsLeftRectangleBorder(const HalfSegment& rHalfSegment,
+                                              const Rectangle<2>& rRectangle,
+                                              Point& rPoint)
+{
+  bool bHalfSegmentIntersectsLeftRectangleBorder = false;
+
+  if(rRectangle.IsDefined())
+  {
+    Point halfSegmentLeftPoint = rHalfSegment.GetLeftPoint();
+    Point halfSegmentRightPoint = rHalfSegment.GetRightPoint();
+
+    if(halfSegmentLeftPoint.IsDefined() &&
+       halfSegmentRightPoint.IsDefined())
+    {
+      CheckPoints(halfSegmentLeftPoint, halfSegmentRightPoint);
+      
+      if(halfSegmentLeftPoint.GetX() <= rRectangle.MinD(0) &&
+          rRectangle.MinD(0) <= halfSegmentRightPoint.GetX())
+      {
+        double deltaX = halfSegmentRightPoint.GetX() -
+                        halfSegmentLeftPoint.GetX();
+        double deltaY = halfSegmentRightPoint.GetY() -
+                        halfSegmentLeftPoint.GetY();
+        double m = deltaY / deltaX;
+        double n = halfSegmentLeftPoint.GetY() -
+                   m * halfSegmentLeftPoint.GetX();
+  
+        double y = m * rRectangle.MinD(0) + n;
+  
+        if(y >= rRectangle.MinD(1) &&
+           y < rRectangle.MaxD(1))
+        {
+          bHalfSegmentIntersectsLeftRectangleBorder = true;
+          rPoint.Set(rRectangle.MinD(0), y);
+        }
+      }
+    }
+  }
+
+  return bHalfSegmentIntersectsLeftRectangleBorder;
+}
+
+/*
+Method HalfSegmentIntersectsRightRectangleBorder checks if given HalfSegment
+intersects the right border of given Rectangle<2> and returns
+the intersection point between HalfSegment and right rectangle border.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+            rRectangle - reference to a Rectangle<2>
+            rPoint - reference to a Point containing intersection coordinates
+return value: true, if rHalfSegment intersects right border of rRectangle,
+              otherwise false
+exceptions: -
+
+*/
+
+bool HalfSegmentIntersectsRightRectangleBorder(const HalfSegment& rHalfSegment,
+                                               const Rectangle<2>& rRectangle,
+                                               Point& rPoint)
+{
+  bool bHalfSegmentIntersectsRightRectangleBorder = false;
+
+  if(rRectangle.IsDefined())
+  {
+    Point halfSegmentLeftPoint = rHalfSegment.GetLeftPoint();
+    Point halfSegmentRightPoint = rHalfSegment.GetRightPoint();
+
+    if(halfSegmentLeftPoint.IsDefined() &&
+       halfSegmentRightPoint.IsDefined())
+    {
+      CheckPoints(halfSegmentLeftPoint, halfSegmentRightPoint);
+      
+      if(halfSegmentLeftPoint.GetX() <= rRectangle.MaxD(0) &&
+         rRectangle.MaxD(0) <= halfSegmentRightPoint.GetX())
+      {
+        double deltaX = halfSegmentRightPoint.GetX() -
+                        halfSegmentLeftPoint.GetX();
+        double deltaY = halfSegmentRightPoint.GetY() -
+                        halfSegmentLeftPoint.GetY();
+        double m = deltaY / deltaX;
+        double n = halfSegmentLeftPoint.GetY() -
+                   m * halfSegmentLeftPoint.GetX();
+  
+        double y = m * rRectangle.MaxD(0) + n;
+  
+        if(y >= rRectangle.MinD(1) &&
+           y < rRectangle.MaxD(1))
+        {
+          bHalfSegmentIntersectsRightRectangleBorder = true;
+          rPoint.Set(rRectangle.MaxD(0), y);
+        }
+      }
+    }
+  }
+
+  return bHalfSegmentIntersectsRightRectangleBorder;
+}
+
+/*
+Method HalfSegmentIntersectsLowerRectangleBorder checks if given HalfSegment
+intersects the lower border of given Rectangle<2> and returns
+the intersection point between HalfSegment and lower rectangle border.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+            rRectangle - reference to a Rectangle<2>
+            rPoint - reference to a Point containing intersection coordinates
+return value: true, if rHalfSegment intersects lower border of rRectangle,
+              otherwise false
+exceptions: -
+
+*/
+
+bool HalfSegmentIntersectsLowerRectangleBorder(const HalfSegment& rHalfSegment,
+                                               const Rectangle<2>& rRectangle,
+                                               Point& rPoint)
+{
+  bool bHalfSegmentIntersectsLowerRectangleBorder = false;
+
+  if(rRectangle.IsDefined())
+  {
+    Point halfSegmentLeftPoint = rHalfSegment.GetLeftPoint();
+    Point halfSegmentRightPoint = rHalfSegment.GetRightPoint();
+
+    if(halfSegmentLeftPoint.IsDefined() &&
+       halfSegmentRightPoint.IsDefined())
+    {
+      CheckPoints(halfSegmentLeftPoint, halfSegmentRightPoint);
+
+      double deltaX = halfSegmentRightPoint.GetX() -
+                      halfSegmentLeftPoint.GetX();
+      double deltaY = halfSegmentRightPoint.GetY() -
+                      halfSegmentLeftPoint.GetY();
+      double m = deltaY / deltaX;
+      double n = halfSegmentLeftPoint.GetY() -
+                 m * halfSegmentLeftPoint.GetX();
+
+      double x = (rRectangle.MinD(1) - n) / m;
+
+      if(halfSegmentLeftPoint.GetX() <= x &&
+         x <= halfSegmentRightPoint.GetX() &&
+         x >= rRectangle.MinD(0) &&
+         x < rRectangle.MaxD(0))
+      {
+        bHalfSegmentIntersectsLowerRectangleBorder = true;
+        rPoint.Set(x, rRectangle.MinD(1));
+      }
+    }
+  }
+
+  return bHalfSegmentIntersectsLowerRectangleBorder;
+}
+
+/*
+Method HalfSegmentIntersectsUpperRectangleBorder checks if given HalfSegment
+intersects the upper border of given Rectangle<2> and returns
+the intersection point between HalfSegment and upper rectangle border.
+
+author: Dirk Zacher
+parameters: rHalfSegment - reference to a HalfSegment
+            rRectangle - reference to a Rectangle<2>
+            rPoint - reference to a Point containing intersection coordinates
+return value: true, if rHalfSegment intersects upper border of rRectangle,
+              otherwise false
+exceptions: -
+
+*/
+
+bool HalfSegmentIntersectsUpperRectangleBorder(const HalfSegment& rHalfSegment,
+                                               const Rectangle<2>& rRectangle,
+                                               Point& rPoint)
+{
+  bool bHalfSegmentIntersectsUpperRectangleBorder = false;
+
+  if(rRectangle.IsDefined())
+  {
+    Point halfSegmentLeftPoint = rHalfSegment.GetLeftPoint();
+    Point halfSegmentRightPoint = rHalfSegment.GetRightPoint();
+
+    if(halfSegmentLeftPoint.IsDefined() &&
+       halfSegmentRightPoint.IsDefined())
+    {
+      CheckPoints(halfSegmentLeftPoint, halfSegmentRightPoint);
+
+      double deltaX = halfSegmentRightPoint.GetX() -
+                      halfSegmentLeftPoint.GetX();
+      double deltaY = halfSegmentRightPoint.GetY() -
+                      halfSegmentLeftPoint.GetY();
+      double m = deltaY / deltaX;
+      double n = halfSegmentLeftPoint.GetY() -
+                 m * halfSegmentLeftPoint.GetX();
+
+      double x = (rRectangle.MaxD(1) - n) / m;
+
+      if(halfSegmentLeftPoint.GetX() <= x &&
+         x <= halfSegmentRightPoint.GetX() &&
+         x >= rRectangle.MinD(0) &&
+         x < rRectangle.MaxD(0))
+      {
+        bHalfSegmentIntersectsUpperRectangleBorder = true;
+        rPoint.Set(x, rRectangle.MaxD(1));
+      }
+    }
+  }
+
+  return bHalfSegmentIntersectsUpperRectangleBorder;
+}
+
+/*
 Method HalfSegmentIntersectsRectangle checks if given HalfSegment
 intersects given Rectangle<2>.
 
@@ -181,33 +479,15 @@ bool HalfSegmentIntersectsRectangle(const HalfSegment& rHalfSegment,
     {
       CheckPoints(leftPoint, rightPoint);
 
-      if(leftPoint.GetX() >= rRectangle.MinD(0) &&
-         leftPoint.GetX() < rRectangle.MaxD(0) &&
-         leftPoint.GetY() >= rRectangle.MinD(1) &&
-         leftPoint.GetY() < rRectangle.MaxD(1))
+      unsigned char halfSegmentPointsInRectangle =
+      HalfSegmentPointsInRectangle(rHalfSegment, rRectangle);
+
+      if(halfSegmentPointsInRectangle > 0)
       {
-        /*
-        case: leftPoint in Rectangle
-
-        */
-
         bHalfSegmentIntersectsRectangle = true;
       }
 
-      if(rightPoint.GetX() >= rRectangle.MinD(0) &&
-         rightPoint.GetX() < rRectangle.MaxD(0) &&
-         rightPoint.GetY() >= rRectangle.MinD(1) &&
-         rightPoint.GetY() < rRectangle.MaxD(1))
-      {
-        /*
-        case: rightPoint in Rectangle
-
-        */
-
-        bHalfSegmentIntersectsRectangle = true;
-      }
-
-      if(bHalfSegmentIntersectsRectangle == false)
+      else
       {
         if(IsHorizontalHalfSegment(rHalfSegment) &&
            leftPoint.GetX() < rRectangle.MinD(0) &&
@@ -239,24 +519,20 @@ bool HalfSegmentIntersectsRectangle(const HalfSegment& rHalfSegment,
 
         if(bHalfSegmentIntersectsRectangle == false)
         {
-          double deltaX = rightPoint.GetX() - leftPoint.GetX();
-          double deltaY = rightPoint.GetY() - leftPoint.GetY();
-          double m = deltaY / deltaX;
-          double n = leftPoint.GetY() - m * leftPoint.GetX();
-          
-          double leftY = m * rRectangle.MinD(0) + n;
-          double rightY = m * rRectangle.MaxD(0) + n;
-          double downX = (rRectangle.MinD(1) - n) / m;
-          double upX = (rRectangle.MaxD(1) - n) / m;
-          
-          if((leftY >= rRectangle.MinD(1) &&
-              leftY < rRectangle.MaxD(1)) ||
-             (rightY >= rRectangle.MinD(1) &&
-              rightY < rRectangle.MaxD(1)) ||
-             (downX >= rRectangle.MinD(0) &&
-              downX < rRectangle.MaxD(0)) ||
-             (upX >= rRectangle.MinD(0) &&
-              upX < rRectangle.MaxD(0)))
+          Point point(true, 0.0, 0.0);
+
+          if(HalfSegmentIntersectsLeftRectangleBorder(rHalfSegment,
+                                                      rRectangle,
+                                                      point) ||
+             HalfSegmentIntersectsRightRectangleBorder(rHalfSegment,
+                                                       rRectangle,
+                                                       point) ||
+             HalfSegmentIntersectsLowerRectangleBorder(rHalfSegment,
+                                                       rRectangle,
+                                                       point) ||
+             HalfSegmentIntersectsUpperRectangleBorder(rHalfSegment,
+                                                       rRectangle,
+                                                       point))
           {
             bHalfSegmentIntersectsRectangle = true;
           }
@@ -305,80 +581,122 @@ bool GetPointsInRectangle(const HalfSegment& rHalfSegment,
         rLeftPoint.Set(halfSegmentLeftPoint);
         rRightPoint.Set(halfSegmentRightPoint);
 
-        if(IsHorizontalHalfSegment(rHalfSegment))
+        unsigned char halfSegmentPointsInRectangle =
+        HalfSegmentPointsInRectangle(rHalfSegment, rRectangle);
+
+        if(halfSegmentPointsInRectangle < 2)
         {
-          if(rLeftPoint.GetX() < rRectangle.MinD(0))
+          if(IsHorizontalHalfSegment(rHalfSegment))
           {
-            rLeftPoint.Set(rRectangle.MinD(0), rLeftPoint.GetY());
+            if(rLeftPoint.GetX() < rRectangle.MinD(0))
+            {
+              rLeftPoint.Set(rRectangle.MinD(0), rLeftPoint.GetY());
+            }
+
+            if(rRightPoint.GetX() > rRectangle.MaxD(0))
+            {
+              rRightPoint.Set(rRectangle.MaxD(0), rRightPoint.GetY());
+            }
           }
 
-          if(rLeftPoint.GetX() > rRectangle.MaxD(0))
+          else if(IsVerticalHalfSegment(rHalfSegment))
           {
-            rLeftPoint.Set(rRectangle.MaxD(0), rLeftPoint.GetY());
+            if(rLeftPoint.GetY() < rRectangle.MinD(1))
+            {
+              rLeftPoint.Set(rLeftPoint.GetX(), rRectangle.MinD(1));
+            }
+
+            if(rRightPoint.GetY() > rRectangle.MaxD(1))
+            {
+              rRightPoint.Set(rRightPoint.GetX(), rRectangle.MaxD(1));
+            }
           }
 
-          if(rRightPoint.GetX() < rRectangle.MinD(0))
+          else
           {
-            rRightPoint.Set(rRectangle.MinD(0), rRightPoint.GetY());
-          }
+            rLeftPoint.SetDefined(false);
+            rRightPoint.SetDefined(false);
 
-          if(rRightPoint.GetX() > rRectangle.MaxD(0))
-          {
-            rRightPoint.Set(rRectangle.MaxD(0), rRightPoint.GetY());
-          }
-        }
+            if(halfSegmentPointsInRectangle == 1)
+            {
+              if(IsPointInRectangle(halfSegmentLeftPoint, rRectangle))
+              {
+                rLeftPoint.Set(halfSegmentLeftPoint);
+              }
 
-        else if(IsVerticalHalfSegment(rHalfSegment))
-        {
-          if(rLeftPoint.GetY() < rRectangle.MinD(1))
-          {
-            rLeftPoint.Set(rLeftPoint.GetX(), rRectangle.MinD(1));
-          }
+              if(IsPointInRectangle(halfSegmentRightPoint, rRectangle))
+              {
+                rLeftPoint.Set(halfSegmentRightPoint);
+              }
+            }
 
-          if(rLeftPoint.GetY() > rRectangle.MaxD(1))
-          {
-            rLeftPoint.Set(rLeftPoint.GetX(), rRectangle.MaxD(1));
-          }
+            Point point(true, 0.0, 0.0);
 
-          if(rRightPoint.GetY() < rRectangle.MinD(1))
-          {
-            rRightPoint.Set(rRightPoint.GetX(), rRectangle.MinD(1));
-          }
+            if(rRightPoint.IsDefined() == false &&
+               HalfSegmentIntersectsLeftRectangleBorder(rHalfSegment,
+                                                        rRectangle,
+                                                        point))
+            {
+              if(rLeftPoint.IsDefined() == false)
+              {
+                rLeftPoint.Set(point);
+              }
 
-          if(rRightPoint.GetY() > rRectangle.MaxD(1))
-          {
-            rRightPoint.Set(rRightPoint.GetX(), rRectangle.MaxD(1));
-          }
-        }
+              else
+              {
+                rRightPoint.Set(point);
+              }
+            }
 
-        else
-        {
-          double deltaX = halfSegmentRightPoint.GetX() -
-                          halfSegmentLeftPoint.GetX();
-          double deltaY = halfSegmentRightPoint.GetY() -
-                          halfSegmentLeftPoint.GetY();
-          double m = deltaY / deltaX;
-          double n = halfSegmentLeftPoint.GetY() -
-                     m * halfSegmentLeftPoint.GetX();
+            if(rRightPoint.IsDefined() == false &&
+               HalfSegmentIntersectsRightRectangleBorder(rHalfSegment,
+                                                         rRectangle,
+                                                         point))
+            {
+              if(rLeftPoint.IsDefined() == false)
+              {
+                rLeftPoint.Set(point);
+              }
 
-          if(rLeftPoint.GetX() < rRectangle.MinD(0))
-          {
-            rLeftPoint.Set(rRectangle.MinD(0), m * rRectangle.MinD(0) + n);
-          }
+              else
+              {
+                rRightPoint.Set(point);
+              }
+            }
 
-          if(rLeftPoint.GetX() > rRectangle.MaxD(0))
-          {
-            rLeftPoint.Set(rRectangle.MaxD(0), m * rRectangle.MaxD(0) + n);
-          }
+            if(rRightPoint.IsDefined() == false &&
+               HalfSegmentIntersectsLowerRectangleBorder(rHalfSegment,
+                                                         rRectangle,
+                                                         point))
+            {
+              if(rLeftPoint.IsDefined() == false)
+              {
+                rLeftPoint.Set(point);
+              }
 
-          if(rRightPoint.GetX() < rRectangle.MinD(0))
-          {
-            rRightPoint.Set(rRectangle.MinD(0), m * rRectangle.MinD(0) + n);
-          }
+              else
+              {
+                rRightPoint.Set(point);
+              }
+            }
 
-          if(rRightPoint.GetX() > rRectangle.MaxD(0))
-          {
-            rRightPoint.Set(rRectangle.MaxD(0), m * rRectangle.MaxD(0) + n);
+            if(rRightPoint.IsDefined() == false &&
+               HalfSegmentIntersectsUpperRectangleBorder(rHalfSegment,
+                                                         rRectangle,
+                                                         point))
+            {
+              if(rLeftPoint.IsDefined() == false)
+              {
+                assert(false);
+              }
+
+              else
+              {
+                rRightPoint.Set(point);
+              }
+            }
+
+            CheckPoints(rLeftPoint, rRightPoint);
           }
         }
 
