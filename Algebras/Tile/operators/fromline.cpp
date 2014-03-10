@@ -89,78 +89,44 @@ bool SetLineValues(const HalfSegment& rHalfSegment,
 
       if(HalfSegmentIntersectsRectangle(halfSegment, rectangle))
       {
-        if(IsHorizontalHalfSegment(halfSegment))
+        Point leftPoint(true, 0.0, 0.0);
+        Point rightPoint(true, 0.0, 0.0);
+
+        if(GetPointsInRectangle(rHalfSegment, rectangle,
+                                leftPoint, rightPoint))
         {
-          double xStart = lineStartPoint.GetX();
-          double xEnd = lineEndPoint.GetX();
-          double y = lineStartPoint.GetY();
+          double leftPointX = leftPoint.GetX();
+          double leftPointY = leftPoint.GetY();
+          double rightPointX = rightPoint.GetX();
+          double rightPointY = rightPoint.GetY();
 
-          if(xStart < Minima[0])
+          if(IsHorizontalHalfSegment(halfSegment))
           {
-            xStart = Minima[0];
-          }
-
-          if(xEnd > Maxima[0])
-          {
-            xEnd = Maxima[0];
-          }
-
-          for(double x = xStart; x <= xEnd; x += gridLength)
-          {
-            bHasTrueValue |= rtbool.SetValue(x, y, true, true);
-          }
-        }
-
-        else if(IsVerticalHalfSegment(halfSegment))
-        {
-          double x = lineStartPoint.GetX();
-          double yStart = lineStartPoint.GetY();
-          double yEnd = lineEndPoint.GetY();
-
-          if(yStart < Minima[1])
-          {
-            yStart = Minima[1];
-          }
-
-          if(yEnd > Maxima[1])
-          {
-            yEnd = Maxima[1];
-          }
-
-          for(double y = yStart; y <= yEnd; y += gridLength)
-          {
-            bHasTrueValue |= rtbool.SetValue(x, y, true, true);
-          }
-        }
-
-        else
-        {
-          double xStart = lineStartPoint.GetX();
-          double xEnd = lineEndPoint.GetX();
-
-          if(xStart < Minima[0])
-          {
-            xStart = Minima[0];
-          }
-
-          if(xEnd > Maxima[0])
-          {
-            xEnd = Maxima[0];
-          }
-
-          double deltaX = lineEndPoint.GetX() - lineStartPoint.GetX();
-          double deltaY = lineEndPoint.GetY() - lineStartPoint.GetY();
-          double m = deltaY / deltaX;
-          double n = lineStartPoint.GetY() - m * lineStartPoint.GetX();
-          double step = (xEnd - xStart) / xDimensionSize;
-
-          for(double x = xStart; x <= xEnd; x += step)
-          {
-            double y = m * x + n;
-
-            if(y >= Minima[1] &&
-               y < Maxima[1])
+            for(double x = leftPointX; x <= rightPointX; x += gridLength)
             {
+              bHasTrueValue |= rtbool.SetValue(x, leftPointY, true, true);
+            }
+          }
+
+          else if(IsVerticalHalfSegment(halfSegment))
+          {
+            for(double y = leftPointY; y <= rightPointY; y += gridLength)
+            {
+              bHasTrueValue |= rtbool.SetValue(leftPointX, y, true, true);
+            }
+          }
+
+          else
+          {
+            double deltaX = rightPoint.GetX() - leftPoint.GetX();
+            double deltaY = rightPoint.GetY() - leftPoint.GetY();
+            double m = deltaY / deltaX;
+            double n = leftPoint.GetY() - m * leftPoint.GetX();
+            double step = (rightPointX - leftPointX) / xDimensionSize;
+
+            for(double x = leftPointX; x <= rightPointX; x += step)
+            {
+              double y = m * x + n;
               bHasTrueValue |= rtbool.SetValue(x, y, true, true);
             }
           }
