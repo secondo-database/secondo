@@ -118,10 +118,10 @@ bool SetLineValues(const HalfSegment& rHalfSegment,
 
           else
           {
-            double deltaX = rightPoint.GetX() - leftPoint.GetX();
-            double deltaY = rightPoint.GetY() - leftPoint.GetY();
+            double deltaX = lineEndPoint.GetX() - lineStartPoint.GetX();
+            double deltaY = lineEndPoint.GetY() - lineStartPoint.GetY();
             double m = deltaY / deltaX;
-            double n = leftPoint.GetY() - m * leftPoint.GetX();
+            double n = lineStartPoint.GetY() - m * lineStartPoint.GetX();
             double step = (rightPointX - leftPointX) / xDimensionSize;
 
             for(double x = leftPointX; x <= rightPointX; x += step)
