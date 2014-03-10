@@ -10975,7 +10975,64 @@ Operator letObject2OP(
 
 
 
+/*
+4.38 Operator ~globalMemory~
 
+4.38.1 Type Mapping
+  
+   -> int
+
+*/
+
+ListExpr globalMemoryTM(ListExpr args){
+
+  if(nl->IsEmpty(args)){
+    return listutils::basicSymbol<LongInt>();
+  }
+  return listutils::typeError("no argument expected");
+}
+
+/*
+4.38.2 Value Mapping
+
+*/
+
+int globalMemoryVM( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  LongInt* res = (LongInt*) result.addr;
+  int gm = qp->GetGlobalMemory();
+  res->SetValue(gm);
+  return 0;
+}
+
+
+/*
+4.38.3 Specification
+
+*/
+OperatorSpec globalMemorySpec(
+  " -> longint",
+  " globalMemory() ",
+  "Returns the size of memory available for operators",
+  "query globalMemory()"
+);
+
+
+/*
+4.38.4 Operator instance
+
+*/
+
+Operator globalMemoryOP
+(
+  "globalMemory",             //name
+  globalMemorySpec.getStr(),           //specification
+  globalMemoryVM,        //value mapping
+  Operator::SimpleSelect,         //trivial selection function
+  globalMemoryTM        //type mapping
+);
 
   /*
   5 Creating the algebra
@@ -11103,6 +11160,7 @@ Operator letObject2OP(
       
       AddOperator(&letObject2OP);
 
+      AddOperator(&globalMemoryOP);
 
 
 #ifdef RECODE

@@ -1175,5 +1175,9 @@ Signature : {string,text} x any -> bool
 Example   : query letObject2("BGrenzenLine", 3 + 4)
 Result    : FALSE
 
-
+Operator : globalMemory
+Number : 1
+Signature : -> longint
+Example  : query globalMemory() > 0
+result   : TRUE
 
