@@ -4605,6 +4605,13 @@ void QueryProcessor::SetGlobalMemory(size_t value)
   globalMemory = value; 
 }
 
+/*
+Returns the size of the globela memory
+
+*/
+size_t QueryProcessor::GetGlobalMemory() const{ 
+  return globalMemory; 
+}
 
 
 /*
