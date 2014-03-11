@@ -614,6 +614,22 @@ void PatElem::stringToSet(const string& input, bool isTime) {
   if (contents == "_") {
     return;
   }
+  if (contents.substr(0, 8) == "disjoint") {
+    setRel = DISJOINT;
+    contents = contents.substr(8);
+  }
+  if (contents.substr(0, 8) == "superset") {
+    setRel = SUPERSET;
+    contents = contents.substr(8);
+  }
+  if (contents.substr(0, 5) == "equal") {
+    setRel = EQUAL;
+    contents = contents.substr(5);
+  }
+  if (contents.substr(0, 9) == "intersect") {
+    setRel = INTERSECT;
+    contents = contents.substr(9);
+  }
   if (contents[0] == '{') {
     contents = contents.substr(1, contents.length() - 2);
   }
@@ -661,7 +677,7 @@ void PatElem::stringToSet(const string& input, bool isTime) {
 Constructor for class ~PatElem~
 
 */
-PatElem::PatElem(const char *contents) : wc(NO), ok(true) {
+PatElem::PatElem(const char *contents) : wc(NO), setRel(STANDARD), ok(true) {
   string input(contents);
   vector<string> parts;
   ::splitPattern(input, parts);

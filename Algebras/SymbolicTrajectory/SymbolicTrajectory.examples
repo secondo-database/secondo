@@ -269,7 +269,7 @@ Operator : final
 Number   : 13
 Signature: mplaces -> iplaces
 Example  : query final(mplaces1)
-Result   : (iplaces ("2014-01-01-03:00" (('Weidenfeller' 1) ('Langerak' 20))))
+Result   : (iplaces ("2014-01-01-03:00" (('Langerak' 20) ('Weidenfeller' 1))))
 
 Operator : val
 Number   : 5
@@ -293,7 +293,7 @@ Operator : atinstant
 Number   : 7
 Signature: mplaces -> iplaces
 Example  : query mplaces1 atinstant [const instant value "2014-01-01-02:55"]
-Result   : (iplaces ("2014-01-01-02:55" (('Weidenfeller' 1) ('Langerak' 20))))
+Result   : (iplaces ("2014-01-01-02:55" (('Langerak' 20) ('Weidenfeller' 1))))
 
 
 

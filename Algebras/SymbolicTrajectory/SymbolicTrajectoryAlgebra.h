@@ -83,6 +83,7 @@ class IndexLI;
 
 enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
+enum DataType {LABEL, LABELS, PLACE, PLACES};
 
 Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
@@ -184,14 +185,16 @@ class Labels : public Attribute {
   bool operator==(const Labels& src) const;
   void Append(const Label &lb);
   void Append(const string& text);
+  void Append(const set<string>& values);
   void Destroy() {values.destroy(); pos.destroy();}
   int GetNoValues() const {return pos.Size();}
   size_t GetLength() const {return values.getSize();}
   void Get(int i, Label& lb) const;
   void GetValue(int i, string& text) const;
+  void GetValues(set<string>& values) const;
   static void getRefToLastElem(const int size, unsigned int& result);
   static unsigned int getFlobPos(const arrayelem elem);
-  static void valuesToListExpr(const vector<string>& values, ListExpr& result);
+  static void valuesToListExpr(const set<string>& values, ListExpr& result);
   static void getString(const ListExpr& list, string& result);
   static void getElemFromList(const ListExpr& list, const unsigned int size, 
                               unsigned int& result);
@@ -200,7 +203,7 @@ class Labels : public Attribute {
   static void printArrayElem(const arrayelem e) {cout << "print " << e << endl;}
   const bool IsEmpty() const {return GetNoValues() == 0;}
   void Clean() {values.clean(); pos.clean();}
-  bool Contains(string& text) const;
+  bool Contains(const string& text) const;
   friend ostream& operator<<(ostream& os, const Labels& lbs);
   
   int NumOfFLOBs() const {return 2;}
@@ -297,17 +300,19 @@ class Places : public Attribute {
 
   void Append(const base& value);
   void Append(const Place& pl);
+  void Append(const set<base>& values);
   void Destroy() {values.destroy(); posref.destroy();}
   int GetNoValues() const {return posref.Size();}
   size_t GetLength() const {return values.getSize();}
   void Get(const int i, Place& pl) const;
   void GetValue(int i, base& val) const;
+  void GetValues(set<base>& values) const;
   bool IsEmpty() const {return (GetNoValues() == 0);}
   bool Contains(const base& val) const;
   void Clean() {values.clean(); posref.clean();}
   static void getRefToLastElem(const int size, arrayelem& result);
   static unsigned int getFlobPos(const arrayelem elem);
-  static void valuesToListExpr(const vector<base>& values, ListExpr& result);
+  static void valuesToListExpr(const set<base>& values, ListExpr& result);
   static void getString(const ListExpr& list, string& result);
   static void getElemFromList(const ListExpr& list, const unsigned int size, 
                               arrayelem& result);
@@ -406,6 +411,8 @@ class UBasic : public ConstTemporalUnit<B> {
 template<class B>
 class MBasic : public Attribute {
  public:
+  typedef B base;
+   
   MBasic() {}
   explicit MBasic(unsigned int n) : Attribute(n>0), values(0), units(n) {}
   explicit MBasic(const MBasic& mb);
@@ -433,6 +440,7 @@ class MBasic : public Attribute {
 
   int Position(const Instant& inst) const;
   void Get(const int i, UBasic<B>& result) const;
+  void GetInterval(const int i, SecInterval& result) const;
   void GetBasic(const int i, B& result) const;
   void GetValue(const int i, typename B::base& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
@@ -518,8 +526,9 @@ class UBasics : public ConstTemporalUnit<B> {
 */
 template<class B>
 class MBasics : public Attribute {
-  
  public:
+  typedef B base;
+   
   MBasics() {}
   explicit MBasics(int n) : Attribute(n > 0), values(0), units(n), pos(0) {}
   explicit MBasics(const MBasics& mbs);
@@ -553,7 +562,7 @@ class MBasics : public Attribute {
   void Get(const int i, UBasics<B>& result) const;
   void GetBasics(const int i, B& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
-  void GetValues(const int i, vector<typename B::base>& result) const;
+  void GetValues(const int i, set<typename B::base>& result) const;
   void GetInterval(const int i, SecInterval& result) const;
   int GetNoComponents() const {return units.Size();}
   int GetNoValues() const {return pos.Size();}
@@ -644,7 +653,7 @@ class Condition {
   int     getVarKeysSize() const   {return varKeys.size();}
   string  getVar(unsigned int pos) {string s; return (pos < varKeys.size() ?
                                                      varKeys[pos].first : s);}
-  int     getKey(unsigned int pos) {return (pos < varKeys.size() ?
+  int     getKey(unsigned int pos) const {return (pos < varKeys.size() ?
                                             varKeys[pos].second : -1);}
 //   int     getPId(unsigned int pos) {return (pos < pIds.size() ?
 //                                                   pIds[pos] : -1);}
@@ -653,16 +662,19 @@ class Condition {
 //                                                   vars[pos] : "");}
   void    setOpTree(pair<QueryProcessor*, OpTree> qp_op) {opTree = qp_op;}
   void    setPointers(vector<Attribute*> ptrs)           {pointers = ptrs;}
-  void    setLabelPtr(unsigned int pos, string& value);
-  void    setPlacePtr(unsigned int pos, pair<string, unsigned int>& value);
+  void    setValuePtr(unsigned int pos, string& value);
+  void    setValuePtr(unsigned int pos, pair<string, unsigned int>& value);
   void    clearTimePtr(unsigned int pos);
   void    mergeAddTimePtr(unsigned int pos, Interval<Instant>& value);
   void    setStartEndPtr(unsigned int pos, Instant& value);
   void    setCardPtr(unsigned int pos, int value);
   void    cleanLabelsPtr(unsigned int pos);
   void    appendToLabelsPtr(unsigned int pos, string& value);
+  void    appendToLabelsPtr(unsigned int pos, set<string>& values);
   void    cleanPlacesPtr(unsigned int pos);
   void    appendToPlacesPtr(unsigned int pos, pair<string,unsigned int>& value);
+  void    appendToPlacesPtr(unsigned int pos, 
+                            set<pair<string, unsigned int> >& values);
   void    setLeftRightclosedPtr(unsigned int pos, bool value);
   QueryProcessor* getQP()          {return opTree.first;}
   OpTree  getOpTree()              {return opTree.second;}
@@ -671,6 +683,8 @@ class Condition {
   void    setTreeOk(bool value)    {treeOk = value;}
 };
 
+
+
 class PatElem {
  private:
   string var;
@@ -678,6 +692,7 @@ class PatElem {
   set<string> lbs;
   set<pair<string, unsigned int> > pls;
   Wildcard wc;
+  SetRel setRel;
   bool ok;
 
  public:
@@ -692,6 +707,7 @@ class PatElem {
   void     getV(string& result) const                     {result = var;}
   void     getL(set<string>& result) const                {result = lbs;}
   void     getP(set<pair<string, unsigned int> >& result) {result = pls;}
+  SetRel   getSetRel()                                    {return setRel;}
   void     getI(set<string>& result) const                {result = ivs;}
   Wildcard getW() const                                   {return wc;}
   bool     isOk() const                                   {return ok;}
@@ -721,7 +737,6 @@ class Assign {
   Assign() {treesOk = false;}
   ~Assign() {}
 
-  static string getDataType(int key);
   bool convertVarKey(const char* vk);
   bool prepareRewrite(int key, const vector<size_t> &assSeq,
                       map<string, int> &varPosInSeq, MLabel const &ml);
@@ -769,24 +784,7 @@ class PatPersistent : public Label {
   string toText() const {string value; Label::GetValue(value); return value;}
 };
 
-class Pattern {
-  friend class Match;
-  
- private:
-  vector<PatElem> elems;
-  vector<Assign> assigns;
-  vector<Condition> easyConds; // evaluated during matching
-  vector<Condition> conds; // evaluated after matching
-  string text, description, regEx;
-  map<string, pair<int, int> > varPos;
-  map<int, int> atomicToElem;
-  map<int, string> elemToVar;
-  map<int, set<int> > easyCondPos;
-  set<string> assignedVars; // variables on the right side of an assignment
-  set<string> relevantVars; // variables that occur in conds, results, assigns
-  vector<map<int, int> > nfa;
-  set<int> finalStates;
-  
+class Pattern {  
  public:
   Pattern() {}
 
@@ -819,9 +817,10 @@ class Pattern {
   static const bool checkType(const ListExpr type);
   const bool      IsDefined() {return true;}
   
-  bool suitableFor(const bool place) const;
+  bool isValid(const string& type) const;
   static Pattern* getPattern(string input, bool classify = false);
-  ExtBool matches(MLabel *ml);
+  template<class M>
+  ExtBool matches(M *m);
   int getResultPos(const string v);
   void collectAssVars();
   void addVarPos(string var, int pos);
@@ -887,6 +886,20 @@ class Pattern {
   bool              isRelevant(string var)  {return relevantVars.count(var);}
   string            getVarFromElem(int elem){return elemToVar[elem];}
   int               getElemFromAtom(int atom) {return atomicToElem[atom];}
+  
+  vector<PatElem> elems;
+  vector<Assign> assigns;
+  vector<Condition> easyConds; // evaluated during matching
+  vector<Condition> conds; // evaluated after matching
+  string text, description, regEx;
+  map<string, pair<int, int> > varPos;
+  map<int, int> atomicToElem;
+  map<int, string> elemToVar;
+  map<int, set<int> > easyCondPos;
+  set<string> assignedVars; // variables on the right side of an assignment
+  set<string> relevantVars; // variables that occur in conds, results, assigns
+  vector<map<int, int> > nfa;
+  set<int> finalStates;
 };
 
 class Classifier : public Attribute {
@@ -1000,29 +1013,40 @@ struct StateWithULs {
   set<unsigned int> items;
 };
 
+class SetOps {
+ public:
+  template<class T>
+  static bool relationHolds(const set<T>& set1, const set<T>& set2, SetRel rel);
+};
+
+template<class M>
 class Match {
   friend class RewriteLI;
  private:
   Pattern *p;
-  MLabel *ml;
+  M *m; // mlabel, mplace, mlabels, mplaces
   set<unsigned int>** matching; // stores the whole matching process
+  DataType type; // enum
 
  public:
-  Match(Pattern *pat, MLabel *mlabel) {
+  Match(Pattern *pat, M *traj) {
     p = pat;
-    ml = mlabel;
+    m = traj;
     matching = 0;
+    type = getMType();
   }
 
   ~Match() {}
   
+  DataType getMType();
   ExtBool matches();
+  bool valuesMatch(int i, PatElem& elem);
   bool updateStates(int i, vector<map<int, int> > &nfa, vector<PatElem> &elems,
                     set<int> &finalStates, set<int> &states,
                     vector<Condition> &easyConds, 
                     map<int, set<int> > &easyCondPos,
                     map<int, int> &atomicToElem, bool store = false);
-  bool easyCondsMatch(int ulId, int pId, PatElem const &up,
+  bool easyCondsMatch(int ulId, int pId, PatElem const &elem,
                       vector<Condition> &easyConds, set<int> &pos);
   string states2Str(int ulId, set<int> &states);
   string matchings2Str(unsigned int dim1, unsigned int dim2);
@@ -1036,7 +1060,7 @@ class Match {
   bool cleanPath(unsigned int ulId, unsigned int pId);
   bool conditionsMatch(vector<Condition> &conds,
                  const map<string, pair<unsigned int, unsigned int> > &binding);
-  bool evaluateEmptyML();
+  bool evaluateEmptyM();
   bool evaluateCond(Condition &cond,
                  const map<string, pair<unsigned int, unsigned int> > &binding);
   void printBinding(map<string, pair<unsigned int, unsigned int> > &b);
@@ -1045,10 +1069,10 @@ class Match {
   bool initCondOpTrees() {return p->initCondOpTrees();}
   bool initAssignOpTrees() {return p->initAssignOpTrees();}
   void deleteSetMatrix() {if (matching) {
-                           ::deleteSetMatrix(matching, ml->GetNoComponents());}}
+                           ::deleteSetMatrix(matching, m->GetNoComponents());}}
   void createSetMatrix(unsigned int dim1, unsigned int dim2) {
     matching = ::createSetMatrix(dim1, dim2);}
-  void setML(MLabel *newML) {ml = newML;}
+  void setM(M *newM) {m = newM;}
   bool indexMatch(StateWithULs swu);
   void filterTransitions(vector<map<int, int> > &nfaSimple,
                          string regExSimple = "");
@@ -1066,7 +1090,7 @@ class Match {
   }
   void setPattern(Pattern *pat) {p = pat;}
   Pattern* getPattern() {return p;}
-  MLabel* getML() {return ml;}
+  M* getM() {return m;}
   pair<string, Attribute*> getPointer(int key);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
 };
@@ -1092,14 +1116,14 @@ class RewriteLI {
   
  protected:
   stack<BindingStackElem> bindingStack;
-  Match *match;
+  Match<MLabel> *match;
   map<string, pair<unsigned int, unsigned int> > binding;
   set<map<string, pair<unsigned int, unsigned int> > > rewBindings;
 };
 
 class ClassifyLI {
 
-friend class Match;
+friend class Match<MLabel>;
 
 public:
   ClassifyLI(MLabel *ml, Word _classifier);
@@ -1156,7 +1180,7 @@ class FilterMatchesLI {
  private:
   Stream<Tuple> stream;
   int attrIndex;
-  Match* match;
+  Match<MLabel>* match;
   bool streamOpen, deleteP;
 };
 
@@ -1178,7 +1202,7 @@ struct IndexMatchInfo {
 
 class IndexClassifyLI {
 
-friend class Match;
+friend class Match<MLabel>;
 friend class IndexMatchesLI;
 
  public:

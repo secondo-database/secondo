@@ -41,6 +41,8 @@ Started March 2012, Fabio Vald\'{e}s
 
 using namespace std;
 
+enum SetRel {STANDARD, DISJOINT, SUPERSET, EQUAL, INTERSECT};
+
 struct NFAtransition {
   int oldState;
   int trigger;
@@ -59,13 +61,14 @@ void simplifyRegEx(string &regEx);
 set<unsigned int>** createSetMatrix(unsigned int dim1, unsigned int dim2);
 void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
 int getKey(string type);
+string getDataType(int key);
 string extractVar(string input);
 string extendDate(string input, const bool start);
 bool checkSemanticDate(const string &text, const SecInterval &uIv,
                        const bool resultNeeded);
 bool checkDaytime(const string text, const SecInterval uIv);
-bool labelsMatch(const string& label, const set<string>& lbs);
 bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
+pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
 // Word evaluate(string input);
 void createTrajectory(int size, vector<string>& result);
 void fillML(const MString& source, MString& result, DateTime* duration);

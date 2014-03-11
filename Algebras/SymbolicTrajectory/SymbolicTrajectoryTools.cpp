@@ -33,7 +33,7 @@ Started March 2012, Fabio Vald\'{e}s
 #include "RelationAlgebra.h"
 #include "FTextAlgebra.h"
 
-extern QueryProcessor *qp;
+// extern QueryProcessor *qp;
 
 using namespace std;
 
@@ -229,6 +229,19 @@ int getKey(string type) {
   if (type == "labels")      return 8;
   if (type == "places")      return 9;
   else return -1; // should not occur
+}
+
+string getDataType(int key) {
+  switch (key) {
+    case -1: return CcBool::BasicType();
+    case 0: return CcString::BasicType();
+    case 1: return SecInterval::BasicType();
+    case 2: 
+    case 3: return Instant::BasicType();
+    case 4:
+    case 5: return CcBool::BasicType();
+    default: return "error";
+  }
 }
 
 /*
@@ -526,17 +539,53 @@ bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs) {
 }
 
 /*
-\subsection{Function ~labelsMatch~}
+\subsection{Function ~processQueryStr~}
 
-Checks whether the string ~label~ matches one of the strings from the set ~lbs~.
-If ~lbs~ is empty, ~true~ is returned.
+Invoked by ~initOpTrees~
 
 */
-bool labelsMatch(const string& label, const set<string>& lbs) {
-  if (lbs.empty()) {
-    return true;
+pair<QueryProcessor*, OpTree> processQueryStr(string query, int type) {
+  pair<QueryProcessor*, OpTree> result;
+  result.first = 0;
+  result.second = 0;
+  SecParser parser;
+  string qParsed;
+  ListExpr qList, rType;
+  bool correct(false), evaluable(false), defined(false), isFunction(false);
+  if (parser.Text2List(query, qParsed)) {
+    cout << "Text2List(" << query << ") failed" << endl;
+    return result;
   }
-  return (lbs.find(label) != lbs.end());
+  if (!nl->ReadFromString(qParsed, qList)) {
+    cout << "ReadFromString(" << qParsed << ") failed" << endl;
+    return result;
+  }
+  result.first = new QueryProcessor(nl, am);
+  try {
+    result.first->Construct(nl->Second(qList), correct, evaluable, defined,
+                            isFunction, result.second, rType);
+  }
+  catch (...) {
+    delete result.first;
+    result.first = 0;
+    result.second = 0;
+  }
+  if (!correct || !evaluable || !defined) {
+    cout << "correct:   " << (correct ? "TRUE" : "FALSE") << endl
+         << "evaluable: " << (evaluable ? "TRUE" : "FALSE") << endl
+         << "defined:   " << (correct ? "TRUE" : "FALSE") << endl;
+    delete result.first;
+    result.first = 0;
+    result.second = 0;
+    return result;
+  }
+  if (nl->ToString(rType) != ::getDataType(type)) {
+    cout << "incorrect result type: " << nl->ToString(rType) << endl;
+    delete result.first;
+    result.first = 0;
+    result.second = 0;
+  }
+  return result;
 }
 
 /*
