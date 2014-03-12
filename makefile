@@ -91,14 +91,14 @@ TTY: kernel buildapps examples
 minTTY: kernel minApps examples
 
 .PHONY: android
-android: kernel libapp secondoandroid
+android: kernel libapp secondo4android
 
 .PHONY: libapp
 libapp: 
 	$(MAKE) -C android
-	$(MAKE) -C android/secondoandroid
+	$(MAKE) -C android/secondocore
 
-secondoandroid:
+secondo4android:
 	$(HOME)/android-sdk/tools/android update project -p $(BUILDDIR)/android/Secondo4Android/ -l ../secondocore
 	ant clean debug -buildfile $(HOME)/secondo/android/Secondo4Android/build.xml
 
@@ -250,7 +250,7 @@ clean:
 	$(MAKE) -f ./makefile.libs clean
 	rm -f lib/*.a
 	rm -f lib/*.o
-	ant clean -buildfile $(HOME)/secondo/android/secondoandroid/build.xml
+	ant clean -buildfile $(HOME)/secondo/android/secondocore/build.xml
 	ant clean -buildfile $(HOME)/secondo/android/Secondo4Android/build.xml
 
 .PHONY: realclean
