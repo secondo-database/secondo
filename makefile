@@ -99,7 +99,7 @@ libapp:
 	$(MAKE) -C android/secondoandroid
 
 secondoandroid:
-	$(HOME)/android-sdk/tools/android update project -p $(BUILDDIR)/android/Secondo4Android/ -l ../secondoandroid
+	$(HOME)/android-sdk/tools/android update project -p $(BUILDDIR)/android/Secondo4Android/ -l ../secondocore
 	ant clean debug -buildfile $(HOME)/secondo/android/Secondo4Android/build.xml
 
 
