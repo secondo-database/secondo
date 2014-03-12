@@ -98,9 +98,10 @@ libapp:
 	$(MAKE) -C android
 	$(MAKE) -C android/secondoandroid
 
-secondoandroid: 
-	$(HOME)/android-sdk/tools/android update project -p $(BUILDDIR)/android/secondoandroid/
-	ant debug -buildfile $(HOME)/secondo/android/secondoandroid/build.xml
+secondoandroid:
+	$(HOME)/android-sdk/tools/android update project -p $(BUILDDIR)/android/Secondo4Android/ -l ../secondoandroid
+	ant clean debug -buildfile $(HOME)/secondo/android/Secondo4Android/build.xml
+
 
 .PHONY: kernel
 kernel: makedirs buildlibs buildAlgebras

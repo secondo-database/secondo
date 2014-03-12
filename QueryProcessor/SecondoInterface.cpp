@@ -356,7 +356,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                                     + progressConstantsFileDefault;
   }
 #else
-        string sbd ="/data/data/eu.ehnes.secondoandroid";
+	string sbd = parmFile.substr(0,parmFile.find_last_of("\\/"));
+        //string sbd ="/data/data/de.fernunihagen.dna.Secondo4Android";
         progressConstantsFileDefault = sbd 
 		+ CFile::pathSep + progressConstantsFileDefault;
 #endif
@@ -386,7 +387,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 #ifndef SECONDO_ANDROID 
  string tempDir("tmp");
 #else
-        string tempDir("/data/data/eu.ehnes.secondoandroid/tmp");
+	string tempDirPath = parmFile.substr(0,
+		parmFile.find_last_of("\\/"));	
+        string tempDir(tempDirPath+"tmp");
 #endif
 
   if (! FileSystem::FileOrFolderExists(tempDir) )
