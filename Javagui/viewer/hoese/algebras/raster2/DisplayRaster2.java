@@ -147,7 +147,12 @@ public abstract class DisplayRaster2 extends DisplayGraph
   {   
     return this.bounds;
   }
-  
+
+  @Override
+  public boolean contains (double xpos, double ypos, double scalex, double scaley) {
+    if(bounds==null) return false;
+    return bounds.contains(xpos,ypos);
+  }
 
   /**
    * {@inheritDoc}
@@ -156,10 +161,19 @@ public abstract class DisplayRaster2 extends DisplayGraph
   public void init(String name, int nameWidth,  int indent, ListExpr type, ListExpr value, QueryResult qr)
   {     
     AttrName = extendString(name, nameWidth, indent);
+
+    if(isUndefined(value)){
+       qr.addEntry(new String(AttrName + ": undefined"));
+       bounds =null;
+    }
     
     if (!isScanned)
     {
-      ScanValue(value);
+      try{
+         ScanValue(value);
+      } catch(Exception e){
+         err = true;
+      }
     }
 
     if (err)
