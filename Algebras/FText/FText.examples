@@ -1179,5 +1179,5 @@ Operator : globalMemory
 Number : 1
 Signature : -> longint
 Example  : query globalMemory() > 0
-result   : TRUE
+Result   : TRUE
 
