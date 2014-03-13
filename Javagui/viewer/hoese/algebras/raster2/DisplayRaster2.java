@@ -165,6 +165,7 @@ public abstract class DisplayRaster2 extends DisplayGraph
     if(isUndefined(value)){
        qr.addEntry(new String(AttrName + ": undefined"));
        bounds =null;
+       return;
     }
     
     if (!isScanned)
