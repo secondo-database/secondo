@@ -4291,24 +4291,6 @@ rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
 8.7 Auxiliary Predicates: isOfFirst, etc.
 
@@ -5029,10 +5011,41 @@ Later the optimizer can count how many such facts have been asserted and compute
 
 */
 
-:- dynamic memoryOp/2.
+:- dynamic memoryOp/2.	% Existing operators requiring memory. 
+                        % Retracted for each new query, in optimize().
+:- dynamic memory/1.	% The amount of memory per memory-using operator.
+                        % Retracted for each new query, in optimize().
+:- dynamic globalMemory/1.	% The amount of global memory available.
+				% Never retracted.
 
-globalMemory(2048).	% The available global memory in MB
-         		% Should be obtained from kernel system later.
+
+getGlobalMemory(G) :-
+  globalMemory(G),
+  !.
+
+getGlobalMemory(G) :-
+  secondo('query globalMemory()', [longint, G]),
+  assert(globalMemory(G)).
+
+/*
+----    getMemory(M) :-
+----
+
+~M~ is the amount of memory available per memory using operator, as will be assigned by the query processor.
+
+*/
+
+getMemory(M) :-
+  memory(M),
+  !.
+
+getMemory(M) :-
+  findall([], memoryOp(_, _), L),
+  length(L, N),
+  getGlobalMemory(G),
+  M is G // N,
+  assert(memory(M)).
+
 
 
 /*
@@ -9327,6 +9340,7 @@ optimize(Query, QueryOut, CostOut) :-
 optimize(Query, QueryOut, CostOut) :-
   retractall(removefilter(_)),		% some cleanups before new query
   retractall(memoryOp(_, _)),
+  retractall(memory(_)),
   rewriteQuery(Query, RQuery),		
   callLookup(RQuery, Query2), !,	% the three main steps
   queryToPlan(Query2, Plan, CostOut), !,
