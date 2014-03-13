@@ -776,9 +776,9 @@ t<Type, Properties>::t(const t<Type, Properties>& rt)
                      m_Grid(rt.m_Grid),
                      m_Minimum(rt.m_Minimum),
                      m_Maximum(rt.m_Maximum),
-                     m_Flob(rt.m_Flob)
+                     m_Flob(rt.m_Flob.getSize())
 {
-  
+  m_Flob.copyFrom(rt.m_Flob);
 }
 
 /*
@@ -1429,7 +1429,6 @@ bool t<Type, Properties>::SetValues(const Type& rValue,
     bRetVal = true;
     
     int flobElements = Properties::GetFlobElements();
-
     for(int i = 0; i < flobElements; i++)
     {
       bRetVal &= m_Flob.write(reinterpret_cast<const char*>(&rValue),
@@ -1797,7 +1796,6 @@ template <typename Type, typename Properties>
 Word t<Type, Properties>::Create(const ListExpr typeInfo)
 {
   Word word;
-
   word.addr = new t<Type, Properties>(true);
   assert(word.addr != 0);
 
