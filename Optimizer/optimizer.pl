@@ -36,10 +36,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [$\rightarrow$]
 //[toc] [\tableofcontents]
 //[=>] [\verb+=>+]
-//[:Section Translation] [\label{sec:translation}]
-//[Section Translation] [Section~\ref{sec:translation}]
+//[:Section Notation] [\label{sec:notation}]
+//[Section Notation] [Section~\ref{sec:notation}]
 //[:Section 4.1.1] [\label{sec:4.1.1}]
 //[Section 4.1.1] [Section~\ref{sec:4.1.1}]
+//[:Section ArgTranslation] [\label{sec:argtranslation}]
+//[Section ArgTranslation] [Section~\ref{sec:argtranslation}]
 //[Figure pog1] [Figure~\ref{fig:pog1.eps}]
 //[Figure pog2] [Figure~\ref{fig:pog2.eps}]
 //[newpage] [\newpage]
@@ -76,10 +78,7 @@ The selection of the query plan is based on cost estimates which in turn are
 based on given selectivities of predicates. Selectivities of predicates are
 maintained in a table (a set of PROLOG facts). If the selectivity of a predicate
 is not available from that table, then an interaction with the Secondo system
-should take place to determine the selectivity. There are various strategies
-conceivable for doing this which will be described elsewhere. However, the
-current version of the optimizer just emits a message that the selectivity is
-missing and quits.
+takes place to determine the selectivity. 
 
 The optimizer also implements a simple SQL-like language for entering queries.
 The notation is pretty much like SQL except that the lists occurring (lists of
@@ -89,8 +88,8 @@ expression and hence allows one to formulate conjunctive queries only.
 
 1.1 Naming Conventions
 
-As the optimizer is implemented as a separated program, apart from the Secondo
-kernel, it has to make some effords to keep itself informed about objects
+As the optimizer is implemented as a separate program, apart from the Secondo
+kernel, it has to make some efforts to keep itself informed about objects
 saved within Secondo's databases. It does so by querying and inspecting
 Secondo's catalog.
 
@@ -119,19 +118,19 @@ or 'NO' or 'no', but you many NOT use two attributes within 'Plz', one named
 'No', and another one named 'no'. However, you MAY use 'No' or 'NO' as attribute
 identifiers within any other relation (but, again, at most once per relation).
 
-Ignoring this convention may confuse the optimizer. This is, for Prolog does
-not allow certain atoms to start with upper case characters (because these are
+Ignoring this convention may confuse the optimizer. This is, because Prolog does
+not allow certain atoms to start with upper case characters (as these are
 reserved for variable identifiers). We could circumvent this restriction, but
 that would make the code and output messages less readable.
 
 1.1.2 Naming Indexes
 
-Several information, e.g. on specialized indexes cannot be derived from the
+Several kinds of information, e.g. on specialized indexes, cannot be derived from the
 catalog's type descriptions, so we are required to assume a naming convention to
 infer the presence of (specialized) indexes for relations stored in a database.
 When using the Secondo optimizer...
 
-  1 ~Index~ identifiers need to respect following naming convention:\newline
+  1 ~Index~ identifiers need to respect the following naming convention:\newline
 $<$RelName$>$\_$<$KeyattrName$>$[ \_$<$LogicalIndexTypeCode$>$ [ \_$<$DisambiguationTag$>$ ] ]
 
 $<$RelName$>$ is the name of the base relation, the index is built for.
@@ -139,11 +138,11 @@ $<$RelName$>$ is the name of the base relation, the index is built for.
 $<$KeyattrName$>$ is the name (itentifier) of the attribute, that is used to
 generate the keys stored within the index.
 
-$<$LogicalIndexTypeCode$>$ is a alphanumerical code used to describe the logical
+$<$LogicalIndexTypeCode$>$ is an alphanumerical code used to describe the logical
 index type. While the base type of any index (rtee, rtree3, btree, xtree, hash
 etc.) can be looked up in the system catalog, the meaning of the index is coded
 using this tag. E.g. a rtree index can be described as a temporal index built on
-single units or objects here. This informatioon is used within optimization
+single units or objects here. This information is used within optimization
 rules and required to construct small sample objects used to determine
 selectivities and other parameters used during optimization.
 
@@ -152,7 +151,7 @@ different indexes of the same relation and attribute. E.g. you could create
 both, a xtree and an rtree3 index for indexing spatial data. You just
 need to specify this tag, if you maintain more than a single index on the same
 data. We recommend to use mnemonic tags coding the physical index type, e.g.
-``\_r3'' for a 3d-rtree, or ``\_x'' for a xtree index, or just emumerate them
+``\_r3'' for a 3d-rtree, or ``\_x'' for a xtree index, or just enumerate them
 (``\_1'', ``\_2'' etc.).
 
 Logical index types are registered in file ~database.pl~ using facts
@@ -184,23 +183,28 @@ By now, we have the following logical index types (and ~LogicalIndexTypeCode~s):
 
   * btree(constunit): constuni
 
-Logical index type are registered in file ~database.pl~ using facts
-~logicalIndexType/8~.
 
-By now, we have the following logical index types:
+This is the meaning of the logical index types:
 
-btree, rtree, rtree3, rtree4, rtree8, hash, mtree, xtree --- standard index types;
-spatial(rtree,object) --- spatial index on total spatial MBR of 2D-moving objects;
-spatial(rtree,unit) --- spatial index on unit-wise spatial MBRs of 2D-moving objects;
-temporal(rtree,object) --- temporal index on total deftime of 2D-moving objects;
-temporal(rtree,unit) --- temporal index on unit-wise deftimes of 2D-moving objects;
-spatiotemporal(rtree3,object) --- spatiotemporal index on total MBR of 2D-moving objects;
-spatiotemporal(rtree3,unit) --- spatiotemporal index on unit-wise MBRs of 2D-moving objects;
+  * btree, rtree, rtree3, rtree4, rtree8, hash, mtree, xtree --- standard index types
+
+  * spatial(rtree,object) --- spatial index on total spatial MBR of 2D-moving objects
+
+  * spatial(rtree,unit) --- spatial index on unit-wise spatial MBRs of 2D-moving objects
+
+  * temporal(rtree,object) --- temporal index on total deftime of 2D-moving objects
+
+  * temporal(rtree,unit) --- temporal index on unit-wise deftimes of 2D-moving objects
+
+  * spatiotemporal(rtree3,object) --- spatiotemporal index on total MBR of 2D-moving objects
+
+  * spatiotemporal(rtree3,unit) --- spatiotemporal index on unit-wise MBRs of 2D-moving objects
+
 
 1.1.3 Sample Objects
 
 The optimizer uses sampling to calculate basic costs. Samples can be created
-manually or automatically. We use a specific namin schema for such sample
+manually or automatically. We use a specific naming schema for such sample
 objects:
 
   1 ~relationname~\_~sample~\_j and  ~relationname~\_~sample~\_s are used
@@ -216,20 +220,21 @@ The Secondo kernel supports some prefix operators with arity 0. This kind of
 operators uses some internal parameters, as system time, catalog data, etc.
 
 In the Secondo kernel, these operators are used like this: ~opname()~. Prolog
-forbids empty parameter lists. Therefor, this functions are used without
-the empty round pranatheses within the optimizer. Thus, it is possible to query
+forbids empty parameter lists. Therefore, these functions are used without
+the empty round parentheses within the optimizer. Thus, it is possible to query
 
 ---- sql select [no, now as currenttime] from ten
 ----
 
-In this query ~now~ is the secondo function
+In this query, ~now~ is the Secondo function
 
----- now: --> instant
+----    now: --> instant
 ----
 
 that is used like in
 
----- query ten feed extend[currenttime: now()] project[no, currenttime] consume
+----    query ten feed extend[Currenttime: now()] project[No, Currenttime] 
+        consume
 ----
 
 Other examples for null-ary prefix operators are ~seqnext~, ~randmax~,
@@ -286,7 +291,7 @@ where ~DB~ is the DCspelled database name, ~DCspelledObj~ is the object name in
 DownCasedSpelling, and ~InternalObj~ is the object's name in InternalSpelling
 spelling.
 
-Attribute Identifiers are stored using facts
+Attribute identifiers are stored using facts
 
 ---- storedSpell(+DB, +DCspelledRel : +DCspelledAttr, +InternalAttr)
 ----
@@ -311,7 +316,7 @@ of errors through the optimization process, which easily leads to unpredictable
 behaviour of the optimizer.
 
 So, if you get an exception from these predicates, carefully inspect the error
-message. It is likely, that you just miss-typed an identifier.
+message. It is likely that you just miss-typed an identifier.
 
 
 1.3 Optimization Algorithm
@@ -392,7 +397,7 @@ POG, and then invokes step 1 (Section 11).
 
 
 
-1.4 Notion of Constants
+1.4 Notation of Constants
 
 In queries, string, text, int and real constants can be noted as used in Secondo, e.g.
 "Hello World!" for a string constant, 'Hello Text' for a text constant, -557 or 56
@@ -403,26 +408,24 @@ because Prolog would interpret the correct symbols as variables.
 
 ~Int constants~ and ~real constants~ can be written as prolog integer constants.
 
-~String constants~ are inclosed in double quotes (as in Secondo).
+~String constants~ are enclosed in double quotes (as in Secondo).
 
 ~Text constants~ can be noted in two different ways:
 
-----
-  [const, text, value, <char-list>]
-  const(text,"TEXT")
+----    [const, text, value, <char-list>]
+        const(text, "TEXT")
 ----
 
 where TEXT is a sequence of characters except the double quote,
-<char-list> is the Prolog character code list (i.e. a Prolog string) representing
+$<$char-list$>$ is the Prolog character code list (i.e. a Prolog string) representing
 the text value.
 
 All other constants need to be noted similar to the way this is done in Secondo:
 as a nested list. Again, we use square brackets to delimit the list and commas to
 separate its elements. Also a shorter alternative is available:
 
-----
-  [const, TYPE, value, VALUE]
-  const(TYPE,VALUE)
+----    [const, TYPE, value, VALUE] 
+        const(TYPE, VALUE)
 ----
 
 where ~TYPE~ is a type descriptor (a Prolog term, like 'mpoint', 'region',
@@ -433,13 +436,13 @@ This is also the only way to create undefined value constants.
 
 Internally, ALL constants (also int, real, etc.) are noted as terms
 
-----    value_expr(Type,Value)
+----    value_expr(Type, Value)
 ----
 
 where ~Type~ is a Prolog term for the type descriptor and ~Value~ is the nested list
-representation of the constant value, both using round parantheses and commas internally.
+representation of the constant value, both using round parentheses and commas internally.
 
-For the standard type constants, special ~plan\_to\_atom/2~ rules exists, for
+For the standard type constants, special ~plan\_to\_atom/2~ rules exist, for
 all other types, that should not be necessary, they are all handled by a generic
 rule.
 
@@ -999,17 +1002,16 @@ writeEdge :-
 writeEdges :- not(writeEdge).
 
 /*
-5 Rule-Based Translation of Selections and Joins
 
-[:Section Translation]
+5 Precise Notation for Input
 
-5.1 Precise Notation for Input
+[:Section Notation]
 
 Since now we have to look into the structure of predicates, and need to be
 able to generate Secondo executable expressions in their precise format, we
 need to define the input notation precisely.
 
-5.1.1 The Source Language
+5.1 The Source Language
 [:Section 4.1.1]
 
 We assume the queries can be entered basically as select-from-where
@@ -1126,7 +1128,7 @@ example5 :- pog(
 
 /*
 
-5.1.2 The Target Language
+5.2 The Target Language
 
 In the target language, we use the following operators:
 
@@ -1139,7 +1141,7 @@ In the target language, we use the following operators:
                                 where Tuple3 = Tuple1 o Tuple2
 
         symmjoin:       stream(Tuple1) x stream(Tuple2) x
-    (Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
+				(Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
 
                                 where Tuple3 = Tuple1 o Tuple2
 
@@ -1256,7 +1258,7 @@ Parameter functions are written as
 ----
 
 
-5.1.3 Converting Plans to Atoms and Writing them.
+5.3 Converting Plans to Atoms and Writing Them.
 
 Predicate ~plan\_to\_atom~ converts a plan to a single atom, which represents
 the plan as a SECONDO query in text syntax. For attributes we have to
@@ -2372,8 +2374,8 @@ plan_to_atom(InTerm,OutTerm) :-
 Error handler for operator with 'special' syntax, that do not have a matching
 ~plan\_to\_atom~ rule:
 
-To safeguard an operator ~op~ with special translation agains using standarad
-translation., add a fact secondoOp(op, special, N) to file opsyntax.pl.
+To safeguard an operator ~op~ with special translation against using standarad
+translation, add a fact secondoOp(op, special, N) to file opsyntax.pl.
 
 */
 plan_to_atom(InTerm,OutTerm) :-
@@ -2393,7 +2395,7 @@ plan_to_atom(InTerm,OutTerm) :-
 
 
 /*
-Depricated generic rules. Operators that are not recognized are assumed to be:
+Deprecated generic rules. Operators that are not recognized are assumed to be:
 
   * 1 argument: prefix
 
@@ -2580,27 +2582,29 @@ type_to_atom(X, Y) :-
 
 /*
 
-5.2 Optimization Rules
+6 Rule-Based Translation of Selections and Joins
 
 We introduce a predicate [=>] which can be read as ``translates into''.
 
-5.2.1 Translation of the Arguments of an Edge of the POG
+6.1 Translation of the Arguments of an Edge of the POG
 
-If the argument is of the form res(N), then it is a stream already and can be
-used unchanged. If it is of the form arg(N), then it is a base relation; a
+If the argument is of the form ~res(N)~, then it is a stream already and can be
+used unchanged. If it is of the form ~arg(N)~, then it is a base relation; a
 ~feed~ must be applied and possibly a ~rename~.
 
 For ~res(N)~ and ~arg(N)~, there should be only one possible translation, so
 respect the correct ordering of clauses and use cuts to enforce the uniqueness
 of translation results.
 
+It is necessary to treat some special cases first. The simple standard case is treated at the end of this section, in [Section ArgTranslation].
+
+6.1.1 Special Case: Distance Scan
+
 */
 
 % Section:Start:translationRule_2_b
 % Section:End:translationRule_2_b
 
-
-res(N) => res(N).
 
 % special handling for distancescan queries
 arg(N) => distancescan(IndexName, rel(Name, *), Attr, 0) :-
@@ -2626,11 +2630,14 @@ arg(N) => rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0),
   argument(N, rel(Name, Var)),
   distanceRel(rel(Name, Var), IndexName, Attr, _), !,
   usedAttrList(rel(Name, Var), AttrNames).
-/*
-NVK ADDED NR
-*/
+
+
 
 /*
+6.1.2 Special Case: Nested Relations
+
+NVK ADDED NR
+
 There is even no afeedproject operator as for arel's (see below). Note that these rules are used for optimization of subquries, there are usually subqueries create like 0 COMPARE\_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
 
 */
@@ -2724,7 +2731,7 @@ There is not much to translate. Used to integrate the sortby operator into the m
 */
 
 /*
-----
+----    
 sortby(N, AttrNames) => sortby(N, AttrNames) :-
   !.
 ----
@@ -2734,32 +2741,65 @@ sortby(N, AttrNames) => sortby(N, AttrNames) :-
 */
 % NVK ADDED MA END
 
+
+/*
+
+
+6.1.3 The Standard Case
+
+[:Section ArgTranslation]
+
+If the argument is of the form ~res(N)~, then it is a stream already and can be
+used unchanged. 
+
+*/
+
+res(N) => res(N).
+
+/*
+
+If it is of the form ~arg(N)~, then it is a base relation. There are four cases:
+
+  * The query is of the form ``select * from ...'' (determined by predicate ~isStarQuery~), or not: In the first case we cannot apply projections and use ~feed~; otherwise we project early to the needed attributes, using ~feedproject~.
+
+  * The argument has been renamed ($<$rel$>$ as r) or not: We need to apply ~rename~ or not.
+
+The standard case holds at this point, except when option ~nestedRelations~ is active.
+
+*/
+
 arg(N) => feed(rel(Name, *)) :-
-  \+ optimizerOption(nestedRelations), % NVK ADDED NR
+  	\+ optimizerOption(nestedRelations), 
   isStarQuery,
   argument(N, rel(Name, *)), !.
 
 arg(N) => rename(feed(rel(Name, Var)), Var) :-
-  \+ optimizerOption(nestedRelations), % NVK ADDED NR
+  	\+ optimizerOption(nestedRelations),  
   isStarQuery,
   argument(N, rel(Name, Var)), !.
 
 arg(N) => feedproject(rel(Name, *), AttrNames) :-
-  \+ optimizerOption(nestedRelations), % NVK ADDED NR
+  	\+ optimizerOption(nestedRelations),  
   argument(N, rel(Name, *)), !,
   usedAttrList(rel(Name, *), AttrNames).
 
 arg(N) => rename(feedproject(rel(Name, Var), AttrNames), Var) :-
-  \+ optimizerOption(nestedRelations), % NVK ADDED NR
+  	\+ optimizerOption(nestedRelations),  
   argument(N, rel(Name, Var)), !,
   usedAttrList(rel(Name, Var), AttrNames).
 
 
 /*
-5.2.2 Translation of Selections
+6.2 Translation of Selections
 
 Be careful with cuts here, as backtracking is used to find all possible
 translations of each edge!
+
+6.2.1 Selection by Filtering
+
+This is the fallback case: any selection predicate can be implemented by filtering all tuples of a stream.
+
+The second rule is needed for join predicates occurring after their argument relations have already been joined. For them a selection edge has been constructed in the POG.
 
 */
 
@@ -2769,15 +2809,20 @@ select(Arg, pr(Pred, _)) => filter(ArgS, Pred) :-
 select(Arg, pr(Pred, _, _)) => filter(ArgS, Pred) :-
   Arg => ArgS.
 
+/*
+Here ~ArgS~ is meant to indicate ``argument stream''.
+
+*/
+
 
 /*
 
-Translation of selections using indices.
+6.2.2 Index-Based Selection: Equality and Inequality Predicates, BTree and Hashtable, MTree
 
 July 2008, Christian D[ue]ntgen. Added rules covering mtree indexes.
 
 July 2008, Christian D[ue]ntgen. Problems with indexselect() => , when using
-      A = B, where A ad B are attributes of the same relation.
+      A = B, where A and B are attributes of the same relation.
 
 April 2006, Christian D[ue]ntgen. Added project-translation for index selections.
 
@@ -2900,6 +2945,11 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
 
 
 /*
+6.2.3 Index-Based Selection for Spatial Data: RTree
+
+Predicates implemented are:
+
+  * all predicates designated as bounding box predicates (in file operators.pl) 
 
 C. D[ue]ntgen, Feb 2006: When using renaming, the indexselect rule using
 ``windowintersects'' failed, because the rule accesses the original (not renamed)
@@ -2958,6 +3008,23 @@ indexselect(arg(N), pr(Pred, Rel)) => X :-
 
 
 /*
+6.2.4 Index-Based Selection for Spatiotemporal Data: RTree Variants
+
+For using these, the optimizer option ~rtreeIndexRules~ must be activated.
+
+Predicates:
+
+  * present
+
+  * passes
+
+  * distance(., .) $<$ D
+
+  * bbox intersects box3d
+
+  * intersects (4d, 8d)
+
+
 C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree indices.
 These indices are recognized by their index type.
 
@@ -3183,15 +3250,12 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, rtree8),
   dcName2externalName(DCindex,IndexName).
 
-/*
-Here ~ArgS~ is meant to indicate ``argument stream''.
 
-*/
 
 
 /*
 
-5.2.3 Translation of Joins
+6.3 Translation of Joins
 
 A join can always be translated to a ~symmjoin~.
 
@@ -4890,9 +4954,9 @@ deleteSizesNawra :-
 
 In recent years, the query processor performs a simple memory management for query processing operators. Basically it determines which operators in a query plan need large memory buffers and it divides the available global memory equally among such operators.
 
-The optimizer should be aware of this strategy in order use appropriate cost functions that take available memory into account. Hence at least the optimizer needs to determine how many memory-using operators are needed for a given query. It may also employ more sophisticated stategies to assign specific amounts of memory to each operator (for example, by the option memoryAllocation).
+The optimizer should be aware of this strategy in order to use appropriate cost functions that take available memory into account. Hence at least the optimizer needs to determine how many memory-using operators are needed for a given query. It may also employ more sophisticated stategies to assign specific amounts of memory to each operator (for example, by the option ~memoryAllocation~).
 
-Here we just determine how many memory-using operators are there. We assume that one such operator occurs for each join. Further, sorting operator instances are created for groupby, orderby, and distinct (duplicate elimination).
+Here we just determine how many memory-using operators are there. We assume that one such operator occurs for each join. Further, sort operator instances are created for groupby, orderby, and distinct (duplicate elimination).
 
 To keep track of this, in the relevant places where such operators are created, facts of the form
 
@@ -6234,7 +6298,7 @@ example10 :- pog(
 
 We have started to construct the optimizer by building the predicate order
 graph, using a notation for relations and predicates as useful for that
-purpose. Later, in [Section Translation], we have adapted the notation to be
+purpose. Later, in [Section Notation], we have adapted the notation to be
 able to translate and construct query plans as needed in Secondo. In this
 section we will introduce a more user friendly notation for queries, pretty
 similar to SQL, but suitable for being written directly in PROLOG.
@@ -6548,7 +6612,7 @@ clearSelectivityQuery :- retractall(selectivityQuery(_)).
 ----
 
 ~Query2~ is a modified version of ~Query~ where all relation names and
-attribute names have the form as required in [Section Translation].
+attribute names have the form as required in [Section Notation].
 
 */
 
