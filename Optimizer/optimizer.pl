@@ -2581,12 +2581,9 @@ type_to_atom(X, Y) :-
   
 
 /*
-
-6 Rule-Based Translation of Selections and Joins
+6 Rule-Based Translation: Translation of the Arguments of an Edge of the POG
 
 We introduce a predicate [=>] which can be read as ``translates into''.
-
-6.1 Translation of the Arguments of an Edge of the POG
 
 If the argument is of the form ~res(N)~, then it is a stream already and can be
 used unchanged. If it is of the form ~arg(N)~, then it is a base relation; a
@@ -2598,7 +2595,7 @@ of translation results.
 
 It is necessary to treat some special cases first. The simple standard case is treated at the end of this section, in [Section ArgTranslation].
 
-6.1.1 Special Case: Distance Scan
+6.1 Special Case: Distance Scan
 
 */
 
@@ -2634,7 +2631,7 @@ arg(N) => rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0),
 
 
 /*
-6.1.2 Special Case: Nested Relations
+6.2 Special Case: Nested Relations
 
 NVK ADDED NR
 
@@ -2745,7 +2742,7 @@ sortby(N, AttrNames) => sortby(N, AttrNames) :-
 /*
 
 
-6.1.3 The Standard Case
+6.3 The Standard Case
 
 [:Section ArgTranslation]
 
@@ -2790,12 +2787,12 @@ arg(N) => rename(feedproject(rel(Name, Var), AttrNames), Var) :-
 
 
 /*
-6.2 Translation of Selections
+7 Translation of Selections
 
 Be careful with cuts here, as backtracking is used to find all possible
 translations of each edge!
 
-6.2.1 Selection by Filtering
+7.1 Selection by Filtering
 
 This is the fallback case: any selection predicate can be implemented by filtering all tuples of a stream.
 
@@ -2817,7 +2814,7 @@ Here ~ArgS~ is meant to indicate ``argument stream''.
 
 /*
 
-6.2.2 Index-Based Selection: Equality and Inequality Predicates, BTree and Hashtable, MTree
+7.2 Index-Based Selection: Equality and Inequality Predicates, BTree and Hashtable, MTree
 
 July 2008, Christian D[ue]ntgen. Added rules covering mtree indexes.
 
@@ -2945,7 +2942,7 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
 
 
 /*
-6.2.3 Index-Based Selection for Spatial Data: RTree
+7.3 Index-Based Selection for Spatial Data: RTree
 
 Predicates implemented are:
 
@@ -3008,7 +3005,7 @@ indexselect(arg(N), pr(Pred, Rel)) => X :-
 
 
 /*
-6.2.4 Index-Based Selection for Spatiotemporal Data: RTree Variants
+7.4 Index-Based Selection for Spatiotemporal Data: RTree Variants
 
 For using these, the optimizer option ~rtreeIndexRules~ must be activated.
 
@@ -3252,746 +3249,8 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
 
 
 
-
 /*
-
-6.3 Translation of Joins
-
-A join can always be translated to a ~symmjoin~.
-
-Moved to a later position.
-
-*/
-
-
-
-
-
-/*
-
-Index joins:
-
-*/
-
-
-join(Arg1, arg(N), pr(X=Y, _, _)) => loopjoin(Arg1S, MatchExpr) :-
-  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
-  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
-  argument(N, RelDescription),
-  hasIndex(RelDescription, Attr2, DCindex, btree),
-  dcName2externalName(DCindex,IndexName),
-  Arg1 => Arg1S,
-  exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
-
-join(arg(N), Arg2, pr(X=Y, _, _)) => loopjoin(Arg2S, MatchExpr) :-
-  isOfFirst(Attr1, X, Y),
-  isNotOfFirst(Expr2, X, Y),
-  argument(N, RelDescription),
-  hasIndex(RelDescription, Attr1, DCindex, btree),
-  dcName2externalName(DCindex,IndexName),
-  Arg2 => Arg2S,
-  exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
-
-/*
-A loopjoin keeps the order of the outer relation, so it can also be
-used for sortedjoin
-
-*/
-sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => loopjoin(Arg1S,
-            MatchExpr) :-
-  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
-  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
-  argument(N, RelDescription),
-  hasIndex(RelDescription, Attr2, DCindex, btree),
-  dcName2externalName(DCindex,IndexName),
-  Arg1 => Arg1S,
-  exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
-
-sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) => loopjoin(Arg2S,
-            MatchExpr) :-
-  isOfFirst(Attr1, X, Y),
-  isNotOfFirst(Expr2, X, Y),
-  argument(N, RelDescription),
-  hasIndex(RelDescription, Attr1, DCindex, btree),
-  dcName2externalName(DCindex,IndexName),
-  Arg2 => Arg2S,
-  exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
-
-/*
-If the Inner Relation doesn't have an index on the join attribute,
-try to create a temporary one
-
-*/
-
-sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, UpperBound) =>
- loopjoin(Arg1S, MatchExpr) :-
-  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
-  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
-  argument(N, RelDescription),
-  not(hasIndex(RelDescription, Attr2, _, btree)),
-  UpperBound >= 99997,
-  convertToLfName(Attr2, LfAttr),
-  convertToLfName(RelDescription, LfRel),
-  keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
-  Arg1 => Arg1S,
-  exactmatch(tmpindex(RelDescription, Attr2), arg(N), Expr1) => MatchExpr.
-
-sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, UpperBound) =>
- loopjoin(Arg2S, MatchExpr) :-
-  isOfFirst(Attr1, X, Y),
-  isNotOfFirst(Expr2, X, Y),
-  argument(N, RelDescription),
-  not(hasIndex(RelDescription, Attr1, _, btree)),
-  UpperBound >= 99997,
-  convertToLfName(Attr1, LfAttr),
-  convertToLfName(RelDescription, LfRel),
-  keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
-  Arg2 => Arg2S,
-  exactmatch(tmpindex(RelDescription, Attr1), arg(N), Expr2) => MatchExpr.
-
-
-/*
-Try to apply projections as early as possible!
-
-*/
-exactmatch(IndexName, arg(N), Expr) =>
-  exactmatch(dbobject(IndexName), Rel, Expr) :-
-  isStarQuery,
-  argument(N, Rel),
-  Rel = rel(_, *), % no renaming needed
-  !.
-
-exactmatch(IndexName, arg(N), Expr) =>
-  rename(exactmatch(dbobject(IndexName), Rel, Expr), Var) :-
-  isStarQuery, % no need for project
-  argument(N, Rel),
-  Rel = rel(_, Var),
-  !.
-
-exactmatch(IndexName, arg(N), Expr) =>
-  project(exactmatch(dbobject(IndexName), Rel, Expr), AttrNames) :-
-  not(isStarQuery),
-  argument(N, Rel ),
-  Rel = rel(_, *), % no renaming needed
-  usedAttrList(Rel, AttrNames),
-  !.
-
-
-exactmatch(IndexName, arg(N), Expr) =>
-  rename(project(exactmatch(dbobject(IndexName), Rel, Expr), AttrNames), Var) :-
-  not(isStarQuery),
-  argument(N, Rel),
-  Rel = rel(_, Var), % with renaming
-  usedAttrList(Rel, AttrNames),
-  !.
-
-/*
-Jan09 Ingmar Goehr
-
-Loopindexjoin with bbox predicate using specialized spatial R-Tree indices
-
-*/
-
-/*
-The first case deals with predicates having at most two attributes as direct
-arguments (no expressions).
-
-*/
-
-join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred) :-
-  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _))
-    => filter(loopjoin(Arg2S, RTSpExpr),Pred),'\n']),
-  Pred =.. [Op, X, Y],
-  isBBoxPredicate(Op),
-  isOfFirst(Attr1, X, Y),     % determine attribute from the first relation
-  isNotOfFirst(Expr2, X, Y),  % determine attribute not from the first relation
-  argument(N, RelDescription),  % get first relation
-  hasIndex(RelDescription, Attr1, DCindex, spatial(rtree, unit)),
-  dcName2externalName(DCindex,IndexName),
-  Arg2 => Arg2S,
-  rtSpExpr(IndexName, arg(N), Expr2) => RTSpExpr.
-
-
-/*
-The second case deals with predicates having trhee attributes as direct
-arguments (no expressions).
-
-*/
-
-rtSpExpr(IndexName, arg(N), Expr) =>
-  rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
-                                              bbox(Expr)))),Rel),Var)
-          :-
-  argument(N, Rel),
-  Rel = rel(_, Var),    % with renaming
-  !.
-
-rtSpExpr(IndexName, arg(N), Expr) =>
-  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),bbox(Expr)))),Rel)
-          :-
-  argument(N, Rel),
-  Rel = rel(_, *),    % without renaming
-  !.
-
-join(arg(N), Arg2, pr(Pred, _, _))
-  => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred) :-
-  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) 
-    => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred),'\n']),
-  fetchAttributeList(Pred,L),
-  dm(translation,['L = ', L , '\n']),
-  L = [A,B,C],
-  isOfFirst(Attr1,A,B,C),
-  areNotOfFirst(Attr2,Attr3,A,B,C),
-  argument(N, RelDescription),
-  hasIndex(RelDescription, Attr1, DCindex, spatiotemporal(rtree3, unit)),
-  dcName2externalName(DCindex,IndexName),
-  Arg2 => Arg2S,
-  rtSpTmpExpr(IndexName, arg(N), Attr2, Attr3) => RTSpTmpExpr.
-
-rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
- rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
-                                          box3d(bbox(Expr2),Expr1)))),Rel),Var)
-  :-
- argument(N,Rel),
- Rel = rel(_,Var), % with renaming
- !.
-
-rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
- gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
-                                          box3d(bbox(Expr2),Expr1)))),Rel)
-  :-
- argument(N,Rel),
- Rel = rel(_, *), % without renaming
- !.
-
-/*
-One could easily add rules for ~loopjoin~ with ~rightrange~ and ~leftrange~
-operators for joins on "<=", ">=", "<" and ">" here.
-
-*/
-
-
-/*
-
-Loopindexjoin with bbox predicate using an rtree
-
-Some joins can be performed as a combination of a loopjoin using a
-windowintersects and a consecutive filter.
-This requires one argument to be a ~arg(N)~.
-
-*/
-
-
-join(Arg1, arg(N), pr(Pred, _, _))
-  => filter(loopjoin(Arg1S, RTreeLookupExpr), Pred) :-
-  Pred =.. [Op, X, Y],        % join condition is
-  isBBoxPredicate(Op),        % a bbox-predicate
-  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
-  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
-  argument(N, RelDescription),% get info on 2nd relation
-  (                           % the relation has an index on Attr2:
-      hasIndex(RelDescription, Attr2, DCindex, rtree)
-    ;   hasIndex(RelDescription, Attr2, DCindex, rtree3)
-    ;   hasIndex(RelDescription, Attr2, DCindex, rtree4)
-    ;   hasIndex(RelDescription, Attr2, DCindex, rtree8)
-  ),
-  dcName2externalName(DCindex,IndexName),
-  Arg1 => Arg1S,
-  rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
-
-join(arg(N), Arg2, pr(Pred, _, _))
-  => filter(loopjoin(Arg2S, RTreeLookupExpr), Pred) :-
-  Pred =.. [Op, X, Y],
-  isBBoxPredicate(Op),
-  isOfFirst(Attr1, X, Y),
-  isNotOfFirst(Expr2, X, Y),
-  argument(N, RelDescription),
-  (   hasIndex(RelDescription, Attr1, DCindex, rtree)
-    ; hasIndex(RelDescription, Attr1, DCindex, rtree3)
-    ; hasIndex(RelDescription, Attr1, DCindex, rtree4)
-    ; hasIndex(RelDescription, Attr1, DCindex, rtree8)
-  ),
-  dcName2externalName(DCindex,IndexName),
-  Arg2 => Arg2S,
-  rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
-
-/*
-A loopjoin keeps the order of the outer relation, so it can also be
-used for sortedjoin
-
-*/
-sortedjoin(Arg1, arg(N), pr(Pred, _, _), Arg1, _)
-  => filter(loopjoin(Arg1S, RTreeLookupExpr), Pred) :-
-  Pred =.. [Op, X, Y],        % join condition is
-  isBBoxPredicate(Op),        % a bbox-predicate
-  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
-  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
-  argument(N, RelDescription),% get info on 2nd relation
-  (                           % the relation has an index on Attr2:
-      hasIndex(RelDescription, Attr2, DCindex, rtree)
-    ;   hasIndex(RelDescription, Attr2, DCindex, rtree3)
-    ;   hasIndex(RelDescription, Attr2, DCindex, rtree4)
-    ;   hasIndex(RelDescription, Attr2, DCindex, rtree8)
-  ),
-  dcName2externalName(DCindex,IndexName),
-  Arg1 => Arg1S,
-  rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
-
-sortedjoin(arg(N), Arg2, pr(Pred, _, _), Arg2, _)
-  => filter(loopjoin(Arg2S, RTreeLookupExpr), Pred) :-
-  Pred =.. [Op, X, Y],
-  isBBoxPredicate(Op),
-  isOfFirst(Attr1, X, Y),
-  isNotOfFirst(Expr2, X, Y),
-  argument(N, RelDescription),
-  (   hasIndex(RelDescription, Attr1, DCindex, rtree)
-    ; hasIndex(RelDescription, Attr1, DCindex, rtree3)
-    ; hasIndex(RelDescription, Attr1, DCindex, rtree4)
-    ; hasIndex(RelDescription, Attr1, DCindex, rtree8)
-  ),
-  dcName2externalName(DCindex,IndexName),
-  Arg2 => Arg2S,
-  rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
-
-/*
-Try to apply projections as early as possible!
-
-*/
-
-
-rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  windowintersects(dbobject(IndexName), Rel, Expr) :-
-  isStarQuery,
-  argument(N, Rel),
-  Rel = rel(_, *), % no renaming needed
-  !.
-
-rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  rename(windowintersects(dbobject(IndexName), Rel, Expr), Var) :-
-  isStarQuery, % no need for project
-  argument(N, Rel),
-  Rel = rel(_, Var),
-  !.
-
-rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  project(windowintersects(dbobject(IndexName), Rel, Expr), AttrNames) :-
-  not(isStarQuery),
-  argument(N, Rel ),
-  Rel = rel(_, *), % no renaming needed
-  usedAttrList(Rel, AttrNames),
-  !.
-
-
-rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  rename(project(windowintersects(dbobject(IndexName), Rel, Expr), AttrNames),
-         Var) :-
-  not(isStarQuery),
-  argument(N, Rel),
-  Rel = rel(_, Var), % with renaming
-  usedAttrList(Rel, AttrNames),
-  !.
-
-/*
-Joins with generic predicates using bbox checks, that can exploit
-the spatialjoin to reduce the set of candidates. Predicates are chosen by
-their properties as defiend by predicates ~isBBoxPredicate/1~ and
-~isCommutativeOP/1~ in file ``operators.pl''.
-
-CD: There seems to be a problem in this rules. When I added the rules
-for 'Loopindexjoin with bbox predicate using an rtree', I first did this
-behind this section. Then, they were never used. I inserted them in front of
-this section, and it worked. There seems to exist a critical cut somewhere...
-
-*/
-
-join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
-  Pred =.. [Op, X, Y],
-  ( optimizerOption(determinePredSig)
-    -> ( checkOpProperty(Pred,comm),
-         isBBoxPredicate(Pred,_Dim)
-       )
-    ; (isBBoxPredicate(Op)
-      )
-  ),
-  X = attr(_, _, _),
-  Y = attr(_, _, _), %!, % perhaps, this cut is the reason to the ^^^problem
-                     % indeed, the cut prevented use of symmjoin for  
-                     % bbox operators. RHG 5.2.2013
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  join00(Arg1S, Arg2S, pr(Pred, R1, R2)) => JoinPlan.
-
-
-% spatialjoin with generic BBoxPredicate:
-join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
-  Arg2S, attrname(Attr1), attrname(Attr2)), Pred) :-
-  Pred =.. [Op, X, Y],
-  ( optimizerOption(determinePredSig)
-    -> ( checkOpProperty(Pred,comm),
-         isBBoxPredicate(Pred,_Dim)
-       )
-    ; (isBBoxPredicate(Op)
-      )
-  ),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-% spatialjoin with generic commutative BBoxPredicate (additional):
-join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S,
-  Arg1S, attrname(Attr2), attrname(Attr1)), Pred2) :-
-  Pred =.. [Op, Y, X],
-  ( optimizerOption(determinePredSig)
-    -> ( checkOpProperty(Pred,comm),
-         isBBoxPredicate(Pred,_Dim)
-       )
-    ;  ( isBBoxPredicate(Op),
-         isCommutativeOP(Op)
-       )
-  ),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, Y, X),
-  Pred2 =.. [Op, Attr1, Attr2].
-
-
-
-/*
-
-For a join with a predicate of the form X = Y we can distinguish four cases
-depending on whether X and Y are attributes or more complex expressions. For
-example, a query condition might be ``PLZA = PLZB'' in which case we have just
-attribute names on both sides of the predicate operator, or it could be ``PLZA =
-PLZB + 1''. In the latter case we have an expression on the right hand side.
-This can still be translated to a hashjoin, for example, by first extending the
-second argument by a new attribute containing the value of the expression. For
-example, the query
-
-----    select *
-        from plz as p1, plz as p2
-        where p1.PLZ = p2.PLZ + 1
-----
-
-can be translated to
-
-----    plz feed {p1} plz feed {p2} extend[newPLZ: PLZ_p2 + 1]
-        hashjoin[PLZ_p1, newPLZ, 99997]
-        remove[newPLZ]
-        consume
-----
-
-This technique is built into the optimizer as follows. We first define the four
-cases (at the moment for equijoin only; this may later be extended) which also
-translate the arguments into streams. Then the rules translating to join
-methods can be formulated independently from this general technique. They
-translate terms of the form join00(Arg1Stream, Arg2Stream, Pred).
-
-*/
-
-join(Arg1, Arg2, pr(X=Y, R1, R2)) => JoinPlan :-
-  X = attr(_, _, _),
-  Y = attr(_, _, _), !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  join00(Arg1S, Arg2S, pr(X=Y, R1, R2)) => JoinPlan.
-
-join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
-        remove(JoinPlan, [attrname(attr(r_expr, 2, u))]) :-
-  X = attr(_, _, _),
-  not(Y = attr(_, _, _)),
-  not(isSubquery(Y)),
-  !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, u)), Y)]),
-  join00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, u), R1, R2)) => JoinPlan.
-
-join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
-        remove(JoinPlan, [attrname(attr(l_expr, 2, u))]) :-
-  not(X = attr(_, _, _)),
-  not(isSubquery(X)),
-  Y = attr(_, _, _), !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, u)), X)]),
-  join00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, u)=Y, R1, R2)) => JoinPlan.
-
-join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
-        remove(JoinPlan, [attrname(attr(l_expr, 1, u)),
-                attrname(attr(r_expr, 2, u))]) :-
-  not(X = attr(_, _, _)),
-  not(Y = attr(_, _, _)),
-  not(isSubquery(Y)),
-  not(isSubquery(X)),
-  !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, u)), X)]),
-  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, u)), Y)]),
-  join00(Arg1Extend, Arg2Extend,
-        pr(attr(l_expr, 1, u)=attr(r_expr, 2, u), R1, R2)) => JoinPlan.
-
-
-/*
-Finally, a join can always be translated to a ~symmjoin~.
-
-*/
-
-join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
-  not(optimizerOption(noSymmjoin)),
-  Arg1 => Arg1S,
-  Arg2 => Arg2S.
-
-
-/*
-As join00 could be an orderkeeping sort, we also need a transformation
-for sortedjoin
-
-*/
-
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) => JoinPlan :-
-  X = attr(_, _, _),
-  Y = attr(_, _, _), !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  sortedjoin00(Arg1S, Arg2S, pr(X=Y, R1, R2), Arg1S, UpperBound) => JoinPlan.
-
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) => JoinPlan :-
-  X = attr(_, _, _),
-  Y = attr(_, _, _), !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  sortedjoin00(Arg1S, Arg2S, pr(X=Y, R1, R2), Arg2S, UpperBound) => JoinPlan.
-
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) =>
-        remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
-  X = attr(_, _, _),
-  not(Y = attr(_, _, _)),
-  not(isSubquery(Y)),
-  !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
-  sortedjoin00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, l), R1, R2),
-         Arg1S, UpperBound) => JoinPlan.
-
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) =>
-        remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
-  X = attr(_, _, _),
-  not(Y = attr(_, _, _)),
-  not(isSubquery(Y)),
-  !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
-  sortedjoin00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, l), R1, R2),
-         Arg2Extend, UpperBound) => JoinPlan.
-
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) =>
-        remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
-  not(X = attr(_, _, _)),
-  not(isSubquery(X)),
-  Y = attr(_, _, _), !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
-  sortedjoin00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, l)=Y, R1, R2),
-         Arg1Extend, UpperBound) => JoinPlan.
-
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) =>
-        remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
-  not(X = attr(_, _, _)),
-  not(isSubquery(X)),
-  Y = attr(_, _, _), !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
-  sortedjoin00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, l)=Y, R1, R2),
-         Arg2S, UpperBound) => JoinPlan.
-
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) =>
-        remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
-                attrname(attr(r_expr, 2, l))]) :-
-  not(X = attr(_, _, _)),
-  not(Y = attr(_, _, _)),
-  not(isSubquery(Y)),
-  not(isSubquery(X)),
-  !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
-  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
-  sortedjoin00(Arg1Extend, Arg2Extend,
-        pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2),
-         Arg1Extend, UpperBound) => JoinPlan.
-
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) =>
-        remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
-                attrname(attr(r_expr, 2, l))]) :-
-  not(X = attr(_, _, _)),
-  not(Y = attr(_, _, _)),
-  not(isSubquery(Y)),
-  not(isSubquery(X)),
-  !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
-  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
-  sortedjoin00(Arg1Extend, Arg2Extend,
-        pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2),
-         Arg2Extend, UpperBound) => JoinPlan.
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
-        attrname(Attr1), attrname(Attr2))   :-
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
-        attrname(Attr1), attrname(Attr2), 99997)   :-
-  not(optimizerOption(noHashjoin)),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
-        attrname(Attr2), attrname(Attr1), 99997)   :-
-  not(optimizerOption(noHashjoin)),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-% NVK ADDED MA
-:- dynamic(maUseNewTranslationRules/1).
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg1S, Arg2S,
-		attrname(Attr1), attrname(Attr2), 99997) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg2S, Arg1S,
-		attrname(Attr2), attrname(Attr1), 99997) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg1S, Arg2S,
-    attrname(Attr1), attrname(Attr2), 99997) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg2S, Arg1S,
-    attrname(Attr2), attrname(Attr1), 99997) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg1S, Arg2S,
-    attrname(Attr1), attrname(Attr2)) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg2S, Arg1S,
-    attrname(Attr2), attrname(Attr1)) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-% NVK ADDED MA END
-
-/*
-hashjoin keeps the order, if the size of the inner relation is
-smaller than the size of the hash
-
-*/
-
-sortedjoin00(Arg1S, Arg2S, pr(X = Y, _, _), Arg1S, UpperBound) =>
-        hashjoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2), 99997)   :-
-  not(optimizerOption(noHashjoin)),
-  UpperBound < 99997,
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-sortedjoin00(Arg1S, Arg2S, pr(X = Y, _, _), Arg2S, UpperBound) =>
-        hashjoin(Arg2S, Arg1S, attrname(Attr2), attrname(Attr1), 99997)   :-
-  not(optimizerOption(noHashjoin)),
-  UpperBound < 99997,
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y).
-
-/*
-The following two rules are used for the ~adaptiveJoin~ extension. If used, the
-previous two rules must be deactivated, inserting fail, as shown below.
-
-*/
-
-join00(Arg1S, Arg2S, pr(X = Y, Rel1, Rel2)) => pjoin2(Arg1S, Arg2S, Fields) :-
-  optimizerOption(adaptiveJoin),
-  try_pjoin2(X, Y, Rel1, Rel2, Fields).
-
-
-  /*
-  join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_smj(Arg1S, Arg2S, Fields) :-
-  fail,
-  try_pjoin2_smj(X, Y, Fields).
-
-
-  join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_hj(Arg1S, Arg2S, Fields) :-
-  fail,
-  try_pjoin2_hj(X, Y, Fields).
-
-  */
-
-
-
-/*
-Rules to create mergejoins with interesting orders extension
-
-*/
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _))
-  => mergejoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2)) :-
-  optimizerOption(intOrders(_)),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  orderTest(mergejoinPossible).
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _))
-  => sortLeftThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
-                                         attrname(Attr2)) :-
-  optimizerOption(intOrders(_)),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  orderTest(sortLeftThenMergejoin).
-
-join00(Arg1S, Arg2S, pr(X = Y, _, _))
-  => sortRightThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
-                                          attrname(Attr2)) :-
-  optimizerOption(intOrders(_)),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  orderTest(sortRightThenMergejoin).
-
-/*
-
-----    isOfFirst(Attr?, X+, Y+)
-        isOfSecond(Attr?, X+, Y+)
-        isNotOfFirst(Attr?, X+, Y+)
-        isNotOfSecond(Attr?, X+, Y+)
-----
-
-~Attr~ equal to either ~X~ or ~Y~ is an attribute of the first(second) relation.
+7.5 Index-Based Selection for Spatiotemporal Data: sometimes, Lifted Predicates
 
 */
 
@@ -4055,6 +3314,11 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   hasIndex(rel(Name, _), 
     attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
+
+
+
+
+
 
 
 % general rules for liftedSpatialRangeQueries
@@ -4260,6 +3524,803 @@ indexselectLifted(arg(N), Pred ) =>
    (memberchk(T2, [int, string, bool]), Y= Arg2)),
   hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
+
+
+/*
+
+8 Translation of Joins
+
+8.1 Fallback Case: symmjoin
+
+A join can always be translated to a ~symmjoin~ because a ~symmjoin~ evaluates an arbitrary predicate on all pairs of tuples.
+
+Option ~noSymmjoin~ is only used in experiments. Has to be off for the optimizer to work properly.
+
+
+*/
+
+join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
+  	not(optimizerOption(noSymmjoin)),
+  Arg1 => Arg1S,
+  Arg2 => Arg2S.
+
+
+/*
+
+8.2 Equality Predicates Without Index: sortmergejoin, hashjoin, ...
+
+8.2.1 Standard Case
+
+For a join with a predicate of the form X = Y we can distinguish four cases
+depending on whether X and Y are attributes or more complex expressions. For
+example, a query condition might be ``PLZA = PLZB'' in which case we have just
+attribute names on both sides of the predicate operator, or it could be ``PLZA =
+PLZB + 1''. In the latter case we have an expression on the right hand side.
+This can still be translated to a hashjoin, for example, by first extending the
+second argument by a new attribute containing the value of the expression. For
+example, the query
+
+----    select *
+        from plz as p1, plz as p2
+        where p1.PLZ = p2.PLZ + 1
+----
+
+can be translated to
+
+----    plz feed {p1} plz feed {p2} extend[newPLZ: PLZ_p2 + 1]
+        hashjoin[PLZ_p1, newPLZ, 99997]
+        remove[newPLZ]
+        consume
+----
+
+This technique is built into the optimizer as follows. We first define the four
+cases (at the moment for equijoin only; this may later be extended) which also
+translate the arguments into streams. Then the rules translating to join
+methods can be formulated independently from this general technique. They
+translate terms of the form join00(Arg1Stream, Arg2Stream, Pred).
+
+*/
+
+join(Arg1, Arg2, pr(X=Y, R1, R2)) => JoinPlan :-
+  X = attr(_, _, _),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  join00(Arg1S, Arg2S, pr(X=Y, R1, R2)) => JoinPlan.
+
+join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
+        remove(JoinPlan, [attrname(attr(r_expr, 2, u))]) :-
+  X = attr(_, _, _),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, u)), Y)]),
+  join00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, u), R1, R2)) => JoinPlan.
+
+join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 2, u))]) :-
+  not(X = attr(_, _, _)),
+  not(isSubquery(X)),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, u)), X)]),
+  join00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, u)=Y, R1, R2)) => JoinPlan.
+
+join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 1, u)),
+                attrname(attr(r_expr, 2, u))]) :-
+  not(X = attr(_, _, _)),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  not(isSubquery(X)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, u)), X)]),
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, u)), Y)]),
+  join00(Arg1Extend, Arg2Extend,
+        pr(attr(l_expr, 1, u)=attr(r_expr, 2, u), R1, R2)) => JoinPlan.
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
+        attrname(Attr1), attrname(Attr2))   :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
+        attrname(Attr1), attrname(Attr2), 99997)   :-
+  not(optimizerOption(noHashjoin)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
+        attrname(Attr2), attrname(Attr1), 99997)   :-
+  not(optimizerOption(noHashjoin)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+
+
+/*
+8.2.2 Support for Distance Scan: Translation of sortedjoin Edges
+
+As join00 could be an orderkeeping sort, we also need a transformation
+for sortedjoin
+
+*/
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) => JoinPlan :-
+  X = attr(_, _, _),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  sortedjoin00(Arg1S, Arg2S, pr(X=Y, R1, R2), Arg1S, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) => JoinPlan :-
+  X = attr(_, _, _),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  sortedjoin00(Arg1S, Arg2S, pr(X=Y, R1, R2), Arg2S, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
+  X = attr(_, _, _),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  sortedjoin00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, l), R1, R2),
+         Arg1S, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
+  X = attr(_, _, _),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  sortedjoin00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, l), R1, R2),
+         Arg2Extend, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
+  not(X = attr(_, _, _)),
+  not(isSubquery(X)),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  sortedjoin00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, l)=Y, R1, R2),
+         Arg1Extend, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
+  not(X = attr(_, _, _)),
+  not(isSubquery(X)),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  sortedjoin00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, l)=Y, R1, R2),
+         Arg2S, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
+                attrname(attr(r_expr, 2, l))]) :-
+  not(X = attr(_, _, _)),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  not(isSubquery(X)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  sortedjoin00(Arg1Extend, Arg2Extend,
+        pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2),
+         Arg1Extend, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
+                attrname(attr(r_expr, 2, l))]) :-
+  not(X = attr(_, _, _)),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  not(isSubquery(X)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  sortedjoin00(Arg1Extend, Arg2Extend,
+        pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2),
+         Arg2Extend, UpperBound) => JoinPlan.
+
+/*
+hashjoin keeps the order, if the size of the inner relation is
+smaller than the size of the hash
+
+*/
+
+sortedjoin00(Arg1S, Arg2S, pr(X = Y, _, _), Arg1S, UpperBound) =>
+        hashjoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2), 99997)   :-
+  not(optimizerOption(noHashjoin)),
+  UpperBound < 99997,
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+sortedjoin00(Arg1S, Arg2S, pr(X = Y, _, _), Arg2S, UpperBound) =>
+        hashjoin(Arg2S, Arg1S, attrname(Attr2), attrname(Attr1), 99997)   :-
+  not(optimizerOption(noHashjoin)),
+  UpperBound < 99997,
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+
+/*
+8.2.3 Further Translations: gracehashjoin, hybridhashjoin, itHashJoin
+
+These are currently only active with optimizer option ~memoryAllocation~.
+
+*/
+
+
+% NVK ADDED MA
+:- dynamic(maUseNewTranslationRules/1).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg1S, Arg2S,
+		attrname(Attr1), attrname(Attr2), 99997) :-
+  optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
+  \+ optimizerOption(noHashjoin),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg2S, Arg1S,
+		attrname(Attr2), attrname(Attr1), 99997) :-
+  optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
+  \+ optimizerOption(noHashjoin),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg1S, Arg2S,
+    attrname(Attr1), attrname(Attr2), 99997) :-
+  optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
+  \+ optimizerOption(noHashjoin),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg2S, Arg1S,
+    attrname(Attr2), attrname(Attr1), 99997) :-
+  optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
+  \+ optimizerOption(noHashjoin),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg1S, Arg2S,
+    attrname(Attr1), attrname(Attr2)) :-
+  optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
+  \+ optimizerOption(noHashjoin),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg2S, Arg1S,
+    attrname(Attr2), attrname(Attr1)) :-
+  optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
+  \+ optimizerOption(noHashjoin),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+% NVK ADDED MA END
+
+
+/*
+8.2.4 Special Case: Adaptive Join Extension
+
+The following two rules are used for the ~adaptiveJoin~ extension. If used, the
+previous two rules must be deactivated, inserting fail, as shown below.
+
+*/
+
+join00(Arg1S, Arg2S, pr(X = Y, Rel1, Rel2)) => pjoin2(Arg1S, Arg2S, Fields) :-
+  optimizerOption(adaptiveJoin),
+  try_pjoin2(X, Y, Rel1, Rel2, Fields).
+
+
+  /*
+  join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_smj(Arg1S, Arg2S, Fields) :-
+  fail,
+  try_pjoin2_smj(X, Y, Fields).
+
+
+  join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_hj(Arg1S, Arg2S, Fields) :-
+  fail,
+  try_pjoin2_hj(X, Y, Fields).
+
+  */
+
+
+
+/*
+8.2.5 Creating mergejoins with the Interesting Orders Extension
+
+*/
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _))
+  => mergejoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2)) :-
+  optimizerOption(intOrders(_)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  orderTest(mergejoinPossible).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _))
+  => sortLeftThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
+                                         attrname(Attr2)) :-
+  optimizerOption(intOrders(_)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  orderTest(sortLeftThenMergejoin).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _))
+  => sortRightThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
+                                          attrname(Attr2)) :-
+  optimizerOption(intOrders(_)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  orderTest(sortRightThenMergejoin).
+
+
+/*
+
+8.3 Equality Predicates: Index Nested Loop Join
+
+8.3.1 Standard Case
+
+*/
+
+join(Arg1, arg(N), pr(X=Y, _, _)) => loopjoin(Arg1S, MatchExpr) :-
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr2, DCindex, btree),
+  dcName2externalName(DCindex,IndexName),
+  Arg1 => Arg1S,
+  exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
+
+join(arg(N), Arg2, pr(X=Y, _, _)) => loopjoin(Arg2S, MatchExpr) :-
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(Expr2, X, Y),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr1, DCindex, btree),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
+
+/*
+Try to apply projections as early as possible!
+
+The usual four cases: with/without projection/renaming.
+
+*/
+exactmatch(IndexName, arg(N), Expr) =>
+  exactmatch(dbobject(IndexName), Rel, Expr) :-
+  isStarQuery,
+  argument(N, Rel),
+  Rel = rel(_, *), % no renaming needed
+  !.
+
+exactmatch(IndexName, arg(N), Expr) =>
+  rename(exactmatch(dbobject(IndexName), Rel, Expr), Var) :-
+  isStarQuery, % no need for project
+  argument(N, Rel),
+  Rel = rel(_, Var),
+  !.
+
+exactmatch(IndexName, arg(N), Expr) =>
+  project(exactmatch(dbobject(IndexName), Rel, Expr), AttrNames) :-
+  not(isStarQuery),
+  argument(N, Rel ),
+  Rel = rel(_, *), % no renaming needed
+  usedAttrList(Rel, AttrNames),
+  !.
+
+
+exactmatch(IndexName, arg(N), Expr) =>
+  rename(project(exactmatch(dbobject(IndexName), Rel, Expr), AttrNames), Var) :-
+  not(isStarQuery),
+  argument(N, Rel),
+  Rel = rel(_, Var), % with renaming
+  usedAttrList(Rel, AttrNames),
+  !.
+
+/*
+One could easily add rules for ~loopjoin~ with ~rightrange~ and ~leftrange~
+operators for joins on "<=", ">=", "<" and ">" here.
+
+*/
+
+/*
+8.3.2 Support for Distance Scan: Translation of sortedjoin Edges
+
+A loopjoin keeps the order of the outer relation, so it can also be
+used for sortedjoin
+
+*/
+sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => loopjoin(Arg1S,
+            MatchExpr) :-
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr2, DCindex, btree),
+  dcName2externalName(DCindex,IndexName),
+  Arg1 => Arg1S,
+  exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
+
+sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) => loopjoin(Arg2S,
+            MatchExpr) :-
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(Expr2, X, Y),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr1, DCindex, btree),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
+
+/*
+If the Inner Relation doesn't have an index on the join attribute,
+try to create a temporary one
+
+*/
+
+sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, UpperBound) =>
+ loopjoin(Arg1S, MatchExpr) :-
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  argument(N, RelDescription),
+  not(hasIndex(RelDescription, Attr2, _, btree)),
+  UpperBound >= 99997,
+  convertToLfName(Attr2, LfAttr),
+  convertToLfName(RelDescription, LfRel),
+  keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
+  Arg1 => Arg1S,
+  exactmatch(tmpindex(RelDescription, Attr2), arg(N), Expr1) => MatchExpr.
+
+sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, UpperBound) =>
+ loopjoin(Arg2S, MatchExpr) :-
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(Expr2, X, Y),
+  argument(N, RelDescription),
+  not(hasIndex(RelDescription, Attr1, _, btree)),
+  UpperBound >= 99997,
+  convertToLfName(Attr1, LfAttr),
+  convertToLfName(RelDescription, LfRel),
+  keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
+  Arg2 => Arg2S,
+  exactmatch(tmpindex(RelDescription, Attr1), arg(N), Expr2) => MatchExpr.
+
+
+
+
+/*
+8.4 Spatial Join
+
+Joins with generic predicates using bbox checks, that can exploit
+the spatialjoin to reduce the set of candidates. Predicates are chosen by
+their properties as defiend by predicates ~isBBoxPredicate/1~ and
+~isCommutativeOP/1~ in file ``operators.pl''.
+
+CD: There seems to be a problem in these rules. When I added the rules
+for 'Loopindexjoin with bbox predicate using an rtree', I first did this
+behind this section. Then, they were never used. I inserted them in front of
+this section, and it worked. There seems to exist a critical cut somewhere...
+
+*/
+
+join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
+  Pred =.. [Op, X, Y],
+  ( optimizerOption(determinePredSig)
+    -> ( checkOpProperty(Pred,comm),
+         isBBoxPredicate(Pred,_Dim)
+       )
+    ; (isBBoxPredicate(Op)
+      )
+  ),
+  X = attr(_, _, _),
+  Y = attr(_, _, _), %!, % perhaps, this cut is the reason to the ^^^problem
+                     % indeed, the cut prevented use of symmjoin for  
+                     % bbox operators. RHG 5.2.2013
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  join00(Arg1S, Arg2S, pr(Pred, R1, R2)) => JoinPlan.
+
+
+% spatialjoin with generic BBoxPredicate:
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
+  Arg2S, attrname(Attr1), attrname(Attr2)), Pred) :-
+  Pred =.. [Op, X, Y],
+  ( optimizerOption(determinePredSig)
+    -> ( checkOpProperty(Pred,comm),
+         isBBoxPredicate(Pred,_Dim)
+       )
+    ; (isBBoxPredicate(Op)
+      )
+  ),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
+% spatialjoin with generic commutative BBoxPredicate (additional):
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S,
+  Arg1S, attrname(Attr2), attrname(Attr1)), Pred2) :-
+  Pred =.. [Op, Y, X],
+  ( optimizerOption(determinePredSig)
+    -> ( checkOpProperty(Pred,comm),
+         isBBoxPredicate(Pred,_Dim)
+       )
+    ;  ( isBBoxPredicate(Op),
+         isCommutativeOP(Op)
+       )
+  ),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, Y, X),
+  Pred2 =.. [Op, Attr1, Attr2].
+
+
+
+
+
+
+
+/*
+8.5 Index-Based Spatial Join
+
+8.5.1 Standard Case
+
+Loopindexjoin with bbox predicate using an rtree
+
+Some joins can be performed as a combination of a loopjoin using a windowintersects and a consecutive filter. This requires one argument to be a ~arg(N)~.
+
+*/
+
+join(Arg1, arg(N), pr(Pred, _, _))
+  => filter(loopjoin(Arg1S, RTreeLookupExpr), Pred) :-
+  Pred =.. [Op, X, Y],        % join condition is
+  isBBoxPredicate(Op),        % a bbox-predicate
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  argument(N, RelDescription),% get info on 2nd relation
+  (                           % the relation has an index on Attr2:
+      hasIndex(RelDescription, Attr2, DCindex, rtree)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree3)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree4)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree8)
+  ),
+  dcName2externalName(DCindex,IndexName),
+  Arg1 => Arg1S,
+  rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
+
+join(arg(N), Arg2, pr(Pred, _, _))
+  => filter(loopjoin(Arg2S, RTreeLookupExpr), Pred) :-
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(Expr2, X, Y),
+  argument(N, RelDescription),
+  (   hasIndex(RelDescription, Attr1, DCindex, rtree)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree3)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree4)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree8)
+  ),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
+
+/*
+8.5.2 Support for Distance Scan
+
+A loopjoin keeps the order of the outer relation, so it can also be
+used for sortedjoin
+
+*/
+sortedjoin(Arg1, arg(N), pr(Pred, _, _), Arg1, _)
+  => filter(loopjoin(Arg1S, RTreeLookupExpr), Pred) :-
+  Pred =.. [Op, X, Y],        % join condition is
+  isBBoxPredicate(Op),        % a bbox-predicate
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  argument(N, RelDescription),% get info on 2nd relation
+  (                           % the relation has an index on Attr2:
+      hasIndex(RelDescription, Attr2, DCindex, rtree)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree3)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree4)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree8)
+  ),
+  dcName2externalName(DCindex,IndexName),
+  Arg1 => Arg1S,
+  rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
+
+sortedjoin(arg(N), Arg2, pr(Pred, _, _), Arg2, _)
+  => filter(loopjoin(Arg2S, RTreeLookupExpr), Pred) :-
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(Expr2, X, Y),
+  argument(N, RelDescription),
+  (   hasIndex(RelDescription, Attr1, DCindex, rtree)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree3)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree4)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree8)
+  ),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
+
+/*
+Try to apply projections as early as possible!
+
+*/
+
+rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
+  windowintersects(dbobject(IndexName), Rel, Expr) :-
+  isStarQuery,
+  argument(N, Rel),
+  Rel = rel(_, *), % no renaming needed
+  !.
+
+rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
+  rename(windowintersects(dbobject(IndexName), Rel, Expr), Var) :-
+  isStarQuery, % no need for project
+  argument(N, Rel),
+  Rel = rel(_, Var),
+  !.
+
+rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
+  project(windowintersects(dbobject(IndexName), Rel, Expr), AttrNames) :-
+  not(isStarQuery),
+  argument(N, Rel ),
+  Rel = rel(_, *), % no renaming needed
+  usedAttrList(Rel, AttrNames),
+  !.
+
+
+rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
+  rename(project(windowintersects(dbobject(IndexName), Rel, Expr), AttrNames),
+         Var) :-
+  not(isStarQuery),
+  argument(N, Rel),
+  Rel = rel(_, Var), % with renaming
+  usedAttrList(Rel, AttrNames),
+  !.
+
+
+
+
+/*
+
+8.5.3 Special Cases of Index-Based Spatial Join
+
+Jan09 Ingmar Goehr
+
+Loopindexjoin with bbox predicate using specialized spatial R-Tree indices
+
+*/
+
+/*
+The first case deals with predicates having at most two attributes as direct
+arguments (no expressions).
+
+*/
+
+join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred) :-
+  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _))
+    => filter(loopjoin(Arg2S, RTSpExpr),Pred),'\n']),
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
+  isOfFirst(Attr1, X, Y),     % determine attribute from the first relation
+  isNotOfFirst(Expr2, X, Y),  % determine attribute not from the first relation
+  argument(N, RelDescription),  % get first relation
+  hasIndex(RelDescription, Attr1, DCindex, spatial(rtree, unit)),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  rtSpExpr(IndexName, arg(N), Expr2) => RTSpExpr.
+
+
+/*
+The second case deals with predicates having rtree attributes as direct
+arguments (no expressions).
+
+*/
+
+rtSpExpr(IndexName, arg(N), Expr) =>
+  rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+                                              bbox(Expr)))),Rel),Var)
+          :-
+  argument(N, Rel),
+  Rel = rel(_, Var),    % with renaming
+  !.
+
+rtSpExpr(IndexName, arg(N), Expr) =>
+  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),bbox(Expr)))),Rel)
+          :-
+  argument(N, Rel),
+  Rel = rel(_, *),    % without renaming
+  !.
+
+join(arg(N), Arg2, pr(Pred, _, _))
+  => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred) :-
+  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) 
+    => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred),'\n']),
+  fetchAttributeList(Pred,L),
+  dm(translation,['L = ', L , '\n']),
+  L = [A,B,C],
+  isOfFirst(Attr1,A,B,C),
+  areNotOfFirst(Attr2,Attr3,A,B,C),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr1, DCindex, spatiotemporal(rtree3, unit)),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  rtSpTmpExpr(IndexName, arg(N), Attr2, Attr3) => RTSpTmpExpr.
+
+rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
+ rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+                                          box3d(bbox(Expr2),Expr1)))),Rel),Var)
+  :-
+ argument(N,Rel),
+ Rel = rel(_,Var), % with renaming
+ !.
+
+rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
+ gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+                                          box3d(bbox(Expr2),Expr1)))),Rel)
+  :-
+ argument(N,Rel),
+ Rel = rel(_, *), % without renaming
+ !.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+8.7 Auxiliary Predicates: isOfFirst, etc.
+
+----    isOfFirst(Attr?, X+, Y+)
+        isOfSecond(Attr?, X+, Y+)
+        isNotOfFirst(Attr?, X+, Y+)
+        isNotOfSecond(Attr?, X+, Y+)
+----
+
+~Attr~ equal to either ~X~ or ~Y~ is an attribute of the first(second) relation.
+
+*/
   
 
 %     isOfFirst(Res, X, Y)
@@ -4313,8 +4374,7 @@ areNotOfFirst(Y, Z, _, Y, Z) :-
   Z \= attr(_, 1, _).
 
 /*
-----
-fetchAttributeList(+Expr, ?AttrList)
+----    fetchAttributeList(+Expr, ?AttrList)
 ----
 
 Extracts a list of all ~attr/3~ terms occuring in ~Expr~.
