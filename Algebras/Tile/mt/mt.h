@@ -433,6 +433,19 @@ class mt : public Attribute
                const datetime::DateTime& rDuration);
 
   /*
+  Method SetUndefinedValues sets all values of mt object and
+  minimum and maximum of mt object to an undefined value.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: -
+  exceptions: -
+
+  */
+
+  void SetUndefinedValues();
+
+  /*
   Method SetValue sets a value of mt object at given index and
   recalculates minimum and maximum of mt object if bSetExtrema is true.
 
@@ -879,9 +892,7 @@ mt<Type, Properties>::mt(bool bDefined)
                                 GetUndefinedValue()),
                       m_Flob(Properties::GetFlobSize())
 {
-  Type undefinedValue = Properties::TypeProperties::GetUndefinedValue();
-  bool bOK = SetValues(undefinedValue, true);
-  assert(bOK);
+  SetUndefinedValues();
 }
 
 /*
@@ -1955,6 +1966,24 @@ bool mt<Type, Properties>::SetGrid(const double& rX,
 }
 
 /*
+Method SetUndefinedValues sets all values of mt object and
+minimum and maximum of mt object to an undefined value.
+
+author: Dirk Zacher
+parameters: -
+return value: -
+exceptions: -
+
+*/
+
+template <typename Type, typename Properties>
+void mt<Type, Properties>::SetUndefinedValues()
+{
+  Type undefinedValue = Properties::TypeProperties::GetUndefinedValue();
+  SetValues(undefinedValue, true);
+}
+
+/*
 Method SetValue sets a value of mt object at given index and
 recalculates minimum and maximum of mt object if bSetExtrema is true.
 
@@ -2060,26 +2089,21 @@ template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetValues(const Type& rValue,
                                      bool bSetExtrema)
 {
-  bool bRetVal = false;
-  
-  if(IsDefined())
-  {
-    bRetVal = true;
+  bool bRetVal = true;
     
-    int flobElements = Properties::GetFlobElements();
+  int flobElements = Properties::GetFlobElements();
 
-    for(int i = 0; i < flobElements; i++)
-    {
-      bRetVal &= m_Flob.write(reinterpret_cast<const char*>(&rValue),
-                              sizeof(Type),
-                              i * sizeof(Type));
-    }
+  for(int i = 0; i < flobElements; i++)
+  {
+    bRetVal &= m_Flob.write(reinterpret_cast<const char*>(&rValue),
+                            sizeof(Type),
+                            i * sizeof(Type));
+  }
 
-    if(bSetExtrema == true)
-    {
-      m_Minimum = rValue;
-      m_Maximum = rValue;
-    }
+  if(bSetExtrema == true)
+  {
+    m_Minimum = rValue;
+    m_Maximum = rValue;
   }
 
   return bRetVal;
