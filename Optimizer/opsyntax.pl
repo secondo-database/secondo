@@ -608,6 +608,21 @@ secondoOp( speed,       prefix, 1).
 % Section:End:secondoOp_3_e
 
 /*
+embed automatical generated operator syntax
+
+*/
+:-consult('opsyntaxg.pl').
+
+/*
+If there is no explicit rule for an operator defined in this file,
+try to find a generated rule.
+
+*/
+secondoOp( Op, Kind, Num) :-
+	secondoOpG(Op, Kind, Num), !.
+
+
+/*
 End of file ~opsyntax.pl~
 
 */
