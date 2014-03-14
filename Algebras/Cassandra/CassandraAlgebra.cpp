@@ -1075,7 +1075,7 @@ public:
   }
 
   Tuple* fetchNextTuple() {
-    if(result->hasNext()) {
+    if(result != NULL && result->hasNext()) {
       
       string myResult;
       result -> getStringValue(myResult, 0);
@@ -1274,7 +1274,7 @@ public:
   }
 
   FText* fetchNextTable() {
-    if(result->hasNext()) {
+    if(result != NULL && result->hasNext()) {
       
       string myResult;
       result -> getStringValue(myResult, 0);
