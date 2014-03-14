@@ -93,6 +93,7 @@ int map2Functiontt(Word* pArguments,
         if(pResult != 0)
         {
           pResult->SetDefined(false);
+          pResult->SetUndefinedValues();
 
           if(pSourceType1->IsDefined() &&
              pSourceType2->IsDefined())
@@ -239,6 +240,7 @@ int map2Functiontmt(Word* pArguments,
         if(pResult != 0)
         {
           pResult->SetDefined(false);
+          pResult->SetUndefinedValues();
 
           if(pSourceType1->IsDefined() &&
              pSourceType2->IsDefined())
@@ -396,6 +398,7 @@ int map2Functionmtt(Word* pArguments,
         if(pResult != 0)
         {
           pResult->SetDefined(false);
+          pResult->SetUndefinedValues();
 
           if(pSourceType1->IsDefined() &&
              pSourceType2->IsDefined())
@@ -553,6 +556,7 @@ int map2Functionmtmt(Word* pArguments,
         if(pResult != 0)
         {
           pResult->SetDefined(false);
+          pResult->SetUndefinedValues();
 
           if(pSourceType1->IsDefined() &&
              pSourceType2->IsDefined())
