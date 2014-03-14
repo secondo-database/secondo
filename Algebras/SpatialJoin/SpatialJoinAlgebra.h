@@ -85,6 +85,10 @@ public:
   ~SpatialJoin2LocalInfo(){
     for(int i =  0; i < 2; i++)
     {
+      if(r[i].tb2Iter){
+         delete r[i].tb2Iter;
+         r[i].tb2Iter=0;
+      }
       if (r[i].streamBuffer)
       {
         delete r[i].streamBuffer;
@@ -92,6 +96,7 @@ public:
       }
       if (r[i].MBR){
         delete r[i].MBR;
+        r[i].MBR=0;
       }
     }
     // delete functions arguments created in the constructor

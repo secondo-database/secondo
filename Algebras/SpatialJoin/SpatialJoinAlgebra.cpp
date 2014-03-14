@@ -732,6 +732,9 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
 
     case REQUEST:
     {
+      if(!li){
+        return CANCEL;
+      }
       if ( li->ptr == 0 )      // first request
       {
         li->ptr = new SpatialJoin2LocalInfo<D>(
@@ -783,6 +786,10 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
     }
 
     case (1*FUNMSG)+CLOSE:{
+       if(!li){
+         return 0;
+       }
+
       localInfo = li->ptr;
       if ( localInfo != 0 )
       {
@@ -792,6 +799,9 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
     }
 
     case (2*FUNMSG)+CLOSE:{
+      if(!li){
+        return 0; 
+      }
       localInfo = li->ptr;
       if ( localInfo != 0 )
       {
@@ -876,14 +886,14 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
 
 
     case CLOSE:
-    {
-      localInfo = li->ptr;
-      if ( localInfo != 0 )
-      {
-        delete localInfo;
-        local.setAddr(0);
-      }
-      return 0;
+    { if(li){
+        localInfo = li->ptr;
+        if ( localInfo != 0 ) {
+            delete localInfo;
+            li->ptr = 0;
+         }
+     }
+     return 0;
     }
 
     case CLOSEPROGRESS:
@@ -1219,6 +1229,7 @@ int paraJoin2ValueMap(Word* args, Word& result,
       li = (pj2LocalInfo*)local.addr;
 
       delete li;
+      local.setAddr(0);
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
       return 0;
