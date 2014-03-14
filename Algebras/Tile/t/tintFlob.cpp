@@ -98,9 +98,9 @@ exceptions: -
 tintFlob::tintFlob(const tintFlob& rtintFlob)
                   :Attribute(rtintFlob.IsDefined()),
                    m_Grid(rtintFlob.m_Grid),
-                   m_Flob(rtintFlob.m_Flob)
+                   m_Flob(rtintFlob.m_Flob.getSize())
 {
-  
+  m_Flob.copyFrom(rtintFlob.m_Flob);
 }
 
 /*

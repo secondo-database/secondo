@@ -902,9 +902,9 @@ mt<Type, Properties>::mt(const mt<Type, Properties>& rmt)
                       m_Grid(rmt.m_Grid),
                       m_Minimum(rmt.m_Minimum),
                       m_Maximum(rmt.m_Maximum),
-                      m_Flob(rmt.m_Flob)
+                      m_Flob(rmt.m_Flob.getSize())
 {
-  
+  m_Flob.copyFrom(rmt.m_Flob);
 }
 
 /*
