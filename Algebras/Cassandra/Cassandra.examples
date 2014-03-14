@@ -31,4 +31,10 @@ Signature: rel(tuple(...)) x text x text x text x text -> stream(tuple(...))
 Example  : query plz ccollect['127.0.0.1', 'keyspace1', 'plz', 'ONE'] count
 Result   : 41267
 
+Operator : clist
+Number   : 1
+Signature: text x text -> stream(text)
+Example  : query clist('127.0.0.1', 'keyspace1') count
+Result   : 10
+
 

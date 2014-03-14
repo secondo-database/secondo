@@ -222,23 +222,42 @@ string CassandraAdapter::getInsertCQL(string key, string value,
     return ss.str();
 }
 
-CassandraResult* CassandraAdapter::readDataFromCassandra(string relation,
-        string consistenceLevel) {
+CassandraResult* CassandraAdapter::getAllTables(string keyspace) {
 
-    if(! isConnected() ) {
-        cerr << "Cassandra session not ready" << endl;
-        return NULL;
-    }
+    stringstream ss;
+    ss << "SELECT columnfamily_name FROM ";
+    ss << "system.schema_columnfamilies WHERE keyspace_name='";
+    ss << keyspace;
+    ss << "';";
+    
+  return readDataFromCassandra(ss.str(), cql::CQL_CONSISTENCY_ONE);
+}
+
+CassandraResult* CassandraAdapter::readTable(string relation,
+        string consistenceLevel) {
 
     stringstream ss;
     ss << "SELECT value from ";
     ss << relation;
     ss << ";";
+    string query = ss.str();
+    
+    return readDataFromCassandra(query, 
+            CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
+}
+
+CassandraResult* CassandraAdapter::readDataFromCassandra(string cql, 
+         cql::cql_consistency_enum consistenceLevel) {
+      
+    if(! isConnected() ) {
+        cerr << "Cassandra session not ready" << endl;
+        return NULL;
+    }
 
     try {
         boost::shared_ptr<cql::cql_query_t> cqlStatement(
-            new cql::cql_query_t(ss.str(),
-            CassandraHelper::convertConsistencyStringToEnum(consistenceLevel)
+            new cql::cql_query_t(cql,
+            consistenceLevel
         ));
 
         boost::shared_future<cql::cql_future_result_t> future
@@ -255,7 +274,6 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string relation,
             cql::cql_result_t& result = *(future.get().result);
 
             return new CassandraResult(result);
-
         }
     } catch(std::exception& e) {
         cerr << "Got exception while reading data: " << e.what() << endl;
@@ -263,6 +281,7 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string relation,
 
     return NULL;
 }
+
 
 bool CassandraAdapter::createTable(string tablename) {
     stringstream ss;
@@ -477,7 +496,7 @@ bool CassandraAdapter::getTokensFromQuery
        }
      } catch(std::exception& e) {
         cerr << "Got exception while executing cql: " << e.what() << endl;
-	return false;
+        return false;
      }
    
      return true;

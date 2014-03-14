@@ -201,14 +201,14 @@ public:
                              );
 
 /*
-2.3.5 Read data rom cassandra
+2.3.5 Fetch a table from cassandra
 
 1. Parameter is the relation to read
 2. Parameter is the consistence level used for writing
 
 */
-    CassandraResult* readDataFromCassandra(string relation, 
-                                           string consistenceLevel);
+    CassandraResult* readTable(string relation,
+        string consistenceLevel);
 
 /*
 2.3.6 Create a new relation in cassandra. Should be called before
@@ -258,8 +258,23 @@ public:
 */
   bool getPeerTokens(vector <long> &result);
   
+/*
+2.3.12 Get all tables from the keyspace specified 
+       by the 1. paramter
+
+*/
+  CassandraResult* getAllTables(string keyspace);
+
+  
 protected:
 
+/*
+2.3.12 Execute the cql statement and return the result
+
+*/    
+  CassandraResult* readDataFromCassandra(string cql, 
+         cql::cql_consistency_enum consistenceLevel);
+    
 /*
 2.3.12 Execute the cql statement with a given consistence level synchronus
 

@@ -992,7 +992,7 @@ ALL    - All cassandra nodes have written the tuple
 
 2.5.1 Type mapping function of operator ~ccollect~
 
-Type mapping for ~collect~ is
+Type mapping for ~ccollect~ is
 
 ----
   rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n)) x text x
@@ -1070,7 +1070,7 @@ public:
     if(cassandra == NULL) {
       cassandra = new CassandraAdapter(contactPoint, keyspace);
       cassandra -> connect();
-      result = cassandra -> readDataFromCassandra(relationName, consistence);
+      result = cassandra -> readTable(relationName, consistence);
     }
   }
 
@@ -1203,6 +1203,191 @@ Operator cassandracollect (
 );                         
 
 
+
+/*
+2.6 Operator ~clist~
+
+The operator ~clist~ list all known tables in a
+cassandra keyspace.
+
+The first paramter is the contact point to the cassandra cluster
+The second parameter specifies the keyspace to use
+
+2.6.1 Type mapping function of operator ~clist~
+
+Type mapping for ~clist~ is
+
+----
+  text x text -> stream(text)
+----
+
+*/
+ListExpr CListTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError("two arguments expected");
+  }
+
+  string err = " text x text expected";
+
+  ListExpr contactPoint = nl->First(args);
+  ListExpr keyspace = nl->Second(args);
+
+  if(  !FText::checkType(contactPoint) ||
+       !FText::checkType(keyspace)) {
+    return listutils::typeError(err);
+  }
+  
+  // create result list
+  ListExpr resList = nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
+                     nl->SymbolAtom(FText::BasicType()));
+  
+  return resList;
+}
+
+
+/*
+2.6.3 Value mapping function of operator ~clist~
+
+*/
+class CListLocalInfo {
+
+public:
+  CListLocalInfo(string myContactPoint, string myKeyspace) 
+  
+    : contactPoint(myContactPoint), keyspace(myKeyspace),
+    cassandra(NULL), result(NULL) {
+      
+      cout << "Contact point is " << contactPoint << endl;
+      cout << "Keyspace is " << keyspace << endl;
+      
+      open();
+  }
+  
+  void open(){
+    if(cassandra == NULL) {
+      cassandra = new CassandraAdapter(contactPoint, keyspace);
+      cassandra -> connect();
+      result = cassandra -> getAllTables(keyspace);
+    }
+  }
+
+  FText* fetchNextTable() {
+    if(result->hasNext()) {
+      
+      string myResult;
+      result -> getStringValue(myResult, 0);
+      
+      return new FText(true, myResult);
+    }
+    
+    return NULL;
+  }
+  
+  virtual ~CListLocalInfo() {
+    if(result != NULL) {
+      delete result;
+      result = NULL;
+    }
+    
+    if(cassandra != NULL) {
+      delete cassandra;
+      cassandra = NULL;
+    }
+  }
+  
+  private:
+  string contactPoint;         // Contactpoint for our cluster
+  string keyspace;             // Keyspace
+  CassandraAdapter* cassandra; // Our cassandra connection
+  CassandraResult* result;     // Query result
+};
+
+
+int CList(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  CListLocalInfo *cli; 
+  Word elem;
+  cli = (CListLocalInfo*)local.addr;
+  
+  switch(message) {
+    case OPEN: 
+
+     if ( cli ) delete cli;
+     
+     if(! ((FText*) args[0].addr)->IsDefined()) {
+       cout << "Cluster contactpoint is not defined" << endl;
+     } else if (! ((FText*) args[1].addr)->IsDefined()) {
+       cout << "Keyspace is not defined" << endl;
+     } else {
+       cli = new CListLocalInfo(
+                      (((FText*)args[0].addr)->GetValue()),
+                      (((FText*)args[1].addr)->GetValue())
+                 );
+        
+       local.setAddr( cli );
+     }
+      
+     return 0;
+
+    case REQUEST:
+      
+      // Operator not ready
+      if ( ! cli ) {
+        return CANCEL;
+      }
+      
+      // Fetch next table from cassandra
+      result.addr = cli -> fetchNextTable();
+      
+      if(result.addr != NULL) {     
+        return YIELD;
+      } else  {     
+        return CANCEL;
+      }     
+
+    case CLOSE:
+      if(cli) {
+        delete cli;
+        cli = NULL;
+        local.setAddr( cli );
+      }
+      return 0;
+  }
+  
+  return 0;    
+}
+
+/*
+2.6.4 Specification of operator ~clist~
+
+*/
+const string CListSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text x text -> stream(text)</text--->"
+                         "<text>clist ( _ , _ ) </text--->"
+                         "<text>The operator clist list all known tables in a"
+                         "cassandra keyspace</text--->"
+                         "<text>query clist('127.0.0.1', 'keyspace1') count "
+                         "</text--->"
+                              ") )";
+
+/*
+2.6.5 Definition of operator ~clist~
+
+*/
+Operator cassandralist (
+         "clist",                  // name
+         CListSpec,                // specification
+         CList,                    // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         CListTypeMap              // type mapping
+);                         
+
+
+
 /*
  7 Creating the Algebra
 
@@ -1223,6 +1408,7 @@ public:
     AddOperator(&cassandradelete);
     AddOperator(&cassandrafeed);
     AddOperator(&cassandracollect);
+    AddOperator(&cassandralist);
     
   }
   
