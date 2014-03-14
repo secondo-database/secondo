@@ -97,10 +97,11 @@ exceptions: -
 UniqueStringArray::UniqueStringArray
                   (const UniqueStringArray& rUniqueStringArray)
                   :Attribute(rUniqueStringArray.IsDefined()),
-                   m_StringData(rUniqueStringArray.m_StringData),
-                   m_StringFlob(rUniqueStringArray.m_StringFlob)
+                   m_StringData(rUniqueStringArray.m_StringData.getSize()),
+                   m_StringFlob(rUniqueStringArray.m_StringFlob.getSize())
 {
-  
+  m_StringData.copyFrom(rUniqueStringArray.m_StringData);
+  m_StringFlob.copyFrom(rUniqueStringArray.m_StringFlob);
 }
 
 /*
