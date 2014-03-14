@@ -1,12 +1,12 @@
 
 
 
-OPSYNTAX=$(SECONDO_BUILD_DIR)/Optimizer/opsyntax.pl
+OPSYNTAX=$(SECONDO_BUILD_DIR)/Optimizer/opsyntaxg.pl
 
 
 .PHONY: all
 all: $(OPSYNTAX)
-
+	cat Header.pl DefaultPrios.pl Middle.pl opsyntax.pl Final.pl >$<
 
 $(OPSYNTAX): opprios.pl Header.pl Middle.pl Final.pl
 
@@ -41,4 +41,4 @@ SyntaxParser.tab.c: SyntaxParser.y
 
 .PHONY: clean
 clean:
-	rm -f SyntaxParser.tab.c parse.o lex.yy.c scan.o SyntaxParser SyntaxParser.tab.h SyntaxParser.output opprios.pl opsyntax.pl 
+	rm -f SyntaxParser.tab.c parse.o lex.yy.c scan.o SyntaxParser SyntaxParser.tab.h SyntaxParser.output opprios.pl opsyntax.pl $(OPSYNTAX) 
