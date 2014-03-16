@@ -153,6 +153,14 @@ class CassandraAdapter {
 public:
 
 /*
+2.3.0 Static variables
+
+
+*/
+    static const string METADATA_TUPLETYPE;
+
+
+/*
 2.3.1 Constructor
 
 1. Parameter the contactpoint of the cassadra cluster
@@ -211,14 +219,17 @@ public:
         string consistenceLevel);
 
 /*
-2.3.6 Create a new relation in cassandra. Should be called before
-      the first write request for the relation is send. Returns
-      true if the relation could be created, false otherwise.
+2.3.6 Create a new relation in cassandra and write some 
+      metadata (e.g. tupletype) for the table. 
+      
+ Returns true if the relation could be created, false otherwise.
 
 1. Parameter is the name of the relation
+2. Parameter is the tuple type of the stored tuples 
+   in nested list representation
 
 */
-    bool createTable(string tablename);
+    bool createTable(string tablename, string tupletype);
 
 /*
 2.3.7 Remove a relation from the cassandra cluster. Returns true if
@@ -260,12 +271,22 @@ public:
   
 /*
 2.3.12 Get all tables from the keyspace specified 
-       by the 1. paramter
+       by the 1th paramter
 
 */
   CassandraResult* getAllTables(string keyspace);
 
-  
+/*
+2.3.12 Get the TupleType (in nested list format) from
+       the table specified by the 1th paramter. The 
+       result will be stored in the 2nd parameter. 
+       
+Returns true, if the 2nd parameter contains
+a valid result. False otherweise
+
+*/
+   bool getTupleTypeFromTable(string table, string &result);
+   
 protected:
 
 /*

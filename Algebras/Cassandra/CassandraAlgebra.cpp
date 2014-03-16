@@ -766,21 +766,23 @@ class CFeedLocalInfo {
 public:
   CFeedLocalInfo(string myContactPoint, string myKeyspace, 
                  string myRelationName, string myConsistence, 
-                 string mySystemname) 
+                 string mySystemname, string myTupleType) 
   
     : contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence), 
-    systemname(mySystemname), tupleNumber(0) {
+    systemname(mySystemname), tupleType(myTupleType), 
+    tupleNumber(0) {
       
       cout << "Contact point is " << contactPoint << endl;
       cout << "Keyspace is " << keyspace << endl;
       cout << "Relation name is " << relationName << endl;
       cout << "Consistence is " << consistence << endl;
       cout << "Systemname is " << systemname << endl;
+      cout << "Tuple type is " << tupleType << endl;
       
       cassandra = new CassandraAdapter(contactPoint, keyspace);
       cassandra -> connect();
-      cassandra -> createTable(relationName);
+      cassandra -> createTable(relationName, tupleType);
       
       
       /*vector < long > tokens;
@@ -835,13 +837,14 @@ public:
     return tupleNumber;
   }
   
-  
+      
 private:
   string contactPoint;         // Contactpoint for our cluster
   string keyspace;             // Keyspace
   string relationName;         // Relation name to delete
   string consistence;          // Consistence
   string systemname;           // Name of our system
+  string tupleType;            // Type of the tuples (Nested List String)
   size_t tupleNumber;          // Number of the current tuple
   CassandraAdapter *cassandra; // Cassandra connection
 };
@@ -858,7 +861,7 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN: 
     case REQUEST:
     case CLOSE:
-      
+    
       result = qp->ResultStorage(s);
       static_cast<CcInt*>(result.addr)->Set(false, 0);
       
@@ -886,12 +889,20 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
       } 
       
+      // Type of tuple stream
+      ListExpr relTypeList =
+         qp->GetSupplierTypeExpr(qp->GetSon(s,0));
+    
+      string tupleType = nl->ToString(relTypeList);
+      
+      
       cli = new CFeedLocalInfo(
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
                       (((FText*)args[3].addr)->GetValue()),
                       (((FText*)args[4].addr)->GetValue()),
-                      (((FText*)args[5].addr)->GetValue())
+                      (((FText*)args[5].addr)->GetValue()),
+                      tupleType
                       );
       
       // Consume stream
@@ -1027,6 +1038,7 @@ ListExpr CCollectTypeMap( ListExpr args )
   ListExpr resList = nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                      nl->Second(relation));
   
+  cout << "Result: " << nl->ToString(resList) << endl;
   return resList;
 }
 
@@ -1075,14 +1087,28 @@ public:
   }
 
   Tuple* fetchNextTuple() {
-    if(result != NULL && result->hasNext()) {
+
+    // No result present
+    if(result == NULL) {
+      return NULL;
+    }
+    
+    while(result->hasNext()) {
       
-      string myResult;
-      result -> getStringValue(myResult, 0);
+      string key;
+      string value;
+      result -> getStringValue(key, 0);
+      result -> getStringValue(value, 1);
       
+      // Metadata? Skip tuple
+      if(key.at(0) == '_') {
+        cout << "Skipping key: " << key << " value " << value << endl;
+        continue;
+      }
+      
+      // Otherwise: Build tuple and return
       Tuple* tuple = new Tuple(tupleType);
-      tuple->ReadFromBinStr(myResult);
-      
+      tuple->ReadFromBinStr(value);
       return tuple;
     }
     

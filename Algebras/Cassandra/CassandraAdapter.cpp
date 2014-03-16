@@ -67,6 +67,8 @@ using namespace std;
 //namespace to avoid name conflicts
 namespace cassandra {
 
+// Init static variables
+const string CassandraAdapter::METADATA_TUPLETYPE = "_TUPLETYPE";
 
 void CassandraAdapter::connect() {
     try {
@@ -233,11 +235,39 @@ CassandraResult* CassandraAdapter::getAllTables(string keyspace) {
   return readDataFromCassandra(ss.str(), cql::CQL_CONSISTENCY_ONE);
 }
 
+
+bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
+    stringstream ss;
+    ss << "SELECT value from ";
+    ss << relation;
+    ss << "where key = '";
+    ss << CassandraAdapter::METADATA_TUPLETYPE;
+    ss << "';";
+    string query = ss.str();
+    
+    // Execute query
+    CassandraResult* cassandraResult = 
+       readDataFromCassandra(query, cql::CQL_CONSISTENCY_ONE);
+    
+    if(cassandraResult == NULL) {
+      return false;
+    }
+    
+    if(! cassandraResult->hasNext() ) {
+      return false;
+    }
+    
+    cassandraResult -> getStringValue(result, 0);
+    
+    return true;
+}
+
+
 CassandraResult* CassandraAdapter::readTable(string relation,
         string consistenceLevel) {
 
     stringstream ss;
-    ss << "SELECT value from ";
+    ss << "SELECT key, value from ";
     ss << relation;
     ss << ";";
     string query = ss.str();
@@ -283,19 +313,34 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string cql,
 }
 
 
-bool CassandraAdapter::createTable(string tablename) {
+bool CassandraAdapter::createTable(string tablename, string tupleType) {
     stringstream ss;
     ss << "CREATE TABLE IF NOT EXISTS ";
     ss << tablename;
     ss << " ( key text PRIMARY KEY, ";
     ss << " value text );";
 
-    bool result = executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
+    bool resultCreate = executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
     
     // Wait propagation of the table
     sleep(1);
     
-    return result;
+    // Write tupletype
+    if(resultCreate) {
+      bool resultInsert = executeCQLSync(
+            getInsertCQL(CassandraAdapter::METADATA_TUPLETYPE, 
+                         tupleType, tablename),
+            cql::CQL_CONSISTENCY_ALL
+      );
+      
+      if(resultInsert) {
+        // New table is created and the 
+        // tuple type is stored successfully
+        return true; 
+      }
+    }
+    
+    return false;
 }
 
 bool CassandraAdapter::dropTable(string tablename) {
