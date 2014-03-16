@@ -101,15 +101,15 @@ JNITool::JNITool(JNIEnv *env, NestedList *nl){
    assert(intAtomID);
   
    symbolAtomID = env->GetStaticMethodID(nlclass,"symbolAtom",
-                             "(Ljava/lang/String;)Lsj/lang/ListExpr;");
+                             "([B)Lsj/lang/ListExpr;");
    assert(symbolAtomID);
 
    stringAtomID =env->GetStaticMethodID(nlclass,"stringAtom",
-                            "(Ljava/lang/String;)Lsj/lang/ListExpr;");
+                            "([B)Lsj/lang/ListExpr;");
    assert(stringAtomID);
 
    textAtomID = env->GetStaticMethodID(nlclass,"textAtom",
-                             "(Ljava/lang/String;)Lsj/lang/ListExpr;");
+                             "([B)Lsj/lang/ListExpr;");
    assert(textAtomID);
 
    boolAtomID = env->GetStaticMethodID(nlclass,"boolAtom",
@@ -214,29 +214,47 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
 
    // symbol
    if(nl->AtomType(LE)==SymbolType){
-     string svalue = nl->SymbolValue(LE);
-     const char* cstr = svalue.c_str();
+	   string svalue = nl->SymbolValue(LE);
+	   const char* cstr = svalue.c_str();
+   	  //__android_log_write(ANDROID_LOG_INFO, "FU", cstr);
+   	  const int cstrlen = strlen(cstr);
+	   //jstring jstr = env->NewStringUTF(cstr);
+	   jbyteArray arr = env->NewByteArray(cstrlen);
+	   env->SetByteArrayRegion(arr, 0, cstrlen,(jbyte*) cstr);
+	   char tempstring[100];
+	   //sprintf(tempstring, "Laenge des Strings = %d", cstrlen);
+	   //__android_log_write(ANDROID_LOG_INFO, "FU", tempstring);
+//	   sprintf(tempstring, "Bytes = %d %d %d", arr[0], arr[1], arr[2]);
+//	   __android_log_write(ANDROID_LOG_INFO, "FU", tempstring);
 
-     jstring jstr = env->NewStringUTF(cstr);
-     if(!jstr) Error(__LINE__);
-     res = env->CallStaticObjectMethod(nlclass,symbolAtomID,jstr);
-     env->DeleteLocalRef(jstr);
-     if(!res) Error(__LINE__);
+	   //if(!jstr) Error(__LINE__);
+	   if (!arr) Error(__LINE__);
+	   res = env->CallStaticObjectMethod(nlclass,symbolAtomID,arr);
+	   //res = env->CallStaticObjectMethod(nlclass,symbolAtomID,jstr);
+	   //env->DeleteLocalRef(jstr);
+	   env->DeleteLocalRef(arr);
+	   if(!res) Error(__LINE__);
 
-     return res;
+	   return res;
    }
 
    // string
    if(nl->AtomType(LE)==StringType){
-     string svalue = nl->StringValue(LE);
-     const char* cstr = svalue.c_str();
-	 jstring jstr = env->NewStringUTF(cstr);
-     if(!jstr) Error(__LINE__);
-     res = env->CallStaticObjectMethod(nlclass,stringAtomID,jstr);
-     env->DeleteLocalRef(jstr);
-     if(!res) Error(__LINE__);
+	   string svalue = nl->StringValue(LE);
+	   const char* cstr = svalue.c_str();
+	   //jstring jstr = env->NewStringUTF(cstr);
+	   jbyteArray arr = env->NewByteArray((int)strlen(cstr));
+	   env->SetByteArrayRegion(arr, 0, (int)strlen(cstr),(jbyte*) cstr);
 
-     return res;
+	   //if(!jstr) Error(__LINE__);
+	   if (!arr) Error(__LINE__);
+	   res = env->CallStaticObjectMethod(nlclass,stringAtomID,arr);
+	   //res = env->CallStaticObjectMethod(nlclass,stringAtomID,jstr);
+	   //env->DeleteLocalRef(jstr);
+	   env->DeleteLocalRef(arr);
+	   if(!res) Error(__LINE__);
+
+	   return res;
    }
 
    // text
@@ -244,10 +262,16 @@ jobject JNITool::GetJavaList(JNIEnv * env, ListExpr LE){
       string tvalue;
       nl->Text2String(LE,tvalue);
       const char* cstr = tvalue.c_str();
-      jstring jstr = env->NewStringUTF(cstr);
-      if(!jstr) Error(__LINE__);
-      res = env->CallStaticObjectMethod(nlclass,textAtomID,jstr);
-      env->DeleteLocalRef(jstr);
+      //jstring jstr = env->NewStringUTF(cstr);
+	   jbyteArray arr = env->NewByteArray((int)strlen(cstr));
+	   env->SetByteArrayRegion(arr, 0, (int)strlen(cstr),(jbyte*) cstr);
+
+      //if(!jstr) Error(__LINE__);
+	   if (!arr) Error(__LINE__);
+	   res = env->CallStaticObjectMethod(nlclass,stringAtomID,arr);
+//      res = env->CallStaticObjectMethod(nlclass,textAtomID,jstr);
+//      env->DeleteLocalRef(jstr);
+	   env->DeleteLocalRef(arr);
       if(!res) Error(__LINE__);
       return res;
    }

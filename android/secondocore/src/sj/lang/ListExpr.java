@@ -51,13 +51,17 @@ gcc -E -xc -P -C [-DPERSISTENT] ListExpr.both.java >ListExpr.java
 package sj.lang;
 import lib.java_cup10.runtime.Symbol;
 import sj.lang.JavaListExpr.NLParser;
+
 import java.io.*;
+
 import tools.Base64Decoder;
 import lib.java_cup10.runtime.*;
 import tools.Reporter;
+
 import java.util.Properties;
 import java.util.Iterator;
 import java.util.Set;
+
 import tools.Environment;
 public class ListExpr{
 /*
@@ -1203,6 +1207,46 @@ public static ListExpr symbolAtom(String value){
     result.type = SYMBOL_ATOM;
     return result;
 }
+
+public static ListExpr symbolAtom(byte[] value) {
+	String s = "";
+//	if (value.length > 4) {
+//		System.out.println("symbolAtom = " + value[0] + value[1]+value[2] + value[3] + value[4]);
+//	}
+	try {
+		s = new String(value, "UTF-8");
+		//System.out.println("symbolAtom = " + s);
+	} catch (UnsupportedEncodingException e) {
+		e.printStackTrace();
+	}
+	return symbolAtom(s);
+	
+}
+public static ListExpr textAtom(byte[] value){
+	String s = "";
+	try {
+		s = new String(value, "UTF-8");
+		//System.out.println("textAtom = " + s);
+	} catch (UnsupportedEncodingException e) {
+		e.printStackTrace();
+	}
+	return textAtom(s);
+	
+}
+public static ListExpr stringAtom(byte[] value) {
+	String s = "";
+	try {
+		s = new String(value, "UTF-8");
+//		System.out.println("stringAtom = " + s);
+
+	} catch (UnsupportedEncodingException e) {
+		e.printStackTrace();
+	}
+	return stringAtom(s);
+	
+}
+
+
 /*
 1.3.8 Creating an empty text atom
 
@@ -1220,6 +1264,8 @@ public static ListExpr textAtom(String value){
     result.setText(value);
     return result;
 }
+
+
 /** This method sets the content of an exiisting text atom */
  public void setText(String value){
     if (CHECK_PRECONDITIONS) {
