@@ -983,6 +983,7 @@ Operator cassandrafeed (
 );                         
 
 
+
 /*
 2.5 Operator ~ccollect~
 
@@ -1000,7 +1001,37 @@ QUORUM - More then n/2+1 cassandra nodes have written the tuple
          n is the replication factor of the cluster
 ALL    - All cassandra nodes have written the tuple
 
+2.5.0 Helper function for evaluating nested list
+    expressions
 
+*/
+bool EvaluateTypeMappingExpr(string expression, string &result) {
+  
+  Word res; 
+  
+  if(! QueryProcessor::ExecuteQuery(expression,res) ){
+     result = "Could not evaluate expression";
+     return false;
+  }
+  
+  FText* fn = (FText*) res.addr;
+  
+  if(!fn->IsDefined()){
+     fn->DeleteIfAllowed();
+     result = "result of expression is undefined";
+     return false;
+  }
+  
+  result = fn->GetValue();
+  fn->DeleteIfAllowed();
+  fn = 0; 
+  res.setAddr(0);
+  
+  return true;
+}
+
+
+/*
 2.5.1 Type mapping function of operator ~ccollect~
 
 Type mapping for ~ccollect~ is
@@ -1011,32 +1042,77 @@ Type mapping for ~ccollect~ is
 ----
 
 */
-ListExpr CCollectTypeMap( ListExpr args )
-{
+ListExpr CCollectTypeMap( ListExpr args ) {
 
-  if(nl->ListLength(args) != 5){
-    return listutils::typeError("five arguments expected");
+  if(nl->ListLength(args) != 4){
+    return listutils::typeError("four arguments expected");
   }
 
-  string err = " stream(tuple(...) x text x text x text x text expected";
+  string err = " stream(text x text x text x text) expected";
 
-  ListExpr relation = nl->First(args);
-  ListExpr contactPoint = nl->Second(args);
-  ListExpr keyspace = nl->Third(args);
-  ListExpr relationName = nl->Fourth(args);
-  ListExpr consistenceLevel = nl->Fifth(args);
+  // arg evaluation is active
+  // this means each argument is a two elem list (type value)
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+    if(!nl->HasLength(nl->First(tmp),2)){
+       return listutils::typeError("expected (type value)");
+    }    
+    tmp = nl->Rest(tmp);
+  }
+  
+  ListExpr contactPoint = nl->First(args);
+  ListExpr keyspace = nl->Second(args);
+  ListExpr relationName = nl->Third(args);
+  ListExpr consistenceLevel = nl->Fourth(args);
 
-  if(  !Relation::checkType(relation) ||
-       !FText::checkType(contactPoint) ||
-       !FText::checkType(keyspace) ||
-       !FText::checkType(relationName) ||
-       !FText::checkType(consistenceLevel)) {
+  if(  !FText::checkType(nl->First(contactPoint)) ||
+       !FText::checkType(nl->First(keyspace)) ||
+       !FText::checkType(nl->First(relationName)) ||
+       !FText::checkType(nl->First(consistenceLevel))) {
     return listutils::typeError(err);
   }
   
-  // create result list
-  ListExpr resList = nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
-                     nl->Second(relation));
+  // We need to evaluate the result list, contact cassandra
+  // and read the tuple type of the table
+  string contactPointVal;  
+  string contactPointExpr = nl->ToString(nl->Second(contactPoint));
+  if(! EvaluateTypeMappingExpr(contactPointExpr, contactPointVal) ) {
+    return listutils::typeError(contactPointVal);
+  }
+  
+  string keyspaceVal;  
+  string keyspaceExpr = nl->ToString(nl->Second(keyspace));
+  if(! EvaluateTypeMappingExpr(keyspaceExpr, keyspaceVal) ) {
+    return listutils::typeError(keyspaceVal);
+  }
+
+  string relationVal;  
+  string relationExpr = nl->ToString(nl->Second(relationName));
+  if(! EvaluateTypeMappingExpr(relationExpr, relationVal) ) {
+    return listutils::typeError(relationVal);
+  }
+
+  // Read tuple type from cassandra
+  string tupleType;
+  
+  CassandraAdapter* cassandra = 
+     new CassandraAdapter(contactPointVal, keyspaceVal);
+  
+     cassandra -> connect();
+  
+  bool result = 
+     cassandra -> getTupleTypeFromTable(relationVal, tupleType);
+     
+  delete cassandra;
+  cassandra = NULL;
+  
+  if(!result) {
+     return listutils::typeError("Unable to read table type from "
+       "cassandra. Does the table exist?");
+  }
+  
+  ListExpr resList;
+  nl->ReadFromString(tupleType, resList);
   
   cout << "Result: " << nl->ToString(resList) << endl;
   return resList;
@@ -1140,24 +1216,24 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
 
      if ( cli ) delete cli;
      
-     consistenceLevel = ((FText*) args[4].addr)->GetValue();
+     consistenceLevel = ((FText*) args[3].addr)->GetValue();
      
-     if(! ((FText*) args[1].addr)->IsDefined()) {
+     if(! ((FText*) args[0].addr)->IsDefined()) {
        cout << "Cluster contactpoint is not defined" << endl;
-     } else if (! ((FText*) args[2].addr)->IsDefined()) {
+     } else if (! ((FText*) args[1].addr)->IsDefined()) {
        cout << "Keyspace is not defined" << endl;
-     } else if (! ((FText*) args[3].addr)->IsDefined()) {
+     } else if (! ((FText*) args[2].addr)->IsDefined()) {
        cout << "Relationname is not defined" << endl;
-     } else if (! ((FText*) args[4].addr)->IsDefined()) {
+     } else if (! ((FText*) args[3].addr)->IsDefined()) {
        cout << "Consistence level is not defined" << endl;
      } else if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel)) {
        cout << "Unknown consistence level: " << consistenceLevel << endl; 
      } else {
        cli = new CCollectLocalInfo(nl -> Second(resultType),
+                      (((FText*)args[0].addr)->GetValue()),
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
-                      (((FText*)args[3].addr)->GetValue()),
-                      (((FText*)args[4].addr)->GetValue())
+                      (((FText*)args[3].addr)->GetValue())
                  );
         
          local.setAddr( cli );
@@ -1201,9 +1277,9 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CCollectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n))"
-                         "x text x text x text -> stream(tuple(...))</text--->"
-                         "<text>cfeed _ op [ _ , _ , _ ] </text--->"
+                         "<text>text x text x text x text "
+                         "-> stream(tuple(...))</text--->"
+                         "<text>collect [ _ , _ , _ , _ ] </text--->"
                          "<text>The operator ccollect fetches a relation from"
                          "our cassandra cluster and create a stream of"
                          "tuples. The first paramter is the contact point to "
@@ -1212,7 +1288,7 @@ const string CCollectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "contains the name of the relation to fetch. The "
                          "fourth parameter specifies the consistence "
                          "level used for reading</text--->"
-                         "<text>query plz ccollect['127.0.0.1', 'keyspace1', "
+                         "<text>query ccollect['127.0.0.1', 'keyspace1', "
                          "'plz', 'ANY'] count</text--->"
                               ") )";
 
@@ -1434,7 +1510,9 @@ public:
     AddOperator(&cassandradelete);
     AddOperator(&cassandrafeed);
     AddOperator(&cassandracollect);
+    cassandracollect.SetUsesArgsInTypeMapping();
     AddOperator(&cassandralist);
+    
     
   }
   

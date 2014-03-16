@@ -238,12 +238,13 @@ CassandraResult* CassandraAdapter::getAllTables(string keyspace) {
 
 bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
     stringstream ss;
-    ss << "SELECT value from ";
+    ss << "SELECT value FROM ";
     ss << relation;
-    ss << "where key = '";
+    ss << " WHERE key = '";
     ss << CassandraAdapter::METADATA_TUPLETYPE;
     ss << "';";
     string query = ss.str();
+    cout << "Query: " << query << endl;
     
     // Execute query
     CassandraResult* cassandraResult = 
