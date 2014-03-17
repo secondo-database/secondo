@@ -5720,39 +5720,8 @@ double Line::Distance( const Points& ps, const Geoid* geoid /* = 0 */ ) const {
   return result;
 }
 
-double Line::Distance( const Line& l, const Geoid* geoid /* = 0 */ ) const
-{
-  assert( !IsEmpty() );   // includes !undef
-  assert( !l.IsEmpty() ); // includes !undef
-  assert(!geoid || geoid->IsDefined() );
-  if( IsEmpty() || l.IsEmpty()){
-    return -1;
-  }
-  assert( IsOrdered() );
-  assert( l.IsOrdered() );
-  HalfSegment hs1, hs2;
-  double result = numeric_limits<double>::max();
-  double segDistance = -666.666;
-  for( int i = 0; i < Size(); i++ ){
-    Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() ) {
-      for( int j = 0; j < l.Size(); j++ ) {
-        l.Get( j, hs2 );
-        if( hs1.Intersects( hs2, geoid ) ){
-          return 0.0;
-        }
-        segDistance = hs1.Distance( hs2, geoid );
-        if(geoid && AlmostEqual(segDistance,0.0)){
-          return 0.0;
-        }
-        if(segDistance>=0.0){
-          result = MIN( result, segDistance );
-        }
-      }
-    }
-  }
-  return result;
-}
+
+
 
 void Line::DistanceSmallerThan(const Line& l,
                               const double  maxDist,
@@ -9907,49 +9876,6 @@ double Region::Distance( const Region &r, const Geoid* geoid /*=0*/ ) const
 }
 
 
-double Region::Distance( const Line &l, const Geoid* geoid /*=0*/ ) const
-{
-  assert( !IsEmpty() ); // subsumes IsDefined()
-  assert( !l.IsEmpty() ); // subsumes IsDefined()
-  assert( !geoid || geoid->IsDefined() );
-  if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         << endl;
-    assert(false); // TODO: Implement spherical geometry case.
-  }
-  if( IsEmpty() || l.IsEmpty() || (geoid && !geoid->IsDefined()) ) {
-     return -1;
-  }
-  double result = numeric_limits<double>::max();
-  HalfSegment hs1, hs2;
-  for(int i=0; i<l.Size();i++){
-     l.Get(i,hs2);
-     if(hs2.IsLeftDomPoint()){
-       if(Contains(hs2.GetDomPoint(),geoid)){
-         return 0.0;
-       }
-       if(Contains(hs2.GetSecPoint(),geoid)){
-         return 0.0;
-       }
-     }
-  }
-
-  for( int i = 0; i < Size(); i++ ){
-    Get( i, hs1 );
-    if( hs1.IsLeftDomPoint() ){
-      for( int j = 0; j < l.Size(); j++ ){
-        l.Get( j, hs2 );
-        if( hs2.IsLeftDomPoint() ){
-          if( hs1.Intersects( hs2 ) ){
-            return 0.0;
-          }
-          result = MIN( result, hs1.Distance( hs2, geoid ) );
-        }
-      }
-    }
-  }
-  return result;
-}
 
 
 
@@ -14096,12 +14022,47 @@ This type mapping function is used for the ~distance~ operator. This
 operator computes the distance between two spatial objects.
 
 */
+
+bool isDistanceParam(ListExpr arg){
+
+  return Point::checkType(arg) ||
+         Points::checkType(arg) ||
+         Line::checkType(arg) ||
+         SimpleLine::checkType(arg) ||
+         Rectangle<2>::checkType(arg) ||
+         Region::checkType(arg);
+}
+
+bool sphericalDistImplemented(ListExpr arg1, ListExpr arg2){
+   if(Point::checkType(arg1)){
+      return    Point::checkType(arg2) || Points::checkType(arg2)
+             || Line::checkType(arg2) || SimpleLine::checkType(arg2);
+   }
+   if(Points::checkType(arg1)){
+      return    Point::checkType(arg2) || Points::checkType(arg2)
+             || Line::checkType(arg2);
+   }
+   if(Line::checkType(arg1)){
+      return    Point::checkType(arg2) || Points::checkType(arg2);
+   }
+   if(SimpleLine::checkType(arg1)){
+      return    Point::checkType(arg2) ;
+   }
+   if(Rectangle<2>::checkType(arg1)){
+      return false;
+   }
+   if(Region::checkType(arg1)){
+      return false;
+   }
+   return false;
+}
+
 ListExpr
 SpatialDistanceMap( ListExpr args )
 {
   int noargs = nl->ListLength(args);
   string errmsg = "Expected (T1 x T2 [x geoid]) where T1,T2 in "
-                  "{point,points,line,sline,region,rectangle}.";
+                  "{point,points,line,sline,region,rectangle} [ x geoid].";
 
   if( (noargs < 2) || (noargs > 3) ){
     return listutils::typeError(errmsg);
@@ -14111,71 +14072,26 @@ SpatialDistanceMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  SpatialType t1 = SpatialTypeOfSymbol(arg1);
-  SpatialType t2 = SpatialTypeOfSymbol(arg2);
-  ListExpr erg = nl->SymbolAtom(CcReal::BasicType());
-
-  if ( (t1 == stpoint) && (t2 == stpoint) ){
-    return erg;
-  }else if ( (t1  == stpoint) && (t2 == stpoints) ){
-    return erg;
-  }else if ( (t1 == stpoints) && (t2 == stpoint )) {
-    return erg;
-  } else if ( (t1 == stpoint) && (t2 == stline ) ){
-    return erg;
-  } else if( (t1 == stline) && ( t2 ==  stpoint )){
-    return erg;
-  } else if( (t1  == stpoint) && (t2 == stregion )) {
-    return erg;
-  } else if ( (t1  == stregion) && ( t2 == stpoint )){
-    return erg;
-  } else if ( ( t1 == stpoints) && ( t2 == stpoints )){
-    return erg;
-  } else if ( (t1 == stpoints) && (t2 == stline )){
-    return erg;
-  } else  if ( ( t1 == stline )&&( t2  == stpoints )){
-    return erg;
-  } else if ( (t1 == stpoints) && ( t2  == stregion )){
-    return erg;
-  } else if ( (t1  == stregion) && (t2 == stpoints )){
-    return erg;
-  } else if ( (t1 == stline) && (t2 == stline )){
-    return erg;
-  } else if ( ( t1 == stregion) && ( t2 == stregion )){
-    return erg;
-  } else if ( (t1 == stsline) && (t2 == stpoint)){
-    return erg;
-  } else if( ( t1 == stpoint) && (t2 == stsline)){
-    return erg;
-  } else if(( t1 == stsline) && ( t2 == stpoints)){
-    return erg;
-  } else if((t1==stpoints) && (t2==stsline)){
-    return erg;
-  } else if((t1==stsline) && (t2==stsline)){
-    return erg;
-  } else if((t1==stbox) && (t2==stpoint)){
-    return erg;
-  } else if((t1==stpoint) && (t2==stbox)){
-    return erg;
-  } else if((t1==stbox) && (t2==stpoints)){
-    return erg;
-  } else if((t1==stpoints) && (t2==stbox)){
-    return erg;
-  } else if((t1==stbox) && (t2==stline)){
-    return erg;
-  } else if((t1==stline) && (t2==stbox)){
-    return erg;
-  } else if((t1==stbox) && (t2==stregion)){
-    return erg;
-  } else if((t1==stregion) && (t2==stbox)){
-    return erg;
-  } else if((t1==stbox) && (t2==stsline)){
-    return erg;
-  } else if((t1==stsline) && (t2==stbox)){
-    return erg;
+  if(noargs==3){
+    if(!Geoid::checkType(nl->Third(args))){
+        return listutils::typeError(errmsg);
+    }
   }
-  return listutils::typeError(errmsg);
+  if(!isDistanceParam(arg1) || !isDistanceParam(arg2)){
+    return listutils::typeError(errmsg);
+  }
+  string err2 = "spherical geometry not implemented "
+                "for this type combination";
+
+  // spherical geometry is not implemented for all data types
+  if(noargs==3 && !sphericalDistImplemented(arg1,arg2)){
+     return listutils::typeError(err2);
+  }
+
+  return listutils::basicSymbol<CcReal>();
 }
+
+
 
 /*
 10.1.10 Type Mapping for distanceSmallerThan
@@ -15680,76 +15596,26 @@ int SpatialSetOpSelect(ListExpr args){
 This select function is used for the ~distance~ operator.
 
 */
+int getDistancePos(ListExpr arg){
+  if(Point::checkType(arg)) return 0;
+  if(Points::checkType(arg)) return 1;
+  if(Line::checkType(arg)) return 2;
+  if(SimpleLine::checkType(arg)) return 3;
+  if(Rectangle<2>::checkType(arg)) return 4;
+  if(Region::checkType(arg)) return 5;
+  return -1;
+}
+
+
 int
 SpatialSelectDistance( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
-
-  SpatialType st1 = SpatialTypeOfSymbol( arg1 );
-  SpatialType st2 = SpatialTypeOfSymbol( arg2 );
-
-  if ( st1 == stpoint && st2 == stpoint ) return 0;
-
-  if ( st1  == stpoint && st2 == stpoints ) return 1;
-
-  if ( st1 == stpoint && st2 == stline ) return 2;
-
-  if ( st1 == stpoint && st2 == stregion ) return 3;
-
-  if ( st1 == stpoints && st2 == stpoint ) return 4;
-
-  if ( st1 == stpoints && st2 == stpoints ) return 5;
-
-  if ( st1 == stpoints && st2 == stline ) return 6;
-
-  if ( st1 == stpoints && st2 == stregion ) return 7;
-
-  if ( st1 == stline && st2 == stpoint ) return 8;
-
-  if ( st1 == stline && st2 == stpoints ) return 9;
-
-  if ( st1 == stline && st2 == stline ) return 10;
-
-  if ( st1 == stregion && st2 == stpoint ) return 11;
-
-  if ( st1 == stregion && st2 == stpoints ) return 12;
-
-  if ( st1 == stregion && st2 == stregion ) return 13;
-
-  if( st1 == stsline && st2 == stpoint ) return 14;
-
-  if( st1 == stpoint && st2 == stsline) return 15;
-
-  if( st1 == stsline && st2 == stpoints) return 16;
-
-  if( st1 == stpoints && st2 == stsline ) return 17;
-
-  if( st1 == stsline && st2 == stsline) return  18;
-
-  if( st1 == stbox && st2 == stpoint ) return  19;
-
-  if( st1 == stpoint && st2 == stbox ) return  20;
-
-  if( st1 == stbox && st2 == stpoints ) return  21;
-
-  if( st1 == stpoints && st2 == stbox ) return  22;
-
-  if( st1 == stbox && st2 == stline ) return  23;
-
-  if( st1 == stline && st2 == stbox ) return  24;
-
-  if( st1 == stbox && st2 == stregion ) return  25;
-
-  if( st1 == stregion && st2 == stbox ) return  26;
-
-  if( st1 == stbox && st2 == stsline ) return  27;
-
-  if( st1 == stsline && st2 == stbox ) return  28;
-
-  // (rect2 x rect2) has already been implemented in the RectangleAlgebra!
-
-  return -1; // This point should never be reached
+  int p1 = getDistancePos(arg1);
+  int p2 = getDistancePos(arg2);
+  if(p1<0 || p2 < 0 ) return -1;
+  return p1*6 + p2;
 }
 
 /*
@@ -19085,35 +18951,54 @@ ValueMapping spatialunionVM[] = {
 };
 
 ValueMapping spatialdistancemap[] = {
+
+  // arg1 = point
   SpatialDistance<Point,Point,false>,
   SpatialDistance<Points,Point,true>,
   SpatialDistance<Line,Point,true>,
-  SpatialDistance<Region,Point,true>,
+  SpatialDistance<SimpleLine,Point,true>,
+  SpatialDistance<Point,Rectangle<2>,false>,
+  SpatialDistance<Region,Point, true>,
+  
+  // arg1 = points
   SpatialDistance<Points,Point,false>,
   SpatialDistance<Points,Points,false>,
-  SpatialDistance<Line,Points,true>,
-  SpatialDistance<Region,Points,true>,
+  SpatialDistance<Line, Points, true>,
+  SpatialDistance<SimpleLine, Points,true>,
+  SpatialDistance<Points,Rectangle<2>,false>,
+  SpatialDistance<Region, Points, true>,
+
+  // arg1 = line
   SpatialDistance<Line,Point,false>,
   SpatialDistance<Line,Points,false>,
   SpatialDistance<Line,Line,false>,
+  SpatialDistance<Line,SimpleLine, false>,
+  SpatialDistance<Line,Rectangle<2>,false>,
+  SpatialDistance<Region,Line, true>,
+
+   // arg1 = sline
+  SpatialDistance<SimpleLine,Point,false>,
+  SpatialDistance<SimpleLine,Points,false>,
+  SpatialDistance<Line,SimpleLine,true>,
+  SpatialDistance<SimpleLine,SimpleLine,false>,
+  SpatialDistance<SimpleLine,Rectangle<2>,false>,
+  SpatialDistance<Region, SimpleLine, true>,
+
+  // arg1 = rect  
+  SpatialDistance<Point  ,Rectangle<2>, true>,
+  SpatialDistance<Points ,Rectangle<2>, true>,
+  SpatialDistance<Line   ,Rectangle<2>, true>,
+  SpatialDistance<SimpleLine,Rectangle<2>, true>,
+  SpatialDistance<Rectangle<2>,Rectangle<2>,false>,
+  SpatialDistance<Region,Rectangle<2>,true>,
+
+    // arg1 = region
   SpatialDistance<Region,Point,false>,
   SpatialDistance<Region,Points,false>,
+  SpatialDistance<Region,Line,false>,
+  SpatialDistance<Region,SimpleLine,false>,
+  SpatialDistance<Region,Rectangle<2>,false>,
   SpatialDistance<Region,Region,false>,
-  SpatialDistance<SimpleLine,Point,false>,
-  SpatialDistance<SimpleLine,Point, true>,
-  SpatialDistance<SimpleLine, Points, false>,
-  SpatialDistance<SimpleLine, Points, true>,
-  SpatialDistance<SimpleLine, SimpleLine, false>,
-  SpatialDistance<Point, Rectangle<2>, true>,
-  SpatialDistance<Point, Rectangle<2>, false>,
-  SpatialDistance<Points, Rectangle<2>, true>,
-  SpatialDistance<Points, Rectangle<2>, false>,
-  SpatialDistance<Line, Rectangle<2>, true>,
-  SpatialDistance<Line, Rectangle<2>, false>,
-  SpatialDistance<Region, Rectangle<2>, true>,
-  SpatialDistance<Region, Rectangle<2>, false>,
-  SpatialDistance<SimpleLine, Rectangle<2>, true>,
-  SpatialDistance<SimpleLine, Rectangle<2>, false>
 };
 
 ValueMapping spatialnocomponentsmap[] = {
@@ -19402,10 +19287,11 @@ const string SpatialSpecSingle  =
 
 const string SpatialSpecDistance  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||sline||rect x "
-  "point||points||line||sline||rect) -> real</text--->"
-  "<text>distance( _, _ )</text--->"
-  "<text>compute distance between two spatial objects.</text--->"
+  "( <text>(point||points||line||sline||rect||region x "
+  "point||points||line||sline||rect||region) [ x geoid] -> real</text--->"
+  "<text>distance( _, _,[,_] )</text--->"
+  "<text>compute distance between two spatial objects. Note: spherical"
+  " distance (using geoid) is not available for all types.</text--->"
   "<text>query distance(point, line)</text--->"
   ") )";
 
@@ -20049,7 +19935,7 @@ Operator spatialsingle (
 Operator spatialdistance (
   "distance",
   SpatialSpecDistance,
-  29,
+  36,
   spatialdistancemap,
   SpatialSelectDistance,
   SpatialDistanceMap );

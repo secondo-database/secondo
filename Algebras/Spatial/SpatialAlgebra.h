@@ -58,6 +58,7 @@ shows examples of these spatial data types.
 #include <stack>
 #include <vector>
 #include <queue>
+#include <limits>
 #include "Attribute.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "../Rectangle/RectangleAlgebra.h"
@@ -1129,7 +1130,9 @@ points where more than 2 segments have a common endpoint.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ is the size of ~V~.
 
 */
-    double Distance( const Line& l, const Geoid* Geoid=0 ) const;
+    template<class LineType>
+    double Distance(const LineType& l , const Geoid* geoid=0) const;
+
 
     void DistanceSmallerThan(const Line& l,
                             const double  maxDist,
@@ -2536,8 +2539,8 @@ Assignement operator redefinition.
   *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-
-  double Distance(const Line& l, const Geoid* geoid=0) const;
+  template<class LineType>
+  double Distance(const LineType& l, const Geoid* geoid=0) const;
 
   double Distance( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 /*
@@ -4696,5 +4699,88 @@ class LineSplitter {
   Points* points;
   bool allowCycles;
 };
+
+
+
+template<class LineType>
+double Line::Distance( const LineType& l, const Geoid* geoid /* = 0 */ ) const
+{
+  assert( !IsEmpty() );   // includes !undef
+  assert( !l.IsEmpty() ); // includes !undef
+  assert(!geoid || geoid->IsDefined() );
+  if( IsEmpty() || l.IsEmpty()){
+    return -1;
+  }
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
+  HalfSegment hs1, hs2;
+  double result = std::numeric_limits<double>::max();
+  double segDistance = -666.666;
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs1 );
+    if( hs1.IsLeftDomPoint() ) {
+      for( int j = 0; j < l.Size(); j++ ) {
+        l.Get( j, hs2 );
+        if( hs1.Intersects( hs2, geoid ) ){
+          return 0.0;
+        }
+        segDistance = hs1.Distance( hs2, geoid );
+        if(geoid && AlmostEqual(segDistance,0.0)){
+          return 0.0;
+        }
+        if(segDistance>=0.0){
+          result = MIN( result, segDistance );
+        }
+      }
+    }
+  }
+  return result;
+}
+
+template<class LineType>
+double Region::Distance( const LineType &l, const Geoid* geoid /*=0*/ ) const
+{
+  assert( !IsEmpty() ); // subsumes IsDefined()
+  assert( !l.IsEmpty() ); // subsumes IsDefined()
+  assert( !geoid || geoid->IsDefined() );
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         << endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+  if( IsEmpty() || l.IsEmpty() || (geoid && !geoid->IsDefined()) ) {
+     return -1;
+  }
+  double result = numeric_limits<double>::max();
+  HalfSegment hs1, hs2;
+  for(int i=0; i<l.Size();i++){
+     l.Get(i,hs2);
+     if(hs2.IsLeftDomPoint()){
+       if(Contains(hs2.GetDomPoint(),geoid)){
+         return 0.0;
+       }
+       if(Contains(hs2.GetSecPoint(),geoid)){
+         return 0.0;
+       }
+     }
+  }
+
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs1 );
+    if( hs1.IsLeftDomPoint() ){
+      for( int j = 0; j < l.Size(); j++ ){
+        l.Get( j, hs2 );
+        if( hs2.IsLeftDomPoint() ){
+          if( hs1.Intersects( hs2 ) ){
+            return 0.0;
+          }
+          result = MIN( result, hs1.Distance( hs2, geoid ) );
+        }
+      }
+    }
+  }
+  return result;
+}
+
 
 #endif // __SPATIAL_ALGEBRA_H__
