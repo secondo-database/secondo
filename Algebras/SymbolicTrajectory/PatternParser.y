@@ -126,7 +126,7 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                var.assign(var.substr(0, var.find('.')));
                int posR = wholepat->getResultPos(var);
                if (posR == -1) {
-                 errMsg = convert("variable " + var + " not found in results");
+                 errMsg = Tools::convert("variable " + var + " not found in results");
                  yyerror(errMsg);
                  free($1);
                  YYERROR;
@@ -134,7 +134,7 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                int posP = wholepat->getPatternPos(var);
                if (posP > -1) {
                  if (!unitVars.count(var)) {
-                   errMsg = convert("assignment for sequence not allowed");
+                   errMsg = Tools::convert("assignment for sequence not allowed");
                    assign.clear();
                    exprList.exprs.clear();
                    yyerror(errMsg);
@@ -142,47 +142,42 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                    YYERROR;
                  }
                }
-               int key = getKey(type);
-               if (key < 6) {
-                 bool redundant = false;
-                 if (key == 1) {
-                   for (int i = 1; i <= 5; i++) {
-                     if (!wholepat->getAssign(posR).getText(i).empty()) {
-                       redundant = true;
-                     }
-                   }
-                 }
-                 else if (key > 1) {
-                   if (!wholepat->getAssign(posR).getText(1).empty()
-                    || !wholepat->getAssign(posR).getText(key).empty()) {
+               int key = Tools::getKey(type);
+               bool redundant = false;
+               if (key == 2) { // time
+                 for (int i = 2; i <= 6; i++) {
+                   if (!wholepat->getAssign(posR).getText(i).empty()) {
                      redundant = true;
                    }
                  }
-                 else {
-                   if (!wholepat->getAssign(posR).getText(0).empty()) {
-                     redundant = true;
-                   }
-                 }
-                 if (redundant) {
-                   errMsg = convert("redundant assignment(s)");
-                   yyerror(errMsg);
-                   free($1);
-                   YYERROR;
-                 }
-                 wholepat->setAssign(posR, posP, key, arg);
-/*                  cout << "setAssign(" << posR << ", " << posP << ", " << key << ", " << arg << ")" << endl; */
-                 while (assign.getRightSize(6)) { // distribute assignments
-                   varKey = assign.getVarKey(6);
-                   wholepat->addAssignRight(posR, key, varKey);
-                   assign.removeUnordered();
+               }
+               else if ((key > 2) && (key < 7)) { // start, end, lc, rc
+                 if (!wholepat->getAssign(posR).getText(2).empty()
+                 || !wholepat->getAssign(posR).getText(key).empty()) {
+                   redundant = true;
                  }
                }
                else {
-                 errMsg = convert("type \"" + type + "\" is not a unit attribute");
+                 if (!wholepat->getAssign(posR).getText(0).empty() ||
+                     !wholepat->getAssign(posR).getText(1).empty() ||
+                     !wholepat->getAssign(posR).getText(8).empty() ||
+                     !wholepat->getAssign(posR).getText(9).empty()) {
+                   redundant = true;
+                 }
+               }
+               if (redundant) {
+                 errMsg = Tools::convert("redundant assignment(s)");
                  yyerror(errMsg);
                  free($1);
                  YYERROR;
                }
+               wholepat->setAssign(posR, posP, key, arg);
+             /*                  cout << "setAssign(" << posR << ", " << posP << ", " << key << ", " << arg << ")" << endl; */
+               while (assign.getRightSize(9)) { // distribute assignments
+                 varKey = assign.getVarKey(9);
+                 wholepat->addAssignRight(posR, key, varKey);
+                 assign.removeUnordered();
+               } 
                assign.clear();
                exprList.exprs.clear();
                free($1);
@@ -216,7 +211,7 @@ result : ZZVARIABLE {
            assignNow = true;
            string var($1);
            if (resultVars.count(var)) {
-             errMsg = convert("result variables must be unique");
+             errMsg = Tools::convert("result variables must be unique");
              yyerror(errMsg);
              YYERROR;
            }
@@ -259,7 +254,7 @@ expression : ZZVAR_DOT_TYPE {
                } else {
                  if (assignNow) {
                    if (!assign.convertVarKey($1)) {
-                     string varDotType($1);
+/*                      string varDotType($1); */
 /*                     errMsg = convert("error: " + varDotType + " not accepted");
                      yyerror(errMsg);*/
                      YYERROR;
@@ -275,14 +270,14 @@ expression : ZZVAR_DOT_TYPE {
            | expressionlistparentheses {
                string list;
                list.append(exprList.exprs.back());
-               $$ = convert(list);
+               $$ = Tools::convert(list);
                exprList.exprs.erase(exprList.exprs.end());
 /*                cout << "expressionlistparentheses reads " << $$ << endl; */
              }
            | expressionlistbrackets {
                string list;
                list.append(exprList.exprs.back());
-               $$ = convert(list);
+               $$ = Tools::convert(list);
                exprList.exprs.erase(exprList.exprs.end());
 /*                cout << "expressionlistbrackets reads " << $$ << endl; */
              }
@@ -401,7 +396,7 @@ patternsequence : patternsequence variable element {
                     $$ = wholepat;
                     string var($2);
                     if (patVars.count(var)) {
-                      errMsg = convert("double variable " + var);
+                      errMsg = Tools::convert("double variable " + var);
                       free($2);
                       yyerror(errMsg);
                       YYERROR;
@@ -428,7 +423,7 @@ patternsequence : patternsequence variable element {
                     string var($1);
                     $$ = wholepat;
                     if (patVars.count(var)) {
-                      errMsg = convert("double variable " + var);
+                      errMsg = Tools::convert("double variable " + var);
                       free($1);
                       yyerror(errMsg);
                       YYERROR;
@@ -456,13 +451,13 @@ patternsequence : patternsequence variable element {
 element : patternelement {
             PatElem pElem($1);
             if (!pElem.isOk()) {
-              errMsg = convert("invalid time information in pattern element");
+              errMsg = Tools::convert("invalid time information in pattern element");
               free($1);
               yyerror(errMsg);
               YYERROR;
             }
             string wildcard = (pElem.getW() == STAR ? "*" : (pElem.getW() == PLUS ? "+" : ""));
-            regEx += int2String(wholepat->getSize() + pElems.size()) + wildcard + " ";
+            regEx += Tools::int2String(wholepat->getSize() + pElems.size()) + wildcard + " ";
             wholepat->addAtomicPos();
             pElems.push_back(pElem);
             free($1);
@@ -492,7 +487,7 @@ separator : '|' {
 
 variable : ZZVARIABLE
          | /* empty */ {
-             $$ = convert("");
+             $$ = Tools::convert("");
            }
          ;
 
@@ -500,7 +495,7 @@ patternelement : '(' ZZCONTENTS ')'{
                    $$ = $2;
                  }
                | '(' ')' {
-                   $$ = convert("");
+                   $$ = Tools::convert("");
                  }
                | ZZWILDCARD {}
                ;
@@ -649,7 +644,7 @@ void PatElem::stringToSet(const string& input, bool isTime) {
       place.first = element.substr(1, element.find_first_of("\"\'", 1) - 1);
       element.erase(0, element.find_first_of("\"\'", 1) + 1);
       element.erase(0, element.find_first_not_of(" "));
-      place.second = str2Int(element);
+      place.second = Tools::str2Int(element);
       pls.insert(place);
       isPlace = true;
     }
@@ -680,13 +675,14 @@ Constructor for class ~PatElem~
 PatElem::PatElem(const char *contents) : wc(NO), setRel(STANDARD), ok(true) {
   string input(contents);
   vector<string> parts;
-  ::splitPattern(input, parts);
+  Tools::splitPattern(input, parts);
   if (parts.size() == 2) {
     stringToSet(parts[0], true);
     stringToSet(parts[1], false);
     SecInterval iv;
     for (set<string>::iterator it = ivs.begin(); it != ivs.end(); it++) {
-      if ((*it)[0] >= 65 && (*it)[0] <= 122 && !checkSemanticDate(*it, iv, false)) {
+      if ((*it)[0] >= 65 && (*it)[0] <= 122 &&
+          !Tools::checkSemanticDate(*it, iv, false)) {
         ok = false;
       }
     }
@@ -717,7 +713,7 @@ int Condition::convertVarKey(const char *varKey) {
   for (unsigned int i = 0; i < wholepat->getElems().size(); i++) {
     wholepat->getElem(i).getV(var);
     if (varInput == var) {
-      key = ::getKey(kInput);
+      key = Tools::getKey(kInput);
       if ((key < 2) && (wholepat->getElem(i).getW()
        || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
         cout << "label/place condition not allowed for sequences" << endl;
@@ -752,8 +748,12 @@ bool Assign::convertVarKey(const char *varKey) {
   for (int i = 0; i < wholepat->getSize(); i++) {
     wholepat->getElem(i).getV(right.first);
     if (varInput == right.first) {
-      right.second = getKey(kInput);
-      addRight(6, right); // assign to n \in {0, 1, ..., 5} afterwards
+      right.second = Tools::getKey(kInput);
+      if (((right.second == 0) || (right.second == 1)) && wholepat->getElem(i).getW()) {
+        cout << "invalid assignment type " << kInput << " for a sequence" << endl;
+        return false;
+      }
+      addRight(9, right); // assign to n \in {0, 1, ..., 8} afterwards
       wholepat->addRelevantVar(varInput);
     }
   }

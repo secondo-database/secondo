@@ -25,6 +25,24 @@ Signature: mstring -> mlabel
 Example  : query mstringtomlabel([const mstring value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home"))]) matches '(_ at_home) *'
 Result   : TRUE
 
+Operator : tolabels
+Number   : 1
+Signature: text x ... x text -> labels
+Example  : query tolabels('Hummels', '', 'Schmelzer')
+Result   : (labels ('Hummels' 'Schmelzer'))
+
+Operator : toplaces
+Number   : 1
+Signature: place x ... x place -> places
+Example  : query toplaces(toplace('Hummels', 15), toplace('Schmelzer', 29))
+Result   : (places (('Hummels' 15) ('Schmelzer' 29)))
+
+Operator : toplaces
+Number   : 2
+Signature: text x int ... x text x int -> places
+Example  : query toplaces('Hummels', 15, 'Schmelzer', 29)
+Result   : (places (('Hummels' 15) ('Schmelzer' 29)))
+
 Operator : contains
 Number   : 1
 Signature: labels x label -> bool

@@ -1,5 +1,7 @@
 operator tolabel alias TOLABEL pattern op ( _ )
 operator mstringtomlabel alias MSTRINGTOMLABEL pattern op ( _ )
+operator tolabels alias TOLABELs pattern op ( _ , _ )
+operator toplaces alias TOPLACEs pattern op ( _ , _ )
 operator contains alias CONTAINS pattern _ infixop _
 operator toplace alias TOPLACE pattern op ( _ , _ )
 operator name alias NAME pattern op ( _ )

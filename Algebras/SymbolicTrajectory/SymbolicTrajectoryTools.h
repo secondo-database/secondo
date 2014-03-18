@@ -41,43 +41,6 @@ Started March 2012, Fabio Vald\'{e}s
 
 using namespace std;
 
-enum SetRel {STANDARD, DISJOINT, SUPERSET, EQUAL, INTERSECT};
-
-struct NFAtransition {
-  int oldState;
-  int trigger;
-  int newState;
-};
-
-string int2String(int i);
-int str2Int(string const &text);
-string setToString(set<string> input);
-int prefixCount(string str, set<string> strings);
-void splitPattern(string& input, vector<string>& result);
-char* convert(string arg);
-void eraseQM(string& arg); // QM = quotation marks
-void addQM(string& arg);
-void simplifyRegEx(string &regEx);
-set<unsigned int>** createSetMatrix(unsigned int dim1, unsigned int dim2);
-void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
-int getKey(string type);
-string getDataType(int key);
-string extractVar(string input);
-string extendDate(string input, const bool start);
-bool checkSemanticDate(const string &text, const SecInterval &uIv,
-                       const bool resultNeeded);
-bool checkDaytime(const string text, const SecInterval uIv);
-bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
-pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
-// Word evaluate(string input);
-void createTrajectory(int size, vector<string>& result);
-void fillML(const MString& source, MString& result, DateTime* duration);
-void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates);
-void makeNFApersistent(vector<map<int, int> > &nfa, set<int> &finalStates,
-     DbArray<NFAtransition> &trans, DbArray<int> &fs, map<int, int> &final2Pat);
-void createNFAfromPersistent(DbArray<NFAtransition> &trans, DbArray<int> &fs,
-                            vector<map<int, int> > &nfa, set<int> &finalStates);
-
 struct TrieNode;
 
 struct NodePointer {

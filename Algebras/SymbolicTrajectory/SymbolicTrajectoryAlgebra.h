@@ -48,7 +48,7 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include "Stream.h"
 #include "SecParser.h"
 #include "NestedList.h"
-#include "SymbolicTrajectoryTools.h"
+//#include "SymbolicTrajectoryTools.h"
 #include "ListUtils.h"
 #include "RelationAlgebra.h"
 #include "Stream.h"
@@ -69,9 +69,9 @@ This is the header file for the Symbolic Trajectory Algebra.
 
 using namespace std;
 
-union Word;
-
 int parsePatternRegEx(const char* argument, IntNfa** T);
+
+union Word;
 
 namespace stj {
 
@@ -81,12 +81,19 @@ class Assign;
 class ClassifyLI;
 class IndexLI;
 
+Pattern* parseString(const char* input, bool classify);
+void patternFlushBuffer();
+
 enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
 enum DataType {LABEL, LABELS, PLACE, PLACES};
+enum SetRel {STANDARD, DISJOINT, SUPERSET, EQUAL, INTERSECT};
 
-Pattern* parseString(const char* input, bool classify);
-void patternFlushBuffer();
+struct NFAtransition {
+  int oldState;
+  int trigger;
+  int newState;
+};
 
 template<class F, class S>
 class NewPair {
@@ -171,6 +178,7 @@ class Label : public Attribute {
 */
 class Labels : public Attribute {
  public:
+  typedef SymbolicUnit unitelem;
   typedef unsigned int arrayelem;
   typedef string base;
   typedef Label single;
@@ -287,6 +295,7 @@ class Place : public Label {
 */
 class Places : public Attribute {
  public:
+  typedef ExtSymbolicUnit unitelem;
   typedef NewPair<unsigned int, unsigned int> arrayelem;
   typedef pair<string, unsigned int> base;
   typedef Place single;
@@ -449,6 +458,7 @@ class MBasic : public Attribute {
   void Clear() {values.clean(); units.clean();}
   void StartBulkLoad() {assert(IsDefined());}
   void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
+  void Add(const SecInterval& iv, const B& value);
   void Add(const UBasic<B>& ub);
   void MergeAdd(const UBasic<B>& ub);
   bool Passes(const B& basic) const;
@@ -459,6 +469,8 @@ class MBasic : public Attribute {
   void Final(IBasic<B>& result) const;
   void Inside(const typename B::coll& coll, MBool& result) const;
   void Fill(MBasic<B>& result, DateTime& duration) const;
+  void Compress(MBasic<B>& result) const;
+  ostream& Print(ostream& os) const;
   
  protected:
   Flob values;
@@ -569,6 +581,7 @@ class MBasics : public Attribute {
   void Clear();
   void StartBulkLoad() {assert(IsDefined());}
   void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
+  bool IsValid() const;
   void Add(const UBasics<B>& ut);
   void Add(const SecInterval& iv, const B& values);
   void MergeAdd(const UBasics<B>& ut);
@@ -581,6 +594,9 @@ class MBasics : public Attribute {
   void Atinstant(const Instant& inst, IBasics<B>& result) const;
   void Initial(IBasics<B>& result) const;
   void Final(IBasics<B>& result) const;
+  void Fill(MBasics<B>& result, DateTime& duration) const;
+  void Compress(MBasics<B>& result) const;
+  ostream& Print(ostream& os) const;
   
  protected:
   Flob values;
@@ -597,13 +613,8 @@ class MLabel : public MBasic<Label> {
   MLabel() {}
   MLabel(unsigned int n) : MBasic<Label>(n) {}
    
-  void compress(MLabel& result) const;
   void createML(int size, bool text, double rate);
   void convertFromMString(const MString& source);
-  MLabel* rewrite(map<string, pair<unsigned int, unsigned int> > binding,
-                  vector<Assign> &assigns) const;
-                  
-  
 };
 
 typedef IBasic<Label> ILabel;
@@ -618,6 +629,40 @@ typedef MBasics<Labels> MLabels;
 typedef IBasics<Places> IPlaces;
 typedef UBasics<Places> UPlaces;
 typedef MBasics<Places> MPlaces;
+
+class Tools {
+ public:
+  static string int2String(int i);
+  static int str2Int(string const &text);
+  static void deleteSpaces(string& text);
+  static string setToString(const set<string>& input);
+  static int prefixCount(string str, set<string> strings);
+  static void splitPattern(string& input, vector<string>& result);
+  static char* convert(string arg);
+  static void eraseQM(string& arg); // QM = quotation marks
+  static void addQM(string& arg);
+  static void simplifyRegEx(string &regEx);
+  static set<unsigned int>** createSetMatrix(unsigned int dim1, 
+                                             unsigned int dim2);
+  static void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
+  static int getKey(const string& type);
+  static string getDataType(const int key);
+  static string extractVar(const string& input);
+  static string extendDate(string input, const bool start);
+  static bool checkSemanticDate(const string &text, const SecInterval &uIv,
+                                const bool resultNeeded);
+  static bool checkDaytime(const string& text, const SecInterval& uIv);
+  static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
+  static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
+  // static Word evaluate(string input);
+  static void createTrajectory(int size, vector<string>& result);
+  static void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates);
+  static void makeNFApersistent(vector<map<int, int> > &nfa,
+     set<int> &finalStates, DbArray<NFAtransition> &trans, DbArray<int> &fs, 
+     map<int, int> &final2Pat);
+  static void createNFAfromPersistent(DbArray<NFAtransition> &trans, 
+          DbArray<int> &fs, vector<map<int, int> > &nfa, set<int> &finalStates);
+};
 
 class ExprList {
  public: 
@@ -683,8 +728,6 @@ class Condition {
   void    setTreeOk(bool value)    {treeOk = value;}
 };
 
-
-
 class PatElem {
  private:
   string var;
@@ -726,11 +769,11 @@ class Assign {
  private:
   int resultPos;
   bool occurrence; // ~true~ if and only if ~var~ occurs in the pattern
-  string text[6]; // one for label, time, start, end, leftclosed, rightclosed
+  string text[10]; // one for each possible attribute
   string var; // the assigned variable
-  vector<pair<string, int> > right[7]; // a list of vars and keys for every type
-  pair<QueryProcessor*, OpTree> opTree[6];
-  vector<Attribute*> pointers[6]; // for each expression like X.card
+  vector<pair<string, int> > right[11]; // list of vars and keys for every type
+  pair<QueryProcessor*, OpTree> opTree[10];
+  vector<Attribute*> pointers[10]; // for each expression like X.card
   bool treesOk;
 
  public:
@@ -740,15 +783,28 @@ class Assign {
   bool convertVarKey(const char* vk);
   bool prepareRewrite(int key, const vector<size_t> &assSeq,
                       map<string, int> &varPosInSeq, MLabel const &ml);
+  bool hasValue() {return (!text[0].empty() || !text[1].empty() ||
+                           !text[8].empty() || !text[9].empty());}
+  bool hasTime() {return (!text[2].empty() || 
+                         (!text[3].empty() && !text[4].empty()));}
   bool initOpTrees();
   void clear();
   void deleteOpTrees();
-  void setLabelPtr(unsigned int pos, string value);
-  void setTimePtr(unsigned int pos, SecInterval value);
-  void setStartPtr(unsigned int pos, Instant value);
-  void setEndPtr(unsigned int pos, Instant value);
+  void setLabelPtr(unsigned int pos, const string& value);
+  void setPlacePtr(unsigned int pos, const pair<string, unsigned int>& value);
+  void setTimePtr(unsigned int pos, const SecInterval& value);
+  void setStartPtr(unsigned int pos, const Instant& value);
+  void setEndPtr(unsigned int pos, const Instant& value);
   void setLeftclosedPtr(unsigned int pos, bool value);
   void setRightclosedPtr(unsigned int pos, bool value);
+  void cleanLabelsPtr(unsigned int pos);
+  void appendToLabelsPtr(unsigned int pos, const string& value);
+  void appendToLabelsPtr(unsigned int pos, const set<string>& value);
+  void cleanPlacesPtr(unsigned int pos);
+  void appendToPlacesPtr(unsigned int pos, 
+                         const pair<string,unsigned int>& value);
+  void appendToPlacesPtr(unsigned int pos, 
+                         const set<pair<string,unsigned int> >& value);
   
   void    init(string v, int pp)             {clear(); var = v;
                                               occurrence = (pp > -1);}
@@ -779,11 +835,6 @@ class Assign {
   void    setTreesOk(bool value)             {treesOk = value;}
 };
 
-class PatPersistent : public Label {
- public:
-  string toText() const {string value; Label::GetValue(value); return value;}
-};
-
 class Pattern {  
  public:
   Pattern() {}
@@ -797,26 +848,6 @@ class Pattern {
   }
 
   string GetText() const;
-   // algebra support functions
-  static Word     In(const ListExpr typeInfo, const ListExpr instance,
-                     const int errorPos, ListExpr& errorInfo, bool& correct);
-  static ListExpr Out(ListExpr typeInfo, Word value);
-  static Word     Create(const ListExpr typeInfo);
-  static void     Delete(const ListExpr typeInfo, Word& w);
-  static void     Close(const ListExpr typeInfo, Word& w);
-  static Word     Clone(const ListExpr typeInfo, const Word& w);
-  static bool     Open(SmiRecord& valueRecord, size_t& offset,
-                       const ListExpr typeInfo, Word& value);
-  static bool     Save(SmiRecord& valueRecord, size_t& offset,
-                       const ListExpr typeInfo, Word& value);
-  static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
-  static int      SizeOfObj();
-  static ListExpr Property();
-  // other functions
-  static const string BasicType();
-  static const bool checkType(const ListExpr type);
-  const bool      IsDefined() {return true;}
-  
   bool isValid(const string& type) const;
   static Pattern* getPattern(string input, bool classify = false);
   template<class M>
@@ -902,6 +933,34 @@ class Pattern {
   set<int> finalStates;
 };
 
+class PatPersistent : public Label {
+ public:
+  PatPersistent() {}
+  PatPersistent(int i) : Label(i > 0) {}
+  PatPersistent(PatPersistent& src) : Label(src.toText()) {}
+  
+  ~PatPersistent() {}
+   
+  string toText() const {string value; Label::GetValue(value); return value;}
+  template<class M>
+  ExtBool matches(M *traj) {
+    Pattern *p = Pattern::getPattern(toText());
+    if (p) {
+      ExtBool result = p->matches(traj);
+      delete p;
+      return result;
+    }
+    else {
+      return UNDEF;
+    }
+  }
+  
+  static const string BasicType() {return "pattern";}
+  static const bool checkType(const ListExpr type) {
+    return listutils::isSymbol(type, BasicType());
+  }
+};
+
 class Classifier : public Attribute {
   friend class ClassifyLI;
  public:
@@ -934,7 +993,7 @@ class Classifier : public Attribute {
                         map<int, int> &state2Pat) {
     delta.clean();
     s2p.clean();
-    makeNFApersistent(nfa, finalSt, delta, s2p, state2Pat);
+    Tools::makeNFApersistent(nfa, finalSt, delta, s2p, state2Pat);
   }
   DbArray<NFAtransition> *getDelta() {return &delta;}
   int getNumOfState2Pat() {return s2p.Size();}
@@ -1021,14 +1080,12 @@ class SetOps {
 
 template<class M>
 class Match {
-  friend class RewriteLI;
- private:
+ public:
   Pattern *p;
   M *m; // mlabel, mplace, mlabels, mplaces
   set<unsigned int>** matching; // stores the whole matching process
   DataType type; // enum
 
- public:
   Match(Pattern *pat, M *traj) {
     p = pat;
     m = traj;
@@ -1069,9 +1126,9 @@ class Match {
   bool initCondOpTrees() {return p->initCondOpTrees();}
   bool initAssignOpTrees() {return p->initAssignOpTrees();}
   void deleteSetMatrix() {if (matching) {
-                           ::deleteSetMatrix(matching, m->GetNoComponents());}}
+                       Tools::deleteSetMatrix(matching, m->GetNoComponents());}}
   void createSetMatrix(unsigned int dim1, unsigned int dim2) {
-    matching = ::createSetMatrix(dim1, dim2);}
+    matching = Tools::createSetMatrix(dim1, dim2);}
   void setM(M *newM) {m = newM;}
   bool indexMatch(StateWithULs swu);
   void filterTransitions(vector<map<int, int> > &nfaSimple,
@@ -1085,7 +1142,7 @@ class Match {
   void setNFAfromDbArrays(DbArray<NFAtransition> &trans, DbArray<int> &fs) {
     vector<map<int, int> > nfa;
     set<int> finalStates;
-    createNFAfromPersistent(trans, fs, nfa, finalStates);
+    Tools::createNFAfromPersistent(trans, fs, nfa, finalStates);
     p->setNFA(nfa, finalStates);
   }
   void setPattern(Pattern *pat) {p = pat;}
@@ -1102,21 +1159,24 @@ struct BindingStackElem {
 //   map<string, pair<unsigned int, unsigned int> > binding;
 };
 
+template<class M>
 class RewriteLI {
  public:
-  RewriteLI(MLabel *src, Pattern *pat);
+  RewriteLI(M *src, Pattern *pat);
   RewriteLI(int i) : match(0) {}
 
   ~RewriteLI() {}
 
-  MLabel* getNextResult();
+  M* getNextResult();
+  static M* rewrite(M *src, map<string, pair<unsigned int, unsigned int> > 
+                    binding, vector<Assign> &assigns);
   void resetBinding(unsigned int limit);
   bool findNextBinding(unsigned int ulId, unsigned int pId, Pattern *p,
                        int offset);
   
  protected:
   stack<BindingStackElem> bindingStack;
-  Match<MLabel> *match;
+  Match<M> *match;
   map<string, pair<unsigned int, unsigned int> > binding;
   set<map<string, pair<unsigned int, unsigned int> > > rewBindings;
 };
@@ -1141,7 +1201,7 @@ protected:
   set<int> matchingPats;
 };
 
-class MultiRewriteLI : public ClassifyLI, public RewriteLI {
+class MultiRewriteLI : public ClassifyLI, public RewriteLI<MLabel> {
 
  public:
   MultiRewriteLI(Word _mlstream, Word _pstream);
@@ -1168,10 +1228,10 @@ class MultiRewriteLI : public ClassifyLI, public RewriteLI {
   map<int, string> elemToVar;
 };
 
+template<class M>
 class FilterMatchesLI {
  public:
-  FilterMatchesLI(Word _stream, int _attrIndex, FText* text);
-  FilterMatchesLI(Word _stream, int _attrIndex, Pattern* p);
+  FilterMatchesLI(Word _stream, int _attrIndex, string& pText);
 
   ~FilterMatchesLI();
 
@@ -1180,7 +1240,7 @@ class FilterMatchesLI {
  private:
   Stream<Tuple> stream;
   int attrIndex;
-  Match<MLabel>* match;
+  Match<M>* match;
   bool streamOpen, deleteP;
 };
 

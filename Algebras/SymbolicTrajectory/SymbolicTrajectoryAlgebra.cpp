@@ -243,26 +243,6 @@ GenTC<Label> label;
 /*
 \section{Implementation of class ~MLabels~}
 
-\subsection{Function ~compress~}
-
-If there are subsequent ULabels with the same Label, this function squeezes
-them to one ULabel.
-
-*/
-void MLabel::compress(MLabel& result) const {
-  result.Clear();
-  if(!IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  ULabel ul(1);
-  for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, ul);
-    result.MergeAdd(ul);
-  }
-}
-
-/*
 \subsection{Function ~create~}
 
 Creates an MLabel of a certain size for testing purposes. The labels will be
@@ -285,7 +265,7 @@ void MLabel::createML(int size, bool text, double rate = 1.0) {
     SecInterval iv(start, end, true, false);
     if (text) {
       vector<string> trajectory;
-      createTrajectory(size, trajectory);
+      Tools::createTrajectory(size, trajectory);
       for (int i = 0; i < size; i++) {
         time_t tm;
         time(&tm);
@@ -305,7 +285,7 @@ void MLabel::createML(int size, bool text, double rate = 1.0) {
         time(&tm);
         srand(((unsigned int)tm) % 86400000);
         DateTime dur(0, rand(), durationtype); // duration
-        ul.constValue.Set(true, int2String(max - (i % max)));
+        ul.constValue.Set(true, Tools::int2String(max - (i % max)));
         start.Add(&dur);
         end.Add(&dur);
         iv.Set(start, end, true, false);
@@ -339,265 +319,91 @@ void MLabel::convertFromMString(const MString& source) {
     ul.constValue.SetValue(us.constValue.GetValue());
     Add(ul);
   }
-  
 }
 
 /*
 \subsection{Functions supporting ~rewrite~}
 
 */
-void Assign::setLabelPtr(unsigned int pos, string value) {
+void Assign::setLabelPtr(unsigned int pos, const string& value) {
   if (pos < pointers[0].size()) {
-    ((CcString*)pointers[0][pos])->Set(true, value);
+    ((Label*)pointers[0][pos])->Set(true, value);
   }
 }
 
-void Assign::setTimePtr(unsigned int pos, SecInterval value) {
+void Assign::setPlacePtr(unsigned int pos, 
+                         const pair<string, unsigned int>& value) {
   if (pos < pointers[1].size()) {
-    *((SecInterval*)pointers[1][pos]) = value;
+    ((Place*)pointers[1][pos])->Set(true, value);
   }
 }
 
-void Assign::setStartPtr(unsigned int pos, Instant value) {
+void Assign::setTimePtr(unsigned int pos, const SecInterval& value) {
   if (pos < pointers[2].size()) {
-    *((Instant*)pointers[2][pos]) = value;
+    *((SecInterval*)pointers[2][pos]) = value;
   }
 }
 
-void Assign::setEndPtr(unsigned int pos, Instant value) {
+void Assign::setStartPtr(unsigned int pos, const Instant& value) {
   if (pos < pointers[3].size()) {
     *((Instant*)pointers[3][pos]) = value;
   }
 }
 
-void Assign::setLeftclosedPtr(unsigned int pos, bool value) {
+void Assign::setEndPtr(unsigned int pos, const Instant& value) {
   if (pos < pointers[4].size()) {
-    ((CcBool*)pointers[4][pos])->Set(true, value);
+    *((Instant*)pointers[4][pos]) = value;
   }
 }
 
-void Assign::setRightclosedPtr(unsigned int pos, bool value) {
+void Assign::setLeftclosedPtr(unsigned int pos, bool value) {
   if (pos < pointers[5].size()) {
     ((CcBool*)pointers[5][pos])->Set(true, value);
   }
 }
 
-/*
-\subsection{Function ~rewrite~}
-
-Rewrites a moving label using another moving label.
-
-*/
-MLabel* MLabel::rewrite(map<string, pair<unsigned int, unsigned int> > binding,
-                        vector<Assign> &assigns) const {
-//   cout << "rewrite called with binding ";
-//   for (map<string, pair<unsigned int, unsigned int> >::iterator i =
-//                                                              binding.begin();
-//     i != binding.end(); i++) {
-//     cout << i->first << "--> [" << i->second.first << ","
-//          << i->second.second << "]  ";
-//   }
-//   cout << endl;
-  MLabel *result = new MLabel(1);
-  Word qResult;
-  string label(""), var("");
-  Instant start(instanttype), end(instanttype);
-  SecInterval iv(1);
-  bool lc(false), rc(false);
-  ULabel ul(1), uls(1);
-  pair<unsigned int, unsigned int> segment;
-  for (unsigned int i = 0; i < assigns.size(); i++) {
-    for (int j = 0; j < 6; j++) {
-      if (!assigns[i].getText(j).empty()) {
-        for (int k = 0; k < assigns[i].getRightSize(j); k++) {
-          if (binding.count(assigns[i].getRightVar(j, k))) {
-            segment = binding[assigns[i].getRightVar(j, k)];
-            switch (assigns[i].getRightKey(j, k)) {
-              case 0: { // label
-                Get(segment.first, ul);
-                string text;
-                ul.constValue.GetValue(text);
-                assigns[i].setLabelPtr(k, text);
-                break;
-              }
-              case 1: { // time
-                Get(segment.first, ul);
-                iv.start = ul.timeInterval.start;
-                iv.lc = ul.timeInterval.lc;
-                Get(segment.second, ul);
-                iv.end = ul.timeInterval.end;
-                iv.rc = ul.timeInterval.rc;
-                assigns[i].setTimePtr(k, iv);
-                break;
-              }
-              case 2: { // start
-                Get(segment.first, ul);
-                if (j == 2) {
-                  assigns[i].setStartPtr(k, ul.timeInterval.start);
-                }
-                else {
-                  assigns[i].setEndPtr(k, ul.timeInterval.start);
-                }
-                break;
-              }
-              case 3: { // end
-                Get(segment.second, ul);
-                if (j == 2) {
-                  assigns[i].setStartPtr(k, ul.timeInterval.end);
-                }
-                else {
-                  assigns[i].setEndPtr(k, ul.timeInterval.end);
-                }
-                break;
-              }
-              case 4: { // leftclosed
-                Get(segment.first, ul);
-                if (j == 4) {
-                  assigns[i].setLeftclosedPtr(k, ul.timeInterval.lc);
-                }
-                else {
-                  assigns[i].setRightclosedPtr(k, ul.timeInterval.lc);
-                }
-                break;
-              }
-              case 5: { // rightclosed
-                Get(segment.second, ul);
-                if (j == 4) {
-                  assigns[i].setLeftclosedPtr(k, ul.timeInterval.rc);
-                }
-                else {
-                  assigns[i].setRightclosedPtr(k, ul.timeInterval.rc);
-                }
-                break;
-              }
-              default: { // cannot occur
-                cout << "Error: assigns[" << i << "].getRightKey(" << j << ", "
-                     << k << ") = " << assigns[i].getRightKey(j, k) << endl;
-                result->SetDefined(false);
-                return result;
-              }
-            }
-          }
-          else { // variable from right size unbound
-            result->SetDefined(false);
-            return result;
-          }
-        }
-      }
-    } // all pointers are set now
-    if (!assigns[i].getText(0).empty()) {
-      assigns[i].getQP(0)->EvalS(assigns[i].getOpTree(0), qResult, OPEN);
-      label = ((CcString*)qResult.addr)->GetValue();
-    }
-    if (!assigns[i].getText(1).empty()) {
-      assigns[i].getQP(1)->EvalS(assigns[i].getOpTree(1), qResult, OPEN);
-      iv = *((SecInterval*)qResult.addr);
-    }
-    if (!assigns[i].getText(2).empty()) {
-      assigns[i].getQP(2)->EvalS(assigns[i].getOpTree(2), qResult, OPEN);
-      start = *((Instant*)qResult.addr);
-    }
-    if (!assigns[i].getText(3).empty()) {
-      assigns[i].getQP(3)->EvalS(assigns[i].getOpTree(3), qResult, OPEN);
-      end = *((Instant*)qResult.addr);
-    }
-    if (!assigns[i].getText(4).empty()) {
-      assigns[i].getQP(4)->EvalS(assigns[i].getOpTree(4), qResult, OPEN);
-      lc = ((CcBool*)qResult.addr)->GetValue();
-    }
-    if (!assigns[i].getText(5).empty()) {
-      assigns[i].getQP(5)->EvalS(assigns[i].getOpTree(5), qResult, OPEN);
-      rc = ((CcBool*)qResult.addr)->GetValue();
-    }
-     // information from assignment i collected
-    if (binding.count(assigns[i].getV())) { // variable occurs in binding
-      segment = binding[assigns[i].getV()];
-      if (segment.second == segment.first) { // 1 source ul
-        Get(segment.first, uls);
-        if (!assigns[i].getText(0).empty()) {
-          uls.constValue.Set(true, label);
-        }
-        if (!assigns[i].getText(1).empty()) {
-          uls.timeInterval = iv;
-        }
-        if (!assigns[i].getText(2).empty()) {
-          uls.timeInterval.start = start;
-        }
-        if (!assigns[i].getText(3).empty()) {
-          uls.timeInterval.end = end;
-        }
-        if (!assigns[i].getText(4).empty()) {
-          uls.timeInterval.lc = lc;
-        }
-        if (!assigns[i].getText(5).empty()) {
-          uls.timeInterval.rc = rc;
-        }
-        if (!uls.timeInterval.IsValid()) {
-          uls.timeInterval.Print(cout);
-          cout << " is an invalid interval" << endl;
-          result->SetDefined(false);
-          return result;
-        }
-        result->Add(uls);
-      }
-      else { // arbitrary many source uls
-        for (unsigned int m = segment.first; m <= segment.second; m++) {
-          Get(m, uls);
-          if (!assigns[i].getText(0).empty()) {
-            uls.constValue.Set(true, label);
-          }
-          if ((m == segment.first) && // first unit label
-            (!assigns[i].getText(1).empty() || !assigns[i].getText(2).empty())){
-            uls.timeInterval.start = start;
-            if (!uls.timeInterval.IsValid()) {
-              uls.timeInterval.Print(cout);
-              cout << " is an invalid interval" << endl;
-              result->SetDefined(false);
-              return result;
-            }
-          }
-          if ((m == segment.second) && // last unit label
-            (!assigns[i].getText(1).empty() || !assigns[i].getText(3).empty())){
-            uls.timeInterval.end = end;
-            if (!uls.timeInterval.IsValid()) {
-              uls.timeInterval.Print(cout);
-              cout << " is an invalid interval" << endl;
-              result->SetDefined(false);
-              return result;
-            }
-          }
-          if ((m == segment.first) && !assigns[i].getText(4).empty()) {
-            uls.timeInterval.lc = lc;
-          }
-          if ((m == segment.second) && !assigns[i].getText(5).empty()) {
-            uls.timeInterval.rc = rc;
-          }
-          result->Add(uls);
-        }
-      }
-    }
-    else { // variable does not occur in binding
-      if (!assigns[i].occurs()) { // and not in pattern
-        uls.constValue.Set(true, label);
-        if (!assigns[i].getText(1).empty()) {
-          uls.timeInterval = iv;
-        }
-        else {
-          uls.timeInterval.start = start;
-          uls.timeInterval.end = end;
-        }
-        if (!assigns[i].getText(4).empty()) {
-          uls.timeInterval.lc = lc;
-        }
-        if (!assigns[i].getText(5).empty()) {
-          uls.timeInterval.rc = rc;
-        }
-        result->Add(uls);
-      }
-    }
+void Assign::setRightclosedPtr(unsigned int pos, bool value) {
+  if (pos < pointers[6].size()) {
+    ((CcBool*)pointers[6][pos])->Set(true, value);
   }
-  result->SetDefined(result->IsValid());
-  return result;
+}
+
+void Assign::cleanLabelsPtr(unsigned int pos) {
+  if (pos < pointers[8].size()) {
+    ((Labels*)pointers[8][pos])->Clean();
+  }
+}
+
+void Assign::appendToLabelsPtr(unsigned int pos, const string& value) {
+  if (pos < pointers[8].size()) {
+    ((Labels*)pointers[8][pos])->Append(value);
+  }
+}
+
+void Assign::appendToLabelsPtr(unsigned int pos, const set<string>& values) {
+  if (pos < pointers[8].size()) {
+    ((Labels*)pointers[8][pos])->Append(values);
+  }
+}
+
+void Assign::cleanPlacesPtr(unsigned int pos) {
+  if (pos < pointers[9].size()) {
+    ((Places*)pointers[9][pos])->Clean();
+  }
+}
+  
+void Assign::appendToPlacesPtr(unsigned int pos, 
+                               const pair<string, unsigned int>& value) {
+  if (pos < pointers[9].size()) {
+    ((Places*)pointers[9][pos])->Append(value);
+  }
+}
+
+void Assign::appendToPlacesPtr(unsigned int pos, 
+                               const set<pair<string, unsigned int> >& values) {
+  if (pos < pointers[9].size()) {
+    ((Places*)pointers[9][pos])->Append(values);
+  }
 }
 
 /*
@@ -1364,6 +1170,39 @@ void MBasics<B>::EndBulkLoad(const bool sort /*= true*/,
 }
 
 /*
+\subsection{Function ~IsValid~}
+
+*/
+template<class B>
+bool MBasics<B>::IsValid() const {
+  if (!IsDefined() || IsEmpty()) {
+    return true;
+  }
+  typename B::unitelem lastUnit, unit;
+  units.Get(0, lastUnit);
+  if (!lastUnit.iv.IsValid()) {
+    return false;
+  }
+  if (GetNoComponents() == 1) {
+    return true;
+  }
+  for (int i = 1; i < GetNoComponents(); i++) {
+    units.Get(i, unit);
+    if (!unit.iv.IsValid()) {
+      return false;
+    }
+    if (lastUnit.iv.end > unit.iv.start) {
+      return false;
+    }
+    if (!lastUnit.iv.Disjoint(unit.iv)) {
+      return false;
+    }
+    lastUnit = unit;
+  }
+  return true;
+}
+
+/*
 \subsection{Function ~Add~}
 
 */
@@ -1385,6 +1224,7 @@ void MBasics<B>::Add(const SecInterval& iv, const B& values) {
   if (!readUnit(unitlist)) {
     SetDefined(false);
   }
+  assert(IsValid());
 }
 
 /*
@@ -1422,6 +1262,7 @@ void MBasics<B>::MergeAdd(const SecInterval& iv, const B& values) {
   else { // first unit
     Add(iv, values);
   }
+  assert(IsValid());
 }
 
 template<class B>
@@ -1591,6 +1432,75 @@ void MBasics<B>::Final(IBasics<B>& result) const {
   GetInterval(GetNoComponents() - 1, iv);
   result.instant = iv.end;
   GetBasics(GetNoComponents() - 1, result.value);
+}
+
+/*
+\subsection{Function ~Fill~}
+
+*/
+template<class B>
+void MBasics<B>::Fill(MBasics<B>& result, DateTime& dur) const {
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.Clear();
+  result.SetDefined(true);
+  if (IsEmpty()) {
+    return;
+  }
+  UBasics<B> unit(true), lastUnit(true);
+  Get(0, lastUnit);
+  for (int i = 1; i < GetNoComponents(); i++) {
+    Get(i, unit);
+    if ((lastUnit.constValue == unit.constValue) && 
+        (unit.timeInterval.start - lastUnit.timeInterval.end <= dur)) {
+      lastUnit.timeInterval.end = unit.timeInterval.end;
+      lastUnit.timeInterval.rc = unit.timeInterval.rc;
+    }
+    else {
+      result.MergeAdd(lastUnit);
+      lastUnit = unit;
+    }
+  }
+  result.MergeAdd(lastUnit);
+}
+
+/*
+\subsection{Function ~Compress~}
+
+*/
+template<class B>
+void MBasics<B>::Compress(MBasics<B>& result) const {
+  result.Clear();
+  result.SetDefined(IsDefined());
+  if(!IsDefined()) {
+    return;
+  }
+  UBasics<B> ub(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub);
+    result.MergeAdd(ub);
+  }
+}
+
+/*
+\subsection{Function ~Print~}
+
+*/
+template<class B>
+ostream& MBasics<B>::Print(ostream& os) const {
+  if (!IsDefined()) {
+    os << "(undefined)" << endl;
+    return os;
+  }
+  os << BasicType() << ":" << endl;
+  UBasics<B> ubs(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ubs);
+    ubs.Print(os);
+  }
+  return os;
 }
 
 /*
@@ -2927,6 +2837,18 @@ void MBasic<B>::Add(const UBasic<B>& ub) {
   if (IsDefined()) {
     readUnitFrom(ub2.ToListExpr(nl->Empty()));
   }
+  assert(IsValid());
+}
+
+template<class B>
+void MBasic<B>::Add(const SecInterval& iv, const B& value) {
+  assert(iv.IsDefined() && value.IsDefined());
+  B value2(value);
+  ListExpr unitlist = nl->TwoElemList(iv.ToListExpr(nl->Empty()),
+                                      value2.ToListExpr(nl->Empty()));
+  if (!readUnitFrom(unitlist)) {
+    SetDefined(false);
+  }
 }
 
 /*
@@ -2965,6 +2887,7 @@ void MBasic<B>::MergeAdd(const UBasic<B>& ub) {
   else { // first unit
     Add(ub);
   }
+  assert(IsValid());
 }
 
 /*
@@ -3143,11 +3066,734 @@ void MBasic<B>::Fill(MBasic<B>& result, DateTime& dur) const {
 }
 
 /*
+\subsection{Function ~Compress~}
+
+*/
+template<class B>
+void MBasic<B>::Compress(MBasic<B>& result) const {
+  result.Clear();
+  result.SetDefined(IsDefined());
+  if(!IsDefined()) {
+    return;
+  }
+  UBasic<B> ub(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub);
+    result.MergeAdd(ub);
+  }
+}
+
+/*
+\subsection{Function ~Print~}
+
+*/
+template<class B>
+ostream& MBasic<B>::Print(ostream& os) const {
+  if (!IsDefined()) {
+    os << "(undefined)" << endl;
+    return os;
+  }
+  os << BasicType() << ":" << endl;
+  UBasic<B> ub(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub);
+    ub.Print(os);
+  }
+  return os;
+}
+
+/*
 \subsection{Type Constructors}
 
 */
 GenTC<MLabel> mlabel;
 GenTC<MBasic<Place> > mplace;
+
+/*
+\section{Implementation of class ~Tools~}
+
+*/
+string Tools::int2String(int i) {
+  stringstream result;
+  result << i;
+  return result.str();
+}
+
+int Tools::str2Int(string const &text) {
+  int result;
+  stringstream ss(text);
+  if((ss >> result).fail())
+    result = 0;
+  return result;
+}
+
+void Tools::deleteSpaces(string &text) {
+  size_t pos = 0;
+  while ((pos = text.find(' ', pos)) != string::npos)
+    text.erase(pos, 1);
+}
+
+/*
+\subsection{Function ~convert~}
+
+Converts a string into a char[*].
+
+*/
+char* Tools::convert(string arg) {
+  return strdup(arg.c_str());
+}
+
+/*
+\subsection{Function ~eraseQM~}
+
+Deletes enclosing quotation marks from a string.
+
+*/
+void Tools::eraseQM(string& arg) {
+  if (arg.at(0) == '"') {
+    arg = arg.substr(1, arg.length() - 2);
+  }
+}
+
+void Tools::addQM(string& arg) {
+  if (arg.at(0) != '"') {
+    arg.insert(0, "\"");
+    arg.append("\"");
+  }
+}
+
+void Tools::simplifyRegEx(string &regEx) {
+  for (unsigned int i = 0; i < regEx.length(); i++) {
+    switch (regEx[i]) {
+      case '*': {
+        regEx[i] = '?';
+        break;
+      }
+      case '+': {
+        regEx.erase(i, 1);
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
+}
+
+/*
+function ~setToString~
+
+*/
+string Tools::setToString(const set<string>& input) {
+  set<string>::iterator i;
+  stringstream result;
+  if (input.size() == 1) {
+    result << *(input.begin());
+  }
+  else if (input.size() > 1) {
+    result << "{";
+    for (i = input.begin(); i != input.end(); i++) {
+      if (i != input.begin()) {
+        result << ", ";
+      }
+      result << *i;
+    }
+    result << "}";
+  }
+  return result.str();
+}
+
+/*
+function ~createSetMatrix~
+
+Creates and returns a twodimensional array that is used to store the matching
+positions.
+
+*/
+
+set<unsigned int>** Tools::createSetMatrix(unsigned int dim1,unsigned int dim2){
+  set<unsigned int>** result = new set<unsigned int>*[dim1];
+  for (unsigned int i = 0; i < dim1; i++) {
+    result[i] = new set<unsigned int>[dim2];
+  }
+  return result;
+};
+
+/*
+function ~deleteSetMatrix~
+
+Deletes a twodimensional array.
+
+*/
+
+void Tools::deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1) {
+  for (unsigned int i = 0; i < dim1; i++) {
+    delete[] victim[i];
+  }
+  delete[] victim;
+}
+
+/*
+function ~prefixCount~
+
+Returns the number of strings from which ~str~ is a prefix. This is needed in
+MLabel::buildIndex.
+
+*/
+int Tools::prefixCount(string str, set<string> strings) {
+  set<string>::iterator it;
+  int result = 0;
+  for (it = strings.begin(); it != strings.end(); it++) {
+    if ((it->substr(0, str.length()) == str) && (*it != str)) {
+      result++;
+    }
+  }
+  return result;
+}
+
+void Tools::splitPattern(string& input, vector<string>& result) {
+  result.clear();
+  if (input.empty()) {
+    return;
+  }
+  size_t pos = input.find('{');
+  if (pos == 0) { // ({2012, 2013}, ...)
+    result.push_back(input.substr(0, input.find('}') + 1));
+    if (input.find('{', 1) != string::npos) { // ({2012, 2013}, {a, b, c})
+      result.push_back(input.substr(input.find('{', 1)));
+    }
+    else { // ({2012, 2013} a)
+      result.push_back(input.substr(input.find('}') + 1));
+    }
+  }
+  else if (pos == string::npos) { // no curly brackets
+    if (input.find(' ') == string::npos) { // * or +
+      result.push_back(input);
+    }
+    else { // (2012 a)
+      result.push_back(input.substr(0, input.find(' ')));
+      result.push_back(input.substr(input.find(' ')));
+    }
+  }
+  else { // (2012 {a, b, c})
+    result.push_back(input.substr(0, input.find(' ')));
+    result.push_back(input.substr(input.find(' ')));
+  }
+}
+
+/*
+function ~extractVar~
+
+Takes an assignment string like ~time=Z.time~ and returns the variable string.
+
+*/
+string Tools::extractVar(const string& input) {
+  int posEq = input.find('=');
+  int posDot = input.find('.');
+  return input.substr(posEq + 1, posDot - posEq - 1);
+}
+
+int Tools::getKey(const string& type) {
+  if (type == "label")       return 0;
+  if (type == "place")       return 1;
+  if (type == "time")        return 2;
+  if (type == "start")       return 3;
+  if (type == "end")         return 4;
+  if (type == "leftclosed")  return 5;
+  if (type == "rightclosed") return 6;
+  if (type == "card")        return 7;
+  if (type == "labels")      return 8;
+  if (type == "places")      return 9;
+  else return -1; // should not occur
+}
+
+string Tools::getDataType(const int key) {
+  switch (key) {
+    case -1: return CcBool::BasicType();
+    case 0: return Label::BasicType();
+    case 1: return Place::BasicType();
+    case 2: return SecInterval::BasicType();
+    case 3: 
+    case 4: return Instant::BasicType();
+    case 5:
+    case 6: return CcBool::BasicType();
+    case 8: return Labels::BasicType();
+    case 9: return Places::BasicType();
+    default: return "error";
+  }
+}
+
+/*
+function ~extendDate~
+
+Takes a datetime string and extends it to the format YYYY-MM-DD-HH:MM:SS.MMM,
+the variable ~start~ decides on the values.
+
+*/
+string Tools::extendDate(string input, const bool start) {
+  string result, mask;
+  int month, daysInMonth, year;
+  if (start) {
+    mask.assign("-01-01-00:00:00");
+  }
+  else {
+    mask.assign("-12-31-23:59:59.999");
+  }
+  if (input[input.size() - 1] == '-') { // handle case 2011-04-02-
+    input.resize(input.size() - 1);
+  }
+  result.assign(input);
+  size_t pos = 1;
+  if ((pos = input.find('-', pos)) == string::npos) {
+    result.append(mask.substr(0));
+    return result;
+  }
+  pos++;
+  if ((pos = input.find('-', pos)) == string::npos) {
+    if (!start) {
+      stringstream yearStream(input.substr(0, input.find('-')));
+      stringstream monthStream(input.substr(input.find('-') + 1));
+      stringstream dayStream;
+      if ((monthStream >> month).fail()) {
+        cout << "month stringstream error" << endl;
+        return input + mask.substr(3);
+      }
+      else {
+        switch (month){
+          case 1:
+          case 3:
+          case 5:
+          case 7:
+          case 8:
+          case 10:
+          case 12:
+            daysInMonth = 31;
+            break;
+          case 4:
+          case 6:
+          case 9:
+          case 11:
+            daysInMonth = 30;
+            break;
+          case 2:
+            if ((yearStream >> year).fail()) {
+              cout << "year stringstream error" << endl;
+              return input + mask.substr(3);
+            }
+            else {
+              if (((year % 4 == 0) && (year % 100 != 0))
+                || (year % 400 == 0)) {
+                daysInMonth = 29;
+              }
+              else {
+                daysInMonth = 28;
+              }
+            }
+            break;
+          default: // should not occur
+            cout << "month " << month << " does not exist" << endl;
+            return input + mask.substr(3);
+        }
+      }
+      dayStream << "-" << daysInMonth;
+      result.append(dayStream.str());
+      result.append(mask.substr(6));
+      return result;
+    }
+  }
+  pos = input.find('-') + 1;
+  if ((pos = input.find('-', pos)) == string::npos) {
+    result.append(mask.substr(3));
+    return result;
+  }
+  pos++;
+  if ((pos = input.find('-', pos)) == string::npos) {
+    return result;
+  }
+  pos++;
+  if ((pos = input.find(':', pos)) == string::npos) {
+    result.append(mask.substr(9));
+    return result;
+  }
+  pos++;
+  if ((pos = input.find(':', pos)) == string::npos) {
+    result.append(mask.substr(12));
+    return result;
+  }
+  pos++;
+  if ((pos = input.find('.', pos)) == string::npos) {
+    result.append(mask.substr(15));
+    return result;
+  }
+  return input;
+}
+
+/*
+function ~checkSemanticDate~
+Checks whether ~text~ is a valid semantic date string or a valid database object
+of type ~Periods~ and contains the time interval defined by ~uIv~. If the
+parameter ~resultNeeded~ is ~false~, the function will only check the validity
+of ~text~.
+
+*/
+bool Tools::checkSemanticDate(const string &text, const SecInterval &uIv,
+                              const bool eval) {
+  string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", "friday",
+                        "saturday", "sunday"};
+  string months[12] = {"january", "february", "march", "april", "may", "june",
+                       "july", "august", "september", "october", "november",
+                       "december"};
+  string daytimes[4] = {"morning", "afternoon", "evening", "night"};
+  Instant uStart = uIv.start;
+  Instant uEnd = uIv.end;
+  bool isSemanticDate = false;
+  for (int i = 0; i < 12; i++) {
+    if (!text.compare(months[i])) {
+      isSemanticDate = true;
+    }
+    else if (i < 7) {
+      if (!text.compare(weekdays[i])) {
+        isSemanticDate = true;
+      }
+      else if (i < 4) {
+        if (!text.compare(daytimes[i])) {
+          isSemanticDate = true;
+        }
+      }
+    }
+  }
+  if (isSemanticDate && !eval) {
+    return true;
+  }
+  else if (isSemanticDate && eval) {
+    if ((uStart.GetYear() == uEnd.GetYear()) // year and month of start and end
+         && (uStart.GetMonth() == uEnd.GetMonth())) { //must coincode for match
+      for (int i = 0; i < 12; i++) { // handle months
+        if (!text.compare(months[i])) {
+          return (i == uStart.GetMonth() - 1);
+        }
+      } // for weekdays and daytimes, start and end day have to coincide
+      if (uStart.GetGregDay() == uEnd.GetGregDay()) {
+        for (int i = 0; i < 7; i++) { // handle weekdays
+          if (!text.compare(weekdays[i])) {
+            return (i == uStart.GetWeekday());
+          }
+        }
+        for (int i = 0; i < 4; i++) { // handle daytimes
+          if (!text.compare(daytimes[i])) {
+            switch (i) {
+              case 0:
+                return (uStart.GetHour() >= 0) && (uEnd.GetHour() <= 11);
+              case 1:
+                return (uStart.GetHour() >= 12) && (uEnd.GetHour() <= 16);
+              case 2:
+                return (uStart.GetHour() >= 17) && (uEnd.GetHour() <= 20);
+              case 3:
+                return (uStart.GetHour() >= 21) && (uEnd.GetHour() <= 23);
+              default: // cannot occur
+                cout << "daytime error" << endl;
+                return false;
+            }
+          }
+        }
+      }
+    } // different months => match impossible
+  }
+  else {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    const int errPos = 0;
+    ListExpr errInfo;
+    bool ok;
+    if (Periods::checkType(sc->GetObjectTypeExpr(text)) ||
+        SecInterval::checkType(sc->GetObjectTypeExpr(text))) {
+      Word pWord = sc->InObject(sc->GetObjectTypeExpr(text),
+                                sc->GetObjectValue(text), errPos, errInfo, ok);
+      if (!ok) {
+        cout << "Error: InObject failed." << endl;
+        return false;
+      }
+      else {
+        if (Periods::checkType(sc->GetObjectTypeExpr(text))) {
+          Periods* period = static_cast<Periods*>(pWord.addr);
+          return (eval ? period->Contains(uIv) : true);
+        }
+        else {
+          SecInterval* interval = static_cast<SecInterval*>(pWord.addr);
+          return (eval ? interval->Contains(uIv) : true);
+        }
+      }
+    }
+    cout << text << " is not a periods / interval object." << endl;
+    return false;
+  }
+  return false;
+}
+
+/*
+function ~checkDaytime~
+
+Checks whether the daytime interval resulting from text (e.g., 0:00[~]8:00)
+contains the one from the unit label.
+
+*/
+bool Tools::checkDaytime(const string& text, const SecInterval& uIv) {
+  if ((uIv.start.GetYear() == uIv.end.GetYear())
+       && (uIv.start.GetMonth() == uIv.end.GetMonth())
+       && (uIv.start.GetGregDay() == uIv.end.GetGregDay())) {
+    string startString, endString;
+    stringstream startStream;
+    startStream << uIv.start.GetYear() << "-" << uIv.start.GetMonth() << "-"
+                << uIv.start.GetGregDay() << "-";
+    startString.assign(startStream.str());
+    endString.assign(startString);
+    startString.append(text.substr(0, text.find('~')));
+    endString.append(text.substr(text.find('~') + 1));
+    Instant pStart(instanttype);
+    Instant pEnd(instanttype);
+    if (!pStart.ReadFrom(extendDate(startString, true))) {
+      cout << "error: ReadFrom " << extendDate(startString, true) << endl;
+      return false;
+    }
+    if (!pEnd.ReadFrom(extendDate(endString, false))) {
+      cout << "error: ReadFrom " << extendDate(endString, false) << endl;
+      return false;
+    }
+    SecInterval pInterval(pStart, pEnd, true, true);
+    return pInterval.Contains(uIv);
+  } // no match possible in case of different days
+  return false;
+}
+
+/*
+\subsection{Function ~timesMatch~}
+
+Checks whether the time interval ~uIv~ is completely enclosed by each of the
+intervals specified in ~ivs~. If ~ivs~ is empty, the result is ~true~.
+
+*/
+bool Tools::timesMatch(const Interval<DateTime>& iv, const set<string>& ivs) {
+  if (ivs.empty()) {
+    return true;
+  }
+  bool elementOk(false);
+  Instant pStart(instanttype);
+  Instant pEnd(instanttype);
+  SecInterval pIv(true);
+  for (set<string>::iterator j = ivs.begin(); j != ivs.end(); j++) {
+    if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
+      elementOk = checkSemanticDate(*j, iv, true);
+    }
+    else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
+          && (((*j).find(':') < (*j).find('~')) // on each side of [~],
+              || ((*j)[0] == '~')) // there has to be either xx:yy or nothing
+          && (((*j).find(':', (*j).find('~')) != string::npos)
+              || (*j)[(*j).size() - 1] == '~')) {
+      elementOk = checkDaytime(*j, iv);
+    }
+    else {
+      if ((*j)[0] == '~') { // 3rd case: ~2012-05-12
+        pStart.ToMinimum();
+        pEnd.ReadFrom(extendDate((*j).substr(1), false));
+      }
+      else if ((*j)[(*j).size() - 1] == '~') { // 4th case: 2011-04-02-19:09~
+        pStart.ReadFrom(extendDate((*j).substr(0, (*j).size() - 1), true));
+        pEnd.ToMaximum();
+      }
+      else if (((*j).find('~')) == string::npos) { // 5th case: no [~] found
+        pStart.ReadFrom(extendDate(*j, true));
+        pEnd.ReadFrom(extendDate(*j, false));
+      }
+      else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
+        pStart.ReadFrom(extendDate((*j).substr(0, (*j).find('~')), true));
+        pEnd.ReadFrom(extendDate((*j).substr((*j).find('~') + 1), false));
+      }
+      pIv.Set(pStart, pEnd, true, true);
+      elementOk = pIv.Contains(iv);
+    }
+    if (!elementOk) { // all intervals have to match
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~processQueryStr~}
+
+Invoked by ~initOpTrees~
+
+*/
+pair<QueryProcessor*, OpTree> Tools::processQueryStr(string query, int type) {
+  pair<QueryProcessor*, OpTree> result;
+  result.first = 0;
+  result.second = 0;
+  SecParser parser;
+  string qParsed;
+  ListExpr qList, rType;
+  bool correct(false), evaluable(false), defined(false), isFunction(false);
+  if (parser.Text2List(query, qParsed)) {
+    cout << "Text2List(" << query << ") failed" << endl;
+    return result;
+  }
+  if (!nl->ReadFromString(qParsed, qList)) {
+    cout << "ReadFromString(" << qParsed << ") failed" << endl;
+    return result;
+  }
+  result.first = new QueryProcessor(nl, am);
+  try {
+    result.first->Construct(nl->Second(qList), correct, evaluable, defined,
+                            isFunction, result.second, rType);
+  }
+  catch (...) {
+    delete result.first;
+    result.first = 0;
+    result.second = 0;
+  }
+  if (!correct || !evaluable || !defined) {
+    cout << "correct:   " << (correct ? "TRUE" : "FALSE") << endl
+         << "evaluable: " << (evaluable ? "TRUE" : "FALSE") << endl
+         << "defined:   " << (correct ? "TRUE" : "FALSE") << endl;
+    delete result.first;
+    result.first = 0;
+    result.second = 0;
+    return result;
+  }
+  if (nl->ToString(rType) != Tools::getDataType(type)) {
+    cout << "incorrect result type: " << nl->ToString(rType) << endl;
+    delete result.first;
+    result.first = 0;
+    result.second = 0;
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~evaluate~}
+
+The string ~input~ is evaluated by Secondo. The result is returned as a Word.
+
+*/
+// Word evaluate(string input) {
+//   SecParser qParser;
+//   string query, queryStr;
+//   ListExpr queryList;
+//   Word queryResult;
+//   input.insert(0, "query ");
+//   if (!qParser.Text2List(input, queryStr)) {
+//     if (nl->ReadFromString(queryStr, queryList)) {
+//       if (!nl->IsEmpty(nl->Rest(queryList))) {
+//         query = nl->ToString(nl->First(nl->Rest(queryList)));
+//         if (qp->ExecuteQuery(query, queryResult)) {
+//           return queryResult;
+//         }
+//       }
+//     }
+//   }
+//   return queryResult;
+// }
+
+/*
+\subsection{Function ~createTrajectory~}
+
+Creates a vector of string containing districts of Dortmund in a random but
+sensible order.
+
+*/
+void Tools::createTrajectory(int size, vector<string>& result) {
+  string districts[12] = {"Aplerbeck", "Brackel", "Eving", "Hörde", "Hombruch",
+                          "Huckarde", "Innenstadt-Nord", "Innenstadt-Ost",
+                          "Innenstadt-West", "Lütgendortmund", "Mengede",
+                          "Scharnhorst"};
+  map<int, set<int> > transitions;
+  set<int>::iterator it;
+  transitions[0].insert(3);
+  transitions[0].insert(7);
+  transitions[0].insert(1);
+  transitions[1].insert(6);
+  transitions[1].insert(7);
+  transitions[1].insert(11);
+  transitions[2].insert(5);
+  transitions[2].insert(6);
+  transitions[2].insert(10);
+  transitions[2].insert(11);
+  transitions[3].insert(4);
+  transitions[3].insert(7);
+  transitions[4].insert(7);
+  transitions[4].insert(8);
+  transitions[4].insert(9);
+  transitions[5].insert(6);
+  transitions[5].insert(8);
+  transitions[5].insert(9);
+  transitions[5].insert(10);
+  transitions[6].insert(7);
+  transitions[6].insert(8);
+  transitions[6].insert(11);
+  transitions[7].insert(8);
+  transitions[8].insert(9);
+  for (int i = 0; i < 12; i++) {
+    for (it = transitions[i].begin(); it != transitions[i].end(); it++) {
+      transitions[*it].insert(i); // add symmetric transitions
+    }
+    transitions[i].insert(i); // remaining in the same area is possible
+  }
+  int choice, prevPos;
+  prevPos = (int)rand() % 12;
+  for (int i = 0; i < size; i++) {
+    choice = (int)rand() % transitions[prevPos].size();
+    it = transitions[prevPos].begin();
+    advance(it, choice);
+    result.push_back(districts[*it]);
+    prevPos = *it;
+  }
+}
+
+void Tools::printNfa(vector<map<int, int> > &nfa, set<int> &finalStates) {
+  map<int, int>::iterator it;
+  for (unsigned int i = 0; i < nfa.size(); i++) {
+    cout << (finalStates.count(i) ? " * " : "   ") << "state " << i << ":  ";
+    for (it = nfa[i].begin(); it != nfa[i].end(); it++) {
+      cout << "---" << it->first << "---> " << it->second << "    ";
+    }
+    cout << endl << endl;
+  }
+}
+
+void Tools::makeNFApersistent(vector<map<int, int> > &nfa,set<int> &finalStates,
+   DbArray<NFAtransition> &trans, DbArray<int> &s2p, map<int, int> &state2Pat) {
+  NFAtransition tr;
+  map<int, int>::iterator im;
+  for (unsigned int i = 0; i < nfa.size(); i++) {
+    tr.oldState = i;
+    for (im = nfa[i].begin(); im != nfa[i].end(); im++) {
+      tr.trigger = im->first;
+      tr.newState = im->second;
+      trans.Append(tr);
+    }
+    s2p.Append(state2Pat[i]);
+  }
+}
+
+void Tools::createNFAfromPersistent(DbArray<NFAtransition> &trans, 
+        DbArray<int> &s2p, vector<map<int, int> > &nfa, set<int> &finalStates) {
+  nfa.clear();
+  finalStates.clear();
+  map<int, int> emptymap;
+  NFAtransition tr;
+  for (int i = 0; i < trans.Size(); i++) {
+    trans.Get(i, tr);
+    while (tr.oldState >= (int)nfa.size()) {
+      nfa.push_back(emptymap);
+    }
+    nfa[tr.oldState][tr.trigger] = tr.newState;
+  }
+  int pat = INT_MAX;
+  for (int i = 1; i < s2p.Size(); i++) {
+    s2p.Get(i, pat);
+    if ((pat != INT_MAX) && (pat >= 0)) {
+      finalStates.insert(i);
+    }
+  }
+}
 
 /*
 \section{Operator ~tolabel~}
@@ -3334,6 +3980,154 @@ struct mstringtomlabelInfo : OperatorInfo {
     signature = "mstring -> mlabel";
     syntax    = "mstringtomlabel(_)";
     meaning   = "Converts a mstring into a mlabel.";
+  }
+};
+
+/*
+\section{Operator ~tolabels~}
+
+tolabels: text x ... x text -> labels
+
+\subsection{Type Mapping}
+
+*/
+ListExpr tolabelsTM(ListExpr args) {
+  ListExpr rest = args;
+  while (!nl->IsEmpty(rest)) {
+    if (!FText::checkType(nl->First(rest))) {
+      return NList::typeError("Expecting only text elements.");
+    }
+    rest = nl->Rest(rest);
+  }
+  return nl->SymbolAtom(Labels::BasicType());
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int tolabelsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  Labels* res = static_cast<Labels*>(result.addr);
+  res->Clean();
+  for (int i = 0; i < qp->GetNoSons(s); i++) {
+    FText* src = static_cast<FText*>(args[i].addr);
+    if (src->IsDefined()) {
+      if (!src->GetValue().empty()) {
+        res->Append(src->GetValue());
+      }
+    }
+  }
+  res->SetDefined(true);
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct tolabelsInfo : OperatorInfo {
+  tolabelsInfo() {
+    name      = "tolabels";
+    signature = "(text x ... x text) -> labels";
+    syntax    = "tolabels( _, ..., _ );";
+    meaning   = "Creates a labels from a text list.";
+  }
+};
+
+/*
+\section{Operator ~toplaces~}
+
+toplaces: text x int x ... x text x int -> places
+toplaces: place x ... x place -> places
+
+\subsection{Type Mapping}
+
+*/
+ListExpr toplacesTM(ListExpr args) {
+  ListExpr rest = args;
+  bool place;
+  if (!nl->IsEmpty(rest)) {
+    place = Place::checkType(nl->First(rest));
+  }
+  while (!nl->IsEmpty(rest)) {
+    if (place) {
+      if (!Place::checkType(nl->First(rest))) {
+        return NList::typeError("Expecting a list of places.");
+      }
+    }
+    else {
+      if (!FText::checkType(nl->First(rest))) {
+        return NList::typeError("Expecting a list of text x int pairs.");
+      }
+      rest = nl->Rest(rest);
+      if (nl->IsEmpty(rest)) {
+        return NList::typeError("Expecting a list of text x int pairs.");
+      }
+      if (!CcInt::checkType(nl->First(rest))) {
+        return NList::typeError("Expecting a list of text x int pairs.");
+      }
+    }
+    rest = nl->Rest(rest);
+  }
+  return nl->SymbolAtom(Places::BasicType());
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int toplacesSelect(ListExpr args) {
+  if (nl->IsEmpty(args)) {
+    return 0;
+  }
+  return (Place::checkType(nl->First(args)) ? 0 : 1);
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int toplacesVM_P(Word* args, Word& result, int message, Word& local,Supplier s){
+  result = qp->ResultStorage(s);
+  Places* res = static_cast<Places*>(result.addr);
+  res->Clean();
+  for (int i = 0; i < qp->GetNoSons(s); i++) {
+    Place* src = static_cast<Place*>(args[i].addr);
+    if (src->IsDefined()) {
+      res->Append(*src);
+    }
+  }
+  res->SetDefined(true);
+  return 0;
+}
+
+int toplacesVM_T(Word* args, Word& result, int message, Word& local,Supplier s){
+  result = qp->ResultStorage(s);
+  Places* res = static_cast<Places*>(result.addr);
+  res->Clean();
+  for (int i = 0; i < qp->GetNoSons(s); i = i + 2) {
+    FText *src1 = static_cast<FText*>(args[i].addr);
+    CcInt *src2 = static_cast<CcInt*>(args[i + 1].addr);
+    if (src1->IsDefined() && src2->IsDefined()) {
+      res->Append(make_pair(src1->GetValue(), src2->GetIntval()));
+    }
+  }
+  res->SetDefined(true);
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct toplacesInfo : OperatorInfo {
+  toplacesInfo() {
+    name      = "toplaces";
+    signature = "((text x int) ... (text x int)) -> places";
+    appendSignature("place x ... x place -> places");
+    syntax    = "toplaces( _, ..., _ );";
+    meaning   = "Creates a places from a list of (text, int) pairs or places.";
   }
 };
 
@@ -3626,6 +4420,12 @@ struct equalsInfo : OperatorInfo {
 /*
 \section{Implementation of class ~Pattern~}
 
+\subsection{Type Constructor}
+
+*/
+GenTC<PatPersistent> patternTC;
+
+/*
 \subsection{Function ~GetText~}
 
 Returns the pattern text as specified by the user.
@@ -3634,175 +4434,6 @@ Returns the pattern text as specified by the user.
 string Pattern::GetText() const {
   return text.substr(0, text.length() - 1);
 }
-
-/*
-\subsection{Function ~BasicType~}
-
-*/
-const string Pattern::BasicType() {
-  return "pattern";
-}
-
-/*
-\subsection{Function ~checkType~}
-
-*/
-const bool Pattern::checkType(const ListExpr type){
-  return listutils::isSymbol(type, BasicType());
-}
-
-/*
-\subsection{Function ~In~}
-
-*/
-Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
-                 const int errorPos, ListExpr& errorInfo, bool& correct) {
-  Word result = SetWord(Address(0));
-  correct = false;
-  NList list(instance);
-  if (list.isAtom()) {
-    if (list.isText()) {
-      string text = list.str();
-      Pattern *pattern = getPattern(text);
-      if (pattern) {
-        correct = true;
-        result.addr = pattern;
-      }
-      else {
-        correct = false;
-        cmsg.inFunError("Parsing error.");
-      }
-    }
-    else {
-      correct = false;
-      cmsg.inFunError("Expecting a text!");
-    }
-  }
-  else {
-    correct = false;
-    cmsg.inFunError("Expecting one text atom!");
-  }
-  return result;
-}
-
-/*
-\subsection{Function ~Out~}
-
-*/
-ListExpr Pattern::Out(ListExpr typeInfo, Word value) {
-  Pattern* pattern = static_cast<Pattern*>(value.addr);
-  NList element(pattern->GetText(), true, true);
-  return element.listExpr();
-}
-
-/*
-\subsection{Function ~Create~}
-
-*/
-Word Pattern::Create(const ListExpr typeInfo) {
-  return (SetWord(new Pattern()));
-}
-
-/*
-\subsection{Function ~Delete~}
-
-*/
-void Pattern::Delete(const ListExpr typeInfo, Word& w) {
-//   delete static_cast<Pattern*>(w.addr);
-  w.addr = 0;
-}
-
-/*
-\subsection{Function ~Close~}
-
-*/
-void Pattern::Close(const ListExpr typeInfo, Word& w) {
-  delete static_cast<Pattern*>(w.addr);
-  w.addr = 0;
-}
-
-/*
-\subsection{Function ~Clone~}
-
-*/
-Word Pattern::Clone(const ListExpr typeInfo, const Word& w) {
-  Pattern* pattern = static_cast<Pattern*>(w.addr);
-  return SetWord(new Pattern(*pattern));
-}
-
-/*
-\subsection{Function ~Open~}
-
-*/
-bool Pattern::Open(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value) {
-  Pattern *p = (Pattern*)Attribute::Open(valueRecord, offset, typeInfo);
-  value.setAddr(p);
-  return true;
-}
-
-/*
-\subsection{Function ~Save~}
-
-*/
-bool Pattern::Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value) {
-  Pattern *p = (Pattern*)value.addr;
-  Attribute::Save(valueRecord, offset, typeInfo, (Attribute*)p);
-  return true;
-}
-
-/*
-\subsection{Function ~SizeOfObj~}
-
-*/
-int Pattern::SizeOfObj() {
-  return sizeof(Pattern);
-}
-
-/*
-\subsection{Function ~KindCheck~}
-
-*/
-bool Pattern::KindCheck(ListExpr type, ListExpr& errorInfo) {
-  return (nl->IsEqual(type, Pattern::BasicType()));
-}
-
-/*
-\subsection{Function ~Property~}
-
-Describes the signature of the type constructor.
-
-*/
-ListExpr Pattern::Property() {
-  return (nl->TwoElemList(
-    nl->FiveElemList(nl->StringAtom("Signature"),
-       nl->StringAtom("Example Type List"),
-       nl->StringAtom("List Rep"),
-       nl->StringAtom("Example List"),
-       nl->StringAtom("Remarks")),
-    nl->FiveElemList(nl->StringAtom("-> DATA"),
-       nl->StringAtom(Pattern::BasicType()),
-       nl->StringAtom("<pattern>"),
-       nl->TextAtom("\' (monday at_home) X () // X.start = 2011-01-01 \'"),
-       nl->StringAtom("<pattern> must be a text."))));
-}
-
-/*
-\subsection{Creation of the Type Constructor Instance}
-
-*/
-TypeConstructor patternTC(
-  Pattern::BasicType(),               // name of the type in SECONDO
-  Pattern::Property,                // property function describing signature
-  Pattern::Out, Pattern::In,         // Out and In functions
-  0, 0,                            // SaveToList, RestoreFromList functions
-  Pattern::Create, Pattern::Delete,  // object creation and deletion
-  0, 0,                            // object open, save
-  Pattern::Close, Pattern::Clone,    // close, and clone
-  0,                               // cast function
-  Pattern::SizeOfObj,               // sizeof function
-  Pattern::KindCheck );             // kind checking function
 
 /*
 \subsection{Function ~isValid~}
@@ -3815,8 +4446,8 @@ bool Pattern::isValid(const string& type) const {
     if (type.length() < 6) {
       return false;
     }
-    if ((elems[i].hasLabel() && (type.substr(1, 5) == "place")) ||
-        (elems[i].hasPlace() && (type.substr(1, 5) == "label"))) {
+    if ((elems[i].hasLabel() && (type.substr(1, 5) == Place::BasicType())) ||
+        (elems[i].hasPlace() && (type.substr(1, 5) == Label::BasicType()))) {
       return false;
     }
   }
@@ -3824,31 +4455,39 @@ bool Pattern::isValid(const string& type) const {
     for (int j = 0; j < conds[i].getVarKeysSize(); j++) {
       switch (conds[i].getKey(j)) {
         case 0: { // label
-          if (type != "mlabel") {
+          if (type != MLabel::BasicType()) {
             return false;
           }
           break;
         }
         case 1: { // place
-          if (type != "mplace") {
+          if (type != MPlace::BasicType()) {
             return false;
           }
           break;
         }
         case 8: { // labels
-          if (type.substr(1, 5) != "label") {
+          if (type.substr(1, 5) != Label::BasicType()) {
             return false;
           }
           break;
         }
         case 9: { // places
-          if (type.substr(1, 5) != "place") {
+          if (type.substr(1, 5) != Place::BasicType()) {
             return false;
           }
           break;
         }
         default: {}
       }
+    }
+  }
+  for (unsigned int i = 0; i < assigns.size(); i++) {
+    if ((!assigns[i].getText(0).empty() && (type != MLabel::BasicType())) ||
+        (!assigns[i].getText(1).empty() && (type != MPlace::BasicType())) ||
+        (!assigns[i].getText(8).empty() && (type != MLabels::BasicType())) ||
+        (!assigns[i].getText(9).empty() && (type != MPlaces::BasicType()))) {
+      return false;
     }
   }
   return true;
@@ -4089,23 +4728,23 @@ ExtBool Match<M>::matches() {
       if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
                         p->easyConds, p->easyCondPos, p->atomicToElem, true)){
 //           cout << "mismatch at unit " << i << endl;
-        ::deleteSetMatrix(matching, m->GetNoComponents());
+        Tools::deleteSetMatrix(matching, m->GetNoComponents());
         return FALSE;
       }
     }
     if (!p->containsFinalState(states)) {
 //         cout << "no final state is active" << endl;
-      ::deleteSetMatrix(matching, m->GetNoComponents());
+      Tools::deleteSetMatrix(matching, m->GetNoComponents());
       return FALSE;
     }
     if (!p->initCondOpTrees()) {
-      ::deleteSetMatrix(matching, m->GetNoComponents());
+      Tools::deleteSetMatrix(matching, m->GetNoComponents());
       return UNDEF;
     }
     if (!p->hasAssigns()) {
       bool result = findMatchingBinding(p->nfa, 0, p->elems, p->conds, 
                                         p->atomicToElem, p->elemToVar);
-      ::deleteSetMatrix(matching, m->GetNoComponents());
+      Tools::deleteSetMatrix(matching, m->GetNoComponents());
       return (result ? TRUE : FALSE);
     }
     return TRUE; // happens iff rewrite is called
@@ -4364,12 +5003,12 @@ bool Match<M>::updateStates(int ulId, vector<map<int, int> > &nfa,
   map<int, int>::iterator itm, itn;
   SecInterval iv;
   m->GetInterval(ulId, iv);
-  set<string> ivs /*, lbs*/;
+  set<string> ivs;
   if (store) {
     if (ulId < m->GetNoComponents() - 1) { // usual case
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
         elems[itm->first].getI(ivs);
-        if (valuesMatch(ulId, elems[itm->first]) && timesMatch(iv, ivs)
+        if (valuesMatch(ulId, elems[itm->first]) && Tools::timesMatch(iv, ivs)
          && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
           states.insert(states.end(), itm->second);
@@ -4385,7 +5024,7 @@ bool Match<M>::updateStates(int ulId, vector<map<int, int> > &nfa,
     else { // last row; mark final states with -1
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
         elems[itm->first].getI(ivs);
-        if (valuesMatch(ulId, elems[itm->first]) && timesMatch(iv, ivs)
+        if (valuesMatch(ulId, elems[itm->first]) && Tools::timesMatch(iv, ivs)
          && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
           states.insert(states.end(), itm->second);
@@ -4399,7 +5038,7 @@ bool Match<M>::updateStates(int ulId, vector<map<int, int> > &nfa,
   else {
     for (itm = transitions.begin(); itm != transitions.end(); itm++) {
       elems[itm->first].getI(ivs);
-      if (valuesMatch(ulId, elems[itm->first]) && timesMatch(iv, ivs)
+      if (valuesMatch(ulId, elems[itm->first]) && Tools::timesMatch(iv, ivs)
        && easyCondsMatch(ulId, itm->first, elems[itm->first], easyConds,
                          easyCondPos[itm->first])) {
         states.insert(states.end(), itm->second);
@@ -4931,7 +5570,7 @@ bool Condition::initOpTree() {
       toReplace = getVar(j) + getType(getKey(j));
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
     }
-    pair<QueryProcessor*, OpTree> qp_optree = ::processQueryStr(q, -1);
+    pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
     if (!qp_optree.first) {
       return false;
     }
@@ -4963,7 +5602,7 @@ bool Pattern::initEasyCondOpTrees() {
                   + Condition::getType(easyConds[i].getKey(j));
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
       }
-      pair<QueryProcessor*, OpTree> qp_optree = ::processQueryStr(q, -1);
+      pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
       if (!qp_optree.first) {
         cout << "Op tree for easy condition " << i << " uninitialized" << endl;
         return false;
@@ -5956,7 +6595,7 @@ ListExpr topatternTM(ListExpr args) {
   }
   NList type(args);
   if (type.first() == NList(FText::BasicType())) {
-    return NList(Pattern::BasicType()).listExpr();
+    return NList(PatPersistent::BasicType()).listExpr();
   }
   return NList::typeError("Expecting a text!");
 }
@@ -5967,19 +6606,19 @@ ListExpr topatternTM(ListExpr args) {
 */
 int topatternVM(Word* args, Word& result, int message, Word& local,
                 Supplier s) {
-  FText* patternText = static_cast<FText*>(args[0].addr);
+  FText* pText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
-  Pattern* p = static_cast<Pattern*>(result.addr);
+  PatPersistent* p = static_cast<PatPersistent*>(result.addr);
   Pattern* pattern = 0;
-  if (patternText->IsDefined()) {
-    pattern = Pattern::getPattern(patternText->toText());
+  if (pText->IsDefined()) {
+    pattern = Pattern::getPattern(pText->toText());
   }
   else {
     cout << "undefined text" << endl;
     return 0;
   }
   if (pattern) {
-    (*p) = (*pattern);
+    p->Set(true, pText->toText());
     delete pattern;
   }
   else {
@@ -5995,7 +6634,7 @@ int topatternVM(Word* args, Word& result, int message, Word& local,
 struct topatternInfo : OperatorInfo {
   topatternInfo() {
     name      = "topattern";
-    signature = " Text -> " + Pattern::BasicType();
+    signature = " Text -> " + PatPersistent::BasicType();
     syntax    = "_ topattern";
     meaning   = "Creates a Pattern from a Text.";
   }
@@ -6481,7 +7120,7 @@ ListExpr matchesTM(ListExpr args) {
   ListExpr ptype = nl->First(nl->Second(args));
   if ((!MLabel::checkType(mtype) && !MPlace::checkType(mtype) &&
        !MLabels::checkType(mtype) && !MPlaces::checkType(mtype)) ||
-      (!FText::checkType(ptype) && !Pattern::checkType(ptype))) {
+      (!FText::checkType(ptype) && !PatPersistent::checkType(ptype))) {
     return NList::typeError("Expecting mlabel(s)/mplace(s) x text/pattern");
   }
   string query = nl->ToString(nl->Second(nl->Second(args)));
@@ -6492,7 +7131,7 @@ ListExpr matchesTM(ListExpr args) {
       ((FText*)res.addr)->DeleteIfAllowed();
     } 
     else {
-      delete (Pattern*)res.addr;
+      delete (PatPersistent*)res.addr;
     }
   }
   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
@@ -6506,59 +7145,28 @@ ListExpr matchesTM(ListExpr args) {
 */
 int matchesSelect(ListExpr args) {
   if (MLabel::checkType(nl->First(args))) {
-    return (Pattern::checkType(nl->Second(args))) ? 4 : 0;
+    return (PatPersistent::checkType(nl->Second(args))) ? 4 : 0;
   }
   if (MPlace::checkType(nl->First(args))) {
-    return (Pattern::checkType(nl->Second(args))) ? 5 : 1;
+    return (PatPersistent::checkType(nl->Second(args))) ? 5 : 1;
   }
   if (MLabels::checkType(nl->First(args))) {
-    return (Pattern::checkType(nl->Second(args))) ? 6 : 2;
+    return (PatPersistent::checkType(nl->Second(args))) ? 6 : 2;
   }
   if (MPlaces::checkType(nl->First(args))) {
-    return (Pattern::checkType(nl->Second(args))) ? 7 : 3;
+    return (PatPersistent::checkType(nl->Second(args))) ? 7 : 3;
   }
   return -1;
 }
 
 /*
-\subsection{Value Mapping (for a Pattern)}
+\subsection{Value Mapping}
 
 */
-template<class M>
-int matchesVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
+template<class M, class P>
+int matchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   M *traj = static_cast<M*>(args[0].addr);
-  Pattern* p = static_cast<Pattern*>(args[1].addr);
-  result = qp->ResultStorage(s);
-  CcBool* b = static_cast<CcBool*>(result.addr);
-  if (!p->IsDefined() || !traj->IsDefined()) {
-    b->SetDefined(false);
-    return 0;
-  }
-  ExtBool match = p->matches(traj);
-  switch (match) {
-    case FALSE: {
-      b->Set(true, false);
-      break;
-    }
-    case TRUE: {
-      b->Set(true, true);
-      break;
-    }
-    default: {
-      b->SetDefined(false);
-    }
-  }
-  return 0;
-}
-
-/*
-\subsection{Value Mapping (for a text)}
-
-*/
-template<class M>
-int matchesVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
-  M *traj = static_cast<M*>(args[0].addr);
-  FText* pText = static_cast<FText*>(args[1].addr);
+  P* pText = static_cast<P*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
   Pattern *p = 0;
@@ -6656,9 +7264,10 @@ const string matchesSpec =
   "<text> Checks whether the trajectory M matches the pattern P.\n"
   "<text> query mlabel1 matches '(_ \"Eving\") *' </text--->) )";
 
-ValueMapping matchesVMs[] = {matchesVM_T<MLabel>, matchesVM_T<MPlace>,
-  matchesVM_T<MLabels>, matchesVM_T<MPlaces>, matchesVM_P<MLabel>, 
-  matchesVM_P<MPlace>, matchesVM_P<MLabels>, matchesVM_P<MPlaces>};
+ValueMapping matchesVMs[] = {matchesVM<MLabel, FText>, matchesVM<MPlace, FText>,
+  matchesVM<MLabels, FText>, matchesVM<MPlaces, FText>, 
+  matchesVM<MLabel, PatPersistent>, matchesVM<MPlace, PatPersistent>,
+  matchesVM<MLabels, PatPersistent>, matchesVM<MPlaces, PatPersistent>};
 
 Operator matches("matches", matchesSpec, 8, matchesVMs, matchesSelect,
                  matchesTM);
@@ -6674,7 +7283,7 @@ ListExpr indexmatchesTM(ListExpr args) {
              " attribute of that relation, an invfile, and a pattern/text";
   if (nl->HasLength(args, 4)) {
     if (FText::checkType(nl->Fourth(args)) || 
-        Pattern::checkType(nl->Fourth(args))) {
+        PatPersistent::checkType(nl->Fourth(args))) {
       if (Relation::checkType(nl->First(args))) {
         ListExpr tupleList = nl->First(nl->Rest(nl->First(args)));
         if (Tuple::checkType(tupleList)
@@ -6739,11 +7348,12 @@ int indexmatchesSelect(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping (type text)}
+\subsection{Value Mapping}
 
 */
-int indexmatchesVM_T(Word* args, Word& result, int message, Word& local,
-                     Supplier s) {
+template<class P>
+int indexmatchesVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
   IndexMatchesLI *li = (IndexMatchesLI*)local.addr;
   switch (message) {
     case OPEN: {
@@ -6751,68 +7361,18 @@ int indexmatchesVM_T(Word* args, Word& result, int message, Word& local,
         delete li;
         local.addr = 0;
       }
-      FText *pText = static_cast<FText*>(args[3].addr);
+      P *pText = static_cast<P*>(args[3].addr);
       CcInt *attr = static_cast<CcInt*>(args[4].addr);
       InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
-      Pattern* p = 0;
       if (pText->IsDefined() && attr->IsDefined()) {
-        p = Pattern::getPattern(pText->GetValue());
-        if (p) {
-          if (p->hasConds() || p->containsRegEx()) {
-            cout << "pattern is not simple" << endl;
-            local.addr = 0;
-          }
-          else {
-            local.addr = new IndexMatchesLI(args[0], inv, attr->GetIntval(), p, 
-                                            true);
-          }
-        }
-      }
-      else {
-        cout << "undefined parameter(s)" << endl;
-        local.addr = 0;
-      }
-      return 0;
-    }
-    case REQUEST: {
-      result.addr = li ? li->nextTuple() : 0;
-      return result.addr ? YIELD : CANCEL;
-    }
-    case CLOSE: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-/*
-\subsection{Value Mapping (type pattern)}
-
-*/
-int indexmatchesVM_P(Word* args, Word& result, int message, Word& local,
-                     Supplier s) {
-  IndexMatchesLI *li = (IndexMatchesLI*)local.addr;
-  switch (message) {
-    case OPEN: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      Pattern *p = static_cast<Pattern*>(args[3].addr);
-      CcInt *attr = static_cast<CcInt*>(args[4].addr);
-      InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
-      if (p->IsDefined() && attr->IsDefined()) {
+        Pattern *p = Pattern::getPattern(pText->toText());
         if (p->hasConds() || p->containsRegEx()) {
           cout << "pattern is not simple" << endl;
           local.addr = 0;
         }
         else {
           local.addr = new IndexMatchesLI(args[0], inv, attr->GetIntval(), p,
-                                          false);
+                                          true);
         }
       }
       else {
@@ -6866,7 +7426,8 @@ ListExpr filtermatchesTM(ListExpr args) {
   ListExpr stream = nl->First(args);
   ListExpr anlist = nl->Second(args);
   if (!Stream<Tuple>::checkType(stream) || !listutils::isSymbol(anlist) ||
-  (!FText::checkType(nl->Third(args)) && !Pattern::checkType(nl->Third(args)))){
+     (!FText::checkType(nl->Third(args)) && 
+      !PatPersistent::checkType(nl->Third(args)))) {
     return listutils::typeError(err);
   }
   string name = nl->SymbolValue(anlist);
@@ -6876,7 +7437,8 @@ ListExpr filtermatchesTM(ListExpr args) {
   if (!index) {
     return listutils::typeError("attribute " + name + " not found in tuple");
   }
-  if (!MLabel::checkType(type)) {
+  if (!MLabel::checkType(type) && !MLabels::checkType(type) &&
+      !MPlace::checkType(type) && !MPlaces::checkType(type)) {
     return listutils::typeError("wrong type " + nl->ToString(type)
                                 + " of attritube " + name);
   }
@@ -6888,24 +7450,20 @@ ListExpr filtermatchesTM(ListExpr args) {
 \subsection{Constructors for class ~FilterMatchesLI~}
 
 */
-FilterMatchesLI::FilterMatchesLI(Word _stream, int _attrIndex, FText* text) :
-                 stream(_stream), attrIndex(_attrIndex), match(0), 
+template<class M>
+FilterMatchesLI<M>::FilterMatchesLI(Word _stream, int _attrIndex, string& pText)
+               : stream(_stream), attrIndex(_attrIndex), match(0), 
                  streamOpen(false), deleteP(true) {
-  Pattern *p = Pattern::getPattern(text->GetValue());
+  Pattern *p = Pattern::getPattern(pText);
   if (p) {
-    match = new Match<MLabel>(p, 0);
-    stream.open();
-    streamOpen = true;
-  }
-}
-
-FilterMatchesLI::FilterMatchesLI(Word _stream, int _attrIndex, Pattern* p):
-                 stream(_stream), attrIndex(_attrIndex), match(0), 
-                 streamOpen(false), deleteP(false) {
-  if (p) {
-    match = new Match<MLabel>(p, 0);
-    stream.open();
-    streamOpen = true;
+    if (p->isValid(M::BasicType())) {
+      match = new Match<M>(p, 0);
+      stream.open();
+      streamOpen = true;
+    }
+    else {
+      cout << "pattern is not suitable for type " << M::BasicType() << endl;
+    }
   }
 }
 
@@ -6913,7 +7471,8 @@ FilterMatchesLI::FilterMatchesLI(Word _stream, int _attrIndex, Pattern* p):
 \subsection{Destructor for class ~FilterMatchesLI~}
 
 */
-FilterMatchesLI::~FilterMatchesLI() {
+template<class M>
+FilterMatchesLI<M>::~FilterMatchesLI() {
   if (match) {
     if (deleteP) {
       match->deletePattern();
@@ -6930,13 +7489,14 @@ FilterMatchesLI::~FilterMatchesLI() {
 \subsection{Function ~getNextResult~}
 
 */
-Tuple* FilterMatchesLI::getNextResult() {
+template<class M>
+Tuple* FilterMatchesLI<M>::getNextResult() {
   if (!match) {
     return 0;
   }
   Tuple* cand = stream.request();
   while (cand) {
-    match->setM((MLabel*)cand->GetAttribute(attrIndex));
+    match->setM((M*)cand->GetAttribute(attrIndex));
     if (match->matches() == TRUE) {
       return cand;
     }
@@ -6951,16 +7511,28 @@ Tuple* FilterMatchesLI::getNextResult() {
 
 */
 int filtermatchesSelect(ListExpr args) {
-  return (FText::checkType(nl->Third(args)) ? 0 : 1);
+  ListExpr stream = nl->First(args);
+  ListExpr anlist = nl->Second(args);
+  ListExpr pattern = nl->Third(args);
+  string name = nl->SymbolValue(anlist);
+  ListExpr type;
+  listutils::findAttribute(nl->Second(nl->Second(stream)),
+                                       name, type);
+  if (MLabel::checkType(type)) return (FText::checkType(pattern) ? 0 : 4);
+  if (MLabels::checkType(type)) return (FText::checkType(pattern) ? 1 : 5);
+  if (MPlace::checkType(type)) return (FText::checkType(pattern) ? 2 : 6);
+  if (MPlaces::checkType(type)) return (FText::checkType(pattern) ? 3 : 7);
+  return -1;
 }
 
 /*
 \subsection{Value Mapping for a Text}
 
 */
-int filtermatchesVM_T(Word* args, Word& result, int message, Word& local,
-                      Supplier s) {
-  FilterMatchesLI* li = (FilterMatchesLI*)local.addr;
+template<class M, class T>
+int filtermatchesVM(Word* args, Word& result, int message, Word& local, 
+                    Supplier s) {
+  FilterMatchesLI<M>* li = (FilterMatchesLI<M>*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
@@ -6968,47 +7540,10 @@ int filtermatchesVM_T(Word* args, Word& result, int message, Word& local,
         local.addr = 0;
       }
       CcInt* ccint = (CcInt*)args[3].addr;
-      FText* ftext = (FText*)args[2].addr;
-      if (ftext->IsDefined() && ccint->IsDefined()) {
-        local.addr = new FilterMatchesLI(args[0], ccint->GetValue(), ftext);
-      }
-      else {
-        cout << "undefined argument(s)" << endl;
-      }
-      return 0;
-    }
-    case REQUEST: {
-      result.addr = li ? li->getNextResult() : 0;
-      return result.addr ? YIELD : CANCEL;
-    }
-    case CLOSE: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-  }
-  return  0;
-}
-
-/*
-\subsection{Value Mapping for a Pattern}
-
-*/
-int filtermatchesVM_P(Word* args, Word& result, int message, Word& local, 
-                      Supplier s) {
-  FilterMatchesLI* li = (FilterMatchesLI*)local.addr;
-  switch (message) {
-    case OPEN: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      CcInt* ccint = (CcInt*)args[3].addr;
-      Pattern* p = (Pattern*)args[2].addr;
-      if (ccint->IsDefined()) {
-        local.addr = new FilterMatchesLI(args[0], ccint->GetValue(), p);
+      T* pText = (T*)args[2].addr;
+      if (pText->IsDefined() && ccint->IsDefined()) {
+        string text = pText->toText();
+        local.addr = new FilterMatchesLI<M>(args[0], ccint->GetValue(), text);
       }
       else {
         cout << "undefined argument(s)" << endl;
@@ -7039,8 +7574,8 @@ struct filtermatchesInfo : OperatorInfo {
     name      = "filtermatches";
     signature = "stream(tuple(X)) x IDENT x text -> stream(tuple(X))";
     syntax    = "_ filtermatches [ _ , _ ]";
-    meaning   = "Filters a stream containing moving labels, passing "
-                "exactly the tuples whose moving labels match the pattern on "
+    meaning   = "Filters a stream containing symbolic trajectories, passing "
+                "exactly the tuples whose trajectories match the pattern on "
                 "to the output stream.";
   }
 };
@@ -7053,15 +7588,17 @@ struct filtermatchesInfo : OperatorInfo {
 
 */
 ListExpr rewriteTM(ListExpr args) {
-  NList type(args);
   const string errMsg = "Expecting a mlabel and a pattern/text"
                         " or a stream<mlabel> and a stream<text>";
-  if ((type == NList(MLabel::BasicType(), Pattern::BasicType()))
-   || (type == NList(MLabel::BasicType(), FText::BasicType()))) {
-    return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
-                           nl->SymbolAtom(MLabel::BasicType()));
-  }
   if (nl->HasLength(args, 2)) {
+    ListExpr mtype = nl->First(args);
+    if ((MLabel::checkType(mtype) || MLabels::checkType(mtype) ||
+         MPlace::checkType(mtype) || MPlaces::checkType(mtype)) &&
+        (FText::checkType(nl->Second(args)) ||
+         PatPersistent::checkType(nl->Second(args)))) {
+      return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                             mtype);
+    }
     if (Stream<MLabel>::checkType(nl->First(args))
      && Stream<FText>::checkType(nl->Second(args))) {
        return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
@@ -7077,9 +7614,21 @@ ListExpr rewriteTM(ListExpr args) {
 */
 int rewriteSelect(ListExpr args) {
   if (Stream<FText>::checkType(nl->Second(args))) {
-    return 2;
+    return 8;
   }
-  return (Pattern::checkType(nl->Second(args)) ? 1 : 0);
+  if (MLabel::checkType(nl->First(args))) {
+    return (PatPersistent::checkType(nl->Second(args)) ? 4 : 0);
+  }
+  if (MLabels::checkType(nl->First(args))) {
+    return (PatPersistent::checkType(nl->Second(args)) ? 5 : 1);
+  }
+  if (MPlace::checkType(nl->First(args))) {
+    return (PatPersistent::checkType(nl->Second(args)) ? 6 : 2);
+  }
+  if (MPlaces::checkType(nl->First(args))) {
+    return (PatPersistent::checkType(nl->Second(args)) ? 7 : 3);
+  }
+  return -1;
 }
 
 /*
@@ -7092,34 +7641,36 @@ bool Assign::initOpTrees() {
   if (treesOk && opTree[0].second) {
     return true;
   }
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i <= 9; i++) {
     if (pointers[i].size() > 0) { // pointers already initialized
       return true;
     }
   }
-  if (!occurs() && (text[0].empty() || (text[1].empty() &&
-     (text[2].empty() || text[3].empty())))) {
+  if (!occurs() && (!hasValue() || !hasTime())) {
     cout << "not enough data for variable " << var << endl;
     return false;
   }
   string q(""), part, toReplace("");
   pair<string, Attribute*> strAttr;
-  for (int i = 0; i < 6; i++) { // label, time, start, end, leftclosed, rightcl.
+  for (int i = 0; i <= 9; i++) {
     if (!text[i].empty()) {
       q = "query " + text[i];
       for (unsigned int j = 0; j < right[i].size(); j++) { // loop through keys
-        strAttr = Pattern::getPointer(right[i][j].second);
-        if (right[i][j].second == 1) {
+        if (right[i][j].second == 2) { // interval instead of periods
           deleteIfAllowed(strAttr.second);
-          strAttr.second = new SecInterval(1);
+          strAttr.second = new SecInterval(true);
           strAttr.first = "[const interval pointer "
                    + nl->ToString(listutils::getPtrList(strAttr.second)) + "]";
+        }
+        else {
+          strAttr = Pattern::getPointer(right[i][j].second);
         }
         pointers[i].push_back(strAttr.second);
         toReplace = right[i][j].first + Condition::getType(right[i][j].second);
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+        cout << q << endl;
       }
-      opTree[i] = ::processQueryStr(q, i);
+      opTree[i] = Tools::processQueryStr(q, i);
       if (!opTree[i].first) {
         cout << "pointer not initialized" << endl;
         return false;
@@ -7176,32 +7727,317 @@ void Condition::deleteOpTree() {
   }
 }
 
-RewriteLI::RewriteLI(MLabel *src, Pattern *pat) {
-  match = new Match<MLabel>(pat, src);
-  if (match->matches()) {
-    match->initCondOpTrees();
-    if (!src->GetNoComponents()) {
-      BindingStackElem dummy(0, 0);
-      bindingStack.push(dummy);
+template<class M>
+RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
+  if (pat->isValid(M::BasicType())) {
+    match = new Match<M>(pat, src);
+    if (match->matches()) {
+      match->initCondOpTrees();
+      if (!src->GetNoComponents()) {
+        BindingStackElem dummy(0, 0);
+        bindingStack.push(dummy);
+      }
+      else {
+        map<int, int> transitions = pat->getTransitions(0);
+        for (map<int, int>::iterator itm = transitions.begin();
+                                    itm != transitions.end(); itm++) {
+          BindingStackElem bE(0, itm->first); // init stack
+    //       cout << "push (0, " << itm->first << ") to stack" << endl;
+          bindingStack.push(bE);
+        }
+      }
     }
     else {
-      map<int, int> transitions = pat->getTransitions(0);
-      for (map<int, int>::iterator itm = transitions.begin();
-                                   itm != transitions.end(); itm++) {
-        BindingStackElem bE(0, itm->first); // init stack
-  //       cout << "push (0, " << itm->first << ") to stack" << endl;
-        bindingStack.push(bE);
-      }
+      match->deletePattern();
+      delete match;
+      match = 0;
     }
   }
   else {
-    match->deletePattern();
-    delete match;
+    cout << "pattern is not suitable for type " << MLabel::BasicType() << endl;
     match = 0;
   }
 }
 
-MLabel* RewriteLI::getNextResult() {
+/*
+\subsection{Function ~rewrite~}
+
+*/
+template<class M>
+M* RewriteLI<M>::rewrite(M *src, map<string, pair<unsigned int,unsigned int> > 
+                         binding, vector<Assign> &assigns){
+  M *result = new M(true);
+  Word qResult;
+  Instant start(instanttype), end(instanttype);
+  SecInterval iv(true), iv2(true);
+  bool lc(false), rc(false);
+  pair<unsigned int, unsigned int> segment;
+  assert(src->IsValid());
+  for (unsigned int i = 0; i < assigns.size(); i++) {
+    for (int j = 0; j <= 9; j++) {
+      if (!assigns[i].getText(j).empty()) {
+        for (int k = 0; k < assigns[i].getRightSize(j); k++) {
+          if (binding.count(assigns[i].getRightVar(j, k))) {
+            segment = binding[assigns[i].getRightVar(j, k)];
+            switch (assigns[i].getRightKey(j, k)) {
+              case 0: { // label
+                string lvalue;
+                ((MLabel*)src)->GetValue(segment.first, lvalue);
+                assigns[i].setLabelPtr(k, lvalue);
+                break;
+              }
+              case 1: { // place
+                pair<string, unsigned int> pvalue;
+                ((MPlace*)src)->GetValue(segment.first, pvalue);
+                assigns[i].setPlacePtr(k, pvalue);
+                break;
+              }
+              case 2: { // time
+                src->GetInterval(segment.first, iv);
+                src->GetInterval(segment.second, iv2);
+                iv.end = iv2.end;
+                iv.rc = iv2.rc;
+                assigns[i].setTimePtr(k, iv);
+                break;
+              }
+              case 3: { // start
+                src->GetInterval(segment.first, iv);
+                if (j == 3) {
+                  assigns[i].setStartPtr(k, iv.start);
+                }
+                else {
+                  assigns[i].setEndPtr(k, iv.start);
+                }
+                break;
+              }
+              case 4: { // end
+                src->GetInterval(segment.second, iv);
+                if (j == 3) {
+                  assigns[i].setStartPtr(k, iv.end);
+                }
+                else {
+                  assigns[i].setEndPtr(k, iv.end);
+                }
+                break;
+              }
+              case 5: { // leftclosed
+                src->GetInterval(segment.first, iv);
+                if (j == 5) {
+                  assigns[i].setLeftclosedPtr(k, iv.lc);
+                }
+                else {
+                  assigns[i].setRightclosedPtr(k, iv.lc);
+                }
+                break;
+              }
+              case 6: { // rightclosed
+                src->GetInterval(segment.second, iv);
+                if (j == 5) {
+                  assigns[i].setLeftclosedPtr(k, iv.rc);
+                }
+                else {
+                  assigns[i].setRightclosedPtr(k, iv.rc);
+                }
+                break;
+              }
+              case 8: { // labels
+                set<Labels::base> lvalues;
+                for (unsigned int m = segment.first; m <= segment.second; m++) {
+                  ((MLabels*)src)->GetValues(m, lvalues);
+                  assigns[i].appendToLabelsPtr(k, lvalues);
+                }
+                break;
+              }
+              case 9: { // places
+                set<Places::base> pvalues;
+                for (unsigned int m = segment.first; m <= segment.second; m++) {
+                  ((MPlaces*)src)->GetValues(m, pvalues);
+                  assigns[i].appendToPlacesPtr(k, pvalues);
+                }
+                break;
+              }
+              default: { // cannot occur
+                cout << "Error: assigns[" << i << "].getRightKey(" << j << ", "
+                     << k << ") = " << assigns[i].getRightKey(j, k) << endl;
+                result->SetDefined(false);
+                return result;
+              }
+            }
+          }
+          else { // variable from right size unbound
+            result->SetDefined(false);
+            return result;
+          }
+        }
+      }
+    } // all pointers are set now
+    Label lb(true);
+    if (!assigns[i].getText(0).empty()) {
+      assigns[i].getQP(0)->EvalS(assigns[i].getOpTree(0), qResult, OPEN);
+      lb = *((Label*)qResult.addr);
+    }
+    Place pl(true);
+    if (!assigns[i].getText(1).empty()) {
+      assigns[i].getQP(1)->EvalS(assigns[i].getOpTree(1), qResult, OPEN);
+      pl = *((Place*)qResult.addr);
+    }
+    if (!assigns[i].getText(2).empty()) {
+      assigns[i].getQP(2)->EvalS(assigns[i].getOpTree(2), qResult, OPEN);
+      iv2 = *((SecInterval*)qResult.addr);
+    }
+    if (!assigns[i].getText(3).empty()) {
+      assigns[i].getQP(3)->EvalS(assigns[i].getOpTree(3), qResult, OPEN);
+      start = *((Instant*)qResult.addr);
+    }
+    if (!assigns[i].getText(3).empty()) {
+      assigns[i].getQP(4)->EvalS(assigns[i].getOpTree(4), qResult, OPEN);
+      end = *((Instant*)qResult.addr);
+    }
+    if (!assigns[i].getText(5).empty()) {
+      assigns[i].getQP(5)->EvalS(assigns[i].getOpTree(5), qResult, OPEN);
+      lc = ((CcBool*)qResult.addr)->GetValue();
+    }
+    if (!assigns[i].getText(6).empty()) {
+      assigns[i].getQP(6)->EvalS(assigns[i].getOpTree(6), qResult, OPEN);
+      rc = ((CcBool*)qResult.addr)->GetValue();
+    }
+    Labels lbs(true);
+    if (!assigns[i].getText(8).empty()) {
+      assigns[i].getQP(8)->EvalS(assigns[i].getOpTree(8), qResult, OPEN);
+      lbs = *((Labels*)qResult.addr);
+    }
+    Places pls(true);
+    if (!assigns[i].getText(9).empty()) {
+      assigns[i].getQP(9)->EvalS(assigns[i].getOpTree(9), qResult, OPEN);
+      pls = *((Places*)qResult.addr);
+    }
+     // information from assignment i collected
+    if (binding.count(assigns[i].getV())) { // variable occurs in binding
+      segment = binding[assigns[i].getV()];
+      if (segment.second == segment.first) { // 1 source ul
+        src->GetInterval(segment.first, iv);
+        if (!assigns[i].getText(2).empty()) {
+          iv = iv2;
+        }
+        if (!assigns[i].getText(3).empty()) {
+          iv.start = start;
+        }
+        if (!assigns[i].getText(4).empty()) {
+          iv.end = end;
+        }
+        if (!assigns[i].getText(5).empty()) {
+          iv.lc = lc;
+        }
+        if (!assigns[i].getText(6).empty()) {
+          iv.rc = rc;
+        }
+        if (!iv.IsValid()) {
+          iv.Print(cout);
+          cout << " is an invalid interval" << endl;
+          result->SetDefined(false);
+          return result;
+        }
+        if (M::BasicType() == MLabel::BasicType()) {
+          if (!assigns[i].getQP(0)) {
+            string lvalue;
+            ((MLabel*)src)->GetValue(segment.first, lvalue);
+            ((MLabel*)result)->Add(iv, lvalue);
+          }
+          else {
+            ((MLabel*)result)->Add(iv, lb);
+          }
+        }
+        else if (M::BasicType() == MPlace::BasicType()) {
+          if (!assigns[i].getQP(1)) {
+            pair<string, unsigned int> pvalue;
+            ((MPlace*)src)->GetValue(segment.first, pvalue);
+            ((MPlace*)result)->Add(iv, pvalue);
+          }
+          else {
+            ((MPlace*)result)->Add(iv, pl);
+          }
+        }
+        else if (M::BasicType() == MLabels::BasicType()) {
+          if (!assigns[i].getQP(8)) {
+            ((MLabels*)src)->GetBasics(segment.first, lbs);
+          }
+          ((MLabels*)result)->Add(iv, lbs);
+        }
+        else if (M::BasicType() == MPlaces::BasicType()) {
+          if (!assigns[i].getQP(9)) {
+            ((MPlaces*)src)->GetBasics(segment.first, pls);
+          }
+          ((MPlaces*)result)->Add(iv, pls);
+        }
+      }
+      else { // arbitrary many source uls
+        for (unsigned int m = segment.first; m <= segment.second; m++) {
+          src->GetInterval(m, iv);
+          if ((m == segment.first) && // first unit label
+            (!assigns[i].getText(2).empty() || !assigns[i].getText(3).empty())){
+            iv.start = start;
+          }
+          if ((m == segment.second) && // last unit label
+            (!assigns[i].getText(2).empty() || !assigns[i].getText(4).empty())){
+            iv.end = end;
+          }
+          if ((m == segment.first) && !assigns[i].getText(5).empty()) {
+            iv.lc = lc;
+          }
+          if ((m == segment.second) && !assigns[i].getText(6).empty()) {
+            iv.rc = rc;
+          }
+          if (!iv.IsValid()) {
+            iv.Print(cout);
+            cout << " is an invalid interval" << endl;
+            result->SetDefined(false);
+            return result;
+          } // TODO: collect values from src
+          if (!assigns[i].getText(8).empty()) {
+            ((MLabels*)result)->Add(iv, lbs);
+          }
+          if (!assigns[i].getText(9).empty()) {
+            ((MPlaces*)result)->Add(iv, pls);
+          }
+        }
+      }
+    }
+    else { // variable does not occur in binding
+      if (!assigns[i].occurs()) { // and not in pattern
+        if (!assigns[i].getText(2).empty()) {
+          iv = iv2;
+        }
+        else {
+          iv.start = start;
+          iv.end = end;
+        }
+        if (!assigns[i].getText(5).empty()) {
+          iv.lc = lc;
+        }
+        if (!assigns[i].getText(6).empty()) {
+          iv.rc = rc;
+        }
+        if (!assigns[i].getText(0).empty()) {
+          ((MLabel*)result)->Add(iv, lb);
+        }
+        if (!assigns[i].getText(1).empty()) {
+          ((MPlace*)result)->Add(iv, pl);
+        }
+        if (!assigns[i].getText(8).empty()) {
+          ((MLabels*)result)->Add(iv, lbs);
+        }
+        if (!assigns[i].getText(9).empty()) {
+          ((MPlaces*)result)->Add(iv, pls);
+        }
+      }
+    }
+  }
+  assert(result->IsValid());
+  return result;
+}
+
+template<class M>
+M* RewriteLI<M>::getNextResult() {
   if (!match) {
     return 0;
   }
@@ -7212,8 +8048,8 @@ MLabel* RewriteLI::getNextResult() {
     bindingStack.pop();
     vector<Condition> *conds = match->p->getConds();
     if (match->conditionsMatch(*conds, binding)) {
-      MLabel *source = match->m;
-      return source->rewrite(binding, match->p->getAssigns());
+      M *source = match->m;
+      return rewrite(source, binding, match->p->getAssigns());
     }
     return 0;
   }
@@ -7228,8 +8064,8 @@ MLabel* RewriteLI::getNextResult() {
 //         match->printBinding(binding);
         if (!rewBindings.count(binding)) {
           rewBindings.insert(binding);
-          MLabel *source = match->m;
-          return source->rewrite(binding, match->p->getAssigns());
+          M *source = match->m;
+          return rewrite(source, binding, match->p->getAssigns());
         }
       }
     }
@@ -7241,7 +8077,8 @@ MLabel* RewriteLI::getNextResult() {
   }
 }
 
-void RewriteLI::resetBinding(unsigned int limit) {
+template<class M>
+void RewriteLI<M>::resetBinding(unsigned int limit) {
   vector<string> toDelete;
   map<string, pair<unsigned int, unsigned int> >::iterator it;
   for (it = binding.begin(); it != binding.end(); it++) {
@@ -7257,8 +8094,9 @@ void RewriteLI::resetBinding(unsigned int limit) {
   }
 }
 
-bool RewriteLI::findNextBinding(unsigned int ulId, unsigned int peId,
-                                Pattern *p, int offset) {
+template<class M>
+bool RewriteLI<M>::findNextBinding(unsigned int ulId, unsigned int peId,
+                                   Pattern *p, int offset) {
 //   cout << "findNextBinding(" << ulId << ", " << peId << ", " << offset
 //        << ") called" << endl;
   string var = p->getVarFromElem(peId - offset);
@@ -7296,15 +8134,16 @@ bool RewriteLI::findNextBinding(unsigned int ulId, unsigned int peId,
 \subsection{Value Mapping (for a text)}
 
 */
-int rewriteVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
-  MLabel *source = 0;
-  FText* pText = 0;
+template<class M, class T>
+int rewriteVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  M *source = 0;
+  T* pText = 0;
   Pattern *p = 0;
-  RewriteLI *rewriteLI = 0;
+  RewriteLI<M> *rewriteLI = 0;
   switch (message) {
     case OPEN: {
-      source = static_cast<MLabel*>(args[0].addr);
-      pText = static_cast<FText*>(args[1].addr);
+      source = static_cast<M*>(args[0].addr);
+      pText = static_cast<T*>(args[1].addr);
       if (!pText->IsDefined()) {
         cout << "Error: undefined pattern text." << endl;
         return 0;
@@ -7318,12 +8157,15 @@ int rewriteVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
         cout << "Error: pattern not initialized." << endl;
       }
       else {
-        if (!p->hasAssigns()) {
+        if (!p->isValid(M::BasicType())) {
+          cout << "Pattern not suitable for type " << M::BasicType() << endl;
+        }
+        else if (!p->hasAssigns()) {
           cout << "No result specified." << endl;
         }
         else {
           if (p->initAssignOpTrees() && p->initEasyCondOpTrees()) {
-            rewriteLI = new RewriteLI(source, p);
+            rewriteLI = new RewriteLI<M>(source, p);
           }
         }
       }
@@ -7335,67 +8177,13 @@ int rewriteVM_T(Word* args, Word& result, int message, Word& local, Supplier s){
         result.addr = 0;
         return CANCEL;
       }
-      rewriteLI = ((RewriteLI*)local.addr);
+      rewriteLI = ((RewriteLI<M>*)local.addr);
       result.addr = rewriteLI->getNextResult();
       return (result.addr ? YIELD : CANCEL);
     }
     case CLOSE: {
       if (local.addr) {
-        rewriteLI = ((RewriteLI*)local.addr);
-        delete rewriteLI;
-        local.addr=0;
-      }
-      return 0;
-    }
-    default:
-      return -1;
-  }
-}
-
-/*
-\subsection{Value Mapping (for a Pattern)}
-
-*/
-int rewriteVM_P(Word* args, Word& result, int message, Word& local, Supplier s){
-  MLabel *source(0);
-  Pattern *p = 0;
-  RewriteLI *rewriteLI = 0;
-  switch (message) {
-    case OPEN: {
-      source = static_cast<MLabel*>(args[0].addr);
-      if (!source->IsDefined()) {
-        cout << "Error: undefined mlabel." << endl;
-        return 0;
-      }
-      p = static_cast<Pattern*>(args[1].addr);
-      if (!p) {
-        cout << "Error: pattern not initialized." << endl;
-      }
-      else {
-        if (!p->hasAssigns()) {
-          cout << "No result specified." << endl;
-        }
-        else {
-          if (p->initAssignOpTrees() && p->initEasyCondOpTrees()) {
-            rewriteLI = new RewriteLI(source, p);
-          }
-        }
-      }
-      local.addr = rewriteLI;
-      return 0;
-    }
-    case REQUEST: {
-      if (!local.addr) {
-        result.addr = 0;
-        return CANCEL;
-      }
-      rewriteLI = ((RewriteLI*)local.addr);
-      result.addr = rewriteLI->getNextResult();
-      return (result.addr ? YIELD : CANCEL);
-    }
-    case CLOSE: {
-      if (local.addr) {
-        rewriteLI = ((RewriteLI*)local.addr);
+        rewriteLI = ((RewriteLI<M>*)local.addr);
         delete rewriteLI;
         local.addr=0;
       }
@@ -7444,11 +8232,11 @@ int rewriteVM_Stream(Word* args, Word& result, int message, Word& local,
 struct rewriteInfo : OperatorInfo {
   rewriteInfo() {
     name      = "rewrite";
-    signature = "mlabel x text -> stream(mlabel)";
-    appendSignature("mlabel x pattern -> + stream(mlabel)");
+    signature = "mT x P -> stream(mT),   where T in {label(s), place(s)}, "
+                "P in {pattern, text}";
     appendSignature("stream(mlabel) x stream(text) -> stream(mlabel)");
     syntax    = "rewrite (_, _)";
-    meaning   = "Rewrite a mlabel or a stream of them.";
+    meaning   = "Rewrite a symbolic trajectory or a stream of them.";
   }
 };
 
@@ -7528,7 +8316,7 @@ ClassifyLI::ClassifyLI(MLabel *ml, Word _classifier) : classifyTT(0) {
     return;
   }
   vector<map<int, int> > nfa;
-  createNFAfromPersistent(c->delta, c->s2p, nfa, finalStates);
+  Tools::createNFAfromPersistent(c->delta, c->s2p, nfa, finalStates);
   Match<MLabel> *match = new Match<MLabel>(0, ml);
   if (condsOccur) {
     match->createSetMatrix(ml->GetNoComponents(), patElems.size());
@@ -7663,7 +8451,8 @@ MLabel* MultiRewriteLI::nextResultML() {
     resetBinding(bE.ulId);
     pair<int, int> patNo = patOffset[bE.peId];
     if (findNextBinding(bE.ulId, bE.peId, pats[patNo.first], patNo.second)) {
-      return ml->rewrite(binding, pats[patNo.first]->getAssigns());
+      return RewriteLI<MLabel>::rewrite(ml, binding, 
+                                        pats[patNo.first]->getAssigns());
     }
   }
   while (bindingStack.empty()) { // new ML from stream necessary
@@ -7700,7 +8489,8 @@ MLabel* MultiRewriteLI::nextResultML() {
       resetBinding(bE.ulId);
       pair<int, int> patNo = patOffset[bE.peId];
       if (findNextBinding(bE.ulId, bE.peId, pats[patNo.first], patNo.second)) {
-        return ml->rewrite(binding, pats[patNo.first]->getAssigns());
+        return RewriteLI<MLabel>::rewrite(ml, binding, 
+                                          pats[patNo.first]->getAssigns());
       }
     }
   }
@@ -7988,7 +8778,7 @@ bool IndexClassifyLI::timesMatch(TupleId tId, unsigned int ulId,
                                  set<string>& ivs) {
   ULabel ul(true);
   getUL(tId, ulId, ul);
-  return ::timesMatch(ul.timeInterval, ivs);
+  return Tools::timesMatch(ul.timeInterval, ivs);
 }
 
 /*
@@ -8325,7 +9115,10 @@ ListExpr compressTM(ListExpr args) {
     return listutils::typeError(errMsg);
   }
   ListExpr arg = nl->First(args);
-  if (MLabel::checkType(arg) || Stream<MLabel>::checkType(arg)) {
+  if (MLabel::checkType(arg) || Stream<MLabel>::checkType(arg) ||
+     MLabels::checkType(arg) || Stream<MLabels>::checkType(arg) ||
+     MPlace::checkType(arg) || Stream<MPlace>::checkType(arg) ||
+     MPlaces::checkType(arg) || Stream<MPlaces>::checkType(arg)) {
     return arg;
   }
   return listutils::typeError(errMsg);
@@ -8338,7 +9131,13 @@ ListExpr compressTM(ListExpr args) {
 int compressSelect(ListExpr args) {
   ListExpr arg = nl->First(args);
   if (MLabel::checkType(arg)) return 0;
-  if (Stream<MLabel>::checkType(arg)) return 1;
+  if (MLabels::checkType(arg)) return 1;
+  if (MPlace::checkType(arg)) return 2;
+  if (MPlaces::checkType(arg)) return 3;
+  if (Stream<MLabel>::checkType(arg)) return 4;
+  if (Stream<MLabels>::checkType(arg)) return 5;
+  if (Stream<MPlace>::checkType(arg)) return 6;
+  if (Stream<MPlaces>::checkType(arg)) return 7;
   return -1;
 }
 
@@ -8352,7 +9151,7 @@ int compressVM_1(Word* args, Word& result, int message, Word& local,
   T* source = static_cast<T*>(args[0].addr);
   result = qp->ResultStorage(s);
   T* res = (T*)result.addr;
-  source->compress(*res);
+  source->Compress(*res);
   return  0;
 }
 
@@ -8372,9 +9171,9 @@ int compressVM_Str(Word* args, Word& result, int message, Word& local,
       Word arg;
       qp->Request(args[0].addr,arg);
       if (qp->Received(args[0].addr)) {
-        T* mlabel =(T*) arg.addr;
+        T* source =(T*) arg.addr;
         T* res = new T(true);
-        mlabel->compress(*res);
+        source->Compress(*res);
         result.addr = res;
         return YIELD;
       }
@@ -8397,12 +9196,11 @@ int compressVM_Str(Word* args, Word& result, int message, Word& local,
 struct compressInfo : OperatorInfo {
   compressInfo() {
     name      = "compress";
-    signature = "mlabel -> mlabel";
-    appendSignature("mstring -> mstring");
-    appendSignature("stream(mlabel) -> stream(mlabel)");
-    appendSignature("stream(mstring) -> stream(mstring)");
+    signature = "mT -> mT,   where T in {label(s), place(s)}";
+    appendSignature("stream(mT) -> stream(mT),   where T in {label(s), "
+                    "place(s)}");
     syntax    = "compress(_)";
-    meaning   = "Unites temporally subsequent units with the same label.";
+    meaning   = "Unites temporally subsequent units with the same values.";
   }
 };
 
@@ -8420,8 +9218,10 @@ ListExpr fillgapsTM(ListExpr args) {
     return listutils::typeError("Two arguments expected.");
   }
   ListExpr arg = nl->First(args);
-  if ((MLabel::checkType(arg) || MPlace::checkType(arg)
-    || Stream<MLabel>::checkType(arg) || Stream<MPlace>::checkType(arg))
+  if ((MLabel::checkType(arg) || MLabels::checkType(arg) ||
+       MPlace::checkType(arg) || MPlaces::checkType(arg) || 
+       Stream<MLabel>::checkType(arg) || Stream<MLabels>::checkType(arg) ||
+       Stream<MPlace>::checkType(arg) || Stream<MPlaces>::checkType(arg))
     && CcInt::checkType(nl->Second(args))) {
     return arg;
   }
@@ -8437,9 +9237,13 @@ ListExpr fillgapsTM(ListExpr args) {
 int fillgapsSelect(ListExpr args) {
   ListExpr arg = nl->First(args);
   if (MLabel::checkType(arg)) return 0;
-  if (MPlace::checkType(arg)) return 1;
-  if (Stream<MLabel>::checkType(arg)) return 2;
-  if (Stream<MPlace>::checkType(arg)) return 3;
+  if (MLabels::checkType(arg)) return 1;
+  if (MPlace::checkType(arg)) return 2;
+  if (MPlaces::checkType(arg)) return 3;
+  if (Stream<MLabel>::checkType(arg)) return 4;
+  if (Stream<MLabels>::checkType(arg)) return 5;
+  if (Stream<MPlace>::checkType(arg)) return 6;
+  if (Stream<MPlaces>::checkType(arg)) return 7;
   return -1;
 }
 
@@ -8510,13 +9314,12 @@ int fillgapsVM_Str(Word* args, Word& result, int message, Word& local,
 struct fillgapsInfo : OperatorInfo {
   fillgapsInfo() {
     name      = "fillgaps";
-    signature = "mlabel -> mlabel";
-    appendSignature("mstring -> mstring");
-    appendSignature("stream(mlabel) -> stream(mlabel)");
-    appendSignature("stream(mstring) -> stream(mstring)");
+    signature = "mT -> mT,   where T in {label(s), place(s)}";
+    appendSignature("stream(mT) -> stream(mT),   where T in {label(s), "
+                    "place(s)}");
     syntax    = "fillgaps(_)";
     meaning   = "Fills temporal gaps between two (not temporally) subsequent "
-                "units inside the moving label if the labels coincide";
+                "units inside the symbolic trajectory if the values coincide";
   }
 };
 
@@ -8742,29 +9545,45 @@ ListExpr createtrieTM(ListExpr args) {
       ListExpr attrType;
       string attrName = nl->SymbolValue(nl->Second(args));
       int i = listutils::findAttribute(attrList, attrName, attrType);
-      if (MLabel::checkType(attrType) || MString::checkType(attrType)) {
-        bool ml = MLabel::checkType(attrType);
-        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                 nl->TwoElemList(nl->IntAtom(i),
-                                                 nl->BoolAtom(ml)),
-                                 nl->SymbolAtom(InvertedFile::BasicType()));
+      if (i > 0) { // found
+        if (MLabel::checkType(attrType) || MLabels::checkType(attrType) ||
+            MPlace::checkType(attrType) || MPlaces::checkType(attrType)) {
+          return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                  nl->OneElemList(nl->IntAtom(i)),
+                                  nl->SymbolAtom(InvertedFile::BasicType()));
+        }
       }
     }
   }
-  return listutils::typeError
-             ("Argument types must be rel(tuple(..., mlabel, ...)) x attrname");
+  return listutils::typeError("Argument types must be rel(tuple(..., mT, ...)) "
+                              "x attrname,   where T in {label(s), place(s)}");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int createtrieSelect(ListExpr args) {
+  ListExpr attrList = nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
+  ListExpr attrType;
+  string attrName = nl->SymbolValue(nl->Second(args));
+  listutils::findAttribute(attrList, attrName, attrType);
+  if (MLabel::checkType(attrType)) return 0;
+  if (MLabels::checkType(attrType)) return 1;
+  if (MPlace::checkType(attrType)) return 2;
+  if (MPlaces::checkType(attrType)) return 3;
+  return -1; // cannot occur
 }
 
 /*
 \subsection{Value Mapping}
 
 */
-int createtrieVM(Word* args, Word& result, int message, Word& local,
-                     Supplier s) {
+template<class M>
+int createtrieVM(Word* args, Word& result, int message, Word& local,Supplier s){
   Relation *rel = (Relation*)(args[0].addr);
   Tuple *tuple = 0;
-  MLabel *ml = 0;
-  MString *ms = 0;
+  M *src = 0;
   result = qp->ResultStorage(s);
   InvertedFile* inv = (InvertedFile*)result.addr;
   inv->setParams(false, 1, "");
@@ -8784,25 +9603,13 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,
   TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
   for (int i = 0; i < rel->GetNoTuples(); i++) {
     tuple = rel->GetTuple(i + 1, false);
-    if (((CcBool*)args[3].addr)->GetBoolval()) {
-      ml = (MLabel*)tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval()-1);
-      ULabel ul(1);
-      string text;
-      for (int j = 0; j < ml->GetNoComponents(); j++) {
-        ml->Get(j, ul);
-        ul.constValue.GetValue(text);
-        inv->insertString(tuple->GetTupleId(), text, j, 0, cache, trieCache);
-      }
+    src = (M*)tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval() - 1);
+    string text;
+    for (int j = 0; j < src->GetNoComponents(); j++) {
+      ((MLabel*)src)->GetValue(j, text); // TODO: change this
+      inv->insertString(tuple->GetTupleId(), text, j, 0, cache, trieCache);
     }
-    else {
-      ms = (MString*)tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval()-1);
-      UString us(1);
-      for (int j = 0; j < ms->GetNoComponents(); j++) {
-        ms->Get(j, us);
-        inv->insertString(tuple->GetTupleId(), us.constValue.GetValue(), j, 0,
-                          cache, trieCache);
-      }
-    }
+    
     tuple->DeleteIfAllowed();
   }
   delete trieCache;
@@ -8817,9 +9624,11 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,
 struct createtrieInfo : OperatorInfo {
   createtrieInfo() {
     name      = "createtrie";
-    signature = "rel(tuple(..., mlabel, ...)) x attrname -> invfile";
+    signature = "rel(tuple(..., mT, ...)) x attrname -> invfile,   where T in "
+                "{label(s), place(s)}";
     syntax    = "_ createtrie [ _ ]";
-    meaning   = "Builds an index for a relation of numbered moving labels.";
+    meaning   = "Builds an index for a relation of numbered symbolic "
+                "trajectories.";
   }
 };
 
@@ -9007,6 +9816,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(totextInfo(), totextVM, totextTM);
   
   AddOperator(mstringtomlabelInfo(), mstringtomlabelVM, mstringtomlabelTM);
+  
+  AddOperator(tolabelsInfo(), tolabelsVM, tolabelsTM);
+  
+  ValueMapping toplacesVMs[] = {toplacesVM_P, toplacesVM_T, 0};
+  AddOperator(toplacesInfo(), toplacesVMs, toplacesSelect, toplacesTM);
 
   ValueMapping containsVMs[] = {containsVM<Labels, Label>,
                                 containsVM<Places, Place>, 0};
@@ -9107,28 +9921,39 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&matches);
   matches.SetUsesArgsInTypeMapping();
   
-  ValueMapping indexmatchesVMs[] = {indexmatchesVM_T, indexmatchesVM_P, 0};
+  ValueMapping indexmatchesVMs[] = {indexmatchesVM<FText>, 
+                                    indexmatchesVM<PatPersistent>, 0};
   AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
               indexmatchesTM);
 
-  ValueMapping filtermatchesVMs[] = {filtermatchesVM_T,
-                                      filtermatchesVM_P, 0};
+  ValueMapping filtermatchesVMs[] = {filtermatchesVM<MLabel, FText>,
+    filtermatchesVM<MLabels, FText>, filtermatchesVM<MPlace, FText>,
+    filtermatchesVM<MPlaces, FText>, filtermatchesVM<MLabel, PatPersistent>,
+    filtermatchesVM<MLabels, PatPersistent>, 
+    filtermatchesVM<MPlace, PatPersistent>,
+    filtermatchesVM<MPlaces, PatPersistent>, 0};
   AddOperator(filtermatchesInfo(), filtermatchesVMs, filtermatchesSelect,
               filtermatchesTM);
   
-  ValueMapping rewriteVMs[] = {rewriteVM_T, rewriteVM_P,
-                                rewriteVM_Stream, 0};
+  ValueMapping rewriteVMs[] = {rewriteVM<MLabel, FText>, 
+    rewriteVM<MLabels, FText>, rewriteVM<MPlace, FText>, 
+    rewriteVM<MPlaces, FText>, rewriteVM<MLabel, PatPersistent>,
+    rewriteVM<MLabels, PatPersistent>, rewriteVM<MPlace, PatPersistent>,
+    rewriteVM<MPlaces, PatPersistent>, rewriteVM_Stream, 0};
   AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTM);
 
   AddOperator(classifyInfo(), classifyVM, classifyTM);
 
   AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTM);
 
-  ValueMapping compressVMs[] = {compressVM_1<MLabel>, compressVM_Str<MLabel>,0};
+  ValueMapping compressVMs[] = {compressVM_1<MLabel>, compressVM_1<MLabels>,
+    compressVM_1<MPlace>, compressVM_1<MPlaces>, compressVM_Str<MLabel>,
+    compressVM_Str<MLabels>, compressVM_Str<MPlace>, compressVM_Str<MPlaces>,0};
   AddOperator(compressInfo(), compressVMs, compressSelect, compressTM);
 
-  ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>, fillgapsVM_1<MPlace>,
-                             fillgapsVM_Str<MLabel>, fillgapsVM_Str<MPlace>, 0};
+  ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>, fillgapsVM_1<MLabels>,
+    fillgapsVM_1<MPlace>, fillgapsVM_1<MPlaces>, fillgapsVM_Str<MLabel>, 
+    fillgapsVM_Str<MLabels>, fillgapsVM_Str<MPlace>, fillgapsVM_Str<MPlaces>,0};
   AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect, fillgapsTM);
 
   AddOperator(createmlInfo(), createmlVM, createmlTM);
@@ -9138,7 +9963,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
 //       AddOperator(createindexInfo(), createindexVM, createindexTM);
 
-  AddOperator(createtrieInfo(), createtrieVM, createtrieTM);
+  ValueMapping createtrieVMs[] = {createtrieVM<MLabel>, createtrieVM<MLabels>,
+                                createtrieVM<MPlace>, createtrieVM<MPlaces>, 0};
+  AddOperator(createtrieInfo(), createtrieVMs, createtrieSelect, createtrieTM);
 
 //       AddOperator(triptompointInfo(), triptompointVM, triptompointTM);
 
