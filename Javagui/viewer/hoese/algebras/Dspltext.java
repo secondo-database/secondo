@@ -222,9 +222,20 @@ private static class TextViewerFrame extends JFrame{
 
 
 JComboBox encodingCB;
-private String encoding="UTF-8";
+private String encoding=stdEncoding;
 
+private static String stdEncoding;
 
+static {
+  try{
+    stdEncoding = System.getProperty("file.encoding");
+  } catch(Exception e){
+     stdEncoding=null;
+  }
+  if(stdEncoding==null){
+     stdEncoding = "UTF-8";
+  }
+}
 
 
 public TextViewerFrame(){
@@ -311,7 +322,7 @@ public TextViewerFrame(){
     Charset cs = (Charset) e.getValue();
     encodingCB.addItem(cs.displayName());
   }
-  encodingCB.setSelectedItem("UTF-8");
+  encodingCB.setSelectedItem(stdEncoding);
  
 
 
