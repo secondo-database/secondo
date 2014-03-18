@@ -24,6 +24,13 @@ SERVERNAME 127.0.0.1
 # set the port address of Secondo-Server
 SERVERPORT 1234
 
+# set the name of the user
+#USER username
+
+#set the password for the user
+#PASSWD passwd
+
+
 # set the viewers to load automatical at start
 KNOWN_VIEWERS StandardViewer RelViewer FormattedViewer HoeseViewer
 

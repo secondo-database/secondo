@@ -769,6 +769,9 @@ public MainWindow(String Title,String user,String passwd){
       showUserSettings(u,p);
       user = u.toString();
       passwd = p.toString();
+   } else {
+     user = Config.getProperty("USER",user);
+     passwd = Config.getProperty("PASSWD",passwd);
    }
   } // config -file readed
 
