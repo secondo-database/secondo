@@ -8381,7 +8381,7 @@ This constructor is used for the operator ~rewrite~.
 
 */
 MultiRewriteLI::MultiRewriteLI(Word _mlstream, Word _pstream) : ClassifyLI(0),
-             RewriteLI(0), mlStream(_mlstream), streamOpen(false), ml(0), c(0) {
+     RewriteLI<MLabel>(0), mlStream(_mlstream), streamOpen(false), ml(0), c(0) {
   Stream<FText> pStream(_pstream);
   pStream.open();
   FText* inputText = pStream.request();
