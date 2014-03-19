@@ -1266,8 +1266,9 @@ friend class Match<MLabel>;
 friend class IndexMatchesLI;
 
  public:
-  IndexClassifyLI(Word _mlrel, InvertedFile *inv, Word _classifier,int _attrNr);
-  IndexClassifyLI(Word _mlrel, InvertedFile *inv, int _attrNr);
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, Word _classifier,
+                  int _attrNr);
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, int _attrNr);
 
   ~IndexClassifyLI();
 
@@ -1279,7 +1280,7 @@ friend class IndexMatchesLI;
 
  private:
   Classifier *c;
-  Relation *mlRel;
+  Relation *mRel;
   queue<pair<string, TupleId> > classification;
   TupleType* classifyTT;
   InvertedFile* invFile;
@@ -1289,7 +1290,7 @@ friend class IndexMatchesLI;
 
 class IndexMatchesLI : public IndexClassifyLI {
  public:
-  IndexMatchesLI(Word _mlrel, InvertedFile *inv, int _attrNr, Pattern *p, 
+  IndexMatchesLI(Relation *rel, InvertedFile *inv, int _attrNr, Pattern *p, 
                  bool deleteP);
 
   ~IndexMatchesLI() {}
