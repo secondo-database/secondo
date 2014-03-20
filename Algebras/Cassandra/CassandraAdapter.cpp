@@ -60,6 +60,7 @@
 #include <cql/cql_result.hpp>
 #include <cql/cql_set.hpp>
 
+#include "CqlSingleNodeLoadbalancing.h"
 #include "CassandraAdapter.h"
 
 using namespace std;
@@ -78,6 +79,11 @@ void CassandraAdapter::connect() {
             boost::asio::ip::address::from_string(contactpoint)
         );
 
+        // Set our single node policy
+        builder -> with_load_balancing_policy( 
+                boost::shared_ptr< cql::cql_load_balancing_policy_t >( 
+                     new SingleNodeLoadBlancing(contactpoint)));
+        
         cluster = builder -> build();
         session = cluster -> connect();
         
