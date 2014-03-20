@@ -1,4 +1,4 @@
-
+Sequential: Yes
 Database: berlintest
 Restore: No
 
@@ -11,16 +11,16 @@ Result   : FALSE
 
 
 Operator : tmgetOpSig
-Number   : 1
+Number   : 2
 Signature: {string, text} x string -> text
 Example  : query tmgetOpSig("StandardAlgebra","+")
 Result   : (text '()')
 
 Operator : tmtypemap
-Number   : 1
+Number   : 3
 Signature: text x any x any ... -> text
 Example  : query tmtypemap(tmgetOpSig('StandardAlgebra',"+"),3,4)
-Result   : (text '()')
+Result   : (text 'typeerror')
 
 
 
