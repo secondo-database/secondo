@@ -2274,7 +2274,8 @@ Operator krdup (
 /*
 2.10 Operator ~krduph~
 
-This operator removes duplicates from a stream by comparing given key attributes.
+This operator removes duplicates from a stream by comparing given key 
+attributes.
 In constrast to ~krdup~, this operator does not require a sorted input stream.
 
 2.10.1 Type Mapping
@@ -5584,8 +5585,8 @@ int Loopselect(Word* args, Word& result, int message,
 {
   ArgVectorPointer funargs;
   Word tuplex, tupley, streamy;
-  Tuple* ctuplex;
-  Tuple* ctupley;
+  //Tuple* ctuplex;
+  //Tuple* ctupley;
   LoopselectLocalInfo *localinfo;
 
   switch ( message )
@@ -5638,7 +5639,7 @@ int Loopselect(Word* args, Word& result, int message,
       // restore localinformation from the local variable.
       localinfo = (LoopselectLocalInfo *) local.addr;
       tuplex = localinfo->tuplex;
-      ctuplex = (Tuple*)tuplex.addr;
+    //  ctuplex = (Tuple*)tuplex.addr;
       streamy = localinfo->streamy;
       // prepare tuplex and tupley for processing.
       // if rely is exausted: fetch next tuplex.
@@ -5656,7 +5657,7 @@ int Loopselect(Word* args, Word& result, int message,
             localinfo->readFirst++;         // another tuple read
             localinfo->costEstimation->processedTupleInStream1();
             funargs = qp->Argument(args[1].addr);
-            ctuplex = (Tuple*)tuplex.addr;
+            //ctuplex = (Tuple*)tuplex.addr;
             (*funargs)[0] = tuplex;
             streamy = args[1];
             qp->Open(streamy.addr);
@@ -5676,7 +5677,7 @@ int Loopselect(Word* args, Word& result, int message,
         }
         else
         {
-          ctupley = (Tuple*)tupley.addr;
+          //ctupley = (Tuple*)tupley.addr;
         }
       }
       localinfo->returned++;
@@ -6930,7 +6931,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
  // process the projection list
  ListExpr streamattr = nl->Second(nl->Second(stream));
  set<string> names;
- int noAttrs;
+ // int noAttrs;
  ListExpr numberList;
 
  ListExpr newAttrList;
@@ -6940,11 +6941,11 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
 
  int attrno = nl->ListLength(attrList);
  if(nl->IsEmpty(attrList)){
-   noAttrs = 0;
+   //noAttrs = 0;
    numberList = nl->TheEmptyList();
    newAttrList = nl->TheEmptyList();
  } else {
-   noAttrs = nl->ListLength(attrList);
+   //noAttrs = nl->ListLength(attrList);
    ListExpr attrType;
    while(!nl->IsEmpty(attrList)){
      ListExpr attr = nl->First(attrList);
@@ -9260,7 +9261,8 @@ Operator extrelaggregateB (
 
 Result type of symmjoin operation.
 
-----    ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym))) (map tuple tuple bool)
+----    ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))
+        (map tuple tuple bool)
 
         -> (stream (tuple (x1 ... xn y1 ... ym)))
 ----
@@ -10100,7 +10102,7 @@ SymmProductExtend(Word* args, Word& result,
 {
   Word r, l, value;
   SymmProductExtendLocalInfo* pli;
-  int i, nooffun, noofsons;
+  int i, nooffun;
   Supplier supplier, supplier2, supplier3;
   ArgVectorPointer extFunArgs;
   Tuple *resultTuple;
@@ -10202,7 +10204,7 @@ SymmProductExtend(Word* args, Word& result,
             for(i = 0; i< nooffun; i++)
             {
               supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
-              noofsons = qp->GetNoSons(supplier2);
+              //noofsons = qp->GetNoSons(supplier2);
               supplier3 = qp->GetSupplier(supplier2, 1);
               extFunArgs = qp->Argument(supplier3);
               ((*extFunArgs)[0]).setAddr(leftTuple);     // pass first argument
@@ -10288,7 +10290,7 @@ SymmProductExtend(Word* args, Word& result,
             for(i = 0; i< nooffun; i++)
             {
               supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
-              noofsons = qp->GetNoSons(supplier2);
+              //noofsons = qp->GetNoSons(supplier2);
               supplier3 = qp->GetSupplier(supplier2, 1);
               extFunArgs = qp->Argument(supplier3);
               ((*extFunArgs)[0]).setAddr(pli->currTuple);// pass 1st argument
@@ -10399,8 +10401,8 @@ Operator extrelsymmproductextend (
 
 5.10.6 Operator ~symmproduct~
 
-This operator calculates the cartesian product of two tuplestreams in a symmetrical and
-non-blocking manner. It behaves like
+This operator calculates the cartesian product of two tuplestreams in 
+a symmetrical and non-blocking manner. It behaves like
 
 ---- _ _ symmjoin [ TRUE ]
 ----
@@ -11649,7 +11651,8 @@ Operator extend_next(
 /*
 
 2.115.1 Type mapping for ~toFields~ is
-(stream(tuple(a1:d1, ..., an:dn))) x (aj) -> (stream(tuple(aj:dj, Field: string, Type: text, Value:text)))
+(stream(tuple(a1:d1, ..., an:dn))) x (aj) 
+-> (stream(tuple(aj:dj, Field: string, Type: text, Value:text)))
  
 */
 ListExpr toFieldsType( ListExpr args ) {
@@ -12900,10 +12903,204 @@ Operator pfilter(
   );
 
 
+/*
+2.118 Operator extendX
+
+*/
+
+ListExpr extendXTM(ListExpr args){
+
+  int len = nl->ListLength(args);
+
+  if(len!=4){
+    return listutils::typeError("3 arguments expected");
+  }
+
+  string err = "stream(tuple) x (AttrName+)  x "
+               "(tuple -> stream(DATA)) x DATA expected";
+
+  // check for tuple stream
+  ListExpr ts = nl->First(args);
+  if(!Stream<Tuple>::checkType(ts)){
+    return listutils::typeError(err);
+  }
+
+  // check for list of attribute names
+  ListExpr anames = nl->Second(args);
+  if(nl->AtomType(anames)!=NoAtom || nl->IsEmpty(anames)){
+     return listutils::typeError(err);
+  }
+
+  while(!nl->IsEmpty(anames)){
+     ListExpr fa = nl->First(anames);
+     string msg;
+     if(!listutils::isValidAttributeName(fa,msg)){
+       return listutils::typeError("invalid Attribute name " + msg);
+     }
+     anames = nl->Rest(anames);
+  }
+  anames = nl->Second(args);
+
+  ListExpr fun = nl->Third(args);
+
+  if(!listutils::isMap<1>(fun)){
+     return listutils::typeError(err);
+  }
+  if(!nl->Equal(nl->Second(ts), nl->Second(fun))){
+     return listutils::typeError("Fun argument does not fit the tuple type");
+  }
+
+  ListExpr res = nl->Third(fun);
+
+  if(!Stream<Attribute>::checkType(res)){
+    return listutils::typeError("result of function is not a stream(DATA)");
+  }
+
+  res = nl->Second(res); // remove stream
+
+  // build result attributes
+  ListExpr extAttrList = nl->OneElemList( nl->TwoElemList(
+                                             nl->First(anames),
+                                             res));
+  ListExpr last = extAttrList;
+  anames = nl->Rest(anames);
+  while(!nl->IsEmpty(anames)){
+      last = nl->Append(last, nl->TwoElemList(nl->First(anames), res));
+      anames = nl->Rest(anames);
+  }
+
+  ListExpr resAttrList = listutils::concat( nl->Second(nl->Second(ts)), 
+                                            extAttrList);
+
+  ListExpr resultList = nl->TwoElemList(
+                            listutils::basicSymbol<Stream<Tuple> >(),
+                            nl->TwoElemList(listutils::basicSymbol<Tuple>(),
+                                            resAttrList));
 
 
 
+  if(!Stream<Tuple>::checkType(resultList)){
+    return listutils::typeError("Name conflicts in result tuple");
+  }
+  ListExpr defaultValue = nl->Fourth(args);
+  if(!nl->Equal(res,defaultValue)){
+    return listutils::typeError("Default value" + nl->ToString(defaultValue) +
+                          " != stream element from fun " + nl->ToString(res) );
+  }
+  return resultList;
+}
 
+
+class extendXLocal{
+   public:
+
+      extendXLocal(Word _istream, Supplier _fun, int _no,
+                      Attribute* _defaultValue, ListExpr _tupleType):
+      istream(_istream), fun(_fun), no(_no), defaultValue(_defaultValue){
+      tt = new TupleType(_tupleType);
+      istream.open();
+   }
+
+   ~extendXLocal(){
+       tt->DeleteIfAllowed();
+       istream.close();
+    }
+
+   Tuple* nextTuple(){
+     Tuple* ituple = istream.request();
+     if(ituple==0){
+       return 0;
+     }
+     Tuple* rtuple = new Tuple(tt);
+     for(int i=0;i<ituple->GetNoAttributes();i++){
+       rtuple->CopyAttribute(i,ituple,i);
+     }
+     ArgVectorPointer funargs = qp->Argument(fun);
+     ((*funargs)[0]).setAddr(ituple);
+
+
+     int pos = 0;
+     bool ok = true;
+     Word result;
+     qp->Open(fun);
+     while(pos < no && ok) {
+        qp->Request(fun,result);
+        ok = qp->Received(fun);
+        if(ok){
+           rtuple->PutAttribute(ituple->GetNoAttributes()+pos,
+                               (Attribute*) result.addr);
+        } else {
+           rtuple->PutAttribute(ituple->GetNoAttributes()+pos,
+                            defaultValue->Copy());
+        }
+        pos++;
+     }
+     qp->Close(fun);
+     while(pos < no){
+      rtuple->PutAttribute(ituple->GetNoAttributes()+pos,
+                       defaultValue->Copy());
+      pos++;
+     }
+     ituple->DeleteIfAllowed();
+     return rtuple;
+   }
+
+  private:
+    Stream<Tuple> istream;
+    Supplier fun;
+    int no;
+    Attribute* defaultValue;
+    TupleType* tt;
+};
+
+int extendXVM( Word* args, Word& result, int message,
+		   Word& local, Supplier s ) {
+
+ extendXLocal* li = (extendXLocal*)local.addr;
+
+  switch(message){
+    case OPEN : {
+                  if(li) delete li;
+                  // stream attrlist fun default
+                  //   0      1       2     3
+                  int ns = qp->GetNoSons(qp->GetSon(s,1));
+                  Attribute* dv = (Attribute*) args[3].addr;
+                  ListExpr tt = nl->Second(GetTupleResultType(s));
+                  local.addr = new extendXLocal( args[0], args[2].addr,
+                                                 ns, dv, tt);
+                }
+                return 0;
+    case REQUEST: result.addr = li?li->nextTuple():0;
+                  return result.addr?YIELD:CANCEL;
+    case CLOSE :{
+        if(li){
+           delete li;
+           local.addr = 0;
+        }
+        return 0;
+    }
+  } 
+  return -1; 
+
+}
+
+OperatorSpec extendXSpec(
+     "stream(tuple(X)) x AttrName + x fun(tuple) -> stream(DATA) "
+     "x DATA  -> stream(tuple())",
+     " _ extendX [ attrnames ; fun ; default ]  ",
+     " Appends so much attributes from the stream created by the function"
+     " to the original tuple as new attributes names are given. "
+     " If less attributes comes out from the function stream, the default"
+     " value is used to fill up the missing attributes",
+     " query Kinos feed extendX[ S1, S2, S3 ; intstream(4,5), 0); \"\"" );
+
+ Operator extendXOP(
+      "extendX",
+      extendXSpec.getStr(),
+      extendXVM,
+      Operator::SimpleSelect,
+      extendXTM
+ );
 
 
 /*
@@ -13014,6 +13211,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&equalStreams);
     AddOperator(&replaceAttr);
     AddOperator(&pfilter);
+    AddOperator(&extendXOP);
 
 #ifdef USE_PROGRESS
 // support for progress queries

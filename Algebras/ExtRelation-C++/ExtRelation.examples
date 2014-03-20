@@ -416,5 +416,10 @@ Example   : query ten feed pfilter[ (.No - ..No) > 2 ] count
 Result    : 4
 
 
+Operator  : extendX
+Number    : 1
+Signature : stream(tuple)  x attrnames+ x (tuple -> stream(DATA)) x DATA -> stream(tuple)
+Example   : query strassen feed head[2] extendX[ A, B,C   ; fun(t : TUPLE ) Kinos feed extend[D : distance(.GeoData, attr(t,GeoData))] sortby[D] projecttransformstream[Name] ; ""] consume
+Result    : ((rel (tuple ((Name string) (Typ string) (GeoData line) (A string) (B string) (C string))))  (("Dudenstr." "Hauptstraße" ((8209.0 8769.0 8293.0 8768.0) (8293.0 8768.0 8594.0 8773.0) (8594.0 8773.0 8982.0 8781.0) (8982.0 8781.0 9222.0 8787.0)) "Xenon" "Yorck" "Odeon") ("Methfesselstr." "Nebenstraße" ((8982.0 8781.0 9057.0 8936.0) (9057.0 8936.0 9106.0 9038.0) (9106.0 9038.0 9163.0 9209.0) (9163.0 9209.0 9211.0 9354.0)) "Yorck" "Xenon" "Sputnik Südstern")))
 
 

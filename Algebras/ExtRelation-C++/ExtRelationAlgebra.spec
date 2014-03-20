@@ -91,3 +91,5 @@ operator replaceAttr alias REPLACEATTR  pattern _ op [ funlist ] implicit parame
 
 operator pfilter alias PFILTER pattern _ op [fun] implicit parameters currenttuple, lasttuple types TUPLE, TUPLE
 
+operator extendX alias EXTENDX pattern _ op[list ; fun ; _] implicit parameter tuple type TUPLE
+
