@@ -51,8 +51,9 @@ extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
 
-NestedList* pnl; // Nested list storage for persistent storing of nested lists
-typemap::Mapper* mapper;  // instance of the mapper class
+static NestedList* pnl; // Nested list storage for persistent 
+                        //storing of nested lists
+static typemap::Mapper* mapper;  // instance of the mapper class
 
 
 
@@ -280,6 +281,10 @@ int tmtypemapVM (Word* args, Word& result, int message, Word& local,
      return 0;
    }
 
+   if(pnl==0 || mapper==0){
+      res->Set(true, "missing initialization, call tmpinit before");
+      return 0;
+   } 
 
    if(!pnl->ReadFromString(sigArgsType->GetValue(),sat) ||
       !nl->ReadFromString(currentArgs->GetValue(),cat)){
@@ -332,7 +337,7 @@ class TypeMapTestAlgebra: public Algebra{
          }
          if(pnl){
              delete pnl;
-             mapper = 0;
+             pnl = 0;
          }
       }
 };
