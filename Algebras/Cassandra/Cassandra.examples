@@ -28,7 +28,7 @@ Result   : 41267
 Operator : ccollect
 Number   : 1
 Signature: text x text x text x text -> stream(tuple(...))
-Example  : query ccollect['127.0.0.1', 'keyspace1', 'plz', 'ONE'] count
+Example  : query ccollect('127.0.0.1', 'keyspace1', 'plz', 'ONE') count
 Result   : 41267
 
 Operator : clist
