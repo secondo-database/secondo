@@ -1994,8 +1994,10 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
   assert( strLen <= MAX_STRINGSIZE );
 
   NodeRecord newNodeRec;
+
   Cardinal newNode = nodeTable->EmptySlot();
-  (*nodeTable).Get(newNode, newNodeRec);
+
+  nodeTable->Get(newNode, newNodeRec);
 
   // store length and type information
   newNodeRec.strLength = strLen;
@@ -2177,9 +2179,7 @@ empty or it is filled with up to TextFragmentSize-1 characters.
                           : TextFragmentSize;
 
       textBuffer.copy( newTextRec.field, TextFragmentSize, textStart );
-      char test[TextFragmentSize+1];
       //textBuffer.copy( test1, TextFragmentSize, textStart );
-      test[TextFragmentSize] = 0;
       //cerr << textLength << ", " << textStart << ":" << test1 << endl;
       //cerr << "substr: "
       //     << textBuffer.substr(textStart, TextFragmentSize) << endl;
