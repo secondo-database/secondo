@@ -1,0 +1,12 @@
+Database : GISAlgebraTest
+Restore  : NO
+
+
+Operator : slope
+Number   : 1
+Signature: sT -> sT
+Example  : query slope()
+Result   : file
+
+
+
