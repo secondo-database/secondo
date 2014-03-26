@@ -23,7 +23,7 @@ operator statistics alias STATISTICS pattern _ op [ _ , _ ]
 
 
 operator cdelete alias CDELETE pattern op ( _ , _ , _ )
-operator cspread alias CSPREAD pattern _ op [ _ , _ , _ , _ , _ ]
+operator cspread alias CSPREAD pattern _ op [ _ , _ , _ , _ , _ , _ ]
 operator ccollect alias CCOLLECT pattern op ( _ , _ , _ , _ )
 operator clist alias CLIST pattern op ( _ , _ )
 

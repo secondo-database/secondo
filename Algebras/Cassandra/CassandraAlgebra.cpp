@@ -708,25 +708,32 @@ The fourth parameter is the name of the local
 system. The name must be unique for each secondo
 node
 
+The sixth parameter is the name of the local 
+system. The name must be unique for each secondo
+node
+
+The seventh parameter is the attribute used for
+clustering
+
 2.2.1 Type mapping function of operator ~cspread~
 
 Type mapping for ~cspread~ is
 
 ----
-  stream(tuple(...)) x text x text x text x text x text -> int
+  stream(tuple(...)) x text x text x text x text x text x attr -> int
                 
 ----
 
 */
-ListExpr CFeedTypeMap( ListExpr args )
+ListExpr CSpreadTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 6){
-    return listutils::typeError("six arguments expected");
+  if(nl->ListLength(args) != 7){
+    return listutils::typeError("seven arguments expected");
   }
 
   string err = " stream(tuple(...)) x text x text x text x text "
-    " x text expected";
+    " x text x attr expected";
 
   ListExpr stream = nl->First(args);
   
@@ -735,6 +742,7 @@ ListExpr CFeedTypeMap( ListExpr args )
   ListExpr relation = nl->Fourth(args);
   ListExpr consistence = nl->Fifth(args);
   ListExpr systemname = nl->Sixth(args);
+  ListExpr attr = nl->Seventh(args);
   
   if(( !Stream<Tuple>::checkType(stream) &&
        !Stream<Attribute>::checkType(stream) ) ||
@@ -746,14 +754,34 @@ ListExpr CFeedTypeMap( ListExpr args )
     return listutils::typeError(err);
   }
   
-  return nl->SymbolAtom(CcInt::BasicType());
+  // Check attribute name and append position
+  // to nested list
+  if(!listutils::isSymbol(attr)){
+    return listutils::typeError(err + "(attrname is not valid)");
+  }
+  
+  ListExpr attrType;
+  string attrname = nl->SymbolValue(attr);
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  int index = listutils::findAttribute(attrList,attrname,attrType);
+  
+  if(index == 0) {
+    return listutils::typeError(attrname+
+                     " is not an attribute of the stream");
+  } 
+  
+  ListExpr indexList = nl->OneElemList(nl->IntAtom(index-1));
+  
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            indexList,
+                            nl->SymbolAtom(CcInt::BasicType()));
 }
 
 /*
 2.4.2 Cost estimation
 
 */
-CostEstimation* CFeedCostEstimation() {
+CostEstimation* CSpreadCostEstimation() {
   return new ForwardCostEstimation();
 }
 
@@ -761,16 +789,16 @@ CostEstimation* CFeedCostEstimation() {
 2.4.3 Value mapping function of operator ~cspread~
 
 */
-class CFeedLocalInfo {
+class CSpreadLocalInfo {
 
 public:
-  CFeedLocalInfo(string myContactPoint, string myKeyspace, 
+  CSpreadLocalInfo(string myContactPoint, string myKeyspace, 
                  string myRelationName, string myConsistence, 
-                 string mySystemname, string myTupleType) 
+                 string mySystemname, int myAttrIndex, string myTupleType)
   
     : contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence), 
-    systemname(mySystemname), tupleType(myTupleType), 
+    systemname(mySystemname), attrIndex(myAttrIndex), tupleType(myTupleType), 
     tupleNumber(0) {
       
       cout << "Contact point is " << contactPoint << endl;
@@ -778,7 +806,9 @@ public:
       cout << "Relation name is " << relationName << endl;
       cout << "Consistence is " << consistence << endl;
       cout << "Systemname is " << systemname << endl;
+      cout << "Attribute Index is " << attrIndex << endl;
       cout << "Tuple type is " << tupleType << endl;
+      
       
       cassandra = new CassandraAdapter(contactPoint, keyspace);
       cassandra -> connect();
@@ -801,7 +831,7 @@ public:
       
   }
   
-  virtual ~CFeedLocalInfo() {
+  virtual ~CSpreadLocalInfo() {
     disconnect();
   }
   
@@ -844,14 +874,15 @@ private:
   string relationName;         // Relation name to delete
   string consistence;          // Consistence
   string systemname;           // Name of our system
+  int attrIndex;               // Index of attribute to cluster
   string tupleType;            // Type of the tuples (Nested List String)
   size_t tupleNumber;          // Number of the current tuple
   CassandraAdapter *cassandra; // Cassandra connection
 };
 
-int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
+int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  CFeedLocalInfo *cli; 
+  CSpreadLocalInfo *cli; 
   Word elem;
   bool feedOk = true;
   bool parameterOk = true;
@@ -880,6 +911,9 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
       } else if (! ((FText*) args[5].addr)->IsDefined()) {
         cout << "Systemname is not defined" << endl;
         parameterOk = false;
+      } else if (! ((CcInt*) args[7].addr)->IsDefined()) {
+        cout << "Attr Index is not defined" << endl;
+        parameterOk = false;
       }
       
       string consistenceLevel = ((FText*) args[4].addr)->GetValue();
@@ -896,12 +930,13 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
       string tupleType = nl->ToString(relTypeList);
       
       
-      cli = new CFeedLocalInfo(
+      cli = new CSpreadLocalInfo(
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
                       (((FText*)args[3].addr)->GetValue()),
                       (((FText*)args[4].addr)->GetValue()),
                       (((FText*)args[5].addr)->GetValue()),
+                      (((CcInt*)args[7].addr)->GetValue()),
                       tupleType
                       );
       
@@ -942,11 +977,11 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
 2.4.4 Specification of operator ~cspread~
 
 */
-const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string CSpreadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
                          "<text>stream(tuple(...)) x text x text x text "
-                         "x text x text -> int</text--->"
+                         "x text x text x attr -> int</text--->"
                          "<text>cspread _ op [ _ , _ , _ , _ , _ ] </text--->"
                          "<text>The operator cspread feeds a tuple stream"
                          "into a cassandra cluster. The first paramter is "
@@ -961,12 +996,16 @@ const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "         written the tuple. Where n is the "
                          "         replication factor of the cluster"
                          "ALL    - All cassandra nodes have written the tuple"
+                         ""
                          "The sixth parameter is the name of the local "
                          "system. The name must be unique for each secondo"
                          "node"
+                         ""
+                         "The seventh parameter is the attribute used for"
+                         "clustering"
                          "</text--->"
                          "<text>query plz feed cspread['127.0.0.1', 'keyspace'"
-			 ", 'plz', 'ANY'. 'node1']</text--->"
+                         ", 'plz', 'ANY'. 'node1', 'PLZ']</text--->"
                               ") )";
 
 /*
@@ -975,11 +1014,11 @@ const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 */
 Operator cassandrafeed (
          "cspread",                 // name
-         CFeedSpec,               // specification
-         CFeed,                   // value mapping
+         CSpreadSpec,               // specification
+         CSpread,                   // value mapping
          Operator::SimpleSelect,  // trivial selection function
-         CFeedTypeMap,            // type mapping
-         CFeedCostEstimation      // Cost estimation
+         CSpreadTypeMap,            // type mapping
+         CSpreadCostEstimation      // Cost estimation
 );                         
 
 
