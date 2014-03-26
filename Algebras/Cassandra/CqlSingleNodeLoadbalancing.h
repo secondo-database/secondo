@@ -112,7 +112,7 @@ public:
                 
 private:
                 // Node to query
-                string  cassandraNode;
+                string cassandraNode;
                 
                 // List of all cassandra nodes
                 vector<boost::shared_ptr <cql::cql_host_t> > allNodes;

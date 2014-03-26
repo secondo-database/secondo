@@ -90,7 +90,7 @@ void CassandraAdapter::connect() {
         // Switch keyspace
         session -> set_keyspace(keyspace);
        
-        cout << "Cassandra: Connection successful established" << endl;
+        cout << "Cassandra: Connection successfully established" << endl;
         cout << "You are connected to host " << contactpoint
                  << " keyspace " << keyspace << endl;
        
@@ -140,7 +140,7 @@ void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
        prepareCQLInsert(relation, consistenceLevel);
        
        if(insertCQLid.empty()) {
-         cout << "Unable to prepare CQL Insert statement" << endl;
+         cout << "Unable to prepare CQL insert statement" << endl;
          return;
        }
     }
@@ -536,7 +536,7 @@ bool CassandraAdapter::getTokensFromQuery
          cql::cql_set_t* setResult = NULL;
          cqlResult.get_set("tokens", &setResult);
       
-         if(setResult!=NULL) {
+         if(setResult != NULL) {
              for (size_t i = 0; i < setResult->size(); ++i) {
                 string token;
                 setResult->get_string(i, token);

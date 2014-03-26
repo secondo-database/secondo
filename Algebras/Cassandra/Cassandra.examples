@@ -19,10 +19,10 @@ Signature: (text text text) -> bool
 Example  : query cdelete ('127.0.0.1', 'keyspace1', 'plz') 
 Result   : TRUE
 
-Operator : cfeed
+Operator : cspread
 Number   : 1
 Signature: ((stream (tuple x) x text x text x text x text)) -> int
-Example  : query plz feed cfeed['127.0.0.1', 'keyspace1', 'plz', 'ANY', 'node1']
+Example  : query plz feed cspread['127.0.0.1', 'keyspace1', 'plz', 'ANY', 'node1']
 Result   : 41267
 
 Operator : ccollect

@@ -690,9 +690,9 @@ Operator cassandradelete (
 
 
 /*
-2.4 Operator ~cfeed~
+2.4 Operator ~cspread~
 
-The operator ~cfeed~ feeds a tuple stream into
+The operator ~cspread~ feeds a tuple stream into
 a cassandra cluster. The first paramter is the contactpoint
 to the cluster. The second paramter is the keyspace. The 
 third parameter is the name of the relation.
@@ -708,9 +708,9 @@ The fourth parameter is the name of the local
 system. The name must be unique for each secondo
 node
 
-2.2.1 Type mapping function of operator ~cfeed~
+2.2.1 Type mapping function of operator ~cspread~
 
-Type mapping for ~cfeed~ is
+Type mapping for ~cspread~ is
 
 ----
   stream(tuple(...)) x text x text x text x text x text -> int
@@ -758,7 +758,7 @@ CostEstimation* CFeedCostEstimation() {
 }
 
 /*
-2.4.3 Value mapping function of operator ~cfeed~
+2.4.3 Value mapping function of operator ~cspread~
 
 */
 class CFeedLocalInfo {
@@ -939,7 +939,7 @@ int CFeed(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 /*
-2.4.4 Specification of operator ~cfeed~
+2.4.4 Specification of operator ~cspread~
 
 */
 const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -947,8 +947,8 @@ const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "( "
                          "<text>stream(tuple(...)) x text x text x text "
                          "x text x text -> int</text--->"
-                         "<text>cfeed _ op [ _ , _ , _ , _ , _ ] </text--->"
-                         "<text>The operator cfeed feeds a tuple stream"
+                         "<text>cspread _ op [ _ , _ , _ , _ , _ ] </text--->"
+                         "<text>The operator cspread feeds a tuple stream"
                          "into a cassandra cluster. The first paramter is "
                          "the contactpoint to the cluster. The second "
                          "paramter is the keyspace. The third parameter is "
@@ -965,16 +965,16 @@ const string CFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "system. The name must be unique for each secondo"
                          "node"
                          "</text--->"
-                         "<text>query plz feed cfeed['127.0.0.1', 'keyspace', "
-                         "'plz', 'ANY'. 'node1']</text--->"
+                         "<text>query plz feed cspread['127.0.0.1', 'keyspace'"
+			 ", 'plz', 'ANY'. 'node1']</text--->"
                               ") )";
 
 /*
-2.4.5 Definition of operator ~cfeed~
+2.4.5 Definition of operator ~cspread~
 
 */
 Operator cassandrafeed (
-         "cfeed",                 // name
+         "cspread",                 // name
          CFeedSpec,               // specification
          CFeed,                   // value mapping
          Operator::SimpleSelect,  // trivial selection function
