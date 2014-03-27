@@ -78,7 +78,7 @@ for MINISEC in ${MSECARR[*]}; do
 done
 
 # Kill the started CollectFlobServer daemons
-pkill collectFl
+pkill -u ${USER} collectFl
 
 if [ $SRCNUM -le 0 ]; then
   echo -e "No Monitors can be switched off by the current user.\n" >&2
