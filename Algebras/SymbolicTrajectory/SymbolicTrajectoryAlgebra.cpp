@@ -54,7 +54,8 @@ namespace stj {
 \subsection{Constructor}
 
 */
-Label::Label(const Label& rhs) : Attribute(rhs.IsDefined()), value(0) {
+Label::Label(const Label& rhs) : Attribute(rhs.IsDefined()), 
+                                 value(rhs.value.getSize()) {
   CopyFrom(&rhs);
 }
 
@@ -312,13 +313,12 @@ void MLabel::convertFromMString(const MString& source) {
   }
   SetDefined(true);
   UString us(true);
-  ULabel ul(true);
   for (int i = 0; i < source.GetNoComponents(); i++) {
     source.Get(i, us);
-    ul.timeInterval = us.timeInterval;
-    ul.constValue.SetValue(us.constValue.GetValue());
+    ULabel ul(us.timeInterval, us.constValue.GetValue());
     Add(ul);
   }
+  units.TrimToSize();
 }
 
 /*
@@ -776,7 +776,7 @@ GenTC<Labels> labels;
 */
 template<class B>
 MBasics<B>::MBasics(const MBasics &mbs) : Attribute(mbs.IsDefined()), 
-  values(0), units(mbs.GetNoComponents()), pos(0) {
+  values(mbs.GetNoValues()), units(mbs.GetNoComponents()), pos(mbs.pos.Size()) {
   values.copyFrom(mbs.values);
   units.copyFrom(mbs.units);
   pos.copyFrom(mbs.pos);
@@ -2236,7 +2236,7 @@ GenTC<IBasics<Places> > iplaces;
 template<class B>
 UBasic<B>::UBasic(const SecInterval &iv, const B& val)
                                             : ConstTemporalUnit<B>(iv, val) {
-  SetDefined(iv.IsDefined() && val.IsDefined());
+  this->SetDefined(iv.IsDefined() && val.IsDefined());
 }
 
 template<class B>
@@ -2479,7 +2479,7 @@ GenTC<UBasics<Places> > uplaces;
 */
 template<class B>
 MBasic<B>::MBasic(const MBasic &mb) : Attribute(mb.IsDefined()),
-                                      values(0), units(GetNoComponents()) {
+                      values(mb.values.getSize()), units(mb.GetNoComponents()) {
   if (IsDefined()) {
     values.copyFrom(mb.values);
     units.copyFrom(mb.units);
@@ -5891,7 +5891,6 @@ template<class Unit, class Mapping>
 int makemvalueSymbolicVM(Word* args, Word& result, int message,
                          Word& local, Supplier s) {
   Mapping* m;
-  Unit* unit;
   Word curTupleWord;
   assert(args[2].addr != 0);
   assert(args[3].addr != 0);
@@ -5912,8 +5911,8 @@ int makemvalueSymbolicVM(Word* args, Word& result, int message,
       assert(false);
     }
     else if (curAttr->IsDefined()) {
-      unit = static_cast<Unit*>(curAttr);
-      m->MergeAdd(*unit);
+      Unit unit(*((Unit*)curAttr));
+      m->MergeAdd(unit);
     }
     else {
       cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. " << endl;
@@ -9127,7 +9126,7 @@ Tuple* IndexClassifyLI::nextResultTuple() {
   }
   pair<string, TupleId> resultPair;
   Pattern* p = 0;
-  int processedP = 0;
+  int processedP = 0; // nonsense
   while (processedP <= c->getNumOfP()) {
     if (!classification.empty()) { // convert matched mlabel into result
       pair<string, TupleId> resultPair = classification.front();

@@ -184,7 +184,7 @@ class Labels : public Attribute {
   typedef Label single;
       
   Labels() {}
-  explicit Labels(const bool defined) : Attribute(defined), values(0), pos(0) {}
+  explicit Labels(const bool defined) : Attribute(defined), values(8), pos(1) {}
   Labels(const Labels& src, const bool sort = false);
   
   ~Labels() {}
@@ -301,9 +301,9 @@ class Places : public Attribute {
   typedef Place single;
    
   Places() {}
-  Places(const int n) : Attribute(n > 0), values(0), posref(n) {}
+  Places(const int n) : Attribute(n > 0), values(8), posref(n) {}
   Places(const Places& rhs, const bool sort = false);
-  explicit Places(const bool def) : Attribute(def), values(0), posref(0) {}
+  explicit Places(const bool def) : Attribute(def), values(8), posref(1) {}
 
   ~Places() {}
 
@@ -423,7 +423,7 @@ class MBasic : public Attribute {
   typedef B base;
    
   MBasic() {}
-  explicit MBasic(unsigned int n) : Attribute(n>0), values(0), units(n) {}
+  explicit MBasic(unsigned int n) : Attribute(n>0), values(8), units(n) {}
   explicit MBasic(const MBasic& mb);
   
   ~MBasic() {}
@@ -540,7 +540,7 @@ class MBasics : public Attribute {
   typedef B base;
    
   MBasics() {}
-  explicit MBasics(int n) : Attribute(n > 0), values(0), units(n), pos(0) {}
+  explicit MBasics(int n) : Attribute(n > 0), values(8), units(n), pos(1) {}
   explicit MBasics(const MBasics& mbs);
   
   ~MBasics() {}
