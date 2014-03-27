@@ -344,11 +344,6 @@ Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
 Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * () // X.labels contains tolabel("Brackel")'] count
 Result   : 1
 
-Operator : indexmatches
-Number   : 1
-Signature: rel(tuple(X)) x IDENT x text -> stream(tuple(X))
-Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], '(_ "Aplerbeck") * (_ "Innenstadt-Ost") *'] count
-Result   : 2
 
 Operator : rewrite
 Number   : 0
@@ -362,11 +357,7 @@ Signature: mlabel x classifier -> stream(text)
 Example  : query classify(mlabel1, class3 feed toclassifier) count
 Result   : 0
 
-Operator : indexclassify
-Number   : 1
-Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier -> stream(tuple(string, mlabel))
-Example  : query Dotraj indexclassify [Trajectory, Dotraj createtrie[Trajectory], class3 feed toclassifier] count
-Result   : 0
+
 
 Operator : rewrite
 Number   : 1
@@ -404,8 +395,4 @@ Signature: int x int x string -> bool
 Example  : query createmlrelation(10, 50, "Dotraj")
 Result   : FALSE
 
-Operator : createtrie
-Number   : 1
-Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
-Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], '(_ "Mengede") *'] count
-Result   : 3
+

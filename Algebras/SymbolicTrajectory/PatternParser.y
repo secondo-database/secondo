@@ -568,30 +568,32 @@ Searches varP in the pattern and verifies the correct order of variables in the
 result pattern. In case of success, the unit pattern gets the suitable values.
 
 */
-void PatElem::getUnit(const char *varP, bool order) {
-  if (!order || firstAssign) {
-    pos = 0; // reset counter for first assignment
-    firstAssign = false;
-  }
-  string varStr(varP);
-  bool found = false;
-  while ((pos < wholepat->getElems().size()) && !found) { // look for var
-    if (!(wholepat->getElem(pos)).var.compare(varStr)) {
-      var.assign((wholepat->getElem(pos)).var);
-      ivs = (wholepat->getElem(pos)).ivs;
-      lbs = (wholepat->getElem(pos)).lbs;
-      wc = (wholepat->getElem(pos)).wc;
-      found = true;
-      curIvs = ivs;
-/*       cout << "variable " << var << " found in pattern " << pos << endl; */
-    }
-    pos++;
-  }
-  if (!found) {
-    var.clear();
-    cout << "variable " << varStr << " not found" << endl;
-  }
-}
+// void PatElem::getUnit(const char *varP, bool order) {
+//   if (!order || firstAssign) {
+//     pos = 0; // reset counter for first assignment
+//     firstAssign = false;
+//   }
+//   string varStr(varP);
+//   bool found = false;
+//   PatElem elem;
+//   while ((pos < wholepat->getElems().size()) && !found) { // look for var
+//     wholepat->getElem(pos, elem);
+//     if (!elem.var.compare(varStr)) {
+//       var = elem.var;
+//       ivs = elem.ivs;
+//       lbs = elem.lbs;
+//       wc = elem.wc;
+//       found = true;
+//       curIvs = ivs;
+// /*       cout << "variable " << var << " found in pattern " << pos << endl; */
+//     }
+//     pos++;
+//   }
+//   if (!found) {
+//     var.clear();
+//     cout << "variable " << varStr << " not found" << endl;
+//   }
+// }
 
 /*
 function ~stringToSet~
@@ -710,16 +712,18 @@ int Condition::convertVarKey(const char *varKey) {
   int dotpos = input.find('.');
   string varInput(input.substr(0, dotpos));
   string kInput(input.substr(dotpos + 1));
+  PatElem elem;
   for (unsigned int i = 0; i < wholepat->getElems().size(); i++) {
-    wholepat->getElem(i).getV(var);
+    wholepat->getElem(i, elem);
+    elem.getV(var);
     if (varInput == var) {
       key = Tools::getKey(kInput);
-      if ((key < 2) && (wholepat->getElem(i).getW()
+      if ((key < 2) && ((elem.getW() != NO)
        || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
         cout << "label/place condition not allowed for sequences" << endl;
         return -1;
       }
-      if ((key == 7) && (!wholepat->getElem(i).getW()
+      if ((key == 7) && ((elem.getW() == NO)
                     && (wholepat->getVarPos(var).first == wholepat->getVarPos(var).second))) {
         cout << "card condition not allowed for non-sequences" << endl;
         return -1;
@@ -727,7 +731,7 @@ int Condition::convertVarKey(const char *varKey) {
       condVars.insert(var);
       wholepat->addRelevantVar(var);
       if (easyCond) {
-        if (wholepat->getElem(i).getW() || (condVars.size() > 1) || !unitVars.count(var)) {
+        if ((elem.getW() != NO) || (condVars.size() > 1) || !unitVars.count(var)) {
           easyCond = false;
         }
       }
@@ -745,11 +749,13 @@ bool Assign::convertVarKey(const char *varKey) {
   string varInput(input.substr(0, dotpos));
   string kInput(input.substr(dotpos + 1));
   pair<string, int> right;
+  PatElem elem;
   for (int i = 0; i < wholepat->getSize(); i++) {
-    wholepat->getElem(i).getV(right.first);
+    wholepat->getElem(i, elem);
+    elem.getV(right.first);
     if (varInput == right.first) {
       right.second = Tools::getKey(kInput);
-      if (((right.second == 0) || (right.second == 1)) && wholepat->getElem(i).getW()) {
+      if (((right.second == 0) || (right.second == 1)) && (elem.getW() != NO)) {
         cout << "invalid assignment type " << kInput << " for a sequence" << endl;
         return false;
       }

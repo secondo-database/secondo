@@ -503,8 +503,6 @@ class IBasics : public Intime<B> {
   void Val(B& result) const;
 };
 
-// class MPlaces; // forward declaration
-
 /*
 \section{Class ~UPlaces~}
 
@@ -647,6 +645,7 @@ class Tools {
   static void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
   static int getKey(const string& type);
   static string getDataType(const int key);
+  static DataType getDataType(const string& type);
   static string extractVar(const string& input);
   static string extendDate(string input, const bool start);
   static bool checkSemanticDate(const string &text, const SecInterval &uIv,
@@ -744,7 +743,7 @@ class PatElem {
   ~PatElem() {}
 
   void stringToSet(const string& input, const bool isTime);
-  void getUnit(const char *v, bool assignment);
+//   void getUnit(const char *v, bool assignment);
   void setVar(const string& v) {var = v;}
 
   void     getV(string& result) const                     {result = var;}
@@ -874,7 +873,7 @@ class Pattern {
   bool              hasEasyConds()          {return easyConds.size() > 0;}
   vector<Condition> getEasyConds()          {return easyConds;}
   vector<Assign>&   getAssigns()            {return assigns;}
-  PatElem           getElem(int pos) const  {return elems[pos];}
+  void              getElem(int pos, PatElem& elem) const  {elem = elems[pos];}
   Condition         getCond(int pos) const  {return conds[pos];}
   Condition         getEasyCond(int pos) const {return easyConds[pos];}
   Assign           getAssign(int pos) const {return assigns[pos];}
@@ -1245,8 +1244,12 @@ class FilterMatchesLI {
 };
 
 struct IndexMatchInfo {
-  IndexMatchInfo(int s);
+  IndexMatchInfo() : range(false), start(INT_MAX), size(0) {items.insert(0);}
+  IndexMatchInfo(int s) : range(false), start(INT_MAX),size(s){items.insert(0);}
+  IndexMatchInfo(int s, bool range, int first) : range(true) {
+                        if (range) {start = first;} else {items.insert(first);}}
   
+  bool operator<(const IndexMatchInfo& rhs) const;
   void print(TupleId tId, int pE);
   bool isActive(int patElem);
   void processWildcard(Wildcard w, int patElem);
@@ -1256,8 +1259,9 @@ struct IndexMatchInfo {
   void insert(int item) {items.insert(items.end(), item);}
 
   bool range;
-  int start, processed, size;
+  int start, size;
   set<int> items;
+  BindingElem binding;
 };
 
 class IndexClassifyLI {
@@ -1267,31 +1271,37 @@ friend class IndexMatchesLI;
 
  public:
   IndexClassifyLI(Relation *rel, InvertedFile *inv, Word _classifier,
-                  int _attrNr);
-  IndexClassifyLI(Relation *rel, InvertedFile *inv, int _attrNr);
+                  int _attrNr, DataType type);
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, int _attrNr, DataType type);
 
   ~IndexClassifyLI();
 
   Tuple* nextResultTuple();
   void applyPattern(Pattern *p);
-  int getMLsize(TupleId tId);
+//   bool elemMatch(const PatElem& elem, const TupleId id, const int pos,
+//                  const IndexMatchInfo& imi);
+  int getMsize(TupleId tId);
+  void getInterval(const TupleId tId, const int pos, SecInterval& iv);
   void getUL(TupleId tId, unsigned int ulId, ULabel& result);
+  
   bool timesMatch(TupleId tId, unsigned int ulId, set<string>& ivs);
 
  private:
   Classifier *c;
   Relation *mRel;
   queue<pair<string, TupleId> > classification;
+  map<pair<int, TupleId>, set<IndexMatchInfo> > matchInfo;
   TupleType* classifyTT;
   InvertedFile* invFile;
-  int attrNr, processedP;
+  int attrNr;
   size_t maxMLsize;
+  DataType mtype;
 };
 
 class IndexMatchesLI : public IndexClassifyLI {
  public:
   IndexMatchesLI(Relation *rel, InvertedFile *inv, int _attrNr, Pattern *p, 
-                 bool deleteP);
+                 bool deleteP, DataType type);
 
   ~IndexMatchesLI() {}
 
