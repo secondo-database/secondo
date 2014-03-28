@@ -8940,6 +8940,7 @@ void TBKnearestLocalInfo::ChinaknnInitialize(MPoint* mp)
         }
     }
   }
+  delete root;
 }
 /*
 Interpolate for between data entry and query entry
