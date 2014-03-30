@@ -369,7 +369,7 @@ public class UpdateViewer2 extends SecondoViewer {
 				update.setEnabled(false);
 				delete.setEnabled(false);
 				reset.setEnabled(true);
-				undo.setEnabled(true);
+				undo.setEnabled(false);
 				commit.setEnabled(true);
 				format.setEnabled(true);
 				this.getCurrentRelationPanel().setState(pState);

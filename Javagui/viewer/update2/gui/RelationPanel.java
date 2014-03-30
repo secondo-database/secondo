@@ -95,14 +95,9 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
 import javax.swing.text.BadLocationException;
 
-import project.Projection;
 import sj.lang.ListExpr;
 import sj.lang.ServerErrorCodes;
 import tools.Reporter;
-
-import components.ChangeValueEvent;
-import components.ChangeValueListener;
-import components.LongScrollBar;
 
 import viewer.update.CommandExecuter;
 import viewer.update2.*;

@@ -20,6 +20,7 @@
 package  viewer.update2.gui;
 
 import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -82,8 +83,11 @@ public abstract class DocumentPanel extends JPanel implements Scrollable
 	 */
 	public abstract void load(List<Object> pOutputPages);
 	
-	//public int getPageCount() { return this.formatter.getPageCount(); }
-	//public Object getPageAt(int pIndex) { return this.formatter.getPageAt(pIndex); }
+	/**
+	 * Determines the RelationPosition from the mouse position in the specified component.
+	 */
+	public abstract RelationPosition trackPosition(Point pMousePosition, Object pComponent);
+	
 	
 	// Methods of Interface Scrollable
 	public Dimension getPreferredScrollableViewportSize() {	return getPreferredSize();	}

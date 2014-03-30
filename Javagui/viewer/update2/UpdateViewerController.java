@@ -81,7 +81,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	// button commands in FormatDialog
 	public final static String CMD_CLOSE_FORMAT_DIALOG = "Close Format Dialog";
 	public final static String CMD_FORMAT = "Format";
-	public final static String CMD_SAVE_DOCUMENT = "Save formatted document";
+//	public final static String CMD_SAVE_DOCUMENT = "Save formatted document";
 	// button commands in LoadDialog
 	public final static String CMD_LOAD_DIRECT = "Load single relation";
 	public final static String CMD_LOAD_FROM_PROFILE = "Load selected profile";
@@ -190,11 +190,6 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if (e.getActionCommand() == CMD_FORMAT)
 		{
 			this.processCommandFormat();
-			return;
-		}
-		if (e.getActionCommand() == CMD_SAVE_DOCUMENT)
-		{
-			this.processCommandSaveDocument();
 			return;
 		}
 		if (e.getActionCommand() == CMD_CLOSE_FORMAT_DIALOG)
@@ -420,13 +415,13 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	{
 		String errorMessage;
 		
-		if(!this.commandExecuter.beginTransaction())
+		/*if(!this.commandExecuter.beginTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			Reporter.showError("UpdateViewerController.executeBulk: Error on begin transaction: " 
 								 + errorMessage);
 			return false;
-		}
+		}*/
 		
 		for (String command : pCommands)
 		{
@@ -435,23 +430,23 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				errorMessage = this.commandExecuter.getErrorMessage().toString();
 				Reporter.showError("UpdateViewerController.executeBulk: Error on executing command " 
 									 + command + ": " + errorMessage);
-				if (! this.commandExecuter.abortTransaction())
+				/*if (! this.commandExecuter.abortTransaction())
 				{
 					errorMessage = this.commandExecuter.getErrorMessage().toString();
 					Reporter.showError("UpdateViewerController.executeBulk: Error on abort transaction: " 
 										 + errorMessage);
 					return false;
-				}
+				}*/
 			}
 		}
 		
-		if(!this.commandExecuter.commitTransaction())
+		/*if(!this.commandExecuter.commitTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			Reporter.showError("UpdateViewerController.executeBulk: Error on commit transaction: " 
 								 + errorMessage);
 			return false;
-		}
+		}*/
 		
         return true;
 	}
@@ -466,13 +461,13 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	{
 		String errorMessage;
 		
-		if(!this.commandExecuter.beginTransaction())
+		/*if(!this.commandExecuter.beginTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			Reporter.showError("UpdateViewerController.executeDelete: Error on begin transaction: " 
 								 + errorMessage);
 			return false;
-		}		
+		}*/		
 		
 		// treat all relations with deletions
 		for (RelationPanel rp : this.viewer.getRelationPanels())
@@ -497,13 +492,15 @@ public class UpdateViewerController implements ActionListener, MouseListener
 						errorMessage = this.commandExecuter.getErrorMessage().toString();
 						Reporter.showError("UpdateViewerController.executeDelete: Error on executing command " 
 											 + command + ": " + errorMessage);
-						if (! this.commandExecuter.abortTransaction())
+						
+						/*if (! this.commandExecuter.abortTransaction())
 						{
 							errorMessage = this.commandExecuter.getErrorMessage().toString();
 							Reporter.showError("UpdateViewerController.executeDelete: Error on abort transaction: " 
 												 + errorMessage);
 						}
 						return false;
+						 */
 					}
 					result = this.commandExecuter.getResultList();
 					if ( result.second().intValue() != 1)
@@ -526,13 +523,13 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			//else	Reporter.debug("UpdateViewerController.executeDelete: no deletions for relation " + rp.getName());
         }
         
-		if(!this.commandExecuter.commitTransaction())
+		/*if(!this.commandExecuter.commitTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			Reporter.showError("UpdateViewerController.executeDelete: Error on commit transaction: " 
 								 + errorMessage);
 			return false;
-		}
+		}*/
 		
         return true;
 	}
@@ -548,13 +545,13 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		String errorMessage;
 		List<ListExpr> result = new ArrayList<ListExpr>();
 		
-		if(!this.commandExecuter.beginTransaction())
+		/*if(!this.commandExecuter.beginTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			Reporter.showError("UpdateViewerController.executeInsert: Error on begin transaction: " 
 								 + errorMessage);
 			return false;
-		}	
+		}*/	
 		
 		RelationPanel rp = this.viewer.getCurrentRelationPanel();
 		rp.takeOverLastEditing(false);
@@ -572,11 +569,12 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			catch(InvalidFormatException e)
 			{
 				errorMessage = e.getMessage() + "\n at table position (" + e.getRow() + ", " + e.getColumn() + ")";
-				if (!this.commandExecuter.abortTransaction())
+				
+				/*if (!this.commandExecuter.abortTransaction())
 				{
 					errorMessage += this.commandExecuter.getErrorMessage().toString();
 					Reporter.showError("Error trying to abort transaction: " + errorMessage);
-				}
+				}*/
 				Reporter.showError(errorMessage);
 				rp.goToInsert(e.getRow()-1);
 				return false;
@@ -592,13 +590,13 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 		}
 		
-		if(!this.commandExecuter.commitTransaction())
+		/*if(!this.commandExecuter.commitTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			Reporter.showError("UpdateViewerController.executeBulkInsert: Error on COMMIT TRANSACTION: " 
 								 + errorMessage);
 			return false;
-		}
+		}*/
 		
 		for (ListExpr le : result)
 		{
@@ -621,12 +619,12 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	{
 		String errorMessage;
 
-		if(! this.commandExecuter.beginTransaction())
+		/*if(! this.commandExecuter.beginTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			Reporter.showError(errorMessage);
 			return false;
-		}
+		}*/
 		
 		for (RelationPanel rp : this.viewer.getRelationPanels())
         {
@@ -655,11 +653,11 @@ public class UpdateViewerController implements ActionListener, MouseListener
                 Reporter.showError(message);
                 rp.goTo(e.getRow(), 0, 0);
 				
-				if (! this.commandExecuter.abortTransaction())
+				/*if (! this.commandExecuter.abortTransaction())
 				{
 					errorMessage = this.commandExecuter.getErrorMessage().toString();
 					Reporter.showError("Error trying to abort transaction: " + errorMessage);
-				}
+				}*/
                 return false;
             }
             
@@ -697,12 +695,12 @@ public class UpdateViewerController implements ActionListener, MouseListener
             rp.clearUpdateChanges();
         }
         
-		if(!this.commandExecuter.commitTransaction())
+		/*if(!this.commandExecuter.commitTransaction())
 		{
 			errorMessage = this.commandExecuter.getErrorMessage().toString();
 			Reporter.showError(errorMessage);
 			return false;
-		}
+		}*/
 		
         return true;
 	}
@@ -874,55 +872,13 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	{
 		ListExpr result = null;
 
-		StringBuffer command = new StringBuffer("query " + pRelName + " feed ");
-				
-		if (pFilter != null)
-		{
-			for (String filter : pFilter)
-			{
-				if (!filter.equals(""))
-				{
-					command.append(" filter [ " + filter + " ] ");
-				}
-			}
-		}
-		if (pProject != null && !pProject.isEmpty())
-		{	
-			command.append(" project [ ");
-			for (String fieldName : pProject)
-			{
-				if (!fieldName.isEmpty())
-				{
-					command.append(fieldName);
-					if (pProject.indexOf(fieldName) < pProject.size()-1)
-					{
-						command.append(", ");
-					}
-				}
-			}
-			command.append(" ] ");
-		}
-		if (pSort != null && !pSort.isEmpty())
-		{	
-			command.append(" sortby [ ");
-			for (String sort : pSort)
-			{
-				if (!sort.isEmpty())
-				{
-					command.append(sort);
-					if (pSort.indexOf(sort) < pSort.size()-1)
-					{
-						command.append(", ");
-					}
-				}
-			}
-			command.append(" ] ");
-		}
+		String command = this.commandGenerator.generateLoad(pRelName, pFilter, pProject, pSort);
 		
-		command.append(" addid consume ");
-		Reporter.debug("loadRelation: command=" + command.toString());
-				
-		if (commandExecuter.executeCommand(command.toString(),SecondoInterface.EXEC_COMMAND_SOS_SYNTAX))
+		Reporter.debug("loadRelation: command=" + command);
+			
+		long millisStart = System.currentTimeMillis();			
+
+		if (this.commandExecuter.executeCommand(command, SecondoInterface.EXEC_COMMAND_SOS_SYNTAX))
 		{
 			result = new ListExpr();
 			result.setValueTo(this.commandExecuter.getResultList());
@@ -933,6 +889,11 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			String errorMessage = commandExecuter.getErrorMessage().toString();
 			Reporter.showError(errorMessage);
 		}
+		
+		long millis = System.currentTimeMillis() - millisStart;
+		Reporter.debug("UpdateViewerController.processCommandLoadFromProfilet: secondo load time for relation "
+					   + pRelName + " (millis): " + millis);
+		
 		return result;
 	} 
 	
@@ -1084,18 +1045,27 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		{
 			if (this.formatter== null)
 			{
+				// adapt query to sorting and filtering as specified in RelationProfiles
+				String query = this.loadProfile.getFormatQuery();
+				for (RelationProfile rp : this.loadProfile.getRelationProfiles())
+				{
+					query = this.commandGenerator.adaptFormatQuery(query, rp.getRelationName(), 
+																   rp.getFilterExpressions(),
+																   rp.getSortExpressions());
+				}
+				
 				// create formatter
 				this.formatter = DocumentFormatter.createFormatter(this.loadProfile.getFormatType());
-				
+								
 				this.formatter.initialize(this.loadProfile.getFormatAliases(), 
-										  this.loadProfile.getFormatQuery(), 
+										  query, 
 										  this.loadProfile.getOutputDirectory(),
 										  this.loadProfile.getFormatScript(),
 										  this.loadProfile.getFormatTemplateHead(),
 										  this.loadProfile.getFormatTemplateBody(),
 										  this.loadProfile.getFormatTemplateTail());
 				
-				Reporter.debug("UpdateViewerController.processCommandFormat: initialized " + formatter.toString());
+				//Reporter.debug("UpdateViewerController.processCommandFormat: initialized " + formatter.toString());
 				
 				if (!formatter.hasTemplates())
 				{
@@ -1119,12 +1089,9 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 												
 			// display formatted page(s)
-			long millisStart = System.currentTimeMillis();
 			DocumentPanel docPanel = DocumentPanel.createDocumentPanel(formatter);
 			docPanel.load(formatter.getOutputPages());
 			this.formatDialog.setFormattedDocument(docPanel);
-			long millis = System.currentTimeMillis() - millisStart;
-			Reporter.debug("UpdateViewerController.processCommandFormat: display creation time (millis): " + millis);
 		}
 		catch (Exception e)
 		{
@@ -1253,7 +1220,11 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			else
 			{
+				long millisStart = System.currentTimeMillis();			
 				this.viewer.setRelationPanel(relprof.getRelationName(), relationLE, true);
+				long millis = System.currentTimeMillis() - millisStart;
+				Reporter.debug("UpdateViewerController.processCommandLoadFromProfilet: setRelationPanel time for relation "
+							   + relprof.getRelationName() + " (millis): " + millis);
 			}
 		}
 				
@@ -1578,15 +1549,9 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		return true;
 	}
 	
-	
-	public void processCommandSaveDocument()
-	{
 		
-	}
-	
-	
 	/**
-	 *
+	 * 
 	 */
 	private boolean processCommandSaveLoadProfile()
 	{
@@ -1705,10 +1670,16 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			rp.setCaseSensitive(caseSensitive);
 			rp.setSearchActive(true);
 
+			long millisStart = System.currentTimeMillis();
+			
 			if (this.executeSearch(rp.getName()) && first<0)
 			{
 				first = this.viewer.getRelationPanels().indexOf(rp);
 			}
+			
+			long millis = System.currentTimeMillis() - millisStart;
+			Reporter.debug("UpdateViewerController.processCommandSearch: search time for relation "
+						   + rp.getName() + " (millis): " + millis);
 		}
 
 		// go to first hit in first RelationPanel with a hit (if there is any)
@@ -1747,7 +1718,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	
 	
 	/**
-	 * Returns names of all relations in currently open database.
+	 * Returns names of all non-nested relations in currently open database.
 	 */
 	private List<String> retrieveRelationNames()
 	{
@@ -1768,7 +1739,10 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			if (!(type.first().isAtom())){
 				if ((type.first().first().isAtom())){
 					String objectType = type.first().first().symbolValue();
-					if (objectType.equals("rel") || objectType.equals("trel") || objectType.equals("mrel")){
+					if (objectType.equals("rel") 
+						|| objectType.equals("trel") 
+						|| objectType.equals("mrel")
+						|| objectType.equals("orel")){
 						name = nextObject.second().symbolValue();
 						result.add(name);
 					}

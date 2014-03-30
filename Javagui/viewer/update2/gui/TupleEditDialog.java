@@ -19,10 +19,6 @@
 
 package  viewer.update2.gui;
 
-import components.ChangeValueEvent;
-import components.ChangeValueListener;
-import components.LongScrollBar;
-
 import gui.SecondoObject;
 import gui.idmanager.ID;
 import gui.idmanager.IDManager;

@@ -19,10 +19,6 @@
 
 package  viewer.update2.gui;
 
-import components.ChangeValueEvent;
-import components.ChangeValueListener;
-import components.LongScrollBar;
-
 import gui.SecondoObject;
 import gui.idmanager.ID;
 import gui.idmanager.IDManager;
@@ -59,7 +55,6 @@ import javax.swing.ListModel;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.TableColumn;
 
-import project.Projection;
 import sj.lang.ListExpr;
 import sj.lang.ServerErrorCodes;
 import tools.Reporter;

@@ -124,6 +124,7 @@ public class HtmlFormatter extends DocumentFormatter
 				File templateFile = new File (this.outputDirectory + "templates/" + aliasedName);
 				String subTemplate = this.readFile(templateFile);
 				Relation arel = pTuple.getAttributeRelation(aliasedName);
+				//Reporter.debug("HtmlFormatter.fillTemplate: subrelation=" + arel.toString());
 				
 				if (arel != null)
 				{
@@ -141,7 +142,7 @@ public class HtmlFormatter extends DocumentFormatter
 		result = result.replaceAll("<<", "&lt;&lt;");
 		result = result.replaceAll(">>", " NOT FOUND&gt;&gt;");
 		
-		//Reporter.debug("HtmlFormatter.fillTemplate: page=" + page.substring(0,1000));
+		//Reporter.debug("HtmlFormatter.fillTemplate: page=" + result.substring(0,100) + "...");
 		return result;
 	}
 	
@@ -221,6 +222,8 @@ public class HtmlFormatter extends DocumentFormatter
 	 */
 	protected void readOutputPages() throws IOException
 	{
+		long millisStart = System.currentTimeMillis();			
+
 		this.outputPages.clear();
 		File outputDir = new File(this.outputDirectory);
 		FileReader fileReader;
@@ -233,6 +236,9 @@ public class HtmlFormatter extends DocumentFormatter
 				this.outputPages.add(htmlPage);
 			}
 		}
+		
+		long millis = System.currentTimeMillis() - millisStart;
+		Reporter.debug("HtmlFormatter.readOutputPages: disk reading time (millis): " + millis);
 	}
 	
 	
@@ -266,9 +272,9 @@ public class HtmlFormatter extends DocumentFormatter
 				return;
 			}
 		}
+		
 		long millis = System.currentTimeMillis() - millisStart;
 		Reporter.debug("HtmlFormatter.saveOutputPages: disk writing time (millis): " + millis);
-		
 	}
 	
 		

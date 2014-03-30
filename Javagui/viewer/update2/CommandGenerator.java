@@ -33,7 +33,7 @@ import sj.lang.ListExpr;
 import tools.Reporter;
 
 /**
- * This class generates commands for updating relations in 'Nested-List-Syntax'.
+ * This class generates commands for UpdateViewer2 in 'Nested-List-Syntax'.
 */
 public class CommandGenerator 
 {
@@ -49,6 +49,62 @@ public class CommandGenerator
 	public CommandGenerator()
 	{
 		this.commandExecuter = new CommandExecuter();
+	}
+	
+	/**
+	 * Inserts sorting and filtering expressions in pFormatQuery 
+	 * after the first occurence of "<pRelationName> feed".
+	 * Used for formatting.
+	 * Returns modified Query.
+	 */
+	public String adaptFormatQuery(String pFormatQuery, String pRelationName, List<String> pFilter, List<String> pSort)
+	{
+		String result = pFormatQuery;
+		int startIndex;
+		
+		// insert sort expressions		
+		if (pSort != null && !pSort.isEmpty())
+		{
+			String sortExpr = " sortby [" + this.listToString(pSort, ", ") + "] ";
+			
+			startIndex = pFormatQuery.indexOf(pRelationName);
+			if (startIndex >= 0)
+			{
+				// find next "feed"
+				startIndex = pFormatQuery.indexOf("feed", startIndex);
+				if (startIndex >= 0)
+				{
+					startIndex = startIndex + 4;
+					result = result.substring(0, startIndex) + sortExpr 
+					+ result.substring(startIndex, result.length());
+				}
+			}
+		}
+		
+		// insert filter expressions
+		if (pFilter != null && !pFilter.isEmpty())
+		{
+			startIndex = pFormatQuery.indexOf(pRelationName);
+			if (startIndex >= 0)
+			{
+				// find next "feed"
+				startIndex = pFormatQuery.indexOf("feed", startIndex);
+				if (startIndex >= 0)
+				{
+					startIndex = startIndex + 4;
+					
+					for (String filter : pFilter)
+					{
+						result = result.substring(0, startIndex) 
+						+ " filter [" + filter + "] " 
+						+ result.substring(startIndex, result.length());
+					}
+				}
+			}
+		}
+		
+		Reporter.debug("CommandGenerator.adaptFormatQuery: adapted query = " + result);
+		return result;
 	}
 	
 	 
@@ -244,9 +300,89 @@ public class CommandGenerator
 		return updateCommands;	
 	}
 	
+	/**
+	 * Returns a command to load the specified Relation according to the specified filters, projections and sort expressions.
+	 */
+	public String generateLoad(String pRelName, List<String> pFilter, List<String> pProject, List<String> pSort)
+	{
+		StringBuffer command = new StringBuffer("query " + pRelName + " feed ");
+		
+		if (pFilter != null)
+		{
+			for (String filter : pFilter)
+			{
+				if (!filter.equals(""))
+				{
+					command.append(" filter [ " + filter + " ] ");
+				}
+			}
+		}
+		
+		if (pProject != null && !pProject.isEmpty())
+		{	
+			command.append(" project [ ");
+			/*for (String fieldName : pProject)
+			{
+				if (!fieldName.isEmpty())
+				{
+					command.append(fieldName);
+					if (pProject.indexOf(fieldName) < pProject.size()-1)
+					{
+						command.append(", ");
+					}
+				}
+			}
+			 */
+			command.append(this.listToString(pProject, ", "));
+			command.append(" ] ");
+		}
+		
+		if (pSort != null && !pSort.isEmpty())
+		{	
+			command.append(" sortby [ ");
+			/*for (String sort : pSort)
+			{
+				if (!sort.isEmpty())
+				{
+					command.append(sort);
+					if (pSort.indexOf(sort) < pSort.size()-1)
+					{
+						command.append(", ");
+					}
+				}
+			}*/
+			command.append(this.listToString(pSort, ", "));
+			command.append(" ] ");
+		}
+		
+		command.append(" addid consume ");
+		
+		return command.toString();
+	}
+	
+	/**
+	 * Returns a String built from the List elements separated by specified separator.
+	 */
+	private String listToString(List<String> pList, String pSeparator)
+	{
+		StringBuffer result = new StringBuffer();
+		for (String elem : pList)
+		{
+			if (!elem.isEmpty())
+			{
+				result.append(elem);
+				if (pList.indexOf(elem) < pList.size()-1)
+				{
+					result.append(pSeparator);
+				}
+			}
+		}
+		return result.toString();
+	}
 	
 
 	/*
+	 * copied from viewer.update.ActionController
 	 Sends a 'list objects'-command to SECONDO and scans the result for all indices for the given relation.
 	 To do this it uses the convention that indices have to begin with the relationname with the first
 	 letter in lowercase, following an underscore and then the name of the attribute over which
