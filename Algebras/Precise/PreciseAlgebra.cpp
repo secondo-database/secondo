@@ -1326,7 +1326,7 @@ int str2preciseVM1 (Word* args, Word& result, int message, Word& local,
      return 0;
   }
 
-  MPrecCoordinate c(0,0);
+  MPrecCoordinate c(0);
   if(!c.readFromString(arg1->GetValue(), arg2->GetValue())){
     res->SetDefined(false);
   } else {

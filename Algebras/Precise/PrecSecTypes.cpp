@@ -1173,17 +1173,20 @@ void PrecLine::readFrom(const Line& line, int scale, bool useString){
       SetDefined(false);
       return;
     }
-    vector<MPrecHalfSegment> hsv;
+    vector<MPrecHalfSegment> hsv1;
     HalfSegment hs;
     
     for(int i=0;i<line.Size();i++){
        line.Get(i,hs);
        if(useString){
-          hsv.push_back(getMPrecHs(hs, scale, 16));
+          hsv1.push_back(getMPrecHs(hs, scale, 16));
        } else {
-          hsv.push_back(getMPrecHsExact(hs, scale));
+          hsv1.push_back(getMPrecHsExact(hs, scale));
        }
     }
+    vector<MPrecHalfSegment> hsv;
+    hstools::realminize(hsv1,hsv);
+
     gridData.resize(hsv.size());
     for(size_t i=0;i<hsv.size(); i++){
        MPrecHalfSegment mhs = hsv[i];
@@ -1240,7 +1243,10 @@ bool PrecLine::ReadFrom(ListExpr value, ListExpr typeInfo){
 void PrecLine::endBulkLoad(bool realminize){
    assert(bulkloadStorage);
 
-   hstools::sort(*bulkloadStorage);
+   if(!hstools::isSorted(*bulkloadStorage)){
+       cout << "*************** resort halfsegments " << endl;
+       hstools::sort(*bulkloadStorage);
+   }
    
    vector<MPrecHalfSegment> v2;
    if(realminize){

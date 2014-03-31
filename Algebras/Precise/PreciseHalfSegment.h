@@ -435,35 +435,29 @@ end points in common.
        if(!boxIntersects(hs)){
           return true;
        }
-
-       if(isVertical()) {
+       if(isVertical()){
           if(hs.isVertical()){
-             MPrecCoordinate y1 = hs.lp.getY();
-             MPrecCoordinate y2 = hs.rp.getY();
-             return ( y1 >= rp.getY() || y2 <= lp.getY());   
-          } else {
-             MPrecCoordinate y = hs.getY(lp.getX());
-             if(y<lp.getY() || y>rp.getY()){
-                return true;
-             }
-             if(y>lp.getY() && y<rp.getY()){
-                return false;
-             }
-             // y is one of the endpoints of this segment
-             return (lp.getX()==hs.lp.getX() || lp.getX()==hs.rp.getX());
+              return     (rp.getY() <= hs.lp.getY())   // below hs
+                      || (lp.getY() >= hs.rp.getY());  // above hs
           }
-       } else if(hs.isVertical()){
-           MPrecCoordinate y = getY(hs.lp.getX());
-           if(y<hs.lp.getY() || y>hs.rp.getY()){
-              return true;
-           } 
-           if(y>hs.lp.getX() && y<hs.rp.getY()){
-              return false;
-           }
-           return (lp.getX() == hs.lp.getX() || rp.getX() == hs.lp.getX());
+          if(lp.getX() <= hs.lp.getX() || // left hs 
+             lp.getX() >= hs.rp.getX()){  // right hs
+             return true;
+          }
+          MPrecCoordinate y = hs.getY(lp.getX());
+          return ((y<lp.getY()) || (y>rp.getY()));
+       } 
+       if(hs.isVertical()){
+          if( hs.lp.getX() <= lp.getX() ||
+              hs.lp.getX() >= rp.getX()){
+            return true;
+          }
+          MPrecCoordinate y = getY(hs.lp.getX());
+          return y<hs.lp.getY() || y>hs.rp.getY();
        }
+
+
        // both segments are non-vertical
-       
        if(lp==hs.lp && rp==hs.rp){ // equal halfsegments
             return false;
        }  
@@ -514,26 +508,22 @@ Checks whether ~p~ is located in the interior of this halfsegment.
        return lp.getX() == rp.getX();
     }
 
+/*
+compares the slopes of this halfsegment and ~hs~. 
+The slope is computed undirected, meaning always from left to right point.
+
+*/
     int compareSlope(const MPrecHalfSegment& hs)const{
        if(isVertical()){
-           bool up = ldp;
-           if(hs.isVertical()){
-             bool hsup = hs.ldp;
-             if(hsup==up){
-               return 0;
-             }
-             if(up){
-                return 1;
-             }
-           }
-           bool hsright = hs.getDomPoint().getX() < hs.getSecPoint().getX();
-           return up==hsright?1:-1;           
+          if(hs.isVertical()){
+             return 0;
+          }
+          return 1;
        }
        if(hs.isVertical()){
-           bool hsup = hs.ldp;
-           bool right = getDomPoint().getX() < getSecPoint().getX();
-           return hsup==right?-1:1; 
-       }  
+           return -1;
+       }
+
        MPrecCoordinate slope = (lp.getY()-rp.getY()) / (lp.getX() - rp.getX());
        MPrecCoordinate hsslope = (hs.lp.getY()-hs.rp.getY()) /
                                  (hs.lp.getX() - hs.rp.getX());
@@ -637,15 +627,32 @@ class HalfSegmentComparator{
 
       int cmp = dp1.compareTo(dp2);
       if(cmp!=0) return cmp;
+
+      if(print){
+          cout << "different dom points" << endl;
+      }
+
+
       if( hs1.isLeftDomPoint()  != hs2.isLeftDomPoint() ) {
-           if( hs1.isLeftDomPoint() == false ){
+           if( !hs1.isLeftDomPoint() ){
               return -1;
            } else {
               return 1;
            }
       }
+
+      if(print){
+           cout << "equal dompoint " << dp1 << " == " << dp2 << endl;
+      }
+
       // domination points are equal, compare slopes
-      return hs1.compareSlope(hs2);
+      cmp = hs1.compareSlope(hs2);
+
+      if(print){
+         cout << "slope compare returns " << cmp << endl;
+      }
+      return cmp;
+
   }
 
   bool print; 

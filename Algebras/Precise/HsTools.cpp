@@ -195,24 +195,19 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
             MPrecCoordinate x0(0);
 
             if(hs1.isVertical()){
-               if(hs2.isVertical()){
-                   if(hs1.getLeftPoint().getX() != hs2.getLeftPoint().getX()){
-                        throw 1;
-                   }
-               } 
                x0 = hs1.getLeftPoint().getX();
             } else if(hs2.isVertical()){
                x0 = hs2.getLeftPoint().getX();
             } else {
-               x0 = min(hs1.getLeftPoint().getX(), hs2.getLeftPoint().getX());
+               x0 = max(hs1.getLeftPoint().getX(), hs2.getLeftPoint().getX());
             }
-
-            int r = hs1.getY(x0).compare(hs2.getY(x0));
-            if(r!=0){
-              return r;
-            } 
-            r =  hs1.compareSlope(hs2);
-            return r;
+            MPrecCoordinate y1 = hs1.getY(x0);
+            MPrecCoordinate y2 = hs2.getY(x0);
+            int cmp = y1.compare(y2);
+            if(cmp!=0){
+               return cmp;
+            }
+            return hs1.compareSlope(hs2);
         }
    };
 
@@ -376,6 +371,15 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
                    vector<MPrecHalfSegment>& res){
 
 
+
+
+     //cout << "call realminze with" << endl;
+     //for(size_t i=0;i<v.size();i++){
+     //  cout << i << "\t:" << v[i] << endl;
+     //}
+     //cout << endl << endl;
+
+
       avltree::AVLTree<MPrecHalfSegment, YComparator> sss;
       priority_queue<MPrecHalfSegment, 
                      vector<MPrecHalfSegment>, 
@@ -396,14 +400,22 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
 
       int edgeno = 0;
 
+      //bool useOrig;
+      //int origPos;
+
       while(!done){
+       // useOrig = false;
         if(pos<v.size()){
            if(es.empty()){
               current = v[pos];
+            //  useOrig = true;
+            //  origPos = pos;
               pos++;
            } else {
               if(cmp(v[pos],es.top())<=0){
                  current = v[pos];
+              //   useOrig = true;
+              //   origPos = pos;
                  pos++;
               } else {
                  current = es.top();
@@ -413,11 +425,19 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
         } else {
            current = es.top();
            es.pop();
-        }
+       }
+
+        //cout << "process element " << current << endl;
+      //  if(useOrig){
+          //cout << " this is original segment " << origPos << endl;
+      //  } else {
+            //cout << " a computed element" << endl;
+      //  }
 
         if(current.isLeftDomPoint()){
            const MPrecHalfSegment* stored = sss.getMember(current);
            if(stored!=0){ // overlapping segment found
+               //cout << " *******   found overlapping element" << endl;
                makeRealm(current,*stored,realmRes);
                sss.remove(*stored);
                sss.insert(realmRes[0]); // shorten 
@@ -429,6 +449,8 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
                   es.push(realmRes[i]);
                }
            } else {
+         //     cout << " insert intto tree " << current << endl;
+              //cout << "insert element" << endl;
               sss.insertN(current,left,right);
               if(left && !left->checkRealm(current)){
                  makeRealm(current,*left,realmRes);
@@ -463,10 +485,11 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
               }
            }
         } else {
-
            const MPrecHalfSegment* stored = sss.getMember(current);
+          // cout << "search Element " << current << endl;
            if(stored!=0){
                if(current.sameGeometry(*stored)){
+                  //cout << " remove element " << endl;
                   sss.removeN(current,left,right);
                   current.attributes.edgeno = edgeno;
                   edgeno++;
@@ -495,8 +518,9 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
                } else {
                }
            } else { // stored == 0
-              cerr << "Element not found" << endl;
+              cerr << "Element " << current << " not found" << endl;
               cerr << "size of avl = " << sss.Size() << endl;
+              cerr << "content " << sss << endl;
            }
         }        
         done = (pos==v.size() && es.empty());
