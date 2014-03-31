@@ -218,7 +218,6 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
       MPrecHalfSegment const* left;
       MPrecHalfSegment const* right;
       for(unsigned int i=0;i<v.size();i++){
-
          const MPrecHalfSegment current = v[i];
          if(current.isLeftDomPoint()){
             if(!sss.insertN(current,left,right)){

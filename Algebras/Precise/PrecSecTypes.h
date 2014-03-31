@@ -1024,7 +1024,8 @@ class PrecLine : public StandardSpatialAttribute<2> {
         bulkloadStorage->push_back(hs);
     }
 
-    void endBulkLoad( bool realminize = true ); 
+    void endBulkLoad(bool setPartnerNo = true,
+                     bool realminize = true ); 
 
     void readFrom(const Line& line, int scale, bool useString);
 
@@ -1209,11 +1210,7 @@ class PrecRegion : public StandardSpatialAttribute<2> {
     ListExpr ToListExpr(ListExpr typeInfo) const;
 
 
-    bool ReadFrom(ListExpr value, ListExpr typeInfo){
-       return false;
-
-       // TODO: Implement this function
-    }
+    bool ReadFrom(ListExpr value, ListExpr typeInfo);
 
     void clear(){
        bbox.SetDefined(false);
@@ -1237,10 +1234,13 @@ class PrecRegion : public StandardSpatialAttribute<2> {
         bulkloadStorage->push_back(hs);
     }
 
-    void endBulkLoad( bool sort = true,
+    bool endBulkLoad( bool sort = true,
                       bool setCoverageNo = true,
                       bool setPartnerNo = true,
                       bool computeRegion = true ); 
+
+    void cancelBulkLoad();
+
 
     void readFrom(const Region& region, int scale, bool useString);
 
@@ -1253,6 +1253,11 @@ class PrecRegion : public StandardSpatialAttribute<2> {
       return scale;
     }
 
+    void setScale(const uint32_t scale){
+      assert(scale>0);
+      this->scale = scale;
+    }
+
     void boundary(PrecLine& result){
        result.clear();
        if(!IsDefined()){
@@ -1263,9 +1268,7 @@ class PrecRegion : public StandardSpatialAttribute<2> {
        result.startBulkLoad(scale);
        for(int i=0;i<gridData.Size();i++){
            MPrecHalfSegment h = getHalfSegment(i);
-           if(h.isLeftDomPoint()){
-              result.append(h);
-           }
+           result.append(h);
        } 
        result.endBulkLoad(false);
     }
@@ -1278,6 +1281,9 @@ class PrecRegion : public StandardSpatialAttribute<2> {
 
     vector<MPrecHalfSegment>* bulkloadStorage; // only used during bulkload
                                                // after end of bulkload 0
+
+     bool addFace(ListExpr face, int faceNo, int& edgeNo);
+     bool addCycle(ListExpr cycle, int faceNo, int cycleNo, int& edgeNo);
 
 
 };

@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StringUtils.h"
 
 #include "HsTools.h"
+#include "PrecTools.h"
 
 class MPrecPointComp{
   public:
@@ -348,10 +349,10 @@ ListExpr getRegionList(vector<MPrecHalfSegment>& v){
    LogicCompare cmp;
    sort(v.begin(), v.end(), cmp);
 
-   cout << "sorted halfsegments " << endl;
-   for(size_t i=0;i<v.size();i++){
-      cout << v[i] << endl;
-   }
+  // cout << "sorted halfsegments " << endl;
+  // for(size_t i=0;i<v.size();i++){
+  //    cout << v[i] << endl;
+  // }
 
    ListExpr faces;
    ListExpr last;
@@ -1240,22 +1241,20 @@ bool PrecLine::ReadFrom(ListExpr value, ListExpr typeInfo){
    return true;
 }
 
-void PrecLine::endBulkLoad(bool realminize){
+void PrecLine::endBulkLoad(bool setPartnerNo, bool realminize){
    assert(bulkloadStorage);
-
    if(!hstools::isSorted(*bulkloadStorage)){
-       cout << "*************** resort halfsegments " << endl;
-       hstools::sort(*bulkloadStorage);
+     hstools::sort(*bulkloadStorage);
    }
-   
+   hstools::setPartnerNumbers(*bulkloadStorage);
    vector<MPrecHalfSegment> v2;
    if(realminize){
       hstools::realminize(*bulkloadStorage,v2);
+      hstools::sort(v2);
    } else {
       v2 = *bulkloadStorage;
    }
 
-   hstools::sort(v2);
    hstools::setPartnerNumbers(v2);
    delete bulkloadStorage;
    bulkloadStorage=0;
@@ -1317,26 +1316,176 @@ ListExpr PrecRegion::ToListExpr(ListExpr typeInfo) const{
        }
        return nl->TwoElemList( nl->IntAtom(scale), 
                                getRegionList(hsvec)); 
-    }
+}
+
+bool PrecRegion::endBulkLoad( bool sort,
+                  bool setCoverageNo,
+                  bool setPartnerNo,
+                  bool computeRegion){
+
+   assert(bulkloadStorage);
+   if(sort){
+     hstools::sort(*bulkloadStorage);
+   }
+
+   if(!hstools::checkRealm(*bulkloadStorage)){
+     delete bulkloadStorage;
+     bulkloadStorage=0;
+     return false;
+   }
+   if(setCoverageNo){
+     hstools::setCoverage(*bulkloadStorage);
+   }
+   if(setPartnerNo){
+     hstools::setPartnerNumbers(*bulkloadStorage);
+   }
+   if(computeRegion){
+     cout << "computeRegion not implemented yet" << endl;
+   }
+   for(size_t i=0;i<bulkloadStorage->size();i++){
+      (*bulkloadStorage)[i].appendTo(&gridData, &fracStorage);
+      enlarge(bbox, (*bulkloadStorage)[i].getLeftPoint());
+      enlarge(bbox, (*bulkloadStorage)[i].getRightPoint());
+   }
+   delete bulkloadStorage;
+   bulkloadStorage = 0;
+   return true; 
+} 
+
+void PrecRegion::cancelBulkLoad(){
+  assert(bulkloadStorage);
+  delete bulkloadStorage;
+  bulkloadStorage=0;
+}
+
+
+
+bool PrecRegion::addCycle(ListExpr cycle, int faceNo, int cycleNo, int& edgeNo){
+   if(nl->ListLength(cycle) < 3) {
+     return false;
+   }
+   vector<MPrecPoint> points;
+   MPrecPoint p(0,0);
+   while(!nl->IsEmpty(cycle)){
+     if(!readPoint(nl->First(cycle), p, false, scale)){
+       return false;
+     }
+     cycle = nl->Rest(cycle);
+     points.push_back(p);
+   }
+   // open cycle if closed 
+   if(points[0]==points[points.size()-1]){
+     points.pop_back();
+   } 
+   bool clockwise = precisetools::isClockwise(points);
+   bool isRight = cycleNo==0?clockwise:!clockwise;
+   // create halfsegments
+ 
+   for(size_t i = 0;i<points.size();i++){
+     MPrecPoint p1 = points[i];
+     MPrecPoint p2 = points[ (i+1) % points.size() ];
+     if(p1==p2){
+       return false;
+     }
+     AttrType a;
+     a.faceno = faceNo;
+     a.cycleno = cycleNo;
+     a.edgeno = edgeNo;
+     if(p1.getX()==p2.getX()){
+       a.insideAbove = p1.getY() < p2.getY()?!isRight:isRight;
+     } else {
+       a.insideAbove = p1.getX() < p2.getX()? !isRight:isRight;
+     }
+     MPrecHalfSegment hs1(p1,p2,true,a);
+     append(hs1);
+     edgeNo++;
+   }
+   return true;
+    
+}
+
+
+
+bool PrecRegion::addFace(ListExpr face, 
+        int faceNo, int& edgeNo ){
+
+   int cycleNo = 0;
+   if(nl->AtomType(face)!=NoAtom){
+      return  false;
+   }
+   while(!nl->IsEmpty(face)){
+      if(!addCycle(nl->First(face), faceNo, cycleNo, edgeNo)){
+          return false;
+      }
+      face = nl->Rest(face);
+   }
+   return true;
+} 
+
+
+bool PrecRegion::ReadFrom(ListExpr value,  ListExpr type){
+   clear();
+   SetDefined(false);
+   if(listutils::isSymbolUndefined(value)){
+     return true;
+   }
+
+   if(!nl->HasLength(value,2)){
+     return false;
+   }
+  
+   ListExpr scale = nl->First(value);
+   value = nl->Second(value);
+   if(nl->AtomType(scale)!=IntType){
+     return false;
+   }
+   int sc = nl->IntValue(scale);
+   if(sc < 1){
+     return false;
+   }
+   setScale(sc);
+
+
+   if(nl->AtomType(value)!=NoAtom){
+     return false;
+   }
+
+   SetDefined(true);
+   // liststructure is
+   // ( face_1, face_2 ,...)
+   // face_i = ( cycle_1, cycle_2 ,...)
+   // cycle_i = ( point_1, point_2 , ... )
+   startBulkLoad();
+   int faceNo = 0;
+   int edgeNo = 0;
+   while(!nl->IsEmpty(value)){
+     if(!addFace(nl->First(value),faceNo, edgeNo )) {
+        cancelBulkLoad();
+        SetDefined(false);
+        return false;
+     }
+     faceNo++;
+     value = nl->Rest(value);
+   }
+   return endBulkLoad();
+}
+
 
 
 bool correctHs(vector<MPrecHalfSegment>& v){
 
   // check order
-  bool ordered = true;
-  HalfSegmentComparator cmp;
-  for(size_t i=0;(i<v.size()-1 )&& ordered;i++){
-     if(cmp(v[i], v[i+1])>=0){
-        cout << "Comparision failed at index " << i << endl;
-        cout << "HalfSegments are " << v[i] << endl;
-        cout << " and " << v[i+1] << endl;
-        cout << " compare yields " << cmp(v[i] , v[i+1]) << endl;
-        ordered = false;
-     } 
+  if(! hstools::isSorted(v)){
+    cout << "Detected wrong order of halfsegments" << endl;
+    return false;
   }
 
+  if(!hstools::checkRealm(v)){
+     cout << "Detected non-realmed halfsegments" << endl;
+     return false;
+  }
 
-  return ordered;
+  return true;
  
   // todo : implement this function
   // 1. if not ordered : reorder and recompute partnernumbers   
