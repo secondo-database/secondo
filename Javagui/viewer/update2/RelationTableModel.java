@@ -501,7 +501,13 @@ public class RelationTableModel extends AbstractTableModel
 	{
 		if (this.state == States.UPDATE || this.state == States.INSERT)
 		{
-			int attrIndex = this.rowToAttributeIndex(pRow);			
+			int attrIndex = this.rowToAttributeIndex(pRow);
+			
+			if (attrIndex < 0)
+			{
+				return false;
+			}
+			
 			String attrName = this.relation.getAttributeNames().get(attrIndex);
 			
 			if (attrIndex != this.relation.getTypeInfo().getTidIndex() 

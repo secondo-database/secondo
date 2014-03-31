@@ -121,17 +121,23 @@ public class HtmlFormatter extends DocumentFormatter
 			}
 			else
 			{
-				File templateFile = new File (this.outputDirectory + "templates/" + aliasedName);
-				String subTemplate = this.readFile(templateFile);
+				File templateFileHead = new File (this.outputDirectory + "templates/" + aliasedName + ".head");
+				File templateFileBody = new File (this.outputDirectory + "templates/" + aliasedName + ".body");
+				File templateFileTail = new File (this.outputDirectory + "templates/" + aliasedName + ".tail");
+				String subTemplateHead = this.readFile(templateFileHead, true);
+				String subTemplateBody = this.readFile(templateFileBody, false);
+				String subTemplateTail = this.readFile(templateFileTail, true);
 				Relation arel = pTuple.getAttributeRelation(aliasedName);
 				//Reporter.debug("HtmlFormatter.fillTemplate: subrelation=" + arel.toString());
 				
 				if (arel != null)
 				{
+					sb.append(subTemplateHead);
 					for (int i = 0; i< arel.getTupleCount(); i++)
 					{
-						sb.append(fillTemplate(subTemplate, arel.getTupleAt(i)));
+						sb.append(fillTemplate(subTemplateBody, arel.getTupleAt(i)));
 					}
+					sb.append(subTemplateTail);
 				}
 			}
 			
@@ -232,7 +238,7 @@ public class HtmlFormatter extends DocumentFormatter
 		{
 			if (file.isFile() && !file.isHidden() && file.getName().endsWith(this.FILE_ENDING))
 			{
-				String htmlPage = this.readFile(file);
+				String htmlPage = this.readFile(file, false);
 				this.outputPages.add(htmlPage);
 			}
 		}

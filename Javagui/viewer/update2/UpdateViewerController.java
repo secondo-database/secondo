@@ -408,20 +408,11 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	}
 	
 	/**
-	 * Executes given commands as a transaction.
-	 * Returns TRUE if transaction was successfully committed.
+	 * Executes given commands.
 	 */
 	private boolean executeBulk(List<String> pCommands)
 	{
 		String errorMessage;
-		
-		/*if(!this.commandExecuter.beginTransaction())
-		{
-			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			Reporter.showError("UpdateViewerController.executeBulk: Error on begin transaction: " 
-								 + errorMessage);
-			return false;
-		}*/
 		
 		for (String command : pCommands)
 		{
@@ -430,44 +421,19 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				errorMessage = this.commandExecuter.getErrorMessage().toString();
 				Reporter.showError("UpdateViewerController.executeBulk: Error on executing command " 
 									 + command + ": " + errorMessage);
-				/*if (! this.commandExecuter.abortTransaction())
-				{
-					errorMessage = this.commandExecuter.getErrorMessage().toString();
-					Reporter.showError("UpdateViewerController.executeBulk: Error on abort transaction: " 
-										 + errorMessage);
-					return false;
-				}*/
 			}
 		}
-		
-		/*if(!this.commandExecuter.commitTransaction())
-		{
-			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			Reporter.showError("UpdateViewerController.executeBulk: Error on commit transaction: " 
-								 + errorMessage);
-			return false;
-		}*/
 		
         return true;
 	}
 	
 
 	/*	
-	 * Executes delete commands generated for all relations in one transaction. 
-	 * If one of the commands was not succesfully executed the transaction
-	 * is aborted.
+	 * Executes deletions for all relations. 
 	 */
 	private boolean executeBulkDelete()
 	{
 		String errorMessage;
-		
-		/*if(!this.commandExecuter.beginTransaction())
-		{
-			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			Reporter.showError("UpdateViewerController.executeDelete: Error on begin transaction: " 
-								 + errorMessage);
-			return false;
-		}*/		
 		
 		// treat all relations with deletions
 		for (RelationPanel rp : this.viewer.getRelationPanels())
@@ -492,15 +458,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 						errorMessage = this.commandExecuter.getErrorMessage().toString();
 						Reporter.showError("UpdateViewerController.executeDelete: Error on executing command " 
 											 + command + ": " + errorMessage);
-						
-						/*if (! this.commandExecuter.abortTransaction())
-						{
-							errorMessage = this.commandExecuter.getErrorMessage().toString();
-							Reporter.showError("UpdateViewerController.executeDelete: Error on abort transaction: " 
-												 + errorMessage);
-						}
-						return false;
-						 */
+
 					}
 					result = this.commandExecuter.getResultList();
 					if ( result.second().intValue() != 1)
@@ -523,36 +481,19 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			//else	Reporter.debug("UpdateViewerController.executeDelete: no deletions for relation " + rp.getName());
         }
         
-		/*if(!this.commandExecuter.commitTransaction())
-		{
-			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			Reporter.showError("UpdateViewerController.executeDelete: Error on commit transaction: " 
-								 + errorMessage);
-			return false;
-		}*/
-		
         return true;
 	}
 	
 	
 	/*
-	 * Executes all inserts generated for all relations in one big transaction. 
-	 * If one of the inserts cannot be executed successfully the transaction
-	 * is aborted.	 
+	 * Executes all inserts for all relations. 
 	 */
 	private boolean executeBulkInsert()
 	{
 		String errorMessage;
 		List<ListExpr> result = new ArrayList<ListExpr>();
 		
-		/*if(!this.commandExecuter.beginTransaction())
-		{
-			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			Reporter.showError("UpdateViewerController.executeInsert: Error on begin transaction: " 
-								 + errorMessage);
-			return false;
-		}*/	
-		
+	
 		RelationPanel rp = this.viewer.getCurrentRelationPanel();
 		rp.takeOverLastEditing(false);
          	
@@ -568,13 +509,9 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			} 
 			catch(InvalidFormatException e)
 			{
-				errorMessage = e.getMessage() + "\n at table position (" + e.getRow() + ", " + e.getColumn() + ")";
+				errorMessage = e.getMessage() + "\n at table position (" + e.getRow() + ", " + e.getColumn() 
+								+ "). Insert operation was not commited. Please correct error first.";
 				
-				/*if (!this.commandExecuter.abortTransaction())
-				{
-					errorMessage += this.commandExecuter.getErrorMessage().toString();
-					Reporter.showError("Error trying to abort transaction: " + errorMessage);
-				}*/
 				Reporter.showError(errorMessage);
 				rp.goToInsert(e.getRow()-1);
 				return false;
@@ -590,14 +527,6 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 		}
 		
-		/*if(!this.commandExecuter.commitTransaction())
-		{
-			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			Reporter.showError("UpdateViewerController.executeBulkInsert: Error on COMMIT TRANSACTION: " 
-								 + errorMessage);
-			return false;
-		}*/
-		
 		for (ListExpr le : result)
 		{
 			Reporter.debug("UpdateViewerController.executeBulkInsert: " + le.toString());
@@ -611,21 +540,12 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	
 	
 	/*	
-	 Executes all updatecommands generated by the 'CommandGenerator' in one big
-	 transaction. If one of the commands was not successfully executed the transaction
-	 is aborted.	 
+	 * Executes updates for all relations.
 	 */
 	private boolean executeBulkUpdate()
 	{
 		String errorMessage;
-
-		/*if(! this.commandExecuter.beginTransaction())
-		{
-			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			Reporter.showError(errorMessage);
-			return false;
-		}*/
-		
+	
 		for (RelationPanel rp : this.viewer.getRelationPanels())
         {
             rp.takeOverLastEditing(true);
@@ -649,15 +569,11 @@ public class UpdateViewerController implements ActionListener, MouseListener
             }
             catch(InvalidFormatException e)
             {
-                String message = e.getMessage()+"\n at position ("+ e.getRow() + ", " + e.getColumn() + ")";
+                String message = e.getMessage()+"\n at position ("+ e.getRow() + ", " + e.getColumn() 
+										+ "). Update operations were not committed. Please correct error first. ";
                 Reporter.showError(message);
                 rp.goTo(e.getRow(), 0, 0);
 				
-				/*if (! this.commandExecuter.abortTransaction())
-				{
-					errorMessage = this.commandExecuter.getErrorMessage().toString();
-					Reporter.showError("Error trying to abort transaction: " + errorMessage);
-				}*/
                 return false;
             }
             
@@ -670,12 +586,6 @@ public class UpdateViewerController implements ActionListener, MouseListener
                 {
                     errorMessage = this.commandExecuter.getErrorMessage().toString();
                     Reporter.showError("Error trying to update a tuple: " + errorMessage);
-                    if (! this.commandExecuter.abortTransaction())
-                    {
-                        errorMessage = this.commandExecuter.getErrorMessage().toString();
-                        Reporter.showError("Error trying to abort transaction: " + errorMessage);
-                    }
-                    return false;
                 }
                 result = this.commandExecuter.getResultList();
                 if ( result.second().intValue() != 1)
@@ -694,13 +604,6 @@ public class UpdateViewerController implements ActionListener, MouseListener
             
             rp.clearUpdateChanges();
         }
-        
-		/*if(!this.commandExecuter.commitTransaction())
-		{
-			errorMessage = this.commandExecuter.getErrorMessage().toString();
-			Reporter.showError(errorMessage);
-			return false;
-		}*/
 		
         return true;
 	}
@@ -805,7 +708,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			
 			if (commands == null || commands.isEmpty())
 			{
-				Reporter.debug("UpadteViewerConntroller.executeSingleUpdate: no update commands generated for relation " + pRelName);
+				Reporter.debug("UpdateViewerController.executeSingleUpdate: no update commands generated for relation " + pRelName);
 				return false;
 			}
 			
@@ -1223,7 +1126,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				long millisStart = System.currentTimeMillis();			
 				this.viewer.setRelationPanel(relprof.getRelationName(), relationLE, true);
 				long millis = System.currentTimeMillis() - millisStart;
-				Reporter.debug("UpdateViewerController.processCommandLoadFromProfilet: setRelationPanel time for relation "
+				Reporter.debug("UpdateViewerController.processCommandLoadFromProfile: setRelationPanel time for relation "
 							   + relprof.getRelationName() + " (millis): " + millis);
 			}
 		}

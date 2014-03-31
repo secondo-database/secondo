@@ -363,10 +363,17 @@ public abstract class DocumentFormatter
 	
 	
 	/**
-	 * Returns content from specified file as string.
+	 * Returns content from specified file as string. Throws IOException if file does not exist, 
+	 * unless pFailSilenty is TRUE, in this case an empty string is returned.
 	 */
-	protected String readFile(File pFile) throws IOException
+	protected String readFile(File pFile, boolean pFailSilently) throws IOException
 	{
+		if (pFailSilently && 
+			(pFile == null || !pFile.exists()))
+		{
+			return "";
+		}
+		
 		FileReader fileReader = new FileReader(pFile);
 		BufferedReader bufferedReader = new BufferedReader(fileReader);
 		StringBuffer sb = new StringBuffer();
