@@ -213,7 +213,7 @@ Result    : TRUE
 Operator  : halfSegments
 Number    : 1
 Signature : {precLine, precRegion} -> stream(tuple([FaceNo : int, CycleNo : int ...]))
-Example   : query (halfSegments(BGrenzenLine) count) = halfSegments((toPrecise(BGrenzenLine)) count)
+Example   : query (halfSegments(BGrenzenLine) count) = (halfSegments(toPrecise(BGrenzenLine)) count)
 Result    : TRUE
 
 
