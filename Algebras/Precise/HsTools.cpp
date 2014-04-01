@@ -276,6 +276,7 @@ void makeRealm(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2,
                                          true,hs1.attributes));
          res.push_back(MPrecHalfSegment (*cp,hs2.getRightPoint(),
                                          true,hs2.attributes));
+         delete cp; 
       } else { // touching halfsegments
          if(hs1.innerContains(hs2.getLeftPoint())){
             res.push_back(MPrecHalfSegment(hs1.getLeftPoint(), 
@@ -382,7 +383,7 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
       avltree::AVLTree<MPrecHalfSegment, YComparator> sss;
       priority_queue<MPrecHalfSegment, 
                      vector<MPrecHalfSegment>, 
-                     IsSmaller<MPrecHalfSegment, HalfSegmentComparator> > es;
+                     IsGreater<MPrecHalfSegment, HalfSegmentComparator> > es;
 
       MPrecHalfSegment const* left;
       MPrecHalfSegment const* right;
@@ -399,44 +400,42 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
 
       int edgeno = 0;
 
-      //bool useOrig;
-      //int origPos;
+      MPrecCoordinate currentX(0);
+      MPrecCoordinate lastX(0);
+      bool first = true;
 
       while(!done){
-       // useOrig = false;
-        if(pos<v.size()){
-           if(es.empty()){
+
+       if(pos<v.size()){ 
+           if(es.empty()){ // no elements in es
               current = v[pos];
-            //  useOrig = true;
-            //  origPos = pos;
               pos++;
-           } else {
-              if(cmp(v[pos],es.top())<=0){
+           } else { // v and es have elements
+              if(cmp(v[pos],es.top())<0){ // use original vector
                  current = v[pos];
-              //   useOrig = true;
-              //   origPos = pos;
                  pos++;
               } else {
                  current = es.top();
                  es.pop();
               }
            }
-        } else {
+       } else { // original vector exhausted
            current = es.top();
            es.pop();
        }
-
-        //cout << "process element " << current << endl;
-      //  if(useOrig){
-          //cout << " this is original segment " << origPos << endl;
-      //  } else {
-            //cout << " a computed element" << endl;
-      //  }
+       
+       if(first){
+         lastX = current.getDomPoint().getX();
+         first = false; 
+       } else {
+         currentX = current.getDomPoint().getX();
+         assert(lastX<=currentX);
+         lastX = currentX;
+       }
 
         if(current.isLeftDomPoint()){
            const MPrecHalfSegment* stored = sss.getMember(current);
            if(stored!=0){ // overlapping segment found
-               //cout << " *******   found overlapping element" << endl;
                makeRealm(current,*stored,realmRes);
                sss.remove(*stored);
                sss.insert(realmRes[0]); // shorten 
@@ -448,8 +447,6 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
                   es.push(realmRes[i]);
                }
            } else {
-         //     cout << " insert intto tree " << current << endl;
-              //cout << "insert element" << endl;
               sss.insertN(current,left,right);
               if(left && !left->checkRealm(current)){
                  makeRealm(current,*left,realmRes);
@@ -461,15 +458,17 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
                  realmRes[1].setLDP(false);
                  es.push(realmRes[0]);
                  es.push(realmRes[1]);
-                 for(size_t i=0;i<realmRes.size();i++){
+                 for(size_t i=2;i<realmRes.size();i++){
                    es.push(realmRes[i]);
                    realmRes[i].setLDP(false);
                    es.push(realmRes[i]);
                  } 
-              } else if( right && !right->checkRealm(current)){
+              } 
+              if( right && !right->checkRealm(current)){
                  makeRealm(current,*right,realmRes);
-                 sss.remove(*right);
-                 sss.remove(current);
+                 assert(sss.remove(*right));
+                 assert(sss.remove(current));
+
                  sss.insert(realmRes[0]);
                  sss.insert(realmRes[1]);
                  realmRes[0].setLDP(false);
@@ -485,10 +484,8 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
            }
         } else {
            const MPrecHalfSegment* stored = sss.getMember(current);
-          // cout << "search Element " << current << endl;
            if(stored!=0){
                if(current.sameGeometry(*stored)){
-                  //cout << " remove element " << endl;
                   sss.removeN(current,left,right);
                   current.attributes.edgeno = edgeno;
                   edgeno++;
@@ -517,9 +514,8 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
                } else {
                }
            } else { // stored == 0
-              cerr << "Element " << current << " not found" << endl;
-              cerr << "size of avl = " << sss.Size() << endl;
-              cerr << "content " << sss << endl;
+              //cerr << "size of avl = " << sss.Size() << endl;
+              //cerr << "content " << sss << endl;
            }
         }        
         done = (pos==v.size() && es.empty());

@@ -115,7 +115,7 @@ bool readPoint(ListExpr le, MPrecPoint& result,
 This function enlarges box that p is included in this box.
 
 */
-void enlarge(Rectangle<2> box, const MPrecPoint& p);
+void enlarge(Rectangle<2>& box, const MPrecPoint& p);
 
 
 /*
@@ -866,6 +866,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
 
 
      PrecLine& operator=(const PrecLine& src){
+        StandardSpatialAttribute::operator=(src);
         bbox = src.bbox;
         scale = src.scale;
         gridData.copyFrom(src.gridData);
@@ -1024,18 +1025,23 @@ class PrecLine : public StandardSpatialAttribute<2> {
         bulkloadStorage->push_back(hs);
     }
 
-    void endBulkLoad(bool setPartnerNo = true,
-                     bool realminize = true ); 
+    void endBulkLoad( bool realminize = true ); 
 
     void readFrom(const Line& line, int scale, bool useString);
 
     size_t getNoElements()const{
       return IsDefined()?gridData.Size()/2:0;
     }
-
+    
     uint32_t getScale() const{
       return scale;
     }
+
+    void compUnion(const PrecLine& l2, PrecLine& result) const;
+
+    void intersection(const PrecLine& l2, PrecLine& result) const;
+
+    void difference(const PrecLine& l2, PrecLine& result) const; 
 
   private:
     Rectangle<2> bbox;

@@ -229,6 +229,11 @@ Signature : precPregion -> precLine
 Example   : query (halfSegments(boundary(toPrecise(tiergarten))) count) = (halfSegments(boundary(tiergarten)) count)
 Result    : TRUE
 
+Operator  : boundary
+Number    : 1
+Signature : precSPATIAL -> rect
+Example   : query bbox(tiergarten) = bbox(toPrecise(tiergarten))
+Result    : TRUE
 
 
 

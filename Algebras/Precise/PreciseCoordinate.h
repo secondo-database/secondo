@@ -445,7 +445,6 @@ class MPrecCoordinate : public PPrecCoordinate{
 
 
      int compare(const MPrecCoordinate& rhs) const {
-
         if(scale!=rhs.scale){
            rhs.changeScaleTo(scale);
         }
@@ -510,7 +509,7 @@ class MPrecCoordinate : public PPrecCoordinate{
      }
 
      bool operator>=(const MPrecCoordinate& rhs) const{
-         return compare(rhs)>=0;
+        return  compare(rhs) >=0;
      }
 
 /*
@@ -702,8 +701,9 @@ Binary operators
            return;
         }
         assert(newScale!=0);
+
         mpq_class v = getComplete();
-        mpq_class factor(newScale,scale);
+        mpq_class factor(scale, newScale);
         gridCoord = 0;
         if(fractional){
            *fractional = v*factor;
@@ -722,6 +722,22 @@ Binary operators
   void getFractional(void*& result) const{
       result = fractional;
   }
+
+  ListExpr toListExpr(const bool includeScale) const{
+     ListExpr value;
+     if(!hasFracPart()){
+       value = listutils::getInt64List(getGridCoord());
+     } else {
+       value = nl->TwoElemList(
+                listutils::getInt64List(getGridCoord()),
+                nl->TextAtom(getFracAsText()));
+     } 
+     if(includeScale){
+         value = nl->TwoElemList(nl->IntAtom(scale), value);
+     }
+     return value;
+  }
+
 
 
   private:
@@ -783,7 +799,7 @@ After calling this function, the fractional part is in (0,1).
 
 */
 
-     void canonicalize() const{
+     inline void canonicalize() const{
         assert(fractional);
         if(*fractional == 0){ // no fractional part
            precPos = 0;

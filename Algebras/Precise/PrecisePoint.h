@@ -200,7 +200,17 @@ class MPrecPoint {
           x.changeScaleTo(newScale);
           y.changeScaleTo(newScale);
         }
-      } 
+      }
+
+      ListExpr toListExpr(const bool includeScale=false)const{
+         ListExpr value = nl->TwoElemList(x.toListExpr(false),
+                                          y.toListExpr(false));
+         if(includeScale){
+            value = nl->TwoElemList(nl->IntAtom(x.getScale()), value);
+         }
+         return value;
+      }
+ 
 
 /*
   Debugging function

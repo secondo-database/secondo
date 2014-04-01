@@ -173,7 +173,7 @@ bool readPoint(ListExpr le, MPrecPoint& result,
 }
 
 
-void enlarge(Rectangle<2> box, const MPrecPoint& p){
+void enlarge(Rectangle<2>& box, const MPrecPoint& p){
    double x = p.getX().toDouble();
    double y = p.getY().toDouble();
    if(!box.IsDefined()){
@@ -1143,6 +1143,8 @@ int PrecLine::compareTo(const PrecLine& rhs)const{
 
 
 ListExpr PrecLine::ToListExpr(ListExpr typeInfo) const{
+      cout << "output list " << endl;
+
       if(!IsDefined()){
          return listutils::getUndefined();
       }
@@ -1176,7 +1178,7 @@ void PrecLine::readFrom(const Line& line, int scale, bool useString){
     }
     vector<MPrecHalfSegment> hsv1;
     HalfSegment hs;
-    
+
     for(int i=0;i<line.Size();i++){
        line.Get(i,hs);
        if(useString){
@@ -1186,6 +1188,9 @@ void PrecLine::readFrom(const Line& line, int scale, bool useString){
        }
     }
     vector<MPrecHalfSegment> hsv;
+
+    
+
     hstools::realminize(hsv1,hsv);
 
     gridData.resize(hsv.size());
@@ -1241,30 +1246,66 @@ bool PrecLine::ReadFrom(ListExpr value, ListExpr typeInfo){
    return true;
 }
 
-void PrecLine::endBulkLoad(bool setPartnerNo, bool realminize){
+void PrecLine::endBulkLoad(bool realminize){
    assert(bulkloadStorage);
-   if(!hstools::isSorted(*bulkloadStorage)){
-     hstools::sort(*bulkloadStorage);
+   if(bulkloadStorage->empty()){
+     delete bulkloadStorage;
+     bulkloadStorage=0;
+     scale = 1;
+     return;
    }
-   hstools::setPartnerNumbers(*bulkloadStorage);
+
+   hstools::sort(*bulkloadStorage);
    vector<MPrecHalfSegment> v2;
    if(realminize){
       hstools::realminize(*bulkloadStorage,v2);
-      hstools::sort(v2);
    } else {
       v2 = *bulkloadStorage;
    }
 
    hstools::setPartnerNumbers(v2);
-   delete bulkloadStorage;
-   bulkloadStorage=0;
    bbox.SetDefined(false);
+   scale = v2[0].getScale(); 
    for(size_t i=0;i<v2.size();i++){
       v2[i].appendTo(&gridData, &fracStorage);
       enlarge(bbox, v2[i].getLeftPoint());
       enlarge(bbox, v2[i].getRightPoint());
    }
+   delete bulkloadStorage;
+   bulkloadStorage=0;
 }
+
+
+void PrecLine::compUnion(const PrecLine& l2, PrecLine& result) const{
+  result.clear();
+  if(!IsDefined() || !l2.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.startBulkLoad();
+  for(size_t i=0;i<Size();i++){
+     MPrecHalfSegment hs = getHalfSegment(i);
+     if(hs.isLeftDomPoint()){
+        result.append(hs);
+     }
+  }
+  for(size_t i=0;i<l2.Size();i++){ 
+     MPrecHalfSegment hs = l2.getHalfSegment(i);
+     if(hs.isLeftDomPoint()){
+       result.append(hs);
+     }
+  }
+  bool realmrequired = true;
+  if(Size()==0 || l2.Size()==0){
+    realmrequired = false;
+  } else {
+    realmrequired = bbox.Intersects(l2.bbox);
+  }
+     
+  result.endBulkLoad(realmrequired);
+}
+
 
 
 /*

@@ -1059,11 +1059,15 @@ ListExpr unionTM(ListExpr args){
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
   }
-  if(   !PrecPoints::checkType(nl->First(args))
-     || !PrecPoints::checkType(nl->Second(args))){
-     return listutils::typeError(err);
+  if(   PrecPoints::checkType(nl->First(args))
+     && PrecPoints::checkType(nl->Second(args))){
+     return listutils::basicSymbol<PrecPoints>();
   }
-  return listutils::basicSymbol<PrecPoints>();
+  if(   PrecLine::checkType(nl->First(args))
+     && PrecLine::checkType(nl->Second(args))){
+     return listutils::basicSymbol<PrecLine>();
+  }
+  return listutils::typeError(err);
 
 }
 
@@ -1075,12 +1079,14 @@ ListExpr unionTM(ListExpr args){
 template<class T1, class T2, class R>
 int unionVM1 (Word* args, Word& result, int message, Word& local,
             Supplier s ){
-
   T1* arg1 = (T1*) args[0].addr;
   T2* arg2 = (T1*) args[1].addr;
   result = qp->ResultStorage(s);
   R* res = (R*) result.addr;
   arg1->compUnion(*arg2,*res);
+  if(!res->IsDefined()){
+    cout << "UNDEFINED result" << endl;
+  }
   return 0;
 }
 
@@ -1090,11 +1096,20 @@ int unionVM1 (Word* args, Word& result, int message, Word& local,
 */
 
 ValueMapping unionVM[] = {
-   unionVM1<PrecPoints,PrecPoints, PrecPoints> // to be continued
+   unionVM1<PrecPoints,PrecPoints, PrecPoints>,
+   unionVM1<PrecLine,PrecLine, PrecLine> // to be continued
 };
 
 int unionSelect(ListExpr args){
-  return 0;
+  if(   PrecPoints::checkType(nl->First(args))
+     && PrecPoints::checkType(nl->Second(args))){
+     return 0;
+  }
+  if(   PrecLine::checkType(nl->First(args))
+     && PrecLine::checkType(nl->Second(args))){
+     return 1;
+  }
+  return -1;
 }
 
 /*
@@ -1117,7 +1132,7 @@ OperatorSpec unionSpec(
 Operator unionOP(
   "union",
   unionSpec.getStr(),
-  1,
+  2,
   unionVM,
   unionSelect,
   unionTM
@@ -1730,7 +1745,83 @@ Operator boundaryOP(
   boundaryTM
 );
 
+/*
+2.14 Operator bbox
 
+2.14.1 bboxTM
+
+*/
+ListExpr bboxTM (ListExpr args){
+  string err = "precPoint, precPoints, precLine, or precRegion expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  ListExpr arg = nl->First(args);
+  if(   PrecPoint::checkType(arg)
+     || PrecPoints::checkType(arg)
+     || PrecLine::checkType(arg)
+     || PrecRegion::checkType(arg)){
+    return listutils::basicSymbol<Rectangle<2> >();
+  }
+  return listutils::typeError(err);
+}
+
+
+template<class T>
+int bboxVM1 (Word* args, Word& result, int message, Word& local,
+                 Supplier s ){
+
+   T* arg = (T*) args[0].addr;
+   result = qp->ResultStorage(s);
+   Rectangle<2>* res = (Rectangle<2>*) result.addr;
+   *res = arg->BoundingBox();
+   return 0;
+}
+
+
+ValueMapping bboxVM[] = {
+    bboxVM1<PrecPoint>,
+    bboxVM1<PrecPoints>,
+    bboxVM1<PrecLine>,
+    bboxVM1<PrecRegion>
+ };
+
+int bboxSelect(ListExpr args){
+   ListExpr arg = nl->First(args);
+   if(PrecPoint::checkType(arg)){
+      return 0;
+   }
+   if(PrecPoints::checkType(arg)){
+      return 1;
+   }
+   if(PrecLine::checkType(arg)){
+      return 2;
+   }
+   if(PrecRegion::checkType(arg)){
+      return 3;
+   }
+   return -1;
+}
+
+OperatorSpec bboxSpec(
+        " precPoint | precPoints | precLine | precRegion -> rect",
+        " bbox(_)",
+        " returns the bounding box of the argument",
+        " query bbox(toPrecise(BGrenzenLine)) "
+);
+
+/*
+2.13.5 Operator instance
+
+*/
+Operator bboxOP(
+  "bbox",
+  bboxSpec.getStr(),
+  4,
+  bboxVM,
+  bboxSelect,
+  bboxTM
+);
 
 
 
@@ -1770,6 +1861,7 @@ class PreciseAlgebra : public Algebra
     AddOperator(&precise::halfSegmentsOP);
     AddOperator(&precise::verticesOP);
     AddOperator(&precise::boundaryOP);
+    AddOperator(&precise::bboxOP);
   }
 };
 

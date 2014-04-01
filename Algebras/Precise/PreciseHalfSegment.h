@@ -36,7 +36,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-
 /*
 1 Implementation of a precise halfsegment
 
@@ -336,6 +335,7 @@ of hs have a common point.
       if(!boxIntersects(hs)){
          return false;
       }
+
       MPrecCoordinate x1 = lp.getX();
       MPrecCoordinate x2 = rp.getX();
       MPrecCoordinate y1 = lp.getY();
@@ -349,7 +349,8 @@ of hs have a common point.
       MPrecCoordinate v = hsx1-hsx2;
       MPrecCoordinate x = y2-y1;
       MPrecCoordinate k = y*u-v*x;
-      if(k==0){  // segments are parallel
+
+      if(k==0){  // segments are parallel, no crossing possible
          return false;
       }   
       
@@ -364,10 +365,10 @@ of hs have a common point.
          delta1 = ((z+delta2*y)/x)*-1;
       }   
 
-      if(delta1<=0 || delta2 <= 0){ 
+      if(delta1<=0u || delta2 <= 0u){ // cross point left of one segment
          return false;
       }   
-      if(delta1>=1 || delta2 >= 1){ 
+      if(delta1>=1u || delta2 >= 1u){ // cross point right of segment
         return false;
       }  
       return true;    
@@ -574,6 +575,21 @@ If the x-values differ for a vertical segment, an exception is thrown.
   }
 
 
+  ListExpr toListExpr(const bool includeScale = false) const {
+    ListExpr value = nl->TwoElemList(lp.toListExpr(false),
+                                     rp.toListExpr(false));
+    if(includeScale){
+       value = nl->TwoElemList( nl->IntAtom(lp.getScale()), value);
+    }
+    return value;
+  }
+
+  ListExpr toLineList() const{
+    return nl->TwoElemList( nl->SymbolAtom("precLine"),
+               nl->TwoElemList( nl->IntAtom(lp.getScale()),
+                   nl->OneElemList(toListExpr())));
+  }
+
      
   private:
      bool ldp;
@@ -688,6 +704,17 @@ class IsSmaller{
 
 };
 
+template<class Obj, class Comp>
+class IsGreater{
+  public:
+     bool operator()(const Obj& o1, const Obj& o2){
+        return comp(o1,o2)>0;
+     }
+
+  private:
+     Comp comp;
+
+};
 
 
 
