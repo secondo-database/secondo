@@ -590,6 +590,13 @@ If the x-values differ for a vertical segment, an exception is thrown.
                    nl->OneElemList(toListExpr())));
   }
 
+  const MPrecCoordinate& getMinY() const{
+     return rp.getY() < lp.getY() ? rp.getY() : lp.getY() ;
+  }
+
+  const MPrecCoordinate& getMaxY() const{
+     return rp.getY() > lp.getY() ? rp.getY() : lp.getY() ;
+  }
      
   private:
      bool ldp;

@@ -192,6 +192,13 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
         static int compare(const MPrecHalfSegment& hs1, 
                            const MPrecHalfSegment& hs2){
 
+            if(hs1.getMinY() > hs2.getMaxY()){
+                return 1;
+            }
+            if(hs2.getMinY() > hs1.getMaxY()){
+               return -1;
+            }
+
             MPrecCoordinate x0(0);
 
             if(hs1.isVertical()){
