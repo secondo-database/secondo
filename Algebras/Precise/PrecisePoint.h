@@ -101,8 +101,8 @@ class MPrecPoint {
             return *this;
       }
 
-      MPrecCoordinate getX()const { return x; }
-      MPrecCoordinate getY()const { return y; }
+      const MPrecCoordinate& getX()const { return x; }
+      const MPrecCoordinate& getY()const { return y; }
 
       int compareTo(const MPrecPoint& rhs) const{
          int cmp = x.compare(rhs.x);

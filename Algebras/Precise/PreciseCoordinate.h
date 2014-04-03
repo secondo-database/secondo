@@ -672,7 +672,7 @@ Binary operators
        return fractional->get_str();
     }
 
-    double toDouble(){
+    double toDouble() const {
        mpq_class c = getComplete();
        c *= scale;
        return c.get_d();

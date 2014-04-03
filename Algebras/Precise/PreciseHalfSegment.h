@@ -73,7 +73,7 @@ class PPrecHalfSegment{
        rp = tmp;
     }
 
-    size_t getHash(){
+    size_t getHash() const{
        return lp.getHash() + rp.getHash();
     }
   
@@ -141,10 +141,10 @@ i.e. if lp and rp are equal.
     }
 
 
-     MPrecPoint getLeftPoint() const{ return lp; }
-     MPrecPoint getRightPoint() const{ return rp; }
-     MPrecPoint getDomPoint() const {return ldp?lp:rp;}
-     MPrecPoint getSecPoint() const {return ldp?rp:lp;}
+     const MPrecPoint& getLeftPoint() const{ return lp; }
+     const MPrecPoint& getRightPoint() const{ return rp; }
+     const MPrecPoint& getDomPoint() const {return ldp?lp:rp;}
+     const MPrecPoint& getSecPoint() const {return ldp?rp:lp;}
      bool isLeftDomPoint() const { return ldp; }
 
 
@@ -215,12 +215,12 @@ Checks whether this halfsegment contains a certain point
 
 */
     bool contains(const MPrecPoint& p) const{
-      MPrecCoordinate x = p.getX();
-      MPrecCoordinate y = p.getY();
-      MPrecCoordinate x1 = lp.getX();
-      MPrecCoordinate x2 = rp.getX();
-      MPrecCoordinate y1 = lp.getY();
-      MPrecCoordinate y2 = rp.getY();
+      const MPrecCoordinate& x = p.getX();
+      const MPrecCoordinate& y = p.getY();
+      const MPrecCoordinate& x1 = lp.getX();
+      const MPrecCoordinate& x2 = rp.getX();
+      const MPrecCoordinate& y1 = lp.getY();
+      const MPrecCoordinate& y2 = rp.getY();
 
       // bounding box check (uses only comparision)
 
@@ -266,15 +266,15 @@ Checks whether this halfsegment contains a certain point
     }
    
     bool boxIntersects(const MPrecHalfSegment& hs) const{
-       MPrecCoordinate x1 = lp.getX();
-       MPrecCoordinate y1 = lp.getY();
-       MPrecCoordinate x2 = rp.getX();
-       MPrecCoordinate y2 = rp.getY();
+       const MPrecCoordinate& x1 = lp.getX();
+       const MPrecCoordinate& y1 = lp.getY();
+       const MPrecCoordinate& x2 = rp.getX();
+       const MPrecCoordinate& y2 = rp.getY();
 
-       MPrecCoordinate hsx1 = hs.lp.getX();
-       MPrecCoordinate hsy1 = hs.lp.getY();
-       MPrecCoordinate hsx2 = hs.rp.getX();
-       MPrecCoordinate hsy2 = hs.rp.getY();
+       const MPrecCoordinate& hsx1 = hs.lp.getX();
+       const MPrecCoordinate& hsy1 = hs.lp.getY();
+       const MPrecCoordinate& hsx2 = hs.rp.getX();
+       const MPrecCoordinate& hsy2 = hs.rp.getY();
 
        if(hsx1 < x1 && hsx1 < x2 &&   // hs left of this
           hsx2 < x1 && hsx2 < x2){
@@ -336,34 +336,31 @@ of hs have a common point.
          return false;
       }
 
-      MPrecCoordinate x1 = lp.getX();
-      MPrecCoordinate x2 = rp.getX();
-      MPrecCoordinate y1 = lp.getY();
-      MPrecCoordinate y2 = rp.getY();
-      MPrecCoordinate hsx1 = hs.lp.getX();
-      MPrecCoordinate hsx2 = hs.rp.getX();
-      MPrecCoordinate hsy1 = hs.lp.getY();
-      MPrecCoordinate hsy2 = hs.rp.getY();
-      MPrecCoordinate y = hsy1-hsy2;
-      MPrecCoordinate u = x2-x1;
-      MPrecCoordinate v = hsx1-hsx2;
-      MPrecCoordinate x = y2-y1;
-      MPrecCoordinate k = y*u-v*x;
+      const MPrecCoordinate& x1 = lp.getX();
+      const MPrecCoordinate& x2 = rp.getX();
+      const MPrecCoordinate& y1 = lp.getY();
+      const MPrecCoordinate& y2 = rp.getY();
+      const MPrecCoordinate& hsx1 = hs.lp.getX();
+      const MPrecCoordinate& hsx2 = hs.rp.getX();
+      const MPrecCoordinate& hsy1 = hs.lp.getY();
+      const MPrecCoordinate& hsy2 = hs.rp.getY();
+      const MPrecCoordinate& y = hsy1-hsy2;
+      const MPrecCoordinate& u = x2-x1;
+      const MPrecCoordinate& v = hsx1-hsx2;
+      const MPrecCoordinate& x = y2-y1;
+      const MPrecCoordinate& k = y*u-v*x;
 
       if(k==0){  // segments are parallel, no crossing possible
          return false;
       }   
       
-      MPrecCoordinate w = x1-hsx1;
-      MPrecCoordinate z = y1-hsy1;
+      const MPrecCoordinate& w = x1-hsx1;
+      const MPrecCoordinate& z = y1-hsy1;
 
-      MPrecCoordinate delta2 = (w*x-z*u) / k;
-      MPrecCoordinate delta1(0);
-      if(abs(u) > abs(x)){
-         delta1 = ((w+delta2*v)/u)*-1;
-      } else {
-         delta1 = ((z+delta2*y)/x)*-1;
-      }   
+      const MPrecCoordinate& delta2 = (w*x-z*u) / k;
+      const MPrecCoordinate& delta1 = abs(u) > abs(x) 
+                                    ? ((w+delta2*v)/u)*-1
+                                    : ((z+delta2*y)/x)*-1;
 
       if(delta1<=0u || delta2 <= 0u){ // cross point left of one segment
          return false;
@@ -386,27 +383,27 @@ If no such intersection exists, 0 is returned
       if(!boxIntersects(hs)){
          return 0;
       }
-      MPrecCoordinate x1 = lp.getX();
-      MPrecCoordinate x2 = rp.getX();
-      MPrecCoordinate y1 = lp.getY();
-      MPrecCoordinate y2 = rp.getY();
-      MPrecCoordinate hsx1 = hs.lp.getX();
-      MPrecCoordinate hsx2 = hs.rp.getX();
-      MPrecCoordinate hsy1 = hs.lp.getY();
-      MPrecCoordinate hsy2 = hs.rp.getY();
-      MPrecCoordinate y = hsy1-hsy2;
-      MPrecCoordinate u = x2-x1;
-      MPrecCoordinate v = hsx1-hsx2;
-      MPrecCoordinate x = y2-y1;
-      MPrecCoordinate k = y*u-v*x;
+      const MPrecCoordinate& x1 = lp.getX();
+      const MPrecCoordinate& x2 = rp.getX();
+      const MPrecCoordinate& y1 = lp.getY();
+      const MPrecCoordinate& y2 = rp.getY();
+      const MPrecCoordinate& hsx1 = hs.lp.getX();
+      const MPrecCoordinate& hsx2 = hs.rp.getX();
+      const MPrecCoordinate& hsy1 = hs.lp.getY();
+      const MPrecCoordinate& hsy2 = hs.rp.getY();
+      const MPrecCoordinate& y = hsy1-hsy2;
+      const MPrecCoordinate& u = x2-x1;
+      const MPrecCoordinate& v = hsx1-hsx2;
+      const MPrecCoordinate& x = y2-y1;
+      const MPrecCoordinate& k = y*u-v*x;
       if(k==0){  // segments are parallel
          return 0;
       }   
       
-      MPrecCoordinate w = x1-hsx1;
-      MPrecCoordinate z = y1-hsy1;
+      const MPrecCoordinate& w = x1-hsx1;
+      const MPrecCoordinate& z = y1-hsy1;
 
-      MPrecCoordinate delta2 = (w*x-z*u) / k;
+      const MPrecCoordinate& delta2 = (w*x-z*u) / k;
       MPrecCoordinate delta1(0);
       if(abs(u) > abs(x)){
          delta1 = ((w+delta2*v)/u)*-1;
@@ -420,8 +417,8 @@ If no such intersection exists, 0 is returned
       if(delta1>1 || delta2 > 1){ 
         return 0;
       }  
-      MPrecCoordinate xp = x1 + delta1*(x2-x1);
-      MPrecCoordinate yp = y1 + delta1*(y2-y1);
+      const MPrecCoordinate& xp = x1 + delta1*(x2-x1);
+      const MPrecCoordinate& yp = y1 + delta1*(y2-y1);
       return new MPrecPoint(xp,yp);    
     }
 
@@ -483,11 +480,12 @@ Checks whether ~p~ is located in the interior of this halfsegment.
           return lp.getX() == p.getX() &&
                  p.getY()>lp.getY() && p.getY() < rp.getY();
        }
-       MPrecCoordinate dx = (p.getX() - lp.getX()) / (rp.getX() - lp.getX());
+       const MPrecCoordinate&  dx = (p.getX() - lp.getX()) /
+                                    (rp.getX() - lp.getX());
        if(dx <= 0 || dx>=1){
            return false;
        }
-       MPrecCoordinate y = lp.getY() + dx*(rp.getY()-lp.getY());
+       const MPrecCoordinate& y = lp.getY() + dx*(rp.getY()-lp.getY());
        return y == p.getY();
    }
 
@@ -525,8 +523,9 @@ The slope is computed undirected, meaning always from left to right point.
            return -1;
        }
 
-       MPrecCoordinate slope = (lp.getY()-rp.getY()) / (lp.getX() - rp.getX());
-       MPrecCoordinate hsslope = (hs.lp.getY()-hs.rp.getY()) /
+       const MPrecCoordinate& slope = (lp.getY()-rp.getY()) /
+                                      (lp.getX() - rp.getX());
+       const MPrecCoordinate& hsslope = (hs.lp.getY()-hs.rp.getY()) /
                                  (hs.lp.getX() - hs.rp.getX());
        return slope.compare(hsslope);
     }
@@ -535,8 +534,9 @@ The slope is computed undirected, meaning always from left to right point.
 ~getY~
 
 This function returns the y value for the line defined by this segment 
-for a given x-coordinate. If the segment is vertical and the given x value corresponds 
-to the x value of this segment. the smallest y -value of this segment is returned.
+for a given x-coordinate. If the segment is vertical and the given x 
+value corresponds to the x value of this segment. the smallest y -value
+of this segment is returned.
 If the x-values differ for a vertical segment, an exception is thrown.
 
 */    
@@ -549,8 +549,8 @@ If the x-values differ for a vertical segment, an exception is thrown.
           }
       }
       // non vertical segment
-      MPrecCoordinate delta = (x - lp.getX()) / (rp.getX() - lp.getX());
-      MPrecCoordinate y = lp.getY() + delta * (rp.getY() - lp.getY());
+      const MPrecCoordinate& delta = (x - lp.getX()) / (rp.getX() - lp.getX());
+      const MPrecCoordinate& y = lp.getY() + delta * (rp.getY() - lp.getY());
       return y;
     }
 
@@ -628,13 +628,13 @@ class HalfSegmentComparator{
       //cout << "compare " << hs1 << endl
       //     << "with    " << hs2 << endl;
 
-      MPrecPoint dp1 = hs1.getDomPoint();
+      const MPrecPoint& dp1 = hs1.getDomPoint();
 
       if(print){
         cout << "comapre halfsegments, dp1 = " << dp1 << endl; 
       }
 
-      MPrecPoint dp2 = hs2.getDomPoint();
+      const MPrecPoint& dp2 = hs2.getDomPoint();
 
       if(print){
         cout << "comapre halfsegments, dp2 = " << dp2 << endl; 
