@@ -814,6 +814,15 @@ public:
       cassandra -> connect();
       cassandra -> createTable(relationName, tupleType);
       
+      if(sizeof(size_t) < 8) {
+        cout << "WARNING: Your size_t datatype is smaller then 8 bytes. ";
+        cout << endl;
+        cout << "The size of size_t on your system is: " << sizeof(size_t);
+        cout << endl;
+        cout << "This leads to small hash values and performance issues ";
+        cout << " with casssandra";
+        cout << endl;
+      }
       
       /*vector < long > tokens;
       cassandra -> getLocalTokens(tokens);
@@ -845,8 +854,6 @@ public:
   
   string buildKey() {
     stringstream ss;
-    ss << relationName;
-    ss << "-";
     ss << systemname;
     ss << "-";
     ss << tupleNumber;
@@ -854,12 +861,18 @@ public:
   }
   
   bool feed(Tuple* tuple) {
-    cassandra->writeDataToCassandraPrepared(
+    
+    stringstream ss;
+    ss << tuple -> HashValue(attrIndex);
+    
+    cassandra->writeDataToCassandra(
                          buildKey(), 
                          tuple -> WriteToBinStr(), 
+                         ss.str(),
                          relationName, consistence, false);
     
     ++tupleNumber;
+    
     return true;
   }
   

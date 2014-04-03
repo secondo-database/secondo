@@ -189,12 +189,13 @@ public:
 
 1. Parameter is the unique key of the data
 2. Parameter is the data
-3. Parameter is the name of the relation (e.g. plz)
-4. Parameter is the consistence level used for writing
-5. Parameter specifies to use synchronus or asynchronus writes
+3. Parameter is the hash value of the tuple
+4. Parameter is the name of the relation (e.g. plz)
+5. Parameter is the consistence level used for writing
+6. Parameter specifies to use synchronus or asynchronus writes
 
 */
-    void writeDataToCassandra(string key, string value, 
+    void writeDataToCassandra(string key, string value, string hashValue,
                               string relation, string consistenceLevel,
                               bool sync
                              );
@@ -203,9 +204,9 @@ public:
 2.3.4 Same as writeDataToCassandra, but with prepared statements
 
 */
-    void writeDataToCassandraPrepared(string key, string value,
-                              string relation, string consistenceLevel,
-                              bool sync
+    void writeDataToCassandraPrepared(string key, string value, 
+                              string hashValue, string relation, 
+                              string consistenceLevel, bool sync
                              );
 
 /*
@@ -327,10 +328,12 @@ protected:
 /*
 2.3.16 Returns a CQL statement for inserting a new row. The
        first parameter is the key, the second parameter is the
-       value. The last parameter is the relation for this request.
+       value of the tuple. The third parameter is the hashvalue.
+       The last parameter is the relation for this request.
        
 */    
-  string getInsertCQL(string key, string value, string relation);
+  string getInsertCQL(string key, string value, string hashValue,
+                      string relation);
 
 /*
 2.3.17 Create a pepared statement for inserting data into the 

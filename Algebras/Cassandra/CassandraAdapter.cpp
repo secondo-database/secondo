@@ -111,7 +111,8 @@ bool CassandraAdapter::isConnected() {
 }
 
 void CassandraAdapter::writeDataToCassandra(string key, string value,
-        string relation, string consistenceLevel, bool sync) {
+        string hashValue, string relation, string consistenceLevel, 
+        bool sync) {
 
     // Convert consistence level
     cql::cql_consistency_enum consitence 
@@ -120,20 +121,21 @@ void CassandraAdapter::writeDataToCassandra(string key, string value,
     // Write Data and wait for result
     if(sync) {
       executeCQLSync(
-          getInsertCQL(key, value, relation),
+          getInsertCQL(key, value, hashValue, relation),
           consitence
       );
       
     } else {
       executeCQLASync(
-          getInsertCQL(key, value, relation),
+          getInsertCQL(key, value, hashValue, relation),
           consitence
       );
     }
 }
 
 void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
-        string relation, string consistenceLevel, bool sync) {
+        string hashValue, string relation, string consistenceLevel, 
+        bool sync) {
 
     // Statement unknown? => Prepare
     if(insertCQLid.empty()) {
@@ -154,6 +156,7 @@ void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
     ));
 
     // Bound prameter
+    boundCQLInsert -> push_back(hashValue);
     boundCQLInsert -> push_back(key);
     boundCQLInsert -> push_back(value);
     
@@ -178,7 +181,7 @@ void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
 bool CassandraAdapter::prepareCQLInsert(string relation, 
                                         string consistenceLevel) {
      try {
-        string cqlQuery = getInsertCQL("?", "?", relation);
+        string cqlQuery = getInsertCQL("?", "?", "?", relation);
         cout << "Preparing insert query: "  << cqlQuery << endl;
         
         boost::shared_ptr<cql::cql_query_t> unboundInsert(
@@ -210,20 +213,23 @@ bool CassandraAdapter::prepareCQLInsert(string relation,
 }
 
 string CassandraAdapter::getInsertCQL(string key, string value, 
-                                      string relation) {
+                                      string hashValue, string relation) {
     stringstream ss;
     ss << "INSERT INTO ";
     ss << relation;
-    ss << " (key, value)";
+    ss << " (id, key, value)";
     ss << " VALUES (";
     
     string quote = "'";
     
     // Prepared statemnt? No quoting! 
-    if(key.compare("?") == 0 && value.compare("?") == 0) {
+    if((key.compare("?") == 0) 
+      && (value.compare("?") == 0)
+      && (hashValue.compare("?") == 0)) {
       quote = "";
     }
     
+    ss << quote << hashValue << quote << ", ";
     ss << quote << key << quote << ", ";
     ss << quote << value << quote << ");";
     
@@ -246,7 +252,7 @@ bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
     stringstream ss;
     ss << "SELECT value FROM ";
     ss << relation;
-    ss << " WHERE key = '";
+    ss << " WHERE id = '";
     ss << CassandraAdapter::METADATA_TUPLETYPE;
     ss << "';";
     string query = ss.str();
@@ -324,8 +330,8 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     stringstream ss;
     ss << "CREATE TABLE IF NOT EXISTS ";
     ss << tablename;
-    ss << " ( key text PRIMARY KEY, ";
-    ss << " value text );";
+    ss << " ( id text, key text,";
+    ss << " value text, PRIMARY KEY(id, key));";
 
     bool resultCreate = executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
     
@@ -335,8 +341,10 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     // Write tupletype
     if(resultCreate) {
       bool resultInsert = executeCQLSync(
-            getInsertCQL(CassandraAdapter::METADATA_TUPLETYPE, 
-                         tupleType, tablename),
+            // ID is Tupletype, HashValue is Tupletype
+            getInsertCQL(CassandraAdapter::METADATA_TUPLETYPE,
+                         tupleType, CassandraAdapter::METADATA_TUPLETYPE, 
+                         tablename),
             cql::CQL_CONSISTENCY_ALL
       );
       
