@@ -411,16 +411,20 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
       MPrecCoordinate lastX(0);
       bool first = true;
 
-      while(!done){
+      bool orig;
 
+      while(!done){
+       orig = false;
        if(pos<v.size()){ 
            if(es.empty()){ // no elements in es
               current = v[pos];
+              orig = true;
               pos++;
            } else { // v and es have elements
               if(cmp(v[pos],es.top())<0){ // use original vector
                  current = v[pos];
                  pos++;
+                 orig = true;
               } else {
                  current = es.top();
                  es.pop();
@@ -436,6 +440,13 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
          first = false; 
        } else {
          currentX = current.getDomPoint().getX();
+         if(lastX > currentX){
+           cout << "Invalid oder found. " << endl;
+           cout << "lastX = " << lastX << endl;
+           cout << "currentX = " << currentX << endl;
+           cout << "current = " << current << endl;
+           cout << "isOrig = " << (orig?"true":"false") << endl;
+         }
          assert(lastX<=currentX);
          lastX = currentX;
        }

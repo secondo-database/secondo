@@ -449,7 +449,6 @@ class MPrecCoordinate : public PPrecCoordinate{
            rhs.changeScaleTo(scale);
         }
 
-
         if(gridCoord < rhs.gridCoord) return -1;
         if(gridCoord > rhs.gridCoord) return 1;
         if(precPos == 0){
@@ -602,48 +601,39 @@ Binary operators
      }
      
     MPrecCoordinate& operator*=(const MPrecCoordinate v){
-       if(v==1){
+
+       if(v==MPrecCoordinate(v.getScale(), v.getScale())){
+          // case v==1
           return *this;
        }
-       if(v.precPos==0){
-          if(precPos==0){
-             gridCoord *= v.gridCoord*v.scale;
-             return *this;
-          } else {
-             gridCoord *= v.gridCoord*v.scale;
-             retrieveFractional();
-             (*fractional) *= v.gridCoord*v.scale;
-             canonicalize();
-             return *this; 
-          }
-       }  
+       mpq_class c1 = getComplete(false);
+       mpq_class c2 = v.getComplete(true);
+       c1 *= c2;
+       gridCoord = 0;
        if(precPos==0){
-          v.retrieveFractional();
-          fractional = new mpq_class(gridCoord * *(v.fractional) * v.scale);
-          gridCoord *= v.gridCoord*v.scale;
-          canonicalize();
-          return *this;
+          precPos = 1;
+          fractional = new mpq_class(c1);
+       } else {
+          retrieveFractional();
+          *fractional  = c1;
        }
-       retrieveFractional();
-       v.retrieveFractional();
-       int64_t gc = gridCoord * v.gridCoord*v.scale;
-       mpq_class f = v.scale*gridCoord*(*v.fractional) +
-                    *(fractional)*v.gridCoord + *(fractional)* *(v.fractional);
-       gridCoord = gc;
-       *fractional =  f;
        canonicalize();
-       return *this;
+       return *this; 
     }
 
     MPrecCoordinate& operator/=(const MPrecCoordinate v){
-
-       mpq_class t = getComplete();
-       mpq_class o = v.getComplete()*v.scale;
+       // TODO: accelerate this function by avoiding creatiion
+       // of mpq_s if it's possible
+       mpq_class c1 = getComplete(false);
+       mpq_class c2 = v.getComplete(true);
+       c1 /= c2; 
        gridCoord = 0;
-       if(!fractional){
-         fractional = new mpq_class(t/o);
+       if(precPos==0){
+          precPos = 1;
+          fractional = new mpq_class(c1);
        } else {
-         *fractional = t/o;
+         retrieveFractional();
+         *fractional = c1;
        }
        canonicalize();
        return *this;
@@ -673,8 +663,7 @@ Binary operators
     }
 
     double toDouble() const {
-       mpq_class c = getComplete();
-       c *= scale;
+       mpq_class c = getComplete( true);
        return c.get_d();
     }
 
@@ -701,9 +690,8 @@ Binary operators
            return;
         }
         assert(newScale!=0);
-
-        mpq_class v = getComplete();
-        mpq_class factor(scale, newScale);
+        mpq_class v = getComplete(false);
+        mpq_class factor(newScale, scale);
         gridCoord = 0;
         if(fractional){
            *fractional = v*factor;
@@ -859,12 +847,20 @@ After calling this function, the fractional part is in (0,1).
      } 
 
 
-     mpq_class getComplete() const{
+     mpq_class getComplete(bool scaled) const{
         if(precPos==0){
-           return mpq_class(gridCoord);
+           mpq_class res(gridCoord);
+           if(scaled){
+             res /= scale;
+           }
+           return res;
         }
         retrieveFractional();
-        return mpq_class(gridCoord) + *fractional;
+        mpq_class  res(gridCoord + *fractional);
+        if(scaled){
+          res /= scale;
+        }
+        return res;
      }
 
 
