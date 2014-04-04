@@ -822,22 +822,7 @@ public:
         cout << "This leads to small hash values and performance issues ";
         cout << " with casssandra";
         cout << endl;
-      }
-      
-      /*vector < long > tokens;
-      cassandra -> getLocalTokens(tokens);
-      cout << "Token size " << tokens.size() << endl;
-      copy(tokens.begin(), tokens.end(), 
-         std::ostream_iterator<long>(cout, " "));
-      cout << std::endl;
-      
-      tokens.clear();
-      cassandra -> getPeerTokens(tokens);
-      cout << "Token size " << tokens.size() << endl;
-      copy(tokens.begin(), tokens.end(), 
-         std::ostream_iterator<long>(cout, " "));
-      cout << std::endl;*/
-      
+      }   
   }
   
   virtual ~CSpreadLocalInfo() {
@@ -1175,6 +1160,7 @@ ListExpr CCollectTypeMap( ListExpr args ) {
 2.5.3 Value mapping function of operator ~ccollect~
 
 */
+template<bool LocalOnly>
 class CCollectLocalInfo {
 
 public:
@@ -1210,7 +1196,15 @@ public:
     if(cassandra == NULL) {
       cassandra = new CassandraAdapter(contactPoint, keyspace);
       cassandra -> connect();
-      result = cassandra -> readTable(relationName, consistence);
+      
+      // Read the whole table or only the data
+      // stored on the local cassandra node
+      if(LocalOnly) {
+        result = cassandra -> readTableLocal(relationName, consistence);
+      } else {
+        result = cassandra -> readTable(relationName, consistence);
+      }
+      
     }
   }
 
@@ -1253,13 +1247,14 @@ private:
   CassandraResult* result;     // Query result
 };
 
+template<bool LocalOnly>
 int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  CCollectLocalInfo *cli; 
+  CCollectLocalInfo<LocalOnly> *cli; 
   Word elem;
   string consistenceLevel;
 
-  cli = (CCollectLocalInfo*)local.addr;
+  cli = (CCollectLocalInfo<LocalOnly>*)local.addr;
   
   ListExpr resultType = GetTupleResultType(s);
   
@@ -1281,7 +1276,7 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
      } else if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel)) {
        cout << "Unknown consistence level: " << consistenceLevel << endl; 
      } else {
-       cli = new CCollectLocalInfo(nl -> Second(resultType),
+       cli = new CCollectLocalInfo<LocalOnly>(nl -> Second(resultType),
                       (((FText*)args[0].addr)->GetValue()),
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
@@ -1351,12 +1346,19 @@ const string CCollectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator cassandracollect (
          "ccollect",                // name
          CCollectSpec,              // specification
-         CCollect,                  // value mapping
+         CCollect<false>,           // value mapping
          Operator::SimpleSelect,    // trivial selection function
          CCollectTypeMap            // type mapping
 );                         
 
 
+Operator cassandracollectlocal (
+         "ccollectlocal",           // name
+         CCollectSpec,              // specification
+         CCollect<true>,            // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         CCollectTypeMap            // type mapping
+);                         
 
 /*
 2.6 Operator ~clist~
@@ -1563,6 +1565,8 @@ public:
     AddOperator(&cassandrafeed);
     AddOperator(&cassandracollect);
     cassandracollect.SetUsesArgsInTypeMapping();
+    AddOperator(&cassandracollectlocal);
+    cassandracollectlocal.SetUsesArgsInTypeMapping();
     AddOperator(&cassandralist);
     
     

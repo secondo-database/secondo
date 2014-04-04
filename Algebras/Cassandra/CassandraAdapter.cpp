@@ -37,6 +37,7 @@
 
 #include <string.h>
 #include <iostream>
+#include <climits>
 
 #include <cassert>
 
@@ -289,6 +290,106 @@ CassandraResult* CassandraAdapter::readTable(string relation,
             CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
 }
 
+
+CassandraResult* CassandraAdapter::readTableLocal(string relation,
+        string consistenceLevel) {
+
+    // Lokal tokens
+    vector<TokenInterval> localTokenRange;
+  
+    // Calculate local token ranges
+    vector <long long> localTokens;
+    vector <long long> peerTokens;
+    
+    getLocalTokens(localTokens);
+    getPeerTokens(peerTokens);
+    
+    // Merge an sort tokens
+    vector<long long> allTokens;
+    allTokens.reserve(localTokens.size() + peerTokens.size()); 
+    allTokens.insert(allTokens.end(), localTokens.begin(), localTokens.end());
+    allTokens.insert(allTokens.end(), peerTokens.begin(), peerTokens.end() );
+    sort(allTokens.begin(), allTokens.end());
+       
+    // Special case: We are on positition 0 in the vector, add
+    //               first and last token
+    if(find(localTokens.begin(), localTokens.end(), allTokens.at(0)) 
+        != localTokens.end()) {
+        
+      // Add end interval
+      TokenInterval interval(LLONG_MIN, allTokens.at(0));
+      localTokenRange.push_back(interval);
+    
+      // Add start interval
+      TokenInterval interval2(allTokens.at(allTokens.size() - 1), LLONG_MAX);
+      localTokenRange.push_back(interval2);
+    }
+    
+    // Normal case: Find all local token ranges between nodes
+    for(size_t i = 1; i < allTokens.size(); ++i) {
+      
+      long lastToken = allTokens.at(i - 1);
+      long currentToken = allTokens.at(i);
+       
+      // Is the current token in the localToken set?
+      if(find(localTokens.begin(), localTokens.end(), currentToken) 
+        != localTokens.end()) {
+        
+        TokenInterval interval(lastToken, currentToken);
+        localTokenRange.push_back(interval);
+      }
+    }
+       
+    
+    // Print debug Info
+    cout << "Ranges are: ";
+    copy(allTokens.begin(), allTokens.end(), 
+    std::ostream_iterator<long long>(cout, " "));
+    cout << std::endl;
+        
+    cout << "Local ranges are: ";
+    copy(localTokenRange.begin(), localTokenRange.end(), 
+    std::ostream_iterator<TokenInterval>(cout, " "));
+    cout << std::endl;
+    
+    stringstream ss;
+    ss << "SELECT key, value from ";
+    ss << relation << " ";
+    ss << "where ";
+    
+    // Add token ranges to query
+    for(vector<TokenInterval>::iterator iter = localTokenRange.begin(); 
+        iter != localTokenRange.end(); ++iter) {
+      
+       TokenInterval interval = *iter;
+    
+       // Append and keyword if this is not the first
+       // interval
+       if(iter != localTokenRange.begin()) {
+         ss << " and ";
+       }
+       
+       // Start of the ring must be included
+       if(interval.getStart() == LLONG_MIN) {
+         ss << "token(id) >= " << interval.getStart() << " ";
+       } else {
+         ss << "token(id) > " << interval.getStart() << " ";
+       }
+       
+       ss << "and token(id) <= " << interval.getEnd() << " ";
+    }
+    
+    
+    ss << ";";
+    string query = ss.str();
+    
+    cout << "Query is: " << query << endl;
+    
+    return readDataFromCassandra(query, 
+            CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
+}
+
+
 CassandraResult* CassandraAdapter::readDataFromCassandra(string cql, 
          cql::cql_consistency_enum consistenceLevel) {
       
@@ -525,7 +626,7 @@ CassandraAdapter::executeCQL
 }
 
 bool CassandraAdapter::getTokensFromQuery
-    (string query, vector <long> &result) {    
+    (string query, vector <long long> &result) {    
       
     try {
        boost::shared_future< cql::cql_future_result_t > future = 
@@ -542,7 +643,7 @@ bool CassandraAdapter::getTokensFromQuery
     
        while(cqlResult.next()) {
          cql::cql_set_t* setResult = NULL;
-         cqlResult.get_set("tokens", &setResult);
+         cqlResult.get_set(0, &setResult);
       
          if(setResult != NULL) {
              for (size_t i = 0; i < setResult->size(); ++i) {
@@ -562,12 +663,12 @@ bool CassandraAdapter::getTokensFromQuery
      return true;
 }
 
-bool CassandraAdapter::getLocalTokens(vector <long> &result) {
+bool CassandraAdapter::getLocalTokens(vector <long long> &result) {
   return getTokensFromQuery("SELECT tokens FROM system.local", result);
 }
 
 
-bool CassandraAdapter::getPeerTokens(vector <long> &result) {
+bool CassandraAdapter::getPeerTokens(vector <long long> &result) {
   return getTokensFromQuery("SELECT tokens FROM system.peers", result);
 }
 

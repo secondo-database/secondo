@@ -210,7 +210,7 @@ public:
                              );
 
 /*
-2.3.5 Fetch a table from cassandra
+2.3.5 Fetch a full table from cassandra
 
 1. Parameter is the relation to read
 2. Parameter is the consistence level used for writing
@@ -219,6 +219,18 @@ public:
     CassandraResult* readTable(string relation,
         string consistenceLevel);
 
+/*
+2.3.5 Fetch partial table from cassandra. Read only
+      the tuples stored on the local node
+
+1. Parameter is the relation to read
+2. Parameter is the consistence level used for writing
+
+*/
+    CassandraResult* readTableLocal(string relation,
+        string consistenceLevel);
+
+    
 /*
 2.3.6 Create a new relation in cassandra and write some 
       metadata (e.g. tupletype) for the table. 
@@ -261,14 +273,14 @@ public:
 1. Parameter is the token result list
 
 */
-  bool getLocalTokens(vector <long> &result);
+  bool getLocalTokens(vector <long long> &result);
   
 /*
 2.3.11 Get the token list of all peer nodes
 1. Parameter is the token result list
 
 */
-  bool getPeerTokens(vector <long> &result);
+  bool getPeerTokens(vector <long long> &result);
   
 /*
 2.3.12 Get all tables from the keyspace specified 
@@ -359,7 +371,7 @@ protected:
 2. Parameter is the token result list
 
 */
-  bool getTokensFromQuery (string query, vector <long> &result);
+  bool getTokensFromQuery (string query, vector <long long> &result);
    
 private:
 
@@ -390,6 +402,63 @@ private:
       
 };
 
+/*
+2.4 Helper Class Token Interval
+
+*/
+
+class TokenInterval {
+  
+public:
+  
+/*
+2.4.1 Construct a new token interval
+
+*/
+  TokenInterval(long long myStart, long long myEnd) :
+    start(myStart), end(myEnd) {}
+  
+/*
+2.4.2 Get interval start
+
+*/  
+  long long getStart() const {
+    return start;
+  }
+
+/*
+2.4.3 Get interval end
+
+*/
+  long long getEnd() const {
+    return end;
+  }
+
+ 
+  
+private:
+  // Interval start
+  long long start;
+  
+  // Interval end
+  long long end;
+  
+};
+
+/*
+2.4.4 Implementation for "toString"
+
+*/
+inline std::ostream& operator<<(std::ostream &strm, 
+                         const TokenInterval &tokenInterval) {
+  
+  return strm << "TokenInterval[" << tokenInterval.getStart()
+              << ";" << tokenInterval.getEnd() << "]";
 }
+
+}
+
+
+
 
 #endif
