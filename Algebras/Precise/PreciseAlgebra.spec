@@ -41,6 +41,8 @@ operator difference alias DIFFERENCE pattern op(_,_)
 
 operator str2precise alias STR2PRECISE pattern op(_)
 
+operator collectprecise alias COLLECTPRECISE pattern _ op[_]
+
 
 
 

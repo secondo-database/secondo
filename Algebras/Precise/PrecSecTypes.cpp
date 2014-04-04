@@ -773,25 +773,25 @@ bool PrecPoints::ReadFrom(ListExpr LE, ListExpr typeInfo){
         }
         clear();
 
-        StartBulkLoad(sc);
+        startBulkLoad(sc);
         while(!nl->IsEmpty(LE)){
            ListExpr first = nl->First(LE);
            LE = nl->Rest(LE);
            MPrecPoint p(0,0);
            if(!readPoint(first, p,false,sc)){
               clear();
-              EndBulkLoad(false);
+              endBulkLoad(false);
               return false;
            }
            append(p);
         }
-        EndBulkLoad(true);
+        endBulkLoad(true);
         SetDefined(true);
         return true;
      }
 
 
-void PrecPoints::EndBulkLoad(bool sort/*=true*/){
+void PrecPoints::endBulkLoad(bool sort/*=true*/){
         assert(bulkloadStorage);
         if(sort){
            MPrecPointComp cmp; 
@@ -831,13 +831,13 @@ void PrecPoints::compScale(const MPrecCoordinate& s1,
            result.SetDefined(false);
            return;
          }
-         result.StartBulkLoad(scale);
+         result.startBulkLoad(scale);
          for(size_t i=0;i<Size();i++){
            MPrecPoint p = getPointAt(i);
            p.compScale(s1,s2);
            result.append(p);
          }
-         result.EndBulkLoad(false);
+         result.endBulkLoad(false);
      }
 
 
@@ -849,13 +849,13 @@ void PrecPoints::compTranslate(const MPrecCoordinate& t1,
            result.SetDefined(false);
            return;
          }
-         result.StartBulkLoad( scale);
+         result.startBulkLoad( scale);
          for(size_t i=0;i<Size();i++){
            MPrecPoint p = getPointAt(i);
            p.compTranslate(t1,t2);
            result.append(p);
          }
-         result.EndBulkLoad(false);
+         result.endBulkLoad(false);
      }
 
 
@@ -973,7 +973,7 @@ void PrecPoints::contains(const PrecPoint& p, CcBool& result) const{
            result.SetDefined(false);
            return;
         }
-        result.StartBulkLoad( scale);
+        result.startBulkLoad( scale);
         size_t pos1 = 0;
         size_t pos2 = 0;
         while( pos1<Size() && pos2<ps.Size()){
@@ -990,7 +990,7 @@ void PrecPoints::contains(const PrecPoint& p, CcBool& result) const{
                pos2++;
             }
         } 
-        result.EndBulkLoad(false);
+        result.endBulkLoad(false);
     }
 
 
@@ -1007,7 +1007,7 @@ void PrecPoints::compUnion(const PrecPoints& ps, PrecPoints& result)const{
            return;
         }
 
-        result.StartBulkLoad(scale);
+        result.startBulkLoad(scale);
 
         size_t pos1 = 0;
         size_t pos2 = 0;
@@ -1037,7 +1037,7 @@ void PrecPoints::compUnion(const PrecPoints& ps, PrecPoints& result)const{
            result.append(p2);
            pos2++;
         }
-        result.EndBulkLoad(false);
+        result.endBulkLoad(false);
     }
 
 
@@ -1054,7 +1054,7 @@ void PrecPoints::difference(const PrecPoints& ps, PrecPoints& result)const{
            result.SetDefined(false);
            return;
         }
-        result.StartBulkLoad(scale);
+        result.startBulkLoad(scale);
         size_t pos1 = 0;
         size_t pos2 = 0;
         while( pos1<Size() && pos2<ps.Size()){
@@ -1076,7 +1076,7 @@ void PrecPoints::difference(const PrecPoints& ps, PrecPoints& result)const{
            result.append(p1);
            pos1++;
         }
-        result.EndBulkLoad(false);
+        result.endBulkLoad(false);
     }
 
 /*
@@ -1095,7 +1095,7 @@ void PrecPoints::readFrom(const Points& points, int scale, bool useString){
     if(points.Size()==0){
       return;
     }
-    StartBulkLoad(scale);
+    startBulkLoad(scale);
     Point p;
     MPrecPoint pp(0,0);
     for(int i=0;i<points.Size();i++){
@@ -1103,7 +1103,7 @@ void PrecPoints::readFrom(const Points& points, int scale, bool useString){
        pp = getPrecPoint(p,scale,useString);
        append(pp);
     }
-    EndBulkLoad();
+    endBulkLoad();
 }
  
 

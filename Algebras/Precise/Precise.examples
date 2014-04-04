@@ -229,11 +229,20 @@ Signature : precPregion -> precLine
 Example   : query (halfSegments(boundary(toPrecise(tiergarten))) count) = (halfSegments(boundary(tiergarten)) count)
 Result    : TRUE
 
-Operator  : boundary
+Operator  : bbox
 Number    : 1
 Signature : precSPATIAL -> rect
 Example   : query bbox(tiergarten) = bbox(toPrecise(tiergarten))
 Result    : TRUE
+
+Operator  : collectprecise
+Number    : 1
+Signature : stream(precLine) x bool -> precLine
+Example   : query isdefined(strassen feed replaceAttr[GeoData : toPrecise(.GeoData)] namedtransformstream[GeoData] collectprecise[TRUE])
+Result    : TRUE
+
+
+
 
 
 

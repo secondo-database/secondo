@@ -1633,13 +1633,13 @@ int verticesVM1 (Word* args, Word& result, int message, Word& local,
   if(!arg->IsDefined()){
      res->SetDefined(false);
   } else {
-     res->StartBulkLoad( arg->getScale());
+     res->startBulkLoad( arg->getScale());
      for(size_t i=0;i<arg->Size();i++){
          MPrecHalfSegment hs = arg->getHalfSegment(i);
          res->append(hs.getLeftPoint());
          res->append(hs.getRightPoint());
      }
-     res->EndBulkLoad();
+     res->endBulkLoad();
   }
   return 0;
 }
@@ -1825,6 +1825,124 @@ Operator bboxOP(
 
 
 
+
+
+/*
+2.14 collect
+
+*/
+ListExpr collectTM(ListExpr args){
+
+ string err = " {stream(precLine), stream(precPoint), "
+              "stream(precPoints)} x boolean expected";
+
+ if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+ }
+ if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+ }
+ ListExpr s = nl->First(args);
+ if( Stream<PrecPoint>::checkType(s)){
+   return nl->Second(s);
+ }
+ if( Stream<PrecLine>::checkType(s)){
+   return nl->Second(s);
+ }
+ if( Stream<PrecLine>::checkType(s)){
+   return nl->Second(s);
+ }
+ return listutils::typeError(err);
+}
+
+
+/*
+Value Mapping
+
+*/
+
+template<class Arg, class Res>
+int collectVM1 (Word* args, Word& result, int message, Word& local,
+                 Supplier s ){
+
+  Stream<Arg> stream(args[0]);
+  CcBool* iu = (CcBool*) args[1].addr;
+  bool ignoreUD = iu->IsDefined() && iu->GetValue();
+  result = qp->ResultStorage(s);
+  Res* res = (Res*)  result.addr;
+  res->clear();
+  res->SetDefined(true);
+  res->startBulkLoad();
+  stream.open();
+  Arg* elem = stream.request();
+  while(elem){
+    if(!elem->IsDefined()){
+      if(!ignoreUD){
+         res->cancelBulkLoad(); 
+         res->SetDefined(false);
+         stream.close();
+         return 0;
+      }
+    } else {
+        res->append(*elem);
+    }
+    elem = stream.request();
+  }
+  stream.close();
+  res->endBulkLoad();
+  return 0;
+}
+
+/*
+Value Mapping array and Selection function
+
+*/
+
+ValueMapping collectVM[] = {
+   collectVM1<PrecPoint, PrecPoints>,
+   collectVM1<PrecPoints, PrecPoints>,
+   collectVM1<PrecLine, PrecLine>,
+};
+
+
+/*
+Selection Function
+
+*/
+int collectSelect(ListExpr args){
+   ListExpr a = nl->Second(nl->First(args));
+   if(PrecPoint::checkType(a)) return 0;
+   if(PrecPoints::checkType(a)) return 1;
+   if(PrecLine::checkType(a)) return 2;
+   return -1;
+}
+
+OperatorSpec collectSpec(
+    " stream(X) x bool -> X , with X in {precPoint, precPoints, precLine}",
+    " _ collect [_]",
+    " Builds the union of all elements in the stream. If the boolean"
+    " parameter is TRUE, undefined value in the stream are ignored. Otherwise,"
+    " an undefined element in the stream leads to an undefined result.",
+    " query strassen feed replaceAttr[GeoData : toPrecise(.GeoData)] "
+                     "projecttransformstream[GeoData] collect[TRUE]"
+);
+
+
+/*
+Operator instance
+
+*/
+Operator collectOP(
+  "collectprecise",
+  collectSpec.getStr(),
+  3,
+  collectVM,
+  collectSelect,
+  collectTM
+);
+
+
+
 } // end of namespace precise
 
 class PreciseAlgebra : public Algebra
@@ -1862,6 +1980,7 @@ class PreciseAlgebra : public Algebra
     AddOperator(&precise::verticesOP);
     AddOperator(&precise::boundaryOP);
     AddOperator(&precise::bboxOP);
+    AddOperator(&precise::collectOP);
   }
 };
 

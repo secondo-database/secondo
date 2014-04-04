@@ -733,7 +733,7 @@ class PrecPoints: public StandardSpatialAttribute<2>{
 
      bool ReadFrom(ListExpr LE, ListExpr typeInfo);
 
-     void StartBulkLoad(const uint32_t _scale){
+     void startBulkLoad(const uint32_t _scale = 1){
        assert(_scale>0);
        clear();
        assert(bulkloadStorage==0);
@@ -750,7 +750,36 @@ class PrecPoints: public StandardSpatialAttribute<2>{
         bulkloadStorage->push_back(p);
      }
 
-     void EndBulkLoad(bool sort=true);
+     void append(const PrecPoint& p){
+        assert(bulkloadStorage);
+        assert(p.IsDefined());
+        if(bulkloadStorage->empty()){
+           scale = p.getScale();
+        }
+        append(p.GetValue());
+     }
+
+     void append(const PrecPoints& p){
+        assert(bulkloadStorage);
+        assert(p.IsDefined());
+        if(bulkloadStorage->empty()){
+           scale = p.getScale();
+        }
+        for(size_t i=0;i<p.Size();i++){
+           append(p.getPointAt(i));
+        }
+     }
+
+
+
+     void endBulkLoad(bool sort=true);
+
+     void cancelBulkLoad(){
+       assert(bulkloadStorage);
+       delete bulkloadStorage;
+       bulkloadStorage = 0;
+     }
+
 
      void compScale(const MPrecCoordinate& s1, 
                 const MPrecCoordinate& s2,
@@ -1016,7 +1045,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
         bulkloadStorage = new vector<MPrecHalfSegment>();
     }
 
-    void append(MPrecHalfSegment& hs){
+    void append(MPrecHalfSegment hs){
         assert(bulkloadStorage!=0);
         size_t edgeno = bulkloadStorage->size()/2;
         hs.attributes.edgeno = edgeno;
@@ -1025,7 +1054,26 @@ class PrecLine : public StandardSpatialAttribute<2> {
         bulkloadStorage->push_back(hs);
     }
 
+    void append(const PrecLine& line){
+      if(!IsDefined() || !line.IsDefined()){
+         return;
+      }
+      assert(bulkloadStorage);
+      for(size_t i=0;i<line.Size();i++){
+        append(line.getHalfSegment(i));
+      }
+
+    }
+
+
     void endBulkLoad( bool realminize = true ); 
+
+    void cancelBulkLoad(){
+      assert(bulkloadStorage);
+      delete bulkloadStorage;
+      bulkloadStorage = 0;
+    }
+
 
     void readFrom(const Line& line, int scale, bool useString);
 
