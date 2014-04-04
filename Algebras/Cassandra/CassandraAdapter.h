@@ -62,11 +62,16 @@
 #include <cql/cql_execute.hpp>
 #include <cql/cql_result.hpp>
 
+#include "CassandraResult.h"
+
 using namespace std;
 
 //namespace to avoid name conflicts
 namespace cassandra {
 
+// Prototype class
+class CassandraResult;
+  
 /*
 2.1 Helper Classes
 
@@ -120,29 +125,61 @@ public:
 
 };
 
-
 /*
-2.2 This class is used as return value for CQL querys
-    You can use it to iteratate over the result set
+2.4 Helper Class Token Interval
 
 */
-class CassandraResult {
+
+class TokenInterval {
   
 public:
-     CassandraResult(cql::cql_result_t& myResult) : result(myResult) {
-     }
-     
-     bool hasNext() {
-       return result.next();
-     }
-     
-     void getStringValue(string &resultString, int pos) {
-        result.get_string(pos, resultString);
-     }
+  
+/*
+2.4.1 Construct a new token interval
+
+*/
+  TokenInterval(long long myStart, long long myEnd) :
+    start(myStart), end(myEnd) {}
+  
+/*
+2.4.2 Get interval start
+
+*/  
+  long long getStart() const {
+    return start;
+  }
+
+/*
+2.4.3 Get interval end
+
+*/
+  long long getEnd() const {
+    return end;
+  }
+
+ 
   
 private:
-     cql::cql_result_t& result;
+  // Interval start
+  long long start;
+  
+  // Interval end
+  long long end;
+  
 };
+
+/*
+2.4.4 Implementation for "toString"
+
+*/
+inline std::ostream& operator<<(std::ostream &strm, 
+                         const TokenInterval &tokenInterval) {
+  
+  return strm << "TokenInterval[" << tokenInterval.getStart()
+              << ";" << tokenInterval.getEnd() << "]";
+}
+
+
 
 /*
 2.3 Adapter for cassandra
@@ -299,8 +336,6 @@ a valid result. False otherweise
 
 */
    bool getTupleTypeFromTable(string table, string &result);
-   
-protected:
 
 /*
 2.3.12 Execute the cql statement and return the result
@@ -308,6 +343,15 @@ protected:
 */    
   CassandraResult* readDataFromCassandra(string cql, 
          cql::cql_consistency_enum consistenceLevel);
+   
+protected:
+
+/*
+2.3.12 Get a list with local token ranges
+
+*/
+   void getLokalTokenRanges(vector<TokenInterval> &localTokenRange);
+
     
 /*
 2.3.12 Execute the cql statement with a given consistence level synchronus
@@ -402,63 +446,6 @@ private:
       
 };
 
-/*
-2.4 Helper Class Token Interval
-
-*/
-
-class TokenInterval {
-  
-public:
-  
-/*
-2.4.1 Construct a new token interval
-
-*/
-  TokenInterval(long long myStart, long long myEnd) :
-    start(myStart), end(myEnd) {}
-  
-/*
-2.4.2 Get interval start
-
-*/  
-  long long getStart() const {
-    return start;
-  }
-
-/*
-2.4.3 Get interval end
-
-*/
-  long long getEnd() const {
-    return end;
-  }
-
- 
-  
-private:
-  // Interval start
-  long long start;
-  
-  // Interval end
-  long long end;
-  
-};
-
-/*
-2.4.4 Implementation for "toString"
-
-*/
-inline std::ostream& operator<<(std::ostream &strm, 
-                         const TokenInterval &tokenInterval) {
-  
-  return strm << "TokenInterval[" << tokenInterval.getStart()
-              << ";" << tokenInterval.getEnd() << "]";
-}
-
-}
-
-
-
+} // Namespace
 
 #endif

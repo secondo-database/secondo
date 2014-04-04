@@ -63,6 +63,7 @@
 
 #include "CqlSingleNodeLoadbalancing.h"
 #include "CassandraAdapter.h"
+#include "CassandraResult.h"
 
 using namespace std;
 
@@ -291,11 +292,8 @@ CassandraResult* CassandraAdapter::readTable(string relation,
 }
 
 
-CassandraResult* CassandraAdapter::readTableLocal(string relation,
-        string consistenceLevel) {
-
-    // Lokal tokens
-    vector<TokenInterval> localTokenRange;
+void CassandraAdapter::getLokalTokenRanges(
+     vector<TokenInterval> &localTokenRange) {
   
     // Calculate local token ranges
     vector <long long> localTokens;
@@ -304,7 +302,7 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
     getLocalTokens(localTokens);
     getPeerTokens(peerTokens);
     
-    // Merge an sort tokens
+    // Merge and sort tokens
     vector<long long> allTokens;
     allTokens.reserve(localTokens.size() + peerTokens.size()); 
     allTokens.insert(allTokens.end(), localTokens.begin(), localTokens.end());
@@ -339,7 +337,6 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
         localTokenRange.push_back(interval);
       }
     }
-       
     
     // Print debug Info
     cout << "Ranges are: ";
@@ -351,23 +348,27 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
     copy(localTokenRange.begin(), localTokenRange.end(), 
     std::ostream_iterator<TokenInterval>(cout, " "));
     cout << std::endl;
+}
+
+CassandraResult* CassandraAdapter::readTableLocal(string relation,
+        string consistenceLevel) {
+
+    // Lokal tokens
+    vector<TokenInterval> localTokenRange;
+    getLokalTokenRanges(localTokenRange);
+
+    vector<string> queries;
     
-    stringstream ss;
-    ss << "SELECT key, value from ";
-    ss << relation << " ";
-    ss << "where ";
-    
-    // Add token ranges to query
+    // Generate token range queries;
     for(vector<TokenInterval>::iterator iter = localTokenRange.begin(); 
         iter != localTokenRange.end(); ++iter) {
       
+       stringstream ss;
+       ss << "SELECT key, value from ";
+       ss << relation << " ";
+       ss << "where ";
+      
        TokenInterval interval = *iter;
-    
-       // Append and keyword if this is not the first
-       // interval
-       if(iter != localTokenRange.begin()) {
-         ss << " and ";
-       }
        
        // Start of the ring must be included
        if(interval.getStart() == LLONG_MIN) {
@@ -376,17 +377,15 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
          ss << "token(id) > " << interval.getStart() << " ";
        }
        
-       ss << "and token(id) <= " << interval.getEnd() << " ";
+       ss << "and token(id) <= " << interval.getEnd();   
+       ss << ";";
+       queries.push_back(ss.str());
     }
     
-    
-    ss << ";";
-    string query = ss.str();
-    
-    cout << "Query is: " << query << endl;
-    
-    return readDataFromCassandra(query, 
+    MultiCassandraResult* result = new MultiCassandraResult(queries, this, 
             CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
+    
+    return result;
 }
 
 
@@ -417,7 +416,7 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string cql,
 
             cql::cql_result_t& result = *(future.get().result);
 
-            return new CassandraResult(result);
+            return new SingleCassandraResult(result);
         }
     } catch(std::exception& e) {
         cerr << "Got exception while reading data: " << e.what() << endl;

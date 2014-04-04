@@ -57,6 +57,7 @@
 #include "Progress.h"
 
 #include "CassandraAdapter.h"
+#include "CassandraResult.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
