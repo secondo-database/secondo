@@ -23,17 +23,19 @@
 #
 ########################################################################
 
-# inlcude global definitions
+# include global definitions
 include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
 
 
-
 # create objects and library. 
 
+OBJECTS += scan.o parse.o
 LIBOBJ=$(TYPEMAPLIB)
+
+BASE:=OpSigParser
 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ) 
@@ -43,6 +45,22 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+# OpSigParser
+
+scan.o: lex.opsig.c 
+	g++ -c -ggdb -o scan.o lex.opsig.c
+
+lex.opsig.c: $(BASE).l parse.o 
+	flex $(BASE).l
+
+parse.o: $(BASE).tab.c
+	g++ -c -ggdb -o parse.o $(BASE).tab.c -lstd
+
+
+$(BASE).tab.c: $(BASE).y
+	bison -v -d $(BASE).y
+
+
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
@@ -51,3 +69,4 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	rm -f $(BASE).tab.c parse.o lex.opsig.c scan.o $(BASE).tab.h $(BASE).output
