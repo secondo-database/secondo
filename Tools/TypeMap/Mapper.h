@@ -111,6 +111,29 @@ nl list storage. The result is created using the standard nl list storage.
 }; // end of class Mapper
 
 
+/*
+2 Functions for predicates
+
+*/
+
+ListExpr sig(ListExpr sList);
+ListExpr csig(ListExpr cSList);
+ListExpr matches(ListExpr mList);
+ListExpr consistent(ListExpr B1, ListExpr B2);
+bool conflict(ListExpr B1, ListExpr B2);
+ListExpr evalPreds(ListExpr ePsList);
+ListExpr evalPred(ListExpr ePList);
+ListExpr isAttr(ListExpr attrList);
+ListExpr isAttr2(ListExpr attrList2);
+void checkMember(ListExpr cMList);
+void distinctList(ListExpr distLList);
+void distinctAttrs(ListExpr distAList);
+ListExpr attrNames(ListExpr attrNList);
+ListExpr bound(ListExpr boList);
+ListExpr addBinding(ListExpr aBList);
+ListExpr apply(ListExpr aList);
+
+
 
 } // end of namespace typemap
 
