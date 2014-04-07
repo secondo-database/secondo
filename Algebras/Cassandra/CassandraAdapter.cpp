@@ -308,32 +308,36 @@ void CassandraAdapter::getLokalTokenRanges(
     allTokens.insert(allTokens.end(), localTokens.begin(), localTokens.end());
     allTokens.insert(allTokens.end(), peerTokens.begin(), peerTokens.end() );
     sort(allTokens.begin(), allTokens.end());
-       
-    // Special case: We are on positition 0 in the vector, add
+    
+    // Last position in the vector
+    int lastTokenPos = allTokens.size() - 1;
+    
+    // Special case: We are on th last positition in the vector, add
     //               first and last token
-    if(find(localTokens.begin(), localTokens.end(), allTokens.at(0)) 
+    if(find(localTokens.begin(), localTokens.end(), allTokens.at(lastTokenPos)) 
         != localTokens.end()) {
         
       // Add end interval
-      TokenInterval interval(LLONG_MIN, allTokens.at(0));
+      TokenInterval interval(allTokens.at(lastTokenPos), LLONG_MAX);
       localTokenRange.push_back(interval);
     
       // Add start interval
-      TokenInterval interval2(allTokens.at(allTokens.size() - 1), LLONG_MAX);
+      TokenInterval interval2(LLONG_MIN, allTokens.at(0) - 1);
       localTokenRange.push_back(interval2);
     }
     
     // Normal case: Find all local token ranges between nodes
-    for(size_t i = 1; i < allTokens.size(); ++i) {
+    for(size_t i = 0; i < allTokens.size() - 1; ++i) {
       
-      long lastToken = allTokens.at(i - 1);
+      
       long currentToken = allTokens.at(i);
-       
+      long nextToken = allTokens.at(i + 1);
+      
       // Is the current token in the localToken set?
       if(find(localTokens.begin(), localTokens.end(), currentToken) 
         != localTokens.end()) {
         
-        TokenInterval interval(lastToken, currentToken);
+        TokenInterval interval(currentToken, nextToken - 1);
         localTokenRange.push_back(interval);
       }
     }
@@ -369,15 +373,15 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
        ss << "where ";
       
        TokenInterval interval = *iter;
-       
-       // Start of the ring must be included
-       if(interval.getStart() == LLONG_MIN) {
-         ss << "token(id) >= " << interval.getStart() << " ";
+       ss << "token(id) >= " << interval.getStart() << " ";
+    
+       // End of the ring must be included
+       if(interval.getEnd() == LLONG_MAX) {
+          ss << "and token(id) <= " << interval.getEnd();   
        } else {
-         ss << "token(id) > " << interval.getStart() << " ";
+          ss << "and token(id) < " << interval.getEnd();        
        }
        
-       ss << "and token(id) <= " << interval.getEnd();   
        ss << ";";
        queries.push_back(ss.str());
     }
