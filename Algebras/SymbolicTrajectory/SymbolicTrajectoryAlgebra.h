@@ -53,6 +53,7 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include "RelationAlgebra.h"
 #include "Stream.h"
 #include "InvertedFile.h"
+#include "RTreeAlgebra.h"
 #include "FTextAlgebra.h"
 #include "IntNfa.h"
 #include "TemporalUnitAlgebra.h"
@@ -651,6 +652,8 @@ class Tools {
   static bool checkSemanticDate(const string &text, const SecInterval &uIv,
                                 const bool resultNeeded);
   static bool checkDaytime(const string& text, const SecInterval& uIv);
+  static bool isInterval(const string& str);
+  static void stringToInterval(const string& str, SecInterval& result);
   static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
   // static Word evaluate(string input);
@@ -748,8 +751,8 @@ class PatElem {
 
   void     getV(string& result) const                     {result = var;}
   void     getL(set<string>& result) const                {result = lbs;}
-  void     getP(set<pair<string, unsigned int> >& result) {result = pls;}
-  SetRel   getSetRel()                                    {return setRel;}
+  void     getP(set<pair<string, unsigned int> >& result) const {result = pls;}
+  SetRel   getSetRel() const                              {return setRel;}
   void     getI(set<string>& result) const                {result = ivs;}
   Wildcard getW() const                                   {return wc;}
   bool     isOk() const                                   {return ok;}
@@ -898,7 +901,8 @@ class Pattern {
             assigns[posR].setText(key, arg); assigns[posR].setOccurrence(posP);}
   void addAssignRight(int pos, int key, pair<string, int> varKey)
                                            {assigns[pos].addRight(key, varKey);}
-  vector<map<int, int> >* getNFA()          {return &nfa;}
+  void              getNFA(vector<map<int, int> >& result) {result = nfa;}
+  bool              isNFAempty() const      {return (nfa.size() == 0);}
   map<int, int>     getTransitions(int pos) {assert(pos >= 0);
     assert(pos < (int)nfa.size()); return nfa[pos];}
   void              setNFA(vector<map<int, int> > &_nfa, set<int> &fs) {
@@ -1251,7 +1255,7 @@ struct IndexMatchInfo {
   
   bool operator<(const IndexMatchInfo& rhs) const;
   void print(TupleId tId, int pE);
-  bool isActive(int patElem);
+  bool finished();
   void processWildcard(Wildcard w, int patElem);
   void processSimple(set<int> found);
   void processSimple();
@@ -1270,29 +1274,40 @@ friend class Match<MLabel>;
 friend class IndexMatchesLI;
 
  public:
-  IndexClassifyLI(Relation *rel, InvertedFile *inv, Word _classifier,
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<2, TupleId> *rt, 
+                  Word _classifier, int _attrNr, DataType type);
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<2, TupleId> *rt, 
                   int _attrNr, DataType type);
-  IndexClassifyLI(Relation *rel, InvertedFile *inv, int _attrNr, DataType type);
 
   ~IndexClassifyLI();
 
   Tuple* nextResultTuple();
+  void simplifyNFA(Pattern *p, vector<map<int, int> >& result);
+  void findNFApaths(const vector<map<int, int> >& nfa, 
+                const set<int>& finalStates, set<pair<set<int>, int> >& result);
+  void getCrucialElems(const set<pair<set<int>, int> >& paths,set<int>& result);
+  void getIntervalTids(const string& ivstr, vector<set<TupleId> >& tidsets);
+  void getValueTids(const string& value, vector<set<TupleId> >& tidsets, 
+                    bool place = false, unsigned int ref = UINT_MAX);
+  void intersection(const vector<set<TupleId> >& tidsets, set<TupleId>& result);
+  void applyIndexes(Pattern *p, const set<int>& elems, set<TupleId>& result);
+  void initialize(Pattern *p, set<TupleId>& cands);
   void applyPattern(Pattern *p);
-//   bool elemMatch(const PatElem& elem, const TupleId id, const int pos,
-//                  const IndexMatchInfo& imi);
   int getMsize(TupleId tId);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
   void getUL(TupleId tId, unsigned int ulId, ULabel& result);
-  
+  void find(const PatElem& elem, set<pair<TupleId, int> >& pos);
   bool timesMatch(TupleId tId, unsigned int ulId, set<string>& ivs);
 
  private:
   Classifier *c;
   Relation *mRel;
   queue<pair<string, TupleId> > classification;
+  set<TupleId> matches;
   map<pair<int, TupleId>, set<IndexMatchInfo> > matchInfo;
   TupleType* classifyTT;
   InvertedFile* invFile;
+  R_Tree<2, TupleId> *rtree;
   int attrNr;
   size_t maxMLsize;
   DataType mtype;
@@ -1300,12 +1315,13 @@ friend class IndexMatchesLI;
 
 class IndexMatchesLI : public IndexClassifyLI {
  public:
-  IndexMatchesLI(Relation *rel, InvertedFile *inv, int _attrNr, Pattern *p, 
-                 bool deleteP, DataType type);
+  IndexMatchesLI(Relation *rel, InvertedFile *inv, R_Tree<2, TupleId> *rt, 
+                 int _attrNr, Pattern *p, bool deleteP, DataType type);
 
   ~IndexMatchesLI() {}
 
   Tuple* nextTuple();
+  void applyNFA(Pattern *p);
 };
 
 class UnitsLI {
