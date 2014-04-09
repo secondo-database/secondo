@@ -415,7 +415,7 @@ Creates a copy of iterator ~other~.
 
     Iterator& operator++();           // Prefix ++
 
-    const Iterator operator++( int n = 0 ); // Postfix ++
+    const Iterator operator++(int); // Postfix ++
 
 /* 
 
