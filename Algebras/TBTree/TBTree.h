@@ -862,7 +862,7 @@ class TBLeafNode : public Node<Dim, Info>{
     inline TBLeafNode& operator=(const TBLeafNode<Dim,Info>& src){
        Node<Dim, Info>::operator=(src);
        this->next = src.next;
-       this.trjid = src.trjid;
+       this->trjid = src.trjid;
        return *this;
     }
 
