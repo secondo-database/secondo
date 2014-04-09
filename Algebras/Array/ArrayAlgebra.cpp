@@ -3377,7 +3377,7 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
 
   se.setTestSize( max(absTest, (int)(r * relTest + 0.5)) );
 
-  Word a[r];
+  Word* a = new Word[r];
   int c = 0;
 
   int i = 0;
@@ -3444,7 +3444,7 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
 
   ((Relation*)Acum.addr)->Delete();
   ((Relation*)Bcum.addr)->Delete();
-
+  delete[] a;
   return 0;
 }
 
@@ -3604,7 +3604,7 @@ static int
     n = cN->GetIntval();
   }
 
-  Word a[n];
+  Word* a = new Word[n];
 
   for (int i=0; i<n; i++) {
     a[i] = Array::genericClone(algebraId, typeId, typeOfElement, args[0]);
@@ -3613,7 +3613,7 @@ static int
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 

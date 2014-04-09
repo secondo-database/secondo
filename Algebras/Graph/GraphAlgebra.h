@@ -54,6 +54,7 @@ using namespace std;
 #include "NestedList.h"        //always needed in Algebras
 #include "QueryProcessor.h"    //always needed in Algebras
 #include "StandardTypes.h"    //always needed in Algebras
+#include "StringUtils.h"
 
 
 extern NestedList* nl;
@@ -1465,7 +1466,7 @@ inline string Print(DbArray<AVLNode<T> >& tree) {
    s = "--------------------------------------\n";
    for (int i=0;i<tree.Size();i++) {
      tree.Get(i,node);
-     s = s + (string)i + ". " + *node + "\n"; 
+     s = s + stringutils::int2str(i) + ". " + *node + "\n"; 
    }
    s += "--------------------------------------\n";
    
