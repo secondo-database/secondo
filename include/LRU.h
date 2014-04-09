@@ -204,7 +204,7 @@ element is returned. The caller has to destroy the element.
           first = first->next;
         }
         if(res==last){
-          last = last.prev;
+          last = last->prev;
         }
         res->disconnect;
         m.erase(it);
