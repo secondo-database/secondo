@@ -349,11 +349,6 @@ ListExpr getRegionList(vector<MPrecHalfSegment>& v){
    LogicCompare cmp;
    sort(v.begin(), v.end(), cmp);
 
-  // cout << "sorted halfsegments " << endl;
-  // for(size_t i=0;i<v.size();i++){
-  //    cout << v[i] << endl;
-  // }
-
    ListExpr faces;
    ListExpr last;
    size_t pos = 0;
@@ -1143,8 +1138,6 @@ int PrecLine::compareTo(const PrecLine& rhs)const{
 
 
 ListExpr PrecLine::ToListExpr(ListExpr typeInfo) const{
-      cout << "output list " << endl;
-
       if(!IsDefined()){
          return listutils::getUndefined();
       }
@@ -1307,6 +1300,70 @@ void PrecLine::compUnion(const PrecLine& l2, PrecLine& result) const{
 }
 
 
+void PrecLine::intersection(const PrecLine& l2, PrecLine& result) const{
+  result.clear();
+  if(!IsDefined() || !l2.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  if(!bbox.Intersects(l2.bbox)){ // intersection will be empty
+     return;
+  }
+  result.SetDefined(true);
+  vector<MPrecHalfSegment> v1;
+  vector<MPrecHalfSegment> v2;
+  for(size_t i=0;i<Size();i++){
+     MPrecHalfSegment hs = getHalfSegment(i);
+     v1.push_back(hs);
+  }
+  for(size_t i=0;i<l2.Size();i++){ 
+     MPrecHalfSegment hs = l2.getHalfSegment(i);
+       v2.push_back(hs);
+  }
+  vector<MPrecHalfSegment> rv;
+  hstools::setOP(v1,v2,rv,hstools::INTERSECTION);  
+  result.startBulkLoad();
+  for(size_t i=0;i< rv.size();i++){
+     if(rv[i].isLeftDomPoint()){
+        result.append(rv[i]);
+     }
+  }
+  result.endBulkLoad(false);
+
+}
+
+void PrecLine::difference(const PrecLine& l2, PrecLine& result) const{
+  result.clear();
+  if(!IsDefined() || !l2.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  if(!bbox.Intersects(l2.bbox)){ // intersection will be empty
+     return;
+  }
+  result.SetDefined(true);
+  vector<MPrecHalfSegment> v1;
+  vector<MPrecHalfSegment> v2;
+  for(size_t i=0;i<Size();i++){
+     MPrecHalfSegment hs = getHalfSegment(i);
+     v1.push_back(hs);
+  }
+  for(size_t i=0;i<l2.Size();i++){ 
+     MPrecHalfSegment hs = l2.getHalfSegment(i);
+       v2.push_back(hs);
+  }
+  vector<MPrecHalfSegment> rv;
+  hstools::setOP(v1,v2,rv,hstools::DIFFERENCE);  
+  result.startBulkLoad();
+  for(size_t i=0;i< rv.size();i++){
+     if(rv[i].isLeftDomPoint()){
+        result.append(rv[i]);
+     }
+  }
+  result.endBulkLoad(false);
+
+}
+
 
 /*
 3.4 precRegion
@@ -1381,7 +1438,7 @@ bool PrecRegion::endBulkLoad( bool sort,
      hstools::setPartnerNumbers(*bulkloadStorage);
    }
    if(computeRegion){
-     cout << "computeRegion not implemented yet" << endl;
+     cerr << "computeRegion not implemented yet" << endl;
    }
    for(size_t i=0;i<bulkloadStorage->size();i++){
       (*bulkloadStorage)[i].appendTo(&gridData, &fracStorage);
@@ -1517,12 +1574,10 @@ bool correctHs(vector<MPrecHalfSegment>& v){
 
   // check order
   if(! hstools::isSorted(v)){
-    cout << "Detected wrong order of halfsegments" << endl;
     return false;
   }
 
   if(!hstools::checkRealm(v)){
-     cout << "Detected non-realmed halfsegments" << endl;
      return false;
   }
 

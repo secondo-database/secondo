@@ -1084,9 +1084,6 @@ int unionVM1 (Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
   R* res = (R*) result.addr;
   arg1->compUnion(*arg2,*res);
-  if(!res->IsDefined()){
-    cout << "UNDEFINED result" << endl;
-  }
   return 0;
 }
 
@@ -1148,16 +1145,19 @@ Operator unionOP(
 */
 ListExpr intersectionTM(ListExpr args){
 
-  string err = "precPoints x precPoints expected";
+  string err = "precPoints x precPoints, or precLine x precLine expected";
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
   }
-  if(   !PrecPoints::checkType(nl->First(args))
-     || !PrecPoints::checkType(nl->Second(args))){
-     return listutils::typeError(err);
+  if(   PrecPoints::checkType(nl->First(args))
+     || PrecPoints::checkType(nl->Second(args))){
+        return listutils::basicSymbol<PrecPoints>();
   }
-  return listutils::basicSymbol<PrecPoints>();
-
+  if(   PrecLine::checkType(nl->First(args))
+     || PrecLine::checkType(nl->Second(args))){
+        return listutils::basicSymbol<PrecLine>();
+  }
+  return listutils::typeError(err);
 }
 
 /*
@@ -1183,11 +1183,15 @@ int intersectionVM1 (Word* args, Word& result, int message, Word& local,
 */
 
 ValueMapping intersectionVM[] = {
-   intersectionVM1<PrecPoints,PrecPoints, PrecPoints> // to be continued
+   intersectionVM1<PrecPoints,PrecPoints, PrecPoints>,
+   intersectionVM1<PrecLine,PrecLine, PrecLine> // to be continued
 };
 
 int intersectionSelect(ListExpr args){
-  return 0;
+  ListExpr a1 = nl->First(args);
+  if(PrecPoints::checkType(a1)) return 0;
+  if(PrecLine::checkType(a1)) return 1;
+  return -1;
 }
 
 /*
@@ -1196,7 +1200,7 @@ int intersectionSelect(ListExpr args){
 */
 
 OperatorSpec intersectionSpec(
-        "  precPoints x precPoints -> precPoints",
+        "  precT x precT -> precT, T in {Points, Line}",
         "  intersection(_, _)",
         " computes the intersection of the arguments",
         " query intersection(ps1,ps2)"
@@ -1210,7 +1214,7 @@ OperatorSpec intersectionSpec(
 Operator intersectionOP(
   "intersection",
   intersectionSpec.getStr(),
-  1,
+  2,
   intersectionVM,
   intersectionSelect,
   intersectionTM
@@ -1226,15 +1230,19 @@ Operator intersectionOP(
 */
 ListExpr differenceTM(ListExpr args){
 
-  string err = "precPoints x precPoints expected";
+  string err = "precT  x precT expected, T in {points, line}";
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
   }
-  if(   !PrecPoints::checkType(nl->First(args))
-     || !PrecPoints::checkType(nl->Second(args))){
-     return listutils::typeError(err);
+  if(   PrecPoints::checkType(nl->First(args))
+     && PrecPoints::checkType(nl->Second(args))){
+     return listutils::basicSymbol<PrecPoints>();
   }
-  return listutils::basicSymbol<PrecPoints>();
+  if(   PrecLine::checkType(nl->First(args))
+     && PrecLine::checkType(nl->Second(args))){
+     return listutils::basicSymbol<PrecLine>();
+  }
+  return listutils::typeError(err);
 
 }
 
@@ -1261,11 +1269,15 @@ int differenceVM1 (Word* args, Word& result, int message, Word& local,
 */
 
 ValueMapping differenceVM[] = {
-   differenceVM1<PrecPoints,PrecPoints, PrecPoints> // to be continued
+   differenceVM1<PrecPoints,PrecPoints, PrecPoints>,
+   differenceVM1<PrecLine,PrecLine, PrecLine>
 };
 
 int differenceSelect(ListExpr args){
-  return 0;
+  ListExpr a1 = nl->First(args);
+  if(PrecPoints::checkType(a1)) return 0;
+  if(PrecLine::checkType(a1)) return 1;
+  return -1;
 }
 
 /*
@@ -1274,7 +1286,7 @@ int differenceSelect(ListExpr args){
 */
 
 OperatorSpec differenceSpec(
-        "  precPoints x precPoints -> precPoints",
+        "  precT x precT -> precT , T in {points, line}",
         " difference(_, _)",
         " computes the difference of the arguments",
         " query difference(ps1, ps2)"
@@ -1288,7 +1300,7 @@ OperatorSpec differenceSpec(
 Operator differenceOP(
   "difference",
   differenceSpec.getStr(),
-  1,
+  2,
   differenceVM,
   differenceSelect,
   differenceTM
@@ -1508,7 +1520,6 @@ class halfSegmentsInfo{
   public:
     halfSegmentsInfo(const T* v, ListExpr ttl): 
       pos(0), size(v->IsDefined()?v->Size():0), value(v){
-      cout << "Build tuple type from " << nl->ToString(ttl) << endl;
       tt = new TupleType(ttl); 
    }
 
@@ -1940,6 +1951,9 @@ Operator collectOP(
   collectSelect,
   collectTM
 );
+
+
+
 
 
 

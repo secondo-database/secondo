@@ -1048,6 +1048,10 @@ class PrecLine : public StandardSpatialAttribute<2> {
     void append(MPrecHalfSegment hs){
         assert(bulkloadStorage!=0);
         size_t edgeno = bulkloadStorage->size()/2;
+        if(hs.getScale()!= scale){
+             hs.changeScaleTo(scale);
+        }
+
         hs.attributes.edgeno = edgeno;
         bulkloadStorage->push_back(hs);
         hs.switchLDP();

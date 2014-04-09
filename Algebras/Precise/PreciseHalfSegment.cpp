@@ -32,11 +32,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "PreciseHalfSegment.h"
 
+
+ostream& operator<<(ostream& os, const OWNER& owner){
+  switch(owner){
+     case FIRST : os << "first"; break;
+     case SECOND : os << "second"; break;
+     case BOTH   : os << "both"; break;
+     case NONE   : os << "none"; break;
+     default : os << "unknown";
+  }
+  return os;
+
+}
+
 ostream& operator<<(ostream& os, const MPrecHalfSegment& hs){
    os << "scale: " << hs.getScale()  << ":: " 
       << "lp: " << hs.getLeftPoint().toString(false) 
       << ", rp : " << hs.getRightPoint().toString(false)
-      << ", ldp : " << hs.isLeftDomPoint() 
+      << ", ldp : " << hs.isLeftDomPoint()
+      << ", owner : " << hs.getOwner() 
       << " Attr : " << hs.attributes;
    return os;
 }

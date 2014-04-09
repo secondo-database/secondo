@@ -196,10 +196,8 @@ class MPrecPoint {
 
       void changeScaleTo(uint32_t newScale) const{
         assert(newScale>0);
-        if(x.getScale()!=newScale){
-          x.changeScaleTo(newScale);
-          y.changeScaleTo(newScale);
-        }
+        x.changeScaleTo(newScale);
+        y.changeScaleTo(newScale);
       }
 
       ListExpr toListExpr(const bool includeScale=false)const{

@@ -170,27 +170,27 @@ This means, two different segments in ~v~ have no common point except
 end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
 
 */
-  
+   template<class HS> 
    class YComparator{
      public:
-        static bool smaller(const MPrecHalfSegment& hs1, 
-                            const MPrecHalfSegment& hs2){
+        static bool smaller(const HS& hs1, 
+                            const HS& hs2){
            return compare(hs1,hs2)<0;
         }
-        static bool equal(const MPrecHalfSegment& hs1, 
-                          const MPrecHalfSegment& hs2){
+        static bool equal(const HS& hs1, 
+                          const HS& hs2){
            return compare(hs1,hs2)==0;
         }
 
         /** the less operator **/
-        bool operator()(const MPrecHalfSegment& hs1, 
-                        const MPrecHalfSegment& hs2){
+        bool operator()(const HS& hs1, 
+                        const HS& hs2){
            return compare(hs1,hs2)<0;
         }
      
       private: 
-        static int compare(const MPrecHalfSegment& hs1, 
-                           const MPrecHalfSegment& hs2){
+        static int compare(const HS& hs1, 
+                           const HS& hs2){
 
             if(hs1.getMinY() > hs2.getMaxY()){
                 return 1;
@@ -221,7 +221,7 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
 
 
    bool checkRealm(const vector<MPrecHalfSegment>& v){
-      avltree::AVLTree<MPrecHalfSegment, YComparator> sss;
+      avltree::AVLTree<MPrecHalfSegment, YComparator<MPrecHalfSegment> > sss;
       MPrecHalfSegment const* left;
       MPrecHalfSegment const* right;
       for(unsigned int i=0;i<v.size();i++){
@@ -249,26 +249,40 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
    }
 
 
+ostream& print(const vector<MPrecHalfSegment>& v, ostream& o){
+
+  for(size_t i=0;i<v.size();i++){
+    o << v[i] << endl;
+  }
+  return o;
+
+}
 
 
 void makeRealm(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2, 
               vector<MPrecHalfSegment>& res) {
+
    HalfSegmentComparator cmp;    
    res.clear();
    if(hs1.checkRealm(hs2)){ // hs1 and hs2 are already realminized
       if(cmp(hs1,hs2)<0){
           res.push_back(hs1);
+          res[0].setOwner(FIRST);
           res.push_back(hs2); 
+          res[1].setOwner(SECOND);
           return;
       } else {
           res.push_back(hs2); 
+          res[0].setOwner(SECOND);
           res.push_back(hs1);
+          res[1].setOwner(FIRST);
           return;
       }
    }
 
    if(hs1==hs2){ // exact equality
       res.push_back(hs1);
+      res[0].setOwner(BOTH);
       return;
    }
 
@@ -276,92 +290,101 @@ void makeRealm(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2,
       if(hs1.crosses(hs2)){ // crossing halfsegments
          MPrecPoint* cp = hs1.crossPoint(hs2);
          res.push_back(MPrecHalfSegment (hs1.getLeftPoint(),*cp,
-                                         true,hs1.attributes));
+                                         true,hs1.attributes, FIRST));
          res.push_back(MPrecHalfSegment (hs2.getLeftPoint(),*cp,
-                                         true,hs2.attributes));
+                                         true,hs2.attributes, SECOND));
          res.push_back(MPrecHalfSegment (*cp,hs1.getRightPoint(),
-                                         true,hs1.attributes));
+                                         true,hs1.attributes, FIRST));
          res.push_back(MPrecHalfSegment (*cp,hs2.getRightPoint(),
-                                         true,hs2.attributes));
+                                         true,hs2.attributes, SECOND));
          delete cp; 
       } else { // touching halfsegments
          if(hs1.innerContains(hs2.getLeftPoint())){
             res.push_back(MPrecHalfSegment(hs1.getLeftPoint(), 
                                            hs2.getLeftPoint(), 
-                                           true, hs1.attributes));
+                                           true, hs1.attributes, FIRST));
             res.push_back(MPrecHalfSegment(hs2.getLeftPoint(), 
                                            hs1.getRightPoint(), 
-                                           true, hs1.attributes));
+                                           true, hs1.attributes, FIRST));
             res.push_back(hs2); 
+            res[2].setOwner(SECOND);
          } else if(hs1.innerContains(hs2.getRightPoint())){
             res.push_back(MPrecHalfSegment(hs1.getLeftPoint(), 
                                            hs2.getRightPoint(), 
-                                           true, hs1.attributes));
+                                           true, hs1.attributes, FIRST));
             res.push_back(MPrecHalfSegment(hs2.getRightPoint(), 
                                            hs1.getRightPoint(), 
-                                           true, hs1.attributes));
+                                           true, hs1.attributes, FIRST));
             res.push_back(hs2); 
+            res[2].setOwner(SECOND);
          } else if(hs2.innerContains(hs1.getLeftPoint())){
             res.push_back(MPrecHalfSegment(hs2.getLeftPoint(), 
                                            hs1.getLeftPoint(), 
-                                           true, hs2.attributes));
+                                           true, hs2.attributes, SECOND));
             res.push_back(MPrecHalfSegment(hs1.getLeftPoint(), 
                                            hs2.getRightPoint(), 
-                                           true, hs2.attributes));
-            res.push_back(hs2);
+                                           true, hs2.attributes, SECOND));
+            res.push_back(hs1);
+            res[2].setOwner(FIRST);
          } else if(hs2.innerContains(hs1.getRightPoint())){
             res.push_back(MPrecHalfSegment(hs2.getLeftPoint(), 
                                            hs1.getRightPoint(),
-                                            true, hs2.attributes));
+                                            true, hs2.attributes, SECOND));
             res.push_back(MPrecHalfSegment(hs1.getRightPoint(), 
                                            hs2.getRightPoint(),
-                                           true, hs2.attributes));
-            res.push_back(hs2);
+                                           true, hs2.attributes, SECOND));
+            res.push_back(hs1);
+            res[2].setOwner(FIRST);
          } else {
              throw 1;  // some error in computation or some forgotten case
          }
       }
    } else { // overlapping halfsegments
       int lcmp = hs1.getLeftPoint().compareTo(hs2.getLeftPoint());
-      int rcmp = hs2.getRightPoint().compareTo(hs2.getRightPoint());
-      // single piece of hs1 or hs2 
-      MPrecPoint firstCommonPoint(0,0); 
-      if(lcmp<0){
-         res.push_back(MPrecHalfSegment(hs1.getLeftPoint(), 
-                                        hs2.getLeftPoint(),
-                                        true,hs1.attributes));
-         firstCommonPoint = hs2.getLeftPoint();
-      } else if(lcmp>0){
-         res.push_back(MPrecHalfSegment(hs2.getLeftPoint(), 
-                                        hs1.getLeftPoint(),
-                                        true,hs2.attributes));
-         firstCommonPoint = hs1.getLeftPoint();
-      } else {
-         firstCommonPoint = hs2.getLeftPoint();
+      int rcmp = hs1.getRightPoint().compareTo(hs2.getRightPoint());
+      // first part, single piece of hs1 or hs2
+      MPrecPoint firstCommonPoint(0,0);
+      if(lcmp<0){ // first part belongs to hs1
+         res.push_back(MPrecHalfSegment(
+                       hs1.getLeftPoint(), hs2.getLeftPoint(),
+                       true, hs1.attributes, FIRST));
+          firstCommonPoint = hs2.getLeftPoint();
+      } else if(lcmp>0) { // first part belongs to hs2
+         res.push_back(MPrecHalfSegment(
+                       hs2.getLeftPoint(), hs1.getLeftPoint(),
+                       true, hs2.attributes, SECOND));
+          firstCommonPoint = hs1.getLeftPoint();
+      } else { // lcmp = 0 : both segments starts at the same point
+          firstCommonPoint = hs1.getLeftPoint();
       }
-      if(rcmp<0){
-         res.push_back(MPrecHalfSegment(firstCommonPoint,
-                                        hs1.getRightPoint(), 
-                                        true, hs1.attributes));
-         res.push_back(MPrecHalfSegment(hs1.getRightPoint(),
-                                        hs2.getRightPoint(),
-                                        true, hs2.attributes));
-      } else if(rcmp>0){
-         res.push_back(MPrecHalfSegment(firstCommonPoint, 
-                                        hs2.getRightPoint(),
-                                        true, hs1.attributes));
-         res.push_back(MPrecHalfSegment(hs2.getRightPoint(),
-                                        hs1.getRightPoint(),
-                                        true, hs1.attributes));
-      } else {
-         res.push_back(MPrecHalfSegment(firstCommonPoint, 
-                                        hs1.getRightPoint(),
-                                        true, hs1.attributes));
+
+      // the common part and the last part
+      if(rcmp==0){ // segments ends at the same point
+         res.push_back(MPrecHalfSegment(
+                       firstCommonPoint, hs1.getRightPoint(),
+                       true, hs1.attributes, BOTH));
+      } else if(rcmp < 0){
+          // last part belongs to hs2
+         res.push_back(MPrecHalfSegment(
+                       firstCommonPoint, hs1.getRightPoint(),
+                       true, hs1.attributes, BOTH));
+         res.push_back(MPrecHalfSegment(
+                       hs1.getRightPoint(), hs2.getRightPoint(),
+                       true, hs2.attributes,SECOND));
+      } else { // rcmp > 0
+          // last part belongs to hs1
+         res.push_back(MPrecHalfSegment(
+                       firstCommonPoint, hs2.getRightPoint(),
+                       true, hs2.attributes, BOTH));
+         res.push_back(MPrecHalfSegment(
+                       hs2.getRightPoint(), hs1.getRightPoint(),
+                       true, hs1.attributes,FIRST));
       }
    } 
    // sort
    IsSmaller<MPrecHalfSegment, HalfSegmentComparator> is;
    sort(res.begin(),res.end(),is);
+
 }
 
    
@@ -376,19 +399,9 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
 
    void realminize(const vector<MPrecHalfSegment>& v, 
                    vector<MPrecHalfSegment>& res){
-
-
-
-
-     //cout << "call realminze with" << endl;
-     //for(size_t i=0;i<v.size();i++){
-     //  cout << i << "\t:" << v[i] << endl;
-     //}
-     //cout << endl << endl;
-
-
-      avltree::AVLTree<MPrecHalfSegment, YComparator> sss;
-      priority_queue<MPrecHalfSegment, 
+      
+     avltree::AVLTree<MPrecHalfSegment, YComparator<MPrecHalfSegment> > sss;
+     priority_queue<MPrecHalfSegment, 
                      vector<MPrecHalfSegment>, 
                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > es;
 
@@ -411,20 +424,15 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
       MPrecCoordinate lastX(0);
       bool first = true;
 
-      bool orig;
-
       while(!done){
-       orig = false;
        if(pos<v.size()){ 
            if(es.empty()){ // no elements in es
               current = v[pos];
-              orig = true;
               pos++;
            } else { // v and es have elements
               if(cmp(v[pos],es.top())<0){ // use original vector
                  current = v[pos];
                  pos++;
-                 orig = true;
               } else {
                  current = es.top();
                  es.pop();
@@ -440,13 +448,6 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
          first = false; 
        } else {
          currentX = current.getDomPoint().getX();
-         if(lastX > currentX){
-           cout << "Invalid oder found. " << endl;
-           cout << "lastX = " << lastX << endl;
-           cout << "currentX = " << currentX << endl;
-           cout << "current = " << current << endl;
-           cout << "isOrig = " << (orig?"true":"false") << endl;
-         }
          assert(lastX<=currentX);
          lastX = currentX;
        }
@@ -456,6 +457,7 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
            if(stored!=0){ // overlapping segment found
                makeRealm(current,*stored,realmRes);
                sss.remove(*stored);
+               sss.remove(current);
                sss.insert(realmRes[0]); // shorten 
                realmRes[0].setLDP(false);
                es.push(realmRes[0]);
@@ -542,6 +544,210 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
       // sort result vector
       sort(res);
    }
+
+
+
+/*
+~setOP~
+
+This function computes the set operation specified by the last argument
+
+*/
+  class EventStructure{
+    public: 
+     EventStructure(const vector<MPrecHalfSegment>& _v1,
+                    const vector<MPrecHalfSegment>& _v2) : 
+                          v1(_v1), v2(_v2), pos1(0), pos2(0),
+                          pq1(), pq2(),pqb() {}
+
+     /*
+      
+     */
+     int  next(MPrecHalfSegment& result) {
+         const MPrecHalfSegment* candidates[5];
+         candidates[0] = pos1<v1.size()?&v1[pos1]:0;
+         candidates[1] = pos2<v2.size()?&v2[pos2]:0;
+         candidates[2] = pq1.empty()?0:&pq1.top();
+         candidates[3] = pq2.empty()?0:&pq2.top();
+         candidates[4] = pqb.empty()?0:&pqb.top();
+         int index = -1;
+         for(int i=0;i<5;i++){
+            if(candidates[i]){
+               if(index<0){
+                   index = i;
+               } else  if(cmp(*candidates[i],*candidates[index]) < 0 ){
+                   index = i;
+               }
+            }
+         }
+ 
+         switch(index){
+           case -1 : return 0; // no more halfsegments
+           case  0 : result.set(FIRST, *(candidates[0]));pos1++; return 1;
+           case  1 : result.set(SECOND, *(candidates[1]));pos2++; return 2;
+           case  2 : result.set(FIRST, *candidates[2]);pq1.pop(); return 1;
+           case  3 : result.set(SECOND, *candidates[3]);pq2.pop(); return 2;
+           case  4 : result.set(BOTH, *candidates[4]);pqb.pop(); return 3;
+         }; 
+         return -1;
+     }
+
+
+     void push(const MPrecHalfSegment& evt){
+         switch(evt.getOwner()){
+           case FIRST  : pq1.push(evt); break;
+           case SECOND : pq2.push(evt); break;
+           case BOTH   : pqb.push(evt); break;
+           default : assert(false);
+         }
+     }
+
+
+    private:
+       const vector<MPrecHalfSegment> v1;
+       const vector<MPrecHalfSegment> v2;
+       size_t pos1;
+       size_t pos2;
+       priority_queue<MPrecHalfSegment, 
+                      vector<MPrecHalfSegment>, 
+                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq1;
+       priority_queue<MPrecHalfSegment, 
+                      vector<MPrecHalfSegment>, 
+                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq2;
+       priority_queue<MPrecHalfSegment, 
+                      vector<MPrecHalfSegment>, 
+                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pqb;
+       HalfSegmentComparator cmp;
+
+  };
+
+
+
+
+  void setOP(const vector<MPrecHalfSegment>& v1,
+             const vector<MPrecHalfSegment>& v2,
+             vector<MPrecHalfSegment>& res,
+             SETOP op){
+     avltree::AVLTree<MPrecHalfSegment, YComparator<MPrecHalfSegment> > sss;
+     EventStructure es(v1,v2);
+     AttrType dummy;
+     MPrecHalfSegment current (MPrecPoint(0,0), MPrecPoint(1,1), true, dummy);
+     int source;
+     MPrecHalfSegment const* left;
+     MPrecHalfSegment const* right;
+     res.clear();
+     vector<MPrecHalfSegment> realmRes;
+     int edgeno = 0;
+
+
+     while((source = es.next(current))){
+        if(current.isLeftDomPoint()) {
+          const MPrecHalfSegment* stored = sss.getMember(current);  
+          if(stored != 0){ // found overlapping part 
+             assert(stored->getOwner()!=BOTH);
+             assert(stored->getOwner()!=current.getOwner());
+             if(current.getOwner()==FIRST){
+                 makeRealm(current,*stored,realmRes);
+             } else {
+                 makeRealm(*stored, current, realmRes);
+             }
+             sss.remove(*stored);
+             sss.remove(current);
+             sss.insert(realmRes[0]); // shorten 
+             realmRes[0].setLDP(false);
+             es.push(realmRes[0]);
+             for(size_t i=1;i<realmRes.size();i++){
+                es.push(realmRes[i]);
+                realmRes[i].setLDP(false);
+                es.push(realmRes[i]);
+             }
+          }  else { // new Element
+              sss.insertN(current,left,right);
+              if(left && !left->checkRealm(current)){
+                 makeRealm(current,*left,realmRes);
+                 sss.remove(*left);
+                 sss.remove(current);
+                 sss.insert(realmRes[0]);
+                 sss.insert(realmRes[1]);
+                 realmRes[0].setLDP(false);
+                 realmRes[1].setLDP(false);
+                 es.push(realmRes[0]);
+                 es.push(realmRes[1]);
+                 for(size_t i=2;i<realmRes.size();i++){
+                   es.push(realmRes[i]);
+                   realmRes[i].setLDP(false);
+                   es.push(realmRes[i]);
+                 } 
+              } 
+              if( right && !right->checkRealm(current)){
+                 makeRealm(current,*right,realmRes);
+                 assert(sss.remove(*right));
+                 assert(sss.remove(current));
+                 sss.insert(realmRes[0]);
+                 sss.insert(realmRes[1]);
+                 realmRes[0].setLDP(false);
+                 realmRes[1].setLDP(false);
+                 es.push(realmRes[0]);
+                 es.push(realmRes[1]);
+                 for(size_t i=2;i<realmRes.size();i++){
+                   es.push(realmRes[i]);
+                   realmRes[i].setLDP(false);
+                   es.push(realmRes[i]);
+                 } 
+              }
+           }
+        } else {  
+           const MPrecHalfSegment* stored = sss.getMember(current);
+           if(stored!=0){
+               if(current.sameGeometry(*stored)){
+                  MPrecHalfSegment copy(*stored);
+                  MPrecHalfSegment copy2(copy);
+                  copy2.setLDP(false);
+
+                  sss.removeN(current,left,right);
+                  current.attributes.edgeno = edgeno;
+                  edgeno++;
+                  current.setLDP(true);
+                  switch(op){
+                      case UNION : res.push_back(copy);
+                              res.push_back(copy2);
+                              break;
+                      case INTERSECTION: if(copy.getOwner()==BOTH){
+                                      res.push_back(copy);
+                                      res.push_back(copy2);
+                                    }
+                                    break;
+                      case DIFFERENCE : if(copy.getOwner()==FIRST){
+                                      res.push_back(copy);
+                                      res.push_back(copy2);
+                                   }
+                  }
+                  if(left && right && !left->checkRealm(*right)){
+                     makeRealm(*left, *right, realmRes);
+                     sss.remove(*left);
+                     sss.remove(*right);
+                     sss.insert(realmRes[0]);
+                     sss.insert(realmRes[1]);
+                     realmRes[0].setLDP(false);
+                     realmRes[1].setLDP(false);
+                     es.push(realmRes[0]);
+                     es.push(realmRes[1]);
+                     for(size_t i=2;i<realmRes.size();i++){
+                        es.push(realmRes[i]);
+                        realmRes[i].setLDP(false);
+                        es.push(realmRes[i]);
+                     } 
+                  }
+               } else {
+               }
+           } else { // stored == 0
+              //cerr << "size of avl = " << sss.Size() << endl;
+              //cerr << "content " << sss << endl;
+           }
+        }
+     }
+  }
+
 
 
 /*

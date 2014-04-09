@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
+enum OWNER{FIRST,SECOND,BOTH, NONE};
 
 /*
 1 Implementation of a precise halfsegment
@@ -92,20 +93,24 @@ class MPrecHalfSegment{
   public:
      MPrecHalfSegment(const PPrecHalfSegment& phs, 
                       const DbArray<uint32_t>* fracStorage,
-                      uint32_t _scale):
+                      uint32_t _scale, const OWNER _owner = FIRST):
       ldp(phs.ldp), lp(phs.lp,fracStorage,_scale), 
       rp(phs.rp,fracStorage, _scale),
+      owner(_owner),
       attributes(phs.attributes) {
        assert(_scale>0);
        correctOrder();
       }
 
      MPrecHalfSegment(const MPrecHalfSegment& src):
-        ldp(src.ldp), lp(src.lp), rp(src.rp), attributes(src.attributes) {}
+        ldp(src.ldp), lp(src.lp), rp(src.rp), owner(src.owner),
+        attributes(src.attributes) {}
 
      MPrecHalfSegment(const MPrecPoint& _lp, const MPrecPoint _rp, 
-                      const bool _ldp, AttrType _attributes):
-        ldp(_ldp), lp(_lp), rp(_rp), attributes(_attributes) {
+                      const bool _ldp, AttrType _attributes,
+                      const OWNER _owner = FIRST):
+        ldp(_ldp), lp(_lp), rp(_rp), owner(_owner),
+        attributes(_attributes) {
         if(lp.getScale()!=rp.getScale()){
            rp.changeScaleTo(lp.getScale());
         }
@@ -118,12 +123,13 @@ class MPrecHalfSegment{
         ldp = src.ldp;
         lp = src.lp;
         rp = src.rp;
+        owner = src.owner;
         attributes = src.attributes;
         return *this;
      }
 /*
 Check for exact equality of the halfsegment's geometry.
-The dominating points as well as the attributes are not checked.
+The attributes and the owners are not checked.
 
 */
     bool operator==(const MPrecHalfSegment& hs) const{
@@ -146,10 +152,13 @@ i.e. if lp and rp are equal.
      const MPrecPoint& getDomPoint() const {return ldp?lp:rp;}
      const MPrecPoint& getSecPoint() const {return ldp?rp:lp;}
      bool isLeftDomPoint() const { return ldp; }
+     OWNER getOwner() const { return owner; }
 
 
      void appendTo(DbArray<PPrecHalfSegment>* gridStorage,
                    DbArray<uint32_t>* fracStorage){
+          lp.changeScaleTo(getScale());
+          rp.changeScaleTo(getScale());
           lp.appendFractional( fracStorage);
           rp.appendFractional( fracStorage);
           PPrecHalfSegment hs(ldp,lp,rp,attributes);
@@ -178,13 +187,26 @@ i.e. if lp and rp are equal.
     }
 
     void set(const bool _ldp, const MPrecPoint& _lp, const MPrecPoint& _rp,
+             const OWNER _owner,
              const AttrType _attributes){
+       assert(lp!=rp);
        ldp = _ldp;
        lp = _lp;
        rp = _rp;
+       owner = _owner;
        attributes = _attributes;
        correctOrder();
     }
+
+    void set(const OWNER _owner, const MPrecHalfSegment& hs){
+         operator=(hs);
+         owner = _owner;
+    }
+
+    void setOwner(const OWNER _owner){
+       owner = _owner;
+    }
+
 
     void setLDP(const bool _ldp){
         ldp = _ldp;
@@ -555,7 +577,7 @@ If the x-values differ for a vertical segment, an exception is thrown.
     }
 
 
-    int getScale() const{
+    uint32_t getScale() const{
        return lp.getScale();
     }
 
@@ -597,11 +619,19 @@ If the x-values differ for a vertical segment, an exception is thrown.
   const MPrecCoordinate& getMaxY() const{
      return rp.getY() > lp.getY() ? rp.getY() : lp.getY() ;
   }
+
+  void changeScaleTo(uint32_t newScale){
+    assert(newScale>0);
+    lp.changeScaleTo(newScale);
+    rp.changeScaleTo(newScale);
+  }
+
      
   private:
      bool ldp;
      MPrecPoint lp;
      MPrecPoint rp;
+     OWNER owner;
   public:
      AttrType attributes;
   private: 
@@ -628,34 +658,16 @@ If the x-values differ for a vertical segment, an exception is thrown.
 class HalfSegmentComparator{
   public:
 
-  HalfSegmentComparator():print(false){}
+  HalfSegmentComparator(){}
 
   int operator()(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2){
-
-      //cout << "compare " << hs1 << endl
-      //     << "with    " << hs2 << endl;
-
+      // compare domination points
       const MPrecPoint& dp1 = hs1.getDomPoint();
-
-      if(print){
-        cout << "comapre halfsegments, dp1 = " << dp1 << endl; 
-      }
-
       const MPrecPoint& dp2 = hs2.getDomPoint();
-
-      if(print){
-        cout << "comapre halfsegments, dp2 = " << dp2 << endl; 
-      }
-
-
       int cmp = dp1.compareTo(dp2);
       if(cmp!=0) return cmp;
 
-      if(print){
-          cout << "different dom points" << endl;
-      }
-
-
+      // compare ldp
       if( hs1.isLeftDomPoint()  != hs2.isLeftDomPoint() ) {
            if( !hs1.isLeftDomPoint() ){
               return -1;
@@ -664,23 +676,11 @@ class HalfSegmentComparator{
            }
       }
 
-      if(print){
-           cout << "equal dompoint " << dp1 << " == " << dp2 << endl;
-      }
-
-      // domination points are equal, compare slopes
+      // compare slopes
       cmp = hs1.compareSlope(hs2);
-
-      if(print){
-         cout << "slope compare returns " << cmp << endl;
-      }
       return cmp;
 
   }
-
-  bool print; 
-
-
 };
 
 

@@ -34,6 +34,11 @@ This file provides auxiliary function dealing with precise halfsegments.
 
 namespace hstools{
 
+
+
+enum SETOP {UNION, INTERSECTION, DIFFERENCE};
+
+
 /*
 ~isSorted~
 
@@ -116,6 +121,21 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
 
    void realminize(const vector<MPrecHalfSegment>& v, 
                    vector<MPrecHalfSegment>& res);
+
+
+/*
+~setOP~
+
+This function computes the set operation specified by the last argument
+
+*/
+
+  void setOP(const vector<MPrecHalfSegment>& v1,
+             const vector<MPrecHalfSegment>& v2,
+             vector<MPrecHalfSegment>& res,
+             SETOP op);
+                 
+
 
 
 /*
