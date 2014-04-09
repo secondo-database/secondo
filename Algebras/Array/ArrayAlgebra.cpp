@@ -337,7 +337,7 @@ InArray( const ListExpr typeInfo, const ListExpr instance,
 {
   Array* newarray;
 
-  Word a[nl->ListLength(instance)];
+  Word* a = new Word[nl->ListLength(instance)];
   int algebraId;
   int typeId;
 
@@ -366,11 +366,13 @@ InArray( const ListExpr typeInfo, const ListExpr instance,
 
     if (correct) {
       newarray = new Array(algebraId, typeId, i, a);
+      delete[] a;
       return SetWord(newarray);
     }
   }
 
   correct = false;
+  delete[] a;
   return SetWord(Address(0));
 }
 
@@ -415,7 +417,7 @@ RestoreFromListArray( const ListExpr typeInfo, const ListExpr instance,
 {
   Array* newarray;
 
-  Word a[nl->ListLength(instance)];
+  Word*  a = new Word[nl->ListLength(instance)];
   int algebraId;
   int typeId;
 
@@ -444,11 +446,13 @@ RestoreFromListArray( const ListExpr typeInfo, const ListExpr instance,
 
     if (correct) {
       newarray = new Array(algebraId, typeId, i, a);
+      delete[] a;
       return SetWord(newarray);
     }
   }
 
   correct = false;
+  delete[] a;
   return SetWord(Address(0));
 }
 
@@ -622,7 +626,7 @@ CloneArray( const ListExpr typeInfo, const Word& w )
   int algebraId = array->getElemAlgId();
   int typeId = array->getElemTypeId();
 
-  Word a[array->getSize()];
+  Word* a = new Word[array->getSize()];
 
   for (int i=0; i < n; i++) {
     a[i] = (am->CloneObj(algebraId, typeId))( nl->TheEmptyList(),
@@ -643,7 +647,7 @@ CloneArray( const ListExpr typeInfo, const Word& w )
 
     newarray = 0;
   }
-
+  delete[] a;
   return SetWord(newarray);
 }
 
@@ -979,7 +983,7 @@ putFun ( Word* args, Word& result, int message, Word& local, Supplier s )
     int algebraId = array->getElemAlgId();
     int typeId = array->getElemTypeId();
 
-    Word a[array->getSize()];
+    Word* a = new Word[array->getSize()];
     Word element;
 
     ListExpr resultType = qp->GetType(s);
@@ -1008,10 +1012,9 @@ putFun ( Word* args, Word& result, int message, Word& local, Supplier s )
     result = qp->ResultStorage(s);
 
     ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+    delete[] a;
     return 0;
-  }
-  else {
+  } else {
     return 1;
   }
 }
@@ -1081,7 +1084,7 @@ makearrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   int n = qp->GetNoSons(s);
 
-  Word a[n];
+  Word* a = new Word[n];
 
   for (int i=0; i<n; i++) {
     a[i] = Array::genericClone(algebraId, typeId, typeOfElement, args[i]);
@@ -1090,7 +1093,7 @@ makearrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -1185,7 +1188,7 @@ sortarrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
   int n = array->getSize();
 
   vector<IntPair> index(n);
-  Word a[n];
+  Word* a = new Word[n];
 
   // Calculate and assing function values
 
@@ -1213,7 +1216,7 @@ sortarrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -1399,7 +1402,7 @@ cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
   extractIds(typeOfElement, algebraId, typeId);
 
   int n = array->getSize();
-  Word a[n];
+  Word* a = new Word[n];
   Word cumResult;
 
   cumResult = array->getElement(0);
@@ -1425,7 +1428,7 @@ cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -1640,7 +1643,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   result = qp->ResultStorage(s);
 
-  Word a[++n];
+  Word*  a = new Word[++n];
 
   for (int i=0; i<n; i++) {
 
@@ -1654,12 +1657,14 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
     qp->Close(args[0].addr);
+    delete[] a;
     return 0;
 
   } else {
 
     // should never happen
     assert(false);
+    delete[] a;
     return 1;
   }
 }
@@ -1905,7 +1910,7 @@ loopFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   int n = array->getSize();
 
-  Word a[n];
+  Word* a = new Word[n];
   string info;
 
   bool trace = false;
@@ -1921,7 +1926,7 @@ loopFun( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -2006,7 +2011,7 @@ loopaFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   int n = min(firstArray->getSize(), secondArray->getSize());
 
-  Word a[n];
+  Word*  a = new Word[n];
   string info;
 
   cout << "Processing elements ..." << endl;
@@ -2020,7 +2025,7 @@ loopaFun( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -2077,7 +2082,7 @@ loopbFun( Word* args, Word& result, int message, Word& local, Supplier s )
   int n = firstArray->getSize();
   int m = secondArray->getSize();
 
-  Word a[n * m];
+  Word* a = new Word[n * m];
   string info;
 
   cout << "Processing elements ..." << endl;
@@ -2094,7 +2099,7 @@ loopbFun( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n * m, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -2232,7 +2237,7 @@ loopswitchFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   int n = array->getSize();
 
-  Word a[n];
+  Word* a = new Word[n];
   Word funresult;
   string info;
 
@@ -2249,7 +2254,7 @@ loopswitchFun( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -2392,7 +2397,7 @@ loopswitchaFun( Word* args, Word& result, int message, Word& local,
 
   int n = min(firstArray->getSize(), secondArray->getSize());
 
-  Word a[n];
+  Word* a = new Word[n];
   Word funresult;
   string info;
 
@@ -2410,7 +2415,7 @@ loopswitchaFun( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -2469,7 +2474,7 @@ loopswitchbFun( Word* args, Word& result, int message, Word& local,
   int n = firstArray->getSize();
   int m = secondArray->getSize();
 
-  Word a[n * m];
+  Word*  a = new Word[n * m];
   Word funresult;
   string info;
 
@@ -2491,7 +2496,7 @@ loopswitchbFun( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n * m, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -2581,7 +2586,7 @@ loopselectFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   se.setTestSize( max(absTest, (int)(n * relTest + 0.5)) );
 
-  Word a[n];
+  Word*  a = new Word[n];
   Word funresult;
   string info;
 
@@ -2599,7 +2604,7 @@ loopselectFun( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -2691,7 +2696,7 @@ loopselectaFun( Word* args, Word& result, int message, Word& local,
 
   se.setTestSize( max(absTest, (int)(n * relTest + 0.5)) );
 
-  Word a[n];
+  Word* a = new Word[n];
   Word funresult;
   string info;
 
@@ -2709,7 +2714,7 @@ loopselectaFun( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -2783,7 +2788,7 @@ loopselectbFun( Word* args, Word& result, int message, Word& local,
 
   se.setTestSize( max(absTest, (int)(r * relTest + 0.5)) );
 
-  Word a[r];
+  Word* a = new Word[r];
   Word funresult;
   string info;
 
@@ -2804,7 +2809,7 @@ loopselectbFun( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
 
   ((Array*)result.addr)->initialize(algebraId, typeId, r, a);
-
+  delete[] a;
   return 0;
 }
 
@@ -2944,7 +2949,7 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
   int n = firstArray->getSize();
   int m = secondArray->getSize();
 
-  Word a[n + m - 1];
+  Word* a = new Word[n + m - 1];
   int c = 0;
 
   int i = 0;
@@ -3023,7 +3028,7 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   ((Relation*)Acum.addr)->Delete();
   ((Relation*)Bcum.addr)->Delete();
-
+  delete[] a;
   return 0;
 }
 
@@ -3201,7 +3206,7 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
   int n = firstArray->getSize();
   int m = secondArray->getSize();
 
-  Word a[n + m - 1];
+  Word* a = new Word[n + m - 1];
   int c = 0;
 
   int i = 0;
@@ -3268,7 +3273,7 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
 
   ((Relation*)Acum.addr)->Delete();
   ((Relation*)Bcum.addr)->Delete();
-
+  delete[] a;
   return 0;
 }
 
