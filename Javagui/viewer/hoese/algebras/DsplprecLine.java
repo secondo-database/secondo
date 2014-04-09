@@ -200,6 +200,10 @@ public class DsplprecLine extends DisplayGraph {
       entry = AttrName+" : undefined";
       qr.addEntry(entry);
       return;
+    } else if(GP==null){
+      entry = AttrName+" : empty";
+      qr.addEntry(entry);
+      return;
     }
     // normal case-> defined line
     entry = AttrName + " : line";
