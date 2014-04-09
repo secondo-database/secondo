@@ -1336,7 +1336,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
    unSpecified.MakeEmpty();
    unSpecified.Invert();
    Cluster CurrentCluster(false);
-   Cluster AllClusters[length];
+   Cluster* AllClusters = new Cluster[length];
    int pos =0;
    ListExpr LE = instance;
 
@@ -1344,16 +1344,19 @@ bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
       // error in cluster representation
       ListExpr cl = nl->First(LE);
       if(!CurrentCluster.ReadFrom(cl, nl->TheEmptyList())){
+         delete[] AllClusters;
          return false;
       }
       // empty clusters are not allowed
       if(CurrentCluster.IsEmpty()){
          ErrorReporter::ReportError("empty clusters are not allowed");
+         delete[] AllClusters;
          return false;
       }
       //  overlapping cluster found
       if(! unSpecified.Contains(&CurrentCluster)){
          ErrorReporter::ReportError("Clusters overlap");
+         delete[] AllClusters;
          return  false;
       }
       // check whether name already used
@@ -1364,12 +1367,14 @@ bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
          AllClusters[i].GetName(name2);
          if(strcmp(name2,name)==0){
               ErrorReporter::ReportError("non disjoint names found");
+              delete[] AllClusters;
               return false;
          }
       }
 
       if(strcmp(name,UNSPECIFIED)==0){ // forbidden name
           ErrorReporter::ReportError(" non valid name for cluster");
+          delete[] AllClusters;
           return false;
       }
       unSpecified.Minus(&CurrentCluster);
@@ -1384,6 +1389,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
        theClusters.Put(i,(AllClusters[i]));
    theClusters.Sort(toprel::ClusterCompare);
    sorted=true;
+   delete[] AllClusters;
    return true;
 }
 

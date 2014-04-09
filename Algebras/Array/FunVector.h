@@ -49,6 +49,10 @@ and prints out the used CPU time of the function. The total number of function
 requests is also available.
 
 */
+class FunInfo;
+
+bool operator<(const FunInfo&, const FunInfo&);
+std::ostream& operator<<(std::ostream&, const FunInfo&);
 
 class FunInfo {
   public :
