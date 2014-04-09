@@ -461,6 +461,7 @@ int tilesFunctionmt(Word* pArguments,
                                               pResultInfo->m_dY,
                                               gridLength,
                                               gridDuration);
+                    pDestinationType->SetGridT(pResultInfo->m_dT);
 
                     for(int time = 0; time < tDimensionSize; time++)
                     {
@@ -472,8 +473,8 @@ int tilesFunctionmt(Word* pArguments,
                                      halfGridLength;
                           double y = pResultInfo->m_dY + row * gridLength +
                                      halfGridLength;
-                          double t = pResultInfo->m_dT + 
-                                     time * gridDuration + halfGridDuration;
+                          double t = pResultInfo->m_dT + time * gridDuration +
+                                     halfGridDuration;
                           
                           typename DestinationTypeProperties::TypeProperties::
                           PropertiesType value =
@@ -483,8 +484,7 @@ int tilesFunctionmt(Word* pArguments,
                              IsUndefinedValue(value) == false)
                           {
                             bHasDefinedValue = true;
-                            pDestinationType->SetValue(x, y,
-                                         t - pResultInfo->m_dT, value, true);
+                            pDestinationType->SetValue(x, y, t, value, true);
                           }
                         }
                       }
