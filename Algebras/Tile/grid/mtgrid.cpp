@@ -74,6 +74,7 @@ exceptions: -
 
 mtgrid::mtgrid(bool bDefined)
        :tgrid(bDefined),
+        m_dT(0.0),
         m_Duration(datetime::durationtype)
 {
 
@@ -98,6 +99,7 @@ mtgrid::mtgrid(const double& rX,
                const double& rLength,
                const datetime::DateTime& rDuration)
        :tgrid(rX, rY, rLength),
+        m_dT(0.0),
         m_Duration(rDuration)
 {
   m_Duration.SetType(datetime::durationtype);
@@ -152,6 +154,7 @@ const mtgrid& mtgrid::operator=(const mtgrid& rmtgrid)
   if(this != &rmtgrid)
   {
     tgrid::operator=(rmtgrid);
+    m_dT = rmtgrid.m_dT;
     m_Duration = rmtgrid.m_Duration;
   }
 
@@ -175,6 +178,7 @@ bool mtgrid::operator==(const mtgrid& rmtgrid) const
   if(this != &rmtgrid)
   {
     if(tgrid::operator==(rmtgrid) &&
+       m_dT == rmtgrid.m_dT &&
        m_Duration == rmtgrid.m_Duration)
     {
       bIsEqual = true;
@@ -182,6 +186,21 @@ bool mtgrid::operator==(const mtgrid& rmtgrid) const
   }
 
   return bIsEqual;
+}
+
+/*
+Method GetT returns the time origin of the mtgrid.
+
+author: Dirk Zacher
+parameters: -
+return value: time origin of the mtgrid
+exceptions: -
+
+*/
+
+const double& mtgrid::GetT() const
+{
+  return m_dT;
 }
 
 /*
@@ -197,6 +216,29 @@ exceptions: -
 const datetime::DateTime& mtgrid::GetDuration() const
 {
   return m_Duration;
+}
+
+/*
+Method SetT sets the time origin of the mtgrid.
+
+author: Dirk Zacher
+parameters: rT - reference to time origin
+return value: true, if time origin successfully set, otherwise false
+exceptions: -
+
+*/
+
+bool mtgrid::SetT(const double& rT)
+{
+  bool bRetVal = false;
+
+  if(m_dT >= 0.0)
+  {
+    m_dT = rT;
+    bRetVal = true;
+  }
+
+  return bRetVal;
 }
 
 /*
@@ -256,6 +298,7 @@ bool mtgrid::IsEqualGrid(const mtgrid& rmtgrid) const
   bool bIsEqualGrid = tgrid::IsEqualGrid(rmtgrid);
 
   if(bIsEqualGrid == true &&
+     m_dT == rmtgrid.m_dT &&
      m_Duration == rmtgrid.m_Duration)
   {
     bIsEqualGrid = true;
@@ -296,6 +339,7 @@ bool mtgrid::IsMatchingGrid(const mtgrid& rmtgrid) const
   bool bIsMatchingGrid = tgrid::IsMatchingGrid(rmtgrid);
 
   if(bIsMatchingGrid == true &&
+     m_dT == rmtgrid.m_dT &&
      m_Duration == rmtgrid.m_Duration)
   {
     bIsMatchingGrid = true;
@@ -317,6 +361,7 @@ exceptions: -
 void mtgrid::Reset()
 {
   tgrid::Reset();
+  m_dT = 0.0;
   m_Duration.SetToZero();
 }
 

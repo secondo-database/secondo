@@ -433,6 +433,18 @@ class mt : public Attribute
                const datetime::DateTime& rDuration);
 
   /*
+  Method SetGridT sets the time origin of the mtgrid
+
+  author: Dirk Zacher
+  parameters: rT - reference to the time origin of the grid
+  return value: true, if time origin successfully set, otherwise false
+  exceptions: -
+
+  */
+
+  bool SetGridT(const double& rT);
+
+  /*
   Method SetUndefinedValues sets all values of mt object and
   minimum and maximum of mt object to an undefined value.
 
@@ -1085,49 +1097,57 @@ void mt<Type, Properties>::atinstant(const Instant& rInstant,
   
   if(IsDefined())
   {
-    rit.SetDefined(true);
+    double instant = rInstant.ToDouble();
+    double timeOffset = m_Grid.GetT();
+    double duration = m_Grid.GetDuration().ToDouble();
 
-    typename Properties::tType t(true);
-    t.SetGrid(m_Grid);
-
-    int time = static_cast<int>(rInstant.ToDouble() /
-                                m_Grid.GetDuration().ToDouble());
-    int tDimensionSize = Properties::GetTDimensionSize();
-    bool btDefined = false;
-
-    if(time < tDimensionSize)
+    if(instant >= timeOffset)
     {
-      Index<3> minimumIndex;
-      Index<3> maximumIndex;
-      bool bOK = GetBoundingBoxIndexes(minimumIndex, maximumIndex);
+      int time = static_cast<int>((instant - timeOffset) / duration);
+      int tDimensionSize = Properties::GetTDimensionSize();
 
-      if(bOK == true)
+      if(time < tDimensionSize)
       {
-        for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
-        {
-          for(int column = minimumIndex[0]; column < maximumIndex[0]; column++)
-          {
-            Index<3> index3((int[]){column, row, time});
-            Type value = GetValue(index3);
+        rit.SetDefined(true);
 
-            if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        typename Properties::tType t(true);
+        t.SetGrid(m_Grid);
+
+        bool btDefined = false;
+
+        Index<3> minimumIndex;
+        Index<3> maximumIndex;
+        bool bOK = GetBoundingBoxIndexes(minimumIndex, maximumIndex);
+
+        if(bOK == true)
+        {
+          for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
+          {
+            for(int column = minimumIndex[0]; column < maximumIndex[0];
+                column++)
             {
-              btDefined = true;
-              Index<2> index2((int[]){column, row});
-              t.SetValue(index2, value, true);
+              Index<3> index3((int[]){column, row, time});
+              Type value = GetValue(index3);
+
+              if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+              {
+                btDefined = true;
+                Index<2> index2((int[]){column, row});
+                t.SetValue(index2, value, true);
+              }
             }
           }
         }
+
+        if(btDefined == false)
+        {
+          t.SetDefined(false);
+        }
+
+        rit.SetInstant(rInstant);
+        rit.SetValues(t);
       }
     }
-
-    if(btDefined == false)
-    {
-      t.SetDefined(false);
-    }
-
-    rit.SetInstant(rInstant);
-    rit.SetValues(t);
   }
 }
 
@@ -1160,6 +1180,7 @@ void mt<Type, Properties>::atperiods(const Periods& rPeriods,
     if(bOK == true)
     {
       int tDimensionSize = Properties::GetTDimensionSize();
+      double t = m_Grid.GetT();
       datetime::DateTime gridDuration = m_Grid.GetDuration();
       double duration = gridDuration.ToDouble();
 
@@ -1181,8 +1202,8 @@ void mt<Type, Properties>::atperiods(const Periods& rPeriods,
 
               if(Properties::TypeProperties::IsUndefinedValue(value) == false)
               {
-                datetime::DateTime startTime = time * duration;
-                datetime::DateTime endTime = (time + 1) * duration;
+                datetime::DateTime startTime = t + time * duration;
+                datetime::DateTime endTime = t + (time + 1) * duration;
 
                 Interval<DateTime> timeInterval(startTime, endTime,
                                                 true, false);
@@ -1244,9 +1265,10 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
   if(IsDefined() &&
      rRectangle.IsDefined())
   {
-    double instant1 = 0;
-    double instant2 = (Properties::GetTDimensionSize() - 1) *
-                       m_Grid.GetDuration().ToDouble();
+    double t = m_Grid.GetT();
+    double instant1 = t;
+    double instant2 = t + (Properties::GetTDimensionSize() - 1) *
+                           m_Grid.GetDuration().ToDouble();
 
     atrange(rRectangle, instant1, instant2, rmt);
   }
@@ -1289,6 +1311,7 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
       double x = m_Grid.GetX();
       double y = m_Grid.GetY();
       double length = m_Grid.GetLength();
+      double t = m_Grid.GetT();
       datetime::DateTime gridDuration = m_Grid.GetDuration();
       double duration = gridDuration.ToDouble();
       rmt.SetGrid(m_Grid);
@@ -1310,8 +1333,8 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
                rRectangle.MaxD(0) >= (x + column * length) &&
                rRectangle.MinD(1) <= (y + row * length) &&
                rRectangle.MaxD(1) >= (y + row * length)&&
-               rInstant1 <= (time * duration) &&
-               rInstant2 >= (time * duration))
+               rInstant1 <= t + (time * duration) &&
+               rInstant2 >= t + (time * duration))
             {
               Index<3> index((int[]){column, row, time});
               Type value = GetValue(index);
@@ -1352,6 +1375,7 @@ void mt<Type, Properties>::deftime(Periods& rPeriods) const
 
     if(bOK == true)
     {
+      double t = m_Grid.GetT();
       double duration = m_Grid.GetDuration().ToDouble();
       Periods periods(true);
 
@@ -1383,8 +1407,8 @@ void mt<Type, Properties>::deftime(Periods& rPeriods) const
 
         if(bDefined == true)
         {
-          Instant startTime(time * duration);
-          Instant endTime((time + 1) * duration);
+          Instant startTime(t + time * duration);
+          Instant endTime(t + (time + 1) * duration);
           periods.Add(Interval<DateTime>(startTime, endTime, true, false));
         }
       }
@@ -1584,7 +1608,8 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
 
           if(Properties::TypeProperties::IsUndefinedValue(value) == false)
           {
-            minima[2] = time * m_Grid.GetDuration().ToDouble();
+            minima[2] = m_Grid.GetT() +
+                        time * m_Grid.GetDuration().ToDouble();
             bbreak = true;
             break;
           }
@@ -1620,7 +1645,8 @@ void mt<Type, Properties>::bbox(typename Properties::RectangleType&
 
           if(Properties::TypeProperties::IsUndefinedValue(value) == false)
           {
-            maxima[2] = (time + 1) * m_Grid.GetDuration().ToDouble();
+            maxima[2] = m_Grid.GetT() +
+                        (time + 1) * m_Grid.GetDuration().ToDouble();
             bbreak = true;
             break;
           }
@@ -1794,8 +1820,11 @@ Index<3> mt<Type, Properties>::GetLocationIndex(const double& rX,
                                                 const double& rInstant) const
 {
   Index<2> index2 = GetLocationIndex(rX, rY);
+
+  double t = m_Grid.GetT();
   double gridDuration = m_Grid.GetDuration().ToDouble();
-  int indexT = static_cast<int>(rInstant / gridDuration);
+  int indexT = static_cast<int>((rInstant - t) / gridDuration);
+
   Index<3> locationIndex((int[]){index2[0], index2[1], indexT});
 
   return locationIndex;
@@ -1893,10 +1922,11 @@ bool mt<Type, Properties>::IsValidLocation(const double& rX,
   if(bIsValidLocation == true)
   {
     int tDimensionSize = Properties::GetTDimensionSize();
+    double t = m_Grid.GetT();
     double gridDuration = m_Grid.GetDuration().ToDouble();
 
-    if(rInstant > 0.0 &&
-       rInstant < (tDimensionSize * gridDuration))
+    if(rInstant >= t &&
+       rInstant < (t + tDimensionSize * gridDuration))
    {
       bIsValidLocation = true;
    }
@@ -1938,6 +1968,7 @@ author: Dirk Zacher
 parameters: rX - reference to the x origin of the grid
             rY - reference to the y origin of the grid
             rLength - reference to the length of a grid cell
+            rT - reference to the time origin of the grid
             rDuration - reference to duration of the grid
 return value: true, if mtgrid properties of mt object were successfully set,
               otherwise false
@@ -1963,6 +1994,22 @@ bool mt<Type, Properties>::SetGrid(const double& rX,
   }
 
   return bRetVal;
+}
+
+/*
+Method SetGridT sets the time origin of the mtgrid
+
+author: Dirk Zacher
+parameters: rT - reference to the time origin of the grid
+return value: true, if time origin successfully set, otherwise false
+exceptions: -
+
+*/
+
+template <typename Type, typename Properties>
+bool mt<Type, Properties>::SetGridT(const double& rT)
+{
+  return m_Grid.SetT(rT);
 }
 
 /*
@@ -2601,6 +2648,7 @@ Word mt<Type, Properties>::In(const ListExpr typeInfo,
                   int sizeT = sizeList.elem(3).intval();
                   Cardinal valueListLength = static_cast<Cardinal>
                                              (sizeX * sizeY * sizeT);
+                  int offsetIndexT = -1;
 
                   instanceList.rest();
 
@@ -2621,13 +2669,20 @@ Word mt<Type, Properties>::In(const ListExpr typeInfo,
                         int xDimensionSize = Properties::GetXDimensionSize();
                         int yDimensionSize = Properties::GetYDimensionSize();
                         int tDimensionSize = Properties::GetTDimensionSize();
+                        
+                        if(offsetIndexT == -1)
+                        {
+                          offsetIndexT = indexT;
+                          pmt->SetGridT(offsetIndexT * duration.ToDouble());
+                        }
 
                         if(indexX >= 0 &&
                            indexX <= xDimensionSize - sizeX &&
                            indexY >= 0 &&
                            indexY <= yDimensionSize - sizeY &&
-                           indexT >= 0 &&
-                           indexT <= tDimensionSize - sizeT)
+                           sizeT <= tDimensionSize &&
+                           indexT >= offsetIndexT &&
+                           indexT <= offsetIndexT + tDimensionSize - sizeT)
                         {
                           pageList.rest();
                           pageList.rest();
@@ -2649,7 +2704,9 @@ Word mt<Type, Properties>::In(const ListExpr typeInfo,
 
                                   Index<3> index((int[]){(indexX + column),
                                                          (indexY + row),
-                                                         (indexT + time)});
+                                                         (indexT -
+                                                          offsetIndexT +
+                                                          time)});
                                   Type value = Properties::TypeProperties::
                                                GetUndefinedValue();
 
@@ -2869,7 +2926,8 @@ ListExpr mt<Type, Properties>::Out(ListExpr typeInfo,
         NList tintList;
         tintList.append(0);
         tintList.append(0);
-        tintList.append(0);
+        tintList.append((int)(pmt->m_Grid.GetT() /
+                              pmt->m_Grid.GetDuration().ToDouble()));
 
         Type undefinedValue = Properties::TypeProperties::GetUndefinedValue();
         NList valueList;

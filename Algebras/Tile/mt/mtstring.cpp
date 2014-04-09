@@ -263,50 +263,58 @@ void mtstring::atinstant(const Instant& rInstant,
 
   if(IsDefined())
   {
-    ritstring.SetDefined(true);
+    double instant = rInstant.ToDouble();
+    double timeOffset = m_Grid.GetT();
+    double duration = m_Grid.GetDuration().ToDouble();
     
-    tstring tstring(true);
-    tstring.SetGrid(m_Grid);
-
-    int time = static_cast<int>(rInstant.ToDouble() /
-                                m_Grid.GetDuration().ToDouble());
-    int tDimensionSize = mtProperties<std::string>::GetTDimensionSize();
-    bool btstringDefined = false;
-
-    if(time < tDimensionSize)
+    if(instant >= timeOffset)
     {
-      Index<3> minimumIndex;
-      Index<3> maximumIndex;
-      bool bOK = GetBoundingBoxIndexes(minimumIndex, maximumIndex);
+      int time = static_cast<int>((instant - timeOffset) / duration);
+      int tDimensionSize = mtProperties<std::string>::GetTDimensionSize();
 
-      if(bOK == true)
+      if(time < tDimensionSize)
       {
-        for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
-        {
-          for(int column = minimumIndex[0]; column < maximumIndex[0]; column++)
-          {
-            Index<3> index3((int[]){column, row, time});
-            std::string value = GetValue(index3);
+        ritstring.SetDefined(true);
 
-            if(mtProperties<std::string>::TypeProperties::
-               IsUndefinedValue(value) == false)
+        tstring tstring(true);
+        tstring.SetGrid(m_Grid);
+
+        bool btstringDefined = false;
+
+        Index<3> minimumIndex;
+        Index<3> maximumIndex;
+        bool bOK = GetBoundingBoxIndexes(minimumIndex, maximumIndex);
+
+        if(bOK == true)
+        {
+          for(int row = minimumIndex[1]; row < maximumIndex[1]; row++)
+          {
+            for(int column = minimumIndex[0]; column < maximumIndex[0];
+                column++)
             {
-              btstringDefined = true;
-              Index<2> index2((int[]){column, row});
-              tstring.SetValue(index2, value, true);
+              Index<3> index3((int[]){column, row, time});
+              std::string value = GetValue(index3);
+
+              if(mtProperties<std::string>::TypeProperties::
+                 IsUndefinedValue(value) == false)
+              {
+                btstringDefined = true;
+                Index<2> index2((int[]){column, row});
+                tstring.SetValue(index2, value, true);
+              }
             }
           }
         }
+
+        if(btstringDefined == false)
+        {
+          tstring.SetDefined(false);
+        }
+
+        ritstring.SetInstant(rInstant);
+        ritstring.SetValues(tstring);
       }
     }
-    
-    if(btstringDefined == false)
-    {
-      tstring.SetDefined(false);
-    }
-
-    ritstring.SetInstant(rInstant);
-    ritstring.SetValues(tstring);
   }
 }
 
@@ -344,6 +352,7 @@ void mtstring::atperiods(const Periods& rPeriods,
       if(bOK == true)
       {
         int tDimensionSize = mtProperties<std::string>::GetTDimensionSize();
+        double t = m_Grid.GetT();
         datetime::DateTime gridDuration = m_Grid.GetDuration();
         double duration = gridDuration.ToDouble();
 
@@ -360,8 +369,8 @@ void mtstring::atperiods(const Periods& rPeriods,
               if(mtProperties<std::string>::TypeProperties::
                  IsUndefinedValue(value) == false)
               {
-                datetime::DateTime startTime = time * duration;
-                datetime::DateTime endTime = (time + 1) * duration;
+                datetime::DateTime startTime = t + time * duration;
+                datetime::DateTime endTime = t + (time + 1) * duration;
 
                 Interval<DateTime> timeInterval(startTime, endTime,
                                                 true, false);
@@ -421,9 +430,10 @@ void mtstring::atrange(const Rectangle<2>& rRectangle,
   if(IsDefined() &&
      rRectangle.IsDefined())
   {
-    double instant1 = 0;
-    double instant2 = (mtProperties<std::string>::GetTDimensionSize() - 1) *
-                       m_Grid.GetDuration().ToDouble();
+    double t = m_Grid.GetT();
+    double instant1 = t;
+    double instant2 = t + (mtProperties<std::string>::GetTDimensionSize() - 1) *
+                           m_Grid.GetDuration().ToDouble();
 
     atrange(rRectangle, instant1, instant2, rmtstring);
   }
@@ -1112,6 +1122,8 @@ Word mtstring::In(const ListExpr typeInfo,
                   Cardinal valueListLength = static_cast<Cardinal>
                                              (sizeX * sizeY * sizeT);
 
+                  int offsetIndexT = -1;
+
                   instanceList.rest();
 
                   while(bOK &&
@@ -1135,12 +1147,20 @@ Word mtstring::In(const ListExpr typeInfo,
                         int tDimensionSize = mtProperties<std::string>::
                                              GetTDimensionSize();
 
+                        if(offsetIndexT == -1)
+                        {
+                          offsetIndexT = indexT;
+                          pmtstring->SetGridT(offsetIndexT *
+                                              duration.ToDouble());
+                        }
+
                         if(indexX >= 0 &&
                            indexX <= xDimensionSize - sizeX &&
                            indexY >= 0 &&
                            indexY <= yDimensionSize - sizeY &&
-                           indexT >= 0 &&
-                           indexT <= tDimensionSize - sizeT)
+                           sizeT <= tDimensionSize &&
+                           indexT >= offsetIndexT &&
+                           indexT <= offsetIndexT + tDimensionSize - sizeT)
                         {
                           pageList.rest();
                           pageList.rest();
@@ -1162,7 +1182,9 @@ Word mtstring::In(const ListExpr typeInfo,
 
                                   Index<3> index((int[]){(indexX + column),
                                                          (indexY + row),
-                                                         (indexT + time)});
+                                                         (indexT -
+                                                          offsetIndexT +
+                                                          time)});
                                   std::string stringValue = mtProperties
                                                             <std::string>::
                                                             TypeProperties::
@@ -1387,7 +1409,8 @@ ListExpr mtstring::Out(ListExpr typeInfo,
         NList tintList;
         tintList.append(0);
         tintList.append(0);
-        tintList.append(0);
+        tintList.append((int)(pmtstring->m_Grid.GetT() /
+                              pmtstring->m_Grid.GetDuration().ToDouble()));
 
         std::string undefinedStringValue = mtProperties<std::string>::
                                            TypeProperties::GetUndefinedValue();

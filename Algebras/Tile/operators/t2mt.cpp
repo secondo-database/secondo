@@ -106,17 +106,20 @@ int t2mtFunction(Word* pArguments,
              pInstant2->IsDefined())
           {
             int tDimensionSize = Properties::GetTDimensionSize();
-            int startTime = static_cast<int>
-                            (round(pInstant1->ToDouble() /
-                                   pDuration->ToDouble()));
-            int endTime = static_cast<int>
-                          (round(pInstant2->ToDouble() /
-                                 pDuration->ToDouble()));
+            int startTimeIndex = static_cast<int>
+                                 (round(pInstant1->ToDouble() /
+                                  pDuration->ToDouble()));
+            int endTimeIndex = static_cast<int>
+                               (round(pInstant2->ToDouble() /
+                                pDuration->ToDouble()));
+            double t = startTimeIndex * pDuration->ToDouble();
+            endTimeIndex -= startTimeIndex;
+            startTimeIndex = 0;
 
-            if(startTime >= 0 &&
-               startTime < tDimensionSize &&
-               endTime >= 0 &&
-               endTime < tDimensionSize)
+            if(startTimeIndex >= 0 &&
+               startTimeIndex < tDimensionSize &&
+               endTimeIndex >= 0 &&
+               endTimeIndex < tDimensionSize)
             {
               pResult->SetDefined(true);
 
@@ -130,6 +133,8 @@ int t2mtFunction(Word* pArguments,
 
               if(bOK == true)
               {
+                pResult->SetGridT(t);
+
                 Index<2> minimumIndex;
                 Index<2> maximumIndex;
                 bool bOK = pType->GetBoundingBoxIndexes(minimumIndex,
@@ -137,7 +142,7 @@ int t2mtFunction(Word* pArguments,
 
                 if(bOK == true)
                 {
-                  for(int time = startTime; time <= endTime; time++)
+                  for(int time = startTimeIndex; time <= endTimeIndex; time++)
                   {
                     for(int row = minimumIndex[1]; row < maximumIndex[1];
                         row++)

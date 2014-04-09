@@ -388,6 +388,7 @@ int toraster2Functionmt(Word* pArguments,
                 double sourceGridY = sourceGrid.GetY();
                 double sourceGridLength = sourceGrid.GetLength();
                 double sourceHalfGridLength = sourceGridLength / 2.0;
+                double sourceGridT = sourceGrid.GetT();
                 datetime::DateTime sourceGridDuration = sourceGrid.
                                                         GetDuration();
 
@@ -420,7 +421,8 @@ int toraster2Functionmt(Word* pArguments,
                                    sourceHalfGridLength;
                         double y = sourceGridY + row * sourceGridLength +
                                    sourceHalfGridLength;
-                        double t = time * sourceGridDuration.ToDouble() +
+                        double t = sourceGridT +
+                                   time * sourceGridDuration.ToDouble() +
                                    sourceGridDuration.ToDouble() / 2.0;
                         typename SourceTypeProperties::TypeProperties::
                         WrapperType wrappedValue;

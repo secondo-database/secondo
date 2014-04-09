@@ -153,6 +153,18 @@ class mtgrid : public tgrid
   bool operator==(const mtgrid& rmtgrid) const;
 
   /*
+  Method GetT returns the time origin of the mtgrid.
+
+  author: Dirk Zacher
+  parameters: -
+  return value: time origin of the mtgrid
+  exceptions: -
+
+  */
+
+  const double& GetT() const;
+
+  /*
   Method GetDuration returns the duration of the mtgrid.
 
   author: Dirk Zacher
@@ -163,6 +175,18 @@ class mtgrid : public tgrid
   */
 
   const datetime::DateTime& GetDuration() const;
+
+  /*
+  Method SetT sets the time origin of the mtgrid.
+
+  author: Dirk Zacher
+  parameters: rT - reference to time origin
+  return value: true, if time origin successfully set, otherwise false
+  exceptions: -
+
+  */
+
+  bool SetT(const double& rT);
 
   /*
   Method SetDuration sets the duration of the mtgrid.
@@ -518,6 +542,13 @@ class mtgrid : public tgrid
   static int SizeOfObj();
 
   private:
+
+  /*
+  Member m_dT contains the time origin of the grid.
+
+  */
+
+  double m_dT;
 
   /*
   Member m_Duration contains the duration for the time dimension.
