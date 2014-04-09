@@ -600,10 +600,10 @@ Copy constructor.
 
   Node& operator=(const Node& src){
     this->min = src.min;
-    this.max = src.max;
-    this.count = src.count;
-    this.id = src.id;
-    this.box = src.box;
+    this->max = src.max;
+    this->count = src.count;
+    this->id = src.id;
+    this->box = src.box;
     if(src.sons){
        sons = new Node[max+1];
        for(int i=0;i<count;i++){
