@@ -3316,19 +3316,25 @@ struct DisplayRegEx : DisplayFunction{
         finalStates = nl->Rest(finalStates);
         final[n] = true;
      }
-     set<int> table[numStates][numStates];
+     set<int>* table[numStates][numStates];
+     memset(table, 0, numStates*numStates*sizeof(void*)); 
+     
      while(!nl->IsEmpty(transitions)){
          ListExpr transition = nl->First(transitions);
          transitions = nl->Rest(transitions);
          int source = nl->IntValue(nl->First(transition));
          int value = nl->IntValue(nl->Second(transition));
          int target = nl->IntValue(nl->Third(transition));
-         (table[source][target]).insert(value);
+         if(!table[source][target]){
+           table[source][target] = new set<int>();
+         }    
+         (table[source][target])->insert(value);
      }
      for(int s=0;s<numStates;s++){
         for(int t=0;t<numStates;t++){
-           if(!table[s][t].empty()){
-              printtransition(s,t,table[s][t],final[s],final[t]);
+           if(table[s][t]){
+              printtransition(s,t,*table[s][t],final[s],final[t]);
+              delete table[s][t];
            }
         }
      }
