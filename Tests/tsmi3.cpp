@@ -73,14 +73,18 @@ bool CheckSmiError()
 
 
 
+namespace tmode{
+
 typedef enum {begin, commit} TMode;
 
-void Transaction(TMode m)
+}
+
+void Transaction(tmode::TMode m)
 {   
     bool rc=false;
     string modeStr="Commit";
     
-    if (m == begin) {
+    if (m == tmode::begin) {
       modeStr = "Begin";
       rc = SmiEnvironment::BeginTransaction();
     }  
@@ -154,7 +158,7 @@ void Initialize()
   SmiBtreeFile kf( SmiKey::String, true );
   if ( kf.Open( "SecondoCatalog" ) )
   {
-    Transaction(begin);
+    Transaction(tmode::begin);
     cout << "String BtreeFile created FileId=" << kf.GetFileId() << endl;
     cout << "BtreeFile name   =" << kf.GetName() << endl;
     cout << "BtreeFile context=" << kf.GetContext() << endl;
@@ -163,7 +167,7 @@ void Initialize()
     InsertRec(kf, "Berta", "Bernhard");
     InsertRec(kf, "Ceasar", "Cecilie");
     
-    Transaction(commit);
+    Transaction(tmode::commit);
     cout << "SmiBtreeFile:.Close: rc=" << kf.Close() << endl;
   }
   else
@@ -189,7 +193,7 @@ void TestBtreeFiles()
     
     string cmd="", ckey="", cval="";
     
-    Transaction(begin);
+    Transaction(tmode::begin);
     do
     {
       cout << endl 
@@ -231,14 +235,14 @@ void TestBtreeFiles()
       }
       else if ( cmd == "c" )
       {
-        Transaction(commit);
-        Transaction(begin);
+        Transaction(tmode::commit);
+        Transaction(tmode::begin);
       }
     }
     while ( cmd != "q" );
 
     cout << "Close: " << kf.Close() << endl;
-    Transaction(commit);
+    Transaction(tmode::commit);
   }
   else
   {
