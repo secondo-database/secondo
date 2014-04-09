@@ -659,7 +659,7 @@ This function removes the signum of this number when its value is zero.
 
 */
 void CorrectSignum(){
-   if(IsZero){
+   if(IsZero()){
        signum=true;
    }
 }
