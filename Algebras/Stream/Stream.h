@@ -145,9 +145,10 @@ Request for Progress.
 Close Progress
 
 */
-   void closeProgress(){
-      qp->CloseProgress(source);
-   }
+//   void closeProgress(){
+//      qp->CloseProgress(source);
+//   }
+
 
 
 
