@@ -1847,7 +1847,7 @@ avlseg::ownertype selectNext(const T1& v1,
                                     vector<avlseg::ExtendedHalfSegment>,
                                     greater<avlseg::ExtendedHalfSegment> >& q2,
                      avlseg::ExtendedHalfSegment& result,
-                     int& src = 0
+                     int src = 0
                     ){
 
   const avlseg::ExtendedHalfSegment* values[4];
