@@ -2377,7 +2377,7 @@ void MakeRealm::REALM( const Region* reg1,
 {
    PQueue pqueue ;  // priority Queue for XEvents
    // Prepare the first region for PlanSweep
-   Segment segs[ (reg1->Size() + reg2->Size() )  / 2 ];
+   Segment* segs = new Segment[ (reg1->Size() + reg2->Size() )  / 2 ];
    int count = 0;
    // insert all segments of region1 into priority queue
    for (int i=0; i<reg1->Size(); i++)   {
@@ -2431,6 +2431,7 @@ void MakeRealm::REALM( const Region* reg1,
       counter++;
    }
    result2->EndBulkLoad();
+   delete[] segs;
    //cout << "REALM1" << endl;
    //cout << *result1 << endl;
    //cout << "REALM2" << endl;
@@ -2442,7 +2443,7 @@ void MakeRealm::REALM(const Region* reg1, const Region* reg2,
 {
    PQueue pqueue ;  // priority Queue for XEvents
    // Prepare the region for PlanSweep
-   Segment segs[ (reg1->Size() + reg2->Size()) / 2 ];
+   Segment* segs = new Segment[ (reg1->Size() + reg2->Size()) / 2 ];
    int count = 0;
    // insert all segments of region1 into priority queue
    for (int i=0; i<reg1->Size(); i++)   {
@@ -2492,6 +2493,7 @@ void MakeRealm::REALM(const Region* reg1, const Region* reg2,
    }
    // VTA - I need to come back here
    result2->EndBulkLoad();
+   delete[] segs;
 }
 
 void MakeRealm::REALM(const Line* line1, const Region* reg2,
@@ -2499,7 +2501,7 @@ void MakeRealm::REALM(const Line* line1, const Region* reg2,
 {
    PQueue pqueue ;  // priority Queue for XEvents
    // Prepare the line for PlanSweep
-   Segment segs[ (line1->Size() + reg2->Size()) / 2 ];
+   Segment* segs = new Segment[ (line1->Size() + reg2->Size()) / 2 ];
    int count = 0;
    // insert all segments of region1 into priority queue
    for (int i=0; i<line1->Size(); i++)   {
@@ -2548,6 +2550,7 @@ void MakeRealm::REALM(const Line* line1, const Region* reg2,
       counter++;
    }
    result2->EndBulkLoad();
+   delete[] segs;
 }
 
 void MakeRealm::REALM(const Line* line1, const Line* line2,
@@ -2555,7 +2558,7 @@ void MakeRealm::REALM(const Line* line1, const Line* line2,
 {
    PQueue pqueue ;  // priority Queue for XEvents
    // Prepare the first line for PlanSweep
-   Segment segs[ (line1->Size() + line2->Size()) /2 ];
+   Segment* segs = new Segment[ (line1->Size() + line2->Size()) /2 ];
    int count = 0;
    // insert all segments of line into priority queue
    for (int i=0; i<line1->Size(); i++)   {
@@ -2609,6 +2612,7 @@ void MakeRealm::REALM(const Line* line1, const Line* line2,
    result2->EndBulkLoad();
    //cout << result1 << endl;
    //cout << result2 << endl;
+   delete[] segs;
 }
 
 template<class T> void MakeRealm::readhalfsegments(vector<HalfSegment>& v,
