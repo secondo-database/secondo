@@ -558,13 +558,13 @@ class const_iterator{
 
      const_iterator& operator++(){
         if(dbarray){
-          if(position<dbarray.Size()){
+          if(position<dbarray->Size()){
             position++;
-            if(position<dbarray.Size()){
+            if(position<dbarray->Size()){
                 dbarray->Get(position,elem);
             }
           } else { // end() reached
-             position = dbarray.Size();
+             position = dbarray->Size();
           }
         } else { // single element iterator
            if(position<=0){ // 0 or -1 allowed
