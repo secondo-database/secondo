@@ -46,7 +46,7 @@ overwrite the necessary methods.
 
 // #define USE_RIGHTDOM_HALFSEGMENT
 
-#include <tr1/unordered_map>
+#include <unordered_map>
 #include <queue>
 #include <stdexcept>
 
@@ -84,7 +84,7 @@ class SweepEvent
 */
 private:
   InternalLineSegment* _segment;
-  std::tr1::unordered_set<InternalLineSegment*> *_intersectedSegments;
+  std::unordered_set<InternalLineSegment*> *_intersectedSegments;
   InternalIntersectionPoint _point;
   SweepEventType _eventType;
   bool _belongsToSecondGeometry;
@@ -98,7 +98,7 @@ private:
              const InternalIntersectionPoint& point)
   {
     _segment = NULL;
-    _intersectedSegments = new std::tr1::unordered_set<InternalLineSegment*>();
+    _intersectedSegments = new std::unordered_set<InternalLineSegment*>();
     _eventType = eventType;
     _point = point;
   }
@@ -212,7 +212,7 @@ public:
 1.1.1 ~GetIntersectedSegments~
 
 */
-  std::tr1::unordered_set<InternalLineSegment*>* GetIntersectedSegments() const
+  std::unordered_set<InternalLineSegment*>* GetIntersectedSegments() const
   {
     return _intersectedSegments;
   }
@@ -364,7 +364,7 @@ class SweepStateData
 */
 private:
   InternalLineSegment* _firstSegment;
-  std::tr1::unordered_set<InternalLineSegment*>* _segments;
+  std::unordered_set<InternalLineSegment*>* _segments;
   InternalPoint _minLeft;
   InternalPoint _maxRight;
 
@@ -406,7 +406,7 @@ public:
     }
 
     if (_segments == NULL) {
-      _segments = new std::tr1::unordered_set<InternalLineSegment*>();
+      _segments = new std::unordered_set<InternalLineSegment*>();
     }
 
     _segments->insert(segment);
@@ -543,7 +543,7 @@ public:
       result->push_back(_firstSegment);
     } else {
       result->push_back(_firstSegment);
-      for (std::tr1::unordered_set<InternalLineSegment*>::const_iterator
+      for (std::unordered_set<InternalLineSegment*>::const_iterator
       i = _segments->begin();
           i != _segments->end(); ++i) {
         result->push_back(*i);
@@ -883,7 +883,7 @@ public:
       size_t lastNodeIndex;
 
       if (sweepEvent->GetIntersectedSegments()->size() == 2) {
-        std::tr1::unordered_set<InternalLineSegment*>::const_iterator i =
+        std::unordered_set<InternalLineSegment*>::const_iterator i =
             sweepEvent->GetIntersectedSegments()->begin();
 
         AvlTreeNode<InternalLineSegment*, SweepStateData*>* n0 =
@@ -938,7 +938,7 @@ public:
     }
 
     if (calculateRegionCoverage) {
-      for (std::tr1::unordered_set<InternalLineSegment*>::const_iterator i =
+      for (std::unordered_set<InternalLineSegment*>::const_iterator i =
           sweepEvent->GetIntersectedSegments()->begin();
           i != sweepEvent->GetIntersectedSegments()->end(); ++i) {
         InternalLineSegment* segment = *i;
@@ -979,8 +979,8 @@ public:
     firstNodeIndex = offset;
     lastNodeIndex = offset;
 
-    for (std::tr1::unordered_set<InternalLineSegment*>::const_iterator 
-              i = sweepEvent->GetIntersectedSegments()->begin();
+    for (std::unordered_set<InternalLineSegment*>::const_iterator i = sweepEvent
+        ->GetIntersectedSegments()->begin();
         i != sweepEvent->GetIntersectedSegments()->end(); ++i) {
       InternalLineSegment* segment = *i;
       AvlTreeNode<InternalLineSegment*, SweepStateData*>* currentNode =
@@ -1104,14 +1104,14 @@ private:
 
 */
 #ifdef USE_RIGHTDOM_HALFSEGMENT
-  std::tr1::unordered_map<
+  std::unordered_map<
   HalfSegmentIntersectionId,
   InternalLineSegment*> _activeSegments;
 #else
-  std::tr1::unordered_set<InternalLineSegment*> _activeSegments;
+  std::unordered_set<InternalLineSegment*> _activeSegments;
   #endif
 
-  std::tr1::unordered_map<
+  std::unordered_map<
       InternalIntersectionPoint,
       SweepEvent*,
       InternalIntersectionPointComparer,

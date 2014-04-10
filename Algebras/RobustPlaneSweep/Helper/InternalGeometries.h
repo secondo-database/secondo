@@ -40,7 +40,7 @@ This header file contains all internal geometry structs and classes.
 #pragma once
 
 #include <vector>
-#include <tr1/unordered_set>
+#include <unordered_set>
 #include <map>
 #include <algorithm>
 

@@ -309,7 +309,7 @@ void BentleyOttmann::FlushProcessedSegments()
         breakupUntil);
   }
 #else
-  for (tr1::unordered_set<InternalLineSegment*>::const_iterator
+  for (unordered_set<InternalLineSegment*>::const_iterator
   i = _activeSegments.begin();
       i != _activeSegments.end(); ++i) {
     (*i)->BreakupLines(*transformation,
@@ -782,7 +782,7 @@ void BentleyOttmann::AddIntersection(InternalLineSegment* l,
 
     if (!overlappingSegments && !isCurrentPoint) {
       if (intersectionEvent == NULL) {
-        tr1::unordered_map<
+        unordered_map<
             InternalIntersectionPoint,
             SweepEvent*,
             InternalIntersectionPointComparer,

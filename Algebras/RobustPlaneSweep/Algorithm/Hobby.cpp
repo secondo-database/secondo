@@ -127,7 +127,7 @@ bool Hobby::AddSegmentEvent(int topSquareEdge,
 */
 void Hobby::AddEvents()
 {
-  for (tr1::unordered_set<InternalLineSegment*>::const_iterator segment =
+  for (unordered_set<InternalLineSegment*>::const_iterator segment =
       _openSegments.begin(); segment != _openSegments.end(); ++segment) {
 
     _events.push_back(HobbyEvent(HobbyEventType::SegmentExit,
@@ -139,7 +139,7 @@ void Hobby::AddEvents()
   InternalIntersectionPoint hammockEnd(_currentHammockEnd, 0);
 
   vector<int> squares;
-  for (tr1::unordered_set<int>::const_iterator i = _addedSquares.begin();
+  for (unordered_set<int>::const_iterator i = _addedSquares.begin();
       i != _addedSquares.end(); ++i) {
     squares.push_back(*i);
   }
@@ -212,7 +212,7 @@ void Hobby::ProcessEvents()
 
   sort(_events.begin(), _events.end());
 
-  tr1::unordered_set<InternalLineSegment*> activeLineSegments;
+  unordered_set<InternalLineSegment*> activeLineSegments;
 
   bool inToleranceSquare = false;
   int currentSquareY = 0;
@@ -227,7 +227,7 @@ void Hobby::ProcessEvents()
 
       currentSquareY = GetTransformation()->RoundRational(e->GetY() + _spacing);
 
-      for (tr1::unordered_set<InternalLineSegment*>::const_iterator s =
+      for (unordered_set<InternalLineSegment*>::const_iterator s =
           activeLineSegments.begin(); s != activeLineSegments.end(); ++s) {
         if (_ignoredIntersections.find(std::make_pair(currentSquareY, *s))
             == _ignoredIntersections.end()) {
