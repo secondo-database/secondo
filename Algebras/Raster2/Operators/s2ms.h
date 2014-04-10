@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef RASTER2_S2MS_H
 #define RASTER2_S2MS_H
 
-#include <tr1/unordered_set>
+#include <unordered_set>
 
 #include <AlgebraTypes.h>
 #include <DateTime.h>

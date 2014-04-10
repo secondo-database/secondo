@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <cstring>
 #include <iostream>
 #include <list>
-#include <tr1/unordered_map>
+#include <unordered_map>
 
 #include <SecondoSMI.h>
 #include <RTreeAlgebra.h>
@@ -330,8 +330,8 @@ The ~RasterCache<T, dim, Undef>~ class template manages the cache for a
         typedef typename std::list<Index>::iterator LRU_Pointer;
 
         typedef std::pair<Item*, LRU_Pointer> ValuePair;
-        typedef std::tr1::unordered_map<Index, ValuePair> DataCache;
-        typedef std::tr1::unordered_map<Index, TreeEntry> TreeCache;
+        typedef std::unordered_map<Index, ValuePair> DataCache;
+        typedef std::unordered_map<Index, TreeEntry> TreeCache;
 
         RasterCache(size_t s, R_Tree<dim, Index>* t);
         ~RasterCache();
@@ -1726,7 +1726,6 @@ The constructor of ~RasterStorageRegionIterator~ is private, because
 }
 
 namespace std {
-    namespace tr1 {
         template<int dim>
         struct hash<raster2::RasterIndex<dim> > {
             size_t operator()(const raster2::RasterIndex<dim>& value) const {
@@ -1737,7 +1736,6 @@ namespace std {
                 return result;
             }
         };
-    }
 }
 
 #endif /* RASTER2\_RASTERSTORAGE\_H */

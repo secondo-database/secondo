@@ -30,6 +30,8 @@ include ../../makefile.env
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS)
 
+CCFLAGS += -std=c++0x
+
 # To enable logging of operations on the RasterStorage, define
 # RASTERSTORAGE_LOGFILE to be the name of the log file, that should be
 # generated. The log file is overwritten in each invocation of Secondo.

@@ -1036,22 +1036,22 @@ public:
 	bool validateHeaderData(){
 		return (currentEsriHDR.ncols != -1) &&
 	           (currentEsriHDR.nrows != -1) &&
-	           !isnan(currentEsriHDR.cellsize) &&
+	           !std::isnan(currentEsriHDR.cellsize) &&
 	           (getUseCorner() || getUseCenter());
     }
 
 	bool getUseCorner(){
-		return isnan(originEsriHDR.xllcenter) &&
-		       isnan(currentEsriHDR.xllcenter) &&
-		       isnan(originEsriHDR.yllcenter) &&
-		       isnan(currentEsriHDR.yllcenter);
+		return std::isnan(originEsriHDR.xllcenter) &&
+		       std::isnan(currentEsriHDR.xllcenter) &&
+		       std::isnan(originEsriHDR.yllcenter) &&
+		       std::isnan(currentEsriHDR.yllcenter);
 	}
 
 	bool getUseCenter(){
-		return isnan(originEsriHDR.xllcorner) &&
-		       isnan(currentEsriHDR.xllcorner) &&
-		       isnan(originEsriHDR.yllcorner) &&
-		       isnan(currentEsriHDR.yllcorner);
+		return std::isnan(originEsriHDR.xllcorner) &&
+		       std::isnan(currentEsriHDR.xllcorner) &&
+		       std::isnan(originEsriHDR.yllcorner) &&
+		       std::isnan(currentEsriHDR.yllcorner);
 	}
 
 	bool checkRasterExtend(){

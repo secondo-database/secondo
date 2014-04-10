@@ -41,8 +41,8 @@ data. The template arguments are
 #include <stdexcept>
 #include <vector>
 #include <string>
-#include <tr1/unordered_set>
-#include <tr1/unordered_map>
+#include <unordered_set>
+#include <unordered_map>
 #include <utility>
 
 #include <SecondoSMI.h>
@@ -313,12 +313,12 @@ member variables are provided for convenience.
 
         // Initially empty. Eventually contains the time components of all
         // region indices
-        std::tr1::unordered_set<int> done;
+        std::unordered_set<int> done;
 
         // For each region (identified by the time component of its index), this
         // will contain the set of time offsets, at which no defined value has
         // been found.
-        std::tr1::unordered_map<int, std::tr1::unordered_set<int> > gaps;
+        std::unordered_map<int, std::unordered_set<int> > gaps;
 
         // Whether a valid entry has been found at the current row and column.
         // This allows advancing to the next time index without iterating over
@@ -349,8 +349,8 @@ member variables are provided for convenience.
 
 
             // Iterate over the gaps, that the current region can fill.
-            std::tr1::unordered_set<int>::iterator it = gaps[(*rit)[2]].begin();
-            std::tr1::unordered_set<int>::iterator  e = gaps[(*rit)[2]].end();
+            std::unordered_set<int>::iterator it = gaps[(*rit)[2]].begin();
+            std::unordered_set<int>::iterator  e = gaps[(*rit)[2]].end();
             while (it != e)
             {
                 found = false;

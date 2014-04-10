@@ -209,7 +209,7 @@ namespace raster2
 	    if(v != EsriRasterData->currentEsriHDR.nodata_value){
          const T& v1 = rs[ri];
 
-         if(isnan(v1)){
+         if(std::isnan(v1)){
           rs[ri] = v;
 
           if(v < minimum)

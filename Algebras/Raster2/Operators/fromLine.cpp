@@ -20,14 +20,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include <tr1/unordered_set>
+#include <unordered_set>
 
 #include "fromLine.h"
 
 namespace raster2 {
 
   void drawLine(
-      sbool& sb, std::tr1::unordered_set<RasterIndex<2> >& regions,
+      sbool& sb, std::unordered_set<RasterIndex<2> >& regions,
       RasterIndex<2> from, RasterIndex<2> to);
 
   int fromLineFun(Word* args, Word& result, int message, Word& local,
@@ -60,7 +60,7 @@ namespace raster2 {
 
     HalfSegment hs;
 
-    std::tr1::unordered_set<sbool::index_type> regions;
+    std::unordered_set<sbool::index_type> regions;
 
     for (int i = 0; i < lineLength; i++) {
       line->Get(i, hs);
@@ -76,7 +76,7 @@ namespace raster2 {
     if(falsify){
       const sbool::index_type& region_size = sbool::storage_type::region_size;
 
-      for (std::tr1::unordered_set<sbool::index_type>::iterator
+      for (std::unordered_set<sbool::index_type>::iterator
               it = regions.begin(), e = regions.end();
            it != e; ++it)
       {
@@ -112,7 +112,7 @@ namespace raster2 {
   }
 
   void drawLine(
-      sbool& sb, std::tr1::unordered_set<RasterIndex<2> >& regions,
+      sbool& sb, std::unordered_set<RasterIndex<2> >& regions,
       RasterIndex<2> from, RasterIndex<2> to)
   {
     if (from[0] > to[0]) {
