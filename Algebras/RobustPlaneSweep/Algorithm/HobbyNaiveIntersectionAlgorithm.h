@@ -45,7 +45,7 @@ Then tolerance square edges are constructed and a second sweep is performed.
 
 #pragma once
 
-#include <unordered_set>
+#include <tr1/unordered_set>
 #include <vector>
 #include "SimpleSweepIntersectionAlgorithm.h"
 
@@ -60,7 +60,7 @@ class HobbyNaiveIntersectionAlgorithm :
     public SimpleSweepIntersectionAlgorithm
 {
 private:
-  std::unordered_set<
+  std::tr1::unordered_set<
       InternalPoint,
       InternalPointComparer,
       InternalPointComparer> _roundedPoints;

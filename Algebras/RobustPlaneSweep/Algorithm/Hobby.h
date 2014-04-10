@@ -45,7 +45,7 @@ overwrite the necessary methods.
 #pragma once
 
 #include <limits>
-#include <unordered_set>
+#include <tr1/unordered_set>
 
 #include "BentleyOttmann.h"
 
@@ -240,15 +240,15 @@ private:
   int _currentHammockStart;
   int _currentHammockEnd;
 
-  std::unordered_set<InternalLineSegment*> _addedSegments;
-  std::unordered_set<InternalLineSegment*> _openSegments;
-  std::unordered_set<
+  std::tr1::unordered_set<InternalLineSegment*> _addedSegments;
+  std::tr1::unordered_set<InternalLineSegment*> _openSegments;
+  std::tr1::unordered_set<
       std::pair<int, InternalLineSegment*>,
       IgnoredIntersectionsComparer,
       IgnoredIntersectionsComparer> _ignoredIntersections;
 
   std::vector<HobbyEvent> _events;
-  std::unordered_set<int> _addedSquares;
+  std::tr1::unordered_set<int> _addedSquares;
   int _spacing;
 
   void ProcessEvents();
@@ -361,9 +361,9 @@ protected:
                                    sweepEvent->GetPoint().GetY(),
                                    sweepEvent->GetSegment()));
     } else if (sweepEvent->GetEventType() == SweepEventType::Intersection) {
-      std::unordered_set<InternalLineSegment*>* intersectedSegments =
+      std::tr1::unordered_set<InternalLineSegment*>* intersectedSegments =
           sweepEvent->GetIntersectedSegments();
-      for (std::unordered_set<InternalLineSegment*>::const_iterator
+      for (std::tr1::unordered_set<InternalLineSegment*>::const_iterator
       s = intersectedSegments->begin();
           s != intersectedSegments->end(); ++s) {
         _ignoredIntersections.insert(std::make_pair(square, *s));

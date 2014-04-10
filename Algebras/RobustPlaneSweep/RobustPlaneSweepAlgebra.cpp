@@ -1218,7 +1218,7 @@ deterministic, so there is no need for AlmostEqual.
 1.1.1 Member Variables
 
 */
-  std::unordered_set<Point, PointComparer> _overlappingPoints;
+  std::tr1::unordered_set<Point, PointComparer> _overlappingPoints;
   std::vector<Point> _possibleCrossings;
 
   Points& _result;

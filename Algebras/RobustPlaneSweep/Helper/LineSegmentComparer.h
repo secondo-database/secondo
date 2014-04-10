@@ -40,7 +40,7 @@ This file is not required for SECONDO. It is only used inside the test project.
 #pragma once
 
 #include <vector>
-#include <unordered_map>
+#include <tr1/unordered_map>
 #include <utility>
 
 #ifdef RPS_TEST
@@ -67,7 +67,7 @@ private:
   std::vector<HalfSegment> _segments0;
   std::vector<HalfSegment> _segments1;
 
-  std::unordered_map<
+  std::tr1::unordered_map<
       double,
       std::pair<std::vector<size_t>*, std::vector<size_t>*>>
   _possiblePairs;
@@ -107,7 +107,7 @@ public:
 */
   ~LineSegmentComparer()
   {
-    for (std::unordered_map<double,
+    for (std::tr1::unordered_map<double,
         std::pair<std::vector<size_t>*, std::vector<size_t>*>>::const_iterator
     i = _possiblePairs.begin();
         i != _possiblePairs.end(); ++i) {
