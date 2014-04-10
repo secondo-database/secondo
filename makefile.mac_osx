@@ -50,7 +50,7 @@ ifeq ($(shared),yes)
 PICFLAG := -fPIC
 OBJEXT := lo
 LIBEXT := dylib 
-LDFLAGS := -bundle -flatnamespace
+LDFLAGS := -bundle -flat_namespace
 else
 OBJEXT := o
 LIBEXT := a
@@ -61,5 +61,5 @@ endif
 DLLPICFLAG := -fPIC
 DLLOBJEXT := lo
 DLLEXT := dylib 
-DLLFLAGS := -dynamiclib -flatnamespace
+DLLFLAGS := -dynamiclib -flat_namespace
 DLLPREF := lib
