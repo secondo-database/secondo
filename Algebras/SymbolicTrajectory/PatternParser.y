@@ -563,39 +563,6 @@ int Pattern::getResultPos(const string v) {
 }
 
 /*
-function ~getUnit~
-Searches varP in the pattern and verifies the correct order of variables in the
-result pattern. In case of success, the unit pattern gets the suitable values.
-
-*/
-// void PatElem::getUnit(const char *varP, bool order) {
-//   if (!order || firstAssign) {
-//     pos = 0; // reset counter for first assignment
-//     firstAssign = false;
-//   }
-//   string varStr(varP);
-//   bool found = false;
-//   PatElem elem;
-//   while ((pos < wholepat->getElems().size()) && !found) { // look for var
-//     wholepat->getElem(pos, elem);
-//     if (!elem.var.compare(varStr)) {
-//       var = elem.var;
-//       ivs = elem.ivs;
-//       lbs = elem.lbs;
-//       wc = elem.wc;
-//       found = true;
-//       curIvs = ivs;
-// /*       cout << "variable " << var << " found in pattern " << pos << endl; */
-//     }
-//     pos++;
-//   }
-//   if (!found) {
-//     var.clear();
-//     cout << "variable " << varStr << " not found" << endl;
-//   }
-// }
-
-/*
 function ~stringToSet~
 
 Converts a string containing time, label, or place information for internal
@@ -668,6 +635,19 @@ void PatElem::stringToSet(const string& input, bool isTime) {
       }
     }
   }
+}
+
+/*
+\subsubsection{Function ~hasRealInterval~}
+
+*/
+bool PatElem::hasRealInterval() const {
+  for (set<string>::iterator is = ivs.begin(); is != ivs.end(); is++) {
+    if (Tools::isInterval(*is)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /*
