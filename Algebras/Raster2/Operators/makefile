@@ -29,9 +29,9 @@ include ../../../makefile.env
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) -I ../../RTree -I ../../Spatial -I ../../Rectangle -I ../../Relation-C++ -I ../../BTree -I ../../Temporal -I ../../FText -I ../../Stream 
 
-
-CCFLAGS += -std=c++0x
-
+ifneq ($(platform),mac_osx)
+  CCFLAGS += -std=c++0x
+endif
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
