@@ -62,8 +62,33 @@ exists(get train7 from [train7, six30] where train7:t = six30:t ) =>> X.
 
 
 
+moSQL(
+  select (get trip:pos from [trip, six30] where trip:t = six30:t) as atsix30
+  from trains
+  where exists(get trip from [trip, mehringdamm] where trip:pos = mehringdamm:pos),
+  X).
+
+	X = (select[val(trip atinstant six30)as atsix30]from trains where [trip passes mehringdamm]).
 
 
+moSQL(
+  select *
+  from trains
+  where exists(get * from [trip, mehringdamm] where trip:pos = mehringdamm:pos),
+  X).
+
+	X = (select[*]from trains where [trip passes mehringdamm]).
+
+
+
+
+moSQL(
+  select count(*)
+  from trains
+  where exists(get * from [trip, mehringdamm] where trip:pos = mehringdamm:pos),
+  X).
+
+	X = (select count(*)from trains where trip passes mehringdamm).
 
 
 
