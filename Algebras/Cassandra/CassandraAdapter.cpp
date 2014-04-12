@@ -219,7 +219,7 @@ string CassandraAdapter::getInsertCQL(string key, string value,
     stringstream ss;
     ss << "INSERT INTO ";
     ss << relation;
-    ss << " (id, key, value)";
+    ss << " (partition, key, value)";
     ss << " VALUES (";
     
     string quote = "'";
@@ -254,7 +254,7 @@ bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
     stringstream ss;
     ss << "SELECT value FROM ";
     ss << relation;
-    ss << " WHERE id = '";
+    ss << " WHERE partition = '";
     ss << CassandraAdapter::METADATA_TUPLETYPE;
     ss << "';";
     string query = ss.str();
@@ -329,7 +329,6 @@ void CassandraAdapter::getLokalTokenRanges(
     // Normal case: Find all local token ranges between nodes
     for(size_t i = 0; i < allTokens.size() - 1; ++i) {
       
-      
       long currentToken = allTokens.at(i);
       long nextToken = allTokens.at(i + 1);
       
@@ -373,13 +372,13 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
        ss << "where ";
       
        TokenInterval interval = *iter;
-       ss << "token(id) >= " << interval.getStart() << " ";
+       ss << "token(partition) >= " << interval.getStart() << " ";
     
        // End of the ring must be included
        if(interval.getEnd() == LLONG_MAX) {
-          ss << "and token(id) <= " << interval.getEnd();   
+          ss << "and token(partition) <= " << interval.getEnd();   
        } else {
-          ss << "and token(id) < " << interval.getEnd();        
+          ss << "and token(partition) < " << interval.getEnd();        
        }
        
        ss << ";";
@@ -434,8 +433,8 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     stringstream ss;
     ss << "CREATE TABLE IF NOT EXISTS ";
     ss << tablename;
-    ss << " ( id text, key text,";
-    ss << " value text, PRIMARY KEY(id, key));";
+    ss << " ( partition text, key text,";
+    ss << " value text, PRIMARY KEY(partition, key));";
 
     bool resultCreate = executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
     
@@ -445,7 +444,7 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     // Write tupletype
     if(resultCreate) {
       bool resultInsert = executeCQLSync(
-            // ID is Tupletype, HashValue is Tupletype
+            // Partition is Tupletype, Key is Tupletype
             getInsertCQL(CassandraAdapter::METADATA_TUPLETYPE,
                          tupleType, CassandraAdapter::METADATA_TUPLETYPE, 
                          tablename),
