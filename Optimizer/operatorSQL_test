@@ -1,13 +1,13 @@
-from [mp, i] where mp:t = i:t select mp =>> X.
+get mp from [mp, i] where mp:t = i:t =>> X.
 
 	X = (mp atinstant i)
 
 
-from [mp, pe] where mp:t = pe:t select mp =>> X.
+get mp from [mp, pe] where mp:t = pe:t  =>> X.
 
 	X = (mp atperiods pe)
 
-from [mp, i] where mp:t = i:t =>> X.
+_ from [mp, i] where mp:t = i:t =>> X.
 
 	X = r(mp, mp atinstant i, intime(point))
 
@@ -30,35 +30,35 @@ s(mr, mr atinstant i, intime(real), mr:v) =>> Term.
 
 
 
-from [mp, i] where mp:t = i:t =>> X. 
+_ from [mp, i] where mp:t = i:t =>> X. 
 
 	X = r(mp, mp atinstant i, intime(point))
 
-from [mp, pe] where mp:t = pe:t =>> X.
+_ from [mp, pe] where mp:t = pe:t =>> X.
 
 	X = r(mp, mp atperiods pe, moving(point)).
 
-from [train7, mehringdamm] where train7:pos = mehringdamm:pos select train7:t =>> X.
+get train7:t from [train7, mehringdamm] where train7:pos = mehringdamm:pos  =>> X.
 
 	X = deftime(train7 at mehringdamm)
 
-from [train7, tiergarten] where train7:pos = tiergarten:pos select train7:pos =>> X.
+get train7:pos from [train7, tiergarten] where train7:pos = tiergarten:pos  =>> X.
 
 	X = trajectory(train7 at tiergarten)
 
-from [mi, ira] where mi:v = ira:v select mi:v =>> X.
+get mi:v from [mi, ira] where mi:v = ira:v  =>> X.
 
 	X = rangevalues(mi at ira)
 
 
 
-exists(from [train7, tiergarten] where train7:pos = tiergarten:pos select train7:pos) =>> X.
+exists(get train7:pos from [train7, tiergarten] where train7:pos = tiergarten:pos ) =>> X.
 
+	exists(get train7:pos from [train7, tiergarten] where train7:pos = tiergarten:pos ) =>> X.
 
+exists(get train7 from [train7, six30] where train7:t = six30:t ) =>> X.
 
-exists(from [train7, six30] where train7:t = six30:t select train7) =>> X.
-
-
+	X = (train7 present six30)
 
 
 

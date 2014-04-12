@@ -3,10 +3,10 @@ Translation of SQL Queries into Moving Object Operators
 
 */
 
-
-:- op(940, fx, from).
+:- op(970, fx, get).
+:- op(960, xfx, from).
 :- op(950, xfx, where).
-:- op(960, xfx, select).
+:- op(950, fx, select).
 :- op(980, xfx, =>>).
 :- op(800, xfx, atinstant).
 :- op(800, xfx, atperiods).
@@ -17,8 +17,15 @@ Translation of SQL Queries into Moving Object Operators
 
 
 
-Join select Project =>> Term :-
-  Join =>> r(Name, Term1, Type1),
+% Join select Project =>> Term :-
+%   Join =>> r(Name, Term1, Type1),
+%   s(Name, Term1, Type1, Project) =>> Term.
+
+
+
+
+get Project from Join =>> Term :-
+  _ from Join =>> r(Name, Term1, Type1),
   s(Name, Term1, Type1, Project) =>> Term.
 
 
@@ -30,55 +37,42 @@ For the moment, we allow to consider from the result of the join only the projec
 
 */
 
-from [X, Y] where X:t = Y:t =>> r(X, X atinstant Y, intime(T)) :-
+_ from [X, Y] where X:t = Y:t =>> r(X, X atinstant Y, intime(T)) :-
   type(X, moving(T)),
   type(Y, instant).
 
-from [X, Y] where X:t = Y:t =>> r(X, X atperiods Y, moving(T)) :-
+_ from [X, Y] where X:t = Y:t =>> r(X, X atperiods Y, moving(T)) :-
   type(X, moving(T)),
   type(Y, periods).
 
-from [X, Y] where X:pos = Y:pos =>> r(X, X at Y, moving(XType)) :-
+_ from [X, Y] where X:pos = Y:pos =>> r(X, X at Y, moving(XType)) :-
   type(X, moving(XType)),
   type(Y, YType),
   member(XType, [point, region]),
   member(YType, [point, line, region]).
 
-from [X, Y] where X:v = Y:v =>> r(X, X at Y, moving(XType)) :-
+_ from [X, Y] where X:v = Y:v =>> r(X, X at Y, moving(XType)) :-
   type(X, moving(XType)),
   type(Y, range(XType)),
   member(XType, [int, real, bool, string]).
 
 
 
-exists (from [X, Y] where X:t = Y:t select _) =>> X present Y :-
+exists (get _ from [X, Y] where X:t = Y:t) =>> X present Y :-
   type(X, moving(_)),
   type(Y, YType),
   member(YType, [instant, periods]).
 
-exists (from [X, Y] where X:pos = Y:pos select _) =>> X passes Y :-
+exists (get _ from [X, Y] where X:pos = Y:pos) =>> X passes Y :-
   type(X, moving(XType)),
   type(Y, YType),
   member(XType, [point, region]),
   member(YType, [point, line, region]).
 
-exists (from [X, Y] where X:v = Y:v select _) =>> X passes Y :-
+exists (get _ from [X, Y] where X:v = Y:v) =>> X passes Y :-
   type(X, moving(XType)),
   type(Y, range(XType)),
   member(XType, [int, real, bool, string]).
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
