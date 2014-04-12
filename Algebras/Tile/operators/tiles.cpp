@@ -445,8 +445,9 @@ int tilesFunctionmt(Word* pArguments,
                   raster2::grid3 grid = pSourceType->getGrid();
                   double gridLength = grid.getLength();
                   double halfGridLength = gridLength / 2.0;
-                  double gridDuration = grid.getDuration().ToDouble();
-                  double halfGridDuration = gridDuration / 2.0;
+                  datetime::DateTime gridDuration = grid.getDuration();
+                  double dGridDuration = grid.getDuration().ToDouble();
+                  double halfGridDuration = dGridDuration / 2.0;
                   int xDimensionSize = DestinationTypeProperties::
                                        GetXDimensionSize();
                   int yDimensionSize = DestinationTypeProperties::
@@ -473,7 +474,7 @@ int tilesFunctionmt(Word* pArguments,
                                      halfGridLength;
                           double y = pResultInfo->m_dY + row * gridLength +
                                      halfGridLength;
-                          double t = pResultInfo->m_dT + time * gridDuration +
+                          double t = pResultInfo->m_dT + time * dGridDuration +
                                      halfGridDuration;
                           
                           typename DestinationTypeProperties::TypeProperties::
@@ -500,7 +501,7 @@ int tilesFunctionmt(Word* pArguments,
                       if(pResultInfo->m_dY >=
                          pResultInfo->m_BoundingBox.MaxD(1))
                       {
-                        pResultInfo->m_dT += tDimensionSize * gridDuration;
+                        pResultInfo->m_dT += tDimensionSize * dGridDuration;
 
                         if(pResultInfo->m_dT <
                            pResultInfo->m_BoundingBox.MaxD(2))
