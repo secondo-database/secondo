@@ -4,19 +4,22 @@ Translation of SQL Queries into Moving Object Operators
 */
 
 :- op(970, fx, get).
+:- op(980, xfx, =>>).
+:- op(970, fx, exists).
+
+
+	/*
 :- op(960, xfx, from).
 :- op(950, xfx, where).
 :- op(950, fx, select).
 :- op(930, xfy,  as).
-:- op(980, xfx, =>>).
 :- op(800, xfx, atinstant).
 :- op(800, xfx, atperiods).
 :- op(800, xfx, at).
-:- op(970, fx, exists).
+
 :- op(800, xfx, present).
 :- op(800, xfx, passes).
-
-
+	*/
 
 
 
@@ -55,6 +58,11 @@ _ from [X, Y] where X:v = Y:v =>> r(X, X at Y, moving(XType)) :-
 
 
 
+_ from X =>> r(X, X, XType) :- 
+  type(X, XType).
+
+
+
 exists (get _ from [X, Y] where X:t = Y:t) =>> X present Y :-
   type(X, moving(_)),
   type(Y, YType),
@@ -78,7 +86,11 @@ Translation of Projections
 
 */
 
-s(Name, Term, intime(_), Name) =>> Term.
+s(_, Term, _, *) =>> Term.
+
+s(Name, Term, _, Name) =>> Term.
+
+
 
 s(Name, Term, intime(_), Name:t) =>> inst(Term).
 
@@ -89,7 +101,6 @@ s(Name, Term, intime(T), Name:v) =>> val(Term) :-
   memberchk(T, [int, real, bool, string]).
 
 
-s(Name, Term, moving(_), Name) =>> Term.
 
 s(Name, Term, moving(_), Name:t) =>> deftime(Term).
 
@@ -155,7 +166,12 @@ moSQL(select Attrs from Rels where Preds,
   makeNoList(Attrs3, Attrs4),
   makeList(Preds, Preds2),
   moPreds(Preds2, Preds3),
-  makeNoList(Preds3, Preds4).
+  makeNoList(Preds3, Preds4),
+  !.
+
+moSQL(X, X).
+
+
 
 moAttrs([], []).
 
@@ -194,9 +210,12 @@ moPred(X, X).
 
 
 
-makeList(L, L) :- is_list(L).
 
-makeList(L, [L]) :- not(is_list(L)).
+% makeList defined elsewhere
+
+% makeList(L, L) :- is_list(L).
+
+% makeList(L, [L]) :- not(is_list(L)).
 
 
 makeNoList([X], X) :- 
