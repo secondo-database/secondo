@@ -1227,19 +1227,17 @@ class FilterMatchesLI {
 };
 
 struct IndexMatchInfo {
-  IndexMatchInfo() : range(false), start(INT_MAX), size(0) {}
-  IndexMatchInfo(int s) : range(false), start(INT_MAX), size(s) {}
-  IndexMatchInfo(int s, bool r, int st) : range(r), size(s) {if (range) {
-    start = st;} else {items.insert(st);}}
+  IndexMatchInfo() : range(false), next(INT_MAX), size(0) {}
+  IndexMatchInfo(int s) : range(false), next(INT_MAX), size(s) {}
+  IndexMatchInfo(int s, bool r, int n) : range(r), next(n), size(s) {}
   
   bool operator<(const IndexMatchInfo& rhs) const;
-  void print(TupleId tId, int pE);
-  bool finished();
+  void print(const bool printBinding);
+  bool finished() const;
   bool matches(const int unit) const;
 
   bool range;
-  int start, size;
-  set<int> items;
+  int next, size;
   map<string, pair<unsigned int, unsigned int> > binding;
 };
 
@@ -1265,19 +1263,24 @@ friend class IndexMatchesLI;
   void getValueTids(const string& value, vector<set<TupleId> >& tidsets, 
                     bool place = false, unsigned int ref = UINT_MAX);
   void applyIndexes(Pattern *p, const set<int>& elems, set<TupleId>& result);
-  void initialize(Pattern *p, bool active[]);
+  void initialize(Pattern *p);
   int getMsize(TupleId tId);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
+  template<class M>
+  bool imiMatch(Match<M>& match, const PatElem& elem, 
+                                       const pair<TupleId, IndexMatchInfo>& pos,
+         const int newState, map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
   bool valuesMatch(const PatElem& elem, const pair<TupleId,IndexMatchInfo>& pos,
-             const int unit, map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
+                   const int newState, const int unit, 
+                   map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
   void applySetRel(const SetRel setRel, 
                    vector<set<pair<TupleId, int> > >& valuePosVec,
                    set<pair<TupleId, int> >& result);
-  void getCandidateSets(const PatElem& elem, bool active[], 
-                        set<pair<TupleId, int> >& pos, set<TupleId>& tids);
+  void getCandidateSets(const PatElem& elem, set<pair<TupleId, int> >& pos, 
+                        set<TupleId>& tids);
   bool simpleMatch(const PatElem& elem, const int state, const int newState,
                   const set<pair<TupleId, int> >& pos, const set<TupleId>& tids,
-              bool active[], map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
+                   map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
   bool wildcardMatch(const int state, const int newState,
                      map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
   bool timesMatch(TupleId tId, unsigned int ulId, set<string>& ivs);
@@ -1286,7 +1289,8 @@ friend class IndexMatchesLI;
   Classifier *c;
   Relation *mRel;
   queue<pair<string, TupleId> > classification;
-  set<TupleId> matches;
+  vector<TupleId> matches;
+  bool *active;
   map<int, multimap<TupleId, IndexMatchInfo> > matchInfo;
   TupleType* classifyTT;
   InvertedFile* invFile;
@@ -1304,7 +1308,7 @@ class IndexMatchesLI : public IndexClassifyLI {
   ~IndexMatchesLI() {}
 
   Tuple* nextTuple();
-  void applyNFA(Pattern *p, bool active[]);
+  void applyNFA(Pattern *p);
 };
 
 class UnitsLI {
