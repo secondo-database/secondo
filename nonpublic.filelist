@@ -16,6 +16,7 @@ MAttiaTestsAlgebra MAttiaTests
 PartitionedStreamAlgebra PartitionedStream
 TrafficAlgebra Traffic
 RIndexAlgebra RIndex
+PreciseAlgebra Precise
 
 
 # Plugins
