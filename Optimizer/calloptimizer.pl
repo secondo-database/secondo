@@ -1,4 +1,6 @@
 /*
+//[Appendix] [\appendix]
+
 ----
 This file is part of SECONDO.
 
@@ -20,7 +22,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//[Appendix] [\appendix]
+
 
 [Appendix]
 
@@ -28,20 +30,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
 
-Predicate ~load_storefiles~: Safely consult files.
+Predicate ~load\_storefiles~: Safely consult files.
 
 ----
   load_storefiles(:Files)
   load_storefiles(:Files, +Options)
 ----
 
-Failsave loading of stored meta data. Files are created if necessary before
+Failsafe loading of stored meta data. Files are created if necessary before
 trying to read them.
 
 */
 
-% open the file for append to create is prior to read access (which would fail
-% with an error if the file does not exist yet).
+% open the file for append to create is prior to read access (which 
+% would fail with an error if the file does not exist yet).
 open_files([F|More]) :-
   open_files(F),
   open_files(More), !.
@@ -101,7 +103,7 @@ will print the according (and hopefully helpful) information to the screen.
 
 :- assert(helpLine(helpMe,2,
     [[+,'PredicateName','The predicate to get information about.'],
-     [+,'Arity','Chooses amongh predicates with more than one arity.']],
+     [+,'Arity','Chooses among predicates with more than one arity.']],
     'Show help on a user level predicate with a given arity.')).
 :- assert(helpLine(helpMe,1,
     [[+,'PredicateName','The predicate get get information about.']],
@@ -110,8 +112,9 @@ will print the according (and hopefully helpful) information to the screen.
 
 helpMe(Pred, Arity) :-
   helpLine(Pred, Arity, Params, Meaning),
-  nl, write('Help on predicate \''), write(Pred), write('/'), write(Arity),
-  write('\':  '), write(Meaning), nl,                                       %'
+  nl, write('Help on predicate \''), write(Pred), write('/'), 
+  write(Arity),
+  write('\':  '), write(Meaning), nl,                                %'
   write('  '), write(Pred),
   ( Arity > 0
     -> ( write('('), nl,
@@ -123,21 +126,25 @@ helpMe(Pred, Arity) :-
   nl, !.
 
 helpMe(Pred, Arity) :-
-  nl, write('No help available for predicate \''), write(Pred), write('/'), %'
-  write(Arity), write('\'.'), nl,                                           %'
+  nl, write('No help available for predicate \''), write(Pred), 
+	write('/'), %'
+  write(Arity), write('\'.'), nl,                                     %'
   fail.
 
 helpMe(Pred) :-
-  findall( [Pred, Arity, Meaning], helpLine(Pred, Arity, _, Meaning), PredList),
+  findall( [Pred, Arity, Meaning], 
+	helpLine(Pred, Arity, _, Meaning), PredList),
   sort(PredList,PredList2),
   length(PredList2, L),
   ( L > 1
     -> ( nl,
-         write('There are several arities for predicate \''), write(Pred), %'
-         write('\'\n'),                                                    %'
+         write('There are several arities for predicate \''), 
+		write(Pred), %'
+         write('\'\n'),                                           %'
          write('Help is available on the following arities:'), nl,
          format('  ~w~20|/~w~28|~w~n',['Predicate','Arity','Meaning']),
-         write('---------------------------------------------------------'), nl,
+     write('---------------------------------------------------------'), 
+	 nl,
          helpMePrintLine(PredList2),
          nl, write('Use \'helpMe(Pred,Arity).\''),
          write(' for help on a certain arity of that predicate.'), nl
@@ -147,17 +154,19 @@ helpMe(Pred) :-
               helpMe(Pred, Arity)
             )
          ;  ( % L = 0
-              write('There is no help on predicate \''), write(Pred),    %'
-              write('\'.'), nl                                           %'
+              write('There is no help on predicate \''), write(Pred), %'
+              write('\'.'), nl                                        %'
             )
        )
   ),
   !.
 
 helpMe :-
-  nl, write('Help is available on the following user level predicates:'), nl,
+  nl, write('Help is available on the following user level predicates:'), 
+	nl,
   format('  ~w~20|/~w~28|~w~n',['Predicate','Arity','Meaning']),
-  write('---------------------------------------------------------'), nl,
+  write('---------------------------------------------------------'), 
+	nl,
   findall( [Pred, Arity, Meaning],
           ( helpLine(Pred , Arity, _, Meaning)
           ),
@@ -177,7 +186,8 @@ helpMePrintLine([[Pred, Arity, Meaning]|X]) :-
   !.
 
 helpMeWriteParamList([[Type,Name,Meaning]]) :-
-  write('    '), write(Type), write(Name), write(':\t'), write(Meaning), nl, !.
+  write('    '), write(Type), write(Name), write(':\t'), 
+	write(Meaning), nl, !.
 helpMeWriteParamList([[Type,Name,Meaning]|X]) :-
   write('    '), write(Type), write(Name), write(':\t'),
   write(Meaning), write(','), nl,
@@ -204,14 +214,16 @@ The optimizer is started by loading this file.
 % Prolog 5.4.7. does not show a prompt when started in rxvt on
 % windows using SecondoPL. The predicate below will solve this.
 % The solution was found in the SWI-Prolog mailing list.
-% http://gollem.science.uva.nl/SWI-Prolog/mailinglist/archive/2005/q3/0349.html
+% http://gollem.science.uva.nl/SWI-Prolog/
+%   mailinglist/archive/2005/q3/0349.html
 
-% C. Duentgen, Feb/2006: The solution used deprecated predicates, which now
-% have been replaced by newer ones for more recent polog versions.
+% C. Duentgen, Feb/2006: The solution used deprecated predicates, which 
+% now have been replaced by newer ones for more recent polog versions.
 getprompt :-
   current_prolog_flag(version,Version),
   ( (Version >=50407)
-    -> ( (Version >= 50600) % test for version of SWI-Prolog later than 5.6
+    -> ( (Version >= 50600) 
+			% test for version of SWI-Prolog later than 5.6
           -> (  % using ISO stream predicates for recent versions
                stream_property(ConIn,  file_no(0)),
                stream_property(ConIn,  mode(read)),
@@ -226,9 +238,12 @@ getprompt :-
                set_stream(ConErr, tty(true))
             )
           ; (  % using deprecated predicates for old versions
-               current_stream(0, read, ConIn), set_stream(ConIn, tty(true)),
-               current_stream(1, write, ConOut), set_stream(ConOut, tty(true)),
-               current_stream(2, write, ConErr), set_stream(ConErr, tty(true))
+               current_stream(0, read, ConIn), 
+		set_stream(ConIn, tty(true)),
+               current_stream(1, write, ConOut), 
+		set_stream(ConOut, tty(true)),
+               current_stream(2, write, ConErr), 
+		set_stream(ConErr, tty(true))
             )
        )
      ; true).
@@ -253,8 +268,10 @@ meaning when typing ~showOptions/0~. Predicates ~setOption/1~ and
    dynamic(optimizerOptionInfo/6).
 
 /*
----- optimizerOptionInfo(+Option,+SuperOption,-NonStandard,-Meaning,-GoalOn,-GoalOff)
+---- 	optimizerOptionInfo(+Option,+SuperOption,-NonStandard,-Meaning,
+	-GoalOn,-GoalOff)
 ----
+
 Provides information on optimizer options. ~Option~ is the option in question,
 ~Meaning~ is a description of that option. When ~Option~ get activated, ~GoalOn~
 should be called, is it is deactivated, ~GoalOff~ is called.
@@ -345,11 +362,11 @@ optimizerOptionInfo(costsConjuctive, none, yes,
 
 */
 optimizerOptionInfo(determinePredSig, none, yes,
-                    'Send queries to investigate predicate argument types.',
+  'Send queries to investigate predicate argument types.',
                     true, (delOption(improvedcosts))).
 
 optimizerOptionInfo(use_matchingOperators, determinePredSig, yes,
-                    'Use \'matchingOperators\' instead of \'getTypeNL\' to determine types.',
+  'Use \'matchingOperators\' instead of \'getTypeNL\' to determine types.',
                     (setOption(determinePredSig)), true).
 
 optimizerOptionInfo(immediatePlan, none, yes,
@@ -432,21 +449,21 @@ optimizerOptionInfo(intOrders(test), immediatePlan, yes,
 
 %LargeQueries start
 optimizerOptionInfo(largeQueries(qgd), none, yes,
-                    'Large predicate set optimization (query graph decomposition)',
+  'Large predicate set optimization (query graph (QG) decomposition)',
                     (delOption(largeQueries(aco)), 
                      delOption(largeQueries(qgdm)), 
                      loadFiles(largequeries),
                      initLargeQueries), true).
 
 optimizerOptionInfo(largeQueries(qgdm), none, yes,
-                    'Large predicate set optimization (query graph decomposition and materialization)',
+'Large predicate set optimization (QG decomposition and materialization)',
                     ( delOption(largeQueries(aco)), 
                       delOption(largeQueries(qgd)), 
                       loadFiles(largequeries),
                       initLargeQueries), true).
 
 optimizerOptionInfo(largeQueries(aco), none, yes,
-                    'Large predicate set optimization (ascending cost order)',
+  'Large predicate set optimization (ascending cost order)',
                     (delOption(largeQueries(qgd)), 
                      delOption(largeQueries(qgdm)),
                      loadFiles(largequeries),
@@ -460,13 +477,13 @@ optimizerOptionInfo(pathTiming, none, no,
                     'Prompt time used to find a best path.',
                     true, true).
 optimizerOptionInfo(dynamicSample, none, yes,
-                    'Use dynamic instead of static (saved) samples.', true,
+  'Use dynamic instead of static (saved) samples.', true,
                     ( notIsDatabaseOpen ; ensureSamplesExist ) ).
 optimizerOptionInfo(autoSamples, none, no,
                     'Automatically determine sample sizes.',
                     true, true).
 optimizerOptionInfo(eagerObjectCreation, none, yes,
-                'Create all samples and small objects at \'open databases\'.',
+  'Create all samples and small objects at \'open databases\'.',
                     true, true).
 optimizerOptionInfo(rewriteMacros, none, no,
                     'Allow for macros in queries.',
@@ -525,6 +542,7 @@ optimizerOptionInfo(subqueryUnnesting, subqueries, yes,
      setOtion(+Option)
      delOption(+Option)
 ----
+
 Show information of possible optimizer options and current option settings, select and unselect
 optimizer options.
 
@@ -543,7 +561,8 @@ showOptions :-
   write('\n\nOptimizer options (and sub-options):\n'),
   showOption(Options),
   write('\nType \'loadOptions.\' to load the saved option configuration.\n'),
-  write('Type \'saveOptions.\' to save current option configuration to disk.\n'),
+  write(
+    'Type \'saveOptions.\' to save current option configuration to disk.\n'),
   write('Type \'defaultOptions.\' to restore the default options.\n'),
   write('Type \'setOption(X).\' to select option X.\n'),
   write('Type \'delOption(X).\' to unselect option X.\n'),
@@ -673,7 +692,8 @@ integrated debugging features.
   [[+,'Level','The name of the debug level to add to the debug list']],
   'Add a given level to the debug list.')).
 :- assert(helpLine(nodebugLevel,1,
-  [[+,'Level','The name of the debug level to remove from the debug list']],
+  [[+,'Level',
+    'The name of the debug level to remove from the debug list']],
   'Remove a given level from the debug list.')).
 
 ppCostFactor(0) :-
@@ -735,7 +755,7 @@ debugLevel(Mode) :-
   write_list(['DebugLevel \'',Mode,'\' is unknown.\n\n',
               'Available debugLevels are:\n',L,'.\n\n',
               'Active debugLevels are:\n',A,'.\n',
-              'DebugLevel \'none\' deactivates all qualified debugging.\n\n']),
+  'DebugLevel \'none\' deactivates all qualified debugging.\n\n']),
   !.
 
 % handle more than a single mode
@@ -805,6 +825,7 @@ loadFiles(standard) :-
     [searchtree],
     [relations],
     [testExamples],
+    [operatorSQL],	% operatorSQL
 % Section:Start:loadFiles_1_i
 % Section:End:loadFiles_1_i
     retractall(loadedModule(_)),
@@ -911,9 +932,10 @@ dm(Level, X) :-
     -> write_list(X)
     ;  ( optDebugLevel(Level)
            -> true
-           ;  ( write_list(['\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
-                    '\tplease register it with a fact optDebugLevel/1 in file',
-                    '\n\tcalloptimizer.pl.\n\n']),
+           ;  ( write_list([
+		  '\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
+              '\tplease register it with a fact optDebugLevel/1 in file',
+                  '\n\tcalloptimizer.pl.\n\n']),
                 write_list(X)
               )
        )
@@ -942,9 +964,10 @@ dc(Level, Command) :-
        )
     ;  ( optDebugLevel(Level)
          -> true
-         ;  write_list(['\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
-                    '\tplease register it with a fact optDebugLevel/1 in file',
-                    '\tcalloptimizer.pl.\n\n'])
+         ;  write_list([
+		'\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
+                '\tplease register it with a fact optDebugLevel/1 in file',
+                '\tcalloptimizer.pl.\n\n'])
        )
   ), !.
 dc(_, _) :- !.
@@ -962,7 +985,7 @@ dc(_, _) :- !.
 
 % Startup procedure for the optimizer
 :- [opsyntax].
-:- loadFiles(standard).        % load the files for the standard optimizer
+:- loadFiles(standard).    % load the files for the standard optimizer
 
 % NVK ADDED: Initialize the extensions.
 :- ['./NestedRelations/init.pl'].
@@ -989,9 +1012,12 @@ to disk automatically on system halt.
 
 */
 
-:- assert(helpLine(defaultOptions,0,[],'Choose the default option setting.')).
-:- assert(helpLine(loadOptions,0,[],'Restore option settings to saved ones.')).
-:- assert(helpLine(saveOptions,0,[],'Save option settings to disk.')).
+:- assert(helpLine(defaultOptions,0,[],
+	'Choose the default option setting.')).
+:- assert(helpLine(loadOptions,0,[],
+	'Restore option settings to saved ones.')).
+:- assert(helpLine(saveOptions,0,[],
+	'Save option settings to disk.')).
 
 defaultOptions :-
   setOption(standard),
@@ -1050,7 +1076,8 @@ initializeOptions :-
     )
   ).
 
-:- at_halt((optimizerOption(autosave), saveOptions)). % automatically safe option configuration on exit
+:- at_halt((optimizerOption(autosave), saveOptions)). 
+	% automatically save option configuration on exit
 :- initializeOptions.
 
 /*
@@ -1061,8 +1088,10 @@ initializeOptions :-
 :- showOptions.
 %:-   nl, write('NOTE: SWI-Prolog Version 5.4.7 shows '),
 %     write('no prompt in the MSYS console!'), nl,
-%     write('      A workaround is to type in the predicate "getprompt."'), nl, nl.
-:- ( current_prolog_flag(windows,true), % query getprompt on windows systems
+%     write('      A workaround is to type in the predicate "getprompt."'), 
+%	nl, nl.
+:- ( current_prolog_flag(windows,true), 
+	% query getprompt on windows systems
      getprompt
    ) ; true.
 
@@ -1094,7 +1123,8 @@ Testing in database opt
 tt :- runExamples, showOptions.
 
 q1 :- sql select count(*) from[plz as a, plz as b] where[a:ort = b:ort].
-q2 :- sql select count(*) from[plz as p1, plz as p2, staedte as s] where[s:sname = p1:ort, p2:ort = s:sname].
+q2 :- sql select count(*) from[plz as p1, plz as p2, staedte as s] 
+	where[s:sname = p1:ort, p2:ort = s:sname].
 
 s1 :- setOption(intOrders(quick)), tt, q1.
 s2 :- setOption(intOrders(on)), q1.
