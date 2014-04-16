@@ -193,7 +193,7 @@ int getOpSigVM1 (Word* args, Word& result, int message, Word& local,
      res->Set("getOpSig called without tminit");
      return 0;
    }
-   string v = nl->ToString(mapper->getOpSig(an->GetValue(),on->GetValue()));
+   string v = pnl->ToString(mapper->getOpSig(an->GetValue(),on->GetValue()));
    res->Set(true,v);
    return 0;
 }
