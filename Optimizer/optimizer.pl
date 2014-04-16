@@ -9341,7 +9341,8 @@ optimize(Query, QueryOut, CostOut) :-
   retractall(removefilter(_)),		% some cleanups before new query
   retractall(memoryOp(_, _)),
   retractall(memory(_)),
-  rewriteQuery(Query, RQuery),		
+  moSQL(Query, MOQuery),		% see file operatorSQL.pl
+  rewriteQuery(MOQuery, RQuery),		
   callLookup(RQuery, Query2), !,	% the three main steps
   queryToPlan(Query2, Plan, CostOut), !,
   plan_to_atom(Plan, QueryOut).
