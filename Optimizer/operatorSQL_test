@@ -90,9 +90,22 @@ moSQL(
 
 	X = (select count(*)from trains where trip passes mehringdamm).
 
+moSQL(
+  select (get trip:pos from trip) as path from trains,
+  X).
 
 
+moSQL(
+  select count(*)
+  from trains as t
+  where exists(get * from [t:trip, mehringdamm] where (t:trip):pos = mehringdamm:pos),
+  X).
 
+works
 
+select count(*)
+  from trains as t
+  where exists(get * from [t:trip, mehringdamm] where (t:trip):pos = mehringdamm:pos)
 
+does not work
 

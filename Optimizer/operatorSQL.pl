@@ -5,7 +5,7 @@ Translation of SQL Queries into Moving Object Operators
 
 :- op(970, fx, get).
 :- op(980, xfx, =>>).
-:- op(970, fx, exists).
+:- op(940, fx, exists).
 
 
 	/*
@@ -167,6 +167,13 @@ moSQL(select Attrs from Rels where Preds,
   makeList(Preds, Preds2),
   moPreds(Preds2, Preds3),
   makeNoList(Preds3, Preds4),
+  !.
+
+moSQL(select Attrs from Rels, 
+  	select Attrs4 from Rels) :-
+  makeList(Attrs, Attrs2),
+  moAttrs(Attrs2, Attrs3),
+  makeNoList(Attrs3, Attrs4),
   !.
 
 moSQL(X, X).
