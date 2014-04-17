@@ -1284,6 +1284,7 @@ friend class IndexMatchesLI;
   bool wildcardMatch(const int state, const int newState,
                      map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
   bool timesMatch(TupleId tId, unsigned int ulId, set<string>& ivs);
+  void handleFinishedIMI(Pattern *p, const set<int>& states);
 
  private:
   Classifier *c;
@@ -1291,6 +1292,7 @@ friend class IndexMatchesLI;
   queue<pair<string, TupleId> > classification;
   vector<TupleId> matches;
   bool *active;
+  int activeTuples;
   map<int, multimap<TupleId, IndexMatchInfo> > matchInfo;
   TupleType* classifyTT;
   InvertedFile* invFile;

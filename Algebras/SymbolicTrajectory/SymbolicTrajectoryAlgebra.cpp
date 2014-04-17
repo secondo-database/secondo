@@ -7487,7 +7487,7 @@ void IndexMatchesLI::applyNFA(Pattern *p) {
   states.insert(0);
   set<pair<TupleId, int> > pos;
   set<TupleId> tids;
-  while (!matchInfo.empty()) {
+  while (activeTuples > 0) {
     map<int, multimap<TupleId, IndexMatchInfo> > newimi;
     for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
       map<int, int> trans = p->getTransitions(*is);
@@ -7512,13 +7512,21 @@ void IndexMatchesLI::applyNFA(Pattern *p) {
     }
     states = newStates;
     newStates.clear();
+    matchInfo.clear();
     matchInfo = newimi;
     newimi.clear();
     cout << "MAIN LOOP FINISHED; active states: ";
     for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
-      cout << *is << " with " << matchInfo[*is].size() << " IMI's;   ";
+      cout << *is << " with " << matchInfo[*is].size() << " IMI's: " << endl;
+      multimap<TupleId, IndexMatchInfo>::iterator im;
+      for (im = matchInfo[*is].begin(); im != matchInfo[*is].end(); im++) {
+        cout << "Tuple " << im->first << ", ";
+        im->second.print(false);
+      }
     }
     cout << endl;
+    handleFinishedIMI(p, states);
+    cout << activeTuples << " active tuples" << endl;
   }
 }
 
@@ -9214,6 +9222,7 @@ void IndexClassifyLI::applyIndexes(Pattern *p, const set<int>& elems,
 //   for (set<TupleId>::iterator it = result.begin(); it != result.end(); it++){
 //     cout << " " << *it;
 //   }
+  activeTuples = result.size();
   cout << " ---====> " << result.size() << " elements" << endl;
 }
 
@@ -9280,19 +9289,9 @@ bool IndexClassifyLI::wildcardMatch(const int state, const int newState,
   multimap<TupleId, IndexMatchInfo>::iterator imm;
   bool ok = false;
   for (imm = matchInfo[state].begin(); imm != matchInfo[state].end(); imm++) {
-    cout << "loop" << endl;
-    if (!imm->second.finished()) { // active trajectory
-      IndexMatchInfo imi(imm->second.size, true, 0);
-      imi.next = imm->second.next + 1;
-      if (imi.finished()) {
-        matches.push_back(imm->first);
-      }
-      else {
-        nmi[newState].insert(make_pair(imm->first, imi));
-        cout << "imi inserted for new state " << newState << endl;
-      }
-      ok = true;
-    }
+    IndexMatchInfo imi(imm->second.size, true, imm->second.next + 1);
+    nmi[newState].insert(make_pair(imm->first, imi));
+    ok = true;
   }
   return ok;
 }
@@ -9310,13 +9309,7 @@ bool IndexClassifyLI::imiMatch(Match<M>& match, const PatElem& elem,
     for (int i = pos.second.next; i < pos.second.size; i++) {
       if (match.valuesMatch(i, elem)) {
         IndexMatchInfo imi(pos.second.size, false, i + 1);
-        if (imi.finished()) {
-          matches.push_back(pos.first);
-          active[pos.first] = false;
-        }
-        else {
-          nmi[newState].insert(make_pair(pos.first, imi));
-        }
+        nmi[newState].insert(make_pair(pos.first, imi));
         return true;
       }
     }
@@ -9339,16 +9332,14 @@ bool IndexClassifyLI::imiMatch(Match<M>& match, const PatElem& elem,
 bool IndexClassifyLI::valuesMatch(const PatElem& elem,
    const pair<TupleId, IndexMatchInfo>& pos, const int newState, const int unit,
                             map<int, multimap<TupleId, IndexMatchInfo> >& nmi) {
+  if (!active[pos.first]) {
+    return false;
+  }
   if (unit >= 0) { // exact position from index
+    cout << "value found at unit " << unit << endl;
     if (pos.second.matches(unit)) {
-      IndexMatchInfo imi(pos.second.size, false, pos.second.next + 1);
-      if (imi.finished()) {
-        matches.push_back(pos.first);
-        active[pos.first] = false;
-      }
-      else {
-        nmi[newState].insert(make_pair(pos.first, imi));
-      }
+      IndexMatchInfo imi(pos.second.size, false, unit + 1);
+      nmi[newState].insert(make_pair(pos.first, imi));
       return true;
     }
     return false;
@@ -9513,16 +9504,12 @@ bool IndexClassifyLI::simpleMatch(const PatElem& elem, const int state, const
   multimap<TupleId, IndexMatchInfo>::iterator im;
   if (!pos.empty()) { // (t x) or (_ x)
     set<pair<TupleId, int> >::iterator it;
-    TupleId lastId = UINT_MAX;
     for (it = pos.begin(); it != pos.end(); it++) {
-      if (it->first != lastId) {
-        imm = matchInfo[state].equal_range(it->first);
-        for (im = imm.first; im != imm.second; im++) {
-          if (valuesMatch(elem, *im, newState, it->second, nmi)) {
-            transition = true;
-          }
+      imm = matchInfo[state].equal_range(it->first);
+      for (im = imm.first; im != imm.second; im++) {
+        if (valuesMatch(elem, *im, newState, it->second, nmi)) { // unit known
+          transition = true;
         }
-        lastId = it->first;
       }
     }
   }
@@ -9530,7 +9517,7 @@ bool IndexClassifyLI::simpleMatch(const PatElem& elem, const int state, const
     for (set<TupleId>::iterator is = tids.begin(); is != tids.end(); is++) {
       imm = matchInfo[state].equal_range(*is);
       for (im = imm.first; im != imm.second; im++) {
-        if (valuesMatch(elem, *im, newState, -1, nmi)) {
+        if (valuesMatch(elem, *im, newState, -1, nmi)) { // unit unknown
           transition = true;
         }
       }
@@ -9549,6 +9536,34 @@ bool IndexClassifyLI::simpleMatch(const PatElem& elem, const int state, const
     }
   }
   return transition;
+}
+
+/*
+\subsection{Function ~handleFinishedIMI~}
+
+TODO: do this when IMI is created;
+      set active to false for every tuple after every transition,
+          TRUE iff imi is created for this tuple
+
+*/
+void IndexClassifyLI::handleFinishedIMI(Pattern *p, const set<int>& states) {
+  cout << "handleFinishedIMI" << endl;
+  multimap<TupleId, IndexMatchInfo>::iterator imm;
+  for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
+    if (p->isFinalState(*is)) {
+      cout << "active state " << *is << " is final" << endl;
+      for (imm = matchInfo[*is].begin(); imm != matchInfo[*is].end(); imm++) {
+        if (imm->second.finished()) {
+          if (active[imm->first]) {
+            activeTuples--;
+            matches.push_back(imm->first);
+          }
+          active[imm->first] = false;
+          cout << "Tuple " << imm->first << " finished" << endl;
+        }
+      }
+    }
+  }  
 }
 
 /*
@@ -9686,7 +9701,7 @@ void IndexMatchInfo::print(const bool printBinding) {
 }
 
 bool IndexMatchInfo::finished() const {
-  return next >= size;
+  return range || (next >= size);
 }
 
 bool IndexMatchInfo::matches(const int unit) const {
