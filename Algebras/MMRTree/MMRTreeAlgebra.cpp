@@ -872,6 +872,7 @@ class ItSpatialJoinInfo{
                     s1(_s1), s2(_s2), min(_min), max(_max),
                     a1(_a1), a2(_a2), costEstimation(_costEstimation)
   {
+
       s1.open();
       s2.open();
       Tuple* t1 = s1.request();
@@ -887,22 +888,27 @@ class ItSpatialJoinInfo{
       // process the first Tuple
       if(t1){
          index = new mmrtree::RtreeT<dim, TupleId>(min,max);
-         int rootSize = t1->GetRootSize();
-         int sizePerTuple = rootSize + sizeof(void*) + 100;
+         int sizePerTuple =  sizeof(void*) + t1->GetMemSize();
          costEstimation -> setSizeOfTupleSt1(sizePerTuple);
-         maxTuples = (_maxMem*1024) / sizePerTuple; 
+         maxTuples = (_maxMem*1024) / sizePerTuple;
          if(maxTuples <= 10){
             maxTuples = 10; // force a minimum of ten tuples
+         } else {
+            size_t indexSize = index->guessSize(maxTuples, true);
+            maxTuples = ((_maxMem*1024)-indexSize)  / sizePerTuple;
+            if(maxTuples <=10){
+                maxTuples = 10;
+            }
          }
-        TupleId id = (TupleId) tuples1.size();
-        tuples1.push_back(t1);
-        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+         TupleId id = (TupleId) tuples1.size();
+         tuples1.push_back(t1);
+         Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
                          t1->GetAttribute(a1))->BoundingBox(); 
         index->insert(box,id);
       } else {
         index = 0;
         return; 
-      }     
+      }
       costEstimation -> processedTupleInStream1();
       t1 = s1.request();
       int noTuples = 1;
@@ -916,6 +922,7 @@ class ItSpatialJoinInfo{
         t1 = s1.request();
         noTuples++;
       }
+
       // process the last tuple if present
       if(t1){
         finished = false;
