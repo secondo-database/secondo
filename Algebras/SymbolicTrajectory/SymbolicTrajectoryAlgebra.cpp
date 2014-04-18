@@ -8954,6 +8954,7 @@ IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
               mRel(rel), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
   c = (Classifier*)_classifier.addr;
   active = new bool[mRel->GetNoTuples()];
+  memset(active, false, sizeof(active));
   classifyTT = ClassifyLI::getTupleType();
 }
 
@@ -8968,6 +8969,7 @@ IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
   c(0), mRel(rel), classifyTT(ClassifyLI::getTupleType()), invFile(inv),
   rtree(rt), attrNr(_attrNr), mtype(type) {
   active = new bool[mRel->GetNoTuples()];
+  memset(active, false, sizeof(active));
 }
 
 /*
@@ -9223,7 +9225,11 @@ void IndexClassifyLI::applyIndexes(Pattern *p, const set<int>& elems,
 //     cout << " " << *it;
 //   }
   activeTuples = result.size();
-  cout << " ---====> " << result.size() << " elements" << endl;
+  for (set<TupleId>::iterator it = result.begin(); it != result.end(); it++) {
+    IndexMatchInfo imi(getMsize(*it), false, 0);
+    matchInfo[0].insert(make_pair(*it, imi));
+    active[*it] = true;
+  }
 }
 
 /*
@@ -9244,11 +9250,7 @@ void IndexClassifyLI::initialize(Pattern *p) {
   set<int> cruElems;
   getCrucialElems(paths, cruElems);
   applyIndexes(p, cruElems, cands);
-  for (set<TupleId>::iterator it = cands.begin(); it != cands.end(); it++) {
-    IndexMatchInfo imi(getMsize(*it), false, 0);
-    matchInfo[0].insert(make_pair(*it, imi));
-    active[*it] = true;
-  }
+  cout << activeTuples << " tuples active after initialization" << endl;
 }
 
 /*
@@ -9289,9 +9291,16 @@ bool IndexClassifyLI::wildcardMatch(const int state, const int newState,
   multimap<TupleId, IndexMatchInfo>::iterator imm;
   bool ok = false;
   for (imm = matchInfo[state].begin(); imm != matchInfo[state].end(); imm++) {
-    IndexMatchInfo imi(imm->second.size, true, imm->second.next + 1);
-    nmi[newState].insert(make_pair(imm->first, imi));
-    ok = true;
+    if (active[imm->first] && (imm->second.next < imm->second.size)) {
+      IndexMatchInfo imi(imm->second.size, true, imm->second.next + 1);
+      nmi[newState].insert(make_pair(imm->first, imi));
+      ok = true;
+    }
+    else if (active[imm->first] && (imm->second.next >= imm->second.size)) {
+      cout << "IMI for tuple " << imm->first << " exhausted" << endl;
+      active[imm->first] = false;
+      activeTuples--;
+    }
   }
   return ok;
 }
@@ -9319,6 +9328,10 @@ bool IndexClassifyLI::imiMatch(Match<M>& match, const PatElem& elem,
     if (match.valuesMatch(pos.second.next, elem)) {
       IndexMatchInfo imi(pos.second.size, false, pos.second.next + 1);
       nmi[newState].insert(make_pair(pos.first, imi));
+      if (!active[pos.first]) {
+        activeTuples++;
+      }
+      active[pos.first] = true;
       result = true;
     }
   }
@@ -9333,6 +9346,12 @@ bool IndexClassifyLI::valuesMatch(const PatElem& elem,
    const pair<TupleId, IndexMatchInfo>& pos, const int newState, const int unit,
                             map<int, multimap<TupleId, IndexMatchInfo> >& nmi) {
   if (!active[pos.first]) {
+    return false;
+  }
+  if (pos.second.next >= pos.second.size) {
+    cout << "IMI for tuple " << pos.first << " exhausted" << endl;
+    active[pos.first] = false;
+    activeTuples--;
     return false;
   }
   if (unit >= 0) { // exact position from index
@@ -9541,10 +9560,6 @@ bool IndexClassifyLI::simpleMatch(const PatElem& elem, const int state, const
 /*
 \subsection{Function ~handleFinishedIMI~}
 
-TODO: do this when IMI is created;
-      set active to false for every tuple after every transition,
-          TRUE iff imi is created for this tuple
-
 */
 void IndexClassifyLI::handleFinishedIMI(Pattern *p, const set<int>& states) {
   cout << "handleFinishedIMI" << endl;
@@ -9553,12 +9568,10 @@ void IndexClassifyLI::handleFinishedIMI(Pattern *p, const set<int>& states) {
     if (p->isFinalState(*is)) {
       cout << "active state " << *is << " is final" << endl;
       for (imm = matchInfo[*is].begin(); imm != matchInfo[*is].end(); imm++) {
-        if (imm->second.finished()) {
-          if (active[imm->first]) {
-            activeTuples--;
-            matches.push_back(imm->first);
-          }
+        if (active[imm->first] && imm->second.finished()) {
+          matches.push_back(imm->first);
           active[imm->first] = false;
+          activeTuples--;
           cout << "Tuple " << imm->first << " finished" << endl;
         }
       }
