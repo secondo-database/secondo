@@ -218,12 +218,20 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
             } else {
                x0 = max(hs1.getLeftPoint().getX(), hs2.getLeftPoint().getX());
             }
+
             MPrecCoordinate y1 = hs1.getY(x0);
             MPrecCoordinate y2 = hs2.getY(x0);
             int cmp = y1.compare(y2);
             if(cmp!=0){
                return cmp;
             }
+            if(hs1.isVertical()){
+               return hs2.isVertical()?0:1;
+            }
+            if(hs2.isVertical()){
+              return -1;
+            }
+
 
             x0 = min(hs1.getRightPoint().getX(), hs2.getRightPoint().getX());
             y1 = hs1.getY(x0);

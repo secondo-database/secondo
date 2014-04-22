@@ -1170,6 +1170,7 @@ ListExpr PrecLine::ToListExpr(ListExpr typeInfo) const{
 
 void PrecLine::readFrom(const Line& line, int scale, bool useString, 
                         uint8_t digits){
+
     if(!line.IsDefined() || scale<=0){
       clear();
       SetDefined(false);
@@ -1188,9 +1189,8 @@ void PrecLine::readFrom(const Line& line, int scale, bool useString,
           hsv1.push_back(getMPrecHsExact(hs, scale));
        }
     }
-    vector<MPrecHalfSegment> hsv;
 
-    
+    vector<MPrecHalfSegment> hsv;
 
     hstools::realminize(hsv1,hsv);
 
@@ -1201,6 +1201,7 @@ void PrecLine::readFrom(const Line& line, int scale, bool useString,
        enlarge(bbox, mhs.getLeftPoint());
        enlarge(bbox, mhs.getRightPoint()); 
     }
+
     this->scale = scale; 
     SetDefined(true);
 }

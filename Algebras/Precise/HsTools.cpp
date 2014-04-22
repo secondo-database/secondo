@@ -344,6 +344,7 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
    void realminize(const vector<MPrecHalfSegment>& v, 
                    vector<MPrecHalfSegment>& res){
 
+
      avltree::AVLTree<MPrecHalfSegment, YComparator<MPrecHalfSegment> > sss;
 
      priority_queue<MPrecHalfSegment, 
@@ -387,8 +388,7 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
            current = es.top();
            es.pop();
        }
-       
-       
+
        if(first){
          lastX = current.getDomPoint().getX();
          first = false; 
@@ -399,7 +399,6 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
        }
 
         if(current.isLeftDomPoint()){
-           // cout << "LeftDomPoint" << endl;
            const MPrecHalfSegment* stored = sss.getMember(current);
            if(stored!=0){ // overlapping segment found
                makeRealm(current,*stored,realmRes);
@@ -450,7 +449,6 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
               }
            }
         } else {
-           // cout << "RightDomPoint" << endl;
            const MPrecHalfSegment* stored = sss.getMember(current);
            if(stored!=0){
                // cout << "stored" << endl;
@@ -497,6 +495,7 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
         done = (pos==v.size() && es.empty());
       }
       // sort result vector
+
       sort(res);
    }
 
