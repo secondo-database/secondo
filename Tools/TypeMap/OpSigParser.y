@@ -15,8 +15,8 @@ using namespace std;
 
 
 extern FILE* opsigin;
-const char* infile = "../Tools/TypeMap/sigs";
-string outfile = "../Tools/TypeMap/OpSigs.tmp";
+//const char* infile = "../Tools/TypeMap/sigs";
+//string outfile = "../Tools/TypeMap/OpSigs.tmp";
 string outfile2 = "../Tools/TypeMap/OpSigsOpdPar.tmp";
 ofstream ofile;
 ofstream ofile2;
@@ -501,8 +501,8 @@ string varToLower(string varNameIn) {
   return (varNameOut);
 }
 
-bool parse() {
-//bool parse(const char* infile, const string& outfile) {
+
+bool parseSigs(const char* infile, const string& outfile) {
 
   FILE* ifile;
   ifile = fopen(infile, "r");

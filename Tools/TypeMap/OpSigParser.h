@@ -26,8 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 
-bool parse(const char* infile, const std::string& outfile);
-//bool parse(const std::string& infile, const std::string& outfile);
-//bool parse(const string& infile, const string& outfile);
-//bool parse();
+bool parseSigs(const char* infile, const std::string& outfile);
+
 
