@@ -216,10 +216,14 @@ public:
     
 
 /*
-2.3.2 Open the connection the cassandra cluster
+2.3.2 Open a connection to the cassandra cluster. If the 1st parameter
+   is set to ~true~, the load balancing feature of the driver will be
+   disabled. Only connections to the specified cassandra node will 
+   be established. If set to ~false~, the loadbalancing feature
+   of the driver will be enabled.
 
 */
-    void connect();
+    void connect(bool singleNodeLoadBalancing);
 
 /*
 2.3.3 Write a tuple to the cluster

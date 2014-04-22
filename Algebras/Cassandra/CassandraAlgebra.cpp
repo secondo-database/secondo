@@ -586,7 +586,7 @@ public:
      CassandraAdapter* cassandra 
         = new CassandraAdapter(contactPoint, keyspace);
         
-      cassandra -> connect();
+      cassandra -> connect(false);
       bool result = cassandra -> dropTable(relationName);
       cassandra -> disconnect();
       delete cassandra;
@@ -812,7 +812,7 @@ public:
       
       
       cassandra = new CassandraAdapter(contactPoint, keyspace);
-      cassandra -> connect();
+      cassandra -> connect(false);
       cassandra -> createTable(relationName, tupleType);
       
       if(sizeof(size_t) < 8) {
@@ -1136,7 +1136,7 @@ ListExpr CCollectTypeMap( ListExpr args ) {
   CassandraAdapter* cassandra = 
      new CassandraAdapter(contactPointVal, keyspaceVal);
   
-     cassandra -> connect();
+     cassandra -> connect(false);
   
   bool result = 
      cassandra -> getTupleTypeFromTable(relationVal, tupleType);
@@ -1196,13 +1196,18 @@ public:
   void open(){
     if(cassandra == NULL) {
       cassandra = new CassandraAdapter(contactPoint, keyspace);
-      cassandra -> connect();
       
       // Read the whole table or only the data
-      // stored on the local cassandra node
+      // stored on the local cassandra node.
       if(LocalOnly) {
+        // Connect to cassandra and use the single node loadbalancing 
+        // policy
+        cassandra -> connect(true); 
         result = cassandra -> readTableLocal(relationName, consistence);
       } else {
+        // Connect to cassandra and use the multi node loadbalancing 
+        // policy
+        cassandra -> connect(false);
         result = cassandra -> readTable(relationName, consistence);
       }
       
@@ -1428,7 +1433,7 @@ public:
   void open(){
     if(cassandra == NULL) {
       cassandra = new CassandraAdapter(contactPoint, keyspace);
-      cassandra -> connect();
+      cassandra -> connect(false);
       result = cassandra -> getAllTables(keyspace);
     }
   }

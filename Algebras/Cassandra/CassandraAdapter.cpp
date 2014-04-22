@@ -73,7 +73,7 @@ namespace cassandra {
 // Init static variables
 const string CassandraAdapter::METADATA_TUPLETYPE = "_TUPLETYPE";
 
-void CassandraAdapter::connect() {
+void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
     try {
 
         // Connect to cassandra cluster
@@ -82,9 +82,11 @@ void CassandraAdapter::connect() {
         );
 
         // Set our single node policy
-        builder -> with_load_balancing_policy( 
-                boost::shared_ptr< cql::cql_load_balancing_policy_t >( 
-                     new SingleNodeLoadBlancing(contactpoint)));
+        if(singleNodeLoadBalancing) {
+          builder -> with_load_balancing_policy( 
+                  boost::shared_ptr< cql::cql_load_balancing_policy_t >( 
+                      new SingleNodeLoadBlancing(contactpoint)));
+        }
         
         cluster = builder -> build();
         session = cluster -> connect();
@@ -312,7 +314,7 @@ void CassandraAdapter::getLokalTokenRanges(
     // Last position in the vector
     int lastTokenPos = allTokens.size() - 1;
     
-    // Special case: We are on th last positition in the vector, add
+    // Special case: We are on the last positition in the vector, add
     //               first and last token
     if(find(localTokens.begin(), localTokens.end(), allTokens.at(lastTokenPos)) 
         != localTokens.end()) {
