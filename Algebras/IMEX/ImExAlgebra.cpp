@@ -59,6 +59,9 @@ This file contains the implementation import / export operators.
 #include <stdio.h>
 #include <iostream>
 
+#include <fcntl.h>
+#include "SocketIO.h"
+
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
@@ -558,6 +561,568 @@ const string csvimportSpec  =
    "</text--->"
    "<text> not tested !!!</text--->"
    ") )";
+
+
+/* 
+1.3 Abstract class for parsing csv input streams
+
+  The methods open(), close(), readNextData()
+  and isDataAvailable() must be implemented
+  in subclasses
+  
+*/
+
+class CSVInputStream {
+
+// Activate debug messages
+//#define _CSVInputStream_DEBUG
+
+enum parsermode { UNQUOTED_ENVIRONMENT, QUOTED_ENVIRONMENT }; 
+
+public:
+      CSVInputStream() { }
+ 
+/*
+1.3 Create a new CSVInputStream. The 1st parameter is the
+  source to read, the 2nd parameter is the separator character,
+  the 3rd parameter is the comment character
+
+*/
+      CSVInputStream(string* source, string* separator, string* comment) {
+          this -> source = string(*source);
+          this -> separator = string(*separator);
+          this -> comment = string(*comment);
+          
+          bufferPos = sizeof(buffer);
+          bufferSize = sizeof(buffer);
+          
+          memset(buffer, 0, sizeof(buffer)); 
+      }
+      
+      
+      virtual ~CSVInputStream() { 
+          close(); 
+      }
+      
+      // Template methods, sould be overwritten in subclasses
+      virtual void open() {};
+      virtual void close() {};
+      
+      // callback after a completed tuple
+      virtual void tupleComplete() { }   
+      
+      // is unprocessed data available
+      virtual bool isDataAvailable() { return false; }   
+      
+      // Read new unprocessed data into the buffer
+      virtual size_t readNextData
+         (char *buffer, size_t start, size_t maxBytes) { 
+         
+         return 0; 
+      }
+
+      // Are unprocessed bytes in the buffer or new data
+      // available?
+      bool isUnprocessedDataAvailable() {
+          return ((bufferSize != bufferPos) || isDataAvailable());
+      }
+
+      // Is the multiline support active?
+      bool getMultiline() {
+          return multiline;
+      }
+
+      // set multiline support
+      void setMultiline(bool myMultiline) {
+          multiline = myMultiline;
+      }
+
+      // Is the input quoted?
+      bool getQuotes() {
+         return quotes;
+      }
+
+      // set quoting support
+      void setQuotes(bool myQuotes) {
+         quotes = myQuotes;      
+      }
+      
+      // get the configured separator symbol
+      string getSeparator() {
+          return separator;
+      }
+
+/*
+1.3.1 Fill buffer with new data
+
+*/
+      size_t fillBuffer() {
+         
+         // copy unprocessed data to the beginning of the array
+         size_t remainingBytes = bufferSize - bufferPos;
+         if(remainingBytes > 0) {
+            memcpy(buffer, buffer+bufferPos, remainingBytes);
+         }
+         
+         #ifdef _CSVInputStream_DEBUG
+         cout << "fillBuffer() : Copied " << remainingBytes;
+         cout << " bytes to the beginning of the buffer" << endl;
+         #endif 
+         
+         bufferSize = remainingBytes;
+         bufferPos = 0;
+         
+         // Fill buffer
+         if(isDataAvailable()) {
+         
+             size_t readData = readNextData(buffer, bufferPos, 
+               sizeof(buffer) - bufferSize );
+               
+             bufferSize = bufferSize + readData;
+             
+             #ifdef _CSVInputStream_DEBUG
+             cout << "fillBuffer() Filled " << readData << endl;
+             cout << "Buffersize is now: " << bufferSize << " bufferPos ";
+             cout << bufferPos << endl;
+             #endif 
+             
+             return readData;
+         }
+         
+         return 0;
+      }
+      
+/*
+1.3.2 Skip all bytes until we reach the line end
+
+*/
+      bool skipLine() {
+          
+          // Process bytes
+          while(true) {
+    
+             // Are all Bytes inside our buffer processed?
+             if(bufferPos == bufferSize){         
+               
+                // No new bytes available?
+                if(fillBuffer() == 0){
+                   return false;
+                }
+             }
+             
+             char c = buffer[bufferPos];
+             bufferPos++;
+             
+             if(c == '\n') {
+                 #ifdef _CSVInputStream_DEBUG
+                 cout << "Skipped one line" << endl;
+                 cout << "BufferPos is " << bufferPos << endl;
+                 cout << "BufferSize is " << bufferSize << endl;
+                 #endif
+                 return true;
+             }
+         }
+      }
+
+/*
+1.3.3 Get next csv field
+
+*/
+      string getNextValue() {
+        
+         parsermode mode = UNQUOTED_ENVIRONMENT;  
+          
+         stringstream ss;
+         
+         bool done = false;
+         
+         // Process bytes
+         while(! done) {
+    
+            // Are all Bytes inside our buffer processed?
+            if(bufferPos == bufferSize){            
+               // No new bytes available?
+               if(! isDataAvailable() || fillBuffer() == 0){
+                   done = true;
+                   continue;
+               }
+            }
+            
+            char c = buffer[bufferPos];
+            bufferPos++;
+   
+            // normal mode (unquoted environment)
+            if(mode == UNQUOTED_ENVIRONMENT) {
+                
+                // If this is the first byte of our field
+                // and it is a comment char - skip the whole line
+                if((ss.str().empty()) && (comment.size() > 0) 
+                  && (comment.find(c) != string::npos)) {
+                  
+                    skipLine();
+                    continue;
+                }
+                
+                // If c is a quote char and we are handling
+                // quote chars
+                if (c == '"' && quotes) {
+                    // switch into quoted environment
+                    // and skip quote char
+                    mode = QUOTED_ENVIRONMENT; 
+                    continue;
+                }
+                
+                // Field separatoror or newline read?
+                if ((separator.find(c)!=string::npos) || (c == '\n')) {
+                    done = true;
+                } else {
+                    ss << c;
+                }
+                
+            } else {
+              
+                // We are inside a quoted environment
+                // switch back to the normal mode
+                // as soon as we read the next " char
+                if (c == '"') {
+                    mode = UNQUOTED_ENVIRONMENT;
+                    continue;
+                } 
+                
+                // Handling of newline chars
+                if(c == '\n') { 
+                  
+                  // Append newline chars to output?
+                  if(! multiline) {                
+                    // We are not in multiline mode,
+                    // skip newline char
+                    continue;
+                  }
+                }
+
+                // Append char to output
+                ss << c;
+            }
+         }
+         
+         #ifdef _CSVInputStream_DEBUG
+         cout << "Return: " << ss.str() << endl;
+         #endif
+
+         return ss.str();
+      }
+
+    protected:
+       bool multiline;      // process multiline fields 
+       bool quotes;         // use quotes
+       string separator;    // our separator (e.g. , or ;)
+       string comment;      // comment (e.g. //)
+       string source;       // name of the source
+       char buffer[1024];   // buffer 
+       size_t bufferPos;    // position of next unprocessed char
+       size_t bufferSize;   // last position of unprocessed chars
+                            // in buffer 
+};
+
+
+/* 
+1.4 Class for processing file csv input streams
+
+*/
+class CSVFileInputStream : public CSVInputStream {
+
+   public:
+   CSVFileInputStream(string *mySource, string *mySeparator, 
+      string *myComment) 
+       : CSVInputStream(mySource, mySeparator, myComment) {
+           
+      file = NULL;
+   }
+   
+   ~CSVFileInputStream() {
+      close();
+   }
+
+   virtual void open() {
+      // Is file accessible?
+      if( access( source.c_str(), R_OK ) != 0 ) { 
+         cout << "Unable to open file: " << source << endl;
+      } else {
+         file = fopen(source.c_str(), "rb");
+      }
+   }
+
+   virtual void close() {
+      if(file != NULL) {
+         fclose(file);
+         file = NULL;
+      }
+   }
+
+   virtual bool isDataAvailable() {
+      // Is file open?
+      if(file == NULL) {
+         return false;
+      }
+      
+      return ! feof(file);
+   }
+ 
+   virtual size_t readNextData(char *buffer, size_t start, 
+      size_t maxBytes) {
+
+      if(! isDataAvailable() ) {
+         return 0;
+      }
+      
+      size_t readBytes = fread(buffer + start, 1, maxBytes, file);
+      
+      #ifdef _CSVInputStream_DEBUG
+      cout << "readNextDataCalled read: " << readBytes;
+      cout << " eof " << feof(file) << endl;
+      #endif
+   
+      return readBytes;
+   }
+ 
+   private:
+      FILE* file;
+
+};
+
+/* 
+1.5 Class for processing network csv input streams
+
+*/
+class CSVNetworkInputStream : public CSVInputStream {
+   
+   public:
+   CSVNetworkInputStream(string *mySource, string *mySeparator, 
+      string *myComment) 
+       : CSVInputStream(mySource, mySeparator, myComment) {
+           
+           readSocket = NULL;
+           listenSocket = NULL;
+   }
+
+   virtual string extractPortFromSource() {
+   
+      // tcp:// - 6 chars
+      string stringport = source.substr(6);
+      return stringport;
+   }
+
+   virtual void open() {
+      string stringport = extractPortFromSource();
+      
+      cout << "Open TCP Port: " << stringport << endl;
+      
+      listenSocket = Socket::CreateGlobal("0.0.0.0", stringport.c_str());
+
+      if (!listenSocket || !listenSocket->IsOk()) {
+        cerr <<  "unable listening to port: " << stringport.c_str();
+        return;
+      }
+    
+      #if defined(unix) || defined(__unix__) || defined(__unix)
+      // Set socket option "reuse"
+      // Prevents bind errors if the query is
+      // executed multiple times
+      int yes = 1;
+      if (setsockopt(listenSocket -> GetDescriptor(), 
+                   SOL_SOCKET, SO_REUSEADDR, &yes, 
+        sizeof(int)) == -1 ) {
+      
+        cerr << "Set socket options failed" << endl;
+      }
+      #endif
+      
+      readSocket = listenSocket->Accept();  
+      
+      if(! readSocket && ! readSocket -> IsOk()) {
+         cerr <<  "Accept on socket failed" << endl;
+         return;
+      }
+      
+      // Close server socket
+      listenSocket -> Close();
+      
+   }
+   
+   virtual size_t readNextData(char *buffer, 
+      size_t start, size_t maxBytes) {
+
+      if(! isDataAvailable() ) {
+         return 0;
+      }
+      
+      #ifdef _CSVInputStream_DEBUG
+      cout << "readNextData() start " << start << endl;
+      #endif
+      
+      // Read data (socket is set to blocking mode)
+      size_t readBytes = readSocket -> Read(buffer + start, 1, maxBytes);
+            
+      #ifdef _CSVInputStream_DEBUG
+      cout << "readNextDataCalled read (from socket): " << readBytes << endl;
+      #endif
+      
+      // Check for last read byte is
+      // EOT (End of Transmission / ASCII 004)
+      if(*(buffer + start + readBytes -1) == '\004') {
+          readBytes--;
+          close();
+      } else if(readBytes <= 0) {
+         
+         #ifdef _CSVInputStream_DEBUG
+         cout << "Read 0 bytes from socket in blocking mode ";
+         cout << ", closing socket" << endl;
+         #endif
+         
+         close();
+      }
+      
+      return readBytes;
+   }
+
+   virtual void close() {
+      #ifdef _CSVInputStream_DEBUG
+      cout << "Closing TCP Port: " << source << endl;
+      #endif
+      
+      if(readSocket != NULL) {
+         readSocket -> Close();
+         delete readSocket;
+         readSocket = NULL;
+      }
+      
+      if(listenSocket != NULL) {
+         listenSocket -> Close();
+         delete listenSocket;
+         listenSocket = NULL;
+      }
+   }
+
+/*
+1.3 Is unprocessed data available?
+    
+*/  
+   virtual bool isDataAvailable() {
+   
+      // Client is connected
+      if(readSocket != NULL) {
+         return true;
+      }
+      
+      // There are unprocessed bytes in the buffer
+      if(bufferPos != bufferSize) { 
+         return true;
+      }
+      
+      return false;
+   }
+   
+   protected:
+          Socket* listenSocket;           // FD for server listen
+          Socket* readSocket;             // FD for client handling
+          struct sockaddr_in serv_addr;   // Server address  
+          struct sockaddr_in client_addr; // Client address
+
+};
+
+/* 
+1.6 Class for processing reliable network csv input streams
+
+*/
+class CSVReliableNetworkInputStream : public CSVNetworkInputStream {
+
+  public:
+   CSVReliableNetworkInputStream(string *mySource, 
+      string *mySeparator, string *myComment) 
+       : CSVNetworkInputStream(mySource, mySeparator, myComment) {
+        
+        unacknowledgedTuples = 0;
+        acknowledgeAfter = 1;
+   }
+
+/*
+1.6.1 process source url
+    "tcplb://port/acknowledgeAfter"
+    
+*/   
+   virtual string extractPortFromSource() {
+   
+      // tcplb:// - 8 chars
+      string stringport = source.substr(8);
+      
+      size_t pos = stringport.find("/");
+      
+      // Process optional acknowledgeAfter field
+      if(pos != string::npos) {
+
+         string acknowledgeAfterString 
+            = stringport.substr(pos + 1, stringport.length());
+         acknowledgeAfter = atoi(acknowledgeAfterString.c_str());
+
+         stringport = stringport.substr(0, pos);         
+      }
+      
+      return stringport;
+   }
+
+
+/*
+1.6.2 send an ack to server after
+  every ~acknowledgeAfter~ tuples
+    
+*/
+   virtual void tupleComplete() { 
+
+        unacknowledgedTuples++;
+
+        if(unacknowledgedTuples >= acknowledgeAfter) {     
+           // Send an ack char to the server
+           readSocket -> Write("\006", sizeof(char));
+           unacknowledgedTuples = 0;
+        }
+   }   
+   
+   protected:
+      size_t unacknowledgedTuples;  // Number of
+                                    // unacknowledged Tuples
+      
+      size_t acknowledgeAfter;      // Send an ack char to server
+                                    // after every n tuples 
+};
+
+/*
+1.7 This is a factory class for CSVInportStream Objects
+
+*/
+class CSVInputStreamFactory {
+
+   public:
+      static CSVInputStream* getStreamForInput(string* input, 
+         string* separator, string* comment) {
+          
+         // Create a network intance
+         if(input -> compare(0, 6, "tcp://") == 0) {
+            return new CSVNetworkInputStream
+               (input, separator, comment);
+         } 
+         
+         // Create a reliable network instance
+         if(input -> compare(0, 8, "tcplb://") == 0) {
+            return new CSVReliableNetworkInputStream
+               (input, separator, comment);
+         }
+
+         // Default: Create file instance
+         return new CSVFileInputStream(input, separator, comment);
+      }
+};
+
+
 /*
 1.3 Value Mapping for csvimport
 
@@ -595,35 +1160,42 @@ public:
       this->multiLine = false;
       if(multiline && multiline->IsDefined()){
          this->multiLine = multiline->GetBoolval();
-      }      
-      if(multiline){
-          file.open(name.c_str(), ios_base::binary | ios_base::in);
-      }else{
-          file.open(name.c_str(),ios_base::in);
       }
-      if(!file.good()){
-         defined = false;
-         return;
-      }
-      file.seekg(0,ios::end);
-      fileSize = file.tellg();
-      file.seekg(0,ios::beg);
-      // skip header
-      int skip = hSize->GetIntval();
-      string buffer;
-      for(int i=0;i<skip && file.good(); i++){
-         getline(file,buffer);
-      }
-      if(!file.good()){
-        defined=false;
-        return;
-      }
- 
-      bufferPos = 0;
-      bufferFill = 0;
+
 
       this->comment = comment->GetValue();
       useComment = this->comment.size()>0;
+
+      // Create csvinputstream
+      csvinputstream = CSVInputStreamFactory::getStreamForInput(&name, 
+         &this->separator, &this->comment);
+         
+      csvinputstream -> setMultiline(multiline);
+      csvinputstream -> setQuotes( quotes -> GetBoolval( ));
+
+      csvinputstream -> open();
+
+      if(! csvinputstream -> isUnprocessedDataAvailable() ){
+         defined = false;
+         return;
+      }
+
+      // skip header
+      int skip = hSize->GetIntval();
+
+      for(int i=0;i<skip && csvinputstream -> isUnprocessedDataAvailable(); 
+          i++) {
+        
+         csvinputstream -> skipLine();
+         // Callback (needed for tcplb protocol)
+         csvinputstream -> tupleComplete();
+      }
+
+      if(!csvinputstream -> isUnprocessedDataAvailable()){
+        defined=false;
+        return;
+      }
+
       ListExpr numType = nl->Second(
                          SecondoSystem::GetCatalog()->NumericType((type)));
       tupleType = new TupleType(numType);
@@ -661,7 +1233,11 @@ public:
         delete instances[i];
      }
      instances.clear();
-     file.close();
+
+     if(csvinputstream) {
+        delete csvinputstream;
+        csvinputstream = NULL;
+     }
    }
 
 
@@ -674,31 +1250,21 @@ public:
    }
 
    Tuple* getNext(){
-     if(!defined){
+     if(! csvinputstream -> isUnprocessedDataAvailable()){
         return 0;
      }
-     if(!file.good() || file.eof()){
-        return 0;
+     
+     Tuple* res =  createTuple();
+
+     if( ! defined ) {
+       return 0;
      }
 
-     if(multiLine){
-       return getNextMultiLine();
-     }
-
-     string buf;
-     do{
-       getline(file,buf);
-     } while(file.good() && !file.eof() && isComment(buf));
-     if(file.good()){
-        Tuple* res =  createTuple(buf);
-        return res;
-     }
-     return 0;
+     return res;
    }
 
 private:
   bool defined;
-  ifstream file;
   bool useComment;
   string comment;
   TupleType* tupleType;
@@ -706,180 +1272,30 @@ private:
   vector<Attribute*> instances;
   string separator;
   bool quotes;
-  streampos fileSize;
   // support of multiline mode
   bool multiLine;
-  uint16_t bufferPos;
-  uint16_t bufferFill;
-  char buffer[1024];
+  CSVInputStream* csvinputstream;
 
-
-  Tuple* getNextMultiLine(){
-    if( !file.good()){
-       cerr << "error in reading csv file" << endl;
-       return 0;
-    }
-    if(fileSize == file.tellg() && bufferFill==bufferPos){
-        return 0;
-    }
-
-    bool ok = true;
-    Tuple* res = new Tuple(tupleType);
-    for(unsigned int i=0;i<instances.size();i++){
-        string nextAttr = getNextAttrString(ok);
-        if(ok){
-            Attribute* a = instances[i]->Clone();
-            a->ReadFromString(nextAttr);
-            res->PutAttribute(i,a);
-        } else {
-           // error within this mode
-           cerr << "Error in reading csv file" << endl;
-           res->DeleteIfAllowed();
-           return 0;
-        }
-    }
-    // read until the line end
-    char c = buffer[bufferPos-1]; // get the last processed char
-    while((c!='\n') && (bufferFill>0)){
-       c = buffer[bufferPos]; // get current char
-       bufferPos++;
-       if(bufferFill==bufferPos){
-          bufferFill = min((size_t)1024,(size_t) ( fileSize - file.tellg()));
-          if(bufferFill>0){
-             file.read(buffer,bufferFill);
-          }
-          bufferPos = 0;
-       } 
-    }
-    return res;
-  }
-
-
-  string getNextAttrString(bool& ok){
-     if(fileSize < file.tellg()){
-        ok = false;
-        return "";
-     }
-     bool done = false;
-     int mode = 0; // normal mode
-     stringstream ss;
-     while(!done){
-        if(bufferFill==bufferPos){
-           // buffer empty, fillup
-           bufferFill = min((size_t)1024,(size_t) ( fileSize - file.tellg()));
-           if(bufferFill==0){
-              ok = false;
-              return ss.str();
-           }
-           file.read(buffer, bufferFill); 
-           if(!file.good()){
-              ok = false;
-              return "";
-           }
-           bufferPos = 0;
-        }
-        char c = buffer[bufferPos];
-        bufferPos++;
-        if(mode==0){ // normalMode
-           if((separator.find(c)!=string::npos) 
-               || (c == '\n')){ // end 
-             ok = true;
-             done = true;
-           } else if(c=='"'){ // switch to quoted mode
-             mode = 1;
-           } else if(c!=0){
-              ss << c;
-           }
-          } else {  // quoted mode
-           if(c=='"'){
-              mode = 0;
-           } else {
-              if(c!=0 && c!= '\r' ){
-                 ss << c; 
-              }
-           }
-        }
-     }
-     ok = true;
-     return ss.str();
-  }
-
-
-
-
-  string getNextElem(const string& line, size_t& pos, bool& ok){
-    if(!quotes){
-      return getNextElemWithoutQuotes(line,pos,ok);
-    }
-    size_t pos2 = line.find_first_not_of(" ",pos); // ignore space
-    if((pos2==string::npos) || line[pos2]!='"'){ // next does not start with "
-      return getNextElemWithoutQuotes(line,pos,ok);
-    }
-    // ok next string seems to be embedded within quotes
-    // try to find the corresponding quote
-    size_t pos3 = line.find_first_of("\"",pos2+1);
-    if(pos3==string::npos){
-       // no closing quote found, ignore open quote
-       return getNextElemWithoutQuotes(line,pos,ok);
-    }
-    // closing quotes found, find the next separator
-    size_t pos4 = line.find_first_of(separator,pos3+1);
-    // ensure thet between the closing quotes and the next separator are atmost 
-    // spaces
-    size_t pos5 = line.find_first_not_of(" ", pos3+1);
-    if(pos4!=pos5){
-       // there are non space characters between closing quote and separator
-       return getNextElemWithoutQuotes(line,pos,ok);
-    }
-    string res = line.substr(pos2+1, pos3 - (pos2 + 1));
-    ok = true;
-    if(pos4==string::npos){
-        pos = pos4;
-    } else {
-        pos = pos4+1;
-    }
-    return res;
-  }
-
-  string getNextElemWithoutQuotes(const string& line, size_t& pos, bool& ok){
-
-      if(pos==string::npos){
-         ok = false;
-         return "";
-      }
-
-      size_t nextPos = line.find_first_of(separator,pos);
-      string res;
-
-      if(nextPos!=string::npos){ // separator found
-         res = line.substr(pos,nextPos-pos);
-         pos = nextPos + 1;
-      } else { // no further separator found
-         res = line.substr(pos, line.length()-pos);
-         pos = nextPos;
-      }
-      ok = true;
-      return res;
-  }
-
-
-  Tuple* createTuple(string line){
+  Tuple* createTuple(){
       static char c = 0;
       static string nullstr( &c,1);
       Tuple* result = BasicTuple->Clone();
-      size_t lastPos = 0;
+
       for(unsigned int i=0;i<instances.size();i++){
          Attribute* attr = instances[i]->Clone();
-         bool ok = true;
-         string next = getNextElem(line, lastPos, ok);
-         next = stringutils::replaceAll(next,nullstr,"");
-         if(ok){
-            attr->ReadFromString(next);
+
+         if(csvinputstream -> isUnprocessedDataAvailable()){
+            attr->ReadFromString(csvinputstream -> getNextValue());
          } else {
             attr->SetDefined(false);
+            defined = false;
          }
          result->PutAttribute(i,attr);
       }
+      
+      // Callback
+      csvinputstream -> tupleComplete();
+      
       return result;
   }
 };
@@ -966,7 +1382,7 @@ ListExpr csvimport2TM(ListExpr args){
       return listutils::typeError(err + " (wrong number of args)");
    }
    // this operator uses the arg evaluation within type mappings
- 	// thus, each argument is a two elem list (type value)
+   // thus, each argument is a two elem list (type value)
   ListExpr tmp = args;
   while(!nl->IsEmpty(tmp)){
     if(!nl->HasLength(nl->First(tmp),2)){
@@ -3444,7 +3860,7 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
          type = dc==0?CcInt::BasicType():CcReal::BasicType();
          break;
       }
-			case 'F' : {
+      case 'F' : {
          type = CcReal::BasicType();
          break;
       }
