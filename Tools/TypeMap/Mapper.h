@@ -116,6 +116,8 @@ nl list storage. The result is created using the standard nl list storage.
 
 */
 
+bool testinput(string sigInput, ListExpr sigArgs2);
+
 ListExpr sig(ListExpr sList);
 ListExpr csig(ListExpr cSList);
 ListExpr matches(ListExpr mList);
