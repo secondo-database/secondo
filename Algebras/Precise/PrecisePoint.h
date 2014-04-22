@@ -72,6 +72,7 @@ class PPrecPoint {
 
 
 
+ostream& operator<<(ostream& o, const PPrecPoint& p);
 ostream& operator<<(ostream& o, const MPrecPoint& p);
 
 
@@ -223,6 +224,11 @@ class MPrecPoint {
        return x.getScale()==y.getScale();
     }
 
+    void swap(MPrecPoint& b){
+       x.swap(b.x);
+       y.swap(b.y);
+    }
+
    private:
      MPrecCoordinate x;
      MPrecCoordinate y;
@@ -243,6 +249,14 @@ class MPrecPoint {
 
 
 };
+
+
+namespace std{
+  template<>
+  inline void swap(MPrecPoint& a, MPrecPoint& b){
+     a.swap(b);
+  }
+}
 
 
 #endif

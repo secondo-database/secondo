@@ -100,6 +100,10 @@ class PPrecCoordinate{
         return gridCoord;
      }
 
+     uint32_t getPrecPos() const{
+       return precPos; 
+     }
+
      bool hasFracPart() const{
         return precPos!=0;
      }
@@ -112,7 +116,15 @@ class PPrecCoordinate{
         return (size_t) gridCoord;
      }
 
-                                                  
+
+     void swap(PPrecCoordinate& b){
+       int64_t gc = gridCoord;
+       uint32_t pp = precPos;
+       gridCoord = b.gridCoord;
+       precPos = b.precPos;
+       b.gridCoord = gc;
+       b.precPos = pp;
+     }                                                  
 
   protected:
      mutable int64_t  gridCoord;     // the grid part
@@ -146,6 +158,7 @@ denominator*
 */
 class MPrecCoordinate;
 std::ostream& operator<<(std::ostream& o, const MPrecCoordinate& x);
+std::ostream& operator<<(std::ostream& o, const PPrecCoordinate& x);
 
 class MPrecCoordinate : public PPrecCoordinate{
   public:
@@ -236,35 +249,41 @@ class MPrecCoordinate : public PPrecCoordinate{
          canonicalize();
      }
 
-     bool readFromString(const string& str, uint32_t _scale=1){
-        // the string may be in format a/b or a.b  or a where
+     bool readFromString(const string& str, uint32_t _scale=1 ){
+
+        // the string may be in format a, a/b, a.b,  a.c where
        // a and b are in form [0-9]*
+       // and c is in form [0-9]+e[0-9]+
         if(_scale<=0){
            return false;
         }
+
         bool isFraction = false;
-        string part1 =""; 
-        string part2 ="";
-        bool fill2=false; 
+        string part1 ="";  // integer part
+        string part2 ="";  // fractional part
+        string part3 ="";  // potencial part
+
+        int fill = 1;
+
         for(size_t i=0;i<str.length();i++){
            char c = str[i];
            if(stringutils::isDigit(c)){
-              if(fill2){
-                part2 += c;
-              }   else {
-                part1 += c;
-              }
+             switch(fill){
+                case 1 : part1 += c; break;
+                case 2 : part2 += c; break;
+                case 3 : part3 += c; break;
+             }
            } else if(c=='.'){
-               if(fill2){
+               if(fill>1){
                  return false;;
                }
-               fill2 = true;
+               fill = 2;
                isFraction = false;  
            } else if(c=='/'){
-               if(fill2){
+               if(fill>1){
                   return false;
                }
-               fill2 = true;
+               fill = 2;
                isFraction = true;
            } else if(c=='-'){
               if(i==0){
@@ -272,12 +291,21 @@ class MPrecCoordinate : public PPrecCoordinate{
               } else {
                 return false;
               }
+           }  else  if((c=='e') || (c=='E')){
+              if(fill!=2 || isFraction){
+                return false;
+              }
+              fill = 3;
+           }else if(c=='+'){
+              // ignore anywhere
            } else  {
                return false;
            }
-        }  
- 
-        if(part2.length()==0){
+        }
+
+        
+
+        if(fill==1){ // simple integer number
            bool correct;
            gridCoord = stringutils::str2int<int64_t>(part1, correct);
            if(!correct){
@@ -294,7 +322,7 @@ class MPrecCoordinate : public PPrecCoordinate{
            assert(scale >0);
            return true;
         } else {
-           if(isFraction){
+           if(isFraction){ // a fraction
                try{
                  gridCoord = 0;
                  if(fractional){
@@ -312,10 +340,43 @@ class MPrecCoordinate : public PPrecCoordinate{
                } catch(...){
                  return false;  
                }
-           }  else {
+           }  else {   // real number
               bool correct;
-              int64_t c = stringutils::str2int<int64_t>(part1, correct);
+              if(fill==3){ // with exponent
+                  uint64_t exp = part3.length()==0
+                             ?0
+                             :stringutils::str2int<uint64_t>(part3,correct);
+                  if(!correct){
+                      return false;
+                  }
+                  if(exp>=part2.size()){ 
+                       // move complete part 2 into integer value
+                       part1 += part2;
+                       for(size_t i=0;i<exp - part2.length(); i++){
+                         part1 += "0";
+                       }
+                       bool correct;
+                       gridCoord = 
+                           stringutils::str2int<int64_t>(part1, correct);
+                       if(!correct){
+                         return false;
+                       }
+                       precPos = 0;
+                       if(fractional){
+                          delete fractional;
+                          fractional = 0;
+                       }
+                       fracStorage = 0;
+                       scale = _scale;
+                       operator *=(_scale);
+                       assert(scale >0);
+                       return true;
+                  }  // there are more digits than the exponent
+                  part1 += part2.substr(0,exp);
+                  part2 = part2.substr(exp,part2.length());     
+              }
 
+              int64_t c = stringutils::str2int<int64_t>(part1, correct);
               if(!correct){
                 return false;
               }
@@ -323,6 +384,7 @@ class MPrecCoordinate : public PPrecCoordinate{
               if(!correct){
                 return false;
               }
+
               gridCoord = c;
               if(num==0){
                 precPos = 0;
@@ -416,6 +478,7 @@ class MPrecCoordinate : public PPrecCoordinate{
         if(precPos==0){ // no fractional part to append
            return;
         }
+
         retrieveFractional(); // be sure to have the fractional part
         fracStorage = storage;
         mpz_class numerator(fractional->get_num());
@@ -424,21 +487,25 @@ class MPrecCoordinate : public PPrecCoordinate{
             return;  
         }
         mpz_class denominator(fractional->get_den());
+
+        assert(numerator < denominator);
+
         vector<uint32_t> vn = getVector(numerator);
         vector<uint32_t> vd = getVector(denominator);
         uint32_t ln = (uint32_t) vn.size();
         uint32_t ld = (uint32_t) vd.size();
+
+
         if(storage->Size()==0){ // append a dummy because 0 is a 
-                                  // reserved position
            storage->Append( 0 );
         }
         precPos = storage->Size(); 
         storage->Append(ln);
-        for(size_t i=0;i<vn.size();i++){
+        for(int i=vn.size()-1;i>=0;i--){
           storage->Append(vn[i]);
         } 
         storage->Append(ld);
-        for(size_t i=0;i<vd.size();i++){
+        for(int  i=vd.size()-1;i>=0 ; i--){
           storage->Append(vd[i]);
         } 
      } 
@@ -451,15 +518,19 @@ class MPrecCoordinate : public PPrecCoordinate{
 
         if(gridCoord < rhs.gridCoord) return -1;
         if(gridCoord > rhs.gridCoord) return 1;
+
         if(precPos == 0){
            return rhs.precPos==0?0:-1;
         }
+
         if(rhs.precPos==0){
            return 1;
         }
+
         retrieveFractional();
         rhs.retrieveFractional();
-        return cmp(*fractional, *(rhs.fractional));
+        int res =  cmp(*fractional, *(rhs.fractional));
+        return res;
      }
 
 
@@ -727,6 +798,21 @@ Binary operators
   }
 
 
+  void swap(MPrecCoordinate& b){
+     PPrecCoordinate::swap(b);
+     uint32_t s = scale;
+     mpq_class* f = fractional;
+     const DbArray<uint32_t>* fs = fracStorage;
+
+     scale = b.scale;
+     fractional = b.fractional;
+     fracStorage = b.fracStorage;
+     
+      b.scale = s;
+      b.fractional = f;
+      b.fracStorage = fs; 
+  }
+
 
   private:
      mutable const DbArray<uint32_t>* fracStorage;
@@ -742,6 +828,8 @@ Binary operators
      void retrieveFractional() const{
         if(precPos==0) return; // no fractional part present
         if(fractional) return; // fractional part already read
+
+
         uint32_t length_nom;
         uint32_t length_denom;
         // read in length information
@@ -752,13 +840,14 @@ Binary operators
         uint32_t factori = numeric_limits<uint32_t>::max();
         mpz_class factor(factori);
         fracStorage->Get(pos,intval);
+        
         mpz_class numerator(intval);
         pos++;
+
         for(uint32_t i=1;i<length_nom;i++){
             fracStorage->Get(pos,intval);
             pos++;
-            numerator = numerator +  factor * mpz_class(intval);
-            factor = factor * factor;
+            numerator = numerator *  factor  +  mpz_class(intval);
         }
         
         fracStorage->Get(pos, length_denom);
@@ -770,9 +859,9 @@ Binary operators
         for(uint32_t  i=1;i<length_denom;i++){
             fracStorage->Get(pos,intval);
             pos++;
-            denominator = denominator  +  factor * mpz_class(intval);
-            factor = factor * factor;
+            denominator = denominator* factor  +  mpz_class(intval);
         }
+        assert(numerator < denominator);
         fractional = new mpq_class(numerator, denominator); 
         fracStorage = 0; // not longer usednt 
         canonicalize();
@@ -834,15 +923,21 @@ After calling this function, the fractional part is in (0,1).
 
    
      vector<uint32_t> getVector(mpz_class number) const{
-        uint32_t maxi = numeric_limits<uint32_t>::max();
-        mpz_class max(maxi);
-        mpz_class zero(0);
+        static uint32_t maxi = numeric_limits<uint32_t>::max();
+        static mpz_class max(maxi);
+        static mpz_class zero(0);
         vector<uint32_t> result;
         while(number > zero){
            mpz_class part = number % max;
            number = number / max;
            result.push_back((uint32_t) part.get_ui());
         }  
+        // start: debug
+        //uint32_t bits_required = number.get_str(2).length();
+        //uint32_t bytes_required = (bits_required + 7) / 8;
+        //assert(bytes_required = result.size());
+        // end debug
+
         return result;
      } 
 
@@ -868,7 +963,16 @@ After calling this function, the fractional part is in (0,1).
 
 MPrecCoordinate abs(const MPrecCoordinate& v);
 
+namespace std{
 
+    
+  template<> 
+  inline void swap(MPrecCoordinate& a, 
+                  MPrecCoordinate& b){
+     a.swap(b);
+  }
+
+}
 
 
 #endif

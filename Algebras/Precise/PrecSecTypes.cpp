@@ -372,7 +372,7 @@ ListExpr getRegionList(vector<MPrecHalfSegment>& v){
 converts a double into aMPrecCoordinate
 
 */
-MPrecCoordinate getCoord(double d, int scale, bool useStr){
+MPrecCoordinate getCoord(double d, int scale, bool useStr, uint8_t digits){
   if(!useStr){
      MPrecCoordinate res(d,scale);
      res *= scale;
@@ -380,7 +380,7 @@ MPrecCoordinate getCoord(double d, int scale, bool useStr){
   }
   MPrecCoordinate res(0);
 
-  res.readFromString(stringutils::double2str(d, 16),scale);
+  res.readFromString(stringutils::double2str(d, digits),scale);
   return res;
 }
 
@@ -391,10 +391,11 @@ MPrecCoordinate getCoord(double d, int scale, bool useStr){
 Converts a point into a precise point
 
 */
-MPrecPoint getPrecPoint( const Point& p, int scale, bool useStr){
+MPrecPoint getPrecPoint( const Point& p, int scale, bool useStr, 
+                         uint8_t digits){
    assert(scale>0);
-   MPrecCoordinate x = getCoord(p.GetX(),scale,useStr);
-   MPrecCoordinate y = getCoord(p.GetY(), scale,useStr);
+   MPrecCoordinate x = getCoord(p.GetX(),scale,useStr, digits);
+   MPrecCoordinate y = getCoord(p.GetY(), scale,useStr, digits);
    MPrecPoint res(x,y);
    return res;
     
@@ -424,8 +425,8 @@ MPrecHalfSegment getMPrecHsExact(const HalfSegment& hs, int scale){
 Converts a usual halfsegment into a precise one using the given precision.
 
 */
-MPrecHalfSegment getMPrecHs(const HalfSegment& hs, 
-                            int scale, uint32_t precision){
+bool getMPrecHs(const HalfSegment& hs, 
+                int scale, uint32_t precision, MPrecHalfSegment& result){
    assert(scale>0);
 
    MPrecCoordinate x(0);
@@ -445,8 +446,10 @@ MPrecHalfSegment getMPrecHs(const HalfSegment& hs,
       assert(false);
    }
    MPrecPoint rp(x,y);
-   MPrecHalfSegment mhs(lp,rp,hs.IsLeftDomPoint(), hs.attr);
-   return mhs;
+   if(lp==rp) return false;
+
+   result.set(hs.IsLeftDomPoint(),lp,rp, FIRST, hs.attr);
+   return true;
 }
 
 
@@ -632,12 +635,13 @@ bool PrecPoint::ReadFrom(ListExpr LE, ListExpr typeInfo){
         return true;
      }
 
-     void PrecPoint::readFrom(const Point& p, int scale, bool useStr){
+     void PrecPoint::readFrom(const Point& p, int scale, bool useStr,
+                              uint8_t digits ){
          if(!p.IsDefined() || scale<=0){
             SetDefined(false);
             return;
          }
-         MPrecPoint pp = getPrecPoint(p,scale,useStr);
+         MPrecPoint pp = getPrecPoint(p,scale,useStr, digits);
          set(pp);
      }
 
@@ -1080,7 +1084,8 @@ void PrecPoints::difference(const PrecPoints& ps, PrecPoints& result)const{
 Converts the argument into a precise value
 
 */
-void PrecPoints::readFrom(const Points& points, int scale, bool useString){
+void PrecPoints::readFrom(const Points& points, int scale, bool useString, 
+                          uint8_t digits){
     clear();
     if(!points.IsDefined() || scale<=0){
       SetDefined(false);
@@ -1095,7 +1100,7 @@ void PrecPoints::readFrom(const Points& points, int scale, bool useString){
     MPrecPoint pp(0,0);
     for(int i=0;i<points.Size();i++){
        points.Get(i,p);
-       pp = getPrecPoint(p,scale,useString);
+       pp = getPrecPoint(p,scale,useString, digits);
        append(pp);
     }
     endBulkLoad();
@@ -1163,7 +1168,8 @@ ListExpr PrecLine::ToListExpr(ListExpr typeInfo) const{
 
 
 
-void PrecLine::readFrom(const Line& line, int scale, bool useString){
+void PrecLine::readFrom(const Line& line, int scale, bool useString, 
+                        uint8_t digits){
     if(!line.IsDefined() || scale<=0){
       clear();
       SetDefined(false);
@@ -1171,11 +1177,13 @@ void PrecLine::readFrom(const Line& line, int scale, bool useString){
     }
     vector<MPrecHalfSegment> hsv1;
     HalfSegment hs;
-
     for(int i=0;i<line.Size();i++){
        line.Get(i,hs);
        if(useString){
-          hsv1.push_back(getMPrecHs(hs, scale, 16));
+         MPrecHalfSegment tmp;
+         if(getMPrecHs(hs,scale,digits, tmp)){ 
+            hsv1.push_back(tmp);
+         }
        } else {
           hsv1.push_back(getMPrecHsExact(hs, scale));
        }
@@ -1247,18 +1255,19 @@ void PrecLine::endBulkLoad(bool realminize){
      scale = 1;
      return;
    }
-
    hstools::sort(*bulkloadStorage);
    vector<MPrecHalfSegment> v2;
    if(realminize){
       hstools::realminize(*bulkloadStorage,v2);
    } else {
-      v2 = *bulkloadStorage;
+      swap(v2, *bulkloadStorage);
    }
 
    hstools::setPartnerNumbers(v2);
+
    bbox.SetDefined(false);
    scale = v2[0].getScale(); 
+
    for(size_t i=0;i<v2.size();i++){
       v2[i].appendTo(&gridData, &fracStorage);
       enlarge(bbox, v2[i].getLeftPoint());
@@ -1270,13 +1279,14 @@ void PrecLine::endBulkLoad(bool realminize){
 
 
 void PrecLine::compUnion(const PrecLine& l2, PrecLine& result) const{
+
   result.clear();
   if(!IsDefined() || !l2.IsDefined()){
     result.SetDefined(false);
     return;
   }
   result.SetDefined(true);
-  result.startBulkLoad();
+  result.startBulkLoad(getScale());
   for(size_t i=0;i<Size();i++){
      MPrecHalfSegment hs = getHalfSegment(i);
      if(hs.isLeftDomPoint()){
@@ -1295,7 +1305,6 @@ void PrecLine::compUnion(const PrecLine& l2, PrecLine& result) const{
   } else {
     realmrequired = bbox.Intersects(l2.bbox);
   }
-     
   result.endBulkLoad(realmrequired);
 }
 
@@ -1310,17 +1319,15 @@ void PrecLine::intersection(const PrecLine& l2, PrecLine& result) const{
      return;
   }
   result.SetDefined(true);
-  vector<MPrecHalfSegment> v1;
-  vector<MPrecHalfSegment> v2;
-  for(size_t i=0;i<Size();i++){
-     MPrecHalfSegment hs = getHalfSegment(i);
-     v1.push_back(hs);
-  }
-  for(size_t i=0;i<l2.Size();i++){ 
-     MPrecHalfSegment hs = l2.getHalfSegment(i);
-       v2.push_back(hs);
-  }
   vector<MPrecHalfSegment> rv;
+  vector<MPrecHalfSegment> v1;
+  for(size_t i=0;i<size();i++){
+     v1.push_back( (*this)[i]);
+  }
+  vector<MPrecHalfSegment> v2;
+  for(size_t i=0;i<l2.size();i++){
+     v1.push_back( l2[i]);
+  }
   hstools::setOP(v1,v2,rv,hstools::INTERSECTION);  
   result.startBulkLoad();
   for(size_t i=0;i< rv.size();i++){
@@ -1591,7 +1598,8 @@ bool correctHs(vector<MPrecHalfSegment>& v){
 }
 
 
-void PrecRegion::readFrom(const Region& reg, int scale, bool useString){
+void PrecRegion::readFrom(const Region& reg, int scale, bool useString, 
+                          uint8_t digits){
     if(!reg.IsDefined() || scale<=0){
       clear();
       SetDefined(false);
@@ -1603,7 +1611,10 @@ void PrecRegion::readFrom(const Region& reg, int scale, bool useString){
     for(int i=0;i<reg.Size();i++){
        reg.Get(i,hs);
        if(useString){
-          hsv.push_back(getMPrecHs(hs, scale, 16));
+          MPrecHalfSegment tmp;
+          if(getMPrecHs(hs, scale, digits,tmp)){
+             hsv.push_back(tmp);
+          }
        } else {
           hsv.push_back(getMPrecHsExact(hs, scale));
        }

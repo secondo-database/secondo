@@ -162,62 +162,6 @@ number of contained segments ( v.size()/2).
    }
 
 
-/*
-~checkRealm~
-
-This function checks whether the segments contained in v are realminized. 
-This means, two different segments in ~v~ have no common point except 
-end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
-
-*/
-   template<class HS> 
-   class YComparator{
-     public:
-        static bool smaller(const HS& hs1, 
-                            const HS& hs2){
-           return compare(hs1,hs2)<0;
-        }
-        static bool equal(const HS& hs1, 
-                          const HS& hs2){
-           return compare(hs1,hs2)==0;
-        }
-
-        /** the less operator **/
-        bool operator()(const HS& hs1, 
-                        const HS& hs2){
-           return compare(hs1,hs2)<0;
-        }
-     
-      private: 
-        static int compare(const HS& hs1, 
-                           const HS& hs2){
-
-            if(hs1.getMinY() > hs2.getMaxY()){
-                return 1;
-            }
-            if(hs2.getMinY() > hs1.getMaxY()){
-               return -1;
-            }
-
-            MPrecCoordinate x0(0);
-
-            if(hs1.isVertical()){
-               x0 = hs1.getLeftPoint().getX();
-            } else if(hs2.isVertical()){
-               x0 = hs2.getLeftPoint().getX();
-            } else {
-               x0 = max(hs1.getLeftPoint().getX(), hs2.getLeftPoint().getX());
-            }
-            MPrecCoordinate y1 = hs1.getY(x0);
-            MPrecCoordinate y2 = hs2.getY(x0);
-            int cmp = y1.compare(y2);
-            if(cmp!=0){
-               return cmp;
-            }
-            return hs1.compareSlope(hs2);
-        }
-   };
-
 
 
    bool checkRealm(const vector<MPrecHalfSegment>& v){
@@ -399,8 +343,9 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
 
    void realminize(const vector<MPrecHalfSegment>& v, 
                    vector<MPrecHalfSegment>& res){
-      
+
      avltree::AVLTree<MPrecHalfSegment, YComparator<MPrecHalfSegment> > sss;
+
      priority_queue<MPrecHalfSegment, 
                      vector<MPrecHalfSegment>, 
                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > es;
@@ -443,6 +388,7 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
            es.pop();
        }
        
+       
        if(first){
          lastX = current.getDomPoint().getX();
          first = false; 
@@ -453,6 +399,7 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
        }
 
         if(current.isLeftDomPoint()){
+           // cout << "LeftDomPoint" << endl;
            const MPrecHalfSegment* stored = sss.getMember(current);
            if(stored!=0){ // overlapping segment found
                makeRealm(current,*stored,realmRes);
@@ -503,10 +450,14 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
               }
            }
         } else {
+           // cout << "RightDomPoint" << endl;
            const MPrecHalfSegment* stored = sss.getMember(current);
            if(stored!=0){
+               // cout << "stored" << endl;
                if(current.sameGeometry(*stored)){
+                  // cout << "same geom" << endl;
                   sss.removeN(current,left,right);
+                  // cout << "removeN finished" << endl;
                   current.attributes.edgeno = edgeno;
                   edgeno++;
                   current.setLDP(true);
@@ -515,7 +466,9 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
                   MPrecHalfSegment copy2(copy);
                   copy2.setLDP(false);
                   res.push_back(copy2);
+                  // cout << "check neighbors" << endl;
                   if(left && right && !left->checkRealm(*right)){
+                     // cout << "realm neighbors" << endl;
                      makeRealm(*left, *right, realmRes);
                      sss.remove(*left);
                      sss.remove(*right);
@@ -530,8 +483,11 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
                         realmRes[i].setLDP(false);
                         es.push(realmRes[i]);
                      } 
+                  } else {
+                   //  cout << "No realm of neighbors required" << endl;
                   }
-               } else {
+              } else {
+                 // cout << "Other geom" << endl;
                }
            } else { // stored == 0
               //cerr << "size of avl = " << sss.Size() << endl;
@@ -540,7 +496,6 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
         }        
         done = (pos==v.size() && es.empty());
       }
-
       // sort result vector
       sort(res);
    }
@@ -553,83 +508,14 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
 This function computes the set operation specified by the last argument
 
 */
-  class EventStructure{
-    public: 
-     EventStructure(const vector<MPrecHalfSegment>& _v1,
-                    const vector<MPrecHalfSegment>& _v2) : 
-                          v1(_v1), v2(_v2), pos1(0), pos2(0),
-                          pq1(), pq2(),pqb() {}
-
-     /*
-      
-     */
-     int  next(MPrecHalfSegment& result) {
-         const MPrecHalfSegment* candidates[5];
-         candidates[0] = pos1<v1.size()?&v1[pos1]:0;
-         candidates[1] = pos2<v2.size()?&v2[pos2]:0;
-         candidates[2] = pq1.empty()?0:&pq1.top();
-         candidates[3] = pq2.empty()?0:&pq2.top();
-         candidates[4] = pqb.empty()?0:&pqb.top();
-         int index = -1;
-         for(int i=0;i<5;i++){
-            if(candidates[i]){
-               if(index<0){
-                   index = i;
-               } else  if(cmp(*candidates[i],*candidates[index]) < 0 ){
-                   index = i;
-               }
-            }
-         }
- 
-         switch(index){
-           case -1 : return 0; // no more halfsegments
-           case  0 : result.set(FIRST, *(candidates[0]));pos1++; return 1;
-           case  1 : result.set(SECOND, *(candidates[1]));pos2++; return 2;
-           case  2 : result.set(FIRST, *candidates[2]);pq1.pop(); return 1;
-           case  3 : result.set(SECOND, *candidates[3]);pq2.pop(); return 2;
-           case  4 : result.set(BOTH, *candidates[4]);pqb.pop(); return 3;
-         }; 
-         return -1;
-     }
-
-
-     void push(const MPrecHalfSegment& evt){
-         switch(evt.getOwner()){
-           case FIRST  : pq1.push(evt); break;
-           case SECOND : pq2.push(evt); break;
-           case BOTH   : pqb.push(evt); break;
-           default : assert(false);
-         }
-     }
-
-
-    private:
-       const vector<MPrecHalfSegment> v1;
-       const vector<MPrecHalfSegment> v2;
-       size_t pos1;
-       size_t pos2;
-       priority_queue<MPrecHalfSegment, 
-                      vector<MPrecHalfSegment>, 
-                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq1;
-       priority_queue<MPrecHalfSegment, 
-                      vector<MPrecHalfSegment>, 
-                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq2;
-       priority_queue<MPrecHalfSegment, 
-                      vector<MPrecHalfSegment>, 
-                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pqb;
-       HalfSegmentComparator cmp;
-
-  };
-
-
-
-
   void setOP(const vector<MPrecHalfSegment>& v1,
              const vector<MPrecHalfSegment>& v2,
              vector<MPrecHalfSegment>& res,
-             SETOP op){
+             SETOP op) {
+
      avltree::AVLTree<MPrecHalfSegment, YComparator<MPrecHalfSegment> > sss;
-     EventStructure es(v1,v2);
+     EventStructure<vector<MPrecHalfSegment>, 
+                    vector<MPrecHalfSegment> >  es(&v1,&v2);
      AttrType dummy;
      MPrecHalfSegment current (MPrecPoint(0,0), MPrecPoint(1,1), true, dummy);
      int source;
@@ -638,7 +524,6 @@ This function computes the set operation specified by the last argument
      res.clear();
      vector<MPrecHalfSegment> realmRes;
      int edgeno = 0;
-
 
      while((source = es.next(current))){
         if(current.isLeftDomPoint()) {
@@ -747,6 +632,7 @@ This function computes the set operation specified by the last argument
         }
      }
   }
+
 
 
 

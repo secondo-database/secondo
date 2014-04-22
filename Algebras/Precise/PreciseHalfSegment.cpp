@@ -54,3 +54,13 @@ ostream& operator<<(ostream& os, const MPrecHalfSegment& hs){
       << " Attr : " << hs.attributes;
    return os;
 }
+
+
+ostream& operator<<(ostream& os, const PPrecHalfSegment& hs){
+   os << "ldp : " << hs.getLeftDomPoint()
+      << ", lp = " <<  hs.getLeftPoint()
+      << ", rp = " << hs.getRightPoint()
+      << ", Attributes " << hs.attributes;
+   return os;
+}
+

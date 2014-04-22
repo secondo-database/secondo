@@ -314,9 +314,9 @@ This operator converts a numeric value into a precise value.
 
 ListExpr toPreciseTM(ListExpr args){
   string err = "{int,real,longint, rational, precise, point, points} "
-               " [x int [x bool]]} expected";
+               " [x int [x bool [x int]]]} expected";
   int len = nl->ListLength(args);
-  if(len<1 || len > 3){
+  if(len<1 || len > 4){
      return listutils::typeError(err);
   }
   
@@ -326,9 +326,15 @@ ListExpr toPreciseTM(ListExpr args){
           return listutils::typeError(err);
       }
   }
-  if(len==3){
+  if(len>=3){
      ListExpr arg3 = nl->Third(args);
      if(!CcBool::checkType(arg3)){
+          return listutils::typeError(err);
+     }
+  }
+  if(len>=4){
+     ListExpr arg4 = nl->Fourth(args);
+     if(!CcInt::checkType(arg4)){
           return listutils::typeError(err);
      }
   }
@@ -347,15 +353,21 @@ ListExpr toPreciseTM(ListExpr args){
   } else {
     return listutils::typeError(err);
   }
+
   switch(len){
      case 1: return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
-                                       nl->TwoElemList(nl->IntAtom(1), 
-                                                       nl->BoolAtom(false)),
+                                       nl->ThreeElemList(nl->IntAtom(1), 
+                                                       nl->BoolAtom(false),
+                                                       nl->IntAtom(16)),
                                        resType);
      case 2 : return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
-                                        nl->OneElemList(nl->BoolAtom(false)),
+                                        nl->TwoElemList(nl->BoolAtom(false),
+                                                        nl->IntAtom(16)),
                                         resType);
-     case 3 : return resType;
+     case 3 : return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                                        nl->OneElemList(nl->IntAtom(16)),
+                                        resType);
+     case 4 : return resType;
      default:  return listutils::typeError(err);
   }
 }
@@ -376,11 +388,18 @@ int toPreciseVM1 (Word* args, Word& result, int message, Word& local,
   S* arg = (S*) args[0].addr;
   CcInt* scale = (CcInt*) args[1].addr;
   CcBool* useStr = (CcBool*) args[2].addr;
-  if(!arg->IsDefined() || !scale->IsDefined() ||!useStr->IsDefined()){
+  CcInt* digits = (CcInt*) args[3].addr;
+  if(    !arg->IsDefined() || !scale->IsDefined() 
+      || !useStr->IsDefined()|| !digits->IsDefined()){
      res->SetDefined(false);
      return 0;
   }
-  res->readFrom(*arg, scale->GetValue(), useStr->GetValue());
+  if( (digits->GetValue() < 0) || (scale->GetValue() <= 0)){
+     res->SetDefined(false);
+     return 0;
+  }
+  res->readFrom(*arg, scale->GetValue(), useStr->GetValue(), 
+                digits->GetValue());
   return 0;
 }
 

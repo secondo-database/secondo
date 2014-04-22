@@ -43,3 +43,9 @@ MPrecCoordinate abs(const MPrecCoordinate& v){
    return v * -1;
 }
 
+
+std::ostream& operator<<(std::ostream& o, const PPrecCoordinate& x){
+  o << "[" << x.getGridCoord() << ", " << x.getPrecPos() << "]";
+  return o;
+}
+

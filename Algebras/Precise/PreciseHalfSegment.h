@@ -77,7 +77,19 @@ class PPrecHalfSegment{
     size_t getHash() const{
        return lp.getHash() + rp.getHash();
     }
-  
+
+    bool getLeftDomPoint() const{ 
+      return ldp;
+    }
+
+    const PPrecPoint& getLeftPoint() const {
+      return lp;
+    }
+    
+    const PPrecPoint& getRightPoint() const {
+      return rp;
+    }
+
     bool ldp;
     PPrecPoint lp;
     PPrecPoint rp;
@@ -87,19 +99,27 @@ class PPrecHalfSegment{
 
 class MPrecHalfSegment;
 ostream& operator<<(ostream& os, const MPrecHalfSegment& hs);
+ostream& operator<<(ostream& os, const PPrecHalfSegment& hs);
 
 class MPrecHalfSegment{
 
   public:
-     MPrecHalfSegment(const PPrecHalfSegment& phs, 
-                      const DbArray<uint32_t>* fracStorage,
-                      uint32_t _scale, const OWNER _owner = FIRST):
-      ldp(phs.ldp), lp(phs.lp,fracStorage,_scale), 
-      rp(phs.rp,fracStorage, _scale),
+
+     MPrecHalfSegment():ldp(true),lp(0,0),rp(1,1), attributes(1) {}
+
+     MPrecHalfSegment(const PPrecHalfSegment& _phs, 
+                      const DbArray<uint32_t>* _fracStorage,
+                      uint32_t _scale, const OWNER _owner = FIRST,
+                      bool orderOK = false):
+      ldp(_phs.ldp), 
+      lp(_phs.lp, _fracStorage, _scale), 
+      rp(_phs.rp, _fracStorage, _scale),
       owner(_owner),
-      attributes(phs.attributes) {
+      attributes(_phs.attributes) {
        assert(_scale>0);
-       correctOrder();
+       if(!orderOK){
+          correctOrder();
+       }
       }
 
      MPrecHalfSegment(const MPrecHalfSegment& src):
@@ -545,8 +565,13 @@ The slope is computed undirected, meaning always from left to right point.
            return -1;
        }
 
+        
+       
+
+       
        const MPrecCoordinate& slope = (lp.getY()-rp.getY()) /
                                       (lp.getX() - rp.getX());
+
        const MPrecCoordinate& hsslope = (hs.lp.getY()-hs.rp.getY()) /
                                  (hs.lp.getX() - hs.rp.getX());
        return slope.compare(hsslope);
@@ -570,6 +595,9 @@ If the x-values differ for a vertical segment, an exception is thrown.
              throw 1;
           }
       }
+      if(x == lp.getX()) return lp.getY();
+      if(x == rp.getX()) return rp.getY();
+
       // non vertical segment
       const MPrecCoordinate& delta = (x - lp.getX()) / (rp.getX() - lp.getX());
       const MPrecCoordinate& y = lp.getY() + delta * (rp.getY() - lp.getY());
@@ -626,6 +654,22 @@ If the x-values differ for a vertical segment, an exception is thrown.
     rp.changeScaleTo(newScale);
   }
 
+  void swap(MPrecHalfSegment& h){
+    bool l = ldp;
+    OWNER o = owner;
+    AttrType a = attributes;
+
+    lp.swap(h.lp);
+    rp.swap(h.rp);
+
+    owner = h.owner;
+    ldp = h.ldp;
+    attributes = h.attributes;
+    h.owner = o;
+    h.ldp = l;
+    h.attributes = a;
+  }
+
      
   private:
      bool ldp;
@@ -637,18 +681,15 @@ If the x-values differ for a vertical segment, an exception is thrown.
   private: 
   
 
-    MPrecHalfSegment():ldp(true),lp(0,0),rp(1,1), attributes(1) {}
 
 
     void correctOrder(){
        assert(lp!=rp);
-
        if(rp < lp){
          MPrecPoint tmp(lp);
          lp = rp;
          rp = tmp;
        }
-
     }
 
 };
@@ -722,6 +763,14 @@ class IsGreater{
      Comp comp;
 
 };
+
+
+namespace std{
+ template<>
+ inline void swap(MPrecHalfSegment& a, MPrecHalfSegment& b){
+    a.swap(b);
+ }
+}
 
 
 

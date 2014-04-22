@@ -37,6 +37,11 @@ ostream& operator<<(ostream& o, const MPrecPoint& p){
 }
 
 
+ostream& operator<<(ostream& o, const PPrecPoint& p){
+   o << "("  << p.getX() << ", " << p.getY() << ")";
+   return o;
+}
+
 PPrecPoint::PPrecPoint(const MPrecPoint& src): x(src.getX()),
                                                y(src.getY()){ }
 

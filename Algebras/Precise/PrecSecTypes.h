@@ -280,8 +280,11 @@ class PrecCoord: public Attribute{
      }
 
 
-    
-     void readFrom(const CcInt& i, int scale, bool useStr){
+    /* reads this intant's value form a CcInt. The 
+       Arguments useStr and digits are ignored and for compatibility 
+       with other calls.
+     */ 
+     void readFrom(const CcInt& i, int scale, bool useStr, uint8_t digits = 16){
         if(!i.IsDefined() || scale<=0){
            SetDefined(false);
            return;
@@ -292,7 +295,8 @@ class PrecCoord: public Attribute{
         this->scale = scale;    
      }
      
-     void readFrom(const CcReal& r, int scale, bool useStr){
+     void readFrom(const CcReal& r, int scale, bool useStr, 
+                   uint8_t digits = 16){
         if(!r.IsDefined() || scale<=0){
            SetDefined(false);
            return;
@@ -305,12 +309,14 @@ class PrecCoord: public Attribute{
             this->scale = scale;    
         } else {
           MPrecCoordinate res(0);
-          res.readFromString(stringutils::double2str(r.GetValue(), 16),scale); 
+          res.readFromString(stringutils::double2str(r.GetValue(), digits),
+                              scale); 
           *this = res;
         }
      }
      
-     void readFrom(const Rational& r, int scale, bool useStr){
+     void readFrom(const Rational& r, int scale, bool useStr, 
+                   uint8_t digits = 16){
         if(!r.IsDefined() || scale<=0){
            SetDefined(false);
            return;
@@ -322,7 +328,7 @@ class PrecCoord: public Attribute{
         this->scale = scale;    
      }
      
-     void readFrom(const LongInt& l, int scale, bool useStr){
+     void readFrom(const LongInt& l, int scale, bool useStr, uint8_t digits=16){
         if(!l.IsDefined() || scale<=0){
            SetDefined(false);
            return;
@@ -334,7 +340,8 @@ class PrecCoord: public Attribute{
         this->scale = scale;    
      }
      
-    void readFrom(const PrecCoord& p, int scale, bool useStr){
+    void readFrom(const PrecCoord& p, int scale, bool useStr, 
+                  uint8_t digits=16){
         *this = p;
     }
 
@@ -548,7 +555,7 @@ class PrecPoint: public StandardSpatialAttribute<2> {
          result.set(p);
      }
 
-     void readFrom(const Point& p, int scale, bool useStr);
+     void readFrom(const Point& p, int scale, bool useStr, uint8_t digits);
     
      void clear(){
         pos = PPrecPoint(0,0);
@@ -581,6 +588,9 @@ This class represents a set of precise points.
 class PrecPoints: public StandardSpatialAttribute<2>{
     
  public:
+
+   typedef MPrecPoint ElemType;
+
    PrecPoints() {}
    PrecPoints(bool defined) :
       StandardSpatialAttribute(defined), gridPoints(0), 
@@ -654,14 +664,25 @@ class PrecPoints: public StandardSpatialAttribute<2>{
         }
         return gridPoints.Size();
      }
+     
+     size_t size() const{
+        if(bulkloadStorage){
+             return bulkloadStorage->size();
+        }
+        return gridPoints.Size();
+     }
 
-     MPrecPoint getPointAt(const int index) const{
+     ElemType getPointAt(const int index) const{
         if(bulkloadStorage){
            return bulkloadStorage->at(index);
         }
         PPrecPoint p;
         gridPoints.Get(index,p);
         return MPrecPoint(p,&fracStorage, scale);
+     }
+
+     ElemType operator[](const int index) const{
+        return getPointAt(index);
      }
 
  
@@ -841,7 +862,8 @@ compute the difference of this and ps
     void difference(const PrecPoints& ps, PrecPoints& result)const;
     
 
-    void readFrom(const Points& points, int scale, bool useString);
+    void readFrom(const Points& points, int scale, bool useString, 
+                  uint8_t digits);
 
 
     size_t getNoElements() const{
@@ -874,6 +896,9 @@ class Line;
 class PrecLine : public StandardSpatialAttribute<2> {
 
   public:
+     typedef MPrecHalfSegment ElemType;
+
+
      PrecLine() {}
      PrecLine(bool defined) :
          StandardSpatialAttribute(defined), 
@@ -908,12 +933,22 @@ class PrecLine : public StandardSpatialAttribute<2> {
      size_t Size() const{
         return gridData.Size();
      }
+     
+     size_t size() const{
+        return gridData.Size();
+     }
 
-     MPrecHalfSegment getHalfSegment(size_t index) const{
+     MPrecHalfSegment getHalfSegment(const size_t index) const{
        PPrecHalfSegment pps;
        gridData.Get(index,pps);
-       return MPrecHalfSegment(pps,&fracStorage, scale);
+       MPrecHalfSegment res(pps,&fracStorage, scale, FIRST, true);
+       return res;
      }
+
+     inline MPrecHalfSegment operator[](const size_t index) const{
+       return getHalfSegment(index);
+     }    
+
 
      const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const{
          assert(geoid==0);
@@ -1079,7 +1114,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
     }
 
 
-    void readFrom(const Line& line, int scale, bool useString);
+    void readFrom(const Line& line, int scale, bool useString, uint8_t digits);
 
     size_t getNoElements()const{
       return IsDefined()?gridData.Size()/2:0;
@@ -1122,6 +1157,9 @@ class Region;
 class PrecRegion : public StandardSpatialAttribute<2> {
 
   public:
+
+     typedef MPrecHalfSegment ElemType;
+
      PrecRegion() {}
      PrecRegion(bool defined) :
          StandardSpatialAttribute(defined), 
@@ -1156,10 +1194,18 @@ class PrecRegion : public StandardSpatialAttribute<2> {
         return gridData.Size();
      }
 
-     MPrecHalfSegment getHalfSegment(size_t index) const{
+     size_t size() const{
+        return gridData.Size();
+     }
+
+     ElemType getHalfSegment(size_t index) const{
        PPrecHalfSegment pps;
        gridData.Get(index,pps);
        return MPrecHalfSegment(pps,&fracStorage, scale);
+     }
+
+     inline ElemType operator[](const size_t index) const{
+       return getHalfSegment(index);
      }
 
      const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const{
@@ -1300,7 +1346,8 @@ class PrecRegion : public StandardSpatialAttribute<2> {
     void cancelBulkLoad();
 
 
-    void readFrom(const Region& region, int scale, bool useString);
+    void readFrom(const Region& region, int scale, bool useString,
+                  uint8_t digits);
 
 
     size_t getNoElements()const{
