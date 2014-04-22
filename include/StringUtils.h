@@ -168,8 +168,15 @@ Converts an int into a string
 */
 std::string int2str(int a);
 
+/*
+Converts a double value into a string using the given precision.
+If afterComma is set to true, the precision is interpreted as
+digits after the comma. Otherwise prec indicates the number
+of significant digits.
 
-std::string double2str(const double v, const int prec = 16);
+*/
+std::string double2str(const double v, int prec = 16, 
+                       const bool afterComma = true);
 
 
 

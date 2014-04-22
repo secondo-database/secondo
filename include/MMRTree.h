@@ -215,6 +215,37 @@ Returns the memory used by this structure in bytes
 
 
 /*
+~guessSize~
+
+Returns the estimated size required for this tree for a given number of entries.
+If the boolean parameter is set to true, the maximum size is returned, otherwise the
+average size
+
+*/
+
+size_t guessSize(size_t entries, bool maxSize){
+
+  // size of object nodes
+  size_t sizeON =    sizeof(int) + sizeof(int) + sizeof(long) + sizeof(T) 
+                   + sizeof(Rectangle<dim>) + sizeof(void*);
+  // size of inner nodes
+  size_t sizeIn = sizeON + sizeof(void*) * max; // sons array
+  size_t noLeafs =  maxSize ? entries/min : entries*2/(min+max);
+  size_t fanout = maxSize? min : (min+max) / 2;
+  size_t noI = 0; // number of inner nodes
+  while(noLeafs > 0){
+    noI += noLeafs;
+    noLeafs /= fanout;
+  }
+  return entries*sizeON + noI * sizeIn;
+}
+
+
+
+
+
+
+/*
 1.1 An iterator class
 
 This class can be used to traverse the tree without collecting all results intersecting

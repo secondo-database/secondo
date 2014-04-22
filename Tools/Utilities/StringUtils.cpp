@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <algorithm>
 #include <cctype>
 #include "StringUtils.h"
+#include "math.h"
+#include <iostream>
 
 namespace stringutils {
 
@@ -272,12 +274,23 @@ bool isDigit(const char c) {
 
 
 
-std::string double2str(const double v, const int prec /*= 16*/)
+std::string double2str(const double v, int prec /*= 16*/, 
+                       const bool afterComma /*=true*/)
 {
     std::stringstream ss;
+    if(afterComma){
+      int f = 1 + (int) v;
+      double l1 = log10(f);
+      int l2 = (int) l1;
+      if(l2<l1){
+         l2++;
+      }
+      prec +=l2;
+    }
     ss.precision(prec);
     ss << v;
-    return ss.str();
+    std::string res =  ss.str();
+    return res;
 }
 
 
