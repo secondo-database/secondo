@@ -374,10 +374,16 @@ of hs have a common point.
 
 */
     bool crosses(const MPrecHalfSegment& hs) const{
+      // check bounding boxes
       if(!boxIntersects(hs)){
          return false;
       }
+      // check for common end point
+      if(lp==hs.lp || lp==hs.rp || rp==hs.lp || rp==hs.rp){
+        return false;
+      }
 
+      // compute crossing of lines
       const MPrecCoordinate& x1 = lp.getX();
       const MPrecCoordinate& x2 = rp.getX();
       const MPrecCoordinate& y1 = lp.getY();
@@ -386,6 +392,7 @@ of hs have a common point.
       const MPrecCoordinate& hsx2 = hs.rp.getX();
       const MPrecCoordinate& hsy1 = hs.lp.getY();
       const MPrecCoordinate& hsy2 = hs.rp.getY();
+
       const MPrecCoordinate& y = hsy1-hsy2;
       const MPrecCoordinate& u = x2-x1;
       const MPrecCoordinate& v = hsx1-hsx2;
@@ -400,16 +407,17 @@ of hs have a common point.
       const MPrecCoordinate& z = y1-hsy1;
 
       const MPrecCoordinate& delta2 = (w*x-z*u) / k;
+      if(delta2<=0u || delta2>=1u){
+         return false;
+      }
+
       const MPrecCoordinate& delta1 = abs(u) > abs(x) 
                                     ? ((w+delta2*v)/u)*-1
                                     : ((z+delta2*y)/x)*-1;
 
-      if(delta1<=0u || delta2 <= 0u){ // cross point left of one segment
+      if(delta1<=0u || delta1 >= 1u){ // cross point left of one segment
          return false;
       }   
-      if(delta1>=1u || delta2 >= 1u){ // cross point right of segment
-        return false;
-      }  
       return true;    
     }
 
@@ -522,6 +530,14 @@ Checks whether ~p~ is located in the interior of this halfsegment.
           return lp.getX() == p.getX() &&
                  p.getY()>lp.getY() && p.getY() < rp.getY();
        }
+
+       // check bounding box
+       if(lp.getX() >= p.getX()) return false;
+       if(rp.getX() <= p.getX()) return false;
+       if(p.getY() <= getMinY()) return false;
+       if(p.getY() >= getMaxY()) return false;
+
+
        const MPrecCoordinate&  dx = (p.getX() - lp.getX()) /
                                     (rp.getX() - lp.getX());
        if(dx <= 0 || dx>=1){

@@ -734,8 +734,12 @@ Binary operators
     }
 
     double toDouble() const {
-       mpq_class c = getComplete( true);
-       return c.get_d();
+       if(precPos==0){
+         return (double)gridCoord / (double) scale;
+       } else { 
+          mpq_class c = getComplete( true);
+          return c.get_d();
+       }
     }
 
 
