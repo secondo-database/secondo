@@ -1022,7 +1022,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
       }
       else if ( nfirst.isEqual("restore") &&
                 nlist.hasLength(5) &&
-                nlist.isSymbol(3) &&
+                nlist.isSymbol(3) && // dbname
                 nlist.elem(4).isEqual("from") &&
                 ( nlist.isSymbol(5) || nlist.isText(5) )  )
       {
@@ -1041,11 +1041,15 @@ moved to separate functions. This kind of functions should be named Command\_<na
 
         switch ( errorCode ) // error handling
         {
+
+         
           case ERR_NO_ERROR:
           case ERR_DATABASE_OPEN:
           case ERR_IDENT_UNKNOWN_DB_NAME:
           case ERR_PROBLEM_IN_READING_FILE:
           case E_SMI_DB_INVALIDNAME:
+          case ERR_DB_NAME_NEQ_IDENT:
+          case ERR_IN_LIST_STRUCTURE_IN_FILE:
           {
             break;
           }
@@ -1053,8 +1057,6 @@ moved to separate functions. This kind of functions should be named Command\_<na
           {
             resultList = errorList;
           }
-          case ERR_DB_NAME_NEQ_IDENT:
-          case ERR_IN_LIST_STRUCTURE_IN_FILE:
 
           default:
           {
@@ -2118,7 +2120,6 @@ SecondoInterface::Command_Create( const ListExpr list,
 
   SI_Error errorCode = ERR_NO_ERROR;
 
-  Word result = SetWord( Address(0) );
 
   if ( sys.IsDatabaseOpen() )
   {
