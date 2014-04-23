@@ -231,8 +231,6 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
             if(hs2.isVertical()){
               return -1;
             }
-
-
             x0 = min(hs1.getRightPoint().getX(), hs2.getRightPoint().getX());
             y1 = hs1.getY(x0);
             y2 = hs2.getY(x0);             
@@ -334,6 +332,7 @@ void setOP(const vector<MPrecHalfSegment>& v1,
              const vector<MPrecHalfSegment>& v2,
              vector<MPrecHalfSegment>& res,
              SETOP op);
+
 
 
 

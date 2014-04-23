@@ -306,6 +306,53 @@ Checks whether this halfsegment contains a certain point
       // non orthogonal segment
       return (x-x1)*(y2-y1) == (y-y2)*(x2-x1);
     }
+
+    bool intersects(const MPrecHalfSegment& hs) const{
+       if(!boxIntersects(hs)){
+          return false;
+       }
+       // check for equal end points
+       if(lp==hs.lp || lp==hs.rp || rp==hs.lp || rp==hs.rp){
+          return true;
+       }
+       // check for crossing or touching segments
+       const MPrecCoordinate& x1 = lp.getX();
+       const MPrecCoordinate& y1 = lp.getY();
+       const MPrecCoordinate& x2 = rp.getX();
+       const MPrecCoordinate& y2 = rp.getY();
+
+       const MPrecCoordinate& hsx1 = hs.lp.getX();
+       const MPrecCoordinate& hsy1 = hs.lp.getY();
+       const MPrecCoordinate& hsx2 = hs.rp.getX();
+       const MPrecCoordinate& hsy2 = hs.rp.getY();
+       const MPrecCoordinate& y = hsy1-hsy2;
+       const MPrecCoordinate& u = x2-x1;
+       const MPrecCoordinate& v = hsx1-hsx2;
+       const MPrecCoordinate& x = y2-y1;
+       const MPrecCoordinate& k = y*u-v*x;
+
+       if(k==0){  // segments are parallel, no crossing possible
+         return overlaps(hs);
+       }   
+      
+       const MPrecCoordinate& w = x1-hsx1;
+       const MPrecCoordinate& z = y1-hsy1;
+
+       const MPrecCoordinate& delta2 = (w*x-z*u) / k;
+       if(delta2<0u || delta2>1u){
+          return false;
+       }
+
+       const MPrecCoordinate& delta1 = abs(u) > abs(x) 
+                                    ? ((w+delta2*v)/u)*-1
+                                    : ((z+delta2*y)/x)*-1;
+
+       if(delta1<0u || delta1 >1u){ // cross point left of one segment
+          return false;
+       }   
+       return true;
+    }
+
    
     bool boxIntersects(const MPrecHalfSegment& hs) const{
        const MPrecCoordinate& x1 = lp.getX();

@@ -1004,11 +1004,15 @@ ListExpr intersectsTM(ListExpr args){
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
   }
-  if(!PrecPoints::checkType(nl->First(args)) ||
-     !PrecPoints::checkType(nl->Second(args))){
-     return listutils::typeError(err);
+  if(PrecPoints::checkType(nl->First(args)) &&
+     PrecPoints::checkType(nl->Second(args))){
+     return listutils::basicSymbol<CcBool>();
   }
-  return listutils::basicSymbol<CcBool>();
+  if(PrecLine::checkType(nl->First(args)) &&
+     PrecLine::checkType(nl->Second(args))){
+     return listutils::basicSymbol<CcBool>();
+  }
+  return listutils::typeError(err);
 }
 
 /*
@@ -1032,11 +1036,20 @@ int intersectsVM1 (Word* args, Word& result, int message, Word& local,
 
 */
 ValueMapping intersectsVM[] = {
-    intersectsVM1<PrecPoints, PrecPoints> // to be continued
+    intersectsVM1<PrecPoints, PrecPoints>, // to be continued
+    intersectsVM1<PrecLine, PrecLine> // to be continued
 };
 
 int intersectsSelect(ListExpr args){
-    return 0;
+  if(PrecPoints::checkType(nl->First(args)) &&
+     PrecPoints::checkType(nl->Second(args))){
+     return 0;
+  }
+  if(PrecLine::checkType(nl->First(args)) &&
+     PrecLine::checkType(nl->Second(args))){
+     return 1;
+  }
+  return -1;
 }
 
 /*
@@ -1059,7 +1072,7 @@ OperatorSpec intersectsSpec(
 Operator intersectsOP(
   "intersects",
   intersectsSpec.getStr(),
-  1,
+  2,
   intersectsVM,
   intersectsSelect,
   intersectsTM

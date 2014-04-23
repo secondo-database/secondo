@@ -35,6 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "HsTools.h"
 #include "PrecTools.h"
 
+#include "MMRTree.h"
+
 class MPrecPointComp{
   public:
      bool operator()(const MPrecPoint& p1, const MPrecPoint& p2){
@@ -1278,6 +1280,101 @@ void PrecLine::endBulkLoad(bool realminize){
    bulkloadStorage=0;
 }
 
+void PrecLine::intersects(const PrecLine& l2, CcBool& result) {
+
+   if(!IsDefined() || !l2.IsDefined()){
+      result.SetDefined(false);
+      return;
+   }
+   if(IsEmpty() || l2.IsEmpty()){
+     result.Set(true,false);
+     return;
+   }
+   if(!bbox.Intersects(l2.bbox)){
+     result.Set(true,false);
+     return;
+   }
+
+   mmrtree::RtreeT<2,size_t> tree1(4,8);
+   mmrtree::RtreeT<2,size_t> tree2(4,8);
+   vector<MPrecHalfSegment> v1;
+   vector<MPrecHalfSegment> v2;
+   size_t pos = 0;
+   size_t end = min(size(),l2.size());
+   while(pos<end){
+      MPrecHalfSegment hs1 = getHalfSegment(pos);
+      if(hs1.isLeftDomPoint()){
+         Rectangle<2> box = hs1.BoundingBox();
+         tree1.insert(box,v1.size());
+         v1.push_back(hs1);
+         mmrtree::RtreeT<2,size_t>::iterator * it = tree2.find(box);
+         size_t const* s;
+         while((s=it->next())!=0){
+            if( v2[*s].intersects(hs1)){
+               delete it;
+               result.Set(true,true);
+               return;
+            }
+         }
+         delete it;
+      }
+      MPrecHalfSegment hs2 = l2[pos];
+      if(hs2.isLeftDomPoint()){
+        Rectangle<2> box = hs2.BoundingBox();
+        tree2.insert(box,v2.size());
+        v2.push_back(hs2);
+        mmrtree::RtreeT<2,size_t>::iterator * it = tree1.find(box);
+        size_t const* s;
+        while((s=it->next())!=0){
+           if(v1[*s].intersects(hs2)){
+              delete it;
+              result.Set(true,true);
+              return;
+           }
+        }
+        delete it;
+      }
+      pos++;
+   }
+
+   // process remaining halfsegments of one of the lines
+   while(pos<size()){
+      MPrecHalfSegment hs1 = getHalfSegment(pos);
+      if(hs1.isLeftDomPoint()){
+         Rectangle<2> box = hs1.BoundingBox();
+         mmrtree::RtreeT<2,size_t>::iterator * it = tree2.find(box);
+         size_t const* s;
+         while((s=it->next())!=0){
+            if( v2[*s].intersects(hs1)){
+               delete it;
+               result.Set(true,true);
+               return;
+            }
+         }
+         delete it;
+      }
+      pos++;
+   }
+   while(pos<l2.size()){
+      MPrecHalfSegment hs2 = l2.getHalfSegment(pos);
+      if(hs2.isLeftDomPoint()){
+         Rectangle<2> box = hs2.BoundingBox();
+         mmrtree::RtreeT<2,size_t>::iterator * it = tree1.find(box);
+         size_t const* s;
+         while((s=it->next())!=0){
+            if( v1[*s].intersects(hs2)){
+               delete it;
+               result.Set(true,true);
+               return;
+            }
+         }
+         delete it;
+      }
+      pos++;
+   }
+   result.Set(true,false);
+   return;
+}
 
 void PrecLine::compUnion(const PrecLine& l2, PrecLine& result) const{
 

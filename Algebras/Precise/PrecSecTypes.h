@@ -1129,6 +1129,8 @@ class PrecLine : public StandardSpatialAttribute<2> {
     void intersection(const PrecLine& l2, PrecLine& result) const;
 
     void difference(const PrecLine& l2, PrecLine& result) const; 
+    
+    void intersects(const PrecLine& l2, CcBool& result);
 
   private:
     Rectangle<2> bbox;
@@ -1377,6 +1379,7 @@ class PrecRegion : public StandardSpatialAttribute<2> {
        } 
        result.endBulkLoad(false);
     }
+
 
   private:
     Rectangle<2> bbox;
