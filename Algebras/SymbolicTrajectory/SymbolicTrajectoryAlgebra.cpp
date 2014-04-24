@@ -7455,12 +7455,10 @@ ListExpr indexmatchesTM(ListExpr args) {
 IndexMatchesLI::IndexMatchesLI(Relation *rel, InvertedFile *inv,
  R_Tree<2, TupleId> *rt, int _attrNr, Pattern *p, bool deleteP, DataType type) :
                                   IndexClassifyLI(rel, inv, rt, _attrNr, type) {
-  if (p) {
-    initialize(p);
-    applyNFA(p);
-    if (deleteP) {
-      delete p;
-    }
+  initialize(p);
+  applyNFA(p);
+  if (deleteP) {
+    delete p;
   }
 }
 
@@ -7515,14 +7513,11 @@ void IndexMatchesLI::applyNFA(Pattern *p) {
     matchInfo.clear();
     matchInfo = newimi;
     newimi.clear();
+    activeTuples = 0;
+    active.assign(active.size(), false);
     cout << "MAIN LOOP FINISHED; active states: ";
     for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
-      cout << *is << " with " << matchInfo[*is].size() << " IMI's: " << endl;
-      multimap<TupleId, IndexMatchInfo>::iterator im;
-      for (im = matchInfo[*is].begin(); im != matchInfo[*is].end(); im++) {
-        cout << "Tuple " << im->first << ", ";
-        im->second.print(false);
-      }
+      cout << *is << " ";
     }
     cout << endl;
     handleFinishedIMI(p, states);
@@ -7576,8 +7571,18 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
       Relation *rel = static_cast<Relation*>(args[0].addr);
       if (pText->IsDefined() && attr->IsDefined()) {
         Pattern *p = Pattern::getPattern(pText->toText());
-        local.addr = new IndexMatchesLI(rel, inv, rt, attr->GetIntval(), p,
+        if (p) {
+          if (p->isValid(M::BasicType())) {
+            local.addr = new IndexMatchesLI(rel, inv, rt, attr->GetIntval(), p,
                                       true, Tools::getDataType(M::BasicType()));
+          }
+          else {
+            local.addr = 0;
+          }
+        }
+        else {
+          local.addr = 0;
+        }
       }
       else {
         cout << "undefined parameter(s)" << endl;
@@ -8953,8 +8958,8 @@ IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
          R_Tree<2, TupleId> *rt, Word _classifier, int _attrNr, DataType type) :
               mRel(rel), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
   c = (Classifier*)_classifier.addr;
-  active = new bool[mRel->GetNoTuples()];
-  memset(active, false, sizeof(active));
+  active.resize(mRel->GetNoTuples() + 1, false);
+  success.resize(mRel->GetNoTuples() + 1, false);
   classifyTT = ClassifyLI::getTupleType();
 }
 
@@ -8968,8 +8973,8 @@ IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
                            R_Tree<2, TupleId> *rt, int _attrNr, DataType type) :
   c(0), mRel(rel), classifyTT(ClassifyLI::getTupleType()), invFile(inv),
   rtree(rt), attrNr(_attrNr), mtype(type) {
-  active = new bool[mRel->GetNoTuples()];
-  memset(active, false, sizeof(active));
+  active.resize(mRel->GetNoTuples() + 1, false);
+  success.resize(mRel->GetNoTuples() + 1, false);
 }
 
 /*
@@ -8981,7 +8986,6 @@ IndexClassifyLI::~IndexClassifyLI() {
     delete classifyTT;
     classifyTT = 0;
   }
-  delete[] active;
 }
 
 /*
@@ -9030,6 +9034,7 @@ void IndexClassifyLI::simplifyNFA(Pattern *p, vector<map<int, int> >& result) {
   Pattern *pnew = Pattern::getPattern(ptext);
   vector<map<int, int> > oldNFA;
   pnew->getNFA(oldNFA);
+  delete pnew;
   result.resize(oldNFA.size());
   map<int, int>::iterator im;
   for (int i = 0; i < (int)oldNFA.size(); i++) {
@@ -9173,7 +9178,7 @@ void IndexClassifyLI::getValueTids(const string& value,
       tidsets[pos].insert(id);
     }
   }
-  
+  delete eit;
 }
 
 /*
@@ -9220,15 +9225,22 @@ void IndexClassifyLI::applyIndexes(Pattern *p, const set<int>& elems,
       }
     }
   }
-  Tools::intersect(tidsets, result);
-//   for (set<TupleId>::iterator it = result.begin(); it != result.end(); it++){
-//     cout << " " << *it;
-//   }
-  activeTuples = result.size();
-  for (set<TupleId>::iterator it = result.begin(); it != result.end(); it++) {
-    IndexMatchInfo imi(getMsize(*it), false, 0);
-    matchInfo[0].insert(make_pair(*it, imi));
-    active[*it] = true;
+  if (!tidsets.empty()) {
+    Tools::intersect(tidsets, result);
+    for (set<TupleId>::iterator it = result.begin(); it != result.end(); it++) {
+      IndexMatchInfo imi(getMsize(*it), false, 0);
+      matchInfo[0].insert(make_pair(*it, imi));
+      active[*it] = true;
+    }
+    activeTuples = result.size();
+  }
+  else { // all tuples are active
+    for (int id = 1; id <= mRel->GetNoTuples(); id++) {
+      IndexMatchInfo imi(getMsize(id), false, 0);
+      matchInfo[0].insert(make_pair(id, imi));
+    }
+    activeTuples = mRel->GetNoTuples();
+    active.assign(active.size(), true);
   }
 }
 
@@ -9298,8 +9310,6 @@ bool IndexClassifyLI::wildcardMatch(const int state, const int newState,
     }
     else if (active[imm->first] && (imm->second.next >= imm->second.size)) {
       cout << "IMI for tuple " << imm->first << " exhausted" << endl;
-      active[imm->first] = false;
-      activeTuples--;
     }
   }
   return ok;
@@ -9311,8 +9321,17 @@ bool IndexClassifyLI::wildcardMatch(const int state, const int newState,
 */
 template<class M>
 bool IndexClassifyLI::imiMatch(Match<M>& match, const PatElem& elem,
-                   const pair<TupleId, IndexMatchInfo>& pos, const int newState,
+   const pair<TupleId, IndexMatchInfo>& pos, const int unit, const int newState,
                             map<int, multimap<TupleId, IndexMatchInfo> >& nmi) {
+  if (unit >= 0) { // exact position from index
+//     cout << "value found at unit " << unit << endl;
+    if (pos.second.matches(unit) && match.valuesMatch(unit, elem)) {
+      IndexMatchInfo imi(pos.second.size, false, unit + 1);
+      nmi[newState].insert(make_pair(pos.first, imi));
+      return true;
+    }
+    return false;
+  }
   bool result = false;
   if (pos.second.range) {
     for (int i = pos.second.next; i < pos.second.size; i++) {
@@ -9350,45 +9369,38 @@ bool IndexClassifyLI::valuesMatch(const PatElem& elem,
   }
   if (pos.second.next >= pos.second.size) {
     cout << "IMI for tuple " << pos.first << " exhausted" << endl;
-    active[pos.first] = false;
-    activeTuples--;
     return false;
   }
-  if (unit >= 0) { // exact position from index
-    cout << "value found at unit " << unit << endl;
-    if (pos.second.matches(unit)) {
-      IndexMatchInfo imi(pos.second.size, false, unit + 1);
-      nmi[newState].insert(make_pair(pos.first, imi));
-      return true;
-    }
-    return false;
-  }
+  Tuple *tuple = mRel->GetTuple(pos.first, false);
+  bool result = false;
   switch (mtype) {
     case LABEL: {
-      MLabel *ml = 
-              (MLabel*)(mRel->GetTuple(pos.first, false)->GetAttribute(attrNr));
+      MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNr));
       Match<MLabel> match(0, ml);
-      return imiMatch(match, elem, pos, newState, nmi);
+      result = imiMatch(match, elem, pos, unit, newState, nmi);
+      break;
     }
     case LABELS: {
-      MLabels *mls = 
-             (MLabels*)(mRel->GetTuple(pos.first, false)->GetAttribute(attrNr));
+      MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNr));
       Match<MLabels> match(0, mls);
-      return imiMatch(match, elem, pos, newState, nmi);
+      result = imiMatch(match, elem, pos, unit, newState, nmi);
+      break;
     }
     case PLACE: {
-      MPlace *mp = 
-              (MPlace*)(mRel->GetTuple(pos.first, false)->GetAttribute(attrNr));
+      MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNr));
       Match<MPlace> match(0, mp);
-      return imiMatch(match, elem, pos, newState, nmi);
+      result = imiMatch(match, elem, pos, unit, newState, nmi);
+      break;
     }
-    default: { // LABELS
-      MPlaces *mps =
-             (MPlaces*)(mRel->GetTuple(pos.first, false)->GetAttribute(attrNr));
+    default: { // PLACES
+      MPlaces *mps = (MPlaces*)(tuple->GetAttribute(attrNr));
       Match<MPlaces> match(0, mps);
-      return imiMatch(match, elem, pos, newState, nmi);
+      result = imiMatch(match, elem, pos, unit, newState, nmi);
+      break;
     }
   }
+  tuple->DeleteIfAllowed();
+  return result;
 }
 
 /*
@@ -9404,9 +9416,7 @@ void IndexClassifyLI::applySetRel(const SetRel setRel,
       result = valuePosVec[0];
       break;
     }
-    case DISJOINT: {
-      Tools::uniteLastPairs(valuePosVec.size(), valuePosVec);
-      // TODO: calculate difference? better ideas?
+    case DISJOINT: { // will not happen
       break;
     }
     case SUPERSET: {}
@@ -9436,7 +9446,7 @@ void IndexClassifyLI::getCandidateSets(const PatElem& elem,
   vector<set<pair<TupleId, int> > > valuePosVec;
   set<TupleId> timePos;
   set<pair<TupleId, int> > valuePos;
-  if (elem.hasLabel()) {
+  if (elem.hasLabel() && (elem.getSetRel() != DISJOINT)) {
     set<string> lbs;
     elem.getL(lbs);
     for (set<string>::iterator is = lbs.begin(); is != lbs.end(); is++) {
@@ -9448,10 +9458,11 @@ void IndexClassifyLI::getCandidateSets(const PatElem& elem,
           valuePosVec[valuePosVec.size() - 1].insert(make_pair(id, wc));
         }
       }
+      delete eit;
     } // all positions collected for the labels
     applySetRel(elem.getSetRel(), valuePosVec, valuePos);
   }
-  else if (elem.hasPlace()) {
+  else if (elem.hasPlace() && (elem.getSetRel() != DISJOINT)) {
     set<pair<string, unsigned int> > pls;
     elem.getP(pls);
     set<pair<string, unsigned int> >::iterator is;
@@ -9543,14 +9554,14 @@ bool IndexClassifyLI::simpleMatch(const PatElem& elem, const int state, const
     }
   }
   else {
-    if (elem.hasLabel() || elem.hasPlace() || elem.hasRealInterval()) {
+    if (((elem.hasLabel() || elem.hasPlace()) && (elem.getSetRel() != DISJOINT))
+       || elem.hasRealInterval()) {
       return false; // no candidate found
     }
-    else { // either () or only semantic time information
-      for (im = matchInfo[state].begin(); im != matchInfo[state].end(); im++) {
-        if (valuesMatch(elem, *im, newState, -1, nmi)) {
-          transition = true;
-        }
+    // either () or only semantic time information or DISJOINT
+    for (im = matchInfo[state].begin(); im != matchInfo[state].end(); im++) {
+      if (valuesMatch(elem, *im, newState, -1, nmi)) {
+        transition = true;
       }
     }
   }
@@ -9563,20 +9574,36 @@ bool IndexClassifyLI::simpleMatch(const PatElem& elem, const int state, const
 */
 void IndexClassifyLI::handleFinishedIMI(Pattern *p, const set<int>& states) {
   cout << "handleFinishedIMI" << endl;
+  if (states.empty()) {
+    activeTuples = 0;
+    active.assign(active.size(), false);
+  }
   multimap<TupleId, IndexMatchInfo>::iterator imm;
-  for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
-    if (p->isFinalState(*is)) {
-      cout << "active state " << *is << " is final" << endl;
-      for (imm = matchInfo[*is].begin(); imm != matchInfo[*is].end(); imm++) {
-        if (active[imm->first] && imm->second.finished()) {
+  map<int, multimap<TupleId, IndexMatchInfo> >::iterator im;
+  for (im = matchInfo.begin(); im != matchInfo.end(); im++) {
+    for (imm = im->second.begin(); imm != im->second.end(); imm++) {
+      if (!success[imm->first]) {
+        if (p->isFinalState(im->first) && imm->second.finished()) {
+          if (imm->first % 100 == 0) {
+            cout << "final state " << im->first << "; pushed back tuple " 
+                 << imm->first << endl;
+          }
           matches.push_back(imm->first);
+          success[imm->first] = true;
+          if (active[imm->first]) {
+            activeTuples--;
+          }
           active[imm->first] = false;
-          activeTuples--;
-          cout << "Tuple " << imm->first << " finished" << endl;
+        }
+        else {
+          if (!active[imm->first]) {
+            activeTuples++;
+          }
+          active[imm->first] = true;
         }
       }
     }
-  }  
+  }
 }
 
 /*
@@ -10200,7 +10227,7 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,Supplier s){
         for (set<string>::iterator it = values.begin();it != values.end();it++){
           inv->insertString(tuple->GetTupleId(), *it, j, 0, cache, trieCache);
           counter++;
-          if (counter % 10000 == 0) {
+          if (counter % 50000 == 0) {
             cout << counter << " elements inserted, last was " << *it << endl;
           }
         }
@@ -10220,7 +10247,7 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,Supplier s){
           inv->insertString(tuple->GetTupleId(), it->first, j, it->second, 
                             cache, trieCache);
           counter++;
-          if (counter % 10000 == 0) {
+          if (counter % 50000 == 0) {
             cout << counter << " elements inserted, last was (" << it->first
                  << ", " << it->second << ")" << endl;
           }

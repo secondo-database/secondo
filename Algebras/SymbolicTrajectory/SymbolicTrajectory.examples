@@ -347,7 +347,7 @@ Result   : 1
 Operator : indexmatches
 Number   : 1
 Signature: rel(tuple(X)) x IDENT x text -> stream(tuple(X))
-Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], '(_ "Aplerbeck") * (_ "Innenstadt-Ost") *'] count
+Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], Dotrajrtree, '(_ "Aplerbeck") * (_ "Innenstadt-Ost") *'] count
 Result   : 2
 
 Operator : rewrite

@@ -1269,7 +1269,8 @@ friend class IndexMatchesLI;
   template<class M>
   bool imiMatch(Match<M>& match, const PatElem& elem, 
                                        const pair<TupleId, IndexMatchInfo>& pos,
-         const int newState, map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
+                                       const int unit, const int newState, 
+                             map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
   bool valuesMatch(const PatElem& elem, const pair<TupleId,IndexMatchInfo>& pos,
                    const int newState, const int unit, 
                    map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
@@ -1291,7 +1292,7 @@ friend class IndexMatchesLI;
   Relation *mRel;
   queue<pair<string, TupleId> > classification;
   vector<TupleId> matches;
-  bool *active;
+  vector<bool> active, success;
   int activeTuples;
   map<int, multimap<TupleId, IndexMatchInfo> > matchInfo;
   TupleType* classifyTT;
