@@ -104,8 +104,12 @@ int main(int argc, char* argv[]) {
       line += "\n";
       cout << line;
       write(socketfd, line.c_str(), strlen(line.c_str()));
-      usleep(100);
+      usleep(10000);
       counter++;
+
+      if(counter > 1000) {
+         break;
+      }
     }
     myfile.close();
    }
@@ -114,6 +118,8 @@ int main(int argc, char* argv[]) {
    write(socketfd, "\004", sizeof(char));
    
    shutdown(socketfd, 2);
+
+   cout << "Wrote " << counter  << " Lines " << endl;
 
    return EXIT_SUCCESS;
 }

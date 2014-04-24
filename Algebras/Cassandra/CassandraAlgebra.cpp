@@ -1553,6 +1553,156 @@ Operator cassandralist (
 
 
 
+
+/*
+2.7 Operator ~cpartition~
+
+The operator ~cpartition~ paritions a cassandra ring 
+into chunks for secondo
+
+2.7.1 Type mapping function of operator ~cpartition~
+  
+Type mapping for ~cpartition~ is
+
+----
+
+ stream ( tuple ( (a1 t1) ... (an tn))) x text x
+                int -> stream (tuple(...))
+                
+----
+
+*/
+ListExpr PartitionTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 3){
+    return listutils::typeError("three arguments expected");
+  }
+
+  string err = " stream(tuple(...) x text x int expected";
+
+  ListExpr stream = nl->First(args);
+  ListExpr filename = nl->Second(args);
+  ListExpr interval = nl->Third(args);
+
+  if(( !Stream<Tuple>::checkType(stream) &&
+       !Stream<Attribute>::checkType(stream) ) ||
+       !FText::checkType(filename) ||
+       !CcInt::checkType(interval)) {
+    return listutils::typeError(err);
+  }
+  
+  return stream;
+}
+
+/*
+2.2.2 Cost estimation
+
+*/
+CostEstimation* PartitionCostEstimationFunc() {
+  return new ForwardCostEstimation();
+}
+
+/*
+2.2.3 Value mapping function of operator ~cpartition~
+
+*/
+class PartitionLocalInfo {
+public:
+  
+};
+
+int Partition(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  PartitionLocalInfo *pli; 
+  Word tupleWord;
+
+  pli = (PartitionLocalInfo*)local.addr;
+
+  switch(message)
+  {
+    case OPEN: 
+
+      if ( pli ) delete pli;
+      
+      if(! ((FText*)args[1].addr)->IsDefined()) {
+        cout << "Name is not defined" << endl;
+      } else {
+        //pli = new PartitionLocalInfo((((FText*)args[1].addr)->GetValue()),
+        //              (((CcInt*)args[2].addr)->GetIntval()));
+                      
+        
+        local.setAddr( pli );
+        qp->Open(args[0].addr);
+        
+      }
+      return 0;
+
+    case REQUEST:
+      
+      // Operator not ready
+      if ( ! pli ) {
+        return CANCEL;
+      }
+      
+      qp->Request(args[0].addr, tupleWord);
+      if(qp->Received(args[0].addr))
+      {     
+        //sli -> tupleReceived();
+        result = tupleWord;
+        return YIELD;
+      } else  {     
+        return CANCEL;
+      }     
+
+    case CLOSE:
+      qp->Close(args[0].addr);
+      if(pli) {
+        delete pli;
+        pli = NULL;
+        local.setAddr( pli );
+      }
+      return 0;
+  }
+  return 0;
+}
+
+
+/*
+2.2.4 Specification of operator ~cpartition~
+
+*/
+const string PartitionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>((stream (tuple([a1:d1, ... ,an:dn]"
+                         "))) y string x int) -> (stream (tuple([a1:d1, ... ,"
+                         "an:dn]))) or \n"
+                         "((stream T) text x int) -> (stream T), "
+                         "for T in kind DATA.</text--->"
+                         "<text>_ cpartition [ _ , _ ]</text--->"
+                         "<text> The operator cpartition partitions a "
+                         "cassandra ring into chunks for distributed "
+                         "secondo</text--->"
+                         "<text>query ccollect('127.0.0.1', 'keyspace1', "
+                         "'plz', 'ONE', 'mypartition') "
+                         "cpartition['mypartition', 10] count</text--->"
+                              ") )";
+
+/*
+2.2.5 Definition of operator ~cpartition~
+
+*/
+Operator cassandrapartition (
+         "cpartition",                // name
+         PartitionSpec,               // specification
+         Partition,                   // value mapping
+         Operator::SimpleSelect,      // trivial selection function
+         PartitionTypeMap,            // type mapping
+         PartitionCostEstimationFunc  // Cost estimation
+);                         
+
+
 /*
  7 Creating the Algebra
 
@@ -1577,7 +1727,7 @@ public:
     AddOperator(&cassandracollectlocal);
     cassandracollectlocal.SetUsesArgsInTypeMapping();
     AddOperator(&cassandralist);
-    
+    AddOperator(&cassandrapartition);
     
   }
   
