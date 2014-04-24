@@ -8,5 +8,8 @@ Signature: sT -> sT
 Example  : query slope()
 Result   : file
 
-
-
+Operator : aspect
+Number   : 1
+Signature: sT -> sT
+Example  : query aspect()
+Result   : file

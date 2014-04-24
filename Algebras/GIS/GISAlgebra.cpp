@@ -55,7 +55,7 @@ GISAlgebra operators includes
 */
 
 #include "slope.h"
-//#include "operators/atlocation.h"
+#include "aspect.h"
 
 /*
 extern declarations
@@ -134,6 +134,7 @@ GISAlgebra::GISAlgebra()
   */
 
   AddOperator(slopeInfo(), slopeFuns, slopeSelectFun, slopeTypeMap);
+  AddOperator(aspectInfo(), aspectFuns, aspectSelectFun, aspectTypeMap);
   //AddOperator(atlocationInfo(), atlocationFunctions, atlocationSelectFunction,
   //            atlocationTypeMappingFunction);
   

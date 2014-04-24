@@ -20,3 +20,4 @@
 # author: Jana Stehmann
 
 operator slope alias SLOPE pattern op(_,_)
+operator aspect alias ASPECT pattern op(_,_)
