@@ -101,11 +101,32 @@ moSQL(
   where exists(get * from [t:trip, mehringdamm] where (t:trip):pos = mehringdamm:pos),
   X).
 
-works
 
-select count(*)
-  from trains as t
-  where exists(get * from [t:trip, mehringdamm] where (t:trip):pos = mehringdamm:pos)
 
-does not work
+moSQL(
+select [id, (get trip:pos from [trip, six30] where trip:t = six30:t) as atsix30]
+from trains
+where [exists(get * from [trip, mehringdamm] where trip:pos = mehringdamm:pos),
+  exists(get * from [trip, six30] where trip:t = six30:t)],
+  X).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
