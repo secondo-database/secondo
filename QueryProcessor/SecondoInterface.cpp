@@ -2516,8 +2516,9 @@ SecondoInterface::SetDebugLevel( const int level )
 
 
 bool SecondoInterface::getOperatorIndexes(
-                        const string opName,
-                        const ListExpr argList,
+                        const string opName, // name of operator
+                        const ListExpr argList, // list of types or
+                                     //  (algebra AlgName) or (algebra all)
                         ListExpr& resList,
                         int& algId,
                         int& opId,
