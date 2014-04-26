@@ -9,7 +9,7 @@ algebra RelationAlgebra
 
 feed: rel(Tuple) -> stream(Tuple)
 consume: stream(Tuple) -> rel(Tuple)
-filter: stream(Tuple) x (Tuple -> bool) -> stream(Tuple)
+filter: stream(Tuple) :: (Tuple -> bool) -> stream(Tuple)
 attr: tuple(Attrs) :: Ident -> (Number, Type); 
   attr(Ident, Attrs, Type, Number)
 project: stream(tuple(Attrs_1)) :: (Ident_i)+

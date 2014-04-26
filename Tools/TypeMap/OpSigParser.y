@@ -1,5 +1,35 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2014,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
+
 %{
 
+/*
+Includes
+
+*/
 #include "OpSigParser.tab.h"
 
 #include <iostream>
@@ -13,7 +43,10 @@
 
 using namespace std;
 
+/*
+Some variables 
 
+*/
 extern FILE* opsigin;
 //const char* infile = "../Tools/TypeMap/sigs";
 //string outfile = "../Tools/TypeMap/OpSigs.tmp";
@@ -30,6 +63,10 @@ string varToLower(string varNameIn);
 
 vector<string> opsigs;		vector<string> opsigs2;
 
+/*
+Type string is not possible in union
+
+*/
 string collectSig     = "";	string collectSig2     = "";
 string collectSiglist = "";	string collectSiglist2 = "";
 string collectArgs    = "";	string collectArgs2    = "";
@@ -60,11 +97,12 @@ string collectEnum    = "";
 %type<tokenchar> opname type varname attrsindex varindex datatypes datatype
 
 /*
- the output is specified as follows:
- <algsig>   = <algebraname> <sig>
- <sig>	    = (<opname>|<opsymbol>) <siglist>
- <siglist>  = <sigargtypes> <resulttype>
-	    | <sigargtypes> <resulttype>; <condpreds>
+----   The output is specified as follows:
+       <algsig>   = <algebraname> <sig>
+       <sig>      = (<opname>|<opsymbol>) <siglist>
+       <siglist>  = <sigargtypes> <resulttype>
+                  | <sigargtypes> <resulttype>; <condpreds>
+----
 
 */
 
@@ -86,7 +124,6 @@ algsig	    : ZZALG ZZIDENT sigs
 		for(int i=0; i<size; i++) {
 		  algSigs += "\n(" + str2 + " " + opsigs[i];
 		}
-		//cout << algSigs;
 		ofile << algSigs;
 		opsigs.clear();
 		algSigs	= "";
@@ -97,7 +134,6 @@ algsig	    : ZZALG ZZIDENT sigs
 		for(int i=0; i<size2; i++) {
 		  algSigs2 += "\n(" + str2 + " " + opsigs2[i];
 		}
-		//cout << algSigs2;
 		ofile2 << algSigs2;
 		opsigs2.clear();
 		algSigs2 = "";
@@ -124,7 +160,11 @@ sig	    : opname':' sigargtypes ZZFOLLOWS resulttype
 		collectSiglist +=  collectRes;
 		collectSig  += str1 + " \n ( " + collectSiglist + " )";
 		collectSig  += " )\n";
-		collectSig2 = collectSig;
+		collectSiglist2 = ""; collectSig2 = "";
+		collectSiglist2 += "( " + collectArgs2 + " )\n ";
+		collectSiglist2 +=  collectRes;
+		collectSig2  += str1 + " \n ( " + collectSiglist2 + " )";
+		collectSig2  += " )\n";
 	      }
 
 	    | opname':' sigargtypes ZZFOLLOWS resulttype semicolon condpreds
@@ -164,6 +204,8 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		string str1 = $1; string str3 = $3;
 		collectArgs = "";
 		collectArgs += str1 + " " + str3;
+		collectArgs2 = "";
+		collectArgs2 = collectArgs;
 	      }
 
 	    | type'('varname')'
@@ -174,6 +216,8 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs = "";
 		collectArgs += "(" + str1 + " ";
 		collectArgs += "(var " + str32 + " 1))";
+		collectArgs2 = "";
+		collectArgs2 = collectArgs;	    
 	      }
 
 	    | type'('varname')' ZZCROSSPRODUCT type
@@ -185,10 +229,12 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs = "";
 		collectArgs += "(" + str1 + " ";
 		collectArgs += "(var " + str32 + " 1)) " + str6;
+		collectArgs2 = "";
+		collectArgs2 = collectArgs;
 	      }
   
 
-	    | type'('varname')' ZZCROSSPRODUCT 
+	    | type'('varname')' ZZPARAM 
 		  '('varname ZZFOLLOWS ZZDATATYPE')'
 	      {/* argsOP: e.g. filter */
 		string str1 = $1;  string str3 = $3;
@@ -200,6 +246,11 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs += "(var " + str32 + " 1)) ";
 		collectArgs += "(map ";
 		collectArgs += "(var " + str72 + " 1) " + str9 + ")";
+		collectArgs2 = "";
+		collectArgs2 += "((" + str1 + " ";
+		collectArgs2 += "(var " + str32 + " 1))) ";
+		collectArgs2 += "((map ";
+		collectArgs2 += "(var " + str72 + " 1) " + str9 + "))";
 	      }
 
 	    | type'('varname')' ZZPARAM varname
