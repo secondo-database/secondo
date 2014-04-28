@@ -110,20 +110,20 @@ The operators *attr*, *hashjoin*, and *project* and further operators can then b
 	  attr(Ident, Attrs, Type, Number);
 	  
 	hashjoin: stream(tuple(Attrs_1)) x stream(tuple(Attrs_2)) 
-		x Ident_1 x Ident_2
+		:: Ident_1 x Ident_2
 		-> stream(tuple(Attrs_3));	  
 	    attr(Ident_1, Attrs_1, Type_1, Number_1),
 	    attr(Ident_2, Attrs_2, Type_1, Number_2),
 	    concat(Attrs_1, Attrs_2, Attrs_3),
             distinctAttrs(Attrs3)
 
-	project: stream(tuple(Attrs_1)) x (Ident_i)+
+	project: stream(tuple(Attrs_1)) :: (Ident_i)+
 		-> (Numbers_i, stream(tuple(Attrs_2)));
 	  attrs(Ident_i, Attrs_1, Types_i, Numbers_i),
 	  combine(Ident_i, Types_i, Attrs_2),
 	  distinctAttrs(Attrs_2)
 
-	atinstant: moving(T) x instant -> intime(T) 
+	atinstant: moving(T) :: instant -> intime(T) 
 	where T in {int, real, string, bool, point, region}.
 
 	deftime: moving(T) -> periods 
@@ -132,7 +132,7 @@ The operators *attr*, *hashjoin*, and *project* and further operators can then b
 
 Not yet implemented:
 
-----	extend: stream(Tuple) x (Ident_i x (Tuple -> Type_i))+	
+----	extend: stream(Tuple) :: (Ident_i x (Tuple -> Type_i))+	
 		-> stream(tuple(Attrs_2));
 	  Tuple_1 = tuple(Attrs_1),
           combine(Ident_i, Type_i, Attrs_2),
@@ -140,7 +140,7 @@ Not yet implemented:
 	  distinctAttrs(Attrs_3)
 
 	projectextend: 
-	  stream(Tuple) x (Ident_i)+ x (Ident_j x (Tuple -> Type_j))+	
+	  stream(Tuple) :: (Ident_i)+ x (Ident_j x (Tuple -> Type_j))+	
 		-> stream(tuple(Attrs_4));
 	  Tuple_1 = tuple(Attrs_1),
 	  attrs(Ident_i, Attrs_1, Type_i, Number_i),
@@ -150,7 +150,7 @@ Not yet implemented:
 	  distinctAttrs(Attrs_4)
 
 	projectextendstream: 
-	  stream(Tuple) x (Ident_i)+ x (Ident x (Tuple -> stream(Type)))	
+	  stream(Tuple) :: (Ident_i)+ x (Ident x (Tuple -> stream(Type)))	
 		-> stream(tuple(Attrs_4));
 	  Tuple_1 = tuple(Attrs_1),
 	  attrs(Ident_i, Attrs_1, Type_i, Number_i),
@@ -160,7 +160,7 @@ Not yet implemented:
 	  distinctAttrs(Attrs_4)
 
 	groupby:
-	  stream(Tuple) x (Ident_i)+ 
+	  stream(Tuple) :: (Ident_i)+ 
 		x (Ident_j x (rel(Tuple) -> Type_j))+
 		-> stream(tuple(Attrs_4));
 	  Tuple_1 = tuple(Attrs_1),
@@ -171,7 +171,7 @@ Not yet implemented:
 	  distinctAttrs(Attrs_4)
 
 	nest:
-	  stream(tuple(Attrs_1)) x (Ident_i)+ x Ident_2
+	  stream(tuple(Attrs_1)) :: (Ident_i)+ x Ident_2
 		-> stream(tuple(Attr_5));
 	  minus(Attrs_1, Ident_i, Attrs_3),
 	  createAttr(Ident_2, arel(tuple(Attrs3)), Attrs4),
@@ -179,7 +179,7 @@ Not yet implemented:
 	  distinctAttrs(A_5)
 	  
 	remove:
-	  stream(tuple(Attrs_1)) x (Ident_i)+
+	  stream(tuple(Attrs_1)) :: (Ident_i)+
 		-> stream(tuple(Attrs_3));
 	 minus(Attrs_1, Ident_i, Attrs_3).
 
@@ -187,7 +187,7 @@ Not yet implemented:
 	  stream(Data) -> stream(tuple([elem: Data]))
 
 	namedtransformstream:
-	  stream(Data) x Ident -> stream(tuple([Ident: Data]))
+	  stream(Data) :: Ident -> stream(tuple([Ident: Data]))
 
 
 ----
@@ -332,6 +332,9 @@ typemap(Op, ArgTypes, ResType) :-
   apply(Res, Bindings2, ResType),
   \+ releaseTypeSets.
 
+
+
+:- dynamic typeSet/2.
 
 defineTypeSets(Decls) :-
   \+ releaseTypeSets,
