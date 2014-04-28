@@ -12,21 +12,21 @@
 #
 ###########################################################################
 
-# Database hombruch
+# Database arnsberg
 
-# query fullosmimport('arnsberg-regbez.osm', "Berlin")
+query fullosmimport('arnsberg-regbez.osm', "City")
 
 # 155 secs
 
-# relation BerlinNodes with 5008465 tuples stored
-# relation BerlinNodeTags with 389898 tuples stored
-# relation BerlinWays with 6419349 tuples stored
-# relation BerlinWayTags with 2193352 tuples stored
-# relation BerlinRelations with 355347 tuples stored
-# relation BerlinRelationTags with 52448 tuples stored
+# relation CityNodes with 5008465 tuples stored
+# relation CityNodeTags with 389898 tuples stored
+# relation CityWays with 6419349 tuples stored
+# relation CityWayTags with 2193352 tuples stored
+# relation CityRelations with 355347 tuples stored
+# relation CityRelationTags with 52448 tuples stored
 
 
-let BerlinNodesNew = BerlinNodes feed
+let CityNodesNew = CityNodes feed
   extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
   extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
   sortby[Box]
@@ -36,14 +36,14 @@ let BerlinNodesNew = BerlinNodes feed
 
 # 213 secs
 
-# query nodes(BerlinNodesNew feed addid bulkloadrtree[Pos]) consume
+# query nodes(CityNodesNew feed addid bulkloadrtree[Pos]) consume
 
 
 let Ways =
-  BerlinNodesNew feed
-  BerlinWays feed itHashJoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList]
+  CityNodesNew feed
+  CityWays feed itHashJoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList]
     extend[Curve  : .NodeList afeed projecttransformstream[Pos] collect_line[TRUE]] 
-  BerlinWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag]
+  CityWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag]
   extend[Box: bbox(.Curve scale[1000000.0])]
   sortby[Box]
   remove[Box]
@@ -55,6 +55,21 @@ let Ways =
 derive Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 10 secs
+
+
+
+# query Ways_Curve_rtree windowintersectsS[flughafendortmund] Ways gettuples count
+
+
+# query Ways feed filter[.WayInfo afeed filter[(.WayTagKey = "aeroway") and (.WayTagValue = "runway")] count > 0] consume
+
+let Ways_WayTag = Ways feed addid project[TID, WayInfo] unnest[WayInfo] extend[WayTag: tostring(.WayTagKey + "#" + .WayTagValue)] sortby[WayTag] createbtree[WayTag]
+
+# query Ways_WayTag exactmatchS["aeroway#runway"] Ways gettuples consume
+
+# query Ways_WayTag exactmatchS["aeroway#terminal"] Ways gettuples consume
+
+# query Ways_WayTag rangeS["building", "building"++] Ways gettuples project[WayInfo] consume
 
 
 
@@ -75,11 +90,11 @@ derive Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)
 # compute Nodes as the union of start points, end points and intersections of roads
 
 let Nodes = 
-  BerlinWays feed
-  BerlinWays feed {h2}
+  CityWays feed
+  CityWays feed {h2}
   itHashJoin[NodeRef, NodeRef_h2]
   filter[.WayId # .WayId_h2]
-  BerlinNodesNew feed
+  CityNodesNew feed
   itHashJoin[NodeRef, NodeId]
   Roads feed {r1} itHashJoin[WayId, WayId_r1]
   Roads feed {r2} itHashJoin[WayId_h2, WayId_r2]
@@ -178,7 +193,7 @@ let EdgesDown =
 
 let Edges = EdgesUp feed EdgesDown feed concat 
   projectextend[Source, Target, SourcePos, TargetPos, SourceNodeCounter, TargetNodeCounter, Curve, RoadName, 
-    RoadType, MaxSpeed; WayId: .WayId] 
+    RoadType; WayId: .WayId] 
   oconsume[Source, Target]
 
 # 169 secs
@@ -196,9 +211,6 @@ let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: 
 
 
 # query nodes(EdgeIndex feed addid bulkloadrtree[Box]) consume
-
-
-
 
 derive EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
