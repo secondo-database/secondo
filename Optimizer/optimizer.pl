@@ -4564,11 +4564,13 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   resSize(Arg, Card),
   resTupleSize(Arg, TupleSize),
+  resNAttrs(Arg, NAttrs),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card * Sel,
   !,
   setNodeSize(Result, Size),
   setNodeTupleSize(Result, TupleSize),
+  setNodeNAttrs(Result, NAttrs),
   assert(edgeSelectivity(Source, Target, Sel)),
   assert(edgeInputCards(Source, Target, Arg, undefined)),
   assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
@@ -4581,12 +4583,16 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   resSize(Arg2, Card2),
   resTupleSize(Arg1, TupleSize1),
   resTupleSize(Arg2, TupleSize2),
+  resNAttrs(Arg1, NAttrs1),
+  resNAttrs(Arg2, NAttrs2),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card1 * Card2 * Sel,
   addSizeTerms([TupleSize1,TupleSize2],TupleSize),
+  NAttrs is NAttrs1 + NAttrs2,
   !,
   setNodeSize(Result, Size),
-  setNodeTupleSize(Result, TupleSize),  
+  setNodeTupleSize(Result, TupleSize), 
+  setNodeNAttrs(Result, NAttrs), 
   assert(edgeSelectivity(Source, Target, Sel)),
   assert(edgeInputCards(Source, Target, Arg1, Arg2)),
   assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
@@ -4619,9 +4625,11 @@ Argument ~Arg~ has size ~Size~.
 resSize(arg(N), Size) :-
   argument(N, rel(Rel, _)),
   card(Rel, Size), !.
+
 resSize(arg(N), _) :-
   write('Error in optimizer: cannot find cardinality for '),
   argument(N, Rel), wp(Rel), nl, fail.
+
 resSize(res(N), Size) :- resultSize(N, Size), !.
 
 
@@ -4631,8 +4639,11 @@ Assign tuple sizes to a node. Tuple sizes are saved as facts of the form
 
 */
 
-:- dynamic nodeTupleSize/2.
+
 :- dynamic argTupleSize/2.
+:- dynamic nodeTupleSize/2.
+:- dynamic argNAttrs/2.
+:- dynamic nodeNAttrs/2.
 :- dynamic storedPredNoPET/3.
 
 setNodeTupleSize(Node, _) :-
@@ -4640,6 +4651,7 @@ setNodeTupleSize(Node, _) :-
 
 setNodeTupleSize(Node, TupleSize) :-
   assert(nodeTupleSize(Node, TupleSize)).
+
 
 /*
 Get the size of one single tuple from argument number ~N~.
@@ -4667,7 +4679,10 @@ resTupleSize(arg(N), TupleSize) :-
   argument(N, rel(Rel, _)),
   isStarQuery,
   tupleSizeSplit(Rel, TupleSize),
+  getRelAttrList(Rel, OrigAttrs, _),
+  length(OrigAttrs, NAttrs),
   assert(argTupleSize(N, TupleSize)),
+  assert(argNAttrs(N, NAttrs)),
   !.
 
 resTupleSize(arg(N), TupleSize) :-
@@ -4675,9 +4690,11 @@ resTupleSize(arg(N), TupleSize) :-
   !,
   getRelAttrList(Rel, OrigAttrs, _),
   usedAttrList(rel(Rel, _), List),
+  length(List, NAttrs),
   attributes(List, AList),
   projectAttrList(OrigAttrs, AList, _, TupleSize),
-  assert(argTupleSize(N, TupleSize)).
+  assert(argTupleSize(N, TupleSize)),
+  assert(argNAttrs(N, NAttrs)).
  
 
 resTupleSize(res(N), TupleSize) :-
@@ -4690,6 +4707,28 @@ resTupleSize(X, Y) :-
   write_list(['ERROR in optimizer: ',ErrMsg]), nl,
   throw(error_Internal(optimizer_resTupleSize(X,Y)::missingData::ErrMsg)),
   fail, !.
+
+
+/*
+Assign the number of attributes to a node. Saved as facts of the form ~nodeNAttrs(Node, NAttrs)~.
+
+*/
+
+setNodeNAttrs(Node, _) :-
+  nodeNAttrs(Node, _), !.
+
+setNodeNAttrs(Node, NAttrs) :-
+  assert(nodeNAttrs(Node, NAttrs)).
+
+
+
+resNAttrs(arg(N), NAttrs) :-
+  argNAttrs(N, NAttrs),
+  !.
+
+resNAttrs(res(N), NAttrs) :-
+  nodeNAttrs(N, NAttrs).
+
 
 
 /*
@@ -4741,6 +4780,7 @@ Clauses for writing sizes and selectivities for nodes and edges.
 writeSizes :-
   writeNodeSizes,
   writeTupleSizes,
+  writeNAttrs,
   writeEdgeSels.
 
 writeNodeSizes :-
@@ -4771,6 +4811,27 @@ writeNodeTupleSizes :-
              ['DiskCore', 'l'],
              ['DiskLOB', 'l'] ],
   showTuples(L, Format).
+
+writeNAttrs :-
+  writeArgNAttrs,
+  writeNodeNAttrs.
+
+writeArgNAttrs :-
+  findall([Arg, NAttrs], argNAttrs(Arg, NAttrs), L),
+  Format = [ ['Argument Rel', 'l'],
+             ['No. of Attributes', 'l'] ],
+  showTuples(L, Format).
+
+writeNodeNAttrs :-
+  findall([Node, NAttrs], nodeNAttrs(Node, NAttrs), L),
+  Format = [ ['Node', 'l'],
+             ['No. of Attributes', 'l'] ],
+  showTuples(L, Format).
+
+  
+
+
+
 
 
 edgeSelInfo(Source, Target, Sel, Pred) :-
@@ -4979,6 +5040,8 @@ deleteSizes :-
   retractall(edgeInfoProgress(_, _, _, _)),
   retractall(nodeTupleSize(_, _)),
   retractall(argTupleSize(_, _)),
+  retractall(nodeNAttrs(_, _)),
+  retractall(argNAttrs(_, _)),
   retractall(nodeAttributeList(_, _)),
   retractall(nodeSizeCounter(_, _, _, _)),
   retractall(nodeSizeCounter(_, _)),
@@ -5043,7 +5106,7 @@ getMemory(M) :-
   findall([], memoryOp(_, _), L),
   length(L, N),
   getGlobalMemory(G),
-  M is G // N,
+  (N > 0 -> M is G // N; M is G),
   assert(memory(M)).
 
 
@@ -5644,6 +5707,20 @@ createCostEdge :- % use Nawra's cost functions
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
 
+createCostEdge :- % use memory aware cost functions developed from 2014
+  optimizerOption(costs2014),
+  planEdge(Source, Target, Term, Result),
+  edge(Source, Target, EdgeTerm, _, _, _),
+  (   EdgeTerm = select(_, Pred)
+    ; EdgeTerm = join(_, _, Pred)
+    ; EdgeTerm = sortedjoin(_, _, Pred, _, _)
+  ),
+  edgeSelectivity(Source, Target, Sel),
+  getMemory(Memory),
+  cost(Term, Sel, Pred, Result, Memory, Size, _NAttrs, _TupleSize, Cost),
+  assert(costEdge(Source, Target, Term, Result, Size, Cost)),
+  fail.
+
 /*
 NVK ADDED MA
 The costs are now based on a given operator function to estimate the costs. This is based on the ma\_improvedcosts and the CostEstimation class.
@@ -5674,6 +5751,7 @@ createCostEdge :-
 createCostEdge :- % use standard cost functions
   not(optimizerOption(nawracosts)),
   not(optimizerOption(improvedcosts)),
+  not(optimizerOption(costs2014)),
   \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
