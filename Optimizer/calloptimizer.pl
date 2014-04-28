@@ -329,7 +329,8 @@ optimizerOptionInfo(allOff, none, no,
 
 optimizerOptionInfo(nawracosts, none, yes,
                     'Use cost functions as implemented by A. Nawra.',
-                    ( delOption(improvedcosts)
+                    ( delOption(improvedcosts),
+                      delOption(costs2014)
                     ),
                     true
                    ).
@@ -343,8 +344,18 @@ optimizerOptionInfo(earlyproject, none, yes,
 optimizerOptionInfo(improvedcosts, none, yes,
                     'Use improved cost functions.',
                     ( delOption(nawracosts),
+                      delOption(costs2014),
                       setOption(determinePredSig),
                       loadFiles(improvedcosts)
+                    ),
+                    true
+                   ).
+
+optimizerOptionInfo(costs2014, none, yes,
+                    'Use memory aware cost functions.',
+                    ( delOption(nawracosts),
+                      delOption(improvedcosts),
+                      loadFiles(costs2014)
                     ),
                     true
                    ).
@@ -891,6 +902,14 @@ loadFiles(improvedcosts) :-
   ( not(loadedModule(improvedcosts)),
     [improvedcosts],
     assert(loadedModule(improvedcosts))
+  )
+  ; true.
+
+% Optional files for usage of cost functions 2014
+loadFiles(costs2014) :-
+  ( not(loadedModule(costs2014)),
+    [costs2014],
+    assert(loadedModule(costs2014))
   )
   ; true.
 
