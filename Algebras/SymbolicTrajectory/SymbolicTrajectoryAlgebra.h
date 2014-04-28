@@ -675,6 +675,7 @@ class Tools {
      map<int, int> &final2Pat);
   static void createNFAfromPersistent(DbArray<NFAtransition> &trans, 
           DbArray<int> &fs, vector<map<int, int> > &nfa, set<int> &finalStates);
+  static void printBinding(map<string, pair<unsigned int, unsigned int> > &b);
 };
 
 class ExprList {
@@ -907,6 +908,7 @@ class Pattern {
   int               getSize() const         {return elems.size();}
   map<string, pair<int, int> > getVarPos()  {return varPos;}
   map<int, set<int> > getEasyCondPos()      {return easyCondPos;}
+  set<int>          getEasyCondPos(const int e) {return easyCondPos[e];}
   void              insertAssVar(string v)  {assignedVars.insert(v);}
   set<string>       getAssVars()            {return assignedVars;}
   void setAssign(int posR, int posP, int key, string arg) {
@@ -1086,8 +1088,8 @@ class Match {
                     vector<Condition> &easyConds, 
                     map<int, set<int> > &easyCondPos,
                     map<int, int> &atomicToElem, bool store = false);
-  bool easyCondsMatch(int ulId, int pId, PatElem const &elem,
-                      vector<Condition> &easyConds, set<int> &pos);
+  bool easyCondsMatch(int ulId, PatElem const &elem,
+                      vector<Condition> &easyConds, set<int> pos);
   string states2Str(int ulId, set<int> &states);
   string matchings2Str(unsigned int dim1, unsigned int dim2);
   bool findMatchingBinding(vector<map<int, int> > &nfa, int startState,
@@ -1103,7 +1105,6 @@ class Match {
   bool evaluateEmptyM();
   bool evaluateCond(Condition &cond,
                  const map<string, pair<unsigned int, unsigned int> > &binding);
-  void printBinding(map<string, pair<unsigned int, unsigned int> > &b);
   void deletePattern() {if (p) {delete p; p = 0;}}
   bool initEasyCondOpTrees() {return p->initEasyCondOpTrees();}
   bool initCondOpTrees() {return p->initCondOpTrees();}
@@ -1227,9 +1228,11 @@ class FilterMatchesLI {
 };
 
 struct IndexMatchInfo {
-  IndexMatchInfo() : range(false), next(INT_MAX), size(0) {}
-  IndexMatchInfo(int s) : range(false), next(INT_MAX), size(s) {}
-  IndexMatchInfo(int s, bool r, int n) : range(r), next(n), size(s) {}
+  IndexMatchInfo(int s, bool r, int n) : range(r), next(n), size(s) 
+                                                              {prevVar.clear();}
+  IndexMatchInfo(int s, bool r, int n, 
+            map<string, pair<unsigned int, unsigned int> > b, const string& v) :
+       range(r), next(n), size(s), binding(b), prevVar(v) {}
   
   bool operator<(const IndexMatchInfo& rhs) const;
   void print(const bool printBinding);
@@ -1239,6 +1242,7 @@ struct IndexMatchInfo {
   bool range;
   int next, size;
   map<string, pair<unsigned int, unsigned int> > binding;
+  string prevVar;
 };
 
 class IndexClassifyLI {
@@ -1255,23 +1259,24 @@ friend class IndexMatchesLI;
   ~IndexClassifyLI();
 
   Tuple* nextResultTuple();
-  void simplifyNFA(Pattern *p, vector<map<int, int> >& result);
+  void simplifyNFA(vector<map<int, int> >& result);
   void findNFApaths(const vector<map<int, int> >& nfa, 
                 const set<int>& finalStates, set<pair<set<int>, int> >& result);
   void getCrucialElems(const set<pair<set<int>, int> >& paths,set<int>& result);
   void getIntervalTids(const string& ivstr, vector<set<TupleId> >& tidsets);
   void getValueTids(const string& value, vector<set<TupleId> >& tidsets, 
                     bool place = false, unsigned int ref = UINT_MAX);
-  void applyIndexes(Pattern *p, const set<int>& elems, set<TupleId>& result);
-  void initialize(Pattern *p);
+  void applyIndexes(const set<int>& elems, set<TupleId>& result);
+  void initialize();
   int getMsize(TupleId tId);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
+  void extendBinding(IndexMatchInfo& imi, const int e);
   template<class M>
-  bool imiMatch(Match<M>& match, const PatElem& elem, 
+  bool imiMatch(Match<M>& match, const int e,
                                        const pair<TupleId, IndexMatchInfo>& pos,
                                        const int unit, const int newState, 
                              map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
-  bool valuesMatch(const PatElem& elem, const pair<TupleId,IndexMatchInfo>& pos,
+  bool valuesMatch(const int e, const pair<TupleId,IndexMatchInfo>& pos,
                    const int newState, const int unit, 
                    map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
   void applySetRel(const SetRel setRel, 
@@ -1279,15 +1284,17 @@ friend class IndexMatchesLI;
                    set<pair<TupleId, int> >& result);
   void getCandidateSets(const PatElem& elem, set<pair<TupleId, int> >& pos, 
                         set<TupleId>& tids);
-  bool simpleMatch(const PatElem& elem, const int state, const int newState,
+  bool simpleMatch(const int e, const int state, const int newState,
                   const set<pair<TupleId, int> >& pos, const set<TupleId>& tids,
                    map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
-  bool wildcardMatch(const int state, const int newState,
+  bool wildcardMatch(const int state, pair<int, int> transition,
                      map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
   bool timesMatch(TupleId tId, unsigned int ulId, set<string>& ivs);
-  void handleFinishedIMI(Pattern *p, const set<int>& states);
+  bool checkConditions(const TupleId id, IndexMatchInfo& imi);
+  void handleFinishedIMI(const set<int>& states);
 
  private:
+  Pattern p;
   Classifier *c;
   Relation *mRel;
   queue<pair<string, TupleId> > classification;
@@ -1306,12 +1313,12 @@ friend class IndexMatchesLI;
 class IndexMatchesLI : public IndexClassifyLI {
  public:
   IndexMatchesLI(Relation *rel, InvertedFile *inv, R_Tree<2, TupleId> *rt, 
-                 int _attrNr, Pattern *p, bool deleteP, DataType type);
+                 int _attrNr, Pattern *_p, bool deleteP, DataType type);
 
   ~IndexMatchesLI() {}
 
   Tuple* nextTuple();
-  void applyNFA(Pattern *p);
+  void applyNFA();
 };
 
 class UnitsLI {
