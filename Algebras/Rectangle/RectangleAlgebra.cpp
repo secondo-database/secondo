@@ -1949,28 +1949,19 @@ It contains some necessary parameters, like:
   * pq: the position of the query point
   * cw: the width of a cell
 
-Besides, there also exist some unnecessary parameters:
+the optional parameter:
 
-  * outGrid: tell the caller whether the point is outside the scale of the grid
-  * cLIM: the limitation of the grid, by default, it's -1.
   * isRT: whether the point is the right top point of the given rectangle
 
 */
-int cellCord(double p0, double pq, double cw, bool& outGrid, int cLIM = -1,
-    bool isRT = false)
+int cellCord(double p0, double pq, double cw, bool isRT = false)
 {
   int CORD = 0;
   double dt = pq - p0;
-  if ((dt > 0.0) && !AlmostEqual(0.0, dt))
-  {
-    CORD = static_cast<int> (floor(dt / cw));
-    if (isRT && AlmostEqual(pq, CORD * cw))
-      CORD--;
-    // If exists a limitation, and the point exceed it
-    if ((cLIM > 0) && (CORD > cLIM))
-    {
-      CORD = cLIM;
-      outGrid = true;
+  if (!AlmostEqual(0.0, dt)){
+    CORD = static_cast<int>(floor(dt / cw));
+    if (isRT && AlmostEqual(dt, CORD * cw)){
+      CORD = CORD > 0 ? CORD-1 : CORD+1;
     }
   }
   return CORD;
@@ -2009,21 +2000,6 @@ struct InCellGrid{
       return;
     }
 
-    //The quadrant of the bounding points
-    int lbqt = ptQuadrant((lbx - x0), (lby - y0), (lbz - z0)),
-        rtqt = ptQuadrant((rtx - x0), (rty - y0), (rtz - z0));
-
-    //set the LBX, LBY, RTX, RTY;
-    if (lbqt < 0 || rtqt < 0)
-    {
-      outGrid = true;
-      if (lbqt < 0 && rtqt < 0)
-      {
-        finished = true;
-        return;
-      }
-    }
-
 /*
 For 2D space,
 the cell grid grows infinitely in Y-axis,
@@ -2032,70 +2008,61 @@ For 3D space, the cell grid is limited in both X and Y axises,
 but grows infinitely in Z-axis.
 
 The cell grid sits in a limit area in the first quadrant.
-If query rectangle locates outside this area,
-then the outside part is given a uniform cell number of 0.
-And only the part overlapped the given grid is allocated
-with cell numbers that bigger than 0.
+If the query rectangle locates outside this scope,
+then the cell grid is duplicated.
 
 */
 
-    LBX = cellCord(x0, lbx, xWidth, outGrid,
-                   nx);
-    LBY = cellCord(y0, lby, yWidth, outGrid,
-                   (is3D?ny:(-1)));
-    LBZ = cellCord(z0, lbz, zWidth, outGrid);
-    RTX = cellCord(x0, rtx, xWidth, outGrid,
-                   (nx-1), true);
-    RTY = cellCord(y0, rty, yWidth, outGrid,
-                   (is3D?(ny-1):(-1)), true);
-    RTZ = cellCord(z0, rtz, zWidth, outGrid,
-                   -1, true);
+    LBX = cellCord(x0, lbx, xWidth);
+    LBY = cellCord(y0, lby, yWidth);
+    LBZ = cellCord(z0, lbz, zWidth);
+    RTX = cellCord(x0, rtx, xWidth, true);
+    RTY = cellCord(y0, rty, yWidth, true);
+    RTZ = cellCord(z0, rtz, zWidth, true);
 
-    //Make sure all possible cell numbers don't exceed the range
-    //of the integer type.
-    int maxN = max(RTX, RTY);
+    int maxX = RTX > (nx - 1) ? (nx - 1) : RTX;
+    int maxY = RTY > (ny - 1) ? (ny - 1) : RTY;
+    int maxN = max(maxX, maxY);
     maxN = (is3D) ? (max(maxN, RTZ)) : maxN;
     if ((!is3D && (maxN > sqrt(INT_MAX))) ||
         ( is3D && (maxN > pow(INT_MAX, 1.0/3.0))))
-      cerr << "WARNING!! The grid is too dense, "
+      cerr << "WARNING2!! The grid is too dense, "
         "part cell number may exceed the range of Integer type.\n";
 
-    cx = (LBX >= 0) ? LBX : 0;
-    cy = (LBY >= 0) ? LBY : 0;
-    cz = (LBZ >= 0) ? LBZ : 0;
+    cx = LBX;
+    cy = LBY;
+    cz = LBZ;
   }
 
   int getNextCellNum()
   {
     int cellNum = -1;
-    if (outGrid)
+    if(!finished)
     {
-      cellNum = 0;
-      outGrid = false;
-    }
-    else if (!finished)
-    {
-      if ((cx <= RTX) && (cy <= RTY))
-        cellNum = cx + cy * nx + cz * nx * ny + 1;
+      int acx = cx >= 0 ? (cx % nx) : ( (0 - cx) % nx - 1);
+      int acy = cy >= 0 ? (is3D ? cy % ny : cy) :
+          (is3D ? ((0 - cy) % ny - 1) : (0 - cy - 1));
+      int acz = cz >= 0 ? cz : (0 - cz - 1);
+
+      cellNum = acx + acy * nx + acz * nx * ny + 1;
 
       if (cx < RTX)
-        cx++;
+      cx++;
       else if (cy < RTY)
       {
-        cx = LBX;
-        cy++;
+      cx = LBX;
+      cy++;
       }
-      else if (cz < RTZ )
+      else if (cz < RTZ)
       {
-        cx = LBX;
-        cy = LBY;
-        cz++;
+      cx = LBX;
+      cy = LBY;
+      cz++;
       }
       else
       {
-        finished = true;
+      finished = true;
       }
-
     }
     return cellNum;
   }
@@ -2377,27 +2344,17 @@ gridIntersectsVM(Word* args, Word& result,
     return 0;
   }
 
-  int lbqt = ptQuadrant((interx - x0), (intery - y0), (interz - z0));
-  if (lbqt < 0)
-  {
-    //The ~common smallest cell~ is not in the first quadrant
-    res->Set(true, (0 == cellno));
-    return 0;
-  }
+  LBX = cellCord(x0, interx, xw);
+  LBY = cellCord(y0, intery, yw);
+  LBZ = cellCord(z0, interz, zw);
 
-  bool outGrid = false;
-  LBX = cellCord(x0, interx, xw, outGrid, nx);
-  LBY = cellCord(y0, intery, yw, outGrid, (is3D?ny:(-1)));
-  LBZ = cellCord(z0, interz, zw, outGrid);
+  //duplicate the grid when the query point is out of the scope
+  int albx = LBX >= 0 ? (LBX % nx) : ((0 - LBX) % nx - 1);
+  int alby = LBY >= 0 ? (is3D ? LBY % ny : LBY) :
+      (is3D ? ((0 - LBY)%ny - 1) : (0 - LBY - 1));
+  int albz = LBZ >= 0 ? LBZ : (0 - LBZ - 1);
 
-
-  if(outGrid) {
-    //The ~common smallest cell~ is not in the scale of the grid
-    res->Set( true, (0 == cellno) );
-    return 0;
-  }
-
-  cscNo = LBX + LBY*nx + LBZ*nx*ny + 1;
+  cscNo = albx + alby*nx + albz*nx*ny + 1;
   res->Set(true, (cscNo == cellno));
 
   return 0;
