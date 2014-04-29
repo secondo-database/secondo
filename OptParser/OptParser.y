@@ -339,7 +339,7 @@ datatype : TOKEN_INT
 deletequery : TOKEN_DELETE TOKEN_FROM relationname whereclause
             {
                $$ = new OptParseStruct();
-               $$->addRelation($3)
+               $$->addRelation($3);
             }
 ;
 
@@ -662,7 +662,7 @@ predicatelist : predicate
                 }
               | predicatelist TOKEN_COMMA predicate
                 {
-                    $$ = $1
+                    $$ = $1;
                 }
 ;
 
@@ -847,11 +847,11 @@ sqlclause :  TOKEN_LET newname mquery
 
 subquerypred : attributeexpr TOKEN_IN TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
                {
-                    $$=$4
+                    $$=$4;
                }
              | attributeexpr TOKEN_NOT TOKEN_IN TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
                {
-                   $$=$1
+                   $$=$1;
                }             
              | TOKEN_EXISTS TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
                {

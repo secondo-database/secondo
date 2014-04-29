@@ -526,13 +526,13 @@ type	    : ZZIDENT
 	    ;
 
 attrsindex  : '_'ZZINTI
-	      { $$ = $2 }
+	      { $$ = $2; }
 	    ;
 
 varindex    : '_'ZZINTI
-	      { $$ = $2 }
+	      { $$ = $2; }
 	    | '_'ZZIDENT
-	      { $$ = $2 }	    
+	      { $$ = $2; }	    
 	    ;
 
 datatype    : ZZDATATYPE ','
