@@ -68,6 +68,11 @@ public:
        // To be implemented in subclasses
      }
      
+     virtual int getIntValue(int pos) {
+       // To be implemented in subclasses
+       return -1;
+     }
+     
 };
      
 /*
@@ -85,7 +90,7 @@ public:
      
      virtual bool hasNext();
      virtual void getStringValue(string &resultString, int pos);
-     
+     virtual int getIntValue(int pos);
      
 private:
      cql::cql_result_t& result;
@@ -107,7 +112,7 @@ public:
   virtual bool setupNextQuery();
   virtual bool hasNext();
   virtual void getStringValue(string &resultString, int pos);
-  
+  virtual int getIntValue(int pos);
 private:
   vector<string> queries;
   CassandraAdapter* cassandraAdapter;

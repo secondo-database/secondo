@@ -347,8 +347,6 @@ a valid result. False otherweise
 */    
   CassandraResult* readDataFromCassandra(string cql, 
          cql::cql_consistency_enum consistenceLevel);
-   
-protected:
 
 /*
 2.3.12 Get a list with local token ranges
@@ -368,6 +366,8 @@ protected:
 
 */    
   bool executeCQLASync(string cql, cql::cql_consistency_enum consistency);
+
+protected:
 
 /*
 2.3.14 Execute the given cql future and check for errors. Returns

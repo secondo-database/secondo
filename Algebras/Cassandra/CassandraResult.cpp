@@ -53,6 +53,12 @@ void SingleCassandraResult::getStringValue(string &resultString, int pos) {
   result.get_string(pos, resultString);
 }
 
+int SingleCassandraResult::getIntValue(int pos) {
+  int resultInt;
+  result.get_int(pos, resultInt);
+  return resultInt;
+}
+
 /*
 2.3 Result object for >1 cql query
 
@@ -98,6 +104,10 @@ bool MultiCassandraResult::setupNextQuery() {
 
 void MultiCassandraResult::getStringValue(string &resultString, int pos) {
   cassandraResult -> getStringValue(resultString, pos);
+}
+
+int MultiCassandraResult::getIntValue(int pos) {
+  return cassandraResult -> getIntValue(pos);
 }
 
 bool MultiCassandraResult::hasNext() {
