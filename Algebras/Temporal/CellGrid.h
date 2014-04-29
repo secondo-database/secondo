@@ -70,6 +70,8 @@ class CellGrid2D: public Attribute{
       // contained by the cell with the lower cell number. Thus, the origin
       // itself is never located on the grid!
 
+    CellGrid2D(const double &wx_, const double &wy_, const int32_t &nox_);
+
      CellGrid2D(const CellGrid2D& other);
 
      CellGrid2D& operator=(const CellGrid2D& other);
@@ -81,6 +83,10 @@ class CellGrid2D: public Attribute{
     bool set(const double x0,
              const double y0,
              const double wx,
+             const double wy,
+             const int no_cells_x);
+
+    bool set(const double wx,
              const double wy,
              const int no_cells_x);
 

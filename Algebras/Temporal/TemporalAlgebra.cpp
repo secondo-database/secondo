@@ -2755,6 +2755,15 @@ CellGrid2D::CellGrid2D(const double &x0_, const double &y0_,
                      && !AlmostEqual(wy,0.0));
     }
 
+CellGrid2D::CellGrid2D(
+  const double &wx_, const double &wy_, const int32_t &nox_)
+  : x0(0.0), y0(0.0), wx(wx_), wy(wy_), no_cells_x(nox_) {
+  //Defines the grid with the constant origin
+  SetDefined( (no_cells_x > 0)
+               && !AlmostEqual(wx,0.0)
+               && !AlmostEqual(wy,0.0));
+}
+
 CellGrid2D::CellGrid2D(const CellGrid2D& other):
    Attribute(other.IsDefined()),
    x0(other.x0), y0(other.y0), wx(other.wx),wy(other.wy),
@@ -2779,6 +2788,20 @@ bool CellGrid2D::set(const double x0, const double y0,
 
    this->x0 = x0;
    this->y0 = y0;
+   this->wx = wx;
+   this->wy = wy;
+   this->no_cells_x = no_cells_x;
+   SetDefined( (no_cells_x > 0)
+              && !AlmostEqual(wx,0.0)
+              && !AlmostEqual(wy,0.0));
+   return IsDefined();
+}
+
+bool CellGrid2D::set(const double wx, const double wy,
+                     const int no_cells_x){
+
+   this->x0 = 0.0;
+   this->y0 = 0.0;
    this->wx = wx;
    this->wy = wy;
    this->no_cells_x = no_cells_x;
@@ -17041,6 +17064,12 @@ static complexTM getCreateCellGrid2DCTM(){
    tm.add(tm5<CcReal, CcReal, CcInt, CcReal, CcInt, CellGrid2D>());
    tm.add(tm5<CcReal, CcReal, CcReal, CcInt, CcInt, CellGrid2D>());
    tm.add(tm5<CcReal, CcReal, CcReal, CcReal, CcInt, CellGrid2D>());
+
+   //With the constant origin
+   tm.add(tm3<CcInt, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm3<CcInt, CcReal, CcInt, CellGrid2D>());
+   tm.add(tm3<CcReal, CcInt, CcInt, CellGrid2D>());
+   tm.add(tm3<CcReal, CcReal, CcInt, CellGrid2D>());
    return tm;
 }
 
@@ -17066,6 +17095,14 @@ public:
                   const A4* a4, const A5* a5, R* res){
    res->set(a1->GetValue(), a2->GetValue(), a3->GetValue(),
             a4->GetValue(), a5->GetValue());
+  }
+};
+
+template<class A1,class A2, class A3, class R>
+class CreateCellGrid2DF2{
+public:
+  void operator()(const A1* a1, const A2* a2, const A3* a3, R* res){
+   res->set(a1->GetValue(), a2->GetValue(), a3->GetValue());
   }
 };
 
@@ -17118,7 +17155,19 @@ ValueMapping createCellGrid2DValueMap[] = {
          CreateCellGrid2DF<CcReal, CcReal, CcReal, CcInt, CcInt, CellGrid2D> >,
 
   GenVM5<CcReal, CcReal, CcReal, CcReal, CcInt, CellGrid2D,
-         CreateCellGrid2DF<CcReal, CcReal, CcReal, CcReal, CcInt, CellGrid2D> >
+         CreateCellGrid2DF<CcReal, CcReal, CcReal, CcReal, CcInt, CellGrid2D> >,
+
+  GenVM3<CcInt, CcInt, CcInt, CellGrid2D,
+    CreateCellGrid2DF2<CcInt, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM3<CcInt, CcReal, CcInt, CellGrid2D,
+    CreateCellGrid2DF2<CcInt, CcReal, CcInt, CellGrid2D> >,
+
+  GenVM3<CcReal, CcInt, CcInt, CellGrid2D,
+    CreateCellGrid2DF2<CcReal, CcInt, CcInt, CellGrid2D> >,
+
+  GenVM3<CcReal, CcReal, CcInt, CellGrid2D,
+    CreateCellGrid2DF2<CcReal, CcReal, CcInt, CellGrid2D> >
 };
 
 
@@ -17134,7 +17183,9 @@ Operator createCellGrid2D(
               "Creates a cell grid from the arguments, (x0, y0) "
               " defines a corner point of the grid, xw, yw are "
               " the width for each dimension and no_cells_x is"
-              " the number of cells in x direction",
+              " the number of cells in x direction. "
+              "If (x0, y0) is not given, then the origin is set "
+              "as (0.0, 0.0) by default. ",
               "query createCellgrid2D(1.0, 1.0, 3.0, 3.0, 5)"),
           getCreateCellGrid2DCTM().getVMCount(),
           createCellGrid2DValueMap,
@@ -17279,6 +17330,15 @@ static complexTM getCreateCellGrid3DCTM(){
      CcInt, CcInt, CellGrid<3> >());
    tm.add(tm9<CcReal, CcReal, CcReal, CcReal, CcReal, CcReal,
      CcInt, CcInt, CellGrid<3> >());
+
+   tm.add(tm5<CcInt, CcInt, CcInt, CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm5<CcInt, CcInt, CcReal, CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm5<CcInt, CcReal, CcInt, CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm5<CcInt, CcReal, CcReal, CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm5<CcReal, CcInt, CcInt, CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm5<CcReal, CcInt, CcReal, CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm5<CcReal, CcReal, CcInt, CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm5<CcReal, CcReal, CcReal, CcInt, CcInt, CellGrid<3> >());
    return tm;
 }
 
@@ -17317,6 +17377,21 @@ public:
             a4->GetValue(), a5->GetValue(), a6->GetValue(),
             a7->GetValue(), a8->GetValue());
 */
+  }
+};
+
+template<class A1,class A2, class A3, class A4, class A5, class R>
+class CreateCellGrid3DF2{
+public:
+  void operator()(const A1* a1, const A2* a2, const A3* a3,
+                  const A4* a4, const A5* a5, R* res){
+
+   double origin[3] = { 0.0, 0.0, 0.0};
+   double cwidth[3] = { (double)a1->GetValue(),
+       (double)a2->GetValue(), (double)a3->GetValue()};
+   int32_t cn[2] = { (int32_t)a4->GetValue(), (int32_t)a5->GetValue()};
+
+   res->set(origin, cwidth, cn);
   }
 };
 
@@ -17575,7 +17650,32 @@ ValueMapping createCellGrid3DValueMap[] = {
 
     GenVM9<CcReal, CcReal, CcReal, CcReal, CcReal, CcReal, CcInt, CcInt,
       CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcReal, CcReal,
-      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM5<CcInt, CcInt, CcInt, CcInt, CcInt, CellGrid<3>,
+      CreateCellGrid3DF2<CcInt, CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM5<CcInt, CcInt, CcReal, CcInt, CcInt, CellGrid<3>,
+      CreateCellGrid3DF2<CcInt, CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM5<CcInt, CcReal, CcInt, CcInt, CcInt, CellGrid<3>,
+      CreateCellGrid3DF2<CcInt, CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM5<CcInt, CcReal, CcReal, CcInt, CcInt, CellGrid<3>,
+      CreateCellGrid3DF2<CcInt, CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM5<CcReal, CcInt, CcInt, CcInt, CcInt, CellGrid<3>,
+      CreateCellGrid3DF2<CcReal, CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM5<CcReal, CcInt, CcReal, CcInt, CcInt, CellGrid<3>,
+      CreateCellGrid3DF2<CcReal, CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM5<CcReal, CcReal, CcInt, CcInt, CcInt, CellGrid<3>,
+      CreateCellGrid3DF2<CcReal, CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM5<CcReal, CcReal, CcReal, CcInt, CcInt, CellGrid<3>,
+      CreateCellGrid3DF2<CcReal, CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >
+
 };
 
 /*
@@ -17592,7 +17692,8 @@ Operator createCellGrid3D(
               " defines a corner point of the grid, xw, yw, zw are "
               " the width for each dimension, "
               " no_cells_x and no_cells_y is"
-              " the number of cells in x and y direction",
+              " the number of cells in x and y direction. "
+              "If the origin is not set, it is (0.0, 0.0, 0.0) by default. ",
               "query createCellgrid2D(1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 5, 5)"),
           getCreateCellGrid3DCTM().getVMCount(),
           createCellGrid3DValueMap,
