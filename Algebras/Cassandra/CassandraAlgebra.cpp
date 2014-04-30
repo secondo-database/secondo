@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <fstream>
 #include <iostream>
+#include <time.h> 
 
 #include <sys/time.h>
 
@@ -1575,20 +1576,22 @@ Type mapping for ~cpartition~ is
 ListExpr PartitionTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 3){
-    return listutils::typeError("three arguments expected");
+  if(nl->ListLength(args) != 4){
+    return listutils::typeError("four arguments expected");
   }
 
-  string err = " stream(tuple(...) x text x int expected";
+  string err = " stream(tuple(...) x text x text x int expected";
 
   ListExpr stream = nl->First(args);
-  ListExpr filename = nl->Second(args);
-  ListExpr interval = nl->Third(args);
+  ListExpr localname = nl->Second(args);
+  ListExpr partitionname = nl->Third(args);
+  ListExpr waittime = nl->Fourth(args);
 
   if(( !Stream<Tuple>::checkType(stream) &&
        !Stream<Attribute>::checkType(stream) ) ||
-       !FText::checkType(filename) ||
-       !CcInt::checkType(interval)) {
+       !FText::checkType(localname) ||
+       !FText::checkType(partitionname) ||
+       !CcInt::checkType(waittime)) {
     return listutils::typeError(err);
   }
   
@@ -1609,7 +1612,30 @@ CostEstimation* PartitionCostEstimationFunc() {
 */
 class PartitionLocalInfo {
 public:
-  
+ PartitionLocalInfo(string myNodeName, string myPartitionName, 
+                    int myWaitTime) : 
+    
+    nodeName(myNodeName), partitionName(myPartitionName), 
+    waittime(myWaitTime) {
+ }
+ 
+ void start() {
+   cout << "My Name is: " << nodeName << endl;
+   cout << "Running autopatition for: " << partitionName << endl;
+   cout << "Wait Time is: " << waittime << endl;
+        
+    /* initialize random seed: */
+    srand (time(NULL));
+    
+    size_t myId = rand();
+    
+    cout << "My Id is: " << myId << endl;
+ }
+ 
+private:
+  string nodeName;
+  string partitionName;
+  int waittime;
 };
 
 int Partition(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -1626,14 +1652,20 @@ int Partition(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( pli ) delete pli;
       
       if(! ((FText*)args[1].addr)->IsDefined()) {
-        cout << "Name is not defined" << endl;
+        cout << "Nodename is not defined" << endl;
+      } else if(! ((FText*)args[2].addr)->IsDefined()) {
+        cout << "Partionname is not defined" << endl;
       } else {
-        //pli = new PartitionLocalInfo((((FText*)args[1].addr)->GetValue()),
-        //              (((CcInt*)args[2].addr)->GetIntval()));
+        pli = new PartitionLocalInfo(
+                   (((FText*)args[1].addr)->GetValue()),
+                   (((FText*)args[2].addr)->GetValue()),
+                   (((CcInt*)args[3].addr)->GetIntval()));
                       
-        
         local.setAddr( pli );
         qp->Open(args[0].addr);
+        
+        // Run autopatition
+        pli -> start();
         
       }
       return 0;
@@ -1676,18 +1708,18 @@ const string PartitionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
                          "<text>((stream (tuple([a1:d1, ... ,an:dn]"
-                         "))) y string x int) -> (stream (tuple([a1:d1, ... ,"
-                         "an:dn]))) or \n"
-                         "((stream T) text x int) -> (stream T), "
+                         "))) x string x string x int) -> (stream "
+                         "(tuple([a1:d1, ... ,an:dn]))) or \n"
+                         "((stream T) text x text x int) -> (stream T), "
                          "for T in kind DATA.</text--->"
-                         "<text>_ cpartition [ _ , _ ]</text--->"
+                         "<text>_ cpartition [ _ , _ , _ ]</text--->"
                          "<text> The operator cpartition partitions a "
                          "cassandra ring into chunks for distributed "
                          "secondo</text--->"
                          "<text>query ccollect('127.0.0.1', 'keyspace1', "
                          "'plz', 'ONE', 'mypartition') "
-                         "cpartition['mypartition', 10] count</text--->"
-                              ") )";
+                         "cpartition['nodeXXX', 'mypartition', 10]"
+                         " count</text--->) )";
 
 /*
 2.2.5 Definition of operator ~cpartition~
