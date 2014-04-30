@@ -39,6 +39,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NList.h"
 #include "CassandraAdapter.h"
 
+#include <boost/uuid/uuid.hpp>      
+#include <boost/uuid/uuid_generators.hpp> 
+#include <boost/uuid/uuid_io.hpp>  
+
+
+/*
+1.1 Defines
+
+*/
+
+
+/*
+1.2 Using
+
+*/
 using namespace std;
 
 /*
@@ -105,7 +120,21 @@ cassandra::CassandraAdapter* getCassandraAdapter(string cassandraHostname,
 }
 
 /*
-2.2 This is the main loop of the query executor. The method fetches
+2.2 Replace placeholder like __NODEID__ in Queries
+
+*/
+void replacePlaceholder(string &query, string uuid) {
+  size_t startPos = 0;
+  string nodeid = "__NODEID__";
+  
+  while((startPos = query.find(nodeid, startPos)) != std::string::npos) {
+         query.replace(startPos, nodeid.length(), uuid);
+         startPos += uuid.length();
+  }
+}
+
+/*
+2.3 This is the main loop of the query executor. This method fetches
   queries from cassandra and forward them to secondo.
 
 */
@@ -114,7 +143,11 @@ void mainLoop(SecondoInterface* si, cassandra::CassandraAdapter* cassandra) {
   NestedList* nl = si->GetNestedList();
   NList::setNLRef(nl);
   
+  boost::uuids::uuid uuid = boost::uuids::random_generator()();
+  const string myUuid = boost::lexical_cast<std::string>(uuid);
   int lastCommandId = 0;
+  
+  cout << "Our id is: " << myUuid << endl;
   
   while(true) {
         
@@ -128,6 +161,7 @@ void mainLoop(SecondoInterface* si, cassandra::CassandraAdapter* cassandra) {
           
           string command;
           result->getStringValue(command, 1);
+          replacePlaceholder(command, myUuid);
           
           // Is this the next query to execute
           if(id == lastCommandId + 1) {
