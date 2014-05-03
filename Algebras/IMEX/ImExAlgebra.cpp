@@ -58,6 +58,7 @@ This file contains the implementation import / export operators.
 #include <sys/stat.h>
 #include <stdio.h>
 #include <iostream>
+#include <unistd.h>
 
 #include <fcntl.h>
 #include "SocketIO.h"
