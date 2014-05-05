@@ -487,10 +487,9 @@ that ListExpr using the routines from NestedList.
 static foreign_t
 pl_print_term_le(term_t term)
 {
-  ListExpr listLE;
   bool error;
 
-  listLE = TermToListExpr(term, plnl, error);
+  TermToListExpr(term, plnl, error);
   if(error)
   {
     PL_fail;
@@ -787,7 +786,7 @@ static foreign_t getCosts6(
      cerr << "must be [noTuples, sizeOfTuple, noAttributes] " << endl;
      PL_fail;
    }
-   if(!readIntList(stream2_descr,stream1_descrC,3)){
+   if(!readIntList(stream2_descr,stream2_descrC,3)){
      cerr << "invalid stream2 description" << endl;
      cerr << "must be [noTuples, sizeOfTuple, noAttributes] " << endl;
      PL_fail;
@@ -801,6 +800,7 @@ static foreign_t getCosts6(
      cerr << "sizeOfTuple is not an integer" << endl;
      PL_fail;
    }
+
    if(!si->getCosts(
           (size_t) VM_descrC[0], (size_t) VM_descrC[1], (size_t) VM_descrC[2],
           (size_t) stream1_descrC[0], 
@@ -809,7 +809,7 @@ static foreign_t getCosts6(
           (size_t) stream2_descrC[0], 
           (size_t) stream2_descrC[1], 
           (size_t) stream2_descrC[2], 
-           selectivity, (size_t) memoryMBC, costsC)){
+           selectivityC, (size_t) memoryMBC, costsC)){
       PL_fail;
    }  else {
       int intCosts = (int) costsC;
