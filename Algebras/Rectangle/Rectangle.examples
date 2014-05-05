@@ -77,6 +77,11 @@ Signature: point x int -> real
 Example  : query maxD([const point value (1.0 2.0) ], 1)
 Result   : 1.00000001
 
+Operator : rectangle1
+Number   : 1
+Signature: (int x int -> rect) or (real x real -> rect)
+Example  : query rectangle1(17.0, 24.3)
+Result   : (rect1 (17.0 24.3))
 
 Operator : rectangle2
 Number   : 1

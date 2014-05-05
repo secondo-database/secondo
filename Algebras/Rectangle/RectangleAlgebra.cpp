@@ -56,6 +56,77 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 /*
+3 Type Constructor ~rect1~
+
+A value of type ~rect1~ represents a 1-dimensional rectangle aligned with
+the x-axis. A rectangle in such a way can be represented by two
+numbers, the left and the right limit.
+
+3.1 List Representation
+
+The list representation of a 1D rectangle is
+
+----    (x y)
+----
+
+3.3 ~Out~-function
+
+See RectangleAlgebra.h
+
+3.4 ~In~-function
+
+See RectangleAlgebra.h
+
+3.9 Function describing the signature of the type constructor
+
+*/
+ListExpr
+Rectangle1Property()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                             nl->StringAtom(Rectangle<1>::BasicType()),
+                             nl->StringAtom("(<left> <right>)"),
+                             nl->StringAtom("(0.0 1.0)"))));
+}
+
+/*
+3.10 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. Since
+type constructor ~rect1~ does not have arguments, this is trivial.
+
+*/
+bool
+CheckRectangle1( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, Rectangle<1>::BasicType() ));
+}
+
+/*
+3.12 Creation of the type constructor instance
+
+*/
+TypeConstructor rect1(
+        Rectangle<1>::BasicType(),               //name
+        Rectangle1Property,                      //property function
+                                                 //describing signature
+        OutRectangle<1>,     InRectangle<1>,     //Out and In functions
+        0,                   0,                  //SaveToList and
+                                                 //RestoreFromList functions
+        CreateRectangle<1>,  DeleteRectangle<1>, //object creation and deletion
+        OpenAttribute<Rectangle<1> >,
+        SaveAttribute<Rectangle<1> >,            //open and save functions
+        CloseRectangle<1>,   CloneRectangle<1>,  //object close, and clone
+        CastRectangle<1>,                        //cast function
+        SizeOfRectangle<1>,                      //sizeof function
+        CheckRectangle1 );                       //kind checking function
+
+/*
 3 Type Constructor ~rect~
 
 A value of type ~rect~ represents a 2-dimensional rectangle alligned with
@@ -543,6 +614,7 @@ ListExpr RectangleTypeMap( ListExpr args )
 
    if( checkint ||  checkreal )
      switch(dim) {
+       case 1: return nl->SymbolAtom( Rectangle<1>::BasicType() );
        case 2: return nl->SymbolAtom( Rectangle<2>::BasicType() );
        case 3: return nl->SymbolAtom( Rectangle<3>::BasicType() );
        case 4: return nl->SymbolAtom( Rectangle<4>::BasicType() );
@@ -2521,6 +2593,9 @@ ValueMapping rectangleintersectionmap[] = { RectangleIntersection<2>,
                                             RectangleIntersection<3>,
                                             RectangleIntersection<4>,
                                             RectangleIntersection<4> };
+                                            
+ValueMapping rectanglerectangle1map[] = { RectangleValueMap<CcInt, 1>,
+                                          RectangleValueMap<CcReal, 1> };
 
 ValueMapping rectanglerectangle2map[] = { RectangleValueMap<CcInt, 2>,
                                           RectangleValueMap<CcReal, 2> };
@@ -2687,6 +2762,16 @@ const string RectangleSpecTranslate  =
   "<text> query rect1 translate[3.5, 15.1]</text--->"
   ") )";
 
+const string RectangleSpecRectangle1  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(int x int -> rect) or (real x real -> rect)</text--->"
+        "<text>rectangle1( xmin, xmax)</text--->"
+        "<text>creates a rect from the given parameters.</text--->"
+        "<text>query rectangle1(17.0, 24.3)</text--->"
+        "<text>The sequence of parameters must be "
+        "(minx, maxx) with (minx < maxx)</text--->"
+        ") )";
+    
 const string RectangleSpecRectangle2  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(int x int x int x int -> rect) or"
@@ -2914,6 +2999,13 @@ Operator rectangletranslate( "translate",
                              rectangletranslatemap,
                              RectangleUnarySelect,
                              TranslateTypeMap );
+
+Operator rectanglerectangle1( "rectangle1",
+                             RectangleSpecRectangle1,
+                             2,
+                             rectanglerectangle1map,
+                             RectangleSelect<1>,
+                             RectangleTypeMap<1> );
 
 Operator rectanglerectangle2( "rectangle2",
                              RectangleSpecRectangle2,
@@ -3289,6 +3381,10 @@ class RectangleAlgebra : public Algebra
  public:
   RectangleAlgebra() : Algebra()
   {
+    AddTypeConstructor( &rect1 );
+    rect1.AssociateKind(Kind::DATA());
+    rect1.AssociateKind(Kind::SPATIAL2D());
+    
     AddTypeConstructor( &rect );
     rect.AssociateKind(Kind::DATA());
     rect.AssociateKind(Kind::SPATIAL2D());
@@ -3316,6 +3412,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleintersection );
     AddOperator( &rectangletranslate );
     AddOperator( &rectangledistance );
+    AddOperator( &rectanglerectangle1 );
     AddOperator( &rectanglerectangle2 );
     AddOperator( &rectanglerectangle3 );
     AddOperator( &rectanglerectangle4 );

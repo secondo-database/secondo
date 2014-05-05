@@ -1111,6 +1111,7 @@ class RectangleSet
     vector< Rectangle<dim> > set;
 };
 
+typedef Rectangle<1> Rect1;
 typedef Rectangle<2> Rect;
 typedef Rectangle<3> Rect3;
 typedef Rectangle<4> Rect4;
