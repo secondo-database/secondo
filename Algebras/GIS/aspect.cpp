@@ -42,14 +42,14 @@ namespace GISAlgebra {
     typename T::this_type* s_in =
           static_cast<typename T::this_type*>(args[0].addr);
 
-    raster2::grid2 grid = sint_in->getGrid();
+    raster2::grid2 grid = s_in->getGrid();
 
     double zFactor = factor->GetValue();
     double cellsize = grid.getLength();
 
-    sint_out->setGrid(grid);
+    s_out->setGrid(grid);
 
-    Rectangle<2> bbox = sint_in->bbox();
+    Rectangle<2> bbox = s_in->bbox();
 
     raster2::RasterIndex<2> from = grid.getIndex(bbox.MinD(0), bbox.MinD(1));
     raster2::RasterIndex<2> to = grid.getIndex(bbox.MaxD(0), bbox.MaxD(1));
@@ -58,54 +58,46 @@ namespace GISAlgebra {
                                              index.increment(from, to))
     {
 	// Mitte
-        double e = sint_in->get(index);
+        double e = s_in->get(index);
 
-        double a = sint_in->get((int[]){index[0] - 1, index[1] + 1});
-        if (sint_in->isUndefined(a)){a = e;}
-        double b = sint_in->get((int[]){index[0], index[1] + 1});
-        if (sint_in->isUndefined(b)){b = e;}
-        double c = sint_in->get((int[]){index[0] + 1, index[1] + 1});
-        if (sint_in->isUndefined(c)){c = e;}
-        double d = sint_in->get((int[]){index[0] - 1, index[1]});
-        if (sint_in->isUndefined(d)){d = e;}
-        double f = sint_in->get((int[]){index[0] + 1, index[1]});
-        if (sint_in->isUndefined(f)){f = e;}
-        double g = sint_in->get((int[]){index[0] - 1, index[1] - 1});
-        if (sint_in->isUndefined(g)){g = e;}
-        double h = sint_in->get((int[]){index[0], index[1] - 1});
-        if (sint_in->isUndefined(h)){h = e;}
-        double i = sint_in->get((int[]){index[0] + 1, index[1] - 1});
-        if (sint_in->isUndefined(i)){i = e;}
+        double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
+        if (s_in->isUndefined(a)){a = e;}
+        double b = s_in->get((int[]){index[0], index[1] + 1});
+        if (s_in->isUndefined(b)){b = e;}
+        double c = s_in->get((int[]){index[0] + 1, index[1] + 1});
+        if (s_in->isUndefined(c)){c = e;}
+        double d = s_in->get((int[]){index[0] - 1, index[1]});
+        if (s_in->isUndefined(d)){d = e;}
+        double f = s_in->get((int[]){index[0] + 1, index[1]});
+        if (s_in->isUndefined(f)){f = e;}
+        double g = s_in->get((int[]){index[0] - 1, index[1] - 1});
+        if (s_in->isUndefined(g)){g = e;}
+        double h = s_in->get((int[]){index[0], index[1] - 1});
+        if (s_in->isUndefined(h)){h = e;}
+        double i = s_in->get((int[]){index[0] + 1, index[1] - 1});
+        if (s_in->isUndefined(i)){i = e;}
 
         // Delta bestimmen
         double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / (8*cellsize*zFactor);
         double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / (8*cellsize*zFactor);
 
         // aspect berechnen
-        double aspect = atan(dzdx / dzdy) * 180/M_PI;
+        double aspect = atan2(dzdy, -dzdx) * 180/M_PI;
 
-        if (dzdx > 0)
+        if (aspect < 0)
         {
             aspect = 90 - aspect;
         }
-        else if (dzdx < 0)
+        else if (aspect > 90)
         {
-            aspect = 270 - aspect;
-        }
-        else if (dzdy > 0)
-        {
-            aspect = 0;
-        }
-        else if (dzdx < 0)	
-        {
-            aspect = 180;
+            aspect = 360 - aspect + 90;
         }
         else
         {
-            aspect = raster2::UNDEFINED_REAL;
+            aspect = 90 - aspect;
         }
 
-        sint_out->set(index, aspect);
+        s_out->set(index, aspect);
     }
 
     return 0;
