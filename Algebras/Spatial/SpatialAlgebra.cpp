@@ -100,10 +100,6 @@ using namespace std;
 #include "Stack.h"
 
 
-#ifndef M_PI
-const double M_PI = acos( -1.0 );
-#endif
-
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
