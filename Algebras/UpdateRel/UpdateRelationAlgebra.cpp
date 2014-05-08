@@ -387,6 +387,7 @@ int insertRelValueMap(Word* args, Word& result, int message,
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr );
         result.setAddr(newTuple);
         tup->DeleteIfAllowed();
+        qp->SetModified(qp->GetSon(s, 1));
         return YIELD;
       }
       else
@@ -394,7 +395,6 @@ int insertRelValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
       if(local.addr)
       {
         resultTupleType = (TupleType*) local.addr;
@@ -561,6 +561,8 @@ int insertSaveRelValueMap(Word* args, Word& result, int message,
         auxRelation->AppendTuple(newTuple);
         result.setAddr(newTuple);
         tup->DeleteIfAllowed();
+        qp->SetModified(qp->GetSon(s, 1));
+        qp->SetModified(qp->GetSon(s, 2));
         return YIELD;
       }
       else
@@ -568,8 +570,6 @@ int insertSaveRelValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
-      qp->SetModified(qp->GetSon(s, 2));
       if(local.addr)
       {
         resultTupleType = (TupleType*) local.addr;
@@ -796,11 +796,11 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
         else// if (qp->Received(args[0].addr))
           return CANCEL;
       }// while (! tupleFound);
+      qp->SetModified(qp->GetSon(s, 1));
       return YIELD;
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
       if(local.addr)
       {
         localTransport = (LocalTransport*) local.addr;
@@ -900,6 +900,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
         relation->DeleteTuple(tup);
         tup->DeleteIfAllowed();
         result.setAddr(newTuple);
+        qp->SetModified(qp->GetSon(s, 1));
         return YIELD;
       }
       else
@@ -907,7 +908,6 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
       if(local.addr)
       {
         resultTupleType = (TupleType*) local.addr;
@@ -1133,6 +1133,8 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
       return 0;
 
     case REQUEST :
+      qp->SetModified(qp->GetSon(s, 1));
+      qp->SetModified(qp->GetSon(s, 2));
       localTransport = (LocalTransport*) local.addr;
 
       // Check if already deleted duplicates have to be given to
@@ -1217,8 +1219,6 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
-      qp->SetModified(qp->GetSon(s, 2));
       if(local.addr)
       {
         localTransport = (LocalTransport*) local.addr;
@@ -1326,6 +1326,8 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
         Attribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
         relation->DeleteTuple(tup);
+        qp->SetModified(qp->GetSon(s, 1));
+        qp->SetModified(qp->GetSon(s, 2));
         auxRelation->AppendTuple(newTuple);
         result.setAddr(newTuple);
         tup->DeleteIfAllowed();
@@ -1336,8 +1338,6 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
-      qp->SetModified(qp->GetSon(s, 2));
       if(local.addr)
       {
         resultTupleType = (TupleType*) local.addr;
@@ -1520,6 +1520,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
           insertTuple->CopyAttribute(i,resultTuple,i);
         }
         relation->AppendTuple(insertTuple);
+        qp->SetModified(qp->GetSon(s, 0));
         const TupleId& tid = insertTuple->GetTupleId();
         Attribute* tidAttr = new TupleIdentifier(true,tid);
         resultTuple->PutAttribute(
@@ -1534,7 +1535,6 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
         return CANCEL;
 
     case CLOSE :
-      qp->SetModified(qp->GetSon(s, 0));
       if(local.addr)
       {
         firstcall = (bool*) local.addr;
@@ -1734,6 +1734,8 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
           insertTuple->CopyAttribute(i,resultTuple,i);
         }
         relation->AppendTuple(insertTuple);
+        qp->SetModified(qp->GetSon(s, 0));
+        qp->SetModified(qp->GetSon(s, 1));
         const TupleId& tid = insertTuple->GetTupleId();
         Attribute* tidAttr = new TupleIdentifier(true,tid);
         resultTuple->PutAttribute(
@@ -1749,8 +1751,6 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
         return CANCEL;
 
     case CLOSE :
-      qp->SetModified(qp->GetSon(s, 0));
-      qp->SetModified(qp->GetSon(s, 1));
       if(local.addr)
       {
         firstcall = (bool*) local.addr;
@@ -1815,15 +1815,12 @@ Type mapping for ~updatedirect~ and ~updatesearch~ is
 */
 ListExpr updateTypeMap( ListExpr& args, string opName )
 {
-  ListExpr first, second,third,errorInfo, rest, listn,
+  ListExpr first, second,third,rest, listn,
            lastlistn, first2, second2, firstr,attrType,
            numberList, lastNumberList,oldAttribute, outlist;
   int attrIndex, noAttrs ;
   bool firstcall = true;
   string argstr, argstr2, argstr3, oldName;
-  AlgebraManager* algMgr;
-  algMgr = SecondoSystem::GetAlgebraManager();
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   if(nl->ListLength(args)!=3){
     return listutils::typeError("three arguments expected");
@@ -2020,6 +2017,7 @@ int UpdateDirect(Word* args, Word& result, int message,
           (*newAttrs)[i-1] = newAttribute;
         }
         relation->UpdateTuple(tup,*changedIndices,*newAttrs);
+        qp->SetModified(qp->GetSon(s, 1));
         for (int i = 0; i < tup->GetNoAttributes(); i++)
           newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
@@ -2037,7 +2035,6 @@ int UpdateDirect(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
       if(local.addr)
       {
         resultTupleType = (TupleType *)local.addr;
@@ -2272,6 +2269,7 @@ int UpdateSearch(Word* args, Word& result, int message,
                 }
                 relation->UpdateTuple(
                   nextTup,*changedIndices,*newAttrs);
+                qp->SetModified(qp->GetSon(s, 1));
                 for (int i = 0; i < nextTup->GetNoAttributes(); i++)
                   newTuple->CopyAttribute( i, nextTup, i );
                 const TupleId& tid = nextTup->GetTupleId();
@@ -2305,7 +2303,6 @@ int UpdateSearch(Word* args, Word& result, int message,
     case CLOSE :
 
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
       if(local.addr)
       {
         localTransport = (LocalTransport*) local.addr;
@@ -2377,15 +2374,12 @@ Type mapping for ~updatedirectsave~ and ~updatesearchsave~ is
 
 ListExpr updateSaveTypeMap( ListExpr& args, string opName )
 {
-  ListExpr first, second,third,fourth,errorInfo, rest, listn,
+  ListExpr first, second,third,fourth, rest, listn,
            lastlistn, first2, second2, firstr,attrType,numberList,
            lastNumberList,oldAttribute, outlist;
   int attrIndex, noAttrs ;
   bool firstcall = true;
-  AlgebraManager* algMgr;
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-  algMgr = SecondoSystem::GetAlgebraManager();
   string argstr, argstr2,argstr3,oldName;
 
   if(nl->ListLength(args)!=4){
@@ -2617,6 +2611,8 @@ int UpdateDirectSave(Word* args, Word& result, int message,
         auxTuple->DeleteIfAllowed();
 
         relation->UpdateTuple(tup,*changedIndices,*newAttrs);
+        qp->SetModified(qp->GetSon(s, 1));
+        qp->SetModified(qp->GetSon(s, 2));
         
         tup->DeleteIfAllowed();
 
@@ -2631,8 +2627,6 @@ int UpdateDirectSave(Word* args, Word& result, int message,
     case CLOSE :
 
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
-      qp->SetModified(qp->GetSon(s, 2));
       if(local.addr)
       {
         resultTupleType = (TupleType *)local.addr;
@@ -2922,6 +2916,8 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 		  newTuple->PutAttribute(index, newAttribute);
                 }
 		nextTup->IncReference();
+                qp->SetModified(qp->GetSon(s, 1));
+                qp->SetModified(qp->GetSon(s, 2));
                 relation->UpdateTuple( nextTup,*changedIndices,*newAttrs);
 
 		// add tid to newTuple
@@ -2971,8 +2967,6 @@ int UpdateSearchSave(Word* args, Word& result, int message,
     case CLOSE :
 
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
-      qp->SetModified(qp->GetSon(s, 2));
       if(local.addr)
       {
         localTransport = (LocalTransport*) local.addr;
@@ -3258,6 +3252,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
           resultTuple->PutAttribute(
             i, deleteTuple->GetAttribute(i)->Clone());
         relation->DeleteTuple(deleteTuple);
+        qp->SetModified(qp->GetSon(s, 0));
         resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tid->Clone());
         result.setAddr(resultTuple);
@@ -3269,7 +3264,6 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
         return CANCEL;
 
     case CLOSE :
-      qp->SetModified(qp->GetSon(s, 0));
       if(local.addr)
       {
         firstcall = (bool*) local.addr;
@@ -3328,15 +3322,12 @@ Operator extreldeletebyid (
 
 ListExpr updateByIdTypeMap(ListExpr args)
 {
-  ListExpr first, second,third,errorInfo, rest, listn, lastlistn,
+  ListExpr first, second,third, rest, listn, lastlistn,
            first2, second2, firstr,attrType, numberList,
            lastNumberList,oldAttribute, outlist;
   string argstr,valueString, argstr2, argstr3, oldName;
   int attrIndex, noAttrs ;
   bool firstcall = true;
-  AlgebraManager* algMgr;
-  algMgr = SecondoSystem::GetAlgebraManager();
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   if(nl->ListLength(args)!=3){
     return listutils::typeError("three arguments expected");
@@ -3528,6 +3519,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
           (*newAttrs)[i-1] = newAttribute;
         }
         relation->UpdateTuple(updateTuple,*changedIndices,*newAttrs);
+        qp->SetModified(qp->GetSon(s, 0));
         for (int i = 0; i < updateTuple->GetNoAttributes(); i++)
           resultTuple->CopyAttribute( i, updateTuple, i );
         resultTuple->PutAttribute(
@@ -3543,7 +3535,6 @@ int updateByIdValueMap(Word* args, Word& result, int message,
         return CANCEL;
 
     case CLOSE :
-      qp->SetModified(qp->GetSon(s, 0));
       if(local.addr)
       {
         firstcall = (bool*) local.addr;
@@ -3911,6 +3902,7 @@ int insertRTreeValueMap(Word* args, Word& result, int message,
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
+        qp->SetModified(qp->GetSon(s, 1));
         tup = (Tuple*)t.addr;
         keyAttr = tup->GetAttribute(index - 1);
         tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
@@ -3953,7 +3945,6 @@ int insertRTreeValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
       if(local.addr)
       {
         localTransport = (int*) local.addr;
@@ -4087,6 +4078,7 @@ int deleteRTreeValueMap(Word* args, Word& result, int message,
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
+        qp->SetModified(qp->GetSon(s, 1));
         tup = (Tuple*)t.addr;
         keyAttr = tup->GetAttribute(index - 1);
         tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
@@ -4129,7 +4121,6 @@ int deleteRTreeValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
       if(local.addr)
       {
         localTransport = (int*) local.addr;
@@ -4243,6 +4234,7 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
+        qp->SetModified(qp->GetSon(s, 1));
         tup = (Tuple*)t.addr;
         keyAttr = tup->GetAttribute(index - 1);
         int noOfAttrs = tup->GetNoAttributes();
@@ -4324,7 +4316,6 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s, 1));
       if(local.addr)
       {
         localTransport = (int*) local.addr;
