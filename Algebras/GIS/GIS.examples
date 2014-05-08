@@ -4,12 +4,24 @@ Restore  : NO
 
 Operator : slope
 Number   : 1
-Signature: sT -> sT
+Signature: sT x double -> sT
 Example  : query slope()
 Result   : file
 
 Operator : aspect
 Number   : 1
-Signature: sT -> sT
+Signature: sT x double -> sT
 Example  : query aspect()
+Result   : file
+
+Operator : hillshade
+Number   : 1
+Signature: sT x double x double x double -> sT
+Example  : query hillshade()
+Result   : file
+
+Operator : ruggedness
+Number   : 1
+Signature: sT -> sT
+Example  : query ruggedness()
 Result   : file

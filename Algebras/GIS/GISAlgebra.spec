@@ -21,3 +21,5 @@
 
 operator slope alias SLOPE pattern op(_,_)
 operator aspect alias ASPECT pattern op(_,_)
+operator hillshade alias HILLSHADE pattern op(_,_,_,_)
+operator ruggedness alias RUGGEDNESS pattern op(_)

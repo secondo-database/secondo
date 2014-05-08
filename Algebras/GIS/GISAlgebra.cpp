@@ -56,6 +56,8 @@ GISAlgebra operators includes
 
 #include "slope.h"
 #include "aspect.h"
+#include "hillshade.h"
+#include "ruggedness.h"
 
 /*
 extern declarations
@@ -121,12 +123,6 @@ GISAlgebra::GISAlgebra()
 
   */
 
-  // AddTypeConstructor(new TypeConstructor(tintArray::GetTypeConstructor()),
-  //                    true);
-  // AddTypeConstructor(new TypeConstructor(tintFlob::GetTypeConstructor()),
-  //                    true);
-  //AddTypeConstructor(new TypeConstructor(tgrid::GetTypeConstructor()), true);
-  
 
   /*
   Operators
@@ -135,8 +131,10 @@ GISAlgebra::GISAlgebra()
 
   AddOperator(slopeInfo(), slopeFuns, slopeSelectFun, slopeTypeMap);
   AddOperator(aspectInfo(), aspectFuns, aspectSelectFun, aspectTypeMap);
-  //AddOperator(atlocationInfo(), atlocationFunctions, atlocationSelectFunction,
-  //            atlocationTypeMappingFunction);
+  AddOperator(hillshadeInfo(), hillshadeFuns, hillshadeSelectFun, 
+              hillshadeTypeMap);
+  AddOperator(ruggednessInfo(), ruggednessFuns, ruggednessSelectFun, 
+              ruggednessTypeMap);
   
 }
 
