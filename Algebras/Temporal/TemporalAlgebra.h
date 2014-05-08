@@ -513,7 +513,7 @@ loads, i.e., into non-ordered ranges.
 
 */
 
-    void EndBulkLoad( const bool sort = true, const bool checkvalid = false );
+    bool EndBulkLoad( const bool sort = true, const bool checkvalid = false );
 /*
 Marks the end of a bulk load and sorts the interval set if the flag ~sort~ is set to true.
 Checkvalid indicated, whether the validity (non-overlapping intervals) should
@@ -3158,7 +3158,7 @@ loads, i.e., into non-ordered mappings.
 
 */
 
-    virtual void EndBulkLoad( const bool sort = true,
+    virtual bool EndBulkLoad( const bool sort = true,
                               const bool checkvalid = false );
 /*
 Marks the end of a bulk load and sorts the unit set if the flag ~sort~ is set to true.
@@ -3778,7 +3778,7 @@ using a check on bbox.
   void Clear();
   void Add( const UPoint& unit );
   void MergeAdd(const UPoint& unit);
-  void EndBulkLoad( const bool sort = true, const bool checkvalid = false );
+  bool EndBulkLoad( const bool sort = true, const bool checkvalid = false );
   void Restrict( const vector< pair<int, int> >& intervals );
   ostream& Print( ostream &os ) const;
   bool operator==( const MPoint& r ) const;
@@ -4655,7 +4655,7 @@ int IntervalCompare( const void *a, const void *b )
 }
 
 template <class Alpha>
-void Range<Alpha>::EndBulkLoad( const bool sort, const bool checkvalid )
+bool Range<Alpha>::EndBulkLoad( const bool sort, const bool checkvalid )
 {
   assert( IsDefined() );
   assert( !ordered );
@@ -4666,12 +4666,12 @@ void Range<Alpha>::EndBulkLoad( const bool sort, const bool checkvalid )
   }
   ordered = true;
   intervals.TrimToSize();
-  if( checkvalid && !IsValid() ){
-    SetDefined( false );
-    cerr << __PRETTY_FUNCTION__<< " found invalid range and marked it "
-         << "undefined!"<< endl;
-//     assert( isvalid );
-  }
+  if(checkvalid && !IsValid()){
+    intervals.clean();
+    SetDefined(false);
+    return false;
+  } 
+  return true;
 }
 
 template <class Alpha>
@@ -6215,7 +6215,7 @@ int UnitCompare( const void *a, const void *b )
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::EndBulkLoad( const bool sort, const bool checkvalid )
+bool Mapping<Unit, Alpha>::EndBulkLoad( const bool sort, const bool checkvalid )
 {
   assert( !ordered );
   if( !IsDefined() ){
@@ -6226,11 +6226,11 @@ void Mapping<Unit, Alpha>::EndBulkLoad( const bool sort, const bool checkvalid )
   ordered = true;
   units.TrimToSize();
   if( checkvalid && !IsValid() ){
+    units.clean();
     SetDefined( false );
-    cerr << __PRETTY_FUNCTION__<< " found invalid range and marked it "
-        << "undefined!"<< endl;
-//     assert(isvalid);
+    return false;
   }
+  return true;
 }
 
 template <class Unit, class Alpha>
@@ -7715,7 +7715,12 @@ Word InMapping( const ListExpr typeInfo, const ListExpr instance,
     delete unit;
   }
 
-  m->EndBulkLoad( true ); // if this succeeds, all is OK
+  if(! m->EndBulkLoad( true,true )){ // overlapping intervals found
+    m->Destroy();
+    delete m;
+    correct = false;
+    return SetWord(Address(0));
+  }
 
   return SetWord( m );
 }

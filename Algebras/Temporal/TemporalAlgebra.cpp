@@ -328,9 +328,9 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
 
   // Bronstein (241)
   double anti2;
-  int ucase = -1;
+  //int ucase = -1;
   if((a>0) && (Delta>0))  {
-     ucase = 1;
+    // ucase = 1;
      //anti2 = (1/sqrt(a)) * asinh(h1 / sqrt(Delta));
      //t2 = f*anti2;
 
@@ -338,15 +338,15 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
 
 
   } else if((a>0) && (Delta==0)){
-     ucase = 2;
+    // ucase = 2;
      anti2 = (1/sqrt(a)) * log(h1);
      t2 = f * anti2;
   } else if((a<0) && (Delta<0)){
-     ucase = 3;
+    // ucase = 3;
      anti2 = -1.0 * (1/ sqrt(-1.0*a)) * asin( h1 / sqrt(-1.0*Delta));
      t2 = f * anti2;
   } else if (a>0) { // && Delta < 0
-     ucase = 4;
+    // ucase = 4;
      anti2 = (1 / sqrt(a)) * log ( 2.0 * sqrt(a*X) + h1);
      t2 = f*anti2;
   } else {
@@ -4709,10 +4709,13 @@ ostream& MPoint::Print( ostream &os ) const
   return os;
 }
 
-void MPoint::EndBulkLoad(const bool sort, const bool checkvalid)
+bool MPoint::EndBulkLoad(const bool sort, const bool checkvalid)
 {
-  Mapping<UPoint, Point>::EndBulkLoad( sort, checkvalid ); // call super
-  RestoreBoundingBox();                        // recalculate, if necessary
+  bool res = Mapping<UPoint, Point>::EndBulkLoad( sort, checkvalid ); 
+  if(res){
+      RestoreBoundingBox(); 
+  }
+  return res;
 }
 
 bool MPoint::operator==( const MPoint& r ) const
