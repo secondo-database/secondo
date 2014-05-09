@@ -608,6 +608,22 @@ MUST be used in combination with SetUsesMemory() (see include/Operator.h) in ope
 */
 
 
+  bool switchTransaction(Supplier s);
+
+/*
+This functions requires to get the root of an operator tree as it's argument.
+If not so, the function returns false immediately. Otherwise, all modified objects 
+in the tree rooted by s are written to disc, the current transaction is committed 
+and a new transaction starts.
+
+*/
+
+
+
+
+
+
+
   static bool ExecuteQuery( const string& queryListStr,
                             Word& queryResult,
                    const size_t availableMemory = DEFAULT_GLOBAL_MEMORY);
@@ -659,6 +675,14 @@ tree is built, the ~Destroy~ function should be called.
 
 
  private:
+
+  void saveModified(OpTree t);
+/*
+Forces to write all modified objects within the tree rooted by t to disc.
+
+*/  
+
+
   void GetVariable( const string& name, NameIndex& varnames,
                     const VarEntryTable& vartable,
                     int& position, int& funindex,

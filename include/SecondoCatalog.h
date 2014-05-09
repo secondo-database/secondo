@@ -173,7 +173,7 @@ is aborted.
 
 */
 
-  bool CleanUp( const bool revert );
+  bool CleanUp( const bool revert , const bool closeObjects );
 
 /*
 3.2.2 Database Types

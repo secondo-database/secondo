@@ -632,7 +632,7 @@ SecondoInterface::Terminate()
     // --- Abort open transaction, if there is an open transaction
     if ( activeTransaction )
     {
-      SecondoSystem::AbortTransaction();
+      SecondoSystem::AbortTransaction(true);
       activeTransaction = false;
     }
 
@@ -884,7 +884,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
       {
         if ( activeTransaction )
         {
-          if ( !SecondoSystem::CommitTransaction() )
+          if ( !SecondoSystem::CommitTransaction(true) )
           {
             errorCode = ERR_COMMIT_OR_ABORT_FAILED;
           }
@@ -899,7 +899,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
       {
         if ( activeTransaction )
         {
-          if ( !SecondoSystem::AbortTransaction() )
+          if ( !SecondoSystem::AbortTransaction(true) )
           {
             errorCode = ERR_COMMIT_OR_ABORT_FAILED;
           }
@@ -988,7 +988,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
         {
           if ( activeTransaction )
           {
-            SecondoSystem::CommitTransaction();
+            SecondoSystem::CommitTransaction(true);
             activeTransaction = false;
           }
           sys.CloseDatabase();
@@ -2474,7 +2474,7 @@ SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
     StopWatch commitTime;
     if ( errorCode == 0 )
     {
-      if ( !SecondoSystem::CommitTransaction() )
+      if ( !SecondoSystem::CommitTransaction(true) )
       {
         errMsg = errMsg
                + "CommitTransaction() failed! "
@@ -2485,7 +2485,7 @@ SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
     }
     else
     {
-      if ( !SecondoSystem::AbortTransaction() )
+      if ( !SecondoSystem::AbortTransaction(true) )
       {
         errMsg = errMsg
                + "AbortTransaction() failed! An abort was necessary "

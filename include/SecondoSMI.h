@@ -1077,7 +1077,7 @@ at the end of a query which does no modifications to the stored data.
 */
 
   static bool BeginTransaction();
-  static bool CommitTransaction();
+  static bool CommitTransaction(const bool closeDbHandles = true);
   static bool AbortTransaction();
 /*
 Are provided for transaction handling. Transactions are never implicitly started.

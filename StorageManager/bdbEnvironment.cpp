@@ -1661,7 +1661,7 @@ SmiEnvironment::EraseDatabase( const string& dbname )
 
 bool
 SmiEnvironment::BeginTransaction()
-{
+{ 
   int rc = 0;
   if ( !instance.impl->txnStarted )
   {
@@ -1696,7 +1696,7 @@ SmiEnvironment::UpdateCatalog() {
 
 
 bool
-SmiEnvironment::CommitTransaction()
+SmiEnvironment::CommitTransaction(bool closeDBhandles)
 {
   int rc = 0;
   if ( instance.impl->txnStarted )
@@ -1723,8 +1723,10 @@ SmiEnvironment::CommitTransaction()
            cerr << "Calling CloseDbHandles() ..." << endl;
     )
 
-    SmiEnvironment::Implementation::CloseDbHandles();
-    SmiEnvironment::Implementation::EraseFiles( rc == 0, rc != 0 );
+    if(closeDBhandles){
+       SmiEnvironment::Implementation::CloseDbHandles();
+       SmiEnvironment::Implementation::EraseFiles( rc == 0, rc != 0 );
+    }
 
     LOGMSG( "SMI:DbHandles",
       cerr << "Time for CloseDbHandles(): " << closeTime.diffTimes() << endl;

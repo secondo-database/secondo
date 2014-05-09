@@ -661,7 +661,7 @@ SecondoSystem::RestoreTypes( ListExpr types,
                       nl->IntAtom( 40 ),
                       nl->IntAtom( typeno ) ) );
     } // if
-    SecondoSystem::CommitTransaction();
+    SecondoSystem::CommitTransaction(true);
   } // while
 
   return (correct);
@@ -748,7 +748,7 @@ SecondoSystem::RestoreObjects( ListExpr objects,
                       nl->IntAtom( objno ) ) );
     }
 
-    SecondoSystem::CommitTransaction();
+    SecondoSystem::CommitTransaction(true);
     cout << "processed";
 
     if(correctObj){
@@ -911,19 +911,19 @@ SecondoSystem::BeginTransaction()
 }
 
 bool
-SecondoSystem::CommitTransaction()
+SecondoSystem::CommitTransaction(const  bool closeObjects)
 {
   TRACE_ENTER
-  instance->catalog->CleanUp( false );
+  instance->catalog->CleanUp( false, closeObjects );
   TRACE_LEAVE
   return (SmiEnvironment::CommitTransaction());
 }
 
 bool
-SecondoSystem::AbortTransaction()
+SecondoSystem::AbortTransaction(const bool closeObjects)
 {
   TRACE_ENTER
-  instance->catalog->CleanUp( true );
+  instance->catalog->CleanUp( true, closeObjects);
   TRACE_LEAVE
   return (SmiEnvironment::AbortTransaction());
 }

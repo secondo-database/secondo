@@ -255,12 +255,12 @@ void rebuildObjs() {
       cerr << sep << "Maybe objects which are used for "
                   << "the derived object were deleted!" << endl;
       cerr << sep << "ValueExpr: " << (*it)->value << endl << endl;
-      SecondoSystem::AbortTransaction();
+      SecondoSystem::AbortTransaction(true);
       deleteObj((*it)->name,true);
 
     } else {
 
-      SecondoSystem::CommitTransaction();
+      SecondoSystem::CommitTransaction(true);
       cout << "created." << endl;
     }
   }

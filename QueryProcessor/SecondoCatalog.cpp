@@ -2850,7 +2850,7 @@ SecondoCatalog::Close()
 }
 
 bool
-SecondoCatalog::CleanUp( const bool revert )
+SecondoCatalog::CleanUp( const bool revert, const bool closeObjects )
 {
   TRACE_ENTER
 
@@ -3122,8 +3122,10 @@ preserved and the objects are created with undefined values.
                 typeInfo = NumericType( nl->First( typeExpr ) );
                 am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
                              vRec, offset, typeInfo, oPos->second.value );
-                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))
-                  ( typeInfo, oPos->second.value );
+                if(closeObjects){
+                   (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))
+                                  ( typeInfo, oPos->second.value );
+                }
                 nl->Destroy( typeInfo );
                 nl->Destroy( typeExpr );
               }

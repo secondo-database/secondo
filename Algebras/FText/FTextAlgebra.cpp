@@ -5018,7 +5018,7 @@ int ftextletObjectVM( Word* args, Word& result, int message,
         tree = 0;
       }
     }
-    ctlg->CleanUp(false);
+    ctlg->CleanUp(false,true);
   } catch(SI_Error err) {
     if(tree) {
       qpp->Destroy( tree, true );

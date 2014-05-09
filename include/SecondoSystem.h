@@ -301,12 +301,12 @@ results are stored.
 Begins a transaction.
 
 */
-  static bool CommitTransaction();
+  static bool CommitTransaction( const bool closeObjects);
 /*
 Commits a transaction.
 
 */
-  static bool AbortTransaction();
+  static bool AbortTransaction( const bool closeObjects);
 /*
 Aborts a transaction.
 

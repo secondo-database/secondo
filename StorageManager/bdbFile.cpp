@@ -1848,7 +1848,6 @@ PrefetchingIteratorImpl::~PrefetchingIteratorImpl()
 {
   char* bufferPtr = (char*)buffer.get_data();
   delete[] bufferPtr;
-
   int rc = dbc->close();
   SmiEnvironment::SetBDBError(rc);
   assert(rc != DB_LOCK_DEADLOCK);

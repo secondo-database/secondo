@@ -222,6 +222,7 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "AlgebraManager.h"
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
+#include "SecondoSMI.h"
 #include "LogMsg.h"
 #include "CharTransform.h"
 #include "NList.h"
@@ -4634,6 +4635,57 @@ QueryProcessor::GetMemorySize( const Supplier s)
   //   node->u.op.theOperator->GetName() << "." << endl;
   return node->u.op.memorySize;
 }
+
+
+void QueryProcessor::saveModified( OpTree tree){
+     switch (tree->nodetype){
+         case  Pointer:
+         case  IndirectObject:
+            break;
+         case  Operator:
+             for(int i = 0; i< tree->u.op.noSons; i++){
+                saveModified((OpNode*)tree->u.op.sons[i].addr);
+             }
+             break;
+         case  Object : {
+              if( tree->u.dobj.isModified ) {
+                  string objName =
+                  nl->SymbolValue(tree->u.symbol);
+                  GetCatalog()->ModifyObject( objName,
+                                         tree->u.dobj.value );
+                  tree->u.dobj.isModified = false;
+                  cout << "saveModified" << objName << endl;
+              }
+            }
+            break;
+           
+         default : assert(false); // invalid node type
+       }
+}
+
+
+bool QueryProcessor::switchTransaction(Supplier s){
+   OpTree node = (OpTree) s;
+   if(!node->isRoot){
+     return false;
+   }
+   saveModified(node);
+   SecondoSystem::CommitTransaction(false);
+   SecondoSystem::BeginTransaction();
+   return true;
+}
+
+
+
+
+
+/*
+This functions requires to get the root of an operator tree as it's argument.
+If not so, the function returns false immediately. Otherwise, all modified objects 
+in the tree rooted by s are written to disc, the current transaction is committed 
+and a new transaction starts.
+
+*/
 
 
 
