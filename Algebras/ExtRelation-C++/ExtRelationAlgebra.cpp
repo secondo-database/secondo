@@ -13104,6 +13104,82 @@ OperatorSpec extendXSpec(
 
 
 /*
+2.118 Operator countMt
+
+2.118.1 Type Mapping
+
+*/
+
+ListExpr countMtTM(ListExpr args){
+   string err = "stream(Tuple) x int expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+   }
+   if(!Stream<Tuple>::checkType(nl->First(args)) ||
+      !CcInt::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<CcInt>();
+}
+/*
+2.118.2 Value Mapping
+
+*/
+int countMtVM( Word* args, Word& result, int message,
+		   Word& local, Supplier s ) {
+
+    result =  qp->ResultStorage(s);
+    CcInt* res = (CcInt*) result.addr;
+    int count = 0;
+    CcInt* interval = (CcInt*) args[1].addr;
+    int iv = interval->IsDefined()?interval->GetValue():0;
+    if(iv<0){
+       iv = 0;
+    }  
+    Stream<Tuple> stream(args[0]);    
+    stream.open();
+    Tuple* tuple=0;
+    clock_t time = clock();
+    iv = (iv * CLOCKS_PER_SEC ) / 1000;
+    while( (tuple = stream.request())!=0){
+       count++;
+       tuple->DeleteIfAllowed();
+       clock_t ct = clock();
+       if((ct-time)>=iv){
+          cout << "sw ta" << endl;
+          qp->switchTransaction(s);
+          time = ct;
+       }
+    }
+    res->Set(true,count);
+    return 0;
+}
+
+
+OperatorSpec countMtSpec(
+     " stream(tuple) x int -> int",
+     " _ contMt[_]",
+     "Count the number of tuples in the result."
+     "If used as the root of the operator tree,"
+     " after a certain amount of time (milliseconds "
+     "given in  the 2th parameter), the current state"
+     " of this query is committed to the database.",
+     " query strassen feed countMt[100]\"\"" );
+
+ Operator countMtOP(
+      "countMt",
+      countMtSpec.getStr(),
+      countMtVM,
+      Operator::SimpleSelect,
+      countMtTM
+ );
+
+
+
+
+
+
+/*
 
 3 Class ~ExtRelationAlgebra~
 
@@ -13212,6 +13288,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&replaceAttr);
     AddOperator(&pfilter);
     AddOperator(&extendXOP);
+    AddOperator(&countMtOP);
 
 #ifdef USE_PROGRESS
 // support for progress queries

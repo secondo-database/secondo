@@ -93,3 +93,7 @@ operator pfilter alias PFILTER pattern _ op [fun] implicit parameters currenttup
 
 operator extendX alias EXTENDX pattern _ op[list ; fun ; _] implicit parameter tuple type TUPLE
 
+operator countMt alias COUNTMT pattern _op [_]
+
+
+
