@@ -66,7 +66,7 @@ numbers, the left and the right limit.
 
 The list representation of a 1D rectangle is
 
-----    (x y)
+----    (x1 x2)
 ----
 
 3.3 ~Out~-function
@@ -765,6 +765,8 @@ ListExpr
            am->CheckKind(Kind::SPATIAL2D(), arg1, errorInfo) ) dim = 4;
   else if( nl->IsEqual( arg1, Rectangle<8>::BasicType() ) ||
            am->CheckKind(Kind::SPATIAL2D(), arg1, errorInfo)) dim = 8;
+  else if( nl->IsEqual( arg1, Rectangle<1>::BasicType() ) ||
+           am->CheckKind(Kind::SPATIAL1D(), arg1, errorInfo)) dim = 1;
   else dim = -1;
   if ( !(dim > 0) ||
          !nl->IsEqual( arg2,  CcInt::BasicType() )
@@ -1438,6 +1440,8 @@ int RectangleMinMaxDSelect( ListExpr args )
      am->CheckKind(Kind::SPATIAL4D(), arg1, errorInfo) ) return 2;
   if(nl->IsEqual(arg1, Rectangle<8>::BasicType()) ||
      am->CheckKind(Kind::SPATIAL8D(), arg1, errorInfo) ) return 3;
+  if(nl->IsEqual(arg1, Rectangle<1>::BasicType()) ||
+     am->CheckKind(Kind::SPATIAL1D(), arg1, errorInfo) ) return 4;
 
   return -1; // should never occur
 }
@@ -2634,7 +2638,8 @@ ValueMapping rectangleMinDmap[] =
   RectangleMinDValueMap<2>,
   RectangleMinDValueMap<3>,
   RectangleMinDValueMap<4>,
-  RectangleMinDValueMap<8>
+  RectangleMinDValueMap<8>,
+  RectangleMinDValueMap<1>
 };
 
 ValueMapping rectangleBboxmap[] =
@@ -3051,7 +3056,7 @@ Operator rectanglerectproject( "rectproject",
 
 Operator rectangleminD( "minD",
                          RectangleSpecMinD,
-                         4,
+                         5,
                          rectangleMinDmap,
                          RectangleMinMaxDSelect,
                          RectangleMinMaxTypeMap );
@@ -3383,7 +3388,7 @@ class RectangleAlgebra : public Algebra
   {
     AddTypeConstructor( &rect1 );
     rect1.AssociateKind(Kind::DATA());
-    rect1.AssociateKind(Kind::SPATIAL2D());
+    rect1.AssociateKind(Kind::SPATIAL1D());
     
     AddTypeConstructor( &rect );
     rect.AssociateKind(Kind::DATA());
