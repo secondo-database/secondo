@@ -1,0 +1,17 @@
+Database : berlintest
+Restore  : No 
+
+Operator : getCostConstant 
+Number   : 1  
+Signature: string x string x string -> real 
+Example  : query getCostConstant("ExtRelation2Algebra","itHashJoin","vItHashJoin") > 0
+Result   : TRUE
+
+
+Operator : getCostConstants 
+Number   : 1  
+Signature: -> stream(tuple((AlgName string)(OpName string)(ConstName string)(Constant real))) 
+Example  : query getCostConstants() count > 0
+Result   : TRUE
+
+
