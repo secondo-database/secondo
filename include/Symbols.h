@@ -69,6 +69,7 @@ class Kind{
     static const std::string REL()           { return "REL"; }
     static const std::string SHPEXPORTABLE() { return "SHPEXPORTABLE"; }
     static const std::string SIMPLE()        { return "SIMPLE"; }
+    static const std::string SPATIAL1D()     { return "SPATIAL1D"; }
     static const std::string SPATIAL2D()     { return "SPATIAL2D"; }
     static const std::string SPATIAL3D()     { return "SPATIAL3D"; }
     static const std::string SPATIAL4D()     { return "SPATIAL4D"; }
