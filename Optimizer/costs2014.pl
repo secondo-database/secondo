@@ -238,29 +238,42 @@ For the cost formula we use the following notations:
 
 The cost for iterative hash join then is the following:
 
-(to be completed:)
-
-----
-
 \[
+\begin{array}{lll}
+C_{itHashJoin}  & = & 
 \left\{ \begin{array}{ll}
-	p_1.Card \cdot u + p2.Card \cdot v & \mbox{if $P = 1} 	\\
+	p_1.Card \cdot u + p2.Card \cdot v & \mbox{if $P$ = 1} 	\\
 	p_1.Card \cdot u	& \mbox{otherwise}		\\
 	+ p_2.Card \cdot p_2.Size \cdot w  &  			\\
 	+ (P - 1) \cdot p_2.Card \cdot p_2.Size \cdot x &     	\\
 	\end{array}
-\right.
+\right. \\
+& & + pRes.Card \cdot y \cdot (p_1.noAttrs + p_2.noAttrs)
+\end{array}
 \]
-	
-----
 
+These costs are reflected in the following cost function provided by module ~CostEstimation~.
 
 
 */
 
 
-
-
+cost(itHashJoin(X, Y), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
+	TupleSize, Cost) :-
+  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+  getOpIndexes(itHashJoin, [algebra, all], _, AlId, OpId, _),
+  getCosts([AlId, OpId, 0], 
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+  Size is SizeX * SizeY * Sel,
+  nodeNAttrs(ResultNode, NAttrs),
+  nodeTupleSize(ResultNode, TupleSize),
+  Cost is CostX + CostY + C.
+  
+  
+    
+  
+   
 
 
 
