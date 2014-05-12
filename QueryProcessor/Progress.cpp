@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <fstream>
 #include <sstream>
 #include <assert.h>
+#include <vector>
 
 #include "StringUtils.h"
 
@@ -264,11 +265,25 @@ double ProgressConstants::getValue(const string& alg,
  string complete = alg+"|"+op+"|"+co;
  if(values.count(complete)){
    return values[complete];
- } 
- cerr << "Problem in accessing progress constant" << complete << endl;
- bool constantFound = false;
- assert(constantFound);
- return 0.001;  // default constant
+ }
+ throw "constant not found";
+}
+
+
+vector<pair<vector<string >, double> > ProgressConstants::getValues(){
+
+   map<string,double>::iterator it;
+   vector<pair<vector<string>, double> > result;
+   for(it= values.begin();it!=values.end(); it++){
+      stringutils::StringTokenizer st(it->first,"|");
+      vector<string> key;
+      while (st.hasNextToken()){
+          key.push_back(st.nextToken());
+      } 
+      pair<vector<string>, double> c(key,it->second);
+      result.push_back(c); 
+   }
+   return result;
 }
 
 
