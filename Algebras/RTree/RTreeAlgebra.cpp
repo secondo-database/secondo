@@ -354,6 +354,58 @@ TypeConstructor rtree8( RTree8TID::BasicType(),
                         CheckRTree8 );
 
 /*
+2 Type constructor ~rtree1~
+
+2.1 Type property of type constructor ~rtree1~
+
+*/
+ListExpr RTree1Prop()
+{
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,
+    "<relation> creatertree [<attrname>]"
+    " where <attrname> is the key of type rect1");
+
+  return
+    (nl->TwoElemList(
+         nl->TwoElemList(nl->StringAtom("Creation"),
+                         nl->StringAtom("Example Creation")),
+         nl->TwoElemList(examplelist,
+                         nl->StringAtom("(let myrtree = countries"
+                         " creatrtree [boundary])"))));
+}
+
+/*
+2.8 ~Check~-function of type constructor ~rtree1~
+
+*/
+bool CheckRTree1(ListExpr type, ListExpr& errorInfo)
+{
+  return CheckRTreeX(type, errorInfo,RTree1TID::BasicType(), Kind::SPATIAL1D(),
+                     Rectangle<1>::BasicType());
+}
+
+/*
+1.12 Type Constructor object for type constructor ~rtree3~
+
+*/
+TypeConstructor rtree1( RTree1TID::BasicType(),
+                        RTree1Prop,
+                        OutRTree<1>,
+                        InRTree<1>,
+                        0,
+                        0,
+                        CreateRTree<1>,
+                        DeleteRTree<1>,
+                        OpenRTree<1>,
+                        SaveRTree<1>,
+                        CloseRTree<1>,
+                        CloneRTree<1>,
+                        CastRTree<1>,
+                        SizeOfRTree<1>,
+                        CheckRTree1 );
+
+/*
 7 Operators of the RTree Algebra
 
 7.1 Operator ~creatertree~
@@ -423,6 +475,9 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
   else if (    listutils::isKind(attrType, Kind::SPATIAL8D())
             || listutils::isSymbol(attrType, Rectangle<8>::BasicType()))
     rtreetype = RTree8TID::BasicType();
+  else if (    listutils::isKind(attrType, Kind::SPATIAL1D())
+            || listutils::isSymbol(attrType, Rectangle<1>::BasicType()))
+    rtreetype = RTree1TID::BasicType();
   if( nl->IsEqual(nl->First(relDescription), Relation::BasicType()) )
   {
     return
@@ -539,7 +594,6 @@ CreateRTreeSelect (ListExpr args)
 
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
   int result;
   if ( algMgr->CheckKind(Kind::SPATIAL2D(), attrType, errorInfo) )
     result = 0;
@@ -549,14 +603,18 @@ CreateRTreeSelect (ListExpr args)
     result = 2;
   else if ( algMgr->CheckKind(Kind::SPATIAL8D(), attrType, errorInfo) )
     result = 3;
-  else if( nl->SymbolValue(attrType) == Rectangle<2>::BasicType() )
+  else if ( algMgr->CheckKind(Kind::SPATIAL1D(), attrType, errorInfo) )
     result = 4;
-  else if( nl->SymbolValue(attrType) == Rectangle<3>::BasicType() )
+  else if( nl->SymbolValue(attrType) == Rectangle<2>::BasicType() )
     result = 5;
-  else if( nl->SymbolValue(attrType) == Rectangle<4>::BasicType() )
+  else if( nl->SymbolValue(attrType) == Rectangle<3>::BasicType() )
     result = 6;
-  else if( nl->SymbolValue(attrType) == Rectangle<8>::BasicType() )
+  else if( nl->SymbolValue(attrType) == Rectangle<4>::BasicType() )
     result = 7;
+  else if( nl->SymbolValue(attrType) == Rectangle<8>::BasicType() )
+    result = 8;
+  else if( nl->SymbolValue(attrType) == Rectangle<1>::BasicType() )
+    result = 9;
   else
     return -1; /* should not happen */
 
@@ -573,10 +631,10 @@ CreateRTreeSelect (ListExpr args)
     }
     if( nl->IsEqual( nl->Second( first ), CcInt::BasicType() ) )
       // Double indexing
-      return result + 16;
+      return result + 20;
     else
       // Multi-entry indexing
-      return result + 8;
+      return result + 10;
   }
 
   return -1;
@@ -849,26 +907,32 @@ ValueMapping rtreecreatertreemap [] = { CreateRTreeRelSpatial<2>,
                                         CreateRTreeRelSpatial<3>,
                                         CreateRTreeRelSpatial<4>,
                                         CreateRTreeRelSpatial<8>,
+                                        CreateRTreeRelSpatial<1>,
                                         CreateRTreeRelRect<2>,
                                         CreateRTreeRelRect<3>,
                                         CreateRTreeRelRect<4>,
                                         CreateRTreeRelRect<8>,
+                                        CreateRTreeRelRect<1>,
                                         CreateRTreeStreamSpatial<2>,
                                         CreateRTreeStreamSpatial<3>,
                                         CreateRTreeStreamSpatial<4>,
                                         CreateRTreeStreamSpatial<8>,
+                                        CreateRTreeStreamSpatial<1>,
                                         CreateRTreeStreamRect<2>,
                                         CreateRTreeStreamRect<3>,
                                         CreateRTreeStreamRect<4>,
                                         CreateRTreeStreamRect<8>,
+                                        CreateRTreeStreamRect<1>,
                                         CreateRTree2LSpatial<2>,
                                         CreateRTree2LSpatial<3>,
                                         CreateRTree2LSpatial<4>,
                                         CreateRTree2LSpatial<8>,
+                                        CreateRTree2LSpatial<1>,
                                         CreateRTree2LRect<2>,
                                         CreateRTree2LRect<3>,
                                         CreateRTree2LRect<4>,
-                                        CreateRTree2LRect<8> };
+                                        CreateRTree2LRect<8>,
+                                        CreateRTree2LRect<1>};
 
 /*
 4.1.6 Specification of operator ~creatertree~
@@ -901,7 +965,7 @@ const string CreateRTreeSpec  =
 Operator creatertree (
           "creatertree",       // name
           CreateRTreeSpec,     // specification
-          24,                  // Number of overloaded functions
+          30,                  // Number of overloaded functions
           rtreecreatertreemap, // value mapping
           CreateRTreeSelect,   // trivial selection function
           CreateRTreeTypeMap   // type mapping
@@ -985,6 +1049,13 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
              && listutils::isKind(searchWindow, Kind::SPATIAL8D()))
          || (listutils::isSymbol(searchWindow, Rectangle<8>::BasicType())
              && listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()))
+       ) &&
+      !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL1D())
+             && listutils::isSymbol(searchWindow, Rectangle<1>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL1D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL1D()))
+         || (listutils::isSymbol(searchWindow, Rectangle<1>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<1>::BasicType()))
        )
     ){
     return listutils::typeError("Expects same dimensions for the rtree-type "
@@ -1017,8 +1088,11 @@ WindowIntersectsSelection( ListExpr args )
            algMgr->CheckKind(Kind::SPATIAL4D(), searchWindow, errorInfo))
     return 2;
   else if (nl->SymbolValue(searchWindow) == Rectangle<8>::BasicType() ||
-           algMgr->CheckKind(Kind::SPATIAL4D(), searchWindow, errorInfo))
+           algMgr->CheckKind(Kind::SPATIAL8D(), searchWindow, errorInfo))
     return 3;
+  else if (nl->SymbolValue(searchWindow) == Rectangle<1>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL1D(), searchWindow, errorInfo))
+    return 4;
 
   return -1; /* should not happen */
 }
@@ -1361,7 +1435,7 @@ const string windowintersectsSpec  =
 Operator windowintersects (
          "windowintersects",        // name
          windowintersectsSpec,      // specification
-         4,                         //number of overloaded functions
+         5,                         //number of overloaded functions
          rtreewindowintersectsmap,  // value mapping
          WindowIntersectsSelection, // trivial selection function
          WindowIntersectsTypeMap    // type mapping
@@ -1431,6 +1505,13 @@ ListExpr WindowIntersectsSTypeMap(ListExpr args)
              && listutils::isKind(searchWindow, Kind::SPATIAL8D()))
          || (listutils::isKind(searchWindow, Rectangle<8>::BasicType())
              && listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()))
+       ) &&
+      !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL1D())
+             && listutils::isSymbol(searchWindow, Rectangle<1>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL1D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL1D()))
+         || (listutils::isKind(searchWindow, Rectangle<1>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<1>::BasicType()))
        )
     ){
     return listutils::typeError("Expects same dimensions for the rtree-type "
@@ -1479,16 +1560,19 @@ WindowIntersectsSSelection( ListExpr args )
 
   if (nl->SymbolValue(searchWindow) == Rectangle<2>::BasicType() ||
       algMgr->CheckKind(Kind::SPATIAL2D(), searchWindow, errorInfo))
-    return 0 + (!doubleIndex ? 0 : 4);
+    return 0 + (!doubleIndex ? 0 : 5);
   else if (nl->SymbolValue(searchWindow) == Rectangle<3>::BasicType() ||
            algMgr->CheckKind(Kind::SPATIAL3D(), searchWindow, errorInfo))
-    return 1 + (!doubleIndex ? 0 : 4);
+    return 1 + (!doubleIndex ? 0 : 5);
   else if (nl->SymbolValue(searchWindow) == Rectangle<4>::BasicType() ||
            algMgr->CheckKind(Kind::SPATIAL4D(), searchWindow, errorInfo))
-    return 2 + (!doubleIndex ? 0 : 4);
+    return 2 + (!doubleIndex ? 0 : 5);
   else if (nl->SymbolValue(searchWindow) == Rectangle<8>::BasicType() ||
            algMgr->CheckKind(Kind::SPATIAL8D(), searchWindow, errorInfo))
-    return 3 + (!doubleIndex ? 0 : 4);
+    return 3 + (!doubleIndex ? 0 : 5);
+  else if (nl->SymbolValue(searchWindow) == Rectangle<1>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL1D(), searchWindow, errorInfo))
+    return 4 + (!doubleIndex ? 0 : 5);
 
   return -1; /* should not happen */
 }
@@ -2078,10 +2162,12 @@ ValueMapping rtreewindowintersectsSmap [] =
   WindowIntersectsSStandard<3>,
   WindowIntersectsSStandard<4>,
   WindowIntersectsSStandard<8>,
+  WindowIntersectsSStandard<1>,
   WindowIntersectsSDoubleLayer<2>,
   WindowIntersectsSDoubleLayer<3>,
   WindowIntersectsSDoubleLayer<4>,
-  WindowIntersectsSDoubleLayer<8>};
+  WindowIntersectsSDoubleLayer<8>,
+  WindowIntersectsSDoubleLayer<1>};
 
 
 /*
@@ -2111,7 +2197,7 @@ const string windowintersectsSSpec  =
 Operator windowintersectsS (
          "windowintersectsS",        // name
          windowintersectsSSpec,      // specification
-         8,                         //number of overloaded functions
+         10,                         //number of overloaded functions
          rtreewindowintersectsSmap,  // value mapping
          WindowIntersectsSSelection, // trivial selection function
          WindowIntersectsSTypeMap    // type mapping
@@ -3060,6 +3146,9 @@ ListExpr CreateRTreeBulkLoadTypeMap(ListExpr args)
   }else if(    listutils::isKind(attrType, Kind::SPATIAL8D())
       || listutils::isSymbol(attrType, Rectangle<8>::BasicType())){
     rtreetype = RTree8TID::BasicType();
+  }else if(    listutils::isKind(attrType, Kind::SPATIAL1D())
+      || listutils::isSymbol(attrType, Rectangle<1>::BasicType())){
+    rtreetype = RTree1TID::BasicType();
   }else{
     return listutils::typeError("Unsupported key type.");
   }
@@ -3498,14 +3587,18 @@ int CreateRTreeBulkLoadSelect (ListExpr args)
     result = 2;
   else if ( algMgr->CheckKind(Kind::SPATIAL8D(), attrType, errorInfo) )
     result = 3;
-  else if( nl->SymbolValue(attrType) == Rectangle<2>::BasicType() )
+  else if ( algMgr->CheckKind(Kind::SPATIAL1D(), attrType, errorInfo) )
     result = 4;
-  else if( nl->SymbolValue(attrType) == Rectangle<3>::BasicType() )
+  else if( nl->SymbolValue(attrType) == Rectangle<2>::BasicType() )
     result = 5;
-  else if( nl->SymbolValue(attrType) == Rectangle<4>::BasicType() )
+  else if( nl->SymbolValue(attrType) == Rectangle<3>::BasicType() )
     result = 6;
-  else if( nl->SymbolValue(attrType) == Rectangle<8>::BasicType() )
+  else if( nl->SymbolValue(attrType) == Rectangle<4>::BasicType() )
     result = 7;
+  else if( nl->SymbolValue(attrType) == Rectangle<8>::BasicType() )
+    result = 8;
+  else if( nl->SymbolValue(attrType) == Rectangle<1>::BasicType() )
+    result = 9;
   else
     return -1; /* should not happen */
 
@@ -3520,7 +3613,7 @@ int CreateRTreeBulkLoadSelect (ListExpr args)
     }
     if( nl->IsEqual( nl->Second( first ), CcInt::BasicType() ) )
           // Double indexing
-      return result + 8;
+      return result + 10;
     else
           // Multi-entry indexing
       return result + 0;
@@ -3529,23 +3622,26 @@ int CreateRTreeBulkLoadSelect (ListExpr args)
 }
 
 ValueMapping CreateRTreeBulkLoad [] =
-{ CreateRTreeBulkLoadStreamSpatial<2>,   //0
+{ CreateRTreeBulkLoadStreamSpatial<2>,
   CreateRTreeBulkLoadStreamSpatial<3>,
   CreateRTreeBulkLoadStreamSpatial<4>,
   CreateRTreeBulkLoadStreamSpatial<8>,
-  CreateRTreeBulkLoadStreamRect<2>,      //4
+  CreateRTreeBulkLoadStreamSpatial<1>,
+  CreateRTreeBulkLoadStreamRect<2>,
   CreateRTreeBulkLoadStreamRect<3>,
   CreateRTreeBulkLoadStreamRect<4>,
   CreateRTreeBulkLoadStreamRect<8>,
-  CreateRTreeBulkLoadStreamL2Spatial<2>, // 8
+  CreateRTreeBulkLoadStreamRect<1>,
+  CreateRTreeBulkLoadStreamL2Spatial<2>,
   CreateRTreeBulkLoadStreamL2Spatial<3>,
   CreateRTreeBulkLoadStreamL2Spatial<4>,
   CreateRTreeBulkLoadStreamL2Spatial<8>,
-  CreateRTreeBulkLoadStreamL2Rect<2>,    // 12
+  CreateRTreeBulkLoadStreamL2Spatial<1>,
+  CreateRTreeBulkLoadStreamL2Rect<2>,
   CreateRTreeBulkLoadStreamL2Rect<3>,
   CreateRTreeBulkLoadStreamL2Rect<4>,
-  CreateRTreeBulkLoadStreamL2Rect<8>     // 15
-};
+  CreateRTreeBulkLoadStreamL2Rect<8>,
+  CreateRTreeBulkLoadStreamL2Rect<1>};
 
 
 /*
@@ -3953,6 +4049,9 @@ ListExpr RTreeNodesTypeMap(ListExpr args)
   else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
       || listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()) ){
       MBR_ATOM = nl->SymbolAtom(Rectangle<8>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL1D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<1>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<1>::BasicType()); }
   else return listutils::typeError("Unsupported rtree-type.");
 
   ListExpr reslist =
@@ -4115,16 +4214,19 @@ int RTreeNodesSelect (ListExpr args)
   else if(    nl->IsEqual(rtreeKeyType, Rectangle<8>::BasicType())
            || algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo))
     return 3;
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<1>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL1D(), rtreeKeyType, errorInfo))
+    return 4;
 
   return -1;
 }
 
 ValueMapping RTreeNodes [] =
-{ RTreeNodesVM<2>,  // 0
-  RTreeNodesVM<3>,  // 1
-  RTreeNodesVM<4>,  // 2
-  RTreeNodesVM<8>   // 3
-};
+{ RTreeNodesVM<2>,
+  RTreeNodesVM<3>,
+  RTreeNodesVM<4>,
+  RTreeNodesVM<8>,
+  RTreeNodesVM<1>};
 
 
 
@@ -4135,7 +4237,7 @@ ValueMapping RTreeNodes [] =
 Operator rtreenodes(
          "nodes",             // name
          RTreeNodesSpec,      // specification
-         4,
+         5,
          RTreeNodes,          // value mapping
          RTreeNodesSelect,    // selection function
          RTreeNodesTypeMap    // type mapping
@@ -4237,8 +4339,8 @@ ValueMapping RTreeEntries[] =
 { RTreeEntriesVM<2,TupleId>,  // 0
   RTreeEntriesVM<3,TupleId>,  // 1
   RTreeEntriesVM<4,TupleId>,  // 2
-  RTreeEntriesVM<8,TupleId>   // 3
-};
+  RTreeEntriesVM<8,TupleId>,
+  RTreeEntriesVM<1,TupleId>};
 
 int RTreeEntriesSelect (ListExpr args)
 {
@@ -4263,6 +4365,9 @@ int RTreeEntriesSelect (ListExpr args)
   else if(    nl->IsEqual(rtreeKeyType, Rectangle<8>::BasicType())
            || algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo))
     return 3;
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<1>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL1D(), rtreeKeyType, errorInfo))
+    return 4;
 
   return -1;
 }
@@ -4295,6 +4400,9 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
   else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
       || listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()) ){
       MBR_ATOM = nl->SymbolAtom(Rectangle<8>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL1D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<1>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<1>::BasicType()); }
   else return listutils::typeError("Unsupported rtree-type.");
 
   ListExpr reslist =
@@ -4317,7 +4425,7 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
 Operator rtreeentries(
          "entries",             // name
          RTreeEntriesSpec,      // specification
-         4,
+         5,
          RTreeEntries,          // value mapping
          RTreeEntriesSelect,    // selection function
          RTreeEntriesTypeMap    // type mapping
@@ -4524,6 +4632,10 @@ ListExpr UpdateBulkLoadTypeMap(ListExpr args)
       || listutils::isSymbol(attrType, Rectangle<8>::BasicType())){
     rtreetype = RTree8TID::BasicType();
   }
+  else if(    listutils::isKind(attrType, Kind::SPATIAL1D())
+      || listutils::isSymbol(attrType, Rectangle<1>::BasicType())){
+    rtreetype = RTree1TID::BasicType();
+  }
   else  return listutils::typeError("Unsupported key type.");
 
 /*
@@ -4704,6 +4816,7 @@ ValueMapping VMUpdateBulkLoadFun[]=
   UpdateBulkLoadFun<3>,
   UpdateBulkLoadFun<4>,
   UpdateBulkLoadFun<8>,
+  UpdateBulkLoadFun<1>
 };
 
 /*
@@ -4738,6 +4851,8 @@ int UpdateBulkLoadSelect (ListExpr args)
     result = 2;
   else if ( algMgr->CheckKind(Kind::SPATIAL8D(), attrType, errorInfo) )
     result = 3;
+  else if ( algMgr->CheckKind(Kind::SPATIAL1D(), attrType, errorInfo) )
+    result = 4;
   else
     return -1; /* should not happen */
 
@@ -4759,7 +4874,7 @@ Operator updatebulkloadrtree(
         "updatebulkloadrtree",
         UpdatebulkloadrtreeSpec,
 //        UpdateBulkLoadFun,
-        4,
+        5,
         VMUpdateBulkLoadFun,
 //        Operator::SimpleSelect,
         UpdateBulkLoadSelect,
@@ -4832,6 +4947,9 @@ ListExpr RTreeGetInfoTypeTypeMap(ListExpr args)
   else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
       || listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()) ){
       MBR_ATOM = nl->SymbolAtom(Rectangle<8>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL1D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<1>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<1>::BasicType()); }
   else return listutils::typeError("Unsupported rtree-type.");
 
   // test second argument for integer
@@ -5715,16 +5833,19 @@ int RTreeGetInfoTypeSelect (ListExpr args)
   else if(    nl->IsEqual(rtreeKeyType, Rectangle<8>::BasicType())
            || algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo))
     return 3;
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<1>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL1D(), rtreeKeyType, errorInfo))
+    return 4;
 
   return -1;
 }
 
 ValueMapping RTreeGetNodeInfo [] =
-{ RTreeGetNodeInfoVM<2>,  // 0
-  RTreeGetNodeInfoVM<3>,  // 1
-  RTreeGetNodeInfoVM<4>,  // 2
-  RTreeGetNodeInfoVM<8>   // 3
-};
+{ RTreeGetNodeInfoVM<2>,
+  RTreeGetNodeInfoVM<3>,
+  RTreeGetNodeInfoVM<4>,
+  RTreeGetNodeInfoVM<8>,
+  RTreeGetNodeInfoVM<1>};
 
 
 /*
@@ -5734,7 +5855,7 @@ ValueMapping RTreeGetNodeInfo [] =
 Operator rtreegetnodeinfo(
          "getNodeInfo",                       // name
          RTreeGetNodeInfoSpec,                // specification
-         4,
+         5,
          RTreeGetNodeInfo,                    // value mapping
          RTreeGetInfoTypeSelect,              // selection function
          RTreeGetInfoTypeTypeMap<NODEINFO>    // type mapping
@@ -7154,6 +7275,7 @@ class RTreeAlgebra : public Algebra
  public:
   RTreeAlgebra() : Algebra()
   {
+    AddTypeConstructor( &rtree1 );
     AddTypeConstructor( &rtree );
     AddTypeConstructor( &rtree3 );
     AddTypeConstructor( &rtree4 );

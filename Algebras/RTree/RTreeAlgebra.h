@@ -5033,11 +5033,13 @@ bool R_Tree<dim,LeafInfo>::InitializeBLI(const bool& leafSkipping)
     return true;
 }
 
+typedef R_Tree<1, TupleId> RTree1TID;
 typedef R_Tree<2, TupleId> RTree2TID;
 typedef R_Tree<3, TupleId> RTree3TID;
 typedef R_Tree<4, TupleId> RTree4TID;
 typedef R_Tree<8, TupleId> RTree8TID;
 
+typedef R_Tree<1, TwoLayerLeafInfo> RTree1TLLI;
 typedef R_Tree<2, TwoLayerLeafInfo> RTree2TLLI;
 typedef R_Tree<3, TwoLayerLeafInfo> RTree3TLLI;
 typedef R_Tree<4, TwoLayerLeafInfo> RTree4TLLI;
