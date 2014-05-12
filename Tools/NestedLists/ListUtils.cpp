@@ -66,7 +66,8 @@ Checks for a Spatial type.
   bool isSpatialType(ListExpr arg){
     AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
     ListExpr errorInfo = emptyErrorInfo();
-    return algMgr->CheckKind(Kind::SPATIAL2D(), arg, errorInfo) ||
+    return algMgr->CheckKind(Kind::SPATIAL1D(), arg, errorInfo) ||
+           algMgr->CheckKind(Kind::SPATIAL2D(), arg, errorInfo) ||
            algMgr->CheckKind(Kind::SPATIAL3D(), arg, errorInfo) ||
            algMgr->CheckKind(Kind::SPATIAL4D(), arg, errorInfo) ||
            algMgr->CheckKind(Kind::SPATIAL8D(), arg, errorInfo);
@@ -78,7 +79,8 @@ Checks for a rectangle type
 */
 
   bool isRectangle(ListExpr arg){
-    return nl->IsEqual(arg, Rectangle<2>::BasicType()) ||
+    return nl->IsEqual(arg, Rectangle<1>::BasicType()) ||
+           nl->IsEqual(arg, Rectangle<2>::BasicType()) ||
            nl->IsEqual(arg, Rectangle<3>::BasicType()) ||
            nl->IsEqual(arg, Rectangle<4>::BasicType()) ||
            nl->IsEqual(arg, Rectangle<8>::BasicType());
@@ -123,7 +125,8 @@ Checks for a valid description of an rtree.
    }
    string rtreestr = nl->SymbolValue(rtreeSymbol);
 
-   if( (rtreestr != RTree2TID::BasicType()) &&
+   if( (rtreestr != RTree1TID::BasicType()) &&
+       (rtreestr != RTree2TID::BasicType()) &&
        (rtreestr != RTree3TID::BasicType()) &&
        (rtreestr != RTree4TID::BasicType()) &&
        (rtreestr != RTree8TID::BasicType()) ){
@@ -440,6 +443,7 @@ Returns the dimension of an rtree.
   int getRTreeDim(ListExpr rtree){
      assert(isRTreeDescription(rtree));
      string t = nl->SymbolValue(nl->First(rtree));
+     if(t==RTree1TID::BasicType()) return 1;
      if(t==RTree2TID::BasicType()) return 2;
      if(t==RTree3TID::BasicType()) return 3;
      if(t==RTree4TID::BasicType()) return 4;
