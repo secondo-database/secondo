@@ -41,8 +41,13 @@ MFaces MFaces::CreateBorderMFaces(bool src) {
 
     for (unsigned int i = 0; i < fcs.size(); i++) {
         MFace f(fcs[i].GetMSegs(true));
-        if (!f.isEmpty())
+        if (!f.isEmpty()) {
+            vector<MFace> vf = f.SplitCycle();
             ret.AddMFace(f);
+            for (unsigned int j = 0; j < vf.size(); j++) {
+                ret.AddMFace(vf[j]);
+            }
+        }
     }
 
     return ret;
