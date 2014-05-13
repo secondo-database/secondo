@@ -48,6 +48,7 @@ messages. This is still work in progress!
 
 #include <iostream>
 #include <map>
+#include <vector>
 
 
 using namespace std;
@@ -255,6 +256,8 @@ for each line. Lines starting with '[#]' are ignored (comment).
      static double getValue(const string& AlgName,
                               const string& OpName,
                               const string& ConstantName);
+
+     static vector<pair<vector<string>, double> > getValues();
 
 
   private:
