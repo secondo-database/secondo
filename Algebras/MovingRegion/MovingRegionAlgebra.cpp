@@ -243,6 +243,10 @@ Only enable debug output if you know what you are doing!
 
 */
 const bool MRA_DEBUG = false;
+
+#define SWITCH_OFF_TRAPEZIUM_INTERSECTS
+
+
 //const bool MRA_DEBUG = true;
 
 //#define MRA_TRACE cerr << __PRETTY_FUNCTION__ << " called " << endl;
@@ -1007,6 +1011,12 @@ bool specialTrapeziumIntersects(
     double t2p4x,
     double t2p4y,
     unsigned int& detailedResult) {
+
+#ifdef SWITCH_OFF_TRAPEZIUM_INTERSECTS 
+  return false;
+#endif   
+
+
     if (MRA_DEBUG)
         cerr << "specialTrapeziumIntersects() "
              << "(w/ detailedResult) called"
@@ -3249,7 +3259,6 @@ bool URegionEmb::AddSegment(
     DateTime& intervalLen,
     ListExpr start,
     ListExpr end) {
-
     if (MRA_DEBUG)
         cerr << "URegionEmb::AddSegment() called "
              << faceno
@@ -3515,7 +3524,7 @@ $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
 */
             unsigned int detailedResult;
 
-            if (specialTrapeziumIntersects(intervalLen.ToDouble(),
+            if ( specialTrapeziumIntersects(intervalLen.ToDouble(),
                                            existingDms.GetInitialStartX(),
                                            existingDms.GetInitialStartY(),
                                            existingDms.GetInitialEndX(),
