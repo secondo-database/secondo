@@ -710,6 +710,15 @@ but the node should be split by whoever called the insert method.
 
 */
 
+
+    void splitOneDimenNode( R_TreeNode<dim, LeafInfo>& n1, 
+                            R_TreeNode<dim, LeafInfo>& n2,
+                            int** sortedEntries );
+/*
+Special split function for one dimensional nodes.
+
+*/
+
     void Split( R_TreeNode<dim, LeafInfo>& n1, R_TreeNode<dim, LeafInfo>& n2 );
 /*
 Splits this node in two: ~n1~ and ~n2~, which should be empty nodes.
@@ -1187,13 +1196,49 @@ inline void SortedArray::push( int index, double pri )
 /*
 4.6 Method Split
 
+
+4.6.1 Special case for only one dimension
+
+
+*/
+template<unsigned dim,class LeafInfo>
+void R_TreeNode<dim,LeafInfo>::splitOneDimenNode(
+                       R_TreeNode<dim,LeafInfo>& n1,
+                       R_TreeNode<dim,LeafInfo>& n2,
+                       int** sortedEntries){
+  assert(dim==1);
+  
+  double minD = entries[sortedEntries[0][MaxEntries()/2]]->box.MinD(0);
+  double maxD = entries[sortedEntries[1][MaxEntries()/2]]->box.MaxD(0);
+  double avg = (minD+maxD)/2.0;
+  int mE = MaxEntries()-MinEntries();
+  for(int i=0;i<EntryCount();i++){
+     if(n1.EntryCount() > mE){
+        n2.Insert( *entries[ i ]);
+     } else if(n2.EntryCount() > mE){
+        n1.Insert( *entries[ i ]);
+     } else {
+       double avgi = ( entries[i]->box.MinD(0) + entries[i]->box.MaxD(0))/2.0;
+       if(avgi < avg){
+          n1.Insert( *entries[ i ] );
+       } else {
+          n2.Insert( *entries[ i ]);
+       } 
+     }
+  }
+}
+
+
+/*
+4.6.2 General function
+
 */
 template<unsigned dim, class LeafInfo>
 void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim,
                                        LeafInfo>& n1,
                                        R_TreeNode<dim,
                                        LeafInfo>& n2 )
-// Splits this node in two: n1 and n2, which should be empty nodes.
+// Splits this node into two ones: n1 and n2, which must be empty nodes.
 {
   assert( EntryCount() == MaxEntries() + 1 );
     // Make sure this node is ready to be split
@@ -1210,16 +1255,9 @@ void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim,
 
   if( do_axis_split )
   { // Do R[*]-Tree style split
+
+
     int *sortedEntry[ 2*dim ] = { NULL }; // Arrays of sorted entries
-    struct StatStruct
-    {
-      double margin;
-      double overlap;
-      double area;
-    } *stat = new StatStruct[ dim*dim*(MaxEntries() + 2 - 2*MinEntries()) ],
-      *pstat = stat; // Array of distribution statistics
-    double minMarginSum = numeric_limits<double>::max();
-    int minMarginAxis = -1;
 
     for( unsigned d = 0; d < dim; d++ )
     { // Compute sorted lists.
@@ -1246,6 +1284,28 @@ void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim,
 
       assert( sort.empty() );
     }
+
+    if(dim==1){ // for only 1 dimension, there is no 
+                //reason for computing the split
+                // dimension
+       splitOneDimenNode( n1,n2,sortedEntry);
+       delete [] sortedEntry[ 0 ];
+       delete [] sortedEntry[ 1 ];
+       modified = true;
+       return;
+    }
+
+
+    struct StatStruct
+    {
+      double margin;
+      double overlap;
+      double area;
+    } *stat = new StatStruct[ dim*dim*(MaxEntries() + 2 - 2*MinEntries()) ],
+      *pstat = stat; // Array of distribution statistics
+    
+    double minMarginSum = numeric_limits<double>::max();
+    int minMarginAxis = -1;
 
     // Compute statistics for the various distributions
     for( unsigned d = 0; d < dim; d++ )
