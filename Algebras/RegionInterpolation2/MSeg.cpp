@@ -133,7 +133,7 @@ bool MSeg::intersects(const MSeg& a, bool checkSegs) const {
 }
 
 // Wrapper for specialTrapeziumIntersects defined in MovingRegionAlgebra.cpp
-static int trapeziumIntersects (MSeg m, MSeg a, unsigned int& detailedResult) {
+int trapeziumIntersects (MSeg m, MSeg a, unsigned int& detailedResult) {
     int ret = specialTrapeziumIntersects(
             100,
             m.is.x, m.is.y,
