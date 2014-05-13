@@ -588,9 +588,8 @@ CreateRTreeSelect (ListExpr args)
            attrList = nl->Second(tupleDescription);
   string attrName = nl->SymbolValue(attrNameLE);
 
-  int attrIndex;
   ListExpr attrType;
-  attrIndex = FindAttribute(attrList, attrName, attrType);
+  FindAttribute(attrList, attrName, attrType);
 
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
@@ -2211,8 +2210,6 @@ Operator windowintersectsS (
 */
 ListExpr GetTuplesTypeMap(ListExpr args)
 {
-  AlgebraManager *algMgr;
-  algMgr = SecondoSystem::GetAlgebraManager();
 
   // check for correct parameter list
   if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 2){
@@ -2627,8 +2624,6 @@ Operator gettuples (
 */
 ListExpr GetTuples2TypeMap(ListExpr args)
 {
-  AlgebraManager *algMgr;
-  algMgr = SecondoSystem::GetAlgebraManager();
 
   // check for correct parameter list
   if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 3){
@@ -2795,8 +2790,7 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
   int j, tidIndex = 0;
   string type;
   bool firstcall = true,
-       dblIdxFirst = false,
-       dblIndex = false;
+       dblIdxFirst = false;
 
   rest = sAttrList;
   j = 1;
@@ -2823,7 +2817,7 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
              dblIdxFirst &&
              tidIndex == j-2 )
     {
-      dblIndex = true;
+      // dblIndex = true;
     }
     else
     {
@@ -3572,9 +3566,8 @@ int CreateRTreeBulkLoadSelect (ListExpr args)
   tupleDescription = nl->Second(relDescription),
   attrList = nl->Second(tupleDescription);
   string attrName = nl->SymbolValue(attrNameLE);
-  int attrIndex;
   ListExpr attrType;
-  attrIndex = FindAttribute(attrList, attrName, attrType);
+  FindAttribute(attrList, attrName, attrType);
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   int result;
@@ -4836,9 +4829,8 @@ int UpdateBulkLoadSelect (ListExpr args)
    attrList = nl->Second(tupleDescription);
 
   string attrName = nl->SymbolValue(attrNameLE);
-  int attrIndex;
   ListExpr attrType;
-  attrIndex = FindAttribute(attrList, attrName, attrType);
+  FindAttribute(attrList, attrName, attrType);
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   int result;
@@ -4858,11 +4850,11 @@ int UpdateBulkLoadSelect (ListExpr args)
 
   if( nl->SymbolValue(nl->First(relDescription)) == Symbol::STREAM())
   {
-    ListExpr first,
-    rest = attrList;
+    //ListExpr first,
+    ListExpr rest = attrList;
     while (!nl->IsEmpty(rest))
     {
-      first = nl->First(rest);
+    //  first = nl->First(rest);
       rest = nl->Rest(rest);
     }
      return result;
