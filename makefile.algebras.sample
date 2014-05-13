@@ -301,6 +301,10 @@ ALGEBRAS     += SpatialJoinAlgebra
 ALGEBRA_DIRS += Trie
 ALGEBRAS     += TrieAlgebra
 
+
+ALGEBRA_DIRS += CostEstimation
+ALGEBRAS     += CostEstimationAlgebra
+
 #ALGEBRA_DIRS += MapMatching
 #ALGEBRAS     += MapMatchingAlgebra
 #ALGEBRA_DEPS += xml2
