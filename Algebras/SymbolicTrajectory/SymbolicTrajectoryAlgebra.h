@@ -753,12 +753,24 @@ class PatElem {
   bool ok;
 
  public:
-  PatElem() {}
+  PatElem() : var(""), ivs(), lbs(), pls(), wc(NO), setRel(STANDARD), ok(true){}
   PatElem(const char* contents);
+  PatElem(const PatElem& elem) : var(elem.var), ivs(elem.ivs), lbs(elem.lbs),
+                pls(elem.pls), wc(elem.wc), setRel(elem.setRel), ok(elem.ok) {}
   ~PatElem() {}
 
   void stringToSet(const string& input, const bool isTime);
   void setVar(const string& v) {var = v;}
+  PatElem& operator=(const PatElem& elem) {
+    var = elem.var;
+    ivs = elem.ivs;
+    lbs = elem.lbs; 
+    pls = elem.pls;
+    wc = elem.wc; 
+    setRel = elem.setRel;
+    ok = elem.ok;
+    return *this;
+  }
 
   void     getV(string& result) const                     {result = var;}
   void     getL(set<string>& result) const                {result = lbs;}
@@ -1251,9 +1263,9 @@ friend class Match<MLabel>;
 friend class IndexMatchesLI;
 
  public:
-  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<2, TupleId> *rt, 
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
                   Word _classifier, int _attrNr, DataType type);
-  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<2, TupleId> *rt, 
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
                   int _attrNr, DataType type);
 
   ~IndexClassifyLI();
@@ -1272,11 +1284,10 @@ friend class IndexMatchesLI;
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
   void extendBinding(IndexMatchInfo& imi, const int e);
   template<class M>
-  bool imiMatch(Match<M>& match, const int e,
-                                       const pair<TupleId, IndexMatchInfo>& pos,
-                                       const int unit, const int newState, 
+  bool imiMatch(Match<M>& match, const int e, const TupleId id, 
+                IndexMatchInfo& imi, const int unit, const int newState, 
                              map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
-  bool valuesMatch(const int e, const pair<TupleId,IndexMatchInfo>& pos,
+  bool valuesMatch(const int e, const TupleId id, IndexMatchInfo& imi,
                    const int newState, const int unit, 
                    map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
   void applySetRel(const SetRel setRel, 
@@ -1304,7 +1315,7 @@ friend class IndexMatchesLI;
   map<int, multimap<TupleId, IndexMatchInfo> > matchInfo;
   TupleType* classifyTT;
   InvertedFile* invFile;
-  R_Tree<2, TupleId> *rtree;
+  R_Tree<1, TupleId> *rtree;
   int attrNr;
   size_t maxMLsize;
   DataType mtype;
@@ -1312,7 +1323,7 @@ friend class IndexMatchesLI;
 
 class IndexMatchesLI : public IndexClassifyLI {
  public:
-  IndexMatchesLI(Relation *rel, InvertedFile *inv, R_Tree<2, TupleId> *rt, 
+  IndexMatchesLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
                  int _attrNr, Pattern *_p, bool deleteP, DataType type);
 
   ~IndexMatchesLI() {}

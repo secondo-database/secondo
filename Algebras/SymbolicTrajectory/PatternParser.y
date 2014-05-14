@@ -654,7 +654,8 @@ bool PatElem::hasRealInterval() const {
 Constructor for class ~PatElem~
 
 */
-PatElem::PatElem(const char *contents) : wc(NO), setRel(STANDARD), ok(true) {
+PatElem::PatElem(const char *contents) : var(""), ivs(), lbs(), pls(), wc(NO), 
+                                         setRel(STANDARD), ok(true) {
   string input(contents);
   vector<string> parts;
   Tools::splitPattern(input, parts);

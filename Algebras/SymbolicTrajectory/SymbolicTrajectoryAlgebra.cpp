@@ -7437,7 +7437,7 @@ ListExpr indexmatchesTM(ListExpr args) {
                    ("type " + nl->ToString(aType) + " is invalid");
           }
           if (InvertedFile::checkType(nl->Third(args)) &&
-              R_Tree<2, TwoLayerLeafInfo>::checkType(nl->Fourth(args))) {
+              R_Tree<1, TwoLayerLeafInfo>::checkType(nl->Fourth(args))) {
             return nl->ThreeElemList(
               nl->SymbolAtom(Symbol::APPEND()),
               nl->OneElemList(nl->IntAtom(i - 1)),
@@ -7455,7 +7455,7 @@ ListExpr indexmatchesTM(ListExpr args) {
 
 */
 IndexMatchesLI::IndexMatchesLI(Relation *rel, InvertedFile *inv,
- R_Tree<2, TupleId> *rt, int _attrNr, Pattern *_p, bool deleteP, DataType type):
+ R_Tree<1, TupleId> *rt, int _attrNr, Pattern *_p, bool deleteP, DataType type):
                                   IndexClassifyLI(rel, inv, rt, _attrNr, type) {
   p = *_p;
   p.initEasyCondOpTrees();
@@ -7574,7 +7574,7 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
       P *pText = static_cast<P*>(args[4].addr);
       CcInt *attr = static_cast<CcInt*>(args[5].addr);
       InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
-      R_Tree<2, TupleId> *rt = static_cast<R_Tree<2, TupleId>*>(args[3].addr);
+      R_Tree<1, TupleId> *rt = static_cast<R_Tree<1, TupleId>*>(args[3].addr);
       Relation *rel = static_cast<Relation*>(args[0].addr);
       if (pText->IsDefined() && attr->IsDefined()) {
         Pattern *p = Pattern::getPattern(pText->toText());
@@ -8936,7 +8936,7 @@ ListExpr indexclassifyTM(ListExpr args) {
                    ("Type " + nl->ToString(attrType) + " is invalid");
           }
           if (InvertedFile::checkType(nl->Third(args)) &&
-              R_Tree<2, TwoLayerLeafInfo>::checkType(nl->Fourth(args))) {
+              R_Tree<1, TwoLayerLeafInfo>::checkType(nl->Fourth(args))) {
             ListExpr outputAttrs = nl->TwoElemList(
                        nl->TwoElemList(nl->SymbolAtom("Description"),
                                        nl->SymbolAtom(FText::BasicType())),
@@ -8962,7 +8962,7 @@ This constructor is used for the operator ~indexclassify~.
 
 */
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
-         R_Tree<2, TupleId> *rt, Word _classifier, int _attrNr, DataType type) :
+         R_Tree<1, TupleId> *rt, Word _classifier, int _attrNr, DataType type) :
               mRel(rel), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
   c = (Classifier*)_classifier.addr;
   active.resize(mRel->GetNoTuples() + 1, false);
@@ -8977,7 +8977,7 @@ This constructor is used for the operator ~indexmatches~.
 
 */
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
-                           R_Tree<2, TupleId> *rt, int _attrNr, DataType type) :
+                           R_Tree<1, TupleId> *rt, int _attrNr, DataType type) :
   c(0), mRel(rel), classifyTT(ClassifyLI::getTupleType()), invFile(inv),
   rtree(rt), attrNr(_attrNr), mtype(type) {
   active.resize(mRel->GetNoTuples() + 1, false);
@@ -9141,18 +9141,16 @@ void IndexClassifyLI::getIntervalTids(const string& ivstr,
   set<TupleId> tids;
   tidsets.push_back(tids);
   unsigned int pos = tidsets.size() - 1;
-  R_TreeLeafEntry<2, TupleId> leaf;
-  Rect rect(false);
-  double *min = new double[2];
-  double *max = new double[2];
+  R_TreeLeafEntry<1, TupleId> leaf;
+  Rect1 rect1(false);
+  double min[1];
+  double max[1];
   SecInterval iv(true);
   Tools::stringToInterval(ivstr, iv);
   min[0] = iv.start.ToDouble();
-  min[1] = iv.start.ToDouble();
   max[0] = iv.end.ToDouble();
-  max[1] = iv.end.ToDouble();
-  rect.Set(true, min, max);
-  if (rtree->First(rect, leaf)) {
+  rect1.Set(true, min, max);
+  if (rtree->First(rect1, leaf)) {
     tidsets[pos].insert(leaf.info);
     while (rtree->Next(leaf)) {
       tidsets[pos].insert(leaf.info);
@@ -9335,19 +9333,15 @@ void IndexClassifyLI::extendBinding(IndexMatchInfo& imi, const int e) {
   string var;
   elem.getV(var);
   if (var == imi.prevVar) {
-    if (!var.empty()) { // X, X
+    if (!var.empty()) { // [X, X | _, _]
       imi.binding[var].second = imi.next - 1;
     }
   }
   else {
-    if (!var.empty() && !imi.prevVar.empty()) { // X, Y
-      imi.binding[imi.prevVar].second = imi.next - 2;
-      imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
-    }
-    else if (!imi.prevVar.empty()) { // X, _
+    if (!imi.prevVar.empty()) { // X, [Y|_]
       imi.binding[imi.prevVar].second = imi.next - 2;
     }
-    else if (!var.empty()) { // _, Y
+    if (!var.empty()) { // [X|_], Y
       imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
     }
   }
@@ -9360,67 +9354,55 @@ void IndexClassifyLI::extendBinding(IndexMatchInfo& imi, const int e) {
 
 */
 template<class M>
-bool IndexClassifyLI::imiMatch(Match<M>& match, const int e,
-   const pair<TupleId, IndexMatchInfo>& pos, const int unit, const int newState,
+bool IndexClassifyLI::imiMatch(Match<M>& match, const int e, const TupleId id,
+   IndexMatchInfo& imi, const int unit, const int newState,
                             map<int, multimap<TupleId, IndexMatchInfo> >& nmi) {
   PatElem elem;
   string var;
   if (unit >= 0) { // exact position from index
 //     cout << "value found at unit " << unit << endl;
     p.getElem(e, elem);
-    if (pos.second.matches(unit) && match.valuesMatch(unit, elem) &&
+    if (imi.matches(unit) && match.valuesMatch(unit, elem) &&
         match.easyCondsMatch(unit, elem, p.easyConds, p.getEasyCondPos(e))) {
+      imi.next = unit + 1;
+      imi.range = false;
       if (p.hasConds()) {
-        IndexMatchInfo imi(pos.second.size, false, unit + 1, pos.second.binding,
-                           pos.second.prevVar);
         extendBinding(imi, e);
-        nmi[newState].insert(make_pair(pos.first, imi));
       }
-      else {
-        IndexMatchInfo imi(pos.second.size, false, unit + 1);
-        nmi[newState].insert(make_pair(pos.first, imi));
-      }
+      nmi[newState].insert(make_pair(id, imi));
       return true;
     }
     return false;
   }
   bool result = false;
-  if (pos.second.range) {
-    for (int i = pos.second.next; i < pos.second.size; i++) {
+  if (imi.range) {
+    for (int i = imi.next; i < imi.size; i++) {
       if (match.valuesMatch(i, elem) &&
-          match.easyCondsMatch(unit, elem, p.easyConds, p.getEasyCondPos(e))) {
+          match.easyCondsMatch(i, elem, p.easyConds, p.getEasyCondPos(e))) {
+        imi.next = i + 1;
+        imi.range = false;
         if (p.hasConds()) {
-          IndexMatchInfo imi(pos.second.size, false, i + 1, pos.second.binding,
-                             pos.second.prevVar);
           extendBinding(imi, e);
-          nmi[newState].insert(make_pair(pos.first, imi));
         }
-        else {
-          IndexMatchInfo imi(pos.second.size, false, i + 1);
-          nmi[newState].insert(make_pair(pos.first, imi));
-        }
+        nmi[newState].insert(make_pair(id, imi));
         return true;
       }
     }
     return false;
   }
   else {
-    if (match.valuesMatch(pos.second.next, elem) &&
-        match.easyCondsMatch(unit, elem, p.easyConds, p.getEasyCondPos(e))) {
+    if (match.valuesMatch(imi.next, elem) &&
+        match.easyCondsMatch(imi.next, elem, p.easyConds, p.getEasyCondPos(e))){
+      imi.next++;
+      imi.range = false;
       if (p.hasConds()) {
-        IndexMatchInfo imi(pos.second.size, false, pos.second.next + 1,
-                           pos.second.binding, pos.second.prevVar);
         extendBinding(imi, e);
-        nmi[newState].insert(make_pair(pos.first, imi));
       }
-      else {
-        IndexMatchInfo imi(pos.second.size, false, pos.second.next + 1);
-        nmi[newState].insert(make_pair(pos.first, imi)); 
-      }
-      if (!active[pos.first]) {
+      nmi[newState].insert(make_pair(id, imi)); 
+      if (!active[id]) {
         activeTuples++;
+        active[id] = true;
       }
-      active[pos.first] = true;
       result = true;
     }
   }
@@ -9431,41 +9413,41 @@ bool IndexClassifyLI::imiMatch(Match<M>& match, const int e,
 \subsection{Function ~valuesMatch~}
 
 */
-bool IndexClassifyLI::valuesMatch(const int e,
-   const pair<TupleId, IndexMatchInfo>& pos, const int newState, const int unit,
+bool IndexClassifyLI::valuesMatch(const int e, const TupleId id, 
+                      IndexMatchInfo& imi, const int newState, const int unit,
                             map<int, multimap<TupleId, IndexMatchInfo> >& nmi) {
-  if (!active[pos.first]) {
+  if (!active[id]) {
     return false;
   }
-  if (pos.second.next >= pos.second.size) {
-//     cout << "IMI for tuple " << pos.first << " exhausted" << endl;
+  if (imi.next >= imi.size) {
+//     cout << "IMI for tuple " << id << " exhausted" << endl;
     return false;
   }
-  Tuple *tuple = mRel->GetTuple(pos.first, false);
+  Tuple *tuple = mRel->GetTuple(id, false);
   bool result = false;
   switch (mtype) {
     case LABEL: {
       MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNr));
       Match<MLabel> match(0, ml);
-      result = imiMatch(match, e, pos, unit, newState, nmi);
+      result = imiMatch(match, e, id, imi, unit, newState, nmi);
       break;
     }
     case LABELS: {
       MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNr));
       Match<MLabels> match(0, mls);
-      result = imiMatch(match, e, pos, unit, newState, nmi);
+      result = imiMatch(match, e, id, imi, unit, newState, nmi);
       break;
     }
     case PLACE: {
       MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNr));
       Match<MPlace> match(0, mp);
-      result = imiMatch(match, e, pos, unit, newState, nmi);
+      result = imiMatch(match, e, id, imi, unit, newState, nmi);
       break;
     }
     default: { // PLACES
       MPlaces *mps = (MPlaces*)(tuple->GetAttribute(attrNr));
       Match<MPlaces> match(0, mps);
-      result = imiMatch(match, e, pos, unit, newState, nmi);
+      result = imiMatch(match, e, id, imi, unit, newState, nmi);
       break;
     }
   }
@@ -9551,20 +9533,18 @@ void IndexClassifyLI::getCandidateSets(const PatElem& elem,
   if (elem.hasInterval()) {
     set<string> ivs;
     elem.getI(ivs);
-    R_TreeLeafEntry<2, TupleId> leaf;
-    Rect rect(false);
-    double *min = new double[2];
-    double *max = new double[2];
+    R_TreeLeafEntry<1, TupleId> leaf;
+    Rect1 rect1(false);
+    double min[1];
+    double max[1];
     SecInterval iv(true);
     for (set<string>::iterator is = ivs.begin(); is != ivs.end(); is++) {
       if (Tools::isInterval(*is)) { // semantic times are processed later
         Tools::stringToInterval(*is, iv);
         min[0] = iv.start.ToDouble();
-        min[1] = iv.start.ToDouble();
         max[0] = iv.end.ToDouble();
-        max[1] = iv.end.ToDouble();
-        rect.Set(true, min, max);
-        if (rtree->First(rect, leaf)) {
+        rect1.Set(true, min, max);
+        if (rtree->First(rect1, leaf)) {
           if (active[leaf.info]) {
             timePos.insert(leaf.info);
           }
@@ -9607,8 +9587,8 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state, const int
     for (it = pos.begin(); it != pos.end(); it++) {
       imm = matchInfo[state].equal_range(it->first);
       for (im = imm.first; im != imm.second; im++) {
-        if (valuesMatch(e, *im, newState, it->second, nmi)) { // unit known
-          transition = true;
+        if (valuesMatch(e, im->first, im->second, newState, it->second, nmi)) {
+          transition = true; // unit known
         }
       }
     }
@@ -9617,8 +9597,8 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state, const int
     for (set<TupleId>::iterator is = tids.begin(); is != tids.end(); is++) {
       imm = matchInfo[state].equal_range(*is);
       for (im = imm.first; im != imm.second; im++) {
-        if (valuesMatch(e, *im, newState, -1, nmi)) { // unit unknown
-          transition = true;
+        if (valuesMatch(e, im->first, im->second, newState, -1, nmi)) {
+          transition = true;  // unit unknown
         }
       }
     }
@@ -9628,11 +9608,10 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state, const int
     p.getElem(e, elem);
     if (((elem.hasLabel() || elem.hasPlace()) && (elem.getSetRel() != DISJOINT))
        || elem.hasRealInterval()) {
-      return false; // no candidate found
-    }
-    // either () or only semantic time information or DISJOINT
+      return false; // no candidate found in indexes
+    } // either () or only semantic time information or DISJOINT
     for (im = matchInfo[state].begin(); im != matchInfo[state].end(); im++) {
-      if (valuesMatch(e, *im, newState, -1, nmi)) {
+      if (valuesMatch(e, im->first, im->second, newState, -1, nmi)) {
         transition = true;
       }
     }
@@ -9804,7 +9783,7 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
         local.addr = 0;
       }
       InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
-      R_Tree<2, TupleId> *rt = static_cast<R_Tree<2, TupleId>*>(args[3].addr);
+      R_Tree<1, TupleId> *rt = static_cast<R_Tree<1, TupleId>*>(args[3].addr);
       CcInt *attr = static_cast<CcInt*>(args[5].addr);
       Relation *rel = static_cast<Relation*>(args[0].addr);
       if (!attr->IsDefined()) {
