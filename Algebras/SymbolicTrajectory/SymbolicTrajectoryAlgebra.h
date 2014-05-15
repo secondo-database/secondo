@@ -1248,8 +1248,9 @@ struct IndexMatchInfo {
   
   bool operator<(const IndexMatchInfo& rhs) const;
   void print(const bool printBinding);
-  bool finished() const;
-  bool matches(const int unit) const;
+  bool finished() const {return range || (next >= size);}
+  bool exhausted() const {return next >= size;}
+  bool matches(const int unit) const {return (range ? next<=unit : next==unit);}
 
   bool range;
   int next, size;
@@ -1285,24 +1286,19 @@ friend class IndexMatchesLI;
   void extendBinding(IndexMatchInfo& imi, const int e);
   template<class M>
   bool imiMatch(Match<M>& match, const int e, const TupleId id, 
-                IndexMatchInfo& imi, const int unit, const int newState, 
-                             map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
+                IndexMatchInfo& imi, const int unit, const int newState);
   bool valuesMatch(const int e, const TupleId id, IndexMatchInfo& imi,
-                   const int newState, const int unit, 
-                   map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
+                   const int newState, const int unit);
   void applySetRel(const SetRel setRel, 
                    vector<set<pair<TupleId, int> > >& valuePosVec,
                    set<pair<TupleId, int> >& result);
   void getCandidateSets(const PatElem& elem, set<pair<TupleId, int> >& pos, 
                         set<TupleId>& tids);
   bool simpleMatch(const int e, const int state, const int newState,
-                  const set<pair<TupleId, int> >& pos, const set<TupleId>& tids,
-                   map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
-  bool wildcardMatch(const int state, pair<int, int> transition,
-                     map<int, multimap<TupleId, IndexMatchInfo> >& nmi);
-  bool timesMatch(TupleId tId, unsigned int ulId, set<string>& ivs);
+                 const set<pair<TupleId, int> >& pos, const set<TupleId>& tids);
+  bool wildcardMatch(const int state, pair<int, int> transition);
+  bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
-  void handleFinishedIMI(const set<int>& states);
 
  private:
   Pattern p;
@@ -1310,9 +1306,10 @@ friend class IndexMatchesLI;
   Relation *mRel;
   queue<pair<string, TupleId> > classification;
   vector<TupleId> matches;
-  vector<bool> active, success;
+  vector<bool> active, newActive;
   int activeTuples;
-  map<int, multimap<TupleId, IndexMatchInfo> > matchInfo;
+  map<int, multimap<TupleId, IndexMatchInfo> > matchInfo, newMatchInfo;
+  map<int, multimap<TupleId, IndexMatchInfo> > *matchInfoPtr, *newMatchInfoPtr;
   TupleType* classifyTT;
   InvertedFile* invFile;
   R_Tree<1, TupleId> *rtree;
