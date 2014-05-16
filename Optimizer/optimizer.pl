@@ -3810,17 +3810,17 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg2S, Arg1S,
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg1S, Arg2S,
     attrname(Attr1), attrname(Attr2)) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
+  % optimizerOption(memoryAllocation),		RHG costs2014
+  %	maUseNewTranslationRules(true),
+  %  \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg2S, Arg1S,
     attrname(Attr2), attrname(Attr1)) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
+  % optimizerOption(memoryAllocation),		RHG costs2014
+  %	maUseNewTranslationRules(true),
+  % \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
@@ -8120,8 +8120,12 @@ makeStream(RelT, Stream3) :-
 % Catch this delayed error coz it is very nasty to track.
 makeStream(RelTerm, _) :-
   RelTerm=..[where, _, _],
+  nl, nl,
+  write('>>>>> Problem in optimizer: '), nl,
+  write('impossible to create a plan for the where clause.'),
+  nl, nl,
   throw(error_Internal(optimizer_makeStream(RelTerm, _)::malformedExpression:
-   'where at beginning')).
+  'where at beginning')).
 
 makeStream(RelTerm, _) :-
   optimizerOption(nestedRelations),
