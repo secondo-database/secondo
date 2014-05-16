@@ -3162,10 +3162,14 @@ void Tools::intersect(const vector<set<TupleId> >& tidsets,
   }
 }
 
-void Tools::intersectPairs(const vector<set<pair<TupleId, int> > >& posVec, 
-                           set<pair<TupleId, int> >& result) {
-  result.clear();
+void Tools::intersectPairs(vector<set<pair<TupleId, int> > >& posVec, 
+                           set<pair<TupleId, int> >*& result) {
+  result->clear();
   if (posVec.empty()) {
+    return;
+  }
+  if (posVec.size() == 1) {
+    result = &(posVec[0]);
     return;
   }
   vector<set<pair<TupleId, int> >::iterator> it;
@@ -3189,7 +3193,7 @@ void Tools::intersectPairs(const vector<set<pair<TupleId, int> > >& posVec,
       }
     }
     if (min == max) {
-      result.insert(min);
+      result->insert(min);
       for (unsigned int i = 0; i < posVec.size(); i++) {
         it[i]++;
         if (it[i] == posVec[i].end()) {
@@ -3235,18 +3239,20 @@ void Tools::uniteLastPairs(unsigned int size,
   }
 }
 
-void Tools::filterPairs(const set<pair<TupleId, int> >& pairs,
-                    const set<TupleId>& pos, set<pair<TupleId, int> >& result) {
-  if (pos.empty() || pairs.empty()) {
+void Tools::filterPairs(set<pair<TupleId, int> >* pairs,
+                   const set<TupleId>& pos, set<pair<TupleId, int> >*& result) {
+  if (pos.empty() || pairs->empty()) {
     result = pairs;
     return;
   }
-  set<pair<TupleId, int> >::iterator ip = pairs.begin();
+  set<pair<TupleId, int> >::iterator ip = pairs->begin();
   set<TupleId>::iterator it = pos.begin();
-  set<pair<TupleId, int> >::iterator ir = result.begin();
-  while ((ip != pairs.end()) && (it != pos.end())) {
+  set<pair<TupleId, int> >::iterator ir = result->begin();
+  while ((ip != pairs->end()) && (it != pos.end())) {
     if (ip->first == *it) {
-      ir = result.insert(ir, *ip);
+      ir = result->insert(ir, *ip);
+      ip++;
+      it++;
     }
     else if (ip->first < *it) {
       ip++;
@@ -3256,8 +3262,8 @@ void Tools::filterPairs(const set<pair<TupleId, int> >& pairs,
     }
   }
   if (it == pos.end()) {
-    while (ip != pairs.end()) {
-      ir = result.insert(ir, *ip);
+    while (ip != pairs->end()) {
+      ir = result->insert(ir, *ip);
       ip++;
     }
   }
@@ -4774,117 +4780,6 @@ DataType Match<M>::getMType() {
   }
   return LABEL;
 }
-
-/*
-\subsection{Function ~filterTransitions~}
-
-If this function is called with a second parameter, first ~nfaSimple~ is built
-from it. Then, for each transition of the NFA from p, the function checks
-whether it is viable according to the mlabel index. If not, it is erased in
-both automata.
-
-This function is only called if the mlabel provides an index.
-
-*/
-// void Match::filterTransitions(vector<map<int, int> > &nfaSimple,
-//                               string regExSimple /* = "" */) {
-//   if (!ml->hasIndex()) {
-//     return;
-//   }
-//   if (!regExSimple.empty()) {
-//     map<int, int>::iterator im;
-//     IntNfa* intNfa = 0;
-//     if (parsePatternRegEx(regExSimple.c_str(), &intNfa) != 0) {
-//       return;
-//     }
-//     intNfa->nfa.makeDeterministic();
-//     intNfa->nfa.minimize();
-//     intNfa->nfa.bringStartStateToTop();
-//     map<int, set<int> >::iterator it;
-//     for (unsigned int i = 0; i < intNfa->nfa.numOfStates(); i++) {
-//    map<int,set<int> > transitions = intNfa->nfa.getState(i).getTransitions();
-//       map<int, int> newTrans;
-//       for (it = transitions.begin(); it != transitions.end(); it++) {
-//         newTrans[it->first] = *(it->second.begin());
-//       }
-//       nfaSimple.push_back(newTrans);
-//     }
-//     delete intNfa;
-//   }
-//   vector<map<int, int> >* nfaP = p->getNFA();
-//   map<int, int>::iterator im;
-//   TrieNode *ptr = 0;
-//   for (unsigned int i = 0; i < nfaP->size(); i++) {
-//     set<int> toErase;
-//     for (im = (*nfaP)[i].begin(); im != (*nfaP)[i].end(); im++) {
-//       set<string> labels = p->getElem(im->first).getL();
-//       bool found = labels.empty();
-//       set<string>::iterator is = labels.begin();
-//       while ((is != labels.end()) && !found) {
-//         if (!ml->index.find(ptr, *is).empty()) { // label occurs in mlabel
-//           found = true;
-//         }
-//         is++;
-//       }
-//       if (!found) { // label does not occur in mlabel
-//         toErase.insert(im->first);
-//       }
-//     }
-//    for (set<int>::iterator it = toErase.begin(); it != toErase.end(); it++) {
-//       p->eraseTransition(i, *it);
-//       if (i < nfaSimple.size()) {
-//         nfaSimple[i].erase(*it);
-//       }
-//     }
-//   }
-// }
-
-/*
-\subsection{Function ~reachesFinalState~}
-
-Checks whether ~nfa~ has a path which reaches a final state.
-
-*/
-// bool Match::reachesFinalState(vector<map<int, int> > &nfa) {
-//   set<int> finalStates = p->getFinalStates();
-//   printNfa(*(p->getNFA()), finalStates);
-// //   cout << "==================================================" << endl;
-// //   printNfa(nfa, finalStates);
-//   set<int> states;
-//   states.insert(0);
-//   map<int, int>::iterator im;
-//   while (!states.empty()) {
-//     set<int> newStates;
-//     for (set<int>::iterator it = states.begin(); it != states.end(); it++) {
-//       map<int, int> trans = nfa[*it];
-//       for (im = trans.begin(); im != trans.end(); im++) {
-//         if (finalStates.count(im->second)) {
-//        cout << "final state " << im->second << " reached => Viable." << endl;
-//           return true;
-//         }
-//         newStates.insert(im->second);
-//       }
-//     }
-//     states = newStates;
-//   }
-//   cout << "final state(s) inaccessible" << endl;
-//   return false;
-// }
-
-/*
-\subsection{Function ~isViable~}
-
-Checks whether a final state can be reached in a NFA, according to a mlabel
-index.
-
-*/
-// bool Match::nfaIsViable() {
-//   string regExSimple = p->getRegEx();
-//   simplifyRegEx(regExSimple);
-//   vector<map<int, int> > nfaSimple;
-//   filterTransitions(nfaSimple, regExSimple);
-//   return reachesFinalState(nfaSimple);
-// }
 
 /*
 \subsection{Function ~match~}
@@ -7491,6 +7386,7 @@ void IndexMatchesLI::applyNFA() {
   PatElem elem;
   states.insert(0);
   set<pair<TupleId, int> > pos;
+  set<pair<TupleId, int> > *posPtr = &pos;
   set<TupleId> tids;
   set<int> newStates;
   while (activeTuples > 0) {
@@ -7505,11 +7401,11 @@ void IndexMatchesLI::applyNFA() {
       map<int, int> trans = p.getTransitions(*is);
       for (map<int, int>::iterator it = trans.begin(); it != trans.end(); it++){
         p.getElem(it->first, elem);
-        if (elem.getW() == NO) { // (_ _)
-          getCandidateSets(elem, pos, tids);
+        if (elem.getW() == NO) { // no wildcard
+          getCandidateSets(elem, posPtr, tids);
 //           cout << "call simpleMatch for transition " << *is << " --> " 
 //                << it->second << endl;
-          if (simpleMatch(it->first, *is, it->second, pos, tids)) {
+          if (simpleMatch(it->first, *is, it->second, posPtr, tids)) {
             newStates.insert(it->second);
           }
         }
@@ -9183,7 +9079,7 @@ void IndexClassifyLI::getValueTids(const string& value,
   TupleId id;
   wordPosType wc;
   charPosType cc;
-  eit = invFile->getExactIterator(value, 4096);
+  eit = invFile->getExactIterator(value, 16777216);
   while (eit->next(id, wc, cc)) {
     if (place) {
       if (ref == cc) {
@@ -9511,11 +9407,11 @@ bool IndexClassifyLI::valuesMatch(const int e, const TupleId id,
 */
 void IndexClassifyLI::applySetRel(const SetRel setRel, 
                                  vector<set<pair<TupleId, int> > >& valuePosVec,
-                                  set<pair<TupleId, int> >& result) {
+                                  set<pair<TupleId, int> >*& result) {
   switch (setRel) {
     case STANDARD: {
       Tools::uniteLastPairs(valuePosVec.size(), valuePosVec);
-      result = valuePosVec[0];
+      result = &(valuePosVec[0]);
       break;
     }
     case DISJOINT: { // will not happen
@@ -9528,7 +9424,7 @@ void IndexClassifyLI::applySetRel(const SetRel setRel,
     }
     default: { // INTERSECT
       Tools::uniteLastPairs(valuePosVec.size(), valuePosVec);
-      result = valuePosVec[0];
+      result = &(valuePosVec[0]);
       break;
     }
   }
@@ -9539,7 +9435,7 @@ void IndexClassifyLI::applySetRel(const SetRel setRel,
 
 */
 void IndexClassifyLI::getCandidateSets(const PatElem& elem,
-                            set<pair<TupleId, int> >& pos, set<TupleId>& tids) {
+                         set<pair<TupleId, int> >* posPtr, set<TupleId>& tids) {
   InvertedFile::exactIterator* eit = 0;
   TupleId id;
   wordPosType wc;
@@ -9548,13 +9444,14 @@ void IndexClassifyLI::getCandidateSets(const PatElem& elem,
   vector<set<pair<TupleId, int> > > valuePosVec;
   set<TupleId> timePos;
   set<pair<TupleId, int> > valuePos;
+  set<pair<TupleId, int> > *valuePosPtr = &valuePos;
   if (elem.hasLabel() && (elem.getSetRel() != DISJOINT)) {
     set<string> lbs;
     elem.getL(lbs);
     for (set<string>::iterator is = lbs.begin(); is != lbs.end(); is++) {
       set<pair<TupleId, int> > pos;
       valuePosVec.push_back(pos);
-      eit = invFile->getExactIterator(*is, 4096);
+      eit = invFile->getExactIterator(*is, 16777216);
       while (eit->next(id, wc, cc)) {
         if (active[id]) {
           valuePosVec[valuePosVec.size() - 1].insert(make_pair(id, wc));
@@ -9562,7 +9459,7 @@ void IndexClassifyLI::getCandidateSets(const PatElem& elem,
       }
       delete eit;
     } // all positions collected for the labels
-    applySetRel(elem.getSetRel(), valuePosVec, valuePos);
+    applySetRel(elem.getSetRel(), valuePosVec, valuePosPtr);
   }
   else if (elem.hasPlace() && (elem.getSetRel() != DISJOINT)) {
     set<pair<string, unsigned int> > pls;
@@ -9571,14 +9468,14 @@ void IndexClassifyLI::getCandidateSets(const PatElem& elem,
     for (is = pls.begin(); is != pls.end(); is++) {
       set<pair<TupleId, int> > pos;
       valuePosVec.push_back(pos);
-      eit = invFile->getExactIterator(is->first, 4096);
+      eit = invFile->getExactIterator(is->first, 16777216);
       while (eit->next(id, wc, cc)) {
         if (active[id] && (cc == is->second)) {
           valuePosVec[valuePosVec.size() - 1].insert(make_pair(id, wc));
         }
       }
     } // all positions collected for the places
-    applySetRel(elem.getSetRel(), valuePosVec, valuePos);
+    applySetRel(elem.getSetRel(), valuePosVec, valuePosPtr);
   }
   if (elem.hasInterval()) {
     set<string> ivs;
@@ -9607,7 +9504,7 @@ void IndexClassifyLI::getCandidateSets(const PatElem& elem,
       }
     }
     if (elem.hasLabel() || elem.hasPlace()) { // (t x)
-      Tools::filterPairs(valuePos, timePos, pos);
+      Tools::filterPairs(valuePosPtr, timePos, posPtr);
     }
     else { // (t _)
       tids = timePos;
@@ -9615,7 +9512,7 @@ void IndexClassifyLI::getCandidateSets(const PatElem& elem,
   }
   else {
     if (elem.hasLabel() || elem.hasPlace()) { // (_ x)
-      pos = valuePos;
+      posPtr = valuePosPtr;
     }
   } // result sets remain empty in case of ()
 }
@@ -9625,15 +9522,15 @@ void IndexClassifyLI::getCandidateSets(const PatElem& elem,
 
 */
 bool IndexClassifyLI::simpleMatch(const int e, const int state, const int
-      newState, const set<pair<TupleId, int> >& pos, const set<TupleId>& tids) {
+   newState, const set<pair<TupleId, int> >* posPtr, const set<TupleId>& tids) {
 //   cout << "simpleMatch started with " << pos.size() << " positions" << endl;
   bool transition = false;
   pair<multimap<TupleId, IndexMatchInfo>::iterator,
        multimap<TupleId, IndexMatchInfo>::iterator> imm;
   multimap<TupleId, IndexMatchInfo>::iterator im;
-  if (!pos.empty()) { // (t x) or (_ x)
+  if (!posPtr->empty()) { // (t x) or (_ x)
     set<pair<TupleId, int> >::iterator it;
-    for (it = pos.begin(); it != pos.end(); it++) {
+    for (it = posPtr->begin(); it != posPtr->end(); it++) {
       imm = (*matchInfoPtr)[state].equal_range(it->first);
       for (im = imm.first; im != imm.second; im++) {
         if (valuesMatch(e, im->first, im->second, newState, it->second)) {

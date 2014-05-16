@@ -633,13 +633,13 @@ class Tools {
  public:
   static void intersect(const vector<set<TupleId> >& tidsets, 
                         set<TupleId>& result);
-  static void intersectPairs(const vector<set<pair<TupleId, int> > >& posVec, 
-                             set<pair<TupleId, int> >& result);
+  static void intersectPairs(vector<set<pair<TupleId, int> > >& posVec, 
+                             set<pair<TupleId, int> >*& result);
   static void uniteLast(unsigned int size, vector<set<TupleId> >& tidsets);
   static void uniteLastPairs(unsigned int size, 
                              vector<set<pair<TupleId, int> > >& posVec);
-  static void filterPairs(const set<pair<TupleId, int> >& pairs,
-                     const set<TupleId>& pos, set<pair<TupleId, int> >& result);
+  static void filterPairs(set<pair<TupleId, int> >* pairs,
+                    const set<TupleId>& pos, set<pair<TupleId, int> >*& result);
   template<class T>
   static bool relationHolds(const set<T>& set1, const set<T>& set2, SetRel rel);
   static string int2String(int i);
@@ -1126,10 +1126,6 @@ class Match {
   void createSetMatrix(unsigned int dim1, unsigned int dim2) {
     matching = Tools::createSetMatrix(dim1, dim2);}
   void setM(M *newM) {m = newM;}
-  void filterTransitions(vector<map<int, int> > &nfaSimple,
-                         string regExSimple = "");
-  bool nfaIsViable();
-  bool reachesFinalState(vector<map<int, int> > &nfa);
   vector<int> applyConditions(ClassifyLI* c);
   
   
@@ -1291,11 +1287,11 @@ friend class IndexMatchesLI;
                    const int newState, const int unit);
   void applySetRel(const SetRel setRel, 
                    vector<set<pair<TupleId, int> > >& valuePosVec,
-                   set<pair<TupleId, int> >& result);
-  void getCandidateSets(const PatElem& elem, set<pair<TupleId, int> >& pos, 
+                   set<pair<TupleId, int> >*& result);
+  void getCandidateSets(const PatElem& elem, set<pair<TupleId, int> >* posPtr, 
                         set<TupleId>& tids);
   bool simpleMatch(const int e, const int state, const int newState,
-                 const set<pair<TupleId, int> >& pos, const set<TupleId>& tids);
+              const set<pair<TupleId, int> >* posPtr, const set<TupleId>& tids);
   bool wildcardMatch(const int state, pair<int, int> transition);
   bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
