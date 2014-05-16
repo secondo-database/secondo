@@ -58,7 +58,7 @@ cost(res(N), _, _, _, _, Size, NAttrs, TupleSize, 0) :-
   nodeNAttrs(N, NAttrs).
 
 /*
-1.2 feed, feedproject
+1.2 feed, feedproject, rename
 
 */
 
@@ -87,6 +87,7 @@ cost(feedproject(rel(Rel, _), Project), _, _, _, _,
   TupleSize = sizeTerm(MemoryFix, _, _),
   feedprojectC(PerTuple, PerAttr, PerByte),
   Cost is Cost1 + Size * (PerTuple + PerAttr * NAttrs + PerByte * MemoryFix).
+
 
 
 /*
@@ -197,6 +198,42 @@ cost(filter(X, _), Sel, Pred, _, _, Size, NAttrs, TupleSize, Cost) :-
   Cost is CostX + SizeX * (PerTuple + PET).
 
 
+
+
+
+
+
+/*
+1.4 Rename
+
+Cost is linear in the number of tuples, does not depend on the number of attributes or tuple size as just one pointer for the tuple is passed to the next operator.
+
+The query (database nrw again)
+
+----	query Roads feed count
+----
+
+yields 13.22, 3.22, 3.24, 3.20 seconds; average of last three is 3.22.
+
+The query
+
+----	query Roads feed {r} count
+----
+
+has running times 3.65, 3.58, 3.23 seconds, average 3.49. Hence the cost of rename per tuple is (3.49 - 3.22) / 735683 = 0.000000367 seconds = 0.000367 ms.
+
+
+*/
+
+renameC(0.000367). 	% PerTuple
+
+cost(rename(X, _), _, _, _, _, Size, NAttrs, TupleSize, Cost) :-
+  cost(X, _, _, _, _, Size, NAttrs, TupleSize, Cost1),
+  renameC(PerTuple),
+  Cost is Cost1 + Size * PerTuple.
+  
+  
+
 /*
 1.4 itHashJoin
 
@@ -258,7 +295,7 @@ These costs are reflected in the following cost function provided by module ~Cos
 */
 
 
-cost(itHashJoin(X, Y), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
+cost(itHashJoin(X, Y, _, _), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
 	TupleSize, Cost) :-
   cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
   cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
