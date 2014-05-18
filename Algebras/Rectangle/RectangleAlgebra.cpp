@@ -2113,7 +2113,7 @@ then the cell grid is duplicated.
   int getNextCellNum()
   {
     int cellNum = -1;
-    if(!finished)
+    while(!finished)
     {
       int acx = cx >= 0 ? (cx % nx) : ( (0 - cx) % nx - 1);
       int acy = cy >= 0 ? (is3D ? cy % ny : cy) :
@@ -2123,22 +2123,30 @@ then the cell grid is duplicated.
       cellNum = acx + acy * nx + acz * nx * ny + 1;
 
       if (cx < RTX)
-      cx++;
+        cx++;
       else if (cy < RTY)
       {
-      cx = LBX;
-      cy++;
+        cx = LBX;
+        cy++;
       }
       else if (cz < RTZ)
       {
-      cx = LBX;
-      cy = LBY;
-      cz++;
+        cx = LBX;
+        cy = LBY;
+        cz++;
       }
       else
       {
-      finished = true;
+        finished = true;
       }
+
+      if (outputCells.find(cellNum) != outputCells.end()){
+        //already output the cell
+        cellNum = -1;
+        continue;
+      }
+      outputCells.insert(cellNum);
+      break;
     }
     return cellNum;
   }
@@ -2150,6 +2158,7 @@ then the cell grid is duplicated.
   bool outGrid;   //Whether the rectangle is outside the given grid
   bool finished;
   bool is3D;
+  set<int> outputCells;
 };
 
   InCellGrid* grid = static_cast<InCellGrid*>(local.addr);

@@ -203,13 +203,13 @@ Operator : cellnumber
 Number   : 2
 Signature: rect x cellgrid2d ->  stream(int)
 Example  : query cellnumber(rectangle2(3.0, 25.0, 3.0, 25.0), createCellGrid2D(10.0, 10.0, 2.0, 5.0, 10)) transformstream count;
-Result   : 60
+Result   : 24
 
 Operator : cellnumber
 Number   : 3
 Signature: rect3 x cellgrid3d ->  stream(int)
 Example  : query cellnumber(rectangle3(0.3, 2.5, 0.3, 2.5, -0.2, 0.3), createCellGrid3D(0.0, 0.0, 0.0, 0.5, 0.5, 0.4, 10, 6)) transformstream count
-Result   : 50
+Result   : 25
 
 
 Operator : gridintersects
