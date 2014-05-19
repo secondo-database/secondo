@@ -7385,14 +7385,11 @@ void IndexMatchesLI::applyNFA() {
   set<int> states;
   PatElem elem;
   states.insert(0);
-  set<pair<TupleId, int> > pos;
-  set<pair<TupleId, int> > *posPtr = &pos;
-  set<TupleId> tids;
   set<int> newStates;
   while (activeTuples > 0) {
 //     cout << activeTuples << " activeTuples" << endl;
 //     cout << "active:    ";
-//     for (TupleId id = 0; id < mRel->GetNoTuples(); id++) {
+//     for (int id = 0; id < mRel->GetNoTuples(); id++) {
 //       cout << active[id] << " ";
 //     }
 //     cout << endl;
@@ -7402,10 +7399,9 @@ void IndexMatchesLI::applyNFA() {
       for (map<int, int>::iterator it = trans.begin(); it != trans.end(); it++){
         p.getElem(it->first, elem);
         if (elem.getW() == NO) { // no wildcard
-          getCandidateSets(elem, posPtr, tids);
 //           cout << "call simpleMatch for transition " << *is << " --> " 
 //                << it->second << endl;
-          if (simpleMatch(it->first, *is, it->second, posPtr, tids)) {
+          if (simpleMatch(it->first, *is, it->second)) {
             newStates.insert(it->second);
           }
         }
@@ -7431,7 +7427,6 @@ void IndexMatchesLI::applyNFA() {
 //       cout << *is << " ";
 //     }
 //     cout << endl;
-//     cout << activeTuples << " active tuples" << endl;
   }
 }
 
@@ -8866,7 +8861,8 @@ This constructor is used for the operator ~indexclassify~.
 */
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
          R_Tree<1, TupleId> *rt, Word _classifier, int _attrNr, DataType type) :
-              mRel(rel), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
+                 mRel(rel), activeTuples(0), invFile(inv), rtree(rt), 
+                 attrNr(_attrNr), mtype(type) {
   c = (Classifier*)_classifier.addr;
   active.resize(mRel->GetNoTuples() + 1, false);
   newActive.resize(mRel->GetNoTuples() + 1, false);
@@ -8883,7 +8879,8 @@ This constructor is used for the operator ~indexmatches~.
 */
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
                            R_Tree<1, TupleId> *rt, int _attrNr, DataType type) :
-  c(0), mRel(rel), classifyTT(ClassifyLI::getTupleType()), invFile(inv),
+       c(0), mRel(rel), activeTuples(0), classifyTT(ClassifyLI::getTupleType()),
+       invFile(inv),
   rtree(rt), attrNr(_attrNr), mtype(type) {
   active.resize(mRel->GetNoTuples() + 1, false);
   newActive.resize(mRel->GetNoTuples() + 1, false);
@@ -9018,10 +9015,8 @@ void IndexClassifyLI::getCrucialElems(const set<pair<set<int>, int> >& paths,
 //       cout << *it << " ";
 //     }    
 //     cout << "}";
-    
     set_intersection(is->first.begin(), is->first.end(), elems.begin(), 
                      elems.end(), std::inserter(temp, temp.begin()));
-         
 //     cout << "  -->  {";
 //     for (it = temp.begin(); it != temp.end(); it++) {
 //       cout << *it << " ";
@@ -9040,118 +9035,221 @@ void IndexClassifyLI::getCrucialElems(const set<pair<set<int>, int> >& paths,
 }
 
 /*
-\subsection{Function ~getIntervalTids~}
+\subsection{Function ~retrieveValue~}
 
 */
-void IndexClassifyLI::getIntervalTids(const string& ivstr, 
-                                      vector<set<TupleId> >& tidsets) {
-  set<TupleId> tids;
-  tidsets.push_back(tids);
-  unsigned int pos = tidsets.size() - 1;
+void IndexClassifyLI::retrieveValue(vector<set<int> >& oldPart, 
+     vector<set<int> >& newPart, SetRel rel, bool first, const string& label, 
+     unsigned int ref /* = UINT_MAX */) {
+  InvertedFile::exactIterator* eit = 0;
+  TupleId id;
+  wordPosType wc;
+  charPosType cc;
+  eit = invFile->getExactIterator(label, 16777216);
+  if ((mtype == LABEL) || (mtype == LABELS)) {
+    while (eit->next(id, wc, cc)) {
+      if (first) { // ignore oldPart
+        newPart[id].insert(wc);
+      }
+      else {
+        if ((rel == STANDARD) || (rel == EQUAL)) { // intersect sets
+          set<int>::iterator it = oldPart[id].find(wc);
+          if (it != oldPart[id].end()) { // found in oldPart
+            newPart[id].insert(it, wc);
+          }
+        }
+        else { // SUPERSET or INTERSECT => unite sets
+          oldPart[id].insert(wc);
+        }
+      }
+    }
+  }
+  else { // ref is used
+    while (eit->next(id, wc, cc)) {
+      if (ref == cc) { // cc represents the reference of the place
+        if (first) { // ignore oldPart
+          newPart[id].insert(wc);
+        }
+        else {
+          if ((rel == STANDARD) || (rel == EQUAL)) { // intersect sets
+            set<int>::iterator it = oldPart[id].find(wc);
+            if (it != oldPart[id].end()) {
+              newPart[id].insert(it, wc);
+            }
+          }
+          else { // SUPERSET or INTERSECT => unite sets
+            oldPart[id].insert(wc);
+          }
+        }
+      }
+    }
+  }
+  if (first || (rel == STANDARD) || (rel == EQUAL)) {
+    oldPart.swap(newPart);
+  }
+//   for (int i = 0; i < oldPart.size(); i++) {
+//     cout << oldPart[i].size() << " ";
+//   }
+//   cout << endl;
+//   for (int i = 0; i < newPart.size(); i++) {
+//     cout << newPart[i].size() << " ";
+//   }
+//   cout << endl;
+  delete eit;
+}
+
+/*
+\subsection{Function ~retrieveTime~}
+
+*/
+void IndexClassifyLI::retrieveTime(vector<bool>& oldPart, vector<bool>& newPart,
+                                   bool first, const string& ivstr) {
   R_TreeLeafEntry<1, TupleId> leaf;
   Rect1 rect1(false);
-  double min[1];
-  double max[1];
+  double min[1], max[1];
   SecInterval iv(true);
   Tools::stringToInterval(ivstr, iv);
   min[0] = iv.start.ToDouble();
   max[0] = iv.end.ToDouble();
   rect1.Set(true, min, max);
   if (rtree->First(rect1, leaf)) {
-    tidsets[pos].insert(leaf.info);
-    while (rtree->Next(leaf)) {
-      tidsets[pos].insert(leaf.info);
+    if (first || oldPart[leaf.info]) {
+      newPart[leaf.info] = true;
     }
-  }
-}
-
-/*
-\subsection{Function ~getValueTids~}
-
-*/
-void IndexClassifyLI::getValueTids(const string& value, 
-                       vector<set<TupleId> >& tidsets, bool place /* = false */,
-                       unsigned int ref /* = UINT_MAX */) {
-  set<TupleId> tids;
-  tidsets.push_back(tids);
-  unsigned int pos = tidsets.size() - 1;
-  InvertedFile::exactIterator* eit = 0;
-  TupleId id;
-  wordPosType wc;
-  charPosType cc;
-  eit = invFile->getExactIterator(value, 16777216);
-  while (eit->next(id, wc, cc)) {
-    if (place) {
-      if (ref == cc) {
-        tidsets[pos].insert(id);
+    while (rtree->Next(leaf)) {
+      if (first || oldPart[leaf.info]) {
+        newPart[leaf.info] = true;
       }
     }
-    else {
-      tidsets[pos].insert(id);
-    }
   }
-  delete eit;
+  newPart.swap(oldPart);
 }
 
 /*
-\subsection{Function ~applyIndexes~}
+\subsection{Function ~storeIndexResult~}
 
 */
-void IndexClassifyLI::applyIndexes(const set<int>& elems, set<TupleId>& result){
-  result.clear();
+void IndexClassifyLI::storeIndexResult(const int e) {
+  if (!indexResult[e].empty()) {
+    return;
+  }
   PatElem elem;
+  p.getElem(e, elem);
+  if (!elem.hasIndexableContents()) {
+    return;
+  }
   set<string> ivs, lbs;
   set<pair<string, unsigned int> > pls;
-  vector<set<TupleId> > tidsets;
-  for (set<int>::iterator it = elems.begin(); it != elems.end(); it++) {
-    p.getElem(*it, elem);
+  vector<set<int> > part, part2;
+  vector<bool> time, time2;
+  time.resize(mRel->GetNoTuples() + 1, true);
+  time2.resize(mRel->GetNoTuples() + 1, true);
+  if (elem.getSetRel() != DISJOINT) {
     if ((mtype == LABEL) || (mtype == LABELS)) {
-      if (elem.getSetRel() != DISJOINT) {
-        elem.getL(lbs); // process labels
-        for (set<string>::iterator is = lbs.begin(); is != lbs.end(); is++) {
-          getValueTids(*is, tidsets);
-        }
-        if ((lbs.size() > 1) && 
-          ((elem.getSetRel() == STANDARD) || (elem.getSetRel() == INTERSECT))) {
-          Tools::uniteLast(lbs.size(), tidsets);
-        }
+      elem.getL(lbs);
+      set<string>::iterator is = lbs.begin();
+      if (!lbs.empty()) {
+        part.resize(mRel->GetNoTuples() + 1);
+        part2.resize(mRel->GetNoTuples() + 1);
+        retrieveValue(part, part2, elem.getSetRel(), true, *is);
+        is++;
+      }
+      while (is != lbs.end()) {
+        retrieveValue(part, part2, elem.getSetRel(), false, *is);
+        is++;
       }
     }
-    else {
-      if (elem.getSetRel() != DISJOINT) {
-        elem.getP(pls); // process places
-        set<pair<string, unsigned int> >::iterator ip;
-        for (ip = pls.begin(); ip != pls.end(); ip++) {
-          getValueTids(ip->first, tidsets, true, ip->second);
-        }
-        if ((elem.getSetRel() == STANDARD) || (elem.getSetRel() == INTERSECT)) {
-          Tools::uniteLast(lbs.size(), tidsets);
-        }
+    else { // PLACE or PLACES
+      elem.getP(pls);
+      set<pair<string, unsigned int> >::iterator ip = pls.begin();
+      if (!pls.empty()) {
+        part.resize(mRel->GetNoTuples() + 1);
+        part2.resize(mRel->GetNoTuples() + 1);
+        retrieveValue(part, part2, elem.getSetRel(), true, 
+                      ip->first, ip->second);
+        ip++;
       }
-    }
-    elem.getI(ivs); // process time intervals
-    for (set<string>::iterator is = ivs.begin(); is != ivs.end(); is++) {
+      while (ip != pls.end()) {
+        retrieveValue(part, part2, elem.getSetRel(), false,
+                      ip->first, ip->second);
+        ip++;
+      }
+    }  
+  }
+  if (!part.empty() || (elem.getSetRel() == DISJOINT) ||
+      (!elem.hasLabel() && !elem.hasPlace())) { // continue
+    elem.getI(ivs);
+    set<string>::iterator is = ivs.begin();
+    bool first = true;
+    while (is != ivs.end()) {
       if (Tools::isInterval(*is)) {
-        getIntervalTids(*is, tidsets);
+        if (first) {
+          time.assign(mRel->GetNoTuples() + 1, false);
+          time2.assign(mRel->GetNoTuples() + 1, false);
+        }
+        retrieveTime(time, time2, first, *is);
+        first = false;
+      }
+      is++;
+    }
+  }
+  for (unsigned int i = 1; i < part.size(); i++) { // collect results
+    if (!part[i].empty() && time[i]) {
+      indexResult[e].push_back(make_pair(i, part[i]));
+    }
+  }
+  if (part.empty() && ((elem.getSetRel() == DISJOINT) ||
+      (!elem.hasLabel() && !elem.hasPlace()))) {
+    for (unsigned int i = 1; i < time.size(); i++) {
+      if (time[i]) {
+        indexResult[e].push_back(make_pair(i, set<int>()));
       }
     }
   }
-  if (!tidsets.empty()) {
-    Tools::intersect(tidsets, result);
-    for (set<TupleId>::iterator it = result.begin(); it != result.end(); it++) {
-      IndexMatchInfo imi(getMsize(*it), false, 0);
-      (*matchInfoPtr)[0].insert(make_pair(*it, imi));
-      active[*it] = true;
-    }
-    activeTuples = result.size();
+  if (indexResult[e].empty() && elem.hasIndexableContents() &&
+      (elem.getSetRel() != DISJOINT)) {
+    indexMismatch.insert(e);
   }
-  else { // all tuples are active
-    for (int id = 1; id <= mRel->GetNoTuples(); id++) {
+}
+
+/*
+\subsection{Function ~setActiveTuples~}
+
+*/
+void IndexClassifyLI::setActiveTuples(set<int>& cruElems) {
+  active.assign(mRel->GetNoTuples() + 1, true);
+  PatElem elem;
+  for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
+    p.getElem(*it, elem);
+    if (elem.hasIndexableContents()) {
+      if (indexMismatch.find(*it) != indexMismatch.end()) {
+        cout << "index mismatch at crucial element " << *it << endl;
+        active.assign(mRel->GetNoTuples() + 1, false);
+        return;
+      }
+      newActive.assign(mRel->GetNoTuples() + 1, false);
+      for (unsigned int i = 0; i < indexResult[*it].size(); i++) {
+        if (active[indexResult[*it][i].first]) {
+          newActive[indexResult[*it][i].first] = true;
+        }
+      }
+      active.swap(newActive);
+    }
+  }
+  newActive.assign(mRel->GetNoTuples() + 1, false);
+}
+
+/*
+\subsection{Function ~initMatchInfo~}
+
+*/
+void IndexClassifyLI::initMatchInfo() {
+  for (unsigned int id = 1; id < active.size(); id++) {
+    if (active[id]) {
       IndexMatchInfo imi(getMsize(id), false, 0);
       (*matchInfoPtr)[0].insert(make_pair(id, imi));
+      activeTuples++;
     }
-    activeTuples = mRel->GetNoTuples();
-    active.assign(active.size(), true);
   }
 }
 
@@ -9163,7 +9261,7 @@ according to the index information.
 
 */
 void IndexClassifyLI::initialize() {
-  set<TupleId> cands;
+//   set<TupleId> cands;
   vector<map<int, int> > nfa;
   simplifyNFA(nfa);
   set<int> finalStates = p.getFinalStates();
@@ -9171,7 +9269,13 @@ void IndexClassifyLI::initialize() {
   findNFApaths(nfa, finalStates, paths);
   set<int> cruElems;
   getCrucialElems(paths, cruElems);
-  applyIndexes(cruElems, cands);
+  active.assign(mRel->GetNoTuples() + 1, true);
+  for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
+    storeIndexResult(*it);
+  }
+  setActiveTuples(cruElems);
+  initMatchInfo();
+//   applyIndexes(cruElems);
 //   cout << activeTuples << " tuples active after initialization" << endl;
 }
 
@@ -9431,135 +9535,50 @@ void IndexClassifyLI::applySetRel(const SetRel setRel,
 }
 
 /*
-\subsection{Function ~getCandidateSets~}
-
-*/
-void IndexClassifyLI::getCandidateSets(const PatElem& elem,
-                         set<pair<TupleId, int> >* posPtr, set<TupleId>& tids) {
-  InvertedFile::exactIterator* eit = 0;
-  TupleId id;
-  wordPosType wc;
-  charPosType cc;
-  multimap<TupleId, IndexMatchInfo>::iterator imm;
-  vector<set<pair<TupleId, int> > > valuePosVec;
-  set<TupleId> timePos;
-  set<pair<TupleId, int> > valuePos;
-  set<pair<TupleId, int> > *valuePosPtr = &valuePos;
-  if (elem.hasLabel() && (elem.getSetRel() != DISJOINT)) {
-    set<string> lbs;
-    elem.getL(lbs);
-    for (set<string>::iterator is = lbs.begin(); is != lbs.end(); is++) {
-      set<pair<TupleId, int> > pos;
-      valuePosVec.push_back(pos);
-      eit = invFile->getExactIterator(*is, 16777216);
-      while (eit->next(id, wc, cc)) {
-        if (active[id]) {
-          valuePosVec[valuePosVec.size() - 1].insert(make_pair(id, wc));
-        }
-      }
-      delete eit;
-    } // all positions collected for the labels
-    applySetRel(elem.getSetRel(), valuePosVec, valuePosPtr);
-  }
-  else if (elem.hasPlace() && (elem.getSetRel() != DISJOINT)) {
-    set<pair<string, unsigned int> > pls;
-    elem.getP(pls);
-    set<pair<string, unsigned int> >::iterator is;
-    for (is = pls.begin(); is != pls.end(); is++) {
-      set<pair<TupleId, int> > pos;
-      valuePosVec.push_back(pos);
-      eit = invFile->getExactIterator(is->first, 16777216);
-      while (eit->next(id, wc, cc)) {
-        if (active[id] && (cc == is->second)) {
-          valuePosVec[valuePosVec.size() - 1].insert(make_pair(id, wc));
-        }
-      }
-    } // all positions collected for the places
-    applySetRel(elem.getSetRel(), valuePosVec, valuePosPtr);
-  }
-  if (elem.hasInterval()) {
-    set<string> ivs;
-    elem.getI(ivs);
-    R_TreeLeafEntry<1, TupleId> leaf;
-    Rect1 rect1(false);
-    double min[1];
-    double max[1];
-    SecInterval iv(true);
-    for (set<string>::iterator is = ivs.begin(); is != ivs.end(); is++) {
-      if (Tools::isInterval(*is)) { // semantic times are processed later
-        Tools::stringToInterval(*is, iv);
-        min[0] = iv.start.ToDouble();
-        max[0] = iv.end.ToDouble();
-        rect1.Set(true, min, max);
-        if (rtree->First(rect1, leaf)) {
-          if (active[leaf.info]) {
-            timePos.insert(leaf.info);
-          }
-          while (rtree->Next(leaf)) {
-            if (active[leaf.info]) {
-              timePos.insert(leaf.info);
-            }
-          }
-        }
-      }
-    }
-    if (elem.hasLabel() || elem.hasPlace()) { // (t x)
-      Tools::filterPairs(valuePosPtr, timePos, posPtr);
-    }
-    else { // (t _)
-      tids = timePos;
-    }
-  }
-  else {
-    if (elem.hasLabel() || elem.hasPlace()) { // (_ x)
-      posPtr = valuePosPtr;
-    }
-  } // result sets remain empty in case of ()
-}
-
-/*
 \subsection{Function ~simpleMatch~}
 
 */
-bool IndexClassifyLI::simpleMatch(const int e, const int state, const int
-   newState, const set<pair<TupleId, int> >* posPtr, const set<TupleId>& tids) {
-//   cout << "simpleMatch started with " << pos.size() << " positions" << endl;
+bool IndexClassifyLI::simpleMatch(const int e, const int state,
+                                  const int newState) {
   bool transition = false;
   pair<multimap<TupleId, IndexMatchInfo>::iterator,
        multimap<TupleId, IndexMatchInfo>::iterator> imm;
   multimap<TupleId, IndexMatchInfo>::iterator im;
-  if (!posPtr->empty()) { // (t x) or (_ x)
-    set<pair<TupleId, int> >::iterator it;
-    for (it = posPtr->begin(); it != posPtr->end(); it++) {
-      imm = (*matchInfoPtr)[state].equal_range(it->first);
-      for (im = imm.first; im != imm.second; im++) {
-        if (valuesMatch(e, im->first, im->second, newState, it->second)) {
-          transition = true; // unit known
+  storeIndexResult(e);
+  if (!indexResult[e].empty()) { // contents found in at least one index
+    for (unsigned int i = 0; i < indexResult[e].size(); i++) {
+      pair<TupleId, set<int> > *pairPtr = &(indexResult[e][i]);
+      imm = (*matchInfoPtr)[state].equal_range(pairPtr->first);
+      if (!pairPtr->second.empty()) { // value index, units known
+        for (set<int>::iterator it = pairPtr->second.begin(); 
+                                it != pairPtr->second.end(); it++) {
+          for (im = imm.first; im != imm.second; im++) {
+            if (valuesMatch(e, pairPtr->first, im->second, newState, *it)) {
+              transition = true;
+            }
+          }
+        }
+      }
+      else { // only time index, units unknown
+        for (im = imm.first; im != imm.second; im++) {
+          if (valuesMatch(e, pairPtr->first, im->second, newState, -1)) {
+            transition = true;
+          }
         }
       }
     }
   }
-  else if (!tids.empty()) { // (t _)
-    for (set<TupleId>::iterator is = tids.begin(); is != tids.end(); is++) {
-      imm = (*matchInfoPtr)[state].equal_range(*is);
-      for (im = imm.first; im != imm.second; im++) {
+  else { // no result from index
+    if (indexMismatch.find(e) != indexMismatch.end()) { // mismatch
+      return false;
+    }
+    else { // disjoint or () or only semantic time information
+      PatElem elem;
+      for (im = (*matchInfoPtr)[state].begin();
+           im != (*matchInfoPtr)[state].end(); im++) {
         if (valuesMatch(e, im->first, im->second, newState, -1)) {
-          transition = true;  // unit unknown
+          transition = true;
         }
-      }
-    }
-  }
-  else {
-    PatElem elem;
-    p.getElem(e, elem);
-    if (((elem.hasLabel() || elem.hasPlace()) && (elem.getSetRel() != DISJOINT))
-       || elem.hasRealInterval()) {
-      return false; // no candidate found in indexes
-    } // either () or only semantic time information or DISJOINT
-    for (im = (*matchInfoPtr)[state].begin();
-         im != (*matchInfoPtr)[state].end(); im++) {
-      if (valuesMatch(e, im->first, im->second, newState, -1)) {
-        transition = true;
       }
     }
   }

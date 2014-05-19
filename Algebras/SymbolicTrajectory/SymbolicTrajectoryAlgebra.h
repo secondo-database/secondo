@@ -790,6 +790,8 @@ class PatElem {
   bool     hasPlace() const                             {return pls.size() > 0;}
   bool     hasInterval() const                          {return ivs.size() > 0;}
   bool     hasRealInterval() const;
+  bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
+                                                 hasRealInterval());}
 };
 
 class Assign {
@@ -1272,10 +1274,14 @@ friend class IndexMatchesLI;
   void findNFApaths(const vector<map<int, int> >& nfa, 
                 const set<int>& finalStates, set<pair<set<int>, int> >& result);
   void getCrucialElems(const set<pair<set<int>, int> >& paths,set<int>& result);
-  void getIntervalTids(const string& ivstr, vector<set<TupleId> >& tidsets);
-  void getValueTids(const string& value, vector<set<TupleId> >& tidsets, 
-                    bool place = false, unsigned int ref = UINT_MAX);
-  void applyIndexes(const set<int>& elems, set<TupleId>& result);
+  void retrieveValue(vector<set<int> >& part, vector<set<int> >& part2,
+                     SetRel rel, bool first, const string& label,
+                     unsigned int ref = UINT_MAX);
+  void retrieveTime(vector<bool>& time, vector<bool>& time2, bool first, 
+                    const string& ivstr);
+  void storeIndexResult(const int e);
+  void setActiveTuples(set<int>& cruElems);
+  void initMatchInfo();
   void initialize();
   int getMsize(TupleId tId);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
@@ -1288,10 +1294,7 @@ friend class IndexMatchesLI;
   void applySetRel(const SetRel setRel, 
                    vector<set<pair<TupleId, int> > >& valuePosVec,
                    set<pair<TupleId, int> >*& result);
-  void getCandidateSets(const PatElem& elem, set<pair<TupleId, int> >* posPtr, 
-                        set<TupleId>& tids);
-  bool simpleMatch(const int e, const int state, const int newState,
-              const set<pair<TupleId, int> >* posPtr, const set<TupleId>& tids);
+  bool simpleMatch(const int e, const int state, const int newState);
   bool wildcardMatch(const int state, pair<int, int> transition);
   bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
@@ -1301,6 +1304,8 @@ friend class IndexMatchesLI;
   Classifier *c;
   Relation *mRel;
   queue<pair<string, TupleId> > classification;
+  map<int, vector<pair<TupleId, set<int> > > > indexResult;
+  set<int> indexMismatch;
   vector<TupleId> matches;
   vector<bool> active, newActive;
   int activeTuples;
