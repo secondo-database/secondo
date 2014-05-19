@@ -793,11 +793,11 @@ static foreign_t getCosts6(
    }
 
    if(!PL_get_float(selectivity,&selectivityC)){
-     cerr << "selectivity in not an float" << endl;
+     cerr << "selectivity is not a float" << endl;
      PL_fail;
    }
    if(!PL_get_integer(memoryMB, &memoryMBC)){
-     cerr << "sizeOfTuple is not an integer" << endl;
+     cerr << "memory is not an integer" << endl;
      PL_fail;
    }
 
