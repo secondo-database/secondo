@@ -4,8 +4,8 @@ Restore : No
 Operator : spatialjoin
 Number   : 1
 Signature: stream(tuple([x_1 : t_1, ... x_n : t_n])) x stream (tuple([y_1 : t_1,...,y_m : t_m])) x x_i x y_i -> stream(tuple([x_1 : t_1,...,x_n : t_n, y_1 : t_1, ..., y_m : t_m])) ; with x_i, y_i in {SPATIAL2D, rect, rect3, rect4}
-Example  : query Flaechen feed {Flaeche} Sehenswuerdreg feed {PoI} spatialjoin [ GeoData_Flaeche, GeoData_PoI] project[Name_Flaeche,Name_PoI] count
-Result   : 50 
+Example  : query (Flaechen feed {Flaeche} Sehenswuerdreg feed {PoI} spatialjoin [ GeoData_Flaeche, GeoData_PoI]  count) = (Flaechen feed  extend[ B : bbox(.GeoData)] {F} Sehenswuerdreg feed extend[ B : bbox(.GeoData)]  {P} symmjoin[.B_F intersects ..B_P] count)
+Result   :  TRUE
 
 Operator: parajoin2
 Number: 1
