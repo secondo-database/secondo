@@ -30,16 +30,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 The Costs of Terms
 
-----	cost(+Term, +Sel, +Pred, +Result, +Memory, -Size, -NAttrs, 
+----	cost(+Term, +Sel, +Pred, +Res, +Mem, -Size, -NAttrs, 
           -TupleSize, -Cost)
 ----
 
 The cost of an executable ~Term~ representing a predicate ~Pred~ with
-selectivity ~Sel~ is ~Cost~ and the size of the result (number of tuples) is ~Size~. The resulting tuples have ~NAttrs~ attributes and tuple size terms ~TupleSize~ = sizeTerm(MemoryFix, DiskCore, DiskLOB). The result will belong to node ~Result~. If the root operator of the ~Term~ uses a memory buffer, the amount of available memory is ~Memory~ (in MB).
+selectivity ~Sel~ is ~Cost~ and the size of the result (number of tuples) is ~Size~. The resulting tuples have ~NAttrs~ attributes and tuple size terms ~TupleSize~ = sizeTerm(MemoryFix, DiskCore, DiskLOB). The result will belong to node ~Res~. If the root operator of the ~Term~ uses a memory buffer, the amount of available memory is ~Mem~ (in MB).
 
 This is evaluated recursively descending into the term. When the operator
 realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
 used to determine the size of the result. It is assumed that only a single operator of this kind occurs within the term.
+
 
 1.1 Arguments
 
@@ -60,20 +61,22 @@ cost(res(N), _, _, _, _, Size, NAttrs, TupleSize, 0) :-
 /*
 1.2 feed, feedproject, rename
 
+Cost constant definitions at the end of the file.
+
 */
 
-feedC(0.0011, 0.0004). 	% PerTuple, PerAttr [ms]
+% feedC(0.0011, 0.0004). 	% PerTuple, PerAttr [ms]
 	% original constants with machine factor 3.35 multiplied by
 	% 1.33 / 3.35 = 0.4 to adapt to currrent machine
 
-cost(feed(X), _, _, _, _, Size, NAttrs, TupleSize, Cost) :-
-  cost(X, _, _, _, _, Size, NAttrs, TupleSize, Cost1),
+cost(feed(X), Sel, Pred, Res, Mem, Size, NAttrs, TupleSize, Cost) :-
+  cost(X, Sel, Pred, Res, Mem, Size, NAttrs, TupleSize, Cost1),
   feedC(PerTuple, PerAttr),
   Cost is Cost1 + Size * (PerTuple + PerAttr * NAttrs).
 
 
 
-feedprojectC(0.0033, 0.0003, 0.000006).  % PerTuple, PerAttr, PerByte [ms]
+% feedprojectC(0.0033, 0.0003, 0.000006).  % PerTuple, PerAttr, PerByte [ms]
 	% constants adapted to this machine, keeping relative sizes
 	% the same
 
@@ -187,10 +190,11 @@ We will proceed as follows. We set a threshold value of 0.2 ms, corresponding to
 
 */
 
-filterC(0.00111).	% PerTuple [ms]
+% filterC(0.00111).	% PerTuple [ms]
 
-cost(filter(X, _), Sel, Pred, _, _, Size, NAttrs, TupleSize, Cost) :-  
-  cost(X, 1, Pred, _, _, SizeX, NAttrs, TupleSize, CostX),
+cost(filter(X, _), Sel, Pred, Res, Mem, Size, 
+	NAttrs, TupleSize, Cost) :-  
+  cost(X, 1.0, Pred, Res, Mem, SizeX, NAttrs, TupleSize, CostX),
   getPET(Pred, _, ExpPET),   % fetch stored predicate evaluation time
   filterC(PerTuple),
   ( (ExpPET =< 0.2) -> (PET is 0.0); PET is ExpPET),
@@ -225,10 +229,10 @@ has running times 3.65, 3.58, 3.23 seconds, average 3.49. Hence the cost of rena
 
 */
 
-renameC(0.000367). 	% PerTuple
+% renameC(0.000367). 	% PerTuple
 
-cost(rename(X, _), _, _, _, _, Size, NAttrs, TupleSize, Cost) :-
-  cost(X, _, _, _, _, Size, NAttrs, TupleSize, Cost1),
+cost(rename(X, _), Sel, Pred, Res, Mem, Size, NAttrs, TupleSize, Cost) :-
+  cost(X, Sel, Pred, Res, Mem, Size, NAttrs, TupleSize, Cost1),
   renameC(PerTuple),
   Cost is Cost1 + Size * PerTuple.
   
@@ -294,18 +298,22 @@ These costs are reflected in the following cost function provided by ~ExtRelatio
 
 */
 
+% attrC(0.00042).	% PerAttr [ms], cost per attribute in result tuple
 
-cost(itHashJoin(X, Y, _, _), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
+
+cost(itHashJoin(X, Y, _, _), Sel, Pred, Res, Mem, Size, NAttrs, 
 	TupleSize, Cost) :-
-  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
-  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+  cost(X, 1, Pred, Res, Mem, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, Res, Mem, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
   getOpIndexes(itHashJoin, [algebra, all], _, AlId, OpId, _),
   getCosts([AlId, OpId, 0], 
-    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Mem, C1),
   Size is SizeX * SizeY * Sel,
-  nodeNAttrs(ResultNode, NAttrs),
-  nodeTupleSize(ResultNode, TupleSize),
-  Cost is CostX + CostY + C.
+  nodeNAttrs(Res, NAttrs),
+  nodeTupleSize(Res, TupleSize),
+  attrC(PerAttr),
+  C2 is Size * NAttrs * PerAttr,
+  Cost is CostX + CostY + C1 + C2.
   
   
 /*
@@ -315,17 +323,19 @@ Cost function used from ~ExtRelation2AlgebraCostEstimation.h~.
 
 */
 
-cost(gracehashjoin(X, Y, _, _, _), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
+cost(gracehashjoin(X, Y, _, _, _), Sel, Pred, Res, Mem, Size, NAttrs, 
 	TupleSize, Cost) :-
-  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
-  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+  cost(X, 1, Pred, Res, Mem, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, Res, Mem, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
   getOpIndexes(gracehashjoin, [algebra, all], _, AlId, OpId, _),
   getCosts([AlId, OpId, 0], 
-    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Mem, C1),
   Size is SizeX * SizeY * Sel,
-  nodeNAttrs(ResultNode, NAttrs),
-  nodeTupleSize(ResultNode, TupleSize),
-  Cost is CostX + CostY + C.
+  nodeNAttrs(Res, NAttrs),
+  nodeTupleSize(Res, TupleSize),
+  attrC(PerAttr),
+  C2 is Size * NAttrs * PerAttr,
+  Cost is CostX + CostY + C1 + C2.
   
 /*
 1.7 hybridhashjoin
@@ -334,17 +344,19 @@ Cost function used from ~ExtRelation2AlgebraCostEstimation.h~.
 
 */
 
-cost(hybridhashjoin(X, Y, _, _, _), Sel, Pred, ResultNode, Memory, 
+cost(hybridhashjoin(X, Y, _, _, _), Sel, Pred, Res, Mem, 
 	Size, NAttrs, TupleSize, Cost) :-
-  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
-  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+  cost(X, 1, Pred, Res, Mem, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, Res, Mem, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
   getOpIndexes(hybridhashjoin, [algebra, all], _, AlId, OpId, _),
   getCosts([AlId, OpId, 0], 
-    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Mem, C1),
   Size is SizeX * SizeY * Sel,
-  nodeNAttrs(ResultNode, NAttrs),
-  nodeTupleSize(ResultNode, TupleSize),
-  Cost is CostX + CostY + C.
+  nodeNAttrs(Res, NAttrs),
+  nodeTupleSize(Res, TupleSize),
+  attrC(PerAttr),
+  C2 is Size * NAttrs * PerAttr,
+  Cost is CostX + CostY + C1 + C2.
   
 /*
 1.8 sortmergejoin
@@ -353,17 +365,19 @@ Cost function used from ~ExtRelation2AlgebraCostEstimation.h~.
 
 */
 
-cost(sortmergejoin(X, Y, _, _), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
+cost(sortmergejoin(X, Y, _, _), Sel, Pred, Res, Mem, Size, NAttrs, 
 	TupleSize, Cost) :-
-  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
-  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+  cost(X, 1, Pred, Res, Mem, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, Res, Mem, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
   getOpIndexes(sortmergejoin, [algebra, all], _, AlId, OpId, _),
   getCosts([AlId, OpId, 0], 
-    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Mem, C1),
   Size is SizeX * SizeY * Sel,
-  nodeNAttrs(ResultNode, NAttrs),
-  nodeTupleSize(ResultNode, TupleSize),
-  Cost is CostX + CostY + C.
+  nodeNAttrs(Res, NAttrs),
+  nodeTupleSize(Res, TupleSize),
+  attrC(PerAttr),
+  C2 is Size * NAttrs * PerAttr,
+  Cost is CostX + CostY + C1 + C2.
   
 
 /*
@@ -373,18 +387,81 @@ Cost function used from ~MMRTreeAlgebraCostEstimation.h~.
 
 */
 
-cost(itSpatialJoin(X, Y, _, _), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
-	TupleSize, Cost) :-
-  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
-  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+cost(itSpatialJoin(X, Y, _, _), Sel, Pred, Res, Mem, 
+	Size, NAttrs, TupleSize, Cost) :-
+  cost(X, 1, Pred, Res, Mem, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, Res, Mem, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
   getOpIndexes(itSpatialJoin, [algebra, all], _, AlId, OpId, _),
   getCosts([AlId, OpId, 0], 
-    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Mem, C1),
   Size is SizeX * SizeY * Sel,
-  nodeNAttrs(ResultNode, NAttrs),
-  nodeTupleSize(ResultNode, TupleSize),
-  Cost is CostX + CostY + C.
+  nodeNAttrs(Res, NAttrs),
+  nodeTupleSize(Res, TupleSize),
+  attrC(PerAttr),
+  C2 is Size * NAttrs * PerAttr,
+  Cost is CostX + CostY + C1 + C2.
+
+
+
+/*
+2 Cost Constants
+
+2.1 Defined here
+
+*/
+
+feedC(0.0011, 0.0004). 	% PerTuple, PerAttr [ms]
+	% original constants with machine factor 3.35 multiplied by
+	% 1.33 / 3.35 = 0.4 to adapt to currrent machine
+
+feedprojectC(0.0033, 0.0003, 0.000006).  % PerTuple, PerAttr, PerByte [ms]
+	% constants adapted to this machine, keeping relative sizes
+	% the same
+
+filterC(0.00111).	% PerTuple [ms]
+
+renameC(0.000367). 	% PerTuple
+
+attrC(0.00042).	% PerAttr [ms], cost per attribute in result tuple
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+2.2 Looking up constants determined in kernel system
+
+These are retrieved from the kernel system and the stored so that each constant is retrieved only once.
+
+*/
+
+	/* does not yet work
+
+:- dynamic costConstant/3.
+
+costConstant(Algebra, ConstName, Const) :-
+  costConst(Algebra, ConstName, Const).
+
+costConstant(Algebra, ConstName, Const) :-
+  secondo('query
+
+	*/
+
   
+
+
+
+
+
+
     
   
    
