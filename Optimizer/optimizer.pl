@@ -3777,31 +3777,31 @@ These are currently only active with optimizer option ~memoryAllocation~.
 :- dynamic(maUseNewTranslationRules/1).
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg1S, Arg2S,
-		attrname(Attr1), attrname(Attr2), 99997) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
+		attrname(Attr1), attrname(Attr2), 999997) :-
+  % optimizerOption(memoryAllocation),
+  %	maUseNewTranslationRules(true),
+  % \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg2S, Arg1S,
-		attrname(Attr2), attrname(Attr1), 99997) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
+		attrname(Attr2), attrname(Attr1), 999997) :-
+  % optimizerOption(memoryAllocation),
+  %	maUseNewTranslationRules(true),
+  % \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg1S, Arg2S,
-    attrname(Attr1), attrname(Attr2), 99997) :-
-  optimizerOption(memoryAllocation),
-	maUseNewTranslationRules(true),
-  \+ optimizerOption(noHashjoin),
+    attrname(Attr1), attrname(Attr2), 999997) :-
+  % optimizerOption(memoryAllocation),
+  %	maUseNewTranslationRules(true),
+  %  \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg2S, Arg1S,
-    attrname(Attr2), attrname(Attr1), 99997) :-
+    attrname(Attr2), attrname(Attr1), 999997) :-
   optimizerOption(memoryAllocation),
 	maUseNewTranslationRules(true),
   \+ optimizerOption(noHashjoin),

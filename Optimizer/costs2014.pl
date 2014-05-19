@@ -235,7 +235,7 @@ cost(rename(X, _), _, _, _, _, Size, NAttrs, TupleSize, Cost) :-
   
 
 /*
-1.4 itHashJoin
+1.5 itHashJoin
 
 Iterative HashJoin reads the tuples from its first input stream into a hash table in memory. There are two cases:
 
@@ -289,7 +289,7 @@ C_{itHashJoin}  & = &
 \end{array}
 \]
 
-These costs are reflected in the following cost function provided by module ~CostEstimation~.
+These costs are reflected in the following cost function provided by ~ExtRelation2AlgebraCostEstimation.h~.
 
 
 */
@@ -307,6 +307,83 @@ cost(itHashJoin(X, Y, _, _), Sel, Pred, ResultNode, Memory, Size, NAttrs,
   nodeTupleSize(ResultNode, TupleSize),
   Cost is CostX + CostY + C.
   
+  
+/*
+1.6 gracehashjoin
+
+Cost function used from ~ExtRelation2AlgebraCostEstimation.h~.
+
+*/
+
+cost(gracehashjoin(X, Y, _, _, _), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
+	TupleSize, Cost) :-
+  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+  getOpIndexes(gracehashjoin, [algebra, all], _, AlId, OpId, _),
+  getCosts([AlId, OpId, 0], 
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+  Size is SizeX * SizeY * Sel,
+  nodeNAttrs(ResultNode, NAttrs),
+  nodeTupleSize(ResultNode, TupleSize),
+  Cost is CostX + CostY + C.
+  
+/*
+1.7 hybridhashjoin
+
+Cost function used from ~ExtRelation2AlgebraCostEstimation.h~.
+
+*/
+
+cost(hybridhashjoin(X, Y, _, _, _), Sel, Pred, ResultNode, Memory, 
+	Size, NAttrs, TupleSize, Cost) :-
+  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+  getOpIndexes(hybridhashjoin, [algebra, all], _, AlId, OpId, _),
+  getCosts([AlId, OpId, 0], 
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+  Size is SizeX * SizeY * Sel,
+  nodeNAttrs(ResultNode, NAttrs),
+  nodeTupleSize(ResultNode, TupleSize),
+  Cost is CostX + CostY + C.
+  
+/*
+1.8 sortmergejoin
+
+Cost function used from ~ExtRelation2AlgebraCostEstimation.h~.
+
+*/
+
+cost(sortmergejoin(X, Y, _, _), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
+	TupleSize, Cost) :-
+  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+  getOpIndexes(sortmergejoin, [algebra, all], _, AlId, OpId, _),
+  getCosts([AlId, OpId, 0], 
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+  Size is SizeX * SizeY * Sel,
+  nodeNAttrs(ResultNode, NAttrs),
+  nodeTupleSize(ResultNode, TupleSize),
+  Cost is CostX + CostY + C.
+  
+
+/*
+1.9 itSpatialJoin
+
+Cost function used from ~MMRTreeAlgebraCostEstimation.h~.
+
+*/
+
+cost(itSpatialJoin(X, Y, _, _), Sel, Pred, ResultNode, Memory, Size, NAttrs, 
+	TupleSize, Cost) :-
+  cost(X, 1, Pred, _, _, SizeX, NAttrsX, sizeTerm(MemX, _, _), CostX), 
+  cost(Y, 1, Pred, _, _, SizeY, NAttrsY, sizeTerm(MemY, _, _), CostY),
+  getOpIndexes(itSpatialJoin, [algebra, all], _, AlId, OpId, _),
+  getCosts([AlId, OpId, 0], 
+    [SizeX, MemX, NAttrsX], [SizeY, MemY, NAttrsY], Sel, Memory, C),
+  Size is SizeX * SizeY * Sel,
+  nodeNAttrs(ResultNode, NAttrs),
+  nodeTupleSize(ResultNode, TupleSize),
+  Cost is CostX + CostY + C.
   
     
   
