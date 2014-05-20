@@ -269,8 +269,9 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
  size_t maxmem = memoryMB * 1024 * 1024;
  // Read variables
 
-  cerr << __PRETTY_FUNCTION__ << endl
-       << "TODO: use of noAttributes and selectivity" << endl;
+     //cerr << __PRETTY_FUNCTION__ << endl
+     // << "TODO: implement use of noAttributes and selectivity" << endl;
+     // now done in optimizer
 
  
  // Time for processing one tuple in stream 2 (partitions = 1)
@@ -716,8 +717,9 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const double selectivity,
                       const double memoryMB, double &costs) const{
 
-     cerr << __PRETTY_FUNCTION__ << endl
-          << "TODO: implement use of noAttributes and selectivity" << endl;
+     //cerr << __PRETTY_FUNCTION__ << endl
+     // << "TODO: implement use of noAttributes and selectivity" << endl;
+     // now done in optimizer
 
      double uHashJoin = 
         ProgressConstants::getValue("ExtRelation2Algebra", 
@@ -944,8 +946,9 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const double selectivity,
                       const double memoryMB, double &costs) const{
 
-     cerr << __PRETTY_FUNCTION__ << endl
-          << "TODO: implement use of noAttributes and selectivity" << endl;
+     //cerr << __PRETTY_FUNCTION__ << endl
+     // << "TODO: implement use of noAttributes and selectivity" << endl;
+     // now done in optimizer
 
      double uHashJoin = 
         ProgressConstants::getValue("ExtRelation2Algebra", 
@@ -1252,8 +1255,9 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const double selectivity,
                       const double memoryMB, double &costs) const{
 
-      cerr << __PRETTY_FUNCTION__ << endl
-           << "TODO: implement use of noAttributes and selectivity" << endl;
+     //cerr << __PRETTY_FUNCTION__ << endl
+     // << "TODO: implement use of noAttributes and selectivity" << endl;
+     // now done in optimizer
  
      //millisecs per byte read in sort step
      static const double uSortBy =

@@ -267,8 +267,9 @@ virtual bool getCosts( const size_t NoTuples1, const size_t sizeOfTuple1,
                        const double memoryMB, double &costs) const{
 
 
-      cerr << "TODO: use of parameters noAttributes and selectivity " 
-           << " for estimation of costs" << endl;
+     //cerr << __PRETTY_FUNCTION__ << endl
+     // << "TODO: implement use of noAttributes and selectivity" << endl;
+     // now done in optimizer
      
       // Init calculation
      size_t maxmem = memoryMB * 1024 * 1024;
