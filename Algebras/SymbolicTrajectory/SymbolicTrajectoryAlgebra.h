@@ -1237,6 +1237,16 @@ class FilterMatchesLI {
   bool streamOpen, deleteP;
 };
 
+struct IndexRetrieval {
+  IndexRetrieval() : pred(0), succ(0) {}
+  IndexRetrieval(unsigned int p, unsigned int s = 0) : pred(p), succ(s) {}
+  IndexRetrieval(unsigned int p, unsigned int s, set<int>& u) : 
+                 pred(p), succ(s), units(u) {}
+  
+  unsigned int pred, succ;
+  set<int> units;
+};
+
 struct IndexMatchInfo {
   IndexMatchInfo(int s, bool r, int n) : range(r), next(n), size(s) 
                                                               {prevVar.clear();}
@@ -1279,6 +1289,7 @@ friend class IndexMatchesLI;
                      unsigned int ref = UINT_MAX);
   void retrieveTime(vector<bool>& time, vector<bool>& time2, bool first, 
                     const string& ivstr);
+  void removeIdFromIndexResult(const TupleId id);
   void storeIndexResult(const int e);
   void setActiveTuples(set<int>& cruElems);
   void initMatchInfo();
@@ -1304,7 +1315,7 @@ friend class IndexMatchesLI;
   Classifier *c;
   Relation *mRel;
   queue<pair<string, TupleId> > classification;
-  map<int, vector<pair<TupleId, set<int> > > > indexResult;
+  vector<vector<IndexRetrieval> > indexResult;
   set<int> indexMismatch;
   vector<TupleId> matches;
   vector<bool> active, newActive;

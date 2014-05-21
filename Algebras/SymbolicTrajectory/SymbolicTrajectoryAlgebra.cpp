@@ -9126,6 +9126,27 @@ void IndexClassifyLI::retrieveTime(vector<bool>& oldPart, vector<bool>& newPart,
 }
 
 /*
+\subsection{Function ~removeIdFromIndexResult~}
+
+*/
+void IndexClassifyLI::removeIdFromIndexResult(const TupleId id) {
+  for (int i = 0; i < p.getSize(); i++) {
+    if (indexResult[i].size() > 0) {
+      if ((indexResult[i][indexResult[i][id].pred].succ == id) &&
+          (indexResult[i][indexResult[i][id].succ].pred == id)) {
+//         cout << "Elem " << i << ", Tuple " << id << ":" << endl;
+        indexResult[i][indexResult[i][id].pred].succ = indexResult[i][id].succ;
+//         cout << "   succ of " << indexResult[i][id].pred << " set to " 
+//              << indexResult[i][id].succ << endl;
+        indexResult[i][indexResult[i][id].succ].pred = indexResult[i][id].pred;
+//         cout << "   pred of " << indexResult[i][id].succ << " set to " 
+//              << indexResult[i][id].pred << endl;
+      }
+    }
+  }
+}
+
+/*
 \subsection{Function ~storeIndexResult~}
 
 */
@@ -9177,7 +9198,7 @@ void IndexClassifyLI::storeIndexResult(const int e) {
     }  
   }
   if (!part.empty() || (elem.getSetRel() == DISJOINT) ||
-      (!elem.hasLabel() && !elem.hasPlace())) { // continue
+      (!elem.hasLabel() && !elem.hasPlace())) { // continue with time intervals
     elem.getI(ivs);
     set<string>::iterator is = ivs.begin();
     bool first = true;
@@ -9193,16 +9214,26 @@ void IndexClassifyLI::storeIndexResult(const int e) {
       is++;
     }
   }
+  indexResult[e].resize(mRel->GetNoTuples() + 1);
+  unsigned int pred = 0;
+  IndexRetrieval ir(pred);
+  indexResult[e][0] = ir; // first entry points to first active entry
   for (unsigned int i = 1; i < part.size(); i++) { // collect results
     if (!part[i].empty() && time[i]) {
-      indexResult[e].push_back(make_pair(i, part[i]));
+      indexResult[e][pred].succ = i; // update successor of predecessor
+      IndexRetrieval ir(pred, 0, part[i]);
+      indexResult[e][i] = ir;
+      pred = i;
     }
   }
   if (part.empty() && ((elem.getSetRel() == DISJOINT) ||
       (!elem.hasLabel() && !elem.hasPlace()))) {
     for (unsigned int i = 1; i < time.size(); i++) {
       if (time[i]) {
-        indexResult[e].push_back(make_pair(i, set<int>()));
+        indexResult[e][pred].succ = i; // update successor of predecessor
+        IndexRetrieval ir(pred);
+        indexResult[e][i] = ir;
+        pred = i;
       }
     }
   }
@@ -9228,10 +9259,15 @@ void IndexClassifyLI::setActiveTuples(set<int>& cruElems) {
         return;
       }
       newActive.assign(mRel->GetNoTuples() + 1, false);
-      for (unsigned int i = 0; i < indexResult[*it].size(); i++) {
-        if (active[indexResult[*it][i].first]) {
-          newActive[indexResult[*it][i].first] = true;
+      TupleId id = indexResult[*it][0].succ; // first active tuple id
+      while (id > 0) {
+        if (active[id]) {
+          newActive[id] = true;
         }
+        else {
+          removeIdFromIndexResult(id);
+        }
+        id = indexResult[*it][id].succ;
       }
       active.swap(newActive);
     }
@@ -9270,13 +9306,12 @@ void IndexClassifyLI::initialize() {
   set<int> cruElems;
   getCrucialElems(paths, cruElems);
   active.assign(mRel->GetNoTuples() + 1, true);
+  indexResult.resize(p.getSize());
   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
     storeIndexResult(*it);
   }
   setActiveTuples(cruElems);
   initMatchInfo();
-//   applyIndexes(cruElems);
-//   cout << activeTuples << " tuples active after initialization" << endl;
 }
 
 /*
@@ -9327,6 +9362,7 @@ bool IndexClassifyLI::wildcardMatch(const int state, pair<int, int> transition){
         newActive[imm->first] = false;
         matches.push_back(imm->first);
         ok = true;
+        removeIdFromIndexResult(imm->first);
       }
       else if (!imm->second.exhausted()) { // continue
         (*newMatchInfoPtr)[transition.second].insert(*imm);
@@ -9546,14 +9582,14 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state,
   multimap<TupleId, IndexMatchInfo>::iterator im;
   storeIndexResult(e);
   if (!indexResult[e].empty()) { // contents found in at least one index
-    for (unsigned int i = 0; i < indexResult[e].size(); i++) {
-      pair<TupleId, set<int> > *pairPtr = &(indexResult[e][i]);
-      imm = (*matchInfoPtr)[state].equal_range(pairPtr->first);
-      if (!pairPtr->second.empty()) { // value index, units known
-        for (set<int>::iterator it = pairPtr->second.begin(); 
-                                it != pairPtr->second.end(); it++) {
+    TupleId id = indexResult[e][0].succ;
+    while (id > 0) {
+      imm = matchInfo[state].equal_range(id); //TODO: optimize! still O(log(n))
+      if (!indexResult[e][id].units.empty()) { // value index, units known
+        for (set<int>::iterator it = indexResult[e][id].units.begin(); 
+                                it != indexResult[e][id].units.end(); it++) {
           for (im = imm.first; im != imm.second; im++) {
-            if (valuesMatch(e, pairPtr->first, im->second, newState, *it)) {
+            if (valuesMatch(e, id, im->second, newState, *it)) {
               transition = true;
             }
           }
@@ -9561,11 +9597,12 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state,
       }
       else { // only time index, units unknown
         for (im = imm.first; im != imm.second; im++) {
-          if (valuesMatch(e, pairPtr->first, im->second, newState, -1)) {
+          if (valuesMatch(e, id, im->second, newState, -1)) {
             transition = true;
           }
         }
       }
+      id = indexResult[e][id].succ;
     }
   }
   else { // no result from index
