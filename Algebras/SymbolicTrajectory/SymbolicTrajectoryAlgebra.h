@@ -930,6 +930,7 @@ class Pattern {
   void addAssignRight(int pos, int key, pair<string, int> varKey)
                                            {assigns[pos].addRight(key, varKey);}
   void              getNFA(vector<map<int, int> >& result) {result = nfa;}
+  int               getNFAsize() const      {return nfa.size();}
   bool              isNFAempty() const      {return (nfa.size() == 0);}
   map<int, int>     getTransitions(int pos) {assert(pos >= 0);
     assert(pos < (int)nfa.size()); return nfa[pos];}
@@ -1320,8 +1321,8 @@ friend class IndexMatchesLI;
   vector<TupleId> matches;
   vector<bool> active, newActive;
   int activeTuples;
-  map<int, multimap<TupleId, IndexMatchInfo> > matchInfo, newMatchInfo;
-  map<int, multimap<TupleId, IndexMatchInfo> > *matchInfoPtr, *newMatchInfoPtr;
+  vector<multimap<TupleId, IndexMatchInfo> > matchInfo, newMatchInfo;
+  vector<multimap<TupleId, IndexMatchInfo> > *matchInfoPtr, *newMatchInfoPtr;
   TupleType* classifyTT;
   InvertedFile* invFile;
   R_Tree<1, TupleId> *rtree;

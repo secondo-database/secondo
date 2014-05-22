@@ -7386,6 +7386,7 @@ void IndexMatchesLI::applyNFA() {
   PatElem elem;
   states.insert(0);
   set<int> newStates;
+  map<int, int>::reverse_iterator it;
   while (activeTuples > 0) {
 //     cout << activeTuples << " activeTuples" << endl;
 //     cout << "active:    ";
@@ -7396,7 +7397,7 @@ void IndexMatchesLI::applyNFA() {
     activeTuples = 0;
     for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
       map<int, int> trans = p.getTransitions(*is);
-      for (map<int, int>::iterator it = trans.begin(); it != trans.end(); it++){
+      for (it = trans.rbegin(); it != trans.rend(); it++) {
         p.getElem(it->first, elem);
         if (elem.getW() == NO) { // no wildcard
 //           cout << "call simpleMatch for transition " << *is << " --> " 
@@ -7416,8 +7417,10 @@ void IndexMatchesLI::applyNFA() {
     }
     states.clear();
     states.swap(newStates);
-    map<int, multimap<TupleId, IndexMatchInfo> >* temp = newMatchInfoPtr;
-    matchInfoPtr->clear();
+    vector<multimap<TupleId, IndexMatchInfo> >* temp = newMatchInfoPtr;
+    for (unsigned int i = 0; i < matchInfoPtr->size(); i++) {
+      (*matchInfoPtr)[i].clear();
+    }
     newMatchInfoPtr = matchInfoPtr;
     matchInfoPtr = temp;
     active.assign(active.size(), false);
@@ -8861,14 +8864,12 @@ This constructor is used for the operator ~indexclassify~.
 */
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
          R_Tree<1, TupleId> *rt, Word _classifier, int _attrNr, DataType type) :
-                 mRel(rel), activeTuples(0), invFile(inv), rtree(rt), 
-                 attrNr(_attrNr), mtype(type) {
+      mRel(rel), activeTuples(0), matchInfoPtr(0), newMatchInfoPtr(0), 
+      invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
   c = (Classifier*)_classifier.addr;
   active.resize(mRel->GetNoTuples() + 1, false);
   newActive.resize(mRel->GetNoTuples() + 1, false);
   classifyTT = ClassifyLI::getTupleType();
-  matchInfoPtr = &matchInfo;
-  newMatchInfoPtr = &newMatchInfo;
 }
 
 /*
@@ -8878,10 +8879,10 @@ This constructor is used for the operator ~indexmatches~.
 
 */
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
-                           R_Tree<1, TupleId> *rt, int _attrNr, DataType type) :
-       c(0), mRel(rel), activeTuples(0), classifyTT(ClassifyLI::getTupleType()),
-       invFile(inv),
-  rtree(rt), attrNr(_attrNr), mtype(type) {
+         R_Tree<1, TupleId> *rt, int _attrNr, DataType type) :
+      c(0), mRel(rel), activeTuples(0), matchInfoPtr(0), newMatchInfoPtr(0),
+      classifyTT(ClassifyLI::getTupleType()), invFile(inv), rtree(rt), 
+      attrNr(_attrNr), mtype(type) {
   active.resize(mRel->GetNoTuples() + 1, false);
   newActive.resize(mRel->GetNoTuples() + 1, false);
   matchInfoPtr = &matchInfo;
@@ -9297,7 +9298,6 @@ according to the index information.
 
 */
 void IndexClassifyLI::initialize() {
-//   set<TupleId> cands;
   vector<map<int, int> > nfa;
   simplifyNFA(nfa);
   set<int> finalStates = p.getFinalStates();
@@ -9311,6 +9311,10 @@ void IndexClassifyLI::initialize() {
     storeIndexResult(*it);
   }
   setActiveTuples(cruElems);
+  matchInfo.resize(p.getNFAsize());
+  matchInfoPtr = &matchInfo;
+  newMatchInfo.resize(p.getNFAsize());
+  newMatchInfoPtr = &newMatchInfo;
   initMatchInfo();
 }
 
@@ -9506,7 +9510,6 @@ bool IndexClassifyLI::valuesMatch(const int e, const TupleId id,
     return false;
   }
   if (imi.next >= imi.size) {
-//     cout << "IMI for tuple " << id << " exhausted" << endl;
     return false;
   }
   Tuple *tuple = mRel->GetTuple(id, false);
@@ -9582,6 +9585,9 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state,
   multimap<TupleId, IndexMatchInfo>::iterator im;
   storeIndexResult(e);
   if (!indexResult[e].empty()) { // contents found in at least one index
+//     set<int> tids; tids.insert(226); tids.insert(1549); tids.insert(4982);
+//                    tids.insert(5146); tids.insert(7371); tids.insert(9419);
+    
     TupleId id = indexResult[e][0].succ;
     while (id > 0) {
       imm = matchInfo[state].equal_range(id); //TODO: optimize! still O(log(n))
@@ -9589,6 +9595,9 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state,
         for (set<int>::iterator it = indexResult[e][id].units.begin(); 
                                 it != indexResult[e][id].units.end(); it++) {
           for (im = imm.first; im != imm.second; im++) {
+//             if (!state && tids.count(id)) {
+//               cout << id << "   " << *it << "   " << im->second.next << endl;
+//             }
             if (valuesMatch(e, id, im->second, newState, *it)) {
               transition = true;
             }
