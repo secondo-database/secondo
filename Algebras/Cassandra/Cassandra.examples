@@ -34,13 +34,13 @@ Result   : 41267
 Operator : ccollectlocal
 Number   : 1
 Signature: text x text x text x text -> stream(tuple(...))
-Example  : query ccollect('127.0.0.1', 'keyspace1', 'plz', 'ONE') count
+Example  : query ccollectlocal('127.0.0.1', 'keyspace1', 'plz', 'ONE') count
 Result   : 41267
 
-Operator : ccollectdistributed
+Operator : ccollectrange
 Number   : 1
-Signature: text x text x text x text x text -> stream(tuple(...))
-Example  : query ccollect('127.0.0.1', 'keyspace1', 'plz', 'ONE', 'mypartition') count
+Signature: text x text x text x text x text x text -> stream(tuple(...))
+Example  : query ccollectrange('127.0.0.1', 'keyspace1', 'plz', 'ONE', '1234', '5678') count
 Result   : 41267
 
 Operator : clist

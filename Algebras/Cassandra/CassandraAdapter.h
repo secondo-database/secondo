@@ -271,6 +271,20 @@ public:
     CassandraResult* readTableLocal(string relation,
         string consistenceLevel);
 
+/*
+2.3.5 Fetch partial table from cassandra. Read only
+      the tuples inside the given token interval
+
+1. Parameter is the relation to read
+2. Parameter is the consistence level used for writing
+3. Parameter is the begin token range
+4. Parameter is the end token range
+
+*/
+    CassandraResult* readTableRange(string relation,
+        string consistenceLevel, string begin, string end);
+
+    
     
 /*
 2.3.6 Create a new relation in cassandra and write some 

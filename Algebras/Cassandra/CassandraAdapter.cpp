@@ -294,6 +294,24 @@ CassandraResult* CassandraAdapter::readTable(string relation,
 }
 
 
+CassandraResult* CassandraAdapter::readTableRange(string relation,
+        string consistenceLevel, string begin, string end) {
+  
+    stringstream ss;
+    ss << "SELECT key, value from ";
+    ss << relation;
+    ss << " where token(partition) >= " << begin << " ";
+    ss << "and token(partition) <= " << end;
+    ss << ";";
+    string query = ss.str();
+    
+    cout << "Query is: " << query << endl;
+    
+    return readDataFromCassandra(query, 
+          CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
+  
+}
+
 void CassandraAdapter::getLokalTokenRanges(
      vector<TokenInterval> &localTokenRange) {
   

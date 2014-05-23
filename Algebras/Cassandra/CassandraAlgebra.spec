@@ -27,5 +27,5 @@ operator clist alias CLIST pattern op ( _ , _ )
 operator cspread alias CSPREAD pattern _ op [ _ , _ , _ , _ , _ , _ ]
 operator ccollect alias CCOLLECT pattern op ( _ , _ , _ , _ )
 operator ccollectlocal alias CCOLLECTLOCAL pattern op ( _ , _ , _ , _ )
-operator ccollectdstributed alias CCOLLECTDISTRIBUTED pattern op ( _ , _ , _ , _ , _ , _ )
+operator ccollectrange alias CCOLLECTRANGE pattern op ( _ , _ , _ , _ , _ , _ )
 

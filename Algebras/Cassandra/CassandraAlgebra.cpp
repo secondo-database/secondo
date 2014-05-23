@@ -1071,13 +1071,22 @@ bool EvaluateTypeMappingExpr(string expression, string &result) {
 
 
 /*
-2.5.1 Type mapping function of operator ~ccollect~
+2.5.1 Fetch Mode for collect
+
+ALL = Fetch the whole table
+LOCAL = Fetch only data stored on the local node
+RANGE = Fetch only data in the specified token range
+
+*/
+enum CollectFetchMode {ALL, LOCAL, RANGE }; 
+
+/*
+2.5.1 Type mapping function of operator ~ccollect~ and ~ccollectlocal~
 
 Type mapping for ~ccollect~ is
 
 ----
-  rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n)) x text x
-                     text x text x text -> stream(tuple(...))
+   text x text x text x text -> stream(tuple(...))
 ----
 
 */
@@ -1087,7 +1096,7 @@ ListExpr CCollectTypeMap( ListExpr args ) {
     return listutils::typeError("four arguments expected");
   }
 
-  string err = " stream(text x text x text x text) expected";
+  string err = " text x text x text x text expected";
 
   // arg evaluation is active
   // this means each argument is a two elem list (type value)
@@ -1157,12 +1166,105 @@ ListExpr CCollectTypeMap( ListExpr args ) {
   return resList;
 }
 
+/*
+2.5.2 Type mapping function of operator ~ccollectrange~
+
+Type mapping for ~ccollectrange~ is
+
+----
+   text x text x text x text x text x text -> stream(tuple(...))
+----
+
+*/
+ListExpr CCollectTypeMapRange( ListExpr args ) {
+
+  if(nl->ListLength(args) != 6){
+    return listutils::typeError("six arguments expected");
+  }
+
+  string err = " text x text x text x text x text x text expected";
+
+  // arg evaluation is active
+  // this means each argument is a two elem list (type value)
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+    if(!nl->HasLength(nl->First(tmp),2)){
+       return listutils::typeError("expected (type value)");
+    }    
+    tmp = nl->Rest(tmp);
+  }
+  
+  ListExpr contactPoint = nl->First(args);
+  ListExpr keyspace = nl->Second(args);
+  ListExpr relationName = nl->Third(args);
+  ListExpr consistenceLevel = nl->Fourth(args);
+  ListExpr begin = nl->Fifth(args);
+  ListExpr end = nl->Sixth(args);
+
+  if(  !FText::checkType(nl->First(contactPoint)) ||
+       !FText::checkType(nl->First(keyspace)) ||
+       !FText::checkType(nl->First(relationName)) ||
+       !FText::checkType(nl->First(consistenceLevel)) ||
+       !FText::checkType(nl->First(begin)) ||
+       !FText::checkType(nl->First(end))
+    ) {
+    return listutils::typeError(err);
+  }
+  
+  
+  // We need to evaluate the result list, contact cassandra
+  // and read the tuple type of the table
+  string contactPointVal;  
+  string contactPointExpr = nl->ToString(nl->Second(contactPoint));
+  if(! EvaluateTypeMappingExpr(contactPointExpr, contactPointVal) ) {
+    return listutils::typeError(contactPointVal);
+  }
+  
+  string keyspaceVal;  
+  string keyspaceExpr = nl->ToString(nl->Second(keyspace));
+  if(! EvaluateTypeMappingExpr(keyspaceExpr, keyspaceVal) ) {
+    return listutils::typeError(keyspaceVal);
+  }
+
+  string relationVal;  
+  string relationExpr = nl->ToString(nl->Second(relationName));
+  if(! EvaluateTypeMappingExpr(relationExpr, relationVal) ) {
+    return listutils::typeError(relationVal);
+  }
+
+  // Read tuple type from cassandra
+  string tupleType;
+  
+  CassandraAdapter* cassandra = 
+     new CassandraAdapter(contactPointVal, keyspaceVal);
+  
+     cassandra -> connect(false);
+  
+  bool result = 
+     cassandra -> getTupleTypeFromTable(relationVal, tupleType);
+     
+  delete cassandra;
+  cassandra = NULL;
+  
+  if(!result) {
+     return listutils::typeError("Unable to read table type from "
+       "cassandra. Does the table exist?");
+  }
+  
+  ListExpr resList;
+  nl->ReadFromString(tupleType, resList);
+  
+  cout << "Result: " << nl->ToString(resList) << endl;
+  return resList;
+}
+
 
 /*
 2.5.3 Value mapping function of operator ~ccollect~
 
 */
-template<bool LocalOnly>
+
+template<CollectFetchMode fetchMode>
 class CCollectLocalInfo {
 
 public:
@@ -1177,8 +1279,6 @@ public:
       cout << "Keyspace is " << keyspace << endl;
       cout << "Relation name is " << relationName << endl;
       cout << "Consistence is " << consistence << endl;
-
-      open();
   }
   
   virtual ~CCollectLocalInfo() {
@@ -1200,16 +1300,23 @@ public:
       
       // Read the whole table or only the data
       // stored on the local cassandra node.
-      if(LocalOnly) {
-        // Connect to cassandra and use the single node loadbalancing 
-        // policy
-        cassandra -> connect(true); 
-        result = cassandra -> readTableLocal(relationName, consistence);
-      } else {
+      if(fetchMode == ALL) {
         // Connect to cassandra and use the multi node loadbalancing 
         // policy
         cassandra -> connect(false);
         result = cassandra -> readTable(relationName, consistence);
+      } else if(fetchMode == LOCAL) {
+        // Connect to cassandra and use the single node loadbalancing 
+        // policy
+        cassandra -> connect(true); 
+        result = cassandra -> readTableLocal(relationName, consistence);
+      } else if(fetchMode == RANGE) {
+        // Connect to cassandra and use the multi node loadbalancing 
+        // policy
+        cassandra -> connect(false); 
+        result = cassandra -> readTableRange(relationName, consistence, 
+                                             beginToken, endToken);
+        
       }
       
     }
@@ -1244,6 +1351,11 @@ public:
     return NULL;
   }
   
+  void setBeginEndToken(string myBegintoken, string myEndToken) {
+    beginToken = myBegintoken;
+    endToken = myEndToken;
+  }
+  
 private:
   ListExpr tupleType;          // Tuple Type
   string contactPoint;         // Contactpoint for our cluster
@@ -1252,16 +1364,18 @@ private:
   string consistence;          // Consistence  
   CassandraAdapter* cassandra; // Our cassandra connection
   CassandraResult* result;     // Query result
+  string beginToken;        // Begin Token
+  string endToken;          // End Token
 };
 
-template<bool LocalOnly>
+template<CollectFetchMode fetchMode>
 int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  CCollectLocalInfo<LocalOnly> *cli; 
+  CCollectLocalInfo<fetchMode> *cli; 
   Word elem;
   string consistenceLevel;
 
-  cli = (CCollectLocalInfo<LocalOnly>*)local.addr;
+  cli = (CCollectLocalInfo<fetchMode>*)local.addr;
   
   ListExpr resultType = GetTupleResultType(s);
   
@@ -1276,20 +1390,38 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
        cout << "Cluster contactpoint is not defined" << endl;
      } else if (! ((FText*) args[1].addr)->IsDefined()) {
        cout << "Keyspace is not defined" << endl;
-     } else if (! ((FText*) args[2].addr)->IsDefined()) {
-       cout << "Relationname is not defined" << endl;
-     } else if (! ((FText*) args[3].addr)->IsDefined()) {
+     }  else if (! ((FText*) args[3].addr)->IsDefined()) {
        cout << "Consistence level is not defined" << endl;
      } else if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel)) {
        cout << "Unknown consistence level: " << consistenceLevel << endl; 
      } else {
-       cli = new CCollectLocalInfo<LocalOnly>(nl -> Second(resultType),
+       
+       
+         cli = new CCollectLocalInfo<fetchMode>(nl -> Second(resultType),
                       (((FText*)args[0].addr)->GetValue()),
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
                       (((FText*)args[3].addr)->GetValue())
                  );
-        
+         
+         // Parse additional parameter for RANGE MODE
+         if(fetchMode == RANGE) {
+            if (! ((FText*) args[4].addr)->IsDefined()) {
+                cout << "Begin Token not defined" << endl;
+            } else if (! ((FText*) args[5].addr)->IsDefined()) {
+                cout << "End Token not defined" << endl;
+            }
+            
+            string begin = ((FText*)args[4].addr)->GetValue();
+            string end   = ((FText*)args[5].addr)->GetValue();
+
+            cli -> setBeginEndToken(begin, end);
+            
+            cout << "Token range is: " << begin 
+                 << " / " << end << endl;
+         }
+       
+         cli -> open();
          local.setAddr( cli );
      }
       
@@ -1350,13 +1482,36 @@ const string CCollectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               ") )";
 
 /*
-2.4.5 Definition of operator ~ccollect~
+2.5.5 Specification of operator ~ccollectrange~
+
+*/
+const string CCollectRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text x text x text x text "
+                         "-> stream(tuple(...))</text--->"
+                         "<text>ccollect [ _ , _ , _ , _ ] </text--->"
+                         "<text>The operator ccollect fetches a relation from"
+                         "our cassandra cluster and create a stream of"
+                         "tuples. The first paramter is the contact point to "
+                         "the cassandra cluster. The second parameter "
+                         "specifies the keyspace to use. The third parameter "
+                         "contains the name of the relation to fetch. The "
+                         "fourth parameter specifies the consistence "
+                         "level used for reading. The fith and the sixth"
+                         "parameter specifies the token range</text--->"
+                         "<text>query ccollectrange['127.0.0.1', 'keyspace1', "
+                         "'plz', 'ANY', '1234', '5678'] count</text--->"
+                              ") )";
+                         
+/*
+2.4.6 Definition of operator ~ccollect~
 
 */
 Operator cassandracollect (
          "ccollect",                // name
          CCollectSpec,              // specification
-         CCollect<false>,           // value mapping
+         CCollect<ALL>,             // value mapping
          Operator::SimpleSelect,    // trivial selection function
          CCollectTypeMap            // type mapping
 );                         
@@ -1365,10 +1520,18 @@ Operator cassandracollect (
 Operator cassandracollectlocal (
          "ccollectlocal",           // name
          CCollectSpec,              // specification
-         CCollect<true>,            // value mapping
+         CCollect<LOCAL>,           // value mapping
          Operator::SimpleSelect,    // trivial selection function
          CCollectTypeMap            // type mapping
 );                         
+
+Operator cassandracollectrange (
+         "ccollectrange",           // name
+         CCollectRangeSpec,         // specification
+         CCollect<RANGE>,           // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         CCollectTypeMapRange       // type mapping
+);                        
 
 /*
 2.6 Operator ~clist~
@@ -1577,6 +1740,8 @@ public:
     cassandracollect.SetUsesArgsInTypeMapping();
     AddOperator(&cassandracollectlocal);
     cassandracollectlocal.SetUsesArgsInTypeMapping();
+    AddOperator(&cassandracollectrange);
+    cassandracollectrange.SetUsesArgsInTypeMapping();
     AddOperator(&cassandralist);
     
   }
