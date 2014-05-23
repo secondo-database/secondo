@@ -43,12 +43,6 @@ Signature: text x text x text x text x text -> stream(tuple(...))
 Example  : query ccollect('127.0.0.1', 'keyspace1', 'plz', 'ONE', 'mypartition') count
 Result   : 41267
 
-Operator : cpartition
-Number   : 1
-Signature: stream(T) x text x int -> stream(T)
-Example  : query ccollect('127.0.0.1', 'keyspace1', 'plz', 'ONE', 'nodeXXX', 'mypartition') cpartition['nodeXXX', 'mypartition', 10] count
-Result   : 41267
-
 Operator : clist
 Number   : 1
 Signature: text x text -> stream(text)

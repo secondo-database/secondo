@@ -28,5 +28,4 @@ operator cspread alias CSPREAD pattern _ op [ _ , _ , _ , _ , _ , _ ]
 operator ccollect alias CCOLLECT pattern op ( _ , _ , _ , _ )
 operator ccollectlocal alias CCOLLECTLOCAL pattern op ( _ , _ , _ , _ )
 operator ccollectdstributed alias CCOLLECTDISTRIBUTED pattern op ( _ , _ , _ , _ , _ , _ )
-operator cpartition alias CPARTITION pattern _ op [ _ , _ , _ ]
 
