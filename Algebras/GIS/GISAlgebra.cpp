@@ -58,7 +58,7 @@ GISAlgebra operators includes
 #include "aspect.h"
 #include "hillshade.h"
 #include "ruggedness.h"
-#include "contours.h"
+#include "contour.h"
 
 /*
 extern declarations

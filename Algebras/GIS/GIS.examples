@@ -26,8 +26,8 @@ Signature: sT -> sT
 Example  : query ruggedness()
 Result   : file
 
-Operator : contours
+Operator : contourlines
 Number   : 1
 Signature: sT x double -> lines
-Example  : query contours()
+Example  : query contourlines()
 Result   : file
