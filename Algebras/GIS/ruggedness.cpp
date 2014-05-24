@@ -24,10 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Raster2/sint.h"
 #include "../Raster2/sreal.h"
 
-#ifndef M_PI
-const double M_PI = acos( -1.0 );
-#endif
-
 namespace GISAlgebra {
 
   template <typename T>
