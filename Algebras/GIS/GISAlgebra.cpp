@@ -58,6 +58,7 @@ GISAlgebra operators includes
 #include "aspect.h"
 #include "hillshade.h"
 #include "ruggedness.h"
+#include "contours.h"
 
 /*
 extern declarations
@@ -135,7 +136,7 @@ GISAlgebra::GISAlgebra()
               hillshadeTypeMap);
   AddOperator(ruggednessInfo(), ruggednessFuns, ruggednessSelectFun, 
               ruggednessTypeMap);
-  
+  AddOperator(contourInfo(), contourFuns, contourSelectFun, contourTypeMap);
 }
 
 /*
