@@ -45,5 +45,5 @@ namespace GISAlgebra
         };
 }
 
-#endif /* #define GIS_EXPOSITION_H */
+#endif /* #define GIS_ASPECT_H */
 
