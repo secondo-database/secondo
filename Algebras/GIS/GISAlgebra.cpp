@@ -59,6 +59,7 @@ GISAlgebra operators includes
 #include "hillshade.h"
 #include "ruggedness.h"
 #include "contour.h"
+#include "cline.h"
 
 /*
 extern declarations
@@ -124,6 +125,7 @@ GISAlgebra::GISAlgebra()
 
   */
 
+  AddTypeConstructor(new TypeConstructor(CLine::GetTypeConstructor()),true);
 
   /*
   Operators
