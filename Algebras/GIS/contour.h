@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <NList.h>
 
 #include "../Raster2/stype.h"
+#include "cline.h"
 
 namespace GISAlgebra 
 {
@@ -36,13 +37,14 @@ namespace GISAlgebra
         bool ProcessRectangle(double, double, double,
                               double, double, double,
                               double, double, double,
-                              double, double, double, double);
+                              double, double, double, 
+                              double, CLine*);
 
         void Intersect(double, double, double,
                        double, double, double,
                        double, double, int*, double*, double*);
 
-        bool AddSegment(double, double, double, double, double, int);
+        bool AddSegment(double, double, double, double, double, int, CLine*);
 
         struct contourInfo : OperatorInfo 
         {

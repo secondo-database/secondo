@@ -32,11 +32,14 @@ namespace GISAlgebra {
   {
     result = qp->ResultStorage(s);
 
-    typename T::this_type* s_out =
-          static_cast<typename T::this_type*>(result.addr);
     typename T::this_type* s_in =
           static_cast<typename T::this_type*>(args[0].addr);
     CcReal* lines = static_cast<CcReal*>(args[1].addr);
+    CLine* clines_out = static_cast<CLine*>(result.addr);
+    clines_out->clear();
+
+    CLine clines(0);
+    clines.clear();
 
     raster2::grid2 grid = s_in->getGrid();
 
@@ -45,8 +48,6 @@ namespace GISAlgebra {
     double cellsize = grid.getLength();
 
     double interval = lines->GetValue();
-
-    s_out->setGrid(grid);
 
     Rectangle<2> bbox = s_in->bbox();
 
@@ -96,44 +97,42 @@ namespace GISAlgebra {
             !(s_in->isUndefined(g)) && !(s_in->isUndefined(i)))
         {
           ProcessRectangle(a, aX, aY, g, gX, gY,
-                           i, iX, iY, c, cX, cY, interval);
+                           i, iX, iY, c, cX, cY, interval, &clines);
         }
-
-        bool error;
 
         // wenn eine Eckzelle nicht definiert ist
         // -> Berechnung ueber 2x2 Quadrat
         if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(d)) &&
             !(s_in->isUndefined(e)) && !(s_in->isUndefined(b)))
         {
-          error = ProcessRectangle(a, aX, aY, d, dX, dY,
-                                   e, eX, eY, b, bX, bY, interval);
+          ProcessRectangle(a, aX, aY, d, dX, dY,
+                           e, eX, eY, b, bX, bY, interval, &clines);
         }
 
         if (!(s_in->isUndefined(d)) && !(s_in->isUndefined(g)) &&
             !(s_in->isUndefined(h)) && !(s_in->isUndefined(e)))
         {
-          error = ProcessRectangle(d, dX, dY, g, gX, gY,
-                                   h, hX, hY, e, eX, eY, interval);
+          ProcessRectangle(d, dX, dY, g, gX, gY,
+                           h, hX, hY, e, eX, eY, interval, &clines);
         }
 
         if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(h)) &&
             !(s_in->isUndefined(i)) && !(s_in->isUndefined(f)))
         {
-          error = ProcessRectangle(e, eX, eY, h, hX, hY,
-                                   i, iX, iY, f, fX, fY, interval);
+          ProcessRectangle(e, eX, eY, h, hX, hY,
+                           i, iX, iY, f, fX, fY, interval, &clines);
         }
 
         if (!(s_in->isUndefined(b)) && !(s_in->isUndefined(e)) &&
             !(s_in->isUndefined(f)) && !(s_in->isUndefined(c)))
         {
-          error = ProcessRectangle(b, bX, bY, e, eX, eY,
-                                   f, fX, fY, c, cX, cY, interval);
+          ProcessRectangle(b, bX, bY, e, eX, eY,
+                           f, fX, fY, c, cX, cY, interval, &clines);
         }
-
-        //s_out->set(index, aspect);
     }
 
+    clines.CopyTo(*clines_out);
+ 
     return 0;
   }
 
@@ -190,7 +189,8 @@ namespace GISAlgebra {
   bool ProcessRectangle(double a, double aX, double aY,
                         double g, double gX, double gY,
                         double i, double iX, double iY,
-                        double c, double cX, double cY, double interval)
+                        double c, double cX, double cY, 
+                        double interval, CLine *clines)
   {
     // Rechteck verarbeiten (Minimum, Maximum bestimmen)
     double Min = MIN(MIN(a,c),MIN(g,i));
@@ -229,39 +229,39 @@ namespace GISAlgebra {
         if ( nPoints1 == 1 && nPoints2 == 2)
         {
           return AddSegment( level, pointsX[0], pointsY[0], 
-                                    pointsX[1], pointsY[1], c > g );
+                                    pointsX[1], pointsY[1], c > g, clines);
         }
         // links und rechts
         else if ( nPoints1 == 1 && nPoints3 == 2 )
         {
           return AddSegment( level, pointsX[0], pointsY[0], 
-                                    pointsX[1], pointsY[1], a > i );
+                                    pointsX[1], pointsY[1], a > i, clines);
         }
         // links und oben
         else if ( nPoints1 == 1 && nPoints == 2 )
         { 
           if ( !(a == level && g == level) )
             return AddSegment( level, pointsX[0], pointsY[0], 
-                                      pointsX[1], pointsY[1], a > i );
+                                      pointsX[1], pointsY[1], a > i, clines);
         }
         // unten und rechts
         else if(  nPoints2 == 1 && nPoints3 == 2)
         {
           return AddSegment( level, pointsX[0], pointsY[0], 
-                                    pointsX[1], pointsY[1], a > i );
+                                    pointsX[1], pointsY[1], a > i, clines);
         }
         // unten und oben
         else if ( nPoints2 == 1 && nPoints == 2 )
         {
           return AddSegment( level, pointsX[0], pointsY[0], 
-                                    pointsX[1], pointsY[1], g > c );
+                                    pointsX[1], pointsY[1], g > c, clines);
         }
         // rechts und oben
         else if ( nPoints3 == 1 && nPoints == 2 )
         { 
           if ( !(c == level && a == level) )
              return AddSegment( level, pointsX[0], pointsY[0], 
-                                       pointsX[1], pointsY[1], g > c );
+                                       pointsX[1], pointsY[1], g > c, clines);
         }
         else
         {
@@ -274,7 +274,7 @@ namespace GISAlgebra {
         if ( !(c == level && a == level) )
         {
           return AddSegment( level, pointsX[2], pointsY[2], 
-                                    pointsX[3], pointsY[3], i > c );
+                                    pointsX[3], pointsY[3], i > c, clines);
 
         }
       }
@@ -312,20 +312,21 @@ namespace GISAlgebra {
   }
 
   bool AddSegment(double level, double startX, double startY,
-                  double endX, double endY, int leftHigh)
+                  double endX, double endY, int leftHigh, CLine *line)
   {
-    cout << "-----------" << endl;
-    cout << startX << endl;
-    cout << startY << endl;
-    cout << endX << endl;
-    cout << endY << endl;
-    cout << level << endl;
+    Point p1(true, startX, startY);
+    Point p2(true, endX, endY);
+    HalfSegment ss(true, p1, p2);
 
     // Contourlinie fuer level finden
-
+    //if (line->getLevel() == level)
     // wenn existent, dann Segment am richtigen Ende hinzufuegen
 
     // ansonsten neue Linie anlegen
+    //{
+      line->setLevel(level);
+      line->append(ss);
+    //}
 
     return true;
   }
