@@ -8,10 +8,10 @@
 #######################################
 
 # Cassandra Nodes
-nodes="node1 node2 node3 node4 node5"
+nodes="node1 node2 node3 node4 node5 node6"
 
 # Cassandra binary
-cassandrabin="/opt/cassandra/apache-cassandra-2.0.5/bin/cassandra"
+cassandrabin="/opt/cassandra/apache-cassandra-2.0.7/bin/cassandra"
 
 
 for node in $nodes; do
