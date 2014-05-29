@@ -25,8 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 Started March 2012, Fabio Vald\'{e}s
 
-Some basic implementations were done by Frank Panse.
-
 [TOC]
 
 \section{Overview}
@@ -1249,22 +1247,27 @@ struct IndexRetrieval {
 };
 
 struct IndexMatchInfo {
-  IndexMatchInfo(int s, bool r, int n) : range(r), next(n), size(s) 
-                                                              {prevVar.clear();}
-  IndexMatchInfo(int s, bool r, int n, 
+  IndexMatchInfo(bool r, int n = 0) : range(r), next(n) {}
+  IndexMatchInfo(bool r, int n, 
             map<string, pair<unsigned int, unsigned int> > b, const string& v) :
-       range(r), next(n), size(s), binding(b), prevVar(v) {}
+       range(r), next(n), binding(b), prevVar(v) {}
   
-  bool operator<(const IndexMatchInfo& rhs) const;
   void print(const bool printBinding);
-  bool finished() const {return range || (next >= size);}
-  bool exhausted() const {return next >= size;}
+  bool finished(const int size) const {return range || (next >= size);}
+  bool exhausted(const int size) const {return next >= size;}
   bool matches(const int unit) const {return (range ? next<=unit : next==unit);}
 
   bool range;
-  int next, size;
+  int next;
   map<string, pair<unsigned int, unsigned int> > binding;
   string prevVar;
+};
+
+struct IndexMatchSlot {
+  IndexMatchSlot() {}
+  
+  unsigned int pred, succ;
+  vector<IndexMatchInfo> imis;
 };
 
 class IndexClassifyLI {
@@ -1291,9 +1294,9 @@ friend class IndexMatchesLI;
   void retrieveTime(vector<bool>& time, vector<bool>& time2, bool first, 
                     const string& ivstr);
   void removeIdFromIndexResult(const TupleId id);
+  void removeIdFromMatchInfo(const TupleId id);
   void storeIndexResult(const int e);
-  void setActiveTuples(set<int>& cruElems);
-  void initMatchInfo();
+  void initMatchInfo(const set<int>& cruElems);
   void initialize();
   int getMsize(TupleId tId);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
@@ -1307,7 +1310,7 @@ friend class IndexMatchesLI;
                    vector<set<pair<TupleId, int> > >& valuePosVec,
                    set<pair<TupleId, int> >*& result);
   bool simpleMatch(const int e, const int state, const int newState);
-  bool wildcardMatch(const int state, pair<int, int> transition);
+  bool wildcardMatch(const int state, pair<int, int> trans);
   bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
 
@@ -1319,10 +1322,10 @@ friend class IndexMatchesLI;
   vector<vector<IndexRetrieval> > indexResult;
   set<int> indexMismatch;
   vector<TupleId> matches;
-  vector<bool> active, newActive;
+  vector<pair<int, unsigned int> > trajInfo; // (size, numOfIMI)
   int activeTuples;
-  vector<multimap<TupleId, IndexMatchInfo> > matchInfo, newMatchInfo;
-  vector<multimap<TupleId, IndexMatchInfo> > *matchInfoPtr, *newMatchInfoPtr;
+  vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
+  vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
   TupleType* classifyTT;
   InvertedFile* invFile;
   R_Tree<1, TupleId> *rtree;
