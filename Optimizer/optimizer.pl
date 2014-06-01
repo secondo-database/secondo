@@ -4048,7 +4048,7 @@ join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
 
 
 % spatialjoin with generic BBoxPredicate:
-join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(itSpatialJoin(Arg1S,
   Arg2S, attrname(Attr1), attrname(Attr2)), Pred) :-
   Pred =.. [Op, X, Y],
   ( optimizerOption(determinePredSig)
@@ -4062,7 +4062,7 @@ join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
   isOfSecond(Attr2, X, Y).
 
 % spatialjoin with generic commutative BBoxPredicate (additional):
-join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S,
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(itSpatialJoin(Arg2S,
   Arg1S, attrname(Attr2), attrname(Attr1)), Pred2) :-
   Pred =.. [Op, Y, X],
   ( optimizerOption(determinePredSig)
@@ -8122,7 +8122,7 @@ makeStream(RelTerm, _) :-
   RelTerm=..[where, _, _],
   nl, nl,
   write('>>>>> Problem in optimizer: '), nl,
-  write('impossible to create a plan for the where clause.'),
+  write('>>>>> impossible to create a plan for the where clause.'),
   nl, nl,
   throw(error_Internal(optimizer_makeStream(RelTerm, _)::malformedExpression:
   'where at beginning')).
