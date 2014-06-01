@@ -1083,7 +1083,7 @@ It is possible to fake a predicate. In this case, you can explicitely state a
 given selectivity, bbox-selectivity, calculated and experimental PET. This is
 done using the ``predicate'' (May be useful for testing cost functions.):
 
----- fakePred(+Sel,+BboxSel,+CalcPET,+ExpPET)
+----	fakePred(+Sel,+BboxSel,+CalcPET,+ExpPET)
 ----
 
 */
