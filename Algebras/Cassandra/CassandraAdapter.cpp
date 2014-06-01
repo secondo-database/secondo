@@ -502,7 +502,7 @@ void CassandraAdapter::disconnect() {
             
              boost::shared_future<cql::cql_future_result_t> future = *iter;
           
-             if(! future.is_ready() ) {
+             if(! future.is_ready() && ! future.has_exception() ) {
                 future.wait();
                 cout << "." << flush;
              }
