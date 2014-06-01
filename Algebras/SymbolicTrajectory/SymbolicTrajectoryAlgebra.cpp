@@ -7387,11 +7387,19 @@ void IndexMatchesLI::applyNFA() {
   map<int, int>::reverse_iterator it;
   IndexMatchSlot ims;
   while (activeTuples > 0) {
+    cout << "WHILE loop: states:";
+    for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
+      cout << " " << *is;
+    }
+    cout << endl;
     for (int s = 0; s < p.getNFAsize(); s++) { // remove IMI instances
       if ((*newMatchInfoPtr)[s].size() > 0) {
         TupleId id = (*newMatchInfoPtr)[s][0].succ;
         while (id > 0) {
+          cout << "try to clear (*newMatchInfoPtr)[" << s << "][" << id << "]" 
+               << endl;
           (*newMatchInfoPtr)[s][id].imis.clear();
+          cout << "   ................ done " << endl;
           id = (*newMatchInfoPtr)[s][id].succ;
         }
       }
@@ -7424,14 +7432,7 @@ void IndexMatchesLI::applyNFA() {
     }
     states.clear();
     states.swap(newStates);
-    vector<vector<IndexMatchSlot> >* temp = newMatchInfoPtr;
-    newMatchInfoPtr = matchInfoPtr;
-    matchInfoPtr = temp;
-//     cout << "MAIN LOOP FINISHED; active states: ";
-//     for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
-//       cout << *is << " ";
-//     }
-//     cout << endl;
+    clearMatchInfo();
   }
 }
 
@@ -8898,6 +8899,25 @@ IndexClassifyLI::~IndexClassifyLI() {
 }
 
 /*
+\subsection{Function ~clearMatchInfo~}
+
+*/
+void IndexClassifyLI::clearMatchInfo() {
+  for (int i = 0; i < p.getNFAsize(); i++) {
+    cout << "size of (*matchInfoPtr)[" << i << "] is " 
+         << (*matchInfoPtr)[i].size() << endl;
+    TupleId id = (*matchInfoPtr)[i][0].succ;
+    while (id > 0) {
+      (*matchInfoPtr)[i][id].imis.clear();
+      id = (*matchInfoPtr)[i][id].succ;
+    }
+  }
+  vector<vector<IndexMatchSlot> >* temp = newMatchInfoPtr;
+  newMatchInfoPtr = matchInfoPtr;
+  matchInfoPtr = temp;
+}
+
+/*
 \subsection{Function ~getInterval~}
 
 */
@@ -9300,8 +9320,12 @@ void IndexClassifyLI::initMatchInfo(const set<int>& cruElems) {
     }
   }
   unsigned int pred = 0;
-  (*matchInfoPtr)[0].resize(mRel->GetNoTuples() + 1);
-  (*newMatchInfoPtr)[0].resize(mRel->GetNoTuples() + 1);
+  for (int i = 0; i < p.getNFAsize(); i++) {
+    (*matchInfoPtr)[i].resize(mRel->GetNoTuples() + 1);
+    (*matchInfoPtr)[i][0].succ = 0;
+    (*newMatchInfoPtr)[i].resize(mRel->GetNoTuples() + 1);
+    (*newMatchInfoPtr)[i][0].succ = 0;
+  }
   for (unsigned int id = 1; id < trajInfo.size(); id++) {
     if (trajInfo[id].second) {
       trajInfo[id].first = getMsize(id);
@@ -9380,8 +9404,8 @@ bool IndexClassifyLI::wildcardMatch(const int state, pair<int, int> trans) {
   bool ok = false;
   TupleId id = (*matchInfoPtr)[state][0].succ; // first active tuple id
   while (id > 0) {
-    cout << "state=" << state << ", id=" << id << endl;
     cout << "wildcardMatch: " << (*matchInfoPtr)[state][id].imis.size() << endl;
+    cout << "state=" << state << ", id=" << id << endl;
     for (unsigned int i = 0; i < (*matchInfoPtr)[state][id].imis.size(); i++) {
       cout << "in loop" << endl;
       imiPtr = &((*matchInfoPtr)[state][id].imis[i]);
@@ -9604,6 +9628,8 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state,
   if (!indexResult[e].empty()) { // contents found in at least one index
     TupleId id = indexResult[e][0].succ;
     while (id > 0) {
+      cout << "simpleMatch: " << (*matchInfoPtr)[state][id].imis.size() << endl;
+      cout << "state=" << state << ", id=" << id << endl;
       if (!indexResult[e][id].units.empty()) { // value index, units known
         for (set<int>::iterator it = indexResult[e][id].units.begin(); 
                                 it != indexResult[e][id].units.end(); it++) {

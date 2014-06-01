@@ -1295,6 +1295,7 @@ friend class IndexMatchesLI;
                     const string& ivstr);
   void removeIdFromIndexResult(const TupleId id);
   void removeIdFromMatchInfo(const TupleId id);
+  void clearMatchInfo();
   void storeIndexResult(const int e);
   void initMatchInfo(const set<int>& cruElems);
   void initialize();
