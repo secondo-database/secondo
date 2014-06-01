@@ -100,6 +100,8 @@ cost(feedproject(rel(Rel, _), Project), _, _, _, _,
 /*
 1.3 filter
 
+Filter evaluates a predicate on each tuple of its input stream, hence the cost is linear in the size of the input stream. On top of the basic cost for a cheap predicate, there may be the cost for evaluating an expensive predicate.
+
 Derivation of constants: We use database nrw, constructed with script nrwImportShape.SEC from secondo/bin/Scripts. Relation Roads has schema
 
 ----	Roads(Osm_id: int, Name: string, Ref: string, Type: string, 
@@ -197,13 +199,34 @@ We will proceed as follows. We set a threshold value of 0.2 ms, corresponding to
 % filterC(0.00111).	% PerTuple [ms]
 
 cost(filter(X, _), Sel, Pred, Res, Mem, Card, 
-	NAttrs, TSize, Cost) :-  
+	NAttrs, TSize, Cost) :- 
+  not(prefilter(X)), 	% this is the standard case
+  !,
   cost(X, 1.0, Pred, Res, Mem, Card1, NAttrs, TSize, Cost1),
   getPET(Pred, _, ExpPET),   % fetch stored predicate evaluation time
   filterC(PerTuple),
   ( (ExpPET =< 0.2) -> (PET is 0.0); PET is ExpPET),
   Card is Card1 * Sel,
   Cost is Cost1 + Card1 * (PerTuple + PET).
+
+
+cost(filter(X, _), Sel, Pred, Res, Mem, Card, 
+	NAttrs, TSize, Cost) :- 
+  prefilter(X), 	% filter and refinement case,
+  simplePred(Pred, P),	% hence lookup bbox selectivity
+  databaseName(DB),
+  storedBBoxSel(DB, P, Sel2),
+	write('passed selectivity is '), write(Sel), nl,
+	write('filter step called with selectivity '), write(Sel2), nl,
+  cost(X, Sel2, Pred, Res, Mem, Card1, NAttrs, TSize, Cost1),
+	write('returned filter step cardinality is '), write(Card1), nl, 
+  getPET(Pred, _, ExpPET),   % fetch stored predicate evaluation time
+  filterC(PerTuple),
+  ( (ExpPET =< 0.2) -> (PET is 0.0); PET is ExpPET),
+  Card is Card1 * (Sel/Sel2),
+	write('returned total cardinality is '), write(Card), nl,
+  Cost is Cost1 + Card1 * (PerTuple + PET).
+
 
 
 
@@ -299,8 +322,8 @@ These costs are reflected in the following cost function.
 
 */
 
-% attrC(0.00042).	% Cost per attribute in result tuple. in ms.
-% itHashJoinC(0.00836, 0.09739, 0.007518, 0.00457) % see above
+% attrC(0.00016).	% Cost per attribute in result tuple. in ms.
+% itHashJoinC(0.003, 0.49, 0.00016, 0.000047) % see above
 
 cost(itHashJoin(Arg1, Arg2, _, _), Sel, Pred, Res, Mem, 
 	Card, NAttrs, TSize, Cost) :-
@@ -518,14 +541,14 @@ filterC(0.00111).	% PerTuple [ms]
 
 renameC(0.000367). 	% PerTuple
 
-itHashJoinC(0.00836, 0.09739, 0.007518, 0.00457).
+itHashJoinC(0.003, 0.49, 0.00016, 0.000047).
 	% u, v, w, x constants for itHashJoin, see above
 
 itSpatialJoinC(0.059, 0.125, 0.006, 0.001).
 
 symmjoinC(0.003).
 
-attrC(0.00012).	% PerAttr [ms], cost per attribute in result tuple
+attrC(0.00016).	% PerAttr [ms], cost per attribute in result tuple
 
 
 
@@ -559,6 +582,20 @@ costConstant(Algebra, ConstName, Const) :-
 	*/
 
   
+
+/*
+3 Auxiliary Predicates
+
+----	prefilter(+X)
+----  
+
+is fulfilled if ~X~ is an operation like loopjoin or spatialjoin so that the expression ~filter(X)~ represents a filter and refinement strategy.
+
+*/
+
+prefilter(itSpatialJoin(_, _, _, _)).
+prefilter(spatialjoin(_, _, _, _)).
+prefilter(loopjoin(_, _)).
 
 
 
