@@ -223,7 +223,7 @@ cost(filter(X, _), Sel, Pred, Res, Mem, Card,
   getPET(Pred, _, ExpPET),   % fetch stored predicate evaluation time
   filterC(PerTuple),
   ( (ExpPET =< 0.2) -> (PET is 0.0); PET is ExpPET),
-  Card is Card1 * (Sel/Sel2),
+  Card is Card1 * (Sel / Sel2),
 	write('returned total cardinality is '), write(Card), nl,
   Cost is Cost1 + Card1 * (PerTuple + PET).
 
@@ -332,7 +332,7 @@ cost(itHashJoin(Arg1, Arg2, _, _), Sel, Pred, Res, Mem,
   Card is Card1 * Card2 * Sel,
   nodeNAttrs(Res, NAttrs),
   nodeTupleSize(Res, TSize),
-  P is 1 + ((Card1 * Size1) div (Mem * 1024 * 1024)), % # of partitions
+  P is 1 + floor((Card1 * Size1) / (Mem * 1024 * 1024)), % # of partitions
   itHashJoinC(U, V, W, X),
   ( P = 1 
     -> C1 is Card1 * U + Card2 * V
@@ -377,7 +377,7 @@ cost(itSpatialJoin(Arg1, Arg2, _, _), Sel, Pred, Res, Mem,
   Card is Card1 * Card2 * Sel,
   nodeNAttrs(Res, NAttrs),
   nodeTupleSize(Res, TSize),
-  P is 1 + ((Card1 * Size1) div (Mem * 1024 * 1024)), % # of partitions
+  P is 1 + floor((Card1 * Size1) / (Mem * 1024 * 1024)), % # of partitions
   itSpatialJoinC(U, V, W, X),
   ( P = 1 
     -> C1 is Card1 * U + Card2 * V
