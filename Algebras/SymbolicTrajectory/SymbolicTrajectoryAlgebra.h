@@ -1264,7 +1264,7 @@ struct IndexMatchInfo {
 };
 
 struct IndexMatchSlot {
-  IndexMatchSlot() {}
+  IndexMatchSlot() : pred(0), succ(0) {}
   
   unsigned int pred, succ;
   vector<IndexMatchInfo> imis;
@@ -1311,6 +1311,7 @@ friend class IndexMatchesLI;
                    vector<set<pair<TupleId, int> > >& valuePosVec,
                    set<pair<TupleId, int> >*& result);
   bool simpleMatch(const int e, const int state, const int newState);
+  bool canIdBeRemoved(const TupleId id, const int e);
   bool wildcardMatch(const int state, pair<int, int> trans);
   bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
@@ -1323,7 +1324,7 @@ friend class IndexMatchesLI;
   vector<vector<IndexRetrieval> > indexResult;
   set<int> indexMismatch;
   vector<TupleId> matches;
-  vector<pair<int, unsigned int> > trajInfo; // (size, numOfIMI)
+  vector<int> trajSize;
   int activeTuples;
   vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
   vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
