@@ -125,8 +125,6 @@ GISAlgebra::GISAlgebra()
 
   */
 
-  AddTypeConstructor(new TypeConstructor(CLine::GetTypeConstructor()),true);
-
   /*
   Operators
 

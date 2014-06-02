@@ -30,110 +30,170 @@ namespace GISAlgebra {
   int contourFun(Word* args, Word& result, 
                      int message, Word& local, Supplier s)
   {
-    result = qp->ResultStorage(s);
+    int returnValue = FAILURE;
 
     typename T::this_type* s_in =
           static_cast<typename T::this_type*>(args[0].addr);
     CcReal* lines = static_cast<CcReal*>(args[1].addr);
-    CLine* clines_out = static_cast<CLine*>(result.addr);
-    clines_out->clear();
 
-    CLine clines(0);
-    clines.clear();
-
-    raster2::grid2 grid = s_in->getGrid();
-
-    double gridOriginX = grid.getOriginX();
-    double gridOriginY = grid.getOriginY();
-    double cellsize = grid.getLength();
-
-    double interval = lines->GetValue();
-
-    Rectangle<2> bbox = s_in->bbox();
-
-    raster2::RasterIndex<2> from = grid.getIndex(bbox.MinD(0), bbox.MinD(1));
-    raster2::RasterIndex<2> to = grid.getIndex(bbox.MaxD(0), bbox.MaxD(1));
-
-    for (raster2::RasterIndex<2> index=from; index < to; 
-                                             index.increment(from, to))
+    switch(message)
     {
-	// Zellwerte ermitteln
-        double e = s_in->get(index);
-        double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
-        double b = s_in->get((int[]){index[0], index[1] + 1});
-        double c = s_in->get((int[]){index[0] + 1, index[1] + 1});
-        double d = s_in->get((int[]){index[0] - 1, index[1]});
-        double f = s_in->get((int[]){index[0] + 1, index[1]});
-        double g = s_in->get((int[]){index[0] - 1, index[1] - 1});
-        double h = s_in->get((int[]){index[0], index[1] - 1});
-        double i = s_in->get((int[]){index[0] + 1, index[1] - 1});
+      case OPEN:
+      {
+        // initialize the local storage
+        ResultInfo* clines = new ResultInfo;
 
-        // Koordinaten bestimmen
-        double X = index[0] * cellsize + gridOriginX;
-        double Y = index[1] * cellsize + gridOriginY;
+        if(clines != 0)
+        {
+          local.addr = clines;
+          returnValue = 0;
+        }
+      }
+      break;
+    
+      case REQUEST:
+      {
+        if(local.addr != 0)
+        {
+          ResultInfo* clines = static_cast<ResultInfo*>(local.addr);
+
+          if(clines != 0)
+          {
+            raster2::grid2 grid = s_in->getGrid();
+
+            double gridOriginX = grid.getOriginX();
+            double gridOriginY = grid.getOriginY();
+            double cellsize = grid.getLength();
+
+            double interval = lines->GetValue();
+
+            Rectangle<2> bbox = s_in->bbox();
+
+            raster2::RasterIndex<2> from = 
+                               grid.getIndex(bbox.MinD(0), bbox.MinD(1));
+            raster2::RasterIndex<2> to = 
+                               grid.getIndex(bbox.MaxD(0), bbox.MaxD(1));
+
+            for (raster2::RasterIndex<2> index=from; index < to; 
+                                         index.increment(from, to))
+            {
+              // Zellwerte ermitteln
+              double e = s_in->get(index);
+              double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
+              double b = s_in->get((int[]){index[0], index[1] + 1});
+              double c = s_in->get((int[]){index[0] + 1, index[1] + 1});
+              double d = s_in->get((int[]){index[0] - 1, index[1]});
+              double f = s_in->get((int[]){index[0] + 1, index[1]});
+              double g = s_in->get((int[]){index[0] - 1, index[1] - 1});
+              double h = s_in->get((int[]){index[0], index[1] - 1});
+              double i = s_in->get((int[]){index[0] + 1, index[1] - 1});
+            
+              // Koordinaten bestimmen
+              double X = index[0] * cellsize + gridOriginX;
+              double Y = index[1] * cellsize + gridOriginY;
               
-        double aX = X + cellsize/2 - cellsize;
-        double aY = Y + cellsize/2 + cellsize;
-        double bX = X + cellsize/2;
-        double bY = Y + cellsize/2 + cellsize;
-        double cX = X + cellsize/2 + cellsize;
-        double cY = Y + cellsize/2 + cellsize;
-        double dX = X + cellsize/2 - cellsize;
-        double dY = Y + cellsize/2;
-        double eX = X + cellsize/2;
-        double eY = Y + cellsize/2;
-        double fX = X + cellsize/2 + cellsize;
-        double fY = Y + cellsize/2;
-        double gX = X + cellsize/2 - cellsize;
-        double gY = Y + cellsize/2 - cellsize;
-        double hX = X + cellsize/2;
-        double hY = Y + cellsize/2 - cellsize;
-        double iX = X + cellsize/2 + cellsize;
-        double iY = Y + cellsize/2 - cellsize;
+              double aX = X + cellsize/2 - cellsize;
+              double aY = Y + cellsize/2 + cellsize;
+              double bX = X + cellsize/2;
+              double bY = Y + cellsize/2 + cellsize;
+              double cX = X + cellsize/2 + cellsize;
+              double cY = Y + cellsize/2 + cellsize;
+              double dX = X + cellsize/2 - cellsize;
+              double dY = Y + cellsize/2;
+              double eX = X + cellsize/2;
+              double eY = Y + cellsize/2;
+              double fX = X + cellsize/2 + cellsize;
+              double fY = Y + cellsize/2;
+              double gX = X + cellsize/2 - cellsize;
+              double gY = Y + cellsize/2 - cellsize;
+              double hX = X + cellsize/2;
+              double hY = Y + cellsize/2 - cellsize;
+              double iX = X + cellsize/2 + cellsize;
+              double iY = Y + cellsize/2 - cellsize;
+            
+              // wenn alle vier Eckzellen gueltige Werte haben
+              // -> Berechnung uber Eckzellen
+              if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(c)) && 
+                  !(s_in->isUndefined(g)) && !(s_in->isUndefined(i)))
+              {
+                ProcessRectangle(a, aX, aY, g, gX, gY,
+                                 i, iX, iY, c, cX, cY, interval, clines);
+              }
+            
+              // wenn eine Eckzelle nicht definiert ist
+              // -> Berechnung ueber 2x2 Quadrat
+              if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(d)) &&
+                  !(s_in->isUndefined(e)) && !(s_in->isUndefined(b)))
+              {
+                ProcessRectangle(a, aX, aY, d, dX, dY,
+                                 e, eX, eY, b, bX, bY, interval, clines);
+              }
+            
+              if (!(s_in->isUndefined(d)) && !(s_in->isUndefined(g)) &&
+                  !(s_in->isUndefined(h)) && !(s_in->isUndefined(e)))
+              {
+                ProcessRectangle(d, dX, dY, g, gX, gY,
+                                 h, hX, hY, e, eX, eY, interval, clines);
+              }
+            
+              if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(h)) &&
+                  !(s_in->isUndefined(i)) && !(s_in->isUndefined(f)))
+              {
+                ProcessRectangle(e, eX, eY, h, hX, hY,
+                                 i, iX, iY, f, fX, fY, interval, clines);
+              }
+            
+              if (!(s_in->isUndefined(b)) && !(s_in->isUndefined(e)) &&
+                  !(s_in->isUndefined(f)) && !(s_in->isUndefined(c)))
+              {
+                ProcessRectangle(b, bX, bY, e, eX, eY,
+                                 f, fX, fY, c, cX, cY, interval, clines);
+              }
 
-        // wenn alle vier Eckzellen gueltige Werte haben
-        // -> Berechnung uber Eckzellen
-        if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(c)) && 
-            !(s_in->isUndefined(g)) && !(s_in->isUndefined(i)))
+              result.addr = clines;
+cout << clines->height << endl;
+cout << clines->contour << endl;
+              returnValue = YIELD;
+            }//for
+
+            result.addr = 0;
+            return CANCEL;
+
+          }  
+          else
+          {
+            result.addr = 0;
+            return CANCEL;
+          }      
+        }
+      }
+      break;
+
+      case CLOSE:
+      {
+        if(local.addr != 0)
         {
-          ProcessRectangle(a, aX, aY, g, gX, gY,
-                           i, iX, iY, c, cX, cY, interval, &clines);
+          ResultInfo* clines = static_cast<ResultInfo*>(local.addr);
+
+          if(clines != 0)
+          {
+            delete clines;
+            local.addr = 0;
+          }
         }
 
-        // wenn eine Eckzelle nicht definiert ist
-        // -> Berechnung ueber 2x2 Quadrat
-        if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(d)) &&
-            !(s_in->isUndefined(e)) && !(s_in->isUndefined(b)))
-        {
-          ProcessRectangle(a, aX, aY, d, dX, dY,
-                           e, eX, eY, b, bX, bY, interval, &clines);
-        }
+        returnValue = 0;
+      }
+      break;
 
-        if (!(s_in->isUndefined(d)) && !(s_in->isUndefined(g)) &&
-            !(s_in->isUndefined(h)) && !(s_in->isUndefined(e)))
-        {
-          ProcessRectangle(d, dX, dY, g, gX, gY,
-                           h, hX, hY, e, eX, eY, interval, &clines);
-        }
-
-        if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(h)) &&
-            !(s_in->isUndefined(i)) && !(s_in->isUndefined(f)))
-        {
-          ProcessRectangle(e, eX, eY, h, hX, hY,
-                           i, iX, iY, f, fX, fY, interval, &clines);
-        }
-
-        if (!(s_in->isUndefined(b)) && !(s_in->isUndefined(e)) &&
-            !(s_in->isUndefined(f)) && !(s_in->isUndefined(c)))
-        {
-          ProcessRectangle(b, bX, bY, e, eX, eY,
-                           f, fX, fY, c, cX, cY, interval, &clines);
-        }
+      default:
+      {
+        assert(false);
+      }
+      break;
     }
-
-    clines.CopyTo(*clines_out);
  
-    return 0;
+    return returnValue;
   }
 
   ValueMapping contourFuns[] =
@@ -166,6 +226,16 @@ namespace GISAlgebra {
   {
     NList type(args);
 
+    ListExpr attrList=nl->TheEmptyList();
+    
+    ListExpr attr1 = nl->TwoElemList( nl->SymbolAtom("Height"),
+                                     nl->SymbolAtom(CcInt::BasicType()));
+
+    ListExpr attr2 = nl->TwoElemList( nl->SymbolAtom("Contour"),
+                                     nl->SymbolAtom(Line::BasicType()));
+
+    attrList = nl->TwoElemList( attr1, attr2 );
+
     if(type.length() != 2)
     {
       return NList::typeError("two arguments required");
@@ -173,13 +243,17 @@ namespace GISAlgebra {
 
     if (type == NList(raster2::sint::BasicType(), CcReal::BasicType())) 
     {
-      return NList(raster2::sint::BasicType()).listExpr();
+      return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                             attrList));
     }
 
     else if(type == NList(raster2::sreal::BasicType(), 
                           CcReal::BasicType())) 
     {
-      return NList(raster2::sreal::BasicType()).listExpr();
+      return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                             attrList));
     }
     
     return NList::typeError
@@ -190,7 +264,7 @@ namespace GISAlgebra {
                         double g, double gX, double gY,
                         double i, double iX, double iY,
                         double c, double cX, double cY, 
-                        double interval, CLine *clines)
+                        double interval, ResultInfo* clines)
   {
     // Rechteck verarbeiten (Minimum, Maximum bestimmen)
     double Min = MIN(MIN(a,c),MIN(g,i));
@@ -312,11 +386,14 @@ namespace GISAlgebra {
   }
 
   bool AddSegment(double level, double startX, double startY,
-                  double endX, double endY, int leftHigh, CLine *line)
+                  double endX, double endY, int leftHigh, ResultInfo* line)
   {
     Point p1(true, startX, startY);
     Point p2(true, endX, endY);
-    HalfSegment ss(true, p1, p2);
+    HalfSegment hs(true, p1, p2);
+    Line* l1 = new Line(0);
+
+    l1->Put(0,hs);
 
     // Contourlinie fuer level finden
     //if (line->getLevel() == level)
@@ -324,8 +401,8 @@ namespace GISAlgebra {
 
     // ansonsten neue Linie anlegen
     //{
-      line->setLevel(level);
-      line->append(ss);
+      line->height = level;
+      line->contour = *l1;
     //}
 
     return true;
