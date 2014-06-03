@@ -1311,7 +1311,7 @@ friend class IndexMatchesLI;
                    vector<set<pair<TupleId, int> > >& valuePosVec,
                    set<pair<TupleId, int> >*& result);
   bool simpleMatch(const int e, const int state, const int newState);
-  bool canIdBeRemoved(const TupleId id, const int e);
+  bool hasIdIMIs(const TupleId id, const int state = -1);
   bool wildcardMatch(const int state, pair<int, int> trans);
   bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
