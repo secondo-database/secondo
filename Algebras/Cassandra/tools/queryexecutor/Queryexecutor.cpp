@@ -245,13 +245,12 @@ cassandra::CassandraAdapter* getCassandraAdapter(string cassandraHostname,
 2.2 Replace placeholder like __NODEID__ in Queries
 
 */
-void replacePlaceholder(string &query, string uuid) {
+void replacePlaceholder(string &query, string placeholder, string value) {
   size_t startPos = 0;
-  string nodeid = "__NODEID__";
-  
-  while((startPos = query.find(nodeid, startPos)) != std::string::npos) {
-         query.replace(startPos, nodeid.length(), uuid);
-         startPos += uuid.length();
+    
+  while((startPos = query.find(placeholder, startPos)) != std::string::npos) {
+         query.replace(startPos, placeholder.length(), value);
+         startPos += value.length();
   }
 }
 
@@ -284,7 +283,7 @@ void mainLoop(SecondoInterface* si,
           
           string command;
           result->getStringValue(command, 1);
-          replacePlaceholder(command, myUuid);
+          replacePlaceholder(command, "__NODEID__", myUuid);
           
           // Is this the next query to execute
           if(id == lastCommandId + 1) {
