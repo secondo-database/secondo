@@ -210,10 +210,6 @@ bool updateLastCommand(cassandra::CassandraAdapter* cassandra,
   return true;
 }
 
-
-
-
-
 /*
 2.1 Init the cassandra adapter, the 1st parameter
  is the initial contact point to the cassandra cluter.
@@ -255,6 +251,14 @@ void replacePlaceholder(string &query, string placeholder, string value) {
 }
 
 /*
+2.2 Does the given sting contains a placeholder?
+
+*/
+bool containsPlaceholder(string &searchString, string &placeholder) {
+  return searchString.find(placeholder) != std::string::npos;
+}
+
+/*
 2.3 This is the main loop of the query executor. This method fetches
   queries from cassandra and forward them to secondo.
 
@@ -265,11 +269,29 @@ void mainLoop(SecondoInterface* si,
   NestedList* nl = si->GetNestedList();
   NList::setNLRef(nl);
   
+  // Gernerate UUID
   boost::uuids::uuid uuid = boost::uuids::random_generator()();
   const string myUuid = boost::lexical_cast<std::string>(uuid);
-  size_t lastCommandId = 0;
-  
   cout << "Our id is: " << myUuid << endl;
+  
+  // Collect logical ring configuration
+  vector<long long> localTokens;
+  vector<long long> peerTokens;
+  
+  if(! cassandra->getLocalTokens(localTokens) ) {
+    cerr << "Unable to determine local tokens" << endl;
+    exit(-1);
+  }
+  
+  if (! cassandra->getPeerTokens(peerTokens) ) {
+    cerr << "Unable to determine peer tokens" << endl;
+    exit(-1);
+  }
+  
+  cout << "Collecting logical ring configuration done" << endl;
+  
+  
+  size_t lastCommandId = 0;
   
   while(true) {
         
@@ -321,7 +343,10 @@ void mainLoop(SecondoInterface* si,
   }
 }
 
+/*
+2.4 start the hartbeat thread
 
+*/
 void* startHartbeatThreadInternal(void *ptr) {
   HartbeatUpdater* hu = (HartbeatUpdater*) ptr;
   hu -> run();
@@ -329,7 +354,10 @@ void* startHartbeatThreadInternal(void *ptr) {
   return NULL;
 }
 
+/*
+2.5 start the hartbeat thread
 
+*/
 bool startHartbeatThread(cassandra::CassandraAdapter* cassandra,
                             string cassandraIp, pthread_t &targetThread) {
   
@@ -340,7 +368,10 @@ bool startHartbeatThread(cassandra::CassandraAdapter* cassandra,
   return true;
 }
 
+/*
+2.6 Main method
 
+*/
 int main(int argc, char** argv){
 
   if(argc != 3) {
@@ -379,7 +410,7 @@ int main(int argc, char** argv){
     cassandra = NULL;
   }
   
-  // Shutdown SECONDO interface
+  // Shutdown the SECONDO interface
   if(si) {
     si->Terminate();
     delete si;
