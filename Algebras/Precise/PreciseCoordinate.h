@@ -124,7 +124,11 @@ class PPrecCoordinate{
        precPos = b.precPos;
        b.gridCoord = gc;
        b.precPos = pp;
-     }                                                  
+     }   
+
+     bool isNull() const{
+     return gridCoord==0 && precPos == 0;
+     }                                               
 
   protected:
      mutable int64_t  gridCoord;     // the grid part
@@ -248,6 +252,16 @@ class MPrecCoordinate : public PPrecCoordinate{
          assert(_scale>0);
          canonicalize();
      }
+
+     MPrecCoordinate(const int64_t _intPart,
+                     const mpq_class& _fracPart,
+                     uint32_t _scale=1):
+        PPrecCoordinate(_intPart,0), fracStorage(0),
+        fractional(new mpq_class(_fracPart)), scale(_scale){
+       assert(_scale>0);
+       canonicalize();
+    }
+
 
      bool readFromString(const string& str, uint32_t _scale=1 ){
 
@@ -817,6 +831,11 @@ Binary operators
       b.fracStorage = fs; 
   }
 
+
+  const mpq_class* getUnscaledFrac(){
+    retrieveFractional();
+    return fractional;
+  }
 
   private:
      mutable const DbArray<uint32_t>* fracStorage;

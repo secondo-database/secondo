@@ -202,24 +202,35 @@ ostream& print(const vector<MPrecHalfSegment>& v, ostream& o){
 
 }
 
+/*
+Creates a realminized version of thwo halfsegments. 
+For computing the coverage number of a common part, it's assumed, 
+that the coverage number of the first segment (hs1) is already set
+correctly
+
+*/
 
 void makeRealm(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2, 
               vector<MPrecHalfSegment>& res) {
 
    HalfSegmentComparator cmp;    
    res.clear();
+   // compute coverage for common part
+   int coverage = hs1.attributes.coverageno;
+   if(hs2.attributes.insideAbove){
+      coverage++;
+   } else {
+      coverage--;
+   }
+
    if(hs1.checkRealm(hs2)){ // hs1 and hs2 are already realminized
       if(cmp(hs1,hs2)<0){
           res.push_back(hs1);
-          res[0].setOwner(FIRST);
           res.push_back(hs2); 
-          res[1].setOwner(SECOND);
           return;
       } else {
           res.push_back(hs2); 
-          res[0].setOwner(SECOND);
           res.push_back(hs1);
-          res[1].setOwner(FIRST);
           return;
       }
    }
@@ -227,6 +238,7 @@ void makeRealm(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2,
    if(hs1==hs2){ // exact equality
       res.push_back(hs1);
       res[0].setOwner(BOTH);
+      res[0].attributes.coverageno = coverage;
       return;
    }
 
@@ -234,56 +246,66 @@ void makeRealm(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2,
       if(hs1.crosses(hs2)){ // crossing halfsegments
          MPrecPoint* cp = hs1.crossPoint(hs2);
          res.push_back(MPrecHalfSegment (hs1.getLeftPoint(),*cp,
-                                         true,hs1.attributes, FIRST));
+                                         true,hs1.attributes, hs1.getOwner()));
+         res[res.size()-1].attributes.coverageno = hs1.attributes.coverageno;
          res.push_back(MPrecHalfSegment (hs2.getLeftPoint(),*cp,
-                                         true,hs2.attributes, SECOND));
+                                         true,hs2.attributes, hs2.getOwner()));
+         res[res.size()-1].attributes.coverageno = hs2.attributes.coverageno;
          res.push_back(MPrecHalfSegment (*cp,hs1.getRightPoint(),
-                                         true,hs1.attributes, FIRST));
+                                         true,hs1.attributes, hs1.getOwner()));
+         res[res.size()-1].attributes.coverageno = hs1.attributes.coverageno;
          res.push_back(MPrecHalfSegment (*cp,hs2.getRightPoint(),
-                                         true,hs2.attributes, SECOND));
+                                         true,hs2.attributes, hs2.getOwner()));
+         res[res.size()-1].attributes.coverageno = hs2.attributes.coverageno;
          delete cp; 
       } else { // touching halfsegments
          if(hs1.innerContains(hs2.getLeftPoint())){
             res.push_back(MPrecHalfSegment(hs1.getLeftPoint(), 
-                                           hs2.getLeftPoint(), 
-                                           true, hs1.attributes, FIRST));
+                                       hs2.getLeftPoint(), 
+                                       true, hs1.attributes, hs1.getOwner()));
+            res[res.size()-1].attributes.coverageno = hs1.attributes.coverageno;
             res.push_back(MPrecHalfSegment(hs2.getLeftPoint(), 
-                                           hs1.getRightPoint(), 
-                                           true, hs1.attributes, FIRST));
+                                       hs1.getRightPoint(), 
+                                       true, hs1.attributes, hs2.getOwner()));
+            res[res.size()-1].attributes.coverageno = hs1.attributes.coverageno;
             res.push_back(hs2); 
-            res[2].setOwner(SECOND);
          } else if(hs1.innerContains(hs2.getRightPoint())){
             res.push_back(MPrecHalfSegment(hs1.getLeftPoint(), 
-                                           hs2.getRightPoint(), 
-                                           true, hs1.attributes, FIRST));
+                                       hs2.getRightPoint(), 
+                                       true, hs1.attributes, hs1.getOwner()));
+            res[res.size()-1].attributes.coverageno = hs1.attributes.coverageno;
             res.push_back(MPrecHalfSegment(hs2.getRightPoint(), 
-                                           hs1.getRightPoint(), 
-                                           true, hs1.attributes, FIRST));
+                                       hs1.getRightPoint(), 
+                                       true, hs1.attributes, hs1.getOwner()));
+            res[res.size()-1].attributes.coverageno = hs1.attributes.coverageno;
             res.push_back(hs2); 
-            res[2].setOwner(SECOND);
          } else if(hs2.innerContains(hs1.getLeftPoint())){
             res.push_back(MPrecHalfSegment(hs2.getLeftPoint(), 
-                                           hs1.getLeftPoint(), 
-                                           true, hs2.attributes, SECOND));
+                                       hs1.getLeftPoint(), 
+                                       true, hs2.attributes, hs2.getOwner()));
+            res[res.size()-1].attributes.coverageno = hs2.attributes.coverageno;
             res.push_back(MPrecHalfSegment(hs1.getLeftPoint(), 
-                                           hs2.getRightPoint(), 
-                                           true, hs2.attributes, SECOND));
+                                       hs2.getRightPoint(), 
+                                       true, hs2.attributes, hs2.getOwner()));
+            res[res.size()-1].attributes.coverageno = hs2.attributes.coverageno;
             res.push_back(hs1);
-            res[2].setOwner(FIRST);
          } else if(hs2.innerContains(hs1.getRightPoint())){
             res.push_back(MPrecHalfSegment(hs2.getLeftPoint(), 
-                                           hs1.getRightPoint(),
-                                            true, hs2.attributes, SECOND));
+                                       hs1.getRightPoint(),
+                                       true, hs2.attributes, hs2.getOwner()));
+            res[res.size()-1].attributes.coverageno = hs2.attributes.coverageno;
             res.push_back(MPrecHalfSegment(hs1.getRightPoint(), 
-                                           hs2.getRightPoint(),
-                                           true, hs2.attributes, SECOND));
+                                       hs2.getRightPoint(),
+                                       true, hs2.attributes, hs2.getOwner()));
+            res[res.size()-1].attributes.coverageno = hs2.attributes.coverageno;
             res.push_back(hs1);
-            res[2].setOwner(FIRST);
          } else {
              throw 1;  // some error in computation or some forgotten case
          }
       }
    } else { // overlapping halfsegments
+      // coverage number for common part
+
       int lcmp = hs1.getLeftPoint().compareTo(hs2.getLeftPoint());
       int rcmp = hs1.getRightPoint().compareTo(hs2.getRightPoint());
       // first part, single piece of hs1 or hs2
@@ -291,12 +313,14 @@ void makeRealm(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2,
       if(lcmp<0){ // first part belongs to hs1
          res.push_back(MPrecHalfSegment(
                        hs1.getLeftPoint(), hs2.getLeftPoint(),
-                       true, hs1.attributes, FIRST));
+                       true, hs1.attributes, hs1.getOwner()));
+         res[res.size()-1].attributes.coverageno = hs1.attributes.coverageno;
           firstCommonPoint = hs2.getLeftPoint();
       } else if(lcmp>0) { // first part belongs to hs2
          res.push_back(MPrecHalfSegment(
                        hs2.getLeftPoint(), hs1.getLeftPoint(),
-                       true, hs2.attributes, SECOND));
+                       true, hs2.attributes, hs2.getOwner()));
+          res[res.size()-1].attributes.coverageno = hs2.attributes.coverageno;
           firstCommonPoint = hs1.getLeftPoint();
       } else { // lcmp = 0 : both segments starts at the same point
           firstCommonPoint = hs1.getLeftPoint();
@@ -307,28 +331,35 @@ void makeRealm(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2,
          res.push_back(MPrecHalfSegment(
                        firstCommonPoint, hs1.getRightPoint(),
                        true, hs1.attributes, BOTH));
+         res[res.size()-1].attributes.coverageno = coverage;
+         res[res.size()-1].attributes.insideAbove = hs1.attributes.insideAbove;
       } else if(rcmp < 0){
           // last part belongs to hs2
          res.push_back(MPrecHalfSegment(
                        firstCommonPoint, hs1.getRightPoint(),
                        true, hs1.attributes, BOTH));
+         res[res.size()-1].attributes.coverageno = coverage;
+         res[res.size()-1].attributes.insideAbove = hs1.attributes.insideAbove;
          res.push_back(MPrecHalfSegment(
                        hs1.getRightPoint(), hs2.getRightPoint(),
-                       true, hs2.attributes,SECOND));
+                       true, hs2.attributes,hs2.getOwner()));
+          res[res.size()-1].attributes.coverageno = hs2.attributes.coverageno;
       } else { // rcmp > 0
           // last part belongs to hs1
          res.push_back(MPrecHalfSegment(
                        firstCommonPoint, hs2.getRightPoint(),
                        true, hs2.attributes, BOTH));
+         res[res.size()-1].attributes.coverageno = coverage;
+         res[res.size()-1].attributes.insideAbove = hs1.attributes.insideAbove;
          res.push_back(MPrecHalfSegment(
                        hs2.getRightPoint(), hs1.getRightPoint(),
-                       true, hs1.attributes,FIRST));
+                       true, hs1.attributes,hs1.getOwner()));
+         res[res.size()-1].attributes.coverageno = hs1.attributes.coverageno;
       }
    } 
    // sort
    IsSmaller<MPrecHalfSegment, HalfSegmentComparator> is;
    sort(res.begin(),res.end(),is);
-
 }
 
    
@@ -702,6 +733,14 @@ realminized, and has to build only cycles.
 
 
 
+  ostream& operator<<(ostream& o, const vector<MPrecHalfSegment>& v) {
+
+    for(size_t i=0;i<v.size();i++){
+      o << i << ":\t" << v[i] << endl;
+    }
+    return o;
+
+  }
 
 
 } // end of namespace hstools

@@ -201,6 +201,12 @@ bool isLetter(const char c);
 */
 bool isDigit(const char c);
 
+/*
+returns the value of a digit char as an int
+
+*/
+int getDigit(const char c);
+
 
 template<class inttype>
 inttype str2int(std::string& str, bool& correct){

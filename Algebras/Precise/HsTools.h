@@ -172,6 +172,15 @@ realminized, and has to build only cycles.
 
   void computeCycles(vector<MPrecHalfSegment>& v);
 
+
+/*
+~Operator << ~
+
+*/
+
+ostream& operator<<(ostream& o, const vector<MPrecHalfSegment>& v);
+
+
 /*
 ~checkRealm~
 
@@ -246,11 +255,135 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
 This function computes the set operation specified by the last argument
 
 */
-  template<class S1, class S2>
+//  template<class S1, class S2>
+
+
+
+  template< class S1, class S2>
   class EventStructure{
     public: 
      EventStructure(const S1* _v1,
                     const S2* _v2) : 
+                          v1(_v1), v2(_v2), pos1(0), pos2(0),
+                          pq1(), pq2(),pqb() {
+
+         memset(present,0, 5*sizeof(bool)); // nothing load before
+     }
+
+     ~EventStructure(){
+      }
+     
+     int  next(MPrecHalfSegment& result) {
+
+         // get top values for all partially structures
+         for(int i=0;i<5;i++){
+           if(!present[i]){
+              switch(i){
+                 case 0: if(pos1<v1->size()){
+                            topElements[0] = (*v1)[pos1];
+                            present[0] = true;
+                          } break;
+                 case 1: if(pos2<v2->size()){
+                            topElements[1] = (*v2)[pos1];
+                            present[1] = true;
+                         } break;
+                 case 2: if(!pq1.empty()){
+                            topElements[2] = pq1.top();
+                            present[2] = true;
+                         } break;
+                 case 3: if(!pq2.empty()){
+                            topElements[3] = pq2.top();
+                            present[3] = true;
+                         } break;
+                 case 4: if(!pqb.empty()){
+                            topElements[4] = pqb.top();
+                            present[4] = true;
+                         } break;
+              }
+           }
+         }
+         // search the minimum
+         int index = -1;  // indicates that no minimum is present
+
+         for(int i=0;i<5;i++){
+            if(present[i]){
+               if(index<0){
+                   index = i;
+               } else  if(cmp(topElements[i],topElements[index]) < 0 ){
+                   index = i;
+               }
+            }
+         }
+ 
+         switch(index){
+           case -1 : return 0; // no more halfsegments
+           case  0 : result.set(FIRST, topElements[0]); 
+                     pos1++; 
+                     present[0] = false; 
+                     return 1;
+           case  1 : result.set(SECOND, topElements[1]); 
+                     pos2++;
+                     present[1] = false; 
+                     return 2;
+           case  2 : result.set(FIRST, topElements[2]);
+                     pq1.pop(); 
+                     present[2] = false;
+                     return 1;
+           case  3 : result.set(SECOND, topElements[3]);
+                     pq2.pop(); 
+                     present[3] = false;
+                     return 2;
+           case  4 : result.set(BOTH, topElements[4]);
+                     pqb.pop(); 
+                     present[4] = false;
+                     return 3;
+         }; 
+         return -1;
+     }
+
+
+     void push(const MPrecHalfSegment& evt){
+         switch(evt.getOwner()){
+           case FIRST  : pq1.push(evt); break;
+           case SECOND : pq2.push(evt); break;
+           case BOTH   : pqb.push(evt); break;
+           default : assert(false);
+         }
+     }
+
+     size_t size() const{
+       return (v1->size()-pos1) + (v2->size()-pos2) + 
+               pq1.size() + pq2.size() + pqb.size();
+     }
+
+
+    private:
+       const S1* v1;
+       const S2* v2;
+       size_t pos1;
+       size_t pos2;
+       priority_queue<MPrecHalfSegment, 
+                      vector<MPrecHalfSegment>, 
+                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq1;
+       priority_queue<MPrecHalfSegment, 
+                      vector<MPrecHalfSegment>, 
+                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq2;
+       priority_queue<MPrecHalfSegment, 
+                      vector<MPrecHalfSegment>, 
+                      IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pqb;
+       HalfSegmentComparator cmp;
+
+       MPrecHalfSegment topElements[5];
+       bool present[5];
+
+  };
+
+
+  template<>
+  class EventStructure<vector<MPrecHalfSegment>, vector<MPrecHalfSegment> >{
+    public: 
+     EventStructure(const vector<MPrecHalfSegment>* _v1,
+                    const vector<MPrecHalfSegment>* _v2) : 
                           v1(_v1), v2(_v2), pos1(0), pos2(0),
                           pq1(), pq2(),pqb() {
         tmpCand = new MPrecHalfSegment[5];
@@ -306,8 +439,8 @@ This function computes the set operation specified by the last argument
 
 
     private:
-       const S1* v1;
-       const S2* v2;
+       const vector<MPrecHalfSegment>* v1;
+       const vector<MPrecHalfSegment>* v2;
        size_t pos1;
        size_t pos2;
        priority_queue<MPrecHalfSegment, 

@@ -32,9 +32,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "PreciseCoordinate.h"
 #include "PrecisePoint.h"
+#include "PreciseInterval.h"
 #include "Attribute.h"
 #include "NestedList.h"
 #include "GenericTC.h"
+#include "DateTime.h"
+
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -43,6 +46,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SpatialAlgebra.h"
 
 #include "PreciseHalfSegment.h"
+
+#include "HsTools.h"
+#include "StringUtils.h"
 
 
 extern NestedList* nl;
@@ -356,12 +362,258 @@ class PrecCoord: public Attribute{
       return scale;
     }
 
+    bool isNull() const{
+        return coord.isNull(); 
+    }
+
   private:
      DbArray<uint32_t> fracStorage;
      PPrecCoordinate coord;
      uint32_t scale;
 };
 
+
+/*
+2 class PrecTime
+
+A precTime value consist of a precise value and a flag indicating the
+kind of the time (duration or instant)
+
+*/
+template <int type>
+class PrecTime: public Attribute{
+
+  public:
+     PrecTime() {}
+
+     explicit PrecTime(const int dummy): 
+         Attribute(true), fracStorage(0), coord(0,0)
+         {}
+
+     explicit PrecTime(const bool defined): Attribute(defined), 
+            fracStorage(0), coord(0,0)  {}
+
+     PrecTime(const PrecTime<type>& src): Attribute(src),
+           fracStorage(src.fracStorage.Size()), coord(src.coord) {
+           fracStorage.copyFrom(src.fracStorage);
+     }
+
+ 
+     ~PrecTime() {}
+
+    PrecTime<type>& operator=(const PrecTime& src){
+        SetDefined(src.IsDefined());
+        coord = src.coord;
+        fracStorage.copyFrom(src.fracStorage);
+        return *this;
+    }
+
+    PrecTime<type>& operator=(const MPrecCoordinate& src){
+        setValue(src);
+        return *this;
+    }
+ 
+
+    void setValue(const MPrecCoordinate& src){
+         fracStorage.clean();
+         src.appendFractional(&fracStorage);
+         coord = src;
+         SetDefined(true);
+    }
+   
+    int compareTo(const PrecTime<type>& rhs) const{
+       MPrecCoordinate lhs1(coord,&fracStorage, 1);
+       MPrecCoordinate rhs1(rhs.coord, &rhs.fracStorage, 1);
+       return lhs1.compare(rhs1);
+    }
+
+    PrecTime<type> operator+(const PrecTime<datetime::durationtype>& dur){
+       PrecTime<type> res(true);
+       if(!IsDefined() || !dur.IsDefined()){
+          res.SetDefined(false);
+          return res;
+       }
+       MPrecCoordinate mc(GetValue());
+       mc += dur.GetValue();
+       res.setValue(mc);
+       return res;
+    }
+
+
+
+    int Compare(const Attribute* arg) const{
+       return compareTo(*((PrecTime<type>*)arg));
+    }
+
+    bool Adjacent(const Attribute* arg) const{
+       return false;
+    }
+
+    size_t Sizeof() const{
+       return sizeof(*this);
+    }
+
+
+    size_t HashValue() const{
+       if(!IsDefined()){
+          return 0;
+       }   
+       return (size_t) coord.getGridCoord();
+    }
+
+    void CopyFrom(const Attribute* arg){
+       *this = *((PrecTime<type>*)arg);
+    }
+
+    PrecTime<type>* Clone() const{
+       return new PrecTime<type>(*this);
+    }
+
+    std::string toString() const{
+        if(!IsDefined()){
+           return listutils::getUndefinedString();
+        }
+        // todo convert into a readable format
+        MPrecCoordinate c(coord,&fracStorage, 1);
+        return c.toString();      
+    }
+
+    std::ostream& Print(std::ostream &os) const{
+       return os << toString();
+    }
+
+    ListExpr ToListExpr(ListExpr typeInfo) const;
+
+    bool ReadFrom(ListExpr LE, const ListExpr typeInfo);
+
+    bool readFrom(const string& value);
+
+    void readFrom(const datetime::DateTime& time){
+       if(!time.IsDefined()){
+          SetDefined(false);
+          return;
+       } else {
+          SetDefined(true);
+          setValue(time.millisecondsToNull());
+       }
+    }
+
+   void readFrom(const datetime::DateTime& time, 
+                 CcInt::inttype dummy1, bool dummy2, 
+                 CcInt::inttype dummy3){
+      readFrom(time);
+   }
+
+
+    MPrecCoordinate GetValue() const {
+        MPrecCoordinate result(coord,&fracStorage, 1);
+        return result;
+    }
+
+     inline virtual int NumOfFLOBs() const {
+       return 1;
+     }
+     inline virtual Flob* GetFLOB( const int i ) {
+       assert(i==0);
+       return &fracStorage;   
+     }
+
+    static const string BasicType(){
+      return type==datetime::instanttype?"precInstant":"precDuration";
+    }
+
+    static bool checkType(const ListExpr e){
+       return listutils::isSymbol(e, BasicType());
+    }
+
+    static bool CheckKind(ListExpr typeList, ListExpr& errorInfo){
+      return nl->IsEqual(typeList,BasicType());
+    } 
+     
+    static ListExpr Property(){
+       return gentc::GenProperty("-> DATA",
+                          BasicType(),
+                          "( scale (int64 fraction))",
+                          "( 10 (1 '1/3'))");
+     }
+
+
+    /* reads this intant's value form a CcInt. The 
+       Arguments useStr and digits are ignored and for compatibility 
+       with other calls.
+     */ 
+     void readFrom(const CcInt& i, int scale, bool useStr, uint8_t digits = 16){
+        if(!i.IsDefined() || scale<=0){
+           SetDefined(false);
+           return;
+        }
+        SetDefined(true);
+        coord = PPrecCoordinate(i.GetValue()*scale,0);
+        fracStorage.clean();
+        this->scale = scale;    
+     }
+     
+     void readFrom(const CcReal& r, int scale, bool useStr, 
+                   uint8_t digits = 16){
+        if(!r.IsDefined() || scale<=0){
+           SetDefined(false);
+           return;
+        }
+        SetDefined(true);
+        if(!useStr){
+           MPrecCoordinate c(r.GetValue());
+            c *= scale;
+            *this = c; 
+            this->scale = scale;    
+        } else {
+          MPrecCoordinate res(0);
+          res.readFromString(stringutils::double2str(r.GetValue(), digits),
+                              scale); 
+          *this = res;
+        }
+     }
+     
+     void readFrom(const Rational& r, int scale, bool useStr, 
+                   uint8_t digits = 16){
+        if(!r.IsDefined() || scale<=0){
+           SetDefined(false);
+           return;
+        }
+        SetDefined(true);
+        MPrecCoordinate c(r);
+        c *= scale;
+        *this = c; 
+        this->scale = scale;    
+     }
+     
+     void readFrom(const LongInt& l, int scale, bool useStr, uint8_t digits=16){
+        if(!l.IsDefined() || scale<=0){
+           SetDefined(false);
+           return;
+        }
+        this->scale = scale;    
+        SetDefined(true);
+        coord = PPrecCoordinate(l.GetValue()*scale,0);
+        fracStorage.clean();
+        this->scale = scale;    
+     }
+     
+    void readFrom(const PrecCoord& p, int scale, bool useStr, 
+                  uint8_t digits=16){
+        *this = p;
+    }
+
+    void clear() {
+       coord = PPrecCoordinate(0,0);
+       fracStorage.clean();
+       SetDefined(true);
+    }
+
+
+  private:
+     DbArray<uint32_t> fracStorage;
+     PPrecCoordinate coord;
+};
 
 
 /*
@@ -1380,6 +1632,12 @@ class PrecRegion : public StandardSpatialAttribute<2> {
        result.endBulkLoad(false);
     }
 
+    void setOp(const PrecRegion& r, PrecRegion& result, 
+               hstools::SETOP op) const;
+
+    void compUnion(const PrecRegion& r, PrecRegion& result) const{
+        setOp(r,result,hstools::UNION);
+    }
 
   private:
     Rectangle<2> bbox;
@@ -1390,12 +1648,236 @@ class PrecRegion : public StandardSpatialAttribute<2> {
     vector<MPrecHalfSegment>* bulkloadStorage; // only used during bulkload
                                                // after end of bulkload 0
 
+     /** Finds cycles in segments and sets faceno, cycleno and edgeno for 
+       * ecah segment. Throws an exceptin if the halfsegments do not
+       * form a valid region. 
+       **/
+     static void computeRegion(vector<MPrecHalfSegment>& segments);
+
      bool addFace(ListExpr face, int faceNo, int& edgeNo);
      bool addCycle(ListExpr cycle, int faceNo, int cycleNo, int& edgeNo);
 
 
 };
 
+/*
+Implementation of the precTime class.
+
+*/
+template<int type>
+ListExpr PrecTime<type>::ToListExpr(ListExpr typeInfo) const{
+
+    int64_t ms = coord.getIntPart();
+    int64_t julian = ms / MILLISECONDS; 
+    ms = ms % MILLISECONDS;
+    if(ms<0){
+      ms=-ms;
+    } 
+
+   if(type==datetime::instanttype){
+     int64_t year;
+     int32_t month;
+     int32_t day;
+     datetime::DateTime::ToGregorian(julian,year,month,day);
+      
+     int32_t hour;
+     int32_t minute;
+     int32_t second;
+     int32_t millisecond;
+     millisecond = ms % 1000;
+     ms = ms / 1000;
+     second = ms % 60;
+     ms /= 60;
+     minute = ms % 60;
+     ms /= 60;
+     hour = ms;
+
+     assert(hour < 24);
+     stringstream ss;
+     ss << year<<"-"<<month<<"-"<<day;
+     if(hour>0 || minute>0 || second>0 || millisecond>0 || coord.hasFracPart()){
+       ss << ":" <<  hour << ":" << minute;
+       if(second>0 || millisecond>0 || coord.hasFracPart()){
+         ss << ":" << second;
+         if(millisecond>0 || coord.hasFracPart()){
+           ss << "." << millisecond;
+           if(coord.hasFracPart()){
+              ss << "+" << *(GetValue().getUnscaledFrac());
+           }
+         }
+       }  
+     }
+     return nl->TextAtom(ss.str());
+   } else {
+      if(coord.hasFracPart()){
+        return nl->ThreeElemList( nl->IntAtom(julian) ,
+                      nl->IntAtom(ms),
+                      nl->TextAtom(GetValue().getUnscaledFrac()->get_str()));
+      } else {
+         return nl->TwoElemList( nl->IntAtom(julian),
+                                 nl->IntAtom(ms));
+      }
+      
+   }
+}
+
+
+template<int type>
+bool  PrecTime<type>::ReadFrom(ListExpr instance, ListExpr typeExpr) {
+
+     if(type==datetime::durationtype){
+        int len = nl->ListLength(instance);
+        if(len!=2 && len!=3) return false;
+        if(nl->AtomType(nl->First(instance))!=IntType ||
+           nl->AtomType(nl->Second(instance))!=IntType){
+           return false;
+        }
+        int64_t julian = MILLISECONDS*nl->IntValue(nl->First(instance))+
+                                      nl->IntValue(nl->Second(instance));
+        if(len==2){
+           setValue(julian);
+           return true; 
+        }
+        if(nl->AtomType(nl->Third(instance))!=TextType){
+           return false;
+        }
+        string frac = nl->Text2String(nl->Third(instance));
+        try{
+           mpq_class f(frac);
+           MPrecCoordinate mc(julian,f);
+           setValue(mc);
+           return true;
+        } catch(...){
+         return false;
+        }
+     }  else { // instant type
+       if(nl->AtomType(instance)!=TextType){
+         return false;
+       }
+       return readFrom(nl->Text2String(instance));
+
+    } 
+}
+
+template<int type>
+bool PrecTime<type>::readFrom(const string& s){
+
+   int sign = 1;
+   int64_t year = 0;
+   int64_t month = 0;
+   int64_t day = 0;
+   int64_t hour = 0;
+   int64_t minute = 0;
+   int64_t second = 0;
+   int64_t millisecond = 0;
+
+   mpq_class frac;
+
+   int state = 0; // read year
+
+   for(size_t i=0;i<s.length() && state < 10 ;i++){
+     char c = s[i];
+     switch(state){
+       case 0 : if(c=='-'){ // year
+                   if(i==0){
+                     sign=-1;
+                   } else {
+                     state = 1;
+                   }
+                } else if(stringutils::isDigit(c)){
+                   year = year*10 + stringutils::getDigit(c);
+                } else {
+                   return false;
+                }
+                break;
+       case 1: if(c=='-'){ // month
+                   state = 2;
+               } else if(stringutils::isDigit(c)){
+                  month=month*10 + stringutils::getDigit(c);
+               } else {
+                  return false;
+               }
+               break;
+       case 2: if(c=='-'){ // day
+                   state = 3;
+               } else if(stringutils::isDigit(c)){
+                  day = day*10 + stringutils::getDigit(c);
+               } else {
+                  return false;
+               }
+               break;
+       case 3: if(c==':'){ // hour
+                  state = 4;
+               } else if(stringutils::isDigit(c)){
+                  hour = hour*10 + stringutils::getDigit(c);
+               } else {
+                  return  false;
+               }
+               break;
+       case 4 : if(c==':') { // minute
+                  state = 5;
+                } else if(stringutils::isDigit(c)){
+                  minute = minute*10 + stringutils::getDigit(c);
+                } else {
+                   return false;
+                }
+                break;
+       case 5 : if(c=='.'){ // second
+                   state = 6;
+                } else if(stringutils::isDigit(c)){
+                   second = second*10 + stringutils::getDigit(c);
+                } else {
+                  return false;
+                }
+                break;
+       case 6 : if(c=='+'){ // milli second
+                  state = 7;
+                } else if(stringutils::isDigit(c)){
+                   millisecond = millisecond*10 + stringutils::getDigit(c);
+                } else {
+                   return  false;
+                }
+                break;
+       case 7 : {
+                string f = s.substr(i,s.size());
+                if(!f.empty()){
+                    try{
+                      frac.set_str(f.c_str(),10);
+                    } catch(...){
+                       return false;
+                    }
+                }
+                state = 10;
+                }
+                break;
+       default : assert(false);
+     }
+   }
+
+
+   // do some range checks
+   if(    day > 31 || month>12  || hour>23 || minute>59 || second>59 
+       || millisecond>999 || frac > 1){
+     return false;
+   }
+   int64_t julian = datetime::DateTime::ToJulian(sign*year,month,day);
+   julian *= MILLISECONDS;
+   int64_t t = hour;
+   t = t*60 + minute;
+   t = t * 60 + second;
+   t = t*1000 + millisecond;
+   julian += t;
+   if(frac>0){
+      MPrecCoordinate mc(julian,frac);
+      setValue(mc);
+   } else {
+      setValue(julian);
+   }
+   return true;
+}
+
+typedef PrecTime<datetime::instanttype> precInstant;
+typedef PrecTime<datetime::durationtype> precDuration;
 
 
 

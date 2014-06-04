@@ -272,6 +272,10 @@ bool isDigit(const char c) {
   return (c>='0') && (c<='9');
 }
 
+int getDigit(const char c){
+  return c - '0';
+}
+
 
 
 std::string double2str(const double v, int prec /*= 16*/, 

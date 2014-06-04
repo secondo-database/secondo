@@ -716,15 +716,15 @@ milliseconds.
 
 
 
+    static int64_t ToJulian(const int64_t year, const int month,const int day);
+    static void ToGregorian(const int64_t Julian, int64_t  &year,
+                     int32_t &month, int32_t &day);
 
   private:
     // the data-part of datetime
     TimeType type;
     int64_t value;
     // a few functions for internal use
-    int64_t ToJulian(const int64_t year, const int month,const int day) const;
-    void ToGregorian(const int64_t Julian, int64_t  &year,
-                     int32_t &month, int32_t &day) const;
 
     void ToGregorian(int64_t  &year, int32_t &month, int32_t &day) const;
 };

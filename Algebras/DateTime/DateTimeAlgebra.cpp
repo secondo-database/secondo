@@ -479,7 +479,7 @@ int64_t intfloor(int64_t a, int64_t b){
 
 int64_t DateTime::ToJulian(const int64_t year,
                            const int32_t month,
-                           const int32_t day) const{
+                           const int32_t day){
   int64_t jy = year;
   if (year < 0)
      jy++;
@@ -520,7 +520,7 @@ in C, 2nd ed., Cambridge University Press 1992
 
 */
 void DateTime::ToGregorian(const int64_t Julian, int64_t &year,
-                           int32_t &month, int32_t &day) const{
+                           int32_t &month, int32_t &day){
   int64_t j=(int64_t)(Julian+NULL_DAY);
   int64_t ja = j;
   static int64_t JGREG = 2299161;

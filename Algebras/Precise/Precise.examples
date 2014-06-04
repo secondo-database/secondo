@@ -56,6 +56,16 @@ Signature: rational x precise -> precise
 Example  : query [const rational  value (1 3)] + [const precise value (1 (2 '1/3'))]
 Result   : (precise (1 (2 '2/3')))
 
+Operator  : +
+Number    : 10
+Signature : instant x duration -> instant
+Example   : query [const precInstant value '2014-06-02-12:29:30.500+1/2'] + [const precDuration value (0 0 '1/2')]
+Result    : (precInstant '2014-6-2-12:29:30.501')
+
+
+
+
+
 
 Operator : -
 Number   : 1  
@@ -111,6 +121,13 @@ Number   : 9
 Signature: rational x precise -> precise 
 Example  : query [const rational  value (1 3)] - [const precise value (1 (2 '1/3'))]
 Result   : (precise (1 (-2)))
+
+Operator  : -
+Number    : 10
+Signature : precInstant x precInstant -> precDuration
+Example   : query [const precInstant value '2014-06-02-12:29:30.500+1/2'] - [const precDuration value (0 0 '1/2')]
+Result    : (precInstant '2014-6-2-12:29:30.500')
+
 
 
 Operator : *

@@ -251,7 +251,7 @@ bool intersects(const Rectangle<2>& rect,
 
 ListExpr getCycleList(const vector<MPrecHalfSegment>& v, size_t& pos){
 
-  assert(pos < v.size()-2); // we need at leat 3 segments to build a cycle
+  assert(pos < v.size()-2); // we need at least 3 segments to build a cycle
 
   MPrecHalfSegment hs1 = v[pos];
   int ffaceno = hs1.attributes.faceno;  // facno of first segment
@@ -568,6 +568,8 @@ bool PrecCoord::ReadFrom(ListExpr LE, const ListExpr typeInfo){
           return  false;
        } 
     }
+
+
 
 
 /*
@@ -1521,35 +1523,182 @@ ListExpr PrecRegion::ToListExpr(ListExpr typeInfo) const{
                                getRegionList(hsvec)); 
 }
 
+
+
+
+/*
+~findExtension~
+
+finds an unused segment having the same dominating point as the 
+segment at pos. If such an segment cannot be found, -1 is returned.
+
+*/
+int findExtension(vector<MPrecHalfSegment>& segments, int pos, 
+                          vector<bool>& used){
+
+   int ps = pos-1;
+   while(ps >= 0 && segments[ps].getDomPoint() == segments[pos].getDomPoint()){
+      if(!used[ps]){
+         return ps;
+      }
+      ps--;
+   }
+   ps = pos+1;
+   while(ps < (int)segments.size() 
+         && segments[ps].getDomPoint() == segments[pos].getDomPoint()){
+      if(!used[ps]){
+         return ps;
+      }
+      ps++;
+   }
+   return -1;
+}
+
+
+
+/*
+~startCycle~
+
+Starts to trace a cycle within the segments vector. 
+Each found subcycle is stored as a seperated  face.
+
+*/
+void startCycle(vector<MPrecHalfSegment>& segments, vector<bool>& used, 
+                int pos, int& faceno){
+
+  // TODO find sub cycles
+  cout << "startCycle called, pos = " << pos << " size = " 
+       << segments.size() << endl;
+
+  int edgeno = 0;
+  MPrecPoint start = segments[pos].getLeftPoint();
+
+  MPrecPoint next = segments[pos].getRightPoint();
+  cout << "start while" << endl;
+  while((pos >=0) &&  (start != next)){
+   
+     int partner = segments[pos].attributes.partnerno;
+     cout << "pos = " << pos << endl;
+     cout << "partner = " << partner << endl;
+     cout << "Point = " << next << endl;
+     used[pos] = true;
+     used[partner] = true;
+
+     segments[pos].attributes.faceno = faceno;
+     segments[pos].attributes.cycleno = 0;
+     segments[pos].attributes.edgeno = edgeno;
+     segments[partner].attributes.faceno = faceno;
+     segments[partner].attributes.cycleno = 0;
+     segments[partner].attributes.edgeno = edgeno;
+     edgeno++;
+     pos = findExtension(segments,partner,used);
+     cout << "nextPos = " << pos <<endl;
+     next = segments[partner].getRightPoint(); 
+  }
+  cout << "end while" << endl;
+
+  faceno++;
+
+  
+
+}
+
+
+/*
+~ computeRegion~
+
+This function find cycles within the argument and sets 
+faceno, cycleno as well as edgeno for each cycle.
+If the segments do not form a valid region (i.e. non closed 
+or overlapping cycles), an exception is thrown.
+The partner numbers and the inside above flag must be
+set correctly.
+
+*/
+void PrecRegion::computeRegion(vector<MPrecHalfSegment>& segments){
+
+ if(segments.empty()) return; // nothing to do
+
+ if( (segments.size() < 6)){ // too less halfsegments to form a region
+    throw 1; // TODO: use an exception class
+ }
+ if(segments.size() & 1u){ // odd number of halfsegments
+    throw 2;
+ }
+ // within a first step, we find all cycles.
+ // the basic idea is to follow a path having the interior of 
+ // the region always at the same side, until the path is closed.
+ // we store all points having multiple possibilities for 
+ // extending the path. Whenever a subpath is closed, this
+ // path will be stored seperately
+
+ vector<bool> used(segments.size(), false);
+ int pos = 0;
+ int faceno = 0;
+
+ cout << "before while" << endl;
+ while(pos < (int)segments.size()){
+    if(!used[pos]){
+        startCycle(segments, used, pos, faceno);
+    }
+    pos++;
+ }
+ cout << "end while" << endl;
+ hstools::operator<<(cout,segments) << endl;
+ 
+  // secondly, look, which cycle is contained in which other to
+  // assignde face number and cycle number 
+
+
+
+
+
+}
+
+
 bool PrecRegion::endBulkLoad( bool sort,
                   bool setCoverageNo,
                   bool setPartnerNo,
                   bool computeRegion){
 
    assert(bulkloadStorage);
+   // step 1 sort half segments
    if(sort){
      hstools::sort(*bulkloadStorage);
    }
-
+   // do not accept unrealmed halfsegment sets
    if(!hstools::checkRealm(*bulkloadStorage)){
      delete bulkloadStorage;
      bulkloadStorage=0;
      return false;
    }
+   // set the coverage number
    if(setCoverageNo){
      hstools::setCoverage(*bulkloadStorage);
    }
+   // set partner numbers
    if(setPartnerNo){
      hstools::setPartnerNumbers(*bulkloadStorage);
    }
+   // set faceno, cycleno and edgeno for each halfsegment
    if(computeRegion){
-     cerr << "computeRegion not implemented yet" << endl;
+     try{
+       this->computeRegion(*bulkloadStorage);
+     } catch(...){ // halfsegments form not a set of cycles
+        delete bulkloadStorage;
+        bulkloadStorage = 0;
+        return false;
+     }
    }
+ 
+   // copy the halfsegments from bulkloadstorage into
+   // persistent DB Array
    for(size_t i=0;i<bulkloadStorage->size();i++){
       (*bulkloadStorage)[i].appendTo(&gridData, &fracStorage);
       enlarge(bbox, (*bulkloadStorage)[i].getLeftPoint());
       enlarge(bbox, (*bulkloadStorage)[i].getRightPoint());
    }
+   // remove bulkloadstorage
    delete bulkloadStorage;
    bulkloadStorage = 0;
    return true; 
@@ -1732,5 +1881,277 @@ void PrecRegion::readFrom(const Region& reg, int scale, bool useString,
     this->scale = scale; 
     SetDefined(true);
 }
+
+
+
+
+
+
+void PrecRegion::setOp(const PrecRegion& r, PrecRegion & result, 
+                       hstools::SETOP op) const{
+
+    result.clear();
+    // 1. Special cases
+    // 1.1 Undefined values
+    if(!IsDefined() || !r.IsDefined()){
+       result.SetDefined(false);
+       return;
+    }
+
+    // 1.2 r is empty
+    if(r.size()==0){
+       switch(op){
+           case  hstools::UNION: result = *this; return; 
+           case  hstools::INTERSECTION: return;
+           case  hstools::DIFFERENCE: result = *this; return;
+           default : assert(false);
+       }
+    }
+    // 1.3 this is empty
+    if(size()==0){
+       switch(op){
+           case hstools::UNION: result = r; return;
+           case hstools::INTERSECTION: return;
+           case hstools::DIFFERENCE: return;
+           default: assert(false);
+       }
+    }
+    // 1.4. disjoint bounding boxes
+    if(!BoundingBox().Intersects(r.BoundingBox())){
+       switch(op){
+          case hstools::UNION :{
+             result.startBulkLoad();
+             for(unsigned int i=0;i<size();i++){
+                MPrecHalfSegment h = getHalfSegment(i);
+                if(h.isLeftDomPoint()){
+                   result.append(h);
+                }
+             }
+             for(size_t i=0;i<r.size();i++){
+                MPrecHalfSegment h = r.getHalfSegment(i);
+                if(h.isLeftDomPoint()){
+                   result.append(h);
+                }
+             }
+             result.endBulkLoad(false);
+          } 
+          case hstools::INTERSECTION: return; 
+          case hstools::DIFFERENCE: result = *this; return;
+          default: assert(false);     
+       }
+    }
+    
+    // 2. normal case 
+    // sweep status structure
+    avltree::AVLTree<MPrecHalfSegment, 
+                     hstools::YComparator<MPrecHalfSegment> > sss;
+    // event structure
+    hstools::EventStructure<PrecRegion,PrecRegion> es(this,&r);
+
+    AttrType dummy;
+    MPrecHalfSegment current (MPrecPoint(0,0), MPrecPoint(1,1), true, dummy);
+    int source;
+    MPrecHalfSegment const* left;
+    MPrecHalfSegment const* right;
+    MPrecHalfSegment const* stored;
+    vector<MPrecHalfSegment> realmRes;
+    //int edgeno = 0;
+    result.startBulkLoad();
+
+    while((source = es.next(current))){
+      if(current.isLeftDomPoint()){ // left end point
+          // check for overlapping segments
+          if((stored = sss.getMember(current,left,right))){
+             // overlapping segment found
+             assert(stored->getOwner()!=BOTH);
+             assert(current.getOwner()!=stored->getOwner());
+             assert(current.getOwner()!=BOTH);
+             hstools::makeRealm(*stored,current,realmRes);
+             sss.remove(*stored);
+             sss.insert(realmRes[0]);
+             assert(realmRes[0].getOwner()==BOTH);
+             assert(realmRes[0].attributes.coverageno <3);
+             realmRes[0].setLDP(false);
+             es.push(realmRes[0]);
+             for(size_t i=1;i<realmRes.size();i++){
+                  es.push(realmRes[i]);
+                  realmRes[i].setLDP(false);
+                  es.push(realmRes[i]);
+             }
+          } else {
+             // no overlapping element exists
+              // set coverage number for current
+              if(current.getOwner()!=BOTH){
+                 if(left){
+                   current.attributes.coverageno = left->attributes.coverageno;
+                   if(current.attributes.insideAbove){
+                      current.attributes.coverageno++;
+                   } else {
+                      current.attributes.coverageno--;
+                   }
+                 } else {
+                    assert(current.attributes.insideAbove);
+                    current.attributes.coverageno = 1;
+                 }
+              }
+
+              assert(current.attributes.coverageno>=0);
+              assert(current.attributes.coverageno<3);  
+              sss.insertN(current,left,right);
+
+              
+              if(left && !left->checkRealm(current)){
+                  hstools::makeRealm(*left,current,realmRes);
+                  sss.remove(*left);
+                  sss.remove(current);
+                  sss.insert(realmRes[0]);
+                  sss.insert(realmRes[1]);
+                  current = realmRes[1];    
+                  realmRes[0].setLDP(false);
+                  realmRes[1].setLDP(false);
+                  es.push(realmRes[0]);
+                  es.push(realmRes[1]);
+                  for(size_t i=2;i<realmRes.size();i++){
+                     es.push(realmRes[i]);
+                     realmRes[i].setLDP(false);
+                     es.push(realmRes[i]);
+                  }
+               }
+               if( right && !right->checkRealm(current)){
+                  hstools::makeRealm(*right, current,realmRes);
+                  assert(sss.remove(*right));
+                  assert(sss.remove(current));
+                  sss.insert(realmRes[0]);
+                  sss.insert(realmRes[1]);
+                  current = realmRes[1];
+                  realmRes[0].setLDP(false);
+                  realmRes[1].setLDP(false);
+                  es.push(realmRes[0]);
+                  es.push(realmRes[1]);
+                  for(size_t i=2;i<realmRes.size();i++){
+                    es.push(realmRes[i]);
+                    realmRes[i].setLDP(false);
+                    es.push(realmRes[i]);
+                  }
+               }
+          }
+      } else { // right end point
+          if((stored = sss.getMember(current))){
+             if(stored->sameGeometry(current)){
+                 current = *stored; 
+                 sss.removeN(current,left,right);
+                 if(left && right && !left->checkRealm(*right)){
+                     // cout << "realm neighbors" << endl;
+                     hstools::makeRealm(*left, *right, realmRes);
+                     sss.remove(*left);
+                     sss.remove(*right);
+                     sss.insert(realmRes[0]);
+                     sss.insert(realmRes[1]);
+                     realmRes[0].setLDP(false);
+                     realmRes[1].setLDP(false);
+                     es.push(realmRes[0]);
+                     es.push(realmRes[1]);
+                     for(size_t i=2;i<realmRes.size();i++){
+                        es.push(realmRes[i]);
+                        realmRes[i].setLDP(false);
+                        es.push(realmRes[i]);
+                     }   
+                 }
+             switch(op){
+                   case hstools::UNION :
+                         if(current.getOwner()==BOTH){
+                            if(current.attributes.coverageno!=1){
+                                result.append(current);
+                            } 
+                         } else {
+                            if(current.attributes.insideAbove){
+                               if(current.attributes.coverageno!=2){
+                                 result.append(current);
+                               } 
+                            } else {
+                               if(current.attributes.coverageno==0){
+                                 result.append(current);
+                               }
+                            }
+                         } 
+                         break;
+                   case hstools::DIFFERENCE :
+                          switch(current.getOwner()){
+                            case FIRST :
+                                 if(current.attributes.insideAbove){
+                                    if(current.attributes.coverageno==1){
+                                        result.append(current);
+                                    }
+                                 } else {
+                                    if(current.attributes.coverageno==0){
+                                         result.append(current);
+                                    }
+                                 }
+                                 break;
+                            case SECOND :
+                                 if(current.attributes.insideAbove){
+                                    if(current.attributes.coverageno==2){
+                                        current.attributes.insideAbove = false;
+                                        result.append(current);
+                                    }  
+                                 } else {
+                                    if(current.attributes.coverageno==1){
+                                        current.attributes.insideAbove = true;
+                                        result.append(current);
+                                    }
+                                 }
+                                 break;
+                            case BOTH :
+                                 if(current.attributes.coverageno==1){
+                                    result.append(current);
+                                 } 
+                                 break;
+                            default : assert(false);
+                          }
+                          break;
+                   case hstools::INTERSECTION :
+                           switch(current.getOwner()){
+                               case FIRST:
+                               case SECOND:
+                                    if(current.attributes.insideAbove){
+                                       if(current.attributes.coverageno==2){
+                                          result.append(current);
+                                       }
+                                    } else {
+                                       if(current.attributes.coverageno==1){
+                                           result.append(current);
+                                       }  
+                                    }
+                                    break;
+                               case BOTH:
+                                   if(current.attributes.coverageno==2){
+                                     current.attributes.insideAbove = true;
+                                     result.append(current);
+                                   } else if(current.attributes.coverageno==0){
+                                     current.attributes.insideAbove = false;
+                                     result.append(current);
+  
+                                   }
+                                   break;
+                               default: assert(false);
+                           }  
+  
+  
+               }
+           }
+          }
+      }
+
+    }
+    result.SetDefined(true);
+    result.endBulkLoad();
+
+
+
+}
+
+
+
+
 
 

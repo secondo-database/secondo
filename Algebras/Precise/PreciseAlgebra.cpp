@@ -67,6 +67,9 @@ GenTC<PrecPoints> precisePoints;
 GenTC<PrecRegion> preciseRegion;
 GenTC<PrecLine> preciseLine;
 
+GenTC<PrecTime<datetime::instanttype> > preciseInstant;
+GenTC<PrecTime<datetime::durationtype> > preciseDuration;
+
 
 /*
 2 Operators
@@ -302,6 +305,269 @@ Operator divideOP(
   arOpsTM
 );
 
+/*
+2.2 Arithmetic operations for time types
+
+2.2.1 plus
+
+*/
+ListExpr timePlusTM(ListExpr args){
+  string err = "{precInstant, duration} x duration expected" ;
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(     !precDuration::checkType(nl->Second(args))
+     || (   !precDuration::checkType(nl->First(args)) 
+         && !precInstant::checkType(nl->First(args)))){
+    return listutils::typeError(err);
+  }  
+  return nl->First(args);
+}
+
+template<class T>
+int timePlusVM1 (Word* args, Word& result, int message, Word& local,
+            Supplier s ){
+
+  T* arg1 = (T*) args[0].addr;
+  precDuration* arg2 = (precDuration*) args[1].addr;
+  result = qp->ResultStorage(s);
+  T* res = (T*) result.addr;
+  if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+  } else {
+     *res = *arg1 + *arg2;
+  }
+  return 0;
+}
+
+ValueMapping timePlusVM[] = {
+   timePlusVM1<precInstant>,
+   timePlusVM1<precDuration>
+};
+
+int timePlusSelect(ListExpr args){
+   ListExpr arg1 = nl->First(args);
+   if(precInstant::checkType(arg1)) {
+      return 0;
+   }
+   if(precDuration::checkType(arg1)) {
+      return 1;
+   }
+   return -1;
+}
+
+OperatorSpec timePlusSpec(
+        " a1 x precDuration -> a1 , where a1 in {precInstant, precDuration}",
+        " _  +  _",
+        "adds the arguments",
+        "query a1 + a2"
+ );
+
+
+Operator timePlusOP(
+  "+",
+  timePlusSpec.getStr(),
+  2,
+  timePlusVM,
+  timePlusSelect,
+  timePlusTM
+);
+
+
+/*
+~minus~
+
+*/
+
+ListExpr timeMinusTM(ListExpr args){
+  string err = "instant x instant  | instant x duration | "
+               "duration x duration expacted";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(precDuration::checkType(arg1)){
+     if(precDuration::checkType(arg2)){
+       return listutils::basicSymbol<precDuration>();
+     } else {
+       return listutils::typeError(err);
+     }
+  }
+  if(!precInstant::checkType(arg1)){
+       return listutils::typeError(err);
+  }
+  if(precInstant::checkType(arg2)){
+     return listutils::basicSymbol<precDuration>();
+  } else if(precDuration::checkType(arg2)){
+     return listutils::basicSymbol<precInstant>();
+  } else {
+       return listutils::typeError(err);
+  }
+}
+
+
+template<class A1, class A2, class R>
+int timeMinusVM1 (Word* args, Word& result, int message, Word& local,
+            Supplier s ){
+
+  A1* arg1 = (A1*) args[0].addr;
+  A2* arg2 = (A2*) args[1].addr;
+  result = qp->ResultStorage(s);
+  R* res = (R*) result.addr;
+  if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+  } else {
+     res->setValue( arg1->GetValue() - arg2->GetValue());
+  }
+  return 0;
+}
+
+ValueMapping timeMinusVM[] = {
+  timeMinusVM1<precInstant, precInstant, precDuration>,
+  timeMinusVM1<precInstant, precDuration, precInstant>,
+  timeMinusVM1<precDuration, precDuration, precDuration>
+};
+
+int timeMinusSelect(ListExpr args){
+   if(precInstant::checkType(nl->First(args)) &&
+      precInstant::checkType(nl->Second(args))){
+      return 0;
+   }
+   if(precInstant::checkType(nl->First(args)) &&
+      precDuration::checkType(nl->Second(args))){
+      return 1;
+   }
+   if(precDuration::checkType(nl->First(args)) &&
+      precDuration::checkType(nl->Second(args))){
+      return 2;
+   }
+   return -1;
+}
+
+
+OperatorSpec timeMinusSpec(
+   " i x i -> d, d x d -> d, i x d -> i, "
+   "where i=precInstant, d = precDuration",
+   " _  -  _",
+   "subtracts the second argument from the first one",
+   "query a1 - a2"
+);
+
+
+Operator timeMinusOP(
+  "-",
+  timeMinusSpec.getStr(),
+  3,
+  timeMinusVM,
+  timeMinusSelect,
+  timeMinusTM
+);
+
+
+/*
+
+mul, divide
+
+*/
+
+ListExpr timeMulDivTM(ListExpr args){
+   string err = "duration x numeric expected";
+   if(!nl->HasLength(args,2)){
+      return listutils::typeError(err);      
+   }
+   if(!precDuration::checkType(nl->First(args)) ||
+      !isNumeric(nl->Second(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<precDuration>();
+}
+
+template<class A2, bool isDivide>
+int timeMulDivVM1 (Word* args, Word& result, int message, Word& local,
+            Supplier s ){
+   precDuration* a1 = (precDuration*) args[0].addr;
+   A2* a2 = (A2*) args[1].addr;
+   result = qp->ResultStorage(s);
+   precDuration* res = (precDuration*) result.addr;
+   if(!a1->IsDefined() || !a2->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   } 
+   if(isDivide){
+     MPrecCoordinate mc(a2->GetValue()); 
+     if(mc.isNull()){
+        res->SetDefined(false);
+     } else {
+        res->setValue( a1->GetValue() / mc);
+     }
+  } else {
+     res->setValue( a1->GetValue() * MPrecCoordinate(a2->GetValue()));
+  }
+  return 0;
+}
+
+ValueMapping timeDivVM[] = {
+    timeMulDivVM1<PrecCoord,true>,
+    timeMulDivVM1<CcInt,true>,
+    timeMulDivVM1<CcReal,true>,
+    timeMulDivVM1<LongInt,true>,
+    timeMulDivVM1<Rational,true>
+};
+
+ValueMapping timeMulVM[] = {
+    timeMulDivVM1<PrecCoord,false>,
+    timeMulDivVM1<CcInt,false>,
+    timeMulDivVM1<CcReal,false>,
+    timeMulDivVM1<LongInt,false>,
+    timeMulDivVM1<Rational,false>
+};
+
+int timeMulDivSelect(ListExpr args){
+    ListExpr a = nl->Second(args);
+    if(PrecCoord::checkType(a)) return 0;
+    if(CcInt::checkType(a)) return 1;
+    if(CcReal::checkType(a)) return 2;
+    if(LongInt::checkType(a)) return 3;
+    if(Rational::checkType(a)) return 4;
+    return -1;
+}
+
+OperatorSpec timeDivSpec(
+   " precDuration  x numeric -> precDuration ",
+   " _  /  _",
+   "Divides the first argument by the second one",
+   "query a1 / a2"
+);
+
+OperatorSpec timeMulSpec(
+   " precDuration  x numeric -> precDuration ",
+   " _  * _",
+   "Multiplies the first argument with the second one",
+   "query a1 * a2"
+);
+
+
+Operator timeDivOP(
+  "/",
+  timeDivSpec.getStr(),
+  5,
+  timeDivVM,
+  timeMulDivSelect,
+  timeMulDivTM
+);
+
+Operator timeMulOP(
+  "*",
+  timeMulSpec.getStr(),
+  5,
+  timeMulVM,
+  timeMulDivSelect,
+  timeMulDivTM
+);
+
+
+
 
 /*
 2.2 Operator toPrecise
@@ -350,7 +616,17 @@ ListExpr toPreciseTM(ListExpr args){
      resType = listutils::basicSymbol<PrecRegion>();
   } else if(Line::checkType(arg1)){
      resType = listutils::basicSymbol<PrecLine>();
-  } else {
+  } else if(datetime::DateTime::checkType(arg1)){
+     resType = listutils::basicSymbol<PrecTime<datetime::instanttype> >();
+     if(len!=1){
+       return listutils::typeError(err);
+     }
+  } else if(Duration::checkType(arg1)){
+     resType = listutils::basicSymbol<PrecTime<datetime::durationtype> >();
+     if(len!=1){
+       return listutils::typeError(err);
+     }
+  } else  {
     return listutils::typeError(err);
   }
 
@@ -418,7 +694,9 @@ ValueMapping toPreciseVM[] = {
      toPreciseVM1<Point,PrecPoint>,
      toPreciseVM1<Points,PrecPoints>,
      toPreciseVM1<Region,PrecRegion>,
-     toPreciseVM1<Line,PrecLine>
+     toPreciseVM1<Line,PrecLine>,
+     toPreciseVM1<datetime::DateTime,PrecTime<datetime::instanttype> >,
+     toPreciseVM1<datetime::DateTime,PrecTime<datetime::durationtype> >
   };
 
 int toPreciseSelect(ListExpr args){
@@ -433,6 +711,8 @@ int toPreciseSelect(ListExpr args){
   if(Points::checkType(arg)) return 6;
   if(Region::checkType(arg)) return 7;
   if(Line::checkType(arg)) return 8;
+  if(datetime::DateTime::checkType(arg)) return 9;
+  if(Duration::checkType(arg)) return 10;
   return -1;
 }
 
@@ -456,7 +736,7 @@ OperatorSpec toPreciseSpec(
 Operator toPreciseOP(
   "toPrecise",
   toPreciseSpec.getStr(),
-  9,
+  11,
   toPreciseVM,
   toPreciseSelect,
   toPreciseTM
@@ -1099,6 +1379,10 @@ ListExpr unionTM(ListExpr args){
      && PrecLine::checkType(nl->Second(args))){
      return listutils::basicSymbol<PrecLine>();
   }
+  if( PrecRegion::checkType(nl->First(args))
+     && PrecRegion::checkType(nl->Second(args))){
+     return listutils::basicSymbol<PrecRegion>();
+  }
   return listutils::typeError(err);
 
 }
@@ -1126,7 +1410,8 @@ int unionVM1 (Word* args, Word& result, int message, Word& local,
 
 ValueMapping unionVM[] = {
    unionVM1<PrecPoints,PrecPoints, PrecPoints>,
-   unionVM1<PrecLine,PrecLine, PrecLine> // to be continued
+   unionVM1<PrecLine,PrecLine, PrecLine>,
+   unionVM1<PrecRegion,PrecRegion, PrecRegion> // to be continued
 };
 
 int unionSelect(ListExpr args){
@@ -1138,6 +1423,10 @@ int unionSelect(ListExpr args){
      && PrecLine::checkType(nl->Second(args))){
      return 1;
   }
+  if( PrecRegion::checkType(nl->First(args))
+     && PrecRegion::checkType(nl->Second(args))){
+     return 2;
+  }
   return -1;
 }
 
@@ -1147,7 +1436,7 @@ int unionSelect(ListExpr args){
 */
 
 OperatorSpec unionSpec(
-        "  precPoints x precPoints -> precPoints",
+        "  precX x precX -> precX",
         " _ union _",
         " computes the union of the arguments",
         " query ps1 union ps2"
@@ -1161,7 +1450,7 @@ OperatorSpec unionSpec(
 Operator unionOP(
   "union",
   unionSpec.getStr(),
-  2,
+  3,
   unionVM,
   unionSelect,
   unionTM
@@ -2007,10 +2296,20 @@ class PreciseAlgebra : public Algebra
     AddTypeConstructor( &precise::preciseLine );
     precise::preciseLine.AssociateKind("DATA");
 
+    AddTypeConstructor( &precise::preciseInstant );
+    precise::preciseInstant.AssociateKind("DATA");
+    AddTypeConstructor( &precise::preciseDuration );
+    precise::preciseDuration.AssociateKind("DATA");
+
+
     AddOperator(&precise::plusOP);
     AddOperator(&precise::minusOP);
     AddOperator(&precise::mulOP);
     AddOperator(&precise::divideOP);
+    AddOperator(&precise::timePlusOP);
+    AddOperator(&precise::timeMinusOP);
+    AddOperator(&precise::timeMulOP);
+    AddOperator(&precise::timeDivOP);
     AddOperator(&precise::toPreciseOP);
     AddOperator(&precise::translateOP);
     AddOperator(&precise::scaleOP);
