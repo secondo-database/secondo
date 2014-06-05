@@ -312,15 +312,21 @@ CassandraResult* CassandraAdapter::readTableRange(string relation,
   
 }
 
-void CassandraAdapter::getLokalTokenRanges(
+
+bool CassandraAdapter::getLokalTokenRanges(
      vector<TokenInterval> &localTokenRange) {
   
     // Calculate local token ranges
     vector <long long> localTokens;
     vector <long long> peerTokens;
     
-    getLocalTokens(localTokens);
-    getPeerTokens(peerTokens);
+    if(! getLocalTokens(localTokens)) {
+      return false;
+    }
+    
+    if(! getPeerTokens(peerTokens)) {
+      return false;
+    }
     
     // Merge and sort tokens
     vector<long long> allTokens;
@@ -371,6 +377,8 @@ void CassandraAdapter::getLokalTokenRanges(
     copy(localTokenRange.begin(), localTokenRange.end(), 
     std::ostream_iterator<TokenInterval>(cout, " "));
     cout << std::endl;
+    
+    return true;
 }
 
 CassandraResult* CassandraAdapter::readTableLocal(string relation,

@@ -366,7 +366,7 @@ a valid result. False otherweise
 2.3.12 Get a list with local token ranges
 
 */
-   void getLokalTokenRanges(vector<TokenInterval> &localTokenRange);
+   bool getLokalTokenRanges(vector<TokenInterval> &localTokenRange);
 
     
 /*
