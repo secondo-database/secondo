@@ -33,24 +33,18 @@ namespace GISAlgebra
         ListExpr contourTypeMap(ListExpr args);
         int contourSelectFun(ListExpr args);
 
-        struct ResultInfo
-        {
-          int height;
-          Line contour;
-        };
-
         bool ProcessRectangle(double, double, double,
                               double, double, double,
                               double, double, double,
                               double, double, double, 
-                              double, ResultInfo*);
+                              double, Tuple*);
 
         void Intersect(double, double, double,
                        double, double, double,
                        double, double, int*, double*, double*);
 
         bool AddSegment(double, double, double, 
-                        double, double, int, ResultInfo*);
+                        double, double, int, Tuple*);
 
         struct contourInfo : OperatorInfo 
         {

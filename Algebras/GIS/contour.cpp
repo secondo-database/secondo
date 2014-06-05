@@ -41,21 +41,19 @@ namespace GISAlgebra {
       case OPEN:
       {
         // initialize the local storage
-        ResultInfo* clines = new ResultInfo;
+        ListExpr resultType = GetTupleResultType(s);
+        TupleType *tupleType = new TupleType(nl->Second(resultType));
+        local.addr = tupleType;
 
-        if(clines != 0)
-        {
-          local.addr = clines;
-          returnValue = 0;
-        }
+        return 0;
       }
-      break;
     
       case REQUEST:
       {
         if(local.addr != 0)
         {
-          ResultInfo* clines = static_cast<ResultInfo*>(local.addr);
+          TupleType *tupleType = (TupleType *)local.addr;
+          Tuple *clines = new Tuple( tupleType );
 
           if(clines != 0)
           {
@@ -151,9 +149,7 @@ namespace GISAlgebra {
               }
 
               result.addr = clines;
-cout << clines->height << endl;
-cout << clines->contour << endl;
-              returnValue = YIELD;
+              return YIELD;
             }//for
 
             result.addr = 0;
@@ -173,24 +169,17 @@ cout << clines->contour << endl;
       {
         if(local.addr != 0)
         {
-          ResultInfo* clines = static_cast<ResultInfo*>(local.addr);
-
-          if(clines != 0)
-          {
-            delete clines;
-            local.addr = 0;
-          }
+          ((TupleType *)local.addr)->DeleteIfAllowed();
+          return 0;          
         }
 
         returnValue = 0;
       }
-      break;
 
       default:
       {
         assert(false);
       }
-      break;
     }
  
     return returnValue;
@@ -264,7 +253,7 @@ cout << clines->contour << endl;
                         double g, double gX, double gY,
                         double i, double iX, double iY,
                         double c, double cX, double cY, 
-                        double interval, ResultInfo* clines)
+                        double interval, Tuple* clines)
   {
     // Rechteck verarbeiten (Minimum, Maximum bestimmen)
     double Min = MIN(MIN(a,c),MIN(g,i));
@@ -385,15 +374,20 @@ cout << clines->contour << endl;
     }
   }
 
-  bool AddSegment(double level, double startX, double startY,
-                  double endX, double endY, int leftHigh, ResultInfo* line)
+  bool AddSegment(double l, double startX, double startY,
+                  double endX, double endY, int leftHigh, Tuple* clines)
   {
     Point p1(true, startX, startY);
     Point p2(true, endX, endY);
     HalfSegment hs(true, p1, p2);
-    Line* l1 = new Line(0);
+    Line* line = new Line(0);
 
-    l1->Put(0,hs);
+    line->Put(0,hs);
+
+    int l2 = static_cast<int>(l);
+    CcInt* level = new CcInt(true,l2);
+
+
 
     // Contourlinie fuer level finden
     //if (line->getLevel() == level)
@@ -401,8 +395,9 @@ cout << clines->contour << endl;
 
     // ansonsten neue Linie anlegen
     //{
-      line->height = level;
-      line->contour = *l1;
+      clines->PutAttribute(0,level);
+      clines->PutAttribute(1,line);
+
     //}
 
     return true;
