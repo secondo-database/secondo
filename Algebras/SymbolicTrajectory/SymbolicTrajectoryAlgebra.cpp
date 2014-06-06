@@ -7350,15 +7350,17 @@ ListExpr indexmatchesTM(ListExpr args) {
 IndexMatchesLI::IndexMatchesLI(Relation *rel, InvertedFile *inv,
  R_Tree<1, TupleId> *rt, int _attrNr, Pattern *_p, bool deleteP, DataType type):
                                   IndexClassifyLI(rel, inv, rt, _attrNr, type) {
-  p = *_p;
-  p.initEasyCondOpTrees();
-  p.initCondOpTrees();
-  initialize();
-  applyNFA();
-  p.deleteEasyCondOpTrees();
-  p.deleteCondOpTrees();
-  if (deleteP) {
-    delete _p;
+  if (rel->GetNoTuples() > 0) {
+    p = *_p;
+    p.initEasyCondOpTrees();
+    p.initCondOpTrees();
+    initialize();
+    applyNFA();
+    p.deleteEasyCondOpTrees();
+    p.deleteCondOpTrees();
+    if (deleteP) {
+      delete _p;
+    }
   }
 }
 
@@ -7383,29 +7385,31 @@ void IndexMatchesLI::applyNFA() {
   set<int> states, newStates;
   PatElem elem;
   states.insert(0);
-  map<int, int>::reverse_iterator it;
-  while (activeTuples > 0) {
-//     cout << "WHILE loop: activeTuples=" << activeTuples << "; states:";
-//     for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
+  set<int>::reverse_iterator is;
+  map<int, int>::reverse_iterator im;
+  while ((activeTuples > 0) && !states.empty()) {
+//     cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
+//          << matches.size() << " matches; states:";
+//     for (is = states.rbegin(); is != states.rend(); is++) {
 //       cout << " " << *is;
 //     }
 //     cout << endl;
-    for (set<int>::iterator is = states.begin(); is != states.end(); is++) {
+    for (is = states.rbegin(); is != states.rend(); is++) {
       map<int, int> trans = p.getTransitions(*is);
-      for (it = trans.rbegin(); it != trans.rend(); it++) {
-        p.getElem(it->first, elem);
+      for (im = trans.rbegin(); im != trans.rend(); im++) {
+        p.getElem(im->first, elem);
         if (elem.getW() == NO) { // no wildcard
-//           cout << "call simpleMatch for transition " << *is << " --> " 
-//                << it->second << endl;
-          if (simpleMatch(it->first, *is, it->second)) {
-            newStates.insert(it->second);
+//           cout << "call simpleMatch for transition " << *is << " --" 
+//                << im->first << "--> " << im->second << endl;
+          if (simpleMatch(im->first, *is, im->second)) {
+            newStates.insert(im->second);
           }
         }
         else { // + or *
 //           cout << "call wildcardMatch for transition " << *is << " --> " 
-//                << it->second << endl;
-          if (wildcardMatch(*is, *it)) {
-            newStates.insert(it->second);
+//                << im->second << endl;
+          if (wildcardMatch(*is, *im)) {
+            newStates.insert(im->second);
           }
         }
       }
@@ -7413,6 +7417,8 @@ void IndexMatchesLI::applyNFA() {
     states.clear();
     states.swap(newStates);
     clearMatchInfo();
+//     cout << "end of While loop. " << states.size() << " " << activeTuples
+//          << endl;
   }
 }
 
@@ -9130,15 +9136,16 @@ void IndexClassifyLI::retrieveTime(vector<bool>& oldPart, vector<bool>& newPart,
 void IndexClassifyLI::removeIdFromIndexResult(const TupleId id) {
   for (int i = 0; i < p.getSize(); i++) {
     if (indexResult[i].size() > 0) {
-      if ((indexResult[i][indexResult[i][id].pred].succ == id) &&
-          (indexResult[i][indexResult[i][id].succ].pred == id)) {
-//         cout << "Elem " << i << ", Tuple " << id << ":" << endl;
+//       cout << "  Elem " << i << ", Tuple " << id << ":" << endl;
+      if (indexResult[i][indexResult[i][id].pred].succ == id) {
+//         cout << "   succ of " << indexResult[i][id].pred << " set from " 
+//             << indexResult[i][indexResult[i][id].pred].succ << " to "
+//             << indexResult[i][id].succ << endl;
         indexResult[i][indexResult[i][id].pred].succ = indexResult[i][id].succ;
-//         cout << "   succ of " << indexResult[i][id].pred << " set to " 
-//              << indexResult[i][id].succ << endl;
-        indexResult[i][indexResult[i][id].succ].pred = indexResult[i][id].pred;
-//         cout << "   pred of " << indexResult[i][id].succ << " set to " 
-//              << indexResult[i][id].pred << endl;
+//         cout << "   pred of " << indexResult[i][id].succ << " set from "
+//             << indexResult[i][indexResult[i][id].succ].pred << " to " 
+//             << indexResult[i][id].pred << endl;
+       indexResult[i][indexResult[i][id].succ].pred = indexResult[i][id].pred;
       }
     }
   }
@@ -9285,7 +9292,7 @@ void IndexClassifyLI::initMatchInfo(const set<int>& cruElems) {
   matchInfoPtr = &matchInfo;
   newMatchInfo.resize(p.getNFAsize());
   newMatchInfoPtr = &newMatchInfo;
-  trajSize.resize(mRel->GetNoTuples(), 0);
+  trajSize.resize(mRel->GetNoTuples() + 1, 0);
   vector<bool> trajInfo, newTrajInfo;
   trajInfo.assign(mRel->GetNoTuples() + 1, true);
   PatElem elem;
@@ -9325,6 +9332,13 @@ void IndexClassifyLI::initMatchInfo(const set<int>& cruElems) {
         (*matchInfoPtr)[s][id].pred = pred;
         (*newMatchInfoPtr)[s][pred].succ = id;
         (*newMatchInfoPtr)[s][id].pred = pred;
+        if ((int)indexResult[s].size() == mRel->GetNoTuples() + 1) {
+          for (unsigned int i = pred + 1; i < id; i++) { // deactivate indexRes.
+            indexResult[s][i].pred = 0;
+            indexResult[s][i].succ = 0;
+          }
+          indexResult[s][pred].succ = id;
+        }
       }
       activeTuples++;
       pred = id;
@@ -9332,6 +9346,11 @@ void IndexClassifyLI::initMatchInfo(const set<int>& cruElems) {
   }
   (*matchInfoPtr)[0][pred].succ = 0;
   (*newMatchInfoPtr)[0][pred].succ = 0;
+  for (int s = 0; s < p.getNFAsize(); s++) {
+    if ((int)indexResult[s].size() == mRel->GetNoTuples() + 1) {
+      indexResult[s][pred].succ = 0;
+    }
+  }
 }
 
 /*
@@ -9342,11 +9361,11 @@ according to the index information.
 
 */
 void IndexClassifyLI::initialize() {
-  vector<map<int, int> > nfa;
-  simplifyNFA(nfa);
+  vector<map<int, int> > simpleNFA;
+  simplifyNFA(simpleNFA);
   set<int> finalStates = p.getFinalStates();
   set<pair<set<int>, int> > paths;
-  findNFApaths(nfa, finalStates, paths);
+  findNFApaths(simpleNFA, finalStates, paths);
   set<int> cruElems;
   getCrucialElems(paths, cruElems);
   indexResult.resize(p.getSize());
@@ -9419,24 +9438,42 @@ bool IndexClassifyLI::wildcardMatch(const int state, pair<int, int> trans) {
       imiPtr = &((*matchInfoPtr)[state][id].imis[i]);
       imiPtr->next++;
       imiPtr->range = true;
-      extendBinding(*imiPtr, trans.first);
-      if (p.isFinalState(trans.second) && 
-          imiPtr->finished(trajSize[id]) &&
-          checkConditions(id, *imiPtr)) { // complete match
-        matches.push_back(id);
+      bool match = false;
+      if (p.hasConds()) { // extend binding for a complete match
+        extendBinding(*imiPtr, trans.first);
+        if (p.isFinalState(trans.second) && imiPtr->finished(trajSize[id])) {
+          unsigned int oldEnd = imiPtr->binding[imiPtr->prevVar].second;
+          imiPtr->binding[imiPtr->prevVar].second = trajSize[id] - 1;
+          match = checkConditions(id, *imiPtr);
+          if (!match) { // reset unsuccessful binding
+            imiPtr->binding[imiPtr->prevVar].second = oldEnd;
+          }
+        }
+      }
+      else { // no conditions
+        match = p.isFinalState(trans.second) && imiPtr->finished(trajSize[id]);
+      }
+      if (match) {
+        matches.push_back(id); // complete match
         ok = true;
         removeIdFromMatchInfo(id);
         removeIdFromIndexResult(id);
+//         cout << id << " removed (wild match) " << activeTuples 
+//              << " active tuples" << endl;
         i = UINT_MAX - 1;
       }
       else if (!imiPtr->exhausted(trajSize[id])) { // continue
         (*newMatchInfoPtr)[trans.second][id].imis.push_back(*imiPtr);
+//         cout << "   imi pushed back from wildcardMatch, id " << id << endl;
         ok = true;
       }
     }
-    if (!hasIdIMIs(id, state)) { // no IMIs for id and state
+    if (!ok && !hasIdIMIs(id, state)) { // no IMIs for id and state
       if (!hasIdIMIs(id)) { // no IMIs at all for id
+        removeIdFromMatchInfo(id);
         removeIdFromIndexResult(id);
+//         cout << id << " removed (wild mismatch) " << activeTuples 
+//              << " active tuples" << endl;
       }
     }
     id = (*matchInfoPtr)[state][id].succ;
@@ -9483,6 +9520,8 @@ bool IndexClassifyLI::imiMatch(Match<M>& match, const int e, const TupleId id,
   PatElem elem;
   p.getElem(e, elem);
   if (unit >= 0) { // exact position from index
+//     cout << "   unit=" << unit << ", imi: next=" << imi.next << ", range=" 
+//          << imi.range << endl;
     if (imi.matches(unit) && match.valuesMatch(unit, elem) &&
         timesMatch(id, unit, elem) &&
         match.easyCondsMatch(unit, elem, p.easyConds, p.getEasyCondPos(e))) {
@@ -9491,12 +9530,17 @@ bool IndexClassifyLI::imiMatch(Match<M>& match, const int e, const TupleId id,
       extendBinding(imi, e);
       if (p.isFinalState(newState) && imi.finished(trajSize[id]) && 
           checkConditions(id, imi)) { // complete match
+        removeIdFromIndexResult(id);
         removeIdFromMatchInfo(id);
+//         cout << id << " removed (index match) " << activeTuples 
+//              << " active tuples" << endl;
         matches.push_back(id);
         return true;
       }
       else if (!imi.exhausted(trajSize[id])) { // continue
         (*newMatchInfoPtr)[newState][id].imis.push_back(imi);
+//         cout << "   IMI pushed back for new state " << newState << " and id "
+//              << id << endl;
         return true;
       }
     }
@@ -9514,6 +9558,9 @@ bool IndexClassifyLI::imiMatch(Match<M>& match, const int e, const TupleId id,
         if (p.isFinalState(newState) && imi.finished(trajSize[id]) &&
             checkConditions(id, imi)) { // complete match
           removeIdFromMatchInfo(id);
+//           cout << id << " removed (range match) " << activeTuples 
+//                << " active tuples" << endl;
+          removeIdFromIndexResult(id);
           matches.push_back(id);
           return true;
         }
@@ -9538,6 +9585,8 @@ bool IndexClassifyLI::imiMatch(Match<M>& match, const int e, const TupleId id,
       if (p.isFinalState(newState) && imi.finished(trajSize[id]) && 
           checkConditions(id, imi)) { // complete match
         removeIdFromMatchInfo(id);
+//         cout << id << " removed (match) " << activeTuples << " active tuples"
+//              << endl;
         matches.push_back(id);
         return true;
       }
@@ -9631,9 +9680,13 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state,
                                   const int newState) {
   bool transition = false;
   storeIndexResult(e);
+//   cout << e << " " << indexResult[e].size() << " " << indexResult[e][0].succ 
+//        << endl;
   if (!indexResult[e].empty()) { // contents found in at least one index
     TupleId id = indexResult[e][0].succ;
     while (id > 0) {
+//       cout << "state " << state << "; elem " << e << "; next id is " << id 
+//            << endl;
       bool imiCreated = false;
 //       cout << "simpleMatch: " << (*matchInfoPtr)[state][id].imis.size()
 //            << " IMIs, state=" << state << ", id=" << id << endl;
@@ -9663,6 +9716,8 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state,
       if (!hasIdIMIs(id, state) && !imiCreated) { // no IMIs
         if (!hasIdIMIs(id)) { // no IMIs at all for id
           removeIdFromMatchInfo(id);
+//           cout << id << " removed (index) " << activeTuples 
+//                << " active tuples" << endl;
         }
       }
       id = indexResult[e][id].succ;
@@ -9686,6 +9741,8 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state,
         if (!hasIdIMIs(id, state)) { // no IMIs for id and state
           if (!hasIdIMIs(id)) { // no IMIs at all for id
             removeIdFromMatchInfo(id);
+//             cout << id << " removed (no index) " << activeTuples #
+//                  << " active tuples"  << endl;
           }
         }
         id = matchInfo[e][id].succ;
@@ -9717,6 +9774,9 @@ bool IndexClassifyLI::checkConditions(const TupleId id, IndexMatchInfo& imi) {
     return true;
   }
   Tuple *tuple = mRel->GetTuple(id, false);
+//   cout << "checkConditions: size = " << getMsize(id) 
+//        << "; binding(lastVar) = (" << imi.binding[imi.prevVar].first << ", " 
+//        << imi.binding[imi.prevVar].second << ")" << endl;
   bool result = false;
   switch (mtype) {
     case LABEL: {
