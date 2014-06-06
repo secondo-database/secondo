@@ -483,7 +483,7 @@ To determine the cost for an expensive predicate, we use the database berlintest
 	symmjoin[.Id_t1 = ..Id_t2] count
 ----
 
-The result is 562, the number of trains, and the running times are 0.99, 0.96, 0.97 secs.The prediction using the constant above is 562 * 562 * 0.003 = 947.532 ms which is close.
+The result is 562, the number of trains, and the running times are 0.99, 0.96, 0.97 secs. The prediction using the constant above is 562 * 562 * 0.003 = 947.532 ms which is close.
 
 ----	query Trains feed head[200] {t1} Trains feed head[B] {t2} 
 	symmjoin[sometimes(distance(.Trip_t1, ..Trip_t2) < 50.0)] count
