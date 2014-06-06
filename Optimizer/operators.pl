@@ -99,8 +99,9 @@ showOptConstants :-
 /*
 1.2.1 Constants for Buffer Size
 
-The value of the buffer size in bytes. This is the amount of main memory, operators are allowed to use to keep their internal data (e.g. hashtables, tuple buffers etc.). This should be equal to the setting for ~MaxMemPerOperator~
-in file ~SecondoConfig.ini~.
+The value of the buffer size in bytes. This is the amount of main memory, operators are allowed to use to keep their internal data (e.g. hashtables, tuple buffers etc.). This should be equal to the setting for ~MaxMemPerOperator~ in file ~SecondoConfig.ini~.
+
+This is outdated, as now available memory is estimated per query, depending on the number of operators that use memory.
 
 */
 
@@ -113,12 +114,31 @@ The maximum duration of a selectivity query or a bbox size query in seconds. The
 
 The maximum sample size in bytes. The cardinality of samples will be reduced, such that it hopefully does not get larger than this value.
 
-Minimum and maximun cardinalities for selection and join relation samples
+Minimum and maximum cardinalities for selection and join relation samples
 
 Standard scaling factor for samples.
 
+RHG 04.06.2014: Constants enlarged to be able to get good selectivity estimations for larger relations (up to 10 million tuples).
 
-*/
+We will now use samples of at least 1 % of the relation size. Samples are put in random order to be able to process queries on prefixes of the sample.
+
+Selectivity queries will be restricted to the first 2000 tuples of the selection sample, as before.
+
+There are three different kinds of join selectivity queries:
+
+  * for an equality predicate, itHashJoin is used on full samples, but restricting result size to 100000.
+
+  * for a bounding-box predicate, itSpatialJoin is used on full samples, but restricting result size to 100000.
+
+  * for all other predicates, symmjoin is used on prefixes of size 500 (as before).
+
+Both itHashJoin and itSpatialJoin run in a few seconds for arguments of size up to 100000 (which would be the sample size for a relation with 10 million tuples.
+
+The timeout is still required as spatial join may encounter expensive predicates in the filter step.
+
+Old constants:
+
+----
 
 secOptConstant(sampleTimeout, 10.0).        % max duration (s) of a sample query
 secOptConstant(sampleScalingFactor, 0.00001).  % scaling factor for samples
@@ -130,6 +150,28 @@ secOptConstant(sampleSelMaxCard, 2000).        % maximum cardinality for samples
 secOptConstant(sampleJoinMaxDiskSize, 2048).   % maximum KB size for samples
 secOptConstant(sampleJoinMinCard, 50).         % minimum cardinality for samples
 secOptConstant(sampleJoinMaxCard, 500).        % maximum cardinality for samples
+
+----
+
+
+*/
+
+secOptConstant(sampleTimeout, 10.0).        % max duration (s) of a sample query
+secOptConstant(sampleScalingFactor, 0.01).  % scaling factor for samples
+
+secOptConstant(sampleSelMaxDiskSize, 204800).    % maximum KB size for samples
+secOptConstant(sampleSelMinCard, 100).         % minimum cardinality for samples
+  % unclear where it is used
+secOptConstant(sampleSelMaxCard, 2000).        % maximum cardinality for samples
+  % really the minimum cardinality, as this number is entered into the sample 
+  % operator
+
+secOptConstant(sampleJoinMaxDiskSize, 204800).   % maximum KB size for samples
+secOptConstant(sampleJoinMinCard, 50).         % minimum cardinality for samples
+  % unclear where it is used
+secOptConstant(sampleJoinMaxCard, 500).        % maximum cardinality for samples
+  % really the minimum cardinality, as this number is entered into the sample 
+  % operator
 
 % Section:Start:secOptConstant_2_e
 % Section:End:secOptConstant_2_e
