@@ -211,7 +211,9 @@ simplePred(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
 simplePred(pr(P, A, B), Simple) :-
   not(optimizerOption(determinePredSig)),
   optimizerOption(subqueries),
-  simpleSubqueryPred(pr(P, A, B), Simple),!.
+  % simpleSubqueryPred(pr(P, A, B), Simple),  % does not work correctly
+  simple(P, A, B, Simple),
+  !.
 
 simplePred(pr(P, A, B), Simple) :-
   not(optimizerOption(determinePredSig)),
