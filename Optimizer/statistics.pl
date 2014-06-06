@@ -885,21 +885,12 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
   ),
   dm(selectivity,['\n------------- binary standard predicate: ',
                   Pred2,' -------------\n']),
-  secOptConstant(sampleTimeout, Timeout),
+
+
+
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
-         dynamicPossiblyRenameJ(Rel2, Rel2Query),
-         ( optimizerOption(subqueries)
-           -> % Old method uses faster loopsel:
-              Query = count(timeout(loopsel(counter(Rel1Query,1),
-                      fun([param(txx1, tuple)],
-                      filter(counter(Rel2Query,2), Pred2))), Timeout))
-           ;  %  New version uses slower symmjoin to enable a balanced
-              %  stream consumption within the timeout
-              Query = count(timeout(symmjoin(counter(Rel1Query,1),
-                                    counter(Rel2Query,2),
-                                    Pred2), value_expr(real,Timeout)))
-         )
+         dynamicPossiblyRenameJ(Rel2, Rel2Query)
        )
     ;  ( Rel1 = rel(DCrelName1, _),
          Rel2 = rel(DCrelName2, _),
@@ -909,23 +900,13 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
          sampleS(Rel1, Rel1S),
          sampleJ(Rel2, Rel2S),
          possiblyRename(Rel1S, Rel1Query),
-         possiblyRename(Rel2S, Rel2Query),
-         secOptConstant(sampleJoinMaxCard, JoinSize),
-         ( optimizerOption(subqueries)
-           -> % Old method uses faster loopsel:
-              Query = count(timeout(loopsel(counter(Rel1Query,1),
-                      fun([param(txx1, tuple)],
-                      filter(counter(Rel2Query,2), Pred2))), Timeout))
-           ;  % New version uses slower symmjoin to enable a balanced
-              % stream consumption within the timeout
-              Query = count(timeout(symmjoin(
-                      counter(head(Rel1Query,JoinSize),1),
-                      counter(head(Rel2Query,JoinSize), 2),
-                      Pred2), value_expr(real,Timeout)))
-         )
+         possiblyRename(Rel2S, Rel2Query)         
        )
    ),
-  transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2),
+  standardJoinQuery(Rel1Query, Rel2Query, Pred2, Rel1, Rel2, Pred, Query2),
+
+
+
   plan_to_atom(Query2, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
@@ -995,6 +976,19 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, ResCard, InputCard) :-
   write_list(['\nERROR:\t',ErrMsg]), nl,
   throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
         QueryTime, BBox, ResCard, InputCard)::selectivityQueryFailed)), fail.
+
+
+
+
+
+standardJoinQuery(Rel1Query, Rel2Query, Pred2, Rel1, Rel2, Pred, Query2) :-
+  secOptConstant(sampleTimeout, Timeout),
+  secOptConstant(sampleJoinMaxCard, JoinSize),
+  Query = count(timeout(loopsel(counter(Rel1Query,1),
+                      fun([param(txx1, tuple)],
+                      filter(counter(Rel2Query,2), Pred2))), Timeout)),
+  transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2).
+
 
 /*
 
