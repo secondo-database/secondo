@@ -374,6 +374,7 @@ void mainLoop(SecondoInterface* si,
           string command;
           result->getStringValue(command, 1);
           replacePlaceholder(command, "__NODEID__", myUuid);
+          replacePlaceholder(command, "__CASSANDRAIP__", cassandraIp);
           
           // Is this the next query to execute
           if(id == lastCommandId + 1) {
