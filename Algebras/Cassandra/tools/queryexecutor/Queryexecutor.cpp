@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "NList.h"
 #include "CassandraAdapter.h"
+#include "CassandraResult.h"
 
 #include <boost/uuid/uuid.hpp>      
 #include <boost/uuid/uuid_generators.hpp> 
@@ -222,7 +223,7 @@ cassandra::CassandraAdapter* getCassandraAdapter(string cassandraHostname,
   cassandra::CassandraAdapter* cassandra = 
      new cassandra::CassandraAdapter(cassandraHostname, cassandraKeyspace);
   
-  cassandra -> connect(false);
+  cassandra -> connect(true);
   
   // Connection successfully?
   if(cassandra == NULL) {
@@ -254,8 +255,69 @@ void replacePlaceholder(string &query, string placeholder, string value) {
 2.2 Does the given sting contains a placeholder?
 
 */
-bool containsPlaceholder(string &searchString, string &placeholder) {
+bool containsPlaceholder(string searchString, string placeholder) {
   return searchString.find(placeholder) != std::string::npos;
+}
+
+/*
+2.2 Execute a command in SECONDO
+
+*/
+void executeSecondoCommand(SecondoInterface* si, 
+                           NestedList* nl, string command) {
+  
+        cout << "Executing command " << command << endl;
+        
+        ListExpr res = nl->TheEmptyList(); // will contain the result
+        SecErrInfo err;                 // will contain error information
+        
+        si->Secondo(command, res, err); 
+
+        // check whether command was successful
+        if(err.code!=0){ 
+          // if the error code is different to zero, an error is occurred
+          cout << "Error during command. Error code :" << err.code << endl;
+          cout << "Error message = " << err.msg << endl;
+        } else {
+          // command was successful
+          // do what ever you want to de with the result list
+          // in this little example, the result is just printed out
+          cout << "Command successfully processed" << endl;
+          cout << "Result is:" << endl;
+          cout << nl->ToString(res) << endl << endl;
+        }
+}
+
+/*
+2.2 Handle a multitoken query (e.g. query ccollectrange('192.168.1.108', 
+     'secondo', 'relation2', 'ONE',__TOKEN__);
+
+*/
+void handleTokenQuery(string &query, 
+                      vector<cassandra::TokenInterval> &localTokenRange,
+                      SecondoInterface* si, NestedList* nl) {
+  
+  cout << "Handle Token Query called" << endl;
+  
+    // Generate token range queries;
+    for(vector<cassandra::TokenInterval>::iterator 
+        iter = localTokenRange.begin();
+        iter != localTokenRange.end(); ++iter) {
+ 
+      cassandra::TokenInterval interval = *iter;
+    
+      stringstream ss;
+      ss << "'" << interval.getStart() << "'";
+      ss << ", ";
+      ss << "'" << interval.getEnd() << "'";
+    
+      replacePlaceholder(query, "__TOKEN__", ss.str());
+    
+      cout << "Query is is "  << query << endl;
+      
+      executeSecondoCommand(si, nl, query);
+
+    }  
 }
 
 /*
@@ -277,7 +339,8 @@ void mainLoop(SecondoInterface* si,
   // Collect logical ring configuration
   vector<long long> localTokens;
   vector<long long> peerTokens;
-  
+  vector<cassandra::TokenInterval> localTokenRange;
+     
   if(! cassandra->getLocalTokens(localTokens) ) {
     cerr << "Unable to determine local tokens" << endl;
     exit(-1);
@@ -285,6 +348,11 @@ void mainLoop(SecondoInterface* si,
   
   if (! cassandra->getPeerTokens(peerTokens) ) {
     cerr << "Unable to determine peer tokens" << endl;
+    exit(-1);
+  }
+  
+  if(! cassandra->getLokalTokenRanges(localTokenRange)) {
+    cerr << "Unable to determine lokal token ranges" << endl;
     exit(-1);
   }
   
@@ -300,7 +368,7 @@ void mainLoop(SecondoInterface* si,
         cassandra::CassandraResult* result = cassandra -> readDataFromCassandra
             ("SELECT id, query from queries", cql::CQL_CONSISTENCY_ONE);
           
-        while(result && result -> hasNext()) {
+        while(result != NULL && result -> hasNext()) {
           size_t id = result->getIntValue(0);
           
           string command;
@@ -309,30 +377,17 @@ void mainLoop(SecondoInterface* si,
           
           // Is this the next query to execute
           if(id == lastCommandId + 1) {
-            cout << "Executing command " << command << endl;
             
-            ListExpr res = nl->TheEmptyList(); // will contain the result
-            SecErrInfo err;                 // will contain error information
-            
-            si->Secondo(command, res, err); 
-
-            // check whether command was successful
-            if(err.code!=0){ 
-              // if the error code is different to zero, an error is occurred
-              cout << "Error during command. Error code :" << err.code << endl;
-              cout << "Error message = " << err.msg << endl;
+            // Simple query or token based query?
+            if(containsPlaceholder(command, "__TOKEN__")) {
+              handleTokenQuery(command, localTokenRange, si, nl);
+              updateLastCommand(cassandra, lastCommandId, cassandraIp);
+              ++lastCommandId;
             } else {
-              // command was successful
-              // do what ever you want to de with the result list
-              // in this little example, the result is just printed out
-              cout << "Command successfully processed" << endl;
-              cout << "Result is:" << endl;
-              cout << nl->ToString(res) << endl << endl;
+              executeSecondoCommand(si, nl, command);
+              updateLastCommand(cassandra, lastCommandId, cassandraIp);
+              ++lastCommandId;
             }
-            
-            updateLastCommand(cassandra, lastCommandId, cassandraIp);
-            
-            lastCommandId++;
           }
         }
         
