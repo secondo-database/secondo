@@ -444,10 +444,7 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string cql,
             cerr << "Unable to execute " << cqlStatement << endl;
             cerr << "Error is " << future.get().error.message << endl;
         } else {
-
-            cql::cql_result_t& result = *(future.get().result);
-
-            return new SingleCassandraResult(result);
+            return new SingleCassandraResult(future);
         }
     } catch(std::exception& e) {
         cerr << "Got exception while reading data: " << e.what() << endl;

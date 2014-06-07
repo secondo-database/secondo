@@ -56,7 +56,6 @@ class CassandraAdapter;
 class CassandraResult {
   
 public:
-
      virtual ~CassandraResult() { }
   
      virtual bool hasNext() {
@@ -83,7 +82,9 @@ class SingleCassandraResult : public CassandraResult {
   
 public:
 
-     SingleCassandraResult(cql::cql_result_t& myResult) : result(myResult) {
+     SingleCassandraResult(
+       boost::shared_future<cql::cql_future_result_t> myFuture) 
+        : future(myFuture) {
      }
      
      //virtual ~SingleCassandraResult() { }
@@ -93,7 +94,7 @@ public:
      virtual int getIntValue(int pos);
      
 private:
-     cql::cql_result_t& result;
+     boost::shared_future<cql::cql_future_result_t> future;
 };
 
 /*

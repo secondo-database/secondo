@@ -381,13 +381,13 @@ void mainLoop(SecondoInterface* si,
             // Simple query or token based query?
             if(containsPlaceholder(command, "__TOKEN__")) {
               handleTokenQuery(command, localTokenRange, si, nl);
-              updateLastCommand(cassandra, lastCommandId, cassandraIp);
-              ++lastCommandId;
             } else {
               executeSecondoCommand(si, nl, command);
-              updateLastCommand(cassandra, lastCommandId, cassandraIp);
-              ++lastCommandId;
             }
+            
+            // Update global status
+            updateLastCommand(cassandra, lastCommandId, cassandraIp);
+            ++lastCommandId;
           }
         }
         

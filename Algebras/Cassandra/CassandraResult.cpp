@@ -46,15 +46,18 @@ namespace cassandra {
 
 */
 bool SingleCassandraResult::hasNext() {
+  cql::cql_result_t& result = *(future.get().result);
   return result.next();
 }
 
 void SingleCassandraResult::getStringValue(string &resultString, int pos) {
+  cql::cql_result_t& result = *(future.get().result);
   result.get_string(pos, resultString);
 }
 
 int SingleCassandraResult::getIntValue(int pos) {
   int resultInt;
+  cql::cql_result_t& result = *(future.get().result);
   result.get_int(pos, resultInt);
   return resultInt;
 }
