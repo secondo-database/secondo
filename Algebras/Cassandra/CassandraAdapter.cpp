@@ -97,6 +97,7 @@ void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
         cout << "Cassandra: Connection successfully established" << endl;
         cout << "You are connected to host " << contactpoint
                  << " keyspace " << keyspace << endl;
+        cout << "SingleNodeLoadBalancing: " << singleNodeLoadBalancing << endl;
        
     } catch(std::exception& e) {
         cerr << "Got exception while connection to cassandra: "
