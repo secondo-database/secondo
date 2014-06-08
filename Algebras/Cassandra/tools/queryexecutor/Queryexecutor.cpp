@@ -197,13 +197,26 @@ bool createMetatables(cassandra::CassandraAdapter* cassandra) {
   
   // Create state table
   result = cassandra -> executeCQLSync(
-    "CREATE TABLE IF NOT EXISTS status "
+    "CREATE TABLE IF NOT EXISTS state "
         "(ip TEXT, hartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));",
     cql::CQL_CONSISTENCY_ALL
   );
   
   if(! result) {
-     cout << "Unable to create status table" << endl;
+     cout << "Unable to create state table" << endl;
+     return false;
+  }
+  
+  // Create progress table
+  result = cassandra -> executeCQLSync(
+    "CREATE TABLE IF NOT EXISTS progress "
+    "(ip TEXT, query INT, begintoken TEXT, "
+    "endtoken TEXT, PRIMARY KEY(ip, query, begintoken));",
+    cql::CQL_CONSISTENCY_ALL
+  );
+  
+   if(! result) {
+     cout << "Unable to create progress table" << endl;
      return false;
   }
   
@@ -220,7 +233,7 @@ bool updateLastCommand(cassandra::CassandraAdapter* cassandra,
   
   // Build CQL query
   stringstream ss;
-  ss << "UPDATE status set lastquery = ";
+  ss << "UPDATE state set lastquery = ";
   ss << lastCommandId;
   ss << " WHERE ip = '";
   ss << ip;
@@ -233,7 +246,39 @@ bool updateLastCommand(cassandra::CassandraAdapter* cassandra,
   );
  
   if(! result) {
-     cout << "Unable to update last executed query in status table" << endl;
+     cout << "Unable to update last executed query in state table" << endl;
+     cout << "CQL Statement: " << ss.str() << endl;
+     return false;
+  }
+
+  return true;
+}
+
+/*
+2.1 Update last executed command
+
+*/
+bool updateLastProcessedToken(cassandra::CassandraAdapter* cassandra, 
+                       size_t lastCommandId, string ip, 
+                       cassandra::TokenInterval interval) {
+  
+  // Build CQL query
+  stringstream ss;
+  ss << "INSERT INTO progress(ip, query, begintoken, endtoken) values("; 
+  ss << "'" << ip << "',";
+  ss << "" << lastCommandId << ",",
+  ss << "'" << interval.getStart() << "',",
+  ss << "'" << interval.getEnd() << "'",
+  ss << ");";
+  
+  // Update last executed command
+  bool result = cassandra -> executeCQLSync(
+    ss.str(),
+    cql::CQL_CONSISTENCY_ONE
+  );
+ 
+  if(! result) {
+     cout << "Unable to update last executed query in progress table" << endl;
      cout << "CQL Statement: " << ss.str() << endl;
      return false;
   }
@@ -323,13 +368,14 @@ void executeSecondoCommand(SecondoInterface* si,
      'secondo', 'relation2', 'ONE',__TOKEN__);
 
 */
-void handleTokenQuery(string &query, 
+void handleTokenQuery(cassandra::CassandraAdapter* cassandra, string &query, 
+                      size_t queryId, string &ip, 
                       vector<cassandra::TokenInterval> &localTokenRange,
                       SecondoInterface* si, NestedList* nl) {
   
-  cout << "Handle Token Query called" << endl;
+    cout << "Handle Token Query called" << endl;
 
-  // Generate token range queries;
+    // Generate token range queries;
     for(vector<cassandra::TokenInterval>::iterator 
         iter = localTokenRange.begin();
         iter != localTokenRange.end(); ++iter) {
@@ -347,7 +393,7 @@ void handleTokenQuery(string &query,
       replacePlaceholder(ourQuery, "__TOKEN__", ss.str());
       cout << "Query is: "  << ourQuery << endl;
       executeSecondoCommand(si, nl, ourQuery);
-
+      updateLastProcessedToken(cassandra, queryId, ip, interval);
     }  
 }
 
@@ -413,7 +459,8 @@ void mainLoop(SecondoInterface* si,
             
             // Simple query or token based query?
             if(containsPlaceholder(command, "__TOKEN__")) {
-              handleTokenQuery(command, localTokenRange, si, nl);
+              handleTokenQuery(cassandra, command, lastCommandId, 
+                               cassandraIp, localTokenRange, si, nl);
             } else {
               executeSecondoCommand(si, nl, command);
             }
@@ -446,8 +493,8 @@ void* startHartbeatThreadInternal(void *ptr) {
 2.5 start the hartbeat thread
 
 */
-bool startHartbeatThread(string cassandraIp, string cassandraKeyspace,
-                         pthread_t &targetThread) {
+HartbeatUpdater* startHartbeatThread(string cassandraIp, 
+                         string cassandraKeyspace, pthread_t &targetThread) {
   
    HartbeatUpdater* hartbeatUpdater 
      = new HartbeatUpdater(cassandraIp, cassandraKeyspace);
@@ -455,7 +502,7 @@ bool startHartbeatThread(string cassandraIp, string cassandraKeyspace,
    pthread_create(&targetThread, NULL, 
                   &startHartbeatThreadInternal, hartbeatUpdater);
   
-  return true;
+  return hartbeatUpdater;
 }
 
 /*
