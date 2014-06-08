@@ -62,8 +62,30 @@ class HartbeatUpdater {
  
 public:
   
-  HartbeatUpdater(string myIp, cassandra::CassandraAdapter* myCassandra) 
-     : ip(myIp), cassandra(myCassandra), active(true) {
+  HartbeatUpdater(string myCassandraIp, string myCassandraKeyspace) 
+     : cassandraIp(myCassandraIp), cassandraKeyspace(myCassandraKeyspace),
+     cassandra(NULL), active(true) {
+       
+       // Connect to cassandra
+     cassandra = new cassandra::CassandraAdapter
+        (cassandraIp, cassandraKeyspace);
+      
+     cout << "[Heartbeat] Connecting to " << cassandraIp;
+     cout << " / " << cassandraKeyspace << endl;
+  
+     if(cassandra != NULL) {
+       cassandra -> connect(false);
+       active = true;
+     } else {
+       cerr << "[Hartbeat] Unable to connect to cassandra, ";
+       cerr << "exiting thread" << endl;
+       active = false;
+     }
+  }
+  
+  virtual ~HartbeatUpdater() {
+    cout << "[Hartbeat] Shutdown because destructor called" << endl;
+    stop();
   }
   
 /*
@@ -75,7 +97,7 @@ public:
     stringstream ss;
     ss << "UPDATE status set hartbeat = unixTimestampOf(now()) ";
     ss << "WHERE ip = '";
-    ss << ip;
+    ss << cassandraIp;
     ss << "';";
     
     // Update last executed command
@@ -102,10 +124,19 @@ public:
   
   void stop() {
     active = false;
+    
+    // Disconnect from cassandra
+    if(cassandra != NULL) {
+      cassandra -> disconnect();
+      delete cassandra;
+      cassandra = NULL;
+    }
+    
   }
   
 private:
-  string ip;
+  string cassandraIp;
+  string cassandraKeyspace;
   cassandra::CassandraAdapter* cassandra;
   bool active;
 };
@@ -415,12 +446,14 @@ void* startHartbeatThreadInternal(void *ptr) {
 2.5 start the hartbeat thread
 
 */
-bool startHartbeatThread(cassandra::CassandraAdapter* cassandra,
-                            string cassandraIp, pthread_t &targetThread) {
+bool startHartbeatThread(string cassandraIp, string cassandraKeyspace,
+                         pthread_t &targetThread) {
   
-   HartbeatUpdater hartbeatUpdater(cassandraIp, cassandra);
+   HartbeatUpdater* hartbeatUpdater 
+     = new HartbeatUpdater(cassandraIp, cassandraKeyspace);
+     
    pthread_create(&targetThread, NULL, 
-                  &startHartbeatThreadInternal, &hartbeatUpdater);
+                  &startHartbeatThreadInternal, hartbeatUpdater);
   
   return true;
 }
@@ -458,7 +491,7 @@ int main(int argc, char** argv){
 
   // Main Programm
   pthread_t targetThread;
-  startHartbeatThread(cassandra, cassandraNodeIp, targetThread);
+  startHartbeatThread(cassandraNodeIp, cassandraKeyspace, targetThread);
   mainLoop(si, cassandra, cassandraNodeIp, cassandraKeyspace);
   
   if(cassandra) {
