@@ -326,7 +326,8 @@ void handleTokenQuery(string &query,
 
 */
 void mainLoop(SecondoInterface* si, 
-              cassandra::CassandraAdapter* cassandra, string cassandraIp) {
+              cassandra::CassandraAdapter* cassandra, string cassandraIp,
+              string cassandraKeyspace) {
   
   NestedList* nl = si->GetNestedList();
   NList::setNLRef(nl);
@@ -358,7 +359,6 @@ void mainLoop(SecondoInterface* si,
   
   cout << "Collecting logical ring configuration done" << endl;
   
-  
   size_t lastCommandId = 0;
   
   while(true) {
@@ -375,6 +375,7 @@ void mainLoop(SecondoInterface* si,
           result->getStringValue(command, 1);
           replacePlaceholder(command, "__NODEID__", myUuid);
           replacePlaceholder(command, "__CASSANDRAIP__", cassandraIp);
+          replacePlaceholder(command, "__KEYSPACE__", cassandraKeyspace);
           
           // Is this the next query to execute
           if(id == lastCommandId + 1) {
@@ -458,7 +459,7 @@ int main(int argc, char** argv){
   // Main Programm
   pthread_t targetThread;
   startHartbeatThread(cassandra, cassandraNodeIp, targetThread);
-  mainLoop(si, cassandra, cassandraNodeIp);
+  mainLoop(si, cassandra, cassandraNodeIp, cassandraKeyspace);
   
   if(cassandra) {
     cassandra -> disconnect();
