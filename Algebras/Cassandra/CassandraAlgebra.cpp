@@ -1176,7 +1176,7 @@ Type mapping for ~ccollectrange~ is
 ----
 
 */
-ListExpr CCollectTypeMapRange( ListExpr args ) {
+ListExpr CCollectRangeTypeMap( ListExpr args ) {
 
   if(nl->ListLength(args) != 6){
     return listutils::typeError("six arguments expected");
@@ -1311,9 +1311,9 @@ public:
         cassandra -> connect(true); 
         result = cassandra -> readTableLocal(relationName, consistence);
       } else if(fetchMode == RANGE) {
-        // Connect to cassandra and use the multi node loadbalancing 
+        // Connect to cassandra and use the single node loadbalancing 
         // policy
-        cassandra -> connect(false); 
+        cassandra -> connect(true); 
         result = cassandra -> readTableRange(relationName, consistence, 
                                              beginToken, endToken);
         
@@ -1530,7 +1530,7 @@ Operator cassandracollectrange (
          CCollectRangeSpec,         // specification
          CCollect<RANGE>,           // value mapping
          Operator::SimpleSelect,    // trivial selection function
-         CCollectTypeMapRange       // type mapping
+         CCollectRangeTypeMap       // type mapping
 );                        
 
 /*
