@@ -75,7 +75,6 @@ public:
   
      if(cassandra != NULL) {
        cassandra -> connect(false);
-       active = true;
      } else {
        cerr << "[Hartbeat] Unable to connect to cassandra, ";
        cerr << "exiting thread" << endl;
@@ -329,8 +328,8 @@ void handleTokenQuery(string &query,
                       SecondoInterface* si, NestedList* nl) {
   
   cout << "Handle Token Query called" << endl;
-  
-    // Generate token range queries;
+
+  // Generate token range queries;
     for(vector<cassandra::TokenInterval>::iterator 
         iter = localTokenRange.begin();
         iter != localTokenRange.end(); ++iter) {
@@ -342,11 +341,12 @@ void handleTokenQuery(string &query,
       ss << ", ";
       ss << "'" << interval.getEnd() << "'";
     
-      replacePlaceholder(query, "__TOKEN__", ss.str());
-    
-      cout << "Query is is "  << query << endl;
-      
-      executeSecondoCommand(si, nl, query);
+      // Copy query string, so we can replace the
+      // placeholder multiple times
+      string ourQuery = string(query);
+      replacePlaceholder(ourQuery, "__TOKEN__", ss.str());
+      cout << "Query is: "  << ourQuery << endl;
+      executeSecondoCommand(si, nl, ourQuery);
 
     }  
 }
