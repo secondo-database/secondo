@@ -368,8 +368,11 @@ dynamicPossiblyRenameS(Rel, Renamed) :-
                             -FilterResCard, -InputCard)
 
   selectivityQueryJoin(+Pred, +Rel1, +Rel2,
-                       -QueryTime, -BBoxResCard, -FilterResCard, -InputCard)
+	-QueryTime, -BBoxResCard, -FilterInputCard, 
+	-ResCard, -InputCard)
 ----
+
+The following text needs to be revised!
 
 The cardinality query for a selection predicate is performed on the selection
 sample. The cardinality query for a join predicate is performed on the first
@@ -381,14 +384,14 @@ If ~optimizerOption(dynamicSample)~ is defined, dynamic samples are used instead
 of the \_sample\_j / \_sample\_s resp. \_small relations.
 
 The predicates return the time ~QueryTime~ used for the query, and the
-cardinality ~FilterResCard~ of the result after applying the predicate.
+cardinality ~ResCard~ of the result after applying the predicate.
 
 If ~Pred~ has a predicate operator that performs checking of overlapping minimal
 bounding boxes, the selectivity query will additionally return the cardinality
 after the bbox-checking in ~BBoxResCard~, otherwise its return value is set to
 constant  ~noBBox~.
 
-Selectivity queries will timeout after a time soecified by
+Selectivity queries will timeout after a time specified by
 ~secOptConstant(sampleTimeout, Timeout)~. To calculate the selectivity, the
 number of processed tuples (joines tuples) is returned as parameter ~InputCard~.
 
@@ -398,7 +401,7 @@ number of processed tuples (joines tuples) is returned as parameter ~InputCard~.
 ---- getBBoxIntersectionTerm(+Arg1,+Arg2,+Dimension,-PredTerm)
 ----
 
-Return the bbox-selectivity-predicate ~PredTerm~ for for ~Dimension~ dimensions
+Return the bbox-selectivity-predicate ~PredTerm~ for ~Dimension~ dimensions
 for arguments ~Arg1~ and ~Arg2~.
 
 If ~Dimension~ is ~std~, a special operator is used, that for operands of
@@ -409,11 +412,13 @@ projections to the first $min\{n,m\}$ dimensions interesect.
 
 % standard rule for unknown boxtypes using
 %   projective intersection ~bboxintersects~ (ingmar Goehr)
-getBBoxIntersectionTerm(Arg1,Arg2,std,PredTerm) :-
+getBBoxIntersectionTerm(Arg1, Arg2, std, PredTerm) :-
   PredTerm   =.. [bboxintersects, bbox(Arg1), bbox(Arg2)], !.
+
 % 2D-only rule:
 getBBoxIntersectionTerm(Arg1,Arg2,2,PredTerm) :-
   PredTerm   =.. [intersects, box2d(bbox(Arg1)), box2d(bbox(Arg2))], !.
+
 % general rule:
 getBBoxIntersectionTerm(Arg1,Arg2,_,PredTerm) :-
   PredTerm   =.. [intersects, bbox(Arg1), bbox(Arg2)], !.
@@ -726,51 +731,34 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBox, ResCard, InputCard) :-
   throw(error_Internal(statistics_selectivityQuerySelection(Pred, Rel,QueryTime,
         BBox, ResCard, InputCard)::selectivityQueryFailed)),  fail.
 
+
+
+
 % spatial join predicate with bbox-checking
-selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
-                                                FilterResCard1, InputCard1) :-
-  Pred =.. [OP, Arg01, Arg02],
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
+	TotalResCard, InputCard) :-
+  Pred =.. [OP, Arg1, Arg2],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
          trav(ArgsTrees,ArgsTypeList),
          %findall(T,member([ _, _, T],ArgsTrees),ArgsTypeList),
          isBBoxOperator(OP,ArgsTypeList,Dim),
          ArgsTrees = [Arg1Tree,Arg2Tree],
-         bboxSizeQueryJoin(Arg01,Rel1,Rel2,Arg1Tree,_),
-         bboxSizeQueryJoin(Arg02,Rel1,Rel2,Arg2Tree,_)
+         bboxSizeQueryJoin(Arg1,Rel1,Rel2,Arg1Tree,_),
+         bboxSizeQueryJoin(Arg2,Rel1,Rel2,Arg2Tree,_)
        )
     ;  ( isBBoxPredicate(OP),
          Dim = std
        )
   ),
-  ( optimizerOption(subqueries)
-    -> ( streamName(txx1),
-         assert(selectivityQuery(Pred)),
-         transformPred(Pred, txx1, 1, Pred2)
-       )
-    ;  Pred2 = Pred
-  ),
+
   dm(selectivity,['\n==== spatial binary predicate with bbox-checking: ',
-                  Pred2,' ====\n']),
-  Pred2 =.. [_, Arg1, Arg2],
-  getBBoxIntersectionTerm(Arg1,Arg2,Dim,Pred3),
-  secOptConstant(sampleTimeout, Timeout),
+                  Pred,' ====\n']),
+
+  % secOptConstant(sampleTimeout, Timeout),
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
-         dynamicPossiblyRenameJ(Rel2, Rel2Query),
-         ( optimizerOption(subqueries)
-           -> % Old method uses faster loopjoin:
-              Query = count(timeout(filter(counter(
-                      loopjoin(counter(Rel1Query, 1),
-                      fun([param(txx1, tuple)], filter(
-                      counter(Rel2Query, 2), Pred3))), 3), Pred2),Timeout ))
-           ;  %  New version uses slower symmjoin to enable a balanced stream
-              %  consumption within the timeout
-              Query = count(timeout(filter(counter(
-                                    symmjoin(counter(Rel1Query,1),
-                                             counter(Rel2Query,2),
-                                    Pred3), 3),Pred2),value_expr(real,Timeout)))
-         )
+         dynamicPossiblyRenameJ(Rel2, Rel2Query)        
        )
     ;  ( Rel1 = rel(DCrelName1, _),
          Rel2 = rel(DCrelName2, _),
@@ -779,93 +767,128 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
          sampleS(Rel1, Rel1S),
          sampleJ(Rel2, Rel2S),
          possiblyRename(Rel1S, Rel1Query),
-         possiblyRename(Rel2S, Rel2Query),
-         secOptConstant(sampleJoinMaxCard, JoinSize),
-         ( optimizerOption(subqueries)
-           -> % Old method uses faster loopjoin:
-              Query = count(timeout(filter(counter(loopjoin(
-                      counter(Rel1Query, 1),
-                      fun([param(txx1, tuple)],
-                      filter(counter(Rel2Query,2), Pred3))),3),Pred2),Timeout ))
-           ; %  New version uses slower symmjoin to enable a balanced stream
-             %  consumption within the timeout
-              Query = count(timeout(filter(counter(
-                      symmjoin( counter(head(Rel1Query,JoinSize), 1),
-                                counter(head(Rel2Query,JoinSize), 2),
-                                Pred3), 3), Pred2), value_expr(real,Timeout)))
-         )
+         possiblyRename(Rel2S, Rel2Query)
        )
   ),
-  transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2),
-  plan_to_atom(Query2, QueryAtom1),
+
+
+  secOptConstant(sampleTimeout, Timeout),
+  Arg1 = attr(_, _, _),
+  Arg2 = attr(_, _, _),
+  Query1 = count(head(itSpatialJoin(
+    counter(Rel1Query, 1), 
+    counter(Rel2Query, 2), attrname(Arg1), attrname(Arg2)), 100000)),
+
+  Query2 = count(timeout(
+    filter(
+      counter(
+        head(
+          itSpatialJoin(Rel1Query, Rel2Query, attrname(Arg1), attrname(Arg2)), 
+          1000), 
+        1), 
+      Pred), value_expr(real, Timeout))),
+
+  plan_to_atom(Query1, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  getTime(
+  dm(selectivity,['\nSelectivity query 1: ', QueryAtom, '\n']),
     ( secondo(QueryAtom, ResultList)
       -> (true)
       ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
                        'whether predicate \'', Pred, '\' is a boolean ',
                        'function! ']), nl,
            throw(error_Internal(statistics_selectivityQueryJoin(
-                         Pred, Rel1, Rel2, QueryTime, BBoxResCard,
-                         FilterResCard, InputCard1)::selectivityQueryFailed)),
+             Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
+	     TotalResCard, InputCard)::selectivityQueryFailed)),
            fail
          )
-    )
-    ,QueryTime
-  ),
-  ( optimizerOption(subqueries)
-    -> ( clearSelectivityQuery(Rel1, Rel2, Pred),
-         clearStreamName
-       )
-    ; true
-  ),
-  ( ResultList = [int, FilterResCard]
+    ),
+
+  ( ResultList = [int, BBoxResCard]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
          throw(error_Internal(statistics_selectivityQueryJoin(
-                         Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard,
-                         InputCard1)::unexpectedListType)),
+             Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
+	     TotalResCard, InputCard)::unexpectedListType)),
          fail
        )
   ),
-  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']),
+
   secondo('list counters',  ResultList2),
-  ( ResultList2 = [[1, InputCardRel1],[2, InputCardRel2],[3, BBoxResCard]|_]
+  ( ResultList2 = [[1, InputCardRel1], [2, InputCardRel2] |_]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                   'list counters query:\n',
                   'Expected \'[[1, InputCardRel1],[2, InputCardRel2],',
                   '[3, BBoxResCard]|_]\' but got \'', ResultList2, '\'.']), nl,
          throw(error_Internal(statistics_selectivityQueryJoin(
-                         Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard,
-                         InputCard1)::unexpectedListType)),
+           Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
+           TotalResCard, InputCard)::unexpectedListType)),
          fail
        )
   ),
-  ( optimizerOption(subqueries) 
-    -> InputCard = InputCardRel2
-    ; InputCard is InputCardRel1 * InputCardRel2
+
+  InputCard is InputCardRel1 * InputCardRel2,
+	write_list(['InputCard = ', InputCard]), nl,
+	write_list(['InputCard1 = ', InputCardRel1]), nl, 
+	write_list(['InputCard2 = ', InputCardRel2]), nl,
+	write_list(['BBoxResultCard = ', BBoxResCard]), nl,
+
+  plan_to_atom(Query2, QueryAtom3),
+  atom_concat('query ', QueryAtom3, QueryAtom2),
+  dm(selectivity,['\nSelectivity query 2: ', QueryAtom2, '\n']),
+  getTime(
+    ( secondo(QueryAtom2, ResultList3)
+      -> (true)
+      ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
+                       'whether predicate \'', Pred, '\' is a boolean ',
+                       'function! ']), nl,
+           throw(error_Internal(statistics_selectivityQueryJoin( 
+	     Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
+	     TotalResCard, InputCard)::selectivityQueryFailed)),
+           fail
+         )
+    ),
+    QueryTime
   ),
-  % InputCard is InputCardRel1 * InputCardRel2,
-       write_list(['InputCard = ', InputCard]), nl, 
-  ( realJoinSize(Pred, S)
-    -> ( FilterResCard1 is FilterResCard * JoinSize / S,
-         QueryTime1 is QueryTime * JoinSize / S,
-         BBoxResCard1 is BBoxResCard * JoinSize / S,
-         InputCard1 is InputCard * JoinSize / S,
-         retractall(realJoinSize(Pred, _)) )
-     ; ( FilterResCard1 = FilterResCard,
-         QueryTime1 = QueryTime,
-         BBoxResCard1 = BBoxResCard,
-         InputCard1 = InputCard) ),
+
+  ( ResultList3 = [int, FilterResCard]
+    -> true
+    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
+                     'selectivity query:\n',
+                     'Expected \'[int, <intvalue>]\' but got \'',
+                     ResultList3, '\'.']), nl,
+         throw(error_Internal(statistics_selectivityQueryJoin(
+             Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
+	     TotalResCard, InputCard)::unexpectedListType)),
+         fail
+       )
+  ),
+  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']),
+  secondo('list counters',  ResultList4),
+  ( ResultList4 = [[1, FilterInputCard] |_]
+    -> true
+    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
+           'list counters query:\n',
+           'Expected \'[[1, FilterInputCard]|_]\' but got \'', 
+           ResultList4, '\'.']), nl,
+         throw(error_Internal(statistics_selectivityQueryJoin(
+           Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
+	   TotalResCard, InputCard)::unexpectedListType)),
+         fail
+       )
+  ),
+	write_list(['FilterInputCard = ', FilterInputCard]), nl,
+	write_list(['FilterResultCard = ', FilterResCard]), nl,
+  FilterSel is (FilterResCard / FilterInputCard),
+  TotalResCard is BBoxResCard * FilterSel,
+	write_list(['TotalResultCard = ', TotalResCard]), nl,
   !.
 
 % normal join predicate
-selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox, _,
                                                      ResCard1, InputCard1) :-
   Pred =.. [OP|_],
   ( optimizerOption(determinePredSig)
@@ -903,11 +926,16 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
          possiblyRename(Rel2S, Rel2Query)         
        )
    ),
-  standardJoinQuery(Rel1Query, Rel2Query, Pred2, Rel1, Rel2, Pred, Query2),
+	write('Join predicate Pred2 is: '), write(Pred2), nl,
+	write('Rel1Query is: '), write(Rel1Query), nl,
+	write('Rel2Query is: '), write(Rel2Query), nl,
+	write('Join predicate Pred is: '), write(Pred), nl,
+	write('Rel2 is: '), write(Rel2), nl,
 
+  standardJoinQuery(Rel1Query, Rel2Query, Pred2, Rel1, Rel2, Pred, 
+    JoinSize, Query),
 
-
-  plan_to_atom(Query2, QueryAtom1),
+  plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(
@@ -917,7 +945,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
                        'whether predicate \'', Pred, '\' is a boolean ',
                        'function! ']), nl,
            throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1,Rel2,
-                         QueryTime1, noBBox, ResCard1, InputCard1)
+                         QueryTime1, noBBox, _, ResCard1, InputCard1)
                          ::selectivityQueryFailed)),
            fail
          )
@@ -937,13 +965,13 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
          throw(error_Internal(statistics_selectivityQueryJoin(
-                         Pred, Rel1, Rel2, QueryTime1, noBBox, ResCard1,
+                         Pred, Rel1, Rel2, QueryTime1, noBBox, _, ResCard1,
                          InputCard1)::unexpectedListType)),
          fail
        )
   ),
   secondo('list counters',  ResultList2),
-  ( ResultList2 = [[1, InputCardRel1],[2, InputCardRel2]|_]
+  ( ResultList2 = [[1, InputCardRel1],[2, InputCardRel2] | _ ]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                  'list counters query:\n',
@@ -960,34 +988,64 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
     ; InputCard is InputCardRel1 * InputCardRel2
   ),
   % InputCard is InputCardRel1 * InputCardRel2,
-       write_list(['InputCard = ', InputCard]), nl, 
+       write_list(['InputCard = ', InputCard]), nl,
+       write_list(['InputCard1 = ', InputCardRel1]), nl, 
+       write_list(['InputCard2 = ', InputCardRel2]), nl,  
   ( realJoinSize(Pred, S)
     -> ( ResCard1 is ResCard * JoinSize / S,
          QueryTime1 is QueryTime * JoinSize / S,
          InputCard1 is InputCard * JoinSize / S,
          retractall(realJoinSize(Pred, _)) )
-     ; ( ResCard1 = ResCard, QueryTime1 = QueryTime, InputCard1 = InputCard ) ),
+     ; ( ResCard1 = ResCard, QueryTime1 = QueryTime, InputCard1 = InputCard ) 
+  ),
+  write_list(['ResultCard = ', ResCard1]), nl,
+  ( not(ResCard1 = 100000)
+    ; ( sampleJ(Rel2, rel(Rel2Sample, _)), 
+        card(Rel2Sample, C2), 
+        InputCardRel2 < C2 )
+  ),	% for itHashjoin: either the output cardinality was not limited
+        % or the second input stream was not consumed completely
+
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
-selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, ResCard, InputCard) :-
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, 
+	FilterInputCard, ResCard, InputCard) :-
   term_to_atom(Pred,PredT),
   concat_atom(['Selectivity query failed for: \'',PredT,
                '\'. Unknown reason.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]), nl,
   throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
-        QueryTime, BBox, ResCard, InputCard)::selectivityQueryFailed)), fail.
+        QueryTime, BBox, FilterInputCard,
+	ResCard, InputCard)::selectivityQueryFailed)), fail.
 
 
+standardJoinQuery(Rel1Query, Rel2Query, _, _, _, Pred, 
+	_, Query) :-
+  Pred =.. [=, Arg1, Arg2],
+  Arg1 = attr(_, _, _),
+  Arg2 = attr(_, _, _),
+  Query = count(head(itHashJoin(
+    counter(Rel1Query, 1), 
+    counter(Rel2Query, 2), attrname(Arg1), attrname(Arg2)), 100000)).
 
 
-
-standardJoinQuery(Rel1Query, Rel2Query, Pred2, Rel1, Rel2, Pred, Query2) :-
+standardJoinQuery(Rel1Query, Rel2Query, Pred2, Rel1, Rel2, Pred, 
+	JoinSize, Query2) :-
   secOptConstant(sampleTimeout, Timeout),
   secOptConstant(sampleJoinMaxCard, JoinSize),
-  Query = count(timeout(loopsel(counter(Rel1Query,1),
+  ( optimizerOption(subqueries)
+    -> ( Query = count(timeout(loopsel(counter(Rel1Query,1),
                       fun([param(txx1, tuple)],
                       filter(counter(Rel2Query,2), Pred2))), Timeout)),
-  transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2).
+         transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2)
+       )
+    ;  ( 
+         Query2 = count(timeout(symmjoin(
+		   counter(head(Rel1Query, JoinSize), 1),
+		   counter(head(Rel2Query, JoinSize), 2),
+		   Pred), value_expr(real, Timeout)))
+       )
+  ).
 
 
 /*
@@ -1186,17 +1244,21 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   ensureSampleJexists(BaseName1),
   Rel2 = rel(BaseName2, _),
   ensureSampleJexists(BaseName2),
-  selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard, InputCard),
+  selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, 
+    FilterInputCard, ResCard, InputCard),
   nonzero(ResCard, NonzeroResCard),
   nonzero(InputCard, NonzeroInputCard),
+  nonzero(FilterInputCard, NonzeroFilterInputCard),
   Sel is NonzeroResCard / NonzeroInputCard, % must not be 0
-  tupleSizeSplit(BaseName1,TupleSize1),
-  tupleSizeSplit(BaseName2,TupleSize2),
-  calcExpPET(MSs, NonzeroInputCard, TupleSize1,
-                  TupleSize2, NonzeroResCard, MSsRes), % correct PET
+
+  ( BBoxResCard = noBBox 
+    -> ExpPET is MSs / NonzeroInputCard
+    ; ExpPET is MSs / NonzeroFilterInputCard
+  ),
+
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   predCost(PSimple, CalcPET), % calculated PET
-  ExpPET is MSsRes / max(InputCard, 1),
+
   dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET,
                   ') ms\nSelectivity     : ', Sel,'\n']),
   databaseName(DB),
@@ -1268,19 +1330,21 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
 % query for join-selectivity (dynamic sampling case)
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   optimizerOption(dynamicSample),
-  Rel1 = rel(BaseName1, _),
-  Rel2 = rel(BaseName2, _),
-  selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard, InputCard),
+  selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, 
+	FilterInputCard, ResCard, InputCard),
   nonzero(ResCard, NonzeroResCard),
   nonzero(InputCard, NonzeroInputCard),
-  Sel is NonzeroResCard / NonzeroInputCard,  % must not be 0
-  tupleSizeSplit(BaseName1,TupleSize1),
-  tupleSizeSplit(BaseName2,TupleSize2),
-  calcExpPET(MSs, NonzeroInputCard, TupleSize1,
-                  TupleSize2, NonzeroResCard, MSsRes),  % correct PET
+  nonzero(FilterInputCard, NonzeroFilterInputCard),
+  Sel is NonzeroResCard / NonzeroInputCard, % must not be 0
+
+  ( BBoxResCard = noBBox 
+    -> ExpPET is MSs / NonzeroInputCard
+    ; ExpPET is MSs / NonzeroFilterInputCard
+  ),
+
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  predCost(PSimple,CalcPET), % calculated PET
-  ExpPET is MSsRes / max(NonzeroInputCard,1),
+  predCost(PSimple, CalcPET), % calculated PET
+
   dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET,
                   ') ms\nSelectivity     : ', Sel,'\n']),
 
