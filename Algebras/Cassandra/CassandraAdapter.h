@@ -365,10 +365,16 @@ a valid result. False otherweise
 /*
 2.3.12 Get a list with local token ranges
 
-*/
-   bool getLokalTokenRanges(vector<TokenInterval> &localTokenRange);
+1st parameter is a vector with the local token ranges
+2nd parameter is a vector with the tokens of the local system
+3rd parameter is a vector with the tokens of the other systems
 
-    
+*/
+
+   bool getLokalTokenRanges(vector<TokenInterval> &localTokenRange, 
+     vector <long long> &localTokens, 
+     vector <long long> &peerTokens);
+ 
 /*
 2.3.12 Execute the cql statement with a given consistence level synchronus
 

@@ -255,7 +255,7 @@ bool updateLastCommand(cassandra::CassandraAdapter* cassandra,
 }
 
 /*
-2.1 Update last executed command
+2.1 Update global query status
 
 */
 bool updateLastProcessedToken(cassandra::CassandraAdapter* cassandra, 
@@ -418,19 +418,11 @@ void mainLoop(SecondoInterface* si,
   vector<long long> localTokens;
   vector<long long> peerTokens;
   vector<cassandra::TokenInterval> localTokenRange;
-     
-  if(! cassandra->getLocalTokens(localTokens) ) {
-    cerr << "Unable to determine local tokens" << endl;
-    exit(-1);
-  }
   
-  if (! cassandra->getPeerTokens(peerTokens) ) {
-    cerr << "Unable to determine peer tokens" << endl;
-    exit(-1);
-  }
-  
-  if(! cassandra->getLokalTokenRanges(localTokenRange)) {
-    cerr << "Unable to determine lokal token ranges" << endl;
+  if(! cassandra->getLokalTokenRanges(localTokenRange, 
+       localTokens, peerTokens)) {
+    
+    cerr << "Unable to determine token ranges" << endl;
     exit(-1);
   }
   
