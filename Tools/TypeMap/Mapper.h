@@ -111,29 +111,62 @@ nl list storage. The result is created using the standard nl list storage.
 }; // end of class Mapper
 
 
-/*
-2 Functions for predicates
+/* 
+1.5.1 Functions for preparing input
 
 */
 
-bool testinput(string sigInput, ListExpr sigArgs2);
 
-ListExpr sig(ListExpr sList);
-ListExpr csig(ListExpr cSList);
-ListExpr matches(ListExpr mList);
-ListExpr consistent(ListExpr B1, ListExpr B2);
-bool conflict(ListExpr B1, ListExpr B2);
-ListExpr evalPreds(ListExpr ePsList);
-ListExpr evalPred(ListExpr ePList);
-ListExpr isAttr(ListExpr attrList);
-ListExpr isAttr2(ListExpr attrList2);
-void checkMember(ListExpr cMList);
-void distinctList(ListExpr distLList);
-void distinctAttrs(ListExpr distAList);
-ListExpr attrNames(ListExpr attrNList);
-ListExpr bound(ListExpr boList);
-ListExpr addBinding(ListExpr aBList);
-ListExpr apply(ListExpr aList);
+
+/*
+1.5.2 Functions for predicates
+
+*/
+
+    bool tmInput(string sigInput, ListExpr sigArgs);
+
+    ListExpr matches(ListExpr mList);
+    ListExpr consistent(ListExpr B1, ListExpr B2);
+    bool conflict(ListExpr B1, ListExpr B2);
+    ListExpr evalPreds(ListExpr ePsList);
+    ListExpr evalPred(ListExpr ePList);
+    ListExpr isAttr(ListExpr attrList);
+    ListExpr isAttr2(ListExpr attrList2);
+/*
+Function ~attrNames~
+
+This function returns a nested list of the attribute names.
+
+*/
+    ListExpr attrNames(ListExpr attrNList);
+
+/*
+Function ~checkMember~
+
+This function returns false if a given name of an attribute equals not a member name in the rest of list. It returns true otherwise and an error is yield.
+
+*/
+    bool checkMember(ListExpr cMList);
+
+/*
+Function ~distinctList~
+
+This function returns true if a list has distincted names as elements and false otherwise.
+
+*/
+    bool distinctList(ListExpr distLList);
+
+/*
+Function ~distinctList~
+
+This function returns true if the attributes are distincted and false otherwise.
+
+*/
+    bool distinctAttrs(ListExpr distAList);
+
+    ListExpr bound(ListExpr boList);
+    ListExpr addBinding(ListExpr aBList);
+    ListExpr apply(ListExpr aList);
 
 
 
