@@ -692,23 +692,9 @@ bool CassandraAdapter::getTokensFromQuery
          if(currentPeer.empty()) {
            
            // Convert data into ipv4 addresss
-           vector< cql::cql_byte_t > data;
-           cqlResult.get_data("peer", data );
-
-           // Code from cpp-driver/src/cql/internal/cql_serialization.cpp
-           #ifdef _WIN32
-           // Max length of the output string; value copied from OS X headers.
-           const int out_buffer_size = 16; 
-           #else
-           // POSIX provides convenient macro for the 
-           // max length of output buffer.
-           const int out_buffer_size = INET_ADDRSTRLEN;
-           #endif
-    
-           char result[out_buffer_size];
-           if (inet_ntop(AF_INET, &data[0], result, out_buffer_size)) {
-              currentPeer = std::string(result);
-           }  
+           boost::asio::ip::address peerData;
+           cqlResult.get_inet("peer", peerData );
+           currentPeer = peerData.to_string();
          }
       
          if(setResult != NULL) {
