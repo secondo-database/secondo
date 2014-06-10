@@ -16,9 +16,7 @@ ifndef $(BERKELEY_DB_LIB)
 endif
 
 .PHONY: all
-all: Config.ini Queryexecutor$(EXEEXT)
-
-
+all: Config.ini Queryexecutor$(EXEEXT) Algebra
 
 
 LDFLAGS:=-L../../../../api_cpp/cs/lib/ -lsecondo    -lfl -ly -lstdc++ 
@@ -34,8 +32,12 @@ endif
 
 
 LDFLAGS += -lpthread
+LDFLAGS += -lboost_system-mt -lboost_thread-mt -lboost_unit_test_framework-mt -lboost_date_time-mt -lboost_program_options-mt 
+LDFLAGS += -lssl -lcrypto -lz -lcql
 
-LDFLAGS += -lboost_system-mt -lboost_thread-mt -lboost_unit_test_framework-mt -lboost_date_time-mt -lboost_program_options-mt -lssl -lcrypto -lz -lcql
+
+Algebra:
+	(cd ../.. ; make)
 
 Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
@@ -48,8 +50,9 @@ Queryexecutor$(EXEEXT): Queryexecutor.o
 	mkdir nltemp
 
 
-Queryexecutor.o: Queryexecutor.cpp
+Queryexecutor.o: Queryexecutor.cpp Algebra 
 	$(CPPC) -c -o Queryexecutor.o $(CCFLAGS) Queryexecutor.cpp -I../../ -I$(BDBINCLUDE) 
+
 
 .PHONY:clean
 clean:
