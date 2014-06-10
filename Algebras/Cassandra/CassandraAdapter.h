@@ -69,9 +69,10 @@ using namespace std;
 //namespace to avoid name conflicts
 namespace cassandra {
 
-// Prototype class
+// Prototype classes
 class CassandraResult;
-  
+class CassandraToken;
+
 /*
 2.1 Helper Classes
 
@@ -173,7 +174,7 @@ private:
 
 */
 inline std::ostream& operator<<(std::ostream &strm, 
-                         const TokenInterval &tokenInterval) {
+                         const cassandra::TokenInterval &tokenInterval) {
   
   return strm << "TokenInterval[" << tokenInterval.getStart()
               << ";" << tokenInterval.getEnd() << "]";
@@ -328,14 +329,14 @@ public:
 1. Parameter is the token result list
 
 */
-  bool getLocalTokens(vector <long long> &result);
+  bool getLocalTokens(vector <cassandra::CassandraToken> &result);
   
 /*
 2.3.11 Get the token list of all peer nodes
 1. Parameter is the token result list
 
 */
-  bool getPeerTokens(vector <long long> &result);
+  bool getPeerTokens(vector <cassandra::CassandraToken> &result);
   
 /*
 2.3.12 Get all tables from the keyspace specified 
@@ -372,8 +373,8 @@ a valid result. False otherweise
 */
 
    bool getLokalTokenRanges(vector<TokenInterval> &localTokenRange, 
-     vector <long long> &localTokens, 
-     vector <long long> &peerTokens);
+     vector <CassandraToken> &localTokens, 
+     vector <CassandraToken> &peerTokens);
  
 /*
 2.3.12 Execute the cql statement with a given consistence level synchronus
@@ -437,9 +438,11 @@ protected:
 
 1. Parameter is the query to execute
 2. Parameter is the token result list
+3. Parameter is the default peer
 
 */
-  bool getTokensFromQuery (string query, vector <long long> &result);
+  bool getTokensFromQuery (string query, vector <CassandraToken> &result, 
+                           string peer);
    
 private:
 

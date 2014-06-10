@@ -415,8 +415,8 @@ void mainLoop(SecondoInterface* si,
   cout << "Our id is: " << myUuid << endl;
   
   // Collect logical ring configuration
-  vector<long long> localTokens;
-  vector<long long> peerTokens;
+  vector<cassandra::CassandraToken> localTokens;
+  vector<cassandra::CassandraToken> peerTokens;
   vector<cassandra::TokenInterval> localTokenRange;
   
   if(! cassandra->getLokalTokenRanges(localTokenRange, 

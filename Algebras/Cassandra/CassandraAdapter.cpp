@@ -313,11 +313,10 @@ CassandraResult* CassandraAdapter::readTableRange(string relation,
   
 }
 
-
 bool CassandraAdapter::getLokalTokenRanges(
      vector<TokenInterval> &localTokenRange, 
-     vector <long long> &localTokens, 
-     vector <long long> &peerTokens) {
+     vector <CassandraToken> &localTokens, 
+     vector <CassandraToken> &peerTokens) {
   
     // Calculate local token ranges
     if(! getLocalTokens(localTokens)) {
@@ -329,38 +328,48 @@ bool CassandraAdapter::getLokalTokenRanges(
     }
     
     // Merge and sort tokens
-    vector<long long> allTokens;
+    vector<CassandraToken> allTokens;
     allTokens.reserve(localTokens.size() + peerTokens.size()); 
     allTokens.insert(allTokens.end(), localTokens.begin(), localTokens.end());
     allTokens.insert(allTokens.end(), peerTokens.begin(), peerTokens.end() );
     sort(allTokens.begin(), allTokens.end());
+    
+    // Create a vector with local tokens
+    vector<long long> localTokenSet;
+    for(vector<CassandraToken>::iterator iter = localTokens.begin(); 
+        iter != localTokens.end(); ++iter) {
+      CassandraToken token = *iter;
+      localTokenSet.push_back(token.getToken());
+    }
     
     // Last position in the vector
     int lastTokenPos = allTokens.size() - 1;
     
     // Special case: We are on the last positition in the vector, add
     //               first and last token
-    if(find(localTokens.begin(), localTokens.end(), allTokens.at(lastTokenPos)) 
-        != localTokens.end()) {
-        
+    if (find(localTokenSet.begin(), localTokenSet.end(), 
+        (allTokens.at(lastTokenPos)).getToken()) 
+        != localTokenSet.end()) {
+      
       // Add end interval
-      TokenInterval interval(allTokens.at(lastTokenPos), LLONG_MAX);
+      TokenInterval interval(
+        (allTokens.at(lastTokenPos)).getToken(), LLONG_MAX);
       localTokenRange.push_back(interval);
     
       // Add start interval
-      TokenInterval interval2(LLONG_MIN, allTokens.at(0) - 1);
+      TokenInterval interval2(LLONG_MIN, (allTokens.at(0)).getToken() - 1);
       localTokenRange.push_back(interval2);
     }
     
     // Normal case: Find all local token ranges between nodes
     for(size_t i = 0; i < allTokens.size() - 1; ++i) {
       
-      long currentToken = allTokens.at(i);
-      long nextToken = allTokens.at(i + 1);
+      long long currentToken = (allTokens.at(i)).getToken();
+      long long nextToken = (allTokens.at(i + 1)).getToken();
       
       // Is the current token in the localToken set?
-      if(find(localTokens.begin(), localTokens.end(), currentToken) 
-        != localTokens.end()) {
+      if(find(localTokenSet.begin(), localTokenSet.end(), currentToken) 
+        != localTokenSet.end()) {
         
         TokenInterval interval(currentToken, nextToken - 1);
         localTokenRange.push_back(interval);
@@ -370,7 +379,7 @@ bool CassandraAdapter::getLokalTokenRanges(
     // Print debug Info
     cout << "Ranges are: ";
     copy(allTokens.begin(), allTokens.end(), 
-    std::ostream_iterator<long long>(cout, " "));
+    std::ostream_iterator<CassandraToken>(cout, " "));
     cout << std::endl;
         
     cout << "Local ranges are: ";
@@ -381,13 +390,14 @@ bool CassandraAdapter::getLokalTokenRanges(
     return true;
 }
 
+
 CassandraResult* CassandraAdapter::readTableLocal(string relation,
         string consistenceLevel) {
 
     // Lokal tokens
     vector<TokenInterval> localTokenRange;
-    vector <long long> localTokens;
-    vector <long long> peerTokens;
+    vector <CassandraToken> localTokens;
+    vector <CassandraToken> peerTokens;
     
     getLokalTokenRanges(localTokenRange, localTokens, peerTokens);
 
@@ -657,7 +667,7 @@ CassandraAdapter::executeCQL
 }
 
 bool CassandraAdapter::getTokensFromQuery
-    (string query, vector <long long> &result) {    
+    (string query, vector <CassandraToken> &result, string peer) {    
       
     try {
        boost::shared_future< cql::cql_future_result_t > future = 
@@ -675,12 +685,38 @@ bool CassandraAdapter::getTokensFromQuery
        while(cqlResult.next()) {
          cql::cql_set_t* setResult = NULL;
          cqlResult.get_set(0, &setResult);
+         
+         // No peer argument was given, fetch from database
+         string currentPeer = peer;
+         
+         if(currentPeer.empty()) {
+           
+           // Convert data into ipv4 addresss
+           vector< cql::cql_byte_t > data;
+           cqlResult.get_data("peer", data );
+
+           // Code from cpp-driver/src/cql/internal/cql_serialization.cpp
+           #ifdef _WIN32
+           // Max length of the output string; value copied from OS X headers.
+           const int out_buffer_size = 16; 
+           #else
+           // POSIX provides convenient macro for the 
+           // max length of output buffer.
+           const int out_buffer_size = INET_ADDRSTRLEN;
+           #endif
+    
+           char result[out_buffer_size];
+           if (inet_ntop(AF_INET, &data[0], result, out_buffer_size)) {
+              currentPeer = std::string(result);
+           }  
+         }
       
          if(setResult != NULL) {
              for (size_t i = 0; i < setResult->size(); ++i) {
                 string token;
                 setResult->get_string(i, token);
-               result.push_back(atol(token.c_str()));
+                long long tokenLong = atol(token.c_str());
+                result.push_back(CassandraToken(tokenLong, currentPeer));
              }
     
              delete setResult;
@@ -694,13 +730,15 @@ bool CassandraAdapter::getTokensFromQuery
      return true;
 }
 
-bool CassandraAdapter::getLocalTokens(vector <long long> &result) {
-  return getTokensFromQuery("SELECT tokens FROM system.local", result);
+bool CassandraAdapter::getLocalTokens(vector <CassandraToken> &result) {
+  return getTokensFromQuery(
+    "SELECT tokens FROM system.local", result, string("127.0.0.1"));
 }
 
 
-bool CassandraAdapter::getPeerTokens(vector <long long> &result) {
-  return getTokensFromQuery("SELECT tokens FROM system.peers", result);
+bool CassandraAdapter::getPeerTokens(vector <CassandraToken> &result) {
+  return getTokensFromQuery(
+    "SELECT tokens,peer FROM system.peers", result, string(""));
 }
 
 }

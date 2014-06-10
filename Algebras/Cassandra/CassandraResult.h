@@ -114,6 +114,7 @@ public:
   virtual bool hasNext();
   virtual void getStringValue(string &resultString, int pos);
   virtual int getIntValue(int pos);
+  
 private:
   vector<string> queries;
   CassandraAdapter* cassandraAdapter;
@@ -121,7 +122,63 @@ private:
   CassandraResult* cassandraResult;
 };
 
+/*
+2.4 Result objects for tokens
+
+*/
+class CassandraToken {
+  
+public:
+  
+  CassandraToken(long long myToken, string myIp) 
+    : token(myToken), ip(myIp) {
+      
+      // Default constructor
+  }
+  
+  bool isLocalToken() const {
+    return ip.compare("127.0.0.1");
+  }
+  
+  long long getToken() const {
+    return token;
+  }
+  
+  string getIp() const {
+    return ip;
+  }
+  
+  bool operator<( const CassandraToken& val ) const { 
+        return getToken() < val.getToken(); 
+  }
+  /*
+  friend bool operator> (CassandraToken &c1, CassandraToken &c2);
+  friend bool operator<= (CassandraToken &c1, CassandraToken &c2);
+ 
+  friend bool operator< (CassandraToken &c1, CassandraToken &c2);
+  friend bool operator>= (CassandraToken &c1, CassandraToken &c2);
+  
+  friend bool operator== (CassandraToken &c1, CassandraToken &c2);
+  friend bool operator!= (CassandraToken &c1, CassandraToken &c2);
+ */
+private:
+  long long token;
+  string ip;
+  
+};
+
+/*
+2.4.4 Implementation for "toString"
+
+*/
+inline std::ostream& operator<<(std::ostream &strm, 
+                         const cassandra::CassandraToken &cassandraToken) {
+  
+  return strm << "CassandraToken[" << cassandraToken.getToken() 
+              << " / " << cassandraToken.getIp()  << "]";
 }
 
-#endif
+} // Namespace
 
+
+#endif
