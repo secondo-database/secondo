@@ -49,4 +49,27 @@ Signature: text x text -> stream(text)
 Example  : query clist('127.0.0.1', 'keyspace1') count
 Result   : 10
 
+Operator : cquerylist
+Number   : 1
+Signature: text x text -> stream(tuple())
+Example  : query cquerylist('127.0.0.1', 'keyspace1') consume
+Result   : 10
+
+Operator : cqueryreset
+Number   : 1
+Signature: text x text -> bool
+Example  : query cqueryreset('127.0.0.1', 'keyspace1')
+Result   : TRUE
+
+Operator : cqueryinsert
+Number   : 1
+Signature: text x text x int x text -> bool
+Example  : query cqueryinsert('127.0.0.1', 'keyspace1', 2, <text>query ccollectrange('__CASSANDRAIP__', '__KEYSPACE__', 'relation2', 'ONE',__TOKEN__) count;</text--->)
+Result   : TRUE
+
+Operator : cquerywait
+Number   : 1
+Signature: text x text x int -> bool
+Example  : query cqueryinsert('127.0.0.1', 'keyspace1', 2)
+Result   : TRUE
 

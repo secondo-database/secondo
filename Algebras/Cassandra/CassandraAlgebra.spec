@@ -29,3 +29,8 @@ operator ccollect alias CCOLLECT pattern op ( _ , _ , _ , _ )
 operator ccollectlocal alias CCOLLECTLOCAL pattern op ( _ , _ , _ , _ )
 operator ccollectrange alias CCOLLECTRANGE pattern op ( _ , _ , _ , _ , _ , _ )
 
+operator cquerylist alias CQUERYLIST pattern op ( _ , _ )
+operator cqueryinsert alias CQUERYINSERT pattern op ( _ , _ , _ , _ )
+operator cquerywait alias CQUERYWAIT pattern op ( _ , _ , _ )
+operator cqueryreset alias CQUERYRESET pattern op ( _ , _ )
+

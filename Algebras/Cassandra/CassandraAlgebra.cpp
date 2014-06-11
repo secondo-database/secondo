@@ -1718,6 +1718,692 @@ Operator cassandralist (
 
 
 /*
+2.7 Operator ~cquerylist~
+
+The operator ~cquerylist~ list all scheduled quries in a
+cassandra keyspace.
+
+The first paramter is the contact point to the cassandra cluster
+The second parameter specifies the keyspace to use
+
+2.7.1 Type mapping function of operator ~cquerylist~
+
+Type mapping for ~cquerylist~ is
+
+----
+  text x text -> stream(tuple(...))
+----
+
+*/
+ListExpr CQueryListTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError("two arguments expected");
+  }
+
+  string err = " text x text expected";
+
+  ListExpr contactPoint = nl->First(args);
+  ListExpr keyspace = nl->Second(args);
+
+  if(  !FText::checkType(contactPoint) ||
+       !FText::checkType(keyspace)) {
+    return listutils::typeError(err);
+  }
+  
+  // create result list
+  ListExpr res =  nl->TwoElemList( 
+                        nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                        nl->TwoElemList(
+                            nl->SymbolAtom(Tuple::BasicType()) ,
+                            nl->TwoElemList(
+                                nl->TwoElemList(
+                                nl->SymbolAtom("Query-ID"),
+                                nl->SymbolAtom(FText::BasicType())),
+                                        
+                                nl->TwoElemList(
+                                nl->SymbolAtom("Query"),
+                                nl->SymbolAtom(FText::BasicType())))            
+                            ));
+  
+  
+  return res;
+}
+
+
+/*
+2.7.3 Value mapping function of operator ~cquerylist~
+
+*/
+class CQueryListLocalInfo {
+
+public:
+  CQueryListLocalInfo(ListExpr type, string myContactPoint, string myKeyspace)
+  
+    : contactPoint(myContactPoint), keyspace(myKeyspace),
+    cassandra(NULL), result(NULL) {
+      
+      cout << "Contact point is " << contactPoint << endl;
+      cout << "Keyspace is " << keyspace << endl;
+      
+      // Tuple type
+      ListExpr numType = nl->Second(
+                         SecondoSystem::GetCatalog()->NumericType((type)));
+      tupleType = new TupleType(numType);
+      BasicTuple = new Tuple(tupleType);
+  
+      // build instances for each type
+      ListExpr attrList = nl->Second(nl->Second(type));
+      while(!nl->IsEmpty(attrList)){
+         ListExpr attrType = nl->Second(nl->First(attrList));
+         attrList = nl->Rest(attrList);
+         int algId;
+         int typeId;
+         string tname;
+         if(! ((SecondoSystem::GetCatalog())->LookUpTypeExpr(attrType,
+                                               tname, algId, typeId))){
+           cerr << "Unable to build types" << endl;
+           return;
+         }
+         Word w = am->CreateObj(algId,typeId)(attrType);
+         instances.push_back(static_cast<Attribute*>(w.addr));
+      }   
+      
+      open();
+  }
+  
+  void open(){
+    if(cassandra == NULL) {
+      cassandra = new CassandraAdapter(contactPoint, keyspace);
+      cassandra -> connect(false);
+      result = cassandra -> getQueriesToExecute();
+    }
+  }
+
+  Tuple* fetchNextTuple() {
+    
+    if(result != NULL && result->hasNext()) {
+      
+      static char c = 0; 
+      static string nullstr( &c,1);
+      Tuple* resultTuple = BasicTuple->Clone();
+
+      // Attribute 0
+      Attribute* attr0 = instances[0]->Clone();
+      size_t id = result->getIntValue(0);
+      stringstream ss;
+      ss << id;
+      attr0->ReadFromString(ss.str());
+      resultTuple->PutAttribute(0,attr0);
+      
+      // Attribute 1
+      Attribute* attr1 = instances[1]->Clone();
+      string myResult;
+      result -> getStringValue(myResult, 1);
+      attr1->ReadFromString(myResult);
+      resultTuple->PutAttribute(1,attr1);
+      
+      return resultTuple;
+    }
+    
+    return NULL;
+  }
+  
+  virtual ~CQueryListLocalInfo() {
+    if(result != NULL) {
+      delete result;
+      result = NULL;
+    }
+    
+    if(cassandra != NULL) {
+      delete cassandra;
+      cassandra = NULL;
+    }
+    
+    if(BasicTuple){
+       delete BasicTuple;
+       BasicTuple = 0;
+    }
+    
+    if(tupleType){
+        tupleType->DeleteIfAllowed();
+        tupleType = 0;
+    }
+    
+    for(unsigned int i=0; i<instances.size();i++){
+        delete instances[i];
+    }
+    
+    instances.clear();
+  }
+  
+  private:
+  string contactPoint;         // Contactpoint for our cluster
+  string keyspace;             // Keyspace
+  CassandraAdapter* cassandra; // Our cassandra connection
+  CassandraResult* result;     // Query result
+  TupleType* tupleType;        // Tuple Type
+  Tuple* BasicTuple;           // Basic tuple
+  vector<Attribute*> instances; // Instaces of attributes
+};
+
+
+int CQueryList(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  CQueryListLocalInfo *cli; 
+  Word elem;
+  cli = (CQueryListLocalInfo*)local.addr;
+  ListExpr type = qp->GetType(s);
+  
+  switch(message) {
+    case OPEN: 
+     
+     if ( cli ) delete cli;
+     
+     if(! ((FText*) args[0].addr)->IsDefined()) {
+       cout << "Cluster contactpoint is not defined" << endl;
+     } else if (! ((FText*) args[1].addr)->IsDefined()) {
+       cout << "Keyspace is not defined" << endl;
+     } else {
+       cli = new CQueryListLocalInfo(type,
+                      (((FText*)args[0].addr)->GetValue()),
+                      (((FText*)args[1].addr)->GetValue())
+                 );
+        
+       local.setAddr( cli );
+     }
+      
+     return 0;
+
+    case REQUEST:
+      
+      // Operator not ready
+      if ( ! cli ) {
+        return CANCEL;
+      }
+      
+      // Fetch next query from cassandra
+      result.addr = cli -> fetchNextTuple();
+      
+      if(result.addr != NULL) {     
+        return YIELD;
+      } else  {     
+        return CANCEL;
+      }     
+
+    case CLOSE:
+      if(cli) {
+        delete cli;
+        cli = NULL;
+        local.setAddr( cli );
+      }
+      return 0;
+  }
+  
+  return 0;    
+}
+
+/*
+2.7.4 Specification of operator ~cquerylist~
+
+*/
+const string CQueryListSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text x text -> stream(tuple(...))</text--->"
+                         "<text>clist ( _ , _ ) </text--->"
+                         "<text>The operator clist list all schduled queries"
+                         "in a given cassandra keyspace</text--->"
+                         "<text>query cquerylist('127.0.0.1', "
+                         "'keyspace1') consume</text--->"
+                              ") )";
+
+/*
+2.7.5 Definition of operator ~cquerylist~
+
+*/
+Operator cassandraquerylist (
+         "cquerylist",                // name
+         CQueryListSpec,              // specification
+         CQueryList,                  // value mapping
+         Operator::SimpleSelect,      // trivial selection function
+         CQueryListTypeMap            // type mapping
+);                         
+
+
+/*
+2.8 Operator ~cqueryinsert~
+
+The operator ~cqueryinsert~ schedules a query for execuion
+
+The first paramter is the contact point to the cassandra cluster
+The second parameter specifies the keyspace to use
+The third parameter is the id of the query
+The fourth parameter is the query
+
+2.8.1 Type mapping function of operator ~cquerinsert~
+
+Type mapping for ~cqueryinsert~ is
+
+----
+  text x text x int x text -> bool
+----
+
+*/
+ListExpr CQueryInsertTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 4){
+    return listutils::typeError("four arguments expected");
+  }
+
+  string err = " text x text expected";
+
+  ListExpr contactPoint = nl->First(args);
+  ListExpr keyspace = nl->Second(args);
+  ListExpr id = nl->Third(args);
+  ListExpr query = nl->Fourth(args);
+
+  if(  !FText::checkType(contactPoint) ||
+       !FText::checkType(keyspace) ||
+       !CcInt::checkType(id) ||
+       !FText::checkType(query) ) {
+    return listutils::typeError(err);
+  }
+  
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+2.8.2 Specification of operator ~cqueryinsert~
+
+*/
+int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word elem;
+  
+  switch(message)
+  {
+    case OPEN: 
+    case REQUEST:
+    case CLOSE:
+      
+      result = qp->ResultStorage(s);
+      static_cast<CcInt*>(result.addr)->Set(false, 0);
+    
+      bool resultValue = false;
+      
+      if(! ((FText*) args[0].addr)->IsDefined()) {
+        cout << "Cluster contactpoint is not defined" << endl;
+        return CANCEL;
+      } else if (! ((FText*) args[1].addr)->IsDefined()) {
+        cout << "Keyspace is not defined" << endl;
+        return CANCEL;
+      } else if (! ((CcInt*) args[2].addr)->IsDefined()) {
+        cout << "Query id is not defined" << endl;
+        return CANCEL;
+      } else if (! ((FText*) args[3].addr)->IsDefined()) {
+        cout << "Query is not defined" << endl;
+        return CANCEL;
+      } else {
+      
+      string contactPoint = ((FText*) args[0].addr) -> GetValue();
+      string keyspace = ((FText*) args[1].addr) -> GetValue();
+      int queryid = ((CcInt*) args[2].addr) -> GetValue();
+      string query = ((FText*) args[3].addr) -> GetValue();
+      
+      CassandraAdapter* cassandra 
+          = new CassandraAdapter(contactPoint, keyspace);
+      
+      if(cassandra != NULL) {
+        cassandra -> connect(false);
+        bool createMetatables = cassandra -> createMetatables();
+        
+        cassandra -> quoteCqlStatement(query);
+        
+        stringstream ss;
+        ss << "INSERT INTO queries (id, query) ";
+        ss << "values(" << queryid << ", '" << query << "');";
+        
+        bool insertResult = cassandra 
+            -> executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
+  
+        if(! insertResult) {
+          cout << "Unable to execute query: " << ss.str() << endl;
+        }  
+        
+        resultValue = insertResult && createMetatables;
+        
+        cassandra -> disconnect();
+        delete cassandra;
+        cassandra = NULL;
+      }
+      
+      static_cast<CcBool*>(result.addr)->Set(true, resultValue);
+      
+      return YIELD;
+      }
+  }
+  
+  return 0;    
+}
+
+/*
+2.8.3 Specification of operator ~cqueryinsert~
+
+*/
+const string CQueryInsertSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text x text x int x text -> bool</text--->"
+                         "<text>cqueryinsert ( _ , _ , _ , _ ) </text--->"
+                         "<text>The operator cqueryinsert schedules a query"
+                         "for execuion. </text--->"
+                         "<text>query cqueryinsert('127.0.0.1', 'keyspace1', "
+                         "1, 'open database opt') "
+                         "</text--->"
+                              ") )";
+
+/*
+2.8.4 Definition of operator ~cqueryinsert~
+
+*/
+Operator cassandraqueryinsert (
+         "cqueryinsert",            // name
+         CQueryInsertSpec,          // specification
+         CQueryInsert,              // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         CQueryInsertTypeMap        // type mapping
+);                         
+
+
+
+/*
+2.9 Operator ~cquerywait~
+
+The operator ~cquerywait~ waits until the query, given by queryid
+is executed completelly
+
+The first paramter is the contact point to the cassandra cluster
+The second parameter specifies the keyspace to use
+The third parameter is the query id
+
+2.9.1 Type mapping function of operator ~cquerywait~
+
+Type mapping for ~cquerywait~ is
+
+----
+  text x text x int -> bool
+----
+
+*/
+ListExpr CQueryWaitTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 3){
+    return listutils::typeError("three arguments expected");
+  }
+
+  string err = " text x text x int expected";
+
+  ListExpr contactPoint = nl->First(args);
+  ListExpr keyspace = nl->Second(args);
+  ListExpr queryId = nl->Third(args);
+
+  if(  !FText::checkType(contactPoint) ||
+       !FText::checkType(keyspace) ||
+       !CcInt::checkType(queryId)) {
+    return listutils::typeError(err);
+  }
+  
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+2.9.2 Specification of operator ~cqueryreset~
+
+*/
+int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word elem;
+  
+  switch(message)
+  {
+    case OPEN: 
+    case REQUEST:
+    case CLOSE:
+      
+      result = qp->ResultStorage(s);
+      static_cast<CcInt*>(result.addr)->Set(false, 0);
+    
+      if(! ((FText*) args[0].addr)->IsDefined()) {
+        cout << "Cluster contactpoint is not defined" << endl;
+        return CANCEL;
+      } else if (! ((FText*) args[1].addr)->IsDefined()) {
+        cout << "Keyspace is not defined" << endl;
+        return CANCEL;
+      } else if (! ((CcInt*) args[2].addr)->IsDefined()) {
+        cout << "Query-Id is not defined" << endl;
+        return CANCEL;
+      } else {
+      
+      string contactPoint = ((FText*) args[0].addr) -> GetValue();
+      string keyspace = ((FText*) args[1].addr) -> GetValue();
+      int queryId = ((CcInt*) args[2].addr) -> GetValue();
+      
+      cout << "Wait for query id to be executed: " << queryId << endl;
+      
+      CassandraAdapter* cassandra 
+            = new CassandraAdapter(contactPoint, keyspace);
+      
+      if(cassandra != NULL) {
+        cassandra -> connect(false);
+        
+        while (true) {
+          int highestValue = -1;
+          
+          // Get the global query state
+          CassandraResult* result = cassandra -> getGlobalQueryState();
+          
+          // Determine the highest executed query
+          if(result != NULL) {
+            while(result -> hasNext()) {
+              int lastExecutedQuery = result -> getIntValue(1);
+              if(lastExecutedQuery > highestValue) {
+                highestValue = lastExecutedQuery;
+              }
+            }
+            
+            delete result;
+          }
+          
+          // Is query executed completelly?
+          if(highestValue >= queryId) {
+            break;
+          }
+          
+          cout << "Highest value: " << highestValue << endl;
+          sleep(5);
+        }
+        
+        cassandra -> disconnect();
+      }
+      
+      static_cast<CcBool*>(result.addr)->Set(true, true);
+      
+      return YIELD;
+      }
+  }
+  
+  return 0;    
+}
+
+/*
+2.9.3 Specification of operator ~cquerywait~
+
+*/
+const string CQueryWaitSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text x text x int -> bool</text--->"
+                         "<text>cquerywait ( _ , _ , _ ) </text--->"
+                         "<text>The operator cquerywait blocks until the"
+                         "query specified by query id is executed"
+                          "completelly</text--->"
+                         "<text>query cquerywait('127.0.0.1', 'keyspace1', 3)"
+                         "</text--->"
+                              ") )";
+
+/*
+2.9.4 Definition of operator ~cquerywait~
+
+*/
+Operator cassandraquerywait (
+         "cquerywait",            // name
+         CQueryWaitSpec,          // specification
+         CQueryWait,              // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         CQueryWaitTypeMap        // type mapping
+);                         
+
+
+/*
+2.10 Operator ~cqueryreset~
+
+The operator ~creset~ drops all metatables and recreate 
+them into the specified keyspace.
+
+The first paramter is the contact point to the cassandra cluster
+The second parameter specifies the keyspace to use
+
+2.10.1 Type mapping function of operator ~cqueryreset~
+
+Type mapping for ~cqueryreset~ is
+
+----
+  text x text -> bool
+----
+
+*/
+ListExpr CQueryResetTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError("two arguments expected");
+  }
+
+  string err = " text x text expected";
+
+  ListExpr contactPoint = nl->First(args);
+  ListExpr keyspace = nl->Second(args);
+
+  if(  !FText::checkType(contactPoint) ||
+       !FText::checkType(keyspace)) {
+    return listutils::typeError(err);
+  }
+  
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+2.10.2 Specification of operator ~cqueryreset~
+
+*/
+int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word elem;
+  
+  switch(message)
+  {
+    case OPEN: 
+    case REQUEST:
+    case CLOSE:
+      
+      result = qp->ResultStorage(s);
+      static_cast<CcInt*>(result.addr)->Set(false, 0);
+    
+      bool resultValue = false;
+      
+      if(! ((FText*) args[0].addr)->IsDefined()) {
+        cout << "Cluster contactpoint is not defined" << endl;
+        return CANCEL;
+      }  else if (! ((FText*) args[1].addr)->IsDefined()) {
+        cout << "Keyspace is not defined" << endl;
+        return CANCEL;
+      } else {
+      
+      string contactPoint = ((FText*) args[0].addr) -> GetValue();
+      string keyspace = ((FText*) args[1].addr) -> GetValue();
+      
+      CassandraAdapter* cassandra 
+           = new CassandraAdapter(contactPoint, keyspace);
+      
+      if(cassandra != NULL) {
+        cassandra -> connect(false);
+        bool dropResult = cassandra -> dropMetatables();
+        
+        if(! dropResult) {
+          cerr << "Unable to drop metatables" << endl;
+        } 
+        
+        bool createMetatables = cassandra -> createMetatables();
+        
+        if(! createMetatables ) {
+          cerr << "Unable to create metatables" << endl;
+        } else {
+          cout << "Metatables droped and recreated" << endl;
+        }
+        
+        resultValue = dropResult && createMetatables;
+        
+        cassandra -> disconnect();
+        delete cassandra;
+        cassandra = NULL;
+      }
+      
+      static_cast<CcBool*>(result.addr)->Set(true, resultValue);
+      
+      return YIELD;
+      }
+  }
+  
+  return 0;    
+}
+
+/*
+2.10.3 Specification of operator ~cqueryreset~
+
+*/
+const string CQueryResetSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>text x text -> bool</text--->"
+                         "<text>cqueryreset ( _ , _ ) </text--->"
+                         "<text>The operator cqueryreset recreate all "
+                         "metatables in the specified cassandra keyspace."
+                         "All planed and executed queries will be lost"
+                         "</text--->"
+                         "<text>query cqueryreset('127.0.0.1', 'keyspace1') "
+                         "</text--->"
+                              ") )";
+
+/*
+2.10.4 Definition of operator ~cqueryreset~
+
+*/
+Operator cassandraqueryreset (
+         "cqueryreset",            // name
+         CQueryResetSpec,          // specification
+         CQueryReset,              // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         CQueryResetTypeMap        // type mapping
+);                         
+
+
+
+
+/*
  7 Creating the Algebra
 
 */
@@ -1742,8 +2428,11 @@ public:
     cassandracollectlocal.SetUsesArgsInTypeMapping();
     AddOperator(&cassandracollectrange);
     cassandracollectrange.SetUsesArgsInTypeMapping();
-    AddOperator(&cassandralist);
-    
+    AddOperator(&cassandralist);    
+    AddOperator(&cassandraquerylist);
+    AddOperator(&cassandraqueryinsert);
+    AddOperator(&cassandraquerywait); 
+    AddOperator(&cassandraqueryreset);
   }
   
   ~CassandraAlgebra()

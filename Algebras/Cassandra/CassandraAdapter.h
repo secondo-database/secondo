@@ -399,14 +399,28 @@ a valid result. False otherweise
 
 */    
   bool dropMetatables();
-
+  
+  
 /*
 2.3.16 Get a cassandraResult with queries to execute
 
 */    
   CassandraResult* getQueriesToExecute();
 
-  
+/*
+2.3.17 Quote CQL Statement
+
+Replace all single quotes with double quotes
+
+*/      
+  void quoteCqlStatement(string &query);  
+
+/*
+2.3.18 Get the global query state
+
+*/    
+  CassandraResult* getGlobalQueryState();
+
 protected:
 
 /*

@@ -799,4 +799,21 @@ CassandraResult* CassandraAdapter::getQueriesToExecute() {
             ("SELECT id, query from queries", cql::CQL_CONSISTENCY_ONE);
 }
 
+CassandraResult* CassandraAdapter::getGlobalQueryState() {
+    return readDataFromCassandra
+            ("SELECT ip, lastquery FROM state", cql::CQL_CONSISTENCY_ONE);
+}
+
+void CassandraAdapter::quoteCqlStatement(string &query) {
+  size_t startPos = 0;
+  string placeholder = "'";
+  string value = "''";
+    
+  while((startPos = query.find(placeholder, startPos)) != std::string::npos) {
+         query.replace(startPos, placeholder.length(), value);
+         startPos += value.length();
+  }
+}
+
+
 }

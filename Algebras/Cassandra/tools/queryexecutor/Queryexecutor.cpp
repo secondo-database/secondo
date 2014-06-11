@@ -411,8 +411,8 @@ void mainLoop(SecondoInterface* si,
             }
             
             // Update global status
-            updateLastCommand(cassandra, lastCommandId, cassandraIp);
             ++lastCommandId;
+            updateLastCommand(cassandra, lastCommandId, cassandraIp);
           }
         }
         
