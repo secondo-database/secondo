@@ -400,6 +400,12 @@ a valid result. False otherweise
 */    
   bool dropMetatables();
 
+/*
+2.3.16 Get a cassandraResult with queries to execute
+
+*/    
+  CassandraResult* getQueriesToExecute();
+
   
 protected:
 

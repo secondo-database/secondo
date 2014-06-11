@@ -388,8 +388,7 @@ void mainLoop(SecondoInterface* si,
         
         cout << "Waiting for commands" << endl;
         
-        cassandra::CassandraResult* result = cassandra -> readDataFromCassandra
-            ("SELECT id, query from queries", cql::CQL_CONSISTENCY_ONE);
+        cassandra::CassandraResult* result = cassandra->getQueriesToExecute();
           
         while(result != NULL && result -> hasNext()) {
           size_t id = result->getIntValue(0);

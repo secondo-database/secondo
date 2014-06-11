@@ -794,4 +794,9 @@ bool CassandraAdapter::dropMetatables() {
   return true;
 }
 
+CassandraResult* CassandraAdapter::getQueriesToExecute() {
+  return readDataFromCassandra
+            ("SELECT id, query from queries", cql::CQL_CONSISTENCY_ONE);
+}
+
 }
