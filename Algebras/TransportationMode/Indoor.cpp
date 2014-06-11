@@ -14430,7 +14430,8 @@ IndoorInfra::IndoorInfra(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(int);
 
 
-  valueRecord.Read(&digit_build_id, sizeof(int), offset);
+//  valueRecord.Read(&digit_build_id, sizeof(int), offset);
+  valueRecord.Read(&digit_build_id, sizeof(unsigned int), offset);
   offset += sizeof(int);
   
   ListExpr xType;
@@ -14516,7 +14517,8 @@ bool IndoorInfra::Save(SmiRecord& valueRecord, size_t& offset,
   valueRecord.Write(&indoor_id, sizeof(int), offset);
   offset += sizeof(int); 
 
-  valueRecord.Write(&digit_build_id, sizeof(int), offset);
+//  valueRecord.Write(&digit_build_id, sizeof(int), offset);
+  valueRecord.Write(&digit_build_id, sizeof(unsigned int), offset);
   offset += sizeof(int);
 
   ListExpr xType;

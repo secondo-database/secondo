@@ -60,7 +60,8 @@ Jan, 2011 Jianqiu xu
 #include "Indoor2.h"
 #include "ArrayAlgebra.h"
 #include <bitset>
-
+#include <iostream>
+#include <fstream>
 
 /*
 technique macro definition 
@@ -960,16 +961,19 @@ struct GenMObject{
   enum BenchModeNNBuildingInfo{BM_NNB_ID = 0, BM_NNB_GEODATA};
 
 
-  
+  static string RoadSegment;
   enum ROADSEGMENT{RS_RID = 0, RS_MEAS1, RS_MEAS2, RS_CURVE, RS_SID};
+  
+  static string RoadSegment2;
+  enum ROADSEGMENT2{B_RID = 0, B_MEAS1, B_MEAS2, B_CURVE};
   
   static string GenMOTrip;
   enum GENMOTRIP{GENMO_OID= 0, GENMO_TRIP1, GENMO_TRIP2, GENMO_DEF, 
                  GENMO_TM, GENMO_INDEX};
-  
-  static string RoadSegment;
-  
                  
+  static string BusTrip_Info;
+  enum BusTrip_Data{BT_OID = 0, BT_RID, BT_TRIP2, BT_DEF};
+  				 
   vector<GenMO> trip1_list;
   vector<MPoint> trip2_list;
   vector<temporalnet::MGPoint> trip3_list;
@@ -1017,6 +1021,7 @@ struct GenMObject{
   void GetIdList(Door3D* d);
   void GetRef(GenMO* mo);
   void GetUnits(GenMO*);
+  void GetAtGloc(GenMO* genmo, GenLoc* genloc);
   ///////////////////create generic moving objects///////////////////////
   void GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type);
 
@@ -1247,6 +1252,7 @@ struct GenMObject{
                             Relation* id_rel, string type);
    void GenMOBenchRBO(Space* sp, Periods* peri, int mo_no, Relation* id_rel);
    void GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no, Relation* id_rel);
+   void WriteDataToFile(int id, unsigned int, GenMO* mo);
    void GetSelectedBuilding3(IndoorInfra* i_infra,
                           vector<RefBuild>& build_tid1_list,
                           MaxRect* maxrect, Relation* rel);

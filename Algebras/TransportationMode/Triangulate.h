@@ -66,7 +66,9 @@ using namespace std;
 
 //#define SEGSIZE 500000
 
-#define SEGSIZE 200000     /* max# of segments. Determines how */
+#define SEGSIZE 240000     /* max# of segments. Determines how */
+
+//#define SEGSIZE 200000     /* max# of segments. Determines how */
                 /* many points can be specified as */
                 /* input. If your datasets have large */
                 /* number of points, increase this */

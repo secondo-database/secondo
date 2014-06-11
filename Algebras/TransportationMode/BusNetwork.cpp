@@ -16362,7 +16362,7 @@ load metro routes relation
 */
 void MetroNetwork::LoadRoutes(Relation* r2)
 {
-//    cout<<"LoadRotes"<<endl; 
+//    cout<<"LoadRoutes"<<endl; 
 
     ListExpr ptrList1 = listutils::getPtrList(r2);
 

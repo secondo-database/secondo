@@ -1421,12 +1421,14 @@ class IndoorInfra{
   R_Tree<2,TupleId>* BuildingRTree() {return rtree_building;}
   void GetPathIDFromTypeID(int reg_id, vector<int>& path_id_list);
   void GetTypeFromRegId(int reg_id, int& type, int& build_id, Rectangle<2>&);
-  int Get_Digit_Build_ID(){return digit_build_id;}
+  unsigned int Get_Digit_Build_ID(){return digit_build_id;}
 
   private:
     bool def;
     int indoor_id;
-    int digit_build_id; ///the first six or seven number is for building id
+	///the first six or seven number is for building id
+    unsigned int digit_build_id; 
+	
     Relation* building_path;//path for building to the pavement 
     BTree* btree_reg_id1;  //btree on reg id. relation for paths 
     Relation* building_type; // the type of a building 

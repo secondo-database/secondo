@@ -829,6 +829,7 @@ class BusNetwork{
   int GetMOBus_MP(Bus_Stop* bs, Point*, Instant t, MPoint& mp);
   void GetMOBUS(int oid, MPoint& mp, int& br_uoid);
   void GetBusRouteGeoData(int br_uoid, SimpleLine& sl);
+  unsigned int GetMinRouteId(){return min_br_oid;}
 
   private:
     bool def; 
@@ -1589,6 +1590,7 @@ class MetroNetwork{
 
     bool IsGraphInit(){return graph_init;}
     unsigned int GraphId(){return graph_id;}
+    unsigned int GetMinRouteId(){return min_mr_oid;}
     MetroGraph* GetMetroGraph();
     void CloseMetroGraph(MetroGraph* mg);
     void GetMetroStopGeoData(Bus_Stop* ms, Point* p);
