@@ -35,6 +35,12 @@ Signature: network x rel1 x attr1 x attr2 x int x rel2 x attr-> (stream(tuple ((
 Example  : query junregion(rn, pave_regions1, Pavement1, Pavement2, roadwidth, allregions_in, Inborder) count;
 Result   : 9
 
+Operator : unionpoly
+Number   : 2
+Signature: rel1 x attr x rel2 x attr1 x attr2-> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query unionpoly(CAExtNew, NewHole, res2, Oid_C1, Oid_C2) count;
+Result   : 9
+
 Operator : decomposeregion
 Number   : 2
 Signature: region -> (stream(tuple ((x1 t1) ... (xn tn))))
@@ -199,6 +205,25 @@ Signature: dualgraph x rel1 x rel2 x rel3 x btree-> (stream(((x1 t1) ... (xn tn)
 Example  : query getvnode(dg, query_loc1, tri_reg_new, vgnodes, vertex_tri, btr_vid) count;
 Result   : 8
 
+Operator : getvnode2
+Number   : 2
+Signature: dualgraph x rel1 x rel2 x rel3 x btree x real-> (stream(((x1 t1) ... (xn tn)))
+Example  : query getvnode2(dg, query_loc1, tri_reg_new, vgnodes, vertex_tri, btr_vid, 500.0) count;
+Result   : 8
+
+
+Operator : getvnode3
+Number   : 2
+Signature: dualgraph x rel1 x rel2 x rel3 x btree x real1 x real2-> (stream(((x1 t1) ... (xn tn)))
+Example  : query getvnode3(dg, query_loc1, tri_reg_new, vgnodes, vertex_tri, btr_vid, 20.0, 30.0) count;
+Result   : 8
+
+Operator : vprange
+Number   : 2
+Signature: rel1 x rtree x rel2 x real-> (stream(((x1 t1) ... (xn tn)))
+Example  : query vprange(holes, obs_rtree, query_loc1, l) count;
+Result   : 0
+
 Operator : getvgedge
 Number   : 2
 Signature: dualgraph x rel1 x rel2 x rel3 x btree -> (stream(((x1 t1) ... (xn tn)))
@@ -254,6 +279,12 @@ Operator : rotationsweep
 Number   : 2
 Signature: rel x rel x rect x rel x attr -> (stream(((x1 t1) ... (xn tn))))
 Example  : query rotationsweep(query_loc1 feed addcounter[Id,1] filter[.Id = 1] remove[Id] consume, allpoints, bbox(temp_reg), allholes, Hole) count;
+Result   : 491
+
+Operator : rotationsweep2
+Number   : 2
+Signature: rel x rel x rect x rel x attr x real x real -> (stream(((x1 t1) ... (xn tn))))
+Example  : query rotationsweep2(query_loc1 feed addcounter[Id,1] filter[.Id = 1] remove[Id] consume, allpoints, bbox(temp_reg), allholes, Hole, 20.0, 30.0) count;
 Result   : 491
 
 Operator : gethole
@@ -828,6 +859,12 @@ Signature: genmo x mreal x genloc x string -> genmo
 Example  : query no_components(tm_at3([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]),tm_genloc(2, -1.0, -1.0), "Indoor"));
 Result   : 0
 
+Operator : tm_atgloc
+Number   : 1
+Signature: genmo x gloc -> genmo
+Example  : query no_components(tm_atgloc([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))],tm_genloc(1, -1.0, -1.0)));
+Result   : 1
+
 
 Operator : val
 Number   : 1
@@ -1221,6 +1258,12 @@ Signature: sline -> sline
 Example  : query size(modifyline([const sline value((2.0 1.0 3.0 1.0))]));
 Result   : 1
 
+Operator : modifyregion
+Number   : 1
+Signature: region -> region
+Example  : query size(modifyregion([const region value ((((1 1)(5 1)(5 5)(1 5))))]))
+Result   : 1
+
 Operator : refinedata
 Number   : 1
 Signature: sline -> sline
@@ -1303,11 +1346,17 @@ Signature: rel x real x bool -> (stream(((x1 t1) ... (xn tn))))
 Example  : query decomposegenmo(all_genmo, 200.0, TRUE) count;
 Result   : 1
 
+Operator : decomposegenmo2
+Number   : 1
+Signature: rel x real x space -> (stream(((x1 t1) ... (xn tn))))
+Example  : query decomposegenmo2(all_genmo, 200.0, space_1) count;
+Result   : 1
+
 
 Operator : bulkloadtmrtree
 Number   : 1
 Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj) x attr1 x attr2 x attr3 x int-> (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false)
-Example  : query genmo_units feed addid bulkloadtmrtree[Time, Box2d, Mode, 1]
+Example  : query genmo_units feed addid bulkloadtmrtree[Time, Box3d, Mode, 1]
 Result   : file_platform
 
 Operator : tmrtreemode
@@ -1343,9 +1392,60 @@ Signature: rel x rel -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
 Example  : query range_query(genmo_union, query_rel) count;
 Result   : 0
 
-
 Operator : mode2bit
 Number   : 1
 Signature: int -> int
 Example  : query mode2bit(2);
 Result   : 1
+
+
+Operator : loadmodertree
+Number   : 1
+Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj) x attr1 x attr2 x attr3 x attr4 -> modertree
+Example  : query genmo_units feed addid loadmodertree[Tid, Box3d, Mode, RefId];
+Result   : file_platform
+
+Operator : modertreeref
+Number   : 1
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x attr x space ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query modertreeref(Mode_RTree, genmo_units, RefId,space_1) count
+Result   : 1
+
+
+Operator : bench_modertree
+Number   : 1
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x space x rel x btree ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query bench_modertree(Mode_RTree, genmo_units, bench_query, space_1, all_genmo, btreegenmo) count
+Result   : 1
+
+Operator : printmodertree
+Number   : 1
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false)  x string x space ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query printmodertree(Mode_RTree, "Bus", space_1) count
+Result   : 1
+
+Operator : bench_modertree9
+Number   : 1
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x space x rel x btree x rel ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query bench_modertree9(Mode_RTree, genmo_units, bench_query, space_1, all_genmo, btreegenmo, uni_pah) count
+Result   : 1
+
+Operator : bench_modertree12
+Number   : 1
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x space x rel x btree x rel x rel x rel ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query bench_modertree12(Mode_RTree, genmo_units, bench_query, space_1, all_genmo, btreegenmo, floor_h, busstops1, busstops2) count
+Result   : 1
+
+
+Operator : bench_modertree13
+Number   : 1
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x space x rel x btree x rel x rel ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query bench_modertree13(Mode_RTree, genmo_units, bench_query, space_1, all_genmo, btreegenmo, road_seg, mo_bus) count
+Result   : 1
+
+
+Operator : range_query4d
+Number   : 1
+Signature: rtree x rel x rel -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query range_query4d(rtree, genmo_union, query_rel) count
+Result   : 0
