@@ -37,7 +37,7 @@ LDFLAGS += -lssl -lcrypto -lz -lcql
 
 
 Algebra:
-	(cd ../.. ; make)
+	make -C ../../
 
 Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
