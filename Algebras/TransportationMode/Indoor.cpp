@@ -14556,6 +14556,28 @@ bool IndoorInfra::Save(SmiRecord& valueRecord, size_t& offset,
   return true;
 }
 
+
+void OutPutRect(ofstream& out_f, Relation* rel)
+{
+  
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+    Tuple* tuple = rel->GetTuple(i, false);
+	Rectangle<2>* rec = 
+	(Rectangle<2>*)tuple->GetAttribute(IndoorInfra::INDOORIF_GEODATA);
+	double min_x = rec->MinD(0);
+	double min_y = rec->MinD(1);
+	double max_x = rec->MaxD(0);
+	double max_y = rec->MaxD(1);
+	CcString* rec_str = 
+	  (CcString*)tuple->GetAttribute(IndoorInfra::INDOORIF_BUILD_TYPE2);
+	   out_f<<i<<" "<<min_x<<" "<<min_y<<" "<<max_x<<" "<<max_y
+	    <<" "<<rec->Area()<<" "<<rec_str->GetValue()<<endl;
+	
+    tuple->DeleteIfAllowed();
+  }
+
+}
+
 /*
 load relations for indoor infrastructure 
 
@@ -14564,6 +14586,10 @@ void IndoorInfra::Load(int id, Relation* rel1, Relation* rel2)
 {
 //  cout<<rel1->GetNoTuples()<<endl;
 //  cout<<rel2->GetNoTuples()<<endl; 
+
+  ofstream out_f("Rect.txt");
+  OutPutRect(out_f, rel2);//temporary function
+  out_f.close();
 
   if(id <= 0){
     def = false;

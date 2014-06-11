@@ -1080,6 +1080,10 @@ struct SpacePartition{
   void FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
                       int attr_pos2, int width);
 
+  //given a set of polygons, perform the union on those intersect objects////
+  void UnionPoly(Relation* rel1, int attr_pos1, Relation* rel2, 
+				 int attr_pos2, int attr_pos3);
+  void NewBoundary(Region* reg, Line* l);				 
 };
 
 
@@ -1184,6 +1188,7 @@ struct DataClean{
   
 
   void ModifyLine(SimpleLine* in, SimpleLine* out);
+  void ModifyRegion(Region* in, Region* out);
   void RefineData(SimpleLine* in, SimpleLine* out);
   void CheckRoads(Relation* r, R_Tree<2,TupleId>* rtree);
   void DFTraverse(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
