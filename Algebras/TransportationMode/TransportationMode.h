@@ -10807,6 +10807,10 @@ ListExpr TMRTreeProp()
 
 }
 
+/*
+check the data type of a tmrtree
+
+*/
 bool CheckTMRTree(ListExpr type, ListExpr& errorInfo)
 {
   return  nl->IsEqual( type, TM_RTree<3,TupleId>::BasicType());
@@ -10832,42 +10836,6 @@ bool CheckModeRTree(ListExpr type, ListExpr& errorInfo)
 {
   return  nl->IsEqual( type, Mode_RTree::BasicType());
 }
-
-
-/*
-Mode RTree functions
-TypeMap fun for operator printmodertree
-
-*/
-ListExpr PrintModeRtreeTypeMap ( ListExpr args )
-{
-  string err = "modertree(tuple(...) rect3 BOOL) expected";
-  if ( nl->ListLength ( args ) != 3 )
-  {
-    return listutils::typeError("expecting three argument");
-  }
-  
-  ListExpr arg1 = nl->First(args);
-  if(!(nl->IsAtom(arg1) && nl->IsEqual(arg1, "modertree"))){
-	return nl->SymbolAtom("typeerror");
-  }
-
-  ListExpr arg2 = nl->Second(args);
-  if(!(nl->IsAtom(arg2) && nl->IsEqual(arg2, "string"))){
-	return nl->SymbolAtom("typeerror");
-  }
-
-  ListExpr arg3 = nl->Third(args);
-  
-  if(!nl->IsEqual(arg3, "space")){
-      string err = "the third parameter should be space";
-      return listutils::typeError(err);
-  }
-  
-
-
-}
-
 
 /*
 Type Constructor object for type constructor tmrtree
@@ -10908,6 +10876,64 @@ TypeConstructor modertree(Mode_RTree::BasicType(),
                         CastModeRTree,
                         SizeOfModeRTree,
                         CheckModeRTree );
+
+/*
+Mode RTree functions
+TypeMap fun for operator printmodertree
+print information of a node in modertree
+
+*/
+ListExpr PrintModeRtreeTypeMap ( ListExpr args )
+{
+  string err = "modertree(tuple(...) rect3 BOOL) expected";
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return listutils::typeError("expecting three argument");
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!(nl->IsAtom(arg1) && nl->IsEqual(arg1, "modertree"))){
+	return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!(nl->IsAtom(arg2) && nl->IsEqual(arg2, "string"))){
+	return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  
+  if(!nl->IsEqual(arg3, "space")){
+      string err = "the third parameter should be space";
+      return listutils::typeError(err);
+  }
+   //////////////print the mode rtree information//////////////
+     ListExpr res =
+		 nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FiveElemList(
+                        nl->TwoElemList(
+                             nl->SymbolAtom("NodeId"),
+	                         nl->SymbolAtom("int")),
+						nl->TwoElemList(
+						     nl->SymbolAtom("Level"),
+							 nl->SymbolAtom("int")),
+						nl->TwoElemList(
+						     nl->SymbolAtom("RefMin"), 
+							 nl->SymbolAtom("int")),
+						nl->TwoElemList(
+						     nl->SymbolAtom("RefMax"),
+							 nl->SymbolAtom("int")),
+			            nl->TwoElemList(
+			                 nl->SymbolAtom("BitPos"),
+							 nl->SymbolAtom("int"))
+			                  )
+			                )
+						);
+    return res;
+}
 
 #endif
 
