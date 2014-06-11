@@ -60,6 +60,8 @@ Jan, 2011 Jianqiu xu
 #include <sys/timeb.h>
 #include "GSLAlgebra.h"
 
+//ofstream output;
+
 ///////////////////////////random number generator//////////////////////////
 unsigned long int GetRandom()
 {
@@ -2208,15 +2210,11 @@ bool GenMO::Passes(Region* reg, Space* sp)
 
 }
 
-
-
 /*
 map a genmo to a mpoint 
 now it only supports bus 
 
-
 */
-
 void GenMO::MapGenMO(MPoint* in, MPoint& res)
 {
 
@@ -2239,57 +2237,6 @@ void GenMO::MapGenMO(MPoint* in, MPoint& res)
   peri1->Get(0, time_span1);
   peri2->Get(0, time_span2);
   in->AtPeriods(*peri1, res);
-
-//  int day1 = time_span1.start.GetDay();
-//  int day2 = time_span2.start.GetDay();
-
-//  cout<<day1<<" "<<day2<<endl;
-//   if(day1 == day2){
-//     in->AtPeriods(*peri1, res);
-// 
-//   }else{
-// 
-//     Periods* peri_new = new Periods(0);
-//     peri_new->StartBulkLoad();
-// 
-//     Instant st1 = time_span1.start;
-//     Instant et1 = time_span1.end;
-// 
-//     Instant st2 = time_span2.start;
-//     Instant et2 = time_span2.end;
-// 
-// //     if(st1.GetDay() != et1.GetDay() || st2.GetDay() != et2.GetDay()){
-// //       cout<<" time "<<*peri1<<endl;
-// //       cout<<"time should be in one day"<<endl;
-// //       return;
-// //     }
-// 
-//     Instant st = st1;
-//     Instant et = st2;
-// 
-//     st.Set(st2.GetYear(), st2.GetMonth(), st2.GetGregDay(), 
-//            st1.GetHour(), st1.GetMinute(), 
-//            st1.GetSecond(), st1.GetMillisecond());
-// 
-//     et.Set(et2.GetYear(), et2.GetMonth(), et2.GetGregDay(), 
-//            et1.GetHour(), et1.GetMinute(), 
-//            et1.GetSecond(), et1.GetMillisecond());
-// 
-//     Interval<Instant> time_span_new;
-// 
-//     time_span_new.start = st;
-//     time_span_new.lc = time_span1.lc;
-//     time_span_new.end = et; 
-//     time_span_new.rc = time_span1.rc;
-// 
-//     peri_new->MergeAdd(time_span_new);
-//     peri_new->EndBulkLoad();
-// 
-// //    cout<<"new periods "<<*peri_new<<endl;
-//     in->AtPeriods(*peri_new, res);
-// 
-//     delete peri_new;
-//   }
 
   delete peri2; 
   delete peri1; 
@@ -2570,9 +2517,15 @@ string GenMObject::NNBuilding =
 string GenMObject::RoadSegment = 
 "(rel (tuple ((rid int) (meas1 real) (meas2 real) (ncurve line) (SID int))))";
 
+string GenMObject::RoadSegment2 = 
+"(rel (tuple ((Rid_B int) (Meas1_B real) (Meas2_B real) (Ncurve_B line))))";
+
 string GenMObject::GenMOTrip = 
 "(rel (tuple ((oid int) (Trip1 genmo) (Trip2 mpoint) (def periods) (M int) \
 (UIndex mreal))))";
+
+string GenMObject:: BusTrip_Info = 
+"(rel (tuple ((Oid int) (Br_id_R int) (Bustrip2 mpoint) (Def periods))))";
 
 void GenMObject::GetMode(GenMO* mo)
 {
@@ -2654,12 +2607,31 @@ get the reference id of generic moving objects
 */
 void GenMObject::GetIdList(GenMO* genmo)
 {
-    for( int i = 0; i < genmo->GetNoComponents(); i++ ){
+//     for( int i = 0; i < genmo->GetNoComponents(); i++ ){
+//       UGenLoc unit;
+//       genmo->Get( i, unit );
+//       assert(unit.gloc1.GetOid() == unit.gloc2.GetOid()); 
+//       id_list.push_back(unit.gloc1.GetOid()); 
+//     }
+     //////////remove redundant information/////////////////////
+     for(int i = 0; i < genmo->GetNoComponents(); i++ ){
       UGenLoc unit;
       genmo->Get( i, unit );
       assert(unit.gloc1.GetOid() == unit.gloc2.GetOid()); 
-      id_list.push_back(unit.gloc1.GetOid()); 
+	  if(id_list.size() == 0)
+		id_list.push_back(unit.gloc1.GetOid()); 
+	  else{
+// 		int last_id = id_list[id_list.size() - 1];
+// 		if(unit.gloc1.GetOid() != last_id)
+// 		  id_list.push_back(unit.gloc1.GetOid());
+		unsigned int j = 0;
+		for(;j < id_list.size();j++){
+		  if(id_list[j] == unit.gloc1.GetOid())break;
+		}
+		if(j == id_list.size())id_list.push_back(unit.gloc1.GetOid());
+	  }
     }
+
 }
 
 /*
@@ -2966,7 +2938,9 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
 //  cout<<"start time "<<start_time<<endl;
 
   MPoint* mo = new MPoint(0);
-  temporalnet::MGPoint* mo_gp = new temporalnet::MGPoint(0);
+//  temporalnet::MGPoint* mo_gp = new temporalnet::MGPoint(0);
+//  MGPoint* mo_gp = new temporalnet::MGPoint(0);
+  MGPoint* mo_gp = new MGPoint(0);
 
   mo->StartBulkLoad();
 
@@ -3091,7 +3065,7 @@ use the maxspeed as car speed
 pos len increase
 
 */
-void GenMObject::CreateCarMPMGP1(MPoint* mo, temporalnet::MGPoint* mgp,
+void GenMObject::CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
                                  vector<MyHalfSegment> seq_halfseg,
                       Instant& start_time, double speed_val, 
                       int networkId, int routeId, Side side, 
@@ -3163,8 +3137,7 @@ void GenMObject::CreateCarMPMGP1(MPoint* mo, temporalnet::MGPoint* mgp,
 
 //    cout<<"1 time interval "<<up_interval<<endl;
 
-    temporalnet::UGPoint* ugp = 
-        new temporalnet::UGPoint(up_interval,networkId,
+    UGPoint* ugp = new UGPoint(up_interval,networkId,
                                  routeId,side,start_pos,end_pos);
 //    ugp->Print(cout);
     mgp->Add(*ugp);
@@ -3185,7 +3158,7 @@ use the maxspeed as car speed
 pos len decrease
 
 */
-void GenMObject::CreateCarMPMGP2(MPoint* mo, temporalnet::MGPoint* mgp,
+void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
                                  vector<MyHalfSegment> seq_halfseg,
                       Instant& start_time, double speed_val, 
                       int networkId, int routeId, Side side, 
@@ -3256,8 +3229,7 @@ void GenMObject::CreateCarMPMGP2(MPoint* mo, temporalnet::MGPoint* mgp,
 
 //     cout<<"2 time interval "<<up_interval<<endl;
 
-    temporalnet::UGPoint* ugp = 
-        new temporalnet::UGPoint(up_interval,networkId,
+    UGPoint* ugp = new UGPoint(up_interval,networkId,
                                  routeId,side,start_pos,end_pos);
 
     mgp->Add(*ugp);
@@ -5787,6 +5759,91 @@ struct ID_Length{
   }
 
 };
+
+/*
+get the movement of referencing to one object
+one object may be referenced more than once by one mo
+
+*/
+void GenMObject::GetAtGloc(GenMO* genmo, GenLoc* genloc)
+{
+  if(!genloc->IsDefined()){
+    return;
+  }
+  
+  GenMO* sub = new GenMO(0);
+  sub->Clear();
+  sub->StartBulkLoad();
+  if(genloc->GetOid() > 0){
+    for(int i = 0 ;i < genmo->GetNoComponents();i++){
+      UGenLoc unit;
+      genmo->Get( i, unit );
+//	  cout<<i<<" "<<unit.GetOid()<<endl;
+      if(unit.GetOid() == (int)genloc->GetOid()){
+//        sub->Add(unit);
+        sub->Append(unit);
+	  }
+    }
+  }else if(genloc->GetOid() == 0){ //free space
+
+    Point p(true, genloc->GetLoc().loc1, genloc->GetLoc().loc2);
+    for(int i = 0 ;i < genmo->GetNoComponents();i++){
+      UGenLoc unit;
+      genmo->Get( i, unit );
+      if(unit.tm == TM_FREE){
+        assert(unit.GetOid() == 0);
+        Point p1(true, unit.gloc1.GetLoc().loc1, unit.gloc1.GetLoc().loc2);
+        Point p2(true, unit.gloc2.GetLoc().loc1, unit.gloc2.GetLoc().loc2);
+        if(p1.Distance(p2) < EPSDIST && p.Distance(p1) < EPSDIST){
+            sub->Append(unit);
+        }
+      }
+    }
+  }
+
+  sub->EndBulkLoad(false, false);
+  vector<GenMO*> sub_list;
+  
+  int index = 0;
+  int64_t last_t;
+  for(int i = 0;i < sub->GetNoComponents();i++){
+      UGenLoc unit;
+      sub->Get( i, unit );
+	  if(i == 0){
+		GenMO* mo = new GenMO(0);
+		mo->Clear();
+		mo->StartBulkLoad();
+		sub_list.push_back(mo);
+		sub_list[index]->Append(unit);
+		last_t = unit.timeInterval.end.ToDouble()*86400000;
+		continue;
+	  }
+	  int64_t cur = unit.timeInterval.start.ToDouble()*86400000;
+//	  cout<<unit.timeInterval.start<<" "<<unit.timeInterval.end<<endl;
+	  if(cur == last_t){
+		  sub_list[index]->Append(unit);
+		  last_t = unit.timeInterval.end.ToDouble()*86400000;
+	  }else{
+//		  sub_list[index]->EndBulkLoad(false, false);
+		  GenMO* mo = new GenMO(0);
+		  mo->Clear();
+		  mo->StartBulkLoad();
+		  sub_list.push_back(mo);
+		  index++;
+     	  sub_list[index]->Append(unit);
+		  last_t = unit.timeInterval.end.ToDouble()*86400000;
+	  }
+  }
+  
+  for(unsigned int i = 0;i < sub_list.size();i++){
+	sub_list[i]->EndBulkLoad(false, false);
+	trip1_list.push_back(*sub_list[i]);
+  }
+  
+//  trip1_list.push_back(*sub);
+  delete sub;
+  
+}
 
 /*
 create generic moving objects with indoor + walk
@@ -9497,6 +9554,8 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
   GetSelectedBuilding3(i_infra, build_tid_list, maxrect, id_rel);
   Relation* build_path_rel = i_infra->BuildingPath_Rel();
 
+//  output.open("data1.txt");
+  
   while(count <= mo_no){
 
     if(count % 2 == 0)
@@ -9506,6 +9565,8 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
      start_time.ReadFrom(periods.end.ToDouble() -
                         (GetRandom() % time_range)/(24.0*60.0));
 
+//	start_time.ReadFrom(periods.start.ToDouble());//set one start time
+	
 //    cout<<"start time "<<start_time<<endl;
     int index = GetRandom() % build_tid_list.size();
 
@@ -9554,6 +9615,10 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
     trip1_list.push_back(*genmo);
     trip2_list.push_back(*mo);
 
+	/////////////////write to a file//////////////////////
+//	WriteDataToFile(count, i_infra->Get_Digit_Build_ID(), genmo);
+	/////////////////////////////////////////////////////
+		
     delete mo;
     delete genmo;
 
@@ -9571,6 +9636,54 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
 
 }
 
+
+//write data into a file
+
+
+// void GenMObject::WriteDataToFile(int id, unsigned int building_no, GenMO* mo)
+// {
+//   
+//   output<<id<<endl;
+//   for(int i = 0;i < mo->GetNoComponents();i++){
+// 	UGenLoc unit;
+// 	mo->Get(i, unit);
+// 	int oid = unit.gloc1.GetOid();
+// 	char buffer1[16];
+// 	sprintf(buffer1,"%d", oid);
+// 	char buffer2[16];
+/* 	strncpy(buffer2, &buffer1[building_no], strlen(buffer1) - building_no); */
+// 	buffer2[strlen(buffer1) - building_no] = '\0';		  
+// 	int roomid;
+// 	sscanf(buffer2, "%d", &roomid);				  
+// 	//	output.precision(6);
+// 
+// 	float f1 = unit.gloc1.GetLoc().loc1;
+// 	float f2 = unit.gloc1.GetLoc().loc2;
+// 	float fa = (float)((int)(f1*1000))/1000;
+// 	float fb = (float)((int)(f2*1000))/1000;
+// 
+// 	output<<unit.timeInterval<<" "
+// 	      <<roomid<<" (";
+// 		  
+// //	      <<unit.gloc1.GetLoc().loc1<<" "
+// //	      <<unit.gloc1.GetLoc().loc2<<") (";
+// 
+// 	output<<fa<<" "<<fb<<") (";
+// 
+// //	cout<<f1<<" "<<fa<<endl;
+// // 	output<<unit.gloc2.GetLoc().loc1<<" "
+// // 	      <<unit.gloc2.GetLoc().loc2<<")"<<endl;
+// 
+// 	f1 = unit.gloc2.GetLoc().loc1;
+// 	f2 = unit.gloc2.GetLoc().loc2;
+// 	fa = (float)((int)(f1*1000))/1000;
+// 	fb = (float)((int)(f2*1000))/1000;
+// 
+// 	output<<fa<<" "<<fb<<")"<<endl;
+// 	
+//   }
+//   output<<endl; 
+// }
 
 /*
 select buildings from two input relations, each of them store the builing id

@@ -976,7 +976,8 @@ struct GenMObject{
   				 
   vector<GenMO> trip1_list;
   vector<MPoint> trip2_list;
-  vector<temporalnet::MGPoint> trip3_list;
+//  vector<temporalnet::MGPoint> trip3_list;
+  vector<MGPoint> trip3_list;
 
   vector<MPoint3D> indoor_mo_list1;//from a room to an entrance 
   vector<MPoint3D> indoor_mo_list2;//from entrance to a room
@@ -1035,12 +1036,12 @@ struct GenMObject{
 
   void GenerateCarMO(Network*, int i, Periods* peri, GLine* newgl,
                      Relation* rel, Point);
-  void CreateCarMPMGP1(MPoint* mo, temporalnet::MGPoint* mgp,
+  void CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
                        vector<MyHalfSegment> seq_halfseg,
                       Instant& start_time, double speed,
                       int networkId, int routeId, Side s, 
                        double pos_len, bool increase);
-  void CreateCarMPMGP2(MPoint* mo, temporalnet::MGPoint* mgp,
+  void CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
                        vector<MyHalfSegment> seq_halfseg,
                       Instant& start_time, double speed,
                       int networkId, int routeId, Side s, 
