@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 August, 2009 Jianqiu Xu
 March, 2010 Jianqiu xu
 June, 2012 Jianqiu Xu
+April, 2013 Jianqiu Xu
 
 [TOC]
 
@@ -63,6 +64,8 @@ June, 2012 Jianqiu Xu
 #include "PaveGraph.h"
 #include "RoadNetwork.h"
 #include "TMRTree.h"
+#include "ModeRTree.h"
+
 
 double TM_DiffTimeb(struct timeb* t1, struct timeb* t2);
 
@@ -281,6 +284,17 @@ const string OpTMJunRegionSpec  =
     "</text--->"
     ") )";
 
+const string OpTMUnionPolySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr x rel x attr1 x attr2 ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>unionpoly(rel,attr,rel,attr1,attr2)</text--->"
+    "<text>collect polygons and perform the union of they intersect</text--->"
+    "<text>query unionpoly(CAExtNew, NewHole, res2, Oid_C1, Oid_C2) count;"
+    "</text--->"
+    ") )";
+	
 const string OpTMDecomposeRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -567,6 +581,37 @@ const string OpTMGetVNodeSpec  =
     "<text>query getvnode(dg1, query_loc1, tri_reg_new_sort, vgnodes,"
     "vertex_tri, btr_vid) count;</text--->) )";
 
+const string OpTMGetVNode2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x rel1 x rel2 x rel3 x rel4 x btree x real->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getvnode2(dualgraph, rel1, rel2, rel3, rel4, btree, real)</text--->"
+    "<text>for a given point, it finds all its visible nodes</text--->"
+    "<text>query getvnode2(dg1, query_loc1, tri_reg_new_sort, vgnodes,"
+    "vertex_tri, btr_vid, 500.0) count;</text--->) )";
+
+const string OpTMGetVNode3Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph x rel1 x rel2 x rel3 x rel4 x btree x real1 x real2->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getvnode2(dualgraph, rel1, rel2, rel3, rel4, btree, "
+    "real1, real2)</text--->"
+    "<text>for a given point, it finds all its visible nodes between "
+    "an angle</text--->"
+    "<text>query getvnode3(dg1, query_loc1, tri_reg_new_sort, vgnodes,"
+    "vertex_tri, btr_vid, 20.0, 30.0) count;</text--->) )";
+	
+const string OpTMVPRangeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rtree x rel2 x real->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>vprange(rel, rtree, rel, real)</text--->"
+    "<text>finds visible nodes within a range</text--->"
+    "<text>query vprange(holes, obs_rtree, query_loc1, l) count;</text--->))";
+
 const string OpTMGetVGEdgeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -649,6 +694,18 @@ const string OpTMRotationSweepSpec  =
     "<text>search visible points for the given point</text--->"
     "<text>query rotationsweep(query_loc,allpoints,bbox,holes,hole); </text--->"
     ") )";
+
+const string OpTMRotationSweep2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x bbox x rel3 x attr x real x real->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>rotationsweep(rel,rel,rectangle<2>,rel,attr,real,real)</text--->"
+    "<text>search visible points for the given point within a range</text--->"
+    "<text>query rotationsweep2(query_loc,allpoints,bbox,holes,hole,"
+    "angle1, angle2); </text--->"
+    ") )";
+	
 const string OpTMGetHoleSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -1241,6 +1298,10 @@ const string OpTMNearStopBuildingSpec  =
     "<text>query nearstops_building(space, Bus)</text--->"
     ") )";
 
+/*
+tm rtree, range queries
+
+*/
 const string OpTMDecomposeGenmoSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -1256,9 +1317,9 @@ const string OpTMBulkLoadTMRtreeSpec  =
     "\"Example\" ) "
     "( <text>(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) x attr1 x attr2 "
     " x attr3 x int-> tmrtree</text--->"
-    "<text>bulkloadtmrtree[_,_,_,_]</text--->"
+    "<text>_bulkloadtmrtree[_,_,_,_]</text--->"
     "<text>build an TM-Rtree on genmo units </text--->"
-    "<text>query genmo_units feed addid bulkloadtmrtree[Time, Box2d, "
+    "<text>query genmo_units feed addid bulkloadtmrtree[Time, Box3d, "
     " Mode, 1]</text--->"
     ") )";
 
@@ -1297,9 +1358,19 @@ const string OpTMRangeQuerySpec  =
     "( <text>rel x rel -> "
      "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
     "<text>range_query(rel, rel)</text--->"
-    "<text>range query on genmo singme method</text--->"
+    "<text>range query on genmo by a single method</text--->"
     "<text>query range_query(genmo_rel, query_rel) count</text--->) )";
 
+const string OpTMRangeQuery2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rtree x rel x rel  -> "
+     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>range_query4d(rtree, rel, rel)</text--->"
+    "<text>range query on genmo units by using a 4d rtree</text--->"
+    "<text>query range_query4d(rtree, genmo_units, query_rel) count"
+    "</text--->) )";
+	
 const string OpTMMode2StringSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -1325,6 +1396,98 @@ const string OpTMMode2BitSpec  =
     "<text>return the number of marked bit for an integer </text--->"
     "<text>query mode2bit(2) </text--->) )";
 
+/*
+mode rtree
+
+*/
+const string OpTMDecomposeGenmo2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x real x space ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>decomposegenmo(rel, real, space)</text--->"
+    "<text>reorganize the units in genmo </text--->"
+    "<text>query decomposegenmo2(all_genmo, cellsize, space1)</text--->"
+    ") )";
+
+const string OpCreateModeRtreeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) x attr1 x attr2 "
+    " x attr3 x attr4 -> modertree</text--->"
+    "<text>_loadmodertree[_,_,_,_]</text--->"
+    "<text>build a Mode-Rtree on genmo units </text--->"
+    "<text>query genmo_units feed addid loadmodertree[Tid, Box3d,"
+    "Mode, RefId]</text--->"
+    ") )";
+
+const string OpModeRtreeRefSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>modertree x rel x attr x space-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>modertreeref(modertree, rel, attr, space)</text--->"
+    "<text>calculate the ref value for each Mode-Rtree node </text--->"
+    "<text>query modertreeref(Mode_RTree, genmo_units, "
+    "RefId,space) </text--->"
+    ") )";
+
+const string OpPrintModeRtreeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>modertree x string x space-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>printmodertree(modertree, string)</text--->"
+    "<text>print the information of Mode-Rtree node </text--->"
+    "<text>query printmodertree(Mode_RTree, Bus) </text--->"
+    ") )";
+
+const string OpBenchModeRtreeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>modertree x rel x rel x space x rel x btree-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>bench_modertree(modertree, rel, rel, space, rel, btree)</text--->"
+    "<text>benchmark queries using modertree</text--->"
+    "<text>query bench_modertree(Mode_RTree, genmo_units, "
+    "bench_query, space_1, all_genmo, btreegenmo) </text--->"
+    ") )";
+
+const string OpBenchModeRtree9Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>modertree x rel x rel x space x rel x btree x rel-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>bench_modertree9(modertree,rel,rel, space, rel,btree,rel)</text--->"
+    "<text>benchmark queries using modertree</text--->"
+    "<text>query bench_modertree9(Mode_RTree, genmo_units, "
+    "bench_query, space_1, all_genmo, btreegenmo, rel) </text--->"
+    ") )";
+
+const string OpBenchModeRtree13Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>modertree x rel x rel x space x rel x btree x rel x rel-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>bench_modertree13(modertree,rel,rel, space, rel,btree, "
+     "rel, rel)</text--->"
+    "<text>benchmark queries using modertree</text--->"
+    "<text>query bench_modertree13(Mode_RTree, genmo_units, "
+    "bench_query, space_1, all_genmo, btreegenmo, road_seg, mo_bus) </text--->"
+    ") )";
+
+const string OpBenchModeRtree12Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>modertree x rel x rel x space x rel x btree x rel x rel x rel-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>bench_modertree12(modertree,rel,rel, space, rel,btree, "
+     "rel, rel, rel)</text--->"
+    "<text>benchmark queries using modertree</text--->"
+    "<text>query bench_modertree12(Mode_RTree, genmo_units,bench_query, "
+    "space_1, all_genmo, btreegenmo, floor_h, busstops1, busstops2) </text--->"
+    ") )";
+	
 /*
 build a path between the entrance of the building and the pavement area 
 
@@ -1376,6 +1539,17 @@ const string OpTMModifyLineSpec  =
     "</text--->"
     ") )";
 
+const string OpTMModifyRegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> region</text--->"
+    "<text>modifyregion(region)</text--->"
+    "<text>modify the coordinates of a region, for numeric problem</text--->"
+    "<text>query modifyline([const region value ((((1 1)(5 1)(5 5)(1 5))))])"
+    "</text--->"
+    ") )";
+	
+	
 const string OpTMRefineDataSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -1968,6 +2142,13 @@ const string SpatialSpecTMAT3 =
 "<text>tm_at2(genmo, mreal, genloc, string) </text--->"
 "<text>get the moving object with one mode</text--->"
 "<text>query tm_at(genmo1, mreal1, genloc1,\"Indoor\")</text---> ) )";
+
+const string SpatialSpecTMATGloc =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo x gloc -> genmo</text--->"
+"<text>tm_atgloc (genmo, gloc) </text--->"
+"<text>get the movement of referencing to one object</text--->"
+"<text>query tm_atgloc(genmo1, genloc)</text---> ) )";
 
 
 const string SpatialSpecTMVal =
@@ -4097,6 +4278,25 @@ ListExpr TMAT3TypeMap(ListExpr args)
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+TypeMap function for operator atgloc  
+
+*/
+ListExpr TMATGlocTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "genloc")){
+    return nl->TwoElemList(nl->SymbolAtom("stream"),nl->SymbolAtom("genmo"));
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 TypeMap function for operator val  
@@ -6654,6 +6854,91 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
   return nl->SymbolAtom ( "typeerror" );
 }
 
+
+
+/*
+TypeMap fun for operator unionpoly, process a set of polygons and perform the
+union on them if they intersect
+
+
+*/
+
+ListExpr OpTMUnionPolyTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+  ListExpr param5 = nl->Fifth(args);
+
+    
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(param2);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(attrName1)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(param5);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(attrName1)),
+                      aname3, attrType3);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"int")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+  
+    
+    if (listutils::isRelDescription(param1) &&
+        listutils::isRelDescription(attrName1)){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+
+//                       nl->TwoElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Oid"),
+//                                       nl->SymbolAtom("int")),
+//                         nl->TwoElemList(nl->SymbolAtom("Hole"),
+//                                       nl->SymbolAtom("region"))
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Hole"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+
+//     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+     nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
 /*
 TypeMap fun for operator decomposeregion,
 decompose the faces of the input region
@@ -7889,6 +8174,189 @@ ListExpr OpTMGetVNodeTypeMap ( ListExpr args )
   return  nl->SymbolAtom ( "typeerror" );
 }
 
+
+/*
+TypeMap fun for operator getvnode2
+return visible points within a range
+
+*/
+
+ListExpr OpTMGetVNode2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 7 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+  ListExpr arg7 = nl->Nth(7, args);
+
+  ListExpr xType1;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType1);
+  if(!CompareSchemas(arg2, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg3, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType3;
+  nl->ReadFromString(VisualGraph::NodeTypeInfo, xType3);
+  if(!CompareSchemas(arg4, xType3))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType4;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo4, xType4);
+  if(!CompareSchemas(arg5, xType4))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isBTreeDescription(arg6))
+    return nl->SymbolAtom("typeerror");
+
+    
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph" && 
+     nl->IsEqual(arg7,"real")){
+
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->FourElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Loc"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("Connection"),
+                                    nl->SymbolAtom("line")),
+                       nl->TwoElemList(nl->SymbolAtom("TriNo"),
+                                    nl->SymbolAtom("int"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getvnode3
+return visible points within a range represented by an angle
+
+*/
+
+ListExpr OpTMGetVNode3TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 8 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+  ListExpr arg7 = nl->Nth(7, args);
+  ListExpr arg8 = nl->Nth(8, args);
+
+  ListExpr xType1;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType1);
+  if(!CompareSchemas(arg2, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg3, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType3;
+  nl->ReadFromString(VisualGraph::NodeTypeInfo, xType3);
+  if(!CompareSchemas(arg4, xType3))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType4;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo4, xType4);
+  if(!CompareSchemas(arg5, xType4))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isBTreeDescription(arg6))
+    return nl->SymbolAtom("typeerror");
+
+    
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph" && 
+     nl->IsEqual(arg7,"real") && nl->IsEqual(arg8,"real")){
+
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->FourElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Loc"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("Connection"),
+                                    nl->SymbolAtom("line")),
+                       nl->TwoElemList(nl->SymbolAtom("TriNo"),
+                                    nl->SymbolAtom("int"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator vprange
+
+*/
+
+ListExpr OpTMVPRangeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  ListExpr xType1;
+  nl->ReadFromString(VGraph::RelHoles, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+ if (!(listutils::isRTreeDescription(arg2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType3;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType3);
+  if(!CompareSchemas(arg3, xType3)) return nl->SymbolAtom("typeerror");
+ 
+  if(nl->IsEqual(arg4,"real")){
+
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("V"),
+                                     nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Neighbor1"),
+                                     nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Neighbor2"),
+                                     nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Regid"),
+                                     nl->SymbolAtom("int"))
+                   )
+
+                  )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
 /*
 TypeMap fun for operator getvgedge: get the edge relation for visibility graph
 
@@ -8205,9 +8673,81 @@ ListExpr OpTMRotationSweepTypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->TwoElemList(
-                       nl->TwoElemList(nl->SymbolAtom("loc"),
+//                       nl->TwoElemList(nl->SymbolAtom("loc"),
+                       nl->TwoElemList(nl->SymbolAtom("Loc"),
                                     nl->SymbolAtom("point")),
-                       nl->TwoElemList(nl->SymbolAtom("connection"),
+//                       nl->TwoElemList(nl->SymbolAtom("connection"),
+                       nl->TwoElemList(nl->SymbolAtom("Connection"),
+                                    nl->SymbolAtom("line"))
+//                        nl->TwoElemList(nl->SymbolAtom("angle"),
+//                                    nl->SymbolAtom("real"))
+                  )
+                )
+          );
+//    return result;
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->OneElemList(nl->IntAtom(j1)),result);
+
+  }else
+    return nl->SymbolAtom ( "typeerror" );
+
+}
+
+/*
+TypeMap fun for operator rotationsweep2
+visible points within a range represented by an angle
+
+*/
+
+ListExpr OpTMRotationSweep2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 7 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+
+  ListExpr arg6 = nl->Sixth(args);
+  ListExpr arg7 = nl->Nth(7, args);
+  
+  ListExpr xType1;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(CompTriangle::AllPointsInfo, xType2);
+  if(!CompareSchemas(arg2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(arg5);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg4)),
+                      aname1, attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type point");
+  }
+
+
+  if(nl->IsEqual(arg3, "rect") && nl->IsEqual(arg6, "real") && 
+	 nl->IsEqual(arg7, "real")){
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+//                       nl->TwoElemList(nl->SymbolAtom("loc"),
+                       nl->TwoElemList(nl->SymbolAtom("Loc"),
+                                    nl->SymbolAtom("point")),
+//                       nl->TwoElemList(nl->SymbolAtom("connection"),
+                       nl->TwoElemList(nl->SymbolAtom("Connection"),
                                     nl->SymbolAtom("line"))
 //                        nl->TwoElemList(nl->SymbolAtom("angle"),
 //                                    nl->SymbolAtom("real"))
@@ -10242,9 +10782,13 @@ ListExpr OpTMBsNeighbors2TypeMap ( ListExpr args )
 
 }
 
-/////////////////////////////////////////////////////////////////////
-////////////// index on generic moving objects/////////////////////
-////////////////////////////////////////////////////////////////////
+
+
+/*
+index on generic moving objects 
+ 
+*/
+
 ListExpr TMRTreeProp()
 {
   ListExpr examplelist = nl->TextAtom();
@@ -10256,16 +10800,74 @@ ListExpr TMRTreeProp()
     (nl->TwoElemList(
          nl->TwoElemList(nl->StringAtom("Creation"),
                          nl->StringAtom("Example Creation")),
+
          nl->TwoElemList(examplelist,
                          nl->StringAtom("(let tmrtree = genmounits"
-                         " creatrtree [Box])"))));
-}
+                         " createtmrtree [Box])"))));
 
+}
 
 bool CheckTMRTree(ListExpr type, ListExpr& errorInfo)
 {
   return  nl->IsEqual( type, TM_RTree<3,TupleId>::BasicType());
 }
+
+ListExpr ModeRTreeProp()
+{
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,
+    "<relation> createmodertree [<attrname>]"
+    " where <attrname> is the key of type rect3");
+
+  return
+    (nl->TwoElemList(
+         nl->TwoElemList(nl->StringAtom("Creation"),
+                         nl->StringAtom("Example Creation")),
+         nl->TwoElemList(examplelist,
+                         nl->StringAtom("(let mdrtree = genmounits"
+                         " createmodertree [Box])"))));
+}
+
+bool CheckModeRTree(ListExpr type, ListExpr& errorInfo)
+{
+  return  nl->IsEqual( type, Mode_RTree::BasicType());
+}
+
+
+/*
+Mode RTree functions
+TypeMap fun for operator printmodertree
+
+*/
+ListExpr PrintModeRtreeTypeMap ( ListExpr args )
+{
+  string err = "modertree(tuple(...) rect3 BOOL) expected";
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return listutils::typeError("expecting three argument");
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!(nl->IsAtom(arg1) && nl->IsEqual(arg1, "modertree"))){
+	return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!(nl->IsAtom(arg2) && nl->IsEqual(arg2, "string"))){
+	return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  
+  if(!nl->IsEqual(arg3, "space")){
+      string err = "the third parameter should be space";
+      return listutils::typeError(err);
+  }
+  
+
+
+}
+
 
 /*
 Type Constructor object for type constructor tmrtree
@@ -10287,6 +10889,25 @@ TypeConstructor tmrtree(TM_RTree<3, TupleId>::BasicType(),
                         SizeOfTMRTree<3>,
                         CheckTMRTree );
 
+/*
+Type Constructor object for type constructor tmrtree
+
+*/
+TypeConstructor modertree(Mode_RTree::BasicType(),
+                        ModeRTreeProp,
+                        OutModeRTree,
+                        InModeRTree,
+                        0,
+                        0,
+                        CreateModeRTree,
+                        DeleteModeRTree,
+                        OpenModeRTree,
+                        SaveModeRTree,
+                        CloseModeRTree,
+                        CloneModeRTree,
+                        CastModeRTree,
+                        SizeOfModeRTree,
+                        CheckModeRTree );
 
 #endif
 
