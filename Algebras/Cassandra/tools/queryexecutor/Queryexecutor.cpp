@@ -94,7 +94,7 @@ public:
   bool updateHartbeat() {  
     // Build CQL query
     stringstream ss;
-    ss << "UPDATE status set hartbeat = unixTimestampOf(now()) ";
+    ss << "UPDATE state set hartbeat = unixTimestampOf(now()) ";
     ss << "WHERE ip = '";
     ss << cassandraIp;
     ss << "';";
@@ -106,7 +106,7 @@ public:
     );
   
     if(! result) {
-      cout << "Unable to update hartbeat in status table" << endl;
+      cout << "Unable to update hartbeat in state table" << endl;
       cout << "CQL Statement: " << ss.str() << endl;
       return false;
     }
@@ -175,52 +175,6 @@ SecondoInterface* initSecondoInterface() {
   }
   
   return si;
-}
-
-/*
-2.1 Create meta tables queries and status
-
-*/
-bool createMetatables(cassandra::CassandraAdapter* cassandra) {
-  
-  // Create queries table
-  bool result = cassandra -> executeCQLSync(
-    "CREATE TABLE IF NOT EXISTS queries "
-        "(id INT, query TEXT, PRIMARY KEY(id));",
-    cql::CQL_CONSISTENCY_ALL
-  );
- 
-  if(! result) {
-     cout << "Unable to create queries table" << endl;
-     return false;
-  }
-  
-  // Create state table
-  result = cassandra -> executeCQLSync(
-    "CREATE TABLE IF NOT EXISTS state "
-        "(ip TEXT, hartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));",
-    cql::CQL_CONSISTENCY_ALL
-  );
-  
-  if(! result) {
-     cout << "Unable to create state table" << endl;
-     return false;
-  }
-  
-  // Create progress table
-  result = cassandra -> executeCQLSync(
-    "CREATE TABLE IF NOT EXISTS progress "
-    "(ip TEXT, query INT, begintoken TEXT, "
-    "endtoken TEXT, PRIMARY KEY(ip, query, begintoken));",
-    cql::CQL_CONSISTENCY_ALL
-  );
-  
-   if(! result) {
-     cout << "Unable to create progress table" << endl;
-     return false;
-  }
-  
-  return true;
 }
 
 
@@ -305,7 +259,7 @@ cassandra::CassandraAdapter* getCassandraAdapter(string cassandraHostname,
     return NULL;
   }
   
-  if(! createMetatables(cassandra) ) {
+  if(! cassandra->createMetatables() ) {
     return NULL;
   }
   

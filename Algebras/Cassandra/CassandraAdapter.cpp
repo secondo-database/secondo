@@ -727,4 +727,71 @@ bool CassandraAdapter::getPeerTokens(vector <CassandraToken> &result) {
     "SELECT tokens,peer FROM system.peers", result, string(""));
 }
 
+
+bool CassandraAdapter::createMetatables() {
+  
+  vector<string> queries;
+  
+  queries.push_back(string(
+    "CREATE TABLE IF NOT EXISTS queries (id INT, query TEXT, PRIMARY KEY(id));"
+  ));
+  
+  queries.push_back(string(
+    "CREATE TABLE IF NOT EXISTS state (ip TEXT, hartbeat BIGINT, "
+    "lastquery INT, PRIMARY KEY(ip));"
+  ));
+  
+  queries.push_back(string(
+    "CREATE TABLE IF NOT EXISTS progress (ip TEXT, query INT, "
+    "begintoken TEXT, endtoken TEXT, PRIMARY KEY(ip, query, begintoken));"
+  ));
+  
+  for(vector<string>::iterator iter = queries.begin(); 
+      iter != queries.end(); ++iter) {
+    
+    string query = *iter;
+ 
+    // Create queries table
+    bool result = executeCQLSync(
+      query, cql::CQL_CONSISTENCY_ALL
+    );
+  
+    if(! result) {
+      cout << "Unable to execute query: " << query << endl;
+      return false;
+    }  
+    
+  }
+  
+  return true;
+}
+
+bool CassandraAdapter::dropMetatables() {
+  
+  vector<string> queries;
+  
+  queries.push_back(string("DROP TABLE queries;"));
+  queries.push_back(string("DROP TABLE state;"));
+  queries.push_back(string("DROP TABLE progress;"));
+  
+  for(vector<string>::iterator iter = queries.begin(); 
+      iter != queries.end(); ++iter) {
+    
+    string query = *iter;
+  
+    // Create queries table
+    bool result = executeCQLSync(
+      query, cql::CQL_CONSISTENCY_ALL
+    );
+  
+    if(! result) {
+      cout << "Unable to execute query: " << query << endl;
+      return false;
+    }  
+    
+  }
+  
+  return true;
+}
+
 }
