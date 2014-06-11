@@ -2640,6 +2640,45 @@ void CompTriangle::InitializeQueue(priority_queue<RPoint>& allps,
     allps.push(rp);
 }
 
+/*
+Initialize the event queue, points are sorted by the angle in counter-clockwise
+remove endpoints that the angle is out of the query range
+
+*/
+bool CompTriangle::InitializeQueue2(priority_queue<RPoint>& allps,
+                                   Point& query_p, Point& hp, Point& p,
+                                   SpacePartition* sp, Point* q1,
+                                   Point* q2, int reg_id, 
+						float a1, float a2)
+{
+    double angle = sp->GetAngle(query_p, hp, p);
+    double dist = query_p.Distance(p);
+    if(sp->GetClockwise(query_p, hp, p)){// clockwise
+        angle = 2*TM_MYPI - angle;
+    }
+    
+    double angle1 = sp->GetAngle(query_p, hp, *q1);
+	if(sp->GetClockwise(query_p, hp, *q1)){// clockwise
+        angle1 = 2*TM_MYPI - angle1;
+    }
+    
+    double angle2 = sp->GetAngle(query_p, hp, *q2);
+	if(sp->GetClockwise(query_p, hp, *q2)){// clockwise
+        angle2 = 2*TM_MYPI - angle2;
+    }
+	
+	if((angle < a1*TM_MYPI/180.0 && angle1 < a1*TM_MYPI/180.0 &&
+	    angle2 < a1*TM_MYPI/180.0) || 
+	   (angle > a2*TM_MYPI/180.0 && angle1 > a2*TM_MYPI/180.0 &&
+	     angle2 > a2*TM_MYPI/180.0)){
+	  return false;
+	}
+		
+    RPoint rp(p, angle, dist, reg_id);
+    rp.SetNeighbor(*q1, *q2);
+    allps.push(rp);
+	return true;
+}
 
 /*
 insert segments that intersect the original sweep line into AVLTree
@@ -2878,6 +2917,7 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
         no_contain++;
       }
 
+	  
       InitializeAVL(sss,*query_p, hp, *p, *q1, sp);
       InitializeAVL(sss,*query_p, hp, *p, *q2, sp);
       InitializeQueue(allps,*query_p, hp, *p, sp, q1, q2, reg_id);
@@ -3091,6 +3131,371 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
           }
 
           if(visible){
+//              outfile<<"find visible point4"<<endl;
+              plist1.push_back(top.p);
+              Line* l = new Line(0);
+              l->StartBulkLoad();
+              HalfSegment hs;
+              hs.Set(true, *query_p, top.p);
+              hs.attr.edgeno = 0;
+              *l += hs;
+              hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+              *l += hs;
+              l->EndBulkLoad();
+              connection.push_back(*l);
+              delete l;
+          }
+      }
+//      ProcessNeighbor(sss, top, *query_p,top.n1, hp, sp, outfile);
+//      ProcessNeighbor(sss, top, *query_p,top.n2, hp, sp, outfile);
+      ProcessNeighbor(sss, top, *query_p, top.n1, hp, sp);
+      ProcessNeighbor(sss, top, *query_p, top.n2, hp, sp);
+      //////////////////////////////////////////////////////////////////
+      last_angle = top.angle;
+      //////////////////////////////////////////////////////////////
+  }
+
+  reg_tuple->DeleteIfAllowed();
+  delete query_p;
+
+}
+
+
+/*
+using rotational plane sweep algorithm to find visible points.
+the query point should not locate on the outer contour boundary
+Micha Sharir and Amir Schorr
+On Shortest Paths in Polyhedral Spaces, SIAM Journal on Computing. 1986
+return visible points within a range
+
+*/
+
+void CompTriangle::GetVPoints2(Relation* rel1, Relation* rel2,
+                              Rectangle<2>* bbox, Relation* rel3, int attr_pos,
+							  float in_angle1, 
+							  float in_angle2)
+{
+//  cout<<"attr_pos "<<attr_pos<<endl;
+//  ofstream outfile("tmrecord");
+
+  if(rel1->GetNoTuples() < 1){
+    cout<<"query relation is empty"<<endl;
+    return;
+  }
+  
+  Tuple* query_tuple = rel1->GetTuple(1, false);
+  Point* query_p =
+          new Point(*((Point*)query_tuple->GetAttribute(VisualGraph::QLOC2)));
+  query_tuple->DeleteIfAllowed();
+//  outfile<<"query point "<<*query_p<<endl;
+  Coord xmax = bbox->MaxD(0) + 1.0;
+
+  Point hp;
+  hp.Set(xmax, query_p->GetY());
+  HalfSegment hs1;
+  hs1.Set(true, *query_p, hp);
+//  cout<<"horizonal p "<<hp<<endl;
+
+  ///////////// sort all points by counter clockwise order//////////////////
+  priority_queue<RPoint> allps;
+  multiset<MySegDist> sss;
+
+  vector<Point> neighbors;
+
+  //one segment contains query_p
+  //it represents query_p equals to the endpoint(=2) or not(=3)
+  int no_contain = 0;
+
+  int hole_id = 0; //record whether the query point locates on the hole boundary
+  SpacePartition* sp = new SpacePartition();
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+      Tuple* p_tuple = rel2->GetTuple(i, false);
+      Point* p = (Point*)p_tuple->GetAttribute(CompTriangle::V);
+      if(AlmostEqual(*query_p, *p)){//equal points are ignored
+        p_tuple->DeleteIfAllowed();
+        continue;
+      }
+      Point* q1 = (Point*)p_tuple->GetAttribute(CompTriangle::NEIGHBOR1);
+//      outfile<<"vertex "<<*p<<endl;
+//      outfile<<sp->GetAngle(*query_p, hp, *p)<<endl;
+      Point* q2 = (Point*)p_tuple->GetAttribute(CompTriangle::NEIGHBOR2);
+      int reg_id =
+          ((CcInt*)p_tuple->GetAttribute(CompTriangle::REGID))->GetIntval();
+
+      HalfSegment hs1;
+      hs1.Set(true, *p, *q1);
+      HalfSegment hs2;
+      hs2.Set(true, *p, *q2);
+      if(no_contain < 2 && hs1.Contains(*query_p)){
+/*        cout<<"segment contains query points "<<endl;
+        cout<<"current it is not supported"<<endl;
+        p_tuple->DeleteIfAllowed();
+        return;*/
+//        cout<<"hs1 "<<hs1<<"q1 "<<*q1<<endl;
+        hole_id = reg_id;
+
+        if(AlmostEqual(*query_p, hs1.GetLeftPoint()))
+          neighbors.push_back(hs1.GetRightPoint());
+        else if(AlmostEqual(*query_p, hs1.GetRightPoint()))
+          neighbors.push_back(hs1.GetLeftPoint());
+        else{
+          neighbors.push_back(hs1.GetLeftPoint());
+          neighbors.push_back(hs1.GetRightPoint());
+          no_contain = 2;
+        }
+        no_contain++;
+      }
+      if(no_contain < 2 && hs2.Contains(*query_p)){
+//        cout<<"hs2 "<<hs2<<"q2 "<<*q2<<endl;
+        hole_id = reg_id;
+
+        if(AlmostEqual(*query_p, hs2.GetLeftPoint()))
+          neighbors.push_back(hs2.GetRightPoint());
+        else if(AlmostEqual(*query_p, hs2.GetRightPoint()))
+          neighbors.push_back(hs2.GetLeftPoint());
+        else{
+          neighbors.push_back(hs2.GetLeftPoint());
+          neighbors.push_back(hs2.GetRightPoint());
+          no_contain = 2;
+        }
+        no_contain++;
+      }
+      ///////////////////////////////////////////////////////////////////////
+      ////////we can check angle here, smaller angles can block //////////
+	  /////// large angles. therefore all have to be included//////////////
+	  /// remove segments that all endpoings are out of the query range ///
+	  //////////////////////////////////////////////////////////////////////
+      
+     bool state = InitializeQueue2(allps,*query_p, hp, *p, sp, q1, q2, reg_id, 
+					  in_angle1, in_angle2);
+      if(state){
+		InitializeAVL(sss,*query_p, hp, *p, *q1, sp);
+		InitializeAVL(sss,*query_p, hp, *p, *q2, sp);	  
+	  }	
+
+// 		InitializeAVL(sss,*query_p, hp, *p, *q1, sp);
+// 		InitializeAVL(sss,*query_p, hp, *p, *q2, sp);	  
+// 		InitializeQueue(allps,*query_p, hp, *p, sp, q1, q2, reg_id);
+					  
+      p_tuple->DeleteIfAllowed();
+  }
+  delete sp;
+
+//  PrintAVLTree(sss, outfile);
+  double last_angle = -1.0;
+
+  double angle1 = -1.0;
+  double angle2 = -1.0;
+//  bool face_direction; //false counter-clockwise, true clockwise
+
+  bool face_direction = true; //false counter-clockwise, true clockwise
+
+  //determine the region face on which side of the segment
+  if(hole_id != 0){
+//    cout<<neighbors.size()<<endl;
+    assert(neighbors.size() == 2);
+//    cout<<neighbors[0]<<" "<<neighbors[1]<<endl;
+    assert(!AlmostEqual(neighbors[0], neighbors[1]));
+    Tuple* reg_tuple = rel3->GetTuple(hole_id, false);
+    Region* r = (Region*)reg_tuple->GetAttribute(attr_pos);
+
+    Line* boundary = new Line(0);
+    r->Boundary(boundary);
+    SimpleLine* sboundary = new SimpleLine(0);
+    sboundary->fromLine(*boundary);
+    vector<MyHalfSegment> mhs;
+    //get all the points of the region
+    SpacePartition* sp = new SpacePartition();
+    if(sboundary->Size() > 0)
+      sp->ReorderLine(sboundary, mhs);
+    else{
+      cout<<"can't covert the boundary to a sline, maybe there is a hole"<<endl;
+      delete boundary;
+      delete sboundary;
+      return;
+    }
+    delete boundary;
+    delete sboundary;
+
+    vector<Point> ps;
+    for(unsigned int i = 0;i < mhs.size();i++)
+      ps.push_back(mhs[i].from);
+
+    angle1 = sp->GetAngle(*query_p, hp, neighbors[0]);
+    angle2 = sp->GetAngle(*query_p, hp, neighbors[1]);
+    if(sp->GetClockwise(*query_p, hp, neighbors[0]))
+      angle1 = 2*TM_MYPI - angle1;
+    if(sp->GetClockwise(*query_p, hp, neighbors[1]))
+      angle2 = 2*TM_MYPI - angle2;
+
+    if(angle1 > angle2){
+      Point temp = neighbors[0];
+      neighbors[0] = neighbors[1];
+      neighbors[1] = temp;
+      double temp_angle = angle1;
+      angle1 = angle2;
+      angle2 = temp_angle;
+    }
+
+    //combine with index1 and index2
+    //the point with smaller angle and larger angle
+    //from smaller angle to larger angle, whether it is counter clockwisr or not
+    if(0.0 < Area(ps)) face_direction = false;//counter-clockwise
+    else face_direction = true;
+    //query_p locates in one segment but not equal to endpoint
+    if(no_contain > 2){
+      unsigned int index1 = ps.size();
+      unsigned int index2 = ps.size();
+      for(unsigned int i = 0;i < ps.size();i++){
+          if(AlmostEqual(ps[i], neighbors[0])) index1 = i;
+          if(AlmostEqual(ps[i], neighbors[1])) index2 = i;
+      }
+      assert(index1 != ps.size() && index2 != ps.size());
+      if(hole_id == 1){
+        if(index1 == index2 + 1){
+          face_direction = !face_direction;
+        }else if(index1 == 0 && index2 == ps.size() - 1){
+          face_direction = !face_direction;
+        }
+      }else{
+        if(index1  + 1 == index2){
+          face_direction = !face_direction;
+        }else if(index1 == ps.size() - 1 && index2 == 0){
+          face_direction = !face_direction;
+        }
+      }
+    }else if(no_contain == 2){//query_p equals to one endpoint of a segment
+      unsigned int index1 = ps.size();
+      unsigned int index2 = ps.size();
+      for(unsigned int i = 0;i < ps.size();i++){
+        if(AlmostEqual(ps[i], neighbors[0])) index1 = i;
+        if(AlmostEqual(ps[i], *query_p)) index2 = i;
+      }
+      assert(index1 != ps.size() && index2 != ps.size());
+//      outfile<<"index1 "<<index1<<" index2 "<<index2<<endl;
+//      outfile<<"face direction "<<face_direction<<endl;
+      if(hole_id == 1){
+        if(index1 == index2 + 1){
+          face_direction = !face_direction;
+        }else if(index1 == 0 && index2 == ps.size() - 1){
+          face_direction = !face_direction;
+        }
+      }else{
+        if(index1 + 1 == index2){
+          face_direction = !face_direction;
+        }else if(index1 == ps.size() - 1 && index2 == 0){
+          face_direction = !face_direction;
+        }
+      }
+    }else assert(false);
+//    outfile<<"direction "<<face_direction<<" 1 "<<angle1<<" 2 "<<angle2<<endl;
+//    outfile<<"hole_id "<<hole_id<<endl;
+    reg_tuple->DeleteIfAllowed();
+  }
+
+  Tuple* reg_tuple = rel3->GetTuple(1, false);
+  Region* outer_region = (Region*)reg_tuple->GetAttribute(attr_pos);
+
+  while(allps.empty() == false){
+      RPoint top = allps.top();
+      allps.pop();
+	  ///////////////////////////////////////////////////////////
+      //////////////// check the angle range////////////////////
+      if(top.angle > in_angle2*TM_MYPI/180.0){
+		 break;
+	  }
+	  ////////////////////////////////////////////////////////////	  
+      ////////////////debug///////////////////////////////////////
+//      PrintAVLTree(sss, outfile);
+//      outfile<<top<<" "<<top.regid<<endl;
+      //////////////////////////////////////
+      if(sss.empty()){
+//          outfile<<"avltree is emtpy find visible point1"<<endl;
+          bool visible = true;
+          if(top.regid == 1){//outer boundary
+              HalfSegment hs;
+              hs.Set(true, *query_p, top.p);
+              if(RegContainHS(outer_region, hs) == false)
+                visible = false;
+          }
+          if(visible){
+            plist1.push_back(top.p);
+            Line* l = new Line(0);
+            l->StartBulkLoad();
+            HalfSegment hs;
+            hs.Set(true, *query_p, top.p);
+            hs.attr.edgeno = 0;
+            *l += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *l += hs;
+            l->EndBulkLoad();
+            connection.push_back(*l);
+            delete l;
+          }
+          last_angle = top.angle;
+/*          ProcessNeighbor(sss, top, *query_p,
+                            top.n1, hp, sp, outfile);
+          ProcessNeighbor(sss, top, *query_p,
+                            top.n2, hp, sp, outfile);*/
+          ProcessNeighbor(sss, top, *query_p,
+                            top.n1, hp, sp);
+          ProcessNeighbor(sss, top, *query_p,
+                            top.n2, hp, sp);
+          continue;
+      }
+
+      ////////////// visibility checking  ///////////////////////////
+      if(!AlmostEqual(top.angle, last_angle)){
+          multiset<MySegDist>::iterator start = sss.begin();
+          double d = query_p->Distance(top.p);
+          double mindist = start->dist;
+          bool visible = true;
+//          outfile<<"d "<<d<<" mindist "<<mindist<<endl;
+
+          if(top.regid == hole_id){//filter some points on the boundary
+              if(face_direction == false){
+                 if(angle1 < top.angle && top.angle < angle2)visible = false;
+              }else{
+                 if(top.angle < angle1 || top.angle > angle2)visible = false;
+              }
+          }
+          
+         visible = CheckAngle2(top.angle, in_angle1, in_angle2);
+
+          if(visible){
+              if(d < mindist || AlmostEqual(d, mindist)){
+//                outfile<<"find visible point2"<<endl;
+              }else{
+                  HalfSegment test_hs;
+                  test_hs.Set(true, *query_p, top.p);
+                  while(start->dist < d && start != sss.end()){
+                    HalfSegment cur_hs;
+                    cur_hs.Set(true, start->from, start->to);
+                    Point ip;
+                    if(test_hs.Intersection(cur_hs, ip)){
+//                    outfile<<"test_hs "<<test_hs<<"cur_hs "<<cur_hs<<endl;
+  //                  outfile<<ip<<endl;
+                      if(!AlmostEqual(ip, top.p)){
+//                        outfile<<"visible false"<<endl;
+//                        outfile<<"test_hs "<<test_hs<<"cur_hs "<<cur_hs<<endl;
+                        visible = false;
+                        break;
+                      }
+                    }
+                    start++;
+                  }
+              }
+          }
+
+          if(visible && top.regid == 1){//outer boundary
+              HalfSegment hs;
+              hs.Set(true, *query_p, top.p);
+              if(RegContainHS(outer_region, hs) == false)
+                visible = false;
+          }
+
+          if(visible){
+//           if(visible && CheckAngle2(top.angle, in_angle1, in_angle2)){
 //              outfile<<"find visible point4"<<endl;
               plist1.push_back(top.p);
               Line* l = new Line(0);
@@ -5453,6 +5858,10 @@ VGraph:: ~VGraph()
 {
   if(resulttype != NULL) delete resulttype;
 }
+
+string VGraph::RelHoles = "(rel (tuple ((Oid int) (Hole region) (Box rect))))";
+
+
 /*
 get all adjacent nodes for a given node. dual graph
 
@@ -5652,6 +6061,9 @@ void VGraph::GetVGEdge()
       }
       vertex_tuple->DeleteIfAllowed();
       oids1.clear();
+	  
+	  /////////// debug /////////////
+//	  if(i >= 1) break;
   }
 
 }
@@ -6097,6 +6509,12 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1)
     for(unsigned int i = 0;i < adj_list.size();i++){
 //      cout<<" adj_list DF "<<adj_list[i]<<" i "<<i<<endl;
       if(adj_list[i] == pre_id) continue;
+      ////// remove triangles that are note located within the range ///////
+      if(spatial_l){
+   	    if(cand_id.find(adj_list[i]) == cand_id.end()) //does not exist
+		continue;
+	  } 
+	  
       tri_access++;
       tri_tuple = rel2->GetTuple(adj_list[i], false);
       int ver1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
@@ -6401,7 +6819,6 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
   vector<int> adj_list;
   dg->FindAdj(tri_id, adj_list);
 
-
   Tuple* tri_tuple1 = rel2->GetTuple(tri_id, false);
   int v1 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V1))->GetIntval();
   int v2 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V2))->GetIntval();
@@ -6412,6 +6829,13 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
 
   ///////////////////////////////////////////////////////////////////////
   for(unsigned int i = 0;i < adj_list.size();i++){
+	
+	if(spatial_l){
+	   //does not exist in the candidate set///
+		if(cand_id.find(adj_list[i]) == cand_id.end()) 
+		  continue;
+	} 
+	  
     tri_access++;
 //    cout<<"adj_list GVN "<<adj_list[i] + dg->min_tri_oid_1<<endl;
     Tuple* tri_tuple = rel2->GetTuple(adj_list[i], false);
@@ -6666,6 +7090,13 @@ void VGraph::GetVisibleNode1(int tri_id, Point* query_p)
 
   ///////////////////////////////////////////////////////////////////////
   for(unsigned int i = 0;i < adj_list.size();i++){
+	
+	 if(spatial_l){
+	     ////does not exist in the candidate set///
+		  if(cand_id.find(adj_list[i]) == cand_id.end()) 
+		  continue;
+	 } 
+	  
 //    cout<<"adj_list GVN "<<adj_list[i]<<endl;
     tri_access++;
     Tuple* tri_tuple = rel2->GetTuple(adj_list[i], false);
@@ -6935,6 +7366,865 @@ void VGraph::GetVNode()
   delete query_p;
 }
 
+/*
+for a given point, find all its visible nodes
+connect the point to the visibility graph node
+rel1--query location relation
+rel2--triangle relation v1 int v2 int v3 int
+rel3--vertex relation1 (oid int) (loc point)
+rel4--vertex relation2 (vid(oid) int) (triid int)
+
+return all visible points within a range: l
+
+*/
+void VGraph::GetVNode2(float l)
+{
+  if(rel1->GetNoTuples() < 1){
+    cout<<"query relation is empty"<<endl;
+    return;
+  }
+  Tuple* query_tuple = rel1->GetTuple(1, false);
+  int query_oid =
+          ((CcInt*)query_tuple->GetAttribute(VisualGraph::QOID))->GetIntval();
+  Point* query_p =
+          new Point(*((Point*)query_tuple->GetAttribute(VisualGraph::QLOC2)));
+  query_tuple->DeleteIfAllowed();
+
+  query_oid -= dg->min_tri_oid_1; 
+  assert(1 <= query_oid && query_oid <= dg->node_rel->GetNoTuples()); 
+  ////////////////////////////////////////////////////////////////////
+  ////// collect all triangles located within the range////////////////
+  
+  FindTriWithin_L(l, query_oid, query_p);
+  
+  /////////three vertices of the triangle////////////////////////
+  Tuple* tri_tuple1 = rel2->GetTuple(query_oid, false);
+  int v1 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V1))->GetIntval();
+  int v2 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V2))->GetIntval();
+  int v3 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V3))->GetIntval();
+  tri_tuple1->DeleteIfAllowed();
+  tri_access++;
+  ///if the query_p equals to one of the triangle vertices ///
+  if(GetVNode_QV(query_oid, query_p,v1,v2,v3)){
+  }else{
+    //////////////////////////////////////////////////////////////////////////
+    ////////three vertices of the triangle that the point is located in///////
+    //////////////////////////////////////////////////////////////////////////
+    oids1.push_back(v1);
+    oids1.push_back(v2);
+    oids1.push_back(v3);
+    for(unsigned int i = 0;i < oids1.size();i++){
+      Tuple* loc_tuple = rel3->GetTuple(oids1[i], false);
+      Point* p = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
+      p_list.push_back(*p);
+      loc_tuple->DeleteIfAllowed();
+    }
+    ///////////searching in the dual graph to find all visible vertices//////
+    GetVisibleNode1(query_oid, query_p);
+  }
+
+  ///////build a halfsegment between query point and its visibility point////
+  for(unsigned int i = 0;i < p_list.size();i++){
+	  if(query_p->Distance(p_list[i]) > l) continue;  
+	
+	  p_list2.push_back(p_list[i]);
+	  oids2.push_back(oids1[i]);
+      Line* l =  new Line(0);
+      l->StartBulkLoad();
+      HalfSegment hs;
+      hs.Set(true, p_list[i], *query_p);
+      hs.attr.edgeno = 0;
+      *l += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *l += hs;
+      l->EndBulkLoad();
+      line.push_back(*l);
+      delete l;
+  }
+  delete query_p;
+}
+
+/*
+check the valid of two angles
+
+*/
+bool CheckAngle(float a1, float a2)
+{
+  if(a1 < 0.0 || a2 < 0.0) return false;
+  if(a2 > 360.0 || a2 > 360.0) return false;
+  if(a1 > a2) return false;
+  return true;
+}
+
+
+bool CheckAngle2(float in, float a1, float a2)
+{
+  if(fabs(in - a1*TM_MYPI/180.0) < EPSDIST) return true;
+  if(fabs(in - a2*TM_MYPI/180.0) < EPSDIST) return true;
+  if(a1*TM_MYPI/180.0 < in && in < a2*TM_MYPI/180.0) return true;
+  return false;
+}
+
+/*
+for a given point, find all its visible nodes
+connect the point to the visibility graph node
+rel1--query location relation
+rel2--triangle relation v1 int v2 int v3 int
+rel3--vertex relation1 (oid int) (loc point)
+rel4--vertex relation2 (vid(oid) int) (triid int)
+
+return all visible points within a range represented by an angle
+
+*/
+
+void VGraph::GetVNode3(float a1, float a2)
+{
+  if(rel1->GetNoTuples() < 1){
+    cout<<"query relation is empty"<<endl;
+    return;
+  }
+  if(CheckAngle(a1, a2) == false){
+	cout<<"invalid angle"<<endl;
+	return;
+  }
+//  cout<<a1<<" "<<a2<<endl;
+  
+  Tuple* query_tuple = rel1->GetTuple(1, false);
+  int query_oid =
+          ((CcInt*)query_tuple->GetAttribute(VisualGraph::QOID))->GetIntval();
+  Point* query_p =
+          new Point(*((Point*)query_tuple->GetAttribute(VisualGraph::QLOC2)));
+  query_tuple->DeleteIfAllowed();
+
+  query_oid -= dg->min_tri_oid_1; 
+  assert(1 <= query_oid && query_oid <= dg->node_rel->GetNoTuples()); 
+  
+  /////////three vertices of the triangle////////////////////////
+  Tuple* tri_tuple1 = rel2->GetTuple(query_oid, false);
+  int v1 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V1))->GetIntval();
+  int v2 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V2))->GetIntval();
+  int v3 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V3))->GetIntval();
+  tri_tuple1->DeleteIfAllowed();
+  tri_access++;
+  ///if the query_p equals to one of the triangle vertices ///
+  if(GetVNode_QV(query_oid, query_p,v1,v2,v3)){
+  }else{
+    //////////////////////////////////////////////////////////////////////////
+    ////////three vertices of the triangle that the point is located in///////
+    //////////////////////////////////////////////////////////////////////////
+    oids1.push_back(v1);
+    oids1.push_back(v2);
+    oids1.push_back(v3);
+    for(unsigned int i = 0;i < oids1.size();i++){
+      Tuple* loc_tuple = rel3->GetTuple(oids1[i], false);
+      Point* p = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
+      p_list.push_back(*p);
+      loc_tuple->DeleteIfAllowed();
+    }
+    ///////////searching in the dual graph to find all visible vertices//////
+    GetVisibleNode1(query_oid, query_p);
+  }
+  
+  Point h_p(true, query_p->GetX() + obj_scale_max, query_p->GetY());
+  SpacePartition* sp = new SpacePartition();
+  ///////build a halfsegment between query point and its visibility point////
+  for(unsigned int i = 0;i < p_list.size();i++){
+	  /////////////////////////check the angle/////////////////////////  
+	  double angle = sp->GetAngle(*query_p, h_p, p_list[i]);
+	  if(sp->GetClockwise(*query_p, h_p, p_list[i])){
+		 angle = 2*TM_MYPI - angle;
+	  }
+//	  cout<<"loc: "<<p_list[i]<<" "<<angle<<endl;
+	  if(angle < a1*TM_MYPI/180.0 || angle > a2*TM_MYPI/180.0) continue;
+	  ////////////////////////////////////////////////////////////////
+	  
+	  p_list2.push_back(p_list[i]);
+	  oids2.push_back(oids1[i]);
+      Line* l =  new Line(0);
+      l->StartBulkLoad();
+      HalfSegment hs;
+      hs.Set(true, p_list[i], *query_p);
+      hs.attr.edgeno = 0;
+      *l += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *l += hs;
+      l->EndBulkLoad();
+      line.push_back(*l);
+      delete l;
+  }
+  delete sp;
+  delete query_p;
+}
+
+
+/*
+find all triangles with the search range
+
+*/
+void VGraph::FindTriWithin_L(float l, int query_oid, Point* q)
+{
+  //set<int> cand_id//
+  queue<int> tri_id_list;
+  tri_id_list.push(query_oid);
+  vector<int> state_list(dg->No_Of_Node(), false);
+  cand_id.clear();
+  cand_id.insert(query_oid);
+  
+  while(tri_id_list.empty() == false){
+	  int elem = tri_id_list.front();
+	  tri_id_list.pop();
+	  if(state_list[elem - 1]){
+		continue;
+	  }
+	  vector<int> adj_list;
+	  dg->FindAdj(elem, adj_list);
+	  for(unsigned int i = 0;i < adj_list.size();i++){
+		  if(state_list[adj_list[i] - 1]) continue;
+		  
+		  Tuple* tri = dg->GetNodeRel()->GetTuple(adj_list[i], false);
+          Region* reg = (Region*)tri->GetAttribute(DualGraph::PAVEMENT);
+		  Rectangle<2> bbox = reg->BoundingBox();
+		  tri->DeleteIfAllowed();
+		  if(q->Distance(bbox) > l){
+			continue;
+		  }
+		  tri_id_list.push(adj_list[i]);
+//		  cout<<"tri id: "<<adj_list[i]<<endl;
+		  if(cand_id.find(adj_list[i]) == cand_id.end()){
+			  cand_id.insert(adj_list[i]);
+		  }
+	  }
+	  state_list[elem - 1] = true;
+  } //end while  
+   cout<<"candidate triangles size "<<cand_id.size()<<endl;  
+}
+
+/*
+return visible points within a certain range
+
+*/
+void VGraph::GetVPRange(Relation* rel1, R_Tree<2,TupleId>* rtree,
+				  Relation* rel2, float l)
+{
+//   cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
+   if(rel2->GetNoTuples() < 1){
+		cout<<"query relation is empty"<<endl;
+		return;
+   }
+  ///////////step 1. traverse rtree to find all obstacles with the range//////
+  
+   priority_queue<Obs_Obj> myqueue;//store obstacles within the range
+   
+   
+   Tuple* query_tuple = rel2->GetTuple(1, false);
+   Point* q_loc = (Point*)query_tuple->GetAttribute(VisualGraph::QLOC2);
+   Point query_p(true, q_loc->GetX(), q_loc->GetY());
+   query_tuple->DeleteIfAllowed();
+   
+   GetObstacles(rel1, rtree, &query_p, l, myqueue);
+//   cout<<"queue size "<<myqueue.size()<<endl;
+   
+   /////////////////////////////////////////////////////////////////////
+   float delta_d = 10.0;
+   //horizontal point///
+   Point hp(true, query_p.GetX() + l + delta_d, query_p.GetY());
+   Point hp2(true, query_p.GetX() - l - delta_d, query_p.GetY());
+   
+   Rectangle<2> hole_box = rtree->BoundingBox();
+   
+   Line* h_line1 = new Line(0);
+   h_line1->StartBulkLoad();
+   HalfSegment hs1;
+   Point right_p(true, hole_box.MaxD(0) ,query_p.GetY());
+   hs1.Set(true,query_p, right_p);
+   int edgeno1 = 0;
+   hs1.attr.edgeno = edgeno1++;
+   *h_line1 += hs1;
+   hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+   *h_line1 += hs1;
+   h_line1->EndBulkLoad();
+   
+   Line* h_line2 = new Line(0);
+   h_line2->StartBulkLoad();
+   HalfSegment hs2;
+   Point left_p(true, hole_box.MinD(0) ,query_p.GetY());
+   hs2.Set(true, left_p, query_p);
+   int edgeno2 = 0;
+   hs2.attr.edgeno = edgeno2++;
+   *h_line2 += hs2;
+   hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+   *h_line2 += hs2;
+   h_line2->EndBulkLoad();
+   
+   /////////////////////////////////////////////////////////////////////
+   
+   SpacePartition* sp = new SpacePartition();
+   
+    vector<BlockAngle> a_list; //[0, 180), counterclockwise(false)
+    vector<BlockAngle> b_list; //(0, 180], clockwise(true)
+      
+   
+   while(myqueue.empty() == false){
+	 Obs_Obj elem = myqueue.top();
+	 myqueue.pop();
+//	 elem.Print();
+	 
+	 Tuple* tuple = rel1->GetTuple(elem.tid, false);
+	 Region* hole = (Region*)tuple->GetAttribute(VP_HOLE);	 
+	 int Oid = ((CcInt*)tuple->GetAttribute(VP_HOLE_OID))->GetIntval();
+//	 cout<<"Obstacle Oid: "<<Oid<<endl;
+
+/*     vector<BlockAngle> a_list; //[0, 180), counterclockwise(false)
+     vector<BlockAngle> b_list; //(0, 180], clockwise(true)*/
+   
+	 ////////////step 2 process each obstacle vertex////////////////////////
+	 ////////above or below, calculate the angle/////////////////
+	 bool iscovered = false;
+	 int cover_no = 0;
+//	 cout<<"segement size: "<<hole->Size()/2<<endl;
+	 
+	 for(int i = 0; i < hole->Size();i++){
+		 HalfSegment hs;
+		 hole->Get(i, hs);
+		 if(hs.IsLeftDomPoint() == false) continue;
+		 Point lp = hs.GetLeftPoint(); 
+		 Point rp = hs.GetRightPoint();
+		 
+		 if(fabs(query_p.GetY() - lp.GetY()) < EPSDIST && 
+		    fabs(query_p.GetY() - rp.GetY()) < EPSDIST){
+		      continue;
+		 } //ignore this angle, angle is 0
+		 
+		 
+		 if(lp.GetY() > query_p.GetY() && 
+		    rp.GetY() > query_p.GetY()){//above
+		 
+			 double angle1 = sp->GetAngle(query_p, hp, lp);
+			 double angle2 = sp->GetAngle(query_p, hp, rp);
+			 double d1 = query_p.Distance(lp);
+			 double d2 = query_p.Distance(rp);
+			 double d = MAX(d1, d2);
+			 CcReal a_min(true, MIN(angle1, angle2));
+			 CcReal a_max(true, MAX(angle1, angle2)); 
+			 
+			 BlockAngle above_angle(
+			            Interval<CcReal>(a_min, a_max, true, true), 
+									d);
+			 
+			 iscovered = MergeBlockAngle(a_list, above_angle, Oid);
+			 if(iscovered) cover_no++;
+			 
+//			 AddResult(iscovered, lp, rp);
+			 
+		 }else if(lp.GetY() < query_p.GetY() && 
+		          rp.GetY() < query_p.GetY()){
+		     /////////////below///////////////
+			 double angle1 = sp->GetAngle(query_p, hp, lp);
+			 double angle2 = sp->GetAngle(query_p, hp, rp);
+			 double d1 = query_p.Distance(lp);
+			 double d2 = query_p.Distance(rp);
+			 double d = MAX(d1, d2);
+			 CcReal a_min(true, MIN(angle1, angle2));
+			 CcReal a_max(true, MAX(angle1, angle2)); 
+			 
+			 BlockAngle below_angle(
+		                Interval<CcReal>(a_min, a_max, true, true),
+									d);
+			 iscovered = MergeBlockAngle(b_list, below_angle, Oid);
+			 if(iscovered)cover_no++;
+			 
+//			 AddResult(iscovered, lp, rp);
+			 
+		 }else{
+			   Line* cur_line = new Line(0);
+			   cur_line->StartBulkLoad();
+			   HalfSegment hs;
+			   hs.Set(true, lp, rp);
+			   int edgeno = 0;
+			   hs.attr.edgeno = edgeno++;
+			   *cur_line += hs;
+			   hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+			   *cur_line += hs;
+			   cur_line->EndBulkLoad();
+			   if(h_line1->Intersects(*cur_line)){
+				   
+  			  CcReal angle1(true, sp->GetAngle(query_p, hp, lp));
+			  CcReal angle2(true, sp->GetAngle(query_p, hp, rp));
+				 CcReal zero_angle(true, 0.0);
+				 double d1 = query_p.Distance(lp);
+				 double d2 = query_p.Distance(rp);
+				 double d = MAX(d1, d2);
+				 
+				 bool v1 = 
+					  sp->GetClockwise(query_p, 
+						             hp, lp);//clockwise
+				 bool v2 = sp->GetClockwise(query_p, hp, rp);
+				 
+			if(v1){
+//					 assert(v2 == false);
+              if(v2 == false){
+			       BlockAngle above_angle(
+					 Interval<CcReal>(zero_angle, angle2, 
+                                      true, true), 
+									  d);
+				   BlockAngle below_angle(
+				     Interval<CcReal>(zero_angle, angle1,
+                                      true, true), 
+									  d);
+					 
+					   iscovered = 
+                              MergeBlockAngle(a_list, above_angle, Oid);
+					 if(iscovered) cover_no++;
+					   iscovered = 
+                              MergeBlockAngle(b_list, below_angle, Oid);
+					 if(iscovered) cover_no++;
+			  }else{ //both are counterclock wise, y equal to queryp
+				 CcReal a_min(true, MIN(angle1.GetRealval(), 
+                              angle2.GetRealval()));
+			     CcReal a_max(true, MAX(angle1.GetRealval(), 
+                              angle2.GetRealval())); 
+			 
+			     BlockAngle below_angle(Interval<CcReal>(a_min, 
+                                      a_max, true, true), d);
+                 iscovered = MergeBlockAngle(b_list, below_angle, Oid);
+               if(iscovered)cover_no++; 					
+			    }
+			  }else{
+//					 assert(v2);
+                 if(v2){
+					 BlockAngle below_angle(
+                          Interval<CcReal>(zero_angle, angle2, 
+                                           true, true), d);
+					 BlockAngle above_angle(
+                          Interval<CcReal>(zero_angle, angle1,
+                                           true, true), d);
+					 iscovered = 
+                           MergeBlockAngle(a_list, above_angle, Oid);
+					 if(iscovered) cover_no++;
+			     	 iscovered = 
+                           MergeBlockAngle(b_list, below_angle, Oid);
+					 if(iscovered) cover_no++;
+				   }else{ //y equal to queryp
+					   CcReal a_min(true, 
+                                    MIN(angle1.GetRealval(), 
+                                        angle2.GetRealval()));
+			           CcReal a_max(true, 
+                                    MAX(angle1.GetRealval(), 
+                                        angle2.GetRealval())); 
+			 
+                       BlockAngle above_angle(
+			                        Interval<CcReal>(a_min, a_max, 
+                                    true, true), d);
+                       iscovered = 
+                           MergeBlockAngle(a_list, above_angle, Oid);
+			           if(iscovered)cover_no++; 
+				   }
+				 }
+				 
+//				 AddResult(iscovered, lp, rp);
+			   }else if(h_line2->Intersects(*cur_line)){
+			   
+			   	 CcReal angle1(true, 
+                              sp->GetAngle(query_p, hp, lp));
+				 CcReal angle2(true, 
+                              sp->GetAngle(query_p, hp, rp));
+				 CcReal pi_angle(true, TM_MYPI);
+				 double d1 = query_p.Distance(lp);
+				 double d2 = query_p.Distance(rp);
+				 double d = MAX(d1, d2);
+                 bool v1 = sp->GetClockwise(query_p, hp, lp);//GetClockwise
+                 bool v2 = sp->GetClockwise(query_p, hp, rp);
+				 
+				 if(v1){
+//					 assert(v2 == false);
+                     if(v2 == false){
+					   BlockAngle above_angle(
+                                  Interval<CcReal>(angle2, pi_angle,
+                                           true, true), d);
+					   BlockAngle below_angle(
+                                  Interval<CcReal>(angle1, pi_angle,
+                                           true, true), d);
+                       iscovered = 
+                               MergeBlockAngle(a_list, above_angle, Oid);
+					   if(iscovered) cover_no++;
+                       iscovered = 
+                               MergeBlockAngle(b_list, below_angle, Oid);
+					   if(iscovered) cover_no++;
+					 }else{ //y equal to queryp
+					   
+					    CcReal a_min(true, 
+                                     MIN(angle1.GetRealval(), 
+                                         angle2.GetRealval()));
+			            CcReal a_max(true, 
+                                     MAX(angle1.GetRealval(), 
+                                         angle2.GetRealval())); 
+			 
+			             BlockAngle below_angle(
+                                    Interval<CcReal>(a_min, a_max, 
+                                               true, true), d);
+			             iscovered = 
+                                 MergeBlockAngle(b_list, below_angle, Oid);
+			             if(iscovered)cover_no++; 
+					 }
+					 
+				 }else{
+//				     cout<<angle1<<" "<<angle2<<endl;
+//					 cout<<v1<<" "<<v2<<endl;
+//			 cout<<lp<<" "<<rp<<endl;
+//					 assert(v2);
+                     if(v2){
+					   BlockAngle below_angle(
+                                   Interval<CcReal>(angle2, pi_angle,
+                                                    true, true), d);
+					   BlockAngle above_angle(
+                                   Interval<CcReal>(angle1, pi_angle,
+                                            true, true), d);
+					  iscovered = 
+                                  MergeBlockAngle(a_list, above_angle, Oid);
+					  if(iscovered)cover_no++;
+					  iscovered = 
+                                  MergeBlockAngle(b_list, below_angle, Oid);
+					  if(iscovered)cover_no++;
+                    }else{ //one point is horizontal,y equal to queryp
+		                CcReal a_min(true, 
+                                     MIN(angle1.GetRealval(), 
+                                     angle2.GetRealval()));
+			            CcReal a_max(true, 
+                                     MAX(angle1.GetRealval(), 
+                                      angle2.GetRealval())); 
+			 
+			             BlockAngle above_angle(
+                                   Interval<CcReal>(a_min, a_max, 
+                                       true, true), d);
+			             iscovered = 
+                                   MergeBlockAngle(a_list, above_angle, Oid);
+			             if(iscovered)cover_no++; 
+					 }
+				 }
+				 
+//				 AddResult(iscovered, lp, rp);
+			   }else{
+//				 cout<<query_p<<" "<<hs<<endl;
+			     cout<<"should not be here"<<endl;
+				 assert(false);
+			   }
+			   delete cur_line;
+		 } //end segment intersects horizontal line
+		 	 	 
+	 } //end for, process all segments
+	 	 	 
+/* 	 cout<<"Obstacle oid: "<<Oid
+ 	    <<" covno: "<<cover_no
+ 	    <<" segments no: "<<hole->Size()/2<<endl;*/
+	 
+	 ///////////merge block angle in the list for the next time////////////
+// 	 cout<<"before sorting"<<endl;
+//  	 for(unsigned int i = 0;i < a_list.size();i++){
+// 		 a_list[i].Print();
+// 	 }
+
+	 sort(a_list.begin(), a_list.end());
+	 sort(b_list.begin(), b_list.end());
+//      cout<<"after sorting"<<endl;
+//  	 for(unsigned int i = 0;i < a_list.size();i++){
+//  		 a_list[i].Print();
+//  	 }
+
+	 MergeAngleList(a_list);
+	 MergeAngleList(b_list);
+	  
+	 //////////////////////////////////////////////////////////////////////
+	 /// if the number of covered is equal to the total number of segments//
+	 ///// we prune such an obstacle ////////////
+	 /// else we put the obstacle into the candidate set/////////////
+	 //////////////////////////////////////////////////////////////////////
+	 if(cover_no == (int)hole->Size()/2){//prune such an obstacle
+//		 clockwise_list.push_back(true);
+	 }else{ //collect obstacle id, points of such an obstacle
+//		 clockwise_list.push_back(false);
+
+
+		  Line* line = new Line(0);
+		  hole->Boundary(line);
+
+		  SimpleLine* sl = new SimpleLine(0);
+		  sl->fromLine(*line);
+
+		  vector<MyHalfSegment> mhs;
+		  sp->ReorderLine(sl, mhs);
+		  
+		  for(unsigned int j = 0;j < mhs.size();j++){
+			  if(query_p.Distance(mhs[j].from) > l){
+				continue;
+			  }
+			  p_list.push_back(mhs[j].from);
+			  oids1.push_back(Oid);
+			  if(j == 0){
+				p_neighbor1.push_back(mhs[j + 1].from);
+				p_neighbor2.push_back(mhs[mhs.size() - 1].from);
+			  }else if(j == mhs.size() - 1){
+				  p_neighbor1.push_back(mhs[j - 1].from);
+				  p_neighbor2.push_back(mhs[0].from);
+			  }else{
+				  p_neighbor1.push_back(mhs[j - 1].from);
+				  p_neighbor2.push_back(mhs[j + 1].from);
+			  }
+		  }//end for
+			
+		  delete line;
+		  delete sl;
+  	  
+// 			  p_list.push_back(ct->plist1[j]);
+// 			  p_neighbor1.push_back(ct->plist2[j]);
+// 			  p_neighbor2.push_back(ct->plist3[j]);
+// 			  oids1.push_back(Oid);
+
+	 }
+	 
+/*	 oids1.push_back(Oid);
+	 regs.push_back(*hole);*/
+	 tuple->DeleteIfAllowed();
+	 
+/*	 Points* ps = new Points(0);
+	 hole->Vertices(ps);
+
+	 for(int i = 0;i < ps->Size();i++){
+		 Point q;
+		 ps->Get(i, q);
+
+		 if(query_p.Distance(q) < EPSDIST){//visible
+		   cout<<"equal to query point"<<endl;
+		   ///////directly put into the result///////////
+		   p_list.push_back(q);
+		   continue;
+		 }
+		 double angle;
+		 bool clockwise;
+	 	 if(fabs(query_p.GetY() - q.GetY()) < EPSDIST){//the same horizontal
+		   	 angle = sp->GetAngle(query_p, hp, q);
+		   if(q.GetX() > query_p.GetX()){//////0, counterclockwise
+			     clockwise = false;
+				 ObsVertex v_elem(q, angle, elem.tid, clockwise);
+				 a_list.push_back(v_elem);
+		   }else{                        /////////180, clockwise
+			     clockwise = true;
+				 ObsVertex v_elem(q, angle, elem.tid, clockwise);
+				 b_list.push_back(v_elem);
+		   }
+		 }else{
+		   angle = sp->GetAngle(query_p, hp, q);
+		   if(q.GetY() > query_p.GetY()){ //counterclockwise 
+			  clockwise = false;
+		      ObsVertex v_elem(q, angle, elem.tid, clockwise);
+			  a_list.push_back(v_elem);		   
+		   }else{//clockwise
+			   clockwise = true;
+			   ObsVertex v_elem(q, angle, elem.tid, clockwise);
+			   b_list.push_back(v_elem);
+		   }		 
+		 }		 
+	 }
+	 delete ps;*/
+	 
+	 ////////////////step 3 check visibility//////////////////////////////
+	 	 	 		 	 	 
+   }///////////// end of queue storing obstacles
+   delete sp;
+   
+   delete h_line1;
+   delete h_line2;
+   
+   ////////////////////////////////////////////////////////////////////
+//    ///////test the program, collect obstacle vertices/////////////////
+// 	  for(unsigned int i = 0;i < a_list.size();i++){
+//  	   ObsVertex v_elem = a_list[i];
+//  	   p_list.push_back(v_elem.loc);
+//  	   angle_list.push_back(v_elem.angle);
+//  	   clockwise_list.push_back(v_elem.b);
+//  	   oids1.push_back(v_elem.regid);
+// 	  }
+// 	  
+// 	  for(unsigned int i = 0;i < b_list.size();i++){
+//  	   ObsVertex v_elem = b_list[i];
+//  	   p_list.push_back(v_elem.loc);
+//  	   angle_list.push_back(v_elem.angle);
+//  	   clockwise_list.push_back(v_elem.b);
+//  	   oids1.push_back(v_elem.regid);
+//      }
+   
+   /////////////////////////////////////////////////////////////////////
+}
+
+/*
+merge the angle and the dist
+
+*/
+void VGraph::MergeAngleList(vector<BlockAngle>& a_list)
+{
+  if(a_list.size() <= 1) return;
+  vector<BlockAngle> temp;
+  
+  BlockAngle cur = a_list[0];
+  for(unsigned int i = 1;i < a_list.size();i++){
+	BlockAngle elem = a_list[i];  
+	if(cur.angle.Intersects(elem.angle)){
+	  
+	   CcReal val1(true, MIN(cur.angle.start.GetValue(),
+                             elem.angle.start.GetValue()));
+	   
+	   CcReal val2(true, MAX(cur.angle.end.GetValue(),
+                             elem.angle.end.GetValue()));
+	   					 
+// 	   CcReal a(true, MIN(cur.angle.start.GetValue(), 
+//			  elem.angle.start.GetValue()));
+// 	   CcReal b(true, MAX(cur.angle.end.GetValue(), elem.angle.end));
+ 	   double d = MAX(cur.dist, elem.dist);
+ 	   BlockAngle new_angle(Interval<CcReal>(val1, val2, true, true), d);
+ 	   cur = new_angle;
+	}else{	
+	  temp.push_back(cur);
+	  cur = elem;
+	}  
+  }//end for
+  temp.push_back(cur);
+  
+//  cout<<"size1: "<<a_list.size()<<" size2: "<<temp.size()<<endl;
+  
+  a_list.clear();
+  for(unsigned int i = 0;i < temp.size();i++){
+	a_list.push_back(temp[i]);
+  }
+  
+}
+
+
+/*
+insert the new block angle into the list
+true: covered
+false:  not covered
+
+*/
+bool VGraph::MergeBlockAngle(vector<BlockAngle>& a_list, 
+                             BlockAngle above_angle, int oid)
+{
+	if(a_list.size() == 0){
+	  a_list.push_back(above_angle);
+	  return false;
+	}
+	///////////////////////////////////
+/*	if(oid == 47113){
+	    cout<<"above angle"<<endl;
+		above_angle.Print();
+	}*/
+	for(unsigned int i = 0;i < a_list.size();i++){
+		BlockAngle cur = a_list[i];
+//	    if(cur.angle.Contains(above_angle.angle)){//angle cover
+/*        if(oid == 47113){
+		  cur.Print();
+		}*/
+	    if(cur.angle.start < above_angle.angle.start && 
+		    above_angle.angle.end < cur.angle.end){
+//		    cur.Print();
+//		    above_angle.Print();
+			if(cur.dist < above_angle.dist)
+				return true;
+			else
+			   return false;
+		 }
+		 
+		 if(cur.angle.Intersects(above_angle.angle)){//merge
+		 
+			 CcReal val1(true, MIN(cur.angle.start.GetValue(),
+                               above_angle.angle.start.GetValue()));
+	   
+			 CcReal val2(true, MAX(cur.angle.end.GetValue(),
+                               above_angle.angle.end.GetValue()));
+	   					 
+			 double d = MAX(cur.dist, above_angle.dist);
+			 BlockAngle new_angle(
+                           Interval<CcReal>(val1, val2, true, true), d);
+			 a_list[i] = new_angle;
+			 return false;
+		 }	
+	}
+	a_list.push_back(above_angle);
+	return false;
+}
+
+/*
+test the program to see the line
+
+*/
+void VGraph::AddResult(bool iscovered, Point lp, Point rp)
+{
+
+	Line* l = new Line(0);
+	l->StartBulkLoad();
+	HalfSegment hs;
+	hs.Set(true, lp, rp);
+	int edgeno = 0;
+	hs.attr.edgeno = edgeno++;
+	*l += hs;
+	hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+	*l += hs;
+	l->EndBulkLoad();
+    line.push_back(*l); ///////////halfsegment
+	clockwise_list.push_back(iscovered);//pruned or not
+	delete l;
+	
+}
+
+
+/*
+find obstacles within a range to the query location
+
+*/
+void VGraph::GetObstacles(Relation* rel1, R_Tree<2,TupleId>* rtree, Point* q, 
+		                  float l, priority_queue<Obs_Obj>& myqueue)
+{
+
+	queue<SmiRecordId> query_list;
+    query_list.push(rtree->RootRecordId());
+
+    while(query_list.empty() == false){
+       SmiRecordId nodeid = query_list.front();
+       query_list.pop();
+
+       R_TreeNode<2, TupleId>* node = rtree->GetMyNode(nodeid,false,
+                          rtree->MinEntries(0), rtree->MaxEntries(0));
+
+          if(node->IsLeaf()){
+            for(int j = 0;j < node->EntryCount();j++){
+                R_TreeLeafEntry<2, TupleId> e =
+                 (R_TreeLeafEntry<2, TupleId>&)(*node)[j];
+				 Tuple* tuple = rel1->GetTuple(e.info, false);
+		         Region* hole = (Region*)tuple->GetAttribute(VP_HOLE);
+				 float d = hole->Distance(*q);
+				 if(d < l || fabs(d - l) < EPSDIST){
+					 Obs_Obj elem(e.info, d);
+					 myqueue.push(elem);
+				 }
+				 tuple->DeleteIfAllowed();
+            }
+
+          }else{
+
+            for(int j = 0;j < node->EntryCount();j++){
+                R_TreeInternalEntry<2> e =
+                  (R_TreeInternalEntry<2>&)(*node)[j];
+				double d = q->Distance(e.box);
+                if(d < l || fabs(d - l) < EPSDIST){ 
+                    query_list.push(e.pointer);
+                }
+            }
+          }
+
+       delete node;
+    }
+    
+}
+
+					
 /*
 create a relation for the vertices of the region with the cycleno
 
@@ -8432,10 +9722,16 @@ void Hole::GetContour(unsigned int no_reg)
     vector<Region> regions;
     SpacePartition* sp = new SpacePartition();
     //////////////////the outer contour/////////////////////////////////
+	const double range = 100000.0;
     contour.push_back(Point(true,0.0,0.0));
-    contour.push_back(Point(true,100000.0,0.0));
-    contour.push_back(Point(true,100000.0,100000.0));
-    contour.push_back(Point(true,0.0,100000.0));
+//    contour.push_back(Point(true,100000.0,0.0));
+//    contour.push_back(Point(true,100000.0,100000.0));
+    contour.push_back(Point(true,range,0.0));
+    contour.push_back(Point(true,range,range));
+	
+//    contour.push_back(Point(true,0.0,100000.0));
+	contour.push_back(Point(true,0.0,range));
+	
     sp->ComputeRegion(contour,regions);
     regs.push_back(regions[0]);
     ////////////////////////////////////////////////////////
@@ -8445,18 +9741,29 @@ void Hole::GetContour(unsigned int no_reg)
 //    srand48(tval.tv_sec);
 
     unsigned int reg_count = no_reg;
-
+//	const int delta = 2000;
+	const int delta = 200;
+	const int min_d = 100;
+	
     while(no_reg > 1){
 
 //      int  px = lrand48() % 98700 + 600;
 //      int  py = lrand48() % 98700 + 600;
-      int px = GetRandom() % 98700 + 600;
-      int py = GetRandom() % 98700 + 600;
+//      int px = GetRandom() % 98700 + 600;
+//      int py = GetRandom() % 98700 + 600;
+
+//	   int px = GetRandom() % 96000 + 2000;
+//     int py = GetRandom() % 96000 + 2000;
+
+	   int px = GetRandom() % 98000 + 500;
+       int py = GetRandom() % 98000 + 500;
 
 //      int radius = lrand48() % 496 + 5;//5-500 10-1000
 
-      int radius = GetRandom() % 496 + 5;//5-500 10-1000 
-
+//      int radius = GetRandom() % 496 + 5;//5-500 10-1000 
+      
+      int radius = GetRandom() % delta + min_d;//5-500 10-1000 
+            
       contour.clear();
       regions.clear();
       contour.push_back(Point(true, px - radius, py - radius));
@@ -8473,12 +9780,22 @@ void Hole::GetContour(unsigned int no_reg)
           Points* outer_ps = new Points(0);
 //          int outer_ps_no =  lrand48() % 191 + 10;///10-200
 
-          int outer_ps_no =  GetRandom() % 191 + 10;///10-200
+//          int outer_ps_no =  GetRandom() % 191 + 10;///10-200
+//          int outer_ps_no =  GetRandom() % 700 + 20;///20-700
+//          int outer_ps_no =  GetRandom() % 600 + 20;
+
+          int outer_ps_no =  GetRandom() % 1000 + 100;
+		  
+//          int outer_ps_no =  GetRandom() % 200 + 20;
 
 //          int outer_ps_no =  radius;///10-200
-          double xmin = px - radius;
-          double ymin = py - radius;
-          outer_ps->StartBulkLoad();
+ /*         double xmin = px - radius;
+          double ymin = py - radius;*/
+   
+          int xmin = px - radius;
+          int ymin = py - radius;
+ 
+		  outer_ps->StartBulkLoad();
           vector<Point> temp_ps;
           while(outer_ps_no > 0){
 //            int x =  lrand48() %(2*radius*100);
@@ -8489,7 +9806,20 @@ void Hole::GetContour(unsigned int no_reg)
 
             double coord_x = x/100.0 + xmin;
             double coord_y = y/100.0 + ymin;
-            Point newp(true,coord_x,coord_y);
+
+//             int x =  GetRandom() %(2*radius*10);
+//             int y =  GetRandom() %(2*radius*10);
+// 
+//             double coord_x = x/10.0 + xmin;
+//             double coord_y = y/10.0 + ymin;
+
+//            int x =  GetRandom() %(2*radius);
+//            int y =  GetRandom() %(2*radius);
+
+//            double coord_x = x + xmin;
+//            double coord_y = y + ymin;
+
+            Point newp(true, coord_x, coord_y);
 
             if(newp.Inside(regions[0])){
               outer_ps_no--;
@@ -8502,6 +9832,7 @@ void Hole::GetContour(unsigned int no_reg)
           if(no_reg % 3 == 0){
             Region* newregion = new Region(0);
             GrahamScan::convexHull(outer_ps,newregion);
+//            DiscoverContour(outer_ps, newregion);
             regs.push_back(*newregion);
             delete newregion;
           }
