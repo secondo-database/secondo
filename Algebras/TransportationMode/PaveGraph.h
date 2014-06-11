@@ -163,6 +163,9 @@ struct MySegDist;
 struct MyHalfSegment; 
 struct SpacePartition; 
 
+bool CheckAngle(float a1, float a2);
+bool CheckAngle2(float in, float a1, float a2);
+
 struct CompTriangle{
   Region* reg;
   vector<Region> triangles;
@@ -234,7 +237,17 @@ struct CompTriangle{
                                    Point& query_p, Point& hp, Point& p,
                                    SpacePartition* sp, Point* q1,
                                    Point* q2, int id);
+  bool InitializeQueue2(priority_queue<RPoint>& allps,
+                                   Point& query_p, Point& hp, Point& p,
+                                   SpacePartition* sp, Point* q1,
+                                   Point* q2, int id,
+						           float a1, float a2);
+								   
   void PrintAVLTree(multiset<MySegDist>& sss, ofstream&);
+  
+  void GetVPoints2(Relation* r1, Relation* r2, Rectangle<2>* bbox,
+                  Relation* r3, int attr_pos, float a1, float a2);
+				  
   vector<Line> connection;
   vector<int> reg_id;
 //  vector<float> angles;
@@ -488,6 +501,91 @@ struct Clamp{
 
 struct Triangle;
 
+struct Obs_Obj{
+  int tid;
+  float d;
+  Obs_Obj();
+  Obs_Obj(int id, float v):tid(id), d(v){}
+  Obs_Obj(const Obs_Obj& o):tid(o.tid), d(o.d){}
+  Obs_Obj& operator=(const Obs_Obj& o)
+  {
+	  tid = o.tid;
+	  d = o.d;
+	  return *this;
+  }
+  bool operator<(const Obs_Obj& o) const
+  {
+    return d > o.d;
+  }
+  void Print()
+  {
+	cout<<"tid "<<tid<<" d "<<d<<endl;
+  }
+
+};
+
+/*
+obstacle vertex and the angle
+
+*/
+struct ObsVertex{
+  Point loc;
+  double angle;
+  int regid;
+  bool b;//clockwise(true) or counterclockwise(false)
+  ObsVertex();
+  ObsVertex(Point p, double d, int id, bool v):loc(p), angle(d), 
+           regid(id), b(v){}
+  ObsVertex(const ObsVertex& o):loc(o.loc), angle(o.angle), 
+           regid(o.regid), b(o.b){}
+  ObsVertex& operator=(const ObsVertex& o)
+  {
+	loc = o.loc;
+	angle = o.angle;
+	regid = o.regid;
+	b = o.b;
+	return *this;
+  }
+  bool operator<(const ObsVertex& o)const
+  {
+	return angle < o.angle;
+  }
+  void Print()
+  {
+	cout<<"loc: "<<loc<<" angle "<<angle
+	    <<" regid "<<regid<<endl;
+    if(b) cout<<"clockwise"<<endl;
+	else cout<<"counterclockwise"<<endl;
+  }
+  
+};
+
+/*
+block angle
+
+*/
+struct BlockAngle{
+  Interval<CcReal> angle;
+  float dist;
+  BlockAngle();
+  BlockAngle(Interval<CcReal> a, float d):angle(a), dist(d){}
+  BlockAngle& operator=(const BlockAngle& o)
+  {
+	angle = o.angle;
+	dist = o.dist;
+	return *this;
+  }
+   bool operator<(const BlockAngle& o)const
+  {
+	return angle < o.angle;
+  }
+  void Print()
+  {
+	cout<<angle.start<<" "<<angle.end<<" "<<" dist: "<<dist<<endl;
+  }
+  
+};
+
 struct VGraph{
   DualGraph* dg;
   Relation* rel1;//query relation
@@ -502,17 +600,34 @@ struct VGraph{
   vector<int> oids2;
   vector<int> oids3;
   vector<Point> p_list;
+  vector<Point> p_list2;
   vector<Line> line;
   vector<Region> regs;
   VisualGraph* vg;
   
+  vector<Point> p_neighbor1;
+  vector<Point> p_neighbor2;
+  
   int tri_access;
-
+  vector<float> angle_list;
+  vector<bool> clockwise_list;
+  
+  static string RelHoles;
+  /////////////within a spatial range///////////////
+  bool spatial_l; //mark the state
+  set<int> cand_id;
+  //////////////////////////////////////////////////
+  
+  enum VPHoleInfo{VP_HOLE_OID = 0, VP_HOLE, VP_HOLE_BOX}; 
+     
   VGraph();
   ~VGraph();
   VGraph(DualGraph* g, Relation* r1, Relation* r2, Relation* r3);
   VGraph(VisualGraph* g);
   void GetVNode();
+  void GetVNode2(float l);
+//  bool CheckAngle(float a1, float a2);
+  void GetVNode3(float a1, float a2);
   void GetAdjNodeDG(int oid);
   void GetAdjNodeVG(int oid);
   void GetVisibleNode1(int tri_id, Point* query_p);
@@ -529,10 +644,21 @@ struct VGraph{
   void GetVNodeOnVertex(int vid, Point* query_p);
   void GetVGEdge();
   bool MyCross(const HalfSegment& hs1, const HalfSegment& hs2);
-  ////////////////////for walk shortest algorithm/////////////////////////
+  /* for walk shortest algorithm */ 
   void GetVisibilityNode(int tri_id, Point query_p);
-
+  /////////////////////////////////////////////////////////////////////////
+  void GetVPRange(Relation* rel1, R_Tree<2,TupleId>* rtree,
+				  Relation* rel2, float l);
+  void GetObstacles(Relation* rel1, R_Tree<2,TupleId>* rtree, Point* q, 
+				float l, priority_queue<Obs_Obj>& myqueue);
+  bool MergeBlockAngle(vector<BlockAngle>& a_list, BlockAngle above_angle,
+					   int oid);
+  void AddResult(bool iscovered, Point lp, Point rp);			 
+  void MergeAngleList(vector<BlockAngle>& a_list);
+  void FindTriWithin_L(float l, int query_oid, Point* q);
 };
+
+
 
 /*
 structure used for creating the triangles of a polygon in such a way that two
@@ -643,10 +769,13 @@ Calculate the Z-order value for the input point
 */
 inline long ZValue(Point& p)
 {
-  bitset<20> b;
+  /////////////// not large enough for CA data, x is large, 1059025
+/*  bitset<20> b;
   double base = 2,exp = 20;
   int x = (int)p.GetX();
   int y = (int)p.GetY();
+  if(x > pow(base, exp)) cout<<"x: "<<x<<endl;
+  if(y > pow(base, exp)) cout<<"y: "<<y<<endl;
   assert (x < pow(base,exp));
   assert (y < pow(base,exp));
   bitset<10> b1(x);
@@ -654,6 +783,26 @@ inline long ZValue(Point& p)
   bool val;
   b.reset();
   for(int j = 0; j < 10;j++){
+      val = b1[j];
+      b.set(2*j,val);
+      val = b2[j];
+      b.set(2*j+1,val);
+  }
+  return b.to_ulong();*/
+
+  bitset<30> b;
+  double base = 2,exp = 30;
+  int x = (int)p.GetX();
+  int y = (int)p.GetY();
+  if(x > pow(base, exp)) cout<<"x: "<<x<<endl;
+  if(y > pow(base, exp)) cout<<"y: "<<y<<endl;
+  assert (x < pow(base,exp));
+  assert (y < pow(base,exp));
+  bitset<15> b1(x);
+  bitset<15> b2(y);
+  bool val;
+  b.reset();
+  for(int j = 0; j < 15;j++){
       val = b1[j];
       b.set(2*j,val);
       val = b2[j];
