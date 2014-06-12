@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Startup script for running SECONDOTTY in optimizer mode
+
+VALGRIND_STD_OPTIONS=" --num-callers=25 --suppressions=../bin/vgs.txt --error-limit=no "
+SEC=../bin/SecondoBDB
+
+if [ "$1" == "--valgrind" ]; then
+  shift
+  runner="valgrind $VALGRIND_STD_OPTIONS  $SEC"
+else 
+if [ "$1" == "--valgrindlc" ]; then
+  shift
+  runner="valgrind $VALGRIND_STD_OPTIONS --leak-check=full $SEC"
+else  
+if [ "$1" == "--profile" ]; then
+  shift
+  runner="valgrind --tool=callgrind --dump-instr=yes  --trace-jump=yes  $SEC"
+else
+  runner="$SEC"
+fi
+fi
+fi  
+
+$runner  -pl -L256M -G256M $* pl -g true
+
