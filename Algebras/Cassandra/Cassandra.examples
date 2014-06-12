@@ -61,15 +61,15 @@ Signature: text x text -> bool
 Example  : query cqueryreset('127.0.0.1', 'keyspace1')
 Result   : TRUE
 
-Operator : cqueryinsert
+Operator : cqueryexecute
 Number   : 1
 Signature: text x text x int x text -> bool
-Example  : query cqueryinsert('127.0.0.1', 'keyspace1', 2, <text>query ccollectrange('__CASSANDRAIP__', '__KEYSPACE__', 'relation2', 'ONE',__TOKEN__) count;</text--->)
+Example  : query cqueryexecute('127.0.0.1', 'keyspace1', 2, <text>query ccollectrange('__CASSANDRAIP__', '__KEYSPACE__', 'relation2', 'ONE',__TOKEN__) count;</text--->)
 Result   : TRUE
 
 Operator : cquerywait
 Number   : 1
 Signature: text x text x int -> bool
-Example  : query cqueryinsert('127.0.0.1', 'keyspace1', 2)
+Example  : query cqueryexecute('127.0.0.1', 'keyspace1', 2)
 Result   : TRUE
 

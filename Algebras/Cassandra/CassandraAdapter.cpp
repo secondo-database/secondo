@@ -742,8 +742,8 @@ bool CassandraAdapter::createMetatables() {
   ));
   
   queries.push_back(string(
-    "CREATE TABLE IF NOT EXISTS progress (ip TEXT, query INT, "
-    "begintoken TEXT, endtoken TEXT, PRIMARY KEY(ip, query, begintoken));"
+    "CREATE TABLE IF NOT EXISTS progress (queryid INT, ip TEXT, "
+    "begintoken TEXT, endtoken TEXT, PRIMARY KEY(queryid, ip, begintoken));"
   ));
   
   for(vector<string>::iterator iter = queries.begin(); 
@@ -816,4 +816,50 @@ void CassandraAdapter::quoteCqlStatement(string &query) {
 }
 
 
+bool CassandraAdapter::getProcessedTokenRangesForQuery (
+    vector<TokenInterval> &result, int queryId) {
+   
+    try {   
+      stringstream ss;
+      ss << "SELECT ip, begintoken, endtoken FROM progress WHERE ";
+      ss << "queryid = " << queryId;
+      cout << ss.str() << endl;
+      
+       boost::shared_future< cql::cql_future_result_t > future = 
+          executeCQL(ss.str(), cql::CQL_CONSISTENCY_ONE);
+  
+       future.wait();
+    
+       if(future.get().error.is_err()) {
+         cerr << "Unable to fetch processed tokens for query" << endl;
+         return false;
+       }
+    
+       cql::cql_result_t& cqlResult = *(future.get().result);
+    
+       while(cqlResult.next()) {
+         string ip;
+         string beginToken;
+         string endToken;
+         
+         cqlResult.get_string(0, ip);
+         cqlResult.get_string(1, beginToken);
+         cqlResult.get_string(2, endToken);
+        
+         long long beginLong = atol(beginToken.c_str());
+         long long endLong = atol(endToken.c_str());
+         
+         cout << "Adding " << beginLong << " / " << endLong << endl;
+         
+         result.push_back(TokenInterval(beginLong, endLong));
+       }
+     } catch(std::exception& e) {
+        cerr << "Got exception while executing cql: " << e.what() << endl;
+        return false;
+     }
+   
+     return true;
 }
+
+}
+

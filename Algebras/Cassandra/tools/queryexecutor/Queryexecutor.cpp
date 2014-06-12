@@ -218,9 +218,9 @@ bool updateLastProcessedToken(cassandra::CassandraAdapter* cassandra,
   
   // Build CQL query
   stringstream ss;
-  ss << "INSERT INTO progress(ip, query, begintoken, endtoken) values("; 
-  ss << "'" << ip << "',";
+  ss << "INSERT INTO progress(queryid, ip, begintoken, endtoken) values("; 
   ss << "" << lastCommandId << ",",
+  ss << "'" << ip << "',";
   ss << "'" << interval.getStart() << "',",
   ss << "'" << interval.getEnd() << "'",
   ss << ");";
@@ -401,6 +401,9 @@ void mainLoop(SecondoInterface* si,
           
           // Is this the next query to execute
           if(id == lastCommandId + 1) {
+
+            // Update global status
+            ++lastCommandId;
             
             // Simple query or token based query?
             if(containsPlaceholder(command, "__TOKEN__")) {
@@ -410,8 +413,6 @@ void mainLoop(SecondoInterface* si,
               executeSecondoCommand(si, nl, command);
             }
             
-            // Update global status
-            ++lastCommandId;
             updateLastCommand(cassandra, lastCommandId, cassandraIp);
           }
         }

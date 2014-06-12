@@ -1973,9 +1973,9 @@ Operator cassandraquerylist (
 
 
 /*
-2.8 Operator ~cqueryinsert~
+2.8 Operator ~cqueryexecute~
 
-The operator ~cqueryinsert~ schedules a query for execuion
+The operator ~cqueryexecute~ schedules a query for execuion
 
 The first paramter is the contact point to the cassandra cluster
 The second parameter specifies the keyspace to use
@@ -1984,7 +1984,7 @@ The fourth parameter is the query
 
 2.8.1 Type mapping function of operator ~cquerinsert~
 
-Type mapping for ~cqueryinsert~ is
+Type mapping for ~cqueryexecute~ is
 
 ----
   text x text x int x text -> bool
@@ -2016,7 +2016,7 @@ ListExpr CQueryInsertTypeMap( ListExpr args )
 }
 
 /*
-2.8.2 Specification of operator ~cqueryinsert~
+2.8.2 Specification of operator ~cqueryexecute~
 
 */
 int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -2090,27 +2090,27 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
-2.8.3 Specification of operator ~cqueryinsert~
+2.8.3 Specification of operator ~cqueryexecute~
 
 */
 const string CQueryInsertSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
                          "<text>text x text x int x text -> bool</text--->"
-                         "<text>cqueryinsert ( _ , _ , _ , _ ) </text--->"
-                         "<text>The operator cqueryinsert schedules a query"
+                         "<text>cqueryexecute ( _ , _ , _ , _ ) </text--->"
+                         "<text>The operator cqueryexecute schedules a query"
                          "for execuion. </text--->"
-                         "<text>query cqueryinsert('127.0.0.1', 'keyspace1', "
+                         "<text>query cqueryexecute('127.0.0.1', 'keyspace1', "
                          "1, 'open database opt') "
                          "</text--->"
                               ") )";
 
 /*
-2.8.4 Definition of operator ~cqueryinsert~
+2.8.4 Definition of operator ~cqueryexecute~
 
 */
 Operator cassandraqueryinsert (
-         "cqueryinsert",            // name
+         "cqueryexecute",            // name
          CQueryInsertSpec,          // specification
          CQueryInsert,              // value mapping
          Operator::SimpleSelect,    // trivial selection function
@@ -2160,6 +2160,124 @@ ListExpr CQueryWaitTypeMap( ListExpr args )
   return nl->SymbolAtom(CcBool::BasicType());
 }
 
+
+/*
+2.9.2 Local info for operator ~cqueryreset~
+
+*/
+class CQueryWaitLocalInfo {
+
+public:
+  CQueryWaitLocalInfo(string myContactPoint, string myKeyspace, int myQueryId) 
+  
+    : contactPoint(myContactPoint), keyspace(myKeyspace), queryId(myQueryId),
+    cassandra(NULL) {
+      
+      cout << "Contact point is " << contactPoint << endl;
+      cout << "Keyspace is " << keyspace << endl;
+      
+      startTime = time(0);
+      
+      open();
+  }
+  
+  void open(){
+    if(cassandra == NULL) {
+      cassandra = new CassandraAdapter(contactPoint, keyspace);
+      cassandra -> connect(false);
+    }
+  }
+  
+  bool getProcessedTokenRangesForQuery(vector<TokenInterval> &result) {
+      return cassandra -> getProcessedTokenRangesForQuery(result, queryId);
+  }
+  
+  time_t getStartTime() {
+    return startTime;
+  }
+  
+  virtual ~CQueryWaitLocalInfo() {
+    if(cassandra != NULL) {
+      delete cassandra;
+      cassandra = NULL;
+    }
+  }
+  
+private:
+  string contactPoint;         // Contactpoint for our cluster
+  string keyspace;             // Keyspace
+  int queryId;                 // Query id to wait for
+  CassandraAdapter* cassandra; // Our cassandra connection
+  time_t startTime;
+};
+
+
+
+class CQueryResetCostEstimation : public CostEstimation {
+
+public:
+  
+  CQueryResetCostEstimation() {
+  }
+  
+  virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo, 
+    bool argsAvialable) {
+   
+    ProgressInfo p1;    
+    CQueryWaitLocalInfo* cwi = (CQueryWaitLocalInfo*) localInfo;
+
+    // Is local info present?
+    if(cwi == NULL) {
+        return CANCEL;
+    }
+    
+    // Calculate processed token ranges
+    vector<TokenInterval> processedIntervals;
+    unsigned long long max = ULLONG_MAX;
+    unsigned long long totalProcessedTokens = 0;
+    
+    cwi -> getProcessedTokenRangesForQuery(processedIntervals);
+    
+    for(vector<TokenInterval>::iterator iter = processedIntervals.begin(); 
+        iter != processedIntervals.end(); ++iter) {
+      
+      TokenInterval interval = *iter;
+      totalProcessedTokens = totalProcessedTokens + interval.getSize();
+    }
+    
+    //cout << "Total: " << totalProcessedTokens << endl;
+    
+    pRes->Card = 1;
+    pRes->Progress = (double) totalProcessedTokens / (double) max;
+    pRes->BTime = 1;
+    pRes->BProgress = 1;
+    
+    // Calculate total Procesing time
+    time_t timediff = time(0) - cwi -> getStartTime();
+    pRes->Time = timediff / pRes->Progress;
+    
+    return YIELD;
+  }
+
+  
+/*
+2.1.2 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo) {
+    
+  }
+};
+
+/*
+2.9.2 Get Cost Estimation Class for operator ~cqueryreset~
+
+*/
+CostEstimation* CQueryWaitCostEstimationFunc() {
+  return new CQueryResetCostEstimation();
+}
+
+
 /*
 2.9.2 Specification of operator ~cqueryreset~
 
@@ -2174,6 +2292,10 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUEST:
     case CLOSE:
       
+      CQueryWaitLocalInfo* cli = (CQueryWaitLocalInfo*)local.addr;
+      if ( cli ) delete cli;
+    
+      
       result = qp->ResultStorage(s);
       static_cast<CcInt*>(result.addr)->Set(false, 0);
     
@@ -2187,11 +2309,14 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
         cout << "Query-Id is not defined" << endl;
         return CANCEL;
       } else {
-      
+          
       string contactPoint = ((FText*) args[0].addr) -> GetValue();
       string keyspace = ((FText*) args[1].addr) -> GetValue();
       int queryId = ((CcInt*) args[2].addr) -> GetValue();
       
+      cli = new CQueryWaitLocalInfo(contactPoint, keyspace, queryId);
+      local.addr = cli;
+ 
       cout << "Wait for query id to be executed: " << queryId << endl;
       
       CassandraAdapter* cassandra 
@@ -2223,14 +2348,27 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
             break;
           }
           
-          cout << "Highest value: " << highestValue << endl;
-          sleep(5);
+          //cout << "Highest value: " << highestValue << endl;
+          
+          for(size_t i = 0; i < 50000; ++i) {
+              // We are blocking the query processor
+              // So we need to call CheckProgress 
+              // manually, to receive getProgress messages
+              qp->CheckProgress();
+              usleep(100);
+          }
+          
         }
         
         cassandra -> disconnect();
       }
       
       static_cast<CcBool*>(result.addr)->Set(true, true);
+      
+      // Delete local info
+      delete cli;
+      cli = NULL;
+      local.addr = NULL;
       
       return YIELD;
       }
@@ -2264,7 +2402,8 @@ Operator cassandraquerywait (
          CQueryWaitSpec,          // specification
          CQueryWait,              // value mapping
          Operator::SimpleSelect,  // trivial selection function
-         CQueryWaitTypeMap        // type mapping
+         CQueryWaitTypeMap,       // type mapping
+         CQueryWaitCostEstimationFunc // Cost Estimation
 );                         
 
 

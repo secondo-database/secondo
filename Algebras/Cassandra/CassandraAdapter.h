@@ -158,6 +158,22 @@ public:
     return end;
   }
 
+/*
+2.4.3 Get interval end
+
+*/  
+  long long getSize() {
+      if(start >= 0 && end >= 0) {
+          return end - start;
+      }
+      
+      if(start <= 0 && end <= 0) {
+          return llabs(start - end);
+      }
+      
+      return llabs(start) + llabs(end);
+  }
+
  
   
 private:
@@ -421,6 +437,13 @@ Replace all single quotes with double quotes
 */    
   CassandraResult* getGlobalQueryState();
 
+/*
+2.3.19 Get processed token ranges for query
+
+*/
+  bool getProcessedTokenRangesForQuery (
+      vector<TokenInterval> &result, int queryId);
+          
 protected:
 
 /*
