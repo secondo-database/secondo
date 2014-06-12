@@ -353,11 +353,19 @@ bool CassandraAdapter::getLokalTokenRanges(
       
       // Add end interval
       TokenInterval interval(
-        (allTokens.at(lastTokenPos)).getToken(), LLONG_MAX);
+        (allTokens.at(lastTokenPos)).getToken(), 
+        LLONG_MAX, 
+        (allTokens.at(lastTokenPos)).getIp());
+      
       localTokenRange.push_back(interval);
     
+    
       // Add start interval
-      TokenInterval interval2(LLONG_MIN, (allTokens.at(0)).getToken() - 1);
+      TokenInterval interval2(
+        LLONG_MIN, 
+        (allTokens.at(0)).getToken() - 1, 
+        (allTokens.at(0)).getIp());
+      
       localTokenRange.push_back(interval2);
     }
     
@@ -371,7 +379,10 @@ bool CassandraAdapter::getLokalTokenRanges(
       if(find(localTokenSet.begin(), localTokenSet.end(), currentToken) 
         != localTokenSet.end()) {
         
-        TokenInterval interval(currentToken, nextToken - 1);
+        TokenInterval interval(currentToken, 
+                               nextToken - 1, 
+                               (allTokens.at(i)).getIp());
+        
         localTokenRange.push_back(interval);
       }
     }
@@ -851,7 +862,7 @@ bool CassandraAdapter::getProcessedTokenRangesForQuery (
          
          cout << "Adding " << beginLong << " / " << endLong << endl;
          
-         result.push_back(TokenInterval(beginLong, endLong));
+         result.push_back(TokenInterval(beginLong, endLong, ip));
        }
      } catch(std::exception& e) {
         cerr << "Got exception while executing cql: " << e.what() << endl;

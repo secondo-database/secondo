@@ -139,8 +139,8 @@ public:
 2.4.1 Construct a new token interval
 
 */
-  TokenInterval(long long myStart, long long myEnd) :
-    start(myStart), end(myEnd) {}
+  TokenInterval(long long myStart, long long myEnd, string myIp) :
+    start(myStart), end(myEnd), ip(myIp) {}
   
 /*
 2.4.2 Get interval start
@@ -159,7 +159,15 @@ public:
   }
 
 /*
-2.4.3 Get interval end
+2.4.4 Get interval end
+
+*/
+  string getIp() const {
+    return ip;
+  }
+  
+/*
+2.4.5 Get interval end
 
 */  
   long long getSize() {
@@ -183,6 +191,8 @@ private:
   // Interval end
   long long end;
   
+  // Ip assigned to this interval
+  string ip;
 };
 
 /*
@@ -193,7 +203,8 @@ inline std::ostream& operator<<(std::ostream &strm,
                          const cassandra::TokenInterval &tokenInterval) {
   
   return strm << "TokenInterval[" << tokenInterval.getStart()
-              << ";" << tokenInterval.getEnd() << "]";
+              << ";" << tokenInterval.getEnd() << "; " 
+              << "ip=" << tokenInterval.getIp() << "]";
 }
 
 
