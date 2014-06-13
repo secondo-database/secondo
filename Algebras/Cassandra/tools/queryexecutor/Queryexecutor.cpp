@@ -395,7 +395,7 @@ void mainLoop(SecondoInterface* si,
   vector<CassandraToken> peerTokens;
   vector<TokenInterval> localTokenRange;
   
-  if(! cassandra->getLokalTokenRanges(localTokenRange, 
+  if(! cassandra->getLocalTokenRanges(localTokenRange, 
        localTokens, peerTokens)) {
     
     cerr << "Unable to determine token ranges" << endl;

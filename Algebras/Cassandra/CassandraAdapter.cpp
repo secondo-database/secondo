@@ -313,7 +313,7 @@ CassandraResult* CassandraAdapter::readTableRange(string relation,
   
 }
 
-bool CassandraAdapter::getLokalTokenRanges(
+bool CassandraAdapter::getLocalTokenRanges(
      vector<TokenInterval> &localTokenRange, 
      vector <CassandraToken> &localTokens, 
      vector <CassandraToken> &peerTokens) {
@@ -410,7 +410,7 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
     vector <CassandraToken> localTokens;
     vector <CassandraToken> peerTokens;
     
-    getLokalTokenRanges(localTokenRange, localTokens, peerTokens);
+    getLocalTokenRanges(localTokenRange, localTokens, peerTokens);
 
     vector<string> queries;
     

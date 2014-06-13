@@ -399,7 +399,7 @@ a valid result. False otherweise
 
 */
 
-   bool getLokalTokenRanges(vector<TokenInterval> &localTokenRange, 
+   bool getLocalTokenRanges(vector<TokenInterval> &localTokenRange, 
      vector <CassandraToken> &localTokens, 
      vector <CassandraToken> &peerTokens);
  
