@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 #include <iostream>
+#include <map>
+
 #include <stdlib.h>
 #include "../../CassandraAdapter.h"
 #include "SecondoInterface.h"
@@ -360,12 +362,92 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
         iter != localTokenRange.end(); ++iter) {
  
       TokenInterval interval = *iter;
-      executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
+      //executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
     }  
     
     // Process other tokens
-    bool ringProcressed = false;
-    while(! ringProcressed ) {
+    while( true ) {
+      map<string, time_t> hartbeatData;
+      cassandra -> getHartbeatData(hartbeatData);
+      
+      vector<TokenInterval> allIntervals;
+      vector <CassandraToken> localTokens;
+      vector <CassandraToken> peerTokens;
+      cassandra->getAllTokenRanges(allIntervals, localTokens, peerTokens);
+      
+      vector<TokenInterval> processedIntervals;
+      cassandra->getProcessedTokenRangesForQuery(processedIntervals, queryId);
+      
+      // Reverse the data of the logical ring, so we can interate from
+      // MAX to MIN
+      reverse(allIntervals.begin(), allIntervals.end());
+      reverse(processedIntervals.begin(), processedIntervals.end());
+      
+      cout << hartbeatData[string("127.0.0.1")] << endl;
+      cout << hartbeatData[string("192.168.1.108")] << endl;
+      
+      cout << "We have " << processedIntervals.size() 
+           << " of " << allIntervals.size() << endl;
+           
+      if(processedIntervals.size() == allIntervals.size()) {
+        break; // All TokenRanges are processed
+      }
+      
+      // Save the last position in allIntervals
+      size_t lastAllIntervalsPos = 0;
+      
+      for(vector<TokenInterval>::iterator iter = processedIntervals.begin();
+          iter != processedIntervals.end(); ++iter) {
+          TokenInterval interval = *iter;
+        
+        // is this intervall processed by ourself?
+        if(interval.getIp().compare(ip) != 0) {
+          continue;
+        }
+        
+        // Find the intervall in the allIntervals vector
+        while(true) {
+          
+          TokenInterval tokenInterval = allIntervals.at(lastAllIntervalsPos);
+          if(tokenInterval == interval) {
+            break;
+          }
+      
+          ++lastAllIntervalsPos;
+          lastAllIntervalsPos = lastAllIntervalsPos % allIntervals.size();
+        }
+        
+        // Interate to the next interval 
+        cout << "Handling interval: " << interval;
+        
+        // Last processed token is the last token on the ring?
+        if(iter+1 != processedIntervals.end()) {
+          TokenInterval nextInterval = *(iter + 1);
+          
+          for(size_t offset = 1; 
+              lastAllIntervalsPos + offset < allIntervals.size(); 
+              ++offset) {
+            
+            TokenInterval tryInterval 
+               = allIntervals.at(lastAllIntervalsPos + offset);
+            
+            if(tryInterval == nextInterval) {
+              break;
+            }
+            
+            cout << "Try interval: " << tryInterval << endl;   
+          }
+        } else {
+          for(size_t offset = 1; 
+              lastAllIntervalsPos + offset < allIntervals.size(); 
+              ++offset) {
+            
+            TokenInterval tryInterval 
+               = allIntervals.at(lastAllIntervalsPos + offset);
+            cout << "Try interval: " << tryInterval << endl;   
+          }
+        }
+      }
       
       cout << "Sleep 5 seconds and check the ring again" << endl;
       sleep(5);

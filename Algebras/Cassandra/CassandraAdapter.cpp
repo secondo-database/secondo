@@ -38,6 +38,7 @@
 #include <string.h>
 #include <iostream>
 #include <climits>
+#include <map>
 
 #include <cassert>
 
@@ -361,6 +362,9 @@ bool CassandraAdapter::getAllTokenRanges(
       return false;
     }
     
+    sort(localTokens.begin(), localTokens.end());
+    sort(peerTokens.begin(), peerTokens.end());
+    
     // Merge and sort tokens
     vector<CassandraToken> allTokens;
     allTokens.reserve(localTokens.size() + peerTokens.size()); 
@@ -370,20 +374,7 @@ bool CassandraAdapter::getAllTokenRanges(
 
     // Last position in the vector
     int lastTokenPos = allTokens.size() - 1;
-        
-    // Find all local token ranges between nodes and add them
-    for(size_t i = 0; i < allTokens.size() - 1; ++i) {
-      
-      long long currentToken = (allTokens.at(i)).getToken();
-      long long nextToken = (allTokens.at(i + 1)).getToken();        
-      
-      TokenInterval interval(currentToken, 
-                              nextToken - 1, 
-                              (allTokens.at(i)).getIp());
-      
-      allTokenRange.push_back(interval);
-    }
-    
+     
     // Is last token in the ring splitted?
     // So the two tokenranges (begin, LLONG_MAX] and (LLONG_MIN, end]
     if((allTokens.at(lastTokenPos)).getToken() != LLONG_MAX) {
@@ -409,6 +400,21 @@ bool CassandraAdapter::getAllTokenRanges(
       LLONG_MAX, 
       (allTokens.at(lastTokenPos - 1)).getIp());
     }
+    
+    // Find all local token ranges between nodes and add them
+    for(size_t i = 0; i < allTokens.size() - 1; ++i) {
+      
+      long long currentToken = (allTokens.at(i)).getToken();
+      long long nextToken = (allTokens.at(i + 1)).getToken();        
+      
+      TokenInterval interval(currentToken, 
+                              nextToken - 1, 
+                              (allTokens.at(i)).getIp());
+      
+      allTokenRange.push_back(interval);
+    }
+    
+    sort(allTokenRange.begin(), allTokenRange.end());
     
     return true;
 }
@@ -872,9 +878,43 @@ bool CassandraAdapter::getProcessedTokenRangesForQuery (
          long long beginLong = atol(beginToken.c_str());
          long long endLong = atol(endToken.c_str());
          
-         cout << "Adding " << beginLong << " / " << endLong << endl;
-         
          result.push_back(TokenInterval(beginLong, endLong, ip));
+       }
+     } catch(std::exception& e) {
+        cerr << "Got exception while executing cql: " << e.what() << endl;
+        return false;
+     }
+     
+     // Sort result
+     sort(result.begin(), result.end());
+   
+     return true;
+}
+
+bool CassandraAdapter::getHartbeatData(map<string, time_t> &result) {
+    try {   
+
+       boost::shared_future< cql::cql_future_result_t > future = 
+          executeCQL(string("SELECT ip, hartbeat FROM state"), 
+                     cql::CQL_CONSISTENCY_ONE);
+  
+       future.wait();
+    
+       if(future.get().error.is_err()) {
+         cerr << "Unable to fetch hartbeat data" << endl;
+         return false;
+       }
+    
+       cql::cql_result_t& cqlResult = *(future.get().result);
+    
+       while(cqlResult.next()) {
+         string ip;
+         boost::int64_t res;
+         
+         cqlResult.get_string(0, ip);
+         cqlResult.get_bigint(1, res);
+         
+         result.insert(std::pair<string,time_t>(ip,(time_t) res));
        }
      } catch(std::exception& e) {
         cerr << "Got exception while executing cql: " << e.what() << endl;

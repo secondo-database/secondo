@@ -40,6 +40,7 @@
 
 #include <string.h>
 #include <iostream>
+#include <map>
 
 #include <cassert>
 
@@ -172,8 +173,9 @@ public:
 
 */
   bool isLocalTokenInterval() const {
-    return ip.compare("127.0.0.1");
+    return (ip.compare("127.0.0.1") == 0);
   }
+
 /*
 2.4.6 Get interval end
 
@@ -190,7 +192,27 @@ public:
       return llabs(start) + llabs(end);
   }
 
- 
+/*
+2.4.7 Operator <
+
+*/  
+  bool operator<( const TokenInterval& val ) const { 
+        return start < val.getStart(); 
+  }
+  
+/*
+2.4.7 Operator ==
+
+*/    
+ inline bool operator== (const TokenInterval &interval) {
+   
+   if((interval.getStart() == getStart()) &&
+     (interval.getEnd() == getEnd())) {
+     return true;
+   } 
+   
+   return false;
+ }
   
 private:
   // Interval start
@@ -475,6 +497,12 @@ Replace all single quotes with double quotes
 */
   bool getProcessedTokenRangesForQuery (
       vector<TokenInterval> &result, int queryId);
+
+/*
+2.3.19 Get hartbeat data
+
+*/
+  bool getHartbeatData(map<string, time_t> &result);
           
 protected:
 
