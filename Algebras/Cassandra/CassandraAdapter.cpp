@@ -318,6 +318,40 @@ bool CassandraAdapter::getLocalTokenRanges(
      vector <CassandraToken> &localTokens, 
      vector <CassandraToken> &peerTokens) {
   
+     vector<TokenInterval> allTokenRanges;
+     
+     bool result = 
+        getAllTokenRanges(allTokenRanges, localTokens, peerTokens);
+        
+    // Do filtering of local intervals
+    for(vector<TokenInterval>::iterator iter = allTokenRanges.begin(); 
+        iter != allTokenRanges.end(); ++iter) {
+      
+      TokenInterval interval = *iter;
+      if(interval.isLocalTokenInterval()) {
+        localTokenRange.push_back(interval);
+      }
+    }
+        
+    // Print debug Info
+    cout << "Peer ranges are: ";
+    copy(peerTokens.begin(), peerTokens.end(), 
+    std::ostream_iterator<CassandraToken>(cout, " "));
+    cout << std::endl;
+        
+    cout << "Local ranges are: ";
+    copy(localTokenRange.begin(), localTokenRange.end(), 
+    std::ostream_iterator<TokenInterval>(cout, " "));
+    cout << std::endl;
+      
+    return result;
+}
+
+bool CassandraAdapter::getAllTokenRanges(
+     vector<TokenInterval> &allTokenRange, 
+     vector <CassandraToken> &localTokens, 
+     vector <CassandraToken> &peerTokens) {
+  
     // Calculate local token ranges
     if(! getLocalTokens(localTokens)) {
       return false;
@@ -333,32 +367,33 @@ bool CassandraAdapter::getLocalTokenRanges(
     allTokens.insert(allTokens.end(), localTokens.begin(), localTokens.end());
     allTokens.insert(allTokens.end(), peerTokens.begin(), peerTokens.end() );
     sort(allTokens.begin(), allTokens.end());
-    
-    // Create a vector with local tokens
-    vector<long long> localTokenSet;
-    for(vector<CassandraToken>::iterator iter = localTokens.begin(); 
-        iter != localTokens.end(); ++iter) {
-      CassandraToken token = *iter;
-      localTokenSet.push_back(token.getToken());
-    }
-    
+
     // Last position in the vector
     int lastTokenPos = allTokens.size() - 1;
-    
-    // Special case: We are on the last positition in the vector, add
-    //               first and last token
-    if (find(localTokenSet.begin(), localTokenSet.end(), 
-        (allTokens.at(lastTokenPos)).getToken()) 
-        != localTokenSet.end()) {
+        
+    // Find all local token ranges between nodes and add them
+    for(size_t i = 0; i < allTokens.size() - 1; ++i) {
       
+      long long currentToken = (allTokens.at(i)).getToken();
+      long long nextToken = (allTokens.at(i + 1)).getToken();        
+      
+      TokenInterval interval(currentToken, 
+                              nextToken - 1, 
+                              (allTokens.at(i)).getIp());
+      
+      allTokenRange.push_back(interval);
+    }
+    
+    // Is last token in the ring splitted?
+    // So the two tokenranges (begin, LLONG_MAX] and (LLONG_MIN, end]
+    if((allTokens.at(lastTokenPos)).getToken() != LLONG_MAX) {
       // Add end interval
       TokenInterval interval(
         (allTokens.at(lastTokenPos)).getToken(), 
         LLONG_MAX, 
         (allTokens.at(lastTokenPos)).getIp());
       
-      localTokenRange.push_back(interval);
-    
+      allTokenRange.push_back(interval);
     
       // Add start interval
       TokenInterval interval2(
@@ -366,37 +401,14 @@ bool CassandraAdapter::getLocalTokenRanges(
         (allTokens.at(0)).getToken() - 1, 
         (allTokens.at(0)).getIp());
       
-      localTokenRange.push_back(interval2);
+      allTokenRange.push_back(interval2);
+    } else {
+      // Add only the end interval
+      TokenInterval interval(
+      (allTokens.at(lastTokenPos - 1)).getToken(), 
+      LLONG_MAX, 
+      (allTokens.at(lastTokenPos - 1)).getIp());
     }
-    
-    // Normal case: Find all local token ranges between nodes
-    for(size_t i = 0; i < allTokens.size() - 1; ++i) {
-      
-      long long currentToken = (allTokens.at(i)).getToken();
-      long long nextToken = (allTokens.at(i + 1)).getToken();
-      
-      // Is the current token in the localToken set?
-      if(find(localTokenSet.begin(), localTokenSet.end(), currentToken) 
-        != localTokenSet.end()) {
-        
-        TokenInterval interval(currentToken, 
-                               nextToken - 1, 
-                               (allTokens.at(i)).getIp());
-        
-        localTokenRange.push_back(interval);
-      }
-    }
-    
-    // Print debug Info
-    cout << "Ranges are: ";
-    copy(allTokens.begin(), allTokens.end(), 
-    std::ostream_iterator<CassandraToken>(cout, " "));
-    cout << std::endl;
-        
-    cout << "Local ranges are: ";
-    copy(localTokenRange.begin(), localTokenRange.end(), 
-    std::ostream_iterator<TokenInterval>(cout, " "));
-    cout << std::endl;
     
     return true;
 }

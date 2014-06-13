@@ -166,8 +166,16 @@ public:
     return ip;
   }
   
+
 /*
-2.4.5 Get interval end
+2.4.5 Is this a local interval?
+
+*/
+  bool isLocalTokenInterval() const {
+    return ip.compare("127.0.0.1");
+  }
+/*
+2.4.6 Get interval end
 
 */  
   long long getSize() {
@@ -391,6 +399,19 @@ a valid result. False otherweise
          cql::cql_consistency_enum consistenceLevel);
 
 /*
+2.3.12 Get a list with all token ranges
+
+1st parameter is a vector with the token ranges
+2nd parameter is a vector with the tokens of the local system
+3rd parameter is a vector with the tokens of the other systems
+
+*/
+
+   bool getAllTokenRanges(vector<TokenInterval> &allTokenRange, 
+     vector <CassandraToken> &localTokens, 
+     vector <CassandraToken> &peerTokens);
+ 
+/*
 2.3.12 Get a list with local token ranges
 
 1st parameter is a vector with the local token ranges
@@ -402,7 +423,7 @@ a valid result. False otherweise
    bool getLocalTokenRanges(vector<TokenInterval> &localTokenRange, 
      vector <CassandraToken> &localTokens, 
      vector <CassandraToken> &peerTokens);
- 
+   
 /*
 2.3.12 Execute the cql statement with a given consistence level synchronus
 
