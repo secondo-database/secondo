@@ -702,7 +702,7 @@ bool CassandraAdapter::getTokensFromQuery
          
          if(currentPeer.empty()) {
            
-           // Convert data into ipv4 addresss
+           // Convert data into ip addresss
            boost::asio::ip::address peerData;
            cqlResult.get_inet("peer", peerData );
            currentPeer = peerData.to_string();

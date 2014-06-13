@@ -204,7 +204,7 @@ inline std::ostream& operator<<(std::ostream &strm,
   
   return strm << "TokenInterval[" << tokenInterval.getStart()
               << ";" << tokenInterval.getEnd() << "; " 
-              << "ip=" << tokenInterval.getIp() << "]";
+              << "ip=" << tokenInterval.getIp() << "]" << endl;
 }
 
 

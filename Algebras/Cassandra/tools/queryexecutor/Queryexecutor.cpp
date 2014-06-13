@@ -56,6 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 using namespace std;
+using namespace cassandra;
 
 
 class HartbeatUpdater {
@@ -67,7 +68,7 @@ public:
      cassandra(NULL), active(true) {
        
        // Connect to cassandra
-     cassandra = new cassandra::CassandraAdapter
+     cassandra = new CassandraAdapter
         (cassandraIp, cassandraKeyspace);
       
      cout << "[Heartbeat] Connecting to " << cassandraIp;
@@ -136,7 +137,7 @@ public:
 private:
   string cassandraIp;
   string cassandraKeyspace;
-  cassandra::CassandraAdapter* cassandra;
+  CassandraAdapter* cassandra;
   bool active;
 };
 
@@ -182,7 +183,7 @@ SecondoInterface* initSecondoInterface() {
 2.1 Update last executed command
 
 */
-bool updateLastCommand(cassandra::CassandraAdapter* cassandra, 
+bool updateLastCommand(CassandraAdapter* cassandra, 
                        size_t lastCommandId, string ip) {
   
   // Build CQL query
@@ -212,9 +213,9 @@ bool updateLastCommand(cassandra::CassandraAdapter* cassandra,
 2.1 Update global query status
 
 */
-bool updateLastProcessedToken(cassandra::CassandraAdapter* cassandra, 
+bool updateLastProcessedToken(CassandraAdapter* cassandra, 
                        size_t lastCommandId, string ip, 
-                       cassandra::TokenInterval interval) {
+                       TokenInterval interval) {
   
   // Build CQL query
   stringstream ss;
@@ -246,11 +247,11 @@ bool updateLastProcessedToken(cassandra::CassandraAdapter* cassandra,
  The 2nd parameter is the keyspace.
 
 */
-cassandra::CassandraAdapter* getCassandraAdapter(string cassandraHostname, 
+CassandraAdapter* getCassandraAdapter(string cassandraHostname, 
                                                  string cassandraKeyspace) {
   
-  cassandra::CassandraAdapter* cassandra = 
-     new cassandra::CassandraAdapter(cassandraHostname, cassandraKeyspace);
+  CassandraAdapter* cassandra = 
+     new CassandraAdapter(cassandraHostname, cassandraKeyspace);
   
   cassandra -> connect(true);
   
@@ -318,37 +319,58 @@ void executeSecondoCommand(SecondoInterface* si,
 }
 
 /*
+2.2 Execute a token query for a given interval
+
+*/
+void executeTokenQuery(CassandraAdapter* cassandra, string &query, 
+                      size_t queryId, string &ip, 
+                      TokenInterval interval,
+                      SecondoInterface* si, NestedList* nl) {
+  
+    stringstream ss;
+    ss << "'" << interval.getStart() << "'";
+    ss << ", ";
+    ss << "'" << interval.getEnd() << "'";
+  
+    // Copy query string, so we can replace the
+    // placeholder multiple times
+    string ourQuery = string(query);
+    replacePlaceholder(ourQuery, "__TOKEN__", ss.str());
+    cout << "Query is: "  << ourQuery << endl;
+    executeSecondoCommand(si, nl, ourQuery);
+    updateLastProcessedToken(cassandra, queryId, ip, interval);
+}
+
+
+/*
 2.2 Handle a multitoken query (e.g. query ccollectrange('192.168.1.108', 
      'secondo', 'relation2', 'ONE',__TOKEN__);
 
 */
-void handleTokenQuery(cassandra::CassandraAdapter* cassandra, string &query, 
+void handleTokenQuery(CassandraAdapter* cassandra, string &query, 
                       size_t queryId, string &ip, 
-                      vector<cassandra::TokenInterval> &localTokenRange,
+                      vector<TokenInterval> &localTokenRange,
                       SecondoInterface* si, NestedList* nl) {
   
     cout << "Handle Token Query called" << endl;
 
     // Generate token range queries;
-    for(vector<cassandra::TokenInterval>::iterator 
+    for(vector<TokenInterval>::iterator 
         iter = localTokenRange.begin();
         iter != localTokenRange.end(); ++iter) {
  
-      cassandra::TokenInterval interval = *iter;
-    
-      stringstream ss;
-      ss << "'" << interval.getStart() << "'";
-      ss << ", ";
-      ss << "'" << interval.getEnd() << "'";
-    
-      // Copy query string, so we can replace the
-      // placeholder multiple times
-      string ourQuery = string(query);
-      replacePlaceholder(ourQuery, "__TOKEN__", ss.str());
-      cout << "Query is: "  << ourQuery << endl;
-      executeSecondoCommand(si, nl, ourQuery);
-      updateLastProcessedToken(cassandra, queryId, ip, interval);
+      TokenInterval interval = *iter;
+      executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
     }  
+    
+    // Process other tokens
+    bool ringProcressed = false;
+    while(! ringProcressed ) {
+      
+      cout << "Sleep 5 seconds and check the ring again" << endl;
+      sleep(5);
+    }
+    
 }
 
 /*
@@ -357,7 +379,7 @@ void handleTokenQuery(cassandra::CassandraAdapter* cassandra, string &query,
 
 */
 void mainLoop(SecondoInterface* si, 
-              cassandra::CassandraAdapter* cassandra, string cassandraIp,
+              CassandraAdapter* cassandra, string cassandraIp,
               string cassandraKeyspace) {
   
   NestedList* nl = si->GetNestedList();
@@ -369,9 +391,9 @@ void mainLoop(SecondoInterface* si,
   cout << "Our id is: " << myUuid << endl;
   
   // Collect logical ring configuration
-  vector<cassandra::CassandraToken> localTokens;
-  vector<cassandra::CassandraToken> peerTokens;
-  vector<cassandra::TokenInterval> localTokenRange;
+  vector<CassandraToken> localTokens;
+  vector<CassandraToken> peerTokens;
+  vector<TokenInterval> localTokenRange;
   
   if(! cassandra->getLokalTokenRanges(localTokenRange, 
        localTokens, peerTokens)) {
@@ -388,7 +410,7 @@ void mainLoop(SecondoInterface* si,
         
         cout << "Waiting for commands" << endl;
         
-        cassandra::CassandraResult* result = cassandra->getQueriesToExecute();
+        CassandraResult* result = cassandra->getQueriesToExecute();
           
         while(result != NULL && result -> hasNext()) {
           size_t id = result->getIntValue(0);
@@ -473,7 +495,7 @@ int main(int argc, char** argv){
   
   cout << "SecondoInterface successfully initialized" << endl;
   
-  cassandra::CassandraAdapter* cassandra = 
+  CassandraAdapter* cassandra = 
      getCassandraAdapter(cassandraNodeIp, cassandraKeyspace);
   
   if(cassandra == NULL) { 
