@@ -1759,7 +1759,7 @@ ListExpr CQueryListTypeMap( ListExpr args )
                             nl->SymbolAtom(Tuple::BasicType()) ,
                             nl->TwoElemList(
                                 nl->TwoElemList(
-                                nl->SymbolAtom("Query-ID"),
+                                nl->SymbolAtom("QueryID"),
                                 nl->SymbolAtom(FText::BasicType())),
                                         
                                 nl->TwoElemList(
