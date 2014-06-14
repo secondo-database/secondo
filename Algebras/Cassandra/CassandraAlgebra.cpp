@@ -2199,7 +2199,7 @@ public:
     }
   }
   
-  bool getProcessedTokenRangesForQuery(vector<TokenInterval> &result) {
+  bool getProcessedTokenRangesForQuery(vector<TokenRange> &result) {
       return cassandra -> getProcessedTokenRangesForQuery(result, queryId);
   }
   
@@ -2243,16 +2243,16 @@ public:
     }
     
     // Calculate processed token ranges
-    vector<TokenInterval> processedIntervals;
+    vector<TokenRange> processedIntervals;
     unsigned long long max = ULLONG_MAX;
     unsigned long long totalProcessedTokens = 0;
     
     cwi -> getProcessedTokenRangesForQuery(processedIntervals);
     
-    for(vector<TokenInterval>::iterator iter = processedIntervals.begin(); 
+    for(vector<TokenRange>::iterator iter = processedIntervals.begin(); 
         iter != processedIntervals.end(); ++iter) {
       
-      TokenInterval interval = *iter;
+      TokenRange interval = *iter;
       totalProcessedTokens = totalProcessedTokens + interval.getSize();
     }
     

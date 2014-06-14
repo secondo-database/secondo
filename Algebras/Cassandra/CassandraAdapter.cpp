@@ -315,21 +315,21 @@ CassandraResult* CassandraAdapter::readTableRange(string relation,
 }
 
 bool CassandraAdapter::getLocalTokenRanges(
-     vector<TokenInterval> &localTokenRange, 
+     vector<TokenRange> &localTokenRange, 
      vector <CassandraToken> &localTokens, 
      vector <CassandraToken> &peerTokens) {
   
-     vector<TokenInterval> allTokenRanges;
+     vector<TokenRange> allTokenRanges;
      
      bool result = 
         getAllTokenRanges(allTokenRanges, localTokens, peerTokens);
         
     // Do filtering of local intervals
-    for(vector<TokenInterval>::iterator iter = allTokenRanges.begin(); 
+    for(vector<TokenRange>::iterator iter = allTokenRanges.begin(); 
         iter != allTokenRanges.end(); ++iter) {
       
-      TokenInterval interval = *iter;
-      if(interval.isLocalTokenInterval()) {
+      TokenRange interval = *iter;
+      if(interval.isLocalTokenRange()) {
         localTokenRange.push_back(interval);
       }
     }
@@ -342,14 +342,14 @@ bool CassandraAdapter::getLocalTokenRanges(
         
     cout << "Local ranges are: ";
     copy(localTokenRange.begin(), localTokenRange.end(), 
-    std::ostream_iterator<TokenInterval>(cout, " "));
+    std::ostream_iterator<TokenRange>(cout, " "));
     cout << std::endl;
       
     return result;
 }
 
 bool CassandraAdapter::getAllTokenRanges(
-     vector<TokenInterval> &allTokenRange) {
+     vector<TokenRange> &allTokenRange) {
   
      vector <CassandraToken> localTokens;
      vector <CassandraToken> peerTokens;
@@ -358,7 +358,7 @@ bool CassandraAdapter::getAllTokenRanges(
 }
 
 bool CassandraAdapter::getAllTokenRanges(
-     vector<TokenInterval> &allTokenRange, 
+     vector<TokenRange> &allTokenRange, 
      vector <CassandraToken> &localTokens, 
      vector <CassandraToken> &peerTokens) {
   
@@ -388,7 +388,7 @@ bool CassandraAdapter::getAllTokenRanges(
     // So the two tokenranges (begin, LLONG_MAX] and (LLONG_MIN, end]
     if((allTokens.at(lastTokenPos)).getToken() != LLONG_MAX) {
       // Add end interval
-      TokenInterval interval(
+      TokenRange interval(
         (allTokens.at(lastTokenPos)).getToken(), 
         LLONG_MAX, 
         (allTokens.at(lastTokenPos)).getIp());
@@ -396,7 +396,7 @@ bool CassandraAdapter::getAllTokenRanges(
       allTokenRange.push_back(interval);
     
       // Add start interval
-      TokenInterval interval2(
+      TokenRange interval2(
         LLONG_MIN, 
         (allTokens.at(0)).getToken() - 1, 
         (allTokens.at(0)).getIp());
@@ -404,7 +404,7 @@ bool CassandraAdapter::getAllTokenRanges(
       allTokenRange.push_back(interval2);
     } else {
       // Add only the end interval
-      TokenInterval interval(
+      TokenRange interval(
       (allTokens.at(lastTokenPos - 1)).getToken(), 
       LLONG_MAX, 
       (allTokens.at(lastTokenPos - 1)).getIp());
@@ -416,7 +416,7 @@ bool CassandraAdapter::getAllTokenRanges(
       long long currentToken = (allTokens.at(i)).getToken();
       long long nextToken = (allTokens.at(i + 1)).getToken();        
       
-      TokenInterval interval(currentToken, 
+      TokenRange interval(currentToken, 
                               nextToken - 1, 
                               (allTokens.at(i)).getIp());
       
@@ -433,7 +433,7 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
         string consistenceLevel) {
 
     // Lokal tokens
-    vector<TokenInterval> localTokenRange;
+    vector<TokenRange> localTokenRange;
     vector <CassandraToken> localTokens;
     vector <CassandraToken> peerTokens;
     
@@ -442,7 +442,7 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
     vector<string> queries;
     
     // Generate token range queries;
-    for(vector<TokenInterval>::iterator iter = localTokenRange.begin(); 
+    for(vector<TokenRange>::iterator iter = localTokenRange.begin(); 
         iter != localTokenRange.end(); ++iter) {
       
        stringstream ss;
@@ -450,7 +450,7 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
        ss << relation << " ";
        ss << "where ";
       
-       TokenInterval interval = *iter;
+       TokenRange interval = *iter;
        ss << "token(partition) >= " << interval.getStart() << " ";
     
        // End of the ring must be included
@@ -861,20 +861,20 @@ void CassandraAdapter::quoteCqlStatement(string &query) {
 }
 
 bool CassandraAdapter::copyTokenRangesToSystemtable (string localip) {
-        vector<TokenInterval> allIntervals;
+        vector<TokenRange> allIntervals;
         getAllTokenRanges(allIntervals);
 
-        for(vector<TokenInterval>::iterator iter = allIntervals.begin();
+        for(vector<TokenRange>::iterator iter = allIntervals.begin();
             iter != allIntervals.end(); ++iter) {
           
-          TokenInterval interval = *iter;
+          TokenRange interval = *iter;
         
           // Build CQL query
           stringstream ss;
           ss << "INSERT INTO system_tokenranges(ip, begintoken, endtoken) ";
           ss << "values(";
         
-          if(interval.isLocalTokenInterval()) {
+          if(interval.isLocalTokenRange()) {
             ss << "'" << localip << "',";
           } else {
             ss << "'" << interval.getIp() << "',";
@@ -899,7 +899,7 @@ bool CassandraAdapter::copyTokenRangesToSystemtable (string localip) {
 }
 
 bool CassandraAdapter::getTokenRangesFromSystemtable (
-    vector<TokenInterval> &result) {
+    vector<TokenRange> &result) {
   
       string query 
        = string("SELECT ip, begintoken, endtoken FROM system_tokenranges"); 
@@ -908,7 +908,7 @@ bool CassandraAdapter::getTokenRangesFromSystemtable (
 }
 
 bool CassandraAdapter::getProcessedTokenRangesForQuery (
-    vector<TokenInterval> &result, int queryId) {
+    vector<TokenRange> &result, int queryId) {
   
       stringstream ss;
       ss << "SELECT ip, begintoken, endtoken FROM system_progress WHERE ";
@@ -919,7 +919,7 @@ bool CassandraAdapter::getProcessedTokenRangesForQuery (
 }
 
 bool CassandraAdapter::getTokenrangesFromQuery (
-    vector<TokenInterval> &result, string query) {
+    vector<TokenRange> &result, string query) {
 
     try {   
        boost::shared_future< cql::cql_future_result_t > future = 
@@ -946,7 +946,7 @@ bool CassandraAdapter::getTokenrangesFromQuery (
          long long beginLong = atol(beginToken.c_str());
          long long endLong = atol(endToken.c_str());
          
-         result.push_back(TokenInterval(beginLong, endLong, ip));
+         result.push_back(TokenRange(beginLong, endLong, ip));
        }
      } catch(std::exception& e) {
         cerr << "Got exception while executing cql: " << e.what() << endl;

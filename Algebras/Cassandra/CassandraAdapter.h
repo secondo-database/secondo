@@ -132,7 +132,7 @@ public:
 
 */
 
-class TokenInterval {
+class TokenRange {
   
 public:
   
@@ -140,7 +140,7 @@ public:
 2.4.1 Construct a new token interval
 
 */
-  TokenInterval(long long myStart, long long myEnd, string myIp) :
+  TokenRange(long long myStart, long long myEnd, string myIp) :
     start(myStart), end(myEnd), ip(myIp) {}
   
 /*
@@ -172,7 +172,7 @@ public:
 2.4.5 Is this a local interval?
 
 */
-  bool isLocalTokenInterval() const {
+  bool isLocalTokenRange() const {
     return (ip.compare("127.0.0.1") == 0);
   }
 
@@ -196,7 +196,7 @@ public:
 2.4.7 Operator <
 
 */  
-  bool operator<( const TokenInterval& val ) const { 
+  bool operator<( const TokenRange& val ) const { 
         return start < val.getStart(); 
   }
   
@@ -204,7 +204,7 @@ public:
 2.4.7 Operator ==
 
 */    
- inline bool operator== (const TokenInterval &interval) {
+ inline bool operator== (const TokenRange &interval) {
    
    if((interval.getStart() == getStart()) &&
      (interval.getEnd() == getEnd())) {
@@ -230,9 +230,9 @@ private:
 
 */
 inline std::ostream& operator<<(std::ostream &strm, 
-                         const cassandra::TokenInterval &tokenInterval) {
+                         const cassandra::TokenRange &tokenInterval) {
   
-  return strm << "TokenInterval[" << tokenInterval.getStart()
+  return strm << "TokenRange[" << tokenInterval.getStart()
               << ";" << tokenInterval.getEnd() << "; " 
               << "ip=" << tokenInterval.getIp() << "]" << endl;
 }
@@ -428,9 +428,9 @@ a valid result. False otherweise
 3rd parameter is a vector with the tokens of the other systems (optional)
 
 */
-   bool getAllTokenRanges(vector<TokenInterval> &allTokenRange);
+   bool getAllTokenRanges(vector<TokenRange> &allTokenRange);
 
-   bool getAllTokenRanges(vector<TokenInterval> &allTokenRange, 
+   bool getAllTokenRanges(vector<TokenRange> &allTokenRange, 
      vector <CassandraToken> &localTokens, 
      vector <CassandraToken> &peerTokens);
  
@@ -443,7 +443,7 @@ a valid result. False otherweise
 
 */
 
-   bool getLocalTokenRanges(vector<TokenInterval> &localTokenRange, 
+   bool getLocalTokenRanges(vector<TokenRange> &localTokenRange, 
      vector <CassandraToken> &localTokens, 
      vector <CassandraToken> &peerTokens);
    
@@ -497,7 +497,7 @@ Replace all single quotes with double quotes
 
 */
   bool getProcessedTokenRangesForQuery (
-      vector<TokenInterval> &result, int queryId);
+      vector<TokenRange> &result, int queryId);
 
 /*
 2.3.20 Get tokenranges from query
@@ -507,7 +507,7 @@ Replace all single quotes with double quotes
 
 */  
   bool getTokenrangesFromQuery (
-    vector<TokenInterval> &result, string query);
+    vector<TokenRange> &result, string query);
 
 /*
 2.3.21 Get tokenranges from system table
@@ -516,7 +516,7 @@ Replace all single quotes with double quotes
 
 */  
   bool getTokenRangesFromSystemtable (
-    vector<TokenInterval> &result);
+    vector<TokenRange> &result);
   
 /*
 2.3.22 Get hartbeat data

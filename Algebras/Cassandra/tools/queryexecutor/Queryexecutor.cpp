@@ -220,7 +220,7 @@ bool updateLastCommand(CassandraAdapter* cassandra,
 */
 bool updateLastProcessedToken(CassandraAdapter* cassandra, 
                        size_t lastCommandId, string ip, 
-                       TokenInterval interval) {
+                       TokenRange interval) {
   
   // Build CQL query
   stringstream ss;
@@ -331,7 +331,7 @@ void executeSecondoCommand(SecondoInterface* si,
 */
 void executeTokenQuery(CassandraAdapter* cassandra, string &query, 
                       size_t queryId, string &ip, 
-                      TokenInterval interval,
+                      TokenRange interval,
                       SecondoInterface* si, NestedList* nl) {
   
     stringstream ss;
@@ -356,23 +356,23 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
 */
 void handleTokenQuery(CassandraAdapter* cassandra, string &query, 
                       size_t queryId, string &ip, 
-                      vector<TokenInterval> &localTokenRange,
+                      vector<TokenRange> &localTokenRange,
                       SecondoInterface* si, NestedList* nl) {
   
     // Generate token range queries;
-    for(vector<TokenInterval>::iterator 
+    for(vector<TokenRange>::iterator 
         iter = localTokenRange.begin();
         iter != localTokenRange.end(); ++iter) {
  
-      TokenInterval interval = *iter;
+      TokenRange interval = *iter;
       executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
     }  
     
     // Process other tokens
     while( true ) {
       map<string, time_t> hartbeatData;
-      vector<TokenInterval> allIntervals;
-      vector<TokenInterval> processedIntervals;
+      vector<TokenRange> allIntervals;
+      vector<TokenRange> processedIntervals;
       
       cassandra -> getHartbeatData(hartbeatData);
       cassandra -> getAllTokenRanges(allIntervals);
@@ -397,7 +397,7 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
       for(size_t iteration = 0; 
           iteration < processedIntervals.size(); ++iteration) {
         
-        TokenInterval processedInterval 
+        TokenRange processedInterval 
            = processedIntervals.at(lastProcesssedIntervallsPos);
       //  cout << "Handling interval: " << processedInterval;
         
@@ -414,7 +414,7 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
         // Find the intervall in the allIntervals vector
         while(true) {
           
-          TokenInterval tokenInterval = allIntervals.at(lastAllIntervalsPos);
+          TokenRange tokenInterval = allIntervals.at(lastAllIntervalsPos);
           if(tokenInterval == processedInterval) {
             break;
           }
@@ -426,12 +426,12 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
         
         time_t now = time(0);
           
-        TokenInterval nextInterval 
+        TokenRange nextInterval 
             = processedIntervals.at(lastProcesssedIntervallsPos);
        
         for(size_t offset = 1; ; ++offset) {
           
-          TokenInterval tryInterval 
+          TokenRange tryInterval 
               = allIntervals.at((lastAllIntervalsPos + offset) 
                 % allIntervals.size());
           
@@ -477,7 +477,7 @@ void mainLoop(SecondoInterface* si,
   // Collect logical ring configuration
   vector<CassandraToken> localTokens;
   vector<CassandraToken> peerTokens;
-  vector<TokenInterval> localTokenRange;
+  vector<TokenRange> localTokenRange;
   
   if(! cassandra->getLocalTokenRanges(localTokenRange, 
        localTokens, peerTokens)) {
