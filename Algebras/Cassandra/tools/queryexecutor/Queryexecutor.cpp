@@ -343,7 +343,6 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
     // placeholder multiple times
     string ourQuery = string(query);
     replacePlaceholder(ourQuery, "__TOKEN__", ss.str());
-    cout << "Query is: "  << ourQuery << endl;
     executeSecondoCommand(si, nl, ourQuery);
     updateLastProcessedToken(cassandra, queryId, ip, interval);
 }
@@ -356,26 +355,31 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
 */
 void handleTokenQuery(CassandraAdapter* cassandra, string &query, 
                       size_t queryId, string &ip, 
-                      vector<TokenRange> &localTokenRange,
                       SecondoInterface* si, NestedList* nl) {
-  
-    // Generate token range queries;
+
+    // Collecting ring configuration
+    vector<TokenRange> allIntervals;
+    if (! cassandra -> getTokenRangesFromSystemtable(allIntervals) ) {
+      cerr << "Unable to collect token ranges from system table" << endl;
+      return;
+    }
+    
+    // Generate token range queries for local tokenranges;
     for(vector<TokenRange>::iterator 
-        iter = localTokenRange.begin();
-        iter != localTokenRange.end(); ++iter) {
+        iter = allIntervals.begin();
+        iter != allIntervals.end(); ++iter) {
  
       TokenRange interval = *iter;
-      executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
+      if(interval.getIp().compare(ip) == 0) {
+        executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
+      }
     }  
-    
+
     // Process other tokens
     while( true ) {
       map<string, time_t> hartbeatData;
-      vector<TokenRange> allIntervals;
       vector<TokenRange> processedIntervals;
-      
       cassandra -> getHartbeatData(hartbeatData);
-      cassandra -> getAllTokenRanges(allIntervals);
       cassandra -> getProcessedTokenRangesForQuery(processedIntervals,queryId);
       
       // Reverse the data of the logical ring, so we can interate from
@@ -383,8 +387,8 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
       reverse(allIntervals.begin(), allIntervals.end());
       reverse(processedIntervals.begin(), processedIntervals.end());
       
-      cout << "We have " << processedIntervals.size() 
-           << " of " << allIntervals.size() << endl;
+      cout << "We have " << processedIntervals.size() << " of "
+           << allIntervals.size() << "token ranges processed" << endl;
            
       if(processedIntervals.size() == allIntervals.size()) {
         return; // All TokenRanges are processed
@@ -447,7 +451,7 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
           
           cout << "Node " << tryInterval.getIp() ;
           cout << " is dead for more then 30 seconds" << endl;    
-          cout << "Handling interval: " << tryInterval << endl;
+          cout << "Handling additional interval: " << tryInterval << endl; 
           executeTokenQuery(cassandra, query, queryId, ip, tryInterval, si, nl);
         }
       }
@@ -473,20 +477,6 @@ void mainLoop(SecondoInterface* si,
   boost::uuids::uuid uuid = boost::uuids::random_generator()();
   const string myUuid = boost::lexical_cast<std::string>(uuid);
   cout << "Our id is: " << myUuid << endl;
-  
-  // Collect logical ring configuration
-  vector<CassandraToken> localTokens;
-  vector<CassandraToken> peerTokens;
-  vector<TokenRange> localTokenRange;
-  
-  if(! cassandra->getLocalTokenRanges(localTokenRange, 
-       localTokens, peerTokens)) {
-    
-    cerr << "Unable to determine token ranges" << endl;
-    exit(-1);
-  }
-  
-  cout << "Collecting logical ring configuration done" << endl;
   
   size_t lastCommandId = 0;
   
@@ -514,7 +504,7 @@ void mainLoop(SecondoInterface* si,
             // Simple query or token based query?
             if(containsPlaceholder(command, "__TOKEN__")) {
               handleTokenQuery(cassandra, command, lastCommandId, 
-                               cassandraIp, localTokenRange, si, nl);
+                               cassandraIp, si, nl);
             } else {
               executeSecondoCommand(si, nl, command);
             }
