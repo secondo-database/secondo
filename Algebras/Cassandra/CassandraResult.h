@@ -151,20 +151,10 @@ public:
   bool operator<( const CassandraToken& val ) const { 
         return getToken() < val.getToken(); 
   }
-  /*
-  friend bool operator> (CassandraToken &c1, CassandraToken &c2);
-  friend bool operator<= (CassandraToken &c1, CassandraToken &c2);
- 
-  friend bool operator< (CassandraToken &c1, CassandraToken &c2);
-  friend bool operator>= (CassandraToken &c1, CassandraToken &c2);
-  
-  friend bool operator== (CassandraToken &c1, CassandraToken &c2);
-  friend bool operator!= (CassandraToken &c1, CassandraToken &c2);
- */
+
 private:
   long long token;
   string ip;
-  
 };
 
 /*

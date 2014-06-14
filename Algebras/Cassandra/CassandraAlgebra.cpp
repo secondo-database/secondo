@@ -66,16 +66,8 @@ extern AlgebraManager *am;
 
 using namespace std;
 
-
-/*
-~A Macro useful for debugging ~
-
-*/
-
-//#define __TRACE__ cout << __FILE__ << "@" << __LINE__ << endl;
-#define __TRACE__
-
-
+// Activate debug messages
+#define __DEBUG__
 
 //namespace to avoid name conflicts
 namespace cassandra
@@ -574,9 +566,11 @@ public:
     : contactPoint(myContactPoint), keyspace(myKeyspace),
     relationName(myRelationName), deletePerformed(false) {
       
+#ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
       cout << "Keyspace is " << keyspace << endl;
       cout << "Relation name is " << relationName << endl;
+#endif
   }
   
 /*
@@ -803,6 +797,7 @@ public:
     systemname(mySystemname), attrIndex(myAttrIndex), tupleType(myTupleType), 
     tupleNumber(0) {
       
+#ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
       cout << "Keyspace is " << keyspace << endl;
       cout << "Relation name is " << relationName << endl;
@@ -810,7 +805,7 @@ public:
       cout << "Systemname is " << systemname << endl;
       cout << "Attribute Index is " << attrIndex << endl;
       cout << "Tuple type is " << tupleType << endl;
-      
+#endif      
       
       cassandra = new CassandraAdapter(contactPoint, keyspace);
       cassandra -> connect(false);
@@ -1161,8 +1156,11 @@ ListExpr CCollectTypeMap( ListExpr args ) {
   
   ListExpr resList;
   nl->ReadFromString(tupleType, resList);
-  
+
+#ifdef __DEBUG__
   cout << "Result: " << nl->ToString(resList) << endl;
+#endif
+  
   return resList;
 }
 
@@ -1254,7 +1252,10 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
   ListExpr resList;
   nl->ReadFromString(tupleType, resList);
   
+#ifdef __DEBUG__
   cout << "Result: " << nl->ToString(resList) << endl;
+#endif
+  
   return resList;
 }
 
@@ -1274,11 +1275,13 @@ public:
     : tupleType(myType), contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence),
     cassandra(NULL), result(NULL) {
-      
+
+#ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
       cout << "Keyspace is " << keyspace << endl;
       cout << "Relation name is " << relationName << endl;
       cout << "Consistence is " << consistence << endl;
+#endif
   }
   
   virtual ~CCollectLocalInfo() {
@@ -1338,7 +1341,9 @@ public:
       
       // Metadata? Skip tuple
       if(key.at(0) == '_') {
+#ifdef __DEBUG__
         cout << "Skipping key: " << key << " value " << value << endl;
+#endif
         continue;
       }
       
@@ -1587,9 +1592,11 @@ public:
   
     : contactPoint(myContactPoint), keyspace(myKeyspace),
     cassandra(NULL), result(NULL) {
-      
+
+#ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
       cout << "Keyspace is " << keyspace << endl;
+#endif
       
       open();
   }
@@ -1789,9 +1796,11 @@ public:
   
     : contactPoint(myContactPoint), keyspace(myKeyspace),
     cassandra(NULL), result(NULL) {
-      
+
+#ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
       cout << "Keyspace is " << keyspace << endl;
+#endif
       
       // Tuple type
       ListExpr numType = nl->Second(
@@ -2183,9 +2192,11 @@ public:
   
     : contactPoint(myContactPoint), keyspace(myKeyspace), queryId(myQueryId),
     cassandra(NULL) {
-      
+
+#ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
       cout << "Keyspace is " << keyspace << endl;
+#endif
       
       startTime = time(0);
       
