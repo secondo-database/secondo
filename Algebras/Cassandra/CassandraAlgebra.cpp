@@ -2063,7 +2063,7 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
           = new CassandraAdapter(contactPoint, keyspace);
       
       if(cassandra != NULL) {
-        cassandra -> connect(false);
+        cassandra -> connect(true);
         bool createMetatables = cassandra -> createMetatables();
         
         cassandra -> quoteCqlStatement(query);
@@ -2078,6 +2078,11 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
         if(! insertResult) {
           cout << "Unable to execute query: " << ss.str() << endl;
         }  
+        
+        // Copy token ranges to systemtable
+        if(queryid == 1) {
+          cassandra -> copyTokenRangesToSystemtable(contactPoint);
+        }
         
         resultValue = insertResult && createMetatables;
         

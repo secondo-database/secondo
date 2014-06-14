@@ -785,6 +785,11 @@ bool CassandraAdapter::createMetatables() {
     "begintoken TEXT, endtoken TEXT, PRIMARY KEY(queryid, ip, begintoken));"
   ));
   
+  queries.push_back(string(
+    "CREATE TABLE IF NOT EXISTS system_tokenranges (begintoken TEXT, "
+    "endtoken TEXT, ip TEXT, PRIMARY KEY(begintoken));"
+  ));
+  
   for(vector<string>::iterator iter = queries.begin(); 
       iter != queries.end(); ++iter) {
     
@@ -812,6 +817,7 @@ bool CassandraAdapter::dropMetatables() {
   queries.push_back(string("DROP TABLE system_queries;"));
   queries.push_back(string("DROP TABLE system_state;"));
   queries.push_back(string("DROP TABLE system_progress;"));
+  queries.push_back(string("DROP TABLE system_tokenranges"));
   
   for(vector<string>::iterator iter = queries.begin(); 
       iter != queries.end(); ++iter) {
@@ -854,18 +860,70 @@ void CassandraAdapter::quoteCqlStatement(string &query) {
   }
 }
 
+bool CassandraAdapter::copyTokenRangesToSystemtable (string localip) {
+        vector<TokenInterval> allIntervals;
+        getAllTokenRanges(allIntervals);
+
+        for(vector<TokenInterval>::iterator iter = allIntervals.begin();
+            iter != allIntervals.end(); ++iter) {
+          
+          TokenInterval interval = *iter;
+        
+          // Build CQL query
+          stringstream ss;
+          ss << "INSERT INTO system_tokenranges(ip, begintoken, endtoken) ";
+          ss << "values(";
+        
+          if(interval.isLocalTokenInterval()) {
+            ss << "'" << localip << "',";
+          } else {
+            ss << "'" << interval.getIp() << "',";
+          }
+          
+          ss << "'" << interval.getStart() << "',",
+          ss << "'" << interval.getEnd() << "'",
+          ss << ");";
+
+          // Update last executed command
+          bool result = executeCQLSync(
+            ss.str(),
+            cql::CQL_CONSISTENCY_ONE
+          );
+          
+          if(! result) {
+            return false;
+          }
+        }
+        
+        return true;
+}
+
+bool CassandraAdapter::getTokenRangesFromSystemtable (
+    vector<TokenInterval> &result) {
+  
+      string query 
+       = string("SELECT ip, begintoken, endtoken FROM system_tokenranges"); 
+      
+      return getTokenrangesFromQuery(result, query);
+}
 
 bool CassandraAdapter::getProcessedTokenRangesForQuery (
     vector<TokenInterval> &result, int queryId) {
-   
-    try {   
+  
       stringstream ss;
       ss << "SELECT ip, begintoken, endtoken FROM system_progress WHERE ";
       ss << "queryid = " << queryId;
       cout << ss.str() << endl;
       
+      return getTokenrangesFromQuery(result, ss.str());
+}
+
+bool CassandraAdapter::getTokenrangesFromQuery (
+    vector<TokenInterval> &result, string query) {
+
+    try {   
        boost::shared_future< cql::cql_future_result_t > future = 
-          executeCQL(ss.str(), cql::CQL_CONSISTENCY_ONE);
+          executeCQL(query, cql::CQL_CONSISTENCY_ONE);
   
        future.wait();
     

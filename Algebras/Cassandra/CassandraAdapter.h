@@ -500,10 +500,35 @@ Replace all single quotes with double quotes
       vector<TokenInterval> &result, int queryId);
 
 /*
-2.3.19 Get hartbeat data
+2.3.20 Get tokenranges from query
+
+1. parameter result
+2. parameter the query
+
+*/  
+  bool getTokenrangesFromQuery (
+    vector<TokenInterval> &result, string query);
+
+/*
+2.3.21 Get tokenranges from system table
+
+1. parameter result
+
+*/  
+  bool getTokenRangesFromSystemtable (
+    vector<TokenInterval> &result);
+  
+/*
+2.3.22 Get hartbeat data
 
 */
   bool getHartbeatData(map<string, time_t> &result);
+  
+/*
+2.3.23 Copy tokenranges to systemtable
+
+*/
+  bool copyTokenRangesToSystemtable(string localip);
           
 protected:
 
