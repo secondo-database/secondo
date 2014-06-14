@@ -35,6 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <map>
 
 #include <stdlib.h>
+#include <time.h>
+
 #include "../../CassandraAdapter.h"
 #include "SecondoInterface.h"
 #include "NestedList.h"
@@ -97,7 +99,7 @@ public:
   bool updateHartbeat() {  
     // Build CQL query
     stringstream ss;
-    ss << "UPDATE state set hartbeat = unixTimestampOf(now()) ";
+    ss << "UPDATE system_state set hartbeat = unixTimestampOf(now()) ";
     ss << "WHERE ip = '";
     ss << cassandraIp;
     ss << "';";
@@ -109,7 +111,7 @@ public:
     );
   
     if(! result) {
-      cout << "Unable to update hartbeat in state table" << endl;
+      cout << "Unable to update hartbeat in system_state table" << endl;
       cout << "CQL Statement: " << ss.str() << endl;
       return false;
     }
@@ -190,7 +192,7 @@ bool updateLastCommand(CassandraAdapter* cassandra,
   
   // Build CQL query
   stringstream ss;
-  ss << "UPDATE state set lastquery = ";
+  ss << "UPDATE system_state set lastquery = ";
   ss << lastCommandId;
   ss << " WHERE ip = '";
   ss << ip;
@@ -203,7 +205,8 @@ bool updateLastCommand(CassandraAdapter* cassandra,
   );
  
   if(! result) {
-     cout << "Unable to update last executed query in state table" << endl;
+     cout << "Unable to update last executed query ";
+     cout << "in system_state table" << endl;
      cout << "CQL Statement: " << ss.str() << endl;
      return false;
   }
@@ -221,7 +224,8 @@ bool updateLastProcessedToken(CassandraAdapter* cassandra,
   
   // Build CQL query
   stringstream ss;
-  ss << "INSERT INTO progress(queryid, ip, begintoken, endtoken) values("; 
+  ss << "INSERT INTO system_progress(queryid, ip, begintoken, endtoken) ";
+  ss << "values(";
   ss << "" << lastCommandId << ",",
   ss << "'" << ip << "',";
   ss << "'" << interval.getStart() << "',",
@@ -235,7 +239,8 @@ bool updateLastProcessedToken(CassandraAdapter* cassandra,
   );
  
   if(! result) {
-     cout << "Unable to update last executed query in progress table" << endl;
+     cout << "Unable to update last executed query in ";
+     cout << "system_progress table" << endl;
      cout << "CQL Statement: " << ss.str() << endl;
      return false;
   }
@@ -354,54 +359,55 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
                       vector<TokenInterval> &localTokenRange,
                       SecondoInterface* si, NestedList* nl) {
   
-    cout << "Handle Token Query called" << endl;
-
     // Generate token range queries;
     for(vector<TokenInterval>::iterator 
         iter = localTokenRange.begin();
         iter != localTokenRange.end(); ++iter) {
  
       TokenInterval interval = *iter;
-      //executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
+      executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
     }  
     
     // Process other tokens
     while( true ) {
       map<string, time_t> hartbeatData;
-      cassandra -> getHartbeatData(hartbeatData);
-      
       vector<TokenInterval> allIntervals;
-      vector <CassandraToken> localTokens;
-      vector <CassandraToken> peerTokens;
-      cassandra->getAllTokenRanges(allIntervals, localTokens, peerTokens);
-      
       vector<TokenInterval> processedIntervals;
-      cassandra->getProcessedTokenRangesForQuery(processedIntervals, queryId);
+      
+      cassandra -> getHartbeatData(hartbeatData);
+      cassandra -> getAllTokenRanges(allIntervals);
+      cassandra -> getProcessedTokenRangesForQuery(processedIntervals,queryId);
       
       // Reverse the data of the logical ring, so we can interate from
       // MAX to MIN
       reverse(allIntervals.begin(), allIntervals.end());
       reverse(processedIntervals.begin(), processedIntervals.end());
       
-      cout << hartbeatData[string("127.0.0.1")] << endl;
-      cout << hartbeatData[string("192.168.1.108")] << endl;
-      
       cout << "We have " << processedIntervals.size() 
            << " of " << allIntervals.size() << endl;
            
       if(processedIntervals.size() == allIntervals.size()) {
-        break; // All TokenRanges are processed
+        return; // All TokenRanges are processed
       }
       
       // Save the last position in allIntervals
       size_t lastAllIntervalsPos = 0;
+      size_t lastProcesssedIntervallsPos = 0;
       
-      for(vector<TokenInterval>::iterator iter = processedIntervals.begin();
-          iter != processedIntervals.end(); ++iter) {
-          TokenInterval interval = *iter;
+      for(size_t iteration = 0; 
+          iteration < processedIntervals.size(); ++iteration) {
+        
+        TokenInterval processedInterval 
+           = processedIntervals.at(lastProcesssedIntervallsPos);
+      //  cout << "Handling interval: " << processedInterval;
+        
+        // Increment primary pointer
+        ++lastProcesssedIntervallsPos;
+        lastProcesssedIntervallsPos 
+           = lastProcesssedIntervallsPos % processedIntervals.size();
         
         // is this intervall processed by ourself?
-        if(interval.getIp().compare(ip) != 0) {
+        if(processedInterval.getIp().compare(ip) != 0) {
           continue;
         }
         
@@ -409,7 +415,7 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
         while(true) {
           
           TokenInterval tokenInterval = allIntervals.at(lastAllIntervalsPos);
-          if(tokenInterval == interval) {
+          if(tokenInterval == processedInterval) {
             break;
           }
       
@@ -417,42 +423,38 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
           lastAllIntervalsPos = lastAllIntervalsPos % allIntervals.size();
         }
         
-        // Interate to the next interval 
-        cout << "Handling interval: " << interval;
         
-        // Last processed token is the last token on the ring?
-        if(iter+1 != processedIntervals.end()) {
-          TokenInterval nextInterval = *(iter + 1);
+        time_t now = time(0);
           
-          for(size_t offset = 1; 
-              lastAllIntervalsPos + offset < allIntervals.size(); 
-              ++offset) {
-            
-            TokenInterval tryInterval 
-               = allIntervals.at(lastAllIntervalsPos + offset);
-            
-            if(tryInterval == nextInterval) {
-              break;
-            }
-            
-            cout << "Try interval: " << tryInterval << endl;   
+        TokenInterval nextInterval 
+            = processedIntervals.at(lastProcesssedIntervallsPos);
+       
+        for(size_t offset = 1; ; ++offset) {
+          
+          TokenInterval tryInterval 
+              = allIntervals.at((lastAllIntervalsPos + offset) 
+                % allIntervals.size());
+          
+          // We reached the next interval processed by ourself
+          if(tryInterval == nextInterval) {
+            break;
           }
-        } else {
-          for(size_t offset = 1; 
-              lastAllIntervalsPos + offset < allIntervals.size(); 
-              ++offset) {
-            
-            TokenInterval tryInterval 
-               = allIntervals.at(lastAllIntervalsPos + offset);
-            cout << "Try interval: " << tryInterval << endl;   
+          
+          // Node not dead for more then 30 secs? Assume node is working
+          if(hartbeatData[tryInterval.getIp()] + 30 > now) {  
+            break;
           }
+          
+          cout << "Node " << tryInterval.getIp() ;
+          cout << " is dead for more then 30 seconds" << endl;    
+          cout << "Handling interval: " << tryInterval << endl;
+          executeTokenQuery(cassandra, query, queryId, ip, tryInterval, si, nl);
         }
       }
       
       cout << "Sleep 5 seconds and check the ring again" << endl;
       sleep(5);
     }
-    
 }
 
 /*

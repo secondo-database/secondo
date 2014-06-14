@@ -424,10 +424,11 @@ a valid result. False otherweise
 2.3.12 Get a list with all token ranges
 
 1st parameter is a vector with the token ranges
-2nd parameter is a vector with the tokens of the local system
-3rd parameter is a vector with the tokens of the other systems
+2nd parameter is a vector with the tokens of the local system (optional)
+3rd parameter is a vector with the tokens of the other systems (optional)
 
 */
+   bool getAllTokenRanges(vector<TokenInterval> &allTokenRange);
 
    bool getAllTokenRanges(vector<TokenInterval> &allTokenRange, 
      vector <CassandraToken> &localTokens, 

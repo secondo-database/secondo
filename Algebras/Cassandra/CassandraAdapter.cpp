@@ -349,6 +349,15 @@ bool CassandraAdapter::getLocalTokenRanges(
 }
 
 bool CassandraAdapter::getAllTokenRanges(
+     vector<TokenInterval> &allTokenRange) {
+  
+     vector <CassandraToken> localTokens;
+     vector <CassandraToken> peerTokens;
+     
+     return getAllTokenRanges(allTokenRange, localTokens, peerTokens);
+}
+
+bool CassandraAdapter::getAllTokenRanges(
      vector<TokenInterval> &allTokenRange, 
      vector <CassandraToken> &localTokens, 
      vector <CassandraToken> &peerTokens) {
@@ -762,16 +771,17 @@ bool CassandraAdapter::createMetatables() {
   vector<string> queries;
   
   queries.push_back(string(
-    "CREATE TABLE IF NOT EXISTS queries (id INT, query TEXT, PRIMARY KEY(id));"
+    "CREATE TABLE IF NOT EXISTS system_queries (id INT, "
+    "query TEXT, PRIMARY KEY(id));"
   ));
   
   queries.push_back(string(
-    "CREATE TABLE IF NOT EXISTS state (ip TEXT, hartbeat BIGINT, "
+    "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, hartbeat BIGINT, "
     "lastquery INT, PRIMARY KEY(ip));"
   ));
   
   queries.push_back(string(
-    "CREATE TABLE IF NOT EXISTS progress (queryid INT, ip TEXT, "
+    "CREATE TABLE IF NOT EXISTS system_progress (queryid INT, ip TEXT, "
     "begintoken TEXT, endtoken TEXT, PRIMARY KEY(queryid, ip, begintoken));"
   ));
   
@@ -799,9 +809,9 @@ bool CassandraAdapter::dropMetatables() {
   
   vector<string> queries;
   
-  queries.push_back(string("DROP TABLE queries;"));
-  queries.push_back(string("DROP TABLE state;"));
-  queries.push_back(string("DROP TABLE progress;"));
+  queries.push_back(string("DROP TABLE system_queries;"));
+  queries.push_back(string("DROP TABLE system_state;"));
+  queries.push_back(string("DROP TABLE system_progress;"));
   
   for(vector<string>::iterator iter = queries.begin(); 
       iter != queries.end(); ++iter) {
@@ -825,12 +835,12 @@ bool CassandraAdapter::dropMetatables() {
 
 CassandraResult* CassandraAdapter::getQueriesToExecute() {
   return readDataFromCassandra
-            ("SELECT id, query from queries", cql::CQL_CONSISTENCY_ONE);
+            ("SELECT id, query from system_queries", cql::CQL_CONSISTENCY_ONE);
 }
 
 CassandraResult* CassandraAdapter::getGlobalQueryState() {
     return readDataFromCassandra
-            ("SELECT ip, lastquery FROM state", cql::CQL_CONSISTENCY_ONE);
+          ("SELECT ip, lastquery FROM system_state", cql::CQL_CONSISTENCY_ONE);
 }
 
 void CassandraAdapter::quoteCqlStatement(string &query) {
@@ -850,7 +860,7 @@ bool CassandraAdapter::getProcessedTokenRangesForQuery (
    
     try {   
       stringstream ss;
-      ss << "SELECT ip, begintoken, endtoken FROM progress WHERE ";
+      ss << "SELECT ip, begintoken, endtoken FROM system_progress WHERE ";
       ss << "queryid = " << queryId;
       cout << ss.str() << endl;
       
@@ -895,7 +905,7 @@ bool CassandraAdapter::getHartbeatData(map<string, time_t> &result) {
     try {   
 
        boost::shared_future< cql::cql_future_result_t > future = 
-          executeCQL(string("SELECT ip, hartbeat FROM state"), 
+          executeCQL(string("SELECT ip, hartbeat FROM system_state"), 
                      cql::CQL_CONSISTENCY_ONE);
   
        future.wait();

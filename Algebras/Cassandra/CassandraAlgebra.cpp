@@ -1603,10 +1603,16 @@ public:
   }
 
   FText* fetchNextTable() {
-    if(result != NULL && result->hasNext()) {
+    
+    while(result != NULL && result->hasNext()) {
       
       string myResult;
       result -> getStringValue(myResult, 0);
+      
+      // Skip system tables
+      if(myResult.find("system_") == 0) {
+        continue;
+      }
       
       return new FText(true, myResult);
     }
@@ -2063,7 +2069,7 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
         cassandra -> quoteCqlStatement(query);
         
         stringstream ss;
-        ss << "INSERT INTO queries (id, query) ";
+        ss << "INSERT INTO system_queries (id, query) ";
         ss << "values(" << queryid << ", '" << query << "');";
         
         bool insertResult = cassandra 
