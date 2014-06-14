@@ -41,9 +41,163 @@ namespace GISAlgebra {
       case OPEN:
       {
         // initialize the local storage
-        ListExpr resultType = GetTupleResultType(s);
-        TupleType *tupleType = new TupleType(nl->Second(resultType));
-        local.addr = tupleType;
+        DbArray<ResultInfo>* clines = new DbArray<ResultInfo>(0);
+        local.addr = clines;
+
+        if (clines != 0)
+        {
+          raster2::grid2 grid = s_in->getGrid();
+          Rectangle<2> bbox = s_in->bbox();
+
+          double gridOriginX = grid.getOriginX();
+          double gridOriginY = grid.getOriginY();
+          double cellsize = grid.getLength();
+
+          double interval = lines->GetValue();
+
+          raster2::RasterIndex<2> from = 
+                                  grid.getIndex(bbox.MinD(0), bbox.MinD(1));
+          raster2::RasterIndex<2> to = 
+                                  grid.getIndex(bbox.MaxD(0), bbox.MaxD(1));
+
+          for (raster2::RasterIndex<2> index = from; index < to;
+                                       index.increment(from, to))
+          {
+            // Zellwerte ermitteln
+            double e = s_in->get(index);
+            double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
+            double b = s_in->get((int[]){index[0], index[1] + 1});
+            double d = s_in->get((int[]){index[0] - 1, index[1]});
+           
+            // Koordinaten bestimmen
+            double X = index[0] * cellsize + gridOriginX;
+            double Y = index[1] * cellsize + gridOriginY;
+
+            // wenn alle vier Zellen gueltige Werte haben
+            if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(b)) && 
+                !(s_in->isUndefined(d)) && !(s_in->isUndefined(e)))
+            {
+              ProcessRectangle(a, X, Y + cellsize, 
+                               d, X, Y,
+                               e, X + cellsize, Y, 
+                               b, X + cellsize, Y + cellsize, 
+                               interval, clines);       
+
+            }
+
+            // bestimmen welche Zellen Werte enthalten, diese addieren 
+            // und durch die Anzahl der gueltigen Zellen teilen
+            double sum = 0;
+            int good = 0;
+            double center = 0;
+
+            if (!(s_in->isUndefined(a)))
+            {
+              sum += a;
+              good++;
+            }
+
+            if (!(s_in->isUndefined(b)))
+            {
+              sum += b;
+              good++;
+            }
+
+            if (!(s_in->isUndefined(d)))
+            {
+              sum += d;
+              good++;
+            }
+
+            if (!(s_in->isUndefined(e)))
+            {
+              sum += e;
+              good++;
+            }
+
+            center = sum / good;
+
+            // Alternative Zellwerte berechnen
+            double top;
+            double left;
+            double right;
+            double bottom;
+
+            if(!(s_in->isUndefined(a)))
+            {
+              if(!(s_in->isUndefined(b)))
+                top = (a + b) / 2.0;
+              else
+                top = b;
+
+              if(!(s_in->isUndefined(d)))
+                left = (a + d) / 2.0;
+              else
+                left = a;
+            }
+            else
+            {
+              top = b;
+              left = d;
+            }
+
+            if(!(s_in->isUndefined(e)))
+            {
+              if(!(s_in->isUndefined(b)))
+                right = (e + b) / 2.0;
+              else
+                right = e;
+
+              if(!(s_in->isUndefined(d)))
+                bottom = (e + d) / 2.0;
+              else
+                bottom = e;
+            }
+            else
+            {
+              bottom = d;
+              right = b;
+            }
+
+            // wenn eine Eckzelle nicht definiert ist
+            // -> Berechnung ueber Ersatzwerte
+            if (!(s_in->isUndefined(a)))
+            {
+              ProcessRectangle(a, X, Y + cellsize, 
+                               left, X, Y + cellsize/2,
+                               center, X + cellsize/2, Y + cellsize/2, 
+                               top, X + cellsize/2, Y + cellsize, 
+                               interval, clines);
+            }
+            
+            if (!(s_in->isUndefined(d)))
+            {
+              ProcessRectangle(left, X, Y + cellsize/2, 
+                               d, X, Y,
+                               bottom, X + cellsize/2, Y, 
+                               center, X + cellsize/2, Y + cellsize/2, 
+                               interval, clines);
+            }
+            
+            if (!(s_in->isUndefined(e)))
+            {
+              ProcessRectangle(center, X + cellsize/2, Y + cellsize/2, 
+                               bottom, X + cellsize/2, Y,
+                               e, X + cellsize, Y, 
+                               right, X + cellsize, Y + cellsize/2, 
+                               interval, clines);
+            }
+            
+            if (!(s_in->isUndefined(b)))
+            {
+              ProcessRectangle(top, X + cellsize/2, Y + cellsize, 
+                               center, X + cellsize/2, Y + cellsize/2,
+                               right, X + cellsize, Y + cellsize/2, 
+                               b, X + cellsize, Y + cellsize, 
+                               interval, clines);
+            }
+          }//for
+        }//if clines
 
         return 0;
       }
@@ -52,105 +206,35 @@ namespace GISAlgebra {
       {
         if(local.addr != 0)
         {
-          TupleType *tupleType = (TupleType *)local.addr;
+          ListExpr resultType = GetTupleResultType(s);
+          TupleType *tupleType = new TupleType(nl->Second(resultType));
           Tuple *clines = new Tuple( tupleType );
 
-          if(clines != 0)
+          DbArray<ResultInfo>* pResultInfo = (DbArray<ResultInfo>*)local.addr;
+
+          if( clines != 0 )
           {
-            raster2::grid2 grid = s_in->getGrid();
-
-            double gridOriginX = grid.getOriginX();
-            double gridOriginY = grid.getOriginY();
-            double cellsize = grid.getLength();
-
-            double interval = lines->GetValue();
-
-            Rectangle<2> bbox = s_in->bbox();
-
-            raster2::RasterIndex<2> from = 
-                               grid.getIndex(bbox.MinD(0), bbox.MinD(1));
-            raster2::RasterIndex<2> to = 
-                               grid.getIndex(bbox.MaxD(0), bbox.MaxD(1));
-
-            for (raster2::RasterIndex<2> index=from; index < to; 
-                                         index.increment(from, to))
+            if ( pResultInfo != 0 )
             {
-              // Zellwerte ermitteln
-              double e = s_in->get(index);
-              double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
-              double b = s_in->get((int[]){index[0], index[1] + 1});
-              double c = s_in->get((int[]){index[0] + 1, index[1] + 1});
-              double d = s_in->get((int[]){index[0] - 1, index[1]});
-              double f = s_in->get((int[]){index[0] + 1, index[1]});
-              double g = s_in->get((int[]){index[0] - 1, index[1] - 1});
-              double h = s_in->get((int[]){index[0], index[1] - 1});
-              double i = s_in->get((int[]){index[0] + 1, index[1] - 1});
-            
-              // Koordinaten bestimmen
-              double X = index[0] * cellsize + gridOriginX;
-              double Y = index[1] * cellsize + gridOriginY;
-              
-              double aX = X + cellsize/2 - cellsize;
-              double aY = Y + cellsize/2 + cellsize;
-              double bX = X + cellsize/2;
-              double bY = Y + cellsize/2 + cellsize;
-              double cX = X + cellsize/2 + cellsize;
-              double cY = Y + cellsize/2 + cellsize;
-              double dX = X + cellsize/2 - cellsize;
-              double dY = Y + cellsize/2;
-              double eX = X + cellsize/2;
-              double eY = Y + cellsize/2;
-              double fX = X + cellsize/2 + cellsize;
-              double fY = Y + cellsize/2;
-              double gX = X + cellsize/2 - cellsize;
-              double gY = Y + cellsize/2 - cellsize;
-              double hX = X + cellsize/2;
-              double hY = Y + cellsize/2 - cellsize;
-              double iX = X + cellsize/2 + cellsize;
-              double iY = Y + cellsize/2 - cellsize;
-            
-              // wenn alle vier Eckzellen gueltige Werte haben
-              // -> Berechnung uber Eckzellen
-              if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(c)) && 
-                  !(s_in->isUndefined(g)) && !(s_in->isUndefined(i)))
-              {
-                ProcessRectangle(a, aX, aY, g, gX, gY,
-                                 i, iX, iY, c, cX, cY, interval, clines);
-              }
-            
-              // wenn eine Eckzelle nicht definiert ist
-              // -> Berechnung ueber 2x2 Quadrat
-              if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(d)) &&
-                  !(s_in->isUndefined(e)) && !(s_in->isUndefined(b)))
-              {
-                ProcessRectangle(a, aX, aY, d, dX, dY,
-                                 e, eX, eY, b, bX, bY, interval, clines);
-              }
-            
-              if (!(s_in->isUndefined(d)) && !(s_in->isUndefined(g)) &&
-                  !(s_in->isUndefined(h)) && !(s_in->isUndefined(e)))
-              {
-                ProcessRectangle(d, dX, dY, g, gX, gY,
-                                 h, hX, hY, e, eX, eY, interval, clines);
-              }
-            
-              if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(h)) &&
-                  !(s_in->isUndefined(i)) && !(s_in->isUndefined(f)))
-              {
-                ProcessRectangle(e, eX, eY, h, hX, hY,
-                                 i, iX, iY, f, fX, fY, interval, clines);
-              }
-            
-              if (!(s_in->isUndefined(b)) && !(s_in->isUndefined(e)) &&
-                  !(s_in->isUndefined(f)) && !(s_in->isUndefined(c)))
-              {
-                ProcessRectangle(b, bX, bY, e, eX, eY,
-                                 f, fX, fY, c, cX, cY, interval, clines);
-              }
+              int i = pResultInfo->Size();
 
-              result.addr = clines;
-              return YIELD;
-            }//for
+              if ( i > 0 )
+              {
+                ResultInfo temp;
+                pResultInfo->Get(i-1,temp);
+                pResultInfo->resize(i-1);
+                
+                CcInt* level = new CcInt(true,temp.level);
+                Line* line = new Line(0); 
+                line = temp.cline;
+
+                clines->PutAttribute(0,level);
+                clines->PutAttribute(1,line);
+                result.addr = clines;
+
+                return YIELD;
+              }
+            }
 
             result.addr = 0;
             return CANCEL;
@@ -169,11 +253,16 @@ namespace GISAlgebra {
       {
         if(local.addr != 0)
         {
-          ((TupleType *)local.addr)->DeleteIfAllowed();
-          return 0;          
+          DbArray<ResultInfo>* pResultInfo = (DbArray<ResultInfo>*)local.addr;
+          
+          if(pResultInfo != 0)
+          {
+            delete pResultInfo;
+            local.addr = 0;
+          }  
         }
 
-        returnValue = 0;
+        return 0;        
       }
 
       default:
@@ -253,7 +342,7 @@ namespace GISAlgebra {
                         double g, double gX, double gY,
                         double i, double iX, double iY,
                         double c, double cX, double cY, 
-                        double interval, Tuple* clines)
+                        double interval, DbArray<ResultInfo>* clines)
   {
     // Rechteck verarbeiten (Minimum, Maximum bestimmen)
     double Min = MIN(MIN(a,c),MIN(g,i));
@@ -375,7 +464,8 @@ namespace GISAlgebra {
   }
 
   bool AddSegment(double l, double startX, double startY,
-                  double endX, double endY, int leftHigh, Tuple* clines)
+                  double endX, double endY, int leftHigh, 
+                  DbArray<ResultInfo>* clines)
   {
     Point p1(true, startX, startY);
     Point p2(true, endX, endY);
@@ -385,9 +475,6 @@ namespace GISAlgebra {
     line->Put(0,hs);
 
     int l2 = static_cast<int>(l);
-    CcInt* level = new CcInt(true,l2);
-
-
 
     // Contourlinie fuer level finden
     //if (line->getLevel() == level)
@@ -395,8 +482,12 @@ namespace GISAlgebra {
 
     // ansonsten neue Linie anlegen
     //{
-      clines->PutAttribute(0,level);
-      clines->PutAttribute(1,line);
+      ResultInfo lines;// = new ResultInfo;
+
+      lines.level = l2;
+      lines.cline = line;
+
+      clines->Append(lines);
 
     //}
 

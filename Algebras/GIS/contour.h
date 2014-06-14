@@ -29,6 +29,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace GISAlgebra 
 {
+        struct ResultInfo
+        {
+          int level;
+          Line* cline;
+        };
+
         extern ValueMapping contourFuns[];
         ListExpr contourTypeMap(ListExpr args);
         int contourSelectFun(ListExpr args);
@@ -37,14 +43,14 @@ namespace GISAlgebra
                               double, double, double,
                               double, double, double,
                               double, double, double, 
-                              double, Tuple*);
+                              double, DbArray<ResultInfo>*);
 
         void Intersect(double, double, double,
                        double, double, double,
                        double, double, int*, double*, double*);
 
         bool AddSegment(double, double, double, 
-                        double, double, int, Tuple*);
+                        double, double, int, DbArray<ResultInfo>*);
 
         struct contourInfo : OperatorInfo 
         {
