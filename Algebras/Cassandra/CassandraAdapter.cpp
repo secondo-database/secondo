@@ -777,7 +777,7 @@ bool CassandraAdapter::createMetatables() {
   
   queries.push_back(string(
     "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, hartbeat BIGINT, "
-    "lastquery INT, PRIMARY KEY(ip));"
+    "id TEXT, lastquery INT, PRIMARY KEY(ip));"
   ));
   
   queries.push_back(string(

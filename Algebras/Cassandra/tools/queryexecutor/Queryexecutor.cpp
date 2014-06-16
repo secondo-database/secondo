@@ -67,9 +67,11 @@ class HartbeatUpdater {
  
 public:
   
-  HartbeatUpdater(string myCassandraIp, string myCassandraKeyspace) 
-     : cassandraIp(myCassandraIp), cassandraKeyspace(myCassandraKeyspace),
-     cassandra(NULL), active(true) {
+  HartbeatUpdater(string myCassandraIp, string myCassandraKeyspace, 
+                  string myUuid) 
+     : cassandraIp(myCassandraIp), 
+     cassandraKeyspace(myCassandraKeyspace),
+     uuid(myUuid), cassandra(NULL), active(true) {
        
        // Connect to cassandra
      cassandra = new CassandraAdapter
@@ -80,6 +82,7 @@ public:
   
      if(cassandra != NULL) {
        cassandra -> connect(false);
+       updateUuid();
      } else {
        cerr << "[Hartbeat] Unable to connect to cassandra, ";
        cerr << "exiting thread" << endl;
@@ -104,15 +107,31 @@ public:
     ss << cassandraIp;
     ss << "';";
     
+    return executeQuery(ss.str());
+  }
+  
+  bool updateUuid() {  
+    // Build CQL query
+    stringstream ss;
+    ss << "UPDATE system_state set id = '";
+    ss << uuid;
+    ss << "' WHERE ip = '";
+    ss << cassandraIp;
+    ss << "';";
+    
+    return executeQuery(ss.str());
+  }
+  
+  bool executeQuery(string query) {
     // Update last executed command
     bool result = cassandra -> executeCQLSync(
-      ss.str(),
+      query,
       cql::CQL_CONSISTENCY_ONE
     );
   
     if(! result) {
       cout << "Unable to update hartbeat in system_state table" << endl;
-      cout << "CQL Statement: " << ss.str() << endl;
+      cout << "CQL Statement: " << query << endl;
       return false;
     }
 
@@ -141,6 +160,7 @@ public:
 private:
   string cassandraIp;
   string cassandraKeyspace;
+  string uuid;
   CassandraAdapter* cassandra;
   bool active;
 };
@@ -468,15 +488,10 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
 */
 void mainLoop(SecondoInterface* si, 
               CassandraAdapter* cassandra, string cassandraIp,
-              string cassandraKeyspace) {
+              string cassandraKeyspace, string uuid) {
   
   NestedList* nl = si->GetNestedList();
   NList::setNLRef(nl);
-  
-  // Gernerate UUID
-  boost::uuids::uuid uuid = boost::uuids::random_generator()();
-  const string myUuid = boost::lexical_cast<std::string>(uuid);
-  cout << "Our id is: " << myUuid << endl;
   
   size_t lastCommandId = 0;
   
@@ -491,7 +506,7 @@ void mainLoop(SecondoInterface* si,
           
           string command;
           result->getStringValue(command, 1);
-          replacePlaceholder(command, "__NODEID__", myUuid);
+          replacePlaceholder(command, "__NODEID__", uuid);
           replacePlaceholder(command, "__CASSANDRAIP__", cassandraIp);
           replacePlaceholder(command, "__KEYSPACE__", cassandraKeyspace);
           
@@ -536,10 +551,11 @@ void* startHartbeatThreadInternal(void *ptr) {
 
 */
 HartbeatUpdater* startHartbeatThread(string cassandraIp, 
-                         string cassandraKeyspace, pthread_t &targetThread) {
+                         string cassandraKeyspace, string uuid, 
+                         pthread_t &targetThread) {
   
    HartbeatUpdater* hartbeatUpdater 
-     = new HartbeatUpdater(cassandraIp, cassandraKeyspace);
+     = new HartbeatUpdater(cassandraIp, cassandraKeyspace, uuid);
      
    pthread_create(&targetThread, NULL, 
                   &startHartbeatThreadInternal, hartbeatUpdater);
@@ -578,10 +594,15 @@ int main(int argc, char** argv){
   
   cout << "Connection to cassandra successfull" << endl;
 
+  // Gernerate UUID
+  boost::uuids::uuid uuid = boost::uuids::random_generator()();
+  const string myUuid = boost::lexical_cast<std::string>(uuid);
+  cout << "Our id is: " << myUuid << endl;
+  
   // Main Programm
   pthread_t targetThread;
-  startHartbeatThread(cassandraNodeIp, cassandraKeyspace, targetThread);
-  mainLoop(si, cassandra, cassandraNodeIp, cassandraKeyspace);
+  startHartbeatThread(cassandraNodeIp, cassandraKeyspace, myUuid, targetThread);
+  mainLoop(si, cassandra, cassandraNodeIp, cassandraKeyspace, myUuid);
   
   if(cassandra) {
     cassandra -> disconnect();
