@@ -278,8 +278,10 @@ const string realJoinMMRTreeSpec  =
 
 */
 ValueMapping realJoinMMRTreeVM[] = {
-    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,2 > >,
-    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,3 > >
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<2>, StandardSpatialAttribute<2>,2,2> >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                StandardSpatialAttribute<3>,StandardSpatialAttribute<3>,3,3> >
   };
 
 
@@ -296,8 +298,10 @@ Operator realJoinMMRTree(
 
 
 ValueMapping realJoinMMRTreeVecVM[] = {
-    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,2 > >,
-    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,3 > >
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<2>, StandardSpatialAttribute<2>,2,2> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                StandardSpatialAttribute<3>, StandardSpatialAttribute<3>,3,3> >
   };
 
 
@@ -588,12 +592,12 @@ vector collecting all results within a single scan.
 
 1.4.1 Type Mapping
 
-Becaus the operator has the same  functionality as the realJoinMMRTree 
+Because the operator has the same  functionality as the realJoinMMRTree 
 operator, we can reuse the type mapping of that operator.
 
 */
 
-template<int dim>
+template<class Type1, class Type2, int dim1, int dim2>
 class joinMMRTreeItLocalInfo{
 public:
    joinMMRTreeItLocalInfo(Word& stream1, Word& stream2, 
@@ -608,7 +612,7 @@ public:
      Tuple* tuple = s1.request();
      while(tuple!=0){
         TupleId id = buffer.AppendTuple(tuple);
-        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*) 
+        Rectangle<dim1> box = ((Type1*) 
                               tuple->GetAttribute(attrPos1))->BoundingBox();
         index.insert(box,id);
         tuple->DeleteIfAllowed();
@@ -632,7 +636,7 @@ public:
    Tuple* next(){
      while(currentTuple!=0){
         if(it==0){
-          Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+          Rectangle<dim2> r = ((Type2*)
                         currentTuple->GetAttribute(attrPos2))->BoundingBox();
           it=index.find( r );
         }
@@ -657,15 +661,15 @@ public:
 private:
    Stream<Tuple> s2;
    int attrPos2;
-   mmrtree::RtreeT<dim, TupleId> index;
+   mmrtree::RtreeT<dim1, TupleId> index;
    TupleStore buffer;
-   typename mmrtree::RtreeT<dim, TupleId>::iterator* it;
+   typename mmrtree::RtreeT<dim1, TupleId>::iterator* it;
    Tuple* currentTuple;
    TupleType* tt;
 }; // class joinMMRTreeItLocalInfo
 
 
-template<int dim>
+template<class Type1, class Type2, int dim1, int dim2>
 class joinMMRTreeItVecLocalInfo{
 public:
    joinMMRTreeItVecLocalInfo(Word& stream1, Word& stream2, 
@@ -681,7 +685,7 @@ public:
      while(tuple!=0){
         TupleId id = (TupleId) buffer.size();
         buffer.push_back(tuple);
-        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+        Rectangle<dim1> box = ((Type1*)
                          tuple->GetAttribute(attrPos1))->BoundingBox(); 
         index.insert(box,id);
         tuple = s1.request();
@@ -708,7 +712,7 @@ public:
    Tuple* next(){
      while(currentTuple!=0){
         if(it==0){
-           Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+           Rectangle<dim2> r = ((Type2*)
                      currentTuple->GetAttribute(attrPos2))->BoundingBox();
            it = index.find(r);
         }
@@ -732,16 +736,16 @@ public:
 private:
    Stream<Tuple> s2;
    int attrPos2;
-   mmrtree::RtreeT<dim, TupleId> index;
+   mmrtree::RtreeT<dim1, TupleId> index;
    vector<Tuple*> buffer;
-   typename mmrtree::RtreeT<dim, TupleId>::iterator* it;
+   typename mmrtree::RtreeT<dim1, TupleId>::iterator* it;
    Tuple* currentTuple;
    TupleType* tt;
 }; // class joinMMRTreeItVecLocalInfo
 
 
 
-template <int dim, class LocalInfo>
+template <class Type1, class Type2, int dim1, int dim2, class LocalInfo>
 int joinMMRTreeItVM( Word* args, Word& result, int message,
                       Word& local, Supplier s ) {
 
@@ -798,8 +802,14 @@ int joinMMRTreeItVM( Word* args, Word& result, int message,
 
 
 ValueMapping joinMMRTreeItvm[] = {
-    joinMMRTreeItVM<2, joinMMRTreeItLocalInfo<2> >,
-    joinMMRTreeItVM<3, joinMMRTreeItLocalInfo<3> >
+    joinMMRTreeItVM<StandardSpatialAttribute<2>, 
+                    StandardSpatialAttribute<2>,2,2, 
+                    joinMMRTreeItLocalInfo<StandardSpatialAttribute<2>, 
+                                           StandardSpatialAttribute<2>,2,2> >,
+    joinMMRTreeItVM<StandardSpatialAttribute<3>, 
+                    StandardSpatialAttribute<3>,3,3, 
+                    joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
+                                           StandardSpatialAttribute<3>,3,3> >
 };
 
 
@@ -816,8 +826,16 @@ Operator joinMMRTreeIt (
 
 
 ValueMapping joinMMRTreeItVecvm[] = {
-    joinMMRTreeItVM<2, joinMMRTreeItVecLocalInfo<2> >,
-    joinMMRTreeItVM<3, joinMMRTreeItVecLocalInfo<3> >
+    joinMMRTreeItVM<StandardSpatialAttribute<2>, 
+                    StandardSpatialAttribute<2>,2,2, 
+                    joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<2>, 
+                                              StandardSpatialAttribute<2>,
+                                              2,2> >,
+    joinMMRTreeItVM<StandardSpatialAttribute<3>, 
+                    StandardSpatialAttribute<3>,3,3, 
+                    joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<3>, 
+                                              StandardSpatialAttribute<3>,
+                                              3,3> >
 };
 
 
@@ -860,7 +878,7 @@ algebra, so we can just use ~realJoinMMRTreeTM~ here.
 1.5.2 LocalInfo
 
 */
-template<int dim>
+template<class Type1, class Type2, int dim1, int dim2>
 class ItSpatialJoinInfo{
   public:
     
@@ -887,7 +905,7 @@ class ItSpatialJoinInfo{
 
       // process the first Tuple
       if(t1){
-         index = new mmrtree::RtreeT<dim, TupleId>(min,max);
+         index = new mmrtree::RtreeT<dim1, TupleId>(min,max);
          int sizePerTuple =  sizeof(void*) + t1->GetMemSize();
          costEstimation -> setSizeOfTupleSt1(sizePerTuple);
          maxTuples = (_maxMem*1024) / sizePerTuple;
@@ -902,7 +920,7 @@ class ItSpatialJoinInfo{
          }
          TupleId id = (TupleId) tuples1.size();
          tuples1.push_back(t1);
-         Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+         Rectangle<dim1> box = ((Type1*)
                          t1->GetAttribute(a1))->BoundingBox(); 
         index->insert(box,id);
       } else {
@@ -915,8 +933,7 @@ class ItSpatialJoinInfo{
       while( (t1!=0) && (noTuples < maxTuples -1)){
         TupleId id = (TupleId) tuples1.size();
         tuples1.push_back(t1);
-        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
-                         t1->GetAttribute(a1))->BoundingBox(); 
+        Rectangle<dim1> box = ((Type1*) t1->GetAttribute(a1))->BoundingBox(); 
         index->insert(box,id);
         costEstimation -> processedTupleInStream1();
         t1 = s1.request();
@@ -928,8 +945,7 @@ class ItSpatialJoinInfo{
         finished = false;
         TupleId id = (TupleId) tuples1.size();
         tuples1.push_back(t1);
-        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
-                         t1->GetAttribute(a1))->BoundingBox(); 
+        Rectangle<dim1> box = ((Type1*) t1->GetAttribute(a1))->BoundingBox(); 
         index->insert(box,id);
         
       } else {
@@ -1014,10 +1030,10 @@ class ItSpatialJoinInfo{
       vector<Tuple*> tuples1;
       Relation* tuples2;
       bool finished;  // all tuples from stream1 read 
-      typename mmrtree::RtreeT<dim, TupleId>::iterator* treeIt; 
+      typename mmrtree::RtreeT<dim1, TupleId>::iterator* treeIt; 
       Tuple* currentTuple2;  // tuple from stream 2
       GenericRelationIterator* bufferIt;
-      mmrtree::RtreeT<dim, TupleId>* index;
+      mmrtree::RtreeT<dim1, TupleId>* index;
       int scans;
       ItSpatialJoinCostEstimation* costEstimation;
 
@@ -1029,7 +1045,7 @@ class ItSpatialJoinInfo{
          if(!currentTuple2){
              return;
          }
-         Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+         Rectangle<dim2> r = ((Type2*)
                     currentTuple2->GetAttribute(a2))->BoundingBox();
          treeIt = index->find(r);
       }
@@ -1090,14 +1106,14 @@ class ItSpatialJoinInfo{
             tuples1[i]=0;
          }
          tuples1.clear();
-         index = new mmrtree::RtreeT<dim, TupleId>(min,max);
+         index = new mmrtree::RtreeT<dim1, TupleId>(min,max);
          Tuple* t1 = s1.request();
          costEstimation -> processedTupleInStream1();
          int noTuples = 0;
          while( (t1!=0) && (noTuples < maxTuples -1)){
              TupleId id = (TupleId) tuples1.size();
              tuples1.push_back(t1);
-             Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+             Rectangle<dim1> box = ((Type1*)
                            t1->GetAttribute(a1))->BoundingBox(); 
              index->insert(box,id);
              t1 = s1.request();
@@ -1109,7 +1125,7 @@ class ItSpatialJoinInfo{
            finished = false;
            TupleId id = (TupleId) tuples1.size();
            tuples1.push_back(t1);
-           Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+           Rectangle<dim1> box = ((Type1*)
                           t1->GetAttribute(a1))->BoundingBox(); 
            index->insert(box,id);
         } else {
@@ -1144,12 +1160,13 @@ class ItSpatialJoinInfo{
 1.5.3 Value Mapping
 
 */
-template <int dim>
+template <class Type1, class Type2, int dim1, int dim2>
 int itSpatialJoinVM( Word* args, Word& result, int message,
                       Word& local, Supplier s ) {
 
 
-   ItSpatialJoinInfo<dim>* li = (ItSpatialJoinInfo<dim>*) local.addr;
+   ItSpatialJoinInfo<Type1, Type2, dim1, dim2>* li =
+               (ItSpatialJoinInfo<Type1, Type2, dim1, dim2>*) local.addr;
    switch (message){
      case OPEN : {
                    if(li){
@@ -1178,7 +1195,9 @@ int itSpatialJoinVM( Word* args, Word& result, int message,
 
                   costEstimation -> init(NULL, NULL);
  
-                  local.setAddr(new ItSpatialJoinInfo<dim>(args[0], args[1],
+                  local.setAddr(new 
+                      ItSpatialJoinInfo<Type1,Type2,dim1,dim2>( 
+                                      args[0], args[1],
                                        min, max, maxMem, 
                                       ((CcInt*)args[7].addr)->GetIntval(),
                                       ((CcInt*)args[8].addr)->GetIntval(),
@@ -1213,8 +1232,10 @@ int itSpatialJoinVM( Word* args, Word& result, int message,
 
 */
 ValueMapping ItSpatialJoinVM[] = {
-         itSpatialJoinVM<2>,
-         itSpatialJoinVM<3> 
+         itSpatialJoinVM<StandardSpatialAttribute<2>, 
+                         StandardSpatialAttribute<2>,2,2>,
+         itSpatialJoinVM<StandardSpatialAttribute<3>, 
+                         StandardSpatialAttribute<3>,3,3> 
       };
 
 /*

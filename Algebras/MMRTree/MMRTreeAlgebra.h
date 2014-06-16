@@ -99,7 +99,7 @@ used as index.
 
 
 */
-template <class Tree, int dim>
+template <class Tree, class Type1, class Type2, int dim1, int dim2>
 class RealJoinTreeLocalInfo{
 
   public:
@@ -112,8 +112,8 @@ The parameters are:
 ----
      _s1 : first stream
      _s2 : second stream
-     _i1 : index of a rectangle<dim> attribute in _s1
-     _i2 : index of a rectangle<dim> attribute in _s2
+     _i1 : index of an attribute of type Type1 in _s1
+     _i2 : index of an attribute of type Type2 in _s2
      _tt : list describing the result tuple type
      _maxMem : maximum cache size for tuples of _s1 in kB
 ----
@@ -203,8 +203,8 @@ Returns the next result tuple or 0 if no more tuples are available.
             if(t==0){
                return 0;
             }
-            Rectangle<dim> r(((StandardSpatialAttribute<dim>*) 
-                               t->GetAttribute(i2))->BoundingBox());
+            Rectangle<dim2> 
+                  r(((Type2*) t->GetAttribute(i2))->BoundingBox());
             ind.findSimple(r, lastRes); 
             if(lastRes.empty()){
                 t->DeleteIfAllowed();
@@ -213,7 +213,7 @@ Returns the next result tuple or 0 if no more tuples are available.
             }
          }
 
-         pair<Rectangle<dim>,TupleId> p1 = lastRes.back();
+         pair<Rectangle<dim1>,TupleId> p1 = lastRes.back();
          lastRes.pop_back();
          Tuple*result = new Tuple(tt);
          Tuple* t1 = tb->GetTuple(p1.second);
@@ -227,7 +227,7 @@ Returns the next result tuple or 0 if no more tuples are available.
       Stream<Tuple> s2;
       int i2;
       TupleType* tt;
-      vector<pair<Rectangle<dim>,TupleId> > lastRes;
+      vector<pair<Rectangle<dim1>,TupleId> > lastRes;
       Tuple* currentTuple;
       TupleStore* tb;
 
@@ -243,7 +243,7 @@ Returns the next result tuple or 0 if no more tuples are available.
          }
          while(t){
             TupleId id = tb->AppendTuple(t);
-            Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+            Rectangle<dim1> r = ((Type1*)
                                  t->GetAttribute(_i1))->BoundingBox();
             ind.insert(r, id);
             t->DeleteIfAllowed(); 
@@ -256,7 +256,7 @@ Returns the next result tuple or 0 if no more tuples are available.
 };
 
 
-template <class Tree, int dim>
+template <class Tree, class Type1, class Type2, int dim1, int dim2 >
 class RealJoinTreeVecLocalInfo{
 
   public:
@@ -269,8 +269,8 @@ The parameters are:
 ----
      _s1 : first stream
      _s2 : second stream
-     _i1 : index of a rectangle<dim> attribute in _s1
-     _i2 : index of a rectangle<dim> attribute in _s2
+     _i1 : index of an attribute of type Type1 in _s1
+     _i2 : index of an attribute of type Type2 in _s2
      _tt : list describing the result tuple type
      _maxMem : maximum cache size for tuples of _s1 in kB
 
@@ -366,7 +366,7 @@ Returns the next result tuple or 0 if no more tuples are available.
             if(t==0){
                return 0;
             }
-            Rectangle<dim> r = ((StandardSpatialAttribute<dim>*) 
+            Rectangle<dim2> r = ((Type2*) 
                                  t->GetAttribute(i2))->BoundingBox();
             ind.findSimple(r, lastRes); 
             if(lastRes.empty()){
@@ -376,7 +376,7 @@ Returns the next result tuple or 0 if no more tuples are available.
             }
          }
 
-         pair<Rectangle<dim>,TupleId> p1 = lastRes.back();
+         pair<Rectangle<dim1>,TupleId> p1 = lastRes.back();
          lastRes.pop_back();
          Tuple*result = new Tuple(tt);
          Tuple* t1 = vec[p1.second];
@@ -389,7 +389,7 @@ Returns the next result tuple or 0 if no more tuples are available.
       Stream<Tuple> s2;
       int i2;
       TupleType* tt;
-      vector<pair<Rectangle<dim>,TupleId> > lastRes;
+      vector<pair<Rectangle<dim1>,TupleId> > lastRes;
       Tuple* currentTuple;
       vector<Tuple*> vec;
 
@@ -401,7 +401,7 @@ Returns the next result tuple or 0 if no more tuples are available.
          while(t){
             TupleId id = vec.size();
             vec.push_back(t);
-            Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+            Rectangle<dim1> r = ((Type1*)
                                  t->GetAttribute(_i1))->BoundingBox();
             ind.insert(r, id);
             t = s1.request();
