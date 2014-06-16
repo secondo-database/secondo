@@ -86,6 +86,11 @@ class StandardSpatialAttribute : public Attribute
                             const Geoid* geoid=0 ) const = 0;
 
     virtual bool IsEmpty() const = 0;
+
+    static unsigned GetDim(){
+      return dim;
+    }
+
 };
 
 /*

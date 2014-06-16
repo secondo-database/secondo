@@ -1538,6 +1538,7 @@ The destructor.
     virtual void CopyFrom( const Attribute* right ) = 0;
     virtual size_t Sizeof() const = 0;
     virtual const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const = 0;
+    static unsigned GetDim(){ return dim; }
 
     inline static const string BasicType()
     {
@@ -2955,6 +2956,9 @@ Computes all events created by a UPoint moving across a regular grid.
       return Rectangle<3>( false );
     }
   }
+  
+  static unsigned GetDim(){ return 3; }
+
 
   virtual const Rectangle<3> BoundingBox(const double scaleTime,
                                          const Geoid* geoid = 0) const
@@ -4047,6 +4051,8 @@ geometry is used, otherwise spherical geometry is applied.
 */
   // return the stored bbox
   Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
+
+  static unsigned GetDim(){ return 3; }
 
   // return the spatial bounding box (2D: X/Y)
   const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const;
