@@ -24,6 +24,7 @@ include ../makefile.jni
 INCLUDEFLAGS := -I. $(JNIINCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
 
 REG_SEC_DLL=$(OPTDIR)/$(DLLPREF)regSecondo.$(JNI_DLLEXT)
+BASIC_REG_SEC_DLL=$(OPTDIR)/../OptimizerBasic/$(DLLPREF)regSecondo.$(JNI_DLLEXT)
 
 ifndef JPL_DLL
    #JPL_DLL=$(OPTDIR)/$(DLLPREF)jpl.$(JNI_DLLEXT)
@@ -52,7 +53,11 @@ endif
 
 
 .PHONY:all
-all: jsrc $(REG_SEC_DLL)
+all: jsrc $(BASIC_REG_SEC_DLL) 
+
+$(BASIC_REG_SEC_DLL): $(REG_SEC_DLL)
+	@echo "Build Basic reg sec"
+	cp $< $@
 
 jsrc:
 	make -C $(JPLVER) all
@@ -84,4 +89,5 @@ clean:
 	make -C 30 clean
 	rm -f regSecondo.o
 	rm -f $(REG_SEC_DLL)
+	rm -f $(BASIC_REG_SEC_DLL)
 

@@ -25,8 +25,14 @@ else
 CLASSPATH=$(JPL_CLASSPATH)
 endif
 
+BASIC_OPT_DIR=$(OPTDIR)/../OptimizerBasic
+
+
 .PHONY:all
-all: $(OPTDIR)/OptimizerServer.class $(OPTDIR)/NamedVariable.class $(OPTDIR)/PrologParser.class
+all: std basic
+
+std: $(OPTDIR)/OptimizerServer.class $(OPTDIR)/NamedVariable.class $(OPTDIR)/PrologParser.class
+basic: $(BASIC_OPT_DIR)/OptimizerServer.class $(BASIC_OPT_DIR)/NamedVariable.class $(BASIC_OPT_DIR)/PrologParser.class
 
 $(OPTDIR)/OptimizerServer.class: OptimizerServer.java 
 	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(OPTDIR) OptimizerServer.java
@@ -37,6 +43,14 @@ $(OPTDIR)/PrologParser.class: PrologParser.java
 $(OPTDIR)/NamedVariable.class: NamedVariable.java
 	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(OPTDIR) NamedVariable.java
 
+$(BASIC_OPT_DIR)/OptimizerServer.class: OptimizerServer.java 
+	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(BASIC_OPT_DIR) OptimizerServer.java
+
+$(BASIC_OPT_DIR)/PrologParser.class: PrologParser.java
+	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(BASIC_OPT_DIR) PrologParser.java
+
+$(BASIC_OPT_DIR)/NamedVariable.class: NamedVariable.java
+	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(BASIC_OPT_DIR) NamedVariable.java
 
 .PHONY:clean
 clean:

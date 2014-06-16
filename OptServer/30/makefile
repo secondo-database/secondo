@@ -25,13 +25,18 @@ else
 CLASSPATH=$(JPL_CLASSPATH)
 endif
 
+BASIC_OPT_DIR=$(OPTDIR)/../OptimizerBasic
 
 
 .PHONY:all
-all: $(OPTDIR)/OptimizerServer.class
+all: $(OPTDIR)/OptimizerServer.class $(BASIC_OPT_DIR)/OptimizerServer.class
 
 $(OPTDIR)/OptimizerServer.class: OptimizerServer.java 
 	$(JAVAC) -classpath $(CLASSPATH) -d $(OPTDIR) OptimizerServer.java
+
+$(BASIC_OPT_DIR)/OptimizerServer.class: OptimizerServer.java 
+	$(JAVAC) -classpath $(CLASSPATH) -d $(BASIC_OPT_DIR) OptimizerServer.java
+
 
 .PHONY:clean
 clean:
