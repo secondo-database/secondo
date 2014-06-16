@@ -286,26 +286,26 @@ public:
 /*
 2.3.3 Write a tuple to the cluster
 
-1. Parameter is the unique key of the data
-2. Parameter is the data
-3. Parameter is the hash value of the tuple
-4. Parameter is the name of the relation (e.g. plz)
-5. Parameter is the consistence level used for writing
-6. Parameter specifies to use synchronus or asynchronus writes
+1st Parameter is the name of the relation (e.g. plz)
+2nd Parameter is the partiton value of the tuple
+3rd Parameter is the name of the node
+4th Parameter is the unique key of the data
+5th. Parameter is the data
+6th Parameter is the consistence level used for writing
+7th Parameter specifies to use synchronus or asynchronus writes
 
 */
-    void writeDataToCassandra(string key, string value, string hashValue,
-                              string relation, string consistenceLevel,
-                              bool sync
-                             );
+    void writeDataToCassandra(string relation, 
+        string partition, string node, string key, string value, 
+        string consistenceLevel, bool sync);
   
 /* 
 2.3.4 Same as writeDataToCassandra, but with prepared statements
 
 */
-    void writeDataToCassandraPrepared(string key, string value, 
-                              string hashValue, string relation, 
-                              string consistenceLevel, bool sync
+    void writeDataToCassandraPrepared(string relation, 
+        string partition, string node, string key, string value, 
+        string consistenceLevel, bool sync
                              );
 
 /*
@@ -550,13 +550,14 @@ protected:
 
 /*
 2.3.16 Returns a CQL statement for inserting a new row. The
-       first parameter is the key, the second parameter is the
-       value of the tuple. The third parameter is the hashvalue.
-       The last parameter is the relation for this request.
+       first parameter is the relation for this request. The 
+       second parameter is the parition key, the third parameter 
+       is the node id. The fourth parameter is the key of the tuple.
+       The fith parameter is the value of the tuple. 
        
 */    
-  string getInsertCQL(string key, string value, string hashValue,
-                      string relation);
+  string getInsertCQL(string relation, string partition, 
+                      string node, string key, string value);
 
 /*
 2.3.17 Create a pepared statement for inserting data into the 

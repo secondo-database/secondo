@@ -72,7 +72,7 @@ public:
      : cassandraIp(myCassandraIp), 
      cassandraKeyspace(myCassandraKeyspace),
      uuid(myUuid), cassandra(NULL), active(true) {
-       
+        
        // Connect to cassandra
      cassandra = new CassandraAdapter
         (cassandraIp, cassandraKeyspace);
@@ -113,7 +113,7 @@ public:
   bool updateUuid() {  
     // Build CQL query
     stringstream ss;
-    ss << "UPDATE system_state set id = '";
+    ss << "UPDATE system_state set node = '";
     ss << uuid;
     ss << "' WHERE ip = '";
     ss << cassandraIp;

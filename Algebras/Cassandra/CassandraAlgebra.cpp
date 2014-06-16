@@ -834,24 +834,23 @@ public:
     }
   }
   
-  string buildKey() {
-    stringstream ss;
-    ss << systemname;
-    ss << "-";
-    ss << tupleNumber;
-    return ss.str();
-  }
-  
   bool feed(Tuple* tuple) {
     
     stringstream ss;
     ss << tuple -> HashValue(attrIndex);
+    string partitionKey = ss.str();
+    
+    ss.clear();
+    ss << tupleNumber;
+    string tupleNumberStr = ss.str();
     
     cassandra->writeDataToCassandra(
-                         buildKey(), 
+                         relationName,
+                         partitionKey,
+                         systemname,
+                         tupleNumberStr, 
                          tuple -> WriteToBinStr(), 
-                         ss.str(),
-                         relationName, consistence, false);
+                         consistence, false);
     
     ++tupleNumber;
     

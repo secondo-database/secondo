@@ -116,8 +116,8 @@ bool CassandraAdapter::isConnected() {
       }
 }
 
-void CassandraAdapter::writeDataToCassandra(string key, string value,
-        string hashValue, string relation, string consistenceLevel, 
+void CassandraAdapter::writeDataToCassandra(string relation, string partition, 
+        string node, string key, string value, string consistenceLevel, 
         bool sync) {
 
     // Convert consistence level
@@ -127,21 +127,21 @@ void CassandraAdapter::writeDataToCassandra(string key, string value,
     // Write Data and wait for result
     if(sync) {
       executeCQLSync(
-          getInsertCQL(key, value, hashValue, relation),
+          getInsertCQL(relation, partition, node, key, value),
           consitence
       );
       
     } else {
       executeCQLASync(
-          getInsertCQL(key, value, hashValue, relation),
+          getInsertCQL(relation, partition, node, key, value),
           consitence
       );
     }
 }
 
-void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
-        string hashValue, string relation, string consistenceLevel, 
-        bool sync) {
+void CassandraAdapter::writeDataToCassandraPrepared(string relation, 
+        string partition, string node, string key, string value, 
+        string consistenceLevel, bool sync) {
 
     // Statement unknown? => Prepare
     if(insertCQLid.empty()) {
@@ -162,7 +162,8 @@ void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
     ));
 
     // Bound prameter
-    boundCQLInsert -> push_back(hashValue);
+    boundCQLInsert -> push_back(partition);
+    boundCQLInsert -> push_back(node);
     boundCQLInsert -> push_back(key);
     boundCQLInsert -> push_back(value);
     
@@ -187,7 +188,7 @@ void CassandraAdapter::writeDataToCassandraPrepared(string key, string value,
 bool CassandraAdapter::prepareCQLInsert(string relation, 
                                         string consistenceLevel) {
      try {
-        string cqlQuery = getInsertCQL("?", "?", "?", relation);
+        string cqlQuery = getInsertCQL(relation, "?", "?", "?", "?");
         cout << "Preparing insert query: "  << cqlQuery << endl;
         
         boost::shared_ptr<cql::cql_query_t> unboundInsert(
@@ -218,12 +219,12 @@ bool CassandraAdapter::prepareCQLInsert(string relation,
     return false;
 }
 
-string CassandraAdapter::getInsertCQL(string key, string value, 
-                                      string hashValue, string relation) {
+string CassandraAdapter::getInsertCQL(string relation, string partition, 
+                                      string node, string key, string value) {
     stringstream ss;
     ss << "INSERT INTO ";
     ss << relation;
-    ss << " (partition, key, value)";
+    ss << " (partition, node, key, value)";
     ss << " VALUES (";
     
     string quote = "'";
@@ -231,11 +232,13 @@ string CassandraAdapter::getInsertCQL(string key, string value,
     // Prepared statemnt? No quoting! 
     if((key.compare("?") == 0) 
       && (value.compare("?") == 0)
-      && (hashValue.compare("?") == 0)) {
+      && (node.compare("?") == 0)
+      && (partition.compare("?") == 0)) {
       quote = "";
     }
     
-    ss << quote << hashValue << quote << ", ";
+    ss << quote << partition << quote << ", ";
+    ss << quote << node << quote << ", ";
     ss << quote << key << quote << ", ";
     ss << quote << value << quote << ");";
     
@@ -509,8 +512,8 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     stringstream ss;
     ss << "CREATE TABLE IF NOT EXISTS ";
     ss << tablename;
-    ss << " ( partition text, key text,";
-    ss << " value text, PRIMARY KEY(partition, key));";
+    ss << " ( partition text, node text, key text,";
+    ss << " value text, PRIMARY KEY(partition, node, key));";
 
     bool resultCreate = executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
     
@@ -520,10 +523,10 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     // Write tupletype
     if(resultCreate) {
       bool resultInsert = executeCQLSync(
-            // Partition is Tupletype, Key is Tupletype
-            getInsertCQL(CassandraAdapter::METADATA_TUPLETYPE,
-                         tupleType, CassandraAdapter::METADATA_TUPLETYPE, 
-                         tablename),
+            // Partition is Tupletype, Key is Tupletype, Node id is tupletype
+            getInsertCQL(tablename, CassandraAdapter::METADATA_TUPLETYPE,
+                         CassandraAdapter::METADATA_TUPLETYPE, 
+                         CassandraAdapter::METADATA_TUPLETYPE, tupleType),
             cql::CQL_CONSISTENCY_ALL
       );
       
@@ -776,8 +779,8 @@ bool CassandraAdapter::createMetatables() {
   ));
   
   queries.push_back(string(
-    "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, hartbeat BIGINT, "
-    "id TEXT, lastquery INT, PRIMARY KEY(ip));"
+    "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, node TEXT, "
+    "hartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));"
   ));
   
   queries.push_back(string(
