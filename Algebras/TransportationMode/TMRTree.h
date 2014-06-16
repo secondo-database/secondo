@@ -51,6 +51,7 @@ using namespace std;
 #include "TemporalAlgebra.h"
 #include "AlmostEqual.h"
 #include "RTreeAlgebra.h"
+#include "GeneralType.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1324,6 +1325,9 @@ ID of the next tuple if there is a next tuple else it returns false
   bool CalculateTM(Relation* rel, int);
   long CalculateNodeTM(SmiRecordId nodeid, Relation* rel, int attr_pos);
 ///////////
+  void WriteNode(TM_RTreeNode<dim, LeafInfo>* node, SmiRecordId nodeid){
+	  node->Write(file, nodeid);
+  }
   private:
     bool fileOwner;
     SmiRecordFile *file;
