@@ -3330,6 +3330,28 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
 }
 
 /*
+temporary function
+
+*/
+void OutPutSegment(ofstream& out_f, 
+				   vector<MyHalfSegment> seq_halfseg)
+{
+    static int count = 1;
+	
+	for(unsigned int i = 0;i < seq_halfseg.size();i++){
+	  MyHalfSegment myseg = seq_halfseg[i];
+	  double l = myseg.Length();
+	  Point lp = myseg.from;
+	  Point rp = myseg.to;
+	  
+	  out_f<<count<<" "<<lp.GetX()<<" "<<lp.GetY()
+	       <<" "<<rp.GetX()<<" "<<rp.GetY()<<" "<<l<<endl;
+	  count++;
+	}
+	
+}
+
+/*
 this function is called by operator segment2region.
 It is to create the region for the road and pavement for each input route
 w is defined as the deviation
@@ -3342,6 +3364,8 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
       return;
     }
 
+//    ofstream out_f("line.txt");
+
     for(int i = 1;i <= l->GetNoTuples();i++){
 
       Tuple* t = l->GetTuple(i,false);
@@ -3349,6 +3373,8 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
       vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
       ReorderLine(sline, seq_halfseg);
 
+//	  OutPutSegment(out_f, seq_halfseg);//////temporary function
+	  
       int delta1;//width of road on each side, depend on the road length
       int delta2;
 
@@ -3432,6 +3458,8 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
 //       delete res1;
 //       delete res2;
     }
+    
+//    out_f.close();
 }
 
 /*
@@ -5995,6 +6023,218 @@ void SpacePartition::FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
     }
 }
 
+
+/*
+given a set of polygons, we keep those do not intersect with others and 
+perform the union on those intersecting with eacher
+
+*/
+void SpacePartition::UnionPoly(Relation* rel1, int attr_pos1, Relation* rel2, 
+				 int attr_pos2, int attr_pos3)
+{
+//  cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
+  vector<bool> status_list(rel1->GetNoTuples(), false);
+  
+	 vector<Points> oid_list;
+	 for(int i = 1;i <= rel2->GetNoTuples();i++){
+	   Tuple* t1 = rel2->GetTuple(i, false);
+       int id1 = ((CcInt*)t1->GetAttribute(attr_pos2))->GetIntval();
+	   int id2 = ((CcInt*)t1->GetAttribute(attr_pos3))->GetIntval();
+	   
+	   Points ps(0);
+	   ps.StartBulkLoad();
+	   Coord x = id1;
+	   Coord y = id2;
+	   Point p(true, x, y);
+	   ps += p;
+	   
+	   int j = i + 1;
+	   while(j <= rel2->GetNoTuples()){
+		   Tuple* t2 = rel2->GetTuple(j, false);
+    	   int id_tmp = ((CcInt*)t2->GetAttribute(attr_pos2))->GetIntval();
+		   
+		   if(id1 == id_tmp){
+			 int id3 = 
+			     ((CcInt*)t2->GetAttribute(attr_pos3))->GetIntval();
+			 
+			 x = id1;
+			 y = id3;
+			 Point q(true, id1, id3);
+			 ps += q;
+		
+			t2->DeleteIfAllowed();
+			j++;
+		   }else{
+			 t2->DeleteIfAllowed();
+			 break;
+		   }		   
+	   }
+	   i = j - 1;
+	   ps.EndBulkLoad();
+	   oid_list.push_back(ps);	 
+	 }
+	 
+	 cout<<oid_list.size()<<endl;
+/*	 int counter1 = 0;
+	 int counter2 = 0;
+	 for(unsigned int i = 0;i < oid_list.size();i++){
+		 Points ps = oid_list[i];
+		 if(ps.Size() == 1){
+		   counter1++;
+		 }else{
+		   counter2++;
+		 }
+	 }
+	 cout<<counter1<<" "<<counter2<<endl;*/
+	 
+	 /////////////////////collect regions///////////////////////
+	 //////////////////////////////////////////////////////////
+	 
+	 for(unsigned int i = 0;i < oid_list.size();i++){
+	     if(status_list[i]) continue;
+		 Points ps = oid_list[i];
+		 assert(ps.Size() >= 1);
+		 status_list[i] = true;
+			 
+		 if(ps.Size() == 1){
+			 Tuple* tuple = rel1->GetTuple(i + 1, false);	
+			 Region* r = (Region*)tuple->GetAttribute(attr_pos1);
+
+			 junid1.push_back(i + 1);
+             outer_regions1.push_back(*r);
+			 tuple->DeleteIfAllowed();
+			 
+		 }else{//collect all intersecting regions in a group
+		      queue<int> myqueue;
+  			  Tuple* tuple = rel1->GetTuple(i + 1, false);	
+			  Region* r = (Region*)tuple->GetAttribute(attr_pos1);
+			  Region reg(*r);
+			  tuple->DeleteIfAllowed();
+			  int cur_id = -1;
+			  vector<int> union_set;
+//			  union_set.push_back(i + 1);
+			  
+			  for(int j = 0;j < ps.Size();j++){
+				  Point q;
+				  ps.Get(j, q);
+				  cur_id = (int)q.GetX();
+				  if((int)q.GetY() != cur_id && 
+                    status_list[(int)q.GetY() - 1] == false){
+					myqueue.push((int)q.GetY());  
+					union_set.push_back((int)q.GetY());
+					status_list[(int)q.GetY() - 1] = true;
+				  }
+			  }
+//			  assert(i == cur_id - 1);
+			  assert((int)i == cur_id - 1);
+			  while(myqueue.empty() == false){
+				int id = myqueue.front();
+				myqueue.pop();			    
+//				cout<<"top id: "<<id<<endl;
+	///////find all regions that intersect with the current/////
+				
+				Points ps_nei = oid_list[id - 1];
+//				cout<<"before: "<<myqueue.size()<<endl;
+				for(int j = 0;j < ps_nei.Size();j++){
+					Point q;
+					ps_nei.Get(j, q);
+					assert(id == (int)q.GetX());
+					int nei_id = (int)q.GetY();
+					if(status_list[nei_id - 1] == false){
+					   myqueue.push(nei_id);
+					   union_set.push_back(nei_id);
+					   status_list[nei_id - 1] = true;
+					}
+				}
+//	cout<<"id: "<<id<<" after: "<<myqueue.size()<<endl;
+			  }
+
+//	 cout<<"id: "<<cur_id<<" size "<<union_set.size()<<endl;
+			 
+			 int reg_counter = 0;
+			 for(unsigned int k = 0;k < union_set.size();k++){
+			    ///////////perform the union with region///////////
+				Tuple* tuple_reg = 
+					rel1->GetTuple(union_set[k], false);
+				Region* r_tmp =
+				   (Region*)tuple_reg->GetAttribute(attr_pos1);
+				Region temp(0);
+				reg.Union(*r_tmp, 
+				temp);				
+				reg = temp;
+				reg_counter++;
+				tuple_reg->DeleteIfAllowed();
+		///////////too much regions cost a lot of time////////////
+				if(reg_counter > 500) break;
+			 }
+			 
+			 junid1.push_back(cur_id);
+//			 outer_regions1.push_back(reg);
+			 
+	//////we need to remove new created holes inside//////////
+// 			  cout<<"id: "<<cur_id<<endl;
+// 
+			  Line* line = new Line(0);
+              NewBoundary(&reg, line);
+			  if(line->Size() > 0){
+				SimpleLine* sline = new SimpleLine(0);
+				sline->fromLine(*line);
+				SpacePartition* sp = new SpacePartition();
+				vector<MyHalfSegment> mhs;
+				sp->ReorderLine(sline, mhs);
+				vector<Point> ps;
+				for(unsigned int j = 0;j < mhs.size();j++){
+					Point p = mhs[j].from;
+					ps.push_back(p);
+				}
+				  vector<Region> regs;
+				  sp->ComputeRegion(ps, regs);
+				  if(regs.size() > 0){
+					outer_regions1.push_back(regs[0]);
+				  }
+				  delete sp;
+				  delete sline;
+			  }
+			  delete line;
+		 }//end else
+	 }///////end for
+}
+
+
+/*
+take the outer bounday of the region, ignore the hole inside
+
+*/		
+void SpacePartition::NewBoundary(Region* reg, Line* result)
+{
+
+  result->Clear();
+  if(!reg->IsDefined()){
+      result->SetDefined(false);
+      return;
+  }
+  assert( reg->IsOrdered() );
+  result->SetDefined(true);
+  if( reg->IsEmpty() ){
+	  return;
+  }
+  HalfSegment hs;
+  result->StartBulkLoad();
+  int size = reg->Size();
+  for( int i = 0; i < size; i++ ){
+    reg->Get( i, hs );
+	if(hs.attr.cycleno > 0) continue;
+    if(hs.IsLeftDomPoint()){
+       hs.attr.edgeno = i;
+       *result += hs;
+       hs.SetLeftDomPoint(false);
+       *result += hs;
+    }
+  }
+  result->EndBulkLoad();
+
+}
+
 /*
 a class to collect all possible sections of a route where the interesting
 points can locate 
@@ -6458,7 +6698,45 @@ void DataClean::ModifyLine(SimpleLine* in, SimpleLine* out)
 }
 
 /*
-modeify the data, delete some digits after dot
+modify the coordinates of a region value, not so many numbers after dot
+
+*/
+void DataClean::ModifyRegion(Region* in, Region* out)
+{
+//  *out = *in;
+	out->Clear();
+	Line* line = new Line(0);
+    in->Boundary(line);
+    SimpleLine* sline = new SimpleLine(0);
+    sline->fromLine(*line);
+    SpacePartition* sp = new SpacePartition();
+ 
+    vector<MyHalfSegment> mhs;
+    sp->ReorderLine(sline, mhs);
+	vector<Point> ps;
+
+	for(unsigned int j = 0;j < mhs.size();j++){
+          Point p = mhs[j].from;
+          Modify_Point(p);
+          ps.push_back(p);
+    }
+    	
+    vector<Point> newps;
+	        
+    vector<Region> regs;
+    sp->ComputeRegion(ps, regs);
+	if(regs.size() > 0) *out = Region(regs[0].BoundingBox());
+	else{
+		out->StartBulkLoad();
+		out->EndBulkLoad();
+	}
+	delete sp;
+	delete sline;
+	delete line;
+}
+
+/*
+modify the data, delete some digits after dot
 
 */
 void DataClean::RefineData(SimpleLine* in, SimpleLine* out)
