@@ -64,8 +64,6 @@ Mai 2012, JKN, First version of this file
 Local info for operator
 
 */
-template<int dim>
-class ItSpatialJoinInfo;
 
 /*
 1.1 The class ~ItHashJoinCostEstimation~ provides cost estimation
