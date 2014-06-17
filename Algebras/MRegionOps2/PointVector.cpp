@@ -85,6 +85,14 @@ ostream& operator <<(ostream& o, const Point2D& p) {
     return o;
 }
 
+// Sonderfälle betrachten
+// linke Seite AD
+// rechte Seite BC
+// liegen Punkte Seitenkanten AD/BC auf der Kante AB/DC?
+
+
+
+
 /*
 4 Class Point3D
 
