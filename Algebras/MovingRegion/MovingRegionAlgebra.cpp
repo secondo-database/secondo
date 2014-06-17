@@ -9848,6 +9848,7 @@ public:
     intimeregion.AssociateKind(Kind::DATA());
 
     uregion.AssociateKind(Kind::TEMPORAL());
+    uregion.AssociateKind(Kind::SPATIAL3D());
     uregion.AssociateKind(Kind::DATA());
 
     movingregion.AssociateKind(Kind::TEMPORAL());
