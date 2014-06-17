@@ -415,6 +415,19 @@ Rectangle to arbirary dimensions.
           Rectangle<2u>(this->IsDefined(),MinD(dX),MaxD(dX),MinD(dY),MaxD(dY));
     }
 
+/*
+Projection to the first newdim components of this rectangle. Note: newdim must be
+smaller or equal to the currect dimension for this rectangle.
+
+*/    
+   template<int newdim>
+   Rectangle<newdim> project(){
+      assert(newdim<=dim);
+      Rectangle<newdim> res(this->IsDefined(), min, max);
+      return res;
+   }
+   
+
   private:
 
 /*
