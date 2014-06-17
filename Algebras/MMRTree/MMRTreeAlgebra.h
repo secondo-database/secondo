@@ -99,7 +99,7 @@ used as index.
 
 
 */
-template <class Tree, class Type1, class Type2, int dim1, int dim2>
+template <class Tree, class Type1, class Type2, int dim1, int dim2, int minDim>
 class RealJoinTreeLocalInfo{
 
   public:
@@ -205,7 +205,11 @@ Returns the next result tuple or 0 if no more tuples are available.
             }
             Rectangle<dim2> 
                   r(((Type2*) t->GetAttribute(i2))->BoundingBox());
-            ind.findSimple(r, lastRes); 
+            //if(dim2==minDim){
+            //   ind.findSimple(r, lastRes); 
+            //} else {
+               ind.findSimple(r. template project<minDim>(), lastRes);
+            //}
             if(lastRes.empty()){
                 t->DeleteIfAllowed();
             } else {
@@ -213,7 +217,7 @@ Returns the next result tuple or 0 if no more tuples are available.
             }
          }
 
-         pair<Rectangle<dim1>,TupleId> p1 = lastRes.back();
+         pair<Rectangle<minDim>,TupleId> p1 = lastRes.back();
          lastRes.pop_back();
          Tuple*result = new Tuple(tt);
          Tuple* t1 = tb->GetTuple(p1.second);
@@ -227,7 +231,7 @@ Returns the next result tuple or 0 if no more tuples are available.
       Stream<Tuple> s2;
       int i2;
       TupleType* tt;
-      vector<pair<Rectangle<dim1>,TupleId> > lastRes;
+      vector<pair<Rectangle<minDim>,TupleId> > lastRes;
       Tuple* currentTuple;
       TupleStore* tb;
 
@@ -245,7 +249,11 @@ Returns the next result tuple or 0 if no more tuples are available.
             TupleId id = tb->AppendTuple(t);
             Rectangle<dim1> r = ((Type1*)
                                  t->GetAttribute(_i1))->BoundingBox();
-            ind.insert(r, id);
+            //if(dim1==minDim){
+            //   ind.insert(r, id);
+            //} else {
+               ind.insert(r. template project<minDim>(),id);
+            //}
             t->DeleteIfAllowed(); 
             t = s1.request();
          }
@@ -256,7 +264,7 @@ Returns the next result tuple or 0 if no more tuples are available.
 };
 
 
-template <class Tree, class Type1, class Type2, int dim1, int dim2 >
+template <class Tree, class Type1, class Type2, int dim1, int dim2, int minDim >
 class RealJoinTreeVecLocalInfo{
 
   public:
@@ -368,7 +376,11 @@ Returns the next result tuple or 0 if no more tuples are available.
             }
             Rectangle<dim2> r = ((Type2*) 
                                  t->GetAttribute(i2))->BoundingBox();
-            ind.findSimple(r, lastRes); 
+            //if(dim2==minDim){
+            //    ind.findSimple(r, lastRes); 
+            //} else {
+                ind.findSimple(r. template project<minDim>(), lastRes);
+            //}
             if(lastRes.empty()){
                 t->DeleteIfAllowed();
             } else {
@@ -376,7 +388,7 @@ Returns the next result tuple or 0 if no more tuples are available.
             }
          }
 
-         pair<Rectangle<dim1>,TupleId> p1 = lastRes.back();
+         pair<Rectangle<minDim>,TupleId> p1 = lastRes.back();
          lastRes.pop_back();
          Tuple*result = new Tuple(tt);
          Tuple* t1 = vec[p1.second];
@@ -389,7 +401,7 @@ Returns the next result tuple or 0 if no more tuples are available.
       Stream<Tuple> s2;
       int i2;
       TupleType* tt;
-      vector<pair<Rectangle<dim1>,TupleId> > lastRes;
+      vector<pair<Rectangle<minDim>,TupleId> > lastRes;
       Tuple* currentTuple;
       vector<Tuple*> vec;
 
@@ -403,7 +415,11 @@ Returns the next result tuple or 0 if no more tuples are available.
             vec.push_back(t);
             Rectangle<dim1> r = ((Type1*)
                                  t->GetAttribute(_i1))->BoundingBox();
-            ind.insert(r, id);
+            //if(dim1==minDim){
+            //    ind.insert(r, id);
+            //} else {
+                ind.insert(r. template project<minDim>(), id);
+            //}
             t = s1.request();
          }
          s1.close();

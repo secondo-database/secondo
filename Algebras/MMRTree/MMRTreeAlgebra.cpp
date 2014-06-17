@@ -45,6 +45,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Point.h"
 #include "MMMTree.h"
+#include "TemporalAlgebra.h"
 
 /*
 1.1 Auxiliary Functions
@@ -75,21 +76,52 @@ Selection function
 
 */
 int realJoinSelect(ListExpr args){
-  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-  string name = nl->SymbolValue(nl->Third(args));
 
+  ListExpr attrList1 = nl->Second(nl->Second(nl->First(args)));
+  string name1 = nl->SymbolValue(nl->Third(args));
   ListExpr type;
 
-  int index = listutils::findAttribute(attrList,name,type);
+  int index = listutils::findAttribute(attrList1,name1,type);
+
   assert(index>0);
+  int num1;
+
   if(listutils::isKind(type,Kind::SPATIAL2D())){
-     return 0;
-  }
-  if(listutils::isKind(type, Kind::SPATIAL3D())){
-     return 1;
-   }
+     num1 = 0;
+  } else  if(listutils::isKind(type, Kind::SPATIAL3D())){
+     num1 = 1;
+  } else if(UPoint::checkType(type)){
+     num1 = 2;
+  } else if(MPoint::checkType(type)){
+     num1 = 3;
+  } else {
    assert(false);
-   return -1;
+  }
+
+  ListExpr attrList2 = nl->Second(nl->Second(nl->Second(args)));
+  string name2 = nl->SymbolValue(nl->Fourth(args));
+  index = listutils::findAttribute(attrList2,name2,type);
+  assert(index>0);
+  int num2;
+
+  if(listutils::isKind(type,Kind::SPATIAL2D())){
+     num2 = 0;
+  } else  if(listutils::isKind(type, Kind::SPATIAL3D())){
+     num2 = 1;
+  } else if(UPoint::checkType(type)){
+     num2 = 2;
+  } else if(MPoint::checkType(type)){
+     num2 = 3;
+  } else {
+   assert(false);
+  }
+
+  cout << "num1 = " << num1 << endl;
+  cout << "num2 = " << num2 << endl;
+
+
+  return 4 * num1 + num2;
+
 }
 
 /*
@@ -168,34 +200,29 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
 
    // check for spatial attribute
    if(!listutils::isKind(type1,Kind::SPATIAL2D()) &&
-      !listutils::isKind(type1,Kind::SPATIAL3D())  ){
+      !listutils::isKind(type1,Kind::SPATIAL3D()) &&
+      !UPoint::checkType(type1) &&
+      !MPoint::checkType(type1) ){
      string t = " (type is " + nl->ToString(type1)+ ")";  
      return listutils::typeError("Attribute " + name1 + 
                                  " is not in Kind Spatial2D or Spatial3D"
                                  + t);
    }
    if(!listutils::isKind(type2,Kind::SPATIAL2D()) &&
-      !listutils::isKind(type2,Kind::SPATIAL3D())  ){
+      !listutils::isKind(type2,Kind::SPATIAL3D()) &&
+      !UPoint::checkType(type2) &&
+      !MPoint::checkType(type2) ){
      string t = " (type is " + nl->ToString(type2)+ ")";  
      return listutils::typeError("Attribute " + name2 + 
                                  " is not in Kind Spatial2D or Spatial3D"
                                  + t);
    }
  
-  // check for same dimension
-  if(listutils::isKind(type1,Kind::SPATIAL2D()) &&
-     !listutils::isKind(type2,Kind::SPATIAL2D())){
-    return listutils::typeError("Selected attributes have "
-                                "different dimensions"); 
-  }
-  if(listutils::isKind(type1,Kind::SPATIAL3D()) &&
-     !listutils::isKind(type2,Kind::SPATIAL3D())){
-    return listutils::typeError("Selected attributes have"
-                                " different dimensions"); 
-  }
-
-  bool rect1 = Rectangle<2>::checkType(type1) || Rectangle<3>::checkType(type1);
-  bool rect2 = Rectangle<2>::checkType(type2) || Rectangle<3>::checkType(type2);
+  
+   bool rect1 =    Rectangle<2>::checkType(type1) 
+                || Rectangle<3>::checkType(type1);
+   bool rect2 =    Rectangle<2>::checkType(type2) 
+                || Rectangle<3>::checkType(type2);
 
  
    ListExpr attrList = listutils::concat(attrList1, attrList2);
@@ -279,9 +306,46 @@ const string realJoinMMRTreeSpec  =
 */
 ValueMapping realJoinMMRTreeVM[] = {
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
-                StandardSpatialAttribute<2>, StandardSpatialAttribute<2>,2,2> >,
+                StandardSpatialAttribute<2>, 
+                StandardSpatialAttribute<2>,2,2,2 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<2>, 
+                StandardSpatialAttribute<3>,2,3,2 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<2>, UPoint,2,3,2 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<2>, MPoint,2,3,2 > >,
+
+
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<3>, 
+                StandardSpatialAttribute<2>,3,2,2 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                StandardSpatialAttribute<3>,StandardSpatialAttribute<3>,3,3> >
+                StandardSpatialAttribute<3>, 
+                StandardSpatialAttribute<3>,3,3,3 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                StandardSpatialAttribute<3>, UPoint,3,3,3 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                StandardSpatialAttribute<3>, MPoint,3,3,3 > >,
+
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                UPoint, StandardSpatialAttribute<2>,3,2,2 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                UPoint, StandardSpatialAttribute<3>,3,3,3 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                UPoint, UPoint,3,3,3 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                UPoint, MPoint,3,3,3 > >,
+
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                MPoint, StandardSpatialAttribute<2>,3,2,2 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                MPoint, StandardSpatialAttribute<3>,3,3,3 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                MPoint, UPoint,3,3,3 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                MPoint, MPoint,3,3,3 > >,
+
   };
 
 
@@ -289,7 +353,7 @@ ValueMapping realJoinMMRTreeVM[] = {
 Operator realJoinMMRTree(
   "realJoinMMRTree",
   realJoinMMRTreeSpec,
-  2,
+  16,
   realJoinMMRTreeVM,
   realJoinSelect,
   realJoinMMRTreeTM 
@@ -299,16 +363,43 @@ Operator realJoinMMRTree(
 
 ValueMapping realJoinMMRTreeVecVM[] = {
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
-                StandardSpatialAttribute<2>, StandardSpatialAttribute<2>,2,2> >,
+                StandardSpatialAttribute<2>, 
+                StandardSpatialAttribute<2>,2,2,2> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<2>, 
+                StandardSpatialAttribute<3>,2,3,2> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<2>, UPoint,2,3,2> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<2>, MPoint,2,3,2> >,
+
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                StandardSpatialAttribute<3>, 
+                StandardSpatialAttribute<2>,3,2,2> >,
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                StandardSpatialAttribute<3>, StandardSpatialAttribute<3>,3,3> >
+                StandardSpatialAttribute<3>, 
+                StandardSpatialAttribute<3>,3,3,3> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                StandardSpatialAttribute<3>, UPoint,3,3,3> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                StandardSpatialAttribute<3>, MPoint,3,3,3> >,
+    
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                UPoint, StandardSpatialAttribute<2>,3,2,2> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                UPoint, StandardSpatialAttribute<3>,3,3,3> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                UPoint, UPoint,3,3,3> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                UPoint, MPoint,3,3,3> >,
+
   };
 
 
 Operator realJoinMMRTreeVec(
   "realJoinMMRTreeVec",
   realJoinMMRTreeSpec,
-  2,
+  16,
   realJoinMMRTreeVecVM,
   realJoinSelect,
   realJoinMMRTreeTM 
@@ -597,7 +688,7 @@ operator, we can reuse the type mapping of that operator.
 
 */
 
-template<class Type1, class Type2, int dim1, int dim2>
+template<class Type1, class Type2, int dim1, int dim2, int minDim>
 class joinMMRTreeItLocalInfo{
 public:
    joinMMRTreeItLocalInfo(Word& stream1, Word& stream2, 
@@ -614,7 +705,11 @@ public:
         TupleId id = buffer.AppendTuple(tuple);
         Rectangle<dim1> box = ((Type1*) 
                               tuple->GetAttribute(attrPos1))->BoundingBox();
-        index.insert(box,id);
+        //if(dim1==minDim){
+        //   index.insert(box,id);
+        //} else {
+           index.insert(box. template project<minDim>(), id);
+        //}
         tuple->DeleteIfAllowed();
         tuple = s1.request();
      } 
@@ -638,7 +733,11 @@ public:
         if(it==0){
           Rectangle<dim2> r = ((Type2*)
                         currentTuple->GetAttribute(attrPos2))->BoundingBox();
-          it=index.find( r );
+          //if(dim2==minDim){
+          //    it=index.find( r );
+          //} else {
+              it = index.find(r. template project<minDim>());
+          //}
         }
         TupleId const* id = it->next();
         if(id){ // new result found
@@ -661,15 +760,15 @@ public:
 private:
    Stream<Tuple> s2;
    int attrPos2;
-   mmrtree::RtreeT<dim1, TupleId> index;
+   mmrtree::RtreeT<minDim, TupleId> index;
    TupleStore buffer;
-   typename mmrtree::RtreeT<dim1, TupleId>::iterator* it;
+   typename mmrtree::RtreeT<minDim, TupleId>::iterator* it;
    Tuple* currentTuple;
    TupleType* tt;
 }; // class joinMMRTreeItLocalInfo
 
 
-template<class Type1, class Type2, int dim1, int dim2>
+template<class Type1, class Type2, int dim1, int dim2, int minDim>
 class joinMMRTreeItVecLocalInfo{
 public:
    joinMMRTreeItVecLocalInfo(Word& stream1, Word& stream2, 
@@ -687,7 +786,12 @@ public:
         buffer.push_back(tuple);
         Rectangle<dim1> box = ((Type1*)
                          tuple->GetAttribute(attrPos1))->BoundingBox(); 
-        index.insert(box,id);
+        //if(dim1==minDim){
+        //   index.insert(box,id);
+        //} else {
+           //assert(box.Proper());
+           index.insert(box.template project<minDim>(), id);
+        //}
         tuple = s1.request();
      } 
      s1.close();
@@ -714,7 +818,11 @@ public:
         if(it==0){
            Rectangle<dim2> r = ((Type2*)
                      currentTuple->GetAttribute(attrPos2))->BoundingBox();
-           it = index.find(r);
+           //if(dim2==minDim){
+           //    it = index.find(r);
+           //} else {
+               it = index.find(r. template project<minDim>());
+           //}
         }
         TupleId const* id = it->next();
         if(id){ // new result found
@@ -736,16 +844,16 @@ public:
 private:
    Stream<Tuple> s2;
    int attrPos2;
-   mmrtree::RtreeT<dim1, TupleId> index;
+   mmrtree::RtreeT<minDim, TupleId> index;
    vector<Tuple*> buffer;
-   typename mmrtree::RtreeT<dim1, TupleId>::iterator* it;
+   typename mmrtree::RtreeT<minDim, TupleId>::iterator* it;
    Tuple* currentTuple;
    TupleType* tt;
 }; // class joinMMRTreeItVecLocalInfo
 
 
 
-template <class Type1, class Type2, int dim1, int dim2, class LocalInfo>
+template <class LocalInfo>
 int joinMMRTreeItVM( Word* args, Word& result, int message,
                       Word& local, Supplier s ) {
 
@@ -802,14 +910,43 @@ int joinMMRTreeItVM( Word* args, Word& result, int message,
 
 
 ValueMapping joinMMRTreeItvm[] = {
-    joinMMRTreeItVM<StandardSpatialAttribute<2>, 
-                    StandardSpatialAttribute<2>,2,2, 
-                    joinMMRTreeItLocalInfo<StandardSpatialAttribute<2>, 
-                                           StandardSpatialAttribute<2>,2,2> >,
-    joinMMRTreeItVM<StandardSpatialAttribute<3>, 
-                    StandardSpatialAttribute<3>,3,3, 
-                    joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
-                                           StandardSpatialAttribute<3>,3,3> >
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<2>, 
+                                           StandardSpatialAttribute<2>,2,2,2> >,
+
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<2>, 
+                                           StandardSpatialAttribute<3>,2,3,2> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<2>, 
+                                           UPoint,2,3,2> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<2>, 
+                                           MPoint,2,3,2> >,
+    
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
+                                           StandardSpatialAttribute<2>,3,2,2> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
+                                           StandardSpatialAttribute<3>,3,3,3> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
+                                           UPoint,3,3,3> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
+                                           MPoint,3,3,3> >,
+    
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<UPoint, 
+                                           StandardSpatialAttribute<2>,3,2,2> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<UPoint, 
+                                           StandardSpatialAttribute<3>,3,3,3> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<UPoint, 
+                                           UPoint,3,3,3> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<UPoint, 
+                                           MPoint,3,3,3> >,
+
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MPoint, 
+                                           StandardSpatialAttribute<2>,3,2,2> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MPoint, 
+                                           StandardSpatialAttribute<3>,3,3,3> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MPoint, 
+                                           UPoint,3,3,3> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MPoint, 
+                                           MPoint,3,3,3> >
+ 
 };
 
 
@@ -818,7 +955,7 @@ ValueMapping joinMMRTreeItvm[] = {
 Operator joinMMRTreeIt (
   "joinMMRTreeIt",
   realJoinMMRTreeSpec,
-  2, 
+  16, 
   joinMMRTreeItvm,
   realJoinSelect ,
   realJoinMMRTreeTM
@@ -826,16 +963,62 @@ Operator joinMMRTreeIt (
 
 
 ValueMapping joinMMRTreeItVecvm[] = {
-    joinMMRTreeItVM<StandardSpatialAttribute<2>, 
-                    StandardSpatialAttribute<2>,2,2, 
-                    joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<2>, 
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<2>, 
                                               StandardSpatialAttribute<2>,
-                                              2,2> >,
-    joinMMRTreeItVM<StandardSpatialAttribute<3>, 
-                    StandardSpatialAttribute<3>,3,3, 
-                    joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<3>, 
+                                              2,2,2> >,
+
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<2>, 
                                               StandardSpatialAttribute<3>,
-                                              3,3> >
+                                              2,3,2> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<2>, 
+                                              UPoint,
+                                              2,3,2> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<2>, 
+                                              MPoint,
+                                              2,3,2> >,
+
+
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<3>, 
+                                              StandardSpatialAttribute<2>,
+                                              3,2,2> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<3>, 
+                                              StandardSpatialAttribute<3>,
+                                              3,3,3> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<3>, 
+                                              UPoint,
+                                              3,3,3> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<3>, 
+                                              MPoint,
+                                              3,3,3> >,
+
+
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<UPoint, 
+                                              StandardSpatialAttribute<2>,
+                                              3,2,2> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<UPoint, 
+                                              StandardSpatialAttribute<3>,
+                                              3,3,3> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<UPoint, 
+                                              UPoint,
+                                              3,3,3> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<UPoint, 
+                                              MPoint,
+                                              3,3,3> >,
+    
+
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MPoint, 
+                                              StandardSpatialAttribute<2>,
+                                              3,2,2> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MPoint, 
+                                              StandardSpatialAttribute<3>,
+                                              3,3,3> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MPoint, 
+                                              UPoint,
+                                              3,3,3> >,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MPoint, 
+                                              MPoint,
+                                              3,3,3> >
+
 };
 
 
@@ -844,7 +1027,7 @@ ValueMapping joinMMRTreeItVecvm[] = {
 Operator joinMMRTreeItVec (
   "joinMMRTreeItVec",
   realJoinMMRTreeSpec,
-  2, 
+  16, 
   joinMMRTreeItVecvm,
   realJoinSelect ,
   realJoinMMRTreeTM
@@ -878,7 +1061,7 @@ algebra, so we can just use ~realJoinMMRTreeTM~ here.
 1.5.2 LocalInfo
 
 */
-template<class Type1, class Type2, int dim1, int dim2>
+template<class Type1, class Type2, int dim1, int dim2, int minDim>
 class ItSpatialJoinInfo{
   public:
     
@@ -905,7 +1088,7 @@ class ItSpatialJoinInfo{
 
       // process the first Tuple
       if(t1){
-         index = new mmrtree::RtreeT<dim1, TupleId>(min,max);
+         index = new mmrtree::RtreeT<minDim, TupleId>(min,max);
          int sizePerTuple =  sizeof(void*) + t1->GetMemSize();
          costEstimation -> setSizeOfTupleSt1(sizePerTuple);
          maxTuples = (_maxMem*1024) / sizePerTuple;
@@ -922,7 +1105,11 @@ class ItSpatialJoinInfo{
          tuples1.push_back(t1);
          Rectangle<dim1> box = ((Type1*)
                          t1->GetAttribute(a1))->BoundingBox(); 
-        index->insert(box,id);
+         //if(dim1==minDim){
+         //  index->insert(box,id);
+         //} else {
+           index->insert(box. template project<minDim>(), id);
+         //}
       } else {
         index = 0;
         return; 
@@ -934,7 +1121,11 @@ class ItSpatialJoinInfo{
         TupleId id = (TupleId) tuples1.size();
         tuples1.push_back(t1);
         Rectangle<dim1> box = ((Type1*) t1->GetAttribute(a1))->BoundingBox(); 
-        index->insert(box,id);
+        //if(dim1==minDim){
+        //   index->insert(box,id);
+        //} else {
+           index->insert(box.template project<minDim>(), id);
+        //}
         costEstimation -> processedTupleInStream1();
         t1 = s1.request();
         noTuples++;
@@ -946,7 +1137,11 @@ class ItSpatialJoinInfo{
         TupleId id = (TupleId) tuples1.size();
         tuples1.push_back(t1);
         Rectangle<dim1> box = ((Type1*) t1->GetAttribute(a1))->BoundingBox(); 
-        index->insert(box,id);
+        //if(dim1==minDim){
+        //   index->insert(box,id);
+        //} else {
+           index->insert(box.template project<minDim>(),id);
+        //}
         
       } else {
         costEstimation -> setStream1Exhausted(true);
@@ -1030,10 +1225,10 @@ class ItSpatialJoinInfo{
       vector<Tuple*> tuples1;
       Relation* tuples2;
       bool finished;  // all tuples from stream1 read 
-      typename mmrtree::RtreeT<dim1, TupleId>::iterator* treeIt; 
+      typename mmrtree::RtreeT<minDim, TupleId>::iterator* treeIt; 
       Tuple* currentTuple2;  // tuple from stream 2
       GenericRelationIterator* bufferIt;
-      mmrtree::RtreeT<dim1, TupleId>* index;
+      mmrtree::RtreeT<minDim, TupleId>* index;
       int scans;
       ItSpatialJoinCostEstimation* costEstimation;
 
@@ -1047,7 +1242,11 @@ class ItSpatialJoinInfo{
          }
          Rectangle<dim2> r = ((Type2*)
                     currentTuple2->GetAttribute(a2))->BoundingBox();
-         treeIt = index->find(r);
+         //if(dim2==minDim){
+         //   treeIt = index->find(r);
+         //} else {
+            treeIt = index->find(r.template project<minDim>());
+         //}
       }
 
       void getCurrentTuple(){
@@ -1106,7 +1305,7 @@ class ItSpatialJoinInfo{
             tuples1[i]=0;
          }
          tuples1.clear();
-         index = new mmrtree::RtreeT<dim1, TupleId>(min,max);
+         index = new mmrtree::RtreeT<minDim, TupleId>(min,max);
          Tuple* t1 = s1.request();
          costEstimation -> processedTupleInStream1();
          int noTuples = 0;
@@ -1115,7 +1314,11 @@ class ItSpatialJoinInfo{
              tuples1.push_back(t1);
              Rectangle<dim1> box = ((Type1*)
                            t1->GetAttribute(a1))->BoundingBox(); 
-             index->insert(box,id);
+             //if(dim1==minDim){
+             //   index->insert(box,id);
+             //} else {
+                index->insert(box.template project<minDim>(),id);
+             //}
              t1 = s1.request();
              costEstimation -> processedTupleInStream1();
              noTuples++;
@@ -1127,7 +1330,11 @@ class ItSpatialJoinInfo{
            tuples1.push_back(t1);
            Rectangle<dim1> box = ((Type1*)
                           t1->GetAttribute(a1))->BoundingBox(); 
-           index->insert(box,id);
+           //if(dim1==minDim){
+           //   index->insert(box,id);
+           //} else {
+              index-> insert(box. template project<minDim>(), id);
+           //}
         } else {
           costEstimation -> setStream1Exhausted(true);
           finished = true; // stream 1 exhausted
@@ -1160,13 +1367,13 @@ class ItSpatialJoinInfo{
 1.5.3 Value Mapping
 
 */
-template <class Type1, class Type2, int dim1, int dim2>
+template <class Type1, class Type2, int dim1, int dim2, int minDim>
 int itSpatialJoinVM( Word* args, Word& result, int message,
                       Word& local, Supplier s ) {
 
 
-   ItSpatialJoinInfo<Type1, Type2, dim1, dim2>* li =
-               (ItSpatialJoinInfo<Type1, Type2, dim1, dim2>*) local.addr;
+   ItSpatialJoinInfo<Type1, Type2, dim1, dim2, minDim>* li =
+            (ItSpatialJoinInfo<Type1, Type2, dim1, dim2, minDim>*) local.addr;
    switch (message){
      case OPEN : {
                    if(li){
@@ -1196,7 +1403,7 @@ int itSpatialJoinVM( Word* args, Word& result, int message,
                   costEstimation -> init(NULL, NULL);
  
                   local.setAddr(new 
-                      ItSpatialJoinInfo<Type1,Type2,dim1,dim2>( 
+                      ItSpatialJoinInfo<Type1,Type2,dim1,dim2, minDim>( 
                                       args[0], args[1],
                                        min, max, maxMem, 
                                       ((CcInt*)args[7].addr)->GetIntval(),
@@ -1233,9 +1440,46 @@ int itSpatialJoinVM( Word* args, Word& result, int message,
 */
 ValueMapping ItSpatialJoinVM[] = {
          itSpatialJoinVM<StandardSpatialAttribute<2>, 
-                         StandardSpatialAttribute<2>,2,2>,
+                         StandardSpatialAttribute<2>,2, 2, 2>,
+
+         itSpatialJoinVM<StandardSpatialAttribute<2>, 
+                         StandardSpatialAttribute<3>, 2, 3, 2>,
+
+         itSpatialJoinVM<StandardSpatialAttribute<2>, 
+                         UPoint,2,3,2>,
+         itSpatialJoinVM<StandardSpatialAttribute<2>, 
+                         MPoint,2,3,2>,
+
+
          itSpatialJoinVM<StandardSpatialAttribute<3>, 
-                         StandardSpatialAttribute<3>,3,3> 
+                         StandardSpatialAttribute<2>,3,2,2>,
+         itSpatialJoinVM<StandardSpatialAttribute<3>, 
+                         StandardSpatialAttribute<3>,3,3,3>,
+         itSpatialJoinVM<StandardSpatialAttribute<3>, 
+                         UPoint,3,3,3>,
+         itSpatialJoinVM<StandardSpatialAttribute<3>, 
+                         MPoint,3,3,3>,
+
+         
+         itSpatialJoinVM<UPoint, 
+                         StandardSpatialAttribute<2>,3,2,2>,
+         itSpatialJoinVM<UPoint, 
+                         StandardSpatialAttribute<3>,3,3,3>,
+         itSpatialJoinVM<UPoint, 
+                         UPoint,3,3,3>,
+         itSpatialJoinVM<UPoint, 
+                         MPoint,3,3,3>,
+
+
+         itSpatialJoinVM<MPoint, 
+                         StandardSpatialAttribute<2>,3,2,2>,
+         itSpatialJoinVM<MPoint, 
+                         StandardSpatialAttribute<3>,3,3,3>,
+         itSpatialJoinVM<MPoint, 
+                         UPoint,3,3,3>,
+         itSpatialJoinVM<MPoint, 
+                         MPoint,3,3,3>,
+
       };
 
 /*
@@ -1254,7 +1498,14 @@ CostEstimation* ItSpatialJoinCostEstimationFunc() {
 }
 
 CreateCostEstimation ItSpatialJoinCostEstimationList[] 
-  = {ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc};
+  = {ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc,
+     ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc,
+     ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc,
+     ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc,
+     ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc,
+     ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc,
+     ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc,
+     ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc};
 
 
 /*
@@ -1264,7 +1515,7 @@ CreateCostEstimation ItSpatialJoinCostEstimationList[]
 Operator itSpatialJoin(
       "itSpatialJoin",
        realJoinMMRTreeSpec,
-       2, 
+       16, 
        ItSpatialJoinVM,
        realJoinSelect ,
        realJoinMMRTreeTM,
