@@ -7034,6 +7034,30 @@ void MRegion::InsideAddUBool(MBool& res,
     prev_c = rc;
 }
 
+
+Rectangle<3> MRegion::BoundingBox() const{
+    double min[] = {0.0,0.0,0.0};
+    double max[] = {1.0,1.0,1.0};
+    Rectangle<3> res(false, min,max );    
+
+    // undefined or empty mregion
+    if (!IsDefined() || GetNoComponents() < 1) { 
+        return res;
+    }
+
+    res.SetDefined(true);
+    URegionEmb ur;
+    Get(0, ur);
+    res = ur.BoundingBox();
+    for(int i=1; i<GetNoComponents(); i++) {
+       Get(i, ur);
+       res = res.Union( ur.BoundingBox() );
+    }
+    return res;
+}
+
+
+
 /*
 1.1.1 Constructors
 
@@ -8960,26 +8984,10 @@ static int BboxValueMapMRegion(Word* args,
                                Word& local,
                                Supplier s) {
     if (MRA_DEBUG) cerr << "BBox() called" << endl;
-
     result = qp->ResultStorage(s);
     Rectangle<3>* res = (Rectangle<3>*) result.addr;
-
     MRegion* mr = (MRegion*) args[0].addr;
-
-    if (!mr->IsDefined() || (mr->GetNoComponents() < 1) )
-        res->SetDefined(false);
-    else
-    {
-      res->SetDefined(true);
-      URegionEmb ur;
-      mr->Get(0, ur);
-      *res = ur.BoundingBox();
-      for(int i=1; i<mr->GetNoComponents(); i++)
-      {
-        mr->Get(i, ur);
-        *res = res->Union( ur.BoundingBox() );
-      }
-    }
+    *res = mr->BoundingBox();
     return (0);
 }
 

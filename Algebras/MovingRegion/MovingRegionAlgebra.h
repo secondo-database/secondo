@@ -1155,6 +1155,9 @@ used.
 */
     MRegion(const MPoint& mp, const Region& r, const int dummy);
 
+
+    Rectangle<3> BoundingBox() const;
+
     size_t Sizeof() const{
        return sizeof(MRegion);
     }
