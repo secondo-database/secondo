@@ -204,10 +204,10 @@ Note that the interval of the parameter ~uRegion~ might be changed!
 */
 
     SourceUnit2(const bool _isUnitA,
-               MRegion2* const _mRegion,
-	       precTimeInterval _interval,
-               const int _pos,
-               SourceUnitPair2* const _parent);
+                MRegion2* const _mRegion,
+                precTimeInterval _interval,
+                const int _pos,
+                SourceUnitPair2* const _parent);
 
 /*
 
@@ -268,15 +268,15 @@ Returns ~true~, if this ~SourceUnit~ represents an empty unit.
 */
 
     inline bool IsEmpty() const {
-	    return (pos == -1);
+      return (pos == -1);
     }
 
     inline mpq_class GetStartTime(){
-	    return interval.start;
+      return interval.start;
     }
 
     inline mpq_class GetEndTime(){
-	    return interval.end;
+      return interval.end;
     }
 
 /*
@@ -288,11 +288,11 @@ of the set operation.
 */
 
     inline bool IsUnitA() const {
-	    return isUnitA;
+     return isUnitA;
     }
 
     inline bool IsUnitB() const {
-	    return !isUnitA;
+     return !isUnitA;
     }
 
 
