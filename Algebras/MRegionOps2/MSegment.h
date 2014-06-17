@@ -27,9 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ae] [\"a]
 //[oe] [\"o]
 
-[1] File Refinement2.h
-
-This file contains classes and functions for use within the operators intersection and inside
 
 [TOC]
 

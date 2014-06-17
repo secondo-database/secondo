@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ae] [\"a]
 //[oe] [\"o]
 
-[1] File Refinement2.h
+[1] File Refinement3.h
 
 This file contains classes and functions for use within the operators intersection and inside
 
@@ -61,25 +61,25 @@ public:
   bool lc;
   bool rc;
   
-  inline precTimeInterval():
+inline precTimeInterval():
       start(0),
       end(0),
       lc(false),
       rc(false) {}
 
-  inline precTimeInterval(mpq_class s, mpq_class e, bool l, bool r) :
+inline precTimeInterval(mpq_class s, mpq_class e, bool l, bool r) :
       start(s),
       end(e),
       lc(l),
       rc(r) {}
 
-  inline precTimeInterval(Interval<Instant> t): 
+inline precTimeInterval(Interval<Instant> t): 
       start(instant2MPQ(t.start)),
       end(instant2MPQ(t.end)),
       lc(t.lc),
       rc(t.rc) {}
 
-  inline precTimeInterval(Interval<Instant> t, PreciseInterval p, 
+inline precTimeInterval(Interval<Instant> t, PreciseInterval p, 
                           const DbArray<int>* preciseInstants): 
       start(0),
       end(0),
@@ -97,8 +97,8 @@ public:
   
   inline bool operator==(precTimeInterval pti) const
   {
-    return (lc==pti.lc) && (rc==pti.rc) 
-            && (cmp(start, pti.start) == 0) && (cmp(end, pti.end) == 0);
+return (lc==pti.lc) && (rc==pti.rc) 
+  && (cmp(start, pti.start) == 0) && (cmp(end, pti.end) == 0);
   }
 };
 
@@ -126,7 +126,7 @@ public:
       y1(0),
       up(0) { }
 
-  inline precUPoint(precTimeInterval p, mpq_class px0, mpq_class py0, 
+ inline precUPoint(precTimeInterval p, mpq_class px0, mpq_class py0, 
                     mpq_class px1, mpq_class py1, UPoint pp):
       pti(p.start, p.end, p.lc, p.rc),
       x0(px0),
@@ -135,7 +135,7 @@ public:
       y1(py1),
       up(pp) { }
 
-  inline precUPoint(mpq_class s, mpq_class e, bool l, bool r, mpq_class px0, 
+ inline precUPoint(mpq_class s, mpq_class e, bool l, bool r, mpq_class px0, 
                     mpq_class py0, mpq_class px1, mpq_class py1, UPoint pp):
       pti(s, e, l, r),
       x0(px0),
@@ -224,20 +224,20 @@ Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in
 
 */
 
-    RefinementPartition3( MRegion2& m1,  MRegion2& m2);
+ RefinementPartition3( MRegion2& m1,  MRegion2& m2);
 
 /*
 Since the elements of ~iv~ point to dynamically allocated objects, we need
 a destructor.
 
 */
-    ~RefinementPartition3() {}
+ ~RefinementPartition3() {}
 
 /*
 Return the number of intervals in the refinement partition.
 
 */
-    unsigned int Size(void);
+ unsigned int Size(void);
 
 /*
 Return the interval and indices in original units of position $pos$ in
@@ -248,7 +248,7 @@ of unit intervals in the respective ~Mapping~ instance.
 Runtime is $O(1)$.
 
 */
-    void Get(const unsigned int pos, precTimeInterval& civ, int& ur, int& up);
+ void Get(const unsigned int pos, precTimeInterval& civ, int& ur, int& up);
 };
 
 #endif
