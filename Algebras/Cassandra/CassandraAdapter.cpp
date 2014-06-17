@@ -281,6 +281,10 @@ bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
     
     cassandraResult -> getStringValue(result, 0);
     
+    // Cleanup result object
+    delete cassandraResult;
+    cassandraResult = NULL;
+    
     return true;
 }
 
@@ -315,6 +319,56 @@ CassandraResult* CassandraAdapter::readTableRange(string relation,
     return readDataFromCassandra(query, 
           CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
   
+}
+
+CassandraResult* CassandraAdapter::readTableCreatedByQuery(string relation,
+        string consistenceLevel, int queryId) {
+  
+  map<string, string> nodeNames;
+  if(! getNodeData(nodeNames) ) {
+     cerr << "Unable to fetch node data for query: " << queryId << endl;
+     return NULL;
+  }
+  
+  vector<TokenRange> ranges;
+  if (! getProcessedTokenRangesForQuery(ranges, queryId) ) {
+    cerr << "Unable to fetch token ranges for query: " << queryId << endl;
+    return NULL;
+  }
+  
+  vector<string> queries;
+  
+  // Generate token range queries;
+  for(vector<TokenRange>::iterator iter = ranges.begin(); 
+      iter != ranges.end(); ++iter) {
+    
+      stringstream ss;
+      ss << "SELECT key, value from ";
+      ss << relation << " ";
+      ss << "where ";
+    
+      TokenRange interval = *iter;
+  
+      // Begin of interval must be included
+      if(interval.getStart() == LLONG_MIN) {
+        ss << "token(partition) >= " << interval.getStart() << " ";
+      } else {
+        ss << "token(partition) > " << interval.getStart() << " ";
+      }
+  
+      // Get the name of the node
+      string node = nodeNames[interval.getIp()];
+  
+      ss << "and token(partition) <= " << interval.getEnd() << " " ;
+      ss << "and node = '" << node << "' ";
+      ss << "ALLOW FILTERING;";
+      queries.push_back(ss.str());
+  }
+    
+  MultiCassandraResult* result = new MultiCassandraResult(queries, this, 
+            CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
+  
+  return result;
 }
 
 bool CassandraAdapter::getLocalTokenRanges(
@@ -454,16 +508,16 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
        ss << "where ";
       
        TokenRange interval = *iter;
-       ss << "token(partition) >= " << interval.getStart() << " ";
-    
-       // End of the ring must be included
-       if(interval.getEnd() == LLONG_MAX) {
-          ss << "and token(partition) <= " << interval.getEnd();   
+       // Include token begin
+       if(interval.getStart() == LLONG_MIN) {
+         ss << "token(partition) >= " << interval.getStart() << " ";
        } else {
-          ss << "and token(partition) < " << interval.getEnd();        
+         ss << "token(partition) > " << interval.getStart() << " ";
        }
-       
+
+       ss << "and token(partition) <= " << interval.getEnd();        
        ss << ";";
+        
        queries.push_back(ss.str());
     }
     
@@ -986,6 +1040,39 @@ bool CassandraAdapter::getHartbeatData(map<string, time_t> &result) {
          cqlResult.get_bigint(1, res);
          
          result.insert(std::pair<string,time_t>(ip,(time_t) res));
+       }
+     } catch(std::exception& e) {
+        cerr << "Got exception while executing cql: " << e.what() << endl;
+        return false;
+     }
+   
+     return true;
+}
+
+bool CassandraAdapter::getNodeData(map<string, string> &result) {
+    try {   
+
+       boost::shared_future< cql::cql_future_result_t > future = 
+          executeCQL(string("SELECT ip, node FROM system_state"), 
+                     cql::CQL_CONSISTENCY_ONE);
+  
+       future.wait();
+    
+       if(future.get().error.is_err()) {
+         cerr << "Unable to fetch hartbeat data" << endl;
+         return false;
+       }
+    
+       cql::cql_result_t& cqlResult = *(future.get().result);
+    
+       while(cqlResult.next()) {
+         string ip;
+         string node;
+         
+         cqlResult.get_string(0, ip);
+         cqlResult.get_string(1, node);
+         
+         result.insert(std::pair<string,string>(ip, node));
        }
      } catch(std::exception& e) {
         cerr << "Got exception while executing cql: " << e.what() << endl;

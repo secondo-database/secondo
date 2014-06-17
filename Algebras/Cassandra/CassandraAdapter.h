@@ -342,7 +342,20 @@ public:
     CassandraResult* readTableRange(string relation,
         string consistenceLevel, string begin, string end);
 
-    
+
+/*
+2.3.6 Fetch partial table from cassandra. The table is
+      produced by the query ~queryId~. Fetch only data
+      from fault free nodes.
+
+1. Parameter is the relation to read
+2. Parameter is the consistence level used for writing
+3. Parameter is the queryId
+
+*/
+    CassandraResult* readTableCreatedByQuery(string relation,
+        string consistenceLevel, int queryId);
+
     
 /*
 2.3.6 Create a new relation in cassandra and write some 
@@ -521,11 +534,25 @@ Replace all single quotes with double quotes
 /*
 2.3.22 Get hartbeat data
 
+Result is a map:
+
+IP to Lastheatbeat message
+
 */
   bool getHartbeatData(map<string, time_t> &result);
+
+/*
+2.3.23 Get node data
+
+Result is a map:
+
+IP to Noodename
+
+*/
+  bool getNodeData(map<string, string> &result);
   
 /*
-2.3.23 Copy tokenranges to systemtable
+2.3.24 Copy tokenranges to systemtable
 
 */
   bool copyTokenRangesToSystemtable(string localip);

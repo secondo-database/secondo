@@ -43,6 +43,12 @@ Signature: text x text x text x text x text x text -> stream(tuple(...))
 Example  : query ccollectrange('127.0.0.1', 'keyspace1', 'plz', 'ONE', '1234', '5678') count
 Result   : 41267
 
+Operator : ccollectquery
+Number   : 1
+Signature: text x text x text x text x int -> stream(tuple(...))
+Example  : query ccollectquery('127.0.0.1', 'keyspace1', 'plz', 'ONE', 2) count
+Result   : 41267
+
 Operator : clist
 Number   : 1
 Signature: text x text -> stream(text)
