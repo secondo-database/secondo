@@ -116,9 +116,6 @@ int realJoinSelect(ListExpr args){
    assert(false);
   }
 
-  cout << "num1 = " << num1 << endl;
-  cout << "num2 = " << num2 << endl;
-
 
   return 4 * num1 + num2;
 
