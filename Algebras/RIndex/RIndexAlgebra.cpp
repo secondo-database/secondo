@@ -1014,9 +1014,30 @@ const string realJoinRindexSpec  =
 
 
 ValueMapping realJoinRindexVM[] = {
-   joinRindexVM<RealJoinTreeLocalInfo<RIndex<2, TupleId>, 2 > >,
-   joinRindexVM<RealJoinTreeLocalInfo<RIndex<3, TupleId>, 3 > >,
+   joinRindexVM<RealJoinTreeLocalInfo<RIndex<2, TupleId>, 
+                StandardSpatialAttribute<2>,
+                StandardSpatialAttribute<2>,2,2,2 > >,
+   joinRindexVM<RealJoinTreeLocalInfo<RIndex<3, TupleId>, 
+                StandardSpatialAttribute<3>,
+                StandardSpatialAttribute<3>,3,3,3 > >,
 };
+
+int realJoinIndexSelect(ListExpr args){
+   ListExpr attrList1 = nl->Second(nl->Second(nl->First(args)));
+   string name1 = nl->SymbolValue(nl->Third(args));
+   ListExpr type;
+   int index = listutils::findAttribute(attrList1,name1,type);
+  
+    assert(index>0);
+    if(listutils::isKind(type, Kind::SPATIAL2D())){
+      return 0;
+    }
+    if(listutils::isKind(type, Kind::SPATIAL3D())){
+      return 1;
+    }
+    return -1;
+
+}
 
 
 
@@ -1025,13 +1046,17 @@ Operator realJoinRindex (
   realJoinRindexSpec,
   2,
   realJoinRindexVM,
-  realJoinSelect,
+  realJoinIndexSelect,
   realJoinRindexTM);
 
 
 ValueMapping realJoinRindexVecVM[] = {
-   joinRindexVM<RealJoinTreeVecLocalInfo<RIndex<2, TupleId>, 2 > >,
-   joinRindexVM<RealJoinTreeVecLocalInfo<RIndex<3, TupleId>, 3 > >,
+   joinRindexVM<RealJoinTreeVecLocalInfo<RIndex<2, TupleId>, 
+                StandardSpatialAttribute<2>,
+                StandardSpatialAttribute<2>,2,2,2 > >,
+   joinRindexVM<RealJoinTreeVecLocalInfo<RIndex<3, TupleId>,
+                StandardSpatialAttribute<3>,
+                StandardSpatialAttribute<3>, 3,3,3 > >,
 };
 
 Operator realJoinRindexVec (
@@ -1039,7 +1064,7 @@ Operator realJoinRindexVec (
   realJoinRindexSpec,
   2,
   realJoinRindexVecVM,
-  realJoinSelect,
+  realJoinIndexSelect,
   realJoinRindexTM);
 
 
