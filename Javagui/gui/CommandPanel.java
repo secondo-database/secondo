@@ -700,9 +700,24 @@ public class CommandPanel extends JScrollPane {
      return ((c>='A') && (c<='Z') ) || ((c>='a' && c<='z'));
   }
 
+  private boolean isUpperCase(char c){
+     return (c>='A') && (c<='Z');
+  }
+
+
+  private boolean isDigit(char c){
+    return c>='0' && c <= '9';
+  }
+
+  private boolean isIdentChar(char c){
+    return isLetter(c) || isDigit(c) || (c == '_');
+  }
 
   /*
-   Changes the first letter of all words outside of quotes to a lower case. 
+   Changes all letters of words outside quotes starting with an upper case 
+   to lower case. Words insie quotes or words starting with a lower case
+   are keept as there are.
+
   */
 
   private  String varToLowerCase(String str){
@@ -711,47 +726,90 @@ public class CommandPanel extends JScrollPane {
      StringBuffer buf = new StringBuffer();
      int state = 0; //normal = 0, inDoublequotes = 1 in quotes = 2
      int pos = 0;
-     int wordPos = 0;
+
+
+     // the states are the following
+     // state 0 : begin of a symbol or something other
+     // state 1 : within a double quoted string
+     // state 2 : within a single quoted text
+     // state 3 : within a symbol starting with a capital, all chars are converted to lower case
+     // state 4 : within a symbol starting with a lower case, all chars are keept
+
      for(int i=0;i<str.length();i++){
         char c = str.charAt(i);
         switch(state){
-          case 0: { // normal 
+          case 0: { // normal, first character of a symbol 
+
              if(c=='"'){ // begin of a string constant
                state = 1;
-               wordPos = 0;
                buf.append(c);
              } else if(c=='\''){ //begin of a text constant
                state = 2;
-               wordPos=0;
                buf.append(c); 
-             } else if(isLetter(c)){
-                if(wordPos==0){
-                   wordPos++;    
-                   buf.append(toLower(c));
-                } else {
-                   //buf.append(toLower(c));
-                   buf.append(c);
-                }
-             } else {
-               wordPos = 0;
-               buf.append(c);
+             } else if(isLetter(c)){ // start of a symbol
+               if(isUpperCase(c)){
+                 buf.append(toLower(c));
+                 state = 3;
+               } else {
+                 buf.append(c);
+                 state = 4;
+               }
+
+             } else {  // something other
+                buf.append(c);
              }
              break;
            }
-          case 1: {
+          case 1: { // string constant
             if(c=='"'){
                state = 0;
-               wordPos = 0;
             }
             buf.append(c);
             break;
           }
-          case 2: {
+          case 2: { // text constant
             if(c=='\''){
               state = 0;
-              wordPos = 0;
             }
             buf.append(c);
+          }
+          break;
+          case 3: { // within an indentifier, convert all
+            if(isIdentChar(c)){
+              buf.append(toLower(c));
+            } else {
+              buf.append(c);
+              if(c=='"'){
+                 state = 1;
+              } else if(c=='\''){
+                 state = 2;
+              } else {
+                 state = 0;
+              }
+            }
+          }
+          break;
+          case 4: { // within an identifiert, convert nothing
+            if(isIdentChar(c)){
+              buf.append(c);
+            } else {
+              buf.append(c);
+              if(c=='"'){
+                 state = 1;
+              } else if(c=='\''){
+                 state = 2;
+              } else {
+                 state = 0;
+              }
+            }
+          }
+          break;
+
+          default : { 
+             Object o = null;
+             if(o.equals(null)){ // force a null pointer exception
+                System.err.println("Bad idea");
+             }
           }
         }
      }
@@ -871,7 +929,15 @@ public class CommandPanel extends JScrollPane {
      long starttime=0;
      if(tools.Environment.MEASURE_TIME)
         starttime = System.currentTimeMillis();
+
+
+    //System.out.println("Original : " + SelectClause);
+
      SelectClause = varToLowerCase(SelectClause);
+
+    // System.out.println("to LowerVars : " + SelectClause);
+
+
      if(OpenedDatabase.length()==0){
        appendText("\nno database open");
        showPrompt();
