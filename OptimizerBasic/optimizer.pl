@@ -69,7 +69,7 @@ evaluated predicates and whose edges represent predicates, containing all
 possible orders of predicates. Such a graph for three predicates ~p~, ~q~, and
 ~r~ is shown in [Figure pog1].
 
-        Figure 1: A predicate order graph for three predicates ~p~, ~q~
+		Figure 1: A predicate order graph for three predicates ~p~, ~q~
 and ~r~  [pog1.eps]
 
 Here the bottom node has no predicate evaluated and the top node has all
@@ -87,22 +87,22 @@ edge with estimated costs for this method, then finding a shortest path through
 the POG corresponds to finding the cheapest query plan. [Figure pog2] shows an
 example of a POG annotated with evaluation methods.
 
-        Figure 2: A POG annotated with evaluation methods [pog2.eps]
+		Figure 2: A POG annotated with evaluation methods [pog2.eps]
 
 In this example, there is only a single method associated with each edge. In
 general, however, there will be several methods. The example represents the
 query:
 
 ----    select *
-    from Staedte, Laender, Regiert
-    where Land = LName and PName = 'CDU' and LName = PLand
+	from Staedte, Laender, Regiert
+	where Land = LName and PName = 'CDU' and LName = PLand
 ----
 
 for relation schemas
 
 ----    Staedte(SName, Bev, Land)
-    Laender(LName, LBev)
-    Regiert(PName, PLand)
+	Laender(LName, LBev)
+	Regiert(PName, PLand)
 ----
 
 Hence the optimization algorithm described and implemented in the following
@@ -142,7 +142,7 @@ In the construction of the predicate order graph, the following data structures
 are used.
 
 ----    pr(P, A)
-    pr(P, B, C)
+	pr(P, B, C)
 ----
 
 A selection or join predicate, e.g. pr(p, a), pr(q, b, c). Means a
@@ -523,7 +523,7 @@ deleteArguments :- not(deleteArgument).
 4.2 Writing Nodes and Edges
 
 ----    writeNodes.
-    writeEdges.
+	writeEdges.
 ----
 
 Write the currently stored nodes and edges, respectively.
@@ -563,27 +563,27 @@ need to define the input notation precisely.
 We assume the queries can be entered basically as select-from-where 
 structures, as follows. Let schemas be given as:
 
-----     plz(PLZ:string, Ort:string)
-    Staedte(SName:string, Bev:int, PLZ:int, Vorwahl:string, Kennzeichen:string)
+----	plz(PLZ:string, Ort:string)
+    	Staedte(SName:string, Bev:int, PLZ:int, Vorwahl:string, Kennzeichen:string)
 ----
 
 Then we should be able to enter queries:
 
-----     select SName, Bev
-    from Staedte
-    where Bev > 500000
+----    select SName, Bev
+    	from Staedte
+	where Bev > 500000
 ----
 
 In the next example we need to avoid the name conflict for PLZ
 
-----    select *
-    from Staedte as s, plz as p
-    where s.SName = p.Ort and p.PLZ > 40000
+----	select *
+    	from Staedte as s, plz as p
+    	where s.SName = p.Ort and p.PLZ > 40000
 ----
 
 In the PROLOG version, we will use the following notations:
 
-----    rel(Name, Var, Case)
+----	rel(Name, Var, Case)
 ----
 
 For example
@@ -604,14 +604,14 @@ perfom renaming in the plan. For example, in the second query above, the
 relations would be denoted as 
 
 ----    rel(staedte, s, u)
-    rel(plz, p, l)
+	rel(plz, p, l)
 ----
 
 Within predicates, attributes are annotated as follows:
 
 ----    attr(Name, Arg, Case)
 
-    attr(ort, 2, u)
+	attr(ort, 2, u)
 ----
 
 This says that  ~ort~ is an attribute of the second argument within a join 
@@ -621,16 +621,16 @@ argument is ignored; it can be set to 0 or 1.
 Hence for the two queries above, the translation would be
 
 ----    fromwhere(
-      [rel(staedte, *, u)], 
-      [pr(attr(bev, 0, u) > 500000, rel(staedte, *, u))]
-    )
+	[rel(staedte, *, u)], 
+	[pr(attr(bev, 0, u) > 500000, rel(staedte, *, u))]
+	)
 
-    fromwhere(
-      [rel(staedte, s, u), rel(plz, p, l)],
-      [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), 
+	fromwhere(
+	[rel(staedte, s, u), rel(plz, p, l)],
+	[pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), 
         rel(staedte, s, u), rel(plz, p, l)),
-       pr(attr(p:pLZ, 0, u) > 40000, rel(plz, p, l))]
-    )
+	pr(attr(p:pLZ, 0, u) > 40000, rel(plz, p, l))]
+	)
 ----
 
 Note that the upper or lower case distinction refers only to the first letter
@@ -678,14 +678,14 @@ l)),
 In the target language, we use the following operators:
 
 ----    feed:        rel(Tuple) -> stream(Tuple)
-    consume:    stream(Tuple) -> rel(Tuple)
+    	consume:    stream(Tuple) -> rel(Tuple)
 
-    filter:        stream(Tuple) x (Tuple -> bool) -> stream(Tuple)
-    product:    stream(Tuple1) x stream(Tuple2) -> stream(Tuple3)
+    	filter:        stream(Tuple) x (Tuple -> bool) -> stream(Tuple)
+    	product:    stream(Tuple1) x stream(Tuple2) -> stream(Tuple3)
 
                 where Tuple3 = Tuple1 o Tuple2
 
-    hashjoin:    stream(Tuple1) x stream(Tuple2) x attrname1 x attrname2
+    	hashjoin:    stream(Tuple1) x stream(Tuple2) x attrname1 x attrname2
                 x nbuckets -> stream(Tuple3)
 
                 where     Tuple3 = Tuple1 o Tuple2
@@ -694,19 +694,19 @@ In the target language, we use the following operators:
                     nbuckets is the number of hash buckets
                         to be used
 
-    sortmergejoin:    stream(Tuple1) x stream(Tuple2) x attrname1 x attrname2
+    	sortmergejoin:    stream(Tuple1) x stream(Tuple2) x attrname1 x attrname2
                 -> stream(Tuple3)
 
                 where     Tuple3 = Tuple1 o Tuple2
                     attrname1 occurs in Tuple1
                     attrname2 occurs in Tuple2
                     
-    loopjoin:    stream(Tuple1) x (Tuple1 -> stream(Tuple2)
+    	loopjoin:    stream(Tuple1) x (Tuple1 -> stream(Tuple2)
                 -> stream(Tuple3)
 
                 where     Tuple3 = Tuple1 o Tuple2
                 
-    exactmatch:    btree(Tuple, AttrType) x rel(Tuple) x AttrType
+    	exactmatch:    btree(Tuple, AttrType) x rel(Tuple) x AttrType
                 -> stream(Tuple)
 
     extend:        stream(Tuple1) x (Newname x (Tuple -> Attrtype))+
@@ -720,26 +720,26 @@ In the target language, we use the following operators:
                 where    Tuple2 is Tuple1 from which the mentioned
                     attributes have been removed.
 
-    project:    stream(Tuple1) x Attrname+ -> stream(Tuple2)
+    	project:    stream(Tuple1) x Attrname+ -> stream(Tuple2)
 
                 where    Tuple2 is Tuple1 projected on the
                     mentioned attributes.
 
-    rename        stream(Tuple1) x NewName -> stream(Tuple2)
+    	rename        stream(Tuple1) x NewName -> stream(Tuple2)
 
                 where     Tuple2 is Tuple1 modified by appending
                     "_newname" to each attribute name
 
-    count        stream(Tuple) -> int
+    	count        stream(Tuple) -> int
 
                 count the number of tuples in a stream
 
-    sortby        stream(Tuple) x (Attrname, asc/desc)+    -> stream(Tuple)
+    	sortby        stream(Tuple) x (Attrname, asc/desc)+    -> stream(Tuple)
 
                 sort stream lexicographically by the given
                 attribute names
 
-    groupby    stream(Tuple) x GroupAttrs x NewFields -> stream(Tuple2)
+    	groupby    stream(Tuple) x GroupAttrs x NewFields -> stream(Tuple2)
 
                 group stream by the grouping attributes; for each group
                 compute new fields each of which is specified in the
