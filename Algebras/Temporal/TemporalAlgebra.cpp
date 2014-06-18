@@ -18933,6 +18933,63 @@ Operator createPeriodsOp(
 );
 
 
+namespace ct{
+/*
+Operator contains
+
+this operator checks whether a periods value contains a certain instant.
+
+*/
+ListExpr containsTM(ListExpr args){
+  string err = "periods x instant expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(!Periods::checkType(nl->First(args)) ||
+     !Instant::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+/*
+ value mapping
+
+*/
+
+int containsVM( Word* args, Word& result, int message, Word&
+                   local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  Periods* p = (Periods*) args[0].addr;
+  Instant* i = (Instant*) args[1].addr;
+  CcBool* res = (CcBool*) result.addr;
+  if(!p->IsDefined() || !i->IsDefined()){
+     res->SetDefined(false);
+  } else {
+     res->Set(true, p->Contains(*i));
+  }
+  return 0;
+}
+
+OperatorSpec containsSpec(
+        "periods x instant -> bool",
+        "_ contains _",
+        "Checks whether a periods value contains a certain instant",
+        " query theyear(2014) contains [const instant value \"2014-02-14\"]");
+
+Operator containsOP
+  (
+  "contains",             //name
+   containsSpec.getStr(),         //specification
+   containsVM,        //value mapping
+   Operator::SimpleSelect,   //trivial selection function
+   containsTM        //type mapping
+  );
+
+}
+
+
 
 /*
 6 Creating the Algebra
@@ -19109,6 +19166,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&trajectory3);
 
     AddOperator(&createPeriodsOp);
+    AddOperator(&ct::containsOP);
 
 
 #ifdef USE_PROGRESS
