@@ -261,6 +261,7 @@ helping operators for indexing instant values in R-trees.
 #include "Stream.h"
 #include "GenericTC.h"
 #include "RefinementStream.h"
+#include "TemporalLiftedAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -8997,73 +8998,6 @@ struct TUCompareValueLocalInfo
   MBool *intersectionBool;
 };
 
-enum deltaInterpretation  {VALUE, ALWAYS, NEVER};
-
-struct deltaV{
-  deltaV(deltaInterpretation i, double v): value(v), delta(i){}
-  double value;
-  deltaInterpretation delta;
-};
-
-deltaV computeDelta(const double a1, const double a2, 
-                    const double b1, const double b2){
-
-  // computes delta for
-  // a1 + delta*(a2-a1) = b1 + delta*(b2-b1)
-  // this holds ever, never or for a certain value
-  double da = a2 - a1;
-  double db = b2 - b1;
-  double fdelta = da-db;
-  double r = b1 - a1;
-  if(AlmostEqual(fdelta,0.0)){
-    if(AlmostEqual(r,0.0)){
-      return deltaV(ALWAYS,0.0);
-    } else {
-      return deltaV(NEVER,0.0);
-    }
-  } else {
-    return deltaV(VALUE, r/fdelta);
-  }
-}
-
-deltaV merge(const deltaV& d1,
-                          const deltaV& d2){
-   switch(d1.delta){
-     case ALWAYS : return d2;
-     case NEVER  : return d1;
-     case VALUE  :
-            switch(d2.delta){
-              case ALWAYS : return d1;
-              case NEVER  : return d2;
-              case VALUE  : if(AlmostEqual(d1.value,d2.value)){
-                              return d1;
-                            } else {
-                              return deltaV(NEVER,0.0); 
-                            }
-              default : assert(false);
-            } 
-     default : assert(false);
-   }
-   assert(false);
-   return d1;
-}
-
-
-ostream& operator<<(ostream& o, const deltaInterpretation& i){
-   switch(i){
-      case ALWAYS : o << "always" ; break;
-      case NEVER : o << "never" ; break;
-      case VALUE : o << "value" ; break;
-   }
-   return o;
-}
-ostream& operator<<(ostream& o, const deltaV& d){
-   o << d.delta;
-   if(d.delta==VALUE){
-     o << ":" << d.value;
-   }
-   return o;
-}
 
 
 
@@ -9113,67 +9047,10 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
              u1->TemporalFunction(iv.end,p1_end,true);
              u2->TemporalFunction(iv.start,p2_start,true);
              u2->TemporalFunction(iv.end,p2_end,true);
-             deltaV xd = computeDelta(p1_start.GetX(), p1_end.GetX(),
-                                       p2_start.GetX(), p2_end.GetX());
-             deltaV yd = computeDelta(p1_start.GetY(), p1_end.GetY(),
-                                      p2_start.GetY(), p2_end.GetY());
-             deltaV delta = merge(xd,yd);
-             switch(delta.delta){
-                case ALWAYS :  localinfo->intersectionBool->
-                                       Add(UBool(iv, CcBool(true,compValue)));
-                               break;
-                case NEVER  :   localinfo->intersectionBool->
-                                       Add(UBool(iv,CcBool(true,!compValue)));
-                               break;
-
-                case VALUE  :  {
-                               DateTime dur = iv.end - iv.start;
-                               dur.Mul(delta.value);
-                               DateTime ip(datetime::instanttype);
-                               ip = iv.start + dur;
-                               if( (ip < iv.start) || (ip > iv.end) ||
-                                   (ip==iv.start && !iv.lc) ||
-                                   (ip==iv.end && !iv.rc)){
-                                  // intersection outside time interval
-                                  localinfo->intersectionBool->
-                                       Add(UBool(iv,CcBool(true,!compValue)));
-                               } else if(ip==iv.start && ip==iv.end){
-                                   // intersection covers the whole interval
-                                   localinfo->intersectionBool->
-                                       Add(UBool(iv,CcBool(true,compValue)));
-                               } else if(ip==iv.start){
-                                   // common start
-                                   Interval<Instant> iv1(ip,ip,true,true);
-                                   Interval<Instant> iv2(ip,iv.end,false,iv.rc);
-                                   localinfo->intersectionBool->
-                                       Add(UBool(iv1,CcBool(true,compValue)));
-                                   localinfo->intersectionBool->
-                                       Add(UBool(iv2,CcBool(true,!compValue)));
-                               } else if(ip==iv.end){
-                                   Interval<Instant> iv1(iv.start,ip,
-                                                         iv.lc,false);
-                                   Interval<Instant> iv2(ip,ip, true,true);
-                                   localinfo->intersectionBool->
-                                       Add(UBool(iv1,CcBool(true,!compValue)));
-                                   localinfo->intersectionBool->
-                                        Add(UBool(iv2,CcBool(true,compValue)));
-                               } else { // ip inside iv
-                                   Interval<Instant> iv1(iv.start,ip,
-                                                         iv.lc,false);
-                                   Interval<Instant> iv2(ip,ip,true,true);
-                                   Interval<Instant> iv3(ip,iv.end,
-                                                         false,iv.rc);   
-                                   localinfo->intersectionBool->
-                                       Add(UBool(iv1,CcBool(true,!compValue)));
-                                   localinfo->intersectionBool->
-                                       Add(UBool(iv2,CcBool(true,compValue)));
-                                   localinfo->intersectionBool->
-                                      Add(UBool(iv3,CcBool(true,!compValue)));
-                               }
-                               }                              
-                               break;
-                default     : assert(false);
-             }
+             computeMEquality(iv, p1_start, p1_end,
+                              p2_start, p2_end, 
+                              *(localinfo->intersectionBool), 
+                              compValue);
           }
       }
       localinfo->NoOfResults = localinfo->intersectionBool->GetNoComponents();

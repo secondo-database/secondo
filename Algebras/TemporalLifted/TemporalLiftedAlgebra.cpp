@@ -50,6 +50,8 @@ For this it leans on Lema, Forlizzi, G[ue]ting, Nardelli, Schneider:
 
 #include <cmath>
 #include <limits>
+
+#include "TemporalLiftedAlgebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
@@ -64,6 +66,7 @@ using namespace datetime;
 #include "MovingRegionAlgebra.h"
 #include "TemporalExtAlgebra.h"
 #include "RefinementStream.h"
+
 
 
 extern NestedList* nl;
@@ -1899,141 +1902,202 @@ double MPointInMPoint(double startx1, double starty1, double endx1,
   return -1.0;  //should not be reached!
 }
 
+
+/*
+1.1 Auxiliary function for comparing two mobing points
+
+*/
+
+
+enum deltaInterpretation  {VALUE, ALWAYS, NEVER};
+
+struct deltaV{
+  deltaV(deltaInterpretation i, double v): value(v), delta(i){}
+  double value;
+  deltaInterpretation delta;
+};
+
+deltaV computeDelta(const double a1, const double a2, 
+                    const double b1, const double b2){
+
+  // computes delta for
+  // a1 + delta*(a2-a1) = b1 + delta*(b2-b1)
+  // this holds ever, never or for a certain value
+  double da = a2 - a1;
+  double db = b2 - b1;
+  double fdelta = da-db;
+  double r = b1 - a1;
+  if(AlmostEqual(fdelta,0.0)){
+    if(AlmostEqual(r,0.0)){
+      return deltaV(ALWAYS,0.0);
+    } else {
+      return deltaV(NEVER,0.0);
+    }
+  } else {
+    return deltaV(VALUE, r/fdelta);
+  }
+}
+
+deltaV merge(const deltaV& d1,
+                          const deltaV& d2){
+   switch(d1.delta){
+     case ALWAYS : return d2;
+     case NEVER  : return d1;
+     case VALUE  :
+            switch(d2.delta){
+              case ALWAYS : return d1;
+              case NEVER  : return d2;
+              case VALUE  : if(AlmostEqual(d1.value,d2.value)){
+                              return d1;
+                            } else {
+                              return deltaV(NEVER,0.0); 
+                            }
+              default : assert(false);
+            } 
+     default : assert(false);
+   }
+   assert(false);
+   return d1;
+}
+
+
+ostream& operator<<(ostream& o, const deltaInterpretation& i){
+   switch(i){
+      case ALWAYS : o << "always" ; break;
+      case NEVER : o << "never" ; break;
+      case VALUE : o << "value" ; break;
+   }
+   return o;
+}
+ostream& operator<<(ostream& o, const deltaV& d){
+   o << d.delta;
+   if(d.delta==VALUE){
+     o << ":" << d.value;
+   }
+   return o;
+}
+
+
+void computeMEquality(const Interval<Instant>& iv,
+                 const Point& p1_start, const Point& p1_end,
+                 const Point& p2_start, const Point& p2_end,
+                 MBool& result,
+                 const bool compValue){
+
+   result.Clear();
+   result.SetDefined(true);
+   result.Resize(3);
+
+   deltaV xd = computeDelta(p1_start.GetX(), p1_end.GetX(),
+                             p2_start.GetX(), p2_end.GetX());
+   deltaV yd = computeDelta(p1_start.GetY(), p1_end.GetY(),
+                            p2_start.GetY(), p2_end.GetY());
+   deltaV delta = merge(xd,yd);
+   switch(delta.delta){
+      case ALWAYS :  result.Add(UBool(iv, CcBool(true,compValue)));
+                     break;
+      case NEVER  :  result.Add(UBool(iv,CcBool(true,!compValue)));
+                     break;
+
+      case VALUE  :  {
+                     DateTime dur = iv.end - iv.start;
+                     dur.Mul(delta.value);
+                     DateTime ip(datetime::instanttype);
+                     ip = iv.start + dur;
+                     if( (ip < iv.start) || (ip > iv.end) ||
+                         (ip==iv.start && !iv.lc) ||
+                         (ip==iv.end && !iv.rc)){
+                        // intersection outside time interval
+                        result. 
+                             Add(UBool(iv,CcBool(true,!compValue)));
+                     } else if(ip==iv.start && ip==iv.end){
+                         // intersection covers the whole interval
+                         result.
+                             Add(UBool(iv,CcBool(true,compValue)));
+                     } else if(ip==iv.start){
+                         // common start
+                         Interval<Instant> iv1(ip,ip,true,true);
+                         Interval<Instant> iv2(ip,iv.end,false,iv.rc);
+                         result.
+                             Add(UBool(iv1,CcBool(true,compValue)));
+                         result.
+                             Add(UBool(iv2,CcBool(true,!compValue)));
+                     } else if(ip==iv.end){
+                         Interval<Instant> iv1(iv.start,ip,
+                                               iv.lc,false);
+                         Interval<Instant> iv2(ip,ip, true,true);
+                         result.
+                             Add(UBool(iv1,CcBool(true,!compValue)));
+                         result.
+                              Add(UBool(iv2,CcBool(true,compValue)));
+                     } else { // ip inside iv
+                         Interval<Instant> iv1(iv.start,ip,
+                                               iv.lc,false);
+                         Interval<Instant> iv2(ip,ip,true,true);
+                         Interval<Instant> iv3(ip,iv.end,
+                                               false,iv.rc);   
+                         result.
+                             Add(UBool(iv1,CcBool(true,!compValue)));
+                         result.
+                             Add(UBool(iv2,CcBool(true,compValue)));
+                         result.
+                            Add(UBool(iv3,CcBool(true,!compValue)));
+                     }
+                     }                              
+                     break;
+      default     : assert(false);
+   }
+}
+
+
+
 /*
 1.1 Method ~MovingPointCompareMM~
 
-For Operators ~=~ , ~\#~ and ~minus~ for MovingPoint/MovingPoint
+For Operators ~=~ , ~\#~ for MovingPoint/MovingPoint
 
 */
 void MovingPointCompareMM( const MPoint& p1, const MPoint& p2, MBool& result,
- int op)
-{
-  if(TLA_DEBUG)
-    cout<<"MovingPointCompareMM called"<<endl;
+ int op) {
   result.Clear();
-  if( !p1.IsDefined() || !p2.IsDefined() ) {
-    result.SetDefined( false );
-    return;
+  if(!p1.IsDefined() || !p2.IsDefined()){
+     result.SetDefined(false);
+     return;
   }
-  result.SetDefined( true );
-  UBool uBool(true);
-  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
-  if(TLA_DEBUG)
-    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
-
-  result.Resize(rp.Size());
+  RefinementStream<MPoint,MPoint,UPoint,UPoint> rs(&p1,&p2);
+  Interval<Instant> iv;
+  int pos1;
+  int pos2;
+  UPoint unit1(false);
+  UPoint unit2(false);
+  MBool tmp(3);
+  Point p1_start(true,0,0);
+  Point p1_end(true,0,0);
+  Point p2_start(true,0,0);
+  Point p2_end(true,0,0);
+  bool compValue = op==0?true:false;
+  UBool unit;
   result.StartBulkLoad();
-  for( unsigned int i = 0; i < rp.Size(); i++ )
-  {
-    Interval<Instant> iv;
-    int u1Pos;
-    int u2Pos;
-    UPoint u1;
-    UPoint u2;
-
-    rp.Get(i, iv, u1Pos, u2Pos);
-
-    if (u1Pos == -1 || u2Pos == -1)
-      continue;
-    else {
-      if(TLA_DEBUG)
-        cout<<"Both operators existant in interval iv #"<<i<<" ["
-        <<iv.start.ToString()<<" "<<iv.end.ToString()<<" "<<iv.lc
-        <<" "<<iv.rc<< "] "<<u1Pos<< " "<<u2Pos<<endl;
-      p1.Get(u1Pos, u1);
-      p2.Get(u2Pos, u2);
-      if(!(u1.IsDefined() && u2.IsDefined()))
-        continue;
-    }
-
-    Point rp0, rp1, rp2, rp3;
-
-    u1.TemporalFunction(iv.start, rp0, true);
-    u1.TemporalFunction(iv.end, rp1, true);
-    u2.TemporalFunction(iv.start, rp2, true);
-    u2.TemporalFunction(iv.end, rp3, true);
-
-    double t = MPointInMPoint(rp0.GetX(), rp0.GetY(), rp1.GetX(), rp1.GetY(),
-                              rp2.GetX(), rp2.GetY(), rp3.GetX(), rp3.GetY());
-    if(TLA_DEBUG)
-      cout<<"t "<<t<<endl;
-
-    if(t == 2.0){
-      uBool.timeInterval = iv;
-      uBool.constValue.Set(true, op == 0 ? true : false);
-      result.MergeAdd( uBool );
-    }
-    else if(t == 0.0){
-      if (iv.lc) {
-        uBool.timeInterval.start = iv.start;
-        uBool.timeInterval.end = iv.start;
-        uBool.timeInterval.lc = true;
-        uBool.timeInterval.rc = true;
-        uBool.constValue.Set(true, op == 0 ? true : false);
-        result.MergeAdd( uBool );
-      }
-      uBool.timeInterval = iv;
-      uBool.timeInterval.lc = false;
-      uBool.constValue.Set(true, op == 0 ? false : true);
-      if(uBool.IsValid())
-        result.MergeAdd( uBool );
-
-    }
-    else if(t == 1.0){
-      uBool.timeInterval = iv;
-      uBool.timeInterval.rc = false;
-      uBool.constValue.Set(true, op == 0 ? false : true);
-      if(uBool.IsValid())
-        result.MergeAdd( uBool );
-      if (iv.rc) {
-        uBool.timeInterval.start = iv.end;
-        uBool.timeInterval.end = iv.end;
-        uBool.timeInterval.lc = true;
-        uBool.timeInterval.rc = true;
-        uBool.constValue.Set(true, op == 0 ? true : false);
-        result.MergeAdd( uBool );
-      }
-    }
-    else if(t > 0.0 && t < 1.0){
-      Instant time(instanttype);
-      time.ReadFrom(t  * (iv.end.ToDouble() - iv.start.ToDouble())
-                       + iv.start.ToDouble());
-      time.SetType(instanttype);
-      if ((iv).Contains(time)) {
-        uBool.timeInterval = iv;
-        uBool.timeInterval.rc = false;
-        uBool.timeInterval.end = time;
-        uBool.constValue.Set(true, op == 0 ? false : true);
-        if(uBool.IsValid())
-          result.MergeAdd( uBool );
-        uBool.timeInterval.lc = true;
-        uBool.timeInterval.rc = true;
-        uBool.timeInterval.start = time;
-        uBool.timeInterval.end = time;
-        uBool.constValue.Set(true, op == 0 ? true : false);
-        result.MergeAdd( uBool );
-        uBool.timeInterval.lc = false;
-        uBool.timeInterval.rc = iv.rc;
-        uBool.timeInterval.start = time;
-        uBool.timeInterval.end = iv.end;
-        uBool.constValue.Set(true, op == 0 ? false : true);
-        if(uBool.IsValid())
-          result.MergeAdd( uBool );
-      }
-      else{
-        uBool.timeInterval = iv;
-        uBool.constValue.Set(true, op == 0 ? false : true);
-        result.MergeAdd( uBool );
-      }
-    }
-    else{
-      uBool.timeInterval = iv;
-      uBool.constValue.Set(true, op == 0 ? false : true);
-      result.MergeAdd( uBool );
-    }
+  while(rs.hasNext()){
+     rs.getNext(iv,pos1,pos2);
+     if(pos1>=0 && pos2>=0){
+         p1.Get(pos1,unit1);
+         p2.Get(pos2,unit2);
+         unit1.TemporalFunction(iv.start,p1_start,true);
+         unit1.TemporalFunction(iv.end,p1_end,true);
+         unit2.TemporalFunction(iv.start,p2_start,true);
+         unit2.TemporalFunction(iv.end,p2_end,true);
+         computeMEquality(iv, p1_start,p1_end, 
+                          p2_start, p2_end, tmp, compValue);
+         for(int i=0;i<tmp.GetNoComponents();i++){
+             tmp.Get(i,unit);
+             result.MergeAdd(unit);
+         }
+     }
   }
-  result.EndBulkLoad( false );
+  result.EndBulkLoad(false);
 }
+
 
 /*
 1.1 Method ~MovingPointCompareMS~
