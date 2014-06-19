@@ -3583,7 +3583,7 @@ translate terms of the form join00(Arg1Stream, Arg2Stream, Pred).
 
 join(Arg1, Arg2, pr(X=Y, R1, R2)) => JoinPlan :-
   X = attr(_, _, _),
-  Y = attr(_, _, _), !,
+  Y = attr(_, _, _), % !,	% cut removed
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   join00(Arg1S, Arg2S, pr(X=Y, R1, R2)) => JoinPlan.
@@ -3593,7 +3593,7 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
   X = attr(_, _, _),
   not(Y = attr(_, _, _)),
   not(isSubquery(Y)),
-  !,
+  % !,				% cut removed
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, u)), Y)]),
@@ -3603,7 +3603,7 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
         remove(JoinPlan, [attrname(attr(l_expr, 2, u))]) :-
   not(X = attr(_, _, _)),
   not(isSubquery(X)),
-  Y = attr(_, _, _), !,
+  Y = attr(_, _, _), % !,	% cut removed
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, u)), X)]),
@@ -3654,7 +3654,7 @@ for sortedjoin
 
 sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) => JoinPlan :-
   X = attr(_, _, _),
-  Y = attr(_, _, _), !,
+  Y = attr(_, _, _), !,   
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   sortedjoin00(Arg1S, Arg2S, pr(X=Y, R1, R2), Arg1S, UpperBound) => JoinPlan.
