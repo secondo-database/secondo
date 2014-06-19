@@ -5426,8 +5426,9 @@ cost(sort(X), Sel, P, S, C) :-
   sortmergejoinTC(A, _),
   S is SizeX,
   C is CostX +                                  % producing the argument
-    A * SizeX * log(SizeX + 1).                 % sorting the arguments
-             %   individual cost of ordering predicate still not applied!
+    A * SizeX. 					% linear in practice
+		% * log(SizeX + 1).                 % sorting the arguments
+             	% individual cost of ordering predicate still not applied!
 
 
 % Sortby with empty sorting list is ignored:
@@ -5441,10 +5442,12 @@ cost(sortby(X, Y), Sel, P, S, C) :-
 cost(mergejoin(X, Y, _, _), Sel, P, S, C) :-
   cost(X, 1, P, SizeX, CostX),
   cost(Y, 1, P, SizeY, CostY),
+  	showValue('CostX', CostX),
+  	showValue('CostY', CostY),
   sortmergejoinTC(_, B),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                     % producing the arguments
-    B * S.                                 % parallel scan of sorted relations
+  C is CostX + CostY +			% producing the arguments
+    B * (SizeX + SizeY). 		% parallel scan of sorted relations
 
 cost(sortmergejoin(X, Y, AX, AY), Sel, P, S, C) :-
   cost(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY), Sel, P, S, C).
@@ -5751,7 +5754,8 @@ createCostEdge :-
 createCostEdge :- % use standard cost functions
   not(optimizerOption(nawracosts)),
   not(optimizerOption(improvedcosts)),
-  not(optimizerOption(costs2014)),
+  % not(optimizerOption(costs2014)),
+	% standard costs used together with costs2014 now.
   \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
@@ -5760,7 +5764,9 @@ createCostEdge :- % use standard cost functions
     ; EdgeTerm = sortedjoin(_, _, Pred, _, _)
   ),
   edgeSelectivity(Source, Target, Sel),
-  cost(Term, Sel, Pred, Size, Cost), % Code changed by Goehr
+  cost(Term, Sel, Pred, Size, Cost1), 
+  Cost is Cost1 / 1000,		% old estimation in microseconds
+				% now changed to milliseconds
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
 
