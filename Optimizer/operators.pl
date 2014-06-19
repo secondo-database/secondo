@@ -40,15 +40,19 @@ constants below are quite accurate e.g. for examples 14 to
 
 */
 
-feedTC(0.4).
+% Constants revised based on database nrw, especially relation Roads with
+% 1095724 tuples. 19.6.2014.
+
+feedTC(4.20). 		% feedTC(0.4). Revised 19.6.2014 RHG
 consumeTC(1.0).
-filterTC(1.68).
+filterTC(2.23).		% filterTC(1.68).
 productTC(1.26, 0.4).
 leftrangeTC(10).
-loopjoinTC(1.0).
-exactmatchTC(10.0).
+loopjoinTC(7.48). 	% loopjoinTC(1.0).
+exactmatchTC(77.52).	% exactmatchTC(10.0).
 hashjoinTC(1.5, 0.65).
-sortmergejoinTC(0.3, 0.73). % first also used for sort(), second for mergejoin()
+sortmergejoinTC(9.7, 2.7).	% sortmergejoinTC(0.3, 0.73). 
+			% first also used for sort(), second for mergejoin()
 symmjoinTC(1.4, 0.7).
 extendTC(1.5).
 removeTC(0.6).
