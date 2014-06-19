@@ -1,0 +1,446 @@
+Calibration of Standard Costs
+=============================
+
+Based on database nrw
+
+3 ?- showDatabase.
+
+Collected information for database 'nrw':
+
+Relation Buildings	(Auxiliary objects:)
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	GeoData                     region        144        144.0    1223.04
+	Type                        string        64         22.0     0
+	Name                        string        64         54.0     0
+	Osm_id                      int           16         5.0      0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   1230303
+	Avg.TupleSize: 1448.04 = sizeTerm(288,225.0,1223.04)
+
+Relation Landuse	(Auxiliary objects: SelSample(2000)  JoinSample(1158) )
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	GeoData                     region        144        144.0    3387.264
+	Type                        string        64         22.0     0
+	Name                        string        64         54.0     0
+	Osm_id                      int           16         5.0      0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   115836
+	Avg.TupleSize: 3612.264 = sizeTerm(288,225.0,3387.264)
+
+Relation Natural	(Auxiliary objects: JoinSample(527) )
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	GeoData                     region        144        144.0    5101.056
+	Type                        string        64         22.0     0
+	Name                        string        64         54.0     0
+	Osm_id                      int           16         5.0      0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   52719
+	Avg.TupleSize: 5326.056 = sizeTerm(288,225.0,5101.056)
+
+Relation Places	(Auxiliary objects:)
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	GeoData                     point         32         32.0     0
+	Population                  int           16         5.0      0
+	Type                        string        64         22.0     0
+	Name                        string        64         54.0     0
+	Osm_id                      int           16         5.0      0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   9667
+	Avg.TupleSize: 118.0 = sizeTerm(192,118.0,0)
+
+Relation Points	(Auxiliary objects:)
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	GeoData                     point         32         32.0     0
+	Type                        string        64         22.0     0
+	Name                        string        64         54.0     0
+	Timestamp                   string        64         26.0     0
+	Osm_id                      int           16         5.0      0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   283956
+	Avg.TupleSize: 139.0 = sizeTerm(240,139.0,0)
+
+Relation Railways	(Auxiliary objects:)
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	GeoData                     line          160        229.504  1004.16
+	Type                        string        64         22.0     0
+	Name                        string        64         54.0     0
+	Osm_id                      int           16         5.0      0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   44016
+	Avg.TupleSize: 1314.664 = sizeTerm(304,310.5039978027344,1004.1600021972656)
+
+Relation Roads	(Auxiliary objects: SelSample(10957)  JoinSample(10957) )
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	GeoData                     line          160        217.6    875.9039999999999
+	Maxspeed                    int           16         5.0      0
+	Bridge                      int           16         5.0      0
+	Oneway                      int           16         5.0      0
+	Type                        string        64         22.0     0
+	Ref                         string        64         22.0     0
+	Name                        string        64         54.0     0
+	Osm_id                      int           16         5.0      0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   1095724
+	Avg.TupleSize: 1211.504 = sizeTerm(416,335.6000061035156,875.9039938964843)
+
+Relation SEC_DERIVED_OBJ	***SYSTEM TABLE***	(Auxiliary objects:)
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	UsedObjs                    text          72         82.0     0
+	Value                       text          72         202.5    0
+	Name                        string        64         20.0     0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   2
+	Avg.TupleSize: 304.5 = sizeTerm(208,304.5,0)
+
+Relation Waterways	(Auxiliary objects:)
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	GeoData                     line          160        241.024  1947.6480000000001
+	Width                       int           16         5.0      0
+	Type                        string        64         22.0     0
+	Name                        string        64         54.0     0
+	Osm_id                      int           16         5.0      0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   36684
+	Avg.TupleSize: 2274.672 = sizeTerm(320,327.02398681640625,1947.6480131835938)
+
+Relation Worker	(Auxiliary objects:)
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	Port                        int           16         5.0      0
+	Server                      string        64         15.0     0
+
+	Indices: 
+
+
+	Ordering:  []
+
+
+	Cardinality:   1
+	Avg.TupleSize: 20.0 = sizeTerm(80,20.0,0)
+
+Relation Roads2	(Auxiliary objects:)
+	AttributeName               Type          MemoryFix  DiskCore DiskLOB
+	GeoData                     line          160        212.608  980.3520000000001
+	Maxspeed                    int           16         5.0      0
+	Bridge                      int           16         5.0      0
+	Oneway                      int           16         5.0      0
+	Type                        string        64         22.0     0
+	Ref                         string        64         22.0     0
+	Name                        string        64         54.0     0
+	OsmId                       int           16         5.0      0
+
+	Indices: 
+	(OsmId:btree)
+
+	Ordering:  []
+
+
+	Cardinality:   1095724
+	Avg.TupleSize: 1310.96 = sizeTerm(416,330.6080017089844,980.3519982910157)
+
+
+(Type 'showDatabaseSchema.' to view the complete database schema.)
+true.
+
+4 ?- 
+
+===================================
+
+let 'Roads_Osm_id_btree = Roads createbtree[Osm_id]'.
+
+let 'RoadsSample10000 = Roads sample[10000; 0.0001] consume'.
+
+# 25.12 seconds
+
+query 'Roads sample[10000; 0.0001] count'.
+
+# 0.45, 0.45, 0.45 seconds
+
+let Roads2 = Roads feed renameattr[OsmId: Osm_id] consume
+
+# 74 seconds
+
+let Roads2_OsmId_btree = Roads2 createbtree[OsmId]
+
+# 10.85 seconds
+
+let 'One = [const rel(tuple([No: int])) value ( (1) )]'.
+
+let 'Roads2Ordered = Roads2 feed sortby[OsmId] consume'.
+
+
+
+
+
+query 'Roads  feedproject[Maxspeed] filter[(.Maxspeed > 30)]{0.04877840649812905, 0.02163000821392717} count'.
+
+# 6.12 cold, 4.91, 4.89 seconds
+
+query 'Roads  feedproject[Maxspeed] count'.
+
+# 2.45, 2.47, 2.46 seconds
+
+query 'Roads  feed count'.
+
+# 4.61, 4.63, 4.59 seconds
+
+Standard cost factors are in microseconds.
+
+feedTC = 4610000 / 1095724 = 4.20
+
+filter time was 4.90 - 2.46 seconds = 2.44 seconds
+
+filterTC = 2440000 / 1095724 = 2.23
+
+optimize(select count(*) from [roadssample10000 as s, roads2 as r] where r:osmid = s:osm_id).
+
+4 ?- writeCostEdges.
+
+Source: 0
+Target: 1
+Plan  : Roads2  feedproject[OsmId]{r} RoadsSample10000  feedproject[Osm_id]{s} symmjoin[(.OsmId_r = ..Osm_id_s)]
+Result: 1
+Size  : 8000.175230446291
+Cost  : 15341108.471190836
+
+
+Source: 0
+Target: 1
+Plan  : Roads2  feedproject[OsmId]{r} RoadsSample10000  feedproject[Osm_id]{s} sortmergejoin[OsmId_r, Osm_id_s]
+Result: 1
+Size  : 8000.175230446291
+Cost  : 5157.779488173976
+
+
+Source: 0
+Target: 1
+Plan  : Roads2  feedproject[OsmId]{r} RoadsSample10000  feedproject[Osm_id]{s} hashjoin[OsmId_r, Osm_id_s, 99997]
+Result: 1
+Size  : 8000.175230446291
+Cost  : 2531.0071448057174
+
+
+Source: 0
+Target: 1
+Plan  : RoadsSample10000  feedproject[Osm_id]{s} Roads2  feedproject[OsmId]{r} hashjoin[Osm_id_s, OsmId_r, 99997]
+Result: 1
+Size  : 8000.175230446291
+Cost  : 2531.0071448057174
+
+
+Source: 0
+Target: 1
+Plan  : RoadsSample10000  feedproject[Osm_id]{s} loopjoin[Roads2_OsmId_btree Roads2  exactmatch[.Osm_id_s] project[OsmId]{r}]
+Result: 1
+Size  : 8000.175230446291
+Cost  : 96.60178735055217
+
+true.
+
+==========================
+
+query 'Roads2 feed loopjoin[One feed] count'.
+
+# 12.81, 12.88, 12.85 seconds
+
+query 'Roads2 feed count'.
+
+# 4.64, 4.66, 4.64 seconds
+
+Difference is 12.85 -  4.65 = 8.2 seconds.
+
+loopjoinTC = 8200000 / 1095724 = 7.48
+
+query 'RoadsSample10000  feedproject[Osm_id]{s} loopjoin[Roads2_OsmId_btree Roads2  exactmatch[.Osm_id_s] project[OsmId]{r}] count'.
+
+# 1.03, 0.98, 0.98 seconds
+
+query 'RoadsSample10000  feedproject[Osm_id]{s} count'.
+
+# 0.043, 0.043, 0.048 seconds
+
+Time for loopjoin is 0.85 seconds (including the exactmatch query)
+
+exactmatchTC = (850000 / 10000) - 7.48 = 77.52
+
+
+query 'Roads2 feed head[N] sortby[OsmId] count'.
+	
+N		Time [ms]	Time / N
+ 200000		 2800,00	0,01400
+ 400000		 5750,00	0,01438
+ 600000		 8700,00	0,01450
+ 800000		11670,00	0,01459
+1000000		14690,00	0,01469
+
+
+linear behaviour
+
+query 'Roads2 feed head[N] count'.					
+					
+200000	977	0,00489			
+400000	1884	0,00471			
+600000	2870	0,00478			
+800000	3801	0,00475			
+1000000	4767	0,00477	
+
+query 'Roads2 feed head[N] sortby[OsmId] count'.
+
+N	Time			Time Rest	sortby only
+200000	2800,00		0,01400	977		1823	0,00912
+400000	5750,00		0,01438	1884		3866	0,00967
+600000	8700,00		0,01450	2870		5830	0,00972
+800000	11670,00	0,01459	3801		7869	0,00984
+1000000	14690,00	0,01469	4767		9923	0,00992
+					
+					
+query 'Roads2Ordered feed head[1000000] count'.					
+					
+200000	977	0,00489			
+400000	1884	0,00471			
+600000	2870	0,00478			
+800000	3801	0,00475			
+1000000	4767	0,00477			
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+query 'Roads2Ordered feed head[200000] {r1}
+  Roads2Ordered feed head[200000] {r2}
+  mergejoin[OsmId_r1, OsmId_r2]
+  count'.
+
+ 200000	 3000	0,00750
+ 400000	 6000	0,00750
+ 600000	 8980	0,00748
+ 800000	11933	0,00746
+1000000	14895	0,00745
+
+
+linear behaviour
+
+
+query 'Roads2Ordered feed head[200000] {r1}					
+  Roads2Ordered feed head[200000] {r2}					
+  mergejoin[OsmId_r1, OsmId_r2]					
+  count'.					
+	ms	1st arg	2nd arg	mergejoin only	
+200000	3000	977	977	1046	0,00262
+400000	6000	1884	1884	2232	0,00279
+600000	8980	2870	2870	3240	0,00270
+800000	11933	3801	3801	4331	0,00271
+1000000	14895	4767	4767	5361	0,00268
+
+mergejoinTC = 2.70 microseconds
+					
+					
+query 'Roads2Ordered feed head[1000000] count'.					
+					
+200000	977	0,00489			
+400000	1884	0,00471			
+600000	2870	0,00478			
+800000	3801	0,00475			
+1000000	4767	0,00477			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mergejoinTC = 7.5 microseconds
+
+
+
+
+
+
+
+
+
+
+
+
+
