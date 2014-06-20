@@ -5442,8 +5442,6 @@ cost(sortby(X, Y), Sel, P, S, C) :-
 cost(mergejoin(X, Y, _, _), Sel, P, S, C) :-
   cost(X, 1, P, SizeX, CostX),
   cost(Y, 1, P, SizeY, CostY),
-  	showValue('CostX', CostX),
-  	showValue('CostY', CostY),
   sortmergejoinTC(_, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +			% producing the arguments
