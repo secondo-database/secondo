@@ -65,138 +65,201 @@ namespace GISAlgebra {
           {
             // Zellwerte ermitteln
             double e = s_in->get(index);
-            double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
-            double b = s_in->get((int[]){index[0], index[1] + 1});
-            double d = s_in->get((int[]){index[0] - 1, index[1]});
-           
-            // Koordinaten bestimmen
-            double X = index[0] * cellsize + gridOriginX;
-            double Y = index[1] * cellsize + gridOriginY;
-
-            // wenn alle vier Zellen gueltige Werte haben
-            if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(b)) && 
-                !(s_in->isUndefined(d)) && !(s_in->isUndefined(e)))
-            {
-              ProcessRectangle(a, X, Y + cellsize, 
-                               d, X, Y,
-                               e, X + cellsize, Y, 
-                               b, X + cellsize, Y + cellsize, 
-                               interval, clines);       
-
-            }
-
-            // bestimmen welche Zellen Werte enthalten, diese addieren 
-            // und durch die Anzahl der gueltigen Zellen teilen
-            double sum = 0;
-            int good = 0;
-            double center = 0;
-
-            if (!(s_in->isUndefined(a)))
-            {
-              sum += a;
-              good++;
-            }
-
-            if (!(s_in->isUndefined(b)))
-            {
-              sum += b;
-              good++;
-            }
-
-            if (!(s_in->isUndefined(d)))
-            {
-              sum += d;
-              good++;
-            }
 
             if (!(s_in->isUndefined(e)))
             {
-              sum += e;
-              good++;
-            }
+              double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
+              double b = s_in->get((int[]){index[0], index[1] + 1});
+              double d = s_in->get((int[]){index[0] - 1, index[1]});
+              double h = s_in->get((int[]){index[0], index[1] - 1});
+              double f = s_in->get((int[]){index[0] + 1, index[1]});
 
-            center = sum / good;
+              // Koordinaten bestimmen
+              double X = index[0] * cellsize + cellsize/2 + gridOriginX;
+              double Y = index[1] * cellsize + cellsize/2 + gridOriginY;
 
-            // Alternative Zellwerte berechnen
-            double top;
-            double left;
-            double right;
-            double bottom;
-
-            if(!(s_in->isUndefined(a)))
-            {
-              if(!(s_in->isUndefined(b)))
-                top = (a + b) / 2.0;
+              // wenn alle vier Zellen gueltige Werte haben
+              if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(b)) && 
+                  !(s_in->isUndefined(d)) && !(s_in->isUndefined(e)))
+              {
+                // Sonderfall fuer rechte untere Zelle
+                if ((s_in->isUndefined(h)) && (s_in->isUndefined(f)))
+                {
+                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                   d, X - cellsize, Y - cellsize/2,
+                                   e, X + cellsize/2, Y - cellsize/2, 
+                                   b, X + cellsize/2, Y + cellsize, 
+                                   interval, clines);       
+                }
+                // Sonderfall fuer Zellen der ersten Reihe
+                else if ((s_in->isUndefined(h)))
+                {
+                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                   d, X - cellsize, Y - cellsize/2,
+                                   e, X, Y - cellsize/2, 
+                                   b, X, Y + cellsize, 
+                                   interval, clines);       
+                }
+                // Sonderfall fuer Zellen der letzten Spalte
+                else if ((s_in->isUndefined(f)))
+                {
+                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                   d, X - cellsize, Y,
+                                   e, X + cellsize/2, Y, 
+                                   b, X + cellsize/2, Y + cellsize, 
+                                   interval, clines);       
+                }
+                // Normalfall
+                else
+                {
+                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                   d, X - cellsize, Y,
+                                   e, X, Y, 
+                                   b, X, Y + cellsize, 
+                                   interval, clines);       
+                }
+              }
               else
-                top = b;
+              {
+                // bestimmen welche Zellen Werte enthalten, diese addieren 
+                // und durch die Anzahl der gueltigen Zellen teilen
+                double sum = 0;
+                int good = 0;
+                double center = 0;
+  
+                if (!(s_in->isUndefined(a)))
+                {
+                  sum += a;
+                  good++;
+                }
+  
+                if (!(s_in->isUndefined(b)))
+                {
+                  sum += b;
+                  good++;
+                }
+  
+                if (!(s_in->isUndefined(d)))
+                {
+                  sum += d;
+                  good++;
+                }
+  
+                if (!(s_in->isUndefined(e)))
+                {
+                  sum += e;
+                  good++;
+                }
+  
+                center = sum / good;
+  
+                // Alternative Zellwerte berechnen
+                double top;
+                double left;
+                double right;
+                double bottom;
+  
+                if(!(s_in->isUndefined(a)))
+                {
+                  if(!(s_in->isUndefined(b)))
+                    top = (a + b) / 2.0;
+                  else
+                    top = a;
+  
+                  if(!(s_in->isUndefined(d)))
+                    left = (a + d) / 2.0;
+                  else
+                    left = a;
+                }
+                else
+                {
+                  if (!(s_in->isUndefined(b)))
+                    top = b;
+                  else
+                    top = e;
 
-              if(!(s_in->isUndefined(d)))
-                left = (a + d) / 2.0;
-              else
-                left = a;
-            }
-            else
-            {
-              top = b;
-              left = d;
-            }
+                  if (!(s_in->isUndefined(d)))
+                    left = d;
+                  else
+                    left = e;
+                }
+  
+                if(!(s_in->isUndefined(b)))
+                  right = (e + b) / 2.0;
+                else
+                  right = e;
+    
+                if(!(s_in->isUndefined(d)))
+                  bottom = (e + d) / 2.0;
+                else
+                  bottom = e;
 
-            if(!(s_in->isUndefined(e)))
-            {
-              if(!(s_in->isUndefined(b)))
-                right = (e + b) / 2.0;
-              else
-                right = e;
-
-              if(!(s_in->isUndefined(d)))
-                bottom = (e + d) / 2.0;
-              else
-                bottom = e;
-            }
-            else
-            {
-              bottom = d;
-              right = b;
-            }
-
-            // wenn eine Eckzelle nicht definiert ist
-            // -> Berechnung ueber Ersatzwerte
-            if (!(s_in->isUndefined(a)))
-            {
-              ProcessRectangle(a, X, Y + cellsize, 
-                               left, X, Y + cellsize/2,
-                               center, X + cellsize/2, Y + cellsize/2, 
-                               top, X + cellsize/2, Y + cellsize, 
-                               interval, clines);
-            }
+                // wenn eine Eckzelle nicht definiert ist
+                // -> Berechnung ueber Ersatzwerte
+                if (!(s_in->isUndefined(a)))
+                {
+                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                   left, X - cellsize, Y + cellsize/2,
+                                   center, X - cellsize/2, Y + cellsize/2, 
+                                   top, X - cellsize/2, Y + cellsize, 
+                                   interval, clines);
+                }
             
-            if (!(s_in->isUndefined(d)))
-            {
-              ProcessRectangle(left, X, Y + cellsize/2, 
-                               d, X, Y,
-                               bottom, X + cellsize/2, Y, 
-                               center, X + cellsize/2, Y + cellsize/2, 
-                               interval, clines);
-            }
+                if (!(s_in->isUndefined(d)))
+                {
+                  // Sonderfall rechte obere Ecke
+                  if ((s_in->isUndefined(f)))
+                  {
+                    ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
+                                     d, X - cellsize, Y,
+                                     e, X + cellsize/2, Y, 
+                                     e, X + cellsize/2, Y + cellsize/2, 
+                                     interval, clines);
+                  }
+                  else
+                  {
+                    ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
+                                     d, X - cellsize, Y,
+                                     bottom, X - cellsize/2, Y, 
+                                     center, X - cellsize/2, Y + cellsize/2, 
+                                     interval, clines);
+                  }
+                }
             
-            if (!(s_in->isUndefined(e)))
-            {
-              ProcessRectangle(center, X + cellsize/2, Y + cellsize/2, 
-                               bottom, X + cellsize/2, Y,
-                               e, X + cellsize, Y, 
-                               right, X + cellsize, Y + cellsize/2, 
-                               interval, clines);
-            }
+                if (!(s_in->isUndefined(e)) && (s_in->isUndefined(h))
+                                            && (s_in->isUndefined(d)))
+                {
+                  // Sonderfall linke untere Ecke
+                }
+                else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(f)))
+                {
+                  // Sonderfall rechte obere Ecke
+                  ProcessRectangle(center, X - cellsize/2, Y + cellsize/2, 
+                                   bottom, X - cellsize/2, Y,
+                                   e, X, Y, 
+                                   right, X, Y + cellsize/2, 
+                                   interval, clines);
+                }
             
-            if (!(s_in->isUndefined(b)))
-            {
-              ProcessRectangle(top, X + cellsize/2, Y + cellsize, 
-                               center, X + cellsize/2, Y + cellsize/2,
-                               right, X + cellsize, Y + cellsize/2, 
-                               b, X + cellsize, Y + cellsize, 
-                               interval, clines);
-            }
-          }//for
+                if (!(s_in->isUndefined(b)) && (s_in->isUndefined(h)))
+                {
+                  ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
+                                   e, X - cellsize/2, Y - cellsize/2,
+                                   e, X, Y - cellsize/2, 
+                                   b, X, Y + cellsize, 
+                                   interval, clines);
+                }
+                else if (!(s_in->isUndefined(b)))
+                {
+                  ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
+                                   center, X - cellsize/2, Y + cellsize/2,
+                                   right, X, Y + cellsize/2, 
+                                   b, X, Y + cellsize, 
+                                   interval, clines);
+                }
+              }
+            }//if e def
+          }// for ueber alle zellen
         }//if clines
 
         return 0;
@@ -348,11 +411,11 @@ namespace GISAlgebra {
     double Min = MIN(MIN(a,c),MIN(g,i));
     double Max = MAX(MAX(a,c),MAX(g,i));
 
-    int startLevel = (int) ceil(Min / interval);
-    int endLevel = (int) floor(Max / interval);
+    int startLevel = (int) floor(Min / interval);
+    int endLevel = (int) ceil(Max / interval);
 
     // Schnittpunkte bestimmen
-    for(int iLevel = startLevel; iLevel < endLevel; iLevel++)
+    for(int iLevel = startLevel; iLevel <= endLevel; iLevel++)
     {
       double level = iLevel * interval;
 
@@ -380,40 +443,40 @@ namespace GISAlgebra {
         // links und unten
         if ( nPoints1 == 1 && nPoints2 == 2)
         {
-          return AddSegment( level, pointsX[0], pointsY[0], 
-                                    pointsX[1], pointsY[1], c > g, clines);
+          AddSegment( level, pointsX[0], pointsY[0], 
+                             pointsX[1], pointsY[1], c > g, clines);
         }
         // links und rechts
         else if ( nPoints1 == 1 && nPoints3 == 2 )
         {
-          return AddSegment( level, pointsX[0], pointsY[0], 
-                                    pointsX[1], pointsY[1], a > i, clines);
+          AddSegment( level, pointsX[0], pointsY[0], 
+                             pointsX[1], pointsY[1], a > i, clines);
         }
         // links und oben
         else if ( nPoints1 == 1 && nPoints == 2 )
         { 
           if ( !(a == level && g == level) )
-            return AddSegment( level, pointsX[0], pointsY[0], 
-                                      pointsX[1], pointsY[1], a > i, clines);
+            AddSegment( level, pointsX[0], pointsY[0], 
+                               pointsX[1], pointsY[1], a > i, clines);
         }
         // unten und rechts
         else if(  nPoints2 == 1 && nPoints3 == 2)
         {
-          return AddSegment( level, pointsX[0], pointsY[0], 
-                                    pointsX[1], pointsY[1], a > i, clines);
+          AddSegment( level, pointsX[0], pointsY[0], 
+                             pointsX[1], pointsY[1], a > i, clines);
         }
         // unten und oben
         else if ( nPoints2 == 1 && nPoints == 2 )
         {
-          return AddSegment( level, pointsX[0], pointsY[0], 
-                                    pointsX[1], pointsY[1], g > c, clines);
+          AddSegment( level, pointsX[0], pointsY[0], 
+                             pointsX[1], pointsY[1], g > c, clines);
         }
         // rechts und oben
         else if ( nPoints3 == 1 && nPoints == 2 )
         { 
           if ( !(c == level && a == level) )
-             return AddSegment( level, pointsX[0], pointsY[0], 
-                                       pointsX[1], pointsY[1], g > c, clines);
+             AddSegment( level, pointsX[0], pointsY[0], 
+                                pointsX[1], pointsY[1], g > c, clines);
         }
         else
         {
