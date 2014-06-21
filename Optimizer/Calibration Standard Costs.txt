@@ -415,22 +415,12 @@ query 'Roads2Ordered feed head[1000000] count'.
 
 
 
+Iterative spatial join
+======================
+
+999997 buckets require 7999976 bytes of memory. Then, for each tuple an additional space of 32 bytes is needed.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-mergejoinTC = 7.5 microseconds
 
 
 
