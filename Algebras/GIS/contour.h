@@ -43,14 +43,15 @@ namespace GISAlgebra
                               double, double, double,
                               double, double, double,
                               double, double, double, 
-                              double, DbArray<ResultInfo>*);
+                              double, double, DbArray<ResultInfo>*);
 
         void Intersect(double, double, double,
                        double, double, double,
                        double, double, int*, double*, double*);
 
         bool AddSegment(double, double, double, 
-                        double, double, int, DbArray<ResultInfo>*);
+                        double, double, int, double, double,
+                        DbArray<ResultInfo>*);
 
         struct contourInfo : OperatorInfo 
         {

@@ -41,7 +41,23 @@ namespace GISAlgebra {
       case OPEN:
       {
         // initialize the local storage
-        DbArray<ResultInfo>* clines = new DbArray<ResultInfo>(0);
+        double min = s_in->getMinimum();
+        double max = s_in->getMaximum();
+        double interval = lines->GetValue();
+
+        double diff = max - min;
+        int num = ceil(diff / interval) + 1;
+
+        DbArray<ResultInfo>* clines = new DbArray<ResultInfo>(num);
+
+        // Arraylevel initialisieren
+        for (int i = 0; i<num; i++)
+        {
+          ResultInfo lines;
+          lines.level = -32000;
+          clines->Put(i,lines);
+        }
+
         local.addr = clines;
 
         if (clines != 0)
@@ -52,8 +68,6 @@ namespace GISAlgebra {
           double gridOriginX = grid.getOriginX();
           double gridOriginY = grid.getOriginY();
           double cellsize = grid.getLength();
-
-          double interval = lines->GetValue();
 
           raster2::RasterIndex<2> from = 
                                   grid.getIndex(bbox.MinD(0), bbox.MinD(1));
@@ -89,7 +103,7 @@ namespace GISAlgebra {
                                    d, X - cellsize, Y - cellsize/2,
                                    e, X + cellsize/2, Y - cellsize/2, 
                                    b, X + cellsize/2, Y + cellsize, 
-                                   interval, clines);       
+                                   interval, min, clines);       
                 }
                 // Sonderfall fuer Zellen der ersten Reihe
                 else if ((s_in->isUndefined(h)))
@@ -98,7 +112,7 @@ namespace GISAlgebra {
                                    d, X - cellsize, Y - cellsize/2,
                                    e, X, Y - cellsize/2, 
                                    b, X, Y + cellsize, 
-                                   interval, clines);       
+                                   interval, min, clines);       
                 }
                 // Sonderfall fuer Zellen der letzten Spalte
                 else if ((s_in->isUndefined(f)))
@@ -107,7 +121,7 @@ namespace GISAlgebra {
                                    d, X - cellsize, Y,
                                    e, X + cellsize/2, Y, 
                                    b, X + cellsize/2, Y + cellsize, 
-                                   interval, clines);       
+                                   interval, min, clines);       
                 }
                 // Normalfall
                 else
@@ -116,7 +130,7 @@ namespace GISAlgebra {
                                    d, X - cellsize, Y,
                                    e, X, Y, 
                                    b, X, Y + cellsize, 
-                                   interval, clines);       
+                                   interval, min, clines);       
                 }
               }
               else
@@ -202,7 +216,7 @@ namespace GISAlgebra {
                                    left, X - cellsize, Y + cellsize/2,
                                    center, X - cellsize/2, Y + cellsize/2, 
                                    top, X - cellsize/2, Y + cellsize, 
-                                   interval, clines);
+                                   interval, min, clines);
                 }
             
                 if (!(s_in->isUndefined(d)))
@@ -214,7 +228,7 @@ namespace GISAlgebra {
                                      d, X - cellsize, Y,
                                      e, X + cellsize/2, Y, 
                                      e, X + cellsize/2, Y + cellsize/2, 
-                                     interval, clines);
+                                     interval, min, clines);
                   }
                   else
                   {
@@ -222,7 +236,7 @@ namespace GISAlgebra {
                                      d, X - cellsize, Y,
                                      bottom, X - cellsize/2, Y, 
                                      center, X - cellsize/2, Y + cellsize/2, 
-                                     interval, clines);
+                                     interval, min, clines);
                   }
                 }
             
@@ -238,7 +252,7 @@ namespace GISAlgebra {
                                    bottom, X - cellsize/2, Y,
                                    e, X, Y, 
                                    right, X, Y + cellsize/2, 
-                                   interval, clines);
+                                   interval, min, clines);
                 }
             
                 if (!(s_in->isUndefined(b)) && (s_in->isUndefined(h)))
@@ -247,7 +261,7 @@ namespace GISAlgebra {
                                    e, X - cellsize/2, Y - cellsize/2,
                                    e, X, Y - cellsize/2, 
                                    b, X, Y + cellsize, 
-                                   interval, clines);
+                                   interval, min, clines);
                 }
                 else if (!(s_in->isUndefined(b)))
                 {
@@ -255,7 +269,7 @@ namespace GISAlgebra {
                                    center, X - cellsize/2, Y + cellsize/2,
                                    right, X, Y + cellsize/2, 
                                    b, X, Y + cellsize, 
-                                   interval, clines);
+                                   interval, min, clines);
                 }
               }
             }//if e def
@@ -286,7 +300,30 @@ namespace GISAlgebra {
                 ResultInfo temp;
                 pResultInfo->Get(i-1,temp);
                 pResultInfo->resize(i-1);
-                
+
+                // Falls letztes oder vorletztes Feld nicht belegt
+                if ( i == 1 && temp.level == -32000 )
+                {
+                  result.addr = 0;
+                  return CANCEL;
+                }
+                else if ( temp.level == -32000 )
+                {
+                  pResultInfo->Get(i-2,temp);
+                  pResultInfo->resize(i-2);
+
+                  if ( i == 2 && temp.level == -32000 )
+                  {
+                    result.addr = 0;
+                    return CANCEL;
+                  }
+                  else if ( temp.level == -32000 )
+                  {
+                    pResultInfo->Get(i-3,temp);
+                    pResultInfo->resize(i-3);
+                  }
+                }
+
                 CcInt* level = new CcInt(true,temp.level);
                 Line* line = new Line(0); 
                 line = temp.cline;
@@ -405,7 +442,8 @@ namespace GISAlgebra {
                         double g, double gX, double gY,
                         double i, double iX, double iY,
                         double c, double cX, double cY, 
-                        double interval, DbArray<ResultInfo>* clines)
+                        double interval, double min, 
+                        DbArray<ResultInfo>* clines)
   {
     // Rechteck verarbeiten (Minimum, Maximum bestimmen)
     double Min = MIN(MIN(a,c),MIN(g,i));
@@ -444,39 +482,39 @@ namespace GISAlgebra {
         if ( nPoints1 == 1 && nPoints2 == 2)
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                             pointsX[1], pointsY[1], c > g, clines);
+                      pointsX[1], pointsY[1], c > g, min, interval, clines);
         }
         // links und rechts
         else if ( nPoints1 == 1 && nPoints3 == 2 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                             pointsX[1], pointsY[1], a > i, clines);
+                      pointsX[1], pointsY[1], a > i, min, interval, clines);
         }
         // links und oben
         else if ( nPoints1 == 1 && nPoints == 2 )
         { 
           if ( !(a == level && g == level) )
             AddSegment( level, pointsX[0], pointsY[0], 
-                               pointsX[1], pointsY[1], a > i, clines);
+                        pointsX[1], pointsY[1], a > i, min, interval, clines);
         }
         // unten und rechts
         else if(  nPoints2 == 1 && nPoints3 == 2)
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                             pointsX[1], pointsY[1], a > i, clines);
+                      pointsX[1], pointsY[1], a > i, min, interval, clines);
         }
         // unten und oben
         else if ( nPoints2 == 1 && nPoints == 2 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                             pointsX[1], pointsY[1], g > c, clines);
+                      pointsX[1], pointsY[1], g > c, min, interval, clines);
         }
         // rechts und oben
         else if ( nPoints3 == 1 && nPoints == 2 )
         { 
           if ( !(c == level && a == level) )
              AddSegment( level, pointsX[0], pointsY[0], 
-                                pointsX[1], pointsY[1], g > c, clines);
+                         pointsX[1], pointsY[1], g > c, min, interval, clines);
         }
         else
         {
@@ -488,8 +526,8 @@ namespace GISAlgebra {
       {
         if ( !(c == level && a == level) )
         {
-          return AddSegment( level, pointsX[2], pointsY[2], 
-                                    pointsX[3], pointsY[3], i > c, clines);
+          AddSegment( level, pointsX[2], pointsY[2], 
+                      pointsX[3], pointsY[3], i > c, min, interval, clines);
 
         }
       }
@@ -528,31 +566,44 @@ namespace GISAlgebra {
 
   bool AddSegment(double l, double startX, double startY,
                   double endX, double endY, int leftHigh, 
-                  DbArray<ResultInfo>* clines)
+                  double min, double interval, DbArray<ResultInfo>* clines)
   {
     Point p1(true, startX, startY);
     Point p2(true, endX, endY);
     HalfSegment hs(true, p1, p2);
-    Line* line = new Line(0);
 
-    line->Put(0,hs);
-
-    int l2 = static_cast<int>(l);
+    // Array-Element berechnen
+    int i = floor((l - min) / interval);
 
     // Contourlinie fuer level finden
-    //if (line->getLevel() == level)
-    // wenn existent, dann Segment am richtigen Ende hinzufuegen
+    ResultInfo temp;
+    clines->Get(i,temp);
 
+    // wenn existent, dann Segment hinzufuegen
+    if (!(temp.level == -32000))
+    {            
+      Line* line = new Line(0); 
+      line = temp.cline;
+
+      int s = line->Size();
+      line->Put(s,hs);
+    }
+    else
     // ansonsten neue Linie anlegen
-    //{
-      ResultInfo lines;// = new ResultInfo;
+    {
+      Line* line = new Line(0);
+
+      line->Put(0,hs);
+
+      int l2 = static_cast<int>(l);
+
+      ResultInfo lines;
 
       lines.level = l2;
       lines.cline = line;
 
-      clines->Append(lines);
-
-    //}
+      clines->Put(i,lines);
+    }
 
     return true;
   }
