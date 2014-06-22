@@ -532,14 +532,14 @@ Replace all single quotes with double quotes
     vector<TokenRange> &result);
   
 /*
-2.3.22 Get hartbeat data
+2.3.22 Get heartbeat data
 
 Result is a map:
 
 IP to Lastheatbeat message
 
 */
-  bool getHartbeatData(map<string, time_t> &result);
+  bool getHeartbeatData(map<string, time_t> &result);
 
 /*
 2.3.23 Get node data

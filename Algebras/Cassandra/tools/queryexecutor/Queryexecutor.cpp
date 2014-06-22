@@ -63,11 +63,11 @@ using namespace std;
 using namespace cassandra;
 
 
-class HartbeatUpdater {
+class HeartbeatUpdater {
  
 public:
   
-  HartbeatUpdater(string myCassandraIp, string myCassandraKeyspace, 
+  HeartbeatUpdater(string myCassandraIp, string myCassandraKeyspace, 
                   string myUuid) 
      : cassandraIp(myCassandraIp), 
      cassandraKeyspace(myCassandraKeyspace),
@@ -84,25 +84,25 @@ public:
        cassandra -> connect(false);
        updateUuid();
      } else {
-       cerr << "[Hartbeat] Unable to connect to cassandra, ";
+       cerr << "[Heartbeat] Unable to connect to cassandra, ";
        cerr << "exiting thread" << endl;
        active = false;
      }
   }
   
-  virtual ~HartbeatUpdater() {
-    cout << "[Hartbeat] Shutdown because destructor called" << endl;
+  virtual ~HeartbeatUpdater() {
+    cout << "[Heartbeat] Shutdown because destructor called" << endl;
     stop();
   }
   
 /*
-2.1 Update Hartbeat timestamp
+2.1 Update Heartbeat timestamp
 
 */
-  bool updateHartbeat() {  
+  bool updateHeartbeat() {  
     // Build CQL query
     stringstream ss;
-    ss << "UPDATE system_state set hartbeat = unixTimestampOf(now()) ";
+    ss << "UPDATE system_state set heartbeat = unixTimestampOf(now()) ";
     ss << "WHERE ip = '";
     ss << cassandraIp;
     ss << "';";
@@ -130,7 +130,7 @@ public:
     );
   
     if(! result) {
-      cout << "Unable to update hartbeat in system_state table" << endl;
+      cout << "Unable to update heartbeat in system_state table" << endl;
       cout << "CQL Statement: " << query << endl;
       return false;
     }
@@ -140,7 +140,7 @@ public:
   
   void run() {
     while(active) {
-      updateHartbeat();
+      updateHeartbeat();
       sleep(5);
     }
   }
@@ -397,9 +397,9 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
 
     // Process other tokens
     while( true ) {
-      map<string, time_t> hartbeatData;
+      map<string, time_t> heartbeatData;
       vector<TokenRange> processedIntervals;
-      cassandra -> getHartbeatData(hartbeatData);
+      cassandra -> getHeartbeatData(heartbeatData);
       cassandra -> getProcessedTokenRangesForQuery(processedIntervals,queryId);
       
       // Reverse the data of the logical ring, so we can interate from
@@ -465,7 +465,7 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
           }
           
           // Node not dead for more then 30 secs? Assume node is working
-          if(hartbeatData[tryInterval.getIp()] + 30 > now) {  
+          if(heartbeatData[tryInterval.getIp()] + 30 > now) {  
             break;
           }
           
@@ -536,31 +536,31 @@ void mainLoop(SecondoInterface* si,
 }
 
 /*
-2.4 start the hartbeat thread
+2.4 start the heartbeat thread
 
 */
-void* startHartbeatThreadInternal(void *ptr) {
-  HartbeatUpdater* hu = (HartbeatUpdater*) ptr;
+void* startHeartbeatThreadInternal(void *ptr) {
+  HeartbeatUpdater* hu = (HeartbeatUpdater*) ptr;
   hu -> run();
   
   return NULL;
 }
 
 /*
-2.5 start the hartbeat thread
+2.5 start the heartbeat thread
 
 */
-HartbeatUpdater* startHartbeatThread(string cassandraIp, 
+HeartbeatUpdater* startHeartbeatThread(string cassandraIp, 
                          string cassandraKeyspace, string uuid, 
                          pthread_t &targetThread) {
   
-   HartbeatUpdater* hartbeatUpdater 
-     = new HartbeatUpdater(cassandraIp, cassandraKeyspace, uuid);
+   HeartbeatUpdater* heartbeatUpdater 
+     = new HeartbeatUpdater(cassandraIp, cassandraKeyspace, uuid);
      
    pthread_create(&targetThread, NULL, 
-                  &startHartbeatThreadInternal, hartbeatUpdater);
+                  &startHeartbeatThreadInternal, heartbeatUpdater);
   
-  return hartbeatUpdater;
+  return heartbeatUpdater;
 }
 
 /*
@@ -601,7 +601,10 @@ int main(int argc, char** argv){
   
   // Main Programm
   pthread_t targetThread;
-  startHartbeatThread(cassandraNodeIp, cassandraKeyspace, myUuid, targetThread);
+
+  startHeartbeatThread(cassandraNodeIp, cassandraKeyspace, myUuid, 
+     targetThread);
+
   mainLoop(si, cassandra, cassandraNodeIp, cassandraKeyspace, myUuid);
   
   if(cassandra) {

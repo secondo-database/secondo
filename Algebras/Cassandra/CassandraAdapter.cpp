@@ -834,7 +834,7 @@ bool CassandraAdapter::createMetatables() {
   
   queries.push_back(string(
     "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, node TEXT, "
-    "hartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));"
+    "heartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));"
   ));
   
   queries.push_back(string(
@@ -1016,17 +1016,17 @@ bool CassandraAdapter::getTokenrangesFromQuery (
      return true;
 }
 
-bool CassandraAdapter::getHartbeatData(map<string, time_t> &result) {
+bool CassandraAdapter::getHeartbeatData(map<string, time_t> &result) {
     try {   
 
        boost::shared_future< cql::cql_future_result_t > future = 
-          executeCQL(string("SELECT ip, hartbeat FROM system_state"), 
+          executeCQL(string("SELECT ip, heartbeat FROM system_state"), 
                      cql::CQL_CONSISTENCY_ONE);
   
        future.wait();
     
        if(future.get().error.is_err()) {
-         cerr << "Unable to fetch hartbeat data" << endl;
+         cerr << "Unable to fetch heartbeat data" << endl;
          return false;
        }
     
@@ -1059,7 +1059,7 @@ bool CassandraAdapter::getNodeData(map<string, string> &result) {
        future.wait();
     
        if(future.get().error.is_err()) {
-         cerr << "Unable to fetch hartbeat data" << endl;
+         cerr << "Unable to fetch heartbeat data" << endl;
          return false;
        }
     
