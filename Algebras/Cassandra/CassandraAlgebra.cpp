@@ -59,6 +59,7 @@
 
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
+#include "CassandraConnectionPool.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -577,15 +578,12 @@ public:
 2.3.3.1 Delete our relation
 
 */  
-  size_t deleteRelation() {
+  bool deleteRelation() {
      CassandraAdapter* cassandra 
-        = new CassandraAdapter(contactPoint, keyspace);
-        
-      cassandra -> connect(false);
+        = CassandraConnectionPool::Instance()->
+          getConnection(contactPoint, keyspace, false);
+
       bool result = cassandra -> dropTable(relationName);
-      cassandra -> disconnect();
-      delete cassandra;
-      cassandra = NULL;
     
      deletePerformed = true;
      return result;
@@ -807,8 +805,9 @@ public:
       cout << "Tuple type is " << tupleType << endl;
 #endif      
       
-      cassandra = new CassandraAdapter(contactPoint, keyspace);
-      cassandra -> connect(false);
+      cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, false);
+           
       cassandra -> createTable(relationName, tupleType);
       
       if(sizeof(size_t) < 8) {
@@ -827,10 +826,9 @@ public:
   }
   
   void disconnect() {
-    if(cassandra != NULL) {
-      cassandra -> disconnect();
-      delete cassandra;
-      cassandra = NULL;
+    if(cassandra) {
+      // Wait for all pending futures to finish
+      cassandra -> waitForPendingFutures();
     }
   }
   
@@ -1139,17 +1137,13 @@ ListExpr CCollectTypeMap( ListExpr args ) {
   // Read tuple type from cassandra
   string tupleType;
   
-  CassandraAdapter* cassandra = 
-     new CassandraAdapter(contactPointVal, keyspaceVal);
-  
-     cassandra -> connect(false);
-  
+  CassandraAdapter* cassandra 
+     = CassandraConnectionPool::Instance()->
+      getConnection(contactPointVal, keyspaceVal, false);
+ 
   bool result = 
      cassandra -> getTupleTypeFromTable(relationVal, tupleType);
      
-  delete cassandra;
-  cassandra = NULL;
-  
   if(!result) {
      return listutils::typeError("Unable to read table type from "
        "cassandra. Does the table exist?");
@@ -1234,16 +1228,12 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
   // Read tuple type from cassandra
   string tupleType;
   
-  CassandraAdapter* cassandra = 
-     new CassandraAdapter(contactPointVal, keyspaceVal);
-  
-     cassandra -> connect(false);
-  
+  CassandraAdapter* cassandra 
+  = CassandraConnectionPool::Instance()->
+      getConnection(contactPointVal, keyspaceVal, false);
+
   bool result = 
      cassandra -> getTupleTypeFromTable(relationVal, tupleType);
-     
-  delete cassandra;
-  cassandra = NULL;
   
   if(!result) {
      return listutils::typeError("Unable to read table type from "
@@ -1329,16 +1319,12 @@ ListExpr CCollectQueryTypeMap( ListExpr args ) {
   // Read tuple type from cassandra
   string tupleType;
   
-  CassandraAdapter* cassandra = 
-     new CassandraAdapter(contactPointVal, keyspaceVal);
-  
-     cassandra -> connect(false);
-  
+  CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPointVal, keyspaceVal, false);
+           
   bool result = 
      cassandra -> getTupleTypeFromTable(relationVal, tupleType);
      
-  delete cassandra;
-  cassandra = NULL;
   
   if(!result) {
      return listutils::typeError("Unable to read table type from "
@@ -1387,40 +1373,41 @@ public:
       delete result;
       result = NULL;
     }
-    
-    if(cassandra != NULL) {
-      delete cassandra;
-      cassandra = NULL;
-    }
   }
   
   void open(){
     if(cassandra == NULL) {
-      cassandra = new CassandraAdapter(contactPoint, keyspace);
-      
       // Read the whole table or only the data
       // stored on the local cassandra node.
       if(fetchMode == ALL) {
         // Connect to cassandra and use the multi node loadbalancing 
-        // policy
-        cassandra -> connect(false);
+        // policy        
+       cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, false);
+
         result = cassandra -> readTable(relationName, consistence);
       } else if(fetchMode == LOCAL) {
         // Connect to cassandra and use the single node loadbalancing 
         // policy
-        cassandra -> connect(true); 
+       cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, true);
+
         result = cassandra -> readTableLocal(relationName, consistence);
       } else if(fetchMode == RANGE) {
         // Connect to cassandra and use the single node loadbalancing 
         // policy
-        cassandra -> connect(true); 
+       cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, true);
+
         result = cassandra -> readTableRange(relationName, consistence, 
                                              beginToken, endToken);
         
       } else if(fetchMode == QUERY) {
         // Connect to cassandra and use the multi node loadbalancing 
         // policy
-        cassandra -> connect(false); 
+        cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, false);
+
         result = cassandra -> readTableCreatedByQuery(relationName, 
                                              consistence, queryId);
       } else {
@@ -1757,8 +1744,9 @@ public:
   
   void open(){
     if(cassandra == NULL) {
-      cassandra = new CassandraAdapter(contactPoint, keyspace);
-      cassandra -> connect(false);
+      cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, false);
+           
       result = cassandra -> getAllTables(keyspace);
     }
   }
@@ -1785,11 +1773,6 @@ public:
     if(result != NULL) {
       delete result;
       result = NULL;
-    }
-    
-    if(cassandra != NULL) {
-      delete cassandra;
-      cassandra = NULL;
     }
   }
   
@@ -1984,8 +1967,9 @@ public:
   
   void open(){
     if(cassandra == NULL) {
-      cassandra = new CassandraAdapter(contactPoint, keyspace);
-      cassandra -> connect(false);
+       cassandra = CassandraConnectionPool::Instance()->
+          getConnection(contactPoint, keyspace, false);
+          
       result = cassandra -> getQueriesToExecute();
     }
   }
@@ -2023,11 +2007,6 @@ public:
     if(result != NULL) {
       delete result;
       result = NULL;
-    }
-    
-    if(cassandra != NULL) {
-      delete cassandra;
-      cassandra = NULL;
     }
     
     if(BasicTuple){
@@ -2222,11 +2201,10 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
       int queryid = ((CcInt*) args[2].addr) -> GetValue();
       string query = ((FText*) args[3].addr) -> GetValue();
       
-      CassandraAdapter* cassandra 
-          = new CassandraAdapter(contactPoint, keyspace);
-      
-      if(cassandra != NULL) {
-        cassandra -> connect(true);
+      CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, true);
+           
+      if(cassandra != NULL && cassandra -> isConnected()) {
         bool createMetatables = cassandra -> createMetatables();
         
         cassandra -> quoteCqlStatement(query);
@@ -2248,10 +2226,6 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
         }
         
         resultValue = insertResult && createMetatables;
-        
-        cassandra -> disconnect();
-        delete cassandra;
-        cassandra = NULL;
       }
       
       static_cast<CcBool*>(result.addr)->Set(true, resultValue);
@@ -2359,8 +2333,9 @@ public:
   
   void open(){
     if(cassandra == NULL) {
-      cassandra = new CassandraAdapter(contactPoint, keyspace);
-      cassandra -> connect(false);
+        cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, false);
+           
     }
   }
   
@@ -2373,10 +2348,7 @@ public:
   }
   
   virtual ~CQueryWaitLocalInfo() {
-    if(cassandra != NULL) {
-      delete cassandra;
-      cassandra = NULL;
-    }
+
   }
   
 private:
@@ -2495,11 +2467,10 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
  
       cout << "Wait for query id to be executed: " << queryId << endl;
       
-      CassandraAdapter* cassandra 
-            = new CassandraAdapter(contactPoint, keyspace);
-      
-      if(cassandra != NULL) {
-        cassandra -> connect(false);
+      CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, false);
+           
+      if(cassandra != NULL && cassandra -> isConnected()) {
         
         while (true) {
           int highestValue = -1;
@@ -2536,7 +2507,6 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
           
         }
         
-        cassandra -> disconnect();
       }
       
       static_cast<CcBool*>(result.addr)->Set(true, true);
@@ -2651,11 +2621,10 @@ int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
       string contactPoint = ((FText*) args[0].addr) -> GetValue();
       string keyspace = ((FText*) args[1].addr) -> GetValue();
       
-      CassandraAdapter* cassandra 
-           = new CassandraAdapter(contactPoint, keyspace);
-      
-      if(cassandra != NULL) {
-        cassandra -> connect(false);
+      CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
+            getConnection(contactPoint, keyspace, false);
+           
+      if(cassandra != NULL && cassandra -> isConnected()) {
         bool dropResult = cassandra -> dropMetatables();
         
         if(! dropResult) {
@@ -2671,10 +2640,6 @@ int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
         }
         
         resultValue = dropResult && createMetatables;
-        
-        cassandra -> disconnect();
-        delete cassandra;
-        cassandra = NULL;
       }
       
       static_cast<CcBool*>(result.addr)->Set(true, resultValue);
@@ -2754,6 +2719,8 @@ public:
   
   ~CassandraAlgebra()
   {
+    // Destory open cassandra connections
+    CassandraConnectionPool::Instance()->destroy();
   }
   ;
 };

@@ -603,32 +603,36 @@ bool CassandraAdapter::dropTable(string tablename) {
     return executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
 }
 
+void CassandraAdapter::waitForPendingFutures() {
+    if(! pendingFutures.empty()) {
+      cout << "Wait for pending futures: " << flush;
+      
+      for(vector < boost::shared_future<cql::cql_future_result_t> >
+          ::iterator iter = pendingFutures.begin(); 
+          iter != pendingFutures.end(); ++iter) {
+        
+          boost::shared_future<cql::cql_future_result_t> future = *iter;
+      
+          if(! future.is_ready() && ! future.has_exception() ) {
+            // Assume future error after 100 seconds
+            future.timed_wait(boost::posix_time::millisec(100));
+            cout << "." << flush;
+          }
+      }
+      
+      cout << endl;
+      
+      // Force removal of finished futures
+      removeFinishedFutures(true);
+      
+      cout << "All futures finished" << endl;
+   }
+}
+
 void CassandraAdapter::disconnect() {
     if(isConnected()) {
-
-        if(! pendingFutures.empty()) {
-          cout << "Wait for pending futures: " << flush;
-          
-          for(vector < boost::shared_future<cql::cql_future_result_t> >
-             ::iterator iter = pendingFutures.begin(); 
-             iter != pendingFutures.end(); ++iter) {
-            
-             boost::shared_future<cql::cql_future_result_t> future = *iter;
-          
-             if(! future.is_ready() && ! future.has_exception() ) {
-                // Assume future error after 100 seconds
-                future.timed_wait(boost::posix_time::millisec(100));
-                cout << "." << flush;
-             }
-          }
-          
-          cout << endl;
-          
-          removeFinishedFutures();
-          
-          cout << "All futures finished" << endl;
-        }
-      
+        waitForPendingFutures();
+        
         cout << "Disconnecting from cassandra" << endl;
 
         // Close session and cluster

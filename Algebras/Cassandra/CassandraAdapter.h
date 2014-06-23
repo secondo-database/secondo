@@ -557,10 +557,16 @@ IP to Noodename
 */
   bool copyTokenRangesToSystemtable(string localip);
           
+  
+/*
+2.3.25 Wait for pending futures
+
+*/
+  void waitForPendingFutures();
 protected:
 
 /*
-2.3.14 Execute the given cql future and check for errors. Returns
+2.3.26 Execute the given cql future and check for errors. Returns
        true if the future is executed successfully. False otherwise.
        
 */    
@@ -568,7 +574,7 @@ protected:
     boost::shared_future<cql::cql_future_result_t> cqlFuture);
 
 /*
-2.3.15 Execute the given cql. Returns a future containing the
+2.3.27 Execute the given cql. Returns a future containing the
        Query result.
        
 */    
@@ -576,7 +582,7 @@ protected:
      executeCQL(string cql, cql::cql_consistency_enum consistency);
 
 /*
-2.3.16 Returns a CQL statement for inserting a new row. The
+2.3.28 Returns a CQL statement for inserting a new row. The
        first parameter is the relation for this request. The 
        second parameter is the parition key, the third parameter 
        is the node id. The fourth parameter is the key of the tuple.
@@ -587,14 +593,14 @@ protected:
                       string node, string key, string value);
 
 /*
-2.3.17 Create a pepared statement for inserting data into the 
+2.3.29 Create a pepared statement for inserting data into the 
        relation spoecified in the first parameter.
        
 */    
   bool prepareCQLInsert(string relation, string consistenceLevel);
 
 /*
-2.3.18 Iterate over all pending futures (e.g. writes), report
+2.3.30 Iterate over all pending futures (e.g. writes), report
        errors and remove finished futures from the future list.
        Normally a cleanup is started only if the condition
        list.length % 100 = 0 is true. 
@@ -604,7 +610,7 @@ protected:
   void removeFinishedFutures(bool force = false);
 
 /*
-2.3.19 Execute a CQL query and extract result tokens
+2.3.31 Execute a CQL query and extract result tokens
 
 1. Parameter is the query to execute
 2. Parameter is the token result list
@@ -614,6 +620,7 @@ protected:
   bool getTokensFromQuery (string query, vector <CassandraToken> &result, 
                            string peer);
    
+  
 private:
 
   // Our cassandra contact point
