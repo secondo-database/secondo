@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee 
+              http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+         version="2.5"
+         xmlns="http://java.sun.com/xml/ns/javaee">
+         
+  <!-- Set minutes of session timeout -->
+  <session-config>
+		<session-timeout>60</session-timeout>
+	</session-config>
+
+  <!-- Servlets -->
+  <servlet>
+    <servlet-name>SecondoServiceImpl</servlet-name>
+    <servlet-class>com.secondo.webgui.server.rpc.SecondoServiceImpl</servlet-class>
+  </servlet>
+  
+  <servlet-mapping>
+    <servlet-name>SecondoServiceImpl</servlet-name>
+    <url-pattern>/secondoweb/secondoService</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
+    <servlet-name>downloadService</servlet-name>
+    <servlet-class>com.secondo.webgui.server.rpc.DownloadServlet</servlet-class>
+  </servlet>
+
+ <servlet-mapping>
+    <servlet-name>downloadService</servlet-name>
+    <url-pattern>/secondoweb/downloadService</url-pattern>
+ </servlet-mapping>
+  
+  <!-- Default page to serve -->
+  <welcome-file-list>
+    <welcome-file>SecondoWeb.html</welcome-file>
+  </welcome-file-list>
+
+</web-app>

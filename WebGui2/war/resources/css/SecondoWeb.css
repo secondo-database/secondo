@@ -1,0 +1,257 @@
+@charset "utf-8";
+
+/******************** fonts ********************/
+
+.serverResponseLabelError {
+	color: red;
+}	
+
+/***********************************************************
+*                 GWT Application Elements
+***********************************************************/
+
+.gwt-DialogBox {
+	width: 400.0px;
+}
+
+
+
+/******************** Loading Animation Popup ********************/
+.gwt-PopupPanelGlass {
+   background-color: #000;
+   opacity: 0.3;
+}
+
+.loadingpopup{
+	border: none;
+}
+
+/******************** Buttons ********************/
+.closedatabasebutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.logoutbutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.hideterminalbutton{
+	background: #F1F1F1;
+	border: none;
+	text-shadow: none;
+}
+
+.resettextbutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.resetrawdatabutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.colorpickerbutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.zoombutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.zoomallbutton{
+	background: #F1F1F1;
+	border: none;
+	text-shadow: none;
+}
+
+.zoomlastbutton{
+	background: #F1F1F1;
+	border: none;
+	text-shadow: none;
+}
+
+.resetobjectlistbutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+/******************** View Panels ********************/
+
+.commandpanel {
+	background: black;
+	border: none;
+	font: 18px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: #00FF00;
+	resize: none;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.menubar {
+	background: #F1F1F1;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.menubarpopup{
+	font-weight: bold;
+	text-align: left;
+	float: left;
+	padding: 0.0px 20.0px 0.0px 20.0px;
+}
+
+.menubarpopup .gwt-MenuItem{
+	padding: 0.0px 20.0px 0.0px 20.0px;
+}
+
+.sidebar {
+	background: #F1F1F1;
+	border: none;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.statusbar {
+	background: #F1F1F1;
+	border: none;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.rawdataoutput {
+	background: white;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	resize: none;
+	padding: 0.0px 0.0px 20.0px 20.0px;
+}
+
+.rawdataview {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-bottom: none;
+	border-left: none;
+	resize: none;
+}
+
+.textoutput {
+	background: white;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	resize: none;
+	padding: 5.0px 0.0px 5.0px 10.0px;
+}
+
+.textview {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right: none;
+	border-bottom: none;
+	border-left: none;
+	resize: none;
+}
+
+.graphicalcontentpanel {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-bottom: none;
+	border-left-width: 1px;
+	border-left-style: solid;
+	border-left-color: #CCCCCC;
+}
+
+.mapcontentpanel {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-bottom: none;
+	border-left-width: 1px;
+	border-left-style: solid;
+	border-left-color: #CCCCCC;
+}
+
+.toolbox {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-bottom: none;
+	border-left: none;
+	font: 15px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	resize: none;
+	padding: 0.0px 10.0px 10.0px 10.0px;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.toolsstackpanel .gwt-StackPanelItem{
+	background: white;
+	font-weight: bold;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-left-width: 1px;
+	border-left-style: solid;
+	border-left-color: #CCCCCC;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: #CCCCCC;
+}
+
+/***********************************************************
+*                     D3 Elements
+***********************************************************/
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+    font-size: 11px;
+}
