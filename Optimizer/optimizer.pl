@@ -2387,7 +2387,7 @@ plan_to_atom(InTerm,OutTerm) :-
   concat_atom(['ERROR: special plan_to_atom/2 rule for operator \'', Op,
                '\'is missing.\n',
                '\tDefined Syntax is: secondoOp(',Op,',',SyntaxA,',',NA,')\n',
-               '\tPlease provide an according rule!\.'],'',ErrMsg),
+               '\tPlease provide an according rule!.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(optimizer_plan_to_atom(InTerm,OutTerm)
         ::malformedExpression:ErrMsg)),
@@ -7580,8 +7580,8 @@ lookupPred1([const, Type, value, Value], value_expr(Type,Value),
   ground(Type), ground(Value),
   ( atom(Type)
     -> Op = Type
-    ;  ( (compound(Type), \+ is_list(T))
-         -> T =.. [Op|_]
+    ;  ( (compound(Type), \+ is_list(Type))
+         -> Type =.. [Op|_]
          ;  fail
        )
   ),

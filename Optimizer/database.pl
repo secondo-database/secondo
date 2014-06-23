@@ -2317,7 +2317,7 @@ hasIndex(Rel, Attr, IndexName, IndexType) :-
       )
     ; ( concat_atom(['Unsufficient parameters: Uninitialized argument in ',
                      'hasIndex/4.'],'',ErrMsg),
-        write_list(['\ERROR:\t',ErrMsg]),
+        write_list(['\nERROR:\t',ErrMsg]),
         throw(error_Internal(database_hasIndex(Rel, Attr, IndexName, IndexType)
                         ::missingParameter::ErrMsg)),
         fail
@@ -4131,7 +4131,7 @@ analyseTupleInfoQueryResultList(DB,DCrel, ARelPath, ExtAttrList, ResListAtts,
   ( TupleTotalSize = undefined % some error may have occured
     -> ( Card < 0.5        % special case for card=0
          -> ( % undefined tuplesize due to empty relation
-              write_list(['\nWARNING:\Tuplesize for relation ',DCrel,
+              write_list(['\nWARNING:\tTuplesize for relation ',DCrel,
                      ' is undefined due to a cardinality of ', Card,
                      '\n--->\tTherefore, tuplesize is set to \'not a number\'',
                      '(nAn).']),nl,
@@ -4329,7 +4329,7 @@ tupleSizeSplit(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
       MemSize \= nAn, CoreSize \= nAn, LOBSize \= nAn )       % well defined
     -> ( MemSize2 = MemSize, CoreSize2 = CoreSize, LOBSize2 = LOBSize
        )
-    ;  ( write_list(['\INFO:\tTuplesize contains "not a number" (nAn). ',
+    ;  ( write_list(['\nINFO:\tTuplesize contains "not a number" (nAn). ',
                      '\n--->\tTherefore, I retry getting meaningful data...']),
          nl,
          getTupleInfo(DCrel),   % inquire for it, then it should be known!
