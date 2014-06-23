@@ -34,7 +34,7 @@ namespace GISAlgebra {
 
     typename T::this_type* s_in =
           static_cast<typename T::this_type*>(args[0].addr);
-    CcReal* lines = static_cast<CcReal*>(args[1].addr);
+    CcInt* lines = static_cast<CcInt*>(args[1].addr);
 
     switch(message)
     {
@@ -43,7 +43,14 @@ namespace GISAlgebra {
         // initialize the local storage
         double min = s_in->getMinimum();
         double max = s_in->getMaximum();
-        double interval = lines->GetValue();
+        int interval = lines->GetValue();
+        
+        if ( interval < 1 )
+        {
+          cmsg.error() << "Interval < 1 not allowed" << endl;
+          cmsg.send();
+          return CANCEL;
+        }
 
         double diff = max - min;
         int num = ceil(diff / interval) + 1;
@@ -283,6 +290,7 @@ namespace GISAlgebra {
       {
         if(local.addr != 0)
         {
+
           ListExpr resultType = GetTupleResultType(s);
           TupleType *tupleType = new TupleType(nl->Second(resultType));
           Tuple *clines = new Tuple( tupleType );
@@ -346,8 +354,12 @@ namespace GISAlgebra {
             return CANCEL;
           }      
         }
+        else
+        {
+          result.addr = 0;
+          return CANCEL;
+        }      
       }
-      break;
 
       case CLOSE:
       {
@@ -419,7 +431,7 @@ namespace GISAlgebra {
       return NList::typeError("two arguments required");
     }
 
-    if (type == NList(raster2::sint::BasicType(), CcReal::BasicType())) 
+    if (type == NList(raster2::sint::BasicType(), CcInt::BasicType())) 
     {
       return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
                              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
@@ -427,7 +439,7 @@ namespace GISAlgebra {
     }
 
     else if(type == NList(raster2::sreal::BasicType(), 
-                          CcReal::BasicType())) 
+                          CcInt::BasicType())) 
     {
       return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
                              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
@@ -435,14 +447,14 @@ namespace GISAlgebra {
     }
     
     return NList::typeError
-           ("Expecting an sint or sreal and a double (interval).");
+           ("Expecting an sint or sreal and a integer (interval).");
   }
 
   bool ProcessRectangle(double a, double aX, double aY,
                         double g, double gX, double gY,
                         double i, double iX, double iY,
                         double c, double cX, double cY, 
-                        double interval, double min, 
+                        int interval, double min, 
                         DbArray<ResultInfo>* clines)
   {
     // Rechteck verarbeiten (Minimum, Maximum bestimmen)
@@ -455,7 +467,7 @@ namespace GISAlgebra {
     // Schnittpunkte bestimmen
     for(int iLevel = startLevel; iLevel <= endLevel; iLevel++)
     {
-      double level = iLevel * interval;
+      int level = iLevel * interval;
 
       int nPoints = 0; 
       int nPoints1 = 0, nPoints2 = 0, nPoints3 = 0;
@@ -564,9 +576,9 @@ namespace GISAlgebra {
     }
   }
 
-  bool AddSegment(double l, double startX, double startY,
+  bool AddSegment(int l, double startX, double startY,
                   double endX, double endY, int leftHigh, 
-                  double min, double interval, DbArray<ResultInfo>* clines)
+                  double min, int interval, DbArray<ResultInfo>* clines)
   {
     Point p1(true, startX, startY);
     Point p2(true, endX, endY);
