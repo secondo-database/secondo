@@ -310,7 +310,7 @@ runAnalysis(Database) :-
   convert_time(A, Y, M, D, _, _, _, _),
   concat_atom(['benchmarkResult feed csvexport[\'Analyse ',
     Database, '-', Y, '-', M, '-', D, '.csv\',
-    FALSE, TRUE, ";"\] count'], Query),
+    FALSE, TRUE, ";"] count'], Query),
   write('ExportQuery: '), write(Query), nl,
   !,
   query(Query).
@@ -421,7 +421,7 @@ tpcd(1, select
       lineitem
       where
 % substitution parameter
-        [lshipdate <= create_instant(instant2real(instant("1998-12-01")) - Delta)]
+      [lshipdate <= create_instant(instant2real(instant("1998-12-01")) - Delta)]
 %      [lshipdate <= instant("1998-09-02")]
       groupby
       [lreturnflag,
@@ -1055,7 +1055,7 @@ tpcd(19, select
 % substitution parameter
                     and (pbrand = "Brand#12")
                   )
-                  and (pcontainer in ( "SM CASE", "SM BOX", "SM PACK", "SM PKG"))
+                 and (pcontainer in ( "SM CASE", "SM BOX", "SM PACK", "SM PKG"))
                 )
 % substitution parameter
                 and (lquantity >= 1)
@@ -1083,7 +1083,7 @@ tpcd(19, select
 % substitution parameter
                     and (pbrand = "Brand#23")
                   )
-                  and (pcontainer in ("MED BAG", "MED BOX", "MED PKG", "MED PACK"))
+               and (pcontainer in ("MED BAG", "MED BOX", "MED PKG", "MED PACK"))
                 )
 % substitution parameter
                 and (lquantity >= 10)
@@ -1112,7 +1112,7 @@ tpcd(19, select
 % substitution parameter
                     and (pbrand = "Brand#34")
                   )
-                  and (pcontainer in ( "LG CASE", "LG BOX", "LG PACK", "LG PKG"))
+                 and (pcontainer in ( "LG CASE", "LG BOX", "LG PACK", "LG PKG"))
                 )
 % substitution parameter
                 and (lquantity >= 20)
