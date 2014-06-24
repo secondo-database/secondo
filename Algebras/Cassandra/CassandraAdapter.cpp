@@ -974,7 +974,6 @@ bool CassandraAdapter::getProcessedTokenRangesForQuery (
       stringstream ss;
       ss << "SELECT ip, begintoken, endtoken FROM system_progress WHERE ";
       ss << "queryid = " << queryId;
-      cout << ss.str() << endl;
       
       return getTokenrangesFromQuery(result, ss.str());
 }

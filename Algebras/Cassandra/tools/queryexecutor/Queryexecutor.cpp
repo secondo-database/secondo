@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <iostream>
 #include <map>
+#include <algorithm>
 
 #include <stdlib.h>
 #include <time.h>
@@ -368,6 +369,43 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
 }
 
 
+
+bool refreshRingInfo(CassandraAdapter* cassandra, 
+                     vector<TokenRange> &allTokenRanges, 
+                     vector<TokenRange> &processedIntervals, 
+                     map<string, time_t> &heartbeatData, 
+                     size_t queryId) {
+  
+
+    // Clear transient data
+    allTokenRanges.clear();
+    processedIntervals.clear();
+    heartbeatData.clear();
+
+    // Refresh data
+    if (! cassandra -> getTokenRangesFromSystemtable(allTokenRanges) ) {
+      cerr << "[Error] Unable to collect token ranges from system table" 
+           << endl;
+      return false;
+    }
+    
+    if (! cassandra -> getHeartbeatData(heartbeatData) ) {
+      cerr << "[Error] Unable to heartbeat from system table" << endl;
+      return false;
+    }
+    
+    if (! cassandra -> getProcessedTokenRangesForQuery(
+               processedIntervals, queryId) ) {
+      
+      cerr << "[Error] Unable to collect processed token ranges from "
+           << "system table" << endl;
+      return false;
+    }
+    
+  
+  return true;
+}
+
 /*
 2.2 Handle a multitoken query (e.g. query ccollectrange('192.168.1.108', 
      'secondo', 'relation2', 'ONE',__TOKEN__);
@@ -378,109 +416,114 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
                       SecondoInterface* si, NestedList* nl) {
 
     // Collecting ring configuration
-    vector<TokenRange> allIntervals;
-    if (! cassandra -> getTokenRangesFromSystemtable(allIntervals) ) {
-      cerr << "Unable to collect token ranges from system table" << endl;
+    vector<TokenRange> allTokenRanges;
+    vector<TokenRange> localTokenRanges;
+    vector<TokenRange> processedIntervals;
+    map<string, time_t> heartbeatData;
+    
+    if (! refreshRingInfo(cassandra, 
+           allTokenRanges, processedIntervals, heartbeatData, queryId) ) {
+      
+      cerr << "[Error] Unable to collect ring info" << endl;
       return;
     }
     
     // Generate token range queries for local tokenranges;
     for(vector<TokenRange>::iterator 
-        iter = allIntervals.begin();
-        iter != allIntervals.end(); ++iter) {
+        iter = allTokenRanges.begin();
+        iter != allTokenRanges.end(); ++iter) {
  
       TokenRange interval = *iter;
-      if(interval.getIp().compare(ip) == 0) {
-        executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
+    
+      // Its a local token range
+      if(interval.isLocalTokenRange(ip)) {
+        
+        localTokenRanges.push_back(interval);
+        
+        if( binary_search(processedIntervals.begin(), 
+                          processedIntervals.end(), interval))  {
+          cout << "[Info] Skipping already processed TokenRange: " 
+               << interval;
+        } else {
+          executeTokenQuery(cassandra, query, queryId, ip, interval, si, nl);
+        }
       }
     }  
 
     // Process other tokens
     while( true ) {
-      map<string, time_t> heartbeatData;
-      vector<TokenRange> processedIntervals;
-      cassandra -> getHeartbeatData(heartbeatData);
-      cassandra -> getProcessedTokenRangesForQuery(processedIntervals,queryId);
+      if (! refreshRingInfo(cassandra, 
+            allTokenRanges, processedIntervals, heartbeatData, queryId) ) {
+        
+        cerr << "[Error] Unable to collect ring info" << endl;
+        return;
+      }
       
       // Reverse the data of the logical ring, so we can interate from
       // MAX to MIN
-      reverse(allIntervals.begin(), allIntervals.end());
-      reverse(processedIntervals.begin(), processedIntervals.end());
+      reverse(allTokenRanges.begin(), allTokenRanges.end());
       
       cout << "We have " << processedIntervals.size() << " of "
-           << allIntervals.size() << "token ranges processed" << endl;
+           << allTokenRanges.size() << " token ranges processed" << endl;
            
-      if(processedIntervals.size() == allIntervals.size()) {
-        return; // All TokenRanges are processed
+      // All TokenRanges are processed
+      if(processedIntervals.size() == allTokenRanges.size()) {
+        return; 
       }
-      
-      // Save the last position in allIntervals
-      size_t lastAllIntervalsPos = 0;
-      size_t lastProcesssedIntervallsPos = 0;
-      
-      for(size_t iteration = 0; 
-          iteration < processedIntervals.size(); ++iteration) {
-        
-        TokenRange processedInterval 
-           = processedIntervals.at(lastProcesssedIntervallsPos);
-      //  cout << "Handling interval: " << processedInterval;
-        
-        // Increment primary pointer
-        ++lastProcesssedIntervallsPos;
-        lastProcesssedIntervallsPos 
-           = lastProcesssedIntervallsPos % processedIntervals.size();
-        
-        // is this intervall processed by ourself?
-        if(processedInterval.getIp().compare(ip) != 0) {
-          continue;
-        }
-        
-        // Find the intervall in the allIntervals vector
-        while(true) {
-          
-          TokenRange tokenInterval = allIntervals.at(lastAllIntervalsPos);
-          if(tokenInterval == processedInterval) {
-            break;
-          }
-      
-          ++lastAllIntervalsPos;
-          lastAllIntervalsPos = lastAllIntervalsPos % allIntervals.size();
-        }
-        
-        
-        time_t now = time(0);
-          
-        TokenRange nextInterval 
-            = processedIntervals.at(lastProcesssedIntervallsPos);
-       
-        for(size_t offset = 1; ; ++offset) {
-          
-          TokenRange tryInterval 
-              = allIntervals.at((lastAllIntervalsPos + offset) 
-                % allIntervals.size());
-          
-          // We reached the next interval processed by ourself
-          if(tryInterval == nextInterval) {
-            break;
-          }
-          
-          // Node not dead for more then 30 secs? Assume node is working
-          if(heartbeatData[tryInterval.getIp()] + 30 > now) {  
-            break;
-          }
-          
-          cout << "Node " << tryInterval.getIp() ;
-          cout << " is dead for more then 30 seconds" << endl;    
-          cout << "Handling additional interval: " << tryInterval << endl; 
-          executeTokenQuery(cassandra, query, queryId, ip, tryInterval, si, nl);
+
+      // Find start offset
+      size_t offset = 0;
+      for( ; offset < allTokenRanges.size(); ++offset) {
+        TokenRange tryTokenRange = allTokenRanges[offset];
+        if(binary_search(localTokenRanges.begin(), 
+                         localTokenRanges.end(), tryTokenRange)) {
+          break;
         }
       }
       
+      // Local Tokenrange - We have to process the data in the range
+      // Foreign Tokenrange - An other worker process has to process the data
+      enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE };
+      
+      RANGE_MODE mode = LOCAL_TOKENRANGE;
+      
+      for(size_t position = 0; position < allTokenRanges.size(); ++position) {
+        size_t realPos = (position + offset) % allTokenRanges.size();
+        TokenRange range = allTokenRanges[realPos];
+        cout << "[Debug] Handling tokenrange: " << range;
+        
+        if(range.isLocalTokenRange(ip)) {
+          cout << "Set to local" << endl;
+          mode = LOCAL_TOKENRANGE;
+        } else {
+          time_t now = time(0);
+          if(heartbeatData[range.getIp()] + 30 > now) {  
+            cout << "[Info] Set to foreign: " << range;
+              mode = FOREIGN_TOKENRANGE;
+          } else {
+            cout << "[Info] Treat range as local, because node is dead: " 
+                 << range;
+          }
+        }
+        
+        // Process range - it's a local range
+        if(mode == LOCAL_TOKENRANGE) {
+          if( binary_search(processedIntervals.begin(), 
+                          processedIntervals.end(), range))  {
+          cout << "[Info] Skipping already processed TokenRange: " 
+               << range;
+          } else {
+            executeTokenQuery(cassandra, query, queryId, ip, range, si, nl);
+          }
+        }
+        
+      }
+           
       cout << "Sleep 5 seconds and check the ring again" << endl;
       sleep(5);
     }
-}
-
+} 
+      
 /*
 2.3 This is the main loop of the query executor. This method fetches
   queries from cassandra and forward them to secondo.

@@ -172,8 +172,8 @@ public:
 2.4.5 Is this a local interval?
 
 */
-  bool isLocalTokenRange() const {
-    return (ip.compare("127.0.0.1") == 0);
+  bool isLocalTokenRange(string myIp = "127.0.0.1") const {
+    return (ip.compare(myIp) == 0);
   }
 
 /*
@@ -199,9 +199,17 @@ public:
   bool operator<( const TokenRange& val ) const { 
         return start < val.getStart(); 
   }
-  
+
 /*
-2.4.7 Operator ==
+2.4.8 Operator >
+
+*/  
+  bool operator>( const TokenRange& val ) const { 
+        return start > val.getStart(); 
+  }
+    
+/*
+2.4.9 Operator ==
 
 */    
  inline bool operator== (const TokenRange &interval) {
