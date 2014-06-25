@@ -1,0 +1,125 @@
+###########################################################################
+#
+# Construction of regions from OpenStreetMap Data with two different tag values:
+# buildings, landuse
+#
+# Uses NestedRelationAlgebra, HadoopAlgebra, HadoopParallelAlgebra
+#
+# -> adapt the filename of the osm-file to be imported.
+#
+###########################################################################
+
+# Database germany 
+
+# we have 12 data servers and 36 cores
+
+let CLUSTER_SIZE = 12 
+
+let PS_SCALE = 36 
+
+#let OSM_FilePath = 'arnsberg-regbez.osm';
+let OSM_FilePath = '/mnt/diskb/psec2/backup_OSM/germany-latest.osm';
+
+# Q1
+
+# Import the data in parallel 
+
+let SubFileName = "PartCity";
+
+let RelPrefix = "City";
+
+query divide_osm(OSM_FilePath, SubFileName, CLUSTER_SIZE, RelPrefix);
+# 47 secs
+
+query spreadFiles(SubFileName, '', CLUSTER_SIZE);
+# 10 secs
+
+let MapAllRel = hadoopMapAll(fullosmimport(totext(SubFileName), RelPrefix)) consume; 
+# 82 secs
+
+# The distribution of above map job result 
+let CityDistribution = MapAllRel feed remove[Success, Result] consume;
+
+let CityNodes_Ini_dlo = CityNodes_type createFList["CityNodes", CityDistribution, DLO, TRUE];
+
+let CityNodeTags_Ini_dlo = CityNodeTags_type createFList["CityNodeTags", CityDistribution, DLO, TRUE];
+
+let CityWays_Ini_dlo = CityWays_type createFList["CityWays", CityDistribution, DLO, TRUE];
+
+let CityWayTags_Ini_dlo = CityWayTags_type createFList["CityWayTags", CityDistribution, DLO, TRUE];
+
+let CityRelations_Ini_dlo = CityRelations_type createFList["CityRelations", CityDistribution, DLO, TRUE];
+
+let CityRelationTags_Ini_dlo = CityRelationTags_type createFList["CityRelationTags", CityDistribution, DLO, TRUE];
+
+# Q2 parallel
+
+# Use the approach with a regular spatial grid
+
+let CityNodes_NodeId_flist = CityNodes_Ini_dlo hadoopReduce[NodeId, DLF, CLUSTER_SIZE; . feed ]
+
+# 63s
+
+let CityNodesSample = CityNodes_Ini_dlo hadoopMap[DLF, TRUE; . sample[100; 0.00000001]] collect[] consume;
+
+let CityAreaScaled = CityNodesSample feed
+  extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  aggregateB[Box; fun(r1: rect, r2:rect) r1 union r2; [const rect value undef] ]
+
+# we will define a 30 by 30 grid over this area. The resulting 900 cells will 
+# be mapped to 36 tasks, so each task gets 25 cells, to obtain an even distribution.
+
+let NO_COLUMNS = 30
+
+let CELL_SIZE_X = (maxD(CityAreaScaled, 1) - minD(CityAreaScaled, 1)) / NO_COLUMNS
+
+let CELL_SIZE_Y = (maxD(CityAreaScaled, 2) - minD(CityAreaScaled, 2)) / NO_COLUMNS
+
+let GRID_CityArea = createCellGrid2D(minD(CityAreaScaled, 1), minD(CityAreaScaled, 2), 
+  CELL_SIZE_X, CELL_SIZE_Y, NO_COLUMNS)
+
+let CityNodesNew_NodeId_dlo = CityNodes_NodeId_flist
+  hadoopMap[DLF, FALSE; . extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  extendstream[Cell: cellnumber(.Box, GRID_CityArea)]
+  extend[Task: .Cell mod PS_SCALE] ]
+  hadoopReduce[Task, DLF, PS_SCALE; . projectextend[NodeId; Pos: makepoint(.Lon, .Lat) ] ]
+  hadoopReduce[NodeId, DLO, CLUSTER_SIZE; . consume]
+
+
+# Q3 parallel
+
+let CityWays_NodeRef_flist = CityWays_Ini_dlo hadoopReduce[NodeRef, DLF, CLUSTER_SIZE; . feed ]
+
+# 60s
+
+let CityWayTags_WayIdInTag_flist = CityWayTags_Ini_dlo hadoopReduce[WayIdInTag, DLF, CLUSTER_SIZE; . feed ]
+
+# 62s
+
+let Ways_WayId_dlo = CityNodesNew_NodeId_dlo
+  CityWays_NodeRef_flist
+  hadoopReduce2[NodeId, NodeRef, DLF, PS_SCALE; . feed .. itHashJoin[NodeId, NodeRef] ]
+  CityWayTags_WayIdInTag_flist
+  hadoopReduce2[WayId, WayIdInTag, DLO, CLUSTER_SIZE; . sortby[WayId, NodeCounter] 
+    nest[WayId; NodeList] 
+    extend[Curve: .NodeList afeed projecttransformstream[Pos] collect_line[TRUE]] 
+    .. nest[WayIdInTag; WayInfo] 
+    itHashJoin[WayId, WayIdInTag]
+    consume ]
+
+# 3:20min (200.108sec)
+
+
+let Buildings_OID_dlf = Ways_WayId_dlo hadoopMap[DLF; . feed filter[.WayInfo afeed filter[.WayTagKey = "building"] count > 0] extend[Region: .Curve line2region] projectextend[Region;OSM_id: .WayId] ];
+
+
+let Lands_OID_dlf = Ways_WayId_dlo hadoopMap[DLF; . feed filter[.WayInfo afeed filter[.WayTagKey = "landuse"] count > 0] extend[Region: .Curve line2region] projectextend[Region;OSM_id: .WayId] ];
+
+let Buildings = Buildings_OID_dlf collect[] consume;
+
+let Lands = Lands_OID_dlf collect[] consume;
+
+close database;
+
