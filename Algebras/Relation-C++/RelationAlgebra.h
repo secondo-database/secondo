@@ -781,6 +781,10 @@ Returns the size of attribute i including its extension part.
 */
    inline size_t GetMemSize() const{
       size_t tupleMemSize = sizeof(*this);
+      if(noAttributes > MAX_NUM_OF_ATTR){ // do not use standard
+        tupleMemSize += noAttributes + sizeof(Attribute*);
+      }
+
       for( int i = 0; i < noAttributes; i++)
       {
         tupleMemSize += GetMemSize(i);
@@ -791,7 +795,7 @@ Returns the size of attribute i including its extension part.
    // returns the size in memory of attribute i
    inline size_t  GetMemSize(int i) const {
       if(attributes[i]){
-       return GetRootSize(i) +
+       return attributes[i]->Sizeof() +
               attributes[i]->getUncontrolledFlobSize();
       } else {
           return 0;
