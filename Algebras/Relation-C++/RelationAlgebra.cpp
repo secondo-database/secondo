@@ -3757,6 +3757,59 @@ Operator memtuplesize (
 );
 
 
+/*
+5.10.3 MemAlltrSize
+
+*/
+
+ListExpr memattrsizeTM(ListExpr args){
+   string err = "DATA expected";
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+   }
+   if(!listutils::isDATA(nl->First(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<CcInt>();
+}
+
+
+int
+memattrsizeVM(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+   Attribute* arg = (Attribute*)  args[0].addr;
+   int  size = arg->Sizeof() + arg->getUncontrolledFlobSize();
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   res->Set(true,size); 
+   return 0;
+}
+
+
+OperatorSpec memattrsizeSpec(
+           "DATA -> int",
+           "  _ memattrsize",
+           "Returns the size of the memory usage of an attribute",
+           " query thecenter memattrsize");
+
+/*
+5.10.4 Operator instance
+
+*/
+Operator memattrsize (
+   "memattrsize",
+   memattrsizeSpec.getStr(),
+   memattrsizeVM,
+   Operator::SimpleSelect,
+   memattrsizeTM
+);
+
+
+
+
+
+
+
 
 
 /*
@@ -5447,6 +5500,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgexttuplesize);
     AddOperator(&relalgtuplesize);
     AddOperator(&memtuplesize);
+    AddOperator(&memattrsize);
     AddOperator(&relalgrootattrsize);
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);

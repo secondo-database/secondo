@@ -156,10 +156,15 @@ Result   : TRUE
 
 Operator : memtuplesize
 Number   : 1
-Signature: ((stream|rel (tuple x))) -> int
+Signature: tuple -> int
 Example  : query Trains roottuplesize < Trains feed extend[MTS : . memtuplesize] avg[MTS]
 Result   : TRUE
 
+Operator : memattrsize
+Number   : 1
+Signature: DATA -> int
+Example  : query (thecenter memattrsize) > 24
+Result   : TRUE
 
 
 Operator : sizecounters
