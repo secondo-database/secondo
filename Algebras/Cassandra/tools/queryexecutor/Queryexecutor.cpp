@@ -172,7 +172,8 @@ private:
 
 */
 
-SecondoInterface* initSecondoInterface() {
+SecondoInterface* initSecondoInterface(string secondoHost, 
+                  string secondoPort) {
 
    // create an interface to the secondo server
    // the paramneter must be true to communicate as client
@@ -187,16 +188,18 @@ SecondoInterface* initSecondoInterface() {
   // SECONDO Connection data
   string user = "";
   string passwd = "";
-  string host = "localhost";
-  string port = "1234";
+  
   bool multiUser = true;
   string errMsg;          // return parameter
   
   // try to connect
-  if(!si->Initialize(user,passwd,host,port,config,errMsg,multiUser)){
+  if(!si->Initialize(user, passwd, secondoHost, secondoPort, 
+                    config, errMsg, multiUser)){
+
      // connection failed, handle error
      cerr << "Cannot initialize secondo system" << endl;
      cerr << "Error message = " << errMsg << endl;
+
      return NULL;
   }
   
@@ -612,16 +615,21 @@ HeartbeatUpdater* startHeartbeatThread(string cassandraIp,
 */
 int main(int argc, char** argv){
 
-  if(argc != 3) {
-     cerr << "Usage: " << argv[0] << " ip keyspace" << endl;
+  if(argc != 4) {
+     cerr << "Usage: " << argv[0] 
+          << " <cassandra-ip> <keyspace> <secondo-port>" 
+          << endl;
      return -1;
   }
    
   // Parse commandline args
   string cassandraNodeIp = string(argv[1]);
   string cassandraKeyspace = string(argv[2]);
-   
-  SecondoInterface* si = initSecondoInterface();
+  string secondoPort = string(argv[3]);
+
+  string secondoHost = string("127.0.0.1");
+  SecondoInterface* si = initSecondoInterface(secondoHost, secondoPort);
+
   if(si == NULL) { 
     return -1;
   }
