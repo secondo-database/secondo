@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script starts cassandra
+# This script stops cassandra
 # on multiple nodes
 #
 # Jan Kristof Nidzwetzki
@@ -11,11 +11,11 @@
 nodes="node1 node2 node3 node4 node5 node6"
 
 # Cassandra binary
-cassandrabin="/opt/psec/nidzwetzki/cassandra/apache-cassandra-2.0.7/bin/cassandra"
+cassandrabin="/opt/cassandra/apache-cassandra-2.0.7/bin/cassandra"
 
 
 for node in $nodes; do
 
-   ssh $node $cassandrabin &
+   ssh $node "ps ux | grep cassandra | grep -v grep | grep -v stop_cassandra | awk {'print \$2'} | xargs kill"
 
 done
