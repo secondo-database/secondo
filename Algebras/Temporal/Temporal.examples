@@ -745,7 +745,7 @@ Result    : (periods (("2013-04-18" "2013-04-19" TRUE FALSE)))
 Operator : contains
 Number   : 1
 Signature : periods x instant -> bool
-Example   : query theyear(2014) contains [const instant value \"2014-02-14\"]"
+Example   : query theyear(2014) contains [const instant value "2014-02-14"]
 Result    : TRUE
 
 
