@@ -455,7 +455,7 @@ bool CassandraAdapter::getAllTokenRanges(
       // Add start interval
       TokenRange interval2(
         LLONG_MIN, 
-        (allTokens.at(0)).getToken() - 1, 
+        (allTokens.at(0)).getToken(), // FIXME
         (allTokens.at(0)).getIp());
       
       allTokenRange.push_back(interval2);
@@ -474,7 +474,7 @@ bool CassandraAdapter::getAllTokenRanges(
       long long nextToken = (allTokens.at(i + 1)).getToken();        
       
       TokenRange interval(currentToken, 
-                              nextToken - 1, 
+                              nextToken,  // FIXME
                               (allTokens.at(i)).getIp());
       
       allTokenRange.push_back(interval);
