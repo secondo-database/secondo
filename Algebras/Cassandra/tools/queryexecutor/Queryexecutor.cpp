@@ -499,8 +499,9 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
           cout << "Set to local" << endl;
           mode = LOCAL_TOKENRANGE;
         } else {
-          time_t now = time(0);
-          if(heartbeatData[range.getIp()] + 30 > now) {  
+          time_t now = time(0) * 1000; // Convert to ms
+
+          if(heartbeatData[range.getIp()] + 30000 > now) {  
             cout << "[Info] Set to foreign: " << range;
               mode = FOREIGN_TOKENRANGE;
           } else {
