@@ -545,9 +545,6 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string cql,
         boost::shared_future<cql::cql_future_result_t> future
             = session->query(cqlStatement);
 
-        // Wait for result
-        future.wait();
-
         if(future.get().error.is_err()) {
             cerr << "Unable to execute " << cqlStatement << endl;
             cerr << "Error is " << future.get().error.message << endl;

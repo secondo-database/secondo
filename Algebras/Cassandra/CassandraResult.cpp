@@ -46,6 +46,18 @@ namespace cassandra {
 
 */
 bool SingleCassandraResult::hasNext() {
+
+  // Wait for result
+  if(! futureWaitCalled ) {
+      futureWaitCalled = true;      
+      try {
+          future.wait();
+      } catch(std::exception& e) {
+          cerr << "Got exception while reading data: " << e.what() << endl;
+          return false;
+      }
+  }
+  
   cql::cql_result_t& result = *(future.get().result);
   return result.next();
 }

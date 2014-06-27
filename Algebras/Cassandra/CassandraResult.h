@@ -84,7 +84,7 @@ public:
 
      SingleCassandraResult(
        boost::shared_future<cql::cql_future_result_t> myFuture) 
-        : future(myFuture) {
+        : future(myFuture), futureWaitCalled(false) {
      }
      
      //virtual ~SingleCassandraResult() { }
@@ -95,6 +95,7 @@ public:
      
 private:
      boost::shared_future<cql::cql_future_result_t> future;
+     bool futureWaitCalled;
 };
 
 /*
