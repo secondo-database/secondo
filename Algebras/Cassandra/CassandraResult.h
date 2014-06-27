@@ -38,6 +38,7 @@
 #ifndef _CASSANDRA_RESULT_H
 #define _CASSANDRA_RESULT_H
 
+#include <queue>
 #include "CassandraAdapter.h"
 
 using namespace std;
@@ -118,6 +119,7 @@ public:
   
 private:
   vector<string> queries;
+  queue<CassandraResult*> pendingResults;
   CassandraAdapter* cassandraAdapter;
   cql::cql_consistency_enum consistenceLevel;
   CassandraResult* cassandraResult;
