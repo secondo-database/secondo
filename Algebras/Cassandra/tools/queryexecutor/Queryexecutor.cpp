@@ -68,11 +68,10 @@ class HeartbeatUpdater {
  
 public:
   
-  HeartbeatUpdater(string myCassandraIp, string myCassandraKeyspace, 
-                  string myUuid) 
+  HeartbeatUpdater(string myCassandraIp, string myCassandraKeyspace) 
      : cassandraIp(myCassandraIp), 
      cassandraKeyspace(myCassandraKeyspace),
-     uuid(myUuid), cassandra(NULL), active(true) {
+     cassandra(NULL), active(true) {
         
        // Connect to cassandra
      cassandra = new CassandraAdapter
@@ -83,7 +82,6 @@ public:
   
      if(cassandra != NULL) {
        cassandra -> connect(false);
-       updateUuid();
      } else {
        cerr << "[Heartbeat] Unable to connect to cassandra, ";
        cerr << "exiting thread" << endl;
@@ -109,20 +107,8 @@ public:
     ss << "';";
     
     return executeQuery(ss.str());
-  }
-  
-  bool updateUuid() {  
-    // Build CQL query
-    stringstream ss;
-    ss << "UPDATE system_state set node = '";
-    ss << uuid;
-    ss << "' WHERE ip = '";
-    ss << cassandraIp;
-    ss << "';";
-    
-    return executeQuery(ss.str());
-  }
-  
+  } 
+
   bool executeQuery(string query) {
     // Update last executed command
     bool result = cassandra -> executeCQLSync(
@@ -161,7 +147,6 @@ public:
 private:
   string cassandraIp;
   string cassandraKeyspace;
-  string uuid;
   CassandraAdapter* cassandra;
   bool active;
 };
@@ -372,7 +357,10 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
 }
 
 
+/*
+2.2 Refresh our information about the cassandra ring
 
+*/
 bool refreshRingInfo(CassandraAdapter* cassandra, 
                      vector<TokenRange> &allTokenRanges, 
                      vector<TokenRange> &processedIntervals, 
@@ -405,6 +393,34 @@ bool refreshRingInfo(CassandraAdapter* cassandra,
       return false;
     }
     
+  
+  return true;
+}
+
+/*
+2.2 Update UUID Entry in global state table
+
+*/
+bool updateUuid(CassandraAdapter* cassandra, string uuid, 
+                string cassandraIp) {  
+  // Build CQL query
+  stringstream ss;
+  ss << "UPDATE system_state set node = '";
+  ss << uuid;
+  ss << "' WHERE ip = '";
+  ss << cassandraIp;
+  ss << "';";
+  
+  bool result = cassandra -> executeCQLSync(
+      ss.str(),
+      cql::CQL_CONSISTENCY_ONE
+  );
+  
+  if(! result) {
+    cout << "Unable to update heartbeat in system_state table" << endl;
+    cout << "CQL Statement: " << ss.str() << endl;
+    return false;
+  }
   
   return true;
 }
@@ -541,13 +557,16 @@ void mainLoop(SecondoInterface* si,
   NList::setNLRef(nl);
   
   size_t lastCommandId = 0;
+  updateLastCommand(cassandra, lastCommandId, cassandraIp);
+  updateUuid(cassandra, uuid, cassandraIp);
   
   while(true) {
         
         cout << "Waiting for commands" << endl;
         
         CassandraResult* result = cassandra->getQueriesToExecute();
-          
+        bool commandReturned = false;
+        
         while(result != NULL && result -> hasNext()) {
           size_t id = result->getIntValue(0);
           
@@ -572,13 +591,30 @@ void mainLoop(SecondoInterface* si,
             }
             
             updateLastCommand(cassandra, lastCommandId, cassandraIp);
+            updateUuid(cassandra, uuid, cassandraIp);
           }
+          
+          commandReturned = true;
         }
         
-        delete result;
-        result = NULL;
+        if(result != NULL)  {
+           delete result;
+           result = NULL;
+        }
         
-        sleep(1);
+        // Command list is empty and we have processed 
+        // commands in the past. => cqueryreset is executed,
+        // clear secondo state and reset lastCommandId
+        if(! commandReturned && lastCommandId > 0) {
+          sleep(5); // Wait for system tables to be recreated
+          lastCommandId = 0;
+          updateLastCommand(cassandra, lastCommandId, cassandraIp);
+          updateUuid(cassandra, uuid, cassandraIp);
+          executeSecondoCommand(si, nl, "close database");
+          cout << "[Info] Reset complete, wait for new queries" << endl;
+        }
+        
+        sleep(5);
   }
 }
 
@@ -598,11 +634,11 @@ void* startHeartbeatThreadInternal(void *ptr) {
 
 */
 HeartbeatUpdater* startHeartbeatThread(string cassandraIp, 
-                         string cassandraKeyspace, string uuid, 
+                         string cassandraKeyspace,
                          pthread_t &targetThread) {
   
    HeartbeatUpdater* heartbeatUpdater 
-     = new HeartbeatUpdater(cassandraIp, cassandraKeyspace, uuid);
+     = new HeartbeatUpdater(cassandraIp, cassandraKeyspace);
      
    pthread_create(&targetThread, NULL, 
                   &startHeartbeatThreadInternal, heartbeatUpdater);
@@ -654,8 +690,7 @@ int main(int argc, char** argv){
   // Main Programm
   pthread_t targetThread;
 
-  startHeartbeatThread(cassandraNodeIp, cassandraKeyspace, myUuid, 
-     targetThread);
+  startHeartbeatThread(cassandraNodeIp, cassandraKeyspace, targetThread);
 
   mainLoop(si, cassandra, cassandraNodeIp, cassandraKeyspace, myUuid);
   
