@@ -565,7 +565,7 @@ void mainLoop(SecondoInterface* si,
         cout << "Waiting for commands" << endl;
         
         CassandraResult* result = cassandra->getQueriesToExecute();
-        bool commandReturned = false;
+        size_t seenCommands = 0;
         
         while(result != NULL && result -> hasNext()) {
           size_t id = result->getIntValue(0);
@@ -594,7 +594,7 @@ void mainLoop(SecondoInterface* si,
             updateUuid(cassandra, uuid, cassandraIp);
           }
           
-          commandReturned = true;
+          ++seenCommands;
         }
         
         if(result != NULL)  {
@@ -605,7 +605,7 @@ void mainLoop(SecondoInterface* si,
         // Command list is empty and we have processed 
         // commands in the past. => cqueryreset is executed,
         // clear secondo state and reset lastCommandId
-        if(! commandReturned && lastCommandId > 0) {
+        if(seenCommands < lastCommandId && lastCommandId > 0) {
           sleep(5); // Wait for system tables to be recreated
           lastCommandId = 0;
           updateLastCommand(cassandra, lastCommandId, cassandraIp);
