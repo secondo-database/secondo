@@ -333,8 +333,8 @@ namespace GISAlgebra {
                 }
 
                 CcInt* level = new CcInt(true,temp.level);
-                Line* line = new Line(0); 
-                line = temp.cline;
+                Line* line = temp.cline;
+                line->EndBulkLoad();
 
                 clines->PutAttribute(0,level);
                 clines->PutAttribute(1,line);
@@ -494,39 +494,39 @@ namespace GISAlgebra {
         if ( nPoints1 == 1 && nPoints2 == 2)
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], c > g, min, interval, clines);
+                      pointsX[1], pointsY[1], min, interval, clines);
         }
         // links und rechts
         else if ( nPoints1 == 1 && nPoints3 == 2 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], a > i, min, interval, clines);
+                      pointsX[1], pointsY[1], min, interval, clines);
         }
         // links und oben
         else if ( nPoints1 == 1 && nPoints == 2 )
         { 
           if ( !(a == level && g == level) )
             AddSegment( level, pointsX[0], pointsY[0], 
-                        pointsX[1], pointsY[1], a > i, min, interval, clines);
+                        pointsX[1], pointsY[1], min, interval, clines);
         }
         // unten und rechts
         else if(  nPoints2 == 1 && nPoints3 == 2)
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], a > i, min, interval, clines);
+                      pointsX[1], pointsY[1], min, interval, clines);
         }
         // unten und oben
         else if ( nPoints2 == 1 && nPoints == 2 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], g > c, min, interval, clines);
+                      pointsX[1], pointsY[1], min, interval, clines);
         }
         // rechts und oben
         else if ( nPoints3 == 1 && nPoints == 2 )
         { 
           if ( !(c == level && a == level) )
              AddSegment( level, pointsX[0], pointsY[0], 
-                         pointsX[1], pointsY[1], g > c, min, interval, clines);
+                         pointsX[1], pointsY[1], min, interval, clines);
         }
         else
         {
@@ -539,7 +539,7 @@ namespace GISAlgebra {
         if ( !(c == level && a == level) )
         {
           AddSegment( level, pointsX[2], pointsY[2], 
-                      pointsX[3], pointsY[3], i > c, min, interval, clines);
+                      pointsX[3], pointsY[3], min, interval, clines);
 
         }
       }
@@ -577,7 +577,7 @@ namespace GISAlgebra {
   }
 
   bool AddSegment(int l, double startX, double startY,
-                  double endX, double endY, int leftHigh, 
+                  double endX, double endY, 
                   double min, int interval, DbArray<ResultInfo>* clines)
   {
     Point p1(true, startX, startY);
@@ -594,18 +594,26 @@ namespace GISAlgebra {
     // wenn existent, dann Segment hinzufuegen
     if (!(temp.level == -32000))
     {            
-      Line* line = new Line(0); 
-      line = temp.cline;
+      Line* line = temp.cline;
 
       int s = line->Size();
-      line->Put(s,hs);
+
+      hs.attr.edgeno = s/2;
+      (*line) += hs;
+      hs.SetLeftDomPoint(false);
+      (*line) += hs;
     }
     else
     // ansonsten neue Linie anlegen
     {
       Line* line = new Line(0);
 
-      line->Put(0,hs);
+      line->StartBulkLoad();
+
+      hs.attr.edgeno = 0;
+      (*line) += hs;
+      hs.SetLeftDomPoint(false);
+      (*line) += hs;
 
       int l2 = static_cast<int>(l);
 
