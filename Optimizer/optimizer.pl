@@ -5465,6 +5465,7 @@ Simple cost estimation for ~symmjoin~
 
 */
 cost(symmjoin(X, Y, _), Sel, P, S, C) :-
+	not(optimizerOption(costs2014)),	% replaced there
   cost(X, 1, P, SizeX, CostX),
   cost(Y, 1, P, SizeY, CostY),
   getPET(P, _, ExpPET),                 % fetch stored predicate evaluation time
