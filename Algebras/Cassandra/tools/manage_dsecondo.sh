@@ -32,11 +32,12 @@ scriptpath=`pwd`
 scriptname=$(basename $0)
 popd > /dev/null
 
-
+# Get local IP
 function getIp {
    /sbin/ifconfig | grep "inet addr" | grep -v "127.0.0.1" | cut -d ":" -f 2 | awk {'print $1'} | head -1
 }
 
+# Get ID for Screen
 function getScreenId {
    ids=$(screen -ls | grep $1 | cut -f1 -d'.' | tr -d '\t')
    
@@ -47,6 +48,7 @@ function getScreenId {
    fi
 }
 
+# Exec a command in screen session
 function execCommandsInScreen {
   session=$1
   shift 
