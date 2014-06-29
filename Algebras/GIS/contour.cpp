@@ -90,8 +90,12 @@ namespace GISAlgebra {
             if (!(s_in->isUndefined(e)))
             {
               double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
+              double a1 = s_in->get((int[]){index[0] - 1, index[1] + 2});
               double b = s_in->get((int[]){index[0], index[1] + 1});
+              double b1 = s_in->get((int[]){index[0], index[1] + 2});
+              double c = s_in->get((int[]){index[0] + 1, index[1] + 1});
               double d = s_in->get((int[]){index[0] - 1, index[1]});
+              double g = s_in->get((int[]){index[0] - 1, index[1] - 1});
               double h = s_in->get((int[]){index[0], index[1] - 1});
               double f = s_in->get((int[]){index[0] + 1, index[1]});
 
@@ -113,7 +117,7 @@ namespace GISAlgebra {
                                    interval, min, clines);       
                 }
                 // Sonderfall fuer Zellen der ersten Reihe
-                else if ((s_in->isUndefined(h)))
+                else if ((s_in->isUndefined(h)) && (s_in->isUndefined(g)))
                 {
                   ProcessRectangle(a, X - cellsize, Y + cellsize, 
                                    d, X - cellsize, Y - cellsize/2,
@@ -121,13 +125,32 @@ namespace GISAlgebra {
                                    b, X, Y + cellsize, 
                                    interval, min, clines);       
                 }
+                // Sonderfall fuer rechte obere Zelle
+                else if ((s_in->isUndefined(f)) && (s_in->isUndefined(a1)) 
+                                                && (s_in->isUndefined(b1)))
+                {
+                  ProcessRectangle(a, X - cellsize, Y + cellsize + cellsize/2,
+                                   d, X - cellsize, Y,
+                                   e, X + cellsize/2, Y, 
+                                   b, X + cellsize/2, Y + cellsize+cellsize/2,
+                                   interval, min, clines);       
+                }
                 // Sonderfall fuer Zellen der letzten Spalte
-                else if ((s_in->isUndefined(f)))
+                else if ((s_in->isUndefined(f)) && (s_in->isUndefined(c)))
                 {
                   ProcessRectangle(a, X - cellsize, Y + cellsize, 
                                    d, X - cellsize, Y,
                                    e, X + cellsize/2, Y, 
                                    b, X + cellsize/2, Y + cellsize, 
+                                   interval, min, clines);       
+                }
+                // Sonderfall fuer obere Reihe
+                else if ((s_in->isUndefined(a1)) && (s_in->isUndefined(b1)))
+                {
+                  ProcessRectangle(a, X - cellsize, Y + cellsize + cellsize/2, 
+                                   d, X - cellsize, Y,
+                                   e, X, Y, 
+                                   b, X, Y + cellsize+cellsize/2,
                                    interval, min, clines);       
                 }
                 // Normalfall
@@ -228,17 +251,24 @@ namespace GISAlgebra {
             
                 if (!(s_in->isUndefined(d)))
                 {
-                  // Sonderfall rechte obere Ecke
-                  if ((s_in->isUndefined(f)))
+                  if ((s_in->isUndefined(f)) && (s_in->isUndefined(b)))
                   {
+                    // Sonderfall rechte obere Ecke  
+                  }
+                  else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(d)) &&
+                            (s_in->isUndefined(a)) && !(s_in->isUndefined(b)))
+                  {
+                    // Sonderfall unterhalb von undefiniert
                     ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
                                      d, X - cellsize, Y,
-                                     e, X + cellsize/2, Y, 
-                                     e, X + cellsize/2, Y + cellsize/2, 
+                                     bottom, X - cellsize/2, Y, 
+                                     center, X - cellsize/2, Y + cellsize/2, 
                                      interval, min, clines);
                   }
-                  else
+                  else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(d)) &&
+                           !(s_in->isUndefined(a)) && (s_in->isUndefined(b)))
                   {
+                    // Sonderfall links unterhalb von undefiniert
                     ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
                                      d, X - cellsize, Y,
                                      bottom, X - cellsize/2, Y, 
@@ -252,6 +282,21 @@ namespace GISAlgebra {
                 {
                   // Sonderfall linke untere Ecke
                 }
+                else if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a)) &&
+                         !(s_in->isUndefined(b)) && (s_in->isUndefined(b1)))
+                {
+                  // Sonderfall obere linke Ecke
+                  ProcessRectangle(b, X-cellsize/2, Y+cellsize+cellsize/2,
+                                   bottom, X - cellsize/2, Y,
+                                   e, X, Y, 
+                                   b, X, Y + cellsize + cellsize/2, 
+                                   interval, min, clines);
+                }
+                else if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a))
+                                                 && (s_in->isUndefined(b)))
+                {
+                  // Sonderfall obere Reihe
+                }
                 else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(f)))
                 {
                   // Sonderfall rechte obere Ecke
@@ -261,8 +306,14 @@ namespace GISAlgebra {
                                    right, X, Y + cellsize/2, 
                                    interval, min, clines);
                 }
-            
-                if (!(s_in->isUndefined(b)) && (s_in->isUndefined(h)))
+
+                if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a)) &&
+                         !(s_in->isUndefined(b)) && (s_in->isUndefined(b1)) &&
+                          (s_in->isUndefined(a1)))
+                {
+                  // Sonderfall linke obere Ecke
+                }
+                else if (!(s_in->isUndefined(b)) && (s_in->isUndefined(h)))
                 {
                   ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
                                    e, X - cellsize/2, Y - cellsize/2,
@@ -270,8 +321,19 @@ namespace GISAlgebra {
                                    b, X, Y + cellsize, 
                                    interval, min, clines);
                 }
-                else if (!(s_in->isUndefined(b)))
+                else if (!(s_in->isUndefined(b)) && (s_in->isUndefined(d))
+                                                 && !(s_in->isUndefined(b1)))
                 {
+                  ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
+                                   center, X - cellsize/2, Y + cellsize/2,
+                                   right, X, Y + cellsize/2, 
+                                   b, X, Y + cellsize, 
+                                   interval, min, clines);
+                }
+                else if (!(s_in->isUndefined(b)) && !(s_in->isUndefined(e))
+                                                 && (s_in->isUndefined(a)))
+                {
+                  // Sonderfall rechtes von undefiniert
                   ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
                                    center, X - cellsize/2, Y + cellsize/2,
                                    right, X, Y + cellsize/2, 
@@ -309,27 +371,20 @@ namespace GISAlgebra {
                 pResultInfo->Get(i-1,temp);
                 pResultInfo->resize(i-1);
 
-                // Falls letztes oder vorletztes Feld nicht belegt
-                if ( i == 1 && temp.level == -32000 )
+                int j = 2;
+
+                while ((temp.level == -32000) && (j <= i))
+                {
+                  pResultInfo->Get(i-j,temp);
+                  pResultInfo->resize(i-j);
+
+                  j++;
+                }
+
+                if ( temp.level == -32000 )
                 {
                   result.addr = 0;
                   return CANCEL;
-                }
-                else if ( temp.level == -32000 )
-                {
-                  pResultInfo->Get(i-2,temp);
-                  pResultInfo->resize(i-2);
-
-                  if ( i == 2 && temp.level == -32000 )
-                  {
-                    result.addr = 0;
-                    return CANCEL;
-                  }
-                  else if ( temp.level == -32000 )
-                  {
-                    pResultInfo->Get(i-3,temp);
-                    pResultInfo->resize(i-3);
-                  }
                 }
 
                 CcInt* level = new CcInt(true,temp.level);
