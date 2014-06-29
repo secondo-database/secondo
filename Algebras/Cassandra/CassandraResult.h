@@ -119,7 +119,6 @@ public:
   
 private:
   vector<string> queries;
-  queue<CassandraResult*> pendingResults;
   CassandraAdapter* cassandraAdapter;
   cql::cql_consistency_enum consistenceLevel;
   CassandraResult* cassandraResult;

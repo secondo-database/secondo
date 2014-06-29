@@ -75,7 +75,7 @@ int SingleCassandraResult::getIntValue(int pos) {
 }
 
 /*
-2.3 Result object for >1 cql query
+2.3 Result object for multiple cql queries
 
 */
 MultiCassandraResult::MultiCassandraResult(vector<string> myQueries, 
@@ -93,17 +93,10 @@ MultiCassandraResult::~MultiCassandraResult() {
     delete cassandraResult;
     cassandraResult = NULL;
   }
-  
-  while(! pendingResults.empty()) {
-    cassandraResult = pendingResults.front();
-    pendingResults.pop();
-    delete cassandraResult;
-  }
 }
 
 bool MultiCassandraResult::setupNextQuery() {
   cout << "Preparing next query" << endl;
-  cout << "Size of queue: " << pendingResults.size() << endl;
   cout << "Size of queries: " << queries.size() << endl;
   
   // Delete old query
@@ -112,23 +105,17 @@ bool MultiCassandraResult::setupNextQuery() {
     cassandraResult = NULL;
   }
   
-  while(pendingResults.size() < 10 && queries.size() > 0) {
-    string cql = queries.back();
-    queries.pop_back();
-    cout << "[Executing] Query is " << cql << endl;
-    CassandraResult* myCassandraResult = cassandraAdapter
+  if(queries.empty()) {
+    return false;
+  }
+  
+  // Execute next query
+  string cql = queries.back();
+  queries.pop_back();
+  cassandraResult = cassandraAdapter
           ->readDataFromCassandra(cql, consistenceLevel);
-    cout << "[Running]" << endl;          
-    pendingResults.push(myCassandraResult);
-  }
-
-  if(! pendingResults.empty()) {
-    cassandraResult = pendingResults.front();
-    pendingResults.pop();
-    return true;
-  }
-
-  return false;
+  
+  return true;
 }
 
 void MultiCassandraResult::getStringValue(string &resultString, int pos) {
@@ -141,8 +128,7 @@ int MultiCassandraResult::getIntValue(int pos) {
 
 bool MultiCassandraResult::hasNext() {
   // No query active and we have a new query to execute
-  if(cassandraResult == NULL && 
-     (queries.size() > 0 || pendingResults.size() > 0)) {
+  if((cassandraResult == NULL) && (queries.size() > 0)) {
     
     // Execute the next query
     setupNextQuery();
