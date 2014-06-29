@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 # This script starts and stops a 
-# desecondo installation in the cluster
+# local DSECONDO installation. This Script
+# can also manage all DSECONDO worker nodes.
 #
 # Jan Kristof Nidzwetzki
 #
@@ -19,7 +20,7 @@ keyspace="secondo_r2"
 # Cassandra Nodes
 nodes="node1 node2 node3 node4 node5 node6"
 
-nodes="node1"
+#nodes="node1"
 
 # Variables
 screensessionServer="dsecondo-server"
@@ -70,7 +71,7 @@ start_local() {
       exit -1;
    fi 
 
-   # Change SECONDO Server Port in Configuration
+   # Change SECONDO Server Port in configuration
    sed -i "s/SecondoPort=.*/SecondoPort=$port/" $SECONDO_CONFIG 
 
    # Check if screen is already running
