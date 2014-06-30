@@ -136,13 +136,13 @@ Result   : file
 
 Operator : components
 Number   : 1
-Signature: points -> stream(point), region -> stream(region)
+Signature: points -> stream(points), region -> stream(region)
 Example  : query components(koepenick) count
 Result   : 7
 
 Operator : components
 Number   : 2
-Signature: points -> stream(point), region -> stream(region)
+Signature: points -> stream(points), region -> stream(region)
 Example  : query components(tiergarten) count
 Result   : 1
 

@@ -35,6 +35,7 @@ this attibute is ignored.
 #define ATTRTYPE_H
 
 #include <iostream>
+#include <stdint.h>
 
 struct AttrType
 {
@@ -44,9 +45,10 @@ struct AttrType
     faceno(-999999),
     cycleno(-999999),
     edgeno(-999999),
+    partnerno(-999999),
     coverageno(-999999),
-    insideAbove(false),
-    partnerno(-999999){ }
+    insideAbove(false)
+  {}
 
 /*
 The simple constructor.
@@ -56,9 +58,9 @@ The simple constructor.
   faceno( at.faceno ),
   cycleno( at.cycleno ),
   edgeno( at.edgeno ),
+  partnerno( at.partnerno ),
   coverageno( at.coverageno ),
-  insideAbove( at.insideAbove ),
-  partnerno( at.partnerno )
+  insideAbove( at.insideAbove )
   {}
 /*
 The copy constructor.
@@ -80,22 +82,27 @@ Redefinition of the assignement operator.
 6.1 Attributes
 
 */
-  int faceno;
+  int32_t faceno;
 /*
 The face identifier
 
 */
-  int cycleno;
+  int32_t cycleno;
 /*
 The cycle identifier
 
 */
-  int edgeno;
+  int32_t edgeno;
 /*
 The edge (segment) identifier
 
 */
-  int coverageno;
+  int32_t partnerno;
+/*
+Stores the position of the partner half segment in half segment ordered array
+
+*/
+  int32_t coverageno;
 /*
 Used for fast spatial scan of the inside[_]pr algorithm
 
@@ -103,11 +110,6 @@ Used for fast spatial scan of the inside[_]pr algorithm
   bool insideAbove;
 /*
 Indicates whether the region's area is above or left of its segment
-
-*/
-  int partnerno;
-/*
-Stores the position of the partner half segment in half segment ordered array
 
 */
 };

@@ -14271,7 +14271,7 @@ ListExpr SpatialComponentsMap( ListExpr args )
   {
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stpoints )
       return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
-                              nl->SymbolAtom(Point::BasicType()) );
+                              nl->SymbolAtom(Points::BasicType()) );
 
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion )
       return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
@@ -14284,6 +14284,7 @@ ListExpr SpatialComponentsMap( ListExpr args )
   }
   return listutils::typeError("point, line or region expected");
 }
+
 
 /*
 10.1.18 Type Mapping function for operator ~vertices~
@@ -17040,10 +17041,13 @@ SpatialComponents_ps( Word* args, Word& result, int message,
       if(localInfo->EndOfPt() ){
         return CANCEL;
       }
-
-      Point p;
+      Point p(false);
       localInfo->GetPt( p );
-      result.addr = new Point( p );
+      Points* res = new Points(1);
+      res->StartBulkLoad();
+      (*res) += p;
+      res->EndBulkLoad();
+      result.addr = res;
       localInfo->SelectNext();
       return YIELD;
     }
@@ -25393,8 +25397,6 @@ class SpatialAlgebra : public Algebra
     AddOperator(&centroidDiscOP);
     AddOperator(&calcDiscOP);
     AddOperator(&createDiscOP);
-
-
   }
   ~SpatialAlgebra() {};
 };
