@@ -21,4 +21,5 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator optics_a alias OPTICSA pattern op ( _ )
-operator opticsStr alias OPTICSS pattern _ op
+#operator opticsStr alias OPTICSS pattern _ op
+operator opticsStrTpl alias OPTICSST pattern _ op

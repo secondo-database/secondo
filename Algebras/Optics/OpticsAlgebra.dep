@@ -45,14 +45,17 @@ OpticsAlgebra.o: OpticsAlgebra.cpp /home/marius/secondo/include/Algebra.h \
  /home/marius/secondo/include/TraceMacros.h \
  /home/marius/secondo/include/Symbols.h \
  /home/marius/secondo/include/Serialize.h \
- /home/marius/secondo/include/StringUtils.h ../Spatial/SpatialAlgebra.h \
+ /home/marius/secondo/include/StringUtils.h \
+ ../Relation-C++/RelationAlgebra.h /home/marius/secondo/include/Trace.h \
  /home/marius/secondo/include/Attribute.h \
+ /home/marius/secondo/include/Counter.h \
+ ../Relation-C++/../TupleIdentifier/TupleIdentifier.h \
+ /home/marius/secondo/include/ListUtils.h ../Spatial/SpatialAlgebra.h \
  ../Spatial/../../Tools/Flob/DbArray.h ../Spatial/../../Tools/Flob/Flob.h \
  ../Spatial/../Rectangle/RectangleAlgebra.h \
  /home/marius/secondo/include/Messages.h ../Spatial/Geoid.h \
  /home/marius/secondo/include/GenericTC.h \
  /home/marius/secondo/include/Algebra.h \
- /home/marius/secondo/include/ListUtils.h \
  /home/marius/secondo/include/AvlTree.h \
  /home/marius/secondo/include/AlmostEqual.h ../Spatial/AVLSegment.h \
  ../Spatial/HalfSegment.h ../Spatial/Coord.h ../Spatial/Point.h \
