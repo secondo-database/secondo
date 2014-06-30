@@ -302,7 +302,7 @@ MultiThreadedCassandraResult::~MultiThreadedCassandraResult() {
    pthread_mutex_unlock(&queryMutex);
    
    // Process pending elements
-   while(! hasNext() ) {
+   while( hasNext() ) {
    }
    
    cout << "[Destructor] Joining threads" << endl;
