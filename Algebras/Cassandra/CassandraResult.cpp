@@ -176,6 +176,16 @@ void insertIntoResult(WorkerThreadConfiguration* configuration,
                       vector<string> &result) {
   
   pthread_mutex_lock(configuration->queueMutex);
+  
+  while(configuration->results->size() >= 100) {
+    //cout << "[WorkerThread] wait for condition" << endl;
+    // Wait for new elements
+    pthread_cond_wait(configuration->queueCondition, 
+                      configuration->queueMutex); 
+    //cout << "[WorkerThread] wakeup" << endl;
+  }
+  
+  
   bool wasEmpty = configuration->results->empty();
   configuration->results->push(result);
   
@@ -192,6 +202,7 @@ void insertIntoResult(WorkerThreadConfiguration* configuration,
 
 */
 void* collectWorkerThread(void *ptr) {
+
   WorkerThreadConfiguration* configuration = (WorkerThreadConfiguration*) ptr;
   
   cout << "New thread started: " << configuration->id << endl;
@@ -210,17 +221,17 @@ void* collectWorkerThread(void *ptr) {
     pthread_mutex_unlock(configuration->queryMutex);
     
     if(empty) {
-      cout << "[Thread] exiting, because all queries are processed" << endl;
+      cout << "[Thread-" << configuration->id << "] exiting, "
+           << "because all queries are processed" << endl;
       break;
     }
     
-    cout << "[Thread] executing: " << cql << endl;
+    cout << "[Thread-" << configuration->id << "] executing: " << cql << endl;
     
     CassandraResult* cassandraResult = configuration -> cassandraAdapter
           ->readDataFromCassandra(cql, *(configuration -> consistenceLevel));
     
     while(cassandraResult->hasNext()) {
-      cout << "[Thread] fetch new result" << endl;
       vector<string> result;
       
       for(size_t i = 0; i < 2; ++i) {
@@ -229,7 +240,6 @@ void* collectWorkerThread(void *ptr) {
         result.push_back(resultString);  
       }
       
-      cout << "[RESULT] Insert result tuple" << endl;
       insertIntoResult(configuration, result);
     }
           
@@ -242,12 +252,10 @@ void* collectWorkerThread(void *ptr) {
   vector<string> emptyVector;
   insertIntoResult(configuration, emptyVector);
   
-  cout << "Thread exit" << endl;
+  cout << "[Thread-" << configuration->id << "] exit" << endl;
   delete(configuration);
   pthread_exit(NULL);
 }
-
-
 
 
 MultiThreadedCassandraResult::MultiThreadedCassandraResult(
@@ -255,14 +263,14 @@ MultiThreadedCassandraResult::MultiThreadedCassandraResult(
                     CassandraAdapter* myCassandraAdapter,
                     cql::cql_consistency_enum myConsistenceLevel) 
   : MultiCassandraResult(myQueries, myCassandraAdapter, myConsistenceLevel), 
-  runningThreads(0) { 
+  runningThreads(0), firstCall(true) { 
 
     // Init mutex and condition
     pthread_mutex_init(&queryMutex, NULL);
     pthread_mutex_init(&queueMutex, NULL);
     pthread_cond_init(&queueCondition, NULL);
     
-    for(size_t i = 0; i < 10; ++i) {
+    for(size_t i = 0; i < 5; ++i) {
       cout << "[Threaded] Spawning new thread" << endl;
       pthread_t targetThread;
       
@@ -297,15 +305,34 @@ MultiThreadedCassandraResult::~MultiThreadedCassandraResult() {
    pthread_mutex_destroy(&queueMutex);
    pthread_cond_destroy(&queueCondition);
 
-   cout << "[Threaded] Constructor complete" << endl;
+   cout << "[Destrutor] Deconstructor complete" << endl;
 }
 
 bool MultiThreadedCassandraResult::hasNext() {
-  
+
   pthread_mutex_lock(&queueMutex);
+  int oldSize = results.size();
   
   // Remove first element
-  if(! results.empty() ) {
+  if(!firstCall && !results.empty() ) {
+    //cout << "[HasNext] pop element" << endl;
+    results.pop();
+  }
+  
+  if(firstCall) {
+    firstCall = false;
+  }
+  
+  // Wakeup waiting worker threads
+  if(oldSize >= 100) {
+    //cout << "Wakeup waiting worker threads" << endl;
+    pthread_cond_broadcast(&queueCondition);
+  }
+
+  // Handle Thread terminations (Vector with 0 entries)
+  while(! results.empty() && (results.front()).size() == 0) {
+    --runningThreads;
+    cout << "[HasNext] Thread termination: " << runningThreads << endl;
     results.pop();
   }
   
@@ -315,6 +342,7 @@ bool MultiThreadedCassandraResult::hasNext() {
   }
   
   while(results.empty() && runningThreads > 0) {
+    
     cout << "[HasNext] wait for condition" << endl;
     // Wait for new elements
     pthread_cond_wait(&queueCondition, &queueMutex); 
@@ -326,7 +354,7 @@ bool MultiThreadedCassandraResult::hasNext() {
       cout << "HasNext Thread termination: " << runningThreads << endl;
       results.pop();
     }
-    
+        
     cout << "[HasNext] running" << endl;
   }
   
@@ -340,6 +368,7 @@ bool MultiThreadedCassandraResult::hasNext() {
   pthread_mutex_unlock(&queueMutex);
   cout << "[HasNext] no new entries found" << endl;
   return false;
+
 }
 
 void MultiThreadedCassandraResult::getStringValue(string &resultString, 
@@ -352,7 +381,7 @@ void MultiThreadedCassandraResult::getStringValue(string &resultString,
       return;
     }
     
-    if((results.front()).size() < pos) {
+    if(((int) (results.front()).size()) < pos) {
       cout << "Request for OUT OF RANGE position: " << pos
            << " / " << results.front().size() << endl;
       return;

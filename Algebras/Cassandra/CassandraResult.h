@@ -152,6 +152,7 @@ private:
   
   size_t runningThreads;
   vector<pthread_t> threads;
+  bool firstCall;
 };
 
 
