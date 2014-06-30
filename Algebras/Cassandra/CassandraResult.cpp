@@ -333,6 +333,7 @@ bool MultiThreadedCassandraResult::hasNext() {
   // Element found
   if(! results.empty() ) {
     pthread_mutex_unlock(&queueMutex);
+    cout << "[HasNext] NEW entries found" << endl;
     return true;
   }
   
@@ -350,6 +351,8 @@ void MultiThreadedCassandraResult::getStringValue(string &resultString,
       pthread_mutex_unlock(&queueMutex);
       return;
     }
+    
+    cout << "Request for position: " << pos - 1 << endl;
     
     resultString = (results.front()).at(pos - 1);
     
