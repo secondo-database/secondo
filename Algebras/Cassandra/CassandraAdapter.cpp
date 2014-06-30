@@ -365,7 +365,8 @@ CassandraResult* CassandraAdapter::readTableCreatedByQuery(string relation,
       queries.push_back(ss.str());
   }
     
-  MultiCassandraResult* result = new MultiCassandraResult(queries, this, 
+  MultiCassandraResult* result = new MultiThreadedCassandraResult(queries, 
+            this,
             CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
   
   return result;

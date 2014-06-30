@@ -100,7 +100,7 @@ private:
 };
 
 /*
-2.3 Result object for >1 cql query
+2.3 Result object for multiple cql queries
 
 */
 class MultiCassandraResult : public CassandraResult {
@@ -117,7 +117,7 @@ public:
   virtual void getStringValue(string &resultString, int pos);
   virtual int getIntValue(int pos);
   
-private:
+protected:
   vector<string> queries;
   CassandraAdapter* cassandraAdapter;
   cql::cql_consistency_enum consistenceLevel;
@@ -125,31 +125,81 @@ private:
 };
 
 /*
-2.4 Result objects for tokens
+2.4 Result object for multiple cql queries
+
+Multi Threaded version
+
+*/
+class MultiThreadedCassandraResult : public MultiCassandraResult {
+  
+public:
+     
+  MultiThreadedCassandraResult(vector<string> myQueries, 
+                          CassandraAdapter* myCassandraAdapter,
+                          cql::cql_consistency_enum myConsistenceLevel
+                      );
+  
+  virtual ~MultiThreadedCassandraResult();
+  virtual bool hasNext();
+  virtual void getStringValue(string &resultString, int pos);
+  virtual int getIntValue(int pos);
+  
+private:
+  queue< vector<string> > results;
+  pthread_mutex_t queryMutex;
+  pthread_mutex_t queueMutex;
+  pthread_cond_t queueCondition;
+  
+  size_t runningThreads;
+  vector<pthread_t> threads;
+};
+
+
+/*
+2.5 Result objects for tokens
 
 */
 class CassandraToken {
   
 public:
-  
+
+/*
+2.5.1 Default constructor
+
+*/
   CassandraToken(long long myToken, string myIp) 
     : token(myToken), ip(myIp) {
       
-      // Default constructor
   }
   
+/*
+2.5.2 Is IP local?
+
+*/  
   bool isLocalToken() const {
     return ip.compare("127.0.0.1");
   }
   
+/*
+2.5.3 Getter for token
+
+*/
   long long getToken() const {
     return token;
   }
-  
+
+/*
+2.5.4 Getter for ip
+
+*/
   string getIp() const {
     return ip;
   }
-  
+
+/*
+2.5.5 Operator <
+
+*/
   bool operator<( const CassandraToken& val ) const { 
         return getToken() < val.getToken(); 
   }
@@ -160,7 +210,7 @@ private:
 };
 
 /*
-2.4.4 Implementation for "toString"
+2.5.6 Implementation for "toString"
 
 */
 inline std::ostream& operator<<(std::ostream &strm, 

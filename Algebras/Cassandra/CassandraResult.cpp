@@ -148,6 +148,217 @@ bool MultiCassandraResult::hasNext() {
   
   return false;
 }
+
+/*
+2.3 Multi Threaded result
+
+*/
+class WorkerThreadConfiguration {
   
+public:
+  int id;
+  vector<string>* queries;
+  queue< vector<string> >* results;
+  pthread_mutex_t* queryMutex;
+  pthread_mutex_t* queueMutex;
+  pthread_cond_t* queueCondition;
+  CassandraAdapter* cassandraAdapter;
+  cql::cql_consistency_enum* consistenceLevel;
+};
+
+/*
+2.3.1 Worker thread helper function
+Insert a result into the result list, wakeup
+consumer if necessary
+
+*/
+void insertIntoResult(WorkerThreadConfiguration* configuration, 
+                      vector<string> &result) {
+  
+  pthread_mutex_lock(configuration->queueMutex);
+  bool wasEmpty = configuration->results->empty();
+  configuration->results->push(result);
+  
+  // Wakeup consumer
+  if(wasEmpty) {
+    pthread_cond_signal(configuration->queueCondition);
+  }
+  
+  pthread_mutex_unlock(configuration->queueMutex);
+}
+
+/*
+2.3.1 Worker thread main function
+
+*/
+void* collectWorkerThread(void *ptr) {
+  WorkerThreadConfiguration* configuration = (WorkerThreadConfiguration*) ptr;
+  
+  cout << "New thread started: " << configuration->id << endl;
+  
+  while(true) {
+    string cql;
+    bool empty;
+    
+    pthread_mutex_lock(configuration->queryMutex);
+    empty = configuration->queries->empty();
+    if(!empty) {
+      cql = configuration->queries->back();
+      configuration->queries->pop_back();
+    }
+    
+    pthread_mutex_unlock(configuration->queryMutex);
+    
+    if(empty) {
+      cout << "[Thread] exiting, because all queries are processed" << endl;
+      break;
+    }
+    
+    cout << "[Thread] executing: " << cql << endl;
+    
+    CassandraResult* cassandraResult = configuration -> cassandraAdapter
+          ->readDataFromCassandra(cql, *(configuration -> consistenceLevel));
+    
+    while(cassandraResult->hasNext()) {
+      cout << "[Thread] fetch new result" << endl;
+      vector<string> result;
+      
+      for(size_t i = 0; i < 2; ++i) {
+        string resultString;
+        cassandraResult->getStringValue(resultString, i);
+        result.push_back(resultString);  
+      }
+      
+      cout << "[RESULT] Insert result tuple" << endl;
+      insertIntoResult(configuration, result);
+    }
+          
+    if(cassandraResult != NULL) { 
+      delete cassandraResult;
+    }
+  }
+    
+  // Insert thread finished result 
+  vector<string> emptyVector;
+  insertIntoResult(configuration, emptyVector);
+  
+  cout << "Thread exit" << endl;
+  delete(configuration);
+  pthread_exit(NULL);
+}
+
+
+
+
+MultiThreadedCassandraResult::MultiThreadedCassandraResult(
+                    vector<string> myQueries, 
+                    CassandraAdapter* myCassandraAdapter,
+                    cql::cql_consistency_enum myConsistenceLevel) 
+  : MultiCassandraResult(myQueries, myCassandraAdapter, myConsistenceLevel), 
+  runningThreads(0) { 
+
+    // Init mutex and condition
+    pthread_mutex_init(&queryMutex, NULL);
+    pthread_mutex_init(&queueMutex, NULL);
+    pthread_cond_init(&queueCondition, NULL);
+    
+    for(size_t i = 0; i < 10; ++i) {
+      cout << "[Threaded] Spawning new thread" << endl;
+      pthread_t targetThread;
+      
+      WorkerThreadConfiguration* config = new WorkerThreadConfiguration();
+      config->id = i;
+      config->queryMutex = &queryMutex;
+      config->queueMutex = &queueMutex;
+      config->queueCondition = &queueCondition;
+      config->results = &results;
+      config->queries = &queries;
+      config->cassandraAdapter = cassandraAdapter;
+      config->consistenceLevel = &consistenceLevel;
+      
+      pthread_create(&targetThread, NULL, &collectWorkerThread, config);
+      threads.push_back(targetThread);
+      ++runningThreads;
+    }
+    
+    cout << "[Threaded] Init complete" << endl;
+}
+
+MultiThreadedCassandraResult::~MultiThreadedCassandraResult() {
+  
+   cout << "[Destrutor] Joining threads" << endl;
+   
+   // Join thrads
+   for(size_t i = 0; i < threads.size(); ++i) {
+     pthread_join(threads.at(i), NULL);
+   }
+  
+   pthread_mutex_destroy(&queryMutex);
+   pthread_mutex_destroy(&queueMutex);
+   pthread_cond_destroy(&queueCondition);
+
+   cout << "[Threaded] Constructor complete" << endl;
+}
+
+bool MultiThreadedCassandraResult::hasNext() {
+  
+  pthread_mutex_lock(&queueMutex);
+  
+  // Remove first element
+  if(! results.empty() ) {
+    results.pop();
+  }
+  
+  if(! results.empty() ) {
+    pthread_mutex_unlock(&queueMutex);
+    return true;
+  }
+  
+  while(results.empty() && runningThreads > 0) {
+    cout << "[HasNext] wait for condition" << endl;
+    // Wait for new elements
+    pthread_cond_wait(&queueCondition, &queueMutex); 
+    cout << "[HasNext] wakeup" << endl;
+    
+    // Handle Thread terminations (Vector with 0 entries)
+    while(! results.empty() && (results.front()).size() == 0) {
+      --runningThreads;
+      cout << "HasNext Thread termination: " << runningThreads << endl;
+      results.pop();
+    }
+    
+    cout << "[HasNext] running" << endl;
+  }
+  
+  // Element found
+  if(! results.empty() ) {
+    pthread_mutex_unlock(&queueMutex);
+    return true;
+  }
+  
+  pthread_mutex_unlock(&queueMutex);
+  cout << "[HasNext] no new entries found" << endl;
+  return false;
+}
+
+void MultiThreadedCassandraResult::getStringValue(string &resultString, 
+                                                  int pos) {
+  
+    pthread_mutex_lock(&queueMutex);
+    
+    if( results.empty() ) {
+      pthread_mutex_unlock(&queueMutex);
+      return;
+    }
+    
+    resultString = (results.front()).at(pos - 1);
+    
+    pthread_mutex_unlock(&queueMutex);
+}
+
+int MultiThreadedCassandraResult::getIntValue(int pos) {
+  return -1;
+}
+
   
 } // Namespace
