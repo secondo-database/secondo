@@ -294,7 +294,18 @@ MultiThreadedCassandraResult::MultiThreadedCassandraResult(
 
 MultiThreadedCassandraResult::~MultiThreadedCassandraResult() {
   
-   cout << "[Destrutor] Joining threads" << endl;
+  cout << "[Destructor] Discard pending queries" << endl;
+   
+   // Discard pending queries
+   pthread_mutex_lock(&queryMutex);
+   queries.clear();
+   pthread_mutex_unlock(&queryMutex);
+   
+   // Process pending elements
+   while(! hasNext() ) {
+   }
+   
+   cout << "[Destructor] Joining threads" << endl;
    
    // Join thrads
    for(size_t i = 0; i < threads.size(); ++i) {
@@ -305,7 +316,7 @@ MultiThreadedCassandraResult::~MultiThreadedCassandraResult() {
    pthread_mutex_destroy(&queueMutex);
    pthread_cond_destroy(&queueCondition);
 
-   cout << "[Destrutor] Deconstructor complete" << endl;
+   cout << "[Destructor] Deconstructor complete" << endl;
 }
 
 bool MultiThreadedCassandraResult::hasNext() {
