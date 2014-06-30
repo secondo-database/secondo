@@ -352,9 +352,13 @@ void MultiThreadedCassandraResult::getStringValue(string &resultString,
       return;
     }
     
-    cout << "Request for position: " << pos - 1 << endl;
+    if((results.front()).size() < pos) {
+      cout << "Request for OUT OF RANGE position: " << pos
+           << " / " << results.front().size() << endl;
+      return;
+    }
     
-    resultString = (results.front()).at(pos - 1);
+    resultString = (results.front()).at(pos);
     
     pthread_mutex_unlock(&queueMutex);
 }
