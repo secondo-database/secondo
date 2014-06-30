@@ -719,7 +719,7 @@ Result    : 1
 
 Operator  : components
 Number    : 1
-Signature : periods -> stream(interval)
+Signature : periods -> stream(periods)
 Example   : query components(deftime(train7 when[speed(train7) > 10.0])) count
 Result    : 22
 

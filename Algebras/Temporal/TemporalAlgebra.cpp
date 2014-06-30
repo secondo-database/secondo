@@ -18568,9 +18568,8 @@ ListExpr getIntervalsTM(ListExpr args){
   if(!Range<DateTime>::checkType(nl->First(args))){
      return listutils::typeError(err);
   }
-  return nl->TwoElemList(
-                  nl->SymbolAtom(Stream<Attribute>::BasicType()),
-                  nl->SymbolAtom(Range<DateTime>::BasicType()));
+  return nl->TwoElemList( listutils::basicSymbol<Stream<SecInterval> >(),
+                          listutils::basicSymbol<SecInterval> () );
 }
 
 /*
@@ -18637,7 +18636,7 @@ int getIntervalsVM(Word* args, Word& result, int message,
 */
 const string getIntervalsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> periods -> stream(periods)"
+    "( <text> periods -> stream(interval)"
     "</text---> "
     "<text> getIntervals(_) </text--->"
     "<text>Puts the intervals of a periods value into a stream "
@@ -18653,7 +18652,7 @@ const string getIntervalsSpec =
 Operator getIntervals(
            "getIntervals",
            getIntervalsSpec,
-           getIntervalsVM<false>,
+           getIntervalsVM<true>,
            Operator::SimpleSelect,
            getIntervalsTM);
 
@@ -18679,8 +18678,9 @@ ListExpr componentsTM(ListExpr args) {
   if (!Periods::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
-  return nl->TwoElemList( listutils::basicSymbol<Stream<SecInterval> >(),
-                          listutils::basicSymbol<SecInterval> () );
+  return nl->TwoElemList(
+                  nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                  nl->SymbolAtom(Range<DateTime>::BasicType()));
 }
 
 /*
@@ -18696,10 +18696,10 @@ This operator uses the same Value Mapping as the operator ~getIntervals~
 */
 const string componentsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> periods -> stream(interval)"
+    "( <text> periods -> stream(periods)"
     "</text---> "
     "<text> components(_) </text--->"
-    "<text>Puts the intervals of a periods value into a stream "
+    "<text>Puts the intervals of a periods value into a stream of periods"
     "</text--->"
     "<text>query components(deftime(train7)) count"
     " </text--->"
@@ -18712,7 +18712,7 @@ const string componentsSpec =
 Operator components(
            "components",
            componentsSpec,
-           getIntervalsVM<true>,
+           getIntervalsVM<false>,
            Operator::SimpleSelect,
            componentsTM);
 
