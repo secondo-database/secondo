@@ -97,7 +97,7 @@ echo "StartOptServer"
 
 #start OptServer
 cd $SECONDO_BUILD_DIR/Optimizer
-StartOptServer -q  >$LOGFILEOPT 2>&1 &
+StartOptServer -q -t  >$LOGFILEOPT 2>&1 &
 
 
 echo "Optimizer server is running"
