@@ -700,6 +700,7 @@ static {
      cout.println("   -autoquit           : exits the server if the last client disconnects");
      cout.println("   -trace_methods      : enables tracing of method calls (for debugging)");
      cout.println("   -trace_instructions : enables tracing of instructions (for debugging)");
+     cout.println("   -trace_commands     : enables tracing of input/output");
      cout.println("   -encoding enc       : switch the output encoding");
   }
 
@@ -741,6 +742,9 @@ static {
               console_enc = args[pos+1];
               pos++;
               pos++;
+           } else if(args[pos].equals("-trace_commands")){
+              trace=true;
+              pos++;
            } else {
                cout.println("unknown option " + args[pos]);
                showUsage();
@@ -760,7 +764,7 @@ static {
               cout = new PrintStream(System.out, true, console_enc);
            } catch(Exception e){
               cout = System.out;
-              cout.println("Problem in changing output encoding, use utg-8");
+              cout.println("Problem in changing output encoding, use utf-8");
               e.printStackTrace();
            }
        } 
