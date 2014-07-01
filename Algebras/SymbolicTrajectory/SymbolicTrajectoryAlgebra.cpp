@@ -88,6 +88,7 @@ void Label::buildValue(const string& text, const unitelem& unit, base& result) {
 
 */
 void Label::SetValue(const string &text) {
+  Clean();
   if (text.length() > 0) {
     const char *bytes = text.c_str();
     value.write(bytes, text.length());
