@@ -674,6 +674,12 @@ bool CassandraAdapter::executeCQLASync
             cerr << "Cassandra session not ready" << endl;
             return false;
         }
+        
+        while(pendingFutures.size() > 100) {
+          cout << "Sleep because finished futured buffer is full" << endl;
+          sleep(1);
+          removeFinishedFutures();
+        }
 
         boost::shared_future<cql::cql_future_result_t> future
           = executeCQL(cql, consistency);
