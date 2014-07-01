@@ -22,6 +22,7 @@
 # variables of the client part
 
 AUTOQUIT=""
+TRACE=""
 
 while getopts "h:p:u:s:c:q" Option
 do
@@ -32,6 +33,7 @@ do
     s ) PSWD=$OPTARG ;;
     u ) USER=$OPTARG ;;
     q ) AUTOQUIT="-autoquit" ;;
+    t ) TRACE="-trace_commands" ;;
     * ) 
   esac
 done
@@ -102,7 +104,7 @@ if [ -n "$PSWD" ]; then
 fi
 
 
-cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $S_PORT $AUTOQUIT $*"
+cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $S_PORT $AUTOQUIT $TRACE $*"
 
 echo $cmd 
 
