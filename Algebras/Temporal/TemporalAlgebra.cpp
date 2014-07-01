@@ -18675,20 +18675,109 @@ ListExpr componentsTM(ListExpr args) {
   if (!nl->HasLength(args, 1)){
     return listutils::typeError(err);
   }
-  if (!Periods::checkType(nl->First(args))){
-    return listutils::typeError(err);
-  }
-  return nl->TwoElemList(
+  if (Periods::checkType(nl->First(args))){
+       return nl->TwoElemList(
                   nl->SymbolAtom(Stream<Attribute>::BasicType()),
                   nl->SymbolAtom(Range<DateTime>::BasicType()));
+  }
+  if(MPoint::checkType(nl->First(args))){
+       return nl->TwoElemList(
+                  nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                  nl->SymbolAtom(MPoint::BasicType()));
+
+  }
+  return listutils::typeError(err);
 }
 
 /*
 5.2.7.2 Value Mapping for operator ~components~
 
-This operator uses the same Value Mapping as the operator ~getIntervals~
+*/
+
+class ComponentsLocal{
+  public:
+
+     ComponentsLocal(MPoint* _mp): mp(_mp), pos(0) {}
+
+     MPoint* next(){
+        if(pos>=mp->GetNoComponents()){
+            return 0;
+        }
+        MPoint* res = new MPoint(3);
+        res->StartBulkLoad();
+        UPoint up(false);
+        mp->Get(pos,up);
+        res->Add(up);
+        pos++;
+        while(pos < mp->GetNoComponents()){
+           UPoint up2(false);
+           mp->Get(pos,up2);
+           if(up.Adjacent(&up2)){
+              res->Add(up2);
+              up = up2;
+              pos++; 
+           } else {
+               res->EndBulkLoad(false);
+               return res;
+           }
+        }
+        res->EndBulkLoad(false);
+        return res;
+     }
+
+  private:
+     MPoint* mp;
+     int pos;
+
+};
+
+
+int componentsVM_mp(Word* args, Word& result, int message,
+                   Word& local, Supplier s) {
+   ComponentsLocal* li = (ComponentsLocal*) local.addr;    
+   switch(message){
+     case OPEN:
+          if(li) {
+            delete li;
+          }
+          local.addr = new ComponentsLocal( (MPoint*) args[0].addr);
+          return 0;
+     case REQUEST:
+           result.addr= li?li->next():0;
+           return result.addr?YIELD:CANCEL;
+     case CLOSE:
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+           return 0;
+   }
+   return -1;
+   
+}
+
+
+ValueMapping componentsVM[] = {
+     getIntervalsVM<false>,
+     componentsVM_mp
+  };
+
+/*
+5.2.7.3 Selection function
 
 */
+int componentsSelect(ListExpr args){
+  if (Periods::checkType(nl->First(args))){
+       return 0;
+  }
+  if(MPoint::checkType(nl->First(args))){
+       return 1;
+  }
+  return -1;
+}
+
+
+
 
 /*
 5.2.7.3 Specification
@@ -18696,10 +18785,10 @@ This operator uses the same Value Mapping as the operator ~getIntervals~
 */
 const string componentsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> periods -> stream(periods)"
+    "( <text> periods -> stream(periods) ; mpoint -> stream(mpoint)"
     "</text---> "
     "<text> components(_) </text--->"
-    "<text>Puts the intervals of a periods value into a stream of periods"
+    "<text>Splits the argument into connected components"
     "</text--->"
     "<text>query components(deftime(train7)) count"
     " </text--->"
@@ -18712,8 +18801,9 @@ const string componentsSpec =
 Operator components(
            "components",
            componentsSpec,
-           getIntervalsVM<false>,
-           Operator::SimpleSelect,
+           2,
+           componentsVM,
+           componentsSelect,
            componentsTM);
 
 
