@@ -676,9 +676,9 @@ bool CassandraAdapter::executeCQLASync
         }
         
         while(pendingFutures.size() > 100) {
-          cout << "Sleep because finished futured buffer is full" << endl;
+          cout << "Sleep because finished futures buffer is full" << endl;
           sleep(1);
-          removeFinishedFutures();
+          removeFinishedFutures(true);
         }
 
         boost::shared_future<cql::cql_future_result_t> future
