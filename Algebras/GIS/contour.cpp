@@ -352,7 +352,6 @@ namespace GISAlgebra {
       {
         if(local.addr != 0)
         {
-
           ListExpr resultType = GetTupleResultType(s);
           TupleType *tupleType = new TupleType(nl->Second(resultType));
           Tuple *clines = new Tuple( tupleType );
@@ -543,13 +542,14 @@ namespace GISAlgebra {
       Intersect( c, cX, cY, a, aX, aY, g,
                  level, &nPoints, pointsX, pointsY );
 
-      if( nPoints >= 2 )
+      if( nPoints == 2 )
       {
         // links und unten
         if ( nPoints1 == 1 && nPoints2 == 2)
         {
-          AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], min, interval, clines);
+          if ( !(g == level && i == level) )
+            AddSegment( level, pointsX[0], pointsY[0], 
+                        pointsX[1], pointsY[1], min, interval, clines);
         }
         // links und rechts
         else if ( nPoints1 == 1 && nPoints3 == 2 )
@@ -560,15 +560,15 @@ namespace GISAlgebra {
         // links und oben
         else if ( nPoints1 == 1 && nPoints == 2 )
         { 
-          if ( !(a == level && g == level) )
-            AddSegment( level, pointsX[0], pointsY[0], 
-                        pointsX[1], pointsY[1], min, interval, clines);
+          AddSegment( level, pointsX[0], pointsY[0], 
+                      pointsX[1], pointsY[1], min, interval, clines);
         }
         // unten und rechts
         else if(  nPoints2 == 1 && nPoints3 == 2)
         {
-          AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], min, interval, clines);
+          if ( !(c == level && i == level) )
+            AddSegment( level, pointsX[0], pointsY[0], 
+                        pointsX[1], pointsY[1], min, interval, clines);
         }
         // unten und oben
         else if ( nPoints2 == 1 && nPoints == 2 )
@@ -579,9 +579,8 @@ namespace GISAlgebra {
         // rechts und oben
         else if ( nPoints3 == 1 && nPoints == 2 )
         { 
-          if ( !(c == level && a == level) )
-             AddSegment( level, pointsX[0], pointsY[0], 
-                         pointsX[1], pointsY[1], min, interval, clines);
+           AddSegment( level, pointsX[0], pointsY[0], 
+                       pointsX[1], pointsY[1], min, interval, clines);
         }
         else
         {
@@ -589,13 +588,56 @@ namespace GISAlgebra {
         }
       }
 
+      if( nPoints == 3 )
+      {
+        // links, unten und rechts
+        if ( nPoints1 == 1 && nPoints2 == 2 && nPoints3 == 3 )
+        {
+          AddSegment( level, pointsX[0], pointsY[0], 
+                      pointsX[1], pointsY[1], min, interval, clines);
+
+          AddSegment( level, pointsX[1], pointsY[1], 
+                      pointsX[2], pointsY[2], min, interval, clines);
+        }
+        // links, unten und oben
+        else if ( nPoints1 == 1 && nPoints2 == 2 && nPoints == 3 )
+        {
+          AddSegment( level, pointsX[0], pointsY[0], 
+                      pointsX[1], pointsY[1], min, interval, clines);
+
+          AddSegment( level, pointsX[0], pointsY[0], 
+                      pointsX[2], pointsY[2], min, interval, clines);
+        }
+        // unten, rechts und oben
+        else if ( nPoints2 == 1 && nPoints3 == 2 && nPoints == 3 )
+        {
+          AddSegment( level, pointsX[0], pointsY[0], 
+                      pointsX[1], pointsY[1], min, interval, clines);
+
+          AddSegment( level, pointsX[1], pointsY[1], 
+                      pointsX[2], pointsY[2], min, interval, clines);
+        }
+        // unten, rechts und oben
+        else if ( nPoints1 == 1 && nPoints3 == 2 && nPoints == 3 )
+        {
+          AddSegment( level, pointsX[0], pointsY[0], 
+                      pointsX[1], pointsY[1], min, interval, clines);
+
+          AddSegment( level, pointsX[1], pointsY[1], 
+                      pointsX[2], pointsY[2], min, interval, clines);
+        }
+
+
+      }
+
       if( nPoints == 4 )
       {
         if ( !(c == level && a == level) )
         {
-          AddSegment( level, pointsX[2], pointsY[2], 
+          AddSegment( level, pointsX[1], pointsY[1], 
+                      pointsX[2], pointsY[2], min, interval, clines);
+          AddSegment( level, pointsX[0], pointsY[0], 
                       pointsX[3], pointsY[3], min, interval, clines);
-
         }
       }
     } 
