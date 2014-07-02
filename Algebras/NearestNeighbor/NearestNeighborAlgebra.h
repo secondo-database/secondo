@@ -130,8 +130,18 @@ void R_Tree<dim, LeafInfo>::FirstDistanceScan( const BBox<dim>& box )
   distanceFlag = true;
   pq = new NNpriority_queue;
   R_TreeNode<dim, TupleId> tmp = Root();
-  pq->push( DistanceElement<TupleId>( RootRecordId(), false, -1,
-      tmp.BoundingBox().Distance(box), 0));
+  if(!tmp.IsLeaf()){
+     pq->push( DistanceElement<TupleId>( RootRecordId(),false, -1,
+          tmp.BoundingBox().Distance(box), 0));
+  } else {
+    for ( int ii = 0; ii < tmp.EntryCount(); ++ii ) {
+          R_TreeLeafEntry<dim, LeafInfo> e =
+            (R_TreeLeafEntry<dim, LeafInfo>&)(tmp)[ii];
+          pq->push( DistanceElement<LeafInfo>( 0,
+              true, e.info, e.box.Distance( box ),
+              1));
+    }
+  }
 }
 
 /*
@@ -155,7 +165,10 @@ template <unsigned dim, class LeafInfo>
 bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box,
                                    LeafInfo& result )
 {
+
+
   assert(distanceFlag);
+
   while ( !pq->empty() )
   {
     DistanceElement<LeafInfo> elem = pq->top();
@@ -177,7 +190,6 @@ bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box,
         {
           R_TreeLeafEntry<dim, LeafInfo> e =
             (R_TreeLeafEntry<dim, LeafInfo>&)(*tmp)[ii];
-
           pq->push( DistanceElement<LeafInfo>( 0,
               true, e.info, e.box.Distance( box ),
               elem.Level() + 1));
