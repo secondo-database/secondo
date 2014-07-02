@@ -1,0 +1,430 @@
+Database : berlintest
+Restore  : NO
+
+Operator : GROUP
+Number   : 1
+Signature: ((stream x)) -> (rel x)
+Example  : query Orte feed sortby_old[BevT asc] groupby[BevT; Cnt: fun(g: GROUP) g count] filter[.Cnt > 10] consume
+Result   : file
+
+Operator : slidingwindow
+Number   : 1
+Signature: (stream x) -> (stream y)
+Example  : query no_components(units(speed(train7)) transformstream slidingwindow[5, 1; I: inst(initial(group feed tail[1] extract[Elem])),  V: group feed extend[V0: val(initial(.Elem))] avg[V0]  ]  approximate[I,V] )
+Result   : 180
+
+Operator : aggregate
+Number   : 1
+Signature: (stream(tuple((a1 t1) ... (an tn))) ai((ti ti) -> ti) ti -> ti
+Example  : query ten feed aggregate[No; fun(i1: int, i2: int) i1+i2; 0]
+Result   : 55
+
+
+Operator : aggregateB
+Number   : 1
+Signature: (stream(tuple((a1 t1) ... (an tn))) ai((ti ti) -> ti) ti -> ti
+Example  : query no_components(Flaechen feed aggregateB[GeoData; fun(r1:region, r2:region) r1 union1 r2; [const region value ()]])
+Result   : 139
+
+Operator : aggregateC
+Number   : 1
+Signature: stream(tuple(X)) x (tuple(X) x t -> t) x t , t in DATA 
+Example  : query ten feed aggregateC[ fun( t : TUPLE, i : int) attr(t,No) + i ; 5]
+Result   : 60
+
+Operator : avg
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., an:dn]))) x ai) -> real
+Example  : query Staedte feed avg [Bev]
+Result   : 325017.2413793103
+
+Operator : avg
+Number   : 2
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., an:dn]))) x ai) -> real
+Example  : query Staedte feed extend[BevR: .Bev * 1.0] avg [BevR]
+Result   : 325017.2413793103
+
+Operator : cancel
+Number   : 1
+Signature: ((stream x) (map x bool)) -> (stream x)
+Example  : query Staedte feed cancel [.SName = "Dortmund"] consume
+Result   : file
+
+
+Operator : concat
+Number   : 1
+Signature: ((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... bn:dn)))) -> (stream (tuple (a1:d1 ... an:dn)))
+Example  : query ten feed ten feed concat consume
+Result   : file
+
+
+Operator : extend
+Number   : 1
+Signature: (stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))
+Example  : query ten feed extend [Mult5: .No * 5, Mod2 : .No mod 2] sum[Mult5]
+Result   : 275
+
+
+Operator : extendstream
+Number   : 1
+Signature: ((stream tuple1) (map tuple1 stream(type))) -> (stream tuple1*tuple2)
+Example  : query Trains feed head[1] extendstream[UTrip:  units(.Trip)] count
+Result   : 113
+
+
+Operator : extract
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Example  : query no_segments(Flaechen feed filter[.Name = "Hasenheide"] extract[GeoData])
+Result   : 26
+
+Operator : extract
+Number   : 2
+Signature: stream(X) -> X , X in DATA 
+Example  : query intstream(3,5) extract[.]
+Result   : 3
+
+Operator : groupby
+Number   : 1
+Signature: ((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple (a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... bjl)))
+Example  : query Orte feed sortby_old[BevT asc] groupby[BevT; Cnt: group count] filter[.Cnt > 10] consume
+Result   : file
+
+
+Operator : hashjoin
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query Orte feed {o} plz feed {p} hashjoin[Ort_o, Ort_p, 99997] count
+Result   : 10052
+
+
+Operator : hashjoin
+Number   : 2
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query Orte feed {o} plz feed {p} hashjoin[Ort_o, Ort_p] count
+Result   : 10052
+
+
+Operator : head
+Number   : 1
+Signature: stream(T) x int -> stream(T)
+Example  : query Trains feed head[7] count
+Result   : 7
+
+Operator : loopjoin
+Number   : 1
+Signature: ((stream tuple1) (fun (tuple1 -> stream(tuple2)))) -> (stream tuple1*tuple2)
+Example  : query Orte feed {o} loopjoin[plz_Ort plz exactmatch[.Ort_o]] count
+Result   : 10052
+
+
+Operator : loopsel
+Number   : 1
+Signature: ((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple2)
+Example  : query Orte feed {o} loopsel[plz_Ort plz exactmatch[.Ort_o]] count
+Result   : 10052
+
+
+Operator : max
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Example  : query Staedte feed max[Bev]
+Result   : 1859000
+
+
+Operator : mergediff
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))
+Example  : query thousand feed ten feed mergediff count
+Result   : 990
+
+
+Operator : mergejoin
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query Orte feed sortby_old[Ort asc] {o} plz feed sortby_old[Ort asc] {p} mergejoin[Ort_o, Ort_p] count
+Result   : 10052
+
+
+Operator : mergesec
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))
+Example  : query ten feed thousand feed mergesec count
+Result   : 10
+
+
+Operator : mergeunion
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn))))stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))
+Example  : query plz_Ort plz exactmatch["Hamburg"] sort_old plz_PLZ plz range[15000, 21000] sort_old mergeunion count
+Result   : 4253
+
+
+Operator : min
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Example  : query Staedte feed min[Bev]
+Result   : 100000
+
+
+Operator : projectextend
+Number   : 1
+Signature: stream(tuple(T1)) x <attrname-list> x <(attrname2 fun)-list> -> stream(tuple(T2)), attrname-list in T1 and T2 = attrname-list + attrname2-list
+Example  : query Orte feed projectextend[Ort, Vorwahl; BevT2: .BevT*2, BevT: (.BevT + 30)] head[1] consume
+Result   : ( (rel (tuple ( (Ort string) (Vorwahl string) (BevT2 int) (BevT int)))) ( ("Aachen" "0241" 512 286)))
+
+Operator : projectextendstream
+Number   : 1
+Signature: ((stream tuple1) (ai1 ... aik) (map tuple1 stream(type))) -> (stream tuple1[ai1 ... aik]*type)
+Example  : query Trains feed head[5] projectextendstream[Id, Line, Up; UTrip:  units(.Trip)] consume
+Result   : file
+
+
+Operator : rdup
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query Orte feed project[BevT] sort_old rdup count
+Result   : 161
+
+
+Operator : sample
+Number   : 1
+Signature: (rel x) int real -> (stream x)
+Example  : query plz sample[500, 0.0001] count
+Result   : 500
+
+
+Operator : sample
+Number   : 2
+Signature: (rel x) int real int -> (stream x)
+Example  : query plz sample[500, 0.0001, 3] count
+Result   : 500
+
+
+Operator : sort_old
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query Staedte feed sort_old consume
+Result   : file
+
+
+Operator : sortby_old
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query Staedte feed sortby_old[Bev desc] head[3] consume
+Result   : file
+
+
+Operator : sortmergejoin_old
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query Orte feed {o} plz feed {p} sortmergejoin_old[Ort_o, Ort_p] count
+Result   : 10052
+
+Operator : smouterjoin
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query Orte feed {o} plz feed {p} smouterjoin[Ort_o, Ort_p] count
+Result   : 41472
+
+Operator : sum
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., an:dn]))) x ai) -> int
+Example  : query Staedte feed sum[Bev]
+Result   : 18851000
+
+Operator : sum
+Number   : 2
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., an:dn]))) x ai) -> real
+Example  : query Staedte feed extend[BevR: .Bev * 1.0] sum[BevR];
+Result   : 18851000.0
+
+
+Operator : symmjoin
+Number   : 1
+Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) (map (tuple (x1 ... xn)) (tuple (y1 ... ym)) -> bool) -> (stream (tuple (x1 ... xn y1 ... ym)))
+Example  : query Flaechen feed {f} WFlaechen feed {w} symmjoin[.GeoData_f adjacent ..GeoData_w] consume
+Result   : file
+
+
+Operator : symmouterjoin
+Number   : 1
+Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) (map (tuple (x1 ... xn)) (tuple (y1 ... ym)) -> bool) -> (stream (tuple (x1 ... xn y1 ... ym)))
+Example  : query Flaechen feed {f} WFlaechen feed {w} symmouterjoin[.GeoData_f adjacent ..GeoData_w] consume
+Result   : file
+
+
+Operator : symmproduct
+Number   : 1
+Signature: (stream (tuple(X))) (stream (tuple(Y)))  -> (stream (tuple(X*Y))) ))
+Example  : query ten feed {a} ten feed {b} symmproduct head[12] consume
+Result   : file
+
+
+Operator : symmproductextend
+Number   : 1
+Signature: (stream (tuple(X))) (stream (tuple(Y)))  [(z1, (tuple(X) tuple(Y) -> t1)) ... (zj, (tuple(X) tuple(Y) -> tj))]  -> (stream (tuple(X*Y*Z))) ))
+Example  : query ten feed {a} ten feed {b} symmproductextend[Prod: .No_a * ..No_b] consume
+Result   : file
+
+
+Operator : krdup
+Number   : 1
+Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(tuple((a1 t1)...(an tn)))
+Example  : query plz feed sortby_old[Ort] krdup[Ort] count
+Result   : 16788
+
+Operator : krduph
+Number   : 1
+Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(tuple((a1 t1)...(an tn)))
+Example  : query plz feed  krduph[Ort] count
+Result   : 16788
+
+Operator : addcounter
+Number   : 1
+Signature: stream(tuple((a1 t1)..(an tn))) x id x int -> stream(tuple((a1 t1)...(an tn)(id int)))
+Example  : query ten feed addcounter[ Cnt , 1] consume
+Result   : file
+
+
+Operator : var
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., an:dn]))) x ai) -> real
+Example  : query Staedte feed var[Bev]
+Result   : 118775771627.3442
+
+
+Operator : var
+Number   : 2
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., an:dn]))) x ai) -> real
+Example  : query Staedte feed extend[BevR: .Bev * 1.0] var[BevR]
+Result   : 118775771627.3442
+
+
+Operator : stats
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., aj: int, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
+Example  : query ten feed stats[No,No] consume
+Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 1.0 10.0 55.0 5.5 9.166666666666666 10 1.0 10.0 55.0 5.5 9.166666666666666 10 10 9.166666666666666 1.0)))
+
+
+Operator : stats
+Number   : 2
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., aj: int, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
+Example  : query ten feed extend[R: -1.0 * .No] stats[No,R] consume
+Result   : ((rel(tuple((CountX int)(MinX real)(MaxX real)(SumX real)(AvgX real)(VarX real)(CountY int)(MinY real)(MaxY real)(SumY real)(AvgY real)(VarY real)(Count int)(CountXY int)(CovXY real)(CorrXY real))))((10 1.0 10.0 55.0 5.5 9.166666666666666 10 -10.0 -1.0 -55.0 -5.5 9.166666666666666 10 10 -9.166666666666666 -1.0)))
+
+
+Operator : stats
+Number   : 3
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., aj: real, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
+Example  : query ten feed extend[R1: (1.0 * .No), R2: (10.0/(.No*1.0))] stats[R1,R2] consume
+Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 1.0  10.0 55.0 5.5 9.166666666666666 10 1.0 10.0 29.28968253968254 2.928968253968254 7.687580309901738 10 10 -6.788139329805995 -0.8086306440033478)))
+
+
+Operator : stats
+Number   : 4
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., aj: real, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
+Example  : query ten feed extend[R: -1.0 * .No] stats[R,No] consume
+Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 -10.0  -1.0 -55.0 -5.5 9.166666666666666 10 1.0 10.0 55.0 5.5 9.166666666666666 10 10 -9.166666666666666 -1.0)))
+
+
+
+Operator : ksmallest
+Number   : 1
+Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m -> stream(tuple(...))
+Example  : query (plz feed sortby_old[Ort] head [10] project[Ort]) (plz feed ksmallest[10;Ort] project[Ort]) mergediff count
+Result   : (int 0)
+
+Operator : kbiggest
+Number   : 1
+Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m -> stream(tuple(...))
+Example  : query (plz feed sortby_old[Ort desc] head [10] project[Ort]) (plz feed kbiggest[10;Ort] project[Ort]) mergediff count
+Result   : (int 0)
+
+Operator : printrefs 
+Number   : 1
+Signature: stream(tuple((a1 t1)..(an tn))) -> stream(tuple((a1 t1)...(an tn)(id int)))
+Example  : query ten feed printrefs count;
+Result   : (int 10)
+
+
+Operator : extend_aggr 
+Number   : 1
+Signature: stream(tuple(X) x attrName x newAttrName x fun -> stream(tuple(X@(newAttrName))
+Example  : query ten feed extend_aggr[No; Ano : fun(i1: int, i2: int) i1 + i2 ] max[Ano]
+Result   : 55
+
+
+Operator : extend_last 
+Number   : 1
+Signature: stream(tuple(X) x funlist with defaults 
+Example  : query ten feed extend_last[ A : .No + ..No :: 0 , B : .No - ..No :: 0  ] max[B]
+Result   : 1
+
+Operator : extend_next
+Number   : 1
+Signature: stream(tuple(X) x funlist with defaults 
+Example  : query ten feed extend_next[ A : .No + ..No :: 0 , B : ..No - .No :: 0  ] max[B]
+Result   : 1
+
+Operator : toFields
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ...,an:dn]))) x ai) -> stream(tuple([ai, attrname, dj, aj]))
+Example  : query Staedte feed toFields [SName] head[10] tconsume
+Result   : file
+
+
+Operator : fromFields
+Number   : 1
+Signature: "(stream(tuple(keyvalue: keytype, Field: string, Type: text, Value: text))) x (rel(tuple(X))) -> (stream(tuple(X)))
+Example  : query Staedte feed toFields[SName] head[12] sortby[Value] sortby[SName] Staedte fromFields tconsume
+Result   : file
+
+
+
+Operator : applyToAll 
+Number   : 1
+Signature: stream(tuple(X)) x fun -> stream(tuple(Y)) 
+Example  : query ten feed applyToAll[ fun(i : int) i + 1] sum[No]
+Result   : 65
+
+
+Operator  : replaceAttr
+Number    : 1
+Signature : stream(tuple(x)) x funlist -> stream(tuple(Y))
+Example   : query (plz feed replaceAttr[ PLZ : .Ort, Ort : .PLZ]) = (plz feed projectextend[;PLZ : .Ort, Ort : .PLZ])
+Result    : TRUE
+
+Operator  : =
+Number    : 1
+Signature : stream(X) x stream(X) -> bool
+Example   : query (plz feed) = (plz feed)
+Result    : TRUE
+
+Operator  : =
+Number    : 2
+Signature : stream(X) x stream(X) -> bool
+Example   : query (plz feed projecttransformstream[PLZ]) = (plz feed projecttransformstream[PLZ])
+Result    : TRUE
+
+
+Operator : pfilter
+Number   : 1
+Signature : stream(tuple(X)) x (tuple(X) x tuple(X) -> bool) -> stream(tuple(X))
+Example   : query ten feed pfilter[ (.No - ..No) > 2 ] count
+Result    : 4
+
+
+Operator  : extendX
+Number    : 1
+Signature : stream(tuple)  x attrnames+ x (tuple -> stream(DATA)) x DATA -> stream(tuple)
+Example   : query strassen feed head[2] extendX[ A, B,C   ; fun(t : TUPLE ) Kinos feed extend[D : distance(.GeoData, attr(t,GeoData))] sortby[D] projecttransformstream[Name] ; ""] consume
+Result    : ((rel (tuple ((Name string) (Typ string) (GeoData line) (A string) (B string) (C string))))  (("Dudenstr." "Hauptstraße" ((8209.0 8769.0 8293.0 8768.0) (8293.0 8768.0 8594.0 8773.0) (8594.0 8773.0 8982.0 8781.0) (8982.0 8781.0 9222.0 8787.0)) "Xenon" "Yorck" "Odeon") ("Methfesselstr." "Nebenstraße" ((8982.0 8781.0 9057.0 8936.0) (9057.0 8936.0 9106.0 9038.0) (9106.0 9038.0 9163.0 9209.0) (9163.0 9209.0 9211.0 9354.0)) "Yorck" "Xenon" "Sputnik Südstern")))
+
+Operator  : countMt
+Number    : 1
+Signature : stream(tuple) x int -> int
+Example   : query (strassen feed countMt[100]) = (strassen count)
+Result    : TRUE
+
