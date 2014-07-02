@@ -1,0 +1,18 @@
+
+(OBJECT ospresult 
+    () 
+    (rel 
+        (tuple 
+            (
+                (Id_s1 int) 
+                (Id_s2 int) 
+                (Name_s1 string) 
+                (Name_s2 string) 
+                (GeoData_s1 point) 
+                (GeoData_s2 point) 
+                (SeqNo int)))) 
+    (
+        (1 3 "Brandenburger Tor" "Siegess�ule" 
+            (8593.0 12243.0) 
+            (6749.0 12015.0) 
+            1)))
