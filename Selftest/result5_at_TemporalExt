@@ -1,0 +1,41 @@
+
+( mstring 
+   (
+      (
+         ( "2003-11-20-06:35:45.579"  "2003-11-20-06:35:50"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:35:50"  "2003-11-20-06:36"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:36"  "2003-11-20-06:36:50"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:36:50"  "2003-11-20-06:37"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:37"  "2003-11-20-06:37:24.485"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:45:42.743"  "2003-11-20-06:45:50"  TRUE  FALSE ) "Rathaus Charlottenburg" )
+      (
+         ( "2003-11-20-06:45:50"  "2003-11-20-06:46"  TRUE  FALSE ) "Rathaus Charlottenburg" )
+      (
+         ( "2003-11-20-06:46"  "2003-11-20-06:46:25.180"  TRUE  FALSE ) "Rathaus Charlottenburg" )
+      (
+         ( "2003-11-20-06:46:25.180"  "2003-11-20-06:46:37.659"  TRUE  FALSE ) "Rathaus Charlottenburg" )
+      (
+         ( "2003-11-20-06:46:37.659"  "2003-11-20-06:46:49.950"  TRUE  FALSE ) "Rathaus Charlottenburg" )
+      (
+         ( "2003-11-20-06:46:49.950"  "2003-11-20-06:47:04.689"  TRUE  FALSE ) "Rathaus Charlottenburg" )
+      (
+         ( "2003-11-20-06:47:04.689"  "2003-11-20-06:47:27.123"  TRUE  FALSE ) "Rathaus Charlottenburg" )
+      (
+         ( "2003-11-20-06:47:27.123"  "2003-11-20-06:47:38.161"  TRUE  FALSE ) "Rathaus Charlottenburg" )
+      (
+         ( "2003-11-20-07:01:11.382"  "2003-11-20-07:01:18.469"  TRUE  FALSE ) "Rathaus Spandau" )
+      (
+         ( "2003-11-20-07:01:18.469"  "2003-11-20-07:01:29.267"  TRUE  FALSE ) "Rathaus Spandau" )
+      (
+         ( "2003-11-20-07:01:29.267"  "2003-11-20-07:01:38.530"  TRUE  FALSE ) "Rathaus Spandau" )
+      (
+         ( "2003-11-20-07:01:38.530"  "2003-11-20-07:01:44.586"  TRUE  FALSE ) "Rathaus Spandau" )
+      (
+         ( "2003-11-20-07:01:44.586"  "2003-11-20-07:01:50"  TRUE  FALSE ) "Rathaus Spandau" )
+      (
+         ( "2003-11-20-07:01:50"  "2003-11-20-07:02"  TRUE  FALSE ) "Rathaus Spandau" )))

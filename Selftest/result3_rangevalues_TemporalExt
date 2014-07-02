@@ -1,0 +1,23 @@
+
+( rstring 
+   (
+      ( "Amerika-Gedenkbibliothek"  "Amerika-Gedenkbibliothek"  TRUE  TRUE )
+      ( "Bezirksamt Kreuzberg"  "Bezirksamt Kreuzberg"  TRUE  TRUE )
+      ( "DRK-Klinikum Westend"  "DRK-Klinikum Westend"  TRUE  TRUE )
+      ( "Deutsche Oper Berlin"  "Deutsche Oper Berlin"  TRUE  TRUE )
+      ( "Flughafen Schönefeld"  "Flughafen Schönefeld"  TRUE  TRUE )
+      ( "Gasometer"  "Gasometer"  TRUE  TRUE )
+      ( "Hebbeltheater"  "Hebbeltheater"  TRUE  TRUE )
+      ( "Hufeisensiedlung"  "Hufeisensiedlung"  TRUE  TRUE )
+      ( "Kammergericht"  "Kammergericht"  TRUE  TRUE )
+      ( "Krankenhaus Neukölln"  "Krankenhaus Neukölln"  TRUE  TRUE )
+      ( "Kudamm-Karree"  "Kudamm-Karree"  TRUE  TRUE )
+      ( "Marheinekehalle"  "Marheinekehalle"  TRUE  TRUE )
+      ( "Museum für Verkehr und Technik"  "Museum für Verkehr und Technik"  TRUE  TRUE )
+      ( "Naturtheater Hasenheide"  "Naturtheater Hasenheide"  TRUE  TRUE )
+      ( "Rathaus Charlottenburg"  "Rathaus Charlottenburg"  TRUE  TRUE )
+      ( "Rathaus Schöneberg"  "Rathaus Schöneberg"  TRUE  TRUE )
+      ( "Rathaus Spandau"  "Rathaus Spandau"  TRUE  TRUE )
+      ( "Schloß Charlottenburg"  "Schloß Charlottenburg"  TRUE  TRUE )
+      ( "St.-Gertrauden-Krankenhaus"  "St.-Gertrauden-Krankenhaus"  TRUE  TRUE )
+      ( "Zitadelle"  "Zitadelle"  TRUE  TRUE )))

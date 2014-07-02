@@ -1,0 +1,129 @@
+
+( mstring 
+   (
+      (
+         ( "2003-11-20-06:18:16.027"  "2003-11-20-06:18:50"  TRUE  FALSE ) "Hufeisensiedlung" )
+      (
+         ( "2003-11-20-06:18:50"  "2003-11-20-06:19"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:19"  "2003-11-20-06:19:20.226"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:19:20.226"  "2003-11-20-06:19:33.856"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:19:33.856"  "2003-11-20-06:19:50"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:19:50"  "2003-11-20-06:20"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:20"  "2003-11-20-06:20:38.437"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:20:38.437"  "2003-11-20-06:21:10.297"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:21:10.297"  "2003-11-20-06:21:50"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:21:50"  "2003-11-20-06:22"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:22"  "2003-11-20-06:22:10.300"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:22:10.300"  "2003-11-20-06:22:50"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:22:50"  "2003-11-20-06:23"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:23"  "2003-11-20-06:23:22.033"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:23:22.033"  "2003-11-20-06:23:34.403"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:23:34.403"  "2003-11-20-06:24:41.737"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:24:41.737"  "2003-11-20-06:24:50"  TRUE  FALSE ) "Gasometer" )
+      (
+         ( "2003-11-20-06:24:50"  "2003-11-20-06:25"  TRUE  FALSE ) "Gasometer" )
+      (
+         ( "2003-11-20-06:25"  "2003-11-20-06:25:11.998"  TRUE  FALSE ) "Gasometer" )
+      (
+         ( "2003-11-20-06:25:11.998"  "2003-11-20-06:25:28.818"  TRUE  FALSE ) "Gasometer" )
+      (
+         ( "2003-11-20-06:25:28.818"  "2003-11-20-06:26:50"  TRUE  FALSE ) "Gasometer" )
+      (
+         ( "2003-11-20-06:26:50"  "2003-11-20-06:27"  TRUE  FALSE ) "Marheinekehalle" )
+      (
+         ( "2003-11-20-06:27"  "2003-11-20-06:27:33.522"  TRUE  FALSE ) "Marheinekehalle" )
+      (
+         ( "2003-11-20-06:27:33.522"  "2003-11-20-06:27:35.899"  TRUE  FALSE ) "Bezirksamt Kreuzberg" )
+      (
+         ( "2003-11-20-06:27:35.899"  "2003-11-20-06:27:38.606"  TRUE  FALSE ) "Bezirksamt Kreuzberg" )
+      (
+         ( "2003-11-20-06:27:38.606"  "2003-11-20-06:27:50"  TRUE  FALSE ) "Bezirksamt Kreuzberg" )
+      (
+         ( "2003-11-20-06:27:50"  "2003-11-20-06:28"  TRUE  FALSE ) "Bezirksamt Kreuzberg" )
+      (
+         ( "2003-11-20-06:28"  "2003-11-20-06:28:12.989"  TRUE  FALSE ) "Bezirksamt Kreuzberg" )
+      (
+         ( "2003-11-20-06:28:12.989"  "2003-11-20-06:28:28.669"  TRUE  FALSE ) "Amerika-Gedenkbibliothek" )
+      (
+         ( "2003-11-20-06:28:28.669"  "2003-11-20-06:28:48.607"  TRUE  FALSE ) "Amerika-Gedenkbibliothek" )
+      (
+         ( "2003-11-20-06:28:48.607"  "2003-11-20-06:29:01.859"  TRUE  FALSE ) "Amerika-Gedenkbibliothek" )
+      (
+         ( "2003-11-20-06:29:01.859"  "2003-11-20-06:29:22.235"  TRUE  FALSE ) "Hebbeltheater" )
+      (
+         ( "2003-11-20-06:29:22.235"  "2003-11-20-06:29:30.389"  TRUE  FALSE ) "Hebbeltheater" )
+      (
+         ( "2003-11-20-06:29:30.389"  "2003-11-20-06:29:50"  TRUE  FALSE ) "Hebbeltheater" )
+      (
+         ( "2003-11-20-06:29:50"  "2003-11-20-06:30"  TRUE  FALSE ) "Hebbeltheater" )
+      (
+         ( "2003-11-20-06:30"  "2003-11-20-06:30:18.775"  TRUE  FALSE ) "Hebbeltheater" )
+      (
+         ( "2003-11-20-06:30:18.775"  "2003-11-20-06:30:33.783"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:30:33.783"  "2003-11-20-06:30:47.826"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:30:47.826"  "2003-11-20-06:31:05.595"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:31:05.595"  "2003-11-20-06:31:20.262"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:31:20.262"  "2003-11-20-06:31:27.240"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:31:27.240"  "2003-11-20-06:31:35.915"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:31:35.915"  "2003-11-20-06:31:43.550"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:31:43.550"  "2003-11-20-06:31:50"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:31:50"  "2003-11-20-06:32"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:32"  "2003-11-20-06:32:07.476"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:32:07.476"  "2003-11-20-06:32:12.509"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:32:12.509"  "2003-11-20-06:32:18.070"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:32:18.070"  "2003-11-20-06:32:22.369"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:32:22.369"  "2003-11-20-06:32:28.383"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:32:28.383"  "2003-11-20-06:32:44.654"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:32:44.654"  "2003-11-20-06:32:50"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:32:50"  "2003-11-20-06:33"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:33"  "2003-11-20-06:33:09.923"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:33:09.923"  "2003-11-20-06:34:50"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:34:50"  "2003-11-20-06:35"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:35"  "2003-11-20-06:35:45.579"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:35:45.579"  "2003-11-20-06:35:50"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:35:50"  "2003-11-20-06:36"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:36"  "2003-11-20-06:36:50"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:36:50"  "2003-11-20-06:37"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:37"  "2003-11-20-06:37:24.485"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:37:24.485"  "2003-11-20-06:37:30.647"  TRUE  TRUE ) "St.-Gertrauden-Krankenhaus" )))
