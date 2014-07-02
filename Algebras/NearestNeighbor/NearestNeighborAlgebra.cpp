@@ -1170,12 +1170,17 @@ template <unsigned dim>
 int distanceScanFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
-  DistanceScanLocalInfo<dim, TupleId> *localInfo;
+  DistanceScanLocalInfo<dim, TupleId> *localInfo = 
+              (DistanceScanLocalInfo<dim, TupleId>*) local.addr;
 
   switch (message)
   {
     case OPEN :
     {
+      if(localInfo){
+        localInfo->rtree->LastDistanceScan();
+        delete localInfo;
+      }
       localInfo = new DistanceScanLocalInfo<dim, TupleId>;
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
@@ -1189,9 +1194,7 @@ int distanceScanFun (Word* args, Word& result, int message,
 
       assert(localInfo->rtree != 0);
       assert(localInfo->relation != 0);
-
       localInfo->rtree->FirstDistanceScan(localInfo->position);
-
       local = SetWord(localInfo);
       return 0;
     }
@@ -1207,7 +1210,8 @@ int distanceScanFun (Word* args, Word& result, int message,
         return CANCEL;
       }
 
-      if ( localInfo->quantity > 0 && localInfo->noFound >=localInfo->quantity)
+      if ( (localInfo->quantity <= 0) || 
+           (localInfo->noFound >=localInfo->quantity))
       {
         return CANCEL;
       }
@@ -1217,7 +1221,7 @@ int distanceScanFun (Word* args, Word& result, int message,
       {
           Tuple *tuple = localInfo->relation->GetTuple(tid, false);
           result = SetWord(tuple);
-          ++localInfo->noFound;
+          ++(localInfo->noFound);
           return YIELD;
       }
       else
@@ -1228,8 +1232,7 @@ int distanceScanFun (Word* args, Word& result, int message,
 
     case CLOSE :
     {
-      if(local.addr){
-        localInfo = (DistanceScanLocalInfo<dim, TupleId>*)local.addr;
+      if(localInfo){
         localInfo->rtree->LastDistanceScan();
         delete localInfo;
         local.addr = 0;
@@ -3216,14 +3219,15 @@ IT getKNeighbor(NNTree<ActiveElem> &t, unsigned int k, bool &erg,
   unsigned int ii = 0;
   IT testit=t.begin();
   erg = false;
-  double dist_k;
+  //double dist_k;
   double slope;
 
   for( ; testit != t.end() && ii < k; ++testit)
   {
     ++ii;
     if( ii == k){
-      dist_k = CalcDistance(testit->distance, t_point, slope);
+      //dist_k = 
+      CalcDistance(testit->distance, t_point, slope);
       erg = true;
       break;
     }
@@ -9284,9 +9288,9 @@ double& elemstart,double& curstart)
       double v1 = elem.nodets;
       double v2 = elem.nodete;
 
-      double time_m,time_t; //start time for cur and elem
-      time_m = ttelem;//real start time
-      time_t = ttcur; //real start time
+      //double time_m,time_t; //start time for cur and elem
+      //time_m = ttelem;//real start time
+      //time_t = ttcur; //real start time
       double t = (tc-mc)/(mb-tb);
 
       if(v1 >= t || t >= v2){ //intersection point is no use
@@ -9323,9 +9327,9 @@ double& elemstart,double& curstart)
   double mind_m = start_m;
   double mind_t = start_t;
 
-  double time_m,time_t; //start time for cur and elem
-  time_m = ttelem;//real start time
-  time_t = ttcur; //real start time
+  //double time_m,time_t; //start time for cur and elem
+  //time_m = ttelem;//real start time
+  //time_t = ttcur; //real start time
 
   double delta_a = ma-ta;
   double delta_b = mb-tb;
@@ -12322,12 +12326,12 @@ struct Cov{
       }
       delete iter1;
 
-      int NodeId2;
+      // int NodeId2;
       //get coverage from the second relation
       while(iter2->Next()){
         flag2 = true;
         Tuple* tuple2 = cov2->GetTuple(iter2->GetId(), false);
-        NodeId2 = ((CcInt*)tuple2->GetAttribute(0))->GetIntval();
+        //NodeId2 = ((CcInt*)tuple2->GetAttribute(0))->GetIntval();
 //        assert(cov2->DeleteTuple(tuple2));
         tuple2->DeleteIfAllowed();
       }
