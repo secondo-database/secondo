@@ -302,12 +302,12 @@ void CoverInterval<Type>::insert(struct CoverNode<Type>* node)
             delete node;
             break;
         }
-        Type t1, t2;
+        Type  t2;
         while(next != NULL && next->te < node->te){
             CoverNode<Type>* temp = next;
             next = next->next;
             cur->next = next;
-            t1 = temp->ts;
+           // t1 = temp->ts;
             t2 = temp->te;
             delete temp;
         }
