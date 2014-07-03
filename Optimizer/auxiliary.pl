@@ -44,11 +44,14 @@ the output format used by SecondoTTY.
 
 */
 
-concat_atom(X,Y) :- atomic_list_concat(X,Y).
+%concat_atom(X,Y) :- atomic_list_concat(X,Y).
 
-concat_atom(X,Y,Z) :- atomic_list_concat(X,Y,Z).
+%concat_atom(X,Y,Z) :- atomic_list_concat(X,Y,Z).
 
-string_to_atom(X,Y) :- atom_string(Y,X).
+%string_to_atom(X,Y) :- atom_string(Y,X).
+
+%atom_string(X,Y) :-  1=2.
+
 
 
 is_atomic_list([]).
