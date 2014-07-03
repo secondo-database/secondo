@@ -43,6 +43,14 @@ the output format used by SecondoTTY.
 1.1.1 Predicates Auxiliary to Predicate ~pretty\_print~
 
 */
+
+concat_atom(X,Y) :- atomic_list_concat(X,Y).
+
+concat_atom(X,Y,Z) :- atomic_list_concat(X,Y,Z).
+
+string_to_atom(X,Y) :- atom_string(Y,X).
+
+
 is_atomic_list([]).
 is_atomic_list([Head | Tail]) :-
   atomic(Head),
