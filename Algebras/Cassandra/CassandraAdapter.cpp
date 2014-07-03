@@ -675,9 +675,10 @@ bool CassandraAdapter::executeCQLASync
             return false;
         }
         
-        while(pendingFutures.size() > 100) {
-          cout << "Sleep because finished futures buffer is full" << endl;
-          sleep(1);
+        usleep(250 + (pendingFutures.size()));
+ 
+        while(pendingFutures.size() > 50) {
+          usleep(1000);
           removeFinishedFutures(true);
         }
 
@@ -700,7 +701,7 @@ bool CassandraAdapter::executeCQLASync
 void CassandraAdapter::removeFinishedFutures(bool force) {
   
     // The cleanup is not needed everytime
-    if(pendingFutures.size() % 100 != 0 && force == false) {
+    if(pendingFutures.size() % 10 != 0 && force == false) {
       return;
     }
   

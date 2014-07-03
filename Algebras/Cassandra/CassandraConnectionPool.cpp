@@ -66,6 +66,8 @@ namespace cassandra {
       delete connection;
       connections[i] = NULL;
     }
+
+    connections.clear();
   }
   
   CassandraAdapter* CassandraConnectionPool::getConnection(

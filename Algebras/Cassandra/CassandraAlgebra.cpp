@@ -830,6 +830,10 @@ public:
       // Wait for all pending futures to finish
       cassandra -> waitForPendingFutures();
     }
+
+    // Destroy connection. 
+    CassandraConnectionPool::Instance()->
+       destroy();
   }
   
   bool feed(Tuple* tuple) {
