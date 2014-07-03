@@ -12,40 +12,54 @@ Start with 'SecondoTTYBDB' in path '~/secondo/bin$'.
 
 */
 
-typemap(+ ( int int ) ) 	
+typemap(+ ( int int ) ).
+typemap(+ ( string string ) ).
+typemap(- ( int real ) ).
+typemap(* ( real real ) ).
+typemap(/ ( int int ) ).
+typemap(mod ( int int ) ).
+typemap(div ( int int ) ).	
 
 
 typemap(feed 
   ( (rel (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) ) 
-  ) 
+  ).
 
 typemap(filter 
   ( (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
     (map (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) bool)
   ) 
-  ) 
+  ).
 
 typemap(consume 
   ( (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) ) 
-  ) 
+  ).
 
 typemap(attr 
   ( (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) 
     vorwahl
   ) 
-  )
+  ).
 
 typemap(hashjoin (
   (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
   (stream (tuple ((plz int) (ort2 string)))) 
   bevT plz) 
+  ).
+
+typemap(project (
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+  (kennzeichen bevT)
   ) 
+  ).
 
 
 
 
+/*
 Examples:
 
+*/
 
 
 conflict((tuple 1 (tuple ((no int))) ) (tuple 1 (tuple ((no int))) )) 
@@ -120,6 +134,12 @@ apply((stream (var tuple 2)) ( (tuple 2 (tuple ((no bool)))) (tuple 1 (tuple ((n
 ResultType = (stream (tuple ((no bool))))			    
 
 
+apply((stream (var rel 1)) ( (tuple 2 (tuple ((no bool)))) (tuple 1 (tuple ((no int)))) ) ) 
+
+Error: no binding for variable rel_1 found 
+ResultType = (stream typeerror)  	
+
+
 
 typemap(feed ( (rel (tuple ((no int)))) ) ) 
 			
@@ -186,6 +206,14 @@ matches((
 
 distinctAttrs(((kennzeichen string) (ort string) (vorwahl string) (bevT int) (vorwahl string) (bevT int)))					
 									    
+
+
+attrs((ort kennzeichen) 
+((kennzeichen string) (ort string) (vorwahl string) (bevT int)) 
+Types Numbers) 
+
+
+combine((kennzeichen vorwahl) (string string) Attrs) 
 
 
 
