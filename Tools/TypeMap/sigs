@@ -4,6 +4,66 @@ algebra StandardAlgebra
 +: int x real -> real
 +: real x int -> real
 +: real x real -> real
++: string x string -> string
+
+-: int x int -> int
+-: int x real -> real
+-: real x int -> real
+-: real x real -> real
+
+*: int x int -> int
+*: int x real -> real
+*: real x int -> real
+*: real x real -> real
+
+/: int x int -> real
+/: int x real -> real
+/: real x int -> real
+/: real x real -> real
+
+mod: int x int -> int
+div: int x int -> int
+
+<: int x int -> bool
+<: int x real -> bool
+<: real x int -> bool
+<: real x real -> bool
+<: bool x bool -> bool
+<: string x string -> string
+
+<=: int x int -> bool
+<=: int x real -> bool
+<=: real x int -> bool
+<=: real x real -> bool
+<=: bool x bool -> bool
+<=: string x string -> string
+
+>: int x int -> bool
+>: int x real -> bool
+>: real x int -> bool
+>: real x real -> bool
+>: bool x bool -> bool
+>: string x string -> string
+
+>=: int x int -> bool
+>=: int x real -> bool
+>=: real x int -> bool
+>=: real x real -> bool
+>=: bool x bool -> bool
+>=: string x string -> string
+
+=: int x int -> bool
+=: int x real -> bool
+=: real x int -> bool
+=: real x real -> bool
+=: bool x bool -> bool
+=: string x string -> string
+
+starts: string x string -> bool
+
+and: bool x bool -> bool
+or: bool x bool -> bool
+
 
 algebra RelationAlgebra
 
@@ -11,22 +71,58 @@ feed: rel(Tuple) -> stream(Tuple)
 consume: stream(Tuple) -> rel(Tuple)
 filter: stream(Tuple) :: (Tuple -> bool) -> stream(Tuple)
 attr: tuple(Attrs) :: Ident -> (Number, Type); 
-  attr(Ident, Attrs, Type, Number)
+    attr(Ident, Attrs, Type, Number)
 project: stream(tuple(Attrs_1)) :: (Ident_i)+
-	-> (Numbers_i, stream(tuple(Attrs_2)));
-  attrs(Ident_i, Attrs_1, Types_i, Numbers_i),
-  combine(Ident_i, Types_i, Attrs_2),
-  distinctAttrs(Attrs_2)
+        -> (Numbers_i, stream(tuple(Attrs_2)));
+    attrs(Ident_i, Attrs_1, Types_i, Numbers_i),
+    combine(Ident_i, Types_i, Attrs_2),
+    distinctAttrs(Attrs_2)
+
 
 algebra ExtRelationAlgebra
 
 hashjoin: stream(tuple(Attrs_1)) x stream(tuple(Attrs_2)) 
-	:: Ident_1 x Ident_2
-	-> stream(tuple(Attrs_3));	  
+        :: Ident_1 x Ident_2
+        -> stream(tuple(Attrs_3));
     attr(Ident_1, Attrs_1, Type_1, Number_1),
     attr(Ident_2, Attrs_2, Type_1, Number_2),
     concat(Attrs_1, Attrs_2, Attrs_3),
     distinctAttrs(Attrs_3)
+
+extend: stream(tuple(Attrs_1))
+        :: (Ident_i x (tuple(Attrs_2) -> Type_i))+
+	-> stream(tuple(Attrs_3));
+    combine(Ident_i, Type_i, Attrs_2),
+    concat(Attrs_1, Attrs_2, Attrs_3),
+    distinctAttrs(Attrs_3)
+
+projectextend: stream(tuple(Attrs_1))
+        :: (Ident_i)+ x (Ident_j x (tuple(Attrs_3) -> Type_j))+
+	-> stream(tuple(Attrs_4));
+    attrs(Ident_i, Attrs_1, Type_i, Number_i),
+    combine(Ident_i, Type_i, Attrs_2),
+    combine(Ident_j, Type_j, Attrs_3),
+    concat(Attrs_2, Attrs_3, Attrs_4),
+    distinctAttrs(Attrs_4)
+
+projectextendstream: stream(tuple(Attrs_1))
+	:: (Ident_i)+ x (Ident x (tuple(Attrs_3) -> stream(Type)))	
+	-> stream(tuple(Attrs_4));
+    attrs(Ident_i, Attrs_1, Type_i, Number_i),
+    combine(Ident_i, Type_i, Attrs_2),
+    combine(Ident, Type, Attrs_3),
+    concat(Attrs_2, Attrs_3, Attrs_4),
+    distinctAttrs(Attrs_4)
+
+groupby: stream(tuple(Attrs_1))
+	:: (Ident_i)+ x (Ident_j x (rel(tuple(Attrs_3)) -> Type_j))+
+	-> stream(tuple(Attrs_4));
+    attrs(Ident_i, Attrs_1, Type_i, Number_i),
+    combine(Ident_i, Type_i, Attrs_2),
+    combine(Ident_j, Type_j, Attrs_3),
+    concat(Attrs_2, Attrs_3, Attrs_4),
+    distinctAttrs(Attrs_4)
+
 
 algebra TemporalAlgebra
 
@@ -35,4 +131,6 @@ where T in {int, real, string, bool, point, region}.
 
 deftime: moving(T) -> periods 
 where T in {int, real, string, bool, point, region}.
+
+
 
