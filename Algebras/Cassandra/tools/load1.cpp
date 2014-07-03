@@ -28,10 +28,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_] [\_]
 //[TOC] [\tableofcontents]
 
-[1] Load1
+[1] Loadgenerator. This programm generates CSV data and send it 
+over a network socket. A sample line:
+
+gEpYm0eUDk,fAgVgUHWPo,bClSVK17HX,ixjXTTW7yh,qdsU8WzP1O,
+CcZw52F47W,bpRKKsoq0m,YoNOJWsGtt,c5U92XBHbG,kA5CUO4GE2
 
 */
 
+/* 
+1.0 Includes
+
+*/
 #include <iostream>
 
 #include <stdio.h>
@@ -43,15 +51,75 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <boost/concept_check.hpp>
 
+/* 
+1.1 Defines
+
+*/
+
+#define EOT "\004"
+#define ACK "\006"
 
 using namespace std;
 
+/*
+2.1 print usage fuction
+
+*/
+void printUsageAndExit(char* hostname) {
+  cerr << "Usage: " << hostname << " -h <hostname> -p <port> -l <lines> "
+               "-d <delay> -c <columns> -s <size per column>" << endl;
+      cerr << endl;
+      cerr << "Where <hostname> is the hostname to connect to" << endl;
+      cerr << "<port> is the port to connect to" << endl;
+      cerr << "<lines> is the numer of lines to send" << endl;
+      cerr << "<delay> is the pause (in ms) between two lines " << endl;
+      cerr << "<columns> is the number of columns to generate" << endl;
+      cerr << "<size per column> is the size in byte per column" << endl;
+      cerr << endl;
+      cerr << "Example: " << hostname
+           << " -h 127.0.0.1 -p 10000 -l 10 -d 4 -c 10 -s 10" << endl;
+      exit(-1);
+}
+
+/*
+2.2 fill the send buffer with the specified content
+
+*/
+void fillBuffer(string &result, int columns, int sizePerColumn) {
+  
+   // Allowed chars to send
+   static const char charArray[] = 
+      "0123456789"
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijlkmnopqrstuvwxyz";
+      
+  for(int i = 0; i < columns; i++) {
+     
+     if(i != 0) {
+       result.append(",");
+     }
+     
+     for(int charNum = 0; charNum < sizePerColumn; charNum++) {
+       char aChar = charArray[rand() % (sizeof(charArray) - 1)];
+       result.push_back(aChar);
+     }
+   }
+   
+   result.append("\n");
+}
+
+/*
+2.3 main function
+
+*/
 int main(int argc, char* argv[]) {
    
    int socketfd;        // Our socket
    int port;            // Port to connect to
    string buffer;       // Buffer for writing
+   char *hostname;      // Hostname
    
    int lines;           // Lines to send
    int delay;           // Delay in ms
@@ -60,59 +128,47 @@ int main(int argc, char* argv[]) {
    
    struct hostent *server;
    struct sockaddr_in server_addr;
-
-   // Allowed chars to send
-   static const char charArray[] = 
-      "0123456789"
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-      "abcdefghijlkmnopqrstuvwxyz";
    
-   if(argc != 7) {
-      cerr << "Usage: " << argv[0] << " <hostname> <port> <lines> "
-               "<delay> <columns> <size per column>" << endl;
-      cerr << endl;
-      cerr << "Where <hostname> is the hostname to connect to" << endl;
-      cerr << "<port> is the port to connect to" << endl;
-      cerr << "<lines> is the numer of lines to send" << endl;
-      cerr << "<delay> is the pause (in ms) between two lines " << endl;
-      cerr << "<columns> is the number of columns to generate" << endl;
-      cerr << "<size per column> is the size per column" << endl;
-      cerr << endl;
-      cerr << "Example: " << argv[0] << " 127.0.0.1 10000 10 4 10 10" << endl;
-      return -1;
+   if(argc != 13) {
+      printUsageAndExit(argv[0]);
    }
    
-   // Parameter
-   lines = atoi(argv[3]);
-   delay = atoi(argv[4]);
-   columns = atoi(argv[5]);
-   sizePerColumn = atoi(argv[6]);
- 
+   int option = 0;
+   while ((option = getopt(argc, argv,"h:p:l:d:c:s:")) != -1) {
+     switch (option) {
+      case 'h':
+           hostname = optarg;
+        break;
+      case 'p':
+           port = atoi(optarg);
+        break;
+      case 'l':
+          lines = atoi(optarg);
+        break;
+      case 'd':
+          delay = atoi(optarg);
+        break;
+      case 'c':
+          columns = atoi(optarg);
+        break;
+      case 's':
+          sizePerColumn = atoi(optarg);
+        break;
+      default:
+        printUsageAndExit(argv[0]);
+     } 
+   }
+   
    // Initalize Rand
    srand (time(NULL));
   
    // Prepare buffer
-   for(int i = 0; i < columns; i++) {
-     
-     if(i != 0) {
-       buffer.append(",");
-     }
-     
-     for(int charNum = 0; charNum < sizePerColumn; charNum++) {
-       char aChar = charArray[rand() % (sizeof(charArray) - 1)];
-       buffer.push_back(aChar);
-     }
-     
-   }
-   
-   buffer.append("\n");
+   fillBuffer(buffer, columns, sizePerColumn);
    
    cout << "The size of the buffer is: " << buffer.length() 
         << " bytes " << endl;
    cout << "The buffer contains: " << buffer << endl;
    
-   // Create socket
-   port = atoi(argv[2]);
    socketfd = socket(AF_INET, SOCK_STREAM, 0);
    
    if(socketfd < 0) {
@@ -121,7 +177,7 @@ int main(int argc, char* argv[]) {
    }
    
    // Resolve hostname
-   server = gethostbyname(argv[1]);
+   server = gethostbyname(hostname);
    
    if(server == NULL) {
       cerr << "Error resolving hostname: " << argv[1] << endl;
@@ -145,14 +201,15 @@ int main(int argc, char* argv[]) {
  
    // Calculate progess (i)
    cout << "Writing: ";
-   int fifePercents = max(((int) ((lines / 100.0) * 5.0)), 1);
+   int fivePercents = max(((int) ((lines / 100.0) * 5.0)), 1);
    
    // Write lines to server
    for(int i = 0; i < lines; i++) {
+      fillBuffer(buffer, columns, sizePerColumn);
       write(socketfd, buffer.c_str(), buffer.length());
    
       // Calculate progess (ii)
-      if(i % fifePercents == 0) {
+      if(i % fivePercents == 0) {
          cout << ".";
          cout << flush;
       }
@@ -163,9 +220,8 @@ int main(int argc, char* argv[]) {
    cout << endl;
    
    // Send EOT (End of Transmission)
-   write(socketfd, "\004", sizeof(char));
+   write(socketfd, EOT, sizeof(char));
    
    shutdown(socketfd, 2);
-
    return EXIT_SUCCESS;
 }

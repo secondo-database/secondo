@@ -44,6 +44,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <netinet/in.h>
 #include <netdb.h>
 
+/* 
+1.0 Defines
+
+*/
+
+#define EOT "\004"
+#define ACK "\006"
 
 using namespace std;
 
@@ -115,7 +122,7 @@ int main(int argc, char* argv[]) {
    }
    
    // Send EOT (End of Transmission)
-   write(socketfd, "\004", sizeof(char));
+   write(socketfd, EOT, sizeof(char));
    
    shutdown(socketfd, 2);
 
