@@ -385,13 +385,13 @@ updateRelationSchema(DCrel) :-
   ),
   retractStoredInformation(DCrel),
   ( ( secondoCatalogInfo(DCrel,ExtRel, _, TypeExpr),
-      (   TypeExpr = [[rel, [tuple, ExtAttrList]]]
-        ; TypeExpr = [[trel, [tuple, ExtAttrList]]]
+      (   TypeExpr = [[rel, [tuple, _ExtAttrList]]]
+        ; TypeExpr = [[trel, [tuple, _ExtAttrList]]]
         % NVK ADDED NR: receive data as well for nrel tables.
         ; 
           (
             optimizerOption(nestedRelations), 
-            TypeExpr = [[nrel, [tuple, ExtAttrList]]]
+            TypeExpr = [[nrel, [tuple, _ExtAttrList]]]
           ) 
         % NVK ADDED NR END
       )

@@ -3565,8 +3565,8 @@ subquerypred_to_atom([ Pred | Rest ], Atom) :-
   dm(subqueryDebug, ['\nPredAtom: ', PredAtom]),
   subquerypred_to_atom(Rest, RestAtom),
   dm(subqueryDebug, ['\nRestAtom: ', RestAtom]),
-  ( RestAtom = [], PredAtom = Atom )
-    ; concat_atom([PredAtom, RestAtom], Atom).
+  (( RestAtom = [], PredAtom = Atom )
+    ; concat_atom([PredAtom, RestAtom], Atom)).
 
 % correlated predicate
 subquerypred_to_atom(Pred, PredAtom) :-

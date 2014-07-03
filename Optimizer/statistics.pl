@@ -71,9 +71,9 @@ commute(Pred1, _, Pred2) :-
 
 % binary version - extracting rellist from predicate descriptor
 commute(Pred1, Pred2) :-
-  ( Pred1 = pr(P,A)
+  ( Pred1 = pr(_P,A)
     -> RL = [(1,A)]
-    ; ( Pred1 = pr(P,A,B)
+    ; ( Pred1 = pr(_P,A,B)
         -> RL = [(1,A),(2,B)]
         ; fail
       )
@@ -742,13 +742,13 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
          trav(ArgsTrees,ArgsTypeList),
          %findall(T,member([ _, _, T],ArgsTrees),ArgsTypeList),
-         isBBoxOperator(OP,ArgsTypeList,Dim),
+         isBBoxOperator(OP,ArgsTypeList,_Dim),
          ArgsTrees = [Arg1Tree,Arg2Tree],
          bboxSizeQueryJoin(Arg1,Rel1,Rel2,Arg1Tree,_),
          bboxSizeQueryJoin(Arg2,Rel1,Rel2,Arg2Tree,_)
        )
-    ;  ( isBBoxPredicate(OP),
-         Dim = std
+    ;  ( isBBoxPredicate(OP)
+%         Dim = std
        )
   ),
 
@@ -1455,10 +1455,10 @@ getPET(P, X, Y) :-
 
 
 getBBoxSel(pr(fakePred(Sel,BBoxSel,CalcPET,ExpPET), BBoxSel)) :-
-  ( (ground(Sel), ground(BboxSel), ground(CalcPET), ground(ExpPET))
+  ( (ground(Sel), ground(BBoxSel), ground(CalcPET), ground(ExpPET))
     -> true
     ; throw(error_Internal(statistics_getBBoxSel(
-              pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
+              pr(fakePred(Sel,BBoxSel,CalcPET,ExpPET)),
               BBoxSel)::fakePred_requires_ground_arguments))
   ),
   !.

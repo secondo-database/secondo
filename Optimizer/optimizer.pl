@@ -2433,8 +2433,8 @@ plan_to_atom(Term, Result) :-
 /* 3+ arguments: prefix */
 plan_to_atom(InTerm,OutTerm) :-
   compound(InTerm),
-  \+(secondoOp(Op, _, _)), !,
   InTerm =.. [Op|ArgsIn],
+  \+(secondoOp(Op, _, _)), !,
   length(ArgsIn,N),
   plan_to_atom_2(ArgsIn,ArgsOut),
   concat_atom(ArgsOut, ', ', ArgsOutAtom),
@@ -10415,7 +10415,7 @@ allCards :-
 
 */
 
-:- [nawra].
+% :- [nawra].
 
 
 /*

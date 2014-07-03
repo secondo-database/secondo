@@ -578,7 +578,7 @@ opSignature(toobject, ftext, [string,T],T,[exp]) :- isData(T).
 opSignature(chartext, ftext, [int],text,[]).
 
 opSignature(sendtextUDP, ftext, Args, text,[sidefx]) :-
-  is_list(Args), length(Args) >= 3, length(Args) <= 5, list_to_set(Args,Types),
+  is_list(Args), length(Args,L), L >= 3, L <= 5, list_to_set(Args,Types),
   subset(Types, [string,text]).
 
 opSignature(receivetextUDP, ftext, [string,string,real],[stream,[tuple,[
@@ -716,7 +716,7 @@ opSignature(millisecond_of, datetime, [duration],int,[]).
 opSignature(now, datetime, [],instant,[]).
 opSignature(today, datetime, [],instant,[]).
 opSignature(theInstant, datetime, IntList,instant,[]) :-
-  is_list(IntList), length(IntList) >=1, length(IntList) <=7,
+  is_list(IntList), length(IntList,L), L >=1, L <=7,
   list_to_set(IntList,[int]), !.
 opSignature((/), datetime, [duration,duration],int,[]).
 opSignature(minInstant, datetime, [],instant,[]).

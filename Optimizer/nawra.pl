@@ -253,7 +253,8 @@ Several aspects are taken into account:
 
 */
 
-costnew(hashjoin(X, Y, _, _, NBuckets), Sel, Source, Result, Size, TupleSize, Cost) :-
+costnew(hashjoin(X, Y, _, _, NBuckets), Sel, Source, 
+      Result, Size, TupleSize, Cost) :-
     costnew(X, 1, Source, Result, SizeX, TupleSizeX, CostX),
     costnew(Y, 1, Source, Result, SizeY, TupleSizeY, CostY),
     storedOperatorTF(hashtab, A, _),
@@ -410,7 +411,8 @@ Cost estimation for operator windowintersects.
 
 */
 
-costnew(windowintersects(_, X, _), Sel, Source, Result, Size, TupleSize, Cost) :-
+costnew(windowintersects(_, X, _), Sel, Source, Result, 
+      Size, TupleSize, Cost) :-
      costnew(X, 1, Source, Result, SizeX, TupleSizeX, CostX),
      storedOperatorTF(windowintersects, A, B),
      Size is Sel * SizeX,
@@ -442,7 +444,8 @@ Cost estimation for operator gettuples
 % Cost function not verified:
 costnew(gettuples(X, _), Sel, Source, Result, Size, TupleSize, Cost) :-
   costnew(X, Sel, Source, Result, SizeX, _, CostX),
-  storedWindowIntersectsS(TupleSize), % get tuplesize stored by windowintersectsS
+  storedWindowIntersectsS(TupleSize), 
+    % get tuplesize stored by windowintersectsS
   retract(storedWindowIntersectsS(TupleSize)),
   storedOperatorTF(feed, A, B),
   TupleSize = sizeTerm(Core, InFlob, _),
@@ -613,9 +616,6 @@ and $R = log_B V$.
 
 */
 
-:- arithmetic_function(gsf/2).
-gsf(M, N, S) :-
-  S is (N-M)*(N+M+1)*0.5.
 
 :- arithmetic_function(log/2).
 log(Base, Value, Result) :-
