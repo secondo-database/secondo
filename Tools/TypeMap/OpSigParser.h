@@ -1,4 +1,7 @@
 /*
+----  /Tools/TypeMap/OpSigParser.h
+---- 
+
 ----
 This file is part of SECONDO.
 
@@ -26,6 +29,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 
-bool parseSigs(const char* infile, const std::string& outfile);
+
+/*
+This function is the interface for Operator 'tminit' in 'TypeMapTestAlgebra'.
+The parser creates two lists of Signatures for TypeMapping.
+
+*/
+  bool parseSigs(const char* infile, const std::string& outfile);
 
 

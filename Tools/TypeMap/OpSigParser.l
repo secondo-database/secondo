@@ -1,4 +1,7 @@
 /*
+----  /Tools/TypeMap/OpSigParser.l
+---- 
+
 ----
 This file is part of SECONDO.
 
