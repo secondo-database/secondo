@@ -670,8 +670,9 @@ void* startThreadedTargerServer(void *ptr) {
 
 
 */
-void printHelp(char* progName) {
-  cerr << "Usage: " << progName << " <ListenPort> <Mode> <ServerList>" << endl;
+void printHelpAndExit(char* progName) {
+  cerr << "Usage: " << progName 
+       << " -p <ListenPort> -m <Mode> -s <ServerList>" << endl;
   cerr << endl;
   cerr << "Where <Mode> is rr, trr, lbtrr-n or qbts:" << endl;
   cerr << "rr      = round robin" << endl;
@@ -681,9 +682,11 @@ void printHelp(char* progName) {
   cerr << "            (e.g. lbtrr-10)" << endl;
   cerr << "qbts    = Queue based threaded sheduling" << endl;
   cerr << endl;
-  cerr << "Example: " << progName << " 10000 rr 192.168.1.1:10001 " 
-       << "192.168.1.2:10001 192.168.1.3:10001" << endl;
+  cerr << "Example: " << progName << " -p 10000 -m rr -s 192.168.1.1:10001 " 
+       << "-s 192.168.1.2:10001 -s 192.168.1.3:10001" << endl;
   cerr << endl;
+  exit(EXIT_FAILURE);
+
 }
 
 /* 
@@ -710,38 +713,35 @@ void destroyServerList(vector<TargetServer*>* serverList) {
 
 
 */
-void parseServerList(int argc, char* argv[], 
+bool parseServerList(char* argument, string mode,
            vector<TargetServer*>* serverList) {
   
-   string mode = string(argv[2]);
-
-   // Process destination servers
-   for(int i = 3; i < argc; i++) {
-     cout << "Processing : " << argv[i] << endl;
+     cout << "Processing : " << mode << endl;
      TargetServer* ts;
      
      if(mode.compare("rr") == 0) {
-       ts = new TargetServer(argv[i]);
+       ts = new TargetServer(argument);
      } else if((mode.compare("trr") == 0) || (mode.compare("qbts") == 0)) {
-       ts = new ThreadedTargetServer(argv[i]);
+       ts = new ThreadedTargetServer(argument);
      } else if(mode.compare(0, 6, "lbtrr-") == 0) {
         int acknowledgeAfter = atoi((mode.substr(6, mode.length())).c_str());
-        ts = new ReliableThreadedTargetServer(argv[i], acknowledgeAfter); 
+        ts = new ReliableThreadedTargetServer(argument, acknowledgeAfter); 
      } else {
-          printHelp(argv[0]);
-         exit(EXIT_FAILURE);
+          cout << "Unkown mode: " << mode << endl;
+          return false;
      }
      
      // Open the TCP-Socket to target server
      bool result = ts -> open();
      
      if(result == false) {
-       cout << "Unable to open connection to: " << argv[i] 
+       cout << "[Error] unable to open connection to: " << argument
              << " ignoring target server" << endl;
      } else {
         serverList->push_back(ts);
      }
-   }
+   
+   return true;
 }
 
 /* 
@@ -763,7 +763,7 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
        
     if(mode.length() <= 5) {
        cout << "Missing acknowledge after value" << endl;
-       printHelp(argv[0]);
+       printHelpAndExit(argv[0]);
        exit(EXIT_FAILURE);
     }
     
@@ -808,18 +808,33 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
 int main(int argc, char* argv[]) {
 
    if(argc < 3) {
-      printHelp(argv[0]);
-      return EXIT_FAILURE;
+      printHelpAndExit(argv[0]);
    }
-      
-   // Process parameter
-   int listenPort = atoi(argv[1]);
-   string mode = string(argv[2]);
-
-   // Process Server list
+   
+   // Parameter
+   string mode = "";
+   int listenPort = -1;
    vector<TargetServer*> serverList;
-   parseServerList(argc, argv, &serverList);
-
+   
+   int option = 0;
+   while ((option = getopt(argc, argv,"p:m:s:")) != -1) {
+     switch (option) {
+      case 'p':
+           listenPort = atoi(optarg);
+           break;
+      case 'm':
+           mode = optarg;
+           break;
+      case 's':
+           if(! parseServerList(optarg, mode, &serverList)) {
+             printHelpAndExit(argv[0]);
+           }
+           break;
+      default:
+        printHelpAndExit(argv[0]);
+     }
+   }
+   
    cout << "Starting load balancer on port: " << listenPort << endl;
    
    if(mode.compare("rr") == 0) {
@@ -836,8 +851,8 @@ int main(int argc, char* argv[]) {
      startThreadedServer(mode, serverList, argv, listenPort);
 
    } else {
-      cerr << "Error: unknown distribution mode: " << mode << endl << endl;
-      printHelp(argv[0]);
+      cerr << "[Error] unknown distribution mode: " << mode << endl << endl;
+      printHelpAndExit(argv[0]);
       destroyServerList(&serverList);
       return EXIT_FAILURE;
    }
