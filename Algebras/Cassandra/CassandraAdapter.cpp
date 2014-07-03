@@ -678,6 +678,7 @@ bool CassandraAdapter::executeCQLASync
         usleep(250 + (pendingFutures.size()));
  
         while(pendingFutures.size() > 50) {
+          waitForPendingFutures();
           usleep(1000);
           removeFinishedFutures(true);
         }
