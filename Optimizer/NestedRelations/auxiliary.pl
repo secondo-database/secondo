@@ -491,7 +491,7 @@ secondo(X) :-
 
 secondo(X) :-
   sub_atom(X,0,_,_,'create '),
-  not(concat_atom([create, database, _], ' ', X)),
+  not(my_concat_atom([create, database, _], ' ', X)),
   isDatabaseOpen,
   ( secondo(X, Y)
     *-> promptSecondoResultSucceeded(Y)
@@ -503,7 +503,7 @@ secondo(X) :-
 % restore database
 % One should consider wiping out the knowledge base on the target database!
 secondo(X) :-
-  concat_atom([restore, database, DB1, from, _], ' ', X),
+  my_concat_atom([restore, database, DB1, from, _], ' ', X),
   ( notIsDatabaseOpen
     ->  ( downcase_atom(DB1, DB), !,
          ( secondo(X, Y)
@@ -526,7 +526,7 @@ secondo(X) :-
 
 % restore object
 secondo(X) :-
-  concat_atom([restore, _, from, _], ' ', X),
+  my_concat_atom([restore, _, from, _], ' ', X),
   ( isDatabaseOpen
     ->  write('\nERROR:\tCannot restore object, because no database is open.\n')
     ;   ( secondo(X, Y)
@@ -543,7 +543,7 @@ secondo(X) :-
   !.
 
 secondo(X) :-
-  concat_atom([list, objects],' ',X),
+  my_concat_atom([list, objects],' ',X),
   isDatabaseOpen,
   secondo(X, Y),
   promptSecondoResultSucceeded(Y), !.
@@ -658,7 +658,7 @@ query(Query, Time) :-
 let(Query) :-
   isDatabaseOpen,
   atom(Query),
-  concat_atom(['let', Query], ' ', QueryText), !,
+  my_concat_atom(['let', Query], ' ', QueryText), !,
   secondo(QueryText).
 
 derive(Query) :-
@@ -712,7 +712,7 @@ restore(Query) :-
   Query =.. [from,Obj,Source],
   ( ( atom(Source), Obj =.. [database, DB], atom(DB) ) % restore database
     -> ( notIsDatabaseOpen
-         -> concat_atom(['restore database',DB,'from',Source],' ',QueryText)
+         -> my_concat_atom(['restore database',DB,'from',Source],' ',QueryText)
          ; ( write_list(['\nERROR:\tCannot restore a database, \n',
                          '--->\twhile a database is open!']), nl,
              !, fail
@@ -722,7 +722,7 @@ restore(Query) :-
          -> ( notIsDatabaseOpen
               -> (write_list(['\nERROR:\tCannot restore object.\n',
                               '--->\tNo database open.']), nl, !, fail)
-              ;  concat_atom(['restore ',Obj,'from',SourceA],' ',QueryText)
+              ;  my_concat_atom(['restore ',Obj,'from',SourceA],' ',QueryText)
             )
          ;  ( write_list(['\nERROR:\tInvalid restore command.\n',
                    '\tThe correct syntax is \'restore <objname> from <file>.\'',
@@ -774,7 +774,7 @@ listObj :-
     'Show help on a given Secondo operator.')).
 
 findop(O) :-
-  concat_atom([ 'query SEC2OPERATORINFO feed filter[.Name contains "',
+  my_concat_atom([ 'query SEC2OPERATORINFO feed filter[.Name contains "',
                 O, '"] consume' ], Q),
   runQuery(Q).
 
@@ -784,13 +784,13 @@ findop(O) :-
     [[+,'FileName','The file used for storing the history.']],
     'Dump the command history to a file.')).
 cmdHist2File(Name) :-
-  concat_atom(['query SEC2COMMANDS feed '], Q),
+  my_concat_atom(['query SEC2COMMANDS feed '], Q),
   dumpQueryResult2File(Q, Name, Q2),
   runQuery(Q2).
 
 % dump the result of a secondo query to a CSV file
 dumpQueryResult2File(Q, File, Q2) :-
-  concat_atom([Q, ' dumpstream["', File, '","|"] tconsume'], Q2).
+  my_concat_atom([Q, ' dumpstream["', File, '","|"] tconsume'], Q2).
 
 % removing whitespace (tab, space) from an atomic
 removeWhitespace(ExtObjNameA,ExtObjName) :-
@@ -865,7 +865,7 @@ showHeaderRec([H|T], Tmp1, Res1, Tmp2, Res2, Tmp3, Res3 ) :-
   atom_length(Attr, Len),
   FieldLen is Len + 4,
   TotalLen is Tmp3 + FieldLen,
-  concat_atom([' %', FieldLen, Adjust], WriteSpec),
+  my_concat_atom([' %', FieldLen, Adjust], WriteSpec),
   append(Tmp1, [Attr], L1),
   append(Tmp2, [WriteSpec], L2),
   showHeaderRec(T, L1, Res1, L2, Res2, TotalLen, Res3 ).

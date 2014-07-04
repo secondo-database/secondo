@@ -108,7 +108,9 @@ correlated predicates.
 
 /*
 NVK ADDED NR
-Not anymore intended for top-level query lookup. See optimizer.pl#callLookup for further information. This exception thing is really annoying during debugging, the exceptions are raised during the query rewriting phase, because this happens before the lookup phase, so there are no outer variables etc. known. To fix this, i added some more predicates to identify subqueries directly without to call the lookup, but it is still a workaround. This is based on the lookup(Query, _) predicates within the optimizer.pl. 
+Not anymore intended for top-level query lookup. See optimizer.pl::callLookup for further information. This exception thing is really annoying during debugging, the exceptions are raised during the query rewriting phase, because this happens before the lookup phase, so there are no outer variables etc. known. To fix this, i added some more predicates to identify subqueries directly without to call the lookup, but it is still a workaround. 
+ This is based on the lookup(Query, \_) predicates within the optimizer.pl. 
+
 */
 isQuery(Query) :-
   optimizerOption(nestedRelations),
@@ -135,6 +137,7 @@ Predicates to recognize nested queries. It looks for a nested query in
 the select-, from- and where clause.
 
 NVK NOTE: This is used nowhere.
+
 */
 
 isNestedQuery(Query orderby _) :- isNestedQuery(Query).
@@ -162,6 +165,7 @@ isNestedQuery(select _ from RelList) :-
 Predicates to recognize subqueries in attribute lists and attributes.
 
 NVK NOTE: This is used nowhere.
+
 */
 
 isSubqueryAttr(Attr as _) :-
@@ -219,7 +223,9 @@ isQuantifier(all).
 isQuantifier(any).
 /*
 NVK NOTE: no preTransformNestedPredicate predicates are defined for this, so far as i can see, this ~some~ quantifier isn't working at all.
+
 */
+
 %isQuantifier(some).
 
 
@@ -857,7 +863,8 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   ( tempRel1(OuterJoinAttrs, SimpleOuterPreds, OuterRels, TempRel1)
   ; throw(error_SQL(subqueries_transformNestedPredicate::tRel1Error))),
 % restrict and project inner relation
-  ( tempRel2(AggregatedAttr, CanonicalRels, OuterRels, SimpleInnerPreds, JoinPreds, TempRel2)
+  ( tempRel2(AggregatedAttr, CanonicalRels, OuterRels, SimpleInnerPreds, 
+             JoinPreds, TempRel2)
   ; throw(error_SQL(subqueries_transformNestedPredicate::tRel2Error))),
 % join tempRel1 and tempRel2, applying aggregation
   ( tempRel3(AggregatedAttr, OuterJoinAttrs, TempRel1, TempRel2,
@@ -918,7 +925,7 @@ executable syntax, which uses operator ~\_~ and postfix notation.
 aliasInternal(ExternalAttr, Attr) :-
   ground(Attr),
   Attr = Var:InternalAttr,
-  concat_atom([InternalAttr, '_', Var], ExternalAttr).
+  my_concat_atom([InternalAttr, '_', Var], ExternalAttr).
 
 aliasInternal(ExternalAttr, InternalAttr) :-
   ground(ExternalAttr),
@@ -1175,7 +1182,8 @@ neededRels(Preds, Rels, NeededRels) :-
   Preds2 =.. [pr | List],
   findall(R, member(rel(R, *), List), NR),
   findall(R as V, (member(rel(R, V), List), V \= *), NR2),
-  setof(Rel, (member(Rel, Rels) ; member(Rel, NR) ; member(Rel, NR2)), NeededRels).
+  setof(Rel, (member(Rel, Rels) ; member(Rel, NR) ; 
+            member(Rel, NR2)), NeededRels).
 
 neededRels([Pred | Rest], Rels, NeededRels) :-
   neededRels(Pred, Rels, NR),
@@ -1209,7 +1217,8 @@ tempRel1(JoinAttrs, Preds, OuterRels, TempRel1) :-
   neededRels(Preds, NeededRels, NeededRels2),
   ground(NeededRels2),
   !,
-  TemporaryRel1 =.. [from, select distinct JoinAttrs, where(NeededRels2, Preds)],
+  TemporaryRel1 =.. [from, select distinct JoinAttrs, 
+                     where(NeededRels2, Preds)],
   dm(subqueryUnnesting, ['\nTemporaryRel1: ', TemporaryRel1]),
   newTempRel(TemporaryRel1, TempRel1).
 
@@ -1286,7 +1295,8 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
   ),
   makeList(TempRel2, TR2List),
   append([TempRel1], TR2List, Rels),
-  TempRelation3 =.. [groupby, from(select AttrList, where(Rels, JoinPreds2)), JoinAttrs2],
+  TempRelation3 =.. [groupby, from(select AttrList, 
+                      where(Rels, JoinPreds2)), JoinAttrs2],
   dm(subqueryDebug, ['\nTemporaryRel3: ', TempRelation3]),
   rewriteQuery(TempRelation3, RQuery),
   callLookup(RQuery, Query2), !,
@@ -1300,7 +1310,8 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
   ),
   append([NewJoinAttr2], AggrList, AttrList2),
   dm(subqueryDebug, ['\nAttrList2: ', AttrList2]),
-  TemporaryRel3 =.. [groupby, from(select AttrList2, where(Rels, JoinPreds2)), NewJoinAttr2],
+  TemporaryRel3 =.. [groupby, from(select AttrList2, 
+                     where(Rels, JoinPreds2)), NewJoinAttr2],
   dm(subqueryUnnesting, ['\nTemporaryRel3: ', TemporaryRel3]),
   newTempRel(TemporaryRel3, TempRel3).
 
@@ -1333,7 +1344,8 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
   ),
   makeList(TempRel2, TR2List),
   append([TempRel1], TR2List, Rels),
-  TemporaryRel3 =.. [groupby, from(select AttrList, where(Rels, JoinPreds2)), JoinAttrs2],
+  TemporaryRel3 =.. [groupby, from(select AttrList,
+                      where(Rels, JoinPreds2)), JoinAttrs2],
   dm(subqueryDebug, ['\nTemporaryRel3: ', TemporaryRel3]),
   rewriteQuery(TemporaryRel3, RQuery),
   callLookup(RQuery, Query2), !,
@@ -1347,7 +1359,8 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
        retractall(outerjoinCommuted),
        assert(outerjoinCommuted))
   ),
-  OuterJoinPred =.. [outerjoin, Op, attrname(NewJoinAttr1), attrname(NewJoinAttr2)],
+  OuterJoinPred =.. [outerjoin, Op, attrname(NewJoinAttr1), 
+                  attrname(NewJoinAttr2)],
   dm(subqueryDebug, ['\nOuterJoinPred: ', OuterJoinPred]),
   newQuery,
   lookupRel(TempRel1, IntTempRel1),
@@ -1376,14 +1389,17 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
   dm(subqueryDebug, ['\nExtNewColumn: ', ExtNewColumn]),
   plan_to_atom(IntOuterJoinPred, ExtOuterJoinPred),
   dm(subqueryDebug, ['\nExtOuterJoinPred: ', ExtOuterJoinPred]),
-  concat_atom([
+  my_concat_atom([
      ExtTempRel1,
      ExtTempRel2,
 %     ' smouterjoin[',ExtJoinAttr1, ',', ExtJoinAttr2, ']',
      ExtOuterJoinPred,
      ' sortby[', ExtJoinAttr1, ' asc]',
-     ' groupby[', ExtJoinAttr1, ';', ExtNewColumn, ': group feed filter[not(isempty(.', ExtJoinAttr2, ' ))] count]',
-     ' projectextend[', ExtNewColumn, '; ', ExtJoinAttr2 , ': .', ExtJoinAttr1, ']',
+     ' groupby[', ExtJoinAttr1, ';', ExtNewColumn, 
+                  ': group feed filter[not(isempty(.', 
+                  ExtJoinAttr2, ' ))] count]',
+     ' projectextend[', ExtNewColumn, '; ', ExtJoinAttr2 , ': .', 
+                        ExtJoinAttr1, ']',
      ' consume'],
   '', TempRelation3),
   dm(subqueryUnnesting, ['\nTempRelation3: ', TempRelation3]),
@@ -1487,7 +1503,7 @@ aliasExternal(Var:Attr, Var:Attr, _ as Var) :-
 
 aliasExternal(Var:Attr, AliasedAttr, T) :-
   not(is_list(T)),
-  concat_atom([Attr, '_', Var], '', AliasedAttr).
+  my_concat_atom([Attr, '_', Var], '', AliasedAttr).
 
 aliasExternal(Attr, Attr, _) :-
   atomic(Attr).
@@ -1590,7 +1606,8 @@ newAlias(Var) :-
 /*
 NVK ADDED NR
 The current alias is stored here to have access to this value within
-the plan_to_atom phase.
+the plan\_to\_atom phase.
+
 */
 newAlias(Var) :-
 	optimizerOption(nestedRelations),
@@ -1629,7 +1646,7 @@ newTempRel(Query, TempRelName) :-
 newTempRel_direct(Plan, TempRelName) :-
   ( temporaryRelation(TempRelName, Plan)
      ; (  newTempRel(TempRelName),
-        concat_atom([TempRelName, ' = ', Plan], Query),
+        my_concat_atom([TempRelName, ' = ', Plan], Query),
       dm(subqueryDebug, ['\nTempRelDirect Plan: ', Query]),
       let(Query),
       assert(temporaryRelation(TempRelName, Plan))
@@ -1821,10 +1838,11 @@ lookupRelDblCheck(Rel, rel(RelDC, *)) :-
 lookupRelDblCheck(Rel, rel(RelDC, *)) :-
   queryRel(Rel, rel(RelDC, *)),
   term_to_atom(Rel, RelA),
-  concat_atom(['Ambiguous use of relation ',RelA,
+  my_concat_atom(['Ambiguous use of relation ',RelA,
          ' in outer and inner query block.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
-  throw(error_SQL(subqueries_lookupRelDblCheck(Rel)::malformedExpression::ErrMsg)).
+  throw(error_SQL(
+        subqueries_lookupRelDblCheck(Rel)::malformedExpression::ErrMsg)).
 
 :- multifile(lookupRelNoDblCheck/2).
 
@@ -1888,7 +1906,8 @@ relsAfter(_, _, _) :-
   fail.
 
 % lookup for outerjoin expression
-lookupSubqueryPred(outerjoin(Op, A1, A2), outerjoin(Op, Attr1, Attr2), RelsBefore, RelsAfter) :-
+lookupSubqueryPred(outerjoin(Op, A1, A2), outerjoin(Op, Attr1, Attr2),
+                   RelsBefore, RelsAfter) :-
   lookupPred1(A1, Attr1, RelsBefore, Attr1RelsAfter),
   lookupPred1(A2, Attr2, Attr1RelsAfter, RelsAfter),
   !.
@@ -1912,8 +1931,8 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   assert(currentVariables(Variables)),
   enterSubquery(predicate), 	% NVK ADDED
   lookupSubquery(Query, Query2),
-  getSubqueryCurrent(SQID),		% NVK ADDED
-  leaveSubquery, 							% NVK ADDED
+  getSubqueryCurrent(SQID),   % NVK ADDED
+  leaveSubquery,              % NVK ADDED
   dm(subqueryDebug, ['\nQuery2: ', Query2]),
   correlationRels(Query2, Rels),
   dm(subqueryDebug, ['\nRels: ', Rels]),
@@ -1948,8 +1967,8 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   assert(currentVariables(Variables)),
   enterSubquery(predicate), 	% NVK ADDED
   lookupSubquery(Query, Query2),
-  getSubqueryCurrent(SQID),		% NVK ADDED
-  leaveSubquery, 							% NVK ADDED
+  getSubqueryCurrent(SQID),   % NVK ADDED
+  leaveSubquery,              % NVK ADDED
   dm(subqueryDebug, ['\nQuery2: ', Query2]),
   correlationRels(Query2, Rels),
   dm(subqueryDebug, ['\nRels: ', Rels]),
@@ -2107,6 +2126,7 @@ correlationRels(select _ from InnerRels, InnerRels) :-
 NVK ADDED NR
 Replaced to reflect that a subquery can now be a correlated predicates if the 
 from clause contains a attribute from the outer query. Otherwiese queries like test query no. 9 would not be possible with the current pog optimizer.
+
 */
 correlationRels(Query, OuterRels3) :-
   optimizerOption(nestedRelations),
@@ -2150,6 +2170,7 @@ NVK ADDED NR
 Note that this arel attribute can only come from the direct surrounded query
 because otherwiese the optimization strategy can't handle this case.
 The error that will occur then is that the pog creation fails.
+
 */
 toParentQueryRel(Rel, ParentQueryRel) :-
   Rel=rel(T, _),
@@ -2170,7 +2191,8 @@ toParentQueryRel(Rel, ParentQueryRel) :-
 
 toParentQueryRel(Rel, ParentQueryRel) :-
 	!,
-  throw(error_Internal(subqueries_toParentQueryRel(Rel, ParentQueryRel)::failed)).
+  throw(error_Internal(subqueries_toParentQueryRel(Rel, 
+        ParentQueryRel)::failed)).
 % NVK ADDED NR END
 
 /*
@@ -2210,11 +2232,13 @@ removeCorrelatedPreds(Query last N, Query2 last N, Pred) :-
   removeCorrelatedPreds(Query, Query2, Pred).
 
 
-removeCorrelatedPreds(select Attrs from Rels where [], select Attrs from Rels, []) :-
+removeCorrelatedPreds(select Attrs from Rels where [], 
+                      select Attrs from Rels, []) :-
   ground(Attrs),
   ground(Rels).
 
-removeCorrelatedPreds(Select from Rels where [ Pred | Rest ], Query2, CorrelatedPreds) :-
+removeCorrelatedPreds(Select from Rels where [ Pred | Rest ],
+                       Query2, CorrelatedPreds) :-
   removeCorrelatedPred(Rels, Pred, Pred2, CorrelatedPred),
   removeCorrelatedPreds(Select from Rels where Rest, Query, CorrelatedRest),
   CorrelatedPreds1 = [ CorrelatedPred | CorrelatedRest ],
@@ -2593,7 +2617,7 @@ clearStreamName :-
   pop(streamName, _).
 
 clearStreamName :-
-  concat_atom(['Pop empty', ' stack streamName'], ErrMsg),
+  my_concat_atom(['Pop empty', ' stack streamName'], ErrMsg),
   throw(error_SQL(subqueries_streamName::malformedExpression::ErrMsg)).
 
 clearStreamName(Var) :-
@@ -2668,6 +2692,8 @@ Transforming Join Predicates
 
 ---- transformQuery(+Rel1, +Rel2, +Pred, +QueryIn, JoinSize, -QueryOut)
 ----
+
+
 */
 
 % case loopsel for nested selection predicates
@@ -3068,7 +3094,7 @@ subquery_expr_to_plan(Expr, Param, Expr2) :-
   transformAttrExpr(Expr1, Param, 2, Expr2, []).
 
 subquery_expr_to_plan(A, B, C) :-
-  concat_atom(['Not Implemented'], Msg),
+  my_concat_atom(['Not Implemented'], Msg),
   throw(error_Internal(subqueries_Expr(A, B, C)::notImplemented::Msg)).
 
 % NVK ADDED NR
@@ -3109,7 +3135,7 @@ secondo_list_to_atom(CommaList, Result) :-
   CommaList =.. [(,), X, Xs],
   plan_to_atom(X, XAtom),
   secondo_list_to_atom((Xs), XsAtom),
-  concat_atom([XAtom, ' ', XsAtom], '', Result),
+  my_concat_atom([XAtom, ' ', XsAtom], '', Result),
   !.
 
 secondo_list_to_atom(X, Result) :-
@@ -3130,7 +3156,8 @@ subquery_plan_to_atom(X, Result) :-
   constantType(Attr, Type),
   plan_to_atom(Attr, AttrAtom),
   secondo_list_to_atom(ValueList, VLAtom),
-  concat_atom([AttrAtom, ' in [const set(', Type, ') value (', VLAtom, ')]'], Result),
+  my_concat_atom([AttrAtom, ' in [const set(', Type,
+                ') value (', VLAtom, ')]'], Result),
   !.
 
 /*
@@ -3144,18 +3171,19 @@ attributes are currently considered.
 subquery_plan_to_atom(outerjoin(=, JoinAttr1, JoinAttr2), Result) :-
   plan_to_atom(JoinAttr1, AAtom1),
   plan_to_atom(JoinAttr2, AAtom2),
-  concat_atom([' smouterjoin[', AAtom1, ',', AAtom2, ']'], Result),
+  my_concat_atom([' smouterjoin[', AAtom1, ',', AAtom2, ']'], Result),
   !.
 
 % outerjoin, general case
-subquery_plan_to_atom(outerjoin(Op, attrname(JoinAttr1), attrname(JoinAttr2)), Result) :-
+subquery_plan_to_atom(outerjoin(Op, attrname(JoinAttr1), 
+                      attrname(JoinAttr2)), Result) :-
   ( outerjoinCommuted
     -> Pred =.. [Op, JoinAttr2, JoinAttr1]
     ; Pred =.. [Op, JoinAttr1, JoinAttr2] ),
   retractall(outerjoinCommuted),
   consider_Arg2(Pred, Pred2),    % transform second arg/3 to arg2/3
   plan_to_atom(Pred2, PAtom),
-  concat_atom([' symmouterjoin[', PAtom, ']'], Result),
+  my_concat_atom([' symmouterjoin[', PAtom, ']'], Result),
   !.
 
 /*
@@ -3225,9 +3253,11 @@ subquery_plan_to_atom(Pred, Result) :-
   extractStream(QueryPlan, StreamPlan, QueryAttr),
   transformAttrExpr(Attr, T1, 1, Attr3, []),
   transformAttrExpr(Attr3, T2, 2, Attr4, []),
-  ResultPlan =.. [in, Attr4, collect_set(projecttransformstream(StreamPlan, QueryAttr))],
+  ResultPlan =.. [in, Attr4, 
+           collect_set(projecttransformstream(StreamPlan, QueryAttr))],
   dm(subqueryDebug, ['\nQueryPlan: ', QueryPlan]),
-  plan_to_atom(fun([param(T1, tuple), param(T2, tuple2)], not(ResultPlan)), Result),
+  plan_to_atom(fun([param(T1, tuple), param(T2, tuple2)], 
+               not(ResultPlan)), Result),
   setSQIDToPrevious(SQID), % NVK ADDED
   clearStreamName,
   clearStreamName,
@@ -3256,7 +3286,8 @@ subquery_plan_to_atom(Pred, Result) :-
   extractStream(QueryPlan, StreamPlan, QueryAttr),
   dm(subqueryDebug, ['\nStreamPlan: ', StreamPlan]),
   subquery_expr_to_plan(Attr, T, Attr2),
-  ResultPlan =.. [in, Attr2, collect_set(projecttransformstream(StreamPlan, QueryAttr))],
+  ResultPlan =.. [in, Attr2, 
+                 collect_set(projecttransformstream(StreamPlan, QueryAttr))],
   plan_to_atom(fun([param(T, tuple)], not(ResultPlan)), Result),
   setSQIDToPrevious(SQID), % NVK ADDED
   clearStreamName,
@@ -3284,7 +3315,8 @@ subquery_plan_to_atom(Pred, Result) :-
   extractStream(QueryPlan, StreamPlan, QueryAttr),
   dm(subqueryDebug, ['\nStreamPlan: ', StreamPlan]),
   subquery_expr_to_plan(Attr, T, Attr2),
-  ResultPlan =.. [in, Attr2, collect_set(projecttransformstream(StreamPlan, QueryAttr))],
+  ResultPlan =.. [in, Attr2, collect_set(projecttransformstream(StreamPlan, 
+            QueryAttr))],
   plan_to_atom(fun([param(T, tuple)], ResultPlan), Result),
   setSQIDToPrevious(SQID), % NVK ADDED
   clearStreamName,
@@ -3329,7 +3361,7 @@ subquery_plan_to_atom(AttrExpr, Result) :-
   Attr =.. [attribute, _, attrname(attr(Attr2, _, _))],
   dm(subqueryDebug, ['\nAttr: ', Attr,
              '\nAttr2: ', Attr2]),
-  concat_atom([Op, '[', Attr2, ']'], Result).
+  my_concat_atom([Op, '[', Attr2, ']'], Result).
 
 % case nested predicate with exists
 subquery_plan_to_atom(Expr, Result) :-
@@ -3373,7 +3405,9 @@ Case as above, but without a where clause.
 
 Note that this is currentliy only usefull if in the from clause a arel relation appears due to the optimization limitations.
 
-Imlemented exemplarily for the exists operators. This subquery_plan_to_atom thing should be generalized in some way...
+Imlemented exemplarily for the exists operators. This subquery\_plan\_to\_atom thing should be generalized in some way...
+
+
 */
 subquery_plan_to_atom(Expr, Result) :-
 	optimizerOption(nestedRelations),
@@ -3429,7 +3463,8 @@ subquery_plan_to_atom(not(Expr), Result) :-
   member(COp, [consume, aconsume]),
   % NVK MODIFIED NR END
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_Query2: ', Query3]),
-  plan_to_atom(fun([param(T, tuple)], not(=(count(head(Query3, 1)), 1))), Result),
+  plan_to_atom(fun([param(T, tuple)], not(=(count(head(Query3, 1)), 1))),
+                Result),
   setSQIDToPrevious(SQID), % NVK ADDED NR
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_Result: ', Result]),
   clearStreamName,
@@ -3536,7 +3571,7 @@ subquerypred_to_atom([ Pred | Rest ], Atom) :-
   subquerypred_to_atom(Rest, RestAtom),
   dm(subqueryDebug, ['\nRestAtom: ', RestAtom]),
   ( RestAtom = [], PredAtom = Atom )
-    ; concat_atom([PredAtom, RestAtom], Atom).
+    ; my_concat_atom([PredAtom, RestAtom], Atom).
 
 % correlated predicate
 subquerypred_to_atom(Pred, PredAtom) :-
@@ -3545,7 +3580,7 @@ subquerypred_to_atom(Pred, PredAtom) :-
   Pred =.. [ Op, Attr1, Attr2 ],
   Pred2 =.. [Op, attribute(var1, attrname(Attr1)), Attr2],
   plan_to_atom(Pred2, Pred2Atom),
-  concat_atom(['filter[', Pred2Atom, ']'], PredAtom).
+  my_concat_atom(['filter[', Pred2Atom, ']'], PredAtom).
 
 subquerySelectivity([]).
 
