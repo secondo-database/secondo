@@ -123,8 +123,8 @@ initialize :-
 time(Begin, Duration) :-
   get_time(End),
   Time is End - Begin,
-  convert_time(Time, _, _, _, Hour, Minute, Sec, MilliSec),
-  convert_time(0, _, _, _, H, _, _, _),
+  my_convert_time(Time, _, _, _, Hour, Minute, Sec, MilliSec),
+  my_convert_time(0, _, _, _, H, _, _, _),
   Hour1 is Hour - H,
   Duration is (Hour1 * 3600000) + (Minute * 60000) + (Sec * 1000) + MilliSec.
 
@@ -307,7 +307,7 @@ runAnalysis(Database) :-
   assert(skipQuery(d, 15)),
   setOption(subqueryUnnesting),
   get_time(A),
-  convert_time(A, Y, M, D, _, _, _, _),
+  my_convert_time(A, Y, M, D, _, _, _, _),
   my_concat_atom(['benchmarkResult feed csvexport[\'Analyse ',
     Database, '-', Y, '-', M, '-', D, '.csv\',
     FALSE, TRUE, ";"] count'], Query),
