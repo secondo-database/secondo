@@ -107,6 +107,7 @@ NVK ADDED MA
 Occurs if the memory is already assigned in a previous step. Needed for path costs recomputation.
   
 The memory terms are under total control of the memory optimization extension, don't ever create memory terms within other parts because it might result in confusing the optimization process.
+
 */
 cost(memory(X, MID, AList), Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, 
     Cost, NewTerm) :-
@@ -160,8 +161,10 @@ cost(res(N), _, _, _MT, ResAttrList, ResTupleSize, ResCard, 0, res(N)) :-
 /*
 NVK ADDED NR
 I won't analyze the costs of the afeed operator, but to make this improved costs version work with nested relations, i add here the same cost estimation as for the feed operator.
+
 */
-cost(afeed(X), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, NewTerm) :-
+cost(afeed(X), Sel, Pred, _, ResAttrList, ResTupleSize, 
+     ResCard, Cost, NewTerm) :-
   cost(X, Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost1, NewTermX),
   costConst(feed, pertuple, U),
   costConst(feed, perbyte, V),
@@ -307,13 +310,14 @@ cost(Term, Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, Cost, Term) :-
 %   write('...Inside cost estimation '),nl,
 %   card(RelName, RelCard),
 %   write('...Inside cost estimation1 '),nl,
-%   concat_atom(['query no_entries(', IndexName, ') '], '', Command),
+%   my_concat_atom(['query no_entries(', IndexName, ') '], '', Command),
 %   write('...Inside cost estimation2 '- Command),nl,
 %   secondo(Command, [_,IndexCard]),
 %   write('...IndexCard' - IndexCard),nl,
 %   windowintersectsTC(WITC),
 %   write('...Inside cost estimation3 '),nl,
-%   CostWI is Sel * 1.2 * IndexCard * WITC * 0.25,   % including 20% false positives
+%   CostWI is Sel * 1.2 * IndexCard * WITC * 0.25,  
+          % including 20% false positives
 %   write('...Inside cost estimation4 '),nl,
 %   sorttidTC(STC),
 %   write('...Inside cost estimation5 '),nl,
@@ -487,7 +491,8 @@ cost(rangeS(dbObject(Index), KeyValue), Sel, _Pred, _MT, ResAttrList,
   Cost is   U
           + V * ResCard * 0.25 ,!. % balance is 75% cost for gettuple
 
-cost(loopjoin(X, Y), Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, Cost, 			loopjoin(NewTermX, NewTermY)) :-
+cost(loopjoin(X, Y), Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, 
+    Cost, loopjoin(NewTermX, NewTermY)) :-
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> (ResAttrListX = ignore, ResAttrListY = ignore) ; true
   ),
@@ -500,12 +505,16 @@ cost(loopjoin(X, Y), Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, Cost, 	
   ),
   ResCard is ResCardX * ResCardY,
   Cost is CostX + ResCardX * CostY,!. % NVK NOTE: Currently within Y can't 
-	% occur another memory term. To this non additive costs should't be a problem.
+  % occur another memory term. To this non additive costs should't be a 
+  % problem.
 
 /*
 NVK ADDED MA: Deactivated because of the non additive costs, shouldn't be a
 problem because currently the optimizer does not generate plans with
 a loopsel operator.
+
+*/
+  /*
 cost(loopsel(X, Y), Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, Cost, 
 		loopsel(NewTermX, NewTermY)) :-
   cost(X, 1, Pred, _, ignore, _, ResCardX, CostX, NewTermX),
@@ -513,7 +522,8 @@ cost(loopsel(X, Y), Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, Cost,
   ResCard is ResCardX * ResCardY,
   Cost is CostX + ResCardX * CostY,
 	!.
-*/
+
+  */
 
 cost(fun(A1, X), Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, Cost,
 		fun(A1, NewTermX)) :-
@@ -582,12 +592,18 @@ cost(sortby(X, Y), Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, Cost,
 NVK ADDED NR
 I don't have any costs for these operations.
 TODO: ResAttrList modifications.
-cost(unnest(X, Attr), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, unnest(NewTermX, Attr)) :-
+
+*/
+  /*
+cost(unnest(X, Attr), Sel, Pred, _, ResAttrList, ResTupleSize, 
+            ResCard, Cost, unnest(NewTermX, Attr)) :-
   cost(X, Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, NewTermX),!.
 
-cost(nest(X, Attr, NewLabel), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, nest(NewTermX, Attr, NewLabel)) :-
+cost(nest(X, Attr, NewLabel), Sel, Pred, _, ResAttrList, ResTupleSize, 
+        ResCard, Cost, nest(NewTermX, Attr, NewLabel)) :-
   cost(X, Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, NewTermX),!.
-*/
+
+  */
 % NVK ADDED END NR
 
 
@@ -692,7 +708,7 @@ cost(hybridhashjoin(X, Y, AX, AY, Buckets), Sel, Pred, MT, ResAttrList,
   ResTupleSizeY = sizeTerm(MemSizeY,_,_),
   %ResTupleSizeX = sizeTerm(_,ExtSizeX,_), % That should be whatn within the
   %ResTupleSizeY = sizeTerm(_,ExtSizeY,_), % C env is the equivalent to 
-																					% getMemSize()
+                                           % getMemSize()
   maAttributeCount(ResAttrListX, AttrsCountX),
   maAttributeCount(ResAttrListY, AttrsCountY),
   NewTerm=hybridhashjoin(NewTermX, NewTermY, AX, AY, Buckets),
@@ -869,7 +885,7 @@ cost(remove(X, DropListFields), Sel, Pred, _MT, ResAttrList, ResTupleSize,
     -> ( ResTupleSize = ResTupleSize1,             %% ToDo: Fixme
          NoAttrs is 3                              %% ToDo: Fixme
        )
-    ;  ( projectAttrList(ResAttrList1, ProjAttrNames, ResAttrList, ResTupleSize),
+    ; ( projectAttrList(ResAttrList1, ProjAttrNames, ResAttrList, ResTupleSize),
          length(ResAttrList,NoAttrs)
        )
   ),
@@ -987,7 +1003,7 @@ cost(windowintersectsS(dbobject(IndexName), QueryObj), Sel, Pred, _MT,
     ResAttrList, ResTupleSize, ResCard, Cost, 
 		windowintersectsS(dbobject(IndexName), QueryObj)) :-
   % get relationName Rel from Index (it is not included in the arguments)
-  concat_atom([RelName|_],'_',IndexName),
+  my_concat_atom([RelName|_],'_',IndexName),
   dcName2internalName(RelDC,RelName),
   Rel = rel(RelDC, *),
   cost(Rel, Sel, Pred, _, ignore, _, ResCard1, Cost1, _),
@@ -1048,9 +1064,10 @@ cost(gettuples2(X, Rel, attrname(TidAttr)), Sel, Pred, _MT, ResAttrList,
          negateSizeTerm(sizeTerm(TMem, 0, 0),NegTidSize),
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
-    ;  ( delete(ResAttrList1,[TidAttr,tid,TidSize],ResAttrList1WOtid), % drop tid-attr
-         negateSizeTerm(TidSize,NegTidSize),                          % adjust size
-         append(ResAttrList1WOtid,ResAttrList2,ResAttrList),           % concat tuples
+    ;  ( delete(ResAttrList1,[TidAttr,tid,TidSize],
+          ResAttrList1WOtid), % drop tid-attr
+         negateSizeTerm(TidSize,NegTidSize),                 % adjust size
+         append(ResAttrList1WOtid,ResAttrList2,ResAttrList),  % concat tuples
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
   ),
@@ -1124,7 +1141,7 @@ cost(predinfo(X, piSel, piPET), Sel, Pred, _MT,
 
 % Failed to compute the cost -- throw an exception!
 cost(T, S, P, MT, A, TS, RC, Cost, NewTerm) :-
-  concat_atom(['Calculation of cost failed.'],'',ErrMsg),
+  my_concat_atom(['Calculation of cost failed.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(ma_improvedcosts_cost(T, S, P, MT, A, TS, RC, Cost,
 		NewTerm)::unknownError::ErrMsg)),
@@ -1178,7 +1195,7 @@ isPrefilter(X) :-
 % --- renameAttrs(+AttrList, +Suffix, -RenamedAttrList)
 renameAttrs([],_,[]).
 renameAttrs([[Attr, T, S]|More], Suffix, [[AttrRenamed, T, S]|MoreRes]) :-
-  concat_atom([Attr, Suffix],'_',AttrRenamed),
+  my_concat_atom([Attr, Suffix],'_',AttrRenamed),
   renameAttrs(More,Suffix,MoreRes), !.
 
 
@@ -1197,7 +1214,7 @@ setNodeResAttrList(Node, AttrList) :-
   ground(Node), ground(AttrList),
   assert(nodeAttributeList(Node, AttrList)),!.
 setNodeResAttrList(N, A) :-
-  concat_atom(['Error in setNodeResAttrList: Unbound variable.'],'',ErrMsg),
+  my_concat_atom(['Error in setNodeResAttrList: Unbound variable.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(ma_improvedcosts_setNodeResAttrList(N,A)
                    ::malformedExpression::ErrMsg)),
@@ -1264,18 +1281,20 @@ Determine the assessed costs of an input term using rules ~cost/8~.
 ~NewTerm~ allows term modifications to store the assigned amount of memory. (NVK ADDED)
 
 costterm(+Term, +Source, +Target, +Result, +Sel, +Pred, -Card, -Cost, -NewTerm)
+
+
 */
 costterm(Term, Source, Target, Result, Sel, Pred, Card, Cost, NewTerm) :-
   (optimizerOption(memoryAllocation) -> 
 		( 
-			cost(Term, Sel, Pred, _MT, ResAttrList, TupleSize, Card, Cost, NewTerm),
+      cost(Term, Sel, Pred, _MT, ResAttrList, TupleSize, Card, Cost, NewTerm),
       setNodeResAttrList(Result, ResAttrList),
       setNodeTupleSize(Result, TupleSize)
     )
   ;  
-		throw(error_Internal(ma_improvedcosts_costterm(Term, Source, Target, 
+    throw(error_Internal(ma_improvedcosts_costterm(Term, Source, Target, 
 				Result, Sel, Pred, Card, Cost)::
-				should_not_be_called_without_option_memoryAllocation))
+        should_not_be_called_without_option_memoryAllocation))
   ),
   !.
 
