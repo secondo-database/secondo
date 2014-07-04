@@ -6897,8 +6897,8 @@ getProjectAttrs(Select,GroupAttrs,ExtendAttrs,[SName|ProjectAttrs]) :-
 % ----
 getProjectAttrs1(Select,GroupAttrs,GroupAttrs2,AExtend) :-
   GroupAttrs2 = [attr(_,_,_)|_],
-  list_to_set(Select,SelectSet),
-  list_to_set(GroupAttrs,GroupAttrsSet),
+  my_list_to_set(Select,SelectSet),
+  my_list_to_set(GroupAttrs,GroupAttrsSet),
   intersection(SelectSet,GroupAttrsSet,Intersect),
   append(Intersect,GroupAttrs2,AExtend),
   !.

@@ -382,9 +382,9 @@ opSignature(num2string, standard, [real],string,[]).
 opSignature(isdefined, standard, [T],data,[]) :- isData(T).
 opSignature(compare, standard, [T,T],int,[]) :- isData(T).
 opSignature(getMinVal, standard, TL,T,[]) :-
-  isData(T), is_list(TL), list_to_set(TL, [T]).
+  isData(T), is_list(TL), my_list_to_set(TL, [T]).
 opSignature(getMaxVal, standard, TL,T,[]) :-
-  isData(T), is_list(TL), list_to_set(TL, [T]).
+  isData(T), is_list(TL), my_list_to_set(TL, [T]).
 opSignature(setoption, standard, [string,int],bool,[sidefx]).
 
 opSignature(abs, standard, [int],int,[]).
@@ -482,7 +482,8 @@ opSignature(toobject, ftext, [string,T],T,[exp]) :- isData(T).
 opSignature(chartext, ftext, [int],text,[]).
 
 opSignature(sendtextUDP, ftext, Args, text,[sidefx]) :-
-  is_list(Args), length(Args) >= 3, length(Args) <= 5, list_to_set(Args,Types),
+  is_list(Args), length(Args) >= 3, length(Args) <= 5,
+   my_list_to_set(Args,Types),
   subset(Types, [string,text]).
 
 opSignature(receivetextUDP, ftext, [string,string,real],[stream,[tuple,[
@@ -580,7 +581,7 @@ opSignature(now, datetime, [],instant,[]).
 opSignature(today, datetime, [],instant,[]).
 opSignature(theInstant, datetime, IntList,instant,[]) :-
   is_list(IntList), length(IntList) >=1, length(IntList) <=7,
-  list_to_set(IntList,[int]), !.
+  my_list_to_set(IntList,[int]), !.
 opSignature((/), datetime, [duration,duration],int,[]).
 opSignature(minInstant, datetime, [],instant,[]).
 opSignature(maxInstant, datetime, [],instant,[]).
@@ -1628,7 +1629,7 @@ opSignature(size, array, [[array,_]],int,[]).
 opSignature(get, array, [[array,T]],T,[]).
 opSignature(put, array, [[array,T],T,int],[array,T],[]).
 opSignature(makearray, array, [TList],[array,T],[]) :-
-  is_list(TList),list_to_set(TList,[T]), !.
+  is_list(TList),my_list_to_set(TList,[T]), !.
 opSignature(makearrayN, array, [T,int],[array,T],[]).
 opSignature(sortarray, array, [[array,T],[map,T,int]],[array,T],[]).
 opSignature(tie, array, [[array,T],[map,T,T,T]],T,[]).
@@ -2068,7 +2069,7 @@ opSignature(union, toprel, [cluster,cluster],cluster,[comm,ass]).
 opSignature(intersection, toprel, [int9m,int9m],int9m,[comm,ass]).
 opSignature(intersection, toprel, [cluster,cluster],cluster,[comm,ass]).
 opSignature(multiintersection, toprel, [T,T|L],T,[]) :-
-  (T = int9m ; T = cluster), list_to_set(L,[T]), !.
+  (T = int9m ; T = cluster), my_list_to_set(L,[T]), !.
 opSignature((+), toprel, [cluster,int9m],cluster,[]).
 opSignature(number_of, toprel, [int9m],int,[]).
 opSignature((-), toprel, [cluster,int9m],cluster,[]).
