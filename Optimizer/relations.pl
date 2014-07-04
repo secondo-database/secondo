@@ -76,7 +76,7 @@ appendToRel('SqlHistory', Term, Plan, Cost, PlanBuild, PlanExec) :-
   resetCounter(joinPred),
   resetCounter(selectionPred),
   swritef(S, '%t', [Term]),
-  string_to_atom(S, Sql),
+  my_string_to_atom(S, Sql),
   quoteText(Sql, Sql2),
   quoteText(Plan, Plan2),
   assert( queryText(Qid, Sql2, Plan2, Joins, Sels, Cost, PlanBuild, PlanExec) ).

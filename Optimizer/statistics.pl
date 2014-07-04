@@ -226,7 +226,7 @@ simplePred(pr(P, A), Simple) :-
 simplePred(X, Y) :-
   not(optimizerOption(determinePredSig)),
   term_to_atom(X,Xt),
-  concat_atom(['Malformed expression: \'', Xt, '\'.'],'',ErrorMsg),
+  my_concat_atom(['Malformed expression: \'', Xt, '\'.'],'',ErrorMsg),
   throw(error_SQL(statistics_simplePred(X, Y)
         ::malformedExpression::ErrorMsg)),!.
 
@@ -474,7 +474,7 @@ bboxSizeQuerySel(Term,Rel,[_,_,T],Size) :-
                                      	value_expr(real,Timeout)), 
 					attrname(attr(NewAttr,0,l))),
   plan_to_atom(SizeQueryT,SizeQueryA),
-  concat_atom(['query ',SizeQueryA],'',SizeQuery),
+  my_concat_atom(['query ',SizeQueryA],'',SizeQuery),
   dm(selectivity,['\nThe Avg-Size Query is: ', SizeQuery, '\n']),
   !, % no backtracking before this!
   secondo(SizeQuery,[real,Size]),
@@ -555,7 +555,7 @@ bboxSizeQueryJoin(Term,Rel1,Rel2,[_,_,T],Size) :-
        )
   ),
   plan_to_atom(SizeQueryT,SizeQueryA),
-  concat_atom(['query ',SizeQueryA],'',SizeQuery),
+  my_concat_atom(['query ',SizeQueryA],'',SizeQuery),
   dm(selectivity,['\nThe Avg-Size Query is: ', SizeQuery, '\n']),
   !, % no backtracking before this!
   secondo(SizeQuery,[real,Size]),
@@ -612,7 +612,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
     ( secondo(QueryAtom, ResultList)
       -> (true)
       ;  ( term_to_atom(Pred,PredA),
-           concat_atom(['Selectivity query failed: Please check ',
+           my_concat_atom(['Selectivity query failed: Please check ',
                        'whether predicate \'', PredA, '\' is a boolean ',
                        'function!'],'',ErrorMsg),
            write_list(['\nERROR:\t',ErrorMsg,' ']), nl,
@@ -685,7 +685,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard, InputCard) :-
     ( secondo(QueryAtom, ResultList)
       -> (true)
       ;  ( term_to_atom(Pred,PredA),
-           concat_atom(['Selectivity query failed. Please check ',
+           my_concat_atom(['Selectivity query failed. Please check ',
                        'whether predicate \'', PredA, '\' is a boolean ',
                        'function! '],'',ErrMsg),
            write_list(['\nERROR:\t',ErrMsg]), nl,
@@ -1011,7 +1011,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox, _,
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, 
 	FilterInputCard, ResCard, InputCard) :-
   term_to_atom(Pred,PredT),
-  concat_atom(['Selectivity query failed for: \'',PredT,
+  my_concat_atom(['Selectivity query failed for: \'',PredT,
                '\'. Unknown reason.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]), nl,
   throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
@@ -1418,7 +1418,7 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
 selectivity(P, X, Y, Z) :-
   simplePred(P, PSimple),
   term_to_atom(PSimple,PSimpleT),
-  concat_atom(['Cannot find selectivity for \'', PSimpleT, '\'.'],'',ErrMsg),
+  my_concat_atom(['Cannot find selectivity for \'', PSimpleT, '\'.'],'',ErrMsg),
   write('Error in optimizer: '), write(ErrMsg),
   write('Call: selectivity('), write(P), write(', _, _, _)\n'),
   throw(error_Internal(statistics_selectivity(P, X, Y, Z)
@@ -1447,7 +1447,7 @@ getPET(P, CalcPET, ExpPET) :-
 getPET(P, X, Y) :-
   simplePred(P, PSimple),
   term_to_atom(PSimple,PSimpleT),
-  concat_atom(['Cannot find PETs for \'', PSimpleT, '\'.'],'',ErrMsg),
+  my_concat_atom(['Cannot find PETs for \'', PSimpleT, '\'.'],'',ErrMsg),
   write('Error in optimizer: '), write(ErrMsg), nl,
   write('Call: getPET('), write(P), write(', _, _)\n'),
   throw(error_Internal(statistics_getPET(P, X, Y)::missingData#ErrMsg)),
@@ -1502,7 +1502,7 @@ isIntList([X | Rest]) :-
 
 charListToAtom(CharList, Atom) :-
   atom_codes(A, CharList),
-  concat_atom([' "', A, '"'], Atom).
+  my_concat_atom([' "', A, '"'], Atom).
 
 replaceCharList(InTerm, OutTerm) :-
   isIntList(InTerm),
@@ -1749,7 +1749,7 @@ this, calculate a new calibration factor.
 */
 
 tfCPU(TestRel) :-
-  concat_atom(['query ', TestRel, ' feed count'],'',Query),
+  my_concat_atom(['query ', TestRel, ' feed count'],'',Query),
   getTime(secondo(Query, [_, _]),Time),
   downcase_atom(TestRel, DCTestRel),
          write('\n>>>>>>>stat_012\n'), nl,
@@ -2463,13 +2463,13 @@ getTypeTree(Op,_Rels,[Op,[],TypeDC]) :-
   ( \+(optimizerOption(use_matchingOperators))
     -> ( % Alternative I: using operator 'getTypeNL'
          plan_to_atom(getTypeNL(Op),NullQueryAtom),
-         concat_atom(['query ',NullQueryAtom],'',Query),
+         my_concat_atom(['query ',NullQueryAtom],'',Query),
          dm(selectivity,['getTypeNL-Query = ',Query]),nl,
          secondo(Query,[text,TypeDC])
        )
     ;  ( % Alternative II: using operator 'matchingOperators'
 
-         concat_atom(['query matchingOperators() filter[.OperatorName="',Op,
+         my_concat_atom(['query matchingOperators() filter[.OperatorName="',Op,
                       '"] extract[ResultType]'],'',Query),
          dm(selectivity,['matchingOperators-Query = ',Query]),nl,
          secondo(Query,[text,TypeDC])
@@ -2515,14 +2515,14 @@ getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
          % send getTypeNL-query to Secondo to infer the signature
          NullQueryExpr =.. [Op|NullArgs],
          plan_to_atom(getTypeNL(NullQueryExpr),NullQueryAtom),
-         concat_atom(['query ',NullQueryAtom],'',Query),
+         my_concat_atom(['query ',NullQueryAtom],'',Query),
          dm(selectivity,['getTypeNL-Query = ',Query]),nl,
          secondo(Query,[text,TypeDC])
        )
     ;  ( % Alternative II: using operator 'matchingOperators'
          findall(T,member([_,_,T],ArgTree),ArgTypes),
-         concat_atom(ArgTypes, ', ', ArgTypesText),
-         concat_atom(['query matchingOperators( ',ArgTypesText,
+         my_concat_atom(ArgTypes, ', ', ArgTypesText),
+         my_concat_atom(['query matchingOperators( ',ArgTypesText,
                       ' ) filter[.OperatorName="',Op,
                       '"] extract[ResultType]'],'',Query),
          dm(selectivity,['matchingOperators-Query = ',Query]),nl,
@@ -2538,7 +2538,8 @@ getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
 
 getTypeTree(A,B,C) :-
     term_to_atom(A,A1),
-    concat_atom(['Cannot resolve typetree for expression \'',A1,'\'.'],'',MSG),
+    my_concat_atom(['Cannot resolve typetree for expression \'',A1,'\'.'],
+                   '',MSG),
     throw(error_Internal(statistics_getTypeTree(A,B,C)::typeMapError::MSG)),
     !, fail.
 
@@ -2585,13 +2586,13 @@ nestedTypeExpr2valueTypeExprAtom(A,A) :-
 nestedTypeExpr2valueTypeExprAtom(A,Result) :-
   is_list(A),
   nestedTypeExpr2valueTypeExprAtom_list(A,AAtom),
-  concat_atom(['(',AAtom,')'],'',Result), !.
+  my_concat_atom(['(',AAtom,')'],'',Result), !.
 
 nestedTypeExpr2valueTypeExprAtom(A,Result) :-
   compound(A),
   A =.. [TC|Arglist],
   nestedTypeExpr2valueTypeExprAtom_list(Arglist,ArglistAtom),
-  concat_atom([TC,'(',ArglistAtom,')','',Result]), !.
+  my_concat_atom([TC,'(',ArglistAtom,')','',Result]), !.
 
 nestedTypeExpr2valueTypeExprAtom_list([A|[]],AAtom) :-
   nestedTypeExpr2valueTypeExprAtom(A,AAtom), !.
@@ -2599,13 +2600,13 @@ nestedTypeExpr2valueTypeExprAtom_list([A|[]],AAtom) :-
 nestedTypeExpr2valueTypeExprAtom_list([A|B],Result) :-
   nestedTypeExpr2valueTypeExprAtom(A,AAtom),
   nestedTypeExpr2valueTypeExprAtom_list(B,BAtom),
-  concat_atom([AAtom,BAtom],', ',Result), !.
+  my_concat_atom([AAtom,BAtom],', ',Result), !.
 
 
 valueTypeExpr2valueTypeExprAtom(Term,Result) :-
   term_to_atom(Term,TermAtom),
   ( (compound(Term), functor(Term,(,),_))
-    -> concat_atom(['(',TermAtom,')'],'',Result)
+    -> my_concat_atom(['(',TermAtom,')'],'',Result)
     ;  Result = TermAtom
   ),
   !.
@@ -2653,14 +2654,15 @@ createNullValues([rtree3|_],_) :- fail.
 createNullValues([RelType,[tuple,X]],NullRelString) :-
   memberchk(RelType,[rel,trel]),
   createConstAttrList(X,X1),
-  concat_atom(['[const ',RelType,'(tuple([',X1,'])) value ()]'],'',NullRelAtom),
-  string_to_atom(NullRelString,NullRelAtom),!.
+  my_concat_atom(['[const ',RelType,'(tuple([',X1,'])) value ()]'],'',
+                 NullRelAtom),
+  my_string_to_atom(NullRelString,NullRelAtom),!.
 
 % special case: tuple streams
 createNullValues([stream,[tuple,X]],feed(NullRelString)) :-
   createConstAttrList(X,X1),
-  concat_atom(['[const ',rel,'(tuple([',X1,'])) value ()]'],'',NullRelAtom),
-  string_to_atom(NullRelString,NullRelAtom),!.
+  my_concat_atom(['[const ',rel,'(tuple([',X1,'])) value ()]'],'',NullRelAtom),
+  my_string_to_atom(NullRelString,NullRelAtom),!.
 
 % special case: data streams
 createNullValues([stream,T],feed(TNV)) :-
@@ -2685,18 +2687,18 @@ createNullValues(Type,NVstring) :-
    ; nullValue(Type,empty,NV)    % 'empty' value comes second
    ; nullValue(Type,_,NV)        % any other NullValue as last resort
   ), !, % do not try again
-  concat_atom(['[const ',Type,' value ',NV,']'],'',NVatom),
-  string_to_atom(NVstring,NVatom),!.
+  my_concat_atom(['[const ',Type,' value ',NV,']'],'',NVatom),
+  my_string_to_atom(NVstring,NVatom),!.
 
 % create an atom describing an attribute list
 createConstAttrList([],'').
 createConstAttrList([[Name,Type]],Expr) :-
-  concat_atom([Name,Type],':',Expr),!.
+  my_concat_atom([Name,Type],':',Expr),!.
 createConstAttrList([[Name,Type]|Rest],Expr) :-
   Rest \= [],
-  concat_atom([Name,Type],':',Expr1),
+  my_concat_atom([Name,Type],':',Expr1),
   createConstAttrList(Rest,Expr2),
-  concat_atom([Expr1,Expr2],',',Expr),!.
+  my_concat_atom([Expr1,Expr2],',',Expr),!.
 
 % create an argument list for a dummy function with given signature
 % List format: [param(Var1, Type1), ..., param(VarN, TypeN)]

@@ -2035,7 +2035,7 @@ opSignature(attrsize, relation, [[stream,[tuple,AttrList]],Attr],real,
         [block,aggr]) :- memberchk([Attr,_],AttrList), !.
 opSignature(rename, relation, [[stream,[tuple,A]],P],[stream,[tuple,R]],[]) :-
   ground([[stream,[tuple,A]],P]),
-  findall([AR,T],(member([AO,T],A),concat_atom([AO,P],'_',AR)),R),!.
+  findall([AR,T],(member([AO,T],A),my_concat_atom([AO,P],'_',AR)),R),!.
 opSignature(renameattr,relation,[[stream,[tuple,A]],P],[stream,[tuple,R]],[]) :-
   % value extraction during typemapping (using string constants in P) is not yet
   % considered by this rule:

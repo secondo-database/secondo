@@ -1378,7 +1378,7 @@ plan_to_atom( stconstraint(LiftedPred1, LiftedPred2, TempConstraint) , Result):-
  plan_to_atom( LiftedPred1, LP1 ),
  plan_to_atom( LiftedPred2, LP2 ),
  plan_to_atom( TempConstraint, TC ),
- concat_atom(['stconstraint(', LP1, ', ', LP2, ', ', TC, ')'],'', Result),
+ my_concat_atom(['stconstraint(', LP1, ', ', LP2, ', ', TC, ')'],'', Result),
  !.
 
 
@@ -1390,7 +1390,8 @@ plan_to_atom( pattern(NPredList, ConstraintList) , Result):-
  namedPredList_to_atom(NPredList, NPredList2),
  ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
         (plan_to_atom(ConstraintList, ConstraintList2))),
- concat_atom(['. stpattern[', NPredList2, '; ',ConstraintList2,']'],'', Result),
+ my_concat_atom(['. stpattern[', NPredList2, '; ',ConstraintList2,']'],'', 
+               Result),
  !.
 
 
@@ -1398,7 +1399,8 @@ plan_to_atom( stpattern(NPredList, ConstraintList) , Result):-
  namedPredList_to_atom(NPredList, NPredList2),
  ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
         (plan_to_atom(ConstraintList, ConstraintList2))),
- concat_atom(['. stpattern[', NPredList2, '; ',ConstraintList2,']'],'', Result),
+ my_concat_atom(['. stpattern[', NPredList2, '; ',ConstraintList2,']'],'', 
+                Result),
  !.
 
 /*
@@ -1410,7 +1412,7 @@ plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
  ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
         (plan_to_atom(ConstraintList, ConstraintList2))),
         plan_to_atom(Filter, Filter2),
- concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2,
+ my_concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2,
               '; ', Filter2, ']'],'',  Result),
  !.
 
@@ -1435,7 +1437,8 @@ plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1,
   getknnExtNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr,
     _, _, _, ExtIDAttr, _, _, ExtResultRel, ExtMBoolAttr, ExtBtree),
 
-  concat_atom(['isknn(', ExtTID, ',"', ExtResultRel, '" , "', ExtBtree, '" , "',
+  my_concat_atom(['isknn(', ExtTID, ',"', ExtResultRel, '" , "', 
+               ExtBtree, '" , "',
                ExtMBoolAttr, '" , "', ExtIDAttr, '")'] , '', Result)
   .
 
@@ -1503,9 +1506,9 @@ plan_to_atom(value_expr(string,undefined), X) :-
   nullValue(string,undefined,X), !.
 plan_to_atom(value_expr(string,Term), Result) :-
     catch((atom_codes(TermRes, Term), Test = ok),_,Test = failed), Test = ok,
-    concat_atom(['"', TermRes, '"'], '', Result).
+    my_concat_atom(['"', TermRes, '"'], '', Result).
 plan_to_atom(value_expr(string,Term),Result) :-
-  concat_atom(['Invalid string constant: ',Term],ErrMsg),
+  my_concat_atom(['Invalid string constant: ',Term],ErrMsg),
   throw(error_Internal(optimizer_plan_to_atom(value_expr(string,Term),Result)
         ::malformedExpression:ErrMsg)),
   !, fail.
@@ -1516,12 +1519,12 @@ plan_to_atom(value_expr(text,undefined), X) :-
 plan_to_atom(value_expr(text,Term), Result) :-
     is_list(Term),
     catch((atom_codes(TermRes, Term), Test = ok),_,Test = failed), Test = ok,
-    concat_atom(['\'', TermRes, '\''], '', Result).
+    my_concat_atom(['\'', TermRes, '\''], '', Result).
 plan_to_atom(value_expr(text,Term), Result) :-
     atomic(Term),
-    concat_atom(['\'', Term, '\''], '', Result).
+    my_concat_atom(['\'', Term, '\''], '', Result).
 plan_to_atom(value_expr(text,X),Result) :-
-  concat_atom(['Invalid text constant: ',X],ErrMsg),
+  my_concat_atom(['Invalid text constant: ',X],ErrMsg),
   throw(error_Internal(optimizer_plan_to_atom(value_expr(text,X),Result)
         ::malformedExpression:ErrMsg)),
   !, fail.
@@ -1532,7 +1535,7 @@ plan_to_atom(value_expr(int,Result), Result) :-
 plan_to_atom(value_expr(int,undefined), X) :-
   nullValue(int,undefined,X), !.
 plan_to_atom(value_expr(int,X),Result) :-
-  concat_atom(['Invalid int constant: ',X],ErrMsg),
+  my_concat_atom(['Invalid int constant: ',X],ErrMsg),
   throw(error_Internal(optimizer_plan_to_atom(value_expr(int,X),Result)
         ::malformedExpression:ErrMsg)),
   !, fail.
@@ -1543,7 +1546,7 @@ plan_to_atom(value_expr(real,Result), Result) :-
 plan_to_atom(value_expr(real,undefined), X) :-
   nullValue(real,undefined,X), !.
 plan_to_atom(value_expr(real,X),Result) :-
-  concat_atom(['Invalid real constant: ',X],ErrMsg),
+  my_concat_atom(['Invalid real constant: ',X],ErrMsg),
   throw(error_Internal(optimizer_plan_to_atom(value_expr(real,X),Result)
         ::malformedExpression:ErrMsg)),
   !, fail.
@@ -1557,7 +1560,7 @@ plan_to_atom(value_expr(bool,X), Result) :-
          -> Result = ' FALSE '
          ;  ( X = undefined
               -> nullValue(bool,undefined,Result)
-              ; (concat_atom(['Invalid bool constant: ',X],ErrMsg),
+              ; (my_concat_atom(['Invalid bool constant: ',X],ErrMsg),
                  throw(error_Internal(optimizer_plan_to_atom(value_expr(bool,X),
                     Result)::malformedExpression:ErrMsg)),
                  !, fail
@@ -1573,7 +1576,7 @@ plan_to_atom(value_expr(Type,Value), Result) :-
   nl_to_atom(Value,ValueA),
   ( nullValue(Type,Value,X)  % registered value (null, empty, error, default)
     -> Result = X
-    ; concat_atom(['[const',TypeA,'value',ValueA,']'],' ',Result)
+    ; my_concat_atom(['[const',TypeA,'value',ValueA,']'],' ',Result)
   ).
 
 % type expression
@@ -1605,7 +1608,7 @@ plan_to_atom([X], AtomX) :-
 plan_to_atom([X | Xs], Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Xs, XsAtom),
-  concat_atom([XAtom, ', ', XsAtom], '', Result),
+  my_concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
 
 
@@ -1646,12 +1649,13 @@ plan_to_atom(optimizerAnnotation(X,_), Result) :-
 
 plan_to_atom(sample(Rel, S, T), Result) :-
   plan_to_atom(Rel, ResRel),
-  concat_atom([ResRel, ' sample[', S, ', ', T, '] '], '', Result),
+  my_concat_atom([ResRel, ' sample[', S, ', ', T, '] '], '', Result),
   !.
 
 plan_to_atom(sample(Rel, S, T, Seed), Result) :-
   plan_to_atom(Rel, ResRel),
-  concat_atom([ResRel, ' sample[', S, ', ', T, ', ', Seed, '] '], '', Result),
+  my_concat_atom([ResRel, ' sample[', S, ', ', T, ', ', Seed, '] '], '', 
+                  Result),
   !.
 
 plan_to_atom(symmjoin(X, Y, M), Result) :-
@@ -1659,7 +1663,7 @@ plan_to_atom(symmjoin(X, Y, M), Result) :-
   plan_to_atom(Y, YAtom),
   consider_Arg2(M, M2),          % transform second arg/3 to arg2/3
   plan_to_atom(M2, MAtom),
-  concat_atom([XAtom, ' ', YAtom, ' symmjoin[',
+  my_concat_atom([XAtom, ' ', YAtom, ' symmjoin[',
     MAtom, ']'], '', Result),
   !.
 
@@ -1668,7 +1672,7 @@ plan_to_atom(symmproductextend(X, Y, Fields), Result) :-
   plan_to_atom(Y, YAtom),
   consider_Arg2(Fields, Fields2),          % transform second arg/3 to arg2/3
   plan_to_atom(Fields2, FieldsAtom),
-  concat_atom([XAtom, ' ', YAtom, ' symmproductextend[',
+  my_concat_atom([XAtom, ' ', YAtom, ' symmproductextend[',
     FieldsAtom, ']'], '', Result),
   !.
 
@@ -1679,7 +1683,7 @@ plan_to_atom(sortLeftThenMergejoin(X, Y, A, B), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' sortby[', AAtom, ' asc] ',
+  my_concat_atom([XAtom, ' sortby[', AAtom, ' asc] ',
                YAtom, ' mergejoin[', AAtom, ', ', BAtom, ']'], '', Result),
   !.
 
@@ -1689,7 +1693,7 @@ plan_to_atom(sortRightThenMergejoin(X, Y, A, B), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' ', YAtom, ' sortby[', BAtom, ' asc] ',
+  my_concat_atom([XAtom, ' ', YAtom, ' sortby[', BAtom, ' asc] ',
                'mergejoin[', AAtom, ', ', BAtom, ']'], '', Result),
   !.
 
@@ -1700,7 +1704,7 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' ', YAtom, ' sortmergejoin_r2[',
+  my_concat_atom([XAtom, ' ', YAtom, ' sortmergejoin_r2[',
                AAtom, ', ', BAtom, ']'], '', Result),
   !.
 
@@ -1711,7 +1715,7 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, ' ', YAtom, ' sortmergejoin_r3[',
+  my_concat_atom([XAtom, ' ', YAtom, ' sortmergejoin_r3[',
                AAtom, ', ', BAtom, ']'], '', Result),
   !.
 
@@ -1720,7 +1724,7 @@ plan_to_atom(pjoin1(X, Y, Ctr, Fields), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(Ctr, CtrAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([XAtom, ' ',YAtom,
+  my_concat_atom([XAtom, ' ',YAtom,
                ' pjoin1[', CtrAtom, '; ', FAtom, ']'], '', Result),
   !.
 
@@ -1728,13 +1732,13 @@ plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   plan_to_atom(GroupAttrs, GAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, ' groupby[', GAtom, '; ', FAtom, ']'], '', Result),
+  my_concat_atom([SAtom, ' groupby[', GAtom, '; ', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(field(NewAttr, Expr), Result) :-
   plan_to_atom(attrname(NewAttr), NAtom),
   plan_to_atom(Expr, EAtom),
-  concat_atom([NAtom, ': ', EAtom], '', Result),
+  my_concat_atom([NAtom, ': ', EAtom], '', Result),
   !.
 
 
@@ -1747,7 +1751,7 @@ plan_to_atom(reduce(Stream, Pred, Factor), Result) :-
   plan_to_atom(Stream, StreamAtom),
   plan_to_atom(Pred, PredAtom),
   plan_to_atom(Factor, FactorAtom),
-  concat_atom([StreamAtom, ' reduce[', PredAtom, ', ', FactorAtom, ']'], '',
+  my_concat_atom([StreamAtom, ' reduce[', PredAtom, ', ', FactorAtom, ']'], '',
     Result),
   !.
 
@@ -1770,7 +1774,7 @@ plan_to_atom(project(Stream, Fields), Result) :-
   not(removeHiddenAttributes), !,  % standard behaviour
   plan_to_atom(Stream, SAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, ' project[', FAtom, ']'], '', Result),
+  my_concat_atom([SAtom, ' project[', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(project(Stream, Fields), Result) :-
@@ -1778,14 +1782,14 @@ plan_to_atom(project(Stream, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   removeHidden(Fields, Fields2), % defined after plan_to_atom
   plan_to_atom(Fields2, FAtom),
-  concat_atom([SAtom, ' project[', FAtom, ']'], '', Result),
+  my_concat_atom([SAtom, ' project[', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(feedproject(Stream, Fields), Result) :-
   not(removeHiddenAttributes), !,  % standard behaviour
   plan_to_atom(Stream, SAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, ' feedproject[', FAtom, ']'], '', Result),
+  my_concat_atom([SAtom, ' feedproject[', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(feedproject(Stream, Fields), Result) :-
@@ -1793,7 +1797,7 @@ plan_to_atom(feedproject(Stream, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   removeHidden(Fields, Fields2), % defined after plan_to_atom
   plan_to_atom(Fields2, FAtom),
-  concat_atom([SAtom, ' feedproject[', FAtom, ']'], '', Result),
+  my_concat_atom([SAtom, ' feedproject[', FAtom, ']'], '', Result),
   !.
 
 
@@ -1808,7 +1812,7 @@ plan_to_atom(exactmatchfun(Index, Rel, attr(Name, R, Case)), Result) :-
   plan_to_atom(a(Name, R, Case), AttrAtom),
   plan_to_atom(dbobject(Index),IndexAtom),
   newVariable(T),
-  concat_atom(['fun(', T, ' : TUPLE) ', IndexAtom,
+  my_concat_atom(['fun(', T, ' : TUPLE) ', IndexAtom,
     ' ', RelAtom, ' exactmatch[attr(', T, ', ', AttrAtom, ')]'], Result),
   !.
 
@@ -1816,13 +1820,13 @@ plan_to_atom(exactmatchfun(Index, Rel, attr(Name, R, Case)), Result) :-
 plan_to_atom(newattr(Attr, Expr), Result) :-
   plan_to_atom(Attr, AttrAtom),
   plan_to_atom(Expr, ExprAtom),
-  concat_atom([AttrAtom, ': ', ExprAtom], '', Result),
+  my_concat_atom([AttrAtom, ': ', ExprAtom], '', Result),
   !.
 
 
 plan_to_atom(rename(X, Y), Result) :-
   plan_to_atom(X, XAtom),
-  concat_atom([XAtom, '{', Y, '}'], '', Result),
+  my_concat_atom([XAtom, '{', Y, '}'], '', Result),
   !.
 
 % NVK ADDED MA
@@ -1860,38 +1864,38 @@ plan_to_atom(unnest(X, Att), Result) :-
 
 plan_to_atom(predinfo(X, Sel, Cost), Result) :-
   plan_to_atom(X, XAtom),
-  concat_atom([XAtom, '{', Sel, ', ', Cost, '}'], '', Result),
+  my_concat_atom([XAtom, '{', Sel, ', ', Cost, '}'], '', Result),
   !.
 
 
 plan_to_atom(fun(Params, Expr), Result) :-
   params_to_atom(Params, ParamAtom),
   plan_to_atom(Expr, ExprAtom),
-  concat_atom(['fun(', ParamAtom, ') ', ExprAtom], '', Result),
+  my_concat_atom(['fun(', ParamAtom, ') ', ExprAtom], '', Result),
   !.
 
 
 plan_to_atom(attribute(X, Y), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
-  concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
+  my_concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
   !.
 
 
 plan_to_atom(date(X), Result) :-
   plan_to_atom(X, XAtom),
-  concat_atom(['[const instant value ', XAtom, ']'], '', Result),
+  my_concat_atom(['[const instant value ', XAtom, ']'], '', Result),
   !.
 
 plan_to_atom(interval(X, Y), Result) :-
-  concat_atom(['[const duration value (', X, ' ', Y, ')]'], '', Result),
+  my_concat_atom(['[const duration value (', X, ' ', Y, ')]'], '', Result),
   !.
 
 plan_to_atom(projectextend(Stream,ProjectFields,ExtendFields), Result) :-
   plan_to_atom(Stream,SAtom),
   plan_to_atom(ProjectFields,PAtom),
   plan_to_atom(ExtendFields,EAtom),
-  concat_atom([SAtom,' projectextend[',PAtom,' ; ',EAtom,']'], '', Result),
+  my_concat_atom([SAtom,' projectextend[',PAtom,' ; ',EAtom,']'], '', Result),
   !.
 
 /*
@@ -1972,12 +1976,12 @@ plan_to_atom(a(A:B:C, _, _), Result) :-
 % NVK ADDED NR END
 
 % plan_to_atom(a(A:B, _, l), Result) :-
-%   concat_atom([B, '_', A], '', Result),
+%   my_concat_atom([B, '_', A], '', Result),
 %   !.
 
 plan_to_atom(a(A:B, _, _), Result) :-
   upper(B, B2),
-  concat_atom([B2, '_', A], Result),
+  my_concat_atom([B2, '_', A], Result),
   !.
 
 % plan_to_atom(a(X, _, l), X) :-
@@ -1989,11 +1993,11 @@ plan_to_atom(a(X, _, _), X2) :-
 
 
 plan_to_atom(true, Result) :-
-  concat_atom(['TRUE'], '', Result),
+  my_concat_atom(['TRUE'], '', Result),
   !.
 
 plan_to_atom(false, Result) :-
-  concat_atom(['FALSE'], '', Result),
+  my_concat_atom(['FALSE'], '', Result),
   !.
 
 % rule to handle null-ary operators like now(), today(), seqnext()
@@ -2001,7 +2005,7 @@ plan_to_atom(Op, Result) :-
   atom(Op),
   secondoOp(Op, prefix, 0),
   systemIdentifier(Op, _), !,
-  concat_atom([Op, '() '], '', Result),
+  my_concat_atom([Op, '() '], '', Result),
   !.
 
 /*
@@ -2011,7 +2015,7 @@ Integrating counters into query plans
 
 plan_to_atom(counter(Term,N), Result) :-
   plan_to_atom( Term, TermRes ),
-  concat_atom( [ TermRes, ' {', N,'} '], Result ),
+  my_concat_atom( [ TermRes, ' {', N,'} '], Result ),
   !.
 
 
@@ -2025,7 +2029,7 @@ plan_to_atom(aggregate(Term, AttrName, AggrFunction, DefaultVal), Result) :-
   plan_to_atom( AttrName, AttrNameRes ),
   plan_to_atom( AggrFunction, AggrFunRes ),
   plan_to_atom( DefaultVal, DefaultValRes ),
-  concat_atom( [ TermRes, ' aggregateB[', AttrNameRes, ' ; ', AggrFunRes,
+  my_concat_atom( [ TermRes, ' aggregateB[', AttrNameRes, ' ; ', AggrFunRes,
                  ' ; ', DefaultValRes, ']' ], Result ),
   !.
 
@@ -2072,89 +2076,89 @@ Extensions for SQL ~update~ and ~insert~ commands
 plan_to_atom(inserttuple(Rel, Values), Result) :-
   plan_to_atom(Rel, Rel2),
   list_to_atom(Values, Values2),
-  concat_atom([Rel2, ' inserttuple[', Values2, ']'], Result),
+  my_concat_atom([Rel2, ' inserttuple[', Values2, ']'], Result),
   !.
 
 plan_to_atom(insert(Rel, InsertQuery),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(Rel, Rel2),
-  concat_atom([InsertQuery2, ' ', Rel2, ' insert'], Result),
+  my_concat_atom([InsertQuery2, ' ', Rel2, ' insert'], Result),
   !.
 
 plan_to_atom(deletedirect(Rel, DeleteQuery),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(Rel, Rel2),
-  concat_atom([DeleteQuery2, ' ', Rel2, ' deletedirect'], Result),
+  my_concat_atom([DeleteQuery2, ' ', Rel2, ' deletedirect'], Result),
   !.
 
 plan_to_atom(updatedirect(Rel, Transformations, UpdateQuery),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   list_to_atom(Transformations, Transformations2),
   plan_to_atom(Rel, Rel2),
-  concat_atom([UpdateQuery2, ' ', Rel2, ' updatedirect[',
+  my_concat_atom([UpdateQuery2, ' ', Rel2, ' updatedirect[',
         Transformations2, ']'], Result),
   !.
 
 plan_to_atom(insertbtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([InsertQuery2, ' ', IndexName, ' insertbtree[', Column2, ']'],
+  my_concat_atom([InsertQuery2, ' ', IndexName, ' insertbtree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(deletebtree(DeleteQuery, IndexName, Column),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([DeleteQuery2, ' ', IndexName, ' deletebtree[', Column2, ']'],
+  my_concat_atom([DeleteQuery2, ' ', IndexName, ' deletebtree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(updatebtree(UpdateQuery, IndexName, Column),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([UpdateQuery2, ' ', IndexName, ' updatebtree[', Column2, ']'],
+  my_concat_atom([UpdateQuery2, ' ', IndexName, ' updatebtree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(insertrtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([InsertQuery2, ' ', IndexName, ' insertrtree[', Column2, ']'],
+  my_concat_atom([InsertQuery2, ' ', IndexName, ' insertrtree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(deletertree(DeleteQuery, IndexName, Column),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([DeleteQuery2, ' ', IndexName, ' deletertree[', Column2, ']'],
+  my_concat_atom([DeleteQuery2, ' ', IndexName, ' deletertree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(updatertree(UpdateQuery, IndexName, Column),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([UpdateQuery2, ' ', IndexName, ' updatertree[', Column2, ']'],
+  my_concat_atom([UpdateQuery2, ' ', IndexName, ' updatertree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(inserthash(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([InsertQuery2, ' ', IndexName, ' inserthash[', Column2, ']'],
+  my_concat_atom([InsertQuery2, ' ', IndexName, ' inserthash[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(deletehash(DeleteQuery, IndexName, Column),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([DeleteQuery2, ' ', IndexName, ' deletehash[', Column2, ']'],
+  my_concat_atom([DeleteQuery2, ' ', IndexName, ' deletehash[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([UpdateQuery2, ' ', IndexName, ' updatehash[', Column2, ']'],
+  my_concat_atom([UpdateQuery2, ' ', IndexName, ' updatehash[', Column2, ']'],
        Result),
   !.
 
@@ -2166,35 +2170,35 @@ Extensions for SQL ~create~ and ~drop~ commands
 plan_to_atom(let(VarName, Type),Result) :-
   plan_to_atom(a(VarName, *, u), VarName2),
   plan_to_atom(Type, Type2),
-  concat_atom(['let ', VarName2, ' = [const ', Type2, ' value ()]'],
+  my_concat_atom(['let ', VarName2, ' = [const ', Type2, ' value ()]'],
        Result),
   !.
 
 plan_to_atom(delete(Identifier),Result) :-
   atomic(Identifier), !,
-  concat_atom(['delete ', Identifier], Result),
+  my_concat_atom(['delete ', Identifier], Result),
   !.
 
 plan_to_atom(delete(Identifier),Result) :-
   plan_to_atom(Identifier, Identifier2),
-  concat_atom(['delete ', Identifier2], Result),
+  my_concat_atom(['delete ', Identifier2], Result),
   !.
 
 plan_to_atom(deleteIndex(Identifier, QueryRest),[Result|QueryRest2]) :-
   atomic(Identifier), !,
   plan_to_atom(QueryRest, QueryRest2),
-  concat_atom(['delete ', Identifier], Result),
+  my_concat_atom(['delete ', Identifier], Result),
   !.
 
 plan_to_atom(deleteIndex(Identifier, QueryRest),[Result|QueryRest2]) :-
   plan_to_atom(QueryRest, QueryRest2),
   plan_to_atom(Identifier, Identifier2),
-  concat_atom(['delete ', Identifier2], Result),
+  my_concat_atom(['delete ', Identifier2], Result),
   !.
 
 plan_to_atom(rel(Columns),Result) :-
   list_to_atom(Columns, Columns2),
-  concat_atom(['rel(tuple([', Columns2, ']))'], Result),
+  my_concat_atom(['rel(tuple([', Columns2, ']))'], Result),
   !.
 
 % NVK ADDED NR
@@ -2202,13 +2206,13 @@ plan_to_atom(column(Name, Type),Result) :-
 	Type=..[arel, Cols],
   list_to_atom(Cols, TypeT),
   plan_to_atom(a(Name, *, u), Name2),
-  concat_atom([Name2, ': arel(tuple([', TypeT, ']))'], Result),
+  my_concat_atom([Name2, ': arel(tuple([', TypeT, ']))'], Result),
   !.
 % NVK ADDED NR END
 
 plan_to_atom(column(Name, Type),Result) :-
   plan_to_atom(a(Name, *, u), Name2),
-  concat_atom([Name2, ': ', Type], Result),
+  my_concat_atom([Name2, ': ', Type], Result),
   !.
 
 plan_to_atom(createIndex(Rel, Columns, LogIndexType), Result) :-
@@ -2216,7 +2220,7 @@ plan_to_atom(createIndex(Rel, Columns, LogIndexType), Result) :-
   plan_to_atom(attrname(Columns), Columns2),
   getCreateIndexExpression(Rel2, Columns2, LogIndexType, no, IndexName,
       Query),
-  concat_atom(['derive ', IndexName, ' = ', Query], Result), !.
+  my_concat_atom(['derive ', IndexName, ' = ', Query], Result), !.
 
 /*
 Extensions for distance-queries
@@ -2226,24 +2230,24 @@ Extensions for distance-queries
 plan_to_atom(ksmallest(Stream, Count, Attr), Result) :-
   plan_to_atom(Stream, Stream2),
   plan_to_atom(Attr, Attr2),
-  concat_atom([Stream2, ' ksmallest[', Count, '; ', Attr2, ']'], Result), !.
+  my_concat_atom([Stream2, ' ksmallest[', Count, '; ', Attr2, ']'], Result), !.
 
 plan_to_atom(distancescan(DCIndex, Rel, X, HeadCount), Result) :-
   plan_to_atom(X, X2),
   rel_to_atom(Rel, Rel2),
-  concat_atom([DCIndex, ' ', Rel2, ' distancescan[', X2, ', ', HeadCount,']' ],
-       Result), !.
+  my_concat_atom([DCIndex, ' ', Rel2, ' distancescan[', X2, ', ',
+         HeadCount,']' ], Result), !.
 
 plan_to_atom(varfuncquery(Stream, Var, Expr), Result) :-
   plan_to_atom(Stream, Stream2),
   plan_to_atom(Expr, Expr2),
-  concat_atom([Expr2, ' within[fun(', Var, ':ANY) ', Stream2, ']'],
+  my_concat_atom([Expr2, ' within[fun(', Var, ':ANY) ', Stream2, ']'],
        Result).
 
 plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
   rel_to_atom(Rel, Rel2),
   plan_to_atom(attrname(Attr), Attr2),
-  concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
+  my_concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
 
 % Section:Start:plan_to_atom_2_m
 % Section:End:plan_to_atom_2_m
@@ -2284,8 +2288,8 @@ plan_to_atom(InTerm,OutTerm) :-
   length(ArgsIn,NoArgs),
   NoArgs >= N,
   plan_to_atom_2(ArgsIn,ArgsOut),
-  concat_atom(ArgsOut, ' ', ArgsOutAtom),
-  concat_atom([ArgsOutAtom, Op], ' ', OutTerm), !.
+  my_concat_atom(ArgsOut, ' ', ArgsOutAtom),
+  my_concat_atom([ArgsOutAtom, Op], ' ', OutTerm), !.
 
 /*
 Generic translation for prefix operators with at least n>=0 arguments:
@@ -2306,7 +2310,7 @@ To use this rule for an operator ~op~, insert a fact
 %   atom(Op),
 %   secondoOp(Op, prefix, 0),
 %   systemIdentifier(Op, _), !,
-%   concat_atom([Op, '() '], '', Result),
+%   my_concat_atom([Op, '() '], '', Result),
 %   !.
 
 plan_to_atom(InTerm,OutTerm) :-
@@ -2317,8 +2321,8 @@ plan_to_atom(InTerm,OutTerm) :-
   length(ArgsIn,NoArgs),
   NoArgs >= N,
   plan_to_atom_2(ArgsIn,ArgsOut),
-  concat_atom(ArgsOut, ', ', ArgsOutAtom),
-  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !.
+  my_concat_atom(ArgsOut, ', ', ArgsOutAtom),
+  my_concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !.
 
 /*
 Generic translation for (binary) infix operators
@@ -2337,7 +2341,7 @@ plan_to_atom(InTerm, Result) :-
   secondoOp(Op, infix, 2),
   plan_to_atom(Arg1, Res1),
   plan_to_atom(Arg2, Res2),
-  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !.
+  my_concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !.
 
 /*
 Generic translation for postfixbrackets operators with n arguments followed
@@ -2364,10 +2368,11 @@ plan_to_atom(InTerm,OutTerm) :-
   NoArgs >= N,
   split_list(ArgsIn,N,ArgsBefore,ArgsAfter),
   plan_to_atom_2(ArgsBefore,ArgsBeforeOut),
-  concat_atom(ArgsBeforeOut, ' ', ArgsBeforeOutAtom),
+  my_concat_atom(ArgsBeforeOut, ' ', ArgsBeforeOutAtom),
   plan_to_atom_2(ArgsAfter,ArgsAfterOut),
-  concat_atom(ArgsAfterOut, ', ', ArgsAfterOutAtom),
-  concat_atom([ArgsBeforeOutAtom,' ',Op,'[', ArgsAfterOutAtom, ']'],'',OutTerm),
+  my_concat_atom(ArgsAfterOut, ', ', ArgsAfterOutAtom),
+  my_concat_atom([ArgsBeforeOutAtom,' ',Op,'[', ArgsAfterOutAtom, ']'],'',
+                OutTerm),
   !.
 
 /*
@@ -2384,7 +2389,7 @@ plan_to_atom(InTerm,OutTerm) :-
   secondoOp(Op, Syntax, N),
   term_to_atom(Syntax,SyntaxA),
   term_to_atom(N,NA), !,
-  concat_atom(['ERROR: special plan_to_atom/2 rule for operator \'', Op,
+  my_concat_atom(['ERROR: special plan_to_atom/2 rule for operator \'', Op,
                '\'is missing.\n',
                '\tDefined Syntax is: secondoOp(',Op,',',SyntaxA,',',NA,')\n',
                '\tPlease provide an according rule!.'],'',ErrMsg),
@@ -2411,7 +2416,7 @@ plan_to_atom(Term, Result) :-
   \+(secondoOp(Op, _, _)), !,
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
-  concat_atom([Op, '(', Res1, ')'], '', Result), !,
+  my_concat_atom([Op, '(', Res1, ')'], '', Result), !,
   write_list(
     ['WARNING: Applied deprecated default plan_to_atom/2 rule for unary',
      'prefix operator ',Op, '/1. Please add the following fact to file ',
@@ -2425,7 +2430,7 @@ plan_to_atom(Term, Result) :-
   arg(2, Term, Arg2),
   plan_to_atom(Arg1, Res1),
   plan_to_atom(Arg2, Res2),
-  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !,
+  my_concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !,
   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
     'infix operator ', Op, '/2. Please add the following fact to file ',
     '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, 2).\n']), !.
@@ -2437,8 +2442,8 @@ plan_to_atom(InTerm,OutTerm) :-
   \+(secondoOp(Op, _, _)), !,
   length(ArgsIn,N),
   plan_to_atom_2(ArgsIn,ArgsOut),
-  concat_atom(ArgsOut, ', ', ArgsOutAtom),
-  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !,
+  my_concat_atom(ArgsOut, ', ', ArgsOutAtom),
+  my_concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !,
   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
               N,'-ary prefix operator ', Op, '/',N,
               '. Please add the following fact to file ',
@@ -2456,7 +2461,7 @@ plan_to_atom(X, Result) :-
 /* Error case */
 plan_to_atom(X, _) :-
   term_to_atom(X,XA),
-  concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],
+  my_concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],
                '',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(optimizer_plan_to_atom(X,undefined)
@@ -2486,7 +2491,7 @@ list_to_atom([X], AtomX) :-
 list_to_atom([X | Xs], Result) :-
   listelement_to_atom(X, XAtom),
   list_to_atom(Xs, XsAtom),
-  concat_atom([XAtom, ', ', XsAtom], '', Result),
+  my_concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
 
 % used within insert and update:
@@ -2494,7 +2499,7 @@ list_to_atom([X | Xs], Result) :-
 listelement_to_atom(set(Attr, Term), Result) :-
   plan_to_atom(attrname(Attr), Attr2),
   listelement_to_atom(Term, Term2),
-  concat_atom([Attr2, ': ', Term2], Result),
+  my_concat_atom([Attr2, ': ', Term2], Result),
   !.
 
 % used within insert and update:
@@ -2508,7 +2513,7 @@ listelement_to_atom([const, T, value, V], Result) :-
 listelement_to_atom(Term, Result) :-
     is_list(Term), Term = [First | _], atomic(First), !,
     atom_codes(TermRes, Term),
-    concat_atom(['"', TermRes, '"'], '', Result).
+    my_concat_atom(['"', TermRes, '"'], '', Result).
 
 % used within insert and update:
 % % process other kinds of elements
@@ -2527,8 +2532,8 @@ nl_to_atom(L,A) :-
                      )
                    ),
           AList), !,
-  concat_atom(AList, ' ', A1),!,
-  concat_atom(['(',A1,')'],' ', A),
+  my_concat_atom(AList, ' ', A1),!,
+  my_concat_atom(['(',A1,')'],' ', A),
   !.
 
 %  nested list atom
@@ -2558,13 +2563,13 @@ params_to_atom([], ' ').
 
 params_to_atom([param(Var, Type)], Result) :-
   type_to_atom(Type, TypeAtom),
-  concat_atom([Var, ': ', TypeAtom], '', Result),
+  my_concat_atom([Var, ': ', TypeAtom], '', Result),
   !.
 
 params_to_atom([param(Var, Type) | Params], Result) :-
   type_to_atom(Type, TypeAtom),
   params_to_atom(Params, ParamsAtom),
-  concat_atom([Var, ': ', TypeAtom, ', ', ParamsAtom], '', Result),
+  my_concat_atom([Var, ': ', TypeAtom, ', ', ParamsAtom], '', Result),
   !.
 
 type_to_atom(tuple, 'TUPLE')   :- !.
@@ -2576,7 +2581,7 @@ type_to_atom(group, 'GROUP')   :- !.
 
 % Needed for aggregate
 type_to_atom(X, Y) :-
-  concat_atom([X], Y),
+  my_concat_atom([X], Y),
   !.
   
 
@@ -4702,7 +4707,7 @@ resTupleSize(res(N), TupleSize) :-
 
 resTupleSize(X, Y) :-
   term_to_atom(X, XA),
-  concat_atom(['Cannot find tuplesize for \'',XA,'\'.'],
+  my_concat_atom(['Cannot find tuplesize for \'',XA,'\'.'],
               '',ErrMsg),
   write_list(['ERROR in optimizer: ',ErrMsg]), nl,
   throw(error_Internal(optimizer_resTupleSize(X,Y)::missingData::ErrMsg)),
@@ -4755,7 +4760,7 @@ getPredNoPET(Index, CalcPET, ExpPET) :-
   storedPredNoPET(Index, CalcPET, ExpPET), !.
 
 getPredNoPET(Index, X, Y) :-
-  concat_atom(['Cannot find annotated PET.'],'',ErrMsg),
+  my_concat_atom(['Cannot find annotated PET.'],'',ErrMsg),
   throw(error_Internal(optimizer_getPredNoPET(Index, X, Y)
         ::missingData::ErrMsg)),
   fail, !.
@@ -5556,7 +5561,7 @@ cost(windowintersects(_, Rel, _), Sel, P, Size, Cost) :-
 % with 'gettuples', the total cost should be OK
 cost(windowintersectsS(dbobject(IndexName), _), Sel, P, Size, Cost) :-
   % get relationName Rel from Index
-  concat_atom([RelName|_],'_',IndexName),
+  my_concat_atom([RelName|_],'_',IndexName),
   dcName2internalName(RelDC,RelName),
   Rel = rel(RelDC, *),
   cost(Rel, 1, P, RelSize, _),
@@ -6144,7 +6149,7 @@ plan(Path, Plan) :-
 	!. % NVK ADDED MA
 
 plan(Path, Plan) :-
-  concat_atom(['Cannot create plan.'],'',ErrMsg),
+  my_concat_atom(['Cannot create plan.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(optimizer_plan(Path, Plan)
                    ::unspecifiedError:ErrMsg)),
@@ -6177,7 +6182,7 @@ traversePath([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
 	!. % NVK ADDED
 
 traversePath(Path) :-
-  concat_atom(['Cannot traverse Path.'],'',ErrMsg),
+  my_concat_atom(['Cannot traverse Path.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(optimizer_traversePath(Path)
                    ::unspecifiedError::ErrMsg)),
@@ -6984,7 +6989,7 @@ lookupRel(Rel as Var, Y) :-
   dcName2externalName(RelDC,Rel), % get downcase spelling
   relation(RelDC, _), !,          %% changed code FIXME
   ( variable(Var, _)
-    -> ( concat_atom(['Doubly defined variable \'',Var,'\'.'],'',ErrMsg),
+    -> ( my_concat_atom(['Doubly defined variable \'',Var,'\'.'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]), nl,
          throw(error_SQL(optimizer_lookupRel(Rel as Var,Y)
                                        ::malformedExpression:ErrMsg)),
@@ -7030,12 +7035,12 @@ lookupRel((Rel) as Var, (Rel2) as Var) :-
 lookupRel(X,Y) :- !,
   (isDatabaseOpen
    -> ( term_to_atom(X,XA),
-        concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
+        my_concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
         write_list(['\nERROR:\t',ErrMsg]), nl,
         throw(error_SQL(optimizer_lookupRel(X,Y)::unknownRelation::ErrMsg)),
         fail
       )
-   ;  ( concat_atom(['No database open'], '', ErrMsg),
+   ;  ( my_concat_atom(['No database open'], '', ErrMsg),
         write_list(['\nERROR:\t', ErrMsg]), nl,
         throw(error_SQL(optimizer_lookupRel(X,Y)::noDatabaseOpen::ErrMsg)),
         fail
@@ -7089,7 +7094,7 @@ duplicateAttrs(Rel) :-
   not(Rel = Rel2), !,
   term_to_atom(Rel,RelA),
   term_to_atom(Rel2,Rel2A),
-  concat_atom(['Duplicate attribute alias names in relations ',
+  my_concat_atom(['Duplicate attribute alias names in relations ',
               Rel2A, ' and ',RelA,'.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   throw(error_SQL(optimizer_duplicateAttrs(Rel)::malformedExpression::ErrMsg)),
@@ -7131,7 +7136,7 @@ lookupAttr([const, Type, value, Value], value_expr(Type,Value)) :-
   !.
 
 lookupAttr([const, Type, value, Value], Y) :-
-  concat_atom(['ERROR:\tConstant value expression \'',
+  my_concat_atom(['ERROR:\tConstant value expression \'',
               [const, Type, value, Value],'\' could not be parsed!\n'],
               '',ErrMsg),
   write_list(['\nERROR: ',ErrMsg]), nl,
@@ -7145,7 +7150,7 @@ lookupAttr(const(text,Value), value_expr(text,Value2)) :-
     -> atom_codes(Value2,Value)
     ;  ( (is_list(Value), atom_codes(_,Value))
           -> Value = Value2
-          ; ( concat_atom(['ERROR:\tConstant value expression \'',
+          ; ( my_concat_atom(['ERROR:\tConstant value expression \'',
               const(text,Value),'\' could not be parsed!\n'],
                       '',ErrMsg),
               write_list(['\nERROR: ',ErrMsg]), nl,
@@ -7165,7 +7170,7 @@ lookupAttr(const(Type,Value), value_expr(Type,Value)) :-
     ;  ( (compound(Type), \+ is_list(Type))
          -> Type =.. [Op|_]
          ;  ( % Type is a list, it is not a valid type expression
-              concat_atom(['ERROR:\tConstant value expression \'',
+              my_concat_atom(['ERROR:\tConstant value expression \'',
                       [const, Type, value, Value],'\' could not be parsed!\n'],
                       '',ErrMsg),
               write_list(['\nERROR: ',ErrMsg]), nl,
@@ -7180,7 +7185,7 @@ lookupAttr(const(Type,Value), value_expr(Type,Value)) :-
   !.
 
 lookupAttr(const(Type,Value), Y) :-
-  concat_atom(['ERROR:\tConstant value expression \'',
+  my_concat_atom(['ERROR:\tConstant value expression \'',
               const(Type,Value),'\' could not be parsed!\n'],
               '',ErrMsg),
   write_list(['\nERROR: ',ErrMsg]), nl,
@@ -7278,7 +7283,7 @@ lookupAttr(Expr as Name, Y) :-
   queryAttr(attr(Name, 0, u)),
   !,
   term_to_atom(Name,NameA),
-  concat_atom(['Doubly defined attribute names \'',NameA,'\'',
+  my_concat_atom(['Doubly defined attribute names \'',NameA,'\'',
               ' within query.'],'',ErrMsg),
   write_list(['\nERROR: ',ErrMsg]), nl,
   throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y)
@@ -7351,7 +7356,7 @@ lookupAttr(RealAtom, value_expr(real,RealAtom)) :-
 
 lookupAttr(Term, Term) :-
   atom(Term),
-  concat_atom(['Unknown symbol: \'',Term,'\' is not recognized!'],'',ErrMsg),
+  my_concat_atom(['Unknown symbol: \'',Term,'\' is not recognized!'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   throw(error_SQL(optimizer_lookupAttr(Term, Term)::unknownIdentifier::ErrMsg)),
   fail.
@@ -7429,14 +7434,14 @@ lookupPred(Pred, X) :-
   term_to_atom(Pred,PredA),
   term_to_atom(Rels,RelsA),
   ( (N = 0)
-    -> ( concat_atom(['Malformed predicate: \'',PredA,
+    -> ( my_concat_atom(['Malformed predicate: \'',PredA,
                      '\' is a constant. This is not allowed.'],'',ErrMsg)
        )
     ; ( (N > 2)
-        -> concat_atom(['Malformed predicate: \'',PredA,
+        -> my_concat_atom(['Malformed predicate: \'',PredA,
                        '\' involves more than two relations: ',RelsA,
                        '. This is not allowed.'],'',ErrMsg)
-        ; concat_atom(['Malformed predicate: \'',PredA,
+        ; my_concat_atom(['Malformed predicate: \'',PredA,
                        '\' unspecified reason.'],'',ErrMsg)
       )
   ),
@@ -7632,7 +7637,7 @@ lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
  \+ is_list(Term),
- concat_atom(['Symbol \'', Term,
+ my_concat_atom(['Symbol \'', Term,
             '\' not recognized. It is neither an attribute, nor a Secondo ',
             'object.\n'],'',ErrMsg),
  write_list(['\nERROR:\t',ErrMsg]),
@@ -8448,7 +8453,7 @@ translateFields([Term | Select], GroupAttrs, Fields, Select2,
 %  Term2 =.. [AggrOp, feed(group), attrname(Attr)],
   translateFields(Select, GroupAttrs, Fields, Select2,
                   ExtendAttrs, ProjectAttrs),
-  concat_atom(['Malformed expression: Missing name for aggregation ',
+  my_concat_atom(['Malformed expression: Missing name for aggregation ',
                'expression.'],ErrMsg), nl,
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_translateFields([Term | Select], GroupAttrs,
@@ -8593,7 +8598,7 @@ translateFields([Term | Select], GroupAttrs, Fields, Select2,
   translateFields(Select, GroupAttrs, Fields, Select2,
                   ExtendAttrs, ProjectAttr),
   term_to_atom(Term,XA),
-  concat_atom(['Malformed expression: Missing name for aggregation ',
+  my_concat_atom(['Malformed expression: Missing name for aggregation ',
                'expression in \'',XA,'\'.'],'',ErrMsg), nl,
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_translateFields([Term | Select], GroupAttrs,
@@ -8610,7 +8615,8 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2,
   translateFields(Select, GroupAttrs, Fields, Select2,
                   ExtendAttrs, ProjectAttr),
   term_to_atom(Attr,XA),
-  concat_atom(['Malformed expression: ',XA,' is neither a grouping attribute ',
+  my_concat_atom(['Malformed expression: ',XA,
+               ' is neither a grouping attribute ',
                'nor an aggregate expression.'],'',ErrMsg), nl,
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_translateFields([Attr | Select], GroupAttrs,
@@ -8622,7 +8628,8 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2,
 % case: ERROR (fallback error case)
 translateFields(X, GroupAttrs, Fields, Select2, ExtendAttrs, ProjectAttr) :-
   term_to_atom(X,XA),
-  concat_atom(['Malformed expression in fields: \'', XA, '\'.'],'',ErrMsg), nl,
+  my_concat_atom(['Malformed expression in fields: \'', XA, '\'.'],'',ErrMsg),
+  nl,
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_translateFields(X, GroupAttrs, Fields, Select2,
                                             ExtendAttrs, ProjectAttr)
@@ -8981,7 +8988,7 @@ aggrQuery(Query groupby G, _, _, _) :-
   aggrQuery(Query, _, _, _), !,
   % This is not allowed, simple aggregations have no groupby!
   % Send an error!
-  concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
+  my_concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
               '',ErrMsg),
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_aggrQuery(Query groupby G, undefined, undefined)
@@ -9044,7 +9051,7 @@ userDefAggrQuery(Query groupby G, _, _, _, _) :-
   userDefAggrQuery(Query, _, _, _, _), !,
   % This is not allowed, simple aggregations have no groupby!
   % Send an error!
-  concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
+  my_concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
               '',ErrMsg),
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_userDefAggrQuery(Query groupby G,
@@ -9463,7 +9470,7 @@ returned as the message content.
 
 sqlToPlan2(QueryText, Plan) :-
   string(QueryText),
-  string_to_atom(QueryText,AtomText),
+  my_string_to_atom(QueryText,AtomText),
   term_to_atom(Query, AtomText),
   optimize(Query, Plan, _).
 
@@ -9505,19 +9512,19 @@ sqlToPlan(QueryText, ResultText) :-
            ( ( Exc = error_SQL(ErrorTerm),
                ( ErrorTerm=(_::ErrorCode::Message) ; ErrorTerm=(_::Message) )
              ) %% Problems with the SQL query itself:
-             -> concat_atom(['SQL ERROR (usually a user error):\n',Message],'',
-                             MessageToSend)
+             -> my_concat_atom(['SQL ERROR (usually a user error):\n',
+                       Message],'', MessageToSend)
              ;  ( ( Exc = error_Internal(ErrorTerm),
                     (   ErrorTerm = (_::ErrorCode::Message)
                       ; ErrorTerm = (_::Message)
                     )
                   )
-                  -> concat_atom(['Internal ERROR (usually a problem with the ',
-                                  'knowledge base):\n',Message],'',
+                  -> my_concat_atom(['Internal ERROR (usually a problem with'
+                            ' the ', 'knowledge base):\n',Message],'',
                                   MessageToSend)
                   %% all other exceptions:
-                  ;  concat_atom(['Unclassified ERROR (usually a bug):\n',Exc],
-                                  '',MessageToSend)
+                  ;  my_concat_atom(['Unclassified ERROR (usually a bug):\n',
+                                  Exc], '',MessageToSend)
                 )
            ),
            term_to_atom(MessageToSend,ResultTMP),
@@ -10079,7 +10086,7 @@ sql Term :- defaultExceptionHandler((
 sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
   isDatabaseOpen,
   mStreamOptimize(Term, SecondoQuery, Cost),
-  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  my_concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query, _)
@@ -10090,17 +10097,17 @@ let(X, Term) :- defaultExceptionHandler((
   mOptimize(Term, Query, Cost),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
-  concat_atom(['let ', X, ' = ', Query], '', Command),
+  my_concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command)
  )).
 
 let(X, Term, SecondoQueryRest) :- defaultExceptionHandler((
   isDatabaseOpen,
   mStreamOptimize(Term, SecondoQuery, Cost),
-  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  my_concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
-  concat_atom(['let ', X, ' = ', Query], '', Command),
+  my_concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command)
  )).
 
@@ -10165,11 +10172,11 @@ Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several subex
 
 mOptimize(union Terms, Query, Cost) :-
   mStreamOptimize(union Terms, Plan, Cost),
-  concat_atom([Plan, 'consume'], '', Query).
+  my_concat_atom([Plan, 'consume'], '', Query).
 
 mOptimize(intersection Terms, Query, Cost) :-
   mStreamOptimize(intersection Terms, Plan, Cost),
-  concat_atom([Plan, 'consume'], '', Query).
+  my_concat_atom([Plan, 'consume'], '', Query).
 
 mOptimize(Term, Query, Cost) :-
   optimize(Term, Query, Cost).
@@ -10177,28 +10184,28 @@ mOptimize(Term, Query, Cost) :-
 
 mStreamOptimize(union [Term], Query, Cost) :-
   streamOptimize(Term, QueryPart, Cost),
-  %concat_atom([QueryPart, 'sort rdup '], '', Query).
+  %my_concat_atom([QueryPart, 'sort rdup '], '', Query).
   % NVK MODIFIED NR: missing blank before sort.
-  concat_atom([QueryPart, ' sort rdup '], '', Query).
+  my_concat_atom([QueryPart, ' sort rdup '], '', Query).
 
 mStreamOptimize(union [Term | Terms], Query, Cost) :-
   streamOptimize(Term, Plan1, Cost1),
   mStreamOptimize(union Terms, Plan2, Cost2),
-  %concat_atom([Plan1, 'sort rdup ', Plan2, 'mergeunion '], '', Query),
+  %my_concat_atom([Plan1, 'sort rdup ', Plan2, 'mergeunion '], '', Query),
   % NVK MODIFIED NR: missing blank before sort.
-  concat_atom([Plan1, ' sort rdup ', Plan2, 'mergeunion '], '', Query),
+  my_concat_atom([Plan1, ' sort rdup ', Plan2, 'mergeunion '], '', Query),
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(intersection [Term], Query, Cost) :-
   streamOptimize(Term, QueryPart, Cost),
-  %concat_atom([QueryPart, 'sort rdup '], '', Query).
+  %my_concat_atom([QueryPart, 'sort rdup '], '', Query).
   % NVK MODIFIED NR: missing blank before sort.
-  concat_atom([QueryPart, ' sort rdup '], '', Query).
+  my_concat_atom([QueryPart, ' sort rdup '], '', Query).
 
 mStreamOptimize(intersection [Term | Terms], Query, Cost) :-
   streamOptimize(Term, Plan1, Cost1),
   mStreamOptimize(intersection Terms, Plan2, Cost2),
-  concat_atom([Plan1, 'sort rdup ', Plan2, 'mergesec '], '', Query),
+  my_concat_atom([Plan1, 'sort rdup ', Plan2, 'mergesec '], '', Query),
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(Term, Query, Cost) :-
@@ -10261,14 +10268,14 @@ namedPred_to_atom(NP,NP1):-
  flatten([P],P1),
  A1=[A3], P1=[P2],
  plan_to_atom(P2,P3),
- concat_atom([A3, ' : ', P3],'', NP1),!.
+ my_concat_atom([A3, ' : ', P3],'', NP1),!.
 
 namedPredList_to_atom([NP], NP1):-
  namedPred_to_atom(NP,NP1),!.
 namedPredList_to_atom([ NP | NPListRest], Result):-
  namedPred_to_atom(NP, NP1),
  namedPredList_to_atom( NPListRest, SubResult),
- concat_atom([NP1, ',', SubResult], ' ', Result),!.
+ my_concat_atom([NP1, ',', SubResult], ' ', Result),!.
 
 /*
 ---- onlyContains(+List,+Pattern)

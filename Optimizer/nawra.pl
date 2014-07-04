@@ -429,7 +429,7 @@ Cots estimation for operator windowintersectsS.
 costnew(windowintersectsS(IndexName, _), Sel, Source, Result,
         Size, sizeTerm(12,0,0), Cost) :- % constant tuplesize for [tid]
   % get relationName Rel from Index
-  concat_atom([RelName|_],'_',IndexName),
+  my_concat_atom([RelName|_],'_',IndexName),
   Rel = rel(RelName, *),
   costnew(Rel, 1, Source, Result, RelSize, TupleSize, _),
   asserta(storedWindowIntersectsS(TupleSize)), % store tuplesize for gettuples
