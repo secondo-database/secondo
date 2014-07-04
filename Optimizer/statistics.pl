@@ -2267,7 +2267,7 @@ getTypeTree(Expr,_,Result) :-
 getTypeTree(arglist([]),_,[]) :- !.
 getTypeTree(arglist([X]),Rels,[X1]) :-
   is_list(X),
-  catch((string_to_list(_,X), Test = ok),_,Test = failed), Test = failed,
+  catch((my_string_to_list(_,X), Test = ok),_,Test = failed), Test = failed,
   %write('--------arglist([X])'- arglist([X])),nl,
   getTypeTree(arglist(X),Rels,X1), !.
 
@@ -2277,7 +2277,7 @@ getTypeTree(arglist([X]),Rels,[X1]) :-
 
 getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
   is_list(X),
-  catch((string_to_list(_,X), Test = ok),_,Test = failed), Test = failed,
+  catch((my_string_to_list(_,X), Test = ok),_,Test = failed), Test = failed,
   %write('--------arglist([X|R])'- arglist([X|R])),nl,
   getTypeTree(arglist(X),Rels,X1),
   getTypeTree(arglist(R),Rels,R1),
@@ -2324,7 +2324,7 @@ getTypeTree(TextAtom,_,[atom,TextAtom,text]) :-
 % Primitive: string-atom (old style)
 getTypeTree(TextAtom,_,[atom,TextAtom,string]) :-
   is_list(TextAtom), TextAtom = [First | _], atomic(First), !,
-  string_to_list(_,TextAtom),
+  my_string_to_list(_,TextAtom),
 %   dm(selectivity,['$$$ getTypeTree: ',TextAtom,': ',string]),nl,
   dm(gettypetree,['WARNING:\tUsing old constant rule for string-atom!\n']),
   assert(tmpStoredTypeTree(TextAtom,[atom,TextAtom,string])),

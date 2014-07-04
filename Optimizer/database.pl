@@ -3629,7 +3629,8 @@ assertFileStats(_,_,_,[]) :- !.
 assertFileStats(DB,DCindexName,DCrel,[[[Key],[Value]]|MoreElems]) :-
   downcase_atom(Key,KeyDC),
   ( (KeyDC = filename ; KeyDC = filepurpose)
-    -> ( my_string_to_atom(ValueStr,Value) , string_to_list(ValueStr,ValueDC) )
+    -> ( my_string_to_atom(ValueStr,Value) , 
+         my_string_to_list(ValueStr,ValueDC) )
     ; downcase_atom(Value,ValueDC)
   ),
   assert(storedIndexStat(DB,DCindexName,DCrel,KeyDC,ValueDC)), !,
@@ -3659,7 +3660,7 @@ showIndexStatistics :-
 
 showIndexStatistics1(DB) :-
   storedIndexStat(DB,DCindexName,_,Key,Entry),
-  ( catch(string_to_list(EntryP, Entry), _, fail)
+  ( catch(my_string_to_list(EntryP, Entry), _, fail)
     -> true
     ;  EntryP = Entry
   ),

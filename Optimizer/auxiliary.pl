@@ -59,7 +59,12 @@ my_string_to_atom(X,Y) :-
       atom_string(Y,X),!.
 my_string_to_atom(X,Y) :- string_to_atom(X,Y).
 
+my_string_to_list(L,C) :-
+      current_predicate(string_codes/2),
+      string_codes(L,C),!.
 
+my_string_to_list(L,C) :-
+      string_to_list(L,C).
 
 
 is_atomic_list([]).

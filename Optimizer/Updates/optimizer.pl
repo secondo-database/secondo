@@ -6176,7 +6176,7 @@ lookupAttr(Name, attr(Name, 0, u)) :-
 % string constant
 lookupAttr(Term, Term) :-
   is_list(Term),
-  catch(string_to_list(_, Term), _, fail),
+  catch(my_string_to_list(_, Term), _, fail),
   !.
 
 lookupAttr(Term, Term2) :-
@@ -6203,7 +6203,7 @@ lookupAttr(Op, Op) :-
 % represented as charactercode lists...
 lookupAttr(Term, value_expr(string,Term)) :-
   is_list(Term), % list represents a string (list of characters)
-  catch((string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
+  catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
   !.
 
 
@@ -6436,7 +6436,7 @@ lookupPred1([const, Type, value, Value], value_expr(Type,Value),
 % represented as charactercode lists...
 lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
   is_list(Term), % list represents a string (list of characters)
-  catch((string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
+  catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
   !.
 
 % special case for rowid

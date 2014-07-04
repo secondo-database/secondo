@@ -327,7 +327,7 @@ Currently only conversion string constants into a list of characters is needed.
 typeConversion(Data, Result) :-
   string_concat('"', Temp, Data),
   string_concat(TempRes, '"', Temp),
-  string_to_list(TempRes, Result).
+  my_string_to_list(TempRes, Result).
 
 typeConversion(Result, Result).
 
@@ -1169,7 +1169,7 @@ isAttributeOf(Attr, [ Rel as Alias | Rest ]) :-
 
 isAttributeOf(Const, _) :-
   is_list(Const),
-  catch(string_to_list(Const, _), _, fail).
+  catch(my_string_to_list(Const, _), _, fail).
 
 isAttributeOf(Const, _) :-
   integer(Const).

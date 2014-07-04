@@ -1230,13 +1230,13 @@ isExpensive(arglist([])) :- !, fail.
 
 isExpensive(arglist([X])) :-
   is_list(X),
-  catch((string_to_list(_,X), Test=ok),_,Test=failed), Test=failed, !, fail.
+  catch((my_string_to_list(_,X), Test=ok),_,Test=failed), Test=failed, !, fail.
 
 isExpensive(arglist([X])) :- isExpensive_debug(X), !.
 
 isExpensive(arglist([X|R])) :-
   is_list(X),
-  catch((string_to_list(_,X), Test=ok),_,Test=failed), Test=failed,
+  catch((my_string_to_list(_,X), Test=ok),_,Test=failed), Test=failed,
   ( isExpensive_debug(arglist(X)) ; isExpensive_debug(arglist(R)) ), !.
 
 isExpensive(arglist([X|R])) :-
@@ -1252,7 +1252,7 @@ isExpensive(X) :- atomic(X), !, fail.
 % string-atom
 isExpensive(TextAtom) :-
   is_list(TextAtom), TextAtom = [First | _], atomic(First), !,
-  string_to_list(_,TextAtom), !, fail.
+  my_string_to_list(_,TextAtom), !, fail.
 
 % relation-descriptor
 isExpensive(rel(_, _)) :- !, fail.
