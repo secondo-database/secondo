@@ -132,20 +132,20 @@ Result   : (grid3 (0.0 0.0 3.0 (duration (3 0))))
 Operator : importHgt
 Number   : 1
 Signature: (stream text) -> sint
-Example  : query '../Data/Raster2/N51E007.hgt' feed importHgt
-Result   : file
+Example  : query maximum('../Data/Raster2/N51E007.hgt' feed importHgt)
+Result   : 673
 
 Operator : importEsriGrid
 Number   : 1
 Signature: text -> sint
-Example  : query importEsriGrid("../Data/Raster2/esrigrid/tmin_1")
-Result   : file
+Example  : query maximum(importEsriGrid("../Data/Raster2/esrigrid/tmin_1"))
+Result   : 266
 
 Operator : importEsriRaster
 Number   : 1
 Signature: (stream text) -> sreal
-Example  : query '../Data/Raster2/N52E006.asc' feed importEsriRaster
-Result   : file
+Example  : query minimum('../Data/Raster2/N52E006.asc' feed importEsriRaster)
+Result   : -32.0
 
 Operator : fromline
 Number   : 1
