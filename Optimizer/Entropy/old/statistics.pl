@@ -186,7 +186,8 @@ cardQuery(Pred, Rel1, Rel2, Query) :-
   possiblyRename(Rel1S, Rel1Query),
   possiblyRename(Rel2S, Rel2Query),
   transformPred(Pred, t, 1, Pred2),
-  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
+  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], 
+          filter(Rel2Query, Pred2)))).
 
 /*
 
@@ -236,7 +237,8 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   dynamicPossiblyRenameJ(Rel2, Rel2Query),
   %Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
   transformPred(Pred, t, 1, Pred2),
-  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
+  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], 
+         filter(Rel2Query, Pred2)))).
 
 sels(Pred, Sel) :-
   sel(Pred, Sel),
@@ -447,7 +449,7 @@ isIntList([X | Rest]) :-
 
 charListToAtom(CharList, Atom) :-
   atom_codes(A, CharList),
-  concat_atom([' "', A, '"'], Atom).
+  my_concat_atom([' "', A, '"'], Atom).
 
 replaceCharList(InTerm, OutTerm) :-
   isIntList(InTerm),

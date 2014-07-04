@@ -58,8 +58,9 @@ void f_OS(int mode, int ndim, const ColumnVector& x, double& fx,
 
 void print_constraints(Matrix& cteA, ColumnVector& cteB);
 
-BoundConstraint* build_bound_contraints( const vector<double>& marginalProbability,
-                                         const vector<pair<int,double> >& jointProbability )
+BoundConstraint* build_bound_contraints( 
+      const vector<double>& marginalProbability,
+      const vector<pair<int,double> >& jointProbability )
 {
   const int nPred = marginalProbability.size(),
             nGiven = jointProbability.size(),
@@ -73,8 +74,9 @@ BoundConstraint* build_bound_contraints( const vector<double>& marginalProbabili
   return new BoundConstraint(nVars, lower, upper);
 }
 
-LinearEquation* build_linear_contraints( const vector<double>& marginalProbability,
-                                         const vector<pair<int,double> >& jointProbability )
+LinearEquation* build_linear_contraints( 
+          const vector<double>& marginalProbability,
+          const vector<pair<int,double> >& jointProbability )
 {
   const int nPred = marginalProbability.size(),
             nGiven = jointProbability.size(),
@@ -154,7 +156,8 @@ int main( int argc, const char* argv[] )
          << "where n is the number of predicates, (p1..pn) is the probability "
          << "of each predicate and (cp1..cpn) is the joint probability "
          << "assuming the following implicit order:" << endl
-         << "cp1 = P(p1 and p2), cp2 = P(p1 and p2 and p3) and so on." << endl << endl;
+         << "cp1 = P(p1 and p2), cp2 = P(p1 and p2 and p3) and so on." 
+         << endl << endl;
 
     exit(0);
   }
@@ -181,8 +184,10 @@ int main( int argc, const char* argv[] )
 
 #endif
 
- // Auxiliar function that check ranges for marginal probabilities and sum of all probs
- // assuring feasilbility. For example, if p(A) = 0.6 and p(B) = 0.7, p(A.B) must be in
+ // Auxiliar function that check ranges for marginal probabilities and
+ //  sum of all probs
+ // assuring feasilbility. For example, if p(A) = 0.6 and p(B) = 0.7, p(A.B) 
+ // must be in
  // the range [0.3, 0.6]
  void adjust_ranges( const int nVars, ColumnVector& minP, ColumnVector& maxP )
  {
@@ -200,7 +205,8 @@ int main( int argc, const char* argv[] )
 // This function ensures that there will be no selectivity equals to 0 or 1
 // since in these cases the algorithm does not converge. Since the results
 // are approximated, we'll change the intermediate results by a small fraction
-// when it happens. Also, we check for feasibility since the marginal probabilities
+// when it happens. Also, we check for feasibility since the marginal
+//  probabilities
 // are measured in one sample and the joint probabilities in another, which may
 // cause strange results.
 void adjust_joint_probabilities( const vector<double>& margProb,
@@ -265,7 +271,8 @@ void print_constraints( Matrix& cteA, ColumnVector& cteB )
 }
 
 // Computes a solution assuming that there is no correlation between predicates
-void find_independent_solution( const vector<double>& margProb, ColumnVector& X )
+void find_independent_solution( const vector<double>& margProb, 
+                                ColumnVector& X )
 {
   const int nVars = 1 << margProb.size();
   ColumnVector B(nVars);
@@ -401,17 +408,21 @@ void verify_solution( const ColumnVector &x,
       throw 0;
 
   // Check if the solution is close to measured joint probabilities
-  for( int i=0, j=0; i < estimatedProbability.size() && j < jointProbability.size(); i++ )
+  for( int i=0, j=0; 
+       i < estimatedProbability.size() && j < jointProbability.size(); i++ )
     if( jointProbability[j].first == estimatedProbability[i].first )
     {
-      if( fabs( jointProbability[j].second - estimatedProbability[i].second ) > TOL_SOL )
+      if( fabs( 
+        jointProbability[j].second - estimatedProbability[i].second )
+          > TOL_SOL )
         throw 0;
 
       j++;
     }
 }
 
-// These varibles are used to bypass a flaw int the design of the library: we need
+// These varibles are used to bypass a flaw int the design of the library: 
+// we need
 // more parameters in the init_f function.
 static vector<double>* ptrMargProb;
 static vector<pair<int,double> >* ptrJointProb;
@@ -450,7 +461,8 @@ void maximize_entropy( vector<double>& marginalProbability,
 
   try
   {
-    // Some adjustments are made to ensure convergence when we have any selectivity = 1
+    // Some adjustments are made to ensure convergence when we have any 
+    // selectivity = 1
     adjust_joint_probabilities(marginalProbability, jointProbability);
 
     if( marginalProbability.size() > 2 && jointProbability.size() > 0 )
@@ -458,7 +470,8 @@ void maximize_entropy( vector<double>& marginalProbability,
       try
       {
         // First optimization problem
-        find_viable_solution(marginalProbability, jointProbability, tols, initPoint);
+        find_viable_solution(marginalProbability, jointProbability, 
+                             tols, initPoint);
         compute_probabilities(initPoint, estimatedProbability);
         verify_solution(initPoint, jointProbability, estimatedProbability);
         meritFcn = ArgaezTapia;
@@ -485,13 +498,16 @@ void maximize_entropy( vector<double>& marginalProbability,
       }
       else if( marginalProbability.size() == 2 && jointProbability.size() == 1 )
       {
-        estimatedProbability.push_back(pair<int,double>(1, marginalProbability[0]));
-        estimatedProbability.push_back(pair<int,double>(2, marginalProbability[1]));
+        estimatedProbability.push_back(pair<int,double>(1, 
+                                marginalProbability[0]));
+        estimatedProbability.push_back(pair<int,double>(2,
+                                 marginalProbability[1]));
         estimatedProbability.push_back(jointProbability[0]);
       }
       else // marginalProbability.size() == 1 && jointProbability.size() == 0
       {
-        estimatedProbability.push_back(pair<int,double>(1, marginalProbability[0]));
+        estimatedProbability.push_back(pair<int,double>(1, 
+                                 marginalProbability[0]));
       }
     cout << "Entropy approach converged!" << endl;
   }
@@ -541,7 +557,8 @@ void init_f_OS(int, ColumnVector& x)
 #endif
 }
 
-// Some adjustments to make the entropy function continuous and differentiable at 0.
+// Some adjustments to make the entropy function continuous and 
+// differentiable at 0.
 void f_OS(int mode, int ndim, const ColumnVector& x, double& fx,
           ColumnVector& gx, SymmetricMatrix& hx, int& result)
 {

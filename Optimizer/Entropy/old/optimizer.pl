@@ -845,7 +845,7 @@ Arguments:
 
 plan_to_atom(counter(N,Term), Result) :-
   plan_to_atom( Term, TermRes ),
-  concat_atom( [ TermRes, ' {', N,'} '], Result ),
+  my_concat_atom( [ TermRes, ' {', N,'} '], Result ),
   !.
 
 plan_to_atom(rel(Name, _, l), Result) :-
@@ -866,7 +866,7 @@ plan_to_atom(res(N), Result) :-
 plan_to_atom(Term, Result) :-
     is_list(Term), Term = [First | _], atomic(First), !,
     atom_codes(TermRes, Term),
-    concat_atom(['"', TermRes, '"'], '', Result).
+    my_concat_atom(['"', TermRes, '"'], '', Result).
 
 /*
 Lists:
@@ -881,7 +881,7 @@ plan_to_atom([X], AtomX) :-
 plan_to_atom([X | Xs], Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Xs, XsAtom),
-  concat_atom([XAtom, ', ', XsAtom], '', Result),
+  my_concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
 
 
@@ -894,7 +894,7 @@ see below.
 
 plan_to_atom(sample(Rel, S, T), Result) :-
   plan_to_atom(Rel, ResRel),
-  concat_atom([ResRel, 'sample[', S, ', ', T, '] '], '', Result),
+  my_concat_atom([ResRel, 'sample[', S, ', ', T, '] '], '', Result),
   !.
 
 plan_to_atom(hashjoin(X, Y, A, B, C), Result) :-
@@ -902,7 +902,7 @@ plan_to_atom(hashjoin(X, Y, A, B, C), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, YAtom, 'hashjoin[',
+  my_concat_atom([XAtom, YAtom, 'hashjoin[',
     AAtom, ', ', BAtom, ', ', C, '] '], '', Result),
   !.
 
@@ -911,7 +911,7 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, YAtom, 'sortmergejoin[',
+  my_concat_atom([XAtom, YAtom, 'sortmergejoin[',
     AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
@@ -919,19 +919,19 @@ plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   plan_to_atom(GroupAttrs, GAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, 'groupby[', GAtom, '; ', FAtom, ']'], '', Result),
+  my_concat_atom([SAtom, 'groupby[', GAtom, '; ', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(extend(Stream, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, 'extend[', FAtom, ']'], '', Result),
+  my_concat_atom([SAtom, 'extend[', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(field(NewAttr, Expr), Result) :-
   plan_to_atom(attrname(NewAttr), NAtom),
   plan_to_atom(Expr, EAtom),
-  concat_atom([NAtom, ': ', EAtom], '', Result).
+  my_concat_atom([NAtom, ': ', EAtom], '', Result).
 
 
 
@@ -943,7 +943,7 @@ plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
   plan_to_atom(Rel, RelAtom),
   plan_to_atom(a(Name, R, Case), AttrAtom),
   newVariable(T),
-  concat_atom(['fun(', T, ' : TUPLE) ', IndexName,
+  my_concat_atom(['fun(', T, ' : TUPLE) ', IndexName,
     ' ', RelAtom, 'exactmatch[attr(', T, ', ', AttrAtom, ')] '], Result),
   !.
 
@@ -951,37 +951,37 @@ plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
 plan_to_atom(newattr(Attr, Expr), Result) :-
   plan_to_atom(Attr, AttrAtom),
   plan_to_atom(Expr, ExprAtom),
-  concat_atom([AttrAtom, ': ', ExprAtom], '', Result),
+  my_concat_atom([AttrAtom, ': ', ExprAtom], '', Result),
   !.
 
 
 plan_to_atom(rename(X, Y), Result) :-
   plan_to_atom(X, XAtom),
-  concat_atom([XAtom, '{', Y, '} '], '', Result),
+  my_concat_atom([XAtom, '{', Y, '} '], '', Result),
   !.
 
 
 plan_to_atom(fun(Params, Expr), Result) :-
   params_to_atom(Params, ParamAtom),
   plan_to_atom(Expr, ExprAtom),
-  concat_atom(['fun ', ParamAtom, ExprAtom], '', Result),
+  my_concat_atom(['fun ', ParamAtom, ExprAtom], '', Result),
   !.
 
 
 plan_to_atom(attribute(X, Y), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
-  concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
+  my_concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
   !.
 
 
 plan_to_atom(date(X), Result) :-
   plan_to_atom(X, XAtom),
-  concat_atom(['[const instant value ', XAtom, ']'], '', Result),
+  my_concat_atom(['[const instant value ', XAtom, ']'], '', Result),
   !.
 
 plan_to_atom(interval(X, Y), Result) :-
-  concat_atom(['[const duration value (', X, ' ', Y, ')]'], '', Result),
+  my_concat_atom(['[const duration value (', X, ' ', Y, ')]'], '', Result),
   !.
 
 
@@ -1006,12 +1006,12 @@ plan_to_atom(attrname(attr(Name, Arg, Case)), Result) :-
   plan_to_atom(a(Name, Arg, Case), Result).
 
 plan_to_atom(a(A:B, _, l), Result) :-
-  concat_atom([B, '_', A], '', Result),
+  my_concat_atom([B, '_', A], '', Result),
   !.
 
 plan_to_atom(a(A:B, _, u), Result) :-
   upper(B, B2),
-  concat_atom([B2, '_', A], Result),
+  my_concat_atom([B2, '_', A], Result),
   !.
 
 plan_to_atom(a(X, _, l), X) :-
@@ -1042,7 +1042,7 @@ plan_to_atom(Term, Result) :-
   secondoOp(Op, postfix, 1),
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
-  concat_atom([Res1, ' ', Op, ' '], '', Result),
+  my_concat_atom([Res1, ' ', Op, ' '], '', Result),
   !.
 
 plan_to_atom(Term, Result) :-
@@ -1052,7 +1052,7 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg1, Res1),
   arg(2, Term, Arg2),
   plan_to_atom(Arg2, Res2),
-  concat_atom([Res1, ' ', Res2, ' ', Op, ' '], '', Result),
+  my_concat_atom([Res1, ' ', Res2, ' ', Op, ' '], '', Result),
   !.
 
 plan_to_atom(Term, Result) :-
@@ -1062,7 +1062,7 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg1, Res1),
   arg(2, Term, Arg2),
   plan_to_atom(Arg2, Res2),
-  concat_atom([Res1, ' ', Op, '[', Res2, '] '], '', Result),
+  my_concat_atom([Res1, ' ', Op, '[', Res2, '] '], '', Result),
   !.
 
 plan_to_atom(Term, Result) :-
@@ -1074,7 +1074,7 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg2, Res2),
   arg(3, Term, Arg3),
   plan_to_atom(Arg3, Res3),
-  concat_atom([Res1, ' ', Res2, ' ', Op, '[', Res3, '] '], '', Result),
+  my_concat_atom([Res1, ' ', Res2, ' ', Op, '[', Res3, '] '], '', Result),
   !.
 
 plan_to_atom(Term, Result) :-
@@ -1084,7 +1084,7 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg1, Res1),
   arg(2, Term, Arg2),
   plan_to_atom(Arg2, Res2),
-  concat_atom([Op, '(', Res1, ',', Res2, ') '], '', Result),
+  my_concat_atom([Op, '(', Res1, ',', Res2, ') '], '', Result),
   !.
 
 
@@ -1104,7 +1104,7 @@ plan_to_atom(Term, Result) :-
   functor(Term, Op, 1),
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
-  concat_atom([Op, '(', Res1, ')'], '', Result).
+  my_concat_atom([Op, '(', Res1, ')'], '', Result).
 
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 2),
@@ -1112,7 +1112,7 @@ plan_to_atom(Term, Result) :-
   arg(2, Term, Arg2),
   plan_to_atom(Arg1, Res1),
   plan_to_atom(Arg2, Res2),
-  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result).
+  my_concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result).
 
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 3),
@@ -1122,7 +1122,7 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg1, Res1),
   plan_to_atom(Arg2, Res2),
   plan_to_atom(Arg3, Res3),
-  concat_atom([Op, '(', Res1, ', ', Res2, ', ', Res3, ')'], '', Result).
+  my_concat_atom([Op, '(', Res1, ', ', Res2, ', ', Res3, ')'], '', Result).
 
 plan_to_atom(X, Result) :-
   atomic(X),
@@ -1140,7 +1140,7 @@ params_to_atom([], ' ').
 params_to_atom([param(Var, Type) | Params], Result) :-
   type_to_atom(Type, TypeAtom),
   params_to_atom(Params, ParamsAtom),
-  concat_atom(['(', Var, ': ', TypeAtom, ') ', ParamsAtom], '', Result),
+  my_concat_atom(['(', Var, ': ', TypeAtom, ') ', ParamsAtom], '', Result),
   !.
 
 type_to_atom(tuple, 'TUPLE').
@@ -1198,14 +1198,16 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, *, Case)),
   !,
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), 
+            IndexName, btree).
 
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   rename(exactmatch(IndexName, rel(Name, Var, Case), Y), Var)
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), 
+           IndexName, btree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y >= attr(AttrName, Arg, Case), Rel)) => X.
@@ -1222,7 +1224,8 @@ indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), 
+            IndexName, btree).
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y <= attr(AttrName, Arg, Case), Rel)) => X.
@@ -1239,14 +1242,16 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   :-
   argument(N, rel(Name, Var, Case)),
   !,
-  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), 
+           IndexName, btree).
 
 %fapra1590
 indexselect(arg(N), pr(Y touches attr(AttrName, Arg, Case), Rel)) => X :-
   indexselect(arg(N), pr(attr(AttrName, Arg, Case) touches Y, Rel)) => X.
 
 indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) touches Y, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), attr(AttrName, Arg, AttrCase) intersects Y)
+  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), 
+         attr(AttrName, Arg, AttrCase) intersects Y)
   :-
   argument(N, rel(Name, *, Case)),
   !,
@@ -1724,10 +1729,10 @@ cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
   cost(Y, 1, SizeY, CostY),
   sortmergejoinTC(A, B),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                          % producing the arguments
+  C is CostX + CostY +                      % producing the arguments
     A * SizeX * log(SizeX + 1) +
-    A * SizeY * log(SizeY + 1) +                % sorting the arguments
-    B * S.                                      % parallel scan of sorted relations
+    A * SizeY * log(SizeY + 1) +            % sorting the arguments
+    B * S.                                  % parallel scan of sorted relations
 
 
 cost(extend(X, _), Sel, S, C) :-
@@ -2058,7 +2063,8 @@ deleteNodePlans :- not(deleteNodePlan).
 
 deleteNodePlan :- retract(nodePlan(_, _)), fail.
 
-% nCounter tracks the number of counters in queries to get the size of intermediate results.
+% nCounter tracks the number of counters in queries to get the
+% size of intermediate results.
 :-
   dynamic(nCounter/1).
 
@@ -2143,13 +2149,15 @@ createSmallSelectivity2 :-
 small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_small', Rel2).
 
-newResSize(arg(N), Size) :- argument(N, R ), small( R, rel(SRel, _, _)), card(SRel, Size), !.
+newResSize(arg(N), Size) :- argument(N, R ), small( R, rel(SRel, _, _)), 
+                            card(SRel, Size), !.
 newResSize(res(N), Size) :- smallResultSize(N, Size), !.
 
 /*
 prepare\_query\_small prepares the query to be executed in the small database.
 Assumes that the small database has the same indexes that are in the full database,
 but with the sufix '\_small'
+
 */
 
 prepare_query_small( count(Term), count(Result) ) :-
@@ -2169,7 +2177,8 @@ query_small(exactmatch(IndexName, R, V), Result) :-
   Result = exactmatch(IndexNameSmall, R2, V),
   !.
 
-% To be modified - it should handle functors with any number of arguments. Currently it
+% To be modified - it should handle functors with any number of arguments. 
+% Currently it
 % handles only from 1 to 5 arguments. It should handle lists, too.
 
 query_small( Term, Result ) :-
@@ -2304,9 +2313,12 @@ This translates to:
 example6 :- pog(
   [rel(staedte, *, u), rel(plz, p1, l), rel(plz, p2, l), rel(plz, p3, l)],
   [
-    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), rel(staedte, *, u), rel(plz, p1, l)),
-    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1), rel(plz, p1, l), rel(plz, p2, l)),
-    pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5), rel(plz, p2, l), rel(plz, p3, l)),
+    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), 
+         rel(staedte, *, u), rel(plz, p1, l)),
+    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1), 
+         rel(plz, p1, l), rel(plz, p2, l)),
+    pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5), 
+         rel(plz, p2, l), rel(plz, p3, l)),
     pr(attr(bev, 1, u) > 300000,  rel(staedte, *, u)),
     pr(attr(bev, 1, u) < 500000,  rel(staedte, *, u)),
     pr(attr(p2:pLZ, 1, u) > 50000,  rel(plz, p2, l)),
@@ -2325,7 +2337,8 @@ smaller and avoid too many big joins first.
 example7 :- pog(
   [rel(staedte, *, u), rel(plz, p1, l)],
   [
-    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), rel(staedte, *, u), rel(plz, p1, l)),
+    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), 
+       rel(staedte, *, u), rel(plz, p1, l)),
     pr(attr(bev, 0, u) > 300000,  rel(staedte, *, u)),
     pr(attr(bev, 0, u) < 500000,  rel(staedte, *, u)),
     pr(attr(p1:pLZ, 0, u) > 50000,  rel(plz, p1, l)),
@@ -2339,8 +2352,10 @@ example7 :- pog(
 example8 :- pog(
   [rel(staedte, *, u), rel(plz, p1, l), rel(plz, p2, l)],
   [
-    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), rel(staedte, *, u), rel(plz, p1, l)),
-    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1), rel(plz, p1, l), rel(plz, p2, l)),
+    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), 
+       rel(staedte, *, u), rel(plz, p1, l)),
+    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1),
+        rel(plz, p1, l), rel(plz, p2, l)),
     pr(attr(bev, 0, u) > 300000,  rel(staedte, *, u)),
     pr(attr(bev, 0, u) < 500000,  rel(staedte, *, u)),
     pr(attr(p1:pLZ, 0, u) > 50000,  rel(plz, p1, l)),
@@ -2365,9 +2380,12 @@ example9 :- pog([rel(staedte, s, u), rel(plz, p, l)],
 example10 :- pog(
   [rel(staedte, *, u), rel(plz, p1, l), rel(plz, p2, l), rel(plz, p3, l)],
   [
-    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), rel(staedte, *, u), rel(plz, p1, l)),
-    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1), rel(plz, p1, l), rel(plz, p2, l)),
-    pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5), rel(plz, p2, l), rel(plz, p3, l))
+    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), 
+       rel(staedte, *, u), rel(plz, p1, l)),
+    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1), 
+       rel(plz, p1, l), rel(plz, p2, l)),
+    pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5), 
+      rel(plz, p2, l), rel(plz, p3, l))
   ],
   _, _).
 
@@ -2972,7 +2990,8 @@ translateFields([count(*) as NewAttr | Select], GroupAttrs,
   !.
 
 translateFields([sum(attr(Name, Var, Case)) as NewAttr | Select], GroupAttrs,
-        [field(NewAttr, sum(feed(group), attrname(attr(Name, Var, Case)))) | Fields],
+        [field(NewAttr, sum(feed(group), 
+         attrname(attr(Name, Var, Case)))) | Fields],
         [NewAttr| Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
@@ -3116,6 +3135,7 @@ queryToStream(Query, Stream2, Cost) :-
 
 /*
   Entropy stuff.
+
 */
 
 translate2(Query, Stream2, Select, Cost2) :-
@@ -3127,7 +3147,7 @@ translate2(Query, Stream2, Select, Cost2) :-
 
 try_entropy(Stream1, Stream2, Cost1, Cost2) :-
   useEntropy, highNode(HN), HN > 1, HN < 256, !,
-  nl, write('*** Trying to use the Entropy-approach ******************************' ), nl, !,
+  nl, write('*** Trying to use the Entropy-approach ***********' ), nl, !,
   plan_to_atom(Stream1, FirstQuery),
   prepare_query_small(Stream1, PlanSmall),
   plan_to_atom(PlanSmall, SmallQuery),
@@ -3325,11 +3345,13 @@ Example3:
 */
 
 example14 :- optimize(
-  select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
+  select * from [staedte as s, plz as p] where
+    [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
   ).
 
 example14(Query, Cost) :- optimize(
-  select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0],
+  select * from [staedte as s, plz as p] where 
+           [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0],
   Query, Cost
   ).
 
@@ -3550,7 +3572,7 @@ sql Term :-
 sql(Term, SecondoQueryRest) :-
   isDatabaseOpen,
   mStreamOptimize(Term, SecondoQuery, Cost),
-  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  my_concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query).
@@ -3568,7 +3590,7 @@ sql2(Term, SecondoQueryRest) :-
   isDatabaseOpen,
   use_entropy,
   mStreamOptimize(Term, SecondoQuery, Cost),
-  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  my_concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query),
@@ -3579,16 +3601,16 @@ let(X, Term) :-
   mOptimize(Term, Query, Cost),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
-  concat_atom(['let ', X, ' = ', Query], '', Command),
+  my_concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command).
 
 let(X, Term, SecondoQueryRest) :-
   isDatabaseOpen,
   mStreamOptimize(Term, SecondoQuery, Cost),
-  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  my_concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
-  concat_atom(['let ', X, ' = ', Query], '', Command),
+  my_concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command).
 
 
@@ -3612,6 +3634,7 @@ streamOptimize(Term, Query, Cost) :-
 
 Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several subexpressions to be independently optimized, as in union and intersection queries. ~mStreamOptimize~ is a variant
 returning a stream.
+
 */
 
 :-op(800, fx, union).
@@ -3619,33 +3642,33 @@ returning a stream.
 
 mOptimize(union Terms, Query, Cost) :-
   mStreamOptimize(union Terms, Plan, Cost),
-  concat_atom([Plan, 'consume'], '', Query).
+  my_concat_atom([Plan, 'consume'], '', Query).
 
 mOptimize(intersection Terms, Query, Cost) :-
   mStreamOptimize(intersection Terms, Plan, Cost),
-  concat_atom([Plan, 'consume'], '', Query).
+  my_concat_atom([Plan, 'consume'], '', Query).
 
 mOptimize(Term, Query, Cost) :-
   optimize(Term, Query, Cost).
 
 mStreamOptimize(union [Term], Query, Cost) :-
   streamOptimize(Term, QueryPart, Cost),
-  concat_atom([QueryPart, 'sort rdup '], '', Query).
+  my_concat_atom([QueryPart, 'sort rdup '], '', Query).
 
 mStreamOptimize(union [Term | Terms], Query, Cost) :-
   streamOptimize(Term, Plan1, Cost1),
   mStreamOptimize(union Terms, Plan2, Cost2),
-  concat_atom([Plan1, 'sort rdup ', Plan2, 'mergeunion '], '', Query),
+  my_concat_atom([Plan1, 'sort rdup ', Plan2, 'mergeunion '], '', Query),
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(intersection [Term], Query, Cost) :-
   streamOptimize(Term, QueryPart, Cost),
-  concat_atom([QueryPart, 'sort rdup '], '', Query).
+  my_concat_atom([QueryPart, 'sort rdup '], '', Query).
 
 mStreamOptimize(intersection [Term | Terms], Query, Cost) :-
   streamOptimize(Term, Plan1, Cost1),
   mStreamOptimize(intersection Terms, Plan2, Cost2),
-  concat_atom([Plan1, 'sort rdup ', Plan2, 'mergesec '], '', Query),
+  my_concat_atom([Plan1, 'sort rdup ', Plan2, 'mergesec '], '', Query),
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(Term, Query, Cost) :-
@@ -3688,6 +3711,7 @@ entropySel( Source, Target, Sel ) :-
   Sel is P2 / P1.
 /*
 Now it is assuming an implicit order. Should be altered to work in the same way as conditional probabilities
+
 */
 
 createMarginalProbabilities( MP ) :-
