@@ -1,3 +1,35 @@
+
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[->] [$\rightarrow$]
+//[toc] [\tableofcontents]
+
+
+*/
+
+
+
 %
 % November 2004, M. Spiekermann
 %
@@ -109,7 +141,8 @@ where
         snationkey = nnationkey,
         nregionkey = rregionkey,
         rname = "ASIA",
-	((oorderdate >= theInstant(1994,1,1)) and (oorderdate < theInstant(1995,1,1)))
+	((oorderdate >= theInstant(1994,1,1)) and
+   (oorderdate < theInstant(1995,1,1)))
        ]
 groupby [ nname ]
 orderby [ revenue desc ]
@@ -326,7 +359,8 @@ Derived Data
 tpcBigScan('query LINEITEM_512MB feed count').
 
 % create derived data if necessary
-objectDef(lineitem_512MB, 'let LINEITEM_512MB = LINEITEM feed {A} LINEITEM feed {B} head[1500] product head[600000] consume').
+objectDef(lineitem_512MB, 'let LINEITEM_512MB = LINEITEM '
+     'feed {A} LINEITEM feed {B} head[1500] product head[600000] consume').
 
 objectDef(lineitem2, 'let LINEITEM2 = LINEITEM feed consume').
 
@@ -358,7 +392,7 @@ indexCmd(Rel, Attr, Q) :-
   rel_to_atom2(Rel, Rel_A),
   attr_to_atom(Rel, Attr, Attr_A),
   downcase_first(Rel_A, Rel_Adown),
-  concat_atom([ 'let ', Rel_Adown, '_', Attr_A, ' = ',
+  my_concat_atom([ 'let ', Rel_Adown, '_', Attr_A, ' = ',
                 Rel_A, ' createbtree[', Attr_A, ']' ], Q).
 
 createIndex(X) :-
@@ -389,7 +423,7 @@ rel_to_atom2( Rel, Atom) :-
   rel_to_atom(Rel2, Atom).
 
 sampleRel(RelAtom, S) :-
-  concat_atom([RelAtom, '_sample_j'], S).
+  my_concat_atom([RelAtom, '_sample_j'], S).
 
 /*
 
@@ -399,25 +433,28 @@ Clauses for Query Construction
 
 
 joinTerm(smj, R1, R2, A1, A2, Term) :-
-  concat_atom([ R1,  ' feed ', R2, ' feed sortmergejoin[', A1, ', ',  A2, ']'], Term).
+  my_concat_atom([ R1,  ' feed ', R2, ' feed sortmergejoin[',
+                   A1, ', ',  A2, ']'], Term).
 
 joinTerm(smjr2, R1, R2, A1, A2, Term) :-
-  concat_atom([ R1,  ' feed ', R2,
-                ' feed sortmergejoin_r2[', A1, ', ',  A2, '] shuffle3 head[500]'], Term).
+  my_concat_atom([ R1,  ' feed ', R2,
+                ' feed sortmergejoin_r2[', A1, ', ',  A2, 
+                '] shuffle3 head[500]'], Term).
 
 joinTerm(hash, R1, R2, A1, A2, Term) :-
-  concat_atom([ R1,  ' feed ', R2,
-                ' feed hashjoin[', A1, ', ',  A2, ', 9997', '] shuffle3 head[500]'], Term).
+  my_concat_atom([ R1,  ' feed ', R2,
+                ' feed hashjoin[', A1, ', ',  A2, 
+                ', 9997', '] shuffle3 head[500]'], Term).
 
 
 joinQueryLet( Type, Ident, R1, R2, A1, A2, Q ) :-
   joinTerm(Type, R1, R2, A1, A2, T),
-  concat_atom(['let ', Ident, ' = ',  T, 'consume'], Q).
+  my_concat_atom(['let ', Ident, ' = ',  T, 'consume'], Q).
 
 
 joinQueryCount( Type, R1, R2, A1, A2, Q ) :-
   joinTerm(Type, R1, R2, A1, A2, T),
-  concat_atom(['query ', T, ' count'], Q).
+  my_concat_atom(['query ', T, ' count'], Q).
 
 % concat a term to a query which computes a equi width histogram over
 % a given attribute of type integer or real; Parameters:
@@ -427,7 +464,7 @@ joinQueryCount( Type, R1, R2, A1, A2, Q ) :-
 % Ntuples : number of tuples
 
 histaggr(Attr, Width, Ntuples, Result) :-
-  concat_atom(
+  my_concat_atom(
     [' sortby[ ', Attr, ' asc ] extend[Bucket: .', Attr, ' div ', Width, ' ]',
      ' groupby[Bucket; Percent: . count / ', Ntuples ,'] consume'], Result ).
 
@@ -435,7 +472,8 @@ histaggr(Attr, Width, Ntuples, Result) :-
 %% queries for an index scan
 
 indexScan(Value, Q) :-
-  concat_atom(['query lINEITEM_lORDERKEY LINEITEM leftrange[', Value, ']'], Q).
+  my_concat_atom(['query lINEITEM_lORDERKEY LINEITEM leftrange[',
+                  Value, ']'], Q).
 
 
 getSuffix(shuffle, ' shuffle3 count').
@@ -444,7 +482,7 @@ getSuffix(no_shuffle, ' head[100000] count').
 indexQuery(Value, Q, S) :-
   indexScan(Value, Q_tmp),
   getSuffix(S, Q_tmp2),
-  concat_atom([Q_tmp, Q_tmp2], Q).
+  my_concat_atom([Q_tmp, Q_tmp2], Q).
 
 
 % rules for running a query which has a cache clearing effect.
@@ -483,10 +521,10 @@ compareIndexScans(L) :-
 % create a relation wich contains 3 histograms
 
 joinHists(X, Q) :-
-  concat_atom([X, '_hist_complete'], R1),
-  concat_atom([X, '_hist_smjr3'], R2),
-  concat_atom([X, '_hist_sample'], R3),
-  concat_atom(['query ', R1, ' feed {R1} ',
+  my_concat_atom([X, '_hist_complete'], R1),
+  my_concat_atom([X, '_hist_smjr3'], R2),
+  my_concat_atom([X, '_hist_sample'], R3),
+  my_concat_atom(['query ', R1, ' feed {R1} ',
                          R2, ' feed {R2} ',
                          R3, ' feed {R3} ',
 		         ' sortmergejoin[Bucket_R2, Bucket_R3] ',
@@ -498,19 +536,20 @@ joinHists(X, Q) :-
 % points are computed in order to use x-y plots instead.
 
 extendHistData(Q, Res) :-
-  concat_atom([Q, 'extendstream[Dup: intstream(1,2)] ',
+  my_concat_atom([Q, 'extendstream[Dup: intstream(1,2)] ',
                   'addcounter[Cntx, 0] ',
 		  'extend[No: ceil(.Cntx / 2)] '], Res).
 
 
 createOutputs(X) :-
   joinHists(X, Q),
-  %concat_atom([X, '_hists.csv'], File),
+  %my_concat_atom([X, '_hists.csv'], File),
   %dumpQueryResult2File(Q, File, Q2),
   %runQuery(Q2),
   extendHistData(Q, Q2ext),
-  concat_atom([Q2ext, 'project[No, Percent_R1, Percent_R2, Percent_R3]'], Q3),
-  concat_atom([X, '_hists.csv'], File2),
+  my_concat_atom([Q2ext, 'project[No, Percent_R1, Percent_R2, Percent_R3]'], 
+                 Q3),
+  my_concat_atom([X, '_hists.csv'], File2),
   dumpQueryResult2File(Q3, File2, Q4),
   runQuery(Q4).
 
@@ -520,7 +559,7 @@ histquery(Jointype, R1, R2, A1, A2, File):-
   runQuery(Q2, Res), % compute the total number of result tuples
   histaggr(A1, 1000, Res, H), % add the groupby term
   joinQueryLet(Jointype, File, R1, R2, A1, A2, Q1),
-  concat_atom([Q1, ' ', H], Q3),
+  my_concat_atom([Q1, ' ', H], Q3),
   runQuery(Q3).
 
 
@@ -543,18 +582,18 @@ tpcRelAttr(X, R1a, R2a, A1a, A2a) :-
 histcompare(X) :-
   tpcRelAttr(X, R1a, R2a, A1a, A2a),
   % compute histogram for the complete join result
-  concat_atom([X, '_hist_complete'], F1),
+  my_concat_atom([X, '_hist_complete'], F1),
   histquery(smj, R1a, R2a, A1a, A2a, F1),
   % compute histograms for the result using the sample relations
   sampleRel(R1a, R1as),
   sampleRel(R2a, R2as),
-  concat_atom([X, '_hist_sample'], F2),
+  my_concat_atom([X, '_hist_sample'], F2),
   histquery(smj, R1as, R2as, A1a, A2a, F2),
   % compute histogram for smj_r3
-  concat_atom([X, '_hist_smjr2'], F3),
+  my_concat_atom([X, '_hist_smjr2'], F3),
   histquery(smjr2, R1a, R2a, A1a, A2a, F3),
   % compute histogram for hashjoin
-  concat_atom([X, '_hist_hj'], F3),
+  my_concat_atom([X, '_hist_hj'], F3),
   histquery(hash, R1a, R2a, A1a, A2a, F3),
   createOutputs(X).
 
@@ -571,15 +610,21 @@ perfcompare(X) :-
 
 % user level commands for running experiments
 
-experiment(compare_smj_performance, 'Run queries for performance comparisons between sortmerge and sortmerge_r2').
+experiment(compare_smj_performance, 'Run queries for '
+          'performance comparisons between sortmerge and sortmerge_r2').
 
-experiment(compare_attribute_distributions, 'Run queries which demonstrate the quality of randomness. The results are histograms over the join attribute').
+experiment(compare_attribute_distributions, 'Run queries which '
+              'demonstrate the quality of randomness. The results'
+              ' are histograms over the join attribute').
 
-experiment(compare_index_scans, 'Run queries which demonstrate the overhead for shuffling after index scan').
+experiment(compare_index_scans, 'Run queries which demonstrate the '
+           'overhead for shuffling after index scan').
 
 experiment(compare_tpc, 'Run TPC-H queries with and without adaptive join').
 
-experiment(compare_tpc_idx, 'Run TPC-H queries with and without adaptive join, use of indexes is allowed').
+experiment(compare_tpc_idx, 
+          'Run TPC-H queries with and without adaptive join, '
+           'use of indexes is allowed').
 
 
 showExperiment(X, Y) :-
@@ -620,10 +665,10 @@ runtpc(_).
 runtpc2(Id) :-
   runtpc(Id),
   getSizes(L, Format),
-  concat_atom([Id, '_checkSizes.csv'], Name),
+  my_concat_atom([Id, '_checkSizes.csv'], Name),
   dumpTuples2File(Name, L, Format),
   getPredOrder(L2, Format2),
-  concat_atom([Id, '_predOrder.csv'], Name2),
+  my_concat_atom([Id, '_predOrder.csv'], Name2),
   dumpTuples2File(Name2, L2, Format2).
 
 runtpc2(_).
