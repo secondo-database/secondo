@@ -878,7 +878,7 @@ materializeComponent(Component):-
   Component = component(nodes(NodeList),edges(_),Plan),
   plan_to_atom(Plan, Atom),
   newTempRel(X),
-  concat_atom(['let ', X, ' = ', Atom, ' consume '],'', Command),
+  my_concat_atom(['let ', X, ' = ', Atom, ' consume '],'', Command),
   nl,write('Command: '),write(Command),  
   secondo(Command),
    
@@ -1488,21 +1488,25 @@ embeddedsubstituteTempRel([Arg | Args], [Arg2 | Args2], TempRelName) :-
 ----    mapAttributes(+Preds,-MappedPreds) 
 ----
 
-Description:
+
+*/
+
+/*
+
+Description
 
 Maps all predicates in ~Preds~ to materialized names 
-(e.g. p5:plz = p6:plz * 2 is mapped to plz_p5=plz_p6*2) 
+(e.g. p5:plz = p6:plz [*] 2 is mapped to plz\_p5=plz\_p6 [*] 2) 
 This is neccessary because in temporary relations the attribute 
 names are changed when table alias names are used in the query
 
-Input:
+Input
 
-~Preds~: Predicate List
+~Preds~ Predicate List
 
+Output
 
-Output:
-
-~MappedPreds~: Mapped Predicates
+~MappedPreds~ Mapped Predicates
 
 
 */
