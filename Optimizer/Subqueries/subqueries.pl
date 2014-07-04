@@ -923,7 +923,7 @@ executable syntax, which uses operator ~\_~ and postfix notation.
 aliasInternal(ExternalAttr, Attr) :-
   ground(Attr),
   Attr = Var:InternalAttr,
-  concat_atom([InternalAttr, '_', Var], ExternalAttr).
+  my_concat_atom([InternalAttr, '_', Var], ExternalAttr).
 
 aliasInternal(ExternalAttr, InternalAttr) :-
   ground(ExternalAttr),
@@ -1387,7 +1387,7 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
   dm(subqueryDebug, ['\nExtNewColumn: ', ExtNewColumn]),
   plan_to_atom(IntOuterJoinPred, ExtOuterJoinPred),
   dm(subqueryDebug, ['\nExtOuterJoinPred: ', ExtOuterJoinPred]),
-  concat_atom([
+  my_concat_atom([
      ExtTempRel1,
      ExtTempRel2,
 %     ' smouterjoin[',ExtJoinAttr1, ',', ExtJoinAttr2, ']',
@@ -1500,7 +1500,7 @@ aliasExternal(Var:Attr, Var:Attr, _ as Var) :-
 
 aliasExternal(Var:Attr, AliasedAttr, T) :-
   not(is_list(T)),
-  concat_atom([Attr, '_', Var], '', AliasedAttr).
+  my_concat_atom([Attr, '_', Var], '', AliasedAttr).
 
 aliasExternal(Attr, Attr, _) :-
   atomic(Attr).
@@ -1643,7 +1643,7 @@ newTempRel(Query, TempRelName) :-
 newTempRel_direct(Plan, TempRelName) :-
   ( temporaryRelation(TempRelName, Plan)
      ; (  newTempRel(TempRelName),
-        concat_atom([TempRelName, ' = ', Plan], Query),
+        my_concat_atom([TempRelName, ' = ', Plan], Query),
       dm(subqueryDebug, ['\nTempRelDirect Plan: ', Query]),
       let(Query),
       assert(temporaryRelation(TempRelName, Plan))
@@ -1835,7 +1835,7 @@ lookupRelDblCheck(Rel, rel(RelDC, *)) :-
 lookupRelDblCheck(Rel, rel(RelDC, *)) :-
   queryRel(Rel, rel(RelDC, *)),
   term_to_atom(Rel, RelA),
-  concat_atom(['Ambiguous use of relation ',RelA,
+  my_concat_atom(['Ambiguous use of relation ',RelA,
          ' in outer and inner query block.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   throw(
@@ -2614,7 +2614,7 @@ clearStreamName :-
   pop(streamName, _).
 
 clearStreamName :-
-  concat_atom(['Pop empty', ' stack streamName'], ErrMsg),
+  my_concat_atom(['Pop empty', ' stack streamName'], ErrMsg),
   throw(error_SQL(subqueries_streamName::malformedExpression::ErrMsg)).
 
 clearStreamName(Var) :-
@@ -3090,7 +3090,7 @@ subquery_expr_to_plan(Expr, Param, Expr2) :-
   transformAttrExpr(Expr1, Param, 2, Expr2, []).
 
 subquery_expr_to_plan(A, B, C) :-
-  concat_atom(['Not Implemented'], Msg),
+  my_concat_atom(['Not Implemented'], Msg),
   throw(error_Internal(subqueries_Expr(A, B, C)::notImplemented::Msg)).
 
 % NVK ADDED NR
@@ -3131,7 +3131,7 @@ secondo_list_to_atom(CommaList, Result) :-
   CommaList =.. [(,), X, Xs],
   plan_to_atom(X, XAtom),
   secondo_list_to_atom((Xs), XsAtom),
-  concat_atom([XAtom, ' ', XsAtom], '', Result),
+  my_concat_atom([XAtom, ' ', XsAtom], '', Result),
   !.
 
 secondo_list_to_atom(X, Result) :-
@@ -3152,7 +3152,8 @@ subquery_plan_to_atom(X, Result) :-
   constantType(Attr, Type),
   plan_to_atom(Attr, AttrAtom),
   secondo_list_to_atom(ValueList, VLAtom),
-  concat_atom([AttrAtom, ' in [const set(', Type, ') value (', VLAtom, ')]'], 
+  my_concat_atom([AttrAtom, 
+           ' in [const set(', Type, ') value (', VLAtom, ')]'], 
     Result),
   !.
 
@@ -3167,7 +3168,7 @@ attributes are currently considered.
 subquery_plan_to_atom(outerjoin(=, JoinAttr1, JoinAttr2), Result) :-
   plan_to_atom(JoinAttr1, AAtom1),
   plan_to_atom(JoinAttr2, AAtom2),
-  concat_atom([' smouterjoin[', AAtom1, ',', AAtom2, ']'], Result),
+  my_concat_atom([' smouterjoin[', AAtom1, ',', AAtom2, ']'], Result),
   !.
 
 % outerjoin, general case
@@ -3179,7 +3180,7 @@ subquery_plan_to_atom(outerjoin(Op, attrname(JoinAttr1), attrname(JoinAttr2)),
   retractall(outerjoinCommuted),
   consider_Arg2(Pred, Pred2),    % transform second arg/3 to arg2/3
   plan_to_atom(Pred2, PAtom),
-  concat_atom([' symmouterjoin[', PAtom, ']'], Result),
+  my_concat_atom([' symmouterjoin[', PAtom, ']'], Result),
   !.
 
 /*
@@ -3357,7 +3358,7 @@ subquery_plan_to_atom(AttrExpr, Result) :-
   Attr =.. [attribute, _, attrname(attr(Attr2, _, _))],
   dm(subqueryDebug, ['\nAttr: ', Attr,
              '\nAttr2: ', Attr2]),
-  concat_atom([Op, '[', Attr2, ']'], Result).
+  my_concat_atom([Op, '[', Attr2, ']'], Result).
 
 % case nested predicate with exists
 subquery_plan_to_atom(Expr, Result) :-
@@ -3566,7 +3567,7 @@ subquerypred_to_atom([ Pred | Rest ], Atom) :-
   subquerypred_to_atom(Rest, RestAtom),
   dm(subqueryDebug, ['\nRestAtom: ', RestAtom]),
   (( RestAtom = [], PredAtom = Atom )
-    ; concat_atom([PredAtom, RestAtom], Atom)).
+    ; my_concat_atom([PredAtom, RestAtom], Atom)).
 
 % correlated predicate
 subquerypred_to_atom(Pred, PredAtom) :-
@@ -3575,7 +3576,7 @@ subquerypred_to_atom(Pred, PredAtom) :-
   Pred =.. [ Op, Attr1, Attr2 ],
   Pred2 =.. [Op, attribute(var1, attrname(Attr1)), Attr2],
   plan_to_atom(Pred2, Pred2Atom),
-  concat_atom(['filter[', Pred2Atom, ']'], PredAtom).
+  my_concat_atom(['filter[', Pred2Atom, ']'], PredAtom).
 
 subquerySelectivity([]).
 

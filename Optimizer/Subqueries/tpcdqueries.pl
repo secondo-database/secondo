@@ -96,7 +96,7 @@ in Secondo optimizer is still wonting.
 
 initialize :-
   resultRelation(Rel),
-  concat_atom([Rel, ' = [const rel(tuple([Query: string,',
+  my_concat_atom([Rel, ' = [const rel(tuple([Query: string,',
                                   'Setup: bool, ',
                   'Rewrite: bool, ',
                   'Lookup: bool, ',
@@ -131,16 +131,16 @@ time(Begin, Duration) :-
 tpc(Benchmark, No) :-
   skipQuery(Benchmark, No),
   upcase_atom(Benchmark, BMOut),
-  concat_atom(['\nTPC-', BMOut, ' ', No, '\n\tSkipped'], Result),
-  concat_atom([Benchmark, No], Key),
+  my_concat_atom(['\nTPC-', BMOut, ' ', No, '\n\tSkipped'], Result),
+  my_concat_atom([Benchmark, No], Key),
   ( retractall(benchmarkResult(Key, _)) ; true ),
   assert(benchmarkResult(Key, Result)).
 
 tpc(Benchmark, No) :-
   resultRelation(Rel),
   upcase_atom(Benchmark, BMOut),
-  concat_atom(['"TPC-', BMOut, ' ', No, '"'], QueryName),
-  string_to_atom(QueryString, QueryName),
+  my_concat_atom(['"TPC-', BMOut, ' ', No, '"'], QueryName),
+  my_string_to_atom(QueryString, QueryName),
   sql insert into Rel values [QueryString, false, false, false, false,
     false, false, false, create_duration(0, 0), create_duration(0, 0),
     create_duration(0, 0), create_duration(0, 0), create_duration(0, 0),
@@ -149,62 +149,62 @@ tpc(Benchmark, No) :-
   catch( ((setupQuery(Benchmark, No) )
      -> ( SetupResult = '', sql update Rel set [setup = true]
           where [date = instant(0), (query) = QueryString] )
-    ;  concat_atom(['\tSetup failed', '\n'], SetupResult)
+    ;  my_concat_atom(['\tSetup failed', '\n'], SetupResult)
    ),
-   _, concat_atom(['\tSetup failed', '\n'], SetupResult)),
+   _, my_concat_atom(['\tSetup failed', '\n'], SetupResult)),
   tpc(Benchmark, No, Query),
   catch( (ground(Query), get_time(BeginRewrite), (rewriteQuery(Query, RQuery))
     -> ( RewriteResult = '', time(BeginRewrite, TRewrite),
         sql update Rel set [rewrite = true,
           runtime_Rewrite = create_duration(0, TRewrite)]
         where [date = instant(0), (query) = QueryString] )
-    ;  concat_atom(['\tRewrite failed', '\n'], RewriteResult)
+    ;  my_concat_atom(['\tRewrite failed', '\n'], RewriteResult)
    ),
-   _, concat_atom(['\tRewrite failed', '\n'], RewriteResult)),
+   _, my_concat_atom(['\tRewrite failed', '\n'], RewriteResult)),
   catch( ((ground(RQuery), get_time(BeginLookup), callLookup(RQuery, Query2))
   -> ( LookupResult = '', time(BeginLookup, TLookup),
         sql update Rel set [lookup = true,
           runtime_Lookup = create_duration(0, TLookup)]
         where [date = instant(0), (query) = QueryString] )
-    ;  concat_atom(['\tLookup failed', '\n'], LookupResult)
+    ;  my_concat_atom(['\tLookup failed', '\n'], LookupResult)
    ),
-   _, concat_atom(['\tLookup failed', '\n'], LookupResult)),
+   _, my_concat_atom(['\tLookup failed', '\n'], LookupResult)),
   !,
   catch( ((ground(Query2), get_time(BeginQTP), queryToPlan(Query2, Plan, _))
     -> ( QueryToPlanResult = '', time(BeginQTP, TQTP),
         sql update Rel set [queryToPlan = true,
           runtime_QueryToPlan = create_duration(0, TQTP)]
         where [date = instant(0), (query) = QueryString] )
-    ;  concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)
+    ;  my_concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)
    ),
-   _, concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)),
+   _, my_concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)),
   !,
   catch( ((ground(Plan), get_time(BeginPTA), plan_to_atom(Plan, QueryOut))
     -> ( PlanToAtomResult = '', time(BeginPTA, TPTA),
         sql update Rel set [planToAtom = true,
           runtime_PlanToAtom = create_duration(0, TPTA)]
         where [date = instant(0), (query) = QueryString] )
-    ;  concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)
+    ;  my_concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)
    ),
-   _, concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)),
+   _, my_concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)),
   (( ground(QueryOut), get_time(BeginExec),
-    concat_atom(['query ', QueryOut], QueryText) ) ; true),
+    my_concat_atom(['query ', QueryOut], QueryText) ) ; true),
   catch( ((ground(QueryOut), secondo(QueryText))
     -> ( ExecuteResult = '', time(BeginExec, TExec),
         sql update Rel set [execute = true,
           runtime_Execute = create_duration(0, TExec)]
         where [date = instant(0), (query) = QueryString] )
-    ;  concat_atom(['\tExecute failed', '\n'], ExecuteResult)
+    ;  my_concat_atom(['\tExecute failed', '\n'], ExecuteResult)
    ),
-   _, concat_atom(['\tExecute failed', '\n'], ExecuteResult)),
+   _, my_concat_atom(['\tExecute failed', '\n'], ExecuteResult)),
   catch( (teardownQuery(Benchmark, No)
     -> ( TeardownResult = '',
         sql update Rel set [teardown = true]
           where [date = instant(0), (query) = QueryString] )
-    ;  concat_atom(['\tTeardown failed', '\n'], TeardownResult)
+    ;  my_concat_atom(['\tTeardown failed', '\n'], TeardownResult)
    ),
-   _, concat_atom(['\tTeardown failed', '\n'], TeardownResult)),
-   concat_atom(['\nTPC-', BMOut, ' ', No, '\n',
+   _, my_concat_atom(['\tTeardown failed', '\n'], TeardownResult)),
+   my_concat_atom(['\nTPC-', BMOut, ' ', No, '\n',
                 SetupResult,
                 RewriteResult  ,
                 LookupResult  ,
@@ -216,7 +216,7 @@ tpc(Benchmark, No) :-
    time(BeginAll, TotalTime),
    sql update Rel set [runtime_Total = create_duration(0, TotalTime)]
     where [date = instant(0), (query) = QueryString],
-   concat_atom([Benchmark, No], Key),
+   my_concat_atom([Benchmark, No], Key),
    ( retractall(benchmarkResult(Key, _)) ; true ),
    assert(benchmarkResult(Key, Result)).
 
@@ -257,8 +257,8 @@ executeBenchmark(Benchmark) :-
   !,
   time(Begin, Total),
     upcase_atom(Benchmark, BMOut),
-    concat_atom(['"TPC-', BMOut, '"'], BMName),
-    string_to_atom(BMString, BMName),
+    my_concat_atom(['"TPC-', BMOut, '"'], BMName),
+    my_string_to_atom(BMString, BMName),
   let('tempXXXXXXX = now()'),
     sql insert into Rel values [BMString, false, false, false, false,
       false, false, false, create_duration(0, 0), create_duration(0, 0),
@@ -308,7 +308,7 @@ runAnalysis(Database) :-
   setOption(subqueryUnnesting),
   get_time(A),
   convert_time(A, Y, M, D, _, _, _, _),
-  concat_atom(['benchmarkResult feed csvexport[\'Analyse ',
+  my_concat_atom(['benchmarkResult feed csvexport[\'Analyse ',
     Database, '-', Y, '-', M, '-', D, '.csv\',
     FALSE, TRUE, ";"] count'], Query),
   write('ExportQuery: '), write(Query), nl,

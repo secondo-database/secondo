@@ -81,7 +81,8 @@ If encountered alone, it is just ignored.
 % Section:End:cost_7_b
 
 % ignore plan annotations:
-cost(optimizerAnnotation(X,_), Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0) :-
+cost(optimizerAnnotation(X,_), Sel, Pred, ResAttrList,
+     ResTupleSize, ResCard, 0) :-
   cost(X, Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0),!.
 
 % Section:Start:cost_7_m
@@ -257,13 +258,14 @@ cost(filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),
 %   write('...Inside cost estimation '),nl,
 %   card(RelName, RelCard),
 %   write('...Inside cost estimation1 '),nl,
-%   concat_atom(['query no_entries(', IndexName, ') '], '', Command),
+%   my_concat_atom(['query no_entries(', IndexName, ') '], '', Command),
 %   write('...Inside cost estimation2 '- Command),nl,
 %   secondo(Command, [_,IndexCard]),
 %   write('...IndexCard' - IndexCard),nl,
 %   windowintersectsTC(WITC),
 %   write('...Inside cost estimation3 '),nl,
-%   CostWI is Sel * 1.2 * IndexCard * WITC * 0.25,   % including 20% false positives
+%   CostWI is Sel * 1.2 * IndexCard * WITC * 0.25,   
+        % including 20% false positives
 %   write('...Inside cost estimation4 '),nl,
 %   sorttidTC(STC),
 %   write('...Inside cost estimation5 '),nl,
@@ -510,7 +512,8 @@ cost(sortby(X, Y), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   cost(sort(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost),!.
 
 
-cost(mergejoin(X, Y, _, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
+cost(mergejoin(X, Y, _, _), Sel, Pred, ResAttrList, 
+    ResTupleSize, ResCard, Cost) :-
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> (ResAttrListX = ignore, ResAttrListY = ignore) ; true
   ),
@@ -679,7 +682,8 @@ cost(remove(X, DropListFields), Sel, Pred,
     -> ( ResTupleSize = ResTupleSize1,             %% ToDo: Fixme
          NoAttrs is 3                              %% ToDo: Fixme
        )
-    ;  ( projectAttrList(ResAttrList1, ProjAttrNames, ResAttrList, ResTupleSize),
+    ;  ( projectAttrList(ResAttrList1, ProjAttrNames, 
+         ResAttrList, ResTupleSize),
          length(ResAttrList,NoAttrs)
        )
   ),
@@ -790,7 +794,7 @@ cost(windowintersects(dbobject(_/* Index */), Rel, _/* QueryObj */), Sel, Pred,
 cost(windowintersectsS(dbobject(IndexName), _ /* QueryObj */), Sel, Pred,
                   ResAttrList, ResTupleSize, ResCard, Cost) :-
   % get relationName Rel from Index (it is not included in the arguments)
-  concat_atom([RelName|_],'_',IndexName),
+  my_concat_atom([RelName|_],'_',IndexName),
   dcName2internalName(RelDC,RelName),
   Rel = rel(RelDC, *),
   cost(Rel, Sel, Pred, ignore, _, ResCard1, Cost1),
@@ -850,9 +854,10 @@ cost(gettuples2(X, Rel, attrname(TidAttr)), Sel, Pred,
          negateSizeTerm(sizeTerm(TMem, 0, 0),NegTidSize),
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
-    ;  ( delete(ResAttrList1,[TidAttr,tid,TidSize],ResAttrList1WOtid), % drop tid-attr
-         negateSizeTerm(TidSize,NegTidSize),                          % adjust size
-         append(ResAttrList1WOtid,ResAttrList2,ResAttrList),           % concat tuples
+    ;  ( delete(ResAttrList1,[TidAttr,tid,TidSize],
+         ResAttrList1WOtid), % drop tid-attr
+         negateSizeTerm(TidSize,NegTidSize),                % adjust size
+         append(ResAttrList1WOtid,ResAttrList2,ResAttrList),% concat tuples
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
   ),
@@ -923,7 +928,7 @@ cost(predinfo(X, _piSel, _piPET), Sel, Pred,
 
 % Failed to compute the cost -- throw an exception!
 cost(T, S, P, A, TS, RC, Cost) :-
-  concat_atom(['Calculation of cost failed.'],'',ErrMsg),
+  my_concat_atom(['Calculation of cost failed.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(improvedcosts_cost(T, S, P, A, TS, RC, Cost)
                    ::unknownError::ErrMsg)),
@@ -977,7 +982,7 @@ isPrefilter(X) :-
 % --- renameAttrs(+AttrList, +Suffix, -RenamedAttrList)
 renameAttrs([],_,[]).
 renameAttrs([[Attr, T, S]|More], Suffix, [[AttrRenamed, T, S]|MoreRes]) :-
-  concat_atom([Attr, Suffix],'_',AttrRenamed),
+  my_concat_atom([Attr, Suffix],'_',AttrRenamed),
   renameAttrs(More,Suffix,MoreRes), !.
 
 
@@ -996,7 +1001,7 @@ setNodeResAttrList(Node, AttrList) :-
   ground(Node), ground(AttrList),
   assert(nodeAttributeList(Node, AttrList)),!.
 setNodeResAttrList(N, A) :-
-  concat_atom(['Error in setNodeResAttrList: Unbound variable.'],'',ErrMsg),
+  my_concat_atom(['Error in setNodeResAttrList: Unbound variable.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(improvedcosts_setNodeResAttrList(N,A)
                    ::malformedExpression::ErrMsg)),
