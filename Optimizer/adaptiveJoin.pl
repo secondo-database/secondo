@@ -86,10 +86,11 @@ matchExpr(Pred, Rel, Term, AttrRel2, AttrStream) :-
 encodeJoinPred(Attr1, Attr2, FunctionName) :-
   plan_to_atom(attrname(Attr1), Atom1),
   plan_to_atom(attrname(Attr2), Atom2),
-  concat_atom(['pj_', Atom1, '_X_', Atom2], FunctionName).
+  my_concat_atom(['pj_', Atom1, '_X_', Atom2], FunctionName).
 
 
-createpjoin1(AttrStream, AttrRel, FilterOps, ProbeOps, MatchOps, Ctr, [F1, F2, F3, F4]) :-
+createpjoin1(AttrStream, AttrRel, FilterOps, ProbeOps, 
+             MatchOps, Ctr, [F1, F2, F3, F4]) :-
  %showValue('AttrStream', AttrStream),
  %showValue('AttrRel', AttrRel),
  %showValue('FilterOps', FilterOps),
@@ -128,7 +129,7 @@ try_pjoin2(X, Y, Rel1, Rel2, [F1, F2, F3]) :-
   %not( possibleIndexJoin(Pred,_) ),
   rel_to_atom(Rel1, Atom1),
   rel_to_atom(Rel2, Atom2),
-  concat_atom(['pj_', Atom1, '_X_', Atom2], FunName1),
+  my_concat_atom(['pj_', Atom1, '_X_', Atom2], FunName1),
   %F1 = field( attr(FunName1, _, l),
   %            symmjoin(implicitArg(1), implicitArg(2), X = Y)),
   F1 = field( attr(FunName1, _, l),
@@ -541,7 +542,8 @@ makePStreamRec(pjoin1(right, Pred, Arg1, Arg2, _), Source, Source) :-
 
 makePStreamRec(pjoin1(left, Pred, Arg1, Arg2, _), Source, Source) :-
   Pred = pr(X=Y, RelA, RelB),
-  makePStreamRec(pjoin1(right, pr(X=Y, RelA, RelB), Arg2, Arg1, _), Source, Source).
+  makePStreamRec(pjoin1(right, pr(X=Y, RelA, RelB), Arg2, Arg1, _),
+                  Source, Source).
 
 /*
 Terminate the recursion when a tuple source is recognized
@@ -749,7 +751,8 @@ shuffleRels([Rel | Rels]) :-
 
 shuffleRels :-
   getObjList(DB, ObjList),
-  write('\nRelations of database '), write(DB), write(' which need to be shuffled:\n'),
+  write('\nRelations of database '), write(DB), 
+  write(' which need to be shuffled:\n'),
   extractRels(ObjList, Rels),
   % increase memory usage for sortby
   secondo('query setoption("MaxMemPerOperator", 64 * 1024 * 1024)'),
