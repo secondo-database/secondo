@@ -336,7 +336,7 @@ Output:
 */  
 
 genPred(AttrSmaller, AttrLarger,Pred):-
-  %concat_atom([AttrSmaller,'=',AttrLarger], Pred).
+  %my_concat_atom([AttrSmaller,'=',AttrLarger], Pred).
   Pred = (AttrSmaller=AttrLarger).
 
  
@@ -369,7 +369,7 @@ list2string(List, String) :-
     ground(List),
     list2codes(List, Codes),
     atom_codes(String1, Codes),
-    concat_atom(['[',String1,']'],String).
+    my_concat_atom(['[',String1,']'],String).
 
 /*
 
