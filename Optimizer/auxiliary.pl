@@ -47,32 +47,42 @@ the output format used by SecondoTTY.
 my_concat_atom(X,Y) :- 
       current_predicate(atomic_list_concat/2), 
       atomic_list_concat(X,Y),!.
-my_concat_atom(X,Y) :- concat_atom(X,Y).
+my_concat_atom(X,Y) :- 
+      current_predicate(concat_atom/2),
+      concat_atom(X,Y).
 
 my_concat_atom(X,Y,Z) :- 
       current_predicate(atomic_list_concat/3),
-      atomic_list_concat(X,Y,Z),!.
-my_concat_atom(X,Y,Z) :- concat_atom(X,Y,Z).
+      atomic_list_concat(X,Y,Z), !.
+
+my_concat_atom(X,Y,Z) :- 
+      current_predicate(concat_atom/3),
+      concat_atom(X,Y,Z).
 
 my_string_to_atom(X,Y) :- 
       current_predicate(atom_string/2), 
       atom_string(Y,X),!.
-my_string_to_atom(X,Y) :- string_to_atom(X,Y).
+
+my_string_to_atom(X,Y) :- 
+     current_predicate(string_to_atom/2),
+     string_to_atom(X,Y).
 
 my_string_to_list(L,C) :-
       current_predicate(string_codes/2),
       string_codes(L,C),!.
 
 my_string_to_list(L,C) :-
+      current_predicate(string_to_list/2),
       string_to_list(L,C).
 
 my_convert_time(Stamp,Y,Mon,Day,Hour,Min,Sec, MilliSec) :-
-     current_predicate(stamp_date_time,3),
+     current_predicate(stamp_date_time/3),
      stamp_date_time(Stamp, date(Y, Mon, Day, Hour, Min, FSec,_,_,_), local),
      Sec is integer(float_integer_part(FSec)),
      MilliSec is integer(float_fractional_part(FSec)*1000), !.
 
 my_convert_time(Stamp,Y,Mon,Day,Hour,Min,Sec, MilliSec) :-
+  current_predicate(convert_time/8),
   convert_time(Stamp,Y,Mon,Day,Hour,Min,Sec, MilliSec).  
 
 
