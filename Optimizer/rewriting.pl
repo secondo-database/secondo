@@ -529,11 +529,11 @@ the where-clause, e.g. to inforce the use of indices etc.
 
 analyseConditions(WhereIn, WhereOut) :-
   makeList(WhereIn, WhereInList),
-  list_to_set(WhereInList, WhereInSet),
+  my_list_to_set(WhereInList, WhereInSet),
   findall(X, inferPredicate(WhereInSet, X), NewPredicates),
   flatten(NewPredicates, NewPredicatesFlat),
   append(WhereInSet, NewPredicatesFlat, WhereOutList),
-  list_to_set(WhereOutList, WhereOut), !.
+  my_list_to_set(WhereOutList, WhereOut), !.
 
 % rules to infer additional predicates
 
@@ -687,7 +687,8 @@ rewriteQueryForRedundancy(Query, RewrittenQuery) :-
 
 rewriteQueryForRedundancy(Query, RewrittenQuery) :-
   Query = from(select(SelClause), where(Rels,WhereClause)),
-  list_to_set(WhereClause,RewrittenWhereClause),  % eliminate condition doublets
+  my_list_to_set(WhereClause,
+                 RewrittenWhereClause),  % eliminate condition doublets
   (RewrittenWhereClause = [] ->
      (RewrittenQuery = from(select(SelClause), Rels))
    ; (RewrittenQuery
@@ -1696,7 +1697,7 @@ insertExtend(incomplete_subplan, incomplete_subplan, AttrsIn, AttrsIn).
 insertExtend(rel(Name,Alias), rel(Name,Alias),
              _AttrsIn, AttrsOut) :-
   relation(Name,AttrsOutL),
-  list_to_set(AttrsOutL,AttrsOut),
+  my_list_to_set(AttrsOutL,AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: rel(Name,Alias) = ',
                    AttrsOut,'\n']),
   !.
@@ -1726,7 +1727,7 @@ insertExtend(rename(Arg,Var),rename(ArgE,Var),AttrsIn,AttrsOut) :-
            X = Var:Y
          ),
          AttrsOutL),
-  list_to_set(AttrsOutL,AttrsOut),
+  my_list_to_set(AttrsOutL,AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: rename = ',AttrsOut,'\n']),
   !.
 
@@ -1875,10 +1876,10 @@ insertExtend(project(Stream, AttrNames),
            ),
            ProjAttrsL
          ),
-  list_to_set(ProjAttrsL,ProjAttrsSet),
+  my_list_to_set(ProjAttrsL,ProjAttrsSet),
   % get available virtual attributes
   splitVirtualAttributes(AttrsStream,VirtualStreamAttrs,_),
-  list_to_set(VirtualStreamAttrs,VirtualStreamAttrsSet),
+  my_list_to_set(VirtualStreamAttrs,VirtualStreamAttrsSet),
   createAttrNameList(VirtualStreamAttrsSet,VirtualStreamAttrNames),
   % extend the projection list
   append(AttrNames,VirtualStreamAttrNames,AttrNamesOut),
@@ -1907,9 +1908,9 @@ insertExtend(remove(Stream, AttrNames),
            ),
            RemoveAttrsL
          ),
-  list_to_set(RemoveAttrsL,RemoveAttrs),
+  my_list_to_set(RemoveAttrsL,RemoveAttrs),
   insertExtend(Stream,Stream2,AttrsIn,AttrsStream),
-  list_to_set(AttrsStream,AttrsStreamL),
+  my_list_to_set(AttrsStream,AttrsStreamL),
   subtract(AttrsStreamL,RemoveAttrs,AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: ',remove(AttrsStream,AttrsOut),
                   ' = ', AttrsOut,'\n']),
@@ -1939,7 +1940,7 @@ insertExtend(extend(Stream, Fields),
          ),
   flatten(ExtendTerms,ExtendTermsFlat), % list of virtual attributes to extend
   extendPhrase(Stream2, ExtendTermsFlat, StreamOut), % extend them to streamarg
-  list_to_set(ExtendTermsFlat,ExtendTermsSet), % get their names
+  my_list_to_set(ExtendTermsFlat,ExtendTermsSet), % get their names
   % extract new attrnames from Fields
   findall(FlatAttr,
           ( member(newattr(attrname(Attr),_),Fields),
@@ -1953,8 +1954,8 @@ insertExtend(extend(Stream, Fields),
             )
           ),
           NewAttrsL),
-  list_to_set(StreamAttrsL,StreamAttrsSet),
-  list_to_set(NewAttrsL,NewAttrsSet),
+  my_list_to_set(StreamAttrsL,StreamAttrsSet),
+  my_list_to_set(NewAttrsL,NewAttrsSet),
   union(StreamAttrsSet,NewAttrsSet,AttrsOut1Set),
   union(AttrsOut1Set, ExtendTermsSet, AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: ',extend(Stream, Fields),
@@ -1970,7 +1971,7 @@ insertExtend(projectextend(Stream, ProjAttrs, Fields),
              AttrsOut) :-
   % recurse into 1st argument
   insertExtend(Stream,Stream2,AttrsIn,StreamAttrsL),
-  list_to_set(StreamAttrsL,StreamAttrsS),
+  my_list_to_set(StreamAttrsL,StreamAttrsS),
   % extract projection attributes (2nd argument)
   findall( FlatAttr,
            ( member(attrname(attr(Attr,_,_)),ProjAttrs),
@@ -1985,7 +1986,7 @@ insertExtend(projectextend(Stream, ProjAttrs, Fields),
            ),
            ProjAttrsL
          ),
-  list_to_set(ProjAttrsL,ProjAttrsS),
+  my_list_to_set(ProjAttrsL,ProjAttrsS),
   % extract new attrnames from Fields (3rd argument)
   findall(FlatAttr,
           ( member(newattr(attrname(Attr),_),Fields),
@@ -1999,7 +2000,7 @@ insertExtend(projectextend(Stream, ProjAttrs, Fields),
             )
           ),
           NewAttrsL),
-  list_to_set(NewAttrsL,NewAttrsS),
+  my_list_to_set(NewAttrsL,NewAttrsS),
   % construct result list
   union(ProjAttrsS,NewAttrsS,AttrsOut1),  % projection + extension = AttrsOut1
   splitVirtualAttributes(StreamAttrsS,VirtualAttrList,_),
@@ -2354,7 +2355,7 @@ lookupCSESelect([Arg|Args],[ArgM|ArgsM],AttrsIn,AllExt,AllUsed) :-
   lookupCSESelect(Arg, ArgM, AttrsIn,AttrsArgExt, AttrUsed),
   lookupCSESelect(Args,ArgsM,AttrsIn,AttrsArgsExt, AttrsUsed),
   append(AttrsArgExt,AttrsArgsExt,AllExt),
-  list_to_set(AllExt,AllExtSet),
+  my_list_to_set(AllExt,AllExtSet),
   union(AttrUsed,AttrsUsed,AllUsed1),
   union(AllExtSet,AllUsed1,AllUsed), !.
 
@@ -2372,8 +2373,8 @@ lookupCSESelect(*,*,_,[],AllBaseAttrs) :-
             Y = Alias:Attr3
           ),
           RenamedAttrs),
-  list_to_set(UnrenamedAttrs,UnrenamedAttrsS),
-  list_to_set(RenamedAttrs,RenamedAttrsS),
+  my_list_to_set(UnrenamedAttrs,UnrenamedAttrsS),
+  my_list_to_set(RenamedAttrs,RenamedAttrsS),
   union(UnrenamedAttrsS,RenamedAttrsS,AllBaseAttrs), !.
 
 % Handle atomic expressions
@@ -2421,7 +2422,7 @@ lookupCSESelect(Expr as attr(Name,X,Y), attr(Name,X,Y),
            ),
            AttrsUsed1),
   flatten(AttrsUsed1,AttrsUsed2),
-  list_to_set([Name|AttrsUsed2],AttrsUsed),
+  my_list_to_set([Name|AttrsUsed2],AttrsUsed),
   dm(rewritePlan,['\n  lookupCSESelect 4(',Expr as attr(Name,X,Y),',',
                   attr(Name,X,Y),',...): ',AttrsExt, AttrsUsed]),
   !.
@@ -2442,7 +2443,7 @@ lookupCSESelect(Term, attr(Label,0,u), AttrsIn, AttrsExt, AttrsUsed) :-
                   ),
                   AttrsUsed1),
          flatten([AttrsUsed1|AttrsExt],AttrsUsed2),
-         list_to_set(AttrsUsed2,AttrsUsed)
+         my_list_to_set(AttrsUsed2,AttrsUsed)
        )
   ),
   dm(rewritePlan,['\n  lookupCSESelect 5(',Term,',',attr(Label,0,u),'...): ',
@@ -2488,7 +2489,7 @@ rewritePlanRemoveInsertedAttributes(StreamIn, StreamOut) :-
             \+ queryAttr(attr(Name, _, Case))
           ),
           AttrsL),
-  list_to_set(AttrsL,AttrsS),
+  my_list_to_set(AttrsL,AttrsS),
   attrnames(AttrsS,AttrNames),
   ( AttrNames = []
     -> StreamOut = StreamIn
@@ -2559,7 +2560,7 @@ removeUnusedAttrs(feedproject(Arg,AttrList),feedproject(ArgE,AttrList),_) :-
 removeUnusedAttrs(extend(Arg,EList),PlanOut,SeenAttrs) :-
   usedAttributes(extend(Arg,EList),UsedAttrs),
   findall(Attr, member(newattr(attrname(Attr),_),EList), EAttrs1),
-  list_to_set(EAttrs1,NewAttrs),
+  my_list_to_set(EAttrs1,NewAttrs),
   subtract(UsedAttrs,NewAttrs,RequiredInFuns),
   subtract(SeenAttrs,NewAttrs,SeenNewAttrs1),
   union(RequiredInFuns,SeenNewAttrs1,SeenAttrsNew),
@@ -2577,7 +2578,7 @@ removeUnusedAttrs(projectextend(Arg,PList,EList),
   removeUnusedAttrs(Arg, ArgE, UsedAttrs),
   usedAttributes(PList,PAttrs),
   findall(Attr, member(newattr(attrname(Attr),_),EList), EAttrs1),
-  list_to_set(EAttrs1,EAttrs2),
+  my_list_to_set(EAttrs1,EAttrs2),
   usedAttrs(EAttrs2,EAttrs),
   union(PAttrs,EAttrs,ResultAttrs),
   subtract(ResultAttrs,SeenAttrs,RemoveAttrs),
