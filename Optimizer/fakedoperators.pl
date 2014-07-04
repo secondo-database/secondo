@@ -62,21 +62,33 @@ October 2009, Mahmoud Sakr. Initial Version
 validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes):-
   ( (integer(K), K >0 )
     -> true
-    ; ( write_list(['\nERROR:\tThe second parameter (k) in the iskNN predicate is expected to be an Integer > 0\n but got: ', K], ErrMsg),
-        throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes)::malformedExpression::ErrMsg)),
+    ; ( write_list(['\nERROR:\tThe second parameter (k) in the'
+                    ' iskNN predicate is expected to be an Integer'
+                    ' > 0\n but got: ', K], ErrMsg),
+        throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject,
+                           Rel, MPointAttr, IDAttr, 
+                           RebuildIndexes)::malformedExpression::ErrMsg)),
         fail
       )
   ),
   ( QueryObject= dbobject(QueryObj)
     -> true
-    ; ( write_list(['\nERROR:\tThe third parameter (QueryObject) in the iskNN predicate is expected to be a database object\n but got: ', QueryObject], ErrMsg),
-        throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes)::malformedExpression::ErrMsg)),
+    ; ( write_list(['\nERROR:\tThe third parameter (QueryObject) in '
+                    'the iskNN predicate is expected to be a database '
+                    'object\n but got: ', QueryObject], ErrMsg),
+        throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject, 
+                             Rel, MPointAttr, IDAttr, 
+                            RebuildIndexes)::malformedExpression::ErrMsg)),
         fail
       )
   ),
   ( memberchk(RebuildIndexes, [0, 1])
-    ; ( write_list(['\nERROR:\tThe last parameter (RebuildIndexes) in the iskNN predicate is expected to be 0 or 1\n but got: ', RebuildIndexes], ErrMsg),
-        throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes)::malformedExpression::ErrMsg)),
+    ; ( write_list(['\nERROR:\tThe last parameter (RebuildIndexes) '
+                    'in the iskNN predicate is expected to be 0 '
+                    'or 1\n but got: ', RebuildIndexes], ErrMsg),
+        throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject, 
+                 Rel, MPointAttr, IDAttr, 
+                 RebuildIndexes)::malformedExpression::ErrMsg)),
         fail
       )
   ),
@@ -90,10 +102,14 @@ validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes):-
     )
     ;
     (
-      write_list(['\nERROR:\tThe 4th, 5th, and 6th parameters (Relation, Attribute, and IDAttribute ) in the iskNN
-      predicate are expected to refer to exisiting Relation and Attribute names\n but got: ',
+      write_list(['\nERROR:\tThe 4th, 5th, and 6th parameters '
+                  '(Relation, Attribute, and IDAttribute ) in the iskNN'
+                  ' predicate are expected to refer to exisiting Relation '
+                  'and Attribute names\n but got: ',
       Rel, ", ", MPointAttr, ", and ", IDAttr], ErrMsg),
-      throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes)::malformedExpression::ErrMsg)),
+      throw(error_Internal(optimizer_validate_isknn_input(K, 
+                     QueryObject, Rel, MPointAttr, IDAttr, 
+                     RebuildIndexes)::malformedExpression::ErrMsg)),
       fail
     )
   ).
@@ -101,7 +117,8 @@ validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes):-
 knearest(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, RebuildIndexes):-
   getknnDCNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr,
     _, _, _, _, DCUnitRel, _, _, _, _),
-  (RebuildIndexes = 0 ; rebuildKnearestIndexes(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr)),
+  (RebuildIndexes = 0 ; rebuildKnearestIndexes(K, DCQueryObj, DCRel, 
+   DCMPointAttr, DCIDAttr)),
   (relation(DCUnitRel, _) %check the columns too
      -> runknearest(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr)
      ;  (  createUnitRelation(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr),
@@ -111,16 +128,20 @@ knearest(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, RebuildIndexes):-
 
 runknearest(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr):-
   getknnExtNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr,
-    ExtQueryObj, _, _, ExtIDAttr, ExtUnitRel, ExtUnitAttr, ExtResultRel, ExtMBoolAttr, _),
+    ExtQueryObj, _, _, ExtIDAttr, ExtUnitRel, ExtUnitAttr, 
+    ExtResultRel, ExtMBoolAttr, _),
   getknnDCNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr,
     _, _, _, DCIDAttr, _, _, DCResultRel, _, _),
 
   (relation(DCResultRel, _) %check the attributes
-   ;(   concat_atom(['let ', ExtResultRel, ' = ', ExtUnitRel, ' feed head[300] knearest[',
-			ExtUnitAttr, ', ', ExtQueryObj, ', ', K, '] sortby[', ExtIDAttr,
-			' asc] groupby[', ExtIDAttr, '; ', ExtMBoolAttr, ': mint2mbool(group feed ',
+   ;(   my_concat_atom(['let ', ExtResultRel, ' = ', ExtUnitRel, 
+      ' feed head[300] knearest[',
+      ExtUnitAttr, ', ', ExtQueryObj, ', ', K, '] sortby[', ExtIDAttr,
+			' asc] groupby[', ExtIDAttr, '; ', ExtMBoolAttr,
+      ': mint2mbool(group feed ',
 			'extend[Tmp: periods2mint(deftime(.', ExtUnitAttr,
-			'))] aggregateB[Tmp; fun(x: mint, y: mint) x + y; zero()]) ] consume'], '', Query),
+      '))] aggregateB[Tmp; fun(x: mint, y: mint) x + y; zero()]) ] consume'],
+      '', Query),
 	nl, write('Creating the nearest neighbor relation '- Query ), nl,
 	secondo(Query),
 	createIndex(DCResultRel, DCIDAttr, btree)
@@ -133,8 +154,10 @@ createUnitRelation(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr):-
     _, _, _, _, DCUnitRel, _, _, _, _),
 
   not(relation(DCUnitRel, _)), %check the attributes
-  concat_atom(['let ', ExtUnitRel, ' = ', ExtRel, ' feed projectextendstream[', ExtIDAttr, ';',
-              ExtUnitAttr, ': units( .', ExtMPointAttr, ')] sortby[', ExtUnitAttr, '] consume'], '', Query),
+  my_concat_atom(['let ', ExtUnitRel, ' = ', ExtRel, 
+              ' feed projectextendstream[', ExtIDAttr, ';',
+              ExtUnitAttr, ': units( .', ExtMPointAttr, ')] sortby[', 
+              ExtUnitAttr, '] consume'], '', Query),
   secondo(Query).
 
 
@@ -142,7 +165,8 @@ rebuildKnearestIndexes(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr):-
   getknnDCNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr,
     _, _, _, DCIDAttr, DCUnitRel, _, DCResultRel, _, _),
   databaseName(DB),
-  (not(storedIndex(DB, DCResultRel, DCIDAttr, btree, _)); dropIndex(DCResultRel, DCIDAttr, btree)),
+  (not(storedIndex(DB, DCResultRel, DCIDAttr, btree, _)); 
+  dropIndex(DCResultRel, DCIDAttr, btree)),
   (not(storedRel(DB, DCUnitRel, _)); drop_relation(DCUnitRel)),
   (not(storedRel(DB, DCResultRel, _)); drop_relation(DCResultRel)).
 
@@ -165,10 +189,12 @@ the moving points table = ExtRel[ExtIDAttr, ExtMPointAttr, ... ]
 the units table= ExtUnitRel[ExtIDAttr, ExtUnitAttr]
 the result table= ExtResultRel[ExtIDAttr, ExtMBoolAttr]
 the Btree= ExtBtree[ExtIDAttr]
+
 */
 
 getknnExtNames(K, QueryObj, Rel, MPointAttr, IDAttr,
-    ExtQueryObj, ExtRel, ExtMPointAttr, ExtIDAttr, ExtUnitRel, ExtUnitAttr, ExtResultRel, ExtMBoolAttr, ExtBtree):-
+    ExtQueryObj, ExtRel, ExtMPointAttr, ExtIDAttr, ExtUnitRel, 
+    ExtUnitAttr, ExtResultRel, ExtMBoolAttr, ExtBtree):-
   downcase_atom(QueryObj, DCQueryObj),
   downcase_atom(Rel, DCRel),
   downcase_atom(MPointAttr, DCMPointAttr),
@@ -177,16 +203,19 @@ getknnExtNames(K, QueryObj, Rel, MPointAttr, IDAttr,
   dcName2externalName(DCRel:DCMPointAttr, ExtMPointAttr),
   dcName2externalName(DCRel:DCIDAttr, ExtIDAttr),
   dcName2externalName(DCQueryObj, ExtQueryObj),
-  concat_atom(['Unit', ExtRel], '', ExtUnitRel),
-  concat_atom(['U', ExtMPointAttr], '', ExtUnitAttr),
-  concat_atom([ExtRel, ExtMPointAttr, ExtQueryObj, K, 'NN'], '', ExtResultRel),
+  my_concat_atom(['Unit', ExtRel], '', ExtUnitRel),
+  my_concat_atom(['U', ExtMPointAttr], '', ExtUnitAttr),
+  my_concat_atom([ExtRel, ExtMPointAttr, ExtQueryObj, K, 'NN'], '', 
+                 ExtResultRel),
   ExtMBoolAttr = 'MBoolRes',
-  concat_atom([ExtResultRel, ExtIDAttr, 'btree'], '_', ExtBtree).
+  my_concat_atom([ExtResultRel, ExtIDAttr, 'btree'], '_', ExtBtree).
 
 getknnDCNames(K, QueryObj, Rel, MPointAttr, IDAttr,
-    DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, DCUnitRel, DCUnitAttr, DCResultRel, DCMBoolAttr, DCBtree):-
+    DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, DCUnitRel, DCUnitAttr, 
+    DCResultRel, DCMBoolAttr, DCBtree):-
   getknnExtNames(K, QueryObj, Rel, MPointAttr, IDAttr,
-    ExtQueryObj, ExtRel, ExtMPointAttr, ExtIDAttr, ExtUnitRel, ExtUnitAttr, ExtResultRel, ExtMBoolAttr, ExtBtree),
+    ExtQueryObj, ExtRel, ExtMPointAttr, ExtIDAttr, ExtUnitRel, ExtUnitAttr, 
+    ExtResultRel, ExtMBoolAttr, ExtBtree),
   downcase_atom(ExtQueryObj, DCQueryObj ),
   downcase_atom(ExtRel, DCRel),
   downcase_atom(ExtMPointAttr, DCMPointAttr),
