@@ -115,10 +115,10 @@ extractMacros(QueryIn, QueryOut) :-
   !.
 
 extractMacros(defmacro(X), Y) :-
-  concat_atom(['Correct syntax for using macros in queries is \n',
-               '           \'sql defmacro <macro> as <mnemo> usemacro <query>.\'\n',
-               '           \'sql defmacro [<macro> as <mnemo> {, <macro> as ',
-               '<mnemo>}] usemacro <query>.\'.\n'],'',ErrMsg),
+  my_concat_atom(['Correct syntax for using macros in queries is \n',
+           '           \'sql defmacro <macro> as <mnemo> usemacro <query>.\'\n',
+           '           \'sql defmacro [<macro> as <mnemo> {, <macro> as ',
+           '<mnemo>}] usemacro <query>.\'.\n'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   !,
   throw(error_SQL(rewriting_extractMacros(defmacro(X), Y)
@@ -136,7 +136,7 @@ extractMacros1([Me|Others]) :-
 
 extractMacros1(Macro as Mnemo) :-
   isSubTerm(Macro,Mnemo),
-  concat_atom(['Left side of a macro declaration \'<macro> as <mnemo>\' ',
+  my_concat_atom(['Left side of a macro declaration \'<macro> as <mnemo>\' ',
                'must be an acyclic expression.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   !,
@@ -146,7 +146,7 @@ extractMacros1(Macro as Mnemo) :-
 
 extractMacros1(X as Mnemo) :-
   \+ atom(Mnemo),
-  concat_atom(['Right side of a macro declaration \'<macro> as <mnemo>\' ',
+  my_concat_atom(['Right side of a macro declaration \'<macro> as <mnemo>\' ',
                'must be an identifier.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   !,
@@ -581,14 +581,18 @@ inferPredicate(Premises, [X intersects Y]) :-
 
 /*
 The following rule handles expressions like
+
+
 ---- sometimes(distance(v1:journey, v2:journey) < 3.0)
 ----
 
 It will add the predicate
+
 ---- everNearerThan(v1:journey, v2:journey, 3.0)
 ----
 
 WARNING: No typechecking is done. Only valid for the following combinations:
+
 ----
   O1       O2      Dist
 mpoint x mpoint x real
@@ -735,14 +739,17 @@ handleSingleRedundancy(_,[],[]).
 
 /*
 Each of the following facts defines a set of predicates that should be replace by a subset of itself:
+
 ---- defineRedundancy(AvailList,KeepList)
 ----
 
 Used by ~handleAllRedundancies/2~
 
 */
-defineRedundancy([everNearerThan(O1,O2,D),sometimes(distance(O1, O2) < D)],[everNearerThan(O1,O2,D)]).
-defineRedundancy([everNearerThan(O1,O2,D),sometimes(distance(O2, O1) < D)],[everNearerThan(O1,O2,D)]).
+defineRedundancy([everNearerThan(O1,O2,D),
+       sometimes(distance(O1, O2) < D)],[everNearerThan(O1,O2,D)]).
+defineRedundancy([everNearerThan(O1,O2,D),
+       sometimes(distance(O2, O1) < D)],[everNearerThan(O1,O2,D)]).
 defineRedundancy([X<=Y, X<Y],[X<Y]).
 defineRedundancy([X>=Y, X>Y],[X>Y]).
 defineRedundancy([X>=Y, X=Y],[X=Y]).
@@ -817,7 +824,7 @@ rewriteQueryForCSE(QueryIn, QueryIn) :-
   retractNonCSEs,                   % delete expressions used less than twice
   dm(rewriteCSE,['Expression Labels after retractNonCSEs']),
   dc(rewriteCSE,showExpressionLabels),   % output debugging info
-%  replaceAllCSEs,                   % nest CSEs but also save flat CSE expression
+%  replaceAllCSEs,            % nest CSEs but also save flat CSE expression
 %  dm(rewriteCSE,['Expression Labels after replaceAllCSEs']),
 %  dc(rewriteCSE,showExpressionLabels),   % output debugging info
 %%  compactCSEs(QueryIn, QueryOut, _), % replace CSEs by virtual attributes
@@ -1425,7 +1432,8 @@ Called by predicate ~translate~.
 */
 
 :- dynamic(storedAvailStreamAttributes/1).
-:- dynamic(rewritePlanInsertedAttribute/1). % Table of attributes extended to the streams
+:- dynamic(rewritePlanInsertedAttribute/1).
+            % Table of attributes extended to the streams
 
 % Section:Start:rewritePlanforCSE_4_b
 % Section:End:rewritePlanforCSE_4_b
@@ -2812,6 +2820,7 @@ Auxiliary predicates for parsing spatiotemporal pattern predicates
 
 The predicates are used to separate the predicates and their aliases
 for further processing.
+
 */
 parseNPred(AP , P, A):-
   AP=..[as, P, A],!.
