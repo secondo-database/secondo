@@ -1,4 +1,5 @@
 /*
+
 $Header$
 @author Nikolai van Kempen
 
@@ -19,47 +20,73 @@ reloadMA :-
 % The difference is that the counter are kept to produce specific join
 % results.
 % case 1
-evalQuery(2001, [database(nrw3)], select * from [points as p, railways as r] where[p:no=r:no]).
+evalQuery(2001, [database(nrw3)], select * from 
+               [points as p, railways as r] where[p:no=r:no]).
 
 % case 2
-evalQuery(2000, [database(nrw3)], select * from [buildings as b, roads as r] where[b:no=r:no]).
+evalQuery(2000, [database(nrw3)], select * from 
+               [buildings as b, roads as r] where[b:no=r:no]).
 
 % case 3
-evalQuery(2002, [database(nrw3)], select * from [buildings as b, roads as r, points as p] where[b:no=r:no,r:no=p:no]).
+evalQuery(2002, [database(nrw3)], select * from 
+            [buildings as b, roads as r, points as p] 
+            where[b:no=r:no,r:no=p:no]).
 
 % 4374 cost edge paths for 6 pog paths:
 % 2003
-evalQuery(2003, [database(nrw3)], select * from [buildings as b, roads as r, points as p, natural as n] where[b:no=r:no,r:no=p:no,p:no=n:no]).
+evalQuery(2003, [database(nrw3)], select * from 
+            [buildings as b, roads as r, points as p, 
+            natural as n] 
+            where[b:no=r:no,r:no=p:no,p:no=n:no]).
 
-evalQuery(8002, [database(nrw3)], select * from [points as r1, buildings300k as r2, roads300k as r3, roads300k as r4, buildings200k as r5] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
-evalQuery(8003, [database(nrw3)], select * from [points as r1, buildings300k as r2, roads300k as r3, roads400k as r4, buildings400k as r5] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
+evalQuery(8002, [database(nrw3)], select * from 
+            [points as r1, buildings300k as r2, roads300k as r3, 
+             roads300k as r4, buildings200k as r5] 
+             where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
+evalQuery(8003, [database(nrw3)], select * from 
+                [points as r1, buildings300k as r2, roads300k as r3, 
+                 roads400k as r4, buildings400k as r5] 
+                 where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
 
-evalQuery(8013, [database(nrw3), maEval([staticEqual(16),static(16),static(256),staticMaxDivOpCount,staticMaxDivPOG,modifiedDijkstra])], select * from [roads500k as r1, roads400k as r2, buildings400k as r3, buildings500k as r4] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r1:no>0,r2:no>0,r3:no>0]).
+evalQuery(8013, [database(nrw3), maEval([staticEqual(16),
+        static(16),static(256),staticMaxDivOpCount,staticMaxDivPOG,
+        modifiedDijkstra])], select * from [roads500k as r1, roads400k as r2,
+        buildings400k as r3, buildings500k as r4] 
+        where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r1:no>0,r2:no>0,r3:no>0]).
 
-evalQuery(8004, [database(nrw3)], select * from [roads300k as r1, roads400k as r2, roads500k as r3, roads600k as r4, roads700k as r5] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
+evalQuery(8004, [database(nrw3)], select * from 
+             [roads300k as r1, roads400k as r2, roads500k as r3, 
+              roads600k as r4, roads700k as r5] 
+              where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
 
 % 7085880 cost edge paths for 120 pog paths:
 % standard costs path count: 29160
-evalQuery(8005, [database(nrw3)], select * from [roads300k as r1, roads400k as r2, roads500k as r3, buildings300k as r4, buildings400k as r5, buildings500k as r6] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no, r5:no=r6:no]).
-evalQuery(8001, [database(nrw3)], select * from   [points as r1, buildings200k as r2, roads200k as r3, roads200k as r4, roads300k as r5] where  [r1:no=r2:no, r2:no=r3:no, r3:no=r4:no, r4:no=r5:no]).
+evalQuery(8005, [database(nrw3)], select * from [roads300k as r1, 
+         roads400k as r2, roads500k as r3, buildings300k as r4, 
+         buildings400k as r5, buildings500k as r6] 
+         where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no, r5:no=r6:no]).
+evalQuery(8001, [database(nrw3)], select * from   [points as r1,
+         buildings200k as r2, roads200k as r3, roads200k as r4, 
+         roads300k as r5] where  [r1:no=r2:no, r2:no=r3:no, 
+         r3:no=r4:no, r4:no=r5:no]).
 
 
 
 optEval :-
-	maCreateTestSels,
+  maCreateTestSels,
 
-	retractall(maUseNewTranslationRules(_)),
-	asserta(maUseNewTranslationRules(true)),
-	retractall(useCostEstimation(_)),
-	asserta(useCostEstimation(true)),
-	optEvalRun,
+  retractall(maUseNewTranslationRules(_)),
+  asserta(maUseNewTranslationRules(true)),
+  retractall(useCostEstimation(_)),
+  asserta(useCostEstimation(true)),
+  optEvalRun,
   with_output_to(atom(A1), findall(_, (
     sum(A, B, C),
     write_list([A, ' & \\numtwo{', B, '} & \\numtwo{', C, '} \\\\\n'])
     ), _)),
 
   retractall(maUseNewTranslationRules(_)),
-	asserta(maUseNewTranslationRules(false)),
+  asserta(maUseNewTranslationRules(false)),
   retractall(useCostEstimation(_)),
   asserta(useCostEstimation(true)),
   optEvalRun,
@@ -67,24 +94,24 @@ optEval :-
     sum(A, B, C),
     write_list([A, ' & \\numtwo{', B, '} & \\numtwo{', C, '} \\\\\n'])
     ), _)),
-	retractall(useCostEstimation(_)),
-	asserta(useCostEstimation(mixed)),
-	optEvalRun,
+  retractall(useCostEstimation(_)),
+  asserta(useCostEstimation(mixed)),
+  optEvalRun,
   with_output_to(atom(A3), findall(_, (
     sum(A, B, C),
     write_list([A, ' & \\numtwo{', B, '} & \\numtwo{', C, '} \\\\\n'])
     ), _)),
 
-	write_list(['\nNew Operators + CostEstimation\n', A1]),
-	write_list(['\nCostEstimation\n', A2]),
-	write_list(['\nProlog Cost predicates\n', A3]),
-	true.
+  write_list(['\nNew Operators + CostEstimation\n', A1]),
+  write_list(['\nCostEstimation\n', A2]),
+  write_list(['\nProlog Cost predicates\n', A3]),
+  true.
 
 
 optEvalRun :-
-	!,
+  !,
   retractall(sum(_, _, _)),
-	Runs=4,
+  Runs=4,
   testMAByID(2001, Runs, 4, 2), % Case 1
   testMAByID(2000, Runs, 4, 2), % Case 2
   testMAByID(2002, Runs, 4, 2), % Case 3
@@ -101,119 +128,120 @@ optEvalRun :-
 
 
 createTestFiles :-
-	testMAByID(2001, 4, 4, 2), % Case 1
-	testMAByID(2000, 4, 4, 2), % Case 2
-	testMAByID(2002, 4, 4, 2), % Case 3
-	testMAByID(2003, 4, 4, 2), % Case 4
+  testMAByID(2001, 4, 4, 2), % Case 1
+  testMAByID(2000, 4, 4, 2), % Case 2
+  testMAByID(2002, 4, 4, 2), % Case 3
+  testMAByID(2003, 4, 4, 2), % Case 4
   testMAByID(8001, 4, 4, 2), % Case 5
   testMAByID(8002, 4, 4, 2), % Case 6
   testMAByID(8005, 4, 4, 2), % Case 7
-	true.
+  true.
 
 /*
 Creates the exact selectivities for the test queries.
+
 */
 maCreateTestSels :-
-	maCreateTestSels2.
+  maCreateTestSels2.
 maCreateTestSels :-
-	!.
+  !.
 
 maCreateTestSels2 :-
-	getAllNonSampleRels(Rels),
-	databaseName(DB),
-	!,
-	member(R1, Rels),
-	member(R2, Rels),
-	showRowCounts(R1, 'count', C1),
-	showRowCounts(R2, 'count', C2),
-	downcase_atom(R1, R1DC),
-	downcase_atom(R2, R2DC),
-	Min is min(C1, C2), % for the first Min rows, ~no~ exists once in 
-											% both relations. Because of this special case, 
-											% selectivities can be easiliy computed.
-	Sel is Min / (C1*C2),
-	retractall(storedSel(DB,R1DC:no=R2DC:no, _)),
-	assertz(storedSel(DB,R1DC:no=R2DC:no, Sel)),
-	fail.
+  getAllNonSampleRels(Rels),
+  databaseName(DB),
+  !,
+  member(R1, Rels),
+  member(R2, Rels),
+  showRowCounts(R1, 'count', C1),
+  showRowCounts(R2, 'count', C2),
+  downcase_atom(R1, R1DC),
+  downcase_atom(R2, R2DC),
+  Min is min(C1, C2), % for the first Min rows, ~no~ exists once in 
+                      % both relations. Because of this special case, 
+                      % selectivities can be easiliy computed.
+  Sel is Min / (C1*C2),
+  retractall(storedSel(DB,R1DC:no=R2DC:no, _)),
+  assertz(storedSel(DB,R1DC:no=R2DC:no, Sel)),
+  fail.
 
 testMAByID(No) :-
-	testMAByID(No, 50, 10, 30).
+  testMAByID(No, 50, 10, 30).
 
 testMAByID(No, CO, CQ, Sleep) :-
   evalQuery(No, Properties, Query),
   processProperties(Properties),
-	runMATest(Properties, No, tmode(opt(CO), query(CQ), sleep(Sleep)), Query).
+  runMATest(Properties, No, tmode(opt(CO), query(CQ), sleep(Sleep)), Query).
 
 runMATest(Properties, No, TMode, Query) :-
-	%maCreateTestSels,
-	!,
-	(member(maEval(Strats), Properties) ->
-		% Test only selected strategies...
-		setMAStrategies(Strats)
-	;
-		% Test all strategies...
-		(
-			%createExtendedEvalList(TList),
-			%setMAStrategies(TList),
-			% currently i want to check only these strategies
-			TList=[staticEqual(16),static(16),static(256),
-				staticMaxDivPOG,modifiedDijkstra]
-		)
-	),
-	testStrategies(No, TMode, Query, TList, L),
+  %maCreateTestSels,
+  !,
+  (member(maEval(Strats), Properties) ->
+    % Test only selected strategies...
+    setMAStrategies(Strats)
+  ;
+    % Test all strategies...
+    (
+      %createExtendedEvalList(TList),
+      %setMAStrategies(TList),
+      % currently i want to check only these strategies
+      TList=[staticEqual(16),static(16),static(256),
+        staticMaxDivPOG,modifiedDijkstra]
+    )
+  ),
+  testStrategies(No, TMode, Query, TList, L),
 
-	delOption(memoryAllocation),
-	setOption(improvedcosts),
-	%delOption(noHashjoin),
-	sqltest(No, impcosts, TMode, Query, Atom, Costs, OptTime, ExecTime, OTimes1, 
-		QTimes1, MInfo1),
-	S=[improvedcosts, OptTime, ExecTime, Costs, Atom, OTimes1, QTimes1, MInfo1],
-	delOption(improvedcosts),
-	sqltest(No, stdcosts, TMode, Query, AtomSC, CostsSC, OptTimeSC, ExecTimeSC, 
-		OTimes2, QTimes2, MInfo2),
-	SC=[standardcosts, OptTimeSC, ExecTimeSC, CostsSC, AtomSC, OTimes2, 
+  delOption(memoryAllocation),
+  setOption(improvedcosts),
+  %delOption(noHashjoin),
+  sqltest(No, impcosts, TMode, Query, Atom, Costs, OptTime, ExecTime, OTimes1, 
+    QTimes1, MInfo1),
+  S=[improvedcosts, OptTime, ExecTime, Costs, Atom, OTimes1, QTimes1, MInfo1],
+  delOption(improvedcosts),
+  sqltest(No, stdcosts, TMode, Query, AtomSC, CostsSC, OptTimeSC, ExecTimeSC, 
+    OTimes2, QTimes2, MInfo2),
+  SC=[standardcosts, OptTimeSC, ExecTimeSC, CostsSC, AtomSC, OTimes2, 
     QTimes2, MInfo2],
-	setOption(memoryAllocation),
-	%setOption(noHashjoin),
-	append(L, [S, SC], LNew),
+  setOption(memoryAllocation),
+  %setOption(noHashjoin),
+  append(L, [S, SC], LNew),
 
   with_output_to(atom(A), processResults3(Query, LNew)),
   write(A),
-	
-	% Store results
- 	get_time(TS), 
-	convert_time(TS, Year, Month, Day, Hour, Minute, Sec, _MilliSec),
-	atomic_list_concat([Year, '-', Month, '-', Day, ' ', Hour, ':', Minute, 
-		':', Sec], DateTime),
-	atomic_list_concat(['MemoryAllocation/test/matest',No,'.log'], FileName),
+  
+  % Store results
+   get_time(TS), 
+  my_convert_time(TS, Year, Month, Day, Hour, Minute, Sec, _MilliSec),
+  atomic_list_concat([Year, '-', Month, '-', Day, ' ', Hour, ':', Minute, 
+    ':', Sec], DateTime),
+  atomic_list_concat(['MemoryAllocation/test/matest',No,'.log'], FileName),
   open(FileName, write, FD),
-	write(FD, DateTime),
-	write(FD, '\n'),
-	write(FD, Query),
-	write(FD, '\n'),
+  write(FD, DateTime),
+  write(FD, '\n'),
+  write(FD, Query),
+  write(FD, '\n'),
   write(FD, A),
   close(FD),
-	atomic_list_concat(['MemoryAllocation/test/matest',No,'.term'], FileNameT),
+  atomic_list_concat(['MemoryAllocation/test/matest',No,'.term'], FileNameT),
   open(FileNameT, write, FDT),
-	writeq(FDT, LNew),
-	write(FDT, '.'),
+  writeq(FDT, LNew),
+  write(FDT, '.'),
   close(FDT).
 
 deleteTestFile(File) :-
   atomic_list_concat(['MemoryAllocation/test/', File], FileName),
-	(exists_file(FileName) ->
-		delete_file(FileName)
-	;
-		true
-	).
+  (exists_file(FileName) ->
+    delete_file(FileName)
+  ;
+    true
+  ).
 
 ensureDirExists(No) :-
   atomic_list_concat(['MemoryAllocation/test/', No], FileName),
-	(exists_directory(FileName) ->
-		true
-	;
-		make_directory(FileName)
-	).
+  (exists_directory(FileName) ->
+    true
+  ;
+    make_directory(FileName)
+  ).
 
 appendToTestFile(File, Data) :-
   atomic_list_concat(['MemoryAllocation/test/', File], FileName),
@@ -222,56 +250,57 @@ appendToTestFile(File, Data) :-
   close(FD).
 
 processResults(Query, LNew) :-
-	% just store if later needed (manually)
-	assertz(matestTestResultList(Query, LNew)), 
+  % just store if later needed (manually)
+  assertz(matestTestResultList(Query, LNew)), 
 
-	write_list(['\nQuery: ', Query]), nl,
+  write_list(['\nQuery: ', Query]), nl,
   FH='~w~30+ &~` t~w~9+ &~` t~w~11+   &~` t~w~12+   &~w &~w &~w\n \\\\',
-  format(FH, ['Type', 'Costs', 'OptTime ms', 'ExecTime ms', 'Query', 'Query times', 'Memory']),
+  format(FH, ['Type', 'Costs', 'OptTime ms', 'ExecTime ms', 
+              'Query', 'Query times', 'Memory']),
   findall(X, (
-			member(X, LNew),
-			X=[T, OT, ET, C, A, _OTimes, QTimes, MInfo|_],
-    	F='~w~30+ &~` t~d~9+ &~` t~d~10+ &~` t~d~12+ &~w &~w &~w\\\\~n',
-			ICosts is round(C),
-    	format(F, [T, ICosts, OT, ET, A, QTimes, MInfo])
-  	), _),
-	nl.
+      member(X, LNew),
+      X=[T, OT, ET, C, A, _OTimes, QTimes, MInfo|_],
+      F='~w~30+ &~` t~d~9+ &~` t~d~10+ &~` t~d~12+ &~w &~w &~w\\\\~n',
+      ICosts is round(C),
+      format(F, [T, ICosts, OT, ET, A, QTimes, MInfo])
+    ), _),
+  nl.
 
 reprocessResults3(ID) :-
-	atomic_list_concat(['MemoryAllocation/test/matest',ID,'.term'], FileName),
-	open(FileName, read, FD),
-	read(FD, Term),
-	close(FD),
-	processResults3(_, Term).
+  atomic_list_concat(['MemoryAllocation/test/matest',ID,'.term'], FileName),
+  open(FileName, read, FD),
+  read(FD, Term),
+  close(FD),
+  processResults3(_, Term).
 
 reprocessResults4(ID) :-
-	atomic_list_concat(['MemoryAllocation/test/',ID,'.term'], FileName),
-	open(FileName, read, FD),
-	read(FD, Term),
-	close(FD),
-	processResults3(_, Term).
+  atomic_list_concat(['MemoryAllocation/test/',ID,'.term'], FileName),
+  open(FileName, read, FD),
+  read(FD, Term),
+  close(FD),
+  processResults3(_, Term).
 
 
 :- dynamic sum/3.
 addSum(Label, C, O) :-
-	\+ sum(Label, _, _),
-	assertz(sum(Label, C, O)).
+  \+ sum(Label, _, _),
+  assertz(sum(Label, C, O)).
 addSum(Label, C, O) :-
-	retract(sum(Label, C1, O1)),
-	C2 is C1+C,
-	O2 is O1+O,
-	assertz(sum(Label, C2, O2)).
+  retract(sum(Label, C1, O1)),
+  C2 is C1+C,
+  O2 is O1+O,
+  assertz(sum(Label, C2, O2)).
 
 labelToStrat(T, Strat) :-
-	Strat=staticMaxDivOpCount,
-	sub_atom(T, 0, 19, _POS, Strat),
-	!.
+  Strat=staticMaxDivOpCount,
+  sub_atom(T, 0, 19, _POS, Strat),
+  !.
 labelToStrat(T, Strat) :-
-	Strat=staticMaxDivPOG,
-	sub_atom(T, 0, 15, _POS, Strat),
-	!.
+  Strat=staticMaxDivPOG,
+  sub_atom(T, 0, 15, _POS, Strat),
+  !.
 labelToStrat(T, T) :-
-	!.
+  !.
 
 processResults3(Query, LNew) :-
   write_list(['\nQuery: ', Query]), nl,
@@ -288,15 +317,15 @@ processResults3(Query, LNew) :-
       ;
         MInfo=[MI|_]
       ),
-			labelToStrat(T, Strat),
-			addSum(Strat, C, OT),
+      labelToStrat(T, Strat),
+      addSum(Strat, C, OT),
       %DATA=[T, ICosts, OT, ET, MI],
       %format(F, DATA),
-    	F='~w~30+ &~` t~w~9+ &~` t~w~10+ &~` t~d~12+ &~w &~w \\\\~n',
-			atomic_list_concat(['\\num{', ICosts, '}'], X2),
-			atomic_list_concat(['\\num{', OT, '}'], X3),
-    	%format(F, [T, ICosts, OT, ET, A, MInfo])
-    	format(F, [T, X2, X3, ET, A, MInfo])
+      F='~w~30+ &~` t~w~9+ &~` t~w~10+ &~` t~d~12+ &~w &~w \\\\~n',
+      atomic_list_concat(['\\num{', ICosts, '}'], X2),
+      atomic_list_concat(['\\num{', OT, '}'], X3),
+      %format(F, [T, ICosts, OT, ET, A, MInfo])
+      format(F, [T, X2, X3, ET, A, MInfo])
     ), _),
   nl,
   findall(X, (
@@ -308,80 +337,80 @@ processResults3(Query, LNew) :-
   nl.
 
 latexListing(A, AL) :-
-	atom_chars(A, CharList),
-	latexTranslate(CharList, CharListL),
-	atom_chars(AL, CharListL).
-	
+  atom_chars(A, CharList),
+  latexTranslate(CharList, CharListL),
+  atom_chars(AL, CharListL).
+  
 latexTranslate([], []) :-
-	!.
+  !.
 
 latexTranslate([A|Rest], Out) :-
-	latexTranslateA(A, ACharList),
-	latexTranslate(Rest, RestCharList),
-	append(ACharList, RestCharList, Out).
+  latexTranslateA(A, ACharList),
+  latexTranslate(Rest, RestCharList),
+  append(ACharList, RestCharList, Out).
 
 latexTranslateA('{', ['\\', '{']) :-
-	!.
+  !.
 latexTranslateA('}', ['\\', '}']) :-
-	!.
+  !.
 latexTranslateA(A, [A]) :-
-	!.
-	
+  !.
+  
 testStrategies(_No, _TMode, _Query, [], []) :- 
-	!.
+  !.
 
 testStrategies(No, TMode, Query, [T|Rest], [S|SRest]) :-
-	setMAStrategies([T]),
-	sqltest(No, T, TMode, Query, Atom, Costs, OptTime, ExecTime, OTimes, QTimes, 
-		MInfo),
+  setMAStrategies([T]),
+  sqltest(No, T, TMode, Query, Atom, Costs, OptTime, ExecTime, OTimes, QTimes, 
+    MInfo),
   maResult(Label, _, _, _, _),
-	S=[Label, OptTime, ExecTime, Costs, Atom, OTimes, QTimes, MInfo],
+  S=[Label, OptTime, ExecTime, Costs, Atom, OTimes, QTimes, MInfo],
   ensure(count(maResult(_, _, _, _, _), 1)), % ensure that no more 
-	% than one strategies was tested.
-	testStrategies(No, TMode, Query, Rest, SRest).
+  % than one strategies was tested.
+  testStrategies(No, TMode, Query, Rest, SRest).
 
 sqltest(No, Name, TMode, Query, Atom, Costs, OptTime, AvgExecTime, OTimes,
-		QTimes, MInfo) :- 
-	TMode=tmode(opt(OCount), query(QCount), sleep(Sleep)),
-	defaultExceptionHandler((
-		% init warm state
-		(onlyWriteTestFiles ->
-			true
-		;
-		(QCount > 1 -> 
-			(
-				write_list(['Init warm state...\n']), 
-				mOptimize(Query, AtomW, _),
-				silentquery(Name, AtomW, _ETime),
-				write_list(['done.\n'])
-			)
-		;
-			true
-		)),
+    QTimes, MInfo) :- 
+  TMode=tmode(opt(OCount), query(QCount), sleep(Sleep)),
+  defaultExceptionHandler((
+    % init warm state
+    (onlyWriteTestFiles ->
+      true
+    ;
+    (QCount > 1 -> 
+      (
+        write_list(['Init warm state...\n']), 
+        mOptimize(Query, AtomW, _),
+        silentquery(Name, AtomW, _ETime),
+        write_list(['done.\n'])
+      )
+    ;
+      true
+    )),
 
-		% Test run
-		xcallstat(getTime(mOptimize(Query, Atom, Costs)), 0, OCount, 
-			[OptTime, _OMin, _OMax], OTimes),
-		(optimizerOption(memoryAllocation) ->
-			(
-				formulaList(F),
-				maMemoryInfo(MInfo1),
-				MInfo=[MInfo1, F]
-			)
-		;
-			MInfo=[]
-		),
-		(onlyWriteTestFiles ->
-			(
-				writeTestFile(No, Name, Atom, QCount),
-				AvgExecTime=0, 
-				QTimes=[0]
-			)
-		;
-			xcallstat(silentquery(Name, Atom), Sleep, QCount, 
-				[AvgExecTime, _QMin, _QMax], QTimes)	
-		)
-	)).
+    % Test run
+    xcallstat(getTime(mOptimize(Query, Atom, Costs)), 0, OCount, 
+      [OptTime, _OMin, _OMax], OTimes),
+    (optimizerOption(memoryAllocation) ->
+      (
+        formulaList(F),
+        maMemoryInfo(MInfo1),
+        MInfo=[MInfo1, F]
+      )
+    ;
+      MInfo=[]
+    ),
+    (onlyWriteTestFiles ->
+      (
+        writeTestFile(No, Name, Atom, QCount),
+        AvgExecTime=0, 
+        QTimes=[0]
+      )
+    ;
+      xcallstat(silentquery(Name, Atom), Sleep, QCount, 
+        [AvgExecTime, _QMin, _QMax], QTimes)  
+    )
+  )).
 
 % Allowes to test the queries with the SecondoBDB command.
 % currently it is not possible to call rmlogs during during query 
@@ -390,167 +419,171 @@ onlyWriteTestFiles.
 
 % If not interessent in any output.
 writeTestFile(No, Name, Query, QCount) :-
-	onlyWriteTestFiles,
-	%atom_concat('query ', Query, QueryText), 
-	atomic_list_concat(['query ', Query, ' feed head[0] consume'], QueryText),
-	write_list(['Exec: ', QueryText, '...\n']),
-	
-	term_to_atom(Name, NameA),
-	ensureDirExists(No),
-	atomic_list_concat([No, '/', testrun_, NameA, '.sec'], F),
-	QCountP1 is QCount+1,
-	deleteTestFile(F),
+  onlyWriteTestFiles,
+  %atom_concat('query ', Query, QueryText), 
+  atomic_list_concat(['query ', Query, ' feed head[0] consume'], QueryText),
+  write_list(['Exec: ', QueryText, '...\n']),
+  
+  term_to_atom(Name, NameA),
+  ensureDirExists(No),
+  atomic_list_concat([No, '/', testrun_, NameA, '.sec'], F),
+  QCountP1 is QCount+1,
+  deleteTestFile(F),
 
-	databaseName(DB),
-	atomic_list_concat(['open database ', DB, '\n\n'], ODB),
-	appendToTestFile(F, ODB),
+  databaseName(DB),
+  atomic_list_concat(['open database ', DB, '\n\n'], ODB),
+  appendToTestFile(F, ODB),
 
-	xcall((
-			appendToTestFile(F, QueryText),
-			appendToTestFile(F, '\n\n')
-		), 0, QCountP1, _),
+  xcall((
+      appendToTestFile(F, QueryText),
+      appendToTestFile(F, '\n\n')
+    ), 0, QCountP1, _),
 
-	% The result is not streamed, hence it can be thrown away without
-	% falsifing the result.
-	atomic_list_concat(['query SEC2COMMANDS feed sortby[CmdNr desc] head[',
-		QCount, '] project[ElapsedTime]consume \n\n'], TQ),
-	appendToTestFile(F, TQ),
+  % The result is not streamed, hence it can be thrown away without
+  % falsifing the result.
+  atomic_list_concat(['query SEC2COMMANDS feed sortby[CmdNr desc] head[',
+    QCount, '] project[ElapsedTime]consume \n\n'], TQ),
+  appendToTestFile(F, TQ),
 
-	atomic_list_concat(['query SEC2COMMANDS feed sortby[CmdNr desc] head[',
-		QCountP1, '] tail[', QCount,
-		']project[ElapsedTime]avg[ElapsedTime]\n\n'], TQ2),
-	appendToTestFile(F, TQ2),
-	!.
-	
+  atomic_list_concat(['query SEC2COMMANDS feed sortby[CmdNr desc] head[',
+    QCountP1, '] tail[', QCount,
+    ']project[ElapsedTime]avg[ElapsedTime]\n\n'], TQ2),
+  appendToTestFile(F, TQ2),
+  !.
+  
 silentquery(_Name, Query, ETimeMS) :-
-	%atom_concat('query ', Query, QueryText), 
-	atomic_list_concat(['query ', Query, ' feed head[0] consume'], QueryText),
-	write_list(['Exec: ', QueryText, '...\n']),
-	!,
-	% The result is not streamed, hence it can be thrown away without
-	% falsifing the result.
+  %atom_concat('query ', Query, QueryText), 
+  atomic_list_concat(['query ', Query, ' feed head[0] consume'], QueryText),
+  write_list(['Exec: ', QueryText, '...\n']),
+  !,
+  % The result is not streamed, hence it can be thrown away without
+  % falsifing the result.
   (once(getTime(secondo(QueryText, _Result), PTime)) ->
-		(
-			write_list(['Exec: done.\n']),
-			secondo('query SEC2COMMANDS feed sortby[CmdNr desc] head[1] project[ElapsedTime]consume', TResult),
-			TResult=[[rel, [tuple, [['ElapsedTime', real]]]], [[ETime]]],
-			ETimeMS is round(ETime * 1000),
-			write_list(['ETime in ms: ', ETimeMS, ' Prolog eval time: ', PTime, '\n'])
-		)
-	;
-		(
-			write_list(['failed: ', Query, '\n']),
-			!,
-			fail
-		)
-	).
+    (
+      write_list(['Exec: done.\n']),
+      secondo('query SEC2COMMANDS feed sortby[CmdNr \c
+desc] head[1] project[ElapsedTime]consume', TResult),
+      TResult=[[rel, [tuple, [['ElapsedTime', real]]]], [[ETime]]],
+      ETimeMS is round(ETime * 1000),
+      write_list(['ETime in ms: ', ETimeMS, ' Prolog eval time: ', PTime, '\n'])
+    )
+  ;
+    (
+      write_list(['failed: ', Query, '\n']),
+      !,
+      fail
+    )
+  ).
 
 xcallstat(_Goal, _Sleep, 0, [-1, -1, -1], []) :-
-	!.
+  !.
 
 xcallstat(Goal, Sleep, Count, [AvgExecTime, MinTime, MaxTime], Times) :-
-	Count>0,
-	!,
-	xcallAddTime(Goal, Sleep, Count, AllTimes),
-	write_list(['All times: ', AllTimes, '\n']), 
-	/*
-	(Count > 4 ->
-		(Count > 9 ->
-			(
-				remove_extreme_value(min, AllTimes, TMP1),
-				remove_extreme_value(min, TMP1, TMP2),
-				remove_extreme_value(max, TMP2, TMP3),
-				remove_extreme_value(max, TMP3, Times)
-			)
-		;
-			(
-				remove_extreme_value(min, AllTimes, TMP1),
-				remove_extreme_value(max, TMP1, Times)
-			)
-		)
-	;
-		Times=AllTimes
-	),
-	*/
-	Times=AllTimes,
-	write_list(['NTimes: ', Times, '\n']),
-	listSum(Times, TotalTime),
-	min_list(Times, MinTime),
-	max_list(Times, MaxTime),
-	length(Times, Len),
-	AvgExecTime is round(TotalTime / Len).
+  Count>0,
+  !,
+  xcallAddTime(Goal, Sleep, Count, AllTimes),
+  write_list(['All times: ', AllTimes, '\n']), 
+  /*
+  (Count > 4 ->
+    (Count > 9 ->
+      (
+        remove_extreme_value(min, AllTimes, TMP1),
+        remove_extreme_value(min, TMP1, TMP2),
+        remove_extreme_value(max, TMP2, TMP3),
+        remove_extreme_value(max, TMP3, Times)
+      )
+    ;
+      (
+        remove_extreme_value(min, AllTimes, TMP1),
+        remove_extreme_value(max, TMP1, Times)
+      )
+    )
+  ;
+    Times=AllTimes
+  ),
+  */
+  Times=AllTimes,
+  write_list(['NTimes: ', Times, '\n']),
+  listSum(Times, TotalTime),
+  min_list(Times, MinTime),
+  max_list(Times, MaxTime),
+  length(Times, Len),
+  AvgExecTime is round(TotalTime / Len).
 
 madebug :-
-	debugLevel(ma),
-	debugLevel(ma3).
+  debugLevel(ma),
+  debugLevel(ma3).
 
 
 /*
 May fail with an exception for vanished memoryValue terms.
+
+
 */
 maTestEnum :-
-	maTestEnum(select * from [orte, plz as p] where ort=p:ort).
+  maTestEnum(select * from [orte, plz as p] where ort=p:ort).
 
 maTestEnum(Query) :-
-	setStaticMemory(16),
-	sql(Query),
-	!,
-	highNode(N), 
-	enumeratePaths(Path, N, Costs), 
-	(plan(Path, Plan)-> plan_to_atom(Plan, A);true), 
-	Costs1 is floor(Costs),
-	write_list(['\n', Costs1, ' -> ', A]), 
-	fail.
+  setStaticMemory(16),
+  sql(Query),
+  !,
+  highNode(N), 
+  enumeratePaths(Path, N, Costs), 
+  (plan(Path, Plan)-> plan_to_atom(Plan, A);true), 
+  Costs1 is floor(Costs),
+  write_list(['\n', Costs1, ' -> ', A]), 
+  fail.
 
 poginfo :-
-	writeNodes,
-	writefacts(costEdge).
+  writeNodes,
+  writefacts(costEdge).
 
 /*
 Prints some information about some relation like the row count, tuplesize etc.
+
 */
 showRowCounts :-
-	% non standard prolog, but now (new secondo checkout) there is more 
-	% secondo output between the different calls. Hence, the output invoked
-	% by whis is collected and at last written to stdout.
-	with_output_to(atom(A), showRowCounts2),
-	write(A).
+  % non standard prolog, but now (new secondo checkout) there is more 
+  % secondo output between the different calls. Hence, the output invoked
+  % by whis is collected and at last written to stdout.
+  with_output_to(atom(A), showRowCounts2),
+  write(A).
 
 showRowCounts2 :-
   FH='~w~17+  ~` t~w~15+  ~` t~w~15+  ~` t~w~15+  ~` t~w~15+  ~` t~w~15+ ~n',
   format(FH, ['Rel', 'Rows', 'Tuplesize', 'ExtTupleSize', 'RootTupleSize',
-		'Data MiB']),
-	getAllNonSampleRels(Rels),
-	findall(_, (
-			%member(R, ['Buildings', 'Natural', 'Places', 'Points', 
-			%	'Railways', 'Roads', 'Waterways']),
-			member(R, Rels),
-			showRowCounts(R)
-		), _).
+    'Data MiB']),
+  getAllNonSampleRels(Rels),
+  findall(_, (
+      %member(R, ['Buildings', 'Natural', 'Places', 'Points', 
+      %  'Railways', 'Roads', 'Waterways']),
+      member(R, Rels),
+      showRowCounts(R)
+    ), _).
 
 showRowCounts(Rel) :-
-	showRowCounts(Rel, 'count', C),
-	showRowCounts(Rel, 'tuplesize', T),
-	showRowCounts(Rel, 'exttuplesize', ET),
-	showRowCounts(Rel, 'roottuplesize', RT),
-	DATAMiB is round((C*ET)/(1024**2)),
+  showRowCounts(Rel, 'count', C),
+  showRowCounts(Rel, 'tuplesize', T),
+  showRowCounts(Rel, 'exttuplesize', ET),
+  showRowCounts(Rel, 'roottuplesize', RT),
+  DATAMiB is round((C*ET)/(1024**2)),
   F='~w~17+ &~` t~d~15+ &~` t~d~15+ &~` t~d~15+ &~` t~d~15+ &~` t~d~15+ \\\\~n',
   format(F, [Rel, C, T, ET, RT, DATAMiB]),
-	!.
+  !.
 
 showRowCounts(Rel, Op, R2) :-
-	atomic_list_concat(['query ', Rel, ' ', Op], Atom),
-	secondo(Atom, [_Type, R]),
-	R2 is round(R),
-	!.
+  atomic_list_concat(['query ', Rel, ' ', Op], Atom),
+  secondo(Atom, [_Type, R]),
+  R2 is round(R),
+  !.
 
 getAllNonSampleRels(Rels) :-
-	databaseName(DB),
+  databaseName(DB),
   findall(X, (
       storedRel(DB, R, _),
       \+ sub_atom(R, _, _, _,sample),
       storedSpell(DB, R, S),
-			atomic(S), % don't care here about the lc(_) case.
+      atomic(S), % don't care here about the lc(_) case.
       upper(S, X)
     ), Rels).
 
@@ -570,11 +603,12 @@ countCostEdgePaths :-
   false.
 
 countCostEdgePaths :-
-  getCounter(cecount, C),	
-	write_list(['Path count: ', C, '\n']).
+  getCounter(cecount, C),  
+  write_list(['Path count: ', C, '\n']).
 
 /*
 The result should be the factorial of N (= !N)
+
 */
 enumeratePOGPaths(Path, N, Costs) :-
   enumeratePOGPaths([], 0, N, Path, Costs).
@@ -613,6 +647,7 @@ mod(A, B, M) :-
 
 /*
 Some facts and predicates to process my test data.
+
 */
 maTestResults([
 [2000,
@@ -693,30 +728,30 @@ maTestResults([
 ['testrun_stdcosts.sec', 967.498633]]]).
 
 maPTestResults :-
-	maTestResults(T),
-	maPTestResults2(T, V),
-	write(V),
-	V=[[_,R]|_],
-	inpercent(R, V).
-	
+  maTestResults(T),
+  maPTestResults2(T, V),
+  write(V),
+  V=[[_,R]|_],
+  inpercent(R, V).
+  
 inpercent(_R, []) :-
-	!.
+  !.
 inpercent(R, [[_,V]|X]) :-
-	T is ((R-V)/R)*100,
-	write_list(['\nT: ',T]),
-	inpercent(R, X).
+  T is ((R-V)/R)*100,
+  write_list(['\nT: ',T]),
+  inpercent(R, X).
 
 maPTestResults2([[_NO|Vals]], Vals) :-
-	!.
+  !.
 
 maPTestResults2([[_NO|Vals]|R], ValsO) :-
-	maPTestResults2(R, ValsR),
-	addVals(Vals, ValsR, ValsO).
-	
+  maPTestResults2(R, ValsR),
+  addVals(Vals, ValsR, ValsO).
+  
 addVals([], [], []).
 addVals([[L,V1]|VR1], [[_,V2]|VR2], [[L,R]|RR]) :-
-	R is V1+V2,
+  R is V1+V2,
   addVals(VR1, VR2, RR).
-	
+  
 
 % eof
