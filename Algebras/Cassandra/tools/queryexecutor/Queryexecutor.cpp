@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <map>
 #include <algorithm>
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -647,23 +648,52 @@ HeartbeatUpdater* startHeartbeatThread(string cassandraIp,
 }
 
 /*
-2.6 Main method
+2.6 Print help and exiting
 
 */
-int main(int argc, char** argv){
+void printHelpAndExit(char *progName) {
+  cerr << "Usage: " << progName 
+       << " -i <cassandra-ip> -k <keyspace> -p <secondo-port>"  << endl;
+          
+  cerr << endl;
+  cerr << "-i <IP-Address> - The cassandra node to connect to" << endl;
+  cerr << "-k <Keyspace> - The keyspace to open" << endl;
+  cerr << "-p <Port> - The SECONDO Server port to connect to" << endl;
+  exit(EXIT_FAILURE);
+}
+
+/*
+2.7 Main method
+
+*/
+int main(int argc, char* argv[]){
 
   if(argc != 4) {
-     cerr << "Usage: " << argv[0] 
-          << " <cassandra-ip> <keyspace> <secondo-port>" 
-          << endl;
-     return -1;
+     printHelpAndExit(argv[0]);
+  }
+  
+  // Parse commandline args
+  string cassandraNodeIp = "";
+  string cassandraKeyspace = "";
+  string secondoPort = "";
+  
+  int option = 0;
+  while ((option = getopt(argc, argv,"i:k:p:")) != -1) {
+     switch (option) {
+      case 'i':
+           cassandraNodeIp = string(optarg);
+           break;
+      case 'k':
+           cassandraKeyspace = string(optarg);
+           break;
+      case 'p':
+           secondoPort = string(optarg);
+           break;
+      default:
+        printHelpAndExit(argv[0]);
+     }
   }
    
-  // Parse commandline args
-  string cassandraNodeIp = string(argv[1]);
-  string cassandraKeyspace = string(argv[2]);
-  string secondoPort = string(argv[3]);
-
   string secondoHost = string("127.0.0.1");
   SecondoInterface* si = initSecondoInterface(secondoHost, secondoPort);
 
