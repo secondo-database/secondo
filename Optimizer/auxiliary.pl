@@ -66,6 +66,17 @@ my_string_to_list(L,C) :-
 my_string_to_list(L,C) :-
       string_to_list(L,C).
 
+my_convert_time(Stamp,Y,Mon,Day,Hour,Min,Sec, MilliSec) :-
+     current_predicate(stamp_date_time,3),
+     stamp_date_time(Stamp, date(Y, Mon, Day, Hour, Min, FSec,_,_,_), local),
+     Sec is integer(float_integer_part(FSec)),
+     MilliSec is integer(float_fractional_part(FSec)*1000), !.
+
+my_convert_time(Stamp,Y,Mon,Day,Hour,Min,Sec, MilliSec) :-
+  convert_time(Stamp,Y,Mon,Day,Hour,Min,Sec, MilliSec).  
+
+
+
 
 is_atomic_list([]).
 is_atomic_list([Head | Tail]) :-
@@ -1034,7 +1045,7 @@ time(Clause) :-
   (call(Clause) ; true),
   get_time(Time2),
   Time is Time2 - Time1,
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  my_convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
   MSs is Minute *60000 + Sec*1000 + MilliSec,
   write('Elapsed Time: '),
   write(MSs),
