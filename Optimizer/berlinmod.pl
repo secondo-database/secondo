@@ -44,16 +44,26 @@ Create some materialized views:
 
 % define the list of global auxiliary objects as pairs [Name,SQL_create_query]
 globalBMODauxObjects([
-  [querylicences1, select * from querylicences where id <= 10 orderby id first 10],
-  [querylicences2, select * from querylicences where id > 10  orderby id first 10],
-  [queryinstants1, select * from queryinstants where id <= 10 orderby id first 10],
-  [queryinstants2, select * from queryinstants where id > 10  orderby id first 10],
-  [querypoints1,   select * from querypoints   where id <= 10 orderby id first 10],
-  [querypoints2,   select * from querypoints   where id > 10  orderby id first 10],
-  [queryperiods1,  select * from queryperiods  where id <= 10 orderby id first 10],
-  [queryperiods2,  select * from queryperiods  where id > 10  orderby id first 10],
-  [queryregions1,  select * from queryregions  where id <= 10 orderby id first 10],
-  [queryregions2,  select * from queryregions  where id > 10  orderby id first 10]
+  [querylicences1, select * from querylicences 
+         where id <= 10 orderby id first 10],
+  [querylicences2, select * from querylicences 
+         where id > 10  orderby id first 10],
+  [queryinstants1, select * from queryinstants 
+         where id <= 10 orderby id first 10],
+  [queryinstants2, select * from queryinstants 
+         where id > 10  orderby id first 10],
+  [querypoints1,   select * from querypoints   
+         where id <= 10 orderby id first 10],
+  [querypoints2,   select * from querypoints   
+         where id > 10  orderby id first 10],
+  [queryperiods1,  select * from queryperiods  
+         where id <= 10 orderby id first 10],
+  [queryperiods2,  select * from queryperiods  
+         where id > 10  orderby id first 10],
+  [queryregions1,  select * from queryregions  
+         where id <= 10 orderby id first 10],
+  [queryregions2,  select * from queryregions  
+         where id > 10  orderby id first 10]
   ]).
 
 % create an auxiliary object ~Name~ using the optimized ~Query~. Append the
@@ -64,7 +74,8 @@ createBMODauxObject(Name, Query, S) :-
     -> ( write('## Auxiliary object: '), write(Name), write('\n'),
          write('## SQL: '), write(Query),
          write('\n## Expected Cost: '), write(Cost),
-         write('\n## Optimized Plan: let '), write(Name), write(' ='), write(Plan), write(';\n\n')
+         write('\n## Optimized Plan: let '), write(Name), write(' ='), 
+         write(Plan), write(';\n\n')
       )
     ; ( write(S, '## Auxiliary object: '), write(S, Name), write(S, '\n'),
         write(S, '## SQL: '), write(S, Query),
@@ -76,8 +87,9 @@ createBMODauxObject(Name, Query, S) :-
   ),
   ( secondoCatalogInfo(Name, _, _, _)
     -> write_list(['Object \'', Name, '\' already exists.\n\n'])
-    ;  ( write_list(['Creating Object \'', Name, '\' to continue with optimization...']),
-         concat_atom([Name, '=', Plan], ' ', Plan2),
+    ;  ( write_list(['Creating Object \'', Name, 
+         '\' to continue with optimization...']),
+         my_concat_atom([Name, '=', Plan], ' ', Plan2),
          let(Plan2),
          write_list(['finished.\n\n'])
        )
