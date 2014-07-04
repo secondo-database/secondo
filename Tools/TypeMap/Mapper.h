@@ -91,7 +91,7 @@ If no operator is found, an empty list is returned.
 
 
 /*
-1.5 Function ~typemape~
+1.5 Function ~typemap~
 
 This function performs the typemap for a given operator signature 
 and current values for the types. Note that the operator signature 
@@ -122,38 +122,28 @@ nl list storage. The result is created using the standard nl list storage.
 
 
 /*
-Function ~tmInput~
+Function ~tmInput~:
 
-----    tmInput(PredicateInput, SignatureArgs)
-          return bool
-----
-
-This function returns true, if a predicate is found included a nested list . It writes out the resulted nested list. 
+This function returns true, if a predicate is found in the input, followed by a nested list. It writes out the resulted nested list or in case of the ~typemap~ predicate the different lists of the parts of typemapping. In this case also the ~SignatureArgs~ of an operator are included.
 
 */
     bool tmInput(string sigInput, ListExpr sigArgs);
 
 
-/*
-Function ~matches~
 
-----    matches(CurrentArgTypes, SigArgTypes)
-          return Bindings
-----
-  
-The list of argument types ~CurrentArgTypes~ matches the list of argument type specifications ~SigArgTypes~ with the bindings ~Bindings~.
+/*
+Function ~matches~:
+
+The list of argument types ~CurrentArgTypes~ matches the list of argument type specifications ~SigArgTypes~ with the bindings ~Bindings~. The function returns Bindings.
   
 */
     ListExpr matches(ListExpr mList);
     ListExpr matches2(ListExpr mList2);
 
 
-/*
-Function ~element~
 
-----    element(I, Type)
-          return (Type2)
-----
+/*
+Function ~element~:
 
 Within nested list ~Type~ rewrite every occurrence of (lvar, Tc, N) into (var, Tc, (N, I)) and return this as ~Type2~.
 
@@ -161,12 +151,9 @@ Within nested list ~Type~ rewrite every occurrence of (lvar, Tc, N) into (var, T
     ListExpr element(ListExpr elemList);
 
 
-/*
-Function ~consistent~
 
-----    consistent(B1, B2)
-          return Bindings
-----
+/*
+Function ~consistent~:
 
 Two lists of bindings ~B1~ and ~B2~ are consistent, if their sets of variables are disjoint or for equal variables they have the same values. The joint bindings are returned in ~Bindings~.
   
@@ -174,27 +161,19 @@ Two lists of bindings ~B1~ and ~B2~ are consistent, if their sets of variables a
     ListExpr consistent(ListExpr B1, ListExpr B2);
 
 
+
 /*
-Function ~conflict~
+Function ~conflict~:
 
-----    conflict(B1, B2)
-          return bool
-----
-
-Two bindings ~B1~ and ~B2~ are in conflict if they have the same variable but different values.
+Two bindings ~B1~ and ~B2~ are in conflict if they have the same variable but different values. The function returns true if a conflict is given, false otherwise.
   
 */
     bool conflict(ListExpr B1, ListExpr B2);
 
 
-/*
-Function ~evalPreds~
 
-Evaluation of Predicates
-  
-----    evalPreds(Preds, Bindings)
-          return Bindings2
-----
+/*
+Function ~evalPreds~:
   
 Evaluate predicates ~Preds~ based on ~Bindings~, resulting in new ~Bindings2~.
   
@@ -203,140 +182,108 @@ Evaluate predicates ~Preds~ based on ~Bindings~, resulting in new ~Bindings2~.
     ListExpr evalPred(ListExpr ePList);
 
 
+
 /*
-Function ~isAttr~
+Function ~isAttr~:
 
-----    isAttr(Attr, List)
-          return (Type), (Number)
-----
-
-This function returns the Type (e.g. string) and the Number of given attribute. If the given attribute is not found in the list, an error is printed out. 
+This function returns the ~Type~ (e.g. string) and the ~Number~ of a given attribute ~Attr~. If the given attribute is not found in the ~List~, an error is printed out. 
 
 */  
     ListExpr isAttr(ListExpr attrList);
     ListExpr isAttr2(ListExpr attrList2);
 
 
+
 /*
-Function ~attrs~
+Function ~attrs~:
 
-----    attrs(Ident, Attrs, "Types", "Numbers")
-          return (Types), (Numbers)
-----
-
-This function returns a nested list of Types (e.g. string) and a nested list of Numbers.
+This function returns a nested list of ~Types~ (e.g. string) and a nested list of ~Numbers~ of the position in the attributlist from a list of given attributes with ~Ident~ and ~Attrs~. It consults the function ~isAttr~.
 
 */  
     ListExpr attrs(ListExpr attrsList);
 
 
+
 /*
-Function ~combine~
+Function ~combine~:
 
-----    combine(Ident, Types)
-          return (Attrs)
-----
-
-This function returns a nested list of Attributes (e.g. (kennzeichen string)).
+This function returns a nested list of attributes ~Attrs~ (e.g. (kennzeichen string)) from two nested lists ~Idents~ and ~Types~.
 
 */  
     ListExpr combine(ListExpr combList);
 
 
+
 /*
-Function ~attrNames~
+Function ~attrNames~:
 
-----    attrNames(Attrs)
-          return Names
-----
-
-This function returns a nested list of the attribute names.
+This function returns a nested list ~Names~ of the attribute names from a nested list ~Attrs~.
 
 */
     ListExpr attrNames(ListExpr attrNList);
 
 
+
 /*
-Function ~checkMember~
+Function ~checkMember~:
 
-----    checkMember(Name, Names)
-          return bool
-----
-
-This function returns false if a given name of an attribute equals not a member name in the rest of list. It returns true otherwise and an error is yield.
+This function returns false if a given ~Name~ of an attribute equals not a member name in the rest of list ~Names~. It returns true otherwise and an error is yield.
 
 */
     bool checkMember(ListExpr cMList);
 
 
+
 /*
-Function ~distinctList~
+Function ~distinctList~:
 
-----    distinctList(Names)
-          return bool
-----
-
-This function returns true if a list has distincted names as elements and false otherwise.
+This function returns true if a list of ~Names~ has distincted names as elements and false otherwise.
 
 */
     bool distinctList(ListExpr distLList);
 
 
+
 /*
-Function ~distinctAttrs~
+Function ~distinctAttrs~:
 
-----    distinctAttrs(Attrs)
-          return bool
-----
-
-This function returns true if the attributes are distincted and false otherwise.
+This function returns true if the attributes ~Attrs~ are distincted and false otherwise.
 
 */
     bool distinctAttrs(ListExpr distAList);
 
 
+
 /*
-Function ~bound~
+Function ~bound~:
 
-Handling Bindings
-
-----    bound(Bindings, (var, Tc, No))
-        bound(Bindings, (lvar, Tc, No))
-
-          return Bound
-----
-  
-The first version finds a binding for a given variable if it exists. The second version is used for list variables. For them, all bindings of the form (Tc, (No, i), X\_i) will be collected into a list (X\_1, ..., X\_n) and be returned in ~Bound~. 
+Handling Bindings: The first version ~(Bindings, (var, Tc, No))~ finds a binding for a given variable if it exists. The second version ~(Bindings, (lvar, Tc, No))~ is used for list variables. For them, all bindings of the form (Tc, (No, i), X\_i) will be collected into a list (X\_1, ..., X\_n) and be returned in ~Bound~. 
   
 */
     ListExpr bound(ListExpr boList);
     ListExpr bound2(ListExpr boList2);
 
 
+
 /*
-Function ~addBinding~
+Function ~addBinding~:
 
-----    addBinding(Bindings, (var, Tc, N), Type)
-          return Bindings2
-----
-
-This function adds a variable to the bindings.
+This function adds a variable to the ~Bindings~, resulting in new ~Bindings2~.
 
 */
     ListExpr addBinding(ListExpr aBList);
 
 
+
 /*
-Apply: Computing the Result Type
+Function ~apply~:
 
-----	apply(Res, Bindings)
-          return ResType
-----
-
-Applying the ~Bindings~ to the result type specification ~Res~ yields the result type ~ResType~.
+Computing the Result Type: Applying the ~Bindings~ to the result type specification ~Res~ yields the result type ~ResType~.
 
 */
     ListExpr apply(ListExpr aList);
+
+
 
 
 
