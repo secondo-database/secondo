@@ -44,6 +44,9 @@ the output format used by SecondoTTY.
 
 */
 
+my_concat_atom([A,B],C) :- !,  
+       current_predicate(atomic_list_concat/2), 
+       atom_concat(A,B,C).
 my_concat_atom(X,Y) :- 
       current_predicate(atomic_list_concat/2), 
       atomic_list_concat(X,Y),!.
@@ -85,7 +88,9 @@ my_convert_time(Stamp,Y,Mon,Day,Hour,Min,Sec, MilliSec) :-
   current_predicate(convert_time/8),
   convert_time(Stamp,Y,Mon,Day,Hour,Min,Sec, MilliSec).  
 
-
+my_list_to_set(L,S) :-
+  is_list(L),
+  list_to_set(L,S).
 
 
 is_atomic_list([]).
