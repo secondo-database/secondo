@@ -9519,8 +9519,8 @@ sqlToPlan(QueryText, ResultText) :-
                       ; ErrorTerm = (_::Message)
                     )
                   )
-                  -> my_concat_atom(['Internal ERROR (usually a problem with'
-                            ' the ', 'knowledge base):\n',Message],'',
+                  -> my_concat_atom(['Internal ERROR (usually a problem with\c
+                             the ', 'knowledge base):\n',Message],'',
                                   MessageToSend)
                   %% all other exceptions:
                   ;  my_concat_atom(['Unclassified ERROR (usually a bug):\n',

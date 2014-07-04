@@ -62,9 +62,9 @@ October 2009, Mahmoud Sakr. Initial Version
 validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes):-
   ( (integer(K), K >0 )
     -> true
-    ; ( write_list(['\nERROR:\tThe second parameter (k) in the'
-                    ' iskNN predicate is expected to be an Integer'
-                    ' > 0\n but got: ', K], ErrMsg),
+    ; ( write_list(['\nERROR:\tThe second parameter (k) in the\c
+                     iskNN predicate is expected to be an Integer\c
+                     > 0\n but got: ', K], ErrMsg),
         throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject,
                            Rel, MPointAttr, IDAttr, 
                            RebuildIndexes)::malformedExpression::ErrMsg)),
@@ -73,9 +73,9 @@ validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes):-
   ),
   ( QueryObject= dbobject(QueryObj)
     -> true
-    ; ( write_list(['\nERROR:\tThe third parameter (QueryObject) in '
-                    'the iskNN predicate is expected to be a database '
-                    'object\n but got: ', QueryObject], ErrMsg),
+    ; ( write_list(['\nERROR:\tThe third parameter (QueryObject) in \c 
+                    the iskNN predicate is expected to be a database \c
+                    object\n but got: ', QueryObject], ErrMsg),
         throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject, 
                              Rel, MPointAttr, IDAttr, 
                             RebuildIndexes)::malformedExpression::ErrMsg)),
@@ -83,9 +83,9 @@ validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes):-
       )
   ),
   ( memberchk(RebuildIndexes, [0, 1])
-    ; ( write_list(['\nERROR:\tThe last parameter (RebuildIndexes) '
-                    'in the iskNN predicate is expected to be 0 '
-                    'or 1\n but got: ', RebuildIndexes], ErrMsg),
+    ; ( write_list(['\nERROR:\tThe last parameter (RebuildIndexes) \c
+                    in the iskNN predicate is expected to be 0 \c
+                    or 1\n but got: ', RebuildIndexes], ErrMsg),
         throw(error_Internal(optimizer_validate_isknn_input(K, QueryObject, 
                  Rel, MPointAttr, IDAttr, 
                  RebuildIndexes)::malformedExpression::ErrMsg)),
@@ -102,10 +102,10 @@ validate_isknn_input(K, QueryObject, Rel, MPointAttr, IDAttr, RebuildIndexes):-
     )
     ;
     (
-      write_list(['\nERROR:\tThe 4th, 5th, and 6th parameters '
-                  '(Relation, Attribute, and IDAttribute ) in the iskNN'
-                  ' predicate are expected to refer to exisiting Relation '
-                  'and Attribute names\n but got: ',
+      write_list(['\nERROR:\tThe 4th, 5th, and 6th parameters\c 
+                  (Relation, Attribute, and IDAttribute ) in the iskNN\c
+                   predicate are expected to refer to exisiting Relation \c
+                  and Attribute names\n but got: ',
       Rel, ", ", MPointAttr, ", and ", IDAttr], ErrMsg),
       throw(error_Internal(optimizer_validate_isknn_input(K, 
                      QueryObject, Rel, MPointAttr, IDAttr, 
