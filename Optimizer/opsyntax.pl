@@ -114,6 +114,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xf , rect2region).
 :- op(800, xf , relcount).
 :- op(800, xf , relcount2).
+:- op(800, xfx, rewrite).
 :- op(800, xfx, satisfies).
 :- op(800, xfx, simpleequals).
 :- op(800, xfx, starts).
@@ -484,6 +485,7 @@ secondoOp( relcount2,         postfix, 1).
 secondoOp( remove,            postfixbrackets, 1).
 secondoOp( renamecluster,     postfixbrackets, 1).
 secondoOp( restrict,          prefix, 1).
+secondoOp( rewrite,           prefix, 2).
 secondoOp( rightrange,        postfixbrackets, 2).
 secondoOp( rightrangeS,       postfixbrackets, 1).
 secondoOp( rng_binomial,      prefix, 2).

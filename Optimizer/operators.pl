@@ -2713,6 +2713,9 @@ opSignature(filtermatches, symbolictrajectory,
   memberchk(P, [pattern, text]),
   memberchk([Attrname, mlabel], Attrlist), !.
 
+opSignature(rewrite, symbolictrajectory, [mlabel, P], [stream, [mlabel]], []) :-
+  memberchk(P, [pattern, text]), !.
+  
 /*
 2.7.2 (Still) Missing Algebras
 
