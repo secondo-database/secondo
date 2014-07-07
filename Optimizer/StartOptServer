@@ -78,7 +78,12 @@ fi
 
 LIB_PATH=.
 if [ "$JPL_DLL" != "" ]; then
-LIB_PATH=$PL_DLL_DIR:$LIB_PATH
+  if [ -n "$PL_DLL_DIR" ]; then
+     LIB_PATH=$PL_DLL_DIR:$LIB_PATH
+  elif [ -n "$PL_LIB_DIR" ]; then
+     LIB_PATH=$PL_LIB_DIR:$LIB_PATH
+  fi
+
 fi
 
 OLD_HOST=$SECONDO_HOST
