@@ -10066,7 +10066,7 @@ void Region::TouchPoints( const Region& r, Points& result,
       }
     }
   }
-  result.EndBulkLoad( true, false );
+  result.EndBulkLoad( true);
 }
 
 void Region::CommonBorder( const Region& r, Line& result,
