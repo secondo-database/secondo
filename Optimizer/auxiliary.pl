@@ -92,6 +92,13 @@ my_list_to_set(L,S) :-
   is_list(L),
   list_to_set(L,S).
 
+sformat(X,Y,Z) :-
+  current_predicate(format/3),!,
+  format(string(X),Y,Z).
+
+
+
+
 
 is_atomic_list([]).
 is_atomic_list([Head | Tail]) :-
