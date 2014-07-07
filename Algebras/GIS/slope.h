@@ -39,8 +39,9 @@ namespace GISAlgebra
           { 
             name      = "slope";
             signature = "sType x double -> sType";
+            appendSignature("tType x double -> stream(tType)");
             syntax    = "slope(_,_)";
-            meaning   = "Creates slope raster";
+            meaning   = "Creates slope for raster or tile";
            }              
         };
 }
