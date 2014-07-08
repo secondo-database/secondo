@@ -9,9 +9,9 @@ import java.awt.*;
 import tools.Reporter;
 
 /**
- * This class displays mlabel objects.
+ * This class displays mplace objects.
  */
-public class Dsplmlabel extends DsplGeneric {
+public class Dsplmplace extends DsplGeneric {
 
   public void init(String name, int nameWidth, int indent, ListExpr type,
                    ListExpr value, QueryResult qr) {
@@ -24,12 +24,12 @@ public class Dsplmlabel extends DsplGeneric {
       qr.addEntry(T + " :");
       while (!value.isEmpty()) {
         if (!value.first().isEmpty()) { // unit
-          if (value.first().listLength() == 2) { // (interval label)
+          if (value.first().listLength() == 2) { // (interval place)
             Interval iv = LEUtils.readInterval(value.first().first());
             String startStr = SymbolicValues.intervalStartToString(iv);
-            String labelStr = SymbolicValues.labelToString(
+            String placeStr = SymbolicValues.placeToString(
                                                         value.first().second());
-            qr.addEntry(startStr + "    " + labelStr);
+            qr.addEntry(startStr + "    " + placeStr);
             qr.addEntry(SymbolicValues.intervalEndToString(iv));
           }
         }
