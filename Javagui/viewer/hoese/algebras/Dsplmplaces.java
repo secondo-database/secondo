@@ -30,8 +30,9 @@ public class Dsplmplaces extends DsplGeneric {
             String placesStr = SymbolicValues.placesToString(
                                                         value.first().second());
             qr.addEntry(startStr + "    " + placesStr);
-            qr.addEntry(SymbolicValues.intervalEndToString(iv));
-          }
+            if (!SymbolicValues.areIntervalsAdjacent(iv, value.rest())) {
+              qr.addEntry(SymbolicValues.intervalEndToString(iv));
+            }          }
         }
         value = value.rest();
       }

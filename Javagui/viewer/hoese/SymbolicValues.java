@@ -31,6 +31,22 @@ public class SymbolicValues {
   }
   
   /**
+   * Returns true iff an interval is adjacent to another.
+   */
+  public static boolean areIntervalsAdjacent(Interval iv1, ListExpr value) {
+    if (value.isEmpty()) { // last unit
+      return false;
+    }
+    if (value.first().listLength() == 2) {
+      Interval iv2 = LEUtils.readInterval(value.first().first());
+      if (iv1.getEnd() == iv2.getStart()) {
+        return (iv1.isRightclosed() != iv2.isLeftclosed());
+      }
+    }
+    return false;
+  }
+  
+  /**
    * Takes an interval and returns its end instant as a string, starting only
    * at the time detail that differs from the start instant. In the non-standard
    * case, the rightclosed indicator is appended.
@@ -48,10 +64,11 @@ public class SymbolicValues {
         result += " ";
       }
       else { // first inequality
-        while ((startStr.charAt(pos) >= '0') && (startStr.charAt(pos) <= '9')) {
+        while ((pos >= 0) && (startStr.charAt(pos) >= '0') && 
+               (startStr.charAt(pos) <= '9')) {
           pos--;
         }
-        result = result.substring(0, pos + 1);
+        result = (pos >= 0 ? result.substring(0, pos + 1) : "");
         print = true;
       }
     }

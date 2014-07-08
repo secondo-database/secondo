@@ -30,7 +30,9 @@ public class Dsplmlabel extends DsplGeneric {
             String labelStr = SymbolicValues.labelToString(
                                                         value.first().second());
             qr.addEntry(startStr + "    " + labelStr);
-            qr.addEntry(SymbolicValues.intervalEndToString(iv));
+            if (!SymbolicValues.areIntervalsAdjacent(iv, value.rest())) {
+              qr.addEntry(SymbolicValues.intervalEndToString(iv));
+            }
           }
         }
         value = value.rest();
