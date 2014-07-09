@@ -29,11 +29,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
 [1] Loadgenerator. This programm generates CSV data and send it 
-over a network socket. A sample line:
+to a network socket. A sample line looks like:
 
 gEpYm0eUDk,fAgVgUHWPo,bClSVK17HX,ixjXTTW7yh,qdsU8WzP1O,
 CcZw52F47W,bpRKKsoq0m,YoNOJWsGtt,c5U92XBHbG,kA5CUO4GE2
 
+You can specify the number of lines to be send and parameter
+like delay, number of columns or the size of a column.
 */
 
 /* 
@@ -41,18 +43,16 @@ CcZw52F47W,bpRKKsoq0m,YoNOJWsGtt,c5U92XBHbG,kA5CUO4GE2
 
 */
 #include <iostream>
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-#include <netdb.h>
-#include <boost/concept_check.hpp>
 
 /* 
 1.1 Defines
@@ -120,7 +120,9 @@ void fillBuffer(string &result, int columns, int sizePerColumn) {
       "0123456789"
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
       "abcdefghijlkmnopqrstuvwxyz";
-      
+     
+  result.clear();
+ 
   for(int i = 0; i < columns; i++) {
      
      if(i != 0) {
@@ -184,7 +186,7 @@ int main(int argc, char* argv[]) {
         printUsageAndExit(argv[0]);
      } 
    }
-   
+ 
    // Initalize Rand
    srand (time(NULL));
   
@@ -233,7 +235,7 @@ int main(int argc, char* argv[]) {
    int fivePercents = max(((int) ((lines / 100.0) * 5.0)), 1);
    
    // Write lines to server
-   for(int i = 0; i < lines; i++) {
+   for(int i = 0; i < lines; ++i) {
       fillBuffer(buffer, columns, sizePerColumn);
       write(socketfd, buffer.c_str(), buffer.length());
    
