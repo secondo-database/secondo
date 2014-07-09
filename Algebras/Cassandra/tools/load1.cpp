@@ -49,6 +49,7 @@ CcZw52F47W,bpRKKsoq0m,YoNOJWsGtt,c5U92XBHbG,kA5CUO4GE2
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <boost/concept_check.hpp>
@@ -62,6 +63,31 @@ CcZw52F47W,bpRKKsoq0m,YoNOJWsGtt,c5U92XBHbG,kA5CUO4GE2
 #define ACK "\006"
 
 using namespace std;
+
+/*
+2.0 Timer Class
+
+*/
+class Timer {
+  
+public:
+  void start() {
+     gettimeofday(&startTime, NULL);
+  }
+  
+  long long getDiff() {
+      struct timeval stopTime;
+      gettimeofday(&stopTime, NULL);
+      
+      return ((stopTime.tv_sec - startTime.tv_sec) * 1000000L 
+            + stopTime.tv_usec) - startTime.tv_usec;
+  }
+  
+  
+  
+private: 
+  struct timeval startTime;
+};
 
 /*
 2.1 print usage fuction
@@ -199,6 +225,9 @@ int main(int argc, char* argv[]) {
       return -1;
    }
  
+   Timer timer;
+   timer.start();
+   
    // Calculate progess (i)
    cout << "Writing: ";
    int fivePercents = max(((int) ((lines / 100.0) * 5.0)), 1);
@@ -214,10 +243,14 @@ int main(int argc, char* argv[]) {
          cout << flush;
       }
       
-      usleep(delay * 1000);
+      if(delay != 0) {
+        usleep(delay * 1000);
+      }
    }
    
    cout << endl;
+   
+   cout << "Total execution time (ms): " << timer.getDiff() / 1000 << endl;
    
    // Send EOT (End of Transmission)
    write(socketfd, EOT, sizeof(char));
