@@ -27,13 +27,13 @@ done
 echo -e "\n\n\n\n\n"
 
 echo "Wait for cassandra nodes to become ready...."
-sleep 5
+sleep 10
 
 # Wait for cassandra nodes
 while [ true ]; do
  
  ring=$($cassandradir/bin/nodetool ring)
- $cassandradir/bin/nodetool ring
+ $cassandradir/bin/nodetool ring 
 
  if [ $(echo $ring | grep Down | wc -l) -eq 0 ]; then
     break
@@ -69,3 +69,4 @@ stop)
 esac
 
 exit 0
+
