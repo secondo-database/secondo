@@ -553,6 +553,7 @@ public:
   RRDataScheduler(vector<TargetServer*>* myServerList) {
     serverList = myServerList;
     lastServer = 0;
+    ignoresLines = 0;
   }
   
   ~RRDataScheduler() {
