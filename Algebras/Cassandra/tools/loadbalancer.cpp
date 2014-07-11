@@ -553,11 +553,11 @@ public:
   RRDataScheduler(vector<TargetServer*>* myServerList) {
     serverList = myServerList;
     lastServer = 0;
-    ignoresLines = 0;
+    ignoredLines = 0;
   }
   
   ~RRDataScheduler() {
-    cout << "Ignored lines: " << ignoresLines << endl;
+    cout << "Ignored lines: " << ignoredLines << endl;
   }
   
   virtual void sendData(string data) {
@@ -577,25 +577,21 @@ public:
       return;
     }
     
-    // No target server known?
-    if(serverList -> empty()) {
-      cout << "Server list is empty, ignore data" << endl;
-      return;
-    }
-    
     TargetServer* ts = getTargetServer();
     
-    if(ts != NULL) {
-      #ifdef LB_DEBUG
-       cout << "DataScheduler: got " << data << " to " << ts -> getHostname() 
-         << ":" << ts -> getPort() << endl;
-      #endif
-      ts -> sendData(data);
-    } else {
+    // No target server known?
+    if(serverList -> empty() || ts == NULL) {
         cout << "Could not find a ready server, IGNORING DATA:" << endl;
-        ++ignoresLines;
-        cout << data << endl;
+        ++ignoredLines;
+        return;
     }
+    
+    #ifdef LB_DEBUG
+      cout << "DataScheduler: got " << data << " to " << ts -> getHostname() 
+        << ":" << ts -> getPort() << endl;
+    #endif
+        
+    ts -> sendData(data);
   }
   
 protected:
@@ -605,6 +601,11 @@ protected:
     
     TargetServer* ts;
     int tryCount = 0;
+    
+    // Serverlist is emptry
+    if(serverList->empty()) {
+      return NULL;
+    }
     
     // Find next ready server
     do {
@@ -626,7 +627,7 @@ protected:
   
   vector<TargetServer*>* serverList;
   size_t lastServer;
-  size_t ignoresLines;
+  size_t ignoredLines;
 };
 
 
