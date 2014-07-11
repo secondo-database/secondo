@@ -604,9 +604,9 @@ public:
           ++ignoredLines;
           return;
         }
-#ifdef LB_DEBUG        
-        cout << "[Debug] Wait no destination server is ready" << endl;
-#endif        
+   
+        cout << "[Warn] Wait no destination server is ready" << endl;
+
         usleep(1000);
       }
       
