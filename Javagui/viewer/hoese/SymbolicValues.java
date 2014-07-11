@@ -48,7 +48,7 @@ public class SymbolicValues {
    * indicator is prepended.
    */
   public static String intervalStartToString(Interval iv) {
-    String result = "";
+    String result = " ";
     if (!iv.isLeftclosed() || iv.isRightclosed()) {// non-standard
       result += (iv.isLeftclosed() ? "[" : "(");
     }
@@ -103,7 +103,7 @@ public class SymbolicValues {
     if (!iv.isLeftclosed() || iv.isRightclosed()) {// non-standard
       result += (iv.isRightclosed() ? "]" : ")");
     }
-    return " " + result;
+    return "  " + result;
   }
   
   public static String labelToString(ListExpr label) {
