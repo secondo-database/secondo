@@ -68,9 +68,23 @@ lbtrr = Load based thraded round robin
 using namespace std;
 
 #define LB_DEBUG
-
 #define QUEUESIZE 5000
 
+
+// Prototype
+class TargetServer;
+
+/*
+2.1 Configuration struct
+
+*/
+struct LBConfiguration {
+  string mode;
+  int listenPort;
+  vector<TargetServer*> serverList;
+  string programName;
+  bool reliable;
+};
 
 /* 
 3 Class - Generic DataScheduler, sendData must been overwriten in subclasses
@@ -550,10 +564,10 @@ class RRDataScheduler : public DataScheduler {
  
 public:
   
-  RRDataScheduler(vector<TargetServer*>* myServerList) {
-    serverList = myServerList;
-    lastServer = 0;
-    ignoredLines = 0;
+  RRDataScheduler(LBConfiguration &myConfiguration) 
+    : configuration(myConfiguration), lastServer(0), ignoredLines(0) {
+      
+    serverList = &(configuration.serverList);
   }
   
   ~RRDataScheduler() {
@@ -561,35 +575,47 @@ public:
   }
   
   virtual void sendData(string data) {
-        
-    // End of Transmission?
-    if(data.compare("\004") == 0) {
-      cout << "Got EOT, send EOT to all Threads" << endl;
       
-      // Send EOT to all Threads
-      for(vector<TargetServer*>::iterator iter = serverList->begin(); 
-          iter != serverList->end(); ++iter) {
-   
-         TargetServer* ts = *iter;
-         ts -> sendData(data);
+    TargetServer* ts = NULL;
+    
+    do {
+      // End of Transmission?
+      if(data.compare("\004") == 0) {
+        cout << "Got EOT, send EOT to all Threads" << endl;
+        
+        // Send EOT to all Threads
+        for(vector<TargetServer*>::iterator iter = serverList->begin(); 
+            iter != serverList->end(); ++iter) {
+    
+          TargetServer* ts = *iter;
+          ts -> sendData(data);
+        }
+        
+        return;
       }
       
-      return;
-    }
+      ts = getTargetServer();
+      
+      // No target server known?
+      if(serverList -> empty() || ts == NULL) {
+        
+        if(configuration.reliable == false) {
+          cout << "Could not find a ready server, IGNORING DATA:" << endl;
+          ++ignoredLines;
+          return;
+        }
+#ifdef LB_DEBUG        
+        cout << "[Debug] Wait no destination server is ready" << endl;
+#endif        
+        usleep(1000);
+      }
+      
+    } while(ts == NULL);
     
-    TargetServer* ts = getTargetServer();
-    
-    // No target server known?
-    if(serverList -> empty() || ts == NULL) {
-        cout << "Could not find a ready server, IGNORING DATA:" << endl;
-        ++ignoredLines;
-        return;
-    }
-    
-    #ifdef LB_DEBUG
+#ifdef LB_DEBUG
       cout << "DataScheduler: got " << data << " to " << ts -> getHostname() 
-        << ":" << ts -> getPort() << endl;
-    #endif
+           << ":" << ts -> getPort() << endl;
+ #endif
         
     ts -> sendData(data);
   }
@@ -625,6 +651,7 @@ protected:
     return ts;
   }
   
+  LBConfiguration configuration;
   vector<TargetServer*>* serverList;
   size_t lastServer;
   size_t ignoredLines;
@@ -640,8 +667,8 @@ the shortest queue
 class QBDataScheduler : public RRDataScheduler {
   
 public:
-    QBDataScheduler(vector<TargetServer*>* myServerList) 
-      : RRDataScheduler(myServerList) {
+    QBDataScheduler(LBConfiguration &configuration) 
+      : RRDataScheduler(configuration) {
     }
 
 protected:
@@ -700,9 +727,9 @@ void* startThreadedTargerServer(void *ptr) {
 
 
 */
-void printHelpAndExit(char* progName) {
+void printHelpAndExit(string &progName) {
   cerr << "Usage: " << progName 
-       << " -p <ListenPort> -m <Mode> -s <ServerList>" << endl;
+       << " -p <ListenPort> -m <Mode> -s <ServerList> -r {true|false}" << endl;
   cerr << endl;
   cerr << "Where <Mode> is rr, trr, lbtrr-n or qbts:" << endl;
   cerr << "rr      = round robin" << endl;
@@ -712,11 +739,15 @@ void printHelpAndExit(char* progName) {
   cerr << "            (e.g. lbtrr-10)" << endl;
   cerr << "qbts    = Queue based threaded scheduling" << endl;
   cerr << endl;
+  cerr << "-r = Reliable Data processing: " << endl;
+  cerr << "     false: discard lines when all queues are full" << endl;
+  cerr << "     true:  process every line. Slow down the reader if needed" 
+       << endl;
+  cerr << endl;
   cerr << "Example: " << progName << " -p 10000 -m rr -s 192.168.1.1:10001 " 
-       << "-s 192.168.1.2:10001 -s 192.168.1.3:10001" << endl;
+       << "-s 192.168.1.2:10001 -s 192.168.1.3:10001 -r true" << endl;
   cerr << endl;
   exit(EXIT_FAILURE);
-
 }
 
 /* 
@@ -724,7 +755,10 @@ void printHelpAndExit(char* progName) {
 
 
 */
-void destroyServerList(vector<TargetServer*>* serverList) {
+void destroyServerList(LBConfiguration &configuration) {
+  
+  vector<TargetServer*>* serverList = &(configuration.serverList);
+  
   for(vector<TargetServer*>::iterator iter = serverList->begin(); 
       iter != serverList->end(); ++iter) {
     
@@ -743,9 +777,10 @@ void destroyServerList(vector<TargetServer*>* serverList) {
 
 
 */
-bool parseServerList(char* argument, string mode,
-           vector<TargetServer*>* serverList) {
+bool parseServerList(char* argument, LBConfiguration &configuration) {
   
+     string mode = configuration.mode;
+     
      cout << "Processing : " << mode << endl;
      TargetServer* ts;
      
@@ -768,7 +803,7 @@ bool parseServerList(char* argument, string mode,
        cout << "[Error] unable to open connection to: " << argument
              << " ignoring target server" << endl;
      } else {
-        serverList->push_back(ts);
+        configuration.serverList.push_back(ts);
      }
    
    return true;
@@ -778,37 +813,38 @@ bool parseServerList(char* argument, string mode,
 17 Start a threaded loadbalancer
 
 */
-void startThreadedServer(string &mode, vector<TargetServer*> &serverList, 
-          char *argv[], int listenPort) {
+void startThreadedServer(LBConfiguration &configuration) {
   
   DataScheduler* dataScheduler;
+  string mode = configuration.mode;
+  vector<TargetServer*>* serverList = &(configuration.serverList);
   
   if((mode.compare("trr") == 0)) {
     cout << "Mode is threaded round robin" << endl;
-    dataScheduler = new RRDataScheduler(&serverList);
+    dataScheduler = new RRDataScheduler(configuration);
   } else if(mode.compare("qbts") == 0) {
      cout << "Mode is queue based threaded scheduling" << endl;
-     dataScheduler = new QBDataScheduler(&serverList);
+     dataScheduler = new QBDataScheduler(configuration);
   } else {
        
     if(mode.length() <= 5) {
        cout << "Missing acknowledge after value" << endl;
-       printHelpAndExit(argv[0]);
+       printHelpAndExit(configuration.programName);
        exit(EXIT_FAILURE);
     }
     
-    dataScheduler = new RRDataScheduler(&serverList);   
+    dataScheduler = new RRDataScheduler(configuration);   
     cout << "Mode is load based thraded round robin" << endl;
     int acknowledgeAfter = atoi((mode.substr(6, mode.length())).c_str());
     cout << "Acknowledge after: " << acknowledgeAfter << " lines" << endl;
   }
   
-  LoadBalancerListener lb(listenPort, dataScheduler);  
+  LoadBalancerListener lb(configuration.listenPort, dataScheduler);  
   vector<pthread_t> threads;
      
   // Start target server threads
-  for(vector<TargetServer*>::iterator it = serverList.begin(); 
-      it != serverList.end(); ++it) {
+  for(vector<TargetServer*>::iterator it = serverList->begin(); 
+      it != serverList->end(); ++it) {
 
      pthread_t targetThread;
      pthread_create(&targetThread, NULL, &startThreadedTargerServer, *it);
@@ -837,57 +873,84 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
 */
 int main(int argc, char* argv[]) {
 
-   if(argc < 3) {
-      printHelpAndExit(argv[0]);
+   LBConfiguration configuration;
+   configuration.programName = string(argv[0]);
+   
+   if(argc < 5) {
+      printHelpAndExit(configuration.programName);
    }
    
    // Parameter
-   string mode = "";
-   int listenPort = -1;
-   vector<TargetServer*> serverList;
    
    int option = 0;
-   while ((option = getopt(argc, argv,"p:m:s:")) != -1) {
+   while ((option = getopt(argc, argv,"p:m:s:r:")) != -1) {
+     
+     string optString = string(optarg);
+     
      switch (option) {
       case 'p':
-           listenPort = atoi(optarg);
+           configuration.listenPort = atoi(optarg);
            break;
       case 'm':
-           mode = optarg;
+           configuration.mode = optarg;
            break;
       case 's':
-           if(! parseServerList(optarg, mode, &serverList)) {
-             printHelpAndExit(argv[0]);
+           if(! parseServerList(optarg, configuration)) {
+             printHelpAndExit(configuration.programName);
+           }
+           break;
+      case 'r':      
+           if( optString.compare("FALSE") == 0 || 
+               optString.compare("false") == 0) {
+             configuration.reliable = false;
+           } 
+           
+           else if( optString.compare("TRUE") == 0 || 
+             optString.compare("true") == 0) {
+             configuration.reliable = true;
+           }
+           
+           else {
+             cerr << "Unkown parameter for reliable: " 
+                  << optString << endl;
+             printHelpAndExit(configuration.programName);
            }
            break;
       default:
-        printHelpAndExit(argv[0]);
+        cerr << "Unkown option: " << (char) option << endl;
+        printHelpAndExit(configuration.programName);
      }
    }
    
-   cout << "Starting load balancer on port: " << listenPort << endl;
+   cout << "Starting load balancer on port: " 
+        << configuration.listenPort << endl;
    
+   string mode = configuration.mode;
+        
    if(mode.compare("rr") == 0) {
+     
      cout << "Mode is round robin" << endl;
      
-     RRDataScheduler dataReceiver(&serverList);
-     LoadBalancerListener lb(listenPort, &dataReceiver);  
+     vector<TargetServer*>* serverList = &(configuration.serverList);
+     RRDataScheduler dataReceiver(configuration);
+     LoadBalancerListener lb(configuration.listenPort, &dataReceiver);  
+     
      lb.openSocket();
      lb.run();
    } else if ((mode.compare("trr") == 0) 
               || (mode.compare(0, 6, "lbtrr-") == 0) 
               || (mode.compare("qbts") == 0)) {
 
-     startThreadedServer(mode, serverList, argv, listenPort);
+     startThreadedServer(configuration);
 
    } else {
       cerr << "[Error] unknown distribution mode: " << mode << endl << endl;
-      printHelpAndExit(argv[0]);
-      destroyServerList(&serverList);
+      printHelpAndExit(configuration.programName);
+      destroyServerList(configuration);
       return EXIT_FAILURE;
    }
    
-   destroyServerList(&serverList);
+   destroyServerList(configuration);
    
    return EXIT_SUCCESS;
 }
