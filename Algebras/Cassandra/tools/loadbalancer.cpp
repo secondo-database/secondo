@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Overview
 
 This is a TCP load balancer. The load balancer provides different
-sheduling stategies:
+scheduling stategies:
 
 rr = Round robin
 trr = Thraded round robin
@@ -69,12 +69,14 @@ using namespace std;
 
 #define LB_DEBUG
 
+#define QUEUESIZE 5000
+
 
 /* 
 3 Class - Generic DataScheduler, sendData must been overwriten in subclasses
 
 */
-class DataSheduler {
+class DataScheduler {
  
 public:
     virtual void sendData(string data) { }
@@ -108,9 +110,9 @@ public:
 class LoadBalancerListener {
 
    public:
-      LoadBalancerListener(int myListenPort, DataSheduler* myDataSheduler) {
+      LoadBalancerListener(int myListenPort, DataScheduler* myDataScheduler) {
          listenPort = myListenPort;
-         dataReceiver = myDataSheduler;
+         dataReceiver = myDataScheduler;
          listenfd = 0;
          connfd = 0;
       }
@@ -216,7 +218,7 @@ class LoadBalancerListener {
   }
 
   // Server main method
-  // Read a line and send it to the sheduler
+  // Read a line and send it to the scheduler
   void run() {
     while(isSocketOpen()) {
       string line;
@@ -234,11 +236,15 @@ class LoadBalancerListener {
       int connfd;                     // FD for client handling
       struct sockaddr_in serv_addr;   // Server address  
       struct sockaddr_in client_addr; // Client address
-      DataSheduler* dataReceiver;     // Send all data to this instance
+      DataScheduler* dataReceiver;     // Send all data to this instance
 };
 
 /* 
-6 Class for target server, opens a tcp connection for writing
+6 Class ~TargetServer~. This class opens a tcp
+connection to server ~hostname~ on port ~port~. 
+
+You can use the sendData method to send data
+to the server.
 
 */
 class TargetServer {
@@ -390,7 +396,12 @@ public:
       myQueue.pop();
     }
   }
-   
+  
+/*
+7.1 The main loop of the thread. Read data from queue and 
+dispatch the data to the socket
+
+*/
   virtual void run() {
     
     while(true) {
@@ -439,7 +450,7 @@ public:
   }
   
   // Insert data into queue
-  // Called from sheduler
+  // Called from scheduler
   virtual void sendData(string data) {
     pthread_mutex_lock(&queueMutex);
     bool wasEmpty = myQueue.empty();
@@ -462,6 +473,12 @@ public:
     return result;
   }
   
+  // We are only accepting new data, when the socket is
+  // open and the size of the queue is less then QUEUESIZE
+  virtual bool isReady() {
+    return isSocketOpen() && ( getQueueSize() < QUEUESIZE );
+  }
+  
 protected:
   queue<string*> myQueue;
   pthread_mutex_t queueMutex;
@@ -469,8 +486,8 @@ protected:
 };
 
 /* 
-8 Reliable Threaded Target Server - Same function as ThreadedTargetServer
-  but after n tupels a ACK-Char is expected
+8 Reliable Threaded Target Server: Same function as ThreadedTargetServer
+  but this class waits after sending n tupels, for a ACK from destination
 
 */
 class ReliableThreadedTargetServer : public ThreadedTargetServer {
@@ -513,29 +530,33 @@ private:
 };
 
 /* 
-9 Logging only data sheduler
+9 Logging only data scheduler
   For testing purposes
 
 */
-class LoggingDataSheduler : public DataSheduler {
+class LoggingDataScheduler : public DataScheduler {
 public:
   virtual void sendData(string data) {
-    cout << "DataSheduler: got " << data << endl;
+    cout << "DataScheduler: got " << data << endl;
   }
 };
 
 /* 
-10 Round Robin Data Sheduler
-
+10.0 Round Robin Data Scheduler: Dispatch data to the
+next server in round robin list. 
 
 */
-class RRDataSheduler : public DataSheduler {
+class RRDataScheduler : public DataScheduler {
  
 public:
   
-  RRDataSheduler(vector<TargetServer*>* myServerList) {
+  RRDataScheduler(vector<TargetServer*>* myServerList) {
     serverList = myServerList;
     lastServer = 0;
+  }
+  
+  ~RRDataScheduler() {
+    cout << "Ignored lines: " << ignoresLines << endl;
   }
   
   virtual void sendData(string data) {
@@ -565,12 +586,13 @@ public:
     
     if(ts != NULL) {
       #ifdef LB_DEBUG
-       cout << "DataSheduler: got " << data << " to " << ts -> getHostname() 
+       cout << "DataScheduler: got " << data << " to " << ts -> getHostname() 
          << ":" << ts -> getPort() << endl;
       #endif
       ts -> sendData(data);
     } else {
         cout << "Could not find a ready server, IGNORING DATA:" << endl;
+        ++ignoresLines;
         cout << data << endl;
     }
   }
@@ -586,17 +608,12 @@ protected:
     // Find next ready server
     do {
       ts = serverList->at(lastServer);
-      
-      ++lastServer;
+          
       ++tryCount;
+      lastServer = (lastServer + 1) % serverList->size();
       
-      // Switch back to first server
-      if(lastServer >= serverList->size()) {
-         lastServer = 0;
-      }
-
       // We contacted every server two times
-      // But no one was ready
+      // but no one was ready, break loop.
       if(tryCount > 2 * serverList->size()) {
         return NULL;
       }
@@ -608,14 +625,21 @@ protected:
   
   vector<TargetServer*>* serverList;
   size_t lastServer;
+  size_t ignoresLines;
 };
 
 
-class QBDataSheduler : public RRDataSheduler {
+/*
+
+10.1 Queue Based scheduler: Send data to the server with 
+the shortest queue
+
+*/
+class QBDataScheduler : public RRDataScheduler {
   
 public:
-    QBDataSheduler(vector<TargetServer*>* myServerList) 
-      : RRDataSheduler(myServerList) {
+    QBDataScheduler(vector<TargetServer*>* myServerList) 
+      : RRDataScheduler(myServerList) {
     }
 
 protected:
@@ -624,7 +648,11 @@ protected:
   virtual TargetServer* getTargetServer() {
     
     ThreadedTargetServer* ts = NULL;
-    size_t queueSize = 999999999;
+    
+    // Dispatch data to the server with the shortest queue. 
+    // Consider only servers with less then QUEUESIZE entries
+    // to avoid a out of memory situation
+    size_t queueSize = QUEUESIZE;
     
     // Search for the server with the smallest queue size
     for(vector<TargetServer*>::iterator iter = serverList->begin(); 
@@ -680,7 +708,7 @@ void printHelpAndExit(char* progName) {
   cerr << "lbtrr-n = load based threaded rr" << endl;
   cerr << "            acknowledge every n lines" << endl;
   cerr << "            (e.g. lbtrr-10)" << endl;
-  cerr << "qbts    = Queue based threaded sheduling" << endl;
+  cerr << "qbts    = Queue based threaded scheduling" << endl;
   cerr << endl;
   cerr << "Example: " << progName << " -p 10000 -m rr -s 192.168.1.1:10001 " 
        << "-s 192.168.1.2:10001 -s 192.168.1.3:10001" << endl;
@@ -751,14 +779,14 @@ bool parseServerList(char* argument, string mode,
 void startThreadedServer(string &mode, vector<TargetServer*> &serverList, 
           char *argv[], int listenPort) {
   
-  DataSheduler* dataSheduler;
+  DataScheduler* dataScheduler;
   
   if((mode.compare("trr") == 0)) {
     cout << "Mode is threaded round robin" << endl;
-    dataSheduler = new RRDataSheduler(&serverList);
+    dataScheduler = new RRDataScheduler(&serverList);
   } else if(mode.compare("qbts") == 0) {
-     cout << "Mode is queue based threaded sheduling" << endl;
-     dataSheduler = new QBDataSheduler(&serverList);
+     cout << "Mode is queue based threaded scheduling" << endl;
+     dataScheduler = new QBDataScheduler(&serverList);
   } else {
        
     if(mode.length() <= 5) {
@@ -767,13 +795,13 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
        exit(EXIT_FAILURE);
     }
     
-    dataSheduler = new RRDataSheduler(&serverList);   
+    dataScheduler = new RRDataScheduler(&serverList);   
     cout << "Mode is load based thraded round robin" << endl;
     int acknowledgeAfter = atoi((mode.substr(6, mode.length())).c_str());
     cout << "Acknowledge after: " << acknowledgeAfter << " lines" << endl;
   }
   
-  LoadBalancerListener lb(listenPort, dataSheduler);  
+  LoadBalancerListener lb(listenPort, dataScheduler);  
   vector<pthread_t> threads;
      
   // Start target server threads
@@ -797,8 +825,8 @@ void startThreadedServer(string &mode, vector<TargetServer*> &serverList,
     pthread_join(thread, NULL);
   }
   threads.clear();
-  delete dataSheduler;
-  dataSheduler = NULL;
+  delete dataScheduler;
+  dataScheduler = NULL;
 }
 
 /* 
@@ -840,7 +868,7 @@ int main(int argc, char* argv[]) {
    if(mode.compare("rr") == 0) {
      cout << "Mode is round robin" << endl;
      
-     RRDataSheduler dataReceiver(&serverList);
+     RRDataScheduler dataReceiver(&serverList);
      LoadBalancerListener lb(listenPort, &dataReceiver);  
      lb.openSocket();
      lb.run();
