@@ -145,6 +145,10 @@ bool Label::readValueFrom(ListExpr LE, string& text, unitelem& unit) {
 
 */
 bool Label::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  if (listutils::isSymbolUndefined(LE)) {
+    SetDefined(false);
+    return true;
+  }
   if (nl->IsAtom(LE)) {
     string text;
     nl->WriteToString(text, LE);
@@ -160,6 +164,9 @@ bool Label::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 
 */
 ListExpr Label::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
   string text;
   GetValue(text);
   return nl->TextAtom(text);
@@ -7350,17 +7357,17 @@ ListExpr indexmatchesTM(ListExpr args) {
 */
 IndexMatchesLI::IndexMatchesLI(Relation *rel, InvertedFile *inv,
  R_Tree<1, TupleId> *rt, int _attrNr, Pattern *_p, bool deleteP, DataType type):
-                                  IndexClassifyLI(rel, inv, rt, _attrNr, type) {
-  if (rel->GetNoTuples() > 0) {
-    p = *_p;
-    p.initEasyCondOpTrees();
-    p.initCondOpTrees();
-    initialize();
-    applyNFA();
-    p.deleteEasyCondOpTrees();
-    p.deleteCondOpTrees();
-    if (deleteP) {
-      delete _p;
+ mRel(rel), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
+  if (_p) {
+    if (mRel->GetNoTuples() > 0) {
+      p = *_p;
+      initialize();
+      applyNFA();
+      p.deleteEasyCondOpTrees();
+      p.deleteCondOpTrees();
+      if (deleteP) {
+        delete _p;
+      }
     }
   }
 }
@@ -8795,7 +8802,7 @@ int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 struct classifyInfo : OperatorInfo {
   classifyInfo() {
     name      = "classify";
-    signature = "mlabel x classifier -> stream(text)";
+    signature = "mT (T in {label(s), place(s)}) x classifier -> stream(text)";
     syntax    = "classify(_ , _)";
     meaning   = "Classifies a trajectory according to a classifier";
   }
@@ -8808,8 +8815,8 @@ struct classifyInfo : OperatorInfo {
 
 */
 ListExpr indexclassifyTM(ListExpr args) {
-  const string errMsg = "Expecting a relation, the name of an mlabel"
-          " attribute of that relation, an invfile, an rtree, and a classifier";
+  const string errMsg = "Expecting a relation, the name of an mT (T in "
+      "{label(s), place(s)}) attribute, an invfile, an rtree, and a classifier";
   if (nl->HasLength(args, 5)) {
     if (Classifier::checkType(nl->Fifth(args))) {
       if (Relation::checkType(nl->First(args))) {
@@ -8822,7 +8829,8 @@ ListExpr indexclassifyTM(ListExpr args) {
           if (i == 0) {
             return listutils::typeError("Attribute " + attrName + " not found");
           }
-          if (!MLabel::checkType(attrType)) {
+          if (!MLabel::checkType(attrType) && !MLabels::checkType(attrType) &&
+              !MPlace::checkType(attrType) && !MPlaces::checkType(attrType)) {
             return listutils::typeError
                    ("Type " + nl->ToString(attrType) + " is invalid");
           }
@@ -8847,6 +8855,22 @@ ListExpr indexclassifyTM(ListExpr args) {
 }
 
 /*
+\subsection{Selection Function}
+
+*/
+int indexclassifySelect(ListExpr args) {
+  ListExpr attrList = nl->Second(nl->First(nl->Rest(nl->First(args))));
+  ListExpr attrType;
+  string attrName = nl->SymbolValue(nl->Second(args));
+  listutils::findAttribute(attrList, attrName, attrType);
+  if (MLabel::checkType(attrType)) return 0;
+  if (MLabels::checkType(attrType)) return 1;
+  if (MPlace::checkType(attrType)) return 2;
+  if (MPlaces::checkType(attrType)) return 3;
+  return -1;
+}
+
+/*
 \subsection{Constructor for class ~IndexClassifyLI~}
 
 This constructor is used for the operator ~indexclassify~.
@@ -8854,24 +8878,41 @@ This constructor is used for the operator ~indexclassify~.
 */
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
          R_Tree<1, TupleId> *rt, Word _classifier, int _attrNr, DataType type) :
-      mRel(rel), activeTuples(0), matchInfoPtr(0), newMatchInfoPtr(0), 
-      invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
-  c = (Classifier*)_classifier.addr;
+         IndexMatchesLI::IndexMatchesLI(rel, inv, rt, _attrNr, 0, false, type) {
+  if (mRel->GetNoTuples() > 0) {
+    c = (Classifier*)_classifier.addr;
+    for (int i = 0; i < c->getNumOfP(); i++) { // check patterns
+      Pattern *p = Pattern::getPattern(c->getPatText(i));
+      bool ok = false;
+      if (p) {
+        switch (type) {
+          case LABEL: {
+            ok = p->isValid("label");
+            break;
+          }
+          case LABELS: {
+            ok = p->isValid("labels");
+            break;
+          }
+          case PLACE: {
+            ok = p->isValid("place");
+            break;
+          }
+          case PLACES: {
+            ok = p->isValid("places");
+            break;
+          }
+        }
+        delete p;
+      }
+      if (!ok) {
+        c = 0;
+        return;
+      }
+    }
+  }
   classifyTT = ClassifyLI::getTupleType();
-}
-
-/*
-\subsection{Constructor for class ~IndexClassifyLI~}
-
-This constructor is used for the operator ~indexmatches~.
-
-*/
-IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
-         R_Tree<1, TupleId> *rt, int _attrNr, DataType type) :
-      c(0), mRel(rel), activeTuples(0), classifyTT(0), invFile(inv), rtree(rt),
-      attrNr(_attrNr), mtype(type) {
-  matchInfoPtr = &matchInfo;
-  newMatchInfoPtr = &newMatchInfo;
+  currentPat = 0;
 }
 
 /*
@@ -8886,10 +8927,106 @@ IndexClassifyLI::~IndexClassifyLI() {
 }
 
 /*
+\subsection{Function ~nextResultTuple~}
+
+*/
+template<class M>
+Tuple* IndexClassifyLI::nextResultTuple() {
+  if (c == 0) {
+    return 0;
+  }
+  while (results.empty()) {
+    cout << "results empty, fill now. currentPat=" << currentPat << ", " 
+         << c->getPatText(currentPat) << endl;
+    if (currentPat >= c->getNumOfP()) {
+      return 0;
+    }
+    Pattern *pat = Pattern::getPattern(c->getPatText(currentPat));
+    p = *pat;
+    delete pat;
+    initialize();
+    applyNFA();
+    for (unsigned int i = 0; i < matches.size(); i++) {
+      results.push(make_pair(c->getDesc(currentPat), matches[i]));
+    }
+    cout << "desc for " << currentPat << " is " << c->getDesc(currentPat)<<endl;
+    currentPat++;
+  }
+  cout << "results has " << results.size() << " elements" << endl;
+  pair<string, TupleId> resultPair = results.front();
+  results.pop();
+  Tuple* tuple = mRel->GetTuple(resultPair.second, false);
+  M *traj = (M*)tuple->GetAttribute(attrNr)->Copy();
+  Tuple *result = new Tuple(classifyTT);
+  result->PutAttribute(0, new FText(true, resultPair.first));
+  result->PutAttribute(1, traj);
+  deleteIfAllowed(tuple);
+  return result;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class M>
+int indexclassifyVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  IndexClassifyLI *li = (IndexClassifyLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
+      R_Tree<1, TupleId> *rt = static_cast<R_Tree<1, TupleId>*>(args[3].addr);
+      CcInt *attr = static_cast<CcInt*>(args[5].addr);
+      Relation *rel = static_cast<Relation*>(args[0].addr);
+      if (!attr->IsDefined()) {
+        cout << "undefined parameter(s)" << endl;
+        local.addr = 0;
+        return 0;
+      }
+      local.addr = new IndexClassifyLI(rel, inv, rt, args[4], attr->GetIntval(),
+                                       Tools::getDataType(M::BasicType()));
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResultTuple<M>() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+struct indexclassifyInfo : OperatorInfo {
+  indexclassifyInfo() {
+    name      = "indexclassify";
+    signature = "rel(tuple(..., mT, ...)) x attrname x invfile x rtree x "
+                "classifier -> stream(tuple(string, mT))";
+    syntax    = "_ indexclassify [_ , _ , _ , _]";
+    meaning   = "Classifies an indexed relation of trajectories according to a "
+                " classifier";
+  }
+};
+
+/*
+\subsection{Implementation of struct ~IndexMatchInfo~}
+
+*/
+
+/*
 \subsection{Function ~clearMatchInfo~}
 
 */
-void IndexClassifyLI::clearMatchInfo() {
+void IndexMatchesLI::clearMatchInfo() {
   for (int i = 0; i < p.getNFAsize(); i++) {
 //     cout << "size of (*matchInfoPtr)[" << i << "] is " 
 //          << (*matchInfoPtr)[i].size() << endl;
@@ -8908,7 +9045,7 @@ void IndexClassifyLI::clearMatchInfo() {
 \subsection{Function ~getInterval~}
 
 */
-void IndexClassifyLI::getInterval(const TupleId tId, const int pos, 
+void IndexMatchesLI::getInterval(const TupleId tId, const int pos, 
                                   SecInterval& iv) {
   Tuple *tuple = mRel->GetTuple(tId, false);
   switch (mtype) {
@@ -8939,7 +9076,7 @@ void IndexClassifyLI::getInterval(const TupleId tId, const int pos,
 \subsection{Function ~simplifyNFA~}
 
 */
-void IndexClassifyLI::simplifyNFA(vector<map<int, int> >& result) {
+void IndexMatchesLI::simplifyNFA(vector<map<int, int> >& result) {
   result.clear();
   string ptext = p.GetText();
   for (unsigned int i = 1; i < ptext.length(); i++) {
@@ -8966,7 +9103,7 @@ void IndexClassifyLI::simplifyNFA(vector<map<int, int> >& result) {
 \subsection{Function ~findNFApaths~}
 
 */
-void IndexClassifyLI::findNFApaths(const vector<map<int, int> >& nfa, 
+void IndexMatchesLI::findNFApaths(const vector<map<int, int> >& nfa, 
                const set<int>& finalStates, set<pair<set<int>, int> >& result) {
   result.clear();
   set<pair<set<int>, int> > newPaths;
@@ -9002,7 +9139,7 @@ void IndexClassifyLI::findNFApaths(const vector<map<int, int> >& nfa,
 \subsection{Function ~getCrucialElems~}
 
 */
-void IndexClassifyLI::getCrucialElems(const set<pair<set<int>, int> >& paths,
+void IndexMatchesLI::getCrucialElems(const set<pair<set<int>, int> >& paths,
                                       set<int>& result) {
   set<int> elems, temp;
   set<pair<set<int>, int> >::iterator is;
@@ -9043,7 +9180,7 @@ void IndexClassifyLI::getCrucialElems(const set<pair<set<int>, int> >& paths,
 \subsection{Function ~retrieveValue~}
 
 */
-void IndexClassifyLI::retrieveValue(vector<set<int> >& oldPart, 
+void IndexMatchesLI::retrieveValue(vector<set<int> >& oldPart, 
      vector<set<int> >& newPart, SetRel rel, bool first, const string& label, 
      unsigned int ref /* = UINT_MAX */) {
   InvertedFile::exactIterator* eit = 0;
@@ -9107,7 +9244,7 @@ void IndexClassifyLI::retrieveValue(vector<set<int> >& oldPart,
 \subsection{Function ~retrieveTime~}
 
 */
-void IndexClassifyLI::retrieveTime(vector<bool>& oldPart, vector<bool>& newPart,
+void IndexMatchesLI::retrieveTime(vector<bool>& oldPart, vector<bool>& newPart,
                                    bool first, const string& ivstr) {
   R_TreeLeafEntry<1, TupleId> leaf;
   Rect1 rect1(false);
@@ -9134,7 +9271,7 @@ void IndexClassifyLI::retrieveTime(vector<bool>& oldPart, vector<bool>& newPart,
 \subsection{Function ~removeIdFromIndexResult~}
 
 */
-void IndexClassifyLI::removeIdFromIndexResult(const TupleId id) {
+void IndexMatchesLI::removeIdFromIndexResult(const TupleId id) {
   for (int i = 0; i < p.getSize(); i++) {
     if (indexResult[i].size() > 0) {
 //       cout << "  Elem " << i << ", Tuple " << id << ":" << endl;
@@ -9156,7 +9293,7 @@ void IndexClassifyLI::removeIdFromIndexResult(const TupleId id) {
 \subsection{Function ~removeIdFromMatchInfo~}
 
 */
-void IndexClassifyLI::removeIdFromMatchInfo(const TupleId id) {
+void IndexMatchesLI::removeIdFromMatchInfo(const TupleId id) {
   for (int s = 0; s < p.getNFAsize(); s++) {
     if ((*newMatchInfoPtr)[s].size() > 0) {
 //         cout << "Elem " << i << ", Tuple " << id << ":" << endl;
@@ -9191,7 +9328,7 @@ void IndexClassifyLI::removeIdFromMatchInfo(const TupleId id) {
 \subsection{Function ~storeIndexResult~}
 
 */
-void IndexClassifyLI::storeIndexResult(const int e) {
+void IndexMatchesLI::storeIndexResult(const int e) {
   if (!indexResult[e].empty()) {
     return;
   }
@@ -9288,9 +9425,11 @@ void IndexClassifyLI::storeIndexResult(const int e) {
 \subsection{Function ~initMatchInfo~}
 
 */
-void IndexClassifyLI::initMatchInfo(const set<int>& cruElems) {
+void IndexMatchesLI::initMatchInfo(const set<int>& cruElems) {
+  matchInfo.clear();
   matchInfo.resize(p.getNFAsize());
   matchInfoPtr = &matchInfo;
+  newMatchInfo.clear();
   newMatchInfo.resize(p.getNFAsize());
   newMatchInfoPtr = &newMatchInfo;
   trajSize.resize(mRel->GetNoTuples() + 1, 0);
@@ -9328,7 +9467,7 @@ void IndexClassifyLI::initMatchInfo(const set<int>& cruElems) {
       trajSize[id] = getMsize(id);
       IndexMatchInfo imi(false);
       (*matchInfoPtr)[0][id].imis.push_back(imi);
-      for (int s = 0; s < p.getNFAsize(); s++) {
+      for (int s = 0; s < p.getSize(); s++) {
         (*matchInfoPtr)[s][pred].succ = id;
         (*matchInfoPtr)[s][id].pred = pred;
         (*newMatchInfoPtr)[s][pred].succ = id;
@@ -9347,7 +9486,7 @@ void IndexClassifyLI::initMatchInfo(const set<int>& cruElems) {
   }
   (*matchInfoPtr)[0][pred].succ = 0;
   (*newMatchInfoPtr)[0][pred].succ = 0;
-  for (int s = 0; s < p.getNFAsize(); s++) {
+  for (int s = 0; s < p.getSize(); s++) {
     if ((int)indexResult[s].size() == mRel->GetNoTuples() + 1) {
       indexResult[s][pred].succ = 0;
     }
@@ -9361,7 +9500,7 @@ Collects the tuple ids of the trajectories that could match the pattern
 according to the index information.
 
 */
-void IndexClassifyLI::initialize() {
+void IndexMatchesLI::initialize() {
   vector<map<int, int> > simpleNFA;
   simplifyNFA(simpleNFA);
   set<int> finalStates = p.getFinalStates();
@@ -9373,7 +9512,11 @@ void IndexClassifyLI::initialize() {
   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
     storeIndexResult(*it);
   }
-//   setActiveTuples(cruElems);
+  p.initEasyCondOpTrees();
+  p.initCondOpTrees();
+  matchInfoPtr = &matchInfo;
+  newMatchInfoPtr = &newMatchInfo;
+  activeTuples = 0;
   initMatchInfo(cruElems);
 }
 
@@ -9381,7 +9524,7 @@ void IndexClassifyLI::initialize() {
 \subsection{Function ~getMsize~}
 
 */
-int IndexClassifyLI::getMsize(TupleId tId) {
+int IndexMatchesLI::getMsize(TupleId tId) {
   Tuple* tuple = mRel->GetTuple(tId, false);
   int result = -1;
   switch (mtype) {
@@ -9410,7 +9553,7 @@ int IndexClassifyLI::getMsize(TupleId tId) {
 \subsection{Function ~hasIdIMIs~}
 
 */
-bool IndexClassifyLI::hasIdIMIs(const TupleId id, const int state /* = -1 */) {
+bool IndexMatchesLI::hasIdIMIs(const TupleId id, const int state /* = -1 */) {
   if (state == -1) {
     for (int s = 0; s < p.getNFAsize(); s++) {
       if (!(*matchInfoPtr)[s][id].imis.empty()) {
@@ -9428,7 +9571,7 @@ bool IndexClassifyLI::hasIdIMIs(const TupleId id, const int state /* = -1 */) {
 \subsection{Function ~wildcardMatch~}
 
 */
-bool IndexClassifyLI::wildcardMatch(const int state, pair<int, int> trans) {
+bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
   IndexMatchInfo *imiPtr;
   bool ok = false;
   TupleId id = (*matchInfoPtr)[state][0].succ; // first active tuple id
@@ -9486,7 +9629,7 @@ bool IndexClassifyLI::wildcardMatch(const int state, pair<int, int> trans) {
 \subsection{Function ~extendBinding~}
 
 */
-void IndexClassifyLI::extendBinding(IndexMatchInfo& imi, const int e) {
+void IndexMatchesLI::extendBinding(IndexMatchInfo& imi, const int e) {
   if (!p.hasConds()) {
     return;
   }
@@ -9516,7 +9659,7 @@ void IndexClassifyLI::extendBinding(IndexMatchInfo& imi, const int e) {
 
 */
 template<class M>
-bool IndexClassifyLI::imiMatch(Match<M>& match, const int e, const TupleId id,
+bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
                       IndexMatchInfo& imi, const int unit, const int newState) {
   PatElem elem;
   p.getElem(e, elem);
@@ -9607,7 +9750,7 @@ bool IndexClassifyLI::imiMatch(Match<M>& match, const int e, const TupleId id,
 \subsection{Function ~valuesMatch~}
 
 */
-bool IndexClassifyLI::valuesMatch(const int e, const TupleId id, 
+bool IndexMatchesLI::valuesMatch(const int e, const TupleId id, 
                       IndexMatchInfo& imi, const int newState, const int unit) {
   if (imi.next >= trajSize[id]) {
     return false;
@@ -9648,7 +9791,7 @@ bool IndexClassifyLI::valuesMatch(const int e, const TupleId id,
 \subsection{Function ~applySetRel~}
 
 */
-void IndexClassifyLI::applySetRel(const SetRel setRel, 
+void IndexMatchesLI::applySetRel(const SetRel setRel, 
                                  vector<set<pair<TupleId, int> > >& valuePosVec,
                                   set<pair<TupleId, int> >*& result) {
   switch (setRel) {
@@ -9677,7 +9820,7 @@ void IndexClassifyLI::applySetRel(const SetRel setRel,
 \subsection{Function ~simpleMatch~}
 
 */
-bool IndexClassifyLI::simpleMatch(const int e, const int state,
+bool IndexMatchesLI::simpleMatch(const int e, const int state,
                                   const int newState) {
   bool transition = false;
   storeIndexResult(e);
@@ -9757,7 +9900,7 @@ bool IndexClassifyLI::simpleMatch(const int e, const int state,
 \subsection{Function ~timesMatch~}
 
 */
-bool IndexClassifyLI::timesMatch(const TupleId id, const unsigned int unit,
+bool IndexMatchesLI::timesMatch(const TupleId id, const unsigned int unit,
                                  const PatElem& elem) {
   set<string> ivs;
   elem.getI(ivs);
@@ -9770,7 +9913,7 @@ bool IndexClassifyLI::timesMatch(const TupleId id, const unsigned int unit,
 \subsection{Function ~checkConditions~}
 
 */
-bool IndexClassifyLI::checkConditions(const TupleId id, IndexMatchInfo& imi) {
+bool IndexMatchesLI::checkConditions(const TupleId id, IndexMatchInfo& imi) {
   if (!p.hasConds()) {
     return true;
   }
@@ -9808,118 +9951,6 @@ bool IndexClassifyLI::checkConditions(const TupleId id, IndexMatchInfo& imi) {
   tuple->DeleteIfAllowed();
   return result;
 }
-
-/*
-\subsection{Function ~nextResultTuple~}
-
-This function is used for the operators ~indexclassify~.
-
-*/
-Tuple* IndexClassifyLI::nextResultTuple() {
-  if (!mRel->GetNoTuples()) { // no mlabel => no result
-    return 0;
-  }
-  pair<string, TupleId> resultPair;
-  Pattern* p = 0;
-  int processedP = 0; // nonsense
-  while (processedP <= c->getNumOfP()) {
-    if (!classification.empty()) { // convert matched mlabel into result
-      pair<string, TupleId> resultPair = classification.front();
-      classification.pop();
-      Tuple* tuple = mRel->GetTuple(resultPair.second, false);
-      MLabel* ml = (MLabel*)tuple->GetAttribute(attrNr)->Copy();
-      Tuple *result = new Tuple(classifyTT);
-      result->PutAttribute(0, new FText(true, resultPair.first));
-      result->PutAttribute(1, ml);
-      deleteIfAllowed(tuple);
-      return result;
-    }
-    if (processedP == c->getNumOfP()) { // all patterns processed
-      return 0;
-    }
-    p = Pattern::getPattern(c->getPatText(processedP), true);
-    if (p) {
-      if (p->hasConds() || p->containsRegEx()) {
-        p->parseNFA();
-        for (int i = 1; i <= mRel->GetNoTuples(); i++) {
-          Tuple *t = mRel->GetTuple(i, false);
-          MLabel *source = (MLabel*)t->GetAttribute(attrNr)->Copy();
-          Match<MLabel> *match = new Match<MLabel>(p, source);
-          if (match->matches() == TRUE) {
-            classification.push(make_pair(p->getDescr(), i));
-          }
-        }
-      }
-      else {
-        p->setDescr(c->getDesc(processedP));
-        // TODO: apply...
-      }
-    }
-    processedP++;
-    if (p) {
-      delete p;
-      p = 0;
-    }
-  }
-  return 0;
-}
-
-/*
-\subsection{Value Mapping with index}
-
-*/
-int indexclassifyVM(Word* args, Word& result, int message, Word& local,
-                    Supplier s){
-  IndexClassifyLI *li = (IndexClassifyLI*)local.addr;
-  switch (message) {
-    case OPEN: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
-      R_Tree<1, TupleId> *rt = static_cast<R_Tree<1, TupleId>*>(args[3].addr);
-      CcInt *attr = static_cast<CcInt*>(args[5].addr);
-      Relation *rel = static_cast<Relation*>(args[0].addr);
-      if (!attr->IsDefined()) {
-        cout << "undefined parameter(s)" << endl;
-        local.addr = 0;
-        return 0;
-      }
-      local.addr = new IndexClassifyLI(rel, inv, rt, args[4], attr->GetIntval(),
-                                       LABEL);
-      return 0;
-    }
-    case REQUEST: {
-      result.addr = li ? li->nextResultTuple() : 0;
-      return result.addr ? YIELD : CANCEL;
-    }
-    case CLOSE: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-struct indexclassifyInfo : OperatorInfo {
-  indexclassifyInfo() {
-    name      = "indexclassify";
-    signature = "rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier"
-                " -> stream(tuple(string, mlabel))";
-    syntax    = "_ indexclassify [_ , _ , _]";
-    meaning   = "Classifies an indexed relation of trajectories according to a "
-                " classifier";
-  }
-};
-
-/*
-\subsection{Implementation of struct ~IndexMatchInfo~}
-
-*/
 
 void IndexMatchInfo::print(const bool printBinding) {
   if (range) {
@@ -10775,7 +10806,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
   AddOperator(classifyInfo(), classifyVM, classifyTM);
 
-  AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTM);
+  ValueMapping indexclassifyVMs[] = {indexclassifyVM<MLabel>,
+    indexclassifyVM<MLabels>, indexclassifyVM<MPlace>, indexclassifyVM<MPlaces>,
+    0};
+  AddOperator(indexclassifyInfo(), indexclassifyVMs, indexclassifySelect,
+              indexclassifyTM);
 
   ValueMapping compressVMs[] = {compressVM_1<MLabel>, compressVM_1<MLabels>,
     compressVM_1<MPlace>, compressVM_1<MPlaces>, compressVM_Str<MLabel>,

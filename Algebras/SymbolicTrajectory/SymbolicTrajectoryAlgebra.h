@@ -1270,20 +1270,14 @@ struct IndexMatchSlot {
   vector<IndexMatchInfo> imis;
 };
 
-class IndexClassifyLI {
-
-friend class Match<MLabel>;
-friend class IndexMatchesLI;
-
+class IndexMatchesLI {
  public:
-  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
-                  Word _classifier, int _attrNr, DataType type);
-  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
-                  int _attrNr, DataType type);
+  IndexMatchesLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
+                 int _attrNr, Pattern *_p, bool deleteP, DataType type);
 
-  ~IndexClassifyLI();
+  ~IndexMatchesLI() {mRel = 0;}
 
-  Tuple* nextResultTuple();
+  Tuple* nextTuple();
   void simplifyNFA(vector<map<int, int> >& result);
   void findNFApaths(const vector<map<int, int> >& nfa, 
                 const set<int>& finalStates, set<pair<set<int>, int> >& result);
@@ -1302,6 +1296,7 @@ friend class IndexMatchesLI;
   int getMsize(TupleId tId);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
   void extendBinding(IndexMatchInfo& imi, const int e);
+  void applyNFA();
   template<class M>
   bool imiMatch(Match<M>& match, const int e, const TupleId id, 
                 IndexMatchInfo& imi, const int unit, const int newState);
@@ -1316,11 +1311,9 @@ friend class IndexMatchesLI;
   bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
 
- private:
+ protected:
   Pattern p;
-  Classifier *c;
   Relation *mRel;
-  queue<pair<string, TupleId> > classification;
   vector<vector<IndexRetrieval> > indexResult;
   set<int> indexMismatch;
   vector<TupleId> matches;
@@ -1328,7 +1321,6 @@ friend class IndexMatchesLI;
   int activeTuples;
   vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
   vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
-  TupleType* classifyTT;
   InvertedFile* invFile;
   R_Tree<1, TupleId> *rtree;
   int attrNr;
@@ -1336,15 +1328,21 @@ friend class IndexMatchesLI;
   DataType mtype;
 };
 
-class IndexMatchesLI : public IndexClassifyLI {
+class IndexClassifyLI : public IndexMatchesLI {
  public:
-  IndexMatchesLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
-                 int _attrNr, Pattern *_p, bool deleteP, DataType type);
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
+                  Word _classifier, int _attrNr, DataType type);
 
-  ~IndexMatchesLI() {}
+  ~IndexClassifyLI();
 
-  Tuple* nextTuple();
-  void applyNFA();
+  template<class M>
+  Tuple* nextResultTuple();
+  
+ protected:
+  TupleType* classifyTT;
+  Classifier *c;
+  queue<pair<string, TupleId> > results;
+  int currentPat;
 };
 
 class UnitsLI {
