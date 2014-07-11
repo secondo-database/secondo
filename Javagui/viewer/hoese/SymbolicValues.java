@@ -15,6 +15,14 @@ import tools.Reporter;
 public class SymbolicValues {
 
   /**
+   * Returns true iff the parameter equals one of the symbolic types.
+   */
+  public static boolean isSymbolicType(String typeStr) {
+    return (typeStr.equals("mlabel") || typeStr.equals("mlabels") ||
+            typeStr.equals("mplace") || typeStr.equals("mplaces"));
+  }
+
+  /**
    * Takes an interval and returns its start instant as a string. In the non-
    * standard case (i.e., rightclosed or not leftclosed), the leftclosed
    * indicator is prepended.

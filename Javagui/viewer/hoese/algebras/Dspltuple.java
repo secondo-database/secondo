@@ -87,7 +87,9 @@ public class Dspltuple extends DsplGeneric {
          tools.Reporter.writeError("check the implementation of the class " + dg.getClass());
          qr.addEntry("error");
       }
-      if(diff>1){
+      boolean isSymbolic = (subType.toString().isEmpty() ? false :
+                            SymbolicValues.isSymbolicType(subType.toString().substring(1)));
+      if(diff>1 && !isSymbolic){
          tools.Reporter.writeError("to many entries for attribute "+s+
                              "\n please check the implementation of the "+dg.getClass() + " class");
       }
