@@ -65,6 +65,8 @@ lbtrr = Load based thraded round robin
 #include <netdb.h>
 #include <fcntl.h>
 
+#include "timer.h"
+
 using namespace std;
 
 #define LB_DEBUG
@@ -84,6 +86,7 @@ struct LBConfiguration {
   vector<TargetServer*> serverList;
   string programName;
   bool reliable;
+  Timer timer;
 };
 
 /* 
@@ -124,8 +127,10 @@ public:
 class LoadBalancerListener {
 
    public:
-      LoadBalancerListener(int myListenPort, DataScheduler* myDataScheduler) {
-         listenPort = myListenPort;
+      LoadBalancerListener(LBConfiguration &myConfiguration, 
+                           DataScheduler* myDataScheduler) {
+        
+         configuration = myConfiguration;
          dataReceiver = myDataScheduler;
          listenfd = 0;
          connfd = 0;
@@ -135,8 +140,8 @@ class LoadBalancerListener {
           close();
       }
       
-      virtual void openSocket() {
-         cout << "Opening server socket" << endl;
+      virtual bool openSocket() {
+         cout << "[Info] Opening server socket" << endl;
          
          listenfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -145,35 +150,37 @@ class LoadBalancerListener {
 
          serv_addr.sin_family = AF_INET;
          serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-         serv_addr.sin_port = htons(listenPort); 
+         serv_addr.sin_port = htons(configuration.listenPort); 
       
          // Bind our socket
          if ((bind(listenfd, (struct sockaddr *) 
              &serv_addr, sizeof(serv_addr)) ) < 0) {
            
-            cerr << "Bind failed" << endl;
-            return;
+            cerr << "[Error] Bind failed" << endl;
+            return false;
          }
       
          // Listen
          if(( listen(listenfd, 10)) < 0 ){
-            cerr << " Listen failed " << endl;
-            return;
+            cerr << "[Erorr] Listen failed " << endl;
+            return false;
          }
          
          unsigned int clientlen = sizeof(client_addr);
      
          // Accept connection
-         if(! (connfd = accept(listenfd, 
-            (struct sockaddr *) &client_addr, 
-            &clientlen))) {
+         if(! (connfd = accept(listenfd, (struct sockaddr *) &client_addr, 
+               &clientlen))) {
                  
-            cerr << "accept failed" << endl;
-            return;
+            cerr << "[Error] Accept failed" << endl;
+            return false;
          } 
          
          // set blocking mode
          SocketHelper::setSocketToBlockingMode(connfd);
+         configuration.timer.start();
+         
+         return true;
       }
       
    bool isSocketOpen() {
@@ -243,7 +250,7 @@ class LoadBalancerListener {
   
       
    protected:
-      int listenPort;                 // The port we listen to
+      LBConfiguration configuration;  // The loadbalancer configuration
       string buffer;                  // Buffer for IO handling
 
       int listenfd;                   // FD for server listen
@@ -839,7 +846,7 @@ void startThreadedServer(LBConfiguration &configuration) {
     cout << "Acknowledge after: " << acknowledgeAfter << " lines" << endl;
   }
   
-  LoadBalancerListener lb(configuration.listenPort, dataScheduler);  
+  LoadBalancerListener lb(configuration, dataScheduler);  
   vector<pthread_t> threads;
      
   // Start target server threads
@@ -875,6 +882,7 @@ int main(int argc, char* argv[]) {
 
    LBConfiguration configuration;
    configuration.programName = string(argv[0]);
+   configuration.timer = Timer();
    
    if(argc < 5) {
       printHelpAndExit(configuration.programName);
@@ -911,29 +919,28 @@ int main(int argc, char* argv[]) {
            }
            
            else {
-             cerr << "Unkown parameter for reliable: " 
+             cerr << "[Error] Unkown parameter for reliable: " 
                   << optString << endl;
              printHelpAndExit(configuration.programName);
            }
            break;
       default:
-        cerr << "Unkown option: " << (char) option << endl;
+        cerr << "[Error] Unkown option: " << (char) option << endl;
         printHelpAndExit(configuration.programName);
      }
    }
    
-   cout << "Starting load balancer on port: " 
+   cout << "[Info] Starting load balancer on port: " 
         << configuration.listenPort << endl;
    
    string mode = configuration.mode;
         
    if(mode.compare("rr") == 0) {
      
-     cout << "Mode is round robin" << endl;
+     cout << "[Info] Mode is: round robin" << endl;
      
-     vector<TargetServer*>* serverList = &(configuration.serverList);
      RRDataScheduler dataReceiver(configuration);
-     LoadBalancerListener lb(configuration.listenPort, &dataReceiver);  
+     LoadBalancerListener lb(configuration, &dataReceiver);  
      
      lb.openSocket();
      lb.run();
@@ -951,6 +958,8 @@ int main(int argc, char* argv[]) {
    }
    
    destroyServerList(configuration);
+   
+   cout << "Time: " << configuration.timer.getDiff() / 1000 << endl;
    
    return EXIT_SUCCESS;
 }
