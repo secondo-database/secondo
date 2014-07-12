@@ -178,7 +178,7 @@ class LoadBalancerListener {
          SocketHelper::setSocketToBlockingMode(connfd);
          configuration.timer.start();
  
-         cout << "[Info] Receoving Data...." << endl;
+         cout << "[Info] Reciving data...." << endl;
          
          return true;
       }
