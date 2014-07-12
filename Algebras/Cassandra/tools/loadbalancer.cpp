@@ -430,15 +430,15 @@ dispatch the data to the socket
       // If the queue is emptry, wait for
       // new data
       pthread_mutex_lock(&queueMutex);
+      
       while(myQueue.empty()) {
         pthread_cond_wait(&queueCondition, &queueMutex);
       }
-      pthread_mutex_unlock(&queueMutex);
       
       // Remove fist line from queue
-      pthread_mutex_lock(&queueMutex);
       string* data = myQueue.front();
       myQueue.pop();
+      
       pthread_mutex_unlock(&queueMutex);
       
       // End of Transmission? => Exit
@@ -479,7 +479,7 @@ dispatch the data to the socket
     
     // Wakeup consumer
     if(wasEmpty) {
-      pthread_cond_signal(&queueCondition);
+      pthread_cond_broadcast(&queueCondition);
     }
     
     pthread_mutex_unlock(&queueMutex);
