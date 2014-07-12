@@ -69,8 +69,8 @@ lbtrr = Load based thraded round robin
 
 using namespace std;
 
-#define LB_DEBUG
-#define QUEUESIZE 5000
+//#define LB_DEBUG
+#define QUEUESIZE 10 
 
 
 // Prototype
@@ -128,12 +128,10 @@ class LoadBalancerListener {
 
    public:
       LoadBalancerListener(LBConfiguration &myConfiguration, 
-                           DataScheduler* myDataScheduler) {
+                           DataScheduler* myDataScheduler) : 
+      configuration(myConfiguration), dataReceiver(myDataScheduler), 
+      listenfd(0), connfd(0) {
         
-         configuration = myConfiguration;
-         dataReceiver = myDataScheduler;
-         listenfd = 0;
-         connfd = 0;
       }
       
       virtual ~LoadBalancerListener() {
@@ -179,7 +177,7 @@ class LoadBalancerListener {
          // set blocking mode
          SocketHelper::setSocketToBlockingMode(connfd);
          configuration.timer.start();
-         
+ 
          return true;
       }
       
@@ -250,7 +248,7 @@ class LoadBalancerListener {
   
       
    protected:
-      LBConfiguration configuration;  // The loadbalancer configuration
+      LBConfiguration &configuration; // The loadbalancer configuration
       string buffer;                  // Buffer for IO handling
 
       int listenfd;                   // FD for server listen
@@ -658,7 +656,7 @@ protected:
     return ts;
   }
   
-  LBConfiguration configuration;
+  LBConfiguration &configuration;
   vector<TargetServer*>* serverList;
   size_t lastServer;
   size_t ignoredLines;
@@ -882,7 +880,7 @@ int main(int argc, char* argv[]) {
 
    LBConfiguration configuration;
    configuration.programName = string(argv[0]);
-   configuration.timer = Timer();
+//   configuration.timer = Timer();
    
    if(argc < 5) {
       printHelpAndExit(configuration.programName);
@@ -959,7 +957,8 @@ int main(int argc, char* argv[]) {
    
    destroyServerList(configuration);
    
-   cout << "Time: " << configuration.timer.getDiff() / 1000 << endl;
+   cout << "Execution Time (ms): " << configuration.timer.getDiff() / 1000 
+        << endl;
    
    return EXIT_SUCCESS;
 }
