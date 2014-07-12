@@ -77,16 +77,16 @@ using namespace std;
 class TargetServer;
 
 /*
-2.1 Configuration struct
+2.1 Configuration structure
 
 */
 struct LBConfiguration {
-  string mode;
-  int listenPort;
-  vector<TargetServer*> serverList;
-  string programName;
-  bool reliable;
-  Timer timer;
+  string mode;                       // Load balancing mode
+  int listenPort;                    // Listen Port
+  vector<TargetServer*> serverList;  // List with destination servers
+  string programName;                // Name of this program
+  bool reliable;                     // Reliable mode
+  Timer timer;                       // Timer to measure the execution time
 };
 
 /* 
@@ -178,6 +178,8 @@ class LoadBalancerListener {
          SocketHelper::setSocketToBlockingMode(connfd);
          configuration.timer.start();
  
+         cout << "[Info] Receoving Data...." << endl;
+         
          return true;
       }
       
@@ -880,7 +882,6 @@ int main(int argc, char* argv[]) {
 
    LBConfiguration configuration;
    configuration.programName = string(argv[0]);
-//   configuration.timer = Timer();
    
    if(argc < 5) {
       printHelpAndExit(configuration.programName);
