@@ -1852,6 +1852,7 @@ void PrecRegion::readFrom(const Region& reg, int scale, bool useString,
       SetDefined(false);
       return;
     }
+
     vector<MPrecHalfSegment> hsv;
     HalfSegment hs;
     
@@ -1866,11 +1867,12 @@ void PrecRegion::readFrom(const Region& reg, int scale, bool useString,
           hsv.push_back(getMPrecHsExact(hs, scale));
        }
     }
+    clear();
     if(!correctHs(hsv)){
-      clear();
       SetDefined(false);
       return;
     }
+
     gridData.resize(hsv.size());
     for(size_t i=0;i<hsv.size(); i++){
        MPrecHalfSegment mhs = hsv[i];

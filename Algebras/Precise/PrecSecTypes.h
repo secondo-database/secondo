@@ -1332,17 +1332,20 @@ class PrecLine : public StandardSpatialAttribute<2> {
         bulkloadStorage = new vector<MPrecHalfSegment>();
     }
 
-    void append(MPrecHalfSegment hs){
+    void append(MPrecHalfSegment hs, bool autoTwice = true){
         assert(bulkloadStorage!=0);
         size_t edgeno = bulkloadStorage->size()/2;
         if(hs.getScale()!= scale){
              hs.changeScaleTo(scale);
         }
-
-        hs.attributes.edgeno = edgeno;
+        if(autoTwice){
+          hs.attributes.edgeno = edgeno;
+        }
         bulkloadStorage->push_back(hs);
-        hs.switchLDP();
-        bulkloadStorage->push_back(hs);
+        if(autoTwice){
+          hs.switchLDP();
+          bulkloadStorage->push_back(hs);
+        }
     }
 
     void append(const PrecLine& line){
@@ -1627,7 +1630,7 @@ class PrecRegion : public StandardSpatialAttribute<2> {
        result.startBulkLoad(scale);
        for(int i=0;i<gridData.Size();i++){
            MPrecHalfSegment h = getHalfSegment(i);
-           result.append(h);
+           result.append(h,false);
        } 
        result.endBulkLoad(false);
     }
@@ -1696,7 +1699,7 @@ ListExpr PrecTime<type>::ToListExpr(ListExpr typeInfo) const{
      stringstream ss;
      ss << year<<"-"<<month<<"-"<<day;
      if(hour>0 || minute>0 || second>0 || millisecond>0 || coord.hasFracPart()){
-       ss << ":" <<  hour << ":" << minute;
+       ss << "-" <<  hour << ":" << minute;
        if(second>0 || millisecond>0 || coord.hasFracPart()){
          ss << ":" << second;
          if(millisecond>0 || coord.hasFracPart()){

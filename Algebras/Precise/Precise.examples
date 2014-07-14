@@ -255,7 +255,7 @@ Result    : TRUE
 Operator  : collectprecise
 Number    : 1
 Signature : stream(precLine) x bool -> precLine
-Example   : query isdefined(strassen feed replaceAttr[GeoData : toPrecise(.GeoData)] namedtransformstream[GeoData] collectprecise[TRUE])
+Example   : query isdefined(strassen feed replaceAttr[GeoData : toPrecise(.GeoData)] projecttransformstream[GeoData] collectprecise[TRUE])
 Result    : TRUE
 
 
