@@ -962,7 +962,7 @@ class CSVNetworkInputStream : public CSVInputStream {
       #endif
       
       // Read data (socket is set to blocking mode)
-      size_t readBytes = readSocket -> Read(buffer + start, 1, maxBytes);
+      int readBytes = readSocket -> Read(buffer + start, 1, maxBytes);
             
       #ifdef _CSVInputStream_DEBUG
       cout << "readNextDataCalled read (from socket): " << readBytes << endl;
@@ -981,6 +981,7 @@ class CSVNetworkInputStream : public CSVInputStream {
          #endif
          
          close();
+         return 0;
       }
       
       return readBytes;
