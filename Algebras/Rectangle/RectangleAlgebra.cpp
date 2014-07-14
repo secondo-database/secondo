@@ -1487,8 +1487,8 @@ int RectangleEqual( Word* args, Word& result, int message,
        ((Rectangle<dim>*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, *((Rectangle<dim>*)args[0].addr) ==
-      *((Rectangle<dim>*)args[1].addr) );
+      Set( true, ((Rectangle<dim>*)args[0].addr)->AlmostEqual(
+      *((Rectangle<dim>*)args[1].addr)) );
   }
   else
   {
