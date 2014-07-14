@@ -11043,7 +11043,7 @@ ListExpr CellIndexTypeMap( ListExpr args )
                 nl->SymbolAtom(Tuple::BasicType()),
                 nl->FourElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("cellid"),
+                        nl->SymbolAtom("Cellid"),
                         nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
@@ -11051,11 +11051,11 @@ ListExpr CellIndexTypeMap( ListExpr args )
                         MBR_ATOM
                     ),
                     nl->TwoElemList(
-                        nl->SymbolAtom("nodeid"),
+                        nl->SymbolAtom("Nodeid"),
                         nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
-                        nl->SymbolAtom("nodelevel"),
+                        nl->SymbolAtom("Nodelevel"),
                         nl->SymbolAtom(CcInt::BasicType())
                     ))));
   }
