@@ -25,8 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Raster2/sreal.h"
 #include "../Tile/t/tint.h"
 #include "../Tile/t/treal.h"
-#include "../Tile/t/tProperties.h"
-#include "../Tile/Index/Index.h"
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
