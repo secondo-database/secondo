@@ -39,8 +39,9 @@ namespace GISAlgebra
           { 
             name      = "ruggedness";
             signature = "sType -> sType";
+            appendSignature("tType x double -> stream(tType)");
             syntax    = "ruggedness(_)";
-            meaning   = "Creates ruggedness raster";
+            meaning   = "Creates ruggedness for raster or tile";
            }              
         };
 }

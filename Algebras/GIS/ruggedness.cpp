@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ruggedness.h"
 #include "../Raster2/sint.h"
 #include "../Raster2/sreal.h"
+#include "../Tile/t/tint.h"
+#include "../Tile/t/treal.h"
 
 namespace GISAlgebra {
 
@@ -89,10 +91,201 @@ namespace GISAlgebra {
     return 0;
   }
 
+  template <typename T, typename SourceTypeProperties>
+  int ruggednessFunTile(Word* args, Word& result, 
+                     int message, Word& local, Supplier s)
+  {
+    int returnValue = FAILURE;
+
+    T* s_in = static_cast<T*>(args[0].addr);
+
+    struct ResultInfo
+    {
+      double fromX;
+      double fromY;
+      double toX;
+      double toY;
+      double tileX;
+      double tileY;
+    };
+
+    int xDimensionSize = TileAlgebra::tProperties<char>::GetXDimensionSize();
+    int yDimensionSize = TileAlgebra::tProperties<char>::GetYDimensionSize();
+
+    switch(message)
+    {
+      case OPEN:
+      {
+        // initialize the local storage
+        ResultInfo* info = new ResultInfo;
+
+        TileAlgebra::Index<2> from;
+        TileAlgebra::Index<2> to;
+
+        s_in->GetBoundingBoxIndexes(from, to);
+        info->fromX = from[0];
+        info->fromY = from[1];
+        info->toX = to[0];
+        info->toY = to[1];
+
+        info->tileX = info->fromX;
+        info->tileY = info->fromY;
+
+        local.addr = info;
+
+        return 0;
+      }
+    
+      case REQUEST:
+      {
+        if(local.addr != 0)
+        {
+          ResultInfo* info = static_cast<ResultInfo*>(local.addr);
+
+          T* s_out = new T(true);
+
+          if(info->tileX <= info->toX || info->tileY <= info->toY)
+          {
+            TileAlgebra::tgrid grid;
+            s_in->getgrid(grid);
+            s_out->SetGrid(grid);
+
+            double cellsize = grid.GetLength();
+
+            bool bHasDefinedValue = false;
+
+            for(int row = info->tileY; row < info->toY; row++)
+            {
+              for(int column = info->tileX; column < info->toX; column++)
+              {
+                TileAlgebra::Index<2> index((int[]){column, row});
+
+                // Mitte
+                double e = s_in->GetValue(index);
+
+                if(SourceTypeProperties::TypeProperties::
+                                         IsUndefinedValue(e) == false)
+                {
+                  bHasDefinedValue = true;
+
+                  double a = s_in->GetValue((int[]){column - 1, row + 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(a)){a = e;}
+                  double b = s_in->GetValue((int[]){column, row + 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(b)){b = e;}
+                  double c = s_in->GetValue((int[]){column + 1, row + 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(c)){c = e;}
+                  double d = s_in->GetValue((int[]){column - 1, row});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(d)){d = e;}
+                  double f = s_in->GetValue((int[]){column + 1, row});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(f)){f = e;}
+                  double g = s_in->GetValue((int[]){column - 1, row - 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(g)){g = e;}
+                  double h = s_in->GetValue((int[]){column, row - 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(h)){h = e;}
+                  double i = s_in->GetValue((int[]){column + 1, row - 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(i)){i = e;}
+         
+                  // Differenz zwischen Mitte und umgebenden 
+                  // Zellen bilden, quadrieren
+                  double diff1 = (a - e) * (a - e);
+                  double diff2 = (b - e) * (b - e);
+                  double diff3 = (c - e) * (c - e);
+                  double diff4 = (d - e) * (d - e);
+                  double diff5 = (f - e) * (f - e);
+                  double diff6 = (g - e) * (g - e);
+                  double diff7 = (h - e) * (h - e);
+                  double diff8 = (i - e) * (i - e);
+
+                  // Diffs addieren und aus der Summe die Wurzel ziehen
+                  double ruggedness = sqrt(diff1 + diff2 + diff3 + diff4 + 
+                                           diff5 + diff6 + diff7 + diff8);
+
+                  s_out->SetValue(index, ruggedness, true);
+                }
+              }
+            }
+
+            // Ein Tile weiter nach rechts
+            info->tileX += xDimensionSize * cellsize;
+
+            // wenn ganz rechts angekommen
+            if(info->tileX >= info->toX)
+            {
+              // Ein Tile nach oben
+              info->tileY += yDimensionSize * cellsize;
+
+              // wenn nicht oberste Zeile
+              if(info->tileY < info->toY)
+              {
+                // zurueck auf erstes Tile von links
+                info->tileX = info->fromX;
+              }
+            }
+                  
+            if(bHasDefinedValue == true)
+            {
+              // return the next stream element
+              result.addr = s_out;
+              return YIELD;
+            }
+            else
+            {
+              delete s_out;
+              s_out = 0;
+
+              // always set the result to null before return CANCEL
+              result.addr = 0;
+              return CANCEL;
+            }
+          }
+        } // if local.addr
+        else
+        {
+          // always set the result to null before return CANCEL
+          result.addr = 0;
+          return CANCEL;
+        }
+      } //REQUEST
+
+      case CLOSE:
+      {
+        if(local.addr != 0)
+        {
+          ResultInfo* info = static_cast<ResultInfo*>(local.addr);
+
+          if(info != 0)
+          {
+            delete info;
+            local.addr = 0;
+          }
+        }
+
+        return 0;        
+      }
+
+      default:
+      {
+        assert(false);
+      }
+    }
+ 
+    return returnValue;
+  }
+
   ValueMapping ruggednessFuns[] =
   {
     ruggednessFun<raster2::sint>,
     ruggednessFun<raster2::sreal>,
+    ruggednessFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int>>,
+    ruggednessFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double>>,
     0
   };
 
@@ -110,6 +303,16 @@ namespace GISAlgebra {
     else if (type.first() == NList(raster2::sreal::BasicType()))
     {
       nSelection = 1;
+    }
+
+    else if (type.first() == NList(TileAlgebra::tint::BasicType()))
+    {
+      nSelection = 2;
+    }
+
+    else if (type.first() == NList(TileAlgebra::treal::BasicType()))
+    {
+      nSelection = 3;
     }
 
     return nSelection;
@@ -133,8 +336,22 @@ namespace GISAlgebra {
     {
       return NList(raster2::sreal::BasicType()).listExpr();
     }
+
+    else if(type.first() == NList(TileAlgebra::tint::BasicType())) 
+    {
+      return nl->TwoElemList(
+             nl->SymbolAtom(Stream<TileAlgebra::tint>::BasicType()),
+             nl->SymbolAtom(TileAlgebra::tint::BasicType()));
+    }
+
+    else if(type.first() == NList(TileAlgebra::treal::BasicType()))
+    {
+      return nl->TwoElemList(
+             nl->SymbolAtom(Stream<TileAlgebra::treal>::BasicType()),
+             nl->SymbolAtom(TileAlgebra::treal::BasicType()));
+    }
     
     return NList::typeError
-           ("Expecting an sint or sreal");
+           ("Expecting an sint, sreal, tint or treal");
   }
 }

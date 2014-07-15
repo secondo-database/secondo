@@ -39,8 +39,9 @@ namespace GISAlgebra
           { 
             name      = "aspect";
             signature = "sType x double -> sType";
+            appendSignature("tType x double -> stream(tType)");
             syntax    = "aspect(_,_)";
-            meaning   = "Creates aspect raster";
+            meaning   = "Creates aspect for raster or tile";
            }              
         };
 }

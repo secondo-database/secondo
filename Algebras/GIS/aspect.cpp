@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "aspect.h"
 #include "../Raster2/sint.h"
 #include "../Raster2/sreal.h"
+#include "../Tile/t/tint.h"
+#include "../Tile/t/treal.h"
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
@@ -103,10 +105,212 @@ namespace GISAlgebra {
     return 0;
   }
 
+  template <typename T, typename SourceTypeProperties>
+  int aspectFunTile(Word* args, Word& result, 
+                     int message, Word& local, Supplier s)
+  {
+    int returnValue = FAILURE;
+
+    T* s_in = static_cast<T*>(args[0].addr);
+    CcReal* factor = static_cast<CcReal*>(args[1].addr);
+
+    struct ResultInfo
+    {
+      double zFactor;
+      double fromX;
+      double fromY;
+      double toX;
+      double toY;
+      double tileX;
+      double tileY;
+    };
+
+    int xDimensionSize = TileAlgebra::tProperties<char>::GetXDimensionSize();
+    int yDimensionSize = TileAlgebra::tProperties<char>::GetYDimensionSize();
+
+    switch(message)
+    {
+      case OPEN:
+      {
+        // initialize the local storage
+        ResultInfo* info = new ResultInfo;
+
+        TileAlgebra::Index<2> from;
+        TileAlgebra::Index<2> to;
+
+        s_in->GetBoundingBoxIndexes(from, to);
+        info->fromX = from[0];
+        info->fromY = from[1];
+        info->toX = to[0];
+        info->toY = to[1];
+
+        info->zFactor = factor->GetValue();
+
+        info->tileX = info->fromX;
+        info->tileY = info->fromY;
+
+        local.addr = info;
+
+        return 0;
+      }
+    
+      case REQUEST:
+      {
+        if(local.addr != 0)
+        {
+          ResultInfo* info = static_cast<ResultInfo*>(local.addr);
+
+          T* s_out = new T(true);
+
+          if(info->tileX <= info->toX || info->tileY <= info->toY)
+          {
+            TileAlgebra::tgrid grid;
+            s_in->getgrid(grid);
+            s_out->SetGrid(grid);
+
+            double cellsize = grid.GetLength();
+
+            bool bHasDefinedValue = false;
+
+            for(int row = info->tileY; row < info->toY; row++)
+            {
+              for(int column = info->tileX; column < info->toX; column++)
+              {
+                TileAlgebra::Index<2> index((int[]){column, row});
+
+                // Mitte
+                double e = s_in->GetValue(index);
+
+                if(SourceTypeProperties::TypeProperties::
+                                         IsUndefinedValue(e) == false)
+                {
+                  bHasDefinedValue = true;
+
+                  double a = s_in->GetValue((int[]){column - 1, row + 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(a)){a = e;}
+                  double b = s_in->GetValue((int[]){column, row + 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(b)){b = e;}
+                  double c = s_in->GetValue((int[]){column + 1, row + 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(c)){c = e;}
+                  double d = s_in->GetValue((int[]){column - 1, row});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(d)){d = e;}
+                  double f = s_in->GetValue((int[]){column + 1, row});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(f)){f = e;}
+                  double g = s_in->GetValue((int[]){column - 1, row - 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(g)){g = e;}
+                  double h = s_in->GetValue((int[]){column, row - 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(h)){h = e;}
+                  double i = s_in->GetValue((int[]){column + 1, row - 1});
+                  if (SourceTypeProperties::TypeProperties::
+                                            IsUndefinedValue(i)){i = e;}
+         
+                  // Delta bestimmen
+                  double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / 
+                                                 (8*cellsize*info->zFactor);
+                  double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / 
+                                                 (8*cellsize*info->zFactor);
+         
+                  // aspect berechnen
+                  double aspect = atan2(dzdy, -dzdx) * 180/M_PI;
+
+                  if (aspect < 0)
+                  {
+                      aspect = 90 - aspect;
+                  }
+                  else if (aspect > 90)
+                  {
+                      aspect = 360 - aspect + 90;
+                  }
+                  else
+                  {
+                      aspect = 90 - aspect;
+                  }
+
+                  s_out->SetValue(index, aspect, true);
+                }
+              }
+            }
+
+            // Ein Tile weiter nach rechts
+            info->tileX += xDimensionSize * cellsize;
+
+            // wenn ganz rechts angekommen
+            if(info->tileX >= info->toX)
+            {
+              // Ein Tile nach oben
+              info->tileY += yDimensionSize * cellsize;
+
+              // wenn nicht oberste Zeile
+              if(info->tileY < info->toY)
+              {
+                // zurueck auf erstes Tile von links
+                info->tileX = info->fromX;
+              }
+            }
+                  
+            if(bHasDefinedValue == true)
+            {
+              // return the next stream element
+              result.addr = s_out;
+              return YIELD;
+            }
+            else
+            {
+              delete s_out;
+              s_out = 0;
+
+              // always set the result to null before return CANCEL
+              result.addr = 0;
+              return CANCEL;
+            }
+          }
+        } // if local.addr
+        else
+        {
+          // always set the result to null before return CANCEL
+          result.addr = 0;
+          return CANCEL;
+        }
+      } //REQUEST
+
+      case CLOSE:
+      {
+        if(local.addr != 0)
+        {
+          ResultInfo* info = static_cast<ResultInfo*>(local.addr);
+
+          if(info != 0)
+          {
+            delete info;
+            local.addr = 0;
+          }
+        }
+
+        return 0;        
+      }
+
+      default:
+      {
+        assert(false);
+      }
+    }
+ 
+    return returnValue;
+  }
+
   ValueMapping aspectFuns[] =
   {
     aspectFun<raster2::sint>,
     aspectFun<raster2::sreal>,
+    aspectFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int>>,
+    aspectFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double>>,
     0
   };
 
@@ -124,6 +328,16 @@ namespace GISAlgebra {
     else if (type.first() == NList(raster2::sreal::BasicType()))
     {
       nSelection = 1;
+    }
+
+    else if (type.first() == NList(TileAlgebra::tint::BasicType()))
+    {
+      nSelection = 2;
+    }
+
+    else if (type.first() == NList(TileAlgebra::treal::BasicType()))
+    {
+      nSelection = 3;
     }
 
     return nSelection;
@@ -149,7 +363,23 @@ namespace GISAlgebra {
       return NList(raster2::sreal::BasicType()).listExpr();
     }
     
+    else if(type == NList(TileAlgebra::tint::BasicType(), 
+                          CcReal::BasicType())) 
+    {
+      return nl->TwoElemList(
+             nl->SymbolAtom(Stream<TileAlgebra::tint>::BasicType()),
+             nl->SymbolAtom(TileAlgebra::tint::BasicType()));
+    }
+
+    else if(type == NList(TileAlgebra::treal::BasicType(), 
+                          CcReal::BasicType())) 
+    {
+      return nl->TwoElemList(
+             nl->SymbolAtom(Stream<TileAlgebra::treal>::BasicType()),
+             nl->SymbolAtom(TileAlgebra::treal::BasicType()));
+    }
+
     return NList::typeError
-           ("Expecting an sint or sreal and a double (zfactor).");
+           ("Expecting an sint, sreal, tint or treal and a double (zfactor).");
   }
 }
