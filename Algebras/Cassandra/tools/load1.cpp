@@ -53,6 +53,7 @@ like delay, number of columns or the size of a column.
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+#include <boost/concept_check.hpp>
 
 #include "timer.h"
 
@@ -72,8 +73,9 @@ using namespace std;
 
 */
 void printUsageAndExit(char* hostname) {
-  cerr << "Usage: " << hostname << " -h <hostname> -p <port> -l <lines> "
-               "-d <delay> -c <columns> -s <size per column>" << endl;
+      cerr << "Usage: " << hostname << " -h <hostname> -p <port> -l <lines> "
+          "-d <delay> -c <columns> -s <size per column> -a <ack after>" 
+       << endl;
       cerr << endl;
       cerr << "Where <hostname> is the hostname to connect to" << endl;
       cerr << "<port> is the port to connect to" << endl;
@@ -81,9 +83,10 @@ void printUsageAndExit(char* hostname) {
       cerr << "<delay> is the pause (in ms) between two lines " << endl;
       cerr << "<columns> is the number of columns to generate" << endl;
       cerr << "<size per column> is the size in byte per column" << endl;
+      cerr << "<ack after> wait fror a ACK from server after n lines" << endl;
       cerr << endl;
       cerr << "Example: " << hostname
-           << " -h 127.0.0.1 -p 10000 -l 10 -d 4 -c 10 -s 10" << endl;
+           << " -h 127.0.0.1 -p 10000 -l 10 -d 4 -c 10 -s 10 -a 10" << endl;
       exit(-1);
 }
 
@@ -117,7 +120,66 @@ void fillBuffer(string &result, int columns, int sizePerColumn) {
 }
 
 /*
-2.3 main function
+2.3 Wait for an ACK char from server
+
+*/
+void waitForAck(int socketfd) {
+  
+  cout << "Wait for ack" << endl;
+  char buffer[255];
+  read(socketfd, buffer, sizeof(buffer));
+  
+  /*if(strncmp(buffer,ACK,1) == 0) {
+    cout << "[Info] Got ack";
+  } else {
+    cout << "[Error] Got something else";
+  }*/
+}
+
+/*
+2.4 Open the network socket
+
+*/
+bool openSocket(int &socketfd, char* hostname, int port) {
+  
+   struct hostent *server;
+   struct sockaddr_in server_addr;
+   
+   socketfd = socket(AF_INET, SOCK_STREAM, 0);
+
+   if(socketfd < 0) {
+      cerr << "Error opening socket" << endl;
+      return false;
+   }
+   
+   // Resolve hostname
+   server = gethostbyname(hostname);
+   
+   if(server == NULL) {
+      cerr << "Error resolving hostname: " << hostname << endl;
+      return -1;
+   }
+   
+   // Connect
+   memset(&server_addr, 0, sizeof(server_addr));
+   server_addr.sin_family = AF_INET;
+   server_addr.sin_port = htons(port);
+   
+   server_addr.sin_addr.s_addr = 
+     ((struct in_addr *)server->h_addr_list[0])->s_addr;
+  
+   if(connect(socketfd, (struct sockaddr*) &server_addr, 
+         sizeof(struct sockaddr)) < 0) {
+
+      cerr << "Error in connect() " << endl;
+      return false;
+   }
+   
+   return true;
+}
+
+/*
+2.5 main function
 
 */
 int main(int argc, char* argv[]) {
@@ -131,16 +193,14 @@ int main(int argc, char* argv[]) {
    int delay;           // Delay in ms
    int columns;         // Number of columns
    int sizePerColumn;   // Size per column
+   int acknowledgeAfter;// Wait for ack after n lines
    
-   struct hostent *server;
-   struct sockaddr_in server_addr;
-   
-   if(argc != 13) {
+   if(argc != 15) {
       printUsageAndExit(argv[0]);
    }
    
    int option = 0;
-   while ((option = getopt(argc, argv,"h:p:l:d:c:s:")) != -1) {
+   while ((option = getopt(argc, argv,"h:p:l:d:c:s:a:")) != -1) {
      switch (option) {
       case 'h':
            hostname = optarg;
@@ -159,6 +219,8 @@ int main(int argc, char* argv[]) {
         break;
       case 's':
           sizePerColumn = atoi(optarg);
+      case 'a':
+          acknowledgeAfter = atoi(optarg);
         break;
       default:
         printUsageAndExit(argv[0]);
@@ -168,43 +230,20 @@ int main(int argc, char* argv[]) {
    // Initalize Rand
    srand (time(NULL));
   
+   // Open socket
+   if(! openSocket(socketfd, hostname, port) ) {
+     cerr << "[Error] Unable to open socket" << endl;
+     return EXIT_FAILURE;
+   }
+   
    // Prepare buffer
    fillBuffer(buffer, columns, sizePerColumn);
    
    cout << "The size of the buffer is: " << buffer.length() 
         << " bytes " << endl;
    cout << "The buffer contains: " << buffer << endl;
-   
-   socketfd = socket(AF_INET, SOCK_STREAM, 0);
-   
-   if(socketfd < 0) {
-      cerr << "Error opening socket" << endl;
-      return -1;
-   }
-   
-   // Resolve hostname
-   server = gethostbyname(hostname);
-   
-   if(server == NULL) {
-      cerr << "Error resolving hostname: " << argv[1] << endl;
-      return -1;
-   }
-   
-   // Connect
-   memset(&server_addr, 0, sizeof(server_addr));
-   server_addr.sin_family = AF_INET;
-   server_addr.sin_port = htons(port);
-   
-   server_addr.sin_addr.s_addr = 
-     ((struct in_addr *)server->h_addr_list[0])->s_addr;
-  
-   if(connect(socketfd, (struct sockaddr*) &server_addr, 
-         sizeof(struct sockaddr)) < 0) {
 
-      cerr << "Error in connect() " << endl;
-      return -1;
-   }
- 
+   // Start timer
    Timer timer;
    timer.start();
    
@@ -221,6 +260,12 @@ int main(int argc, char* argv[]) {
       if(i % fivePercents == 0) {
          cout << ".";
          cout << flush;
+      }
+      
+      // Wait for ack
+      if(acknowledgeAfter > 0 &&
+        ((i + 1) % acknowledgeAfter == 0)) {
+        waitForAck(socketfd);
       }
       
       if(delay != 0) {
