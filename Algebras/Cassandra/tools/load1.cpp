@@ -125,7 +125,6 @@ void fillBuffer(string &result, int columns, int sizePerColumn) {
 */
 void waitForAck(int socketfd) {
   
-  cout << "Wait for ack" << endl;
   char buffer[255];
   read(socketfd, buffer, sizeof(buffer));
   
