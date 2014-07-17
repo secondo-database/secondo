@@ -31,59 +31,57 @@ import java.util.ArrayList;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;	///
 import sj.lang.ListExpr;
 import viewer.queryconstruction2.*;
-import java.lang.String;		///
-import java.io.*;	///
+import java.lang.String;
+import java.io.*;
 
 /**
  * this viewer class admits the visual construction of a query
  * 
  * @author Thomas Alber
- * @since 01.06.2012
- * @version 1.0
+ * @since 01.12.2013
+ * @version 2.0
  * 
  */
 public class QueryconstructionViewer2 extends SecondoViewer {
    
    //scrollpanels in the viewer
     protected ObjectPane objectPane;
-    protected OperationsPane23 operationsPane;
+    protected OperationsPane2 operationsPane;
     protected MainPane mainPane;
     private JScrollPane mainScrollpane;
     private JScrollPane objectScrollpane;
     private JScrollPane operationsScrollpane;
     
     //buttons
-    private JTextField mOpText = new JTextField("10,3", 20);	/// 
-    private String fieldtext; ///
-
     private JPanel buttonPanel = new JPanel();
     protected JButton back = new JButton("back");
-    private JButton run = new JButton("run");
+    private JButton run = new JButton("send Query");
     private JButton command = new JButton("copy command");
            
     //lists of all objects and operators in nested list format
     private ListExpr objects;
-    private ListExpr operators;
+    //private ListExpr operators;
+    private ListExpr opsigs = new ListExpr();
+    private ListExpr opspecs = new ListExpr();
 
     
     /**
-     * Construct the viewer window.
+     * Construct the viewer window and Init files. 
      */
     public QueryconstructionViewer2(){
         this.setLayout(new BorderLayout());
         
         mainPane = new MainPane(this);
         objectPane = new ObjectPane(this, mainPane);
-        operationsPane = new OperationsPane23(mainPane, this);
+        operationsPane = new OperationsPane2(mainPane, this);
         
         mainScrollpane = new JScrollPane(mainPane);
         objectScrollpane = new JScrollPane(objectPane);
         objectScrollpane.setPreferredSize(new Dimension (600, 90));
         operationsScrollpane = new JScrollPane(operationsPane);
-        operationsScrollpane.setPreferredSize(new Dimension (230, 30));
+        operationsScrollpane.setPreferredSize(new Dimension (230, 28));
 
         this.add(objectScrollpane, BorderLayout.NORTH);
         this.add(operationsScrollpane, BorderLayout.EAST);
@@ -100,11 +98,6 @@ public class QueryconstructionViewer2 extends SecondoViewer {
         JButton addObj = new JButton("add objects");
         buttonPanel.add(addObj);
 
-        JButton testObj = new JButton("mOp");	/// 
-        buttonPanel.add(testObj);		///
-
-	buttonPanel.add(mOpText);		///
-          
         this.add(buttonPanel, BorderLayout.SOUTH);
 
         
@@ -145,141 +138,105 @@ public class QueryconstructionViewer2 extends SecondoViewer {
             }
         };
         addObj.addActionListener(addObjl);
-///
-        ActionListener testObjl = new ActionListener() {
-            public void actionPerformed( ActionEvent e ) {
-		opsList(mOpText.getText().trim()); //mOpText aus Eingabefeld
-//		parse();
-            }
-        };
-        testObj.addActionListener(testObjl);
-///        
-    }
 
-
-
-
-
-// Neue Methoden //
-
-
-
-    //Test ListExpr-Ausgabe
-    public void opsList(String mOpin) {
-
-//	ListExpr ops = null;
-//	ops = getOperatorList();
-//	System.out.println(ops);	//Operatoren aus Tabelle QueryOperators
-
-	ListExpr ops2 = null;
-	ListExpr opsMean = null;
-
-
-
-        if (VC != null) {
-            ops2 = VC.getCommandResult("query matchingOperators("
-			+ mOpin + ") project[OperatorName] consume");
-
-	    opsMean =  VC.getCommandResult("query matchingOperators("
-			+ mOpin + ") project[Meaning] consume");
-
-
-	}
-// 	System.out.println(ops2);	//anwendbare Operatoren
-// 	System.out.println(opsMean);	//Bedeutung Operatoren
-
-
-        operationsPane.mOperators(ops2, opsMean);
-
-	System.out.println(mainPane.getStringsQuery());	//aktuelle Query
+        //Init
+        createfiles();
 
     }
 
 
-    //zum Test mit mOps-Eingabe
-    public String getOpObject() {
-	String mOpin = mOpText.getText().trim(); 
-	return mOpin;
+    /**
+     * Create the files from sigs and specs for 
+     *  the operator signatures and the operator syntaxes.
+     * 
+     */
+    public void createfiles() {
+
+      try {
+        String sigscommand = "../Tools/TypeMap/OpSigParser/OpSig";
+        Runtime.getRuntime().exec(sigscommand);
+        String specscommand = "../Tools/TypeMap/OpSpecParser/OpSpec";
+        Runtime.getRuntime().exec(specscommand);
+      }  
+      catch (IOException e) {  
+            e.printStackTrace();  
+      }
+
     }
 
+    /**
+     * Set the list expressions of the operator signatures  
+     *  and the operator syntaxes from their files.
+     * 
+     */
+    public void setfileLists() {
 
-///
+        String sigsPath = "../Tools/TypeMap/OpSigParser/OpSigsArgs.tmp";
+        //ListExpr opsigs = new ListExpr();
+        if(opsigs.readFromFile(sigsPath)!=0) {
+            System.out.println("I can't load the file");
+        }
+        else {
+            System.out.println("opsigs loaded");
+        }
+        String specsPath = "../Tools/TypeMap/OpSpecParser/OpSpecs.tmp";
+        //ListExpr opspecs = new ListExpr();
+        if(opspecs.readFromFile(specsPath)!=0) {
+            System.out.println("I can't load the file");
+        }
+        else {
+            //Example: (+ "(o # o)")
+            System.out.println("opspecs loaded");
+        }
+
+    }
+
+    /**
+     * Get the list expression of the operator signatures.
+     * @return this.opsigs
+     */
+    public ListExpr getOpSigs(){
+        return opsigs;
+    }
+
+    /**
+     * Get the list expression of the operator syntaxes.
+     * @return this.opspecs
+     */
+    public ListExpr getOpSpecs(){
+        return opspecs;
+    }
 
     /**
      * Get the properties list expression of a possible operator  
      *  from secondo server.
      * @param opName
-     * @param opObject
      * @return Nested List of OperatorInfo
      */
-    public ListExpr getOperatorInfo(String opName, String opObject) {
-	ListExpr opInfo = null;
+    public ListExpr getOperatorInfo(String opName) {
+        ListExpr opInfo = null;
         if (VC != null) {
-	    //query matchingOperators(10,3) filter[.OperatorName="+"] consume
-	    // (Example)
-     	    opInfo = VC.getCommandResult("query matchingOperators(" + opObject + ")"
-				+ "filter[.OperatorName="+"\""+opName+"\"]"
-				+ "consume");
-	}
+            //query SEC2OPERATORINFO feed filter[.Name="+"] consume
+            // (Example)
+            opInfo = VC.getCommandResult("query SEC2OPERATORINFO feed "
+                                + "filter[.Name="+"\""+opName+"\"]"
+                                + "consume");
+        }
         return opInfo;
     }
 
-
-
-
-
-
-
-
-    public void parse() {
-    
-	try {
-/*
-    String line;
-    Process process = Runtime.getRuntime().exec(command);
-    Reader r = new InputStreamReader(process.getInputStream());
-    BufferedReader in = new BufferedReader(r);
-    while((line = in.readLine()) != null) System.out.println(line);
-    in.close();
-*/
-
-
-	String[] command = {"Parser2", "specs", "2>specAusgabe", ">specErgebnis"};
-	Runtime.getRuntime().exec(command);
-
-	}
-	catch (Exception e) {
-	    System.err.println(e.toString());
-	}
-
+    public ListExpr getOperatorInfo2Mean(String opName) {
+        ListExpr opInfo2 = null;
+        if (VC != null) {
+            //query SEC2OPERATORINFO feed filter[.Name="+"]
+            //			     project[Meaning] consume
+            // (Example)
+            opInfo2 = VC.getCommandResult("query SEC2OPERATORINFO feed "
+                                + "filter[.Name="+"\""+opName+"\"]"
+                                + "project[Meaning] consume");
+        }
+        return opInfo2;
     }
-
-
-
-
-// Neue Methoden Ende //
-
-
-
-
-    
-    /**
-     * adds an object to the main panel
-     * @param object new object
-//     */
-//    public void addObject(ObjectView object){
-//        mainPane.addObject(object);
-//        update();
-//    }
-    
-//    /**
-//     * adds an operation to the main panel
-//     * @param operation new operation
-//     */
-//    public void addOperation(Operation operation){
-//        mainPane.addOperation(operation);
-//        update();
-//    }
     
     /**
      * Send the query to the secondo server and return the result.
@@ -319,24 +276,7 @@ public class QueryconstructionViewer2 extends SecondoViewer {
         
         return "0";
     }
-    
-    /**
-     * Get the types of all active objects in the main panel.
-     * @return array of types
-//     */
-//    public String[] getParameters() {
-//        return mainPane.getParameters();
-//    }
-    
-    /**
-     * Send a request to the main panel to check the attributes 
-     * for duplicate names.
-     * @return 
-     */
-//    public boolean checkAttributes() {
-//        return mainPane.checkAttributes();
-//    }
-    
+        
     /**
      * Copy the active query in the main panel to the system clipboard.
      */
@@ -405,12 +345,13 @@ public class QueryconstructionViewer2 extends SecondoViewer {
     /**
      * Add the operators of the database to the operators panel.
      * Used in the nested window.
-     * @param op list of the operators to add
+     * @param opsigs list of the operator signatures to add
+     * @param opspecs list of the operator syntaxes to add
+
      */
-    public void setOperators(ListExpr op) {
-        if (op != null) {
-            this.operators = op;
-            operationsPane.addOperations(this.operators);///
+    public void setOperators2(ListExpr opsigs, ListExpr opspecs) {
+        if (opsigs != null && opspecs != null) {
+            operationsPane.addOperations2(opsigs, opspecs);
         }
     }
     
@@ -422,16 +363,13 @@ public class QueryconstructionViewer2 extends SecondoViewer {
     protected void listObjects() {
         objects = VC.getCommandResult("list objects");
         if (objects != null) {
-            operators = VC.getCommandResult(
-                    "query QueryOperators feed sortby[OpName asc] consume");
-            if (operators == null) {
-                VC.execCommand(
-                        "restore QueryOperators from '../Javagui/viewer/"
-                        + "queryconstruction2/QueryOperators'");
-                operators = VC.getCommandResult(
-                        "query QueryOperators feed sortby[OpName asc] consume");
-            }
-            operationsPane.addOperations(operators);///
+            //get the operatornames and their meanings
+            ListExpr opsMean = null;
+            opsMean = VC.getCommandResult("query SEC2OPERATORINFO feed "
+                                        + "project[Name, Meaning] consume");
+            operationsPane.addOperatorsMean(opsMean);
+            setfileLists();
+            operationsPane.addOperations2(opsigs, opspecs);
             objectPane.addObjects(objects);
         }
     }
@@ -464,9 +402,9 @@ public class QueryconstructionViewer2 extends SecondoViewer {
      * Get the list expression of the operators.
      * @return this.operators
      */
-    public ListExpr getOperatorList(){
-        return operators;
-    }
+    //public ListExpr getOperatorList(){
+    //    return operators;
+    //}
     
     /**
      * @return "QueryconstructionViewer2"

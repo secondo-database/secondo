@@ -20,65 +20,86 @@
 package viewer.queryconstruction2;
 
 import java.awt.Color;
+import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import javax.swing.JDialog;
 import javax.swing.JTextPane;
+import javax.swing.JButton;
 import sj.lang.ListExpr;
 
 
 /**
  * Dialog Window for informations about operations.
+ * 
+ * @author Thomas Alber
+ *
  */
 public class OperationsInfoDialog extends JDialog {
     
     JTextPane opText = new JTextPane();
 
-    private String opName, opNameH, opNameL	= "OperatorName:";
-    private String opId, opIdH, opIdL		= "OperatorId:";
-    private String algName, algNameH, algNameL	= "AlgebraName:";
-    private String algId, algIdH, algIdL	= "AlgebraId:";
-    private String resType, resTypeH, resTypeL	= "ResultType:";
-    private String signat, signatH, signatL	= "Signature:";
-    private String syntax, syntaxH, syntaxL	= "Syntax:";
-    private String meaning, meaningH, meaningL	= "Meaning:";
-    private String example, exampleH, exampleL	= "Example:";
-    private String remark, remarkH, remarkL	= "Remark:";
+    private JButton close = new JButton("close");
+
+    private String opName, opNameH, opNameL     = "OperatorName:";
+    private String algName, algNameH, algNameL  = "AlgebraName:";
+    private String signat, signatH, signatL     = "Signature:";
+    private String syntax, syntaxH, syntaxL     = "Syntax:";
+    private String meaning, meaningH, meaningL  = "Meaning:";
+    private String example, exampleH, exampleL  = "Example:";
+    private String result, resultH, resultL     = "Result:";
+    private String remark, remarkH, remarkL     = "Remark:";
+
 
     
     public OperationsInfoDialog(int x, int y, ListExpr opInfo) {
+        this.setLayout(new BorderLayout());
+        this.addWindowListener( new WindowAdapter() {
+            public void windowClosing ( WindowEvent e) {
+            }
+        } );
+
         opText.setEditable(false);
-	opText.setBackground(new Color(250, 250, 170));
-	opText.setContentType("text/html");
-	this.add(opText);
+        opText.setBackground(new Color(250, 250, 170));
+        opText.setContentType("text/html");
+        this.add(opText, BorderLayout.CENTER);
+        this.add(close, BorderLayout.SOUTH);
         this.setTitle("Operator-Info");
         this.setAlwaysOnTop(true);
         this.setLocation(x, y);
         this.setSize(new Dimension(400,650));
 
-	setStrings(opInfo);
-	addInfo();
-
+        setStrings(opInfo);
+        addInfo();
         setVisible(true);
 
+
+        ActionListener closel = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+              dispose();
+            }
+        };
+        close.addActionListener(closel);
 
     }
     
 
- /**
+    /**
      * Set the information strings.
-     * @param ListExpr opInfo
+     * @param opInfo ListExpr
      */
     protected void setStrings(ListExpr opInfo) {
-	opName	= opInfo.second().first().first().stringValue();
-	opId	= opInfo.second().first().second().toString();
-	algName = opInfo.second().first().third().stringValue();
-	algId	= opInfo.second().first().fourth().toString();
-	resType = opInfo.second().first().fifth().textValue();
-	signat	= opInfo.second().first().sixth().textValue();
-	syntax	= opInfo.second().first().seventh().textValue();
-	meaning = opInfo.second().first().eighth().textValue();
-	example = opInfo.second().first().nineth().textValue();
-	remark	= opInfo.second().first().tenth().textValue();
+        opName  = opInfo.second().first().first().stringValue();
+        algName = opInfo.second().first().second().stringValue();
+        signat  = opInfo.second().first().third().textValue();
+        syntax  = opInfo.second().first().fourth().textValue();
+        meaning = opInfo.second().first().fifth().textValue();
+        example = opInfo.second().first().sixth().textValue();
+        result  = opInfo.second().first().seventh().textValue();
+        remark  = opInfo.second().first().eighth().textValue();
     }
 
 
@@ -86,76 +107,58 @@ public class OperationsInfoDialog extends JDialog {
      * Add the sum of information string to the window.
      */
     protected void addInfo() {
-	String sumStr = "<html>";
-	if (true == true) {
-	    opNameH = "<br><font color=black>" + opNameL +
-		        "<br><font color=blue>" + opName + "</font>";
-	    sumStr += opNameH;
-	}
-	if (true == true) {
-	    opIdH = "<br><font color=black>" + opIdL +
-		        "<br><font color=blue>" + opId + "</font>";
-	    sumStr += opIdH;
-	}
-	if (true == true) {
-	    algNameH = "<br><font color=black>" + algNameL +
-		        "<br><font color=blue>" + algName + "</font>";
-	    sumStr += algNameH;
-	}
-	if (true == true) {
-	    algIdH = "<br><font color=black>" + algIdL +
-		        "<br><font color=blue>" + algId + "</font>";
-	    sumStr += algIdH;
-	}
-	if (true == true) {
-	    resTypeH = "<br><font color=black>" + resTypeL +
-		        "<br><font color=blue>" + resType + "</font>";
-	    sumStr += resTypeH;
-	}
-	if (true == true) {
-	    signatH = "<br><font color=black>" + signatL +
-		        "<br><font color=blue>" + signat + "</font>";
-	    sumStr += signatH;
-	}
-	if (true == true) {
-	    syntaxH = "<br><font color=black>" + syntaxL +
-		        "<br><font color=blue>" + syntax + "</font>";
-	    sumStr += syntaxH;
-	}
-	if (true == true) {
-	    exampleH = "<br><font color=black>" + exampleL +
-		        "<br><font color=blue>" + example + "</font>";
-	    sumStr += exampleH;
-	}
-	if (true == true) {
-	    remarkH = "<br><font color=black>" + remarkL +
-		        "<br><font color=blue>" + remark + "</font>";
-	    sumStr += remarkH;
-	}
-	if (true == true) {
-	    meaningH = "<br><br><font color=black><b>" + meaningL +
-		        "<br><font color=blue>" + meaning + "</b></font>";
-	    sumStr += meaningH;
-	}
-	    	
-	sumStr += "</html>";
-	opText.setText(sumStr);
-    }
-    
+        String sumStr = "<html>";
 
+            // For extension "Select Info elements"
+        if (true == true) {
+            opNameH = "<br><font color=black>" + opNameL +
+                        "<br><font color=blue>" + opName + "</font>";
+            sumStr += opNameH;
+        }
+        if (true == true) {
+            algNameH = "<br><font color=black>" + algNameL +
+                         "<br><font color=blue>" + algName + "</font>";
+            sumStr += algNameH;
+        }
+        if (true == true) {
+            signatH = "<br><font color=black>" + signatL +
+                        "<br><font color=blue>" + signat + "</font>";
+            sumStr += signatH;
+        }
+        if (true == true) {
+            syntaxH = "<br><font color=black>" + syntaxL +
+                        "<br><font color=blue>" + syntax + "</font>";
+            sumStr += syntaxH;
+        }
+        if (true == true) {
+            meaningH = "<br><br><font color=black><b>" + meaningL +
+                         "<br><font color=blue>" + meaning + "</b><br></font>";
+            sumStr += meaningH;
+        }
+        if (true == true) {
+            exampleH = "<br><font color=black>" + exampleL +
+                         "<br><font color=blue>" + example + "</font>";
+            sumStr += exampleH;
+        }
+        if (true == true) {
+            resultH = "<br><font color=black>" + resultL +
+                        "<br><font color=blue>" + result + "</font>";
+            sumStr += resultH;
+        }
+        if (true == true) {
+            remarkH = "<br><font color=black>" + remarkL +
+                        "<br><font color=blue>" + remark + "</font>";
+            sumStr += remarkH;
+        }
 
+        sumStr += "</html>";
+        opText.setText(sumStr);
 
-
-
-/// alt:
-
-    /**
-     * Set the .
-     */
-    protected void view() {
+        /* For extension "Select Info elements"
         if (opText.getText() == null) {
             opText.setText("No Information selected.");
         }
+        */
     }
     
 }

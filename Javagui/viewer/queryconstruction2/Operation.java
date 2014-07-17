@@ -18,12 +18,9 @@
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package viewer.queryconstruction2;
 
-import java.awt.Color;	///nur zum Text grauen
-
 import java.awt.Graphics;
 import java.util.Arrays;
 import javax.swing.BorderFactory;
-
 
 /**
  * This class is respresenting the operations in the query 
@@ -43,8 +40,6 @@ public class Operation extends ObjectView {
     private String signature;
     //object component belonging to the operation
     private ObjectView view;
-
-    private boolean active = true;  ///
     
     /**
      * Constructor of an operation.
@@ -133,19 +128,11 @@ public class Operation extends ObjectView {
     protected ObjectView getView() {
         return this.view;
     }
-///
-    protected void setInactive() {
-	active = false;
-    }
-///    
+    
     public void paintComponent(Graphics g) {
         this.setBorder(BorderFactory.createEtchedBorder());
-
         String s = name;
-
-	if (active == false) {        
-	    g.setColor(Color.blue);	///nur zum Text grauen lightGrey
-	}
-	g.drawString(s, 20, this.getSize().height/2 + 5);
+        
+        g.drawString(s, 20, this.getSize().height/2 + 5);
     }
 }

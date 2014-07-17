@@ -29,6 +29,7 @@ import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import javax.swing.*;
+import sj.lang.ListExpr; ///
 import viewer.QueryconstructionViewer2;
 
 /**
@@ -87,7 +88,10 @@ public class OperationsDialog extends JDialog {
         this.params = operation.getParameter();
         this.operation = operation;
         
-        filterViewer.setOperators(mainViewer.getOperatorList());
+        ListExpr opSigs = mainViewer.getOpSigs();    ///
+        ListExpr opSpecs = mainViewer.getOpSpecs();  ///
+        filterViewer.setOperators2(opSigs, opSpecs); ///
+        //filterViewer.setOperators(mainViewer.getOperatorList());
         filterViewer.setObjects(mainViewer.getObjectList());
         filterViewer.addAttributes(mainViewer.getAttributes());
         filterViewer.setViewerControl(viewer.getViewerControl());
