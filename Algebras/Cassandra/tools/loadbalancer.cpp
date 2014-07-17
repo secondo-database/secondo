@@ -497,6 +497,14 @@ dispatch the data to the socket
   // We are only accepting new data, when the socket is
   // open and the size of the queue is less then QUEUESIZE
   virtual bool isReady() {
+    
+    /*
+    // Wait for queue size to reduce
+    while(getQueueSize() >= QUEUESIZE) {
+      usleep(1000);
+    }
+    */
+    
     return isSocketOpen() && ( getQueueSize() < QUEUESIZE );
   }
   
