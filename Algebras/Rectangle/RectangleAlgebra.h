@@ -233,6 +233,24 @@ two rectangles.
 */
     inline double Distance(const Rectangle<dim>& r, const Geoid* geoid=0) const;
 
+
+/*
+Returns the square of the maximum distance between two points within this rectangle and 
+~r~.
+
+*/
+    double QMaxMaxDistance(const Rectangle<dim>& r) const;
+
+
+/*
+Returns the square of the minmaxdistance between this and ~r~.
+
+*/
+    double QMinMaxDistance(const Rectangle<dim>& r) const;
+   
+
+
+
 /*
 Translates the rectangle given the translate vector ~t~.
 
@@ -898,6 +916,82 @@ inline double Rectangle<dim>::Distance(const Rectangle<dim>& r,
   }
   return sqrt(sum);
 }
+
+/*
+QMaxMaxDistance
+
+*/
+template <unsigned dim>
+double Rectangle<dim>::QMaxMaxDistance(const Rectangle<dim>& r) const{
+   double sum = 0.0;
+   double aux[4];
+   for(unsigned i=0;i<dim;i++){
+       aux[0] = fabs(MinD(i) - r.MinD(i));
+       aux[1] = fabs(MinD(i) - r.MaxD(i));
+       aux[2] = fabs(MaxD(i) - r.MinD(i));
+       aux[3] = fabs(MaxD(i) - r.MaxD(i));
+       // determine the maximum of the values
+       double a = aux[0];
+       for(int j=1;j<4;j++){
+          if(aux[j]>a){
+            a = aux[j];
+         }
+       }
+       sum += a*a;
+      }
+      return sum;
+}
+
+
+/*
+QMinMaxDistance
+
+*/
+template<unsigned dim>
+double Rectangle<dim>::QMinMaxDistance(const Rectangle<dim>& r) const{
+      double sum = QMaxMaxDistance(r);
+      double S[dim];
+      for (unsigned k=0;k<dim; k++){
+          S[k] = sum;
+      }
+      double aux[4];
+      for(unsigned k=0;k<dim;k++){
+         aux[0] = fabs(MinD(k) - r.MinD(k));
+         aux[1] = fabs(MinD(k) - r.MaxD(k));
+         aux[2] = fabs(MaxD(k) - r.MinD(k));
+         aux[3] = fabs(MaxD(k) - r.MaxD(k));
+         // subtract maximum value
+         double a = aux[0];
+         for(int j=1;j<4;j++){
+           if(aux[j]>a){
+             a = aux[j];
+           } 
+         } 
+         S[k] -= a*a;
+         // add minimum value
+         a = aux[0];
+         for(int j=1;j<4;j++){
+           if(aux[j]<a){
+             a = aux[j];
+           } 
+         } 
+         S[k] += a*a;
+      }
+      // find maximum value
+      double res = S[0];
+      for(unsigned k=1;k<dim;k++){
+        if(S[k] < res){
+           res = S[k];
+        }
+      }
+      return res;
+}
+
+
+
+
+
+
 
 /*
 5 Template functions for the type constructors
