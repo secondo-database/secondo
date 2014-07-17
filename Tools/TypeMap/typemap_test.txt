@@ -2,7 +2,7 @@
 Start with 'SecondoTTYBDB' in path '~/secondo/bin$'.
 
 1.: open database berlintest
-2.: query tminit('../Tools/TypeMap/sigs')
+2.: query tminit("../Tools/TypeMap/sigs")
 3.: query tmtypemap(tmgetOpSig("any","any"))
 
 
