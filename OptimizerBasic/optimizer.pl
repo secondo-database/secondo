@@ -1039,8 +1039,20 @@ plan_to_atom(Term, Result) :-
   arg(2, Term, Arg2),
   plan_to_atom(Arg2, Res2),
   concat_atom([Op, '(', Res1, ',', Res2, ') '], '', Result),
-  !.
+    !.
 
+    /* Khoja */
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 3),
+  secondoOp(Op, postfixbrackets2, 3),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  concat_atom([Res1, ' ', Op, '[', Res2, ',', Res3, '] '], '', Result),
+  !.
 
 /*
 Generic rules. Operators that are not 
@@ -2494,6 +2506,13 @@ lookupPred(Pred, pr(Pred2, Rel)) :-
 lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
   lookupPred1(Pred, Pred2, 0, [], 2, [Rel1, Rel2]), !.
 
+  
+  /* khoja */
+  lookupPred(Pred, pr(Pred2, Rel1, Rel2, Rel3)) :-
+  lookupPred1(Pred, Pred2, 0, [], 3, [Rel1, Rel2, Rel3]), !.
+  
+  
+  
 lookupPred(Pred, _) :-
   lookupPred1(Pred, _, 0, [], 0, []),
   write('Error in query: constant predicate is not allowed.'), nl, fail, !.
@@ -2558,7 +2577,20 @@ lookupPred1(Term, Term, N, Rels, N, Rels) :-
 
 lookupPred1(Term, Term, N, Rels, N, Rels).
  
-
+/* Khoja */
+lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
+  compound(Term),
+  functor(Term, F, 3), !,
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  arg(3, Term, Arg3),
+  lookupPred1(Arg1, Arg1Out, N, RelsBefore, M1, RelsAfter1),
+  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
+  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M, RelsAfter),
+  functor(Term2, F, 3),
+  arg(1, Term2, Arg1Out),
+  arg(2, Term2, Arg2Out),
+  arg(3, Term2, Arg3Out).
 
 
 /*

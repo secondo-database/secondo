@@ -1,3 +1,5 @@
+
+
 /*
 1 Operator Syntax
 
@@ -69,6 +71,13 @@ secondoOp(min, postfixbrackets, 2).
 secondoOp(max, postfixbrackets, 2).
 secondoOp(avg, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
+
+/* Khoja define a new syntax */
+secondoOp(between, postfixbrackets2, 3).
+
+
+ 
+
 
 
 
