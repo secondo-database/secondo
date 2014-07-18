@@ -531,7 +531,7 @@ public:
   
   // Are we accepting new data?
   virtual bool isReady() {
-    return isSocketOpen() && (sendTupel < acknowledgeAfter);
+    return ThreadedTargetServer::isReady() && (sendTupel < acknowledgeAfter);
   }
   
   // Wait for acknowledge after n tuples send
