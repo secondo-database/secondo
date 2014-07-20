@@ -20,14 +20,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+GIS includes
+
+*/
 #include "ruggedness.h"
+
+/*
+Raster2 and Tile includes
+
+*/
 #include "../Raster2/sint.h"
 #include "../Raster2/sreal.h"
 #include "../Tile/t/tint.h"
 #include "../Tile/t/treal.h"
 
+/*
+declaration of namespace GISAlgebra
+
+*/
 namespace GISAlgebra {
 
+/*
+Method ruggednessFuns: calculates the ruggedness value for each cell of a sint 
+                       or sreal. For each cell the value and the values of the 
+                       eight neighbour cells is read. 
+
+Return value: sint or sreal
+
+*/
   template <typename T>
   int ruggednessFun(Word* args, Word& result, 
                      int message, Word& local, Supplier s)
@@ -51,7 +72,7 @@ namespace GISAlgebra {
     for (raster2::RasterIndex<2> index=from; index < to; 
                                              index.increment(from, to))
     {
-	// Mitte
+	// central cell
         double e = s_in->get(index);
 
         double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
@@ -71,7 +92,8 @@ namespace GISAlgebra {
         double i = s_in->get((int[]){index[0] + 1, index[1] - 1});
         if (s_in->isUndefined(i)){i = e;}
 
-        // Differenz zwischen Mitte und umgebenden Zellen bilden, quadrieren
+        // calculate difference between central and surrounding cells, 
+        // square values
         double diff1 = (a - e) * (a - e);
         double diff2 = (b - e) * (b - e);
         double diff3 = (c - e) * (c - e);
@@ -81,7 +103,7 @@ namespace GISAlgebra {
         double diff7 = (h - e) * (h - e);
         double diff8 = (i - e) * (i - e);
 
-        // Diffs addieren und aus der Summe die Wurzel ziehen
+        // accumulate values and take square root
         double ruggedness = sqrt(diff1 + diff2 + diff3 + diff4 + 
                                  diff5 + diff6 + diff7 + diff8);
 
@@ -91,6 +113,14 @@ namespace GISAlgebra {
     return 0;
   }
 
+/*
+Method ruggednessFunsTile: calculates the ruggedness value for each cell of a 
+                           tint or treal. For each cell the value and the  
+                           values of the eight neighbour cells is read
+
+Return value: stream of tint or treal
+
+*/
   template <typename T, typename SourceTypeProperties>
   int ruggednessFunTile(Word* args, Word& result, 
                      int message, Word& local, Supplier s)
@@ -160,7 +190,7 @@ namespace GISAlgebra {
               {
                 TileAlgebra::Index<2> index((int[]){column, row});
 
-                // Mitte
+                // central cell
                 double e = s_in->GetValue(index);
 
                 if(SourceTypeProperties::TypeProperties::
@@ -193,8 +223,8 @@ namespace GISAlgebra {
                   if (SourceTypeProperties::TypeProperties::
                                             IsUndefinedValue(i)){i = e;}
          
-                  // Differenz zwischen Mitte und umgebenden 
-                  // Zellen bilden, quadrieren
+                  // calculate difference between central and surrounding 
+                  // cells, square values
                   double diff1 = (a - e) * (a - e);
                   double diff2 = (b - e) * (b - e);
                   double diff3 = (c - e) * (c - e);
@@ -204,7 +234,7 @@ namespace GISAlgebra {
                   double diff7 = (h - e) * (h - e);
                   double diff8 = (i - e) * (i - e);
 
-                  // Diffs addieren und aus der Summe die Wurzel ziehen
+                  // accumulate values and take square root
                   double ruggedness = sqrt(diff1 + diff2 + diff3 + diff4 + 
                                            diff5 + diff6 + diff7 + diff8);
 
@@ -213,19 +243,19 @@ namespace GISAlgebra {
               }
             }
 
-            // Ein Tile weiter nach rechts
+            // One tile to the right
             info->tileX += xDimensionSize * cellsize;
 
-            // wenn ganz rechts angekommen
+            // if on right edge
             if(info->tileX >= info->toX)
             {
-              // Ein Tile nach oben
+              // one tile to the top
               info->tileY += yDimensionSize * cellsize;
 
-              // wenn nicht oberste Zeile
+              // If not top row
               if(info->tileY < info->toY)
               {
-                // zurueck auf erstes Tile von links
+                // back to first tile from right
                 info->tileX = info->fromX;
               }
             }
@@ -280,6 +310,10 @@ namespace GISAlgebra {
     return returnValue;
   }
 
+/*
+definition of ruggednessFuns array
+
+*/
   ValueMapping ruggednessFuns[] =
   {
     ruggednessFun<raster2::sint>,
@@ -289,6 +323,10 @@ namespace GISAlgebra {
     0
   };
 
+/*
+Value Mapping 
+
+*/
   int ruggednessSelectFun(ListExpr args)
   {
     int nSelection = -1;
@@ -318,6 +356,10 @@ namespace GISAlgebra {
     return nSelection;
   }
 
+/*
+Type Mapping 
+
+*/
   ListExpr ruggednessTypeMap(ListExpr args)
   {
     NList type(args);

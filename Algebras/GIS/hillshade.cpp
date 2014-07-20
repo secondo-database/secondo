@@ -20,25 +20,59 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+GIS includes
+
+*/
 #include "hillshade.h"
+
+/*
+Raster2 and Tile includes
+
+*/
 #include "../Raster2/sint.h"
 #include "../Raster2/sreal.h"
 #include "../Tile/t/tint.h"
 #include "../Tile/t/treal.h"
 
+/*
+Define of PI
+
+*/
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
 #endif
 
+/*
+declaration of namespace GISAlgebra
+
+*/
 namespace GISAlgebra {
 
+/*
+Method hillshadeFun: calculates the hillshade value for each cell of a sint 
+                     or sreal. For each cell the value and the values of the eight 
+                     neighbour cells is read
+
+Return value: sint or sreal
+
+*/
   template <typename T>
   int hillshadeFun(Word* args, Word& result, 
                      int message, Word& local, Supplier s)
   {
     result = qp->ResultStorage(s);
 
+/*
+factor needed for adjustments between different scale units
+
+*/
     CcReal* factor = static_cast<CcReal*>(args[1].addr);
+
+/*
+azimuth and angle of imaginated light source
+
+*/
     CcReal* azimuth = static_cast<CcReal*>(args[2].addr);
     CcReal* angle = static_cast<CcReal*>(args[3].addr);
     typename T::this_type* s_out =
@@ -63,7 +97,7 @@ namespace GISAlgebra {
     for (raster2::RasterIndex<2> index=from; index < to; 
                                              index.increment(from, to))
     {
-	// Mitte
+	// central cell
         double e = s_in->get(index);
         if (s_in->isUndefined(e)){e = 0;}
 
@@ -84,11 +118,11 @@ namespace GISAlgebra {
         double i = s_in->get((int[]){index[0] + 1, index[1] - 1});
         if (s_in->isUndefined(i)){i = e;}
 
-        // Delta bestimmen
+        // calculate delta
         double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / (8*cellsize*zFactor);
         double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / (8*cellsize*zFactor);
 
-        // Gradwerte umrechnen
+        // recalculate degree values
         double zenith = (90.0 - light_angle) * M_PI / 180.0;
         double azimuth = (360.0 - light_azimuth + 90);
         if ( azimuth > 360 )
@@ -97,10 +131,10 @@ namespace GISAlgebra {
         }
         azimuth = azimuth * M_PI / 180.0;
 
-        // Slope berechnen
+        // calculate slope
         double slope = atan(sqrt(dzdx * dzdx + dzdy * dzdy));
 
-        // Aspect berechnen
+        // calculate aspect
         double aspect = 0;
 
         if ( dzdx != 0 )
@@ -128,7 +162,7 @@ namespace GISAlgebra {
           }
         }
 
-        // hillshade berechnen
+        // calculate hillshade
         double hillshade = 255.0*((cos(zenith) * cos(slope)) + 
                            (sin(zenith) * sin(slope) * cos(azimuth - aspect)));
 
@@ -143,6 +177,14 @@ namespace GISAlgebra {
     return 0;
   }
 
+/*
+Method hillshadeFunsTile: calculates the hillshade value for each cell of a
+                       tint or treal. For each cell the value and the values  
+                       of the eight neighbour cells is read
+
+Return value: stream of tint or treal
+
+*/
   template <typename T, typename SourceTypeProperties>
   int hillshadeFunTile(Word* args, Word& result, 
                      int message, Word& local, Supplier s)
@@ -150,7 +192,17 @@ namespace GISAlgebra {
     int returnValue = FAILURE;
 
     T* s_in = static_cast<T*>(args[0].addr);
+
+/*
+factor needed for adjustments between different scale units
+
+*/
     CcReal* factor = static_cast<CcReal*>(args[1].addr);
+
+/*
+azimuth and angle of imaginated light source
+
+*/
     CcReal* azimuth = static_cast<CcReal*>(args[2].addr);
     CcReal* angle = static_cast<CcReal*>(args[3].addr);
 
@@ -222,7 +274,7 @@ namespace GISAlgebra {
               {
                 TileAlgebra::Index<2> index((int[]){column, row});
 
-                // Mitte
+                // central cell
                 double e = s_in->GetValue(index);
 
                 if(SourceTypeProperties::TypeProperties::
@@ -255,13 +307,13 @@ namespace GISAlgebra {
                   if (SourceTypeProperties::TypeProperties::
                                             IsUndefinedValue(i)){i = e;}
          
-                  // Delta bestimmen
+                  // calculate delta
                   double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / 
                                                  (8*cellsize*info->zFactor);
                   double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / 
                                                  (8*cellsize*info->zFactor);
          
-                  // Gradwerte umrechnen
+                  // recalculate degree values
                   double zenith = (90.0 - info->light_angle) * M_PI / 180.0;
                   double azimuth = (360.0 - info->light_azimuth + 90);
                   if ( azimuth > 360 )
@@ -270,10 +322,10 @@ namespace GISAlgebra {
                   }
                   azimuth = azimuth * M_PI / 180.0;
 
-                  // Slope berechnen
+                  // calculate slope
                   double slope = atan(sqrt(dzdx * dzdx + dzdy * dzdy));
 
-                  // Aspect berechnen
+                  // calculate aspect
                   double aspect = 0;
 
                   if ( dzdx != 0 )
@@ -301,7 +353,7 @@ namespace GISAlgebra {
                     }
                   }
 
-                  // hillshade berechnen
+                  // calculate hillshade
                   double hillshade = 255.0*((cos(zenith) * cos(slope)) + 
                            (sin(zenith) * sin(slope) * cos(azimuth - aspect)));
 
@@ -315,19 +367,19 @@ namespace GISAlgebra {
               }
             }
 
-            // Ein Tile weiter nach rechts
+            // One tile to the right
             info->tileX += xDimensionSize * cellsize;
 
-            // wenn ganz rechts angekommen
+            // if on right edge
             if(info->tileX >= info->toX)
             {
-              // Ein Tile nach oben
+              // one tile to the top
               info->tileY += yDimensionSize * cellsize;
 
-              // wenn nicht oberste Zeile
+              // If not top row
               if(info->tileY < info->toY)
               {
-                // zurueck auf erstes Tile von links
+                // back to first tile from right
                 info->tileX = info->fromX;
               }
             }
@@ -382,6 +434,10 @@ namespace GISAlgebra {
     return returnValue;
   }
 
+/*
+definition of hillshadeFuns array
+
+*/
   ValueMapping hillshadeFuns[] =
   {
     hillshadeFun<raster2::sint>,
@@ -391,6 +447,10 @@ namespace GISAlgebra {
     0
   };
 
+/*
+Value Mapping 
+
+*/
   int hillshadeSelectFun(ListExpr args)
   {
     int nSelection = -1;
@@ -420,6 +480,10 @@ namespace GISAlgebra {
     return nSelection;
   }
 
+/*
+Type Mapping 
+
+*/
   ListExpr hillshadeTypeMap(ListExpr args)
   {
     NList type(args);

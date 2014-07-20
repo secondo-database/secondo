@@ -23,16 +23,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef GIS_ASPECT_H
 #define GIS_ASPECT_H
 
+/*
+SECONDO includes
+
+*/
 #include <NList.h>
 
+/*
+Raster2 includes
+
+*/
 #include "../Raster2/stype.h"
 
+/*
+declaration of namespace GISAlgebra
+
+*/
 namespace GISAlgebra 
 {
+/*
+declaration of aspectFuns array
+
+*/
         extern ValueMapping aspectFuns[];
+
+/*
+Type Mapping
+
+*/
         ListExpr aspectTypeMap(ListExpr args);
+
+/*
+Value Mapping
+
+*/
         int aspectSelectFun(ListExpr args);
 
+/*
+Struct aspectInfo describes name, syntax, meaning and signature
+of operator aspect.
+
+*/
         struct aspectInfo : OperatorInfo 
         {
           aspectInfo()

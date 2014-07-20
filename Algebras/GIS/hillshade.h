@@ -23,16 +23,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef GIS_HILLSHADE_H
 #define GIS_HILLSHADE_H
 
+/*
+SECONDO includes
+
+*/
 #include <NList.h>
 
+/*
+Raster2 includes
+
+*/
 #include "../Raster2/stype.h"
 
+/*
+declaration of namespace GISAlgebra
+
+*/
 namespace GISAlgebra 
 {
+/*
+declaration of hillshadeFuns array
+
+*/
         extern ValueMapping hillshadeFuns[];
+
+/*
+Type Mapping
+
+*/
         ListExpr hillshadeTypeMap(ListExpr args);
+
+/*
+Value Mapping
+
+*/
         int hillshadeSelectFun(ListExpr args);
 
+/*
+Struct hillshadeInfo describes name, syntax, meaning and signature
+of operator hillshade.
+
+*/
         struct hillshadeInfo : OperatorInfo 
         {
           hillshadeInfo()

@@ -20,12 +20,32 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+/*
+GIS includes
+
+*/
 #include "contour.h"
+
+/*
+Raster2 includes
+
+*/
 #include "../Raster2/sint.h"
 #include "../Raster2/sreal.h"
 
+/*
+declaration of namespace GISAlgebra
+
+*/
 namespace GISAlgebra {
 
+/*
+Method contourFuns: calculates the contour lines for a given sint or sreal
+                    object
+
+Return value: stream of tuple (level, line)
+
+*/
   template <typename T>
   int contourFun(Word* args, Word& result, 
                      int message, Word& local, Supplier s)
@@ -57,7 +77,7 @@ namespace GISAlgebra {
 
         DbArray<ResultInfo>* clines = new DbArray<ResultInfo>(num);
 
-        // Arraylevel initialisieren
+        // initialise array and set level to -32000
         for (int i = 0; i<num; i++)
         {
           ResultInfo lines;
@@ -84,7 +104,7 @@ namespace GISAlgebra {
           for (raster2::RasterIndex<2> index = from; index < to;
                                        index.increment(from, to))
           {
-            // Zellwerte ermitteln
+            // central cell
             double e = s_in->get(index);
 
             if (!(s_in->isUndefined(e)))
@@ -99,15 +119,15 @@ namespace GISAlgebra {
               double h = s_in->get((int[]){index[0], index[1] - 1});
               double f = s_in->get((int[]){index[0] + 1, index[1]});
 
-              // Koordinaten bestimmen
+              // calculate coordinates
               double X = index[0] * cellsize + cellsize/2 + gridOriginX;
               double Y = index[1] * cellsize + cellsize/2 + gridOriginY;
 
-              // wenn alle vier Zellen gueltige Werte haben
+              // if all four cells have valid values
               if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(b)) && 
                   !(s_in->isUndefined(d)) && !(s_in->isUndefined(e)))
               {
-                // Sonderfall fuer rechte untere Zelle
+                // special case for bottom right cell
                 if ((s_in->isUndefined(h)) && (s_in->isUndefined(f)))
                 {
                   ProcessRectangle(a, X - cellsize, Y + cellsize, 
@@ -116,7 +136,7 @@ namespace GISAlgebra {
                                    b, X + cellsize/2, Y + cellsize, 
                                    interval, min, clines);       
                 }
-                // Sonderfall fuer Zellen der ersten Reihe
+                // special case for first row
                 else if ((s_in->isUndefined(h)) && (s_in->isUndefined(g)))
                 {
                   ProcessRectangle(a, X - cellsize, Y + cellsize, 
@@ -125,7 +145,7 @@ namespace GISAlgebra {
                                    b, X, Y + cellsize, 
                                    interval, min, clines);       
                 }
-                // Sonderfall fuer rechte obere Zelle
+                // special case for top right cell
                 else if ((s_in->isUndefined(f)) && (s_in->isUndefined(a1)) 
                                                 && (s_in->isUndefined(b1)))
                 {
@@ -135,7 +155,7 @@ namespace GISAlgebra {
                                    b, X + cellsize/2, Y + cellsize+cellsize/2,
                                    interval, min, clines);       
                 }
-                // Sonderfall fuer Zellen der letzten Spalte
+                // special case for last column
                 else if ((s_in->isUndefined(f)) && (s_in->isUndefined(c)))
                 {
                   ProcessRectangle(a, X - cellsize, Y + cellsize, 
@@ -144,7 +164,7 @@ namespace GISAlgebra {
                                    b, X + cellsize/2, Y + cellsize, 
                                    interval, min, clines);       
                 }
-                // Sonderfall fuer obere Reihe
+                // special case for top row
                 else if ((s_in->isUndefined(a1)) && (s_in->isUndefined(b1)))
                 {
                   ProcessRectangle(a, X - cellsize, Y + cellsize + cellsize/2, 
@@ -153,7 +173,7 @@ namespace GISAlgebra {
                                    b, X, Y + cellsize+cellsize/2,
                                    interval, min, clines);       
                 }
-                // Normalfall
+                // normal case
                 else
                 {
                   ProcessRectangle(a, X - cellsize, Y + cellsize, 
@@ -165,8 +185,8 @@ namespace GISAlgebra {
               }
               else
               {
-                // bestimmen welche Zellen Werte enthalten, diese addieren 
-                // und durch die Anzahl der gueltigen Zellen teilen
+                // determine which cells have defined values, accumulate values
+                // and divide through number of valid cells
                 double sum = 0;
                 int good = 0;
                 double center = 0;
@@ -197,7 +217,7 @@ namespace GISAlgebra {
   
                 center = sum / good;
   
-                // Alternative Zellwerte berechnen
+                // calculate alternative values
                 double top;
                 double left;
                 double right;
@@ -238,8 +258,8 @@ namespace GISAlgebra {
                 else
                   bottom = e;
 
-                // wenn eine Eckzelle nicht definiert ist
-                // -> Berechnung ueber Ersatzwerte
+                // if one cell is not defined
+                // -> calculation with alternative values
                 if (!(s_in->isUndefined(a)))
                 {
                   ProcessRectangle(a, X - cellsize, Y + cellsize, 
@@ -253,12 +273,12 @@ namespace GISAlgebra {
                 {
                   if ((s_in->isUndefined(f)) && (s_in->isUndefined(b)))
                   {
-                    // Sonderfall rechte obere Ecke  
+                    // special case top right cell
                   }
                   else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(d)) &&
                             (s_in->isUndefined(a)) && !(s_in->isUndefined(b)))
                   {
-                    // Sonderfall unterhalb von undefiniert
+                    // special case cell under undefined cell
                     ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
                                      d, X - cellsize, Y,
                                      bottom, X - cellsize/2, Y, 
@@ -268,7 +288,7 @@ namespace GISAlgebra {
                   else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(d)) &&
                            !(s_in->isUndefined(a)) && (s_in->isUndefined(b)))
                   {
-                    // Sonderfall links unterhalb von undefiniert
+                    // special case cell left under undefined cell
                     ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
                                      d, X - cellsize, Y,
                                      bottom, X - cellsize/2, Y, 
@@ -280,12 +300,12 @@ namespace GISAlgebra {
                 if (!(s_in->isUndefined(e)) && (s_in->isUndefined(h))
                                             && (s_in->isUndefined(d)))
                 {
-                  // Sonderfall linke untere Ecke
+                  // special case left bottom cell
                 }
                 else if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a)) &&
                          !(s_in->isUndefined(b)) && (s_in->isUndefined(b1)))
                 {
-                  // Sonderfall obere linke Ecke
+                  // special case top left cell
                   ProcessRectangle(b, X-cellsize/2, Y+cellsize+cellsize/2,
                                    bottom, X - cellsize/2, Y,
                                    e, X, Y, 
@@ -295,11 +315,11 @@ namespace GISAlgebra {
                 else if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a))
                                                  && (s_in->isUndefined(b)))
                 {
-                  // Sonderfall obere Reihe
+                  // special case top row
                 }
                 else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(f)))
                 {
-                  // Sonderfall rechte obere Ecke
+                  // special case right top cell
                   ProcessRectangle(center, X - cellsize/2, Y + cellsize/2, 
                                    bottom, X - cellsize/2, Y,
                                    e, X, Y, 
@@ -311,7 +331,7 @@ namespace GISAlgebra {
                          !(s_in->isUndefined(b)) && (s_in->isUndefined(b1)) &&
                           (s_in->isUndefined(a1)))
                 {
-                  // Sonderfall linke obere Ecke
+                  // special case left top cell
                 }
                 else if (!(s_in->isUndefined(b)) && (s_in->isUndefined(h)))
                 {
@@ -333,7 +353,7 @@ namespace GISAlgebra {
                 else if (!(s_in->isUndefined(b)) && !(s_in->isUndefined(e))
                                                  && (s_in->isUndefined(a)))
                 {
-                  // Sonderfall rechtes von undefiniert
+                  // special case right of undefined
                   ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
                                    center, X - cellsize/2, Y + cellsize/2,
                                    right, X, Y + cellsize/2, 
@@ -342,7 +362,7 @@ namespace GISAlgebra {
                 }
               }
             }//if e def
-          }// for ueber alle zellen
+          }// for 
         }//if clines
 
         return 0;
@@ -440,6 +460,10 @@ namespace GISAlgebra {
     return returnValue;
   }
 
+/*
+declaration of contourFuns array
+
+*/
   ValueMapping contourFuns[] =
   {
     contourFun<raster2::sint>,
@@ -447,6 +471,10 @@ namespace GISAlgebra {
     0
   };
 
+/*
+Value Mapping
+
+*/
   int contourSelectFun(ListExpr args)
   {
     int nSelection = -1;
@@ -466,6 +494,10 @@ namespace GISAlgebra {
     return nSelection;
   }
 
+/*
+Type Mapping
+
+*/
   ListExpr contourTypeMap(ListExpr args)
   {
     NList type(args);
@@ -504,6 +536,14 @@ namespace GISAlgebra {
            ("Expecting an sint or sreal and a integer (interval).");
   }
 
+/*
+Method ProcessRectangle returns true if processing was successful
+
+Parameters: values and coordinates of four points, the wanted interval, 
+            the minimum value and DbArray ResultInfo to store the found 
+            segments
+
+*/
   bool ProcessRectangle(double a, double aX, double aY,
                         double g, double gX, double gY,
                         double i, double iX, double iY,
@@ -511,14 +551,14 @@ namespace GISAlgebra {
                         int interval, double min, 
                         DbArray<ResultInfo>* clines)
   {
-    // Rechteck verarbeiten (Minimum, Maximum bestimmen)
+    // calculate minimum and maximum
     double Min = MIN(MIN(a,c),MIN(g,i));
     double Max = MAX(MAX(a,c),MAX(g,i));
 
     int startLevel = (int) floor(Min / interval);
     int endLevel = (int) ceil(Max / interval);
 
-    // Schnittpunkte bestimmen
+    // calculate intersection
     for(int iLevel = startLevel; iLevel <= endLevel; iLevel++)
     {
       int level = iLevel * interval;
@@ -544,39 +584,39 @@ namespace GISAlgebra {
 
       if( nPoints == 2 )
       {
-        // links und unten
+        // left and bottom
         if ( nPoints1 == 1 && nPoints2 == 2)
         {
           if ( !(g == level && i == level) )
             AddSegment( level, pointsX[0], pointsY[0], 
                         pointsX[1], pointsY[1], min, interval, clines);
         }
-        // links und rechts
+        // left and right
         else if ( nPoints1 == 1 && nPoints3 == 2 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
                       pointsX[1], pointsY[1], min, interval, clines);
         }
-        // links und oben
+        // left and top
         else if ( nPoints1 == 1 && nPoints == 2 )
         { 
           AddSegment( level, pointsX[0], pointsY[0], 
                       pointsX[1], pointsY[1], min, interval, clines);
         }
-        // unten und rechts
+        // bottom and right
         else if(  nPoints2 == 1 && nPoints3 == 2)
         {
           if ( !(c == level && i == level) )
             AddSegment( level, pointsX[0], pointsY[0], 
                         pointsX[1], pointsY[1], min, interval, clines);
         }
-        // unten und oben
+        // bottom and top
         else if ( nPoints2 == 1 && nPoints == 2 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
                       pointsX[1], pointsY[1], min, interval, clines);
         }
-        // rechts und oben
+        // right and top
         else if ( nPoints3 == 1 && nPoints == 2 )
         { 
            AddSegment( level, pointsX[0], pointsY[0], 
@@ -590,7 +630,7 @@ namespace GISAlgebra {
 
       if( nPoints == 3 )
       {
-        // links, unten und rechts
+        // left, bottom and right
         if ( nPoints1 == 1 && nPoints2 == 2 && nPoints3 == 3 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
@@ -599,7 +639,7 @@ namespace GISAlgebra {
           AddSegment( level, pointsX[1], pointsY[1], 
                       pointsX[2], pointsY[2], min, interval, clines);
         }
-        // links, unten und oben
+        // left, bottom and top
         else if ( nPoints1 == 1 && nPoints2 == 2 && nPoints == 3 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
@@ -608,7 +648,7 @@ namespace GISAlgebra {
           AddSegment( level, pointsX[0], pointsY[0], 
                       pointsX[2], pointsY[2], min, interval, clines);
         }
-        // unten, rechts und oben
+        // bottom, right and top
         else if ( nPoints2 == 1 && nPoints3 == 2 && nPoints == 3 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
@@ -617,7 +657,7 @@ namespace GISAlgebra {
           AddSegment( level, pointsX[1], pointsY[1], 
                       pointsX[2], pointsY[2], min, interval, clines);
         }
-        // unten, rechts und oben
+        // left, right and top
         else if ( nPoints1 == 1 && nPoints3 == 2 && nPoints == 3 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
@@ -626,8 +666,6 @@ namespace GISAlgebra {
           AddSegment( level, pointsX[1], pointsY[1], 
                       pointsX[2], pointsY[2], min, interval, clines);
         }
-
-
       }
 
       if( nPoints == 4 )
@@ -644,6 +682,15 @@ namespace GISAlgebra {
     return false;
   }
 
+/*
+Method Intersects calculates if a line between two points intersects the level
+
+Parameters: values and coordinates of two points, value of a third point, 
+            the level value, a pointer for a counter to store the number 
+            of intersect and two pointer two store the point where the line is
+            intersected
+
+*/
   void Intersect(double val1, double val1X, double val1Y,
                  double val2, double val2X, double val2Y,
                  double val3, double level, int *pnPoints,
@@ -673,6 +720,14 @@ namespace GISAlgebra {
     }
   }
 
+/*
+Method AddSegment addes the found segments to the ResultInfo DbArray
+
+Parameters: level value, coordinates of segments start and stop point, 
+            the minimum value, the interval value and DbArray ResultInfo 
+            to store the segments
+
+*/
   bool AddSegment(int l, double startX, double startY,
                   double endX, double endY, 
                   double min, int interval, DbArray<ResultInfo>* clines)
@@ -681,14 +736,14 @@ namespace GISAlgebra {
     Point p2(true, endX, endY);
     HalfSegment hs(true, p1, p2);
 
-    // Array-Element berechnen
+    // calculate array element
     int i = floor((l - min) / interval);
 
-    // Contourlinie fuer level finden
+    // find correct contour line
     ResultInfo temp;
     clines->Get(i,temp);
 
-    // wenn existent, dann Segment hinzufuegen
+    // if contour line exists, add segment
     if (!(temp.level == -32000))
     {            
       Line* line = temp.cline;
@@ -701,7 +756,7 @@ namespace GISAlgebra {
       (*line) += hs;
     }
     else
-    // ansonsten neue Linie anlegen
+    // if not, create new line
     {
       Line* line = new Line(0);
 

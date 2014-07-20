@@ -23,16 +23,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef GIS_SLOPE_H
 #define GIS_SLOPE_H
 
+/*
+SECONDO includes
+
+*/
 #include <NList.h>
 
+/*
+Raster2 includes
+
+*/
 #include "../Raster2/stype.h"
 
+/*
+declaration of namespace GISAlgebra
+
+*/
 namespace GISAlgebra 
 {
+/*
+declaration of slopeFuns array
+
+*/
         extern ValueMapping slopeFuns[];
+
+/*
+Type Mapping
+
+*/
         ListExpr slopeTypeMap(ListExpr args);
+
+/*
+Value Mapping
+
+*/
         int slopeSelectFun(ListExpr args);
 
+/*
+Struct slopeInfo describes name, syntax, meaning and signature
+of operator slope.
+
+*/
         struct slopeInfo : OperatorInfo 
         {
           slopeInfo()

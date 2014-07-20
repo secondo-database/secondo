@@ -23,16 +23,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef GIS_RUGGEDNESS_H
 #define GIS_RUGGEDNESS_H
 
+/*
+SECONDO includes
+
+*/
 #include <NList.h>
 
+/*
+Raster2 includes
+
+*/
 #include "../Raster2/stype.h"
 
+/*
+declaration of namespace GISAlgebra
+
+*/
 namespace GISAlgebra 
 {
+/*
+declaration of ruggednessFuns array
+
+*/
         extern ValueMapping ruggednessFuns[];
+
+/*
+Type Mapping
+
+*/
         ListExpr ruggednessTypeMap(ListExpr args);
+
+/*
+Value Mapping
+
+*/
         int ruggednessSelectFun(ListExpr args);
 
+/*
+Struct ruggednessInfo describes name, syntax, meaning and signature
+of operator ruggedness.
+
+*/
         struct ruggednessInfo : OperatorInfo 
         {
           ruggednessInfo()
