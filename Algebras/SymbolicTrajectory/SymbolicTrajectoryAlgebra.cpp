@@ -1102,6 +1102,9 @@ void MBasics<B>::GetValues(const int i, set<typename B::base>& result) const{
   pair<unsigned int, unsigned int> flobPos; // pos, size
   for (int j = unit.pos; j <= getUnitEndPos(i); j++) {
     flobPos = make_pair(0, 0);
+    if (pos.Size() == 0) {
+      cout << "try to get elem " << j << " of " << pos.Size();
+    }
     pos.Get(j, elem1);
     unsigned int start = B::getFlobPos(elem1);
     if (start != UINT_MAX) {
@@ -3490,6 +3493,14 @@ DataType Tools::getDataType(const string& type) {
   if (type == "mlabels") return LABELS;
   if (type == "mplace") return PLACE;
   return PLACES;
+}
+
+bool Tools::isSymbolicType(ListExpr typeList) {
+  if (MLabel::checkType(typeList) || MPlace::checkType(typeList) ||
+      MLabels::checkType(typeList) || MPlaces::checkType(typeList)) {
+    return true;
+  }
+  return false;
 }
 
 /*
@@ -7310,6 +7321,135 @@ Operator matches("matches", matchesSpec, 8, matchesVMs, matchesSelect,
                  matchesTM);
 
 /*
+\section{Operator ~createunitrtree~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr createunitrtreeTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+    return listutils::typeError("Exactly 2 arguments expected.");
+  }
+  if (!listutils::isSymbol(nl->Second(args))) {
+    return listutils::typeError("Attribute name expected as 2nd argument.");
+  }
+  if (!listutils::isTupleStream(nl->First(args))) {
+    return listutils::typeError("Tuple stream expected as 1st argument.");
+  }
+  string attrName = nl->SymbolValue(nl->Second(args));
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr attrType;
+  int attrIndex = listutils::findAttribute(attrList, attrName, attrType);
+  if (attrIndex <= 0) {
+    return listutils::typeError("Specified attribute name does not occur in the"
+                                " tuple stream.");
+  }
+  if (!Tools::isSymbolicType(attrType)) { // TODO: add all moving types
+    return listutils::typeError(nl->ToString(attrType) + " is not a valid "
+                                "attribute type.");
+  }
+  ListExpr first;
+  ListExpr rest = attrList;
+  int j(1), tidIndex(0);
+  while (!nl->IsEmpty(rest)) {
+    first = nl->First(rest);
+    rest = nl->Rest(rest);
+    if (nl->SymbolValue(nl->Second(first)) == TupleIdentifier::BasicType()) {
+      if (tidIndex != 0) {
+        return listutils::typeError("Exactly one tuple identifier attribute "
+                                    "expected within the tuple stream.");
+      }
+      tidIndex = j;
+    }
+    j++;
+  }
+  if (tidIndex <= 0) {
+    return listutils::typeError("Exactly one tuple identifier attribute "
+                                "expected within the tuple stream.");
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->TwoElemList(nl->IntAtom(attrIndex),
+                                           nl->IntAtom(tidIndex)),
+                           nl->FourElemList(
+                 nl->SymbolAtom(R_Tree<1, NewPair<TupleId, int> >::BasicType()),
+                                            nl->Second(nl->First(args)),
+                                            attrType,
+                                            nl->BoolAtom(false)));
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int createunitrtreeSelect(ListExpr args) {
+  ListExpr tList = nl->First(nl->Rest(nl->First(args)));
+  ListExpr aList = nl->Second(tList);
+  string aName = nl->SymbolValue(nl->Second(args));
+  ListExpr aType;
+  listutils::findAttribute(aList, aName, aType);
+  if (MLabel::checkType(aType))  return 0;
+  if (MLabels::checkType(aType)) return 1;
+  if (MPlace::checkType(aType))  return 2;
+  if (MPlaces::checkType(aType)) return 3;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class M>
+int createunitrtreeVM(Word* args, Word& result, int message, Word& local,
+                      Supplier s) {
+  Word wTuple;
+  R_Tree<1, NewPair<TupleId, int> > *rtree =
+    (R_Tree<1, NewPair<TupleId, int> >*)qp->ResultStorage(s).addr;
+  result.setAddr(rtree);
+  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
+  int tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wTuple);
+  while (qp->Received(args[0].addr)) {
+    Tuple *tuple = (Tuple*)wTuple.addr;
+    M *traj = (M*)tuple->GetAttribute(attrIndex);
+    TupleIdentifier *tid = (TupleIdentifier *)tuple->GetAttribute(tidIndex);
+    double start[1], end[1];
+    if (traj->IsDefined() && tid->IsDefined()) {
+      for (int i = 0; i < traj->GetNoComponents(); i++) {
+        SecInterval timeIv(true);
+        traj->GetInterval(i, timeIv);
+        start[0] = timeIv.start.ToDouble();
+        end[0] = timeIv.end.ToDouble();
+        Rectangle<1> doubleIv(true, start, end);
+        if (doubleIv.IsDefined()) {
+          NewPair<TupleId, int> position(tid->GetTid(), i);
+          R_TreeLeafEntry<1, NewPair<TupleId, int> > entry(doubleIv, position);
+          rtree->Insert(entry);
+        }
+      }
+    }
+    deleteIfAllowed(tuple);
+    qp->Request(args[0].addr, wTuple);
+  }
+  qp->Close(args[0].addr);
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct createunitrtreeInfo : OperatorInfo {
+  createunitrtreeInfo() {
+    name      = "createunitrtree";
+    signature = "stream(tuple(X)) x IDENT -> rtree";
+    syntax    = "_ createunitrtree [ _ ]";
+    meaning   = "Creates an rtree from a tuple stream having a moving type "
+                "attribute Each unit in each tuple is indexed separately.";
+  }
+};
+
+/*
 \section{Operator ~indexmatches~}
 
 \subsection{Type Mapping}
@@ -8921,7 +9061,7 @@ IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
 */
 IndexClassifyLI::~IndexClassifyLI() {
   if (classifyTT) {
-    delete classifyTT;
+    classifyTT->DeleteIfAllowed();
     classifyTT = 0;
   }
 }
@@ -8936,11 +9076,11 @@ Tuple* IndexClassifyLI::nextResultTuple() {
     return 0;
   }
   while (results.empty()) {
-    cout << "results empty, fill now. currentPat=" << currentPat << ", " 
-         << c->getPatText(currentPat) << endl;
     if (currentPat >= c->getNumOfP()) {
       return 0;
     }
+    cout << "results empty, fill now. currentPat=" << currentPat << ", " 
+         << c->getPatText(currentPat) << endl;
     Pattern *pat = Pattern::getPattern(c->getPatText(currentPat));
     p = *pat;
     delete pat;
@@ -8949,14 +9089,26 @@ Tuple* IndexClassifyLI::nextResultTuple() {
     for (unsigned int i = 0; i < matches.size(); i++) {
       results.push(make_pair(c->getDesc(currentPat), matches[i]));
     }
+    p.deleteCondOpTrees();
     cout << "desc for " << currentPat << " is " << c->getDesc(currentPat)<<endl;
     currentPat++;
   }
-  cout << "results has " << results.size() << " elements" << endl;
   pair<string, TupleId> resultPair = results.front();
   results.pop();
+  cout << "tuple id " << resultPair.second << " popped, " << results.size() 
+       << " left" << endl;
+   
   Tuple* tuple = mRel->GetTuple(resultPair.second, false);
-  M *traj = (M*)tuple->GetAttribute(attrNr)->Copy();
+  int noValues = ((MLabels*)(tuple->GetAttribute(attrNr)))->GetNoValues();
+  cout << "Trajectory has "
+       << ((MLabels*)(tuple->GetAttribute(attrNr)))->GetNoComponents()
+       << " units and " << noValues << " labels" << endl;
+  
+  ((MLabels*)(tuple->GetAttribute(attrNr)))->Print(cout);
+  
+  
+  
+  Attribute* traj = (tuple->GetAttribute(attrNr))->Copy();
   Tuple *result = new Tuple(classifyTT);
   result->PutAttribute(0, new FText(true, resultPair.first));
   result->PutAttribute(1, traj);
@@ -8992,7 +9144,9 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
       return 0;
     }
     case REQUEST: {
+      cout << "REQUEST next tuple" << endl;
       result.addr = li ? li->nextResultTuple<M>() : 0;
+      cout << "return " << (result.addr ? "TUPLE" : "NULL") << endl;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -9467,7 +9621,7 @@ void IndexMatchesLI::initMatchInfo(const set<int>& cruElems) {
       trajSize[id] = getMsize(id);
       IndexMatchInfo imi(false);
       (*matchInfoPtr)[0][id].imis.push_back(imi);
-      for (int s = 0; s < p.getSize(); s++) {
+      for (int s = 0; s < p.getNFAsize(); s++) {
         (*matchInfoPtr)[s][pred].succ = id;
         (*matchInfoPtr)[s][id].pred = pred;
         (*newMatchInfoPtr)[s][pred].succ = id;
@@ -9508,7 +9662,7 @@ void IndexMatchesLI::initialize() {
   findNFApaths(simpleNFA, finalStates, paths);
   set<int> cruElems;
   getCrucialElems(paths, cruElems);
-  indexResult.resize(p.getSize());
+  indexResult.resize(p.getNFAsize());
   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
     storeIndexResult(*it);
   }
@@ -10778,6 +10932,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
   AddOperator(&matches);
   matches.SetUsesArgsInTypeMapping();
+  
+  ValueMapping createunitrtreeVMs[] = {createunitrtreeVM<MLabel>,
+    createunitrtreeVM<MLabels>, createunitrtreeVM<MPlace>, 
+    createunitrtreeVM<MPlaces>, 0};
+  AddOperator(createunitrtreeInfo(), createunitrtreeVMs, createunitrtreeSelect,
+              createunitrtreeTM);
   
   ValueMapping indexmatchesVMs[] = {indexmatchesVM<MLabel, FText>, 
     indexmatchesVM<MLabels, FText>, indexmatchesVM<MPlace, FText>, 

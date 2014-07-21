@@ -344,6 +344,12 @@ Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
 Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * () // X.labels contains tolabel("Brackel")'] count
 Result   : 1
 
+Operator : createunitrtree
+Number   : 1
+Signature: stream(tuple(X)) x IDENT -> rtree
+Example  : query Dotraj feed addid createunitrtree[Trajectory]
+Result   : ("R-Tree statistics" ("Height" 1) ("# of (leaf) entries" 100) ("# of nodes" 3) ("Bounding Box" (4381.0 4381.208333333333)))
+
 Operator : indexmatches
 Number   : 1
 Signature: rel(tuple(X)) x IDENT x text -> stream(tuple(X))

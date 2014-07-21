@@ -97,6 +97,9 @@ struct NFAtransition {
 template<class F, class S>
 class NewPair {
  public:
+  NewPair() {}
+  NewPair(F f, S s) : first(f), second(s) {}
+   
   F first;
   S second;
 };
@@ -656,6 +659,7 @@ class Tools {
   static int getKey(const string& type);
   static string getDataType(const int key);
   static DataType getDataType(const string& type);
+  static bool isSymbolicType(ListExpr typeList);
   static string extractVar(const string& input);
   static string extendDate(string input, const bool start);
   static bool checkSemanticDate(const string &text, const SecInterval &uIv,
