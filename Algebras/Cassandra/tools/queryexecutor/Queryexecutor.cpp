@@ -352,7 +352,7 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
     // Copy query string, so we can replace the
     // placeholder multiple times
     string ourQuery = string(query);
-    replacePlaceholder(ourQuery, "__TOKEN__", ss.str());
+    replacePlaceholder(ourQuery, "__TOKENRANGE__", ss.str());
     executeSecondoCommand(si, nl, ourQuery);
     updateLastProcessedToken(cassandra, queryId, ip, interval);
 }
@@ -428,7 +428,7 @@ bool updateUuid(CassandraAdapter* cassandra, string uuid,
 
 /*
 2.2 Handle a multitoken query (e.g. query ccollectrange('192.168.1.108', 
-     'secondo', 'relation2', 'ONE',__TOKEN__);
+     'secondo', 'relation2', 'ONE',__TOKENRANGE__);
 
 */
 void handleTokenQuery(CassandraAdapter* cassandra, string &query, 
@@ -584,7 +584,7 @@ void mainLoop(SecondoInterface* si,
             ++lastCommandId;
             
             // Simple query or token based query?
-            if(containsPlaceholder(command, "__TOKEN__")) {
+            if(containsPlaceholder(command, "__TOKENRANGE__")) {
               handleTokenQuery(cassandra, command, lastCommandId, 
                                cassandraIp, si, nl);
             } else {
