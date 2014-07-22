@@ -65,6 +65,13 @@ and: bool x bool -> bool
 or: bool x bool -> bool
 
 
+algebra DateAlgebra
+
+<: date x date -> bool
+=: date x date -> bool
+>: date x date -> bool
+
+
 algebra RelationAlgebra
 
 feed: rel(Tuple) -> stream(Tuple)
