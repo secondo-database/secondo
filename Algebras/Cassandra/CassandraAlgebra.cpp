@@ -2314,7 +2314,7 @@ ListExpr CQueryWaitTypeMap( ListExpr args )
 
 
 /*
-2.9.2 Local info for operator ~cqueryreset~
+2.9.2 Local info for operator ~cquerywait~
 
 */
 class CQueryWaitLocalInfo {
@@ -2365,11 +2365,11 @@ private:
 
 
 
-class CQueryResetCostEstimation : public CostEstimation {
+class CQueryWaitCostEstimation : public CostEstimation {
 
 public:
   
-  CQueryResetCostEstimation() {
+  CQueryWaitCostEstimation() {
   }
   
   virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo, 
@@ -2426,12 +2426,12 @@ public:
 
 */
 CostEstimation* CQueryWaitCostEstimationFunc() {
-  return new CQueryResetCostEstimation();
+  return new CQueryWaitCostEstimation();
 }
 
 
 /*
-2.9.2 Specification of operator ~cqueryreset~
+2.9.2 Specification of operator ~cquerywait~
 
 */
 int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
