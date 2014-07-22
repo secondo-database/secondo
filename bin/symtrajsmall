@@ -4492,24 +4492,6 @@
                                 'Papestr. (Ringbahn)' 
                                 'Resonanz' 
                                 'Xenon')))))) 
-        (OBJECT Partinv 
-            () 
-            invfile 
-            'An invfile') 
-        (OBJECT Partrtree 
-            () 
-            (rtree 
-                (tuple 
-                    (
-                        (Rect rect))) 
-                rect 
-                FALSE) 
-            ("R-Tree statistics" 
-                ("Height" 0) 
-                ("# of (leaf) entries" 2) 
-                ("# of nodes" 1) 
-                ("Bounding Box" 
-                    (2709.323429224537 2709.862513854167 2709.323429224537 2709.862513854167)))) 
         (OBJECT SEC_DERIVED_OBJ 
             () 
             (rel 
