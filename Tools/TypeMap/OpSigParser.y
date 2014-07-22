@@ -98,7 +98,7 @@ string collectEnum    = "";	string collectArgs3    = "";
 
 %token<tokenchar> ZZATTR ZZATTRS ZZCOMBINE ZZCONCAT ZZDISTATTRS
 		  ZZMINUS ZZCREATEATTR
-		  ZZDATATYPE  ZZIDENT ZZSYMBOL ZZINTI
+		  ZZIDENT ZZSYMBOL ZZINTI
 
 %type<tokenchar> opname type varname attrsindex varindex datatypes datatype
 
@@ -108,6 +108,7 @@ string collectEnum    = "";	string collectArgs3    = "";
        <sig>      = (<opname>|<opsymbol>) <siglist>
        <siglist>  = <sigargtypes> <resulttype>
                   | <sigargtypes> <resulttype>; <condpreds>
+                  | <sigargtypes> <resulttype> <decls>.
 ----
 
 */
@@ -208,7 +209,12 @@ sig	    : opname':' sigargtypes ZZFOLLOWS resulttype
 		collectSiglist2 += "( " + collectPreds + " )";
 		collectSig2  += str1 + " \n ( " + collectSiglist2 + " )";
 		collectSig2  += " )\n";
+		collectSiglist3 = ""; collectSig3 = "";
+		collectSiglist3 += collectArgs3;
+		collectSig3  += str1 + " " + collectSiglist3;
+		collectSig3  += ")\n";
 	      }
+
 	    | opname':' sigargtypes ZZFOLLOWS resulttype decls '.'
 	      {/* sig: simple + decls */
 		string str1 = $1;
@@ -220,10 +226,14 @@ sig	    : opname':' sigargtypes ZZFOLLOWS resulttype
 		collectSig  += str1 + " \n ( " + collectSiglist + " )";
 		collectSig  += " )\n";
 		collectSig2 = collectSig;
+		collectSiglist3 = ""; collectSig3 = "";
+		collectSiglist3 += collectArgs3;
+		collectSig3  += str1 + " " + collectSiglist3;
+		collectSig3  += ")\n";
 	      }
 	    ;
 
-sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
+sigargtypes : type ZZCROSSPRODUCT type
 	      {/* argsOP: e.g. + */
 		string str1 = $1; string str3 = $3;
 		collectArgs = "";
@@ -259,10 +269,12 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs += "(var " + str32 + " 1)) " + str6;
 		collectArgs2 = "";
 		collectArgs2 = collectArgs;
+		collectArgs3 = "";
+		collectArgs3 += "\"" + str1 + "\" \"\"";
 	      }
   
 	    | type'('varname')' ZZPARAM 
-		  '('varname ZZFOLLOWS ZZDATATYPE')'
+		  '('varname ZZFOLLOWS type')'
 	      {/* argsOP: e.g. filter */
 		string str1 = $1;  string str3 = $3;
 		string str7 = $7;  string str9 = $9;
@@ -296,6 +308,8 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs2 += "((" + str1 + " ";
 		collectArgs2 += "(any " + str32 + " 1))) ";
 		collectArgs2 += "((var " + str62 + " 1))";
+		collectArgs3 = "";
+		collectArgs3 += "\"" + str1 + "\" \"\"";
 	      }
 
 	    | type'('type'('varname attrsindex')' ')' ZZCROSSPRODUCT
@@ -326,6 +340,9 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs2 += "(any " + str142 + " " + str15 + "))))\n     ";
 		collectArgs2 += "((var " + str192 + " " + str20 + ")  ";
 		collectArgs2 += "(var " + str222 + " " + str23 + "))";
+		collectArgs3 = "";
+		collectArgs3 += "\"" + str1 + ";" + str10 + "\" ";
+		collectArgs3 += "\"attr;attr\"";
 	      }
 
 	    | type'('type'('varname attrsindex')' ')' 
@@ -347,6 +364,8 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs2 += "(any " + str52 + " " + str6 + "))))\n     ";
 		collectArgs2 += "((" + str14 + " ";
 		collectArgs2 += "(lvar " + str112 + " " + str12 + ")))";
+		collectArgs3 = "";
+		collectArgs3 += "\"" + str1 + "\" \"attrlist\"";
 	      }
 
 	    | type'('type'('varname attrsindex')' ')' 
@@ -383,6 +402,8 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs2 += "(any " + str172 + " " + str18 + "))\n     ";
 		collectArgs2 += " append ";
 		collectArgs2 += "(lvar " + str212 + " " + str22 + ")))";
+		collectArgs3 = "";
+		collectArgs3 += "\"" + str1 + "\" \"new rel list\"";
 	      }
 
 	    | type'('type'('varname attrsindex')' ')' 
@@ -428,6 +449,8 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs2 += "(any " + str232 + " " + str24 + "))\n     ";
 		collectArgs2 += " append ";
 		collectArgs2 += "(lvar " + str272 + " " + str28 + ")))";
+		collectArgs3 = "";
+		collectArgs3 += "\"" + str1 + "\" \"attrlist; new list\"";
 	      }
 
 	    | type'('type'('varname attrsindex')' ')' 
@@ -469,6 +492,9 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs2 += "(any " + str222 + " " + str23 + "))\n     ";
 		collectArgs2 += " append (" + str26 + " ";
 		collectArgs2 += "(var " + str282 + " 1))))";
+		collectArgs3 = "";
+		collectArgs3 += "\"" + str1 + "\" ";
+		collectArgs3 += "\"attrlist; new stream list\"";
 	      }
 
 	    | type'('type'('varname attrsindex')' ')' 
@@ -514,18 +540,13 @@ sigargtypes : ZZDATATYPE ZZCROSSPRODUCT ZZDATATYPE
 		collectArgs2 += "(any " + str252 + " " + str26 + "))\n     ";
 		collectArgs2 += " append ";
 		collectArgs2 += "(lvar " + str302 + " " + str31 + "))))";
+		collectArgs3 = "";
+		collectArgs3 += "\"" + str1 + "\" \"attrlist; new list\"";
 	      }
 	    ;
 
-resulttype  : ZZDATATYPE
+resulttype  : type
 	      {/* resOP: e.g. + */
-		string str1 = $1;
-		collectRes = "";
-		collectRes += str1;
-	      }
-
-	    | type
-	      {/* resOP: e.g. deftime */
 		string str1 = $1;
 		collectRes = "";
 		collectRes += str1;
@@ -746,8 +767,8 @@ varindex    : '_'ZZINTI
 	      { $$ = $2; }	    
 	    ;
 
-datatype    : ZZDATATYPE ','
-	    | ZZDATATYPE
+datatype    : type ','
+	    | type
 	    ;
 
 semicolon   : ZZSEMICOLON { collectPreds = ""; }

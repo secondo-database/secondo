@@ -58,27 +58,26 @@ math          {otherChar}+
 
 %%
 
-attr/[(]	{ opsiglval.tokenchar = strdup(yytext); return (ZZATTR);
-		 /* because it is also an operator */ }
-attrs		{ opsiglval.tokenchar = strdup(yytext); return (ZZATTRS); }
-combine		{ opsiglval.tokenchar = strdup(yytext); return (ZZCOMBINE); }
-concat		{ opsiglval.tokenchar = strdup(yytext); return (ZZCONCAT); }
-distinctAttrs	{ opsiglval.tokenchar = strdup(yytext); return (ZZDISTATTRS); }
-minus		{ opsiglval.tokenchar = strdup(yytext); return (ZZMINUS); }
-createAttr	{ opsiglval.tokenchar = strdup(yytext); return (ZZCREATEATTR); }
-where		{ return (ZZWHERE); }
-in		{ return (ZZIN); }
-"int"|"real"|"string"|"bool"|"point"|"region"							{ opsiglval.tokenchar = strdup(yytext); return (ZZDATATYPE); }
-^algebra	{ return (ZZALG); }
-"::"		{ return (ZZPARAM); }
-"x"		{ return (ZZCROSSPRODUCT); }
-"->"		{ return (ZZFOLLOWS); }
-";"		{ return (ZZSEMICOLON); }
-{identifier}	{ opsiglval.tokenchar = strdup(yytext); return (ZZIDENT); }
-{math}       	{ opsiglval.tokenchar = strdup(yytext); return (ZZSYMBOL); }
-{intindex}	{ opsiglval.tokenchar = strdup(yytext); return (ZZINTI); }
-{emptyspace}	{}
-.		{/*opsiglval.tokenchar = strdup(yytext);*/ return yytext[0];}
+attr/[(]        { opsiglval.tokenchar = strdup(yytext); return (ZZATTR);
+                 /* because it is also an operator */ }
+attrs           { opsiglval.tokenchar = strdup(yytext); return (ZZATTRS); }
+combine         { opsiglval.tokenchar = strdup(yytext); return (ZZCOMBINE); }
+concat          { opsiglval.tokenchar = strdup(yytext); return (ZZCONCAT); }
+distinctAttrs   { opsiglval.tokenchar = strdup(yytext); return (ZZDISTATTRS); }
+minus           { opsiglval.tokenchar = strdup(yytext); return (ZZMINUS); }
+createAttr      { opsiglval.tokenchar = strdup(yytext); return (ZZCREATEATTR); }
+where           { return (ZZWHERE); }
+in              { return (ZZIN); }
+^algebra        { return (ZZALG); }
+"::"            { return (ZZPARAM); }
+"x"             { return (ZZCROSSPRODUCT); }
+"->"            { return (ZZFOLLOWS); }
+";"             { return (ZZSEMICOLON); }
+{identifier}    { opsiglval.tokenchar = strdup(yytext); return (ZZIDENT); }
+{math}          { opsiglval.tokenchar = strdup(yytext); return (ZZSYMBOL); }
+{intindex}      { opsiglval.tokenchar = strdup(yytext); return (ZZINTI); }
+{emptyspace}    {}
+.               {/*opsiglval.tokenchar = strdup(yytext);*/ return yytext[0];}
 
 %%
 
