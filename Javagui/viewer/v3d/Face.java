@@ -62,6 +62,15 @@ class Face {
     Face(SecondoObject o) {
         this.o = o;
     }
+   
+    private static double getPrecise (ListExpr le) {
+       String s[] = le.textValue().split("/");
+       if (s.length > 1) {
+	  return new Double(s[0])/new Double(s[1]);
+       } else {
+	  return new Double(s[0]);
+       }
+    }
 
     /**
      * Calculates and builds a Triangle-Array which represents a secondo-object
@@ -133,6 +142,28 @@ class Face {
                 ret.addAll(FacesList2Triangles(uregion, z1, z2));
                 p = le.first();
             }
+        } else if (type.equals("mregion2")) {
+             // We have an mregion2-object which may consist of several intervals
+            le = le.second();
+            ListExpr p = le.first();
+            while (p != null) {
+                le = le.rest();
+
+                // z1 and z2 receive the unix-timestamp of the intervals borders
+                ListExpr interval = p.first();
+                double z1 = parseInstant(interval.first().textValue());
+                double z2 = parseInstant(interval.second().textValue());
+	        ListExpr preciseInterval = interval.fifth();
+		if (preciseInterval.listLength() == 2) {
+		   double z1p = getPrecise(preciseInterval.first());
+		   double z2p = getPrecise(preciseInterval.second());
+		   z1 += (z1p*86400);
+		   z2 += (z2p*86400);
+		}
+                ListExpr uregion = p.second();
+                ret.addAll(FacesList2Triangles(uregion, z1, z2));
+                p = le.first();
+            }
         } else if (type.equals("uregion")) {
             // a uregion consists of only one interval
             ListExpr p = le;
@@ -141,6 +172,26 @@ class Face {
             ListExpr interval = p.first();
             double z1 = parseInstant(interval.first().textValue());
             double z2 = parseInstant(interval.second().textValue());
+
+            ListExpr uregion = p.second();
+            ret.addAll(FacesList2Triangles(uregion, z1, z2));
+            p = le.first();
+        } else if (type.equals("uregion2")) {
+            le = le.second();
+            // a uregion consists of only one interval
+            ListExpr p = le;
+
+            // z1 and z2 receive the unix-timestamp of the intervals borders
+            ListExpr interval = p.first();
+            double z1 = parseInstant(interval.first().textValue());
+            double z2 = parseInstant(interval.second().textValue());
+	    ListExpr preciseInterval = interval.fifth();
+	    if (preciseInterval.listLength() == 2) {
+	        double z1p = getPrecise(preciseInterval.first());
+	        double z2p = getPrecise(preciseInterval.second());
+	        z1 += (z1p*86400);
+	        z2 += (z2p*86400);
+	    }
 
             ListExpr uregion = p.second();
             ret.addAll(FacesList2Triangles(uregion, z1, z2));
@@ -378,12 +429,29 @@ class Face {
 
         double x1, y1, x2, y2;
 
-        HalfSeg(ListExpr le) {
-            x1 = le.first().realValue();
-            y1 = le.second().realValue();
-            x2 = le.third().realValue();
-            y2 = le.fourth().realValue();
+        private static double getValue(ListExpr le) {
+            if (le.atomType() == ListExpr.INT_ATOM) {
+                return (double) le.intValue();
+            }
+            return le.realValue();
         }
+       
+        HalfSeg(ListExpr le) {
+	   x1 = getValue(le.first());
+	   y1 = getValue(le.second());
+	   x2 = getValue(le.third());
+	   y2 = getValue(le.fourth());
+	   
+	   if (le.listLength() > 4) {
+	      ListExpr precise = le.fifth();
+	      if (precise.listLength() == 4) {
+		 x1 += getPrecise(precise.first());
+		 y1 += getPrecise(precise.second());
+		 x2 += getPrecise(precise.third());
+		 y2 += getPrecise(precise.fourth());
+	      }
+	   }
+	}
 
         Point2d Initial() {
             return new Point2d(x1, y1);
