@@ -7479,10 +7479,14 @@ ListExpr indexmatchesTM(ListExpr args) {
           }
           if (InvertedFile::checkType(nl->Third(args)) &&
               R_Tree<1, TwoLayerLeafInfo>::checkType(nl->Fourth(args))) {
-            return nl->ThreeElemList(
-              nl->SymbolAtom(Symbol::APPEND()),
-              nl->OneElemList(nl->IntAtom(i - 1)),
-              nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tList));
+            if (Tools::isSymbolicType(nl->Third(nl->Fourth(args)))) {
+              return nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(i - 1)),
+                nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tList));
+            }
+            return listutils::typeError("invalid rtree type " + 
+                                     nl->ToString(nl->Third(nl->Fourth(args))));
           }
         }
       }
@@ -7496,7 +7500,8 @@ ListExpr indexmatchesTM(ListExpr args) {
 
 */
 IndexMatchesLI::IndexMatchesLI(Relation *rel, InvertedFile *inv,
- R_Tree<1, TupleId> *rt, int _attrNr, Pattern *_p, bool deleteP, DataType type):
+ R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p, bool deleteP, 
+   DataType type):
  mRel(rel), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
   if (_p) {
     if (mRel->GetNoTuples() > 0) {
@@ -7544,7 +7549,7 @@ void IndexMatchesLI::applyNFA() {
 //     cout << endl;
     for (is = states.rbegin(); is != states.rend(); is++) {
       map<int, int> trans = p.getTransitions(*is);
-      for (im = trans.rbegin(); im != trans.rend(); im++) {
+      for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++) {
         p.getElem(im->first, elem);
         if (elem.getW() == NO) { // no wildcard
 //           cout << "call simpleMatch for transition " << *is << " --" 
@@ -7612,7 +7617,8 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
       P *pText = static_cast<P*>(args[4].addr);
       CcInt *attr = static_cast<CcInt*>(args[5].addr);
       InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
-      R_Tree<1, TupleId> *rt = static_cast<R_Tree<1, TupleId>*>(args[3].addr);
+      R_Tree<1, NewPair<TupleId, int> > *rt = 
+                  static_cast<R_Tree<1, NewPair<TupleId, int> >*>(args[3].addr);
       Relation *rel = static_cast<Relation*>(args[0].addr);
       if (pText->IsDefined() && attr->IsDefined()) {
         Pattern *p = Pattern::getPattern(pText->toText());
@@ -9017,7 +9023,8 @@ This constructor is used for the operator ~indexclassify~.
 
 */
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
-         R_Tree<1, TupleId> *rt, Word _classifier, int _attrNr, DataType type) :
+  R_Tree<1, NewPair<TupleId, int> > *rt, Word _classifier, int _attrNr, 
+  DataType type) :
          IndexMatchesLI::IndexMatchesLI(rel, inv, rt, _attrNr, 0, false, type) {
   if (mRel->GetNoTuples() > 0) {
     c = (Classifier*)_classifier.addr;
@@ -9061,7 +9068,7 @@ IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
 */
 IndexClassifyLI::~IndexClassifyLI() {
   if (classifyTT) {
-    classifyTT->DeleteIfAllowed();
+    deleteIfAllowed(classifyTT);
     classifyTT = 0;
   }
 }
@@ -9131,7 +9138,8 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
         local.addr = 0;
       }
       InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
-      R_Tree<1, TupleId> *rt = static_cast<R_Tree<1, TupleId>*>(args[3].addr);
+      R_Tree<1, NewPair<TupleId, int> > *rt = 
+                  static_cast<R_Tree<1, NewPair<TupleId, int> >*>(args[3].addr);
       CcInt *attr = static_cast<CcInt*>(args[5].addr);
       Relation *rel = static_cast<Relation*>(args[0].addr);
       if (!attr->IsDefined()) {
@@ -9398,23 +9406,30 @@ void IndexMatchesLI::retrieveValue(vector<set<int> >& oldPart,
 \subsection{Function ~retrieveTime~}
 
 */
-void IndexMatchesLI::retrieveTime(vector<bool>& oldPart, vector<bool>& newPart,
-                                   bool first, const string& ivstr) {
-  R_TreeLeafEntry<1, TupleId> leaf;
-  Rect1 rect1(false);
+void IndexMatchesLI::retrieveTime(vector<set<int> >& oldPart,
+                              vector<set<int> >& newPart, const string& ivstr) {
+  bool init = false;
+  if (oldPart.empty()) {
+    oldPart.resize(mRel->GetNoTuples() + 1);
+    newPart.resize(mRel->GetNoTuples() + 1);
+    init = true;
+  }
+  R_TreeLeafEntry<1, NewPair<TupleId, int> > leaf;
   double min[1], max[1];
   SecInterval iv(true);
   Tools::stringToInterval(ivstr, iv);
   min[0] = iv.start.ToDouble();
   max[0] = iv.end.ToDouble();
-  rect1.Set(true, min, max);
+  Rect1 rect1(true, min, max);
   if (rtree->First(rect1, leaf)) {
-    if (first || oldPart[leaf.info]) {
-      newPart[leaf.info] = true;
+    if (init || !oldPart[leaf.info.first].empty()) {
+      newPart[leaf.info.first].insert(newPart[leaf.info.first].end(), 
+                                      leaf.info.second);
     }
     while (rtree->Next(leaf)) {
-      if (first || oldPart[leaf.info]) {
-        newPart[leaf.info] = true;
+      if (init || !oldPart[leaf.info.first].empty()) {
+        newPart[leaf.info.first].insert(newPart[leaf.info.first].end(),
+                                        leaf.info.second);
       }
     }
   }
@@ -9429,7 +9444,8 @@ void IndexMatchesLI::removeIdFromIndexResult(const TupleId id) {
   for (int i = 0; i < p.getSize(); i++) {
     if (indexResult[i].size() > 0) {
 //       cout << "  Elem " << i << ", Tuple " << id << ":" << endl;
-      if (indexResult[i][indexResult[i][id].pred].succ == id) {
+      if (!indexResult[i][id].units.empty() &&
+          (indexResult[i][indexResult[i][id].pred].succ == id)) {
 //         cout << "   succ of " << indexResult[i][id].pred << " set from " 
 //             << indexResult[i][indexResult[i][id].pred].succ << " to "
 //             << indexResult[i][id].succ << endl;
@@ -9437,7 +9453,7 @@ void IndexMatchesLI::removeIdFromIndexResult(const TupleId id) {
 //         cout << "   pred of " << indexResult[i][id].succ << " set from "
 //             << indexResult[i][indexResult[i][id].succ].pred << " to " 
 //             << indexResult[i][id].pred << endl;
-       indexResult[i][indexResult[i][id].succ].pred = indexResult[i][id].pred;
+        indexResult[i][indexResult[i][id].succ].pred = indexResult[i][id].pred;
       }
     }
   }
@@ -9448,6 +9464,7 @@ void IndexMatchesLI::removeIdFromIndexResult(const TupleId id) {
 
 */
 void IndexMatchesLI::removeIdFromMatchInfo(const TupleId id) {
+  bool removed = false;
   for (int s = 0; s < p.getNFAsize(); s++) {
     if ((*newMatchInfoPtr)[s].size() > 0) {
 //         cout << "Elem " << i << ", Tuple " << id << ":" << endl;
@@ -9459,23 +9476,25 @@ void IndexMatchesLI::removeIdFromMatchInfo(const TupleId id) {
            (*newMatchInfoPtr)[s][id].pred;
 //         cout << "   pred of " << matchInfo[i][id].succ << " set to " 
 //              << matchInfo[i][id].pred << endl;
-      (*newMatchInfoPtr)[s][id].imis.clear();
+//       (*newMatchInfoPtr)[s][id].imis.clear();
     }
     if ((*matchInfoPtr)[s].size() > 0) {
+      if ((*matchInfoPtr)[s][(*matchInfoPtr)[s][id].pred].succ == id) {
 //         cout << "Elem " << i << ", Tuple " << id << ":" << endl;
-      (*matchInfoPtr)[s][(*matchInfoPtr)[s][id].pred].succ = 
-           (*matchInfoPtr)[s][id].succ;
+        (*matchInfoPtr)[s][(*matchInfoPtr)[s][id].pred].succ = 
+             (*matchInfoPtr)[s][id].succ;
 //         cout << "   succ of " << matchInfo[i][id].pred << " set to " 
 //              << matchInfo[i][id].succ << endl;
-      (*matchInfoPtr)[s][(*matchInfoPtr)[s][id].succ].pred = 
-           (*matchInfoPtr)[s][id].pred;
+        (*matchInfoPtr)[s][(*matchInfoPtr)[s][id].succ].pred = 
+             (*matchInfoPtr)[s][id].pred;
+        removed = true;
 //         cout << "   pred of " << matchInfo[i][id].succ << " set to " 
 //              << matchInfo[i][id].pred << endl;
-      (*matchInfoPtr)[s][id].imis.clear();
+//       (*matchInfoPtr)[s][id].imis.clear();
+      }
     }
   }
-  activeTuples--;
-//   cout << "id " << id << " removed" << endl;
+  activeTuples -= (removed ? 1 : 0);
 }
 
 /*
@@ -9494,9 +9513,9 @@ void IndexMatchesLI::storeIndexResult(const int e) {
   set<string> ivs, lbs;
   set<pair<string, unsigned int> > pls;
   vector<set<int> > part, part2;
-  vector<bool> time, time2;
-  time.resize(mRel->GetNoTuples() + 1, true);
-  time2.resize(mRel->GetNoTuples() + 1, true);
+//   vector<bool> time, time2;
+//   time.resize(mRel->GetNoTuples() + 1, true);
+//   time2.resize(mRel->GetNoTuples() + 1, true);
   if (elem.getSetRel() != DISJOINT) {
     if ((mtype == LABEL) || (mtype == LABELS)) {
       elem.getL(lbs);
@@ -9533,15 +9552,9 @@ void IndexMatchesLI::storeIndexResult(const int e) {
       (!elem.hasLabel() && !elem.hasPlace())) { // continue with time intervals
     elem.getI(ivs);
     set<string>::iterator is = ivs.begin();
-    bool first = true;
     while (is != ivs.end()) {
       if (Tools::isInterval(*is)) {
-        if (first) {
-          time.assign(mRel->GetNoTuples() + 1, false);
-          time2.assign(mRel->GetNoTuples() + 1, false);
-        }
-        retrieveTime(time, time2, first, *is);
-        first = false;
+        retrieveTime(part, part2, *is);
       }
       is++;
     }
@@ -9551,24 +9564,24 @@ void IndexMatchesLI::storeIndexResult(const int e) {
   IndexRetrieval ir(pred);
   indexResult[e][0] = ir; // first entry points to first active entry
   for (unsigned int i = 1; i < part.size(); i++) { // collect results
-    if (!part[i].empty() && time[i]) {
+    if (!part[i].empty()) {
       indexResult[e][pred].succ = i; // update successor of predecessor
       IndexRetrieval ir(pred, 0, part[i]);
       indexResult[e][i] = ir;
       pred = i;
     }
   }
-  if (part.empty() && ((elem.getSetRel() == DISJOINT) ||
-      (!elem.hasLabel() && !elem.hasPlace()))) {
-    for (unsigned int i = 1; i < time.size(); i++) {
-      if (time[i]) {
-        indexResult[e][pred].succ = i; // update successor of predecessor
-        IndexRetrieval ir(pred);
-        indexResult[e][i] = ir;
-        pred = i;
-      }
-    }
-  }
+//   if (part.empty() && ((elem.getSetRel() == DISJOINT) ||
+//       (!elem.hasLabel() && !elem.hasPlace()))) {
+//     for (unsigned int i = 1; i < time.size(); i++) {
+//       if (time[i]) {
+//         indexResult[e][pred].succ = i; // update successor of predecessor
+//         IndexRetrieval ir(pred);
+//         indexResult[e][i] = ir;
+//         pred = i;
+//       }
+//     }
+//   }
   if (indexResult[e].empty() && elem.hasIndexableContents() &&
       (elem.getSetRel() != DISJOINT)) {
     indexMismatch.insert(e);
@@ -9662,7 +9675,7 @@ void IndexMatchesLI::initialize() {
   findNFApaths(simpleNFA, finalStates, paths);
   set<int> cruElems;
   getCrucialElems(paths, cruElems);
-  indexResult.resize(p.getNFAsize());
+  indexResult.resize(p.getSize());
   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
     storeIndexResult(*it);
   }
@@ -9947,7 +9960,7 @@ bool IndexMatchesLI::valuesMatch(const int e, const TupleId id,
 */
 void IndexMatchesLI::applySetRel(const SetRel setRel, 
                                  vector<set<pair<TupleId, int> > >& valuePosVec,
-                                  set<pair<TupleId, int> >*& result) {
+                                 set<pair<TupleId, int> >*& result) {
   switch (setRel) {
     case STANDARD: {
       Tools::uniteLastPairs(valuePosVec.size(), valuePosVec);
@@ -9988,7 +10001,8 @@ bool IndexMatchesLI::simpleMatch(const int e, const int state,
       bool imiCreated = false;
 //       cout << "simpleMatch: " << (*matchInfoPtr)[state][id].imis.size()
 //            << " IMIs, state=" << state << ", id=" << id << endl;
-      if (!indexResult[e][id].units.empty()) { // value index, units known
+      if ((indexResult[e][indexResult[e][id].pred].succ == id) &&
+          !indexResult[e][id].units.empty()) {
         for (unsigned int i = 0; i < (*matchInfoPtr)[state][id].imis.size();
              i++) {
           for (set<int>::iterator it = indexResult[e][id].units.begin(); 
@@ -9998,16 +10012,6 @@ bool IndexMatchesLI::simpleMatch(const int e, const int state,
               transition = true;
               imiCreated = true;
             }
-          }
-        }
-      }
-      else { // only time index, units unknown
-        for (unsigned int i = 0; i < (*matchInfoPtr)[state][id].imis.size();
-             i++) {
-          if (valuesMatch(e, id, (*matchInfoPtr)[state][id].imis[i], newState, 
-              -1)) {
-            transition = true;
-            imiCreated = true;
           }
         }
       }

@@ -1276,8 +1276,9 @@ struct IndexMatchSlot {
 
 class IndexMatchesLI {
  public:
-  IndexMatchesLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
-                 int _attrNr, Pattern *_p, bool deleteP, DataType type);
+  IndexMatchesLI(Relation *rel, InvertedFile *inv, 
+    R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p, 
+    bool deleteP, DataType type);
 
   ~IndexMatchesLI() {mRel = 0;}
 
@@ -1289,7 +1290,7 @@ class IndexMatchesLI {
   void retrieveValue(vector<set<int> >& part, vector<set<int> >& part2,
                      SetRel rel, bool first, const string& label,
                      unsigned int ref = UINT_MAX);
-  void retrieveTime(vector<bool>& time, vector<bool>& time2, bool first, 
+  void retrieveTime(vector<set<int> >& oldPart, vector<set<int> >& newPart, 
                     const string& ivstr);
   void removeIdFromIndexResult(const TupleId id);
   void removeIdFromMatchInfo(const TupleId id);
@@ -1326,7 +1327,7 @@ class IndexMatchesLI {
   vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
   vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
   InvertedFile* invFile;
-  R_Tree<1, TupleId> *rtree;
+  R_Tree<1, NewPair<TupleId, int> > *rtree;
   int attrNr;
   size_t maxMLsize;
   DataType mtype;
@@ -1334,8 +1335,9 @@ class IndexMatchesLI {
 
 class IndexClassifyLI : public IndexMatchesLI {
  public:
-  IndexClassifyLI(Relation *rel, InvertedFile *inv, R_Tree<1, TupleId> *rt, 
-                  Word _classifier, int _attrNr, DataType type);
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, 
+    R_Tree<1, NewPair<TupleId, int> > *rt, Word _classifier, int _attrNr, 
+    DataType type);
 
   ~IndexClassifyLI();
 

@@ -348,12 +348,12 @@ Operator : createunitrtree
 Number   : 1
 Signature: stream(tuple(X)) x IDENT -> rtree
 Example  : query Dotraj feed addid createunitrtree[Trajectory]
-Result   : ("R-Tree statistics" ("Height" 1) ("# of (leaf) entries" 100) ("# of nodes" 3) ("Bounding Box" (4381.0 4381.208333333333)))
+Result   : ((rtree1 (tuple ((No int) (Trajectory mlabel) (TID tid))) mlabel FALSE) ("R-Tree statistics" ("Height" 1) ("# of (leaf) entries" 100) ("# of nodes" 3) ("Bounding Box" (4381.0 4381.208333333333))))
 
 Operator : indexmatches
 Number   : 1
 Signature: rel(tuple(X)) x IDENT x text -> stream(tuple(X))
-Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], Dotrajrtree, '(_ "Aplerbeck") * (_ "Innenstadt-Ost") *'] count
+Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], Dotraj feed addid createunitrtree[Trajectory], '(_ "Aplerbeck") * (_ "Innenstadt-Ost") *'] count
 Result   : 2
 
 Operator : rewrite
@@ -371,7 +371,7 @@ Result   : 0
 Operator : indexclassify
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier -> stream(tuple(string, mlabel))
-Example  : query Dotraj indexclassify [Trajectory, Dotraj createtrie[Trajectory], class3 feed toclassifier] count
+Example  : query Dotraj indexclassify [Trajectory, Dotraj createtrie[Trajectory], Dotraj feed addid createunitrtree[Trajectory], class3 feed toclassifier] count
 Result   : 0
 
 Operator : rewrite
@@ -413,5 +413,5 @@ Result   : FALSE
 Operator : createtrie
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
-Example  : query Dotraj indexmatches[Trajectory, Dotraj createtrie[Trajectory], '(_ "Mengede") *'] count
-Result   : 3
+Example  : query Dotraj createtrie[Trajectory] wordCount["Innenstadt-Ost"]
+Result   : 14
