@@ -85,6 +85,8 @@ project: stream(tuple(Attrs_1)) :: (Ident_i)+
     combine(Ident_i, Types_i, Attrs_2),
     distinctAttrs(Attrs_2)
 
+rename: stream(Tuple) :: (Tuple -> string) -> stream(Tuple)
+
 
 algebra ExtRelationAlgebra
 
