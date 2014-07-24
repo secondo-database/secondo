@@ -1,4 +1,7 @@
 /*
+----  /Tools/TypeMap/OpSpecParser/OpSpecParser.y
+---- 
+
 ---- 
 This file is part of SECONDO.
 
@@ -47,8 +50,8 @@ Some variables
 
 */
 extern FILE* opspecin;
-const char* infile = "specs";
-string outfile = "OpSpecs.tmp";
+const char* infile = "../Algebras/specs";
+string outfile = "../Tools/TypeMap/OpSpecParser/OpSpecs.tmp";
 ofstream ofile;
 
 extern int opspeclex();
@@ -59,7 +62,7 @@ cerr << endl << s << endl << endl;
 }
 
 /*
-Type string is not possible in %union
+Type string is not possible in union
 
 */
 string collectSpec      = "";
@@ -104,14 +107,12 @@ start	  : specs
 
 specs     : spec
 	    {
-	      //cout << collectSpec << endl;
 	      ofile << collectSpec;
 	    }
 
           | ZZCOMMENT
           | specs spec
 	    {
-	      //cout << collectSpec << endl;
 	      ofile << collectSpec;
 	    }
           | specs ZZCOMMENT
@@ -120,9 +121,12 @@ specs     : spec
 spec      : ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern
 						 implicit bufferforced
             { 
-	      string str1 = $2;
+	      string str2 = $2;
 	      collectSpec = "";
-	      collectSpec  += "(" + str1 + " " + collectPattern + ")\n";
+	      if (str2 == "rename") {
+		collectPattern = "\"o {p}\"";
+	      }
+	      collectSpec  += "(" + str2 + " " + collectPattern + ")\n";
 	    }
           ;
 
@@ -150,43 +154,43 @@ pattern   : prefix
 infix     : '_' ZZINFIXOP '_'
             {  
 	      collectInfix = "";
-	      collectInfix += "(o # o)";
+	      collectInfix += "\"(o # o)\"";
             }
           ;
 
 prefix    : ZZOP '('simpleargscomma')'    
             { 
 	      collectPrefix = "";
-	      collectPrefix += "(# (o";
+	      collectPrefix += "\"#(o";
 	      for(int i=1;i<$3;i++) {
-		collectPrefix += ";o";
+		collectPrefix += "; o";
 	      }
-	      collectPrefix += "))";
+	      collectPrefix += ")\"";
             }
           | ZZOP '(' ')'
             { 
 	      collectPrefix = "";
-	      collectPrefix += "(# (o))";
+	      collectPrefix += "\"#(o)\"";
             }
           ;
 
 postfix   : simpleargsblank ZZOP
 	    {
 	      collectPostfix = "";
-	      collectPostfix += "((o";
+	      collectPostfix += "\"o";
 	      for(int i=1;i<$1;i++) {
-		collectPostfix += ";o";
+		collectPostfix += " o";
 	      }
-	      collectPostfix += ") # ())";
+	      collectPostfix += " #\"";
 	    }    
           | simpleargsblank ZZOP '[' arguments ']'
 	    { 
 	      collectPostfix = "";
-	      collectPostfix += "((o";
+	      collectPostfix += "\"o";
 	      for(int i=1;i<$1;i++) {
-		collectPostfix += ";o";
+		collectPostfix += " o";
 	      }
-	      collectPostfix += ") # (" + collectArguments + "))";
+	      collectPostfix += " #[" + collectArguments + "]\"";
 	    }    
           ;
 
@@ -210,7 +214,7 @@ arguments   : sublist
 	      }
 	    | arguments ';' sublist
 	      {
-		collectArguments += ";" + collectSublist;
+		collectArguments += "; " + collectSublist;
 	      }
 	    ;
 
@@ -232,7 +236,7 @@ argscomma   : arg
 	      }
 	    | argscomma ',' arg
 	      { $$ = $1 + 1;
-		collectArgscomma += ";" + collectArg;
+		collectArgscomma += "; " + collectArg;
 	      }
 	    ;
 
