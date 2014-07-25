@@ -46,7 +46,6 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include "Stream.h"
 #include "SecParser.h"
 #include "NestedList.h"
-//#include "SymbolicTrajectoryTools.h"
 #include "ListUtils.h"
 #include "RelationAlgebra.h"
 #include "Stream.h"
@@ -62,6 +61,8 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include <vector>
 #include <math.h>
 #include <time.h>
+
+#include "Tools.h"
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
@@ -85,277 +86,9 @@ void patternFlushBuffer();
 
 enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
-enum DataType {LABEL, LABELS, PLACE, PLACES};
-enum SetRel {STANDARD, DISJOINT, SUPERSET, EQUAL, INTERSECT};
-
-struct NFAtransition {
-  int oldState;
-  int trigger;
-  int newState;
-};
-
-template<class F, class S>
-class NewPair {
- public:
-  NewPair() {}
-  NewPair(F f, S s) : first(f), second(s) {}
-   
-  F first;
-  S second;
-};
-
-struct SymbolicUnit {
- public: 
-  SymbolicUnit() {}
-  SymbolicUnit(unsigned int p) : iv(true), pos(p) {}
-  
-  SecInterval iv;
-  unsigned int pos;
-};
-
-struct ExtSymbolicUnit : public SymbolicUnit {
-  ExtSymbolicUnit() {}
-  ExtSymbolicUnit(unsigned int p) : SymbolicUnit(p), ref(0) {}
-  
-  unsigned int ref;
-};
-
-class Labels;
 
 /*
-\section{Class ~Label~}
-
-*/
-class Label : public Attribute {
- public:
-  friend class Labels;
-  
-  typedef SymbolicUnit unitelem;
-  typedef string base;
-  typedef Labels coll;
-   
-  Label() {}
-  Label(const string& text) : Attribute(true), value(0) {SetValue(text);}
-  Label(const Label& rhs);
-  explicit Label(const bool def) : Attribute(def), value(0) {}
-  
-  ~Label() {}
-  
-  void Clean() {value.clean();}
-  void Destroy() {value.destroy();}
-  void GetValue(string &text) const;
-  static void buildValue(const string& text, const unitelem& unit,base& result);
-  static ListExpr getList(const string& text) {return nl->TextAtom(text);}
-  void Set(const bool def, const string &text) {SetDefined(def);SetValue(text);}
-  void SetValue(const string &text);
-  Label& operator=(const Label& lb) {CopyFrom(&lb); return *this;}
-  bool operator==(const Label& lb) const;
-  bool operator==(const string& text) const;
-
-  static bool readValueFrom(ListExpr LE, string& text, unitelem& unit);
-  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-  ListExpr ToListExpr(ListExpr typeInfo);
-  static bool     CheckKind(ListExpr type, ListExpr& errorInfo);
-  static int      SizeOfObj() {return sizeof(Label);}
-  static ListExpr Property();
-  static const string BasicType() {return "label";}
-  static const bool checkType(const ListExpr type);
-  void            CopyFrom(const Attribute* right);
-  int NumOfFLOBs() const {return 1;}
-  Flob *GetFLOB(const int i) {assert(i == 0); return &value;}
-  int             Compare(const Attribute* arg) const;
-  size_t          Sizeof() const {return sizeof(*this);}
-  bool            Adjacent(const Attribute*) const {return false;}
-  Attribute*      Clone() const {return new Label(*this);}
-  size_t          HashValue() const {return value.getSize();}
-  ostream&        Print(ostream& os) const;
-  
- protected:
-  Flob value;
-};
-
-/*
-\section{Class ~Labels~}
-
-*/
-class Labels : public Attribute {
- public:
-  typedef SymbolicUnit unitelem;
-  typedef unsigned int arrayelem;
-  typedef string base;
-  typedef Label single;
-      
-  Labels() {}
-  explicit Labels(const bool defined) : Attribute(defined), values(8), pos(1) {}
-  Labels(const Labels& src, const bool sort = false);
-  
-  ~Labels() {}
-
-  Labels& operator=(const Labels& src);
-  bool operator==(const Labels& src) const;
-  void Append(const Label &lb);
-  void Append(const string& text);
-  void Append(const set<string>& values);
-  void Destroy() {values.destroy(); pos.destroy();}
-  int GetNoValues() const {return pos.Size();}
-  size_t GetLength() const {return values.getSize();}
-  void Get(int i, Label& lb) const;
-  void GetValue(int i, string& text) const;
-  void GetValues(set<string>& values) const;
-  static void getRefToLastElem(const int size, unsigned int& result);
-  static unsigned int getFlobPos(const arrayelem elem);
-  static void valuesToListExpr(const set<string>& values, ListExpr& result);
-  static void getString(const ListExpr& list, string& result);
-  static void getElemFromList(const ListExpr& list, const unsigned int size, 
-                              unsigned int& result);
-  static void buildValue(const string& text, const unsigned int pos,
-                         string& result);
-  static void printArrayElem(const arrayelem e) {cout << "print " << e << endl;}
-  const bool IsEmpty() const {return GetNoValues() == 0;}
-  void Clean() {values.clean(); pos.clean();}
-  bool Contains(const string& text) const;
-  friend ostream& operator<<(ostream& os, const Labels& lbs);
-  
-  int NumOfFLOBs() const {return 2;}
-  Flob *GetFLOB(const int i);
-  int Compare(const Attribute*) const;
-  bool Adjacent(const Attribute*) const {return false;}
-  Attribute *Clone() const {return new Labels(*this);}
-  size_t Sizeof() const {return sizeof(*this);}
-  ostream& Print(ostream& os) const {return (os << *this);}
-  static ListExpr Property();
-  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  ListExpr ToListExpr(ListExpr typeInfo);
-  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-  static int SizeOfObj() {return sizeof(Labels);}
-  static const string BasicType() {return Label::BasicType() + "s";}
-  void CopyFrom(const Attribute* right) {*this = *((Labels*)right);}
-  size_t HashValue() const;
-
- protected:
-  Flob values;
-  DbArray<unsigned int> pos;
-};
-
-class Places;
-
-/*
-\section{Class ~Place~}
-
-*/
-class Place : public Label {
- public: 
-  friend class Places;
-  
-  typedef ExtSymbolicUnit unitelem;
-  typedef pair<string, unsigned int> base;
-  typedef Places coll;
-  
-  Place() : Label() {}
-  Place(const pair<string, unsigned int>& v) : Label(v.first), ref(v.second) {}
-  Place(const Place& rhs) : Label(rhs.IsDefined()) {CopyFrom(&rhs);}
-  explicit Place(const bool def) : Label(def), ref(0) {}
-
-  ~Place() {}
-
-  void Set(const bool defined, const pair<string, unsigned int>& value);
-  void SetValue(const pair<string, unsigned int>& value);
-  void SetRef(const unsigned int value) {ref = value;}
-  void GetValue(pair<string, unsigned int>& value) const;
-  static void buildValue(const string& text, const unitelem& unit,base& result);
-  static ListExpr getList(const base& value);
-  unsigned int GetRef() const {return ref;}
-  Place& operator=(const Place& p);
-  bool operator==(const Place& p) const;
-  bool operator==(const pair<string, unsigned int>& value) const;
-
-  static ListExpr Property();
-  static int SizeOfObj() {return sizeof(Place);}
-  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "place";}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return Label::NumOfFLOBs();}
-  Flob* GetFLOB(const int i) {return Label::GetFLOB(i);}
-  size_t Sizeof() const {return sizeof(*this);}
-  int Compare(const Attribute* arg) const;
-  bool Adjacent(const Attribute *arg) const {return false;}
-  Attribute *Clone() const {return new Place(*this);}
-  size_t HashValue() const {return Label::HashValue() * ref;}
-  virtual void CopyFrom(const Attribute* right) {*this = *((Place*)right);}
-  ListExpr ToListExpr(ListExpr typeInfo);
-  static bool readValueFrom(ListExpr LE, string& text, unitelem& unit);
-  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-
- protected:
-  unsigned int ref;
-};
-
-/*
-\section{Class ~Places~}
-
-*/
-class Places : public Attribute {
- public:
-  typedef ExtSymbolicUnit unitelem;
-  typedef NewPair<unsigned int, unsigned int> arrayelem;
-  typedef pair<string, unsigned int> base;
-  typedef Place single;
-   
-  Places() {}
-  Places(const int n) : Attribute(n > 0), values(8), posref(n) {}
-  Places(const Places& rhs, const bool sort = false);
-  explicit Places(const bool def) : Attribute(def), values(8), posref(1) {}
-
-  ~Places() {}
-
-  void Append(const base& value);
-  void Append(const Place& pl);
-  void Append(const set<base>& values);
-  void Destroy() {values.destroy(); posref.destroy();}
-  int GetNoValues() const {return posref.Size();}
-  size_t GetLength() const {return values.getSize();}
-  void Get(const int i, Place& pl) const;
-  void GetValue(int i, base& val) const;
-  void GetValues(set<base>& values) const;
-  bool IsEmpty() const {return (GetNoValues() == 0);}
-  bool Contains(const base& val) const;
-  void Clean() {values.clean(); posref.clean();}
-  static void getRefToLastElem(const int size, arrayelem& result);
-  static unsigned int getFlobPos(const arrayelem elem);
-  static void valuesToListExpr(const set<base>& values, ListExpr& result);
-  static void getString(const ListExpr& list, string& result);
-  static void getElemFromList(const ListExpr& list, const unsigned int size, 
-                              arrayelem& result);
-  static void buildValue(const string& text, const arrayelem pos, base& result);
-  static void printArrayElem(const arrayelem e) {cout << e.first << " " 
-                                                      << e.second;}
-  void operator=(const Places& p);
-  bool operator==(const Places& p) const;
-
-  static ListExpr Property();
-  static int SizeOfObj() {return sizeof(Places);}
-  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return Place::BasicType() + "s";}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return 2;}
-  Flob* GetFLOB(const int i);
-  size_t Sizeof() const {return sizeof(*this);}
-  int Compare(const Attribute* arg) const;
-  bool Adjacent(const Attribute *arg) const {return false;}
-  Attribute *Clone() const {return new Places(*this);}
-  size_t HashValue() const;
-  virtual void CopyFrom(const Attribute* right) {*this = *((Places*)right);}
-  ListExpr ToListExpr(ListExpr typeInfo);
-  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-  
- protected:
-  Flob values;
-  DbArray<NewPair<unsigned int, unsigned int> > posref;
-};
-
-/*
-\section{Class ~IPlace~}
+\section{Class ~IBasic~}
 
 */
 template<class B>
@@ -382,10 +115,34 @@ class IBasic : public Intime<B> {
   void Val(B& result) const;
 };
 
-// class MPlace; // forward declaration
+/*
+\section{Class ~IBasics~}
+
+*/
+template<class B>
+class IBasics : public Intime<B> {
+ public:
+  IBasics() {}
+  explicit IBasics(const Instant& inst, const B& values);
+  IBasics(const IBasics& rhs) : Intime<B>(rhs) {}
+  IBasics(const bool def) : Intime<B>(def) {}
+  
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(IBasics<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "i" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return this->value.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->value.GetFLOB(i);}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  
+  void Val(B& result) const;
+};
 
 /*
-\section{Class ~UPlace~}
+\section{Class ~UBasic~}
 
 */
 template<class B>
@@ -414,6 +171,35 @@ class UBasic : public ConstTemporalUnit<B> {
   void Initial(IBasic<B>& result) const;
   void Final(IBasic<B>& result) const;
 };
+
+/*
+\section{Class ~UBasics~}
+
+*/
+template<class B>
+class UBasics : public ConstTemporalUnit<B> {
+ public:
+  UBasics() {}
+  UBasics(const SecInterval& iv, const B& values);
+  UBasics(const UBasics& rhs) : ConstTemporalUnit<B>(rhs) {}
+  explicit UBasics(const bool def) : ConstTemporalUnit<B>(def) {}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(UBasics<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "u" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return this->constValue.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->constValue.GetFLOB(i);}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  
+  void Initial(IBasics<B>& result) const;
+  void Final(IBasics<B>& result) const;
+};
+
+class MLabel;
 
 /*
 \section{Class ~MBasic~}
@@ -477,59 +263,6 @@ class MBasic : public Attribute {
  protected:
   Flob values;
   DbArray<typename B::unitelem> units;
-};
-
-/*
-\section{Class ~IPlaces~}
-
-*/
-template<class B>
-class IBasics : public Intime<B> {
- public:
-  IBasics() {}
-  explicit IBasics(const Instant& inst, const B& values);
-  IBasics(const IBasics& rhs) : Intime<B>(rhs) {}
-  IBasics(const bool def) : Intime<B>(def) {}
-  
-  static ListExpr Property();
-  static int SizeOfObj() {return sizeof(IBasics<B>);}
-  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "i" + B::BasicType();}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return this->value.NumOfFLOBs();}
-  Flob* GetFLOB(const int i) {return this->value.GetFLOB(i);}
-  size_t Sizeof() const {return sizeof(*this);}
-  ListExpr ToListExpr(ListExpr typeInfo);
-  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-  
-  void Val(B& result) const;
-};
-
-/*
-\section{Class ~UPlaces~}
-
-*/
-template<class B>
-class UBasics : public ConstTemporalUnit<B> {
- public:
-  UBasics() {}
-  UBasics(const SecInterval& iv, const B& values);
-  UBasics(const UBasics& rhs) : ConstTemporalUnit<B>(rhs) {}
-  explicit UBasics(const bool def) : ConstTemporalUnit<B>(def) {}
-
-  static ListExpr Property();
-  static int SizeOfObj() {return sizeof(UBasics<B>);}
-  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "u" + B::BasicType();}
-  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
-  int NumOfFLOBs() const {return this->constValue.NumOfFLOBs();}
-  Flob* GetFLOB(const int i) {return this->constValue.GetFLOB(i);}
-  size_t Sizeof() const {return sizeof(*this);}
-  ListExpr ToListExpr(ListExpr typeInfo);
-  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
-  
-  void Initial(IBasics<B>& result) const;
-  void Final(IBasics<B>& result) const;
 };
 
 /*
@@ -604,6 +337,7 @@ class MBasics : public Attribute {
   DbArray<typename B::arrayelem> pos;
 };
 
+
 /*
 \section{Class ~MLabel~}
 
@@ -618,67 +352,16 @@ class MLabel : public MBasic<Label> {
 };
 
 typedef IBasic<Label> ILabel;
-typedef UBasic<Label> ULabel;
 typedef IBasic<Place> IPlace;
-typedef UBasic<Place> UPlace;
-typedef MBasic<Place> MPlace;
-
 typedef IBasics<Labels> ILabels;
-typedef UBasics<Labels> ULabels;
-typedef MBasics<Labels> MLabels;
 typedef IBasics<Places> IPlaces;
+typedef UBasic<Label> ULabel;
+typedef UBasic<Place> UPlace;
+typedef UBasics<Labels> ULabels;
 typedef UBasics<Places> UPlaces;
+typedef MBasic<Place> MPlace;
+typedef MBasics<Labels> MLabels;
 typedef MBasics<Places> MPlaces;
-
-class Tools {
- public:
-  static void intersect(const vector<set<TupleId> >& tidsets, 
-                        set<TupleId>& result);
-  static void intersectPairs(vector<set<pair<TupleId, int> > >& posVec, 
-                             set<pair<TupleId, int> >*& result);
-  static void uniteLast(unsigned int size, vector<set<TupleId> >& tidsets);
-  static void uniteLastPairs(unsigned int size, 
-                             vector<set<pair<TupleId, int> > >& posVec);
-  static void filterPairs(set<pair<TupleId, int> >* pairs,
-                    const set<TupleId>& pos, set<pair<TupleId, int> >*& result);
-  template<class T>
-  static bool relationHolds(const set<T>& set1, const set<T>& set2, SetRel rel);
-  static string int2String(int i);
-  static int str2Int(string const &text);
-  static void deleteSpaces(string& text);
-  static string setToString(const set<string>& input);
-  static int prefixCount(string str, set<string> strings);
-  static void splitPattern(string& input, vector<string>& result);
-  static char* convert(string arg);
-  static void eraseQM(string& arg); // QM = quotation marks
-  static void addQM(string& arg);
-  static void simplifyRegEx(string &regEx);
-  static set<unsigned int>** createSetMatrix(unsigned int dim1, 
-                                             unsigned int dim2);
-  static void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
-  static int getKey(const string& type);
-  static string getDataType(const int key);
-  static DataType getDataType(const string& type);
-  static bool isSymbolicType(ListExpr typeList);
-  static string extractVar(const string& input);
-  static string extendDate(string input, const bool start);
-  static bool checkSemanticDate(const string &text, const SecInterval &uIv,
-                                const bool resultNeeded);
-  static bool checkDaytime(const string& text, const SecInterval& uIv);
-  static bool isInterval(const string& str);
-  static void stringToInterval(const string& str, SecInterval& result);
-  static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
-  static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
-  // static Word evaluate(string input);
-  static void createTrajectory(int size, vector<string>& result);
-  static void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates);
-  static void makeNFApersistent(vector<map<int, int> > &nfa,
-     set<int> &finalStates, DbArray<NFAtransition> &trans, DbArray<int> &fs, 
-     map<int, int> &final2Pat);
-  static void createNFAfromPersistent(DbArray<NFAtransition> &trans, 
-          DbArray<int> &fs, vector<map<int, int> > &nfa, set<int> &finalStates);
-  static void printBinding(map<string, pair<unsigned int, unsigned int> > &b);
-};
 
 class ExprList {
  public: 
@@ -813,7 +496,7 @@ class Assign {
 
   bool convertVarKey(const char* vk);
   bool prepareRewrite(int key, const vector<size_t> &assSeq,
-                      map<string, int> &varPosInSeq, MLabel const &ml);
+                      map<string, int> &varPosInSeq, stj::MLabel const &ml);
   bool hasValue() {return (!text[0].empty() || !text[1].empty() ||
                            !text[8].empty() || !text[9].empty());}
   bool hasTime() {return (!text[2].empty() || 

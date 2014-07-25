@@ -45,208 +45,7 @@ extern AlgebraManager *am;
 using namespace std;
 
 namespace stj {
-
-/*
-\section{Implementation of class ~Label~}
-
-\subsection{Constructor}
-
-*/
-Label::Label(const Label& rhs) : Attribute(rhs.IsDefined()), 
-                                 value(rhs.value.getSize()) {
-  CopyFrom(&rhs);
-}
-
-/*
-\subsection{Function ~GetValue~}
-
-*/
-void Label::GetValue(string& text) const {
-  assert(IsDefined());
-  if (value.getSize() > 0) {
-    char *bytes = new char[value.getSize()];
-    value.read(bytes, value.getSize());
-    string text2(bytes, value.getSize());
-    delete[] bytes;
-    text = text2;
-  }
-  else {
-    text.clear();
-  }
-}
-
-/*
-\subsection{Function ~buildValue~}
-
-*/
-void Label::buildValue(const string& text, const unitelem& unit, base& result) {
-  result = text;
-}
-
-/*
-\subsection{Function ~SetValue~}
-
-*/
-void Label::SetValue(const string &text) {
-  Clean();
-  if (text.length() > 0) {
-    const char *bytes = text.c_str();
-    value.write(bytes, text.length());
-  }
-}
-
-/*
-\subsection{Operator ~==~}
-
-*/
-bool Label::operator==(const Label& lb) const {
-  if (!IsDefined() && !lb.IsDefined()) {
-    return true;
-  }
-  if (IsDefined() != lb.IsDefined()) {
-    return false;
-  }
-  string str1, str2;
-  GetValue(str1);
-  lb.GetValue(str2);
-  return (str1 == str2);
-}
-
-/*
-\subsection{Operator ~==~}
-
-*/
-bool Label::operator==(const string& text) const {
-  if (!IsDefined()) {
-    return false;
-  }
-  string str;
-  GetValue(str);
-  return (str == text);
-}
-
-/*
-\subsection{Function ~readValueFrom~}
-
-*/
-bool Label::readValueFrom(ListExpr LE, string& text, unitelem& unit) {
-  if (nl->IsAtom(LE)) {
-    nl->WriteToString(text, LE);
-    if (text.length() == 0) {
-      unit.pos = UINT_MAX;
-    }
-    return true;
-  }
-  return false;
-}
-
-/*
-\subsection{Function ~ReadFrom~}
-
-*/
-bool Label::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  if (listutils::isSymbolUndefined(LE)) {
-    SetDefined(false);
-    return true;
-  }
-  if (nl->IsAtom(LE)) {
-    string text;
-    nl->WriteToString(text, LE);
-    Set(true, text.substr(1, text.length() - 2));
-    return true;
-  }
-  SetDefined(false);
-  return false;
-}
-
-/*
-\subsection{Function ~ToListExpr~}
-
-*/
-ListExpr Label::ToListExpr(ListExpr typeInfo) {
-  if (!IsDefined()) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  string text;
-  GetValue(text);
-  return nl->TextAtom(text);
-}
-
-/*
-\subsection{Function ~CheckKind~}
-
-*/
-bool Label::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return (nl->IsEqual(type, Label::BasicType()));
-}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-ListExpr Label::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(), "(<text>)", "\'Dortmund\'");
-}
-
-/*
-\subsection{Function ~checkType~}
-
-*/
-const bool Label::checkType(const ListExpr type) {
-  return listutils::isSymbol(type, BasicType());
-}
-
-/*
-\subsection{Function ~CopyFrom~}
-
-*/
-void Label::CopyFrom(const Attribute* right) {
-  SetDefined(right->IsDefined());
-  if (IsDefined()) {
-    string text;
-    ((Label*)right)->GetValue(text);
-    SetValue(text);
-  }
-}
-
-/*
-\subsection{Function ~Compare~}
-
-*/
-int Label::Compare(const Attribute* arg) const {
-  string str1, str2;
-  GetValue(str1);
-  ((Label*)arg)->GetValue(str2);
-  return str1.compare(str2);
-}
-
-/*
-\subsection{Function ~Print~}
-
-*/
-ostream& Label::Print(ostream& os) const {
-  string text;
-  GetValue(text);
-  return os << text;
-}
-
-/*
-\subsection{Operator ~<<~}
-
-*/
-ostream& operator<<(ostream& os, const Label& lb) {
-  string text;
-  lb.GetValue(text);
-  os << "\'" << text << "\'";
-  return os;
-}
-
-/*
-\subsection{Type Constructor}
-
-*/
-GenTC<Label> label;
-
+  
 /*
 \section{Implementation of class ~MLabels~}
 
@@ -326,7 +125,7 @@ void MLabel::convertFromMString(const MString& source) {
   }
   units.TrimToSize();
 }
-
+  
 /*
 \subsection{Functions supporting ~rewrite~}
 
@@ -413,271 +212,479 @@ void Assign::appendToPlacesPtr(unsigned int pos,
 }
 
 /*
-\section{Implementation of class ~Labels~}
+\section{Implementation of Class ~IBasic~}
 
 \subsection{Constructors}
 
 */
-Labels::Labels(const Labels& src, const bool sort /* = false */) :
-  Attribute(src.IsDefined()), values(src.GetLength()), pos(src.GetNoValues()) {
-  if (sort) {
-    set<string> labels;
-    for (int i = 0; i < src.GetNoValues(); i++) {
-      string text;
-      src.GetValue(i, text);
-      labels.insert(text); // automatic sorting
-    }
-    for (set<string>::iterator it = labels.begin(); it != labels.end(); it++) {
-      Append(*it); // append in alphabetical order
-    }
-  }
-  else {
-    CopyFrom(&src); // keep original order
-  }
+template<class B>
+IBasic<B>::IBasic(const Instant& inst, const B& val) : Intime<B>(inst, val) {
+  SetDefined(inst.IsDefined() && val.IsDefined());
+}
+
+template<class B>
+IBasic<B>::IBasic(const IBasic& rhs) : Intime<B>(rhs.instant, rhs.value) {
+  SetDefined(rhs.IsDefined());
 }
 
 /*
-\subsection{Operator ~=~}
+\subsection{Function ~Property~}
 
 */
-Labels& Labels::operator=(const Labels& src) {
-  Attribute::operator=(src);
-  values.copyFrom(src.values);
-  pos.copyFrom(src.pos);
-  return *this;
+template<class B>
+ListExpr IBasic<B>::Property() {
+  if (BasicType() == "ilabel") {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <label>)",
+                              "(\"2014-02-26\" \'Dortmund\')");
+  }
+  if (BasicType() == "iplace") {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <place>)",
+                              "(\"2014-02-18\" (\'Dortmund\' 1909))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+template<class B>
+bool IBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, IBasic<B>::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr IBasic<B>::ToListExpr(ListExpr typeInfo) {
+  if (!Intime<B>::IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(this->instant.ToListExpr(false), 
+                         this->value.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool IBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  if (this->instant.ReadFrom(nl->First(LE), nl->Empty()) &&
+      this->value.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->SetDefined(this->instant.IsDefined() && this->value.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Val~}
+
+*/
+template<class B>
+void IBasic<B>::Val(B& result) const {
+  if (!this->IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(&(this->value));
+}
+
+/*
+\section{Implementation of Class ~IBasics~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+IBasics<B>::IBasics(const Instant& inst, const B& values) : 
+                                                     Intime<B>(inst, values) {}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr IBasics<B>::Property() {
+  if (B::BasicType() == Labels::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <labels>)",
+      "(\"2014-02-18\" (\"Dortmund\" \"Mailand\"))");
+  }
+  if (B::BasicType() == Places::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <places>)",
+      "(\"2014-02-18\" ((\"Dortmund\" 1909) (\"Mailand\" 1899)))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+template<class B>
+bool IBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, IBasics<B>::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr IBasics<B>::ToListExpr(ListExpr typeInfo) {
+  if (!this->IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(this->instant.ToListExpr(false), 
+                         this->value.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool IBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  if (this->instant.ReadFrom(nl->First(LE), nl->Empty()) &&
+      this->value.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->SetDefined(this->instant.IsDefined() && this->value.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Val~}
+
+*/
+template<class B>
+void IBasics<B>::Val(B& result) const {
+  if (!this->IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result = this->value;
+}
+
+/*
+\section{Implementation of class ~UBasic~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+UBasic<B>::UBasic(const SecInterval &iv, const B& val)
+                                            : ConstTemporalUnit<B>(iv, val) {
+  this->SetDefined(iv.IsDefined() && val.IsDefined());
+}
+
+template<class B>
+UBasic<B>::UBasic(const UBasic<B>& ub) : ConstTemporalUnit<B>(ub) {
+  this->SetDefined(ub.IsDefined());
 }
 
 /*
 \subsection{Operator ~==~}
 
 */
-bool Labels::operator==(const Labels& src) const {
-  if (!IsDefined() && !src.IsDefined()) {
+template<class B>
+bool UBasic<B>::operator==(const UBasic<B>& rhs) const {
+  return Compare(&rhs) == 0;
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr UBasic<B>::Property() {
+  if (B::BasicType() == Label::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <label>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) \"Dortmund\")");
+  }
+  if (B::BasicType() == Place::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <place>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" 1909))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+template<class B>
+bool UBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, UBasic<B>::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr UBasic<B>::ToListExpr(ListExpr typeInfo) {
+  if (!this->IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
+          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool UBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
     return true;
   }
-  if (IsDefined() != src.IsDefined()) {
+  if (!nl->HasLength(LE, 2)) {
     return false;
   }
-  if ((GetNoValues() != src.GetNoValues()) || (GetLength() != src.GetLength())){
-    return false;
-  }
-  set<string> strings1, strings2;
-  string str;
-  for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, str);
-    strings1.insert(str);
-    src.GetValue(i, str);
-    strings2.insert(str);
-  }
-  return strings1 == strings2;
-}
-
-/*
-\subsection{Functions ~Append~}
-
-*/
-void Labels::Append(const Label& lb) {
-  string text;
-  lb.GetValue(text);
-  Append(text);
-}
-
-void Labels::Append(const string& text) {
-  if (!Contains(text)) {
-    if (text.length() > 0) {
-      pos.Append(values.getSize());
-      const char *bytes = text.c_str();
-      values.write(bytes, text.length(), values.getSize());
-    }
-    else {
-      pos.Append(UINT_MAX);
-    }
-  }
-}
-
-void Labels::Append(const set<string>& values) {
-  for (set<string>::iterator it = values.begin(); it != values.end(); it++) {
-    Append(*it);
-  }
-}
-
-/*
-\subsection{Function ~Get~}
-
-*/
-void Labels::Get(int i, Label& lb) const {
-  lb.SetDefined(IsDefined());
-  assert((0 <= i) && (i < GetNoValues()));
-  if (IsDefined()) {
-    string text;
-    GetValue(i, text);
-    lb.Set(true, text);
-  }
-}
-
-/*
-\subsection{Function ~GetValue~}
-
-*/
-void Labels::GetValue(int i, string& text) const {
-  assert((0 <= i) && (i < GetNoValues()) && IsDefined());
-  unsigned int cur(-1), next(-1);
-  pos.Get(i, cur);
-  if (cur != UINT_MAX) {
-    int j = i + 1;
-    bool finished = false;
-    while (!finished && (j < GetNoValues())) {
-      pos.Get(j, next);
-      if (next != UINT_MAX) {
-        finished = true;
-      }
-      j++;
-    }
-    if (!finished) {
-      next = GetLength();
-    }
-    char *bytes = new char[next - cur];
-    values.read(bytes, next - cur, cur);
-    string text2(bytes, next - cur);
-    delete[] bytes;
-    text = text2;
-  }
-  else {
-    text.clear();
-  }
-}
-
-/*
-\subsection{Function ~GetValues~}
-
-*/
-void Labels::GetValues(set<string>& values) const {
-  values.clear();
-  string value;
-  for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, value);
-    values.insert(value);
-  }
-}
-
-/*
-\subsection{Function ~getRefToLastElem~}
-
-*/
-void Labels::getRefToLastElem(const int size, unsigned int& result) {
-  result = size;
-}
-
-/*
-\subsection{Function ~getFlobPos~}
-
-*/
-unsigned int Labels::getFlobPos(const arrayelem elem) {
-  return elem;
-}
-
-/*
-\subsection{Function ~valuesToListExpr~}
-
-*/
-void Labels::valuesToListExpr(const set<string>& values, ListExpr& result) {
-  if (values.empty()) {
-    result = nl->Empty();
-    return;
-  }
-  set<string>::iterator it = values.begin();
-  result = nl->OneElemList(nl->TextAtom(*it));
-  it++;
-  ListExpr last = result;
-  while (it != values.end()) {
-    last = nl->Append(last, nl->TextAtom(*it));
-    it++;
-  }
-}
-
-/*
-\subsection{Function ~getString~}
-
-*/
-void Labels::getString(const ListExpr& list, string& result) {
-  nl->WriteToString(result, list);
-}
-
-/*
-\subsection{Function ~getElemFromList~}
-
-*/
-void Labels::getElemFromList(const ListExpr& list, const unsigned int size, 
-                             unsigned int& result) {
-  result = size;
-}
-
-/*
-\subsection{Function ~buildValue~}
-
-*/
-void Labels::buildValue(const string& text, const unsigned int pos,
-                        string& result) {
-  result = text;
-}
-
-/*
-\subsection{Function ~Contains~}
-
-*/
-bool Labels::Contains(const string& text) const {
-  string str;
-  for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, str);
-    if (str == text) {
-      return true;
-    }
+  SecInterval iv(true);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
+      this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->timeInterval = iv;
+    this->SetDefined(this->timeInterval.IsDefined() && 
+                     this->constValue.IsDefined());
+    return true;
   }
   return false;
 }
 
 /*
-\subsection{Operator ~<<~}
+\subsection{Function ~Initial~}
 
 */
-ostream& operator<<(ostream& os, const Labels& lbs) {
-  Label lb(true);
-  string text;
-  for(int i = 0; i < lbs.GetNoValues() - 1; i++) {
-    lbs.GetValue(i, text);
-    os << text << " ";
+template<class B>
+void UBasic<B>::Initial(IBasic<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.start;
+    result.value.CopyFrom(&(this->constValue));
+    result.SetDefined(true);
   }
-  lbs.GetValue(lbs.GetNoValues() - 1, text);
-  os << text;
-  return os;
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+template<class B>
+void UBasic<B>::Final(IBasic<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.end;
+    result.value.CopyFrom(&(this->constValue));
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\section{Implementation of class ~UBasics~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+UBasics<B>::UBasics(const SecInterval &iv, const B& values)
+                                           : ConstTemporalUnit<B>(iv, values) {}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr UBasics<B>::Property() {
+  if (B::BasicType() == Labels::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <labels>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" "
+      "\"Mailand\"))");
+  }
+  if (B::BasicType() == Places::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <places>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) ((\"Dortmund\" 1909) "
+      "(\"Mailand\" 1899)))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+template<class B>
+bool UBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, UBasics<B>::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr UBasics<B>::ToListExpr(ListExpr typeInfo) {
+  if (!this->IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
+          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool UBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  SecInterval iv(true);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
+      this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->timeInterval = iv;
+    this->SetDefined(this->timeInterval.IsDefined() &&
+                     this->constValue.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Initial~}
+
+*/
+template<class B>
+void UBasics<B>::Initial(IBasics<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.start;
+    result.value = this->constValue;
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+template<class B>
+void UBasics<B>::Final(IBasics<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.end;
+    result.value = this->constValue;
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\section{Implementation of class ~MBasic~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+MBasic<B>::MBasic(const MBasic &mb) : Attribute(mb.IsDefined()),
+                      values(mb.values.getSize()), units(mb.GetNoComponents()) {
+  if (IsDefined()) {
+    values.copyFrom(mb.values);
+    units.copyFrom(mb.units);
+  }
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr MBasic<B>::Property() {
+  if (B::BasicType() == Label::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(),
+      "((<interval> <label>) (<interval> <label>) ...)",
+      "(((\"2014-02-27\" \"2014-02-27-09:48\" TRUE FALSE) \"Dortmund\") "
+      "((\"2014-05-17\" \"2014-05-17-22:00\" TRUE FALSE) \"Berlin\"))");
+  }
+  if (B::BasicType() == Place::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(),
+      "((<interval> <place>) (<interval> <place>) ...)",
+      "(((\"2014-02-27\" \"2014-02-27-09:48\" TRUE FALSE) (\"Dortmund\" 1909)) "
+      "((\"2014-05-17\" \"2014-05-17-22:00\" TRUE FALSE) (\"Berlin\" 4)))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
 }
 
 /*
 \subsection{Function ~GetFLOB~}
 
 */
-Flob *Labels::GetFLOB(const int i) {
-  assert(i >= 0 && i < NumOfFLOBs());
-  return (i == 0 ? &values : &pos);
+template<class B>
+Flob* MBasic<B>::GetFLOB(const int i) {
+  assert((i >= 0) && (i < NumOfFLOBs()));
+  return (i == 0 ? &values : &units);
 }
 
+/*
+\subsection{Function ~KindCheck~}
+
+*/
+template<class B>
+bool MBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, MBasic<B>::BasicType());
+}
 
 /*
 \subsection{Function ~Compare~}
 
 */
-int Labels::Compare(const Attribute* arg) const {
-  if (GetNoValues() > ((Labels*)arg)->GetNoValues()) {
+template<class B>
+int MBasic<B>::Compare(const Attribute* arg) const {
+  if (GetNoComponents() > ((MBasic<B>*)arg)->GetNoComponents()) {
     return 1;
   }
-  if (GetNoValues() < ((Labels*)arg)->GetNoValues()) {
+  if (GetNoComponents() < ((MBasic<B>*)arg)->GetNoComponents()) {
     return -1;
   }
-  string str1, str2;
-  for (int i = 0; i < GetNoValues(); i++) { // equal size; compare labels
-    GetValue(i, str1);
-    ((Labels*)arg)->GetValue(i, str2);
-    int comp = str1.compare(str2);
+  UBasic<B> ub1(true), ub2(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub1);
+    ((MBasic<B>*)arg)->Get(i, ub2);
+    int comp = ub1.Compare(&ub2);
     if (comp != 0) {
       return comp;
     }
@@ -686,93 +693,556 @@ int Labels::Compare(const Attribute* arg) const {
 }
 
 /*
-\subsection{Function ~Property~}
+\subsection{Function ~HashValue~}
 
 */
-ListExpr Labels::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(), "(<label> <label> ...)",
-    "(\'Dortmund\' \'Mailand\')");
+template<class B>
+size_t MBasic<B>::HashValue() const {
+  if (!IsDefined() || IsEmpty()) {
+    return 0;
+  }
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  return values.getSize() * unit.iv.HashValue();
 }
 
 /*
-\subsection{Function ~CheckKind~}
+\subsection{Function ~CopyFrom~}
 
 */
-bool Labels::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, Labels::BasicType());
+template<class B>
+void MBasic<B>::CopyFrom(const Attribute *arg) {
+  if (!arg->IsDefined()) {
+    SetDefined(false);
+    return;
+  }
+  SetDefined(true);
+  values.copyFrom(((MBasic<B>*)arg)->values);
+  units.copyFrom(((MBasic<B>*)arg)->units);
+}
+
+/*
+\subsection{Function ~unitToListExpr~}
+
+*/
+template<class B>
+ListExpr MBasic<B>::unitToListExpr(const int i) {
+  assert(i < GetNoComponents());
+  typename B::base value;
+  GetValue(i, value);
+  typename B::unitelem unit;
+  units.Get(i, unit);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  return nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
+                                                     SecInterval::BasicType())),
+                         B::getList(value));
 }
 
 /*
 \subsection{Function ~ToListExpr~}
 
 */
-ListExpr Labels::ToListExpr(ListExpr typeInfo) {
+template<class B>
+ListExpr MBasic<B>::ToListExpr(ListExpr typeInfo) {
   if (!IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
   if (IsEmpty()) {
     return nl->Empty();
   }
-  else {
-    string text;
-    GetValue(0, text);
-    ListExpr res = nl->OneElemList(nl->TextAtom(text));
-    ListExpr last = res;
-    for (int i = 1; i < GetNoValues(); i++) {
-      GetValue(i, text);
-      last = nl->Append(last, nl->TextAtom(text));
-    }
-    return res;
+  ListExpr result = nl->OneElemList(unitToListExpr(0));
+  ListExpr last = result;
+  for (int i = 1; i < GetNoComponents(); i++) {
+    last = nl->Append(last, unitToListExpr(i));
   }
+  return result;
 }
 
 /*
 \subsection{Function ~ReadFrom~}
 
 */
-bool Labels::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  Clean();
-  if (listutils::isSymbolUndefined(LE)) {
-    SetDefined(false);
-    return true;
+template<class B>
+bool MBasic<B>::readUnitFrom(ListExpr LE) {
+  if (!nl->HasLength(LE, 2)) {
+    return false;
   }
-  SetDefined(true);
-  ListExpr rest = LE;
+  SecInterval iv;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (!iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType()))) {
+    return false;
+  }
+  typename B::unitelem unit(values.getSize());
+  unit.iv = iv;
   string text;
-  while (!nl->IsEmpty(rest)) {
-    if (!nl->IsAtom(nl->First(rest))) {
-      SetDefined(false);
-      return false;
-    }
-    nl->WriteToString(text, nl->First(rest));
-    Append(text.substr(1, text.length() - 2));
-    rest = nl->Rest(rest);
+  if (!B::readValueFrom(nl->Second(LE), text, unit)) {
+    return false;
+  }
+  units.Append(unit);
+  text = text.substr(1, text.length() - 2);
+  if (text.length() > 0) {
+    const char *bytes = text.c_str();
+    values.write(bytes, text.length(), values.getSize());
   }
   return true;
 }
 
 /*
-\subsection{Function ~HashValue~}
+\subsection{Function ~ReadFrom~}
 
 */
-size_t Labels::HashValue() const {
-  if (IsEmpty()) {
-    return 0;
+template<class B>
+bool MBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  SetDefined(false);
+  Clear();
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
   }
-  size_t result = 1;
-  for (int i = 1; i < pos.Size(); i++) {
-    unsigned int factor;
-    pos.Get(i, factor);
-    result *= factor;
+  ListExpr rest = LE;
+  while (!nl->IsEmpty(rest)) {
+    if (!readUnitFrom(nl->First(rest))) {
+      return false;
+    }
+    rest = nl->Rest(rest);
   }
-  return GetNoValues() * result;
+  SetDefined(true);
+  return true;
 }
 
 /*
-\subsection{Type Constructor}
+\subsection{Function ~Position~}
 
 */
-GenTC<Labels> labels;
+template<class B>
+int MBasic<B>::Position(const Instant& inst) const {
+  assert(IsDefined());
+  assert(inst.IsDefined());
+  int first = 0, last = GetNoComponents() - 1;
+  Instant t1 = inst;
+  while (first <= last) {
+    int mid = (first + last) / 2;
+    if ((mid < 0) || (mid >= GetNoComponents())) {
+      return -1;
+    }
+    typename B::unitelem unit;
+    units.Get(mid, unit);
+    if (((Interval<Instant>)(unit.iv)).Contains(t1)) {
+      return mid;
+    }
+    else { // not contained
+      if ((t1 > unit.iv.end) || (t1 == unit.iv.end)) {
+        first = mid + 1;
+      }
+      else if ((t1 < unit.iv.start) || (t1 == unit.iv.start)) {
+        last = mid - 1;
+      }
+      else {
+        return -1; // should never be reached.
+      }
+    }
+  }
+  return -1;
+}
+
+/*
+\subsection{Function ~Get~}
+
+*/
+template<class B>
+void MBasic<B>::Get(const int i, UBasic<B>& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  result.SetDefined(IsDefined());
+  if (IsDefined()) {
+    typename B::unitelem unit;
+    units.Get(i, unit);
+    result.timeInterval = unit.iv;
+    GetBasic(i, result.constValue);
+  }
+}
+
+/*
+\subsection{Function ~GetInterval~}
+
+*/
+template<class B>
+void MBasic<B>::GetInterval(const int i, SecInterval& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  result.SetDefined(true);
+  typename B::unitelem unit;
+  units.Get(i, unit);
+  result = unit.iv;
+}
+
+/*
+\subsection{Function ~GetBasic~}
+
+*/
+template<class B>
+void MBasic<B>::GetBasic(const int i, B& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  result.SetDefined(IsDefined());
+  if (IsDefined()) {
+    typename B::base value;
+    GetValue(i, value);
+    result.SetValue(value);
+  }
+}
+
+/*
+\subsection{Function ~GetValue~}
+
+*/
+template<class B>
+void MBasic<B>::GetValue(const int i, typename B::base& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  typename B::unitelem cur, next;
+  units.Get(i, cur);
+  unsigned int size;
+  if (cur.pos != UINT_MAX) {
+    int j = i + 1;
+    bool finished = false;
+    while (!finished && (j < units.Size())) {
+      units.Get(j, next);
+      if (next.pos != UINT_MAX) {
+        finished = true;
+        size = next.pos - cur.pos;
+      }
+    }
+    if (!finished) {
+      size = values.getSize() - cur.pos;
+    }
+    char* bytes = new char[size];
+    values.read(bytes, size, cur.pos);
+    string text(bytes, size);
+    delete[] bytes;
+    B::buildValue(text, cur, result);
+  }
+  else {
+    B::buildValue("", cur, result);
+  }
+}
+
+/*
+\subsection{Function ~IsValid~}
+
+*/
+template<class B>
+bool MBasic<B>::IsValid() const {
+  if (!IsDefined() || IsEmpty()) {
+    return true;
+  }
+  typename B::unitelem lastUnit, unit;
+  units.Get(0, lastUnit);
+  if (!lastUnit.iv.IsValid()) {
+    return false;
+  }
+  if (GetNoComponents() == 1) {
+    return true;
+  }
+  for (int i = 1; i < GetNoComponents(); i++) {
+    units.Get(i, unit);
+    if (!unit.iv.IsValid()) {
+      return false;
+    }
+    if (lastUnit.iv.end > unit.iv.start) {
+      return false;
+    }
+    if (!lastUnit.iv.Disjoint(unit.iv)) {
+      return false;
+    }
+    lastUnit = unit;
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~EndBulkLoad~}
+
+*/
+template<class B>
+void MBasic<B>::EndBulkLoad(const bool sort, const bool checkvalid) {
+  if (!IsDefined()) {
+    units.clean();
+  }
+  units.TrimToSize();
+}
+
+/*
+\subsection{Function ~Add~}
+
+*/
+template<class B>
+void MBasic<B>::Add(const UBasic<B>& ub) {
+  assert(ub.IsDefined());
+  assert(ub.IsValid());
+  UBasic<B> ub2(ub);
+  if (IsDefined()) {
+    readUnitFrom(ub2.ToListExpr(nl->Empty()));
+  }
+  assert(IsValid());
+}
+
+template<class B>
+void MBasic<B>::Add(const SecInterval& iv, const B& value) {
+  assert(iv.IsDefined() && value.IsDefined());
+  B value2(value);
+  ListExpr unitlist = nl->TwoElemList(iv.ToListExpr(nl->Empty()),
+                                      value2.ToListExpr(nl->Empty()));
+  if (!readUnitFrom(unitlist)) {
+    SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~MergeAdd~}
+
+*/
+template<class B>
+void MBasic<B>::MergeAdd(const UBasic<B>& ub) {
+  assert(IsDefined());
+  if (!ub.IsDefined() || !ub.IsValid()) {
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+      << " MergeAdd(Unit): Unit is undefined or invalid:";
+    ub.Print(cout); cout << endl;
+    assert(false);
+  }
+  if (!IsEmpty()) {
+    bool extend = false;
+    typename B::unitelem lastUnit;
+    units.Get(GetNoComponents() - 1, lastUnit);
+    if ((lastUnit.iv.end == ub.timeInterval.start) &&
+        (lastUnit.iv.rc || ub.timeInterval.lc)) { // adjacent intervals
+      typename B::base value1, value2;
+      GetValue(GetNoComponents() - 1, value1);
+      ub.constValue.GetValue(value2);
+      if (value1 == value2) {
+        lastUnit.iv.end = ub.timeInterval.end; // extend last interval
+        lastUnit.iv.rc = ub.timeInterval.rc;
+        units.Put(GetNoComponents() - 1, lastUnit);
+        extend = true;
+      }
+    }
+    if (!extend && lastUnit.iv.Before(ub.timeInterval)) {
+      Add(ub);
+    }
+  }
+  else { // first unit
+    Add(ub);
+  }
+  assert(IsValid());
+}
+
+/*
+\subsection{Function ~Passes~}
+
+*/
+template<class B>
+bool MBasic<B>::Passes(const B& basic) const {
+  if (!IsDefined() || !basic.IsDefined()) {
+    return false;
+  }
+  typename B::base value1, value2;
+  basic.GetValue(value2);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetValue(i, value1);
+    if (value1 == value2) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~At~}
+
+*/
+template<class B>
+void MBasic<B>::At(const B& basic, MBasic<B>& result) const {
+  result.Clear();
+  if (!IsDefined() || !basic.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  typename B::base value1, value2;
+  basic.GetValue(value2);
+  typename B::unitelem unit;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetValue(i, value1);
+    if (value1 == value2) {
+      units.Get(i, unit);
+      result.readUnitFrom(nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
+                                                     SecInterval::BasicType())),
+                                          B::getList(value1)));
+    }
+  }
+}
+
+/*
+\subsection{Function ~DefTime~}
+
+*/
+template<class B>
+void MBasic<B>::DefTime(Periods& per) const {
+  per.Clear();
+  per.SetDefined(IsDefined());
+  if (IsDefined()) {
+    typename B::unitelem unit;
+    for (int i = 0; i < GetNoComponents(); i++) {
+      units.Get(i, unit);
+      per.MergeAdd(unit.iv);
+    }
+  }
+}
+
+/*
+\subsection{Function ~Atinstant~}
+
+*/
+template<class B>
+void MBasic<B>::Atinstant(const Instant& inst, IBasic<B>& result) const {
+  if(!IsDefined() || !inst.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  int pos = this->Position(inst);
+  if (pos == -1) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.value.SetDefined(true);
+  typename B::unitelem unit;
+  units.Get(pos, unit);
+  GetBasic(pos, result.value);
+  result.instant = inst;
+}
+
+/*
+\subsection{Function ~Initial~}
+
+*/
+template<class B>
+void MBasic<B>::Initial(IBasic<B>& result) const {
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  GetBasic(0, result.value);
+  result.instant = unit.iv.start;
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+template<class B>
+void MBasic<B>::Final(IBasic<B>& result) const {
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  typename B::unitelem unit;
+  units.Get(GetNoComponents() - 1, unit);
+  GetBasic(GetNoComponents() - 1, result.value);
+  result.instant = unit.iv.end;
+}
+
+/*
+\subsection{Function ~Inside~}
+
+*/
+template<class B>
+void MBasic<B>::Inside(const typename B::coll& coll, MBool& result) const {
+  result.Clear();
+  if (!IsDefined() || !coll.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  typename B::unitelem unit;
+  typename B::base value;
+  for (int i = 0; i < GetNoComponents(); i++) {
+    units.Get(i, unit);
+    GetValue(i, value);
+    CcBool res(true, coll.Contains(value));
+    UBool ub(unit.iv, res);
+    result.Add(ub);
+  }
+}
+
+/*
+\subsection{Function ~Fill~}
+
+*/
+template<class B>
+void MBasic<B>::Fill(MBasic<B>& result, DateTime& dur) const {
+  result.Clear();
+  result.SetDefined(true);
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  if (IsEmpty()) {
+    return;
+  }
+  UBasic<B> unit(true), lastUnit(true);
+  Get(0, lastUnit);
+  for (int i = 1; i < GetNoComponents(); i++) {
+    Get(i, unit);
+    if ((lastUnit.constValue == unit.constValue) && 
+        (unit.timeInterval.start - lastUnit.timeInterval.end <= dur)) {
+      lastUnit.timeInterval.end = unit.timeInterval.end;
+      lastUnit.timeInterval.rc = unit.timeInterval.rc;
+    }
+    else {
+      result.MergeAdd(lastUnit);
+      lastUnit = unit;
+    }
+  }
+  result.MergeAdd(lastUnit);
+}
+
+/*
+\subsection{Function ~Compress~}
+
+*/
+template<class B>
+void MBasic<B>::Compress(MBasic<B>& result) const {
+  result.Clear();
+  result.SetDefined(IsDefined());
+  if(!IsDefined()) {
+    return;
+  }
+  UBasic<B> ub(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub);
+    result.MergeAdd(ub);
+  }
+}
+
+/*
+\subsection{Function ~Print~}
+
+*/
+template<class B>
+ostream& MBasic<B>::Print(ostream& os) const {
+  if (!IsDefined()) {
+    os << "(undefined)" << endl;
+    return os;
+  }
+  os << BasicType() << ":" << endl;
+  UBasic<B> ub(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub);
+    ub.Print(os);
+  }
+  return os;
+}
 
 /*
 \section{Implementation of class ~MBasics~}
@@ -1513,2503 +1983,25 @@ ostream& MBasics<B>::Print(ostream& os) const {
 }
 
 /*
-\section{Type Constructors}
-
-*/
-GenTC<MBasics<Labels> > mlabels;
-GenTC<MBasics<Places> > mplaces;
-
-/*
-\section{Implementation of class ~Place~}
-
-\subsection{Function ~Set~}
-
-*/
-void Place::Set(const bool defined, const pair<string, unsigned int>& value) {
-  Label::Set(defined, value.first);
-  SetRef(value.second);
-}
-
-/*
-\subsection{Function ~SetValue~}
-
-*/
-void Place::SetValue(const pair<string, unsigned int>& value) {
-  Label::SetValue(value.first);
-  SetRef(value.second);
-}
-
-/*
-\subsection{Function ~GetValue~}
-
-*/
-void Place::GetValue(pair<string, unsigned int>& value) const {
-  Label::GetValue(value.first);
-  value.second = GetRef();
-}
-
-/*
-\subsection{Function ~buildValue~}
-
-*/
-void Place::buildValue(const string& text, const unitelem& unit, base& result) {
-  result.first = text;
-  result.second = unit.ref;
-}
-
-/*
-\subsection{Function ~getList~}
-
-*/
-ListExpr Place::getList(const base& value) {
-  return nl->TwoElemList(nl->TextAtom(value.first), nl->IntAtom(value.second));
-}
-
-/*
-\subsection{Operator ~=~}
-
-*/
-Place& Place::operator=(const Place& p) {
-  pair<string, unsigned int> value;
-  p.GetValue(value);
-  Set(p.IsDefined(), value);
-  return *this;
-}
-
-/*
-\subsection{Operator ~==~}
-
-*/
-bool Place::operator==(const Place& p) const {
-  if (!IsDefined() && !p.IsDefined()) { // both undefined
-    return true;
-  }
-  if (IsDefined() != p.IsDefined()) { // one defined, one undefined
-    return false;
-  }
-  pair<string, unsigned int> value;
-  p.GetValue(value);
-  return operator==(value);
-}
-
-bool Place::operator==(const pair<string, unsigned int>& value) const {
-  if (!IsDefined()) {
-    return false;
-  }
-  pair<string, unsigned int> val;
-  GetValue(val);
-  return (val == value);
-}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-ListExpr Place::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(), "(<label> <int>)",
-    "(\'Dortmund\' 1909)");
-}
-
-/*
-\subsection{Function ~CheckKind~}
-
-*/
-bool Place::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, Place::BasicType());
-}
-
-/*
-\subsection{Function ~Compare~}
-
-*/
-int Place::Compare(const Attribute* arg) const {
-  int cmp = Label::Compare(arg);
-  if (cmp != 0) {
-    return cmp;
-  }
-  if (ref > ((Place*)arg)->GetRef()) {
-    return 1;
-  }
-  if (ref < ((Place*)arg)->GetRef()) {
-    return -1;
-  }
-  return 0;
-}
-
-/*
-\subsection{Function ~ToListExpr~}
-
-*/
-ListExpr Place::ToListExpr(ListExpr typeInfo) {
-  if (!IsDefined()) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  base val;
-  GetValue(val);
-  return nl->TwoElemList(nl->TextAtom(val.first), nl->IntAtom(val.second));
-}
-
-/*
-\subsection{Function ~readValueFrom~}
-
-*/
-bool Place::readValueFrom(ListExpr LE, string& text, unitelem& unit) {
-  if (nl->HasLength(LE, 2)) {
-    if (nl->IsAtom(nl->First(LE)) && nl->IsAtom(nl->Second(LE))) {
-      nl->WriteToString(text, nl->First(LE));
-      if (text.length() == 0) {
-        unit.pos = UINT_MAX;
-      }
-      unit.ref = nl->IntValue(nl->Second(LE));
-      return true;
-    }
-  }
-  return false;
-}
-
-/*
-\subsection{Function ~ReadFrom~}
-
-*/
-bool Place::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  if (listutils::isSymbolUndefined(LE)) {
-    SetDefined(false);
-    return true;
-  }
-  if (!nl->HasLength(LE, 2)) {
-    SetDefined(false);
-    return false;
-  }
-  string text;
-  nl->WriteToString(text, nl->First(LE));
-  Set(true, make_pair(text.substr(1, text.length() - 2), 
-                      nl->IntValue(nl->Second(LE))));
-  return true;
-}
-
-/*
-\subsection{Type Constructor}
-
-*/
-GenTC<Place> place;
-
-/*
-\section{Implementation of class ~Places~}
-
-\subsection{Constructor}
-
-*/
-Places::Places(const Places& rhs,  const bool sort /* = false */) :
-Attribute(rhs.IsDefined()), values(rhs.GetLength()), posref(rhs.GetNoValues()) {
-  if (sort) {
-    set<base> vals;
-    for (int i = 0; i < rhs.GetNoValues(); i++) {
-      base val;
-      rhs.GetValue(i, val);
-      vals.insert(val); // automatic sorting
-    }
-    set<base>::iterator it;
-    for (it = vals.begin(); it != vals.end(); it++) {
-      Append(*it); // append in automatic order
-    }
-  }
-  else {
-    CopyFrom(&rhs); // keep original order
-  }
-}
-
-/*
-\subsection{Function ~Append~}
-
-*/
-void Places::Append(const base& val) {
-  if (!Contains(val)) {
-    NewPair<unsigned int, unsigned int> pr;
-    pr.first = (val.first.length() > 0 ? values.getSize() : UINT_MAX);
-    pr.second = val.second;
-    posref.Append(pr);
-    if (val.first.length() > 0) {
-      const char *bytes = val.first.c_str();
-      values.write(bytes, val.first.length(), values.getSize());
-    }
-  }
-}
-
-void Places::Append(const Place& pl) {
-  pair<string, unsigned int> val;
-  pl.GetValue(val);
-  Append(val);
-}
-
-void Places::Append(const set<base>& values) {
-  for (set<base>::iterator it = values.begin(); it != values.end(); it++) {
-    Append(*it);
-  }
-}
-
-/*
-\subsection{Function ~GetPlace~}
-
-*/
-void Places::Get(const int i, Place& result) const {
-  assert((0 <= i) && (i < GetNoValues()));
-  base val;
-  GetValue(i, val);
-  result.Set(true, val);
-}
-
-/*
-\subsection{Function ~GetValue~}
-
-*/
-void Places::GetValue(const int i, base& result) const {
-  assert(IsDefined() && (0 <= i) && (i < GetNoValues()));
-  NewPair<unsigned int, unsigned int> cur, next;
-  posref.Get(i, cur);
-  result.second = cur.second;
-  if (cur.first != UINT_MAX) {
-    int j = i + 1;
-    bool finished = false;
-    while (!finished && (j < GetNoValues())) {
-      posref.Get(j, next);
-      if (next.first != UINT_MAX) {
-        finished = true;
-      }
-      j++;
-    }
-    if (!finished) {
-      next.first = GetLength();
-    }
-    char *bytes = new char[next.first - cur.first];
-    values.read(bytes, next.first - cur.first, cur.first);
-    string text(bytes, next.first - cur.first);
-    result.first = text;
-    delete[] bytes; 
-  }
-  else {
-    result.first.clear();
-  }
-}
-
-
-/*
-\subsection{Function ~GetValues~}
-
-*/
-void Places::GetValues(set<base>& values) const {
-  values.clear();
-  base value;
-  for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, value);
-    values.insert(value);
-  }
-}
-
-/*
-\subsection{Function ~Contains~}
-
-*/
-bool Places::Contains(const base& val) const {
-  base value;
-  for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, value);
-    if (value == val) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/*
-\subsection{Function ~getRefToLastElem~}
-
-*/
-void Places::getRefToLastElem(const int size, arrayelem& result) {
-  result.first = size;
-}
-
-/*
-\subsection{Function ~getFlobPos~}
-
-*/
-unsigned int Places::getFlobPos(const arrayelem elem) {
-  return elem.first;
-}
-
-/*
-\subsection{Function ~valuesToListExpr~}
-
-*/
-void Places::valuesToListExpr(const set<base>& values, ListExpr& result) {
-  if (values.empty()) {
-    result = nl->Empty();
-    return;
-  }
-  set<base>::iterator it = values.begin();
-  result = nl->OneElemList(nl->TwoElemList(nl->TextAtom(it->first),
-                                           nl->IntAtom(it->second)));
-  it++;
-  ListExpr last = result;
-  while (it != values.end()) {
-    last = nl->Append(last, nl->TwoElemList(nl->TextAtom(it->first),
-                                            nl->IntAtom(it->second)));
-    it++;
-  }
-}
-
-/*
-\subsection{Function ~getString~}
-
-*/
-void Places::getString(const ListExpr& list, string& result) {
-  nl->WriteToString(result, nl->First(list));
-}
-
-/*
-\subsection{Function ~getElemFromList~}
-
-*/
-void Places::getElemFromList(const ListExpr& list, const unsigned int size, 
-                             arrayelem& result) {
-  result.first = size;
-  result.second = nl->IntValue(nl->Second(list));
-}
-
-/*
-\subsection{Function ~buildValue~}
-
-*/
-void Places::buildValue(const string& text, const arrayelem pos, base& result) {
-  result.first = text;
-  result.second = pos.second;
-}
-
-/*
-\subsection{Operator ~=~}
-
-*/
-void Places::operator=(const Places& p) {
-  SetDefined(p.IsDefined());
-  if (IsDefined()) {
-    values.copyFrom(p.values);
-    posref.copyFrom(p.posref);
-  }
-}
-
-/*
-\subsection{Operator ~==~}
-
-*/
-bool Places::operator==(const Places& p) const {
-  if (!IsDefined() && !p.IsDefined()) {
-    return true;
-  }
-  if (IsDefined() != p.IsDefined()) {
-    return false;
-  }
-  if ((GetNoValues() == p.GetNoValues()) && (GetLength() == p.GetLength())) {
-    base val1, val2;
-    for (int i = 0; i < GetNoValues(); i++) {
-      GetValue(i, val1);
-      p.GetValue(i, val2);
-      if (val1 != val2) {
-        return false;
-      }
-    }
-    return true;
-  }
-  return false;
-}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-ListExpr Places::Property() {
-  return gentc::GenProperty("-> DATA", BasicType(),
-    "((<label> <int>) (<label> <int>) ...)",
-    "((\'Dortmund\' 1909) (\'Mailand\' 1899))");
-}
-
-/*
-\subsection{Function ~CheckKind~}
-
-*/
-bool Places::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, Places::BasicType());
-}
-
-/*
-\subsection{Function ~GetFLOB~}
-
-*/
-Flob* Places::GetFLOB(const int i) {
-  assert((i >= 0) && (i < 2));
-  return (i == 0 ? &values : &posref);
-}
-
-/*
-\subsection{Function ~Compare~}
-
-*/
-int Places::Compare(const Attribute* arg) const {
-  if (GetNoValues() == ((Places*)arg)->GetNoValues()) {
-    base val1, val2;
-    for (int i = 0; i < GetNoValues(); i++) {
-      GetValue(i, val1);
-      ((Places*)arg)->GetValue(i, val2);
-      int comp = val1.first.compare(val2.first);
-      if (comp == 0) { // equal strings
-        if (val1.second > val2.second) {
-          return 1;
-        }
-        if (val1.second < val2.second) {
-          return -1;
-        }
-      }
-      return (comp > 0 ? 1 : -1);
-    }
-    return 0;
-  }
-  if (GetNoValues() > ((Places*)arg)->GetNoValues()) {
-    return 1;
-  }
-  return -1;
-}
-
-/*
-\subsection{Function ~HashValue~}
-
-*/
-size_t Places::HashValue() const {
-  if (IsEmpty() || !IsDefined()) {
-    return 0;
-  }
-  size_t result = 1;
-  base value;
-  for (int i = 0; i < GetNoValues(); i++) {
-    GetValue(i, value);
-    result *= value.first.length() * value.second;
-  }
-  return result;
-}
-
-/*
-\subsection{Function ~ToListExpr~}
-
-*/
-ListExpr Places::ToListExpr(ListExpr typeInfo) {
-  if (!IsDefined()) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  if (IsEmpty()) {
-    return nl->Empty();
-  }
-  base val;
-  GetValue(0, val);
-  ListExpr res = nl->OneElemList(nl->TwoElemList(nl->TextAtom(val.first),
-                                                 nl->IntAtom(val.second)));
-  ListExpr last = res;
-  for (int i = 1; i < GetNoValues(); i++) {
-    GetValue(i, val);
-    last = nl->Append(last, nl->TwoElemList(nl->TextAtom(val.first),
-                                            nl->IntAtom(val.second)));
-  }
-  return res;
-}
-
-/*
-\subsection{Function ~ReadFrom~}
-
-*/
-bool Places::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  Clean();
-  if (listutils::isSymbolUndefined(LE)) {
-    SetDefined(false);
-    return true;
-  }
-  SetDefined(true);
-  ListExpr rest = LE;
-  while (!nl->IsEmpty(rest)) {
-    if (!nl->HasLength(nl->First(rest), 2)) {
-      SetDefined(false);
-      return false;
-    }
-    string text;
-    nl->WriteToString(text, nl->First(nl->First(rest)));
-    Append(make_pair(text.substr(1, text.length() - 2),
-                     nl->IntValue(nl->Second(nl->First(rest)))));
-    rest = nl->Rest(rest);
-  }
-  return true;
-}
-
-/*
-\subsection{Type Constructor}
-
-*/
-GenTC<Places> places;
-
-/*
-\section{Implementation of Class ~IBasic~}
-
-\subsection{Constructors}
-
-*/
-template<class B>
-IBasic<B>::IBasic(const Instant& inst, const B& val) : Intime<B>(inst, val) {
-  SetDefined(inst.IsDefined() && val.IsDefined());
-}
-
-template<class B>
-IBasic<B>::IBasic(const IBasic& rhs) : Intime<B>(rhs.instant, rhs.value) {
-  SetDefined(rhs.IsDefined());
-}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-template<class B>
-ListExpr IBasic<B>::Property() {
-  if (BasicType() == "ilabel") {
-    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <label>)",
-                              "(\"2014-02-26\" \'Dortmund\')");
-  }
-  if (BasicType() == "iplace") {
-    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <place>)",
-                              "(\"2014-02-18\" (\'Dortmund\' 1909))");
-  }
-  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
-}
-
-/*
-\subsection{Function ~CheckKind~}
-
-*/
-template<class B>
-bool IBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, IBasic<B>::BasicType());
-}
-
-/*
-\subsection{Function ~ToListExpr~}
-
-*/
-template<class B>
-ListExpr IBasic<B>::ToListExpr(ListExpr typeInfo) {
-  if (!Intime<B>::IsDefined()) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  return nl->TwoElemList(this->instant.ToListExpr(false), 
-                         this->value.ToListExpr(nl->Empty()));
-}
-
-/*
-\subsection{Function ~ReadFrom~}
-
-*/
-template<class B>
-bool IBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  this->SetDefined(false);
-  if (listutils::isSymbolUndefined(LE)) {
-    return true;
-  }
-  if (!nl->HasLength(LE, 2)) {
-    return false;
-  }
-  if (this->instant.ReadFrom(nl->First(LE), nl->Empty()) &&
-      this->value.ReadFrom(nl->Second(LE), nl->Empty())) {
-    this->SetDefined(this->instant.IsDefined() && this->value.IsDefined());
-    return true;
-  }
-  return false;
-}
-
-/*
-\subsection{Function ~Val~}
-
-*/
-template<class B>
-void IBasic<B>::Val(B& result) const {
-  if (!this->IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  result.CopyFrom(&(this->value));
-}
-
-/*
-\subsection{Type Constructor}
-
-*/
-GenTC<IBasic<Label> > ilabel;
-GenTC<IBasic<Place> > iplace;
-
-/*
-\section{Implementation of Class ~IBasics~}
-
-\subsection{Constructors}
-
-*/
-template<class B>
-IBasics<B>::IBasics(const Instant& inst, const B& values) : 
-                                                     Intime<B>(inst, values) {}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-template<class B>
-ListExpr IBasics<B>::Property() {
-  if (B::BasicType() == Labels::BasicType()) {
-    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <labels>)",
-      "(\"2014-02-18\" (\"Dortmund\" \"Mailand\"))");
-  }
-  if (B::BasicType() == Places::BasicType()) {
-    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <places>)",
-      "(\"2014-02-18\" ((\"Dortmund\" 1909) (\"Mailand\" 1899)))");
-  }
-  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
-}
-
-/*
-\subsection{Function ~CheckKind~}
-
-*/
-template<class B>
-bool IBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, IBasics<B>::BasicType());
-}
-
-/*
-\subsection{Function ~ToListExpr~}
-
-*/
-template<class B>
-ListExpr IBasics<B>::ToListExpr(ListExpr typeInfo) {
-  if (!this->IsDefined()) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  return nl->TwoElemList(this->instant.ToListExpr(false), 
-                         this->value.ToListExpr(nl->Empty()));
-}
-
-/*
-\subsection{Function ~ReadFrom~}
-
-*/
-template<class B>
-bool IBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  this->SetDefined(false);
-  if (listutils::isSymbolUndefined(LE)) {
-    return true;
-  }
-  if (!nl->HasLength(LE, 2)) {
-    return false;
-  }
-  if (this->instant.ReadFrom(nl->First(LE), nl->Empty()) &&
-      this->value.ReadFrom(nl->Second(LE), nl->Empty())) {
-    this->SetDefined(this->instant.IsDefined() && this->value.IsDefined());
-    return true;
-  }
-  return false;
-}
-
-/*
-\subsection{Function ~Val~}
-
-*/
-template<class B>
-void IBasics<B>::Val(B& result) const {
-  if (!this->IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  result = this->value;
-}
-
-/*
-\subsection{Type Constructor}
-
-*/
-GenTC<IBasics<Labels> > ilabels;
-GenTC<IBasics<Places> > iplaces;
-
-/*
-\section{Implementation of class ~UBasic~}
-
-\subsection{Constructors}
-
-*/
-template<class B>
-UBasic<B>::UBasic(const SecInterval &iv, const B& val)
-                                            : ConstTemporalUnit<B>(iv, val) {
-  this->SetDefined(iv.IsDefined() && val.IsDefined());
-}
-
-template<class B>
-UBasic<B>::UBasic(const UBasic<B>& ub) : ConstTemporalUnit<B>(ub) {
-  this->SetDefined(ub.IsDefined());
-}
-
-/*
-\subsection{Operator ~==~}
-
-*/
-template<class B>
-bool UBasic<B>::operator==(const UBasic<B>& rhs) const {
-  return Compare(&rhs) == 0;
-}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-template<class B>
-ListExpr UBasic<B>::Property() {
-  if (B::BasicType() == Label::BasicType()) {
-    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <label>)",
-      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) \"Dortmund\")");
-  }
-  if (B::BasicType() == Place::BasicType()) {
-    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <place>)",
-      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" 1909))");
-  }
-  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
-}
-
-/*
-\subsection{Function ~CheckKind~}
-
-*/
-template<class B>
-bool UBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, UBasic<B>::BasicType());
-}
-
-/*
-\subsection{Function ~ToListExpr~}
-
-*/
-template<class B>
-ListExpr UBasic<B>::ToListExpr(ListExpr typeInfo) {
-  if (!this->IsDefined()) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
-          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
-}
-
-/*
-\subsection{Function ~ReadFrom~}
-
-*/
-template<class B>
-bool UBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  this->SetDefined(false);
-  if (listutils::isSymbolUndefined(LE)) {
-    return true;
-  }
-  if (!nl->HasLength(LE, 2)) {
-    return false;
-  }
-  SecInterval iv(true);
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
-      this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
-    this->timeInterval = iv;
-    this->SetDefined(this->timeInterval.IsDefined() && 
-                     this->constValue.IsDefined());
-    return true;
-  }
-  return false;
-}
-
-/*
-\subsection{Function ~Initial~}
-
-*/
-template<class B>
-void UBasic<B>::Initial(IBasic<B>& result) const {
-  if (this->IsDefined()) {
-    result.instant = this->timeInterval.start;
-    result.value.CopyFrom(&(this->constValue));
-    result.SetDefined(true);
-  }
-  else {
-    result.SetDefined(false);
-  }
-}
-
-/*
-\subsection{Function ~Final~}
-
-*/
-template<class B>
-void UBasic<B>::Final(IBasic<B>& result) const {
-  if (this->IsDefined()) {
-    result.instant = this->timeInterval.end;
-    result.value.CopyFrom(&(this->constValue));
-    result.SetDefined(true);
-  }
-  else {
-    result.SetDefined(false);
-  }
-}
-
-/*
-\subsection{Type Constructor}
-
-*/
-GenTC<UBasic<Label> > ulabel;
-GenTC<UBasic<Place> > uplace;
-
-/*
-\section{Implementation of class ~UPlace~}
-
-\subsection{Constructors}
-
-*/
-template<class B>
-UBasics<B>::UBasics(const SecInterval &iv, const B& values)
-                                           : ConstTemporalUnit<B>(iv, values) {}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-template<class B>
-ListExpr UBasics<B>::Property() {
-  if (B::BasicType() == Labels::BasicType()) {
-    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <labels>)",
-      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" "
-      "\"Mailand\"))");
-  }
-  if (B::BasicType() == Places::BasicType()) {
-    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <places>)",
-      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) ((\"Dortmund\" 1909) "
-      "(\"Mailand\" 1899)))");
-  }
-  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
-}
-
-/*
-\subsection{Function ~CheckKind~}
-
-*/
-template<class B>
-bool UBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, UBasics<B>::BasicType());
-}
-
-/*
-\subsection{Function ~ToListExpr~}
-
-*/
-template<class B>
-ListExpr UBasics<B>::ToListExpr(ListExpr typeInfo) {
-  if (!this->IsDefined()) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
-          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
-}
-
-/*
-\subsection{Function ~ReadFrom~}
-
-*/
-template<class B>
-bool UBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  this->SetDefined(false);
-  if (listutils::isSymbolUndefined(LE)) {
-    return true;
-  }
-  if (!nl->HasLength(LE, 2)) {
-    return false;
-  }
-  SecInterval iv(true);
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
-      this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
-    this->timeInterval = iv;
-    this->SetDefined(this->timeInterval.IsDefined() &&
-                     this->constValue.IsDefined());
-    return true;
-  }
-  return false;
-}
-
-/*
-\subsection{Function ~Initial~}
-
-*/
-template<class B>
-void UBasics<B>::Initial(IBasics<B>& result) const {
-  if (this->IsDefined()) {
-    result.instant = this->timeInterval.start;
-    result.value = this->constValue;
-    result.SetDefined(true);
-  }
-  else {
-    result.SetDefined(false);
-  }
-}
-
-/*
-\subsection{Function ~Final~}
-
-*/
-template<class B>
-void UBasics<B>::Final(IBasics<B>& result) const {
-  if (this->IsDefined()) {
-    result.instant = this->timeInterval.end;
-    result.value = this->constValue;
-    result.SetDefined(true);
-  }
-  else {
-    result.SetDefined(false);
-  }
-}
-
-/*
-\subsection{Type Constructor}
-
-*/
-GenTC<UBasics<Labels> > ulabels;
-GenTC<UBasics<Places> > uplaces;
-
-/*
-\section{Implementation of class ~MBasic~}
-
-\subsection{Constructors}
-
-*/
-template<class B>
-MBasic<B>::MBasic(const MBasic &mb) : Attribute(mb.IsDefined()),
-                      values(mb.values.getSize()), units(mb.GetNoComponents()) {
-  if (IsDefined()) {
-    values.copyFrom(mb.values);
-    units.copyFrom(mb.units);
-  }
-}
-
-/*
-\subsection{Function ~Property~}
-
-*/
-template<class B>
-ListExpr MBasic<B>::Property() {
-  if (B::BasicType() == Label::BasicType()) {
-    return gentc::GenProperty("-> DATA", BasicType(),
-      "((<interval> <label>) (<interval> <label>) ...)",
-      "(((\"2014-02-27\" \"2014-02-27-09:48\" TRUE FALSE) \"Dortmund\") "
-      "((\"2014-05-17\" \"2014-05-17-22:00\" TRUE FALSE) \"Berlin\"))");
-  }
-  if (B::BasicType() == Place::BasicType()) {
-    return gentc::GenProperty("-> DATA", BasicType(),
-      "((<interval> <place>) (<interval> <place>) ...)",
-      "(((\"2014-02-27\" \"2014-02-27-09:48\" TRUE FALSE) (\"Dortmund\" 1909)) "
-      "((\"2014-05-17\" \"2014-05-17-22:00\" TRUE FALSE) (\"Berlin\" 4)))");
-  }
-  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
-}
-
-/*
-\subsection{Function ~GetFLOB~}
-
-*/
-template<class B>
-Flob* MBasic<B>::GetFLOB(const int i) {
-  assert((i >= 0) && (i < NumOfFLOBs()));
-  return (i == 0 ? &values : &units);
-}
-
-/*
-\subsection{Function ~KindCheck~}
-
-*/
-template<class B>
-bool MBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, MBasic<B>::BasicType());
-}
-
-/*
-\subsection{Function ~Compare~}
-
-*/
-template<class B>
-int MBasic<B>::Compare(const Attribute* arg) const {
-  if (GetNoComponents() > ((MBasic<B>*)arg)->GetNoComponents()) {
-    return 1;
-  }
-  if (GetNoComponents() < ((MBasic<B>*)arg)->GetNoComponents()) {
-    return -1;
-  }
-  UBasic<B> ub1(true), ub2(true);
-  for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, ub1);
-    ((MBasic<B>*)arg)->Get(i, ub2);
-    int comp = ub1.Compare(&ub2);
-    if (comp != 0) {
-      return comp;
-    }
-  }
-  return 0;
-}
-
-/*
-\subsection{Function ~HashValue~}
-
-*/
-template<class B>
-size_t MBasic<B>::HashValue() const {
-  if (!IsDefined() || IsEmpty()) {
-    return 0;
-  }
-  typename B::unitelem unit;
-  units.Get(0, unit);
-  return values.getSize() * unit.iv.HashValue();
-}
-
-/*
-\subsection{Function ~CopyFrom~}
-
-*/
-template<class B>
-void MBasic<B>::CopyFrom(const Attribute *arg) {
-  if (!arg->IsDefined()) {
-    SetDefined(false);
-    return;
-  }
-  SetDefined(true);
-  values.copyFrom(((MBasic<B>*)arg)->values);
-  units.copyFrom(((MBasic<B>*)arg)->units);
-}
-
-/*
-\subsection{Function ~unitToListExpr~}
-
-*/
-template<class B>
-ListExpr MBasic<B>::unitToListExpr(const int i) {
-  assert(i < GetNoComponents());
-  typename B::base value;
-  GetValue(i, value);
-  typename B::unitelem unit;
-  units.Get(i, unit);
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  return nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
-                                                     SecInterval::BasicType())),
-                         B::getList(value));
-}
-
-/*
-\subsection{Function ~ToListExpr~}
-
-*/
-template<class B>
-ListExpr MBasic<B>::ToListExpr(ListExpr typeInfo) {
-  if (!IsDefined()) {
-    return nl->SymbolAtom(Symbol::UNDEFINED());
-  }
-  if (IsEmpty()) {
-    return nl->Empty();
-  }
-  ListExpr result = nl->OneElemList(unitToListExpr(0));
-  ListExpr last = result;
-  for (int i = 1; i < GetNoComponents(); i++) {
-    last = nl->Append(last, unitToListExpr(i));
-  }
-  return result;
-}
-
-/*
-\subsection{Function ~ReadFrom~}
-
-*/
-template<class B>
-bool MBasic<B>::readUnitFrom(ListExpr LE) {
-  if (!nl->HasLength(LE, 2)) {
-    return false;
-  }
-  SecInterval iv;
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  if (!iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType()))) {
-    return false;
-  }
-  typename B::unitelem unit(values.getSize());
-  unit.iv = iv;
-  string text;
-  if (!B::readValueFrom(nl->Second(LE), text, unit)) {
-    return false;
-  }
-  units.Append(unit);
-  text = text.substr(1, text.length() - 2);
-  if (text.length() > 0) {
-    const char *bytes = text.c_str();
-    values.write(bytes, text.length(), values.getSize());
-  }
-  return true;
-}
-
-/*
-\subsection{Function ~ReadFrom~}
-
-*/
-template<class B>
-bool MBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
-  SetDefined(false);
-  Clear();
-  if (listutils::isSymbolUndefined(LE)) {
-    return true;
-  }
-  ListExpr rest = LE;
-  while (!nl->IsEmpty(rest)) {
-    if (!readUnitFrom(nl->First(rest))) {
-      return false;
-    }
-    rest = nl->Rest(rest);
-  }
-  SetDefined(true);
-  return true;
-}
-
-/*
-\subsection{Function ~Position~}
-
-*/
-template<class B>
-int MBasic<B>::Position(const Instant& inst) const {
-  assert(IsDefined());
-  assert(inst.IsDefined());
-  int first = 0, last = GetNoComponents() - 1;
-  Instant t1 = inst;
-  while (first <= last) {
-    int mid = (first + last) / 2;
-    if ((mid < 0) || (mid >= GetNoComponents())) {
-      return -1;
-    }
-    typename B::unitelem unit;
-    units.Get(mid, unit);
-    if (((Interval<Instant>)(unit.iv)).Contains(t1)) {
-      return mid;
-    }
-    else { // not contained
-      if ((t1 > unit.iv.end) || (t1 == unit.iv.end)) {
-        first = mid + 1;
-      }
-      else if ((t1 < unit.iv.start) || (t1 == unit.iv.start)) {
-        last = mid - 1;
-      }
-      else {
-        return -1; // should never be reached.
-      }
-    }
-  }
-  return -1;
-}
-
-/*
-\subsection{Function ~Get~}
-
-*/
-template<class B>
-void MBasic<B>::Get(const int i, UBasic<B>& result) const {
-  assert((i >= 0) && (i < GetNoComponents()));
-  result.SetDefined(IsDefined());
-  if (IsDefined()) {
-    typename B::unitelem unit;
-    units.Get(i, unit);
-    result.timeInterval = unit.iv;
-    GetBasic(i, result.constValue);
-  }
-}
-
-/*
-\subsection{Function ~GetInterval~}
-
-*/
-template<class B>
-void MBasic<B>::GetInterval(const int i, SecInterval& result) const {
-  assert((i >= 0) && (i < GetNoComponents()));
-  result.SetDefined(true);
-  typename B::unitelem unit;
-  units.Get(i, unit);
-  result = unit.iv;
-}
-
-/*
-\subsection{Function ~GetBasic~}
-
-*/
-template<class B>
-void MBasic<B>::GetBasic(const int i, B& result) const {
-  assert((i >= 0) && (i < GetNoComponents()));
-  result.SetDefined(IsDefined());
-  if (IsDefined()) {
-    typename B::base value;
-    GetValue(i, value);
-    result.SetValue(value);
-  }
-}
-
-/*
-\subsection{Function ~GetValue~}
-
-*/
-template<class B>
-void MBasic<B>::GetValue(const int i, typename B::base& result) const {
-  assert((i >= 0) && (i < GetNoComponents()));
-  typename B::unitelem cur, next;
-  units.Get(i, cur);
-  unsigned int size;
-  if (cur.pos != UINT_MAX) {
-    int j = i + 1;
-    bool finished = false;
-    while (!finished && (j < units.Size())) {
-      units.Get(j, next);
-      if (next.pos != UINT_MAX) {
-        finished = true;
-        size = next.pos - cur.pos;
-      }
-    }
-    if (!finished) {
-      size = values.getSize() - cur.pos;
-    }
-    char* bytes = new char[size];
-    values.read(bytes, size, cur.pos);
-    string text(bytes, size);
-    delete[] bytes;
-    B::buildValue(text, cur, result);
-  }
-  else {
-    B::buildValue("", cur, result);
-  }
-}
-
-/*
-\subsection{Function ~IsValid~}
-
-*/
-template<class B>
-bool MBasic<B>::IsValid() const {
-  if (!IsDefined() || IsEmpty()) {
-    return true;
-  }
-  typename B::unitelem lastUnit, unit;
-  units.Get(0, lastUnit);
-  if (!lastUnit.iv.IsValid()) {
-    return false;
-  }
-  if (GetNoComponents() == 1) {
-    return true;
-  }
-  for (int i = 1; i < GetNoComponents(); i++) {
-    units.Get(i, unit);
-    if (!unit.iv.IsValid()) {
-      return false;
-    }
-    if (lastUnit.iv.end > unit.iv.start) {
-      return false;
-    }
-    if (!lastUnit.iv.Disjoint(unit.iv)) {
-      return false;
-    }
-    lastUnit = unit;
-  }
-  return true;
-}
-
-/*
-\subsection{Function ~EndBulkLoad~}
-
-*/
-template<class B>
-void MBasic<B>::EndBulkLoad(const bool sort, const bool checkvalid) {
-  if (!IsDefined()) {
-    units.clean();
-  }
-  units.TrimToSize();
-}
-
-/*
-\subsection{Function ~Add~}
-
-*/
-template<class B>
-void MBasic<B>::Add(const UBasic<B>& ub) {
-  assert(ub.IsDefined());
-  assert(ub.IsValid());
-  UBasic<B> ub2(ub);
-  if (IsDefined()) {
-    readUnitFrom(ub2.ToListExpr(nl->Empty()));
-  }
-  assert(IsValid());
-}
-
-template<class B>
-void MBasic<B>::Add(const SecInterval& iv, const B& value) {
-  assert(iv.IsDefined() && value.IsDefined());
-  B value2(value);
-  ListExpr unitlist = nl->TwoElemList(iv.ToListExpr(nl->Empty()),
-                                      value2.ToListExpr(nl->Empty()));
-  if (!readUnitFrom(unitlist)) {
-    SetDefined(false);
-  }
-}
-
-/*
-\subsection{Function ~MergeAdd~}
-
-*/
-template<class B>
-void MBasic<B>::MergeAdd(const UBasic<B>& ub) {
-  assert(IsDefined());
-  if (!ub.IsDefined() || !ub.IsValid()) {
-    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
-      << " MergeAdd(Unit): Unit is undefined or invalid:";
-    ub.Print(cout); cout << endl;
-    assert(false);
-  }
-  if (!IsEmpty()) {
-    bool extend = false;
-    typename B::unitelem lastUnit;
-    units.Get(GetNoComponents() - 1, lastUnit);
-    if ((lastUnit.iv.end == ub.timeInterval.start) &&
-        (lastUnit.iv.rc || ub.timeInterval.lc)) { // adjacent intervals
-      typename B::base value1, value2;
-      GetValue(GetNoComponents() - 1, value1);
-      ub.constValue.GetValue(value2);
-      if (value1 == value2) {
-        lastUnit.iv.end = ub.timeInterval.end; // extend last interval
-        lastUnit.iv.rc = ub.timeInterval.rc;
-        units.Put(GetNoComponents() - 1, lastUnit);
-        extend = true;
-      }
-    }
-    if (!extend && lastUnit.iv.Before(ub.timeInterval)) {
-      Add(ub);
-    }
-  }
-  else { // first unit
-    Add(ub);
-  }
-  assert(IsValid());
-}
-
-/*
-\subsection{Function ~Passes~}
-
-*/
-template<class B>
-bool MBasic<B>::Passes(const B& basic) const {
-  if (!IsDefined() || !basic.IsDefined()) {
-    return false;
-  }
-  typename B::base value1, value2;
-  basic.GetValue(value2);
-  for (int i = 0; i < GetNoComponents(); i++) {
-    GetValue(i, value1);
-    if (value1 == value2) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/*
-\subsection{Function ~At~}
-
-*/
-template<class B>
-void MBasic<B>::At(const B& basic, MBasic<B>& result) const {
-  result.Clear();
-  if (!IsDefined() || !basic.IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  result.SetDefined(true);
-  typename B::base value1, value2;
-  basic.GetValue(value2);
-  typename B::unitelem unit;
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  for (int i = 0; i < GetNoComponents(); i++) {
-    GetValue(i, value1);
-    if (value1 == value2) {
-      units.Get(i, unit);
-      result.readUnitFrom(nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
-                                                     SecInterval::BasicType())),
-                                          B::getList(value1)));
-    }
-  }
-}
-
-/*
-\subsection{Function ~DefTime~}
-
-*/
-template<class B>
-void MBasic<B>::DefTime(Periods& per) const {
-  per.Clear();
-  per.SetDefined(IsDefined());
-  if (IsDefined()) {
-    typename B::unitelem unit;
-    for (int i = 0; i < GetNoComponents(); i++) {
-      units.Get(i, unit);
-      per.MergeAdd(unit.iv);
-    }
-  }
-}
-
-/*
-\subsection{Function ~Atinstant~}
-
-*/
-template<class B>
-void MBasic<B>::Atinstant(const Instant& inst, IBasic<B>& result) const {
-  if(!IsDefined() || !inst.IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  int pos = this->Position(inst);
-  if (pos == -1) {
-    result.SetDefined(false);
-    return;
-  }
-  result.SetDefined(true);
-  result.value.SetDefined(true);
-  typename B::unitelem unit;
-  units.Get(pos, unit);
-  GetBasic(pos, result.value);
-  result.instant = inst;
-}
-
-/*
-\subsection{Function ~Initial~}
-
-*/
-template<class B>
-void MBasic<B>::Initial(IBasic<B>& result) const {
-  if (!IsDefined() || IsEmpty()) {
-    result.SetDefined(false);
-    return;
-  }
-  result.SetDefined(true);
-  typename B::unitelem unit;
-  units.Get(0, unit);
-  GetBasic(0, result.value);
-  result.instant = unit.iv.start;
-}
-
-/*
-\subsection{Function ~Final~}
-
-*/
-template<class B>
-void MBasic<B>::Final(IBasic<B>& result) const {
-  if (!IsDefined() || IsEmpty()) {
-    result.SetDefined(false);
-    return;
-  }
-  result.SetDefined(true);
-  typename B::unitelem unit;
-  units.Get(GetNoComponents() - 1, unit);
-  GetBasic(GetNoComponents() - 1, result.value);
-  result.instant = unit.iv.end;
-}
-
-/*
-\subsection{Function ~Inside~}
-
-*/
-template<class B>
-void MBasic<B>::Inside(const typename B::coll& coll, MBool& result) const {
-  result.Clear();
-  if (!IsDefined() || !coll.IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  typename B::unitelem unit;
-  typename B::base value;
-  for (int i = 0; i < GetNoComponents(); i++) {
-    units.Get(i, unit);
-    GetValue(i, value);
-    CcBool res(true, coll.Contains(value));
-    UBool ub(unit.iv, res);
-    result.Add(ub);
-  }
-}
-
-/*
-\subsection{Function ~Fill~}
-
-*/
-template<class B>
-void MBasic<B>::Fill(MBasic<B>& result, DateTime& dur) const {
-  result.Clear();
-  result.SetDefined(true);
-  if (!IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  if (IsEmpty()) {
-    return;
-  }
-  UBasic<B> unit(true), lastUnit(true);
-  Get(0, lastUnit);
-  for (int i = 1; i < GetNoComponents(); i++) {
-    Get(i, unit);
-    if ((lastUnit.constValue == unit.constValue) && 
-        (unit.timeInterval.start - lastUnit.timeInterval.end <= dur)) {
-      lastUnit.timeInterval.end = unit.timeInterval.end;
-      lastUnit.timeInterval.rc = unit.timeInterval.rc;
-    }
-    else {
-      result.MergeAdd(lastUnit);
-      lastUnit = unit;
-    }
-  }
-  result.MergeAdd(lastUnit);
-}
-
-/*
-\subsection{Function ~Compress~}
-
-*/
-template<class B>
-void MBasic<B>::Compress(MBasic<B>& result) const {
-  result.Clear();
-  result.SetDefined(IsDefined());
-  if(!IsDefined()) {
-    return;
-  }
-  UBasic<B> ub(true);
-  for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, ub);
-    result.MergeAdd(ub);
-  }
-}
-
-/*
-\subsection{Function ~Print~}
-
-*/
-template<class B>
-ostream& MBasic<B>::Print(ostream& os) const {
-  if (!IsDefined()) {
-    os << "(undefined)" << endl;
-    return os;
-  }
-  os << BasicType() << ":" << endl;
-  UBasic<B> ub(true);
-  for (int i = 0; i < GetNoComponents(); i++) {
-    Get(i, ub);
-    ub.Print(os);
-  }
-  return os;
-}
-
-/*
 \subsection{Type Constructors}
 
 */
+GenTC<Label> label;
+GenTC<Labels> labels;
+GenTC<Place> place;
+GenTC<Places> places;
+GenTC<IBasic<Label> > ilabel;
+GenTC<IBasic<Place> > iplace;
+GenTC<IBasics<Labels> > ilabels;
+GenTC<IBasics<Places> > iplaces;
+GenTC<UBasic<Label> > ulabel;
+GenTC<UBasic<Place> > uplace;
+GenTC<UBasics<Labels> > ulabels;
+GenTC<UBasics<Places> > uplaces;
+GenTC<MBasics<Labels> > mlabels;
+GenTC<MBasics<Places> > mplaces;
 GenTC<MLabel> mlabel;
 GenTC<MBasic<Place> > mplace;
-
-/*
-\section{Implementation of class ~Tools~}
-
-\subsection{Function ~intersect~}
-
-*/
-void Tools::intersect(const vector<set<TupleId> >& tidsets,
-                      set<TupleId>& result) {
-  result.clear();
-  if (tidsets.empty()) {
-    return;
-  }
-  vector<set<TupleId>::iterator> it;
-  for (unsigned int i = 0; i < tidsets.size(); i++) { // initialize iterators
-//     cout << "size of set " << i << " is " << tidsets[i].size() << endl;
-    set<TupleId>::iterator iter = tidsets[i].begin();
-    it.push_back(iter);
-    if (iter == tidsets[i].end()) { // empty set
-      return;
-    }
-  }
-  while (true) {
-    unsigned int min(UINT_MAX), max(0);
-    for (unsigned int i = 0; i < tidsets.size(); i++) {
-      if (*(it[i]) < min) {
-        min = *(it[i]);
-      }
-      if (*(it[i]) > max) {
-        max = *(it[i]);
-      }
-    }
-    if (min == max) {
-      result.insert(min);
-      for (unsigned int i = 0; i < tidsets.size(); i++) {
-        it[i]++;
-        if (it[i] == tidsets[i].end()) {
-          return;
-        }
-      }
-    }
-    else { // min < max
-      for (unsigned int i = 0; i < tidsets.size(); i++) {
-        while (*it[i] < max) {
-          it[i]++;
-          if (it[i] == tidsets[i].end()) {
-            return;
-          }
-        }
-      }
-    }
-  }
-}
-
-void Tools::intersectPairs(vector<set<pair<TupleId, int> > >& posVec, 
-                           set<pair<TupleId, int> >*& result) {
-  result->clear();
-  if (posVec.empty()) {
-    return;
-  }
-  if (posVec.size() == 1) {
-    result = &(posVec[0]);
-    return;
-  }
-  vector<set<pair<TupleId, int> >::iterator> it;
-  for (unsigned int i = 0; i < posVec.size(); i++) { // initialize iterators
-//     cout << "size of set " << i << " is " << posVec[i].size() << endl;
-    set<pair<TupleId, int> >::iterator iter = posVec[i].begin();
-    it.push_back(iter);
-    if (iter == posVec[i].end()) { // empty set
-      return;
-    }
-  }
-  while (true) {
-    pair<TupleId, int> min = make_pair(UINT_MAX, INT_MAX);
-    pair<TupleId, int> max = make_pair(0, INT_MIN);
-    for (unsigned int i = 0; i < posVec.size(); i++) {
-      if (*(it[i]) < min) {
-        min = *(it[i]);
-      }
-      if (*(it[i]) > max) {
-        max = *(it[i]);
-      }
-    }
-    if (min == max) {
-      result->insert(min);
-      for (unsigned int i = 0; i < posVec.size(); i++) {
-        it[i]++;
-        if (it[i] == posVec[i].end()) {
-          return;
-        }
-      }
-    }
-    else { // min < max
-      for (unsigned int i = 0; i < posVec.size(); i++) {
-        while (*it[i] < max) {
-          it[i]++;
-          if (it[i] == posVec[i].end()) {
-            return;
-          }
-        }
-      }
-    }
-  }
-}
-
-void Tools::uniteLast(unsigned int size, vector<set<TupleId> >& tidsets) {
-  if (tidsets.size() < size) {
-    return;
-  }
-  for (unsigned int i = tidsets.size() - size + 1; i < tidsets.size(); i++) {
-    tidsets[tidsets.size() - size].insert(tidsets[i].begin(), tidsets[i].end());
-  }
-  for (unsigned int i = 1; i < size; i++) {
-    tidsets.pop_back();
-  }
-}
-
-void Tools::uniteLastPairs(unsigned int size,
-                           vector<set<pair<TupleId, int> > >& posVec) {
-  if (posVec.size() < size) {
-    return;
-  }
-  for (unsigned int i = posVec.size() - size + 1; i < posVec.size(); i++) {
-    posVec[posVec.size() - size].insert(posVec[i].begin(), posVec[i].end());
-  }
-  for (unsigned int i = 1; i < size; i++) {
-    posVec.pop_back();
-  }
-}
-
-void Tools::filterPairs(set<pair<TupleId, int> >* pairs,
-                   const set<TupleId>& pos, set<pair<TupleId, int> >*& result) {
-  if (pos.empty() || pairs->empty()) {
-    result = pairs;
-    return;
-  }
-  set<pair<TupleId, int> >::iterator ip = pairs->begin();
-  set<TupleId>::iterator it = pos.begin();
-  set<pair<TupleId, int> >::iterator ir = result->begin();
-  while ((ip != pairs->end()) && (it != pos.end())) {
-    if (ip->first == *it) {
-      ir = result->insert(ir, *ip);
-      ip++;
-      it++;
-    }
-    else if (ip->first < *it) {
-      ip++;
-    }
-    else {
-      it++;
-    }
-  }
-  if (it == pos.end()) {
-    while (ip != pairs->end()) {
-      ir = result->insert(ir, *ip);
-      ip++;
-    }
-  }
-}
-
-string Tools::int2String(int i) {
-  stringstream result;
-  result << i;
-  return result.str();
-}
-
-int Tools::str2Int(string const &text) {
-  int result;
-  stringstream ss(text);
-  if((ss >> result).fail())
-    result = 0;
-  return result;
-}
-
-void Tools::deleteSpaces(string &text) {
-  size_t pos = 0;
-  while ((pos = text.find(' ', pos)) != string::npos)
-    text.erase(pos, 1);
-}
-
-/*
-\subsection{Function ~convert~}
-
-Converts a string into a char[*].
-
-*/
-char* Tools::convert(string arg) {
-  return strdup(arg.c_str());
-}
-
-/*
-\subsection{Function ~eraseQM~}
-
-Deletes enclosing quotation marks from a string.
-
-*/
-void Tools::eraseQM(string& arg) {
-  if (arg.at(0) == '"') {
-    arg = arg.substr(1, arg.length() - 2);
-  }
-}
-
-void Tools::addQM(string& arg) {
-  if (arg.at(0) != '"') {
-    arg.insert(0, "\"");
-    arg.append("\"");
-  }
-}
-
-void Tools::simplifyRegEx(string &regEx) {
-  for (unsigned int i = 0; i < regEx.length(); i++) {
-    switch (regEx[i]) {
-      case '*': {
-        regEx[i] = '?';
-        break;
-      }
-      case '+': {
-        regEx.erase(i, 1);
-        break;
-      }
-      default: {
-        break;
-      }
-    }
-  }
-}
-
-/*
-function ~setToString~
-
-*/
-string Tools::setToString(const set<string>& input) {
-  set<string>::iterator i;
-  stringstream result;
-  if (input.size() == 1) {
-    result << *(input.begin());
-  }
-  else if (input.size() > 1) {
-    result << "{";
-    for (i = input.begin(); i != input.end(); i++) {
-      if (i != input.begin()) {
-        result << ", ";
-      }
-      result << *i;
-    }
-    result << "}";
-  }
-  return result.str();
-}
-
-/*
-function ~createSetMatrix~
-
-Creates and returns a twodimensional array that is used to store the matching
-positions.
-
-*/
-
-set<unsigned int>** Tools::createSetMatrix(unsigned int dim1,unsigned int dim2){
-  set<unsigned int>** result = new set<unsigned int>*[dim1];
-  for (unsigned int i = 0; i < dim1; i++) {
-    result[i] = new set<unsigned int>[dim2];
-  }
-  return result;
-};
-
-/*
-function ~deleteSetMatrix~
-
-Deletes a twodimensional array.
-
-*/
-
-void Tools::deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1) {
-  for (unsigned int i = 0; i < dim1; i++) {
-    delete[] victim[i];
-  }
-  delete[] victim;
-}
-
-/*
-function ~prefixCount~
-
-Returns the number of strings from which ~str~ is a prefix. This is needed in
-MLabel::buildIndex.
-
-*/
-int Tools::prefixCount(string str, set<string> strings) {
-  set<string>::iterator it;
-  int result = 0;
-  for (it = strings.begin(); it != strings.end(); it++) {
-    if ((it->substr(0, str.length()) == str) && (*it != str)) {
-      result++;
-    }
-  }
-  return result;
-}
-
-void Tools::splitPattern(string& input, vector<string>& result) {
-  result.clear();
-  if (input.empty()) {
-    return;
-  }
-  size_t pos = input.find('{');
-  if (pos == 0) { // ({2012, 2013}, ...)
-    result.push_back(input.substr(0, input.find('}') + 1));
-    if (input.find('{', 1) != string::npos) { // ({2012, 2013}, {a, b, c})
-      result.push_back(input.substr(input.find('{', 1)));
-    }
-    else { // ({2012, 2013} a)
-      result.push_back(input.substr(input.find('}') + 1));
-    }
-  }
-  else if (pos == string::npos) { // no curly brackets
-    if (input.find(' ') == string::npos) { // * or +
-      result.push_back(input);
-    }
-    else { // (2012 a)
-      result.push_back(input.substr(0, input.find(' ')));
-      result.push_back(input.substr(input.find(' ')));
-    }
-  }
-  else { // (2012 {a, b, c})
-    result.push_back(input.substr(0, input.find(' ')));
-    result.push_back(input.substr(input.find(' ')));
-  }
-}
-
-/*
-function ~extractVar~
-
-Takes an assignment string like ~time=Z.time~ and returns the variable string.
-
-*/
-string Tools::extractVar(const string& input) {
-  int posEq = input.find('=');
-  int posDot = input.find('.');
-  return input.substr(posEq + 1, posDot - posEq - 1);
-}
-
-int Tools::getKey(const string& type) {
-  if (type == "label")       return 0;
-  if (type == "place")       return 1;
-  if (type == "time")        return 2;
-  if (type == "start")       return 3;
-  if (type == "end")         return 4;
-  if (type == "leftclosed")  return 5;
-  if (type == "rightclosed") return 6;
-  if (type == "card")        return 7;
-  if (type == "labels")      return 8;
-  if (type == "places")      return 9;
-  else return -1; // should not occur
-}
-
-string Tools::getDataType(const int key) {
-  switch (key) {
-    case -1: return CcBool::BasicType();
-    case 0: return Label::BasicType();
-    case 1: return Place::BasicType();
-    case 2: return SecInterval::BasicType();
-    case 3: 
-    case 4: return Instant::BasicType();
-    case 5:
-    case 6: return CcBool::BasicType();
-    case 8: return Labels::BasicType();
-    case 9: return Places::BasicType();
-    default: return "error";
-  }
-}
-
-DataType Tools::getDataType(const string& type) {
-  if (type == "mlabel") return LABEL;
-  if (type == "mlabels") return LABELS;
-  if (type == "mplace") return PLACE;
-  return PLACES;
-}
-
-bool Tools::isSymbolicType(ListExpr typeList) {
-  if (MLabel::checkType(typeList) || MPlace::checkType(typeList) ||
-      MLabels::checkType(typeList) || MPlaces::checkType(typeList)) {
-    return true;
-  }
-  return false;
-}
-
-/*
-function ~extendDate~
-
-Takes a datetime string and extends it to the format YYYY-MM-DD-HH:MM:SS.MMM,
-the variable ~start~ decides on the values.
-
-*/
-string Tools::extendDate(string input, const bool start) {
-  string result, mask;
-  int month, daysInMonth, year;
-  if (start) {
-    mask.assign("-01-01-00:00:00");
-  }
-  else {
-    mask.assign("-12-31-23:59:59.999");
-  }
-  if (input[input.size() - 1] == '-') { // handle case 2011-04-02-
-    input.resize(input.size() - 1);
-  }
-  result.assign(input);
-  size_t pos = 1;
-  if ((pos = input.find('-', pos)) == string::npos) {
-    result.append(mask.substr(0));
-    return result;
-  }
-  pos++;
-  if ((pos = input.find('-', pos)) == string::npos) {
-    if (!start) {
-      stringstream yearStream(input.substr(0, input.find('-')));
-      stringstream monthStream(input.substr(input.find('-') + 1));
-      stringstream dayStream;
-      if ((monthStream >> month).fail()) {
-        cout << "month stringstream error" << endl;
-        return input + mask.substr(3);
-      }
-      else {
-        switch (month){
-          case 1:
-          case 3:
-          case 5:
-          case 7:
-          case 8:
-          case 10:
-          case 12:
-            daysInMonth = 31;
-            break;
-          case 4:
-          case 6:
-          case 9:
-          case 11:
-            daysInMonth = 30;
-            break;
-          case 2:
-            if ((yearStream >> year).fail()) {
-              cout << "year stringstream error" << endl;
-              return input + mask.substr(3);
-            }
-            else {
-              if (((year % 4 == 0) && (year % 100 != 0))
-                || (year % 400 == 0)) {
-                daysInMonth = 29;
-              }
-              else {
-                daysInMonth = 28;
-              }
-            }
-            break;
-          default: // should not occur
-            cout << "month " << month << " does not exist" << endl;
-            return input + mask.substr(3);
-        }
-      }
-      dayStream << "-" << daysInMonth;
-      result.append(dayStream.str());
-      result.append(mask.substr(6));
-      return result;
-    }
-  }
-  pos = input.find('-') + 1;
-  if ((pos = input.find('-', pos)) == string::npos) {
-    result.append(mask.substr(3));
-    return result;
-  }
-  pos++;
-  if ((pos = input.find('-', pos)) == string::npos) {
-    result.append(mask.substr(6));
-    return result;
-  }
-  pos++;
-  if ((pos = input.find(':', pos)) == string::npos) {
-    result.append(mask.substr(9));
-    return result;
-  }
-  pos++;
-  if ((pos = input.find(':', pos)) == string::npos) {
-    result.append(mask.substr(12));
-    return result;
-  }
-  pos++;
-  if ((pos = input.find('.', pos)) == string::npos) {
-    result.append(mask.substr(15));
-    return result;
-  }
-  return input;
-}
-
-/*
-function ~checkSemanticDate~
-Checks whether ~text~ is a valid semantic date string or a valid database object
-of type ~Periods~ and contains the time interval defined by ~uIv~. If the
-parameter ~resultNeeded~ is ~false~, the function will only check the validity
-of ~text~.
-
-*/
-bool Tools::checkSemanticDate(const string &text, const SecInterval &uIv,
-                              const bool eval) {
-  string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", "friday",
-                        "saturday", "sunday"};
-  string months[12] = {"january", "february", "march", "april", "may", "june",
-                       "july", "august", "september", "october", "november",
-                       "december"};
-  string daytimes[4] = {"morning", "afternoon", "evening", "night"};
-  Instant uStart = uIv.start;
-  Instant uEnd = uIv.end;
-  bool isSemanticDate = false;
-  for (int i = 0; i < 12; i++) {
-    if (!text.compare(months[i])) {
-      isSemanticDate = true;
-    }
-    else if (i < 7) {
-      if (!text.compare(weekdays[i])) {
-        isSemanticDate = true;
-      }
-      else if (i < 4) {
-        if (!text.compare(daytimes[i])) {
-          isSemanticDate = true;
-        }
-      }
-    }
-  }
-  if (isSemanticDate && !eval) {
-    return true;
-  }
-  else if (isSemanticDate && eval) {
-    if ((uStart.GetYear() == uEnd.GetYear()) // year and month of start and end
-         && (uStart.GetMonth() == uEnd.GetMonth())) { //must coincode for match
-      for (int i = 0; i < 12; i++) { // handle months
-        if (!text.compare(months[i])) {
-          return (i == uStart.GetMonth() - 1);
-        }
-      } // for weekdays and daytimes, start and end day have to coincide
-      if (uStart.GetGregDay() == uEnd.GetGregDay()) {
-        for (int i = 0; i < 7; i++) { // handle weekdays
-          if (!text.compare(weekdays[i])) {
-            return (i == uStart.GetWeekday());
-          }
-        }
-        for (int i = 0; i < 4; i++) { // handle daytimes
-          if (!text.compare(daytimes[i])) {
-            switch (i) {
-              case 0:
-                return (uStart.GetHour() >= 0) && (uEnd.GetHour() <= 11);
-              case 1:
-                return (uStart.GetHour() >= 12) && (uEnd.GetHour() <= 16);
-              case 2:
-                return (uStart.GetHour() >= 17) && (uEnd.GetHour() <= 20);
-              case 3:
-                return (uStart.GetHour() >= 21) && (uEnd.GetHour() <= 23);
-              default: // cannot occur
-                cout << "daytime error" << endl;
-                return false;
-            }
-          }
-        }
-      }
-    } // different months => match impossible
-  }
-  else {
-    SecondoCatalog* sc = SecondoSystem::GetCatalog();
-    const int errPos = 0;
-    ListExpr errInfo;
-    bool ok;
-    if (Periods::checkType(sc->GetObjectTypeExpr(text)) ||
-        SecInterval::checkType(sc->GetObjectTypeExpr(text))) {
-      Word pWord = sc->InObject(sc->GetObjectTypeExpr(text),
-                                sc->GetObjectValue(text), errPos, errInfo, ok);
-      if (!ok) {
-        cout << "Error: InObject failed." << endl;
-        return false;
-      }
-      else {
-        if (Periods::checkType(sc->GetObjectTypeExpr(text))) {
-          Periods* period = static_cast<Periods*>(pWord.addr);
-          return (eval ? period->Contains(uIv) : true);
-        }
-        else {
-          SecInterval* interval = static_cast<SecInterval*>(pWord.addr);
-          return (eval ? interval->Contains(uIv) : true);
-        }
-      }
-    }
-    cout << text << " is not a periods / interval object." << endl;
-    return false;
-  }
-  return false;
-}
-
-/*
-function ~checkDaytime~
-
-Checks whether the daytime interval resulting from text (e.g., 0:00[~]8:00)
-contains the one from the unit label.
-
-*/
-bool Tools::checkDaytime(const string& text, const SecInterval& uIv) {
-  if ((uIv.start.GetYear() == uIv.end.GetYear())
-       && (uIv.start.GetMonth() == uIv.end.GetMonth())
-       && (uIv.start.GetGregDay() == uIv.end.GetGregDay())) {
-    string startString, endString;
-    stringstream startStream;
-    startStream << uIv.start.GetYear() << "-" << uIv.start.GetMonth() << "-"
-                << uIv.start.GetGregDay() << "-";
-    startString.assign(startStream.str());
-    endString.assign(startString);
-    startString.append(text.substr(0, text.find('~')));
-    endString.append(text.substr(text.find('~') + 1));
-    Instant pStart(instanttype);
-    Instant pEnd(instanttype);
-    if (!pStart.ReadFrom(extendDate(startString, true))) {
-      cout << "error: ReadFrom " << extendDate(startString, true) << endl;
-      return false;
-    }
-    if (!pEnd.ReadFrom(extendDate(endString, false))) {
-      cout << "error: ReadFrom " << extendDate(endString, false) << endl;
-      return false;
-    }
-    SecInterval pInterval(pStart, pEnd, true, true);
-    return pInterval.Contains(uIv);
-  } // no match possible in case of different days
-  return false;
-}
-
-/*
-\subsection{Function ~isInterval~}
-
-*/
-bool Tools::isInterval(const string& str) {
-  if ((str[0] > 96) && (str[0] < 123)) { // 1st case: semantic date/time
-    return false;
-  }
-  if ((str.find('-') == string::npos) // 2nd case: 19:09~22:00
-          && ((str.find(':') < str.find('~')) // on each side of [~],
-              || (str[0] == '~')) // there has to be either xx:yy or nothing
-          && ((str.find(':', str.find('~')) != string::npos)
-              || str[str.size() - 1] == '~')) {
-    return false;
-  }
-  return true;
-}
-
-/*
-\subsection{Function ~stringToInterval~}
-
-*/
-void Tools::stringToInterval(const string& str, SecInterval& result) {
-  Instant pStart(instanttype);
-  Instant pEnd(instanttype);
-  if (str[0] == '~') { // 3rd case: ~2012-05-12
-    pStart.ToMinimum();
-    pEnd.ReadFrom(extendDate(str.substr(1), false));
-  }
-  else if (str[str.size() - 1] == '~') { // 4th case: 2011-04-02-19:09~
-    pStart.ReadFrom(extendDate(str.substr(0, str.size() - 1), true));
-    pEnd.ToMaximum();
-  }
-  else if (str.find('~') == string::npos) { // 5th case: no [~] found
-    pStart.ReadFrom(extendDate(str, true));
-    pEnd.ReadFrom(extendDate(str, false));
-  }
-  else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
-    pStart.ReadFrom(extendDate(str.substr(0, str.find('~')), true));
-    pEnd.ReadFrom(extendDate(str.substr(str.find('~') + 1), false));
-  }
-  result.Set(pStart, pEnd, true, true);
-}
-
-/*
-\subsection{Function ~timesMatch~}
-
-Checks whether the time interval ~uIv~ is completely enclosed by each of the
-intervals specified in ~ivs~. If ~ivs~ is empty, the result is ~true~.
-
-*/
-bool Tools::timesMatch(const Interval<DateTime>& iv, const set<string>& ivs) {
-  if (ivs.empty()) {
-    return true;
-  }
-  bool elementOk(false);
-  SecInterval pIv(true);
-  for (set<string>::iterator j = ivs.begin(); j != ivs.end(); j++) {
-    if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
-      elementOk = checkSemanticDate(*j, iv, true);
-    }
-    else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
-          && (((*j).find(':') < (*j).find('~')) // on each side of [~],
-              || ((*j)[0] == '~')) // there has to be either xx:yy or nothing
-          && (((*j).find(':', (*j).find('~')) != string::npos)
-              || (*j)[(*j).size() - 1] == '~')) {
-      elementOk = checkDaytime(*j, iv);
-    }
-    else {
-      stringToInterval(*j, pIv);
-      elementOk = pIv.Contains(iv);
-    }
-    if (!elementOk) { // all intervals have to match
-      return false;
-    }
-  }
-  return true;
-}
-
-/*
-\subsection{Function ~processQueryStr~}
-
-Invoked by ~initOpTrees~
-
-*/
-pair<QueryProcessor*, OpTree> Tools::processQueryStr(string query, int type) {
-  pair<QueryProcessor*, OpTree> result;
-  result.first = 0;
-  result.second = 0;
-  SecParser parser;
-  string qParsed;
-  ListExpr qList, rType;
-  bool correct(false), evaluable(false), defined(false), isFunction(false);
-  if (parser.Text2List(query, qParsed)) {
-    cout << "Text2List(" << query << ") failed" << endl;
-    return result;
-  }
-  if (!nl->ReadFromString(qParsed, qList)) {
-    cout << "ReadFromString(" << qParsed << ") failed" << endl;
-    return result;
-  }
-  result.first = new QueryProcessor(nl, am);
-  try {
-    result.first->Construct(nl->Second(qList), correct, evaluable, defined,
-                            isFunction, result.second, rType);
-  }
-  catch (...) {
-    delete result.first;
-    result.first = 0;
-    result.second = 0;
-  }
-  if (!correct || !evaluable || !defined) {
-    cout << "correct:   " << (correct ? "TRUE" : "FALSE") << endl
-         << "evaluable: " << (evaluable ? "TRUE" : "FALSE") << endl
-         << "defined:   " << (correct ? "TRUE" : "FALSE") << endl;
-    delete result.first;
-    result.first = 0;
-    result.second = 0;
-    return result;
-  }
-  if (nl->ToString(rType) != Tools::getDataType(type)) {
-    cout << "incorrect result type: " << nl->ToString(rType) << endl;
-    delete result.first;
-    result.first = 0;
-    result.second = 0;
-  }
-  return result;
-}
-
-/*
-\subsection{Function ~evaluate~}
-
-The string ~input~ is evaluated by Secondo. The result is returned as a Word.
-
-*/
-// Word evaluate(string input) {
-//   SecParser qParser;
-//   string query, queryStr;
-//   ListExpr queryList;
-//   Word queryResult;
-//   input.insert(0, "query ");
-//   if (!qParser.Text2List(input, queryStr)) {
-//     if (nl->ReadFromString(queryStr, queryList)) {
-//       if (!nl->IsEmpty(nl->Rest(queryList))) {
-//         query = nl->ToString(nl->First(nl->Rest(queryList)));
-//         if (qp->ExecuteQuery(query, queryResult)) {
-//           return queryResult;
-//         }
-//       }
-//     }
-//   }
-//   return queryResult;
-// }
-
-/*
-\subsection{Function ~createTrajectory~}
-
-Creates a vector of string containing districts of Dortmund in a random but
-sensible order.
-
-*/
-void Tools::createTrajectory(int size, vector<string>& result) {
-  string districts[12] = {"Aplerbeck", "Brackel", "Eving", "Hörde", "Hombruch",
-                          "Huckarde", "Innenstadt-Nord", "Innenstadt-Ost",
-                          "Innenstadt-West", "Lütgendortmund", "Mengede",
-                          "Scharnhorst"};
-  map<int, set<int> > transitions;
-  set<int>::iterator it;
-  transitions[0].insert(3);
-  transitions[0].insert(7);
-  transitions[0].insert(1);
-  transitions[1].insert(6);
-  transitions[1].insert(7);
-  transitions[1].insert(11);
-  transitions[2].insert(5);
-  transitions[2].insert(6);
-  transitions[2].insert(10);
-  transitions[2].insert(11);
-  transitions[3].insert(4);
-  transitions[3].insert(7);
-  transitions[4].insert(7);
-  transitions[4].insert(8);
-  transitions[4].insert(9);
-  transitions[5].insert(6);
-  transitions[5].insert(8);
-  transitions[5].insert(9);
-  transitions[5].insert(10);
-  transitions[6].insert(7);
-  transitions[6].insert(8);
-  transitions[6].insert(11);
-  transitions[7].insert(8);
-  transitions[8].insert(9);
-  for (int i = 0; i < 12; i++) {
-    for (it = transitions[i].begin(); it != transitions[i].end(); it++) {
-      transitions[*it].insert(i); // add symmetric transitions
-    }
-    transitions[i].insert(i); // remaining in the same area is possible
-  }
-  int choice, prevPos;
-  prevPos = (int)rand() % 12;
-  for (int i = 0; i < size; i++) {
-    choice = (int)rand() % transitions[prevPos].size();
-    it = transitions[prevPos].begin();
-    advance(it, choice);
-    result.push_back(districts[*it]);
-    prevPos = *it;
-  }
-}
-
-void Tools::printNfa(vector<map<int, int> > &nfa, set<int> &finalStates) {
-  map<int, int>::iterator it;
-  for (unsigned int i = 0; i < nfa.size(); i++) {
-    cout << (finalStates.count(i) ? " * " : "   ") << "state " << i << ":  ";
-    for (it = nfa[i].begin(); it != nfa[i].end(); it++) {
-      cout << "---" << it->first << "---> " << it->second << "    ";
-    }
-    cout << endl << endl;
-  }
-}
-
-void Tools::makeNFApersistent(vector<map<int, int> > &nfa,set<int> &finalStates,
-   DbArray<NFAtransition> &trans, DbArray<int> &s2p, map<int, int> &state2Pat) {
-  NFAtransition tr;
-  map<int, int>::iterator im;
-  for (unsigned int i = 0; i < nfa.size(); i++) {
-    tr.oldState = i;
-    for (im = nfa[i].begin(); im != nfa[i].end(); im++) {
-      tr.trigger = im->first;
-      tr.newState = im->second;
-      trans.Append(tr);
-    }
-    s2p.Append(state2Pat[i]);
-  }
-}
-
-void Tools::createNFAfromPersistent(DbArray<NFAtransition> &trans, 
-        DbArray<int> &s2p, vector<map<int, int> > &nfa, set<int> &finalStates) {
-  nfa.clear();
-  finalStates.clear();
-  map<int, int> emptymap;
-  NFAtransition tr;
-  for (int i = 0; i < trans.Size(); i++) {
-    trans.Get(i, tr);
-    while (tr.oldState >= (int)nfa.size()) {
-      nfa.push_back(emptymap);
-    }
-    nfa[tr.oldState][tr.trigger] = tr.newState;
-  }
-  int pat = INT_MAX;
-  for (int i = 1; i < s2p.Size(); i++) {
-    s2p.Get(i, pat);
-    if ((pat != INT_MAX) && (pat >= 0)) {
-      finalStates.insert(i);
-    }
-  }
-}
-
-void Tools::printBinding(map<string, pair<unsigned int, unsigned int> > &b) {
-  map<string, pair<unsigned int, unsigned int> >::iterator it;
-  for (it = b.begin(); it != b.end(); it++) {
-    cout << it->first << " --> [" << it->second.first << ","
-         << it->second.second << "]  ";
-  }
-  cout << endl;
-}
 
 /*
 \section{Operator ~tolabel~}
