@@ -1,0 +1,6444 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+
+Started March 2012, Fabio Vald\'{e}s
+
+[TOC]
+
+\section{Overview}
+This is the implementation of the Symbolic Trajectory Algebra.
+
+\section{Defines and Includes}
+
+*/
+#include "Algebra.h"
+#include "NestedList.h"
+#include "NList.h"
+#include "QueryProcessor.h"
+#include "ConstructorTemplates.h"
+#include "StandardTypes.h"
+#include "TemporalAlgebra.h"
+#include "TemporalExtAlgebra.h"
+#include "DateTime.h"
+#include "CharTransform.h"
+#include "Stream.h"
+#include "SecParser.h"
+#include "NestedList.h"
+#include "ListUtils.h"
+#include "RelationAlgebra.h"
+#include "Stream.h"
+#include "InvertedFile.h"
+#include "RTreeAlgebra.h"
+#include "FTextAlgebra.h"
+#include "IntNfa.h"
+#include "TemporalUnitAlgebra.h"
+#include "GenericTC.h"
+#include <string>
+#include <set>
+#include <stack>
+#include <vector>
+#include <math.h>
+#include <time.h>
+
+#include "Tools.h"
+
+#define YYDEBUG 1
+#define YYERROR_VERBOSE 1
+
+using namespace std;
+
+int parsePatternRegEx(const char* argument, IntNfa** T);
+
+union Word;
+
+namespace stj {
+
+class Pattern;
+class PatElem;
+class Assign;
+class ClassifyLI;
+class IndexLI;
+
+Pattern* parseString(const char* input, bool classify);
+void patternFlushBuffer();
+
+enum ExtBool {FALSE, TRUE, UNDEF};
+enum Wildcard {NO, STAR, PLUS};
+
+/*
+\section{Class ~IBasic~}
+
+*/
+template<class B>
+class IBasic : public Intime<B> {
+ public:
+  IBasic() {}
+  explicit IBasic(const Instant& inst, const B& val);
+  explicit IBasic(const IBasic& rhs);
+  IBasic(const bool def) : Intime<B>(def) {}
+
+  ~IBasic() {}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(IBasic<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "i" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return this->value.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->value.GetFLOB(i);}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  
+  void Val(B& result) const;
+};
+
+/*
+\section{Class ~IBasics~}
+
+*/
+template<class B>
+class IBasics : public Intime<B> {
+ public:
+  IBasics() {}
+  explicit IBasics(const Instant& inst, const B& values);
+  IBasics(const IBasics& rhs) : Intime<B>(rhs) {}
+  IBasics(const bool def) : Intime<B>(def) {}
+  
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(IBasics<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "i" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return this->value.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->value.GetFLOB(i);}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  
+  void Val(B& result) const;
+};
+
+/*
+\section{Class ~UBasic~}
+
+*/
+template<class B>
+class UBasic : public ConstTemporalUnit<B> {
+ public:
+  UBasic() {}
+  explicit UBasic(bool def) : ConstTemporalUnit<B>(def) {}
+  explicit UBasic(const SecInterval &iv, const B& val);
+  UBasic(const UBasic& ub);
+  
+  ~UBasic() {}
+
+  bool operator==(const UBasic<B>& rhs) const;
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(UBasic<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "u" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return this->constValue.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->constValue.GetFLOB(i);}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+
+  void Initial(IBasic<B>& result) const;
+  void Final(IBasic<B>& result) const;
+};
+
+/*
+\section{Class ~UBasics~}
+
+*/
+template<class B>
+class UBasics : public ConstTemporalUnit<B> {
+ public:
+  UBasics() {}
+  UBasics(const SecInterval& iv, const B& values);
+  UBasics(const UBasics& rhs) : ConstTemporalUnit<B>(rhs) {}
+  explicit UBasics(const bool def) : ConstTemporalUnit<B>(def) {}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(UBasics<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "u" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return this->constValue.NumOfFLOBs();}
+  Flob* GetFLOB(const int i) {return this->constValue.GetFLOB(i);}
+  size_t Sizeof() const {return sizeof(*this);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  
+  void Initial(IBasics<B>& result) const;
+  void Final(IBasics<B>& result) const;
+};
+
+class MLabel;
+
+/*
+\section{Class ~MBasic~}
+
+*/
+template<class B>
+class MBasic : public Attribute {
+ public:
+  typedef B base;
+   
+  MBasic() {}
+  explicit MBasic(unsigned int n) : Attribute(n>0), values(8), units(n) {}
+  explicit MBasic(const MBasic& mb);
+  
+  ~MBasic() {}
+
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(MBasic<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "m" + B::BasicType();}
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  int NumOfFLOBs() const {return 2;}
+  Flob* GetFLOB(const int i);
+  size_t Sizeof() const {return sizeof(*this);}
+  int Compare(const Attribute *arg) const;
+  Attribute* Clone() const {return new MBasic<B>(*this);}
+  bool Adjacent(const Attribute *arg) const {return false;}
+  size_t HashValue() const;
+  void CopyFrom(const Attribute *arg);
+  
+  ListExpr unitToListExpr(const int i);
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool readUnitFrom(ListExpr LE);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+
+  int Position(const Instant& inst) const;
+  void Get(const int i, UBasic<B>& result) const;
+  void GetInterval(const int i, SecInterval& result) const;
+  void GetBasic(const int i, B& result) const;
+  void GetValue(const int i, typename B::base& result) const;
+  bool IsEmpty() const {return units.Size() == 0;}
+  int GetNoComponents() const {return units.Size();}
+  bool IsValid() const;
+  void Clear() {values.clean(); units.clean();}
+  void StartBulkLoad() {assert(IsDefined());}
+  void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
+  void Add(const SecInterval& iv, const B& value);
+  void Add(const UBasic<B>& ub);
+  void MergeAdd(const UBasic<B>& ub);
+  bool Passes(const B& basic) const;
+  void At(const B& basic, MBasic<B>& result) const;
+  void DefTime(Periods& per) const;
+  void Atinstant(const Instant& inst, IBasic<B>& result) const;
+  void Initial(IBasic<B>& result) const;
+  void Final(IBasic<B>& result) const;
+  void Inside(const typename B::coll& coll, MBool& result) const;
+  void Fill(MBasic<B>& result, DateTime& duration) const;
+  void Compress(MBasic<B>& result) const;
+  ostream& Print(ostream& os) const;
+  
+ protected:
+  Flob values;
+  DbArray<typename B::unitelem> units;
+};
+
+/*
+\section{Class ~MBasics~}
+
+*/
+template<class B>
+class MBasics : public Attribute {
+ public:
+  typedef B base;
+   
+  MBasics() {}
+  explicit MBasics(int n) : Attribute(n > 0), values(8), units(n), pos(1) {}
+  explicit MBasics(const MBasics& mbs);
+  
+  ~MBasics() {}
+  
+  static ListExpr Property();
+  static int SizeOfObj() {return sizeof(MBasics<B>);}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
+  static const string BasicType() {return "m" + B::BasicType();}
+  static bool checkType(ListExpr t);
+  int NumOfFLOBs() const {return 3;}
+  Flob* GetFLOB(const int i);
+  size_t Sizeof() const {return sizeof(*this);}
+  int Compare(const Attribute* arg) const;
+  bool Adjacent(const Attribute *arg) const {return false;}
+  Attribute *Clone() const;
+  size_t HashValue() const {return pos.Size() * units.Size();}
+  void CopyFrom(const Attribute* right) {*this = *((MBasics<B>*)right);}
+  ListExpr ToListExpr(ListExpr typeInfo);
+  bool ReadFrom(ListExpr LE, ListExpr typeInfo);
+  void Destroy() {values.destroy(); units.destroy(); pos.destroy();}
+  
+  int getUnitEndPos(const int i) const;
+  ListExpr valuesToListExpr(int start, int end);
+  ListExpr unitToListExpr(int i);
+  bool readValues(ListExpr valuelist);
+  bool readUnit(ListExpr unitlist);
+  int Position(const Instant& inst) const;
+  
+  void Get(const int i, UBasics<B>& result) const;
+  void GetBasics(const int i, B& result) const;
+  bool IsEmpty() const {return units.Size() == 0;}
+  void GetValues(const int i, set<typename B::base>& result) const;
+  void GetInterval(const int i, SecInterval& result) const;
+  int GetNoComponents() const {return units.Size();}
+  int GetNoValues() const {return pos.Size();}
+  void Clear();
+  void StartBulkLoad() {assert(IsDefined());}
+  void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
+  bool IsValid() const;
+  void Add(const UBasics<B>& ut);
+  void Add(const SecInterval& iv, const B& values);
+  void MergeAdd(const UBasics<B>& ut);
+  void MergeAdd(const SecInterval& iv, const B& values);
+  bool Passes(const typename B::single& sg) const;
+  bool Passes(const B& bs) const;
+  void At(const typename B::single& sg, MBasics<B>& result) const;
+  void At(const B& bs, MBasics<B>& result) const;
+  void DefTime(Periods& per) const;
+  void Atinstant(const Instant& inst, IBasics<B>& result) const;
+  void Initial(IBasics<B>& result) const;
+  void Final(IBasics<B>& result) const;
+  void Fill(MBasics<B>& result, DateTime& duration) const;
+  void Compress(MBasics<B>& result) const;
+  ostream& Print(ostream& os) const;
+  
+ protected:
+  Flob values;
+  DbArray<SymbolicUnit> units;
+  DbArray<typename B::arrayelem> pos;
+};
+
+
+/*
+\section{Class ~MLabel~}
+
+*/
+class MLabel : public MBasic<Label> {
+ public:
+  MLabel() {}
+  MLabel(unsigned int n) : MBasic<Label>(n) {}
+   
+  void createML(int size, bool text, double rate = 1.0);
+  void convertFromMString(const MString& source);
+};
+
+typedef IBasic<Label> ILabel;
+typedef IBasic<Place> IPlace;
+typedef IBasics<Labels> ILabels;
+typedef IBasics<Places> IPlaces;
+typedef UBasic<Label> ULabel;
+typedef UBasic<Place> UPlace;
+typedef UBasics<Labels> ULabels;
+typedef UBasics<Places> UPlaces;
+typedef MBasic<Place> MPlace;
+typedef MBasics<Labels> MLabels;
+typedef MBasics<Places> MPlaces;
+
+class ExprList {
+ public: 
+  vector<string> exprs;
+
+  ExprList() {}
+  ~ExprList() {}
+
+  string toString();
+};
+
+class Condition {
+ private:
+  string text;
+  vector<pair<string, int> > varKeys;
+  pair<QueryProcessor*, OpTree> opTree;
+  vector<Attribute*> pointers; // for each expression like X.card
+  bool treeOk;
+
+ public:
+  Condition() : treeOk(false) {}
+  ~Condition() {}
+  
+  string toString() const;
+  int convertVarKey(const char *varKey);
+  void clear();
+  static string getType(int t);
+  bool initOpTree();
+  void deleteOpTree();
+  
+  string  getText() const          {return text;}
+  void    setText(string newText)  {text = newText;}
+  int     getVarKeysSize() const   {return varKeys.size();}
+  string  getVar(unsigned int pos) {string s; return (pos < varKeys.size() ?
+                                                     varKeys[pos].first : s);}
+  int     getKey(unsigned int pos) const {return (pos < varKeys.size() ?
+                                            varKeys[pos].second : -1);}
+//   int     getPId(unsigned int pos) {return (pos < pIds.size() ?
+//                                                   pIds[pos] : -1);}
+  void    clearVectors()           {varKeys.clear();}
+//   string  getVar(unsigned int pos) {return (pos < vars.size() ?
+//                                                   vars[pos] : "");}
+  void    setOpTree(pair<QueryProcessor*, OpTree> qp_op) {opTree = qp_op;}
+  void    setPointers(vector<Attribute*> ptrs)           {pointers = ptrs;}
+  void    setValuePtr(unsigned int pos, string& value);
+  void    setValuePtr(unsigned int pos, pair<string, unsigned int>& value);
+  void    clearTimePtr(unsigned int pos);
+  void    mergeAddTimePtr(unsigned int pos, Interval<Instant>& value);
+  void    setStartEndPtr(unsigned int pos, Instant& value);
+  void    setCardPtr(unsigned int pos, int value);
+  void    cleanLabelsPtr(unsigned int pos);
+  void    appendToLabelsPtr(unsigned int pos, string& value);
+  void    appendToLabelsPtr(unsigned int pos, set<string>& values);
+  void    cleanPlacesPtr(unsigned int pos);
+  void    appendToPlacesPtr(unsigned int pos, pair<string,unsigned int>& value);
+  void    appendToPlacesPtr(unsigned int pos, 
+                            set<pair<string, unsigned int> >& values);
+  void    setLeftRightclosedPtr(unsigned int pos, bool value);
+  QueryProcessor* getQP()          {return opTree.first;}
+  OpTree  getOpTree()              {return opTree.second;}
+  int     getPointersSize()        {return pointers.size();}
+  bool    isTreeOk()               {return treeOk;}
+  void    setTreeOk(bool value)    {treeOk = value;}
+};
+
+class PatElem {
+ private:
+  string var;
+  set<string> ivs;
+  set<string> lbs;
+  set<pair<string, unsigned int> > pls;
+  Wildcard wc;
+  SetRel setRel;
+  bool ok;
+
+ public:
+  PatElem() : var(""), ivs(), lbs(), pls(), wc(NO), setRel(STANDARD), ok(true){}
+  PatElem(const char* contents);
+  PatElem(const PatElem& elem) : var(elem.var), ivs(elem.ivs), lbs(elem.lbs),
+                pls(elem.pls), wc(elem.wc), setRel(elem.setRel), ok(elem.ok) {}
+  ~PatElem() {}
+
+  void stringToSet(const string& input, const bool isTime);
+  void setVar(const string& v) {var = v;}
+  PatElem& operator=(const PatElem& elem) {
+    var = elem.var;
+    ivs = elem.ivs;
+    lbs = elem.lbs; 
+    pls = elem.pls;
+    wc = elem.wc; 
+    setRel = elem.setRel;
+    ok = elem.ok;
+    return *this;
+  }
+
+  void     getV(string& result) const                     {result = var;}
+  void     getL(set<string>& result) const                {result = lbs;}
+  void     getP(set<pair<string, unsigned int> >& result) const {result = pls;}
+  SetRel   getSetRel() const                              {return setRel;}
+  void     getI(set<string>& result) const                {result = ivs;}
+  Wildcard getW() const                                   {return wc;}
+  bool     isOk() const                                   {return ok;}
+  void     clearL()                                       {lbs.clear();}
+  void     clearP()                                       {pls.clear();}
+  void     insertL(const string& lb)                      {lbs.insert(lb);}
+  void     insertP(const pair<string, unsigned int>& pl)  {pls.insert(pl);}
+  void     clearI()                                       {ivs.clear();}
+  void     insertI(string& iv)                            {ivs.insert(iv);}
+  void     clearW()                                       {wc = NO;}
+  bool     hasLabel() const                             {return lbs.size() > 0;}
+  bool     hasPlace() const                             {return pls.size() > 0;}
+  bool     hasInterval() const                          {return ivs.size() > 0;}
+  bool     hasRealInterval() const;
+  bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
+                                                 hasRealInterval());}
+};
+
+class Assign {
+ private:
+  int resultPos;
+  bool occurrence; // ~true~ if and only if ~var~ occurs in the pattern
+  string text[10]; // one for each possible attribute
+  string var; // the assigned variable
+  vector<pair<string, int> > right[11]; // list of vars and keys for every type
+  pair<QueryProcessor*, OpTree> opTree[10];
+  vector<Attribute*> pointers[10]; // for each expression like X.card
+  bool treesOk;
+
+ public:
+  Assign() {treesOk = false;}
+  ~Assign() {}
+
+  bool convertVarKey(const char* vk);
+  bool prepareRewrite(int key, const vector<size_t> &assSeq,
+                      map<string, int> &varPosInSeq, stj::MLabel const &ml);
+  bool hasValue() {return (!text[0].empty() || !text[1].empty() ||
+                           !text[8].empty() || !text[9].empty());}
+  bool hasTime() {return (!text[2].empty() || 
+                         (!text[3].empty() && !text[4].empty()));}
+  bool initOpTrees();
+  void clear();
+  void deleteOpTrees();
+  void setLabelPtr(unsigned int pos, const string& value);
+  void setPlacePtr(unsigned int pos, const pair<string, unsigned int>& value);
+  void setTimePtr(unsigned int pos, const SecInterval& value);
+  void setStartPtr(unsigned int pos, const Instant& value);
+  void setEndPtr(unsigned int pos, const Instant& value);
+  void setLeftclosedPtr(unsigned int pos, bool value);
+  void setRightclosedPtr(unsigned int pos, bool value);
+  void cleanLabelsPtr(unsigned int pos);
+  void appendToLabelsPtr(unsigned int pos, const string& value);
+  void appendToLabelsPtr(unsigned int pos, const set<string>& value);
+  void cleanPlacesPtr(unsigned int pos);
+  void appendToPlacesPtr(unsigned int pos, 
+                         const pair<string,unsigned int>& value);
+  void appendToPlacesPtr(unsigned int pos, 
+                         const set<pair<string,unsigned int> >& value);
+  
+  void    init(string v, int pp)             {clear(); var = v;
+                                              occurrence = (pp > -1);}
+  int     getResultPos() const               {return resultPos;}
+  void    setResultPos(int p)                {resultPos = p;}
+  bool    occurs() const                     {return occurrence;}
+  void    setOccurrence(int p)               {occurrence = (p > -1);}
+  string  getText(int key) const             {return text[key];}
+  void    setText(int key, string newText)   {if (!text[key].empty()) {
+                                               right[key].clear();}
+                                              text[key] = newText;}
+  int     getRightSize(int key) const        {return right[key].size();}
+  string  getV() const                       {return var;}
+  int     getRightKey(int lkey, int j) const {return right[lkey][j].second;}
+  pair<string, int> getVarKey(int key, int i) const {return right[key][i];}
+  pair<string, int> getVarKey(int key) const {return right[key].back();}
+  string  getRightVar(int lkey, int j) const {return right[lkey][j].first;}
+  void    addRight(int key,
+               pair<string, int> newRight)   {right[key].push_back(newRight);}
+  void    removeUnordered()                  {right[6].pop_back();}
+  QueryProcessor* getQP(unsigned int key)    {if (key < 6) {
+                                                return opTree[key].first;}
+                                              else return 0;}
+  OpTree  getOpTree(unsigned int key)        {if (key < 6) {
+                                                return opTree[key].second;}
+                                              else return 0;}
+  bool    areTreesOk()                       {return treesOk;}
+  void    setTreesOk(bool value)             {treesOk = value;}
+};
+
+class Pattern {  
+ public:
+  Pattern() {}
+
+  Pattern(int i) {}
+
+  ~Pattern() {
+    deleteEasyCondOpTrees();
+    deleteCondOpTrees();
+    deleteAssignOpTrees();
+  }
+
+  string GetText() const;
+  bool isValid(const string& type) const;
+  static Pattern* getPattern(string input, bool classify = false);
+  template<class M>
+  ExtBool matches(M *m);
+  int getResultPos(const string v);
+  void collectAssVars();
+  void addVarPos(string var, int pos);
+  void addAtomicPos();
+  int getPatternPos(const string v);
+  bool checkAssignTypes();
+  static pair<string, Attribute*> getPointer(int key);
+  bool initAssignOpTrees();
+  void deleteAssignOpTrees(bool conds);
+  bool parseNFA();
+  bool containsFinalState(set<int> &states);
+  bool initCondOpTrees();
+  bool initEasyCondOpTrees();
+  void deleteCondOpTrees();
+  void deleteEasyCondOpTrees();
+
+  vector<PatElem>   getElems()              {return elems;}
+  vector<Condition>* getConds()             {return &conds;}
+  bool              hasConds()              {return conds.size() > 0;}
+  bool              hasEasyConds()          {return easyConds.size() > 0;}
+  vector<Condition> getEasyConds()          {return easyConds;}
+  vector<Assign>&   getAssigns()            {return assigns;}
+  void              getElem(int pos, PatElem& elem) const  {elem = elems[pos];}
+  Condition         getCond(int pos) const  {return conds[pos];}
+  Condition         getEasyCond(int pos) const {return easyConds[pos];}
+  Assign           getAssign(int pos) const {return assigns[pos];}
+  set<int>          getFinalStates() const  {return finalStates;}
+  bool              hasAssigns()            {return !assigns.empty();}
+  void              addPatElem(PatElem pElem)      {elems.push_back(pElem);}
+  void              addRegExSymbol(const char* s) {regEx += s;}
+  void              addCond(Condition cond) {conds.push_back(cond);}
+  void              addEasyCond(int pos, Condition cond) {
+    easyCondPos[pos].insert(easyConds.size());
+    easyConds.push_back(cond);
+  }
+  void              addAssign(Assign ass)  {assigns.push_back(ass);}
+  void              setText(string newText) {text = newText;}
+  pair<int, int>    getVarPos(string var)   {return varPos[var];}
+  int               getSize() const         {return elems.size();}
+  map<string, pair<int, int> > getVarPos()  {return varPos;}
+  map<int, set<int> > getEasyCondPos()      {return easyCondPos;}
+  set<int>          getEasyCondPos(const int e) {return easyCondPos[e];}
+  void              insertAssVar(string v)  {assignedVars.insert(v);}
+  set<string>       getAssVars()            {return assignedVars;}
+  void setAssign(int posR, int posP, int key, string arg) {
+            assigns[posR].setText(key, arg); assigns[posR].setOccurrence(posP);}
+  void addAssignRight(int pos, int key, pair<string, int> varKey)
+                                           {assigns[pos].addRight(key, varKey);}
+  void              getNFA(vector<map<int, int> >& result) {result = nfa;}
+  int               getNFAsize() const      {return nfa.size();}
+  bool              isNFAempty() const      {return (nfa.size() == 0);}
+  map<int, int>     getTransitions(int pos) {assert(pos >= 0);
+    assert(pos < (int)nfa.size()); return nfa[pos];}
+  bool              isFinalState(int state) {return finalStates.find(state)
+                                                    != finalStates.end();}
+  void              setNFA(vector<map<int, int> > &_nfa, set<int> &fs) {
+    nfa = _nfa; finalStates = fs;
+  }
+  void              eraseTransition(int state, int pE) {nfa[state].erase(pE);}
+  void              setDescr(string desc)   {description = desc;}
+  string            getDescr()              {return description;}
+  void deleteAssignOpTrees()   {for (unsigned int i = 0;i < assigns.size();i++){
+                                  assigns[i].deleteOpTrees();}}
+  string            getRegEx()              {return regEx;}
+  bool              containsRegEx()         {return
+                                    regEx.find_first_of("()|") != string::npos;}
+  void              addRelevantVar(string var) {relevantVars.insert(var);}
+  bool              isRelevant(string var)  {return relevantVars.count(var);}
+  string            getVarFromElem(int elem){return elemToVar[elem];}
+  int               getElemFromAtom(int atom) {return atomicToElem[atom];}
+  
+  vector<PatElem> elems;
+  vector<Assign> assigns;
+  vector<Condition> easyConds; // evaluated during matching
+  vector<Condition> conds; // evaluated after matching
+  string text, description, regEx;
+  map<string, pair<int, int> > varPos;
+  map<int, int> atomicToElem;
+  map<int, string> elemToVar;
+  map<int, set<int> > easyCondPos;
+  set<string> assignedVars; // variables on the right side of an assignment
+  set<string> relevantVars; // variables that occur in conds, results, assigns
+  vector<map<int, int> > nfa;
+  set<int> finalStates;
+};
+
+class PatPersistent : public Label {
+ public:
+  PatPersistent() {}
+  PatPersistent(int i) : Label(i > 0) {}
+  PatPersistent(PatPersistent& src) : Label(src.toText()) {}
+  
+  ~PatPersistent() {}
+   
+  string toText() const {string value; Label::GetValue(value); return value;}
+  template<class M>
+  ExtBool matches(M *traj) {
+    Pattern *p = Pattern::getPattern(toText());
+    if (p) {
+      ExtBool result = p->matches(traj);
+      delete p;
+      return result;
+    }
+    else {
+      return UNDEF;
+    }
+  }
+  
+  static const string BasicType() {return "pattern";}
+  static const bool checkType(const ListExpr type) {
+    return listutils::isSymbol(type, BasicType());
+  }
+};
+
+class Classifier : public Attribute {
+  friend class ClassifyLI;
+ public:
+  Classifier() {}
+  Classifier(int i) : Attribute(true), charpos(0), chars(0), delta(0),
+                      s2p(0), defined(true) {}
+  Classifier(const Classifier& src);
+
+  ~Classifier() {
+    charpos.Destroy();
+    chars.Destroy();
+    delta.Destroy();
+    s2p.Destroy();
+  }
+
+  static const string BasicType() {return "classifier";}
+  int getCharPosSize() const {return charpos.Size();}
+  int getNumOfP() const {return charpos.Size() / 2;}
+  int getCharSize() const {return chars.Size();}
+  void appendCharPos(int pos) {charpos.Append(pos);}
+  void appendChar(char ch) {chars.Append(ch);}
+  void SetDefined(const bool def) {defined = def;}
+  bool IsDefined() const {return defined;}
+  bool IsEmpty() const {return (chars.Size() == 0);}
+  string getDesc(int pos);
+  string getPatText(int pos);
+  void buildMultiNFA(vector<Pattern*> patterns, vector<map<int, int> > &nfa,
+                     set<int> &finalStates, map<int, int> &state2Pat);
+  void setPersistentNFA(vector<map<int, int> > &nfa, set<int> &finalSt,
+                        map<int, int> &state2Pat) {
+    delta.clean();
+    s2p.clean();
+    Tools::makeNFApersistent(nfa, finalSt, delta, s2p, state2Pat);
+  }
+  DbArray<NFAtransition> *getDelta() {return &delta;}
+  int getNumOfState2Pat() {return s2p.Size();}
+  void getStartStates(set<int> &startStates);
+
+     // algebra support functions
+  static Word     In(const ListExpr typeInfo, const ListExpr instance,
+                     const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word     Create(const ListExpr typeInfo);
+  static void     Delete(const ListExpr typeInfo, Word& w);
+  static void     Close(const ListExpr typeInfo, Word& w);
+  static Word     Clone(const ListExpr typeInfo, const Word& w);
+  static bool     Open(SmiRecord& valueRecord, size_t& offset,
+                       const ListExpr typeInfo, Word& value);
+  static bool     Save(SmiRecord& valueRecord, size_t& offset,
+                       const ListExpr typeInfo, Word& value);
+  static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
+  static int      SizeOfObj();
+  static void*    Cast(void* addr);
+         int      Compare(const Attribute* arg) const;
+         size_t   HashValue() const;
+         bool     Adjacent(const Attribute* arg) const;
+         Classifier* Clone() const;
+         void     CopyFrom(const Attribute* right);
+         size_t   Sizeof() const;
+  static ListExpr Property();
+  static bool     checkType(ListExpr t) {
+    return listutils::isSymbol(t, BasicType());
+  }
+  
+ private:
+  vector<map<int, int> > nfa; // multiNFA (not persistent)
+  DbArray<int> charpos;
+  DbArray<char> chars;
+  DbArray<NFAtransition> delta; // multiNFA (persistent)
+  DbArray<int> s2p; // neg: start; pos: final; INT_MAX: default
+  bool defined;
+};
+
+struct BindingElem {
+  BindingElem() : from(-1), to(-1) {}
+
+  BindingElem(string v, unsigned int f, unsigned int t) :
+    var(v), from(f), to(t) {}
+    
+  string var;
+  unsigned int from, to;
+};
+
+template<class M>
+class Match {
+ public:
+  Pattern *p;
+  M *m; // mlabel, mplace, mlabels, mplaces
+  set<unsigned int>** matching; // stores the whole matching process
+  DataType type; // enum
+
+  Match(Pattern *pat, M *traj) {
+    p = pat;
+    m = traj;
+    matching = 0;
+    type = getMType();
+  }
+
+  ~Match() {}
+  
+  DataType getMType();
+  ExtBool matches();
+  bool valuesMatch(int i, const PatElem& elem);
+  bool updateStates(int i, vector<map<int, int> > &nfa, vector<PatElem> &elems,
+                    set<int> &finalStates, set<int> &states,
+                    vector<Condition> &easyConds, 
+                    map<int, set<int> > &easyCondPos,
+                    map<int, int> &atomicToElem, bool store = false);
+  bool easyCondsMatch(int ulId, PatElem const &elem,
+                      vector<Condition> &easyConds, set<int> pos);
+  string states2Str(int ulId, set<int> &states);
+  string matchings2Str(unsigned int dim1, unsigned int dim2);
+  bool findMatchingBinding(vector<map<int, int> > &nfa, int startState,
+                           vector<PatElem> &elems, vector<Condition> &conds,
+                      map<int, int> &atomicToElem, map<int, string> &elemToVar);
+  bool findBinding(unsigned int ulId, unsigned int pId, vector<PatElem> &elems,
+                   vector<Condition> &conds, map<int, string> &elemToVar,
+                   map<string, pair<unsigned int, unsigned int> > &binding);
+  void cleanPaths(map<int, int> &atomicToElem);
+  bool cleanPath(unsigned int ulId, unsigned int pId);
+  bool conditionsMatch(vector<Condition> &conds,
+                 const map<string, pair<unsigned int, unsigned int> > &binding);
+  bool evaluateEmptyM();
+  bool evaluateCond(Condition &cond,
+                 const map<string, pair<unsigned int, unsigned int> > &binding);
+  void deletePattern() {if (p) {delete p; p = 0;}}
+  bool initEasyCondOpTrees() {return p->initEasyCondOpTrees();}
+  bool initCondOpTrees() {return p->initCondOpTrees();}
+  bool initAssignOpTrees() {return p->initAssignOpTrees();}
+  void deleteSetMatrix() {if (matching) {
+                       Tools::deleteSetMatrix(matching, m->GetNoComponents());}}
+  void createSetMatrix(unsigned int dim1, unsigned int dim2) {
+    matching = Tools::createSetMatrix(dim1, dim2);}
+  void setM(M *newM) {m = newM;}
+  vector<int> applyConditions(ClassifyLI* c);
+  
+  
+  void setNFA(vector<map<int, int> > &nfa, set<int> &fs) {p->setNFA(nfa, fs);}
+  void setNFAfromDbArrays(DbArray<NFAtransition> &trans, DbArray<int> &fs) {
+    vector<map<int, int> > nfa;
+    set<int> finalStates;
+    Tools::createNFAfromPersistent(trans, fs, nfa, finalStates);
+    p->setNFA(nfa, finalStates);
+  }
+  void setPattern(Pattern *pat) {p = pat;}
+  Pattern* getPattern() {return p;}
+  M* getM() {return m;}
+  pair<string, Attribute*> getPointer(int key);
+  static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
+};
+
+struct BindingStackElem {
+  BindingStackElem(unsigned int ul, unsigned int pe) : ulId(ul), peId(pe) {}
+
+  unsigned int ulId, peId;
+//   map<string, pair<unsigned int, unsigned int> > binding;
+};
+
+template<class M>
+class RewriteLI {
+ public:
+  RewriteLI(M *src, Pattern *pat);
+  RewriteLI(int i) : match(0) {}
+
+  ~RewriteLI() {}
+
+  M* getNextResult();
+  static M* rewrite(M *src, map<string, pair<unsigned int, unsigned int> > 
+                    binding, vector<Assign> &assigns);
+  void resetBinding(unsigned int limit);
+  bool findNextBinding(unsigned int ulId, unsigned int pId, Pattern *p,
+                       int offset);
+  
+ protected:
+  stack<BindingStackElem> bindingStack;
+  Match<M> *match;
+  map<string, pair<unsigned int, unsigned int> > binding;
+  set<map<string, pair<unsigned int, unsigned int> > > rewBindings;
+};
+
+class ClassifyLI {
+
+friend class Match<MLabel>;
+
+public:
+  ClassifyLI(MLabel *ml, Word _classifier);
+  ClassifyLI(int i) : classifyTT(0) {}
+
+  ~ClassifyLI();
+
+  static TupleType* getTupleType();
+  FText* nextResultText();
+  void printMatches();
+
+protected:
+  vector<Pattern*> pats;
+  TupleType* classifyTT;
+  set<int> matchingPats;
+};
+
+class MultiRewriteLI : public ClassifyLI, public RewriteLI<MLabel> {
+
+ public:
+  MultiRewriteLI(Word _mlstream, Word _pstream);
+
+  ~MultiRewriteLI();
+
+  MLabel* nextResultML();
+  void getStartStates(set<int> &states);
+  void initStack(set<int> &startStates);
+
+ private:
+  Stream<MLabel> mlStream;
+  bool streamOpen;
+  MLabel* ml;
+  Classifier* c;
+  map<int, int> state2Pat;
+  set<int> finalStates, states, matchCands;
+  vector<map<int, int> > nfa;
+  vector<PatElem> patElems;
+  vector<Condition> easyConds;
+  map<int, set<int> > easyCondPos;
+  map<int, pair<int, int> > patOffset; // elem no |-> (pat no, first pat elem)
+  map<int, int> atomicToElem;
+  map<int, string> elemToVar;
+};
+
+template<class M>
+class FilterMatchesLI {
+ public:
+  FilterMatchesLI(Word _stream, int _attrIndex, string& pText);
+
+  ~FilterMatchesLI();
+
+  Tuple* getNextResult();
+  
+ private:
+  Stream<Tuple> stream;
+  int attrIndex;
+  Match<M>* match;
+  bool streamOpen, deleteP;
+};
+
+struct IndexRetrieval {
+  IndexRetrieval() : pred(0), succ(0) {}
+  IndexRetrieval(unsigned int p, unsigned int s = 0) : pred(p), succ(s) {}
+  IndexRetrieval(unsigned int p, unsigned int s, set<int>& u) : 
+                 pred(p), succ(s), units(u) {}
+  
+  unsigned int pred, succ;
+  set<int> units;
+};
+
+struct IndexMatchInfo {
+  IndexMatchInfo(bool r, int n = 0) : range(r), next(n) {}
+  IndexMatchInfo(bool r, int n, 
+            map<string, pair<unsigned int, unsigned int> > b, const string& v) :
+       range(r), next(n), binding(b), prevVar(v) {}
+  
+  void print(const bool printBinding);
+  bool finished(const int size) const {return range || (next >= size);}
+  bool exhausted(const int size) const {return next >= size;}
+  bool matches(const int unit) const {return (range ? next<=unit : next==unit);}
+
+  bool range;
+  int next;
+  map<string, pair<unsigned int, unsigned int> > binding;
+  string prevVar;
+};
+
+struct IndexMatchSlot {
+  IndexMatchSlot() : pred(0), succ(0) {}
+  
+  unsigned int pred, succ;
+  vector<IndexMatchInfo> imis;
+};
+
+class IndexMatchesLI {
+ public:
+  IndexMatchesLI(Relation *rel, InvertedFile *inv, 
+    R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p, 
+    bool deleteP, DataType type);
+
+  ~IndexMatchesLI() {mRel = 0;}
+
+  Tuple* nextTuple();
+  void simplifyNFA(vector<map<int, int> >& result);
+  void findNFApaths(const vector<map<int, int> >& nfa, 
+                const set<int>& finalStates, set<pair<set<int>, int> >& result);
+  void getCrucialElems(const set<pair<set<int>, int> >& paths,set<int>& result);
+  void retrieveValue(vector<set<int> >& part, vector<set<int> >& part2,
+                     SetRel rel, bool first, const string& label,
+                     unsigned int ref = UINT_MAX);
+  void retrieveTime(vector<set<int> >& oldPart, vector<set<int> >& newPart, 
+                    const string& ivstr);
+  void removeIdFromIndexResult(const TupleId id);
+  void removeIdFromMatchInfo(const TupleId id);
+  void clearMatchInfo();
+  void storeIndexResult(const int e);
+  void initMatchInfo(const set<int>& cruElems);
+  void initialize();
+  int getMsize(TupleId tId);
+  void getInterval(const TupleId tId, const int pos, SecInterval& iv);
+  void extendBinding(IndexMatchInfo& imi, const int e);
+  void applyNFA();
+  template<class M>
+  bool imiMatch(Match<M>& match, const int e, const TupleId id, 
+                IndexMatchInfo& imi, const int unit, const int newState);
+  bool valuesMatch(const int e, const TupleId id, IndexMatchInfo& imi,
+                   const int newState, const int unit);
+  void applySetRel(const SetRel setRel, 
+                   vector<set<pair<TupleId, int> > >& valuePosVec,
+                   set<pair<TupleId, int> >*& result);
+  bool simpleMatch(const int e, const int state, const int newState);
+  bool hasIdIMIs(const TupleId id, const int state = -1);
+  bool wildcardMatch(const int state, pair<int, int> trans);
+  bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
+  bool checkConditions(const TupleId id, IndexMatchInfo& imi);
+
+ protected:
+  Pattern p;
+  Relation *mRel;
+  vector<vector<IndexRetrieval> > indexResult;
+  set<int> indexMismatch;
+  vector<TupleId> matches;
+  vector<int> trajSize;
+  int activeTuples;
+  vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
+  vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
+  InvertedFile* invFile;
+  R_Tree<1, NewPair<TupleId, int> > *rtree;
+  int attrNr;
+  size_t maxMLsize;
+  DataType mtype;
+};
+
+class IndexClassifyLI : public IndexMatchesLI {
+ public:
+  IndexClassifyLI(Relation *rel, InvertedFile *inv, 
+    R_Tree<1, NewPair<TupleId, int> > *rt, Word _classifier, int _attrNr, 
+    DataType type);
+
+  ~IndexClassifyLI();
+
+  template<class M>
+  Tuple* nextResultTuple();
+  
+ protected:
+  TupleType* classifyTT;
+  Classifier *c;
+  queue<pair<string, TupleId> > results;
+  int currentPat;
+};
+
+class UnitsLI {
+ public:
+  UnitsLI() : index(0) {}
+  ~UnitsLI() {}
+
+  int index;
+};
+
+
+
+
+
+/*
+\subsection{Functions supporting ~rewrite~}
+
+*/
+void Assign::setLabelPtr(unsigned int pos, const string& value) {
+  if (pos < pointers[0].size()) {
+    ((Label*)pointers[0][pos])->Set(true, value);
+  }
+}
+
+void Assign::setPlacePtr(unsigned int pos, 
+                         const pair<string, unsigned int>& value) {
+  if (pos < pointers[1].size()) {
+    ((Place*)pointers[1][pos])->Set(true, value);
+  }
+}
+
+void Assign::setTimePtr(unsigned int pos, const SecInterval& value) {
+  if (pos < pointers[2].size()) {
+    *((SecInterval*)pointers[2][pos]) = value;
+  }
+}
+
+void Assign::setStartPtr(unsigned int pos, const Instant& value) {
+  if (pos < pointers[3].size()) {
+    *((Instant*)pointers[3][pos]) = value;
+  }
+}
+
+void Assign::setEndPtr(unsigned int pos, const Instant& value) {
+  if (pos < pointers[4].size()) {
+    *((Instant*)pointers[4][pos]) = value;
+  }
+}
+
+void Assign::setLeftclosedPtr(unsigned int pos, bool value) {
+  if (pos < pointers[5].size()) {
+    ((CcBool*)pointers[5][pos])->Set(true, value);
+  }
+}
+
+void Assign::setRightclosedPtr(unsigned int pos, bool value) {
+  if (pos < pointers[6].size()) {
+    ((CcBool*)pointers[6][pos])->Set(true, value);
+  }
+}
+
+void Assign::cleanLabelsPtr(unsigned int pos) {
+  if (pos < pointers[8].size()) {
+    ((Labels*)pointers[8][pos])->Clean();
+  }
+}
+
+void Assign::appendToLabelsPtr(unsigned int pos, const string& value) {
+  if (pos < pointers[8].size()) {
+    ((Labels*)pointers[8][pos])->Append(value);
+  }
+}
+
+void Assign::appendToLabelsPtr(unsigned int pos, const set<string>& values) {
+  if (pos < pointers[8].size()) {
+    ((Labels*)pointers[8][pos])->Append(values);
+  }
+}
+
+void Assign::cleanPlacesPtr(unsigned int pos) {
+  if (pos < pointers[9].size()) {
+    ((Places*)pointers[9][pos])->Clean();
+  }
+}
+  
+void Assign::appendToPlacesPtr(unsigned int pos, 
+                               const pair<string, unsigned int>& value) {
+  if (pos < pointers[9].size()) {
+    ((Places*)pointers[9][pos])->Append(value);
+  }
+}
+
+void Assign::appendToPlacesPtr(unsigned int pos, 
+                               const set<pair<string, unsigned int> >& values) {
+  if (pos < pointers[9].size()) {
+    ((Places*)pointers[9][pos])->Append(values);
+  }
+}
+
+/*
+\section{Implementation of Class ~IBasic~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+IBasic<B>::IBasic(const Instant& inst, const B& val) : Intime<B>(inst, val) {
+  SetDefined(inst.IsDefined() && val.IsDefined());
+}
+
+template<class B>
+IBasic<B>::IBasic(const IBasic& rhs) : Intime<B>(rhs.instant, rhs.value) {
+  SetDefined(rhs.IsDefined());
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr IBasic<B>::Property() {
+  if (BasicType() == "ilabel") {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <label>)",
+                              "(\"2014-02-26\" \'Dortmund\')");
+  }
+  if (BasicType() == "iplace") {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <place>)",
+                              "(\"2014-02-18\" (\'Dortmund\' 1909))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+template<class B>
+bool IBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, IBasic<B>::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr IBasic<B>::ToListExpr(ListExpr typeInfo) {
+  if (!Intime<B>::IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(this->instant.ToListExpr(false), 
+                         this->value.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool IBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  if (this->instant.ReadFrom(nl->First(LE), nl->Empty()) &&
+      this->value.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->SetDefined(this->instant.IsDefined() && this->value.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Val~}
+
+*/
+template<class B>
+void IBasic<B>::Val(B& result) const {
+  if (!this->IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(&(this->value));
+}
+
+/*
+\section{Implementation of Class ~IBasics~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+IBasics<B>::IBasics(const Instant& inst, const B& values) : 
+                                                     Intime<B>(inst, values) {}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr IBasics<B>::Property() {
+  if (B::BasicType() == Labels::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <labels>)",
+      "(\"2014-02-18\" (\"Dortmund\" \"Mailand\"))");
+  }
+  if (B::BasicType() == Places::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<instant> <places>)",
+      "(\"2014-02-18\" ((\"Dortmund\" 1909) (\"Mailand\" 1899)))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+template<class B>
+bool IBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, IBasics<B>::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr IBasics<B>::ToListExpr(ListExpr typeInfo) {
+  if (!this->IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(this->instant.ToListExpr(false), 
+                         this->value.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool IBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  if (this->instant.ReadFrom(nl->First(LE), nl->Empty()) &&
+      this->value.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->SetDefined(this->instant.IsDefined() && this->value.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Val~}
+
+*/
+template<class B>
+void IBasics<B>::Val(B& result) const {
+  if (!this->IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result = this->value;
+}
+
+/*
+\section{Implementation of class ~UBasic~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+UBasic<B>::UBasic(const SecInterval &iv, const B& val)
+                                            : ConstTemporalUnit<B>(iv, val) {
+  this->SetDefined(iv.IsDefined() && val.IsDefined());
+}
+
+template<class B>
+UBasic<B>::UBasic(const UBasic<B>& ub) : ConstTemporalUnit<B>(ub) {
+  this->SetDefined(ub.IsDefined());
+}
+
+/*
+\subsection{Operator ~==~}
+
+*/
+template<class B>
+bool UBasic<B>::operator==(const UBasic<B>& rhs) const {
+  return Compare(&rhs) == 0;
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr UBasic<B>::Property() {
+  if (B::BasicType() == Label::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <label>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) \"Dortmund\")");
+  }
+  if (B::BasicType() == Place::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <place>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" 1909))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+template<class B>
+bool UBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, UBasic<B>::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr UBasic<B>::ToListExpr(ListExpr typeInfo) {
+  if (!this->IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
+          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool UBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  SecInterval iv(true);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
+      this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->timeInterval = iv;
+    this->SetDefined(this->timeInterval.IsDefined() && 
+                     this->constValue.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Initial~}
+
+*/
+template<class B>
+void UBasic<B>::Initial(IBasic<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.start;
+    result.value.CopyFrom(&(this->constValue));
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+template<class B>
+void UBasic<B>::Final(IBasic<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.end;
+    result.value.CopyFrom(&(this->constValue));
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\section{Implementation of class ~UBasics~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+UBasics<B>::UBasics(const SecInterval &iv, const B& values)
+                                           : ConstTemporalUnit<B>(iv, values) {}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr UBasics<B>::Property() {
+  if (B::BasicType() == Labels::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <labels>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) (\"Dortmund\" "
+      "\"Mailand\"))");
+  }
+  if (B::BasicType() == Places::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(), "(<interval> <places>)",
+      "((\"2014-02-18\" \"2014-02-19-13:00\" TRUE FALSE) ((\"Dortmund\" 1909) "
+      "(\"Mailand\" 1899)))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+template<class B>
+bool UBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, UBasics<B>::BasicType());
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr UBasics<B>::ToListExpr(ListExpr typeInfo) {
+  if (!this->IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
+          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool UBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  this->SetDefined(false);
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  SecInterval iv(true);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
+      this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
+    this->timeInterval = iv;
+    this->SetDefined(this->timeInterval.IsDefined() &&
+                     this->constValue.IsDefined());
+    return true;
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Initial~}
+
+*/
+template<class B>
+void UBasics<B>::Initial(IBasics<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.start;
+    result.value = this->constValue;
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+template<class B>
+void UBasics<B>::Final(IBasics<B>& result) const {
+  if (this->IsDefined()) {
+    result.instant = this->timeInterval.end;
+    result.value = this->constValue;
+    result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\section{Implementation of class ~MBasic~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+MBasic<B>::MBasic(const MBasic &mb) : Attribute(mb.IsDefined()),
+                      values(mb.values.getSize()), units(mb.GetNoComponents()) {
+  if (IsDefined()) {
+    values.copyFrom(mb.values);
+    units.copyFrom(mb.units);
+  }
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr MBasic<B>::Property() {
+  if (B::BasicType() == Label::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(),
+      "((<interval> <label>) (<interval> <label>) ...)",
+      "(((\"2014-02-27\" \"2014-02-27-09:48\" TRUE FALSE) \"Dortmund\") "
+      "((\"2014-05-17\" \"2014-05-17-22:00\" TRUE FALSE) \"Berlin\"))");
+  }
+  if (B::BasicType() == Place::BasicType()) {
+    return gentc::GenProperty("-> DATA", BasicType(),
+      "((<interval> <place>) (<interval> <place>) ...)",
+      "(((\"2014-02-27\" \"2014-02-27-09:48\" TRUE FALSE) (\"Dortmund\" 1909)) "
+      "((\"2014-05-17\" \"2014-05-17-22:00\" TRUE FALSE) (\"Berlin\" 4)))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~GetFLOB~}
+
+*/
+template<class B>
+Flob* MBasic<B>::GetFLOB(const int i) {
+  assert((i >= 0) && (i < NumOfFLOBs()));
+  return (i == 0 ? &values : &units);
+}
+
+/*
+\subsection{Function ~KindCheck~}
+
+*/
+template<class B>
+bool MBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, MBasic<B>::BasicType());
+}
+
+/*
+\subsection{Function ~Compare~}
+
+*/
+template<class B>
+int MBasic<B>::Compare(const Attribute* arg) const {
+  if (GetNoComponents() > ((MBasic<B>*)arg)->GetNoComponents()) {
+    return 1;
+  }
+  if (GetNoComponents() < ((MBasic<B>*)arg)->GetNoComponents()) {
+    return -1;
+  }
+  UBasic<B> ub1(true), ub2(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub1);
+    ((MBasic<B>*)arg)->Get(i, ub2);
+    int comp = ub1.Compare(&ub2);
+    if (comp != 0) {
+      return comp;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Function ~HashValue~}
+
+*/
+template<class B>
+size_t MBasic<B>::HashValue() const {
+  if (!IsDefined() || IsEmpty()) {
+    return 0;
+  }
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  return values.getSize() * unit.iv.HashValue();
+}
+
+/*
+\subsection{Function ~CopyFrom~}
+
+*/
+template<class B>
+void MBasic<B>::CopyFrom(const Attribute *arg) {
+  if (!arg->IsDefined()) {
+    SetDefined(false);
+    return;
+  }
+  SetDefined(true);
+  values.copyFrom(((MBasic<B>*)arg)->values);
+  units.copyFrom(((MBasic<B>*)arg)->units);
+}
+
+/*
+\subsection{Function ~unitToListExpr~}
+
+*/
+template<class B>
+ListExpr MBasic<B>::unitToListExpr(const int i) {
+  assert(i < GetNoComponents());
+  typename B::base value;
+  GetValue(i, value);
+  typename B::unitelem unit;
+  units.Get(i, unit);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  return nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
+                                                     SecInterval::BasicType())),
+                         B::getList(value));
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr MBasic<B>::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  if (IsEmpty()) {
+    return nl->Empty();
+  }
+  ListExpr result = nl->OneElemList(unitToListExpr(0));
+  ListExpr last = result;
+  for (int i = 1; i < GetNoComponents(); i++) {
+    last = nl->Append(last, unitToListExpr(i));
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool MBasic<B>::readUnitFrom(ListExpr LE) {
+  if (!nl->HasLength(LE, 2)) {
+    return false;
+  }
+  SecInterval iv;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (!iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType()))) {
+    return false;
+  }
+  typename B::unitelem unit(values.getSize());
+  unit.iv = iv;
+  string text;
+  if (!B::readValueFrom(nl->Second(LE), text, unit)) {
+    return false;
+  }
+  units.Append(unit);
+  text = text.substr(1, text.length() - 2);
+  if (text.length() > 0) {
+    const char *bytes = text.c_str();
+    values.write(bytes, text.length(), values.getSize());
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool MBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  SetDefined(false);
+  Clear();
+  if (listutils::isSymbolUndefined(LE)) {
+    return true;
+  }
+  ListExpr rest = LE;
+  while (!nl->IsEmpty(rest)) {
+    if (!readUnitFrom(nl->First(rest))) {
+      return false;
+    }
+    rest = nl->Rest(rest);
+  }
+  SetDefined(true);
+  return true;
+}
+
+/*
+\subsection{Function ~Position~}
+
+*/
+template<class B>
+int MBasic<B>::Position(const Instant& inst) const {
+  assert(IsDefined());
+  assert(inst.IsDefined());
+  int first = 0, last = GetNoComponents() - 1;
+  Instant t1 = inst;
+  while (first <= last) {
+    int mid = (first + last) / 2;
+    if ((mid < 0) || (mid >= GetNoComponents())) {
+      return -1;
+    }
+    typename B::unitelem unit;
+    units.Get(mid, unit);
+    if (((Interval<Instant>)(unit.iv)).Contains(t1)) {
+      return mid;
+    }
+    else { // not contained
+      if ((t1 > unit.iv.end) || (t1 == unit.iv.end)) {
+        first = mid + 1;
+      }
+      else if ((t1 < unit.iv.start) || (t1 == unit.iv.start)) {
+        last = mid - 1;
+      }
+      else {
+        return -1; // should never be reached.
+      }
+    }
+  }
+  return -1;
+}
+
+/*
+\subsection{Function ~Get~}
+
+*/
+template<class B>
+void MBasic<B>::Get(const int i, UBasic<B>& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  result.SetDefined(IsDefined());
+  if (IsDefined()) {
+    typename B::unitelem unit;
+    units.Get(i, unit);
+    result.timeInterval = unit.iv;
+    GetBasic(i, result.constValue);
+  }
+}
+
+/*
+\subsection{Function ~GetInterval~}
+
+*/
+template<class B>
+void MBasic<B>::GetInterval(const int i, SecInterval& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  result.SetDefined(true);
+  typename B::unitelem unit;
+  units.Get(i, unit);
+  result = unit.iv;
+}
+
+/*
+\subsection{Function ~GetBasic~}
+
+*/
+template<class B>
+void MBasic<B>::GetBasic(const int i, B& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  result.SetDefined(IsDefined());
+  if (IsDefined()) {
+    typename B::base value;
+    GetValue(i, value);
+    result.SetValue(value);
+  }
+}
+
+/*
+\subsection{Function ~GetValue~}
+
+*/
+template<class B>
+void MBasic<B>::GetValue(const int i, typename B::base& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  typename B::unitelem cur, next;
+  units.Get(i, cur);
+  unsigned int size;
+  if (cur.pos != UINT_MAX) {
+    int j = i + 1;
+    bool finished = false;
+    while (!finished && (j < units.Size())) {
+      units.Get(j, next);
+      if (next.pos != UINT_MAX) {
+        finished = true;
+        size = next.pos - cur.pos;
+      }
+    }
+    if (!finished) {
+      size = values.getSize() - cur.pos;
+    }
+    char* bytes = new char[size];
+    values.read(bytes, size, cur.pos);
+    string text(bytes, size);
+    delete[] bytes;
+    B::buildValue(text, cur, result);
+  }
+  else {
+    B::buildValue("", cur, result);
+  }
+}
+
+/*
+\subsection{Function ~IsValid~}
+
+*/
+template<class B>
+bool MBasic<B>::IsValid() const {
+  if (!IsDefined() || IsEmpty()) {
+    return true;
+  }
+  typename B::unitelem lastUnit, unit;
+  units.Get(0, lastUnit);
+  if (!lastUnit.iv.IsValid()) {
+    return false;
+  }
+  if (GetNoComponents() == 1) {
+    return true;
+  }
+  for (int i = 1; i < GetNoComponents(); i++) {
+    units.Get(i, unit);
+    if (!unit.iv.IsValid()) {
+      return false;
+    }
+    if (lastUnit.iv.end > unit.iv.start) {
+      return false;
+    }
+    if (!lastUnit.iv.Disjoint(unit.iv)) {
+      return false;
+    }
+    lastUnit = unit;
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~EndBulkLoad~}
+
+*/
+template<class B>
+void MBasic<B>::EndBulkLoad(const bool sort, const bool checkvalid) {
+  if (!IsDefined()) {
+    units.clean();
+  }
+  units.TrimToSize();
+}
+
+/*
+\subsection{Function ~Add~}
+
+*/
+template<class B>
+void MBasic<B>::Add(const UBasic<B>& ub) {
+  assert(ub.IsDefined());
+  assert(ub.IsValid());
+  UBasic<B> ub2(ub);
+  if (IsDefined()) {
+    readUnitFrom(ub2.ToListExpr(nl->Empty()));
+  }
+  assert(IsValid());
+}
+
+template<class B>
+void MBasic<B>::Add(const SecInterval& iv, const B& value) {
+  assert(iv.IsDefined() && value.IsDefined());
+  B value2(value);
+  ListExpr unitlist = nl->TwoElemList(iv.ToListExpr(nl->Empty()),
+                                      value2.ToListExpr(nl->Empty()));
+  if (!readUnitFrom(unitlist)) {
+    SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~MergeAdd~}
+
+*/
+template<class B>
+void MBasic<B>::MergeAdd(const UBasic<B>& ub) {
+  assert(IsDefined());
+  if (!ub.IsDefined() || !ub.IsValid()) {
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+      << " MergeAdd(Unit): Unit is undefined or invalid:";
+    ub.Print(cout); cout << endl;
+    assert(false);
+  }
+  if (!IsEmpty()) {
+    bool extend = false;
+    typename B::unitelem lastUnit;
+    units.Get(GetNoComponents() - 1, lastUnit);
+    if ((lastUnit.iv.end == ub.timeInterval.start) &&
+        (lastUnit.iv.rc || ub.timeInterval.lc)) { // adjacent intervals
+      typename B::base value1, value2;
+      GetValue(GetNoComponents() - 1, value1);
+      ub.constValue.GetValue(value2);
+      if (value1 == value2) {
+        lastUnit.iv.end = ub.timeInterval.end; // extend last interval
+        lastUnit.iv.rc = ub.timeInterval.rc;
+        units.Put(GetNoComponents() - 1, lastUnit);
+        extend = true;
+      }
+    }
+    if (!extend && lastUnit.iv.Before(ub.timeInterval)) {
+      Add(ub);
+    }
+  }
+  else { // first unit
+    Add(ub);
+  }
+  assert(IsValid());
+}
+
+/*
+\subsection{Function ~Passes~}
+
+*/
+template<class B>
+bool MBasic<B>::Passes(const B& basic) const {
+  if (!IsDefined() || !basic.IsDefined()) {
+    return false;
+  }
+  typename B::base value1, value2;
+  basic.GetValue(value2);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetValue(i, value1);
+    if (value1 == value2) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~At~}
+
+*/
+template<class B>
+void MBasic<B>::At(const B& basic, MBasic<B>& result) const {
+  result.Clear();
+  if (!IsDefined() || !basic.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  typename B::base value1, value2;
+  basic.GetValue(value2);
+  typename B::unitelem unit;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetValue(i, value1);
+    if (value1 == value2) {
+      units.Get(i, unit);
+      result.readUnitFrom(nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
+                                                     SecInterval::BasicType())),
+                                          B::getList(value1)));
+    }
+  }
+}
+
+/*
+\subsection{Function ~DefTime~}
+
+*/
+template<class B>
+void MBasic<B>::DefTime(Periods& per) const {
+  per.Clear();
+  per.SetDefined(IsDefined());
+  if (IsDefined()) {
+    typename B::unitelem unit;
+    for (int i = 0; i < GetNoComponents(); i++) {
+      units.Get(i, unit);
+      per.MergeAdd(unit.iv);
+    }
+  }
+}
+
+/*
+\subsection{Function ~Atinstant~}
+
+*/
+template<class B>
+void MBasic<B>::Atinstant(const Instant& inst, IBasic<B>& result) const {
+  if(!IsDefined() || !inst.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  int pos = this->Position(inst);
+  if (pos == -1) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.value.SetDefined(true);
+  typename B::unitelem unit;
+  units.Get(pos, unit);
+  GetBasic(pos, result.value);
+  result.instant = inst;
+}
+
+/*
+\subsection{Function ~Initial~}
+
+*/
+template<class B>
+void MBasic<B>::Initial(IBasic<B>& result) const {
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  GetBasic(0, result.value);
+  result.instant = unit.iv.start;
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+template<class B>
+void MBasic<B>::Final(IBasic<B>& result) const {
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  typename B::unitelem unit;
+  units.Get(GetNoComponents() - 1, unit);
+  GetBasic(GetNoComponents() - 1, result.value);
+  result.instant = unit.iv.end;
+}
+
+/*
+\subsection{Function ~Inside~}
+
+*/
+template<class B>
+void MBasic<B>::Inside(const typename B::coll& coll, MBool& result) const {
+  result.Clear();
+  if (!IsDefined() || !coll.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  typename B::unitelem unit;
+  typename B::base value;
+  for (int i = 0; i < GetNoComponents(); i++) {
+    units.Get(i, unit);
+    GetValue(i, value);
+    CcBool res(true, coll.Contains(value));
+    UBool ub(unit.iv, res);
+    result.Add(ub);
+  }
+}
+
+/*
+\subsection{Function ~Fill~}
+
+*/
+template<class B>
+void MBasic<B>::Fill(MBasic<B>& result, DateTime& dur) const {
+  result.Clear();
+  result.SetDefined(true);
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  if (IsEmpty()) {
+    return;
+  }
+  UBasic<B> unit(true), lastUnit(true);
+  Get(0, lastUnit);
+  for (int i = 1; i < GetNoComponents(); i++) {
+    Get(i, unit);
+    if ((lastUnit.constValue == unit.constValue) && 
+        (unit.timeInterval.start - lastUnit.timeInterval.end <= dur)) {
+      lastUnit.timeInterval.end = unit.timeInterval.end;
+      lastUnit.timeInterval.rc = unit.timeInterval.rc;
+    }
+    else {
+      result.MergeAdd(lastUnit);
+      lastUnit = unit;
+    }
+  }
+  result.MergeAdd(lastUnit);
+}
+
+/*
+\subsection{Function ~Compress~}
+
+*/
+template<class B>
+void MBasic<B>::Compress(MBasic<B>& result) const {
+  result.Clear();
+  result.SetDefined(IsDefined());
+  if(!IsDefined()) {
+    return;
+  }
+  UBasic<B> ub(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub);
+    result.MergeAdd(ub);
+  }
+}
+
+/*
+\subsection{Function ~Print~}
+
+*/
+template<class B>
+ostream& MBasic<B>::Print(ostream& os) const {
+  if (!IsDefined()) {
+    os << "(undefined)" << endl;
+    return os;
+  }
+  os << BasicType() << ":" << endl;
+  UBasic<B> ub(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub);
+    ub.Print(os);
+  }
+  return os;
+}
+
+/*
+\section{Implementation of class ~MBasics~}
+
+\subsection{Constructors}
+
+*/
+template<class B>
+MBasics<B>::MBasics(const MBasics &mbs) : Attribute(mbs.IsDefined()), 
+  values(mbs.GetNoValues()), units(mbs.GetNoComponents()), pos(mbs.pos.Size()) {
+  values.copyFrom(mbs.values);
+  units.copyFrom(mbs.units);
+  pos.copyFrom(mbs.pos);
+}
+
+/*
+\subsection{Function ~Property~}
+
+*/
+template<class B>
+ListExpr MBasics<B>::Property() {
+  if (B::BasicType() == "labels") {
+    return gentc::GenProperty("-> DATA", BasicType(),
+      "((<interval> <labels>) (<interval> <labels>) ...)",
+      "(((\"2014-01-29\" \"2014-01-30\" TRUE FALSE) (\"home\" \"Dortmund\")))");
+  }
+  if (B::BasicType() == "places") {
+    return gentc::GenProperty("-> DATA", BasicType(),
+      "((<interval> <places>) (<interval> <places>) ...)",
+      "(((\"2014-01-29\" \"2014-01-30\" TRUE FALSE) ((\"home\" 2012) "
+      "(\"Dortmund\" 1909))))");
+  }
+  return gentc::GenProperty("-> DATA", BasicType(), "Error: invalid type.", "");
+}
+
+/*
+\subsection{Function ~CheckKind~}
+
+*/
+template<class B>
+bool MBasics<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, MBasics<B>::BasicType());
+}
+
+/*
+\subsection{Function ~checkType~}
+
+*/
+template<class B>
+bool MBasics<B>::checkType(ListExpr t) {
+  return listutils::isSymbol(t, MBasics<B>::BasicType());
+}
+
+/*
+\subsection{Function ~GetFLOB~}
+
+*/
+template<class B>
+Flob* MBasics<B>::GetFLOB(const int i) {
+  assert((i >= 0) && (i < NumOfFLOBs()));
+  if (i == 0) {
+    return &values;
+  }
+  if (i == 1) {
+    return &units;
+  }
+  return &pos;
+}
+
+/*
+\subsection{Function ~Compare~}
+
+*/
+template<class B>
+int MBasics<B>::Compare(const Attribute* arg) const {
+  if (GetNoComponents() == ((MBasics<B>*)arg)->GetNoComponents()) {
+    if (GetNoValues() == ((MBasics<B>*)arg)->GetNoValues()) {
+      return 0;
+    }
+    return (GetNoValues() > ((MBasics<B>*)arg)->GetNoValues() ? 1 : -1);
+  }
+  else {
+    return (GetNoComponents() > ((MBasics<B>*)arg)->GetNoComponents() ? 
+            1 : -1);
+  }
+}
+
+/*
+\subsection{Function ~Clone~}
+
+*/
+template<class B>
+Attribute* MBasics<B>::Clone() const {
+  return new (MBasics<B>)(*(MBasics<B>*)this);
+}
+
+/*
+\subsection{Function ~getEndPos~}
+
+*/
+template<class B>
+int MBasics<B>::getUnitEndPos(const int i) const {
+  if (i < GetNoComponents() - 1) {
+    SymbolicUnit nextUnit;
+    units.Get(i + 1, nextUnit);
+    return nextUnit.pos - 1;
+  }
+  else { // last unit
+    return pos.Size() - 1;
+  }
+}
+
+/*
+\subsection{Function ~unitToListExpr~}
+
+*/
+template<class B>
+ListExpr MBasics<B>::unitToListExpr(int i) {
+  assert ((i >= 0) && (i < GetNoComponents()));
+  SymbolicUnit unit;
+  units.Get(i, unit);
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  set<typename B::base> values;
+  GetValues(i, values);
+  ListExpr valuelist;
+  B::valuesToListExpr(values, valuelist);
+  return nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
+                                            SecInterval::BasicType())),
+                         valuelist);
+}
+
+/*
+\subsection{Function ~ToListExpr~}
+
+*/
+template<class B>
+ListExpr MBasics<B>::ToListExpr(ListExpr typeInfo) {
+  if (!IsDefined()) {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  if (IsEmpty()) {
+    return nl->Empty();
+  }
+  ListExpr result = nl->OneElemList(unitToListExpr(0));
+  ListExpr last = result;
+  for (int i = 1; i < GetNoComponents(); i++) {
+    last = nl->Append(last, unitToListExpr(i));
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~readValues~}
+
+*/
+template<class B>
+bool MBasics<B>::readValues(ListExpr valuelist) {
+  ListExpr rest = valuelist;
+  string text;
+  typename B::arrayelem elem;
+  while (!nl->IsEmpty(rest)) {
+    if (listutils::isSymbolUndefined(nl->First(rest))) {
+      return false;
+    }
+    B::getString(nl->First(rest), text);
+    text = text.substr(1, text.length() - 2);
+    unsigned int newPos = (text.length() > 0 ? values.getSize() : UINT_MAX);
+    B::getElemFromList(nl->First(rest), newPos, elem);
+    pos.Append(elem);
+    if (text.length() > 0) {
+      const char *bytes = text.c_str();
+      values.write(bytes, text.length(), values.getSize());
+    }
+    rest = nl->Rest(rest);
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~readUnit~}
+
+*/
+template<class B>
+bool MBasics<B>::readUnit(ListExpr unitlist) {
+  if (!nl->HasLength(unitlist, 2)) {
+    return false;
+  }
+  SymbolicUnit unit(GetNoValues());
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  if (!unit.iv.ReadFrom(nl->First(unitlist), 
+                        sc->GetTypeExpr(SecInterval::BasicType()))) {
+    return false;
+  }
+  if (!readValues(nl->Second(unitlist))) {
+    return false;
+  }
+  if (GetNoComponents() > 0) {
+    SymbolicUnit prevUnit;
+    units.Get(GetNoComponents() - 1, prevUnit);
+    if (!(prevUnit.iv.Before(unit.iv))) { // check time intervals
+      return false;
+    }
+  }
+  units.Append(unit);
+  return true;
+}
+
+/*
+\subsection{Function ~ReadFrom~}
+
+*/
+template<class B>
+bool MBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
+  values.clean();
+  units.clean();
+  pos.clean();
+  if (listutils::isSymbolUndefined(LE)) {
+    SetDefined(false);
+    return true;
+  }
+  ListExpr rest = LE;
+  while (!nl->IsEmpty(rest)) {
+    if (!readUnit(nl->First(rest))) {
+      SetDefined(false);
+      return true;
+    }
+    rest = nl->Rest(rest);
+  }
+  SetDefined(true);
+  return true;
+}
+
+/*
+\subsection{Operator ~<<~}
+
+*/
+template<class B>
+ostream& operator<<(ostream& o, const MBasics<B>& mbs) {
+  o << nl->ToString(mbs.ToListExpr());
+  return o;
+}
+
+/*
+\subsection{Function ~Position~}
+
+*/
+template<class B>
+int MBasics<B>::Position(const Instant& inst) const {
+  assert(IsDefined());
+  assert(inst.IsDefined());
+  int first = 0, last = GetNoComponents() - 1;
+  Instant t1 = inst;
+  while (first <= last) {
+    int mid = (first + last) / 2;
+    if ((mid < 0) || (mid >= GetNoComponents())) {
+      return -1;
+    }
+    SymbolicUnit unit;
+    units.Get(mid, unit);
+    if (((Interval<Instant>)(unit.iv)).Contains(t1)) {
+      return mid;
+    }
+    else { // not contained
+      if ((t1 > unit.iv.end) || (t1 == unit.iv.end)) {
+        first = mid + 1;
+      }
+      else if ((t1 < unit.iv.start) || (t1 == unit.iv.start)) {
+        last = mid - 1;
+      }
+      else {
+        return -1; // should never be reached.
+      }
+    }
+  }
+  return -1;
+}
+
+/*
+\subsection{Function ~Get~}
+
+*/
+template<class B>
+void MBasics<B>::Get(const int i, UBasics<B>& result) const {
+  assert(IsDefined());
+  assert((i >= 0) && (i < GetNoComponents()));
+  result.SetDefined(true);
+  result.constValue.Clean();
+  set<typename B::base> values;
+  typename set<typename B::base>::iterator it;
+  GetValues(i, values);
+  for (it = values.begin(); it != values.end(); it++) {
+    result.constValue.Append(*it);
+  }
+  SecInterval iv(true);
+  GetInterval(i, iv);
+  result.timeInterval = iv;
+}
+
+/*
+\subsection{Function ~GetValues~}
+
+*/
+template<class B>
+void MBasics<B>::GetBasics(const int i, B& result) const {
+  assert(IsDefined());
+  assert((i >= 0) && (i < GetNoComponents()));
+  result.SetDefined(true);
+  result.Clean();
+  set<typename B::base> values;
+  typename set<typename B::base>::iterator it;
+  GetValues(i, values);
+  result.Append(values);
+}
+
+/*
+\subsection{Function ~GetValues~}
+
+*/
+template<class B>
+void MBasics<B>::GetValues(const int i, set<typename B::base>& result) const{
+  assert (IsDefined() && (i >= 0) && (i < GetNoComponents()));
+  result.clear();
+  SymbolicUnit unit;
+  units.Get(i, unit);
+  typename B::base val;
+  typename B::arrayelem elem1, elem2;
+  pair<unsigned int, unsigned int> flobPos; // pos, size
+  for (int j = unit.pos; j <= getUnitEndPos(i); j++) {
+    flobPos = make_pair(0, 0);
+    if (pos.Size() == 0) {
+      cout << "try to get elem " << j << " of " << pos.Size();
+    }
+    pos.Get(j, elem1);
+    unsigned int start = B::getFlobPos(elem1);
+    if (start != UINT_MAX) {
+      int k = j + 1;
+      bool finished = false;
+      while (!finished && (k < GetNoValues())) {
+        pos.Get(k, elem2);
+        unsigned int next = B::getFlobPos(elem2);
+        if (next != UINT_MAX) { // valid reference
+          flobPos = make_pair(start, next - start);
+          finished = true;
+        }
+        k++;
+      }
+      if (!finished) { // end of array
+        flobPos = make_pair(start, values.getSize() - start);
+      }
+    }
+    if (flobPos.second > 0) {
+      char *bytes = new char[flobPos.second];
+      values.read(bytes, flobPos.second, flobPos.first);
+      string text(bytes, flobPos.second);
+      delete[] bytes;
+      B::buildValue(text, elem1, val);
+      result.insert(val);
+    }
+    else {
+      B::buildValue("", elem1, val);
+      result.insert(val);
+    }
+  }
+}
+
+/*
+\subsection{Function ~GetInterval~}
+
+*/
+template<class B>
+void MBasics<B>::GetInterval(const int i, SecInterval& result) const {
+  assert((i >= 0) && (i < GetNoComponents()));
+  result.SetDefined(true);
+  SymbolicUnit unit;
+  units.Get(i, unit);
+  result = unit.iv;
+}
+
+/*
+\subsection{Function ~Clear~}
+
+*/
+template<class B>
+void MBasics<B>::Clear() {
+  units.clean();
+  values.clean();
+  pos.clean();
+}
+
+/*
+\subsection{Function ~EndBulkLoad~}
+
+*/
+template<class B>
+void MBasics<B>::EndBulkLoad(const bool sort /*= true*/, 
+                             const bool checkvalid /*= true*/) {
+  if (!IsDefined()) {
+    units.clean();
+    values.clean();
+    pos.clean();
+  }
+  units.TrimToSize();
+  pos.TrimToSize();
+}
+
+/*
+\subsection{Function ~IsValid~}
+
+*/
+template<class B>
+bool MBasics<B>::IsValid() const {
+  if (!IsDefined() || IsEmpty()) {
+    return true;
+  }
+  typename B::unitelem lastUnit, unit;
+  units.Get(0, lastUnit);
+  if (!lastUnit.iv.IsValid()) {
+    return false;
+  }
+  if (GetNoComponents() == 1) {
+    return true;
+  }
+  for (int i = 1; i < GetNoComponents(); i++) {
+    units.Get(i, unit);
+    if (!unit.iv.IsValid()) {
+      return false;
+    }
+    if (lastUnit.iv.end > unit.iv.start) {
+      return false;
+    }
+    if (!lastUnit.iv.Disjoint(unit.iv)) {
+      return false;
+    }
+    lastUnit = unit;
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~Add~}
+
+*/
+template<class B>
+void MBasics<B>::Add(const UBasics<B>& ut) {
+  assert(IsDefined() && ut.IsDefined());
+  UBasics<B> ut2(ut);
+  if (!readUnit(ut2.ToListExpr(nl->Empty()))) {
+    SetDefined(false);
+  }
+}
+
+template<class B>
+void MBasics<B>::Add(const SecInterval& iv, const B& values) {
+  assert(IsDefined() && iv.IsDefined() && values.IsDefined());
+  B values2(values);
+  ListExpr unitlist = nl->TwoElemList(iv.ToListExpr(nl->Empty()),
+                                      values2.ToListExpr(nl->Empty()));
+  if (!readUnit(unitlist)) {
+    SetDefined(false);
+  }
+  assert(IsValid());
+}
+
+/*
+\subsection{Function ~MergeAdd~}
+
+*/
+template<class B>
+void MBasics<B>::MergeAdd(const SecInterval& iv, const B& values) {
+  assert(IsDefined() && iv.IsDefined() && values.IsDefined());
+  if (!iv.IsDefined() || !iv.IsValid()) {
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+      << " MergeAdd(Unit): Unit is undefined or invalid:";
+    iv.Print(cout); cout << endl;
+    assert(false);
+  }
+  if (GetNoComponents() > 0) {
+    SymbolicUnit prevUnit;
+    units.Get(GetNoComponents() - 1, prevUnit);
+    int numOfValues = getUnitEndPos(GetNoComponents() - 1) - prevUnit.pos + 1;
+    bool equal = (values.GetNoValues() == numOfValues);
+    set<typename B::base> mvalues, bvalues;
+    typename set<typename B::base>::iterator it;
+    GetValues(GetNoComponents() - 1, mvalues);
+    values.GetValues(bvalues);
+    equal = (mvalues == bvalues);
+    if (equal && (prevUnit.iv.end == iv.start) && (prevUnit.iv.rc || iv.lc)) {
+      prevUnit.iv.end = iv.end; // adjacent invervals \& equal labels
+      prevUnit.iv.rc = iv.rc;
+      units.Put(GetNoComponents() - 1, prevUnit);
+    }
+    else if (prevUnit.iv.Before(iv)) {
+      Add(iv, values);
+    }
+  }
+  else { // first unit
+    Add(iv, values);
+  }
+  assert(IsValid());
+}
+
+template<class B>
+void MBasics<B>::MergeAdd(const UBasics<B>& ub) {
+  MergeAdd(ub.timeInterval, ub.constValue);
+}
+
+/*
+\subsection{Function ~Passes~}
+
+*/
+template<class B>
+bool MBasics<B>::Passes(const typename B::single& sg) const {
+  set<typename B::base> vals;
+  typename B::base val;
+  sg.GetValue(val);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetValues(i, vals);
+    if (vals.find(val) != vals.end()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~Passes~}
+
+*/
+template<class B>
+bool MBasics<B>::Passes(const B& bs) const {
+  B basics(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetBasics(i, basics);
+    if (basics == bs) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~At~}
+
+*/
+template<class B>
+void MBasics<B>::At(const typename B::single& sg, MBasics<B>& result) const {
+  result.Clear();
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    B basics(true);
+    GetBasics(i, basics);
+    bool found = false;
+    int j = 0;
+    typename B::base val;
+    while ((j < basics.GetNoValues()) && !found) {
+      basics.GetValue(j, val);
+      if (sg == val) {
+        found = true;
+      }
+      j++;
+    }
+    if (found) {
+      SecInterval iv;
+      GetInterval(i, iv);
+      UBasics<B> ut(iv, basics);
+      result.Add(ut);
+    }
+  }
+}
+
+/*
+\subsection{Function ~At~}
+
+*/
+template<class B>
+void MBasics<B>::At(const B& bs, MBasics<B>& result) const {
+  result.Clear();
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    B basics(true);
+    GetBasics(i, basics);
+    if (basics == bs) {
+      SecInterval iv;
+      GetInterval(i, iv);
+      result.Add(iv, basics);
+    }
+  }
+}
+
+/*
+\subsection{Function ~DefTime~}
+
+*/
+template<class B>
+void MBasics<B>::DefTime(Periods& per) const {
+  per.Clear();
+  per.SetDefined(IsDefined());
+  if (IsDefined()) {
+    SymbolicUnit unit;
+    for (int i = 0; i < GetNoComponents(); i++) {
+      units.Get(i, unit);
+      per.MergeAdd(unit.iv);
+    }
+  }
+}
+
+/*
+\subsection{Function ~Atinstant~}
+
+*/
+template<class B>
+void MBasics<B>::Atinstant(const Instant& inst, 
+                           IBasics<B>& result) const {
+  if(!IsDefined() || !inst.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  int pos = Position(inst);
+  if (pos == -1) {
+    result.SetDefined(false);
+  }
+  else {
+    GetBasics(pos, result.value);
+    result.SetDefined(true);
+    result.instant = inst;
+  }
+}
+
+/*
+\subsection{Function ~Initial~}
+
+*/
+template<class B>
+void MBasics<B>::Initial(IBasics<B>& result) const {
+  if (!IsDefined() || !GetNoComponents()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  SecInterval iv;
+  GetInterval(0, iv);
+  result.instant = iv.start;
+  GetBasics(0, result.value);
+}
+
+/*
+\subsection{Function ~Final~}
+
+*/
+template<class B>
+void MBasics<B>::Final(IBasics<B>& result) const {
+  if (!IsDefined() || !GetNoComponents()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  SecInterval iv;
+  GetInterval(GetNoComponents() - 1, iv);
+  result.instant = iv.end;
+  GetBasics(GetNoComponents() - 1, result.value);
+}
+
+/*
+\subsection{Function ~Fill~}
+
+*/
+template<class B>
+void MBasics<B>::Fill(MBasics<B>& result, DateTime& dur) const {
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.Clear();
+  result.SetDefined(true);
+  if (IsEmpty()) {
+    return;
+  }
+  UBasics<B> unit(true), lastUnit(true);
+  Get(0, lastUnit);
+  for (int i = 1; i < GetNoComponents(); i++) {
+    Get(i, unit);
+    if ((lastUnit.constValue == unit.constValue) && 
+        (unit.timeInterval.start - lastUnit.timeInterval.end <= dur)) {
+      lastUnit.timeInterval.end = unit.timeInterval.end;
+      lastUnit.timeInterval.rc = unit.timeInterval.rc;
+    }
+    else {
+      result.MergeAdd(lastUnit);
+      lastUnit = unit;
+    }
+  }
+  result.MergeAdd(lastUnit);
+}
+
+/*
+\subsection{Function ~Compress~}
+
+*/
+template<class B>
+void MBasics<B>::Compress(MBasics<B>& result) const {
+  result.Clear();
+  result.SetDefined(IsDefined());
+  if(!IsDefined()) {
+    return;
+  }
+  UBasics<B> ub(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ub);
+    result.MergeAdd(ub);
+  }
+}
+
+/*
+\subsection{Function ~Print~}
+
+*/
+template<class B>
+ostream& MBasics<B>::Print(ostream& os) const {
+  if (!IsDefined()) {
+    os << "(undefined)" << endl;
+    return os;
+  }
+  os << BasicType() << ":" << endl;
+  UBasics<B> ubs(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ubs);
+    ubs.Print(os);
+  }
+  return os;
+}
+  
+/*
+\section{Implementation of class ~MLabels~}
+
+\subsection{Function ~create~}
+
+Creates an MLabel of a certain size for testing purposes. The labels will be
+contain only numbers between 1 and size[*]rate; rate being the number of
+different labels divided by the size.
+
+*/
+void MLabel::createML(int size, bool text, double rate /* = 1.0 */) {
+  if ((size > 0) && (rate > 0) && (rate <= 1)) {
+    int max = size * rate;
+    ULabel ul(1);
+    DateTime start(instanttype);
+    time_t t;
+    time(&t);
+    srand(((unsigned int)t) % 86400000);
+    DateTime dur(0, rand(), durationtype); // duration
+    start.Set(2014, 1, 1);
+    Instant end(start);
+    end.Add(&dur);
+    SecInterval iv(start, end, true, false);
+    if (text) {
+      vector<string> trajectory;
+      Tools::createTrajectory(size, trajectory);
+      for (int i = 0; i < size; i++) {
+        time_t tm;
+        time(&tm);
+        srand(((unsigned int)tm) % 86400000);
+        DateTime dur(0, rand(), durationtype); // duration
+        ul.constValue.Set(true, trajectory[i]);
+        iv.Set(start, end, true, false);
+        ul.timeInterval = iv;
+        Add(ul);
+        start.Add(&dur);
+        end.Add(&dur);
+      }
+    }
+    else {
+      for (int i = 0; i < size; i++) {
+        time_t tm;
+        time(&tm);
+        srand(((unsigned int)tm) % 86400000);
+        DateTime dur(0, rand(), durationtype); // duration
+        ul.constValue.Set(true, Tools::int2String(max - (i % max)));
+        start.Add(&dur);
+        end.Add(&dur);
+        iv.Set(start, end, true, false);
+        ul.timeInterval = iv;
+        Add(ul);
+      }
+    }
+    units.TrimToSize();
+  }
+  else {
+    cout << "Invalid parameters for creation." << endl;
+    Clear();
+  }
+}
+
+/*
+\subsection{Function ~convertFromMString~}
+
+*/
+void MLabel::convertFromMString(const MString& source) {
+  Clear();
+  if (!IsDefined()) {
+    return;
+  }
+  SetDefined(true);
+  UString us(true);
+  for (int i = 0; i < source.GetNoComponents(); i++) {
+    source.Get(i, us);
+    ULabel ul(us.timeInterval, us.constValue.GetValue());
+    Add(ul);
+  }
+  units.TrimToSize();
+}
+
+/*
+\subsection{Function ~GetText~}
+
+Returns the pattern text as specified by the user.
+
+*/
+string Pattern::GetText() const {
+  return text.substr(0, text.length() - 1);
+}
+
+/*
+\subsection{Function ~isValid~}
+
+Decides whether the pattern is suitable for the type M.
+
+*/
+bool Pattern::isValid(const string& type) const {
+  for (int i = 0; i < getSize(); i++) {
+    if (type.length() < 6) {
+      return false;
+    }
+    if ((elems[i].hasLabel() && (type.substr(1, 5) == Place::BasicType())) ||
+        (elems[i].hasPlace() && (type.substr(1, 5) == Label::BasicType()))) {
+      return false;
+    }
+  }
+  for (unsigned int i = 0; i < conds.size(); i++) {
+    for (int j = 0; j < conds[i].getVarKeysSize(); j++) {
+      switch (conds[i].getKey(j)) {
+        case 0: { // label
+          if (type != MLabel::BasicType()) {
+            return false;
+          }
+          break;
+        }
+        case 1: { // place
+          if (type != MPlace::BasicType()) {
+            return false;
+          }
+          break;
+        }
+        case 8: { // labels
+          if (type.substr(1, 5) != Label::BasicType()) {
+            return false;
+          }
+          break;
+        }
+        case 9: { // places
+          if (type.substr(1, 5) != Place::BasicType()) {
+            return false;
+          }
+          break;
+        }
+        default: {}
+      }
+    }
+  }
+  for (unsigned int i = 0; i < assigns.size(); i++) {
+    if ((!assigns[i].getText(0).empty() && (type != MLabel::BasicType())) ||
+        (!assigns[i].getText(1).empty() && (type != MPlace::BasicType())) ||
+        (!assigns[i].getText(8).empty() && (type != MLabels::BasicType())) ||
+        (!assigns[i].getText(9).empty() && (type != MPlaces::BasicType()))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~getPattern~}
+
+Calls the parser.
+
+*/
+Pattern* Pattern::getPattern(string input, bool classify) {
+  if (input.find('\n') == string::npos) {
+    input.append("\n");
+  }
+  const char *patternChar = input.c_str();
+  return parseString(patternChar, classify);
+}
+
+bool Pattern::containsFinalState(set<int> &states) {
+  for (set<int>::iterator i = states.begin(); i != states.end(); i++) {
+    if (finalStates.count(*i)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Pattern::parseNFA() {
+  IntNfa* intNfa = 0;
+  if (parsePatternRegEx(regEx.c_str(), &intNfa) != 0) {
+    return false;
+  }
+  intNfa->nfa.makeDeterministic();
+  intNfa->nfa.minimize();
+  intNfa->nfa.bringStartStateToTop();
+  map<int, set<int> >::iterator it;
+  for (unsigned int i = 0; i < intNfa->nfa.numOfStates(); i++) {
+    map<int, set<int> > transitions = intNfa->nfa.getState(i).getTransitions();
+    map<int, int> newTrans;
+    for (it = transitions.begin(); it != transitions.end(); it++) {
+      newTrans[it->first] = *(it->second.begin());
+    }
+    nfa.push_back(newTrans);
+    if (intNfa->nfa.isFinalState(i)) {
+      finalStates.insert(i);
+    }
+  }
+//   printNfa(nfa, finalStates);
+  delete intNfa;
+  return true;
+}
+
+/*
+\subsection{Function ~matches~}
+
+Checks the pattern and the condition and (if no problem occurs) invokes the NFA
+construction and the matching procedure.
+
+*/
+template<class M>
+ExtBool Pattern::matches(M *m) {
+  ExtBool result = UNDEF;
+  if (!isValid(M::BasicType())) {
+    cout << "pattern is not suitable for type " << M::BasicType() << endl;
+    return result;
+  }
+/*  cout << nfa2String() << endl;*/
+  Match<M> *match = new Match<M>(this, m);
+  if (initEasyCondOpTrees()) {
+    result = match->matches();
+  }
+  delete match;
+  return result;
+}
+
+/*
+\subsection{Function ~getType~}
+
+*/
+template<class M>
+DataType Match<M>::getMType() {
+  if (M::BasicType() == "mlabels") {
+    return LABELS;
+  }
+  if (M::BasicType() == "mplace") {
+    return PLACE;
+  }
+  if (M::BasicType() == "mplaces") {
+    return PLACES;
+  }
+  return LABEL;
+}
+
+/*
+\subsection{Function ~match~}
+
+Loops through the MLabel calling updateStates() for every ULabel. True is
+returned if and only if the final state is an element of currentStates after
+the loop.
+
+*/
+template<class M>
+ExtBool Match<M>::matches() {
+  if (p->isNFAempty()) {
+    cout << "empty nfa" << endl;
+    return UNDEF;
+  }
+  set<int> states;
+  states.insert(0);
+  if (!p->hasConds() && !p->hasAssigns()) {
+    for (int i = 0; i < m->GetNoComponents(); i++) {
+      if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
+                        p->easyConds, p->easyCondPos, p->atomicToElem)) {
+//           cout << "mismatch at unit " << i << endl;
+        return FALSE;
+      }
+    }
+    if (!p->containsFinalState(states)) {
+//         cout << "no final state is active" << endl;
+      return FALSE;
+    }
+  }
+  else {
+    createSetMatrix(m->GetNoComponents(), p->elemToVar.size());
+    for (int i = 0; i < m->GetNoComponents(); i++) {
+      if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
+                        p->easyConds, p->easyCondPos, p->atomicToElem, true)){
+//           cout << "mismatch at unit " << i << endl;
+        Tools::deleteSetMatrix(matching, m->GetNoComponents());
+        return FALSE;
+      }
+    }
+    if (!p->containsFinalState(states)) {
+//         cout << "no final state is active" << endl;
+      Tools::deleteSetMatrix(matching, m->GetNoComponents());
+      return FALSE;
+    }
+    if (!p->initCondOpTrees()) {
+      Tools::deleteSetMatrix(matching, m->GetNoComponents());
+      return UNDEF;
+    }
+    if (!p->hasAssigns()) {
+      bool result = findMatchingBinding(p->nfa, 0, p->elems, p->conds, 
+                                        p->atomicToElem, p->elemToVar);
+      Tools::deleteSetMatrix(matching, m->GetNoComponents());
+      return (result ? TRUE : FALSE);
+    }
+    return TRUE; // happens iff rewrite is called
+  }
+  return TRUE;
+}
+
+/*
+\subsection{Function ~states2Str~}
+
+Writes the set of currently active states into a string.
+
+*/
+template<class M>
+string Match<M>::states2Str(int ulId, set<int> &states) {
+  stringstream result;
+  if (!states.empty()) {
+    set<int>::iterator it = states.begin();
+    result << "after unit # " << ulId << ", active states are {" << *it;
+    it++;
+    while (it != states.end()) {
+      result << ", " << *it;
+      it++;
+    }
+    result << "}" << endl;
+  }
+  else {
+    result << "after unit # " << ulId << ", there is no active state" << endl;
+  }
+  return result.str();
+}
+
+/*
+\subsection{Function ~matchings2Str~}
+
+Writes the matching table into a string.
+
+*/
+template<class M>
+string Match<M>::matchings2Str(unsigned int dim1, unsigned int dim2) {
+  stringstream result;
+  for (unsigned int i = 0; i < dim1; i++) {
+    for (unsigned int j = 0; j < dim2; j++) {
+      if (matching[i][j].empty()) {
+        result << "                    ";
+      }
+      else {
+        string cell;
+        set<unsigned int>::iterator it, it2;
+        for (it = matching[i][j].begin(); it != matching[i][j].end(); it++) {
+          it2 = it;
+          it2++;
+          cell += int2Str(*it) + (it2 != matching[i][j].end() ? "," : "");
+        }
+        result << cell;
+        for (unsigned int k = 20; k > cell.size(); k--) {
+          result << " ";
+        }
+      }
+    }
+    result << endl;
+  }
+  return result.str();
+}
+
+template<class T>
+bool Tools::relationHolds(const set<T>& s1, const set<T>& s2, SetRel rel) {
+  set<T> temp;
+  switch (rel) {
+    case STANDARD: {
+      set_difference(s1.begin(), s1.end(), s2.begin(), s2.end(), 
+                     std::inserter(temp, temp.begin()));
+      return temp.empty();
+    }
+    case DISJOINT: {
+      set_union(s1.begin(), s1.end(), s2.begin(), s2.end(),
+                std::inserter(temp, temp.begin()));
+      return (temp.size() == s1.size() + s2.size());
+    }
+    case SUPERSET: {
+      set_difference(s2.begin(), s2.end(), s1.begin(), s1.end(), 
+                     std::inserter(temp, temp.begin()));
+      return temp.empty();
+    }
+    case EQUAL: {
+      return s1 == s2;
+    }
+    case INTERSECT: {
+      set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), 
+                std::inserter(temp, temp.begin()));
+      return (temp.size() < s1.size() + s2.size());
+    }
+    default: // cannot occur
+      return false;
+  }
+}
+
+/*
+\subsection{Function ~valuesMatch~}
+
+*/
+template<class M>
+bool Match<M>::valuesMatch(int i, const PatElem& elem) {
+  set<pair<string, unsigned int> > ppls, mpls;
+  set<string> plbs, mlbs;
+  if (type < 2) { // label or labels
+    elem.getL(plbs);
+  }
+  else { // place or places
+    elem.getP(ppls);
+  }
+  if (plbs.empty() && ppls.empty() && (elem.getSetRel() < SUPERSET)) {
+    return true; // easiest case
+  }
+  switch (type) {
+    case LABEL: {
+      string mlb;
+      ((MLabel*)m)->GetValue(i, mlb);
+      if (elem.getSetRel() == STANDARD) {
+        return plbs.find(mlb) != plbs.end();
+      }
+      mlbs.insert(mlb);
+      return Tools::relationHolds<string>(mlbs, plbs, elem.getSetRel());
+    }
+    case LABELS: {
+      ((MLabels*)m)->GetValues(i, mlbs);
+      return Tools::relationHolds<string>(mlbs, plbs, elem.getSetRel());
+    }
+    case PLACE: {
+      pair<string, unsigned int> mpl;
+      ((MPlace*)m)->GetValue(i, mpl);
+      if (elem.getSetRel() == STANDARD) {
+        return ppls.find(mpl) != ppls.end();
+      }
+      mpls.insert(mpl);
+      return Tools::relationHolds<pair<string, unsigned int> >(mpls, ppls, 
+                                                              elem.getSetRel());
+    }  
+    case PLACES: {
+      ((MPlaces*)m)->GetValues(i, mpls);
+      return Tools::relationHolds<pair<string, unsigned int> >(mpls, ppls, 
+                                                              elem.getSetRel());
+    }
+    default: { // cannot occur
+      return false;
+    }
+  }
+}
+
+/*
+\subsection{Function ~updateStates~}
+
+Applies the NFA. Each valid transaction is processed. If ~store~ is true,
+each matching is stored.
+
+*/
+template<class M>
+bool Match<M>::updateStates(int ulId, vector<map<int, int> > &nfa,
+               vector<PatElem> &elems, set<int> &finalStates, set<int> &states,
+               vector<Condition> &easyConds, map<int, set<int> > &easyCondPos,
+               map<int, int> &atomicToElem, bool store /* = false */) {
+  set<int>::iterator its;
+  set<unsigned int>::iterator itu;
+  map<int, int> transitions;
+  for (its = states.begin(); its != states.end(); its++) { // collect possible
+    map<int, int> trans = nfa[*its];                       // transitions
+    transitions.insert(trans.begin(), trans.end());
+  }
+  if (transitions.empty()) {
+    return false;
+  }
+  states.clear();
+  map<int, int>::iterator itm, itn;
+  SecInterval iv;
+  m->GetInterval(ulId, iv);
+  set<string> ivs;
+  if (store) {
+    if (ulId < m->GetNoComponents() - 1) { // usual case
+      for (itm = transitions.begin(); itm != transitions.end(); itm++) {
+        elems[itm->first].getI(ivs);
+        if (valuesMatch(ulId, elems[itm->first]) && Tools::timesMatch(iv, ivs)
+         && easyCondsMatch(ulId, elems[itm->first], easyConds,
+                           easyCondPos[itm->first])) {
+          states.insert(states.end(), itm->second);
+          map<int, int> nextTrans = nfa[itm->second];
+          for (itn = nextTrans.begin(); itn != nextTrans.end(); itn++) {
+            itu = matching[ulId][atomicToElem[itm->first]].end();
+            matching[ulId][atomicToElem[itm->first]].insert
+                               (itu, atomicToElem[itn->first]);// store matching
+          }
+        }
+      }
+    }
+    else { // last row; mark final states with -1
+      for (itm = transitions.begin(); itm != transitions.end(); itm++) {
+        elems[itm->first].getI(ivs);
+        if (valuesMatch(ulId, elems[itm->first]) && Tools::timesMatch(iv, ivs)
+         && easyCondsMatch(ulId, elems[itm->first], easyConds,
+                           easyCondPos[itm->first])) {
+          states.insert(states.end(), itm->second);
+          if (finalStates.count(itm->second)) { // store last matching
+            matching[ulId][atomicToElem[itm->first]].insert(UINT_MAX);
+          }
+        }
+      }
+    }
+  }
+  else {
+    for (itm = transitions.begin(); itm != transitions.end(); itm++) {
+      elems[itm->first].getI(ivs);
+      if (valuesMatch(ulId, elems[itm->first]) && Tools::timesMatch(iv, ivs)
+       && easyCondsMatch(ulId, elems[itm->first], easyConds,
+                         easyCondPos[itm->first])) {
+        states.insert(states.end(), itm->second);
+      }
+    }
+  }
+  return !states.empty();
+}
+
+/*
+\subsection{Function ~cleanPaths~}
+
+Deletes all paths inside ~matching~ which do not end at a final state.
+
+*/
+template<class M>
+void Match<M>::cleanPaths(map<int, int> &atomicToElem) {
+  map<int, int> transitions = p->getTransitions(0);
+  map<int, int>::reverse_iterator itm;
+  for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
+    cleanPath(0, atomicToElem[itm->first]);
+  }
+}
+
+/*
+\subsection{Function ~findMatchingBinding~}
+
+Searches for a binding which fulfills every condition.
+
+*/
+template<class M>
+bool Match<M>::findMatchingBinding(vector<map<int, int> > &nfa, int startState,
+                                vector<PatElem> &elems,vector<Condition> &conds,
+                                map<int, int> &atomicToElem,
+                                map<int, string> &elemToVar) {
+  if ((startState < 0) || (startState > (int)nfa.size() - 1)) {
+    return false; // illegal start state
+  }
+  if (conds.empty()) {
+    return true;
+  }
+  map<int, int> transitions = nfa[startState];
+  map<string, pair<unsigned int, unsigned int> > binding;
+  map<int, int>::reverse_iterator itm;
+  for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
+    if (findBinding(0, atomicToElem[itm->first], elems, conds, elemToVar,
+                    binding)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~findBinding~}
+
+Recursively finds all bindings in the matching set matrix and checks whether
+they fulfill every condition, stopping immediately after the first success.
+
+*/
+template<class M>
+bool Match<M>::findBinding(unsigned int ulId, unsigned int pId,
+                          vector<PatElem> &elems, vector<Condition> &conds,
+                          map<int, string> &elemToVar,
+                      map<string, pair<unsigned int, unsigned int> > &binding) {
+  string var = elemToVar[pId];
+  bool inserted = false;
+  if (!var.empty()) {
+    if (binding.count(var)) { // extend existing binding
+      binding[var].second++;
+    }
+    else { // add new variable
+      binding[var] = make_pair(ulId, ulId);
+      inserted = true;
+    }
+  }
+  if (*(matching[ulId][pId].begin()) == UINT_MAX) { // complete match
+    if (conditionsMatch(conds, binding)) {
+      return true;
+    }
+  }
+  else {
+    for (set<unsigned int>::reverse_iterator it = matching[ulId][pId].rbegin();
+         it != matching[ulId][pId].rend(); it++) {
+      if (findBinding(ulId + 1, *it, elems, conds, elemToVar, binding)) {
+        return true;
+      }
+    }
+  }
+  if (!var.empty()) { // unsuccessful: reset binding
+    if (inserted) {
+      binding.erase(var);
+    }
+    else {
+      binding[var].second--;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~cleanPath~}
+
+Recursively deletes all paths starting from (ulId, pId) that do not end at a
+final state.
+
+*/
+template<class M>
+bool Match<M>::cleanPath(unsigned int ulId, unsigned int pId) {
+//   cout << "cleanPaths called, ul " << ulId << ", pE " << pId << endl;
+  if (matching[ulId][pId].empty()) {
+    return false;
+  }
+  if (*(matching[ulId][pId].begin()) == UINT_MAX) {
+    return true;
+  }
+  bool result = false;
+  set<unsigned int>::iterator it;
+  vector<unsigned int> toDelete;
+  for (it = matching[ulId][pId].begin(); it != matching[ulId][pId].end(); it++){
+    if (cleanPath(ulId + 1, *it)) {
+      result = true;
+    }
+    else {
+      toDelete.push_back(*it);
+    }
+  }
+  for (unsigned int i = 0; i < toDelete.size(); i++) {
+    matching[ulId][pId].erase(toDelete[i]);
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~easyCondsMatch~}
+
+*/
+template<class M>
+bool Match<M>::easyCondsMatch(int ulId, PatElem const &elem,
+                              vector<Condition> &easyConds, set<int> pos) {
+  if (elem.getW() || pos.empty() || easyConds.empty()) {
+    return true;
+  }
+  map<string, pair<unsigned int, unsigned int> > binding;
+  string var;
+  elem.getV(var);
+  binding[var] = make_pair(ulId, ulId);
+  for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
+    if (!evaluateCond(easyConds[*it], binding)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~conditionsMatch~}
+
+Checks whether the specified conditions are fulfilled. The result is true if
+and only if there is (at least) one binding that matches every condition.
+
+*/
+template<class M>
+bool Match<M>::conditionsMatch(vector<Condition> &conds,
+                const map<string, pair<unsigned int, unsigned int> > &binding) {
+  if (!m->GetNoComponents()) { // empty MLabel
+    return evaluateEmptyM();
+  }
+  for (unsigned int i = 0; i < conds.size(); i++) {
+    if (!evaluateCond(conds[i], binding)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~evaluateEmptyML~}
+
+This function is invoked in case of an empty moving label (i.e., with 0
+components). A match is possible for a pattern like 'X [*] Y [*]' and conditions
+X.card = 0, X.card = Y.card [*] 7. Time or label constraints are invalid.
+
+*/
+template<class M>
+bool Match<M>::evaluateEmptyM() {
+  Word res;
+  for (unsigned int i = 0; i < p->conds.size(); i++) {
+    for (int j = 0; j < p->conds[i].getVarKeysSize(); j++) {
+      if (p->conds[i].getKey(j) != 4) { // only card conditions possible
+        cout << "Error: Only cardinality conditions allowed" << endl;
+        return false;
+      }
+      p->conds[i].setCardPtr(j, 0);
+    }
+    p->conds[i].getQP()->EvalS(p->conds[i].getOpTree(), res, OPEN);
+    if (!((CcBool*)res.addr)->IsDefined() || !((CcBool*)res.addr)->GetValue()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~evaluateCond~}
+
+This function is invoked by ~conditionsMatch~ and checks whether a binding
+matches a certain condition.
+
+*/
+template<class M>
+bool Match<M>::evaluateCond(Condition &cond,
+                const map<string, pair<unsigned int, unsigned int> > &binding) {
+  Word qResult;
+  unsigned int from, to;
+  SecInterval iv(true);
+  for (int i = 0; i < cond.getVarKeysSize(); i++) {
+    string var = cond.getVar(i);
+    if (binding.count(var)) {
+      from = binding.find(var)->second.first;
+      to = binding.find(var)->second.second;
+      switch (cond.getKey(i)) {
+        case 0: { // label
+          string value;
+          ((MLabel*)m)->GetValue(from, value);
+          cond.setValuePtr(i, value);
+          break;
+        }
+        case 1: { // place
+          pair<string, unsigned int> value;
+          ((MPlace*)m)->GetValue(from, value);
+          cond.setValuePtr(i, value);
+          break;
+        }
+        case 2: { // time
+          cond.clearTimePtr(i);
+          for (unsigned int j = from; j <= to; j++) {
+            m->GetInterval(j, iv);
+            cond.mergeAddTimePtr(i, iv);
+          }
+          break;
+        }
+        case 3: { // start
+          m->GetInterval(from, iv);
+          cond.setStartEndPtr(i, iv.start);
+          break;
+        }
+        case 4: { // end
+          m->GetInterval(to, iv);
+          cond.setStartEndPtr(i, iv.end);
+          break;
+        }
+        case 5: { // leftclosed
+          m->GetInterval(from, iv);
+          cond.setLeftRightclosedPtr(i, iv.lc);
+          break;
+        }
+        case 6: { // rightclosed
+          m->GetInterval(to, iv);
+          cond.setLeftRightclosedPtr(i, iv.rc);
+          break;
+        }
+        case 7: { // card
+          cond.setCardPtr(i, to - from + 1);
+          break;
+        }
+        case 8: { // labels
+          cond.cleanLabelsPtr(i);
+          if (type == LABEL) {
+            for (unsigned int j = from; j <= to; j++) {
+              string value;
+              ((MLabel*)m)->GetValue(j, value);
+              cond.appendToLabelsPtr(i, value);
+            }
+          }
+          else {
+            for (unsigned int j = from; j <= to; j++) {
+              set<string> values;
+              ((MLabels*)m)->GetValues(j, values);
+              cond.appendToLabelsPtr(i, values);
+            }
+          }
+          break;
+        }
+        default: { // places
+          cond.cleanPlacesPtr(i);
+          if (type == PLACE) {
+            for (unsigned int j = from; j <= to; j++) {
+              pair<string, unsigned int> value;
+              ((MPlace*)m)->GetValue(j, value);
+              cond.appendToPlacesPtr(i, value);
+            }
+          }
+          else {
+            for (unsigned int j = from; j <= to; j++) {
+              set<pair<string, unsigned int> > values;
+              ((MPlaces*)m)->GetValues(j, values);
+              cond.appendToPlacesPtr(i, values);
+            }
+          }
+        }
+      }
+    }
+    else { // variable bound to empty sequence
+      switch (cond.getKey(i)) {
+        case 7: {
+          cond.setCardPtr(i, 0);
+          break;
+        }
+        case 8: {
+          cond.cleanLabelsPtr(i);
+          break;
+        }
+        case 9: {
+          cond.cleanPlacesPtr(i);
+          break;
+        }
+        default: {
+          return true;
+        }
+      }
+    }
+  }
+  cond.getQP()->EvalS(cond.getOpTree(), qResult, OPEN);
+  return ((CcBool*)qResult.addr)->GetValue();
+}
+
+string Condition::getType(int t) {
+  switch (t) {
+    case 0: return ".label";
+    case 1: return ".place";
+    case 2: return ".time";
+    case 3: return ".start";
+    case 4: return ".end";
+    case 5: return ".leftclosed";
+    case 6: return ".rightclosed";
+    case 7: return ".card";
+    case 8: return ".labels";
+    case 9: return ".places";
+    default: return ".ERROR";
+  }
+}
+
+string Condition::toString() const {
+  stringstream result;
+  result << text << endl;
+  for (unsigned int j = 0; j < varKeys.size(); j++) {
+    result << j << ": " << varKeys[j].first << "." << varKeys[j].second << endl;
+  }
+  return result.str();
+}
+
+void Condition::setValuePtr(unsigned int pos, string& value) {
+  if (pos < pointers.size()) {
+    ((Label*)pointers[pos])->Set(true, value);
+  }
+}
+
+void Condition::setValuePtr(unsigned int pos, pair<string,unsigned int>& value){
+  if (pos < pointers.size()) {
+    ((Place*)pointers[pos])->Set(true, value);
+  }
+}
+
+void Condition::clearTimePtr(unsigned int pos) {
+  if (pos < pointers.size()) {
+    if (((Periods*)pointers[pos])->IsDefined()) {
+      ((Periods*)pointers[pos])->Clear();
+    }
+  }
+}
+
+void Condition::mergeAddTimePtr(unsigned int pos, Interval<Instant>& value) {
+  if (pos < pointers.size()) {
+    ((Periods*)pointers[pos])->MergeAdd(value);
+  }
+}
+
+void Condition::setStartEndPtr(unsigned int pos, Instant& value) {
+  if (pos < pointers.size()) {
+    *((Instant*)pointers[pos]) = value;
+  }
+}
+
+void Condition::setCardPtr(unsigned int pos, int value) {
+  if (pos < pointers.size()) {
+    ((CcInt*)pointers[pos])->Set(true, value);
+  }
+}
+
+void Condition::cleanLabelsPtr(unsigned int pos) {
+  if (pos < pointers.size()) {
+    ((Labels*)pointers[pos])->Clean();
+  }
+}
+
+void Condition::appendToLabelsPtr(unsigned int pos, string& value) {
+  if (pos < pointers.size()) {
+    ((Labels*)pointers[pos])->Append(value);
+  }
+}
+
+void Condition::appendToLabelsPtr(unsigned int pos, set<string>& values) {
+  if (pos < pointers.size()) {
+    ((Labels*)pointers[pos])->Append(values);
+  }
+}
+
+void Condition::cleanPlacesPtr(unsigned int pos) {
+  if (pos < pointers.size()) {
+    ((Places*)pointers[pos])->Clean();
+  }
+}
+
+void Condition::appendToPlacesPtr(unsigned int pos, 
+                                  pair<string, unsigned int>& value) {
+  if (pos < pointers.size()) {
+    ((Places*)pointers[pos])->Append(value);
+  }
+}
+
+void Condition::appendToPlacesPtr(unsigned int pos, 
+                                  set<pair<string, unsigned int> >& values) {
+  if (pos < pointers.size()) {
+    ((Places*)pointers[pos])->Append(values);
+  }
+}
+
+void Condition::setLeftRightclosedPtr(unsigned int pos, bool value) {
+  if (pos < pointers.size()) {
+    ((CcBool*)pointers[pos])->Set(true, value);
+  }
+}
+
+/*
+\subsection{Function ~getPointer~}
+
+Static function invoked by ~initCondOpTrees~ or ~initAssignOpTrees~
+
+*/
+pair<string, Attribute*> Pattern::getPointer(int key) {
+  pair<string, Attribute*> result;
+  switch (key) {
+    case 0: { // label, type Label
+      result.second = new Label(true);
+      result.first = "[const label pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 1: { // place, type Place
+      result.second = new Place(true);
+      result.first = "[const place pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 2: { // time, type Periods
+      result.second = new Periods(1);
+      result.first = "[const periods pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 3:   // start, type Instant
+    case 4: { // end, type Instant
+      result.second = new DateTime(instanttype);
+      result.first = "[const instant pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 5:   // leftclosed, type CcBool
+    case 6: { // rightclosed, type CcBool
+      result.second = new CcBool(false);
+      result.first = "[const bool pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 7: { // card, type CcInt
+      result.second = new CcInt(false);
+      result.first = "[const int pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 8: { // labels, type Labels
+      result.second = new Labels(true);
+      result.first = "[const labels pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    default: { // places, type Places
+      result.second = new Places(true);
+      result.first = "[const places pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+    }
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~initCondOpTrees~}
+
+For a pattern with conditions, an operator tree structure is prepared.
+
+*/
+bool Pattern::initCondOpTrees() {
+  for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
+    if (!conds[i].initOpTree()) {
+      cout << "Operator tree for condition " << i << " uninitialized" << endl;
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Condition::initOpTree() {
+  string q(""), part, toReplace("");
+  pair<string, Attribute*> strAttr;
+  vector<Attribute*> ptrs;
+  if (!isTreeOk()) {
+    q = "query " + text;
+    for (unsigned int j = 0; j < varKeys.size(); j++) { // init pointers
+      strAttr = Pattern::getPointer(getKey(j));
+      ptrs.push_back(strAttr.second);
+      toReplace = getVar(j) + getType(getKey(j));
+      q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+    }
+    pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
+    if (!qp_optree.first) {
+      return false;
+    }
+    setOpTree(qp_optree);
+    setPointers(ptrs);
+    ptrs.clear();
+    setTreeOk(true);
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~initEasyCondOpTrees~}
+
+For a pattern with conditions, an operator tree structure is prepared.
+
+*/
+bool Pattern::initEasyCondOpTrees() {
+  string q(""), part, toReplace("");
+  pair<string, Attribute*> strAttr;
+  vector<Attribute*> ptrs;
+  for (unsigned int i = 0; i < easyConds.size(); i++) {
+    if (!easyConds[i].isTreeOk()) {
+      q = "query " + easyConds[i].getText();
+      for (int j = 0; j < easyConds[i].getVarKeysSize(); j++) { // init pointers
+        strAttr = getPointer(easyConds[i].getKey(j));
+        ptrs.push_back(strAttr.second);
+        toReplace = easyConds[i].getVar(j)
+                  + Condition::getType(easyConds[i].getKey(j));
+        q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+      }
+      pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
+      if (!qp_optree.first) {
+        cout << "Op tree for easy condition " << i << " uninitialized" << endl;
+        return false;
+      }
+      easyConds[i].setOpTree(qp_optree);
+      easyConds[i].setPointers(ptrs);
+      ptrs.clear();
+      easyConds[i].setTreeOk(true);
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~deleteCondOpTrees~}
+
+Removes the corresponding structures.
+
+*/
+void Pattern::deleteCondOpTrees() {
+  for (unsigned int i = 0; i < conds.size(); i++) {
+    if (conds[i].isTreeOk()) {
+      conds[i].deleteOpTree();
+    }
+  }
+}
+
+/*
+\subsection{Function ~deleteEasyCondOpTrees~}
+
+Removes the corresponding structures.
+
+*/
+void Pattern::deleteEasyCondOpTrees() {
+  for (unsigned int i = 0; i < easyConds.size(); i++) {
+    if (easyConds[i].isTreeOk()) {
+      easyConds[i].deleteOpTree();
+    }
+  }
+}
+
+/*
+\section{Functions for class ~Classifier~}
+
+\subsection{List Representation}
+
+The list representation of a classifier is
+
+----    ((desc_1 pat_1) (desc_2 pat_2) ...)
+----
+
+\subsection{Constructors}
+
+*/
+Classifier::Classifier(const Classifier& src) {
+  charpos = src.charpos;
+  chars = src.chars;
+  delta = src.delta;
+  s2p = src.s2p;
+  defined = src.defined;
+}
+
+string Classifier::getDesc(int pos) {
+  int chpos = -1;
+  int chposnext = -1;
+  charpos.Get(pos * 2, chpos);
+  charpos.Get(pos * 2 + 1, chposnext);
+  string result = "";
+  char ch;
+  for (int i = chpos; i < chposnext; i++) {
+    chars.Get(i, ch);
+    result += ch;
+  }
+  return result;
+}
+
+string Classifier::getPatText(int pos) {
+  int chpos = -1;
+  int chposnext = -1;
+  charpos.Get(pos * 2 + 1, chpos);
+  charpos.Get(pos * 2 + 2, chposnext);
+  string result = "";
+  char ch;
+  for (int i = chpos; i < chposnext; i++) {
+    chars.Get(i, ch);
+    result += ch;
+  }
+  return result;
+}
+
+void Classifier::getStartStates(set<int> &startStates) {
+  startStates.clear();
+  int pat = 0;
+  startStates.insert(0);
+  for (int i = 1; i < s2p.Size(); i++) {
+    s2p.Get(i, pat);
+    if (pat < 0) {
+      startStates.insert(startStates.end(), - pat);
+    }
+  }
+}
+
+/*
+\subsection{Function Describing the Signature of the Type Constructor}
+
+*/
+ListExpr Classifier::Property() {
+  return (nl->TwoElemList(
+    nl->FiveElemList(nl->StringAtom("Signature"),
+             nl->StringAtom("Example Type List"),
+             nl->StringAtom("List Rep"),
+             nl->StringAtom("Example List"),
+             nl->StringAtom("Remarks")),
+    nl->FiveElemList(nl->StringAtom("->" + Kind::DATA() ),
+             nl->StringAtom(Classifier::BasicType()),
+             nl->StringAtom("((d1:text, p1:text) ((d2:text) (p2:text)) ...)"),
+             nl->StringAtom("((home (_ at_home) *))"),
+             nl->StringAtom("a collection of pairs (description, pattern)"))));
+}
+
+/*
+\subsection{~In~ Function}
+
+*/
+Word Classifier::In(const ListExpr typeInfo, const ListExpr instance,
+                    const int errorPos, ListExpr& errorInfo, bool& correct) {
+  Word result = SetWord(Address(0));
+  if (nl->IsEmpty(instance)) {
+    cmsg.inFunError("Empty list");
+    return SetWord(Address(0));
+  }
+  NList list(instance);
+  Classifier* c = new Classifier(0);
+  Pattern* p = 0;
+  map<int, int> state2Pat; // maps start and final states to their pattern id
+  c->SetDefined(true);
+  c->appendCharPos(0);
+  vector<Pattern*> patterns;
+  while (!list.isEmpty()) {
+    if ((list.length() % 2 == 0) && !list.isAtom() && list.first().isAtom() &&
+     list.first().isText() && list.second().isAtom() && list.second().isText()){
+      for (unsigned int i = 0; i < list.first().str().length(); i++) { //descr
+        c->appendChar(list.first().str()[i]);
+      }
+      c->appendCharPos(c->getCharSize());
+      for (unsigned int i = 0; i < list.second().str().length(); i++) {//pattern
+        c->appendChar(list.second().str()[i]);
+      }
+      c->appendCharPos(c->getCharSize());
+      p = Pattern::getPattern(list.second().str(), true);
+      patterns.push_back(p);
+    }
+    else {
+      cmsg.inFunError("Expecting a list of an even number of text atoms!");
+      delete c;
+      return SetWord(Address(0));
+    }
+    list.rest();
+    list.rest();
+  }
+  vector<map<int, int> > nfa;
+  set<int> finalStates;
+  c->buildMultiNFA(patterns, nfa, finalStates, state2Pat);
+  for (unsigned int i = 0; i < patterns.size(); i++) {
+    delete patterns[i];
+  }
+  c->setPersistentNFA(nfa, finalStates, state2Pat);
+  result.addr = c;
+  return result;
+}
+
+/*
+\subsection{~Out~ Function}
+
+*/
+ListExpr Classifier::Out(ListExpr typeInfo, Word value) {
+  Classifier* c = static_cast<Classifier*>(value.addr);
+  if (!c->IsDefined()) {
+    return (NList(Symbol::UNDEFINED())).listExpr();
+  }
+  if (c->IsEmpty()) {
+    return (NList()).listExpr();
+  }
+  else {
+    NList list(c->getDesc(0), true, true);
+    list.append(NList(c->getPatText(0), true, true));
+    for (int i = 1; i < (c->getCharPosSize() / 2); i++) {
+      list.append(NList(c->getDesc(i), true, true));
+      list.append(NList(c->getPatText(i), true, true));
+    }
+    return list.listExpr();
+  }
+}
+
+/*
+\subsection{Kind Checking Function}
+
+This function checks whether the type constructor is applied correctly. Since
+type constructor ~classifier~ does not have arguments, this is trivial.
+
+*/
+bool Classifier::KindCheck(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, Classifier::BasicType()));
+}
+
+/*
+
+\subsection{~Create~-function}
+
+*/
+Word Classifier::Create(const ListExpr typeInfo) {
+  Classifier* c = new Classifier(0);
+  return (SetWord(c));
+}
+
+/*
+\subsection{~Delete~-function}
+
+*/
+void Classifier::Delete(const ListExpr typeInfo, Word& w) {
+  Classifier* c = (Classifier*)w.addr;
+  delete c;
+}
+
+/*
+\subsection{~Open~-function}
+
+*/
+bool Classifier::Open(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value) {
+  Classifier *c = (Classifier*)Attribute::Open(valueRecord, offset, typeInfo);
+  value.setAddr(c);
+  return true;
+}
+
+/*
+\subsection{~Save~-function}
+
+*/
+bool Classifier::Save(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value) {
+  Classifier *c = (Classifier*)value.addr;
+  Attribute::Save(valueRecord, offset, typeInfo, c);
+  return true;
+}
+
+/*
+\subsection{~Close~-function}
+
+*/
+void Classifier::Close(const ListExpr typeInfo, Word& w) {
+  Classifier* c = (Classifier*)w.addr;
+  delete c;
+}
+
+/*
+\subsection{~Clone~-function}
+
+*/
+Word Classifier::Clone(const ListExpr typeInfo, const Word& w) {
+  return SetWord(((Classifier*)w.addr)->Clone());
+}
+
+/*
+\subsection{~SizeOf~-function}
+
+*/
+int Classifier::SizeOfObj() {
+  return sizeof(Classifier);
+}
+
+/*
+\subsection{~Cast~-function}
+
+*/
+void* Classifier::Cast(void* addr) {
+  return (new (addr)Classifier);
+}
+
+/*
+\subsection{Compare}
+
+*/
+int Classifier::Compare(const Attribute* arg) const {
+  if (getCharPosSize() > ((Classifier*)arg)->getCharPosSize()) {
+    return 1;
+  }
+  else if (getCharPosSize() < ((Classifier*)arg)->getCharPosSize()) {
+    return -1;
+  }
+  else {
+    if (getCharSize() > ((Classifier*)arg)->getCharPosSize()) {
+      return 1;
+    }
+    else if (getCharSize() < ((Classifier*)arg)->getCharPosSize()) {
+      return -1;
+    }
+    else {
+      return 0;
+    }
+  }
+}
+
+/*
+\subsection{HashValue}
+
+*/
+size_t Classifier::HashValue() const {
+  return getCharPosSize() * getCharSize();
+}
+
+/*
+\subsection{Adjacent}
+
+Not implemented.
+
+*/
+bool Classifier::Adjacent(const Attribute* arg) const {
+  return 0;
+}
+
+/*
+\subsection{Clone}
+
+Returns a new created element labels (clone) which is a copy of ~this~.
+
+*/
+Classifier* Classifier::Clone() const {
+  assert(defined);
+  Classifier *c = new Classifier(*this);
+  return c;
+}
+
+/*
+\subsection{CopyFrom}
+
+*/
+void Classifier::CopyFrom(const Attribute* right) {
+  *this = *((Classifier*)right);
+}
+
+/*
+\subsection{Sizeof}
+
+*/
+size_t Classifier::Sizeof() const {
+  return sizeof(*this);
+}
+
+/*
+\subsection{Creation of the Type Constructor Instance}
+
+*/
+TypeConstructor classifierTC(
+  Classifier::BasicType(),             // name of the type in SECONDO
+  Classifier::Property,                // property function describing signature
+  Classifier::Out, Classifier::In,     // Out and In functions
+  0, 0,                                // SaveToList, RestoreFromList functions
+  Classifier::Create, Classifier::Delete, // object creation and deletion
+  0, 0,                                // object open, save
+  Classifier::Close, Classifier::Clone,// close, and clone
+  0,                                   // cast function
+  Classifier::SizeOfObj,               // sizeof function
+  Classifier::KindCheck );             // kind checking function
+
+/*
+\subsection{Function ~buildMultiNFA~}
+
+*/
+void Classifier::buildMultiNFA(vector<Pattern*> patterns,
+ vector<map<int, int> > &nfa, set<int> &finalStates, map<int, int> &state2Pat) {
+  map<int, set<int> >::iterator it;
+  unsigned int elemShift = 0;
+  for (unsigned int i = 0; i < patterns.size(); i++) {
+    unsigned int stateShift = nfa.size();
+    IntNfa* intNfa = 0;
+    state2Pat[stateShift] = -i;
+    if (parsePatternRegEx(patterns[i]->getRegEx().c_str(), &intNfa) != 0) {
+      cout << "error while parsing " << patterns[i]->getRegEx() << endl;
+      return;
+    }
+    intNfa->nfa.makeDeterministic();
+    intNfa->nfa.minimize();
+    intNfa->nfa.bringStartStateToTop();
+    map<int, set<int> >::iterator it;
+    for (unsigned int j = 0; j < intNfa->nfa.numOfStates(); j++) {
+      map<int, set<int> > trans = intNfa->nfa.getState(j).getTransitions();
+      map<int, int> newTrans;
+      for (it = trans.begin(); it != trans.end(); it++) {
+        newTrans[it->first + elemShift] = *(it->second.begin()) + stateShift;
+      }
+      nfa.push_back(newTrans);
+      if (intNfa->nfa.isFinalState(j)) {
+        finalStates.insert(j + stateShift);
+        state2Pat[j + stateShift] = i;
+      }
+      else if (j > 0) {
+        state2Pat[j + stateShift] = INT_MAX;
+      }
+    }
+    elemShift += patterns[i]->getSize();
+    delete intNfa;
+  }
+}
+
+/*
+\subsection{Constructor for class ~IndexMatchesLI~}
+
+*/
+IndexMatchesLI::IndexMatchesLI(Relation *rel, InvertedFile *inv,
+ R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p, bool deleteP, 
+   DataType type):
+ mRel(rel), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
+  if (_p) {
+    if (mRel->GetNoTuples() > 0) {
+      p = *_p;
+      initialize();
+      applyNFA();
+      p.deleteEasyCondOpTrees();
+      p.deleteCondOpTrees();
+      if (deleteP) {
+        delete _p;
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~nextResultTuple~}
+
+*/
+Tuple* IndexMatchesLI::nextTuple() {
+  if (!matches.empty()) {
+    TupleId result = matches.back();
+    matches.pop_back();
+    return mRel->GetTuple(result, false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Function ~applyNFA~}
+
+*/
+void IndexMatchesLI::applyNFA() {
+  set<int> states, newStates;
+  PatElem elem;
+  states.insert(0);
+  set<int>::reverse_iterator is;
+  map<int, int>::reverse_iterator im;
+  while ((activeTuples > 0) && !states.empty()) {
+//     cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
+//          << matches.size() << " matches; states:";
+//     for (is = states.rbegin(); is != states.rend(); is++) {
+//       cout << " " << *is;
+//     }
+//     cout << endl;
+    for (is = states.rbegin(); is != states.rend(); is++) {
+      map<int, int> trans = p.getTransitions(*is);
+      for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++) {
+        p.getElem(im->first, elem);
+        if (elem.getW() == NO) { // no wildcard
+//           cout << "call simpleMatch for transition " << *is << " --" 
+//                << im->first << "--> " << im->second << endl;
+          if (simpleMatch(im->first, *is, im->second)) {
+            newStates.insert(im->second);
+          }
+        }
+        else { // + or *
+//           cout << "call wildcardMatch for transition " << *is << " --> " 
+//                << im->second << endl;
+          if (wildcardMatch(*is, *im)) {
+            newStates.insert(im->second);
+          }
+        }
+      }
+    }
+    states.clear();
+    states.swap(newStates);
+    clearMatchInfo();
+//     cout << "end of While loop. " << states.size() << " " << activeTuples
+//          << endl;
+  }
+}
+
+/*
+\subsection{Constructors for class ~FilterMatchesLI~}
+
+*/
+template<class M>
+FilterMatchesLI<M>::FilterMatchesLI(Word _stream, int _attrIndex, string& pText)
+               : stream(_stream), attrIndex(_attrIndex), match(0), 
+                 streamOpen(false), deleteP(true) {
+  Pattern *p = Pattern::getPattern(pText);
+  if (p) {
+    if (p->isValid(M::BasicType())) {
+      match = new Match<M>(p, 0);
+      stream.open();
+      streamOpen = true;
+    }
+    else {
+      cout << "pattern is not suitable for type " << M::BasicType() << endl;
+    }
+  }
+}
+
+/*
+\subsection{Destructor for class ~FilterMatchesLI~}
+
+*/
+template<class M>
+FilterMatchesLI<M>::~FilterMatchesLI() {
+  if (match) {
+    if (deleteP) {
+      match->deletePattern();
+    }
+    delete match;
+    match = 0;
+  }
+  if (streamOpen) {
+    stream.close();
+  }
+}
+
+/*
+\subsection{Function ~getNextResult~}
+
+*/
+template<class M>
+Tuple* FilterMatchesLI<M>::getNextResult() {
+  if (!match) {
+    return 0;
+  }
+  Tuple* cand = stream.request();
+  while (cand) {
+    match->setM((M*)cand->GetAttribute(attrIndex));
+    if (match->matches() == TRUE) {
+      return cand;
+    }
+    cand->DeleteIfAllowed();
+    cand = stream.request();
+  }
+  return 0;
+}
+
+/*
+\subsection{Function ~initOpTrees~}
+
+Necessary for the operator ~rewrite~
+
+*/
+bool Assign::initOpTrees() {
+  if (treesOk && opTree[0].second) {
+    return true;
+  }
+  for (int i = 0; i <= 9; i++) {
+    if (pointers[i].size() > 0) { // pointers already initialized
+      return true;
+    }
+  }
+  if (!occurs() && (!hasValue() || !hasTime())) {
+    cout << "not enough data for variable " << var << endl;
+    return false;
+  }
+  string q(""), part, toReplace("");
+  pair<string, Attribute*> strAttr;
+  for (int i = 0; i <= 9; i++) {
+    if (!text[i].empty()) {
+      q = "query " + text[i];
+      for (unsigned int j = 0; j < right[i].size(); j++) { // loop through keys
+        if (right[i][j].second == 2) { // interval instead of periods
+          deleteIfAllowed(strAttr.second);
+          strAttr.second = new SecInterval(true);
+          strAttr.first = "[const interval pointer "
+                   + nl->ToString(listutils::getPtrList(strAttr.second)) + "]";
+        }
+        else {
+          strAttr = Pattern::getPointer(right[i][j].second);
+        }
+        pointers[i].push_back(strAttr.second);
+        toReplace = right[i][j].first + Condition::getType(right[i][j].second);
+        q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+        cout << q << endl;
+      }
+      opTree[i] = Tools::processQueryStr(q, i);
+      if (!opTree[i].first) {
+        cout << "pointer not initialized" << endl;
+        return false;
+      }
+      if (!opTree[i].second) {
+        cout << "opTree not initialized" << endl;
+        return false;
+      }
+    }
+  }
+  treesOk = true;
+  return true;
+}
+
+void Assign::clear() {
+  resultPos = -1;
+  for (int i = 0; i < 6; i++) {
+    text[i].clear();
+    right[i].clear();
+  }
+  right[6].clear();
+  deleteOpTrees();
+}
+
+void Assign::deleteOpTrees() {
+  if (treesOk) {
+    for (int i = 0; i < 6; i++) {
+      if (opTree[i].first) {
+        opTree[i].first->Destroy(opTree[i].second, true);
+        delete opTree[i].first;
+      }
+      for (unsigned int j = 0; j < pointers[i].size(); j++) {
+        if (pointers[i][j]) {
+          deleteIfAllowed(pointers[i][j]);
+          pointers[i][j] = 0;
+        }
+      }
+      pointers[i].clear();
+    }
+  }
+  treesOk = false;
+}
+
+void Condition::deleteOpTree() {
+  if (treeOk) {
+    if (opTree.first) {
+      opTree.first->Destroy(opTree.second, true);
+      delete opTree.first;
+      for (unsigned int i = 0; i < pointers.size(); i++) {
+        deleteIfAllowed(pointers[i]);
+      }
+    }
+    treeOk = false;
+  }
+}
+
+template<class M>
+RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
+  if (pat->isValid(M::BasicType())) {
+    match = new Match<M>(pat, src);
+    if (match->matches()) {
+      match->initCondOpTrees();
+      if (!src->GetNoComponents()) {
+        BindingStackElem dummy(0, 0);
+        bindingStack.push(dummy);
+      }
+      else {
+        map<int, int> transitions = pat->getTransitions(0);
+        for (map<int, int>::iterator itm = transitions.begin();
+                                    itm != transitions.end(); itm++) {
+          BindingStackElem bE(0, itm->first); // init stack
+    //       cout << "push (0, " << itm->first << ") to stack" << endl;
+          bindingStack.push(bE);
+        }
+      }
+    }
+    else {
+      match->deletePattern();
+      delete match;
+      match = 0;
+    }
+  }
+  else {
+    cout << "pattern is not suitable for type " << MLabel::BasicType() << endl;
+    match = 0;
+  }
+}
+
+/*
+\subsection{Function ~rewrite~}
+
+*/
+template<class M>
+M* RewriteLI<M>::rewrite(M *src, map<string, pair<unsigned int,unsigned int> > 
+                         binding, vector<Assign> &assigns){
+  M *result = new M(true);
+  Word qResult;
+  Instant start(instanttype), end(instanttype);
+  SecInterval iv(true), iv2(true);
+  bool lc(false), rc(false);
+  pair<unsigned int, unsigned int> segment;
+  assert(src->IsValid());
+  for (unsigned int i = 0; i < assigns.size(); i++) {
+    for (int j = 0; j <= 9; j++) {
+      if (!assigns[i].getText(j).empty()) {
+        for (int k = 0; k < assigns[i].getRightSize(j); k++) {
+          if (binding.count(assigns[i].getRightVar(j, k))) {
+            segment = binding[assigns[i].getRightVar(j, k)];
+            switch (assigns[i].getRightKey(j, k)) {
+              case 0: { // label
+                string lvalue;
+                ((MLabel*)src)->GetValue(segment.first, lvalue);
+                assigns[i].setLabelPtr(k, lvalue);
+                break;
+              }
+              case 1: { // place
+                pair<string, unsigned int> pvalue;
+                ((MPlace*)src)->GetValue(segment.first, pvalue);
+                assigns[i].setPlacePtr(k, pvalue);
+                break;
+              }
+              case 2: { // time
+                src->GetInterval(segment.first, iv);
+                src->GetInterval(segment.second, iv2);
+                iv.end = iv2.end;
+                iv.rc = iv2.rc;
+                assigns[i].setTimePtr(k, iv);
+                break;
+              }
+              case 3: { // start
+                src->GetInterval(segment.first, iv);
+                if (j == 3) {
+                  assigns[i].setStartPtr(k, iv.start);
+                }
+                else {
+                  assigns[i].setEndPtr(k, iv.start);
+                }
+                break;
+              }
+              case 4: { // end
+                src->GetInterval(segment.second, iv);
+                if (j == 3) {
+                  assigns[i].setStartPtr(k, iv.end);
+                }
+                else {
+                  assigns[i].setEndPtr(k, iv.end);
+                }
+                break;
+              }
+              case 5: { // leftclosed
+                src->GetInterval(segment.first, iv);
+                if (j == 5) {
+                  assigns[i].setLeftclosedPtr(k, iv.lc);
+                }
+                else {
+                  assigns[i].setRightclosedPtr(k, iv.lc);
+                }
+                break;
+              }
+              case 6: { // rightclosed
+                src->GetInterval(segment.second, iv);
+                if (j == 5) {
+                  assigns[i].setLeftclosedPtr(k, iv.rc);
+                }
+                else {
+                  assigns[i].setRightclosedPtr(k, iv.rc);
+                }
+                break;
+              }
+              case 8: { // labels
+                set<Labels::base> lvalues;
+                for (unsigned int m = segment.first; m <= segment.second; m++) {
+                  ((MLabels*)src)->GetValues(m, lvalues);
+                  assigns[i].appendToLabelsPtr(k, lvalues);
+                }
+                break;
+              }
+              case 9: { // places
+                set<Places::base> pvalues;
+                for (unsigned int m = segment.first; m <= segment.second; m++) {
+                  ((MPlaces*)src)->GetValues(m, pvalues);
+                  assigns[i].appendToPlacesPtr(k, pvalues);
+                }
+                break;
+              }
+              default: { // cannot occur
+                cout << "Error: assigns[" << i << "].getRightKey(" << j << ", "
+                     << k << ") = " << assigns[i].getRightKey(j, k) << endl;
+                result->SetDefined(false);
+                return result;
+              }
+            }
+          }
+          else { // variable from right size unbound
+            result->SetDefined(false);
+            return result;
+          }
+        }
+      }
+    } // all pointers are set now
+    Label lb(true);
+    if (!assigns[i].getText(0).empty()) {
+      assigns[i].getQP(0)->EvalS(assigns[i].getOpTree(0), qResult, OPEN);
+      lb = *((Label*)qResult.addr);
+    }
+    Place pl(true);
+    if (!assigns[i].getText(1).empty()) {
+      assigns[i].getQP(1)->EvalS(assigns[i].getOpTree(1), qResult, OPEN);
+      pl = *((Place*)qResult.addr);
+    }
+    if (!assigns[i].getText(2).empty()) {
+      assigns[i].getQP(2)->EvalS(assigns[i].getOpTree(2), qResult, OPEN);
+      iv2 = *((SecInterval*)qResult.addr);
+    }
+    if (!assigns[i].getText(3).empty()) {
+      assigns[i].getQP(3)->EvalS(assigns[i].getOpTree(3), qResult, OPEN);
+      start = *((Instant*)qResult.addr);
+    }
+    if (!assigns[i].getText(3).empty()) {
+      assigns[i].getQP(4)->EvalS(assigns[i].getOpTree(4), qResult, OPEN);
+      end = *((Instant*)qResult.addr);
+    }
+    if (!assigns[i].getText(5).empty()) {
+      assigns[i].getQP(5)->EvalS(assigns[i].getOpTree(5), qResult, OPEN);
+      lc = ((CcBool*)qResult.addr)->GetValue();
+    }
+    if (!assigns[i].getText(6).empty()) {
+      assigns[i].getQP(6)->EvalS(assigns[i].getOpTree(6), qResult, OPEN);
+      rc = ((CcBool*)qResult.addr)->GetValue();
+    }
+    Labels lbs(true);
+    if (!assigns[i].getText(8).empty()) {
+      assigns[i].getQP(8)->EvalS(assigns[i].getOpTree(8), qResult, OPEN);
+      lbs = *((Labels*)qResult.addr);
+    }
+    Places pls(true);
+    if (!assigns[i].getText(9).empty()) {
+      assigns[i].getQP(9)->EvalS(assigns[i].getOpTree(9), qResult, OPEN);
+      pls = *((Places*)qResult.addr);
+    }
+     // information from assignment i collected
+    if (binding.count(assigns[i].getV())) { // variable occurs in binding
+      segment = binding[assigns[i].getV()];
+      if (segment.second == segment.first) { // 1 source ul
+        src->GetInterval(segment.first, iv);
+        if (!assigns[i].getText(2).empty()) {
+          iv = iv2;
+        }
+        if (!assigns[i].getText(3).empty()) {
+          iv.start = start;
+        }
+        if (!assigns[i].getText(4).empty()) {
+          iv.end = end;
+        }
+        if (!assigns[i].getText(5).empty()) {
+          iv.lc = lc;
+        }
+        if (!assigns[i].getText(6).empty()) {
+          iv.rc = rc;
+        }
+        if (!iv.IsValid()) {
+          iv.Print(cout);
+          cout << " is an invalid interval" << endl;
+          result->SetDefined(false);
+          return result;
+        }
+        if (M::BasicType() == MLabel::BasicType()) {
+          if (!assigns[i].getQP(0)) {
+            string lvalue;
+            ((MLabel*)src)->GetValue(segment.first, lvalue);
+            ((MLabel*)result)->Add(iv, lvalue);
+          }
+          else {
+            ((MLabel*)result)->Add(iv, lb);
+          }
+        }
+        else if (M::BasicType() == MPlace::BasicType()) {
+          if (!assigns[i].getQP(1)) {
+            pair<string, unsigned int> pvalue;
+            ((MPlace*)src)->GetValue(segment.first, pvalue);
+            ((MPlace*)result)->Add(iv, pvalue);
+          }
+          else {
+            ((MPlace*)result)->Add(iv, pl);
+          }
+        }
+        else if (M::BasicType() == MLabels::BasicType()) {
+          if (!assigns[i].getQP(8)) {
+            ((MLabels*)src)->GetBasics(segment.first, lbs);
+          }
+          ((MLabels*)result)->Add(iv, lbs);
+        }
+        else if (M::BasicType() == MPlaces::BasicType()) {
+          if (!assigns[i].getQP(9)) {
+            ((MPlaces*)src)->GetBasics(segment.first, pls);
+          }
+          ((MPlaces*)result)->Add(iv, pls);
+        }
+      }
+      else { // arbitrary many source uls
+        for (unsigned int m = segment.first; m <= segment.second; m++) {
+          src->GetInterval(m, iv);
+          if ((m == segment.first) && // first unit label
+            (!assigns[i].getText(2).empty() || !assigns[i].getText(3).empty())){
+            iv.start = start;
+          }
+          if ((m == segment.second) && // last unit label
+            (!assigns[i].getText(2).empty() || !assigns[i].getText(4).empty())){
+            iv.end = end;
+          }
+          if ((m == segment.first) && !assigns[i].getText(5).empty()) {
+            iv.lc = lc;
+          }
+          if ((m == segment.second) && !assigns[i].getText(6).empty()) {
+            iv.rc = rc;
+          }
+          if (!iv.IsValid()) {
+            iv.Print(cout);
+            cout << " is an invalid interval" << endl;
+            result->SetDefined(false);
+            return result;
+          } // TODO: collect values from src
+          if (!assigns[i].getText(8).empty()) {
+            ((MLabels*)result)->Add(iv, lbs);
+          }
+          if (!assigns[i].getText(9).empty()) {
+            ((MPlaces*)result)->Add(iv, pls);
+          }
+        }
+      }
+    }
+    else { // variable does not occur in binding
+      if (!assigns[i].occurs()) { // and not in pattern
+        if (!assigns[i].getText(2).empty()) {
+          iv = iv2;
+        }
+        else {
+          iv.start = start;
+          iv.end = end;
+        }
+        if (!assigns[i].getText(5).empty()) {
+          iv.lc = lc;
+        }
+        if (!assigns[i].getText(6).empty()) {
+          iv.rc = rc;
+        }
+        if (!assigns[i].getText(0).empty()) {
+          ((MLabel*)result)->Add(iv, lb);
+        }
+        if (!assigns[i].getText(1).empty()) {
+          ((MPlace*)result)->Add(iv, pl);
+        }
+        if (!assigns[i].getText(8).empty()) {
+          ((MLabels*)result)->Add(iv, lbs);
+        }
+        if (!assigns[i].getText(9).empty()) {
+          ((MPlaces*)result)->Add(iv, pls);
+        }
+      }
+    }
+  }
+  assert(result->IsValid());
+  return result;
+}
+
+template<class M>
+M* RewriteLI<M>::getNextResult() {
+  if (!match) {
+    return 0;
+  }
+  if (!match->m->GetNoComponents()) { // empty mlabel
+    if (bindingStack.empty()) {
+      return 0;
+    }
+    bindingStack.pop();
+    vector<Condition> *conds = match->p->getConds();
+    if (match->conditionsMatch(*conds, binding)) {
+      M *source = match->m;
+      return rewrite(source, binding, match->p->getAssigns());
+    }
+    return 0;
+  }
+  else { // non-empty mlabel
+    BindingStackElem bE(0, 0);
+    while (!bindingStack.empty()) {
+      bE = bindingStack.top();
+  //    cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
+      bindingStack.pop();
+      resetBinding(bE.ulId);
+      if (findNextBinding(bE.ulId, bE.peId, match->p, 0)) {
+//         match->printBinding(binding);
+        if (!rewBindings.count(binding)) {
+          rewBindings.insert(binding);
+          M *source = match->m;
+          return rewrite(source, binding, match->p->getAssigns());
+        }
+      }
+    }
+  //   cout << "stack is empty" << endl;
+    match->deletePattern();
+    match->deleteSetMatrix();
+    delete match;
+    return 0;
+  }
+}
+
+template<class M>
+void RewriteLI<M>::resetBinding(unsigned int limit) {
+  vector<string> toDelete;
+  map<string, pair<unsigned int, unsigned int> >::iterator it;
+  for (it = binding.begin(); it != binding.end(); it++) {
+    if (it->second.first >= limit) {
+      toDelete.push_back(it->first);
+    }
+    else if (it->second.second >= limit) {
+      it->second.second = limit - 1;
+    }
+  }
+  for (unsigned int i = 0; i < toDelete.size(); i++) {
+    binding.erase(toDelete[i]);
+  }
+}
+
+template<class M>
+bool RewriteLI<M>::findNextBinding(unsigned int ulId, unsigned int peId,
+                                   Pattern *p, int offset) {
+//   cout << "findNextBinding(" << ulId << ", " << peId << ", " << offset
+//        << ") called" << endl;
+  string var = p->getVarFromElem(peId - offset);
+  if (!var.empty() && p->isRelevant(var)) {
+    if (binding.count(var)) { // extend existing binding
+      binding[var].second++;
+    }
+    else { // add new variable
+      binding[var] = make_pair(ulId, ulId);
+    }
+  }
+  if (*(match->matching[ulId][peId].begin()) == UINT_MAX) { // complete match
+    vector<Condition> *conds = p->getConds();
+    return match->conditionsMatch(*conds, binding);
+  }
+  if (match->matching[ulId][peId].empty()) {
+    return false;
+  }
+  else { // push all elements except the first one to stack; process first elem
+    set<unsigned int>::reverse_iterator it, it2;
+    it2 = match->matching[ulId][peId].rbegin();
+    it2++;
+    for (it = match->matching[ulId][peId].rbegin();
+         it2 != match->matching[ulId][peId].rend(); it++) {
+      it2++;
+      BindingStackElem bE(ulId + 1, *it);
+//       cout << "push (" << ulId + 1 << ", " << *it << ") to stack" << endl;
+      bindingStack.push(bE);
+    }
+    return findNextBinding(ulId + 1, *(match->matching[ulId][peId].begin()), p,
+                           offset);
+  }
+}
+
+/*
+\subsection{Constructor for class ~ClassifyLI~}
+
+This constructor is used for the operator ~classify~.
+
+*/
+ClassifyLI::ClassifyLI(MLabel *ml, Word _classifier) : classifyTT(0) {
+  Classifier *c = static_cast<Classifier*>(_classifier.addr);
+  int startState(0), pat(0);
+  set<unsigned int> emptyset;
+  set<int> states, finalStates, matchCands;
+  set<int>::iterator it;
+  Pattern *p = 0;
+  PatElem elem;
+  vector<PatElem> patElems;
+  vector<Condition> easyConds;
+  vector<int> startStates;
+  map<int, set<int> > easyCondPos;
+  map<int, int> atomicToElem; // TODO: use this sensibly
+  map<int, string> elemToVar; // TODO: use this sensibly
+  bool condsOccur = false;
+  for (int i = 0; i < c->getCharPosSize() / 2; i++) {
+    states.insert(states.end(), startState);
+    startStates.push_back(startState);
+    p = Pattern::getPattern(c->getPatText(i), true); // single NFA are not built
+    if (p) {
+      p->setDescr(c->getDesc(i));
+      if (p->hasConds()) {
+        condsOccur = true;
+      }
+      pats.push_back(p);
+      map<int, set<int> > easyOld = p->getEasyCondPos();
+      for (map<int, set<int> >::iterator im = easyOld.begin();
+                                         im != easyOld.end(); im++) {
+        for (it = im->second.begin(); it != im->second.end(); it++) {
+          easyCondPos[im->first+patElems.size()].insert(*it + easyConds.size());
+        }
+      }
+      for (unsigned int j = 0; j < p->getEasyConds().size(); j++) {
+        easyConds.push_back(p->getEasyCond(j));
+        easyConds.back().initOpTree();
+      }
+      for (int j = 0; j < p->getSize(); j++) {
+        p->getElem(j, elem);
+        patElems.push_back(elem);
+      }
+      do { // get start state
+        startState++;
+        c->s2p.Get(startState, pat);
+      } while ((i < c->getCharPosSize() / 2 - 1) && (pat >= 0));
+    }
+    else {
+      cout << "pattern could not be parsed" << endl;
+    }
+  }
+  if (!pats.size()) {
+    cout << "no classification data specified" << endl;
+    return;
+  }
+  vector<map<int, int> > nfa;
+  Tools::createNFAfromPersistent(c->delta, c->s2p, nfa, finalStates);
+  Match<MLabel> *match = new Match<MLabel>(0, ml);
+  if (condsOccur) {
+    match->createSetMatrix(ml->GetNoComponents(), patElems.size());
+  }
+  for (int i = 0; i < ml->GetNoComponents(); i++) {
+    if (!match->updateStates(i, nfa, patElems, finalStates, states, easyConds,
+                             easyCondPos, atomicToElem, condsOccur)){
+      for (unsigned int j = 0; j < easyConds.size(); j++) {
+        easyConds[j].deleteOpTree();
+      }
+      return;
+    }
+  }
+  for (unsigned int j = 0; j < easyConds.size(); j++) {
+    easyConds[j].deleteOpTree();
+  }
+  for (it = states.begin(); it != states.end(); it++) { // active states final?
+    c->s2p.Get(*it, pat);
+    if ((*it > 0) && (pat != INT_MAX) && (pat >= 0)) {
+      matchCands.insert(matchCands.end(), pat);
+//       cout << "pattern " << pat << " matches" << endl;
+    }
+  }
+  for (it = matchCands.begin(); it != matchCands.end(); it++) { // check conds
+    pats[*it]->initCondOpTrees();
+    vector<Condition>* conds = pats[*it]->getConds();
+//     cout << "call fMB(nfa, " << startStates[*it] << ", " << patElems.size()
+//          << ", " << conds->size() << ")" << endl;
+    if (match->findMatchingBinding(nfa, startStates[*it], patElems, *conds,
+                                   atomicToElem, elemToVar)) {
+      matchingPats.insert(*it);
+//       cout << "p " << *it << " matches after condition check" << endl;
+    }
+    else {
+//       cout << "p " << *it << " has non-matching conditions" << endl;
+    }
+    pats[*it]->deleteCondOpTrees();
+  }
+  match->deleteSetMatrix();
+  delete match;
+}
+
+/*
+\subsection{Constructor for class ~MultiRewriteLI~}
+
+This constructor is used for the operator ~rewrite~.
+
+*/
+MultiRewriteLI::MultiRewriteLI(Word _mlstream, Word _pstream) : ClassifyLI(0),
+     RewriteLI<MLabel>(0), mlStream(_mlstream), streamOpen(false), ml(0), c(0) {
+  Stream<FText> pStream(_pstream);
+  pStream.open();
+  FText* inputText = pStream.request();
+  Pattern *p = 0;
+  PatElem elem;
+  set<int>::iterator it;
+  map<int, set<int> >::iterator im;
+  int elemCount(0);
+  string var;
+  while (inputText) {
+    if (!inputText->IsDefined()) {
+      cout << "undefined input is ignored" << endl;
+    }
+    else {
+      p = Pattern::getPattern(inputText->GetValue(), true); // no single NFA
+      if (p) {
+        if (!p->hasAssigns()) {
+          cout << "pattern without rewrite part ignored" << endl;
+        }
+        else {
+          if (p->initCondOpTrees()) {
+            pats.push_back(p);
+            for (int i = 0; i < p->getSize(); i++) {
+              atomicToElem[patElems.size()] = elemCount + p->getElemFromAtom(i);
+              p->getElem(i, elem);
+              elem.getV(var);
+              elemToVar[elemCount+p->getElemFromAtom(i)] = var;
+              patElems.push_back(elem);
+              patOffset[elemCount + p->getElemFromAtom(i)] =
+                                          make_pair(pats.size() - 1, elemCount);
+            }
+            elemCount += p->getElemFromAtom(p->getSize() - 1) + 1;
+            map<int, set<int> > easyOld = p->getEasyCondPos();
+            for (im = easyOld.begin(); im != easyOld.end(); im++) {
+              for (it = im->second.begin(); it != im->second.end(); it++) {
+                easyCondPos[im->first + patElems.size()].insert
+                                                       (*it + easyConds.size());
+              }
+            }
+            for (unsigned int j = 0; j < p->getEasyConds().size(); j++) {
+              easyConds.push_back(p->getEasyCond(j));
+              easyConds.back().initOpTree();
+            }
+          }
+        }
+      }
+    }
+    inputText->DeleteIfAllowed();
+    inputText = pStream.request();
+  }
+  pStream.close();
+  if (!pats.size()) {
+    cout << "no classification data specified" << endl;
+  }
+  else {
+    mlStream.open();
+    streamOpen = true;
+    Classifier *c = new Classifier(0);
+    c->buildMultiNFA(pats, nfa, finalStates, state2Pat);
+    c->getStartStates(states);
+    match = new Match<MLabel>(0, ml);
+    c->DeleteIfAllowed();
+  }
+}
+
+
+/*
+\subsection{Function ~nextResultML~}
+
+This function is used for the operator ~rewrite~.
+
+*/
+MLabel* MultiRewriteLI::nextResultML() {
+  if (!pats.size()) {
+    return 0;
+  }
+  set<int> startStates;
+  set<int>::iterator it;
+  while (!bindingStack.empty()) {
+    BindingStackElem bE(0, 0);
+    bE = bindingStack.top();
+//     cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
+    bindingStack.pop();
+    resetBinding(bE.ulId);
+    pair<int, int> patNo = patOffset[bE.peId];
+    if (findNextBinding(bE.ulId, bE.peId, pats[patNo.first], patNo.second)) {
+      return RewriteLI<MLabel>::rewrite(ml, binding, 
+                                        pats[patNo.first]->getAssigns());
+    }
+  }
+  while (bindingStack.empty()) { // new ML from stream necessary
+    match->deleteSetMatrix();
+    delete match;
+    match = 0;
+    deleteIfAllowed(ml);
+    ml = (MLabel*)mlStream.request();
+    if (!ml) {
+      return 0;
+    }
+    match = new Match<MLabel>(0, ml);
+    match->createSetMatrix(ml->GetNoComponents(), patElems.size());
+    getStartStates(startStates);
+    states = startStates;
+    matchCands.clear();
+    int i = 0;
+    while (!states.empty() && (i < ml->GetNoComponents())) { // loop through ml
+      match->updateStates(i, nfa, patElems, finalStates, states, easyConds,
+                          easyCondPos, atomicToElem, true);
+      i++;
+    }
+    for (it = states.begin(); it != states.end(); it++) { //active states final?
+      if (finalStates.count(*it)) {
+        matchCands.insert(matchCands.end(), state2Pat[*it]);
+      }
+    }
+    initStack(startStates);
+    while (!bindingStack.empty()) {
+      BindingStackElem bE(0, 0);
+      bE = bindingStack.top();
+//      cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
+      bindingStack.pop();
+      resetBinding(bE.ulId);
+      pair<int, int> patNo = patOffset[bE.peId];
+      if (findNextBinding(bE.ulId, bE.peId, pats[patNo.first], patNo.second)) {
+        return RewriteLI<MLabel>::rewrite(ml, binding, 
+                                          pats[patNo.first]->getAssigns());
+      }
+    }
+  }
+  cout << "SHOULD NOT OCCUR" << endl;
+  return 0;
+}
+
+/*
+\subsection{Function ~initStack~}
+
+Determines the start states of the match candidate patterns and pushes the
+corresponding initial transitions onto the stack.
+
+*/
+void MultiRewriteLI::initStack(set<int> &startStates) {
+  set<int>::iterator it;
+  map<int, int>::iterator itm;
+  for (it = startStates.begin(); it != startStates.end(); it++) {
+    if (matchCands.count(-state2Pat[*it])) {
+      map<int, int> transitions = nfa[*it];
+      for (itm = transitions.begin(); itm != transitions.end(); itm++) {
+        BindingStackElem bE(0, atomicToElem[itm->first]);
+        bindingStack.push(bE);
+//         cout << "(0, " << itm->first << ") pushed onto stack" << endl;
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~getStartStates~}
+
+*/
+void MultiRewriteLI::getStartStates(set<int> &states) {
+  states.clear();
+  states.insert(0);
+  map<int, int>::iterator it;
+  for (it = state2Pat.begin(); it != state2Pat.end(); it++) {
+    if (it->second < 0) {
+      states.insert(it->first);
+    }
+  }
+}
+
+/*
+\subsection{Destructor for class ~MultiRewriteLI~}
+
+*/
+MultiRewriteLI::~MultiRewriteLI() {
+  for (unsigned int i = 0; i < pats.size(); i++) {
+    if (pats[i]) {
+      pats[i]->deleteCondOpTrees();
+      delete pats[i];
+      pats[i] = 0;
+    }
+  }
+  if (match) {
+    match->deleteSetMatrix();
+    delete match;
+  }
+  match = 0;
+  if (ml) {
+    deleteIfAllowed(ml);
+  }
+  ml = 0;
+  if (streamOpen) {
+    mlStream.close();
+  }
+  for (unsigned int i = 0; i < easyConds.size(); i++) {
+    easyConds[i].deleteOpTree();
+  }
+}
+
+/*
+\subsection{Destructor for class ~ClassifyLI~}
+
+*/
+ClassifyLI::~ClassifyLI() {
+  if (classifyTT) {
+    delete classifyTT;
+    classifyTT = 0;
+  }
+  vector<Pattern*>::iterator it;
+  for (it = pats.begin(); it != pats.end(); it++) {
+    delete (*it);
+  }
+  pats.clear();
+}
+
+/*
+\subsection{Function ~getTupleType~}
+
+*/
+TupleType* ClassifyLI::getTupleType() {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  ListExpr resultTupleType = nl->TwoElemList(
+    nl->SymbolAtom(Tuple::BasicType()),
+    nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Description"),
+                                    nl->SymbolAtom(FText::BasicType())),
+                    nl->TwoElemList(nl->SymbolAtom("Trajectory"),
+                                    nl->SymbolAtom(MLabel::BasicType()))));
+  ListExpr numResultTupleType = sc->NumericType(resultTupleType);
+  return new TupleType(numResultTupleType);
+}
+
+/*
+\subsection{Function ~nextResultText~}
+
+This function is used for the operator ~classify~.
+
+*/
+FText* ClassifyLI::nextResultText() {
+  if (!pats.size()) {
+    return 0;
+  }  
+  if (!matchingPats.empty()) {
+    set<int>::iterator it = matchingPats.begin();
+    FText* result = new FText(true, pats[*it]->getDescr());
+    matchingPats.erase(it);
+    return result;
+  }
+  return 0;
+}
+
+/*
+\subsection{Function ~initAssignOpTrees~}
+
+Invoked by the value mapping of the operator ~rewrite~.
+
+*/
+bool Pattern::initAssignOpTrees() {
+  for (unsigned int i = 0; i < assigns.size(); i++) {
+    if (!assigns[i].initOpTrees()) {
+      cout << "Error at assignment #" << i << endl;
+      return false;
+    }
+  }
+  return true;
+}
+
+void Pattern::deleteAssignOpTrees(bool deleteConds) {
+  for (unsigned int i = 0; i < assigns.size(); i++) {
+    assigns[i].deleteOpTrees();
+  }
+  if (deleteConds) {
+    for (unsigned int i = 0; i < conds.size(); i++) {
+      conds[i].deleteOpTree();
+    }
+  }
+}
+
+/*
+\subsection{Constructor for class ~IndexClassifyLI~}
+
+This constructor is used for the operator ~indexclassify~.
+
+*/
+IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
+  R_Tree<1, NewPair<TupleId, int> > *rt, Word _classifier, int _attrNr, 
+  DataType type) :
+         IndexMatchesLI::IndexMatchesLI(rel, inv, rt, _attrNr, 0, false, type) {
+  if (mRel->GetNoTuples() > 0) {
+    c = (Classifier*)_classifier.addr;
+    for (int i = 0; i < c->getNumOfP(); i++) { // check patterns
+      Pattern *p = Pattern::getPattern(c->getPatText(i));
+      bool ok = false;
+      if (p) {
+        switch (type) {
+          case LABEL: {
+            ok = p->isValid("label");
+            break;
+          }
+          case LABELS: {
+            ok = p->isValid("labels");
+            break;
+          }
+          case PLACE: {
+            ok = p->isValid("place");
+            break;
+          }
+          case PLACES: {
+            ok = p->isValid("places");
+            break;
+          }
+        }
+        delete p;
+      }
+      if (!ok) {
+        c = 0;
+        return;
+      }
+    }
+  }
+  classifyTT = ClassifyLI::getTupleType();
+  currentPat = 0;
+}
+
+/*
+\subsection{Destructor for class ~IndexClassifyLI~}
+
+*/
+IndexClassifyLI::~IndexClassifyLI() {
+  if (classifyTT) {
+    classifyTT->DeleteIfAllowed();
+    classifyTT = 0;
+  }
+}
+
+/*
+\subsection{Function ~nextResultTuple~}
+
+*/
+template<class M>
+Tuple* IndexClassifyLI::nextResultTuple() {
+  if (c == 0) {
+    return 0;
+  }
+  while (results.empty()) {
+    if (currentPat >= c->getNumOfP()) {
+      return 0;
+    }
+    cout << "results empty, fill now. currentPat=" << currentPat << ", " 
+         << c->getPatText(currentPat) << endl;
+    Pattern *pat = Pattern::getPattern(c->getPatText(currentPat));
+    p = *pat;
+    delete pat;
+    initialize();
+    applyNFA();
+    for (unsigned int i = 0; i < matches.size(); i++) {
+      results.push(make_pair(c->getDesc(currentPat), matches[i]));
+    }
+    p.deleteCondOpTrees();
+    cout << "desc for " << currentPat << " is " << c->getDesc(currentPat)<<endl;
+    currentPat++;
+  }
+  pair<string, TupleId> resultPair = results.front();
+  results.pop();
+  cout << "tuple id " << resultPair.second << " popped, " << results.size() 
+       << " left" << endl;
+   
+  Tuple* tuple = mRel->GetTuple(resultPair.second, false);
+  int noValues = ((MLabels*)(tuple->GetAttribute(attrNr)))->GetNoValues();
+  cout << "Trajectory has "
+       << ((MLabels*)(tuple->GetAttribute(attrNr)))->GetNoComponents()
+       << " units and " << noValues << " labels" << endl;
+
+  ((MLabels*)(tuple->GetAttribute(attrNr)))->Print(cout);
+  
+  
+  
+  Attribute* traj = (tuple->GetAttribute(attrNr))->Copy();
+  Tuple *result = new Tuple(classifyTT);
+  result->PutAttribute(0, new FText(true, resultPair.first));
+  result->PutAttribute(1, traj);
+  deleteIfAllowed(tuple);
+  return result;
+}
+
+/*
+\subsection{Function ~clearMatchInfo~}
+
+*/
+void IndexMatchesLI::clearMatchInfo() {
+  for (int i = 0; i < p.getNFAsize(); i++) {
+//     cout << "size of (*matchInfoPtr)[" << i << "] is " 
+//          << (*matchInfoPtr)[i].size() << endl;
+    TupleId id = (*matchInfoPtr)[i][0].succ;
+    while (id > 0) {
+      (*matchInfoPtr)[i][id].imis.clear();
+      id = (*matchInfoPtr)[i][id].succ;
+    }
+  }
+  vector<vector<IndexMatchSlot> >* temp = newMatchInfoPtr;
+  newMatchInfoPtr = matchInfoPtr;
+  matchInfoPtr = temp;
+}
+
+/*
+\subsection{Function ~getInterval~}
+
+*/
+void IndexMatchesLI::getInterval(const TupleId tId, const int pos, 
+                                  SecInterval& iv) {
+  Tuple *tuple = mRel->GetTuple(tId, false);
+  switch (mtype) {
+    case LABEL: {
+      ((MLabel*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
+      break;
+    }
+    case LABELS: {
+      ((MLabels*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
+      break;
+    }
+    case PLACE: {
+      ((MPlace*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
+      break;
+    }
+    case PLACES: {
+      ((MPlaces*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  tuple->DeleteIfAllowed();
+}
+
+/*
+\subsection{Function ~simplifyNFA~}
+
+*/
+void IndexMatchesLI::simplifyNFA(vector<map<int, int> >& result) {
+  result.clear();
+  string ptext = p.GetText();
+  for (unsigned int i = 1; i < ptext.length(); i++) {
+    if ((ptext[i-1] == ']') && ((ptext[i] == '*') || (ptext[i] == '+'))) {
+      ptext[i] = ' '; // eliminate repetition of regular expressions
+    }
+  }
+  Pattern *pnew = Pattern::getPattern(ptext);
+  vector<map<int, int> > oldNFA;
+  pnew->getNFA(oldNFA);
+  delete pnew;
+  result.resize(oldNFA.size());
+  map<int, int>::iterator im;
+  for (int i = 0; i < (int)oldNFA.size(); i++) {
+    for (im = oldNFA[i].begin(); im != oldNFA[i].end(); im++) {
+      if (im->second != i) { // eliminate * and + loops
+        result[i][im->first] = im->second;
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~findNFApaths~}
+
+*/
+void IndexMatchesLI::findNFApaths(const vector<map<int, int> >& nfa, 
+               const set<int>& finalStates, set<pair<set<int>, int> >& result) {
+  result.clear();
+  set<pair<set<int>, int> > newPaths;
+  set<int> elems;
+  set<pair<set<int>, int> >::iterator is;
+  map<int, int>::iterator im;
+  result.insert(make_pair(elems, 0));
+  bool proceed = true;
+  while (proceed) {
+    for (is = result.begin(); is != result.end(); is++) {
+      map<int, int> trans = nfa[is->second];
+      for (im = trans.begin(); im != trans.end(); im++) {
+        elems = is->first; // get old transition set
+        elems.insert(im->first); // add new transition
+        newPaths.insert(make_pair(elems, im->second)); // and new state
+      }
+      if (nfa[is->second].empty()) { // no transition available
+        newPaths.insert(*is); // keep path
+      }
+    }
+    result = newPaths;
+    newPaths.clear();
+    proceed = false;
+    for (is = result.begin(); is != result.end(); is++) {
+      if (finalStates.find(is->second) == finalStates.end()) { // no final state
+        proceed = true; // continue pathfinding
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~getCrucialElems~}
+
+*/
+void IndexMatchesLI::getCrucialElems(const set<pair<set<int>, int> >& paths,
+                                      set<int>& result) {
+  set<int> elems, temp;
+  set<pair<set<int>, int> >::iterator is;
+  set<int>::iterator it;
+  is = paths.begin();
+  elems = is->first;
+  is++;
+  while (is != paths.end()) { // collect crucial elems
+//     cout << "{";
+//     for (it = is->first.begin(); it != is->first.end(); it++) {
+//       cout << *it << " ";
+//     }
+//     cout << "} {";
+//     for (it = elems.begin(); it != elems.end(); it++) {
+//       cout << *it << " ";
+//     }    
+//     cout << "}";
+    set_intersection(is->first.begin(), is->first.end(), elems.begin(), 
+                     elems.end(), std::inserter(temp, temp.begin()));
+//     cout << "  -->  {";
+//     for (it = temp.begin(); it != temp.end(); it++) {
+//       cout << *it << " ";
+//     }  
+//     cout << "}" << endl;
+    elems = temp;
+    temp.clear();
+    is++;
+  }
+//   cout << "crucial elements: {";
+  for (it = elems.begin(); it != elems.end(); it++) {
+//     cout << *it << " ";
+    result.insert(*it);
+  }
+//   cout << "}" << endl;
+}
+
+/*
+\subsection{Function ~retrieveValue~}
+
+*/
+void IndexMatchesLI::retrieveValue(vector<set<int> >& oldPart, 
+     vector<set<int> >& newPart, SetRel rel, bool first, const string& label, 
+     unsigned int ref /* = UINT_MAX */) {
+  InvertedFile::exactIterator* eit = 0;
+  TupleId id;
+  wordPosType wc;
+  charPosType cc;
+  eit = invFile->getExactIterator(label, 16777216);
+  if ((mtype == LABEL) || (mtype == LABELS)) {
+    while (eit->next(id, wc, cc)) {
+      if (first) { // ignore oldPart
+        newPart[id].insert(wc);
+      }
+      else {
+        if ((rel == STANDARD) || (rel == EQUAL)) { // intersect sets
+          set<int>::iterator it = oldPart[id].find(wc);
+          if (it != oldPart[id].end()) { // found in oldPart
+            newPart[id].insert(it, wc);
+          }
+        }
+        else { // SUPERSET or INTERSECT => unite sets
+          oldPart[id].insert(wc);
+        }
+      }
+    }
+  }
+  else { // ref is used
+    while (eit->next(id, wc, cc)) {
+      if (ref == cc) { // cc represents the reference of the place
+        if (first) { // ignore oldPart
+          newPart[id].insert(wc);
+        }
+        else {
+          if ((rel == STANDARD) || (rel == EQUAL)) { // intersect sets
+            set<int>::iterator it = oldPart[id].find(wc);
+            if (it != oldPart[id].end()) {
+              newPart[id].insert(it, wc);
+            }
+          }
+          else { // SUPERSET or INTERSECT => unite sets
+            oldPart[id].insert(wc);
+          }
+        }
+      }
+    }
+  }
+  if (first || (rel == STANDARD) || (rel == EQUAL)) {
+    oldPart.swap(newPart);
+  }
+//   for (int i = 0; i < oldPart.size(); i++) {
+//     cout << oldPart[i].size() << " ";
+//   }
+//   cout << endl;
+//   for (int i = 0; i < newPart.size(); i++) {
+//     cout << newPart[i].size() << " ";
+//   }
+//   cout << endl;
+  delete eit;
+}
+
+/*
+\subsection{Function ~retrieveTime~}
+
+*/
+void IndexMatchesLI::retrieveTime(vector<set<int> >& oldPart,
+                              vector<set<int> >& newPart, const string& ivstr) {
+  bool init = false;
+  if (oldPart.empty()) {
+    oldPart.resize(mRel->GetNoTuples() + 1);
+    newPart.resize(mRel->GetNoTuples() + 1);
+    init = true;
+  }
+  R_TreeLeafEntry<1, NewPair<TupleId, int> > leaf;
+  double min[1], max[1];
+  SecInterval iv(true);
+  Tools::stringToInterval(ivstr, iv);
+  min[0] = iv.start.ToDouble();
+  max[0] = iv.end.ToDouble();
+  Rect1 rect1(true, min, max);
+  if (rtree->First(rect1, leaf)) {
+    if (init || !oldPart[leaf.info.first].empty()) {
+      newPart[leaf.info.first].insert(newPart[leaf.info.first].end(), 
+                                      leaf.info.second);
+    }
+    while (rtree->Next(leaf)) {
+      if (init || !oldPart[leaf.info.first].empty()) {
+        newPart[leaf.info.first].insert(newPart[leaf.info.first].end(),
+                                        leaf.info.second);
+      }
+    }
+  }
+  newPart.swap(oldPart);
+}
+
+/*
+\subsection{Function ~removeIdFromIndexResult~}
+
+*/
+void IndexMatchesLI::removeIdFromIndexResult(const TupleId id) {
+  for (int i = 0; i < p.getSize(); i++) {
+    if (indexResult[i].size() > 0) {
+//       cout << "  Elem " << i << ", Tuple " << id << ":" << endl;
+      if (!indexResult[i][id].units.empty() &&
+          (indexResult[i][indexResult[i][id].pred].succ == id)) {
+//         cout << "   succ of " << indexResult[i][id].pred << " set from " 
+//             << indexResult[i][indexResult[i][id].pred].succ << " to "
+//             << indexResult[i][id].succ << endl;
+        indexResult[i][indexResult[i][id].pred].succ = indexResult[i][id].succ;
+//         cout << "   pred of " << indexResult[i][id].succ << " set from "
+//             << indexResult[i][indexResult[i][id].succ].pred << " to " 
+//             << indexResult[i][id].pred << endl;
+        indexResult[i][indexResult[i][id].succ].pred = indexResult[i][id].pred;
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~removeIdFromMatchInfo~}
+
+*/
+void IndexMatchesLI::removeIdFromMatchInfo(const TupleId id) {
+  bool removed = false;
+  for (int s = 0; s < p.getNFAsize(); s++) {
+    if ((*newMatchInfoPtr)[s].size() > 0) {
+//         cout << "Elem " << i << ", Tuple " << id << ":" << endl;
+      (*newMatchInfoPtr)[s][(*newMatchInfoPtr)[s][id].pred].succ = 
+           (*newMatchInfoPtr)[s][id].succ;
+//         cout << "   succ of " << matchInfo[i][id].pred << " set to " 
+//              << matchInfo[i][id].succ << endl;
+      (*newMatchInfoPtr)[s][(*newMatchInfoPtr)[s][id].succ].pred = 
+           (*newMatchInfoPtr)[s][id].pred;
+//         cout << "   pred of " << matchInfo[i][id].succ << " set to " 
+//              << matchInfo[i][id].pred << endl;
+//       (*newMatchInfoPtr)[s][id].imis.clear();
+    }
+    if ((*matchInfoPtr)[s].size() > 0) {
+      if ((*matchInfoPtr)[s][(*matchInfoPtr)[s][id].pred].succ == id) {
+//         cout << "Elem " << i << ", Tuple " << id << ":" << endl;
+        (*matchInfoPtr)[s][(*matchInfoPtr)[s][id].pred].succ = 
+             (*matchInfoPtr)[s][id].succ;
+//         cout << "   succ of " << matchInfo[i][id].pred << " set to " 
+//              << matchInfo[i][id].succ << endl;
+        (*matchInfoPtr)[s][(*matchInfoPtr)[s][id].succ].pred = 
+             (*matchInfoPtr)[s][id].pred;
+        removed = true;
+//         cout << "   pred of " << matchInfo[i][id].succ << " set to " 
+//              << matchInfo[i][id].pred << endl;
+//       (*matchInfoPtr)[s][id].imis.clear();
+      }
+    }
+  }
+  activeTuples -= (removed ? 1 : 0);
+}
+
+/*
+\subsection{Function ~storeIndexResult~}
+
+*/
+void IndexMatchesLI::storeIndexResult(const int e) {
+  if (!indexResult[e].empty()) {
+    return;
+  }
+  PatElem elem;
+  p.getElem(e, elem);
+  if (!elem.hasIndexableContents()) {
+    return;
+  }
+  set<string> ivs, lbs;
+  set<pair<string, unsigned int> > pls;
+  vector<set<int> > part, part2;
+//   vector<bool> time, time2;
+//   time.resize(mRel->GetNoTuples() + 1, true);
+//   time2.resize(mRel->GetNoTuples() + 1, true);
+  if (elem.getSetRel() != DISJOINT) {
+    if ((mtype == LABEL) || (mtype == LABELS)) {
+      elem.getL(lbs);
+      set<string>::iterator is = lbs.begin();
+      if (!lbs.empty()) {
+        part.resize(mRel->GetNoTuples() + 1);
+        part2.resize(mRel->GetNoTuples() + 1);
+        retrieveValue(part, part2, elem.getSetRel(), true, *is);
+        is++;
+      }
+      while (is != lbs.end()) {
+        retrieveValue(part, part2, elem.getSetRel(), false, *is);
+        is++;
+      }
+    }
+    else { // PLACE or PLACES
+      elem.getP(pls);
+      set<pair<string, unsigned int> >::iterator ip = pls.begin();
+      if (!pls.empty()) {
+        part.resize(mRel->GetNoTuples() + 1);
+        part2.resize(mRel->GetNoTuples() + 1);
+        retrieveValue(part, part2, elem.getSetRel(), true, 
+                      ip->first, ip->second);
+        ip++;
+      }
+      while (ip != pls.end()) {
+        retrieveValue(part, part2, elem.getSetRel(), false,
+                      ip->first, ip->second);
+        ip++;
+      }
+    }  
+  }
+  if (!part.empty() || (elem.getSetRel() == DISJOINT) ||
+      (!elem.hasLabel() && !elem.hasPlace())) { // continue with time intervals
+    elem.getI(ivs);
+    set<string>::iterator is = ivs.begin();
+    while (is != ivs.end()) {
+      if (Tools::isInterval(*is)) {
+        retrieveTime(part, part2, *is);
+      }
+      is++;
+    }
+  }
+  indexResult[e].resize(mRel->GetNoTuples() + 1);
+  unsigned int pred = 0;
+  IndexRetrieval ir(pred);
+  indexResult[e][0] = ir; // first entry points to first active entry
+  for (unsigned int i = 1; i < part.size(); i++) { // collect results
+    if (!part[i].empty()) {
+      indexResult[e][pred].succ = i; // update successor of predecessor
+      IndexRetrieval ir(pred, 0, part[i]);
+      indexResult[e][i] = ir;
+      pred = i;
+    }
+  }
+//   if (part.empty() && ((elem.getSetRel() == DISJOINT) ||
+//       (!elem.hasLabel() && !elem.hasPlace()))) {
+//     for (unsigned int i = 1; i < time.size(); i++) {
+//       if (time[i]) {
+//         indexResult[e][pred].succ = i; // update successor of predecessor
+//         IndexRetrieval ir(pred);
+//         indexResult[e][i] = ir;
+//         pred = i;
+//       }
+//     }
+//   }
+  if (indexResult[e].empty() && elem.hasIndexableContents() &&
+      (elem.getSetRel() != DISJOINT)) {
+    indexMismatch.insert(e);
+  }
+}
+
+/*
+\subsection{Function ~initMatchInfo~}
+
+*/
+void IndexMatchesLI::initMatchInfo(const set<int>& cruElems) {
+  matchInfo.clear();
+  matchInfo.resize(p.getNFAsize());
+  matchInfoPtr = &matchInfo;
+  newMatchInfo.clear();
+  newMatchInfo.resize(p.getNFAsize());
+  newMatchInfoPtr = &newMatchInfo;
+  trajSize.resize(mRel->GetNoTuples() + 1, 0);
+  vector<bool> trajInfo, newTrajInfo;
+  trajInfo.assign(mRel->GetNoTuples() + 1, true);
+  PatElem elem;
+  for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
+    p.getElem(*it, elem);
+    if (elem.hasIndexableContents()) {
+      if (indexMismatch.find(*it) != indexMismatch.end()) {
+        cout << "index mismatch at crucial element " << *it << endl;
+        return;
+      }
+      newTrajInfo.assign(mRel->GetNoTuples() + 1, false);
+      TupleId id = indexResult[*it][0].succ; // first active tuple id
+      while (id > 0) {
+        if (trajInfo[id]) {
+          newTrajInfo[id] = true;
+        }
+        else {
+          removeIdFromIndexResult(id);
+        }
+        id = indexResult[*it][id].succ;
+      }
+      trajInfo.swap(newTrajInfo);
+    }
+  }
+  for (int i = 0; i < p.getNFAsize(); i++) {
+    (*matchInfoPtr)[i].resize(mRel->GetNoTuples() + 1);
+    (*newMatchInfoPtr)[i].resize(mRel->GetNoTuples() + 1);
+  }
+  unsigned int pred = 0;
+  for (unsigned int id = 1; id < trajInfo.size(); id++) {
+    if (trajInfo[id]) {
+      trajSize[id] = getMsize(id);
+      IndexMatchInfo imi(false);
+      (*matchInfoPtr)[0][id].imis.push_back(imi);
+      for (int s = 0; s < p.getNFAsize(); s++) {
+        (*matchInfoPtr)[s][pred].succ = id;
+        (*matchInfoPtr)[s][id].pred = pred;
+        (*newMatchInfoPtr)[s][pred].succ = id;
+        (*newMatchInfoPtr)[s][id].pred = pred;
+        if ((int)indexResult[s].size() == mRel->GetNoTuples() + 1) {
+          for (unsigned int i = pred + 1; i < id; i++) { // deactivate indexRes.
+            indexResult[s][i].pred = 0;
+            indexResult[s][i].succ = 0;
+          }
+          indexResult[s][pred].succ = id;
+        }
+      }
+      activeTuples++;
+      pred = id;
+    }
+  }
+  (*matchInfoPtr)[0][pred].succ = 0;
+  (*newMatchInfoPtr)[0][pred].succ = 0;
+  for (int s = 0; s < p.getSize(); s++) {
+    if ((int)indexResult[s].size() == mRel->GetNoTuples() + 1) {
+      indexResult[s][pred].succ = 0;
+    }
+  }
+}
+
+/*
+\subsection{Function ~initialize~}
+
+Collects the tuple ids of the trajectories that could match the pattern
+according to the index information.
+
+*/
+void IndexMatchesLI::initialize() {
+  vector<map<int, int> > simpleNFA;
+  simplifyNFA(simpleNFA);
+  set<int> finalStates = p.getFinalStates();
+  set<pair<set<int>, int> > paths;
+  findNFApaths(simpleNFA, finalStates, paths);
+  set<int> cruElems;
+  getCrucialElems(paths, cruElems);
+  indexResult.resize(p.getSize());
+  for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
+    storeIndexResult(*it);
+  }
+  p.initEasyCondOpTrees();
+  p.initCondOpTrees();
+  matchInfoPtr = &matchInfo;
+  newMatchInfoPtr = &newMatchInfo;
+  activeTuples = 0;
+  initMatchInfo(cruElems);
+}
+
+/*
+\subsection{Function ~getMsize~}
+
+*/
+int IndexMatchesLI::getMsize(TupleId tId) {
+  Tuple* tuple = mRel->GetTuple(tId, false);
+  int result = -1;
+  switch (mtype) {
+    case LABEL: {
+      result = ((MLabel*)tuple->GetAttribute(attrNr))->GetNoComponents();
+      break;
+    }
+    case LABELS: {
+      result = ((MLabels*)tuple->GetAttribute(attrNr))->GetNoComponents();
+      break;
+    }
+    case PLACE: {
+      result = ((MPlace*)tuple->GetAttribute(attrNr))->GetNoComponents();
+      break;
+    }
+    default: { // places
+      result = ((MPlaces*)tuple->GetAttribute(attrNr))->GetNoComponents();
+      break;
+    }
+  }
+  deleteIfAllowed(tuple);
+  return result;
+}
+
+/*
+\subsection{Function ~hasIdIMIs~}
+
+*/
+bool IndexMatchesLI::hasIdIMIs(const TupleId id, const int state /* = -1 */) {
+  if (state == -1) {
+    for (int s = 0; s < p.getNFAsize(); s++) {
+      if (!(*matchInfoPtr)[s][id].imis.empty()) {
+        return true;
+      }
+    }
+    return false;
+  }
+  else {
+    return !(*matchInfoPtr)[state][id].imis.empty();
+  }
+}
+
+/*
+\subsection{Function ~wildcardMatch~}
+
+*/
+bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
+  IndexMatchInfo *imiPtr;
+  bool ok = false;
+  TupleId id = (*matchInfoPtr)[state][0].succ; // first active tuple id
+  while (id > 0) {
+//     cout << "wildcardMatch: " << (*matchInfoPtr)[state][id].imis.size() 
+//          << " IMIs, state=" << state << ", id=" << id << endl;
+    for (unsigned int i = 0; i < (*matchInfoPtr)[state][id].imis.size(); i++) {
+      imiPtr = &((*matchInfoPtr)[state][id].imis[i]);
+      imiPtr->next++;
+      imiPtr->range = true;
+      bool match = false;
+      if (p.hasConds()) { // extend binding for a complete match
+        extendBinding(*imiPtr, trans.first);
+        if (p.isFinalState(trans.second) && imiPtr->finished(trajSize[id])) {
+          unsigned int oldEnd = imiPtr->binding[imiPtr->prevVar].second;
+          imiPtr->binding[imiPtr->prevVar].second = trajSize[id] - 1;
+          match = checkConditions(id, *imiPtr);
+          if (!match) { // reset unsuccessful binding
+            imiPtr->binding[imiPtr->prevVar].second = oldEnd;
+          }
+        }
+      }
+      else { // no conditions
+        match = p.isFinalState(trans.second) && imiPtr->finished(trajSize[id]);
+      }
+      if (match) {
+        matches.push_back(id); // complete match
+        ok = true;
+        removeIdFromMatchInfo(id);
+        removeIdFromIndexResult(id);
+//         cout << id << " removed (wild match) " << activeTuples 
+//              << " active tuples" << endl;
+        i = UINT_MAX - 1;
+      }
+      else if (!imiPtr->exhausted(trajSize[id])) { // continue
+        (*newMatchInfoPtr)[trans.second][id].imis.push_back(*imiPtr);
+//         cout << "   imi pushed back from wildcardMatch, id " << id << endl;
+        ok = true;
+      }
+    }
+    if (!ok && !hasIdIMIs(id, state)) { // no IMIs for id and state
+      if (!hasIdIMIs(id)) { // no IMIs at all for id
+        removeIdFromMatchInfo(id);
+        removeIdFromIndexResult(id);
+//         cout << id << " removed (wild mismatch) " << activeTuples 
+//              << " active tuples" << endl;
+      }
+    }
+    id = (*matchInfoPtr)[state][id].succ;
+  }
+  return ok;
+}
+
+/*
+\subsection{Function ~extendBinding~}
+
+*/
+void IndexMatchesLI::extendBinding(IndexMatchInfo& imi, const int e) {
+  if (!p.hasConds()) {
+    return;
+  }
+  PatElem elem;
+  p.getElem(e, elem);
+  string var;
+  elem.getV(var);
+  if (var == imi.prevVar) {
+    if (!var.empty()) { // [X, X | _, _]
+      imi.binding[var].second = imi.next - 1;
+    }
+  }
+  else {
+    if (!imi.prevVar.empty()) { // X, [Y|_]
+      imi.binding[imi.prevVar].second = imi.next - 2;
+    }
+    if (!var.empty()) { // [X|_], Y
+      imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
+    }
+  }
+  imi.prevVar = var;  
+//   Tools::printBinding(imi.binding);
+}
+
+/*
+\subsection{Function ~imiMatch~}
+
+*/
+template<class M>
+bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
+                      IndexMatchInfo& imi, const int unit, const int newState) {
+  PatElem elem;
+  p.getElem(e, elem);
+  if (unit >= 0) { // exact position from index
+//     cout << "   unit=" << unit << ", imi: next=" << imi.next << ", range=" 
+//          << imi.range << endl;
+    if (imi.matches(unit) && match.valuesMatch(unit, elem) &&
+        timesMatch(id, unit, elem) &&
+        match.easyCondsMatch(unit, elem, p.easyConds, p.getEasyCondPos(e))) {
+      imi.next = unit + 1;
+      imi.range = false;
+      extendBinding(imi, e);
+      if (p.isFinalState(newState) && imi.finished(trajSize[id]) && 
+          checkConditions(id, imi)) { // complete match
+        removeIdFromIndexResult(id);
+        removeIdFromMatchInfo(id);
+//         cout << id << " removed (index match) " << activeTuples 
+//              << " active tuples" << endl;
+        matches.push_back(id);
+        return true;
+      }
+      else if (!imi.exhausted(trajSize[id])) { // continue
+        (*newMatchInfoPtr)[newState][id].imis.push_back(imi);
+//         cout << "   IMI pushed back for new state " << newState << " and id "
+//              << id << endl;
+        return true;
+      }
+    }
+    return false;
+  }
+  if (imi.range) {
+    bool result = false;
+    int numOfNewIMIs = 0;
+    for (int i = imi.next; i < trajSize[id]; i++) {
+      if (match.valuesMatch(i, elem) && timesMatch(id, i, elem) &&
+          match.easyCondsMatch(i, elem, p.easyConds, p.getEasyCondPos(e))) {
+        imi.next = i + 1;
+        imi.range = false;
+        extendBinding(imi, e);
+        if (p.isFinalState(newState) && imi.finished(trajSize[id]) &&
+            checkConditions(id, imi)) { // complete match
+          removeIdFromMatchInfo(id);
+//           cout << id << " removed (range match) " << activeTuples 
+//                << " active tuples" << endl;
+          removeIdFromIndexResult(id);
+          matches.push_back(id);
+          return true;
+        }
+        else if (!imi.exhausted(trajSize[id])) { // continue
+          if ((*newMatchInfoPtr)[newState].size() == 0) {
+            (*newMatchInfoPtr)[newState].resize(mRel->GetNoTuples());
+          }
+          (*newMatchInfoPtr)[newState][id].imis.push_back(imi);
+          numOfNewIMIs++;
+          result = true;
+        }
+      }
+    }
+    return result;
+  }
+  else {
+    if (match.valuesMatch(imi.next, elem) && timesMatch(id, imi.next, elem) &&
+        match.easyCondsMatch(imi.next, elem, p.easyConds, p.getEasyCondPos(e))){
+      imi.next++;
+      imi.range = false;
+      extendBinding(imi, e);
+      if (p.isFinalState(newState) && imi.finished(trajSize[id]) && 
+          checkConditions(id, imi)) { // complete match
+        removeIdFromMatchInfo(id);
+//         cout << id << " removed (match) " << activeTuples << " active tuples"
+//              << endl;
+        matches.push_back(id);
+        return true;
+      }
+      else if (!imi.exhausted(trajSize[id])) { // continue
+        if ((*newMatchInfoPtr)[newState].size() == 0) {
+          (*newMatchInfoPtr)[newState].resize(mRel->GetNoTuples());
+        }
+        (*newMatchInfoPtr)[newState][id].imis.push_back(imi);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~valuesMatch~}
+
+*/
+bool IndexMatchesLI::valuesMatch(const int e, const TupleId id, 
+                      IndexMatchInfo& imi, const int newState, const int unit) {
+  if (imi.next >= trajSize[id]) {
+    return false;
+  }
+  Tuple *tuple = mRel->GetTuple(id, false);
+  bool result = false;
+  switch (mtype) {
+    case LABEL: {
+      MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNr));
+      Match<MLabel> match(0, ml);
+      result = imiMatch(match, e, id, imi, unit, newState);
+      break;
+    }
+    case LABELS: {
+      MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNr));
+      Match<MLabels> match(0, mls);
+      result = imiMatch(match, e, id, imi, unit, newState);
+      break;
+    }
+    case PLACE: {
+      MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNr));
+      Match<MPlace> match(0, mp);
+      result = imiMatch(match, e, id, imi, unit, newState);
+      break;
+    }
+    default: { // PLACES
+      MPlaces *mps = (MPlaces*)(tuple->GetAttribute(attrNr));
+      Match<MPlaces> match(0, mps);
+      result = imiMatch(match, e, id, imi, unit, newState);
+      break;
+    }
+  }
+  tuple->DeleteIfAllowed();
+  return result;
+}
+
+/*
+\subsection{Function ~applySetRel~}
+
+*/
+void IndexMatchesLI::applySetRel(const SetRel setRel, 
+                                 vector<set<pair<TupleId, int> > >& valuePosVec,
+                                 set<pair<TupleId, int> >*& result) {
+  switch (setRel) {
+    case STANDARD: {
+      Tools::uniteLastPairs(valuePosVec.size(), valuePosVec);
+      result = &(valuePosVec[0]);
+      break;
+    }
+    case DISJOINT: { // will not happen
+      break;
+    }
+    case SUPERSET: {}
+    case EQUAL: {
+      Tools::intersectPairs(valuePosVec, result);
+      break;
+    }
+    default: { // INTERSECT
+      Tools::uniteLastPairs(valuePosVec.size(), valuePosVec);
+      result = &(valuePosVec[0]);
+      break;
+    }
+  }
+}
+
+/*
+\subsection{Function ~simpleMatch~}
+
+*/
+bool IndexMatchesLI::simpleMatch(const int e, const int state,
+                                  const int newState) {
+  bool transition = false;
+  storeIndexResult(e);
+//   cout << e << " " << indexResult[e].size() << " " << indexResult[e][0].succ 
+//        << endl;
+  if (!indexResult[e].empty()) { // contents found in at least one index
+    TupleId id = indexResult[e][0].succ;
+    while (id > 0) {
+//       cout << "state " << state << "; elem " << e << "; next id is " << id 
+//            << endl;
+      bool imiCreated = false;
+//       cout << "simpleMatch: " << (*matchInfoPtr)[state][id].imis.size()
+//            << " IMIs, state=" << state << ", id=" << id << endl;
+      if ((indexResult[e][indexResult[e][id].pred].succ == id) &&
+          !indexResult[e][id].units.empty()) {
+        for (unsigned int i = 0; i < (*matchInfoPtr)[state][id].imis.size();
+             i++) {
+          for (set<int>::iterator it = indexResult[e][id].units.begin(); 
+                                  it != indexResult[e][id].units.end(); it++) {
+            if (valuesMatch(e, id, (*matchInfoPtr)[state][id].imis[i], 
+                newState, *it)) {
+              transition = true;
+              imiCreated = true;
+            }
+          }
+        }
+      }
+      if (!hasIdIMIs(id, state) && !imiCreated) { // no IMIs
+        if (!hasIdIMIs(id)) { // no IMIs at all for id
+          removeIdFromMatchInfo(id);
+//           cout << id << " removed (index) " << activeTuples 
+//                << " active tuples" << endl;
+        }
+      }
+      id = indexResult[e][id].succ;
+    }
+  }
+  else { // no result from index
+    if (indexMismatch.find(e) != indexMismatch.end()) { // mismatch
+      return false;
+    }
+    else { // disjoint or () or only semantic time information
+      PatElem elem;
+      TupleId id = matchInfo[e][0].succ; // first active tuple id
+      while (id > 0) {
+        for (unsigned int i = 0; i < (*matchInfoPtr)[state][id].imis.size();
+             i++) {
+          if (valuesMatch(e, id, (*matchInfoPtr)[state][id].imis[i], 
+              newState, -1)) {
+            transition = true;
+          }
+        }
+        if (!hasIdIMIs(id, state)) { // no IMIs for id and state
+          if (!hasIdIMIs(id)) { // no IMIs at all for id
+            removeIdFromMatchInfo(id);
+//             cout << id << " removed (no index) " << activeTuples #
+//                  << " active tuples"  << endl;
+          }
+        }
+        id = matchInfo[e][id].succ;
+      }
+    }
+  }
+  return transition;
+}
+
+/*
+\subsection{Function ~timesMatch~}
+
+*/
+bool IndexMatchesLI::timesMatch(const TupleId id, const unsigned int unit,
+                                 const PatElem& elem) {
+  set<string> ivs;
+  elem.getI(ivs);
+  SecInterval iv(true);
+  getInterval(id, unit, iv);
+  return Tools::timesMatch(iv, ivs);
+}
+
+/*
+\subsection{Function ~checkConditions~}
+
+*/
+bool IndexMatchesLI::checkConditions(const TupleId id, IndexMatchInfo& imi) {
+  if (!p.hasConds()) {
+    return true;
+  }
+  Tuple *tuple = mRel->GetTuple(id, false);
+//   cout << "checkConditions: size = " << getMsize(id) 
+//        << "; binding(lastVar) = (" << imi.binding[imi.prevVar].first << ", " 
+//        << imi.binding[imi.prevVar].second << ")" << endl;
+  bool result = false;
+  switch (mtype) {
+    case LABEL: {
+      MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNr));
+      Match<MLabel> match(&p, ml);
+      result = match.conditionsMatch(*(p.getConds()), imi.binding);
+      break;
+    }
+    case LABELS: {
+      MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNr));
+      Match<MLabels> match(&p, mls);
+      result = match.conditionsMatch(*(p.getConds()), imi.binding);
+      break;
+    }
+    case PLACE: {
+      MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNr));
+      Match<MPlace> match(&p, mp);
+      result = match.conditionsMatch(*(p.getConds()), imi.binding);
+      break;
+    }
+    default: { // PLACES
+      MPlaces *mps = (MPlaces*)(tuple->GetAttribute(attrNr));
+      Match<MPlaces> match(&p, mps);
+      result = match.conditionsMatch(*(p.getConds()), imi.binding);
+      break;
+    }
+  }
+  tuple->DeleteIfAllowed();
+  return result;
+}
+
+void IndexMatchInfo::print(const bool printBinding) {
+  if (range) {
+    cout << "range from " << next << endl;
+  }
+  else {
+    cout << "next: {" << next << "}" << endl;
+  }
+  if (printBinding) {
+    Tools::printBinding(binding);
+  }
+}
+
+
+
+
+
+}

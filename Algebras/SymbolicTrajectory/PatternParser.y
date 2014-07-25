@@ -43,7 +43,7 @@ Algebra.
 #include <sstream>
 #include <set>
 #include <map>
-#include "SymbolicTrajectoryAlgebra.h"
+#include "Algorithms.h"
 
 using namespace std;
 using namespace stj;
