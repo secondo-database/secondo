@@ -33,6 +33,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "TemporalExtAlgebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
+#include <string>
 
 namespace stj {
   
@@ -93,6 +94,7 @@ class Label : public Attribute {
   Label& operator=(const Label& lb) {CopyFrom(&lb); return *this;}
   bool operator==(const Label& lb) const;
   bool operator==(const string& text) const;
+  double Distance(const Label& lb) const;
 
   static bool readValueFrom(ListExpr LE, string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
@@ -157,6 +159,7 @@ class Labels : public Attribute {
   void Clean() {values.clean(); pos.clean();}
   bool Contains(const string& text) const;
   friend ostream& operator<<(ostream& os, const Labels& lbs);
+  double Distance(const Labels& lbs) const;
   
   int NumOfFLOBs() const {return 2;}
   Flob *GetFLOB(const int i);
@@ -211,6 +214,7 @@ class Place : public Label {
   Place& operator=(const Place& p);
   bool operator==(const Place& p) const;
   bool operator==(const pair<string, unsigned int>& value) const;
+  double Distance(const Place& p) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Place);}
@@ -274,6 +278,7 @@ class Places : public Attribute {
                                                       << e.second;}
   void operator=(const Places& p);
   bool operator==(const Places& p) const;
+  double Distance(const Places& p) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Places);}

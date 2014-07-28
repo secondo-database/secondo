@@ -6,6 +6,7 @@ operator contains alias CONTAINS pattern _ infixop _
 operator toplace alias TOPLACE pattern op ( _ , _ )
 operator name alias NAME pattern op ( _ )
 operator ref alias REF pattern op ( _ )
+operator distance alias DISTANCE pattern op ( _ , _ )
 operator topattern alias TOPATTERN pattern _ op
 operator toclassifier alias TOCLASSIFIER pattern _ op
 operator matches alias MATCHES pattern _ infixop _

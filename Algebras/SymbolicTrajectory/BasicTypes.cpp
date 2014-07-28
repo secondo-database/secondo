@@ -110,6 +110,17 @@ bool Label::operator==(const string& text) const {
 }
 
 /*
+\subsection{Function ~Distance~}
+
+*/
+double Label::Distance(const Label& lb) const {
+  string str1, str2;
+  GetValue(str1);
+  lb.GetValue(str2);
+  return double(stringutils::ld(str1,str2)) / max(str1.length(), str2.length());
+}
+
+/*
 \subsection{Function ~readValueFrom~}
 
 */
@@ -466,6 +477,37 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 }
 
 /*
+\subsection{Function ~Contains~}
+
+*/
+double Labels::Distance(const Labels& lbs) const {
+  if (IsEmpty() && lbs.IsEmpty()) {
+    return 0;
+  }
+  if (IsEmpty() || lbs.IsEmpty()) {
+    return 1;
+  }
+  Label lb1(true), lb2(true);
+  multiset<double> dist;
+  for (int i = 0; i < GetNoValues(); i++) {
+    Get(i, lb1);
+    for (int j = 0; j < lbs.GetNoValues(); j++) {
+      lbs.Get(j, lb2);
+      dist.insert(lb1.Distance(lb2));
+    }
+  }
+  int limit = min(GetNoValues(), lbs.GetNoValues());
+  multiset<double>::iterator it = dist.begin();
+  double sum = 0;
+  for (int k = 0; k < limit; k++) {
+    sum += *it;
+    it++;
+  }
+  return (sum / limit + abs(GetNoValues() - lbs.GetNoValues()) / 
+                        max(GetNoValues(), lbs.GetNoValues())) / 2;
+}
+
+/*
 \subsection{Function ~GetFLOB~}
 
 */
@@ -661,6 +703,14 @@ bool Place::operator==(const pair<string, unsigned int>& value) const {
   pair<string, unsigned int> val;
   GetValue(val);
   return (val == value);
+}
+
+/*
+\subsection{Function ~Distance~}
+
+*/
+double Place::Distance(const Place& p) const {
+  return Label::Distance(p) / 2 + (GetRef() == p.GetRef() ? 0 : 0.5);
 }
 
 /*
@@ -975,6 +1025,37 @@ bool Places::operator==(const Places& p) const {
     return true;
   }
   return false;
+}
+
+/*
+\subsection{Function ~Distance~}
+
+*/
+double Places::Distance(const Places& p) const {
+  if (IsEmpty() && p.IsEmpty()) {
+    return 0;
+  }
+  if (IsEmpty() || p.IsEmpty()) {
+    return 1;
+  }
+  Place p1(true), p2(true);
+  multiset<double> dist;
+  for (int i = 0; i < GetNoValues(); i++) {
+    Get(i, p1);
+    for (int j = 0; j < p.GetNoValues(); j++) {
+      p.Get(j, p2);
+      dist.insert(p1.Distance(p2));
+    }
+  }
+  int limit = min(GetNoValues(), p.GetNoValues());
+  multiset<double>::iterator it = dist.begin();
+  double sum = 0;
+  for (int k = 0; k < limit; k++) {
+    sum += *it;
+    it++;
+  }
+  return (sum / limit + abs(GetNoValues() - p.GetNoValues()) / 
+                        max(GetNoValues(), p.GetNoValues())) / 2;
 }
 
 /*

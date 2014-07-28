@@ -67,6 +67,8 @@ GenTC<MBasics<Places> > mplaces;
 GenTC<MLabel> mlabel;
 GenTC<MBasic<Place> > mplace;
 
+GenTC<PatPersistent> patternTC;
+
 /*
 \section{Operator ~tolabel~}
 
@@ -579,7 +581,7 @@ struct nameInfo : OperatorInfo {
 };
 
 /*
-\section{Operator ~name~}
+\section{Operator ~ref~}
 
 \subsection{Type Mapping}
 
@@ -649,7 +651,7 @@ ListExpr equalsTM(ListExpr args) {
 \subsection{Selection Function}
 
 */
-int equalsSelect(ListExpr args) {
+int equalsDistanceSelect(ListExpr args) {
   if (Label::checkType(nl->First(args))) return 0; 
   if (Labels::checkType(nl->First(args))) return 1;
   if (Place::checkType(nl->First(args))) return 2; 
@@ -690,12 +692,58 @@ struct equalsInfo : OperatorInfo {
 };
 
 /*
-\section{Implementation of class ~Pattern~}
+\section{Operator ~distance~}
 
-\subsection{Type Constructor}
+distance: T x T -> double,   where T in {place(s), label(s)}
+
+\subsection{Type Mapping}
 
 */
-GenTC<PatPersistent> patternTC;
+ListExpr distanceTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+    return NList::typeError("Expecting two arguments.");
+  }
+  if ((Label::checkType(nl->First(args)) && Label::checkType(nl->Second(args)))
+|| (Labels::checkType(nl->First(args)) && Labels::checkType(nl->Second(args)))
+|| (Place::checkType(nl->First(args)) && Place::checkType(nl->Second(args)))
+|| (Places::checkType(nl->First(args)) && Places::checkType(nl->Second(args)))){
+      return nl->SymbolAtom(CcReal::BasicType());
+  }
+  return NList::typeError("Expecting T x T, where T in {place(s), label(s)}");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int distanceVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  T *second = static_cast<T*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcReal *res = static_cast<CcReal*>(result.addr);
+  if (first->IsDefined() && second->IsDefined()) {
+    res->Set(true, first->Distance(*second));
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct distanceInfo : OperatorInfo {
+  distanceInfo() {
+    name      = "distance";
+    signature = "T x T -> bool,   where T in {label(s), place(s)}";
+    syntax    = "distance(_ , _);";
+    meaning   = "Computes a Levenshtein-based distance between the objects. The"
+                " result is always normalized to [0,1].";
+  }
+};
 
 /*
 \section{Generic operators for ~[i|m|u] [label|place] [s]?~}
@@ -3194,7 +3242,7 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,Supplier s){
         for (set<string>::iterator it = values.begin();it != values.end();it++){
           inv->insertString(tuple->GetTupleId(), *it, j, 0, cache, trieCache);
           counter++;
-          if (counter % 50000 == 0) {
+          if (counter % 100000 == 0) {
             cout << counter << " elements inserted, last was " << *it << endl;
           }
         }
@@ -3214,7 +3262,7 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,Supplier s){
           inv->insertString(tuple->GetTupleId(), it->first, j, it->second, 
                             cache, trieCache);
           counter++;
-          if (counter % 50000 == 0) {
+          if (counter % 100000 == 0) {
             cout << counter << " elements inserted, last was (" << it->first
                  << ", " << it->second << ")" << endl;
           }
@@ -3243,118 +3291,120 @@ struct createtrieInfo : OperatorInfo {
   }
 };
 
-/*
-\section{Operator ~triptompoint~}
+// /*
+// \section{Operator ~triptompoint~}
+// 
+// \subsection{Type Mapping}
+// 
+// */
+// ListExpr triptompointTM(ListExpr args) {
+//   if (nl->ListLength(args) != 1) {
+//     return listutils::typeError("One argument expected.");
+//   }
+//   if (!Stream<Tuple>::checkType(nl->First(args))) {
+//     return listutils::typeError("Argument is not a stream of tuples.");
+//   }
+//   ListExpr attrlist = nl->Second(nl->Second(nl->First(args)));
+//   string attrs[] = {"int", "int", "instant", "instant",
+//                     "real", "real", "real", "real"};
+//   int pos = 0;
+//   while (!nl->IsEmpty(attrlist)) {
+//     ListExpr first = nl->First(attrlist);
+//     attrlist = nl->Rest(attrlist);
+//     if (!listutils::isSymbol(nl->Second(first), attrs[pos])) {
+//       return listutils::typeError("Wrong attribute type at pos " + pos);
+//     }
+//     pos++;
+//   }
+//   return nl->SymbolAtom(CcBool::BasicType());
+// }
+// 
+// /*
+// \subsection{Value Mapping}
+// 
+// */
+// int triptompointVM(Word* args, Word& result, int message, Word& local,
+//                    Supplier s) {
+//   result = qp->ResultStorage(s);
+//   CcBool* res = (CcBool*)result.addr;
+//   Stream<Tuple> src = static_cast<Stream<Tuple>* >(args[0].addr);
+//   src.open();
+//   Tuple *tuple = src.request();
+//   int moId(-1), tripId(-1);
+//   MPoint *mp = 0;
+//   ListExpr typeinfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+//     nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("Moid"),
+//                                       nl->SymbolAtom(CcInt::BasicType())),
+//                       nl->TwoElemList(nl->SymbolAtom("Tripid"),
+//                                       nl->SymbolAtom(CcInt::BasicType())),
+//                       nl->TwoElemList(nl->SymbolAtom("Trip"),
+//                                       nl->SymbolAtom(MPoint::BasicType()))));
+//   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+//   ListExpr numtypeinfo = sc->NumericType(typeinfo);
+//   TupleType *tupletype = new TupleType(numtypeinfo);
+//   Relation *tripsrel = new Relation(tupletype, false);
+//   Tuple *resTuple = 0;
+//   int counter = 0;
+//   while (tuple) {
+//     counter++;
+//     if ((moId != ((CcInt*)(tuple->GetAttribute(0)))->GetValue()) ||
+//         (tripId != ((CcInt*)(tuple->GetAttribute(1)))->GetValue())) {
+//       if (resTuple) {
+//         resTuple->PutAttribute(0, new CcInt(true, moId));
+//         resTuple->PutAttribute(1, new CcInt(true, tripId));
+//         resTuple->PutAttribute(2, mp);
+//         tripsrel->AppendTuple(resTuple);
+// //         cout << "Tuple finished" << endl;
+// //         resTuple->Print(cout);
+//       }
+//       moId = ((CcInt*)(tuple->GetAttribute(0)))->GetValue();
+//       tripId = ((CcInt*)(tuple->GetAttribute(1)))->GetValue();
+//       mp = new MPoint(0);
+//       resTuple = new Tuple(tupletype);
+//     }
+//     SecInterval iv(*((Instant*)(tuple->GetAttribute(2))),
+//                    *((Instant*)(tuple->GetAttribute(3))));
+//     Point p1(true, ((CcReal*)(tuple->GetAttribute(4)))->GetValue(),
+//                    ((CcReal*)(tuple->GetAttribute(5)))->GetValue());
+//     Point p2(true, ((CcReal*)(tuple->GetAttribute(6)))->GetValue(),
+//                    ((CcReal*)(tuple->GetAttribute(7)))->GetValue());
+//     UPoint up(iv, p1, p2);
+//     mp->Add(up);
+//     deleteIfAllowed(tuple);
+//     tuple = src.request();
+//   }
+//   resTuple->PutAttribute(0, new CcInt(true, moId));
+//   resTuple->PutAttribute(1, new CcInt(true, tripId));
+//   resTuple->PutAttribute(2, mp);
+//   tripsrel->AppendTuple(resTuple);
+// //   cout << "last tuple appended" << endl;
+// //   resTuple->Print(cout);
+//   src.close();
+//   ListExpr reltype = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()),
+//                                      typeinfo);
+//   Word relWord;
+//   relWord.setAddr(tripsrel);
+//   sc->InsertObject("Trips", "", reltype, relWord, true);
+//   res->Set(true, true);
+//   return 0;
+// }
+// 
+// /*
+// \subsection{Operator Info}
+// 
+// */
+// struct triptompointInfo : OperatorInfo {
+//   triptompointInfo() {
+//     name      = "triptompoint";
+//     signature = "stream(tuple(Moid: int, Tripid: int, Tstart: instant, Tend:"
+//                 " instant, Xstart: real, Ystart: real, Xend: real, "
+//                 "Yend: real)) -> bool";
+//     syntax    = "_ triptompoint";
+//     meaning   = "Builds a relation containing one mpoint for each trip.";
+//   }
+// };
 
-\subsection{Type Mapping}
 
-*/
-ListExpr triptompointTM(ListExpr args) {
-  if (nl->ListLength(args) != 1) {
-    return listutils::typeError("One argument expected.");
-  }
-  if (!Stream<Tuple>::checkType(nl->First(args))) {
-    return listutils::typeError("Argument is not a stream of tuples.");
-  }
-  ListExpr attrlist = nl->Second(nl->Second(nl->First(args)));
-  string attrs[] = {"int", "int", "instant", "instant",
-                    "real", "real", "real", "real"};
-  int pos = 0;
-  while (!nl->IsEmpty(attrlist)) {
-    ListExpr first = nl->First(attrlist);
-    attrlist = nl->Rest(attrlist);
-    if (!listutils::isSymbol(nl->Second(first), attrs[pos])) {
-      return listutils::typeError("Wrong attribute type at pos " + pos);
-    }
-    pos++;
-  }
-  return nl->SymbolAtom(CcBool::BasicType());
-}
-
-/*
-\subsection{Value Mapping}
-
-*/
-int triptompointVM(Word* args, Word& result, int message, Word& local,
-                   Supplier s) {
-  result = qp->ResultStorage(s);
-  CcBool* res = (CcBool*)result.addr;
-  Stream<Tuple> src = static_cast<Stream<Tuple>* >(args[0].addr);
-  src.open();
-  Tuple *tuple = src.request();
-  int moId(-1), tripId(-1);
-  MPoint *mp = 0;
-  ListExpr typeinfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-    nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("Moid"),
-                                      nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("Tripid"),
-                                      nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("Trip"),
-                                      nl->SymbolAtom(MPoint::BasicType()))));
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  ListExpr numtypeinfo = sc->NumericType(typeinfo);
-  TupleType *tupletype = new TupleType(numtypeinfo);
-  Relation *tripsrel = new Relation(tupletype, false);
-  Tuple *resTuple = 0;
-  int counter = 0;
-  while (tuple) {
-    counter++;
-    if ((moId != ((CcInt*)(tuple->GetAttribute(0)))->GetValue()) ||
-        (tripId != ((CcInt*)(tuple->GetAttribute(1)))->GetValue())) {
-      if (resTuple) {
-        resTuple->PutAttribute(0, new CcInt(true, moId));
-        resTuple->PutAttribute(1, new CcInt(true, tripId));
-        resTuple->PutAttribute(2, mp);
-        tripsrel->AppendTuple(resTuple);
-//         cout << "Tuple finished" << endl;
-//         resTuple->Print(cout);
-      }
-      moId = ((CcInt*)(tuple->GetAttribute(0)))->GetValue();
-      tripId = ((CcInt*)(tuple->GetAttribute(1)))->GetValue();
-      mp = new MPoint(0);
-      resTuple = new Tuple(tupletype);
-    }
-    SecInterval iv(*((Instant*)(tuple->GetAttribute(2))),
-                   *((Instant*)(tuple->GetAttribute(3))));
-    Point p1(true, ((CcReal*)(tuple->GetAttribute(4)))->GetValue(),
-                   ((CcReal*)(tuple->GetAttribute(5)))->GetValue());
-    Point p2(true, ((CcReal*)(tuple->GetAttribute(6)))->GetValue(),
-                   ((CcReal*)(tuple->GetAttribute(7)))->GetValue());
-    UPoint up(iv, p1, p2);
-    mp->Add(up);
-    deleteIfAllowed(tuple);
-    tuple = src.request();
-  }
-  resTuple->PutAttribute(0, new CcInt(true, moId));
-  resTuple->PutAttribute(1, new CcInt(true, tripId));
-  resTuple->PutAttribute(2, mp);
-  tripsrel->AppendTuple(resTuple);
-//   cout << "last tuple appended" << endl;
-//   resTuple->Print(cout);
-  src.close();
-  ListExpr reltype = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()),
-                                     typeinfo);
-  Word relWord;
-  relWord.setAddr(tripsrel);
-  sc->InsertObject("Trips", "", reltype, relWord, true);
-  res->Set(true, true);
-  return 0;
-}
-
-/*
-\subsection{Operator Info}
-
-*/
-struct triptompointInfo : OperatorInfo {
-  triptompointInfo() {
-    name      = "triptompoint";
-    signature = "stream(tuple(Moid: int, Tripid: int, Tstart: instant, Tend: "
-                "instant, Xstart: real, Ystart: real, Xend: real, Yend: real"
-                ")) -> bool";
-    syntax    = "_ triptompoint";
-    meaning   = "Builds a relation containing one mpoint for each trip.";
-  }
-};
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
@@ -3446,7 +3496,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   ValueMapping equalsVMs[] = {equalsVM<Label>, equalsVM<Labels>, 
     equalsVM<Place>, equalsVM<Places>, 0};
-  AddOperator(equalsInfo(), equalsVMs, equalsSelect, equalsTM);
+  AddOperator(equalsInfo(), equalsVMs, equalsDistanceSelect, equalsTM);
+  
+  ValueMapping distanceVMs[] = {distanceVM<Label>, distanceVM<Labels>,
+                                distanceVM<Place>, distanceVM<Places>, 0};
+  AddOperator(distanceInfo(), distanceVMs, equalsDistanceSelect, distanceTM);
 
   ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
     the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,
@@ -3591,7 +3645,6 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(createtrieInfo(), createtrieVMs, createtrieSelect, createtrieTM);
 
 //       AddOperator(triptompointInfo(), triptompointVM, triptompointTM);
-
   }
   
   ~SymbolicTrajectoryAlgebra() {}
