@@ -11031,7 +11031,8 @@ Load Faked operators extension
 End of file ~optimizer.pl~
 
 */
-/* Khoja Screen Management 
+/* Khoja Screen Management */
+
  erase(Entity, Part) erases certin parts of the screen. 
 Entity can be screen or line, Part can be from, to or all with 
 regard to the current cursor positoin. */
