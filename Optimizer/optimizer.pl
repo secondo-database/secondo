@@ -11031,4 +11031,41 @@ Load Faked operators extension
 End of file ~optimizer.pl~
 
 */
+/* Khoja Screen Management 
+ erase(Entity, Part) erases certin parts of the screen. 
+Entity can be screen or line, Part can be from, to or all with 
+regard to the current cursor positoin. */
+erase(Entity, Part) :-
+entity_code(Entity, Char),
+part_code(Part, Code),
+escape(Code, Char). % see escape/2
+entity_code(screen, 'J'):- !.
+entity_code(line, 'K'):- !.
+part_code(from, '0'):-!.
+% from cursor to the end of the Entity
+part_code(to, '1') :-!.
+% from the beginning of Entity to cursor
+part_code(all, '2'):-!.
+% entire Entity
+cls:- erase(screen, all).
+delete_line:- erase(line, all).
 
+escape(Code1, Code2):-
+put(27), write('['),
+write(Code1),
+write(Code2).
+
+/* Khoja beep(N) sounds terminal bell N times,
+bell(N) is aimed to be used when the user is to concentrate on an particular message on the screen.
+It is usually used with warnings and error messages. */
+
+beep(N):-
+  integer(N), !,
+  N>=0, !, 
+  ring(N).
+  
+  ring(0):-!.
+  ring(N):-
+  put(7),
+  More is N-1, !.
+  ring(More).
