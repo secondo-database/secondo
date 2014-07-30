@@ -1,0 +1,49 @@
+librip: A library to solve the Region Interpolation Problem
+===========================================================
+
+Authors: Florian Heinz <fh@sysv.de>, Prof. Dr. Ralf Hartmut G[ue]ting <rhg@fernuni-hagen.de>
+Version: 1.2 (2014-07-15)
+Copyright: GNU Lesser General Public License Version 3 (a copy can be found in LGPL-3.0)
+
+librip is a c++-library to interpolate two regions to a moving region.
+
+Prerequisites:
+boost (for polygon intersection and date/time-handling)
+lua5.1 or lua5.2 (for matchFaces-scripting)
+(adapt LIBS in lib/Makefile and lib/config.h accordingly)
+
+The main function is:
+
+RList regioninterpolate (RList src, RList dst, string srctime, string dsttime, string args);
+
+src and dst are regions in nested list representation.
+The format is:
+
+region: '(' face* ')'
+face:   '(' cycle holecycle* ')'
+cycle:  '(' point point point+ ')'
+point:  '(' real real ')'
+holecycle: cycle
+
+The class RList can be used to construct suitable representations of regions.
+Example:
+
+RList nl;
+RList *ptr = nl->nest()->nest();
+ptr->point(0,0);
+ptr->point(10,0);
+ptr->point(10,10);
+
+
+srctime and dsttime are the timestamps of the two regions to be interpolated in the format
+YYYY-mm-dd HH:MM:SS (e.g. "2014-07-09 15:30:22")
+
+
+A file-based example can be found in the directory "example/"
+
+Usage: ./rip objects/box1 objects/box2 "2014-01-01 00:00" "2014-01-02 12:00" Distance
+
+Some objects to test with reside in "example/objects/"
+
+http://dna.fernuni-hagen.de/secondo
+

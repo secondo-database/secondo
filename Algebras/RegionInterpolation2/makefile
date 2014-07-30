@@ -33,8 +33,8 @@ CCFLAGS += $(ALG_INC_DIRS)
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-	cp -n matchFaces.lua ../../bin || true
-	cp -n matchStrategies.lua ../../bin || true
+	cp -n librip/example/matchFaces.lua ../../bin || true
+	cp -n librip/example/matchStrategies.lua ../../bin || true
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -43,9 +43,11 @@ endif
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
-	$(create-lib)
+	make -C librip
+	$(create-lib) librip/lib/*.o
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	make -C librip clean
