@@ -63,6 +63,7 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include <time.h>
 
 #include "Tools.h"
+#include "BasicTypes.h"
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
@@ -259,6 +260,7 @@ class MBasic : public Attribute {
   void Fill(MBasic<B>& result, DateTime& duration) const;
   void Compress(MBasic<B>& result) const;
   ostream& Print(ostream& os) const;
+  double Distance(const MBasic<B>& mb) const;
   
  protected:
   Flob values;
@@ -330,6 +332,7 @@ class MBasics : public Attribute {
   void Fill(MBasics<B>& result, DateTime& duration) const;
   void Compress(MBasics<B>& result) const;
   ostream& Print(ostream& os) const;
+  double Distance(const MBasics<B>& mbs) const;
   
  protected:
   Flob values;
@@ -1799,6 +1802,7 @@ void MBasic<B>::GetInterval(const int i, SecInterval& result) const {
 */
 template<class B>
 void MBasic<B>::GetBasic(const int i, B& result) const {
+  cout << "getBasic " << i << " from " << GetNoComponents() << endl;
   assert((i >= 0) && (i < GetNoComponents()));
   result.SetDefined(IsDefined());
   if (IsDefined()) {
@@ -2162,6 +2166,40 @@ ostream& MBasic<B>::Print(ostream& os) const {
     ub.Print(os);
   }
   return os;
+}
+
+/*
+\subsection{Function ~Distance~}
+
+*/
+template<class B>
+double MBasic<B>::Distance(const MBasic<B>& mb) const {
+  if (IsEmpty() && mb.IsEmpty()) {
+    return 0;
+  }
+  if (IsEmpty() || mb.IsEmpty()) {
+    return 1;
+  }
+  int n = GetNoComponents() + 1;
+  int m = mb.GetNoComponents() + 1;
+  double dp[n][m];
+  for (int i = 0; i < n; i++) {
+    dp[i][0] = i;
+  }
+  for (int j = 0; j < m; j++) {
+    dp[0][j] = j;
+  }
+  typename B::base basic1, basic2;
+  for (int i = 1; i < n; i++) {
+    GetValue(i - 1, basic1);
+    for (int j = 1; j < m; j++) {
+      mb.GetValue(j - 1, basic2);
+      dp[i][j] = min(dp[i - 1][j] + 1,
+                 min(dp[i][j - 1] + 1, 
+                     dp[i -1][j - 1] + Tools::distance(basic1, basic2)));
+    }
+  }
+  return dp[n - 1][m - 1] / max(n, m);
 }
 
 /*
@@ -2900,6 +2938,40 @@ ostream& MBasics<B>::Print(ostream& os) const {
     ubs.Print(os);
   }
   return os;
+}
+
+/*
+\subsection{Function ~Distance~}
+
+*/
+template<class B>
+double MBasics<B>::Distance(const MBasics<B>& mbs) const {
+  if (IsEmpty() && mbs.IsEmpty()) {
+    return 0;
+  }
+  if (IsEmpty() || mbs.IsEmpty()) {
+    return 1;
+  }
+  int n = GetNoComponents() + 1;
+  int m = mbs.GetNoComponents() + 1;
+  double dp[n][m];
+  for (int i = 0; i < n; i++) {
+    dp[i][0] = i;
+  }
+  for (int j = 0; j < m; j++) {
+    dp[0][j] = j;
+  }
+  set<typename B::base> basics1, basics2;
+  for (int i = 1; i < n; i++) {
+    GetValues(i - 1, basics1);
+    for (int j = 1; j < m; j++) {
+      mbs.GetValues(j - 1, basics2);
+      dp[i][j] = min(dp[i - 1][j] + 1,
+                 min(dp[i][j - 1] + 1, 
+                     dp[i -1][j - 1] + Tools::distance(basics1, basics2)));
+    }
+  }
+  return dp[n - 1][m - 1] / max(n, m);
 }
   
 /*

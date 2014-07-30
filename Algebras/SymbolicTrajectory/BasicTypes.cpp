@@ -117,6 +117,7 @@ double Label::Distance(const Label& lb) const {
   string str1, str2;
   GetValue(str1);
   lb.GetValue(str2);
+  // TODO: return Tools::distance(str1, str2) and delete remainder
   return double(stringutils::ld(str1,str2)) / max(str1.length(), str2.length());
 }
 
@@ -481,30 +482,33 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 
 */
 double Labels::Distance(const Labels& lbs) const {
-  if (IsEmpty() && lbs.IsEmpty()) {
+  set<string> values1, values2;
+  GetValues(values1);
+  lbs.GetValues(values2);
+  // TODO: return Tools::distance(values1, values2) and delete remainder
+  if (values1.empty() && values2.empty()) {
     return 0;
   }
-  if (IsEmpty() || lbs.IsEmpty()) {
+  if (values1.empty() || values2.empty()) {
     return 1;
   }
-  Label lb1(true), lb2(true);
+  set<string>::iterator i1, i2;
   multiset<double> dist;
-  for (int i = 0; i < GetNoValues(); i++) {
-    Get(i, lb1);
-    for (int j = 0; j < lbs.GetNoValues(); j++) {
-      lbs.Get(j, lb2);
-      dist.insert(lb1.Distance(lb2));
+  for (i1 = values1.begin(); i1 != values1.end(); i1++) {
+    for (i2 = values2.begin(); i2 != values2.end(); i2++) {
+      dist.insert(double(stringutils::ld(*i1, *i2)) /
+                  max(i1->length(), i2->length()));
     }
   }
-  int limit = min(GetNoValues(), lbs.GetNoValues());
+  int limit = min(values1.size(), values2.size());
   multiset<double>::iterator it = dist.begin();
   double sum = 0;
   for (int k = 0; k < limit; k++) {
     sum += *it;
     it++;
   }
-  return (sum / limit + abs(GetNoValues() - lbs.GetNoValues()) / 
-                        max(GetNoValues(), lbs.GetNoValues())) / 2;
+  return (sum / limit + abs(values1.size() - values2.size()) / 
+                        max(values1.size(), values2.size())) / 2;
 }
 
 /*
@@ -710,6 +714,7 @@ bool Place::operator==(const pair<string, unsigned int>& value) const {
 
 */
 double Place::Distance(const Place& p) const {
+  // TODO: return Tools::distance(value1, value2) and delete remainder
   return Label::Distance(p) / 2 + (GetRef() == p.GetRef() ? 0 : 0.5);
 }
 
@@ -1032,30 +1037,34 @@ bool Places::operator==(const Places& p) const {
 
 */
 double Places::Distance(const Places& p) const {
-  if (IsEmpty() && p.IsEmpty()) {
+  set<pair<string, unsigned int> > values1, values2;
+  GetValues(values1);
+  p.GetValues(values2);
+  // TODO: return Tools::distance(values1, values2) and delete remainder
+  if (values1.empty() && values2.empty()) {
     return 0;
   }
-  if (IsEmpty() || p.IsEmpty()) {
+  if (values1.empty() || values2.empty()) {
     return 1;
   }
-  Place p1(true), p2(true);
+  set<pair<string, unsigned int> >::iterator i1, i2;
   multiset<double> dist;
-  for (int i = 0; i < GetNoValues(); i++) {
-    Get(i, p1);
-    for (int j = 0; j < p.GetNoValues(); j++) {
-      p.Get(j, p2);
-      dist.insert(p1.Distance(p2));
+  for (i1 = values1.begin(); i1 != values1.end(); i1++) {
+    for (i2 = values2.begin(); i2 != values2.end(); i2++) {
+      double labelDist = double(stringutils::ld(i1->first, i2->first)) /
+                         max(i1->first.length(), i2->first.length());
+      dist.insert(labelDist + (i1->second == i2->second ? 0 : 0.5));
     }
   }
-  int limit = min(GetNoValues(), p.GetNoValues());
+  int limit = min(values1.size(), values2.size());
   multiset<double>::iterator it = dist.begin();
   double sum = 0;
   for (int k = 0; k < limit; k++) {
     sum += *it;
     it++;
   }
-  return (sum / limit + abs(GetNoValues() - p.GetNoValues()) / 
-                        max(GetNoValues(), p.GetNoValues())) / 2;
+  return (sum / limit + abs(values1.size() - values2.size()) / 
+                        max(values1.size(), values2.size())) / 2;
 }
 
 /*

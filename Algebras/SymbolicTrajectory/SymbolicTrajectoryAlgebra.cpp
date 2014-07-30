@@ -651,7 +651,7 @@ ListExpr equalsTM(ListExpr args) {
 \subsection{Selection Function}
 
 */
-int equalsDistanceSelect(ListExpr args) {
+int equalsSelect(ListExpr args) {
   if (Label::checkType(nl->First(args))) return 0; 
   if (Labels::checkType(nl->First(args))) return 1;
   if (Place::checkType(nl->First(args))) return 2; 
@@ -703,13 +703,36 @@ ListExpr distanceTM(ListExpr args) {
   if (nl->ListLength(args) != 2) {
     return NList::typeError("Expecting two arguments.");
   }
-  if ((Label::checkType(nl->First(args)) && Label::checkType(nl->Second(args)))
-|| (Labels::checkType(nl->First(args)) && Labels::checkType(nl->Second(args)))
-|| (Place::checkType(nl->First(args)) && Place::checkType(nl->Second(args)))
-|| (Places::checkType(nl->First(args)) && Places::checkType(nl->Second(args)))){
-      return nl->SymbolAtom(CcReal::BasicType());
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+  if ((Label::checkType(first)   && Label::checkType(second))   || 
+      (Labels::checkType(first)  && Labels::checkType(second))  ||
+      (Place::checkType(first)   && Place::checkType(second))   ||
+      (Places::checkType(first)  && Places::checkType(second))  ||
+      (MLabel::checkType(first)  && MLabel::checkType(second))  || 
+      (MLabels::checkType(first) && MLabels::checkType(second)) || 
+      (MPlace::checkType(first)  && MPlace::checkType(second))  || 
+      (MPlaces::checkType(first) && MPlaces::checkType(second))) {
+    return nl->SymbolAtom(CcReal::BasicType());
   }
-  return NList::typeError("Expecting T x T, where T in {place(s), label(s)}");
+  return NList::typeError("Expecting T x T, where T in {(m)place(s), "
+                          "(m)label(s)}");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int distanceSelect(ListExpr args) {
+  if (Label::checkType(nl->First(args)))   return 0; 
+  if (Labels::checkType(nl->First(args)))  return 1;
+  if (Place::checkType(nl->First(args)))   return 2; 
+  if (Places::checkType(nl->First(args)))  return 3;
+  if (MLabel::checkType(nl->First(args)))  return 4; 
+  if (MLabels::checkType(nl->First(args))) return 5;
+  if (MPlace::checkType(nl->First(args)))  return 6; 
+  if (MPlaces::checkType(nl->First(args))) return 7;
+  return -1;
 }
 
 /*
@@ -738,10 +761,10 @@ int distanceVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 struct distanceInfo : OperatorInfo {
   distanceInfo() {
     name      = "distance";
-    signature = "T x T -> bool,   where T in {label(s), place(s)}";
+    signature = "T x T -> bool,   where T in {(m)label(s), (m)place(s)}";
     syntax    = "distance(_ , _);";
     meaning   = "Computes a Levenshtein-based distance between the objects. The"
-                " result is always normalized to [0,1].";
+                " result is normalized to [0,1] for each of the data types.";
   }
 };
 
@@ -3496,11 +3519,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   ValueMapping equalsVMs[] = {equalsVM<Label>, equalsVM<Labels>, 
     equalsVM<Place>, equalsVM<Places>, 0};
-  AddOperator(equalsInfo(), equalsVMs, equalsDistanceSelect, equalsTM);
+  AddOperator(equalsInfo(), equalsVMs, equalsSelect, equalsTM);
   
   ValueMapping distanceVMs[] = {distanceVM<Label>, distanceVM<Labels>,
-                                distanceVM<Place>, distanceVM<Places>, 0};
-  AddOperator(distanceInfo(), distanceVMs, equalsDistanceSelect, distanceTM);
+    distanceVM<Place>, distanceVM<Places>, distanceVM<MLabel>,
+    distanceVM<MLabels>, distanceVM<MPlace>, distanceVM<MPlaces>, 0};
+  AddOperator(distanceInfo(), distanceVMs, distanceSelect, distanceTM);
 
   ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
     the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,

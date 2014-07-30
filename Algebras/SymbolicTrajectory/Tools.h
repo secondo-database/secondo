@@ -30,8 +30,6 @@ Started July 2014, Fabio Vald\'{e}s
 #include "RelationAlgebra.h"
 #include "TemporalUnitAlgebra.h"
 #include "SecParser.h"
-
-#include "BasicTypes.h"
  
  using namespace std;
  
@@ -94,6 +92,12 @@ Started July 2014, Fabio Vald\'{e}s
   static void createNFAfromPersistent(DbArray<NFAtransition> &trans, 
           DbArray<int> &fs, vector<map<int, int> > &nfa, set<int> &finalStates);
   static void printBinding(map<string, pair<unsigned int, unsigned int> > &b);
+  static double distance(string& val1, string& val2);
+  static double distance(pair<string, unsigned int>& val1, 
+                         pair<string, unsigned int>& val2);
+  static double distance(set<string>& values1, set<string>& values2);
+  static double distance(set<pair<string, unsigned int> >& values1, 
+                         set<pair<string, unsigned int> >& values2);
 };
 
  }

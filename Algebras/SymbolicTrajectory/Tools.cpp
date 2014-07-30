@@ -387,15 +387,15 @@ int Tools::getKey(const string& type) {
 string Tools::getDataType(const int key) {
   switch (key) {
     case -1: return CcBool::BasicType();
-    case 0: return Label::BasicType();
-    case 1: return Place::BasicType();
+    case 0: return "label";
+    case 1: return "place";
     case 2: return SecInterval::BasicType();
     case 3: 
     case 4: return Instant::BasicType();
     case 5:
     case 6: return CcBool::BasicType();
-    case 8: return Labels::BasicType();
-    case 9: return Places::BasicType();
+    case 8: return "labels";
+    case 9: return "places";
     default: return "error";
   }
 }
@@ -921,5 +921,69 @@ void Tools::printBinding(map<string, pair<unsigned int, unsigned int> > &b) {
   }
   cout << endl;
 }
-  
+
+double Tools::distance(string& val1, string& val2) {
+  return double(stringutils::ld(val1,val2)) / max(val1.length(), val2.length());
+}
+
+double Tools::distance(pair<string, unsigned int>& val1, 
+                       pair<string, unsigned int>& val2) {
+  return distance(val1.first, val2.first) / 2 + 
+         (val1.second == val2.second ? 0 : 0.5);
+}
+
+double Tools::distance(set<string>& values1, set<string>& values2) {
+  if (values1.empty() && values2.empty()) {
+    return 0;
+  }
+  if (values1.empty() || values2.empty()) {
+    return 1;
+  }
+  set<string>::iterator i1, i2;
+  multiset<double> dist;
+  for (i1 = values1.begin(); i1 != values1.end(); i1++) {
+    for (i2 = values2.begin(); i2 != values2.end(); i2++) {
+      dist.insert(double(stringutils::ld(*i1, *i2)) /
+                  max(i1->length(), i2->length()));
+    }
+  }
+  int limit = min(values1.size(), values2.size());
+  multiset<double>::iterator it = dist.begin();
+  double sum = 0;
+  for (int k = 0; k < limit; k++) {
+    sum += *it;
+    it++;
+  }
+  return (sum / limit + (double)abs((int)values1.size() - (int)values2.size()) /
+                                max(values1.size(), values2.size())) / 2;
+}
+
+double Tools::distance(set<pair<string, unsigned int> >& values1, 
+                       set<pair<string, unsigned int> >& values2) {
+  if (values1.empty() && values2.empty()) {
+    return 0;
+  }
+  if (values1.empty() || values2.empty()) {
+    return 1;
+  }
+  set<pair<string, unsigned int> >::iterator i1, i2;
+  multiset<double> dist;
+  for (i1 = values1.begin(); i1 != values1.end(); i1++) {
+    for (i2 = values2.begin(); i2 != values2.end(); i2++) {
+      double labelDist = double(stringutils::ld(i1->first, i2->first)) /
+                         max(i1->first.length(), i2->first.length());
+      dist.insert(labelDist + (i1->second == i2->second ? 0 : 0.5));
+    }
+  }
+  int limit = min(values1.size(), values2.size());
+  multiset<double>::iterator it = dist.begin();
+  double sum = 0;
+  for (int k = 0; k < limit; k++) {
+    sum += *it;
+    it++;
+  }
+  return (sum / limit + abs(values1.size() - values2.size()) / 
+                        max(values1.size(), values2.size())) / 2;
+}
+
 }
