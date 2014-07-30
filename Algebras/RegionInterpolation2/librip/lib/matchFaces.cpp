@@ -207,21 +207,21 @@ static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
 // Helper-function for matchFacesOverlap below. Calculates a score from the
 // overlapping area of two faces.
 static double overlap (Face *src, Face *dst) {
-//    Region r1 = src->MakeRegion(false);
-//    Region r2 = dst->MakeRegion(false);
-//    Region is(0);
-//    r1.Intersection(r2, is, NULL);
-//
-//    double a1 = r1.Area(NULL);
-//    double a2 = r2.Area(NULL);
-//    double ai = is.Area(NULL);
-//    
-//    // Calculate the average overlap percentage between a1 and a2
-//    double ret = (ai*100/a1+ai*100/a2)/2;
-//    
-//  // Subtract the value from 100, since matchFacesCriterion tries to minimize
-//    return 100-ret;
-    return 0;
+    Poly r1 = src->MakePoly(false);
+    Poly r2 = dst->MakePoly(false);
+
+    // Calculate the areas of the two faces
+    double a1 = r1.Area();
+    double a2 = r2.Area();
+
+    // Calculate the intersection of the regions in "intersect"
+    double ai = r1.IntersectionArea(r2); // Calculate the area
+
+    // Calculate the average overlap percentage between a1 and a2
+    double ret = (ai*100/a1+ai*100/a2)/2;
+
+    // Subtract the value from 100, since matchFacesCriterion tries to minimize
+    return 100-ret;
 }
 
 /*
