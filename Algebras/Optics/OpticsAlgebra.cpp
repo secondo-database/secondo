@@ -20,33 +20,6 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ----
 
-//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
-//paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
-//[_] [\_]
-
-[1] Implementation of the Cluster Algebra
-
-June, 2006.
-Basic functionality, one operator with default values and one
-with maximal distance and minimal number of points as values.
-Only the type 'points' has been implemented so far.
-
-[TOC]
-
-1 Overview
-
-This implementation file essentially contains the implementation of the
-classes ~ClusterAlgebra~ and ~DBccan~ which contains the actual
-cluster algorithm.
-
-2 Defines and Includes
-
-Eps is used for the clusteralgorithm as the maximal distance, the
-minimum points (MinPts) may be apart. If there are further points
-in the Eps-range to one of the points in the cluster, this point
-(and further points from this on) belong to the same cluster.
-
 */
 
 #include "Algebra.h"
@@ -59,6 +32,8 @@ in the Eps-range to one of the points in the cluster, this point
 #include "Stream.h"
 #include "MMRTree.h"
 
+#include <limits.h>
+#include <float.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -69,595 +44,535 @@ extern QueryProcessor* qp;
 
 namespace clusteropticsalg
 {
- /*
- Struct to save the result
- */
  struct OpticsOrder
  {
- bool processed;
- double x;
- double y;
- double distReach;
- double distCore;
+  bool processed;
+  double x;
+  double y;
+  double distReach;
+  double distCore;
  };
 
- /* 
- --- Class declaration of Optics ---
- --- START --- 
- */
  class Optics;
 
  class Optics
  {
- public:
- const static int UNDEFINED = UINT_MAX;
- Optics();
- void order(std::list<OpticsOrder>& objs, int eps, int minPts);
+  public:
+   const static int PNT = 0;
+   const static int COR = 1;
+   const static int REA = 2;
+   const static int PRC = 3;
+   const static int ORD = 4;
+   const static double UNDEFINED = -1.0;
+   Optics();
+   int getNextOrder() { return ++orderPoints * 100;};
+   void order(TupleBuffer* objs, int eps, int minPts, TupleBuffer* order);
 
- private:
- void expandClusterOrder(std::list<OpticsOrder>& objs
-, OpticsOrder* obj, int eps, int minPts);
- std::list<OpticsOrder*> getNeighbors(std::list<OpticsOrder>& objs
-, OpticsOrder* obj, int eps);
- void setCoreDistance(std::list<OpticsOrder*>& objs, OpticsOrder* obj
-, int eps, int minPts);
- void update(std::list<OpticsOrder*>& objs, OpticsOrder* obj
-, std::list<OpticsOrder*>& orderedSeeds);
- double getReachableDist(OpticsOrder* obj, OpticsOrder* neighbor);
+  private:
+   int orderPoints;
+   void expandClusterOrder(TupleBuffer* objs, Tuple* obj, int eps
+   ,int minPts, TupleBuffer* order);
+   std::list<Tuple*> getNeighbors(TupleBuffer* objs, Tuple* obj, int eps);
+   void setCoreDistance(std::list<Tuple*>& objs, Tuple* obj
+   ,int eps, int minPts);
+   void update(std::list<Tuple*>& objs, Tuple* obj
+   ,std::list<Tuple*>& orderedSeeds);
+   void insert(std::list<Tuple*>& orderedSeeds, Tuple* obj);
+   void decrease(std::list<Tuple*>& orderedSeeds, Tuple* obj);
+   double getReachableDist(Tuple* obj, Tuple* neighbor);
  };
- /* 
- --- END --- 
- --- Class declaration of Optics ---
- */
  
-
- /* 
- --- Class definition of Optics ---
- --- START --- 
- */
  Optics::Optics()
  {
- return;
+  orderPoints = 0;
+  return;
  }
 
- void Optics::order(std::list<OpticsOrder>& objs, int eps, int minPts)
+ void Optics::order(TupleBuffer* objs, int eps, int minPts
+ ,TupleBuffer* order)
  {
- //OrderedFile.open();
- std::list<OpticsOrder>::iterator it = std::list<OpticsOrder>::iterator();
+  GenericRelationIterator *relIter = objs->MakeScan();
+  Tuple* obj;
 
- for (it = objs.begin(); it != objs.end(); it++)
- {
- OpticsOrder* obj = &(*it);
-
- if(!obj->processed)
- {
- expandClusterOrder(objs, obj, eps, minPts);
- }
- }
-
- //OrderedFile.close();
+  while((obj = relIter->GetNextTuple()))
+  {
+   if(!((CcBool*)obj->GetAttribute(PRC))->GetValue())
+   {
+   expandClusterOrder(objs, obj, eps, minPts, order);
+   }
+  }
  }
 
- void Optics::expandClusterOrder(std::list<OpticsOrder>& objs, OpticsOrder* obj
-, int eps, int minPts)
+ void Optics::expandClusterOrder(TupleBuffer* objs, Tuple* obj
+ ,int eps, int minPts, TupleBuffer* order)
  {
- std::list<OpticsOrder*> orderedSeeds;
+  std::list<Tuple*> orderedSeeds;
+  
+  std::list<Tuple*> neighbors = getNeighbors(objs, obj, eps);
+
+  CcBool processed(true, true);
+  obj->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
+  
+  CcReal rDist(UNDEFINED);
+  obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
+
+  setCoreDistance(neighbors, obj, eps, minPts);
+  //orderedOut add the Point obj
+  order->AppendTuple(obj);
+
+ //(obj->distCore != UNDEFINED)
+  if(((CcReal*)obj->GetAttribute(COR))->GetValue() != UNDEFINED) 
+  {
+   update(neighbors, obj, orderedSeeds);
+
+   std::list<Tuple*>::iterator it;
+   for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
+   {
+   Tuple* currentObject = *it;
+
+   std::list<Tuple*> neighbors = getNeighbors(objs, currentObject, eps);
+   
+   CcBool processed(true, true);
+   currentObject->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
+
+   setCoreDistance(neighbors, currentObject, eps, minPts);
+   //orderedOut add the Point currentObject
+   order->AppendTuple(currentObject);
+
+ //(currentObject->distCore != UNDEFINED)
+   if(((CcReal*)currentObject->GetAttribute(COR))->GetValue()
+    != UNDEFINED) 
+   {
+    update(neighbors, currentObject, orderedSeeds);
+   }
+   }
+  }
+ }
+  
+ std::list<Tuple*> Optics::getNeighbors(TupleBuffer* objs, Tuple* obj
+ ,int eps)
+ {
+  std::list<Tuple*> near;
+
+  GenericRelationIterator *relIter = objs->MakeScan();
+  Tuple* point;
+
+  while((point = relIter->GetNextTuple()))
+  {
+   if(((Point*)obj->GetAttribute(PNT))->GetX()
+  != ((Point*)point->GetAttribute(PNT))->GetX()
+ || ((Point*)obj->GetAttribute(PNT))->GetY()
+ != ((Point*)point->GetAttribute(PNT))->GetY())
+   {
+   if(((((Point*)obj->GetAttribute(PNT))->GetX()
+    - ((Point*)point->GetAttribute(PNT))->GetX()) 
+  * (((Point*)obj->GetAttribute(PNT))->GetX()
+  - ((Point*)point->GetAttribute(PNT))->GetX()))
+  + ((((Point*)obj->GetAttribute(PNT))->GetY()
+  - ((Point*)point->GetAttribute(PNT))->GetY()) 
+  * (((Point*)obj->GetAttribute(PNT))->GetY() 
+  - ((Point*)point->GetAttribute(PNT))->GetY())) < eps*eps) 
+   {
+    near.push_back(point);
+   }
+   }
+  }
+
+  return near;
+ }
+
+
+ void Optics::setCoreDistance(std::list<Tuple*>& neighbors, Tuple* obj
+ ,int eps, int minPts)
+ {
+  double curDist = UNDEFINED;
+  double lastDist = UNDEFINED;
+  double coreDist = UNDEFINED;
+  int count = 0;
+  int biggest = 0;
+  Tuple* nearest[minPts];
+
+  std::list<Tuple*>::iterator it;
+  for (it = neighbors.begin(); it != neighbors.end(); it++)
+  {
+   Tuple* neighbor = *it;
+
+   if(count < minPts)
+   {
+   nearest[count++] = neighbor;
+
+   curDist = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX()
+     - ((Point*)neighbor->GetAttribute(PNT))->GetX())
+   * (((Point*)obj->GetAttribute(PNT))->GetX()
+   - ((Point*)neighbor->GetAttribute(PNT))->GetX()))
+   + ((((Point*)obj->GetAttribute(PNT))->GetY()
+   - ((Point*)neighbor->GetAttribute(PNT))->GetY()) 
+   * (((Point*)obj->GetAttribute(PNT))->GetY()
+   - ((Point*)neighbor->GetAttribute(PNT))->GetY())));
+
+   if(curDist > lastDist)
+   {
+    biggest = count-1;
+    coreDist = curDist;
+   }
+
+   lastDist = curDist;
+   }
+   else
+   {
+   curDist = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX()
+     - ((Point*)neighbor->GetAttribute(PNT))->GetX()) 
+   * (((Point*)obj->GetAttribute(PNT))->GetX()
+   - ((Point*)neighbor->GetAttribute(PNT))->GetX()))
+   + ((((Point*)obj->GetAttribute(PNT))->GetY()
+   - ((Point*)neighbor->GetAttribute(PNT))->GetY()) 
+   * (((Point*)obj->GetAttribute(PNT))->GetY()
+   - ((Point*)neighbor->GetAttribute(PNT))->GetY())));
+
+   for (int i = 0; i < count; i++)
+   {
+    Tuple* curNear = nearest[i];
+
+    double cDst = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX()
+       - ((Point*)curNear->GetAttribute(PNT))->GetX())
+    * (((Point*)obj->GetAttribute(PNT))->GetX()
+    - ((Point*)curNear->GetAttribute(PNT))->GetX()))
+    + ((((Point*)obj->GetAttribute(PNT))->GetY()
+    - ((Point*)curNear->GetAttribute(PNT))->GetY())
+    * (((Point*)obj->GetAttribute(PNT))->GetY()
+    - ((Point*)curNear->GetAttribute(PNT))->GetY())));
+
+    if(cDst > lastDist)
+    {
+     biggest = i;
+     coreDist = cDst;
+    }
+
+    lastDist = cDst;
+   }
+
+   Tuple* curNear = nearest[biggest];
+   
+   double dstnc = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX()
+      - ((Point*)curNear->GetAttribute(PNT))->GetX()) 
+    * (((Point*)obj->GetAttribute(PNT))->GetX()
+    - ((Point*)curNear->GetAttribute(PNT))->GetX())) 
+    + ((((Point*)obj->GetAttribute(PNT))->GetY()
+    - ((Point*)curNear->GetAttribute(PNT))->GetY()) 
+    * (((Point*)obj->GetAttribute(PNT))->GetY()
+    - ((Point*)curNear->GetAttribute(PNT))->GetY())));
+
+   if(dstnc > curDist)
+   {
+    nearest[biggest] = neighbor;
+   }
+   }
+  }
+
+  CcReal cDist(coreDist);
+  obj->PutAttribute(COR, ((Attribute*) &cDist)->Clone());
+ }
+
+ void Optics::update(std::list<Tuple*>& neighbors, Tuple* center
+ ,std::list<Tuple*>& orderedSeeds)
+ {
+  //c_dist := CenterObject.core_distance;
+  //double coreDist = ((CcReal*)center->GetAttribute(COR))->GetValue();
+
+  //FORALL Object FROM neighbors DO
+  std::list<Tuple*>::iterator it = neighbors.begin();
+  for (it = neighbors.begin(); it != neighbors.end(); it++)
+  {
+   Tuple* obj = *it;
+
+   //IF NOT Object.Processed THEN   
+   if(!((CcBool*)obj->GetAttribute(PRC))->GetValue()) //(!obj->processed)
+   {
+   //new_r_dist:=max(c_dist,CenterObject.dist(Object));
+   double newReachDist = getReachableDist(center, obj);
+
+   //IF Object.reachability_distance=UNDEFINED THEN
+   if(((CcReal*)obj->GetAttribute(REA))->GetValue() == UNDEFINED) 
+   {
+    //Object.reachability_distance := new_r_dist;
+    CcReal rDist(newReachDist);
+    obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
+    insert(orderedSeeds, obj);
+   }
+   //ELSE IF new_r_dist<Object.reachability_distance THEN
+   // Object already in OrderSeeds
+   else if(newReachDist < ((CcReal*)obj->GetAttribute(REA))->GetValue())
+   {
+    //Object.reachability_distance := new_r_dist;
+    CcReal rDist(newReachDist);
+    obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
+    decrease(orderedSeeds, obj);
+   }
+   }
+  }
+ }
+
+ void Optics::insert(std::list<Tuple*>& orderedSeeds, Tuple* obj)
+ {
+  std::list<Tuple*>::iterator it;
+
+  for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
+  {
+   Tuple* seed = *it;
+   if(((CcReal*)seed->GetAttribute(REA))->GetValue()
+   > ((CcReal*)obj->GetAttribute(REA))->GetValue())
+   {
+   orderedSeeds.insert(it, obj);
+   return;
+   }
+  }
+  
+  orderedSeeds.push_back(obj);
+ }
+
+ void Optics::decrease(std::list<Tuple*>& orderedSeeds, Tuple* obj)
+ {
+  std::list<Tuple*>::iterator it;
+  std::list<Tuple*>::iterator itObj;
+
+  for (itObj = orderedSeeds.begin(); itObj != orderedSeeds.end(); itObj++)
+  {
+   if(obj == ((Tuple*) *itObj))
+   {
+   for (it = itObj; it != orderedSeeds.begin(); --it)
+   {
+    Tuple* seed = *it;
+    if(((CcReal*)seed->GetAttribute(REA))->GetValue() 
+    > ((CcReal*)obj->GetAttribute(REA))->GetValue())
+    {
+     orderedSeeds.splice(itObj, orderedSeeds, it);
+     return;
+    }
+   }
+   }
+  }
+ }
+
+ double Optics::getReachableDist(Tuple* obj, Tuple* neighbor)
+ {
+  double distance = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX() 
+     - ((Point*)neighbor->GetAttribute(PNT))->GetX()) 
+    * (((Point*)obj->GetAttribute(PNT))->GetX()
+    - ((Point*)neighbor->GetAttribute(PNT))->GetX()))
+    + ((((Point*)obj->GetAttribute(PNT))->GetY()
+    - ((Point*)neighbor->GetAttribute(PNT))->GetY()) 
+    * (((Point*)obj->GetAttribute(PNT))->GetY() 
+    - ((Point*)neighbor->GetAttribute(PNT))->GetY())));
+
+  //new_r_dist:=max(c_dist,CenterObject.dist(Object));   
+  return ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance 
+  ? ((CcReal*)obj->GetAttribute(COR))->GetValue() 
+  : distance;
+ } 
  
- std::list<OpticsOrder*> neighbors = getNeighbors(objs, obj, eps);
-
- obj->processed = true;
- obj->distReach = UNDEFINED;
-
- setCoreDistance(neighbors, obj, eps, minPts);
- //orderedOut add the Point obj
-
- if(obj->distCore != UNDEFINED)
+ ListExpr opticsType( ListExpr args )
  {
- update(neighbors, obj, orderedSeeds);
+  if(nl->ListLength(args)!=2)
+  {
+   ErrorReporter::ReportError("one element expected");
+   return nl->TypeError();
+  }
 
- std::list<OpticsOrder*>::iterator it;
- for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
- {
- OpticsOrder* currentObject = &(*(*it));
+  ListExpr stream = nl->First(args);
 
- std::list<OpticsOrder*> neighbors = getNeighbors(objs, currentObject, eps);
- currentObject->processed = true;
- setCoreDistance(neighbors, currentObject, eps, minPts);
- //orderedOut add the Point currentObject
+  if(!Stream<Tuple>::checkType(nl->First(args)))
+  {
+   return listutils::typeError("stream(Tuple) expected");
+  }
 
- if(currentObject->distCore != UNDEFINED)
- {
- update(neighbors, currentObject, orderedSeeds);
- }
- }
- }
+  ListExpr arguments = nl->Second(args);
+
+  if(nl->ListLength(arguments)!=2)
+  {
+   ErrorReporter::ReportError("non conform list of Eps and MinPts");
+   return nl->TypeError();
+  }
+
+  if(!CcInt::checkType(nl->First(arguments)))
+  {
+   return listutils::typeError("no numeric Eps");
+  }
+
+  if(!CcInt::checkType(nl->Second(arguments)))
+  {
+   return listutils::typeError("no numeric MinPts");
+  }
+
+//  ListExpr tuple = nl->Second(stream);
+
+//  if(!Points::checkType(nl->First(tuple)))
+//  {
+//   return listutils::typeError("stream(Tuple(Points)) expected");
+//  }
+
+//  ListExpr sortSpecification = nl->Second(args);
+
+//  int numberOfSortAttrs = nl->ListLength(sortSpecification);
+
+//  if(numberOfSortAttrs != 2)
+//  {
+//   return listutils::typeError("eps and MinPts expected");
+//  } 
+
+  // copy attrlist to newattrlist
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
+  ListExpr lastlistn = newAttrList;
+
+  lastlistn = nl->Append(lastlistn
+  ,nl->TwoElemList(nl->SymbolAtom("CoreDist")
+ ,nl->SymbolAtom(CcReal::BasicType())));
+  lastlistn = nl->Append(lastlistn
+  ,nl->TwoElemList(nl->SymbolAtom("ReachDist")
+ ,nl->SymbolAtom(CcReal::BasicType())));
+  lastlistn = nl->Append(lastlistn
+  ,nl->TwoElemList(nl->SymbolAtom("Processed")
+ ,nl->SymbolAtom(CcBool::BasicType())));
+
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND())
+ ,nl->TwoElemList(nl->IntAtom(2), arguments)
+ ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM())
+ ,nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType())
+  ,newAttrList)));
  }
  
- std::list<OpticsOrder*> Optics::getNeighbors(std::list<OpticsOrder>& objs
-, OpticsOrder* obj, int eps)
+ int opticsFun(Word* args, Word& result, int message, Word& local, Supplier s)
  {
- std::list<OpticsOrder*> near;
- std::list<OpticsOrder>::iterator it;
+  //Default values
+  int defEps = 9999999;
+  int defMinPts = 2;
+  
+  //Optics instance
+  Optics optics;
 
- for (it = objs.begin(); it != objs.end(); it++)
- {
- OpticsOrder* point = &(*it);
- if(obj->x != point->x || obj->y != point->y)
- {
- if( (obj->x - point->x) * (obj->x - point->x) 
- + (obj->y - point->y) * (obj->y - point->y) < eps*eps ) 
- {
- //OpticsOrder* pPoint;
- //pPoint = &(*it);
- near.push_back(&(*it));
- }
- }
- }
-
-/* printf("--------- INSERTED AFTER REGION QUERY\n");
- std::list<OpticsOrder*>::iterator it2;
- for (it2=near.begin(); it2!=near.end(); it2++)
- {
- OpticsOrder* point;
- point = &(*(*it2)); 
- printf("Processed = %d\n", point->processed);
- printf("DistReach = %g\n", point->distReach);
- printf("DistCore = %g\n", point->distCore);
- printf("X = %g\n", point->x);
- printf("Y = %g\n", point->y);
- }
- printf("----------------------------------------------\n");*/
- return near;
- }
-
-
- void Optics::setCoreDistance(std::list<OpticsOrder*>& neighbors
-, OpticsOrder* obj, int eps, int minPts)
- {
- double curDis = UNDEFINED;
- double lastDist = UNDEFINED;
- double coreDist = UNDEFINED;
- int count = 0;
- int biggest = 0;
- OpticsOrder* nearest[minPts];
-
- std::list<OpticsOrder*>::iterator it;
- for (it = neighbors.begin(); it != neighbors.end(); it++)
- {
- OpticsOrder* neighbor = &(*(*it));
-
- if(count < minPts)
- {
- nearest[count++] = neighbor;
- double curDist = sqrt(((obj->x - neighbor->x) * (obj->x - neighbor->x))
- + ((obj->y - neighbor->y) * (obj->y - neighbor->y)));
-
- if(curDist > lastDist)
- {
- biggest = count-1;
- coreDist = curDist;
- }
-
- double lastDist = curDist;
- }
- else
- {
-
- double curDist = sqrt(((obj->x - neighbor->x) * (obj->x - neighbor->x))
- + ((obj->y - neighbor->y) * (obj->y - neighbor->y)));
-
- for (int i = 0; i < count; i++)
- {
- OpticsOrder* curNear = nearest[i];
- double distance = sqrt(((obj->x - curNear->x) * (obj->x - curNear->x)) 
-+ ((obj->y - curNear->y) * (obj->y - curNear->y)));
-
- if(distance > lastDist)
- {
- biggest = i;
- coreDist = distance;
- }
-
- double lastDist = distance;
- }
-
- OpticsOrder* curNear = nearest[biggest];
- double distance = sqrt(((obj->x - curNear->x) * (obj->x - curNear->x)) 
-+ ((obj->y - curNear->y) * (obj->y - curNear->y)));
-
- if(distance > curDist)
- {
- nearest[biggest] = neighbor;
- }
- }
- }
-
- obj->distCore = coreDist;
- }
-
- void Optics::update(std::list<OpticsOrder*>& neighbors, OpticsOrder* center
-, std::list<OpticsOrder*>& orderedSeeds)
- {
- //c_dist := CenterObject.core_distance;
- double coreDist = center->distCore;
- //FORALL Object FROM neighbors DO
- std::list<OpticsOrder*>::iterator it = neighbors.begin();
- for (it = neighbors.begin(); it != neighbors.end(); it++)
- {
- OpticsOrder* obj = *it;
-
- //IF NOT Object.Processed THEN 
- if(!obj->processed)
- {
- //new_r_dist:=max(c_dist,CenterObject.dist(Object));
- double newReachDist = getReachableDist(center, obj);
-
- //IF Object.reachability_distance=UNDEFINED THEN
- if(obj->distReach == UNDEFINED)
- {
- //Object.reachability_distance := new_r_dist;
- obj->distReach = newReachDist;
- //insert(Object, new_r_dist) !!!MUSS NOCH IMPLEMENTIERT WERDEN!!!
- orderedSeeds.push_back(*it);
-
- }
- //ELSE IF new_r_dist<Object.reachability_distance THEN
- else if(newReachDist < obj->distReach)// Object already in OrderSeeds
- {
- //Object.reachability_distance := new_r_dist;
- obj->distReach = newReachDist;
- //decrease(Object, new_r_dist) !!!MUSS NOCH IMPLEMENTIERT WERDEN
- }
- }
- }
- }
-
-
- double Optics::getReachableDist(OpticsOrder* obj, OpticsOrder* neighbor)
- {
- double distance = sqrt(((obj->x - neighbor->x) * (obj->x - neighbor->x))
- + ((obj->y - neighbor->y) * (obj->y - neighbor->y)));
-
- //new_r_dist:=max(c_dist,CenterObject.dist(Object)); 
- return obj->distCore > distance ? obj->distCore : distance;
- }
- /* 
- --- END --- 
- --- Class definition of Optics ---
- */
-
- /* 
- --- Type mapping ---
- --- START --- 
- */
- static ListExpr optics_aType( ListExpr args )
- {
- if ( nl->ListLength(args) == 1 )
- {
- ListExpr arg1 = nl->First(args);
-
- if ( nl->IsEqual(arg1, Points::BasicType()) )
- {
- return nl->SymbolAtom(Points::BasicType());
- }
- }
-
- return nl->SymbolAtom(Symbol::TYPEERROR());
- }
-
- ListExpr opticsStrType( ListExpr args )
- {
- if(!nl->HasLength(args,1))
- {
- return listutils::typeError("One argument expected");
- }
-
- if(!Stream<CcInt>::checkType(nl->First(args)))
- {
- return listutils::typeError("stream(int) expected");
- }
-
- return nl->TwoElemList(nl->SymbolAtom(Stream<CcInt>::BasicType())
- ,nl->SymbolAtom(CcInt::BasicType()));
- }
-
- ListExpr opticsStrTplType( ListExpr args )
- {
- if(!nl->HasLength(args, 1))
- {
- return listutils::typeError("One argument expected");
- }
-
- if(!Stream<Tuple>::checkType(nl->First(args)))
- {
- return listutils::typeError("stream(Tuple) expected");
- }
-
-// return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType())
-// ,nl->SymbolAtom(Tuple::BasicType()));
-
-// return nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(nl->First(args)));
- return nl->SymbolAtom(Points::BasicType());
- }
-
- /* 
- --- ENDE --- 
- --- Type mapping ---
- */
-
- /* 
- --- Value mapping ---
- --- START --- 
- */
- int optics_aFun (Word* args, Word& result, int message, Word& local
-, Supplier s)
- {
- //Default values
- int defEps = 9999999;
- int defMinPts = 2;
+  TupleType *resultTupleType;
+  ListExpr resultType;
+  TupleBuffer *tp;
+  TupleBuffer *order;
+  long MaxMem;
+  GenericRelationIterator *relIter = 0;
+  Word argument;
+  Supplier son;
  
- //Optics instance
- Optics optics;
+  switch (message)
+  {
+   case OPEN :
+   {
+   qp->Open(args[0].addr);
+   resultType = GetTupleResultType(s);
+   resultTupleType = new TupleType(nl->Second(resultType));
+   Stream<Tuple> stream(args[0]);
 
- //Points array to the initial points
- Points* ps = ((Points*)args[0].addr);
+   son = qp->GetSupplier(args[1].addr, 0);
+   qp->Request(son, argument);
+   defEps = ((CcInt*)argument.addr)->GetIntval();
+
+   son = qp->GetSupplier(args[1].addr, 1);
+   qp->Request(son, argument);
+   defMinPts = ((CcInt*)argument.addr)->GetIntval();
+
+   stream.open();
+   Tuple* tup;
+   tp = 0;
+   MaxMem = qp->FixedMemory();
+   tp = new TupleBuffer(MaxMem);
+   order = new TupleBuffer(MaxMem);
+   relIter = 0;
+
+   while( (tup = stream.request()) != 0)
+   {
+    Tuple *newTuple = new Tuple(resultTupleType);
+
+    //Copy points from given tuple to the new tuple
+    for( int i = 0; i < tup->GetNoAttributes(); i++ ) 
+    {
+     newTuple->CopyAttribute( i, tup, i );
+    }
+
+    //Initialize the result tuple with default values
+    CcReal coreDist(-1.0);
+    newTuple->PutAttribute( 1, ((Attribute*) &coreDist)->Clone());
+    CcReal reachDist(-1.0);
+    newTuple->PutAttribute( 2, ((Attribute*) &reachDist)->Clone());
+    CcBool processed(true, false);
+    newTuple->PutAttribute( 3, ((Attribute*) &processed)->Clone());
+//    Point pointOrder(true, 1, 1);
+//    newTuple->PutAttribute( 4, ((Attribute*) &pointOrder)->Clone());
+
+    tp->AppendTuple(newTuple);
+    tup->DeleteIfAllowed(); 
+   }
+
+   //Start the optics ordering
+   optics.order(tp, defEps, defMinPts, order);
+   
+   //Initialize the tuple buffer iterator and store it in local
+   relIter = order->MakeScan();   
+   local.setAddr(relIter);
+   return 0;
+   }
+   case REQUEST :
+   {
+   relIter = (GenericRelationIterator*) local.addr;
+   Tuple* outTup;
+
+   //Put the tuple in the result
+   if((outTup = relIter->GetNextTuple()))
+   { 
+    outTup->DeleteIfAllowed();
+    result.setAddr(outTup);
+    return YIELD;
+   }
+   else
+   {
+    return CANCEL;
+   }
+   }
+   case CLOSE :
+   {
+   return 0;
+   }
+  }
+  return 0;
+ } 
  
- std::list<OpticsOrder> allPoints;
- std::list<OpticsOrder>::iterator it;
-
- printf("--------- eps = %d MinPts = %d\n", defEps, defMinPts);
- printf("--------- INITIALIZE STRUCT WITH POINTS\n");
- printf("Processed\tDistReach\tDistCore\tX\tY\n");
- for(int i = 0; i < ps->Size(); i++)
+ struct opticsInfo : OperatorInfo
  {
- OpticsOrder* point = new OpticsOrder;
- Point obj;
- 
- ps->Get(i, obj);
- point->x = obj.GetX();
- point->y = obj.GetY();
- point->distReach = -1;
- point->distCore = -1;
- point->processed = false;
- allPoints.push_back(*point);
-
- printf("%d\t%g\t%g\t%g\t%g\n", point->processed, point->distReach
-, point->distCore, point->x, point->y);
- }
- printf("----------------------------------------------\n");
-
- //Start the optics ordering
- optics.order(allPoints, defEps, defMinPts);
-
- printf("--------- POINTS AFTER CLUSTERING\n");
- printf("Processed\tDistReach\tDistCore\tX\tY\n");
- for (it=allPoints.begin(); it!=allPoints.end(); ++it)
- {
- OpticsOrder* point = &(*it);
- printf("%d\t%g\t%g\t%g\t%g\n", point->processed, point->distReach
-, point->distCore, point->x, point->y);
- }
- printf("----------------------------------------------\n");
-
- // --- JUST FOR OUT --- 
- result = qp->ResultStorage( s ); // Query Processor provided Points
- 
- //instance for the result
- // copy x/y from cluster array back into result (only cluster members)
- ((Points*)result.addr)->Clear();
- ((Points*)result.addr)->StartBulkLoad();
-
- for(int a = 0; a < ps->Size(); a++)
- {
- Point obj;
- ps->Get(a, obj);
- Point p(true, obj.GetX(), obj.GetY());
- (*((Points*)result.addr)) += p;
- }
-
- ((Points*)result.addr)->EndBulkLoad();
-
- return 0;
- }
-
- int opticsStrFun(Word* args, Word& result, int message, Word& local
-, Supplier s)
- {
- switch(message)
- {
- case OPEN: 
- {
- qp->Open(args[0].addr);
- return 0;
- }
- case REQUEST: 
- {
- Word elem(Address(0));
- qp->Request(args[0].addr, elem);
- 
- if ( qp->Received(args[0].addr) )
- {
- cout << static_cast<CcInt*>(elem.addr)->GetIntval() << endl;
- result = elem;
- return YIELD;
- }
- else
- {
- result.addr = 0;
- return CANCEL;
- }
- }
- case CLOSE: 
- {
- qp->Close(args[0].addr);
- return 0;
- }
- default: 
- {
- /* should not happen */
- return -1;
- }
- }
- }
-
- int opticsStrTplFun(Word* args, Word& result, int message, Word& local
-, Supplier s)
- {
- Stream<Tuple> stream(args[0]);
- stream.open();
-
- //Default values
- int defEps = 9999999;
- int defMinPts = 2;
- 
- //Optics instance
- Optics optics;
-
-
- std::list<OpticsOrder> allPoints;
- std::list<OpticsOrder>::iterator it;
-
- printf("--------- eps = %d MinPts = %d\n", defEps, defMinPts);
- printf("--------- INITIALIZE STRUCT WITH POINTS\n");
- printf("Processed\tDistReach\tDistCore\tX\tY\n");
- Tuple* tup;
- while( (tup = stream.request()) != 0)
- {
- Point* obj = (Point*) ((Tuple*) tup)->GetAttribute(0);
-
- OpticsOrder* point = new OpticsOrder;
- 
- point->x = obj->GetX();
- point->y = obj->GetY();
- point->distReach = -1;
- point->distCore = -1;
- point->processed = false;
- allPoints.push_back(*point);
-
- tup->DeleteIfAllowed(); 
-
- printf("%d\t%g\t%g\t%g\t%g\n", point->processed, point->distReach
-, point->distCore, point->x, point->y);
- }
-
-
- printf("----------------------------------------------\n");
-
- //Start the optics ordering
- optics.order(allPoints, defEps, defMinPts);
-
- printf("--------- POINTS AFTER CLUSTERING\n");
- printf("Processed\tDistReach\tDistCore\tX\tY\n");
- for (it=allPoints.begin(); it!=allPoints.end(); ++it)
- {
- OpticsOrder point = *it;
- printf("%d\t%g\t%g\t%g\t%g\n", point.processed, point.distReach
-, point.distCore, point.x, point.y);
- }
- printf("----------------------------------------------\n");
-
-
- stream.close();
-
-
- // --- JUST FOR OUT --- 
- result = qp->ResultStorage( s ); // Query Processor provided Points
- 
- //instance for the result
- // copy x/y from cluster array back into result (only cluster members)
- ((Points*)result.addr)->Clear();
- ((Points*)result.addr)->StartBulkLoad();
-
- for (it=allPoints.begin(); it!=allPoints.end(); ++it)
- {
- Point obj;
- OpticsOrder point = *it;
- Point p(true, point.x, point.y);
- (*((Points*)result.addr)) += p;
- }
-
- ((Points*)result.addr)->EndBulkLoad();
-
- return 0;
-
- }
- /* 
- --- ENDE --- 
- --- Value mapping ---
- */
-
-
- /* 
- --- Operator Info ---
- --- START --- 
- */
- struct optics_aInfo : OperatorInfo
- {
- optics_aInfo() : OperatorInfo()
- {
- name = "optics_a";
- signature = "???";
- syntax = "optics_a ( _ )";
- meaning = "query optics_a( [const points value ( (2.0 3.0) \
- (3.0 2.0) (10.0 11))] )";
- }
+  opticsInfo() : OperatorInfo()
+  {
+   name = "optics";
+   signature = "stream(Tuple) -> stream(Tuple)";
+   syntax = "_ optics [list]";
+   meaning = "Order points to identify the cluster structure";
+   example = "query Kneipen feed project [GeoData] optics \
+     [9999999, 5] consume";
+  }
  };
-
- struct opticsStrInfo : OperatorInfo
- {
- opticsStrInfo() : OperatorInfo()
- {
- name = "opticsStr";
- signature = "???";
- syntax = "_ opticsStr";
- meaning = "query intstream (1, 5) opticsStr countintstream";
- }
- };
-
- struct opticsStrTplInfo : OperatorInfo
- {
- opticsStrTplInfo() : OperatorInfo()
- {
- name = "opticsStrTpl";
- signature = "???";
- syntax = "_ opticsStrTpl";
- meaning = "query Kneipen feed project [GeoData] opticsStrTpl";
- }
- };
- /* 
- --- ENDE --- 
- --- Operator Info ---
- */
-
- /*
- --- Creating the cluster algebra ---
- --- START ---
- */
+ 
  class ClusterOpticsAlgebra : public Algebra
  {
- public:
- ClusterOpticsAlgebra() : Algebra()
- {
- AddOperator(optics_aInfo(), optics_aFun, optics_aType);
-// AddOperator(opticsStrInfo(), opticsStrFun, opticsStrType);
- AddOperator(opticsStrTplInfo(), opticsStrTplFun, opticsStrTplType);
- }
+  public:
+   ClusterOpticsAlgebra() : Algebra()
+   {
+   AddOperator(opticsInfo(), opticsFun, opticsType);
+   }
 
- ~ClusterOpticsAlgebra() {};
+   ~ClusterOpticsAlgebra() {};
  };
- /*
- --- ENDE ---
- --- Creating the cluster algebra ---
- */
 }
 
 extern "C"
  Algebra* InitializeOpticsAlgebra( NestedList* nlRef, QueryProcessor* qpRef)
  {
- nl = nlRef;
- qp = qpRef;
+  nl = nlRef;
+  qp = qpRef;
 
- return (new clusteropticsalg::ClusterOpticsAlgebra());
+  return (new clusteropticsalg::ClusterOpticsAlgebra());
  }
 
 
