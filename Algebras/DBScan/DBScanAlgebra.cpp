@@ -70,659 +70,397 @@ extern QueryProcessor* qp;
 
 namespace clusterdbscanalg
 {
- /* 
- Struct to save the result
- */
- struct DBScanCluster
- {
- double x;
- double y;
- int clusterID;
- };
-
- /* 
- --- Class declaration of Optics ---
- --- START --- 
- */
+ 
  class DBScan;
 
  class DBScan
  {
- public:
- const static int UNDEFINED = -1;
- const static int NOISE = -2;
- DBScan();
- void dbscan(std::list<DBScanCluster>& objs, int eps, int minPts);
- int nextId(){return ++id;};
+  public:
+   const static int UNDEFINED = -1;
+   const static int NOISE   = -2;
 
- private:
- int id;
- bool expandCluster(std::list<DBScanCluster>& objs, DBScanCluster* obj
-, int clusterId, int eps, int minPts);
- std::list<DBScanCluster*> regionQuery(std::list<DBScanCluster>& objs
-, DBScanCluster* obj, int eps);
- void changeClustId(std::list<DBScanCluster*>& seeds, DBScanCluster* obj
-, int clusterId);
+   const static int PNT = 0;
+   const static int CID = 1;
+   const static int VIS = 2;
+
+   DBScan();  
+   void clusterAlgo(TupleBuffer* objs, int eps, int minPts);
+   int nextId(){return ++id;};
+
+  private:
+   int id;
+   bool expandCluster(TupleBuffer* objs, Tuple* obj, int clusterId, 
+          int eps, int minPts);
+   std::list<Tuple*> regionQuery(TupleBuffer* objs, Tuple* obj, int eps);
+   void changeClustId(std::list<Tuple*>& seeds, Tuple* obj, 
+          int clusterId);
  };
- /* 
- --- END --- 
- --- Class declaration of Optics ---
- */
- 
-
- /* 
- --- Class definition of Optics ---
- --- START --- 
- */
 
  DBScan::DBScan()
  {
- id = 0;
- return;
- }
-
- void DBScan::dbscan(std::list<DBScanCluster>& objs, int eps, int minPts)
- {
- std::list<DBScanCluster>::iterator it = std::list<DBScanCluster>::iterator();
-
- int clusterId = nextId();
- 
- for (it = objs.begin(); it != objs.end(); it++)
- {
- DBScanCluster* obj = &(*it);
-
- if(obj->clusterID == UNDEFINED)
- {
- if(expandCluster(objs, obj, clusterId, eps, minPts))
- {
- clusterId = nextId();
- }
- }
- }
- }
-
- bool DBScan::expandCluster(std::list<DBScanCluster>& objs, DBScanCluster* obj
-, int clusterId, int eps, int minPts)
- {
- std::list<DBScanCluster*> seeds = regionQuery(objs, obj, eps);
-
- if(seeds.size() < minPts)
- {
- changeClustId(seeds, obj, NOISE);
- return false;
- }
- else
- {
- changeClustId(seeds, obj, clusterId);
- //--seeds.delete(Point);\n"); !!!MUSS NOCH IMPLEMENTIERT WERDEN!!!!!
- //Derzeit über regionQuery geloest (Punkt wird nicht
-// in seeds eingefügt, deshalb changeClustId mit Uebergabeparameter obj
- std::list<DBScanCluster*>::iterator it = seeds.begin();
- 
- while(!seeds.empty())
- {
- DBScanCluster* currentP = &(*(seeds.front()));
-
- std::list<DBScanCluster*> result = regionQuery(objs, currentP, eps);
-
- if(result.size() >= minPts)
- {
- std::list<DBScanCluster*>::iterator curIt;
-
- for (curIt = result.begin(); curIt != result.end(); curIt++)
- {
- DBScanCluster* resultP = *it;
-
- if(resultP->clusterID == UNDEFINED || resultP->clusterID == NOISE)
- {
- if(resultP->clusterID == UNDEFINED)
- {
- seeds.push_back(resultP);
- }
-
- resultP->clusterID = clusterId;
- }
- }
- }
-
- seeds.pop_front();
- }
-
- return true;
- }
+  id = 0;
+  return;
  }
  
- std::list<DBScanCluster*> DBScan::regionQuery(std::list<DBScanCluster>& objs
-, DBScanCluster* obj, int eps)
+ void DBScan::clusterAlgo(TupleBuffer* objs, int eps, int minPts)
  {
- std::list<DBScanCluster*> near;
- std::list<DBScanCluster>::iterator it;
+  GenericRelationIterator *relIter = objs->MakeScan();
+  Tuple* obj;
 
- it = objs.begin();
- for (it = objs.begin(); it != objs.end(); it++)
- {
- DBScanCluster* point = &(*it);
- 
- if(obj->x != point->x && obj->y != point->y)
- {
- if( (obj->x - point->x) * (obj->x - point->x) 
- + (obj->y - point->y) * (obj->y - point->y) < eps*eps ) 
- {
- DBScanCluster* pPoint;// = new DBScanCluster;
- pPoint = &(*it);
- near.push_back(pPoint);
- }
- }
+  int clusterId = 0;
+  
+  while((obj = relIter->GetNextTuple()))
+  {
+   if( !((CcBool*)obj->GetAttribute(VIS))->GetValue() )
+   {
+    CcBool visited(true, true);
+    obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
+
+    std::list<Tuple*> N = regionQuery(objs, obj, eps);
+    int nSize = N.size();    
+
+    if(nSize < minPts) 
+    {
+     CcInt* distI = new CcInt;
+     distI->Set(NOISE);
+     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() ); 
+    }   
+    else
+    {
+     clusterId = nextId();
+     CcInt* distI = new CcInt;
+     distI->Set(clusterId);
+     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
+     
+     std::list<Tuple*>::iterator it;
+
+     for (it = N.begin(); it != N.end(); it++)
+     {
+      Tuple* point = *it;
+      
+      if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED 
+       || ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
+      {
+       expandCluster(objs, point, clusterId, eps, minPts);
+      }
+     }
+    }
+   }
+  }
  }
 
- return near;
- }
-
-
- void DBScan::changeClustId(std::list<DBScanCluster*>& seeds
-, DBScanCluster* obj, int clusterId)
+ bool DBScan::expandCluster(TupleBuffer* objs, Tuple* obj, int clusterId, 
+          int eps, int minPts)
  {
- std::list<DBScanCluster*>::iterator it;
 
- for (it = seeds.begin(); it != seeds.end(); it++)
- {
- DBScanCluster* point = *it; 
- point->clusterID = clusterId;
- }
+  CcInt* distI = new CcInt;
+  distI->Set(clusterId);
+  obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
 
- obj->clusterID = clusterId;
- }
- /* 
- --- END --- 
- --- Class definition of Optics ---
- */
+  if( !((CcBool*)obj->GetAttribute(VIS))->GetValue() )
+  {
+   CcBool visited(true, true);
+   obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
 
- /* 
- --- Type mapping ---
- --- START --- 
- */
- static ListExpr dbscan_aType( ListExpr args )
- {
- if ( nl->ListLength(args) == 1 )
- {
- ListExpr arg1 = nl->First(args);
+   std::list<Tuple*> N = regionQuery(objs, obj, eps);
 
- if ( nl->IsEqual(arg1, Points::BasicType()) )
- {
- return nl->SymbolAtom(Points::BasicType());
- }
- }
- else if ( nl->ListLength(args) == 3 )
- {
- ListExpr arg1 = nl->First(args);
- ListExpr arg2 = nl->Second(args);
- ListExpr arg3 = nl->Third(args);
+   int nSize = N.size();
+   
+   if(nSize >= minPts) 
+   { 
+    std::list<Tuple*>::iterator it;
 
- if ( nl->IsEqual(arg1, CcInt::BasicType()) 
- && nl->IsEqual(arg2, CcInt::BasicType())
- && nl->IsEqual(arg3, Points::BasicType()) )
- {
- return nl->SymbolAtom(Points::BasicType());
- }
+    for (it = N.begin(); it != N.end(); it++)
+    {
+     Tuple* point = *it;
+      
+     if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED ||
+      ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
+     {
+      expandCluster(objs, point, clusterId, eps, minPts);
+     }
+    }  
+   }
+  }
+  return true;
  }
  
 
- return nl->SymbolAtom(Symbol::TYPEERROR());
+ std::list<Tuple*> DBScan::regionQuery(TupleBuffer* objs, Tuple* obj, int eps)
+ {
+  GenericRelationIterator *relIter = objs->MakeScan();
+  Tuple* point;
+
+  std::list<Tuple*> near;
+
+  while((point = relIter->GetNextTuple()))
+  {   
+   //if(((Point*)obj->GetAttribute(0))->GetX() != ((Point*)point
+   //->GetAttribute(0))->GetX() && ((Point*)obj->GetAttribute(0))->GetY() 
+   //!= ((Point*)point->GetAttribute(0))->GetY())
+    //if(! (Point*)obj == (Point*)point)
+    {
+     if( ( ((Point*)obj->GetAttribute(0))->GetX() - 
+       ((Point*)point->GetAttribute(0))->GetX()) * 
+       (((Point*)obj->GetAttribute(0))->GetX() - 
+       ((Point*)point->GetAttribute(0))->GetX()) + 
+       (((Point*)obj->GetAttribute(0))->GetY() - 
+       ((Point*)point->GetAttribute(0))->GetY()) * 
+       (((Point*)obj->GetAttribute(0))->GetY() - 
+       ((Point*)point->GetAttribute(0))->GetY()) < eps*eps ) 
+     {
+      Tuple* pPoint;
+      pPoint = &(*point);
+      near.push_back(pPoint);
+     }
+    }
+   }
+  return near;
  }
 
- static ListExpr dbscan_bType( ListExpr args )
- {
- if ( nl->ListLength(args) == 3 )
- {
- ListExpr arg1 = nl->First(args);
- ListExpr arg2 = nl->Second(args);
- ListExpr arg3 = nl->Third(args);
 
- if ( nl->IsEqual(arg1, CcInt::BasicType()) 
- && nl->IsEqual(arg2, CcInt::BasicType())
- && nl->IsEqual(arg3, Points::BasicType()) )
+ void DBScan::changeClustId(std::list<Tuple*>& seeds, Tuple* obj, 
+          int clusterId)
  {
- return nl->SymbolAtom(Points::BasicType());
+  std::list<Tuple*>::iterator it;
+
+  for (it = seeds.begin(); it != seeds.end(); it++)
+  {
+   
+   Tuple* point = *it; 
+   CcInt* distI = new CcInt;
+   distI->Set(clusterId);
+   point->PutAttribute( 1, ((Attribute*)distI)->Clone() );  
+   
+  }
+  
+  CcInt* distI = new CcInt;
+  distI->Set(clusterId);
+  obj->PutAttribute( 1, ((Attribute*)distI)->Clone() ); 
  }
- }
+
+
+
+ ListExpr dbscanType( ListExpr args )
+ {
+  if(nl->ListLength(args)!=2)
+  {
+   ErrorReporter::ReportError("two elements expected. \
+            Stream and argument list");
+   return nl->TypeError();
+  }
+
+  ListExpr stream = nl->First(args);
+
+  if(!Stream<Tuple>::checkType(nl->First(args)))
+  {
+     return listutils::typeError("first argument is not stream(Tuple)");
+   }
+
+  ListExpr arguments = nl->Second(args);
+
+  if(nl->ListLength(arguments)!=3)
+  {
+   ErrorReporter::ReportError("non conform list of attribute name, \
+            Eps and MinPts");
+   return nl->TypeError();
+  }
+
+  if(!CcInt::checkType(nl->Second(arguments)))
+  {
+   return listutils::typeError("no numeric Eps");
+  }
+
+  if(!CcInt::checkType(nl->Third(arguments)))
+  {
+   return listutils::typeError("no numeric MinPts");
+  }
+
+  // copy attrlist to newattrlist
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr newAttrList = nl->OneElemList(nl->First(attrList)); 
+  ListExpr lastlistn = newAttrList; 
+
+  // reset attrList
+  attrList = nl->Second(nl->Second(stream)); //.No
+  ListExpr typeList;
+
+
+  // check functions
+  set<string> usedNames;
+  
+  ListExpr name = nl->First(arguments); 
+  
+  string errormsg;
+  if(!listutils::isValidAttributeName(name, errormsg)){
+   return listutils::typeError(errormsg);
+  }//endif
+
+  string namestr = nl->SymbolValue(name);
+  int pos = FindAttribute(attrList,namestr,typeList);
+  if(pos!=0)
+  {
+    ErrorReporter::ReportError("Attribute "+ namestr +
+                  " already member of the tuple");
+    return nl->TypeError();
+  }//endif
+
+
+  lastlistn = nl->Append(lastlistn, 
+     (nl->TwoElemList(name, nl->SymbolAtom(CcInt::BasicType()) )));
  
+  lastlistn = nl->Append(lastlistn, 
+      nl->TwoElemList(nl->SymbolAtom("Visited"),
+      nl->SymbolAtom(CcBool::BasicType()) ));
 
- return nl->SymbolAtom(Symbol::TYPEERROR());
- }
+  nl->First(arguments);
+  arguments = nl->Rest(arguments);
 
- ListExpr dbscanStrType( ListExpr args )
- {
- if(!nl->HasLength(args,1))
- {
- return listutils::typeError("One argument expected");
- }
+  return nl->ThreeElemList(
+   nl->SymbolAtom(Symbol::APPEND())
+    ,nl->TwoElemList(nl->IntAtom(2), arguments)
+    ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM())
+            ,nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType())
+                    ,newAttrList)));
 
- if(!Stream<CcInt>::checkType(nl->First(args)))
- {
- return listutils::typeError("stream(int) expected");
- }
-
- return nl->TwoElemList(nl->SymbolAtom(Stream<CcInt>::BasicType())
- ,nl->SymbolAtom(CcInt::BasicType()));
- }
-
- ListExpr dbscanStrTplType( ListExpr args )
- {
- if(!nl->HasLength(args, 1))
- {
- return listutils::typeError("One argument expected");
- }
-
- if(!Stream<Tuple>::checkType(nl->First(args)))
- {
- return listutils::typeError("stream(Tuple) expected");
- }
-
-// return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType())
-// ,nl->SymbolAtom(Tuple::BasicType()));
-
-// return nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(nl->First(args)));
- return nl->SymbolAtom(Points::BasicType());
+  //return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+   //    nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),newAttrList));
 
  }
- /* 
- --- ENDE --- 
- --- Type mapping ---
- */
 
- /* 
- --- Value mapping ---
- --- START --- 
- */
- int dbscan_aFun(Word* args, Word& result, int message, Word& local, Supplier s)
+
+
+
+ int dbscanFun(Word* args, Word& result, int message, Word& local, Supplier s)
  {
- //Default values
- int defEps = 7;
- int defMinPts = 2;
+  Word argument;
+  //Tuple* tup;
+  Supplier supplier;//, supplier2, supplier3;
+  //int nooffun;
+  //ArgVectorPointer funargs;
+  TupleType *resultTupleType;
+  ListExpr resultType;
+  TupleBuffer *tp;
+  long MaxMem;
+  GenericRelationIterator *relIter = 0;
+  int defEps  = 0;
+  int defMinPts = 0;
 
- //DBScan instance
- DBScan cluster;
+   switch (message)
+   {
+   case OPEN :
+   {
+    qp->Open(args[0].addr);
+    resultType = GetTupleResultType( s );
+    resultTupleType = new TupleType( nl->Second( resultType ) );
 
- //Points array to the initial points
- Points* ps = ((Points*)args[0].addr);
+
+    Stream<Tuple> stream(args[0]);
+     stream.open();
+    Tuple* tup;
+    tp = 0;
+    MaxMem = qp->FixedMemory();
+    tp = new TupleBuffer(MaxMem);
+    relIter = 0;
+
+    supplier = qp->GetSupplier(args[1].addr, 1);
+    qp->Request(supplier, argument);
+    defEps = ((CcInt*)argument.addr)->GetIntval();
+
+    supplier = qp->GetSupplier(args[1].addr, 2);
+    qp->Request(supplier, argument);
+    defMinPts = ((CcInt*)argument.addr)->GetIntval();
+
+    while( (tup = stream.request()) != 0)
+    {
+  
+     Tuple *newTuple = new Tuple(resultTupleType);
+
+     //Copy points from given tuple to the new tuple
+     for( int i = 0; i < 1; i++ ) //tup->GetNoAttributes(); i++ ) 
+     {
+      newTuple->CopyAttribute( i, tup, i );
+     }
  
- std::list<DBScanCluster> allPoints;
- std::list<DBScanCluster>::iterator it;
+     //Initialize the result tuple with default values
+     CcInt clusterID(-1);
+     newTuple->PutAttribute( 1, ((Attribute*) &clusterID)->Clone());
+  
+     CcBool visited(true, false);
+     newTuple->PutAttribute( 2, ((Attribute*) &visited)->Clone());
+     
+     tp->AppendTuple(newTuple);
+     tup->DeleteIfAllowed(); 
+    }
 
- printf("--------- eps = %d MinPts = %d\n", defEps, defMinPts);
- printf("--------- INITIALIZE STRUCT WITH POINTS\n");
- for(int i = 0; i < ps->Size(); i++)
- {
- DBScanCluster* point = new DBScanCluster;
- Point obj;
- 
- ps->Get(i, obj);
- point->x = obj.GetX();
- point->y = obj.GetY();
- point->clusterID = -1;
- allPoints.push_back(*point);
+    DBScan cluster; 
+    cluster.clusterAlgo(tp, defEps, defMinPts);
 
- printf("x = %g y = %g\n", obj.GetX(), obj.GetY());
- }
- printf("----------------------------------------------\n");
+    relIter = tp->MakeScan();
+    local.setAddr( relIter );
 
- //Start the dbscan clustering
- cluster.dbscan(allPoints, defEps, defMinPts);
+    return 0;
+   }
+    case REQUEST :
 
- printf("--------- POINTS AFTER CLUSTERING\n");
- printf("ClusterID\tX\tY\n");
- for (it=allPoints.begin(); it!=allPoints.end(); ++it)
- {
- DBScanCluster point = *it;
- printf("%d\t%g\t%g\n", point.clusterID, point.x, point.y);
- }
- printf("----------------------------------------------\n");
+   relIter = (GenericRelationIterator *)local.addr;
 
- // --- JUST FOR OUT --- 
- result = qp->ResultStorage( s ); // Query Processor provided Points
- 
- //instance for the result
- // copy x/y from cluster array back into result (only cluster members)
- ((Points*)result.addr)->Clear();
- ((Points*)result.addr)->StartBulkLoad();
+   Tuple* curtup;
 
- for(int a = 0; a < ps->Size(); a++)
- {
- Point obj;
- ps->Get(a, obj);
- Point p(true, obj.GetX(), obj.GetY());
- (*((Points*)result.addr)) += p;
- }
+   if((curtup = relIter->GetNextTuple()))
+   { 
+    curtup->DeleteIfAllowed();
+    result.setAddr(curtup);
+    return YIELD;
+   }
+   else
+   {
+    return CANCEL;
+   }
 
- ((Points*)result.addr)->EndBulkLoad();
-
- return 0;
- }
-
- int dbscan_bFun(Word* args, Word& result, int message, Word& local, Supplier s)
- {
- //Default values
- int defEps = ((CcInt*)args[0].addr)->GetIntval();
- int defMinPts = ((CcInt*)args[1].addr)->GetIntval();
-
- //DBScan instance
- DBScan cluster;
-
- //Points array to the initial points
- Points* ps = ((Points*)args[2].addr);
- 
- std::list<DBScanCluster> allPoints;
- std::list<DBScanCluster>::iterator it;
-
- printf("--------- eps = %d MinPts = %d\n", defEps, defMinPts);
- printf("--------- INITIALIZE STRUCT WITH POINTS\n");
- for(int i = 0; i < ps->Size(); i++)
- {
- DBScanCluster* point = new DBScanCluster;
- Point obj;
- 
- ps->Get(i, obj);
- point->x = obj.GetX();
- point->y = obj.GetY();
- point->clusterID = -1;
- allPoints.push_back(*point);
-
- printf("x = %g y = %g\n", obj.GetX(), obj.GetY());
- }
- printf("----------------------------------------------\n");
-
- //Start the dbscan clustering
- cluster.dbscan(allPoints, defEps, defMinPts);
-
- printf("--------- POINTS AFTER CLUSTERING\n");
- printf("ClusterID\tX\tY\n");
- for (it=allPoints.begin(); it!=allPoints.end(); ++it)
- {
- DBScanCluster point = *it;
- printf("%d\t%g\t%g\n", point.clusterID, point.x, point.y);
- }
- printf("----------------------------------------------\n");
-
-
- // --- JUST FOR OUT --- 
- result = qp->ResultStorage( s ); // Query Processor provided Points
- 
- //instance for the result
- // copy x/y from cluster array back into result (only cluster members)
- ((Points*)result.addr)->Clear();
- ((Points*)result.addr)->StartBulkLoad();
-
- for(int a = 0; a < ps->Size(); a++)
- {
- Point obj;
- ps->Get(a, obj);
- Point p(true, obj.GetX(), obj.GetY());
- (*((Points*)result.addr)) += p;
- }
-
- ((Points*)result.addr)->EndBulkLoad();
-
- return 0;
- }
-
- int dbscanStrFun(Word* args, Word& result, int message, Word& local
-, Supplier s)
- {
- switch(message)
- {
- case OPEN: 
- {
- qp->Open(args[0].addr);
- return 0;
- }
- case REQUEST: 
- {
- Word elem(Address(0));
- qp->Request(args[0].addr, elem);
- 
- if ( qp->Received(args[0].addr) )
- {
- cout << static_cast<CcInt*>(elem.addr)->GetIntval() << endl;
- result = elem;
- return YIELD;
- }
- else
- {
- result.addr = 0;
- return CANCEL;
- }
- }
- case CLOSE: 
- {
- qp->Close(args[0].addr);
- return 0;
- }
- default: 
- {
- /* should not happen */
- return -1;
- }
- }
- }
-
- int dbscanStrTplFun(Word* args, Word& result, int message, Word& local
-, Supplier s)
- {
- Stream<Tuple> stream(args[0]);
- stream.open();
-
- //Default values
- int defEps = 100;
- int defMinPts = 3;
- 
- //DBScan instance
- DBScan cluster;
-
- std::list<DBScanCluster> allPoints;
- std::list<DBScanCluster>::iterator it;
-
- printf("--------- INITIALIZE STRUCT WITH POINTS\n");
- 
- Tuple* tup;
- while( (tup = stream.request()) != 0)
- {
- 
- Point* obj = (Point*) ((Tuple*) tup)->GetAttribute(0);
-
- DBScanCluster* point = new DBScanCluster;
- 
- point->x = obj->GetX();
- point->y = obj->GetY();
- point->clusterID = -1;
- allPoints.push_back(*point);
-
- tup->DeleteIfAllowed(); 
-
- printf("x = %g y = %g\n", obj->GetX(), obj->GetY());
+    case CLOSE :
+    return 0;
+   }
+   return 0;
  }
 
 
- printf("----------------------------------------------\n");
 
- //Start the dbscan clustering
- cluster.dbscan(allPoints, defEps, defMinPts);
-
- printf("--------- POINTS AFTER CLUSTERING\n");
- printf("ClusterID\tX\tY\n");
- for (it=allPoints.begin(); it!=allPoints.end(); ++it)
+ struct dbscanInfo : OperatorInfo
  {
- DBScanCluster point = *it;
- printf("%d\t%g\t%g\n", point.clusterID, point.x, point.y);
- }
- printf("----------------------------------------------\n");
-
-
- stream.close();
-
-
- // --- JUST FOR OUT --- 
- result = qp->ResultStorage( s ); // Query Processor provided Points
- 
- //instance for the result
- // copy x/y from cluster array back into result (only cluster members)
- ((Points*)result.addr)->Clear();
- ((Points*)result.addr)->StartBulkLoad();
-
- for (it=allPoints.begin(); it!=allPoints.end(); ++it)
- {
- Point obj;
- DBScanCluster point = *it;
- Point p(true, point.x, point.y);
- (*((Points*)result.addr)) += p;
- }
-
- ((Points*)result.addr)->EndBulkLoad();
-
- return 0;
-/*
- switch(message)
- {
- case OPEN: 
- {
- qp->Open(args[0].addr);
- return 0;
- }
- case REQUEST: 
- {
- Word* tuple;
- qp->Request(args[0].addr, tuple);
- 
- if ( qp->Received(args[0].addr) )
- {
-
- Point* obj = (Point*) ((Tuple*) tuple)->GetAttribute(0);
-
- printf("x = %g y = %g\n", obj->GetX(), obj->GetY());
- 
- result = tuple;
- return YIELD;
- }
- else
- {
- result.addr = 0;
- return CANCEL;
- }
- }
- case CLOSE: 
- {
- qp->Close(args[0].addr);
- return 0;
- }
- default: 
- {
- // should not happen 
- return -1;
- }
- }
-*/
- }
- /* 
- --- ENDE --- 
- --- Value mapping ---
- */
-
- /* 
- --- Operator Info ---
- --- START --- 
- */
- struct dbscan_aInfo : OperatorInfo
- {
- dbscan_aInfo() : OperatorInfo()
- {
- name = "dbscan_a";
- signature = "???";
- syntax = "dbscan_a ( _ )";
- meaning = "query dbscan_a( [const points value ( (2.0 3.0) (3.0 2.0) \
- (10.0 11) (20.0 12.0) (23.0 11.0) (100.0 111.0) (111.0 105.0) \
- (30.0 3.0) (3.0 20.0))] )";
- }
+  dbscanInfo() : OperatorInfo()
+  {
+   name   = "dbscan_";
+   signature = "stream(Tuple) -> stream(Tuple)";
+   syntax  = "_ dbscan_ [list]";
+   meaning  = "Detects cluster from a given stream.";
+   example  = "query Kneipen feed project [GeoData] dbscan_ \
+       [No, 1000, 5] consume";
+  }
  };
+ 
 
- struct dbscan_bInfo : OperatorInfo
- {
- dbscan_bInfo() : OperatorInfo()
- {
- name = "dbscan_b";
- signature = "arg0 = eps arg1 = MinPts arg3 = Points";
- syntax = "dbscan_b ( _, _, _ )";
- meaning = "query dbscan_b( 7 2 [const points value ( (2.0 3.0) \
- (3.0 2.0) \
- (10.0 11) (20.0 12.0) (23.0 11.0) (100.0 111.0) (111.0 105.0) \
- (30.0 3.0) (3.0 20.0))] )";
- }
- };
-
- struct dbscanStrInfo : OperatorInfo
- {
- dbscanStrInfo() : OperatorInfo()
- {
- name = "dbscanStr";
- signature = "???";
- syntax = "_ dbscanStr";
- meaning = "query intstream (1, 5) dbscanStr countintstream";
- }
- };
-
- struct dbscanStrTplInfo : OperatorInfo
- {
- dbscanStrTplInfo() : OperatorInfo()
- {
- name = "dbscanStrTpl";
- signature = "???";
- syntax = "_ dbscanStrTpl";
- meaning = "query Kneipen feed project [GeoData] dbscanStrTpl";
- }
- };
- /* 
- --- ENDE --- 
- --- Operator Info ---
- */
-
- /*
-
- --- Creating the cluster algebra ---
- --- START ---
- */
  class ClusterDBScanAlgebra : public Algebra
  {
- public:
- ClusterDBScanAlgebra() : Algebra()
- {
- AddOperator(dbscan_aInfo(), dbscan_aFun, dbscan_aType);
- AddOperator(dbscan_bInfo(), dbscan_bFun, dbscan_bType);
-// AddOperator(dbscanStrInfo(), dbscanStrFun, dbscanStrType);
- AddOperator(dbscanStrTplInfo(), dbscanStrTplFun, dbscanStrTplType);
- }
+  public:
+   ClusterDBScanAlgebra() : Algebra()
+   {
+    AddOperator(dbscanInfo(), dbscanFun, dbscanType);
+   }
 
- ~ClusterDBScanAlgebra() {};
+   ~ClusterDBScanAlgebra() {};
  };
- /*
- --- ENDE ---
- --- Creating the cluster algebra ---
- */
 
-}
- /*
- --- Initializing the cluster algebra ---
- --- START ---
- */
+} 
  extern "C"
  Algebra* InitializeDBScanAlgebra( NestedList* nlRef, QueryProcessor* qpRef)
  {
- nl = nlRef;
- qp = qpRef;
+  nl = nlRef;
+  qp = qpRef;
 
- return (new clusterdbscanalg::ClusterDBScanAlgebra());
+  return (new clusterdbscanalg::ClusterDBScanAlgebra());
  } 
- /*
- --- ENDE ---
- --- Initializing the cluster algebra ---
- */
+ 
 
 
 
