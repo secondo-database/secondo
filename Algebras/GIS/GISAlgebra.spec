@@ -19,8 +19,8 @@
 
 # author: Jana Stehmann
 
-operator slope alias SLOPE pattern op(_,_)
-operator aspect alias ASPECT pattern op(_,_)
-operator hillshade alias HILLSHADE pattern op(_,_,_,_)
-operator ruggedness alias RUGGEDNESS pattern op(_)
-operator contourlines alias CONTOURLINES pattern op(_,_)
+operator slope alias SLOPE pattern _ op[_]
+operator aspect alias ASPECT pattern _ op[_]
+operator hillshade alias HILLSHADE pattern _ op[_,_,_]
+operator ruggedness alias RUGGEDNESS pattern _ op
+operator contourlines alias CONTOURLINES pattern _ op[_]

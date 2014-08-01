@@ -5,29 +5,29 @@ Restore  : NO
 Operator : slope
 Number   : 1
 Signature: sT x double -> sT
-Example  : query slope(([const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))]), 1.0)
+Example  : query [const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))] slope[1.0]
 Result   : file
 
 Operator : aspect
 Number   : 1
 Signature: sT x double -> sT
-Example  : query aspect(([const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))]), 1.0)
+Example  : query [const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))] aspect[1.0]
 Result   : file
 
 Operator : hillshade
 Number   : 1
 Signature: sT x double x double x double -> sT
-Example  : query hillshade(([const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))]), 1.0, 100.0, 20.0)
+Example  : query [const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))] hillshade[1.0, 100.0, 20.0]
 Result   : file
 
 Operator : ruggedness
 Number   : 1
 Signature: sT -> sT
-Example  : query ruggedness(([const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))]))
+Example  : query [const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))] ruggedness
 Result   : file
 
 Operator : contourlines
 Number   : 1
 Signature: sT x double -> lines
-Example  : query contourlines(([const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))]), 2) consume
+Example  : query [const sint value ((1.0 1.0 1.0)(3 3)(0 0 (90 91 92 114 115 116 132 133 134)))] contourlines[2] consume
 Result   : file
