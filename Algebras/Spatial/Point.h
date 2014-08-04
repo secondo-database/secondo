@@ -269,6 +269,59 @@ If ~geoid~ is NULL, euclidean geometry is used, otherwise spherical geometry.
     double Distance( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 
 
+    double MinDist(const Rectangle<2>& r) const{
+       double rx = 0.0;
+       if(x < r.MinD(0)){
+         rx = r.MinD(0);
+       } else if( x > r.MaxD(0)){
+         rx = r.MaxD(0);
+       } else {
+          rx = x;
+       }
+       double ry = 0.0;
+       if(y < r.MinD(1)){
+         ry = r.MinD(1);
+       } else if( y > r.MaxD(1)){
+         ry = r.MaxD(1);
+       } else {
+          ry = y;
+       }
+       return sqrt( (x-rx)*(x-rx) + (y-ry)*(y-ry));
+    }
+
+
+    double MinMaxDist(const Rectangle<2>& r) const{
+        double px = x;
+        double py = y;
+        double rmx = px <= (r.MinD(0) + r.MaxD(0)) / 2 ? r.MinD(0):r.MaxD(0);
+        double rmy = py <= (r.MinD(1) + r.MaxD(1)) / 2 ? r.MinD(1):r.MaxD(1);
+        double rMx = px >= (r.MinD(0) + r.MaxD(0)) / 2 ? r.MinD(0):r.MaxD(0);
+        double rMy = py >= (r.MinD(1) + r.MaxD(1)) / 2 ? r.MinD(1):r.MaxD(1);
+        double dx = (px-rmx)*(px-rmx) + (py-rMy)*(py-rMy);
+        double dy = (py-rmy)*(py-rmy) + (px-rMx)*(px-rMx);
+        double d = dx<dy?dx:dy;
+        return sqrt(d);
+    }
+
+    double MaxMaxDist(const Rectangle<2>& r) const{
+       double dx1 = x-r.MinD(0);
+       dx1 = dx1*dx1;
+       double dx2 = x-r.MaxD(0);
+       dx2 = dx2*dx2;
+       double dx = dx1<dx2?dx2:dx1; 
+       
+       double dy1 = y-r.MinD(0);
+       dy1 = dy1*dy1;
+       double dy2 = y-r.MaxD(0);
+       dy2 = dy2*dy2;
+       double dy = dy1<dy2?dy2:dy1;
+       return sqrt(dx+dy); 
+    }
+
+
+
+
+
     bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0) const;
 
 
