@@ -2423,7 +2423,7 @@ int filtermatchesVM(Word* args, Word& result, int message, Word& local,
       return 0;
     }
   }
-  return  0;
+  return 0;
 }
 
 /*
@@ -3314,6 +3314,109 @@ struct createtrieInfo : OperatorInfo {
   }
 };
 
+/*
+\section{Operator ~derivegroups~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr derivegroupsTM(ListExpr args) {
+  if (nl->ListLength(args) != 3) {
+    return listutils::typeError("Three arguments expected.");
+  }
+  if (Stream<Tuple>::checkType(nl->First(args))) {
+    if (Tuple::checkType(nl->First(nl->Rest(nl->First(args))))) {
+      ListExpr attrList =
+               nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
+      ListExpr attrType;
+      string attrName = nl->SymbolValue(nl->Second(args));
+      int i = listutils::findAttribute(attrList, attrName, attrType);
+      if (i > 0) { // found
+        if (MLabel::checkType(attrType) || MLabels::checkType(attrType) ||
+            MPlace::checkType(attrType) || MPlaces::checkType(attrType)) {
+          if (CcReal::checkType(nl->Third(args))) {
+            return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                     nl->OneElemList(nl->IntAtom(i)),
+                                     nl->SymbolAtom(InvertedFile::BasicType()));
+          }
+        }
+      }
+    }
+  }
+  return listutils::typeError("Argument types must be stream(tuple(..., mT, "
+                  "...)) x attrname x real,   where T in {label(s), place(s)}");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int derivegroupsVM(Word* args, Word& result, int message, Word& local, 
+                   Supplier s) {
+  DeriveGroupsLI* li = (DeriveGroupsLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      Stream<Tuple> *stream = static_cast<Stream<Tuple>* >(args[0].addr);
+      CcReal *threshold = static_cast<CcReal*>(args[2].addr);
+      CcInt *attrNo = static_cast<CcInt*>(args[3].addr);
+      if (threshold->IsDefined() && attrNo->IsDefined()){
+        local.addr = new DeriveGroupsLI(stream, threshold->GetValue(), 
+                                        attrNo->GetValue());
+      }
+      else {
+        cout << "undefined argument(s)" << endl;
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->getNextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+  
+  
+  
+  
+  result = qp->ResultStorage(s);
+  Label* source = static_cast<Label*>(args[0].addr);
+  CcString* res = static_cast<CcString*>(result.addr);
+  if (source->IsDefined()) {
+    string text;
+    source->GetValue(text),
+    res->Set(true, text);
+  }
+  result.addr = res;
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct derivegroupsInfo : OperatorInfo {
+  derivegroupsInfo() {
+    name      = "derivegroups";
+    signature = "stream(tuple(..., mT, ...)) x attrname x real -> stream(tuple("
+                "..., mT, ..., int)),   where T in {label(s), place(s)}";
+    syntax    = "_ derivegroups [ _ , _ ]";
+    meaning   = "Finds groups of similar symbolic trajectories inside a tuple "
+                "stream. The granularity of the groups is specified by a "
+                "threshold.";
+  }
+};
+
 // /*
 // \section{Operator ~triptompoint~}
 // 
@@ -3667,6 +3770,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   ValueMapping createtrieVMs[] = {createtrieVM<MLabel>, createtrieVM<MLabels>,
                                 createtrieVM<MPlace>, createtrieVM<MPlaces>, 0};
   AddOperator(createtrieInfo(), createtrieVMs, createtrieSelect, createtrieTM);
+  
+  AddOperator(derivegroupsInfo(), derivegroupsVM, derivegroupsTM);
 
 //       AddOperator(triptompointInfo(), triptompointVM, triptompointTM);
   }

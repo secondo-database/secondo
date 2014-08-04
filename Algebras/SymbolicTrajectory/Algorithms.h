@@ -1045,7 +1045,17 @@ class UnitsLI {
   int index;
 };
 
-
+class DeriveGroupsLI {
+ public: 
+  DeriveGroupsLI(Stream<Tuple> *stream, double threshold, int attrNo);
+  
+  ~DeriveGroupsLI() {}
+  
+  Tuple *getNextTuple();
+  
+ private:
+  vector<pair<TupleId, unsigned int> > result;
+};
 
 
 
@@ -2174,6 +2184,12 @@ ostream& MBasic<B>::Print(ostream& os) const {
 */
 template<class B>
 double MBasic<B>::Distance(const MBasic<B>& mb) const {
+  if (!IsDefined() && !mb.IsDefined()) {
+    return 0;
+  }
+  if (!IsDefined() || !mb.IsDefined()) {
+    return 1;
+  }
   if (IsEmpty() && mb.IsEmpty()) {
     return 0;
   }
@@ -2946,6 +2962,12 @@ ostream& MBasics<B>::Print(ostream& os) const {
 */
 template<class B>
 double MBasics<B>::Distance(const MBasics<B>& mbs) const {
+  if (!IsDefined() && !mbs.IsDefined()) {
+    return 0;
+  }
+  if (!IsDefined() || !mbs.IsDefined()) {
+    return 1;
+  }
   if (IsEmpty() && mbs.IsEmpty()) {
     return 0;
   }
@@ -6509,8 +6531,31 @@ void IndexMatchInfo::print(const bool printBinding) {
   }
 }
 
+/*
+\section{Implementation of Class ~DeriveGroupsLI~}
 
+\subsection{Constructor}
 
+*/
+DeriveGroupsLI::DeriveGroupsLI(Stream<Tuple> *stream, double threshold,
+                               int attrNo) {
+  stream->open();
+  Tuple *src = stream->request();
+  while (src != 0) {
+    
+    
+    
+    
+  }
+  stream->close();
+}
 
+/*
+\subsection{Function ~getNextTuple~}
+
+*/
+Tuple* DeriveGroupsLI::getNextTuple() {
+  return 0;
+}
 
 }

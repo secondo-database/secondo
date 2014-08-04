@@ -114,6 +114,12 @@ bool Label::operator==(const string& text) const {
 
 */
 double Label::Distance(const Label& lb) const {
+  if (!IsDefined() && !lb.IsDefined()) {
+    return 0;
+  }
+  if (!IsDefined() || !lb.IsDefined()) {
+    return 1;
+  }
   string str1, str2;
   GetValue(str1);
   lb.GetValue(str2);
@@ -482,6 +488,12 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 
 */
 double Labels::Distance(const Labels& lbs) const {
+  if (!IsDefined() && !lbs.IsDefined()) {
+    return 0;
+  }
+  if (!IsDefined() || !lbs.IsDefined()) {
+    return 1;
+  }
   set<string> values1, values2;
   GetValues(values1);
   lbs.GetValues(values2);
@@ -714,6 +726,12 @@ bool Place::operator==(const pair<string, unsigned int>& value) const {
 
 */
 double Place::Distance(const Place& p) const {
+  if (!IsDefined() && !p.IsDefined()) {
+    return 0;
+  }
+  if (!IsDefined() || !p.IsDefined()) {
+    return 1;
+  }
   // TODO: return Tools::distance(value1, value2) and delete remainder
   return Label::Distance(p) / 2 + (GetRef() == p.GetRef() ? 0 : 0.5);
 }
@@ -1037,6 +1055,12 @@ bool Places::operator==(const Places& p) const {
 
 */
 double Places::Distance(const Places& p) const {
+  if (!IsDefined() && !p.IsDefined()) {
+    return 0;
+  }
+  if (!IsDefined() || !p.IsDefined()) {
+    return 1;
+  }
   set<pair<string, unsigned int> > values1, values2;
   GetValues(values1);
   p.GetValues(values2);
