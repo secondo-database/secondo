@@ -982,7 +982,7 @@ double Tools::distance(set<pair<string, unsigned int> >& values1,
     sum += *it;
     it++;
   }
-  return (sum / limit + abs(values1.size() - values2.size()) / 
+  return (sum / limit + abs((int64_t)values1.size() - (int64_t)values2.size())/ 
                         max(values1.size(), values2.size())) / 2;
 }
 

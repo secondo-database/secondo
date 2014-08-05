@@ -519,7 +519,7 @@ double Labels::Distance(const Labels& lbs) const {
     sum += *it;
     it++;
   }
-  return (sum / limit + abs(values1.size() - values2.size()) / 
+  return (sum / limit + abs((int64_t)values1.size() - (int64_t)values2.size())/ 
                         max(values1.size(), values2.size())) / 2;
 }
 
@@ -1087,7 +1087,7 @@ double Places::Distance(const Places& p) const {
     sum += *it;
     it++;
   }
-  return (sum / limit + abs(values1.size() - values2.size()) / 
+  return (sum / limit + abs((int64_t)values1.size() - (int64_t)values2.size())/ 
                         max(values1.size(), values2.size())) / 2;
 }
 
