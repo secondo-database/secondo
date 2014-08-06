@@ -325,7 +325,8 @@ let nodes2 =
 # (3.1.2.4) Create a relation with all nodes
 # Nodes: rel{Pos: point, NodeId: int}
 let Nodes =
-  components(nodes2) namedtransformstream[Pos]
+  components(nodes2) use[ fun(p : points) get(p,0) ] 
+  namedtransformstream[Pos]
   addcounter[NodeId,1]
   consume;
 
@@ -334,7 +335,7 @@ let Nodes =
 # sections3: rel{Part: line, NodeId_s1: int, NodeId_s2: int}
 let sections3 = sections2 feed
   addcounter[SecId, 1]
-  extendstream[EP: components(boundary(.Part))]
+  extendstream[EP: components(boundary(.Part)) use[ fun(p: points) get(p, 0)]]
   Nodes feed
   hashjoin[EP, Pos, 99997]
   sortby[SecId]

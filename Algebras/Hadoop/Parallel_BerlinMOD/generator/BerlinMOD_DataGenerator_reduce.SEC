@@ -102,7 +102,7 @@ query ifthenelse(P_EXPORT_TYPE = "Shape",
               db3export['queryregions.dbf'] count),
          ifthenelse(P_EXPORT_TYPE = "CSV",
           (QueryRegions feed projectextendstream[
-              Id; Vertex : components(vertices(.Region))]
+              Id; Vertex : components(vertices(.Region)) use[ fun(p:points) get(p,0)]]
               projectextend[Id; Vertex_x : getx(.Vertex),
                                 Vertex_Y : gety(.Vertex) ]
               csvexport['queryregions.csv',FALSE,TRUE] count),
