@@ -2425,31 +2425,4 @@ void IndexMatchInfo::print(const bool printBinding) {
   }
 }
 
-/*
-\section{Implementation of Class ~DeriveGroupsLI~}
-
-\subsection{Constructor}
-
-*/
-DeriveGroupsLI::DeriveGroupsLI(Stream<Tuple> *stream, double threshold,
-                               int attrNo) {
-  stream->open();
-  Tuple *src = stream->request();
-  while (src != 0) {
-    
-    
-    
-    
-  }
-  stream->close();
-}
-
-/*
-\subsection{Function ~getNextTuple~}
-
-*/
-Tuple* DeriveGroupsLI::getNextTuple() {
-  return 0;
-}
-
 }

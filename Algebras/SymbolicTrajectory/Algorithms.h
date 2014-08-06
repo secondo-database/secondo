@@ -1047,9 +1047,10 @@ class UnitsLI {
   int index;
 };
 
+template<class M>
 class DeriveGroupsLI {
  public: 
-  DeriveGroupsLI(Stream<Tuple> *stream, double threshold, int attrNo);
+  DeriveGroupsLI(Word _stream, double threshold, int attrNo);
   
   ~DeriveGroupsLI() {}
   
@@ -4149,6 +4150,46 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
     }
   }
   return false;
+}
+
+/*
+\section{Implementation of Class ~DeriveGroupsLI~}
+
+\subsection{Constructor}
+
+*/
+template<class M>
+DeriveGroupsLI<M>::DeriveGroupsLI(Word _stream, double threshold, int attrNo) {
+  Stream<Tuple> stream(_stream);
+  vector<M*> trajStore;
+  stream.open();
+  Tuple *src = stream.request();
+  int noTuples = 0;
+  while (src != 0) {
+    trajStore.push_back((M*)(src->GetAttribute(attrNo)->Clone()));
+    src = stream.request();
+    noTuples++;
+  }
+  stream.close();
+  vector<double> dist[noTuples];
+  for (int i = 0; i < noTuples; i++) {
+    for (int j = 0; j < i; j++) {
+      double distance = trajStore[i]->Distance(*trajStore[j]);
+      if (distance <= threshold) {
+        dist[i].push_back(j);
+        cout << "pair (" << i << ", " << j << ") found" << endl;
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~getNextTuple~}
+
+*/
+template<class M>
+Tuple* DeriveGroupsLI<M>::getNextTuple() {
+  return 0;
 }
 
 }

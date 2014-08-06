@@ -3335,9 +3335,21 @@ ListExpr derivegroupsTM(ListExpr args) {
         if (MLabel::checkType(attrType) || MLabels::checkType(attrType) ||
             MPlace::checkType(attrType) || MPlaces::checkType(attrType)) {
           if (CcReal::checkType(nl->Third(args))) {
+            ListExpr newAttr = nl->TwoElemList(nl->SymbolAtom("Group"),
+                                            nl->SymbolAtom(CcInt::BasicType()));
+            ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
+            ListExpr rest = nl->Rest(attrList);
+            ListExpr last = newAttrList;
+            while (rest != nl->Empty()) {
+              last = nl->Append(last, nl->First(rest));
+              rest = nl->Rest(rest);
+            }
+            last = nl->Append(last, newAttr);
+            ListExpr output = nl->TwoElemList(
+                                     nl->SymbolAtom(Stream<Tuple>::BasicType()),
+              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), newAttrList));
             return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                     nl->OneElemList(nl->IntAtom(i)),
-                                     nl->SymbolAtom(InvertedFile::BasicType()));
+                                   nl->OneElemList(nl->IntAtom(i - 1)), output);
           }
         }
       }
@@ -3348,24 +3360,40 @@ ListExpr derivegroupsTM(ListExpr args) {
 }
 
 /*
+\subsection{Selection Function}
+
+*/
+int derivegroupsSelect(ListExpr args) {
+  ListExpr attrList = nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
+  ListExpr attrType;
+  string attrName = nl->SymbolValue(nl->Second(args));
+  listutils::findAttribute(attrList, attrName, attrType);
+  if (MLabel::checkType(attrType))   return 0;
+  if (MLabels::checkType(attrType))  return 1;
+  if (MPlace::checkType(attrType))   return 2;
+  if (MPlaces::checkType(attrType))  return 3;
+  return -1;
+}
+
+/*
 \subsection{Value Mapping}
 
 */
+template<class M>
 int derivegroupsVM(Word* args, Word& result, int message, Word& local, 
                    Supplier s) {
-  DeriveGroupsLI* li = (DeriveGroupsLI*)local.addr;
+  DeriveGroupsLI<M>* li = (DeriveGroupsLI<M>*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
         delete li;
         local.addr = 0;
       }
-      Stream<Tuple> *stream = static_cast<Stream<Tuple>* >(args[0].addr);
       CcReal *threshold = static_cast<CcReal*>(args[2].addr);
       CcInt *attrNo = static_cast<CcInt*>(args[3].addr);
       if (threshold->IsDefined() && attrNo->IsDefined()){
-        local.addr = new DeriveGroupsLI(stream, threshold->GetValue(), 
-                                        attrNo->GetValue());
+        local.addr = new DeriveGroupsLI<M>(args[0], threshold->GetValue(), 
+                                           attrNo->GetValue());
       }
       else {
         cout << "undefined argument(s)" << endl;
@@ -3384,20 +3412,6 @@ int derivegroupsVM(Word* args, Word& result, int message, Word& local,
       return 0;
     }
   }
-  return 0;
-  
-  
-  
-  
-  result = qp->ResultStorage(s);
-  Label* source = static_cast<Label*>(args[0].addr);
-  CcString* res = static_cast<CcString*>(result.addr);
-  if (source->IsDefined()) {
-    string text;
-    source->GetValue(text),
-    res->Set(true, text);
-  }
-  result.addr = res;
   return 0;
 }
 
@@ -3771,7 +3785,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                 createtrieVM<MPlace>, createtrieVM<MPlaces>, 0};
   AddOperator(createtrieInfo(), createtrieVMs, createtrieSelect, createtrieTM);
   
-  AddOperator(derivegroupsInfo(), derivegroupsVM, derivegroupsTM);
+  ValueMapping derivegroupsVMs[] = {derivegroupsVM<MLabel>,
+    derivegroupsVM<MLabels>, derivegroupsVM<MPlace>, derivegroupsVM<MPlaces>,0};
+  AddOperator(derivegroupsInfo(), derivegroupsVMs, derivegroupsSelect,
+              derivegroupsTM);
 
 //       AddOperator(triptompointInfo(), triptompointVM, triptompointTM);
   }
