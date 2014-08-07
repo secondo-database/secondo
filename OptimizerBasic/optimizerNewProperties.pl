@@ -1435,7 +1435,6 @@ planEdge(Source, Target, Plan, Result) :-
 
 planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P2] | PRest], Result) :-
   edge(Source, Target, select(res(N), Pred), Result, _, _),
-  !,
   select([N, P], PropertiesIn, PRest),
   select([res(N), P], Pred) => PlanExpr,
   getProperties(PlanExpr, Plan, P2).
@@ -1444,14 +1443,12 @@ planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P2] | PRest], Result) :-
 
 planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P2] | PRest], Result) :-
   edge(Source, Target, join(arg(N), res(M), Pred), Result, _, _),
-  !,
   select([M, P], PropertiesIn, PRest),
   join(arg(N), [res(M), P], Pred) => PlanExpr,
   getProperties(PlanExpr, Plan, P2).
 
 planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P2] | PRest], Result) :-
   edge(Source, Target, join(res(M), arg(N), Pred), Result, _, _),
-  !,
   select([M, P], PropertiesIn, PRest),
   join([res(M), P], arg(N), Pred) => PlanExpr,
   getProperties(PlanExpr, Plan, P2).
@@ -1459,7 +1456,6 @@ planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P2] | PRest], Result) :-
 
 planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P3] | PRest], Result) :-
   edge(Source, Target, join(res(N), res(M), Pred), Result, _, _),
-  !,
   select([N, P], PropertiesIn, PIn2),
   select([M, P2], PIn2, PRest),
   join([res(N), P], [res(M), P2], Pred) => PlanExpr,
@@ -1467,8 +1463,17 @@ planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P3] | PRest], Result) :-
 
 % Remaining edges without intermediate results
 
-planEdge(Source, Target,  _, Plan, [[Result, P]], Result) :-
+planEdge(Source, Target, PropertiesIn, Plan, [[Result, P] | PropertiesIn], 
+	Result) :-
   edge(Source, Target, Term, Result, _, _),
+  Term = select(arg(_), _),
+  Term => PlanExpr,
+  getProperties(PlanExpr, Plan, P).
+
+planEdge(Source, Target, PropertiesIn, Plan, [[Result, P] | PropertiesIn], 
+	Result) :-
+  edge(Source, Target, Term, Result, _, _),
+  Term = join(arg(_), arg(_), _),
   Term => PlanExpr,
   getProperties(PlanExpr, Plan, P).
 
@@ -1988,7 +1993,7 @@ dijkstra(Source, Dest, Path, Length) :-
   emptyCenter,
   b_empty(Boundary),
   deleteCostEdgesUsed,	% RHG
-  b_insert(Boundary, node(Source, 0, [[], none]), Boundary1),
+  b_insert(Boundary, node(Source, 0, [[], []]), Boundary1),
   dijkstra1(Boundary1, Dest, 0, notfound),
   center(Dest, node(Dest, Length, [Path, _])).
 
