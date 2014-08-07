@@ -38,7 +38,7 @@ LIBOBJ=$(TYPEMAPLIB)
 BASE:=OpSigParser
 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ) 
+all: $(OBJECTS) $(LIBOBJ) makedirs 
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -65,8 +65,18 @@ $(BASE).tab.c: $(BASE).y
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
 
+
+# make also for Parsers directory
+.PHONY: makedirs
+makedirs: 
+	$(MAKE) -C OpSigParser
+	$(MAKE) -C OpSpecParser
+
+
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
 	rm -f $(BASE).tab.c parse.o lex.opsig.c scan.o $(BASE).tab.h $(BASE).output
+	$(MAKE) -C OpSigParser clean
+	$(MAKE) -C OpSpecParser clean
