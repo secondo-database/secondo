@@ -610,7 +610,11 @@ public:
       virtual void close() {};
       
       // callback after a completed tuple
-      virtual void tupleComplete() { }   
+      virtual void tupleComplete() {
+         if(buffer[bufferPos-1] != '\n'){
+           skipLine();
+         }
+      }   
       
       // is unprocessed data available
       virtual bool isDataAvailable() { return false; }   
