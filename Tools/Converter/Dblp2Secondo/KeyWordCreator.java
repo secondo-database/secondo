@@ -331,7 +331,7 @@ private static class Word_DocID implements Comparable{
 
 
 // all included chars are used to speparate words
-private static final String DELIM = " \t\n\r\f,;:\".(){}?!'`¸&$%[]=#<>\\/*+~#-0123456789^@_";
+private static final String DELIM = " \t\n\r\f,;:\".(){}?!'&$%[]=#<>\\/*+~#-0123456789^@_";
 
 
 
