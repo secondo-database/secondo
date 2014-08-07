@@ -100,9 +100,11 @@ fi
 echo " *** All needed tools successful created *** "
 
 if [ "$ANSWER" != "use" ]; then
-  echo "Creating File $DBLP_TMP this can take several minutes"
-  FilterHTML $DBLP_FILE | egrep -v "<ee>.*</ee>" | egrep -v "<url>[^(http:)]" | DoubleTitle | tee $DBLP_TMP | progress 5000
+  echo "Creating File $DBLP_TMP  from $DBLP_FILE this can take several minutes"
+  FilterHTML $DBLP_FILE  | DoubleTitle | tee $DBLP_TMP | progress 5000
 fi
+
+echo "$DBLP_TMP created"
 
 
 # check for existing Files
