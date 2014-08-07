@@ -32,11 +32,6 @@ ifndef platform
  $(error Variable SECONDO_PLATFORM not defined. Set it to linux, win32 or solaris!)
 endif
 
-#ifndef BDBDIR
-# $(error Variable BERKELEY_DB_DIR not defined. It must point to the root directory of the Berkeley DB installation!)
-#endif
-
-
 ifeq ($(platform),win32)
   EXE_EXT := ".exe"
   BDB_LIB_FLAG := -ldb32
@@ -46,14 +41,16 @@ else
   LIB_FLAG := -lpthread
 endif
 
-#BDB_INCLUDE_FLAG = -I$(BDBDIR)/include
-#BDBLIB=$(BDBDIR)/lib
-#BDB_LIB_DIR_FLAG = -L$(BDBDIR)/lib
+ifdef BDB_INCLUDE_DIR
+  BDB_INCLUDE_FLAG = -I$(BDB_INCLUDE_DIR)
+endif
+ifdef BDB_LIB_DIR
+   BDB_LIB_DIR_FLAG = -L$(BDB_LIB_DIR)
+endif
 
 
 .PHONY: all
 all: DoubleTitle$(EXE_EXT) Parser KeyWordCreator.class progress FilterHTML
-	echo $(BDBDIR)
 
 
 progress: progress.cpp
@@ -73,7 +70,7 @@ FilterHTML.c: FilterHTML.l
 	$(LEX) -o FilterHTML.c FilterHTML.l
 
 Parser: DBLPParser.o dblp.o
-	gcc -o Parser DBLPParser.o dblp.o -ldb $(LEX_LIB_FLAG) $(LIB_FLAG)
+	gcc -o Parser DBLPParser.o dblp.o -ldb $(BDB_LIB_DIR_FLAG) $(LEX_LIB_FLAG) $(LIB_FLAG)
 
 DBLPParser.o: DBLPParser.y.c
 	gcc -c -o DBLPParser.o  $(BDB_INCLUDE_FLAG) DBLPParser.y.c
