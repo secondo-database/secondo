@@ -33,6 +33,7 @@ pipe together with the tee command.
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 
 using namespace std;
 
@@ -45,11 +46,9 @@ int main(int argc , char* argv[]){
    cout << " Progress " << endl;
    cout << "Every dot corresponds to " << number << " lines " << endl;
    long count=1;
-   int maxlinelength=1024;
-   char cdummy[maxlinelength];
-   int idummy=maxlinelength;
+   string line;
    while (!cin.eof()){
-      cin.getline(cdummy,idummy);
+      getline(cin,line);
       count++;
       if( (count % number)==0){
          cout << ".";
