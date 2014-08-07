@@ -1140,8 +1140,10 @@ order(Name, Attr) :-
 
 order(_, none).
 
+% The following rule is needed for listing all plan edges or cost edges, 
+% not for optimization as such.
 
-% res(N) => res(N).
+res(N) => [res(N), none].
 
 % arg(N) => feed(rel(Name, *, Case)) :-
 %   argument(N, rel(Name, *, Case)), !.
@@ -1370,8 +1372,7 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
   Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
   Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
   join00([Arg1Extend, none], [Arg2Extend, none],
-    	pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2)) 
-	=> [JoinPlan, P].
+    pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2)) => [JoinPlan, P].
 
 
 join00([Arg1S, _], [Arg2S, _], pr(X = Y, _, _)) => [sortmergejoin(Arg1S, Arg2S,
@@ -1425,7 +1426,8 @@ isNotOfSecond(X, X, Y) :- Y = attr(_, 2, _).
 
 planEdge(Source, Target, Plan, Result) :-
   edge(Source, Target, Term, Result, _, _),
-  Term => Plan.
+  Term => PlanExpr,
+  getProperties(PlanExpr, Plan, _).
 
 % Version with properties
 
@@ -1501,10 +1503,16 @@ writePlanEdge :-
   write('Plan: '), wp(Plan), nl,
   % write(Plan), nl,
   write('Result: '), write(Result), nl, nl,
+  pe(N), retract(pe(_)), N1 is N + 1, assert(pe(N1)),  % count edges
   fail.
 
-writePlanEdges :- not(writePlanEdge).
+writePlanEdges :- 
+  assert(pe(0)), 
+  not(writePlanEdge),
+  pe(N),
+  write('The total number of plan edges is '), write(N), write('.'), nl.
 
+wpe :- writePlanEdges.
 
 
 
@@ -1841,9 +1849,16 @@ writeCostEdge :-
   write('Size: '), write(Size), nl, 
   write('Cost: '), write(Cost), nl, 
   nl,
+  ce(N), retract(ce(_)), N1 is N + 1, assert(ce(N1)),  % count edges
   fail.
 
-writeCostEdges :- not(writeCostEdge).
+writeCostEdges :- 
+  assert(ce(0)), 
+  not(writeCostEdge),
+  ce(N),
+  write('The total number of cost edges is '), write(N), write('.'), nl.
+
+wce :- writeCostEdges.
 
 
 writeCostEdgeUsed :-
