@@ -1045,13 +1045,13 @@ Therefore, it has only one length heading.
       size_t coreSize, size_t extensionSize);
 
   void WriteToDivBlock( char* buf,
-                        size_t coreSize,
-                        size_t extensionSize,
-                        size_t flobSize,
-                        SmiFileId flobFileId,
-                        SmiRecordId sourceDS,
-                        SmiSize& flobBlockOffset,
-                        bool containsLob = false) const;
+      size_t coreSize,
+      size_t extensionSize,
+      size_t flobSize,
+      SmiFileId flobFileId,
+      SmiRecordId sourceDS,
+      SmiSize& flobBlockOffset,
+      map<pair<SmiFileId, SmiRecordId>, SmiSize>& flobIdCache) const;
 /*
 Write a tuple into an allocated binary block,
 with or without its Flob data, decided by the caontainsLob value.

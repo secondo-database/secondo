@@ -602,7 +602,7 @@ void Tuple::WriteToBlock(char* buf,
 void Tuple::WriteToDivBlock(char* buf, size_t coreSize,
     size_t extensionSize, size_t flobSize,
     SmiFileId flobFileId, SmiRecordId sourceDS, SmiSize& flobBlockOffset,
-    bool containsLob/* = false*/) const
+    map<pair<SmiFileId, SmiRecordId>, SmiSize>& flobIdCache) const
 {
   TRACE_ENTER
   assert(buf);
@@ -610,9 +610,7 @@ void Tuple::WriteToDivBlock(char* buf, size_t coreSize,
   //Write block size (uint32)
   const uint16_t dataSize = coreSize + extensionSize;
   uint32_t blockSize = sizeof(uint32_t) + sizeof(u_int16_t) + dataSize;
-  if (containsLob){
-    blockSize += flobSize;
-  }
+
   SmiSize offset = 0;
   WriteVar<uint32_t>(blockSize, buf, offset);
   char* data = buf + offset;
@@ -632,16 +630,6 @@ void Tuple::WriteToDivBlock(char* buf, size_t coreSize,
   char mode = 3;
   char smode = 1; //mode for small Flob data
   SmiRecordId rcdId = sourceDS;
-  if (containsLob){
-    flobFileId = 0;
-    bool isTemp = true;
-    if (tupleFile){
-      flobFileId = tupleFile->GetFileId();
-      isTemp = tupleFile->IsTemp();
-    }
-    smode = mode = isTemp?1:0;
-    rcdId = tupleId;
-  }
 
   for (int i = 0; i < noAttributes; i++)
   {
@@ -664,10 +652,26 @@ void Tuple::WriteToDivBlock(char* buf, size_t coreSize,
           // put big flobs to the flob part
           tmpFlob->read(lob, flobsz);
 
+          SmiSize curFlobOffset = flobBlockOffset;
+          bool writeCurrentFlob = true;
+          if (tmpFlob->getMode() == 0){
+            map<pair<SmiFileId, SmiRecordId>, SmiSize>::iterator lobId
+              = flobIdCache.find(
+                  make_pair(tmpFlob->getFileId(), tmpFlob->getRecordId()));
+
+            if (lobId != flobIdCache.end()){
+              curFlobOffset = lobId->second;
+              writeCurrentFlob = false;
+            } else {
+              flobIdCache.insert(make_pair(
+                  make_pair(tmpFlob->getFileId(), tmpFlob->getRecordId()),
+                  curFlobOffset));
+            }
+          }
+
           // change the flob header which is exported into the block
-          SmiSize lobset = containsLob?lobOffset:flobBlockOffset;
           Flob newFlob = Flob::createFrom(
-              flobFileId, rcdId, lobset, mode, flobsz);
+              flobFileId, rcdId, curFlobOffset, mode, flobsz);
           *tmpFlob = newFlob;
 /*
 The offset in the flob header is set differently, based on containsLob value.
@@ -677,9 +681,10 @@ Or else, the flob is accessed separately in the flob file,
 hence the offset should be set as a absolute position.
 
 */
-          flobBlockOffset += flobsz;
-          lobOffset += flobsz;
-          lob += flobsz;
+          if (writeCurrentFlob){
+            flobBlockOffset += flobsz;
+            lob += flobsz;
+          }
         }
         else if (flobsz < extensionLimit)
         {

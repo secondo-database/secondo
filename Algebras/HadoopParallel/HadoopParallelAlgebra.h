@@ -655,6 +655,7 @@ private:
   string flobFilePath, flobFileName;
   ofstream blockFile, flobFile;
   SmiSize flobBlockOffset;
+  map<pair<SmiFileId, SmiRecordId>, SmiSize> flobIdCache;
 
   size_t lastTupleIndex;
   bool fileOpen, noFlob;

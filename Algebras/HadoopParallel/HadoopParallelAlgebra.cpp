@@ -2477,6 +2477,7 @@ int FConsumeValueMap(Word* args, Word& result,
     double totalExtSize = 0.0;
     int count = 0;
     SmiSize flobBlockOffset = 0;
+    map<pair<SmiFileId, SmiRecordId>, SmiSize> flobIdCache;
 
     Word wTuple(Address(0));
     qp->Open(args[0].addr);
@@ -2526,11 +2527,13 @@ On how many DSs to fetch the duplicated flob file is decided by the ~fetchFlob~ 
         totalExtSize  += (coreSize + extensionSize);
 
         char* tBlock = (char*)malloc(tupleBlockSize);
+        size_t preFlobBlockSize = flobBlockOffset;
         t->WriteToDivBlock(tBlock, coreSize, extensionSize, flobSize,
-            flobFileId, sourceDS, flobBlockOffset);
+            flobFileId, sourceDS, flobBlockOffset, flobIdCache);
         blockFile.write(tBlock, (tupleBlockSize - flobSize));
         size_t flobOffset = tupleBlockSize - flobSize;
-        flobFile.write(tBlock + flobOffset, flobSize);
+        size_t wroteFlobSize = flobBlockOffset - preFlobBlockSize;
+        flobFile.write(tBlock + flobOffset, wroteFlobSize);
         free(tBlock);
       }
       else
@@ -4764,11 +4767,13 @@ bool fileInfo::writeTuple(Tuple* tuple, size_t tupleIndex,
     totalExtSize += (coreSize + extensionSize);
 
     char* tBlock = (char*)malloc(tupleBlockSize);
+    size_t preFlobBlockSize = flobBlockOffset;
     newTuple->WriteToDivBlock(tBlock, coreSize, extensionSize, flobSize,
-        flobFileId, sourceDS, flobBlockOffset);
+        flobFileId, sourceDS, flobBlockOffset, flobIdCache);
     blockFile.write(tBlock, (tupleBlockSize - flobSize));
     size_t flobOffset = tupleBlockSize - flobSize;
-    flobFile.write(tBlock + flobOffset, flobSize);
+    size_t wroteFlobSize = flobBlockOffset - preFlobBlockSize;
+    flobFile.write(tBlock + flobOffset, wroteFlobSize);
     free(tBlock);
   }
   else
@@ -6162,7 +6167,7 @@ For each Flob with mode 3, its elements mean:
             fs->closeSheetFile();
             if (sendSheet(fs)){
               standby->pop_back();
-              cerr << "send one more sheet " << fs->getSheetPath() << endl;
+              //cerr << "send one more sheet " << fs->getSheetPath() << endl;
             }
           }
           else{
@@ -6173,7 +6178,7 @@ For each Flob with mode 3, its elements mean:
         if (preparedNum > 0){
           //stop waiting when one sheet is prepared
           break;
-        } else if (standby->empty() && fetchingNum == 0){
+        } else if (standby->empty() && fetchingNum == 0 && preparedNum == 0){
           //No sheet at all
           return 0;
         }
@@ -6533,6 +6538,7 @@ newly created flob id.
           FlobSheet* sheet = sheets[no][k];
           string flobFile = sheet->getResultFile();
           Flob* flob = attr->GetFLOB(k);
+
           if (flob->getMode() > 2)
           {
             map<flobKeyT, flobInfoT>::iterator mit;
