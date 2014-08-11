@@ -2507,12 +2507,6 @@ lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
   lookupPred1(Pred, Pred2, 0, [], 2, [Rel1, Rel2]), !.
 
   
-  /* khoja */
-  lookupPred(Pred, pr(Pred2, Rel1, Rel2, Rel3)) :-
-  lookupPred1(Pred, Pred2, 0, [], 3, [Rel1, Rel2, Rel3]), !.
-  
-  
-  
 lookupPred(Pred, _) :-
   lookupPred1(Pred, _, 0, [], 0, []),
   write('Error in query: constant predicate is not allowed.'), nl, fail, !.
@@ -2567,16 +2561,6 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   arg(1, Term2, Arg1Out),
   arg(2, Term2, Arg2Out).
 
-% may need to be extended to operators with more than two arguments.
-
-lookupPred1(Term, Term, N, Rels, N, Rels) :-
-  atom(Term),
-  not(is_list(Term)),
-  write('Symbol '), write(Term), 
-  write(' not recognized, supposed to be a Secondo object.'), nl, !.
-
-lookupPred1(Term, Term, N, Rels, N, Rels).
- 
 /* Khoja */
 lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   compound(Term),
@@ -2591,6 +2575,18 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   arg(1, Term2, Arg1Out),
   arg(2, Term2, Arg2Out),
   arg(3, Term2, Arg3Out).
+
+% may need to be extended to operators with more than two arguments.
+
+lookupPred1(Term, Term, N, Rels, N, Rels) :-
+  atom(Term),
+  not(is_list(Term)),
+  write('Symbol '), write(Term), 
+  write(' not recognized, supposed to be a Secondo object.'), nl, !.
+
+lookupPred1(Term, Term, N, Rels, N, Rels).
+ 
+
 
 
 /*
