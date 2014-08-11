@@ -6542,19 +6542,11 @@ newly created flob id.
           if (flob->getMode() > 2)
           {
             map<flobKeyT, flobInfoT>::iterator mit;
-            if (sheet->findInitializedFlob(flob, mit)){
-              *flob = mit->second.pLob;
-            }
-            else {
-              //Read Flob from the collected file
-              Flob::readExFile(*flob, flobFile, flob->getSize(),
-                  sheet->getCFOffset(flob->getFileId(), flob->getOffset()));
-              //Todo: can test the reading with the getRFOffset function
+            sheet->findInitializedFlob(flob, mit);
+            Flob::readExFile(*flob, flobFile, flob->getSize(),
+                sheet->getCFOffset(flob->getFileId(), flob->getOffset()));
 
-              mit->second.pLob = *flob;
-              mit->second.mode = 1;
-            }
-            //totalBufferedTuples->IncFlobReference(*flob);
+            mit->second.mode = 1;
           }
           totalBufferedTuples->IncFlobReference(*flob);
         }
