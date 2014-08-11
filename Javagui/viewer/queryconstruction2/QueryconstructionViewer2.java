@@ -87,7 +87,7 @@ public class QueryconstructionViewer2 extends SecondoViewer {
         this.add(operationsScrollpane, BorderLayout.EAST);
         this.add(mainScrollpane, BorderLayout.CENTER);
 
-        JButton newQuery = new JButton("new");
+        JButton newQuery = new JButton("new Query");
         buttonPanel.add(newQuery);
         
         run.setEnabled(false);
@@ -106,6 +106,7 @@ public class QueryconstructionViewer2 extends SecondoViewer {
                 removeAllObjects();
             }
         };
+        newQuery.setToolTipText("make the mainpanel empty for new query");
         newQuery.addActionListener(newl);
         
         ActionListener runl = new ActionListener() {
@@ -113,6 +114,7 @@ public class QueryconstructionViewer2 extends SecondoViewer {
                 runQuery();
             }
         };
+        run.setToolTipText("send the query to SECONDO system");
         run.addActionListener(runl);
         
         ActionListener backl = new ActionListener() {
@@ -120,6 +122,7 @@ public class QueryconstructionViewer2 extends SecondoViewer {
                 back();
             }
         };
+        back.setToolTipText("remove the last added object");
         back.addActionListener(backl);
         
         ActionListener commandl = new ActionListener() {
@@ -127,7 +130,7 @@ public class QueryconstructionViewer2 extends SecondoViewer {
                 copyCommand();
             }
         };
-        command.setToolTipText("copy command to clipboard");
+        command.setToolTipText("copy query command to clipboard");
         command.addActionListener(commandl);
         
         ActionListener addObjl = new ActionListener() {
@@ -137,6 +140,7 @@ public class QueryconstructionViewer2 extends SecondoViewer {
                 }
             }
         };
+        addObj.setToolTipText("add objects from database to objectpanel");
         addObj.addActionListener(addObjl);
 
         //Init
