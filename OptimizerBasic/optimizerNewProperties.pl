@@ -1050,6 +1050,19 @@ plan_to_atom(Term, Result) :-
   concat_atom([Op, '(', Res1, ',', Res2, ') '], '', Result),
   !.
 
+    /* Khoja */
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 3),
+  secondoOp(Op, postfixbrackets2, 3),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  concat_atom([Res1, ' ', Op, '[', Res2, ',', Res3, '] '], '', Result),
+  !.
+
 
 /*
 Generic rules. Operators that are not 
@@ -1867,9 +1880,10 @@ wce :- writeCostEdges.
 
 
 writeCostEdgeUsed :-
-  costEdgeUsed(Source, Target, PropertiesIn, Plan, PropertiesOut, Result, 
-	Size, Cost),
+  costEdgeUsed(Source, Version, Target, PropertiesIn, Plan, PropertiesOut, 
+	Result, Size, Cost),
   write('Source: '), write(Source), nl,
+  write('Version: '), write(Version), nl,
   write('Target: '), write(Target), nl,
   write('PropertiesIn: '), write(PropertiesIn), nl,
   write('Plan: '), wp(Plan), nl,
@@ -1890,7 +1904,7 @@ writeCostEdgesUsed :-
 wceu :- writeCostEdgesUsed.
 
 deleteCostEdgeUsed :-
-  retract(costEdgeUsed(_, _, _, _, _, _, _, _)), fail.
+  retract(costEdgeUsed(_, _, _, _, _, _, _, _, _)), fail.
 
 deleteCostEdgesUsed :- not(deleteCostEdgeUsed).
 
@@ -1929,17 +1943,16 @@ expanded. These need to be kept in a priority queue.
  
 A node, as used during shortest path computation, is represented as a term 
 
-----    node(Name, Distance, Path)
+----    node(n(Name, Version), Distance, [Path, Properties])
 ----
 
-where ~Name~ is the node number, ~Distance~ the distance along the shortest
-path to this node, and ~Path~ is the list of edges forming the shortest path.
+where ~Name~ is the node number, ~Version~ a version number of this node, ~Distance~ the distance along the shortest path to this node, ~Path~ is the list of edges forming the shortest path, and ~Properties~ the physical properties (such as order) for the result obtained at this node version.
    
 The graph is represented by the set of ~costEdges~. 
 
 The center is represented as a set of facts of the form
 
-----    center(NodeNumber, node(Name, Distance, Path))
+----    center(n(Name, Version), node(n(Name, Version), Distance, [Path, Properties]))
 ----
 
 Since predicates are generally indexed by their first argument, finding a node
@@ -1960,7 +1973,7 @@ of the distance and path of the successor.
 
 % RHG 2014
 
-% successor(node(Source, Distance, Path), node(Target, Distance2, Path2)) :-
+% successor(node(Source,Distance, Path), node(Target, Distance2, Path2)) :-
 %   costEdge(Source, Target, Term, Result, Size, Cost),
 %   assert(costEdgeUsed(Source, Target, Term, Result, Size, Cost)),
 %   Distance2 is Distance + Cost,
@@ -1968,12 +1981,12 @@ of the distance and path of the successor.
 
 % Version with properties
 
-successor(node(Source, Distance, [Path, PropertiesIn]), 
-	node(Target, Distance2, [Path2, PropertiesOut])) :-
+successor(node(n(Source, Version), Distance, [Path, PropertiesIn]), 
+	simplenode(Target, Distance2, [Path2, PropertiesOut])) :-
   costEdge(Source, Target, PropertiesIn, Plan, PropertiesOut, Result, 
 	Size, Cost),
-  assert(costEdgeUsed(Source, Target, PropertiesIn, Plan, PropertiesOut, 
-	Result, Size, Cost)),
+  assert(costEdgeUsed(Source, Version, Target, PropertiesIn, Plan, 
+	PropertiesOut, Result, Size, Cost)),
   Distance2 is Distance + Cost,
   append(Path, [costEdge(Source, Target, Plan, Result, Size, Cost)], Path2).
 
@@ -1993,9 +2006,9 @@ dijkstra(Source, Dest, Path, Length) :-
   emptyCenter,
   b_empty(Boundary),
   deleteCostEdgesUsed,	% RHG
-  b_insert(Boundary, node(Source, 0, [[], []]), Boundary1),
-  dijkstra1(Boundary1, Dest, 0, notfound),
-  center(Dest, node(Dest, Length, [Path, _])).
+  b_insert(Boundary, node(n(Source, 1), 0, [[], []]), Boundary1),
+  dijkstra1(Boundary1, n(Dest, 1), 0, notfound),
+  center(n(Dest, _), node(n(Dest, _), Length, [Path, _])).
 
 emptyCenter :- not(emptyCenter1).
 
@@ -2019,18 +2032,22 @@ dijkstra1(Boundary, _, _, found) :- !,
       write('Height of search tree for boundary is '), write(H), nl.
 
 dijkstra1(Boundary, _, _, _) :- b_isEmpty(Boundary).
+
 dijkstra1(Boundary, Dest, N, _) :-
-      % write('Boundary = '), writeList(Boundary), nl, write('====='), nl, 
+	write('dijkstra1 called.'), nl,
+        write('Boundary = '), write(Boundary), nl, write('====='), nl, 
+	write('Dest = '), write(Dest), nl,
   b_removemin(Boundary, Node, Bound2),
   Node = node(Name, _, _),
   assert(center(Name, Node)),
   checkDest(Name, Dest, N, Found),
   putsuccessors(Bound2, Node, Bound3),
+	write('putsuccessors succeeded.'), nl,
   N1 is N+1,
   dijkstra1(Bound3, Dest, N1, Found).
 
-checkDest(Name, Name, N, found) :- write('Destination node '), write(Name),
-  write(' reached at iteration '), write(N), nl.
+checkDest(n(Name, _), n(Name, _), N, found) :- write('Destination node '), 
+	write(Name), write(' reached at iteration '), write(N), nl.
 
 checkDest(_, _, _, notfound).
 
@@ -2078,18 +2095,18 @@ putsuccessors(Boundary, Node, BoundaryNew) :-
 ----
 
 put all successors not yet in the center from the list ~Successors~ into the
-~Boundary~ to get ~BoundaryNew~. The four cases to be distinguished are:
+~Boundary~ to get ~BoundaryNew~. The cases to be distinguished are:
 
   * The list of successors is empty.
 
-  * The first successor is already in the center, hence the shortest path to it
+  * The first successor simplenode(N, \_, \_) is already in the center, hence the shortest path to it
 is already known and it does not need to be inserted into the boundary.
 
-  * The first successor is already present in the boundary, at a smaller or
-equal distance than the one via the curent edge. It can also be ignored.
+  * The first successor X = simplenode(N, \_, \_) exists in the boundary. That means, there exists a non-empty set V(N) with versions of N in the boundary. We say, X dominates Y iff the distance of X is less than or equal to that of Y and the properties of X include those of Y.
 
-  * The first successor exists in the boundary, but at a higher distance. In
-this case it replaces the previous node entry in the boundary.
+    * If X is not dominated by any Y in V(N), then insert X into the boundary.
+
+    * If X dominates any Y in V(N), then remove Y from the boundary.
 
   * The first successor does not exist in the boundary. It is inserted.
 
@@ -2097,25 +2114,96 @@ this case it replaces the previous node entry in the boundary.
 
 putsucc1(Boundary, [], Boundary).
  
-putsucc1(Boundary, [node(N, _, _) | Successors], BNew) :- 
-  center(N, _), !, 
+putsucc1(Boundary, [simplenode(N, _, _) | Successors], BNew) :- 
+  center(n(N, 1), _), !, 
   putsucc1(Boundary, Successors, BNew). 
 
-putsucc1(Boundary, [node(N, D, _) | Successors], BNew) :-  
-  b_memberByName(Boundary, N, node(N, DistOld, _)), 
-  DistOld =< D, !, 
-  putsucc1(Boundary, Successors, BNew). 
+putsucc1(Boundary, [simplenode(N, D, P) | Successors], BNew) :-
+  	nl,
+	write('putsucc1 called'), nl, 
+	write('Boundary = '), write(Boundary), nl,
+	write([simplenode(N, D, P) | Successors]), nl,
+  findall(Node, b_memberByName(Boundary, n(N, _), Node), Nodes),
+	write('after findall, Nodes = '), write(Nodes), nl,
+  % not(Nodes = []), 
+  insertIfNotDominated(Boundary, simplenode(N, D, P), Nodes, 1, Boundary2),
+  removeThoseDominated(Boundary2, simplenode(N, D, P), Nodes, Boundary3),
+  putsucc1(Boundary3, Successors, BNew).
 
-putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-
-  b_memberByName(Boundary, N, node(N, DistOld, _)), 
-  D < DistOld, !, 
-  b_deleteByName(Boundary, N, Bound2), 
-  b_insert(Bound2, node(N, D, P), Bound3), 
-  putsucc1(Bound3, Successors, BNew). 
+% putsucc1(Boundary, [simplenode(N, D, [_, Properties]) | Successors], 
+%	BNew) :-  
+%   b_memberByName(Boundary, n(N, 1), node(n(N, 1), DistOld, [_, Properties)), 
+%   DistOld =< D, !, 
+%   putsucc1(Boundary, Successors, BNew). 
 
-putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-  
-  b_insert(Boundary, node(N, D, P), Bound2), 
+% putsucc1(Boundary, [simplenode(N, D, P) | Successors], BNew) :-
+%   b_memberByName(Boundary, n(N, 1), node(n(N, 1), DistOld, _)), 
+%   D < DistOld, !, 
+%   b_deleteByName(Boundary, n(N, 1), Bound2), 
+%   b_insert(Bound2, node(n(N, 1), D, P), Bound3), 
+%   putsucc1(Bound3, Successors, BNew). 
+
+putsucc1(Boundary, [simplenode(N, D, P) | Successors], BNew) :- 
+	nl,
+	write('putsucc1 called with final case'), nl, 
+	write(simplenode(N, D, P)), nl,
+  b_insert(Boundary, node(n(N, 1), D, P), Bound2), 
   putsucc1(Bound2, Successors, BNew). 
+
+
+insertIfNotDominated(Boundary, simplenode(N, D, P), [], Version, BoundaryOut) :-
+	nl,
+	write('insertIfNot called, case 1'), nl,
+  b_insert(Boundary, node(n(N, Version), D, P), BoundaryOut).
+
+insertIfNotDominated(Boundary, simplenode(N, D, [Path, Prop]), 
+  [node(n(N, _), DistOld, [_, PropOld]) | Nodes], Version, BoundaryOut) :-
+	nl,
+	write('insertIfNot called, case 2'), nl,
+  ( D < DistOld ; otherProperties(Prop, PropOld) ),	% not dominated
+  Version2 is Version + 1,
+	write('we do not get here.'), nl,
+  insertIfNotDominated(Boundary, simplenode(N, D, [Path, Prop]), Nodes, 
+    Version2, BoundaryOut).
+  
+
+removeThoseDominated(Boundary, simplenode(_, _, [_, _]), [], Boundary).
+
+removeThoseDominated(Boundary, simplenode(N, D, [Path, Prop]), 
+  [node(n(N, _), DistOld, [_, PropOld]) | Nodes], Boundary2) :-
+  ( DistOld < D ; otherProperties(PropOld, Prop) ), !,	% not dominated
+  removeThoseDominated(Boundary, simplenode(N, D, [Path, Prop]), Nodes, 
+    Boundary2).
+  
+removeThoseDominated(Boundary, simplenode(N, D, [Path, Prop]), 
+  [node(n(N, V), _, [_, _]) | Nodes], Boundary3) :-
+  b_deleteByName(Boundary, n(N, V), Boundary2),
+  removeThoseDominated(Boundary2, simplenode(N, D, [Path, Prop]), Nodes, 
+    Boundary3).
+
+
+
+included([], _).
+
+included([P1 | Props1], Properties2) :-
+  select(P1, Properties2, _), !,
+  included(Props1, Properties2).
+
+otherProperties(Prop1, Prop2) :-
+  not(included(Prop1, Prop2)).
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   
 /* 
@@ -2772,6 +2860,22 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   functor(Term2, F, 2),
   arg(1, Term2, Arg1Out),
   arg(2, Term2, Arg2Out).
+
+/* Khoja */
+lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
+  compound(Term),
+  functor(Term, F, 3), !,
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  arg(3, Term, Arg3),
+  lookupPred1(Arg1, Arg1Out, N, RelsBefore, M1, RelsAfter1),
+  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
+  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M, RelsAfter),
+  functor(Term2, F, 3),
+  arg(1, Term2, Arg1Out),
+  arg(2, Term2, Arg2Out),
+  arg(3, Term2, Arg3Out).
+
 
 % may need to be extended to operators with more than two arguments.
 
