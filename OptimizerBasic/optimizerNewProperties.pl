@@ -1208,7 +1208,7 @@ Translation of selections using indices.
 select(arg(N), Y) => [X, P] :-
   indexselect(arg(N), Y) => [X, P], !.
 
-select(arg(N), Y) => [X, none] :-
+select(arg(N), Y) => [X, [none]] :-
   indexselect(arg(N), Y) => X.
 
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
@@ -1404,7 +1404,7 @@ join00([Arg1S, P1], [Arg2S, P2], pr(X = Y, _, _)) => [mergejoin(Arg1S, Arg2S,
 
 
 join00([Arg1S, _], [Arg2S, _], pr(X = Y, _, _)) => [hashjoin(Arg1S, Arg2S,
-    attrname(Attr1), attrname(Attr2), 999997), none]   :-
+    attrname(Attr1), attrname(Attr2), 999997), [none]]   :-
   isOfFirst(Attr1, X, Y), 
   isOfSecond(Attr2, X, Y).
 
@@ -1882,8 +1882,8 @@ wce :- writeCostEdges.
 writeCostEdgeUsed :-
   costEdgeUsed(Source, Version, Target, PropertiesIn, Plan, PropertiesOut, 
 	Result, Size, Cost),
-  write('Source: '), write(Source), nl,
-  write('Version: '), write(Version), nl,
+  write('Source: ('), write(Source), write(', '), write(Version), 
+	write(')'), nl,
   write('Target: '), write(Target), nl,
   write('PropertiesIn: '), write(PropertiesIn), nl,
   write('Plan: '), wp(Plan), nl,
@@ -2034,15 +2034,16 @@ dijkstra1(Boundary, _, _, found) :- !,
 dijkstra1(Boundary, _, _, _) :- b_isEmpty(Boundary).
 
 dijkstra1(Boundary, Dest, N, _) :-
-	write('dijkstra1 called.'), nl,
-        write('Boundary = '), write(Boundary), nl, write('====='), nl, 
-	write('Dest = '), write(Dest), nl,
+%%	nl, nl,
+%%	write('dijkstra1 called.'), nl,
+%%        write('Boundary = '), write(Boundary), nl, write('====='), nl, 
   b_removemin(Boundary, Node, Bound2),
   Node = node(Name, _, _),
+%%	write('Node = '), write(Name), nl,
   assert(center(Name, Node)),
   checkDest(Name, Dest, N, Found),
   putsuccessors(Bound2, Node, Bound3),
-	write('putsuccessors succeeded.'), nl,
+%%	write('putsuccessors succeeded.'), nl,
   N1 is N+1,
   dijkstra1(Bound3, Dest, N1, Found).
 
@@ -2099,8 +2100,7 @@ put all successors not yet in the center from the list ~Successors~ into the
 
   * The list of successors is empty.
 
-  * The first successor simplenode(N, \_, \_) is already in the center, hence the shortest path to it
-is already known and it does not need to be inserted into the boundary.
+  * The first successor simplenode(N, \_, \_) is already in the center, hence the shortest path to it is already known and it does not need to be inserted into the boundary.
 
   * The first successor X = simplenode(N, \_, \_) exists in the boundary. That means, there exists a non-empty set V(N) with versions of N in the boundary. We say, X dominates Y iff the distance of X is less than or equal to that of Y and the properties of X include those of Y.
 
@@ -2119,13 +2119,7 @@ putsucc1(Boundary, [simplenode(N, _, _) | Successors], BNew) :-
   putsucc1(Boundary, Successors, BNew). 
 
 putsucc1(Boundary, [simplenode(N, D, P) | Successors], BNew) :-
-  	nl,
-	write('putsucc1 called'), nl, 
-	write('Boundary = '), write(Boundary), nl,
-	write([simplenode(N, D, P) | Successors]), nl,
   findall(Node, b_memberByName(Boundary, n(N, _), Node), Nodes),
-	write('after findall, Nodes = '), write(Nodes), nl,
-  % not(Nodes = []), 
   insertIfNotDominated(Boundary, simplenode(N, D, P), Nodes, 1, Boundary2),
   removeThoseDominated(Boundary2, simplenode(N, D, P), Nodes, Boundary3),
   putsucc1(Boundary3, Successors, BNew).
@@ -2143,28 +2137,38 @@ putsucc1(Boundary, [simplenode(N, D, P) | Successors], BNew) :-
 %   b_insert(Bound2, node(n(N, 1), D, P), Bound3), 
 %   putsucc1(Bound3, Successors, BNew). 
 
-putsucc1(Boundary, [simplenode(N, D, P) | Successors], BNew) :- 
-	nl,
-	write('putsucc1 called with final case'), nl, 
-	write(simplenode(N, D, P)), nl,
-  b_insert(Boundary, node(n(N, 1), D, P), Bound2), 
-  putsucc1(Bound2, Successors, BNew). 
+% the following not needed
+
+% putsucc1(Boundary, [simplenode(N, D, P) | Successors], BNew) :- 
+% 	nl,
+% 	write('putsucc1 called with final case'), nl, 
+% 	write(simplenode(N, D, P)), nl,
+%   b_insert(Boundary, node(n(N, 1), D, P), Bound2), 
+%   putsucc1(Bound2, Successors, BNew). 
 
 
 insertIfNotDominated(Boundary, simplenode(N, D, P), [], Version, BoundaryOut) :-
-	nl,
-	write('insertIfNot called, case 1'), nl,
   b_insert(Boundary, node(n(N, Version), D, P), BoundaryOut).
+%%	nl, write('***** inserted '), write(node(n(N, Version), D, P)), nl.
 
 insertIfNotDominated(Boundary, simplenode(N, D, [Path, Prop]), 
-  [node(n(N, _), DistOld, [_, PropOld]) | Nodes], Version, BoundaryOut) :-
-	nl,
-	write('insertIfNot called, case 2'), nl,
+  [node(n(N, V), DistOld, [_, PropOld]) | Nodes], Version, BoundaryOut) :-
   ( D < DistOld ; otherProperties(Prop, PropOld) ),	% not dominated
-  Version2 is Version + 1,
-	write('we do not get here.'), nl,
+  ( V > Version 
+    -> Version2 is V + 1
+    ; Version2 is Version + 1
+  ),
   insertIfNotDominated(Boundary, simplenode(N, D, [Path, Prop]), Nodes, 
     Version2, BoundaryOut).
+
+
+insertIfNotDominated(Boundary, simplenode(N, D, [_, Prop]), 
+  [node(n(N, _), DistOld, [_, PropOld]) | _], _, Boundary) :-
+%% write('***** NOT inserted '), write(simplenode(N, D, [Path, Prop])), nl,
+  D >= DistOld,
+  included(Prop, PropOld).	% is dominated and can be ignored.  
+
+
   
 
 removeThoseDominated(Boundary, simplenode(_, _, [_, _]), [], Boundary).
@@ -2178,19 +2182,35 @@ removeThoseDominated(Boundary, simplenode(N, D, [Path, Prop]),
 removeThoseDominated(Boundary, simplenode(N, D, [Path, Prop]), 
   [node(n(N, V), _, [_, _]) | Nodes], Boundary3) :-
   b_deleteByName(Boundary, n(N, V), Boundary2),
+%%	nl, write('***** deleted '), write(n(N, V)), nl,
   removeThoseDominated(Boundary2, simplenode(N, D, [Path, Prop]), Nodes, 
     Boundary3).
 
 
 
+:-dynamic noProperties/0.
+
+included(_, _) :- noProperties, !.
+
+included([[Node, List1] | Props1], Props2) :-
+  select([Node, List2], Props2, Props2Rest),
+  included2(List1, List2),
+  included(Props1, Props2Rest).
+
 included([], _).
 
-included([P1 | Props1], Properties2) :-
-  select(P1, Properties2, _), !,
-  included(Props1, Properties2).
 
-otherProperties(Prop1, Prop2) :-
-  not(included(Prop1, Prop2)).
+included2([], _).
+
+included2([P1 | Props1], Props2) :-
+  select(P1, Props2, Props2Rest),
+  included2(Props1, Props2Rest).
+
+included2([none], _).
+
+
+otherProperties(Props1, Props2) :-
+  not(included(Props1, Props2)).
 
 
 
