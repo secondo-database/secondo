@@ -543,6 +543,37 @@ sigargtypes : type ZZCROSSPRODUCT type
 		collectArgs3 = "";
 		collectArgs3 += "\"" + str1 + "\" \"attrlist; new list\"";
 	      }
+
+	    | '('type')' '('type')' '('type')' ZZPARAM
+	      '('type')' '('type')' '('type')' '('type')'
+	      '('type')' '('type')' '('type')'
+	      {/* argsOP: testQcV2 */
+		vector<string> str(10);
+		str[0] = $2;  str[1] = $5;  str[2] = $8;   
+		str[3] = $12; str[4] = $15; str[5] = $18; str[6] = $21;
+		str[7] = $24; str[8] = $27; str[9] = $30;
+		for(int i=0; i<10; i++) {
+		  if (str[i] == "Comma" ) {
+		    str[i] = ",";
+		  }
+		  if (str[i] == "Semicolon" ) {
+		    str[i] = ";";
+		  }
+		  if (str[i] == "Space" ) {
+		    str[i] = " ";
+		  }
+		  if (str[i] == "Empty" ) {
+		    str[i] = "";
+		  }
+		}
+		collectArgs = "";
+		collectArgs2 = "";
+		collectArgs3 = "";
+		collectArgs3 += "\"" + str[0]  + str[1]  + str[2]  + "\" ";
+		collectArgs3 += "\"" + str[3] + str[4] + str[5] + str[6];
+		collectArgs3 +=        str[7] + str[8] + str[9] +"\"";
+		str.clear();
+	      }
 	    ;
 
 resulttype  : type
