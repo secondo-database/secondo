@@ -36,16 +36,33 @@ namespace GISAlgebra {
 /*
 Method GetValues reads the values for 3x3 cells
 
-parameters: a - reference to top left cell
-            b - reference to top middle cell
-            c - reference to top right cell
-            d - reference to middle left cell
-            e - reference to middle middle cell
-            f - reference to middle right cell
-            g - reference to bottom left cell
-            h - reference to bottom middle cell
-            i - reference to bottom right cell
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+parameters: a - reference to top left cell \\
+            b - reference to top middle cell \\
+            c - reference to top right cell \\
+            d - reference to middle left cell \\
+            e - reference to middle middle cell \\
+            f - reference to middle right cell \\
+            g - reference to bottom left cell \\
+            h - reference to bottom middle cell \\
+            i - reference to bottom right cell \\
+            row - number of current row \\
+            column - number of current column \\
+            currentTuple - number of current tuple \\
+            s\_in - current tuple \\
+            maxX - maximum X in a tuple \\
+            maxY - maximum Y in a tuple \\
+            factorNext - if vector current and next have different start points \\
+            factorlast - if vector current and last have different start points \\
+            skipNextRow - if difference between next and current is more 
+                          than one tile \\
+            skipLastRow - if difference between last and current is more 
+                          than one tile \\
+            current - current vector \\
+            next - next vector \\
+            last - last vector \\
+            currentSize - size of current vector \\
+            nextSize - size of next vector \\
+            lastSize - size of last vector \\
 return value: -
 exceptions: -
 
@@ -56,7 +73,7 @@ void GetValues(double* a, double* b, double* c, double* d, double* e,
                double* f, double* g, double* h, double* i,
                int row, int column, int currentTuple, T* s_in,
                int maxX, int maxY,
-               bool factorNext, bool factorLast,
+               int factorNext, int factorLast,
                bool skipNextRow, bool skipLastRow,
                vector<Tuple*> current, vector<Tuple*> next,
                vector<Tuple*> last, 
