@@ -77,7 +77,7 @@ Return value: sint or sreal
     for (raster2::RasterIndex<2> index=from; index < to; 
                                              index.increment(from, to))
     {
-	// central cell
+        // central cell
         double e = s_in->get(index);
 
         if(!(s_in->isUndefined(e)))
