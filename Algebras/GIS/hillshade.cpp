@@ -225,8 +225,6 @@ azimuth and angle of imaginated light source
       double fromY;
       double toX;
       double toY;
-      double tileX;
-      double tileY;
       double tileSize;
       double cellSize;
       bool firstTuple;
@@ -526,43 +524,38 @@ azimuth and angle of imaginated light source
             info->toX = to[0];
             info->toY = to[1];      
 
-            info->tileX = info->fromX;
-            info->tileY = info->fromY;
-
-            if(info->tileX <= info->toX || info->tileY <= info->toY)
-            {
-              TileAlgebra::tgrid grid;
-              s_in->getgrid(grid);
-              s_out->SetGrid(grid);
+            TileAlgebra::tgrid grid;
+            s_in->getgrid(grid);
+            s_out->SetGrid(grid);
               
-              info->cellSize = grid.GetLength();
+            info->cellSize = grid.GetLength();
 
-              bool bHasDefinedValue = false;
+            bool bHasDefinedValue = false;
 
-              for(int row = info->tileY; row <= info->toY; row++)
+            for(int row = info->fromY; row <= info->toY; row++)
+            {
+              for(int column = info->fromX; column <= info->toX; column++)
               {
-                for(int column = info->tileX; column <= info->toX; column++)
-                {
-                  TileAlgebra::Index<2> index((int[]){column, row});
+                TileAlgebra::Index<2> index((int[]){column, row});
   
-                  // central cell
-                  double e = s_in->GetValue(index);
+                // central cell
+                double e = s_in->GetValue(index);
  
-                  if(SourceTypeProperties::TypeProperties::
+                if(SourceTypeProperties::TypeProperties::
                                          IsUndefinedValue(e) == false)
-                  {
-                    bHasDefinedValue = true;
+                {
+                  bHasDefinedValue = true;
 
-                    double a = 0;
-                    double b = 0;
-                    double c = 0;
-                    double d = 0;
-                    double f = 0;
-                    double g = 0;
-                    double h = 0;
-                    double i = 0;
+                  double a = 0;
+                  double b = 0;
+                  double c = 0;
+                  double d = 0;
+                  double f = 0;
+                  double g = 0;
+                  double h = 0;
+                  double i = 0;
 
-                    GetValues<T, SourceTypeProperties>
+                  GetValues<T, SourceTypeProperties>
                     (&a, &b, &c, &d, &e, &f, &g, &h, &i, row, column, 
                      info->currentTuple, s_in,
                      maxX, maxY, factorNext, factorLast, 
@@ -570,122 +563,103 @@ azimuth and angle of imaginated light source
                      info->current, info->next, info->last,
                      info->currentSize, info->nextSize, info->lastSize);
 
-                    // calculate delta
-                    double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / 
+                  // calculate delta
+                  double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / 
                                    (8*info->cellSize*info->zFactor);
-                    double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / 
+                  double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / 
                                    (8*info->cellSize*info->zFactor);
          
-                    // recalculate degree values
-                    double zenith = (90.0 - info->light_angle) * M_PI / 180.0;
-                    double azimuth = (360.0 - info->light_azimuth + 90);
-                    if ( azimuth > 360 )
+                  // recalculate degree values
+                  double zenith = (90.0 - info->light_angle) * M_PI / 180.0;
+                  double azimuth = (360.0 - info->light_azimuth + 90);
+                  if ( azimuth > 360 )
+                  {
+                    azimuth = azimuth - 360.0;
+                  }
+                  azimuth = azimuth * M_PI / 180.0;
+
+                  // calculate slope
+                  double slope = atan(sqrt(dzdx * dzdx + dzdy * dzdy));
+
+                  // calculate aspect
+                  double aspect = 0;
+
+                  if ( dzdx != 0 )
+                  {
+                    aspect = atan2(dzdy, -dzdx);
+                    if ( aspect < 0 )
                     {
-                      azimuth = azimuth - 360.0;
+                      aspect = 2 * M_PI + aspect;
                     }
-                    azimuth = azimuth * M_PI / 180.0;
-
-                    // calculate slope
-                    double slope = atan(sqrt(dzdx * dzdx + dzdy * dzdy));
-
-                    // calculate aspect
-                    double aspect = 0;
-
-                    if ( dzdx != 0 )
-                    {
-                      aspect = atan2(dzdy, -dzdx);
-                      if ( aspect < 0 )
-                      {
-                        aspect = 2 * M_PI + aspect;
-                      }
-                    }
+                  }
           
-                    if ( dzdx == 0 )
+                  if ( dzdx == 0 )
+                  {
+                    if ( dzdy > 0 )
                     {
-                      if ( dzdy > 0 )
-                      {
-                        aspect = M_PI / 2;
-                      }
-                      else if ( dzdy < 0 )
-                      {
-                        aspect = 2 * M_PI - M_PI / 2;
-                      }
-                      else
-                      {
-                        aspect = aspect;
-                      }
+                      aspect = M_PI / 2;
                     }
+                    else if ( dzdy < 0 )
+                    {
+                      aspect = 2 * M_PI - M_PI / 2;
+                    }
+                    else
+                    {
+                      aspect = aspect;
+                    }
+                  }
 
-                    // calculate hillshade
-                    double hillshade = 255.0*((cos(zenith) * cos(slope)) + 
+                  // calculate hillshade
+                  double hillshade = 255.0*((cos(zenith) * cos(slope)) + 
                            (sin(zenith) * sin(slope) * cos(azimuth - aspect)));
 
-                    if ( hillshade < 0 )
-                    {
-                      hillshade = 0;
-                    }
-
-                    s_out->SetValue(index, hillshade, true);
+                  if ( hillshade < 0 )
+                  {
+                    hillshade = 0;
                   }
+
+                  s_out->SetValue(index, hillshade, true);
                 }
               }
+            }
 
-              // One tile to the right
-              info->tileX += xDimensionSize * info->cellSize;
+            info->currentTuple++;
 
-              // if on right edge
-              if(info->tileX >= info->toX)
+            // change of tile rows
+            if (!(info->currentTuple < info->currentSize))
+            {
+              info->last = info->current;
+              info->current = info->next;
+              info->next.clear();
+
+              if (info->newLine == true)
               {
-                // one tile to the top
-                info->tileY += yDimensionSize * info->cellSize;
-
-                // If not top row
-                if(info->tileY < info->toY)
-                {
-                  // back to first tile from right
-                  info->tileX = info->fromX;
-                }
+                info->next.push_back(info->nextElement);
+                info->newLine = false;
               }
 
-              info->currentTuple++;
+              info->currentTuple = 0;
+              info->readNextElement = true;
+            }
 
-              // change of tile rows
-              if (!(info->currentTuple < info->currentSize))
-              {
-                info->last = info->current;
-                info->current = info->next;
-                info->next.clear();
+            if(bHasDefinedValue == true)
+            {
+              // return the next stream element
+              ListExpr resultType = GetTupleResultType(s);
+              TupleType *tupleType = new TupleType(nl->Second(resultType));
+              Tuple *slope_out = new Tuple( tupleType );
+              slope_out->PutAttribute(0,s_out);
+              result.addr = slope_out;
+              return YIELD;
+            }
+            else
+            {
+              delete s_out;
+              s_out = 0;
 
-                if (info->newLine == true)
-                {
-                  info->next.push_back(info->nextElement);
-                  info->newLine = false;
-                }
-
-                info->currentTuple = 0;
-                info->readNextElement = true;
-              }
-
-                  
-              if(bHasDefinedValue == true)
-              {
-                // return the next stream element
-                ListExpr resultType = GetTupleResultType(s);
-                TupleType *tupleType = new TupleType(nl->Second(resultType));
-                Tuple *slope_out = new Tuple( tupleType );
-                slope_out->PutAttribute(0,s_out);
-                result.addr = slope_out;
-                return YIELD;
-              }
-              else
-              {
-                delete s_out;
-                s_out = 0;
-
-                // always set the result to null before return CANCEL
-                result.addr = 0;
-                return CANCEL;
-              }
+              // always set the result to null before return CANCEL
+              result.addr = 0;
+              return CANCEL;
             }
           } // if currentTuple
         } // if local.addr

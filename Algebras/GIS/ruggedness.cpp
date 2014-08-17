@@ -146,8 +146,6 @@ Return value: stream of tint or treal
       double fromY;
       double toX;
       double toY;
-      double tileX;
-      double tileY;
       double tileSize;
       double cellSize;
       bool firstTuple;
@@ -443,43 +441,38 @@ Return value: stream of tint or treal
             info->toX = to[0];
             info->toY = to[1];      
 
-            info->tileX = info->fromX;
-            info->tileY = info->fromY;
+            TileAlgebra::tgrid grid;
+            s_in->getgrid(grid);
+            s_out->SetGrid(grid);
 
-            if(info->tileX <= info->toX || info->tileY <= info->toY)
+            info->cellSize = grid.GetLength();
+
+            bool bHasDefinedValue = false;
+
+            for(int row = info->fromY; row <= info->toY; row++)
             {
-              TileAlgebra::tgrid grid;
-              s_in->getgrid(grid);
-              s_out->SetGrid(grid);
-
-              info->cellSize = grid.GetLength();
-
-              bool bHasDefinedValue = false;
-
-              for(int row = info->tileY; row < info->toY; row++)
+              for(int column = info->fromX; column <= info->toX; column++)
               {
-                for(int column = info->tileX; column < info->toX; column++)
-                {
-                  TileAlgebra::Index<2> index((int[]){column, row});
+                TileAlgebra::Index<2> index((int[]){column, row});
 
-                  // central cell
-                  double e = s_in->GetValue(index);
+                // central cell
+                double e = s_in->GetValue(index);
 
-                  if(SourceTypeProperties::TypeProperties::
+                if(SourceTypeProperties::TypeProperties::
                                          IsUndefinedValue(e) == false)
-                  {
-                    bHasDefinedValue = true;
+                {
+                  bHasDefinedValue = true;
 
-                    double a = 0;
-                    double b = 0;
-                    double c = 0;
-                    double d = 0;
-                    double f = 0;
-                    double g = 0;
-                    double h = 0;
-                    double i = 0;
+                  double a = 0;
+                  double b = 0;
+                  double c = 0;
+                  double d = 0;
+                  double f = 0;
+                  double g = 0;
+                  double h = 0;
+                  double i = 0;
 
-                    GetValues<T, SourceTypeProperties>
+                  GetValues<T, SourceTypeProperties>
                     (&a, &b, &c, &d, &e, &f, &g, &h, &i, row, column, 
                      info->currentTuple, s_in,
                      maxX, maxY, factorNext, factorLast, 
@@ -487,81 +480,63 @@ Return value: stream of tint or treal
                      info->current, info->next, info->last,
                      info->currentSize, info->nextSize, info->lastSize);
 
-                    // calculate difference between central and surrounding 
-                    // cells, square values
-                    double diff1 = (a - e) * (a - e);
-                    double diff2 = (b - e) * (b - e);
-                    double diff3 = (c - e) * (c - e);
-                    double diff4 = (d - e) * (d - e);
-                    double diff5 = (f - e) * (f - e);
-                    double diff6 = (g - e) * (g - e);
-                    double diff7 = (h - e) * (h - e);
-                    double diff8 = (i - e) * (i - e);
+                  // calculate difference between central and surrounding 
+                  // cells, square values
+                  double diff1 = (a - e) * (a - e);
+                  double diff2 = (b - e) * (b - e);
+                  double diff3 = (c - e) * (c - e);
+                  double diff4 = (d - e) * (d - e);
+                  double diff5 = (f - e) * (f - e);
+                  double diff6 = (g - e) * (g - e);
+                  double diff7 = (h - e) * (h - e);
+                  double diff8 = (i - e) * (i - e);
 
-                    // accumulate values and take square root
-                    double ruggedness = sqrt(diff1 + diff2 + diff3 + diff4 + 
-                                             diff5 + diff6 + diff7 + diff8);
+                  // accumulate values and take square root
+                  double ruggedness = sqrt(diff1 + diff2 + diff3 + diff4 + 
+                                           diff5 + diff6 + diff7 + diff8);
 
-                    s_out->SetValue(index, ruggedness, true);
-                  }
+                  s_out->SetValue(index, ruggedness, true);
                 }
               }
+            }
 
-              // One tile to the right
-              info->tileX += xDimensionSize * info->cellSize;
+            info->currentTuple++;
 
-              // if on right edge
-              if(info->tileX >= info->toX)
+            // change of tile rows
+            if (!(info->currentTuple < info->currentSize))
+            {
+              info->last = info->current;
+              info->current = info->next;
+              info->next.clear();
+
+              if (info->newLine == true)
               {
-                // one tile to the top
-                info->tileY += yDimensionSize * info->cellSize;
-
-                // If not top row
-                if(info->tileY < info->toY)
-                {
-                  // back to first tile from right
-                  info->tileX = info->fromX;
-                }
+                info->next.push_back(info->nextElement);
+                info->newLine = false;
               }
 
-              info->currentTuple++;
+              info->currentTuple = 0;
+              info->readNextElement = true;
+            }                  
 
-              // change of tile rows
-              if (!(info->currentTuple < info->currentSize))
-              {
-                info->last = info->current;
-                info->current = info->next;
-                info->next.clear();
+            if(bHasDefinedValue == true)
+            {
+              // return the next stream element
+              ListExpr resultType = GetTupleResultType(s);
+              TupleType *tupleType = new TupleType(nl->Second(resultType));
+              Tuple *slope_out = new Tuple( tupleType );
+              slope_out->PutAttribute(0,s_out);
+              result.addr = slope_out;
+              return YIELD;
+            }
+            else
+            {
+              delete s_out;
+              s_out = 0;
 
-                if (info->newLine == true)
-                {
-                  info->next.push_back(info->nextElement);
-                  info->newLine = false;
-                }
-
-                info->currentTuple = 0;
-                info->readNextElement = true;
-              }                  
-
-              if(bHasDefinedValue == true)
-              {
-                // return the next stream element
-                ListExpr resultType = GetTupleResultType(s);
-                TupleType *tupleType = new TupleType(nl->Second(resultType));
-                Tuple *slope_out = new Tuple( tupleType );
-                slope_out->PutAttribute(0,s_out);
-                result.addr = slope_out;
-                return YIELD;
-              }
-              else
-              {
-                delete s_out;
-                s_out = 0;
-
-                // always set the result to null before return CANCEL
-                result.addr = 0;
-                return CANCEL;
-              }
+              // always set the result to null before return CANCEL
+              result.addr = 0;
+              return CANCEL;
             }
           } // if currentTuple
         } // if local.addr
