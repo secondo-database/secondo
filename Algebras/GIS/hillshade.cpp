@@ -25,6 +25,7 @@ GIS includes
 
 */
 #include "hillshade.h"
+#include "getValues.h"
 
 /*
 Raster2 and Tile includes
@@ -94,84 +95,90 @@ azimuth and angle of imaginated light source
     raster2::RasterIndex<2> from = grid.getIndex(bbox.MinD(0), bbox.MinD(1));
     raster2::RasterIndex<2> to = grid.getIndex(bbox.MaxD(0), bbox.MaxD(1));
 
+    // sometimes for small cellsize the index is calculated wrong
+    to[0]++;
+    to[1]++;
+
     for (raster2::RasterIndex<2> index=from; index < to; 
                                              index.increment(from, to))
     {
 	// central cell
         double e = s_in->get(index);
-        if (s_in->isUndefined(e)){e = 0;}
 
-        double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
-        if (s_in->isUndefined(a)){a = e;}
-        double b = s_in->get((int[]){index[0], index[1] + 1});
-        if (s_in->isUndefined(b)){b = e;}
-        double c = s_in->get((int[]){index[0] + 1, index[1] + 1});
-        if (s_in->isUndefined(c)){c = e;}
-        double d = s_in->get((int[]){index[0] - 1, index[1]});
-        if (s_in->isUndefined(d)){d = e;}
-        double f = s_in->get((int[]){index[0] + 1, index[1]});
-        if (s_in->isUndefined(f)){f = e;}
-        double g = s_in->get((int[]){index[0] - 1, index[1] - 1});
-        if (s_in->isUndefined(g)){g = e;}
-        double h = s_in->get((int[]){index[0], index[1] - 1});
-        if (s_in->isUndefined(h)){h = e;}
-        double i = s_in->get((int[]){index[0] + 1, index[1] - 1});
-        if (s_in->isUndefined(i)){i = e;}
-
-        // calculate delta
-        double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / (8*cellsize*zFactor);
-        double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / (8*cellsize*zFactor);
-
-        // recalculate degree values
-        double zenith = (90.0 - light_angle) * M_PI / 180.0;
-        double azimuth = (360.0 - light_azimuth + 90);
-        if ( azimuth > 360 )
+        if(!(s_in->isUndefined(e)))
         {
-          azimuth = azimuth - 360.0;
-        }
-        azimuth = azimuth * M_PI / 180.0;
+          double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
+          if (s_in->isUndefined(a)){a = e;}
+          double b = s_in->get((int[]){index[0], index[1] + 1});
+          if (s_in->isUndefined(b)){b = e;}
+          double c = s_in->get((int[]){index[0] + 1, index[1] + 1});
+          if (s_in->isUndefined(c)){c = e;}
+          double d = s_in->get((int[]){index[0] - 1, index[1]});
+          if (s_in->isUndefined(d)){d = e;}
+          double f = s_in->get((int[]){index[0] + 1, index[1]});
+          if (s_in->isUndefined(f)){f = e;}
+          double g = s_in->get((int[]){index[0] - 1, index[1] - 1});
+          if (s_in->isUndefined(g)){g = e;}
+          double h = s_in->get((int[]){index[0], index[1] - 1});
+          if (s_in->isUndefined(h)){h = e;}
+          double i = s_in->get((int[]){index[0] + 1, index[1] - 1});
+          if (s_in->isUndefined(i)){i = e;}
 
-        // calculate slope
-        double slope = atan(sqrt(dzdx * dzdx + dzdy * dzdy));
+          // calculate delta
+          double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / (8*cellsize*zFactor);
+          double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / (8*cellsize*zFactor);
 
-        // calculate aspect
-        double aspect = 0;
-
-        if ( dzdx != 0 )
-        {
-          aspect = atan2(dzdy, -dzdx);
-          if ( aspect < 0 )
+          // recalculate degree values
+          double zenith = (90.0 - light_angle) * M_PI / 180.0;
+          double azimuth = (360.0 - light_azimuth + 90);
+          if ( azimuth > 360 )
           {
-            aspect = 2 * M_PI + aspect;
+            azimuth = azimuth - 360.0;
           }
-        }
+          azimuth = azimuth * M_PI / 180.0;
 
-        if ( dzdx == 0 )
-        {
-          if ( dzdy > 0 )
-          {
-            aspect = M_PI / 2;
-          }
-          else if ( dzdy < 0 )
-          {
-            aspect = 2 * M_PI - M_PI / 2;
-          }
-          else
-          {
-            aspect = aspect;
-          }
-        }
+          // calculate slope
+          double slope = atan(sqrt(dzdx * dzdx + dzdy * dzdy));
+  
+          // calculate aspect
+          double aspect = 0;
 
-        // calculate hillshade
-        double hillshade = 255.0*((cos(zenith) * cos(slope)) + 
+          if ( dzdx != 0 )
+          {
+            aspect = atan2(dzdy, -dzdx);
+            if ( aspect < 0 )
+            {
+              aspect = 2 * M_PI + aspect;
+            }
+          }
+
+          if ( dzdx == 0 )
+          {
+            if ( dzdy > 0 )
+            {
+              aspect = M_PI / 2;
+            }
+            else if ( dzdy < 0 )
+            {
+              aspect = 2 * M_PI - M_PI / 2;
+            }
+            else
+            {
+              aspect = aspect;
+            }
+          }
+
+          // calculate hillshade
+          double hillshade = 255.0*((cos(zenith) * cos(slope)) + 
                            (sin(zenith) * sin(slope) * cos(azimuth - aspect)));
 
-        if ( hillshade < 0 )
-        {
-          hillshade = 0;
-        }
+          if ( hillshade < 0 )
+          {
+            hillshade = 0;
+          }
 
-        s_out->set(index, hillshade);
+          s_out->set(index, hillshade);
+        }
     }
 
     return 0;
@@ -179,8 +186,8 @@ azimuth and angle of imaginated light source
 
 /*
 Method hillshadeFunsTile: calculates the hillshade value for each cell of a
-                       tint or treal. For each cell the value and the values  
-                       of the eight neighbour cells is read
+                       stream of tint or treal. For each cell the value and the 
+                       values of the eight neighbour cells is read
 
 Return value: stream of tint or treal
 
@@ -190,8 +197,6 @@ Return value: stream of tint or treal
                      int message, Word& local, Supplier s)
   {
     int returnValue = FAILURE;
-
-    T* s_in = static_cast<T*>(args[0].addr);
 
 /*
 factor needed for adjustments between different scale units
@@ -208,6 +213,11 @@ azimuth and angle of imaginated light source
 
     struct ResultInfo
     {
+      T* s_in;
+      vector<Tuple*> current;
+      vector<Tuple*> last;
+      vector<Tuple*> next;
+      Tuple* nextElement;
       double zFactor;
       double light_azimuth;
       double light_angle;
@@ -217,10 +227,24 @@ azimuth and angle of imaginated light source
       double toY;
       double tileX;
       double tileY;
+      double tileSize;
+      double cellSize;
+      bool firstTuple;
+      bool readNextElement;
+      bool newLine;
+      bool skipNextRow;
+      bool skipLastRow;
+      int currentSize;
+      int nextSize;
+      int lastSize;
+      int currentTuple;
     };
 
     int xDimensionSize = TileAlgebra::tProperties<char>::GetXDimensionSize();
     int yDimensionSize = TileAlgebra::tProperties<char>::GetYDimensionSize();
+
+    int maxX = xDimensionSize - 1;
+    int maxY = yDimensionSize - 1;
 
     switch(message)
     {
@@ -229,23 +253,84 @@ azimuth and angle of imaginated light source
         // initialize the local storage
         ResultInfo* info = new ResultInfo;
 
-        TileAlgebra::Index<2> from;
-        TileAlgebra::Index<2> to;
+        info->firstTuple = true;
+        info->readNextElement = true;
 
-        s_in->GetBoundingBoxIndexes(from, to);
-        info->fromX = from[0];
-        info->fromY = from[1];
-        info->toX = to[0];
-        info->toY = to[1];
+        info->skipNextRow = false;
+        info->skipLastRow = false;
+
+        info->currentTuple = 0;
 
         info->zFactor = factor->GetValue();
         info->light_azimuth = azimuth->GetValue();
         info->light_angle = angle->GetValue();
 
-        info->tileX = info->fromX;
-        info->tileY = info->fromY;
-
         local.addr = info;
+
+        qp->Open(args[0].addr);
+
+        Word elem;
+        Tuple* tuple;
+
+        T* s_in;
+
+        double gridOriginX;
+        double gridOriginY;
+        double lastOriginX;
+        double lastOriginY;
+
+        bool readElement = true;
+        info->newLine = false;
+
+        while (readElement == true)
+        {
+          qp->Request(args[0].addr, elem);
+
+          if(qp->Received(args[0].addr))
+          {
+            tuple = (Tuple*)elem.addr;
+
+            s_in = static_cast<T*>(tuple->GetAttribute(0));
+
+            TileAlgebra::tgrid grid;
+            s_in->getgrid(grid);
+            gridOriginX = grid.GetX();
+            gridOriginY = grid.GetY();
+            info->cellSize = grid.GetLength();
+            info->tileSize = info->cellSize * xDimensionSize;
+
+            // read cells until Y coordinate changes
+            if ((gridOriginY == lastOriginY) || (info->firstTuple == true))
+            {
+              if (!(info->firstTuple == true))
+              {
+                // if there is a gap between two read tiles, fill vector
+                // with dummy tile
+                while ((gridOriginX - lastOriginX) - info->tileSize 
+                                                             > info->cellSize)
+                {
+                  Tuple* dummy;
+                  info->current.push_back(dummy);
+                  lastOriginX = lastOriginX + info->tileSize;
+                }
+              }
+              info->current.push_back(tuple);
+              lastOriginX = gridOriginX;
+              lastOriginY = gridOriginY;
+              info->firstTuple = false;
+            }
+            else
+            {
+              readElement = false;
+              info->firstTuple = true;
+              info->next.push_back(tuple);
+            }
+          }
+          else
+          {
+            readElement = false;
+          }
+        } // while
 
         return 0;
       }
@@ -256,150 +341,353 @@ azimuth and angle of imaginated light source
         {
           ResultInfo* info = static_cast<ResultInfo*>(local.addr);
 
-          T* s_out = new T(true);
+          Word elem;
+          Tuple* tuple;
 
-          if(info->tileX <= info->toX || info->tileY <= info->toY)
+          T* s_in;
+
+          double gridOriginX;
+          double gridOriginY;
+          double lastOriginX;
+          double lastOriginY;
+
+          while (info->readNextElement == true)
           {
-            TileAlgebra::tgrid grid;
-            s_in->getgrid(grid);
-            s_out->SetGrid(grid);
+            qp->Request(args[0].addr, elem);
 
-            double cellsize = grid.GetLength();
-
-            bool bHasDefinedValue = false;
-
-            for(int row = info->tileY; row < info->toY; row++)
+            if(qp->Received(args[0].addr))
             {
-              for(int column = info->tileX; column < info->toX; column++)
+              tuple = (Tuple*)elem.addr;
+
+              s_in = static_cast<T*>(tuple->GetAttribute(0));
+
+              TileAlgebra::tgrid grid;
+              s_in->getgrid(grid);
+              gridOriginX = grid.GetX();
+              gridOriginY = grid.GetY();
+              info->cellSize = grid.GetLength();
+
+              // read cells until Y coordinate changes
+              if ((gridOriginY == lastOriginY) || (info->firstTuple == true))
               {
-                TileAlgebra::Index<2> index((int[]){column, row});
-
-                // central cell
-                double e = s_in->GetValue(index);
-
-                if(SourceTypeProperties::TypeProperties::
-                                         IsUndefinedValue(e) == false)
+                if (!(info->firstTuple == true))
                 {
-                  bHasDefinedValue = true;
-
-                  double a = s_in->GetValue((int[]){column - 1, row + 1});
-                  if (SourceTypeProperties::TypeProperties::
-                                            IsUndefinedValue(a)){a = e;}
-                  double b = s_in->GetValue((int[]){column, row + 1});
-                  if (SourceTypeProperties::TypeProperties::
-                                            IsUndefinedValue(b)){b = e;}
-                  double c = s_in->GetValue((int[]){column + 1, row + 1});
-                  if (SourceTypeProperties::TypeProperties::
-                                            IsUndefinedValue(c)){c = e;}
-                  double d = s_in->GetValue((int[]){column - 1, row});
-                  if (SourceTypeProperties::TypeProperties::
-                                            IsUndefinedValue(d)){d = e;}
-                  double f = s_in->GetValue((int[]){column + 1, row});
-                  if (SourceTypeProperties::TypeProperties::
-                                            IsUndefinedValue(f)){f = e;}
-                  double g = s_in->GetValue((int[]){column - 1, row - 1});
-                  if (SourceTypeProperties::TypeProperties::
-                                            IsUndefinedValue(g)){g = e;}
-                  double h = s_in->GetValue((int[]){column, row - 1});
-                  if (SourceTypeProperties::TypeProperties::
-                                            IsUndefinedValue(h)){h = e;}
-                  double i = s_in->GetValue((int[]){column + 1, row - 1});
-                  if (SourceTypeProperties::TypeProperties::
-                                            IsUndefinedValue(i)){i = e;}
-         
-                  // calculate delta
-                  double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / 
-                                                 (8*cellsize*info->zFactor);
-                  double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / 
-                                                 (8*cellsize*info->zFactor);
-         
-                  // recalculate degree values
-                  double zenith = (90.0 - info->light_angle) * M_PI / 180.0;
-                  double azimuth = (360.0 - info->light_azimuth + 90);
-                  if ( azimuth > 360 )
+                  // if there is a gap between two read tiles, fill vector
+                  // with dummy tile
+                  while ((gridOriginX-lastOriginX) - info->tileSize 
+                                                             > info->cellSize)
                   {
-                    azimuth = azimuth - 360.0;
+                    Tuple* dummy;
+                    info->next.push_back(dummy);
+                    lastOriginX = lastOriginX + info->tileSize;
                   }
-                  azimuth = azimuth * M_PI / 180.0;
-
-                  // calculate slope
-                  double slope = atan(sqrt(dzdx * dzdx + dzdy * dzdy));
-
-                  // calculate aspect
-                  double aspect = 0;
-
-                  if ( dzdx != 0 )
-                  {
-                    aspect = atan2(dzdy, -dzdx);
-                    if ( aspect < 0 )
-                    {
-                      aspect = 2 * M_PI + aspect;
-                    }
-                  }
-          
-                  if ( dzdx == 0 )
-                  {
-                    if ( dzdy > 0 )
-                    {
-                      aspect = M_PI / 2;
-                    }
-                    else if ( dzdy < 0 )
-                    {
-                      aspect = 2 * M_PI - M_PI / 2;
-                    }
-                    else
-                    {
-                      aspect = aspect;
-                    }
-                  }
-
-                  // calculate hillshade
-                  double hillshade = 255.0*((cos(zenith) * cos(slope)) + 
-                           (sin(zenith) * sin(slope) * cos(azimuth - aspect)));
-
-                  if ( hillshade < 0 )
-                  {
-                    hillshade = 0;
-                  }
-
-                  s_out->SetValue(index, hillshade, true);
                 }
+
+                info->next.push_back(tuple);
+                lastOriginX = gridOriginX;
+                lastOriginY = gridOriginY;
+                info->firstTuple = false;
               }
-            }
-
-            // One tile to the right
-            info->tileX += xDimensionSize * cellsize;
-
-            // if on right edge
-            if(info->tileX >= info->toX)
-            {
-              // one tile to the top
-              info->tileY += yDimensionSize * cellsize;
-
-              // If not top row
-              if(info->tileY < info->toY)
+              else
               {
-                // back to first tile from right
-                info->tileX = info->fromX;
+                info->readNextElement = false;
+                info->firstTuple = true;
+                info->newLine = true;
+
+                info->nextElement = tuple;
               }
-            }
-                  
-            if(bHasDefinedValue == true)
-            {
-              // return the next stream element
-              result.addr = s_out;
-              return YIELD;
             }
             else
             {
-              delete s_out;
-              s_out = 0;
-
-              // always set the result to null before return CANCEL
-              result.addr = 0;
-              return CANCEL;
+              info->readNextElement = false;
             }
+          } // while
+
+          T* s_out = new T(true);
+
+          info->currentSize = info->current.size();
+          info->nextSize = info->next.size();
+          info->lastSize = info->last.size();
+
+          if (info->currentSize == 0)
+          {
+            return CANCEL;
           }
+
+          int factorNext = 0;
+          int factorLast = 0;
+
+          info->skipNextRow = false;
+          info->skipLastRow = false;
+
+          Tuple* cTuple = info->current[0];
+          T* c = static_cast<T*>(cTuple->GetAttribute(0));
+          TileAlgebra::tgrid cGrid;
+          c->getgrid(cGrid);
+          double cGridOriginX = cGrid.GetX();
+          double cGridOriginY = cGrid.GetY();
+
+          if (info->nextSize > 0)
+          {
+            Tuple* nTuple = info->next[0];
+            T* n = static_cast<T*>(nTuple->GetAttribute(0));
+            TileAlgebra::tgrid nGrid;
+            n->getgrid(nGrid);
+            double nGridOriginX = nGrid.GetX();
+            double nGridOriginY = nGrid.GetY();
+
+            // calculate factor if tile rows starts at different coordinates
+            if ((cGridOriginX - nGridOriginX) > 0)
+            {
+              while ((cGridOriginX - nGridOriginX) > 0)
+              {
+                factorNext++;
+                nGridOriginX = nGridOriginX + info->tileSize;              
+              }
+            }
+            else if ((cGridOriginX - nGridOriginX) < 0)
+            {
+              while ((cGridOriginX - nGridOriginX) < 0)
+              {
+                factorNext--;
+                cGridOriginX = cGridOriginX + info->tileSize;              
+              }
+            }
+
+            // check if one or more rows are missing
+            if ((nGridOriginY - cGridOriginY) > info->tileSize)
+            {
+              info->skipNextRow = true;
+            }          
+          }
+
+          if (info->lastSize > 0)
+          {
+            Tuple* lTuple = info->last[0];
+            T* l = static_cast<T*>(lTuple->GetAttribute(0));
+            TileAlgebra::tgrid lGrid;
+            l->getgrid(lGrid);
+            double lGridOriginX = lGrid.GetX();
+            double lGridOriginY = lGrid.GetY();
+
+            // calculate factor if tile rows starts at different coordinates
+            if ((cGridOriginX - lGridOriginX) > 0)
+            {
+              while ((cGridOriginX - lGridOriginX) > 0)
+              {
+                factorLast++;
+                lGridOriginX = lGridOriginX + info->tileSize;              
+              }
+            }
+            else if ((cGridOriginX - lGridOriginX) < 0)
+            {
+              while ((cGridOriginX - lGridOriginX) < 0)
+              {
+                factorLast--;
+                cGridOriginX = cGridOriginX + info->tileSize;              
+              }
+            }
+
+            // check if one or more rows are missing
+            if ((cGridOriginY - lGridOriginY) > info->tileSize)
+            {
+              info->skipLastRow = true;
+            }          
+          }
+
+          // read tile from vector
+          if (info->currentTuple < info->currentSize)
+          {
+            tuple = info->current[info->currentTuple];
+
+            if ((tuple == 0) || (tuple->GetNoAttributes() != 1))
+            {
+              while (tuple == 0)
+              {
+                info->currentTuple++;
+                tuple = info->current[info->currentTuple];
+              }
+
+              while (tuple->GetNoAttributes() != 1)
+              {
+                info->currentTuple++;
+                tuple = info->current[info->currentTuple];
+              }
+            }
+
+            s_in = static_cast<T*>(tuple->GetAttribute(0));
+
+            TileAlgebra::Index<2> from;
+            TileAlgebra::Index<2> to;
+
+            s_in->GetBoundingBoxIndexes(from, to);
+            info->fromX = from[0];
+            info->fromY = from[1];
+            info->toX = to[0];
+            info->toY = to[1];      
+
+            info->tileX = info->fromX;
+            info->tileY = info->fromY;
+
+            if(info->tileX <= info->toX || info->tileY <= info->toY)
+            {
+              TileAlgebra::tgrid grid;
+              s_in->getgrid(grid);
+              s_out->SetGrid(grid);
+              
+              info->cellSize = grid.GetLength();
+
+              bool bHasDefinedValue = false;
+
+              for(int row = info->tileY; row <= info->toY; row++)
+              {
+                for(int column = info->tileX; column <= info->toX; column++)
+                {
+                  TileAlgebra::Index<2> index((int[]){column, row});
+  
+                  // central cell
+                  double e = s_in->GetValue(index);
+ 
+                  if(SourceTypeProperties::TypeProperties::
+                                         IsUndefinedValue(e) == false)
+                  {
+                    bHasDefinedValue = true;
+
+                    double a = 0;
+                    double b = 0;
+                    double c = 0;
+                    double d = 0;
+                    double f = 0;
+                    double g = 0;
+                    double h = 0;
+                    double i = 0;
+
+                    GetValues<T, SourceTypeProperties>
+                    (&a, &b, &c, &d, &e, &f, &g, &h, &i, row, column, 
+                     info->currentTuple, s_in,
+                     maxX, maxY, factorNext, factorLast, 
+                     info->skipNextRow, info->skipLastRow,
+                     info->current, info->next, info->last,
+                     info->currentSize, info->nextSize, info->lastSize);
+
+                    // calculate delta
+                    double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / 
+                                   (8*info->cellSize*info->zFactor);
+                    double dzdy = ((g + 2*h + i) - (a + 2*b + c)) / 
+                                   (8*info->cellSize*info->zFactor);
+         
+                    // recalculate degree values
+                    double zenith = (90.0 - info->light_angle) * M_PI / 180.0;
+                    double azimuth = (360.0 - info->light_azimuth + 90);
+                    if ( azimuth > 360 )
+                    {
+                      azimuth = azimuth - 360.0;
+                    }
+                    azimuth = azimuth * M_PI / 180.0;
+
+                    // calculate slope
+                    double slope = atan(sqrt(dzdx * dzdx + dzdy * dzdy));
+
+                    // calculate aspect
+                    double aspect = 0;
+
+                    if ( dzdx != 0 )
+                    {
+                      aspect = atan2(dzdy, -dzdx);
+                      if ( aspect < 0 )
+                      {
+                        aspect = 2 * M_PI + aspect;
+                      }
+                    }
+          
+                    if ( dzdx == 0 )
+                    {
+                      if ( dzdy > 0 )
+                      {
+                        aspect = M_PI / 2;
+                      }
+                      else if ( dzdy < 0 )
+                      {
+                        aspect = 2 * M_PI - M_PI / 2;
+                      }
+                      else
+                      {
+                        aspect = aspect;
+                      }
+                    }
+
+                    // calculate hillshade
+                    double hillshade = 255.0*((cos(zenith) * cos(slope)) + 
+                           (sin(zenith) * sin(slope) * cos(azimuth - aspect)));
+
+                    if ( hillshade < 0 )
+                    {
+                      hillshade = 0;
+                    }
+
+                    s_out->SetValue(index, hillshade, true);
+                  }
+                }
+              }
+
+              // One tile to the right
+              info->tileX += xDimensionSize * info->cellSize;
+
+              // if on right edge
+              if(info->tileX >= info->toX)
+              {
+                // one tile to the top
+                info->tileY += yDimensionSize * info->cellSize;
+
+                // If not top row
+                if(info->tileY < info->toY)
+                {
+                  // back to first tile from right
+                  info->tileX = info->fromX;
+                }
+              }
+
+              info->currentTuple++;
+
+              // change of tile rows
+              if (!(info->currentTuple < info->currentSize))
+              {
+                info->last = info->current;
+                info->current = info->next;
+                info->next.clear();
+
+                if (info->newLine == true)
+                {
+                  info->next.push_back(info->nextElement);
+                  info->newLine = false;
+                }
+
+                info->currentTuple = 0;
+                info->readNextElement = true;
+              }
+
+                  
+              if(bHasDefinedValue == true)
+              {
+                // return the next stream element
+                ListExpr resultType = GetTupleResultType(s);
+                TupleType *tupleType = new TupleType(nl->Second(resultType));
+                Tuple *slope_out = new Tuple( tupleType );
+                slope_out->PutAttribute(0,s_out);
+                result.addr = slope_out;
+                return YIELD;
+              }
+              else
+              {
+                delete s_out;
+                s_out = 0;
+
+                // always set the result to null before return CANCEL
+                result.addr = 0;
+                return CANCEL;
+              }
+            }
+          } // if currentTuple
         } // if local.addr
         else
         {
@@ -421,6 +709,8 @@ azimuth and angle of imaginated light source
             local.addr = 0;
           }
         }
+
+        qp->Close(args[0].addr);
 
         return 0;        
       }
@@ -459,22 +749,25 @@ Value Mapping
 
     if (type.first() == NList(raster2::sint::BasicType()))
     {
-      nSelection = 0;
-    }
-    
-    else if (type.first() == NList(raster2::sreal::BasicType()))
-    {
-      nSelection = 1;
+      return 0;
     }
 
-    else if (type.first() == NList(TileAlgebra::tint::BasicType()))
+    if (type.first() == NList(raster2::sreal::BasicType()))
     {
-      nSelection = 2;
+      return 1;
     }
 
-    else if (type.first() == NList(TileAlgebra::treal::BasicType()))
+    ListExpr stream = nl->First(args);
+    NList list = nl->Second(nl->First(nl->Second(nl->Second(stream))));
+
+    if (list == TileAlgebra::tint::BasicType())
     {
-      nSelection = 3;
+      return 2;
+    }
+
+    if (list == TileAlgebra::treal::BasicType())
+    {
+      return 3;
     }
 
     return nSelection;
@@ -486,6 +779,10 @@ Type Mapping
 */
   ListExpr hillshadeTypeMap(ListExpr args)
   {
+    string error = "Expecting an sint, sreal or a stream of "
+                   "tint or treal and three double "
+                   "(zfactor, azimuth and angle)";
+
     NList type(args);
 
     if(type.length() != 4)
@@ -505,23 +802,48 @@ Type Mapping
       return NList(raster2::sreal::BasicType()).listExpr();
     }
 
-    else if(type == NList(TileAlgebra::tint::BasicType(), CcReal::BasicType(),
-                          CcReal::BasicType(), CcReal::BasicType())) 
+    ListExpr stream = nl->First(args);
+    NList attr1 = nl->Second(args);
+    NList attr2 = nl->Third(args);
+    NList attr3 = nl->Fourth(args);
+
+    if(!listutils::isTupleStream(stream))
     {
-      return nl->TwoElemList(
-             nl->SymbolAtom(Stream<TileAlgebra::tint>::BasicType()),
-             nl->SymbolAtom(TileAlgebra::tint::BasicType()));
+      return listutils::typeError(error);
     }
 
-    else if(type == NList(TileAlgebra::treal::BasicType(), CcReal::BasicType(),
-                          CcReal::BasicType(), CcReal::BasicType())) 
-    {
-      return nl->TwoElemList(
-             nl->SymbolAtom(Stream<TileAlgebra::treal>::BasicType()),
-             nl->SymbolAtom(TileAlgebra::treal::BasicType()));
-    }
+    NList list = nl->Second(nl->First(nl->Second(nl->Second(stream))));
+
+    ListExpr attrList=nl->TheEmptyList();
     
-    return NList::typeError("Expecting an sint, sreal, tint or treal "
-                            "and three double (zfactor, azimuth and angle).");
+    if(list == TileAlgebra::tint::BasicType() &&
+       attr1 == CcReal::BasicType() && attr2 == CcReal::BasicType() &&
+       attr3 == CcReal::BasicType()) 
+    {
+      ListExpr attr1 = nl->TwoElemList( nl->SymbolAtom("Hillshade"),
+                       nl->SymbolAtom(TileAlgebra::tint::BasicType()));
+
+      attrList = nl->OneElemList( attr1 );
+
+      return nl->TwoElemList(
+             nl->SymbolAtom(Stream<Tuple>::BasicType()),
+             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList));
+    }
+
+    else if(list == TileAlgebra::treal::BasicType() &&
+            attr1 == CcReal::BasicType() && attr2 == CcReal::BasicType() &&
+            attr3 == CcReal::BasicType()) 
+    {
+      ListExpr attr1 = nl->TwoElemList( nl->SymbolAtom("Hillshade"),
+                       nl->SymbolAtom(TileAlgebra::treal::BasicType()));
+
+      attrList = nl->OneElemList( attr1 );
+
+      return nl->TwoElemList(
+             nl->SymbolAtom(Stream<Tuple>::BasicType()),
+             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList));
+    }
+
+    return listutils::typeError(error);
   }
 }
