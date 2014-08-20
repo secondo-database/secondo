@@ -1982,6 +1982,11 @@ public:
     
     if(result != NULL && result->hasNext()) {
       
+      // Error while fetching data from cassandra
+      if(result == NULL) {
+        return NULL;
+      }
+      
       static char c = 0; 
       static string nullstr( &c,1);
       Tuple* resultTuple = BasicTuple->Clone();
