@@ -329,9 +329,7 @@ void executeSecondoCommand(SecondoInterface* si,
           // command was successful
           // do what ever you want to de with the result list
           // in this little example, the result is just printed out
-          cout << "Command successfully processed" << endl;
-          cout << "Result is:" << endl;
-          cout << nl->ToString(res) << endl << endl;
+          cout << "Result is:" << nl->ToString(res) << endl << endl;
         }
 }
 
@@ -357,6 +355,32 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
     updateLastProcessedToken(cassandra, queryId, ip, interval);
 }
 
+/*
+2.2 Refresh our heartbeat data
+
+*/
+bool updateHeartbeatData(CassandraAdapter* cassandra, 
+                         map<string, time_t> &heartbeatData) {
+
+
+    static time_t lastUpdate = 0;
+    time_t now = time(0) * 1000;               // Convert to ms
+
+    if(lastUpdate + 15000 < now) {
+	// Clear old hearbeat data
+	heartbeatData.clear();
+
+        if (! cassandra -> getHeartbeatData(heartbeatData) ) {
+          cerr << "[Error] Unable to heartbeat from system table" << endl;
+          return false;
+        }
+
+    
+        lastUpdate = time(0) * 1000; // Convert to ms
+    }
+
+    return true;
+}
 
 /*
 2.2 Refresh our information about the cassandra ring
@@ -372,7 +396,6 @@ bool refreshRingInfo(CassandraAdapter* cassandra,
     // Clear transient data
     allTokenRanges.clear();
     processedIntervals.clear();
-    heartbeatData.clear();
 
     // Refresh data
     if (! cassandra -> getTokenRangesFromSystemtable(allTokenRanges) ) {
@@ -380,12 +403,7 @@ bool refreshRingInfo(CassandraAdapter* cassandra,
            << endl;
       return false;
     }
-    
-    if (! cassandra -> getHeartbeatData(heartbeatData) ) {
-      cerr << "[Error] Unable to heartbeat from system table" << endl;
-      return false;
-    }
-    
+   
     if (! cassandra -> getProcessedTokenRangesForQuery(
                processedIntervals, queryId) ) {
       
@@ -393,7 +411,10 @@ bool refreshRingInfo(CassandraAdapter* cassandra,
            << "system table" << endl;
       return false;
     }
-    
+  
+   if( ! updateHeartbeatData(cassandra, heartbeatData)) {
+      return false;
+   }  
   
   return true;
 }
@@ -518,7 +539,15 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
         } else {
           time_t now = time(0) * 1000; // Convert to ms
 
-          if(heartbeatData[range.getIp()] + 30000 > now) {  
+          // Timeout is 30 seconds
+          time_t timeout = 30000;
+
+          // Posible timeout - refresh heartbeat data first
+          if( ! updateHeartbeatData(cassandra, heartbeatData)) {
+             cout << "[Error] Unable to refresh heartbeat data" << endl;
+          }  
+
+          if(heartbeatData[range.getIp()] + timeout > now) {  
             cout << "[Info] Set to foreign: " << range;
               mode = FOREIGN_TOKENRANGE;
           } else {
@@ -539,8 +568,11 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
         }
         
       }
+      
+      cout << "[Info] We have " << processedIntervals.size() << " of "
+           << allTokenRanges.size() << " token ranges processed" << endl;
            
-      cout << "Sleep 5 seconds and check the ring again" << endl;
+      cout << "[Info] Sleep 5 seconds and check the ring again" << endl;
       sleep(5);
     }
 } 
