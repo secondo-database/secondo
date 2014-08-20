@@ -500,9 +500,9 @@ void printStatusMessage(vector<TokenRange> &allTokenRanges,
         
       cout << "[Info] We have " << processedIntervals.size() << " of "
            << allTokenRanges.size() << " token ranges processed" << endl;
-      cout << "[Info] Sleep 5 seconds and check the ring again" << endl;
       
       if(wait) {
+        cout << "[Info] Sleep 5 seconds and check the ring again" << endl;
         sleep(5);
       }
 }
