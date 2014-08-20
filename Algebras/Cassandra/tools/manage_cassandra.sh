@@ -27,7 +27,7 @@ done
 echo -e "\n\n\n\n\n"
 
 echo "Wait for cassandra nodes to become ready...."
-sleep 10
+sleep 15
 
 # Wait for cassandra nodes
 while [ true ]; do
