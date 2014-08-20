@@ -63,6 +63,9 @@ enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE };
 // Timeout in ms for receiving heartbeat messages from other nodes
 #define NODE_TIMEOUT 30000
 
+// Activate debug messages
+#define __DEBUG__
+
 /*
 1.2 Using
 
@@ -463,7 +466,8 @@ bool updateUuid(CassandraAdapter* cassandra, string uuid,
   );
   
   if(! result) {
-    cout << "Unable to update heartbeat in system_state table" << endl;
+    cout << "[Error] Unable to update heartbeat in system_state table" 
+         << endl;
     cout << "CQL Statement: " << ss.str() << endl;
     return false;
   }
@@ -524,9 +528,11 @@ bool executeQueryForTokenrangeIfNeeded(CassandraAdapter* cassandra,
         if( binary_search(processedIntervals.begin(), 
                           processedIntervals.end(), tokenrange))  {
           
-          cout << "[Info] Skipping already processed TokenRange: " 
+#ifdef __DEBUG__
+          cout << "[Debug] Skipping already processed TokenRange: " 
                << tokenrange;
-          
+#endif
+               
           return false;
         } else {
           executeTokenQuery(cassandra, query, queryId, ip, tokenrange, si, nl);
@@ -617,10 +623,17 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
       for(size_t position = 0; position < allTokenRanges.size(); ++position) {
         size_t realPos = (position + offset) % allTokenRanges.size();
         TokenRange range = allTokenRanges[realPos];
+
+#ifdef __DEBUG__                 
         cout << "[Debug] Handling tokenrange: " << range;
+#endif
         
         if(range.isLocalTokenRange(ip)) {
-          cout << "Set to local" << endl;
+
+#ifdef __DEBUG__         
+          cout << "[Debug] it's a local token range" << endl;
+#endif
+          
           mode = LOCAL_TOKENRANGE;
         } else {
           
@@ -631,12 +644,17 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
           
           time_t now = time(0) * 1000; // Convert to ms
           
-          if(heartbeatData[range.getIp()] + NODE_TIMEOUT > now) {  
-            cout << "[Info] Set to foreign: " << range;
-              mode = FOREIGN_TOKENRANGE;
+          if(heartbeatData[range.getIp()] + NODE_TIMEOUT > now) {
+#ifdef __DEBUG__             
+            cout << "[Debug] Set to foreign: " << range;
+#endif            
+            mode = FOREIGN_TOKENRANGE;
           } else {
-            cout << "[Info] Treat range as local, because node is dead: " 
+#ifdef __DEBUG__             
+            cout << "[Debug] Treat range as local, because node is dead: " 
                  << range;
+#endif
+                 
           }
         }
         
