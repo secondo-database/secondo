@@ -392,15 +392,15 @@ bool updateHeartbeatData(CassandraAdapter* cassandra,
 
     // Data older then 15 seconds, refresh
     if(lastUpdate + 15000 < now) {
-	// Clear old hearbeat data
-	heartbeatData.clear();
+      // Clear old hearbeat data
+      heartbeatData.clear();
 
-        if (! cassandra -> getHeartbeatData(heartbeatData) ) {
+      if (! cassandra -> getHeartbeatData(heartbeatData) ) {
           cerr << "[Error] Unable to heartbeat from system table" << endl;
           return false;
-        }
+      }
 
-        lastUpdate = time(0) * 1000; // Convert to ms
+      lastUpdate = time(0) * 1000; // Convert to ms
     }
 
     return true;
