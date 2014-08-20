@@ -2608,6 +2608,28 @@ will be processed.
   return (nl->SymbolAtom( "exprerror" ));
 } // end Annotate
 
+
+string getMainTypesAsString(ListExpr args){
+  if(nl->AtomType(args)!=NoAtom){
+    return "invalid type list";
+  }
+  stringstream ss;
+  ss << "(";
+  bool first = true;
+  while(!nl->IsEmpty(args)){
+    if(!first) ss << ", ";
+    ListExpr arg = nl->First(args);    
+    args = nl->Rest(args);
+    while(nl->AtomType(arg)==NoAtom && !nl->IsEmpty(arg)){
+      arg = nl->First(arg);
+    }
+    ss << nl->ToString(arg);
+    first = false; 
+  }
+  ss << ")";
+  return ss.str();
+}
+
 ListExpr
 QueryProcessor::TestOverloadedOperators( const string&
                                          operatorSymbolStr,
@@ -2633,7 +2655,8 @@ QueryProcessor::TestOverloadedOperators( const string&
 
   string typeErrorMsg =
    "Type map error for operator " + operatorSymbolStr + "!" + sepLine
-   + wordWrap("Input: ", width, NList(typeList).convertToString())
+   + wordWrap("Input: ", width, NList(typeList).convertToString()) + sepLine
+   + wordWrap("Short: ", width, getMainTypesAsString(typeList))
    + sepLine + "Error Message(s):" + sepLine;
 
   do // Overloading: test operator candidates
