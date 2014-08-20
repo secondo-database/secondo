@@ -776,7 +776,7 @@ bool CassandraAdapter::getTokensFromQuery
       
     try {
        boost::shared_future< cql::cql_future_result_t > future = 
-          executeCQL(query, cql::CQL_CONSISTENCY_ONE);
+          executeCQL(query, cql::CQL_CONSISTENCY_ALL);
   
        future.wait();
     
@@ -881,10 +881,10 @@ bool CassandraAdapter::dropMetatables() {
   
   vector<string> queries;
   
-  queries.push_back(string("DROP TABLE system_queries;"));
-  queries.push_back(string("DROP TABLE system_state;"));
-  queries.push_back(string("DROP TABLE system_progress;"));
-  queries.push_back(string("DROP TABLE system_tokenranges"));
+  queries.push_back(string("TRUNCATE system_queries;"));
+  queries.push_back(string("TRUNCATE system_state;"));
+  queries.push_back(string("TRUNCATE system_progress;"));
+  queries.push_back(string("TRUNCATE system_tokenranges"));
   
   for(vector<string>::iterator iter = queries.begin(); 
       iter != queries.end(); ++iter) {
@@ -902,18 +902,22 @@ bool CassandraAdapter::dropMetatables() {
     }  
     
   }
-  
+
+  // Wait for drop request to be
+  // executed on all cassandra nodes
+  sleep(5); 
+ 
   return true;
 }
 
 CassandraResult* CassandraAdapter::getQueriesToExecute() {
   return readDataFromCassandra
-            ("SELECT id, query from system_queries", cql::CQL_CONSISTENCY_ONE);
+            ("SELECT id, query from system_queries", cql::CQL_CONSISTENCY_ALL);
 }
 
 CassandraResult* CassandraAdapter::getGlobalQueryState() {
     return readDataFromCassandra
-          ("SELECT ip, lastquery FROM system_state", cql::CQL_CONSISTENCY_ONE);
+          ("SELECT ip, lastquery FROM system_state", cql::CQL_CONSISTENCY_ALL);
 }
 
 void CassandraAdapter::quoteCqlStatement(string &query) {
@@ -954,7 +958,7 @@ bool CassandraAdapter::copyTokenRangesToSystemtable (string localip) {
           // Update last executed command
           bool result = executeCQLSync(
             ss.str(),
-            cql::CQL_CONSISTENCY_ONE
+            cql::CQL_CONSISTENCY_ALL
           );
           
           if(! result) {
@@ -989,7 +993,7 @@ bool CassandraAdapter::getTokenrangesFromQuery (
 
     try {   
        boost::shared_future< cql::cql_future_result_t > future = 
-          executeCQL(query, cql::CQL_CONSISTENCY_ONE);
+          executeCQL(query, cql::CQL_CONSISTENCY_ALL);
   
        future.wait();
     
@@ -1063,7 +1067,7 @@ bool CassandraAdapter::getNodeData(map<string, string> &result) {
 
        boost::shared_future< cql::cql_future_result_t > future = 
           executeCQL(string("SELECT ip, node FROM system_state"), 
-                     cql::CQL_CONSISTENCY_ONE);
+                     cql::CQL_CONSISTENCY_ALL);
   
        future.wait();
     
