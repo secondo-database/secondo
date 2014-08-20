@@ -494,14 +494,17 @@ size_t findFirstLocalTokenrange(vector<TokenRange> &allTokenRanges,
 2.2 Print total and processed tokens and sleep some time
     
 */
-void printStatusMessageAndWait(vector<TokenRange> &allTokenRanges, 
-                              vector<TokenRange> &processedIntervals) {
+void printStatusMessage(vector<TokenRange> &allTokenRanges, 
+                        vector<TokenRange> &processedIntervals,
+                        bool wait) {
         
       cout << "[Info] We have " << processedIntervals.size() << " of "
            << allTokenRanges.size() << " token ranges processed" << endl;
       cout << "[Info] Sleep 5 seconds and check the ring again" << endl;
       
-      sleep(5);
+      if(wait) {
+        sleep(5);
+      }
 }
 
 /*
@@ -601,6 +604,7 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
            
       // All TokenRanges are processed
       if(processedIntervals.size() == allTokenRanges.size()) {
+        printStatusMessage(allTokenRanges, processedIntervals, false);
         return; 
       }
 
@@ -643,7 +647,7 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
         }
       }
       
-      printStatusMessageAndWait(allTokenRanges, processedIntervals);
+      printStatusMessage(allTokenRanges, processedIntervals, true);
     }
 } 
       
