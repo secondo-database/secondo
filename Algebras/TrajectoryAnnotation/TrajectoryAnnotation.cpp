@@ -112,28 +112,29 @@ void GetLine(int socket, std::stringstream& line)
 }
 
 
+
 void askGoogle(const string& street, const string& no, 
 const string& postcode,const string& ci, Point& result) {
   //Check of spaces and special characters in URL
-string newSt = stringutils::replaceAll(street, " ", "%20");
-string newSt1 = stringutils::replaceAll(newSt, "ß", "ss");
-string newSt2 = stringutils::replaceAll(newSt1, "ä", "ae");
-string newSt3 = stringutils::replaceAll(newSt2, "ö", "oe");
-string newSt4 = stringutils::replaceAll(newSt3, "ü", "ue");
-string newSt5 = stringutils::replaceAll(newSt4, "Ä", "Ae");
-string newSt6 = stringutils::replaceAll(newSt5, "Ö", "Oe");
-string newSt7 = stringutils::replaceAll(newSt6, "Ü", "Ue");
+  string newSt = stringutils::replaceAll(street, " ", "%20");
+  string newSt1 = stringutils::replaceAll(newSt, "ß", "ss");
+  string newSt2 = stringutils::replaceAll(newSt1, "ä", "ae");
+  string newSt3 = stringutils::replaceAll(newSt2, "ö", "oe");
+  string newSt4 = stringutils::replaceAll(newSt3, "ü", "ue");
+  string newSt5 = stringutils::replaceAll(newSt4, "Ä", "Ae");
+  string newSt6 = stringutils::replaceAll(newSt5, "Ö", "Oe");
+  string newSt7 = stringutils::replaceAll(newSt6, "Ü", "Ue");
 
-string newc = stringutils::replaceAll(ci, " ", "%20");
-string newc1 = stringutils::replaceAll(newc, "ß", "ss");
-string newc2 = stringutils::replaceAll(newc1, "ä", "ae");
-string newc3 = stringutils::replaceAll(newc2, "ö", "oe");
-string newc4 = stringutils::replaceAll(newc3, "ü", "ue");
-string newc5 = stringutils::replaceAll(newc4, "Ä", "Ae");
-string newc6 = stringutils::replaceAll(newc5, "Ö", "Oe");
-string newc7 = stringutils::replaceAll(newc6, "Ü", "Ue");
+  string newc = stringutils::replaceAll(ci, " ", "%20");
+  string newc1 = stringutils::replaceAll(newc, "ß", "ss");
+  string newc2 = stringutils::replaceAll(newc1, "ä", "ae");
+  string newc3 = stringutils::replaceAll(newc2, "ö", "oe");
+  string newc4 = stringutils::replaceAll(newc3, "ü", "ue");
+  string newc5 = stringutils::replaceAll(newc4, "Ä", "Ae");
+  string newc6 = stringutils::replaceAll(newc5, "Ö", "Oe");
+  string newc7 = stringutils::replaceAll(newc6, "Ü", "Ue");
 
-string no1 = stringutils::replaceAll(no, " ", "%20");
+  string no1 = stringutils::replaceAll(no, " ", "%20");
   
   
   //constant values of url	
@@ -147,197 +148,140 @@ string no1 = stringutils::replaceAll(no, " ", "%20");
   request +=  "+"   +newc7+ post;
 
 
-usleep(120000);  //wait because only 10 request per sec allowed
+  usleep(120000);  //wait because only 10 request per sec allowed
   
-hostent* phe = gethostbyname("maps.googleapis.com"); 
+  hostent* phe = gethostbyname("maps.googleapis.com"); 
 
-    //if host not found
-    if(phe == NULL) 
-    { 
+  //if host not found
+  if(phe == NULL) { 
        result.SetDefined(false); 
        return;  
-    } 
+  } 
 
-    int Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); 
-    //error while craeating socket
-    if(Socket == -1) 
-    { 
-        result.SetDefined(false); 
-        return; 
-    } 
+  int Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); 
+  //error while craeating socket
+  if(Socket == -1) { 
+      result.SetDefined(false); 
+      return; 
+  } 
 
-    sockaddr_in service; 
-    service.sin_family = AF_INET; 
-    service.sin_port = htons(80); // HTTP-Protocol use Port 80 
+  sockaddr_in service; 
+  service.sin_family = AF_INET; 
+  service.sin_port = htons(80); // HTTP-Protocol use Port 80 
 
-    char** p = phe->h_addr_list; 
-    int resulte; 
-    do 
-    { 
+  char** p = phe->h_addr_list; 
+  int resulte; 
+  do { 
         if(*p == NULL) 
         { 
             result.SetDefined(false); 
             return;  
         } 
-
         service.sin_addr.s_addr = *reinterpret_cast<unsigned long*>(*p); 
         ++p; 
-        resulte = 
-	connect(Socket, reinterpret_cast<sockaddr*>(&service), sizeof(service));
-     } 
-    while(resulte == -1); 
-
+        resulte = connect(Socket, reinterpret_cast<sockaddr*>(&service), 
+                          sizeof(service));
+   } while(resulte == -1); 
 
 	
+   SendAll(Socket, request.c_str(), request.size());
+
+   // open output stream, delete old content
+   ofstream fout("../bin/output.xml", ios::trunc);  
 	
-    SendAll(Socket, request.c_str(), request.size());
-
-
-
-    ofstream fout("../bin/output.xml", ios::trunc);  
-	
-
- 
-
-  
-if (fout.good()==true)
-{	
-int n = 0;
-  
-    while(!fout.eof()) 
-    { 
+   if (fout.good()) {	
+      bool write = false;
+      while(!fout.eof()) { 
         stringstream line; 
-	
-        try 
-        { 
-	    GetLine(Socket, line);
-        } 
-        catch(exception& e) // Ein Fehler oder Verbindungsabbruch 
-        { 
+        try { 
+           GetLine(Socket, line);
+        } catch(exception& e)  { 
             break; // Schleife verlassen 
-        } 
-        if (n>11)
-	{
-
-	fout << line.str() << endl; // Zeile in die Datei schreiben. 
+        }  
+        string l = stringutils::replaceAll(line.str(),"\r","");
+        stringutils::trim(l);
+        if(!write){
+           write = stringutils::startsWith(l,"<?xml"); 
         }
-	else 
-	{n++;}
-
+        if (write) {
+           fout << l << endl; // Zeile in die Datei schreiben. 
+        } 
+     }
+  } else {
+     result.SetDefined(false);   
+     return;  
   }
-}
-else
-{	
-	usleep(120000);	
-	if (fout.good()==true)
-	{	
-		int n = 0;
-  
-   		 while(!fout.eof()) 
-    		{ 
-        		stringstream line; 
-	
-        		try 
-        		{ 
-	    		GetLine(Socket, line);
-        		} 
-        		catch(exception& e) 
-        		{ 
-            		break; // Schleife verlassen 
-        		} 
-        		if (n>11)
-			{
-				fout << line.str() << endl; 
-				// Zeile in die Datei schreiben. 
-        		}
-			else 
-			{n++;}
+  //Close connection
+  close(Socket); 
 
-  		}
-	}
-	else
-	{	
-		result.SetDefined(false);   
-         	return;  
-	}
-}
-//Close connection
-close(Socket); 
+  // at this point google's answer is stored in file output.xml
 
-//xml-Parser
+  //xml-Parser
 
-xmlDocPtr doc;
-xmlNodePtr cur;
-xmlNodePtr check;
-xmlNodePtr subcur;
-xmlNodePtr subsubcur;
-xmlNodePtr subsubsubcur;
-doc = xmlParseFile("../bin/output.xml");
-cur = xmlDocGetRootElement(doc);
+  xmlDocPtr doc;
+  xmlNodePtr cur;
+  xmlNodePtr subcur;
+  xmlNodePtr subsubcur;
+  xmlNodePtr subsubsubcur;
+  doc = xmlParseFile("../bin/output.xml");
+  cur = xmlDocGetRootElement(doc);
 
-//check if Parentnode is available
+  //check if Parentnode is available
 
-if ( cur == NULL){
-result.SetDefined(false); 
-return; 
-}
-
-cur = cur->children;
-check = cur->children;
-double ausg1;
-double ausg2;
-
-while (cur != NULL) {
-   if ((xmlStrcmp(cur->name, (const xmlChar *)"result"))==0){
-	subcur = cur->children;
-     while (subcur != NULL) {
-	if ((xmlStrcmp(subcur->name, (const xmlChar *)"geometry"))==0) {
-	     subsubcur = subcur->children;
-	while (subsubcur != NULL) {
-	   if ((xmlStrcmp(subsubcur->name,(const xmlChar *)"location"))==0)
-	     {
-	     subsubsubcur = subsubcur->children;
-		while (subsubsubcur != NULL) {
-		   if 
-		   ((xmlStrcmp(subsubsubcur->name,(const xmlChar *)"lat"))==0) {
-		     xmlChar *val1;
-		     val1 =xmlNodeListGetString(doc,subsubsubcur->children,1);
-		     ausg1=OsmImportOperator::convStrToDbl((const char *)val1);
-		     xmlFree(val1);
-		   }
-		   if 
-		   ((xmlStrcmp(subsubsubcur->name,(const xmlChar *)"lng"))==0) {
-		   xmlChar *val2;
-		   val2 = xmlNodeListGetString(doc, subsubsubcur->children, 1);
-		   ausg2= OsmImportOperator::convStrToDbl((const char *)val2);
-		   xmlFree(val2);
-		   }
-				  
-		subsubsubcur = subsubsubcur->next;
-		}
-	     }
-	subsubcur = subsubcur->next;
- 	}
-      }
-			  
-   subcur = subcur->next;
+  if ( cur == NULL){ // document could not be parsed
+    result.SetDefined(false); 
+    return; 
   }
- }
-cur = cur->next;
-}
+
+  cur = cur->children;
+  double ausg1;
+  double ausg2;
+  bool f1 = false;
+  bool f2 = false;
+
+  while (cur != NULL) {
+     if ((xmlStrcmp(cur->name, (const xmlChar *)"result"))==0){
+        subcur = cur->children;
+        while (subcur != NULL) {
+          if ((xmlStrcmp(subcur->name, (const xmlChar *)"geometry"))==0) {
+            subsubcur = subcur->children;
+            while (subsubcur != NULL) {
+              if ((xmlStrcmp(subsubcur->name,(const xmlChar *)"location"))==0) {
+                subsubsubcur = subsubcur->children;
+                while (subsubsubcur != NULL) {
+                  if((xmlStrcmp(subsubsubcur->name,(const xmlChar *)"lat"))==0){
+                     xmlChar *val1; 
+                     val1 =xmlNodeListGetString(doc,subsubsubcur->children,1);
+                     ausg1=OsmImportOperator::convStrToDbl((const char *)val1);
+                     f1 = true;
+                     xmlFree(val1);
+                  }
+                  if((xmlStrcmp(subsubsubcur->name,(const xmlChar *)"lng"))==0){
+                     xmlChar *val2;
+                     val2 = xmlNodeListGetString(doc, subsubsubcur->children,1);
+                     ausg2= OsmImportOperator::convStrToDbl((const char *)val2);
+                     f2 = true;
+                     xmlFree(val2);
+                  }
+                  subsubsubcur = subsubsubcur->next;
+                }
+              }
+              subsubcur = subsubcur->next;
+            }
+          }
+			    subcur = subcur->next;
+        }
+     }
+     cur = cur->next;
+  }
 	
-xmlFreeDoc(doc);
+  xmlFreeDoc(doc);
 
-
-if (ausg2>0){
-result.Set(ausg2, ausg1);
-}
-else{
- result.SetDefined(false); 
- return; 
-}
-
-
+  if(f1 && f2){
+     result.Set(ausg2, ausg1);
+  } else {
+     result.SetDefined(false);
+  }
 }
 
 /*
