@@ -154,15 +154,20 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
                " a_i x b_i x [int x int [x int]] expected";
    int len = nl->ListLength(args);
    if((len!=4) && (len!=6) && (len!=7)){
-     return listutils::typeError(err);
+     return listutils::typeError(err + " (wrong number of arguments)");
    }
 
    if(!Stream<Tuple>::checkType(nl->First(args)) ||
-      !Stream<Tuple>::checkType(nl->Second(args)) ||
-      !listutils::isSymbol(nl->Third(args)) ||
-      !listutils::isSymbol(nl->Fourth(args)) ) {
-     return listutils::typeError(err);
+      !Stream<Tuple>::checkType(nl->Second(args))){
+     return listutils::typeError(err + " (the first two arguments have to "
+                                       "be tuple streams)");
    }
+   if(!listutils::isSymbol(nl->Third(args)) ||
+      !listutils::isSymbol(nl->Fourth(args)) ) {
+     return listutils::typeError(err + " ( the third and the fourth "
+                           "argument have to represent an attribute name)");
+   }
+
    if( (len>4) && 
        (!CcInt::checkType(nl->Fifth(args)) ||
         !CcInt::checkType(nl->Sixth(args)))){
@@ -172,7 +177,8 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
 
 
    if( (len==7) && ! CcInt::checkType(nl->Sixth(nl->Rest((args))))){
-     return listutils::typeError(err);
+     return listutils::typeError(err + 
+                             " ( the 7th arguemnts is not of type int)");
    }
 
    ListExpr attrList1 = nl->Second(nl->Second(nl->First(args)));
