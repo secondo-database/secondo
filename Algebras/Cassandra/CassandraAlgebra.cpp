@@ -805,8 +805,8 @@ public:
       cout << "Tuple type is " << tupleType << endl;
 #endif      
       
-      cassandra = CassandraConnectionPool::Instance()->
-            getConnection(contactPoint, keyspace, false);
+      cassandra = new CassandraConnection(false, 
+                                       contactPoint, keyspace);
            
       cassandra -> createTable(relationName, tupleType);
       
@@ -829,11 +829,9 @@ public:
     if(cassandra) {
       // Wait for all pending futures to finish
       cassandra -> waitForPendingFutures();
+      cassandra -> disconnect();
+      cassandra = NULL;
     }
-
-    // Destroy connection. 
-    CassandraConnectionPool::Instance()->
-       destroy();
   }
   
   bool feed(Tuple* tuple) {
