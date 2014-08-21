@@ -1,0 +1,53 @@
+# The Geolife directory has to be a subdirectory of the secondo/bin directory.
+
+#delete mlabeltype;
+#delete importMLabelFile;
+#delete mpointtype;
+#delete importMPointFile;
+#delete importMRealFile;
+#delete getPersonId;
+#delete getTripId;
+#delete TranspModes;
+#delete Trips;
+
+
+let mlabeltype = [const rel(tuple([S: string, E: string, L: string])) value ()];
+ 
+let importMLabelFile = fun(Name: text) mlabeltype csvimport[Name, 1, "", "\t"] 
+    projectextend[L; Start: str2instant(replace(replace(.S, "/", "-"), " ", "-")), 
+                     End: str2instant(replace(replace(.E, "/", "-"), " ", "-"))] 
+    projectextend[; U: the_unit(tolabel(trim(.L)), .Start, .End, TRUE, FALSE)]
+    makemvalue[U];
+
+let mpointtype = [const rel(tuple([X: real, Y: real, Zero: int, Alt: int, Days: real, 
+                                   Datestr: string, Timestr: string])) value ()];
+
+let importMPointFile = fun(Name: text) mpointtype csvimport[Name, 6, "", ","]
+    projectextend[; P: makepoint(.X, .Y), 
+                    Inst: str2instant(.Datestr + "-" + .Timestr)] 
+    approximate[Inst, P];
+
+let importMRealFile = fun(Name: text) mpointtype csvimport[Name, 6, "", ","]
+    projectextend[; A: int2real(.Alt), Inst: str2instant(.Datestr + "-" + .Timestr)] 
+    approximate[Inst, A];
+
+let getPersonId = fun(Filename: text) 
+    substr(Filename, find(Filename, "/") transformstream tail[2] extract[Elem] + 1,
+                     find(Filename, "/") transformstream tail[1] extract[Elem] - 1)
+
+let getTripId = fun(Filename: text)
+    substr(Filename, find(Filename, "/") transformstream tail[1] extract[Elem] + 1,
+                     find(Filename, ".") transformstream tail[1] extract[Elem] - 1)
+
+let TranspModes = getDirectory('Geolife/Data', 2) transformstream
+    filter[not(isDirectory(.Elem))]
+    filter[.Elem endsWith ".txt"]
+    projectextend[; PersonId: getPersonId(.Elem), TranspMode: importMLabelFile(.Elem)]
+    consume;
+
+let Trips = getDirectory('Geolife/Data', 3) transformstream 
+    filter[not(isDirectory(.Elem))] 
+    filter[.Elem endsWith '.plt']
+    projectextend[; PersonId: getPersonId(.Elem), TripId: getTripId(.Elem), 
+                    Trip: importMPointFile(.Elem), Altitude: importMRealFile(.Elem)]
+    consume;
