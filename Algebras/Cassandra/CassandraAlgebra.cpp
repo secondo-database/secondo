@@ -826,7 +826,21 @@ public:
   }
   
   void disconnect() {
- 
+    
+    /*
+     * Only needed when the cassandra driver is buggy and 
+     * the connection is becoming unstable.
+      
+    if(cassandra) {
+      // Wait for all pending futures to finish
+      cassandra -> waitForPendingFutures();
+    }
+
+    // Destroy connection. 
+    CassandraConnectionPool::Instance()->
+       destroy();
+       
+    */
   }
   
   bool feed(Tuple* tuple) {
@@ -836,6 +850,8 @@ public:
     string partitionKey = ss.str();
     
     ss.clear();
+    ss.str(std::string());
+    
     ss << tupleNumber;
     string tupleNumberStr = ss.str();
     
