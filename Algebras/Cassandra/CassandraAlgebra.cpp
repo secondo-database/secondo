@@ -805,9 +805,8 @@ public:
       cout << "Tuple type is " << tupleType << endl;
 #endif      
       
-      cassandra = new CassandraConnection(false, 
-                                       contactPoint, keyspace);
-           
+      cassandra = new CassandraAdapter(contactPoint, keyspace);
+      cassandra -> connect(false);
       cassandra -> createTable(relationName, tupleType);
       
       if(sizeof(size_t) < 8) {
