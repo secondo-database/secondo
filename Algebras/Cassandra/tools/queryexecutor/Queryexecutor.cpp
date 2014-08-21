@@ -377,7 +377,15 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
     // Copy query string, so we can replace the
     // placeholder multiple times
     string ourQuery = string(query);
+    
+    // Replace token range placeholder
     replacePlaceholder(ourQuery, "__TOKENRANGE__", ss.str());
+    
+    // Replace Query UUID placeholder
+    boost::uuids::uuid queryUuid = boost::uuids::random_generator()();
+    string myQueryUuid = boost::lexical_cast<std::string>(queryUuid);
+    replacePlaceholder(ourQuery, "__QUERYUUID__", myQueryUuid);
+    
     executeSecondoCommand(si, nl, ourQuery);
     updateLastProcessedToken(cassandra, queryId, ip, tokenrange);
 }
@@ -838,7 +846,7 @@ int main(int argc, char* argv[]){
 
   // Gernerate UUID
   boost::uuids::uuid uuid = boost::uuids::random_generator()();
-  const string myUuid = boost::lexical_cast<std::string>(uuid);
+  string myUuid = boost::lexical_cast<std::string>(uuid);
   cout << "Our id is: " << myUuid << endl;
   
   // Main Programm
