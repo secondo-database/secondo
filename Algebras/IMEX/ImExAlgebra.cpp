@@ -1147,6 +1147,7 @@ public:
 
       if(separator->IsDefined() ){
          string sep = separator->GetValue();
+         sep = stringutils::replaceAll(sep,"\\t","\t");
          if(sep.length()>0){
            this->separator=sep;
          }
