@@ -85,6 +85,10 @@ project: stream(tuple(Attrs_1)) :: (Ident_i)+
     combine(Ident_i, Types_i, Attrs_2),
     distinctAttrs(Attrs_2)
 
+count: stream(Tuple) -> int
+count: rel(Tuple) -> int
+count: orel(Tuple) -> int
+count: trel(Tuple) -> int
 rename: stream(Tuple) :: (Tuple -> string) -> stream(Tuple)
 
 
@@ -142,4 +146,155 @@ deftime: moving(T) -> periods
 where T in {int, real, string, bool, point, region}.
 
 
+
+algebra QcV2Test
+
+<: mreal x mreal -> bool
+<: real x mreal -> mbool
+
+=: rect x rect -> bool
+
+
+avg:    (stream)(Empty)(Empty)
+	:: (attr)(Space)(int)(Comma)(real)(Empty)(Empty) -> real
+
+bbox:   (point)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> rect
+bbox:   (points)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> rect
+bbox:   (mpoint)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> rect
+bbox:   (line)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> rect
+bbox:   (region)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> rect
+bbox:   (sline)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> rect
+
+collect_points: (stream)(Space)(point)
+	:: (bool)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> points
+
+convexhull: (points)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> region
+
+distance: (mpoint)(Semicolon)(point)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (mpoint)(Semicolon)(mpoint)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (point)(Semicolon)(point)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (point)(Semicolon)(line)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (point)(Semicolon)(rect)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (line)(Semicolon)(point)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (line)(Semicolon)(line)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (line)(Semicolon)(rect)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (rect)(Semicolon)(point)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (rect)(Semicolon)(line)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+distance: (rect)(Semicolon)(rect)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> mreal
+
+extendstream: (stream)(Empty)(Empty)
+	:: (new)(Space)(stream)(Space)(list)(Empty)(Empty) -> stream
+
+extract: (stream)(Empty)(Empty)
+	:: (attr)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> attr
+
+feedproject: rel(Tuple) :: (Tuple -> attrlist) -> stream(Tuple)
+
+head: stream(Tuple) :: (Tuple -> int) -> stream(Tuple)
+
+intstream: int x int -> stream(data)
+
+kbiggest: (stream)(Empty)(Empty)
+	:: (int)(Semicolon)(attrlist)(Empty)(Empty)(Empty)(Empty) -> stream
+
+krdup: (stream)(Empty)(Empty)
+	:: (attrlist)(Space)(sort)(Empty)(Empty)(Empty)(Empty) -> stream
+
+ksmallest: (stream)(Empty)(Empty)
+	:: (int)(Semicolon)(attrlist)(Empty)(Empty)(Empty)(Empty) -> stream
+
+loopjoin: stream(Tuple) :: (Tuple -> fun) -> stream(Tuple)
+
+loopsel: stream(Tuple) :: (Tuple -> fun) -> stream(Tuple)
+
+mergejoin: (stream)(Semicolon)(stream)
+	:: (attr)(Comma)(attr)(Empty)(Empty)(Empty)(Empty) -> stream
+
+min:    (stream)(Empty)(Empty)
+	:: (attr)(Space)(int)(Comma)(real)(Empty)(Empty) -> real
+
+minimum: (mreal)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> real
+
+namedtransformstream: (stream)(Space)(data)
+	:: (string)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> stream
+
+passes: (mpoint)(Semicolon)(point)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> bool
+passes: (mpoint)(Semicolon)(line)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> bool
+passes: (mregion)(Semicolon)(point)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> bool
+passes: (mregion)(Semicolon)(line)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> bool
+
+rdup: stream(Tuple) -> stream(Tuple)
+
+remove: stream(tuple(Attrs_1)) :: (Ident_i)+
+        -> (Numbers_i, stream(tuple(Attrs_2)));
+    attrs(Ident_i, Attrs_1, Types_i, Numbers_i),
+    combine(Ident_i, Types_i, Attrs_2),
+    distinctAttrs(Attrs_2)
+
+size: (line)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> real
+
+sometimes: (ubool)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> bool
+sometimes: (mbool)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> bool
+
+sort: (stream)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> stream
+
+sortby: (stream)(Empty)(Empty)
+	:: (attrlist)(Space)(dir)(Empty)(Empty)(Empty)(Empty) -> stream
+
+sortmergejoin: (stream)(Semicolon)(stream)
+	:: (attr)(Comma)(attr)(Empty)(Empty)(Empty)(Empty) -> stream
+
+spatialjoin: (stream)(Semicolon)(stream)
+	:: (attr)(Comma)(attr)(Empty)(Empty)(Empty)(Empty) -> stream
+
+symmjoin: (stream)(Semicolon)(stream)
+	:: (bool)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> stream
+
+tail: stream(Tuple) :: (Tuple -> int) -> stream(Tuple)
+
+tconsume: stream(Tuple) -> trel(Tuple)
+
+transformstream: (stream)(Space)(data)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> stream
+
+units: mpoint(Tuple) -> stream(data)
+
+windowintersects: (rtree)(Semicolon)(rel)
+	:: (rect)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> stream
+
+year_of: (date)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> int
+
+month_of: (date)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> int
+
+day_of: (date)(Empty)(Empty)
+	:: (Empty)(Empty)(Empty)(Empty)(Empty)(Empty)(Empty) -> int
 
