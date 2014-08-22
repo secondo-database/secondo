@@ -56,18 +56,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-// Local Tokenrange - We have to process the data in the range
+// Enum for ownership of a token range
+// Local Tokenrange   - We have to process the data in the range
 // Foreign Tokenrange - An other worker process has to process the data
 enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE };
 
 // Timeout in ms for receiving heartbeat messages from other nodes
-#define NODE_TIMEOUT 30000
+#define HEARTBEAT_NODE_TIMEOUT 30000
+
+// Send heartbeat message to cassandra all n seconds
+#define HEARTBEAT_UPDATE 5
+
+// Refresh heartbeat status of other nodes all n seconds
+#define HEARTBEAT_REFRESH_DATA 15
 
 // Activate debug messages
 #define __DEBUG__
 
 /*
-1.2 Using
+1.2 Usings
 
 */
 using namespace std;
@@ -77,7 +84,7 @@ using namespace cassandra;
 /*
 2.0 Helper class for sending our own hearbeat
 messages to cassandra. This class will be executed
-in its own thread
+in the background in its own thread.
 
 */
 class HeartbeatUpdater {
@@ -126,7 +133,7 @@ public:
   } 
 
 /*
-2.1 Execute a query
+2.1 Execute a query in cassandra
 
 */
   bool executeQuery(string query) {
@@ -146,13 +153,13 @@ public:
   }
 
 /*
-2.1 Main loop
+2.1 Main loop - send heartbeat messages all n seconds
 
 */
   void run() {
     while(active) {
       updateHeartbeat();
-      sleep(5);
+      sleep(HEARTBEAT_UPDATE);
     }
   }
 
@@ -313,7 +320,7 @@ CassandraAdapter* getCassandraAdapter(string &cassandraHostname,
 
 
 /*
-2.2 Replace placeholder like __NODEID__ in Queries
+2.2 Replace placeholder like __NODEID__ in a given string
 
 */
 void replacePlaceholder(string &query, string placeholder, string value) {
@@ -398,12 +405,17 @@ bool updateHeartbeatData(CassandraAdapter* cassandra,
                          map<string, time_t> &heartbeatData) {
 
 
+    // Timestamp of the last heartbeat update
+    // We update the heartbeat messages only 
+    // if the last update is older then
+    // HEARTBEAT_REFRESH_DATA
     static time_t lastUpdate = 0;
-    time_t now = time(0) * 1000;               // Convert to ms
+    
+    time_t now = time(0);
 
-    // Data older then 15 seconds, refresh
-    if(lastUpdate + 15000 < now) {
-      // Clear old hearbeat data
+    // Heartbeat data outdated, refresh
+    if(lastUpdate + HEARTBEAT_REFRESH_DATA < now) {
+     
       heartbeatData.clear();
 
       if (! cassandra -> getHeartbeatData(heartbeatData) ) {
@@ -411,7 +423,8 @@ bool updateHeartbeatData(CassandraAdapter* cassandra,
           return false;
       }
 
-      lastUpdate = time(0) * 1000; // Convert to ms
+      // Update last heartbeat refresh timestamp
+      lastUpdate = time(0); 
     }
 
     return true;
@@ -652,7 +665,7 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
           
           time_t now = time(0) * 1000; // Convert to ms
           
-          if(heartbeatData[range.getIp()] + NODE_TIMEOUT > now) {
+          if(heartbeatData[range.getIp()] + HEARTBEAT_NODE_TIMEOUT > now) {
 #ifdef __DEBUG__             
             cout << "[Debug] Set to foreign: " << range;
 #endif            
