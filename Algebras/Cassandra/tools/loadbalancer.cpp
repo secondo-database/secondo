@@ -103,7 +103,9 @@ struct LBConfiguration {
 };
 
 /* 
-3 Class - Generic DataScheduler, sendData must been overwriten in subclasses
+3 Class - Generic DataScheduler
+
+method sendData must been overwriten in subclasses
 
 */
 class DataScheduler {
@@ -151,56 +153,67 @@ class LoadBalancerListener {
           close();
       }
       
+/*     
+5.1 Open socket for receiving data
+
+*/
       virtual bool openSocket() {
-         cout << "[Info] Opening server socket" << endl;
-         
-         listenfd = socket(AF_INET, SOCK_STREAM, 0);
+          cout << "[Info] Opening server socket" << endl;
+          
+          listenfd = socket(AF_INET, SOCK_STREAM, 0);
 
-         memset(&serv_addr, 0, sizeof(serv_addr));
-         memset(&client_addr, 0, sizeof(client_addr));
+          memset(&serv_addr, 0, sizeof(serv_addr));
+          memset(&client_addr, 0, sizeof(client_addr));
 
-         serv_addr.sin_family = AF_INET;
-         serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-         serv_addr.sin_port = htons(configuration.listenPort); 
+          serv_addr.sin_family = AF_INET;
+          serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+          serv_addr.sin_port = htons(configuration.listenPort); 
       
-         // Bind our socket
-         if ((bind(listenfd, (struct sockaddr *) 
-             &serv_addr, sizeof(serv_addr)) ) < 0) {
-           
+          // Bind our socket
+          if ((bind(listenfd, (struct sockaddr *) 
+              &serv_addr, sizeof(serv_addr)) ) < 0) {
+            
             cerr << "[Error] Bind failed" << endl;
             return false;
-         }
+          }
       
-         // Listen
-         if(( listen(listenfd, 10)) < 0 ){
+          // Listen
+          if(( listen(listenfd, 10)) < 0 ){
             cerr << "[Erorr] Listen failed " << endl;
             return false;
-         }
-         
-         unsigned int clientlen = sizeof(client_addr);
-     
-         // Accept connection
-         if(! (connfd = accept(listenfd, (struct sockaddr *) &client_addr, 
-               &clientlen))) {
-                 
+          }
+          
+          unsigned int clientlen = sizeof(client_addr);
+      
+          // Accept connection
+          if(! (connfd = accept(listenfd, (struct sockaddr *) &client_addr, 
+                &clientlen))) {
+                  
             cerr << "[Error] Accept failed" << endl;
             return false;
-         } 
-         
-         // set blocking mode
-         SocketHelper::setSocketToBlockingMode(connfd);
-         configuration.timer.start();
- 
-         cout << "[Info] Reciving data...." << endl;
-         
-         return true;
+          } 
+          
+          // set blocking mode
+          SocketHelper::setSocketToBlockingMode(connfd);
+          configuration.timer.start();
+
+          cout << "[Info] Reciving data...." << endl;
+          
+          return true;
       }
-      
-   bool isSocketOpen() {
-      return listenfd != 0;
-   }
+       
+/*
+5.2 Is the socket open?
+
+*/
+      bool isSocketOpen() {
+          return listenfd != 0;
+      }
    
-   // Close client socket and server socket
+/*
+5.3 Close client socket and server socket
+
+*/
    void close() {
      if(listenfd != 0) {
        shutdown(listenfd, 2);
@@ -212,7 +225,11 @@ class LoadBalancerListener {
        connfd = 0;
      }
    }
-   
+
+/* 
+5.4 Read data from socket
+
+*/
    void readData(string* result) {
      
       string::iterator pos;
@@ -251,8 +268,11 @@ class LoadBalancerListener {
 #endif
   }
 
-  // Server main method
-  // Read a line and send it to the scheduler
+/*
+5.5 Server main method
+Read a line and send it to the scheduler
+
+*/
   void run() {
     while(isSocketOpen()) {
       string line;
@@ -305,12 +325,19 @@ public:
       close();
     }
   }
-  
+
+/* 
+6.1 Get the server socket
+
+*/
   int getSocketFd() {
     return socketfd;
   }
   
-  // Open tcp connection to target server
+/*
+6.2 Open tcp connection to target server
+
+*/
   bool open() {
     cout << "Open TCP connection to server: " << hostname  
          << " Port " << port << endl;
@@ -354,12 +381,18 @@ public:
     return true;
   }
   
-  // Are we accepting new data?
+/*
+6.3 Are we accepting new data?
+
+*/
   virtual bool isReady() {
     return isSocketOpen();
   }
   
-  // Close TCP-Connection to target server
+/*
+6.4 Close TCP-Connection to target server
+
+*/
   void close() {
     cout << "Shutdown connection to server: " << hostname 
          << " Port " << port << endl;
@@ -372,29 +405,45 @@ public:
     socketfd = 0;
   }
   
-  // sendData to socket
-  // this method can be overwritten in
-  // subclasses
+/*
+6.5 sendData to socket
+this method can be overwritten in subclasses
+
+*/
   virtual void sendData(string data) {
     _sendData(data);
   }
-    
+
+/*
+6.6 is the socket open?
+
+*/
   bool isSocketOpen() {
     return socketfd != 0;
   }
-  
-  // get our hostname
+
+/*
+6.7 get our hostname
+
+*/
   string getHostname() {
     return hostname;
   }
   
-  // get our port
+/*
+6.8 get our port
+
+*/  
   int getPort() {
     return port;
   }
   
 protected:
   
+/*
+6.9 Send data to the socket
+
+*/  
   void _sendData(string data) {
     if(isSocketOpen()) {
        write(socketfd, data.c_str(), strlen(data.c_str()));
@@ -472,19 +521,28 @@ dispatch the data to the socket
     }
   }
   
-  // Template method, can be used in subclasses
+/* 
+7.2 Template method, can be used in subclasses
+
+*/
   virtual void tupelSend() {
   }
   
-  // Exit thread
+/*
+7.3 Exit thread
+
+*/
   void exitThread() {
     pthread_mutex_destroy(&queueMutex);
     pthread_cond_destroy(&queueCondition);
     pthread_exit(NULL);
   }
-  
-  // Insert data into queue
-  // Called from scheduler
+
+/*
+7.4 Insert data into queue
+This method is called from scheduler
+
+*/
   virtual void sendData(string data) {
     pthread_mutex_lock(&queueMutex);
     bool wasEmpty = myQueue.empty();
@@ -498,7 +556,10 @@ dispatch the data to the socket
     pthread_mutex_unlock(&queueMutex);
   }
   
-  // Get the size of the queue
+/*
+7.5 Get the size of the queue
+
+*/
   size_t getQueueSize() {
     size_t result;
     pthread_mutex_lock(&queueMutex);
@@ -506,9 +567,12 @@ dispatch the data to the socket
     pthread_mutex_unlock(&queueMutex);
     return result;
   }
-  
-  // We are only accepting new data, when the socket is
-  // open and the size of the queue is less then QUEUESIZE
+
+/*
+7.6 We are only accepting new data, when the socket is
+open and the size of the queue is less then QUEUESIZE
+
+*/
   virtual bool isReady() {
     
     /*
@@ -542,12 +606,18 @@ public:
     sendTupel = 0;
   }
   
-  // Are we accepting new data?
+/*
+8.1 Are we accepting new data?
+
+*/
   virtual bool isReady() {
     return ThreadedTargetServer::isReady() && (sendTupel < acknowledgeAfter);
   }
   
-  // Wait for acknowledge after n tuples send
+/*
+8.2 Wait for acknowledge after n tuples send
+
+*/
   virtual void tupelSend() {
     ++sendTupel;
     
@@ -601,7 +671,11 @@ public:
   ~RRDataScheduler() {
     cout << "Ignored lines: " << ignoredLines << endl;
   }
-  
+
+/*
+10.1 Send data to the target server
+
+*/
   virtual void sendData(string data) {
       
     TargetServer* ts = NULL;
@@ -781,7 +855,6 @@ void printHelpAndExit(string &progName) {
 /* 
 14 Destroy all Server in provieded serverList
 
-
 */
 void destroyServerList(LBConfiguration &configuration) {
   
@@ -802,7 +875,6 @@ void destroyServerList(LBConfiguration &configuration) {
 
 /* 
 15 Parse Server argument list
-
 
 */
 bool parseServerList(char* argument, LBConfiguration &configuration) {
