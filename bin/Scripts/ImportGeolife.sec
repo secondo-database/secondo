@@ -32,12 +32,12 @@ let importMRealFile = fun(Name: text) mpointtype csvimport[Name, 6, "", ","]
     approximate[Inst, A];
 
 let getPersonId = fun(Filename: text) 
-    substr(Filename, find(Filename, "/") transformstream tail[2] extract[Elem] + 1,
-                     find(Filename, "/") transformstream tail[1] extract[Elem] - 1)
+    substr(Filename, find(Filename, "/") transformstream tail[3] extract[Elem] + 1,
+                     find(Filename, "/") transformstream tail[2] extract[Elem] - 1);
 
 let getTripId = fun(Filename: text)
     substr(Filename, find(Filename, "/") transformstream tail[1] extract[Elem] + 1,
-                     find(Filename, ".") transformstream tail[1] extract[Elem] - 1)
+                     find(Filename, ".") transformstream tail[1] extract[Elem] - 1);
 
 let TranspModes = getDirectory('Geolife/Data', 2) transformstream
     filter[not(isDirectory(.Elem))]
