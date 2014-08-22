@@ -73,6 +73,10 @@ enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE };
 // Activate debug messages
 #define __DEBUG__
 
+#define CMDLINE_CASSANDRA_NODE          1<<0
+#define CMDLINE_CASSANDRA_KEYSPACE      1<<1
+#define CMDLINE_CASSANDRA_PORT          1<<2
+
 /*
 1.2 Usings
 
@@ -80,6 +84,15 @@ enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE };
 using namespace std;
 using namespace cassandra;
 
+/*
+1.3 Structs
+
+*/
+struct cmdline_args_t {
+  string cassandraNodeIp;
+  string cassandraKeyspace;
+  string secondoPort;
+};
 
 /*
 2.0 Helper class for sending our own hearbeat
@@ -808,39 +821,55 @@ void printHelpAndExit(char *progName) {
 }
 
 /*
-2.7 Main method
+2.7 parse commandline args
 
 */
-int main(int argc, char* argv[]){
-
-  if(argc != 7) {
-     printHelpAndExit(argv[0]);
-  }
+void parseCommandline(int argc, char* argv[], 
+                     cmdline_args_t &cmdline_args) {
   
-  // Parse commandline args
-  string cassandraNodeIp = "";
-  string cassandraKeyspace = "";
-  string secondoPort = "";
-  
+  unsigned int flags = 0;
   int option = 0;
+  
   while ((option = getopt(argc, argv,"i:k:p:")) != -1) {
      switch (option) {
       case 'i':
-           cassandraNodeIp = string(optarg);
+           cmdline_args.cassandraNodeIp = string(optarg);
+           flags |= CMDLINE_CASSANDRA_NODE;
            break;
       case 'k':
-           cassandraKeyspace = string(optarg);
+           cmdline_args.cassandraKeyspace = string(optarg);
+           flags |= CMDLINE_CASSANDRA_KEYSPACE;
            break;
       case 'p':
-           secondoPort = string(optarg);
+           cmdline_args.secondoPort = string(optarg);
+           flags |= CMDLINE_CASSANDRA_PORT;
            break;
       default:
         printHelpAndExit(argv[0]);
      }
   }
-   
+  
+  unsigned int requiredFalgs = CMDLINE_CASSANDRA_NODE | 
+                               CMDLINE_CASSANDRA_KEYSPACE | 
+                               CMDLINE_CASSANDRA_PORT;
+                               
+  if(requiredFalgs != flags) {
+    printHelpAndExit(argv[0]);
+  }
+}
+
+/*
+2.8 Main method
+
+*/
+int main(int argc, char* argv[]){
+  
+  cmdline_args_t cmdline_args;
+  parseCommandline(argc, argv, cmdline_args);
+
   string secondoHost = string("127.0.0.1");
-  SecondoInterface* si = initSecondoInterface(secondoHost, secondoPort);
+  SecondoInterface* si = initSecondoInterface(secondoHost, 
+                                              cmdline_args.secondoPort);
 
   if(si == NULL) { 
     return -1;
@@ -849,7 +878,8 @@ int main(int argc, char* argv[]){
   cout << "SecondoInterface successfully initialized" << endl;
   
   CassandraAdapter* cassandra = 
-     getCassandraAdapter(cassandraNodeIp, cassandraKeyspace);
+     getCassandraAdapter(cmdline_args.cassandraNodeIp, 
+                         cmdline_args.cassandraKeyspace);
   
   if(cassandra == NULL) { 
     return -1;
@@ -865,9 +895,11 @@ int main(int argc, char* argv[]){
   // Main Programm
   pthread_t targetThread;
 
-  startHeartbeatThread(cassandraNodeIp, cassandraKeyspace, targetThread);
+  startHeartbeatThread(cmdline_args.cassandraNodeIp, 
+                       cmdline_args.cassandraKeyspace, targetThread);
 
-  mainLoop(si, cassandra, cassandraNodeIp, cassandraKeyspace, myUuid);
+  mainLoop(si, cassandra, cmdline_args.cassandraNodeIp, 
+           cmdline_args.cassandraKeyspace, myUuid);
   
   if(cassandra) {
     cassandra -> disconnect();
