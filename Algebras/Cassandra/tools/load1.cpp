@@ -203,7 +203,7 @@ bool openSocket(int &socketfd, char* hostname, int port) {
 2.5 parse commandline args
 
 */
-int parseCommandline(int argc, char* argv[], 
+void parseCommandline(int argc, char* argv[], 
                      commandline_args_t &commandline_args) {
   
    unsigned int flags = 0;
