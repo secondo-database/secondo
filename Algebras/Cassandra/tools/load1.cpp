@@ -67,6 +67,20 @@ like delay, number of columns or the size of a column.
 
 using namespace std;
 
+/*
+1.2 Structs
+
+*/
+
+struct commandline_args_t {
+   char *hostname;      // Hostname
+   int port;            // Port to connect to
+   int lines;           // Lines to send
+   int delay;           // Delay in ms
+   int columns;         // Number of columns
+   int sizePerColumn;   // Size per column
+   int acknowledgeAfter;// Wait for ack after n lines
+};
 
 /*
 2.1 print usage fuction
@@ -178,22 +192,12 @@ bool openSocket(int &socketfd, char* hostname, int port) {
 }
 
 /*
-2.5 main function
+2.5 parse commandline args
 
 */
-int main(int argc, char* argv[]) {
-   
-   int socketfd;        // Our socket
-   int port;            // Port to connect to
-   string buffer;       // Buffer for writing
-   char *hostname;      // Hostname
-   
-   int lines;           // Lines to send
-   int delay;           // Delay in ms
-   int columns;         // Number of columns
-   int sizePerColumn;   // Size per column
-   int acknowledgeAfter;// Wait for ack after n lines
-   
+int parseCommandline(int argc, char* argv[], 
+                     commandline_args_t &commandline_args) {
+  
    if(argc != 15) {
       printUsageAndExit(argv[0]);
    }
@@ -202,41 +206,62 @@ int main(int argc, char* argv[]) {
    while ((option = getopt(argc, argv,"h:p:l:d:c:s:a:")) != -1) {
      switch (option) {
       case 'h':
-           hostname = optarg;
+           commandline_args.hostname = optarg;
         break;
       case 'p':
-           port = atoi(optarg);
+           commandline_args.port = atoi(optarg);
         break;
       case 'l':
-          lines = atoi(optarg);
+          commandline_args.lines = atoi(optarg);
         break;
       case 'd':
-          delay = atoi(optarg);
+          commandline_args.delay = atoi(optarg);
         break;
       case 'c':
-          columns = atoi(optarg);
+          commandline_args.columns = atoi(optarg);
         break;
       case 's':
-          sizePerColumn = atoi(optarg);
+          commandline_args.sizePerColumn = atoi(optarg);
       case 'a':
-          acknowledgeAfter = atoi(optarg);
+          commandline_args.acknowledgeAfter = atoi(optarg);
         break;
       default:
         printUsageAndExit(argv[0]);
      } 
    }
+}
+
+/*
+2.6 main function
+
+*/
+int main(int argc, char* argv[]) {
+   
+   // Our output socket
+   int socketfd;       
+   
+   // Buffer for writing
+   string buffer;      
+   
+   // Commandline args
+   commandline_args_t commandline_args;
+   parseCommandline(argc, argv, commandline_args);
  
    // Initalize Rand
    srand (time(NULL));
   
    // Open socket
-   if(! openSocket(socketfd, hostname, port) ) {
+   if(! openSocket(socketfd, commandline_args.hostname, 
+                   commandline_args.port) ) {
+     
      cerr << "[Error] Unable to open socket" << endl;
+   
      return EXIT_FAILURE;
    }
    
    // Prepare buffer
-   fillBuffer(buffer, columns, sizePerColumn);
+   fillBuffer(buffer, commandline_args.columns, 
+              commandline_args.sizePerColumn);
    
    cout << "The size of the buffer is: " << buffer.length() 
         << " bytes " << endl;
@@ -248,11 +273,15 @@ int main(int argc, char* argv[]) {
    
    // Calculate progess (i)
    cout << "Writing: ";
-   int fivePercents = max(((int) ((lines / 100.0) * 5.0)), 1);
+   int fivePercents = 
+      max(((int) ((commandline_args.lines / 100.0) * 5.0)), 1);
    
    // Write lines to server
-   for(int i = 0; i < lines; ++i) {
-      fillBuffer(buffer, columns, sizePerColumn);
+   for(int i = 0; i < commandline_args.lines; ++i) {
+     
+      fillBuffer(buffer, commandline_args.columns, 
+                 commandline_args.sizePerColumn);
+      
       write(socketfd, buffer.c_str(), buffer.length());
    
       // Calculate progess (ii)
@@ -262,23 +291,21 @@ int main(int argc, char* argv[]) {
       }
       
       // Wait for ack
-      if(acknowledgeAfter > 0 &&
-        ((i + 1) % acknowledgeAfter == 0)) {
+      if(commandline_args.acknowledgeAfter > 0 &&
+        ((i + 1) % commandline_args.acknowledgeAfter == 0)) {
         waitForAck(socketfd);
       }
       
-      if(delay != 0) {
-        usleep(delay * 1000);
+      if(commandline_args.delay != 0) {
+        usleep(commandline_args.delay * 1000);
       }
    }
    
    cout << endl;
-   
    cout << "Total execution time (ms): " << timer.getDiff() / 1000 << endl;
    
    // Send EOT (End of Transmission)
    write(socketfd, EOT, sizeof(char));
-   
    shutdown(socketfd, 2);
    return EXIT_SUCCESS;
 }
