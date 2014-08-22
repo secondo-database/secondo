@@ -62,8 +62,16 @@ like delay, number of columns or the size of a column.
 
 */
 
-#define EOT "\004"
-#define ACK "\006"
+#define EOT             "\004"
+#define ACK             "\006"
+
+#define CMDLINE_HOST    1<<0
+#define CMDLINE_PORT    1<<1
+#define CMDLINE_LINES   1<<2
+#define CMDLINE_DELAY   1<<3
+#define CMDLINE_COLUMNS 1<<4
+#define CMDLINE_SIZE    1<<5
+#define CMDLINE_ACK     1<<6
 
 using namespace std;
 
@@ -86,8 +94,8 @@ struct commandline_args_t {
 2.1 print usage fuction
 
 */
-void printUsageAndExit(char* hostname) {
-      cerr << "Usage: " << hostname << " -h <hostname> -p <port> -l <lines> "
+void printUsageAndExit(char* progname) {
+      cerr << "Usage: " << progname << " -h <hostname> -p <port> -l <lines> "
           "-d <delay> -c <columns> -s <size per column> -a <ack after>" 
        << endl;
       cerr << endl;
@@ -99,7 +107,7 @@ void printUsageAndExit(char* hostname) {
       cerr << "<size per column> is the size in byte per column" << endl;
       cerr << "<ack after> wait fror a ACK from server after n lines" << endl;
       cerr << endl;
-      cerr << "Example: " << hostname
+      cerr << "Example: " << progname
            << " -h 127.0.0.1 -p 10000 -l 10 -d 4 -c 10 -s 10 -a 10" << endl;
       exit(-1);
 }
@@ -198,36 +206,49 @@ bool openSocket(int &socketfd, char* hostname, int port) {
 int parseCommandline(int argc, char* argv[], 
                      commandline_args_t &commandline_args) {
   
-   if(argc != 15) {
-      printUsageAndExit(argv[0]);
-   }
+   unsigned int flags = 0;
    
    int option = 0;
    while ((option = getopt(argc, argv,"h:p:l:d:c:s:a:")) != -1) {
      switch (option) {
       case 'h':
            commandline_args.hostname = optarg;
+           flags |= CMDLINE_HOST;
         break;
       case 'p':
            commandline_args.port = atoi(optarg);
+           flags |= CMDLINE_PORT;
         break;
       case 'l':
           commandline_args.lines = atoi(optarg);
+          flags |= CMDLINE_LINES;
         break;
       case 'd':
           commandline_args.delay = atoi(optarg);
+          flags |= CMDLINE_DELAY;
         break;
       case 'c':
           commandline_args.columns = atoi(optarg);
+          flags |= CMDLINE_COLUMNS;
         break;
       case 's':
           commandline_args.sizePerColumn = atoi(optarg);
+          flags |= CMDLINE_SIZE;
       case 'a':
           commandline_args.acknowledgeAfter = atoi(optarg);
+          flags |= CMDLINE_ACK;
         break;
       default:
         printUsageAndExit(argv[0]);
      } 
+   }
+   
+   unsigned int requriedFlags = CMDLINE_HOST | CMDLINE_PORT | CMDLINE_LINES 
+                                | CMDLINE_DELAY | CMDLINE_COLUMNS 
+                                | CMDLINE_SIZE | CMDLINE_ACK; 
+                                
+   if(flags != requriedFlags) {
+     printUsageAndExit(argv[0]);
    }
 }
 
