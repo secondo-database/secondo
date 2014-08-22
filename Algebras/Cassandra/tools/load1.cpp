@@ -212,12 +212,12 @@ int parseCommandline(int argc, char* argv[],
    while ((option = getopt(argc, argv,"h:p:l:d:c:s:a:")) != -1) {
      switch (option) {
       case 'h':
-           commandline_args.hostname = optarg;
-           flags |= CMDLINE_HOST;
+          commandline_args.hostname = optarg;
+          flags |= CMDLINE_HOST;
         break;
       case 'p':
-           commandline_args.port = atoi(optarg);
-           flags |= CMDLINE_PORT;
+          commandline_args.port = atoi(optarg);
+          flags |= CMDLINE_PORT;
         break;
       case 'l':
           commandline_args.lines = atoi(optarg);
