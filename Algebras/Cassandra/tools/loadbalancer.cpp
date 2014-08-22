@@ -38,13 +38,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Overview
 
-This is a TCP load balancer. The load balancer provides different
-scheduling stategies:
+This is a TCP load balancer for csv data. The load balancer 
+provides different scheduling stategies:
 
-rr = Round robin
-trr = Thraded round robin
+rr    = Round robin
+trr   = Thraded round robin
 lbtrr = Load based thraded round robin
-
+qbts  = Queue based threaded scheduling
 
 2 Defines, includes, and constants
 
@@ -69,15 +69,28 @@ lbtrr = Load based thraded round robin
 
 using namespace std;
 
+/*
+2.1 Defines
+
+*/
+
 //#define LB_DEBUG
-#define QUEUESIZE 10 
+#define QUEUESIZE               10 
 
+#define CMDLINE_PORT            1<<0
+#define CMDLINE_MODE            1<<1
+#define CMDLINE_SERVER          1<<2
+#define CMDLINE_RELIABLE        1<<3
 
-// Prototype
+/*
+2.2 Prototypes
+
+*/
+
 class TargetServer;
 
 /*
-2.1 Configuration structure
+2.3 Structs
 
 */
 struct LBConfiguration {
@@ -882,22 +895,16 @@ void startThreadedServer(LBConfiguration &configuration) {
   dataScheduler = NULL;
 }
 
-/* 
-17 Main method
+/*
+18.0 Parse commandline
 
 */
-int main(int argc, char* argv[]) {
-
-   LBConfiguration configuration;
-   configuration.programName = string(argv[0]);
+void parseCommandline(int argc, char* argv[], 
+                     LBConfiguration &configuration) {
    
-   if(argc < 5) {
-      printHelpAndExit(configuration.programName);
-   }
-   
-   // Parameter
-   
+   unsigned int flags = 0;
    int option = 0;
+   
    while ((option = getopt(argc, argv,"p:m:s:r:")) != -1) {
      
      string optString = string(optarg);
@@ -905,30 +912,34 @@ int main(int argc, char* argv[]) {
      switch (option) {
       case 'p':
            configuration.listenPort = atoi(optarg);
+           flags |= CMDLINE_PORT;
            break;
       case 'm':
            configuration.mode = optarg;
+           flags |= CMDLINE_MODE;
            break;
       case 's':
            if(! parseServerList(optarg, configuration)) {
              printHelpAndExit(configuration.programName);
            }
+           flags |= CMDLINE_SERVER;
            break;
       case 'r':      
            if( optString.compare("FALSE") == 0 || 
                optString.compare("false") == 0) {
              configuration.reliable = false;
+             flags |= CMDLINE_RELIABLE;
            } 
            
            else if( optString.compare("TRUE") == 0 || 
              optString.compare("true") == 0) {
              configuration.reliable = true;
+             flags |= CMDLINE_RELIABLE;
            }
            
            else {
              cerr << "[Error] Unkown parameter for reliable: " 
                   << optString << endl;
-             printHelpAndExit(configuration.programName);
            }
            break;
       default:
@@ -937,6 +948,24 @@ int main(int argc, char* argv[]) {
      }
    }
    
+   unsigned int required_flags = CMDLINE_PORT | CMDLINE_MODE |
+                                 CMDLINE_SERVER | CMDLINE_RELIABLE;
+   
+   if(required_flags != flags) {
+      printHelpAndExit(configuration.programName);
+   }
+}
+
+/* 
+19 Main method
+
+*/
+int main(int argc, char* argv[]) {
+
+   LBConfiguration configuration;
+   configuration.programName = string(argv[0]);
+   parseCommandline(argc, argv, configuration);
+
    cout << "[Info] Starting load balancer on port: " 
         << configuration.listenPort << endl;
    
