@@ -846,7 +846,8 @@ bool CassandraAdapter::createMetatables() {
   
   queries.push_back(string(
     "CREATE TABLE IF NOT EXISTS system_progress (queryid INT, ip TEXT, "
-    "begintoken TEXT, endtoken TEXT, PRIMARY KEY(queryid, ip, begintoken));"
+    "begintoken TEXT, endtoken TEXT, queryuuid TEXT, "
+    "PRIMARY KEY(queryid, ip, begintoken));"
   ));
   
   queries.push_back(string(

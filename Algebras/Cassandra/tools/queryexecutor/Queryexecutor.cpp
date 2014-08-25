@@ -282,7 +282,7 @@ bool updateLastProcessedToken(CassandraAdapter* cassandra,
   // Build CQL query
   stringstream ss;
   ss << "INSERT INTO system_progress ";
-  ss << "(queryid, ip, begintoken, endtoken, queryid) ";
+  ss << "(queryid, ip, begintoken, endtoken, queryuuid) ";
   ss << "values(";
   ss << "" << lastCommandId << ",",
   ss << "'" << ip << "',";
