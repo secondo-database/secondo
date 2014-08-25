@@ -538,7 +538,7 @@ void printStatusMessage(vector<TokenRange> &allTokenRanges,
                         vector<TokenRange> &processedIntervals,
                         bool wait) {
         
-      cout << "[Info] We have " << processedIntervals.size() << " of "
+      cout << "[Info] RESULT: " << processedIntervals.size() << " of "
            << allTokenRanges.size() << " token ranges processed" << endl;
       
       if(wait) {
