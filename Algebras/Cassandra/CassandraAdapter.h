@@ -454,7 +454,8 @@ a valid result. False otherweise
 
 */    
   CassandraResult* readDataFromCassandra(string cql, 
-         cql::cql_consistency_enum consistenceLevel);
+         cql::cql_consistency_enum consistenceLevel,
+         bool printError = true);
 
 /*
 2.3.12 Get a list with all token ranges

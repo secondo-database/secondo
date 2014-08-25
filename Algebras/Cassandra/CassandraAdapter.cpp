@@ -269,7 +269,7 @@ bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
     
     // Execute query
     CassandraResult* cassandraResult = 
-       readDataFromCassandra(query, cql::CQL_CONSISTENCY_ONE);
+       readDataFromCassandra(query, cql::CQL_CONSISTENCY_ONE, false);
     
     if(cassandraResult == NULL) {
       return false;
@@ -511,7 +511,7 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
 
 
 CassandraResult* CassandraAdapter::readDataFromCassandra(string cql, 
-         cql::cql_consistency_enum consistenceLevel) {
+         cql::cql_consistency_enum consistenceLevel, bool printError) {
       
     if(! isConnected() ) {
         cerr << "Cassandra session not ready" << endl;
@@ -528,8 +528,10 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string cql,
             = session->query(cqlStatement);
 
         if(future.get().error.is_err()) {
-            cerr << "Unable to execute " << cqlStatement << endl;
-            cerr << "Error is " << future.get().error.message << endl;
+            if(printError) {
+              cerr << "Unable to execute " << cqlStatement << endl;
+              cerr << "Error is " << future.get().error.message << endl;
+            }
         } else {
             return new SingleCassandraResult(future);
         }
