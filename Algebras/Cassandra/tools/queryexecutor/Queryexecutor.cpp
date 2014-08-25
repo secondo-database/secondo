@@ -277,16 +277,18 @@ bool updateLastCommand(CassandraAdapter* cassandra,
 */
 bool updateLastProcessedToken(CassandraAdapter* cassandra, 
                        size_t lastCommandId, string &ip, 
-                       TokenRange tokenrange) {
+                       TokenRange tokenrange, string queryid) {
   
   // Build CQL query
   stringstream ss;
-  ss << "INSERT INTO system_progress(queryid, ip, begintoken, endtoken) ";
+  ss << "INSERT INTO system_progress ";
+  ss << "(queryid, ip, begintoken, endtoken, queryid) ";
   ss << "values(";
   ss << "" << lastCommandId << ",",
   ss << "'" << ip << "',";
   ss << "'" << tokenrange.getStart() << "',",
-  ss << "'" << tokenrange.getEnd() << "'",
+  ss << "'" << tokenrange.getEnd() << "',",
+  ss << "'" << queryid << "'",
   ss << ");";
   
   // Update last executed command
@@ -407,7 +409,7 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
     replacePlaceholder(ourQuery, "__QUERYUUID__", myQueryUuid);
     
     executeSecondoCommand(si, nl, ourQuery);
-    updateLastProcessedToken(cassandra, queryId, ip, tokenrange);
+    updateLastProcessedToken(cassandra, queryId, ip, tokenrange, myQueryUuid);
 }
 
 /*
