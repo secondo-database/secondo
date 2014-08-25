@@ -330,6 +330,12 @@ CassandraResult* CassandraAdapter::readTableCreatedByQuery(string relation,
     return NULL;
   }
   
+
+  map<string, string> nodeNames;
+  if(! getNodeData(nodeNames) ) {
+     cerr << "Unable to fetch node data for query: " << queryId << endl;
+     return NULL;
+  }
   vector<string> queries;
   
   // Generate token range queries;
@@ -340,8 +346,20 @@ CassandraResult* CassandraAdapter::readTableCreatedByQuery(string relation,
   
       stringstream ss;
       ss << "SELECT key, value from ";
-      ss << relation << " ";
-      ss << "where node = '" << range.getQueryUUID()  << "' ";
+      ss << relation << " where ";
+  
+      // Begin of range must be included
+      if(range.getStart() == LLONG_MIN) {
+        ss << "token(partition) >= " << range.getStart() << " ";
+      } else {
+        ss << "token(partition) > " << range.getStart() << " ";
+      }
+  
+      // Get the name of the node
+      string node = nodeNames[range.getIp()];
+  
+      ss << "and token(partition) <= " << range.getEnd() << " " ;
+      ss << "and node = '" << range.getQueryUUID()  << "' ";
       ss << "ALLOW FILTERING;";
       queries.push_back(ss.str());
   }
