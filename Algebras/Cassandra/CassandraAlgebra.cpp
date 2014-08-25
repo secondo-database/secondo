@@ -807,8 +807,16 @@ public:
       
       cassandra = CassandraConnectionPool::Instance()->
             getConnection(contactPoint, keyspace, false);
-           
-      cassandra -> createTable(relationName, tupleType);
+        
+      // Does table exist?
+      string resultType = "";
+      bool tableExists = 
+        cassandra -> getTupleTypeFromTable(relationName, resultType);
+        
+      if(tableExists == false) {    
+        cout << "Create table " << relationName << endl;
+        cassandra -> createTable(relationName, tupleType);
+      }
       
       if(sizeof(size_t) < 8) {
         cout << "WARNING: Your size_t datatype is smaller then 8 bytes. ";

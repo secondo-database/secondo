@@ -542,6 +542,7 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string cql,
 
 
 bool CassandraAdapter::createTable(string tablename, string tupleType) {
+  
     stringstream ss;
     ss << "CREATE TABLE IF NOT EXISTS ";
     ss << tablename;
@@ -549,6 +550,8 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     ss << " value text, PRIMARY KEY(partition, node, key));";
 
     bool resultCreate = executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
+    
+    usleep(500000);
     
     // Write tupletype
     if(resultCreate) {
