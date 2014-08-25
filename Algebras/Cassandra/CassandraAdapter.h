@@ -142,6 +142,11 @@ public:
 */
   TokenRange(long long myStart, long long myEnd, string myIp) :
     start(myStart), end(myEnd), ip(myIp) {}
+    
+  TokenRange(long long myStart, long long myEnd, 
+             string myIp, string myQueryuuid) :
+    start(myStart), end(myEnd), ip(myIp), queryuuid(myQueryuuid) {}
+  
   
 /*
 2.4.2 Get interval start
@@ -167,9 +172,16 @@ public:
     return ip;
   }
   
+/*
+2.4.5 Get interval end
+
+*/
+  string getQueryUUID() const {
+    return queryuuid;
+  }  
 
 /*
-2.4.5 Is this a local interval?
+2.4.6 Is this a local interval?
 
 */
   bool isLocalTokenRange(string myIp = "127.0.0.1") const {
@@ -177,7 +189,7 @@ public:
   }
 
 /*
-2.4.6 Get interval end
+2.4.7 Get interval end
 
 */  
   long long getSize() {
@@ -193,7 +205,7 @@ public:
   }
 
 /*
-2.4.7 Operator <
+2.4.8 Operator <
 
 */  
   bool operator<( const TokenRange& val ) const { 
@@ -201,7 +213,7 @@ public:
   }
 
 /*
-2.4.8 Operator >
+2.4.9 Operator >
 
 */  
   bool operator>( const TokenRange& val ) const { 
@@ -209,7 +221,7 @@ public:
   }
     
 /*
-2.4.9 Operator ==
+2.4.10 Operator ==
 
 */    
  inline bool operator== (const TokenRange &interval) {
@@ -231,6 +243,9 @@ private:
   
   // Ip assigned to this interval
   string ip;
+  
+  // QueryUUID that processed this token range
+  string queryuuid;
 };
 
 /*

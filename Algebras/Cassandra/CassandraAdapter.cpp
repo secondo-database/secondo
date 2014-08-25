@@ -323,13 +323,7 @@ CassandraResult* CassandraAdapter::readTableRange(string relation,
 
 CassandraResult* CassandraAdapter::readTableCreatedByQuery(string relation,
         string consistenceLevel, int queryId) {
-  
-  map<string, string> nodeNames;
-  if(! getNodeData(nodeNames) ) {
-     cerr << "Unable to fetch node data for query: " << queryId << endl;
-     return NULL;
-  }
-  
+   
   vector<TokenRange> ranges;
   if (! getProcessedTokenRangesForQuery(ranges, queryId) ) {
     cerr << "Unable to fetch token ranges for query: " << queryId << endl;
@@ -342,25 +336,12 @@ CassandraResult* CassandraAdapter::readTableCreatedByQuery(string relation,
   for(vector<TokenRange>::iterator iter = ranges.begin(); 
       iter != ranges.end(); ++iter) {
     
+      TokenRange range = *iter;
+  
       stringstream ss;
       ss << "SELECT key, value from ";
       ss << relation << " ";
-      ss << "where ";
-    
-      TokenRange interval = *iter;
-  
-      // Begin of interval must be included
-      if(interval.getStart() == LLONG_MIN) {
-        ss << "token(partition) >= " << interval.getStart() << " ";
-      } else {
-        ss << "token(partition) > " << interval.getStart() << " ";
-      }
-  
-      // Get the name of the node
-      string node = nodeNames[interval.getIp()];
-  
-      ss << "and token(partition) <= " << interval.getEnd() << " " ;
-      ss << "and node = '" << node << "' ";
+      ss << "where node = '" << range.getQueryUUID()  << "' ";
       ss << "ALLOW FILTERING;";
       queries.push_back(ss.str());
   }
@@ -980,8 +961,8 @@ bool CassandraAdapter::getProcessedTokenRangesForQuery (
     vector<TokenRange> &result, int queryId) {
   
       stringstream ss;
-      ss << "SELECT ip, begintoken, endtoken FROM system_progress WHERE ";
-      ss << "queryid = " << queryId;
+      ss << "SELECT ip, begintoken, endtoken, queryuuid FROM system_progress ";
+      ss << " WHERE queryid = " << queryId;
       
       return getTokenrangesFromQuery(result, ss.str());
 }
@@ -999,6 +980,9 @@ bool CassandraAdapter::getTokenrangesFromQuery (
          cerr << "Unable to fetch processed tokens for query" << endl;
          return false;
        }
+       
+       // Does the query return queryuuids?
+       bool containsQueryuuid = query.find("queryuuid") != string::npos;
     
        cql::cql_result_t& cqlResult = *(future.get().result);
     
@@ -1006,6 +990,7 @@ bool CassandraAdapter::getTokenrangesFromQuery (
          string ip;
          string beginToken;
          string endToken;
+         string queryuuid = "";
          
          cqlResult.get_string(0, ip);
          cqlResult.get_string(1, beginToken);
@@ -1014,7 +999,11 @@ bool CassandraAdapter::getTokenrangesFromQuery (
          long long beginLong = atol(beginToken.c_str());
          long long endLong = atol(endToken.c_str());
          
-         result.push_back(TokenRange(beginLong, endLong, ip));
+         if(containsQueryuuid) {
+           cqlResult.get_string(3, queryuuid);
+         }
+         
+         result.push_back(TokenRange(beginLong, endLong, ip, queryuuid));
        }
      } catch(std::exception& e) {
         cerr << "Got exception while executing cql: " << e.what() << endl;
