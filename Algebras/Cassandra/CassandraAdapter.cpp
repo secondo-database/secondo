@@ -571,7 +571,7 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
 
     bool resultCreate = executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
     
-    usleep(500000);
+    sleep(1);
     
     // Write tupletype
     if(resultCreate) {
