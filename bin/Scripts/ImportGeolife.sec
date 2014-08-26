@@ -1,4 +1,27 @@
-# The Geolife directory has to be a subdirectory of the secondo/bin directory.
+#####	Secondo Script for Importing the Geolife data set into a Secondo Database	#####
+#
+#	1. Get Secondo, version 3.3.0 or higher, from the Secondo web site at
+#
+#	http://dna.fernuni-hagen.de/Secondo.html/index.html
+#
+#	and install it according to the instructions given there.
+#
+#	2. Get the Geolife GPS trajectory data set from 
+#
+#	http://research.microsoft.com/en-us/downloads/b16d359d-d164-469e-9fd4-daa38f2b2e13/
+#
+#	and unzip it. Make the Geolife root directory a subdirectory of the secondo/bin 
+#	directory and rename it to "Geolife"
+#
+#	3. Using SecondoTTYBDB, create a database "geolife" and close it. Then quit Secondo.
+#
+#	4. Start as shell and in the secondo/bin directory run the command
+#
+#	SecondoTTYNT -i Scripts/ImportGeolife.sec
+#
+##################################################################################################
+
+
 
 #delete mlabeltype;
 #delete importMLabelFile;
@@ -10,6 +33,8 @@
 #delete TranspModes;
 #delete Trips;
 
+open database geolife;
+
 
 let mlabeltype = [const rel(tuple([S: string, E: string, L: string])) value ()];
  
@@ -19,7 +44,7 @@ let importMLabelFile = fun(Name: text) mlabeltype csvimport[Name, 1, "", "\t"]
     projectextend[; U: the_unit(tolabel(trim(.L)), .Start, .End, TRUE, FALSE)]
     makemvalue[U];
 
-let mpointtype = [const rel(tuple([X: real, Y: real, Zero: int, Alt: int, Days: real, 
+let mpointtype = [const rel(tuple([Y: real, X: real, Zero: int, Alt: int, Days: real, 
                                    Datestr: string, Timestr: string])) value ()];
 
 let importMPointFile = fun(Name: text) mpointtype csvimport[Name, 6, "", ","]
@@ -51,3 +76,6 @@ let Trips = getDirectory('Geolife/Data', 3) transformstream
     projectextend[; PersonId: getPersonId(.Elem), TripId: getTripId(.Elem), 
                     Trip: importMPointFile(.Elem), Altitude: importMRealFile(.Elem)]
     consume;
+
+close database;
+
