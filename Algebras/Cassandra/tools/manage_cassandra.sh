@@ -36,7 +36,9 @@ while [ true ]; do
  $cassandradir/bin/nodetool ring 
 
  if [ $(echo $ring | grep Down | wc -l) -eq 0 ]; then
-    break
+    if [ $(echo $ring | grep Up | wc -l) -gt 10 ]; then
+       break
+    fi
  fi
  
  sleep 5;
