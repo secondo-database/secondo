@@ -157,6 +157,7 @@ Return value: stream of tint or treal
       int nextSize;
       int lastSize;
       int currentTuple;
+      double lastOriginX;
     };
 
     int xDimensionSize = TileAlgebra::tProperties<char>::GetXDimensionSize();
@@ -191,7 +192,6 @@ Return value: stream of tint or treal
 
         double gridOriginX;
         double gridOriginY;
-        double lastOriginX;
         double lastOriginY;
 
         bool readElement = true;
@@ -221,7 +221,7 @@ Return value: stream of tint or treal
               {
                 // if there is a gap between two read tiles, fill vector
                 // with dummy tile
-                while ((gridOriginX - lastOriginX) - info->tileSize 
+                while ((gridOriginX - info->lastOriginX) - info->tileSize 
                                                              > info->cellSize)
                 {
                   TupleType *tupleType = tuple->GetTupleType();
@@ -230,11 +230,11 @@ Return value: stream of tint or treal
                   dummy->PutAttribute(0,s_out);
 
                   info->current.push_back(dummy);
-                  lastOriginX = lastOriginX + info->tileSize;
+                  info->lastOriginX = info->lastOriginX + info->tileSize;
                 }
               }
               info->current.push_back(tuple);
-              lastOriginX = gridOriginX;
+              info->lastOriginX = gridOriginX;
               lastOriginY = gridOriginY;
               info->firstTuple = false;
             }
@@ -243,6 +243,7 @@ Return value: stream of tint or treal
               readElement = false;
               info->firstTuple = true;
               info->next.push_back(tuple);
+              info->lastOriginX = gridOriginX;
             }
           }
           else
@@ -267,7 +268,6 @@ Return value: stream of tint or treal
 
           double gridOriginX;
           double gridOriginY;
-          double lastOriginX;
           double lastOriginY;
 
           while (info->readNextElement == true)
@@ -289,24 +289,21 @@ Return value: stream of tint or treal
               // read cells until Y coordinate changes
               if ((gridOriginY == lastOriginY) || (info->firstTuple == true))
               {
-                if (!(info->firstTuple == true))
-                {
-                  // if there is a gap between two read tiles, fill vector
-                  // with dummy tile
-                  while ((gridOriginX-lastOriginX) - info->tileSize 
+                // if there is a gap between two read tiles, fill vector
+                // with dummy tile
+                while ((gridOriginX - info->lastOriginX) - info->tileSize 
                                                              > info->cellSize)
-                  {
-                    TupleType *tupleType = tuple->GetTupleType();
-                    Tuple* dummy = new Tuple( tupleType );
-                    T* s_out = new T(true);
-                    dummy->PutAttribute(0,s_out);
-                    info->next.push_back(dummy);
-                    lastOriginX = lastOriginX + info->tileSize;
-                  }
+                {
+                  TupleType *tupleType = tuple->GetTupleType();
+                  Tuple* dummy = new Tuple( tupleType );
+                  T* s_out = new T(true);
+                  dummy->PutAttribute(0,s_out);
+                  info->next.push_back(dummy);
+                  info->lastOriginX = info->lastOriginX + info->tileSize;
                 }
 
                 info->next.push_back(tuple);
-                lastOriginX = gridOriginX;
+                info->lastOriginX = gridOriginX;
                 lastOriginY = gridOriginY;
                 info->firstTuple = false;
               }
@@ -317,6 +314,7 @@ Return value: stream of tint or treal
                 info->newLine = true;
 
                 info->nextElement = tuple;
+                info->lastOriginX = gridOriginX;
               }
             }
             else

@@ -236,6 +236,7 @@ azimuth and angle of imaginated light source
       int nextSize;
       int lastSize;
       int currentTuple;
+      double lastOriginX;
     };
 
     int xDimensionSize = TileAlgebra::tProperties<char>::GetXDimensionSize();
@@ -274,7 +275,6 @@ azimuth and angle of imaginated light source
 
         double gridOriginX;
         double gridOriginY;
-        double lastOriginX;
         double lastOriginY;
 
         bool readElement = true;
@@ -304,7 +304,7 @@ azimuth and angle of imaginated light source
               {
                 // if there is a gap between two read tiles, fill vector
                 // with dummy tile
-                while ((gridOriginX - lastOriginX) - info->tileSize 
+                while ((gridOriginX - info->lastOriginX) - info->tileSize 
                                                              > info->cellSize)
                 {
                   TupleType *tupleType = tuple->GetTupleType();
@@ -313,11 +313,11 @@ azimuth and angle of imaginated light source
                   dummy->PutAttribute(0,s_out);
 
                   info->current.push_back(dummy);
-                  lastOriginX = lastOriginX + info->tileSize;
+                  info->lastOriginX = info->lastOriginX + info->tileSize;
                 }
               }
               info->current.push_back(tuple);
-              lastOriginX = gridOriginX;
+              info->lastOriginX = gridOriginX;
               lastOriginY = gridOriginY;
               info->firstTuple = false;
             }
@@ -326,6 +326,7 @@ azimuth and angle of imaginated light source
               readElement = false;
               info->firstTuple = true;
               info->next.push_back(tuple);
+              info->lastOriginX = gridOriginX;
             }
           }
           else
@@ -350,7 +351,6 @@ azimuth and angle of imaginated light source
 
           double gridOriginX;
           double gridOriginY;
-          double lastOriginX;
           double lastOriginY;
 
           while (info->readNextElement == true)
@@ -372,24 +372,21 @@ azimuth and angle of imaginated light source
               // read cells until Y coordinate changes
               if ((gridOriginY == lastOriginY) || (info->firstTuple == true))
               {
-                if (!(info->firstTuple == true))
-                {
-                  // if there is a gap between two read tiles, fill vector
-                  // with dummy tile
-                  while ((gridOriginX-lastOriginX) - info->tileSize 
+                // if there is a gap between two read tiles, fill vector
+                // with dummy tile
+                while ((gridOriginX - info->lastOriginX) - info->tileSize 
                                                              > info->cellSize)
-                  {
-                    TupleType *tupleType = tuple->GetTupleType();
-                    Tuple* dummy = new Tuple( tupleType );
-                    T* s_out = new T(true);
-                    dummy->PutAttribute(0,s_out);
-                    info->next.push_back(dummy);
-                    lastOriginX = lastOriginX + info->tileSize;
-                  }
+                {
+                  TupleType *tupleType = tuple->GetTupleType();
+                  Tuple* dummy = new Tuple( tupleType );
+                  T* s_out = new T(true);
+                  dummy->PutAttribute(0,s_out);
+                  info->next.push_back(dummy);
+                  info->lastOriginX = info->lastOriginX + info->tileSize;
                 }
 
                 info->next.push_back(tuple);
-                lastOriginX = gridOriginX;
+                info->lastOriginX = gridOriginX;
                 lastOriginY = gridOriginY;
                 info->firstTuple = false;
               }
@@ -400,6 +397,7 @@ azimuth and angle of imaginated light source
                 info->newLine = true;
 
                 info->nextElement = tuple;
+                info->lastOriginX = gridOriginX;
               }
             }
             else

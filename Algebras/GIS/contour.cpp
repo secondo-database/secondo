@@ -626,6 +626,7 @@ Return value: stream of tuple (level, line)
               readNextElement = false;
               firstTuple = true;
               next.push_back(tuple);
+              lastOriginX = gridOriginX;
             }
           }
           else
@@ -660,20 +661,17 @@ Return value: stream of tuple (level, line)
               // read cells until Y coordinate changes
               if ((gridOriginY == lastOriginY) || (firstTuple == true))
               {
-                if (!(firstTuple == true))
+                // if there is a gap between two read tiles, fill vector
+                // with dummy tile
+                while ((gridOriginX-lastOriginX) - tileSize > cellSize)
                 {
-                  // if there is a gap between two read tiles, fill vector
-                  // with dummy tile
-                  while ((gridOriginX-lastOriginX) - tileSize > cellSize)
-                  {
-                    TupleType *tupleType = tuple->GetTupleType();
-                    Tuple* dummy = new Tuple( tupleType );
-                    T* s_out = new T(true);
-                    dummy->PutAttribute(0,s_out);
+                  TupleType *tupleType = tuple->GetTupleType();
+                  Tuple* dummy = new Tuple( tupleType );
+                  T* s_out = new T(true);
+                  dummy->PutAttribute(0,s_out);
 
-                    next.push_back(dummy);
-                    lastOriginX = lastOriginX + tileSize;
-                  }
+                  next.push_back(dummy);
+                  lastOriginX = lastOriginX + tileSize;
                 }
 
                 next.push_back(tuple);
@@ -688,6 +686,7 @@ Return value: stream of tuple (level, line)
                 newLine = true;
 
                 nextElement = tuple;
+                lastOriginX = gridOriginX;
               }
             }
             else
