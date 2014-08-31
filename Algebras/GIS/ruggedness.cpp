@@ -224,7 +224,11 @@ Return value: stream of tint or treal
                 while ((gridOriginX - lastOriginX) - info->tileSize 
                                                              > info->cellSize)
                 {
-                  Tuple* dummy;
+                  TupleType *tupleType = tuple->GetTupleType();
+                  Tuple* dummy = new Tuple( tupleType );
+                  T* s_out = new T(true);
+                  dummy->PutAttribute(0,s_out);
+
                   info->current.push_back(dummy);
                   lastOriginX = lastOriginX + info->tileSize;
                 }
@@ -248,7 +252,7 @@ Return value: stream of tint or treal
         } // while
 
         return 0;
-      }    
+      }
 
       case REQUEST:
       {
@@ -292,7 +296,10 @@ Return value: stream of tint or treal
                   while ((gridOriginX-lastOriginX) - info->tileSize 
                                                              > info->cellSize)
                   {
-                    Tuple* dummy;
+                    TupleType *tupleType = tuple->GetTupleType();
+                    Tuple* dummy = new Tuple( tupleType );
+                    T* s_out = new T(true);
+                    dummy->PutAttribute(0,s_out);
                     info->next.push_back(dummy);
                     lastOriginX = lastOriginX + info->tileSize;
                   }
@@ -373,7 +380,7 @@ Return value: stream of tint or treal
             if ((nGridOriginY - cGridOriginY) > info->tileSize)
             {
               info->skipNextRow = true;
-            }          
+            }
           }
 
           if (info->lastSize > 0)
@@ -411,7 +418,7 @@ Return value: stream of tint or treal
           }
 
           // read tile from vector
-          if (info->currentTuple < info->currentSize)
+          while (info->currentTuple < info->currentSize)
           {
             tuple = info->current[info->currentTuple];
 
@@ -529,16 +536,7 @@ Return value: stream of tint or treal
               result.addr = slope_out;
               return YIELD;
             }
-            else
-            {
-              delete s_out;
-              s_out = 0;
-
-              // always set the result to null before return CANCEL
-              result.addr = 0;
-              return CANCEL;
-            }
-          } // if currentTuple
+          } // while currentTuple
         } // if local.addr
         else
         {

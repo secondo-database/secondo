@@ -606,7 +606,11 @@ Return value: stream of tuple (level, line)
                 // with dummy tile
                 while ((gridOriginX - lastOriginX) - tileSize > cellSize)
                 {
-                  Tuple* dummy;
+                  TupleType *tupleType = tuple->GetTupleType();
+                  Tuple* dummy = new Tuple( tupleType );
+                  T* s_out = new T(true);
+                  dummy->PutAttribute(0,s_out);
+
                   current.push_back(dummy);
                   lastOriginX = lastOriginX + tileSize;
                 }
@@ -662,7 +666,11 @@ Return value: stream of tuple (level, line)
                   // with dummy tile
                   while ((gridOriginX-lastOriginX) - tileSize > cellSize)
                   {
-                    Tuple* dummy;
+                    TupleType *tupleType = tuple->GetTupleType();
+                    Tuple* dummy = new Tuple( tupleType );
+                    T* s_out = new T(true);
+                    dummy->PutAttribute(0,s_out);
+
                     next.push_back(dummy);
                     lastOriginX = lastOriginX + tileSize;
                   }

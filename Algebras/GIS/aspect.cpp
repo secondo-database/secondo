@@ -253,7 +253,11 @@ factor needed for adjustments between different scale units
                 while ((gridOriginX - lastOriginX) - info->tileSize 
                                                              > info->cellSize)
                 {
-                  Tuple* dummy;
+                  TupleType *tupleType = tuple->GetTupleType();
+                  Tuple* dummy = new Tuple( tupleType );
+                  T* s_out = new T(true);
+                  dummy->PutAttribute(0,s_out);
+
                   info->current.push_back(dummy);
                   lastOriginX = lastOriginX + info->tileSize;
                 }
@@ -278,7 +282,7 @@ factor needed for adjustments between different scale units
 
         return 0;
       }
-    
+
       case REQUEST:
       {
         if(local.addr != 0)
@@ -321,7 +325,10 @@ factor needed for adjustments between different scale units
                   while ((gridOriginX-lastOriginX) - info->tileSize 
                                                              > info->cellSize)
                   {
-                    Tuple* dummy;
+                    TupleType *tupleType = tuple->GetTupleType();
+                    Tuple* dummy = new Tuple( tupleType );
+                    T* s_out = new T(true);
+                    dummy->PutAttribute(0,s_out);
                     info->next.push_back(dummy);
                     lastOriginX = lastOriginX + info->tileSize;
                   }
@@ -402,7 +409,7 @@ factor needed for adjustments between different scale units
             if ((nGridOriginY - cGridOriginY) > info->tileSize)
             {
               info->skipNextRow = true;
-            }          
+            }
           }
 
           if (info->lastSize > 0)
@@ -440,7 +447,7 @@ factor needed for adjustments between different scale units
           }
 
           // read tile from vector
-          if (info->currentTuple < info->currentSize)
+          while (info->currentTuple < info->currentSize)
           {
             tuple = info->current[info->currentTuple];
 
@@ -473,7 +480,7 @@ factor needed for adjustments between different scale units
             TileAlgebra::tgrid grid;
             s_in->getgrid(grid);
             s_out->SetGrid(grid);
-              
+
             info->cellSize = grid.GetLength();
 
             bool bHasDefinedValue = false;
@@ -483,10 +490,10 @@ factor needed for adjustments between different scale units
               for(int column = info->fromX; column <= info->toX; column++)
               {
                 TileAlgebra::Index<2> index((int[]){column, row});
-  
+
                 // central cell
                 double e = s_in->GetValue(index);
- 
+
                 if(SourceTypeProperties::TypeProperties::
                                          IsUndefinedValue(e) == false)
                 {
@@ -508,7 +515,7 @@ factor needed for adjustments between different scale units
                      info->skipNextRow, info->skipLastRow,
                      info->current, info->next, info->last,
                      info->currentSize, info->nextSize, info->lastSize);
-         
+
                   // calculate delta
                   double dzdx = ((c + 2*f + i) - (a + 2*d + g)) / 
                                    (8*info->cellSize*info->zFactor);
@@ -553,7 +560,7 @@ factor needed for adjustments between different scale units
 
               info->currentTuple = 0;
               info->readNextElement = true;
-            }      
+            }
 
             if(bHasDefinedValue == true)
             {
@@ -565,16 +572,7 @@ factor needed for adjustments between different scale units
               result.addr = slope_out;
               return YIELD;
             }
-            else
-            {
-              delete s_out;
-              s_out = 0;
-
-              // always set the result to null before return CANCEL
-              result.addr = 0;
-              return CANCEL;
-            }
-          } // if currentTuple
+          } // while currentTuple
         } // if local.addr
         else
         {
