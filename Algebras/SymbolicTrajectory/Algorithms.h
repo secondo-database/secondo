@@ -236,6 +236,8 @@ class MBasic : public Attribute {
   bool readUnitFrom(ListExpr LE);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
 
+  void serialize(size_t &size, char *bytes) const;
+  void deserialize(const char *bytes);
   int Position(const Instant& inst) const;
   void Get(const int i, UBasic<B>& result) const;
   void GetInterval(const int i, SecInterval& result) const;
@@ -304,8 +306,10 @@ class MBasics : public Attribute {
   ListExpr unitToListExpr(int i);
   bool readValues(ListExpr valuelist);
   bool readUnit(ListExpr unitlist);
-  int Position(const Instant& inst) const;
   
+  void serialize(size_t &size, char *bytes) const;
+  void deserialize(const char *bytes);
+  int Position(const Instant& inst) const;
   void Get(const int i, UBasics<B>& result) const;
   void GetBasics(const int i, B& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
@@ -541,11 +545,13 @@ class Assign {
   string  getRightVar(int lkey, int j) const {return right[lkey][j].first;}
   void    addRight(int key,
                pair<string, int> newRight)   {right[key].push_back(newRight);}
-  void    removeUnordered()                  {right[6].pop_back();}
-  QueryProcessor* getQP(unsigned int key)    {if (key < 6) {
+  void    removeUnordered()                  {if (!right[10].empty()) {
+                                                right[10].pop_back();
+                                              }}
+  QueryProcessor* getQP(unsigned int key)    {if (key < 10) {
                                                 return opTree[key].first;}
                                               else return 0;}
-  OpTree  getOpTree(unsigned int key)        {if (key < 6) {
+  OpTree  getOpTree(unsigned int key)        {if (key < 10) {
                                                 return opTree[key].second;}
                                               else return 0;}
   bool    areTreesOk()                       {return treesOk;}
@@ -1659,6 +1665,39 @@ bool MBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 }
 
 /*
+\subsection{Function ~serialize~}
+
+*/
+template<class B>
+void MBasic<B>::serialize(size_t &size, char *bytes) const {
+  size = 0;
+  bytes = 0;
+  if (!IsDefined()) {
+    return;
+  }
+  size = sizeof(size_t) + sizeof(*this) + values.getSize() + units.getSize();
+  bytes = new char[size];
+  memcpy(bytes, &size, sizeof(size_t));
+  memcpy(bytes, this, sizeof(*this));
+  memcpy(bytes, &values, values.getSize());
+  memcpy(bytes, &units, units.getSize());
+}
+
+/*
+\subsection{Function ~deserialize~}
+
+*/
+template<class B>
+void MBasic<B>::deserialize(const char *bytes) {
+  size_t size;
+  memcpy(&size, bytes, sizeof(size_t));
+  memcpy(this, bytes + sizeof(size_t), size);
+  memcpy(&values, bytes + sizeof(size_t) + sizeof(this), values.getSize());
+  memcpy(&units, bytes + sizeof(size_t) + sizeof(this) + values.getSize(), 
+         units.getSize());
+}
+
+/*
 \subsection{Function ~Position~}
 
 */
@@ -2363,6 +2402,43 @@ bool MBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
   }
   SetDefined(true);
   return true;
+}
+
+/*
+\subsection{Function ~serialize~}
+
+*/
+template<class B>
+void MBasics<B>::serialize(size_t &size, char *bytes) const {
+  size = 0;
+  bytes = 0;
+  if (!IsDefined()) {
+    return;
+  }
+  size = sizeof(size_t) + sizeof(*this) + values.getSize() + units.getSize()
+         + pos.getSize();
+  bytes = new char[size];
+  memcpy(bytes, &size, sizeof(size_t));
+  memcpy(bytes, this, sizeof(*this));
+  memcpy(bytes, &values, values.getSize());
+  memcpy(bytes, &units, units.getSize());
+  memcpy(bytes, &pos, pos.getSize());
+}
+
+/*
+\subsection{Function ~deserialize~}
+
+*/
+template<class B>
+void MBasics<B>::deserialize(const char *bytes) {
+  size_t size;
+  memcpy(&size, bytes, sizeof(size_t));
+  memcpy(this, bytes + sizeof(size_t), size);
+  memcpy(&values, bytes + sizeof(size_t) + sizeof(this), values.getSize());
+  memcpy(&units, bytes + sizeof(size_t) + sizeof(this) + values.getSize(), 
+         units.getSize());
+  memcpy(&pos, bytes + sizeof(size_t) + sizeof(this) + values.getSize() 
+         + units.getSize(), pos.getSize());
 }
 
 /*

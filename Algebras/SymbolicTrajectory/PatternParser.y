@@ -173,8 +173,8 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                }
                wholepat->setAssign(posR, posP, key, arg);
              /*                  cout << "setAssign(" << posR << ", " << posP << ", " << key << ", " << arg << ")" << endl; */
-               while (assign.getRightSize(9)) { // distribute assignments
-                 varKey = assign.getVarKey(9);
+               while (assign.getRightSize(10)) { // distribute assignments
+                 varKey = assign.getVarKey(10);
                  wholepat->addAssignRight(posR, key, varKey);
                  assign.removeUnordered();
                } 
@@ -740,7 +740,7 @@ bool Assign::convertVarKey(const char *varKey) {
         cout << "invalid assignment type " << kInput << " for a sequence" << endl;
         return false;
       }
-      addRight(9, right); // assign to n \in {0, 1, ..., 8} afterwards
+      addRight(10, right); // assign to n \in {0, 1, ..., 9} afterwards
       wholepat->addRelevantVar(varInput);
     }
   }

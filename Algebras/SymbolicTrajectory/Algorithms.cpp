@@ -1075,7 +1075,6 @@ bool Assign::initOpTrees() {
         pointers[i].push_back(strAttr.second);
         toReplace = right[i][j].first + Condition::getType(right[i][j].second);
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
-        cout << q << endl;
       }
       opTree[i] = Tools::processQueryStr(q, i);
       if (!opTree[i].first) {
