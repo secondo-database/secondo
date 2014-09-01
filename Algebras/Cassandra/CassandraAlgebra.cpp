@@ -2412,6 +2412,11 @@ public:
     
     cwi -> getProcessedTokenRangesForQuery(processedIntervals);
     
+    // Calculation running?
+    if(totalProcessedTokens < 2) {
+      return CANCEL;
+    }
+    
     for(vector<TokenRange>::iterator iter = processedIntervals.begin(); 
         iter != processedIntervals.end(); ++iter) {
       
@@ -2426,7 +2431,7 @@ public:
     
     // Calculate total Procesing time
     time_t timediff = time(0) - (cwi -> getStartTime());
-    pRes->BTime = ((float) timediff) / ((float) pRes->Progress);
+    pRes->BTime = ((double) timediff) / ((double) pRes->Progress);
 
     // Copy blocking values to stream values
     pRes->Progress = pRes->BProgress;
