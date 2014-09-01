@@ -837,7 +837,7 @@ void printHelpAndExit(string &progName) {
   cerr << "lbtrr-n = load based threaded rr" << endl;
   cerr << "            acknowledge every n lines" << endl;
   cerr << "            (e.g. lbtrr-10)" << endl;
-  cerr << "qbts    = Queue based threaded scheduling" << endl;
+  cerr << "qbts    = queue based threaded scheduling" << endl;
   cerr << endl;
   cerr << "-r = Reliable Data processing: " << endl;
   cerr << "     false: discard lines when all queues are full" << endl;
