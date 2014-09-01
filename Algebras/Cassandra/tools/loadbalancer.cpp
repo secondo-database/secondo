@@ -75,7 +75,11 @@ using namespace std;
 */
 
 //#define LB_DEBUG
+<<<<<<< loadbalancer.cpp
+#define QUEUESIZE 100 
+=======
 #define QUEUESIZE               10 
+>>>>>>> 1.26
 
 #define CMDLINE_PORT            1<<0
 #define CMDLINE_MODE            1<<1
@@ -575,12 +579,12 @@ open and the size of the queue is less then QUEUESIZE
 */
   virtual bool isReady() {
     
-    /*
+    
     // Wait for queue size to reduce
     while(getQueueSize() >= QUEUESIZE) {
       usleep(1000);
     }
-    */
+    
     
     return isSocketOpen() && ( getQueueSize() < QUEUESIZE );
   }
@@ -707,8 +711,6 @@ public:
           return;
         }
    
-        cout << "[Warn] Wait no destination server is ready" << endl;
-
         usleep(1000);
       }
       
