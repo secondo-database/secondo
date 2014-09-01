@@ -2422,13 +2422,13 @@ public:
     //cout << "Total: " << totalProcessedTokens << endl;
     
     pRes->Card = 1;
-    pRes->Progress = (double) totalProcessedTokens / (double) max;
-    pRes->BTime = 1;
-    pRes->BProgress = 1;
+    pRes->Progress = 1;
+    pRes->Time = 1;
+    pRes->BProgress = (double) totalProcessedTokens / (double) max;
     
     // Calculate total Procesing time
     time_t timediff = time(0) - cwi -> getStartTime();
-    pRes->Time = timediff / pRes->Progress;
+    pRes->BTime = timediff / pRes->Progress;
     
     return YIELD;
   }
