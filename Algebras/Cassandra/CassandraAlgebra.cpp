@@ -2425,8 +2425,8 @@ public:
     pRes->BProgress = (double) totalProcessedTokens / (double) max;
     
     // Calculate total Procesing time
-    time_t timediff = time(0) - cwi -> getStartTime();
-    pRes->BTime = timediff / pRes->Progress;
+    time_t timediff = time(0) - (cwi -> getStartTime());
+    pRes->BTime = ((float) timediff) / ((float) pRes->Progress);
 
     // Copy blocking values to stream values
     pRes->Progress = pRes->BProgress;
