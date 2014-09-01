@@ -75,11 +75,7 @@ using namespace std;
 */
 
 //#define LB_DEBUG
-<<<<<<< loadbalancer.cpp
 #define QUEUESIZE 100 
-=======
-#define QUEUESIZE               10 
->>>>>>> 1.26
 
 #define CMDLINE_PORT            1<<0
 #define CMDLINE_MODE            1<<1
