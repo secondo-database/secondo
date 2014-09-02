@@ -167,9 +167,10 @@ of operator contour.
           contourInfo()
           { 
             name      = "contourlines";
-            signature = "sType x double -> lines";
-            syntax    = "contourlines(_,_)";
-            meaning   = "Creates contour lines";
+            signature = "sType x double -> stream(lines)";
+            appendSignature("tType x double -> stream(lines)");
+            syntax    = "_ contourlines[_]";
+            meaning   = "Creates contour lines for raster or stream of tiles";
            }              
         };
 }

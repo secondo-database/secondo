@@ -71,7 +71,7 @@ of operator ruggedness.
             name      = "ruggedness";
             signature = "sType -> sType";
             appendSignature("tType x double -> stream(tType)");
-            syntax    = "ruggedness(_)";
+            syntax    = "_ ruggedness";
             meaning   = "Creates ruggedness for raster or tile";
            }              
         };

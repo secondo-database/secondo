@@ -71,7 +71,7 @@ of operator slope.
             name      = "slope";
             signature = "sType x double -> sType";
             appendSignature("tType x double -> stream(tType)");
-            syntax    = "slope(_,_)";
+            syntax    = "_ slope[_]";
             meaning   = "Creates slope for raster or tile";
            }              
         };

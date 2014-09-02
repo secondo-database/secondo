@@ -72,7 +72,7 @@ of operator hillshade.
             signature = "sType x double x double x double -> sType";
             appendSignature(
                         "tType x double x double x double -> stream(tType)");
-            syntax    = "hillshade(_,_,_,_)";
+            syntax    = "_ hillshade[_,_,_]";
             meaning   = "Creates hillshade for raster or tile";
            }              
         };
