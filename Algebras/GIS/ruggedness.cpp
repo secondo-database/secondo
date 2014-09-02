@@ -389,6 +389,8 @@ Return value: stream of tint or treal
             l->getgrid(lGrid);
             double lGridOriginX = lGrid.GetX();
             double lGridOriginY = lGrid.GetY();
+            cGridOriginX = cGrid.GetX();
+            cGridOriginY = cGrid.GetY();
 
             // calculate factor if tile rows starts at different coordinates
             if ((cGridOriginX - lGridOriginX) > 0)
