@@ -1,0 +1,48 @@
+Database: berlintest
+Restore: No
+
+Operator : perimeter 
+Number   : 1
+Signature   : scircle -> real
+Example  : query perimeter([const scircle value (1 2 3 )])
+Result   : 18.85
+Tolerance : 0.02
+
+Operator : distN 
+Number   : 1
+Signature   : int x int -> int
+Example  : query 1 distN 3
+Result   : 2
+
+Operator : distN 
+Number   : 2
+Signature  : real x real -> real
+Example  : query 3.0 distN 1.0
+Result   : 2.0
+
+Operator : countNumber
+Number   : 1
+Signature : stream(int) x int -> int
+Example   : query intstream(1,10) countNumber[4]
+Result    : 1
+
+Operator : getChars
+Number   : 1
+Signature: string -> stream(string)
+Example  : query getChars("Secondo") count
+Result   : 7
+
+
+Operator  : replaceElem
+Number    : 1
+Signature : stream(X) x (X -> Y) -> stream(Y), X,Y in kin DATA
+Example   : query intstream(1,3) replaceElem[ fun(i : int) i * 2.0] transformstream sum[Elem]
+Result    : 12.0
+
+
+Operator  : attrIndex
+Number    : 1
+Signature : stream(tuple(X)) x symbol -> int 
+Example   : query plz feed attrIndex[Ort]
+Result    : 1
+
