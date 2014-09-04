@@ -687,6 +687,14 @@ Getdata function for the "string"[4] type constructor.
 
 */
     static DistData *getDataString(const void *attr);
+
+/*
+Getdata function for the symbolic trajectory type constructors.
+
+*/
+    template<class M>
+    static DistData *getDataSymTraj(const void *attr);
+    
 }; // class DistDataReg
 
 } //namespace gta

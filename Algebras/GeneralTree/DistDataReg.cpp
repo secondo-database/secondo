@@ -38,6 +38,7 @@ January-May 2008, Mirko Dibbert
 #include "Coord.h"
 #include "Point.h"
 #include "SpatialAlgebra.h"
+#include "Algorithms.h"
 
 using namespace gta;
 
@@ -327,6 +328,21 @@ DistData* DistDataReg::getDataString(const void* attr)
     return new DistData(value);
 }
 
+/*
+Template Function ~DistDataReg::getDataSymTraj~:
+
+*/
+template<class M>
+DistData* DistDataReg::getDataSymTraj(const void *attr) {
+  char *bytes = 0;
+  const M* traj = static_cast<const M*>(attr);
+  size_t size;
+  traj->serialize(size, bytes);
+  DistData *result = new DistData(size, bytes);
+  delete[] bytes;
+  return result;
+}
+
 /********************************************************************
 Method ~DistDataReg::initialize~:
 
@@ -374,6 +390,22 @@ void DistDataReg::initialize()
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
         "hpoint", getDataHPoint));
+
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+        stj::MLabel::BasicType(), getDataSymTraj<stj::MLabel>));
+
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+        stj::MLabels::BasicType(), getDataSymTraj<stj::MLabels>));
+
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+        stj::MPlace::BasicType(), getDataSymTraj<stj::MPlace>));
+
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+        stj::MPlaces::BasicType(), getDataSymTraj<stj::MPlaces>));
 
     PictureFuns::initDistData();
 

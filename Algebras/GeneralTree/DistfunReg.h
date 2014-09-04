@@ -89,6 +89,10 @@ const string DFUN_QUADRATIC("quadratic");
 const string DFUN_QUADRATIC_DESCR(
     "quadratic distance function using a similarity matrix");
 
+const string DFUN_SYMTRAJ_DIST1("symtraj1");
+const string DFUN_SYMTRAJ_DIST1_DESCR("distance function for symbolic "
+  "trajectories, normalized to [0,1]");
+
 /////////////////////////////////////////////////////////////////////
 // Flags for the "DistfunInfo" class
 /////////////////////////////////////////////////////////////////////
@@ -358,6 +362,15 @@ Edit distance function for the "string"[4] type constructor.
     static void EditDistance(
             const DistData *data1, const DistData *data2,
             double &result);
+
+/*
+Distance function between symbolic trajectories; normalized to [0,1].
+
+*/
+    template<class M>
+    static void symTrajDistance1(
+            const DistData *data1, const DistData *data2, double &result);
+
 }; // class DistfunReg
 
 } //namespace gta

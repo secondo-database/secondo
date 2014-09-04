@@ -37,6 +37,7 @@ January-May 2008, Mirko Dibbert
 #include "GTA_SpatialAttr.h"
 #include "Coord.h"
 #include "SpatialAlgebra.h"
+#include "Algorithms.h"
 
 using namespace gta;
 
@@ -442,6 +443,25 @@ void DistfunReg::EditDistance(
     result = (double) d[len1][len2];
 }
 
+/*
+Method ~DistfunReg::symTrajDistance1~ :
+
+*/
+template<class M>
+void DistfunReg::symTrajDistance1(const DistData *data1, const DistData *data2,
+                                  double &result) {
+  if (data1->size() == 0 && data2->size() == 0) {
+    result = 0;
+  }
+  if (data1->size() == 0 || data2->size() == 0){
+    result = numeric_limits<double>::max();
+  }
+  M traj1, traj2;
+  traj1.deserialize((const char*)data1->value());
+  traj2.deserialize((const char*)data2->value());
+  result = traj1.Distance(traj2);
+}
+
 /********************************************************************
 Method ~DistfunReg::initialize~:
 
@@ -506,6 +526,30 @@ void DistfunReg::initialize()
         DFUN_EDIT_DIST, DFUN_EDIT_DIST_DESCR,
         EditDistance,
         DistDataReg::getInfo(CcString::BasicType(), DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+
+    addInfo(DistfunInfo(
+        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+        symTrajDistance1<stj::MLabel>,
+        DistDataReg::getInfo(stj::MLabel::BasicType(), DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+
+    addInfo(DistfunInfo(
+        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+        symTrajDistance1<stj::MLabels>,
+        DistDataReg::getInfo(stj::MLabels::BasicType(), DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+
+    addInfo(DistfunInfo(
+        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+        symTrajDistance1<stj::MPlace>,
+        DistDataReg::getInfo(stj::MPlace::BasicType(), DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+
+    addInfo(DistfunInfo(
+        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+        symTrajDistance1<stj::MPlaces>,
+        DistDataReg::getInfo(stj::MPlaces::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     PictureFuns::initDistfuns();
