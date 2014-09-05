@@ -222,7 +222,7 @@ single document, this guide algebra consists only of a single file.
 
 
 
-0.55555 Includes
+0.5 Includes
 
 To be able to implement an algebra, different header files must be included.
 Here, each include is commented with some functionality used.
@@ -2210,6 +2210,8 @@ GenTC<GCircle> GCircleTC;
 /*
 9 Attribute type having variable size
 
+\label{FLOBs}
+
 Up to now, the defined attribute types have had a fixed size. The problem ist
 how to implement attribute types having variable size although pointers are not
 allowed. The solution provided in the Secondo system are so called FLOBs (Faked
@@ -2572,4 +2574,9 @@ Algebra*
                            QueryProcessor* qpRef ) {
    return new GuideAlgebra;
 }
+
+
+
+
+
 

@@ -1,0 +1,143 @@
+
+/*
+1 Description of the Specification file
+
+Within the ~spec~ file, the syntax of operators is fixed.
+The file must be located in the algebra directory and is name
+~AlgebraName.spec~. The default syntax of an operator is
+a prefix operator. Nevertheless it is recommended, to specify 
+the syntax for all operators. 
+
+If an operator occurs in several algebras, the syntax of the operator
+must be the same. If not, the compilation process of Secondo
+(make in Secondo's main directory) will fail with an appropriate 
+error message.
+
+Lines in the file starting with a '\#' are ignored and can be used for comments.
+For formatting the file, empty lines are also ignored.
+
+The syntax definition an an operator has format
+
+----
+operator <opname> alias <opalias> pattern <syntax> 
+         [<implicit parameters>]
+
+----
+
+with
+
+  * opname : Name of the operator
+
+  * opalias: Name of the operator as text
+
+  * syntax: syntax of the operator
+
+  * implicit parameters: use of special types for function arguments
+
+
+The implicit parameter part is optionally and can only used for function
+arguments. The opalias is the name of the operator as text, e.g. PLUS
+if the operator is '+'. This has technical reasons.
+
+The syntax can be in format:
+
+----
+
+ op()           prefix operator without argument
+ op(_)          prefix operator with one argument
+ op(_,_)        prefix operator having arbitrary many arguments
+ _ infixop _    infix operator
+ _ op           postfix operator with one argument
+ _ _ op         postfix operator having two arguments
+ ...
+ _ op [<paralist>] postfix operator having one argument before the
+                   operator and some additional arguments within the
+                   square brackets
+_ _ op [<paralist>] postfix operator having two arguments before the
+                    operator and additional arguments within the+
+                    square brackets 
+....
+
+----
+
+The parameter list within the square brackets can have the following values.
+
+----
+_, _     usual parameter
+list     parameter list of arbitrary length
+fun      this parameter is a function (together with implicit parameters)
+funlist  list of functions
+X ; Y    semicolon separated argument lists X and X are again parameter lists
+
+----
+
+Implicit parameter can be used for simpler use of function arguments. This required
+a fun or a funlist to be part of the parameter list. The syntax is:
+
+----
+
+  implicit parameter <namelist> type <typelist>
+
+----
+
+where namelist is a list of comma separated names and type list are the corresponding
+types. The first name is assigned to the first type, second name to the second type
+and so on. This requires that both lists must have the same length. Often, the type is
+given as so-called Type Operator. This is an operator having only the type mapping but 
+no value mapping. Look at the example:
+
+----
+operator filter alias FILTER pattern _ op [ fun ]
+     implicit parameter streamelem type STREAMELEM
+
+----
+
+The ~filter~ operator gets a stream of elements together with a function mapping
+from the elements type to bool. All elements fullfilling the condition given by
+this function are filtered out.
+
+By the definition of implicit parameters, a query using the filter operator
+can be easely written down. Assume a relation with scheme:
+
+----
+ zipcodes(Name : string, Zipcode : int)
+
+----
+
+a query for finding all elements of this relation having a zipcode smaller than
+2000 can be found using:
+
+----
+ query zipcodes feed filter[.ZipCode < 2000] consume
+
+----
+
+By the implicit parameter part, this query is rewritten automatically to:
+
+----
+
+  query zipcodes feed 
+        filter[ fun (streamelem : STREAMELEM) attr(e,ZipCode) < 2000 ] 
+        consume
+
+----
+
+The type operator STREAMELEM extract the tuple type from the arounding types.
+Thus, without all these mechanisms the query have to be written as
+
+----
+
+  query zipcodes feed
+        filter[ fun( t : tuple([Name : string, Zipcode : int])) attr(t,ZipCode) < 2000 ]
+        consume
+
+----
+
+Obviously, the first version using all features the the simplest one from the view of a
+user.
+
+
+The operator syntax definitions of the Guide algebra are:
+
+
+

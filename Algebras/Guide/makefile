@@ -43,13 +43,40 @@ endif
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
 
-doc: GuideAlgebra.cpp.pdf
+doc: GuideAlgebra.doc.pdf
 
-GuideAlgebra.cpp.pdf: GuideAlgebra.cpp
+GuideAlgebra.doc.pdf: GuideAlgebra.doc
 	pd2pdf $<
+
+
+GuideAlgebra.doc: GuideAlgebra.cpp SpecificationDescription.pd Guide.spec ExampleFile.pd
+	@echo "Concatenate documentation file"
+	@cat GuideAlgebra.cpp > $@
+	@cat SpecificationDescription.pd >> $@
+	@echo >> $@
+	@echo "----" >>$@
+	@cat Guide.spec >>$@
+	@echo "----" >> $@
+	@echo >>$@
+	@echo "*/" >> $@	
+	@echo >>$@
+	@cat ExampleFile.pd >> $@
+	@echo >>$@
+	@echo "----" >>$@
+	@echo >>$@
+	@cat Guide.examples >>$@
+	@echo >>$@
+	@echo "----" >>$@
+	@echo >>$@
+	@echo "*/" >> $@	
+
+
+	
+
 
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	rm -f GuideAlgebra.doc GuideAlgebra.doc.pdf GuideAlgebra.doc.dvi GuideAlgebra.doc.log GuideAlgebra.doc.aux GuideAlgebra.doc.tex

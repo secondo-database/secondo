@@ -1,0 +1,114 @@
+/*
+
+1 The example file
+
+The example file provides at least one query for each operator. 
+If an operator is omitted in this file, the operator is disabled
+by the secondo framework. The file is used for automatic tests 
+(Selftest). For a manual start of this test, just enter
+
+----
+Selftest tmp/<AlgebraName>.examples
+
+----
+
+within Secondo's ~bin~ directory. For memory error or memory leak
+checking, use the command:
+
+----
+Selftest  --valgrind tmp/<AlgebraName>.examples
+
+----
+
+or
+
+----
+Selftest  --valgrindlc tmp/<AlgebraName>.examples
+
+----
+
+for more memory leak information.
+
+
+The format of the file is quite easy. It starts with some general settings 
+followed by examples for the operators. The general settings are:
+
+----
+Sequential: No
+Database: berlintest
+Restore : No
+
+----
+
+If ~Sequential~ is set to ~Yes~, the examples are executed in the order given in the
+file. If it is set to ~No~ or this line is omitted, the operators are tested in lexicographical
+order using the number as secondary sorting criterion.
+
+The ~Database~ line specifies the database which is used for testing, here ~berlintest~.
+If the test starts and the database is not already part of the system, the database is
+restored from a file having the same name as the database in the ~bin~ directory. If also the
+file is missing, the Selftest will fail.
+
+If  ~Restore~ is set to ~Yes~, the database is freshly restored even if the database
+already exists in the system. This is required, if within the algebra update operators are defined, manipulating
+the content of the database. This ensures to start from a well defined database state.
+
+After these general settings, for each operator must be given at least one example. The format is:
+
+----
+Operator  : <opname> 
+Number    : <number>
+Signature : <signature>
+Example   : <query> 
+Result    : <result>
+Tolerance : <tolerance> 
+
+----
+
+opname is the name of the operator. For the operator can also given an alias using 
+~alias $<$ALIAS$>$~ directly after the operator's name. This may be required for
+storing results in a file (see below).
+
+number is a counter starting from 1. If Sequential is set to
+~Yes~, the counter is increased for each example. If Sequential is ~No~, the counting starts by
+1 for each new operator and is increased if there are more examples for a single operator.
+
+The signature line describes the signature of the operator in a textual way. If for each 
+signature supported by the operator an example is given, this line can be restricted to
+the signature used in the query. If only one example is given for an entire overloaded operator,
+the description must handle all possible signatures in a general way.
+
+The ~query~ part is a query using the operator, constant values and/or objects defined within the
+used database.
+
+~result~ specifies the result of the example query. If the result is a simple type (int, real, bool, string),
+it can be given in short  form, e.g. 1, TRUE, or ''secondo''. Otherwise, the result is specified as nested list
+including the type, e.g. (int 1), (bool TRUE), (string ''secondo''). Sometimes, the result depends on the
+underlying operating system. For example, the number of nodes of an r-tree depends on the page size of the
+system. To give a result for different operating systems, the result is specified in format:
+
+----
+  (platform (os1 result1) (os2 result2) ...)
+
+---- 
+
+where $os_i$ is one out of \{linux, linux64, win32, mac\_osx\}.
+
+
+If the result is too large for writing it directly, the key word ~file~ can be used. In this case, the
+result must be stored in a file called \\
+~result$<$number$>$\_$<$opname$>$\_$<$AlgebraName$>$~ or \\
+~result$<$number$>$\_$<$opname$>$\_$<$AlgebraName$>$\_$<$operating\_system$>$~ \\ in case of operating system
+depending results. If the operator's name is not allowed to appear within a file name, the alias 
+of the operator is used within the file name (see above).
+
+
+The ~Tolerance~ is an optional value which is used to compare the results. If ~Tolerance~ is specified,
+the result list and the computed result of a query are compare using an approximative comparison for 
+double values. The tolerance can be given as an absolute value, e.g. 0.01 if a deviance between the two
+values should not be greater than 0.01, or as an relative value, e.g. 0.1\% is the accepted tolerance is 0.1 percent.
+
+The Guide Algebra contains the following examples:
+
+
+
