@@ -17,6 +17,22 @@ the system for wrong inputs, e.g. checking type mappings.
 An example TestRunner file including descriptions of the file format is the
 ~example.test~ file located in Secondo's ~bin~ directory.
 
+For using a ~TestRunner~ file, enter:
+
+----
+TestRunner -i <filename>
+----
+within Secondo's ~bin~ directory. As usual, if valgrind is part of your system, the
+following commands can be used for finding memory errors and leaks:
+
+----
+TestRunner --valgrind -i <filename>
+TestRunner --valgrindlc -i <filename>
+----
+
+
+
+
 */
 
 
