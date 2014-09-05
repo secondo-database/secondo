@@ -1637,6 +1637,28 @@ The standard constructor (the one without any argument) cannot do anything.
 All other constructors must call the constructor of the Attribute class taking a 
 ~bool~ argument.
 
+
+8.2 Golden Rules for Implementing Attribute Types
+
+  * Derive from class ~Attribute~
+
+  * Never use pointers within the class (also do not use  members having pointers)
+
+  * Always define the standard constructor (the one without any argument) having an
+    empty implementation
+
+  * Always implement at least another constructor
+
+  * In all non-standard constructors,  call the constructor of the class ~Attribute~
+    having a boolean argument. Initialize *all* members of your class.
+		If the class has FLOB or DbArray members, use the constructor receiving the initial
+    size. 
+
+  * Never use the standard constructor except in the cast function
+
+
+If you don't take these rules to heart, Secondo will run not stable.
+
 */
 
 /*
