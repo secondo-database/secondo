@@ -49,7 +49,7 @@ GuideAlgebra.doc.pdf: GuideAlgebra.doc
 	pd2pdf $<
 
 
-GuideAlgebra.doc: GuideAlgebra.cpp SpecificationDescription.pd Guide.spec ExampleFile.pd
+GuideAlgebra.doc: GuideAlgebra.cpp SpecificationDescription.pd Guide.spec ExampleFile.pd TestRunner.pd Guide.examples makefile
 	@echo "Concatenate documentation file"
 	@cat GuideAlgebra.cpp > $@
 	@cat SpecificationDescription.pd >> $@
@@ -68,7 +68,8 @@ GuideAlgebra.doc: GuideAlgebra.cpp SpecificationDescription.pd Guide.spec Exampl
 	@echo >>$@
 	@echo "----" >>$@
 	@echo >>$@
-	@echo "*/" >> $@	
+	@echo "*/" >> $@
+	@cat TestRunner.pd >>$@	
 
 
 	
