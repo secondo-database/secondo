@@ -8,7 +8,7 @@ Secondo provides a more powerful test suite for testing an algebra modul, the
 TestRunner. A TestRunner file consist of three parts: the setup part, followed by
 the test part and the final teardown part. Within the setup part a database can be 
 created, restored or just opened, new objects can be stored and so on. 
-If one of the commands in the setup part failed, the complete test failed.
+If one of the commands in the setup part fails, the complete test fails.
 In the testcase part, commands and their results are specified. Besides a concrete 
 result, the result can also indicate the success or failure of a command. Wheras the
 success is required for let commands and similar, the failure case can be used to check 

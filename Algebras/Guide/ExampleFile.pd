@@ -67,11 +67,11 @@ Tolerance : <tolerance>
 
 ----
 
-opname is the name of the operator. For the operator can also given an alias using 
+~opname~ is the name of the operator. For the operator may also given an alias using 
 ~alias $<$ALIAS$>$~ directly after the operator's name. This may be required for
 storing results in a file (see below).
 
-number is a counter starting from 1. If Sequential is set to
+~number~ is a counter starting from 1. If Sequential is set to
 ~Yes~, the counter is increased for each example. If Sequential is ~No~, the counting starts by
 1 for each new operator and is increased if there are more examples for a single operator.
 
@@ -83,7 +83,7 @@ the description must handle all possible signatures in a general way.
 The ~query~ part is a query using the operator, constant values and/or objects defined within the
 used database.
 
-~result~ specifies the result of the example query. If the result is a simple type (int, real, bool, string),
+~result~ specifies the result of the example query. If the result has a simple type (int, real, bool, string),
 it can be given in short  form, e.g. 1, TRUE, or ''secondo''. Otherwise, the result is specified as nested list
 including the type, e.g. (int 1), (bool TRUE), (string ''secondo''). Sometimes, the result depends on the
 underlying operating system. For example, the number of nodes of an r-tree depends on the page size of the
@@ -97,7 +97,7 @@ system. To give a result for different operating systems, the result is specifie
 where $os_i$ is one out of \{linux, linux64, win32, mac\_osx\}.
 
 
-If the result is too large for writing it directly, the key word ~file~ can be used. In this case, the
+If the result is too large for writing it directly, the keyword ~file~ can be used instead of the result. In this case, the
 result must be stored in a file called \\
 ~result$<$number$>$\_$<$opname$>$\_$<$AlgebraName$>$~ or \\
 ~result$<$number$>$\_$<$opname$>$\_$<$AlgebraName$>$\_$<$operating\_system$>$~ \\ in case of operating system
@@ -106,7 +106,7 @@ of the operator is used within the file name (see above).
 
 
 The ~Tolerance~ is an optional value which is used to compare the results. If ~Tolerance~ is specified,
-the result list and the computed result of a query are compare using an approximative comparison for 
+the result list and the computed result of a query are compared using an approximative comparison for 
 double values. The tolerance can be given as an absolute value, e.g. 0.01 if a deviance between the two
 values should not be greater than 0.01, or as an relative value, e.g. 0.1\% is the accepted tolerance is 0.1 percent.
 

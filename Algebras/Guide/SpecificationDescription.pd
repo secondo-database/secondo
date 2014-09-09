@@ -5,14 +5,14 @@
 \label{SpecFile}
 
 Within the ~spec~ file, the syntax of operators is fixed.
-The file must be located in the algebra directory and is name
+The file must be located in the algebra directory and is named
 ~AlgebraName.spec~. The default syntax of an operator is
 a prefix operator. Nevertheless it is recommended, to specify 
 the syntax for all operators. 
 
 If an operator occurs in several algebras, the syntax of the operator
 must be the same. If not, the compilation process of Secondo
-(make in Secondo's main directory) will fail with an appropriate 
+(~make~ in Secondo's main directory) will fail with an appropriate 
 error message.
 
 Lines in the file starting with a '\#' are ignored and can be used for comments.
@@ -37,11 +37,11 @@ with
   * implicit parameters: use of special types for function arguments
 
 
-The implicit parameter part is optionally and can only used for function
-arguments. The opalias is the name of the operator as text, e.g. PLUS
+The ~implicit parameter~ part is optionally and can only used for function
+arguments. The ~opalias~ is the name of the operator as text, e.g. PLUS
 if the operator is '+'. This has technical reasons.
 
-The syntax can be in format:
+The syntax can be:
 
 ----
 
@@ -56,7 +56,7 @@ The syntax can be in format:
                    operator and some additional arguments within the
                    square brackets
 _ _ op [<paralist>] postfix operator having two arguments before the
-                    operator and additional arguments within the+
+                    operator and additional arguments within the
                     square brackets 
 ....
 
@@ -69,11 +69,11 @@ _, _     usual parameter
 list     parameter list of arbitrary length
 fun      this parameter is a function (together with implicit parameters)
 funlist  list of functions
-X ; Y    semicolon separated argument lists X and X are again parameter lists
+X ; Y    semicolon separated argument lists X and Y are again parameter lists
 
 ----
 
-Implicit parameter can be used for simpler use of function arguments. This required
+Implicit parameter can be used for simpler use of function arguments. This requires
 a fun or a funlist to be part of the parameter list. The syntax is:
 
 ----
@@ -95,8 +95,8 @@ operator filter alias FILTER pattern _ op [ fun ]
 ----
 
 The ~filter~ operator gets a stream of elements together with a function mapping
-from the elements type to bool. All elements fullfilling the condition given by
-this function are filtered out.
+from the elements type to bool. Only elements fulfilling the condition given by
+this function pass this operator.
 
 By the definition of implicit parameters, a query using the filter operator
 can be easely written down. Assume a relation with scheme:
@@ -125,7 +125,7 @@ By the implicit parameter part, this query is rewritten automatically to:
 ----
 
 The type operator STREAMELEM extract the tuple type from the arounding types.
-Thus, without all these mechanisms the query have to be written as
+Thus, without all these mechanisms the query has to be written as
 
 ----
 
