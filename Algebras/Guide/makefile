@@ -26,13 +26,18 @@
 # inlcude global definitions
 include ../../makefile.env
 
+CURRENT_ALGEBRA := GuideAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra
+ALGEBRA_DEPENDENCIES += RelationAlgebra
+
+
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ) doc
+all: $(OBJECTS) $(LIBOBJ) 
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)

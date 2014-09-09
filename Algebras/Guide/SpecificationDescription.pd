@@ -2,6 +2,8 @@
 /*
 1 Description of the Specification file
 
+\label{SpecFile}
+
 Within the ~spec~ file, the syntax of operators is fixed.
 The file must be located in the algebra directory and is name
 ~AlgebraName.spec~. The default syntax of an operator is

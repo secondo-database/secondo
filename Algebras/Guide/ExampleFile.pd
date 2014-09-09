@@ -2,6 +2,8 @@
 
 1 The example file
 
+\label{ExampleFile}
+
 The example file provides at least one query for each operator. 
 If an operator is omitted in this file, the operator is disabled
 by the secondo framework. The file is used for automatic tests 
