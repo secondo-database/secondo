@@ -2412,16 +2412,16 @@ public:
     
     cwi -> getProcessedTokenRangesForQuery(processedIntervals);
     
-    // Calculation running?
-    if(totalProcessedTokens < 2) {
-      return CANCEL;
-    }
-    
     for(vector<TokenRange>::iterator iter = processedIntervals.begin(); 
         iter != processedIntervals.end(); ++iter) {
       
       TokenRange interval = *iter;
       totalProcessedTokens = totalProcessedTokens + interval.getSize();
+    }
+    
+    // Calculation running?
+    if(totalProcessedTokens < 2) {
+      return CANCEL;
     }
     
     //cout << "Total: " << totalProcessedTokens << endl;
