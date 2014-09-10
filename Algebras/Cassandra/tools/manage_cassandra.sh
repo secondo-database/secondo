@@ -27,22 +27,23 @@ done
 echo -e "\n\n\n\n\n"
 
 echo "Wait for cassandra nodes to become ready...."
-sleep 15
+sleep 5
 
 # Wait for cassandra nodes
 while [ true ]; do
  
- ring=$($cassandradir/bin/nodetool ring)
- $cassandradir/bin/nodetool ring 
-
- if [ $(echo $ring | grep Down | wc -l) -eq 0 ]; then
-    if [ $(echo $ring | grep Up | wc -l) -gt 10 ]; then
+ if [ $($cassandradir/bin/nodetool ring | grep Down | wc -l) -eq 0 ]; then
+    if [ $($cassandradir/bin/nodetool ring | grep Joining | wc -l) -eq 0 ]; then
        break
     fi
  fi
  
- sleep 5;
+ $cassandradir/bin/nodetool ring 
+ 
+ sleep 1;
 done
+
+echo "All cassandra nodes are ready...."
 }
 
 # Stop cassandra
