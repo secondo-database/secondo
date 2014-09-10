@@ -2875,7 +2875,7 @@ void Relation::ErasePointer()
   } else {
     map<SmiFileId, Relation*>::iterator it;
     for (it=pointerTable.begin(); it != pointerTable.end(); it++) {
-       cout << "ErasePointer hotfix" << endl;
+       //cout << "ErasePointer hotfix" << endl;
        if(it->second == this){
            pointerTable.erase(it);
            return;
