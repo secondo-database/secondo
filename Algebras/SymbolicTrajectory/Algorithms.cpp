@@ -1529,8 +1529,9 @@ This constructor is used for the operator ~indexclassify~.
 */
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
   R_Tree<1, NewPair<TupleId, int> > *rt, Word _classifier, int _attrNr, 
-  DataType type) :
-         IndexMatchesLI::IndexMatchesLI(rel, inv, rt, _attrNr, 0, false, type) {
+  DataType type) : 
+         IndexMatchesLI::IndexMatchesLI(rel, inv, rt, _attrNr, 0, false, type),
+         classifyTT(0), c(0) {
   if (mRel->GetNoTuples() > 0) {
     c = (Classifier*)_classifier.addr;
     for (int i = 0; i < c->getNumOfP(); i++) { // check patterns
