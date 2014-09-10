@@ -772,7 +772,7 @@ void mainLoop(SecondoInterface* si,
           updateLastCommand(cassandra, lastCommandId, cassandraIp);
           updateUuid(cassandra, uuid, cassandraIp);
           executeSecondoCommand(si, nl, "close database");
-          cout << "[Info] Reset complete, wait for new queries" << endl;
+          cout << "[Info] Reset complete, waiting for new queries" << endl;
         }
         
         sleep(5);
