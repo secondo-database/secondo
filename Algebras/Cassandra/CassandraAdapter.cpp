@@ -66,6 +66,9 @@
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
 
+// Activate debug messages
+//#define __DEBUG__
+
 using namespace std;
 
 //namespace to avoid name conflicts
@@ -265,8 +268,11 @@ bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
     ss << CassandraAdapter::METADATA_TUPLETYPE;
     ss << "';";
     string query = ss.str();
+
+#ifdef __DEBUG__
     cout << "Query: " << query << endl;
-    
+#endif
+
     // Execute query
     CassandraResult* cassandraResult = 
        readDataFromCassandra(query, cql::CQL_CONSISTENCY_ONE, false);
@@ -392,6 +398,7 @@ bool CassandraAdapter::getLocalTokenRanges(
     }
         
     // Print debug Info
+#ifdef __DEBUG__
     cout << "Peer ranges are: ";
     copy(peerTokens.begin(), peerTokens.end(), 
     std::ostream_iterator<CassandraToken>(cout, " "));
@@ -401,7 +408,8 @@ bool CassandraAdapter::getLocalTokenRanges(
     copy(localTokenRange.begin(), localTokenRange.end(), 
     std::ostream_iterator<TokenRange>(cout, " "));
     cout << std::endl;
-      
+#endif
+
     return result;
 }
 
@@ -455,7 +463,7 @@ bool CassandraAdapter::getAllTokenRanges(
       // Add start interval
       TokenRange interval2(
         LLONG_MIN, 
-        (allTokens.at(0)).getToken(), // FIXME
+        (allTokens.at(0)).getToken(), 
         (allTokens.at(0)).getIp());
       
       allTokenRange.push_back(interval2);
@@ -474,7 +482,7 @@ bool CassandraAdapter::getAllTokenRanges(
       long long nextToken = (allTokens.at(i + 1)).getToken();        
       
       TokenRange interval(currentToken, 
-                              nextToken,  // FIXME
+                              nextToken, 
                               (allTokens.at(i)).getIp());
       
       allTokenRange.push_back(interval);
