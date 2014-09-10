@@ -2214,6 +2214,10 @@ function index.
       pair = Annotate( first, varnames, vartable,
                        defined, fatherargtypes );
 
+      if(listutils::isSymbol(pair,"exprerror")){
+        return pair;
+      }
+
       /* Check whether the first element is a new operator.
          In that case the current partial list of argument types
          to that operator has to be passed down in 'fatherargtypes'
