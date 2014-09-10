@@ -878,8 +878,6 @@ void destroyServerList(LBConfiguration &configuration) {
 bool parseServerList(char* argument, LBConfiguration &configuration) {
   
      string mode = configuration.mode;
-     
-     cout << "Processing : " << mode << endl;
      TargetServer* ts;
      
      if(mode.compare("rr") == 0) {
