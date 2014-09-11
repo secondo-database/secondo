@@ -95,7 +95,6 @@ class MPrecPoint {
       MPrecPoint(const MPrecPoint& src) : x(src.x), y(src.y)
       { }
 
-
       MPrecPoint& operator=(const MPrecPoint&  src){
             x = src.x;
             y = src.y;
@@ -229,10 +228,14 @@ class MPrecPoint {
        y.swap(b.y);
     }
 
+    void bringToMemory() const{
+      x.bringToMemory();
+      y.bringToMemory();
+    }
+
    private:
      MPrecCoordinate x;
      MPrecCoordinate y;
-
 
      MPrecPoint():x(0),y(0){ assert(false); }
     

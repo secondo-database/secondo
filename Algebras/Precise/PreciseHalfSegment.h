@@ -733,6 +733,11 @@ If the x-values differ for a vertical segment, an exception is thrown.
     h.attributes = a;
   }
 
+  void bringToMemory() const{
+    lp.bringToMemory();
+    rp.bringToMemory();
+  }
+
      
   private:
      bool ldp;

@@ -1168,6 +1168,8 @@ class PrecLine : public StandardSpatialAttribute<2> {
            assert(src.bulkloadStorage==0);
            gridData.copyFrom(src.gridData);
            fracStorage.copyFrom(src.fracStorage); 
+           assert(gridData.Size() == src.gridData.Size());
+           assert(fracStorage.Size() == src.fracStorage.Size());  
      }
 
 
@@ -1334,17 +1336,20 @@ class PrecLine : public StandardSpatialAttribute<2> {
 
     void append(MPrecHalfSegment hs, bool autoTwice = true){
         assert(bulkloadStorage!=0);
-        size_t edgeno = bulkloadStorage->size()/2;
+        hs.bringToMemory();
         if(hs.getScale()!= scale){
              hs.changeScaleTo(scale);
         }
         if(autoTwice){
+          size_t edgeno = bulkloadStorage->size()/2;
           hs.attributes.edgeno = edgeno;
         }
+        hs.appendTo(&gridData,&fracStorage); 
         bulkloadStorage->push_back(hs);
         if(autoTwice){
-          hs.switchLDP();
-          bulkloadStorage->push_back(hs);
+          MPrecHalfSegment hs2(hs);
+          hs2.switchLDP();
+          bulkloadStorage->push_back(hs2);
         }
     }
 
@@ -1395,8 +1400,6 @@ class PrecLine : public StandardSpatialAttribute<2> {
 
     vector<MPrecHalfSegment>* bulkloadStorage; // only used during bulkload
                                                // after end of bulkload 0
-
-
 };
 
 
@@ -1629,8 +1632,7 @@ class PrecRegion : public StandardSpatialAttribute<2> {
        result.SetDefined(true);
        result.startBulkLoad(scale);
        for(int i=0;i<gridData.Size();i++){
-           MPrecHalfSegment h = getHalfSegment(i);
-           result.append(h,false);
+           result.append(getHalfSegment(i),false);
        } 
        result.endBulkLoad(false);
     }

@@ -206,6 +206,8 @@ class MPrecCoordinate : public PPrecCoordinate{
        fractional(0),scale(src.scale){
         fractional = src.fractional?new mpq_class(*(src.fractional)):0;
      }
+
+
      
      MPrecCoordinate(const MPrecCoordinate& src, uint32_t newScale):
        PPrecCoordinate(src), fracStorage(src.fracStorage),
@@ -835,6 +837,10 @@ Binary operators
   const mpq_class* getUnscaledFrac(){
     retrieveFractional();
     return fractional;
+  }
+
+  const void bringToMemory() const{
+    retrieveFractional();
   }
 
   private:
