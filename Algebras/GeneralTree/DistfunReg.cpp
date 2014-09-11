@@ -36,6 +36,7 @@ January-May 2008, Mirko Dibbert
 #include "PictureFuns.h"
 #include "GTA_SpatialAttr.h"
 #include "Coord.h"
+#include "Point.h"
 #include "SpatialAlgebra.h"
 #include "Algorithms.h"
 
@@ -287,6 +288,32 @@ void DistfunReg::EuclideanReal(
     result = abs(val1 - val2);
 }
 
+void DistfunReg::euclidPoint(
+         const DistData *data1, const DistData *data2,
+         double &result) {
+
+     // handle undefined values
+     if(data1->size()==0 && data2->size()==0){
+        result = 0;
+        return ;
+     }
+     if(data1->size()==0 || data2->size()==0){
+        result =  numeric_limits<double>::max();
+        return;
+     }
+
+     Coord x1;
+     Coord y1;
+     memcpy(&x1, data1->value(), sizeof(Coord));
+     memcpy(&y1, (char*) data1->value() + sizeof(Coord), sizeof(Coord));
+     Coord x2;
+     Coord y2;
+     memcpy(&x2, data2->value(), sizeof(Coord));
+     memcpy(&y2, (char*) data2->value() + sizeof(Coord), sizeof(Coord));
+     result = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)); 
+ }
+
+
 /*
 Method specialPoints.
 
@@ -508,7 +535,12 @@ void DistfunReg::initialize()
         EuclideanReal,
         DistDataReg::getInfo(CcReal::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
-    
+
+    addInfo(DistfunInfo(
+      DFUN_EUCLID, DFUN_EUCLID_DESCR,
+      euclidPoint,
+      DistDataReg::getInfo(Point::BasicType(), DDATA_NATIVE),
+      DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     addInfo(DistfunInfo(
         DFUN_SPECIALPOINTS, DFUN_SPECIALPOINTS_DESCR,

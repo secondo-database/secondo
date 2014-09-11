@@ -302,6 +302,29 @@ DistData* DistDataReg::getDataPoints(const void* attr)
 }
 
 /*
+Version for a usual point
+
+*/
+DistData* DistDataReg::getDataPoint(const void* attr) {
+   // cast to the correct type
+   const Point* point = static_cast<const Point*>(attr);
+   // special treatment for undefined values
+   if(!point->IsDefined()){ // undefined points value
+      return new DistData(0,0);
+   }
+   // serialize the point
+   Coord x = point->GetX();
+   Coord y = point->GetY();
+
+   char buffer[2*sizeof(Coord)];
+   memcpy(buffer, &x, sizeof(Coord));
+   memcpy(buffer + sizeof(Coord), &y, sizeof(Coord));
+   return new DistData(2*sizeof(Coord) , buffer);
+}
+
+
+
+/*
 Method ~DistDataReg::getDataHPoint~:
 
 */
@@ -386,6 +409,10 @@ void DistDataReg::initialize()
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
                          CcString::BasicType(), getDataString));
+
+    addInfo(DistDataInfo(
+       DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+       Point::BasicType(), getDataPoint));
 
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,

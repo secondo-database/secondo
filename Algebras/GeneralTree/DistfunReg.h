@@ -335,6 +335,16 @@ Euclidean distance function for the "real"[4] type constructor.
             const DistData *data1, const DistData *data2,
             double &result);
 
+
+/*
+euclidean distance for usual point values
+
+*/
+static void euclidPoint(
+            const DistData *data1, const DistData *data2,
+            double &result);
+
+
 /*
 Distance function for the "Points"[4] type constructor.
 
