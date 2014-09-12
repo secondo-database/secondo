@@ -1257,9 +1257,10 @@ void PrecLine::endBulkLoad(bool realminize){
    if(bulkloadStorage->empty()){
      delete bulkloadStorage;
      bulkloadStorage=0;
-     scale = 1;
+     //scale = 1;
      return;
    }
+
    hstools::sort(*bulkloadStorage);
    vector<MPrecHalfSegment> v2;
    if(realminize){
@@ -1268,11 +1269,17 @@ void PrecLine::endBulkLoad(bool realminize){
       swap(v2, *bulkloadStorage);
    }
 
+   for(size_t i=0;i<v2.size();i++){
+      v2[i].bringToMemory();
+   }
+
    hstools::setPartnerNumbers(v2);
 
    bbox.SetDefined(false);
    scale = v2[0].getScale(); 
 
+   gridData.clean();
+   fracStorage.clean();
    for(size_t i=0;i<v2.size();i++){
       v2[i].appendTo(&gridData, &fracStorage);
       enlarge(bbox, v2[i].getLeftPoint());
@@ -1567,20 +1574,14 @@ void startCycle(vector<MPrecHalfSegment>& segments, vector<bool>& used,
                 int pos, int& faceno){
 
   // TODO find sub cycles
-  cout << "startCycle called, pos = " << pos << " size = " 
-       << segments.size() << endl;
 
   int edgeno = 0;
   MPrecPoint start = segments[pos].getLeftPoint();
 
   MPrecPoint next = segments[pos].getRightPoint();
-  cout << "start while" << endl;
   while((pos >=0) &&  (start != next)){
    
      int partner = segments[pos].attributes.partnerno;
-     cout << "pos = " << pos << endl;
-     cout << "partner = " << partner << endl;
-     cout << "Point = " << next << endl;
      used[pos] = true;
      used[partner] = true;
 
@@ -1592,10 +1593,8 @@ void startCycle(vector<MPrecHalfSegment>& segments, vector<bool>& used,
      segments[partner].attributes.edgeno = edgeno;
      edgeno++;
      pos = findExtension(segments,partner,used);
-     cout << "nextPos = " << pos <<endl;
      next = segments[partner].getRightPoint(); 
   }
-  cout << "end while" << endl;
 
   faceno++;
 
@@ -1636,15 +1635,12 @@ void PrecRegion::computeRegion(vector<MPrecHalfSegment>& segments){
  int pos = 0;
  int faceno = 0;
 
- cout << "before while" << endl;
  while(pos < (int)segments.size()){
     if(!used[pos]){
         startCycle(segments, used, pos, faceno);
     }
     pos++;
  }
- cout << "end while" << endl;
- hstools::operator<<(cout,segments) << endl;
  
   // secondly, look, which cycle is contained in which other to
   // assignde face number and cycle number 

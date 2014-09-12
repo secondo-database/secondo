@@ -2198,7 +2198,6 @@ int collectVM1 (Word* args, Word& result, int message, Word& local,
                  Supplier s ){
 
 
-  cout << "called " << __PRETTY_FUNCTION__ << endl;
   Stream<Arg> stream(args[0]);
   CcBool* iu = (CcBool*) args[1].addr;
   bool ignoreUD = iu->IsDefined() && iu->GetValue();
