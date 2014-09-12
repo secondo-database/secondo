@@ -21,7 +21,7 @@ Result   : TRUE
 
 Operator : cspread
 Number   : 1
-Signature: ((stream (tuple x) x text x text x text x text x attr)) -> int
+Signature: ((stream (tuple x) x text x text x text x text x text x attr)) -> int
 Example  : query plz feed cspread['127.0.0.1', 'keyspace1', 'plz', 'ANY', 'node1', PLZ]
 Result   : 41267
 
