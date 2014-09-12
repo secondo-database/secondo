@@ -947,6 +947,35 @@ bool Point::Inside( const Rectangle<2>& r, const Geoid* geoid /*=0*/ ) const
   return true;
 }
 
+void Point::ReadFromString(string value) {
+
+  ListExpr list;
+  if(!nl->ReadFromString(value,list)){
+     if(!nl->ReadFromString("("+value+")",list)){
+        SetDefined(false); 
+        return;
+     }
+  }
+  if(listutils::isSymbolUndefined(list)){
+     SetDefined(false);
+     return;
+  }
+  if(    nl->HasLength(list,2) 
+      && listutils::isNumeric(nl->First(list))
+      && listutils::isNumeric(nl->Second(list))){
+     Set(listutils::getNumValue(nl->First(list)),
+         listutils::getNumValue(nl->Second(list)));
+     return;
+  }
+  if(    nl->HasLength(list,3) 
+      && listutils::isNumeric(nl->First(list))
+      && listutils::isNumeric(nl->Third(list))){
+     Set(listutils::getNumValue(nl->First(list)),
+         listutils::getNumValue(nl->Third(list)));
+     return;
+  }
+  SetDefined(false);
+}
 
 void Point::Intersection(const Point& p, Points& result,
                          const Geoid* geoid /*=0*/ ) const{
@@ -25253,6 +25282,8 @@ class SpatialAlgebra : public Algebra
 
 
     point.AssociateKind(Kind::DATA());
+    point.AssociateKind(Kind::CSVEXPORTABLE());
+    point.AssociateKind(Kind::CSVIMPORTABLE());
     points.AssociateKind(Kind::DATA());
     line.AssociateKind(Kind::DATA());
     region.AssociateKind(Kind::DATA());

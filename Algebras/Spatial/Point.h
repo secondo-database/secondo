@@ -326,6 +326,26 @@ If ~geoid~ is NULL, euclidean geometry is used, otherwise spherical geometry.
 
 
 /*
+4.1 Importz/Export to CSV files
+
+*/
+
+virtual string getCsvStr() const{
+    if(!IsDefined()){
+      return "undef";    
+    }
+    stringstream ss;
+    ss.precision(16);
+    ss << "(" << x << " " << y << ")";
+    return ss.str();
+ }
+
+virtual void ReadFromString(string value);
+
+
+
+
+/*
 4.1 Spherical geometry operations
 
 While the preceding operations use euclidic geometry, the following operations
