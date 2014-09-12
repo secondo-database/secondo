@@ -74,6 +74,7 @@ This file contains the implementation import / export operators.
 #include "SpatialAlgebra.h"
 #include "DateTime.h"
 #include "TopOpsAlgebra.h"
+#include "BinaryFileAlgebra.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "Symbols.h"
 #include "FileSystem.h"
@@ -465,7 +466,8 @@ ListExpr csvimportTM(ListExpr args){
     return nl->TypeError();
   }
   if(!Relation::checkType(nl->First(args)) ||
-     !FText::checkType(nl->Second(args) )  ||
+     (   !FText::checkType(nl->Second(args) ) 
+      && !BinaryFile::checkType(nl->Second(args))) ||
      !CcInt::checkType(nl->Third(args)) ||
      !CcString::checkType(nl->Fourth(args) )){
     return listutils::typeError(err);
@@ -481,7 +483,8 @@ ListExpr csvimportTM(ListExpr args){
   while(!nl->IsEmpty(attrlist)){
      ListExpr type = nl->Second(nl->First(attrlist));
      if(!am->CheckKind(Kind::CSVIMPORTABLE(),type,errorInfo)){
-        ErrorReporter::ReportError("attribute type not in kind CSVEXPORTABLE");
+        ErrorReporter::ReportError("attribute type '" + nl->ToString(type) + 
+                                    "' not in kind CSVIMPORTABLE");
         return nl->TypeError();
      }
      attrlist = nl->Rest(attrlist);
@@ -590,7 +593,11 @@ public:
 
 */
       CSVInputStream(string* source, string* separator, string* comment) {
-          this -> source = string(*source);
+          if(source){
+              this -> source = string(*source);
+          } else {
+              this->source = "";
+          }
           this -> separator = string(*separator);
           this -> comment = string(*comment);
           
@@ -894,6 +901,59 @@ class CSVFileInputStream : public CSVInputStream {
       FILE* file;
 
 };
+
+
+/* 
+1.4 Class for processing binary file csv input streams
+
+*/
+class CSVBinFileInputStream : public CSVInputStream {
+
+   public:
+   CSVBinFileInputStream(BinaryFile *source, string *mySeparator, 
+      string *myComment) 
+       : CSVInputStream(0, mySeparator, myComment) {
+       size = source->GetSize();
+       this->source = source;
+       pos = 0;
+   }
+   
+   ~CSVBinFileInputStream() {
+   }
+
+   virtual void open() {
+     // we cna just read binary files
+   }
+
+   virtual void close() {
+      // we don't have to close binary files
+   }
+
+   virtual bool isDataAvailable() {
+       return pos < size;
+   }
+ 
+   virtual size_t readNextData(char *buffer, size_t start, 
+      size_t maxBytes) {
+
+      if(! isDataAvailable() ) {
+         return 0;
+      }
+      size_t abytes = size-pos;
+      size_t readBytes = min(abytes,maxBytes);
+      source->Get(pos,readBytes,buffer+start); 
+      pos += readBytes;
+      return readBytes;
+   }
+ 
+   private:
+     BinaryFile* source;
+     size_t pos;
+     size_t size;
+     
+};
+
+
 
 /* 
 1.5 Class for processing network csv input streams
@@ -1226,6 +1286,95 @@ public:
   }
 
 
+  CsvImportInfo(ListExpr type, BinaryFile* file,
+                CcInt* hSize , CcString* comment,
+                CcString* separator,
+                CcBool* quotes,
+                CcBool* multiline = 0
+                ){
+
+      this->separator = ",";
+      this->quotes = false;
+
+      if(separator->IsDefined() ){
+         string sep = separator->GetValue();
+         sep = stringutils::replaceAll(sep,"\\t","\t");
+         if(sep.length()>0){
+           this->separator=sep;
+         }
+      } 
+      if(quotes->IsDefined()){
+         this->quotes = quotes->GetValue();
+      }
+
+      BasicTuple = 0;
+      tupleType = 0;
+      defined = file->IsDefined() && hSize->IsDefined() &&
+                comment->IsDefined();
+      if(!defined){
+          return;
+      }
+      this->multiLine = false;
+      if(multiline && multiline->IsDefined()){
+         this->multiLine = multiline->GetBoolval();
+      }
+      this->comment = comment->GetValue();
+      useComment = this->comment.size()>0;
+
+      // Create csvinputstream
+      csvinputstream =  new CSVBinFileInputStream(
+            file, &this->separator, &this->comment);
+
+      csvinputstream -> setMultiline(multiline);
+      csvinputstream -> setQuotes( quotes -> GetBoolval( ));
+
+      csvinputstream -> open();
+
+      if(! csvinputstream -> isUnprocessedDataAvailable() ){
+         defined = false;
+         return;
+      }
+
+      // skip header
+      int skip = hSize->GetIntval();
+
+      for(int i=0;i<skip && csvinputstream -> isUnprocessedDataAvailable(); 
+          i++) {
+        
+         csvinputstream -> skipLine();
+         // Callback (needed for tcplb protocol)
+         csvinputstream -> tupleComplete();
+      }
+
+      if(!csvinputstream -> isUnprocessedDataAvailable()){
+        defined=false;
+        return;
+      }
+
+      ListExpr numType = nl->Second(
+                         SecondoSystem::GetCatalog()->NumericType((type)));
+      tupleType = new TupleType(numType);
+      BasicTuple = new Tuple(tupleType);
+      // build instances for each type
+      ListExpr attrList = nl->Second(nl->Second(type));
+      while(!nl->IsEmpty(attrList)){
+         ListExpr attrType = nl->Second(nl->First(attrList));
+         attrList = nl->Rest(attrList);
+         int algId;
+         int typeId;
+         string tname;
+         if(! ((SecondoSystem::GetCatalog())->LookUpTypeExpr(attrType,
+                                               tname, algId, typeId))){
+           defined = false;
+           return;
+         }
+         Word w = am->CreateObj(algId,typeId)(attrType);
+         instances.push_back(static_cast<Attribute*>(w.addr));
+      }
+  }
+
+
+
 
   ~CsvImportInfo(){
      if(BasicTuple){
@@ -1308,7 +1457,8 @@ private:
 };
 
 
-int csvimportVM(Word* args, Word& result,
+template<class SType>
+int csvimportVM1(Word* args, Word& result,
                int message, Word& local, Supplier s){
 
 
@@ -1316,7 +1466,7 @@ int csvimportVM(Word* args, Word& result,
   switch(message){
     case OPEN: {
       ListExpr type = qp->GetType(qp->GetSon(s,0));
-      FText* fname = static_cast<FText*>(args[1].addr);
+      SType* source = static_cast<SType*>(args[1].addr);
       CcInt* skip = static_cast<CcInt*>(args[2].addr);
       CcString* comment = static_cast<CcString*>(args[3].addr);
       CcString* separator = static_cast<CcString*>(args[4].addr);
@@ -1325,7 +1475,7 @@ int csvimportVM(Word* args, Word& result,
       if(info){
         delete info;
       }
-      local.setAddr(new CsvImportInfo(type,fname,skip,comment,separator, 
+      local.setAddr(new CsvImportInfo(type,source,skip,comment,separator, 
                                       quotes,multiline));
       return 0;
     }
@@ -1352,13 +1502,29 @@ int csvimportVM(Word* args, Word& result,
 
 
 /*
+Value Mapping array and Selection
+
+*/
+ValueMapping csvimportVM[] = {
+   csvimportVM1<FText>,
+   csvimportVM1<BinaryFile>
+};
+
+int csvimportSelect(ListExpr args){
+
+  return FText::checkType(nl->Second(args))?0:1;
+
+}
+
+/*
 1.4 Operator Instance
 
 */
 Operator csvimport( "csvimport",
                     csvimportSpec,
+                    2,
                     csvimportVM,
-                    Operator::SimpleSelect,
+                    csvimportSelect,
                     csvimportTM);
 
 
