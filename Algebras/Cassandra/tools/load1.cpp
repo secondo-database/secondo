@@ -93,7 +93,7 @@ struct commandline_args_t {
 };
 
 /*
-2.1 print usage fuction
+2.1 Print usage fuction
 
 */
 void printUsageAndExit(char* progname) {
@@ -115,7 +115,7 @@ void printUsageAndExit(char* progname) {
 }
 
 /*
-2.2 fill the send buffer with the specified content
+2.2 Fill the send buffer with the specified content
 
 */
 void fillBuffer(string &result, int columns, int sizePerColumn) {
@@ -144,7 +144,7 @@ void fillBuffer(string &result, int columns, int sizePerColumn) {
 }
 
 /*
-2.3 Wait for an ACK char from server
+2.3 Wait for an ACK char from remote server
 
 */
 void waitForAck(int socketfd) {
@@ -202,7 +202,7 @@ bool openSocket(int &socketfd, char* hostname, int port) {
 }
 
 /*
-2.5 parse commandline args
+2.5 Parse commandline args amd fill struct commandline\_args
 
 */
 void parseCommandline(int argc, char* argv[], 
@@ -255,7 +255,9 @@ void parseCommandline(int argc, char* argv[],
 }
 
 /*
-2.6 main function
+2.6 Main function
+
+The function open a socket, generate requested data and close the socket
 
 */
 int main(int argc, char* argv[]) {
