@@ -31,6 +31,13 @@
 
  0 Overview
 
+ This file contains an abstraction layer for the cassandra algebra. The 
+ cassandra algebra does not communicate with cassandra directly. The algebra
+ will only use the functions defined here. 
+ 
+ In addition, this file contains some helper classes: E.g. for representing
+ token-ranges or parsing consistency levels.
+ 
  1 Includes and defines
 
 */
@@ -309,13 +316,13 @@ public:
 /*
 2.3.3 Write a tuple to the cluster
 
-1st Parameter is the name of the relation (e.g. plz)
-2nd Parameter is the partiton value of the tuple
-3rd Parameter is the name of the node
-4th Parameter is the unique key of the data
-5th. Parameter is the data
-6th Parameter is the consistence level used for writing
-7th Parameter specifies to use synchronus or asynchronus writes
+1. Parameter is the name of the relation (e.g. plz)
+2. Parameter is the partiton value of the tuple
+3. Parameter is the name of the node
+4. Parameter is the unique key of the data
+5. Parameter is the data
+6. Parameter is the consistence level used for writing
+7. Parameter specifies to use synchronus or asynchronus writes
 
 */
     void writeDataToCassandra(string relation, 
