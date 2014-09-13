@@ -28,8 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_] [\_]
 //[TOC] [\tableofcontents]
 
-[1] Loadgenerator. This programm generates CSV data and send it 
-to a network socket. A sample line looks like:
+
+
+[1] Loadgenerator. This program generates CSV data and send the 
+data through a network socket. A sample line looks like:
 
 gEpYm0eUDk,fAgVgUHWPo,bClSVK17HX,ixjXTTW7yh,qdsU8WzP1O,
 CcZw52F47W,bpRKKsoq0m,YoNOJWsGtt,c5U92XBHbG,kA5CUO4GE2
