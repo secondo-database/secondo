@@ -31,6 +31,10 @@
 
  0 Overview
 
+ The classes, contained in this file, encapsulates a cassandra result 
+ statement into a CassandraResult object. These objects can be lazy 
+ evaluated or evaluated in multiple threads.
+ 
  1 Includes and defines
 
 */

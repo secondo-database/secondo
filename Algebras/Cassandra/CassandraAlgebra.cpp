@@ -31,6 +31,16 @@
 
  0 Overview
 
+ This file contains an algebra with 11 operators. With these operators
+ you can interact with cassandra. With cspread can export SECONDO
+ tuples into cassandra, with ccollect you can import these tuples back 
+ into SECONDO. Also, the algebra contains operators for distributed
+ query processing like cqueryexecute and cquerywait.
+ 
+ In addition, this algebra contains two auxiliary operators 
+ for experiments (sleep and statistics). 
+ 
+ 
  1 Includes and defines
 
 */

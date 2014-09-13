@@ -30,6 +30,14 @@
  [TOC]
 
  0 Overview
+ 
+ This file contains a connection pool for cassandra connections. If 
+ you request a connection the first time, the connection will be 
+ established. If you request a connection a second time, the 
+ already established connection will be returned.
+ 
+ The pool holds one connection per initial cassandra server, keyspace 
+ and loadbalancing policy. 
 
  1 Includes and defines
 
