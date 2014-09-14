@@ -70,9 +70,9 @@ of operator ruggedness.
           { 
             name      = "ruggedness";
             signature = "sType -> sType";
-            appendSignature("tType x double -> stream(tType)");
+            appendSignature("stream(tType) x double -> stream(tType)");
             syntax    = "_ ruggedness";
-            meaning   = "Creates ruggedness for raster or tile";
+            meaning   = "Creates ruggedness for raster or stream of tiles";
            }              
         };
 }

@@ -70,9 +70,9 @@ of operator aspect.
           { 
             name      = "aspect";
             signature = "sType x double -> sType";
-            appendSignature("tType x double -> stream(tType)");
+            appendSignature("stream(tType) x double -> stream(tType)");
             syntax    = "_ aspect[_]";
-            meaning   = "Creates aspect for raster or tile";
+            meaning   = "Creates aspect for raster or stream of tiles";
            }              
         };
 }
