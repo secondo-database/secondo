@@ -887,6 +887,9 @@ int main(int argc, char* argv[]){
     return -1;
   }
   
+  // Wait for meta tables to be created
+  sleep(5);
+  
   cout << "Connection to cassandra successfull" << endl;
 
   // Gernerate UUID
