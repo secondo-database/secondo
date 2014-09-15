@@ -396,7 +396,7 @@ class MPrecCoordinate : public PPrecCoordinate{
               if(!correct){
                 return false;
               }
-              uint64_t num = stringutils::str2int<uint64_t>(part2, correct);
+              unsigned int num = stringutils::str2int<uint64_t>(part2, correct);
               if(!correct){
                 return false;
               }
@@ -414,7 +414,7 @@ class MPrecCoordinate : public PPrecCoordinate{
                 assert(scale >0);
                 return true; 
               }
-              uint64_t denom = 1;
+              unsigned int denom = 1;
               for(size_t i=0;i<part2.length();i++){
                 denom *=10;
               }
@@ -602,7 +602,7 @@ class MPrecCoordinate : public PPrecCoordinate{
 Binary operators
 
 */     
-     MPrecCoordinate& operator+=(const int64_t& v) {
+     MPrecCoordinate& operator+=(const unsigned int& v) {
          if(scale==1){
             gridCoord += v;
          } else {
@@ -612,7 +612,7 @@ Binary operators
          return *this;
      }
      
-     MPrecCoordinate& operator-=(const int64_t& v) {
+     MPrecCoordinate& operator-=(const unsigned int& v) {
          if(scale == 1){
              gridCoord -= v;
          } else {
@@ -675,7 +675,7 @@ Binary operators
          return *this;
      }
 
-     MPrecCoordinate& operator*=(const int64_t v){
+     MPrecCoordinate& operator*=(const unsigned int v){
           if(precPos==0){
               gridCoord *= v;
               return *this;
@@ -918,6 +918,8 @@ After calling this function, the fractional part is in (0,1).
            *fractional = abs(*fractional) + 1;
            mpz_class intPart = fractional->get_num() / fractional->get_den();
            if(!intPart.fits_slong_p()){
+               cout << "intpart is " << intPart << endl;
+               assert(false);
                throw overflowException("intpart of fraction does not"
                                        " fit into a long");
            }
@@ -971,16 +973,33 @@ After calling this function, the fractional part is in (0,1).
      } 
 
 
+
+     static mpq_class getMPQ(const uint64_t v){
+        if(sizeof(unsigned int) == 8){
+           return mpq_class((unsigned int) v); 
+        }
+        uint64_t p1 = v & 0xFFFFFFFF;
+        uint64_t p2 = v >> 32;
+        if(p2==0){
+          return mpq_class((unsigned int)p1);
+        } 
+        mpq_class mp1((unsigned int)p1);
+        mpq_class mp2((unsigned int)p2);
+        mpq_class f(1<<31);
+        f *= 2;
+        return mp2*f+mp1; 
+     }
+
      mpq_class getComplete(bool scaled) const{
         if(precPos==0){
-           mpq_class res(gridCoord);
+           mpq_class res = getMPQ(gridCoord);
            if(scaled){
              res /= scale;
            }
            return res;
         }
         retrieveFractional();
-        mpq_class  res(gridCoord + *fractional);
+        mpq_class  res(getMPQ(gridCoord) + *fractional);
         if(scaled){
           res /= scale;
         }

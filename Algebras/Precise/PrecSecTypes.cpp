@@ -112,7 +112,7 @@ bool readFrom(ListExpr le, MPrecCoordinate& result, bool includeScale,
 
 
     if(nl->AtomType(le)==IntType){
-       result = MPrecCoordinate(nl->IntValue(le), scale);
+       result = MPrecCoordinate((int) nl->IntValue(le), scale);
        return true; 
     }
 
