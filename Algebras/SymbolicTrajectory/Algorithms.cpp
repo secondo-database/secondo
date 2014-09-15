@@ -594,6 +594,57 @@ void Pattern::deleteEasyCondOpTrees() {
 }
 
 /*
+\subsection{Destructor for class ~ClassifyLI~}
+
+*/
+ClassifyLI::~ClassifyLI() {
+  if (classifyTT) {
+    delete classifyTT;
+    classifyTT = 0;
+  }
+  vector<Pattern*>::iterator it;
+  for (it = pats.begin(); it != pats.end(); it++) {
+    delete (*it);
+  }
+  pats.clear();
+}
+
+/*
+\subsection{Function ~getTupleType~}
+
+*/
+TupleType* ClassifyLI::getTupleType() {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  ListExpr resultTupleType = nl->TwoElemList(
+    nl->SymbolAtom(Tuple::BasicType()),
+    nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Description"),
+                                    nl->SymbolAtom(FText::BasicType())),
+                    nl->TwoElemList(nl->SymbolAtom("Trajectory"),
+                                    nl->SymbolAtom(MLabel::BasicType()))));
+  ListExpr numResultTupleType = sc->NumericType(resultTupleType);
+  return new TupleType(numResultTupleType);
+}
+
+/*
+\subsection{Function ~nextResultText~}
+
+This function is used for the operator ~classify~.
+
+*/
+FText* ClassifyLI::nextResultText() {
+  if (!pats.size()) {
+    return 0;
+  }  
+  if (!matchingPats.empty()) {
+    set<int>::iterator it = matchingPats.begin();
+    FText* result = new FText(true, pats[*it]->getDescr());
+    matchingPats.erase(it);
+    return result;
+  }
+  return 0;
+}
+
+/*
 \section{Functions for class ~Classifier~}
 
 \subsection{List Representation}
@@ -1131,367 +1182,6 @@ void Condition::deleteOpTree() {
     }
     treeOk = false;
   }
-}
-
-/*
-\subsection{Constructor for class ~ClassifyLI~}
-
-This constructor is used for the operator ~classify~.
-
-*/
-ClassifyLI::ClassifyLI(MLabel *ml, Word _classifier) : classifyTT(0) {
-  Classifier *c = static_cast<Classifier*>(_classifier.addr);
-  int startState(0), pat(0);
-  set<unsigned int> emptyset;
-  set<int> states, finalStates, matchCands;
-  set<int>::iterator it;
-  Pattern *p = 0;
-  PatElem elem;
-  vector<PatElem> patElems;
-  vector<Condition> easyConds;
-  vector<int> startStates;
-  map<int, set<int> > easyCondPos;
-  map<int, int> atomicToElem; // TODO: use this sensibly
-  map<int, string> elemToVar; // TODO: use this sensibly
-  bool condsOccur = false;
-  for (int i = 0; i < c->getCharPosSize() / 2; i++) {
-    states.insert(states.end(), startState);
-    startStates.push_back(startState);
-    p = Pattern::getPattern(c->getPatText(i), true); // single NFA are not built
-    if (p) {
-      p->setDescr(c->getDesc(i));
-      if (p->hasConds()) {
-        condsOccur = true;
-      }
-      pats.push_back(p);
-      map<int, set<int> > easyOld = p->getEasyCondPos();
-      for (map<int, set<int> >::iterator im = easyOld.begin();
-                                         im != easyOld.end(); im++) {
-        for (it = im->second.begin(); it != im->second.end(); it++) {
-          easyCondPos[im->first+patElems.size()].insert(*it + easyConds.size());
-        }
-      }
-      for (unsigned int j = 0; j < p->getEasyConds().size(); j++) {
-        easyConds.push_back(p->getEasyCond(j));
-        easyConds.back().initOpTree();
-      }
-      for (int j = 0; j < p->getSize(); j++) {
-        p->getElem(j, elem);
-        patElems.push_back(elem);
-      }
-      do { // get start state
-        startState++;
-        c->s2p.Get(startState, pat);
-      } while ((i < c->getCharPosSize() / 2 - 1) && (pat >= 0));
-    }
-    else {
-      cout << "pattern could not be parsed" << endl;
-    }
-  }
-  if (!pats.size()) {
-    cout << "no classification data specified" << endl;
-    return;
-  }
-  vector<map<int, int> > nfa;
-  Tools::createNFAfromPersistent(c->delta, c->s2p, nfa, finalStates);
-  Match<MLabel> *match = new Match<MLabel>(0, ml);
-  if (condsOccur) {
-    match->createSetMatrix(ml->GetNoComponents(), patElems.size());
-  }
-  for (int i = 0; i < ml->GetNoComponents(); i++) {
-    if (!match->updateStates(i, nfa, patElems, finalStates, states, easyConds,
-                             easyCondPos, atomicToElem, condsOccur)){
-      for (unsigned int j = 0; j < easyConds.size(); j++) {
-        easyConds[j].deleteOpTree();
-      }
-      return;
-    }
-  }
-  for (unsigned int j = 0; j < easyConds.size(); j++) {
-    easyConds[j].deleteOpTree();
-  }
-  for (it = states.begin(); it != states.end(); it++) { // active states final?
-    c->s2p.Get(*it, pat);
-    if ((*it > 0) && (pat != INT_MAX) && (pat >= 0)) {
-      matchCands.insert(matchCands.end(), pat);
-//       cout << "pattern " << pat << " matches" << endl;
-    }
-  }
-  for (it = matchCands.begin(); it != matchCands.end(); it++) { // check conds
-    pats[*it]->initCondOpTrees();
-    vector<Condition>* conds = pats[*it]->getConds();
-//     cout << "call fMB(nfa, " << startStates[*it] << ", " << patElems.size()
-//          << ", " << conds->size() << ")" << endl;
-    if (match->findMatchingBinding(nfa, startStates[*it], patElems, *conds,
-                                   atomicToElem, elemToVar)) {
-      matchingPats.insert(*it);
-//       cout << "p " << *it << " matches after condition check" << endl;
-    }
-    else {
-//       cout << "p " << *it << " has non-matching conditions" << endl;
-    }
-    pats[*it]->deleteCondOpTrees();
-  }
-  match->deleteSetMatrix();
-  delete match;
-}
-
-/*
-\subsection{Constructor for class ~MultiRewriteLI~}
-
-This constructor is used for the operator ~rewrite~.
-
-*/
-MultiRewriteLI::MultiRewriteLI(Word _mlstream, Word _pstream) : ClassifyLI(0),
-     RewriteLI<MLabel>(0), mlStream(_mlstream), streamOpen(false), ml(0), c(0) {
-  Stream<FText> pStream(_pstream);
-  pStream.open();
-  FText* inputText = pStream.request();
-  Pattern *p = 0;
-  PatElem elem;
-  set<int>::iterator it;
-  map<int, set<int> >::iterator im;
-  int elemCount(0);
-  string var;
-  while (inputText) {
-    if (!inputText->IsDefined()) {
-      cout << "undefined input is ignored" << endl;
-    }
-    else {
-      p = Pattern::getPattern(inputText->GetValue(), true); // no single NFA
-      if (p) {
-        if (!p->hasAssigns()) {
-          cout << "pattern without rewrite part ignored" << endl;
-        }
-        else {
-          if (p->initCondOpTrees()) {
-            pats.push_back(p);
-            for (int i = 0; i < p->getSize(); i++) {
-              atomicToElem[patElems.size()] = elemCount + p->getElemFromAtom(i);
-              p->getElem(i, elem);
-              elem.getV(var);
-              elemToVar[elemCount+p->getElemFromAtom(i)] = var;
-              patElems.push_back(elem);
-              patOffset[elemCount + p->getElemFromAtom(i)] =
-                                          make_pair(pats.size() - 1, elemCount);
-            }
-            elemCount += p->getElemFromAtom(p->getSize() - 1) + 1;
-            map<int, set<int> > easyOld = p->getEasyCondPos();
-            for (im = easyOld.begin(); im != easyOld.end(); im++) {
-              for (it = im->second.begin(); it != im->second.end(); it++) {
-                easyCondPos[im->first + patElems.size()].insert
-                                                       (*it + easyConds.size());
-              }
-            }
-            for (unsigned int j = 0; j < p->getEasyConds().size(); j++) {
-              easyConds.push_back(p->getEasyCond(j));
-              easyConds.back().initOpTree();
-            }
-          }
-        }
-      }
-    }
-    inputText->DeleteIfAllowed();
-    inputText = pStream.request();
-  }
-  pStream.close();
-  if (!pats.size()) {
-    cout << "no classification data specified" << endl;
-  }
-  else {
-    mlStream.open();
-    streamOpen = true;
-    Classifier *c = new Classifier(0);
-    c->buildMultiNFA(pats, nfa, finalStates, state2Pat);
-    c->getStartStates(states);
-    match = new Match<MLabel>(0, ml);
-    c->DeleteIfAllowed();
-  }
-}
-
-
-/*
-\subsection{Function ~nextResultML~}
-
-This function is used for the operator ~rewrite~.
-
-*/
-MLabel* MultiRewriteLI::nextResultML() {
-  if (!pats.size()) {
-    return 0;
-  }
-  set<int> startStates;
-  set<int>::iterator it;
-  while (!bindingStack.empty()) {
-    BindingStackElem bE(0, 0);
-    bE = bindingStack.top();
-//     cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
-    bindingStack.pop();
-    resetBinding(bE.ulId);
-    pair<int, int> patNo = patOffset[bE.peId];
-    if (findNextBinding(bE.ulId, bE.peId, pats[patNo.first], patNo.second)) {
-      return RewriteLI<MLabel>::rewrite(ml, binding, 
-                                        pats[patNo.first]->getAssigns());
-    }
-  }
-  while (bindingStack.empty()) { // new ML from stream necessary
-    match->deleteSetMatrix();
-    delete match;
-    match = 0;
-    deleteIfAllowed(ml);
-    ml = (MLabel*)mlStream.request();
-    if (!ml) {
-      return 0;
-    }
-    match = new Match<MLabel>(0, ml);
-    match->createSetMatrix(ml->GetNoComponents(), patElems.size());
-    getStartStates(startStates);
-    states = startStates;
-    matchCands.clear();
-    int i = 0;
-    while (!states.empty() && (i < ml->GetNoComponents())) { // loop through ml
-      match->updateStates(i, nfa, patElems, finalStates, states, easyConds,
-                          easyCondPos, atomicToElem, true);
-      i++;
-    }
-    for (it = states.begin(); it != states.end(); it++) { //active states final?
-      if (finalStates.count(*it)) {
-        matchCands.insert(matchCands.end(), state2Pat[*it]);
-      }
-    }
-    initStack(startStates);
-    while (!bindingStack.empty()) {
-      BindingStackElem bE(0, 0);
-      bE = bindingStack.top();
-//      cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
-      bindingStack.pop();
-      resetBinding(bE.ulId);
-      pair<int, int> patNo = patOffset[bE.peId];
-      if (findNextBinding(bE.ulId, bE.peId, pats[patNo.first], patNo.second)) {
-        return RewriteLI<MLabel>::rewrite(ml, binding, 
-                                          pats[patNo.first]->getAssigns());
-      }
-    }
-  }
-  cout << "SHOULD NOT OCCUR" << endl;
-  return 0;
-}
-
-/*
-\subsection{Function ~initStack~}
-
-Determines the start states of the match candidate patterns and pushes the
-corresponding initial transitions onto the stack.
-
-*/
-void MultiRewriteLI::initStack(set<int> &startStates) {
-  set<int>::iterator it;
-  map<int, int>::iterator itm;
-  for (it = startStates.begin(); it != startStates.end(); it++) {
-    if (matchCands.count(-state2Pat[*it])) {
-      map<int, int> transitions = nfa[*it];
-      for (itm = transitions.begin(); itm != transitions.end(); itm++) {
-        BindingStackElem bE(0, atomicToElem[itm->first]);
-        bindingStack.push(bE);
-//         cout << "(0, " << itm->first << ") pushed onto stack" << endl;
-      }
-    }
-  }
-}
-
-/*
-\subsection{Function ~getStartStates~}
-
-*/
-void MultiRewriteLI::getStartStates(set<int> &states) {
-  states.clear();
-  states.insert(0);
-  map<int, int>::iterator it;
-  for (it = state2Pat.begin(); it != state2Pat.end(); it++) {
-    if (it->second < 0) {
-      states.insert(it->first);
-    }
-  }
-}
-
-/*
-\subsection{Destructor for class ~MultiRewriteLI~}
-
-*/
-MultiRewriteLI::~MultiRewriteLI() {
-  for (unsigned int i = 0; i < pats.size(); i++) {
-    if (pats[i]) {
-      pats[i]->deleteCondOpTrees();
-      delete pats[i];
-      pats[i] = 0;
-    }
-  }
-  if (match) {
-    match->deleteSetMatrix();
-    delete match;
-  }
-  match = 0;
-  if (ml) {
-    deleteIfAllowed(ml);
-  }
-  ml = 0;
-  if (streamOpen) {
-    mlStream.close();
-  }
-  for (unsigned int i = 0; i < easyConds.size(); i++) {
-    easyConds[i].deleteOpTree();
-  }
-}
-
-/*
-\subsection{Destructor for class ~ClassifyLI~}
-
-*/
-ClassifyLI::~ClassifyLI() {
-  if (classifyTT) {
-    delete classifyTT;
-    classifyTT = 0;
-  }
-  vector<Pattern*>::iterator it;
-  for (it = pats.begin(); it != pats.end(); it++) {
-    delete (*it);
-  }
-  pats.clear();
-}
-
-/*
-\subsection{Function ~getTupleType~}
-
-*/
-TupleType* ClassifyLI::getTupleType() {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  ListExpr resultTupleType = nl->TwoElemList(
-    nl->SymbolAtom(Tuple::BasicType()),
-    nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Description"),
-                                    nl->SymbolAtom(FText::BasicType())),
-                    nl->TwoElemList(nl->SymbolAtom("Trajectory"),
-                                    nl->SymbolAtom(MLabel::BasicType()))));
-  ListExpr numResultTupleType = sc->NumericType(resultTupleType);
-  return new TupleType(numResultTupleType);
-}
-
-/*
-\subsection{Function ~nextResultText~}
-
-This function is used for the operator ~classify~.
-
-*/
-FText* ClassifyLI::nextResultText() {
-  if (!pats.size()) {
-    return 0;
-  }  
-  if (!matchingPats.empty()) {
-    set<int>::iterator it = matchingPats.begin();
-    FText* result = new FText(true, pats[*it]->getDescr());
-    matchingPats.erase(it);
-    return result;
-  }
-  return 0;
 }
 
 /*

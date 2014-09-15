@@ -14,6 +14,7 @@ operator createunitrtree alias CREATEUNITRTREE pattern _ op [ _ ]
 operator indexmatches alias INDEXMATCHES pattern _ op [ _ , _ , _ ]
 operator filtermatches alias FILTERMATCHES pattern _ op [ _ , _ ]
 operator rewrite alias REWRITE pattern op ( _ , _ )
+operator multirewrite alias MULTIREWRITE pattern _ op [ _ , _ ]
 operator classify alias CLASSIFY pattern op ( _ , _ )
 operator indexclassify alias INDEXCLASSIFY pattern _ op [ _ , _ , _ ]
 operator compress alias COMPRESS pattern op ( _ )

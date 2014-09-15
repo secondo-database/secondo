@@ -304,10 +304,14 @@ Deletes a twodimensional array.
 */
 
 void Tools::deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1) {
-  for (unsigned int i = 0; i < dim1; i++) {
-    delete[] victim[i];
+  if (victim) {
+    for (unsigned int i = 0; i < dim1; i++) {
+      if (victim[i]) {
+        delete[] victim[i];
+      }
+    }
+    delete[] victim;
   }
-  delete[] victim;
 }
 
 /*

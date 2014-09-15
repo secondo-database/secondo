@@ -2449,8 +2449,8 @@ struct filtermatchesInfo : OperatorInfo {
 
 */
 ListExpr rewriteTM(ListExpr args) {
-  const string errMsg = "Expecting a mlabel and a pattern/text"
-                        " or a stream<mlabel> and a stream<text>";
+  const string errMsg = "Expecting an mT (T in {label(s), place(s)} and a "
+                        "pattern/text";
   if (nl->HasLength(args, 2)) {
     ListExpr mtype = nl->First(args);
     if ((MLabel::checkType(mtype) || MLabels::checkType(mtype) ||
@@ -2459,11 +2459,6 @@ ListExpr rewriteTM(ListExpr args) {
          PatPersistent::checkType(nl->Second(args)))) {
       return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
                              mtype);
-    }
-    if (Stream<MLabel>::checkType(nl->First(args))
-     && Stream<FText>::checkType(nl->Second(args))) {
-       return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
-                              nl->SymbolAtom(MLabel::BasicType()));
     }
   }
   return NList::typeError(errMsg);
@@ -2474,9 +2469,6 @@ ListExpr rewriteTM(ListExpr args) {
 
 */
 int rewriteSelect(ListExpr args) {
-  if (Stream<FText>::checkType(nl->Second(args))) {
-    return 8;
-  }
   if (MLabel::checkType(nl->First(args))) {
     return (PatPersistent::checkType(nl->Second(args)) ? 4 : 0);
   }
@@ -2557,23 +2549,93 @@ int rewriteVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 /*
-\subsection{Value Mapping (for a stream of patterns)}
+\subsection{Operator Info}
 
 */
-int rewriteVM_Stream(Word* args, Word& result, int message, Word& local,
-                     Supplier s) {
-  MultiRewriteLI *li = (MultiRewriteLI*)local.addr;
+struct rewriteInfo : OperatorInfo {
+  rewriteInfo() {
+    name      = "rewrite";
+    signature = "mT x P -> stream(mT),   where T in {label(s), place(s)}, "
+                "P in {pattern, text}";
+    syntax    = "rewrite (_, _)";
+    meaning   = "Rewrite a symbolic trajectory according to a rewrite rule.";
+  }
+};
+
+/*
+\section{Operator ~multirewrite~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr multirewriteTM(ListExpr args) {
+  if (nl->HasLength(args, 3)) {
+    if (!Stream<Tuple>::checkType(nl->First(args))) {
+      return NList::typeError("First argument must be a tuple stream.");
+    }
+    if (!listutils::isSymbol(nl->Second(args))) {
+      return NList::typeError("Second argument must be an attribute name.");
+    }
+    if (!Stream<FText>::checkType(nl->Third(args))) {
+      return NList::typeError("Third argument must be a text stream.");
+    }
+    string attrname = nl->SymbolValue(nl->Second(args));
+    ListExpr attrlist = nl->Second(nl->Second(nl->First(args)));
+    ListExpr attrtype;
+    int index = listutils::findAttribute(attrlist, attrname, attrtype);
+    if (!index) {
+      return listutils::typeError("Attribute " + attrname + " not found.");
+    }
+    if (!MLabel::checkType(attrtype) && !MLabels::checkType(attrtype) &&
+        !MPlace::checkType(attrtype) && !MPlaces::checkType(attrtype)) {
+      return listutils::typeError("Wrong type " + nl->ToString(attrtype)
+                                  + " of attritube " + attrname + ".");
+    }
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                             nl->OneElemList(nl->IntAtom(index - 1)),
+                             nl->TwoElemList(nl->SymbolAtom(
+                                                Stream<Attribute>::BasicType()),
+                                             attrtype));
+  }
+  return listutils::typeError("Three arguments expected.");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int multirewriteSelect(ListExpr args) {
+  ListExpr stream = nl->First(args);
+  string attrname = nl->SymbolValue(nl->Second(args));
+  ListExpr attrtype;
+  listutils::findAttribute(nl->Second(nl->Second(stream)),attrname, attrtype);
+  if (MLabel::checkType(attrtype))  return 0;
+  if (MLabels::checkType(attrtype)) return 1;
+  if (MPlace::checkType(attrtype))  return 2;
+  if (MPlaces::checkType(attrtype)) return 3;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class M>
+int multirewriteVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  MultiRewriteLI<M> *li = (MultiRewriteLI<M>*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
         delete li;
         local.addr = 0;
       }
-      local.addr = new MultiRewriteLI(args[0], args[1]);
+      int attrpos = (static_cast<CcInt*>(args[3].addr))->GetIntval();
+      local.addr = new MultiRewriteLI<M>(args[0], args[2], attrpos);
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->nextResultML() : 0;
+      result.addr = li ? li->nextResult() : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -2591,14 +2653,13 @@ int rewriteVM_Stream(Word* args, Word& result, int message, Word& local,
 \subsection{Operator Info}
 
 */
-struct rewriteInfo : OperatorInfo {
-  rewriteInfo() {
-    name      = "rewrite";
-    signature = "mT x P -> stream(mT),   where T in {label(s), place(s)}, "
-                "P in {pattern, text}";
-    appendSignature("stream(mlabel) x stream(text) -> stream(mlabel)");
-    syntax    = "rewrite (_, _)";
-    meaning   = "Rewrite a symbolic trajectory or a stream of them.";
+struct multirewriteInfo : OperatorInfo {
+  multirewriteInfo() {
+    name      = "multirewrite";
+    signature = "stream(tuple(..., mT, ...)) x IDENT x stream(text) -> "
+                "stream(mT), where T in {label(s), place(s)}";
+    syntax    = "_ rewrite [ _ , _ ]";
+    meaning   = "Rewrite a stream of symbolic trajectories.";
   }
 };
 
@@ -2609,9 +2670,10 @@ struct rewriteInfo : OperatorInfo {
 
 */
 ListExpr classifyTM(ListExpr args) {
-  const string errMsg = "Expecting an mlabel and a classifier.";
+  const string errMsg = "Expecting an mT (T in {label(s), place(s)} and a "
+                        "classifier.";
   if (nl->HasLength(args, 2)) {
-    if (MLabel::checkType(nl->First(args))
+    if (Tools::isSymbolicType(nl->First(args))
      && Classifier::checkType(nl->Second(args))) {
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->SymbolAtom(FText::BasicType()));
@@ -2621,9 +2683,22 @@ ListExpr classifyTM(ListExpr args) {
 }
 
 /*
+\subsection{Selection Function}
+
+*/
+int classifySelect(ListExpr args) {
+  if (MLabel::checkType(nl->First(args)))  return 0;
+  if (MLabels::checkType(nl->First(args))) return 1;
+  if (MPlace::checkType(nl->First(args)))  return 2;
+  if (MPlaces::checkType(nl->First(args))) return 3;
+  return -1;
+}
+
+/*
 \subsection{Value Mapping without index}
 
 */
+template<class M>
 int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   ClassifyLI *li = (ClassifyLI*)local.addr;
   switch (message) {
@@ -2632,7 +2707,7 @@ int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s) {
         delete li;
         local.addr = 0;
       }
-      MLabel* source = static_cast<MLabel*>(args[0].addr);
+      M* source = static_cast<M*>(args[0].addr);
       if (source) {
         if (source->IsDefined()) {
           local.addr = new ClassifyLI(source, args[1]);
@@ -3431,121 +3506,6 @@ struct derivegroupsInfo : OperatorInfo {
   }
 };
 
-// /*
-// \section{Operator ~triptompoint~}
-// 
-// \subsection{Type Mapping}
-// 
-// */
-// ListExpr triptompointTM(ListExpr args) {
-//   if (nl->ListLength(args) != 1) {
-//     return listutils::typeError("One argument expected.");
-//   }
-//   if (!Stream<Tuple>::checkType(nl->First(args))) {
-//     return listutils::typeError("Argument is not a stream of tuples.");
-//   }
-//   ListExpr attrlist = nl->Second(nl->Second(nl->First(args)));
-//   string attrs[] = {"int", "int", "instant", "instant",
-//                     "real", "real", "real", "real"};
-//   int pos = 0;
-//   while (!nl->IsEmpty(attrlist)) {
-//     ListExpr first = nl->First(attrlist);
-//     attrlist = nl->Rest(attrlist);
-//     if (!listutils::isSymbol(nl->Second(first), attrs[pos])) {
-//       return listutils::typeError("Wrong attribute type at pos " + pos);
-//     }
-//     pos++;
-//   }
-//   return nl->SymbolAtom(CcBool::BasicType());
-// }
-// 
-// /*
-// \subsection{Value Mapping}
-// 
-// */
-// int triptompointVM(Word* args, Word& result, int message, Word& local,
-//                    Supplier s) {
-//   result = qp->ResultStorage(s);
-//   CcBool* res = (CcBool*)result.addr;
-//   Stream<Tuple> src = static_cast<Stream<Tuple>* >(args[0].addr);
-//   src.open();
-//   Tuple *tuple = src.request();
-//   int moId(-1), tripId(-1);
-//   MPoint *mp = 0;
-//   ListExpr typeinfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-//     nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("Moid"),
-//                                       nl->SymbolAtom(CcInt::BasicType())),
-//                       nl->TwoElemList(nl->SymbolAtom("Tripid"),
-//                                       nl->SymbolAtom(CcInt::BasicType())),
-//                       nl->TwoElemList(nl->SymbolAtom("Trip"),
-//                                       nl->SymbolAtom(MPoint::BasicType()))));
-//   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-//   ListExpr numtypeinfo = sc->NumericType(typeinfo);
-//   TupleType *tupletype = new TupleType(numtypeinfo);
-//   Relation *tripsrel = new Relation(tupletype, false);
-//   Tuple *resTuple = 0;
-//   int counter = 0;
-//   while (tuple) {
-//     counter++;
-//     if ((moId != ((CcInt*)(tuple->GetAttribute(0)))->GetValue()) ||
-//         (tripId != ((CcInt*)(tuple->GetAttribute(1)))->GetValue())) {
-//       if (resTuple) {
-//         resTuple->PutAttribute(0, new CcInt(true, moId));
-//         resTuple->PutAttribute(1, new CcInt(true, tripId));
-//         resTuple->PutAttribute(2, mp);
-//         tripsrel->AppendTuple(resTuple);
-// //         cout << "Tuple finished" << endl;
-// //         resTuple->Print(cout);
-//       }
-//       moId = ((CcInt*)(tuple->GetAttribute(0)))->GetValue();
-//       tripId = ((CcInt*)(tuple->GetAttribute(1)))->GetValue();
-//       mp = new MPoint(0);
-//       resTuple = new Tuple(tupletype);
-//     }
-//     SecInterval iv(*((Instant*)(tuple->GetAttribute(2))),
-//                    *((Instant*)(tuple->GetAttribute(3))));
-//     Point p1(true, ((CcReal*)(tuple->GetAttribute(4)))->GetValue(),
-//                    ((CcReal*)(tuple->GetAttribute(5)))->GetValue());
-//     Point p2(true, ((CcReal*)(tuple->GetAttribute(6)))->GetValue(),
-//                    ((CcReal*)(tuple->GetAttribute(7)))->GetValue());
-//     UPoint up(iv, p1, p2);
-//     mp->Add(up);
-//     deleteIfAllowed(tuple);
-//     tuple = src.request();
-//   }
-//   resTuple->PutAttribute(0, new CcInt(true, moId));
-//   resTuple->PutAttribute(1, new CcInt(true, tripId));
-//   resTuple->PutAttribute(2, mp);
-//   tripsrel->AppendTuple(resTuple);
-// //   cout << "last tuple appended" << endl;
-// //   resTuple->Print(cout);
-//   src.close();
-//   ListExpr reltype = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()),
-//                                      typeinfo);
-//   Word relWord;
-//   relWord.setAddr(tripsrel);
-//   sc->InsertObject("Trips", "", reltype, relWord, true);
-//   res->Set(true, true);
-//   return 0;
-// }
-// 
-// /*
-// \subsection{Operator Info}
-// 
-// */
-// struct triptompointInfo : OperatorInfo {
-//   triptompointInfo() {
-//     name      = "triptompoint";
-//     signature = "stream(tuple(Moid: int, Tripid: int, Tstart: instant, Tend:"
-//                 " instant, Xstart: real, Ystart: real, Xend: real, "
-//                 "Yend: real)) -> bool";
-//     syntax    = "_ triptompoint";
-//     meaning   = "Builds a relation containing one mpoint for each trip.";
-//   }
-// };
-
-
-
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
 
@@ -3755,10 +3715,17 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     rewriteVM<MLabels, FText>, rewriteVM<MPlace, FText>, 
     rewriteVM<MPlaces, FText>, rewriteVM<MLabel, PatPersistent>,
     rewriteVM<MLabels, PatPersistent>, rewriteVM<MPlace, PatPersistent>,
-    rewriteVM<MPlaces, PatPersistent>, rewriteVM_Stream, 0};
+    rewriteVM<MPlaces, PatPersistent>, 0};
   AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTM);
+  
+  ValueMapping multirewriteVMs[] = {multirewriteVM<MLabel>,
+    multirewriteVM<MLabels>, multirewriteVM<MPlace>, multirewriteVM<MPlaces>,0};
+  AddOperator(multirewriteInfo(), multirewriteVMs, multirewriteSelect,
+              multirewriteTM);
 
-  AddOperator(classifyInfo(), classifyVM, classifyTM);
+  ValueMapping classifyVMs[] = {classifyVM<MLabel>, classifyVM<MLabels>,
+    classifyVM<MPlace>, classifyVM<MPlaces>, 0};
+  AddOperator(classifyInfo(), classifyVMs, classifySelect, classifyTM);
 
   ValueMapping indexclassifyVMs[] = {indexclassifyVM<MLabel>,
     indexclassifyVM<MLabels>, indexclassifyVM<MPlace>, indexclassifyVM<MPlaces>,
@@ -3789,8 +3756,6 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     derivegroupsVM<MLabels>, derivegroupsVM<MPlace>, derivegroupsVM<MPlaces>,0};
   AddOperator(derivegroupsInfo(), derivegroupsVMs, derivegroupsSelect,
               derivegroupsTM);
-
-//       AddOperator(triptompointInfo(), triptompointVM, triptompointTM);
   }
   
   ~SymbolicTrajectoryAlgebra() {}

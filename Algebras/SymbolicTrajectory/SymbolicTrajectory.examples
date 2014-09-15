@@ -380,10 +380,10 @@ Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier -> str
 Example  : query Dotraj indexclassify [Trajectory, Dotraj createtrie[Trajectory], Dotraj feed addid createunitrtree[Trajectory], class3 feed toclassifier] count
 Result   : 0
 
-Operator : rewrite
+Operator : multirewrite
 Number   : 1
-Signature: stream(text) x stream(mlabel) -> stream(mlabel)
-Example  : query rewrite(Dotraj feed projecttransformstream[Trajectory], rewrite1 feed projecttransformstream[Pattern]) count
+Signature: stream(tuple(X)) x IDENT x stream(text) -> stream(mT), T in {mlabel(s), mplace(s)}
+Example  : query Dotraj feed multirewrite[Trajectory, rewrite1 feed projecttransformstream[Pattern]] count
 Result   : 3
 
 Operator : compress
