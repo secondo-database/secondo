@@ -990,7 +990,7 @@ After calling this function, the fractional part is in (0,1).
         mpq_class mp2((int)p2);
         mpq_class f(1<<31);
         f *= 2;
-        mpq_class res = p2*f+mp1;
+        mpq_class res = ((int)p2)*f+mp1;
         if(v<0){
           res *= -1;
         }
