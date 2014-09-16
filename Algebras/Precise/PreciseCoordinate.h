@@ -688,7 +688,6 @@ Binary operators
      }
      
     MPrecCoordinate& operator*=(const MPrecCoordinate v){
-
        if(v==MPrecCoordinate(v.getScale(), v.getScale())){
           // case v==1
           return *this;
@@ -918,7 +917,6 @@ After calling this function, the fractional part is in (0,1).
            *fractional = abs(*fractional) + 1;
            mpz_class intPart = fractional->get_num() / fractional->get_den();
            if(!intPart.fits_slong_p()){
-               cout << "intpart is " << intPart << endl;
                assert(false);
                throw overflowException("intpart of fraction does not"
                                        " fit into a long");
@@ -974,20 +972,29 @@ After calling this function, the fractional part is in (0,1).
 
 
 
-     static mpq_class getMPQ(const uint64_t v){
-        if(sizeof(unsigned int) == 8){
-           return mpq_class((unsigned int) v); 
+     static mpq_class getMPQ(const int64_t v){
+        if(sizeof(int) == 8){
+           mpq_class res((int) v); 
+           return res;
         }
-        uint64_t p1 = v & 0xFFFFFFFF;
-        uint64_t p2 = v >> 32;
+        int64_t v2 = v;
+        if(v2 < 0) v2 *=-1; 
+        int64_t p1 = v2 & 0xFFFFFFFF;
+        int64_t p2 = (v2 >> 32) & 0x7FFFFFFF;
+
         if(p2==0){
-          return mpq_class((unsigned int)p1);
+          return  v>=0? mpq_class((int)p1): mpq_class(-1*((int)p1));
         } 
-        mpq_class mp1((unsigned int)p1);
-        mpq_class mp2((unsigned int)p2);
+
+        mpq_class mp1((int)p1);
+        mpq_class mp2((int)p2);
         mpq_class f(1<<31);
         f *= 2;
-        return mp2*f+mp1; 
+        mpq_class res = p2*f+mp1;
+        if(v<0){
+          res *= -1;
+        }
+        return res;
      }
 
      mpq_class getComplete(bool scaled) const{
