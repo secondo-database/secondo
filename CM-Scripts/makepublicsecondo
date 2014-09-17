@@ -51,7 +51,7 @@ elif [ -n  "$createWin" ]; then
   rm -rf secondo
   tar -xf secondo-$VERSION-LAT1.tar
   rm secondo-$VERSION-LAT1.tar
-	find secondo -type f exec recode lat1..cp1252 {} \;
+	find secondo -iname "*.c" -o -iname "*.cpp" -o  -iname "*.h" -o -iname "*.txt" -o -iname "read*" -o -iname "*.pl" -exec recode utf-8..windows-1252 {} \;
   zip -r secondo-$VERSION-CP1252.zip secondo  
   rm -rf secondo
 else
