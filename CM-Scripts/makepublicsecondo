@@ -1,6 +1,11 @@
 #!/bin/bash
 
 
+if [ "$1" = "--win" ]; then
+   createWin=true;
+	shift
+fi
+
 if [ -n "$1"  ]; then
    REV=" -r $1 "
    VERSION=$1
@@ -9,13 +14,15 @@ else
    VERSION=current
 fi
 
+echo "Create public version from revision number " $VERSION
+
 if [ -d secondo ] ; then
   echo "directory secondo exists"
   exit 1
 fi
 
 
-cvs export $REV  secondo
+cvs -q export $REV  secondo >/dev/null
 
 if [ $? != "0" ] ; then
   echo "problems with cvs export"
@@ -33,12 +40,22 @@ fi
 cat publicsecondo_filelist | sed "s/.*/tar -rf secondo-$VERSION-LAT1.tar \"&\"/g" | sh
 
 if [ "$SECONDO_PLATFORM" = "win32" ]; then
+  echo "create windows version"
   rm -r secondo
   tar -xf secondo-$VERSION-LAT1.tar
   rm secondo-$VERSION-LAT1.tar
   zip -r secondo-$VERSION-CP1252.zip secondo  
   rm -rf secondo
+elif [ -n  "$createWin" ]; then
+  echo "Create windows archive on linux system"
+  rm -rf secondo
+  tar -xf secondo-$VERSION-LAT1.tar
+  rm secondo-$VERSION-LAT1.tar
+	find secondo -type f exec recode lat1..cp1252 {} \;
+  zip -r secondo-$VERSION-CP1252.zip secondo  
+  rm -rf secondo
 else
+  echo "create linux version"
   gzip secondo-$VERSION-LAT1.tar
   rm -r secondo
 fi
