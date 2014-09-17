@@ -199,7 +199,7 @@ int BinaryFile::GetSize() const{
 
 void BinaryFile::Get(const size_t offset, const size_t size,
                      char* bytes) const{
-  assert( (offset + size) >= binData.getSize() );
+  assert( (offset + size) <= binData.getSize() );
   binData.read(bytes, size, offset);
 }
 
