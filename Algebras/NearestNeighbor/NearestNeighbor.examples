@@ -121,7 +121,7 @@ Result   : 8737
 Operator : cellindex
 Number   : 6
 Signature: rtree(tuple ((x1 t1)...(xn tn)) ti) x cellno -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query cellindex(kinosrtree,10) count
+Example  : query cellindex(Kinos_GeoData_rtree,10) count
 Result   : 0
 
 
@@ -153,4 +153,14 @@ Number   : 3
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> mreal
 Example  : query no_components(UnitTrains feed knearest_dist[UTrip,train1, 0])
 Result   : 0
+
+Operator : closestPairs
+Number   : 1
+Signature: rtree x rel(tuple(X)) x rtree x rel(tuple(Y)) x int -> stream(tuple(X.Y))
+Example  : query Kinos_GeoData_rtree Kinos SWP_Pos_rtree SWP  closestPairs[7] count 
+Result   : 7
+
+
+
+
 

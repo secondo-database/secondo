@@ -73,6 +73,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "CoverInterval.h"
 #include "AlmostEqual.h"
 #include "Symbols.h"
+#include "ClosestPair.h"
 
 
 using namespace tbtree;
@@ -8808,8 +8809,10 @@ struct Nearestlist{
   double maxd;
   hpelem* head;
   double startTime,endTime;
+
   Nearestlist(double min,double max,hpelem* p,double s,double e)
   :mind(min),maxd(max),head(p),startTime(s),endTime(e){}
+
   Nearestlist(const Nearestlist& nl)
   :mind(nl.mind),maxd(nl.maxd),head(nl.head),
   startTime(nl.startTime),endTime(nl.endTime){}
@@ -8902,9 +8905,9 @@ Initialization, knearestlist prunedist
 */
 void TBKnearestLocalInfo::ChinaknnInitialize(MPoint* mp)
 {
-  //Initialization NearestList and prunedist
-
-  for(unsigned int i = 0;i < k;i++){
+ 
+ //Initialization NearestList and prunedist
+ for(unsigned int i = 0;i < k;i++){
     double mind = numeric_limits<double>::max();
     double maxd = numeric_limits<double>::min();
     double st = startTime;
@@ -8919,9 +8922,10 @@ void TBKnearestLocalInfo::ChinaknnInitialize(MPoint* mp)
 
   SmiRecordId adr = tbtree->getRootId();
   tbtree::BasicNode<3>* root = tbtree->getNode(adr);
+
   double t1((double)root->getBox().MinD(2));
   double t2((double)root->getBox().MaxD(2));
-  if(!(t1 >= endTime || t2 <= startTime)){
+  if(!(t1 >= endTime || t2 <= startTime)) { // root covers time interval
     Line* line = new Line(0);
     mp->Trajectory(*line);
     mptraj = new Line(*line);
@@ -10736,9 +10740,10 @@ if there exists a tb-tree for the unit attribute
 The argument vector contains the following values:
 args[0] = a tbtree with the unit attribute as key
 args[1] = the relation of the tbtree
-args[2] = attribute UPoint
+args[2] = attribute name UPoint
 args[3] = mpoint
 args[4] = int k, how many nearest are searched
+args[5] = localtion of the UPoint attribute
 
 */
 
@@ -10752,14 +10757,19 @@ int ChinaknearestFun (Word* args, Word& result, int message,
     {
       //Initialize hp,kNearestLists and PruneDist
       MPoint* mp = (MPoint*)args[3].addr;
-      if(mp->IsEmpty())
+      if(mp->IsEmpty()) {
         return 0;
+      }
       UPoint up1;
       UPoint up2;
       mp->Get(0,up1);
       mp->Get(mp->GetNoComponents()-1,up2);
+
+
       const unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
       int attrpos = ((CcInt*)args[5].addr)->GetIntval()-1;
+
+
       localInfo = new TBKnearestLocalInfo(k);
       local = SetWord(localInfo);
       localInfo->attrpos = attrpos;
@@ -10783,9 +10793,16 @@ int ChinaknearestFun (Word* args, Word& result, int message,
     case REQUEST :
     {
         localInfo = (TBKnearestLocalInfo*)local.addr;
-        if(localInfo->k == 0)
+        if(!localInfo){
+           cout << "no localinfo found" << endl;
+           return CANCEL;
+        }
+        if(localInfo->k == 0) {
+          cout << "k is zero" << endl;
           return CANCEL;
+        }
         if(localInfo->counter < localInfo->result.size()){
+            cout << "counter not reached" << endl;
             TupleId tid = localInfo->result[localInfo->counter].tid;
             Tuple* tuple = localInfo->relation->GetTuple(tid, false);
             UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
@@ -10814,12 +10831,18 @@ int ChinaknearestFun (Word* args, Word& result, int message,
             result = SetWord(tuple);
             localInfo->counter++;
             return YIELD;
-        }else
+        }else{
+          cout << " counter >= size" << endl;
+          cout << "counter = " << localInfo->counter << endl;
+          cout << "localInfo->result.size() = " 
+               << localInfo->result.size() << endl;
           return CANCEL;
+        }
     }
 
     case CLOSE :
     {
+      cout << "CLOSE called" << endl;
       localInfo = (TBKnearestLocalInfo*)local.addr;
       if(localInfo){
          delete localInfo;
@@ -11094,6 +11117,8 @@ struct Cell:public SubCell{
     return *this;
   }
 };
+
+
 template<unsigned dim>
 struct CellIndex{
   R_Tree<dim,TupleId>* rtree;
@@ -12778,6 +12803,42 @@ Operator mergecov2(
         MergeCov2TypeMap
 );
 
+
+/*
+Operator closestPair
+
+Type Mapping and Value Mapping are defined in ClosestPair.h
+
+*/
+
+OperatorSpec closestPairsSpec(
+  " rtree x rel x rtree x rel x int",
+  " _ _ _ _ closestPair[_] ",
+  "Returns the k closest pairs of set defined by rtrees",
+  "query kinos_rtree kinos swp_rtree swp closestPairs[8]"
+);
+
+
+/*
+4.38.4 Operator instance
+
+*/
+
+Operator closestPairsOP
+(
+  "closestPairs",             //name
+  closestPairsSpec.getStr(),           //specification
+  closestPairsVM,        //value mapping
+  Operator::SimpleSelect,         //trivial selection function
+  closestPairsTM        //type mapping
+);
+
+
+
+
+
+
+
 /*
 4 Implementation of the Algebra Class
 
@@ -12816,7 +12877,11 @@ class NearestNeighborAlgebra : public Algebra
 //    AddOperator( &mergecov);
     AddOperator( &mergecov2);
 
-    AddOperator( &knearest_dist);//return the k th nearghbor distance
+    AddOperator( &knearest_dist);//return the k th nearghbor distanceA
+
+    AddOperator(&closestPairsOP);
+
+
   }
   ~NearestNeighborAlgebra() {};
 };
