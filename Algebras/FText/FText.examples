@@ -1181,3 +1181,18 @@ Signature : -> longint
 Example  : query globalMemory() > 0
 Result   : TRUE
 
+Operator : fileExtension 
+Number : 1
+Signature : string -> string
+Example  : query fileExtension("Secondo.exe")
+Result   : "exe"
+
+Operator : fileExtension 
+Number : 2 
+Signature : text -> test
+Example  : query fileExtension('/home/user/secondo/secondo')
+Result   : 'secondo'
+
+
+
+

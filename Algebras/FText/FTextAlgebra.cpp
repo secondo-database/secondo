@@ -11034,6 +11034,125 @@ Operator globalMemoryOP
   globalMemoryTM        //type mapping
 );
 
+/*
+4.39 Operator ~fileExtension~
+
+This operator returns the fileExtension of a certain path. 
+
+4.39.1 Type Mapping
+
+*/
+ListExpr fileExtensionTM(ListExpr args){
+  string err ="string or text [x bool] expected";
+  if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+    return  listutils::typeError("wrong number of arguments");
+  }
+  if(nl->HasLength(args,2)){
+    if(!CcBool::checkType(nl->Second(args))){
+      return listutils::typeError(err);
+    }
+  }
+  ListExpr arg = nl->First(args);
+  if(CcString::checkType(arg) || FText::checkType(arg)){
+     if(nl->HasLength(args,1)){
+         return arg;
+     } else {
+        return nl->ThreeElemList(
+                  nl->SymbolAtom(Symbols::APPEND()),
+                  nl->OneElemList(nl->BoolAtom(false)),
+                  arg);
+     }
+  }
+  return listutils::typeError(err);
+}
+
+/*
+4.39.2 Value Mapping
+
+*/
+template<class T>
+int fileExtensionVM1( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+  T* arg = (T*) args[0].addr;
+  result = qp->ResultStorage(s);
+  T* res = (T*) result.addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  bool acceptOnlyDot = false;
+  CcBool* b = (CcBool*) args[1].addr;
+  if(b->IsDefined()){
+     acceptOnlyDot = b->GetValue();
+  }
+  string v = arg->GetValue();
+  string seps = "." ;
+  seps += CFile::pathSepWin32;
+  seps += CFile::pathSepUnix;
+  size_t pos = v.find_last_of(seps);
+  if(pos==string::npos){ 
+    if(acceptOnlyDot){
+       res->Set(true,"");   
+    } else {
+       res->Set(true,v);
+    }
+  } else {
+    if(acceptOnlyDot){
+      if(v[pos]!='.'){
+        res->Set(true,"");
+      } else {
+       res->Set(true, v.substr(pos+1));
+      }
+    } else {
+       res->Set(true, v.substr(pos+1));
+    }
+  }
+  return 0;
+}
+
+/*
+4.39.3 ValueMappung Array and Selection function
+
+*/
+ValueMapping fileExtensionVM[] = {
+  fileExtensionVM1<CcString>,
+  fileExtensionVM1<FText>
+};
+
+int fileExtensionSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+/*
+4.39.4 Specification
+
+*/
+
+OperatorSpec fileExtensionSpec(
+  "T [x bool] -> T for T in {string,text}",
+  "fileExtension(_)",
+  "Returns the file extension of a path name."
+  "If the boolean  parameter is true, the extension of a file"
+  " without a dot is empty otherwide the file name",
+  "query fileExtension('Secondo.exe')"
+);
+
+/*
+4.39.5 Operator instance
+
+*/
+
+Operator fileExtensionOP(
+  "fileExtension",
+  fileExtensionSpec.getStr(),
+  2,
+  fileExtensionVM,
+  fileExtensionSelect,
+  fileExtensionTM
+);
+
+
   /*
   5 Creating the algebra
 
@@ -11161,6 +11280,7 @@ Operator globalMemoryOP
       AddOperator(&letObject2OP);
 
       AddOperator(&globalMemoryOP);
+      AddOperator(&fileExtensionOP);
 
 
 #ifdef RECODE
