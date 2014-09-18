@@ -449,8 +449,10 @@ bool CassandraAdapter::getAllTokenRanges(
     // Last position in the vector
     int lastTokenPos = allTokens.size() - 1;
      
-    // Is last token in the ring splitted?
-    // So the two tokenranges (begin, LLONG_MAX] and (LLONG_MIN, end]
+    // Is last token-range splitted?
+    //
+    // If so, the two token-ranges are 
+    // (begin, LLONG_MAX] and [LLONG_MIN, end]
     if((allTokens.at(lastTokenPos)).getToken() != LLONG_MAX) {
       // Add end interval
       TokenRange interval(
