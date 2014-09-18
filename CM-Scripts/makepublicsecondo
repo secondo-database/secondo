@@ -29,7 +29,11 @@ if [ $? != "0" ] ; then
   exit 1
 fi
 
-secondo/CM-Scripts/mkpublic.sh secondo/nonpublic.filelist publicsecondo_filelist
+echo "Secondo successfully read from server"
+
+secondo/CM-Scripts/mkpublic.sh secondo/nonpublic.filelist publicsecondo_filelist >/dev/null
+
+
 
 
 if [ -f "secpub.tar" ] ; then
@@ -37,7 +41,11 @@ if [ -f "secpub.tar" ] ; then
   exit 1
 fi
 
+echo "create tar file, this can take some time"
+
 cat publicsecondo_filelist | sed "s/.*/tar -rf secondo-$VERSION-LAT1.tar \"&\"/g" | sh
+
+echo "tar file created, do some os specific stuff"
 
 if [ "$SECONDO_PLATFORM" = "win32" ]; then
   echo "create windows version"
@@ -48,11 +56,21 @@ if [ "$SECONDO_PLATFORM" = "win32" ]; then
   rm -rf secondo
 elif [ -n  "$createWin" ]; then
   echo "Create windows archive on linux system"
+  # remove complete secondo stuff
   rm -rf secondo
+  # unpack public secondo stuff
   tar -xf secondo-$VERSION-LAT1.tar
+  # remove tared secondo stuff
   rm secondo-$VERSION-LAT1.tar
-	find secondo -iname "*.c" -o -iname "*.cpp" -o  -iname "*.h" -o -iname "*.txt" -o -iname "read*" -o -iname "*.pl" -exec recode utf-8..windows-1252 {} \;
-  zip -r secondo-$VERSION-CP1252.zip secondo  
+  echo "public secondo unpacked, recode to windows now"
+  # recode all text files from source encoding to windows encoding
+  find secondo -type f -size +1 -exec file --mime-encoding {} \; | grep -v "binary$" | grep -v "unknown-8bit$" | sed "s/\([^:]*\)\(:.\)\(.*\)/recode \3..windows-1252 \1 ; unix2dos -q \1/" >recode.sh
+  sh recode.sh
+#	rm -f recode.sh
+  echo "files recoded, pack them into a zip file"
+  # pack to zip
+  zip -q -r secondo-$VERSION-CP1252.zip secondo  
+  # remove public secondo directory
   rm -rf secondo
 else
   echo "create linux version"
