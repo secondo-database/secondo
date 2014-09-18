@@ -11054,7 +11054,7 @@ ListExpr fileExtensionTM(ListExpr args){
   }
   ListExpr arg = nl->First(args);
   if(CcString::checkType(arg) || FText::checkType(arg)){
-     if(nl->HasLength(args,1)){
+     if(nl->HasLength(args,2)){
          return arg;
      } else {
         return nl->ThreeElemList(
