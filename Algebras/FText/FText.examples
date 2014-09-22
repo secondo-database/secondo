@@ -909,7 +909,7 @@ Operator  : cn2en
 Number    : 1
 Signature : string -> string
 Example   : query cn2en('中国')
-Result    : zhong guo
+Result    : 'ZHONG GUO '
 
 Operator  : str2real 
 Number    : 2
