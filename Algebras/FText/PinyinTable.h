@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1.1 Includes
 
 */
-extern const char* pytable[20902] = {
+const char* pytable[20902] = {
     "yi", "ding|zheng", "yu", "qi", "shang", "xia", "myeon", "wan|mo",
     "zhang", "san", "shang", 
     "xia", "qi", "bu|dun|fou|fu", "yu", "mian", 
