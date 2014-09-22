@@ -905,6 +905,12 @@ Signature : text -> real
 Example   : query str2real('3.14')
 Result    : 3.14
 
+Operator  : cn2en 
+Number    : 1
+Signature : string -> string
+Example   : query cn2en('中国')
+Result    : zhong guo
+
 Operator  : str2real 
 Number    : 2
 Signature : string -> real

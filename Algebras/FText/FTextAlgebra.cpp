@@ -107,7 +107,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <limits>
 #include "Stream.h"
 #include "LongInt.h"
-
+#include "PinyinTable.h"
 
 // includes for debugging
 #define LOGMSG_OFF
@@ -7617,8 +7617,6 @@ Operator isValidID(
    isValidIDTM
   );
 
-
-
 Operator trimAll
 (
  "trimAll",
@@ -7628,6 +7626,150 @@ Operator trimAll
  trimAllSelect,
  trimAllTM
 );
+
+/*
+~Operator~ cn2en  by Cheng Wang 18.09.2014
+Convert Chinese characters into English letters
+
+*/
+
+/*
+pinyin\_utf8: convert utf8 encoding chinese charaters into english letters
+@inbuf The input chinese charaters
+
+*/
+string pinyin_utf8(string inbuf) {
+  int inbuf_len = inbuf.length();
+  int uni=0;
+  string resStr;
+  for (int i = 0; i < inbuf_len; i++) {
+    if ((unsigned char) inbuf[i] < 0x80) { //English letters or numbers
+      resStr += inbuf[i];
+      continue;
+    } else if ((inbuf[i] & 0xE0) == 0xC0) { //others
+      resStr += inbuf[i];
+      continue;
+    } else if ((inbuf[i] & 0xF0) == 0xE0) { //Chinese
+    if (i + 2 >= inbuf_len) {
+      break;
+    }
+    uni = (((int) (inbuf[i] & 0x0F)) << 12)
+      | (((int) (inbuf[i + 1] & 0x3F)) << 6)
+      | (inbuf[i + 2] & 0x3F);
+    if (uni > 19967 && uni < 40870) {
+      string ch(pytable[uni - 19968]);
+      int n = ch.find('|');
+      if (n != -1)
+        ch = ch.substr(0, n);
+      for(size_t i =0; i < ch.length(); i++)
+        if ( ch[i] >= 'a' && ch[i] <= 'z')
+          ch[i] = ch[i] - 32 ;
+          resStr += ch;
+          resStr += " ";
+        }
+      }
+    }
+  return resStr;
+}
+
+/*
+Type Mapping
+  
+*/
+ListExpr cn2enTM(ListExpr args){
+   string err =" string or text expected";
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError(err);
+   }
+   ListExpr arg = nl->First(args);
+   if(!FText::checkType(arg) &&
+      !CcString::checkType(arg)){
+      return listutils::typeError(err);
+   }
+   return nl->SymbolAtom(CcString::BasicType());
+}
+
+/*
+Value Mapping
+
+*/
+template<class T>
+int cn2enVM1( Word* args, Word& result, int message,
+                      Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcString* res = (CcString*) result.addr;
+  T* arg = (T*) args[0].addr;
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  string str = arg->GetValue();
+  stringutils::trim(str);
+  if(str.length()==0){
+     res->SetDefined(false);
+     return 0;
+  }
+  string resStr = pinyin_utf8(str);
+  
+  if(resStr.length() == 0 ){
+    res->SetDefined(false);
+  } else {
+    res->Set(true,resStr);
+  }
+  return 0;
+}
+
+
+/*
+Selection function and Value Mapping array
+
+*/
+
+int cn2enSelect(ListExpr args){
+  if(CcString::checkType(nl->First(args))){
+     return 0;
+  }
+  return 1; // text
+}
+
+ValueMapping cn2enVM[] = {
+                cn2enVM1<CcString>,
+                cn2enVM1<FText>
+            };
+
+
+/*
+Specification
+
+*/
+const string cn2enSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> Chinese -> English </text--->"
+    "<text> cn2en(_) </text--->"
+    "<text>Converts Chinese characters into English letters. "
+    " </text--->"
+    "<text>query cn2en('中国')  </text--->"
+    ") )";
+
+/*
+Operator instance
+
+*/
+
+
+Operator cn2en
+(
+"cn2en",             //name
+ cn2enSpec,         //specification
+ 2,                           // no of VM functions
+ cn2enVM,        //value mapping
+ cn2enSelect,   //trivial selection function
+ cn2enTM        //type mapping
+);
+
+
+
 
 
 /*
@@ -11246,6 +11388,7 @@ Operator fileExtensionOP(
       AddOperator( &isValidID);
       AddOperator( &trimAll);
       AddOperator(&str2real);
+      AddOperator(&cn2en);
       AddOperator(&str2int);
       AddOperator(&endsWith);
       AddOperator(&startsWith);
