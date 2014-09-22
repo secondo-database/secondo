@@ -7686,7 +7686,7 @@ ListExpr cn2enTM(ListExpr args){
       !CcString::checkType(arg)){
       return listutils::typeError(err);
    }
-   return nl->SymbolAtom(CcString::BasicType());
+   return nl->SymbolAtom(FText::BasicType());
 }
 
 /*
@@ -7698,7 +7698,7 @@ int cn2enVM1( Word* args, Word& result, int message,
                       Word& local, Supplier s ){
 
   result = qp->ResultStorage(s);
-  CcString* res = (CcString*) result.addr;
+  FText* res = (FText*) result.addr;
   T* arg = (T*) args[0].addr;
   if(!arg->IsDefined()){
      res->SetDefined(false);
@@ -7745,7 +7745,7 @@ Specification
 */
 const string cn2enSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> Chinese -> English </text--->"
+    "( <text> {text,string} -> text </text--->"
     "<text> cn2en(_) </text--->"
     "<text>Converts Chinese characters into English letters. "
     " </text--->"
