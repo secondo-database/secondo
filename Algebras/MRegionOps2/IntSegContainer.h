@@ -41,8 +41,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "IntersectionSegment.h"
 
+#include <set>
+
 namespace mregionops2 {
 
+class IntersectionSegment;
 
 /*
 1 Struct IntSegCompare
@@ -54,7 +57,7 @@ used in ~IntSegContainer~.
 struct IntSegCompare {
 
     bool operator()(const IntersectionSegment* const& s1,
-            const IntersectionSegment* const& s2) const;
+                    const IntersectionSegment* const& s2) const;
 };
 
 
@@ -99,17 +102,10 @@ Adds seg to the set of ~IntersectionSegments~.
 
 */
 
-    inline void AddIntSeg(IntersectionSegment* seg) {
-
-        intSegs.insert(seg);
-    }
-
-
-/*
-1.1 Methods for debugging
-
-*/
-
+    void AddIntSeg(IntersectionSegment* seg);
+    void FinalizeIntSegs();
+    void FillIntSegsTable(unsigned int count);
+    void InvertAreaDirections();
     void Print() const;
     void PrintActive() const;
 
@@ -128,7 +124,7 @@ provided by ~IntSegCompare~ and a suitable iterator.
 */
     set<IntersectionSegment*, IntSegCompare> intSegs;
 
-//   Decision lastDecision;
+
 };
 
 } // end of namespace mregionops2
