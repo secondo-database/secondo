@@ -1,4 +1,4 @@
-/***********************************
+/*
 ----
 This file is part of SECONDO.
 
@@ -28,25 +28,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[x] [$\times $]
 //[->] [$\rightarrow $]
 
-[1] Implementation of the Set Operator Classes
+[1] Implementation of the MRegionOps2Algebra
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
-2014, S. Schroeer for master thesis.
+
+[2] Implementation with exakt dataype
+
+April - November 2014, S. Schroer for master thesis.
 
 [TOC]
 
-
 1 Introduction
-
-This file essentially contains the implementations of several classes which 
-provides parts of the core functionality of the three set operators 
-~intersection~, ~union~ and ~minus~ with the signature \\
-movingregion2 [x] movingregion2 [->] movingregion2 \\
-used in the MovingRegionAlgebra2.
 
 2 Defines and Includes
 
-***********************************/
+*/
 
 #include "Refinement3.h"
 

@@ -33,6 +33,10 @@ This file contains classes and functions for use within the operators intersecti
 
 [TOC]
 
+[2] Implementation with exakt dataype
+
+April - November 2014, S. Schroer for master thesis.
+
 1 Helper classes and methods
 
 1.1 Some forward declaration of helper methods
@@ -44,6 +48,7 @@ This file contains classes and functions for use within the operators intersecti
 
 #include <gmp.h>
 #include <gmpxx.h>
+
 #include "MovingRegion2Algebra.h"
 
 mpq_class instant2MPQ( const Instant i );
@@ -53,6 +58,7 @@ mpq_class instant2MPQ( const Instant i );
 1.1 Precise Time Interval class ~precTimeInterval~
 
 */
+
 class precTimeInterval {
 
 public:
@@ -97,8 +103,8 @@ inline precTimeInterval(Interval<Instant> t, PreciseInterval p,
   
   inline bool operator==(precTimeInterval pti) const
   {
-return (lc==pti.lc) && (rc==pti.rc) 
-  && (cmp(start, pti.start) == 0) && (cmp(end, pti.end) == 0);
+    return (lc==pti.lc) && (rc==pti.rc) 
+    && (cmp(start, pti.start) == 0) && (cmp(end, pti.end) == 0);
   }
 };
 
@@ -184,6 +190,7 @@ for set operations inside and intersection with MPoint and MRegion2
 
 class RefinementPartition3 {
 private:
+
 /*
 Private attributes:
 
@@ -213,6 +220,7 @@ Private attributes:
                   const mpq_class end, const bool lc, const bool rc);
 
 public:
+
 /*
 The constructor creates the refinement partition from the two ~Mapping~
 instances ~mr~ and ~mp~.
