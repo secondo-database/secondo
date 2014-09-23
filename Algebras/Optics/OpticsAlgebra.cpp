@@ -351,8 +351,7 @@ Struct ~opticsInfo~
      signature = "stream(Tuple) -> stream(Tuple)";
      syntax    = "_ optics [list]";
      meaning   = "Order points to identify the cluster structure";
-     example   = "query Kneipen feed project [GeoData] optics \
-            [9999999, 5] consume";
+     example   = "query Kneipen feed optics[GeoData, 1000.0, 5] consume";
    }
  };
 /*
