@@ -12,19 +12,19 @@ the Free Software Foundation; either version 2 of the License, or
 
 SECONDO is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ----
 
 //[_] [\_]
-//characters      [1]   verbatim:   [$]   [$]
-//characters      [2]   formula:    [$]   [$]
-//characters      [3]   capital:    [\textsc{]  [}]
-//characters      [4]   teletype:   [\texttt{]  [}]
+//characters   [1]  verbatim:  [$]  [$]
+//characters   [2]  formula:  [$]  [$]
+//characters   [3]  capital:  [\textsc{] [}]
+//characters   [4]  teletype:  [\texttt{] [}]
 
 2 Source file "Optics.cpp"[4]
 
@@ -53,347 +53,273 @@ namespace clusteropticsalg
 Default constructor ~Optics::Optics~
 
 */
-  Optics::Optics()
-  {
-    mtree = NULL;
-    return;
-  }
+ Optics::Optics()
+ {
+  return;
+ }
+/*
+Method ~Optics::initialize~
+
+*/ 
+ void Optics::initialize(mtreeAlgebra::MTree* queryTree, TupleBuffer* objsToOrd
+  ,gta::DistfunInfo* df, int idxDistData, int idxCDist, int idxRDist
+  ,int idxPrc)
+ {
+  mtree = queryTree;
+  distFun = df;
+  objs = objsToOrd;
+  PNT = idxDistData;
+  COR = idxCDist;
+  REA = idxRDist;
+  PRC = idxPrc;
+ }
 /*
 Method ~Optics::order~
 
 */
-  void Optics::order(TupleBuffer* objs, int eps, unsigned int minPts
-    ,TupleBuffer* order)
-  {
-//printf("--------------- order\n");
-    GenericRelationIterator *relIter = objs->MakeScan();
-    Tuple* obj;
+ void Optics::order(double pEps, unsigned int pMinPts, list<TupleId>* pOrder)
+ {
+  pOrder->clear();
+  
+  minPts = pMinPts;
+  eps = pEps;
+  result = pOrder;
 
-    while((obj = relIter->GetNextTuple()))
-    {
-      if(!((CcBool*)obj->GetAttribute(PRC))->GetValue())
-      {
-        expandClusterOrder(objs, obj, eps, minPts, order);
-      }
-    }
+  GenericRelationIterator *relIter = objs->MakeScan();
+  TupleId objId;
+  Tuple* obj;
+
+  while((obj = relIter->GetNextTuple()))
+  {
+   objId = relIter->GetTupleId();
+   
+   if(!((CcBool*)obj->GetAttribute(PRC))->GetValue())
+   {
+    expandClusterOrder(objId);
+   }
   }
+ }
 /*
 Method ~Optics::expandClusterOrder~
 
 */
-  void Optics::expandClusterOrder(TupleBuffer* objs, Tuple* obj
-    ,int eps, unsigned int minPts, TupleBuffer* order)
+ void Optics::expandClusterOrder(TupleId objId)
+ {
+  Tuple* obj;
+  std::list<TupleId> orderedSeeds;
+  
+  obj = objs->GetTuple(objId, false);
+  
+  std::list<TupleId>* neighbors = getNeighbors(objId);
+
+  CcBool processed(true, true);
+  obj->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
+  
+  CcReal rDist(UNDEFINED);
+  obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
+
+  setCoreDistance(neighbors, objId);
+  //orderedOut add the Point obj
+  result->push_back(objId);
+
+  //(obj->distCore != UNDEFINED)
+  if(((CcReal*)obj->GetAttribute(COR))->GetValue() != UNDEFINED) 
   {
-//printf("--------------- expandClusterOrder\n");
-    std::list<Tuple*> orderedSeeds;
-    
-    std::list<Tuple*> neighbors = getNeighbors(objs, obj, eps);
+   update(neighbors, objId, orderedSeeds);
 
+   std::list<TupleId>::iterator it;
+   for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
+   {
+    TupleId curObjId = *it;
+    Tuple* curObj = objs->GetTuple(*it, true);
+
+    neighbors = getNeighbors(curObjId);
+    
     CcBool processed(true, true);
-    obj->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
+    curObj->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
+
+    setCoreDistance(neighbors, curObjId);
     
-    CcReal rDist(UNDEFINED);
-    obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
-
-    setCoreDistance(neighbors, obj, eps, minPts);
-    //orderedOut add the Point obj
-    order->AppendTuple(obj);    
-
-    //(obj->distCore != UNDEFINED)
-    if(((CcReal*)obj->GetAttribute(COR))->GetValue() != UNDEFINED) 
+    //orderedOut add the Point curObj
+    result->push_back(curObjId);
+    
+    //(currentObject->distCore != UNDEFINED)
+    if(((CcReal*)curObj->GetAttribute(COR))->GetValue() != UNDEFINED) 
     {
-      update(neighbors, obj, orderedSeeds);
-
-      std::list<Tuple*>::iterator it;
-      for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
-      {
-        Tuple* currentObject = *it;
-
-        std::list<Tuple*> neighbors = getNeighbors(objs, currentObject, eps);
-        
-        CcBool processed(true, true);
-        currentObject->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
-
-        setCoreDistance(neighbors, currentObject, eps, minPts);
-        //orderedOut add the Point currentObject
-        order->AppendTuple(currentObject);
-        
-        //(currentObject->distCore != UNDEFINED)
-        if(((CcReal*)currentObject->GetAttribute(COR))->GetValue()
-          != UNDEFINED) 
-        {
-          update(neighbors, currentObject, orderedSeeds);
-        }
-      }
+     update(neighbors, curObjId, orderedSeeds);
     }
+   }
   }
+ }
 /*
 Method ~Optics::getNeighbors~
 
-*/    
-  std::list<Tuple*> Optics::getNeighbors(TupleBuffer* objs, Tuple* obj
-    ,int eps)
-  {
-//printf("--------------- getNeigbors\n");
-    std::list<Tuple*> near;
-
-    if(mtree != NULL)
-    {
-//printf("--------------- MTREE USED\n");
-      list<TupleId> ids;
-      mtree->rangeSearch((Attribute*)obj->GetAttribute(PNT), eps, &ids);
-      
-      std::list<TupleId>::iterator it = ids.begin();
-      for (it = ids.begin(); it != ids.end(); it++)
-      {
-        TupleId id = *it;
-        Tuple* point;
-        point = objs->GetTuple(id, true);
-        near.push_back(point);
-      }
-      
-//printf("--------------- near.size =  %d\n", near.size());
-    }
-    else
-    {
-      GenericRelationIterator *relIter = objs->MakeScan();
-      Tuple* point;
-
-      while((point = relIter->GetNextTuple()))
-      {
-        if(((Point*)obj->GetAttribute(PNT))->GetX()
-        != ((Point*)point->GetAttribute(PNT))->GetX()
-        || ((Point*)obj->GetAttribute(PNT))->GetY()
-        != ((Point*)point->GetAttribute(PNT))->GetY())
-        {
-          if(((((Point*)obj->GetAttribute(PNT))->GetX()
-             - ((Point*)point->GetAttribute(PNT))->GetX()) 
-            * (((Point*)obj->GetAttribute(PNT))->GetX()
-             - ((Point*)point->GetAttribute(PNT))->GetX()))
-           + ((((Point*)obj->GetAttribute(PNT))->GetY()
-             - ((Point*)point->GetAttribute(PNT))->GetY()) 
-            * (((Point*)obj->GetAttribute(PNT))->GetY() 
-             - ((Point*)point->GetAttribute(PNT))->GetY())) < eps*eps) 
-          {
-            near.push_back(point);
-          }
-        }
-      }
-    }
-
-    return near;
-  }
+*/  
+ std::list<TupleId>* Optics::getNeighbors(TupleId objId)
+ {
+  std::list<TupleId>* near(new list<TupleId>);
+  Tuple* obj;
+  
+  obj = objs->GetTuple(objId, false);
+  
+  mtree->rangeSearch((Attribute*)obj->GetAttribute(PNT), eps, near);
+  near->remove(objId);
+  
+  return near;
+ }
 /*
 Method ~Optics::setCoreDistance~
 
 */
-  void Optics::setCoreDistance(std::list<Tuple*>& neighbors, Tuple* obj
-    ,int eps, unsigned int minPts)
+ void Optics::setCoreDistance(std::list<TupleId>* neighbors, TupleId objId)
+ {
+  double coreDist = UNDEFINED;
+  Tuple* obj;
+  std::list<TupleId>* near;
+  near = new list<TupleId>;
+  
+  obj = objs->GetTuple(objId, false);
+
+  if(neighbors->size() >= minPts)
   {
-//printf("--------------- setCoreDistance\n");
-    double curDist  = UNDEFINED;
-    double lastDist = UNDEFINED;
-    double coreDist = UNDEFINED;
-    unsigned int count   = 0;
-    unsigned int biggest = 0;
-    Tuple* nearest[minPts];
+   mtree->nnSearch((Attribute*)obj->GetAttribute(PNT), minPts, near);
+   
+   std::list<TupleId>::iterator it;
+   for (it = near->begin(); it != near->end(); it++)
+   {
+     double distance;
 
-    if(neighbors.size() < minPts)
-    {
-      CcReal cDist(UNDEFINED);
-      obj->PutAttribute(COR, ((Attribute*) &cDist)->Clone());
-      return;
-    }
+     Tuple* curObj = objs->GetTuple(*it, true);
 
-    std::list<Tuple*>::iterator it;
-    for (it = neighbors.begin(); it != neighbors.end(); it++)
-    {
-      Tuple* neighbor = *it;
-
-      if(count < minPts)
-      {
-        nearest[count++] = neighbor;
-
-        curDist = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX()
-                       - ((Point*)neighbor->GetAttribute(PNT))->GetX())
-                      * (((Point*)obj->GetAttribute(PNT))->GetX()
-                       - ((Point*)neighbor->GetAttribute(PNT))->GetX()))
-                     + ((((Point*)obj->GetAttribute(PNT))->GetY()
-                       - ((Point*)neighbor->GetAttribute(PNT))->GetY()) 
-                      * (((Point*)obj->GetAttribute(PNT))->GetY()
-                       - ((Point*)neighbor->GetAttribute(PNT))->GetY())));
-
-        if(curDist > lastDist)
-        {
-          biggest = count-1;
-          coreDist = curDist;
-        }
-
-        lastDist = curDist;
-      }
-      else
-      {
-        curDist = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX()
-                       - ((Point*)neighbor->GetAttribute(PNT))->GetX()) 
-                      * (((Point*)obj->GetAttribute(PNT))->GetX()
-                       - ((Point*)neighbor->GetAttribute(PNT))->GetX()))
-                     + ((((Point*)obj->GetAttribute(PNT))->GetY()
-                       - ((Point*)neighbor->GetAttribute(PNT))->GetY()) 
-                      * (((Point*)obj->GetAttribute(PNT))->GetY()
-                       - ((Point*)neighbor->GetAttribute(PNT))->GetY())));
-
-        for (unsigned int i = 0; i < count; i++)
-        {
-          Tuple* curNear = nearest[i];
-
-          double cDst = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX()
-                             - ((Point*)curNear->GetAttribute(PNT))->GetX())
-                            * (((Point*)obj->GetAttribute(PNT))->GetX()
-                             - ((Point*)curNear->GetAttribute(PNT))->GetX()))
-                           + ((((Point*)obj->GetAttribute(PNT))->GetY()
-                             - ((Point*)curNear->GetAttribute(PNT))->GetY())
-                            * (((Point*)obj->GetAttribute(PNT))->GetY()
-                             - ((Point*)curNear->GetAttribute(PNT))->GetY())));
-
-          if(cDst > lastDist)
-          {
-            biggest = i;
-            coreDist = cDst;
-          }
-
-          lastDist = cDst;
-        }
-
-        Tuple* curNear = nearest[biggest];
-        
-        double dstnc = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX()
-                            - ((Point*)curNear->GetAttribute(PNT))->GetX()) 
-                           * (((Point*)obj->GetAttribute(PNT))->GetX()
-                            - ((Point*)curNear->GetAttribute(PNT))->GetX())) 
-                          + ((((Point*)obj->GetAttribute(PNT))->GetY()
-                            - ((Point*)curNear->GetAttribute(PNT))->GetY()) 
-                           * (((Point*)obj->GetAttribute(PNT))->GetY()
-                            - ((Point*)curNear->GetAttribute(PNT))->GetY())));
-
-        if(dstnc > curDist)
-        {
-          nearest[biggest] = neighbor;
-        }
-      }
-    }
-
-    CcReal cDist(coreDist);
-    obj->PutAttribute(COR, ((Attribute*) &cDist)->Clone());
+     distFun->dist(distFun->getData(obj->GetAttribute(PNT))
+                  ,distFun->getData(curObj->GetAttribute(PNT))
+                  ,distance);
+                  
+     if(distance > coreDist)
+     {
+      coreDist = distance;
+     }     
+   }
   }
+  
+  CcReal cDist(coreDist);
+  obj->PutAttribute(COR, ((Attribute*) &cDist)->Clone());
+ }
 /*
 Method ~Optics::update~
 
 */
-  void Optics::update(std::list<Tuple*>& neighbors, Tuple* center
-    ,std::list<Tuple*>& orderedSeeds)
+ void Optics::update(std::list<TupleId>* neighbors, TupleId centerId
+    ,std::list<TupleId>& orderedSeeds)
+ {
+  //FORALL Object FROM neighbors DO
+  std::list<TupleId>::iterator it;
+  for (it = neighbors->begin(); it != neighbors->end(); it++)
   {
-//printf("--------------- update\n");
-    //c_dist := CenterObject.core_distance;
-    //double coreDist = ((CcReal*)center->GetAttribute(COR))->GetValue();
+   TupleId objId = *it;
+   Tuple* obj = objs->GetTuple(objId, false);
 
-    //FORALL Object FROM neighbors DO
-    std::list<Tuple*>::iterator it = neighbors.begin();
-    for (it = neighbors.begin(); it != neighbors.end(); it++)
+   //IF NOT Object.Processed THEN   
+   if(!(((CcBool*)obj->GetAttribute(PRC))->GetValue())) //(!obj->processed)
+   {
+    //new_r_dist:=max(c_dist,CenterObject.dist(Object));
+    double newReachDist = getReachableDist(centerId, objId);
+
+    //IF Object.reachability_distance=UNDEFINED THEN
+    if(((CcReal*)obj->GetAttribute(REA))->GetValue() == UNDEFINED) 
     {
-      Tuple* obj = *it;
-
-      //IF NOT Object.Processed THEN      
-      if(!((CcBool*)obj->GetAttribute(PRC))->GetValue()) //(!obj->processed)
-      {
-        //new_r_dist:=max(c_dist,CenterObject.dist(Object));
-        double newReachDist = getReachableDist(center, obj);
-
-        //IF Object.reachability_distance=UNDEFINED THEN
-        if(((CcReal*)obj->GetAttribute(REA))->GetValue() == UNDEFINED) 
-        {
-        
-          //Object.reachability_distance := new_r_dist;
-          CcReal rDist(newReachDist);
-          obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
-          insert(orderedSeeds, obj);
-        }
-        //ELSE IF new_r_dist<Object.reachability_distance THEN
-        // Object already in OrderSeeds
-        else if(newReachDist < ((CcReal*)obj->GetAttribute(REA))->GetValue())
-        {
-          //Object.reachability_distance := new_r_dist;
-          CcReal rDist(newReachDist);
-          obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
-          decrease(orderedSeeds, obj);
-        }
-      }
+     //Object.reachability_distance := new_r_dist;
+     CcReal rDist(newReachDist);
+     obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
+     insert(orderedSeeds, objId);
     }
+    //ELSE IF new_r_dist<Object.reachability_distance THEN
+    // Object already in OrderSeeds
+    else if(newReachDist < ((CcReal*)obj->GetAttribute(REA))->GetValue())
+    {
+     //Object.reachability_distance := new_r_dist;
+     CcReal rDist(newReachDist);
+     obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
+     decrease(orderedSeeds, objId);
+    }
+   }
   }
+ }
 /*
 Method ~Optics::insert~
 
 */
-  void Optics::insert(std::list<Tuple*>& orderedSeeds, Tuple* obj)
+ void Optics::insert(std::list<TupleId>& orderedSeeds, TupleId objId)
+ {
+  std::list<TupleId>::iterator it;
+  Tuple* obj;
+  
+  obj = objs->GetTuple(objId, true);
+  
+  for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
   {
-//printf("--------------- insert\n");
-    std::list<Tuple*>::iterator it;
-
-    for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
-    {
-      Tuple* seed = *it;
-      if(((CcReal*)seed->GetAttribute(REA))->GetValue()
-       > ((CcReal*)obj->GetAttribute(REA))->GetValue())
-      {
-        orderedSeeds.insert(it, obj);
-        return;
-      }
-    }
-    
-    orderedSeeds.push_back(obj);
+   TupleId seedId = *it;
+   Tuple* seed = objs->GetTuple(seedId, true);
+   
+   if(((CcReal*)seed->GetAttribute(REA))->GetValue()
+    > ((CcReal*)obj->GetAttribute(REA))->GetValue())
+   {
+    orderedSeeds.insert(it, objId);
+    return;
+   }
   }
+  
+  orderedSeeds.push_back(objId);
+ }
 /*
 Method ~Optics::decrease~
 
 */
-  void Optics::decrease(std::list<Tuple*>& orderedSeeds, Tuple* obj)
+ void Optics::decrease(std::list<TupleId>& orderedSeeds, TupleId objId)
+ {
+  std::list<TupleId>::iterator itId;
+  std::list<TupleId>::iterator itObjId;
+  
+  Tuple* obj = objs->GetTuple(objId, true);
+   
+  for (itObjId = orderedSeeds.begin(); itObjId != orderedSeeds.end(); itObjId++)
   {
-//printf("--------------- decrease\n");
-    std::list<Tuple*>::iterator it;
-    std::list<Tuple*>::iterator itObj;
-
-    for (itObj = orderedSeeds.begin(); itObj != orderedSeeds.end(); itObj++)
+   TupleId seedId = *itObjId;
+   Tuple* seed = objs->GetTuple(seedId, true);
+   
+   //first find the position and then raise the tuple up
+   if(obj == seed)
+   {
+    for (itId = itObjId; itId != orderedSeeds.begin(); --itId)
     {
-      if(obj == ((Tuple*) *itObj))
-      {
-        for (it = itObj; it != orderedSeeds.begin(); --it)
-        {
-          Tuple* seed = *it;
-          if(((CcReal*)seed->GetAttribute(REA))->GetValue() 
-           > ((CcReal*)obj->GetAttribute(REA))->GetValue())
-          {
-            orderedSeeds.splice(itObj, orderedSeeds, it);
-            return;
-          }
-        }
-      }
+     seedId = *itId;
+     seed = objs->GetTuple(seedId, true);
+     
+     if(((CcReal*)seed->GetAttribute(REA))->GetValue() 
+      > ((CcReal*)obj->GetAttribute(REA))->GetValue())
+     {
+      orderedSeeds.splice(itObjId, orderedSeeds, itId);
+      return;
+     }
     }
+   }
   }
+ }
 
-  double Optics::getReachableDist(Tuple* obj, Tuple* neighbor)
-  {
-//printf("--------------- getReachableDist\n");
-    double distance = sqrt(((((Point*)obj->GetAttribute(PNT))->GetX() 
-                           - ((Point*)neighbor->GetAttribute(PNT))->GetX()) 
-                          * (((Point*)obj->GetAttribute(PNT))->GetX()
-                           - ((Point*)neighbor->GetAttribute(PNT))->GetX()))
-                         + ((((Point*)obj->GetAttribute(PNT))->GetY()
-                           - ((Point*)neighbor->GetAttribute(PNT))->GetY()) 
-                          * (((Point*)obj->GetAttribute(PNT))->GetY() 
-                           - ((Point*)neighbor->GetAttribute(PNT))->GetY())));
-
-    //new_r_dist:=max(c_dist,CenterObject.dist(Object));        
-    return ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance 
-      ? ((CcReal*)obj->GetAttribute(COR))->GetValue() 
-      : distance;
-  }  
+ double Optics::getReachableDist(TupleId objId, TupleId neighborId)
+ {
+  Tuple* obj = objs->GetTuple(objId, true);
+  Tuple* neighbor = objs->GetTuple(neighborId, true);
+  
+  double distance;
+  
+  distFun->dist(distFun->getData(obj->GetAttribute(PNT))
+               ,distFun->getData(neighbor->GetAttribute(PNT))
+               ,distance);
+               
+  //new_r_dist:=max(c_dist,CenterObject.dist(Object));    
+  return ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance 
+   ? ((CcReal*)obj->GetAttribute(COR))->GetValue() 
+   : distance;
+ } 
 }

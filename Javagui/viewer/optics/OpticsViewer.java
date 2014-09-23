@@ -45,7 +45,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
 import java.util.Collections;
-
+import java.util.Vector;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -82,7 +82,7 @@ public class OpticsViewer extends SecondoViewer
 {
 	private static final long serialVersionUID = 1L;
 	
-	private OpticsBarChart chart = new OpticsBarChart(this);
+	private OpticsBarChart chart = new OpticsBarChart();
 	
 	private JPanel pnlCtrl = new JPanel();
 	
@@ -122,7 +122,7 @@ public class OpticsViewer extends SecondoViewer
 		txtEps.setPreferredSize(new Dimension(200, 20));
 		txtEps.addKeyListener(this);
 		txtEps.setFocusTraversalKeysEnabled(false);
-		txtEps.setToolTipText("Confirm the new eps with TAB or ENTER");
+		txtEps.setToolTipText("Confirm the maximal displayed eps with TAB or ENTER");
 		
 		sldZoom.setPreferredSize(new Dimension(200, 20));
 		sldZoom.setMaximum(5);
@@ -183,170 +183,230 @@ public class OpticsViewer extends SecondoViewer
 	public boolean addObject(SecondoObject o)
 	{
 		secObj = o;
-		boolean result = true;
-		ListExpr LE = o.toListExpr();
-		ListExpr type = LE.first();
-		ListExpr value = LE.second();
-                  
-		// analyse type
-		ListExpr maintype = type.first();
-
-		if ( type.listLength() != 2 || !maintype.isAtom() 
-		  || maintype.atomType() != ListExpr.SYMBOL_ATOM
-		  || !( maintype.symbolValue().equals("rel") 
-			  || maintype.symbolValue().equals("mrel") 
-			  || maintype.symbolValue().equals("trel") ) )
-		{
-			Reporter.showError("Not a relation!");
-			return false;
-		}
-
-		ListExpr tupletype = type.second();
-
-		// analyse Tuple
-		ListExpr TupleFirst = tupletype.first();
 		
-		if ( tupletype.listLength()!= 2 || !TupleFirst.isAtom()
-		  || TupleFirst.atomType() != ListExpr.SYMBOL_ATOM
-		  || !( TupleFirst.symbolValue().equals("tuple")
-			   | TupleFirst.symbolValue().equals("mtuple") ) )
-		{
-			Reporter.showError("Not a tuple!");
-			return false;
-		}
-
-		ListExpr TupleTypeValue = tupletype.second();
-
-		ListExpr TupleSubType = TupleTypeValue.first();
-
-		ArrayList<OpticsPoint> alPoints = new ArrayList<OpticsPoint>();
-
-		if (result)
-		{
-			// analyse the values
-			ListExpr TupleValue;
-			ListExpr coreDist;
-			ListExpr Elem;
-			int i = 1;
-			
-			while (!value.isEmpty())
-			{
-				TupleValue = value.first();				
-				coreDist = TupleValue.second();
-	    	Elem = TupleValue.third();
-
-	    	try
-	    	{
-	    		alPoints.add(new OpticsPoint(i++, Elem.realValue()
-	    		                            ,coreDist.realValue()));
-	    	}
-				catch(Exception ex)
-				{
-					System.out.println("NumberFormatException-------- " 
-							+ ex.getMessage());
-					return false;
-				}
-
-				value = value.rest();
-			}
-		}
-
-		chart.add(alPoints);
-		lstPoints.setListData(alPoints.toArray());
-		lstPoints.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-		lstPoints.revalidate();
-		sclChart.doLayout();
 		
-		if(this.getParent().getParent().getParent().getParent().getParent() 
-		  instanceof MainWindow )
-		{
-		  parent = ((MainWindow)this.getParent().getParent().getParent()
-		  .getParent().getParent());
-		}
-		
-		return true;
+		return addData(o, false);
 	}
 
 	@Override
 	public void removeObject(SecondoObject o) 
 	{
-    chart.clear();
+  chart.clear();
+  lstPoints.setListData(new OpticsPoint[] {});
+ 	lstPoints.revalidate();
+		txtEps.setText(null);
 	}
 
 	@Override
 	public void removeAll() 
 	{
 		chart.clear();
+  lstPoints.setListData(new OpticsPoint[] {});
+ 	lstPoints.revalidate();
+		txtEps.setText(null);
 	}
 
 	@Override
 	public boolean canDisplay(SecondoObject o) 
 	{
-	  ListExpr LE = o.toListExpr();
-		ListExpr type = LE.first();
-		ListExpr value = LE.second();
-                  
-		// analyse type
-		ListExpr maintype = type.first();
+	  return addData(o, true);
+	}
+	
+ private boolean addData(SecondoObject o, boolean checkOnly)
+ {
+  try
+  {
+		 ListExpr LE    = o.toListExpr();
+		 ListExpr leType  = LE.first();
+		 ListExpr leValue = LE.second();
+                   
+		 // analyse leType
+		 ListExpr maintype = leType.first();
 
-		if ( type.listLength() != 2 || !maintype.isAtom() 
+		 if( leType.listLength() != 2 || !maintype.isAtom() 
 		  || maintype.atomType() != ListExpr.SYMBOL_ATOM
 		  || !( maintype.symbolValue().equals("rel") 
 			    || maintype.symbolValue().equals("mrel") 
 			    || maintype.symbolValue().equals("trel") ) )
-		{
-			return false;
-		}
+		 {
+			 Reporter.showError("Not a relation!");
+			 return false;
+		 }
 
-		ListExpr tupletype = type.second();
+		 ListExpr tupletype = leType.second();
 
-		// analyse Tuple
-		ListExpr TupleFirst = tupletype.first();
+		 // analyse Tuple
+		 ListExpr TupleFirst = tupletype.first();
 		
-		if ( tupletype.listLength()!= 2 || !TupleFirst.isAtom()
+		 if( tupletype.listLength()!= 2 || !TupleFirst.isAtom()
 		  || TupleFirst.atomType() != ListExpr.SYMBOL_ATOM
 		  || !( TupleFirst.symbolValue().equals("tuple")
-			     | TupleFirst.symbolValue().equals("mtuple") ) )
-		{
-			return false;
-		}
+		      | TupleFirst.symbolValue().equals("mtuple") ) )
+		 {
+			 Reporter.showError("Not a tuple!");
+			 return false;
+		 }
+
+		 ListExpr TupleTypeValue = tupletype.second();
 		
-		ListExpr TupleTypeValue = tupletype.second();
+		 if(TupleTypeValue.listLength() < 5)
+		 {
+		  Reporter.showError("Tuple is not valid! Expected minimum five elements");
+			 return false;
+		 }
 
-		ListExpr TupleSubType = TupleTypeValue.first();
-
-		ArrayList<OpticsPoint> alPoints = new ArrayList<OpticsPoint>();
-
+		 ListExpr TupleSubType = null;
+   int len = TupleTypeValue.listLength();
+		 int count = 0;
 		
-		// analyse the values
-		ListExpr TupleValue;
-		ListExpr coreDist;
-		ListExpr Elem;
-		int i = 1;
-
-	  if(!value.isEmpty())
-	  {
-	    TupleValue = value.first();
-	  	coreDist = TupleValue.second();
-	  	Elem = TupleValue.third();
-
-	  	try
-	  	{
-	  		alPoints.add(new OpticsPoint(i++, Elem.realValue(), coreDist.realValue()));
+		 //check the optics elements
+   while(!TupleTypeValue.isEmpty())
+   {
+    TupleSubType = TupleTypeValue.first();
+    String type = TupleSubType.second().symbolValue();
+    
+    if(count == len-4)
+    {
+     if(!"real".equals(type) )
+     {
+      Reporter.showError("Expected real at index " + count 
+       + " of the tuple! Type is " + type + ".");
+    		return false;
+     }
+    }
+    else if(count == len-3)
+    {
+     if(!"real".equals(type) )
+     {
+      Reporter.showError("Expected real at index " + count 
+       + " of the tuple! Type is " + type + ".");
+    		return false;
+     }
+    }
+    else if(count == len-2)
+    {
+     if(!"bool".equals(type) )
+     {
+      Reporter.showError("Expected bool at index " + count 
+       + " of the tuple! Type is " + type + ".");
+    		return false;
+     }
+    }
+    else if(count == len-1)
+    {
+     if(!"real".equals(type) )
+     {
+      Reporter.showError("Expected real at index " + count 
+       + " of the tuple! Type is " + type + ".");
+    		return false;
+     }
+    }
+    
+    count++;
+    TupleTypeValue = TupleTypeValue.rest();
+   }
+   
+   if(!checkOnly)
+   {
+  		ArrayList<OpticsPoint> alPoints = new ArrayList<OpticsPoint>();	
+		
+	  	// analyse the values
+		  ListExpr TupleValue;
+		  ListExpr currTmp   = null;
+		  ListExpr coreDist  = null;
+		  ListExpr reachDist = null;
+		  ListExpr processed = null;
+   	
+   	int order = 1;
+   	double eps = 0.0;
+		
+    while(!leValue.isEmpty())
+		  {
+   		count = 0;
+     TupleValue = leValue.first();
+     TupleTypeValue = tupletype.second();
+      	  	
+	  	 OpticsPoint op = new OpticsPoint();
+	   
+	    String name  = null;
+	    String type  = null;
+	    String value = null;
+	   	
+	   	while( !TupleValue.isEmpty()
+     	 	 && !TupleTypeValue.isEmpty() )
+	  	 {
+	  	  currTmp      = TupleValue.first();
+	  	  TupleSubType = TupleTypeValue.first();
+	  	 
+      name = TupleSubType.first().symbolValue();
+      type = TupleSubType.second().symbolValue();
+    
+      if("string".equals(type))
+      {
+       op.addElem(name, currTmp.stringValue());
+      }
+      else if("int".equals(type))
+      {
+       op.addElem(name, currTmp.intValue() + "");
+      }
+      else if( "real".equals(type) )
+      {
+       op.addElem(name, currTmp.realValue() + ""); 
+      }
+      else if( "bool".equals(type) )
+      {
+       op.addElem(name, currTmp.boolValue() + "");
+      }
+      else
+      {
+       op.addElem(name, "n/a");
+      }
+     
+      if(count == len-4)
+      {
+       op.setCoreDist(currTmp.realValue());
+      }
+      else if(count == len-3)
+      {
+       op.setReachDist(currTmp.realValue());
+      }
+      else if(count == len-1)
+      {
+       eps = currTmp.realValue();
+      }
+     
+   	  TupleValue     = TupleValue.rest();
+   	  TupleTypeValue = TupleTypeValue.rest();
+   	  count++;
+	  	 }
+	  	
+	  	 op.setOrder(order++);
+	  	 alPoints.add(op);
+	  	 leValue = leValue.rest();
 	  	}
-	  	catch(Exception ex)
-	  	{
-	  		return false;
-	  	}
+
+	  	chart.add(alPoints);
+	  	lstPoints.setListData(alPoints.toArray());
+	  	lstPoints.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+	  	lstPoints.revalidate();
+	  	txtEps.setText(eps + "");
+	  	chart.setEps(eps);
+  		sclChart.doLayout();
 	  }
-	  
-		return true;
-	}
+		 return true;
+  }
+  catch(Exception e)
+  {
+   Reporter.showError(e.toString());
+  }
+  
+		return false;
+ }
 
 	@Override
 	public boolean isDisplayed(SecondoObject o) 
 	{
-		return true;
+		return secObj == o;
 	}
 
 	@Override
@@ -371,7 +431,6 @@ public class OpticsViewer extends SecondoViewer
 			{
 				try
 				{
-//					test();
 					double eps = Double.valueOf(value);
 					chart.setEps(eps);
 					sclChart.doLayout();
@@ -488,43 +547,62 @@ public class OpticsViewer extends SecondoViewer
 	
 	private void actionPerformed_btnToHoese(ActionEvent e)
 	{
-	  if(parent != null)
+	 if(parent == null)
+	 {
+	  Component c = getParent();
+		  
+	  while(parent == null && c != null) 
 	  {
-		  ListExpr LE = secObj.toListExpr();
-		  ListExpr type = LE.first();
-		  ListExpr value = LE.second();
+    if(c instanceof MainWindow)
+    {
+     parent = (MainWindow) c;
+    }
+
+    c = c.getParent();
+		 }
+		 
+		 if(parent == null)
+		 {
+ 	  Reporter.showError("Main Window could not determinded ");
+		  btnToHeose.setEnabled(false);
+ 	 }
+		}
+		else
+	 {
+		 ListExpr LE = secObj.toListExpr();
+		 ListExpr type = LE.first();
+		 ListExpr value = LE.second();
 		
-		  ListExpr choice = null;
-		  ListExpr points = null;
+		 ListExpr choice = null;
+		 ListExpr points = null;
 		
-		  int i = 0;
-		  ListExpr last = null;
+		 int i = 0;
+		 ListExpr last = null;
 		
-		  do
+		 do
+		 {
+		  ListExpr tmp = value.first();
+			
+		  if(chart.isSelected(i))
 		  {
-			  ListExpr tmp = value.first();
-			
-			  if(chart.isSelected(i))
+			  if(points == null)
 			  {
-				  if(points == null)
-				  {
-					  points = ListExpr.oneElemList(tmp);
-					  choice = ListExpr.twoElemList(type, points);
-					  last = points;
-				  }
-				  else
-				  {
-					  last = ListExpr.append(last, tmp);
-				  }
+				  points = ListExpr.oneElemList(tmp);
+				  choice = ListExpr.twoElemList(type, points);
+				  last = points;
 			  }
+			  else
+			  {
+				  last = ListExpr.append(last, tmp);
+			  }
+		  }
 			
-			  value = value.rest();
-			  i++;
-		  } while(!value.isEmpty());
+		  value = value.rest();
+		  i++;
+		 } while(!value.isEmpty());
 		
-		  SecondoObject obj = new SecondoObject("Optics choice", choice);
-		
-		  parent.displayAt("Hoese-Viewer", obj);
+		 SecondoObject obj = new SecondoObject("Optics choice", choice);
+		 parent.displayAt("Hoese-Viewer", obj);
 		}
 	}
 	
@@ -540,6 +618,10 @@ public class OpticsViewer extends SecondoViewer
 		private double reachDist;
 		private double coreDist;
 		
+		private String txt = "";
+		
+		public OpticsPoint() {}
+		
 		public OpticsPoint(int order, double reachDist, double coreDist)
 		{
 			this.order     = order;
@@ -547,14 +629,44 @@ public class OpticsViewer extends SecondoViewer
 			this.coreDist  = coreDist;
 		}
 		
+		public void addElem(String type, String value)
+		{
+		 this.txt = this.txt 
+		          + "<tr><td><b>" + type 
+		          + "</b></td><td>:"
+		          + "</td><td>" + value
+		          + "</td></tr>";
+		}
+		
+		public String getTxt()
+		{
+		 return "<html><table border=\"0\", style=\"font-family:arial;font-size:10\">" 
+		 + txt + "</table></html>";
+		}
+		
+		public void setOrder(int order)
+		{
+			this.order = order;
+		}
+		
 		public int getOrder()
 		{
 			return order;
+		}
+
+		public void setReachDist(double reachDist)
+		{
+			this.reachDist = reachDist;
 		}
 		
 		public double getReachDist()
 		{
 			return reachDist;
+		}
+
+		public void setCoreDist(double coreDist)
+		{
+			this.coreDist = coreDist;
 		}
 
 		public double getCoreDist()
@@ -596,9 +708,12 @@ public class OpticsViewer extends SecondoViewer
 			
 			OpticsPoint point = (OpticsPoint) value;
 			
-			lbl.setText("<html>Reach distance " + point.reachDist  
-					       + "<br/>Core distance " + point.coreDist
-					       + "<br/>Order " + point.order + "</html>");
+			lbl.setText(point.getTxt());
+			
+			if(!isSelected)
+			{
+			 lbl.setBackground(index%2 == 0 ? Color.WHITE : Color.LIGHT_GRAY);
+			}
 			
 			return lbl;
 		}
@@ -629,7 +744,7 @@ public class OpticsViewer extends SecondoViewer
 		private int zoomMarkStepPnt;
 		private int zoom   = 1;
 		private int selIdx = -1;
-		private int points = 100;
+		private int points = 0;
 		private int OFF_EPS_LINE = 0;
 		private int epsLineOff = 0;
 		
@@ -647,29 +762,23 @@ public class OpticsViewer extends SecondoViewer
 		private Rectangle epsLine = new Rectangle();
 		private Rectangle epsLineCalc = new Rectangle();
 		
-		private OpticsViewer parent;
-		
 		/**
 		 * Constructor of the class.
 		 * 
-		 * @param parent
 		 */
-		public OpticsBarChart(OpticsViewer parent)
+		public OpticsBarChart()
 		{
 			super();
-			this.parent = parent;
 			this.setLayout(new GridBagLayout());
 		}
 		
 		/**
 		 * Constructor of the class.
 		 * 
-		 * @param parent
 		 * @param maxEps maximum displayed eps
 		 */
-		public OpticsBarChart(OpticsViewer parent, double maxEps)
+		public OpticsBarChart(double maxEps)
 		{
-			this(parent);
 			this.maxEps = maxEps * zoom;
 		}
 		
@@ -737,7 +846,7 @@ public class OpticsViewer extends SecondoViewer
 		{
 			int i = ((x - OFF_SCL_WIDTH)/zoom) -1;
 			
-			if(i > -1)
+			if(i > -1 && i < points)
 			{
 				OpticsPoint p = alPoints.get(i);
 				
@@ -791,6 +900,7 @@ public class OpticsViewer extends SecondoViewer
 		public void clear()
 		{
 			initialized = false;
+			points = 0;
 			alPoints.clear();
 			repaint();
 		}

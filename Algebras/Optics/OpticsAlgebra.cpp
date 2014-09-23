@@ -43,6 +43,7 @@ This file contains the implementation of the OpticsAlgebra.
 #include "LogMsg.h"
 #include "Stream.h"
 #include "MTreeAlgebra.h"
+#include "MTreeConfig.h"
 #include "Optics.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
@@ -58,15 +59,46 @@ extern QueryProcessor* qp;
 
 namespace clusteropticsalg
 {
- /* 
- --- Type mapping ---
-   --- START --- 
- */
+/* 
+Struct ~opticsResult~ to save the ordering of algorithm.
+
+*/
+ struct opticsResult
+ {
+  TupleBuffer* buffer; 
+  list<TupleId>* tupleIds;
+  list<TupleId>::iterator it;
+  bool init;
+
+  opticsResult(TupleBuffer* buf)
+  {
+   buffer = buf;
+   tupleIds = new list<TupleId>;
+   init = false;
+  }
+
+  ~opticsResult() { delete tupleIds; }
+
+  void initialize() { it = tupleIds->begin(); init = true; }
+
+  TupleId next() { TupleId tid = *it; *it++;  return tid; }
+   
+  bool hasNext() { return init && (it != tupleIds->end()); }
+ };
+/*
+Type mapping method ~opticsType~
+
+*/
  ListExpr opticsType( ListExpr args )
  {
+  if(!DistfunReg::isInitialized())
+  {
+   DistfunReg::initialize();
+  }
+    
   if(nl->ListLength(args)!=2)
   {
-   ErrorReporter::ReportError("one element expected");
+   ErrorReporter::ReportError("two element expected");
    return nl->TypeError();
   }
 
@@ -77,44 +109,60 @@ namespace clusteropticsalg
      return listutils::typeError("stream(Tuple) expected");
   }
 
+  //Check the arguments
   ListExpr arguments = nl->Second(args);
 
-  if(nl->ListLength(arguments)!=2)
+  if(nl->ListLength(arguments)!=3)
   {
-   ErrorReporter::ReportError("non conform list of Eps and MinPts");
+   ErrorReporter::ReportError("non conform list (three arguments expected)");
+   return nl->TypeError();
+  }
+  
+  if(!CcReal::checkType(nl->Second(arguments)))
+  {
+     return listutils::typeError("arg2 is not a real (Eps)");
+  }
+  
+  if(!CcInt::checkType(nl->Third(arguments)))
+  {
+     return listutils::typeError("arg3 is not an int (MinPts)");
+  }
+  
+  //Check the attribute name, is it in the tuple list
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr attrType;
+  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
+  int found = FindAttribute(attrList, attrName, attrType);
+  if(found == 0)
+  {
+   ErrorReporter::ReportError("Attribute "
+    + attrName + " is not a member of the tuple");
+   return nl->TypeError();
+  }
+  
+  string dataName;
+  string typeName = nl->ToString(attrType);
+  dataName = DistDataReg::defaultName(typeName);
+  
+  if(!DistDataReg::isDefined(typeName, dataName))
+  {
+   ErrorReporter::ReportError("Attribute type "
+    + typeName + " is not supported");
    return nl->TypeError();
   }
 
-  if(!CcInt::checkType(nl->First(arguments)))
-  {
-     return listutils::typeError("no numeric Eps");
-  }
-
-  if(!CcInt::checkType(nl->Second(arguments)))
-  {
-     return listutils::typeError("no numeric MinPts");
-  }
-
-//  ListExpr tuple = nl->Second(stream);
-
-//  if(!Points::checkType(nl->First(tuple)))
-//  {
-//     return listutils::typeError("stream(Tuple(Points)) expected");
-//   }
-
-//  ListExpr sortSpecification = nl->Second(args);
-
-//  int numberOfSortAttrs = nl->ListLength(sortSpecification);
-
-//  if(numberOfSortAttrs != 2)
-//  {
-//   return listutils::typeError("eps and MinPts expected");
-//  } 
-
-  // copy attrlist to newattrlist
-  ListExpr attrList  = nl->Second(nl->Second(stream));
+  //Copy attrlist to newattrlist
+  attrList             = nl->Second(nl->Second(stream));
   ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
-  ListExpr lastlistn  = newAttrList;
+  ListExpr lastlistn   = newAttrList;
+  
+  attrList = nl->Rest(attrList);
+  
+  while(!(nl->IsEmpty(attrList)))
+  {
+     lastlistn = nl->Append(lastlistn,nl->First(attrList));
+     attrList = nl->Rest(attrList);
+  }
 
   lastlistn = nl->Append(lastlistn
    ,nl->TwoElemList(nl->SymbolAtom("CoreDist")
@@ -125,71 +173,88 @@ namespace clusteropticsalg
   lastlistn = nl->Append(lastlistn
    ,nl->TwoElemList(nl->SymbolAtom("Processed")
     ,nl->SymbolAtom(CcBool::BasicType())));
+  lastlistn = nl->Append(lastlistn
+   ,nl->TwoElemList(nl->SymbolAtom("Eps")
+    ,nl->SymbolAtom(CcReal::BasicType())));
 
-  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND())
-   ,nl->TwoElemList(nl->IntAtom(2), arguments)
+   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND())
+   ,nl->TwoElemList(nl->IntAtom(found-1), nl->StringAtom(typeName))
    ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM())
     ,nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType())
      ,newAttrList)));
  }
- /* 
-   --- ENDE --- 
- --- Type mapping ---
- */
+/*
+Value mapping method ~opticsFun~
 
- /* 
- --- Value mapping ---
-   --- START --- 
- */
- int optics1Fun(Word* args, Word& result, int message, Word& local, Supplier s)
+*/
+ int opticsFun(Word* args, Word& result, int message, Word& local, Supplier s)
  {
-  //Default values
-  int defEps;
-  int defMinPts;
-  
-  //Optics instance
-  Optics optics;
+  opticsResult* info = (opticsResult*) local.addr;
 
-  TupleType *resultTupleType;
-  ListExpr resultType;
-  TupleBuffer *tp;
-  TupleBuffer *order;
-  long MaxMem;
-  GenericRelationIterator *relIter = 0;
-  Word argument;
-  Supplier son;
-  mtreeAlgebra::MTree mtree;
-  
   switch (message)
   {
    case OPEN :
    {
+    //Default values
+    double defEps;
+    int defMinPts;
+    int attrCnt;
+    int idxData;
+    string type;
+    string distFun;
+    string data;
+    string config;
+        
+    //Optics instance
+    Optics optics;
+
+    Tuple* tup;
+    TupleType* resultTupleType;
+    ListExpr resultType;
+    TupleBuffer* tp;
+    long maxMem;
+    Word argument;
+    Supplier son;
+    mtreeAlgebra::MTree mtree;
+    
     qp->Open(args[0].addr);
+    
+    //set the result type of the tuple
     resultType = GetTupleResultType(s);
     resultTupleType = new TupleType(nl->Second(resultType));
     Stream<Tuple> stream(args[0]);
     
-    son = qp->GetSupplier(args[1].addr, 0);
-    qp->Request(son, argument);
-    defEps = ((CcInt*)argument.addr)->GetIntval();
-
+    //set the given eps
     son = qp->GetSupplier(args[1].addr, 1);
+    qp->Request(son, argument);
+    defEps = ((CcReal*)argument.addr)->GetRealval();
+    
+    //set the given minPts
+    son = qp->GetSupplier(args[1].addr, 2);
     qp->Request(son, argument);
     defMinPts = ((CcInt*)argument.addr)->GetIntval();
     
+    //set the index of the attribute in the tuple
+    idxData = static_cast<CcInt*>(args[2].addr)->GetIntval();
+
+    //set the type of the attribute in the tuple
+    type = static_cast<CcString*>(args[3].addr)->GetValue();
+
+    string distfunName = DFUN_DEFAULT;
+    string configName = mtreeAlgebra::CONFIG_DEFAULT;
+    
+    DistDataId id = DistDataReg::getId(type
+     ,DistDataReg::defaultName(type));
+
+    DistfunInfo df = DistfunReg::getInfo(distfunName, id);
+    
+    mtree.initialize(id, distfunName, configName);
+    
     stream.open();
     
-    Tuple* tup;
-    tp = 0;
-    MaxMem = qp->FixedMemory();
-    tp = new TupleBuffer(MaxMem);
-    order = new TupleBuffer(MaxMem);
-    relIter = 0;
+    maxMem = qp->FixedMemory();
+    tp = new TupleBuffer(maxMem);
     
-    DistDataId id;
-    string distfunName = DFUN_DEFAULT;
-    string configName = "default";
-  
     if(!DistfunReg::isInitialized())
     {
      DistfunReg::initialize();
@@ -198,197 +263,67 @@ namespace clusteropticsalg
     while( (tup = stream.request()) != 0)
     {
      Tuple *newTuple = new Tuple(resultTupleType);
-
      
      //Copy points from given tuple to the new tuple
-     for( int i = 0; i < tup->GetNoAttributes(); i++ ) 
+     attrCnt = tup->GetNoAttributes();
+     for( int i = 0; i < attrCnt; i++ ) 
      {
       newTuple->CopyAttribute( i, tup, i);
      }
-     
-
+ 
      //Initialize the result tuple with default values
      CcReal coreDist(-1.0);
-     newTuple->PutAttribute( 1, ((Attribute*) &coreDist)->Clone());
+     newTuple->PutAttribute( attrCnt, ((Attribute*) &coreDist)->Clone());
      CcReal reachDist(-1.0);
-     newTuple->PutAttribute( 2, ((Attribute*) &reachDist)->Clone());
+     newTuple->PutAttribute( attrCnt+1, ((Attribute*) &reachDist)->Clone());
      CcBool processed(true, false);
-     newTuple->PutAttribute( 3, ((Attribute*) &processed)->Clone());
-      
-     DistDataAttribute* attr = (DistDataAttribute*) ((Point*) 
-                               newTuple->GetAttribute(0));
-     
-     if(attr->IsDefined())
-     {
-      if (mtree.isInitialized())
-      {
-      /*
-       if(attr->distdataId() != id)
-       {
-       
-        printf("---- distdata of different types\n");
-        return CANCEL;
-        
-       }
-       */
-      }
-      else
-      {      
-       // initialize mtree
-       id = attr->distdataId();
-       DistDataInfo info = DistDataReg::getInfo(Point::BasicType()
-                                               ,DDATA_NATIVE);
-       string dataName = info.name();
-       string typeName = info.typeName();
-       
-       if(distfunName == DFUN_DEFAULT)
-       {
-        distfunName = DistfunReg::defaultName(typeName);
-       }
-       
-       if(!DistfunReg::isDefined(distfunName, typeName, dataName))
-       {
-printf("---- distance function %s for type %s not defined\n"
-        , distfunName.c_str(), typeName.c_str());
-        return CANCEL;
-       }
-        
-       if(!DistfunReg::getInfo(distfunName, typeName, dataName).isMetric())
-       {
-printf("---- distance function %s with %s data for type %s is not metric\n"
-, distfunName.c_str(), dataName.c_str(), typeName.c_str());
-        return CANCEL;
-       }
-       
-       mtree.initialize(info.id(), distfunName, configName);
-      }
-      
-      mtree.insert(attr, newTuple->GetTupleId());
-     }
+     newTuple->PutAttribute( attrCnt+2, ((Attribute*) &processed)->Clone());
+     CcReal eps(defEps);
+     newTuple->PutAttribute( attrCnt+3, ((Attribute*) &eps)->Clone());
      
      tp->AppendTuple(newTuple);
      tup->DeleteIfAllowed();
     }
-
-    optics.setQueryTree(&mtree);
-    //Start the optics ordering
-    optics.order(tp, defEps, defMinPts, order);
-    
-    //Initialize the tuple buffer iterator and store it in local
-    relIter = order->MakeScan();    
-    local.setAddr(relIter);
-    return 0;
-   }
-   case REQUEST :
-   {
-    relIter = (GenericRelationIterator*) local.addr;
-    Tuple* outTup;
-
-    //Put the tuple in the result
-    if((outTup = relIter->GetNextTuple()))
-    { 
-     outTup->DeleteIfAllowed();
-     result.setAddr(outTup);
-     return YIELD;
-    }
-    else
+            
+    if(info)
     {
-     return CANCEL;
+     delete info;
     }
-   }
-   case CLOSE :
-   {
-    return 0;
-   }
-  }
-  return 0;
- } 
- 
- int opticsFun(Word* args, Word& result, int message, Word& local, Supplier s)
- {
-  //Default values
-  int defEps;
-  int defMinPts;
-  
-  //Optics instance
-  Optics optics;
-
-  TupleType *resultTupleType;
-  ListExpr resultType;
-  TupleBuffer *tp;
-  TupleBuffer *order;
-  long MaxMem;
-  GenericRelationIterator *relIter = 0;
-  Word argument;
-  Supplier son;
- 
-  switch (message)
-  {
-   case OPEN :
-   {
-    qp->Open(args[0].addr);
-    resultType = GetTupleResultType(s);
-    resultTupleType = new TupleType(nl->Second(resultType));
-    Stream<Tuple> stream(args[0]);
     
-    son = qp->GetSupplier(args[1].addr, 0);
-    qp->Request(son, argument);
-    defEps = ((CcInt*)argument.addr)->GetIntval();
+    info = new opticsResult(tp);
 
-    son = qp->GetSupplier(args[1].addr, 1);
-    qp->Request(son, argument);
-    defMinPts = ((CcInt*)argument.addr)->GetIntval();
-printf("\n----------------defMinPts = %d\n", defMinPts); 
-    stream.open();
-    Tuple* tup;
-    tp = 0;
-    MaxMem = qp->FixedMemory();
-    tp = new TupleBuffer(MaxMem);
-    order = new TupleBuffer(MaxMem);
-    relIter = 0;
-
-    while( (tup = stream.request()) != 0)
+    GenericRelationIterator* relIter = tp->MakeScan();
+    Tuple* obj;
+    
+    while((obj = relIter->GetNextTuple()))
     {
-     Tuple *newTuple = new Tuple(resultTupleType);
-
-     //Copy points from given tuple to the new tuple
-     for( int i = 0; i < tup->GetNoAttributes(); i++ ) 
+     TupleId objId = relIter->GetTupleId();
+     Attribute* attr = obj->GetAttribute(idxData);
+     
+     if(attr->IsDefined())
      {
-      newTuple->CopyAttribute( i, tup, i );
+      mtree.insert(attr, objId);
      }
-
-     //Initialize the result tuple with default values
-     CcReal coreDist(-1.0);
-     newTuple->PutAttribute( 1, ((Attribute*) &coreDist)->Clone());
-     CcReal reachDist(-1.0);
-     newTuple->PutAttribute( 2, ((Attribute*) &reachDist)->Clone());
-     CcBool processed(true, false);
-     newTuple->PutAttribute( 3, ((Attribute*) &processed)->Clone());
-//     Point pointOrder(true, 1, 1);
-//     newTuple->PutAttribute( 4, ((Attribute*) &pointOrder)->Clone());
-
-     tp->AppendTuple(newTuple);
-     tup->DeleteIfAllowed(); 
     }
 
-    //Start the optics ordering
-    optics.order(tp, defEps, defMinPts, order);
+    optics.initialize(&mtree, tp, &df, idxData, attrCnt, attrCnt+1, attrCnt+2);
     
-    //Initialize the tuple buffer iterator and store it in local
-    relIter = order->MakeScan();    
-    local.setAddr(relIter);
+    //Start the optics ordering
+    optics.order(defEps, defMinPts, info->tupleIds);
+    
+    info->initialize();
+    local.setAddr(info);
+    
     return 0;
    }
    case REQUEST :
    {
-    relIter = (GenericRelationIterator*) local.addr;
-    Tuple* outTup;
-
-    //Put the tuple in the result
-    if((outTup = relIter->GetNextTuple()))
-    { 
+    if(info->hasNext())
+    {
+     TupleId tid = info->next();
+     Tuple* outTup = info->buffer->GetTuple(tid, false);
      outTup->DeleteIfAllowed();
-     result.setAddr(outTup);
+     result = SetWord(outTup);
      return YIELD;
     }
     else
@@ -401,67 +336,39 @@ printf("\n----------------defMinPts = %d\n", defMinPts);
     return 0;
    }
   }
+  
   return 0;
- } 
- /* 
-   --- ENDE --- 
- --- Value mapping ---
- */
+ }
+/*
+Struct ~opticsInfo~
 
-
- /* 
- --- Operator Info ---
-   --- START --- 
- */
+*/
  struct opticsInfo : OperatorInfo
  {
    opticsInfo() : OperatorInfo()
    {
-     name   = "optics";
+     name      = "optics";
      signature = "stream(Tuple) -> stream(Tuple)";
-     syntax  = "_ optics [list]";
-     meaning  = "Order points to identify the cluster structure";
-     example  = "query Kneipen feed project [GeoData] optics \
+     syntax    = "_ optics [list]";
+     meaning   = "Order points to identify the cluster structure";
+     example   = "query Kneipen feed project [GeoData] optics \
             [9999999, 5] consume";
    }
  };
- 
- /* 
- struct optics1Info : OperatorInfo
- {
-   optics1Info() : OperatorInfo()
-   {
-     name   = "optics1";
-     signature = "stream(Tuple) -> stream(Tuple)";
-     syntax  = "_ optics1 [list]";
-     meaning  = "Order points to identify the cluster structure";
-     example  = "query Kneipen feed project [GeoData] optics1 \
-            [9999999, 5] consume";
-   }
- };
-   --- ENDE --- 
- --- Operator Info ---
- */
+/*
+Algebra class ~ClusterOpticsAlgebra~
 
- /*
- --- Creating the cluster algebra ---
-          --- START ---
- */
+*/
  class ClusterOpticsAlgebra : public Algebra
  {
   public:
    ClusterOpticsAlgebra() : Algebra()
    {
     AddOperator(opticsInfo(), opticsFun, opticsType);
-    //AddOperator(optics1Info(), optics1Fun, opticsType);
    }
 
    ~ClusterOpticsAlgebra() {};
  };
- /*
-          --- ENDE ---
- --- Creating the cluster algebra ---
- */
 }
 
 extern "C"
