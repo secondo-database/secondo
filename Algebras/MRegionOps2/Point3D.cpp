@@ -32,7 +32,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
-[2] Implementation with exakt dataype
+[2] Implementation with exakt dataype, 
+
+April - November 2014, S. Schroer for master thesis.
+
+[2] Implementation with exakt dataype, 
 
 April - November 2014, S. Schroer for master thesis.
 
@@ -44,27 +48,47 @@ April - November 2014, S. Schroer for master thesis.
 
 */
 
-#include "Vector3D.h"
 #include "Point3D.h"
-
 
 namespace mregionops2 {
 
-// calculate the crossprodukt from two vectors
-Vector3D Vector3D::CrossProduct(Vector3D vec)
-{
-  Vector3D n(y * vec.GetZ() - z * vec.GetY(),
-             z * vec.GetX() - x * vec.GetZ(),
-             x * vec.GetY() - y * vec.GetX());
-  return n;
-}
 
-Vector3D::Vector3D(Point3D p1, Point3D p2)
+bool Point3D::LiesBetween(const Point3D& p1, const Point3D& p2) const
 {
-  x = p2.GetX() - p1.GetX();
-  y = p2.GetY() - p1.GetY();
-  z = p2.GetZ() - p1.GetZ();
-}
+Point3D th = *this;
+Point3D po1 = p1;
+Point3D po2 = p2;
 
+   cout << "LiesBetween --- this point: " << th << "   p1: " << 
+    po1 << "   p2: " << po2 << endl;
+  if ((*this == p1) || (*this == p2)) return true;
+cout << " may be false" << endl;
+
+  if (p1 == p2) return false;
+
+  mpq_class ratio;
+      
+  if (p1.x != p2.x)
+  {
+    ratio = (x - p1.x) / (p2.x - p1.x);
+  }
+  else if (p1.y != p2.y)
+  {
+    ratio = (y - p1.y) / (p2.y - p1.y);
+  }
+  else
+  {
+    ratio = (z - p1.z) / (p2.z - p1.z);
+  }
+  
+  if ((ratio < 0) || (ratio > 1)) return false;
+  
+  if ((x - p1.x) != (ratio * (p2.x - p1.x))) return false;
+  if ((y - p1.y) != (ratio * (p2.y - p1.y))) return false;
+  if ((z - p1.z) != (ratio * (p2.z - p1.z))) return false;
+cout << " is true" << endl;
+ 
+  return true;
+}
 
 }

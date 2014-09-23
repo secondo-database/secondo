@@ -2,8 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2013, University in Hagen, 
-Faculty of Mathematics and Computer Science,
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -26,17 +25,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ue] [\"u]
 //[ae] [\"a]
 //[oe] [\"o]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
 
+[1] Implementation
+
+April - November 2008, M. H[oe]ger for bachelor thesis.
+
+[2] Implementation with exakt dataype
+
+April - November 2014, S. Schroer for master thesis.
 
 [TOC]
 
-1 Helper classes and methods
+1 Introduction
 
-1.1 Some forward declaration of helper methods
+2 Defines and Includes
 
 */
 
+#include <iostream>
+
 #include "IntSegContainer.h"
+#include "IntersectionSegment.h"
+#include "PFace.h"
+
 
 namespace mregionops2 {
 /*
@@ -49,7 +62,6 @@ bool IntSegCompare::operator()(const IntersectionSegment* const& s1,
         const IntersectionSegment* const& s2) const {
 
     // We sort by (t_start, w_start, IsLeft())
-
     // Precondition: s1->GetStartT() < s1->GetEndT() && 
     //               s2->GetStartT() < s2->GetEndT()
 
@@ -58,46 +70,100 @@ bool IntSegCompare::operator()(const IntersectionSegment* const& s1,
 
     if (s1->GetStartT() > s2->GetStartT())
         return false;
-    
-    // s1->GetStartT() == s2->GetStartT()
-    
+       
     if (s1->GetStartW() < s2->GetStartW())
         return true;
 
     if (s1->GetStartW() >  s2->GetStartW())
         return false;
-
-    // s1->GetStartW() == s2->GetStartW()
     
     if (*(s1->GetEndWT()) == *(s2->GetEndWT()))
-        return true;
+        return false;
     
-    //return s1->IsLeftOf(s2);
-return s1->GetEndWT()->IsLeft(*(s2->GetStartWT()), *(s2->GetEndWT()));
+    return s1->GetEndWT()->IsLeft(*(s2->GetStartWT()), *(s2->GetEndWT()));
     
 }
-
-
-/*
-1 Class IntSegContainer
-
-*/
 
 IntSegContainer::~IntSegContainer() {
 
- set<IntersectionSegment*>::iterator iter;
+    set<IntersectionSegment*>::iterator iter;
 
- for (iter = intSegs.begin(); iter != intSegs.end(); ++iter) {
+    for (iter = intSegs.begin(); iter != intSegs.end(); ++iter) {
 
-    delete *iter;
+        delete *iter;
     }
-
 }
 
+void IntSegContainer::AddIntSeg(IntersectionSegment* seg) {
+
+    set<IntersectionSegment*>::iterator iter;
+
+    iter = intSegs.find(seg);
+    if (iter != intSegs.end())
+    {
+     cout << "intersection segment is already defined" << endl;
+     seg->Print();
+     cout << endl;
+     (*iter)->Print();
+     cout << endl;
+     (*iter)->UpdateWith(seg);
+     cout << "intersection segment after update" << endl;
+     (*iter)->Print();
+     cout << endl;
+     delete(seg);
+     return;
+    }
+    
+    intSegs.insert(seg);
+}
+
+void IntSegContainer::FinalizeIntSegs()
+{
+  set<IntersectionSegment*>::const_iterator iter;
+
+  for (iter = intSegs.begin(); iter != intSegs.end(); ++iter)
+  {
+    (*iter)->Finalize();
+  }
+}
+
+void IntSegContainer::FillIntSegsTable(unsigned int count)
+{
+// Nr der Zeitscheibe liefert uns alle InterSegs die darin vorkommen 
+  set<IntersectionSegment*>::const_iterator iter;
+
+  for (iter = intSegs.begin(); iter != intSegs.end(); ++iter)
+  {
+    unsigned int ind = 0;
+    
+    while ((ind < count) &&
+    ((*iter)->GetStartT() >= (*iter)->GetPFace()->GetTimeIntervalEnd(ind)))
+    ind++;
+    
+    while ((ind < count) &&
+    ((*iter)->GetEndT() > (*iter)->GetPFace()->GetTimeIntervalStart(ind)))
+    {
+    (*iter)->GetPFace()->AddToIntSegsTable(ind, *iter);
+    ind++;
+    }
+
+  }
+}
+
+void IntSegContainer::InvertAreaDirections()
+{
+  set<IntersectionSegment*>::const_iterator iter;
+
+  for (iter = intSegs.begin(); iter != intSegs.end(); ++iter)
+  {
+    (*iter)->InvertAreaDirection();
+  }
+}
 
 void IntSegContainer::Print() const {
     
     if (intSegs.empty()) {
+        
         cout << "Empty." << endl;
         return;
     }
@@ -105,15 +171,9 @@ void IntSegContainer::Print() const {
     set<IntersectionSegment*>::const_iterator iter;
 
     for (iter = intSegs.begin(); iter != intSegs.end(); ++iter) {
-
-        //cout << (*iter)->GetID() << " ";
         (*iter)->Print();
         cout << endl;
     }
-
 }
 
-void IntSegContainer::PrintActive() const {
-
-}
 }

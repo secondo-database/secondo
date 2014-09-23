@@ -32,6 +32,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
+[2] Implementation with exakt dataype, 
+
+April - November 2014, S. Schroer for master thesis.
+
 [2] Implementation with exakt dataype
 
 April - November 2014, S. Schroer for master thesis.
@@ -44,27 +48,55 @@ April - November 2014, S. Schroer for master thesis.
 
 */
 
-#include "Vector3D.h"
+#include "Point2D.h"
 #include "Point3D.h"
-
 
 namespace mregionops2 {
 
-// calculate the crossprodukt from two vectors
-Vector3D Vector3D::CrossProduct(Vector3D vec)
+/*
+
+3 Class Point2D
+
+*/
+
+Point2D::Point2D(const Point3D& p) :
+         x(p.GetX()), y(p.GetY()) {
+
+}
+
+bool Point2D::LiesBetween(Point2D p1, Point2D p2)
+
 {
-  Vector3D n(y * vec.GetZ() - z * vec.GetY(),
-             z * vec.GetX() - x * vec.GetZ(),
-             x * vec.GetY() - y * vec.GetX());
-  return n;
+// *this = referenziertes Objekt das zu überprüfen ist
+  if ((*this == p1) || (*this == p2)) return true;
+
+// kann nicht dazwischen liegen
+  if (p1 == p2) return false;
+    
+  if (p1.x != p2.x)
+  {
+    // x-Koordinate vom Objekt
+    // was passiert wenn p2 < p1
+    mpq_class ratio = (x - p1.x) / (p2.x - p1.x);
+
+    // kürzt gemeinsame Teiler, canonische Form: ratio.canonicalize();  
+    // < 0 liegt der Punkt links von p1, > 0 liegt der Punkt rechts von p1
+    // wenn x zwischen p1 und p2 liegen soll, muss das 
+    // Verhältnis der y-Werte dem der x-Werte entsprechen
+    if ((ratio >= 0) && (ratio <= 1) &&
+        ((y - p1.y) == (ratio * (p2.y - p1.y)))) return true;
+  }
+
+  // p1, p2 liegen auf einer parallelen zur x-Achse
+  // wir wissen, y1 <> y2 und prüfen das Verhältnis neu
+  else
+  {
+    mpq_class ratio = (y - p1.y) / (p2.y - p1.y);
+    if ((ratio >= 0) && (ratio <= 1) &&
+        ((x - p1.x) == (ratio * (p2.x - p1.x)))) return true;
+  }
+  
+return false;
 }
 
-Vector3D::Vector3D(Point3D p1, Point3D p2)
-{
-  x = p2.GetX() - p1.GetX();
-  y = p2.GetY() - p1.GetY();
-  z = p2.GetZ() - p1.GetZ();
-}
-
-
-}
+} // end of namespace mregionops2

@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
-[2] Implementation with exakt dataype
+[2] Implementation with exakt dataype, 
 
 April - November 2014, S. Schroer for master thesis.
 
@@ -44,27 +44,38 @@ April - November 2014, S. Schroer for master thesis.
 
 */
 
-#include "Vector3D.h"
-#include "Point3D.h"
-
+#include "Point3DExt.h"
 
 namespace mregionops2 {
 
-// calculate the crossprodukt from two vectors
-Vector3D Vector3D::CrossProduct(Vector3D vec)
-{
-  Vector3D n(y * vec.GetZ() - z * vec.GetY(),
-             z * vec.GetX() - x * vec.GetZ(),
-             x * vec.GetY() - y * vec.GetX());
-  return n;
+/*
+1 Class Point3DExt
+
+*/
+
+bool Point3DExt::operator <(const Point3DExt& p) const {
+
+    if (GetX() < p.GetX())
+        return true;
+    if (GetX() > p.GetX())
+        return false;
+    if (GetY() < p.GetY())
+        return true;
+    if (GetY() > p.GetY())
+        return false;
+    if (GetT() < p.GetT())
+        return true;
+    if (GetT() > p.GetT())
+        return false;
+
+    //cout << "sourceFlag < p.sourceFlag" << endl;
+    return sourceFlag < p.sourceFlag;
 }
 
-Vector3D::Vector3D(Point3D p1, Point3D p2)
-{
-  x = p2.GetX() - p1.GetX();
-  y = p2.GetY() - p1.GetY();
-  z = p2.GetZ() - p1.GetZ();
-}
 
+/***********************************
 
-}
+ end of namespace mregionops2
+
+***********************************/
+};
