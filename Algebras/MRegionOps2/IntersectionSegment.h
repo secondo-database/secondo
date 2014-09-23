@@ -41,9 +41,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <gmp.h>
 #include <gmpxx.h>
-#include "Refinement3.h"
-#include "PointVector.h"
-#include "Segment.h"
+#include <assert.h>
+
+#include "SetOps2.h"
+#include "Segment3D.h"
+#include "Angle.h"
+
 
 using namespace std;
 
@@ -72,7 +75,8 @@ The constructor assures the condition: $startpoint.t <= endpoint.t$
 
 */
 
-    IntersectionSegment(const Segment3D& s);
+      IntersectionSegment(const Segment3D& s, PFace* pFace, Angle leftAng,
+                        Angle rightAng, Direction dir);
 
 /*
 1.1 Getter and setter methods
@@ -83,24 +87,12 @@ Returns a pointer to the ~PFace~, this instance belongs to.
 
 */
 
-    inline const PFace* GetPFace() const {
+    inline PFace* GetPFace() const {
 
         assert(pFace != 0);
         return pFace;
     }
 
-/*
-1.1.1 SetPFace
-
-Initialise the field ~pFace~.
-
-*/
-
-    inline void SetPFace(const PFace* _pFace) {
-
-        // ??? assert(pFace == 0);
-        pFace = _pFace;
-    }
 
 /*
 1.1.1 SetWCoords
@@ -122,55 +114,59 @@ either in xyt-coords or in wt-coords.
 
 */
 
-    inline const Point3D* GetStartXYT() const {
 
+    inline const Point3D* GetStartXYT() const {
         return &startXYT;
     }
 
-    inline const Point2D GetStartXY() const {
-
-        return Point2D(startXYT);
-    }
-
-    inline mpq_class GetStartT() const {
-
-        return startXYT.GetT();
-    }
-
     inline const Point3D* GetEndXYT() const {
-
         return &endXYT;
     }
 
-    inline const Point2D GetEndXY() const {
 
+
+    inline const Point2D GetStartXY() const {
+        return Point2D(startXYT);
+    }
+
+    inline const Point2D GetEndXY() const {
         return Point2D(endXYT);
     }
 
-    inline mpq_class GetEndT() const {
 
+    inline mpq_class GetStartT() const {
+        return startXYT.GetT();
+    }
+
+    inline mpq_class GetEndT() const {
         return endXYT.GetT();
     }
 
     inline const Point2D* GetStartWT() const {
-
         return &startWT;
     }
 
     inline const Point2D* GetEndWT() const {
-
         return &endWT;
     }
 
     inline mpq_class GetStartW() const {
-
         return startWT.GetW();
     }
 
     inline mpq_class GetEndW() const {
-
         return endWT.GetW();
     }
+
+    inline mpq_class GetIntervalStartW() const {
+        return intervalStartW;
+    }
+
+    inline mpq_class GetIntervalEndW() const {
+        return intervalStartW;
+    }
+
+    AreaDirection GetAreaDirection();
 
 /*
 1.1 Operators and Predicates
@@ -182,22 +178,14 @@ Returns ~true~, if this is parallel to the xy-plane.
 */
 
     inline bool IsOrthogonalToTAxis() const {
-
         return (GetStartT() == GetEndT());
     }
 
-/*
-1.1.1 IsLeftOf
-
-Returns ~true~, if this is left of intSeg.
-
-Preconditions:
-  * $intSeg.startpoint.t <= this.startpoint.t <= intSeg.endpoint.t$
-  * this and intSeg don't intersect in their interior
-
-*/
-
+    void Finalize();
+    void UpdateWith(IntersectionSegment* seg);
+    void InvertAreaDirection();
     bool IsLeftOf(const IntersectionSegment* intSeg) const;
+    void ComputeIntervalW(const mpq_class s, const mpq_class e);
 
 /*
 1.1.1 Evaluate
@@ -214,19 +202,13 @@ Precondition: $startpoint.t <= t <= endpoint.t$
 
 */
 
-    inline unsigned int GetID() const {
+//    inline unsigned int GetID() const {
+//        return id;
+//    }
 
-        return id;
-    }
+//    string GetVRMLDesc();
 
-    string GetVRMLDesc();
-
-    void Print() const {
-    
-    //cout << "ID: " << GetID() << " ";
-    cout << *GetStartXYT() << " -> " << *GetEndXYT();
-    //cout << *GetStartWT() << " -> " << *GetEndWT();
-}
+    void Print();
 
 private:
 
@@ -236,12 +218,10 @@ private:
 */
 
     inline void SetStartWT(const Point2D& _startWT) {
-
         startWT = _startWT;
     }
 
     inline void SetEndWT(const Point2D& _endWT) {
-
         endWT = _endWT;
     }
 
@@ -255,8 +235,8 @@ Used for debugging only.
 
 */
 
-    unsigned int id;
-	static unsigned int instanceCount;
+//    unsigned int id;
+//    static unsigned int instanceCount;
 
 /*
 1.1.1 startXYT and endXYT
@@ -281,6 +261,17 @@ We store them here for the sake of efficency.
     Point2D startWT;
     Point2D endWT;
 
+    Angle rightNeighbour;
+    Direction rightNeighbourDir;
+
+    Angle leftNeighbour;
+    Direction leftNeighbourDir;
+        
+    mpq_class intervalStartW;
+    mpq_class intervalEndW;
+
+    AreaDirection areaDirection;
+
 /*
 1.1.1 pFace
 
@@ -288,7 +279,7 @@ A pointer to the ~PFace~, this instance belongs to.
 
 */
 
-    const PFace* pFace;
+    PFace* pFace;
 };
 
 

@@ -30,13 +30,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [TOC]
 
+[2] Implementation with exakt dataype, 
+
+April - November 2014, S. Schroer for master thesis.
+
 1 Helper classes and methods
 
 1.1 Some forward declaration of helper methods
-
-*/
-
-/*
 
 1 class deklarations
 
@@ -46,22 +46,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #ifndef POINT3DEXT_H_
 #define POINT3DEXT_H_
-#include "MovingRegion2Algebra.h"
-#include "PointVector.h"
-#include "Segment.h"
-#include "Refinement3.h"
-#include "IntersectionSegment.h"
-#include "IntSegContainer.h"
+
+#include <gmp.h>
+
+#include "Point3D.h"
 
 namespace mregionops2 {
 
-/*
-
-1 Forward declarations
-
-*/
-class PointExtSet;
-class Point3DExt;
 
 /*
 
@@ -70,7 +61,6 @@ class Point3DExt;
 Indicates the source unit of a ~Point3DExt~.
 
 */
-
 
 enum SourceFlag {
 
@@ -93,6 +83,7 @@ class Point3DExt : public Point3D {
 public:
 
 /*
+
 1.1 Constructors
 
 */
@@ -101,7 +92,7 @@ public:
         Point3D() {
     }
 
-inline Point3DExt(mpq_class a, mpq_class b, mpq_class c, 
+    inline Point3DExt(mpq_class a, mpq_class b, mpq_class c, 
                   SourceFlag _sourceFlag) :
 
         Point3D(a, b, c),
@@ -109,6 +100,7 @@ inline Point3DExt(mpq_class a, mpq_class b, mpq_class c,
     }
 
 /*
+
 1.1 Operators and Predicates
 
 1.1.1 operator $<$
@@ -117,105 +109,8 @@ inline Point3DExt(mpq_class a, mpq_class b, mpq_class c,
 
     bool operator <(const Point3DExt& p) const;
 
-/*
-
-1.1 Attributes
-
-1.1.1 sourceFlag
-
-An enum, indicating the ~PFace~, this ~Point3D~ belongs to.
-Possible values are:
-  * $PFACE\_A$
-  * $PFACE\_B$
-
-*/
-
     SourceFlag sourceFlag;
 };
-
-/*
-1 Class PointExtSet
-
-This set is used in the class ~PFace~ to compute the intersection segment of
-two ~PFaces~.
-
-*/
-
-class PointExtSet {
-
-public:
-
-/*
-
-1.1 Constructors
-
-*/
-
-    inline PointExtSet() {
-
-    }
-
-/*
-
-1.1 Operators and Predicates
-
-1.1.1 Insert
-
-Inserts p, if p isn't already inserted.
-
-*/
-
-    inline void Insert(const Point3DExt& p) {
-
-        s.insert(p);
-    }
-
-/*
-
-1.1.1 Size
-
-Returns the number of points in the set.
-
-*/
-
-    inline unsigned int Size() const {
-
-        return s.size();
-    }
-
-/*
-1.1.1 GetIntersectionSegment
-
-Returns ~true~, if there is an intersection segment and writes it to result.
-
-*/
-
-    bool GetIntersectionSegment(Segment3D& result) const;
-
-/*
-
-1.1 Methods for debugging
-
-*/
-
-void Print() const;
-
-private:
-
-/*
-
-1.1 Attributes
-
-1.1.1 s
-
-A ~std::set~, using the overloaded operator $<$ for comparison.
-
-*/
-
-    set<Point3DExt> s;
-};
-
-
 
 }
 
