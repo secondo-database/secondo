@@ -28,16 +28,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[x] [$\times $]
 //[->] [$\rightarrow $]
 
-[1] Implementation of the Point and Vector classes
+[1] Implementation of the MRegionOps2Algebra
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
+
+[2] Implementation with exakt dataype, 
+
+April - November 2014, S. Schroer for master thesis.
 
 [TOC]
 
 1 Introduction
-
-This file contains implementations of the classes Point2D, Point3D, Vector2D
-and Vector3D.
 
 2 Defines and Includes
 
