@@ -983,7 +983,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox, _,
          fail
        )
   ),
-  ( optimizerOption(subqueries) 
+  ( ( optimizerOption(subqueries), 
+	not(Pred =.. [=, attr(_, _, _), attr(_, _, _)]) )
     -> InputCard = InputCardRel2
     ; InputCard is InputCardRel1 * InputCardRel2
   ),
