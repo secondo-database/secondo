@@ -303,6 +303,8 @@ Here, each include is commented with some functionality used.
 
 #include "GenericTC.h"          // use of generic type constructors
 
+#include "LogMsg.h"             // send error messages
+
 #include "../../Tools/Flob/DbArray.h"  // use of DbArrays
 
 #include "RelationAlgebra.h"           // use of tuples
@@ -459,10 +461,12 @@ is to convert such a list into the internal object representation, i.e.
 an instance of the class above.
 The list may have an  invalid format. If the list does not
 have the expected format, the output parameter ~correct~ must be set to
-~false~ and the ~addr~-pointer of the result must be set to 0. In the other case,
-the argument ~correct~ has to be set to ~true~ and the ~addr~ pointer of the
-result points to an object instance having the value represented by the ~instance~
-argument.
+~false~ and the ~addr~-pointer of the result must be set to 0.
+A detailed error description can be provided to the user by calling 
+the ~inFunError~ of the global ~cmsg~ object.
+In case of success, the argument ~correct~ has to be set to ~true~ and 
+the ~addr~ pointer of the result points to an object instance having the 
+value represented by the ~instance~ argument.
 The parameters of the function are:
 
   * typeInfo : contains the complete type description and is required for nested types
@@ -492,12 +496,14 @@ zero.
     correct = false;
     // check whether the list has three elements
     if(!nl->HasLength(instance,3)){
+      cmsg.inFunError("expected three numbers");
       return res; 
     } 
     // check whether all elements are numeric
     if(   !listutils::isNumeric(nl->First(instance)) 
        || !listutils::isNumeric(nl->Second(instance))
        || !listutils::isNumeric(nl->Third(instance))){
+       cmsg.inFunError("expected three numbers");
        return res;
     }
     // get the numeric values of the elements
@@ -506,6 +512,7 @@ zero.
     double r = listutils::getNumValue(nl->Third(instance));
     // check for a valid radius
     if(r<=0){
+       cmsg.inFunError("invalid radius (<0)");
        return res;
     }
     // list was correct,  create the result
@@ -527,6 +534,11 @@ result of this function.  The arguments are:
   * value: the ~addr~ pointer of ~value~ points to the object to export. The Secondo 
     framework ensures that the type of this object is the correct one. The
     cast in the first line will be successful.
+
+
+This function must be able to convert *each* instance into a nested list. For this
+reason, there is no function for error reporting as in the ~IN~ function.
+
 
 */
 ListExpr OutSCircle( ListExpr typeInfo, Word value ) {
@@ -1982,12 +1994,14 @@ necessary for the case.
 
     // check whether the list has three elements
     if(!nl->HasLength(instance,3)){
+      cmsg.inFunError("expected three numbers");
       return res; 
     } 
     // check whether all elements are numeric
     if(   !listutils::isNumeric(nl->First(instance)) 
        || !listutils::isNumeric(nl->Second(instance))
        || !listutils::isNumeric(nl->Third(instance))){
+       cmsg.inFunError("expected three numbers");
        return res;
     }
     // get the numeric values of the elements
@@ -1996,6 +2010,7 @@ necessary for the case.
     double r = listutils::getNumValue(nl->Third(instance));
     // check for a valid radius
     if(r<=0){
+       cmsg.inFunError("invalid radius");
        return res;
     }
     // list was correct,  create the result
@@ -2296,17 +2311,20 @@ be used. In return, no non-class functions must be implemented.
          }
 
          if(!nl->HasLength(LE,3)){
+            cmsg.inFunError("three numbers expected");
             return false;
          }
          if(    !listutils::isNumeric(nl->First(LE))
              || !listutils::isNumeric(nl->Second(LE))
              || !listutils::isNumeric(nl->Third(LE))){
+            cmsg.inFunError("three numbers expected");
             return false;
           }
           double x = listutils::getNumValue(nl->First(LE));
           double y = listutils::getNumValue(nl->Second(LE));
           double r = listutils::getNumValue(nl->Third(LE));
           if( r<=0){
+             cmsg.inFunError("invalid radius");
              return false;
           }
           SetDefined(true);
