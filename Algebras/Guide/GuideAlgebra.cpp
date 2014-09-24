@@ -323,6 +323,21 @@ extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
 
+
+/*
+0.6 NameSpace
+
+Each algebra file defines a lot of functions. Thus, name conflicts may arise 
+with function names defined in other algebra modules during compiling/linking
+the system. To avoid these conflicts, the algebra implementation should be
+embedded into a namespace.
+
+*/
+
+namespace guide{
+
+
+
 /*
 1 Implementation of a simple Type
 
@@ -2686,6 +2701,14 @@ class GuideAlgebra : public Algebra {
  };
 
 
+/*
+End of the namespace. The following code cannot be embedded into the
+algebras's namespace. Thus the namespace should end here.
+
+*/
+
+} // end of namespace guide
+
 
 /*
 9 Initialization of the algebra
@@ -2698,7 +2721,7 @@ extern "C"
 Algebra*
    InitializeGuideAlgebra( NestedList* nlRef,
                            QueryProcessor* qpRef ) {
-   return new GuideAlgebra;
+   return new guide::GuideAlgebra;
 }
 
 
