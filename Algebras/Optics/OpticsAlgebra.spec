@@ -27,3 +27,4 @@
 #operator optics alias OPTICS pattern _ op [ _, _ ]
 #operator optics alias OPTICS pattern _ op
 operator optics alias OPTICS pattern _ op [list]
+operator opticsR alias OPTICSR pattern _ op [list]
