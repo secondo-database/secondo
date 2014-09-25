@@ -42,8 +42,8 @@ This is a TCP load balancer for csv data. The load balancer
 provides different scheduling stategies:
 
 rr    = Round robin
-trr   = Thraded round robin
-lbtrr = Load based thraded round robin
+trr   = Threaded round robin
+lbtrr = Load based threaded round robin
 qbts  = Queue based threaded scheduling
 
 2 Defines, includes, and constants
@@ -833,7 +833,7 @@ void printHelpAndExit(string &progName) {
   cerr << endl;
   cerr << "Where <Mode> is rr, trr, lbtrr-n or qbts:" << endl;
   cerr << "rr      = round robin" << endl;
-  cerr << "trr     = thraded round robin" << endl;
+  cerr << "trr     = threaded round robin" << endl;
   cerr << "lbtrr-n = load based threaded rr" << endl;
   cerr << "            acknowledge every n lines" << endl;
   cerr << "            (e.g. lbtrr-10)" << endl;
@@ -930,7 +930,7 @@ void startThreadedServer(LBConfiguration &configuration) {
     }
     
     dataScheduler = new RRDataScheduler(configuration);   
-    cout << "Mode is load based thraded round robin" << endl;
+    cout << "Mode is load based threaded round robin" << endl;
     int acknowledgeAfter = atoi((mode.substr(6, mode.length())).c_str());
     cout << "Acknowledge after: " << acknowledgeAfter << " lines" << endl;
   }
