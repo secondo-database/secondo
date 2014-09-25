@@ -163,7 +163,7 @@ Returns the core distance to "obj"[4] with respect to "objs"[4] (neighbors),
 "eps"[4] and "minPts"[4].
 
 */
-  	double getCoreDistanceR(std::list<TupleId>* neighbors, TupleId objId);
+   double getCoreDistanceR(std::list<TupleId>* neighbors, TupleId objId);
 /*
 Updates "orderedSeeds"[4], elements of "neighbors"[4] will be inserted or moved
 up within "orderedSeeds"[4] with respect to their reachable distance to 

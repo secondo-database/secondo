@@ -40,11 +40,12 @@ This file contains the "Optics"[4] class definition.
 #include "Optics.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
+#include "RectangleAlgebra.h"
+#include "Coord.h"
 #include <vector>
 
 namespace clusteropticsalg
 {
-
 /*
 2.3 Implementation of the class ~Optics~
 
@@ -53,20 +54,40 @@ namespace clusteropticsalg
 Default constructor ~Optics::Optics~
 
 */
- Optics::Optics()
+ template <unsigned dim>
+ Optics<dim>::Optics()
  {
   return;
  }
 /*
 Method ~Optics::initialize~
 
-*/ 
- void Optics::initialize(mtreeAlgebra::MTree* queryTree, TupleBuffer* objsToOrd
-  ,gta::DistfunInfo* df, int idxDistData, int idxCDist, int idxRDist
-  ,int idxPrc)
+*/
+ template <unsigned dim>
+ void Optics<dim>::initialize(mtreeAlgebra::MTree* queryTree
+  ,TupleBuffer* objsToOrd, gta::DistfunInfo* df, int idxDistData, int idxCDist
+  ,int idxRDist, int idxPrc)
  {
+  MODE = MODE_MTREE;
   mtree = queryTree;
   distFun = df;
+  objs = objsToOrd;
+  PNT = idxDistData;
+  COR = idxCDist;
+  REA = idxRDist;
+  PRC = idxPrc;
+ }
+/*
+Method ~Optics::initialize~
+
+*/
+ template <unsigned dim>
+ void Optics<dim>::initialize(mmrtree::RtreeT<dim, TupleId>* queryTree
+  ,TupleBuffer* objsToOrd, int idxDistData, int idxCDist, int idxRDist
+  ,int idxPrc)
+ {
+  MODE = MODE_MMRTREE;
+  rtree = queryTree;
   objs = objsToOrd;
   PNT = idxDistData;
   COR = idxCDist;
@@ -77,7 +98,9 @@ Method ~Optics::initialize~
 Method ~Optics::order~
 
 */
- void Optics::order(double pEps, unsigned int pMinPts, list<TupleId>* pOrder)
+ template <unsigned dim>
+ void Optics<dim>::order(double pEps, unsigned int pMinPts
+  ,list<TupleId>* pOrder)
  {
   pOrder->clear();
   
@@ -85,7 +108,7 @@ Method ~Optics::order~
   eps = pEps;
   result = pOrder;
 
-  GenericRelationIterator *relIter = objs->MakeScan();
+  GenericRelationIterator* relIter = objs->MakeScan();
   TupleId objId;
   Tuple* obj;
 
@@ -103,7 +126,8 @@ Method ~Optics::order~
 Method ~Optics::expandClusterOrder~
 
 */
- void Optics::expandClusterOrder(TupleId objId)
+ template <unsigned dim>
+ void Optics<dim>::expandClusterOrder(TupleId objId)
  {
   Tuple* obj;
   std::list<TupleId> orderedSeeds;
@@ -154,16 +178,52 @@ Method ~Optics::expandClusterOrder~
 /*
 Method ~Optics::getNeighbors~
 
-*/  
- std::list<TupleId>* Optics::getNeighbors(TupleId objId)
+*/
+ template <unsigned dim>
+ std::list<TupleId>* Optics<dim>::getNeighbors(TupleId objId)
  {
   std::list<TupleId>* near(new list<TupleId>);
   Tuple* obj;
   
   obj = objs->GetTuple(objId, false);
   
-  mtree->rangeSearch((Attribute*)obj->GetAttribute(PNT), eps, near);
-  near->remove(objId);
+  if(MODE == MODE_MTREE)
+  {
+   mtree->rangeSearch((Attribute*)obj->GetAttribute(PNT), eps, near);
+   near->remove(objId);
+  }
+  else if(MODE == MODE_MMRTREE)
+  {
+   double x = ((Point*) obj->GetAttribute(PNT))->GetX();
+   double y = ((Point*) obj->GetAttribute(PNT))->GetY();
+   double recP1[2];
+   double recP2[2];
+    
+   recP1[0] = x - eps;
+   recP1[1] = y - eps;
+   recP2[0] = x + eps;
+   recP2[1] = y + eps;
+                
+   Rectangle<dim> rEps(true, recP1, recP2);
+   set<TupleId> b;
+   rtree->findAll(rEps, b);
+   
+   set<TupleId>::iterator it;
+   for(it = b.begin(); it != b.end(); it++)
+   {
+    Tuple* curObj;
+  
+    curObj = objs->GetTuple(*it, false);
+    
+    double distance = ((Rectangle<dim>*)obj->GetAttribute(PNT))->Distance(
+     (*(Rectangle<dim>*)curObj->GetAttribute(PNT)));
+    
+    if(distance <= eps)
+    { 
+     near->push_back(*it);
+    }
+   }
+  }
   
   return near;
  }
@@ -171,7 +231,8 @@ Method ~Optics::getNeighbors~
 Method ~Optics::setCoreDistance~
 
 */
- void Optics::setCoreDistance(std::list<TupleId>* neighbors, TupleId objId)
+ template <unsigned dim>
+ void Optics<dim>::setCoreDistance(std::list<TupleId>* neighbors, TupleId objId)
  {
   double coreDist = UNDEFINED;
   Tuple* obj;
@@ -182,23 +243,30 @@ Method ~Optics::setCoreDistance~
 
   if(neighbors->size() >= minPts)
   {
-   mtree->nnSearch((Attribute*)obj->GetAttribute(PNT), minPts, near);
-   
-   std::list<TupleId>::iterator it;
-   for (it = near->begin(); it != near->end(); it++)
+   if(MODE == MODE_MTREE)
    {
-     double distance;
+    mtree->nnSearch((Attribute*)obj->GetAttribute(PNT), minPts, near);
+    
+    std::list<TupleId>::iterator it;
+    for (it = near->begin(); it != near->end(); it++)
+    {
+      double distance;
 
-     Tuple* curObj = objs->GetTuple(*it, true);
+      Tuple* curObj = objs->GetTuple(*it, true);
 
-     distFun->dist(distFun->getData(obj->GetAttribute(PNT))
-                  ,distFun->getData(curObj->GetAttribute(PNT))
-                  ,distance);
-                  
-     if(distance > coreDist)
-     {
-      coreDist = distance;
-     }     
+      distFun->dist(distFun->getData(obj->GetAttribute(PNT))
+                   ,distFun->getData(curObj->GetAttribute(PNT))
+                   ,distance);
+                   
+      if(distance > coreDist)
+      {
+       coreDist = distance;
+      }     
+    }
+   }
+   else if(MODE == MODE_MMRTREE)
+   {
+    coreDist = getCoreDistanceR(neighbors, objId);
    }
   }
   
@@ -206,10 +274,85 @@ Method ~Optics::setCoreDistance~
   obj->PutAttribute(COR, ((Attribute*) &cDist)->Clone());
  }
 /*
+Method ~Optics::getCoreDistanceR~
+
+*/
+ template <unsigned dim>
+ double Optics<dim>::getCoreDistanceR(std::list<TupleId>* neighbors
+  ,TupleId objId)
+ {
+  double curDist  = UNDEFINED;
+  double lastDist = UNDEFINED;
+  double coreDist = UNDEFINED;
+  unsigned int count   = 0;
+  unsigned int biggest = 0;
+  TupleId nearest[minPts];
+
+  Tuple* obj = objs->GetTuple(objId, true);
+  
+  std::list<TupleId>::iterator it;
+  for (it = neighbors->begin(); it != neighbors->end(); it++)
+  {
+   TupleId curObjId = *it;
+   Tuple* neighbor = objs->GetTuple(curObjId, true);
+
+   if(count < minPts)
+   {
+    nearest[count++] = curObjId;
+    
+    curDist = ((Rectangle<dim>*)obj->GetAttribute(PNT))->Distance(
+     (*(Rectangle<dim>*)neighbor->GetAttribute(PNT)));
+
+    if(curDist > lastDist)
+    {
+     biggest = count-1;
+     coreDist = curDist;
+    }
+
+    lastDist = curDist;
+   }
+   else
+   {
+    curDist = ((Rectangle<dim>*)obj->GetAttribute(PNT))->Distance(
+     (*(Rectangle<dim>*)neighbor->GetAttribute(PNT)));
+    
+    for (unsigned int i = 0; i < count; i++)
+    {
+     Tuple* curNear = objs->GetTuple(nearest[i], true);
+     
+     double cDst = ((Rectangle<dim>*)obj->GetAttribute(PNT))->Distance(
+      (*(Rectangle<dim>*)curNear->GetAttribute(PNT)));
+
+     if(cDst > lastDist)
+     {
+      biggest = i;
+      coreDist = cDst;
+     }
+
+     lastDist = cDst;
+    }
+
+    Tuple* curNear = objs->GetTuple(nearest[biggest], true);
+    
+    double dstnc = ((Rectangle<dim>*)obj->GetAttribute(PNT))->Distance(
+      (*(Rectangle<dim>*)curNear->GetAttribute(PNT)));
+    
+    if(dstnc > curDist)
+    {
+     nearest[biggest] = curObjId;
+     coreDist = curDist;
+    }
+   }
+  }
+  
+  return coreDist;
+ }
+/*
 Method ~Optics::update~
 
 */
- void Optics::update(std::list<TupleId>* neighbors, TupleId centerId
+ template <unsigned dim>
+ void Optics<dim>::update(std::list<TupleId>* neighbors, TupleId centerId
     ,std::list<TupleId>& orderedSeeds)
  {
   //FORALL Object FROM neighbors DO
@@ -249,7 +392,8 @@ Method ~Optics::update~
 Method ~Optics::insert~
 
 */
- void Optics::insert(std::list<TupleId>& orderedSeeds, TupleId objId)
+ template <unsigned dim>
+ void Optics<dim>::insert(std::list<TupleId>& orderedSeeds, TupleId objId)
  {
   std::list<TupleId>::iterator it;
   Tuple* obj;
@@ -275,7 +419,8 @@ Method ~Optics::insert~
 Method ~Optics::decrease~
 
 */
- void Optics::decrease(std::list<TupleId>& orderedSeeds, TupleId objId)
+ template <unsigned dim>
+ void Optics<dim>::decrease(std::list<TupleId>& orderedSeeds, TupleId objId)
  {
   std::list<TupleId>::iterator itId;
   std::list<TupleId>::iterator itObjId;
@@ -306,20 +451,34 @@ Method ~Optics::decrease~
   }
  }
 
- double Optics::getReachableDist(TupleId objId, TupleId neighborId)
+ template <unsigned dim>
+ double Optics<dim>::getReachableDist(TupleId objId, TupleId neighborId)
  {
   Tuple* obj = objs->GetTuple(objId, true);
   Tuple* neighbor = objs->GetTuple(neighborId, true);
   
-  double distance;
+  double distance = UNDEFINED;
   
-  distFun->dist(distFun->getData(obj->GetAttribute(PNT))
+  if(MODE == MODE_MTREE)
+  {
+   distFun->dist(distFun->getData(obj->GetAttribute(PNT))
                ,distFun->getData(neighbor->GetAttribute(PNT))
                ,distance);
-               
+  }
+  else if(MODE == MODE_MMRTREE)             
+  {
+     distance = ((Rectangle<dim>*)obj->GetAttribute(PNT))->Distance(
+      (*(Rectangle<dim>*)neighbor->GetAttribute(PNT)));
+  }
   //new_r_dist:=max(c_dist,CenterObject.dist(Object));    
   return ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance 
    ? ((CcReal*)obj->GetAttribute(COR))->GetValue() 
    : distance;
  } 
+ 
+ template class Optics<0>;
+ template class Optics<2>;
+ template class Optics<3>;
+ template class Optics<4>;
+ template class Optics<8>;
 }
