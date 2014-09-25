@@ -39,6 +39,7 @@ This file contains the "Optics"[4] class declaration.
 */
 #include "Algebra.h"
 #include "MTree.h"
+#include "MMRTree.h"
 #include "DistfunReg.h"
 
 namespace clusteropticsalg
@@ -47,8 +48,10 @@ namespace clusteropticsalg
 1.3 Declarations of the class ~Optics~
 
 */
+ template <unsigned dim>
  class Optics;
 
+ template <unsigned dim>
  class Optics
  {
 /*
@@ -69,6 +72,14 @@ Sets the "MTree"[4] for an optimized range query etc.
     ,gta::DistfunInfo* df, int idxDistData, int idxCDist, int idxRDist
     ,int idxPrc);
 /*
+Sets the "RTree"[4] for an optimized range query etc.
+
+*/
+//   template <unsigned dim>
+   void initialize(mmrtree::RtreeT<dim, TupleId>* queryTree
+    ,TupleBuffer* objsToOrd, int idxDistData, int idxCDist, int idxRDist
+    ,int idxPrc);
+/*
 Starts the ordering by the optics algorithm and saves the result in "order"[4].
 
 */
@@ -84,6 +95,13 @@ Static constants for the value definition of distance undefined.
 
 */
    const static double UNDEFINED = -1.0;
+
+/*
+Members to access elements of the tuples.
+
+*/
+   const static int MODE_MTREE   = 1;
+   const static int MODE_MMRTREE = 2;
 /*
 Members to access elements of the tuples.
 
@@ -92,6 +110,7 @@ Members to access elements of the tuples.
    int COR;
    int REA;
    int PRC;
+   int MODE;
    
    unsigned int minPts;
    
@@ -101,6 +120,12 @@ Defined "MTree"[4] for the range query etc.
 
 */
    mtreeAlgebra::MTree* mtree;
+/*
+Defined "RTree"[4] for the range query etc.
+
+*/
+//   template <unsigned dim>
+   mmrtree::RtreeT<dim, TupleId>* rtree;
 /*
 Defined "TupleBuffer"[4] which contains the data to order.
 
@@ -133,6 +158,12 @@ Sets the core distance to "obj"[4] with respect to "objs"[4] (neighbors),
 
 */
    void setCoreDistance(std::list<TupleId>* neighbors, TupleId objId);
+/*
+Returns the core distance to "obj"[4] with respect to "objs"[4] (neighbors), 
+"eps"[4] and "minPts"[4].
+
+*/
+  	double getCoreDistanceR(std::list<TupleId>* neighbors, TupleId objId);
 /*
 Updates "orderedSeeds"[4], elements of "neighbors"[4] will be inserted or moved
 up within "orderedSeeds"[4] with respect to their reachable distance to 
