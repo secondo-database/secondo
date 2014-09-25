@@ -311,6 +311,7 @@ Here, each include is commented with some functionality used.
 
 
 #include <math.h>               // required for some operators
+#include <stack>
 
 /*
 0.5 Global Variables
@@ -489,7 +490,7 @@ zero.
 */
 
  Word InSCircle( const ListExpr typeInfo, const ListExpr instance,
-       const int errorPos, ListExpr& errorInfo, bool& correct ){
+      const int errorPos, ListExpr& errorInfo, bool& correct ){
     // create a result with addr pointing to 0
     Word res((void*)0); 
     // assume an incorrect list
@@ -1977,7 +1978,7 @@ necessary for the case.
 */
 
  Word InACircle( const ListExpr typeInfo, const ListExpr instance,
-       const int errorPos, ListExpr& errorInfo, bool& correct ){
+     const  int errorPos, ListExpr& errorInfo, bool& correct ){
     // create a result with addr pointing to 0
     Word res((void*)0); 
     // assume an incorrect list
@@ -2661,7 +2662,7 @@ OperatorSpec attrIndexSpec (
     " stream(tuple(X) ) x symbol  -> int " ,
     " _ attrIndex[ _ ]  " ,
     " Returns the index of the attribute with given name. " ,
-    " query query plz feed attrIndex[Ort]  "
+    " query plz feed attrIndex[Ort]  "
 );
 
 /*
@@ -2677,6 +2678,959 @@ Operator attrIndexOp (
   attrIndexTM // type mapping
 );
 
+/*
+11 Implementing Large Structures
+
+Up to now, all implemented data types within this algebra was more or less small.
+This section deals with the implementation of real big data types. This means, this
+type can massive exceed the main memory of the underlying system if it would be 
+completely loaded. 
+
+Thus, only small parts of the whole structure are in memory, the main parts are located on 
+disc. Using files directly would violate the ACID properties of a database system because
+there is no synchronization if several users work in parallel. For this reason, file structures
+proivided by the Secondo-SMI have to be used for such types. The SecondoSMI provides several
+file types, ~RecordFiles~, ~HashFiles~, and ~Queues~.  The used example will use the
+~RecordFile~ class. A ~RecordFile~ stores records within a file where each record is assigned
+a unique id (the RecordId). Depending on the used constructor, records within a file may have
+fixed or variable size.
+
+We explain the usage of RecordFiles at the example of an AVL-tree, a balanced version of a 
+binary tree. Because pointers are not possible within persistent structures, pointers are
+simulated by ~RecordID~s. For simplicity, we allow to store only integer values within the 
+tree. 
+
+11.1 Node class
+
+A node of an AVL-tree consists of its content, pointers to the sons and a value denoting 
+the height which is used for balancing these nodes.  Each node corresponds to a record
+within the file representing the tree.  As mentioned above, we simulate 
+pointers by RecordIds. For technical reasons, each node contains also its own RecordId.
+For easy usage, the Node class provides methods for reading its value from a record
+and writing to a record.
+
+*/
+
+class Node{
+ public:
+  typedef uint16_t htype;
+
+  // constructor for creating an node outside the file
+
+  Node(int v): value(v), left(0), right(0),height(1),myId(0){}
+
+  // constructor for creating a node from a record
+  Node(SmiRecord& r){
+     myId = r.GetId();
+     size_t offset = 0;
+     r.Read(&value,sizeof(CcInt::inttype),offset);
+     offset += sizeof(CcInt::inttype);
+     r.Read(&left,sizeof(SmiRecordId),offset);
+     offset += sizeof(SmiRecordId);
+     r.Read(&right,sizeof(SmiRecordId),offset);
+     offset += sizeof(SmiRecordId);
+     r.Read(&height,sizeof(htype),offset);
+  }
+
+   Node(const Node& n): 
+      value(n.value), left(n.left), right(n.right),
+       height(n.height),myId(n.myId) {}
+
+   Node& operator=(const Node& n){
+      value = n.value;
+      left = n.left;
+      right = n.right;
+      height = n.height;
+      myId = n.myId; 
+      return *this;
+   }
+
+
+  // required size for record data
+  static size_t getStorageSize(){
+     return sizeof(CcInt::inttype) + 2*sizeof(SmiRecordId) 
+            + sizeof(htype);
+  }
+
+  // getter and setter methods
+  CcInt::inttype getValue()const { return value; }
+  htype getHeight() const { return height; }
+  SmiRecordId getLeft() const{ return left; }
+  SmiRecordId getRight() const { return right; }
+  SmiRecordId getID() const{ return myId; }
+  void setId(SmiRecordId& id) { myId = id; } 
+  void setLeft(const SmiRecordId id) { left = id; }
+  void setRight(const SmiRecordId id) { right = id; }
+  void setHeight(const htype h){ height = h; }
+
+  // methods for writing a node into a file
+  SmiRecordId append(SmiRecordFile& file){
+     // allow only non-written node to be appended
+     assert(myId == 0);
+     SmiRecord record;
+     SmiRecordId id;
+     file.AppendRecord(id, record);
+     myId = id;
+     assert(id!=0);
+     writeToRecord(record);
+     record.Finish();
+     return id;
+  }
+
+  void update(SmiRecordFile& file) const{
+     assert(myId != 0);
+     SmiRecord record;
+     file.SelectRecord(myId, record,SmiFile::Update);
+     writeToRecord(record);
+     record.Finish();
+  } 
+
+
+  private:
+    CcInt::inttype value;
+    SmiRecordId left;
+    SmiRecordId right;
+    htype height;
+    SmiRecordId myId;
+
+    // write data to a record
+    void writeToRecord(SmiRecord& r)const{
+      size_t offset = 0;
+      r.Write(&value,sizeof(CcInt::inttype),offset);
+      offset += sizeof(CcInt::inttype);
+      r.Write(&left,sizeof(SmiRecordId),offset);
+      offset += sizeof(SmiRecordId);
+      r.Write(&right,sizeof(SmiRecordId),offset);
+      offset += sizeof(SmiRecordId);
+      r.Write(&height,sizeof(htype),offset);
+    }
+
+};
+
+/*
+11.2 Tree class
+
+The class tree contains the file and the recordID of the root node.
+To be able to store also undefined ~CcInt~ values, a flag is used whether
+a undefined value is part of the tree or not. Additionally, the number of
+entries is stored. 
+
+*/
+class PAVLTree{
+ public: 
+  // constructor for a new empty tree
+  PAVLTree();
+ 
+  // constructor opening an existing tree
+  PAVLTree(SmiFileId fileId,
+           SmiRecordId rootId, 
+           bool containsUndef, 
+           size_t noEntries);
+
+  // destructor: file must be closed
+  ~PAVLTree(){
+    if(file.IsOpen()){
+      file.Close();
+    }
+  }
+
+  static string BasicType(){
+     return "pavl";
+  }
+
+  static bool checkType(ListExpr args){
+     return nl->IsEqual(args,BasicType());
+  }
+ 
+  bool insert(CcInt* value);
+
+  bool contains(CcInt* value); 
+
+  void deleteFile(){
+     if(file.IsOpen()){
+         file.Close();
+     }
+     file.Drop();
+  }
+
+  bool readFrom(ListExpr args);
+  ListExpr toListExpr();
+ 
+  void clean();
+
+  // some getter
+  SmiFileId getFileID() { return file.GetFileId() ; }
+  SmiRecordId getRootID() const { return rootId; }
+  bool getContainsUndef() const { return containsUndef; }
+  size_t getNoEntries() const { return noEntries; }
+
+  // clone function
+  PAVLTree* clone();
+
+private:
+   SmiRecordFile file;
+   SmiRecordId rootId;
+   bool containsUndef;
+   size_t noEntries;
+
+  
+   bool readFrom(ListExpr args, SmiRecordId& r, int& min, int& max);
+   
+   ListExpr toListExpr(SmiRecordId root);
+
+   SmiRecordId clone( SmiRecordId root, PAVLTree* res);
+
+   Node getNode(SmiRecordId id);
+
+
+   // auxiliary functions
+
+   // returns the height of s subtree specified by id
+   Node::htype getHeight(SmiRecordId id){
+      if(id==0) return 0;
+      return getNode(id).getHeight();
+   }
+
+   // computes the balance value for given heights 
+   static int balanceVal( const Node::htype left, Node::htype right){
+      if(left > right){
+        return left - right;
+      } else {
+        return -1 * ((int) ( right - left));
+      }
+   }
+
+   // returns the balance value for a specified node
+   int balanceVal(const Node& n){
+      return balanceVal(getHeight(n.getLeft()), getHeight(n.getRight()));
+   }
+
+   // balances an unbalanced subtree
+   void balance(Node& badNode, stack<Node>& parents);
+
+   // recomputes the height of a node and writes to file
+   void updateHeight(Node n){
+      Node::htype h1 = getHeight(n.getLeft());
+      Node::htype h2 = getHeight(n.getRight());
+      n.setHeight( max(h1,h2) + 1);
+      n.update(file);
+   }
+  
+   // sets a new root for the subtree at the top of
+   // predecessors. If the stack is empty, the root of the entire
+   // tree is changed. Additionally, the heights of all nodes 
+   // within predecessors are updated.
+   void setRoot(Node& newRoot, stack<Node>& predecessors){
+      // special case: new root of the entire tree
+      if(predecessors.empty()){
+         rootId = newRoot.getID();
+         updateHeight(getNode(rootId));
+         return;
+      }
+      
+      Node f = predecessors.top();
+      predecessors.pop();
+      if(newRoot.getValue() < f.getValue()){
+        f.setLeft(newRoot.getID());
+      } else {
+        f.setRight(newRoot.getID());
+      }
+      updateHeight(f);
+      while(!predecessors.empty()){
+         Node p = predecessors.top();
+         predecessors.pop();
+         updateHeight(p);
+      }
+   }
+}; // end of class PAVLTree
+
+/*
+11.2.1 First constructor
+
+This constructor creates a new empty avl-tree. The file containing the
+nodes of the tree must be created. Because each node has a fixed size,
+we can use a ~SmiRecordFile~ using fixed size records.  The size 
+is requested from the ~Node~ class.
+
+*/
+PAVLTree::PAVLTree():
+      file(true,  Node::getStorageSize()), 
+      rootId(0), containsUndef(false), noEntries(0){
+  file.Create();
+}
+
+/*
+11.2.2 Second constructor
+
+This constructor is used for opening an existing tree.
+
+*/
+PAVLTree::PAVLTree(SmiFileId fileID,
+                   SmiRecordId _rootId, 
+                   bool _containsUndef, 
+                   size_t _noEntries):
+   file(true), rootId(_rootId), noEntries(_noEntries) {
+   file.Open(fileID);
+}
+
+/*
+11.2.3 Clone 
+
+This function creates a depth clone of the tree.
+
+*/
+PAVLTree* PAVLTree::clone(){
+  PAVLTree* res = new PAVLTree();
+  res->containsUndef = containsUndef;
+  res->noEntries = noEntries;
+  // call recursive clone function
+  res->rootId = clone(rootId, res);
+  return res;
+}
+
+/*
+This functions clone a subtree given by root. 
+The function returns the recordId of the newly created root 
+in res.
+
+*/
+SmiRecordId PAVLTree::clone(SmiRecordId root, PAVLTree* res){
+  if(root == 0){
+    return 0;
+  }
+  Node n = getNode(root);
+  n.setLeft( clone(n.getLeft(),res));
+  n.setRight( clone(n.getRight(),res));
+  return n.append(res->file);
+}
+
+
+/*
+11.2.4 getNode
+
+This function creates the main memory representation of a node
+stored within a certain record.
+
+*/
+Node PAVLTree::getNode(SmiRecordId id){
+    assert(id!=0);
+    SmiRecord record;
+    file.SelectRecord(id,record); 
+    Node res(record);
+    record.Finish();
+    return res;
+}
+
+
+
+/*
+11.2.5  Insert function
+
+This function inserts a new value into the tree. Whereas undefined values are
+handled separately, normal values are inserted into the file. The return value
+corresponds to the success of this operation, i.e. whether the value was
+not already part of the tree. 
+
+*/
+bool PAVLTree::insert(CcInt* value){
+  if(!value->IsDefined()){
+    bool res = !containsUndef;
+    containsUndef=true;
+    if(res){ noEntries++;}
+    return res;
+  }
+  CcInt::inttype v = value->GetValue();
+  // create a new node to be inserted
+  Node n(v);
+  // special case: empty tree
+  if(rootId==0){ 
+     rootId = n.append(file);
+     noEntries = 1;
+     return true;
+  }
+  // search insertion position storing the path  into a stack
+  stack<Node> s;
+  Node cn = getNode(rootId);
+  if(cn.getValue()==v){ // value already exists
+   return false;
+  }
+  SmiRecordId son = cn.getValue()>v?cn.getLeft():cn.getRight(); 
+  while(son != 0){
+     s.push(cn);
+     cn = getNode(son);
+     if(cn.getValue()==v){
+        return false;
+     }
+     son = cn.getValue()>v?cn.getLeft():cn.getRight();
+  }
+  
+  // found insertion position, append record
+  SmiRecordId id = n.append(file);
+  if(cn.getValue()>v){
+    cn.setLeft(id);
+  } else {
+    cn.setRight(id);
+  }
+  cn.update(file);
+  s.push(cn);
+  // now we have to correct the height of the predecessors
+  while(!s.empty()){
+    Node parent = s.top();
+    s.pop();
+    Node::htype leftHeight = getHeight(parent.getLeft());
+    Node::htype rightHeight = getHeight(parent.getRight());
+    if(abs(balanceVal(leftHeight, rightHeight)) > 1){
+       balance(parent,s);
+       return true;
+    }
+    parent.setHeight(max(leftHeight,rightHeight)+1);
+    parent.update(file);
+  }
+  noEntries++;
+  return true;
+}
+
+/*
+11.2.6 Balance of an unbalanced subtree
+
+*/
+void PAVLTree::balance( Node& root, stack<Node>& predecessors){
+   if(balanceVal(root) == -2){ // right subtree heigher
+       Node r = getNode(root.getRight());
+       if(balanceVal(r) == -1){ // left rotation
+          Node y = r;
+          SmiRecordId b = y.getLeft();
+          root.setRight(b);
+          updateHeight(root);
+          y.setLeft(root.getID());
+          updateHeight(y);
+          setRoot(y,predecessors); 
+          return;
+       } else { // right left rotation
+          Node x = root;
+          Node z = getNode(x.getRight());
+          Node y = getNode(z.getLeft());
+          SmiRecordId  B1 = y.getLeft();
+          SmiRecordId  B2 = y.getRight();
+          x.setRight(B1);;
+          updateHeight(x);
+          z.setLeft(B2);
+          updateHeight(z);
+          y.setLeft(x.getID());
+          y.setRight(z.getID());
+          updateHeight(y);
+          setRoot(y,predecessors);
+          return;
+       }
+   } else if(balanceVal(root)==2){ // left subtree is height
+      Node left = getNode(root.getLeft());
+      if(balanceVal(left) == 1){  // right rotation
+        Node  y = getNode(root.getLeft());
+        SmiRecordId B = y.getRight();
+        SmiRecordId C = root.getRight();
+        root.setLeft(B);
+        root.setRight(C);
+        updateHeight(root);
+        y.setRight(root.getID());
+        updateHeight(y);
+        setRoot(y,predecessors);
+        return;
+      } else {  // leftRightRotation
+         Node x = root;
+         Node z = getNode(root.getLeft());;
+         Node y = getNode(z.getRight());
+         SmiRecordId  A = z.getLeft();
+         SmiRecordId  B = y.getLeft();
+         SmiRecordId  C = y.getRight();
+         z.setLeft(A);
+         z.setRight(B);
+         updateHeight(z);
+         x.setLeft(C);
+         updateHeight(x);
+         y.setLeft(z.getID());
+         y.setRight(x.getID());
+         updateHeight(y);
+         setRoot(y,predecessors);
+         return;
+      }
+   } else {
+      assert(false);
+   } 
+}
+
+
+bool PAVLTree::contains(CcInt* value){
+
+  if(!value->IsDefined()){
+    return containsUndef;
+  }
+  SmiRecordId son = rootId;
+  int v = value->GetValue();
+  while(son){
+    Node n = getNode(son);
+    if(n.getValue()== v){
+        return true;
+     }
+     son = n.getValue()>v?n.getLeft():n.getRight();
+  } 
+  return false;
+}
+
+void PAVLTree::clean(){
+   file.Truncate();
+   rootId = 0;
+   noEntries = 0;
+}
+
+bool PAVLTree::readFrom(ListExpr list, SmiRecordId& rootId,
+                        int& min, int& max){
+  if(nl->AtomType(list)!=NoAtom){
+     cmsg.inFunError("wrong list format");
+     return false;
+  }
+  if(nl->IsEmpty(list)){
+    rootId=0;
+    return true;
+  }
+
+  if(!nl->HasLength(list,3)){
+     cmsg.inFunError("wrong list format");
+     return false;
+  }
+  if(nl->AtomType(nl->First(list))!=IntType ||
+     nl->AtomType(nl->Second(list))!=NoAtom ||
+     nl->AtomType(nl->Third(list))!=NoAtom){
+     clean();
+     cmsg.inFunError("wrong list format");
+     return false;
+  }
+
+  int v = nl->IntValue(nl->First(list));
+
+  min = v;
+  max = v;
+  int min1 = v;
+ 
+
+  SmiRecordId id1;
+  if(!readFrom(nl->Second(list),id1,min,max)){
+    return false;
+  } 
+  if(id1){
+    if(max>v){
+       return false;
+    }
+    min1  = min;
+  }
+  SmiRecordId id2;
+  if(!readFrom(nl->Third(list),id2,min,max)){
+    return false;
+  } 
+  if(id2){
+     if(min<v){
+        return false;
+     }
+  }
+  min = min1;
+  Node n(nl->IntValue(nl->First(list)));
+  n.setLeft(id1);
+  n.setRight(id2);
+  Node::htype h1 = getHeight(n.getLeft());
+  Node::htype h2 = getHeight(n.getRight());
+  n.setHeight(std::max(h1,h2) + 1);
+  if(abs(balanceVal(h1,h2))>1){
+     cmsg.inFunError("unbalanced tree found");
+     clean();
+     return false;
+  }
+  rootId = n.append(file);
+  return true;
+}
+
+bool PAVLTree::readFrom(ListExpr list){
+   if(rootId){
+     clean();
+   }
+   if(!nl->HasLength(list,2)){
+      return false;
+   }
+   if(nl->AtomType(nl->First(list))!=BoolType){
+      return false;
+   }
+   containsUndef = nl->BoolValue(nl->First(list));
+   list = nl->Second(list);
+   int min, max;
+   if(!readFrom(list,rootId,min,max)){
+      clean();
+      return false;
+   }
+   return true;
+}
+
+
+ListExpr PAVLTree::toListExpr(){
+
+ return nl->TwoElemList(nl->BoolAtom(containsUndef),
+                        toListExpr(rootId));
+}
+
+ListExpr PAVLTree::toListExpr(SmiRecordId root){
+  if(root==0){
+    return nl->TheEmptyList();
+  }
+  Node n = getNode(root);
+  return nl->ThreeElemList(
+            nl->IntAtom(n.getValue()),
+            toListExpr(n.getLeft()),
+            toListExpr(n.getRight()));
+
+}
+
+
+
+/*
+11.3 Secondo Supporting function
+
+11.3.1 Property function
+
+*/
+
+ListExpr PAVLProperty(){
+  return ( nl->TwoElemList (
+      nl->FourElemList (
+        nl->StringAtom("Signature"),
+        nl->StringAtom("Example Type List"),
+        nl->StringAtom("List Rep"),
+        nl->StringAtom("Example List")),
+      nl->FourElemList (
+        nl->StringAtom("-> SIMPLE"),
+        nl->StringAtom(PAVLTree::BasicType()),
+        nl->StringAtom("(value left right)"),
+        nl->StringAtom("(5 (3 () 4) (7)) ")
+      )));
+}
+
+/*
+11.3.2 In-function
+
+*/
+
+Word InPAVL(const ListExpr typeInfo, const ListExpr instance,
+            const int errorPos, ListExpr & errorInfo, bool& correct){
+
+   PAVLTree* tree = new PAVLTree();
+   assert(!tree->getRootID());
+   if(!tree->readFrom(instance)){
+      tree->deleteFile();
+      delete tree;
+      correct = false;
+      return Word((void*)0);
+   } else {
+      correct = true;
+      return Word(tree);
+   }
+}
+
+/*
+11.3.3 Out function
+
+*/
+ListExpr OutPAVL(ListExpr typeInfo, Word value){
+ return ((PAVLTree*)value.addr)->toListExpr(); 
+}
+
+/*
+11.3.4 Create
+
+*/
+Word CreatePAVL(const ListExpr typeInfo){
+   return Word(new PAVLTree);
+}
+
+/*
+11.3.5 Delete
+
+Here the complete objectrepresentation is removed inclusive 
+the file.
+
+*/
+void DeletePAVL(const ListExpr typeInfo, Word& w){
+  PAVLTree* t = (PAVLTree*) w.addr;
+  t->deleteFile();
+  delete t;
+  w.addr = 0;
+}
+
+/*
+11.3.6 OPEN 
+
+*/
+bool OpenPAVL ( SmiRecord & valueRecord ,
+       size_t & offset , const ListExpr typeInfo ,
+       Word & value ){
+   SmiFileId fileId;
+   SmiRecordId rootId;
+   bool containsUndef;
+   size_t noEntries;
+   bool ok = valueRecord.Read(&fileId, sizeof(SmiFileId),offset);
+   offset += sizeof(SmiFileId);
+   ok = ok && valueRecord.Read(&rootId, sizeof(SmiRecordId), offset);
+   offset +=  sizeof(SmiRecordId);
+   ok = ok && valueRecord.Read(&containsUndef,sizeof(bool),offset);
+   offset +=sizeof(bool);
+   ok = ok && valueRecord.Read(&noEntries,sizeof(size_t), offset);
+   offset += sizeof(size_t);
+   if(ok){
+     value.addr = new PAVLTree(fileId, rootId, containsUndef,noEntries);
+   } else {
+     value.addr = 0;
+   }
+   return ok;
+}
+
+/*
+11.3.7 SAVE
+
+*/
+bool SavePAVL( SmiRecord & valueRecord , size_t & offset ,
+     const ListExpr typeInfo , Word & value ) {
+  PAVLTree* t = (PAVLTree*) value.addr;
+  SmiFileId fileId = t->getFileID();
+  SmiRecordId rootId = t->getRootID();
+  bool containsUndef = t->getContainsUndef();;
+  size_t noEntries = t->getNoEntries();
+  bool ok = valueRecord.Write(&fileId, sizeof(SmiFileId), offset);
+  offset += sizeof(SmiFileId);
+  ok = ok && valueRecord.Write(&rootId, sizeof(SmiRecordId), offset);
+  offset += sizeof(SmiRecordId);
+  ok = ok && valueRecord.Write(&containsUndef, sizeof(bool), offset);
+  offset += sizeof(bool);
+  ok = ok && valueRecord.Write(&noEntries, sizeof(size_t), offset);
+  offset += sizeof(size_t);
+  return ok;
+}
+
+
+
+
+/*
+11.3.8 CLOSE
+
+Here, the disc part remains untouched.
+
+*/
+
+void ClosePAVL ( const ListExpr typeInfo , Word & w ) {
+   PAVLTree* t = (PAVLTree*) w.addr;
+   delete t;
+   w.addr = 0;
+}
+
+/*
+11.3.9 Clone
+
+*/
+Word ClonePAVL ( const ListExpr typeInfo , const Word & w ){
+  PAVLTree* t = (PAVLTree*) w.addr;
+  return Word(t->clone());
+}
+
+
+/*
+11.3.10 Cast
+
+*/
+
+void * CastPAVL ( void * addr ) {
+   return addr;
+}
+
+
+bool PAVLTypeCheck ( ListExpr type , ListExpr & errorInfo ){
+    return nl->IsEqual ( type , PAVLTree::BasicType ());
+}
+
+int SizeOfPAVL () {
+    return sizeof(SmiFileId) + sizeof(SmiRecordId) 
+           + sizeof(bool) + sizeof(size_t);;
+}
+
+
+TypeConstructor PAVLTC (
+PAVLTree::BasicType (), // name of the type
+PAVLProperty , // property function
+OutPAVL , InPAVL , // out and in function
+0, 0, // deprecated , don not think about it
+CreatePAVL , DeletePAVL , // creation and deletion
+OpenPAVL , SavePAVL , // open and save functions
+ClosePAVL , ClonePAVL , // close and clone functions
+CastPAVL , // cast function
+SizeOfPAVL , // sizeOf function
+PAVLTypeCheck );
+ // type checking functi
+
+
+
+/*
+11.4 Operators creating a PAVL tree
+
+*/
+ListExpr createPAVLTM(ListExpr args){
+  string err = "stream(int) expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }  
+  if(!Stream<CcInt>::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<PAVLTree>();
+}
+
+int createPAVLVM ( Word * args , Word & result , int message ,
+                   Word & local , Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  PAVLTree* res = (PAVLTree*) result.addr;
+  Stream<CcInt> stream(args[0]);
+  stream.open();
+  CcInt* elem;
+  while( (elem = stream.request()) != 0){
+     res->insert(elem);
+     elem->DeleteIfAllowed();
+  }
+  stream.close();
+  return 0;
+}
+
+OperatorSpec createPAVLSpec (
+    " stream(int)  -> pavl " ,
+    " _ createPAVL  " ,
+    " creates an avl-tree from an integer stream " ,
+    " query intstream(1,100) createPAVL  "
+);
+
+
+Operator createPAVLOp (
+  "createPAVL" , // name of the operator
+  createPAVLSpec.getStr() , // specification
+  createPAVLVM , // value mapping
+  Operator::SimpleSelect , // selection function
+  createPAVLTM // type mapping
+);
+
+
+ListExpr containsTM(ListExpr args){
+  string err = "pavl x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }  
+  if(!PAVLTree::checkType(nl->First(args)) 
+    || !CcInt::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+int containsVM ( Word * args , Word & result , int message ,
+                   Word & local , Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  PAVLTree* a1 = (PAVLTree*) args[0].addr;
+  CcInt* a2 = (CcInt*) args[1].addr;
+  res->Set(true, a1->contains(a2));
+  return 0;
+}
+
+OperatorSpec containsSpec (
+    "  -> pavl x int -> bool" ,
+    " _ contains _  " ,
+    " Checks whether an avl tree contains an int " ,
+    " query p1 contains 23  "
+);
+
+
+Operator containsOp (
+  "contains" , // name of the operator
+  containsSpec.getStr() , // specification
+  containsVM , // value mapping
+  Operator::SimpleSelect , // selection function
+  containsTM // type mapping
+);
+
+
+/*
+12 Update Operators
+
+The update command in Secondo replaces an stored object 
+completely by another one. Sometimes it is required to modify 
+an existing object, e.g. for inserting new tuples into an 
+existing relation. 
+To realize that, update operators must be written. Such operators
+manipulate their arguments, which is quite unsual for Secondo 
+operators. To make the changes persistent, the manipulated argument
+must be marked. otherwise the changes are not written back to the disc.
+
+The implementation of update operators is explained at the example of
+an insert operator inserting new elementes into an existing avl-tree.
+ 
+12.1 Type mapping
+
+The type mapping for an update opererator has no special features.
+
+*/
+ListExpr insertTM(ListExpr args){
+  string err = "stream(int) x pavl expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(   !Stream<CcInt>::checkType(nl->First(args))
+     || !PAVLTree::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  // the number of new elements is returned 
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+int insertVM ( Word * args , Word & result , int message ,
+                   Word & local , Supplier s ) {
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  Stream<CcInt> stream(args[0]);
+  PAVLTree* avl = (PAVLTree*) args[1].addr;
+  int count = 0;
+  stream.open();
+  CcInt* elem;
+  while( (elem=stream.request())!=0){
+     if(avl->insert(elem)){
+       count++;
+     }
+     elem->DeleteIfAllowed();
+  }
+  stream.close();
+  // mark the argument as modified
+  qp->SetModified(qp->GetSon(s, 1));
+  res->Set(true,count);
+  return 0;
+}
+
+
+OperatorSpec insertSpec (
+    "  stream(int) x pavl -> int " ,
+    " _ _ insert " ,
+    " inserts new elements into an exixisting avl tree" ,
+    " query instream (1,200) p1 insert "
+);
+
+
+Operator insertOp (
+  "insert" , // name of the operator
+  insertSpec.getStr() , // specification
+  insertVM , // value mapping
+  Operator::SimpleSelect , // selection function
+  insertTM // type mapping
+);
 
 
 
@@ -2708,6 +3662,10 @@ class GuideAlgebra : public Algebra {
       AddTypeConstructor( &IntListTC );
       IntListTC.AssociateKind( Kind::DATA() );
 
+      AddTypeConstructor( &PAVLTC );
+      PAVLTC.AssociateKind( Kind::SIMPLE() );
+
+
       AddOperator(&perimeterOp);
       AddOperator(&distNOp);
       AddOperator(&countNumberOp);
@@ -2715,6 +3673,9 @@ class GuideAlgebra : public Algebra {
       AddOperator(&startsWithSOp);
       AddOperator(&replaceElemOp);
       AddOperator(&attrIndexOp);
+      AddOperator(&createPAVLOp);
+      AddOperator(&containsOp);
+      AddOperator(&insertOp);
      }
  };
 

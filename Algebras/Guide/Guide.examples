@@ -46,3 +46,22 @@ Signature : stream(tuple(X)) x symbol -> int
 Example   : query plz feed attrIndex[Ort]
 Result    : 1
 
+Operator  : createPAVL
+Number    : 1
+Signature : stream(int) -> pavl
+Example   : query intstream(1,3) createPAVL
+Result    : (pavl (FALSE (2 (1 () ()) (3 () ()))) )
+
+
+Operator  : contains
+Number    : 1
+Signature : pavl x int -> bool
+Example   : query intstream(1,3) createPAVL contains 4
+Result    : FALSE
+
+
+Operator  : insert 
+Number    : 1
+Signature : stream(int ) x pavl -> int
+Example   : query intstream(1,100) (intstream(50, 150) createPAVL) insert 
+Result    : 49

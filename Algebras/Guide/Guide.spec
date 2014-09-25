@@ -18,5 +18,14 @@ operator replaceElem alias REPLACEELEM pattern _ op[ fun ]
 # postfix operator with an additional argument
 operator attrIndex alias ATTRINDEX pattern _ op [_]
 
+#postfix operator without parameters
+operator createPAVL alias CREATEPAVL pattern _ op
 
+
+# infix operator
+operator contains alias CONTAINS pattern _ infixop _
+
+
+# postfix operazor with two arguments
+operator insert alias INSERT pattern _ _ op
 

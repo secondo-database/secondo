@@ -3,6 +3,7 @@
 1 Description of the Specification file
 
 \label{SpecFile}
+\label{SpecificationFile}
 
 Within the ~spec~ file, the syntax of operators is fixed.
 The file must be located in the algebra directory and is named
@@ -140,6 +141,5 @@ user.
 
 
 The operator syntax definitions of the Guide algebra are:
-
 
 
