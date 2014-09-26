@@ -32,6 +32,8 @@ VIEWER_DIRS += pictureviewer
 VIEWER_DIRS += update
 VIEWER_DIRS += update2
 VIEWER_DIRS += queryconstruction
+VIEWER_DIRS += optics
+
 
 #### RTreeViewer requires Java 1.5:
 #VIEWER_DIRS += rtree

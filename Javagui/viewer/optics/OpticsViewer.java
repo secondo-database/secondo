@@ -17,10 +17,11 @@
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-package  viewer;
+package  viewer.optics;
 
 import gui.MainWindow;
 import gui.SecondoObject;
+import viewer.*;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
