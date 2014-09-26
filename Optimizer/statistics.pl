@@ -2749,7 +2749,11 @@ showSingleRelationTuplesize(_, Rel) :-
   tuplesize(Rel, Size),
   tupleSizeSplit(Rel, Size2),
   write('\tAvg.TupleSize: '), write(Size), write(' = '),
-    write(Size2), nl, !.
+    write(Size2), nl, 
+  secOptConstant(tupleMemoryBaseSize, TBaseSize),
+  write('\t(Tuple size in memory is '), write(TBaseSize), 
+    write(' + sum of attribute sizes.)'), nl,
+  !.
 
 showSingleRelationTuplesize(_, _) :-
   write('\tAvg.TupleSize: *'), nl, !.
@@ -2806,8 +2810,8 @@ showSingleAttribute(Rel,Attr) :-
   [AttrS, Type, MemSize, CoreSize, LobSize]).
 
 showAllAttributes(Rel) :-
-  format('\t~w~35|~w~49|~w~60|~w~69|~w~n',
-  ['AttributeName','Type','MemoryFix','DiskCore','DiskLOB']),
+  format('\t~w~35|~w~49|~w~57|~w~69|~w~n',
+  ['AttributeName','Type','Memory','DiskCore','DiskLOB']),
   findall(_, showSingleAttribute(Rel, _), _).
 
 showAllIndices(Rel) :-
