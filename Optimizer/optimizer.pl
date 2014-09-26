@@ -4592,7 +4592,11 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   resNAttrs(Arg2, NAttrs2),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card1 * Card2 * Sel,
-  addSizeTerms([TupleSize1,TupleSize2],TupleSize),
+  addSizeTerms([TupleSize1, TupleSize2], 
+	sizeTerm(MemSize, CoreSize, LOBSize)),
+  secOptConstant(tupleMemoryBaseSize, TBaseSize),
+  TupleMemSize is MemSize - TBaseSize,	% tuple overhead only once!
+  TupleSize = sizeTerm(TupleMemSize, CoreSize, LOBSize),
   NAttrs is NAttrs1 + NAttrs2,
   !,
   setNodeSize(Result, Size),
@@ -4697,7 +4701,11 @@ resTupleSize(arg(N), TupleSize) :-
   usedAttrList(rel(Rel, _), List),
   length(List, NAttrs),
   attributes(List, AList),
-  projectAttrList(OrigAttrs, AList, _, TupleSize),
+  projectAttrList(OrigAttrs, AList, _, 
+    sizeTerm(TotalAttrSize, CoreSize, LOBSize)),
+  secOptConstant(tupleMemoryBaseSize, TBaseSize),
+  TupleMemSize is TBaseSize + TotalAttrSize,
+  TupleSize = sizeTerm(TupleMemSize, CoreSize, LOBSize),
   assert(argTupleSize(N, TupleSize)),
   assert(argNAttrs(N, NAttrs)).
  
@@ -4800,19 +4808,19 @@ writeTupleSizes :-
   writeNodeTupleSizes.
 
 writeArgTupleSizes :-
-  findall([Arg, MemoryFix, DiskCore, DiskLOB], 
-    argTupleSize(Arg, sizeTerm(MemoryFix, DiskCore, DiskLOB)), L),
+  findall([Arg, Memory, DiskCore, DiskLOB], 
+    argTupleSize(Arg, sizeTerm(Memory, DiskCore, DiskLOB)), L),
   Format = [ ['Argument Rel', 'l'],
-             ['MemoryFix', 'l'],
+             ['Memory', 'l'],
              ['DiskCore', 'l'],
              ['DiskLOB', 'l'] ],
   showTuples(L, Format).
 
 writeNodeTupleSizes :-
-  findall([Node, MemoryFix, DiskCore, DiskLOB], 
-    nodeTupleSize(Node, sizeTerm(MemoryFix, DiskCore, DiskLOB)), L),
+  findall([Node, Memory, DiskCore, DiskLOB], 
+    nodeTupleSize(Node, sizeTerm(Memory, DiskCore, DiskLOB)), L),
   Format = [ ['Node', 'l'],
-             ['MemoryFix', 'l'],
+             ['Memory', 'l'],
              ['DiskCore', 'l'],
              ['DiskLOB', 'l'] ],
   showTuples(L, Format).
