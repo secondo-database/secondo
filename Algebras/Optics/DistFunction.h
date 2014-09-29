@@ -1,0 +1,176 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
+#include <limits>
+#include "Point.h"
+#include "StandardTypes.h"
+#include "StringUtils.h"
+
+namespace clusteropticsalg
+{
+ class DistCount
+ {
+  public: 
+   DistCount() { cnt = 0; }
+      
+   void reset() { cnt =0; }
+
+   size_t getCount() { return cnt; }
+
+  protected:
+   size_t cnt;
+ };
+
+ class IntDist: public DistCount
+ {
+  public:
+
+   double operator()(const pair<CcInt*,TupleId>& p1
+    ,const pair<CcInt*,TupleId>& p2)
+   {
+    DistCount::cnt++;
+    assert(p1.first);
+    assert(p2.first);
+  
+    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    {
+     return 0;
+    }
+   
+    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    {
+     return numeric_limits<double>::max();
+    }
+   
+    int i1 = p1.first->GetValue();
+    int i2 = p2.first->GetValue();
+    int c = i1-i2;
+   
+    return c<0?-c:c;
+   }
+
+   ostream& print(const pair<CcInt*,TupleId>& p, ostream& o)
+   {
+    o << *(p.first);
+    return o;
+   }
+ };
+
+ class RealDist: public DistCount
+ {
+  public:
+
+   double operator()(const pair<CcReal*,TupleId>& p1
+    ,const pair<CcReal*, TupleId>& p2)
+   {
+    DistCount::cnt++;
+    assert(p1.first);
+    assert(p2.first);
+  
+    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    {
+     return 0;
+    }
+   
+    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    {
+     return numeric_limits<double>::max();
+    }
+   
+    int i1 = p1.first->GetValue();
+    int i2 = p2.first->GetValue();
+    int c = i1-i2;
+   
+    return c<0?-c:c;
+   }
+
+   ostream& print(const pair<CcReal*,TupleId>& p, ostream& o)
+   {
+    o << *(p.first);
+    return o;
+   }
+ };
+
+ class PointDist: public DistCount
+ {
+  public:
+  
+   double operator()(const pair<Point*,TupleId>& p1
+    ,const pair<Point*,TupleId>& p2)
+   {
+    cnt++;
+    assert(p1.first);
+    assert(p2.first);
+    
+    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    {
+     return 0;
+    }
+    
+    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    {
+     return numeric_limits<double>::max();
+    }
+    
+    return p1.first->Distance(*(p2.first));
+   }
+     
+   ostream& print(const pair<Point*,TupleId>& p, ostream& o)
+   {
+    o << *(p.first);
+    return o;
+   }
+ };
+
+ class StringDist: public DistCount
+ {
+  public:
+  
+   double operator()(const pair<CcString*,TupleId>& p1
+    ,const pair<CcString*,TupleId>& p2)
+   {
+    cnt++;
+    assert(p1.first);
+    assert(p2.first);
+   
+    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    {
+     return 0;
+    }
+    
+    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    {
+     return numeric_limits<double>::max();
+    }
+    
+    return 0;//stringutils::ld(p1.first->GetValue(), p2.first->GetValue());
+   }
+     
+   ostream& print(const pair<CcString*,TupleId>& p, ostream& o)
+   {
+    o << *(p.first);
+    return o;
+   }
+ };
+}

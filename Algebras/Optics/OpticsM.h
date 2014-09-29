@@ -38,9 +38,10 @@ This file contains the "Optics"[4] class declaration.
 
 */
 #include "Algebra.h"
+#include "MMMTreeNeu.h"
 #include "MTree.h"
 #include "MMRTree.h"
-#include "DistfunReg.h"
+#include "DistFunction.h"
 
 namespace clusteropticsalg
 {
@@ -48,11 +49,11 @@ namespace clusteropticsalg
 1.3 Declarations of the class ~Optics~
 
 */
- template <unsigned dim>
- class Optics;
+ template<class T, class DistComp>
+ class OpticsM;
 
- template <unsigned dim>
- class Optics
+ template<class T, class DistComp>
+ class OpticsM
  {
 /*
 1.3.1 Public members
@@ -63,19 +64,12 @@ namespace clusteropticsalg
 Constructor
 
 */
-   Optics();
-/*
-Sets the "MTree"[4] for an optimized range query etc.
-
-*/
-   void initialize(mtreeAlgebra::MTree* queryTree, TupleBuffer* objsToOrd
-    ,gta::DistfunInfo* df, int idxDistData, int idxCDist, int idxRDist
-    ,int idxPrc);
+   OpticsM();
 /*
 Sets the "RTree"[4] for an optimized range query etc.
 
 */
-   void initialize(mmrtree::RtreeT<dim, TupleId>* queryTree
+   void initialize(MMMTree<pair<T, TupleId>, DistComp >* queryTree
     ,TupleBuffer* objsToOrd, int idxDistData, int idxCDist, int idxRDist
     ,int idxPrc);
 /*
@@ -94,13 +88,6 @@ Static constants for the value definition of distance undefined.
 
 */
    const static double UNDEFINED = -1.0;
-
-/*
-Members to access elements of the tuples.
-
-*/
-   const static int MODE_MTREE   = 1;
-   const static int MODE_MMRTREE = 2;
 /*
 Members to access elements of the tuples.
 
@@ -109,7 +96,6 @@ Members to access elements of the tuples.
    int COR;
    int REA;
    int PRC;
-   int MODE;
    
    unsigned int minPts;
    
@@ -118,12 +104,7 @@ Members to access elements of the tuples.
 Defined "MTree"[4] for the range query etc.
 
 */
-   mtreeAlgebra::MTree* mtree;
-/*
-Defined "RTree"[4] for the range query etc.
-
-*/
-   mmrtree::RtreeT<dim, TupleId>* rtree;
+   MMMTree<pair< T, TupleId>, DistComp >* mtree;
 /*
 Defined "TupleBuffer"[4] which contains the data to order.
 
@@ -156,12 +137,6 @@ Sets the core distance to "obj"[4] with respect to "objs"[4] (neighbors),
 
 */
    void setCoreDistance(std::list<TupleId>* neighbors, TupleId objId);
-/*
-Returns the core distance to "obj"[4] with respect to "objs"[4] (neighbors), 
-"eps"[4] and "minPts"[4].
-
-*/
-   double getCoreDistanceR(std::list<TupleId>* neighbors, TupleId objId);
 /*
 Updates "orderedSeeds"[4], elements of "neighbors"[4] will be inserted or moved
 up within "orderedSeeds"[4] with respect to their reachable distance to 
