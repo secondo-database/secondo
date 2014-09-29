@@ -75,7 +75,6 @@ Sets the "MTree"[4] for an optimized range query etc.
 Sets the "RTree"[4] for an optimized range query etc.
 
 */
-//   template <unsigned dim>
    void initialize(mmrtree::RtreeT<dim, TupleId>* queryTree
     ,TupleBuffer* objsToOrd, int idxDistData, int idxCDist, int idxRDist
     ,int idxPrc);
@@ -124,7 +123,6 @@ Defined "MTree"[4] for the range query etc.
 Defined "RTree"[4] for the range query etc.
 
 */
-//   template <unsigned dim>
    mmrtree::RtreeT<dim, TupleId>* rtree;
 /*
 Defined "TupleBuffer"[4] which contains the data to order.
@@ -163,7 +161,7 @@ Returns the core distance to "obj"[4] with respect to "objs"[4] (neighbors),
 "eps"[4] and "minPts"[4].
 
 */
-   double getCoreDistanceR(std::list<TupleId>* neighbors, TupleId objId);
+  	double getCoreDistanceR(std::list<TupleId>* neighbors, TupleId objId);
 /*
 Updates "orderedSeeds"[4], elements of "neighbors"[4] will be inserted or moved
 up within "orderedSeeds"[4] with respect to their reachable distance to 
