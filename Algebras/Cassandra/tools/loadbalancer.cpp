@@ -339,7 +339,7 @@ public:
 
 */
   bool open() {
-    cout << "Open TCP connection to server: " << hostname  
+    cout << "Opening TCP connection to server: " << hostname  
          << " Port " << port << endl;
 
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
