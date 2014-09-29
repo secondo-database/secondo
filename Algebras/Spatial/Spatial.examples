@@ -1235,4 +1235,8 @@ Example   : query createDisc([const point value(8 9)])
 Result    : (disc (8.0 9.0 0.0))
 Tolerance : 0.1
 
-
+Operator  : berlin2wgs
+Number    : 1
+Signature : T -> T, where T in {point, points, line, region}
+Example   : query berlin2wgs([const point value (13132 10876)])
+Result    : (point (13.443927 52.503153))

@@ -25256,6 +25256,76 @@ Operator createDiscOP(
    createDiscTM
 );
 
+/*
+\section{Operator berlin2wgs}
+
+Converts a pair of coordinates from bbbike / BerlinMOD format into WGS84
+
+\subsection{Type Mapping}
+
+*/
+ListExpr berlin2wgsTM(ListExpr args) {
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError("Exactly one argument expected.");
+  }
+  if (Point::checkType(nl->First(args)) || Points::checkType(nl->First(args)) ||
+      Line::checkType(nl->First(args)) || Region::checkType(nl->First(args))) {
+    return nl->First(args);
+  }
+  return listutils::typeError("Type point, points, line, or region expected.");
+}
+
+int berlin2wgsSelect(ListExpr args) {
+  if (Point::checkType(nl->First(args)))  return 0;
+  if (Points::checkType(nl->First(args))) return 1;
+  if (Line::checkType(nl->First(args)))   return 2;
+  if (Region::checkType(nl->First(args))) return 3;
+  return -1;
+}
+
+template<class T>
+int berlin2wgsVM(Word* args, Word& result, int message, Word& local,Supplier s){
+  T* src = (T*)args[0].addr;
+  result = qp->ResultStorage(s);
+  T* res = (T*)result.addr;
+  if (src->IsDefined()) {
+    Berlin2WGS converter;
+    converter.convert(src, res);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+OperatorSpec berlin2wgsSpec(
+    " T -> T, where T in {point, points, line, region}",
+    " berlin2wgs( _ )",
+    " Converts a pair of coordinates from bbbike / BerlinMOD format into WGS84 "
+      "coordinates.",
+    " query berlin2wgs([const point value (13132, 10876)])"
+  );
+
+ValueMapping berlin2wgsVMs[] = {
+  berlin2wgsVM<Point>,
+  berlin2wgsVM<Points>,
+  berlin2wgsVM<Line>,
+  berlin2wgsVM<Region>
+};
+
+/*
+\subsection{Operator instance}
+
+*/
+Operator berlin2wgs(
+  "berlin2wgs",
+  berlin2wgsSpec.getStr(),
+  4,
+  berlin2wgsVMs,
+  berlin2wgsSelect,
+  berlin2wgsTM
+);
+
 
 /*
 11 Creating the Algebra
@@ -25428,6 +25498,8 @@ class SpatialAlgebra : public Algebra
     AddOperator(&centroidDiscOP);
     AddOperator(&calcDiscOP);
     AddOperator(&createDiscOP);
+    
+    AddOperator(&berlin2wgs);
   }
   ~SpatialAlgebra() {};
 };

@@ -72,6 +72,7 @@ shows examples of these spatial data types.
 #include "Geoid.h"
 #include "NestedList.h"
 #include "ListUtils.h"
+#include "Berlin2WGS.h"
 
 /*
 Coordinates are represented by real numbers.

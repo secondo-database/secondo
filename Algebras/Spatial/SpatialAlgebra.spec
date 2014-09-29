@@ -92,4 +92,4 @@ operator findCycles alias FINDCYCLES pattern op(_)
 operator collect_box alias COLLECTBOX pattern _ op[_]
 
 operator collect_line2 alias COLLECT_LINE2 pattern _ op
-
+operator berlin2wgs alias BERLIN2WGS pattern op( _ )
