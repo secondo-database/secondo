@@ -25,5 +25,7 @@
 #operator opticsStrTpl alias OPTICSST pattern _ op[ list ] implicit parameter tuple type TUPLE
 #operator opticsStrTpl alias OPTICSST pattern _ op
 #operator optics alias OPTICS pattern _ op [ _, _ ]
-#operator optics alias OPTICS pattern _ op
+#operator optics alias OPTICS pattern _ op 
 operator dbscan_ alias DBSCAN_ pattern _ op [list]
+operator dbscanRT alias DBSCANRT pattern _ op [list]
+operator dbscanDC alias DBSCANDC pattern _ op [list]
