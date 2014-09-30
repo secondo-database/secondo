@@ -1,40 +1,37 @@
-#####	Secondo Script for Importing the Geolife data set into a Secondo Database	#####
-#
-#	1. Get Secondo, version 3.3.0 or higher, from the Secondo web site at
-#
-#	http://dna.fernuni-hagen.de/Secondo.html/index.html
-#
-#	and install it according to the instructions given there.
-#
-#	2. Get the Geolife GPS trajectory data set from 
-#
-#	http://research.microsoft.com/en-us/downloads/b16d359d-d164-469e-9fd4-daa38f2b2e13/
-#
-#	and unzip it. Make the Geolife root directory a subdirectory of the secondo/bin 
-#	directory and rename it to "Geolife"
-#
-#	3. Using SecondoTTYBDB, create a database "geolife" and close it. Then quit Secondo.
-#
-#	4. Start as shell and in the secondo/bin directory run the command
-#
-#	SecondoTTYNT -i Scripts/ImportGeolife.sec
-#
-##################################################################################################
+	Secondo Script for Importing the Geolife data set into a Secondo Database	
+
+	1. Get Secondo, version 3.3.0 or higher, from the Secondo web site at
+
+	http://dna.fernuni-hagen.de/Secondo.html/index.html
+
+	and install it according to the instructions given there.
+
+	2. Get the Geolife GPS trajectory data set from 
+
+	http://research.microsoft.com/en-us/downloads/b16d359d-d164-469e-9fd4-daa38f2b2e13/
+
+	and unzip it. Make the Geolife root directory a subdirectory of the secondo/bin 
+	directory and rename it to "Geolife"
+
+	3. Using SecondoTTYBDB, create a database "geolife" and close it. Then quit Secondo.
+
+	4. Start as shell and in the secondo/bin directory run the command
+
+	SecondoTTYNT -i Scripts/ImportGeolife.sec
 
 
-
-#delete mlabeltype;
-#delete importMLabelFile;
-#delete mpointtype;
-#delete importMPointFile;
-#delete importMRealFile;
-#delete getPersonId;
-#delete getTripId;
-#delete TranspModes;
-#delete Trips;
 
 open database geolife;
 
+delete mlabeltype;
+delete importMLabelFile;
+delete mpointtype;
+delete importMPointFile;
+delete importMRealFile;
+delete getPersonId;
+delete getTripId;
+delete TranspModes;
+delete Trips;
 
 let mlabeltype = [const rel(tuple([S: string, E: string, L: string])) value ()];
  
@@ -56,9 +53,9 @@ let importMRealFile = fun(Name: text) mpointtype csvimport[Name, 6, "", ","]
     projectextend[; A: int2real(.Alt), Inst: str2instant(.Datestr + "-" + .Timestr)] 
     approximate[Inst, A];
 
-let getPersonId = fun(Filename: text) 
-    substr(Filename, find(Filename, "/") transformstream tail[3] extract[Elem] + 1,
-                     find(Filename, "/") transformstream tail[2] extract[Elem] - 1);
+let getPersonId = fun(Filename: text, Depth1: int, Depth2: int) 
+    substr(Filename, find(Filename, "/") transformstream tail[Depth1] extract[Elem] + 1,
+                     find(Filename, "/") transformstream tail[Depth2] extract[Elem] - 1);
 
 let getTripId = fun(Filename: text)
     substr(Filename, find(Filename, "/") transformstream tail[1] extract[Elem] + 1,
@@ -67,13 +64,13 @@ let getTripId = fun(Filename: text)
 let TranspModes = getDirectory('Geolife/Data', 2) transformstream
     filter[not(isDirectory(.Elem))]
     filter[.Elem endsWith ".txt"]
-    projectextend[; PersonId: getPersonId(.Elem), TranspMode: importMLabelFile(.Elem)]
+    projectextend[; PersonId: getPersonId(.Elem, 2, 1), TranspMode: importMLabelFile(.Elem)]
     consume;
 
 let Trips = getDirectory('Geolife/Data', 3) transformstream 
     filter[not(isDirectory(.Elem))] 
     filter[.Elem endsWith '.plt']
-    projectextend[; PersonId: getPersonId(.Elem), TripId: getTripId(.Elem), 
+    projectextend[; PersonId: getPersonId(.Elem, 3, 2), TripId: getTripId(.Elem), 
                     Trip: importMPointFile(.Elem), Altitude: importMRealFile(.Elem)]
     consume;
 
