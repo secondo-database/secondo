@@ -328,7 +328,7 @@ class Edge{
   public:
 
   Edge(int _target, string label):
-    target(target), regex() {
+    target(_target), regex() {
     if(label.size()>0){
        regex = RegEx(label[0]);
     } 
