@@ -42,6 +42,10 @@ public static void reportError(String message,
                           boolean debug, 
                           boolean console,
                           boolean writeStackTrace){
+ 
+ if(Environment.DEAD_SILENCE){
+    return;
+ }
 
  if(debug && !Environment.DEBUG_MODE){
     return;
@@ -82,6 +86,9 @@ public static void reportWarning(String message,
                             boolean debug,
                             boolean console,
                             boolean writeStackTrace){
+ if(Environment.DEAD_SILENCE){
+    return;
+ }
  if(debug && !Environment.DEBUG_MODE){
     return;
  }
@@ -112,6 +119,9 @@ public static void reportWarning(String message,
  
 /** reports an Information **/
 public static void reportInfo(String message, boolean console){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
    if(console || Environment.TESTMODE!=Environment.NO_TESTMODE){
      TextFormat.printInfo(message);
    }else{
@@ -127,11 +137,17 @@ public static void reportInfo(String message, boolean console){
 
 /** writes an information to Console **/
 public static void writeInfo(String message){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
    reportInfo(message,true);
 }
 
 /** writes an information in a frame **/
 public static void showInfo(String message){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
     reportInfo(message,false);
 }
 
@@ -139,23 +155,35 @@ public static void showInfo(String message){
 
 /** writes a simple error message to the console **/
 public static void writeError(String message){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
     reportError(message,null,false,true,false);
 }
 
 /** writes a simple warning message to the console **/
 public static void writeWarning(String message){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
     reportWarning(message,null,false,true,false);
 }
 
 
 /** Shows an error message within a graphical window **/
 public static void showError(String message){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
    reportError(message,null,false,false,false);
 }
 
 
 /** Shows an warning  message within a graphical window **/
 public static void showWarning(String message){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
    reportWarning(message,null,false,false,false);
 }
 
@@ -163,6 +191,9 @@ public static void showWarning(String message){
   * is enabled.
   **/
 public static void debug(Exception e){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
    if(Environment.DEBUG_MODE){
      e.printStackTrace();
    }
@@ -172,25 +203,40 @@ public static void debug(Exception e){
   * the stacktrace of ex 
   **/
 public static void debug(String message, Exception e){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
   reportError(message,e,false,true,Environment.DEBUG_MODE);   
 }
 
 /** prints the message as error when debug mode is enabled **/
 public static void debug(String message){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
   reportError(message,null,true,true,false);
 }
 
 /** Prints out a Stacktrace **/
 public static void printTrace(){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
    new Throwable().printStackTrace();
 }
 
 /** Writes the string to std out **/
 public static void write(String message){
+   if(Environment.DEAD_SILENCE){
+      return;
+   }
    System.out.println(message);
 }
 
 public static int showQuestion(String ASK){
+   if(Environment.DEAD_SILENCE){
+      return ERROR;
+   }
   int res = JOptionPane.showConfirmDialog(null,ASK,null,
             JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE);
   if(res==JOptionPane.YES_OPTION)

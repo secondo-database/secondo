@@ -20,6 +20,8 @@ public static boolean MEASURE_MEMORY = false;
 /** Flag indicating colorized outputs in the console **/
 public static boolean FORMATTED_TEXT = false;
 
+public static boolean DEAD_SILENCE = false;
+
 
   /** Use a font encoding **/
   public static String ENCODING=null;
