@@ -2888,6 +2888,27 @@ ListExpr InsideTypeMapMPR(ListExpr args){
 }
 
 /*
+\subsubsection{Type Mapping for ~berlin2wgs~}
+
+signatures:
+  ipoint -> ipoint
+  upoint -> upoint
+  mpoint -> mpoint
+  
+*/
+ListExpr berlin2wgsTM_lifted(ListExpr args) {
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError("Exactly one argument expected.");
+  }
+  if (IPoint::checkType(nl->First(args)) || 
+      UPoint::checkType(nl->First(args)) ||
+      MPoint::checkType(nl->First(args))) {
+    return nl->First(args);
+  }
+  return listutils::typeError("Type ipoint, upoint, or mpoint expected.");
+}
+
+/*
 9.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -3130,6 +3151,17 @@ int
 EverNearerThan_sf( ListExpr args )
 {
   return SimpleSelect<3,4>(mapsEverNearerThan, args);
+}
+
+/*
+\subsubsection{Selection Function for ~berlin2wgs~}
+
+*/
+int berlin2wgsSelect_lifted(ListExpr args) {
+  if (IPoint::checkType(nl->First(args))) return 0;
+  if (UPoint::checkType(nl->First(args))) return 1;
+  if (MPoint::checkType(nl->First(args))) return 2;
+  return -1;
 }
 
 
@@ -4756,6 +4788,22 @@ int InsideVM( Word* args, Word& result, int message,
    return 0;
 }
 
+template<class T>
+int berlin2wgsVM_lifted(Word* args, Word& result, int message, Word& local,
+                        Supplier s) {
+  T* src = (T*)args[0].addr;
+  result = qp->ResultStorage(s);
+  T* res = (T*)result.addr;
+  if (src->IsDefined()) {
+    Berlin2WGS converter;
+    converter.convert(src, res);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
 /*
 9.4 Definition of operators
 
@@ -4879,6 +4927,12 @@ ValueMapping EverNearerThan_vms[] =
   EverNearerThan_vm<MPoint,MPoint>,
   EverNearerThan_vm<MPoint, Point>,
   EverNearerThan_vm<Point, MPoint>
+};
+
+ValueMapping berlin2wgsVMs_lifted[] = {
+  berlin2wgsVM_lifted<IPoint>,
+  berlin2wgsVM_lifted<UPoint>,
+  berlin2wgsVM_lifted<MPoint>
 };
 
 /*
@@ -5162,6 +5216,15 @@ const string insideSpec =
     "<text>query train7 inside thecenter</text--->"
     ") )";
 
+const string berlin2wgsSpec_lifted =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>T -> T, where T in {ipoint, upoint, mpoint} </text---> "
+  "<text> berlin2wgs( _ ) </text--->"
+  "<text>Converts coordinates from bbbike/BerlinMOD format into WGS84 "
+  "coordinates.</text--->"
+  "<text>query berlin2wgs([const point value (13132, 10876)])</text--->"
+  ") )";
+
 struct EverNearerThanInfo : OperatorInfo {
 
   EverNearerThanInfo() : OperatorInfo()
@@ -5401,6 +5464,15 @@ Operator inside( "inside",
     Operator::SimpleSelect,
     InsideTypeMapMPR);
 
+Operator berlin2wgs_lifted(
+    "berlin2wgs",
+    berlin2wgsSpec_lifted,
+    3,
+    berlin2wgsVMs_lifted,
+    berlin2wgsSelect_lifted,
+    berlin2wgsTM_lifted
+);
+
 
 
 class TemporalExtAlgebra : public Algebra
@@ -5465,6 +5537,8 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( EverNearerThanInfo(), EverNearerThan_vms,
                      EverNearerThan_sf, EverNearerThan_tm );
         AddOperator(&inside);
+        
+        AddOperator(&berlin2wgs_lifted);
 
     }
     ~TemporalExtAlgebra() {}

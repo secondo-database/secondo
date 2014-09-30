@@ -380,3 +380,9 @@ Number    : 1
 Signature : mpoint x region ->  mbool
 Example   : query Trains feed filter[sometimes(.Trip inside zoogarten)] count
 Result    : 80
+
+Operator : berlin2wgs
+Number   : 1
+Signature: T -> T, where T in {ipoint, upoint, mpoint}
+Example  : query units(berlin2wgs(Trains feed extract[Trip])) count
+Result   : 113
