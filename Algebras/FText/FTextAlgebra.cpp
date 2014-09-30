@@ -11295,6 +11295,80 @@ Operator fileExtensionOP(
 );
 
 
+/*
+4.40 Operator maskBaskslask
+
+*/
+ListExpr maskBackslashTM(ListExpr args){
+
+  string err = "string or text expected";
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+  }
+  ListExpr arg = nl->First(args);
+  if(   !CcString::checkType(arg) 
+     && !FText::checkType(arg)){
+     return listutils::typeError(err);
+  }
+  return arg;
+}
+
+
+template<class T>
+int maskBackslashVM1( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+   T* arg = (T*) args[0].addr;
+   result = qp->ResultStorage(s);
+   T* res = (T*) result.addr;
+   if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   string v = arg->GetValue();
+   v = stringutils::replaceAll(v,"\\","\\\\");
+   res->Set(true,v);
+   return 0;
+}
+/*
+4.40.3 ValueMappung Array and Selection function
+
+*/
+ValueMapping maskBackslashVM[] = {
+  maskBackslashVM1<CcString>,
+  maskBackslashVM1<FText>
+};
+
+int maskBackslashSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+/*
+4.39.4 Specification
+
+*/
+
+OperatorSpec maskBackslashSpec(
+  "T  -> T for T in {string,text}",
+  "_ maskBackslash)",
+  " Doubles all backslashes in the argument",
+  "query 'abcd\\' maskBacks"
+);
+
+/*
+4.39.5 Operator instance
+
+*/
+
+Operator maskBackslashOP(
+  "maskBackslash",
+  maskBackslashSpec.getStr(),
+  2,
+  maskBackslashVM,
+  maskBackslashSelect,
+  maskBackslashTM
+);
+
   /*
   5 Creating the algebra
 
@@ -11424,6 +11498,7 @@ Operator fileExtensionOP(
 
       AddOperator(&globalMemoryOP);
       AddOperator(&fileExtensionOP);
+      AddOperator(&maskBackslashOP);
 
 
 #ifdef RECODE

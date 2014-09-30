@@ -107,5 +107,6 @@ operator createRegEx2 alias CREATEREGEX2 pattern op(_)
 
 operator tmcheck alias TMCHECK pattern _ op [_]
 operator fileExtension alias fileEXTENSION pattern op(_)
+operator maskBackslash alias MASKBACKSLASH pattern _ op
 
 

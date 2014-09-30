@@ -1200,5 +1200,12 @@ Example  : query fileExtension('/home/user/secondo/secondo')
 Result   : 'secondo'
 
 
+Operator : maskBackslash 
+Number : 1
+Signature : T -> T for T in {string,text}
+Example  : query "bin\\tmp" maskBackslash
+Result   : "bin\\\\tmp"
+
+
 
 
