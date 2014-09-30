@@ -3546,7 +3546,8 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
                  assert(storedIndexStat(DB,DCindexName,DCrel,double,Double)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,dim,Dimension)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,boxsize,BoxSize)),
-                 ( ( my_concat_atom(['query getFileInfo(',ExtIndexName,')'],'',
+                 ( ( my_concat_atom(['query getFileInfo(',ExtIndexName,
+                                     ') maskBackslash'],'',
                                  Query2),
                      secondo(Query2,[text,ValueAtom]),
                      term_to_atom([ValueList],ValueAtom),
@@ -3576,7 +3577,8 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
   ),!,
   ( PhysIndexType = btree
     *-> ( % btree index
-          ( my_concat_atom(['query getFileInfo(',ExtIndexName,')'],'',Query),
+          ( my_concat_atom(['query getFileInfo(',ExtIndexName,
+                            ') maskBackslash'],'',Query),
             secondo(Query,[text,ValueAtom]),
             term_to_atom([ValueList],ValueAtom),
             % analyze the result term
@@ -3592,7 +3594,8 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
   ),!,
   ( PhysIndexType = hash
     *-> ( % hashtable index
-          ( my_concat_atom(['query getFileInfo(',ExtIndexName,')'],'',Query),
+          ( my_concat_atom(['query getFileInfo(',ExtIndexName,
+                            ') maskBackslash'],'',Query),
             secondo(Query,[text,ValueAtom]),
             term_to_atom([ValueList],ValueAtom),
             % analyze the result term
