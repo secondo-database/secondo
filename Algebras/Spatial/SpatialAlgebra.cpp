@@ -25299,12 +25299,11 @@ int berlin2wgsVM(Word* args, Word& result, int message, Word& local,Supplier s){
 }
 
 OperatorSpec berlin2wgsSpec(
-    " T -> T, where T in {point, points, line, region}",
-    " berlin2wgs( _ )",
-    " Converts a pair of coordinates from bbbike / BerlinMOD format into WGS84 "
-      "coordinates.",
-    " query berlin2wgs([const point value (13132, 10876)])"
-  );
+  " T -> T, where T in {point, points, line, region}",
+  " berlin2wgs( _ )",
+  " Converts coordinates from bbbike/BerlinMOD format into WGS84 coordinates.",
+  " query berlin2wgs([const point value (13132, 10876)])"
+);
 
 ValueMapping berlin2wgsVMs[] = {
   berlin2wgsVM<Point>,
