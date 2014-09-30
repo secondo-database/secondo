@@ -63,7 +63,6 @@ protected ListExpr tempType;
  * @see <a href="Dsplmultisetsrc.html#Dsplmultiset">Source</a>
  */
 public  Dsplmultiset(){
-System.out.println("bla");
    if(Display==null){
       Display = new MultisetFrame();
    }
