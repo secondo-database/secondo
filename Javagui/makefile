@@ -38,7 +38,7 @@ demo:
 	@make -s
 	@rm -rf Demo Demotmp
 	@mkdir Demotmp
-	@find -maxdepth 1 -not -name . -not -name Demotmp -not -name tmp -exec cp -r {} Demotmp \;
+	@find -maxdepth 1 -not -name . -not -name Demotmp -not -name tmp -not -name osmDowloads -exec cp -r {} Demotmp \;
 	@find Demotmp -type d -name CVS -exec rm -rf {} \; 2>/dev/null || echo ""
 	@find Demotmp -name "*java" -exec rm -f {} \;
 	@echo "extract third party jar files and SecondoInterface"
@@ -59,6 +59,8 @@ demo:
 	@cp GBS.cfg Demo || cp GBS.cfg.sample Demo/GBS.cfg
 	@echo "java -Xmx80M -jar Javagui.jar" > Demo/sgui
 	@chmod +x Demo/sgui
+	@cp Demo/sgui Demo/sgui.bat
+	@java tools/CheckViewer >Demo/ViewerList.txt
 	@echo "Building Demo has finished successfully, you can find it in the Demo directory"
 
 #	@echo "Javagui recompiled, extract the files needed by Demo"
