@@ -27,12 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef BERLIN2WGS_H
-#define BERLIN2WGS_H
-
-#include "Point.h"
-#include "HalfSegment.h"
-#include "SpatialAlgebra.h"
+#include "Berlin2WGSTemporal.h"
 
 /*
 This file is applied to convert BBBike coordinates into WGS84 coordinates.
@@ -42,20 +37,25 @@ The formula is taken from the BBBike sources.
 http://bbbike.sourceforge.net/index.de.html
 
 */
-class Berlin2WGS {
- public:
-  Berlin2WGS();
-  void convert(const Point* source, Point* result);
-  void convert(const Points* source, Points* result);
-  void convert(const Line* source, Line* result);
-  void convert(const Region* source, Region* result);
 
-  
- protected:
-  pair<double, double> b2wgs(const double& x, const double& y);
-  HalfSegment b2wgs(const HalfSegment& source);
-  
-  double x0, x1, x2, y0, y1, y2;
-};
+void Berlin2WGSTemporal::convert(const IPoint* source, IPoint* result) {
+  Point x;
+  Berlin2WGS::convert(&source->value, &x);
+  *result = IPoint(source->instant, x);
+}
 
-#endif
+void Berlin2WGSTemporal::convert(const UPoint* source, UPoint* result) {
+  Point x, y;
+  Berlin2WGS::convert(&source->p0, &x);
+  Berlin2WGS::convert(&source->p1, &y);
+  *result = UPoint(source->timeInterval, x, y);
+}
+
+void Berlin2WGSTemporal::convert(const MPoint* source, MPoint* result) {
+  UPoint src(1), res(1);
+  for (int i = 0; i < source->GetNoComponents(); i++) {
+    source->Get(i, src);
+    convert(&src, &res);
+    result->Add(res);
+  }
+}

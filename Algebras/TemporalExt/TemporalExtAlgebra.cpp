@@ -4795,7 +4795,7 @@ int berlin2wgsVM_lifted(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
   T* res = (T*)result.addr;
   if (src->IsDefined()) {
-    Berlin2WGS converter;
+    Berlin2WGSTemporal converter;
     converter.convert(src, res);
   }
   else {

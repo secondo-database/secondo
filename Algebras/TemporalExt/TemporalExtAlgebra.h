@@ -56,6 +56,7 @@ named implementations.
 #include "RectangleAlgebra.h"
 #include "DateTime.h"
 #include "TemporalAlgebra.h"
+#include "Berlin2WGSTemporal.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
