@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Point.h"
 #include "HalfSegment.h"
 #include "SpatialAlgebra.h"
+#include "TemporalAlgebra.h"
 
 /*
 This file is applied to convert BBBike coordinates into WGS84 coordinates.
@@ -49,6 +50,9 @@ class Berlin2WGS {
   void convert(const Points* source, Points* result);
   void convert(const Line* source, Line* result);
   void convert(const Region* source, Region* result);
+  void convert(const IPoint* source, IPoint* result);
+  void convert(const UPoint* source, UPoint* result);
+  void convert(const MPoint* source, MPoint* result);
   
  protected:
   pair<double, double> b2wgs(const double& x, const double& y);

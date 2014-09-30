@@ -83,6 +83,27 @@ void Berlin2WGS::convert(const Region* source, Region* result) {
   }
 }
 
+void Berlin2WGS::convert(const IPoint* source, IPoint* result) {
+  convert(&(source->value), &(result->value));
+}
+
+void Berlin2WGS::convert(const UPoint* source, UPoint* result) {
+  Point x, y;
+  convert(&source->p0, &x);
+  convert(&source->p1, &y);
+  *result = UPoint(source->timeInterval, x, y);
+}
+
+void Berlin2WGS::convert(const MPoint* source, MPoint* result) {
+  UPoint src(1), res(1);
+  for (int i = 0; i < source->GetNoComponents(); i++) {
+    source->Get(i, src);
+    convert(&src, &res);
+    result->Add(res);
+  }
+}
+
+
 pair<double, double> Berlin2WGS::b2wgs(const double& x, const double& y) {
   return make_pair(((x-x0)*y2-(y-y0)*x2)/(x1*y2-y1*x2),
                    ((x-x0)*y1-(y-y0)*x1)/(x2*y1-x1*y2));
