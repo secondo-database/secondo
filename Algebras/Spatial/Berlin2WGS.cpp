@@ -84,7 +84,9 @@ void Berlin2WGS::convert(const Region* source, Region* result) {
 }
 
 void Berlin2WGS::convert(const IPoint* source, IPoint* result) {
-  convert(&(source->value), &(result->value));
+  Point x;
+  convert(&source->value, &x);
+  *result = IPoint(source->instant, x);
 }
 
 void Berlin2WGS::convert(const UPoint* source, UPoint* result) {
