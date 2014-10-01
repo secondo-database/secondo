@@ -7,6 +7,7 @@
 
 #include "interpolate.h"
 #include <ctime>
+#include <cstdio>
 
 /*
    1.1 ~timestr~ converts a unix timestamp (ms since 1970-01-01 00:00:00)

@@ -8,7 +8,6 @@ Copyright: GNU Lesser General Public License Version 3 (a copy can be found in L
 librip is a c++-library to interpolate two regions to a moving region.
 
 Prerequisites:
-boost (for polygon intersection and date/time-handling)
 lua5.1 or lua5.2 (for matchFaces-scripting)
 (adapt LIBS in lib/Makefile and lib/config.h accordingly)
 

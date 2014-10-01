@@ -14,10 +14,11 @@
 #include <sstream>
 #include <cmath>
 #include <iostream>
+#include <algorithm>
+
 using namespace std;
 
 #include "config.h"
-#include "poly.h"
 #include "librip.h"
 
 #define DEBUG(l,m) do { if (l <= DEBUGLEVEL) { cerr << m << endl; } } while (0)
@@ -31,6 +32,7 @@ using namespace std;
 
 
 // Forward-declarations of the classes
+class Poly;
 class Pt;
 class Seg;
 class Face;
@@ -310,5 +312,6 @@ vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
 vector<pair<Face *, Face *> > matchFacesLua(vector<Face> *src,
         vector<Face> *dst, int depth, string args);
 
+#include "poly.h"
 
 #endif /* INTERPOLATE_HXX */

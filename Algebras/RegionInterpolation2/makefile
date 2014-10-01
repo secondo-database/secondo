@@ -32,9 +32,13 @@ CCFLAGS += $(ALG_INC_DIRS)
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: refresh $(OBJECTS) $(LIBOBJ)
 	cp -n librip/example/matchFaces.lua ../../bin || true
 	cp -n librip/example/matchStrategies.lua ../../bin || true
+
+.PHONY: refresh
+refresh:
+	$(MAKE) -C librip
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -42,7 +46,7 @@ include $(DEP_FILES)
 endif
 
 # generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
+$(LIBOBJ): $(OBJECTS) librip/lib/librip.a
 	make -C librip
 	$(create-lib) librip/lib/*.o
 
