@@ -41,7 +41,14 @@ Includes
 #include <fstream>
 #include <cstring>
 
+#ifdef YYDEBUG
+#undef YYDEBUG
+#endif
 #define YYDEBUG 1
+
+#ifdef YYERROR_VERBOSE
+#undef YYERROR_VERBOSE
+#endif
 #define YYERROR_VERBOSE 1
 
 using namespace std;
