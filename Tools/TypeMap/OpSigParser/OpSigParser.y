@@ -41,7 +41,14 @@ Includes
 #include <fstream>
 #include <cstring>
 
+#ifdef YYDEBUG
+#undef YYDEBUG
+#endif
 #define YYDEBUG 1
+
+#ifdef YYERROR_VERBOSE
+#undef YYERROR_VERBOSE
+#endif
 #define YYERROR_VERBOSE 1
 
 using namespace std;
@@ -845,7 +852,7 @@ bool parseSigs(const char* infile, const string& outfile) {
   return (true);
 }
 
-main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
 
             // Infile              / Standard-Outfile
   parseSigs("../Tools/TypeMap/sigs", "../Tools/TypeMap/OpSigParser/OpSigs.tmp");
