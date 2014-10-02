@@ -21,6 +21,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+
+\setcounter{tocdepth}{2}
 \tableofcontents
 
 
@@ -2686,27 +2688,29 @@ This section deals with the implementation of real big data types. This means, t
 type can massive exceed the main memory of the underlying system if it would be 
 completely loaded. 
 
-Thus, only small parts of the whole structure are in memory, the main parts are located on 
-disc. Using files directly would violate the ACID properties of a database system because
-there is no synchronization if several users work in parallel. For this reason, file structures
-proivided by the Secondo-SMI have to be used for such types. The SecondoSMI provides several
+To solve this problem. only small parts of the whole structure are in memory, 
+the main part is located on disc. Using files directly would violate the ACID 
+properties of a database system because there is no synchronization if several 
+users work in parallel. For this reason, file structures
+provided by the Secondo-SMI have to be used for such types. The SecondoSMI provides several
 file types, ~RecordFiles~, ~HashFiles~, and ~Queues~.  The used example will use the
 ~RecordFile~ class. A ~RecordFile~ stores records within a file where each record is assigned
-a unique id (the RecordId). Depending on the used constructor, records within a file may have
+to a unique id (the ~RecordId~). Depending on the used constructor, records within a file may have
 fixed or variable size.
 
 We explain the usage of RecordFiles at the example of an AVL-tree, a balanced version of a 
-binary tree. Because pointers are not possible within persistent structures, pointers are
+binary searchtree. Because pointers are not possible within persistent structures, pointers are
 simulated by ~RecordID~s. For simplicity, we allow to store only integer values within the 
 tree. 
 
 11.1 Node class
 
-A node of an AVL-tree consists of its content, pointers to the sons and a value denoting 
+A node of an AVL-tree consists of its content, pointers to the two sons and a value denoting 
 the height which is used for balancing these nodes.  Each node corresponds to a record
 within the file representing the tree.  As mentioned above, we simulate 
 pointers by RecordIds. For technical reasons, each node contains also its own RecordId.
-For easy usage, the Node class provides methods for reading its value from a record
+This makes it easier to update the node after changes.
+The ~Node~ class provides methods for reading its value from a record
 and writing to a record.
 
 */
@@ -2715,11 +2719,22 @@ class Node{
  public:
   typedef uint16_t htype;
 
-  // constructor for creating an node outside the file
+/*
+11.1.1 Constructor
 
+This constructor is used to create a new node not assigned to a record.
+The node will have no childs (represented by the record id 0.
+
+*/  
   Node(int v): value(v), left(0), right(0),height(1),myId(0){}
 
-  // constructor for creating a node from a record
+/*
+11.1.2 Constructor
+
+This constructor creates the main memory representation of a node
+from a Record. 
+
+*/
   Node(SmiRecord& r){
      myId = r.GetId();
      size_t offset = 0;
@@ -2732,10 +2747,12 @@ class Node{
      r.Read(&height,sizeof(htype),offset);
   }
 
+   // copy constructor
    Node(const Node& n): 
       value(n.value), left(n.left), right(n.right),
        height(n.height),myId(n.myId) {}
 
+   // assignment operator
    Node& operator=(const Node& n){
       value = n.value;
       left = n.left;
@@ -2745,8 +2762,12 @@ class Node{
       return *this;
    }
 
+/*
+12.1.3 ~getStorageSize~
 
-  // required size for record data
+This function computes how many space a single node will require on disc.
+
+*/
   static size_t getStorageSize(){
      return sizeof(CcInt::inttype) + 2*sizeof(SmiRecordId) 
             + sizeof(htype);
@@ -2763,7 +2784,16 @@ class Node{
   void setRight(const SmiRecordId id) { right = id; }
   void setHeight(const htype h){ height = h; }
 
-  // methods for writing a node into a file
+  
+/*
+11.1.4 ~append~
+
+This functions appends a node which is not already part of a 
+record file to a record file. The id of the node will be changed
+to the used record id. This id is also the return value of this
+method.
+
+*/
   SmiRecordId append(SmiRecordFile& file){
      // allow only non-written node to be appended
      assert(myId == 0);
@@ -2777,6 +2807,12 @@ class Node{
      return id;
   }
 
+/*
+11.1.5 ~update~
+
+Overwrites the data stored on disc by the current values of this node.
+
+*/
   void update(SmiRecordFile& file) const{
      assert(myId != 0);
      SmiRecord record;
@@ -2793,7 +2829,12 @@ class Node{
     htype height;
     SmiRecordId myId;
 
-    // write data to a record
+/*
+11.1.6 ~writeToRecord~
+
+This function writes the current values of this node to the given record.
+
+*/
     void writeToRecord(SmiRecord& r)const{
       size_t offset = 0;
       r.Write(&value,sizeof(CcInt::inttype),offset);
@@ -2810,7 +2851,8 @@ class Node{
 /*
 11.2 Tree class
 
-The class tree contains the file and the recordID of the root node.
+The class tree contains the file and the ~RecordID~ of the root node.
+If the tree is empty, this id is 0.
 To be able to store also undefined ~CcInt~ values, a flag is used whether
 a undefined value is part of the tree or not. Additionally, the number of
 entries is stored. 
@@ -2818,34 +2860,69 @@ entries is stored.
 */
 class PAVLTree{
  public: 
-  // constructor for a new empty tree
+/*
+11.2.1 Constructors
+
+The ~PAVLTree~ class provides two constructor. The first one create a new 
+~PAVLTree~ including the record file storing the tree. The tree will be 
+empty. The second variant is used to open an existing ~PAVLTree~. Details 
+of these constructors can be found at their implementations.
+
+
+*/
   PAVLTree();
  
-  // constructor opening an existing tree
   PAVLTree(SmiFileId fileId,
            SmiRecordId rootId, 
            bool containsUndef, 
            size_t noEntries);
 
-  // destructor: file must be closed
+/*
+11.2.2 Destructor
+
+Each opened file must be closed at the end of a secondo session. Otherwise the
+database directory may be corrupt. Hence is is strongly required to close the
+file in the desctructor.
+
+*/
   ~PAVLTree(){
     if(file.IsOpen()){
       file.Close();
     }
   }
 
+/*
+The usual ~BasicType~ function. 
+
+*/
   static string BasicType(){
      return "pavl";
   }
 
+/*
+The ususal ~checkType~ function.
+
+*/
   static bool checkType(ListExpr args){
      return nl->IsEqual(args,BasicType());
   }
  
+/*
+Declarations of functions for inserting elements and test 
+for containtness.
+
+*/
   bool insert(CcInt* value);
 
   bool contains(CcInt* value); 
 
+/*
+If a database object is deleted, all corresponding files must also be 
+removed from disc. The deletion of the file is done in the next function.
+Before a file can be removed from disc (using the ~Drop~ function), it must
+be closed.
+
+*/
   void deleteFile(){
      if(file.IsOpen()){
          file.Close();
@@ -2853,12 +2930,23 @@ class PAVLTree{
      file.Drop();
   }
 
+/*
+Functions for convetiong in and from nested lists.
+
+*/
   bool readFrom(ListExpr args);
   ListExpr toListExpr();
  
+/*
+The clean function removed all elements from a tree.
+
+*/
   void clean();
 
-  // some getter
+/*
+Some Getter functions.
+
+*/  
   SmiFileId getFileID() { return file.GetFileId() ; }
   SmiRecordId getRootID() const { return rootId; }
   bool getContainsUndef() const { return containsUndef; }
@@ -2873,7 +2961,12 @@ private:
    bool containsUndef;
    size_t noEntries;
 
-  
+
+/*
+Auxiliary functions
+
+
+*/  
    bool readFrom(ListExpr args, SmiRecordId& r, int& min, int& max);
    
    ListExpr toListExpr(SmiRecordId root);
@@ -2883,7 +2976,6 @@ private:
    Node getNode(SmiRecordId id);
 
 
-   // auxiliary functions
 
    // returns the height of s subtree specified by id
    Node::htype getHeight(SmiRecordId id){
@@ -3158,6 +3250,13 @@ void PAVLTree::balance( Node& root, stack<Node>& predecessors){
    } 
 }
 
+/*
+
+11.3.4 ~contains~
+
+This function checks whether a value is part of the tree.
+
+*/
 
 bool PAVLTree::contains(CcInt* value){
 
@@ -3182,6 +3281,18 @@ void PAVLTree::clean(){
    noEntries = 0;
 }
 
+
+/*
+11.3.2 ~readFrom~
+
+This functions reads a nested list and stores the tree represented by the 
+list into the the file. The id of the subtree's root is returned in the
+output parameter rootTd. Furthermore, the minimum and the maximum value
+of the tree are returned in the appropriate output parameters. If the list 
+represents a valid AVL-tree, the return value of this function is true, false 
+otherwise.
+
+*/
 bool PAVLTree::readFrom(ListExpr list, SmiRecordId& rootId,
                         int& min, int& max){
   if(nl->AtomType(list)!=NoAtom){
@@ -3247,6 +3358,14 @@ bool PAVLTree::readFrom(ListExpr list, SmiRecordId& rootId,
   return true;
 }
 
+/*
+11.3.3 ~readFrom~
+
+This function converts a nested int into a tree. The return value
+is true if the list represents a valid AVL tree, false otherwise.
+
+*/
+
 bool PAVLTree::readFrom(ListExpr list){
    if(rootId){
      clean();
@@ -3267,12 +3386,18 @@ bool PAVLTree::readFrom(ListExpr list){
    return true;
 }
 
+/*
+11.3.4 toListExpr
 
+This function converts the tree into a list. 
+
+*/
 ListExpr PAVLTree::toListExpr(){
 
  return nl->TwoElemList(nl->BoolAtom(containsUndef),
                         toListExpr(rootId));
 }
+
 
 ListExpr PAVLTree::toListExpr(SmiRecordId root){
   if(root==0){
@@ -3364,6 +3489,11 @@ void DeletePAVL(const ListExpr typeInfo, Word& w){
 /*
 11.3.6 OPEN 
 
+Within the open function, we extract all required information 
+from the record to build the main structure of the tree. The
+tree itself is keept in the file without loading it into main 
+memory.
+
 */
 bool OpenPAVL ( SmiRecord & valueRecord ,
        size_t & offset , const ListExpr typeInfo ,
@@ -3390,6 +3520,9 @@ bool OpenPAVL ( SmiRecord & valueRecord ,
 
 /*
 11.3.7 SAVE
+
+The save function just stored the main information into the record. 
+The tree file is not required (except its id).
 
 */
 bool SavePAVL( SmiRecord & valueRecord , size_t & offset ,
@@ -3440,7 +3573,6 @@ Word ClonePAVL ( const ListExpr typeInfo , const Word & w ){
 11.3.10 Cast
 
 */
-
 void * CastPAVL ( void * addr ) {
    return addr;
 }
@@ -3473,6 +3605,8 @@ PAVLTypeCheck );
 
 /*
 11.4 Operators creating a PAVL tree
+
+11.4.1 Creation of an pavltree
 
 */
 ListExpr createPAVLTM(ListExpr args){
@@ -3518,6 +3652,11 @@ Operator createPAVLOp (
   createPAVLTM // type mapping
 );
 
+/*
+11.4.2 Checking for containtness
+
+*/
+
 
 ListExpr containsTM(ListExpr args){
   string err = "pavl x int expected";
@@ -3562,17 +3701,17 @@ Operator containsOp (
 /*
 12 Update Operators
 
-The update command in Secondo replaces an stored object 
+The update command in Secondo replaces a stored object 
 completely by another one. Sometimes it is required to modify 
 an existing object, e.g. for inserting new tuples into an 
 existing relation. 
-To realize that, update operators must be written. Such operators
+To realize that, update operators have to be written. Such operators
 manipulate their arguments, which is quite unsual for Secondo 
 operators. To make the changes persistent, the manipulated argument
 must be marked. otherwise the changes are not written back to the disc.
 
 The implementation of update operators is explained at the example of
-an insert operator inserting new elementes into an existing avl-tree.
+an ~insert~ operator inserting new elementes into an existing avl-tree.
  
 12.1 Type mapping
 
@@ -3592,6 +3731,16 @@ ListExpr insertTM(ListExpr args){
   return listutils::basicSymbol<CcInt>();
 }
 
+/*
+12.2 Value Mapping
+
+Within  the value mapping the tree argument is manipulated. 
+At the end of this operator, this argument is marked as 
+modified. For stream operators, this mark can be done 
+within the ~CLOSE~ section. Here, we do it at the end
+of the implementation.  
+
+*/
 
 int insertVM ( Word * args , Word & result , int message ,
                    Word & local , Supplier s ) {
@@ -3615,6 +3764,12 @@ int insertVM ( Word * args , Word & result , int message ,
   return 0;
 }
 
+/*
+12.3 Specification and Operator instance
+
+Here, no specials must be considered.
+
+*/
 
 OperatorSpec insertSpec (
     "  stream(int) x pavl -> int " ,
