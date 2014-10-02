@@ -3546,7 +3546,8 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
                  assert(storedIndexStat(DB,DCindexName,DCrel,double,Double)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,dim,Dimension)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,boxsize,BoxSize)),
-                 ( ( my_concat_atom(['query getFileInfo(',ExtIndexName,')'],'',
+                 ( ( my_concat_atom(['query getFileInfo(',ExtIndexName,
+                                     ') maskBackslash'],'',
                                  Query2),
                      secondo(Query2,[text,ValueAtom]),
                      term_to_atom([ValueList],ValueAtom),
@@ -3576,7 +3577,8 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
   ),!,
   ( PhysIndexType = btree
     *-> ( % btree index
-          ( my_concat_atom(['query getFileInfo(',ExtIndexName,')'],'',Query),
+          ( my_concat_atom(['query getFileInfo(',ExtIndexName,
+                            ') maskBackslash'],'',Query),
             secondo(Query,[text,ValueAtom]),
             term_to_atom([ValueList],ValueAtom),
             % analyze the result term
@@ -3592,7 +3594,8 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
   ),!,
   ( PhysIndexType = hash
     *-> ( % hashtable index
-          ( my_concat_atom(['query getFileInfo(',ExtIndexName,')'],'',Query),
+          ( my_concat_atom(['query getFileInfo(',ExtIndexName,
+                            ') maskBackslash'],'',Query),
             secondo(Query,[text,ValueAtom]),
             term_to_atom([ValueList],ValueAtom),
             % analyze the result term
@@ -4078,6 +4081,8 @@ getTupleInfoQuery3(R,ARelPath, AttrList,AttrDClist, AttrExtensionList):-
   % buildUnnestAtom(ARelPath, ARelUnnestAtom),
   % atomic_list_concat([R, ' feed', ARelUnnestAtom], '', TupleFeed),
   my_concat_atom([
+     '\n  ', A,'_m: (therelation feed extend[Memory: .', A, 
+	            ' memattrsize] avg[Memory]), ',
      '\n  ', A,'_c: (therelation feed extattrsize[',A,']), ',
      '\n  ', A,'_l: ((therelation feed attrsize[',A,
           ']) - (therelation feed extattrsize[',A,']))'
@@ -4158,7 +4163,7 @@ analyseTupleInfoQueryResultList(DB,DCrel, ARelPath, ExtAttrList, ResListAtts,
 
   ),
   analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList, 
-    MoreRestListAtts, MoreInfos, TupleMemSize), % NVK MODIFIED
+    MoreRestListAtts, MoreInfos, TotalAttrSizes), % NVK MODIFIED
 
   downcaseList(ARelPath, DCARelPath),
   appendAttributeList([DCrel|DCARelPath], NewDCrel),
@@ -4171,6 +4176,8 @@ analyseTupleInfoQueryResultList(DB,DCrel, ARelPath, ExtAttrList, ResListAtts,
             )
     ; StoreLOBsize is max(0,TupleSizeLOB) % avoid rounding errors
   ),
+  secOptConstant(tupleMemoryBaseSize, TBaseSize),	% TBase = 136
+  TupleMemSize is TBaseSize + TotalAttrSizes,
   assert(storedTupleSize(DB, NewDCrel, TupleMemSize, 
          StoreCoreSize, StoreLOBsize)),
   !.
@@ -4185,7 +4192,7 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList,InfoListAtts,
   dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList2(',DB,',',DCrel,',',
     ARelPath,',', ExtAttrList,',',InfoListAtts,',',InfoList,').']),
   ExtAttrList = [[ExtAttr,ExtType]|MoreAttrs],
-  InfoList  = [SizeCore,SizeExt|MoreInfos],
+  InfoList  = [SizeMem, SizeCore, SizeExt|MoreInfos],
   InfoListAtts  = [_,_|MoreInfosAtts],
   ( ExtType = [arel,[tuple,_]] -> 
       NExtType = arel
@@ -4197,7 +4204,7 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList,InfoListAtts,
   internalName2externalName(IntAttr,ExtAttr),
 
   % Use inquired average attribute sizes. Avoid problems with undefined
-  % sizes, which will occur for relations with cardinalit=0.
+  % sizes, which will occur for relations with cardinality = 0.
   secDatatype(DCType, MemSize, _, _, _, _),
   ( SizeCore = undefined
     -> ( % Fallback: use typesize, but 1 byte at least
@@ -4209,17 +4216,18 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList,InfoListAtts,
     -> LOBSize is 0
     ;  LOBSize is max(0,SizeExt) % avoid rounding errors
   ),
-  LOBSize2 is max(0,LOBSize),    % avoid rounding errors
+  LOBSize2 is max(0, LOBSize),    % avoid rounding errors
   analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,MoreAttrs, MoreInfosAtts, 
     MoreInfos, MoreMemTotal),
-  MemTotal is MemSize + MoreMemTotal,
+  MemTotal is SizeMem + MoreMemTotal,
   downcaseList(ARelPath, DCARelPath),
   append(DCARelPath, [DCAttr], TMP1),
   listToAttributeTerm(TMP1, DCFQN),
   assert(storedSpell(DB, DCrel:DCFQN, IntAttr)),
-  assert(storedAttrSize(DB,DCrel,DCFQN,DCType,MemSize,CoreAttrSize,
+  assert(storedAttrSize(DB, DCrel, DCFQN, DCType, SizeMem, CoreAttrSize,
     LOBSize2)),
   !.
+
 analyseTupleInfoQueryResultList2(DB,DCrel,X,Y,Z,G,Q):-
   my_concat_atom(['Retrieval of tuple and attribute information failed.'],
     '',ErrMsg),
@@ -4381,10 +4389,12 @@ tupleSizeSplit(DCrel, X) :-
 
 For given relation ~DCrel~, return a list ~AttrList~ having format
 
----- [[AttrName, AttrType, sizeTerm(MemSize,CoreSize,LOBSize)], [...]]
+----	[[AttrName, AttrType, sizeTerm(MemSize,CoreSize,LOBSize)], [...]]
 ----
 
 with a list for each of ~rel~'s attributes. Also return the total splitTupleSize.
+
+Note that the tuple size in memory is the sum of the attribute sizes in memory plus a constant ~tupleMemoryBaseSize~ which currently is 136 bytes.
 
 */
 % NVK ADDED NR
@@ -4393,7 +4403,9 @@ getRelAttrList(DCFQN, ResAttrList, SizeTerm) :-
   databaseName(DB),
   DCFQN=_:_,
   relation(DCFQN, AttrList),
-  getRelAttrList2(DB, DCFQN, AttrList, ResAttrList, SizeTerm), !.
+  getRelAttrList2(DB, DCFQN, AttrList, ResAttrList, SizeTerm),
+  !.
+
 
 getRelAttrList(DCrel, ResAttrList, SizeTerm) :-
   optimizerOption(nestedRelations),
@@ -4401,13 +4413,24 @@ getRelAttrList(DCrel, ResAttrList, SizeTerm) :-
   is_nrel(DCrel),
   relation(DCrel, AttrList),
   reduceToARel(AttrList, [], AttrList2),
-  getRelAttrList2(DB, DCrel, AttrList2, ResAttrList, SizeTerm), !.
+  getRelAttrList2(DB, DCrel, AttrList2, ResAttrList,
+    sizeTerm(TotalAttrSize, CoreSize, LOBSize)),
+  secOptConstant(tupleMemoryBaseSize, TBaseSize),
+  TupleMemSize is TotalAttrSize + TBaseSize,
+  SizeTerm = sizeTerm(TupleMemSize, CoreSize, LOBSize),
+  !.
+
 % NVK ADDED NR END
 
 getRelAttrList(DCrel, ResAttrList, SizeTerm) :-
   databaseName(DB),
   relation(DCrel, AttrList),
-  getRelAttrList2(DB, DCrel, AttrList, ResAttrList, SizeTerm), !.
+  getRelAttrList2(DB, DCrel, AttrList, ResAttrList, 
+    sizeTerm(TotalAttrSize, CoreSize, LOBSize)),
+  secOptConstant(tupleMemoryBaseSize, TBaseSize),
+  TupleMemSize is TotalAttrSize + TBaseSize,
+  SizeTerm = sizeTerm(TupleMemSize, CoreSize, LOBSize),
+  !.
 
 getRelAttrList(DCrel, ResAttrList, SizeTerm) :-
   my_concat_atom(['Unknown error.'],'',ErrMsg),
@@ -4442,11 +4465,11 @@ getRelAttrList2(DB,DCrel,[Attr|AttrList1],[ResAttr|ResAttrList1],TupleSize) :-
 
 /*
 
----- projectAttrList(+OrigAttrs, +ProjAttrs, -ResAttrList, -ProjTupleSize)
+---- projectAttrList(+OrigAttrs, +ProjAttrs, -ResAttrList, -TotalAttrSize)
 ----
 
 Restricts a given attribute list ~OrigAttrs~ to the attributes given in
-~ProjAttrs~ and also returns the according projected tuple size ~ProjTupleSize~.
+~ProjAttrs~ and also returns the according sum of attribute sizes ~TotalAttrSize~ (not yet the tuple size!).
 
 Attribute names are the current name of the attribute, respecting renames that
 already have been applied to the attribute!
@@ -4465,6 +4488,7 @@ projectAttrList([[Attr,Type,AttrSZ]|MoreAttrs],ProjAttrs,ResList,ResSZ) :-
        )
     ;  projectAttrList(MoreAttrs,ProjAttrs,ResList,ResSZ)
   ), !.
+
 projectAttrList(W,X,Y,Z) :-
   my_concat_atom(['Unknown error.'],'',ErrMsg),
   throw(error_Internal(database_projectAttrList(W,X,Y,Z)
@@ -4487,7 +4511,7 @@ Each entry has format: (ArgNo,rel(DCrelName,Var))
 ~ExtendAttrs~ is a list of descriptors [Name, Type, SizeTerm] for each extended
 attribute.
 
-~ExtendAttrSize~ is a sizeterm for the combined size of extension attributes
+~ExtendAttrSize~ is a size term for the combined size of extension attributes
 
 */
 

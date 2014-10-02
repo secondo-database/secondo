@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <Button
+        android:id="@+id/restoredatabase"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_x="34dp"
+        android:layout_y="25dp"
+        android:onClick="restoredatabase"
+        android:text="@string/restoredb" />
+
+    <Button
+        android:id="@+id/opendatabase"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="opendatabase"
+        android:text="@string/opendb" />
+
+    <Button
+        android:id="@+id/listobjects"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="listobjects"
+        android:text="@string/listobjects" />
+
+    <Button
+        android:id="@+id/closedatabase"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="closedatabase"
+        android:text="@string/closedb" />
+
+    <Button
+        android:id="@+id/deletedatabase"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="deletedatabase"
+        android:text="@string/deletedb" />
+
+    <Button
+        android:id="@+id/querydatabase"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="querydatabase"
+        android:text="@string/query" />
+
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_weight="0.96"
+        android:gravity="bottom"
+        android:text="" />
+
+    <TextView
+        android:id="@+id/statusline"
+        android:layout_width="317dp"
+        android:layout_height="wrap_content"
+        android:text="Statusmeldungen" />
+
+</LinearLayout>

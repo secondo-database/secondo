@@ -1,0 +1,1949 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] title: [{\Large \bf ]   [}]
+//characters    [2]    verbatim:   [\verb@]    [@]
+//[ue] [\"{u}]
+//[toc] [\tableofcontents]
+
+""[2]
+
+[1] OpSignature Algebra
+
+July 2002, R. H. G[ue]ting
+
+2003 - 2006, V. Almeida. Code changes due to interface changes.
+
+Oct. 2006, M. Spiekermann. Introduction of a namespace, string constants and
+usage of the "static_cast<>" templates. Additionally, more comments and hints
+ were given.
+
+Sept. 2007, M. Spiekermann. Many code changes to demonstrate new programming interfaces.
+
+Oct. 2007 RHG Revision of text.
+
+[toc]
+
+0 Overview
+
+This little example algebra provides two type constructors ~xpoint~ and
+~xrectangle~ and two operators:
+
+  1. ~insideop~, which checks whether either a point or a rectangle is
+     within a rectangle, and
+
+  2. ~intersectsop~, which checks two rectangles for intersection.
+
+1 Preliminaries
+
+1.1 Includes
+
+*/
+
+#include "Algebra.h"
+#include "NestedList.h"
+#include "ListUtils.h"
+#include "NList.h"
+#include "LogMsg.h"
+#include "QueryProcessor.h"
+#include "ConstructorTemplates.h"
+#include "StandardTypes.h"
+
+/*
+The file "Algebra.h" is included, since the new algebra must be a subclass of
+class Algebra. All of the data available in Secondo has a nested list
+representation. Therefore, conversion functions have to be written for this
+algebra, too, and "NestedList.h" is needed for this purpose. The result of an
+operation is passed directly to the query processor. An instance of
+"QueryProcessor" serves for this. Secondo provides some standard data types, e.g.
+"CcInt", "CcReal", "CcString", "CcBool", which is needed as the result type of the
+implemented operations. To use them "StandardTypes.h" needs to be included.
+
+*/
+
+extern NestedList* nl;
+extern QueryProcessor *qp;
+
+/*
+The variables above define some global references to unique system-wide
+instances of the query processor and the nested list storage.
+
+1.2 Auxiliaries
+
+Within this algebra module implementation, we have to handle values of
+four different types defined in namespace ~symbols~: ~INT~ and ~REAL~, ~BOOL~ and
+~STRING~.  They are constant values of the C++-string class.
+
+Moreover, for type mappings some auxiliary helper functions are defined in the
+file "TypeMapUtils.h" which defines a namespace ~mappings~.
+
+*/
+
+#include "TypeMapUtils.h"
+#include "Symbols.h"
+
+
+#include <string>
+using namespace std;
+
+/*
+The implementation of the algebra is embedded into
+a namespace ~osg~ in order to avoid name conflicts with other modules.
+
+*/
+
+namespace osg {
+
+/*
+2 Type Constructor ~xpoint~
+
+In this section we describe what is needed to implement the Secondo type
+~xpoint~. Here the more traditional programming interfaces are shown. Some more
+recent alternatives are presented in the next section.
+
+2.1 Data Structure - Class ~XPoint~
+
+*/
+
+
+class XPoint
+{
+ public:
+/*
+Constructors and destructor:
+
+*/
+  XPoint( int x, int y );
+  XPoint(const XPoint& rhs);
+  ~XPoint();
+
+  int  GetX() const;
+  int  GetY() const;
+  void SetX( int x );
+  void SetY( int y );
+
+  XPoint* Clone();
+
+/*
+Below the mandatory set of algebra support functions is declared.
+Note that these functions need to be static member functions of the class.
+Their implementations do nothing which depends on the state of an instance.
+
+*/
+  static Word     In( const ListExpr typeInfo, const ListExpr instance,
+                        const int errorPos, ListExpr& errorInfo,
+                        bool& correct );
+
+  static ListExpr Out( ListExpr typeInfo, Word value );
+
+  static Word     Create( const ListExpr typeInfo );
+
+  static void     Delete( const ListExpr typeInfo, Word& w );
+
+  static void     Close( const ListExpr typeInfo, Word& w );
+
+  static Word     Clone( const ListExpr typeInfo, const Word& w );
+
+  static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
+
+  static int      SizeOfObj();
+
+  static ListExpr Property();
+
+/*
+The following function defines the name of the type constructor, resp. the name
+Secondo uses for this type.
+
+*/
+  static const string BasicType() { return "xpoint"; }
+
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
+
+ private:
+  inline XPoint() {}
+/*
+Warning: Never do initializations in the default constructor!
+It will be used in a special way in the cast function which is needed
+for making a class persistent when acting as an attribute in a tuple.
+In order to guarantee this, we make this constructor private.
+One always needs to provide at least a second constructor, here
+"XPoint( int x, int y )" in order to construct an instance.
+
+Moreover,
+avoid declarations like "XPoint p1;" since these will create an uninitialized
+class instance. Instead you should use only properly initialized variables
+like "XPoint(0,0) p1;"
+
+*/
+
+  int x;
+  int y;
+
+};
+
+
+/*
+We recommend to separate class declarations from their implementations.
+This makes life easier if you want to use the type provided in one algebra in
+another algebra. Only for the sake of a compact presentation, we did not move
+the declarations to special header files in this example algebra.
+
+*/
+
+XPoint::XPoint(int X, int Y) : x(X), y(Y) {}
+
+XPoint::XPoint(const XPoint& rhs) : x(rhs.x), y(rhs.y) {}
+
+XPoint::~XPoint() {}
+
+
+int XPoint::GetX() const { return x; }
+int XPoint::GetY() const { return y; }
+
+void XPoint::SetX(int X) { x = X; }
+void XPoint::SetY(int Y) { y = Y; }
+
+
+/*
+2.2 List Representation
+
+The list representation of an xpoint is
+
+----    (x y)
+----
+
+2.3 ~In~ and ~Out~ Functions
+
+The ~In~-function gets a nested list representation of an ~xpoint~ value passed
+in the variable "instance".  It is represented by the C++ type "ListExpr".
+Moreover, there is a global pointer variable "nl" which points to the (single)
+instance of class ~NestedList~.  This class provides a set of functions which
+can investigate and manipulate nested lists. For details refer to the file
+"NestedList.h".
+
+The parameter "errorInfo" can be used to return specific
+error information if the retrieved list is not correct. In the latter case,
+the boolean parameter "correct" needs to be set to false.
+
+The return value of the function is of type ~Word~ which can simply be
+regarded as a pointer. The query processor operates with this type-less
+abstraction for objects. If all integrity checks are correct we will return
+a pointer to a new instance of class ~XPoint~.
+
+*/
+
+Word
+XPoint::In( const ListExpr typeInfo, const ListExpr instance,
+            const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  Word w = SetWord(Address(0));
+  if ( nl->ListLength( instance ) == 2 )
+  {
+    ListExpr First = nl->First(instance);
+    ListExpr Second = nl->Second(instance);
+
+    if ( nl->IsAtom(First) && nl->AtomType(First) == IntType
+      && nl->IsAtom(Second) && nl->AtomType(Second) == IntType )
+    {
+      correct = true;
+      w.addr = new XPoint(nl->IntValue(First), nl->IntValue(Second));
+      return w;
+    }
+  }
+  correct = false;
+  cmsg.inFunError("Expecting a list of two integer atoms!");
+  return w;
+}
+
+/*
+The ~Out~-function will get a pointer to an ~XPoint~ representation.
+Before we can use a member function of class ~XPoint~, we need to do
+a type cast in order to tell the compiler about the object's type.
+
+Note: At this point we can be sure that it is a pointer to type ~XPoint~, hence
+it is safe to do it. But in general, type casts can be a source for ~strange~
+errors, e.g. segmentation faults, if you cast to a type which is not compatible
+to the object that the pointer belongs to.
+
+*/
+
+
+ListExpr
+XPoint::Out( ListExpr typeInfo, Word value )
+{
+  XPoint* point = static_cast<XPoint*>( value.addr );
+
+  return nl->TwoElemList(nl->IntAtom(point->GetX()),
+                         nl->IntAtom(point->GetY()));
+}
+
+
+/*
+2.4 Support Functions for Persistent Sorage
+
+*/
+
+
+Word
+XPoint::Create( const ListExpr typeInfo )
+{
+  return (SetWord( new XPoint( 0, 0 ) ));
+}
+
+void
+XPoint::Delete( const ListExpr typeInfo, Word& w )
+{
+  delete static_cast<XPoint*>( w.addr );
+  w.addr = 0;
+}
+
+void
+XPoint::Close( const ListExpr typeInfo, Word& w )
+{
+  delete static_cast<XPoint*>( w.addr );
+  w.addr = 0;
+}
+
+Word
+XPoint::Clone( const ListExpr typeInfo, const Word& w )
+{
+  XPoint* p = static_cast<XPoint*>( w.addr );
+  return SetWord( new XPoint(*p) );
+}
+/*
+Here, a clone simply calls the copy constructor, but for other
+types, which may have also a disk part, some code for copying
+the disk parts would be needed also. Often this is implemented
+in a special member function "Clone()".
+
+*/
+
+int
+XPoint::SizeOfObj()
+{
+  return sizeof(XPoint);
+}
+
+
+/*
+2.4 Type Description
+
+At the user interface, the command ~list type constructors~ lists all type
+constructors of all currently linked algebra modules. The information listed is
+generated by the algebra module itself, to be more precise it is generated by
+the ~property~-functions.
+
+Generally, a property list consists of two sublists providing labels and contents.
+Currently a structure like the one below has been established to
+be the standard.
+
+*/
+
+ListExpr
+XPoint::Property()
+{
+
+  return (nl->TwoElemList(
+            nl->FiveElemList(nl->StringAtom("Signature"),
+               nl->StringAtom("Example Type List"),
+               nl->StringAtom("List Rep"),
+               nl->StringAtom("Example List"),
+               nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("-> DATA"),
+               nl->StringAtom(XPoint::BasicType()),
+               nl->StringAtom("(<x> <y>)"),
+               nl->StringAtom("(-3 15)"),
+               nl->StringAtom("x- and y-coordinates must be "
+                 "of type int."))));
+}
+
+/*
+
+This is an older technique for creating property lists. A more recent technique
+is shown below for type ~XRectangle~.
+
+
+2.5 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. Since
+type constructor ~xpoint~ does not have arguments, this is trivial.
+
+*/
+bool
+XPoint::KindCheck( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, XPoint::BasicType() ));
+}
+
+/*
+2.6 Creation of the Type Constructor Instance
+
+*/
+TypeConstructor xpointTC(
+  XPoint::BasicType(),                          // name of the type in SECONDO
+  XPoint::Property,                // property function describing signature
+  XPoint::Out, XPoint::In,         // Out and In functions
+  0, 0,                            // SaveToList, RestoreFromList functions
+  XPoint::Create, XPoint::Delete,  // object creation and deletion
+  0, 0,                            // object open, save
+  XPoint::Close, XPoint::Clone,    // close, and clone
+  0,                               // cast function
+  XPoint::SizeOfObj,               // sizeof function
+  XPoint::KindCheck );             // kind checking function
+
+/*
+3 Type Constructor ~xrectangle~
+
+To define the Secondo type ~xrectangle~, we need to (i) define a data
+structure, that is a class, to (ii) decide about a nested list representation,
+and (iii) write conversion functions from and to nested list representation.
+The function for converting from the list representation is the most involved
+one, since it has to check that the given list structure is entirely correct.
+
+After we have described the traditional programming interface in the previous
+section, here in some places we use more recent alternative programming
+interfaces for implementing a type.
+
+
+3.1 Data Structure - Class ~XRectangle~
+
+*/
+
+
+class XRectangle
+{
+ public:
+  XRectangle( int XLeft, int XRight, int YBottom, int YTop );
+  XRectangle( const XRectangle& rhs );
+  ~XRectangle() {}
+
+  int GetXLeft()   const;
+  int GetXRight()  const;
+  int GetYBottom() const;
+  int GetYTop()    const;
+
+  bool intersectsop( const XRectangle& r) const;
+
+/*
+Here we will only implement the following three support functions, since the others
+have default implementations which can be generated at compile time using C++ template
+functionality.
+
+*/
+  static Word     In( const ListExpr typeInfo, const ListExpr instance,
+                      const int errorPos, ListExpr& errorInfo, bool& correct );
+
+  static ListExpr Out( ListExpr typeInfo, Word value );
+
+  static Word     Create( const ListExpr typeInfo );
+
+
+/*
+In contrast to the example above, we will implement specific ~open~ and ~save~
+functions instead of using the generic persistent mechanism.
+
+*/
+
+  static bool     Open( SmiRecord& valueRecord,
+                        size_t& offset, const ListExpr typeInfo,
+                        Word& value );
+
+  static bool     Save( SmiRecord& valueRecord, size_t& offset,
+                        const ListExpr typeInfo, Word& w );
+
+/*
+The following function defines the name of the type constructor, resp. the name
+Secondo uses for this type.
+
+*/
+  static const string BasicType() { return "xrectangle"; }
+
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
+
+ private:
+  XRectangle() {}
+  // Since we want to use some default implementations we need
+  // to allow access to private members for the class below.
+  friend class ConstructorFunctions<XRectangle>;
+
+  int xl;
+  int xr;
+  int yb;
+  int yt;
+
+};
+
+XRectangle::XRectangle( int XLeft, int XRight, int YBottom, int YTop )
+{
+  xl = XLeft; xr = XRight; yb = YBottom; yt = YTop;
+}
+
+XRectangle::XRectangle( const XRectangle& rhs )
+{
+  xl = rhs.xl; xr = rhs.xr; yb = rhs.yb; yt = rhs.yt;
+}
+
+int XRectangle::GetXLeft()   const { return xl; }
+int XRectangle::GetXRight()  const { return xr; }
+int XRectangle::GetYBottom() const { return yb; }
+int XRectangle::GetYTop()    const { return yt; }
+
+/*
+3.2 Auxiliary Functions for Operations
+
+To implement rectangle intersection, we first introduce an auxiliary function which
+tests if two intervals overlap.
+
+*/
+
+bool overlap ( int low1, int high1, int low2, int high2 )
+{
+  if ( high1 < low2 || high2 < low1 )
+    return false;
+  else
+    return true;
+}
+
+
+bool
+XRectangle::intersectsop( const XRectangle& r ) const
+{
+  return ( overlap(xl, xr, r.GetXLeft(), r.GetXRight())
+           && overlap(yb, yt, r.GetYBottom(), r.GetYTop()) );
+}
+
+
+
+/*
+
+
+
+3.3 List Representation and ~In~/~Out~ Functions
+
+The list representation of an xrectangle is
+
+----    (XLeft XRight YBottom YTop)
+----
+
+In contrast to the code examples above, we use here the class
+~NList~ instead of the static functions "nl->f(...)". Its interface is described
+in file "NList.h". It is a simple wrapper for calls like "nl->f(...)" and provides
+a more object-oriented access to a nested list.
+
+This class was implemented more recently; hence there is a lot of code which uses
+the older interface. But as you can observe, the code based on ~NList~ is more
+compact, easier to read, understand, and maintain. Thus we recommend to use this
+interface.
+
+*/
+
+Word
+XRectangle::In( const ListExpr typeInfo, const ListExpr instance,
+                const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  correct = false;
+  Word result = SetWord(Address(0));
+  const string errMsg = "Expecting a list of four integer atoms!";
+
+  NList list(instance);
+  // When you check list structures it will be a good advice to detect
+  // errors as early as possible to avoid deep nestings of if statements.
+  if ( list.length() != 4 ) {
+    cmsg.inFunError(errMsg);
+    return result;
+  }
+
+  NList First = list.first();
+  NList Second = list.second();
+  NList Third = list.third();
+  NList Fourth = list.fourth();
+
+  if ( First.isInt() && Second.isInt()
+           && Third.isInt() && Fourth.isInt() )
+  {
+    int xl = First.intval();
+    int xr = Second.intval();
+    int yb = Third.intval();
+    int yt = Fourth.intval();
+
+    if ( xl < xr && yb < yt )
+    {
+      correct = true;
+      XRectangle* r = new XRectangle(xl, xr, yb, yt);
+      result.addr = r;
+    }
+  }
+  else
+  {
+    cmsg.inFunError(errMsg);
+  }
+  return result;
+}
+
+ListExpr
+XRectangle::Out( ListExpr typeInfo, Word value )
+{
+  XRectangle* rectangle = static_cast<XRectangle*>( value.addr );
+  NList fourElems(
+           NList( rectangle->GetXLeft()   ),
+           NList( rectangle->GetXRight()  ),
+           NList( rectangle->GetYBottom() ),
+           NList( rectangle->GetYTop()    )  );
+
+  return fourElems.listExpr();
+}
+
+/*
+4.4 Storage Management: ~Open~, ~Save~, and ~Create~
+
+The ~open~ and ~save~ functions need an ~SmiRecord~ as argument which contains the
+binary representation of the type, starting at the position indicated by ~offset~. The
+implementor has to read out or write in data there and adjust the offset. The argument
+~typeinfo~ is needed only for complex types whose constructors can be parameterized,
+e.g. rel(tuple(...)).
+
+*/
+
+bool
+XRectangle::Open( SmiRecord& valueRecord,
+                  size_t& offset, const ListExpr typeInfo,
+                  Word& value )
+{
+  //cerr << "OPEN XRectangle" << endl;
+  size_t size = sizeof(int);
+  int xl = 0, xr = 0, yb = 0, yt = 0;
+
+  bool ok = true;
+  ok = ok && valueRecord.Read( &xl, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Read( &xr, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Read( &yb, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Read( &yt, size, offset );
+  offset += size;
+
+  value.addr = new XRectangle(xl, xr, yb, yt);
+
+  return ok;
+}
+
+
+bool
+XRectangle::Save( SmiRecord& valueRecord, size_t& offset,
+                  const ListExpr typeInfo, Word& value )
+{
+  //cerr << "SAVE XRectangle" << endl;
+  XRectangle* r = static_cast<XRectangle*>( value.addr );
+  size_t size = sizeof(int);
+
+  bool ok = true;
+  ok = ok && valueRecord.Write( &r->xl, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Write( &r->xr, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Write( &r->yb, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Write( &r->yt, size, offset );
+  offset += size;
+
+  return ok;
+}
+
+
+Word
+XRectangle::Create( const ListExpr typeInfo )
+{
+  return (SetWord( new XRectangle( 0, 0, 0, 0 ) ));
+}
+
+
+/*
+4.5 Type Description
+
+The property function is deprecated. Instead
+this is done by implementing a subclass of ~ConstructorInfo~.
+
+*/
+
+struct xrectangleInfo : ConstructorInfo {
+
+  xrectangleInfo() {
+
+    name         = XRectangle::BasicType();
+    signature    = "-> " + Kind::SIMPLE();
+    typeExample  = XRectangle::BasicType();
+    listRep      =  "(<xleft> <xright> <ybottom> <ytop>)";
+    valueExample = "(4 12 2 8)";
+    remarks      = "all coordinates must be of type int.";
+  }
+};
+
+/*
+4.6 Creation of the Type Constructor Instance
+
+Here we also use a new programming interface. As you may have observed, most
+implementations of the support functions needed for registering a Secondo type
+are trivial to implement. Hence, we offer a template class
+~ConstructorFunctions~ which will create many default implementations of
+functions used by a Secondo type. For details refer to
+"ConstructorFunctions.h". However, some functions need to be implemented since
+the default may not be sufficient. The default kind check function assumes that
+the type constructor does not have any arguments.
+
+
+*/
+
+struct xrectangleFunctions : ConstructorFunctions<XRectangle> {
+
+  xrectangleFunctions()
+  {
+    // re-assign some function pointers
+    create = XRectangle::Create;
+    in = XRectangle::In;
+    out = XRectangle::Out;
+
+    // the default implementations for open and save are only
+    // suitable for a class which is derived from class ~Attribute~, hence
+    // open and save functions must be overwritten here.
+
+    open = XRectangle::Open;
+    save = XRectangle::Save;
+  }
+};
+
+xrectangleInfo xri;
+xrectangleFunctions xrf;
+TypeConstructor xrectangleTC( xri, xrf );
+
+/*
+
+
+
+
+5 Creating Operators
+
+5.1 Type Mapping Functions
+
+A type mapping function checks whether the correct argument types are supplied
+for an operator; if so, it returns a list expression for the result type,
+otherwise the symbol ~typeerror~. Again we use interface ~NList.h~ for
+manipulating list expressions.
+
+*/
+
+ListExpr
+RectRectBool( ListExpr args )
+{
+  NList type(args);
+  if ( type != NList(XRectangle::BasicType(), XRectangle::BasicType()) ) {
+    return NList::typeError("Expecting two rectangles");
+  }
+
+  return NList(CcBool::BasicType()).listExpr();
+}
+
+ListExpr
+insideopTypeMap( ListExpr args )
+{
+  NList type(args);
+  const string errMsg = "Expecting two rectangles "
+	                "or a point and a rectangle";
+
+  // first alternative: xpoint x xrectangle -> bool
+  if ( type == NList(XPoint::BasicType(), XRectangle::BasicType()) ) {
+    return NList(CcBool::BasicType()).listExpr();
+  }
+
+  // second alternative: xrectangle x xrectangle -> bool
+  if ( type == NList(XRectangle::BasicType(), XRectangle::BasicType()) ) {
+    return NList(CcBool::BasicType()).listExpr();
+  }
+
+  return NList::typeError(errMsg);
+}
+
+/*
+5.2 Selection Function
+
+A selection function is quite similar to a type mapping function. The only
+difference is that it doesn't return a type but the index of a value
+mapping function being able to deal with the respective combination of
+input parameter types.
+
+Note that a selection function does not need to check the correctness of
+argument types; this has already been checked by the type mapping function.
+A selection function is only called if the type mapping was successful. This
+makes programming easier as one can rely on a correct structure of the list
+~args~.
+
+*/
+
+int
+insideopSelect( ListExpr args )
+{
+  NList type(args);
+  if ( type.first().isSymbol( XRectangle::BasicType() ) )
+    return 1;
+  else
+    return 0;
+}
+
+
+
+/*
+5.3 Value Mapping Functions
+
+5.3.1 The ~intersectsop~ predicate for two rectangles
+
+*/
+int
+intersectsopFun (Word* args, Word& result, int message,
+              Word& local, Supplier s)
+{
+  XRectangle *r1 = static_cast<XRectangle*>( args[0].addr );
+  XRectangle *r2 = static_cast<XRectangle*>( args[1].addr );
+
+  result = qp->ResultStorage(s);
+                                //query processor has provided
+                                //a CcBool instance for the result
+
+  CcBool* b = static_cast<CcBool*>( result.addr );
+  b->Set(true, r1->intersectsop(*r2));
+                               //the first argument says the boolean
+                               //value is defined, the second is the
+                               //real boolean value)
+  return 0;
+}
+
+
+
+//-------------------------------------------------------------------
+///Functions for OpSignature Typemapping///
+
+
+//Functions for predicates
+
+// Prototypes
+ListExpr sig(ListExpr sList);
+ListExpr csig(ListExpr cSList);
+ListExpr matches(ListExpr mList);
+ListExpr consistent(ListExpr B1, ListExpr B2);
+bool conflict(ListExpr B1, ListExpr B2);
+ListExpr evalPreds(ListExpr ePsList);
+ListExpr evalPred(ListExpr ePList);
+ListExpr isAttr(ListExpr attrList);
+ListExpr isAttr2(ListExpr attrList2);
+void checkMember(ListExpr cMList);
+void distinctList(ListExpr distLList);
+void distinctAttrs(ListExpr distAList);
+ListExpr attrNames(ListExpr attrNList);
+ListExpr bound(ListExpr boList);
+ListExpr addBinding(ListExpr aBList);
+ListExpr apply(ListExpr aList);
+
+
+ListExpr sig(ListExpr sList) {
+  ListExpr args_res;
+  string argsRes = "";
+
+  if (nl->SymbolValue(nl->First(sList)) == "feed") {
+    argsRes = "( ((rel (var tuple 1))) (stream (var tuple 1)) )";
+  }
+  if (nl->SymbolValue(nl->First(sList)) == "consume") {
+    argsRes = "( ((stream (var tuple 1))) (rel (var tuple 1)) )";
+  }
+  if (nl->SymbolValue(nl->First(sList)) == "filter") {
+    argsRes = "( ((stream (var tuple 1)) "
+	      "(map (var tuple 1) bool)) (stream (var tuple 1)) )";
+  }
+
+  if (argsRes != "") {
+    //build NestedList with (Args, Res)
+    nl->ReadFromString(argsRes, args_res);
+  }
+  else {
+    args_res = nl->Empty();
+  }
+
+  return args_res;
+
+}
+
+ListExpr csig(ListExpr cSList) {
+  ListExpr args_res_decls_preds;
+  string argsResDeclsPreds = "";
+
+  if (nl->SymbolValue(nl->First(cSList)) == "attr") {
+    argsResDeclsPreds = "( "
+      "( (tuple (any attrs 1)) (var ident 1) ) "
+      "( append (var attrNo 1) (var attrType 1) ) "
+      "() "
+      "( (attr (var ident 1) (var attrs 1)"
+      "  (var attrType 1) (var attrNo 1)) ) )";
+  }
+
+  if (argsResDeclsPreds != "") {
+    //build NestedList with (Args, Res, Decls, Preds)
+    nl->ReadFromString(argsResDeclsPreds, args_res_decls_preds);
+  }
+  else {
+    args_res_decls_preds = nl->Empty();
+  }
+
+  return args_res_decls_preds;
+
+}
+
+/*
+----	matches(ArgTypes, Args, Bindings)
+----
+
+The list of argument types ~ArgTypes~ matches the list of argument type specifications ~Args~ with the bindings ~Bindings~.
+
+*/
+ListExpr matches(ListExpr mList) {
+  ListExpr bindings, B, Bindings1;
+
+  if ( !nl->IsAtom(nl->First(mList)) ) {
+    //eliminate multiple round parantheses: (((1 2 3)))->((1 2 3))
+    //(((1 2 3))): the first element of list has not MinLength 2
+    while (!nl->HasMinLength(nl->First(mList), 2)) {
+      mList = (nl->TwoElemList(nl->First(nl->First(mList)),
+			       nl->First(nl->Second(mList))));
+    }
+  }
+
+//cout << "vor var:";
+//nl->WriteStringTo(mList, cout);
+//cout << endl;
+
+  if (nl->IsAtom(nl->First(nl->Second(mList)))) {
+
+    if (nl->SymbolValue(nl->First(nl->Second(mList))) == "var") {
+    
+      //#identifiers, e.g. plz, ort#
+      //matches(Tc, [var, ident, N], [[ident, N, Tc]]) :-
+      // atom(Tc),!.
+      if ( nl->IsAtom(nl->First(mList)) &&
+	  (nl->SymbolValue(nl->Second(nl->Second(mList))) == "ident") ) {
+	bindings = (nl->OneElemList(
+		      nl->ThreeElemList(nl->Second(nl->Second(mList)),
+					nl->Third(nl->Second(mList)),
+					nl->First(mList))));
+      }
+      if (!nl->IsAtom(nl->First(mList))) {
+	//#type constructor applied to arguments matches variable#
+	// matches([Tc | List], [var, Tc, N], [[Tc, N, [Tc | List]]]) //PROLOG
+	if (nl->Equal(nl->First(nl->First(mList)),
+		      nl->Second(nl->Second(mList)))) {
+	  bindings = (nl->OneElemList(
+			nl->ThreeElemList(nl->Second(nl->Second(mList)),
+					  nl->Third(nl->Second(mList)),
+					  nl->First(mList))));
+	}
+      }
+
+      return bindings;
+    }
+
+//cout << "vor any:";
+//nl->WriteStringTo(mList, cout);
+//cout << endl;
+
+    //#free variable matching anything#
+    //matches(X, [any, Var, N], [[Var, N, X]]).	//PROLOG
+    if (nl->SymbolValue(nl->First(nl->Second(mList))) == "any") {  
+      bindings = (nl->OneElemList(
+		    nl->ThreeElemList(nl->Second(nl->Second(mList)),
+				      nl->Third(nl->Second(mList)),
+				      nl->First(mList))));
+
+//cout << "any-Bindings:";
+//nl->WriteStringTo(bindings, cout);
+//cout << endl;
+
+    }
+
+  }
+
+//cout << "vor 7:";
+//nl->WriteStringTo(mList, cout);
+//cout << endl;
+  
+  //matches([Tc | List], [Tc | Rest], Bindings):-   //PROLOG
+  //  matches(List, Rest, Bindings),!.
+  if (nl->Equal(nl->First(nl->First(mList)),
+	        nl->First(nl->Second(mList)))) {
+    mList = (nl->TwoElemList(nl->Second(nl->First(mList)),
+			     nl->Second(nl->Second(mList))));
+    bindings = matches(mList);
+  }
+  
+//cout << "vor 9:";
+//nl->WriteStringTo(mList, cout);
+//cout << endl;
+  
+  //matches([ArgType | ArgTypes], [Arg | Args], Bindings) :-  //PROLOG
+  //  matches(ArgType, Arg, B),
+  //  matches(ArgTypes, Args, Bindings1),
+  //  consistent(B, Bindings1, Bindings).
+  if (nl->HasMinLength(nl->First(nl->First(mList)), 2)) {		       
+    if (!nl->IsAtom(nl->Second(nl->First(nl->First(mList)))) ) {
+      B = matches(nl->TwoElemList(nl->First(nl->First(mList)),
+				  nl->First(nl->Second(mList))));
+      Bindings1 = matches(nl->TwoElemList(nl->Second(nl->First(mList)),
+					  nl->Second(nl->Second(mList))));
+      //bindings = consistent(B, Bindings1);
+	
+      if (!nl->Equal(B, Bindings1)) {
+	bindings = nl->TwoElemList(nl->First(B), nl->First(Bindings1));
+      }
+      else {
+	bindings = B;
+      }
+
+//cout << "Append-Bindings:";
+//nl->WriteStringTo(bindings, cout);
+//cout << endl;
+
+    }
+  }
+
+  return bindings;
+}
+
+/*
+Two lists of bindings ~B1~ and ~B2~ are consistent, if their sets of variables are disjoint or for equal variables they have the same values. The joint bindings are returned in ~Bindings~.
+*/
+ListExpr consistent(ListExpr B1, ListExpr B2) {	//vorabversion
+  ListExpr Bindings;
+  
+  if ( nl->Equal(B1, B2) ) {
+    Bindings = B1;
+  }
+  else {
+    conflict(B1, B2);
+    Bindings = nl->Empty();
+  }
+  return Bindings;
+}
+
+/*
+Two bindings ~B1~ and ~B2~ are in conflict if they have the same variable but different values.
+*/
+bool conflict(ListExpr B1, ListExpr B2) {	
+  bool conf = false;
+
+  //conflict([Tc, N, X], [Tc, N, Y]):-	      //PROLOG
+  if ( !nl->Equal(B1, B2) ) {			      //vorabversion
+    conf = true;
+    cout << "Conflict between types" << endl;
+  }
+  return conf;
+}
+
+/*
+Evaluation of Predicates
+
+----	evalPreds(Preds, Bindings, Bindings2)
+----
+
+Evaluate predicates ~Preds~ based on ~Bindings~, resulting in new ~Bindings2~.
+
+*/
+ListExpr evalPreds(ListExpr ePsList) {
+  ListExpr bindings3;
+  ListExpr Bindings, Bindings2, Bindings3;
+  
+  //evalPreds([], Bindings, Bindings).
+  //evalPreds([Pred | Preds], Bindings, Bindings3) :-
+  //  evalPred(Pred, Bindings, Bindings2),
+  //  evalPreds(Preds, Bindings2, Bindings3).	  //PROLOG
+  if (nl->IsEmpty(nl->First(ePsList))) {
+    Bindings = (nl->Second(ePsList));
+    bindings3 = Bindings;
+  }
+  else {
+    Bindings2 = evalPred(nl->TwoElemList(nl->First(nl->First(ePsList)),
+					 nl->Second(ePsList)));
+    Bindings3 = evalPreds(nl->TwoElemList(nl->Rest(nl->First(ePsList)),
+					  Bindings2));
+    bindings3 = Bindings3;					 
+  }
+
+  return bindings3;
+}
+
+
+ListExpr evalPred(ListExpr ePList) {
+  ListExpr bindings2;
+  ListExpr No1, No2, No3, No4, Bindings, Bindings2, Bindings3;
+  if (nl->HasMinLength(nl->First(ePList), 2)) {
+    No1 = (nl->IntValue(nl->Third(nl->Second(nl->First(ePList)))));
+  }
+  if (nl->HasMinLength(nl->First(ePList), 3)) {
+    No2 = (nl->IntValue(nl->Third(nl->Third(nl->First(ePList)))));
+  }
+  if (nl->HasMinLength(nl->First(ePList), 4)) {
+    No3 = (nl->IntValue(nl->Third(nl->Fourth(nl->First(ePList)))));
+  }
+  if (nl->HasMinLength(nl->First(ePList), 5)) {
+    No4 = (nl->IntValue(nl->Third(nl->Fifth(nl->First(ePList)))));
+  }
+  Bindings = (nl->Second(ePList));
+	
+  /*	      PROLOG
+  evalPred(
+    [attr, [var, ident, No1], [var, attrs, No2], 
+      [var, attrType, No3], [var, attrNo, No4]],
+    Bindings, Bindings3) :-
+    bound(Bindings, [var, ident, No1], Ident),
+    bound(Bindings, [var, attrs, No2], Attrs),
+    isAttr(Ident, Type, No, Attrs),
+    addBinding(Bindings, [var, attrType, No3], Type, Bindings2),
+    addBinding(Bindings2, [var, attrNo, No4], No, Bindings3).
+  */
+  if (nl->SymbolValue(nl->First(nl->First(ePList))) == "attr") {
+    ListExpr Ident, Attrs, isAttrList, Type, No;
+  
+    Ident = bound(nl->ThreeElemList(Bindings,
+				    nl->ThreeElemList(
+				      nl->SymbolAtom("var"),
+				      nl->SymbolAtom("ident"),
+				      nl->IntAtom(No1)),
+				    nl->SymbolAtom("Ident")));
+    Ident = nl->Third(Ident);				    			    Attrs = bound(nl->ThreeElemList(Bindings,
+				    nl->ThreeElemList(
+				      nl->SymbolAtom("var"),
+				      nl->SymbolAtom("attrs"),
+				      nl->IntAtom(No2)),
+				    nl->SymbolAtom("Attrs")));
+    Attrs = nl->Third(Attrs);				    
+    isAttrList = isAttr(nl->FourElemList(Ident,
+					 nl->SymbolAtom("Type"),
+    					 nl->SymbolAtom("No"),
+					 Attrs));	 
+    Type = (nl->Second(isAttrList));
+    No = (nl->Third(isAttrList));
+    Bindings2 = addBinding(nl->ThreeElemList(Bindings,
+				  nl->ThreeElemList(
+				    nl->SymbolAtom("var"),
+				    nl->SymbolAtom("attrType"),
+				    nl->IntAtom(No3)),
+				  Type));
+    Bindings3 = addBinding(nl->ThreeElemList(Bindings2,
+				  nl->ThreeElemList(
+				    nl->SymbolAtom("var"),
+				    nl->SymbolAtom("attrNo"),
+				    nl->IntAtom(No4)),
+				  No));  
+    bindings2 = Bindings3;
+  }
+
+
+
+
+  return bindings2;
+}
+
+ListExpr isAttr(ListExpr attrList) {
+  ListExpr attrList2;
+
+  //attrList:=(Ident, Type, No, List)
+  attrList2 = (nl->FourElemList(nl->First(attrList),
+				nl->Second(attrList),
+				nl->IntAtom(1),
+				nl->Fourth(attrList)));
+  attrList = isAttr2(attrList2);
+  return attrList;
+}
+
+ListExpr isAttr2(ListExpr attrList2) {
+  int N = nl->IntValue(nl->Third(attrList2));
+
+  //attrList2:=(Ident, Type, No, List)
+  if (nl->Equal(nl->First(nl->First(nl->Fourth(attrList2))), 
+		nl->First(attrList2))) {
+    attrList2 = (nl->FourElemList(nl->First(attrList2),
+				  nl->Second(nl->First(nl->Fourth(attrList2))),
+				  nl->Third(attrList2),
+				  nl->Fourth(attrList2)));
+    return attrList2;
+  }
+  else {
+    if (!nl->IsEmpty(nl->Rest(nl->Fourth(attrList2)))) {
+      N++;
+      attrList2 = (nl->FourElemList(nl->First(attrList2),
+				    nl->Second(attrList2),
+				    nl->IntAtom(N),
+				    nl->Rest(nl->Fourth(attrList2))));
+      attrList2 = isAttr2(attrList2);
+    }
+  }
+  return attrList2;
+}
+
+void checkMember(ListExpr cMList) {
+
+  return;
+}
+
+void distinctList(ListExpr distLList) {
+
+  return;
+}
+
+void distinctAttrs(ListExpr distAList) {
+
+  return;
+}
+
+ListExpr attrNames(ListExpr attrNList) { 
+  ListExpr names, Names;
+
+  //attrNames([ [Ident, _] | Rest], [Ident | Names]) :-
+  //  attrNames(Rest, Names).				    //PROLOG
+  if (!nl->IsEmpty(attrNList)) {
+    names = (nl->OneElemList(nl->First(nl->First(attrNList))));
+    Names = names;
+    attrNList = (nl->Rest(attrNList));
+  }
+  while (!nl->IsEmpty(attrNList)) {
+    Names = (nl->Append(Names, nl->First(nl->First(attrNList))));
+    attrNList = (nl->Rest(attrNList));
+  }
+
+  return names;
+}
+
+/*
+----	bound(Bindings, [var, Tc, No], Bound)
+	bound(Bindings, [lvar, Tc, No], Bound)
+----
+
+The first version finds a binding for a given variable if it exists. The second version is used for list variables. For them, all bindings of the form [Tc, [No, i], X\_i] will be collected into a list [X\_1, ..., X\_n] and be returned in ~Bound~. 
+
+*/
+ListExpr bound(ListExpr boList) {
+
+  //bound([ [Tc, No, X] | _], [var, Tc, No], X) :- !.	    //PROLOG
+  if (nl->Equal(nl->First(nl->First(nl->First(boList))),
+		nl->Second(nl->Second(boList))) &&
+      nl->Equal(nl->Second(nl->First(nl->First(boList))),
+		nl->Third(nl->Second(boList)))) {
+    boList = (nl->ThreeElemList(nl->First(boList),
+				nl->Second(boList),
+				nl->Third(nl->First(nl->First(boList)))));
+  return boList;
+  }
+  if (!nl->IsEmpty(nl->Rest(nl->First(boList)))) {
+    boList = (nl->ThreeElemList(nl->Rest(nl->First(boList)),
+				nl->Second(boList),
+				nl->Third(boList)));
+    boList = bound(boList);
+  }
+  else {
+    cout << "Error: no binding found for variable ";
+    nl->WriteStringTo(nl->Second(nl->Second(boList)), cout);
+    cout << "_";
+    nl->WriteStringTo(nl->Third(nl->Second(boList)), cout);
+    cout << endl;
+  }
+  return boList;
+}
+
+/*
+----	addBinding(Bindings, [var, Tc, N], Type, Bindings2)
+----
+
+*/
+ListExpr addBinding(ListExpr aBList) {
+  ListExpr bindings2;
+
+  //addBinding(Bindings, [var, Tc, N], Type, Bindings2) :-
+  //  consistent([[Tc, N, Type]], Bindings, Bindings2).	    //PROLOG
+  if (nl->HasLength(nl->First(aBList), 2)) {
+    bindings2 = (nl->ThreeElemList(
+		  nl->ThreeElemList(nl->Second(nl->Second(aBList)),
+				    nl->Third(nl->Second(aBList)),
+				    nl->Third(aBList)),
+		  nl->First(nl->First(aBList)),
+		  nl->Second(nl->First(aBList))));
+  }
+  if (nl->HasLength(nl->First(aBList), 3)) {
+    bindings2 = (nl->FourElemList(
+		  nl->ThreeElemList(nl->Second(nl->Second(aBList)),
+				    nl->Third(nl->Second(aBList)),
+				    nl->Third(aBList)),
+		  nl->First(nl->First(aBList)),
+		  nl->Second(nl->First(aBList)),
+		  nl->Third(nl->First(aBList))));
+  }
+
+  return bindings2;
+}
+
+/*
+Applying the ~bindings~ to the result type specification ~res~ yields
+ the result type ~resType~.
+*/
+ListExpr apply(ListExpr aList) {
+  ListExpr resType, Type;
+
+//cout << "vor var:";
+//nl->WriteStringTo(aList, cout);
+//cout << endl;
+
+  if (nl->SymbolValue(nl->First(nl->First(aList))) == "var") {
+   
+    //apply([var, Tc, N], [ [Tc, N, Type] | _], Type) //PROLOG
+    if (nl->SymbolValue(nl->Second(nl->First(aList))) == 
+	  nl->SymbolValue(nl->First(nl->First(nl->Second(aList)))) &&
+	nl->IntValue(nl->Third(nl->First(aList))) == 
+	  nl->IntValue(nl->Second(nl->First(nl->Second(aList))))) {
+      Type = nl->Third(nl->First(nl->Second(aList)));
+      resType = Type;
+      return resType;
+    }
+    //apply([var, Tc, N], [ _ | Rest], Type) :-
+    // !, apply([var, Tc, N], Rest, Type).	  //PROLOG
+    if (!nl->IsEmpty(nl->Rest(nl->Second(aList)))) {
+      Type = apply(nl->TwoElemList(nl->First(aList),
+				   nl->Rest(nl->Second(aList))));
+      resType = Type;
+    }
+    else {
+      resType = aList;
+      return resType;
+    }
+  }
+
+//cout << "vor 4:";
+//nl->WriteStringTo(aList, cout);
+//cout << endl;
+
+  //apply([Tc , List], Bindings, [Tc , Type]) :-
+  //  apply(List, Bindings, Type).		  //PROLOG
+  if (nl->HasLength(nl->First(aList), 2)) {
+    ListExpr ListBindings = (nl->TwoElemList(nl->Second(nl->First(aList)),
+					     nl->Second(aList)));
+    Type = apply(ListBindings);
+    resType = (nl->TwoElemList(nl->First(nl->First(aList)), Type));
+  }
+
+//cout << "vor 7:";
+//nl->WriteStringTo(aList, cout);
+//cout << endl;
+
+  //apply([append, Extra, Res], B, [append, ExtraArgs, ResultType]) :-
+  //  apply(Extra, B, ExtraArgs),
+  //  apply(Res, B, ResultType).		  //PROLOG
+  if (nl->SymbolValue(nl->First(nl->First(aList))) == "append") {
+    ListExpr ExtraArgs = apply(nl->TwoElemList(nl->Second(nl->First(aList)),
+					       nl->Second(aList)));
+    ListExpr ResultType = apply(nl->TwoElemList(nl->Third(nl->First(aList)),
+						nl->Second(aList)));
+    resType = (nl->ThreeElemList(nl->SymbolAtom("append"),
+				 ExtraArgs,
+				 ResultType));
+  }
+
+  return resType;
+}
+
+
+
+
+
+///End of functions for OpSignature Typemapping///
+//-------------------------------------------------------------------
+
+
+
+/*
+4.3.2 The ~insideop~ predicate for a point and a rectangle
+
+*/
+int
+insideopFun_PR (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  cout << "insideopFun_PR" << endl;
+//-------------------------------------------------------------------
+
+
+
+
+
+
+
+  ///Main function for OpSignature Typemapping///
+  
+  //input string
+  string sigInput, inputStr;
+  cout << endl << "Please enter signature with name of "
+		  "type mapping function above:" << endl;
+  getline(cin, sigInput); // for string with blanks
+  //cout << "Ready for: " << sigInput << endl;
+
+  //extract listexpression
+  signed int pthStart = sigInput.find("(");
+  if (pthStart != (-1)) {
+    inputStr = sigInput.substr(pthStart, sigInput.length());
+    //cout << "String InputList:" << inputStr << endl;
+  }
+
+  //build NestedList from input
+  ListExpr list;
+  nl->ReadFromString(inputStr, list);
+
+  //predicate selection
+  string predicate = sigInput.substr(0, pthStart+1); //name of predicate
+  bool pred = false;
+
+  //typemap
+  signed int typemapF = predicate.find("typemap(");
+  if (typemapF != (-1)) {
+    cout << "Predicate \'typemap\' found." << endl;
+    pred = true;
+    /*
+    typemap(Op, ArgTypes, ResType) :-     //PROLOG
+      sig(Op, Args, Res),		  //return args_res in sigList
+      matches(ArgTypes, Args, Bindings),  //return bindings
+      apply(Res, Bindings, ResType).      //return resType
+
+    // version for complex signatures:
+
+    typemap(Op, ArgTypes, ResType) :-	      //PROLOG		  in csigList
+      csig(Op, Args, Res, Decls, Preds),      //return args_res_decls_preds 
+      defineTypeSets(Decls),
+      matches(ArgTypes, Args, Bindings),      //return bindings
+      evalPreds(Preds, Bindings, Bindings2),  //return bindings2
+      apply(Res, Bindings2, ResType),	      //return resType
+      \+ releaseTypeSets.
+    */
+    ListExpr args_res, args_res_decls_preds, bindings, bindings2, resType;
+    if (!nl->IsEmpty(sig(nl->OneElemList(nl->First(list))))) {
+      // sig
+      args_res = sig(nl->OneElemList(nl->First(list)));
+	cout << "args_res = ";
+        nl->WriteStringTo(args_res, cout);
+	cout << endl;
+      // matches
+      bindings = matches(nl->TwoElemList(nl->Second(list),
+					 nl->First(args_res)));
+	cout << "bindings = ";
+        nl->WriteStringTo(bindings, cout);
+	cout << endl;
+      // apply
+      resType = apply(nl->TwoElemList(nl->Second(args_res),
+				      bindings));
+    } //End of sig
+    if (!nl->IsEmpty(csig(nl->OneElemList(nl->First(list))))) {
+      // csig
+      args_res_decls_preds = csig(nl->OneElemList(nl->First(list)));
+	cout << "args_res_decls_preds = ";
+        nl->WriteStringTo(args_res_decls_preds, cout);
+	cout << endl;
+      // matches
+      bindings = matches(nl->TwoElemList(nl->Second(list),
+					 nl->First(args_res_decls_preds)));
+	cout << "bindings = ";
+        nl->WriteStringTo(bindings, cout);
+	cout << endl;
+      // evalPreds
+      bindings2 = evalPreds(nl->TwoElemList(nl->Fourth(args_res_decls_preds),
+					    bindings));
+	cout << "bindings2 = ";
+        nl->WriteStringTo(bindings2, cout);
+	cout << endl;
+      // apply
+      resType = apply(nl->TwoElemList(nl->Second(args_res_decls_preds),
+				      bindings2));
+    } //End of csig
+    if (nl->HasLength(list, 3)) {
+      nl->WriteStringTo(nl->Third(list), cout);
+      cout << " = ";
+    }
+    else {
+      cout << "ResultType = ";
+    }
+    nl->WriteStringTo(resType, cout);
+    cout << endl;
+  }
+
+  //matches
+  signed int matchesF = predicate.find("matches(");
+  if (matchesF != (-1)) {
+    cout << "Predicate \'matches\' found." << endl;
+    pred = true;
+    ListExpr matchesList = matches(list);
+    if (nl->HasLength(list, 3)) {
+      nl->WriteStringTo(nl->Third(list), cout);
+      cout << " = ";
+    }
+    else {
+      cout << "B = ";
+    }
+    nl->WriteStringTo(matchesList, cout);
+    cout << endl;
+  }
+  //evalPreds
+  signed int evalPredsF = predicate.find("evalPreds(");
+  if (evalPredsF != (-1)) {
+    cout << "Predicate \'evalPreds\' found." << endl;
+    pred = true;
+    ListExpr evalPredsList = evalPreds(list);
+    if (nl->HasLength(list, 3)) {
+      nl->WriteStringTo(nl->Third(list), cout);
+      cout << " = ";
+    }
+    else {
+      cout << "Bindings2 = ";
+    }
+    nl->WriteStringTo(evalPredsList, cout);
+    cout << endl;
+  }
+
+  //apply
+  signed int applyF = predicate.find("apply(");
+  if (applyF != (-1)) {
+    cout << "Predicate \'apply\' found." << endl;
+    pred = true;
+    ListExpr applyList = apply(list);
+    if (nl->HasLength(list, 3)) {
+      nl->WriteStringTo(nl->Third(list), cout);
+      cout << " = ";
+    }
+    else {
+      cout << "ResultType = ";
+    }
+    nl->WriteStringTo(applyList, cout);
+    cout << endl;
+  }
+
+  //consistent
+  signed int consistentF = predicate.find("consistent(");
+  if (consistentF != (-1)) {
+    cout << "Predicate \'consistent\' found." << endl;
+    pred = true;
+    ListExpr consistentList = consistent(nl->First(list), nl->Second(list));
+    if (nl->HasLength(list, 3)) {
+      nl->WriteStringTo(nl->Third(list), cout);
+      cout << " = ";
+    }
+    else {
+      cout << "X = ";
+    }
+    nl->WriteStringTo(consistentList, cout);
+    cout << endl;
+  }
+  //conflict
+  signed int conflictF = predicate.find("conflict(");
+  if (conflictF != (-1)) {
+    cout << "Predicate \'conflict\' found." << endl;
+    pred = true;
+    bool conf = conflict(nl->First(list), nl->Second(list));
+    cout << conf << endl;
+  }
+  //attrNames
+  signed int attrNamesF = predicate.find("attrNames(");
+  if (attrNamesF != (-1)) {
+    cout << "Predicate \'attrNames\' found." << endl;
+    pred = true;
+    ListExpr attrNamesList = attrNames(nl->First(list));
+    if (nl->HasLength(list, 2)) {
+      nl->WriteStringTo(nl->Second(list), cout);
+      cout << " = ";
+    }
+    else {
+      cout << "Names = ";
+    }
+    nl->WriteStringTo(attrNamesList, cout);
+    cout << endl;
+  }
+  //bound
+  signed int boundF = predicate.find("bound(");
+  if (boundF != (-1)) {
+    cout << "Predicate \'bound\' found." << endl;
+    pred = true;
+    ListExpr boundList = bound(list);
+    if (nl->HasLength(list, 3)) {
+      nl->WriteStringTo(nl->Third(list), cout);
+      cout << " = ";
+    }
+    else {
+      cout << "X = ";
+    }
+    nl->WriteStringTo(nl->Third(boundList), cout);
+    cout << endl;
+  }
+  //isAttr
+  signed int isAttrF = predicate.find("isAttr(");
+  if (isAttrF != (-1)) {
+    cout << "Predicate \'isAttr\' found." << endl;
+    pred = true;
+    ListExpr isAttrList = isAttr(list);
+    if (nl->HasLength(list, 4)) {
+      if (nl->SymbolValue(nl->Second(isAttrList)) != "Type") {
+	nl->WriteStringTo(nl->Second(list), cout);
+	cout << " = ";
+	nl->WriteStringTo(nl->Second(isAttrList), cout);
+	cout << endl;
+	nl->WriteStringTo(nl->Third(list), cout);
+	cout << " = ";
+	nl->WriteStringTo(nl->Third(isAttrList), cout);
+	cout << endl;
+      }
+      else {
+	cout << "Error:  attribute ";
+	nl->WriteStringTo(nl->First(list), cout);
+	cout << " does not occur in attribute list ";
+	nl->WriteStringTo(nl->Fourth(list), cout);
+	cout << endl;
+      }
+    }
+  }
+  //addBinding
+  signed int addBindingF = predicate.find("addBinding(");
+  if (addBindingF != (-1)) {
+    cout << "Predicate \'addBinding\' found." << endl;
+    pred = true;
+    ListExpr addBindingList = addBinding(list);
+    if (nl->HasLength(list, 4)) {
+      nl->WriteStringTo(nl->Fourth(list), cout);
+      cout << " = ";
+    }
+    else {
+      cout << "B2 = ";
+    }
+    nl->WriteStringTo(addBindingList, cout);
+    cout << endl;
+  }
+
+  //
+  if (pred == false) {
+    cout << "No predicate found!" << endl;
+  }
+
+
+/*
+  //whole input is String of NestedList 
+  ListExpr typeInS = nl->OneElemList(nl->StringAtom(inputStr));
+  string typeOutS = nl->StringValue(nl->First(typeInS));
+  cout << typeOutS << endl;
+*/
+
+  //print input as NestedList
+  string listStr;
+  nl->WriteToString(listStr, list);
+  cout << endl;
+  cout << "NestedList of input:" << listStr << endl;
+
+
+  //Test Operations
+/*  if (nl->IsEmpty(list)) {
+    cout << "List is empty" << endl;
+  }
+  else {
+    cout << "List is not empty" << endl;
+
+  }
+
+  if (nl->IsAtom(nl->First(list))) {
+    cout << "First element of List is an Atom" << endl;
+  }
+  else {
+    cout << "First element of List is not an Atom" << endl;
+  }*/
+
+/*
+  if (nl->IsNodeType(  ,list)) {
+    cout << "Right(list) is the empty List" << endl;
+  }
+  else {
+    cout << "Left(list) is the empty List or ";
+    cout << "List is empty or List is an atom" << endl;
+  }
+*/
+/*  int listLength = nl->ListLength(list);
+  cout << "The length of List is: " << listLength << endl;
+  int listLength1 = nl->ListLength(nl->First(list));
+  cout << "The length of 1.SubList is: " << listLength1 << endl;
+  int listLength2 = nl->ListLength(nl->Second(list));
+  cout << "The length of 2.SubList is: " << listLength2 << endl;
+  //int exprLength = nl->ExprLength(list);
+  //cout << "The length of subexpressions is: " << exprLength << endl;*/
+/*
+  //Traversal Operations
+  if (!nl->IsEmpty(list)) {
+    string listStrL, listStrR, listStrE;
+    ListExpr listFirst = nl->First(list);
+    nl->WriteToString(listStrL, listFirst);
+    cout << "Left son of List: " << listStrL << endl;
+    ListExpr listRest = nl->Rest(list);
+    nl->WriteToString(listStrR, listRest);
+    cout << "Right son of List: " << listStrR << endl;
+    ListExpr listEnd = nl->End(list);
+    nl->WriteToString(listStrE, listEnd);
+    cout << "End of List: " << listStrE << endl;
+
+    string nlistStr1, nlistStr2, nlistStr3;
+    nl->WriteToString(nlistStr1, nl->First(list));
+    cout << "The first element of List is: " << nlistStr1 << endl;
+    nl->WriteToString(nlistStr2, nl->Second(list));
+    cout << "The second element of List is: " << nlistStr2 << endl;
+//    nl->WriteToString(nlistStr3, nl->Third(list));
+//    cout << "The third element of List is: " << nlistStr3 << endl;
+  }
+*/
+  //Reading atoms
+  //Example: ( (tuple ((no int)))  (var tuple 1) )
+/*  if (nl->SymbolValue(nl->First(nl->Second(list))) == "var") {
+  cout << "Symbol:var" << endl;
+  }
+  if (nl->SymbolValue(nl->Second(nl->Second(list))) == "tuple") {
+  cout << "Symbol:tuple" << endl;
+  }
+  if (nl->IntValue(nl->Third(nl->Second(list))) == 1) {
+  cout << "Int:1" << endl;
+  }*/
+
+
+
+
+  ///End of main function for OpSignature Typemapping///
+
+
+
+
+
+//-------------------------------------------------------------------
+  XPoint* p = static_cast<XPoint*>( args[0].addr );
+  XRectangle* r = static_cast<XRectangle*>( args[1].addr );
+
+  result = qp->ResultStorage(s);
+                                //query processor has provided
+                                //a CcBool instance for the result
+
+  CcBool* b = static_cast<CcBool*>( result.addr );
+
+  bool res = ( p->GetX() >= r->GetXLeft()
+            && p->GetX() <= r->GetXRight()
+            && p->GetY() >= r->GetYBottom()
+            && p->GetY() <= r->GetYTop() );
+
+  b->Set(true, res); //the first argument says the boolean
+                     //value is defined, the second is the
+                     //real boolean value)
+  return 0;
+}
+
+/*
+4.3.3 The ~insideop~ predicate for two rectangles
+
+*/
+int
+insideopFun_RR (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  cout << "insideopFun_RR" << endl;
+  XRectangle* r1 = static_cast<XRectangle*>( args[0].addr );
+  XRectangle* r2 = static_cast<XRectangle*>( args[1].addr );
+
+  result = qp->ResultStorage(s);
+                                //query processor has provided
+                                //a CcBool instance for the result
+
+  CcBool* b = static_cast<CcBool*>( result.addr );
+
+  bool res = true;
+  res = res && r1->GetXLeft() >= r2->GetXLeft();
+  res = res && r1->GetXLeft() <= r2->GetXRight();
+
+  res = res && r1->GetXRight() >= r2->GetXLeft();
+  res = res && r1->GetXRight() <= r2->GetXRight();
+
+  res = res && r1->GetYBottom() >= r2->GetYBottom();
+  res = res && r1->GetYBottom() <= r2->GetYTop();
+
+  res = res && r1->GetYTop() >= r2->GetYBottom();
+  res = res && r1->GetYTop() <= r2->GetYTop();
+
+  b->Set(true, res); //the first argument says the boolean
+                     //value is defined, the second is the
+                     //real boolean value)
+  return 0;
+}
+
+
+/*
+
+4.4 Operator Descriptions
+
+Similar to the ~property~ function of a type constructor, an operator needs to
+be described, e.g. for the ~list operators~ command.  This is now done by
+creating a subclass of class ~OperatorInfo~.
+
+*/
+struct intersectsopInfo : OperatorInfo {
+
+  intersectsopInfo()
+  {
+    name      = "intersectsop";
+    signature = XRectangle::BasicType() + " x " + XRectangle::BasicType()
+    + " -> " + CcBool::BasicType();
+    syntax    = "_ intersectsop _";
+    meaning   = "Intersection predicate for two xrectangles.OpSignature";
+  }
+
+}; // Don't forget the semicolon here. Otherwise the compiler
+   // returns strange error messages
+
+
+struct insideopInfo : OperatorInfo {
+
+  insideopInfo()
+  {
+    name      = "insideop";
+
+    signature = XPoint::BasicType() + " x " + XRectangle::BasicType() + " -> "
+    + CcBool::BasicType();
+    // since this is an overloaded operator we append
+    // an alternative signature here
+    appendSignature( XRectangle::BasicType() + " x " + XRectangle::BasicType()
+                                              + " -> " + CcBool::BasicType() );
+    syntax    = "_ insideop _";
+    meaning   = "Inside predicate.OpSignature";
+  }
+};
+
+
+/*
+
+
+5 Implementation of the Algebra Class
+
+*/
+
+class OpSignatureAlgebra : public Algebra
+{
+ public:
+  OpSignatureAlgebra() : Algebra()
+  {
+
+/*
+
+5.2 Registration of Types
+
+
+*/
+
+    AddTypeConstructor( &xpointTC );
+    AddTypeConstructor( &xrectangleTC );
+
+    //the lines below define that xpoint and xrectangle
+    //can be used in places where types of kind SIMPLE are expected
+    xpointTC.AssociateKind( Kind::SIMPLE() );
+    xrectangleTC.AssociateKind( Kind::SIMPLE() );
+
+/*
+5.3 Registration of Operators
+
+*/
+
+    AddOperator( intersectsopInfo(), intersectsopFun, RectRectBool );
+
+    // the overloaded insideop operator needs an array of function pointers
+    // which must be null terminated!
+    ValueMapping insideopFuns[] = { insideopFun_PR, insideopFun_RR, 0 };
+
+    AddOperator( insideopInfo(), insideopFuns, insideopSelect, insideopTypeMap );
+  }
+  ~OpSignatureAlgebra() {};
+};
+
+
+/*
+6 Initialization
+
+Each algebra module needs an initialization function. The algebra manager
+has a reference to this function if this algebra is included in the list
+of required algebras, thus forcing the linker to include this module.
+
+The algebra manager invokes this function to get a reference to the instance
+of the algebra class and to provide references to the global nested list
+container (used to store constructor, type, operator and object information)
+and to the query processor.
+
+The function has a C interface to make it possible to load the algebra
+dynamically at runtime (if it is built as a dynamic link library). The name
+of the initialization function defines the name of the algebra module. By
+convention it must start with "Initialize<AlgebraName>".
+
+To link the algebra together with the system you must create an
+entry in the file "makefile.algebra" and to define an algebra ID in the
+file "Algebras/Management/AlgebraList.i.cfg".
+
+*/
+
+} // end of namespace ~osg~
+
+extern "C"
+Algebra*
+InitializeOpSignatureAlgebra( NestedList* nlRef,
+                               QueryProcessor* qpRef )
+{
+  // The C++ scope-operator :: must be used to qualify the full name
+  return new osg::OpSignatureAlgebra;
+}
+
+/*
+7 Examples and Tests
+
+The file "OpSignature.examples" contains for every operator one example.
+This allows one to verify that the examples are running and to provide a coarse
+regression test for all algebra modules. The command "Selftest <file>" will
+execute the examples. Without any arguments, the examples for all active
+algebras are executed. This helps to detect side effects, if you have touched
+central parts of Secondo or existing types and operators.
+
+In order to setup more comprehensive automated test procedures one can write a
+test specification for the ~TestRunner~ application. You will find the file
+"example.test" in directory "bin" and others in the directory "Tests/Testspecs".
+There is also one for this algebra.
+
+Accurate testing is often treated as an unpopular daunting task. But it is
+absolutely inevitable if you want to provide a reliable algebra module.
+
+Try to write tests covering every signature of your operators and consider
+special cases, as undefined arguments, illegal argument values and critical
+argument value combinations, etc.
+
+
+*/
+

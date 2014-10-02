@@ -85,6 +85,7 @@ operator tokenize alias TOKENIZE pattern op( _, _ )
 operator attr2text alias ATTR22TEXT pattern op(_)
 operator trimAll alias trimAll pattern _ op
 operator str2real alias STRTOREAL pattern  op(_)
+operator cn2en alias CNTOEN pattern  op(_)
 operator str2int alias STRTOINT pattern  op(_)
 operator recode alias RECODE pattern _ op [_, _]
 operator endsWith alias ENDSWITH pattern _ infixop _
@@ -105,5 +106,7 @@ operator createRegEx alias CREATEREGEX pattern op(_)
 operator createRegEx2 alias CREATEREGEX2 pattern op(_)
 
 operator tmcheck alias TMCHECK pattern _ op [_]
+operator fileExtension alias fileEXTENSION pattern op(_)
+operator maskBackslash alias MASKBACKSLASH pattern _ op
 
 

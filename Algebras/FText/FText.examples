@@ -905,6 +905,12 @@ Signature : text -> real
 Example   : query str2real('3.14')
 Result    : 3.14
 
+Operator  : cn2en 
+Number    : 1
+Signature : string -> string
+Example   : query cn2en('中国')
+Result    : 'ZHONG GUO '
+
 Operator  : str2real 
 Number    : 2
 Signature : string -> real
@@ -1180,4 +1186,26 @@ Number : 1
 Signature : -> longint
 Example  : query globalMemory() > 0
 Result   : TRUE
+
+Operator : fileExtension 
+Number : 1
+Signature : string -> string
+Example  : query fileExtension("Secondo.exe")
+Result   : "exe"
+
+Operator : fileExtension 
+Number : 2 
+Signature : text -> test
+Example  : query fileExtension('/home/user/secondo/secondo')
+Result   : 'secondo'
+
+
+Operator : maskBackslash 
+Number : 1
+Signature : T -> T for T in {string,text}
+Example  : query "bin\\tmp" maskBackslash
+Result   : "bin\\\\tmp"
+
+
+
 

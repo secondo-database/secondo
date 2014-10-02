@@ -1,0 +1,451 @@
+Aufruf der Eingabeaufforderung:
+
+query p1 insideop r1
+
+
+
+Examples:
+
+conflict((tuple 1 (tuple ((no int))) ) (tuple 1 (tuple ((no int))) )) 
+
+false
+
+
+conflict((tuple 1 (tuple ((no int))) ) (tuple 1 (tuple ((no bool))) )) 
+
+true
+
+
+consistent(((tuple 1 (tuple ((no int))) )) () X) 
+
+true
+
+
+consistent(((tuple 1 (tuple ((no int))) )) ((tuple 1 (tuple ((no int))) )) X) 
+
+true
+
+
+consistent(((tuple 1 (tuple ((no int))) )) ((tuple 1 (tuple ((number int))) )) X) 
+
+false
+
+
+
+matches(int int X) 
+
+true
+
+
+matches((int) ((var int 1)) X) 
+
+true
+
+
+matches((int) ((var bool 1)) X) 
+
+false
+
+# type mapping for feed
+
+matches(((rel (tuple ((no int))))) ((rel (var tuple 1)) ) B)	#ok 
+
+true
+
+
+matches((rel (tuple ((no int)))) (rel (var tuple 1))  B) 	#ok
+
+B = ((tuple 1 (tuple ((no int)))))
+true
+
+
+matches( (tuple ((no int)))  (var tuple 1)  B) 			#ok
+
+B = ((tuple 1 (tuple ((no int))))) 
+
+
+# result type for feed
+
+apply((stream (var tuple 1)) ((tuple 1 (tuple ((no int))))) ResultType) #ok
+
+ResultType = (stream (tuple ((no int)))) 
+
+
+apply((stream (var tuple 1)) () ResultType) 
+
+Error: no binding for variable tuple_1 found 
+ResultType = (stream typeerror) 
+
+
+apply((stream (var tuple 1)) ( (tuple 2 (tuple ((no bool)))) (tuple 1 (tuple ((no int)))) ) ResultType) 
+
+ResultType = (stream (tuple ((no int)))) 
+
+
+apply((stream (var tuple 2)) ( (tuple 2 (tuple ((no bool)))) (tuple 1 (tuple ((no int)))) ) ResultType) 
+
+ResultType = (stream (tuple ((no bool)))) 
+
+
+?- apply((stream (var rel 1)) ( (tuple 2 (tuple ((no bool)))) (tuple 1 (tuple ((no int)))) ) ResultType) 
+Error: no binding for variable rel_1 found 
+ResultType = (stream typeerror)  
+
+
+
+
+?- typemap(feed ( (rel (tuple ((no int)))) ) ResultType) 		#ok
+ResultType = (stream (tuple ((no int))))  
+
+?- typemap(consume ( (stream (tuple ((no int)))) ) ResultType)		#ok 
+ResultType = (rel (tuple ((no int))))  
+
+
+?- typemap(filter ( (stream (tuple ((no int)))) (map (tuple ((no int))) bool) ) ResultType) 
+
+ResultType = (stream (tuple ((no int))))  
+
+
+typemap(+ ( int int ) ResType) 
+
+
+matches((int int) (int int) B) 
+B = ()  
+
+
+matches(( (stream (tuple ((no int)))) (map (tuple ((no int))) bool) ) 
+  ( (stream (var tuple 1)) (map (var tuple 1) bool) ) B) 
+B = ((tuple 1 (tuple ((no int)))))  
+
+
+matches(( (map (tuple ((no int))) bool) ) ( (map (var tuple 1) bool) ) B) 
+B = ((tuple 1 (tuple ((no int)))))  
+
+
+
+typemap(feed
+((rel (tuple ((Kennzeichen string) (Ort string) (Vorwahl string) (BevT int)))))
+X) 
+X = (stream (tuple ((Kennzeichen string) (Ort string) (Vorwahl string) (BevT|   ))))  
+
+
+?- typemap(consume
+((stream (tuple ((Kennzeichen string) (Ort string) (Vorwahl string) (BevT int))) ))
+X) 
+X = (rel (tuple ((Kennzeichen string) (Ort string) (Vorwahl string) (BevT|   ))))  
+
+
+
+
+isAttr(vorwahl Type No ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) 
+
+
+
+?- matches(kennzeichen (var ident 1) B) 
+B = ((ident 1 kennzeichen)) 
+
+
+matches(( 
+  (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) vorwahl) 
+  ((var tuple 1) (var ident 1))
+  B) 
+
+
+
+
+matches(( 
+  (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) vorwahl) 
+  ( (tuple (var attrs 1)) (var ident 1))
+  B) 
+
+
+
+
+?- matches(( 
+  (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) bevT) 
+  ((var tuple 1) (var ident 1))
+  B) checkConditions(((attr (var ident 1) (var attrType 1) (var attrNo 1) (var tuple 1))) B B2) 
+
+
+
+
+typemap(attr 
+  ( (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) vorwahl) X) 
+
+
+
+
+matches(( 
+  (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) bevT) 
+  ((var tuple 1) (var ident 1))
+  B) 
+checkConditions(((attr (var ident 1) (var attrType 1) (var attrNo 1) (var tuple 1))) 
+  B B2)
+apply((append (var attrNo 1) (var attrType 1)) B2 ResultType) 
+
+
+
+apply(((var attrNo 1) (var attrType 1)) 
+((ident 1 bevT) (tuple 1  (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) (attrType 1 int) (attrNo 1 4)) ResultType) 
+
+
+
+
+csig(hashjoin Args Res _ Conds Derived)
+matches((
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))))
+  (stream (tuple ((plz int) (ort2 string))))
+  bevT plz)
+  Args Bindings)
+checkConditions(Conds Bindings Bindings2) 
+  
+
+
+disjoint((tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))
+  (tuple ((plz int) (ort2 string)))) 
+
+
+isAttr(kennzeichen _ _ (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+  
+
+
+
+  
+typemap(hashjoin 
+  (
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))))
+  (stream (tuple ((plz int) (ort2 string))))
+  bevT plz) 
+  Result) write(Result) 
+
+
+Bindings = ( (ident 2 plz) (ident 1 bevT) (tuple 2  (tuple ((plz int) (ort2 string)))) (tuple 1  (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) ) 
+  derive(( ( (var tuple 3) 
+      (concat (var tuple 1) (var tuple 2))) ) Bindings Bindings2) 
+
+csig(hashjoin Args Res _ Preds) 
+matches((
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+  (stream (tuple ((plz int) (ort2 string)))) 
+  bevT plz) 
+  Args Bindings) 
+checkConditions(Conds Bindings Bindings2) 
+  derive(Derived Bindings2 Bindings3) 
+  write(Bindings3) 
+  apply(Res Bindings3 Result) 
+
+
+attrNames((tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) Names) 
+
+disjoint((tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) 
+  (tuple ((plz int) (ort2 string)))) 
+
+distinctAttrs(((kennzeichen string) (ort string) (vorwahl string) (bevT int) (vorwahl string) (bevT int))) 
+
+
+
+
+matches((klaus peter arne ralf udo) (+ (lvar ident i)) B) 
+
+matches(( (klaus (map (tuple ((plz int) (ort2 string))) int)) 
+  (peter (map (tuple ((plz int) (ort2 string))) bool)) ) 
+  (+ ((lvar ident i) (map (var tuple 1) (lvar data i)))) 
+  B) 
+
+B = ((ident (i 1) klaus) (data (i 1) int) (ident (i 2) peter) (tuple 1 (tuple ((plz int) (ort2 string)))) (data (i 2) bool))
+
+
+element(5 ((lvar ident i) (map (var tuple 1) (lvar type i))) X) 
+
+element(1 ((lvar ident i) (map (var tuple 1) (lvar data i))) ArgTypeN) 
+  matches( ArgTypeN B) 
+
+matches((klaus peter arne ralf udo) (+ (lvar ident i)) B) 
+
+
+typemap(Op ArgTypes ResType) :-
+  csig(Op Args Res _ Preds) 
+  matches(ArgTypes Args Bindings) 
+  evalPreds(Preds Bindings Bindings2) 
+  apply(Res Bindings2 ResType) 
+
+
+
+csig(hashjoin Args Res _ Preds) 
+matches((
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+  (stream (tuple ((plz int) (ort2 string)))) 
+  bevT plz) 
+  Args Bindings) 
+  evalPred((attr (var ident 1) (var attrs 1) (var attrType 1) (var attrNo 1)) Bindings Bindings2) 
+  evalPred((attr (var ident 2) (var attrs 2) (var attrType 2) (var attrNo 2)) 
+Bindings2 Bindings3) 
+  evalPred((concat (var attrs 1) (var attrs 2) (var attrs 3)) Bindings3 Bindings4) 
+  evalPred((distinctAttrs (var attrs 3)) Bindings4 Bindings5) 
+
+
+csig(hashjoin Args Res _ Preds) 
+matches((
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+  (stream (tuple ((plz int) (ort2 string)))) 
+  bevT plz) 
+  Args Bindings) 
+evalPreds((
+  (attr (var ident 1) (var attrs 1) (var attrType 1) (var attrNo 1)) 
+  (attr (var ident 2) (var attrs 2) (var attrType 2) (var attrNo 2)) 
+  (concat (var attrs 1) (var attrs 2) (var attrs 3)) 
+  (distinctAttrs (var attrs 3)) ) 
+  Bindings Bindings2) 
+apply(Res Bindings2 ResType) 
+
+
+
+Bindings = ((attrs 3 ((kennzeichen string) (ort string) (vorwahl string) (bevT int) (plz int) (ort2 string))) (attrNo 2 1) (attrType 2 int) (attrNo 1 4) (attrType 1 int) (attrs 1 ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) (attrs 2 ((plz int) (ort2 string))) (ident 1 bevT) (ident 2 plz)) 
+evalPred((distinctAttrs (var attrs 3)) Bindings Bindings2) 
+
+
+attrs((ort kennzeichen) 
+((kennzeichen string) (ort string) (vorwahl string) (bevT int)) 
+Types Numbers) 
+
+
+csig(project Args Res _ Preds) 
+  matches((
+    (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+    (kennzeichen vorwahl) ) 
+    Args Bindings) 
+  evalPreds((
+    (attrs (var ident i) (var attrs 1) (var types 1) (var numbers 1)) 
+    (combine (var ident i) (var types 1) (var attrs 2))
+  ) Bindings Bindings2) 
+
+
+combine((kennzeichen vorwahl) (string string) Attrs) 
+
+
+
+    (combine (var ident i) (var types 1) (var attrs 2))
+
+Bindings = ((attrs 1 ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) (ident (i 1) kennzeichen) (ident (i 2) vorwahl)) 
+bound(Bindings (var ident i) Ident) 
+bound(Bindings (var attrs 1) Attrs) 
+attrs(Ident Attrs Types Numbers) 
+addBinding(Bindings (var types 1) Types Bindings2) 
+addBinding(Bindings2 (var numbers 1) Numbers Bindings3) 
+
+
+Bindings = ((attrs 1 ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) (ident (i 1) kennzeichen) (ident (i 2) vorwahl)) 
+evalPred((attrs (var ident i) (var attrs 1) (var types 1) (var numbers 1)) 
+  Bindings Bindings2) 
+
+
+
+
+
+
+
+
+
+
+/*
+Final list of type mappings
+
+*/
+
+
+typemap(feed 
+  ( (rel (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) ) 
+  ResultType) 
+
+typemap(filter 
+  ( (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+    (map (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) bool)
+  ) 
+  ResultType) 
+
+typemap(consume 
+  ( (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) ) 
+  ResultType) 
+
+
+typemap(attr 
+  ( (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) 
+    vorwahl
+  ) 
+  ResultType) 
+
+
+typemap(hashjoin (
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+  (stream (tuple ((plz int) (ort2 string)))) 
+  bevT plz) 
+  ResultType) 
+
+
+typemap(project (
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+  (kennzeichen bevT)
+  ) 
+  ResultType) 
+
+typemap(atinstant ( (moving point) instant) Res) 
+
+typemap(atinstant ( (moving int) instant) Res) 
+
+typemap(deftime ( (moving region)) ResultType) 
+
+
+
+typemap(feed 
+  ( (rel (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) ) 
+  ResultType1) 
+typemap(filter 
+  ( (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+    (map (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) bool)
+  ) 
+  ResultType2) 
+typemap(consume 
+  ( (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) ) 
+  ResultType3) 
+typemap(attr 
+  ( (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int))) 
+    vorwahl
+  ) 
+  ResultType4) 
+typemap(hashjoin (
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+  (stream (tuple ((plz int) (ort2 string)))) 
+  bevT plz) 
+  ResultType5) 
+typemap(project (
+  (stream (tuple ((kennzeichen string) (ort string) (vorwahl string) (bevT int)))) 
+  (kennzeichen bevT)
+  ) 
+  ResultType6) 
+typemap(atinstant ( (moving point) instant) ResultType7) 
+typemap(atinstant ( (moving int) instant) ResultType8) 
+typemap(deftime ( (moving region)) ResultType9) 
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+

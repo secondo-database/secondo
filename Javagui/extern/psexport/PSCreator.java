@@ -116,13 +116,13 @@ static{
   charCodes = new Vector(10);
   // the backslah has to be the first replacement
   charCodes.add(new CharCode('\\',"\\134"));
-  charCodes.add(new CharCode((char) 223,"\\337")); // ß
-  charCodes.add(new CharCode((char) 228,"\\344")); // ä
-  charCodes.add(new CharCode((char) 246,"\\366")); // ö
-  charCodes.add(new CharCode((char) 252,"\\374")); // Ü
-  charCodes.add(new CharCode((char) 196,"\\304")); // Ä
-  charCodes.add(new CharCode((char)214,"\\326")); // Ö
-  charCodes.add(new CharCode((char) 220,"\\334")); // Ü
+  charCodes.add(new CharCode((char) 223,"\\337")); // ss
+  charCodes.add(new CharCode((char) 228,"\\344")); // ae
+  charCodes.add(new CharCode((char) 246,"\\366")); // oe
+  charCodes.add(new CharCode((char) 252,"\\374")); // Ue
+  charCodes.add(new CharCode((char) 196,"\\304")); // Ae
+  charCodes.add(new CharCode((char)214,"\\326")); // Oe
+  charCodes.add(new CharCode((char) 220,"\\334")); // Ue
   charCodes.add(new CharCode('(',"\\050"));
   charCodes.add(new CharCode(')',"\\051"));
 }

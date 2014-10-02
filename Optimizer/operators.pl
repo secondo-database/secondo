@@ -177,6 +177,9 @@ secOptConstant(sampleJoinMaxCard, 500).        % maximum cardinality for samples
   % really the minimum cardinality, as this number is entered into the sample 
   % operator
 
+secOptConstant(tupleMemoryBaseSize, 136).  % Size of tuple representation in
+                                           % memory without attributes	
+
 % Section:Start:secOptConstant_2_e
 % Section:End:secOptConstant_2_e
 

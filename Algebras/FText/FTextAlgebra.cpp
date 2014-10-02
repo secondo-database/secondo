@@ -107,7 +107,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <limits>
 #include "Stream.h"
 #include "LongInt.h"
-
+#include "PinyinTable.h"
 
 // includes for debugging
 #define LOGMSG_OFF
@@ -7617,8 +7617,6 @@ Operator isValidID(
    isValidIDTM
   );
 
-
-
 Operator trimAll
 (
  "trimAll",
@@ -7628,6 +7626,150 @@ Operator trimAll
  trimAllSelect,
  trimAllTM
 );
+
+/*
+~Operator~ cn2en  by Cheng Wang 18.09.2014
+Convert Chinese characters into English letters
+
+*/
+
+/*
+pinyin\_utf8: convert utf8 encoding chinese charaters into english letters
+@inbuf The input chinese charaters
+
+*/
+string pinyin_utf8(string inbuf) {
+  int inbuf_len = inbuf.length();
+  int uni=0;
+  string resStr;
+  for (int i = 0; i < inbuf_len; i++) {
+    if ((unsigned char) inbuf[i] < 0x80) { //English letters or numbers
+      resStr += inbuf[i];
+      continue;
+    } else if ((inbuf[i] & 0xE0) == 0xC0) { //others
+      resStr += inbuf[i];
+      continue;
+    } else if ((inbuf[i] & 0xF0) == 0xE0) { //Chinese
+    if (i + 2 >= inbuf_len) {
+      break;
+    }
+    uni = (((int) (inbuf[i] & 0x0F)) << 12)
+      | (((int) (inbuf[i + 1] & 0x3F)) << 6)
+      | (inbuf[i + 2] & 0x3F);
+    if (uni > 19967 && uni < 40870) {
+      string ch(pytable[uni - 19968]);
+      int n = ch.find('|');
+      if (n != -1)
+        ch = ch.substr(0, n);
+      for(size_t i =0; i < ch.length(); i++)
+        if ( ch[i] >= 'a' && ch[i] <= 'z')
+          ch[i] = ch[i] - 32 ;
+          resStr += ch;
+          resStr += " ";
+        }
+      }
+    }
+  return resStr;
+}
+
+/*
+Type Mapping
+  
+*/
+ListExpr cn2enTM(ListExpr args){
+   string err =" string or text expected";
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError(err);
+   }
+   ListExpr arg = nl->First(args);
+   if(!FText::checkType(arg) &&
+      !CcString::checkType(arg)){
+      return listutils::typeError(err);
+   }
+   return nl->SymbolAtom(FText::BasicType());
+}
+
+/*
+Value Mapping
+
+*/
+template<class T>
+int cn2enVM1( Word* args, Word& result, int message,
+                      Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  FText* res = (FText*) result.addr;
+  T* arg = (T*) args[0].addr;
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  string str = arg->GetValue();
+  stringutils::trim(str);
+  if(str.length()==0){
+     res->SetDefined(false);
+     return 0;
+  }
+  string resStr = pinyin_utf8(str);
+  
+  if(resStr.length() == 0 ){
+    res->SetDefined(false);
+  } else {
+    res->Set(true,resStr);
+  }
+  return 0;
+}
+
+
+/*
+Selection function and Value Mapping array
+
+*/
+
+int cn2enSelect(ListExpr args){
+  if(CcString::checkType(nl->First(args))){
+     return 0;
+  }
+  return 1; // text
+}
+
+ValueMapping cn2enVM[] = {
+                cn2enVM1<CcString>,
+                cn2enVM1<FText>
+            };
+
+
+/*
+Specification
+
+*/
+const string cn2enSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text,string} -> text </text--->"
+    "<text> cn2en(_) </text--->"
+    "<text>Converts Chinese characters into English letters. "
+    " </text--->"
+    "<text>query cn2en('中国')  </text--->"
+    ") )";
+
+/*
+Operator instance
+
+*/
+
+
+Operator cn2en
+(
+"cn2en",             //name
+ cn2enSpec,         //specification
+ 2,                           // no of VM functions
+ cn2enVM,        //value mapping
+ cn2enSelect,   //trivial selection function
+ cn2enTM        //type mapping
+);
+
+
+
 
 
 /*
@@ -11034,6 +11176,199 @@ Operator globalMemoryOP
   globalMemoryTM        //type mapping
 );
 
+/*
+4.39 Operator ~fileExtension~
+
+This operator returns the fileExtension of a certain path. 
+
+4.39.1 Type Mapping
+
+*/
+ListExpr fileExtensionTM(ListExpr args){
+  string err ="string or text [x bool] expected";
+  if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+    return  listutils::typeError("wrong number of arguments");
+  }
+  if(nl->HasLength(args,2)){
+    if(!CcBool::checkType(nl->Second(args))){
+      return listutils::typeError(err);
+    }
+  }
+  ListExpr arg = nl->First(args);
+  if(CcString::checkType(arg) || FText::checkType(arg)){
+     if(nl->HasLength(args,2)){
+         return arg;
+     } else {
+        return nl->ThreeElemList(
+                  nl->SymbolAtom(Symbols::APPEND()),
+                  nl->OneElemList(nl->BoolAtom(false)),
+                  arg);
+     }
+  }
+  return listutils::typeError(err);
+}
+
+/*
+4.39.2 Value Mapping
+
+*/
+template<class T>
+int fileExtensionVM1( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+  T* arg = (T*) args[0].addr;
+  result = qp->ResultStorage(s);
+  T* res = (T*) result.addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  bool acceptOnlyDot = false;
+  CcBool* b = (CcBool*) args[1].addr;
+  if(b->IsDefined()){
+     acceptOnlyDot = b->GetValue();
+  }
+  string v = arg->GetValue();
+  string seps = "." ;
+  seps += CFile::pathSepWin32;
+  seps += CFile::pathSepUnix;
+  size_t pos = v.find_last_of(seps);
+  if(pos==string::npos){ 
+    if(acceptOnlyDot){
+       res->Set(true,"");   
+    } else {
+       res->Set(true,v);
+    }
+  } else {
+    if(acceptOnlyDot){
+      if(v[pos]!='.'){
+        res->Set(true,"");
+      } else {
+       res->Set(true, v.substr(pos+1));
+      }
+    } else {
+       res->Set(true, v.substr(pos+1));
+    }
+  }
+  return 0;
+}
+
+/*
+4.39.3 ValueMappung Array and Selection function
+
+*/
+ValueMapping fileExtensionVM[] = {
+  fileExtensionVM1<CcString>,
+  fileExtensionVM1<FText>
+};
+
+int fileExtensionSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+/*
+4.39.4 Specification
+
+*/
+
+OperatorSpec fileExtensionSpec(
+  "T [x bool] -> T for T in {string,text}",
+  "fileExtension(_)",
+  "Returns the file extension of a path name."
+  "If the boolean  parameter is true, the extension of a file"
+  " without a dot is empty otherwide the file name",
+  "query fileExtension('Secondo.exe')"
+);
+
+/*
+4.39.5 Operator instance
+
+*/
+
+Operator fileExtensionOP(
+  "fileExtension",
+  fileExtensionSpec.getStr(),
+  2,
+  fileExtensionVM,
+  fileExtensionSelect,
+  fileExtensionTM
+);
+
+
+/*
+4.40 Operator maskBaskslask
+
+*/
+ListExpr maskBackslashTM(ListExpr args){
+
+  string err = "string or text expected";
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+  }
+  ListExpr arg = nl->First(args);
+  if(   !CcString::checkType(arg) 
+     && !FText::checkType(arg)){
+     return listutils::typeError(err);
+  }
+  return arg;
+}
+
+
+template<class T>
+int maskBackslashVM1( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+   T* arg = (T*) args[0].addr;
+   result = qp->ResultStorage(s);
+   T* res = (T*) result.addr;
+   if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   string v = arg->GetValue();
+   v = stringutils::replaceAll(v,"\\","\\\\");
+   res->Set(true,v);
+   return 0;
+}
+/*
+4.40.3 ValueMappung Array and Selection function
+
+*/
+ValueMapping maskBackslashVM[] = {
+  maskBackslashVM1<CcString>,
+  maskBackslashVM1<FText>
+};
+
+int maskBackslashSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+/*
+4.39.4 Specification
+
+*/
+
+OperatorSpec maskBackslashSpec(
+  "T  -> T for T in {string,text}",
+  "_ maskBackslash)",
+  " Doubles all backslashes in the argument",
+  "query 'abcd\\' maskBacks"
+);
+
+/*
+4.39.5 Operator instance
+
+*/
+
+Operator maskBackslashOP(
+  "maskBackslash",
+  maskBackslashSpec.getStr(),
+  2,
+  maskBackslashVM,
+  maskBackslashSelect,
+  maskBackslashTM
+);
+
   /*
   5 Creating the algebra
 
@@ -11127,6 +11462,7 @@ Operator globalMemoryOP
       AddOperator( &isValidID);
       AddOperator( &trimAll);
       AddOperator(&str2real);
+      AddOperator(&cn2en);
       AddOperator(&str2int);
       AddOperator(&endsWith);
       AddOperator(&startsWith);
@@ -11161,6 +11497,8 @@ Operator globalMemoryOP
       AddOperator(&letObject2OP);
 
       AddOperator(&globalMemoryOP);
+      AddOperator(&fileExtensionOP);
+      AddOperator(&maskBackslashOP);
 
 
 #ifdef RECODE

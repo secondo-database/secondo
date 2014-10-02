@@ -1,0 +1,38 @@
+algebra StandardAlgebra
+
++: int x int -> int
++: int x real -> real
++: real x int -> real
++: real x real -> real
+
+algebra RelationAlgebra
+
+feed: rel(Tuple) -> stream(Tuple)
+consume: stream(Tuple) -> rel(Tuple)
+filter: stream(Tuple) :: (Tuple -> bool) -> stream(Tuple)
+attr: tuple(Attrs) :: Ident -> (Number, Type); 
+  attr(Ident, Attrs, Type, Number)
+project: stream(tuple(Attrs_1)) :: (Ident_i)+
+	-> (Numbers_i, stream(tuple(Attrs_2)));
+  attrs(Ident_i, Attrs_1, Types_i, Numbers_i),
+  combine(Ident_i, Types_i, Attrs_2),
+  distinctAttrs(Attrs_2)
+
+algebra ExtRelationAlgebra
+
+hashjoin: stream(tuple(Attrs_1)) x stream(tuple(Attrs_2)) 
+	:: Ident_1 x Ident_2
+	-> stream(tuple(Attrs_3));	  
+    attr(Ident_1, Attrs_1, Type_1, Number_1),
+    attr(Ident_2, Attrs_2, Type_1, Number_2),
+    concat(Attrs_1, Attrs_2, Attrs_3),
+    distinctAttrs(Attrs_3)
+
+algebra TemporalAlgebra
+
+atinstant: moving(T) x instant -> intime(T) 
+where T in {int, real, string, bool, point, region}.
+
+deftime: moving(T) -> periods 
+where T in {int, real, string, bool, point, region}.
+
