@@ -88,6 +88,20 @@ azimuth and angle of imaginated light source
     double light_angle = angle->GetValue();
     double cellsize = grid.getLength();
 
+    if ((light_azimuth < 0) || (light_azimuth > 360))
+    {
+      cmsg.error() << "Azimuth must be between 0 and 360" << endl;
+      cmsg.send();
+      return CANCEL;
+    }
+
+    if ((light_angle < 0) || (light_angle > 90))
+    {
+      cmsg.error() << "Angle must be between 0 and 90" << endl;
+      cmsg.send();
+      return CANCEL;
+    }
+
     s_out->setGrid(grid);
 
     Rectangle<2> bbox = s_in->bbox();
@@ -263,6 +277,20 @@ azimuth and angle of imaginated light source
         info->zFactor = factor->GetValue();
         info->light_azimuth = azimuth->GetValue();
         info->light_angle = angle->GetValue();
+
+        if ((info->light_azimuth < 0) || (info->light_azimuth > 360))
+        {
+          cmsg.error() << "Azimuth must be between 0 and 360" << endl;
+          cmsg.send();
+          return CANCEL;
+        }
+
+        if ((info->light_angle < 0) || (info->light_angle > 90))
+        {
+          cmsg.error() << "Angle must be between 0 and 90" << endl;
+          cmsg.send();
+          return CANCEL;
+        }
 
         local.addr = info;
 
