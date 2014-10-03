@@ -79,7 +79,6 @@ bool Point2D::LiesBetween(Point2D p1, Point2D p2)
     // was passiert wenn p2 < p1
     mpq_class ratio = (x - p1.x) / (p2.x - p1.x);
 
-    // kürzt gemeinsame Teiler, canonische Form: ratio.canonicalize();  
     // < 0 liegt der Punkt links von p1, > 0 liegt der Punkt rechts von p1
     // wenn x zwischen p1 und p2 liegen soll, muss das 
     // Verhältnis der y-Werte dem der x-Werte entsprechen

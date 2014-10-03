@@ -317,8 +317,8 @@ void PFace::Intersection(PFace& pf)
    Point3DExt intPoint;
 
 // Intersect the plane - defined by the other PFace - 
-// with all edges of this PFace: Wenn er 2 Schnittpunkte gefunden hat
-// nicht parallel kann nur max 2 Schnittpunkte haben
+// with all edges of this PFace, if two intersections found
+// not parallel, only two intersections are possible
    unsigned int i = 0;
    while (intPointSet.Size() < 2 && i < edgesPFaceA.size()) {
 
@@ -351,7 +351,7 @@ void PFace::Intersection(PFace& pf)
    if (!intPointSet.GetIntersectionSegment(intSeg))
       return; 
   
-// 2. ist orthogonal zur t-Achse = waagerecht - wichtig für Rand 
+// second case is orthogonal to t-Achse (waagerecht - wichtig für Rand)
    if (intSeg.IsOrthogonalToTAxis())
    {
     Direction dir;
@@ -396,8 +396,8 @@ Angle pfAng = Angle(Vector2D(GetVerticalVector() * pf.GetVerticalVector(),
 
     }
 
-// p-faces nicht parallel
-// das IS ist nicht orthogonal zur t-Achse
+// p-faces not parallel
+// the intersection segment is not orthogonal to t-Achse
    switch(this->LiesOnBorder(intSeg))
    {
    case LEFT:
@@ -568,7 +568,6 @@ void PFace::FinalizeIntSegs()
 
 // IntersectionSegment::Finalize()
    intSegs.FinalizeIntSegs();
-
 
    if (GetOperation() == MINUS && IsPartOfUnitB())
    {

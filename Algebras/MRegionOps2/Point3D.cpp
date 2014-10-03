@@ -59,10 +59,10 @@ Point3D th = *this;
 Point3D po1 = p1;
 Point3D po2 = p2;
 
-   cout << "LiesBetween --- this point: " << th << "   p1: " << 
-    po1 << "   p2: " << po2 << endl;
+  cout << "LiesBetween --- this point: " << th << "   p1: " << 
+  po1 << "   p2: " << po2 << endl;
   if ((*this == p1) || (*this == p2)) return true;
-cout << " may be false" << endl;
+  cout << " may be false" << endl;
 
   if (p1 == p2) return false;
 
@@ -86,7 +86,7 @@ cout << " may be false" << endl;
   if ((x - p1.x) != (ratio * (p2.x - p1.x))) return false;
   if ((y - p1.y) != (ratio * (p2.y - p1.y))) return false;
   if ((z - p1.z) != (ratio * (p2.z - p1.z))) return false;
-cout << " is true" << endl;
+  cout << " is true" << endl;
  
   return true;
 }

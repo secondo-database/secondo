@@ -228,6 +228,10 @@ void SourceUnitPair2::ComputeIntSegs() {
     unitA.FinalizeIntSegs();
     unitB.FinalizeIntSegs();
 
+//  Vorbereitung für Zusammenbau
+    unitA.CollectRelevantPFaces();
+    unitB.CollectRelevantPFaces();
+
 };
 
 void SourceUnitPair2::SetTimestampVector() 

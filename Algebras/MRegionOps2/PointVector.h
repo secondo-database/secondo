@@ -33,12 +33,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
+[2] Implementation with exakt dataype, 
+
+April - November 2014, S. Schroer for master thesis.
+
 [TOC]
 
 1 Introduction
-
-This file contains the definitions of the classes Point2D, Point3D, Vector2D
-and Vector3D.
 
 2 Defines and Includes
 
@@ -47,16 +48,17 @@ and Vector3D.
 #ifndef POINTVECTOR_H_
 #define POINTVECTOR_H_
 
-// add include SuS
-#include "MovingRegion2Algebra.h"
-//
 
-#include <math.h>
+
+
 #include <string>
 #include <iomanip>
 #include <sstream>
 #include <iostream>
+
+#include <math.h>
 #include "NumericUtil.h"
+#include "MovingRegion2Algebra.h"
 
 using namespace std;
 
@@ -76,8 +78,6 @@ Used for generating a VRML file for debugging.
 2.2 Forward declarations
 
 */
-
-#include "MovingRegion2Algebra.h"
 
 class Point2D;
 class Point3D;
@@ -108,7 +108,6 @@ public:
 // SuS
     inline Vector3D(mpq_class _x, mpq_class _y, mpq_class _z) :
         x(_x), y(_y), z(_z) {
-
     }
 
     Vector3D(const Vector2D& v);
@@ -119,37 +118,20 @@ public:
 */
 
     inline mpq_class GetX() const {
-
         return x;
     }
 
     inline mpq_class GetY() const {
-
         return y;
     }
 
     inline mpq_class GetZ() const {
-
         return z;
     }
 
     inline mpq_class GetT() const {
-
         return z;
     }
-    
-/*
-3.3 Operators and Predicates
-
-3.3.1 Length
-    
-Returns the length of this vector.
-
-*/
- // SuS nicht exakt
-//sqrt    inline mpq_class Length() const {
-//sqrt        return sqrt(x*x + y*y + z*z);
-//sqrt    }
     
 /*
 3.3.2 Length2
@@ -157,9 +139,8 @@ Returns the length of this vector.
 Returns the quadratic length of this vector.
 
 */
-// SuS ist ok    
-    inline mpq_class Length2() const {
 
+    inline mpq_class Length2() const {
         return x*x + y*y + z*z;
     }
     
@@ -170,13 +151,10 @@ Returns ~true~, if all components are nearly equal to zero.
 
 */
     
-    inline bool IsZero() const {
-    
-	return (x == 0) && (y == 0) && ( z == 0) ;   
+    inline bool IsZero() const {   
+     return (x == 0) && (y == 0) && ( z == 0) ;   
 
-//SuS   return NumericUtil::NearlyEqual(x, 0.0) && 
-//SuS               NumericUtil::NearlyEqual(y, 0.0) && 
-//SuS               NumericUtil::NearlyEqual(z, 0.0);
+
     }
     
 /*
@@ -187,7 +165,6 @@ Returns the negative of this vector.
 */   
 
     inline Vector3D operator -() const {
-
         return Vector3D(-x, -y, -z);
     }
     
@@ -197,7 +174,6 @@ Returns the negative of this vector.
 Returns the scalar multplication of w and c.
 
 */     
-// SuS
     inline friend Vector3D operator *(const mpq_class c, const Vector3D& w) {
 
         Vector3D v;
@@ -207,7 +183,6 @@ Returns the scalar multplication of w and c.
         return v;
     }
     
-// SuS
     inline friend Vector3D operator *(const Vector3D& w, const mpq_class c) {
 
         Vector3D v;
@@ -224,7 +199,6 @@ Returns the scalar multplication of w and 1/c.
 
 */         
 
-// SuS
     inline friend Vector3D operator /(const Vector3D& w, const mpq_class c) {
 
         Vector3D v;
@@ -327,12 +301,12 @@ components of p.
 // muss dann gleich sein
 // x = p.x und y = p.y und z = p.z
 
-	 return (x == p.x) && (y == p.y) && (z == p.z);
+    return (x == p.x) && (y == p.y) && (z == p.z);
     }
 
 private:
 
-// neuer Datentyp mpq_class aus MovingRegion3Algebra.h
+// neuer Datentyp mpq_class 
 
 // SuS
     mpq_class x;
@@ -360,8 +334,7 @@ public:
         x(0.0), y(0.0) {
 
     }
-// SuS
-// inline Vector2D(double _x, double _y) :
+
 
     inline Vector2D(mpq_class _x, mpq_class _y) :
         x(_x), y(_y) {
@@ -375,52 +348,31 @@ public:
 
 */
 
-// SuS
-// inline double GetX() const {
 
     inline mpq_class GetX() const {
-
         return x;
     }
 
     inline mpq_class GetW() const {
-
         return x;
     }
 
     inline mpq_class GetY() const {
-
         return y;
     }
 
     inline mpq_class GetT() const {
-
         return y;
     }
     
-/*
-4.3 Operators and Predicates
 
-4.3.1 Length
-    
-Returns the length of this vector.
-
-*/   
-// SuS
-// nicht exakt
-//sqrt    inline mpq_class Length() const {
-//sqrt
-//sqrt        return sqrt(x*x + y*y);
-//sqrt    }
-    
 /*
 4.3.2 Length2
     
 Returns the quadratic length of this vector.
 
 */
-// SuS
-// okay
+
     inline mpq_class Length2() const {
 
         return x*x + y*y;
@@ -434,10 +386,7 @@ Returns ~true~, if all components are nearly equal to zero.
 */    
     
     inline bool IsZero() const {
-// SuS
-	  return (x == 0) && (y == 0);
-//        return NumericUtil::NearlyEqual(x, 0.0) && 
-//               NumericUtil::NearlyEqual(y, 0.0);
+     return (x == 0) && (y == 0);
     }
     
 /*
@@ -448,7 +397,6 @@ Returns the negative of this vector.
 */      
 
     inline Vector2D operator -() const {
-
         return Vector2D(-x, -y);
     }
     
@@ -458,17 +406,15 @@ Returns the negative of this vector.
 Returns the scalar multplication of w and c.
 
 */        
-// SuS    
+ 
     inline friend Vector2D operator *(const mpq_class c, const Vector2D& w) {
-
         Vector2D v;
         v.x = c * w.x;
         v.y = c * w.y;
         return v;
     }
-// SuS
-    inline friend Vector2D operator *(const Vector2D& w, const mpq_class c) {
 
+    inline friend Vector2D operator *(const Vector2D& w, const mpq_class c) {
         Vector2D v;
         v.x = c * w.x;
         v.y = c * w.y;
@@ -481,7 +427,7 @@ Returns the scalar multplication of w and c.
 Returns the scalar multplication of w and 1/c.
 
 */         
-// SuS   
+ 
     inline friend Vector2D operator /(const Vector2D& w, const mpq_class c) {
 
         Vector2D v;
@@ -498,7 +444,6 @@ Returns the vector sum of this and w.
 */         
 
     inline Vector2D operator +(const Vector2D& w) const {
-
         Vector2D v;
         v.x = x + w.x;
         v.y = y + w.y;
@@ -513,7 +458,6 @@ Returns the vector difference of this and w.
 */         
 
     inline Vector2D operator -(const Vector2D& w) const {
-
         Vector2D v;
         v.x = x - w.x;
         v.y = y - w.y;
@@ -526,9 +470,8 @@ Returns the vector difference of this and w.
 Returns the dot product of this and w.
 
 */  
-// SuS   
+  
     inline mpq_class operator *(const Vector2D& w) const {
-
         return (x * w.x + y * w.y);
     }
     
@@ -538,9 +481,8 @@ Returns the dot product of this and w.
 Returns the perp product of this and w: a scalar.
 
 */  
-// SuS   
+ 
     inline mpq_class operator |(const Vector2D& w) const {
-
         return (x * w.y - y * w.x);
     }
     
@@ -552,7 +494,6 @@ Returns the cross product of this and w: a Vector3D
 */  
     
     inline Vector3D operator ^(const Vector2D& w) const {
-
         return Vector3D(0.0, 0.0, x * w.y - y * w.x);
     }
     
@@ -584,15 +525,11 @@ components of p.
 */       
     
     inline bool operator ==(const Vector2D& p) const {
-
-	return (x == p.x) && ( y == p.y);
-//        return NumericUtil::NearlyEqual(x, p.x) && NumericUtil::NearlyEqual(y,
-//                p.y);
+     return (x == p.x) && ( y == p.y);
     }
 
 private:
 
-// SuS
     mpq_class x;
     mpq_class y;
 };
@@ -618,8 +555,6 @@ public:
 
     }
 
-// SuS mpq_class
-// SuS inline Point2D(double _x, double _y) :
     inline Point2D(mpq_class _x, mpq_class _y) :
         x(_x), y(_y) {
 
@@ -627,7 +562,6 @@ public:
 
     inline Point2D(Point2D p1, Point2D p2, mpq_class ratio)
     {
-
     x = p1.x + (p2.x - p1.x) * ratio;
     y = p1.y + (p2.y - p1.y) * ratio;
 
@@ -641,30 +575,21 @@ public:
 
 */      
 
-
-// SuS  inline double GetX() const {
         inline mpq_class GetX() const {
+          return x;
+        }
 
-        return x;
-    }
+         inline mpq_class GetW() const {
+          return x;
+        }
 
-// SuS  inline double GetW() const {
-	inline mpq_class GetW() const {
+         inline mpq_class GetY() const {
+          return y;
+        }
 
-        return x;
-    }
-
-// SuS  inline double GetY() const {
-	inline mpq_class GetY() const {
-
-        return y;
-    }
-
-// SuS  inline double GetT() const {
-	inline mpq_class GetT() const {
-
-        return y;
-    }
+         inline mpq_class GetT() const {
+          return y;
+        }
     
 /*
 5.3 Operators and Predicates
@@ -674,29 +599,20 @@ public:
 */     
     
     inline bool operator ==(const Point2D& p) const {
-        
-    // SuS    return NumericUtil::NearlyEqual(x, p.x) &&
-    // SuS          NumericUtil::NearlyEqual(y, p.y);
-
-	      return (x == p.x) && (y == p.y);
+      return (x == p.x) && (y == p.y);
     }
     
-    inline bool operator !=(const Point2D& p) const {
-        
+    inline bool operator !=(const Point2D& p) const {        
         return !(*this == p);
     }
     
     inline bool operator <(const Point2D& p) const {
-
-// SuS     if (NumericUtil::Lower(x, p.x))
-	    if (x < p.x)
+    if (x < p.x)
             return true;
 
-// SuS     if (NumericUtil::Greater(x, p.x))
-	    if (x > p.x)
+    if (x > p.x)
             return false;
             
-// SuS      return NumericUtil::Lower(y, p.y);
             return (y < p.y);
     }
     
@@ -708,7 +624,6 @@ Returns the Vector2D pointing from p to this.
 */      
 
     inline Vector2D operator -(const Point2D& p) const {
-
         return Vector2D(x - p.x, y - p.y);
     }
     
@@ -719,8 +634,7 @@ Returns the translation of this along v.
 
 */      
 
-    inline Point2D operator +(const Vector2D& v) const
-    {
+    inline Point2D operator +(const Vector2D& v) const {
         Point2D p;
         p.x = x + v.GetX();
         p.y = y + v.GetY();
@@ -734,8 +648,7 @@ Returns the translation of this along -v.
 
 */      
 
-    inline Point2D operator -(const Vector2D& v) const
-    {
+    inline Point2D operator -(const Vector2D& v) const {
         Point2D p;
         p.x = x - v.GetX();
         p.y = y - v.GetY();
@@ -749,8 +662,7 @@ Returns the affine sum of this and p.
 
 */        
 
-    inline Point2D operator +(const Point2D& p)const
-    {
+    inline Point2D operator +(const Point2D& p)const {
         Point2D sum;
         sum.x = x + p.x;
         sum.y = y + p.y;
@@ -763,7 +675,6 @@ Returns the affine sum of this and p.
 Returns this point, scaled by the factor f.
 
 */     
-// SuS
     inline Point2D operator *(const mpq_class& f) const {
 
         Point2D res;
@@ -792,10 +703,8 @@ Returns the distance between this and p.
 Returns the quadratic distance between this and p.
 
 */        
-// SuS mpq_class
-// inline double Distance2(const Point2D& p) const {
-    inline mpq_class Distance2(const Point2D& p) const {
 
+    inline mpq_class Distance2(const Point2D& p) const {
         return (p - *this).Length2();
     }
     
@@ -810,22 +719,10 @@ Then WhichSide returns:
   * Zero, if this is on l.
 
 */    
-// SuS
     inline mpq_class WhichSide(const Point2D& start, const Point2D& end) const {
-
-        // This is the fast version:
         return (start.x - x) * (end.y - y) - (end.x - x) * (start.y - y);
-
-        
-        // This is slower, but numerical more stable:
-// SuS        Vector2D v1 = end - start;
-// SuS        Vector2D v2 = *this - start; 
-// SuS        v1.Normalize();
-// SuS        v2.Normalize();
-// SuS        return v1 | v2;
     }
     
-// SuS
     mpq_class WhichSide(const Segment2D& s) const;
     
 /*
@@ -837,25 +734,19 @@ an epsilon to avoid rounding errors.
 */        
 
     inline bool IsLeft(const Point2D& start, const Point2D& end) const {
-       	 return ( WhichSide(start, end) > 0);
-//	return NumericUtil::Greater(WhichSide(start, end), 0.0);
+    return ( WhichSide(start, end) > 0);
     }
     
     inline bool IsRight(const Point2D& start, const Point2D& end) const {
- 	 return ( WhichSide(start, end) < 0);
-//        return NumericUtil::Lower(WhichSide(start, end), 0.0);
+    return ( WhichSide(start, end) < 0);
     }
     
     inline bool IsColinear(const Point2D& start, const Point2D& end) const {
-  	return ( WhichSide(start, end) == 0);
-//        return NumericUtil::NearlyEqual(WhichSide(start, end), 0.0);
-
+    return ( WhichSide(start, end) == 0);
     }
     
     bool IsLeft(const Segment2D& s) const;
-
     bool IsRight(const Segment2D& s) const;
-
     bool IsColinear(const Segment2D& s) const;
 
 private:
@@ -902,22 +793,18 @@ public:
 */ 
 
     inline mpq_class GetX() const {
-
         return x;
     }
 
     inline mpq_class GetY() const {
-
         return y;
     }
 
     inline mpq_class GetZ() const {
-
         return z;
     }
 
     inline mpq_class GetT() const {
-
         return z;
     }
     
@@ -929,15 +816,10 @@ public:
 */     
 
     inline bool operator ==(const Point3D& p) const {
-
-	return (x == p.x) && (y == p.y) && (z == p.z);
-//        return NumericUtil::NearlyEqual(x, p.x) && 
-//               NumericUtil::NearlyEqual(y, p.y) && 
-//               NumericUtil::NearlyEqual(z, p.z);
+     return (x == p.x) && (y == p.y) && (z == p.z);
     }
     
     inline bool operator !=(const Point3D& p) const {
-
         return !(*this == p);
     }
     
@@ -949,7 +831,6 @@ Returns the Vector3D pointing from p to this.
 */      
 
     inline Vector3D operator -(const Point3D& p) const {
-
         return Vector3D(x - p.x, y - p.y, z - p.z);
     }
     
@@ -1035,9 +916,8 @@ Returns the distance between this and p.
 Returns the quadratic distance between this and p.
 
 */       
-// SuS    
+ 
     inline mpq_class Distance2(const Point3D& p) const {
-
         return (p - *this).Length2();
     }
     
@@ -1049,9 +929,8 @@ Returns the quadratic distance between this and a plane
 defined by the point p0 and the vector normal.
 
 */     
-// SuS    
- mpq_class DistanceToPlane2(const Point3D& p0, const Vector3D& normal) const {
 
+  mpq_class DistanceToPlane2(const Point3D& p0, const Vector3D& normal) const { 
   const mpq_class sb = (- (normal * (*this - p0))) / normal.Length2();
   const Point3D base = *this + (sb * normal);
 
@@ -1093,9 +972,5 @@ ostream& operator <<(ostream& o, const Vector2D& p);
 ostream& operator <<(ostream& o, const Vector3D& p);
 
 } // end of namespace mregionops2
-
-
-
-
 
 #endif // POINTVECTOR_H_

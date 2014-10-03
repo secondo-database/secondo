@@ -232,9 +232,8 @@ void SourceUnit2::SetCycleStatus(unsigned int pfaceNo,
                                  CycleStatus stat)
 { 
 
-    // gibt es schon einen Eintrag mit dem Key?
-    // Wenn ja, dann nur Status ändern
-    // sonst CyleInfo neu anlegen und Info eintragen
+    // if entry with key exist actualize status
+    // else insert neu CyleInfo 
 
      pair<unsigned int, unsigned int> key(pfaceNo, cycleNo);
      map<pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
@@ -278,6 +277,25 @@ SourceUnit2::~SourceUnit2() {
 const SetOp SourceUnit2::GetOperation() const {
 	return parent->GetOperation();
 }
+
+
+
+void SourceUnit2::CollectRelevantPFaces() {
+
+   vector<PFace*>::iterator iter;
+
+// for all pfaces in one Cycle - woher weiß ich die Anz Zyklen    
+   for (iter = pFaces.begin(); iter != pFaces.end(); iter++) {
+
+//     if ( MAP (iter, Cyclus_no))  Frage nach cyclusinfo = HASINTSEGS
+//         JA alle ss des Zyklus auf HASINTSEGS setzen
+//         Nein alle ss des Zyklus auf NOTYETKNOWN setzen
+//
+
+
+
+}
+
 
 /***********************************
 
