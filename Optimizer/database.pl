@@ -4205,11 +4205,11 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList,InfoListAtts,
 
   % Use inquired average attribute sizes. Avoid problems with undefined
   % sizes, which will occur for relations with cardinality = 0.
-  secDatatype(DCType, MemSize, _, _, _, _),
+  % secDatatype(DCType, MemSize, _, _, _, _), not used any more
+
+  ( SizeMem = undefined -> MemSize is 1 ;  MemSize is SizeMem ),
   ( SizeCore = undefined
-    -> ( % Fallback: use typesize, but 1 byte at least
-         CoreAttrSize is max(1,MemSize)
-       )
+    -> CoreAttrSize is 1     		% indicates undefined   
     ;  CoreAttrSize is max(0,SizeCore) % avoid rounding errors
   ),
   ( SizeExt = undefined
@@ -4219,12 +4219,12 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList,InfoListAtts,
   LOBSize2 is max(0, LOBSize),    % avoid rounding errors
   analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,MoreAttrs, MoreInfosAtts, 
     MoreInfos, MoreMemTotal),
-  MemTotal is SizeMem + MoreMemTotal,
+  MemTotal is MemSize + MoreMemTotal,
   downcaseList(ARelPath, DCARelPath),
   append(DCARelPath, [DCAttr], TMP1),
   listToAttributeTerm(TMP1, DCFQN),
   assert(storedSpell(DB, DCrel:DCFQN, IntAttr)),
-  assert(storedAttrSize(DB, DCrel, DCFQN, DCType, SizeMem, CoreAttrSize,
+  assert(storedAttrSize(DB, DCrel, DCFQN, DCType, MemSize, CoreAttrSize,
     LOBSize2)),
   !.
 
