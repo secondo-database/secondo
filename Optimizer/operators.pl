@@ -161,7 +161,7 @@ secOptConstant(sampleJoinMaxCard, 500).        % maximum cardinality for samples
 */
 
 secOptConstant(sampleTimeout, 10.0).        % max duration (s) of a sample query
-secOptConstant(sampleScalingFactor, 0.00001).  % scaling factor for samples
+secOptConstant(sampleScalingFactor, 0.01).  % scaling factor for samples
 
 secOptConstant(sampleSelMaxDiskSize, 204800).    % maximum KB size for samples
 secOptConstant(sampleSelMinCard, 100).         % minimum cardinality for samples
