@@ -65,3 +65,12 @@ Number    : 1
 Signature : stream(int ) x pavl -> int
 Example   : query intstream(1,100) (intstream(50, 150) createPAVL) insert 
 Result    : 49
+
+
+Operator  : importObject
+Number    : 1
+Signature : text -> X
+Example   : query importObject('../Data/Objects/Germany/Staedteobj') count 
+Result    : 59
+
+

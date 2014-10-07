@@ -29,3 +29,7 @@ operator contains alias CONTAINS pattern _ infixop _
 # postfix operazor with two arguments
 operator insert alias INSERT pattern _ _ op
 
+
+# prefix operator
+operator importObject alias IMPORTOBJECT pattern op(_)
+

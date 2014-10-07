@@ -299,6 +299,7 @@ Here, each include is commented with some functionality used.
 #include "AlgebraManager.h"     // e.g., check for a certain kind
 #include "Operator.h"           // for operator creation
 #include "StandardTypes.h"      // priovides int, real, string, bool type
+#include "FTextAlgebra.h"
 #include "Symbols.h"            // predefined strings
 #include "ListUtils.h"          // useful functions for nested lists
 #include "Stream.h"             // wrapper for secondo streams
@@ -3788,6 +3789,134 @@ Operator insertOp (
 );
 
 
+/*
+9 Accessing values in Type Mappings
+
+Sometimes it is necessary to know a value of an object for computing the result type.
+An example is an import operator reading some object from a file. If the file contains
+the type, the filename (a string or a text) must be known in the type mapping. 
+Secondo provides a possibility to get not only the types in the argument list of
+the type mapping but additionally the part of the query forming this type.
+To enable this feature for an operator, the function SetUsesArgsInTypeMapping() must 
+called for this operator. 
+
+This feature is explained at the example of the ~importObject~ operator. This operator
+gets a filename and returns the object located in the file. The objects is coded 
+in the way like ~save object to ...~ it does.
+
+*/
+ListExpr importObjectTM(ListExpr args){
+  string err="text expected";
+
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("expected one argument");
+  }
+  ListExpr arg = nl->First(args);
+  // the list is codes as (<type> <query part>)
+  if(!nl->HasLength(arg,2)){
+     return listutils::typeError("internal error");
+  }    
+
+  if(!FText::checkType(nl->First(arg))){
+    return listutils::typeError(err);
+  }
+
+  ListExpr fn = nl->Second(arg);
+   if(nl->AtomType(fn)!=TextType){
+      return listutils::typeError("file name not constant");
+   }
+   string fileName = nl->Text2String(fn);
+
+   ListExpr objectList;
+   if(! nl->ReadFromFile(fileName, objectList)){
+      return listutils::typeError("file not found or "
+                             "file does not contain a list");
+   }
+   // an object file is formatted as
+   // (OBJECT <name> <typename> <type> <value> () )
+   // the typename is mostly empty the last empty list is for future extensions
+   
+   // check structure
+   if(   !nl->HasLength(objectList,6)
+      || !listutils::isSymbol(nl->First(objectList),"OBJECT")){
+     return listutils::typeError("file does not contain a "
+                                 "valid object description");
+   }
+
+   ListExpr typeList = nl->Fourth(objectList);
+
+   // check whether this list is a valid type description
+   SecondoCatalog* ctl = SecondoSystem::GetCatalog();
+   string tname;
+   int algId, typeId;
+   if(!ctl->LookUpTypeExpr(typeList, tname, algId, typeId)){
+     return listutils::typeError("Invalid  type description in file");
+   }
+   return typeList;
+
+}
+
+
+int importObjectVM ( Word * args , Word & result , int message ,
+                   Word & local , Supplier s ) {
+   FText* fileName = (FText*) args[0].addr;
+   if(!fileName->IsDefined()){
+     return 0;
+   } 
+   string fn = fileName->GetValue();
+   ListExpr objectList;
+   if(!nl->ReadFromFile(fn,objectList)){
+     return 0;
+   }
+   if(!nl->HasLength(objectList,6)){
+      return 0;
+   }
+   ListExpr typeList = nl->Fourth(objectList);
+   ListExpr instance = nl->Fifth(objectList);
+   SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+   string tname;
+   int algId, typeId;
+   if(!ctlg->LookUpTypeExpr(typeList, tname, algId, typeId)){
+     return 0;
+   }
+   InObject in = am->InObj(algId, typeId);
+   int errorPos=0;
+   ListExpr errorInfo = listutils::emptyErrorInfo();
+   bool correct;
+   
+   Word o = in(ctlg->NumericType(typeList), instance,
+               errorPos, errorInfo,correct);
+   if(!correct){
+      return 0;
+   }
+   // now, we replace the resultStorage
+   qp->DeleteResultStorage(s);
+   qp->ChangeResultStorage(s, o);
+   qp->SetDeleteFunction(s, am->DeleteObj(algId, typeId));
+   result = qp->ResultStorage(s);
+   return 0;
+}
+
+  
+OperatorSpec importObjectSpec (
+    "  text -> X " ,
+    " importObject(_) " ,
+    " Returns the object located in a file named by the argument." ,
+    " query importObject('Kinos.obj') "
+);
+
+
+Operator importObjectOp (
+  "importObject" , // name of the operator
+  importObjectSpec.getStr() , // specification
+  importObjectVM , // value mapping
+  Operator::SimpleSelect , // selection function
+  importObjectTM // type mapping
+);
+
+
+
+
 
 /*
 8 Definition of the Algebra
@@ -3831,6 +3960,11 @@ class GuideAlgebra : public Algebra {
       AddOperator(&createPAVLOp);
       AddOperator(&containsOp);
       AddOperator(&insertOp);
+      
+      AddOperator(&importObjectOp);
+      importObjectOp.SetUsesArgsInTypeMapping();
+
+
      }
  };
 
