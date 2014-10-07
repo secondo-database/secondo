@@ -32,6 +32,12 @@ Signature: string -> stream(string)
 Example  : query getChars("Secondo") count
 Result   : 7
 
+Operator  : startsWithS
+Number    : 1
+Signature : stream(string) x string -> stream(string)
+Example   : query intstream(1,1000) replaceElem[ num2string(.) ]  startsWithS["22"] count 
+Result    : 11
+
 
 Operator  : replaceElem
 Number    : 1

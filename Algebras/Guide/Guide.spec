@@ -15,6 +15,9 @@ operator getChars alias GETCHARS pattern op(_)
 operator replaceElem alias REPLACEELEM pattern _ op[ fun ] 
          implicit parameter streamelem type STREAMELEM
 
+# postfix operator with an parameter
+operator startsWithS alias STARTSWITHS pattern _ op [_ ]
+
 # postfix operator with an additional argument
 operator attrIndex alias ATTRINDEX pattern _ op [_]
 
