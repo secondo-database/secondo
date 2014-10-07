@@ -884,6 +884,7 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
     AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
+
 plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   plan_to_atom(GroupAttrs, GAtom),
@@ -891,15 +892,11 @@ plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
   concat_atom([SAtom, 'groupby[', GAtom, '; ', FAtom, ']'], '', Result),
   !.
 
+
 plan_to_atom(field(NewAttr, Expr), Result) :-
   plan_to_atom(attrname(NewAttr), NAtom),
   plan_to_atom(Expr, EAtom),
   concat_atom([NAtom, ': ', EAtom], '', Result).
-
-
-
-
-
 
 
 plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
@@ -1041,18 +1038,6 @@ plan_to_atom(Term, Result) :-
   concat_atom([Op, '(', Res1, ',', Res2, ') '], '', Result),
     !.
 
-    /* Khoja */
-plan_to_atom(Term, Result) :-
-  functor(Term, Op, 3),
-  secondoOp(Op, postfixbrackets2, 3),
-  arg(1, Term, Arg1),
-  plan_to_atom(Arg1, Res1),
-  arg(2, Term, Arg2),
-  plan_to_atom(Arg2, Res2),
-  arg(3, Term, Arg3),
-  plan_to_atom(Arg3, Res3),
-  concat_atom([Res1, ' ', Op, '[', Res2, ',', Res3, '] '], '', Result),
-  !.
 
 /*
 Generic rules. Operators that are not 
@@ -1573,6 +1558,7 @@ cost(rightrange(_, Rel, _), Sel, Size, Cost) :-
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
+
 
 /*
 
@@ -2561,7 +2547,6 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   arg(1, Term2, Arg1Out),
   arg(2, Term2, Arg2Out).
 
-/* Khoja */
 lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   compound(Term),
   functor(Term, F, 3), !,
@@ -2576,7 +2561,7 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   arg(2, Term2, Arg2Out),
   arg(3, Term2, Arg3Out).
 
-% may need to be extended to operators with more than two arguments.
+% may need to be extended to operators with more than three arguments.
 
 lookupPred1(Term, Term, N, Rels, N, Rels) :-
   atom(Term),
