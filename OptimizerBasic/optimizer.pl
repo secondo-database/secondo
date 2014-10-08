@@ -1320,7 +1320,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
 
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
-    attrname(Attr1), attrname(Attr2), 997)   :-
+    attrname(Attr1), attrname(Attr2), 999997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
