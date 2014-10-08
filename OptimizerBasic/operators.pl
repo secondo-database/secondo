@@ -31,7 +31,7 @@ loopjoinTC(1.0).
 
 exactmatchTC(10.0).
 
-hashjoinTC(1.5, 0.65).
+hashjoinTC(5.0, 2.0, 1.5).
 
 sortmergejoinTC(0.3, 0.73).
 
