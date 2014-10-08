@@ -3638,8 +3638,9 @@ the function in a database object.
     DestroyValuesArray();
     throw ERR_IN_QUERY_EXPR;
   }
- 
+
   resultType = nl->Second( list );
+
   if ( TypeOfSymbol(resultType) == QP_TYPEERROR )
   {   // check if a type error was detected
     if (nl->ListLength(nl->Third(nl->First(list))) > 1) {
@@ -3662,7 +3663,7 @@ the function in a database object.
     else {
       DestroyValuesArray();
     }
-    
+    throw ERR_IN_QUERY_EXPR;
   }
 
   // Make a consistency check of the annotated list structure.
