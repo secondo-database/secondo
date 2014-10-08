@@ -1318,11 +1318,18 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
+% hashjoin has asymmetric cost, therefore consider both orders
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
     attrname(Attr1), attrname(Attr2), 999997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
+    attrname(Attr2), attrname(Attr1), 999997)   :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
+
 
 /*
 
@@ -1597,30 +1604,16 @@ cost(fun(_, X), Sel, Size, Cost) :-
   cost(X, Sel, Size, Cost).
 
 
-
-/*
-
-Previously the cost function for ~hashjoin~ contained a term
-
-----    A * SizeX + A * SizeY
-----
-
-which should account for the cost of distributing tuples
-into the buckets. However in experiments the cost of
-hashing was always ten or more times smaller than the cost
-of computing products of buckets. Therefore that term
-was considered unnecessary.
-
-*/
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
+cost(hashjoin(X, Y, _, _, 999997), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
-  hashjoinTC(A, B),
+  hashjoinTC(A, B, D),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                    % producing the arguments
-    A * NBuckets * (SizeX/NBuckets + 1) *       % computing the product for each
-      (SizeY/NBuckets +1) +                     % pair of buckets
-    B * S.                                      % producing the result tuples
+  C is CostX + CostY +		% producing the arguments
+    A * SizeY +			% A - time [microsecond] per build
+    B * SizeX +			% B - time per probe
+    D * S.			% C - time per result tuple
+				% table fits in memory assumed
 
 
 cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
