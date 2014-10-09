@@ -66,6 +66,12 @@ DEFAULTCCFLAGS += -Wall
 DEFAULTCCFLAGS += -D_REENTRANT -D_GLIBCPP_DEPRECATED 
 
 
+#On 32 bit systems, the file size is restrictec to 2GB
+#when handling huge data sets, this may be not sufficient
+#thereby we set the file system to support much larger files
+DEFAULTCCFLAGS += -D_FILE_OFFSET_BITS=64 
+
+
 # Flag for a persistent implementation of class NestedList. Remove the comment
 # in the line below to use temporary Berkeley-DB record files instead of main
 # memory. This is needed if you want to restore large objects. 
