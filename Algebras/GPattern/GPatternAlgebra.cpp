@@ -37,6 +37,8 @@ JAN, 2010 Mahmoud Sakr
 
 #include "GPatternAlgebra.h"
 #include "Symbols.h"
+#include "ListUtils.h"
+#include "Stream.h"
 
 using namespace mset;
 
@@ -836,7 +838,7 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
       tmp2.Print(cerr);
       delete tmp;
     }
-    if(curMSet->GetNoComponents() < Changes.max_size())
+    if((size_t)curMSet->GetNoComponents() < Changes.max_size())
     {
       Changes.reserve(curMSet->GetNoComponents());
       Changes.resize(curMSet->GetNoComponents());
@@ -2897,45 +2899,36 @@ ListExpr ReportPatternTM(ListExpr args)
 {
   bool debugme= false;
 
-  string argstr;
-
   if(debugme)
   {
     cout<<endl<< nl->ToString(args)<<endl;
     cout.flush();
   }
-
-  nl->WriteToString(argstr, args);
-  CHECK_COND(nl->ListLength(args) == 4,
-      "Operator reportpattern expects 4 arguments \n but got: " 
-      + argstr + ".");
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError("4 arguments expected");
+  }
   
   ListExpr streamExpr = nl->First(args),   //stream(tuple(int, mx))
   NamedPatternoidList  = nl->Second(args),  //named list of patternoids
   ConstraintList = nl->Third(args),    //TConstraint list
   BoolCondition  = nl->Fourth(args);    
 
-  nl->WriteToString(argstr, streamExpr);
-  CHECK_COND( listutils::isTupleStream(streamExpr) ,
-      "Operator reportpattern expects stream(tuple(X)) as first argument."
-      "\nBut got: " + argstr + ".");
-  
+  if(!Stream<Tuple>::checkType(streamExpr)){
+    return listutils::typeError("first argument must be a tuple stream");
+  }
   ListExpr errorInfo;
   ListExpr tuple = nl->Second(nl->Second(streamExpr));
-  nl->WriteToString(argstr, streamExpr);
-  CHECK_COND( nl->ListLength(tuple) == 2 &&
-    nl->IsAtom     (nl->Second(nl->First (tuple))) &&
-    nl->SymbolValue(nl->Second(nl->First (tuple)))== CcInt::BasicType() &&
-    nl->IsAtom     (nl->Second(nl->Second(tuple))) &&
-    am->CheckKind(Kind::TEMPORAL(), nl->Second(nl->Second(tuple)), errorInfo),
-        "Operator reportpattern expects stream(tuple(int mx)) as first "
-        "argument.\nBut got: " + argstr + ".");
+  if(    !nl->HasLength(tuple,2)
+      || !CcInt::checkType(nl->Second(nl->First(tuple)))
+      || !am->CheckKind(Kind::TEMPORAL(), 
+                        nl->Second(nl->Second(tuple)),errorInfo)){
+    return listutils::typeError("first arg must be stream(tuple(int mx))");
+  }
   
-  nl->WriteToString(argstr, NamedPatternoidList);
-  CHECK_COND( ! nl->IsAtom(NamedPatternoidList) ,
-      "Operator  reportpattern expects as second argument a "
-      "list of aliased patternoid reporting functions.\n"
-      "But got: '" + argstr + "'.\n" );
+  if( nl->IsAtom(NamedPatternoidList)){
+    return listutils::typeError("second arg must be a list of "
+                                "aliased patternoid");
+  }
   
   ListExpr NamedPatternoidListRest = NamedPatternoidList;
   ListExpr NamedPatternoid;
@@ -2945,41 +2938,32 @@ ListExpr ReportPatternTM(ListExpr args)
   {
     NamedPatternoid = nl->First(NamedPatternoidListRest);
     NamedPatternoidListRest = nl->Rest(NamedPatternoidListRest);
-    nl->WriteToString(argstr, NamedPatternoid);
-
-    CHECK_COND
-    ((nl->ListLength(NamedPatternoid) == 2 &&
-        nl->IsAtom(nl->First(NamedPatternoid))&&
-        listutils::isMap<1>(nl->Second(NamedPatternoid))&&
-        listutils::isDATAStream(nl->Third(nl->Second(NamedPatternoid)))&&
-        nl->IsAtom((nl->Second(nl->Third(nl->Second(NamedPatternoid)))))&&
-        nl->SymbolValue((nl->Second(nl->Third(nl->Second(NamedPatternoid)))))
-        == "mset"),
-        "Operator reportpattern expects a list of aliased patternoid "
-        "reporting operators. \nBut got: " + argstr + ".");
+    if(    !nl->HasLength(NamedPatternoid,2)
+        || !listutils::isSymbol(nl->First(NamedPatternoid))
+        || !listutils::isMap<1>(nl->Second(NamedPatternoid))
+        || !Stream<Attribute>::checkType(nl->Third(nl->Second(NamedPatternoid)))
+        || !listutils::isSymbol(
+                 (nl->Second(nl->Third(nl->Second(NamedPatternoid)))),"mset")){
+      return listutils::typeError("Invalid named Pattern" + 
+                                  nl->ToString(NamedPatternoid));
+    }
     aliases.push_back(nl->First(NamedPatternoid));
   }
 
-  nl->WriteToString(argstr, ConstraintList);
   ListExpr ConstraintListRest = ConstraintList;
   ListExpr STConstraint;
   while( !nl->IsEmpty(ConstraintListRest) )
   {
     STConstraint = nl->First(ConstraintListRest);
     ConstraintListRest = nl->Rest(ConstraintListRest);
-
-    CHECK_COND((nl->IsAtom(STConstraint)&&
-        nl->SymbolValue(STConstraint)== CcBool::BasicType()),
-        "Operator reportpattern expects a list of temporal connectors. "
-        "\nBut got: " + argstr + ".");
+    if(!CcBool::checkType(STConstraint)){
+      return listutils::typeError("wrong temporal connector");
+    }
   }
 
-  nl->WriteToString(argstr, BoolCondition);
-  CHECK_COND( nl->IsAtom(BoolCondition) &&
-    nl->SymbolValue(BoolCondition) == CcBool::BasicType(),
-        "Operator reportpattern expects a boolean condition. "
-        "\nBut got: " + argstr + ".");
-  
+  if(!CcBool::checkType(BoolCondition)){
+    return listutils::typeError("invalid boolean Condition");
+  }
   
   it= aliases.begin();
   ListExpr attr = nl->TwoElemList(*it, nl->SymbolAtom("mset"));
@@ -3009,8 +2993,9 @@ ListExpr EmptyMSetTM(ListExpr args)
 {
   string argstr;
   nl->WriteToString(argstr, args);
-  CHECK_COND(nl->IsEmpty(args),
-      "Operator emptymset expects zero paramenters.\n but got "+ argstr+ ".");
+  if(!nl->IsEmpty(args)){
+    return listutils::typeError("no arguments expected");
+  }
   ListExpr result = nl->SymbolAtom("mset");
   return result;
 }
@@ -3019,12 +3004,11 @@ ListExpr MBool2MSetTM(ListExpr args)
 {
   string argstr;
   nl->WriteToString(argstr, args);
-  CHECK_COND(nl->ListLength(args) == 2 &&
-    nl->IsAtom(nl->First(args)) &&
-    nl->SymbolValue(nl->First(args))== MBool::BasicType() &&
-    nl->IsAtom(nl->Second(args)) &&
-    nl->SymbolValue(nl->Second(args))== CcInt::BasicType(),
-      "Operator mbool2mset expects (mbool int)\n but got "+ argstr+ ".");
+  if(    !nl->HasLength(args,2)
+      || !MBool::checkType(nl->First(args))
+      || !CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("expected mbool x int");
+  }
   ListExpr result = nl->SymbolAtom("mset");
   return result;
 }
@@ -3123,12 +3107,11 @@ ListExpr Union2MSetTM(ListExpr args)
 {
   string argstr;
   nl->WriteToString(argstr, args);
-  CHECK_COND(nl->ListLength(args) == 2 &&
-    nl->IsAtom(nl->First(args)) &&  
-    nl->SymbolValue(nl->First(args))== "mset" &&
-    nl->IsAtom(nl->Second(args)) &&  
-    nl->SymbolValue(nl->Second(args))== "mset",
-      "Operator union expects (mset mset)\n but got "+ argstr+ ".");
+  if(    !nl->HasLength(args,2)
+      || !listutils::isSymbol(nl->First(args),"mset")
+      || !listutils::isSymbol(nl->Second(args),"mset")){
+    return listutils::typeError("mset x mset expected");
+  }
   ListExpr result = nl->SymbolAtom("mset");
   return result;
 }
@@ -3289,39 +3272,35 @@ ListExpr CreateAlfaSetTM(ListExpr args)
     cout.flush();
   }
 
-  nl->WriteToString(argstr, args);
-  CHECK_COND(nl->ListLength(args) == 2,
-      "Operator stream2set expects 2 arguments \n but got: " 
-      + argstr + ".");
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("2 arguments expected");
+  }
   
-  ListExpr streamExpr = nl->First(args);   //stream(tuple(DATA))
+  ListExpr streamExpr = nl->First(args);   //stream(tuple(X))
+  if(!Stream<Tuple>::checkType(streamExpr)) {
+    return listutils::typeError("first argument is not a tuple stream");
+  }
 
-  nl->WriteToString(argstr, nl->First(args));
-  CHECK_COND( listutils::isTupleStream(streamExpr) ,
-      "Operator stream2set expects stream(tuple(.)) as first "
-      "argument.\nBut got: " + argstr + ".");
-  
-  nl->WriteToString(argstr, nl->Second(args));
-  CHECK_COND( nl->IsAtom(nl->Second(args)) ,
-        "Operator stream2set expects as second argument an "
-        "attribute name.\nBut got: '" + argstr + "'.\n" );
-
-  nl->WriteToString(argstr, args);
+  if(!listutils::isSymbol(nl->Second(args))){
+    return listutils::typeError("second argument is not a "
+                                 "valid attribute name");
+  } 
+ 
   ListExpr attrType;
+  string attrName = nl->SymbolValue(nl->Second(args));
   int attrIndex= 
     listutils::findAttribute(nl->Second(nl->Second(streamExpr)), 
-        nl->ToString(nl->Second(args)), 
-        attrType);
+        attrName, attrType);
   
-  
-  CHECK_COND( attrIndex != 0,
-        "Operator  stream2set expects as second argument an "
-        "attribute name that belongs to the first argument.\n"
-        "But got: '" + argstr + "'.\n" );
-  
-  CHECK_COND( nl->IsEqual(attrType, alfa),
-        "Operator  stream2set expects a attribute of type " + alfa +
-        ".\n But got: '" + argstr + "'.\n" );
+  if(!attrIndex){
+    return listutils::typeError("Attribute " + attrName + " not found"); 
+  } 
+ 
+  if(!nl->IsEqual(attrType,alfa)){
+     return listutils::typeError("Attribute " + attrName + " is of type " 
+                     + nl->ToString(attrType) + " but should be of type "
+                     + alfa);
+  } 
 
   ListExpr res= nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
       nl->TwoElemList(nl->IntAtom(attrIndex), attrType),
@@ -3404,26 +3383,17 @@ ListExpr BoundingRegionTM(ListExpr args)
 
 ListExpr ConvexHullTM(ListExpr args)
 {
-  string msg= nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 2 ,
-      "Operator convexhull expects 2 arguments.\nBut got: " + msg + ".");
-  
-  msg= nl->ToString(nl->First(args));
-  ListExpr strm= nl->First(args);
-  CHECK_COND( nl->ListLength(strm) == 2 &&
-      nl->IsAtom(nl->First(strm)) &&
-      nl->SymbolValue(nl->First(strm)) == Symbol::STREAM() &&
-      nl->IsAtom(nl->Second(strm)) &&
-      nl->SymbolValue(nl->Second(strm)) == MPoint::BasicType(),
-      "Operator convexhull expects stream(mpoint) as first argument."
-      "\nBut got: " + msg + ".");
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("expected 2 arguments");
+  }
+  if(!Stream<MPoint>::checkType(nl->First(args))){
+    return listutils::typeError("first argument must be of "
+                                "type stream(mpoint)");
+  }
 
-  msg= nl->ToString(nl->Second(args));
-  CHECK_COND( nl->IsAtom(nl->Second(args)) &&
-      nl->SymbolValue(nl->Second(args)) == Instant::BasicType(),
-      "Operator convexhull expects an instant as second argument."
-      "\nBut got: " + msg + ".");
-
+  if(!Instant::checkType(nl->Second(args))){
+    return listutils::typeError("expected instant as second argument");
+  }
   return nl->SymbolAtom(Region::BasicType());
 }
 
@@ -3556,7 +3526,7 @@ ListExpr CollectIntSetTypeMap(ListExpr args) {
       {
           argType = nl->Second(argStream);
           if ( nl->IsEqual(nl->First(argStream), Symbol::STREAM())
-             && nl->IsEqual(nl->Second(argStream), CcInt::BasicType()))
+             && nl->IsEqual(argType, CcInt::BasicType()))
               return nl->SymbolAtom("intset");
       }
     }
@@ -3680,7 +3650,7 @@ ReportPatternVM(Word* args, Word& result,int message, Word& local, Supplier s)
   case OPEN: // Construct and Solve the CSP, then store it in the "local" 
   { 
     Supplier stream, namedpatternoidlist, namedpatternoid,alias, patternoid, 
-    constraintlist, filter, constraint, alias1, alias2, tvector;
+    constraintlist, constraint, alias1, alias2, tvector;
     Word Value;
     string aliasstr, alias1str, alias2str;
     int noofpatternoids, noofconstraints;
@@ -3688,7 +3658,7 @@ ReportPatternVM(Word* args, Word& result,int message, Word& local, Supplier s)
     stream = args[0].addr;
     namedpatternoidlist = args[1].addr;
     constraintlist= args[2].addr;
-    filter= args[3].addr;
+    //filter= args[3].addr;
 
     noofpatternoids= qp->GetNoSons(namedpatternoidlist);
     noofconstraints= qp->GetNoSons(constraintlist);

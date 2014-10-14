@@ -408,7 +408,7 @@ int LWGraph::insert_edge_directed(int& _first, int& _second, int& _edge)
 
 bool LWGraph::remove_node_if_isolated(int _node)
 {
-  bool removed= false;
+  //bool removed= false;
   map<int, list< set< pair<int, int> > >::iterator>::iterator node_pos=
     node_index.find(_node);
   assertIf(node_pos != node_index.end());
@@ -734,7 +734,7 @@ void MergeNewComponents(vector<NewComponent>& newComponents,
     assertIf(!intersectingNewComponents.empty());
     if(intersectingNewComponents.size() == 1) continue;
     NewComponent bigComp= newComponents[intersectingNewComponents[0]];
-    for(int j= 1;  j< intersectingNewComponents.size(); ++j)
+    for(size_t j= 1;  j< intersectingNewComponents.size(); ++j)
       bigComp.Union(newComponents[intersectingNewComponents[j]]);
 
     for(int j= intersectingNewComponents.size() -1;  j>=0 ; --j)
@@ -917,7 +917,7 @@ bool IsOneComponent(mset::CompressedMSet* _mset, int n,
 int GetNumComponents(
     set<int>& edges, int n, vector< pair<int,int> > & edge2nodes)
 {
-  bool debugme=false;
+  //bool debugme=false;
   int numComps=0;
   LWGraph* graph= new LWGraph();
   InsertEdgesUndirected(graph, edges, edge2nodes);

@@ -4925,7 +4925,7 @@ bool CompressedMSet::Concat(CompressedMSet* arg)
   if(debugme)
   {
     set<int>* finalSet= this->GetFinalSet();
-    assertIf(finalSet->size() == uset.count);
+    assertIf(finalSet->size() == (size_t)uset.count);
   }
 
 
