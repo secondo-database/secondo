@@ -1449,12 +1449,12 @@ bool CSPSetPredsArgs(Supplier predList, Tuple* tup)
 {
 
   ArgVectorPointer funargs;
-  Supplier namedpred,alias,pred;
+  Supplier namedpred,pred;
   int noofpreds= qp->GetNoSons(predList);
   for(int i=0; i< noofpreds; i++)
   {
     namedpred= qp->GetSupplierSon(predList, i);
-    alias= qp->GetSupplierSon(namedpred, 0);
+    //alias= qp->GetSupplierSon(namedpred, 0);
     pred = qp->GetSupplierSon(namedpred, 1);
     funargs = qp->Argument(pred);
     ((*funargs)[0]).setAddr(tup);
@@ -1641,12 +1641,12 @@ Periods* CreateMaximalPeriods()
 bool CSPSetPredsArgs(Supplier predList, Tuple* tup, Periods* periods)
 {
   ArgVectorPointer funargs;
-  Supplier namedpred,alias,pred;
+  Supplier namedpred,pred;
   int noofpreds= qp->GetNoSons(predList);
   for(int i=0; i< noofpreds; i++)
   {
     namedpred= qp->GetSupplierSon(predList, i);
-    alias= qp->GetSupplierSon(namedpred, 0);
+    //alias= qp->GetSupplierSon(namedpred, 0);
     pred = qp->GetSupplierSon(namedpred, 1);
     funargs = qp->Argument(pred);
     ((*funargs)[0]).setAddr(tup);
@@ -3201,21 +3201,18 @@ int NDefUnitVM( ArgVector args, Word& result,
 
 
 
-ListExpr RandomShiftDelayTM( ListExpr typeList )
+ListExpr RandomShiftDelayTM( ListExpr args )
 {
-  CHECK_COND(nl->ListLength(typeList) == 4 &&
-      nl->IsAtom(nl->First(typeList)) &&
-      (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
-      nl->IsAtom(nl->Second(typeList)) &&
-      (nl->SymbolValue(nl->Second(typeList))== "duration")&&
-      nl->IsAtom(nl->Third(typeList)) &&
-      (nl->SymbolValue(nl->Third(typeList))== "real")&&
-      nl->IsAtom(nl->Fourth(typeList)) &&
-      (nl->SymbolValue(nl->Fourth(typeList))== "real"),
-      "randomshiftdelay operator expects (mpoint duration real real) but got "
-      + nl->ToString(typeList))
-
-      return (nl->SymbolAtom("mpoint"));
+  if(!nl->HasLength(args,4)){
+     return listutils::typeError("4 arguments expected");
+  }
+  if(   !MPoint::checkType(nl->First(args))
+     || !Duration::checkType(nl->Second(args))
+     || !CcReal::checkType(nl->Third(args))
+     || !CcReal::checkType(nl->Fourth(args))){
+    return listutils::typeError("mpoint x duration x real x real expected");
+  }
+  return (nl->SymbolAtom("mpoint"));
 }
 
 int RandomShiftDelayVM(ArgVector args, Word& result,
@@ -3528,13 +3525,13 @@ int STPatternExtend2VM(
   {
   case OPEN :
   {
-    Supplier stream, namedpredlist, constraintlist, filter, TRTable;
+    Supplier stream, namedpredlist, constraintlist, TRTable;
     stream = args[0].addr;
     namedpredlist = args[1].addr;
     constraintlist= args[2].addr;
     if(extended)
     {
-      filter= args[3].addr;
+      //filter= args[3].addr;
       TRTable= args[4].addr;
     }
     else
