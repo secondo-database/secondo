@@ -175,32 +175,33 @@ string GenerateRandSTPPExpr2(int alias)
 }
 
 bool GenerateSTPQExperiment2Queries(string selectfrom, int count, 
-    int numpreds[], int numconstraints[], int numQueries[], char* filename)
+    int numpreds[], int numconstraints[], int numQueries[], 
+    const char* filename)
 {
 
-  string aliase[]={"a","b","c","d","e","f","g","h","i","j","k","l","m","n",
-      "o","p","q","r","s","t","u","v","w","x","y","z"};
-  string ints[]= {"1","2","3","4","5","6","7","8","9","10",
-      "11","12","13","14","15","16","17","18","19","20",
-      "21","22","23","24","25","26","27","28","29","30",
-      "31","32","33","34","35","36","37","38","39","40",
-      "41","42","43","44","45","46","47","48","49","50",
-      "51","52","53","54","55","56","57","58","59","60",
-      "61","62","63","64","65","66","67","68","69","70",
-      "71","72","73","74","75","76","77","78","79","80",
-      "81","82","83","84","85","86","87","88","89","90",
-      "91","92","93","94","95","96","97","98","99","100"};
-  string connectors[]= {"vec(\"aabb\")"  , "meanwhile", "vec(\"bbaa\")"  ,  
-      "vec(\"aa.bb\")"  ,  "vec(\"bb.aa\")"  ,
-      "vec(\"abab\")"  ,  "vec(\"baba\")"  ,  "vec(\"baab\")"  ,  
-      "vec(\"abba\")"  ,  "vec(\"a.bab\")"  ,  "vec(\"a.bba\")"  ,
-      "vec(\"baa.b\")"  ,  "vec(\"aba.b\")"  , "immediately", 
-      "vec(\"a.ba.b\")"  ,  "vec(\"a.abb\")"  ,  "vec(\"a.a.bb\")"  ,
-      "vec(\"ba.ab\")"  ,  "then", "vec(\"bb.a.a\")"  ,  "vec(\"bba.a\")"  ,  
-      "vec(\"b.baa\")"  ,  "vec(\"b.b.aa\")"  ,
-      "vec(\"ab.ba\")"  ,  "vec(\"aa.b.b\")"  ,  "vec(\"aab.b\")"  ,  
-      "follows", "vec(\"a.ab.b\")"  ,  "vec(\"a.a.b.b\")"  ,
-      "vec(\"b.ba.a\")",  "later"};
+  //string aliase[]={"a","b","c","d","e","f","g","h","i","j","k","l","m","n",
+  //    "o","p","q","r","s","t","u","v","w","x","y","z"};
+  // string ints[]= {"1","2","3","4","5","6","7","8","9","10",
+  //    "11","12","13","14","15","16","17","18","19","20",
+  //    "21","22","23","24","25","26","27","28","29","30",
+  //    "31","32","33","34","35","36","37","38","39","40",
+  //    "41","42","43","44","45","46","47","48","49","50",
+  //    "51","52","53","54","55","56","57","58","59","60",
+  //    "61","62","63","64","65","66","67","68","69","70",
+  //    "71","72","73","74","75","76","77","78","79","80",
+  //    "81","82","83","84","85","86","87","88","89","90",
+  //    "91","92","93","94","95","96","97","98","99","100"};
+  //string connectors[]= {"vec(\"aabb\")"  , "meanwhile", "vec(\"bbaa\")"  ,  
+  //    "vec(\"aa.bb\")"  ,  "vec(\"bb.aa\")"  ,
+  //    "vec(\"abab\")"  ,  "vec(\"baba\")"  ,  "vec(\"baab\")"  ,  
+  //    "vec(\"abba\")"  ,  "vec(\"a.bab\")"  ,  "vec(\"a.bba\")"  ,
+  //    "vec(\"baa.b\")"  ,  "vec(\"aba.b\")"  , "immediately", 
+  //    "vec(\"a.ba.b\")"  ,  "vec(\"a.abb\")"  ,  "vec(\"a.a.bb\")"  ,
+  //    "vec(\"ba.ab\")"  ,  "then", "vec(\"bb.a.a\")"  ,  "vec(\"bba.a\")"  ,  
+  //    "vec(\"b.baa\")"  ,  "vec(\"b.b.aa\")"  ,
+  //    "vec(\"ab.ba\")"  ,  "vec(\"aa.b.b\")"  ,  "vec(\"aab.b\")"  ,  
+  //    "follows", "vec(\"a.ab.b\")"  ,  "vec(\"a.a.b.b\")"  ,
+  //    "vec(\"b.ba.a\")",  "later"};
   string query="";
 
 
@@ -363,19 +364,24 @@ bool RunSTPQExperiment1Queries(string selectfrom, int count,
 
 ListExpr RandomMBoolTypeMap(ListExpr args)
 {
-  //cout<<nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 1 &&
-   nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "instant")
-   ,"Operator randommbool expects one parameter.");
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!Instant::checkType(nl->First(args))){
+    return listutils::typeError("instant expected");
+  }
   return nl->SymbolAtom("mbool");
 }
 
 ListExpr PassMBoolTypeMap(ListExpr args)
 {
   //cout<<nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 1 &&
-    nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "mbool")
-    , "Operator passmbool expects one parameter.");
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!MBool::checkType(nl->First(args))){
+    return listutils::typeError("mbool expected");
+  }
   return nl->SymbolAtom("mbool");
 }
 
@@ -383,9 +389,12 @@ ListExpr PassMBoolTypeMap(ListExpr args)
 ListExpr RunSTPQExperiment1QueriesTM(ListExpr args)
 {
   //cout<<nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 1 &&
-   nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "string") 
-    , "Operator RunSTPQExperiment1QueriesTM expects one parameter.");
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!CcString::checkType(nl->First(args))){
+    return listutils::typeError("string expected");
+  }
   return nl->SymbolAtom("bool");
 }
 
@@ -393,9 +402,12 @@ ListExpr RunSTPQExperiment1QueriesTM(ListExpr args)
 ListExpr RunSTPQExperiment2QueriesTM(ListExpr args)
 {
   //cout<<nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 1 &&
-    nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "string")
-    , "Operator RunSTPQExperiment1QueriesTM expects one parameter.");
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!CcString::checkType(nl->First(args))){
+    return listutils::typeError("string expected");
+  }
   return nl->SymbolAtom("bool");
 }
 
@@ -419,21 +431,19 @@ ListExpr NDefUnitTM(ListExpr args){
   return nl->SymbolAtom( "typeerror" );
 }
 
-ListExpr RandomShiftDelayTM( ListExpr typeList )
+ListExpr RandomShiftDelayTM( ListExpr args )
 {
-  CHECK_COND(nl->ListLength(typeList) == 4 &&
-      nl->IsAtom(nl->First(typeList)) &&
-      (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
-      nl->IsAtom(nl->Second(typeList)) &&
-      (nl->SymbolValue(nl->Second(typeList))== "duration")&&
-      nl->IsAtom(nl->Third(typeList)) &&
-      (nl->SymbolValue(nl->Third(typeList))== "real")&&
-      nl->IsAtom(nl->Fourth(typeList)) &&
-      (nl->SymbolValue(nl->Fourth(typeList))== "real"),
-      "randomshiftdelay operator expects (mpoint duration real real) but got "
-      + nl->ToString(typeList))
-
-      return (nl->SymbolAtom("mpoint"));
+  string err = " operator expects (mpoint duration real real)";
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError("wrong number of arguments");
+  }
+  if(    !MPoint::checkType(nl->First(args))
+      || !Duration::checkType(nl->Second(args))
+      || !CcReal::checkType(nl->Third(args))
+      || !CcReal::checkType(nl->Fourth(args))){
+     return listutils::typeError(err);
+   }
+   return (nl->SymbolAtom("mpoint"));
 }
 
 ListExpr TestTM(ListExpr args){
@@ -628,7 +638,7 @@ int RunSTPQExperiment2QueriesVM(Word* args, Word& result,
 {
   result = qp->ResultStorage(s);
   CcBool* res = (CcBool*) result.addr;
-  CcString* filename = (CcString*) args[0].addr;
+  //CcString* filename = (CcString*) args[0].addr;
   int numpreds[]={2,2,2,2,
       3,3,3,3,3,
       4,4,4,4,4,4,  
@@ -652,9 +662,10 @@ int RunSTPQExperiment2QueriesVM(Word* args, Word& result,
       10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,
       10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10}; 
 
+  string file = "/home/mattia/Desktop/SQLExpr3.txt";
   res->Set(true, 
       GenerateSTPQExperiment2Queries("select count(*) from trains ", 49,  
-          numpreds, numconss, munexmpl, "/home/mattia/Desktop/SQLExpr3.txt"));
+          numpreds, numconss, munexmpl, file.c_str()));
   return 0;
 }
 
@@ -687,11 +698,11 @@ int RandomShiftDelayVM(ArgVector args, Word& result,
 int StretchVM( ArgVector args, Word& result,
     int msg, Word& local, Supplier s )
 {
-  bool debugme=false; 
-  MPoint *mpoint = static_cast<MPoint*>( args[0].addr );
-  MPoint *mpref  = static_cast<MPoint*>( args[1].addr );
-  int numAnchors = static_cast<CcInt*>( args[2].addr )->GetIntval();
-  double distThreshold = static_cast<CcReal*>( args[3].addr )->GetRealval();
+  //bool debugme=false; 
+  //MPoint *mpoint = static_cast<MPoint*>( args[0].addr );
+  //MPoint *mpref  = static_cast<MPoint*>( args[1].addr );
+  //int numAnchors = static_cast<CcInt*>( args[2].addr )->GetIntval();
+  //double distThreshold = static_cast<CcReal*>( args[3].addr )->GetRealval();
   
   return 0;
 }
@@ -699,7 +710,7 @@ int StretchVM( ArgVector args, Word& result,
 int TestVM( ArgVector args, Word& result,
     int msg, Word& local, Supplier s )
 {
-  bool debugme=false;
+  //bool debugme=false;
   result = qp->ResultStorage(s);
   CcBool* res= static_cast<CcBool*>(result.addr);
 //
