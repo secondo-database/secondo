@@ -151,9 +151,9 @@ OctreeElement::setCoordinates(double* _coordinates){
 
 OctreePoint::OctreePoint(int dim, double* coord, int ident): 
                              OctreeElement(dim, coord),
-                             identifier(ident),
                              pointsReported(0),
-                             pointsContained(1){}
+                             pointsContained(1),
+                             identifier(ident){}
 
 OctreeElement*
 OctreePoint::getSkipTreeCopy(){
@@ -327,9 +327,9 @@ OctreeCell::deletePointData(){
         } 
     }  
     ::std::vector<unsigned long long>::iterator vecIterator;
-    OctreeElement* tmpPoint;
+    //OctreeElement* tmpPoint;
     for (vecIterator=keys.begin(); vecIterator!=keys.end(); vecIterator++){
-      tmpPoint = (*this->content)[*vecIterator];
+      //tmpPoint = (*this->content)[*vecIterator];
       
       //this->content->erase(*vecIterator);
       //delete tmpPoint;

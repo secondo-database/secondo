@@ -380,7 +380,7 @@ OctreeDatParser::createPoint(){
 
 OctreePoint* 
 OctreeDatParser::createPoint(int startCol, int endCol){
-  bool debugme=true;
+  //bool debugme=true;
   OctreePoint *newPoint=0;
   int ident = getNextNumber();
   int cnt = getNextNumber();

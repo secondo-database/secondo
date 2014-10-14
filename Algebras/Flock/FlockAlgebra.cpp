@@ -39,6 +39,8 @@ evaluating the spatiotemporal pattern predicates (STP).
 */
 #include "FlockAlgebra.h"
 #include "Symbols.h"
+#include "ListUtils.h"
+#include "Stream.h"
 
 namespace FLOCK{
 
@@ -205,7 +207,7 @@ Flock::IntersectionCount(Flock* arg)
 Points* Flock::Flock2Points(Instant& curTime, vector<int>* ids,
        vector<MPoint*>*sourceMPoints)
 {
-  bool debugme=true;
+  //bool debugme=true;
   Points* res= new Points(this->pointsCount);
   MPoint* curMPoint;
   Point curPoint(0, 0);
@@ -717,7 +719,7 @@ findFlocks2Dim(OctreeDatParser* myParser,
   printf("Quadtree contains %d points in %d dimensions,\n",
     tree->getPointsContained(), dimensions);
   printf("radius was %f, tolerance was %f.\n", radius, tolerance);
-  printf("Found a total of %d flocks.\n", flocks->size());
+  printf("Found a total of %lu flocks.\n", flocks->size());
   printf("Building the quadtree took %d seconds.\n", (int)(second-first));
   printf("Performing %d queries took %d seconds.\n", queries,
       (int)(third-second));
@@ -814,10 +816,10 @@ findFlocks2DimBruteforce(OctreeDatParser* myParser, double radius,
   for(flockIt=flocks->begin(); flockIt!=flocks->end(); flockIt++){
     (*flockIt)->printPoints();
   }
-  printf("Pointset contains %d points in %d dimensions,\n",
+  printf("Pointset contains %lu points in %d dimensions,\n",
     points->size(), dimensions);
   printf("radius was %f.\n", radius);
-  printf("Found a total of %d flocks.\n", flocks->size());
+  printf("Found a total of %lu flocks.\n", flocks->size());
   printf("Building the quadtree took %d seconds.\n", (int)(second-first));
   printf("Performing %d queries took %d seconds.\n", queries,
       (int)(third-second));
@@ -899,7 +901,7 @@ findFlocksSkiptreeSquare(OctreeDatParser* myParser, double radius,
   printf("Quadtree contains %d points in %d dimensions,\n",
     (*tree)[0]->getPointsContained(), dimensions);
   printf("radius was %f, tolerance was %f.\n", radius, tolerance);
-  printf("Found a total of %d flocks.\n", flocks->size());
+  printf("Found a total of %lu flocks.\n", flocks->size());
   printf("Building the quadtree took %d seconds.\n", (int)(second-first));
   printf("Performing %d queries took %d seconds.\n", queries,
       (int)(third-second));
@@ -1039,7 +1041,7 @@ findFlocksSkiptreeSquareWithPruning(OctreeDatParser* myParser,
   printf("Quadtree contains %d points in %d dimensions,\n",
     (*tree)[0]->getPointsContained(), dimensions2);
   printf("radius was %f, tolerance was %f.\n", radius, tolerance);
-  printf("Found a total of %d flocks.\n", flocks->size());
+  printf("Found a total of %lu flocks.\n", flocks->size());
   printf("Building the pruning skip quadtree took %d seconds.\n",
       (int)(second-first));
   printf("Performing %d queries for pruning took %d seconds.\n", queries,
@@ -1065,29 +1067,24 @@ findFlocksSkiptreeSquareWithPruning(OctreeDatParser* myParser,
 
 */
 
-ListExpr ReportFlocksTM( ListExpr typeList )
+ListExpr ReportFlocksTM( ListExpr args )
 {
-  CHECK_COND(nl->ListLength(typeList) == 8 &&
-      nl->IsAtom(nl->First(typeList)) &&
-      (nl->SymbolValue(nl->First(typeList))== CcString::BasicType()) &&
-      nl->IsAtom(nl->Second(typeList)) &&
-      (nl->SymbolValue(nl->Second(typeList))== CcReal::BasicType())&&
-      nl->IsAtom(nl->Third(typeList)) &&
-      (nl->SymbolValue(nl->Third(typeList))== CcReal::BasicType())&&
-      nl->IsAtom(nl->Fourth(typeList)) &&
-      (nl->SymbolValue(nl->Fourth(typeList))== CcInt::BasicType())&&
-      nl->IsAtom(nl->Fifth(typeList)) &&
-      (nl->SymbolValue(nl->Fifth(typeList))== Instant::BasicType())&&
-      nl->IsAtom(nl->Sixth(typeList)) &&
-      (nl->SymbolValue(nl->Sixth(typeList))== Duration::BasicType())&&
-      nl->IsAtom(nl->Nth(7, typeList)) &&
-      (nl->SymbolValue(nl->Nth(7, typeList))== CcInt::BasicType())&&
-      nl->IsAtom(nl->Nth(8, typeList)) &&
-      (nl->SymbolValue(nl->Nth(8, typeList))== CcString::BasicType()),
-      "reportflocks operator expects type map error"
-      + nl->ToString(typeList))
-
-      return (nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+  if(!nl->HasLength(args,8)){
+    return listutils::typeError("8 arguments expected");
+  }
+  string err = "string x real x real x int x instant x duration "
+               "x int x string expected";
+  if(   !CcString::checkType(nl->First(args))
+     || !CcReal::checkType(nl->Second(args))
+     || !CcReal::checkType(nl->Third(args))
+     || !CcInt::checkType(nl->Fourth(args))
+     || !Instant::checkType(nl->Fifth(args))
+     || !Duration::checkType(nl->Sixth(args))
+     || !CcInt::checkType(nl->Nth(7,args))
+     || !CcString::checkType(nl->Nth(8,args))){
+    return listutils::typeError(err);
+  }
+  return (nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
           nl->SymbolAtom("mflock")));
 }
 
@@ -1553,12 +1550,13 @@ TypeConstructor mflockTC(
 ListExpr RandomMFlockTM(ListExpr args)
 {
   //cout<<nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 2 &&
-      nl->IsAtom(nl->First(args)) &&
-      (nl->SymbolValue(nl->First(args))== Instant::BasicType()) &&
-      nl->IsAtom(nl->Second(args)) &&
-      (nl->SymbolValue(nl->Second(args))== CcInt::BasicType()),
-  "Operator randommflock expects two parameter.");
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two elements expected");
+  }
+  if(   !Instant::checkType(nl->First(args))
+     || !CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("instant x int expected");
+  }
   return nl->SymbolAtom("mflock");
 }
 
@@ -1654,44 +1652,34 @@ Operator randommflock (
 ListExpr MFlock2MRegionTM(ListExpr args)
 {
   string msg= nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 3 ,
-      "Operator mflock2mregion expects 3 arguments.\nBut got: " + msg + ".");
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("three arguments expected");
+  }
 
-  msg= nl->ToString(nl->First(args));
-  CHECK_COND( listutils::isTupleStream(nl->First(args)) ,
-      "Operator mflock2mregion expects stream(tuple(X)) as first argument."
-      "\nBut got: " + msg + ".");
-
-  msg= nl->ToString(nl->Second(args));
-  CHECK_COND( listutils::isTupleStream(nl->Second(args)) ,
-      "Operator mflock2mregion expects stream(tuple(X)) as second argument."
-      "\nBut got: " + msg + ".");
-
-  msg= nl->ToString(nl->Third(args));
-  CHECK_COND( nl->IsAtom(nl->Third(args)) &&
-      nl->SymbolValue(nl->Third(args))== Duration::BasicType(),
-          "Operator mflock2mregion expects duration as third "
-          "argument.\nBut got: " + msg + ".");
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("first arg is not a tuple stream");
+  }
+  if(!Stream<Tuple>::checkType(nl->Second(args))){
+    return listutils::typeError("second arg is not a tuple stream");
+  }
+  if(!Duration::checkType(nl->Third(args))){
+    return listutils::typeError("third arg is not a duration");
+  }
 
   ListExpr tuple1 = nl->Second(nl->Second(nl->First(args)));
-  msg= nl->ToString(tuple1);
-  CHECK_COND( nl->ListLength(tuple1) == 2 &&
-    nl->IsAtom     (nl->Second(nl->First (tuple1))) &&
-    nl->SymbolValue(nl->Second(nl->First (tuple1)))== CcInt::BasicType() &&
-    nl->IsAtom     (nl->Second(nl->Second(tuple1))) &&
-    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== "mpoint",
-        "Operator mflock2mregion expects stream(tuple(int mpoint)) as first "
-        "argument.\nBut got: stream(tuple(" + msg + ")).");
+  if(   !nl->HasLength(tuple1,2) 
+     || !CcInt::checkType(nl->Second(nl->First(tuple1)))
+     || !MPoint::checkType(nl->Second(nl->Second(tuple1)))){
+    return listutils::typeError("first arg must be "
+                                " stream(tuple(int mpoint))");
+  }
 
   ListExpr tuple2 = nl->Second(nl->Second(nl->Second(args)));
-  msg= nl->ToString(tuple2);
-  CHECK_COND( nl->ListLength(tuple2) == 1 &&
-    nl->IsAtom     (nl->Second(nl->First(tuple2))) &&
-    nl->SymbolValue(nl->Second(nl->First(tuple2)))== "mflock",
-        "Operator mflock2mregion expects stream(tuple(mflock)) as second "
-        "argument.\nBut got: stream(tuple(" + msg + ")).");
-
-  return (nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+  if(   ! nl->HasLength(tuple2,1)
+     || ! listutils::isSymbol(nl->Second(nl->First(tuple2)),"mflock")){
+     return listutils::typeError("second arg must be stream(tuple(mflock))");
+   }
+   return (nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
       nl->SymbolAtom("movingregion")));
 }
 
@@ -1841,7 +1829,7 @@ Adding the last instant in the unit
 int
 MFlock2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  bool debugme=true;
+  //bool debugme=true;
   result = qp->ResultStorage(s);
   MRegion* res = static_cast<MRegion*>( result.addr);
 
