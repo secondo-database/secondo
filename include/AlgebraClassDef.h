@@ -44,19 +44,6 @@ extern NestedList* nl;
 
 using namespace std;
 
-/*
-1.3 Macro ~CHECK\_COND~
-
-This macro makes reporting errors in type mapping functions more conveniently.
-
-*/
-#define CHECK_COND(cond, msg) \
-  if(!(cond)) \
-  {\
-    ErrorReporter::ReportError(msg);\
-    return nl->SymbolAtom("typeerror");\
-  };
-
 
 /*
 1.6 Class "Algebra"[1]
